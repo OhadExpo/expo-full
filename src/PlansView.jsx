@@ -800,7 +800,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                       <span role="button" tabIndex={0} onClick={()=>toggleCmpDay(cmpDayKey)} onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggleCmpDay(cmpDayKey); } }} title={cmpCollapsed?'Expand day':'Collapse day'} style={{cursor:'pointer',color:C.tm,fontSize:12,lineHeight:1,userSelect:'none'}}>{cmpCollapsed?'▸':'▾'}</span>
                       <input value={d.name || `Day ${di + 1}`} readOnly tabIndex={-1}
                         style={{...baseInput, fontFamily:FB, fontWeight:700, fontSize:14, color:C.tx, padding:'4px 8px', maxWidth:260, cursor:'default'}} />
-                      <span style={{color:C.td,fontSize:12,whiteSpace:'nowrap'}}>({dayExs.length} ex)</span>
+                      <span style={{color:C.td,fontSize:12,whiteSpace:'nowrap',display:'inline-flex',alignItems:'center',lineHeight:1,alignSelf:'center'}}>({dayExs.length} ex)</span>
                     </div>
                     {!cmpCollapsed && (<>
                     {dayExs.length === 0 ? (
@@ -1706,7 +1706,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                   style={{cursor:'pointer',color:'#FFFFFF',fontSize:13,lineHeight:1,flexShrink:0,transform:dayCollapsed?'rotate(-90deg)':'none',transition:'transform 180ms ease',userSelect:'none'}}>▾</span>
                 <input value={d.name} onChange={e=>updateDay(dayIdx,{name:e.target.value})}
                   style={{...baseInput, fontFamily:FB, fontWeight:700, fontSize:14, color:C.tx, padding:"4px 8px", maxWidth:260, minWidth:64, flex:'1 1 120px', width:'auto', boxShadow:'0 0 12px -6px var(--c-ac)'}} />
-                <span style={{color:C.ac,fontSize:12,whiteSpace:"nowrap"}}>({dayExs.length} ex)</span>
+                <span style={{color:C.ac,fontSize:12,whiteSpace:"nowrap",display:'inline-flex',alignItems:'center',lineHeight:1,alignSelf:'center'}}>({dayExs.length} ex)</span>
                 {/* Per-day Daily-Routine toggle — ported from the old detail view
                     (the unified view had dropped it). ON = athlete logs this day
                     unlimited times per block, no DONE lock, no week rotation. */}
