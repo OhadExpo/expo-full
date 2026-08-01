@@ -579,7 +579,7 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExerc
                             possible via the modal's add-by-name. */}
                         <div style={{ minWidth: 0 }}>
                           <ExPicker exercises={exercises} value={w.exerciseId || ''} label="Exercise" fallbackTitle={w.t}
-                            onChange={id => { const lib = exById(exercises).get(id); update(i, { exerciseId: id, t: lib?.title || w.t || '', ...((!w.vid && lib?.videoLink) ? { vid: lib.videoLink } : {}), ...((!w.note && lib?.cues) ? { note: lib.cues } : {}) }); }}
+                            onChange={id => { if (id === w.exerciseId) return; const lib = exById(exercises).get(id); update(i, { exerciseId: id, t: lib?.title || '', vid: lib?.videoLink || '', note: lib?.cues || '' }); }}
                             onPickName={name => update(i, { exerciseId: '', t: name })}
                             onCreateLibrary={setExercises ? (name => { const id = addLibExercise(setExercises, name); if (id) update(i, { exerciseId: id, t: name }); }) : undefined} />
                         </div>
@@ -1894,7 +1894,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                               video URL (50/50, aligned with notes/thumb below). */}
                           <ExEditorExtras ex={ex} exData={exData} exTitle={title} update={update} onResolveVideo={onResolveVideo} showEmbed={exOpen}
                             exercises={exercises} setExercises={setExercises}
-                            picker={<ExPicker exercises={exercises} value={ex.exerciseId} onChange={id=>{ const lib = exById(exercises).get(id); update({ exerciseId: id, title: lib?.title || ex.title || '' }); }} onPickName={name=>update({exerciseId:'', title:name})}
+                            picker={<ExPicker exercises={exercises} value={ex.exerciseId} onChange={id=>{ if (id === ex.exerciseId) return; const lib = exById(exercises).get(id); update({ exerciseId: id, title: lib?.title || '', videoUrl: undefined, notes: '', notesEdited: false }); }} onPickName={name=>update({ exerciseId:'', title:name, videoUrl: undefined, notes: '', notesEdited: false })}
                               onCreateLibrary={setExercises ? (name => { const id = addLibExercise(setExercises, name); if (id) update({ exerciseId: id, title: name }); }) : undefined}
                               label="Exercise" fallbackTitle={ex.title} />} />
                         </div>
