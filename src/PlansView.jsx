@@ -392,6 +392,75 @@ function wuRx(w) {
   return (w && w.rx) || '';
 }
 
+// Push-to-library controls for a WARM-UP row. Warm-ups carry a flat
+// {t, vid, note, exerciseId} shape (no 3-state override), so this mirrors the
+// day-exercise ExEditorExtras library buttons against those fields — SAME
+// markup/styles so both editors read identically (Ohad: OCD consistency).
+function WarmupLibraryControls({ w, onLink, exercises, setExercises }) {
+  const [libConfirm, setLibConfirm] = useState(null); // 'update' | 'new' | null
+  const libEnabled = typeof setExercises === 'function' && Array.isArray(exercises);
+  const title = (w.t || '').trim();
+  const vid = w.vid || '';
+  const note = w.note || '';
+  if (!libEnabled || !(title || vid || note)) return null;
+  const exData = w.exerciseId ? exById(exercises).get(w.exerciseId) : null;
+  // Link target: the linked library exercise, or an exact (case-insensitive)
+  // title match for a free-text warm-up.
+  const libTarget = exData || (title ? (exByTitle(exercises).get(title.toLowerCase()) || null) : null);
+  const norm = (s) => (s || '').trim();
+  const libDirty = !!libTarget && (
+    norm(title) !== norm(libTarget.title) ||
+    norm(vid) !== norm(libTarget.videoLink) ||
+    norm(note) !== norm(libTarget.cues)
+  );
+  const canUpdateLib = !!libTarget && libDirty;
+  const canSaveNew = !libTarget || libDirty;
+  const doUpdateLib = () => {
+    if (!libTarget) return;
+    setExercises(prev => prev.map(e => e.id === libTarget.id
+      ? { ...e, title: title || e.title, videoLink: vid, cues: note } : e));
+    onLink({ exerciseId: libTarget.id, t: title || libTarget.title });
+    toast('Exercise database updated');
+    setLibConfirm(null);
+  };
+  const doSaveNew = () => {
+    const created = newLibExercise({ title, videoLink: vid, cues: note });
+    setExercises(prev => [...prev, created]);
+    onLink({ exerciseId: created.id, t: title });
+    toast('Saved as a new exercise');
+    setLibConfirm(null);
+  };
+  return (
+    <>
+      <div style={{display:'flex',gap:8,flexWrap:'wrap',justifyContent:'flex-end',alignItems:'center',paddingTop:12,marginTop:2,borderTop:`1px solid ${C.cardBd}`}}>
+        <span style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.td,letterSpacing:'0.14em',marginRight:'auto'}}>EXERCISE DATABASE</span>
+        <button onClick={()=>setLibConfirm('update')} disabled={!canUpdateLib}
+          title={!libTarget ? 'No matching library exercise to update — use “Save new exercise”.'
+            : canUpdateLib ? `Overwrite "${libTarget.title}" in the exercise database with this warm-up's name, video and notes.`
+            : 'This warm-up matches the library — nothing to update. Edit the name, video or notes first.'}
+          style={{display:'inline-flex',alignItems:'center',justifyContent:'center',gap:5,background:'transparent',border:`1px solid ${canUpdateLib?C.ac:C.cardBd}`,color:canUpdateLib?C.ac:C.td,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',padding:'6px 12px',cursor:canUpdateLib?'pointer':'not-allowed',opacity:canUpdateLib?1:0.5,borderRadius:0,textTransform:'uppercase'}}><span aria-hidden="true" style={{display:'inline-flex',alignItems:'center',justifyContent:'center',width:9,height:9,fontSize:9,lineHeight:1}}>↑</span><span>Update the exercise database</span></button>
+        <button onClick={()=>setLibConfirm('new')} disabled={!canSaveNew}
+          title={canSaveNew
+            ? 'Create a brand-new exercise in the database from this warm-up, and link this row to it.'
+            : 'This warm-up already matches a library exercise — nothing new to save. Edit the name, video or notes first.'}
+          style={{background:'transparent',border:`1px solid ${canSaveNew?C.gn:C.cardBd}`,color:canSaveNew?C.gn:C.td,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',padding:'6px 12px',cursor:canSaveNew?'pointer':'not-allowed',opacity:canSaveNew?1:0.5,borderRadius:0,textTransform:'uppercase'}}>+ Save new exercise</button>
+      </div>
+      <ConfirmDialog
+        open={libConfirm === 'update'}
+        onCancel={()=>setLibConfirm(null)}
+        onConfirm={doUpdateLib}
+        title="Update the exercise database?"
+        message={libTarget ? `This overwrites "${libTarget.title}" in the exercise library — its video and notes change for EVERY program that uses it, not just this one. Continue?` : ''} />
+      <ConfirmDialog
+        open={libConfirm === 'new'}
+        onCancel={()=>setLibConfirm(null)}
+        onConfirm={doSaveNew}
+        title="Save a new exercise?"
+        message={`This adds "${title || 'Untitled'}" to the exercise database as a new entry and links this row to it. Continue?`} />
+    </>
+  );
+}
+
 function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExercises = null, onCopyWarmup = null }) {
   const warmup = Array.isArray(plan.warmup) ? plan.warmup : [];
   // Collapsed by default whenever there's content, so the warm-up doesn't
@@ -605,6 +674,7 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExerc
                           </div>
                         </div>
                       </div>
+                      <WarmupLibraryControls w={w} onLink={patch => update(i, patch)} exercises={exercises} setExercises={setExercises} />
                     </div>
                   </div>
                 </div>
@@ -1496,7 +1566,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
             );
           })()}
           </div>
-          <Btn onClick={handleSave} disabled={saving} style={{height:38,minWidth:150,padding:'0 18px',fontSize:13,letterSpacing:'0.09em',lineHeight:'38px',background:'#39BDFF',color:'#FFFFFF',border:'1px solid #39BDFF',opacity:saving?0.6:1,display:'inline-flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{saving ? 'Saving...' : 'Save Program'}</Btn>
+          <Btn onClick={handleSave} disabled={saving} style={{height:42,minWidth:150,padding:'0 18px',fontSize:13,letterSpacing:'0.09em',lineHeight:'42px',background:'#39BDFF',color:'#FFFFFF',border:'1px solid #39BDFF',opacity:saving?0.6:1,display:'inline-flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{saving ? 'Saving...' : 'Save Program'}</Btn>
         </div>
         {/* Autosave status on its OWN right-aligned line with a RESERVED height,
             so it appearing / disappearing / changing width ("Saving…" ⇄
