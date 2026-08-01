@@ -268,13 +268,13 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
               <span style={{ fontSize: 10, color: C.td, fontFamily: FN, letterSpacing: '0.06em', width: '100%', textAlign: 'center' }}>NOT IN THE LIST?</span>
               {onPickName && (
                 <button onClick={pickName} title="Add by name only — no library link, notes, or video"
-                  style={{ background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', padding: '7px 14px', borderRadius: 0 }}>
+                  style={{ background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.09em', padding: '7px 14px', borderRadius: 0 }}>
                   + ADD “{search.trim()}” (THIS PROGRAM ONLY)
                 </button>
               )}
               {onCreateLibrary && (
                 <button onClick={() => { onCreateLibrary(search.trim()); onClose(); }} title="Create a reusable library exercise (edit details later in Exercises)"
-                  style={{ background: '#39BDFF', border: '1px solid #39BDFF', color: '#FFFFFF', cursor: 'pointer', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', padding: '7px 14px', borderRadius: 0 }}>
+                  style={{ background: '#39BDFF', border: '1px solid #39BDFF', color: '#FFFFFF', cursor: 'pointer', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.09em', padding: '7px 14px', borderRadius: 0 }}>
                   + CREATE “{search.trim()}” IN LIBRARY
                 </button>
               )}
@@ -3136,7 +3136,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               </button>
             );
             const tag = (
-              <span title={`Last session: ${tagText}`} style={{display:'inline-flex',alignItems:'center',justifyContent:'center',height:22,padding:'0 8px',fontSize:9,fontFamily:FN,color:tagColor,letterSpacing:'0.04em',fontWeight:600,border:`1px solid ${tagColor}`,whiteSpace:'nowrap',flexShrink:0,boxSizing:'border-box'}}>{tagText}</span>
+              <span title={`Last session: ${tagText}`} style={{display:'inline-flex',alignItems:'center',justifyContent:'center',height:30,padding:'0 10px',fontSize:10,fontFamily:FN,color:tagColor,letterSpacing:'0.04em',fontWeight:600,border:`1px solid ${tagColor}`,whiteSpace:'nowrap',flexShrink:0,boxSizing:'border-box'}}>{tagText}</span>
             );
             return (
               <div key={row.tid} data-prog-card={row.tid}
