@@ -69,12 +69,12 @@ function EmailsCell({ email, style }) {
       flexWrap: expanded ? 'wrap' : 'nowrap',
     }}>
       <span style={expanded
-        ? { wordBreak: 'break-all' }
-        : { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }
+        ? { wordBreak: 'break-all', lineHeight: 1 }
+        : { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, lineHeight: 1 }
       }>{visible.join(', ')}</span>
       <span
         onClick={(e) => { e.stopPropagation(); setExpanded(v => !v); }}
-        style={{ color: C.ac, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, lineHeight: 1, minWidth: 34, display: 'inline-flex', justifyContent: 'center' }}
+        style={{ color: C.ac, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, lineHeight: 1, minWidth: 34, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
       >
         {expanded ? 'LESS' : `+${arr.length - 2}`}
       </span>

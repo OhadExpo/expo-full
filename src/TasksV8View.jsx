@@ -1305,7 +1305,8 @@ function CommentsThread({ noteId, viewer }) {
             }
             if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); submit(e); }
           }}
-          placeholder="Add comment…  (Enter = new line · ⌘/Ctrl+Enter to send · @ohad @yuval to mention)"
+          placeholder="Add comment…"
+          title="Enter = new line · ⌘/Ctrl+Enter to send · type @ to mention"
           style={{
             flex: 1, background: 'transparent',
             border: `1px solid var(--c-cardBd)`,
