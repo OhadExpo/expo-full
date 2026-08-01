@@ -48,7 +48,7 @@ function exByTitle(exercises) {
 import { useFullPlan, savePlan, deletePlan, duplicatePlan } from './usePlansStore';
 import useAutosave, { autosaveStatusLabel } from './hooks/useAutosave';
 import VideoEmbed from './VideoEmbed';
-import { sortProgramsChrono } from './traineeUtils';
+import { sortProgramsRecent } from './traineeUtils';
 import { fmtPrettyDate } from './dates';
 
 const defaultPlanEx = () => ({ id: uid(), exerciseId: "", sets: "", reps: "", load: "", rpe: "", tempo: "", rest: "", notes: "", order: 0, superset: "", wk: null });
@@ -727,7 +727,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
     return (planIndex || [])
       .filter(p => p.id !== currentPlan?.id && p.traineeId === selectedAthleteId)
       .slice()
-      .sort(sortProgramsChrono);
+      .sort(sortProgramsRecent);
   }, [planIndex, currentPlan?.id, selectedAthleteId]);
   const [pickedId, setPickedId] = useState(() => candidates[0]?.id || '');
 
@@ -1516,7 +1516,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
             options={[{value:'',label:'Unassigned'}, ...trainees.flatMap(t => t.members && t.members.length===2 ? t.members.map((m,i)=>({value:t.id+'__'+i,label:m.name||('Member '+(i+1))})) : [{value:t.id,label:t.name}])]}
             title="Switch to this athlete's program (assigns the current one if they have none yet) — type to search"
             onPick={async (tid, label)=>{
-                const theirs = tid ? (planIndex||[]).filter(p=>p.traineeId===tid).slice().sort(sortProgramsChrono) : [];
+                const theirs = tid ? (planIndex||[]).filter(p=>p.traineeId===tid).slice().sort(sortProgramsRecent) : [];
                 // Primary behaviour: changing the athlete navigates to THAT
                 // athlete's latest program (what the coach expects). Only when
                 // the athlete has no program yet (or switching isn't wired) do
@@ -1543,7 +1543,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
             const sameAthlete = (planIndex || [])
               .filter(p => p.traineeId === plan.traineeId)
               .slice()
-              .sort(sortProgramsChrono);
+              .sort(sortProgramsRecent);
             if (sameAthlete.length < 2 || !onSwitchProgram) return null;
             // Styled to match the COMPARE / OVERVIEW / SAVE buttons in the
             // same row — same height, font, weight, letter-spacing, border
@@ -2382,15 +2382,15 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
     let result = planIndex;
     if (search) { const q = search.toLowerCase(); result = result.filter(p => (p.name||'').toLowerCase().includes(q) || (traineeMap[p.traineeId]||'').toLowerCase().includes(q)); }
     if (filterTrainee) result = result.filter(p => p.traineeId === filterTrainee);
-    // Apply the user-chosen sort. 'created' uses block-number-aware chrono
-    // sort (sortProgramsChrono) so Drive-imported plans that share a single
-    // import timestamp don't end up in random order — they fall back to
-    // Block #N parsed from the name. Hebrew-aware localeCompare for names.
+    // Apply the user-chosen sort. 'created' uses sortProgramsRecent — last
+    // created/added first (so a just-made un-numbered block floats to the top),
+    // with Block #N as the tiebreak for Drive-import batches that share one
+    // import timestamp. Hebrew-aware localeCompare for names.
     // Date fields fall back to 0 when missing.
     const dirMul = sortDir === 'asc' ? 1 : -1;
     const sorted = result.slice().sort((a, b) => {
       if (sortField === 'name') return (a.name || '').localeCompare(b.name || '', 'he') * dirMul;
-      if (sortField === 'created') return sortProgramsChrono(a, b) * (sortDir === 'asc' ? -1 : 1);
+      if (sortField === 'created') return sortProgramsRecent(a, b) * (sortDir === 'asc' ? -1 : 1);
       const ta = new Date(a.updatedAt || a.createdAt || 0).getTime();
       const tb = new Date(b.updatedAt || b.createdAt || 0).getTime();
       return (ta - tb) * dirMul;
@@ -2714,7 +2714,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
   //   • earlier    = remaining plans, sorted by block# desc
   // Couples with sub-IDs (__0/__1) collapse under the parent member view —
   // we attribute every plan to whichever sub-id-or-parent owns it.
-  const sortByRecency = sortProgramsChrono;
+  const sortByRecency = sortProgramsRecent;
   const grouped = useMemo(() => {
     if (search || filterTrainee) return null; // flat-list fallback for filtered modes
     // Bucket plans by athlete (parent or sub-id).

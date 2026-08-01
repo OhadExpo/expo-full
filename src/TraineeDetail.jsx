@@ -22,7 +22,7 @@ import CoachMessages from './CoachMessages';
 import CoachContractComposer from './CoachContractComposer';
 import TraineeEvaluation from './TraineeEvaluation';
 import TraineeIntake from './TraineeIntake';
-import { emailsToArr, emailsToStore, emailsDisplay, traineeIdsFor, subMemberId, sortProgramsChrono } from './traineeUtils';
+import { emailsToArr, emailsToStore, emailsDisplay, traineeIdsFor, subMemberId, sortProgramsRecent } from './traineeUtils';
 import useAutosave, { autosaveStatusLabel } from './hooks/useAutosave';
 
 // Status is changed HERE (top-right of the trainee page) via this dropdown —
@@ -127,7 +127,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
   useEscClose(showArchiveConfirm, ()=>setShowArchiveConfirm(false));
   useEscClose(showDeleteConfirm, ()=>{setShowDeleteConfirm(false);setDeleteTyped("")});
   const [programSort,setProgramSort]=useState('chrono'); // 'chrono' | 'alpha'
-  // sortProgramsChrono is the canonical newest-first program sort; lives
+  // sortProgramsRecent is the canonical newest-first program sort; lives
   // in traineeUtils.js so PlansView, ClientPortal, etc. share one definition.
   const handleArchive = () => { if(setTrainees) setTrainees(prev=>prev.map(t=>t.id===trainee?{...t,status:"Archived",archivedAt:new Date().toISOString()}:t)); setShowArchiveConfirm(false); onBack(); };
   const handlePermanentDelete = async () => {
@@ -257,7 +257,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
   // otherwise have to do by toggling each block off by hand.
   const bulkOnlyCurrent = (plans, keyFn) => {
     if (plans.length === 0) return;
-    const sorted = [...plans].sort(sortProgramsChrono);
+    const sorted = [...plans].sort(sortProgramsRecent);
     const current = sorted[0];
     const next = { ...portalVis };
     plans.forEach(p => { next[keyFn(p)] = p === current; });
@@ -285,7 +285,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
   // Helper: render a member column (body stats, injuries, goals, optionally programs)
   const renderMemberColumn = (m, mi, showPrograms = true) => {
     const memberPlans = tpMember(mi);
-    const sorted = [...memberPlans].sort((a,b)=>programSort==='alpha'?a.name.localeCompare(b.name):sortProgramsChrono(a,b));
+    const sorted = [...memberPlans].sort((a,b)=>programSort==='alpha'?a.name.localeCompare(b.name):sortProgramsRecent(a,b));
     const memberVisKey = (p) => `${td.name}:${p.name}:m${mi}`;
     // Single-click "make this the only visible plan" for couple members.
     // Sets every sibling explicitly to false so default-undefined rows
@@ -354,7 +354,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
     setPortalVis(nv);
   };
   const renderProgramsList = () => {
-    const sorted = [...tp].sort((a,b)=>programSort==='alpha'?a.name.localeCompare(b.name):sortProgramsChrono(a,b));
+    const sorted = [...tp].sort((a,b)=>programSort==='alpha'?a.name.localeCompare(b.name):sortProgramsRecent(a,b));
     return sorted.map(p=>{const visKey=`${td.name}:${p.name}`;const isVis=portalVis?.[visKey]!==false;return <Card key={p.id} style={{marginBottom:8}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}><div style={{flex:1,cursor:'pointer'}} onClick={()=>onOpenPlan&&onOpenPlan(p.id)}><div style={{fontWeight:600,color:C.tx}}>{p.name}</div><div style={{fontSize:12,color:C.tm,marginTop:2}}>{plur(p.dayCount||0, 'day', 'days')} · {plur(p.exerciseCount||0, 'exercise', 'exercises')}</div></div><div style={{display:'flex',alignItems:'center',gap:8}}><button onClick={e=>{e.stopPropagation();setConfirmUnassign(p.id);setUnassignTyped("")}} title="Remove program" style={{background:'none',border:'none',color:C.rd,cursor:'pointer',fontSize:11,fontFamily:FN,opacity:0.6,height:24,boxSizing:'border-box',padding:'0 4px',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>✕</button><button onClick={e=>{e.stopPropagation();onlyThis(visKey,sorted)}} title="Show only this program on the athlete portal — hide all others" style={{background:'transparent',border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.10em',height:24,boxSizing:'border-box',padding:'0 8px',borderRadius:0,cursor:'pointer',textTransform:'uppercase',display:'inline-flex',alignItems:'center'}}>Only this</button><button onClick={e=>{e.stopPropagation();const nv={...portalVis,[visKey]:!isVis};setPortalVis(nv)}} title={isVis?"Visible on portal — click to hide":"Hidden from portal — click to show"} style={{background:'none',border:'none',padding:0,cursor:'pointer',height:24,display:'inline-flex',alignItems:'center',gap:4}}><div style={{width:36,height:20,borderRadius:10,background:isVis?'rgba(46,213,115,0.251)':C.sf3,border:`1px solid ${isVis?'rgba(46,213,115,0.376)':C.bd2}`,position:'relative',transition:'all .15s'}}><div style={{width:16,height:16,borderRadius:8,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?18:1,transition:'all .15s'}}/></div><span style={{fontSize:10,fontFamily:FN,color:isVis?C.gn:C.td,minWidth:32}}>{isVis?'ON':'OFF'}</span></button><span onClick={()=>onOpenPlan&&onOpenPlan(p.id)} style={{color:C.ac,fontSize:12,cursor:'pointer',display:'inline-flex',alignItems:'center',height:24}}>Open →</span></div></div></Card>});
   };
 
@@ -638,7 +638,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           {[0,1].map(mi => {
             const m = td.members[mi];
             const memberPlans = tpMember(mi);
-            const sorted = [...memberPlans].sort((a,b)=>programSort==='alpha'?a.name.localeCompare(b.name):sortProgramsChrono(a,b));
+            const sorted = [...memberPlans].sort((a,b)=>programSort==='alpha'?a.name.localeCompare(b.name):sortProgramsRecent(a,b));
             const memberVisKey = (p) => `${td.name}:${p.name}:m${mi}`;
             // Single-click "only this" within THIS couple member's plan list.
             const onlyThisCouple = (chosenKey) => {
