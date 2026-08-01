@@ -11,7 +11,6 @@ const isHebrew = (s) => /[\\u0590-\\u05FF]/.test(s || '');
 // Helper to pluralize day/ex counts consistently — "1 day" not "1 days".
 const plur = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 import { Btn, Input, Select, TextArea, Badge, Card, Modal, EmailsInput, baseInput, toast, confirmToast, useEscClose, SectionLabel, CollapsibleSection } from './ui';
-import Segmented from './Segmented';
 import { savePlan } from './usePlansStore';
 import { supabase } from './supabase';
 import OverloadChart from './OverloadChart';
@@ -93,19 +92,18 @@ function ProgramCard({ plan: p, isVis, onOpen, onUnassign, onOnly, onToggleVis }
 }
 
 export default function TraineeDetail({ trainee, trainees, setTrainees, planIndex, reloadPlanIndex, exercises, workouts, clientWorkouts, payments, addPayment, updatePayment, removePayment, bwLog, onBack, onOpenPlan, onPreviewPortal, onOpenTasksTab, onCreatePlanForTask, onOpenIntakeTab, onOpenInPersonForTrainee, portalVis, setPortalVis }) {
-  const [secTab, setSecTab] = useState('all');   // section-jump tab menu (hook must precede any early return)
-  // Deep-link + back/forward for the section tabs: apply the section named in
-  // the URL hash on mount and on hashchange (back/forward). Does NOT push —
-  // jumpTo owns the push — so there's no loop. Placed here (before any early
-  // return) to satisfy rules-of-hooks. Ids kept inline (SEC_TABS is defined
-  // later, after the early return).
+  // Section tabs are a MULTI-SELECT filter (Ohad): click tags to show only
+  // those sections; an empty set = View All. The URL hash carries the active
+  // ids (comma-joined) so a filtered view is deep-linkable and back/forward
+  // walks it. Hook must precede any early return.
+  const [activeSecs, setActiveSecs] = useState(() => new Set());
   useEffect(() => {
-    const SEC_IDS = ['all', 'billing', 'bw', 'readiness', 'workouts', 'programs', 'overload'];
+    const FILTERABLE = ['billing', 'bw', 'readiness', 'workouts', 'programs', 'overload'];
     const apply = () => {
       const raw = (typeof window !== 'undefined' ? window.location.hash : '').replace(/^#/, '');
-      const id = SEC_IDS.includes(raw) ? raw : 'all';
-      setSecTab(id);
-      if (id !== 'all') { const el = document.getElementById('td-sec-' + id); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+      const ids = raw.split(',').map(s => s.trim()).filter(id => FILTERABLE.includes(id));
+      // All selected == none selected == View All (empty set).
+      setActiveSecs(new Set(ids.length === FILTERABLE.length ? [] : ids));
     };
     apply();
     window.addEventListener('hashchange', apply);
@@ -377,20 +375,27 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
   // Section-jump tab menu (Tasks-style segmented control). VIEW ALL is the
   // default (leftmost) and scrolls to the top; each section tab scrolls that
   // section into view. Scroll-jump, not filter — every section stays on the page.
-  const jumpTo = (id) => {
-    setSecTab(id);
-    // Give each section its own URL (hash), so the click is deep-linkable and
-    // the back button walks sections. pushState/replaceState don't fire
-    // hashchange, so this won't re-enter the sync effect below.
+  const FILTERABLE_SECS = ['billing', 'bw', 'readiness', 'workouts', 'programs', 'overload'];
+  // Empty set = View All (show everything). Otherwise show only the active ids.
+  const showSec = (id) => activeSecs.size === 0 || activeSecs.has(id);
+  const toggleSec = (id) => {
+    let next;
+    if (id === 'all') {
+      next = new Set(); // View All resets the filter
+    } else {
+      next = new Set(activeSecs); // empty stays empty until we add the first pick
+      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.size === FILTERABLE_SECS.length) next = new Set(); // all picked → View All
+    }
+    setActiveSecs(next);
+    // pushState (not replaceState) so back/forward walks the filter; pushState
+    // doesn't fire hashchange, so this won't re-enter the sync effect.
     if (typeof window !== 'undefined') {
-      const wantHash = id === 'all' ? '' : '#' + id;
+      const wantHash = next.size === 0 ? '' : '#' + [...next].join(',');
       if (window.location.hash !== wantHash) {
         window.history.pushState(null, '', window.location.pathname + window.location.search + wantHash);
       }
     }
-    if (id === 'all') { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
-    const el = document.getElementById('td-sec-' + id);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
   const SEC_TABS = [
     { id: 'all', label: 'View All' },
@@ -452,12 +457,28 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           </> : <Btn variant="danger" onClick={()=>setShowArchiveConfirm(true)} style={{fontSize:11,padding:"4px 10px",height:30,boxSizing:"border-box"}}>ARCHIVE</Btn>}
         </div></div>
 
-      {/* Section-jump tab menu (Tasks-style segmented control) — VIEW ALL first
-          (default, scrolls to top), then one tab per section. Scrolls sideways
-          rather than wrapping so it never reflows. */}
+      {/* Section filter — MULTI-SELECT (Ohad). VIEW ALL (leftmost) clears the
+          filter; each section tag toggles; pick several to show several; pick
+          all and it snaps back to View All. Scrolls sideways, never reflows. */}
       <div style={{ overflowX: 'auto', marginBottom: 16, paddingBottom: 2 }}>
-        <div style={{ minWidth: 'max-content' }}>
-          <Segmented items={SEC_TABS} value={secTab} onChange={jumpTo} equal={false} ariaLabel="Jump to section" />
+        <div style={{ minWidth: 'max-content', display: 'inline-flex', gap: 6 }} role="group" aria-label="Filter sections">
+          {SEC_TABS.map(t => {
+            const active = t.id === 'all' ? activeSecs.size === 0 : activeSecs.has(t.id);
+            return (
+              <button key={t.id} onClick={() => toggleSec(t.id)}
+                aria-pressed={active}
+                title={t.id === 'all' ? 'Show all sections' : `Toggle ${t.label} — select multiple; selecting all shows everything`}
+                style={{
+                  height: 30, boxSizing: 'border-box', padding: '0 14px', borderRadius: 0,
+                  background: active ? C.ac : 'transparent',
+                  border: `1px solid ${active ? C.ac : C.cardBd}`,
+                  color: active ? '#0a0a0b' : C.tm,
+                  fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.09em',
+                  textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap',
+                  display: 'inline-flex', alignItems: 'center', transition: 'background .12s, color .12s, border-color .12s',
+                }}>{t.label}</button>
+            );
+          })}
         </div>
       </div>
 
@@ -536,7 +557,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           for visual parity. Header = "Billing (N)" + total-paid badge;
           headerRight = the 3 action buttons. Body = payments table or
           empty state. */}
-      <CollapsibleSection domId="td-sec-billing" title="Billing" count={tPay.length} storageKey={`td-billing-${trainee}`} style={{marginBottom:16}}
+      <CollapsibleSection domId="td-sec-billing" title="Billing" count={tPay.length} storageKey={`td-billing-${trainee}`} style={{marginBottom:16, display: showSec('billing') ? undefined : 'none'}}
         right={<div style={{display:'flex',flexWrap:'wrap',gap:6,justifyContent:'flex-end',alignItems:'center'}}>
           {totalPaid>0&&<span style={{color:'#FFFFFF',opacity:0.85,fontWeight:400,fontFamily:FB,fontSize:12,marginRight:6,whiteSpace:'nowrap'}}>₪{totalPaid.toLocaleString()} paid</span>}
           <div style={{display:'flex',gap:0}}>
@@ -609,7 +630,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       )}
 
       {/* === BODYWEIGHT — slot #6 (collapsible; chart is self-carded → bare) */}
-      <CollapsibleSection bare domId="td-sec-bw" title="Bodyweight" count={tBw.length} storageKey={`td-bw-${trainee}`} style={{margin:'20px 0 0'}}>
+      <CollapsibleSection bare domId="td-sec-bw" title="Bodyweight" count={tBw.length} storageKey={`td-bw-${trainee}`} style={{margin:'20px 0 0', display: showSec('bw') ? undefined : 'none'}}>
         <BWChart entries={tBw} />
       </CollapsibleSection>
 
@@ -617,13 +638,13 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           the SAME graph the athlete sees in their portal (Ohad). Only shown
           once the athlete has logged at least one readiness check-in. */}
       {tAllWorkouts.some(w=>hasReadiness(w.autoregulation)) && (
-        <CollapsibleSection bare domId="td-sec-readiness" title="Readiness" count={tAllWorkouts.filter(w=>hasReadiness(w.autoregulation)).length} storageKey={`td-readiness-${trainee}`} style={{margin:'20px 0 0'}}>
+        <CollapsibleSection bare domId="td-sec-readiness" title="Readiness" count={tAllWorkouts.filter(w=>hasReadiness(w.autoregulation)).length} storageKey={`td-readiness-${trainee}`} style={{margin:'20px 0 0', display: showSec('readiness') ? undefined : 'none'}}>
           <CheckinTrends workouts={tAllWorkouts} />
         </CollapsibleSection>
       )}
 
       {/* === WORKOUTS — slot #7 (collapsible) */}
-      <CollapsibleSection bare domId="td-sec-workouts" title="Recent Workouts" count={tAllWorkouts.length} storageKey={`td-workouts-${trainee}`} style={{margin:'20px 0 0'}}>
+      <CollapsibleSection bare domId="td-sec-workouts" title="Recent Workouts" count={tAllWorkouts.length} storageKey={`td-workouts-${trainee}`} style={{margin:'20px 0 0', display: showSec('workouts') ? undefined : 'none'}}>
         {tAllWorkouts.length===0?<div style={{color:C.td,fontSize:13}}>No completed workouts.</div>:
           tAllWorkouts.slice(0,10).map(w=><Card key={`${w.source}-${w.id}`} style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{display:"flex",alignItems:"baseline",gap:8,minWidth:0}}><span style={{fontWeight:600,color:C.tx,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{w.dayName}</span>{w.week!=null&&<span style={{fontFamily:FN,fontSize:11,color:C.tm,flexShrink:0}}>Week {w.week}</span>}</div><span style={{fontSize:12,color:C.tm,flexShrink:0}}>{fmtPrettyDate(w.date)}</span></div>
             {/* Per-workout readiness — equal-width stat cells (label stacked over
@@ -646,7 +667,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
 
       {/* === ASSIGNED PROGRAMS — slot #8 */}
       {couple ? <>
-        <CollapsibleSection bare domId="td-sec-programs" title="Assigned Programs" count={tp.length} storageKey={`td-programs-${trainee}`} style={{margin:"28px 0 0"}} right={<>
+        <CollapsibleSection bare domId="td-sec-programs" title="Assigned Programs" count={tp.length} storageKey={`td-programs-${trainee}`} style={{margin:"28px 0 0", display: showSec('programs') ? undefined : 'none'}} right={<>
             <button onClick={()=>setProgramSort(s=>s==='chrono'?'alpha':'chrono')} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,height:28,padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',justifyContent:'center',minWidth:78}}>{programSort==='chrono'?'↕ DATE':'↕ A→Z'}</button>
             <button onClick={()=>setShowAssign(true)} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:28,padding:"0 14px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',whiteSpace:'nowrap',textTransform:'uppercase'}}>+ New Program</button>
           </>}>
@@ -685,7 +706,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             Program / sort / visibility stay reachable even when the program list
             is collapsed. Clean order: sort → portal-visibility → + New Program
             (primary, last); wraps under the title on narrow widths. */}
-        <CollapsibleSection bare domId="td-sec-programs" title="Assigned Programs" count={tp.length} storageKey={`td-programs-${trainee}`} style={{margin:"28px 0 0"}} right={<>
+        <CollapsibleSection bare domId="td-sec-programs" title="Assigned Programs" count={tp.length} storageKey={`td-programs-${trainee}`} style={{margin:"28px 0 0", display: showSec('programs') ? undefined : 'none'}} right={<>
             <button onClick={()=>setProgramSort(s=>s==='chrono'?'alpha':'chrono')} style={{background:'var(--c-sf)',border:`1px solid var(--c-ghostBd)`,borderRadius:0,height:28,boxSizing:'border-box',padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',justifyContent:'center',minWidth:78}}>{programSort==='chrono'?'↕ DATE':'↕ A→Z'}</button>
             {bulkToggleBtn(tp, (p)=>`${td.name}:${p.name}`)}
             <button onClick={()=>setShowAssign(true)} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:28,boxSizing:'border-box',padding:"0 14px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',whiteSpace:'nowrap',textTransform:'uppercase'}}>+ New Program</button>
@@ -709,7 +730,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           hub: the table is the overview, each row expands into the lift's
           full record (all-time PR · trend chart · session history). The old
           standalone "Records" section was merged in here to kill the overlap. */}
-      <CollapsibleSection bare domId="td-sec-overload" title="Progressive Overload" storageKey={`td-overload-${trainee}`} style={{margin:'20px 0 0'}}>
+      <CollapsibleSection bare domId="td-sec-overload" title="Progressive Overload" storageKey={`td-overload-${trainee}`} style={{margin:'20px 0 0', display: showSec('overload') ? undefined : 'none'}}>
         <OverloadChart workouts={[...tw, ...tcw]} exercises={exercises} />
       </CollapsibleSection>
 
