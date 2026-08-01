@@ -9,6 +9,7 @@
 // is unscoped, pulling across all target_kind/target_id combos.
 
 import React, { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { fmtPrettyDate } from './dates';
 import { C, FN, FB, FH } from './theme';
 import { isRefined5b, RefinedHeaderStrip, confirmToast, usePersistentState, useIsMobile } from './ui';
@@ -18,6 +19,7 @@ import { AUTO_KIND_LABEL, AUTO_KIND_ACTION, whatsappMessageForTask, throttleWhat
 import { AutoTaskExplainModal } from './components/AutoTaskExplain';
 import { normalizePhoneIL } from './whatsappButton';
 import { displayBodyOf, ownerFromBody, priorityFromBody, visibleTags, PRIORITY_TONE } from './taskFormat';
+import { CommentsThread, EventTimeline } from './TasksV8View';
 
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
 
@@ -518,15 +520,18 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
     onCreatePlanForTask(n.target_id);
   };
 
+  // Dashboard mini-board: clicking a task opens its full card as a dismissible
+  // POPUP right here (comments + activity), staying open until dismissed; the
+  // ⤢ button jumps to the full Tasks page with the row focused (Ohad 2026-08-01,
+  // superseding the 2026-07-05 straight-navigate behaviour).
+  const [popupNote, setPopupNote] = useState(null);
+  const openInTasks = (n) => {
+    try { sessionStorage.setItem('expo-pendingFocusTask', n.id); } catch { /* noop */ }
+    setPopupNote(null);
+    if (onOpenFullTasks) onOpenFullTasks();
+  };
   const handleClick = (n) => {
-    // Compact (dashboard) mini-board: clicking a task opens THE TASK itself —
-    // full Tasks page with that row expanded (comments + detail), not the
-    // task's target (Ohad 2026-07-05). TasksV8View consumes the key on mount.
-    if (compact && onOpenFullTasks) {
-      try { sessionStorage.setItem('expo-pendingFocusTask', n.id); } catch { /* noop */ }
-      onOpenFullTasks();
-      return;
-    }
+    if (compact) { setPopupNote(n); return; }
     if (!onNavigate) return;
     if (n.target_kind && n.target_id) onNavigate(n.target_kind, n.target_id);
   };
@@ -540,6 +545,28 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
       border: `1px solid var(--c-cardBd)`, borderRadius: 0, padding: PAD,
       boxShadow: C.cardShadow,
     }}>
+      {popupNote && createPortal(
+        <div onClick={() => setPopupNote(null)}
+          style={{ position: 'fixed', inset: 0, zIndex: 9000, background: 'rgba(0,0,0,0.62)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div onClick={(e) => e.stopPropagation()}
+            style={{ width: 'min(560px, 96vw)', maxHeight: '86vh', overflowY: 'auto', background: 'var(--c-sf)', border: `1px solid var(--c-ac)`, borderRadius: 0, boxShadow: '0 18px 60px rgba(0,0,0,0.6)', padding: '16px 18px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 12 }}>
+              <div style={{ flex: 1, minWidth: 0, fontFamily: /[֐-׿]/.test(displayBodyOf(popupNote.body)) ? FH : FB, fontSize: 15, fontWeight: 700, color: 'var(--c-tx)', lineHeight: 1.4, direction: /[֐-׿]/.test(displayBodyOf(popupNote.body)) ? 'rtl' : 'ltr' }}>{displayBodyOf(popupNote.body)}</div>
+              <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                {onOpenFullTasks && (
+                  <button onClick={() => openInTasks(popupNote)} title="Open in the full Tasks page"
+                    style={{ background: 'transparent', border: `1px solid var(--c-ac)`, color: 'var(--c-ac)', width: 28, height: 28, boxSizing: 'border-box', borderRadius: 0, cursor: 'pointer', fontSize: 14, lineHeight: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>⤢</button>
+                )}
+                <button onClick={() => setPopupNote(null)} title="Close"
+                  style={{ background: 'transparent', border: `1px solid var(--c-cardBd)`, color: 'var(--c-tm)', width: 28, height: 28, boxSizing: 'border-box', borderRadius: 0, cursor: 'pointer', fontSize: 14, lineHeight: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+              </div>
+            </div>
+            <CommentsThread noteId={popupNote.id} viewer={viewerOwner} />
+            <EventTimeline noteId={popupNote.id} />
+          </div>
+        </div>,
+        document.body
+      )}
       {compact ? (
         // Compact (Dashboard) — header lives in the cyan strip on top to
         // match the visual rhythm of every other dashboard card.

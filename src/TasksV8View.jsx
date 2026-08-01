@@ -1134,7 +1134,7 @@ const cmtActionBtn = {
   fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
   padding: '2px 7px', cursor: 'pointer', borderRadius: 0,
 };
-function CommentsThread({ noteId, viewer }) {
+export function CommentsThread({ noteId, viewer }) {
   const { rows, loading, available, add, update, remove } = useCoachNoteComments(noteId);
   const [draft, setDraft] = useState('');
   const [editingId, setEditingId] = useState(null);
@@ -1348,7 +1348,7 @@ function CommentsThread({ noteId, viewer }) {
   );
 }
 
-function EventTimeline({ noteId }) {
+export function EventTimeline({ noteId }) {
   const { rows, available } = useCoachNoteEvents(noteId);
   // Quiet when migration is pending — no point in showing an empty
   // "Activity" header. Comments component already surfaces the hint.
