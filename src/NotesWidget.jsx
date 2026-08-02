@@ -854,29 +854,29 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
           // Status kanban of MANUAL tasks only — coaching alerts never sit here
           // (they carry no meaningful In-Progress/Waiting/Stuck state). Feeds the
           // MINE view and the top half of ALL.
-          const kanban = (
-            <div style={{ display:'flex', flexDirection: stackBoard ? 'column' : 'row', gap:8, overflowX: stackBoard ? 'visible' : 'auto', paddingBottom:4 }}>
+          const cap = stackBoard ? 6 : 12;
+          const kanban = manualRows.length === 0 ? (
+            <div style={{ padding:'18px 8px', textAlign:'center', color:'var(--c-td)', fontFamily:FN, fontSize:10, letterSpacing:'0.06em' }}>No open tasks — you're all clear.</div>
+          ) : (
+            <div style={{ display:'flex', flexDirection: stackBoard ? 'column' : 'row', gap:8, overflowX: stackBoard ? 'visible' : 'auto', paddingBottom:4, alignItems:'flex-start' }}>
               {COLS.map(col => {
                 const rows = col.id==='open'
                   ? manualRows.filter(r => !['working','waiting','stuck'].includes(r.status))
                   : manualRows.filter(r => r.status === col.id);
-                // Stacked (phone): drop empty status sections — a full-width empty
-                // "—" box is just noise; on desktop the empty column keeps the
-                // kanban structure so it stays.
-                if (stackBoard && rows.length === 0) return null;
+                // Drop empty columns entirely (desktop + mobile) — an empty "—"
+                // column just wastes width and reads sparse; the populated columns
+                // expand to fill (Ohad: make it comfortable, not a sparse grid).
+                if (rows.length === 0) return null;
                 return (
-                  <div key={col.id} style={{ flex: stackBoard ? '1 1 auto' : '1 1 150px', minWidth: stackBoard ? 0 : 140, border:`1px solid var(--c-cardBd)`, display:'flex', flexDirection:'column' }}>
+                  <div key={col.id} style={{ flex: stackBoard ? '1 1 auto' : '1 1 200px', minWidth: stackBoard ? 0 : 160, border:`1px solid var(--c-cardBd)`, display:'flex', flexDirection:'column' }}>
                     <div style={{ background:col.color, color:'#FFFFFF', padding:'5px 8px', fontFamily:FN, fontSize:9, fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                       <span>{col.label}</span><span style={{ opacity:0.85 }}>{rows.length}</span>
                     </div>
-                    {/* Stacked: let the list flow (no nested scroll trap on touch),
-                        capped shorter. Side-by-side: bounded with inner scroll. */}
-                    <div style={{ padding:4, display:'flex', flexDirection:'column', gap:4, minHeight:40, maxHeight: stackBoard ? 'none' : 260, overflowY: stackBoard ? 'visible' : 'auto' }}>
-                      {rows.slice(0, stackBoard ? 6 : 10).map(n => (
+                    <div style={{ padding:4, display:'flex', flexDirection:'column', gap:4, maxHeight: stackBoard ? 'none' : 300, overflowY: stackBoard ? 'visible' : 'auto' }}>
+                      {rows.slice(0, cap).map(n => (
                         <MiniTaskRow key={n.id} n={n} stackBoard={stackBoard} onClick={()=>handleClick(n)} />
                       ))}
-                      {stackBoard && rows.length > 6 && <div onClick={()=>{ if(onOpenFullTasks) onOpenFullTasks(); }} style={{ padding:'4px', textAlign:'center', color:'var(--c-ac)', fontSize:9, fontFamily:FN, fontWeight:700, letterSpacing:'0.08em', cursor:'pointer' }}>+{rows.length-6} MORE →</div>}
-                      {rows.length===0 && <div style={{ padding:'6px 4px', textAlign:'center', color:'var(--c-td)', fontSize:9, fontFamily:FN }}>—</div>}
+                      {rows.length > cap && <div onClick={()=>{ if(onOpenFullTasks) onOpenFullTasks(); }} style={{ padding:'4px', textAlign:'center', color:'var(--c-ac)', fontSize:9, fontFamily:FN, fontWeight:700, letterSpacing:'0.08em', cursor:'pointer' }}>+{rows.length-cap} MORE →</div>}
                     </div>
                   </div>
                 );
@@ -896,7 +896,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
           const btnBase = { borderRadius:0, fontFamily:FN, fontWeight:700, cursor:'pointer' };
           const SEGS = [
             { id:'mine',   label:'MINE',   n:manualRows.length },
-            { id:'alerts', label:'ALERTS', n:autoRows.length },
+            { id:'alerts', label:'AUTO-ALERTS', n:autoRows.length },
             { id:'all',    label:'ALL',    n:openRows.length },
           ];
           return (
@@ -911,12 +911,12 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                     const active = v2Sub === s.id;
                     return (
                       <button key={s.id} onClick={()=>setV2Sub(s.id)}
-                        style={{ ...btnBase, height:26, fontSize:10, letterSpacing:'0.1em', padding:'0 11px',
+                        style={{ ...btnBase, height:28, fontSize:10, letterSpacing:'0.1em', padding:'0 12px',
                           border:'none', borderLeft: i ? `1px solid var(--c-cardBd)` : 'none',
                           background: active?'rgba(57,189,255,0.094)':'transparent',
                           color: active?'var(--c-ac)':'var(--c-tm)',
-                          display:'inline-flex', alignItems:'center', gap:2 }}>
-                        {s.label}{s.n>0 && <sup style={{ fontSize:7, fontWeight:700, opacity:0.9, marginLeft:1 }}>{s.n}</sup>}
+                          display:'inline-flex', alignItems:'center', gap:5 }}>
+                        <span>{s.label}</span>{s.n>0 && <span style={{ fontSize:10, fontWeight:700, lineHeight:1, opacity: active?0.9:0.5 }}>{s.n}</span>}
                       </button>
                     );
                   })}
