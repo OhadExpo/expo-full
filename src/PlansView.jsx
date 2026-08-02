@@ -3250,13 +3250,16 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               <span title={`Last session: ${tagText}`} style={{display:'inline-flex',alignItems:'center',justifyContent:'center',width:116,height:24,fontSize:10,fontFamily:FN,color:tagColor,letterSpacing:'0.04em',fontWeight:600,border:`1px solid ${C.cardBd}`,whiteSpace:'nowrap',flexShrink:0,boxSizing:'border-box'}}>{tagText}</span>
             );
             return (
-              <div key={row.tid} data-prog-card={row.tid}
-                style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderLeft:`3px solid ${C.ac}`,borderRadius:0,display:'flex',flexDirection:'column',gridColumn:expanded?'1 / -1':'auto',willChange:'transform',boxShadow:C.cardShadow}}>
+              <div key={row.tid} data-prog-card={row.tid} className="prog-card"
+                style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,display:'flex',flexDirection:'column',gridColumn:expanded?'1 / -1':'auto',willChange:'transform',boxShadow:C.cardShadow}}>
                 {expanded ? (
                   /* FULL-WIDTH: one horizontal row like the table — body left,
                      actions right, using the whole width. */
                   <div {...openHandlers} style={{cursor:openingId===cur.id?'progress':'pointer',opacity:openingId===cur.id?0.55:1,transition:'opacity 0.12s',padding:'14px',display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
-                    <div style={{fontWeight:700,fontSize:16,color:C.tx,letterSpacing:'0.01em',whiteSpace:'nowrap',flexShrink:0}}><bdi>{row.name}</bdi></div>
+                    <div style={{display:'flex',alignItems:'center',gap:10,flexShrink:0}}>
+                      <span aria-hidden style={{width:3,height:18,background:C.ac,flexShrink:0}} />
+                      <div style={{fontWeight:700,fontSize:16,color:C.tx,letterSpacing:'0.01em',whiteSpace:'nowrap'}}><bdi>{row.name}</bdi></div>
+                    </div>
                     <div style={{fontWeight:700,fontSize:15,color:C.ac,letterSpacing:'0.04em',fontFamily:FN,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',minWidth:0,flex:'0 1 auto'}}>{cur.name||"Untitled"}</div>
                     {plusBtn}
                     <div style={{fontSize:11,color:C.tm,fontFamily:FN,letterSpacing:'0.04em',fontWeight:500,whiteSpace:'nowrap',flexShrink:0}}>{cur.dayCount}d · {cur.exerciseCount}ex</div>
@@ -3272,6 +3275,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                   <>
                     <div {...openHandlers} style={{cursor:openingId===cur.id?'progress':'pointer',opacity:openingId===cur.id?0.55:1,transition:'opacity 0.12s',padding:'14px 14px 12px',display:'flex',flexDirection:'column',gap:8}}>
                       <div style={{display:'flex',alignItems:'center',gap:10}}>
+                        <span aria-hidden style={{width:3,height:18,background:C.ac,flexShrink:0}} />
                         <div style={{fontWeight:700,fontSize:16,color:C.tx,letterSpacing:'0.01em',flex:1,minWidth:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}><bdi>{row.name}</bdi></div>
                         {tag}
                       </div>
