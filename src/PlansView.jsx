@@ -116,7 +116,10 @@ function PatternCoverage({ plan, exercises, cols = 5 }) {
         (Carry/Loaded Locomotion) widened their column and narrow panes got
         visibly unequal boxes. height:100% makes every badge fill its grid
         row, so a wrapped label doesn't leave its row-mates shorter. */}
-    <div style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))`, gap: 5 }}>{REQUIRED_PATTERNS.map(p => <Badge key={p} color={pats.has(p) ? C.gn : C.tm} style={{ width:'100%', height:'100%', minHeight:0, boxSizing:'border-box', justifyContent:'center', alignItems:'center', textAlign:'center', display:'inline-flex', ...(pats.has(p) ? {} : {fontWeight:500,opacity:0.65}) }}>{pats.has(p) ? "✓" : "✗"} {p}</Badge>)}</div>
+    {/* Mobile: 5 fixed columns crush the labels into each other (they can't
+        wrap in that width) — drop to 2 columns on phones and let labels wrap. */}
+    <style>{`@media (max-width:760px){ .pattern-cov-grid{ grid-template-columns: repeat(2, minmax(0,1fr)) !important; } }`}</style>
+    <div className="pattern-cov-grid" style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))`, gap: 5 }}>{REQUIRED_PATTERNS.map(p => <Badge key={p} color={pats.has(p) ? C.gn : C.tm} style={{ width:'100%', height:'100%', minHeight:0, boxSizing:'border-box', justifyContent:'center', alignItems:'center', textAlign:'center', display:'inline-flex', whiteSpace:'normal', lineHeight:1.15, padding:'5px 4px', ...(pats.has(p) ? {} : {fontWeight:500,opacity:0.65}) }}>{pats.has(p) ? "✓" : "✗"} {p}</Badge>)}</div>
   </div>);
 }
 
