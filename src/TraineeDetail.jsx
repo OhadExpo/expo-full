@@ -422,6 +422,17 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           .td-couple-row { flex-direction: column; }
           .td-couple-divider { width: 100% !important; height: 1px !important; align-self: stretch; }
         }
+        /* Mobile header fixes (Ohad 2026-08 "horrible" pass):
+           (a) the identity strip's email/phone overlapped the ACTIVE status
+               dropdown — wrap the contact line onto its own line so they never
+               touch; (b) the Vitals grid's fixed repeat(3,132px) (396px + gaps)
+               overflowed a 390px viewport by ~17px — collapse it to 3 fluid
+               columns that fit. Desktop (>760px) keeps the original geometry. */
+        @media (max-width: 760px) {
+          .td-hdr-identity { flex-wrap: wrap !important; min-width: 0; max-width: 100%; row-gap: 2px; }
+          .td-hdr-contact { flex-basis: 100%; white-space: normal !important; word-break: break-word; }
+          .td-vitals-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; max-width: 100% !important; gap: 10px 6px !important; }
+        }
       `}</style>
       {/* Back + actions bar */}
       {/* Header actions consolidated to the LEFT (Ohad: BACK-left + actions-right
@@ -514,9 +525,16 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       </> : <>
 
       {/* === SOLO LAYOUT === */}
+      {/* Header is ONE full-width flex-wrap row (identity left, branch+status
+          right) instead of Card's header/headerRight split. On desktop it reads
+          identically — the two groups sit on one line, space-between. On a phone
+          (<=760px) the controls wrap BELOW the identity so the email/phone gets
+          the full width and never collides with the ACTIVE dropdown (Ohad 2026-08). */}
       <Card style={{marginBottom:8,position:"relative"}}
-        header={<span style={{display:'inline-flex',alignItems:'baseline',gap:10,fontWeight:700,fontSize:14,letterSpacing:'0.04em',textTransform:'uppercase'}}><span style={{color:C.ac,textShadow:'0 0 12px rgba(57,189,255,0.45)'}}>{td.name}</span><span style={{fontSize:11,opacity:0.78,letterSpacing:'0.02em',textTransform:'none',fontWeight:500}}>{Array.isArray(td.email)?td.email.join(', '):(td.email||'')}{td.phone?` · ${td.phone}`:""}</span></span>}
-        headerRight={<span style={{display:'inline-flex',alignItems:'center',gap:8}}>{td.branch === 'Bnei Herzliya' && <span title="Bnei Herzliya team" style={{display:'inline-flex',alignItems:'center',height:24,boxSizing:'border-box',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',color:C.ac,border:`1px solid ${C.ac}`,padding:'0 10px',whiteSpace:'nowrap'}}>BNEI HERZLIYA</span>}<StatusMenu status={td.status} onChange={s => { if (setTrainees) setTrainees(prev => prev.map(t => t.id === trainee ? { ...t, status: s } : t)); }} /></span>}>
+        header={<span className="td-hdr-row" style={{display:'flex',flexWrap:'wrap',alignItems:'baseline',justifyContent:'space-between',gap:'6px 12px',width:'100%'}}>
+          <span className="td-hdr-identity" style={{display:'inline-flex',flexWrap:'wrap',alignItems:'baseline',gap:10,minWidth:0,fontWeight:700,fontSize:14,letterSpacing:'0.04em',textTransform:'uppercase'}}><span style={{color:C.ac,textShadow:'0 0 12px rgba(57,189,255,0.45)'}}>{td.name}</span><span className="td-hdr-contact" style={{fontSize:11,opacity:0.78,letterSpacing:'0.02em',textTransform:'none',fontWeight:500,minWidth:0}}>{Array.isArray(td.email)?td.email.join(', '):(td.email||'')}{td.phone?` · ${td.phone}`:""}</span></span>
+          <span style={{display:'inline-flex',alignItems:'center',gap:8,flexShrink:0}}>{td.branch === 'Bnei Herzliya' && <span title="Bnei Herzliya team" style={{display:'inline-flex',alignItems:'center',height:24,boxSizing:'border-box',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',color:C.ac,border:`1px solid ${C.ac}`,padding:'0 10px',whiteSpace:'nowrap'}}>BNEI HERZLIYA</span>}<StatusMenu status={td.status} onChange={s => { if (setTrainees) setTrainees(prev => prev.map(t => t.id === trainee ? { ...t, status: s } : t)); }} /></span>
+        </span>}>
         {/* The card strip header already shows the name/email + the interactive
             StatusMenu. The old body block re-rendered the name and a NON-clickable
             status Badge, which read as a duplicate ("mirror") and was the thing
@@ -552,7 +570,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           header={<span style={{fontWeight:700,fontSize:13,letterSpacing:'0.04em',textTransform:'uppercase'}}>Vitals · Injuries · Goals</span>}>
           {/* Centred fixed tiles (not 3×1fr stretch) so vitals read as a compact
               cluster, matching the header stats; empty values dimmed. */}
-          <div style={{display:"grid",gridTemplateColumns:"repeat(3, 132px)",justifyContent:"center",gap:12,maxWidth:416,margin:"0 auto",textAlign:"center"}}>
+          <div className="td-vitals-grid" style={{display:"grid",gridTemplateColumns:"repeat(3, 132px)",justifyContent:"center",gap:12,maxWidth:416,margin:"0 auto",textAlign:"center"}}>
             {[["Age",td.age||"—"],["Weight",td.weight?`${td.weight}kg`:"—"],["Height",td.height?`${td.height}cm`:"—"]].map(([l,v])=>{
               const empty = v==="—";
               return <div key={l}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700,textAlign:"center"}}>{l}</div><div style={{fontSize:14,color:empty?C.td:C.tx,marginTop:2,textAlign:"center"}}>{v}</div></div>;
