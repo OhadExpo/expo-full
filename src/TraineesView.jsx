@@ -444,6 +444,18 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
   const [manualSort, setManualSort] = useState(false);
   const draggedAthleteRef = React.useRef(null);
   const [dropOnAthlete, setDropOnAthlete] = useState(null);
+  // On a phone the filter rail stacked full-width ON TOP of the athlete cards,
+  // so you scrolled through the whole Search / Status / Format / Needs-Attention
+  // / Sort panel before reaching a single athlete. Collapse it behind a
+  // "FILTERS" toggle on narrow (cards first), mirroring the programs page; on
+  // desktop the rail stays a 210px sticky side column, fully open. (Ohad 2026-08 mobile pass)
+  const [narrow, setNarrow] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 760);
+  const [railOpen, setRailOpen] = useState(false);
+  useEffect(() => {
+    const onResize = () => setNarrow(window.innerWidth <= 760);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
   useEffect(()=>{
     if(!addMenuOpen) return;
     const close = (e)=>{ if(addMenuRef.current && !addMenuRef.current.contains(e.target)) setAddMenuOpen(false); };
@@ -644,8 +656,21 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
           width: 210, flexShrink: 0, alignSelf: 'flex-start',
           position: 'sticky', top: 12,
           maxHeight: 'calc(100vh - 24px)', overflowY: 'auto', overflowX: 'hidden', paddingRight: 4,
-          display: 'flex', flexDirection: 'column', gap: 14,
+          display: 'flex', flexDirection: 'column', gap: (narrow && !railOpen) ? 0 : 14,
+          ...(narrow ? { background: 'var(--c-sf2)', border: `1px solid ${C.cardBd}`, padding: (railOpen ? '12px' : '0'), boxSizing: 'border-box' } : null),
         }}>
+          {/* FILTERS toggle — narrow only. Collapses the whole rail so the athlete
+              CARDS are front-and-centre; tap to reveal Search / Status / Format /
+              Needs-Attention / Sort / +Add. Mirrors the programs-page collapsed rail.
+              Desktop skips this and renders the rail open. */}
+          {narrow && (
+            <div onClick={() => setRailOpen(o => !o)}
+              style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.22em', color: C.ac, textTransform: 'uppercase', padding: railOpen ? '0 0 10px' : '11px 12px', borderBottom: railOpen ? `1px solid ${C.cardBd}` : 'none', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+              <span>Filters</span>
+              <span aria-hidden style={{ fontSize: 11, lineHeight: 1, transform: railOpen ? 'rotate(180deg)' : 'none', transition: 'transform 180ms ease' }}>▾</span>
+            </div>
+          )}
+          {(!narrow || railOpen) && (<>
           {/* SEARCH — full-width in the rail. */}
           <div>
             <input placeholder="Search athletes..." value={search} onChange={e => setSearch(e.target.value)}
@@ -779,6 +804,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
               ))}
             </div>}
           </div>
+          </>)}
         </aside>
 
         {/* RIGHT: cards column. */}
