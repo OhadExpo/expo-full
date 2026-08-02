@@ -1177,14 +1177,16 @@ function AuthedApp() {
           .nav-item-inactive:hover{color:rgba(57,189,255,0.72) !important;background:rgba(57,189,255,0.035) !important}
           .hdr-icon-btn{transition:color 120ms, background 120ms}
           .hdr-icon-btn:hover{color:#0E0F12 !important;background:rgba(57,189,255,0.08) !important}
-          /* Mobile: the header scrolls horizontally, which pushed the right
-             cluster (⋯ / theme / bug / SIGN OUT) off-screen — you had to swipe
-             the nav to reach Sign-out. Pin it to the right edge so it stays
-             reachable while the tabs scroll under it. */
-          @media (max-width: 640px) {
-            .hdr-right { position: sticky; right: 0; margin-left: 4px !important;
-              background: var(--c-headerBg, var(--c-sf));
-              box-shadow: -10px 0 8px -4px var(--c-headerBg, var(--c-sf)); z-index: 2; }
+          /* Mobile: the ENTIRE nav row slides horizontally end-to-end with
+             NOTHING pinned (Ohad 2026-08). Pinning the right cluster (sticky,
+             right:0) made it read as "fixed" and blocked scrolling to the last
+             nav tabs. Un-pin it so a single swipe carries you from the logo all
+             the way to the sign-out icon. Desktop (where it all fits + centers)
+             is untouched. */
+          @media (max-width: 760px) {
+            .hdr-right { position: static !important; right: auto !important;
+              margin-left: 8px !important; background: transparent !important;
+              box-shadow: none !important; z-index: auto !important; }
           }
           [data-theme="5b"] .alert-card,[data-theme="light"] .alert-card{transition:box-shadow 200ms, transform 200ms}
           [data-theme="5b"] .alert-card:hover,[data-theme="light"] .alert-card:hover{box-shadow:inset 0 1px 0 rgba(255,255,255,0.30), 0 2px 4px rgba(0,0,0,0.10), 0 10px 24px rgba(0,0,0,0.14);transform:translateY(-1px)}
