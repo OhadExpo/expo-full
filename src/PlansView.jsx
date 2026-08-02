@@ -2941,6 +2941,12 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
 
   return (
     <div>
+      {/* Whole-card hover affordance — the card opens the editor, so it lifts
+          subtly on hover (the left cyan edge brightens + a faint surface lift). */}
+      <style>{`
+        .prog-card { transition: background 140ms ease, box-shadow 140ms ease; }
+        .prog-card:hover { background: var(--c-sf2); box-shadow: inset 3px 0 0 0 var(--c-ac); }
+      `}</style>
       {/* Top header row — PROGRAMS title (left) + TABLE/GRID view toggle (right),
           mirroring the tasks-page "TASKS … LIST/BOARD" placement exactly (Ohad).
           The toggle used to live buried in the left rail among filters; a
@@ -3075,7 +3081,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               );
             }
             return (
-              <div key={row.tid} style={{background: 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderLeft:`3px solid ${C.ac}`,borderRadius:0}}>
+              <div key={row.tid} className="prog-card" style={{background: 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderLeft:`3px solid ${C.ac}`,borderRadius:0}}>
                 {/* Redesigned full-width CARD row (Ohad: the old one-line row was
                     cluttered/tight). Two calm lines separated by a hairline:
                       1) IDENTITY — athlete · block · +N · count … last-trained chip
