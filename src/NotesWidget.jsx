@@ -869,8 +869,16 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                 if (rows.length === 0) return null;
                 return (
                   <div key={col.id} style={{ flex: stackBoard ? '1 1 auto' : '1 1 200px', minWidth: stackBoard ? 0 : 160, border:`1px solid var(--c-cardBd)`, display:'flex', flexDirection:'column' }}>
-                    <div style={{ background:col.color, color:'#FFFFFF', padding:'5px 8px', fontFamily:FN, fontSize:9, fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                      <span>{col.label}</span><span style={{ opacity:0.85 }}>{rows.length}</span>
+                    {/* Column header mirrors the tasks-page SectionHeader grammar
+                        exactly (dark strip + small colour DOT + white label +
+                        muted count) — NOT a loud saturated fill. This kills the
+                        old imbalance where "In Progress" (bright blue) shouted
+                        over "To Do" (steel); now every column reads equal-weight,
+                        colour-coded only by its dot. */}
+                    <div style={{ display:'flex', alignItems:'center', gap:7, padding:'6px 9px', background:'var(--c-sf2, transparent)', borderBottom:`1px solid var(--c-cardBd)` }}>
+                      <span style={{ width:8, height:8, background:col.color, borderRadius:'50%', flexShrink:0 }} />
+                      <span style={{ fontFamily:FN, fontSize:9, fontWeight:700, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--c-tx)' }}>{col.label}</span>
+                      <span style={{ fontFamily:FN, fontSize:9, fontWeight:600, color:'var(--c-td)', letterSpacing:'0.04em' }}>{rows.length}</span>
                     </div>
                     <div style={{ padding:4, display:'flex', flexDirection:'column', gap:4, maxHeight: stackBoard ? 'none' : 300, overflowY: stackBoard ? 'visible' : 'auto' }}>
                       {rows.slice(0, cap).map(n => (
@@ -895,17 +903,17 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
 
           const btnBase = { borderRadius:0, fontFamily:FN, fontWeight:700, cursor:'pointer' };
           const SEGS = [
-            { id:'mine',   label:'MINE',   n:manualRows.length },
-            { id:'alerts', label:'AUTO-ALERTS', n:autoRows.length },
-            { id:'all',    label:'ALL',    n:openRows.length },
+            { id:'mine',   label:'GENERAL',    n:manualRows.length },
+            { id:'alerts', label:'AUTO-TASKS', n:autoRows.length },
+            { id:'all',    label:'ALL',        n:openRows.length },
           ];
           return (
             <div>
-              {/* Compact scope toggle — a single right-aligned segmented control
-                  (MINE · ALERTS · ALL). Counts ride as subtle superscripts; the
-                  active segment gets the cyan fill + cyan text. Replaces the old
-                  full-width three-segment bar (too heavy) and the 1·2·3 switcher. */}
-              <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:6 }}>
+              {/* Compact scope toggle — a single left-aligned segmented control
+                  (GENERAL · AUTO-TASKS · ALL — the tasks-page's own vocabulary).
+                  Counts ride beside each label; the active segment gets the cyan
+                  fill + cyan text. Left-aligned to sit under the section title. */}
+              <div style={{ display:'flex', justifyContent:'flex-start', marginBottom:6 }}>
                 <div style={{ display:'inline-flex', border:`1px solid var(--c-cardBd)` }}>
                   {SEGS.map((s, i) => {
                     const active = v2Sub === s.id;
@@ -932,7 +940,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                   {kanban}
                   <div style={{ marginTop:12 }}>
                     <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
-                      <span style={{ fontFamily:FN, fontSize:9, color:'var(--c-td)', letterSpacing:'0.14em', fontWeight:700 }}>COACHING ALERTS ({autoRows.length})</span>
+                      <span style={{ fontFamily:FN, fontSize:9, color:'var(--c-td)', letterSpacing:'0.14em', fontWeight:700 }}>AUTO-TASKS ({autoRows.length})</span>
                       <span style={{ flex:1, height:1, background:'var(--c-cardBd)' }} />
                     </div>
                     {alertsList}
