@@ -626,6 +626,13 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
 
   return (
     <div>
+      {/* Mobile: stack the rail ABOVE the cards (full-width each) — a fixed 210px
+          side column crushes the athlete cards off-screen on phones (Ohad). */}
+      <style>{`
+        @media (max-width: 760px) {
+          .athletes-rail { width: 100% !important; position: static !important; top: auto !important; max-height: none !important; overflow: visible !important; }
+        }
+      `}</style>
       {/* Two-column layout: left filter RAIL + cards (design demo — mirrors the
           Tasks page's left sidebar). Search / SHOW / SORT BY / Add all live in
           the slim persistent left column; the cards grid fills the right. */}
@@ -633,7 +640,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
         {/* LEFT: filter rail — sticky so the controls stay pinned as the (long)
             cards grid scrolls. Fixed 210px; wraps to full-width when the
             viewport can't fit both columns. */}
-        <aside style={{
+        <aside className="athletes-rail" style={{
           width: 210, flexShrink: 0, alignSelf: 'flex-start',
           position: 'sticky', top: 12,
           maxHeight: 'calc(100vh - 24px)', overflowY: 'auto', overflowX: 'hidden', paddingRight: 4,
