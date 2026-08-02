@@ -2267,6 +2267,32 @@ function visKeyForPlan(p, trainees) {
   return `${trainee.name}:${p.name}`;
 }
 
+// Left-rail section label — small uppercase FN, matches the athletes rail vocab.
+function RailLabel({ children, right }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+      <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.2em', color: C.td, textTransform: 'uppercase' }}>{children}</div>
+      {right}
+    </div>
+  );
+}
+// Full-width option pill with a right-aligned muted count. active = accent
+// border + tint + accent text; inactive = cardBd border + muted text. Mirrors
+// the athletes rail's RailOption so both coach lists share one visual vocab.
+function RailOption({ label, count, active, onClick, accent = C.ac, tint = 'rgba(57,189,255,0.094)', title }) {
+  return (
+    <button onClick={onClick} title={title} style={{
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', boxSizing: 'border-box',
+      minHeight: 30, height: 30, padding: '0 10px', borderRadius: 0, cursor: 'pointer',
+      border: `1px solid ${active ? accent : C.cardBd}`, background: active ? tint : 'transparent',
+      color: active ? accent : C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+    }}>
+      <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{label}</span>
+      {count != null && <span style={{ fontSize: 10, marginLeft: 8, flexShrink: 0, color: active ? accent : C.td, opacity: active ? 0.85 : 0.7 }}>{count}</span>}
+    </button>
+  );
+}
+
 export default function PlansView({ planIndex, reloadIndex, trainees, exercises, setExercises, clientWorkouts, weeklyFocus, setWeeklyFocus, openPlanId, onPlanOpened, onEditorOpen, onEditorClose, onPreviewPlan, portalVis, setPortalVis, onCloseEditor }) {
   const { plan: editPlanData, loading: editLoading, load: loadFullPlan, clear: clearPlan, setPlan: setEditPlan } = useFullPlan();
   const [linkedTaskId, setLinkedTaskId] = useState(null);
@@ -2282,6 +2308,10 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
   const [newProgramPrompt, setNewProgramPrompt] = useState(null); // {id,name} → "create a new program?" menu
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [filterTrainee, setFilterTrainee] = useState("");
+  // Multi-toggle FLAGS (AND-combined) — segment the list down to programs that
+  // need finishing/assigning. `unassigned` = no traineeId; `empty` = 0 exercises
+  // or 0 days. Passing = matches ALL active flags.
+  const [flags, setFlags] = useState({ unassigned: false, empty: false });
   const [hoverPos, setHoverPos] = useState(null);
   const hoverTimerRef = useRef(null);
   // Sort: field is 'name' | 'created' | 'updated'; dir is 'asc' | 'desc'.
@@ -2380,10 +2410,18 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
     return m;
   }, [trainees]);
 
+  // Flag predicates — shared by the filter pipeline and the rail counts so the
+  // count on a flag always equals what turning it on would show.
+  const isUnassigned = (p) => !p.traineeId;
+  const isEmpty = (p) => !p.exerciseCount || !p.dayCount;
+
   const filtered = useMemo(() => {
     let result = planIndex;
-    if (search) { const q = search.toLowerCase(); result = result.filter(p => (p.name||'').toLowerCase().includes(q) || (traineeMap[p.traineeId]||'').toLowerCase().includes(q)); }
+    // Pipeline: athlete → flags → search → sort.
     if (filterTrainee) result = result.filter(p => p.traineeId === filterTrainee);
+    if (flags.unassigned) result = result.filter(isUnassigned);
+    if (flags.empty) result = result.filter(isEmpty);
+    if (search) { const q = search.toLowerCase(); result = result.filter(p => (p.name||'').toLowerCase().includes(q) || (traineeMap[p.traineeId]||'').toLowerCase().includes(q)); }
     // Apply the user-chosen sort. 'created' uses sortProgramsRecent — last
     // created/added first (so a just-made un-numbered block floats to the top),
     // with Block #N as the tiebreak for Drive-import batches that share one
@@ -2398,7 +2436,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
       return (ta - tb) * dirMul;
     });
     return sorted;
-  }, [planIndex, search, filterTrainee, traineeMap, sortField, sortDir]);
+  }, [planIndex, search, filterTrainee, flags, traineeMap, sortField, sortDir]);
 
   const visible = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
   const hasMore = visibleCount < filtered.length;
@@ -2701,10 +2739,24 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
     </button>
   );
 
-  const traineeOptions = useMemo(() => {
-    const ids = [...new Set(planIndex.map(p => p.traineeId).filter(Boolean))];
-    return ids.map(id => ({ value: id, label: traineeMap[id] || id })).sort((a,b) => a.label.localeCompare(b.label));
+  // ATHLETE rail rows: one per athlete (parent or couple sub-id) that HAS
+  // programs, with that athlete's program count. Sorted most-programs-first so
+  // the athletes the coach touches most float to the top; name breaks ties.
+  const athleteRail = useMemo(() => {
+    const counts = new Map();
+    for (const p of planIndex) { const tid = p.traineeId; if (!tid) continue; counts.set(tid, (counts.get(tid) || 0) + 1); }
+    return [...counts.entries()]
+      .map(([id, count]) => ({ id, label: traineeMap[id] || id, count }))
+      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, 'he'));
   }, [planIndex, traineeMap]);
+  // FLAG counts over the FULL index (each flag independent) so a count always
+  // reflects what turning that one flag on would surface.
+  const flagCounts = useMemo(() => ({
+    unassigned: planIndex.filter(p => !p.traineeId).length,
+    empty: planIndex.filter(p => !p.exerciseCount || !p.dayCount).length,
+  }), [planIndex]);
+  const anyFilterActive = !!filterTrainee || !!search || flags.unassigned || flags.empty;
+  const clearFilters = () => { setFilterTrainee(''); setSearch(''); setFlags({ unassigned: false, empty: false }); setVisibleCount(PAGE_SIZE); };
 
   // Default view: athlete-grouped, current-block-first. Activates when the
   // user isn't searching or filtering by trainee — those modes fall back to
@@ -2718,7 +2770,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
   // we attribute every plan to whichever sub-id-or-parent owns it.
   const sortByRecency = sortProgramsRecent;
   const grouped = useMemo(() => {
-    if (search || filterTrainee) return null; // flat-list fallback for filtered modes
+    if (search || filterTrainee || flags.unassigned || flags.empty) return null; // flat-list fallback for filtered modes
     // Bucket plans by athlete (parent or sub-id).
     const buckets = new Map();
     for (const p of planIndex) {
@@ -2809,7 +2861,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
       return a.name.localeCompare(b.name);
     });
     return rows;
-  }, [planIndex, clientWorkouts, trainees, search, filterTrainee, traineeMap, sortField, sortDir, portalVis]);
+  }, [planIndex, clientWorkouts, trainees, search, filterTrainee, flags, traineeMap, sortField, sortDir, portalVis]);
 
   // Rendered from BOTH returns below — the editor early-return used to skip
   // these entirely, so SHARE (and the typed-delete confirm) inside the editor
@@ -2889,64 +2941,106 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
 
   return (
     <div>
-      <div style={{display:"flex",gap:12,marginBottom:12,alignItems:"stretch",flexWrap:"wrap"}}>
-        <div style={{flex:1,minWidth:180,display:'flex'}}><input title="Search programs by name or block (e.g. “Block #5”, “GPP”)" placeholder="Search programs..." value={search} onChange={e=>{setSearch(e.target.value);setVisibleCount(PAGE_SIZE)}} style={{...baseInput,height:42,padding:'0 14px',fontSize:13,lineHeight:'42px',display:'flex',alignItems:'center',textAlignLast:'center',border:`1px solid ${C.ac}`}} /></div>
-        <div style={{position:'relative',width:200,display:'flex'}}>
-          <select title="Show only one athlete's programs (default: everyone, grouped by athlete)" value={filterTrainee} onChange={e=>{setFilterTrainee(e.target.value);setVisibleCount(PAGE_SIZE)}} style={{...baseInput,height:42,padding:'0 36px 0 14px',fontSize:13,appearance:'none',WebkitAppearance:'none',textAlign:'center',textAlignLast:'center',flex:1,border:`1px solid ${C.ac}`}}>
-            <option value="">All Athletes ({planIndex.length})</option>
-            {traineeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
-          <span style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',pointerEvents:'none',color:C.ac,fontSize:16,lineHeight:1}}>▾</span>
-        </div>
-        <Btn title="Create a new, empty program — you pick the athlete inside the editor" onClick={() => handleNewPlan()} style={{height:42,padding:'0 18px',fontSize:13,lineHeight:'42px',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>+ New Program</Btn>
-      </div>
-      {/* Sort controls. Click an inactive field to activate it (keeps current dir);
-          click the active field to flip direction. Arrow points 'up' for asc. */}
-      <div style={{display:"flex",gap:6,marginBottom:16,alignItems:"center",flexWrap:"wrap",fontFamily:FN,fontSize:11}}>
-        {[
-          ['name','Name','Sort by program name. Click again to flip A–Z / Z–A.'],
-          ['created','Uploaded','Sort by when the program was created/imported. Click again to flip newest/oldest.'],
-          ['updated','Last edited','Sort by when the program was last edited. Click again to flip newest/oldest.'],
-        ].map(([field,label,tip]) => {
-          const active = sortField === field;
-          return (
-            <button key={field} title={tip} onClick={() => {
-              if (active) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
-              else setSortField(field);
-            }} style={{
-              padding:"4px 10px",borderRadius:0,
-              border:`${active?'1px':'0.25px'} solid ${active?C.ac:C.cardBd}`,
-              background:'transparent',
-              color:active?C.ac:C.tm,
-              fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',
-              cursor:"pointer",display:"inline-flex",alignItems:"center",gap:4
-            }}>
-              {label}{active && <span style={{fontSize:10}}>{sortDir === 'asc' ? '↑' : '↓'}</span>}
-            </button>
-          );
-        })}
-        {/* Table ⇄ Grid view toggle — only meaningful for the grouped (default)
-            view, so it's hidden while searching/filtering (flat list). */}
-        {grouped && (
-          <>
-            <div style={{flex:1,minWidth:12}} />
-            <div style={{display:'inline-flex',border:`1px solid ${C.cardBd}`,borderRadius:0,overflow:'hidden',flexShrink:0}}>
+      {/* Two-column layout: persistent LEFT filter RAIL + list. Mirrors the
+          athletes list (TraineesView) — SEARCH / ATHLETE / FLAGS / VIEW / SORT
+          live in the slim sticky left column; the program list fills the right. */}
+      <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+        {/* LEFT: filter rail — sticky so the controls stay pinned as the (long)
+            list scrolls. Fixed 210px; wraps to full-width when the viewport
+            can't fit both columns. */}
+        <aside style={{ width: 210, flexShrink: 0, alignSelf: 'flex-start', position: 'sticky', top: 12, display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {/* SEARCH — full-width in the rail. */}
+          <div>
+            <input title="Search programs by name or block (e.g. “Block #5”, “GPP”)" placeholder="Search programs..." value={search} onChange={e=>{setSearch(e.target.value);setVisibleCount(PAGE_SIZE)}}
+              style={{ ...baseInput, width: '100%', boxSizing: 'border-box', height: 38, padding: '0 12px', fontSize: 13, border: `1px solid ${C.ac}` }} />
+            {anyFilterActive && (
+              <button onClick={clearFilters} title="Clear all filters"
+                style={{ marginTop: 8, background: 'transparent', border: 'none', color: C.tm, cursor: 'pointer', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', padding: 0 }}>
+                ✕ Clear filters
+              </button>
+            )}
+          </div>
+
+          {/* ATHLETE — single-select. All + one row per athlete WITH programs,
+              each showing that athlete's program count (most-programs first).
+              Primary control: jump straight to an athlete's blocks. */}
+          <div>
+            <RailLabel>Athlete</RailLabel>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <RailOption label="All" count={planIndex.length} active={!filterTrainee} onClick={() => { setFilterTrainee(''); setVisibleCount(PAGE_SIZE); }} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 300, overflowY: 'auto' }}>
+                {athleteRail.map(a => (
+                  <RailOption key={a.id} label={a.label} count={a.count} title={a.label}
+                    active={filterTrainee === a.id} onClick={() => { setFilterTrainee(a.id); setVisibleCount(PAGE_SIZE); }} />
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* FLAGS — multi-toggle (AND-combined), amber. Surface the programs
+              that still need assigning / finishing. */}
+          <div>
+            <RailLabel>Flags</RailLabel>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {[
+                { key: 'unassigned', label: '⚠ Unassigned', title: 'Programs with no athlete assigned' },
+                { key: 'empty', label: '∅ Empty', title: 'Programs with no exercises or no days' },
+              ].map(o => (
+                <RailOption key={o.key} label={o.label} count={flagCounts[o.key]} title={o.title}
+                  active={flags[o.key]} accent={C.or} tint="rgba(255,159,10,0.12)"
+                  onClick={() => { setFlags(m => ({ ...m, [o.key]: !m[o.key] })); setVisibleCount(PAGE_SIZE); }} />
+              ))}
+            </div>
+          </div>
+
+          {/* VIEW — table / grid pills. Only changes the grouped (default) view;
+              harmless while a flat-list filter is active. */}
+          <div>
+            <RailLabel>View</RailLabel>
+            <div style={{ display: 'flex', gap: 6 }}>
               {[['table','TABLE'],['grid','GRID']].map(([v,label]) => {
                 const on = progView === v;
                 return (
                   <button key={v} onClick={()=>setProgView(v)} title={v==='table'?'Dense list — one row per athlete':'Card grid — double-click a card to expand earlier blocks'}
-                    style={{padding:'4px 12px',border:'none',borderRadius:0,background:on?C.ac:'transparent',color:on?'#0a0a0b':C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>{label}</button>
+                    style={{ flex: 1, height: 30, borderRadius: 0, cursor: 'pointer', border: `1px solid ${on ? C.ac : C.cardBd}`, background: on ? C.ac : 'transparent', color: on ? '#0a0a0b' : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' }}>{label}</button>
                 );
               })}
             </div>
-          </>
-        )}
-      </div>
-      <div style={{fontSize:12,color:C.td,marginBottom:12,fontFamily:FN}}>
-        {grouped
-          ? `${grouped.length} athlete${grouped.length===1?'':'s'} · ${planIndex.length} program${planIndex.length===1?'':'s'} total`
-          : `Showing ${visible.length} of ${filtered.length} programs${filtered.length !== planIndex.length ? ` (${planIndex.length} total)` : ''}`}
-      </div>
+          </div>
+
+          {/* SORT — compact + secondary. Click an inactive field to select it;
+              click the active field to flip direction (arrow up = ascending). */}
+          <div>
+            <RailLabel>Sort</RailLabel>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              {[
+                ['created','Uploaded','Sort by when the program was created/imported. Click again to flip newest/oldest.'],
+                ['name','Name','Sort by program name. Click again to flip A–Z / Z–A.'],
+                ['updated','Last edited','Sort by when the program was last edited. Click again to flip newest/oldest.'],
+              ].map(([field,label,tip]) => {
+                const active = sortField === field;
+                return (
+                  <button key={field} title={tip} onClick={() => { if (active) setSortDir(d => d === 'asc' ? 'desc' : 'asc'); else setSortField(field); }}
+                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', boxSizing: 'border-box', minHeight: 26, height: 26, padding: '0 10px', borderRadius: 0, cursor: 'pointer', border: `1px solid ${active ? C.ac : C.cardBd}`, background: active ? 'rgba(57,189,255,0.094)' : 'transparent', color: active ? C.ac : C.td, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                    <span>{label}</span>
+                    {active && <span style={{ fontSize: 9 }}>{sortDir === 'asc' ? '↑' : '↓'}</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* + NEW PROGRAM — pinned to the bottom of the rail. */}
+          <Btn title="Create a new, empty program — you pick the athlete inside the editor" onClick={() => handleNewPlan()} style={{ width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 38, marginTop: 'auto' }}>+ New Program</Btn>
+        </aside>
+
+        {/* RIGHT: the program list — grouped (table/grid) or flat, unchanged. */}
+        <div style={{ flex: 1, minWidth: 0, boxSizing: 'border-box' }}>
+          <div style={{fontSize:12,color:C.td,marginBottom:12,fontFamily:FN}}>
+            {grouped
+              ? `${grouped.length} athlete${grouped.length===1?'':'s'} · ${planIndex.length} program${planIndex.length===1?'':'s'} total`
+              : `Showing ${visible.length} of ${filtered.length} programs${filtered.length !== planIndex.length ? ` (${planIndex.length} total)` : ''}`}
+          </div>
       {/* Athlete-grouped default view. Each row = one athlete, current block
           surfaced prominently with last-session signal. (N earlier blocks)
           chevron expands the older blocks inline so nothing is lost — they
@@ -3246,6 +3340,8 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               </div></div></Card>})}
           {hasMore && <Btn variant="ghost" onClick={()=>setVisibleCount(c=>c+PAGE_SIZE)} style={{width:"100%",justifyContent:"center",marginTop:8}}>Load more ({filtered.length - visibleCount} remaining)</Btn>}
         </div>))}
+        </div>{/* /RIGHT main column */}
+      </div>{/* /two-column layout */}
       {/* Hover preview popover */}
       {previewPlan && hoverPos && (() => {
         const GAP = 16;
