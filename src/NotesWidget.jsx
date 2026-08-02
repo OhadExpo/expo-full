@@ -928,7 +928,8 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                           background: active?'rgba(57,189,255,0.094)':'transparent',
                           color: active?'var(--c-ac)':'var(--c-tm)',
                           display:'inline-flex', alignItems:'center', gap:5 }}>
-                        <span>{s.label}</span>{s.n>0 && <span style={{ fontSize:10, fontWeight:700, lineHeight:1, opacity: active?0.9:0.5 }}>{s.n}</span>}
+                        {/* count in parens, vertically centred with the label (Ohad). */}
+                        <span style={{ display:'inline-flex', alignItems:'center', lineHeight:1 }}>{s.label}</span>{s.n>0 && <span style={{ display:'inline-flex', alignItems:'center', fontSize:10, fontWeight:700, lineHeight:1, opacity: active?0.9:0.5 }}>({s.n})</span>}
                       </button>
                     );
                   })}

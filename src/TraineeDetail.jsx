@@ -424,9 +424,13 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
         }
       `}</style>
       {/* Back + actions bar */}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8}}>
+      {/* Header actions consolidated to the LEFT (Ohad: BACK-left + actions-right
+          split across the two rows read "scattered"). BACK sits first, a divider
+          gap, then the action cluster — all left-aligned so they stack cleanly
+          above the left-aligned section tabs instead of splitting to both edges. */}
+      <div style={{display:"flex",justifyContent:"flex-start",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:16}}>
         <button onClick={onBack} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',padding:0,height:30,lineHeight:1,display:"inline-flex",alignItems:"center",flexShrink:0}}>← BACK</button>
-        <div style={{display:"flex",gap:6,flexWrap:"wrap",justifyContent:"flex-end"}}>
+        <div style={{display:"flex",gap:6,flexWrap:"wrap",justifyContent:"flex-start"}}>
           {/* Notifications on/off — per-athlete mute for the COACH side.
               When OFF, athlete→coach messages and workout-complete events
               from this athlete skip push delivery, and the dashboard
