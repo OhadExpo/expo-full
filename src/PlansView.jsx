@@ -3076,7 +3076,12 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
             }
             return (
               <div key={row.tid} style={{background: 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderLeft:`3px solid ${C.ac}`,borderRadius:0}}>
-                {/* Current-block row — clicking opens the plan editor. */}
+                {/* Redesigned full-width CARD row (Ohad: the old one-line row was
+                    cluttered/tight). Two calm lines separated by a hairline:
+                      1) IDENTITY — athlete · block · +N · count … last-trained chip
+                      2) ACTIONS  — ON PORTAL (left) … PREVIEW/DUPLICATE/SHARE/DELETE
+                    Same card grammar as the grid cards, just laid out full-width so
+                    every affordance gets room instead of fighting for the one line. */}
                 <div onClick={()=>handleOpenPlan(cur.id)}
                   role="button" tabIndex={0}
                   onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); handleOpenPlan(cur.id); } }}
@@ -3086,49 +3091,37 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                     hoverTimerRef.current = setTimeout(() => { setHoverPos({ x, y }); loadPreviewPlan(cur.id); }, 220);
                   }}
                   onMouseLeave={() => { clearTimeout(hoverTimerRef.current); setHoverPos(null); clearPreviewPlan(); }}
-                  style={{cursor:openingId===cur.id?'progress':'pointer',opacity:openingId===cur.id?0.55:1,transition:'opacity 0.12s',padding:'12px 14px',display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
-                  <div className="prog-main"
-                    style={{minWidth:0,flex:1,display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
-                    <div style={{fontWeight:700,fontSize:15,color:C.tx,whiteSpace:'nowrap',letterSpacing:'0.01em',flexShrink:0}}><bdi>{row.name}</bdi></div>
-                    <div style={{fontWeight:700,fontSize:15,color:C.ac,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'0.04em',fontFamily:FN,minWidth:0,flex:'0 1 auto'}}>{cur.name||"Untitled"}</div>
-                    {/* +N earlier-blocks expander lives right after the block
-                        number (Ohad uses it constantly — was buried in the
-                        action cluster on the far right). */}
-                    {row.earlier.length > 0 && (
-                      <button onClick={e=>{e.stopPropagation();toggleAthlete(row.tid);}}
-                        title={expanded?`Hide ${row.earlier.length} earlier block${row.earlier.length===1?'':'s'}`:`Show ${row.earlier.length} earlier block${row.earlier.length===1?'':'s'}`}
-                        className="prog-plusn"
-                        style={{display:'inline-flex',alignItems:'center',justifyContent:'center',height:26,minWidth:46,padding:'0 12px',background: expanded ? C.ac : 'transparent',border:`1px solid ${C.ac}`,borderRadius:0,color: expanded ? '#0a0a0b' : C.ac,cursor:'pointer',fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',whiteSpace:'nowrap',flexShrink:0,boxSizing:'border-box',fontVariantNumeric:'tabular-nums',transition:'background .15s, color .15s'}}>
-                        {/* No chevron — the fill IS the state. Collapsed: +N
-                            outlined; open: −N solid cyan (matches the nav-active
-                            toggle). Cleaner than any triangle glyph (Ohad). */}
-                        {expanded?`−${row.earlier.length}`:`+${row.earlier.length}`}
-                      </button>
-                    )}
-                    <div style={{flex:1}} />
-                    <div style={{fontSize:11,color:C.tm,fontFamily:FN,letterSpacing:'0.04em',fontWeight:500,flexShrink:0,whiteSpace:'nowrap'}}>{cur.dayCount}d · {cur.exerciseCount}ex</div>
-                  </div>
-                  {/* Fixed-width columns so every box sits in the same column
-                      down the list. Order: tag · ON PORTAL · PREVIEW ·
-                      DUPLICATE · SHARE · DELETE. */}
-                  <div className="prog-actions"
-                    onMouseEnter={() => { clearTimeout(hoverTimerRef.current); setHoverPos(null); clearPreviewPlan(); }}
-                    style={{display:'flex',gap:8,alignItems:'center',justifyContent:'flex-end',flexShrink:0}}>
-                    <span title={`Last session: ${tagText.toLowerCase()}`} style={{display:'inline-flex',alignItems:'center',justifyContent:'center',height:30,width:112,fontSize:10,fontFamily:FN,color:tagColor,letterSpacing:'0.04em',fontWeight:600,border:`1px solid ${tagColor}`,whiteSpace:'nowrap',flexShrink:0,boxSizing:'border-box'}}>{tagText.toLowerCase()}</span>
-                    {/* +N expander moved into prog-main next to the block
-                        number — no reserved slot needed here anymore. */}
-                    {setPortalVis ? (() => {
-                      const vk = visKeyForPlan(cur, trainees);
-                      if (!vk) return <div style={{width:108,flexShrink:0}} />;
-                      const isVis = portalVis?.[vk] !== false;
-                      return <PortalPill on={isVis} onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} />;
-                    })() : <div style={{width:108,flexShrink:0}} />}
-                    {/* LATEST ONLY / ALL BLOCKS pill removed (Ohad: "i don't need all blocks"). */}
-                    {onPreviewPlan && <LabeledBtn onClick={e=>{e.stopPropagation();onPreviewPlan(cur.id);}} title="Preview as trainee" label="PREVIEW" />}
-                    <LabeledBtn onClick={e=>{e.stopPropagation();handleDuplicate(cur.id);}} title="Duplicate program" label="DUPLICATE" />
-                    <LabeledBtn onClick={e=>{e.stopPropagation();setShareTarget(cur.id);}} title="Share to an athlete — duplicates this program for them" label="SHARE" />
-                    <LabeledBtn onClick={e=>{e.stopPropagation(); setPendingDelete({ id: cur.id, name: cur.name, fromEditor: false }); setDeleteTyped('');}} title="Delete program" label="DELETE" />
-                  </div>
+                  style={{cursor:openingId===cur.id?'progress':'pointer',opacity:openingId===cur.id?0.55:1,transition:'opacity 0.12s',padding:'13px 16px 11px',display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
+                  <div style={{fontWeight:700,fontSize:16,color:C.tx,whiteSpace:'nowrap',letterSpacing:'0.01em',flexShrink:0}}><bdi>{row.name}</bdi></div>
+                  <div style={{fontWeight:700,fontSize:15,color:C.ac,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'0.04em',fontFamily:FN,minWidth:0,flex:'0 1 auto'}}>{cur.name||"Untitled"}</div>
+                  {/* +N earlier-blocks expander sits right after the block name. */}
+                  {row.earlier.length > 0 && (
+                    <button onClick={e=>{e.stopPropagation();toggleAthlete(row.tid);}}
+                      title={expanded?`Hide ${row.earlier.length} earlier block${row.earlier.length===1?'':'s'}`:`Show ${row.earlier.length} earlier block${row.earlier.length===1?'':'s'}`}
+                      className="prog-plusn"
+                      style={{display:'inline-flex',alignItems:'center',justifyContent:'center',height:24,minWidth:44,padding:'0 10px',background: expanded ? C.ac : 'transparent',border:`1px solid ${C.ac}`,borderRadius:0,color: expanded ? '#0a0a0b' : C.ac,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',whiteSpace:'nowrap',flexShrink:0,boxSizing:'border-box',fontVariantNumeric:'tabular-nums',transition:'background .15s, color .15s'}}>
+                      {expanded?`−${row.earlier.length}`:`+${row.earlier.length}`}
+                    </button>
+                  )}
+                  <div style={{fontSize:11,color:C.tm,fontFamily:FN,letterSpacing:'0.04em',fontWeight:500,flexShrink:0,whiteSpace:'nowrap'}}>{cur.dayCount}d · {cur.exerciseCount}ex</div>
+                  <div style={{flex:1,minWidth:12}} />
+                  <span title={`Last session: ${tagText.toLowerCase()}`} style={{display:'inline-flex',alignItems:'center',justifyContent:'center',height:26,padding:'0 12px',fontSize:10,fontFamily:FN,color:tagColor,letterSpacing:'0.06em',fontWeight:600,border:`1px solid ${tagColor}`,whiteSpace:'nowrap',flexShrink:0,boxSizing:'border-box'}}>{tagText.toLowerCase()}</span>
+                </div>
+                {/* ACTION line — portal toggle left, CRUD cluster right, under a
+                    hairline. Hovering here cancels the plan hover-preview. */}
+                <div onMouseEnter={() => { clearTimeout(hoverTimerRef.current); setHoverPos(null); clearPreviewPlan(); }}
+                  style={{borderTop:`1px solid ${C.cardBd}`,padding:'10px 16px',display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
+                  {setPortalVis && (() => {
+                    const vk = visKeyForPlan(cur, trainees);
+                    if (!vk) return null;
+                    const isVis = portalVis?.[vk] !== false;
+                    return <PortalPill on={isVis} onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} />;
+                  })()}
+                  <div style={{flex:1,minWidth:12}} />
+                  {onPreviewPlan && <LabeledBtn onClick={e=>{e.stopPropagation();onPreviewPlan(cur.id);}} title="Preview as trainee" label="PREVIEW" />}
+                  <LabeledBtn onClick={e=>{e.stopPropagation();handleDuplicate(cur.id);}} title="Duplicate program" label="DUPLICATE" />
+                  <LabeledBtn onClick={e=>{e.stopPropagation();setShareTarget(cur.id);}} title="Share to an athlete — duplicates this program for them" label="SHARE" />
+                  <LabeledBtn onClick={e=>{e.stopPropagation(); setPendingDelete({ id: cur.id, name: cur.name, fromEditor: false }); setDeleteTyped('');}} title="Delete program" label="DELETE" />
                 </div>
                 {/* Expanded earlier blocks — same hover preview, slightly compressed
                     visual treatment so the eye stays on the current block. */}
