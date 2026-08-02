@@ -534,131 +534,132 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
 
   return (
     <div>
-      <div style={{ display: "flex", gap: 12, marginBottom: 20, alignItems: "center" }}>
-        <div style={{ flex: 1 }}><input placeholder="Search athletes..." value={search} onChange={e => setSearch(e.target.value)} style={{ ...baseInput, paddingLeft: 12, height: 48, padding: '0 16px', fontSize: 15, border: `1px solid ${C.ac}` }} /></div>
-        <button onClick={() => setShowArchived(!showArchived)} style={{ background: isRefined5b() ? 'transparent' : 'var(--c-sf)', border: `${showArchived?'1px':'0.25px'} solid ${showArchived ? C.rd : C.cardBd}`, borderRadius: 0, height: 48, boxSizing: 'border-box', padding: "0 18px", color: showArchived ? C.rd : C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: "pointer", display: 'inline-flex', alignItems: 'center' }}>
-          {showArchived ? `Archive (${archived.length})` : `Archive (${archived.length})`}
-        </button>
-        <div ref={addMenuRef} style={{position:'relative'}}>
-          <Btn onClick={() => setAddMenuOpen(!addMenuOpen)} style={{ height: 48, boxSizing: 'border-box', padding: '0 18px' }}>+ Add Athlete ▾</Btn>
-          {addMenuOpen && <div style={{position:'absolute',right:0,top:'100%',marginTop:4,background:C.bg,border:`1px solid ${C.cardBd}`,borderRadius:0,overflow:'hidden',zIndex:50,minWidth:180,boxShadow:'0 8px 24px rgba(0,0,0,0.6)'}}>
-            {[['Online Athlete','Online Client'],['Gym, Single','Gym, Single'],['Gym, Couple','Gym, Couple'],['Bnei Herzliya','Bnei Herzliya']].map(([label,format])=>(
-              <button key={format} onClick={()=>{
-                const f = {...defaultTrainee(), format};
-                // Use _members (the edit-form shape the modal + handleSave read)
-                // so a NEW couple actually shows the two member field-sets. Setting
-                // `members` here left the modal on the solo layout → unnamed members. (audit)
-                if(format==='Gym, Couple') f._members=[{name:'',email:'',phone:'',age:'',weight:'',height:'',injuries:'',goals:'',notes:'',_emails:['']},{name:'',email:'',phone:'',age:'',weight:'',height:'',injuries:'',goals:'',notes:'',_emails:['']}];
-                setForm(f); setEditId(null); setShowForm(true); setAddMenuOpen(false);
-              }} style={{display:'block',width:'100%',padding:'10px 16px',background:'transparent',border:'none',borderBottom:`1px solid ${C.bd}`,color:C.tx,fontFamily:FB,fontSize:13,fontWeight:500,cursor:'pointer',textAlign:'left'}}
-                onMouseEnter={e=>e.currentTarget.style.background=C.sf2} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-                {label}
-              </button>
-            ))}
-          </div>}
-        </div>
-      </div>
+      {/* Two-column layout: left filter RAIL + cards (design demo — mirrors the
+          Tasks page's left sidebar). Search / SHOW / SORT BY / Add all live in
+          the slim persistent left column; the cards grid fills the right. */}
+      <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+        {/* LEFT: filter rail — sticky so the controls stay pinned as the (long)
+            cards grid scrolls. Fixed 210px; wraps to full-width when the
+            viewport can't fit both columns. */}
+        <aside style={{
+          width: 210, flexShrink: 0, alignSelf: 'flex-start',
+          position: 'sticky', top: 12,
+          display: 'flex', flexDirection: 'column', gap: 14,
+        }}>
+          {/* SEARCH — full-width in the rail. */}
+          <input placeholder="Search athletes..." value={search} onChange={e => setSearch(e.target.value)}
+            style={{ ...baseInput, width: '100%', boxSizing: 'border-box', height: 38, padding: '0 12px', fontSize: 13, border: `1px solid ${C.ac}` }} />
 
-      {/* Sort bar — sits between the search row and the cards grid.
-          Mirrors the toggle-button rhythm used elsewhere on /coach (sort
-          buttons in TraineeDetail's Assigned Programs, header pills on
-          NotesWidget). Three controls: SORT BY (3 modes) + DIR (↑↓) +
-          LANG (HE/EN priority block). State persists across sessions. */}
-      {/* Sort bar — every button shares a single box vocabulary:
-            BOX_H (28) minHeight, flex-centered content. Padding +
-            font-size can vary per button but the OUTER box is identical
-            so the row reads as one rhythm. The Hebrew "עבר" pill uses
-            +3px Heebo to match Latin cap height (HE_BUMP_PX rule). */}
-      {(() => {
-        const BOX_H = 28;
-        const boxBase = {
-          minHeight: BOX_H, height: BOX_H, padding: '0 12px', borderRadius: 0,
-          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          fontFamily: FN, fontWeight: 700, cursor: 'pointer', boxSizing: 'border-box',
-        };
-        const pill = (active) => ({
-          ...boxBase,
-          border: `1px solid ${active ? C.ac : C.cardBd}`,
-          background: active ? 'rgba(57,189,255,0.094)' : 'transparent',
-          color: active ? C.ac : C.tm,
-          fontSize: 10, letterSpacing: '0.12em',
-        });
-        // Bare left-aligned row — sort pills + one direction toggle, no
-        // "SORT"/"LANG" labels or bordered container. Lines up with the
-        // search/archive row above (matches the Tasks-page toolbar).
-        return (
-          <div style={{
-            display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, alignItems: 'center', marginBottom: 12,
-          }}>
-            {/* Cell 1 — sort keys SPREAD across the first card's column so PAYMENT's
-                right edge lines up with the first athlete card beneath it (Ohad). */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-            {/* NAME and STATUS each carry their OWN direction toggle, shown
-                together (Ohad): NAME ↔ א→ת/ת→א · STATUS ↔ Active/Inactive. Every
-                pill + toggle shares boxBase (BOX_H) so the row is one height.
-                LAST TRAINED / PAYMENT keep a single trailing toggle when active. */}
-            {/* Sort KEYS — multi-select. NAME + STATUS (and the rest) can be
-                active together; click toggles a key in/out (always keep ≥1). */}
-            {[
-              { id: 'name',        label: 'NAME' },
-              { id: 'status',      label: 'STATUS' },
-              { id: 'lastTrained', label: 'LAST TRAINED' },
-              { id: 'payment',     label: 'PAYMENT' },
-            ].map(o => {
-              const on = sortKeys.includes(o.id);
-              const toggleKey = () => { setManualSort(false); setSortKeys(ks => {
-                if (ks.includes(o.id)) return ks.length > 1 ? ks.filter(k => k !== o.id) : ks;
-                setSortDirs(m => (m[o.id] ? m : { ...m, [o.id]: 'asc' }));
-                return [...ks, o.id];
-              }); };
-              return <button key={o.id} onClick={toggleKey} style={pill(on)}>{o.label}</button>;
-            })}
-            </div>
-            {/* Cell 2 — divider sits in the gutter between card 1 and 2; the direction
-                togglers begin at the second card's left edge (Ohad). */}
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', position: 'relative' }}>
-            {/* DIRECTION togglers — moved to the END (after the keys) and given a
-                DISTINCT look (rounded + dashed, not the square solid sort pills)
-                so it's obvious they flip direction, not pick a column (Ohad).
-                One per active key, in priority order. */}
-            {sortKeys.length > 0 && <span style={{ position: 'absolute', left: -6, top: '50%', transform: 'translateY(-50%)', width: 1, height: 16, background: C.cardBd }} />}
-            {sortKeys.map(key => {
-              const desc = sortDirs[key] === 'desc';
-              const lbl = key === 'name' ? (desc ? 'ת→א' : 'א→ת')
-                : key === 'status' ? (desc ? '↑ INACTIVE' : '↓ ACTIVE')
-                : key === 'lastTrained' ? (desc ? '↓ NEWEST' : '↑ OLDEST')
-                : (desc ? '↑ OVERDUE' : '↓ PAID');
-              return (
-                <button key={'dir-' + key} onClick={() => setSortDirs(m => ({ ...m, [key]: desc ? 'asc' : 'desc' }))}
-                  title={`Flip ${key} direction`}
-                  style={{
-                    ...boxBase, padding: '0 12px', borderRadius: 0,
-                    border: `1px dashed ${C.ac}`, background: 'rgba(57,189,255,0.06)', color: C.ac,
-                    ...(key === 'name'
-                      ? { fontFamily: `Heebo, ${FN}`, fontSize: 13, letterSpacing: 0, lineHeight: 1 }
-                      : { fontSize: 10, letterSpacing: '0.1em' }),
-                  }}>
-                  {/* leading ↑/↓ split into a flex-centred box so the arrow
-                      glyph doesn't sit low next to the label (Ohad button audit). */}
-                  {(() => { const mm = /^([↑↓])\s+(.*)$/.exec(lbl); if (!mm) return lbl; return (
-                    <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', gap:4 }}>
-                      <span aria-hidden="true" style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:9, height:9, fontSize:9, lineHeight:1 }}>{mm[1]}</span>
-                      <span>{mm[2]}</span>
-                    </span>
-                  ); })()}
-                </button>
-              );
-            })}
-            </div>
-            {/* Cell 3 — athlete count, right-aligned under the third column. */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
-              <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.08em' }}>
-                {filtered.length} {filtered.length === 1 ? 'athlete' : 'athletes'}
-              </span>
+          {/* SHOW — Active / Archived toggle (was the standalone Archive button). */}
+          <div>
+            <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.2em', color: C.td, textTransform: 'uppercase', marginBottom: 6 }}>Show</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <button onClick={() => setShowArchived(false)} style={{
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', boxSizing: 'border-box',
+                minHeight: 30, height: 30, padding: '0 10px', borderRadius: 0, cursor: 'pointer',
+                border: `1px solid ${!showArchived ? C.ac : C.cardBd}`, background: !showArchived ? 'rgba(57,189,255,0.094)' : 'transparent',
+                color: !showArchived ? C.ac : C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase',
+              }}>
+                <span>Active</span><span style={{ opacity: 0.6, fontSize: 10 }}>{active.length}</span>
+              </button>
+              <button onClick={() => setShowArchived(true)} style={{
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', boxSizing: 'border-box',
+                minHeight: 30, height: 30, padding: '0 10px', borderRadius: 0, cursor: 'pointer',
+                border: `1px solid ${showArchived ? C.rd : C.cardBd}`, background: showArchived ? 'rgba(255,77,79,0.10)' : 'transparent',
+                color: showArchived ? C.rd : C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase',
+              }}>
+                <span>Archived</span><span style={{ opacity: 0.6, fontSize: 10 }}>{archived.length}</span>
+              </button>
             </div>
           </div>
-        );
-      })()}
+
+          {/* SORT BY — multi-select sort keys stacked full-width; each active
+              key shows its own direction toggle beside it. Same toggleKey +
+              sortDirs logic as before, just laid out vertically. */}
+          <div>
+            <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.2em', color: C.td, textTransform: 'uppercase', marginBottom: 6 }}>Sort By</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {[
+                { id: 'name',        label: 'NAME' },
+                { id: 'status',      label: 'STATUS' },
+                { id: 'lastTrained', label: 'LAST TRAINED' },
+                { id: 'payment',     label: 'PAYMENT' },
+              ].map(o => {
+                const on = sortKeys.includes(o.id);
+                const toggleKey = () => { setManualSort(false); setSortKeys(ks => {
+                  if (ks.includes(o.id)) return ks.length > 1 ? ks.filter(k => k !== o.id) : ks;
+                  setSortDirs(m => (m[o.id] ? m : { ...m, [o.id]: 'asc' }));
+                  return [...ks, o.id];
+                }); };
+                const desc = sortDirs[o.id] === 'desc';
+                const dirLbl = o.id === 'name' ? (desc ? 'ת→א' : 'א→ת')
+                  : o.id === 'status' ? (desc ? '↑ INACTIVE' : '↓ ACTIVE')
+                  : o.id === 'lastTrained' ? (desc ? '↓ NEWEST' : '↑ OLDEST')
+                  : (desc ? '↑ OVERDUE' : '↓ PAID');
+                return (
+                  <div key={o.id} style={{ display: 'flex', gap: 6, alignItems: 'stretch' }}>
+                    <button onClick={toggleKey} style={{
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-start', flex: 1, minWidth: 0, boxSizing: 'border-box',
+                      minHeight: 30, height: 30, padding: '0 10px', borderRadius: 0, cursor: 'pointer',
+                      border: `1px solid ${on ? C.ac : C.cardBd}`, background: on ? 'rgba(57,189,255,0.094)' : 'transparent',
+                      color: on ? C.ac : C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
+                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                    }}>{o.label}</button>
+                    {on && (
+                      <button onClick={() => setSortDirs(m => ({ ...m, [o.id]: desc ? 'asc' : 'desc' }))}
+                        title={`Flip ${o.id} direction`}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxSizing: 'border-box',
+                          minHeight: 30, height: 30, padding: '0 8px', borderRadius: 0, cursor: 'pointer',
+                          border: `1px dashed ${C.ac}`, background: 'rgba(57,189,255,0.06)', color: C.ac,
+                          ...(o.id === 'name'
+                            ? { fontFamily: `Heebo, ${FN}`, fontSize: 12, letterSpacing: 0, lineHeight: 1 }
+                            : { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em' }),
+                        }}>
+                        {(() => { const mm = /^([↑↓])\s+(.*)$/.exec(dirLbl); if (!mm) return dirLbl; return (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 3 }}>
+                            <span aria-hidden="true" style={{ fontSize: 9, lineHeight: 1 }}>{mm[1]}</span>
+                            <span>{mm[2]}</span>
+                          </span>
+                        ); })()}
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* ADD ATHLETE — full-width; menu opens within the rail (left:0/right:0). */}
+          <div ref={addMenuRef} style={{position:'relative'}}>
+            <Btn onClick={() => setAddMenuOpen(!addMenuOpen)} style={{ width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 38 }}>+ Add Athlete ▾</Btn>
+            {addMenuOpen && <div style={{position:'absolute',left:0,right:0,top:'100%',marginTop:4,background:C.bg,border:`1px solid ${C.cardBd}`,borderRadius:0,overflow:'hidden',zIndex:50,boxShadow:'0 8px 24px rgba(0,0,0,0.6)'}}>
+              {[['Online Athlete','Online Client'],['Gym, Single','Gym, Single'],['Gym, Couple','Gym, Couple'],['Bnei Herzliya','Bnei Herzliya']].map(([label,format])=>(
+                <button key={format} onClick={()=>{
+                  const f = {...defaultTrainee(), format};
+                  // Use _members (the edit-form shape the modal + handleSave read)
+                  // so a NEW couple actually shows the two member field-sets. Setting
+                  // `members` here left the modal on the solo layout → unnamed members. (audit)
+                  if(format==='Gym, Couple') f._members=[{name:'',email:'',phone:'',age:'',weight:'',height:'',injuries:'',goals:'',notes:'',_emails:['']},{name:'',email:'',phone:'',age:'',weight:'',height:'',injuries:'',goals:'',notes:'',_emails:['']}];
+                  setForm(f); setEditId(null); setShowForm(true); setAddMenuOpen(false);
+                }} style={{display:'block',width:'100%',padding:'10px 16px',background:'transparent',border:'none',borderBottom:`1px solid ${C.bd}`,color:C.tx,fontFamily:FB,fontSize:13,fontWeight:500,cursor:'pointer',textAlign:'left'}}
+                  onMouseEnter={e=>e.currentTarget.style.background=C.sf2} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                  {label}
+                </button>
+              ))}
+            </div>}
+          </div>
+        </aside>
+
+        {/* RIGHT: cards column. */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+
+      {/* Athlete count — right-aligned at the top of the cards column. */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 12, minHeight: 20 }}>
+          <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.08em' }}>
+            {filtered.length} {filtered.length === 1 ? 'athlete' : 'athletes'}
+          </span>
+        </div>
 
       {filtered.length === 0 ? <EmptyState icon={showArchived ? "📦" : "👥"} message={showArchived ? "No archived athletes." : "No athletes yet. Add your first one."} /> : (
         // gridAutoRows:1fr equalises EVERY row to the tallest card so all athlete
@@ -829,6 +830,8 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
             </Card>);
           })}
         </div>)}
+        </div>{/* /RIGHT cards column */}
+      </div>{/* /two-column flex row */}
 
       {/* Edit/Create Modal */}
       <Modal open={showForm} onClose={() => setShowForm(false)} title={editId ? "Edit Athlete" : "New Athlete"} wide>
