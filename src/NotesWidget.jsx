@@ -424,13 +424,15 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
   const stackBoard = useIsMobile(560);
   // Collapsible on the dashboard (compact). Full /coach/tasks view ignores it.
   const [open, setOpen] = usePersistentState('dash-tasks', true);
-  // Compact-board layout variant (Ohad's A/B/C for separating auto-alerts
-  // from his real tasks). 1 = separate lane grouped by kind, 2 = MINE/ALERTS/ALL
-  // filter toggle, 3 = single collapsible summary row. Sub-selections persist too.
-  const [variant, setVariant] = usePersistentState('dash-tasks-variant', 1);
+  // Compact-board scope toggle — MINE (my tasks in the status kanban) /
+  // ALERTS (coaching auto-tasks grouped by kind) / ALL (kanban + grouped
+  // alerts below). Coaching alerts have no meaningful In-Progress/Waiting/Stuck
+  // status, so they never sit in the kanban — the ALERTS view groups them by
+  // kind instead. Selection persists; default MINE.
   const [v2Sub, setV2Sub] = usePersistentState('dash-tasks-v2sub', 'mine');
-  const [v3Open, setV3Open] = usePersistentState('dash-tasks-v3open', false);
-  const [alertCollapsed, setAlertCollapsed] = usePersistentState('dash-tasks-alertcollapsed', {});
+  // Per-kind collapse for the grouped alerts list (ALERTS + ALL views).
+  // Local-only (not persisted) — groups default open so nothing hides.
+  const [alertCollapsed, setAlertCollapsed] = useState({});
   const toggleAlertGroup = (gid) => setAlertCollapsed(m => ({ ...m, [gid]: !m[gid] }));
   const [adding, setAdding] = useState(false);
   const [body, setBody] = useState('');
@@ -842,17 +844,6 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
           const autoRows = openRows.filter(r => !!r.auto_kind);
           const manualRows = openRows.filter(r => !r.auto_kind);
           const grouped = groupAlerts(autoRows);
-          // Which rows feed the status kanban depends on the chosen variant.
-          //   V1/V3 — board is manual-only; auto lives in the alerts section.
-          //   V2    — MINE (manual) / ALERTS (auto) / ALL, per the sub-toggle.
-          const boardRows = variant === 2
-            ? (v2Sub === 'alerts' ? autoRows : v2Sub === 'all' ? openRows : manualRows)
-            : manualRows;
-          // Summary counts for the Variant-3 one-liner ("3 calls · 1 review · …").
-          const summaryStr = ALERT_GROUPS
-            .filter(g => grouped[g.id].length)
-            .map(g => `${grouped[g.id].length} ${g.label.toLowerCase()}`)
-            .join(' · ');
 
           const COLS = [
             { id:'open',    label:'To Do',       color:'#5B6B7A' },
@@ -860,12 +851,15 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
             { id:'waiting', label:'Waiting',     color:'#C9851E' },
             { id:'stuck',   label:'Stuck',       color:'#C0392B' },
           ];
-          const board = (
+          // Status kanban of MANUAL tasks only — coaching alerts never sit here
+          // (they carry no meaningful In-Progress/Waiting/Stuck state). Feeds the
+          // MINE view and the top half of ALL.
+          const kanban = (
             <div style={{ display:'flex', flexDirection: stackBoard ? 'column' : 'row', gap:8, overflowX: stackBoard ? 'visible' : 'auto', paddingBottom:4 }}>
               {COLS.map(col => {
                 const rows = col.id==='open'
-                  ? boardRows.filter(r => !['working','waiting','stuck'].includes(r.status))
-                  : boardRows.filter(r => r.status === col.id);
+                  ? manualRows.filter(r => !['working','waiting','stuck'].includes(r.status))
+                  : manualRows.filter(r => r.status === col.id);
                 // Stacked (phone): drop empty status sections — a full-width empty
                 // "—" box is just noise; on desktop the empty column keeps the
                 // kanban structure so it stays.
@@ -890,83 +884,63 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
             </div>
           );
 
+          // Grouped coaching-alerts list — 📞 Calls · 🎥 Reviews · 🏗 Builds ·
+          // 📋 Intake, each group collapsible with a count. Reused by ALERTS
+          // (the comfortable view) and by the bottom of ALL.
+          const alertsList = autoRows.length === 0 ? (
+            <div style={{ fontFamily:FN, fontSize:9, color:'var(--c-td)', letterSpacing:'0.04em', padding:'4px 0' }}>No coaching alerts — all clear.</div>
+          ) : (
+            <AlertGroupList grouped={grouped} collapsible collapsedMap={alertCollapsed} onToggle={toggleAlertGroup} onRowClick={handleClick} stackBoard={stackBoard} />
+          );
+
           const btnBase = { borderRadius:0, fontFamily:FN, fontWeight:700, cursor:'pointer' };
+          const SEGS = [
+            { id:'mine',   label:'MINE',   n:manualRows.length },
+            { id:'alerts', label:'ALERTS', n:autoRows.length },
+            { id:'all',    label:'ALL',    n:openRows.length },
+          ];
           return (
             <div>
-              {/* Variant switcher — 1 · 2 · 3, persisted via usePersistentState. */}
-              <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:8 }}>
-                <span style={{ fontFamily:FN, fontSize:9, color:'var(--c-td)', letterSpacing:'0.1em', fontWeight:700 }}>ALERTS</span>
-                {[
-                  { id:1, tip:'Separate lane — your tasks on the board, coaching alerts grouped by kind below' },
-                  { id:2, tip:'Filter toggle — MINE / ALERTS / ALL on one board' },
-                  { id:3, tip:'Collapse — all coaching alerts folded into one expandable row' },
-                ].map(v => {
-                  const active = variant === v.id;
-                  return (
-                    <button key={v.id} onClick={()=>setVariant(v.id)} title={v.tip}
-                      style={{ ...btnBase, width:24, height:22, fontSize:11,
-                        border:`1px solid ${active?'var(--c-ac)':'var(--c-cardBd)'}`,
-                        background: active?'rgba(57,189,255,0.094)':'transparent',
-                        color: active?'var(--c-ac)':'var(--c-tm)' }}>{v.id}</button>
-                  );
-                })}
-              </div>
-
-              {/* Variant 2 — MINE / ALERTS / ALL segmented toggle above the board. */}
-              {variant === 2 && (
-                <div style={{ display:'flex', gap:4, marginBottom:8 }}>
-                  {[
-                    { id:'mine',   label:'MINE',   n:manualRows.length },
-                    { id:'alerts', label:'ALERTS', n:autoRows.length },
-                    { id:'all',    label:'ALL',    n:openRows.length },
-                  ].map(s => {
+              {/* Compact scope toggle — a single right-aligned segmented control
+                  (MINE · ALERTS · ALL). Counts ride as subtle superscripts; the
+                  active segment gets the cyan fill + cyan text. Replaces the old
+                  full-width three-segment bar (too heavy) and the 1·2·3 switcher. */}
+              <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:6 }}>
+                <div style={{ display:'inline-flex', border:`1px solid var(--c-cardBd)` }}>
+                  {SEGS.map((s, i) => {
                     const active = v2Sub === s.id;
                     return (
                       <button key={s.id} onClick={()=>setV2Sub(s.id)}
-                        style={{ ...btnBase, flex:1, height:24, fontSize:9, letterSpacing:'0.08em',
-                          border:`1px solid ${active?'var(--c-ac)':'var(--c-cardBd)'}`,
+                        style={{ ...btnBase, height:26, fontSize:10, letterSpacing:'0.1em', padding:'0 11px',
+                          border:'none', borderLeft: i ? `1px solid var(--c-cardBd)` : 'none',
                           background: active?'rgba(57,189,255,0.094)':'transparent',
-                          color: active?'var(--c-ac)':'var(--c-tm)' }}>
-                        {s.label}{s.n>0?` · ${s.n}`:''}
+                          color: active?'var(--c-ac)':'var(--c-tm)',
+                          display:'inline-flex', alignItems:'center', gap:2 }}>
+                        {s.label}{s.n>0 && <sup style={{ fontSize:7, fontWeight:700, opacity:0.9, marginLeft:1 }}>{s.n}</sup>}
                       </button>
                     );
                   })}
                 </div>
-              )}
+              </div>
 
-              {/* Variant 3 — single collapsible summary row ABOVE the board. */}
-              {variant === 3 && autoRows.length > 0 && (
-                <div style={{ marginBottom:8 }}>
-                  <div onClick={()=>setV3Open(o=>!o)} role="button" tabIndex={0}
-                    onKeyDown={(e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); setV3Open(o=>!o); } }}
-                    style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 10px', border:`1px solid var(--c-cardBd)`, borderLeft:`3px solid var(--c-ac)`, background:'var(--c-sf)', cursor:'pointer', userSelect:'none' }}>
-                    <span aria-hidden style={{ fontSize:10, color:'var(--c-ac)', transform:v3Open?'rotate(90deg)':'rotate(0deg)', transition:'transform 160ms ease' }}>▸</span>
-                    <span style={{ fontFamily:FN, fontSize:10, fontWeight:700, letterSpacing:'0.06em', color:'var(--c-ac)' }}>{autoRows.length} COACHING ALERT{autoRows.length===1?'':'S'}</span>
-                    {summaryStr && <span style={{ fontFamily:FN, fontSize:9, color:'var(--c-tm)', letterSpacing:'0.04em' }}>— {summaryStr}</span>}
-                  </div>
-                  {v3Open && (
-                    <div style={{ marginTop:6 }}>
-                      <AlertGroupList grouped={grouped} collapsible={false} onRowClick={handleClick} stackBoard={stackBoard} />
+              {v2Sub === 'alerts' ? (
+                // ALERTS — the comfortable view: grouped by kind, NO status kanban.
+                alertsList
+              ) : v2Sub === 'all' ? (
+                // ALL — manual status kanban, then the grouped coaching alerts below.
+                <>
+                  {kanban}
+                  <div style={{ marginTop:12 }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
+                      <span style={{ fontFamily:FN, fontSize:9, color:'var(--c-td)', letterSpacing:'0.14em', fontWeight:700 }}>COACHING ALERTS ({autoRows.length})</span>
+                      <span style={{ flex:1, height:1, background:'var(--c-cardBd)' }} />
                     </div>
-                  )}
-                </div>
-              )}
-
-              {board}
-
-              {/* Variant 1 — COACHING ALERTS lane below the board, grouped by kind. */}
-              {variant === 1 && (
-                <div style={{ marginTop:12 }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
-                    <span style={{ fontFamily:FN, fontSize:9, color:'var(--c-td)', letterSpacing:'0.14em', fontWeight:700 }}>COACHING ALERTS ({autoRows.length})</span>
-                    <span style={{ flex:1, height:1, background:'var(--c-cardBd)' }} />
+                    {alertsList}
                   </div>
-                  {autoRows.length === 0 ? (
-                    <div style={{ fontFamily:FN, fontSize:9, color:'var(--c-td)', letterSpacing:'0.04em', padding:'4px 0' }}>No coaching alerts — all clear.</div>
-                  ) : (
-                    <AlertGroupList grouped={grouped} collapsible collapsedMap={alertCollapsed} onToggle={toggleAlertGroup} onRowClick={handleClick} stackBoard={stackBoard} />
-                  )}
-                </div>
+                </>
+              ) : (
+                // MINE — manual tasks in the status kanban (default).
+                kanban
               )}
             </div>
           );
