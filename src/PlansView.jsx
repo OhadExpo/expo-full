@@ -3036,11 +3036,9 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
 
         {/* RIGHT: the program list — grouped (table/grid) or flat, unchanged. */}
         <div style={{ flex: 1, minWidth: 0, boxSizing: 'border-box' }}>
-          <div style={{fontSize:12,color:C.td,marginBottom:12,fontFamily:FN}}>
-            {grouped
-              ? `${grouped.length} athlete${grouped.length===1?'':'s'} · ${planIndex.length} program${planIndex.length===1?'':'s'} total`
-              : `Showing ${visible.length} of ${filtered.length} programs${filtered.length !== planIndex.length ? ` (${planIndex.length} total)` : ''}`}
-          </div>
+          {/* Count line removed from the main-column top so the first program
+              card top-aligns with the rail's Search box (Ohad OCD). The rail's
+              ATHLETE "All" already shows the program total. */}
       {/* Athlete-grouped default view. Each row = one athlete, current block
           surfaced prominently with last-session signal. (N earlier blocks)
           chevron expands the older blocks inline so nothing is lost — they
