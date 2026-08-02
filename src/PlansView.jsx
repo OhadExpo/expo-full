@@ -2324,6 +2324,18 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
   // Persisted so Ohad's pick survives reloads. Only affects the grouped
   // (unfiltered) view — search/trainee-filter always fall back to the flat list.
   const [progView, setProgView] = usePersistentState('programs-view-mode', 'table');
+  // On a phone the filter rail stacked full-width ON TOP of the program cards,
+  // so you scrolled through the whole Search / Athlete / Flags / Sort / +New
+  // panel before reaching a single program. Collapse it behind a "FILTERS"
+  // toggle on narrow (cards first), mirroring the tasks page; on desktop the
+  // rail stays a 210px sticky side column, fully open. (Ohad 2026-08 mobile pass)
+  const [narrow, setNarrow] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 760);
+  const [railOpen, setRailOpen] = useState(false);
+  useEffect(() => {
+    const onResize = () => setNarrow(window.innerWidth <= 760);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
   // Single-vs-double click reconciler for grid cards: a single click opens the
   // current program after a short delay; a double click cancels that and
   // expands the card's earlier blocks instead (Ohad: "expandable on a double
@@ -2981,7 +2993,20 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
         {/* LEFT: filter rail — sticky so the controls stay pinned as the (long)
             list scrolls. Fixed 210px; wraps to full-width when the viewport
             can't fit both columns. */}
-        <aside className="programs-rail" style={{ width: 210, flexShrink: 0, alignSelf: 'flex-start', position: 'sticky', top: 12, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <aside className="programs-rail" style={{ width: 210, flexShrink: 0, alignSelf: 'flex-start', position: 'sticky', top: 12, display: 'flex', flexDirection: 'column', gap: (narrow && !railOpen) ? 0 : 14,
+          ...(narrow ? { background: 'var(--c-sf2)', border: `1px solid ${C.cardBd}`, padding: (railOpen ? '12px' : '0'), boxSizing: 'border-box' } : null) }}>
+          {/* FILTERS toggle — narrow only. Collapses the whole rail so the program
+              CARDS are front-and-centre; tap to reveal Search/Athlete/Flags/Sort/
+              +New. Mirrors the tasks-page collapsed rail. Desktop skips this and
+              renders the rail open. */}
+          {narrow && (
+            <div onClick={() => setRailOpen(o => !o)}
+              style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.22em', color: C.ac, textTransform: 'uppercase', padding: railOpen ? '0 0 10px' : '11px 12px', borderBottom: railOpen ? `1px solid ${C.cardBd}` : 'none', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+              <span>Filters</span>
+              <span aria-hidden style={{ fontSize: 11, lineHeight: 1, transform: railOpen ? 'rotate(180deg)' : 'none', transition: 'transform 180ms ease' }}>▾</span>
+            </div>
+          )}
+          {(!narrow || railOpen) && (<>
           {/* SEARCH — full-width in the rail. */}
           <div>
             <input title="Search programs by name or block (e.g. “Block #5”, “GPP”)" placeholder="Search programs..." value={search} onChange={e=>{setSearch(e.target.value);setVisibleCount(PAGE_SIZE)}}
@@ -3054,6 +3079,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
 
           {/* + NEW PROGRAM — pinned to the bottom of the rail. */}
           <Btn title="Create a new, empty program — you pick the athlete inside the editor" onClick={() => handleNewPlan()} style={{ width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 38, marginTop: 'auto' }}>+ New Program</Btn>
+          </>)}
         </aside>
 
         {/* RIGHT: the program list — grouped (table/grid) or flat, unchanged. */}
