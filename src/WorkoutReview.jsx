@@ -2546,7 +2546,15 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                   {/* BLOCK · week · date · sets */}
                   <div style={{display:"flex",alignItems:"center",gap:8,marginTop:6,flexWrap:"wrap"}}>
                     <span style={{fontFamily:FN,fontSize:12,color:C.ac,letterSpacing:'0.04em'}}>{wo.planName}</span>
-                    <span style={{fontFamily:FN,fontSize:11,color:C.tm,letterSpacing:'0.04em'}}>· <span style={{color:C.tx,fontWeight:700}}>W{wo.week}{planWeeks?`/${planWeeks}`:''}</span> · {fmtPrettyDate(wo.date)} · {doneSets}/{totalSets} sets{hasFormVids && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={C.gn} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginLeft:5,verticalAlign:'-2px',flexShrink:0}} aria-label="has form video"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>}</span>
+                    <span className="wr-meta" style={{display:'flex',alignItems:'center',gap:8,fontFamily:FN,fontSize:11,color:C.tm,letterSpacing:'0.04em'}}>
+                      <span className="wr-dot">·</span>
+                      <span style={{color:C.tx,fontWeight:700}}>W{wo.week}{planWeeks?`/${planWeeks}`:''}</span>
+                      <span className="wr-dot">·</span>
+                      <span>{fmtPrettyDate(wo.date)}</span>
+                      <span className="wr-dot">·</span>
+                      <span>{doneSets}/{totalSets} sets</span>
+                      {hasFormVids && <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={C.tx} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}} aria-label="has form video"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>}
+                    </span>
                     {reviewed && (
                       <span style={{fontSize:8,fontFamily:FN,color:C.gn,fontWeight:700,letterSpacing:0.5,
                         padding:"1px 5px",borderRadius:0,border:`1px solid rgba(46,213,115,0.251)`,background:C.gnD}}>
@@ -2587,6 +2595,11 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
           <style>{`@media (max-width: 760px){
             .wr-day-card{ padding: 8px 12px !important; position: relative !important; align-items: flex-start !important; }
             .wr-day-card > div:last-child{ position: absolute !important; top: 8px !important; right: 12px !important; margin-left: 0 !important; }
+            /* Mobile: the meta takes its own full-width line and its items (week /
+               date / sets / video icon) spread edge-to-edge with even spacing;
+               the dot separators hide (the spacing is the separator now). */
+            .wr-day-card .wr-meta{ width: 100% !important; justify-content: space-between !important; gap: 6px !important; }
+            .wr-day-card .wr-meta .wr-dot{ display: none !important; }
           }`}</style>
           {pending.length === 0 && !showReviewed && (
             <div style={{ textAlign: 'center', padding: 48, color: C.td }}>
