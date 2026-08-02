@@ -406,7 +406,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
   // multi-toggle "needs attention" alert filters (AND-combined).
   const [statusFilter, setStatusFilter] = useState('All');
   const [formatFilter, setFormatFilter] = useState('All');
-  const [attnFlags, setAttnFlags] = useState({ pay: false, dormant: false, lowSessions: false });
+  const [attnFlags, setAttnFlags] = useState({ pay: false, dormant: false, lowSessions: false, noProgram: false });
   const [archiveConfirm, setArchiveConfirm] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [deleteTyped, setDeleteTyped] = useState("");
@@ -484,6 +484,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
   const flagPay = (t) => { const s = getPaymentStatus(t, payments); return !!s && (s.label.startsWith('OVERDUE') || s.label === 'NEVER PAID'); };
   const flagDormant = (t) => { const ms = getLastWorkoutMs(t, workouts, clientWorkouts); return !ms || (Date.now() - ms) >= OVERDUE_DAYS * 86400000; };
   const flagLow = (t) => t.sessionsRemaining != null && t.sessionsRemaining <= 2;
+  const flagNoProgram = (t) => (planCounts?.[t.id] || 0) === 0;
 
   // --- base pools + live counts ------------------------------------------
   // Status-scoped pool = the base for FORMAT counts. Non-archived statuses
@@ -512,15 +513,17 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
     pay: flagPool.filter(flagPay).length,
     dormant: flagPool.filter(flagDormant).length,
     lowSessions: flagPool.filter(flagLow).length,
+    noProgram: flagPool.filter(flagNoProgram).length,
   };
-  const anyFilterActive = statusFilter !== 'All' || formatFilter !== 'All' || search !== '' || attnFlags.pay || attnFlags.dormant || attnFlags.lowSessions;
-  const clearFilters = () => { setStatusFilter('All'); setFormatFilter('All'); setSearch(''); setAttnFlags({ pay: false, dormant: false, lowSessions: false }); };
+  const anyFilterActive = statusFilter !== 'All' || formatFilter !== 'All' || search !== '' || attnFlags.pay || attnFlags.dormant || attnFlags.lowSessions || attnFlags.noProgram;
+  const clearFilters = () => { setStatusFilter('All'); setFormatFilter('All'); setSearch(''); setAttnFlags({ pay: false, dormant: false, lowSessions: false, noProgram: false }); };
 
   const filteredUnsorted = statusScoped.filter(t =>
     matchesSearch(t) && matchesFormat(t)
     && (!attnFlags.pay || flagPay(t))
     && (!attnFlags.dormant || flagDormant(t))
     && (!attnFlags.lowSessions || flagLow(t))
+    && (!attnFlags.noProgram || flagNoProgram(t))
   );
 
   // Sort comparator. Language priority is the primary key (HE block first or
@@ -633,18 +636,22 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
         <aside style={{
           width: 210, flexShrink: 0, alignSelf: 'flex-start',
           position: 'sticky', top: 12,
+          maxHeight: 'calc(100vh - 24px)', overflowY: 'auto', overflowX: 'hidden', paddingRight: 4,
           display: 'flex', flexDirection: 'column', gap: 14,
         }}>
           {/* SEARCH — full-width in the rail. */}
           <div>
             <input placeholder="Search athletes..." value={search} onChange={e => setSearch(e.target.value)}
               style={{ ...baseInput, width: '100%', boxSizing: 'border-box', height: 38, padding: '0 12px', fontSize: 13, border: `1px solid ${C.ac}` }} />
-            {anyFilterActive && (
-              <button onClick={clearFilters} title="Clear all filters"
-                style={{ marginTop: 8, background: 'transparent', border: 'none', color: C.tm, cursor: 'pointer', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', padding: 0 }}>
-                ✕ Clear filters
-              </button>
-            )}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 8, minHeight: 14 }}>
+              <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color: C.td }}>{filtered.length} {filtered.length === 1 ? 'ATHLETE' : 'ATHLETES'}</span>
+              {anyFilterActive && (
+                <button onClick={clearFilters} title="Clear all filters"
+                  style={{ background: 'transparent', border: 'none', color: C.tm, cursor: 'pointer', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', padding: 0, whiteSpace: 'nowrap' }}>
+                  ✕ Clear
+                </button>
+              )}
+            </div>
           </div>
 
           {/* STATUS — single-select. Archived swaps the pool to the dashed,
@@ -681,6 +688,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                 { key: 'pay', label: '⚠ Payment due' },
                 { key: 'dormant', label: '💤 Dormant' },
                 { key: 'lowSessions', label: '⏳ Low sessions' },
+                { key: 'noProgram', label: '📋 No program' },
               ].map(o => (
                 <RailOption key={o.key} label={o.label} count={flagCounts[o.key]}
                   active={attnFlags[o.key]} accent={C.or} tint="rgba(255,159,10,0.12)"
@@ -769,13 +777,8 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
         {/* RIGHT: cards column. */}
         <div style={{ flex: 1, minWidth: 0 }}>
 
-      {/* Athlete count — right-aligned at the top of the cards column. */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 12, minHeight: 20 }}>
-          <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.08em' }}>
-            {filtered.length} {filtered.length === 1 ? 'athlete' : 'athletes'}
-          </span>
-        </div>
-
+      {/* Count moved into the rail (under Search) so the first card top-aligns
+          with the search box (Ohad OCD). */}
       {filtered.length === 0 ? <EmptyState icon={showArchived ? "📦" : "👥"} message={showArchived ? "No archived athletes." : "No athletes yet. Add your first one."} /> : (
         // gridAutoRows:1fr equalises EVERY row to the tallest card so all athlete
         // cards are the same height (the action row's marginTop:auto absorbs the
