@@ -2520,7 +2520,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
             const hasFormVids = hasReviewableVideo(wo);
             const reviewed = !!wo.reviewedAt;
             return (
-              <div key={wo.id} onClick={() => setSelectedWo(wo.id)}
+              <div key={wo.id} className="wr-day-card" onClick={() => setSelectedWo(wo.id)}
                 role="button" tabIndex={0}
                 onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedWo(wo.id); } }}
                 style={{background: 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:"12px 16px",
@@ -2546,7 +2546,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                   {/* BLOCK · week · date · sets */}
                   <div style={{display:"flex",alignItems:"center",gap:8,marginTop:6,flexWrap:"wrap"}}>
                     <span style={{fontFamily:FN,fontSize:12,color:C.ac,letterSpacing:'0.04em'}}>{wo.planName}</span>
-                    <span style={{fontFamily:FN,fontSize:11,color:C.tm,letterSpacing:'0.04em'}}>· W{wo.week}{planWeeks?`/${planWeeks}`:''} · {fmtPrettyDate(wo.date)} · {doneSets}/{totalSets} sets{hasFormVids && <span style={{color:C.gn,marginLeft:4}}>📹</span>}</span>
+                    <span style={{fontFamily:FN,fontSize:11,color:C.tm,letterSpacing:'0.04em'}}>· <span style={{color:C.tx,fontWeight:700}}>W{wo.week}{planWeeks?`/${planWeeks}`:''}</span> · {fmtPrettyDate(wo.date)} · {doneSets}/{totalSets} sets{hasFormVids && <span style={{color:C.gn,marginLeft:4}}>📹</span>}</span>
                     {reviewed && (
                       <span style={{fontSize:8,fontFamily:FN,color:C.gn,fontWeight:700,letterSpacing:0.5,
                         padding:"1px 5px",borderRadius:0,border:`1px solid rgba(46,213,115,0.251)`,background:C.gnD}}>
@@ -2580,6 +2580,14 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
         );
         return (
         <>
+          {/* Mobile only: the day-cards read too tall — the meta got crammed into
+              a narrow column next to the buttons and wrapped to 3 lines. Stack the
+              card (content full-width so the meta fits on one line, buttons in a
+              tidy row below) + tight padding. Desktop keeps 12/16 side-by-side. */}
+          <style>{`@media (max-width: 760px){
+            .wr-day-card{ padding: 8px 12px !important; flex-direction: column !important; align-items: stretch !important; gap: 7px !important; }
+            .wr-day-card > div:last-child{ margin-left: 0 !important; justify-content: flex-end !important; }
+          }`}</style>
           {pending.length === 0 && !showReviewed && (
             <div style={{ textAlign: 'center', padding: 48, color: C.td }}>
               <div style={{ fontFamily: FN, fontSize: 13, letterSpacing: '0.08em' }}>ALL CAUGHT UP</div>
