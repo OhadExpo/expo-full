@@ -872,16 +872,15 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                 if (rows.length === 0) return null;
                 return (
                   <div key={col.id} style={{ flex: stackBoard ? '1 1 auto' : '1 1 200px', minWidth: stackBoard ? 0 : 160, border:`1px solid var(--c-cardBd)`, display:'flex', flexDirection:'column' }}>
-                    {/* Column header mirrors the tasks-page SectionHeader grammar
-                        exactly (dark strip + small colour DOT + white label +
-                        muted count) — NOT a loud saturated fill. This kills the
-                        old imbalance where "In Progress" (bright blue) shouted
-                        over "To Do" (steel); now every column reads equal-weight,
-                        colour-coded only by its dot. */}
-                    <div style={{ display:'flex', alignItems:'center', gap:7, padding:'6px 9px', background:'var(--c-sf2, transparent)', borderBottom:`1px solid var(--c-cardBd)` }}>
-                      <span style={{ width:8, height:8, background:col.color, borderRadius:'50%', flexShrink:0 }} />
-                      <span style={{ fontFamily:FN, fontSize:9, fontWeight:700, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--c-tx)' }}>{col.label}</span>
-                      <span style={{ fontFamily:FN, fontSize:9, fontWeight:600, color:'var(--c-td)', letterSpacing:'0.04em' }}>{rows.length}</span>
+                    {/* Column header matches the tasks-page BOARD column header
+                        EXACTLY (TasksV8View: saturated fill + white text, label
+                        left · count right, padding 10/12, 11px/0.12em label).
+                        Same STATUS colours (open #5B6B7A … stuck #C0392B), so the
+                        dashboard status-board and the tasks-page board read as one
+                        system (Ohad: same language as the tasks page). */}
+                    <div style={{ background:col.color, color:'#FFFFFF', padding:'10px 12px', display:'flex', justifyContent:'space-between', alignItems:'center', borderBottom:`1px solid var(--c-cardBd)` }}>
+                      <span style={{ fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.12em', textTransform:'uppercase' }}>{col.label}</span>
+                      <span style={{ fontFamily:FN, fontSize:10, fontWeight:700, letterSpacing:'0.06em', opacity:0.85 }}>{rows.length}</span>
                     </div>
                     <div style={{ padding:4, display:'flex', flexDirection:'column', gap:4, maxHeight: stackBoard ? 'none' : 300, overflowY: stackBoard ? 'visible' : 'auto' }}>
                       {rows.slice(0, cap).map(n => (
