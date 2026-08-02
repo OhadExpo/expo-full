@@ -695,6 +695,24 @@ function AthletePicker({ trainees, planIndex, existing = [], clientWorkouts = []
   return createPortal((
     <div onClick={onCancel} role="dialog" aria-modal="true" style={overlay}>
       <div onClick={e => e.stopPropagation()} style={modal}>
+        {/* Desktop keeps the single-line 5-column row. On a phone the athlete /
+            program names can't render in a ~72px column, so below 760px the row
+            reflows to three lines — athlete (+ remove) · program · week/day —
+            each name-bearing select getting near-full width. Desktop layout is
+            untouched (the media query only fires below 760px). */}
+        <style>{`
+          @media (max-width: 760px) {
+            .sess-add-row {
+              grid-template-columns: minmax(0,1fr) minmax(0,1fr) 28px !important;
+              row-gap: 6px;
+            }
+            .sess-add-row > *:nth-child(1) { grid-area: 1 / 1 / 2 / 3; }
+            .sess-add-row > *:nth-child(5) { grid-area: 1 / 3 / 2 / 4; }
+            .sess-add-row > *:nth-child(2) { grid-area: 2 / 1 / 3 / 4; }
+            .sess-add-row > *:nth-child(3) { grid-area: 3 / 1 / 4 / 2; }
+            .sess-add-row > *:nth-child(4) { grid-area: 3 / 2 / 4 / 4; }
+          }
+        `}</style>
         <h3 style={{ margin: '0 0 14px', fontFamily: FN, fontSize: 14, color: C.ac, letterSpacing: '0.12em', fontWeight: 700 }}>ADD ATHLETES</h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: '54vh', overflow: 'auto' }}>
           {rows.map((r, i) => {
@@ -704,7 +722,7 @@ function AthletePicker({ trainees, planIndex, existing = [], clientWorkouts = []
             const weeks = Number(plan?.weeks) || 8;
             const wkVal = Number(r.week) || (r.planId ? dfltWeek(r) : 1);
             return (
-              <div key={i} style={{ display: 'grid', gridTemplateColumns: '1.1fr 1.1fr 0.7fr 1fr 28px', gap: 6, alignItems: 'center' }}>
+              <div key={i} className="sess-add-row" style={{ display: 'grid', gridTemplateColumns: '1.1fr 1.1fr 0.7fr 1fr 28px', gap: 6, alignItems: 'center' }}>
                 <select value={r.traineeId} onChange={e => { const tid = e.target.value; const nx = tid ? nextWorkout(tid) : null; setRow(i, nx ? { traineeId: tid, planId: nx.planId, dayIdx: nx.dayIdx, week: nx.week } : { traineeId: tid, planId: '', dayIdx: 0, week: 0 }); }} style={sel}>
                   <option value="">— athlete —</option>
                   {active.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
