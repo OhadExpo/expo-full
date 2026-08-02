@@ -1568,7 +1568,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
           // line and let its chips wrap within the viewport, or the date chip
           // overflows and clips off-screen (#14). */
           ...(wrapRow
-            ? { flexBasis: '100%', minWidth: 0, justifyContent: heb ? 'flex-end' : 'flex-start' }
+            ? { flexShrink: 1, minWidth: 0, justifyContent: 'flex-start' }
             : { flexShrink: 0, justifyContent: 'flex-end' }) }}>
           <PriorityPill priority={priority} onSetPriority={(p) => onSetPriority(row, p)} readOnly={readOnly} />
           {showAthlete && (
@@ -1645,7 +1645,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
             (Yuval: make the board status more readable). Status there is
             changed by dragging between columns / from the expanded detail. */}
         {!hideStatus && (
-          <span style={{ display: 'inline-flex', marginLeft: board ? 'auto' : undefined }}>
+          <span style={{ display: 'inline-flex', marginLeft: wrapRow ? 'auto' : undefined }}>
             <StatusPill status={row.status} theme={theme} onSetStatus={(s) => onSetStatus(row, s)} readOnly={readOnly} />
           </span>
         )}
