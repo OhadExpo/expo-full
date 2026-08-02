@@ -3107,17 +3107,19 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                   <div style={{flex:1,minWidth:12}} />
                   <span title={`Last session: ${tagText.toLowerCase()}`} style={{display:'inline-flex',alignItems:'center',justifyContent:'center',height:26,padding:'0 12px',fontSize:10,fontFamily:FN,color:tagColor,letterSpacing:'0.06em',fontWeight:600,border:`1px solid ${tagColor}`,whiteSpace:'nowrap',flexShrink:0,boxSizing:'border-box'}}>{tagText.toLowerCase()}</span>
                 </div>
-                {/* ACTION line — portal toggle left, CRUD cluster right, under a
-                    hairline. Hovering here cancels the plan hover-preview. */}
+                {/* ACTION line — ALL action buttons grouped together on the right
+                    (ON PORTAL + PREVIEW/DUPLICATE/SHARE/DELETE), aligned under the
+                    last-trained chip. Previously ON PORTAL was pinned far-left and
+                    the CRUD cluster far-right, which read as scattered across the
+                    card (Ohad). Hovering here cancels the plan hover-preview. */}
                 <div onMouseEnter={() => { clearTimeout(hoverTimerRef.current); setHoverPos(null); clearPreviewPlan(); }}
-                  style={{borderTop:`1px solid ${C.cardBd}`,padding:'10px 16px',display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
+                  style={{borderTop:`1px solid ${C.cardBd}`,padding:'10px 16px',display:'flex',gap:8,alignItems:'center',flexWrap:'wrap',justifyContent:'flex-end'}}>
                   {setPortalVis && (() => {
                     const vk = visKeyForPlan(cur, trainees);
                     if (!vk) return null;
                     const isVis = portalVis?.[vk] !== false;
                     return <PortalPill on={isVis} onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} />;
                   })()}
-                  <div style={{flex:1,minWidth:12}} />
                   {onPreviewPlan && <LabeledBtn onClick={e=>{e.stopPropagation();onPreviewPlan(cur.id);}} title="Preview as trainee" label="PREVIEW" />}
                   <LabeledBtn onClick={e=>{e.stopPropagation();handleDuplicate(cur.id);}} title="Duplicate program" label="DUPLICATE" />
                   <LabeledBtn onClick={e=>{e.stopPropagation();setShareTarget(cur.id);}} title="Share to an athlete — duplicates this program for them" label="SHARE" />
