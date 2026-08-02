@@ -91,16 +91,16 @@ export default function ExercisesView({ exercises, setExercises }) {
         <div style={{ overflowX: "auto", background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0 }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: FB, fontSize: 13 }}>
             <thead><tr style={{ background: refined ? 'var(--c-sf)' : 'transparent', borderBottom: `1px solid ${refined ? 'rgba(0,0,0,0.10)' : C.cardBd}` }}>
-              {["Title","Category","Resistance","Pattern","Laterality",""].map(h =>
+              {["Title","Resistance","Body Position","Movement Type","Primary Muscles",""].map(h =>
                 <th key={h} style={{ textAlign: "left", padding: "8px 10px", fontSize: 9, fontFamily: FN, color: refined ? '#FFFFFF' : C.tm, textTransform: "uppercase", letterSpacing: '0.18em', fontWeight: 700 }}>{h}</th>)}
             </tr></thead>
             <tbody>{rows.map(ex => (
               <tr key={ex.id} style={{ borderBottom: `1px solid ${C.cardBd}` }} onMouseEnter={e => e.currentTarget.style.background = refined ? 'rgba(0,0,0,0.04)' : C.sf2} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                 <td style={{ padding: "10px", color: C.tx, fontWeight: 600 }}>{ex.title}</td>
-                <td style={{ padding: "10px" }}>{ex.category ? <Badge>{ex.category}</Badge> : <span style={{ color: C.td, opacity: 0.55 }}>—</span>}</td>
-                <td style={{ padding: "10px", color: C.tm }}>{ex.resistanceType || <span style={{ color: C.td, opacity: 0.55 }}>—</span>}</td>
-                <td style={{ padding: "10px" }}>{ex.movementPattern ? <Badge color={C.gn}>{ex.movementPattern}</Badge> : <span style={{ color: C.td, opacity: 0.55 }}>—</span>}</td>
-                <td style={{ padding: "10px", color: C.tm }}>{ex.laterality || <span style={{ color: C.td, opacity: 0.55 }}>—</span>}</td>
+                <td style={{ padding: "10px", color: C.tm, whiteSpace: 'nowrap' }}>{ex.resistanceType || <span style={{ color: C.td, opacity: 0.55 }}>—</span>}</td>
+                <td style={{ padding: "10px", color: C.tm, whiteSpace: 'nowrap' }}>{ex.bodyPosition || <span style={{ color: C.td, opacity: 0.55 }}>—</span>}</td>
+                <td style={{ padding: "10px" }}>{ex.movementType ? <Badge color={C.gn}>{ex.movementType}</Badge> : <span style={{ color: C.td, opacity: 0.55 }}>—</span>}</td>
+                <td style={{ padding: "10px", color: C.tm, maxWidth: 240 }}><span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ex.primaryMuscles || <span style={{ color: C.td, opacity: 0.55 }}>—</span>}</span></td>
                 <td style={{ padding: "10px" }}>
                   <button onClick={() => { setForm({...ex}); setEditId(ex.id); setShowForm(true); }} title="Edit exercise" style={{ background: "none", border: "none", color: C.tm, cursor: "pointer", padding: 4, display: 'inline-flex', alignItems: 'center' }}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
