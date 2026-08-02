@@ -3105,7 +3105,10 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                   )}
                   <div style={{fontSize:11,color:C.tm,fontFamily:FN,letterSpacing:'0.04em',fontWeight:500,flexShrink:0,whiteSpace:'nowrap'}}>{cur.dayCount}d · {cur.exerciseCount}ex</div>
                   <div style={{flex:1,minWidth:12}} />
-                  <span title={`Last session: ${tagText.toLowerCase()}`} style={{display:'inline-flex',alignItems:'center',justifyContent:'center',height:26,padding:'0 12px',fontSize:10,fontFamily:FN,color:tagColor,letterSpacing:'0.06em',fontWeight:600,border:`1px solid ${tagColor}`,whiteSpace:'nowrap',flexShrink:0,boxSizing:'border-box'}}>{tagText.toLowerCase()}</span>
+                  {/* Last-session chip: FIXED width so every chip is the same size
+                      regardless of text length, and LESS colourful — neutral border
+                      + colour only in the text (was a loud fully-coloured border). */}
+                  <span title={`Last session: ${tagText.toLowerCase()}`} style={{display:'inline-flex',alignItems:'center',justifyContent:'center',width:116,height:24,fontSize:10,fontFamily:FN,color:tagColor,letterSpacing:'0.06em',fontWeight:600,border:`1px solid ${C.cardBd}`,whiteSpace:'nowrap',flexShrink:0,boxSizing:'border-box'}}>{tagText.toLowerCase()}</span>
                 </div>
                 {/* ACTION line — ALL action buttons grouped together on the right
                     (ON PORTAL + PREVIEW/DUPLICATE/SHARE/DELETE), aligned under the
@@ -3233,7 +3236,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               </button>
             );
             const tag = (
-              <span title={`Last session: ${tagText}`} style={{display:'inline-flex',alignItems:'center',justifyContent:'center',height:30,padding:'0 10px',fontSize:10,fontFamily:FN,color:tagColor,letterSpacing:'0.04em',fontWeight:600,border:`1px solid ${tagColor}`,whiteSpace:'nowrap',flexShrink:0,boxSizing:'border-box'}}>{tagText}</span>
+              <span title={`Last session: ${tagText}`} style={{display:'inline-flex',alignItems:'center',justifyContent:'center',width:116,height:24,fontSize:10,fontFamily:FN,color:tagColor,letterSpacing:'0.04em',fontWeight:600,border:`1px solid ${C.cardBd}`,whiteSpace:'nowrap',flexShrink:0,boxSizing:'border-box'}}>{tagText}</span>
             );
             return (
               <div key={row.tid} data-prog-card={row.tid}
