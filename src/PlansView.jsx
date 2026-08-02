@@ -1570,9 +1570,13 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
             one commit action live up here; the 8 secondary actions moved to
             their own tier below the divider (Ohad: the single 10-button row read
             as a mess). */}
-        <div style={{display:'flex',gap:12,alignItems:'center',minWidth:0,flexWrap:'wrap'}}>
+        {/* Mobile: the athlete/block dropdowns get crushed between the fixed BACK
+            and SAVE. Drop them to their own full-width line (order:3, basis:100%)
+            with BACK ↔ SAVE spread on the line above. */}
+        <style>{`@media (max-width:760px){ .editor-top-row{ justify-content: space-between !important; } .editor-top-row > .editor-top-mid{ order: 3 !important; flex-basis: 100% !important; justify-content: flex-start !important; } }`}</style>
+        <div className="editor-top-row" style={{display:'flex',gap:12,alignItems:'center',minWidth:0,flexWrap:'wrap'}}>
           <button onClick={handleBack} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',padding:0,whiteSpace:'nowrap',flexShrink:0}}>← BACK</button>
-          <div style={{flex:1,display:'flex',gap:12,alignItems:'center',justifyContent:'center',minWidth:0}}>
+          <div className="editor-top-mid" style={{flex:1,display:'flex',gap:12,alignItems:'center',justifyContent:'center',minWidth:0}}>
           {/* Athlete assignment — editable, to the LEFT of the block dropdown
               (Ohad). This is the ONLY athlete control now (dropped the duplicate
               field from the row below). */}
