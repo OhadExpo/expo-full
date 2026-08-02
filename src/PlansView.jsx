@@ -1230,6 +1230,69 @@ function ExEditorExtras({ ex, exData, exTitle, update, onResolveVideo = null, sh
   );
 }
 
+// Editor secondary-toolbar overflow menu. Mirrors App.jsx's MoreMenu popover
+// (fixed-positioned + top-layer so the sticky editor header can't clip it,
+// outside-click / Escape to close). Collapses the editor's secondary actions
+// (Compare · History · Share · Duplicate · New Program) behind one "⋯ MORE"
+// button so the toolbar reads as PORTAL · MORE · SHOW ONLY · DELETE instead of
+// a wall of eight buttons (Ohad). Items: {key,label,icon,onClick,active?,badge?}.
+function EditorMoreMenu({ items }) {
+  const [open, setOpen] = useState(false);
+  const btnRef = useRef(null);
+  const [coords, setCoords] = useState({ top: 0, left: 0 });
+  useEffect(() => {
+    if (!open || !btnRef.current) return;
+    const recalc = () => {
+      const r = btnRef.current?.getBoundingClientRect();
+      if (!r) return;
+      const menuW = 220;
+      // Clamp inside the viewport so the fixed popover never pushes past the
+      // right edge on a phone (which would give the document a horizontal
+      // scrollbar) or off the left edge.
+      let left = r.left;
+      if (left + menuW > window.innerWidth - 8) left = window.innerWidth - menuW - 8;
+      if (left < 8) left = 8;
+      setCoords({ top: r.bottom + 4, left });
+    };
+    recalc();
+    window.addEventListener('resize', recalc);
+    window.addEventListener('scroll', recalc, true);
+    return () => { window.removeEventListener('resize', recalc); window.removeEventListener('scroll', recalc, true); };
+  }, [open]);
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e) => { if (!e.target.closest?.('[data-editor-more]')) setOpen(false); };
+    const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', onDoc);
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('mousedown', onDoc); document.removeEventListener('keydown', onKey); };
+  }, [open]);
+  if (!items.length) return null;
+  const anyActive = items.some(it => it.active);
+  return (
+    <div data-editor-more style={{ display: 'inline-flex' }}>
+      <button ref={btnRef} onClick={() => setOpen(o => !o)}
+        title="More program actions" aria-label="More program actions" aria-haspopup="menu" aria-expanded={open}
+        style={{ background: (open || anyActive) ? `${C.ac}1f` : (isRefined5b() ? 'transparent' : 'var(--c-sf)'), border: `1px solid ${C.ac}`, borderRadius: 0, height: 38, padding: '0 13px', lineHeight: '38px', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>
+        MORE
+      </button>
+      {open && createPortal((
+        <div data-editor-more role="menu" style={{ position: 'fixed', top: coords.top, left: coords.left, background: 'var(--c-bg)', border: `1px solid ${C.cardBd}`, minWidth: 220, zIndex: 100000, boxShadow: '0 12px 32px rgba(0,0,0,0.25)' }}>
+          {items.map((it, idx) => (
+            <button key={it.key} role="menuitem" className={!it.active ? 'nav-item-inactive' : undefined} onClick={() => { setOpen(false); it.onClick(); }}
+              style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 14px', background: it.active ? `${C.ac}1f` : 'transparent', color: it.active ? C.ac : C.tx, border: 'none', borderBottom: idx < items.length - 1 ? `1px solid ${C.cardBd}` : 'none', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', textAlign: 'left', cursor: 'pointer' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', color: it.active ? C.ac : C.tm, flexShrink: 0 }}>{it.icon}</span>
+              <span style={{ flex: 1 }}>{it.label}</span>
+              {it.badge ? <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.ac, opacity: 0.7 }}>{it.badge}</span> : null}
+            </button>
+          ))}
+        </div>
+      ), document.body)}
+    </div>
+  );
+}
+
 function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, exercises, setExercises, planIndex, onPreviewPlan, onDelete, onNewProgramFor, onShare, onDuplicate, onCopyDays, onCopyWarmup, clientWorkouts, portalVis, setPortalVis, editorApiRef }) {
   const [plan, setPlan] = useState(init);
   // Always-latest plan (setPlan makes new objects on every edit), so handleSave
@@ -1575,11 +1638,11 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
         </div>
         {/* hairline between the two tiers */}
         <div style={{borderTop:`1px solid ${C.cardBd}`,margin:'6px 0 12px'}} />
-        {/* SECONDARY tier — grouped by purpose so 8 buttons read as 3 clusters,
-            not one wall: inspect (portal/compare/history) · propagate (share/
-            duplicate/new) · scope+danger (only-this/delete). space-between so
-            the group edges line up with the primary row above — PORTAL under
-            BACK, DELETE under SAVE (Ohad) — with wide gaps doing the grouping. */}
+        {/* SECONDARY tier — decluttered to just the primary actions: PORTAL and
+            a ⋯ MORE overflow (Compare/History/Share/Duplicate/New Program) on
+            the left, SHOW ONLY + DELETE on the right. space-between so the group
+            edges line up with the primary row above — PORTAL under BACK, DELETE
+            under SAVE (Ohad). Was eight buttons in one wall. */}
         <div className="plan-toolbar-secondary" style={{display:"flex",gap:10,alignItems:"stretch",flexWrap:"wrap"}}>
           <div style={{display:'flex',gap:8,alignItems:'stretch',flexWrap:'wrap'}}>
           {/* PORTAL first (Ohad). */}
@@ -1588,37 +1651,31 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
             PORTAL
           </button>}
-          {/* COMPARE: read-only view of a previous program for the same athlete. */}
-          <button onClick={()=>setCompareOpen(v=>!v)}
-            title="Compare with a previous program (read-only)"
-            style={{background: compareActive ? `${C.ac}1f` : (isRefined5b() ? 'transparent' : 'var(--c-sf)'),border:`1px solid ${C.ac}`,borderRadius:0,height:38,padding:'0 13px',lineHeight:'38px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.09em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6,whiteSpace:'nowrap'}}>{compareActive
-              ? <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><polyline points="20 6 9 17 4 12"/></svg>
-              : <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><rect x="3" y="4" width="7" height="16" rx="1"/><rect x="14" y="4" width="7" height="16" rx="1"/></svg>}COMPARE</button>
-          {plan?.id && <button onClick={()=>setHistoryOpen(true)}
-            title="See the workouts the athlete has logged for this block"
-            style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:38,padding:'0 13px',lineHeight:'38px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.09em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',gap:7,whiteSpace:'nowrap'}}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
-            HISTORY{blockWorkouts.length ? <span style={{fontFamily:FN,fontSize:12,fontWeight:700,color:C.ac,opacity:0.65,letterSpacing:'0.04em'}}>{blockWorkouts.length}</span> : null}
-          </button>}
-          </div>
-          <div style={{display:'flex',gap:8,alignItems:'stretch',flexWrap:'wrap'}}>
-          {/* Flush pending autosave BEFORE share/duplicate: both re-read the
-              plan from the DB, and the 600ms debounce means edits made just
-              before the click aren't there yet — the copy would miss them. */}
-          {onShare && plan?.id && <button onClick={async () => { if (await flushAutosave()) onShare(); else toast('Save failed — not sharing a stale copy. Check your connection and retry.', 'error'); }}
-            title="Share this program to another athlete (duplicates it for them)" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:38,padding:'0 13px',lineHeight:'38px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.09em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>SHARE</button>}
-          {onDuplicate && plan?.id && <button onClick={async () => { if (await flushAutosave()) onDuplicate(); else toast('Save failed — not duplicating a stale copy. Check your connection and retry.', 'error'); }}
-            title="Duplicate this program for the same athlete" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:38,padding:'0 13px',lineHeight:'38px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.09em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>DUPLICATE</button>}
-          {/* NEW PROGRAM — fresh empty program for THIS athlete. Grouped with
-              SHARE/DUPLICATE as the "propagate" cluster (was next to DELETE). */}
-          {onNewProgramFor && plan?.traineeId && <button onClick={async () => {
-              await flushAutosave();
-              const base = String(plan.traineeId).split('__')[0];
-              const t = (trainees || []).find(x => x.id === base);
-              const label = t ? (t.members && t.members.length === 2 ? (t.members[parseInt(String(plan.traineeId).split('__')[1] || '0')]?.name || t.name) : t.name) : undefined;
-              onNewProgramFor(plan.traineeId, label);
-            }}
-            title="Create a new, empty program for this athlete" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:38,padding:'0 13px',lineHeight:'38px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.09em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>NEW PROGRAM</button>}
+          {/* Secondary program actions (Compare · History · Share · Duplicate ·
+              New Program) collapsed behind one ⋯ MORE popover — the eight-button
+              row read as a wall (Ohad). PORTAL, SHOW ONLY and DELETE stay as
+              first-class buttons. Each moved action keeps its exact original
+              handler (autosave-flush guards intact) and icon. */}
+          <EditorMoreMenu items={[
+            { key:'compare', label:'Compare', active: compareActive, onClick:()=>setCompareOpen(v=>!v),
+              icon: compareActive
+                ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="7" height="16" rx="1"/><rect x="14" y="4" width="7" height="16" rx="1"/></svg> },
+            ...(plan?.id ? [{ key:'history', label:'History', badge: blockWorkouts.length || null, onClick:()=>setHistoryOpen(true),
+              icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg> }] : []),
+            ...(onShare && plan?.id ? [{ key:'share', label:'Share', onClick: async () => { if (await flushAutosave()) onShare(); else toast('Save failed — not sharing a stale copy. Check your connection and retry.', 'error'); },
+              icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg> }] : []),
+            ...(onDuplicate && plan?.id ? [{ key:'duplicate', label:'Duplicate', onClick: async () => { if (await flushAutosave()) onDuplicate(); else toast('Save failed — not duplicating a stale copy. Check your connection and retry.', 'error'); },
+              icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> }] : []),
+            ...(onNewProgramFor && plan?.traineeId ? [{ key:'new', label:'New Program', onClick: async () => {
+                await flushAutosave();
+                const base = String(plan.traineeId).split('__')[0];
+                const t = (trainees || []).find(x => x.id === base);
+                const label = t ? (t.members && t.members.length === 2 ? (t.members[parseInt(String(plan.traineeId).split('__')[1] || '0')]?.name || t.name) : t.name) : undefined;
+                onNewProgramFor(plan.traineeId, label);
+              },
+              icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> }] : []),
+          ]} />
           </div>
           <div style={{display:'flex',gap:8,alignItems:'stretch',flexWrap:'wrap'}}>
           {setPortalVis && plan?.id && plan?.traineeId && (() => {
