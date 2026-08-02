@@ -2944,8 +2944,8 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
       {/* Whole-card hover affordance — the card opens the editor, so it lifts
           subtly on hover (the left cyan edge brightens + a faint surface lift). */}
       <style>{`
-        .prog-card { transition: background 140ms ease, box-shadow 140ms ease; }
-        .prog-card:hover { background: var(--c-sf2); box-shadow: inset 3px 0 0 0 var(--c-ac); }
+        .prog-card { transition: background 140ms ease; }
+        .prog-card:hover { background: var(--c-sf2); }
       `}</style>
       {/* Top header row — PROGRAMS title (left) + TABLE/GRID view toggle (right),
           mirroring the tasks-page "TASKS … LIST/BOARD" placement exactly (Ohad).
@@ -3081,7 +3081,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               );
             }
             return (
-              <div key={row.tid} className="prog-card" style={{background: 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderLeft:`3px solid ${C.ac}`,borderRadius:0}}>
+              <div key={row.tid} className="prog-card" style={{background: 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0}}>
                 {/* Redesigned full-width CARD row (Ohad: the old one-line row was
                     cluttered/tight). Two calm lines separated by a hairline:
                       1) IDENTITY — athlete · block · +N · count … last-trained chip
@@ -3098,7 +3098,12 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                   }}
                   onMouseLeave={() => { clearTimeout(hoverTimerRef.current); setHoverPos(null); clearPreviewPlan(); }}
                   style={{cursor:openingId===cur.id?'progress':'pointer',opacity:openingId===cur.id?0.55:1,transition:'opacity 0.12s',padding:'13px 16px 11px',display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
-                  <div style={{fontWeight:700,fontSize:16,color:C.tx,whiteSpace:'nowrap',letterSpacing:'0.01em',flexShrink:0}}><bdi>{row.name}</bdi></div>
+                  {/* Short cyan accent beside the name (replaces the old full-card
+                      left border, which ran the whole two-row height — "too long"). */}
+                  <div style={{display:'flex',alignItems:'center',gap:10,flexShrink:0,minWidth:0}}>
+                    <span aria-hidden style={{width:3,height:18,background:C.ac,flexShrink:0}} />
+                    <div style={{fontWeight:700,fontSize:16,color:C.tx,whiteSpace:'nowrap',letterSpacing:'0.01em'}}><bdi>{row.name}</bdi></div>
+                  </div>
                   <div style={{fontWeight:700,fontSize:15,color:C.ac,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'0.04em',fontFamily:FN,minWidth:0,flex:'0 1 auto'}}>{cur.name||"Untitled"}</div>
                   {/* +N earlier-blocks expander sits right after the block name. */}
                   {row.earlier.length > 0 && (
