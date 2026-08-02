@@ -517,9 +517,16 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             StatusMenu. The old body block re-rendered the name and a NON-clickable
             status Badge, which read as a duplicate ("mirror") and was the thing
             being clicked instead of the real menu — removed. */}
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, 132px)",justifyContent:"center",gap:"14px 10px",marginTop:16,textAlign:"center"}}>{/* fixed-width centred tiles (Ohad: full-width 1fr stretch read "too spread"); marginTop constant = dark's original 16 */}
-          {[["Format",td.format],["Package",td.package],["Sessions Left",td.sessionsRemaining],["Monthly",td.monthly?`₪${td.monthly}`:"—"],["Per Session",td.perSession?`₪${td.perSession}`:"—"],["Last Payment",fmtPrettyDate(lastPaidDate)],["Since",fmtPrettyDate(td.startDate)],["Workouts",tAllWorkouts.length]].map(([l,v])=>
-            <div key={l}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700}}>{l}</div><div style={{fontSize:14,color:C.tx,marginTop:2}}>{v}</div></div>)}
+        {/* Header stats: constrained to a centred ~4-wide cluster so the 8 tiles
+            wrap to a compact 4×2 block instead of one full-width strip (Ohad:
+            "too spread"). Empty "—" values are dimmed so the real stats stand out
+            instead of reading as a random mix (Ohad: "too random"). No data
+            removed — financials still show ₪ for billable athletes. */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, 132px)",justifyContent:"center",gap:"14px 10px",margin:"16px auto 0",maxWidth:558,textAlign:"center"}}>
+          {[["Format",td.format],["Package",td.package],["Sessions Left",td.sessionsRemaining],["Monthly",td.monthly?`₪${td.monthly}`:"—"],["Per Session",td.perSession?`₪${td.perSession}`:"—"],["Last Payment",fmtPrettyDate(lastPaidDate)],["Since",fmtPrettyDate(td.startDate)],["Workouts",tAllWorkouts.length]].map(([l,v])=>{
+            const empty = v===undefined||v===null||v===""||v==="—";
+            return <div key={l}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700}}>{l}</div><div style={{fontSize:14,color:empty?C.td:C.tx,marginTop:2}}>{empty?"—":v}</div></div>;
+          })}
         </div>
       </Card>
       </>}
@@ -539,9 +546,13 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       {!couple && (
         <Card style={{marginBottom:16}}
           header={<span style={{fontWeight:700,fontSize:13,letterSpacing:'0.04em',textTransform:'uppercase'}}>Vitals · Injuries · Goals</span>}>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(3, 1fr)",gap:12,textAlign:"center"}}>
-            {[["Age",td.age||"—"],["Weight",td.weight?`${td.weight}kg`:"—"],["Height",td.height?`${td.height}cm`:"—"]].map(([l,v])=>
-              <div key={l}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700,textAlign:"center"}}>{l}</div><div style={{fontSize:14,color:C.tx,marginTop:2,textAlign:"center"}}>{v}</div></div>)}
+          {/* Centred fixed tiles (not 3×1fr stretch) so vitals read as a compact
+              cluster, matching the header stats; empty values dimmed. */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3, 132px)",justifyContent:"center",gap:12,maxWidth:416,margin:"0 auto",textAlign:"center"}}>
+            {[["Age",td.age||"—"],["Weight",td.weight?`${td.weight}kg`:"—"],["Height",td.height?`${td.height}cm`:"—"]].map(([l,v])=>{
+              const empty = v==="—";
+              return <div key={l}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700,textAlign:"center"}}>{l}</div><div style={{fontSize:14,color:empty?C.td:C.tx,marginTop:2,textAlign:"center"}}>{v}</div></div>;
+            })}
           </div>
           {/* All three sub-cards share ONE border color (the canonical cyan
               hairline) so the borders read as a uniform set — the semantic
