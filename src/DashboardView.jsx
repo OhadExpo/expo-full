@@ -476,7 +476,7 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
                   (Ohad 2026-05-23). Dark mode strip uses --c-stripBg=#000
                   with cyan-30% bottom hairline; light mode is brand cyan. */}
               <RefinedHeaderStrip padY={16} padX={20}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, minHeight: 30 }}>
                   <span title="status" style={{ width: 6, height: 6, borderRadius: '50%', background: s.color, flexShrink: 0, boxShadow: `0 0 5px ${s.color}66` }} />
                   <SectionLabel style={{ color: '#FFFFFF', fontSize: 13, letterSpacing: '0.08em', fontWeight: 700 }}>{s.label}</SectionLabel>
                 </span>
