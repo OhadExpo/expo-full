@@ -127,13 +127,18 @@ function PatternCoverage({ plan, exercises, cols = 5 }) {
 function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibrary, exercises, currentId, currentEx, fallbackTitle }) {
   const [search, setSearch] = useState("");
   const [activeIdx, setActiveIdx] = useState(0);
-  const [filters, setFilters] = useState({ category: "", resistanceType: "", bodyPosition: "", movementType: "", movementPattern: "", laterality: "" });
+  // Only the 3 filters that map to REAL exercise-DB columns (Resistance / Body
+  // Position / Movement Type). Category, Pattern and Laterality were dropped —
+  // they aren't columns in the library (same mismatch fixed on the Exercises
+  // table), so filtering by them just hid everything. Free-text search still
+  // covers muscles/joints/etc. via the haystack below.
+  const [filters, setFilters] = useState({ resistanceType: "", bodyPosition: "", movementType: "" });
   const inputRef = React.useRef(null);
   const listRef = React.useRef(null);
 
   const setF = (k, v) => setFilters(prev => ({ ...prev, [k]: v }));
   const activeFilterCount = Object.values(filters).filter(Boolean).length;
-  const clearFilters = () => setFilters({ category: "", resistanceType: "", bodyPosition: "", movementType: "", movementPattern: "", laterality: "" });
+  const clearFilters = () => setFilters({ resistanceType: "", bodyPosition: "", movementType: "" });
   const clearAll = () => { setSearch(""); clearFilters(); };
 
   const filt = useMemo(() => {
@@ -141,12 +146,9 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
     const q = search.trim().toLowerCase();
     const tokens = q.split(/\s+/).filter(Boolean);
     const match = (ex) => {
-      if (filters.category && ex.category !== filters.category) return false;
       if (filters.resistanceType && ex.resistanceType !== filters.resistanceType) return false;
       if (filters.bodyPosition && ex.bodyPosition !== filters.bodyPosition) return false;
       if (filters.movementType && ex.movementType !== filters.movementType) return false;
-      if (filters.movementPattern && ex.movementPattern !== filters.movementPattern) return false;
-      if (filters.laterality && ex.laterality !== filters.laterality) return false;
       if (tokens.length === 0) return true;
       const haystack = [
         ex.title, ex.category, ex.resistanceType, ex.bodyPosition, ex.movementType,
@@ -239,12 +241,9 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
               filterStyleActive variant), so the coach can see which
               dimensions are narrowing the result set at a glance. */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 6, marginTop: 10 }}>
-            <select value={filters.category} onChange={e => setF('category', e.target.value)} style={filters.category ? filterStyleActive : filterSelectStyle}><option value="">Category</option>{CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}</select>
             <select value={filters.resistanceType} onChange={e => setF('resistanceType', e.target.value)} style={filters.resistanceType ? filterStyleActive : filterSelectStyle}><option value="">Resistance</option>{RESISTANCE_TYPES.map(c => <option key={c} value={c}>{c}</option>)}</select>
             <select value={filters.bodyPosition} onChange={e => setF('bodyPosition', e.target.value)} style={filters.bodyPosition ? filterStyleActive : filterSelectStyle}><option value="">Body Position</option>{BODY_POSITIONS.map(c => <option key={c} value={c}>{c}</option>)}</select>
             <select value={filters.movementType} onChange={e => setF('movementType', e.target.value)} style={filters.movementType ? filterStyleActive : filterSelectStyle}><option value="">Movement Type</option>{MOVEMENT_TYPES.map(c => <option key={c} value={c}>{c}</option>)}</select>
-            <select value={filters.movementPattern} onChange={e => setF('movementPattern', e.target.value)} style={filters.movementPattern ? filterStyleActive : filterSelectStyle}><option value="">Pattern</option>{MOVEMENT_PATTERNS.map(c => <option key={c} value={c}>{c}</option>)}</select>
-            <select value={filters.laterality} onChange={e => setF('laterality', e.target.value)} style={filters.laterality ? filterStyleActive : filterSelectStyle}><option value="">Laterality</option>{LATERALITY.map(c => <option key={c} value={c}>{c}</option>)}</select>
           </div>
           {/* Result count + keyboard hints. Count goes bold/cyan to draw the
               eye — that's the number the coach scans as filters change.
