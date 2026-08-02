@@ -356,7 +356,7 @@ function ClientPortalMock({ onPick }) {
                 <button onClick={() => onPick({ key: ex.eid, label: ex.t, sample: ex.t })} title="Film a set" style={{
                   ...baseBtn, background: 'transparent', color: C.rd,
                   border: `1px solid rgba(255,71,87,0.251)`, padding: '6px 12px', fontSize: 11,
-                }}>📹 FILM SET</button>
+                }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'-2px',marginRight:6}}><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>FILM SET</button>
                 <button onClick={() => {
                   // Mark all sets done
                   const next = { ...logSets };
@@ -556,7 +556,7 @@ function ClientPortalMock({ onPick }) {
                         <div onClick={canExpand ? () => setExpandedHistEx(isOpen ? null : expandKey) : undefined}
                           style={{ fontSize: 11, color: C.tm, display: 'flex', alignItems: 'center', gap: 6, cursor: canExpand ? 'pointer' : 'default', padding: '2px 0' }}>
                           <span style={{ flex: 1 }}>{i + 1}. {x.title} ({x.prescribed}) — {x.done}/{x.total}</span>
-                          {x.hasVideo && <span style={{ color: C.gn, fontSize: 12 }}>📹</span>}
+                          {x.hasVideo && <span style={{ color: C.gn, display: 'inline-flex', alignItems: 'center', verticalAlign: '-2px' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></span>}
                           {x.notes > 0 && (
                             <span style={{
                               background: C.acD, color: C.ac,
@@ -1049,7 +1049,7 @@ function TraineeHomeMock({ onPick }) {
                 <button onClick={() => onPick(ex)} style={{
                   ...baseBtn, background: C.ac, color: '#000',
                   padding: '8px 14px', fontSize: 12,
-                }}>📹 FILM SET</button>
+                }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'-2px',marginRight:6}}><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>FILM SET</button>
                 <button onClick={() => setLogged(L => ({ ...L, [key]: !L[key] }))} style={{
                   ...baseBtn, background: 'transparent', color: isLogged ? C.gn : C.tm,
                   border: `1px solid ${isLogged ? C.gn : C.bd}`,

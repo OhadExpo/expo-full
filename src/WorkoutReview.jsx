@@ -2158,7 +2158,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                   <div style={{fontWeight:600,fontSize:13}}>{exName}</div>
                   <div style={{fontSize:11,color:C.tm,marginTop:2}}>
                     {ex.prescribed} · {doneSets}/{setsArr.length} sets
-                    {(formVideo?.has || formVideo?.cloudUrl) && <span title="Form video submitted" style={{color:C.gn,marginLeft:6}}>📹</span>}
+                    {(formVideo?.has || formVideo?.cloudUrl) && <span title="Form video submitted" style={{color:C.gn,marginLeft:6,display:'inline-flex',alignItems:'center',verticalAlign:'-2px'}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></span>}
                     {(formVideo?.reviewNotes?.length > 0) && (
                       <span title={`${formVideo.reviewNotes.length} comment${formVideo.reviewNotes.length===1?'':'s'} on this exercise`} style={{color:C.ac,marginLeft:6}}>
                         💬{formVideo.reviewNotes.length > 1 ? <sup style={{fontSize:8}}>{formVideo.reviewNotes.length}</sup> : null}
@@ -2220,7 +2220,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                   {(formVideo?.has || formVideo?.cloudUrl) ? (
                     <div style={{background:C.gnD,border:`1px solid rgba(46,213,115,0.188)`,borderRadius:0,padding:12,marginBottom:10}}>
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
-                        <div style={{fontSize:10,fontFamily:FN,color:C.gn,fontWeight:700}}>📹 FORM VIDEO SUBMITTED</div>
+                        <div style={{fontSize:10,fontFamily:FN,color:C.gn,fontWeight:700,display:'inline-flex',alignItems:'center',gap:6}}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>FORM VIDEO SUBMITTED</div>
                         {formVideo.cloudUrl && (() => {
                           // Compare candidates: only the SAME exercise from
                           // OTHER weeks of the SAME block (same client). Apples

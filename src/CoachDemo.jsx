@@ -1845,7 +1845,7 @@ function DemoPrograms() {
                       style={{ ...inputStyleRO, marginTop: 8, minHeight: 64, padding: '10px 12px', lineHeight: 1.5, resize: 'none', fontSize: 13 }} />
                     <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: '1fr auto', gap: 6, alignItems: 'stretch' }}>
                       <input value="https://youtu.be/demo" readOnly tabIndex={-1}
-                        placeholder="📹 Insert video URL"
+                        placeholder="Insert video URL"
                         style={inputStyleRO} />
                       {/* alignItems:'stretch' on the parent + display:'inline-flex'
                           here makes the LIB pill match the URL input's exact
@@ -2385,7 +2385,7 @@ function DemoReview() {
               <div style={{ fontFamily: FB, fontWeight: 600, fontSize: 13, color: C.tx }}>{ex.name}</div>
               <div style={{ fontSize: 11, color: C.tm, marginTop: 2 }}>
                 {ex.prescribed} · {ex.done}/{ex.sets} sets
-                {ex.hasVideo && <span title="Form video submitted" style={{ color: C.gn, marginLeft: 6 }}>📹</span>}
+                {ex.hasVideo && <span title="Form video submitted" style={{ color: C.gn, marginLeft: 6, display: 'inline-flex', alignItems: 'center', verticalAlign: '-2px' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></span>}
                 {ex.comments > 0 && (
                   <span title={`${ex.comments} comment${ex.comments === 1 ? '' : 's'} on this exercise`} style={{ color: C.ac, marginLeft: 6 }}>
                     💬{ex.comments > 1 ? <sup style={{ fontSize: 8 }}>{ex.comments}</sup> : null}
@@ -2477,7 +2477,7 @@ function DemoReview() {
                   </div>
                   <div style={{ fontSize: 11, color: C.tm, marginTop: 2 }}>
                     W{wo.week} · {wo.date} · {wo.doneSets}/{wo.totalSets} sets
-                    {hasFormVids && <span style={{ color: C.gn, marginLeft: 4 }}>📹</span>}
+                    {hasFormVids && <span style={{ color: C.gn, marginLeft: 4, display: 'inline-flex', alignItems: 'center', verticalAlign: '-2px' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></span>}
                   </div>
                 </div>
                 <span style={{ color: C.ac, fontSize: 12, marginLeft: 8, flexShrink: 0 }}>Review →</span>

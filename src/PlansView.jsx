@@ -655,7 +655,7 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExerc
                           <label style={{ fontSize: 11, fontWeight: 600, color: C.tm, textTransform: 'uppercase', fontFamily: FN }}>Video</label>
                           <Input value={w.vid || ''} onChange={e => update(i, { vid: e.target.value })}
                             onBlur={async e => { const original = e.target.value; const resolved = await maybeResolveGooglePhotos(original); if (resolved !== original) setPlan(p => { const cur = (p.warmup || [])[i]; if (!cur || (cur.vid ?? '') !== original) return p; return { ...p, warmup: p.warmup.map((w2, j) => j === i ? { ...w2, vid: resolved } : w2) }; }); }}
-                            placeholder="📹 Video URL" />
+                            placeholder="Video URL" />
                         </div>
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 16, alignItems: 'stretch' }}>
@@ -1169,7 +1169,7 @@ function ExEditorExtras({ ex, exData, exTitle, update, onResolveVideo = null, sh
             <label style={{fontSize:11,fontWeight:600,color:C.tm,textTransform:'uppercase',fontFamily:FN}}>Video</label>
             <Input value={vidValue} onChange={e=>update({videoUrl:e.target.value})}
               onBlur={async e => { const original = e.target.value; const resolved = await maybeResolveGooglePhotos(original); if (resolved !== original) { if (onResolveVideo) onResolveVideo(original, resolved); else update({ videoUrl: resolved }); } }}
-              placeholder="📹 Video URL" />
+              placeholder="Video URL" />
           </div>
         </div>
         <div style={{display:'grid',gridTemplateColumns:'1.2fr 1fr',gap:16,alignItems:'stretch'}}>
