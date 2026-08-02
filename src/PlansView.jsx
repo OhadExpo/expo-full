@@ -2947,6 +2947,13 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
       <style>{`
         .prog-card { transition: background 140ms ease; }
         .prog-card:hover { background: var(--c-sf2); }
+        /* Mobile: stack the rail ABOVE the list (full-width each) instead of a
+           fixed 210px side column that crushes the cards off-screen (Ohad — mobile
+           fit). The rail's athlete list already scrolls inside its own maxHeight. */
+        @media (max-width: 760px) {
+          .programs-rail { width: 100% !important; position: static !important; top: auto !important; }
+          .programs-rail-athletes { max-height: 220px !important; }
+        }
       `}</style>
       {/* Top header row — PROGRAMS title (left) + TABLE/GRID view toggle (right),
           mirroring the tasks-page "TASKS … LIST/BOARD" placement exactly (Ohad).
@@ -2974,7 +2981,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
         {/* LEFT: filter rail — sticky so the controls stay pinned as the (long)
             list scrolls. Fixed 210px; wraps to full-width when the viewport
             can't fit both columns. */}
-        <aside style={{ width: 210, flexShrink: 0, alignSelf: 'flex-start', position: 'sticky', top: 12, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <aside className="programs-rail" style={{ width: 210, flexShrink: 0, alignSelf: 'flex-start', position: 'sticky', top: 12, display: 'flex', flexDirection: 'column', gap: 14 }}>
           {/* SEARCH — full-width in the rail. */}
           <div>
             <input title="Search programs by name or block (e.g. “Block #5”, “GPP”)" placeholder="Search programs..." value={search} onChange={e=>{setSearch(e.target.value);setVisibleCount(PAGE_SIZE)}}
@@ -2994,7 +3001,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
             <RailLabel>Athlete</RailLabel>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <RailOption label="All" count={planIndex.length} active={!filterTrainee} onClick={() => { setFilterTrainee(''); setVisibleCount(PAGE_SIZE); }} />
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 300, overflowY: 'auto' }}>
+              <div className="programs-rail-athletes" style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 300, overflowY: 'auto' }}>
                 {athleteRail.map(a => (
                   <RailOption key={a.id} label={a.label} count={a.count} title={a.label}
                     active={filterTrainee === a.id} onClick={() => { setFilterTrainee(a.id); setVisibleCount(PAGE_SIZE); }} />
