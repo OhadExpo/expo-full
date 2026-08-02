@@ -1562,13 +1562,14 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
         {/* Meta cluster — date+time, then priority (dot to its RIGHT), then
             athlete. Forced LTR internally so the order reads the same on
             Hebrew (RTL) and English rows. Each chip is no-wrap. */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, direction: 'ltr', flexWrap: 'wrap',
+        <div style={{ display: 'flex', alignItems: 'center', gap: wrapRow ? 6 : 8, direction: 'ltr', flexWrap: 'wrap',
           // Desktop: fixed-width cluster pinned right (flexShrink:0) so chips form
-          // aligned columns. Phone/board (wrapRow): give the cluster its OWN full
-          // line and let its chips wrap within the viewport, or the date chip
-          // overflows and clips off-screen (#14). */
+          // aligned columns. Phone/board (wrapRow): the meta cluster drops to its
+          // OWN full line BELOW the title+status line (order:1 + flex-basis:100%),
+          // its chips packed tight to the left — a dense 2-line row, no dead gaps,
+          // no date chip clipping off-screen (#14, Ohad 2026-08 "unusable" pass). */
           ...(wrapRow
-            ? { flexShrink: 1, minWidth: 0, justifyContent: 'flex-start' }
+            ? { order: 1, flexBasis: '100%', flexShrink: 1, minWidth: 0, justifyContent: 'flex-start' }
             : { flexShrink: 0, justifyContent: 'flex-end' }) }}>
           <PriorityPill priority={priority} onSetPriority={(p) => onSetPriority(row, p)} readOnly={readOnly} />
           {showAthlete && (
@@ -1616,8 +1617,11 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
         </div>
         {showAvatar && <AssigneeDot owner={row._owner} />}
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2, alignItems: heb ? 'flex-end' : 'flex-start',
-          // Board + phone: title takes its own full line above the controls.
-          ...(wrapRow ? { order: -1, flexBasis: '100%' } : null) }}>
+          // Board + phone: title leads line 1 and SHARES it with the status pill
+          // (flex:1 pushes the pill to the right edge). The meta cluster wraps to
+          // line 2 below (order:1). Was flexBasis:100% which forced the title onto
+          // a line of its own and sprawled the row to 3-4 lines (Ohad: "trash").
+          ...(wrapRow ? { order: -1, flex: '1 1 0%' } : null) }}>
           <div style={{
             maxWidth: '100%',
             fontFamily: heb ? FH : FB,
@@ -1645,7 +1649,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
             (Yuval: make the board status more readable). Status there is
             changed by dragging between columns / from the expanded detail. */}
         {!hideStatus && (
-          <span style={{ display: 'inline-flex', marginLeft: wrapRow ? 'auto' : undefined }}>
+          <span style={{ display: 'inline-flex', flexShrink: 0, marginLeft: wrapRow ? 'auto' : undefined }}>
             <StatusPill status={row.status} theme={theme} onSetStatus={(s) => onSetStatus(row, s)} readOnly={readOnly} />
           </span>
         )}
