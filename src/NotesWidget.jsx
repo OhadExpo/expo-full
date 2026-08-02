@@ -99,13 +99,16 @@ const groupAlerts = (autoRows) => {
 // renders identical rows. Click routes through the shared handleClick →
 // task popup. Manual rows get the neutral card-border stripe; auto rows
 // get their kind tone.
-function MiniTaskRow({ n, stackBoard, onClick }) {
+function MiniTaskRow({ n, stackBoard, onClick, stripe }) {
   const body = displayBodyOf(n.body);
   const heb = isHebrew(body);
-  const tone = TONE_COLOR[AUTO_KIND_TONE[n.auto_kind]] || 'var(--c-cardBd)';
+  // In the status kanban, `stripe` = the column's status colour so each card
+  // reads as belonging to its column; grouped-alert rows fall back to the kind
+  // tone / neutral border.
+  const tone = stripe || TONE_COLOR[AUTO_KIND_TONE[n.auto_kind]] || 'var(--c-cardBd)';
   return (
-    <div onClick={onClick} title={body}
-      style={{ border: `1px solid var(--c-cardBd)`, borderLeft: `3px solid ${tone}`, padding: '6px 8px', fontFamily: heb ? FH : FB, fontSize: stackBoard ? 12 : 11, lineHeight: 1.3, color: 'var(--c-tx)', cursor: 'pointer', direction: heb ? 'rtl' : 'ltr', textAlign: heb ? 'right' : 'left', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+    <div onClick={onClick} title={body} className="mini-task-row"
+      style={{ border: `1px solid var(--c-cardBd)`, borderLeft: `3px solid ${tone}`, padding: '6px 8px', fontFamily: heb ? FH : FB, fontSize: stackBoard ? 12 : 11, lineHeight: 1.3, color: 'var(--c-tx)', cursor: 'pointer', direction: heb ? 'rtl' : 'ltr', textAlign: heb ? 'right' : 'left', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', transition: 'border-color 120ms ease, background 120ms ease' }}>
       {body}
     </div>
   );
@@ -882,7 +885,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                     </div>
                     <div style={{ padding:4, display:'flex', flexDirection:'column', gap:4, maxHeight: stackBoard ? 'none' : 300, overflowY: stackBoard ? 'visible' : 'auto' }}>
                       {rows.slice(0, cap).map(n => (
-                        <MiniTaskRow key={n.id} n={n} stackBoard={stackBoard} onClick={()=>handleClick(n)} />
+                        <MiniTaskRow key={n.id} n={n} stackBoard={stackBoard} stripe={col.color} onClick={()=>handleClick(n)} />
                       ))}
                       {rows.length > cap && <div onClick={()=>{ if(onOpenFullTasks) onOpenFullTasks(); }} style={{ padding:'4px', textAlign:'center', color:'var(--c-ac)', fontSize:9, fontFamily:FN, fontWeight:700, letterSpacing:'0.08em', cursor:'pointer' }}>+{rows.length-cap} MORE →</div>}
                     </div>
@@ -909,6 +912,8 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
           ];
           return (
             <div>
+              {/* Hover affordance for the clickable task cards (open the popup). */}
+              <style>{`.mini-task-row:hover{ border-color: var(--c-tm); background: var(--c-sf); }`}</style>
               {/* Compact scope toggle — a single left-aligned segmented control
                   (GENERAL · AUTO-TASKS · ALL — the tasks-page's own vocabulary).
                   Counts ride beside each label; the active segment gets the cyan
