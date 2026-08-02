@@ -68,6 +68,83 @@ const TONE_COLOR = {
   purple: 'var(--c-pu)',
 };
 
+// ── Coaching-alert grouping ────────────────────────────────────────────
+// The 10 auto_kinds (autoTasks.js AUTO_KIND_LABEL) cluster into the coach's
+// mental buckets so the dashboard can separate "the system's nags" from
+// Ohad's own tasks. Calls = every outreach-resolved kind (incl. the
+// throttled whatsapp_combined), Reviews = form-video review, Builds = ship
+// a program, Intake = onboarding/eval gates. A task is AUTO iff it carries
+// an auto_kind; manual tasks (logged by Ohad/Yuval) have none.
+const ALERT_GROUPS = [
+  { id: 'calls',   icon: '📞', label: 'CALLS',   kinds: ['week_missed', 'at_risk_silent', 'payment_overdue', 'lead_callback_pending', 'whatsapp_combined'] },
+  { id: 'reviews', icon: '🎥', label: 'REVIEWS', kinds: ['form_video_pending_review'] },
+  { id: 'builds',  icon: '🏗', label: 'BUILDS',  kinds: ['next_block_due', 'plan_due_after_eval'] },
+  { id: 'intake',  icon: '📋', label: 'INTAKE',  kinds: ['new_intake_pending', 'eval_due_first_session'] },
+];
+const KIND_TO_GROUP = {};
+ALERT_GROUPS.forEach(g => g.kinds.forEach(k => { KIND_TO_GROUP[k] = g.id; }));
+const groupOfKind = (k) => KIND_TO_GROUP[k] || 'calls';
+
+// Bucket a list of auto rows into { calls:[], reviews:[], builds:[], intake:[] }.
+const groupAlerts = (autoRows) => {
+  const map = {};
+  ALERT_GROUPS.forEach(g => { map[g.id] = []; });
+  for (const r of autoRows) (map[groupOfKind(r.auto_kind)] || map.calls).push(r);
+  return map;
+};
+
+// Single condensed task row for the compact dashboard board + the alerts
+// section — SAME markup the mini-kanban already used, factored out so
+// every variant (board cell, grouped alert, collapsed-summary expansion)
+// renders identical rows. Click routes through the shared handleClick →
+// task popup. Manual rows get the neutral card-border stripe; auto rows
+// get their kind tone.
+function MiniTaskRow({ n, stackBoard, onClick }) {
+  const body = displayBodyOf(n.body);
+  const heb = isHebrew(body);
+  const tone = TONE_COLOR[AUTO_KIND_TONE[n.auto_kind]] || 'var(--c-cardBd)';
+  return (
+    <div onClick={onClick} title={body}
+      style={{ border: `1px solid var(--c-cardBd)`, borderLeft: `3px solid ${tone}`, padding: '6px 8px', fontFamily: heb ? FH : FB, fontSize: stackBoard ? 12 : 11, lineHeight: 1.3, color: 'var(--c-tx)', cursor: 'pointer', direction: heb ? 'rtl' : 'ltr', textAlign: heb ? 'right' : 'left', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+      {body}
+    </div>
+  );
+}
+
+// Grouped coaching-alerts list — used by Variant 1 (each group collapsible)
+// and Variant 3 (flat, revealed by the single summary toggle). Empty groups
+// are dropped so the section only shows buckets that actually have alerts.
+function AlertGroupList({ grouped, collapsible, collapsedMap, onToggle, onRowClick, stackBoard }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      {ALERT_GROUPS.map(g => {
+        const rows = grouped[g.id] || [];
+        if (rows.length === 0) return null;
+        const collapsed = collapsible && !!collapsedMap[g.id];
+        return (
+          <div key={g.id} style={{ border: `1px solid var(--c-cardBd)` }}>
+            <div onClick={collapsible ? () => onToggle(g.id) : undefined}
+              role={collapsible ? 'button' : undefined} tabIndex={collapsible ? 0 : undefined}
+              onKeyDown={collapsible ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle(g.id); } } : undefined}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, padding: '5px 8px', background: 'var(--c-sf)', cursor: collapsible ? 'pointer' : 'default', userSelect: 'none', borderBottom: collapsed ? 'none' : `1px solid var(--c-cardBd)` }}>
+              <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--c-tm)' }}>{g.icon} {g.label}</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: 'var(--c-td)' }}>{rows.length}</span>
+                {collapsible && <span aria-hidden style={{ fontSize: 10, color: 'var(--c-td)', transform: collapsed ? 'rotate(-90deg)' : 'rotate(0deg)', transition: 'transform 160ms ease' }}>▾</span>}
+              </span>
+            </div>
+            {!collapsed && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: 4 }}>
+                {rows.map(n => <MiniTaskRow key={n.id} n={n} stackBoard={stackBoard} onClick={() => onRowClick(n)} />)}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // Single task card. Header row carries the auto-kind pill + target +
 // timestamp (right-aligned). Body is the task description. Footer row
 // carries the contextual action button (NEW PROGRAM / WHATSAPP / etc.)
@@ -347,6 +424,14 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
   const stackBoard = useIsMobile(560);
   // Collapsible on the dashboard (compact). Full /coach/tasks view ignores it.
   const [open, setOpen] = usePersistentState('dash-tasks', true);
+  // Compact-board layout variant (Ohad's A/B/C for separating auto-alerts
+  // from his real tasks). 1 = separate lane grouped by kind, 2 = MINE/ALERTS/ALL
+  // filter toggle, 3 = single collapsible summary row. Sub-selections persist too.
+  const [variant, setVariant] = usePersistentState('dash-tasks-variant', 1);
+  const [v2Sub, setV2Sub] = usePersistentState('dash-tasks-v2sub', 'mine');
+  const [v3Open, setV3Open] = usePersistentState('dash-tasks-v3open', false);
+  const [alertCollapsed, setAlertCollapsed] = usePersistentState('dash-tasks-alertcollapsed', {});
+  const toggleAlertGroup = (gid) => setAlertCollapsed(m => ({ ...m, [gid]: !m[gid] }));
   const [adding, setAdding] = useState(false);
   const [body, setBody] = useState('');
   const [tagsInput, setTagsInput] = useState('');
@@ -750,18 +835,37 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
             dashboard Tasks widget mirrors the /coach/tasks board (Ohad). The full
             view keeps the card grid below (hidden in compact). */}
         {compact && (() => {
+          // Auto vs manual split — a task is a coaching ALERT iff it carries an
+          // auto_kind (autoTasks.js); manual = Ohad/Yuval's own logged tasks.
+          // (whatsapp_combined synthetic cards from throttleWhatsAppTasks keep
+          // an auto_kind, so they read as alerts too.)
+          const autoRows = openRows.filter(r => !!r.auto_kind);
+          const manualRows = openRows.filter(r => !r.auto_kind);
+          const grouped = groupAlerts(autoRows);
+          // Which rows feed the status kanban depends on the chosen variant.
+          //   V1/V3 — board is manual-only; auto lives in the alerts section.
+          //   V2    — MINE (manual) / ALERTS (auto) / ALL, per the sub-toggle.
+          const boardRows = variant === 2
+            ? (v2Sub === 'alerts' ? autoRows : v2Sub === 'all' ? openRows : manualRows)
+            : manualRows;
+          // Summary counts for the Variant-3 one-liner ("3 calls · 1 review · …").
+          const summaryStr = ALERT_GROUPS
+            .filter(g => grouped[g.id].length)
+            .map(g => `${grouped[g.id].length} ${g.label.toLowerCase()}`)
+            .join(' · ');
+
           const COLS = [
             { id:'open',    label:'To Do',       color:'#5B6B7A' },
             { id:'working', label:'In Progress', color:'#2C82C9' },
             { id:'waiting', label:'Waiting',     color:'#C9851E' },
             { id:'stuck',   label:'Stuck',       color:'#C0392B' },
           ];
-          return (
+          const board = (
             <div style={{ display:'flex', flexDirection: stackBoard ? 'column' : 'row', gap:8, overflowX: stackBoard ? 'visible' : 'auto', paddingBottom:4 }}>
               {COLS.map(col => {
                 const rows = col.id==='open'
-                  ? openRows.filter(r => !['working','waiting','stuck'].includes(r.status))
-                  : openRows.filter(r => r.status === col.id);
+                  ? boardRows.filter(r => !['working','waiting','stuck'].includes(r.status))
+                  : boardRows.filter(r => r.status === col.id);
                 // Stacked (phone): drop empty status sections — a full-width empty
                 // "—" box is just noise; on desktop the empty column keeps the
                 // kanban structure so it stays.
@@ -774,22 +878,96 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                     {/* Stacked: let the list flow (no nested scroll trap on touch),
                         capped shorter. Side-by-side: bounded with inner scroll. */}
                     <div style={{ padding:4, display:'flex', flexDirection:'column', gap:4, minHeight:40, maxHeight: stackBoard ? 'none' : 260, overflowY: stackBoard ? 'visible' : 'auto' }}>
-                      {rows.slice(0, stackBoard ? 6 : 10).map(n => {
-                        const body = displayBodyOf(n.body); const heb = isHebrew(body);
-                        const tone = TONE_COLOR[AUTO_KIND_TONE[n.auto_kind]] || 'var(--c-cardBd)';
-                        return (
-                          <div key={n.id} onClick={()=>handleClick(n)} title={body}
-                            style={{ border:`1px solid var(--c-cardBd)`, borderLeft:`3px solid ${tone}`, padding:'6px 8px', fontFamily:heb?FH:FB, fontSize:stackBoard?12:11, lineHeight:1.3, color:'var(--c-tx)', cursor:'pointer', direction:heb?'rtl':'ltr', textAlign:heb?'right':'left', display:'-webkit-box', WebkitLineClamp: stackBoard ? 2 : 2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>
-                            {body}
-                          </div>
-                        );
-                      })}
+                      {rows.slice(0, stackBoard ? 6 : 10).map(n => (
+                        <MiniTaskRow key={n.id} n={n} stackBoard={stackBoard} onClick={()=>handleClick(n)} />
+                      ))}
                       {stackBoard && rows.length > 6 && <div onClick={()=>{ if(onOpenFullTasks) onOpenFullTasks(); }} style={{ padding:'4px', textAlign:'center', color:'var(--c-ac)', fontSize:9, fontFamily:FN, fontWeight:700, letterSpacing:'0.08em', cursor:'pointer' }}>+{rows.length-6} MORE →</div>}
                       {rows.length===0 && <div style={{ padding:'6px 4px', textAlign:'center', color:'var(--c-td)', fontSize:9, fontFamily:FN }}>—</div>}
                     </div>
                   </div>
                 );
               })}
+            </div>
+          );
+
+          const btnBase = { borderRadius:0, fontFamily:FN, fontWeight:700, cursor:'pointer' };
+          return (
+            <div>
+              {/* Variant switcher — 1 · 2 · 3, persisted via usePersistentState. */}
+              <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:8 }}>
+                <span style={{ fontFamily:FN, fontSize:9, color:'var(--c-td)', letterSpacing:'0.1em', fontWeight:700 }}>ALERTS</span>
+                {[
+                  { id:1, tip:'Separate lane — your tasks on the board, coaching alerts grouped by kind below' },
+                  { id:2, tip:'Filter toggle — MINE / ALERTS / ALL on one board' },
+                  { id:3, tip:'Collapse — all coaching alerts folded into one expandable row' },
+                ].map(v => {
+                  const active = variant === v.id;
+                  return (
+                    <button key={v.id} onClick={()=>setVariant(v.id)} title={v.tip}
+                      style={{ ...btnBase, width:24, height:22, fontSize:11,
+                        border:`1px solid ${active?'var(--c-ac)':'var(--c-cardBd)'}`,
+                        background: active?'rgba(57,189,255,0.094)':'transparent',
+                        color: active?'var(--c-ac)':'var(--c-tm)' }}>{v.id}</button>
+                  );
+                })}
+              </div>
+
+              {/* Variant 2 — MINE / ALERTS / ALL segmented toggle above the board. */}
+              {variant === 2 && (
+                <div style={{ display:'flex', gap:4, marginBottom:8 }}>
+                  {[
+                    { id:'mine',   label:'MINE',   n:manualRows.length },
+                    { id:'alerts', label:'ALERTS', n:autoRows.length },
+                    { id:'all',    label:'ALL',    n:openRows.length },
+                  ].map(s => {
+                    const active = v2Sub === s.id;
+                    return (
+                      <button key={s.id} onClick={()=>setV2Sub(s.id)}
+                        style={{ ...btnBase, flex:1, height:24, fontSize:9, letterSpacing:'0.08em',
+                          border:`1px solid ${active?'var(--c-ac)':'var(--c-cardBd)'}`,
+                          background: active?'rgba(57,189,255,0.094)':'transparent',
+                          color: active?'var(--c-ac)':'var(--c-tm)' }}>
+                        {s.label}{s.n>0?` · ${s.n}`:''}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Variant 3 — single collapsible summary row ABOVE the board. */}
+              {variant === 3 && autoRows.length > 0 && (
+                <div style={{ marginBottom:8 }}>
+                  <div onClick={()=>setV3Open(o=>!o)} role="button" tabIndex={0}
+                    onKeyDown={(e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); setV3Open(o=>!o); } }}
+                    style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 10px', border:`1px solid var(--c-cardBd)`, borderLeft:`3px solid var(--c-ac)`, background:'var(--c-sf)', cursor:'pointer', userSelect:'none' }}>
+                    <span aria-hidden style={{ fontSize:10, color:'var(--c-ac)', transform:v3Open?'rotate(90deg)':'rotate(0deg)', transition:'transform 160ms ease' }}>▸</span>
+                    <span style={{ fontFamily:FN, fontSize:10, fontWeight:700, letterSpacing:'0.06em', color:'var(--c-ac)' }}>{autoRows.length} COACHING ALERT{autoRows.length===1?'':'S'}</span>
+                    {summaryStr && <span style={{ fontFamily:FN, fontSize:9, color:'var(--c-tm)', letterSpacing:'0.04em' }}>— {summaryStr}</span>}
+                  </div>
+                  {v3Open && (
+                    <div style={{ marginTop:6 }}>
+                      <AlertGroupList grouped={grouped} collapsible={false} onRowClick={handleClick} stackBoard={stackBoard} />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {board}
+
+              {/* Variant 1 — COACHING ALERTS lane below the board, grouped by kind. */}
+              {variant === 1 && (
+                <div style={{ marginTop:12 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
+                    <span style={{ fontFamily:FN, fontSize:9, color:'var(--c-td)', letterSpacing:'0.14em', fontWeight:700 }}>COACHING ALERTS ({autoRows.length})</span>
+                    <span style={{ flex:1, height:1, background:'var(--c-cardBd)' }} />
+                  </div>
+                  {autoRows.length === 0 ? (
+                    <div style={{ fontFamily:FN, fontSize:9, color:'var(--c-td)', letterSpacing:'0.04em', padding:'4px 0' }}>No coaching alerts — all clear.</div>
+                  ) : (
+                    <AlertGroupList grouped={grouped} collapsible collapsedMap={alertCollapsed} onToggle={toggleAlertGroup} onRowClick={handleClick} stackBoard={stackBoard} />
+                  )}
+                </div>
+              )}
             </div>
           );
         })()}
