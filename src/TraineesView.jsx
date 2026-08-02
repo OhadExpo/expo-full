@@ -370,12 +370,43 @@ const saveSortPrefs = (prefs) => {
   try { localStorage.setItem(SORT_KEY, JSON.stringify(prefs)); } catch {}
 };
 
+// Left-rail section label — small uppercase FN, matches the app's control vocab.
+function RailLabel({ children, right }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+      <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.2em', color: C.td, textTransform: 'uppercase' }}>{children}</div>
+      {right}
+    </div>
+  );
+}
+// Full-width option pill with a right-aligned muted count. active = accent
+// border + tint + accent text; inactive = cardBd border + muted text.
+function RailOption({ label, count, active, onClick, accent = C.ac, tint = 'rgba(57,189,255,0.094)', title }) {
+  return (
+    <button onClick={onClick} title={title} style={{
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', boxSizing: 'border-box',
+      minHeight: 30, height: 30, padding: '0 10px', borderRadius: 0, cursor: 'pointer',
+      border: `1px solid ${active ? accent : C.cardBd}`, background: active ? tint : 'transparent',
+      color: active ? accent : C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+    }}>
+      <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{label}</span>
+      {count != null && <span style={{ fontSize: 10, marginLeft: 8, flexShrink: 0, color: active ? accent : C.td, opacity: active ? 0.85 : 0.7 }}>{count}</span>}
+    </button>
+  );
+}
+
 export default function TraineesView({ trainees, setTrainees, planCounts, payments, workouts, clientWorkouts, bwLog, portalVis, presence, onSelect, onPreview }) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(defaultTrainee());
   const [search, setSearch] = useState("");
   const [editId, setEditId] = useState(null);
-  const [showArchived, setShowArchived] = useState(false);
+  // Roster segmentation state. STATUS is single-select (default All); the
+  // "Archived" value is what drives the old showArchived-based card styling &
+  // drag-guard, derived below. FORMAT is single-select. attnFlags are the
+  // multi-toggle "needs attention" alert filters (AND-combined).
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [formatFilter, setFormatFilter] = useState('All');
+  const [attnFlags, setAttnFlags] = useState({ pay: false, dormant: false, lowSessions: false });
   const [archiveConfirm, setArchiveConfirm] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [deleteTyped, setDeleteTyped] = useState("");
@@ -423,16 +454,74 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
   const statusColor = { Active: C.gn, "On Hold": C.or, Inactive: C.td, Trial: C.ac, Archived: C.rd };
   const active = trainees.filter(t => t.status !== "Archived");
   const archived = trainees.filter(t => t.status === "Archived");
-  const filteredUnsorted = (showArchived ? archived : active).filter(t => {
+  // Archived is a STATUS value → derive the old showArchived flag from it so the
+  // dashed-card styling, drag-guard and action rows keep working unchanged.
+  const showArchived = statusFilter === 'Archived';
+
+  // --- segmentation predicates -------------------------------------------
+  const matchesSearch = (t) => {
     const s = search.toLowerCase();
+    if (!s) return true;
     const emailStr = Array.isArray(t.email) ? t.email.join(' ') : (t.email || '');
     if ((t.name || '').toLowerCase().includes(s) || emailStr.toLowerCase().includes(s)) return true;
     if (t.members) return t.members.some(m => {
       const memEmail = Array.isArray(m.email) ? m.email.join(' ') : (m.email || '');
-      return (m.name||'').toLowerCase().includes(s) || memEmail.toLowerCase().includes(s);
+      return (m.name || '').toLowerCase().includes(s) || memEmail.toLowerCase().includes(s);
     });
     return false;
-  });
+  };
+  const matchesFormat = (t) => {
+    if (formatFilter === 'All') return true;
+    if (formatFilter === 'Online') return t.format === 'Online Client';
+    if (formatFilter === 'Gym · Single') return t.format === 'Gym, Single';
+    if (formatFilter === 'Gym · Couple') return t.format === 'Gym, Couple';
+    if (formatFilter === 'Bnei Herzliya') return t.format === 'Bnei Herzliya' || t.branch === 'Bnei Herzliya';
+    return true;
+  };
+  // Alert-flag predicates. Payment due = billable + overdue/never-paid.
+  // Dormant = no completed workout in 30+ days (or never). Low sessions =
+  // sessionsRemaining set and <= 2.
+  const flagPay = (t) => { const s = getPaymentStatus(t, payments); return !!s && (s.label.startsWith('OVERDUE') || s.label === 'NEVER PAID'); };
+  const flagDormant = (t) => { const ms = getLastWorkoutMs(t, workouts, clientWorkouts); return !ms || (Date.now() - ms) >= OVERDUE_DAYS * 86400000; };
+  const flagLow = (t) => t.sessionsRemaining != null && t.sessionsRemaining <= 2;
+
+  // --- base pools + live counts ------------------------------------------
+  // Status-scoped pool = the base for FORMAT counts. Non-archived statuses
+  // filter the active pool; Archived swaps to the archived pool.
+  const statusScoped = showArchived ? archived
+    : (statusFilter === 'All' ? active : active.filter(t => t.status === statusFilter));
+  const statusCounts = {
+    All: active.length,
+    Active: active.filter(t => t.status === 'Active').length,
+    'On Hold': active.filter(t => t.status === 'On Hold').length,
+    Inactive: active.filter(t => t.status === 'Inactive').length,
+    Trial: active.filter(t => t.status === 'Trial').length,
+    Archived: archived.length,
+  };
+  const formatCounts = {
+    All: statusScoped.length,
+    Online: statusScoped.filter(t => t.format === 'Online Client').length,
+    'Gym · Single': statusScoped.filter(t => t.format === 'Gym, Single').length,
+    'Gym · Couple': statusScoped.filter(t => t.format === 'Gym, Couple').length,
+    'Bnei Herzliya': statusScoped.filter(t => t.format === 'Bnei Herzliya' || t.branch === 'Bnei Herzliya').length,
+  };
+  // Flag counts over the status+format-scoped pool (each flag independent of
+  // the others), so a count reflects what turning that one flag on would show.
+  const flagPool = statusScoped.filter(matchesFormat);
+  const flagCounts = {
+    pay: flagPool.filter(flagPay).length,
+    dormant: flagPool.filter(flagDormant).length,
+    lowSessions: flagPool.filter(flagLow).length,
+  };
+  const anyFilterActive = statusFilter !== 'All' || formatFilter !== 'All' || search !== '' || attnFlags.pay || attnFlags.dormant || attnFlags.lowSessions;
+  const clearFilters = () => { setStatusFilter('All'); setFormatFilter('All'); setSearch(''); setAttnFlags({ pay: false, dormant: false, lowSessions: false }); };
+
+  const filteredUnsorted = statusScoped.filter(t =>
+    matchesSearch(t) && matchesFormat(t)
+    && (!attnFlags.pay || flagPay(t))
+    && (!attnFlags.dormant || flagDormant(t))
+    && (!attnFlags.lowSessions || flagLow(t))
+  );
 
   // Sort comparator. Language priority is the primary key (HE block first or
   // EN block first), then the chosen sort dimension within that block.
@@ -547,38 +636,64 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
           display: 'flex', flexDirection: 'column', gap: 14,
         }}>
           {/* SEARCH — full-width in the rail. */}
-          <input placeholder="Search athletes..." value={search} onChange={e => setSearch(e.target.value)}
-            style={{ ...baseInput, width: '100%', boxSizing: 'border-box', height: 38, padding: '0 12px', fontSize: 13, border: `1px solid ${C.ac}` }} />
-
-          {/* SHOW — Active / Archived toggle (was the standalone Archive button). */}
           <div>
-            <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.2em', color: C.td, textTransform: 'uppercase', marginBottom: 6 }}>Show</div>
+            <input placeholder="Search athletes..." value={search} onChange={e => setSearch(e.target.value)}
+              style={{ ...baseInput, width: '100%', boxSizing: 'border-box', height: 38, padding: '0 12px', fontSize: 13, border: `1px solid ${C.ac}` }} />
+            {anyFilterActive && (
+              <button onClick={clearFilters} title="Clear all filters"
+                style={{ marginTop: 8, background: 'transparent', border: 'none', color: C.tm, cursor: 'pointer', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', padding: 0 }}>
+                ✕ Clear filters
+              </button>
+            )}
+          </div>
+
+          {/* STATUS — single-select. Archived swaps the pool to the dashed,
+              drag-off archived cards (via showArchived derived above). */}
+          <div>
+            <RailLabel>Status</RailLabel>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <button onClick={() => setShowArchived(false)} style={{
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', boxSizing: 'border-box',
-                minHeight: 30, height: 30, padding: '0 10px', borderRadius: 0, cursor: 'pointer',
-                border: `1px solid ${!showArchived ? C.ac : C.cardBd}`, background: !showArchived ? 'rgba(57,189,255,0.094)' : 'transparent',
-                color: !showArchived ? C.ac : C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase',
-              }}>
-                <span>Active</span><span style={{ opacity: 0.6, fontSize: 10 }}>{active.length}</span>
-              </button>
-              <button onClick={() => setShowArchived(true)} style={{
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', boxSizing: 'border-box',
-                minHeight: 30, height: 30, padding: '0 10px', borderRadius: 0, cursor: 'pointer',
-                border: `1px solid ${showArchived ? C.rd : C.cardBd}`, background: showArchived ? 'rgba(255,77,79,0.10)' : 'transparent',
-                color: showArchived ? C.rd : C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase',
-              }}>
-                <span>Archived</span><span style={{ opacity: 0.6, fontSize: 10 }}>{archived.length}</span>
-              </button>
+              {['All', 'Active', 'On Hold', 'Inactive', 'Trial', 'Archived'].map(s => (
+                <RailOption key={s} label={s} count={statusCounts[s]}
+                  active={statusFilter === s} onClick={() => setStatusFilter(s)}
+                  accent={s === 'Archived' ? C.rd : C.ac}
+                  tint={s === 'Archived' ? 'rgba(255,77,79,0.10)' : 'rgba(57,189,255,0.094)'} />
+              ))}
             </div>
           </div>
 
-          {/* SORT BY — multi-select sort keys stacked full-width; each active
-              key shows its own direction toggle beside it. Same toggleKey +
-              sortDirs logic as before, just laid out vertically. */}
+          {/* FORMAT — single-select. Counts reflect the current status pool. */}
           <div>
-            <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.2em', color: C.td, textTransform: 'uppercase', marginBottom: 6 }}>Sort By</div>
+            <RailLabel>Format</RailLabel>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {['All', 'Online', 'Gym · Single', 'Gym · Couple', 'Bnei Herzliya'].map(f => (
+                <RailOption key={f} label={f} count={formatCounts[f]}
+                  active={formatFilter === f} onClick={() => setFormatFilter(f)} />
+              ))}
+            </div>
+          </div>
+
+          {/* NEEDS ATTENTION — multi-toggle alert flags (AND-combined). Active
+              flags read amber so the rail doubles as a triage list. */}
+          <div>
+            <RailLabel>Needs Attention</RailLabel>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {[
+                { key: 'pay', label: '⚠ Payment due' },
+                { key: 'dormant', label: '💤 Dormant' },
+                { key: 'lowSessions', label: '⏳ Low sessions' },
+              ].map(o => (
+                <RailOption key={o.key} label={o.label} count={flagCounts[o.key]}
+                  active={attnFlags[o.key]} accent={C.or} tint="rgba(255,159,10,0.12)"
+                  onClick={() => setAttnFlags(m => ({ ...m, [o.key]: !m[o.key] }))} />
+              ))}
+            </div>
+          </div>
+
+          {/* SORT BY — kept but compact + clearly secondary (Ohad: sort alone is
+              not enough). Same multi-key toggle + per-key direction logic. */}
+          <div>
+            <RailLabel>Sort</RailLabel>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
               {[
                 { id: 'name',        label: 'NAME' },
                 { id: 'status',      label: 'STATUS' },
@@ -597,12 +712,12 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                   : o.id === 'lastTrained' ? (desc ? '↓ NEWEST' : '↑ OLDEST')
                   : (desc ? '↑ OVERDUE' : '↓ PAID');
                 return (
-                  <div key={o.id} style={{ display: 'flex', gap: 6, alignItems: 'stretch' }}>
+                  <div key={o.id} style={{ display: 'flex', gap: 5, alignItems: 'stretch' }}>
                     <button onClick={toggleKey} style={{
                       display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-start', flex: 1, minWidth: 0, boxSizing: 'border-box',
-                      minHeight: 30, height: 30, padding: '0 10px', borderRadius: 0, cursor: 'pointer',
+                      minHeight: 24, height: 24, padding: '0 9px', borderRadius: 0, cursor: 'pointer',
                       border: `1px solid ${on ? C.ac : C.cardBd}`, background: on ? 'rgba(57,189,255,0.094)' : 'transparent',
-                      color: on ? C.ac : C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
+                      color: on ? C.ac : C.td, fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
                       whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                     }}>{o.label}</button>
                     {on && (
@@ -610,15 +725,15 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                         title={`Flip ${o.id} direction`}
                         style={{
                           display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxSizing: 'border-box',
-                          minHeight: 30, height: 30, padding: '0 8px', borderRadius: 0, cursor: 'pointer',
+                          minHeight: 24, height: 24, padding: '0 7px', borderRadius: 0, cursor: 'pointer',
                           border: `1px dashed ${C.ac}`, background: 'rgba(57,189,255,0.06)', color: C.ac,
                           ...(o.id === 'name'
-                            ? { fontFamily: `Heebo, ${FN}`, fontSize: 12, letterSpacing: 0, lineHeight: 1 }
-                            : { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em' }),
+                            ? { fontFamily: `Heebo, ${FN}`, fontSize: 11, letterSpacing: 0, lineHeight: 1 }
+                            : { fontFamily: FN, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.06em' }),
                         }}>
                         {(() => { const mm = /^([↑↓])\s+(.*)$/.exec(dirLbl); if (!mm) return dirLbl; return (
                           <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 3 }}>
-                            <span aria-hidden="true" style={{ fontSize: 9, lineHeight: 1 }}>{mm[1]}</span>
+                            <span aria-hidden="true" style={{ fontSize: 8, lineHeight: 1 }}>{mm[1]}</span>
                             <span>{mm[2]}</span>
                           </span>
                         ); })()}
@@ -630,8 +745,8 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
             </div>
           </div>
 
-          {/* ADD ATHLETE — full-width; menu opens within the rail (left:0/right:0). */}
-          <div ref={addMenuRef} style={{position:'relative'}}>
+          {/* ADD ATHLETE — pinned to the very bottom of the rail. */}
+          <div ref={addMenuRef} style={{position:'relative', marginTop:'auto'}}>
             <Btn onClick={() => setAddMenuOpen(!addMenuOpen)} style={{ width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 38 }}>+ Add Athlete ▾</Btn>
             {addMenuOpen && <div style={{position:'absolute',left:0,right:0,top:'100%',marginTop:4,background:C.bg,border:`1px solid ${C.cardBd}`,borderRadius:0,overflow:'hidden',zIndex:50,boxShadow:'0 8px 24px rgba(0,0,0,0.6)'}}>
               {[['Online Athlete','Online Client'],['Gym, Single','Gym, Single'],['Gym, Couple','Gym, Couple'],['Bnei Herzliya','Bnei Herzliya']].map(([label,format])=>(
