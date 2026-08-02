@@ -1461,8 +1461,8 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
           at the true geometric centre of the row regardless of how wide
           the pose/reps group on the left or the FULL group on the right
           grow. */}
-      <div style={{display:'flex',gap:4,alignItems:'center',marginBottom:4}}>
-        <div style={{flex:1,display:'flex',gap:4,alignItems:'flex-start',flexWrap:'wrap',justifyContent:'flex-start'}}>
+      <div style={{display:'flex',gap:10,alignItems:'center',justifyContent:'center',flexWrap:'wrap',marginBottom:4}}>
+        <div style={{flex:'0 1 auto',display:'flex',gap:4,alignItems:'flex-start',flexWrap:'wrap',justifyContent:'center'}}>
           {/* alignItems:flex-start (was center) — REPS' joint-picker dropdown
               hangs BELOW the REPS button now (see below), so the row's other
               single-height buttons must align to the TOP, not the vertical
@@ -1565,7 +1565,7 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
                 background:C.acD,color:C.ac,fontFamily:FN,fontSize:10,cursor:'pointer'}}>COMMENT</button>
           )}
         </div>
-        <div style={{flex:1,display:'flex',gap:4,alignItems:'center',justifyContent:'flex-end'}}>
+        <div style={{flex:'0 1 auto',display:'flex',gap:4,alignItems:'center'}}>
           <button onClick={fullscreen}
             style={{padding:'3px 10px',height:22,boxSizing:'border-box',borderRadius:0,border:`1px solid ${C.bd}`,
               background:'transparent',color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>⛶ FULL</button>
