@@ -1477,41 +1477,41 @@ function DemoPrograms() {
                   const isVis = (id) => portalVis[portalKey(id)] !== false;
                   const togglePortal = (id) => setPortalVis(v => ({ ...v, [portalKey(id)]: !isVis(id) }));
                   return (
-                    <div key={row.tid} style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0 }}>
-                      {/* Current-block row — clicking opens the program. */}
+                    <div key={row.tid} style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.ac}`, borderRadius: 0 }}>
+                      {/* Two-line card — mirrors the real programs list (parity):
+                          identity line (clickable) over a hairline, then actions. */}
                       <div onClick={() => setSelectedProgramId(cur.id)}
-                        style={{ cursor: 'pointer', padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-                        <div style={{ minWidth: 0, flex: 1, display: 'flex', alignItems: 'baseline', gap: 14, flexWrap: 'wrap' }}>
-                          <div style={{ fontWeight: 700, fontSize: 15, color: C.tx, whiteSpace: 'nowrap', letterSpacing: '0.01em', flexShrink: 0 }}><bdi>{row.name}</bdi></div>
-                          <div style={{ fontWeight: 700, fontSize: 15, color: C.ac, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '0.04em', fontFamily: FN, minWidth: 0, flex: 1 }}>{cur.name || 'Untitled'}</div>
-                          <div style={{ fontSize: 11, color: C.tm, fontFamily: FN, letterSpacing: '0.04em', fontWeight: 500, flexShrink: 0, whiteSpace: 'nowrap' }}>{cur.dayCount}d · {cur.exerciseCount}ex</div>
-                        </div>
-                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
-                          <span title={`Last session: ${tagText.toLowerCase()}`} style={{ fontSize: 10, fontFamily: FN, color: tagColor, letterSpacing: '0.04em', fontWeight: 600, border: `1px solid ${tagColor}`, padding: '3px 7px', whiteSpace: 'nowrap' }}>{tagText.toLowerCase()}</span>
-                          {row.earlier.length > 0 && (
-                            <button onClick={e => { e.stopPropagation(); toggleAthlete(row.tid); }}
-                              title={expanded ? `Hide ${row.earlier.length} earlier block${row.earlier.length === 1 ? '' : 's'}` : `Show ${row.earlier.length} earlier block${row.earlier.length === 1 ? '' : 's'}`}
-                              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, color: C.tm, cursor: 'pointer', height: 26, padding: '0 11px', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.03em', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
-                              {/* number-first + centred rotating chevron, matching the real programs list */}
-                              <span>{expanded ? row.earlier.length : `+${row.earlier.length}`}</span>
-                              <span aria-hidden="true" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 8, height: 8, fontSize: 8, lineHeight: 1, opacity: 0.7, transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 180ms ease' }}>▾</span>
-                            </button>
-                          )}
-                          {(() => {
-                            const lbl = (color) => ({ height: 30, minWidth: 76, padding: '0 8px', background: 'transparent', border: `1px solid ${color}`, borderRadius: 0, color, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap' });
-                            const on = isVis(cur.id);
-                            return <>
-                              <button onClick={e => { e.stopPropagation(); togglePortal(cur.id); }}
-                                title={on ? 'On the athlete portal — click to hide' : 'Hidden — click to show'}
-                                style={{ height: 30, minWidth: 108, padding: '0 10px', background: 'transparent', border: `1px solid ${on ? C.gn : C.cardBd}`, borderRadius: 0, color: on ? C.gn : C.td, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: on ? C.gn : C.td }} />{on ? 'ON PORTAL' : 'HIDDEN'}</button>
-                              <button onClick={e => e.stopPropagation()} title="Preview as trainee (demo only)" style={lbl(C.ac)}>PREVIEW</button>
-                              <button onClick={e => e.stopPropagation()} title="Duplicate program (demo only)" style={lbl(C.ac)}>DUPLICATE</button>
-                              <button onClick={e => e.stopPropagation()} title="Share to another athlete (demo only)" style={lbl(C.ac)}>SHARE</button>
-                              <button onClick={e => e.stopPropagation()} title="Delete program (demo only)" style={lbl(C.rd)}>DELETE</button>
-                            </>;
-                          })()}
-                        </div>
+                        style={{ cursor: 'pointer', padding: '13px 16px 11px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+                        <div style={{ fontWeight: 700, fontSize: 16, color: C.tx, whiteSpace: 'nowrap', letterSpacing: '0.01em', flexShrink: 0 }}><bdi>{row.name}</bdi></div>
+                        <div style={{ fontWeight: 700, fontSize: 15, color: C.ac, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '0.04em', fontFamily: FN, minWidth: 0, flex: '0 1 auto' }}>{cur.name || 'Untitled'}</div>
+                        {row.earlier.length > 0 && (
+                          <button onClick={e => { e.stopPropagation(); toggleAthlete(row.tid); }}
+                            title={expanded ? `Hide ${row.earlier.length} earlier block${row.earlier.length === 1 ? '' : 's'}` : `Show ${row.earlier.length} earlier block${row.earlier.length === 1 ? '' : 's'}`}
+                            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: 24, minWidth: 44, padding: '0 10px', background: expanded ? C.ac : 'transparent', border: `1px solid ${C.ac}`, borderRadius: 0, color: expanded ? '#0a0a0b' : C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', whiteSpace: 'nowrap', flexShrink: 0, boxSizing: 'border-box', fontVariantNumeric: 'tabular-nums', transition: 'background .15s, color .15s' }}>
+                            {expanded ? `−${row.earlier.length}` : `+${row.earlier.length}`}
+                          </button>
+                        )}
+                        <div style={{ fontSize: 11, color: C.tm, fontFamily: FN, letterSpacing: '0.04em', fontWeight: 500, flexShrink: 0, whiteSpace: 'nowrap' }}>{cur.dayCount}d · {cur.exerciseCount}ex</div>
+                        <div style={{ flex: 1, minWidth: 12 }} />
+                        <span title={`Last session: ${tagText.toLowerCase()}`} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: 26, padding: '0 12px', fontSize: 10, fontFamily: FN, color: tagColor, letterSpacing: '0.06em', fontWeight: 600, border: `1px solid ${tagColor}`, whiteSpace: 'nowrap', flexShrink: 0, boxSizing: 'border-box' }}>{tagText.toLowerCase()}</span>
                       </div>
+                      {/* ACTION line — ON PORTAL left, CRUD cluster right, under a hairline. */}
+                      {(() => {
+                        const lbl = (color) => ({ height: 30, minWidth: 76, padding: '0 8px', background: 'transparent', border: `1px solid ${color}`, borderRadius: 0, color, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap' });
+                        const on = isVis(cur.id);
+                        return (
+                          <div style={{ borderTop: `1px solid ${C.cardBd}`, padding: '10px 16px', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                            <button onClick={e => { e.stopPropagation(); togglePortal(cur.id); }}
+                              title={on ? 'On the athlete portal — click to hide' : 'Hidden — click to show'}
+                              style={{ height: 30, minWidth: 108, padding: '0 10px', background: 'transparent', border: `1px solid ${on ? C.gn : C.cardBd}`, borderRadius: 0, color: on ? C.gn : C.td, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: on ? C.gn : C.td }} />{on ? 'ON PORTAL' : 'HIDDEN'}</button>
+                            <div style={{ flex: 1, minWidth: 12 }} />
+                            <button onClick={e => e.stopPropagation()} title="Preview as trainee (demo only)" style={lbl(C.ac)}>PREVIEW</button>
+                            <button onClick={e => e.stopPropagation()} title="Duplicate program (demo only)" style={lbl(C.ac)}>DUPLICATE</button>
+                            <button onClick={e => e.stopPropagation()} title="Share to another athlete (demo only)" style={lbl(C.ac)}>SHARE</button>
+                            <button onClick={e => e.stopPropagation()} title="Delete program (demo only)" style={lbl(C.rd)}>DELETE</button>
+                          </div>
+                        );
+                      })()}
                       {/* Expanded earlier blocks — slightly compressed look. */}
                       {expanded && row.earlier.length > 0 && (
                         <div style={{ borderTop: `1px solid ${C.cardBd}`, padding: '4px 0' }}>
