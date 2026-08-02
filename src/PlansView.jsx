@@ -2941,8 +2941,27 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
 
   return (
     <div>
+      {/* Top header row — PROGRAMS title (left) + TABLE/GRID view toggle (right),
+          mirroring the tasks-page "TASKS … LIST/BOARD" placement exactly (Ohad).
+          The toggle used to live buried in the left rail among filters; a
+          view-mode switch is a primary control, so it belongs top-right above the
+          list — same spot, same segmented style as tasks. Sitting above BOTH
+          columns keeps the rail's Search box top-aligned with the first card. */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 12, flexWrap: 'wrap' }}>
+        <h2 style={{ margin: 0, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: C.tx }}>Programs</h2>
+        <div style={{ display: 'flex', gap: 6, width: 168 }}>
+          {[['table','Table'],['grid','Grid']].map(([v,label]) => {
+            const on = progView === v;
+            return (
+              <button key={v} onClick={()=>setProgView(v)} title={v==='table'?'Dense list — one row per athlete':'Card grid — double-click a card to expand earlier blocks'}
+                style={{ flex: 1, height: 30, boxSizing: 'border-box', borderRadius: 0, cursor: 'pointer', border: `1px solid ${on ? '#39BDFF' : C.cardBd}`, background: on ? '#39BDFF' : 'var(--c-sf)', color: on ? '#FFFFFF' : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{label}</button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Two-column layout: persistent LEFT filter RAIL + list. Mirrors the
-          athletes list (TraineesView) — SEARCH / ATHLETE / FLAGS / VIEW / SORT
+          athletes list (TraineesView) — SEARCH / ATHLETE / FLAGS / SORT
           live in the slim sticky left column; the program list fills the right. */}
       <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
         {/* LEFT: filter rail — sticky so the controls stay pinned as the (long)
@@ -2993,20 +3012,9 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
             </div>
           </div>
 
-          {/* VIEW — table / grid pills. Only changes the grouped (default) view;
-              harmless while a flat-list filter is active. */}
-          <div>
-            <RailLabel>View</RailLabel>
-            <div style={{ display: 'flex', gap: 6 }}>
-              {[['table','TABLE'],['grid','GRID']].map(([v,label]) => {
-                const on = progView === v;
-                return (
-                  <button key={v} onClick={()=>setProgView(v)} title={v==='table'?'Dense list — one row per athlete':'Card grid — double-click a card to expand earlier blocks'}
-                    style={{ flex: 1, height: 30, borderRadius: 0, cursor: 'pointer', border: `1px solid ${on ? C.ac : C.cardBd}`, background: on ? C.ac : 'transparent', color: on ? '#0a0a0b' : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' }}>{label}</button>
-                );
-              })}
-            </div>
-          </div>
+          {/* VIEW toggle moved OUT of the rail to the page's top-right, mirroring
+              the tasks-page LIST/BOARD placement (Ohad). See the header row above
+              the two-column layout. */}
 
           {/* SORT — compact + secondary. Click an inactive field to select it;
               click the active field to flip direction (arrow up = ascending). */}

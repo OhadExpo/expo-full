@@ -903,9 +903,9 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
 
           const btnBase = { borderRadius:0, fontFamily:FN, fontWeight:700, cursor:'pointer' };
           const SEGS = [
-            { id:'mine',   label:'GENERAL',    n:manualRows.length },
-            { id:'alerts', label:'AUTO-TASKS', n:autoRows.length },
-            { id:'all',    label:'ALL',        n:openRows.length },
+            { id:'mine',   label:'GENERAL',     n:manualRows.length },
+            { id:'alerts', label:'AUTO-ALERTS', n:autoRows.length },
+            { id:'all',    label:'ALL',         n:openRows.length },
           ];
           return (
             <div>
@@ -940,7 +940,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                   {kanban}
                   <div style={{ marginTop:12 }}>
                     <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
-                      <span style={{ fontFamily:FN, fontSize:9, color:'var(--c-td)', letterSpacing:'0.14em', fontWeight:700 }}>AUTO-TASKS ({autoRows.length})</span>
+                      <span style={{ fontFamily:FN, fontSize:9, color:'var(--c-td)', letterSpacing:'0.14em', fontWeight:700 }}>AUTO-ALERTS ({autoRows.length})</span>
                       <span style={{ flex:1, height:1, background:'var(--c-cardBd)' }} />
                     </div>
                     {alertsList}
