@@ -2482,9 +2482,9 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
             const segCount = lw && lw <= 12 ? lw : 0;
             const cnt = (data.workouts || []).filter(w => !w.reviewedAt).length;
             return <span style={{display:'inline-flex',alignItems:'center',flexWrap:'wrap',gap:8,fontSize:isHebrew(data.name)?15:12,fontFamily:isHebrew(data.name)?FH:FN,color:'#FFFFFF',fontWeight:700}}>
-              <span>{isHebrew(data.name) ? data.name : (data.name || '').toUpperCase()} ({cnt})</span>
+              <span style={{lineHeight:1}}>{isHebrew(data.name) ? data.name : (data.name || '').toUpperCase()} ({cnt})</span>
               {latest && <span style={{display:'inline-flex',alignItems:'center',gap:7}}>
-                <span style={{fontFamily:FN,fontSize:11,color:'var(--c-ac)',fontWeight:700,letterSpacing:'0.04em'}}>· {latest.planName}</span>
+                <span style={{fontFamily:FN,fontSize:11,lineHeight:1,color:'var(--c-ac)',fontWeight:700,letterSpacing:'0.04em'}}>· {latest.planName}</span>
                 {segCount > 0 && <span style={{display:'inline-flex',gap:3,verticalAlign:'middle'}}>
                   {Array.from({length:segCount},(_,i)=>(
                     <span key={i} style={{width:13,height:5,background:i < Math.min(latest.week, segCount) ? 'var(--c-ac)' : 'var(--c-tm)', opacity:i < Math.min(latest.week, segCount) ? 1 : 0.35}} />

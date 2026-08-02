@@ -1174,7 +1174,7 @@ function AuthedApp() {
         <style>{`
           .hdr-scroll::-webkit-scrollbar{display:none}
           .nav-item-inactive{transition:color 120ms, background 120ms}
-          .nav-item-inactive:hover{color:rgba(57,189,255,0.72) !important;background:rgba(57,189,255,0.035) !important}
+          .nav-item-inactive:hover{color:var(--c-acText) !important;background:rgba(57,189,255,0.035) !important}
           .hdr-icon-btn{transition:color 120ms, background 120ms}
           .hdr-icon-btn:hover{color:#0E0F12 !important;background:rgba(57,189,255,0.08) !important}
           /* Mobile: the ENTIRE nav row slides horizontally end-to-end with

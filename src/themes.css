@@ -132,7 +132,7 @@
   --c-td: #7B8390;
   --c-ac: #0E0F12;
   --c-acH: #000000;
-  --c-acText: #0A78B0;            /* AA-safe cyan for small text on white */
+  --c-acText: #08668F;            /* AA-safe cyan for small text on white */
   --c-acSurface: #0E0F12;
   --c-acOnSurface: #FFFFFF;
   --c-cardBd: rgba(57,189,255,0.42);  /* cyan-42% hairline — the design's load-bearing element */
@@ -173,7 +173,7 @@
   --c-td: #8A8278;
   --c-ac: #1A1712;
   --c-acH: #000000;
-  --c-acText: #0A78B0;
+  --c-acText: #08668F;
   --c-acSurface: #1A1712;
   --c-acOnSurface: #FFFFFF;
   --c-cardBd: rgba(57,189,255,0.42);
@@ -209,7 +209,7 @@
   --c-td: #6B7280;
   --c-ac: #0E0F12;
   --c-acH: #000000;
-  --c-acText: #0A78B0;
+  --c-acText: #08668F;
   --c-acSurface: #0E0F12;
   --c-acOnSurface: #FFFFFF;
   --c-cardBd: rgba(57,189,255,0.42);
@@ -238,7 +238,7 @@
   --c-td: #9CA3AF;
   --c-ac: #39BDFF;
   --c-acH: #0E8FD3;
-  --c-acText: #0A78B0;
+  --c-acText: #08668F;
   --c-acSurface: #39BDFF;
   --c-acOnSurface: #0E0F12;
   --c-cardBd: rgba(57,189,255,0.30);

@@ -209,7 +209,10 @@ function CardSection({ label, children, center = false }) {
   return (
     <div style={{ marginTop: 18, paddingTop: 0 }}>
       <div style={{
-        fontFamily: FN, fontSize: 9, color: 'rgba(57,189,255,0.72)', letterSpacing: 1.5, fontWeight: 700,
+        // Card subtitles use the theme-aware cyan-text token: bright brand cyan
+        // (#39BDFF) in dark, deeper cyan (#08668F) on the white card in light —
+        // the same token every cyan-on-white text now routes through.
+        fontFamily: FN, fontSize: 9, color: C.acText, letterSpacing: 1.5, fontWeight: 700,
         textTransform: 'uppercase', marginBottom: 6,
         textAlign: center ? 'center' : 'left',
       }}>{label}</div>
