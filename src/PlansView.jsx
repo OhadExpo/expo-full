@@ -1618,7 +1618,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
               const label = t ? (t.members && t.members.length === 2 ? (t.members[parseInt(String(plan.traineeId).split('__')[1] || '0')]?.name || t.name) : t.name) : undefined;
               onNewProgramFor(plan.traineeId, label);
             }}
-            title="Create a new, empty program for this athlete" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:38,padding:'0 13px',lineHeight:'38px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.09em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>+ NEW PROGRAM</button>}
+            title="Create a new, empty program for this athlete" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:38,padding:'0 13px',lineHeight:'38px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.09em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>NEW PROGRAM</button>}
           </div>
           <div style={{display:'flex',gap:8,alignItems:'stretch',flexWrap:'wrap'}}>
           {setPortalVis && plan?.id && plan?.traineeId && (() => {
@@ -1636,7 +1636,9 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
             };
             return <button onClick={toggle}
               title={isOnly ? 'This is the only program shown on the portal — click to show all again' : 'Show ONLY this program on the athlete portal (hide the others)'}
-              style={{background: isOnly ? `${C.gn}1f` : (isRefined5b() ? 'transparent' : 'var(--c-sf)'),border:`1px solid ${isOnly ? C.gn : C.ac}`,borderRadius:0,height:38,padding:'0 13px',lineHeight:'38px',color:isOnly ? C.gn : C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.09em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>{isOnly ? '✓ ONLY THIS' : 'SHOW ONLY'}</button>;
+              style={{background: isOnly ? `${C.gn}1f` : (isRefined5b() ? 'transparent' : 'var(--c-sf)'),border:`1px solid ${isOnly ? C.gn : C.ac}`,borderRadius:0,height:38,padding:'0 13px',lineHeight:'38px',color:isOnly ? C.gn : C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.09em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>{isOnly
+                ? <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><polyline points="20 6 9 17 4 12"/></svg>ONLY THIS</>
+                : <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>SHOW ONLY</>}</button>;
           })()}
           {onDelete && plan?.id && <button onClick={onDelete}
             title="Delete this program" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.rd}`,borderRadius:0,height:38,padding:'0 13px',lineHeight:'38px',color:C.rd,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.09em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>
