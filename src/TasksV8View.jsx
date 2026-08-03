@@ -1550,7 +1550,11 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
           // own full line (via order:-1 below) instead of being crushed / the
           // status pill pushed off-screen.
           flexWrap: wrapRow ? 'wrap' : 'nowrap', rowGap: wrapRow ? (compact ? 5 : 7) : 0,
-          padding: compact ? '4px 8px' : '7px 12px 7px 9px', cursor: 'pointer', minHeight: compact ? 26 : 32,
+          // Board cards carry the absolute multi-select checkbox at top-left, so
+          // reserve a left gutter (26px) — the title/meta can never slide under it
+          // in either LTR or RTL (Ohad: "checkmark and text overlap"). Non-board
+          // rows keep their tight padding.
+          padding: board ? '5px 8px 5px 26px' : compact ? '4px 8px' : '7px 12px 7px 9px', cursor: 'pointer', minHeight: compact ? 26 : 32,
           borderBottom: `1px solid var(--c-cardBd)`,
           borderLeft: `3px solid ${edgeColor}`,
           background: expanded ? 'var(--c-sf2, transparent)'
@@ -1622,14 +1626,19 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
           // line 2 below (order:1). Was flexBasis:100% which forced the title onto
           // a line of its own and sprawled the row to 3-4 lines (Ohad: "trash").
           ...(wrapRow ? { order: -1, flex: '1 1 0%' } : null) }}>
-          <div style={{
-            maxWidth: '100%',
+          <div dir="auto" style={{
+            maxWidth: '100%', alignSelf: 'stretch',
             fontFamily: heb ? FH : FB,
             fontSize: compact ? (heb ? 13 : 12) : (heb ? 14 : 13),
             fontWeight: 500,
             color: 'var(--c-tx)',
-            direction: heb ? 'rtl' : 'ltr',
-            textAlign: heb ? 'right' : 'left',
+            // dir="auto" + unicode-bidi:plaintext lets the browser pick direction
+            // from the first strong character and run the bidi algorithm, so a
+            // MIXED title ("Review 8 videos from · W5 עמית יהודאי") reads correctly
+            // instead of being scrambled by a forced rtl/ltr (Ohad: "hebrew and
+            // english get mixed up, some text starts on the left").
+            unicodeBidi: 'plaintext',
+            textAlign: 'start',
             // LIST collapsed → single-line ellipsis. BOARD collapsed → clamp to 2
             // lines so cards stay compact (Ohad: board cards "too big/too long").
             // Expanded (either view) → full wrapped title.
@@ -2422,9 +2431,10 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
         .tfbtn{ transition: background .12s, color .12s, border-color .12s; }
         .tfbtn:hover{ color:var(--c-tx) !important; background:var(--c-sf2) !important; border-color:var(--c-tm) !important; }
         .tfbtn[data-active]:hover{ background:var(--c-sf2) !important; border-color:var(--c-tx) !important; }
-        /* Board card multi-select: hidden in the default scan so it never overlaps
-           the title; revealed on card hover or when the card is selected (Ohad). */
-        .tv8-board-select{ opacity: 0; transition: opacity .12s; }
+        /* Board card multi-select sits in its own reserved left gutter (see the
+           board padding in TaskRow) so it never overlaps the title. Subtle by
+           default, full on hover / when selected (Ohad). */
+        .tv8-board-select{ opacity: 0.5; transition: opacity .12s; }
         .tv8-board-card:hover .tv8-board-select, .tv8-board-select.is-sel{ opacity: 1; }
       `}</style>
       {/* Single header row: TASKS + LIVE grouped on the left (LIVE vertically
