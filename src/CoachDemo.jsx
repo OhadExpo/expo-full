@@ -2207,6 +2207,10 @@ function DemoExercises() {
   const selectStyle = {
     background: C.sf, border: `1px solid ${C.bd2}`, borderRadius: 0,
     padding: '6px 10px', color: C.tx, fontFamily: FB, fontSize: 12, outline: 'none',
+    // grid items default to min-width:auto; a <select>'s longest option
+    // ("Medicine Ball", "TRX/Suspension") then pushes the 1fr track wider than
+    // the viewport → h-scroll on mobile. Pin the track and clip the label.
+    width: '100%', minWidth: 0, textOverflow: 'ellipsis',
   };
 
   return (
@@ -2230,7 +2234,9 @@ function DemoExercises() {
         }}>{filtered.length} / {MOCK_EXERCISES.length}</span>
       </div>
 
-      {/* Filter pane — same 6-col grid of selects as the real ExercisesView */}
+      {/* Filter pane — same 6-col grid of selects as the real ExercisesView,
+          including its ≤720px collapse to 2 columns so mobile doesn't h-scroll. */}
+      <style>{`@media (max-width:720px){.cd-ex-filters{grid-template-columns:repeat(2,1fr)!important}}`}</style>
       <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 10, marginBottom: 12 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <div style={{ fontSize: 10, fontFamily: FN, fontWeight: 700, color: C.td, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
