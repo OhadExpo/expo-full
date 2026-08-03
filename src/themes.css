@@ -30,6 +30,16 @@
   .prog-actions { flex-basis: 100% !important; justify-content: flex-start !important; flex-wrap: wrap !important; margin-top: 6px; }
 }
 
+/* App-wide scrollbars follow the ACTIVE theme so they never render as the OS's
+   light-grey on the dark UI (Ohad), plus a subtle branded thumb. Native form
+   controls inherit the same color-scheme. */
+:root { color-scheme: dark; }
+:root[data-theme="light"] { color-scheme: light; }
+::-webkit-scrollbar { width: 12px; height: 12px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--c-cardBd); border: 3px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background: var(--c-tm); border: 3px solid transparent; background-clip: padding-box; }
+
 .alert-rail > * { flex: 1 1 280px; min-width: 280px; }
 .alert-rail { scrollbar-width: thin; }
 .alert-rail::-webkit-scrollbar { height: 6px; }

@@ -2349,8 +2349,8 @@ function RailOption({ label, count, active, onClick, accent = C.ac, tint = 'rgba
     <button onClick={onClick} title={title} style={{
       display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', boxSizing: 'border-box',
       minHeight: 30, height: 30, padding: '0 10px', borderRadius: 0, cursor: 'pointer',
-      border: `1px solid ${active ? accent : C.cardBd}`, background: active ? tint : 'transparent',
-      color: active ? accent : C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+      border: `1px solid ${active ? accent : C.cardBd}`, background: active ? tint : 'var(--c-sf)',
+      color: active ? accent : C.tx, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
     }}>
       <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{label}</span>
       {count != null && <span style={{ fontSize: 10, marginLeft: 8, flexShrink: 0, color: active ? accent : C.td, opacity: active ? 0.85 : 0.7 }}>{count}</span>}
