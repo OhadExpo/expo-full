@@ -266,18 +266,27 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
               has typed something, EVEN when there are matching suggestions
               (Ohad: the exact name they want may not be in the list). */}
           {(onPickName || onCreateLibrary) && search.trim() && (
-            <div style={{ marginBottom: 12, padding: 12, border: `1px dashed ${C.cardBd}`, display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ fontSize: 10, color: C.td, fontFamily: FN, letterSpacing: '0.06em', width: '100%', textAlign: 'center' }}>NOT IN THE LIST?</span>
-              {onPickName && (
+            // Library-first (Ohad): the PRIMARY action creates a reusable library
+            // exercise (better long-term data — it can gain a video + cues later);
+            // the free-text "use once" path is a quiet secondary link for the rare
+            // case where the coach deliberately doesn't want it saved.
+            <div style={{ marginBottom: 12, padding: 14, border: `1px dashed ${C.cardBd}`, display: 'flex', flexDirection: 'column', gap: 9, alignItems: 'center' }}>
+              <span style={{ fontSize: 10, color: C.td, fontFamily: FN, letterSpacing: '0.06em', textAlign: 'center' }}>NOT IN THE LIST?</span>
+              {onCreateLibrary ? (
+                <button onClick={() => { onCreateLibrary(search.trim()); onClose(); }} title="Create a reusable library exercise (edit details later in Exercises)"
+                  style={{ background: '#39BDFF', border: '1px solid #39BDFF', color: '#FFFFFF', cursor: 'pointer', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.09em', padding: '9px 20px', borderRadius: 0 }}>
+                  + ADD “{search.trim()}” TO LIBRARY
+                </button>
+              ) : onPickName && (
                 <button onClick={pickName} title="Add by name only — no library link, notes, or video"
-                  style={{ background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.09em', padding: '7px 14px', borderRadius: 0 }}>
-                  + ADD “{search.trim()}” (THIS PROGRAM ONLY)
+                  style={{ background: '#39BDFF', border: '1px solid #39BDFF', color: '#FFFFFF', cursor: 'pointer', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.09em', padding: '9px 20px', borderRadius: 0 }}>
+                  + ADD “{search.trim()}” (THIS PROGRAM)
                 </button>
               )}
-              {onCreateLibrary && (
-                <button onClick={() => { onCreateLibrary(search.trim()); onClose(); }} title="Create a reusable library exercise (edit details later in Exercises)"
-                  style={{ background: '#39BDFF', border: '1px solid #39BDFF', color: '#FFFFFF', cursor: 'pointer', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.09em', padding: '7px 14px', borderRadius: 0 }}>
-                  + CREATE “{search.trim()}” IN LIBRARY
+              {onCreateLibrary && onPickName && (
+                <button onClick={pickName} title="Add by name only — no library link, notes, or video; won't be reusable"
+                  style={{ background: 'transparent', border: 'none', color: C.tm, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 600, letterSpacing: '0.05em', textDecoration: 'underline', textUnderlineOffset: 2, padding: 2 }}>
+                  use once in this program only
                 </button>
               )}
             </div>
@@ -3241,7 +3250,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                       <button onClick={e=>{e.stopPropagation();toggleAthlete(row.tid);}}
                         title={expanded?`Hide ${row.earlier.length} previous block${row.earlier.length===1?'':'s'}`:`Show ${row.earlier.length} previous block${row.earlier.length===1?'':'s'}`}
                         className="prog-plusn"
-                        style={{display:'inline-flex',alignItems:'center',gap:5,height:22,padding:'0 9px',background: expanded ? 'rgba(57,189,255,0.10)' : 'transparent',border:`1px solid ${C.cardBd}`,borderRadius:0,color: C.ac,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.05em',whiteSpace:'nowrap',flexShrink:0,fontVariantNumeric:'tabular-nums'}}>
+                        style={{display:'inline-flex',alignItems:'center',gap:5,height:22,padding:'0 9px',background: expanded ? 'rgba(127,127,138,0.14)' : 'transparent',border:`1px solid ${C.cardBd}`,borderRadius:0,color: C.tm,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.05em',whiteSpace:'nowrap',flexShrink:0,fontVariantNumeric:'tabular-nums'}}>
                         {row.earlier.length} previous
                         <span aria-hidden style={{display:'inline-block',transform: expanded?'rotate(180deg)':'none',transition:'transform .15s',fontSize:8,lineHeight:1}}>▾</span>
                       </button>
@@ -3376,7 +3385,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
             const plusBtn = row.earlier.length > 0 && (
               <button onClick={e=>{e.stopPropagation();toggleAthlete(row.tid);}}
                 title={expanded?`Hide ${row.earlier.length} previous block${row.earlier.length===1?'':'s'}`:`Show ${row.earlier.length} previous block${row.earlier.length===1?'':'s'} (or double-click the card)`}
-                style={{display:'inline-flex',alignItems:'center',gap:5,height:22,padding:'0 9px',background:expanded?'rgba(57,189,255,0.10)':'transparent',border:`1px solid ${C.cardBd}`,borderRadius:0,color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.05em',whiteSpace:'nowrap',flexShrink:0,fontVariantNumeric:'tabular-nums'}}>
+                style={{display:'inline-flex',alignItems:'center',gap:5,height:22,padding:'0 9px',background:expanded?'rgba(127,127,138,0.14)':'transparent',border:`1px solid ${C.cardBd}`,borderRadius:0,color:C.tm,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.05em',whiteSpace:'nowrap',flexShrink:0,fontVariantNumeric:'tabular-nums'}}>
                 {row.earlier.length} previous
                 <span aria-hidden style={{display:'inline-block',transform:expanded?'rotate(180deg)':'none',transition:'transform .15s',fontSize:8,lineHeight:1}}>▾</span>
               </button>
