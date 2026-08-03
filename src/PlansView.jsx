@@ -2817,14 +2817,20 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
   );
 
   // ATHLETE rail rows: one per athlete (parent or couple sub-id) that HAS
-  // programs, with that athlete's program count. Sorted most-programs-first so
-  // the athletes the coach touches most float to the top; name breaks ties.
+  // programs, with that athlete's program count. Sorted ALPHABETICALLY — Hebrew
+  // names first (aleph-bet), then English (A–Z) — per Ohad; a name list should
+  // read as a name list, not a leaderboard by program count.
   const athleteRail = useMemo(() => {
     const counts = new Map();
     for (const p of planIndex) { const tid = p.traineeId; if (!tid) continue; counts.set(tid, (counts.get(tid) || 0) + 1); }
+    const isHeb = (s) => /[֐-׿]/.test(s || '');
     return [...counts.entries()]
       .map(([id, count]) => ({ id, label: traineeMap[id] || id, count }))
-      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, 'he'));
+      .sort((a, b) => {
+        const ah = isHeb(a.label), bh = isHeb(b.label);
+        if (ah !== bh) return ah ? -1 : 1; // Hebrew names first
+        return a.label.localeCompare(b.label, ah ? 'he' : 'en');
+      });
   }, [planIndex, traineeMap]);
   // FLAG counts over the FULL index (each flag independent) so a count always
   // reflects what turning that one flag on would surface.
@@ -2847,7 +2853,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
   // we attribute every plan to whichever sub-id-or-parent owns it.
   const sortByRecency = sortProgramsRecent;
   const grouped = useMemo(() => {
-    if (search || filterTrainee || flags.unassigned || flags.empty) return null; // flat-list fallback for filtered modes
+    if (search || flags.unassigned || flags.empty) return null; // search/flags → flat list; a single-athlete filter renders as ONE grouped card (below)
     // Bucket plans by athlete (parent or sub-id).
     const buckets = new Map();
     for (const p of planIndex) {
@@ -2940,6 +2946,13 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
     return rows;
   }, [planIndex, clientWorkouts, trainees, search, filterTrainee, flags, traineeMap, sortField, sortDir, portalVis]);
 
+  // Single-athlete filter → render just that athlete's group (auto-expanded) as
+  // ONE card, instead of repeating the name across N flat cards (Ohad ref).
+  const displayGrouped = useMemo(
+    () => (!grouped ? grouped : (filterTrainee ? grouped.filter(r => r.tid === filterTrainee) : grouped)),
+    [grouped, filterTrainee]
+  );
+
   // Rendered from BOTH returns below — the editor early-return used to skip
   // these entirely, so SHARE (and the typed-delete confirm) inside the editor
   // silently did nothing.
@@ -3023,12 +3036,19 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
       <style>{`
         .prog-card { transition: background 140ms ease; }
         .prog-card:hover { background: var(--c-sf2); }
+        .prog-txtbtn:hover { text-decoration: underline; }
+        /* Smooth reveal for the previous-blocks list so expanding feels as
+           deliberate as collapsing (Ohad). Reduced-motion users get none. */
+        @keyframes progReveal { 0% { opacity: 0; transform: translateY(-10px); } 40% { opacity: 0.5; } 100% { opacity: 1; transform: none; } }
+        .prog-reveal { animation: progReveal 0.38s cubic-bezier(0.22,0.61,0.36,1) both; transform-origin: top; }
+        @media (prefers-reduced-motion: reduce) { .prog-reveal { animation: none; } }
+        @media (max-width: 620px) { .prog-actions .prog-spacer { display: none !important; } }
         /* Mobile: stack the rail ABOVE the list (full-width each) instead of a
            fixed 210px side column that crushes the cards off-screen (Ohad — mobile
            fit). The rail's athlete list already scrolls inside its own maxHeight. */
         @media (max-width: 760px) {
           .programs-rail { width: 100% !important; position: static !important; top: auto !important; }
-          .programs-rail-athletes { max-height: 220px !important; }
+          .programs-rail-athletes { max-height: 220px !important; overflow-y: auto !important; }
         }
       `}</style>
       {/* Top header row — PROGRAMS title (left) + TABLE/GRID view toggle (right),
@@ -3058,7 +3078,8 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
             list scrolls. Fixed 210px; wraps to full-width when the viewport
             can't fit both columns. */}
         <aside className="programs-rail" style={{ width: 210, flexShrink: 0, alignSelf: 'flex-start', position: 'sticky', top: 12, display: 'flex', flexDirection: 'column', gap: (narrow && !railOpen) ? 0 : 14,
-          ...(narrow ? { background: 'var(--c-sf2)', border: `1px solid ${C.cardBd}`, padding: (railOpen ? '12px' : '0'), boxSizing: 'border-box' } : null) }}>
+          ...(narrow ? { background: 'var(--c-sf2)', border: `1px solid ${C.cardBd}`, padding: (railOpen ? '12px' : '0'), boxSizing: 'border-box' }
+            : { maxHeight: 'calc(100vh - 84px)', overflowY: 'auto', overflowX: 'hidden' }) }}>
           {/* FILTERS toggle — narrow only. Collapses the whole rail so the program
               CARDS are front-and-centre; tap to reveal Search/Athlete/Flags/Sort/
               +New. Mirrors the tasks-page collapsed rail. Desktop skips this and
@@ -3090,7 +3111,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
             <RailLabel>Athlete</RailLabel>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <RailOption label="All" count={planIndex.length} active={!filterTrainee} onClick={() => { setFilterTrainee(''); setVisibleCount(PAGE_SIZE); }} />
-              <div className="programs-rail-athletes" style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 300, overflowY: 'auto' }}>
+              <div className="programs-rail-athletes" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {athleteRail.map(a => (
                   <RailOption key={a.id} label={a.label} count={a.count} title={a.label}
                     active={filterTrainee === a.id} onClick={() => { setFilterTrainee(a.id); setVisibleCount(PAGE_SIZE); }} />
@@ -3155,10 +3176,10 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
           surfaced prominently with last-session signal. (N earlier blocks)
           chevron expands the older blocks inline so nothing is lost — they
           just stay out of the daily scan path. */}
-      {grouped && grouped.length > 0 && progView === 'table' && (
+      {displayGrouped && displayGrouped.length > 0 && progView === 'table' && (
         <div style={{display:"grid",gap:8}}>
-          {grouped.map(row => {
-            const expanded = expandedAthletes.has(row.tid);
+          {displayGrouped.map(row => {
+            const expanded = expandedAthletes.has(row.tid) || !!filterTrainee;
             const cur = row.current;
             const tagColor = row.daysSince == null ? C.td : row.daysSince <= 3 ? C.gn : row.daysSince <= 7 ? C.tm : row.daysSince <= 14 ? C.or : C.rd;
             const tagText = row.daysSince == null ? 'NEVER LOGGED' : row.daysSince === 0 ? 'TRAINED TODAY' : `${row.daysSince}D AGO`;
@@ -3180,12 +3201,20 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
             }
             return (
               <div key={row.tid} className="prog-card" style={{background: 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0}}>
-                {/* Redesigned full-width CARD row (Ohad: the old one-line row was
-                    cluttered/tight). Two calm lines separated by a hairline:
-                      1) IDENTITY — athlete · block · +N · count … last-trained chip
-                      2) ACTIONS  — ON PORTAL (left) … PREVIEW/DUPLICATE/SHARE/DELETE
-                    Same card grammar as the grid cards, just laid out full-width so
-                    every affordance gets room instead of fighting for the one line. */}
+                {/* Redesigned card (Ohad: the boxed-button pile read as ugly/tight).
+                    Now uses the app's card grammar: a cyan STRIP HEADER (athlete +
+                    recency dot), a calm clickable body (block name + spelled-out
+                    meta), and LIGHT text actions instead of a row of bordered boxes.
+                    The demo (CoachDemo DemoPrograms) mirrors this exactly. */}
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,background:'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))',borderBottom:`1px solid ${C.cardBd}`,padding:'8px 14px'}}>
+                  <span style={{display:'flex',alignItems:'center',gap:9,minWidth:0}}>
+                    <span aria-hidden style={{width:3,height:14,background:C.ac,flexShrink:0}} />
+                    <bdi style={{fontWeight:700,fontSize:13,letterSpacing:'0.04em',color:'#FFFFFF',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{row.name}</bdi>
+                  </span>
+                  <span title={`Last session: ${tagText.toLowerCase()}`} style={{display:'inline-flex',alignItems:'center',gap:6,flexShrink:0,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',color:tagColor,whiteSpace:'nowrap'}}>
+                    <span style={{width:6,height:6,borderRadius:'50%',background:tagColor}} />{tagText}
+                  </span>
+                </div>
                 <div onClick={()=>handleOpenPlan(cur.id)}
                   role="button" tabIndex={0}
                   onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); handleOpenPlan(cur.id); } }}
@@ -3195,52 +3224,45 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                     hoverTimerRef.current = setTimeout(() => { setHoverPos({ x, y }); loadPreviewPlan(cur.id); }, 220);
                   }}
                   onMouseLeave={() => { clearTimeout(hoverTimerRef.current); setHoverPos(null); clearPreviewPlan(); }}
-                  style={{cursor:openingId===cur.id?'progress':'pointer',opacity:openingId===cur.id?0.55:1,transition:'opacity 0.12s',padding:'13px 16px 11px',display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
-                  {/* Short cyan accent beside the name (replaces the old full-card
-                      left border, which ran the whole two-row height — "too long"). */}
-                  <div style={{display:'flex',alignItems:'center',gap:10,flexShrink:0,minWidth:0}}>
-                    <span aria-hidden style={{width:3,height:18,background:C.ac,flexShrink:0}} />
-                    <div style={{fontWeight:700,fontSize:16,color:C.tx,whiteSpace:'nowrap',letterSpacing:'0.01em'}}><bdi>{row.name}</bdi></div>
+                  style={{cursor:openingId===cur.id?'progress':'pointer',opacity:openingId===cur.id?0.55:1,transition:'opacity 0.12s',padding:'12px 14px 4px'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+                    <span style={{fontWeight:700,fontSize:15,color:C.ac,fontFamily:FN,letterSpacing:'0.04em',minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{cur.name||"Untitled"}</span>
+                    {row.earlier.length > 0 && (
+                      <button onClick={e=>{e.stopPropagation();toggleAthlete(row.tid);}}
+                        title={expanded?`Hide ${row.earlier.length} previous block${row.earlier.length===1?'':'s'}`:`Show ${row.earlier.length} previous block${row.earlier.length===1?'':'s'}`}
+                        className="prog-plusn"
+                        style={{display:'inline-flex',alignItems:'center',gap:5,height:22,padding:'0 9px',background: expanded ? 'rgba(57,189,255,0.10)' : 'transparent',border:`1px solid ${C.cardBd}`,borderRadius:0,color: C.ac,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.05em',whiteSpace:'nowrap',flexShrink:0,fontVariantNumeric:'tabular-nums'}}>
+                        {row.earlier.length} previous
+                        <span aria-hidden style={{display:'inline-block',transform: expanded?'rotate(180deg)':'none',transition:'transform .15s',fontSize:8,lineHeight:1}}>▾</span>
+                      </button>
+                    )}
                   </div>
-                  <div style={{fontWeight:700,fontSize:15,color:C.ac,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'0.04em',fontFamily:FN,minWidth:0,flex:'0 1 auto'}}>{cur.name||"Untitled"}</div>
-                  {/* +N earlier-blocks expander sits right after the block name. */}
-                  {row.earlier.length > 0 && (
-                    <button onClick={e=>{e.stopPropagation();toggleAthlete(row.tid);}}
-                      title={expanded?`Hide ${row.earlier.length} earlier block${row.earlier.length===1?'':'s'}`:`Show ${row.earlier.length} earlier block${row.earlier.length===1?'':'s'}`}
-                      className="prog-plusn"
-                      style={{display:'inline-flex',alignItems:'center',justifyContent:'center',height:24,minWidth:44,padding:'0 10px',background: expanded ? C.ac : 'transparent',border:`1px solid ${C.ac}`,borderRadius:0,color: expanded ? '#0a0a0b' : C.ac,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',whiteSpace:'nowrap',flexShrink:0,boxSizing:'border-box',fontVariantNumeric:'tabular-nums',transition:'background .15s, color .15s'}}>
-                      {expanded?`−${row.earlier.length}`:`+${row.earlier.length}`}
-                    </button>
-                  )}
-                  <div style={{fontSize:11,color:C.tm,fontFamily:FN,letterSpacing:'0.04em',fontWeight:500,flexShrink:0,whiteSpace:'nowrap'}}>{cur.dayCount}d · {cur.exerciseCount}ex</div>
-                  <div style={{flex:1,minWidth:12}} />
-                  {/* Last-session chip: FIXED width so every chip is the same size
-                      regardless of text length, and LESS colourful — neutral border
-                      + colour only in the text (was a loud fully-coloured border). */}
-                  <span title={`Last session: ${tagText.toLowerCase()}`} style={{display:'inline-flex',alignItems:'center',justifyContent:'center',width:116,height:24,fontSize:10,fontFamily:FN,color:tagColor,letterSpacing:'0.06em',fontWeight:600,border:`1px solid ${C.cardBd}`,whiteSpace:'nowrap',flexShrink:0,boxSizing:'border-box'}}>{tagText.toLowerCase()}</span>
+                  <div style={{fontSize:12,color:C.tm,fontFamily:FN,letterSpacing:'0.04em',marginTop:5}}>{cur.dayCount} days · {cur.exerciseCount} exercises</div>
                 </div>
-                {/* ACTION line — ALL action buttons grouped together on the right
-                    (ON PORTAL + PREVIEW/DUPLICATE/SHARE/DELETE), aligned under the
-                    last-trained chip. Previously ON PORTAL was pinned far-left and
-                    the CRUD cluster far-right, which read as scattered across the
-                    card (Ohad). Hovering here cancels the plan hover-preview. */}
-                <div onMouseEnter={() => { clearTimeout(hoverTimerRef.current); setHoverPos(null); clearPreviewPlan(); }}
-                  style={{borderTop:`1px solid ${C.cardBd}`,padding:'10px 16px',display:'flex',gap:8,alignItems:'center',flexWrap:'wrap',justifyContent:'flex-end'}}>
+                {/* Light text actions — hovering here cancels the plan hover-preview. */}
+                <div className="prog-actions" onMouseEnter={() => { clearTimeout(hoverTimerRef.current); setHoverPos(null); clearPreviewPlan(); }}
+                  style={{padding:'8px 14px 12px',display:'flex',gap:16,alignItems:'center',flexWrap:'wrap'}}>
                   {setPortalVis && (() => {
                     const vk = visKeyForPlan(cur, trainees);
                     if (!vk) return null;
                     const isVis = portalVis?.[vk] !== false;
-                    return <PortalPill on={isVis} onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} />;
+                    return <button onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} title={isVis?'On the athlete portal — click to hide':'Hidden from the athlete portal — click to show'} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:8}}>
+                      <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',color:isVis?C.gn:C.td}}>PORTAL</span>
+                      <span style={{width:32,height:18,borderRadius:9,background:isVis?'rgba(46,213,115,0.25)':'rgba(255,255,255,0.06)',border:`1px solid ${isVis?'rgba(46,213,115,0.5)':C.cardBd}`,position:'relative',transition:'background .15s, border-color .15s',flexShrink:0}}>
+                        <span style={{width:14,height:14,borderRadius:7,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?15:1,transition:'left .15s'}} />
+                      </span>
+                    </button>;
                   })()}
-                  {onPreviewPlan && <LabeledBtn onClick={e=>{e.stopPropagation();onPreviewPlan(cur.id);}} title="Preview as trainee" label="PREVIEW" />}
-                  <LabeledBtn onClick={e=>{e.stopPropagation();handleDuplicate(cur.id);}} title="Duplicate program" label="DUPLICATE" />
-                  <LabeledBtn onClick={e=>{e.stopPropagation();setShareTarget(cur.id);}} title="Share to an athlete — duplicates this program for them" label="SHARE" />
-                  <LabeledBtn onClick={e=>{e.stopPropagation(); setPendingDelete({ id: cur.id, name: cur.name, fromEditor: false }); setDeleteTyped('');}} title="Delete program" label="DELETE" />
+                  <div className="prog-spacer" style={{flex:1,minWidth:8}} />
+                  {onPreviewPlan && <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();onPreviewPlan(cur.id);}} title="Preview as trainee" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>Preview</button>}
+                  <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();handleDuplicate(cur.id);}} title="Duplicate program" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>Duplicate</button>
+                  <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setShareTarget(cur.id);}} title="Share to an athlete — duplicates this program for them" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>Share</button>
+                  <button className="prog-txtbtn" onClick={e=>{e.stopPropagation(); setPendingDelete({ id: cur.id, name: cur.name, fromEditor: false }); setDeleteTyped('');}} title="Delete program" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.rd}}>Delete</button>
                 </div>
                 {/* Expanded earlier blocks — same hover preview, slightly compressed
                     visual treatment so the eye stays on the current block. */}
                 {expanded && row.earlier.length > 0 && (
-                  <div style={{borderTop:`1px solid ${C.cardBd}`,padding:'4px 0'}}>
+                  <div className="prog-reveal" style={{borderTop:`1px solid ${C.cardBd}`,padding:'4px 0'}}>
                     {row.earlier.map(p => (
                       <div key={p.id} onClick={()=>handleOpenPlan(p.id)}
                         onMouseEnter={e => {
@@ -3258,17 +3280,17 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                           <div style={{fontSize:11,color:C.td,fontFamily:FN,letterSpacing:'0.04em',fontWeight:500,flexShrink:0,whiteSpace:'nowrap'}}>{p.dayCount}d · {p.exerciseCount}ex</div>
                         </div>
                         {/* hovering the actions cancels the preview (Ohad) */}
-                        <div onMouseEnter={() => { clearTimeout(hoverTimerRef.current); setHoverPos(null); clearPreviewPlan(); }} style={{display:'flex',alignItems:'center',gap:8,flexShrink:0}}>
+                        <div onMouseEnter={() => { clearTimeout(hoverTimerRef.current); setHoverPos(null); clearPreviewPlan(); }} style={{display:'flex',alignItems:'center',gap:14,flexShrink:0}}>
                         {setPortalVis && (() => {
                           const vk = visKeyForPlan(p, trainees);
                           if (!vk) return null;
                           const isVis = portalVis?.[vk] !== false;
-                          return <PortalPill on={isVis} onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} />;
+                          return <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} title={isVis?'On the athlete portal — click to hide':'Hidden from the athlete portal — click to show'} style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.04em',color:isVis?C.gn:C.td,display:'inline-flex',alignItems:'center',gap:5}}><span style={{width:5,height:5,borderRadius:'50%',background:isVis?C.gn:C.td}} />{isVis?'On portal':'Hidden'}</button>;
                         })()}
-                        {onPreviewPlan && <LabeledBtn onClick={e=>{e.stopPropagation();onPreviewPlan(p.id);}} title="Preview as trainee" label="PREVIEW" />}
-                        <LabeledBtn onClick={e=>{e.stopPropagation();handleDuplicate(p.id);}} title="Duplicate program" label="DUPLICATE" />
-                        <LabeledBtn onClick={e=>{e.stopPropagation();setShareTarget(p.id);}} title="Share to an athlete — duplicates this program for them" label="SHARE" />
-                        <LabeledBtn onClick={e=>{e.stopPropagation();setConfirmDelete(p.id);}} title="Delete program" label="DELETE" danger />
+                        {onPreviewPlan && <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();onPreviewPlan(p.id);}} title="Preview as trainee" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>Preview</button>}
+                        <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();handleDuplicate(p.id);}} title="Duplicate program" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>Duplicate</button>
+                        <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setShareTarget(p.id);}} title="Share to an athlete — duplicates this program for them" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>Share</button>
+                        <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setConfirmDelete(p.id);}} title="Delete program" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.04em',color:C.rd}}>Delete</button>
                         </div>
                       </div>
                     ))}
@@ -3283,10 +3305,10 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
           front-and-centre. Single click opens the current program; double
           click expands the card to reveal earlier blocks inline. Same data,
           same actions, same hover-preview as the table. */}
-      {grouped && grouped.length > 0 && progView === 'grid' && (
+      {displayGrouped && displayGrouped.length > 0 && progView === 'grid' && (
         <div ref={gridRef} style={{display:'grid',gap:14,gridTemplateColumns:'repeat(auto-fill,minmax(min(360px,100%),1fr))'}}>
-          {grouped.map(row => {
-            const expanded = expandedAthletes.has(row.tid);
+          {displayGrouped.map(row => {
+            const expanded = expandedAthletes.has(row.tid) || !!filterTrainee;
             const cur = row.current;
             const tagColor = row.daysSince == null ? C.td : row.daysSince <= 3 ? C.gn : row.daysSince <= 7 ? C.tm : row.daysSince <= 14 ? C.or : C.rd;
             const tagText = row.daysSince == null ? 'never logged' : row.daysSince === 0 ? 'trained today' : `${row.daysSince}d ago`;
@@ -3323,95 +3345,74 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               onMouseEnter:e => { const x = e.clientX, y = e.clientY; clearTimeout(hoverTimerRef.current); hoverTimerRef.current = setTimeout(() => { setHoverPos({ x, y }); loadPreviewPlan(cur.id); }, 260); },
               onMouseLeave:cancelHover,
             };
-            const portalPillFor = (p, block) => {
+            const portalToggle = (p) => {
               if (!setPortalVis) return null;
               const vk = visKeyForPlan(p, trainees);
               if (!vk) return null;
               const isVis = portalVis?.[vk] !== false;
-              return <PortalPill block={block} on={isVis} onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} />;
+              return <button onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} title={isVis?'On the athlete portal — click to hide':'Hidden from the athlete portal — click to show'} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:8}}>
+                <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',color:isVis?C.gn:C.td}}>PORTAL</span>
+                <span style={{width:32,height:18,borderRadius:9,background:isVis?'rgba(46,213,115,0.25)':'rgba(255,255,255,0.06)',border:`1px solid ${isVis?'rgba(46,213,115,0.5)':C.cardBd}`,position:'relative',flexShrink:0}}>
+                  <span style={{width:14,height:14,borderRadius:7,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?15:1,transition:'left .15s'}} />
+                </span>
+              </button>;
             };
-            const curActions = (block) => [
-              onPreviewPlan && <LabeledBtn key="p" block={block} onClick={e=>{e.stopPropagation();onPreviewPlan(cur.id);}} title="Preview as trainee" label="PREVIEW" />,
-              <LabeledBtn key="d" block={block} onClick={e=>{e.stopPropagation();handleDuplicate(cur.id);}} title="Duplicate program" label="DUPLICATE" />,
-              <LabeledBtn key="s" block={block} onClick={e=>{e.stopPropagation();setShareTarget(cur.id);}} title="Share to an athlete — duplicates this program for them" label="SHARE" />,
-              <LabeledBtn key="x" block={block} onClick={e=>{e.stopPropagation(); setPendingDelete({ id: cur.id, name: cur.name, fromEditor: false }); setDeleteTyped('');}} title="Delete program" label="DELETE" />,
-            ].filter(Boolean);
-            const nCur = onPreviewPlan ? 4 : 3;
+            const txtActs = (id, delFn) => <>
+              {onPreviewPlan && <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();onPreviewPlan(id);}} title="Preview as trainee" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>Preview</button>}
+              <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();handleDuplicate(id);}} title="Duplicate program" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>Duplicate</button>
+              <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setShareTarget(id);}} title="Share to an athlete — duplicates this program for them" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>Share</button>
+              <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();delFn();}} title="Delete program" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.rd}}>Delete</button>
+            </>;
             const plusBtn = row.earlier.length > 0 && (
               <button onClick={e=>{e.stopPropagation();toggleAthlete(row.tid);}}
-                title={expanded?`Hide ${row.earlier.length} earlier block${row.earlier.length===1?'':'s'}`:`Show ${row.earlier.length} earlier block${row.earlier.length===1?'':'s'} (or double-click the card)`}
-                style={{display:'inline-flex',alignItems:'center',justifyContent:'center',height:24,minWidth:44,padding:'0 10px',background:expanded?C.ac:'transparent',border:`1px solid ${C.ac}`,borderRadius:0,color:expanded?'#0a0a0b':C.ac,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',whiteSpace:'nowrap',flexShrink:0,boxSizing:'border-box',fontVariantNumeric:'tabular-nums'}}>
-                {expanded?`−${row.earlier.length}`:`+${row.earlier.length}`}
+                title={expanded?`Hide ${row.earlier.length} previous block${row.earlier.length===1?'':'s'}`:`Show ${row.earlier.length} previous block${row.earlier.length===1?'':'s'} (or double-click the card)`}
+                style={{display:'inline-flex',alignItems:'center',gap:5,height:22,padding:'0 9px',background:expanded?'rgba(57,189,255,0.10)':'transparent',border:`1px solid ${C.cardBd}`,borderRadius:0,color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.05em',whiteSpace:'nowrap',flexShrink:0,fontVariantNumeric:'tabular-nums'}}>
+                {row.earlier.length} previous
+                <span aria-hidden style={{display:'inline-block',transform:expanded?'rotate(180deg)':'none',transition:'transform .15s',fontSize:8,lineHeight:1}}>▾</span>
               </button>
             );
-            const tag = (
-              <span title={`Last session: ${tagText}`} style={{display:'inline-flex',alignItems:'center',justifyContent:'center',width:116,height:24,fontSize:10,fontFamily:FN,color:tagColor,letterSpacing:'0.04em',fontWeight:600,border:`1px solid ${C.cardBd}`,whiteSpace:'nowrap',flexShrink:0,boxSizing:'border-box'}}>{tagText}</span>
+            const stripHeader = (
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,background:'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))',borderBottom:`1px solid ${C.cardBd}`,padding:'8px 14px'}}>
+                <span style={{display:'flex',alignItems:'center',gap:9,minWidth:0}}>
+                  <span aria-hidden style={{width:3,height:14,background:C.ac,flexShrink:0}} />
+                  <bdi style={{fontWeight:700,fontSize:13,letterSpacing:'0.04em',color:'#FFFFFF',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{row.name}</bdi>
+                </span>
+                <span title={`Last session: ${tagText}`} style={{display:'inline-flex',alignItems:'center',gap:6,flexShrink:0,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',color:tagColor,whiteSpace:'nowrap'}}>
+                  <span style={{width:6,height:6,borderRadius:'50%',background:tagColor}} />{tagText}
+                </span>
+              </div>
             );
             return (
               <div key={row.tid} data-prog-card={row.tid} className="prog-card"
                 style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,display:'flex',flexDirection:'column',gridColumn:expanded?'1 / -1':'auto',willChange:'transform',boxShadow:C.cardShadow}}>
-                {expanded ? (
-                  /* FULL-WIDTH: one horizontal row like the table — body left,
-                     actions right, using the whole width. */
-                  <div {...openHandlers} style={{cursor:openingId===cur.id?'progress':'pointer',opacity:openingId===cur.id?0.55:1,transition:'opacity 0.12s',padding:'14px',display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
-                    <div style={{display:'flex',alignItems:'center',gap:10,flexShrink:0}}>
-                      <span aria-hidden style={{width:3,height:18,background:C.ac,flexShrink:0}} />
-                      <div style={{fontWeight:700,fontSize:16,color:C.tx,letterSpacing:'0.01em',whiteSpace:'nowrap'}}><bdi>{row.name}</bdi></div>
-                    </div>
-                    <div style={{fontWeight:700,fontSize:15,color:C.ac,letterSpacing:'0.04em',fontFamily:FN,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',minWidth:0,flex:'0 1 auto'}}>{cur.name||"Untitled"}</div>
+                {stripHeader}
+                <div {...openHandlers} style={{cursor:openingId===cur.id?'progress':'pointer',opacity:openingId===cur.id?0.55:1,transition:'opacity 0.12s',padding:'12px 14px 4px'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+                    <span style={{fontWeight:700,fontSize:15,color:C.ac,fontFamily:FN,letterSpacing:'0.04em',minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{cur.name||"Untitled"}</span>
                     {plusBtn}
-                    <div style={{fontSize:11,color:C.tm,fontFamily:FN,letterSpacing:'0.04em',fontWeight:500,whiteSpace:'nowrap',flexShrink:0}}>{cur.dayCount}d · {cur.exerciseCount}ex</div>
-                    <div style={{flex:1,minWidth:12}} />
-                    {tag}
-                    <div onMouseEnter={cancelHover} style={{display:'flex',gap:8,alignItems:'center',flexShrink:0,flexWrap:'wrap',justifyContent:'flex-end'}}>
-                      {portalPillFor(cur, false)}
-                      {curActions(false)}
-                    </div>
                   </div>
-                ) : (
-                  /* NARROW: stacked body + two symmetrical action lines. */
-                  <>
-                    <div {...openHandlers} style={{cursor:openingId===cur.id?'progress':'pointer',opacity:openingId===cur.id?0.55:1,transition:'opacity 0.12s',padding:'14px 14px 12px',display:'flex',flexDirection:'column',gap:8}}>
-                      <div style={{display:'flex',alignItems:'center',gap:10}}>
-                        <span aria-hidden style={{width:3,height:18,background:C.ac,flexShrink:0}} />
-                        <div style={{fontWeight:700,fontSize:16,color:C.tx,letterSpacing:'0.01em',flex:1,minWidth:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}><bdi>{row.name}</bdi></div>
-                        {tag}
-                      </div>
-                      <div style={{fontWeight:700,fontSize:15,color:C.ac,letterSpacing:'0.04em',fontFamily:FN,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cur.name||"Untitled"}</div>
-                      <div style={{display:'flex',alignItems:'center',gap:10}}>
-                        <div style={{fontSize:11,color:C.tm,fontFamily:FN,letterSpacing:'0.04em',fontWeight:500,whiteSpace:'nowrap'}}>{cur.dayCount}d · {cur.exerciseCount}ex</div>
-                        <div style={{flex:1}} />
-                        {plusBtn}
-                      </div>
-                    </div>
-                    {/* Two symmetrical lines: the ON PORTAL toggle on its own
-                        full-width line, then the CRUD actions in an even grid. */}
-                    <div onMouseEnter={cancelHover} style={{display:'flex',flexDirection:'column',gap:6,padding:'0 14px 12px'}}>
-                      {portalPillFor(cur, true)}
-                      <div style={{display:'grid',gridTemplateColumns:`repeat(${nCur},1fr)`,gap:6}}>{curActions(true)}</div>
-                    </div>
-                  </>
-                )}
-                {/* Expanded earlier blocks — full-width rows, each mirroring the
-                    current-block row's columns so everything lines up down the
-                    card (Ohad ref: stacked rows, not boxed mini-cards). */}
+                  <div style={{fontSize:12,color:C.tm,fontFamily:FN,letterSpacing:'0.04em',marginTop:5}}>{cur.dayCount} days · {cur.exerciseCount} exercises</div>
+                </div>
+                <div className="prog-actions" onMouseEnter={cancelHover} style={{padding:'8px 14px 12px',display:'flex',gap:16,alignItems:'center',flexWrap:'wrap'}}>
+                  {portalToggle(cur)}
+                  <div className="prog-spacer" style={{flex:1,minWidth:8}} />
+                  {txtActs(cur.id, () => { setPendingDelete({ id: cur.id, name: cur.name, fromEditor: false }); setDeleteTyped(''); })}
+                </div>
+                {/* Expanded previous blocks — light stacked rows matching the card. */}
                 {expanded && row.earlier.length > 0 && (
-                  <div style={{borderTop:`1px solid ${C.cardBd}`}}>
+                  <div className="prog-reveal" style={{borderTop:`1px solid ${C.cardBd}`}}>
                     {row.earlier.map((p, i) => (
                       <div key={p.id} role="button" tabIndex={0} onClick={()=>handleOpenPlan(p.id)}
                         onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); handleOpenPlan(p.id); } }}
                         onMouseEnter={e => { const x = e.clientX, y = e.clientY; clearTimeout(hoverTimerRef.current); hoverTimerRef.current = setTimeout(() => { setHoverPos({ x, y }); loadPreviewPlan(p.id); }, 260); }}
                         onMouseLeave={cancelHover}
                         style={{cursor:openingId===p.id?'progress':'pointer',opacity:openingId===p.id?0.45:0.9,transition:'opacity 0.12s',padding:'10px 14px',display:'flex',alignItems:'center',gap:14,flexWrap:'wrap',borderTop:i===0?'none':`1px solid rgba(57,189,255,0.102)`}}>
-                        <div style={{fontSize:13,color:C.ac,opacity:0.82,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'0.04em',fontFamily:FN,fontWeight:700,minWidth:0,flex:'0 1 auto'}}>{p.name||"Untitled"}</div>
-                        <div style={{flex:1,minWidth:12}} />
+                        <div style={{fontSize:13,color:C.ac,opacity:0.72,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'0.04em',fontFamily:FN,fontWeight:700,minWidth:0,flex:'0 1 auto'}}>{p.name||"Untitled"}</div>
                         <div style={{fontSize:11,color:C.td,fontFamily:FN,letterSpacing:'0.04em',fontWeight:500,flexShrink:0,whiteSpace:'nowrap'}}>{p.dayCount}d · {p.exerciseCount}ex</div>
-                        <div onMouseEnter={cancelHover} style={{display:'flex',gap:8,alignItems:'center',flexShrink:0,flexWrap:'wrap',justifyContent:'flex-end'}}>
-                          {portalPillFor(p, false) || <div style={{width:108,flexShrink:0}} />}
-                          {onPreviewPlan && <LabeledBtn onClick={e=>{e.stopPropagation();onPreviewPlan(p.id);}} title="Preview as trainee" label="PREVIEW" />}
-                          <LabeledBtn onClick={e=>{e.stopPropagation();handleDuplicate(p.id);}} title="Duplicate program" label="DUPLICATE" />
-                          <LabeledBtn onClick={e=>{e.stopPropagation();setShareTarget(p.id);}} title="Share to an athlete — duplicates this program for them" label="SHARE" />
-                          <LabeledBtn onClick={e=>{e.stopPropagation();setConfirmDelete(p.id);}} title="Delete program" label="DELETE" danger />
+                        <div style={{flex:1,minWidth:12}} />
+                        <div onMouseEnter={cancelHover} style={{display:'flex',gap:14,alignItems:'center',flexShrink:0,flexWrap:'wrap',justifyContent:'flex-end'}}>
+                          {portalToggle(p)}
+                          {txtActs(p.id, () => setConfirmDelete(p.id))}
                         </div>
                       </div>
                     ))}
@@ -3424,37 +3425,43 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
       )}
       {/* Flat-list fallback — only when search/trainee-filter is active. */}
       {!grouped && (filtered.length===0?<EmptyState icon="" message="No programs match your search." />:(
-        <div style={{display:"grid",gap:6}}>{visible.map(p => {
+        <div style={{display:"grid",gap: progView==='grid'?14:8, gridTemplateColumns: progView==='grid'?'repeat(auto-fill,minmax(min(360px,100%),1fr))':'1fr'}}>{visible.map(p => {
           const tName = traineeMap[p.traineeId] || "Unassigned";
-          return <Card key={p.id} onClick={()=>handleOpenPlan(p.id)} style={{padding:'10px 14px', background: 'var(--c-sf)', borderLeft:`3px solid ${C.ac}`, cursor:openingId===p.id?'progress':undefined, opacity:openingId===p.id?0.55:1, transition:'opacity 0.12s'}}
-            onMouseEnter={e => {
-              const x = e.clientX, y = e.clientY;
-              clearTimeout(hoverTimerRef.current);
-              hoverTimerRef.current = setTimeout(() => { setHoverPos({ x, y }); loadPreviewPlan(p.id); }, 220);
-            }}
-            onMouseLeave={() => { clearTimeout(hoverTimerRef.current); setHoverPos(null); clearPreviewPlan(); }}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12}}>
-              <div style={{minWidth:0,flex:1,direction:'ltr',unicodeBidi:'isolate',display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
-                {/* Hebrew and English names render at the EXACT same 15px
-                    (Ohad) — no per-script size bump. Latin glyphs fall back to
-                    DM Sans, Hebrew to its own face, but the font-size is
-                    identical, matching the grouped-view rows. */}
-                <div style={{fontWeight:700,fontSize:15,color:C.tx,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'0.01em',flexShrink:0}}><bdi>{tName}</bdi></div>
-                <div style={{fontWeight:700,fontSize:15,color:C.ac,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'0.04em',fontFamily:FN,minWidth:0,flex:1}}>{p.name||"Untitled"}</div>
-                <div style={{fontSize:11,color:C.tm,fontFamily:FN,letterSpacing:'0.04em',fontWeight:500,flexShrink:0,whiteSpace:'nowrap'}}>{p.dayCount}d · {p.exerciseCount}ex{p.phase?` · ${p.phase}`:''}</div>
-              </div>
-              <div onMouseEnter={() => { clearTimeout(hoverTimerRef.current); setHoverPos(null); clearPreviewPlan(); }} style={{display:"flex",gap:8,alignItems:'center',flexWrap:'wrap',justifyContent:'flex-end'}}>
-                {setPortalVis && (() => {
-                  const vk = visKeyForPlan(p, trainees);
-                  if (!vk) return null;
-                  const isVis = portalVis?.[vk] !== false;
-                  return <PortalPill on={isVis} onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} />;
-                })()}
-                {onPreviewPlan && <LabeledBtn onClick={e=>{e.stopPropagation();onPreviewPlan(p.id)}} title="Preview as trainee" label="PREVIEW" />}
-                <LabeledBtn onClick={e=>{e.stopPropagation();handleDuplicate(p.id)}} title="Duplicate program" label="DUPLICATE" />
-                <LabeledBtn onClick={e=>{e.stopPropagation();setShareTarget(p.id)}} title="Share to an athlete — duplicates this program for them" label="SHARE" />
-                <LabeledBtn onClick={e=>{e.stopPropagation();setConfirmDelete(p.id)}} title="Delete program" label="DELETE" danger />
-              </div></div></Card>})}
+          // Same redesigned card as the grouped list (Ohad: filtering must not
+          // change how programs are shown) — strip header (athlete) + clickable
+          // body (block + meta) + light text actions.
+          return <div key={p.id} className="prog-card" style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,opacity:openingId===p.id?0.55:1,transition:'opacity 0.12s'}}>
+            <div style={{display:'flex',alignItems:'center',gap:9,background:'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))',borderBottom:`1px solid ${C.cardBd}`,padding:'8px 14px'}}>
+              <span aria-hidden style={{width:3,height:14,background:C.ac,flexShrink:0}} />
+              <bdi style={{fontWeight:700,fontSize:13,letterSpacing:'0.04em',color:'#FFFFFF',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{tName}</bdi>
+            </div>
+            <div onClick={()=>handleOpenPlan(p.id)} role="button" tabIndex={0}
+              onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); handleOpenPlan(p.id); } }}
+              onMouseEnter={e => { const x=e.clientX, y=e.clientY; clearTimeout(hoverTimerRef.current); hoverTimerRef.current=setTimeout(()=>{ setHoverPos({x,y}); loadPreviewPlan(p.id); },220); }}
+              onMouseLeave={() => { clearTimeout(hoverTimerRef.current); setHoverPos(null); clearPreviewPlan(); }}
+              style={{cursor:openingId===p.id?'progress':'pointer',padding:'12px 14px 4px'}}>
+              <div style={{fontWeight:700,fontSize:15,color:C.ac,fontFamily:FN,letterSpacing:'0.04em',minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.name||"Untitled"}</div>
+              <div style={{fontSize:12,color:C.tm,fontFamily:FN,letterSpacing:'0.04em',marginTop:5}}>{p.dayCount} days · {p.exerciseCount} exercises{p.phase?` · ${p.phase}`:''}</div>
+            </div>
+            <div className="prog-actions" onMouseEnter={() => { clearTimeout(hoverTimerRef.current); setHoverPos(null); clearPreviewPlan(); }} style={{padding:'8px 14px 12px',display:'flex',gap:16,alignItems:'center',flexWrap:'wrap'}}>
+              {setPortalVis && (() => {
+                const vk = visKeyForPlan(p, trainees);
+                if (!vk) return null;
+                const isVis = portalVis?.[vk] !== false;
+                return <button onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} title={isVis?'On the athlete portal — click to hide':'Hidden from the athlete portal — click to show'} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:8}}>
+                  <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',color:isVis?C.gn:C.td}}>PORTAL</span>
+                  <span style={{width:32,height:18,borderRadius:9,background:isVis?'rgba(46,213,115,0.25)':'rgba(255,255,255,0.06)',border:`1px solid ${isVis?'rgba(46,213,115,0.5)':C.cardBd}`,position:'relative',flexShrink:0}}>
+                    <span style={{width:14,height:14,borderRadius:7,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?15:1,transition:'left .15s'}} />
+                  </span>
+                </button>;
+              })()}
+              <div className="prog-spacer" style={{flex:1,minWidth:8}} />
+              {onPreviewPlan && <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();onPreviewPlan(p.id)}} title="Preview as trainee" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>Preview</button>}
+              <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();handleDuplicate(p.id)}} title="Duplicate program" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>Duplicate</button>
+              <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setShareTarget(p.id)}} title="Share to an athlete — duplicates this program for them" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>Share</button>
+              <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setConfirmDelete(p.id)}} title="Delete program" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.rd}}>Delete</button>
+            </div>
+          </div>})}
           {hasMore && <Btn variant="ghost" onClick={()=>setVisibleCount(c=>c+PAGE_SIZE)} style={{width:"100%",justifyContent:"center",marginTop:8}}>Load more ({filtered.length - visibleCount} remaining)</Btn>}
         </div>))}
         </div>{/* /RIGHT main column */}
