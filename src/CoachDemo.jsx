@@ -1117,7 +1117,7 @@ function DemoReadinessTrends() {
         ))}
       </div>
       <div style={{ border: `1px solid ${C.ac}`, padding: 14, marginBottom: 10 }}>
-        <div style={{ fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: '0.15em', fontWeight: 700, marginBottom: 8 }}>{metric.toUpperCase()} TREND · BEST AT TOP</div>
+        <div style={{ fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: '0.15em', fontWeight: 700, marginBottom: 8 }}>{metric.toUpperCase()} TREND</div>
         <DemoTrendChart values={values} color="#39BDFF" height={120} />
         <div style={{ display: 'flex', marginTop: 6 }}>
           {DEMO_READINESS_LOG.map((r) => (
@@ -2716,39 +2716,29 @@ function DemoReview() {
   //   2. Workout detail — exercise rows with the same 📹💬🎯 icons + bottom
   //      action row (DELETE / UNMARK / BACK TO REVIEW / NEXT PENDING) the
   //      real coach sees.
-  const [subTab, setSubTab] = useState('review');
   const [selectedId, setSelectedId] = useState(null);
   const selected = MOCK_REVIEW_QUEUE.find(w => w.id === selectedId);
   const queue = MOCK_REVIEW_QUEUE;
-  const withVideo = queue.filter(w => w.exercises.some(e => e.hasVideo)).length;
   const byClient = {};
   for (const wo of queue) {
     if (!byClient[wo.traineeName]) byClient[wo.traineeName] = { name: wo.traineeName, workouts: [] };
     byClient[wo.traineeName].workouts.push(wo);
   }
 
-  const subNav = (
-    <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
-      {[['review', 'Review Athlete Workouts'], ['log', 'Log In-Person Session']].map(([k, l]) => (
-        <button key={k} onClick={() => { setSubTab(k); setSelectedId(null); }} style={{
-          flex: 1, padding: '10px 0', borderRadius: 0,
-          border: `1px solid ${subTab === k ? C.ac : C.bd}`,
-          background: subTab === k ? C.acD : 'transparent',
-          color: subTab === k ? C.ac : C.tm,
-          fontFamily: FB, fontSize: 13, fontWeight: 600, cursor: 'pointer',
-        }}>{l}</button>
-      ))}
+  // Weekly-focus strip — mirrors the real WorkoutReview's WeeklyFocusTool
+  // header. The "Log In-Person Session" subtab was removed from the real app
+  // 2026-05-28 (in-person logging moved out), so Review is a SINGLE surface —
+  // the demo drops the invented subtab + "REVIEW QUEUE" banner to match.
+  const weeklyFocus = (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '10px 14px', marginBottom: 14 }}>
+      <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', color: '#FFFFFF' }}>WEEKLY FOCUS · NO UPLOAD NEEDED</span>
+      <span style={{ color: C.tm, fontSize: 12 }}>▾</span>
     </div>
   );
-
-  if (subTab === 'log') {
-    return <section>{subNav}<DemoWorkouts /></section>;
-  }
 
   if (selected) {
     return (
       <section>
-        {subNav}
         <button onClick={() => setSelectedId(null)} style={{
           background: 'none', border: 'none', color: C.ac,
           cursor: 'pointer', fontFamily: FB, fontSize: 13, padding: 0, marginBottom: 12,
@@ -2841,27 +2831,7 @@ function DemoReview() {
 
   return (
     <section>
-      {subNav}
-
-      <div style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        background: C.sf, border: `1px solid rgba(57,189,255,0.251)`, borderRadius: 0,
-        padding: '10px 14px', marginBottom: 14,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{
-            width: 28, height: 28, borderRadius: 0, background: C.acD,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.ac,
-          }}>{queue.length}</div>
-          <div>
-            <div style={{ fontFamily: FN, fontSize: 11, color: C.ac, letterSpacing: 1.2, fontWeight: 700 }}>REVIEW QUEUE</div>
-            <div style={{ fontFamily: FB, fontSize: 11, color: C.tm, marginTop: 2 }}>
-              {queue.length} pending · {withVideo} with form video{withVideo === 1 ? '' : 's'}
-            </div>
-          </div>
-        </div>
-      </div>
+      {weeklyFocus}
 
       {Object.entries(byClient).map(([cid, data]) => (
         <div key={cid} style={{ marginBottom: 20 }}>
