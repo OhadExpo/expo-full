@@ -278,55 +278,51 @@ const ruleAtRiskSilent = {
 //    every pending video lives, so one click drains them all.
 const ruleFormVideoPending = {
   kind: 'form_video_pending_review',
-  detect(ctx) {
-    const { trainees, workouts } = ctx;
-    const out = [];
+  // Helper — does this trainee have ANY unreviewed form video (past the 24h
+  // grace)? Couple-aware via traineeIdsFor. Shared by detect + resolve so the
+  // two never drift.
+  _unreviewedCount(trainee, workouts) {
+    let n = 0;
     for (const w of workouts) {
-      if (!Array.isArray(w.formVideos)) continue;
-      if (w.reviewedAt) continue;                // already reviewed → no task
+      if (!Array.isArray(w.formVideos) || w.reviewedAt) continue;
       if (daysAgo(w.date) < 1) continue;         // give the coach 24h
-      // Couple-aware, matching every other rule: a couple member's workout logs
-      // under `<parent>__0/__1`, which is in the parent's traineeIdsFor set but
-      // never equals a trainees[].id — direct equality skipped couples entirely,
-      // so a couple member's form videos never surfaced a review task.
-      const t = trainees.find(tt => traineeIdsFor(tt.id).includes(w.clientId));
-      if (!t) continue;
-      // A workout exists, so by definition the trainee isn't a ghost here.
-      // Count unreviewed videos in this workout. Skip the workout entirely
-      // if every video already has at least one review note.
-      let unreviewed = 0;
+      if (!traineeIdsFor(trainee.id).includes(w.clientId)) continue;
       for (const fv of w.formVideos) {
         if (!fv?.cloudUrl) continue;
         const notes = Array.isArray(fv.reviewNotes) ? fv.reviewNotes : [];
-        if (notes.length === 0) unreviewed++;
+        if (notes.length === 0) n++;
       }
+    }
+    return n;
+  },
+  detect(ctx) {
+    const { trainees, workouts } = ctx;
+    // AGGREGATE per trainee (Ohad: "don't need a notification for every single
+    // video"). One task per athlete listing their TOTAL unreviewed form videos,
+    // instead of one per workout/day. ref = trainee id → the (auto_kind,auto_ref)
+    // index keeps exactly one row per athlete, and the old per-workout rows
+    // (ref = workout id) fall through resolve() below and auto-close.
+    const out = [];
+    for (const t of trainees) {
+      const unreviewed = this._unreviewedCount(t, workouts);
       if (unreviewed === 0) continue;
-      const label = `${unreviewed} form video${unreviewed === 1 ? '' : 's'}`;
       out.push({
-        ref: w.id,
-        body: `Review ${unreviewed} form video${unreviewed === 1 ? '' : 's'} from ${bidi(t.name)} · W${w.week} ${bidi(w.dayName)}`,
+        ref: t.id,
+        body: `Review ${unreviewed} form video${unreviewed === 1 ? '' : 's'} from ${bidi(t.name)}`,
         target_id: t.id,
         target_label: t.name,
       });
     }
     return out;
   },
-  resolve({ workouts }, existing) {
+  resolve({ trainees, workouts }, existing) {
     const closing = new Set();
     for (const row of existing) {
-      const woId = String(row.auto_ref || '').split('|')[0];
-      const wo = workouts.find(w => w.id === woId);
-      if (!wo) { closing.add(row.auto_ref); continue; }
-      // Closes when the workout is marked reviewed OR every video has at
-      // least one review note attached.
-      if (wo.reviewedAt) { closing.add(row.auto_ref); continue; }
-      const fvs = Array.isArray(wo.formVideos) ? wo.formVideos : [];
-      const allCovered = fvs.every(fv => {
-        if (!fv?.cloudUrl) return true;
-        const notes = Array.isArray(fv.reviewNotes) ? fv.reviewNotes : [];
-        return notes.length > 0;
-      });
-      if (allCovered) closing.add(row.auto_ref);
+      // New rows key on trainee id; legacy per-workout rows key on a workout id
+      // (no matching trainee) → close them so they collapse into the aggregate.
+      const t = trainees.find(tt => tt.id === row.auto_ref);
+      if (!t) { closing.add(row.auto_ref); continue; }
+      if (this._unreviewedCount(t, workouts) === 0) closing.add(row.auto_ref);
     }
     return closing;
   },
