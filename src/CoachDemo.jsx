@@ -252,7 +252,7 @@ function DemoDashboard({ onJumpToTrainee }) {
       <div style={{ border: `1px solid ${C.cardBd}`, marginBottom: 20 }}>
         <div style={{ background: C.ac, color: '#FFFFFF', padding: '8px 14px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em' }}>INCOMING · 30D</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8, padding: 14 }}>
-          {[['NEW LEADS', '12', C.ac, 'last 30 days'], ['INTAKE FORMS', '7', C.ac, 'submitted'], ['TRIALS STARTED', '3', C.gn, 'this month'], ['CONVERTED', '2', C.gn, 'to paying']].map(([l, v, c, sub], i) => (
+          {[['CHAT SESSIONS', '12', C.ac, 'last 30 days'], ['MESSAGES SENT', '7', C.ac, 'to prospects'], ['EMAIL CAPTURES', '3', C.gn, 'captured'], ['WAITLIST', '2', C.ac, 'signed up']].map(([l, v, c, sub], i) => (
             <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '10px 14px', border: `1px solid ${C.cardBd}`, background: C.sf }}>
               <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700 }}>{l}</span>
               <span style={{ fontFamily: FN, fontSize: 18, fontWeight: 800, color: c, fontVariantNumeric: 'tabular-nums' }}>{v}</span>
@@ -1021,7 +1021,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
         <button title="Demo only" style={{
           ...baseBtn, background: 'transparent', color: C.rd,
           border: `1px solid rgba(255,71,87,0.251)`, padding: '8px 14px', fontSize: 11,
-        }}>📦 ARCHIVE</button>
+        }}>ARCHIVE</button>
       </div>
 
       {/* Couple branch: per-member columns first (name/email/phone/age/
@@ -2121,11 +2121,11 @@ function DemoPrograms() {
         })()}
       </div>
 
+      {/* Add-exercise is the only real editor action; DUPLICATE BLOCK / IMPORT
+          XLSX / EXPORT were phantom (no such buttons in PlansView) — removed so
+          the demo doesn't advertise features the product lacks. */}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <button title="Demo only" style={{ ...baseBtn, background: C.ac, color: '#000' }}>+ ADD EXERCISE</button>
-        <button title="Demo only" style={{ ...baseBtn, background: 'transparent', color: C.tx, border: `1px solid ${C.bd}` }}>📋 DUPLICATE BLOCK</button>
-        <button title="Demo only" style={{ ...baseBtn, background: 'transparent', color: C.tx, border: `1px solid ${C.bd}` }}>📥 IMPORT XLSX</button>
-        <button title="Demo only" style={{ ...baseBtn, background: 'transparent', color: C.tx, border: `1px solid ${C.bd}` }}>📤 EXPORT</button>
       </div>
     </section>
   );
