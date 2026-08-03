@@ -2687,7 +2687,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                     <button onClick={e => { e.stopPropagation(); toggleSelect(row.id); }} draggable={false} title="Select"
                       className={`tv8-board-select${selectedIds.has(row.id) ? ' is-sel' : ''}`}
                       style={{ position: 'absolute', top: 6, left: 6, zIndex: 3, width: 15, height: 15, borderRadius: 0, border: `1px solid ${selectedIds.has(row.id) ? 'var(--c-ac)' : 'var(--c-cardBd)'}`, background: selectedIds.has(row.id) ? 'var(--c-ac)' : 'rgba(0,0,0,0.4)', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#061016', fontSize: 10, fontWeight: 900, lineHeight: 1 }}>{selectedIds.has(row.id) ? '✓' : ''}</button>
-                    <TaskRow row={row} readOnly={isReadOnly(row)} compact={compact} narrow={narrow}
+                    <TaskRow row={row} readOnly={isReadOnly(row)} compact narrow={narrow}
                       theme={theme} showAvatar={owner === 'shared'} board hideStatus={!!section.statusId}
                       expanded={expandedRows.has(row.id)}
                       onToggleExpand={() => toggleRow(row.id)}

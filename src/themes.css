@@ -48,7 +48,14 @@
 /* Shared vertical filter-rail scroll — identical thin scrollbar + stable
    gutter on every page that has a left sidebar (programs / tasks / athletes)
    so the scrollbar spacing reads the same everywhere (Ohad). */
-.side-rail { scrollbar-width: thin; scrollbar-gutter: stable both-edges; }
+.side-rail { scrollbar-width: thin; scrollbar-gutter: stable both-edges;
+  /* scrollbar-width:thin makes Chrome use the STANDARD scrollbar and ignore the
+     ::-webkit-scrollbar rules below, so it fell back to the light OS default —
+     visibly lighter than the dark page scrollbar. scrollbar-color forces the
+     thin scrollbar to the same dark cyan the page scrollbar uses (Ohad: "left
+     scroll same colour as right scroll"). */
+  scrollbar-color: var(--c-cardBd) transparent; }
+.side-rail:hover { scrollbar-color: var(--c-ac) transparent; }
 .side-rail::-webkit-scrollbar { width: 6px; }
 .side-rail::-webkit-scrollbar-track { background: transparent; }
 .side-rail::-webkit-scrollbar-thumb { background: var(--c-cardBd); }

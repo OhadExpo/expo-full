@@ -47,7 +47,11 @@ export default function ExercisesView({ exercises, setExercises }) {
     <div data-allow-copy>
       <style>{`
         @media (max-width: 720px) { .ex-filters { grid-template-columns: repeat(2, 1fr) !important; } }
+        /* Zebra rhythm so a 1,470-row library scans instead of reading as a flat
+           wall of names; hover wins over the stripe (Ohad "Minimal + rhythm"). */
+        .ex-row:nth-child(odd) { background: rgba(127,127,138,0.045); }
         .ex-row:hover { background: var(--c-sf2); }
+        .ex-lead { flex: 1; min-width: 10px; border-bottom: 1px dotted var(--c-cardBd); opacity: 0.45; height: 0; margin: 0 4px; }
       `}</style>
       <div style={{ display: "flex", gap: 12, marginBottom: 10, alignItems: "stretch", flexWrap: "wrap" }}>
         <div style={{ flex: 1, minWidth: 200, display: 'flex' }}><input placeholder="Search exercises (title, muscle, pattern...)" value={search} onChange={e => setSearch(e.target.value)} style={{ ...baseInput, height: 42, padding: '0 14px', fontSize: 13, lineHeight: '42px', border: `1px solid ${C.ac}` }} /></div>
@@ -88,18 +92,27 @@ export default function ExercisesView({ exercises, setExercises }) {
       <div style={{ fontSize: 11, color: C.tm, marginBottom: 12, fontFamily: FN }}>{filtered.length} exercise{filtered.length !== 1 ? "s" : ""}</div>
       {filtered.length === 0 ? <EmptyState icon="🏋️" message="No exercises. Build your library." /> : (() => {
         const refined = isRefined5b();
+        // Muted category palette — a small colour dot is the only colour on the
+        // row (no boxed tags, per Ohad). Absent category → dim neutral dot.
+        const CAT_COLOR = { Chest:'#E0736A', Back:'#5B93D6', Shoulders:'#E0A85B', Arms:'#B06AD0', Core:'#D9C755', Legs:'#5FBE86', Glutes:'#D96FAE', 'Full Body':'#5FBEC0', Olympic:'#C9CDD4', Cardio:'#E08A5B', Other:'#7A828C' };
         return (
         <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0 }}>
-          {/* Redesign (Ohad): the old table was tall, sparse (a grid of "—")
-              and used an ugly green Movement-Type badge. Now a clean compact
-              list — bold title + one dim meta line showing ONLY the attributes
-              that exist (no badges, no em-dashes for blanks). */}
-          {rows.map(ex => {
-            const meta = [ex.resistanceType, ex.bodyPosition, ex.movementType, ex.movementPattern, ex.laterality, ex.primaryMuscles].filter(Boolean).join(' · ');
+          {/* Redesign v2 (Ohad "Minimal + rhythm"): a 1,470-row library reads as a
+              flat wall of names, and ~90% have no attributes. Rhythm now comes from
+              a zebra stripe + a category-colour dot + a video mark, with the muscle
+              shown (dim, right, via a dotted leader) ONLY when it exists. No tags. */}
+          {rows.map((ex, idx) => {
+            const cat = ex.category && String(ex.category).trim();
+            const muscle = ex.primaryMuscles && String(ex.primaryMuscles).trim();
+            const hasVideo = !!(ex.videoLink && String(ex.videoLink).trim());
+            const dotColor = cat ? (CAT_COLOR[cat] || 'rgba(127,127,138,0.55)') : 'rgba(127,127,138,0.30)';
             return (
-              <div key={ex.id} className="ex-row" style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '8px 14px', borderBottom: `1px solid ${C.cardBd}` }}>
-                <div style={{ fontWeight: 600, fontSize: 13, color: C.tx, flex: '1 1 40%', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ex.title}</div>
-                <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.04em', flex: '1 1 auto', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right' }}>{meta}</div>
+              <div key={ex.id} className="ex-row" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 14px', height: 34, borderBottom: `1px solid ${C.cardBd}` }}>
+                <span title={cat || 'Uncategorized'} style={{ width: 7, height: 7, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
+                <span style={{ fontWeight: 600, fontSize: 13, color: C.tx, flexShrink: 0, maxWidth: '55%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ex.title}</span>
+                <span className="ex-lead" />
+                {muscle && <span style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.04em', flexShrink: 0, maxWidth: '32%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{muscle}</span>}
+                {hasVideo && <svg width="12" height="12" viewBox="0 0 24 24" fill="#FFFFFF" style={{ flexShrink: 0, opacity: 0.9 }} aria-label="Has video"><path d="M8 5v14l11-7z"/></svg>}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
                   <button onClick={() => { setForm({...ex}); setEditId(ex.id); setShowForm(true); }} title="Edit exercise" style={{ background: "none", border: "none", color: C.tm, cursor: "pointer", padding: 4, display: 'inline-flex', alignItems: 'center' }}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
