@@ -1158,7 +1158,9 @@ export function CommentsThread({ noteId, viewer }) {
         return p.key.startsWith(q) || p.label.toLowerCase().startsWith(q);
       })
     : [];
-  const autosize = (el) => { if (el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 160) + 'px'; } };
+  // Floor at 32 so an empty composer matches the 32px author chip + Send button
+  // exactly (Ohad: "o is not the same as the textbox size"); grow to 160 max.
+  const autosize = (el) => { if (el) { el.style.height = 'auto'; el.style.height = Math.max(32, Math.min(el.scrollHeight, 160)) + 'px'; } };
   const detectMention = (value, caret) => {
     // '@' before the caret with only word-chars after it = an in-progress
     // mention. Anchored to start-or-whitespace so "a@b" (an email) never fires.
@@ -1275,7 +1277,7 @@ export function CommentsThread({ noteId, viewer }) {
         );
       })}
       <form onSubmit={submit} style={{
-        display: 'flex', gap: 6, alignItems: 'center',
+        display: 'flex', gap: 6, alignItems: 'flex-start',
         marginTop: rows.length > 0 ? 8 : 0,
       }}>
         {/* Author is fixed to the viewer — a non-interactive identity chip
@@ -1283,7 +1285,7 @@ export function CommentsThread({ noteId, viewer }) {
         <span title={`Posting as ${author === 'yuval' ? 'Yuval' : 'Ohad'}`}
           style={{
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0, width: 30, height: 30, borderRadius: 0,
+            flexShrink: 0, width: 32, height: 32, boxSizing: 'border-box', borderRadius: 0,
             background: author === 'yuval' ? YUVAL_COLOR : 'var(--c-ac)',
             color: '#FFFFFF', fontFamily: FN, fontSize: 11, fontWeight: 700,
           }}>{author === 'yuval' ? 'Y' : 'O'}</span>
@@ -1311,8 +1313,8 @@ export function CommentsThread({ noteId, viewer }) {
             flex: 1, background: 'transparent',
             border: `1px solid var(--c-cardBd)`,
             fontFamily: FB, fontSize: 12, color: 'var(--c-tx)',
-            padding: '7px 10px', borderRadius: 0, outline: 'none',
-            resize: 'vertical', minHeight: 30, lineHeight: 1.4, boxSizing: 'border-box',
+            padding: '6px 10px', borderRadius: 0, outline: 'none',
+            resize: 'vertical', minHeight: 32, height: 32, lineHeight: 1.4, boxSizing: 'border-box',
           }} />
         {mention && mentionMatches.length > 0 && (
           <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 2, zIndex: 40, minWidth: 170, background: 'var(--c-sf)', border: '1px solid var(--c-cardBd)', boxShadow: '0 6px 20px rgba(0,0,0,0.45)' }}>
@@ -1331,7 +1333,7 @@ export function CommentsThread({ noteId, viewer }) {
           style={{
             background: draft.trim() ? 'var(--c-ac)' : 'var(--c-sf2)',
             color: draft.trim() ? '#FFFFFF' : 'var(--c-td)',
-            border: 'none', padding: '0 14px', height: 30, flexShrink: 0,
+            border: 'none', padding: '0 14px', height: 32, boxSizing: 'border-box', flexShrink: 0,
             fontFamily: FN, fontSize: 10, fontWeight: 700,
             letterSpacing: '0.12em', textTransform: 'uppercase',
             cursor: draft.trim() && !busy ? 'pointer' : 'default',
