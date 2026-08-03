@@ -3036,6 +3036,10 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
       <style>{`
         .prog-card { transition: background 140ms ease; }
         .prog-card:hover { background: var(--c-sf2); }
+        .programs-rail::-webkit-scrollbar { width: 6px; }
+        .programs-rail::-webkit-scrollbar-track { background: transparent; }
+        .programs-rail::-webkit-scrollbar-thumb { background: var(--c-cardBd); }
+        .programs-rail:hover::-webkit-scrollbar-thumb { background: var(--c-ac); }
         .prog-txtbtn:hover { text-decoration: underline; }
         /* Smooth reveal for the previous-blocks list so expanding feels as
            deliberate as collapsing (Ohad). Reduced-motion users get none. */
@@ -3079,7 +3083,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
             can't fit both columns. */}
         <aside className="programs-rail" style={{ width: 210, flexShrink: 0, alignSelf: 'flex-start', position: 'sticky', top: 12, display: 'flex', flexDirection: 'column', gap: (narrow && !railOpen) ? 0 : 14,
           ...(narrow ? { background: 'var(--c-sf2)', border: `1px solid ${C.cardBd}`, padding: (railOpen ? '12px' : '0'), boxSizing: 'border-box' }
-            : { maxHeight: 'calc(100vh - 84px)', overflowY: 'auto', overflowX: 'hidden' }) }}>
+            : { maxHeight: 'calc(100vh - 84px)', overflowY: 'auto', overflowX: 'hidden', paddingRight: 8, scrollbarGutter: 'stable' }) }}>
           {/* FILTERS toggle — narrow only. Collapses the whole rail so the program
               CARDS are front-and-centre; tap to reveal Search/Athlete/Flags/Sort/
               +New. Mirrors the tasks-page collapsed rail. Desktop skips this and
