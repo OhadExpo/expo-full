@@ -2335,7 +2335,7 @@ function visKeyForPlan(p, trainees) {
 // Left-rail section label — small uppercase FN, matches the athletes rail vocab.
 function RailLabel({ children, right }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5, padding: '0 14px' }}>
       <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.2em', color: C.td, textTransform: 'uppercase' }}>{children}</div>
       {right}
     </div>
@@ -2344,16 +2344,24 @@ function RailLabel({ children, right }) {
 // Full-width option pill with a right-aligned muted count. active = accent
 // border + tint + accent text; inactive = cardBd border + muted text. Mirrors
 // the athletes rail's RailOption so both coach lists share one visual vocab.
-function RailOption({ label, count, active, onClick, accent = C.ac, tint = 'rgba(57,189,255,0.094)', title }) {
+// Filter-rail item — matches the Tasks sidebar (Ohad's reference for ALL
+// sidebars): borderless text row, left cyan accent bar, active = subtle
+// accent-tint fill, muted count on the right.
+function RailOption({ label, count, active, onClick, accent = C.ac, title }) {
+  const [hov, setHov] = useState(false);
   return (
-    <button onClick={onClick} title={title} style={{
-      display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', boxSizing: 'border-box',
-      minHeight: 30, height: 30, padding: '0 10px', borderRadius: 0, cursor: 'pointer',
-      border: `1px solid ${active ? accent : C.cardBd}`, background: active ? tint : 'var(--c-sf)',
-      color: active ? accent : C.tx, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
-    }}>
-      <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{label}</span>
-      {count != null && <span style={{ fontSize: 10, marginLeft: 8, flexShrink: 0, color: active ? accent : C.td, opacity: active ? 0.85 : 0.7 }}>{count}</span>}
+    <button onClick={onClick} title={title}
+      onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
+      style={{
+        display: 'flex', alignItems: 'center', width: '100%', height: 28, border: 'none', padding: 0, cursor: 'pointer', boxSizing: 'border-box',
+        background: active ? `color-mix(in srgb, ${accent} 20%, transparent)` : (hov ? 'var(--c-sf3, rgba(127,127,138,0.10))' : 'transparent'),
+        color: active ? accent : (hov ? 'var(--c-tx)' : 'var(--c-tm)'),
+        fontFamily: FN, fontSize: 10, fontWeight: active ? 800 : 700, letterSpacing: '0.05em', textTransform: 'uppercase',
+        transition: 'background .12s, color .12s',
+      }}>
+      <span style={{ width: 3, alignSelf: 'stretch', background: accent, opacity: active ? 1 : 0, flexShrink: 0 }} />
+      <span style={{ flex: 1, textAlign: 'left', padding: '0 8px 0 14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{label}</span>
+      {count != null && <span style={{ paddingRight: 14, fontSize: 9, fontWeight: 700, opacity: active ? 0.9 : 0.6, flexShrink: 0 }}>{count}</span>}
     </button>
   );
 }
@@ -3077,25 +3085,20 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
         {/* LEFT: filter rail — sticky so the controls stay pinned as the (long)
             list scrolls. Fixed 210px; wraps to full-width when the viewport
             can't fit both columns. */}
-        <aside className="programs-rail side-rail" style={{ width: 210, flexShrink: 0, alignSelf: 'flex-start', position: 'sticky', top: 12, display: 'flex', flexDirection: 'column', gap: (narrow && !railOpen) ? 0 : 14,
-          ...(narrow ? { background: 'var(--c-sf2)', border: `1px solid ${C.cardBd}`, padding: (railOpen ? '12px' : '0'), boxSizing: 'border-box' }
-            : { maxHeight: 'calc(100vh - 84px)', overflowY: 'auto', overflowX: 'hidden', paddingRight: 8, scrollbarGutter: 'stable' }) }}>
+        <aside className="programs-rail side-rail" style={{ width: 210, flexShrink: 0, alignSelf: 'flex-start', position: 'sticky', top: 12, display: 'flex', flexDirection: 'column', gap: (narrow && !railOpen) ? 0 : 12,
+          background: 'var(--c-sf2)', border: `1px solid ${C.cardBd}`, boxSizing: 'border-box',
+          ...(narrow ? { padding: (railOpen ? '12px' : '0') }
+            : { maxHeight: 'calc(100vh - 84px)', overflowY: 'auto', overflowX: 'hidden', padding: '14px 0 16px' }) }}>
           {/* FILTERS toggle — narrow only. Collapses the whole rail so the program
               CARDS are front-and-centre; tap to reveal Search/Athlete/Flags/Sort/
               +New. Mirrors the tasks-page collapsed rail. Desktop skips this and
               renders the rail open. */}
-          {narrow && (
-            <div onClick={() => setRailOpen(o => !o)}
-              style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.22em', color: C.ac, textTransform: 'uppercase', padding: railOpen ? '0 0 10px' : '11px 12px', borderBottom: railOpen ? `1px solid ${C.cardBd}` : 'none', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-              <span>Filters</span>
-              <span aria-hidden style={{ fontSize: 11, lineHeight: 1, transform: railOpen ? 'rotate(180deg)' : 'none', transition: 'transform 180ms ease' }}>▾</span>
-            </div>
-          )}
-          {(!narrow || railOpen) && (<>
-          {/* SEARCH — full-width in the rail. */}
-          <div>
-            <input title="Search programs by name or block (e.g. “Block #5”, “GPP”)" placeholder="Search programs..." value={search} onChange={e=>{setSearch(e.target.value);setVisibleCount(PAGE_SIZE)}}
-              style={{ ...baseInput, width: '100%', boxSizing: 'border-box', height: 38, padding: '0 12px', fontSize: 13, border: `1px solid ${C.ac}` }} />
+          {/* SEARCH — box at the TOP of the rail, always visible, inset with
+              symmetric L/R padding so it sits centered between the cyan borders
+              (matches the Tasks rail exactly — Ohad). */}
+          <div style={{ padding: '0 14px 12px' }}>
+            <input title="Search programs by name or block (e.g. “Block #5”, “GPP”)" placeholder="Search programs…" value={search} onChange={e=>{setSearch(e.target.value);setVisibleCount(PAGE_SIZE)}}
+              style={{ width: '100%', height: 34, boxSizing: 'border-box', padding: '0 11px', borderRadius: 0, background: 'var(--c-sf)', color: 'var(--c-tx)', border: '1px solid var(--c-cardBd)', fontFamily: FN, fontSize: 11, fontWeight: 500, letterSpacing: '0.04em', outline: 'none', textAlign: 'left' }} />
             {anyFilterActive && (
               <button onClick={clearFilters} title="Clear all filters"
                 style={{ marginTop: 8, background: 'transparent', border: 'none', color: C.tm, cursor: 'pointer', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', padding: 0 }}>
@@ -3103,13 +3106,21 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               </button>
             )}
           </div>
+          {/* FILTERS header — static label + underline on desktop; tap-to-collapse
+              toggle with chevron on narrow. Matches the Tasks rail exactly. */}
+          <div onClick={narrow ? () => setRailOpen(o => !o) : undefined}
+            style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.22em', color: C.ac, textTransform: 'uppercase', padding: (narrow && !railOpen) ? '0 16px' : '0 16px 10px', borderBottom: (narrow && !railOpen) ? 'none' : `1px solid ${C.cardBd}`, cursor: narrow ? 'pointer' : 'default', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+            <span>Filters</span>
+            {narrow && <span aria-hidden style={{ fontSize: 11, lineHeight: 1, transform: railOpen ? 'rotate(180deg)' : 'none', transition: 'transform 180ms ease' }}>▾</span>}
+          </div>
+          {(!narrow || railOpen) && (<>
 
           {/* ATHLETE — single-select. All + one row per athlete WITH programs,
               each showing that athlete's program count (most-programs first).
               Primary control: jump straight to an athlete's blocks. */}
           <div>
             <RailLabel>Athlete</RailLabel>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
               <RailOption label="All" count={planIndex.length} active={!filterTrainee} onClick={() => { setFilterTrainee(''); setVisibleCount(PAGE_SIZE); }} />
               <div className="programs-rail-athletes" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {athleteRail.map(a => (
@@ -3124,7 +3135,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               that still need assigning / finishing. */}
           <div>
             <RailLabel>Flags</RailLabel>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
               {[
                 { key: 'unassigned', label: '⚠ Unassigned', title: 'Programs with no athlete assigned' },
                 { key: 'empty', label: '∅ Empty', title: 'Programs with no exercises or no days' },
@@ -3144,7 +3155,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               click the active field to flip direction (arrow up = ascending). */}
           <div>
             <RailLabel>Sort</RailLabel>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
               {[
                 ['created','Uploaded','Sort by when the program was created/imported. Click again to flip newest/oldest.'],
                 ['name','Name','Sort by program name. Click again to flip A–Z / Z–A.'],
@@ -3152,11 +3163,10 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               ].map(([field,label,tip]) => {
                 const active = sortField === field;
                 return (
-                  <button key={field} title={tip} onClick={() => { if (active) setSortDir(d => d === 'asc' ? 'desc' : 'asc'); else setSortField(field); }}
-                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', boxSizing: 'border-box', minHeight: 26, height: 26, padding: '0 10px', borderRadius: 0, cursor: 'pointer', border: `1px solid ${active ? C.ac : C.cardBd}`, background: active ? 'rgba(57,189,255,0.094)' : 'transparent', color: active ? C.ac : C.td, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-                    <span>{label}</span>
-                    {active && <span style={{ fontSize: 9 }}>{sortDir === 'asc' ? '↑' : '↓'}</span>}
-                  </button>
+                  <RailOption key={field} title={tip}
+                    label={active ? `${sortDir === 'asc' ? '↑' : '↓'} ${label}` : label}
+                    active={active}
+                    onClick={() => { if (active) setSortDir(d => d === 'asc' ? 'desc' : 'asc'); else setSortField(field); }} />
                 );
               })}
             </div>

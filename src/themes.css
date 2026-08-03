@@ -48,7 +48,7 @@
 /* Shared vertical filter-rail scroll — identical thin scrollbar + stable
    gutter on every page that has a left sidebar (programs / tasks / athletes)
    so the scrollbar spacing reads the same everywhere (Ohad). */
-.side-rail { scrollbar-width: thin; scrollbar-gutter: stable; }
+.side-rail { scrollbar-width: thin; scrollbar-gutter: stable both-edges; }
 .side-rail::-webkit-scrollbar { width: 6px; }
 .side-rail::-webkit-scrollbar-track { background: transparent; }
 .side-rail::-webkit-scrollbar-thumb { background: var(--c-cardBd); }

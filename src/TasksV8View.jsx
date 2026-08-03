@@ -1615,7 +1615,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
             </span>
           )}
         </div>
-        {showAvatar && <AssigneeDot owner={row._owner} />}
+        {showAvatar && !board && <AssigneeDot owner={row._owner} />}
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2, alignItems: heb ? 'flex-end' : 'flex-start',
           // Board + phone: title leads line 1 and SHARES it with the status pill
           // (flex:1 pushes the pill to the right edge). The meta cluster wraps to
@@ -1630,11 +1630,14 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
             color: 'var(--c-tx)',
             direction: heb ? 'rtl' : 'ltr',
             textAlign: heb ? 'right' : 'left',
-            // Truncate when collapsed in LIST; in board/expanded show the FULL
-            // title (wrapped) so it's actually readable in the narrow column.
-            ...((expanded || board)
+            // LIST collapsed → single-line ellipsis. BOARD collapsed → clamp to 2
+            // lines so cards stay compact (Ohad: board cards "too big/too long").
+            // Expanded (either view) → full wrapped title.
+            ...(expanded
               ? { whiteSpace: 'normal', wordBreak: 'break-word' }
-              : { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }),
+              : board
+                ? { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', wordBreak: 'break-word' }
+                : { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }),
           }}>
             <HighlightedText text={row._display} query={search} />
           </div>
@@ -2419,6 +2422,10 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
         .tfbtn{ transition: background .12s, color .12s, border-color .12s; }
         .tfbtn:hover{ color:var(--c-tx) !important; background:var(--c-sf2) !important; border-color:var(--c-tm) !important; }
         .tfbtn[data-active]:hover{ background:var(--c-sf2) !important; border-color:var(--c-tx) !important; }
+        /* Board card multi-select: hidden in the default scan so it never overlaps
+           the title; revealed on card hover or when the card is selected (Ohad). */
+        .tv8-board-select{ opacity: 0; transition: opacity .12s; }
+        .tv8-board-card:hover .tv8-board-select, .tv8-board-select.is-sel{ opacity: 1; }
       `}</style>
       {/* Single header row: TASKS + LIVE grouped on the left (LIVE vertically
           centred to the title), LIST/BOARD toggle on the right (Ohad). Keeping
@@ -2464,11 +2471,16 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
           width: narrow ? 'auto' : 204, flexShrink: 0,
           background: 'var(--c-sf2)', border: '1px solid var(--c-cardBd)',
           // Collapsed on mobile → just the toggle bar, no trailing empty box.
-          padding: (narrow && !railOpen) ? '12px 0' : '14px 8px 16px 0', display: 'flex', flexDirection: 'column', gap: 12,
+          padding: (narrow && !railOpen) ? '12px 0' : '14px 0 16px', display: 'flex', flexDirection: 'column', gap: 12,
           alignSelf: 'flex-start',
           position: narrow ? 'static' : 'sticky', top: narrow ? undefined : 66,
           maxHeight: narrow ? undefined : 'calc(100vh - 84px)', overflowY: narrow ? 'visible' : 'auto',
         }}>
+          {/* Search box at the TOP of the sidebar, above Filters (Ohad). */}
+          <div style={{ padding: '0 14px 12px' }}>
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search tasks…"
+              style={{ width: '100%', height: 34, boxSizing: 'border-box', padding: '0 11px', borderRadius: 0, background: 'var(--c-sf)', color: 'var(--c-tx)', border: '1px solid var(--c-cardBd)', fontFamily: FN, fontSize: 11, fontWeight: 500, letterSpacing: '0.04em', outline: 'none', textAlign: 'left' }} autoComplete="off" />
+          </div>
           <div onClick={narrow ? () => setRailOpen(o => !o) : undefined}
             style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.22em', color: 'var(--c-ac)', textTransform: 'uppercase', padding: (narrow && !railOpen) ? '0 16px' : '0 16px 10px', borderBottom: (narrow && !railOpen) ? 'none' : '1px solid var(--c-cardBd)', cursor: narrow ? 'pointer' : 'default', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
             <span>Filters</span>
@@ -2504,10 +2516,6 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
             <RailOpt label="By category" active={boardGroup === 'list'}   onClick={() => setBoardGroup('list')} />
           </RailGroup>
 
-          <div style={{ padding: '0 14px' }}>
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search tasks…"
-              style={{ width: '100%', height: 34, boxSizing: 'border-box', padding: '0 11px', borderRadius: 0, background: 'var(--c-sf)', color: 'var(--c-tx)', border: '1px solid var(--c-cardBd)', fontFamily: FN, fontSize: 11, fontWeight: 500, letterSpacing: '0.04em', outline: 'none', textAlign: 'left' }} autoComplete="off" />
-          </div>
           </>)}
         </div>
 
@@ -2668,7 +2676,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
               </div>
               <div style={{ maxHeight: 360, minHeight: (isStatus || boardGroup === 'list') ? 52 : undefined, overflowY: 'auto' }}>
                 {section.rows.map(row => (
-                  <div key={row.id}
+                  <div key={row.id} className="tv8-board-card"
                     draggable={!isReadOnly(row)}
                     onDragStart={e => { draggedRowRef.current = row; e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', row.id); } catch { /* noop */ } }}
                     onDragEnd={() => { draggedRowRef.current = null; setDropKey(null); setDropOnId(null); }}
@@ -2677,6 +2685,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                     onDrop={e => { e.preventDefault(); e.stopPropagation(); reorderOnto(row, section); }}
                     style={{ position: 'relative', cursor: isReadOnly(row) ? 'default' : 'grab', outline: selectedIds.has(row.id) ? '2px solid var(--c-ac)' : 'none', outlineOffset: -2, boxShadow: dropOnId === row.id ? 'inset 0 3px 0 -1px var(--c-ac)' : 'none' }}>
                     <button onClick={e => { e.stopPropagation(); toggleSelect(row.id); }} draggable={false} title="Select"
+                      className={`tv8-board-select${selectedIds.has(row.id) ? ' is-sel' : ''}`}
                       style={{ position: 'absolute', top: 6, left: 6, zIndex: 3, width: 15, height: 15, borderRadius: 0, border: `1px solid ${selectedIds.has(row.id) ? 'var(--c-ac)' : 'var(--c-cardBd)'}`, background: selectedIds.has(row.id) ? 'var(--c-ac)' : 'rgba(0,0,0,0.4)', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#061016', fontSize: 10, fontWeight: 900, lineHeight: 1 }}>{selectedIds.has(row.id) ? '✓' : ''}</button>
                     <TaskRow row={row} readOnly={isReadOnly(row)} compact={compact} narrow={narrow}
                       theme={theme} showAvatar={owner === 'shared'} board hideStatus={!!section.statusId}

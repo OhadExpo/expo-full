@@ -376,24 +376,30 @@ const saveSortPrefs = (prefs) => {
 // Left-rail section label — small uppercase FN, matches the app's control vocab.
 function RailLabel({ children, right }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5, padding: '0 14px' }}>
       <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.2em', color: C.td, textTransform: 'uppercase' }}>{children}</div>
       {right}
     </div>
   );
 }
-// Full-width option pill with a right-aligned muted count. active = accent
-// border + tint + accent text; inactive = cardBd border + muted text.
-function RailOption({ label, count, active, onClick, accent = C.ac, tint = 'rgba(57,189,255,0.094)', title }) {
+// Filter-rail item — matches the Tasks sidebar (Ohad's reference for ALL
+// sidebars): borderless text row, left cyan accent bar, active = subtle
+// accent-tint fill, muted count on the right.
+function RailOption({ label, count, active, onClick, accent = C.ac, title }) {
+  const [hov, setHov] = useState(false);
   return (
-    <button onClick={onClick} title={title} style={{
-      display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', boxSizing: 'border-box',
-      minHeight: 30, height: 30, padding: '0 10px', borderRadius: 0, cursor: 'pointer',
-      border: `1px solid ${active ? accent : C.cardBd}`, background: active ? tint : 'var(--c-sf)',
-      color: active ? accent : C.tx, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
-    }}>
-      <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{label}</span>
-      {count != null && <span style={{ fontSize: 10, marginLeft: 8, flexShrink: 0, color: active ? accent : C.td, opacity: active ? 0.85 : 0.7 }}>{count}</span>}
+    <button onClick={onClick} title={title}
+      onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
+      style={{
+        display: 'flex', alignItems: 'center', width: '100%', height: 28, border: 'none', padding: 0, cursor: 'pointer', boxSizing: 'border-box',
+        background: active ? `color-mix(in srgb, ${accent} 20%, transparent)` : (hov ? 'var(--c-sf3, rgba(127,127,138,0.10))' : 'transparent'),
+        color: active ? accent : (hov ? 'var(--c-tx)' : 'var(--c-tm)'),
+        fontFamily: FN, fontSize: 10, fontWeight: active ? 800 : 700, letterSpacing: '0.05em', textTransform: 'uppercase',
+        transition: 'background .12s, color .12s',
+      }}>
+      <span style={{ width: 3, alignSelf: 'stretch', background: accent, opacity: active ? 1 : 0, flexShrink: 0 }} />
+      <span style={{ flex: 1, textAlign: 'left', padding: '0 8px 0 14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{label}</span>
+      {count != null && <span style={{ paddingRight: 14, fontSize: 9, fontWeight: 700, opacity: active ? 0.9 : 0.6, flexShrink: 0 }}>{count}</span>}
     </button>
   );
 }
@@ -658,26 +664,21 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
         <aside className="athletes-rail side-rail" style={{
           width: 210, flexShrink: 0, alignSelf: 'flex-start',
           position: 'sticky', top: 12,
-          maxHeight: 'calc(100vh - 24px)', overflowY: 'auto', overflowX: 'hidden', paddingRight: 8,
-          display: 'flex', flexDirection: 'column', gap: (narrow && !railOpen) ? 0 : 14,
-          ...(narrow ? { background: 'var(--c-sf2)', border: `1px solid ${C.cardBd}`, padding: (railOpen ? '12px' : '0'), boxSizing: 'border-box' } : null),
+          background: 'var(--c-sf2)', border: `1px solid ${C.cardBd}`, boxSizing: 'border-box',
+          maxHeight: 'calc(100vh - 24px)', overflowY: 'auto', overflowX: 'hidden',
+          display: 'flex', flexDirection: 'column', gap: (narrow && !railOpen) ? 0 : 12,
+          ...(narrow ? { padding: (railOpen ? '12px' : '0') } : { padding: '14px 0 16px' }),
         }}>
           {/* FILTERS toggle — narrow only. Collapses the whole rail so the athlete
               CARDS are front-and-centre; tap to reveal Search / Status / Format /
               Needs-Attention / Sort / +Add. Mirrors the programs-page collapsed rail.
               Desktop skips this and renders the rail open. */}
-          {narrow && (
-            <div onClick={() => setRailOpen(o => !o)}
-              style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.22em', color: C.ac, textTransform: 'uppercase', padding: railOpen ? '0 0 10px' : '11px 12px', borderBottom: railOpen ? `1px solid ${C.cardBd}` : 'none', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-              <span>Filters</span>
-              <span aria-hidden style={{ fontSize: 11, lineHeight: 1, transform: railOpen ? 'rotate(180deg)' : 'none', transition: 'transform 180ms ease' }}>▾</span>
-            </div>
-          )}
-          {(!narrow || railOpen) && (<>
-          {/* SEARCH — full-width in the rail. */}
-          <div>
-            <input placeholder="Search athletes..." value={search} onChange={e => setSearch(e.target.value)}
-              style={{ ...baseInput, width: '100%', boxSizing: 'border-box', height: 38, padding: '0 12px', fontSize: 13, border: `1px solid ${C.ac}` }} />
+          {/* SEARCH — box at the TOP of the rail, always visible, inset with
+              symmetric L/R padding so it sits centered between the cyan borders
+              (matches the Tasks rail exactly — Ohad). */}
+          <div style={{ padding: '0 14px 12px' }}>
+            <input placeholder="Search athletes…" value={search} onChange={e => setSearch(e.target.value)}
+              style={{ width: '100%', height: 34, boxSizing: 'border-box', padding: '0 11px', borderRadius: 0, background: 'var(--c-sf)', color: 'var(--c-tx)', border: '1px solid var(--c-cardBd)', fontFamily: FN, fontSize: 11, fontWeight: 500, letterSpacing: '0.04em', outline: 'none', textAlign: 'left' }} />
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 8, minHeight: 14 }}>
               <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color: C.td }}>{filtered.length} {filtered.length === 1 ? 'ATHLETE' : 'ATHLETES'}</span>
               {anyFilterActive && (
@@ -688,12 +689,20 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
               )}
             </div>
           </div>
+          {/* FILTERS header — static label + underline on desktop; tap-to-collapse
+              toggle with chevron on narrow. Matches the Tasks rail exactly. */}
+          <div onClick={narrow ? () => setRailOpen(o => !o) : undefined}
+            style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.22em', color: C.ac, textTransform: 'uppercase', padding: (narrow && !railOpen) ? '0 16px' : '0 16px 10px', borderBottom: (narrow && !railOpen) ? 'none' : `1px solid ${C.cardBd}`, cursor: narrow ? 'pointer' : 'default', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+            <span>Filters</span>
+            {narrow && <span aria-hidden style={{ fontSize: 11, lineHeight: 1, transform: railOpen ? 'rotate(180deg)' : 'none', transition: 'transform 180ms ease' }}>▾</span>}
+          </div>
+          {(!narrow || railOpen) && (<>
 
           {/* STATUS — single-select. Archived swaps the pool to the dashed,
               drag-off archived cards (via showArchived derived above). */}
           <div>
             <RailLabel>Status</RailLabel>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
               {['All', 'Active', 'On Hold', 'Inactive', 'Trial', 'Archived'].map(s => (
                 <RailOption key={s} label={s} count={statusCounts[s]}
                   active={statusFilter === s} onClick={() => setStatusFilter(s)}
@@ -706,7 +715,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
           {/* FORMAT — single-select. Counts reflect the current status pool. */}
           <div>
             <RailLabel>Format</RailLabel>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
               {['All', 'Online', 'Gym · Single', 'Gym · Couple', 'Bnei Herzliya'].map(f => (
                 <RailOption key={f} label={f} count={formatCounts[f]}
                   active={formatFilter === f} onClick={() => setFormatFilter(f)} />
@@ -718,7 +727,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
               flags read amber so the rail doubles as a triage list. */}
           <div>
             <RailLabel>Needs Attention</RailLabel>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
               {[
                 { key: 'pay', label: '⚠ Payment due' },
                 { key: 'dormant', label: '💤 Dormant' },
@@ -736,53 +745,28 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
               not enough). Same multi-key toggle + per-key direction logic. */}
           <div>
             <RailLabel>Sort</RailLabel>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
               {[
-                { id: 'name',        label: 'NAME' },
-                { id: 'status',      label: 'STATUS' },
-                { id: 'lastTrained', label: 'LAST TRAINED' },
-                { id: 'payment',     label: 'PAYMENT' },
+                { id: 'name',        label: 'Name' },
+                { id: 'status',      label: 'Status' },
+                { id: 'lastTrained', label: 'Last trained' },
+                { id: 'payment',     label: 'Payment' },
               ].map(o => {
                 const on = sortKeys.includes(o.id);
-                const toggleKey = () => { setManualSort(false); setSortKeys(ks => {
-                  if (ks.includes(o.id)) return ks.length > 1 ? ks.filter(k => k !== o.id) : ks;
-                  setSortDirs(m => (m[o.id] ? m : { ...m, [o.id]: 'asc' }));
-                  return [...ks, o.id];
-                }); };
                 const desc = sortDirs[o.id] === 'desc';
                 const dirLbl = o.id === 'name' ? (desc ? 'ת→א' : 'א→ת')
-                  : o.id === 'status' ? (desc ? '↑ INACTIVE' : '↓ ACTIVE')
-                  : o.id === 'lastTrained' ? (desc ? '↓ NEWEST' : '↑ OLDEST')
-                  : (desc ? '↑ OVERDUE' : '↓ PAID');
+                  : o.id === 'status' ? (desc ? '↑ Inactive' : '↓ Active')
+                  : o.id === 'lastTrained' ? (desc ? '↓ Newest' : '↑ Oldest')
+                  : (desc ? '↑ Overdue' : '↓ Paid');
+                // Tasks-parity: single active sort key. Click an inactive key to
+                // select it (replaces the sort); click the active key to flip its
+                // direction. Active label carries the direction, like Tasks.
+                const onClick = () => { setManualSort(false);
+                  if (on) setSortDirs(m => ({ ...m, [o.id]: desc ? 'asc' : 'desc' }));
+                  else { setSortDirs(m => (m[o.id] ? m : { ...m, [o.id]: 'asc' })); setSortKeys([o.id]); } };
                 return (
-                  <div key={o.id} style={{ display: 'flex', gap: 5, alignItems: 'stretch' }}>
-                    <button onClick={toggleKey} style={{
-                      display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-start', flex: 1, minWidth: 0, boxSizing: 'border-box',
-                      minHeight: 24, height: 24, padding: '0 9px', borderRadius: 0, cursor: 'pointer',
-                      border: `1px solid ${on ? C.ac : C.cardBd}`, background: on ? 'rgba(57,189,255,0.094)' : 'transparent',
-                      color: on ? C.ac : C.td, fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
-                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                    }}>{o.label}</button>
-                    {on && (
-                      <button onClick={() => setSortDirs(m => ({ ...m, [o.id]: desc ? 'asc' : 'desc' }))}
-                        title={`Flip ${o.id} direction`}
-                        style={{
-                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxSizing: 'border-box',
-                          minHeight: 24, height: 24, padding: '0 7px', borderRadius: 0, cursor: 'pointer',
-                          border: `1px dashed ${C.ac}`, background: 'rgba(57,189,255,0.06)', color: C.ac,
-                          ...(o.id === 'name'
-                            ? { fontFamily: `Heebo, ${FN}`, fontSize: 11, letterSpacing: 0, lineHeight: 1 }
-                            : { fontFamily: FN, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.06em' }),
-                        }}>
-                        {(() => { const mm = /^([↑↓])\s+(.*)$/.exec(dirLbl); if (!mm) return dirLbl; return (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 3 }}>
-                            <span aria-hidden="true" style={{ fontSize: 8, lineHeight: 1 }}>{mm[1]}</span>
-                            <span>{mm[2]}</span>
-                          </span>
-                        ); })()}
-                      </button>
-                    )}
-                  </div>
+                  <RailOption key={o.id} title={on ? `Flip ${o.label} direction` : `Sort by ${o.label}`}
+                    label={on ? `${dirLbl} · ${o.label}` : o.label} active={on} onClick={onClick} />
                 );
               })}
             </div>
