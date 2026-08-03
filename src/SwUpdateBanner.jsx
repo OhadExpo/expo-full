@@ -12,7 +12,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
-import { C, FN } from './theme';
+import { C, FN, FB } from './theme';
 
 const IDLE_MS = 60000;
 const ACTIVITY_EVENTS = ['mousedown', 'keydown', 'touchstart', 'scroll'];
@@ -78,25 +78,34 @@ export default function SwUpdateBanner() {
 
   if (!needRefresh) return null;
   const onClick = () => { setUpdating(true); setTimeout(() => { try { updateServiceWorker(true); } catch { /* noop */ } setTimeout(() => { try { window.location.reload(); } catch { /* noop */ } }, 2500); }, 200); };
+  // Centered BLOCKING modal (Ohad): a full-screen scrim so nothing behind it
+  // is clickable until the user hits UPDATE NOW. The scrim itself is inert
+  // (no onClick) — only the button acts, so the update can't be dismissed away.
   return (
-    <div style={{
-      position: 'fixed', bottom: 'calc(14px + env(safe-area-inset-bottom))', left: '50%', transform: 'translateX(-50%)',
-      zIndex: 200,
-      background: C.sf, border: `1px solid ${C.ac}`, borderRadius: 0,
-      padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 10,
-      boxShadow: `0 8px 28px ${C.shadow}`,
-      maxWidth: 'calc(100vw - 24px)',
+    <div role="dialog" aria-modal="true" style={{
+      position: 'fixed', inset: 0, zIndex: 100000,
+      background: C.scrim || 'rgba(0,0,0,0.72)', backdropFilter: 'blur(6px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
     }}>
-      <span style={{ fontFamily: FN, fontSize: 9, color: updating ? C.ac : C.tx, letterSpacing: '0.18em', fontWeight: 700 }}>
-        {updating ? 'UPDATING…' : 'NEW VERSION'}
-      </span>
-      {!updating && (
-        <button onClick={onClick} style={{
-          background: 'transparent', color: C.ac, border: `1px solid ${C.ac}`,
-          borderRadius: 0, padding: '8px 18px', fontFamily: FN, fontSize: 12, fontWeight: 700,
-          letterSpacing: '0.18em', cursor: 'pointer',
-        }}>UPDATE NOW</button>
-      )}
+      <div style={{
+        background: C.sf, border: `1px solid ${C.ac}`, borderRadius: 0,
+        padding: '30px 34px', width: 'min(420px, 92vw)', textAlign: 'center',
+        boxShadow: `0 24px 70px ${C.shadow}`,
+      }}>
+        <div style={{ fontFamily: FN, fontSize: 11, color: C.ac, letterSpacing: '0.2em', fontWeight: 700, marginBottom: 12 }}>
+          {updating ? 'UPDATING…' : 'NEW VERSION AVAILABLE'}
+        </div>
+        <div style={{ fontFamily: FB, fontSize: 14, color: C.tx, lineHeight: 1.5, marginBottom: 22 }}>
+          {updating ? 'Loading the latest version…' : 'A new version of EXPO is ready. Update now to continue.'}
+        </div>
+        {!updating && (
+          <button onClick={onClick} style={{
+            background: C.ac, color: '#0a0a0b', border: 'none',
+            borderRadius: 0, padding: '13px 44px', fontFamily: FN, fontSize: 13, fontWeight: 700,
+            letterSpacing: '0.18em', cursor: 'pointer',
+          }}>UPDATE NOW</button>
+        )}
+      </div>
     </div>
   );
 }

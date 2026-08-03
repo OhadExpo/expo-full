@@ -2460,11 +2460,11 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
         {/* LEFT: filter rail — sticky below the sticky header so the filters
             stay pinned as the (long) list scrolls; scrolls internally if it
             ever outgrows the viewport. Static + full-width when narrow. */}
-        <div style={{
+        <div className="side-rail" style={{
           width: narrow ? 'auto' : 204, flexShrink: 0,
           background: 'var(--c-sf2)', border: '1px solid var(--c-cardBd)',
           // Collapsed on mobile → just the toggle bar, no trailing empty box.
-          padding: (narrow && !railOpen) ? '12px 0' : '14px 0 16px', display: 'flex', flexDirection: 'column', gap: 12,
+          padding: (narrow && !railOpen) ? '12px 0' : '14px 8px 16px 0', display: 'flex', flexDirection: 'column', gap: 12,
           alignSelf: 'flex-start',
           position: narrow ? 'static' : 'sticky', top: narrow ? undefined : 66,
           maxHeight: narrow ? undefined : 'calc(100vh - 84px)', overflowY: narrow ? 'visible' : 'auto',

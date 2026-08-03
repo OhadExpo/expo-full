@@ -655,10 +655,10 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
         {/* LEFT: filter rail — sticky so the controls stay pinned as the (long)
             cards grid scrolls. Fixed 210px; wraps to full-width when the
             viewport can't fit both columns. */}
-        <aside className="athletes-rail" style={{
+        <aside className="athletes-rail side-rail" style={{
           width: 210, flexShrink: 0, alignSelf: 'flex-start',
           position: 'sticky', top: 12,
-          maxHeight: 'calc(100vh - 24px)', overflowY: 'auto', overflowX: 'hidden', paddingRight: 4,
+          maxHeight: 'calc(100vh - 24px)', overflowY: 'auto', overflowX: 'hidden', paddingRight: 8,
           display: 'flex', flexDirection: 'column', gap: (narrow && !railOpen) ? 0 : 14,
           ...(narrow ? { background: 'var(--c-sf2)', border: `1px solid ${C.cardBd}`, padding: (railOpen ? '12px' : '0'), boxSizing: 'border-box' } : null),
         }}>
