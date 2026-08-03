@@ -922,6 +922,51 @@ function DemoStatusMenu() {
   );
 }
 
+// Card that mirrors the real app's Card + RefinedHeaderStrip look: a faint
+// cyan strip header (white title, cyan hairline bottom) over an sf body, so
+// the demo athlete-detail reads like the real TraineeDetail instead of the
+// old two-column key/value panels.
+function DemoDetailCard({ header, headerRight, children, padding = 18, style }) {
+  const pad = padding;
+  return (
+    <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: pad, ...style }}>
+      {header && (
+        <div style={{
+          background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))',
+          margin: `-${pad}px -${pad}px 12px`,
+          padding: `8px ${pad}px`,
+          borderBottom: '1px solid var(--c-cardBd)',
+          color: '#FFFFFF',
+        }}>
+          {headerRight ? (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+              <div style={{ minWidth: 0, flex: '1 1 auto', color: '#FFFFFF' }}>{header}</div>
+              <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 8, color: '#FFFFFF' }}>{headerRight}</div>
+            </div>
+          ) : <div style={{ color: '#FFFFFF' }}>{header}</div>}
+        </div>
+      )}
+      {children}
+    </div>
+  );
+}
+
+// Per-athlete NOTIFICATION mute toggle — matches the real TraineeDetail
+// header control (green = on, grey = muted). Demo-only: local state, no
+// backend, so a prospect can flip it and see the switch animate.
+function DemoNotifToggle() {
+  const [off, setOff] = useState(false);
+  return (
+    <button onClick={() => setOff(o => !o)} title="Demo only — mute this athlete's notifications"
+      style={{ background: 'transparent', border: `1px solid ${C.bd}`, borderRadius: 0, cursor: 'pointer', padding: '0 12px', height: 34, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', gap: 9 }}>
+      <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', color: off ? C.td : C.tx }}>NOTIFICATION</span>
+      <span style={{ width: 36, height: 20, borderRadius: 10, background: off ? C.sf3 : 'rgba(46,213,115,0.251)', border: `1px solid ${off ? C.bd2 : 'rgba(46,213,115,0.376)'}`, position: 'relative', transition: 'all .15s' }}>
+        <span style={{ width: 16, height: 16, borderRadius: 8, background: off ? C.td : C.gn, position: 'absolute', top: 1, left: off ? 1 : 18, transition: 'all .15s' }} />
+      </span>
+    </button>
+  );
+}
+
 function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
   // Couple detail: split each member into their own card column. Real app's
   // ruling — SHARED for the household: format, package, sessions, monthly,
@@ -940,31 +985,39 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
   })();
   return (
     <section>
+      {/* Mobile: the Vitals grid's fixed repeat(3,132px) (396px + gaps)
+          overflows a 390px viewport — collapse it to 3 fluid columns below
+          760px, matching the real TraineeDetail's .td-vitals-grid rule. */}
+      <style>{`
+        @media (max-width: 760px) {
+          .demo-td-vitals { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; max-width: 100% !important; gap: 10px 6px !important; }
+        }
+      `}</style>
+      {/* Back + action bar. Left-aligned BACK then the action cluster —
+          same layout + button set as the real coach app's TraineeDetail
+          (LOG SESSION / PORTAL / EDIT / NOTIFICATION toggle / ARCHIVE).
+          Demo-only: clicks are no-ops, tooltipped "Demo only". For a solo
+          athlete the status menu lives inside the identity card strip (as in
+          the real app); couples keep it here since their layout has no strip. */}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 18 }}>
         <button onClick={onBack} style={{
           ...baseBtn, background: 'transparent', color: C.tm,
           border: `1px solid ${C.bd}`,
         }}>{backLabel}</button>
-        <div style={{ flex: 1 }} />
-        {/* Interactive status menu — actually changes (local) status so the
-            prospect can demo a status change, like the real TraineeDetail. */}
-        <DemoStatusMenu />
-        {/* Action affordances on the trainee detail. Same set of operations
-            as the real coach app's TraineeDetail (Assign Plan / Add Payment /
-            Edit / Archive). Demo-only — clicks are no-ops, button.disabled
-            tooltips them as "demo-only" so the visitor knows. */}
-        <button title="Demo only" style={{
-          ...baseBtn, background: C.ac, color: C.acOnSurface,
-          padding: '8px 14px', fontSize: 11,
-        }}>+ ASSIGN PLAN</button>
+        {isCouple && <DemoStatusMenu />}
         <button title="Demo only" style={{
           ...baseBtn, background: 'transparent', color: C.tx,
           border: `1px solid ${C.bd}`, padding: '8px 14px', fontSize: 11,
-        }}>+ ADD PAYMENT</button>
+        }}>LOG SESSION</button>
         <button title="Demo only" style={{
-          ...baseBtn, background: 'transparent', color: C.tm,
+          ...baseBtn, background: 'transparent', color: C.tx,
+          border: `1px solid ${C.bd}`, padding: '8px 14px', fontSize: 11,
+        }}>PORTAL</button>
+        <button title="Demo only" style={{
+          ...baseBtn, background: 'transparent', color: C.tx,
           border: `1px solid ${C.bd}`, padding: '8px 14px', fontSize: 11,
         }}>EDIT</button>
+        <DemoNotifToggle />
         <button title="Demo only" style={{
           ...baseBtn, background: 'transparent', color: C.rd,
           border: `1px solid rgba(255,71,87,0.251)`, padding: '8px 14px', fontSize: 11,
@@ -1067,108 +1120,113 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
             ))}
           </Panel>
         </div>
-      </> : (
-      <div style={{
-        display: 'grid', gap: 14,
-        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
-      }}>
+      </> : (() => {
+        // Solo athlete — mirror the real TraineeDetail: identity header strip
+        // (name + email·phone left, status dropdown right) → horizontal stat
+        // cluster → section cards (Vitals·Injuries·Goals, Bodyweight, Billing,
+        // Programs, Recent Workouts) stacked full-width, not the old 2-col
+        // key/value panels.
+        const isHeb = /[֐-׿]/.test(trainee.name || '');
+        const overdue = trainee.payment === 'OVERDUE';
+        const lastPay = overdue ? '2026-03-01' : '2026-04-01';
+        const workoutsCount = trainee.dormantDays != null ? 4 : 12;
+        const perSession = trainee.monthly ? Math.round(trainee.monthly / 8) : 0;
+        const stats = [
+          ['Format', trainee.format],
+          ['Package', '8 Sessions'],
+          ['Sessions Left', trainee.sessionsLeft],
+          ['Monthly', trainee.monthly ? `₪${trainee.monthly}` : '—'],
+          ['Per Session', perSession ? `₪${perSession}` : '—'],
+          ['Last Payment', fmtPrettyDate(lastPay)],
+          ['Since', fmtPrettyDate(trainee.startDate)],
+          ['Workouts', workoutsCount],
+        ];
+        const payments = [
+          !overdue && { date: '2026-04-01', amount: trainee.monthly || 800, method: 'Bank Transfer', status: 'Paid' },
+          { date: '2026-03-01', amount: trainee.monthly || 800, method: 'Bank Transfer', status: 'Paid' },
+          { date: '2026-02-01', amount: trainee.monthly || 800, method: 'Cash',          status: 'Paid' },
+        ].filter(Boolean);
+        const totalPaid = payments.reduce((a, p) => a + p.amount, 0);
+        const secTitle = (t) => <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase' }}>{t}</span>;
+        return (
         <div>
-          <h2 style={{ fontFamily: FB, fontSize: 24, fontWeight: 700, margin: '0 0 4px', letterSpacing: -0.3 }}>{trainee.name}</h2>
-          <div style={{ fontFamily: FN, fontSize: 12, color: C.tm, letterSpacing: 1, marginBottom: 14 }}>{trainee.email} · {trainee.phone}</div>
+          {/* Identity header strip — name (cyan, glow) + email·phone on the
+              left, interactive status dropdown on the right (real app parity). */}
+          <DemoDetailCard style={{ marginBottom: 8 }}
+            headerRight={<DemoStatusMenu />}
+            header={<span style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: 10, minWidth: 0, fontWeight: 700, fontSize: isHeb ? 16 : 14, fontFamily: isHeb ? FH : undefined, letterSpacing: isHeb ? 0 : '0.04em', textTransform: isHeb ? 'none' : 'uppercase' }}>
+              <span style={{ color: C.ac, textShadow: '0 0 12px rgba(57,189,255,0.45)' }}>{trainee.name}</span>
+              <span style={{ fontSize: 11, opacity: 0.78, letterSpacing: '0.02em', textTransform: 'none', fontWeight: 500, minWidth: 0 }}>{trainee.email}{trainee.phone ? ` · ${trainee.phone}` : ''}</span>
+            </span>}>
+            {/* Horizontal stat cluster — centred 4×2 fixed-tile grid, empties dimmed. */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, 132px)', justifyContent: 'center', gap: '14px 10px', margin: '16px auto 0', maxWidth: 558, textAlign: 'center' }}>
+              {stats.map(([l, v]) => {
+                const empty = v === undefined || v === null || v === '' || v === '—';
+                return <div key={l}><div style={{ fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>{l}</div><div style={{ fontSize: 14, color: empty ? C.td : C.tx, marginTop: 2 }}>{empty ? '—' : v}</div></div>;
+              })}
+            </div>
+          </DemoDetailCard>
 
-          <Panel title="PROGRAMS" tint={C.ac}>
+          {/* VITALS · INJURIES · GOALS */}
+          <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle('Vitals · Injuries · Goals')}>
+            <div className="demo-td-vitals" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 132px)', justifyContent: 'center', gap: 12, maxWidth: 416, margin: '0 auto', textAlign: 'center' }}>
+              {[['Age', trainee.age ? `${trainee.age}` : '—'], ['Weight', trainee.weight ? `${trainee.weight}kg` : '—'], ['Height', trainee.height ? `${trainee.height}cm` : '—']].map(([l, v]) => {
+                const empty = v === '—';
+                return <div key={l}><div style={{ fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>{l}</div><div style={{ fontSize: 14, color: empty ? C.td : C.tx, marginTop: 2 }}>{v}</div></div>;
+              })}
+            </div>
+            {trainee.injuries && <div style={{ marginTop: 12, padding: 10, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0 }}><div style={{ fontSize: 10, fontFamily: FN, color: C.or, textTransform: 'uppercase', marginBottom: 4, textAlign: 'center' }}>Injuries / Conditions</div><div style={{ fontSize: 13, color: C.tx, textAlign: 'center', direction: /[֐-׿]/.test(trainee.injuries) ? 'rtl' : 'ltr', fontFamily: /[֐-׿]/.test(trainee.injuries) ? FH : undefined }}>{trainee.injuries}</div></div>}
+            {trainee.goals && <div style={{ marginTop: 8, padding: 10, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0 }}><div style={{ fontSize: 10, fontFamily: FN, color: C.ac, textTransform: 'uppercase', marginBottom: 4, textAlign: 'center' }}>Goals</div><div style={{ fontSize: 13, color: C.tx, textAlign: 'center', direction: /[֐-׿]/.test(trainee.goals) ? 'rtl' : 'ltr', fontFamily: /[֐-׿]/.test(trainee.goals) ? FH : undefined }}>{trainee.goals}</div></div>}
+          </DemoDetailCard>
+
+          {/* BODYWEIGHT */}
+          <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle('Bodyweight · 8W')}>
+            <BWSparkline weight={trainee.weight || 70} />
+          </DemoDetailCard>
+
+          {/* BILLING — payments table matching the real TraineeDetail. */}
+          <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle(`Billing (${payments.length})`)}
+            headerRight={<span style={{ fontFamily: FB, fontSize: 12, color: '#FFFFFF', opacity: 0.85, whiteSpace: 'nowrap' }}>₪{totalPaid.toLocaleString()} paid</span>}>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
+                <thead><tr style={{ borderBottom: `1px solid ${C.cardBd}` }}>{['Date', 'Amount', 'Method', 'Status'].map(h => <th key={h} style={{ textAlign: 'center', padding: '6px 10px', fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>{h}</th>)}</tr></thead>
+                <tbody>{payments.map((p, i) => (<tr key={i} style={{ borderBottom: `1px solid ${C.cardBd}` }}>
+                  <td style={{ padding: '8px 10px', color: C.tm, textAlign: 'center' }}>{fmtPrettyDate(p.date)}</td>
+                  <td style={{ padding: '8px 10px', color: C.gn, fontWeight: 600, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>₪{p.amount.toLocaleString()}</td>
+                  <td style={{ padding: '8px 10px', color: C.td, textAlign: 'center' }}>{p.method}</td>
+                  <td style={{ padding: '8px 10px', textAlign: 'center' }}><Badge color={C.gn}>{p.status.toUpperCase()}</Badge></td>
+                </tr>))}</tbody>
+              </table>
+            </div>
+          </DemoDetailCard>
+
+          {/* PROGRAMS */}
+          <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle(`Programs (${trainee.plans.length})`)}>
             {trainee.plans.map((name, i) => (
-              <Row key={i}>
-                <span style={{ flex: 1, color: C.tx, fontWeight: 600 }}>{name}</span>
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '8px 0', borderBottom: i < trainee.plans.length - 1 ? `1px solid ${C.cardBd}` : 'none' }}>
+                <span style={{ color: C.tx, fontWeight: 600, fontSize: 13, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
                 <Badge color={i === 0 ? C.gn : C.td}>{i === 0 ? 'ACTIVE' : 'ARCHIVED'}</Badge>
-              </Row>
+              </div>
             ))}
-          </Panel>
+          </DemoDetailCard>
 
-          <div style={{ height: 14 }} />
-
-          {(() => {
-            const isOverdue = trainee.payment === 'OVERDUE';
-            const payments = [
-              !isOverdue && { date: '2026-04-01', amount: trainee.monthly || 800, method: 'Bank Transfer', status: 'Paid' },
-              { date: '2026-03-01', amount: trainee.monthly || 800, method: 'Bank Transfer', status: 'Paid' },
-              { date: '2026-02-01', amount: trainee.monthly || 800, method: 'Cash',          status: 'Paid' },
-            ].filter(Boolean);
-            const totalPaid = payments.reduce((a, p) => a + p.amount, 0);
-            return (
-              <Panel
-                title={<span>PAYMENTS ({payments.length}) <span style={{ color: C.gn, marginLeft: 8 }}>₪{totalPaid.toLocaleString()} TOTAL</span></span>}
-                tint={C.ac}
-              >
-                {payments.map((p, i) => (
-                  <Row key={i}>
-                    <span style={{ flex: 1, color: C.tx, fontWeight: 600 }}>₪{p.amount}</span>
-                    <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1 }}>{p.method.toUpperCase()}</span>
-                    <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1 }}>{p.date}</span>
-                    <Badge color={C.gn}>{p.status.toUpperCase()}</Badge>
-                  </Row>
-                ))}
-              </Panel>
-            );
-          })()}
-
-          <div style={{ height: 14 }} />
-
-          <Panel title="RECENT WORKOUTS" tint={C.ac}>
+          {/* RECENT WORKOUTS */}
+          <DemoDetailCard header={secTitle('Recent Workouts')}>
             {[
               { day: 'Day A · Push', date: trainee.lastWorkout || '2 days ago', vol: '4,820 kg' },
               { day: 'Day C · Legs', date: '5 days ago', vol: '6,210 kg' },
               { day: 'Day B · Pull', date: '1 week ago', vol: '4,180 kg' },
             ].map((w, i) => (
-              <Row key={i}>
-                <span style={{ flex: 1, color: C.tx, fontWeight: 600 }}>{w.day}</span>
-                <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1 }}>{w.date}</span>
-                <span style={{ fontFamily: FN, fontSize: 11, color: C.ac, fontWeight: 700, letterSpacing: 1 }}>{w.vol}</span>
-              </Row>
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '8px 0', borderBottom: i < 2 ? `1px solid ${C.cardBd}` : 'none' }}>
+                <span style={{ color: C.tx, fontWeight: 600, fontSize: 13, flex: 1, minWidth: 0 }}>{w.day}</span>
+                <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, whiteSpace: 'nowrap' }}>{w.date}</span>
+                <span style={{ fontFamily: FN, fontSize: 11, color: C.ac, fontWeight: 700, letterSpacing: 1, whiteSpace: 'nowrap' }}>{w.vol}</span>
+              </div>
             ))}
-          </Panel>
+          </DemoDetailCard>
         </div>
-
-        <div>
-          <Panel title="PROFILE" tint={C.tm}>
-            {trainee.age && (
-              <Row>
-                <span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>AGE / WEIGHT / HEIGHT</span>
-                <span style={{ color: C.tx, fontWeight: 600 }}>{trainee.age}y · {trainee.weight}kg · {trainee.height}cm</span>
-              </Row>
-            )}
-            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>FORMAT</span><span style={{ color: C.tx, fontWeight: 600 }}>{trainee.format}</span></Row>
-            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>PACKAGE</span><span style={{ color: C.tx, fontWeight: 600 }}>8 Sessions</span></Row>
-            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>SESSIONS</span><span style={{ color: trainee.sessionsLeft <= 2 ? C.rd : C.tx, fontWeight: 700 }}>{trainee.sessionsLeft} LEFT</span></Row>
-            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>MONTHLY</span><span style={{ color: C.tx, fontWeight: 600 }}>₪{trainee.monthly}</span></Row>
-            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>PER SESSION</span><span style={{ color: C.tx, fontWeight: 600 }}>₪{Math.round(trainee.monthly / 8)}</span></Row>
-            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>LAST PAYMENT</span><span style={{ color: C.tx, fontWeight: 600 }}>2026-04-01</span></Row>
-            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>SINCE</span><span style={{ color: C.tx, fontWeight: 600 }}>{trainee.startDate}</span></Row>
-          </Panel>
-
-          <div style={{ height: 14 }} />
-
-          <Panel title="BODYWEIGHT · 8W" tint={C.tm}>
-            <BWSparkline weight={trainee.weight || 70} />
-          </Panel>
-
-          <div style={{ height: 14 }} />
-
-          <Panel title="GOALS / INJURIES" tint={C.tm}>
-            <div style={{ padding: 14, fontSize: 13, lineHeight: 1.55, color: C.tx, opacity: 0.85 }}>
-              <div style={{ marginBottom: 10 }}>
-                <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, letterSpacing: 1.5, marginBottom: 4 }}>GOALS</div>
-                {trainee.goals}
-              </div>
-              <div>
-                <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, letterSpacing: 1.5, marginBottom: 4 }}>INJURIES</div>
-                {trainee.injuries}
-              </div>
-            </div>
-          </Panel>
-        </div>
-      </div>
-      )}
+        );
+      })()}
     </section>
   );
 }
