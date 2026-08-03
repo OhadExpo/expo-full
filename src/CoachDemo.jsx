@@ -164,6 +164,13 @@ const baseBtn = {
   cursor: 'pointer', transition: 'all 0.15s', textDecoration: 'none',
 };
 
+// Shared input look for demo text/search fields (mirrors the coach app's
+// baseInput; CoachDemo has no import of the real one).
+const baseInput = {
+  background: 'var(--c-sf)', border: `1px solid ${C.bd2}`, borderRadius: 0,
+  padding: '8px 12px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none',
+};
+
 // Glowing dot identical to the real coach app's OnlineDot — pulses green
 // when a trainee is currently signed into their portal. Demo shows it on
 // the one trainee whose `online: true` flag is set in the mock data.
@@ -967,6 +974,307 @@ function DemoNotifToggle() {
   );
 }
 
+// ─── Athlete-detail deep sections — demo mocks of the real TraineeDetail
+//     sub-surfaces (Messages, CRM, Readiness trends, Athletic Eval + Intake,
+//     Progressive Overload). Static mock data shaped to mirror each real
+//     component so the demo shows the platform's true depth. ───────────────
+
+// Readiness metric scales — best→worst; best gets green (mirrors ReadinessRow).
+const DEMO_READINESS = {
+  pain:   ['none', 'mild', 'moderate', 'high'],
+  sleep:  ['great', 'good', 'ok', 'poor'],
+  energy: ['high', 'good', 'ok', 'low'],
+};
+const READ_COLORS = ['#35C36A', '#F2CE1E', '#F0862A', '#E23B3B']; // best→worst
+const readColor = (metric, val) => READ_COLORS[Math.max(0, DEMO_READINESS[metric].indexOf(val))] || C.td;
+
+// Filled area+line trend chart, stretched to fill width (preserveAspectRatio
+// none). Reused by readiness trends and the overload lift-detail.
+function DemoTrendChart({ values, color, height = 90 }) {
+  const uid = React.useId().replace(/[:]/g, '');
+  const W = 600, H = 100, pad = 6;
+  const min = Math.min(...values), max = Math.max(...values), span = (max - min) || 1, n = values.length;
+  const xStep = n > 1 ? (W - pad * 2) / (n - 1) : 0;
+  const xy = values.map((v, i) => [pad + i * xStep, H - pad - ((v - min) / span) * (H - pad * 2)]);
+  const line = xy.map(p => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+  const area = `${pad},${H} ${line} ${(pad + (n - 1) * xStep).toFixed(1)},${H}`;
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: '100%', height, display: 'block' }}>
+      <defs><linearGradient id={`tg${uid}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={color} stopOpacity="0.22" /><stop offset="1" stopColor={color} stopOpacity="0" /></linearGradient></defs>
+      {[0.25, 0.5, 0.75].map(f => <line key={f} x1="0" y1={(H * f).toFixed(1)} x2={W} y2={(H * f).toFixed(1)} stroke={C.bd} strokeWidth="0.5" strokeDasharray="4 4" />)}
+      <polygon points={area} fill={`url(#tg${uid})`} />
+      <polyline points={line} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+    </svg>
+  );
+}
+
+// MESSAGES — coach↔athlete thread (bubbles) + static composer.
+const DEMO_MESSAGES = [
+  { role: 'coach',   time: '30/07/2026 09:14', text: 'Great work on the bench this week — those ISO holds are paying off. Keep the eccentric controlled on the trap-bar pulls.' },
+  { role: 'athlete', time: '30/07/2026 18:02', text: 'Thanks! Felt strong. Knee held up fine on legs day.' },
+  { role: 'coach',   time: '31/07/2026 08:40', text: 'Perfect. Bumping the Day A top set next week — log your readiness (pain / sleep / energy) before you start so I can autoregulate it.' },
+];
+function DemoMessages() {
+  return (
+    <div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 320, overflowY: 'auto', marginBottom: 12 }}>
+        {DEMO_MESSAGES.map((m, i) => {
+          const self = m.role === 'coach';
+          return (
+            <div key={i} style={{ display: 'flex', justifyContent: self ? 'flex-end' : 'flex-start' }}>
+              <div style={{ maxWidth: '78%', borderRadius: 0, padding: '8px 10px', background: self ? 'rgba(57,189,255,0.094)' : 'var(--c-sf)', border: `1px solid ${self ? C.ac : C.cardBd}` }}>
+                <div style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.08em', marginBottom: 3 }}>{self ? 'COACH' : 'ATHLETE'} · {m.time}</div>
+                <div style={{ fontSize: 13, color: C.tx, lineHeight: 1.4 }}>{m.text}</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <input title="Demo only" placeholder="Type a note to your athlete…" style={{ ...baseInput, flex: 1, minWidth: 0, fontSize: 13 }} />
+        <button title="Demo only" style={{ ...baseBtn, background: 'transparent', color: C.rd, border: '1px solid rgba(255,71,87,0.4)', fontSize: 11 }}>● REC</button>
+        <button title="Demo only" style={{ ...baseBtn, background: C.ac, color: '#00121c', fontSize: 11 }}>SEND →</button>
+      </div>
+    </div>
+  );
+}
+
+// CRM — health strip + coach-history (ACTIONS / ACTIVITY tabs).
+function DemoCRM() {
+  const [tab, setTab] = useState('activity');
+  const cells = [['TRAINING', '3d ago', C.gn], ['LAST CONTACT', '1d ago', C.gn], ['PAYMENT', 'Paid', C.gn], ['CLIENT', '8 mo', C.tx]];
+  const actions = ['Check in re: right shoulder after Day B', 'Send updated nutrition targets', 'Confirm payment for August'];
+  const activity = [
+    { kind: 'SESSION', color: C.gn, when: '30 Jul · 14:20', auto: true,  text: 'Completed Upper A — 6 exercises logged' },
+    { kind: 'WHATSAPP', color: C.gn, when: '29 Jul · 09:10', auto: false, text: 'Checked in about knee — cleared for legs' },
+    { kind: 'PAYMENT', color: C.gn, when: '25 Jul · 08:00', auto: true,  text: '₪1,200 — monthly package' },
+    { kind: 'PLAN', color: C.ac, when: '22 Jul · 17:45', auto: true,  text: 'Assigned Block #12 (hypertrophy)' },
+  ];
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 26, flexWrap: 'wrap', padding: '12px 16px', border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)', marginBottom: 12 }}>
+        {cells.map(([l, v, c]) => (
+          <div key={l}>
+            <div style={{ fontFamily: FN, fontSize: 8, color: C.td, letterSpacing: '0.14em', fontWeight: 700 }}>{l}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
+              {c !== C.tx && <span style={{ width: 7, height: 7, borderRadius: 4, background: c }} />}
+              <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: c }}>{v}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div style={{ display: 'flex', gap: 18, borderBottom: `1px solid ${C.cardBd}`, marginBottom: 10 }}>
+        {[['actions', 'ACTIONS'], ['activity', 'ACTIVITY']].map(([id, l]) => (
+          <button key={id} onClick={() => setTab(id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', color: tab === id ? C.ac : C.tm, borderBottom: tab === id ? `2px solid ${C.ac}` : '2px solid transparent' }}>{l}</button>
+        ))}
+      </div>
+      {tab === 'actions' ? (
+        <div>{actions.map((a, i) => (
+          <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 0', borderBottom: i < actions.length - 1 ? `1px solid ${C.cardBd}` : 'none' }}>
+            <span style={{ width: 15, height: 15, border: `1px solid ${C.tm}`, flexShrink: 0 }} />
+            <span style={{ fontSize: 13, color: C.tx }}>{a}</span>
+          </div>
+        ))}</div>
+      ) : (
+        <div>{activity.map((a, i) => (
+          <div key={i} style={{ display: 'flex', gap: 10, padding: '8px 0', borderBottom: i < activity.length - 1 ? `1px solid ${C.cardBd}` : 'none' }}>
+            <span style={{ width: 7, height: 7, borderRadius: 4, background: a.color, marginTop: 5, flexShrink: 0 }} />
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em' }}><span style={{ color: a.color }}>{a.kind}</span><span style={{ color: C.td }}> · {a.when}{a.auto ? ' · AUTO' : ''}</span></div>
+              <div style={{ fontSize: 12, color: C.tx, marginTop: 2 }}>{a.text}</div>
+            </div>
+          </div>
+        ))}</div>
+      )}
+    </div>
+  );
+}
+
+// READINESS TRENDS — metric toggle + area chart + summary tiles (CheckinTrends).
+const DEMO_READINESS_LOG = [
+  { week: 1, pain: 'moderate', sleep: 'ok',    energy: 'ok'   },
+  { week: 2, pain: 'mild',     sleep: 'good',  energy: 'ok'   },
+  { week: 3, pain: 'mild',     sleep: 'good',  energy: 'good' },
+  { week: 4, pain: 'none',     sleep: 'great', energy: 'good' },
+  { week: 5, pain: 'mild',     sleep: 'good',  energy: 'high' },
+  { week: 6, pain: 'none',     sleep: 'great', energy: 'high' },
+  { week: 7, pain: 'none',     sleep: 'good',  energy: 'high' },
+];
+function DemoReadinessTrends() {
+  const [metric, setMetric] = useState('pain');
+  const scale = DEMO_READINESS[metric]; // best→worst
+  const rank = (v) => scale.length - 1 - scale.indexOf(v); // best → high (top)
+  const values = DEMO_READINESS_LOG.map(r => rank(r[metric]));
+  const latest = DEMO_READINESS_LOG[DEMO_READINESS_LOG.length - 1][metric];
+  const first = values[0], last = values[values.length - 1];
+  const trend = last > first ? 'BETTER' : last < first ? 'WORSE' : 'SAME';
+  const trendColor = trend === 'BETTER' ? C.gn : trend === 'WORSE' ? C.rd : C.tm;
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+        {['pain', 'sleep', 'energy'].map(m => (
+          <button key={m} onClick={() => setMetric(m)} style={{ flex: 1, height: 32, borderRadius: 0, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', background: metric === m ? 'rgba(57,189,255,0.12)' : 'transparent', border: `1px solid ${metric === m ? C.ac : C.cardBd}`, boxShadow: metric === m ? `inset 0 2px 0 ${C.ac}` : 'none', color: metric === m ? C.ac : C.tm }}>{m}</button>
+        ))}
+      </div>
+      <div style={{ border: `1px solid ${C.ac}`, padding: 14, marginBottom: 10 }}>
+        <div style={{ fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: '0.15em', fontWeight: 700, marginBottom: 8 }}>{metric.toUpperCase()} TREND · BEST AT TOP</div>
+        <DemoTrendChart values={values} color="#39BDFF" height={120} />
+        <div style={{ display: 'flex', marginTop: 6 }}>
+          {DEMO_READINESS_LOG.map((r) => (
+            <div key={r.week} style={{ flex: 1, textAlign: 'center', fontFamily: FN, fontSize: 8, color: C.tm }}>W{r.week}</div>
+          ))}
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        {[['LATEST', latest.toUpperCase(), readColor(metric, latest)], ['TREND', trend, trendColor], ['CHECK-INS', String(DEMO_READINESS_LOG.length), C.tx]].map(([l, v, c]) => (
+          <div key={l} style={{ flex: 1, border: `1px solid ${C.cardBd}`, padding: '11px 6px', textAlign: 'center' }}>
+            <div style={{ fontFamily: FN, fontSize: 8, color: C.td, letterSpacing: '0.14em', fontWeight: 700 }}>{l}</div>
+            <div style={{ fontFamily: FN, fontSize: 16, fontWeight: 700, color: c, marginTop: 3 }}>{v}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ATHLETIC EVALUATION + INTAKE — collapsed eval rows + one intake card.
+const DEMO_EVAL = {
+  eval_date: '15 Jul 2026', age: 34, height: 178, weight: 82, fields: 26,
+  sections: [
+    { title: 'Lower Body Power', rows: [['Standing Vertical Jump', 'cm', '48'], ['Broad Jump', 'cm', '232']] },
+    { title: 'Max Strength', rows: [['Trap-Bar Deadlift 1RM', 'kg', '180'], ['Bench Press 1RM', 'kg', '110'], ['Back Squat 1RM', 'kg', '—']] },
+  ],
+};
+function DemoEvalIntake() {
+  const [open, setOpen] = useState(true);
+  return (
+    <div>
+      <div style={{ border: `1px solid ${open ? C.ac : C.cardBd}`, borderLeft: `3px solid ${C.ac}`, marginBottom: 8 }}>
+        <div onClick={() => setOpen(o => !o)} style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', padding: '10px 14px', cursor: 'pointer' }}>
+          <span style={{ fontFamily: FN, fontSize: 13, color: C.ac, fontWeight: 700 }}>{DEMO_EVAL.eval_date}</span>
+          <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, flex: 1 }}><span style={{ color: C.td }}>AGE </span>{DEMO_EVAL.age} · <span style={{ color: C.td }}>HT </span>{DEMO_EVAL.height}cm · <span style={{ color: C.td }}>WT </span>{DEMO_EVAL.weight}kg · <span style={{ color: C.td }}>FIELDS </span>{DEMO_EVAL.fields}</span>
+          <span style={{ color: C.tm, fontSize: 12 }}>{open ? '▾' : '▸'}</span>
+        </div>
+        {open && (
+          <div style={{ padding: '0 14px 14px' }}>
+            {DEMO_EVAL.sections.map((s, si) => (
+              <div key={si} style={{ marginTop: 10 }}>
+                <div style={{ fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: '0.2em', fontWeight: 700, borderBottom: `1px solid ${C.cardBd}`, paddingBottom: 4, marginBottom: 4 }}>{s.title.toUpperCase()}</div>
+                {s.rows.map(([test, unit, score], ri) => (
+                  <div key={ri} style={{ display: 'grid', gridTemplateColumns: '1fr 60px 70px', gap: 8, padding: '5px 0', fontSize: 12 }}>
+                    <span style={{ color: C.tx }}>{test}</span>
+                    <span style={{ color: C.td, textAlign: 'right' }}>{unit}</span>
+                    <span style={{ color: score === '—' ? C.td : C.tx, fontWeight: 700, textAlign: 'right' }}>{score}</span>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      <div style={{ border: `1px solid ${C.cardBd}`, padding: '12px 14px' }}>
+        <div style={{ textAlign: 'center', marginBottom: 10 }}>
+          <Badge color={C.ac}>INITIAL</Badge>
+          <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, marginLeft: 8 }}>· 20 Apr 2026</span>
+        </div>
+        {[['Primary goal', 'Rebuild strength after knee scope'], ['Training age', '6 years'], ['Injuries', 'Right ACL reconstruction (2024)'], ['Days/week available', '4'], ['Equipment', 'Full commercial gym']].map(([k, v]) => (
+          <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '5px 0', borderBottom: `1px solid ${C.cardBd}`, fontSize: 12 }}>
+            <span style={{ color: C.tm }}>{k}</span>
+            <span style={{ color: C.tx, textAlign: 'right' }}>{v}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// PROGRESSIVE OVERLOAD — searchable per-exercise table, one row expands into
+// PR + trend chart + session history. The showpiece section.
+const DEMO_OVERLOAD = [
+  { eid: 'e1', name: 'Barbell Bench Press', loads: [100, 102.5, 105, 107.5, 110], reps: [5, 5, 4, 3, 3], dates: ['2 Jun', '9 Jun', '16 Jun', '23 Jun', '30 Jun'] },
+  { eid: 'e2', name: 'Trap-Bar Deadlift',   loads: [150, 155, 160, 165, 180], reps: [5, 5, 5, 4, 3], dates: ['2 Jun', '9 Jun', '16 Jun', '23 Jun', '30 Jun'] },
+  { eid: 'e3', name: 'Back Squat',          loads: [140, 142.5, 140, 140, 138], reps: [5, 5, 5, 5, 5], dates: ['2 Jun', '9 Jun', '16 Jun', '23 Jun', '30 Jun'] },
+  { eid: 'e4', name: 'Overhead Press',      loads: [60, 60, 60], reps: [6, 6, 6], dates: ['9 Jun', '23 Jun', '30 Jun'] },
+  { eid: 'e5', name: 'Barbell Row',         loads: [80, 85], reps: [8, 8], dates: ['16 Jun', '30 Jun'] },
+];
+const ovStats = (ex) => {
+  const s = ex.loads, last = s[s.length - 1], base = s.length >= 4 ? s[s.length - 4] : s[0];
+  const pct = base ? Math.round((last - base) / base * 1000) / 10 : 0;
+  const trend = pct > 2 ? 'up' : pct < -2 ? 'down' : 'flat';
+  return { last, pct, pr: Math.max(...s), prIdx: s.indexOf(Math.max(...s)), trend, sessions: s.length };
+};
+const OV_COLOR = { up: C.gn, down: C.rd, flat: C.tm, all: C.ac };
+function DemoOverload() {
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState('all');
+  const [openEid, setOpenEid] = useState('e2');
+  const rows = DEMO_OVERLOAD.map(ex => ({ ex, st: ovStats(ex) }))
+    .filter(({ ex, st }) => (!search || ex.name.toLowerCase().includes(search.toLowerCase())) && (filter === 'all' || st.trend === filter));
+  const counts = { all: DEMO_OVERLOAD.length, up: 0, flat: 0, down: 0 };
+  DEMO_OVERLOAD.forEach(ex => { counts[ovStats(ex).trend]++; });
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 10 }}>
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="search exercise" style={{ ...baseInput, flex: '1 1 200px', minWidth: 160, fontSize: 12 }} />
+        {[['all', 'ALL'], ['up', '↑'], ['flat', '→'], ['down', '↓']].map(([id, lbl]) => (
+          <button key={id} onClick={() => setFilter(id)} style={{ background: filter === id ? 'transparent' : 'transparent', border: `1px solid ${filter === id ? OV_COLOR[id] : C.cardBd}`, color: filter === id ? OV_COLOR[id] : C.tm, borderRadius: 0, cursor: 'pointer', padding: '6px 10px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em' }}>{lbl} {counts[id]}</button>
+        ))}
+      </div>
+      <div style={{ overflowX: 'auto', border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>
+        <table style={{ width: '100%', minWidth: 460, borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
+          <thead><tr style={{ borderBottom: `1px solid ${C.cardBd}` }}>{['Exercise', 'Last', 'Δ Recent', 'Sess', 'Last Date'].map((h, i) => <th key={h} style={{ textAlign: i === 0 ? 'left' : 'center', padding: '8px 10px', fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700 }}>{h}</th>)}</tr></thead>
+          <tbody>
+            {rows.map(({ ex, st }) => {
+              const open = openEid === ex.eid;
+              const arrow = st.trend === 'up' ? `↑ +${st.pct}%` : st.trend === 'down' ? `↓ ${st.pct}%` : `→ ${st.pct}%`;
+              const values = ex.loads;
+              return (
+                <React.Fragment key={ex.eid}>
+                  <tr onClick={() => setOpenEid(open ? '' : ex.eid)} style={{ borderBottom: `1px solid ${C.cardBd}`, cursor: 'pointer' }}>
+                    <td style={{ padding: '9px 10px', color: C.tx, fontWeight: 600 }}>{open ? '▾' : '▸'} {ex.name}</td>
+                    <td style={{ padding: '9px 10px', textAlign: 'center', fontFamily: FN, fontWeight: 700, color: C.tx }}>{st.last}kg</td>
+                    <td style={{ padding: '9px 10px', textAlign: 'center', fontFamily: FN, fontWeight: 700, color: OV_COLOR[st.trend] }}>{arrow}</td>
+                    <td style={{ padding: '9px 10px', textAlign: 'center', color: C.tm }}>{st.sessions}</td>
+                    <td style={{ padding: '9px 10px', textAlign: 'center', color: C.td, fontFamily: FN, fontSize: 11 }}>{ex.dates[ex.dates.length - 1]}</td>
+                  </tr>
+                  {open && (
+                    <tr><td colSpan={5} style={{ background: 'var(--c-sf2, var(--c-sf))', padding: '14px 16px 18px 30px' }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: 14, marginBottom: 12 }}>
+                        <div>
+                          <div style={{ fontFamily: FN, fontSize: 9, color: C.ac, letterSpacing: '0.18em', fontWeight: 700 }}>ALL-TIME PR</div>
+                          <div style={{ fontFamily: FB, fontSize: 22, fontWeight: 800, color: C.ac, marginTop: 2 }}>{st.pr}kg × {ex.reps[st.prIdx]}</div>
+                          <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, marginTop: 2 }}>{ex.dates[st.prIdx]}</div>
+                        </div>
+                        <div style={{ display: 'flex', gap: 18 }}>
+                          {[['LATEST', `${st.last}kg`, C.tx], ['Δ ALL-TIME', `${st.last - ex.loads[0] >= 0 ? '+' : ''}${st.last - ex.loads[0]}kg`, st.last - ex.loads[0] >= 0 ? C.gn : C.rd], ['SESSIONS', String(st.sessions), C.tx]].map(([l, v, c]) => (
+                            <div key={l} style={{ textAlign: 'center' }}><div style={{ fontFamily: FN, fontSize: 8, color: C.td, letterSpacing: '0.14em', fontWeight: 700 }}>{l}</div><div style={{ fontFamily: FN, fontSize: 14, fontWeight: 700, color: c, marginTop: 2 }}>{v}</div></div>
+                          ))}
+                        </div>
+                      </div>
+                      <DemoTrendChart values={values} color={OV_COLOR[st.trend] === C.tm ? C.ac : OV_COLOR[st.trend]} height={72} />
+                      <div style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.14em', fontWeight: 700, margin: '12px 0 6px' }}>SESSION HISTORY</div>
+                      {ex.loads.map((ld, i) => i).reverse().map(i => {
+                        const isPr = ex.loads[i] === st.pr;
+                        return (
+                          <div key={i} style={{ display: 'grid', gridTemplateColumns: '70px 1fr auto', gap: 8, padding: '5px 0', borderBottom: `1px solid ${C.cardBd}`, alignItems: 'center', fontSize: 12 }}>
+                            <span style={{ color: C.td, fontFamily: FN, fontSize: 11 }}>{ex.dates[i]}</span>
+                            <span><span style={{ color: C.tx, fontWeight: 700 }}>{ex.loads[i]}kg</span> <span style={{ color: C.tm }}>× {ex.reps[i]}</span></span>
+                            {isPr ? <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.ac, border: `1px solid ${C.ac}`, padding: '1px 6px', letterSpacing: '0.1em' }}>PR</span> : <span />}
+                          </div>
+                        );
+                      })}
+                    </td></tr>
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
   // Couple detail: split each member into their own card column. Real app's
   // ruling — SHARED for the household: format, package, sessions, monthly,
@@ -983,6 +1291,17 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
       { first: m[2], surname: m[3], email: 'idan.cohen@example.co.il', phone: '+972503334456', age: 37, weight: 82, height: 182, goals: 'Body comp + bench plateau break', injuries: 'L knee — meniscus 2024' },
     ];
   })();
+  // Section-filter tabs (solo layout) — multi-select show/hide, mirrors the
+  // real TraineeDetail. Empty set = View All. Hooks stay at component top level
+  // (the solo body is an IIFE, so state can't live inside it).
+  const [activeSecs, setActiveSecs] = useState(() => new Set());
+  const FILTERABLE_SECS = ['billing', 'bw', 'readiness', 'workouts', 'programs', 'overload'];
+  const toggleSec = (id) => setActiveSecs(prev => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return FILTERABLE_SECS.every(f => next.has(f)) ? new Set() : next;
+  });
+  const showSec = (id) => activeSecs.size === 0 || activeSecs.has(id);
   return (
     <section>
       {/* Mobile: the Vitals grid's fixed repeat(3,132px) (396px + gaps)
@@ -1142,9 +1461,9 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
           ['Workouts', workoutsCount],
         ];
         const payments = [
-          !overdue && { date: '2026-04-01', amount: trainee.monthly || 800, method: 'Bank Transfer', status: 'Paid' },
-          { date: '2026-03-01', amount: trainee.monthly || 800, method: 'Bank Transfer', status: 'Paid' },
-          { date: '2026-02-01', amount: trainee.monthly || 800, method: 'Cash',          status: 'Paid' },
+          !overdue && { date: '2026-04-01', amount: trainee.monthly || 800, status: 'Paid', notes: 'Monthly package' },
+          { date: '2026-03-01', amount: trainee.monthly || 800, status: 'Paid', notes: 'Monthly package' },
+          { date: '2026-02-01', amount: trainee.monthly || 800, status: 'Paid', notes: 'Bank transfer' },
         ].filter(Boolean);
         const totalPaid = payments.reduce((a, p) => a + p.amount, 0);
         const secTitle = (t) => <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase' }}>{t}</span>;
@@ -1167,8 +1486,19 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
             </div>
           </DemoDetailCard>
 
-          {/* VITALS · INJURIES · GOALS */}
-          <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle('Vitals · Injuries · Goals')}>
+          {/* Section-filter tab bar — multi-select scroll row (real parity):
+              View All + the 6 filterable sections. Empty = everything shows. */}
+          <div style={{ overflowX: 'auto', margin: '0 0 16px' }}>
+            <div style={{ display: 'inline-flex', gap: 6, minWidth: 'max-content' }}>
+              {[['all', 'View All'], ['billing', 'Billing'], ['bw', 'Bodyweight'], ['readiness', 'Readiness'], ['workouts', 'Workouts'], ['programs', 'Programs'], ['overload', 'Overload']].map(([id, l]) => {
+                const active = id === 'all' ? activeSecs.size === 0 : activeSecs.has(id);
+                return <button key={id} onClick={() => id === 'all' ? setActiveSecs(new Set()) : toggleSec(id)} style={{ height: 30, padding: '0 14px', borderRadius: 0, cursor: 'pointer', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', whiteSpace: 'nowrap', background: active ? C.ac : 'transparent', border: `1px solid ${active ? C.ac : C.cardBd}`, color: active ? '#0a0a0b' : C.tm }}>{l}</button>;
+              })}
+            </div>
+          </div>
+
+          {/* VITALS · INJURIES · GOALS (context — shown in View All) */}
+          {showSec('vitals') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle('Vitals · Injuries · Goals')}>
             <div className="demo-td-vitals" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 132px)', justifyContent: 'center', gap: 12, maxWidth: 416, margin: '0 auto', textAlign: 'center' }}>
               {[['Age', trainee.age ? `${trainee.age}` : '—'], ['Weight', trainee.weight ? `${trainee.weight}kg` : '—'], ['Height', trainee.height ? `${trainee.height}cm` : '—']].map(([l, v]) => {
                 const empty = v === '—';
@@ -1177,41 +1507,40 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
             </div>
             {trainee.injuries && <div style={{ marginTop: 12, padding: 10, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0 }}><div style={{ fontSize: 10, fontFamily: FN, color: C.or, textTransform: 'uppercase', marginBottom: 4, textAlign: 'center' }}>Injuries / Conditions</div><div style={{ fontSize: 13, color: C.tx, textAlign: 'center', direction: /[֐-׿]/.test(trainee.injuries) ? 'rtl' : 'ltr', fontFamily: /[֐-׿]/.test(trainee.injuries) ? FH : undefined }}>{trainee.injuries}</div></div>}
             {trainee.goals && <div style={{ marginTop: 8, padding: 10, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0 }}><div style={{ fontSize: 10, fontFamily: FN, color: C.ac, textTransform: 'uppercase', marginBottom: 4, textAlign: 'center' }}>Goals</div><div style={{ fontSize: 13, color: C.tx, textAlign: 'center', direction: /[֐-׿]/.test(trainee.goals) ? 'rtl' : 'ltr', fontFamily: /[֐-׿]/.test(trainee.goals) ? FH : undefined }}>{trainee.goals}</div></div>}
-          </DemoDetailCard>
+          </DemoDetailCard>}
 
-          {/* BODYWEIGHT */}
-          <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle('Bodyweight · 8W')}>
-            <BWSparkline weight={trainee.weight || 70} />
-          </DemoDetailCard>
-
-          {/* BILLING — payments table matching the real TraineeDetail. */}
-          <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle(`Billing (${payments.length})`)}
+          {/* BILLING — Date / Amount / Status / Notes (matches real; no "Method"). */}
+          {showSec('billing') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle(`Billing (${payments.length})`)}
             headerRight={<span style={{ fontFamily: FB, fontSize: 12, color: '#FFFFFF', opacity: 0.85, whiteSpace: 'nowrap' }}>₪{totalPaid.toLocaleString()} paid</span>}>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
-                <thead><tr style={{ borderBottom: `1px solid ${C.cardBd}` }}>{['Date', 'Amount', 'Method', 'Status'].map(h => <th key={h} style={{ textAlign: 'center', padding: '6px 10px', fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>{h}</th>)}</tr></thead>
+                <thead><tr style={{ borderBottom: `1px solid ${C.cardBd}` }}>{['Date', 'Amount', 'Status', 'Notes'].map(h => <th key={h} style={{ textAlign: 'center', padding: '6px 10px', fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>{h}</th>)}</tr></thead>
                 <tbody>{payments.map((p, i) => (<tr key={i} style={{ borderBottom: `1px solid ${C.cardBd}` }}>
                   <td style={{ padding: '8px 10px', color: C.tm, textAlign: 'center' }}>{fmtPrettyDate(p.date)}</td>
                   <td style={{ padding: '8px 10px', color: C.gn, fontWeight: 600, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>₪{p.amount.toLocaleString()}</td>
-                  <td style={{ padding: '8px 10px', color: C.td, textAlign: 'center' }}>{p.method}</td>
                   <td style={{ padding: '8px 10px', textAlign: 'center' }}><Badge color={C.gn}>{p.status.toUpperCase()}</Badge></td>
+                  <td style={{ padding: '8px 10px', color: C.td, textAlign: 'center' }}>{p.notes}</td>
                 </tr>))}</tbody>
               </table>
             </div>
-          </DemoDetailCard>
+          </DemoDetailCard>}
 
-          {/* PROGRAMS */}
-          <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle(`Programs (${trainee.plans.length})`)}>
-            {trainee.plans.map((name, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '8px 0', borderBottom: i < trainee.plans.length - 1 ? `1px solid ${C.cardBd}` : 'none' }}>
-                <span style={{ color: C.tx, fontWeight: 600, fontSize: 13, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
-                <Badge color={i === 0 ? C.gn : C.td}>{i === 0 ? 'ACTIVE' : 'ARCHIVED'}</Badge>
-              </div>
-            ))}
-          </DemoDetailCard>
+          {/* MESSAGES */}
+          {showSec('messages') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle(`Messages (${DEMO_MESSAGES.length})`)}><DemoMessages /></DemoDetailCard>}
+
+          {/* CRM · COACH HISTORY */}
+          {showSec('crm') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle('Coach History')} headerRight={<button title="Demo only" style={{ ...baseBtn, background: 'transparent', color: C.ac, border: `1px solid ${C.ac}`, padding: '4px 12px', fontSize: 10 }}>+ LOG</button>}><DemoCRM /></DemoDetailCard>}
+
+          {/* BODYWEIGHT */}
+          {showSec('bw') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle('Bodyweight · 8W')}>
+            <BWSparkline weight={trainee.weight || 70} />
+          </DemoDetailCard>}
+
+          {/* READINESS · CHECK-IN TRENDS */}
+          {showSec('readiness') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle(`Readiness (${DEMO_READINESS_LOG.length})`)}><DemoReadinessTrends /></DemoDetailCard>}
 
           {/* RECENT WORKOUTS */}
-          <DemoDetailCard header={secTitle('Recent Workouts')}>
+          {showSec('workouts') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle('Recent Workouts')}>
             {[
               { day: 'Day A · Push', date: trainee.lastWorkout || '2 days ago', vol: '4,820 kg' },
               { day: 'Day C · Legs', date: '5 days ago', vol: '6,210 kg' },
@@ -1223,7 +1552,23 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
                 <span style={{ fontFamily: FN, fontSize: 11, color: C.ac, fontWeight: 700, letterSpacing: 1, whiteSpace: 'nowrap' }}>{w.vol}</span>
               </div>
             ))}
-          </DemoDetailCard>
+          </DemoDetailCard>}
+
+          {/* PROGRAMS */}
+          {showSec('programs') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle(`Programs (${trainee.plans.length})`)}>
+            {trainee.plans.map((name, i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '8px 0', borderBottom: i < trainee.plans.length - 1 ? `1px solid ${C.cardBd}` : 'none' }}>
+                <span style={{ color: C.tx, fontWeight: 600, fontSize: 13, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
+                <Badge color={i === 0 ? C.gn : C.td}>{i === 0 ? 'ACTIVE' : 'ARCHIVED'}</Badge>
+              </div>
+            ))}
+          </DemoDetailCard>}
+
+          {/* ATHLETIC EVALUATION · INTAKE (context — shown in View All) */}
+          {showSec('eval') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle('Athletic Evaluation · Intake')}><DemoEvalIntake /></DemoDetailCard>}
+
+          {/* PROGRESSIVE OVERLOAD — the showpiece */}
+          {showSec('overload') && <DemoDetailCard header={secTitle('Progressive Overload')}><DemoOverload /></DemoDetailCard>}
         </div>
         );
       })()}
