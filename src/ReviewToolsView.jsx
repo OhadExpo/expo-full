@@ -107,8 +107,14 @@ function ReviewedClipPicker({ workouts, trainees, onPick, activeUrl }) {
         </select>
       </div>
       {activeUrl && (
-        <div style={{ marginTop: 9, display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: C.ac, border: `1px solid rgba(57,189,255,0.4)`, background: 'rgba(57,189,255,0.06)', padding: '5px 10px' }}>
-          ● CLIP LOADED — the tools will analyse this video
+        <div style={{ marginTop: 11, display: 'flex', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+          {/* Thumbnail so the coach can confirm it's the right clip before opening
+              a tool (Ohad). Controls + muted so it's scrubbable inline. */}
+          <video key={activeUrl} src={activeUrl} controls muted playsInline preload="metadata"
+            style={{ width: 220, maxHeight: 200, background: '#000', border: `1px solid ${C.cardBd}`, borderRadius: 0, display: 'block', objectFit: 'contain' }} />
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: C.ac, border: `1px solid rgba(57,189,255,0.4)`, background: 'rgba(57,189,255,0.06)', padding: '5px 10px' }}>
+            ● CLIP LOADED — the tools will analyse this video
+          </div>
         </div>
       )}
     </div>

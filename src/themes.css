@@ -54,12 +54,7 @@
      visibly lighter than the dark page scrollbar. scrollbar-color forces the
      thin scrollbar to the same dark cyan the page scrollbar uses (Ohad: "left
      scroll same colour as right scroll"). */
-  scrollbar-color: var(--c-cardBd) transparent;
-  /* The rail is position:sticky AND scrolls internally. Reaching the top/bottom
-     chained the scroll to the sticky page behind it, which re-laid-out the rail
-     and read as a glitch in the last part of the scrollbar (Ohad, all 3 rails).
-     `contain` stops the chaining; scroll settles cleanly at the ends. */
-  overscroll-behavior: contain; }
+  scrollbar-color: var(--c-cardBd) transparent; }
 .side-rail:hover { scrollbar-color: var(--c-ac) transparent; }
 .side-rail::-webkit-scrollbar { width: 6px; }
 .side-rail::-webkit-scrollbar-track { background: transparent; }
