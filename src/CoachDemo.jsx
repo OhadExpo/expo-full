@@ -2585,34 +2585,35 @@ function DemoExercises() {
   return (
     <section>
 
-      {/* Search + count */}
-      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 10 }}>
-        <input
-          type="search"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Search exercises (title, muscle, pattern...)"
-          style={{
-            background: C.sf, border: `1px solid ${C.bd2}`, borderRadius: 0,
-            padding: '8px 12px', color: C.tx, fontFamily: FB, fontSize: 13,
-            outline: 'none', flex: '1 1 200px', minWidth: 200,
-          }}
-        />
-        <span style={{
-          fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1.5, marginLeft: 'auto',
-        }}>{filtered.length} / {MOCK_EXERCISES.length}</span>
+      {/* Search + Add Exercise — mirrors the real ExercisesView top row
+          (cyan-bordered search h42 + solid + Add Exercise button; no count chip). */}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 10, alignItems: 'stretch', flexWrap: 'wrap' }}>
+        <div style={{ flex: 1, minWidth: 200, display: 'flex' }}>
+          <input
+            type="search"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search exercises (title, muscle, pattern...)"
+            style={{
+              width: '100%', boxSizing: 'border-box', background: C.sf, border: `1px solid ${C.ac}`, borderRadius: 0,
+              height: 42, padding: '0 14px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none',
+            }}
+          />
+        </div>
+        <button style={{ height: 42, padding: '0 18px', background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.06em', cursor: 'pointer', borderRadius: 0, whiteSpace: 'nowrap' }}>+ Add Exercise</button>
       </div>
 
       {/* Filter pane — same 6-col grid of selects as the real ExercisesView,
           including its ≤720px collapse to 2 columns so mobile doesn't h-scroll. */}
       <style>{`@media (max-width:720px){.cd-ex-filters{grid-template-columns:repeat(2,1fr)!important}}`}</style>
       <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 10, marginBottom: 12 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <div style={{ fontSize: 10, fontFamily: FN, fontWeight: 700, color: C.td, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-            Filters {activeFilterCount > 0 && <span style={{ color: C.ac, marginLeft: 6 }}>({activeFilterCount} active)</span>}
+        {/* Cyan strip header — matches the real ExercisesView RefinedHeaderStrip. */}
+        <div style={{ background: C.ac, padding: '10px', marginBottom: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ fontSize: 11, fontFamily: FN, fontWeight: 700, color: '#FFFFFF', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+            Filters{activeFilterCount > 0 && <span style={{ marginLeft: 6, opacity: 0.85 }}>· {activeFilterCount} active</span>}
           </div>
           {activeFilterCount > 0 && (
-            <button onClick={clearFilters} style={{ background: 'none', border: 'none', color: C.tm, cursor: 'pointer', fontSize: 11, fontFamily: FN, textDecoration: 'underline' }}>Clear all</button>
+            <button onClick={clearFilters} style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.55)', color: '#FFFFFF', cursor: 'pointer', fontSize: 9, fontFamily: FN, fontWeight: 700, letterSpacing: '0.10em', padding: '2px 8px', borderRadius: 0 }}>CLEAR ALL</button>
           )}
         </div>
         <div className="cd-ex-filters" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
@@ -2637,7 +2638,7 @@ function DemoExercises() {
         </div>
       </div>
 
-      <div style={{ fontSize: 12, color: C.td, marginBottom: 10, fontFamily: FN }}>
+      <div style={{ fontSize: 11, color: C.tm, marginBottom: 10, fontFamily: FN }}>
         {filtered.length} exercise{filtered.length !== 1 ? 's' : ''}
       </div>
 
