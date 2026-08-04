@@ -196,24 +196,27 @@ function Badge({ color = C.tm, children }) {
 
 // Matches the real DashboardView summary card spec: 0.25px ac-dimmed
 // border, 10px radius, 14px×18px padding, 22px value, 10px FN label.
-function StatCard({ label, value, sub, accent = C.ac, total }) {
+// Mirrors DashboardView's KPI tile: cyan strip header (RefinedHeaderStrip
+// grammar) + 6px status dot + white 13/0.08em/700 label; big value in NEUTRAL
+// C.tx (the `accent` only colors the dot, never the number).
+function StatCard({ label, value, sub, subColor, accent = C.ac, total }) {
   return (
     <div style={{
       background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0,
-      padding: '14px 18px', flex: '1 1 170px', minWidth: 170,
+      padding: '16px 20px', boxShadow: C.cardShadow,
     }}>
-      <div style={{
-        fontSize: 10, fontFamily: FN, color: C.td, textTransform: 'uppercase',
-        letterSpacing: '0.06em', marginBottom: 6,
-      }}>{label}</div>
-      <div style={{
-        fontSize: 22, fontWeight: 700, fontFamily: FN, color: accent,
-      }}>
+      <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', margin: '-16px -20px 12px', padding: '8px 20px', borderBottom: `1px solid ${C.cardBd}` }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, minHeight: 30 }}>
+          <span title="status" style={{ width: 6, height: 6, borderRadius: '50%', background: accent, flexShrink: 0, boxShadow: `0 0 5px ${accent}66` }} />
+          <span style={{ fontFamily: FN, fontSize: 13, letterSpacing: '0.08em', fontWeight: 700, color: '#FFFFFF', textTransform: 'uppercase' }}>{label}</span>
+        </span>
+      </div>
+      <div style={{ fontSize: 30, fontWeight: 800, fontFamily: FN, color: C.tx, lineHeight: 1.05, letterSpacing: '-0.015em', direction: 'ltr', unicodeBidi: 'isolate', textAlign: 'left' }}>
         {value}
-        {total !== undefined && <span style={{ fontSize: 12, color: C.td, fontWeight: 400 }}> / {total}</span>}
+        {total !== undefined && <span style={{ fontSize: 13, color: C.td, fontWeight: 400, letterSpacing: 0 }}> / {total}</span>}
       </div>
       {sub && (
-        <div style={{ fontSize: 10, fontFamily: FN, color: C.td, marginTop: 4 }}>{sub}</div>
+        <div style={{ fontSize: 10, fontFamily: FN, color: subColor || C.td, marginTop: 6, letterSpacing: '0.04em' }}>{sub}</div>
       )}
     </div>
   );
@@ -253,7 +256,7 @@ function DemoDashboard({ onJumpToTrainee }) {
         <StatCard label="Active Athletes" value={String(active.length)} total={String(MOCK_TRAINEES.length)} accent={C.gn} />
         <StatCard label="Low Sessions" value={String(expiring.length)} sub="≤ 2 LEFT" accent={C.or} />
         <StatCard label="Estimated Monthly" value={nis(mrr)} accent={C.ac} />
-        <StatCard label="Collected MTD" value={nis(collected30)} sub="+12% vs last month" accent={C.gn} />
+        <StatCard label="Collected MTD" value={nis(collected30)} sub="+12% vs last month" subColor={C.gn} accent={C.gn} />
       </div>
 
       {/* Incoming · 30D — funnel summary, mirrors the real dashboard section. */}
@@ -339,100 +342,68 @@ function DemoDashboard({ onJumpToTrainee }) {
         </div>
       </div>
 
-      {/* Alert grid — same shape as the real DashboardView. Overdue + Leads
-          are stacked vertically as one cell so leads sits directly beneath
-          overdue; dormant + online + expiring fill the remaining tracks. */}
-      <div style={{
-        display: 'grid', gap: 14, marginBottom: 20, alignItems: 'start',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
-      }}>
+      {/* Alert rail — horizontal flex (overflowX auto, cursor grab), mirroring
+          the real DashboardView. Order: Online Now → Expiring Packages →
+          Overdue Payment → Dormant → New Leads. */}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 20, alignItems: 'stretch', overflowX: 'auto', cursor: 'grab', paddingBottom: 4 }}>
         {onlineNow.length > 0 && (
-          <Panel
-            title={<span><span style={{ color: C.gn }}></span> ONLINE NOW ({onlineNow.length})</span>}
-            tint={C.gn}
-          >
+          <Panel title={`Online Now (${onlineNow.length})`} tint={C.gn} icon="dot">
             {onlineNow.map(t => (
               <Row key={t.id} onClick={() => onJumpToTrainee(t.id, 'dashboard')}>
-                <span style={{ fontWeight: 600, color: C.tx, flex: 1, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  {t.name}<OnlineDot />
-                </span>
-                <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.td, letterSpacing: 1 }}>IN PORTAL</span>
-                <FakeWaButton />
+                <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: C.gn, boxShadow: `0 0 4px ${C.gn}`, flexShrink: 0 }} />
+                <span style={{ color: C.tx, flex: 1 }}>{t.name}</span>
               </Row>
             ))}
           </Panel>
         )}
 
         {expiring.length > 0 && (
-          <Panel
-            title={<span><span style={{ color: C.or }}>⏳</span> EXPIRING SESSIONS ({expiring.length})</span>}
-            tint={C.or}
-          >
+          <Panel title={`Expiring Packages (${expiring.length})`} tint={C.or} icon="alert">
             {expiring.map(t => (
               <Row key={t.id} onClick={() => onJumpToTrainee(t.id, 'dashboard')}>
-                <span style={{ fontWeight: 600, color: C.tx, flex: 1 }}>{t.name}</span>
-                <span style={{ fontFamily: FN, fontSize: 11, color: C.or, fontWeight: 700, letterSpacing: 1 }}>
-                  {t.sessionsLeft} LEFT
-                </span>
+                <span style={{ color: C.tx, flex: 1 }}>{t.name}</span>
+                <span style={{ fontFamily: FN, fontWeight: 700, color: C.rd, fontSize: 12 }}>{t.sessionsLeft} LEFT</span>
               </Row>
             ))}
           </Panel>
         )}
 
-        {/* Stacked column: overdue on top, leads directly below — mirrors
-            the real DashboardView grouping so the inbound funnel lives
-            next to the money-out queue. */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <Panel
-            title={<span><span style={{ color: C.rd }}></span> OVERDUE PAYMENT ({overdue.length})</span>}
-            tint={C.rd}
-          >
-            {overdue.map((t, i) => (
-              <Row key={t.id} onClick={() => onJumpToTrainee(t.id, 'dashboard')}>
-                <span style={{ fontWeight: 600, color: C.tx, flex: 1 }}>{t.name}</span>
-                <span style={{ fontFamily: FN, fontSize: 11, color: C.rd, fontWeight: 700, letterSpacing: 1 }}>
-                  {i === 0 ? 'NEVER PAID' : `${(i+1)*32}D OVERDUE`}
-                </span>
-              </Row>
-            ))}
-          </Panel>
+        <Panel title={`Overdue Payment (${overdue.length})`} tint={C.rd} icon="dollar">
+          {overdue.map((t, i) => (
+            <Row key={t.id} onClick={() => onJumpToTrainee(t.id, 'dashboard')}>
+              <span style={{ color: C.tx, flex: 1 }}>{t.name}</span>
+              <span style={{ fontFamily: FN, color: C.rd, fontSize: 11 }}>{i === 0 ? 'Never paid' : `${(i + 1) * 32}d overdue`}</span>
+            </Row>
+          ))}
+        </Panel>
 
-          <Panel
-            title={<span><span style={{ color: C.ac }}></span> NEW LEADS (3)</span>}
-            tint={C.ac}
-          >
-            {[
-              { email: 'avi.shahar@example.co.il',  source: 'coaches',  context: 'pricing CTA',   when: '32 min ago', coach: true },
-              { email: 'maor.k@example.co.il',      source: 'expo-il',  context: 'exit-intent',  when: '4 hr ago' },
-              { email: 'tomer.ben@example.co.il',   source: 'expo-il',  context: 'quiz-finish',  when: 'Yesterday' },
-            ].map((l, i) => (
-              <Row key={i}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                    {l.coach && <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: '#A855F7', border: '1px solid #A855F7', padding: '1px 5px', flexShrink: 0 }}>COACH</span>}
-                    <div style={{ fontWeight: 600, color: C.tx, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.email}</div>
-                  </div>
-                  <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, letterSpacing: 1 }}>{l.source.toUpperCase()} · {l.context.toUpperCase()}</div>
-                </div>
-                <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.td, letterSpacing: 1, marginRight: 8 }}>{l.when}</span>
-                <button onClick={e => e.stopPropagation()} title="Mark contacted (demo only)" style={{ background: 'var(--c-sf)', border: `1px solid ${C.gn}`, color: C.gn, borderRadius: 0, padding: '2px 7px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>✓</button>
-                <button onClick={e => e.stopPropagation()} title="Delete lead (demo only)" style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, color: C.rd, borderRadius: 0, padding: '2px 7px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer', marginLeft: 4, flexShrink: 0 }}>✕</button>
-              </Row>
-            ))}
-          </Panel>
-        </div>
-
-        <Panel
-          title={<span><span style={{ color: C.tm }}></span> DORMANT ({dormant.length})</span>}
-          tint={C.tm}
-        >
+        <Panel title={`Dormant (${dormant.length})`} tint={C.or} icon="moon">
           {dormant.map(t => (
             <Row key={t.id} onClick={() => onJumpToTrainee(t.id, 'dashboard')}>
-              <span style={{ fontWeight: 600, color: C.tx, flex: 1 }}>{t.name}</span>
-              <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontWeight: 700, letterSpacing: 1 }}>
-                {t.dormantDays}D
-              </span>
+              <span style={{ color: C.tx, flex: 1 }}>{t.name}</span>
+              <span style={{ fontFamily: FN, color: C.or, fontSize: 11, marginRight: 8 }}>{t.dormantDays == null ? 'Never trained' : `${t.dormantDays}d ago`}</span>
               <FakeWaButton />
+            </Row>
+          ))}
+        </Panel>
+
+        <Panel title="New Leads (3)" tint={C.ac} icon="mail" cyanBorder>
+          {[
+            { email: 'avi.shahar@example.co.il',  source: 'coaches',  context: 'pricing CTA',   when: '32 min ago', coach: true },
+            { email: 'maor.k@example.co.il',      source: 'expo-il',  context: 'exit-intent',  when: '4 hr ago' },
+            { email: 'tomer.ben@example.co.il',   source: 'expo-il',  context: 'quiz-finish',  when: 'Yesterday' },
+          ].map((l, i) => (
+            <Row key={i}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                  {l.coach && <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: '#A855F7', border: '1px solid #A855F7', padding: '1px 5px', flexShrink: 0 }}>COACH</span>}
+                  <div style={{ fontWeight: 600, color: C.tx, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.email}</div>
+                </div>
+                <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, letterSpacing: 1 }}>{l.source.toUpperCase()} · {l.context.toUpperCase()}</div>
+              </div>
+              <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1, marginRight: 8 }}>{l.when}</span>
+              <button onClick={e => e.stopPropagation()} title="Mark contacted (demo only)" style={{ background: 'var(--c-sf)', border: `1px solid ${C.gn}`, color: C.gn, borderRadius: 0, padding: '2px 7px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>✓</button>
+              <button onClick={e => e.stopPropagation()} title="Delete lead (demo only)" style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, color: C.rd, borderRadius: 0, padding: '2px 7px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer', marginLeft: 4, flexShrink: 0 }}>✕</button>
             </Row>
           ))}
         </Panel>
@@ -489,16 +460,37 @@ function DemoDashboard({ onJumpToTrainee }) {
 // radius, no separate header band — title is just an FN line at the top
 // of the panel padding so the panel feels lighter and matches the real
 // DashboardView's `border: 1px solid {tint}30` style.
-function Panel({ title, tint, children }) {
+// White-stroke 14px icons mirroring ui.jsx SectionIcon kinds, so the demo
+// alert strips carry the same iconography as the real DashboardView.
+function DemoSectionIcon({ kind }) {
+  const common = { width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', stroke: '#FFFFFF', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', style: { marginRight: 6, verticalAlign: -2, flexShrink: 0 }, 'aria-hidden': true };
+  const paths = {
+    dot: <circle cx="12" cy="12" r="5" fill="#FFFFFF" stroke="none" />,
+    alert: <><path d="M12 3 2 21h20L12 3z" /><path d="M12 10v5" /><circle cx="12" cy="18" r="0.6" fill="#FFFFFF" stroke="#FFFFFF" /></>,
+    dollar: <><path d="M12 3v18" /><path d="M16 7.5a3.5 3.5 0 0 0-3.5-2.5h-1A3 3 0 0 0 11 11h2a3 3 0 0 1 .5 6h-1A3.5 3.5 0 0 1 8 15.5" /></>,
+    moon: <path d="M20 14a8 8 0 0 1-10-10 8 8 0 1 0 10 10z" />,
+    mail: <><rect x="3" y="5" width="18" height="14" rx="1" /><path d="m3 7 9 6 9-6" /></>,
+  };
+  return <svg {...common}>{paths[kind] || paths.dot}</svg>;
+}
+
+// Alert card = real DashboardView grammar: 3px colored LEFT border (or full
+// cyan border for Leads), cyan RefinedHeaderStrip with a white icon + label.
+function Panel({ title, tint, icon, children, cyanBorder }) {
   return (
     <div style={{
-      background: C.sf, border: `1px solid ${tint}30`, borderRadius: 0,
-      padding: '14px 18px',
+      background: C.sf,
+      border: cyanBorder ? `1px solid ${C.ac}` : `1px solid ${C.cardBd}`,
+      borderLeft: cyanBorder ? `1px solid ${C.ac}` : `3px solid ${tint}`,
+      borderRadius: 0, padding: '14px 18px',
+      boxShadow: cyanBorder ? undefined : C.cardShadow,
+      flex: '0 0 auto', width: 300, boxSizing: 'border-box',
     }}>
-      <div style={{
-        fontSize: 10, fontFamily: FN, color: tint, textTransform: 'uppercase',
-        letterSpacing: '0.05em', fontWeight: 700, marginBottom: 8,
-      }}>{title}</div>
+      <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', margin: '-14px -18px 12px', padding: '8px 18px', borderBottom: `1px solid ${C.cardBd}` }}>
+        <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', color: '#FFFFFF', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center' }}>
+          {icon && <DemoSectionIcon kind={icon} />}{title}
+        </span>
+      </div>
       <div>{children}</div>
     </div>
   );
