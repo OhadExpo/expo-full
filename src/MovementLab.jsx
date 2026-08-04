@@ -152,6 +152,7 @@ export default function MovementLab({
   onClose,
   onSaveJump,                   // (metrics) => void — wires jump into ath eval
   defaultBodyweightKg = null,   // prefill the jump-power bodyweight from the athlete
+  initialClipUrl = null,        // a reviewed form-video URL picked in ReviewToolsView → auto-analyse it
 }) {
   const videoRef = useRef(null);
   const liveCanvasRef = useRef(null);
@@ -310,6 +311,33 @@ export default function MovementLab({
       if (url) try { URL.revokeObjectURL(url); } catch {}
     }
   }, [mode, exerciseTitle, computeJump]);
+
+  // ---- analyze a REMOTE reviewed clip (a form-video cloudUrl handed in from
+  // ReviewToolsView's picker) ----  Same path as analyzeUploadedFile but the src
+  // is already a URL, so no createObjectURL; crossOrigin keeps the frame canvas
+  // readable (these cloud clips already serve CORS — the Review inline analyzer
+  // reads them the same way).
+  const analyzeRemoteUrl = useCallback(async (url) => {
+    if (!url) return;
+    setError(null); setResult(null); setJump(null); setProgress(0); setPhase('analyzing');
+    try {
+      const frames = await captureClipFrames(url, { crossOrigin: true, onProgress: setProgress });
+      framesRef.current = frames;
+      if (mode === 'jump') {
+        const j = computeJump(frames);
+        setJump(j); setResult({ ok: !!j, frameCount: frames.length, fps: estimateFps(frames) });
+      } else {
+        const res = analyzeClip(frames, exerciseTitle);
+        setResult(res); setTab(defaultTab(res.repCount));
+      }
+      setPhase('results');
+    } catch (e) {
+      setPhase('idle'); setError(e?.message || 'Could not load that clip.');
+    }
+  }, [mode, exerciseTitle, computeJump]);
+
+  // When the tool is opened with a pre-picked clip, analyse it once on mount.
+  useEffect(() => { if (initialClipUrl) analyzeRemoteUrl(initialClipUrl); }, [initialClipUrl, analyzeRemoteUrl]);
 
   const pickFile = useCallback(() => fileInputRef.current?.click(), []);
 

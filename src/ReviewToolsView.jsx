@@ -3,10 +3,117 @@
 // fullscreen MediaPipe / three.js modal, lazy-loaded on demand so the heavy
 // pose + 3D code stays out of the main bundle until a coach actually opens one.
 // Owner trial — nothing here writes to the athlete.
-import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
 import { RefinedHeaderStrip, SectionLabel } from './ui';
+
+// Build the reviewed-clip cascade tree from the coach's client workouts:
+// athlete → block (planName) → week → day → [exercises that carry a cloud clip].
+// Only form videos with a cloudUrl are included, so every exercise the coach can
+// pick genuinely has a playable video (Ohad). Read-only; no plan join needed —
+// week/day/planName/exercise title all live on the workout object.
+function buildClipTree(workouts, trainees) {
+  const nameOf = (cid) => {
+    const t = (trainees || []).find(x => x.id === cid);
+    if (t) return t.name;
+    const base = String(cid || '').split('__')[0];   // couple sub-member id
+    const p = (trainees || []).find(x => x.id === base);
+    return p ? p.name : (cid || '—');
+  };
+  const A = new Map();
+  for (const w of workouts || []) {
+    if (!Array.isArray(w.formVideos)) continue;
+    for (let i = 0; i < w.formVideos.length; i++) {
+      const fv = w.formVideos[i];
+      if (!fv || !fv.cloudUrl) continue;
+      const ex = Array.isArray(w.exercises) ? w.exercises[i] : null;
+      const title = (ex && (ex.title || ex.name)) || `Exercise ${i + 1}`;
+      const cid = w.clientId || '—';
+      const block = w.planName || 'Program';
+      const week = (w.week != null && w.week !== '') ? `Week ${w.week}` : 'Week —';
+      const day = w.dayName || 'Day';
+      if (!A.has(cid)) A.set(cid, new Map());
+      const B = A.get(cid);
+      if (!B.has(block)) B.set(block, new Map());
+      const W = B.get(block);
+      if (!W.has(week)) W.set(week, new Map());
+      const D = W.get(week);
+      if (!D.has(day)) D.set(day, []);
+      D.get(day).push({ title, url: fv.cloudUrl });
+    }
+  }
+  return [...A.entries()].map(([cid, B]) => ({
+    cid, name: nameOf(cid),
+    blocks: [...B.entries()].map(([block, W]) => ({
+      block,
+      weeks: [...W.entries()].map(([week, D]) => ({
+        week, days: [...D.entries()].map(([day, exercises]) => ({ day, exercises })),
+      })),
+    })),
+  })).sort((a, b) => String(a.name).localeCompare(String(b.name)));
+}
+
+// Cascading picker — five selects that narrow athlete → block → week → day →
+// exercise; choosing an exercise hands its clip URL + name up to the tools.
+function ReviewedClipPicker({ workouts, trainees, onPick, activeUrl }) {
+  const tree = useMemo(() => buildClipTree(workouts, trainees), [workouts, trainees]);
+  const [a, setA] = useState(''); const [b, setB] = useState('');
+  const [w, setW] = useState(''); const [d, setD] = useState(''); const [e, setE] = useState('');
+  const athlete = a !== '' ? tree[a] : null;
+  const block = athlete && b !== '' ? athlete.blocks[b] : null;
+  const week = block && w !== '' ? block.weeks[w] : null;
+  const day = week && d !== '' ? week.days[d] : null;
+
+  const sel = { flex: '1 1 130px', minWidth: 0, boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 13, padding: '9px 11px', borderRadius: 0, outline: 'none', cursor: 'pointer' };
+  const selDim = { ...sel, color: C.td, cursor: 'default', opacity: 0.6 };
+
+  const onE = (v) => { setE(v); const ex = day && v !== '' ? day.exercises[v] : null; if (ex) onPick(ex.url, ex.title); };
+
+  if (!tree.length) {
+    return (
+      <div style={{ marginBottom: 16 }}>
+        <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 6, textTransform: 'uppercase' }}>Load a reviewed clip</label>
+        <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, border: `1px dashed ${C.cardBd}`, padding: '10px 12px' }}>No recorded form videos yet — athletes' uploaded clips will appear here to analyse.</div>
+      </div>
+    );
+  }
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 3, textTransform: 'uppercase' }}>Load a reviewed clip</label>
+      <div style={{ fontFamily: FB, fontSize: 11, color: C.tm, marginBottom: 9, maxWidth: 480, lineHeight: 1.4 }}>
+        Pick an athlete's already-recorded set — only exercises with a video are listed — and the tools analyse it directly, no re-upload.
+      </div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, maxWidth: 720 }}>
+        <select value={a} onChange={ev => { setA(ev.target.value); setB(''); setW(''); setD(''); setE(''); }} style={sel}>
+          <option value="">Athlete…</option>
+          {tree.map((x, i) => <option key={x.cid} value={i}>{x.name}</option>)}
+        </select>
+        <select value={b} disabled={!athlete} onChange={ev => { setB(ev.target.value); setW(''); setD(''); setE(''); }} style={athlete ? sel : selDim}>
+          <option value="">Block…</option>
+          {athlete?.blocks.map((x, i) => <option key={i} value={i}>{x.block}</option>)}
+        </select>
+        <select value={w} disabled={!block} onChange={ev => { setW(ev.target.value); setD(''); setE(''); }} style={block ? sel : selDim}>
+          <option value="">Week…</option>
+          {block?.weeks.map((x, i) => <option key={i} value={i}>{x.week}</option>)}
+        </select>
+        <select value={d} disabled={!week} onChange={ev => { setD(ev.target.value); setE(''); }} style={week ? sel : selDim}>
+          <option value="">Day…</option>
+          {week?.days.map((x, i) => <option key={i} value={i}>{x.day}</option>)}
+        </select>
+        <select value={e} disabled={!day} onChange={ev => onE(ev.target.value)} style={day ? sel : selDim}>
+          <option value="">Exercise…</option>
+          {day?.exercises.map((x, i) => <option key={i} value={i}>{x.title}</option>)}
+        </select>
+      </div>
+      {activeUrl && (
+        <div style={{ marginTop: 9, display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: C.ac, border: `1px solid rgba(57,189,255,0.4)`, background: 'rgba(57,189,255,0.06)', padding: '5px 10px' }}>
+          ● CLIP LOADED — the tools will analyse this video
+        </div>
+      )}
+    </div>
+  );
+}
 
 // Common lifts — quick-pick chips that set the analysed movement. The pose
 // engine keyword-matches this name to decide which joints to read, so picking
@@ -144,8 +251,9 @@ function ToolRow({ t, blocked, isFirst, onOpen }) {
   );
 }
 
-export default function ReviewToolsView() {
+export default function ReviewToolsView({ clientWorkouts = [], trainees = [] }) {
   const [title, setTitle] = useState('Squat');
+  const [clipUrl, setClipUrl] = useState(null); // a picked reviewed-clip URL → fed into the tools
   const [tool, setTool]   = useState(null); // 'lab' | 'metrics' | 'jump' | 'live' | null
   const camOk = useRef(hasCameraApi());
 
@@ -181,6 +289,12 @@ export default function ReviewToolsView() {
           the athlete.
         </div>
 
+        {/* Reviewed-clip picker — cascade to an already-recorded form video and
+            analyse it directly (Ohad). Sets the lift name + hands the clip URL to
+            the tools. The manual lift selector below is the fallback / live path. */}
+        <ReviewedClipPicker workouts={clientWorkouts} trainees={trainees} activeUrl={clipUrl}
+          onPick={(url, t) => { setClipUrl(url); if (t) setTitle(t); }} />
+
         {/* The lift being analysed. NOT cosmetic: the pose engine keyword-matches
             this name to choose which joints to read, so it's what makes the ROM /
             tempo / depth numbers meaningful. Jump auto-labels itself. */}
@@ -214,8 +328,8 @@ export default function ReviewToolsView() {
       {tool && createPortal((
         <ToolBoundary toolKey={tool} onClose={close}>
           <Suspense fallback={<ToolLoading label={activeTool ? activeTool.label : 'TOOL'} />}>
-            {tool === 'lab'     && <MovementLab exerciseTitle={title || 'Squat'} initialMode="analyze" initialView="3d" toolLabel="MOVEMENT LAB" onClose={close} />}
-            {tool === 'metrics' && <MovementLab exerciseTitle={title || 'Squat'} initialMode="analyze" initialView="metrics" toolLabel="LIFT METRICS" onClose={close} />}
+            {tool === 'lab'     && <MovementLab exerciseTitle={title || 'Squat'} initialMode="analyze" initialView="3d" toolLabel="MOVEMENT LAB" initialClipUrl={clipUrl} onClose={close} />}
+            {tool === 'metrics' && <MovementLab exerciseTitle={title || 'Squat'} initialMode="analyze" initialView="metrics" toolLabel="LIFT METRICS" initialClipUrl={clipUrl} onClose={close} />}
             {tool === 'jump'    && <MovementLab exerciseTitle="Vertical Jump" initialMode="jump" onClose={close} />}
             {tool === 'live'    && <ARFormOverlay exerciseTitle={title || 'Squat'} onClose={close} />}
           </Suspense>
