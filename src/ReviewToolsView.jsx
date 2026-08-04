@@ -347,7 +347,7 @@ export default function ReviewToolsView({ clientWorkouts = [], trainees = [] }) 
           <Suspense fallback={<ToolLoading label={activeTool ? activeTool.label : 'TOOL'} />}>
             {tool === 'lab'     && <MovementLab exerciseTitle={title || 'Squat'} initialMode="analyze" initialView="3d" toolLabel="MOVEMENT LAB" initialClipUrl={clipUrl} onClose={close} />}
             {tool === 'metrics' && <MovementLab exerciseTitle={title || 'Squat'} initialMode="analyze" initialView="metrics" toolLabel="LIFT METRICS" initialClipUrl={clipUrl} onClose={close} />}
-            {tool === 'jump'    && <MovementLab exerciseTitle="Vertical Jump" initialMode="jump" onClose={close} />}
+            {tool === 'jump'    && <MovementLab exerciseTitle="Vertical Jump" initialMode="jump" initialClipUrl={clipUrl} onClose={close} />}
             {tool === 'live'    && <ARFormOverlay exerciseTitle={title || 'Squat'} onClose={close} />}
           </Suspense>
         </ToolBoundary>

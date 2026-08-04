@@ -185,6 +185,11 @@ export default function MovementLab({
   const [tab, setTab] = useState('velocity');     // velocity | rom | threeD
   const [progress, setProgress] = useState(0);    // upload analysis %
   const [mode] = useState(initialMode);
+  // Source clip URL (remote reviewed clip or uploaded object URL) kept so the
+  // results view can show the video next to the analysis, like the Review player.
+  const [srcUrl, setSrcUrl] = useState(null);
+  const setSource = useCallback((u) => { setSrcUrl(prev => { if (prev && prev !== u && prev.startsWith('blob:')) { try { URL.revokeObjectURL(prev); } catch { /* noop */ } } return u; }); }, []);
+  useEffect(() => () => { setSrcUrl(cur => { if (cur && cur.startsWith('blob:')) { try { URL.revokeObjectURL(cur); } catch { /* noop */ } } return null; }); }, []);
   const fileInputRef = useRef(null);
   // Which result tab to land on, honouring the tool's scope: the 3D-skeleton
   // tool (Movement Lab) opens straight to the skeleton; the metrics tool (Lift
@@ -305,9 +310,9 @@ export default function MovementLab({
   const analyzeUploadedFile = useCallback(async (file) => {
     if (!file) return;
     setError(null); setResult(null); setJump(null); setProgress(0); setPhase('analyzing');
-    let url;
     try {
-      url = URL.createObjectURL(file);
+      const url = URL.createObjectURL(file);
+      setSource(url);   // keep it — the results view shows this video next to the analysis
       const frames = await captureClipFrames(url, { onProgress: setProgress });
       framesRef.current = frames;
       if (mode === 'jump') {
@@ -320,10 +325,8 @@ export default function MovementLab({
       setPhase('results');
     } catch (e) {
       setPhase('idle'); setError(e?.message || 'Could not process that video.');
-    } finally {
-      if (url) try { URL.revokeObjectURL(url); } catch {}
     }
-  }, [mode, exerciseTitle, computeJump]);
+  }, [mode, exerciseTitle, computeJump, setSource]);
 
   // ---- analyze a REMOTE reviewed clip (a form-video cloudUrl handed in from
   // ReviewToolsView's picker) ----  Same path as analyzeUploadedFile but the src
@@ -333,6 +336,7 @@ export default function MovementLab({
   const analyzeRemoteUrl = useCallback(async (url) => {
     if (!url) return;
     setError(null); setResult(null); setJump(null); setProgress(0); setPhase('analyzing');
+    setSource(url);   // show the clip next to the analysis in results
     try {
       const frames = await captureClipFrames(url, { crossOrigin: true, onProgress: setProgress });
       framesRef.current = frames;
@@ -347,7 +351,7 @@ export default function MovementLab({
     } catch (e) {
       setPhase('idle'); setError(e?.message || 'Could not load that clip.');
     }
-  }, [mode, exerciseTitle, computeJump]);
+  }, [mode, exerciseTitle, computeJump, setSource]);
 
   // When the tool is opened with a pre-picked clip, analyse it once on mount.
   useEffect(() => { if (initialClipUrl) analyzeRemoteUrl(initialClipUrl); }, [initialClipUrl, analyzeRemoteUrl]);
@@ -458,12 +462,25 @@ export default function MovementLab({
       <input ref={fileInputRef} type="file" accept="video/*" style={{ display: 'none' }}
         onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) analyzeUploadedFile(f); }} />
 
-      {/* results */}
+      {/* results — the SOURCE clip (when we have one: a picked reviewed clip or
+          an upload) is shown on the LEFT, embedded + scrubbable, next to the
+          analysis on the right, mirroring the Review player (Ohad). The video is
+          sticky so it stays in view while the metrics/3D scroll. */}
       {phase === 'results' && (
         <div style={{ flex: 1, overflow: 'auto', padding: '64px 16px 16px', WebkitOverflowScrolling: 'touch' }}>
-          {mode === 'jump'
-            ? <JumpResult jump={jump} result={result} onSave={onSaveJump} onClose={onClose} defaultBodyweightKg={defaultBodyweightKg} />
-            : <AnalyzeResult result={result} frames={framesRef.current} exerciseTitle={exerciseTitle} tab={tab} setTab={setTab} view={initialView} />}
+          <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap', maxWidth: 1400, margin: '0 auto' }}>
+            {srcUrl && (
+              <div style={{ flex: '0 0 320px', maxWidth: 340, minWidth: 240, position: 'sticky', top: 0 }}>
+                <video key={srcUrl} src={srcUrl} controls muted playsInline
+                  style={{ width: '100%', maxHeight: '76vh', background: '#000', border: '1px solid rgba(255,255,255,0.15)', display: 'block', objectFit: 'contain' }} />
+              </div>
+            )}
+            <div style={{ flex: 1, minWidth: 300 }}>
+              {mode === 'jump'
+                ? <JumpResult jump={jump} result={result} onSave={onSaveJump} onClose={onClose} defaultBodyweightKg={defaultBodyweightKg} />
+                : <AnalyzeResult result={result} frames={framesRef.current} exerciseTitle={exerciseTitle} tab={tab} setTab={setTab} view={initialView} />}
+            </div>
+          </div>
         </div>
       )}
 
