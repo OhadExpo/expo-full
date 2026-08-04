@@ -2651,35 +2651,29 @@ function DemoExercises() {
             Nothing matches {q ? <>"<span style={{ color: C.tx, fontWeight: 700 }}>{search}</span>"</> : 'this filter'}. Clear search or pick another category.
           </div>
         </div>
-      ) : (
-        // Same table shape as src/ExercisesView.jsx so the demo mirrors what
-        // a coach actually sees in the real app: Title / Category / Resistance
-        // / Pattern / Laterality, hover-tinted rows, badges per cell.
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
-            <thead>
-              <tr style={{ borderBottom: `1px solid ${C.bd}` }}>
-                {['Title', 'Category', 'Resistance', 'Pattern', 'Laterality'].map(h => (
-                  <th key={h} style={{ textAlign: 'left', padding: '8px 10px', fontSize: 10, fontFamily: FN, color: C.td, textTransform: 'uppercase' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((e, i) => (
-                <tr key={i} style={{ borderBottom: `1px solid ${C.bd}` }}
-                  onMouseEnter={ev => ev.currentTarget.style.background = C.sf2}
-                  onMouseLeave={ev => ev.currentTarget.style.background = 'transparent'}>
-                  <td style={{ padding: '10px', color: C.tx, fontWeight: 600 }}>{e.name}</td>
-                  <td style={{ padding: '10px' }}><Badge>{e.category}</Badge></td>
-                  <td style={{ padding: '10px', color: C.tm }}>{e.resistanceType || '—'}</td>
-                  <td style={{ padding: '10px' }}>{e.pattern ? <Badge color={C.gn}>{e.pattern}</Badge> : '—'}</td>
-                  <td style={{ padding: '10px', color: C.tm }}>{e.laterality || '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      ) : (() => {
+        // "Minimal + rhythm" — mirrors the redesigned src/ExercisesView.jsx: a
+        // zebra stripe + a category-colour dot + name + a dotted leader to one
+        // dim attribute on the right. No boxed tags (the green pattern Badge is
+        // gone), no em-dashes for blanks (Ohad — kept the demo in parity).
+        const CAT_COLOR = { Chest:'#E0736A', Back:'#5B93D6', Shoulders:'#E0A85B', Arms:'#B06AD0', Core:'#D9C755', Legs:'#5FBE86', Glutes:'#D96FAE', 'Full Body':'#5FBEC0', Olympic:'#C9CDD4', Cardio:'#E08A5B', Other:'#7A828C' };
+        return (
+        <div style={{ background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 0 }}>
+          {filtered.map((e, i) => {
+            const dot = CAT_COLOR[e.category] || 'rgba(127,127,138,0.30)';
+            const right = e.primaryMuscles || e.resistanceType || '';
+            return (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 14px', height: 34, borderBottom: `1px solid ${C.bd}`, background: i % 2 ? 'rgba(127,127,138,0.045)' : 'transparent' }}>
+                <span title={e.category} style={{ width: 7, height: 7, borderRadius: '50%', background: dot, flexShrink: 0 }} />
+                <span style={{ fontFamily: FB, fontWeight: 600, fontSize: 13, color: C.tx, flexShrink: 0, maxWidth: '55%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.name}</span>
+                <span style={{ flex: 1, minWidth: 10, borderBottom: `1px dotted ${C.bd}`, opacity: 0.45, height: 0, margin: '0 4px' }} />
+                {right && <span style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.04em', flexShrink: 0, maxWidth: '32%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{right}</span>}
+              </div>
+            );
+          })}
         </div>
-      )}
+        );
+      })()}
     </section>
   );
 }
