@@ -3021,6 +3021,13 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
         .prog-card { transition: background 140ms ease; }
         .prog-card:hover { background: var(--c-sf2); }
         .prog-txtbtn:hover { text-decoration: underline; }
+        /* Mobile: drop the flex-spacer that pushes the actions right (which made
+           DELETE wrap onto its own line) and tighten the gap so PORTAL + the
+           text actions group left and wrap evenly (Ohad mobile OCD pass). */
+        @media (max-width: 560px) {
+          .prog-actions { gap: 12px !important; }
+          .prog-actions .prog-spacer { display: none !important; }
+        }
         /* Smooth reveal for the previous-blocks list so expanding feels as
            deliberate as collapsing (Ohad). Reduced-motion users get none. */
         @keyframes progReveal { 0% { opacity: 0; transform: translateY(-10px); } 40% { opacity: 0.5; } 100% { opacity: 1; transform: none; } }
