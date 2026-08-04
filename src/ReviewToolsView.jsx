@@ -107,14 +107,6 @@ function ReviewedClipPicker({ workouts, trainees, onPick, activeUrl }) {
           {day?.exercises.map((x, i) => <option key={i} value={i}>{x.title}</option>)}
         </select>
       </div>
-      {activeUrl && (
-        // The full Review player, inline — video + skeleton toggle + speed/loop +
-        // LIFT METRICS + 3D + rep-range selection, the exact experience Ohad wants
-        // ("built perfectly like in a reviewed video"). Reused, not rebuilt.
-        <div key={activeUrl} style={{ marginTop: 14, maxWidth: 560 }}>
-          <FormVideoPlayer url={activeUrl} exerciseTitle={(day && e !== '' && day.exercises[e]?.title) || 'Exercise'} />
-        </div>
-      )}
     </div>
   );
 }
@@ -293,52 +285,73 @@ export default function ReviewToolsView({ clientWorkouts = [], trainees = [] }) 
           the athlete.
         </div>
 
-        {/* Reviewed-clip picker — cascade to an already-recorded form video and
-            analyse it directly (Ohad). Sets the lift name + hands the clip URL to
-            the tools. The manual lift selector below is the fallback / live path. */}
-        <ReviewedClipPicker workouts={clientWorkouts} trainees={trainees} activeUrl={clipUrl}
+        {/* Reviewed-clip picker — cascade selects only. Once a clip is picked
+            the video + tools lay out below as a two-column workspace. */}
+        <ReviewedClipPicker workouts={clientWorkouts} trainees={trainees}
           onPick={(url, t) => { setClipUrl(url); if (t) setTitle(t); }} />
+      </div>
 
-        {/* The lift being analysed drives which joints the pose engine reads.
-            When a clip is picked above, it's set AUTOMATICALLY from that exercise
-            — Ohad: "I don't want to have to pick" — so we just show it read-only.
-            Only when there's NO clip (live / manual) do we surface the picker. */}
-        {clipUrl ? (
-          <div>
-            <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 5, textTransform: 'uppercase' }}>Lift being analysed</label>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, maxWidth: '100%', background: 'var(--c-sf2)', border: `1px solid ${C.cardBd}`, padding: '9px 13px', borderRadius: 0 }}>
-              <span style={{ fontFamily: FB, fontSize: 14, fontWeight: 600, color: C.tx, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</span>
-              <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', color: C.ac, whiteSpace: 'nowrap' }}>· AUTO</span>
+      {clipUrl ? (
+        /* Two-column workspace: the reviewed video (with its own speed/loop
+           toggler) sits on the LEFT, page-height; the lift + TOOLS sit on the
+           RIGHT, top-aligned with the video — Ohad: "the analysis on the right". */
+        <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+          <div key={clipUrl} style={{ flex: '1 1 360px', minWidth: 0, maxWidth: 560, position: 'sticky', top: 12 }}>
+            <FormVideoPlayer url={clipUrl} exerciseTitle={title || 'Exercise'} />
+          </div>
+          <div style={{ flex: '1 1 300px', minWidth: 260, display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Lift being analysed — set AUTOMATICALLY from the picked clip
+                (Ohad: "I don't want to have to pick"), shown read-only. */}
+            <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '14px 18px' }}>
+              <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 5, textTransform: 'uppercase' }}>Lift being analysed</label>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, maxWidth: '100%', background: 'var(--c-sf2)', border: `1px solid ${C.cardBd}`, padding: '9px 13px', borderRadius: 0 }}>
+                <span style={{ fontFamily: FB, fontSize: 14, fontWeight: 600, color: C.tx, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</span>
+                <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', color: C.ac, whiteSpace: 'nowrap' }}>· AUTO</span>
+              </div>
+            </div>
+            {/* Tools */}
+            <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '14px 18px' }}>
+              <RefinedHeaderStrip padY={14} padX={18} marginBottom={4}>
+                <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>TOOLS</SectionLabel>
+              </RefinedHeaderStrip>
+              {REVIEW_TOOLS.map((t, i) => (
+                <ToolRow key={t.key} t={t} blocked={t.live && !camOk.current} isFirst={i === 0} onOpen={() => open(t.key)} />
+              ))}
             </div>
           </div>
-        ) : (<>
-          <label htmlFor="rt-exercise" style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 3, textTransform: 'uppercase' }}>Lift being analysed</label>
-          <div style={{ fontFamily: FB, fontSize: 11, color: C.tm, marginBottom: 9, maxWidth: 480, lineHeight: 1.4 }}>
-            Tells the pose engine which joints to read — squat reads knee/hip depth, bench reads elbow lockout.
+        </div>
+      ) : (
+        <>
+          {/* No clip — manual / live path: pick the lift, then the tools. */}
+          <div style={{ marginBottom: 16, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '14px 18px' }}>
+            <label htmlFor="rt-exercise" style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 3, textTransform: 'uppercase' }}>Lift being analysed</label>
+            <div style={{ fontFamily: FB, fontSize: 11, color: C.tm, marginBottom: 9, maxWidth: 480, lineHeight: 1.4 }}>
+              Tells the pose engine which joints to read — squat reads knee/hip depth, bench reads elbow lockout.
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+              {QUICK_LIFTS.map(l => {
+                const on = title.trim().toLowerCase() === l.toLowerCase();
+                return (
+                  <button key={l} onClick={() => setTitle(l)} type="button"
+                    style={{ background: on ? 'var(--c-sf2)' : 'transparent', border: `1px solid ${on ? C.ac : C.cardBd}`, color: on ? C.ac : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', padding: '6px 12px', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>{l}</button>
+                );
+              })}
+            </div>
+            <input id="rt-exercise" value={title} onChange={e => setTitle(e.target.value)} placeholder="…or type any lift, e.g. Front Squat"
+              style={{ width: '100%', maxWidth: 380, boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 14, padding: '10px 13px', borderRadius: 0, outline: 'none' }} />
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
-            {QUICK_LIFTS.map(l => {
-              const on = title.trim().toLowerCase() === l.toLowerCase();
-              return (
-                <button key={l} onClick={() => setTitle(l)} type="button"
-                  style={{ background: on ? 'var(--c-sf2)' : 'transparent', border: `1px solid ${on ? C.ac : C.cardBd}`, color: on ? C.ac : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', padding: '6px 12px', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>{l}</button>
-              );
-            })}
-          </div>
-          <input id="rt-exercise" value={title} onChange={e => setTitle(e.target.value)} placeholder="…or type any lift, e.g. Front Squat"
-            style={{ width: '100%', maxWidth: 380, boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 14, padding: '10px 13px', borderRadius: 0, outline: 'none' }} />
-        </>)}
-      </div>
 
-      {/* Tools card — hairline-divided rows inside the standard surface card. */}
-      <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '14px 18px' }}>
-        <RefinedHeaderStrip padY={14} padX={18} marginBottom={4}>
-          <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>TOOLS</SectionLabel>
-        </RefinedHeaderStrip>
-        {REVIEW_TOOLS.map((t, i) => (
-          <ToolRow key={t.key} t={t} blocked={t.live && !camOk.current} isFirst={i === 0} onOpen={() => open(t.key)} />
-        ))}
-      </div>
+          {/* Tools card — hairline-divided rows inside the standard surface card. */}
+          <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '14px 18px' }}>
+            <RefinedHeaderStrip padY={14} padX={18} marginBottom={4}>
+              <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>TOOLS</SectionLabel>
+            </RefinedHeaderStrip>
+            {REVIEW_TOOLS.map((t, i) => (
+              <ToolRow key={t.key} t={t} blocked={t.live && !camOk.current} isFirst={i === 0} onOpen={() => open(t.key)} />
+            ))}
+          </div>
+        </>
+      )}
 
       {tool && createPortal((
         <ToolBoundary toolKey={tool} onClose={close}>
