@@ -16,6 +16,7 @@ import { createPortal } from 'react-dom';
 import { fmtPrettyDate } from './dates';
 import { C, FN, FB, FH, CATEGORIES, RESISTANCE_TYPES, BODY_POSITIONS, MOVEMENT_TYPES, MOVEMENT_PATTERNS, LATERALITY } from './theme';
 import { EXPOMark } from './expoMark';
+import { SideRail } from './SideRail';
 
 // ─── Mock data ────────────────────────────────────────────────────────────
 // Three mock trainees — one per format type (Online / Gym Single / Gym Couple)
@@ -3330,25 +3331,33 @@ const STATUS_COLS = [
 function DemoTasks() {
   const [owner, setOwner] = useState('OHAD');
   const [view, setView] = useState('board');
+  const [quickFilter, setQuickFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('soonest');
+  const [boardGroup, setBoardGroup] = useState('status');
   const visible = DEMO_TASKS.filter(t => owner === 'ALL' ? true : (t.who === owner || (owner === 'SHARED' && t.who === 'SHARED')));
   const counts = { OHAD: DEMO_TASKS.filter(t => t.who === 'OHAD').length, YUVAL: DEMO_TASKS.filter(t => t.who === 'YUVAL').length, SHARED: DEMO_TASKS.filter(t => t.who === 'SHARED').length };
-  const pill = (active) => ({ ...baseBtn, background: active ? C.acD : 'transparent', color: active ? C.ac : C.tm, border: `1px solid ${active ? C.ac : C.bd}`, padding: '5px 14px', fontSize: 11, letterSpacing: 1 });
   const bySrc = (s) => visible.filter(t => t.src === s);
   return (
     <section>
-      {/* Owner tabs + view toggle */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 14 }}>
-        <div style={{ display: 'flex', gap: 6 }}>
-          {['OHAD', 'YUVAL', 'SHARED'].map(o => <button key={o} onClick={() => setOwner(o)} style={pill(owner === o)}>{o} <span style={{ opacity: 0.7, fontSize: 9 }}>{counts[o]}</span></button>)}
-        </div>
-        <div style={{ display: 'flex', gap: 6 }}>
-          {['list', 'board'].map(v => <button key={v} onClick={() => setView(v)} style={pill(view === v)}>{v.toUpperCase()}</button>)}
+      {/* Header — TASKS title + List/Board segmented toggle (mirrors TasksV8View). */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, gap: 12, flexWrap: 'wrap' }}>
+        <h2 style={{ margin: 0, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', color: C.tx, textTransform: 'uppercase' }}>Tasks</h2>
+        <div style={{ display: 'inline-flex', border: `1px solid ${C.bd}` }}>
+          {['list', 'board'].map(v => <button key={v} onClick={() => setView(v)} style={{ ...baseBtn, background: view === v ? C.ac : 'transparent', color: view === v ? '#0E0F12' : C.tm, border: 'none', padding: '7px 20px', fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>{v}</button>)}
         </div>
       </div>
-      {/* Quick filter chips (visual) */}
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
-        {['TODAY', 'OVERDUE', 'STUCK', 'NO DATE'].map(c => <span key={c} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: C.tm, border: `1px solid ${C.bd}`, padding: '4px 10px' }}>{c}</span>)}
-      </div>
+      {/* Two-column: the shared SideRail (identical to the real Tasks rail) + content. */}
+      <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+        <SideRail width={204} top={12} maxHeight="calc(100vh - 24px)"
+          search="" onSearch={() => {}} searchPlaceholder="Search tasks…"
+          groups={[
+            { label: 'Whose', opts: ['OHAD', 'YUVAL', 'SHARED'].map(o => ({ key: o, label: o.charAt(0) + o.slice(1).toLowerCase(), count: counts[o], active: owner === o, onClick: () => setOwner(o) })) },
+            { label: 'Show', opts: [['all', 'All'], ['today', 'Today'], ['overdue', 'Overdue'], ['stuck', 'Stuck'], ['nodate', 'No date']].map(([k, l]) => ({ key: k, label: l, active: quickFilter === k, onClick: () => setQuickFilter(k) })) },
+            { label: 'Sort', opts: [['soonest', '↓ Soonest'], ['newest', 'Newest'], ['urgency', 'Urgency'], ['status', 'Status'], ['az', 'A→Z'], ['manual', 'Manual']].map(([k, l]) => ({ key: k, label: l, active: sortBy === k, onClick: () => setSortBy(k) })) },
+            { label: 'Group', opts: [['status', 'By status'], ['category', 'By category']].map(([k, l]) => ({ key: k, label: l, active: boardGroup === k, onClick: () => setBoardGroup(k) })) },
+          ]}
+        />
+        <div style={{ flex: 1, minWidth: 0 }}>
       {/* Composer (collapsed affordance) */}
       <div style={{ ...demoCardStyle({ marginBottom: 16, cursor: 'text', display: 'flex', alignItems: 'center', gap: 10 }) }}>
         <span style={{ color: C.ac, fontSize: 16, fontWeight: 700 }}>+</span>
@@ -3408,14 +3417,8 @@ function DemoTasks() {
           );
         })
       )}
-      {/* Google Calendar embed strip (collapsed, demo-disabled connect) */}
-      <div style={{ ...demoCardStyle({ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 8 }) }}>
-        <div>
-          <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', color: C.tx }}>📅 GOOGLE CALENDAR</div>
-          <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 3 }}>Your appointments alongside tasks.</div>
-        </div>
-        <button style={{ ...baseBtn, background: 'transparent', color: C.td, border: `1px solid ${C.bd}`, padding: '5px 12px', fontSize: 10, cursor: 'not-allowed', opacity: 0.6 }}>CONNECT</button>
-      </div>
+        </div>{/* /right column */}
+      </div>{/* /two-column layout */}
     </section>
   );
 }
