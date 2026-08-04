@@ -4,6 +4,7 @@ import { fmtPrettyDate } from './dates';
 import { C, FN, FB, uid, TRAINING_FORMATS, TRAINEE_STATUSES, PACKAGE_TYPES } from './theme';
 import { Btn, Input, Select, TextArea, Badge, Card, Modal, ConfirmDialog, EmptyState, EmailsInput, baseInput, isRefined5b, useEscClose, toast } from './ui';
 import { emailsToArr, emailsToStore, subMemberId, traineeIdsFor } from './traineeUtils';
+import { SideRail } from './SideRail';
 import { WhatsAppCheckInButton } from './whatsappButton';
 
 // Clickable status pill for the athlete cards — same control as the trainee
@@ -373,37 +374,6 @@ const saveSortPrefs = (prefs) => {
   try { localStorage.setItem(SORT_KEY, JSON.stringify(prefs)); } catch {}
 };
 
-// Left-rail section label — small uppercase FN, matches the app's control vocab.
-function RailLabel({ children, right }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5, padding: '0 14px' }}>
-      <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.2em', color: C.td, textTransform: 'uppercase' }}>{children}</div>
-      {right}
-    </div>
-  );
-}
-// Filter-rail item — matches the Tasks sidebar (Ohad's reference for ALL
-// sidebars): borderless text row, left cyan accent bar, active = subtle
-// accent-tint fill, muted count on the right.
-function RailOption({ label, count, active, onClick, accent = C.ac, title }) {
-  const [hov, setHov] = useState(false);
-  return (
-    <button onClick={onClick} title={title}
-      onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
-      style={{
-        display: 'flex', alignItems: 'center', width: '100%', height: 28, border: 'none', padding: 0, cursor: 'pointer', boxSizing: 'border-box',
-        background: active ? `color-mix(in srgb, ${accent} 20%, transparent)` : (hov ? 'var(--c-sf3, rgba(127,127,138,0.10))' : 'transparent'),
-        color: active ? accent : (hov ? 'var(--c-tx)' : 'var(--c-tm)'),
-        fontFamily: FN, fontSize: 10, fontWeight: active ? 800 : 700, letterSpacing: '0.05em', textTransform: 'uppercase',
-        transition: 'background .12s, color .12s',
-      }}>
-      <span style={{ width: 3, alignSelf: 'stretch', background: accent, opacity: active ? 1 : 0, flexShrink: 0 }} />
-      <span style={{ flex: 1, textAlign: 'left', padding: '0 8px 0 14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{label}</span>
-      {count != null && <span style={{ paddingRight: 14, fontSize: 9, fontWeight: 700, opacity: active ? 0.9 : 0.6, flexShrink: 0 }}>{count}</span>}
-    </button>
-  );
-}
-
 export default function TraineesView({ trainees, setTrainees, planCounts, payments, workouts, clientWorkouts, bwLog, portalVis, presence, onSelect, onPreview }) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(defaultTrainee());
@@ -661,96 +631,44 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
         {/* LEFT: filter rail — sticky so the controls stay pinned as the (long)
             cards grid scrolls. Fixed 210px; wraps to full-width when the
             viewport can't fit both columns. */}
-        <aside className="athletes-rail side-rail" style={{
-          width: 210, flexShrink: 0, alignSelf: 'flex-start',
-          position: 'sticky', top: 12,
-          background: 'var(--c-sf2)', border: `1px solid ${C.cardBd}`, boxSizing: 'border-box',
-          maxHeight: 'calc(100vh - 24px)', overflowY: 'auto', overflowX: 'hidden',
-          display: 'flex', flexDirection: 'column', gap: (narrow && !railOpen) ? 0 : 12,
-          ...(narrow ? { padding: (railOpen ? '12px' : '0') } : { padding: '14px 0 16px' }),
-        }}>
-          {/* FILTERS toggle — narrow only. Collapses the whole rail so the athlete
-              CARDS are front-and-centre; tap to reveal Search / Status / Format /
-              Needs-Attention / Sort / +Add. Mirrors the programs-page collapsed rail.
-              Desktop skips this and renders the rail open. */}
-          {/* SEARCH — box at the TOP of the rail, always visible, inset with
-              symmetric L/R padding so it sits centered between the cyan borders
-              (matches the Tasks rail exactly — Ohad). */}
-          <div style={{ padding: '0 14px 12px' }}>
-            <input placeholder="Search athletes…" value={search} onChange={e => setSearch(e.target.value)}
-              style={{ width: '100%', height: 34, boxSizing: 'border-box', padding: '0 11px', borderRadius: 0, background: 'var(--c-sf)', color: 'var(--c-tx)', border: '1px solid var(--c-cardBd)', fontFamily: FN, fontSize: 11, fontWeight: 500, letterSpacing: '0.04em', outline: 'none', textAlign: 'left' }} />
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 8, minHeight: 14 }}>
-              <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color: C.td }}>{filtered.length} {filtered.length === 1 ? 'ATHLETE' : 'ATHLETES'}</span>
-              {anyFilterActive && (
-                <button onClick={clearFilters} title="Clear all filters"
-                  style={{ background: 'transparent', border: 'none', color: C.tm, cursor: 'pointer', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', padding: 0, whiteSpace: 'nowrap' }}>
-                  ✕ Clear
-                </button>
-              )}
-            </div>
-          </div>
-          {/* FILTERS header — static label + underline on desktop; tap-to-collapse
-              toggle with chevron on narrow. Matches the Tasks rail exactly. */}
-          <div onClick={narrow ? () => setRailOpen(o => !o) : undefined}
-            style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.22em', color: C.ac, textTransform: 'uppercase', padding: (narrow && !railOpen) ? '0 16px' : '0 16px 10px', borderBottom: (narrow && !railOpen) ? 'none' : `1px solid ${C.cardBd}`, cursor: narrow ? 'pointer' : 'default', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-            <span>Filters</span>
-            {narrow && <span aria-hidden style={{ fontSize: 11, lineHeight: 1, transform: railOpen ? 'rotate(180deg)' : 'none', transition: 'transform 180ms ease' }}>▾</span>}
-          </div>
-          {(!narrow || railOpen) && (<>
-
-          {/* STATUS — single-select. Archived swaps the pool to the dashed,
-              drag-off archived cards (via showArchived derived above). */}
-          <div>
-            <RailLabel>Status</RailLabel>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-              {['All', 'Active', 'On Hold', 'Inactive', 'Trial', 'Archived'].map(s => (
-                <RailOption key={s} label={s} count={statusCounts[s]}
-                  active={statusFilter === s} onClick={() => setStatusFilter(s)}
-                  accent={s === 'Archived' ? C.rd : C.ac}
-                  tint={s === 'Archived' ? 'rgba(255,77,79,0.10)' : 'rgba(57,189,255,0.094)'} />
-              ))}
-            </div>
-          </div>
-
-          {/* FORMAT — single-select. Counts reflect the current status pool. */}
-          <div>
-            <RailLabel>Format</RailLabel>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-              {['All', 'Online', 'Gym · Single', 'Gym · Couple', 'Bnei Herzliya'].map(f => (
-                <RailOption key={f} label={f} count={formatCounts[f]}
-                  active={formatFilter === f} onClick={() => setFormatFilter(f)} />
-              ))}
-            </div>
-          </div>
-
-          {/* NEEDS ATTENTION — multi-toggle alert flags (AND-combined). Active
-              flags read amber so the rail doubles as a triage list. */}
-          <div>
-            <RailLabel>Needs Attention</RailLabel>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-              {[
+        {/* LEFT filter rail — the shared SideRail (literally the Tasks-page
+            sidebar; see SideRail.jsx). Only the DATA differs. */}
+        <SideRail
+          className="athletes-rail"
+          width={204} top={12} maxHeight="calc(100vh - 24px)"
+          narrow={narrow} railOpen={railOpen} setRailOpen={setRailOpen}
+          search={search} onSearch={(v) => setSearch(v)}
+          searchPlaceholder="Search athletes…"
+          groups={[
+            {
+              label: 'Status',
+              opts: ['All', 'Active', 'On Hold', 'Inactive', 'Trial', 'Archived'].map(s => ({
+                key: s, label: s, count: statusCounts[s], active: statusFilter === s,
+                accent: s === 'Archived' ? C.rd : undefined, onClick: () => setStatusFilter(s),
+              })),
+            },
+            {
+              label: 'Format',
+              opts: ['All', 'Online', 'Gym · Single', 'Gym · Couple', 'Bnei Herzliya'].map(f => ({
+                key: f, label: f, count: formatCounts[f], active: formatFilter === f, onClick: () => setFormatFilter(f),
+              })),
+            },
+            {
+              label: 'Needs Attention',
+              opts: [
                 { key: 'pay', label: '⚠ Payment due' },
                 { key: 'dormant', label: '💤 Dormant' },
                 { key: 'lowSessions', label: '⏳ Low sessions' },
                 { key: 'noProgram', label: '📋 No program' },
-              ].map(o => (
-                <RailOption key={o.key} label={o.label} count={flagCounts[o.key]}
-                  active={attnFlags[o.key]} accent={C.or} tint="rgba(255,159,10,0.12)"
-                  onClick={() => setAttnFlags(m => ({ ...m, [o.key]: !m[o.key] }))} />
-              ))}
-            </div>
-          </div>
-
-          {/* SORT BY — kept but compact + clearly secondary (Ohad: sort alone is
-              not enough). Same multi-key toggle + per-key direction logic. */}
-          <div>
-            <RailLabel>Sort</RailLabel>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-              {[
-                { id: 'name',        label: 'Name' },
-                { id: 'status',      label: 'Status' },
+              ].map(o => ({ key: o.key, label: o.label, count: flagCounts[o.key], active: attnFlags[o.key], accent: C.or, onClick: () => setAttnFlags(m => ({ ...m, [o.key]: !m[o.key] })) })),
+            },
+            {
+              label: 'Sort',
+              opts: [
+                { id: 'name', label: 'Name' },
+                { id: 'status', label: 'Status' },
                 { id: 'lastTrained', label: 'Last trained' },
-                { id: 'payment',     label: 'Payment' },
+                { id: 'payment', label: 'Payment' },
               ].map(o => {
                 const on = sortKeys.includes(o.id);
                 const desc = sortDirs[o.id] === 'desc';
@@ -758,41 +676,29 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                   : o.id === 'status' ? (desc ? '↑ Inactive' : '↓ Active')
                   : o.id === 'lastTrained' ? (desc ? '↓ Newest' : '↑ Oldest')
                   : (desc ? '↑ Overdue' : '↓ Paid');
-                // Tasks-parity: single active sort key. Click an inactive key to
-                // select it (replaces the sort); click the active key to flip its
-                // direction. Active label carries the direction, like Tasks.
-                const onClick = () => { setManualSort(false);
-                  if (on) setSortDirs(m => ({ ...m, [o.id]: desc ? 'asc' : 'desc' }));
-                  else { setSortDirs(m => (m[o.id] ? m : { ...m, [o.id]: 'asc' })); setSortKeys([o.id]); } };
-                return (
-                  <RailOption key={o.id} title={on ? `Flip ${o.label} direction` : `Sort by ${o.label}`}
-                    label={on ? `${dirLbl} · ${o.label}` : o.label} active={on} onClick={onClick} />
-                );
-              })}
+                return { key: o.id, title: on ? `Flip ${o.label} direction` : `Sort by ${o.label}`, active: on, label: on ? `${dirLbl} · ${o.label}` : o.label,
+                  onClick: () => { setManualSort(false); if (on) setSortDirs(m => ({ ...m, [o.id]: desc ? 'asc' : 'desc' })); else { setSortDirs(m => (m[o.id] ? m : { ...m, [o.id]: 'asc' })); setSortKeys([o.id]); } } };
+              }),
+            },
+          ]}
+          footer={
+            <div ref={addMenuRef} style={{position:'relative', marginTop:'auto'}}>
+              <Btn onClick={() => setAddMenuOpen(!addMenuOpen)} style={{ width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 38 }}>+ Add Athlete ▾</Btn>
+              {addMenuOpen && <div style={{position:'absolute',left:0,right:0,top:'100%',marginTop:4,background:C.bg,border:`1px solid ${C.cardBd}`,borderRadius:0,overflow:'hidden',zIndex:50,boxShadow:'0 8px 24px rgba(0,0,0,0.6)'}}>
+                {[['Online Athlete','Online Client'],['Gym, Single','Gym, Single'],['Gym, Couple','Gym, Couple'],['Bnei Herzliya','Bnei Herzliya']].map(([label,format])=>(
+                  <button key={format} onClick={()=>{
+                    const f = {...defaultTrainee(), format};
+                    if(format==='Gym, Couple') f._members=[{name:'',email:'',phone:'',age:'',weight:'',height:'',injuries:'',goals:'',notes:'',_emails:['']},{name:'',email:'',phone:'',age:'',weight:'',height:'',injuries:'',goals:'',notes:'',_emails:['']}];
+                    setForm(f); setEditId(null); setShowForm(true); setAddMenuOpen(false);
+                  }} style={{display:'block',width:'100%',padding:'10px 16px',background:'transparent',border:'none',borderBottom:`1px solid ${C.bd}`,color:C.tx,fontFamily:FB,fontSize:13,fontWeight:500,cursor:'pointer',textAlign:'left'}}
+                    onMouseEnter={e=>e.currentTarget.style.background=C.sf2} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                    {label}
+                  </button>
+                ))}
+              </div>}
             </div>
-          </div>
-
-          {/* ADD ATHLETE — pinned to the very bottom of the rail. */}
-          <div ref={addMenuRef} style={{position:'relative', marginTop:'auto'}}>
-            <Btn onClick={() => setAddMenuOpen(!addMenuOpen)} style={{ width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 38 }}>+ Add Athlete ▾</Btn>
-            {addMenuOpen && <div style={{position:'absolute',left:0,right:0,top:'100%',marginTop:4,background:C.bg,border:`1px solid ${C.cardBd}`,borderRadius:0,overflow:'hidden',zIndex:50,boxShadow:'0 8px 24px rgba(0,0,0,0.6)'}}>
-              {[['Online Athlete','Online Client'],['Gym, Single','Gym, Single'],['Gym, Couple','Gym, Couple'],['Bnei Herzliya','Bnei Herzliya']].map(([label,format])=>(
-                <button key={format} onClick={()=>{
-                  const f = {...defaultTrainee(), format};
-                  // Use _members (the edit-form shape the modal + handleSave read)
-                  // so a NEW couple actually shows the two member field-sets. Setting
-                  // `members` here left the modal on the solo layout → unnamed members. (audit)
-                  if(format==='Gym, Couple') f._members=[{name:'',email:'',phone:'',age:'',weight:'',height:'',injuries:'',goals:'',notes:'',_emails:['']},{name:'',email:'',phone:'',age:'',weight:'',height:'',injuries:'',goals:'',notes:'',_emails:['']}];
-                  setForm(f); setEditId(null); setShowForm(true); setAddMenuOpen(false);
-                }} style={{display:'block',width:'100%',padding:'10px 16px',background:'transparent',border:'none',borderBottom:`1px solid ${C.bd}`,color:C.tx,fontFamily:FB,fontSize:13,fontWeight:500,cursor:'pointer',textAlign:'left'}}
-                  onMouseEnter={e=>e.currentTarget.style.background=C.sf2} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-                  {label}
-                </button>
-              ))}
-            </div>}
-          </div>
-          </>)}
-        </aside>
+          }
+        />
 
         {/* RIGHT: cards column. */}
         <div style={{ flex: 1, minWidth: 0 }}>

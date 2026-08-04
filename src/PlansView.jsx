@@ -49,6 +49,7 @@ import { useFullPlan, savePlan, deletePlan, duplicatePlan } from './usePlansStor
 import useAutosave, { autosaveStatusLabel } from './hooks/useAutosave';
 import VideoEmbed from './VideoEmbed';
 import { sortProgramsRecent } from './traineeUtils';
+import { SideRail } from './SideRail';
 import { fmtPrettyDate } from './dates';
 
 const defaultPlanEx = () => ({ id: uid(), exerciseId: "", sets: "", reps: "", load: "", rpe: "", tempo: "", rest: "", notes: "", order: 0, superset: "", wk: null });
@@ -2341,40 +2342,6 @@ function visKeyForPlan(p, trainees) {
   return `${trainee.name}:${p.name}`;
 }
 
-// Left-rail section label — small uppercase FN, matches the athletes rail vocab.
-function RailLabel({ children, right }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5, padding: '0 14px' }}>
-      <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.2em', color: C.td, textTransform: 'uppercase' }}>{children}</div>
-      {right}
-    </div>
-  );
-}
-// Full-width option pill with a right-aligned muted count. active = accent
-// border + tint + accent text; inactive = cardBd border + muted text. Mirrors
-// the athletes rail's RailOption so both coach lists share one visual vocab.
-// Filter-rail item — matches the Tasks sidebar (Ohad's reference for ALL
-// sidebars): borderless text row, left cyan accent bar, active = subtle
-// accent-tint fill, muted count on the right.
-function RailOption({ label, count, active, onClick, accent = C.ac, title }) {
-  const [hov, setHov] = useState(false);
-  return (
-    <button onClick={onClick} title={title}
-      onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
-      style={{
-        display: 'flex', alignItems: 'center', width: '100%', height: 28, border: 'none', padding: 0, cursor: 'pointer', boxSizing: 'border-box',
-        background: active ? `color-mix(in srgb, ${accent} 20%, transparent)` : (hov ? 'var(--c-sf3, rgba(127,127,138,0.10))' : 'transparent'),
-        color: active ? accent : (hov ? 'var(--c-tx)' : 'var(--c-tm)'),
-        fontFamily: FN, fontSize: 10, fontWeight: active ? 800 : 700, letterSpacing: '0.05em', textTransform: 'uppercase',
-        transition: 'background .12s, color .12s',
-      }}>
-      <span style={{ width: 3, alignSelf: 'stretch', background: accent, opacity: active ? 1 : 0, flexShrink: 0 }} />
-      <span style={{ flex: 1, textAlign: 'left', padding: '0 8px 0 14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{label}</span>
-      {count != null && <span style={{ paddingRight: 14, fontSize: 9, fontWeight: 700, opacity: active ? 0.9 : 0.6, flexShrink: 0 }}>{count}</span>}
-    </button>
-  );
-}
-
 export default function PlansView({ planIndex, reloadIndex, trainees, exercises, setExercises, clientWorkouts, weeklyFocus, setWeeklyFocus, openPlanId, onPlanOpened, onEditorOpen, onEditorClose, onPreviewPlan, portalVis, setPortalVis, onCloseEditor }) {
   const { plan: editPlanData, loading: editLoading, load: loadFullPlan, clear: clearPlan, setPlan: setEditPlan } = useFullPlan();
   const [linkedTaskId, setLinkedTaskId] = useState(null);
@@ -3094,97 +3061,44 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
         {/* LEFT: filter rail — sticky so the controls stay pinned as the (long)
             list scrolls. Fixed 210px; wraps to full-width when the viewport
             can't fit both columns. */}
-        <aside className="programs-rail side-rail" style={{ width: 210, flexShrink: 0, alignSelf: 'flex-start', position: 'sticky', top: 12, display: 'flex', flexDirection: 'column', gap: (narrow && !railOpen) ? 0 : 12,
-          background: 'var(--c-sf2)', border: `1px solid ${C.cardBd}`, boxSizing: 'border-box',
-          ...(narrow ? { padding: (railOpen ? '12px' : '0') }
-            : { maxHeight: 'calc(100vh - 84px)', overflowY: 'auto', overflowX: 'hidden', padding: '14px 0 16px' }) }}>
-          {/* FILTERS toggle — narrow only. Collapses the whole rail so the program
-              CARDS are front-and-centre; tap to reveal Search/Athlete/Flags/Sort/
-              +New. Mirrors the tasks-page collapsed rail. Desktop skips this and
-              renders the rail open. */}
-          {/* SEARCH — box at the TOP of the rail, always visible, inset with
-              symmetric L/R padding so it sits centered between the cyan borders
-              (matches the Tasks rail exactly — Ohad). */}
-          <div style={{ padding: '0 14px 12px' }}>
-            <input title="Search programs by name or block (e.g. “Block #5”, “GPP”)" placeholder="Search programs…" value={search} onChange={e=>{setSearch(e.target.value);setVisibleCount(PAGE_SIZE)}}
-              style={{ width: '100%', height: 34, boxSizing: 'border-box', padding: '0 11px', borderRadius: 0, background: 'var(--c-sf)', color: 'var(--c-tx)', border: '1px solid var(--c-cardBd)', fontFamily: FN, fontSize: 11, fontWeight: 500, letterSpacing: '0.04em', outline: 'none', textAlign: 'left' }} />
-            {anyFilterActive && (
-              <button onClick={clearFilters} title="Clear all filters"
-                style={{ marginTop: 8, background: 'transparent', border: 'none', color: C.tm, cursor: 'pointer', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', padding: 0 }}>
-                ✕ Clear filters
-              </button>
-            )}
-          </div>
-          {/* FILTERS header — static label + underline on desktop; tap-to-collapse
-              toggle with chevron on narrow. Matches the Tasks rail exactly. */}
-          <div onClick={narrow ? () => setRailOpen(o => !o) : undefined}
-            style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.22em', color: C.ac, textTransform: 'uppercase', padding: (narrow && !railOpen) ? '0 16px' : '0 16px 10px', borderBottom: (narrow && !railOpen) ? 'none' : `1px solid ${C.cardBd}`, cursor: narrow ? 'pointer' : 'default', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-            <span>Filters</span>
-            {narrow && <span aria-hidden style={{ fontSize: 11, lineHeight: 1, transform: railOpen ? 'rotate(180deg)' : 'none', transition: 'transform 180ms ease' }}>▾</span>}
-          </div>
-          {(!narrow || railOpen) && (<>
-
-          {/* ATHLETE — single-select. All + one row per athlete WITH programs,
-              each showing that athlete's program count (most-programs first).
-              Primary control: jump straight to an athlete's blocks. */}
-          <div>
-            <RailLabel>Athlete</RailLabel>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-              <RailOption label="All" count={planIndex.length} active={!filterTrainee} onClick={() => { setFilterTrainee(''); setVisibleCount(PAGE_SIZE); }} />
-              <div className="programs-rail-athletes" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {athleteRail.map(a => (
-                  <RailOption key={a.id} label={a.label} count={a.count} title={a.label}
-                    active={filterTrainee === a.id} onClick={() => { setFilterTrainee(a.id); setVisibleCount(PAGE_SIZE); }} />
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* FLAGS — multi-toggle (AND-combined), amber. Surface the programs
-              that still need assigning / finishing. */}
-          <div>
-            <RailLabel>Flags</RailLabel>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-              {[
-                { key: 'unassigned', label: '⚠ Unassigned', title: 'Programs with no athlete assigned' },
-                { key: 'empty', label: '∅ Empty', title: 'Programs with no exercises or no days' },
-              ].map(o => (
-                <RailOption key={o.key} label={o.label} count={flagCounts[o.key]} title={o.title}
-                  active={flags[o.key]} accent={C.or} tint="rgba(255,159,10,0.12)"
-                  onClick={() => { setFlags(m => ({ ...m, [o.key]: !m[o.key] })); setVisibleCount(PAGE_SIZE); }} />
-              ))}
-            </div>
-          </div>
-
-          {/* VIEW toggle moved OUT of the rail to the page's top-right, mirroring
-              the tasks-page LIST/BOARD placement (Ohad). See the header row above
-              the two-column layout. */}
-
-          {/* SORT — compact + secondary. Click an inactive field to select it;
-              click the active field to flip direction (arrow up = ascending). */}
-          <div>
-            <RailLabel>Sort</RailLabel>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-              {[
-                ['created','Uploaded','Sort by when the program was created/imported. Click again to flip newest/oldest.'],
-                ['name','Name','Sort by program name. Click again to flip A–Z / Z–A.'],
-                ['updated','Last edited','Sort by when the program was last edited. Click again to flip newest/oldest.'],
-              ].map(([field,label,tip]) => {
+        {/* LEFT filter rail — the shared SideRail (literally the Tasks-page
+            sidebar; see SideRail.jsx). Only the DATA differs. */}
+        <SideRail
+          className="programs-rail"
+          width={204} top={12} maxHeight="calc(100vh - 24px)"
+          narrow={narrow} railOpen={railOpen} setRailOpen={setRailOpen}
+          search={search} onSearch={(v) => { setSearch(v); setVisibleCount(PAGE_SIZE); }}
+          searchPlaceholder="Search programs…"
+          searchTitle="Search programs by name or block (e.g. “Block #5”, “GPP”)"
+          groups={[
+            {
+              label: 'Athlete',
+              opts: [
+                { key: 'all', label: 'All', count: planIndex.length, active: !filterTrainee, onClick: () => { setFilterTrainee(''); setVisibleCount(PAGE_SIZE); } },
+                ...athleteRail.map(a => ({ key: a.id, label: a.label, count: a.count, title: a.label, active: filterTrainee === a.id, onClick: () => { setFilterTrainee(a.id); setVisibleCount(PAGE_SIZE); } })),
+              ],
+            },
+            {
+              label: 'Flags',
+              opts: [
+                { key: 'unassigned', label: '⚠ Unassigned', count: flagCounts.unassigned, title: 'Programs with no athlete assigned', accent: C.or, active: flags.unassigned, onClick: () => { setFlags(m => ({ ...m, unassigned: !m.unassigned })); setVisibleCount(PAGE_SIZE); } },
+                { key: 'empty', label: '∅ Empty', count: flagCounts.empty, title: 'Programs with no exercises or no days', accent: C.or, active: flags.empty, onClick: () => { setFlags(m => ({ ...m, empty: !m.empty })); setVisibleCount(PAGE_SIZE); } },
+              ],
+            },
+            {
+              label: 'Sort',
+              opts: [
+                ['created', 'Uploaded', 'Sort by when the program was created/imported. Click again to flip newest/oldest.'],
+                ['name', 'Name', 'Sort by program name. Click again to flip A–Z / Z–A.'],
+                ['updated', 'Last edited', 'Sort by when the program was last edited. Click again to flip newest/oldest.'],
+              ].map(([field, label, tip]) => {
                 const active = sortField === field;
-                return (
-                  <RailOption key={field} title={tip}
-                    label={active ? `${sortDir === 'asc' ? '↑' : '↓'} ${label}` : label}
-                    active={active}
-                    onClick={() => { if (active) setSortDir(d => d === 'asc' ? 'desc' : 'asc'); else setSortField(field); }} />
-                );
-              })}
-            </div>
-          </div>
-
-          {/* + NEW PROGRAM — pinned to the bottom of the rail. */}
-          <Btn title="Create a new, empty program — you pick the athlete inside the editor" onClick={() => handleNewPlan()} style={{ width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 38, marginTop: 'auto' }}>+ New Program</Btn>
-          </>)}
-        </aside>
+                return { key: field, title: tip, active, label: active ? `${sortDir === 'asc' ? '↑' : '↓'} ${label}` : label, onClick: () => { if (active) setSortDir(d => d === 'asc' ? 'desc' : 'asc'); else setSortField(field); } };
+              }),
+            },
+          ]}
+          footer={<Btn title="Create a new, empty program — you pick the athlete inside the editor" onClick={() => handleNewPlan()} style={{ width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 38, marginTop: 'auto' }}>+ New Program</Btn>}
+        />
 
         {/* RIGHT: the program list — grouped (table/grid) or flat, unchanged. */}
         <div style={{ flex: 1, minWidth: 0, boxSizing: 'border-box' }}>
