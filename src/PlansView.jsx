@@ -164,13 +164,17 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
     return exercises.filter(match).slice(0, 200);
   }, [exercises, search, filters, open]);
 
-  // Reset state when modal opens
+  // Reset state when modal opens. When RELINKING a free-text row (no library
+  // link yet — currentEx is null but we have its typed name in fallbackTitle),
+  // pre-seed the search with that name so its library matches are on screen
+  // instantly: open → click the match = one-click relink (Ohad, #5). Changing an
+  // already-linked exercise still opens on a clean search.
   React.useEffect(() => {
     if (open) {
-      setSearch("");
+      setSearch(!currentEx && fallbackTitle ? String(fallbackTitle).trim() : "");
       clearFilters();
       setActiveIdx(0);
-      setTimeout(() => inputRef.current?.focus(), 50);
+      setTimeout(() => { inputRef.current?.focus(); inputRef.current?.select(); }, 50);
     }
   }, [open]);
 
