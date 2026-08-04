@@ -88,7 +88,20 @@ export async function captureClipFrames(src, { crossOrigin = false, onProgress }
     if (crossOrigin) v.crossOrigin = 'anonymous';
     v.src = src; v.muted = true; v.playsInline = true; v.preload = 'auto';
     await new Promise((res, rej) => { v.onloadedmetadata = () => res(); v.onerror = () => rej(new Error('Could not read that video.')); });
-    const dur = v.duration;
+    let dur = v.duration;
+    // MediaRecorder WebM (how in-app athlete clips are recorded) reports
+    // duration = Infinity until you force a seek past the end — then the real
+    // duration resolves. Do that once before giving up, so reviewed cloud clips
+    // (and the inline LIFT METRICS on the same files) don't fail "no duration".
+    if (!isFinite(dur) || dur <= 0) {
+      await new Promise((res) => {
+        const done = () => { v.onseeked = null; res(); };
+        v.onseeked = done; setTimeout(done, 1500);
+        try { v.currentTime = 1e7; } catch { done(); }
+      });
+      dur = v.duration;
+      try { v.currentTime = 0; } catch { /* noop */ }
+    }
     if (!isFinite(dur) || dur <= 0) throw new Error('Could not read that video (no duration).');
     const MAX = 600;                   // frame cap (protects long clips)
     // Adaptive sampling: the fixed 0.05s (~20fps) step capped flight-time /
@@ -454,8 +467,10 @@ export default function MovementLab({
         </div>
       )}
 
-      {/* control bar */}
-      <div style={{ background: 'rgba(0,0,0,0.9)', borderTop: '1px solid rgba(255,255,255,0.1)', padding: 14, display: 'flex', gap: 10 }}>
+      {/* control bar — flexShrink:0 so it's never squeezed off, + safe-area
+          bottom padding so the RECORD/UPLOAD buttons never sit flush against the
+          very bottom edge (where a taskbar / browser infobar can clip them). */}
+      <div style={{ flexShrink: 0, background: 'rgba(0,0,0,0.9)', borderTop: '1px solid rgba(255,255,255,0.1)', padding: 14, paddingBottom: 'calc(14px + env(safe-area-inset-bottom, 0px))', display: 'flex', gap: 10 }}>
         {phase === 'idle' && <>
           <BigBtn color={C.ac} onClick={startRecording}>{mode === 'jump' ? 'RECORD' : 'RECORD'} →</BigBtn>
           <button onClick={pickFile} style={{ flex: 1, padding: 14, background: 'transparent', border: '1px solid rgba(255,255,255,0.4)', color: '#FFF', fontFamily: FN, fontSize: 14, fontWeight: 700, letterSpacing: '0.14em', cursor: 'pointer' }}>⬆ UPLOAD CLIP</button>

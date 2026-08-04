@@ -295,24 +295,35 @@ export default function ReviewToolsView({ clientWorkouts = [], trainees = [] }) 
         <ReviewedClipPicker workouts={clientWorkouts} trainees={trainees} activeUrl={clipUrl}
           onPick={(url, t) => { setClipUrl(url); if (t) setTitle(t); }} />
 
-        {/* The lift being analysed. NOT cosmetic: the pose engine keyword-matches
-            this name to choose which joints to read, so it's what makes the ROM /
-            tempo / depth numbers meaningful. Jump auto-labels itself. */}
-        <label htmlFor="rt-exercise" style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 3, textTransform: 'uppercase' }}>Lift being analysed</label>
-        <div style={{ fontFamily: FB, fontSize: 11, color: C.tm, marginBottom: 9, maxWidth: 480, lineHeight: 1.4 }}>
-          Tells the pose engine which joints to read — squat reads knee/hip depth, bench reads elbow lockout.
-        </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
-          {QUICK_LIFTS.map(l => {
-            const on = title.trim().toLowerCase() === l.toLowerCase();
-            return (
-              <button key={l} onClick={() => setTitle(l)} type="button"
-                style={{ background: on ? 'var(--c-sf2)' : 'transparent', border: `1px solid ${on ? C.ac : C.cardBd}`, color: on ? C.ac : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', padding: '6px 12px', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>{l}</button>
-            );
-          })}
-        </div>
-        <input id="rt-exercise" value={title} onChange={e => setTitle(e.target.value)} placeholder="…or type any lift, e.g. Front Squat"
-          style={{ width: '100%', maxWidth: 380, boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 14, padding: '10px 13px', borderRadius: 0, outline: 'none' }} />
+        {/* The lift being analysed drives which joints the pose engine reads.
+            When a clip is picked above, it's set AUTOMATICALLY from that exercise
+            — Ohad: "I don't want to have to pick" — so we just show it read-only.
+            Only when there's NO clip (live / manual) do we surface the picker. */}
+        {clipUrl ? (
+          <div>
+            <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 5, textTransform: 'uppercase' }}>Lift being analysed</label>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, maxWidth: '100%', background: 'var(--c-sf2)', border: `1px solid ${C.cardBd}`, padding: '9px 13px', borderRadius: 0 }}>
+              <span style={{ fontFamily: FB, fontSize: 14, fontWeight: 600, color: C.tx, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</span>
+              <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', color: C.ac, whiteSpace: 'nowrap' }}>· AUTO</span>
+            </div>
+          </div>
+        ) : (<>
+          <label htmlFor="rt-exercise" style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 3, textTransform: 'uppercase' }}>Lift being analysed</label>
+          <div style={{ fontFamily: FB, fontSize: 11, color: C.tm, marginBottom: 9, maxWidth: 480, lineHeight: 1.4 }}>
+            Tells the pose engine which joints to read — squat reads knee/hip depth, bench reads elbow lockout.
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+            {QUICK_LIFTS.map(l => {
+              const on = title.trim().toLowerCase() === l.toLowerCase();
+              return (
+                <button key={l} onClick={() => setTitle(l)} type="button"
+                  style={{ background: on ? 'var(--c-sf2)' : 'transparent', border: `1px solid ${on ? C.ac : C.cardBd}`, color: on ? C.ac : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', padding: '6px 12px', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>{l}</button>
+              );
+            })}
+          </div>
+          <input id="rt-exercise" value={title} onChange={e => setTitle(e.target.value)} placeholder="…or type any lift, e.g. Front Squat"
+            style={{ width: '100%', maxWidth: 380, boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 14, padding: '10px 13px', borderRadius: 0, outline: 'none' }} />
+        </>)}
       </div>
 
       {/* Tools card — hairline-divided rows inside the standard surface card. */}
