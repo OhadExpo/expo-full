@@ -107,13 +107,14 @@ function ReviewedClipPicker({ workouts, trainees, onPick, activeUrl }) {
         </select>
       </div>
       {activeUrl && (
-        <div style={{ marginTop: 11, display: 'flex', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-          {/* Thumbnail so the coach can confirm it's the right clip before opening
-              a tool (Ohad). Controls + muted so it's scrubbable inline. */}
+        // Clean compact block: thumbnail + a single caption below it, width-matched
+        // — the coach confirms the clip before opening a tool (Ohad). Scrubbable.
+        <div style={{ marginTop: 11, display: 'inline-block', maxWidth: 260, verticalAlign: 'top' }}>
           <video key={activeUrl} src={activeUrl} controls muted playsInline preload="metadata"
-            style={{ width: 220, maxHeight: 200, background: '#000', border: `1px solid ${C.cardBd}`, borderRadius: 0, display: 'block', objectFit: 'contain' }} />
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: C.ac, border: `1px solid rgba(57,189,255,0.4)`, background: 'rgba(57,189,255,0.06)', padding: '5px 10px' }}>
-            ● CLIP LOADED — the tools will analyse this video
+            style={{ width: '100%', maxHeight: 190, background: '#000', border: `1px solid ${C.cardBd}`, borderRadius: 0, display: 'block', objectFit: 'contain' }} />
+          <div style={{ marginTop: 7, display: 'flex', alignItems: 'center', gap: 7, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', color: C.ac, textTransform: 'uppercase' }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: C.ac, flexShrink: 0 }} />
+            Clip loaded · analysed on open
           </div>
         </div>
       )}
