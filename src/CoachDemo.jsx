@@ -533,62 +533,120 @@ function FakeWaButton() {
 // ─── Tab: Trainees ────────────────────────────────────────────────────────
 function DemoTrainees({ selected, onSelect, onClear, returnTab }) {
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [formatFilter, setFormatFilter] = useState('All');
+  const [attnFlags, setAttnFlags] = useState({});
+  const [sortKey, setSortKey] = useState('name');
+  const [sortDir, setSortDir] = useState('asc');
   if (selected) {
     const t = MOCK_TRAINEES.find(x => x.id === selected);
     if (!t) return null;
     return <DemoTraineeDetail trainee={t} onBack={onClear} backLabel="← BACK" />;
   }
   const q = search.trim().toLowerCase();
-  const filtered = MOCK_TRAINEES.filter(t => {
-    if (!q) return true;
-    const haystack = `${t.name || ''} ${t.email || ''} ${t.format || ''}`.toLowerCase();
-    return haystack.includes(q);
+  // Format label parity with the real TraineesView rail (data uses commas).
+  const fmtOf = (t) => t.format === 'Gym, Single' ? 'Gym · Single' : t.format === 'Gym, Couple' ? 'Gym · Couple' : (t.format || 'Online');
+  const attnOf = (t) => ({
+    pay: t.payment === 'OVERDUE' || t.payment === 'NEVER PAID',
+    dormant: (t.dormantDays || 0) >= 14,
+    lowSessions: (t.sessionsLeft ?? 0) <= 1,
+    noProgram: (t.programs ?? 0) === 0,
   });
+  const activeAttn = Object.keys(attnFlags).filter(k => attnFlags[k]);
+  let filtered = MOCK_TRAINEES.filter(t => {
+    if (q) { const hay = `${t.name || ''} ${t.email || ''} ${t.format || ''}`.toLowerCase(); if (!hay.includes(q)) return false; }
+    if (statusFilter !== 'All' && t.status !== statusFilter) return false;
+    if (formatFilter !== 'All' && fmtOf(t) !== formatFilter) return false;
+    if (activeAttn.length) { const a = attnOf(t); if (!activeAttn.every(k => a[k])) return false; }
+    return true;
+  });
+  filtered = filtered.slice().sort((a, b) => {
+    let cmp = 0;
+    if (sortKey === 'name') cmp = (a.name || '').localeCompare(b.name || '');
+    else if (sortKey === 'status') cmp = (a.status || '').localeCompare(b.status || '');
+    else if (sortKey === 'lastTrained') cmp = (a.dormantDays || 0) - (b.dormantDays || 0);
+    else if (sortKey === 'payment') cmp = (a.payment || '').localeCompare(b.payment || '');
+    return sortDir === 'asc' ? cmp : -cmp;
+  });
+  const statusCounts = { All: MOCK_TRAINEES.length };
+  ['Active', 'On Hold', 'Inactive', 'Trial', 'Archived'].forEach(s => { statusCounts[s] = MOCK_TRAINEES.filter(t => t.status === s).length; });
+  const formatCounts = { All: MOCK_TRAINEES.length };
+  ['Online', 'Gym · Single', 'Gym · Couple', 'Bnei Herzliya'].forEach(f => { formatCounts[f] = MOCK_TRAINEES.filter(t => fmtOf(t) === f).length; });
+  const flagCounts = { pay: 0, dormant: 0, lowSessions: 0, noProgram: 0 };
+  MOCK_TRAINEES.forEach(t => { const a = attnOf(t); Object.keys(flagCounts).forEach(k => { if (a[k]) flagCounts[k]++; }); });
   return (
     <section>
-      <div style={{
-        display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14,
-      }}>
-        <input
-          type="search" value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Search by name, email, format…"
-          style={{
-            background: C.sf, border: `1px solid ${C.bd2}`, borderRadius: 0,
-            padding: '8px 12px', color: C.tx, fontFamily: FB, fontSize: 13,
-            outline: 'none', minWidth: 200, flex: '1 1 200px', maxWidth: 320,
-          }}
-        />
-        <button title="Demo only" style={{
-          ...baseBtn, background: 'transparent', color: C.tm,
-          border: `1px solid ${C.bd}`, padding: '8px 14px', fontSize: 11,
-        }}>📦 ARCHIVE (0)</button>
-        <button title="Demo only" style={{
-          ...baseBtn, background: C.ac, color: C.acOnSurface,
-          padding: '8px 14px', fontSize: 11,
-        }}>+ ADD ATHLETE ▾</button>
-        <span style={{
-          fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.td, letterSpacing: 1.5,
-        }}>{filtered.length} / {MOCK_TRAINEES.length}</span>
+      {/* Header — Athletes title (mirrors TraineesView top row). */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, gap: 12, flexWrap: 'wrap' }}>
+        <h2 style={{ margin: 0, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', color: C.tx, textTransform: 'uppercase' }}>Athletes</h2>
       </div>
-      {filtered.length === 0 ? (
-        <div style={{
-          background: C.sf, border: `1px dashed ${C.bd2}`, borderRadius: 0,
-          padding: 40, textAlign: 'center',
-        }}>
-          <div style={{ fontFamily: FN, fontSize: 11, color: C.td, letterSpacing: 2, fontWeight: 700, marginBottom: 8 }}>NO MATCHES</div>
-          <div style={{ fontFamily: FB, fontSize: 13, color: C.tm }}>No athlete matches "<span style={{ color: C.tx, fontWeight: 700 }}>{search}</span>". Clear the search to see the full roster.</div>
-        </div>
-      ) : (
-        <div style={{
-          display: 'grid', gap: 12,
-          gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 320px), 1fr))',
-        }}>
-          {filtered.map(t => (
-            <TraineeCard key={t.id} t={t} onClick={() => onSelect(t.id)} />
-          ))}
-        </div>
-      )}
+      {/* Two-column: shared SideRail (identical to the real TraineesView rail) + card grid. */}
+      <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+        <SideRail width={204} top={12} maxHeight="calc(100vh - 24px)"
+          search={search} onSearch={setSearch}
+          searchPlaceholder="Search athletes…"
+          groups={[
+            {
+              label: 'Status',
+              opts: ['All', 'Active', 'On Hold', 'Inactive', 'Trial', 'Archived'].map(s => ({
+                key: s, label: s, count: statusCounts[s], active: statusFilter === s,
+                accent: s === 'Archived' ? C.rd : undefined, onClick: () => setStatusFilter(s),
+              })),
+            },
+            {
+              label: 'Format',
+              opts: ['All', 'Online', 'Gym · Single', 'Gym · Couple', 'Bnei Herzliya'].map(f => ({
+                key: f, label: f, count: formatCounts[f], active: formatFilter === f, onClick: () => setFormatFilter(f),
+              })),
+            },
+            {
+              label: 'Needs Attention',
+              opts: [
+                { key: 'pay', label: '⚠ Payment due' },
+                { key: 'dormant', label: '💤 Dormant' },
+                { key: 'lowSessions', label: '⏳ Low sessions' },
+                { key: 'noProgram', label: '📋 No program' },
+              ].map(o => ({ key: o.key, label: o.label, count: flagCounts[o.key], active: !!attnFlags[o.key], accent: C.or, onClick: () => setAttnFlags(m => ({ ...m, [o.key]: !m[o.key] })) })),
+            },
+            {
+              label: 'Sort',
+              opts: [
+                { id: 'name', label: 'Name' },
+                { id: 'status', label: 'Status' },
+                { id: 'lastTrained', label: 'Last trained' },
+                { id: 'payment', label: 'Payment' },
+              ].map(o => {
+                const on = sortKey === o.id;
+                const desc = on && sortDir === 'desc';
+                return { key: o.id, title: on ? `Flip ${o.label} direction` : `Sort by ${o.label}`, active: on, label: on ? `${desc ? '↓' : '↑'} ${o.label}` : o.label,
+                  onClick: () => { if (on) setSortDir(d => d === 'asc' ? 'desc' : 'asc'); else { setSortKey(o.id); setSortDir('asc'); } } };
+              }),
+            },
+          ]}
+          footer={<button title="Demo only" style={{ ...baseBtn, background: C.ac, color: C.acOnSurface, width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 38, marginTop: 'auto', fontSize: 13, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ Add Athlete ▾</button>}
+        />
+        {/* RIGHT: the card grid. */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {filtered.length === 0 ? (
+            <div style={{
+              background: C.sf, border: `1px dashed ${C.bd2}`, borderRadius: 0,
+              padding: 40, textAlign: 'center',
+            }}>
+              <div style={{ fontFamily: FN, fontSize: 11, color: C.td, letterSpacing: 2, fontWeight: 700, marginBottom: 8 }}>NO MATCHES</div>
+              <div style={{ fontFamily: FB, fontSize: 13, color: C.tm }}>No athlete matches your filters. Clear them to see the full roster.</div>
+            </div>
+          ) : (
+            <div style={{
+              display: 'grid', gap: 12,
+              gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 320px), 1fr))',
+            }}>
+              {filtered.map(t => (
+                <TraineeCard key={t.id} t={t} onClick={() => onSelect(t.id)} />
+              ))}
+            </div>
+          )}
+        </div>{/* /right column */}
+      </div>{/* /two-column layout */}
     </section>
   );
 }
@@ -1753,66 +1811,38 @@ function DemoPrograms() {
     return (
       <section>
 
-        {/* Mirrors PlansView's filter row: stretch alignment, height:42 inputs,
-            custom ▾ chevron over the select, centered text. */}
-        <div style={{ display: 'flex', gap: 12, marginBottom: 12, alignItems: 'stretch', flexWrap: 'wrap' }}>
-          <div style={{ flex: 1, minWidth: 180, display: 'flex' }}>
-            <input placeholder="Search programs..." value={search} onChange={e => setSearch(e.target.value)} style={{
-              background: C.sf, border: `1px solid ${C.bd2}`, borderRadius: 0,
-              height: 42, padding: '0 14px', lineHeight: '42px',
-              color: C.tx, fontFamily: FB, fontSize: 13,
-              outline: 'none', width: '100%', boxSizing: 'border-box',
-              textAlign: 'center',
-            }} />
-          </div>
-          <div style={{ position: 'relative', width: 200, display: 'flex' }}>
-            <select value={filterTrainee} onChange={e => setFilterTrainee(e.target.value)} style={{
-              background: C.sf, border: `1px solid ${C.bd2}`, borderRadius: 0,
-              height: 42, padding: '0 36px 0 14px',
-              color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none',
-              appearance: 'none', WebkitAppearance: 'none',
-              textAlign: 'center', textAlignLast: 'center',
-              flex: 1, boxSizing: 'border-box',
-            }}>
-              <option value="">All Athletes ({MOCK_PROGRAM_INDEX.length})</option>
-              {/* Mirrors PlansView traineeOptions — only athletes who actually
-                  have programs show up, sorted by name. Keeps the picker
-                  honest when MOCK_PROGRAM_INDEX is trimmed. */}
-              {[...new Set(MOCK_PROGRAM_INDEX.map(p => p.traineeId).filter(Boolean))]
-                .map(id => ({ id, name: MOCK_TRAINEES.find(t => t.id === id)?.name || id }))
-                .sort((a, b) => a.name.localeCompare(b.name))
-                .map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-            </select>
-            <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: C.tm, fontSize: 16, lineHeight: 1 }}>▾</span>
-          </div>
-          <button onClick={e => e.stopPropagation()} style={{
-            ...baseBtn, background: C.ac, color: C.acOnSurface,
-            height: 42, padding: '0 18px', fontSize: 13, lineHeight: '42px', fontWeight: 700,
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          }}>+ New Program</button>
+        {/* Header — Programs title (mirrors PlansView top row). */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, gap: 12, flexWrap: 'wrap' }}>
+          <h2 style={{ margin: 0, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', color: C.tx, textTransform: 'uppercase' }}>Programs</h2>
         </div>
-
-        {/* Sort controls — mirrors the real PlansView sort row exactly */}
-        <div style={{ display: 'flex', gap: 6, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap', fontFamily: FN, fontSize: 11 }}>
-          {[['name', 'Name'], ['created', 'Uploaded'], ['updated', 'Last edited']].map(([f, l]) => {
-            const active = sortField === f;
-            return (
-              <button key={f} onClick={() => {
-                if (active) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
-                else setSortField(f);
-              }} style={{
-                padding: '4px 10px', borderRadius: 0,
-                border: `${active ? '1px' : '0.25px'} solid ${active ? C.ac : C.cardBd}`,
-                background: 'transparent',
-                color: active ? C.ac : C.tm,
-                fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase',
-                cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4,
-              }}>
-                {l}{active && <span style={{ fontSize: 10 }}>{sortDir === 'asc' ? '↑' : '↓'}</span>}
-              </button>
-            );
-          })}
-        </div>
+        {/* Two-column: shared SideRail (identical to the real PlansView rail) + list. */}
+        <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+        <SideRail width={204} top={12} maxHeight="calc(100vh - 24px)"
+          search={search} onSearch={setSearch}
+          searchPlaceholder="Search programs…"
+          groups={[
+            {
+              label: 'Athlete',
+              opts: [
+                { key: 'all', label: 'All', count: MOCK_PROGRAM_INDEX.length, active: !filterTrainee, onClick: () => setFilterTrainee('') },
+                ...[...new Set(MOCK_PROGRAM_INDEX.map(p => p.traineeId).filter(Boolean))]
+                  .map(id => ({ id, name: MOCK_TRAINEES.find(t => t.id === id)?.name || id, count: MOCK_PROGRAM_INDEX.filter(p => p.traineeId === id).length }))
+                  .sort((a, b) => a.name.localeCompare(b.name))
+                  .map(a => ({ key: a.id, label: a.name, count: a.count, title: a.name, active: filterTrainee === a.id, onClick: () => setFilterTrainee(a.id) })),
+              ],
+            },
+            {
+              label: 'Sort',
+              opts: [['created', 'Uploaded'], ['name', 'Name'], ['updated', 'Last edited']].map(([field, label]) => {
+                const active = sortField === field;
+                return { key: field, active, label: active ? `${sortDir === 'asc' ? '↑' : '↓'} ${label}` : label, onClick: () => { if (active) setSortDir(d => d === 'asc' ? 'desc' : 'asc'); else setSortField(field); } };
+              }),
+            },
+          ]}
+          footer={<button onClick={e => e.stopPropagation()} style={{ ...baseBtn, background: C.ac, color: C.acOnSurface, width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 38, marginTop: 'auto', fontSize: 13, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ New Program</button>}
+        />
+        {/* RIGHT: the program list. */}
+        <div style={{ flex: 1, minWidth: 0, boxSizing: 'border-box' }}>
 
         {/* Athlete-grouped list, mirroring src/PlansView.jsx. Each visible
             athlete = ONE row showing their current (highest block#) program.
@@ -1972,6 +2002,8 @@ function DemoPrograms() {
             </>
           );
         })()}
+        </div>{/* /right column */}
+        </div>{/* /two-column layout */}
       </section>
     );
   }
