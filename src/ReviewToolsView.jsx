@@ -111,7 +111,7 @@ function ReviewedClipPicker({ workouts, trainees, onPick, activeUrl }) {
         // The full Review player, inline — video + skeleton toggle + speed/loop +
         // LIFT METRICS + 3D + rep-range selection, the exact experience Ohad wants
         // ("built perfectly like in a reviewed video"). Reused, not rebuilt.
-        <div key={activeUrl} style={{ marginTop: 14 }}>
+        <div key={activeUrl} style={{ marginTop: 14, maxWidth: 560 }}>
           <FormVideoPlayer url={activeUrl} exerciseTitle={(day && e !== '' && day.exercises[e]?.title) || 'Exercise'} />
         </div>
       )}
