@@ -7,6 +7,7 @@ import React, { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'rea
 import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
 import { RefinedHeaderStrip, SectionLabel } from './ui';
+import { FormVideoPlayer } from './WorkoutReview';
 
 // Build the reviewed-clip cascade tree from the coach's client workouts:
 // athlete → block (planName) → week → day → [exercises that carry a cloud clip].
@@ -107,15 +108,11 @@ function ReviewedClipPicker({ workouts, trainees, onPick, activeUrl }) {
         </select>
       </div>
       {activeUrl && (
-        // Clean compact block: thumbnail + a single caption below it, width-matched
-        // — the coach confirms the clip before opening a tool (Ohad). Scrubbable.
-        <div style={{ marginTop: 11, display: 'inline-block', maxWidth: 260, verticalAlign: 'top' }}>
-          <video key={activeUrl} src={activeUrl} controls muted playsInline preload="metadata"
-            style={{ width: '100%', maxHeight: 190, background: '#000', border: `1px solid ${C.cardBd}`, borderRadius: 0, display: 'block', objectFit: 'contain' }} />
-          <div style={{ marginTop: 7, display: 'flex', alignItems: 'center', gap: 7, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', color: C.ac, textTransform: 'uppercase' }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: C.ac, flexShrink: 0 }} />
-            Clip loaded · analysed on open
-          </div>
+        // The full Review player, inline — video + skeleton toggle + speed/loop +
+        // LIFT METRICS + 3D + rep-range selection, the exact experience Ohad wants
+        // ("built perfectly like in a reviewed video"). Reused, not rebuilt.
+        <div key={activeUrl} style={{ marginTop: 14 }}>
+          <FormVideoPlayer url={activeUrl} exerciseTitle={(day && e !== '' && day.exercises[e]?.title) || 'Exercise'} />
         </div>
       )}
     </div>
