@@ -217,13 +217,13 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
             Lifts the current exercise out of the page header and into a
             scannable hierarchy: WHAT you're replacing, in big type, with
             the relevant biomechanical context one click of glance away. */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '18px 22px 14px', gap: 12 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0, flex: 1 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '13px 22px 9px', gap: 12 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0, flex: 1 }}>
             <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.ac, letterSpacing: '0.18em', textTransform: 'uppercase' }}>
               {currentEx ? 'Change Exercise' : (fallbackTitle ? 'Link to Library' : 'Select Exercise')}
             </div>
             {(currentEx || fallbackTitle) && (
-              <h3 style={{ margin: 0, fontFamily: FB, fontSize: 22, fontWeight: 700, color: C.tx, lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <h3 style={{ margin: 0, fontFamily: FB, fontSize: 19, fontWeight: 700, color: C.tx, lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {currentEx ? currentEx.title : fallbackTitle}
               </h3>
             )}
@@ -301,7 +301,7 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
               No exercises found. Try relaxing filters or the search term.
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 6 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 4 }}>
               {filt.map((ex, idx) => {
                 const isActive = idx === activeIdx;
                 const isSelected = ex.id === currentId;
@@ -316,7 +316,7 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
                     onClick={() => pick(ex)}
                     onMouseEnter={() => setActiveIdx(idx)}
                     style={{
-                      textAlign: 'left', padding: '10px 12px',
+                      textAlign: 'left', padding: '7px 11px',
                       background: isSelected ? 'rgba(59,160,255,0.06)' : 'var(--c-sf)',
                       border: `${isActive ? '1px' : '0.25px'} solid ${isActive ? C.ac : C.cardBd}`,
                       borderLeft: isSelected ? `3px solid ${C.ac}` : (isActive ? `1px solid ${C.ac}` : `1px solid ${C.cardBd}`),
@@ -324,8 +324,8 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
                       transition: 'all 0.1s', position: 'relative'
                     }}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 4 }}>
-                      <div style={{ fontWeight: 600, fontSize: 13, color: C.tx, lineHeight: 1.3, flex: 1, overflowWrap: 'anywhere' }}>{ex.title}</div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                      <div style={{ fontWeight: 600, fontSize: 13, color: C.tx, lineHeight: 1.25, flex: 1, overflowWrap: 'anywhere' }}>{ex.title}</div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0 }}>
                         {/* Media / notes indicators — show at a glance which library
                             exercises already have a demo video (cyan) and coaching
@@ -336,8 +336,11 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
                         {!isSelected && ex.movementPattern && <span style={{ fontSize: 9, fontFamily: FN, fontWeight: 700, color: C.tm, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>{ex.movementPattern}</span>}
                       </div>
                     </div>
-                    {subtitle(ex) && <div style={{ fontSize: 10, color: C.tm, fontFamily: FN, marginBottom: 2 }}>{subtitle(ex)}</div>}
-                    {muscles(ex) && <div style={{ fontSize: 10, color: C.td, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{muscles(ex)}</div>}
+                    {/* Compact single meta line — category · resistance · position ·
+                        muscles, truncated. Halves the row height so ~2× more
+                        exercises are scannable per screen (Ohad: picker felt
+                        uncomfortable / a wall of dense rows). */}
+                    {(subtitle(ex) || muscles(ex)) && <div style={{ fontSize: 10, color: C.tm, fontFamily: FN, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{[subtitle(ex), muscles(ex)].filter(Boolean).join('  ·  ')}</div>}
                   </button>
                 );
               })}
