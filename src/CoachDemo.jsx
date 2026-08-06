@@ -806,31 +806,34 @@ const cardLeave = (e) => { e.currentTarget.style.borderColor = C.cardBd; e.curre
 
 function TraineeCard({ t, onClick }) {
   if (t.isCouple) return <CoupleCard t={t} onClick={onClick} />;
+  const heb = isHeb(t.name);
   return (
     <div onClick={onClick} style={cardStyle} onMouseEnter={cardEnter} onMouseLeave={cardLeave}>
-      {/* IDENTITY — name centered as the card banner; status badge + WA
-          button on a centered row beneath; email + phone centered below. */}
-      <CardSectionFirst center>
-        <div style={{ fontFamily: FB, fontWeight: 700, fontSize: 15, color: C.tx, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textAlign: 'center' }}>
-          {t.name}{t.online && <OnlineDot />}
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 10 }}>
-          <Badge color={t.dormantDays != null ? C.tm : C.gn}>{t.status}</Badge>
-          <FakeWaButton />
-        </div>
-        <div style={{
-          fontSize: 12, color: C.tm, marginTop: 4, textAlign: 'center',
-          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%',
-        }}>{t.email}</div>
-        {t.phone && (
-          <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, marginTop: 2, letterSpacing: 0.5, textAlign: 'center' }}>
-            {t.phone}
-          </div>
-        )}
-      </CardSectionFirst>
+      {/* Header strip — name (+ online dot) LEFT, status pill RIGHT; mirrors the
+          real TraineesView Card header/headerRight. Name is NOT repeated in the
+          body (the body is the 80px contact slot + stat blocks). */}
+      <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', margin: '-18px -18px 12px', padding: '8px 18px', borderBottom: `1px solid ${C.cardBd}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minWidth: 0, fontFamily: heb ? FH : FN, fontWeight: 700, fontSize: heb ? 15 : 14, letterSpacing: heb ? 0 : '0.04em', textTransform: heb ? 'none' : 'uppercase', color: '#FFFFFF' }}>
+          <bdi style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</bdi>{t.online && <OnlineDot />}
+        </span>
+        <span style={{ flexShrink: 0 }} onClick={e => e.stopPropagation()}><DemoStatusMenu initial={t.status} /></span>
+      </div>
+      {/* 80px contact slot — WhatsApp / phone / email, centered. */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, height: 80, justifyContent: 'flex-start', paddingTop: 4, overflow: 'hidden' }}>
+        <FakeWaButton />
+        {t.phone && <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 0.5, textAlign: 'center' }}>{t.phone}</div>}
+        <div style={{ fontSize: 12, color: C.tm, textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{t.email}</div>
+      </div>
       <FinancialsBlock t={t} center />
       <TrainingBlock t={t} center />
       <BodyweightBlock weight={t.weight} center />
+      {/* Bottom action row — PORTAL / EDIT (demo, mirrors the real card). */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'auto', paddingTop: 8, gap: 8 }}>
+        <button onClick={e => e.stopPropagation()} title="Preview this athlete's portal (demo only)" style={{ background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.15em', padding: '0 14px', height: 26, boxSizing: 'border-box', borderRadius: 0, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>PORTAL
+        </button>
+        <button onClick={e => e.stopPropagation()} style={{ background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.15em', padding: '0 14px', height: 26, boxSizing: 'border-box', borderRadius: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>EDIT</button>
+      </div>
     </div>
   );
 }
@@ -961,8 +964,8 @@ function CoupleCard({ t, onClick }) {
 // Interactive status menu for the demo trainee detail — clicking actually
 // changes the (local) status so a prospect can demo a status change. Mirrors
 // the real TraineeDetail StatusMenu.
-function DemoStatusMenu() {
-  const [status, setStatus] = useState('Active');
+function DemoStatusMenu({ initial = 'Active' } = {}) {
+  const [status, setStatus] = useState(initial);
   const [open, setOpen] = useState(false);
   const COLORS = { Active: C.gn, 'On Hold': C.or, Inactive: C.td, Trial: C.ac };
   const color = COLORS[status] || C.tm;
