@@ -2250,7 +2250,7 @@ function DemoPrograms() {
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
                         <label style={labelStyle}>Superset</label>
-                        <input value={e.superset || '—'} readOnly tabIndex={-1} style={{ ...inputStyleRO, background: e.superset ? sc : undefined, border: e.superset ? `1px solid ${sc}` : inputStyleRO.border, color: e.superset ? '#0a0a0b' : C.td, fontWeight: e.superset ? 800 : 700, fontFamily: FN, textAlign: 'center' }} />
+                        <input value={e.superset || '—'} readOnly tabIndex={-1} style={{ ...inputStyleRO, background: e.superset ? `color-mix(in srgb, ${sc} 20%, var(--c-sf))` : undefined, border: e.superset ? `1px solid ${sc}` : inputStyleRO.border, color: e.superset ? C.tx : C.td, fontWeight: e.superset ? 800 : 700, fontFamily: FN, textAlign: 'center' }} />
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
                         <label style={labelStyle}>Sets</label>
@@ -2498,7 +2498,7 @@ function DemoPrograms() {
                           </div>
                           <div title={ex.name}
                             style={{ color: C.tx, fontFamily: FB, fontSize: 12, minWidth: 0, overflowWrap: 'anywhere', wordBreak: 'break-word', borderLeft: `3px solid ${ex.superset ? sc : 'transparent'}`, paddingLeft: 6 }}>{ex.name}</div>
-                          <input value={ex.superset || ''} readOnly tabIndex={-1} style={{ ...tinyRO, background: ex.superset ? sc : undefined, border: ex.superset ? `1px solid ${sc}` : tinyRO.border, color: ex.superset ? '#0a0a0b' : C.td, fontFamily: FN, fontWeight: ex.superset ? 800 : 600, textAlign: 'center' }} />
+                          <input value={ex.superset || ''} readOnly tabIndex={-1} style={{ ...tinyRO, background: ex.superset ? `color-mix(in srgb, ${sc} 20%, var(--c-sf))` : undefined, border: ex.superset ? `1px solid ${sc}` : tinyRO.border, color: ex.superset ? C.tx : C.td, fontFamily: FN, fontWeight: ex.superset ? 800 : 600, textAlign: 'center' }} />
                           <input value={ex.sets ?? ''} readOnly tabIndex={-1} style={tinyRO} />
                           <input value={ex.reps || ''} readOnly tabIndex={-1} style={tinyRO} />
                           <input value={ex.tempo || ''} readOnly tabIndex={-1} style={tinyRO} />

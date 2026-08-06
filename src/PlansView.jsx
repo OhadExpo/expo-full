@@ -952,7 +952,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                                 <span style={{overflowWrap:'break-word', wordBreak:'normal'}}>{title}</span>
                               </div>
                               <input value={pe.superset || ''} readOnly tabIndex={-1}
-                                style={{...tinyInputRO, background: pe.superset ? sc : undefined, border: pe.superset ? `1px solid ${sc}` : tinyInputRO.border, color: pe.superset ? '#0a0a0b' : C.td, fontFamily:FN, fontWeight: pe.superset ? 800 : 600, textAlign:'center'}} />
+                                style={{...tinyInputRO, background: pe.superset ? `color-mix(in srgb, ${sc} 20%, var(--c-sf))` : undefined, border: pe.superset ? `1px solid ${sc}` : tinyInputRO.border, color: pe.superset ? C.tx : C.td, fontFamily:FN, fontWeight: pe.superset ? 800 : 600, textAlign:'center'}} />
                               {Array.isArray(pe.wkS) && pe.wkS.length > 0 ? (
                                 <div style={{display:'grid', gridTemplateColumns:`repeat(${weeks},minmax(0,1fr))`, gap:2}}>
                                   {pe.wkS.map((v, wi) => <input key={wi} value={v||''} readOnly tabIndex={-1} style={{...tinyInputRO, padding:'3px 4px', fontSize:10}} />)}
@@ -1998,7 +1998,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                       </div>
                       <select value={ex.superset||""} onChange={e=>update({superset:e.target.value})}
                         title={ex.superset ? `Superset group ${ex.superset}` : 'Not in a superset'}
-                        style={{...tinyInput, background: ex.superset ? sc : tinyInput.background, color: ex.superset ? '#0a0a0b' : C.td, border: ex.superset ? `1px solid ${sc}` : tinyInput.border, fontFamily:FN, fontWeight: ex.superset ? 800 : 600, height:24, minHeight:24, padding:'0 6px', boxSizing:'border-box', appearance:'none', WebkitAppearance:'none', textAlignLast:'center'}}>
+                        style={{...tinyInput, background: ex.superset ? `color-mix(in srgb, ${sc} 20%, var(--c-sf))` : tinyInput.background, color: ex.superset ? C.tx : C.td, border: ex.superset ? `1px solid ${sc}` : tinyInput.border, fontFamily:FN, fontWeight: ex.superset ? 800 : 600, height:24, minHeight:24, padding:'0 6px', boxSizing:'border-box', appearance:'none', WebkitAppearance:'none', textAlignLast:'center'}}>
                         {SUPERSET_LABELS.map(s => <option key={s} value={s} style={{color: supersetColor(s), fontWeight: 700}}>{s||"—"}</option>)}
                       </select>
                       {ex.wkS && Array.isArray(ex.wkS) && ex.wkS.length > 0 ? (
