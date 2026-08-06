@@ -200,7 +200,12 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
   // Show the first 2-3 available parameters so similar exercises are
   // distinguishable (athletic/med-ball rows often lack resistance/body-position
   // but DO have category + laterality). movementPattern is shown separately.
-  const subtitle = (ex) => [ex.category, ex.resistanceType, ex.bodyPosition, ex.movementType, ex.laterality].filter(Boolean).slice(0, 3).join(' · ');
+  // Parameters shown = the REAL library-xlsx classification columns only
+  // (Ohad: "parameters not aligned with Last Draft Exercise Library.xlsx").
+  // xlsx cols: Resistance Type · Body Position · Movement Type · Primary Joints
+  // · Joint Movements · Primary/Secondary Muscle Groups. No category/laterality/
+  // movementPattern — those aren't columns in the library.
+  const subtitle = (ex) => [ex.resistanceType, ex.bodyPosition, ex.movementType, ex.primaryJoints].filter(Boolean).slice(0, 3).join(' · ');
   const muscles = (ex) => [ex.primaryMuscles, ex.secondaryMuscles].filter(Boolean).join(' / ');
   const filterSelectStyle = { ...baseInput, padding: '7px 10px', fontSize: 12 };
   // Active filters get the brand cyan border + subtle bg tint so the coach
@@ -211,8 +216,12 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
   if (!mounted) return null;
 
   return (
-    <div role="dialog" aria-modal="true" className={closing ? 'motion-fade-out' : 'motion-fade-in'} style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: 40, background: C.scrim, backdropFilter: 'blur(8px)' }} onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} className={closing ? 'motion-fall' : 'motion-rise'} style={{ background: C.sf, border:`1px solid ${C.bd}`, borderRadius: 0, width: 'min(900px, 92vw)', maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: `0 20px 60px ${C.shadow}` }}>
+    <div role="dialog" aria-modal="true" className={closing ? 'motion-fade-out' : 'motion-fade-in'} style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'stretch', justifyContent: 'flex-end', background: 'rgba(10,11,13,0.20)' }} onClick={onClose}>
+      {/* Right-side DRAWER (not a covering modal) so the program stays visible on
+          the left while picking — Ohad: "i can't see the program when selecting an
+          exercise". Slides in from the right over a light scrim. */}
+      <style>{`@keyframes exDrawerIn{from{transform:translateX(100%)}to{transform:translateX(0)}}`}</style>
+      <div onClick={e => e.stopPropagation()} style={{ background: C.sf, borderLeft:`1px solid ${C.ac}`, borderRadius: 0, width: 'min(468px, 94vw)', height: '100vh', maxHeight: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: `-16px 0 50px ${C.shadow}`, animation: closing ? 'none' : 'exDrawerIn 220ms cubic-bezier(0.22,0.61,0.36,1)', transform: closing ? 'translateX(100%)' : 'translateX(0)', transition: closing ? 'transform 200ms cubic-bezier(0.22,0.61,0.36,1)' : 'none' }}>
         {/* Header hero — eyebrow tag (action), big exercise name, metadata.
             Lifts the current exercise out of the page header and into a
             scannable hierarchy: WHAT you're replacing, in big type, with
@@ -333,7 +342,6 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
                         {ex.videoLink && <span title="Has a demo video" style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 8, fontFamily: FN, fontWeight: 700, color: C.ac, letterSpacing: '0.08em' }}><svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>VIDEO</span>}
                         {ex.cues && <span title="Has coaching notes / cues" style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 8, fontFamily: FN, fontWeight: 700, color: C.or, letterSpacing: '0.08em' }}><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 6h14M5 12h14M5 18h9"/></svg>NOTE</span>}
                         {isSelected && <span title="Currently linked exercise" style={{ fontSize: 8, fontFamily: FN, fontWeight: 700, color: C.ac, letterSpacing: '0.18em', whiteSpace: 'nowrap', border: `1px solid ${C.ac}`, padding: '1px 5px' }}>CURRENT</span>}
-                        {!isSelected && ex.movementPattern && <span style={{ fontSize: 9, fontFamily: FN, fontWeight: 700, color: C.tm, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>{ex.movementPattern}</span>}
                       </div>
                     </div>
                     {/* Compact single meta line — category · resistance · position ·
