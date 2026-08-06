@@ -952,7 +952,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                                 <span style={{overflowWrap:'break-word', wordBreak:'normal'}}>{title}</span>
                               </div>
                               <input value={pe.superset || ''} readOnly tabIndex={-1}
-                                style={{...tinyInputRO, color:pe.superset?sc:C.td, fontFamily:FN, fontWeight:600}} />
+                                style={{...tinyInputRO, background: pe.superset ? sc : undefined, border: pe.superset ? `1px solid ${sc}` : tinyInputRO.border, color: pe.superset ? '#0a0a0b' : C.td, fontFamily:FN, fontWeight: pe.superset ? 800 : 600, textAlign:'center'}} />
                               {Array.isArray(pe.wkS) && pe.wkS.length > 0 ? (
                                 <div style={{display:'grid', gridTemplateColumns:`repeat(${weeks},minmax(0,1fr))`, gap:2}}>
                                   {pe.wkS.map((v, wi) => <input key={wi} value={v||''} readOnly tabIndex={-1} style={{...tinyInputRO, padding:'3px 4px', fontSize:10}} />)}
@@ -1493,6 +1493,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
     // "Exercise N" on their device. The plan must be self-contained.
     ex.title = lib?.title || '';
     updateDay(activeDay, { exercises: [...(plan.days[activeDay]?.exercises || []), ex] });
+    setOvExpanded(prev => ({ ...prev, [ex.id]: true })); // Ohad: a newly-added exercise opens expanded
   };
   // Draft quick-add: append an exercise by NAME only — no library link, no
   // cues/notes, no video. exerciseId stays "" so the row renders via ex.title.
@@ -1504,6 +1505,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
     ex.order = plan.days[activeDay]?.exercises.length || 0;
     ex.title = t;
     updateDay(activeDay, { exercises: [...(plan.days[activeDay]?.exercises || []), ex] });
+    setOvExpanded(prev => ({ ...prev, [ex.id]: true })); // Ohad: a newly-added exercise opens expanded
   };
   // Create a REAL library exercise (reusable, editable in the library) and
   // link this plan row to it — vs addExByName which is plan-only free text.
@@ -1523,6 +1525,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
     // who can't read the library, still see the exercise name.
     ex.title = t;
     updateDay(activeDay, { exercises: [...(plan.days[activeDay]?.exercises || []), ex] });
+    setOvExpanded(prev => ({ ...prev, [ex.id]: true })); // Ohad: a newly-added exercise opens expanded
   };
   // Per-day variants — used by the overview table so a row in any day can be
   // edited without first switching `activeDay` (and without leaving overview).
@@ -1994,7 +1997,8 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                         <span style={{overflowWrap: compareActive ? 'break-word' : 'anywhere', wordBreak: compareActive ? 'normal' : 'break-word'}}>{title}</span>
                       </div>
                       <select value={ex.superset||""} onChange={e=>update({superset:e.target.value})}
-                        style={{...tinyInput, color:sc, fontFamily:FN, fontWeight:600, height:24, minHeight:24, padding:'0 6px', boxSizing:'border-box', appearance:'none', WebkitAppearance:'none', textAlignLast:'center'}}>
+                        title={ex.superset ? `Superset group ${ex.superset}` : 'Not in a superset'}
+                        style={{...tinyInput, background: ex.superset ? sc : tinyInput.background, color: ex.superset ? '#0a0a0b' : C.td, border: ex.superset ? `1px solid ${sc}` : tinyInput.border, fontFamily:FN, fontWeight: ex.superset ? 800 : 600, height:24, minHeight:24, padding:'0 6px', boxSizing:'border-box', appearance:'none', WebkitAppearance:'none', textAlignLast:'center'}}>
                         {SUPERSET_LABELS.map(s => <option key={s} value={s} style={{color: supersetColor(s), fontWeight: 700}}>{s||"—"}</option>)}
                       </select>
                       {ex.wkS && Array.isArray(ex.wkS) && ex.wkS.length > 0 ? (
