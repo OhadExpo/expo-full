@@ -1896,7 +1896,9 @@ function DemoPrograms() {
                 @media (prefers-reduced-motion: reduce) { .cd-prog-reveal { animation: none; } }
                 @media (max-width: 620px) { .cd-prog-actions .cd-spacer { display: none !important; } }
               `}</style>
-              <div style={{ fontSize: 12, color: C.td, marginBottom: 12, fontFamily: FN }}>{meta}</div>
+              {/* Count-line removed from the main-column top so the first program
+                  card top-aligns with the rail's Search box (Ohad OCD: left rail +
+                  right first box must start at the same vertical height). */}
               <div style={{ display: 'grid', gap: 8 }}>
                 {rows.map(row => {
                   const expanded = expandedAthletes.has(row.tid);
