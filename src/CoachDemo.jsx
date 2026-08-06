@@ -2809,7 +2809,7 @@ function DemoReview() {
               </div>
             </div>
             <div style={{ fontFamily: FN, fontSize: 11, color: C.gn, letterSpacing: 1, fontWeight: 700 }}>
-              {selected.doneSets}/{selected.totalSets} SETS
+              {selected.doneSets}/{selected.totalSets} SETS DONE
             </div>
           </div>
         </div>
@@ -2862,15 +2862,11 @@ function DemoReview() {
             background: 'transparent', color: C.tx,
             fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: 0.5, cursor: 'pointer',
           }}>← BACK</button>
-          <button onClick={() => {
-            const idx = queue.findIndex(w => w.id === selected.id);
-            const next = queue[(idx + 1) % queue.length];
-            setSelectedId(next.id);
-          }} title="Jump to next pending workout" style={{
+          <button onClick={() => setSelectedId(null)} title="Mark reviewed and return to the queue (demo only)" style={{
             flex: 1, padding: '12px 0', borderRadius: 0, border: `1px solid ${C.ac}`,
             background: C.ac, color: '#0a0a0b',
             fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: 0.5, cursor: 'pointer',
-          }}>→ NEXT PENDING ({queue.length - 1})</button>
+          }}>✓ MARK REVIEWED — BACK</button>
         </div>
       </section>
     );
@@ -2918,7 +2914,10 @@ function DemoReview() {
                     {hasFormVids && <span style={{ color: C.gn, marginLeft: 4, display: 'inline-flex', alignItems: 'center', verticalAlign: '-2px' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></span>}
                   </div>
                 </div>
-                <span style={{ color: C.ac, fontSize: 12, marginLeft: 8, flexShrink: 0 }}>Review →</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 12, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+                  <button onClick={() => setSelectedId(wo.id)} title="Review this workout" style={{ background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, borderRadius: 0, padding: '5px 12px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', cursor: 'pointer', whiteSpace: 'nowrap' }}>REVIEW →</button>
+                  <button onClick={e => e.stopPropagation()} title="Delete this workout (demo only)" style={{ background: 'transparent', border: `1px solid color-mix(in srgb, ${C.rd} 40%, transparent)`, color: C.rd, borderRadius: 0, padding: '5px 10px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', cursor: 'pointer' }}>DELETE</button>
+                </div>
               </div>
             );
           })}
