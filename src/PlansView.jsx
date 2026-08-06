@@ -326,8 +326,15 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 4 }}>
                       <div style={{ fontWeight: 600, fontSize: 13, color: C.tx, lineHeight: 1.3, flex: 1, overflowWrap: 'anywhere' }}>{ex.title}</div>
-                      {isSelected && <span title="Currently linked exercise" style={{ fontSize: 8, fontFamily: FN, fontWeight: 700, color: C.ac, letterSpacing: '0.18em', whiteSpace: 'nowrap', border: `1px solid ${C.ac}`, padding: '1px 5px' }}>CURRENT</span>}
-                      {!isSelected && ex.movementPattern && <span style={{ fontSize: 9, fontFamily: FN, fontWeight: 700, color: C.tm, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>{ex.movementPattern}</span>}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0 }}>
+                        {/* Media / notes indicators — show at a glance which library
+                            exercises already have a demo video (cyan) and coaching
+                            cues (orange), so the coach picks an informed one (Ohad). */}
+                        {ex.videoLink && <span title="Has a demo video" style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 8, fontFamily: FN, fontWeight: 700, color: C.ac, letterSpacing: '0.08em' }}><svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>VIDEO</span>}
+                        {ex.cues && <span title="Has coaching notes / cues" style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 8, fontFamily: FN, fontWeight: 700, color: C.or, letterSpacing: '0.08em' }}><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 6h14M5 12h14M5 18h9"/></svg>NOTE</span>}
+                        {isSelected && <span title="Currently linked exercise" style={{ fontSize: 8, fontFamily: FN, fontWeight: 700, color: C.ac, letterSpacing: '0.18em', whiteSpace: 'nowrap', border: `1px solid ${C.ac}`, padding: '1px 5px' }}>CURRENT</span>}
+                        {!isSelected && ex.movementPattern && <span style={{ fontSize: 9, fontFamily: FN, fontWeight: 700, color: C.tm, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>{ex.movementPattern}</span>}
+                      </div>
                     </div>
                     {subtitle(ex) && <div style={{ fontSize: 10, color: C.tm, fontFamily: FN, marginBottom: 2 }}>{subtitle(ex)}</div>}
                     {muscles(ex) && <div style={{ fontSize: 10, color: C.td, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{muscles(ex)}</div>}
