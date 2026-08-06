@@ -422,8 +422,8 @@ function DemoDashboard({ onJumpToTrainee }) {
                 {['Athlete', 'Status', 'Format', 'Package', 'Sessions', 'Total Paid', 'Last Payment', 'Workouts', 'Programs'].map(h => (
                   <th key={h} style={{
                     textAlign: 'center', padding: '10px 12px',
-                    fontSize: 10, fontFamily: FN, color: C.td, textTransform: 'uppercase', letterSpacing: '0.05em',
-                  }}>{h}</th>
+                    fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700,
+                  }}>{h === 'Athlete' ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{h} <span style={{ fontSize: 8 }}>↑</span></span> : h}</th>
                 ))}
               </tr>
             </thead>
