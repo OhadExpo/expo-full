@@ -1347,11 +1347,9 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
   // (the solo body is an IIFE, so state can't live inside it).
   const [activeSecs, setActiveSecs] = useState(() => new Set());
   const FILTERABLE_SECS = ['billing', 'bw', 'readiness', 'workouts', 'programs', 'overload'];
-  const toggleSec = (id) => setActiveSecs(prev => {
-    const next = new Set(prev);
-    if (next.has(id)) next.delete(id); else next.add(id);
-    return FILTERABLE_SECS.every(f => next.has(f)) ? new Set() : next;
-  });
+  // SINGLE-SELECT (Ohad): each section tab isolates to ONLY that section;
+  // clicking the active tab again returns to View All. Mirrors TraineeDetail.jsx.
+  const toggleSec = (id) => setActiveSecs(prev => (prev.size === 1 && prev.has(id)) ? new Set() : new Set([id]));
   const showSec = (id) => activeSecs.size === 0 || activeSecs.has(id);
   return (
     <section>

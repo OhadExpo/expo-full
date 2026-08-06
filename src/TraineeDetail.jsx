@@ -378,14 +378,15 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
   const FILTERABLE_SECS = ['billing', 'bw', 'readiness', 'workouts', 'programs', 'overload'];
   // Empty set = View All (show everything). Otherwise show only the active ids.
   const showSec = (id) => activeSecs.size === 0 || activeSecs.has(id);
+  // SINGLE-SELECT (Ohad 2026-08: "if i click on billing, i only want it to show
+  // billing — for each button"). Each section tab isolates to ONLY that section;
+  // clicking the already-active tab (or View All) returns to showing everything.
   const toggleSec = (id) => {
     let next;
-    if (id === 'all') {
-      next = new Set(); // View All resets the filter
+    if (id === 'all' || (activeSecs.size === 1 && activeSecs.has(id))) {
+      next = new Set(); // View All, or clicking the sole-active tab again
     } else {
-      next = new Set(activeSecs); // empty stays empty until we add the first pick
-      next.has(id) ? next.delete(id) : next.add(id);
-      if (next.size === FILTERABLE_SECS.length) next = new Set(); // all picked → View All
+      next = new Set([id]); // exclusive: show ONLY this section
     }
     setActiveSecs(next);
     // pushState (not replaceState) so back/forward walks the filter; pushState
@@ -472,9 +473,9 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           </> : <Btn variant="danger" onClick={()=>setShowArchiveConfirm(true)} style={{fontSize:11,padding:"4px 10px",height:30,boxSizing:"border-box"}}>ARCHIVE</Btn>}
         </div></div>
 
-      {/* Section filter — MULTI-SELECT (Ohad). VIEW ALL (leftmost) clears the
-          filter; each section tag toggles; pick several to show several; pick
-          all and it snaps back to View All. Scrolls sideways, never reflows. */}
+      {/* Section filter — SINGLE-SELECT (Ohad). VIEW ALL (leftmost) shows
+          everything; each section tab isolates to ONLY that section; clicking
+          the active tab again returns to View All. Scrolls sideways, never reflows. */}
       <div style={{ overflowX: 'auto', marginBottom: 16, paddingBottom: 2 }}>
         <div style={{ minWidth: 'max-content', display: 'inline-flex', gap: 6 }} role="group" aria-label="Filter sections">
           {SEC_TABS.map(t => {
@@ -482,7 +483,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             return (
               <button key={t.id} onClick={() => toggleSec(t.id)}
                 aria-pressed={active}
-                title={t.id === 'all' ? 'Show all sections' : `Toggle ${t.label} — select multiple; selecting all shows everything`}
+                title={t.id === 'all' ? 'Show all sections' : `Show only ${t.label} — click again for all sections`}
                 style={{
                   height: 30, boxSizing: 'border-box', padding: '0 14px', borderRadius: 0,
                   background: active ? C.ac : 'transparent',
