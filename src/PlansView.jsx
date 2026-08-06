@@ -1427,7 +1427,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
     const cRect = e.currentTarget.getBoundingClientRect();
     let y;
     if (cards.length === 0) y = 0;
-    else if (gap === 0) y = cards[0].getBoundingClientRect().top - cRect.top - 7;
+    else if (gap === 0) y = Math.max(2, cards[0].getBoundingClientRect().top - cRect.top - 7);
     else if (gap === cards.length) y = cards[cards.length - 1].getBoundingClientRect().bottom - cRect.top + 7;
     else { const a = cards[gap - 1].getBoundingClientRect(), b = cards[gap].getBoundingClientRect(); y = ((a.bottom + b.top) / 2) - cRect.top; }
     setDayDragOver(prev => (prev && prev.gap === gap && Math.abs(prev.y - y) < 1) ? prev : { gap, y });
@@ -1785,7 +1785,12 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           during the block — e.g., a "Morning Routine" day inside a Mon/Wed/Fri
           program. Plan-level kind='daily' is the legacy form (96e5f72) and is
           treated as "all days daily" at display time. */}
-      <div onDragOver={onDaysDragOver} onDrop={onDaysDrop} style={{display:"flex",flexDirection:"column",gap:12,marginBottom:16,position:'relative'}}>
+      {/* While a day drag is live, add top/bottom padding so there's a clear
+          drop zone ABOVE the first day and BELOW the last — otherwise the first
+          card sits flush at the top and "drop before Day A" is unreachable
+          (Ohad: "it only lets me drag day a down"). The insertion bar also needs
+          this space to render at the top instead of being clipped above. */}
+      <div onDragOver={onDaysDragOver} onDrop={onDaysDrop} style={{display:"flex",flexDirection:"column",gap:12,marginBottom:16,position:'relative', paddingTop: dayDragging ? 16 : 0, paddingBottom: dayDragging ? 16 : 0, transition:'padding 120ms ease'}}>
         {plan.days.map((d, dayIdx) => {
           const dayExs = d.exercises || [];
           const weeks = plan.weeks || 4;
