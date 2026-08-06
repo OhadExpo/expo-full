@@ -911,8 +911,8 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                             ends with its 22px delete slot, but the read-only
                             mirror has no button so the space read as dead
                             whitespace after TEMPO. */}
-                        <div style={{display:'grid',gridTemplateColumns:'30px minmax(0,3.3fr) 44px minmax(0,0.9fr) minmax(0,1.4fr) minmax(0,0.9fr) minmax(0,60px) minmax(0,1.3fr)',gap:'3px 8px',fontSize:12,alignItems:'center',minWidth:Math.max(592,518+(cmpPlan.weeks||4)*40)}}>
-                          {['#','EXERCISE','GRP','SETS','REPS','LOAD','RPE','TEMPO'].map((h,hi) =>
+                        <div style={{display:'grid',gridTemplateColumns:'30px minmax(0,3.3fr) 44px minmax(0,0.9fr) minmax(0,1.4fr) minmax(0,1.3fr) minmax(0,0.9fr) minmax(0,60px)',gap:'3px 8px',fontSize:12,alignItems:'center',minWidth:Math.max(592,518+(cmpPlan.weeks||4)*40)}}>
+                          {['#','EXERCISE','GRP','SETS','REPS','TEMPO','LOAD','RPE'].map((h,hi) =>
                             hi === 0 ? (
                               <div key={hi} style={{display:'flex', alignItems:'center', gap:5, minWidth:0}}>
                                 <span style={{fontFamily:FN, fontSize:12, lineHeight:1, fontWeight:400, opacity:0}}>⇕</span>
@@ -977,9 +977,9 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                               ) : (
                                 <input value={pe.reps || ''} readOnly tabIndex={-1} style={tinyInputRO} />
                               )}
+                              <input value={pe.tempo || ''} readOnly tabIndex={-1} style={tinyInputRO} />
                               <input value={pe.load || ''} readOnly tabIndex={-1} style={tinyInputRO} />
                               <input value={pe.rpe || ''} readOnly tabIndex={-1} style={tinyInputRO} />
-                              <input value={pe.tempo || ''} readOnly tabIndex={-1} style={tinyInputRO} />
                               {exOpen && (
                                 <div style={{gridColumn:'1 / -1', background:'var(--c-sf2)', border:`1px solid ${C.cardBd}`, borderLeft:`3px solid ${C.ac}`, padding:'12px 14px', margin:'2px 0 6px'}}>
                                   {(exData && (exData.movementPattern || exData.laterality || exData.primaryMuscles)) && (
@@ -1923,8 +1923,8 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                   )}
                 </div>
               ) :
-                <div style={{overflowX:"auto",margin:"0 -12px",padding:compareActive?"0 12px 7px":"0 12px"}}><div onDragOver={onGridDragOver} onDrop={onGridDrop} style={{display:"grid",position:"relative",gridTemplateColumns: compareActive ? `30px minmax(0,3.3fr) 44px minmax(0,0.9fr) minmax(0,1.4fr) minmax(0,0.9fr) minmax(0,60px) minmax(0,1.3fr) 22px` : `36px minmax(180px,3.3fr) 56px minmax(${Math.max(56,weeks*22)}px,0.9fr) minmax(${Math.max(64,weeks*26)}px,1.4fr) minmax(60px,80px) minmax(48px,60px) minmax(80px,1.3fr) 24px`,gap:"3px 8px",fontSize:12,alignItems:"center",minWidth: compareActive ? Math.max(590,516+weeks*40) : Math.max(614,540+weeks*40)}}>
-                  {["#","EXERCISE","GRP","SETS","REPS","LOAD","RPE","TEMPO",""].map((h,hi) =>
+                <div style={{overflowX:"auto",margin:"0 -12px",padding:compareActive?"0 12px 7px":"0 12px"}}><div onDragOver={onGridDragOver} onDrop={onGridDrop} style={{display:"grid",position:"relative",gridTemplateColumns: compareActive ? `30px minmax(0,3.3fr) 44px minmax(0,0.9fr) minmax(0,1.4fr) minmax(0,1.3fr) minmax(0,0.9fr) minmax(0,60px) 22px` : `36px minmax(180px,3.3fr) 56px minmax(${Math.max(56,weeks*22)}px,0.9fr) minmax(${Math.max(64,weeks*26)}px,1.4fr) minmax(80px,1.3fr) minmax(60px,80px) minmax(48px,60px) 24px`,gap:"3px 8px",fontSize:12,alignItems:"center",minWidth: compareActive ? Math.max(590,516+weeks*40) : Math.max(614,540+weeks*40)}}>
+                  {["#","EXERCISE","GRP","SETS","REPS","TEMPO","LOAD","RPE",""].map((h,hi) =>
                     hi === 0 ? (
                       <div key={hi} style={{display:'flex', alignItems:'center', gap:5, minWidth:0}}>
                         <span style={{fontFamily:FN, fontSize:12, lineHeight:1, fontWeight:400, opacity:0}}>⇕</span>
@@ -2035,9 +2035,9 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                       ) : (
                         <input value={ex.reps||""} onChange={e=>update({reps:e.target.value})} placeholder="8-12" style={tinyInput} />
                       )}
+                      <input value={ex.tempo||""} onChange={e=>update({tempo:e.target.value})} placeholder="3010" style={tinyInput} />
                       <input value={ex.load||""} onChange={e=>update({load:e.target.value})} placeholder="kg/%" style={tinyInput} />
                       <input value={ex.rpe||""} onChange={e=>update({rpe:e.target.value})} placeholder="7-8" style={tinyInput} />
-                      <input value={ex.tempo||""} onChange={e=>update({tempo:e.target.value})} placeholder="3010" style={tinyInput} />
                       <button onClick={()=>setConfirmDeleteEx({ dayIdx, exIdx, title })} title="Remove exercise from this day" aria-label="Remove exercise"
                         style={{background:"none",border:"none",cursor:"pointer",padding:0,height:24,boxSizing:"border-box",display:"inline-flex",alignItems:"center",justifyContent:"center"}}><TrashIcon size={15} /></button>
                       {/* Per-week toggles, column-aligned under SETS (col 4) and
