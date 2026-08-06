@@ -2882,8 +2882,20 @@ function DemoReview() {
 
       {Object.entries(byClient).map(([cid, data]) => (
         <div key={cid} style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: 12, fontFamily: FN, color: C.ac, fontWeight: 700, marginBottom: 8 }}>
-            {data.name.toUpperCase()} ({data.workouts.length})
+          {/* Athlete group header — solid cyan strip: name + (n) pending +
+              · planName (cyan) + current-stage week boxes + Athlete page →.
+              Mirrors WorkoutReview's CollapsibleSection group header. */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '8px 14px', marginBottom: 8 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, fontSize: isHeb(data.name) ? 15 : 12, fontFamily: isHeb(data.name) ? FH : FN, color: '#FFFFFF', fontWeight: 700 }}>
+              <span style={{ lineHeight: 1 }}>{isHeb(data.name) ? data.name : data.name.toUpperCase()} ({data.workouts.length})</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+                <span style={{ fontFamily: FN, fontSize: 11, lineHeight: 1, color: 'var(--c-ac)', fontWeight: 700, letterSpacing: '0.04em' }}>· {data.workouts[0].planName}</span>
+                <span style={{ display: 'inline-flex', gap: 3, verticalAlign: 'middle' }}>
+                  {Array.from({ length: 4 }, (_, i) => <span key={i} style={{ width: 13, height: 5, background: i < Math.min(data.workouts[0].week, 4) ? 'var(--c-ac)' : 'var(--c-tm)', opacity: i < Math.min(data.workouts[0].week, 4) ? 1 : 0.35 }} />)}
+                </span>
+              </span>
+            </span>
+            <button onClick={e => e.stopPropagation()} title="Open this athlete's page (demo only)" style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.55)', color: '#FFFFFF', borderRadius: 0, padding: '3px 10px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap', lineHeight: 1.5 }}>Athlete page →</button>
           </div>
           {data.workouts.map(wo => {
             const hasFormVids = wo.exercises.some(e => e.hasVideo);
