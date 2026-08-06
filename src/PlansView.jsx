@@ -2841,10 +2841,13 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
   // we attribute every plan to whichever sub-id-or-parent owns it.
   const sortByRecency = sortProgramsRecent;
   const grouped = useMemo(() => {
-    if (search || flags.unassigned || flags.empty) return null; // search/flags → flat list; a single-athlete filter renders as ONE grouped card (below)
-    // Bucket plans by athlete (parent or sub-id).
+    // Bucket the FILTERED plans by athlete, so search + flags STILL render as
+    // athlete groups (Ohad: searching "omer" must show ONE Omer group — current
+    // block + a "N previous" expander — not the athlete strip repeated per
+    // block). A text search matches by program OR athlete name, so searching a
+    // name pulls in all that athlete's blocks and the group shows in full.
     const buckets = new Map();
-    for (const p of planIndex) {
+    for (const p of filtered) {
       const tid = p.traineeId || '__unassigned__';
       if (!buckets.has(tid)) buckets.set(tid, []);
       buckets.get(tid).push(p);
@@ -2888,7 +2891,9 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
     // level; we count an athlete as "covered" if any of their IDs (parent or
     // sub) appears in the buckets map.
     const covered = new Set(buckets.keys());
-    const orphans = (trainees || []).filter(t => {
+    // Orphan zero-state rows only belong in the unfiltered default view — when
+    // searching/filtering, showing every plan-less athlete would be noise.
+    const orphans = anyFilterActive ? [] : (trainees || []).filter(t => {
       if (t.status === 'Archived') return false;
       const ids = [t.id];
       if (t.members && t.members.length === 2) {
@@ -2932,7 +2937,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
       return a.name.localeCompare(b.name);
     });
     return rows;
-  }, [planIndex, clientWorkouts, trainees, search, filterTrainee, flags, traineeMap, sortField, sortDir, portalVis]);
+  }, [filtered, anyFilterActive, clientWorkouts, trainees, search, filterTrainee, flags, traineeMap, sortField, sortDir, portalVis]);
 
   // Single-athlete filter → render just that athlete's group (auto-expanded) as
   // ONE card, instead of repeating the name across N flat cards (Ohad ref).
@@ -3367,7 +3372,14 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
           })}
         </div>
       )}
-      {/* Flat-list fallback — only when search/trainee-filter is active. */}
+      {/* Zero-match empty state — search/flags now render as athlete groups
+          above (never a flat list), so the only remaining case is "nothing
+          matched". The `!grouped` fallback below is dead (grouped is always an
+          array) but kept harmless. */}
+      {displayGrouped && displayGrouped.length === 0 && (
+        <EmptyState icon="" message={anyFilterActive ? "No programs match your search." : "No programs yet — add one to get started."} />
+      )}
+      {/* Flat-list fallback — dead code (grouped is never null); retained. */}
       {!grouped && (filtered.length===0?<EmptyState icon="" message="No programs match your search." />:(
         <div style={{display:"grid",gap: progView==='grid'?14:8, gridTemplateColumns: progView==='grid'?'repeat(auto-fill,minmax(min(360px,100%),1fr))':'1fr'}}>{visible.map(p => {
           const tName = traineeMap[p.traineeId] || "Unassigned";
