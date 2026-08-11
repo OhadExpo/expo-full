@@ -128,11 +128,18 @@ export function velocityAutoreg(velocity) {
 export function warmupReadiness(todayVel, ref) {
   if (!(todayVel > 0) || !ref || !(ref.refVel > 0)) return null;
   const deltaPct = Math.round(((todayVel - ref.refVel) / ref.refVel) * 100);
-  let verdict, tone, nudge;
-  if (deltaPct >= -4) { verdict = 'Ready — bar speed is at or above his usual at this load. Run the session as written.'; tone = 'good'; nudge = null; }
-  else if (deltaPct >= -10) { verdict = 'Slightly down — a touch slower than his norm here. Hold today’s top load, don’t chase PRs.'; tone = 'warn'; nudge = 'hold'; }
-  else { verdict = 'Down — notably slower at the same load. Back off ~5–10% or cut a set; he’s not fresh today.'; tone = 'bad'; nudge = 'reduce'; }
-  return { deltaPct, refVel: ref.refVel, todayVel, n: ref.n, lastDate: ref.lastDate, load: ref.load, verdict, tone, nudge };
+  // Phone bar-speed re-scales ~5–10% film-to-film (monocular metric scale +
+  // camera angle + which side faces the lens), so this is a SOFT CUE, never a
+  // precise cutoff. The deadband is set WIDE (±10%) to clear that noise floor;
+  // even a big drop reads as "worth a gut check", not a set-cutting order —
+  // the coach confirms by feel/RPE. Within-set velocity-loss (velocityAutoreg)
+  // is the scale-invariant read; this cross-film one is deliberately hedged.
+  const lowConf = (ref.n || 0) < 3;
+  let verdict, tone;
+  if (deltaPct >= -10) { verdict = 'In his usual range at this load — nothing here says back off. Train as planned.'; tone = 'good'; }
+  else if (deltaPct >= -18) { verdict = 'Reading a bit slow at this load — could be fatigue, could be the camera angle. Worth a gut check before piling on load today.'; tone = 'warn'; }
+  else { verdict = 'Reading well down at this load. If the filming was consistent, he may not be fresh — confirm by feel/RPE before pushing top sets.'; tone = 'bad'; }
+  return { deltaPct, refVel: ref.refVel, todayVel, n: ref.n, lastDate: ref.lastDate, load: ref.load, refReps: ref.refReps, lowConf, verdict, tone };
 }
 
 // ---- Movement Asymmetry / Injury Screen ---------------------------------

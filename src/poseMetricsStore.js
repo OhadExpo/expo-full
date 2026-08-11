@@ -161,15 +161,19 @@ export function getLoadVelocityRef(clientId, exercise, load, todayDate) {
   const lift = (readAll()[clientId] || {})[exKey(exercise)];
   if (!lift) return null;
   const d0 = (todayDate || '').slice(0, 10);
-  const tol = load * 0.06;
+  const tol = load * 0.03; // ±3% — compare like loads only (velocity is load-sensitive)
   const prior = (lift.entries || []).filter((e) =>
     typeof e.load === 'number' && Math.abs(e.load - load) <= tol &&
     typeof e.bestMean === 'number' && (e.date || '').slice(0, 10) !== d0);
   if (!prior.length) return null;
-  // His fastest recorded set at this load is the "fresh" reference.
-  const refVel = Math.max(...prior.map((e) => e.bestMean));
+  // MEDIAN, not max — one flukey-fast (or scale-spiked) prior film must not
+  // become a permanent ceiling that reads every later session as "down".
+  const vels = prior.map((e) => e.bestMean).sort((a, b) => a - b);
+  const refVel = vels[Math.floor(vels.length / 2)];
+  const repsArr = prior.map((e) => e.reps).filter((x) => typeof x === 'number').sort((a, b) => a - b);
+  const refReps = repsArr.length ? repsArr[Math.floor(repsArr.length / 2)] : null;
   const last = prior[prior.length - 1];
-  return { refVel, n: prior.length, lastDate: (last.date || '').slice(0, 10), load };
+  return { refVel, n: prior.length, lastDate: (last.date || '').slice(0, 10), load, refReps };
 }
 
 export function hasVault(clientId) {

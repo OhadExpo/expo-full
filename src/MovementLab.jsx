@@ -544,6 +544,7 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
   const readiness = useMemo(() => {
     const tv = result?.velocity?.bestMean;
     if (!(vaultClientId && loadNum && tv > 0)) return null;
+    if (result?.captureQuality?.grade === 'poor') return null; // a bad clip's m/s is wrong — never act on it
     return warmupReadiness(tv, getLoadVelocityRef(vaultClientId, exerciseTitle, loadNum, vaultDate));
   }, [vaultClientId, loadNum, result, exerciseTitle, vaultDate]);
   useEffect(() => { setRepFrom(1); setRepTo(null); setVaultSaved(false); }, [frames]);
@@ -689,10 +690,13 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
           {readiness && (
             <div style={{ marginTop: 10, padding: '9px 12px', border: `1px solid ${readiness.tone === 'bad' ? C.rd : readiness.tone === 'warn' ? (C.or || '#f0b429') : C.gn}`, background: readiness.tone === 'bad' ? 'rgba(255,90,90,0.06)' : readiness.tone === 'warn' ? 'rgba(240,180,41,0.06)' : 'rgba(80,220,140,0.06)' }}>
               <div style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.12em', color: readiness.tone === 'bad' ? C.rd : readiness.tone === 'warn' ? (C.or || '#f0b429') : C.gn, marginBottom: 4 }}>
-                WARM-UP READINESS · <b>{readiness.deltaPct >= 0 ? '+' : ''}{readiness.deltaPct}%</b> vs his {readiness.load}kg norm
+                READINESS CUE · <b>{readiness.deltaPct >= 0 ? '+' : ''}{readiness.deltaPct}%</b> vs his {readiness.load}kg norm
               </div>
               <div style={{ fontFamily: FN, fontSize: 12.5, color: 'rgba(255,255,255,0.85)', lineHeight: 1.5 }}>{readiness.verdict}</div>
-              <div style={{ fontFamily: FN, fontSize: 10, color: C.td, marginTop: 4 }}>Today {readiness.todayVel} m/s vs his best {readiness.refVel} m/s at {readiness.load}kg ({readiness.n} prior {readiness.n === 1 ? 'set' : 'sets'}, last {readiness.lastDate}). Fixed-load bar speed drops before reps or RPE do — a rough autoreg cue, not an exact prescription.</div>
+              <div style={{ fontFamily: FN, fontSize: 10, color: C.td, marginTop: 4, lineHeight: 1.5 }}>
+                Today {readiness.todayVel} m/s vs his median {readiness.refVel} m/s at {readiness.load}kg{readiness.refReps ? ` · ~${readiness.refReps} reps` : ''} ({readiness.n} prior {readiness.n === 1 ? 'set' : 'sets'}, last {readiness.lastDate}).
+                {readiness.lowConf ? ' Only 1–2 prior films — treat lightly.' : ''} Phone bar-speed shifts ~5–10% with camera angle/distance, so this only means something if you film from the same spot — it's a soft cue to sense-check by feel/RPE, never a set-cutting rule.
+              </div>
             </div>
           )}
           {loadNum && !readiness && !vaultSaved && result?.captureQuality?.grade !== 'poor' && (
