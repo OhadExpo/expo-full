@@ -183,10 +183,27 @@ export function segmentReps(angle, fps = 30, frames = null) {
     const b = bottoms[k];
     const lo = k === 0 ? 0 : bottoms[k - 1];
     const hi = k === bottoms.length - 1 ? angle.length - 1 : bottoms[k + 1];
-    let startIdx = lo, sv = -Infinity;
-    for (let j = lo; j <= b; j++) if (isReal(angle[j]) && angle[j] > sv) { sv = angle[j]; startIdx = j; }
-    let endIdx = hi, ev = -Infinity;
-    for (let j = b; j <= hi; j++) if (isReal(angle[j]) && angle[j] > ev) { ev = angle[j]; endIdx = j; }
+    const bot = isReal(angle[b]) ? angle[b] : 0;
+    // REP START = descent onset: the moment he actually commits to moving down,
+    // NOT the start of the rest plateau between reps. The old code took the
+    // argmax angle over the whole window, so if he stood at the top for a beat
+    // between reps the "start" landed early in that pause and the rep looked
+    // like it began while he was still standing still. Instead: find the top
+    // angle in [lo,b], then take the LAST frame that's still within a small
+    // tolerance of that top before the descent — that's where the top ends and
+    // the lowering begins.
+    let topS = -Infinity;
+    for (let j = lo; j <= b; j++) if (isReal(angle[j]) && angle[j] > topS) topS = angle[j];
+    const tolS = Math.max(5, 0.10 * (topS - bot));
+    let startIdx = lo;
+    for (let j = lo; j <= b; j++) if (isReal(angle[j]) && angle[j] >= topS - tolS) startIdx = j;
+    // REP END = lockout: the FIRST frame back near the top after the bottom
+    // (concentric finished), not a later post-rep pause.
+    let topE = -Infinity;
+    for (let j = b; j <= hi; j++) if (isReal(angle[j]) && angle[j] > topE) topE = angle[j];
+    const tolE = Math.max(5, 0.10 * (topE - bot));
+    let endIdx = hi;
+    for (let j = b; j <= hi; j++) if (isReal(angle[j]) && angle[j] >= topE - tolE) { endIdx = j; break; }
     reps.push({ startIdx, bottomIdx: b, endIdx });
   }
   // Gate out fake reps (fidget / walkout / shallow setup). Attach rejection
@@ -393,7 +410,12 @@ export function namedAngleSeries(frames, angleName) {
 // the rep with the largest ROM (fatigue / cheat-rep marker).
 export function romTempoMetrics(frames, angle, reps) {
   const perRep = reps.map(({ startIdx, bottomIdx, endIdx }) => {
-    const top = Math.max(angle[startIdx] ?? 0, angle[endIdx] ?? 0);
+    // True peak over the rep window — startIdx/endIdx are now the descent-onset
+    // and lockout frames (a hair off the exact max), so read ROM from the real
+    // peak between them, not the endpoint angles, to keep degrees accurate.
+    let top = -Infinity;
+    for (let j = startIdx; j <= endIdx; j++) if (isReal(angle[j]) && angle[j] > top) top = angle[j];
+    if (!isReal(top)) top = Math.max(angle[startIdx] ?? 0, angle[endIdx] ?? 0);
     const bottom = angle[bottomIdx];
     if (!isReal(top) || !isReal(bottom)) return null;
     const rom = round1(top - bottom);
