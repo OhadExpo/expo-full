@@ -17,6 +17,7 @@ import { fmtPrettyDate } from './dates';
 import { C, FN, FB, FH, CATEGORIES, RESISTANCE_TYPES, BODY_POSITIONS, MOVEMENT_TYPES, MOVEMENT_PATTERNS, LATERALITY } from './theme';
 import { EXPOMark } from './expoMark';
 import { SideRail } from './SideRail';
+import TrainingLineageV2 from './TrainingLineageV2';
 
 // ─── Mock data ────────────────────────────────────────────────────────────
 // Three mock trainees — one per format type (Online / Gym Single / Gym Couple)
@@ -134,27 +135,30 @@ const BLOCK_DATA = {
 // ExercisesView filters on (category / resistance / body position / movement
 // type / pattern / laterality) so the demo's filter row mirrors production
 // 1:1 instead of just exposing category.
+// Enriched with the exercise-DB sheet params (primaryJoints / jointMovements /
+// primaryMuscles / secondaryMuscles / cues) so the demo table/compare populate
+// like the real app — parity with the redesigned ExercisesView.
 const MOCK_EXERCISES = [
-  { name: 'BB Bench Press',     category: 'Chest',     resistanceType: 'Barbell',    bodyPosition: 'Supine',       movementType: 'Push',          pattern: 'Horizontal Push',         laterality: 'Bilateral'  },
-  { name: 'DB Incline Press',   category: 'Chest',     resistanceType: 'Dumbbell',   bodyPosition: 'Supine',       movementType: 'Push',          pattern: 'Horizontal Push',         laterality: 'Bilateral'  },
-  { name: 'Cable Fly',          category: 'Chest',     resistanceType: 'Cable',      bodyPosition: 'Standing',     movementType: 'Push',          pattern: 'Isolation',               laterality: 'Bilateral'  },
-  { name: 'Standing OHP',       category: 'Shoulders', resistanceType: 'Barbell',    bodyPosition: 'Standing',     movementType: 'Push',          pattern: 'Vertical Push',           laterality: 'Bilateral'  },
-  { name: 'Lateral Raise',      category: 'Shoulders', resistanceType: 'Dumbbell',   bodyPosition: 'Standing',     movementType: 'Lateral Raise', pattern: 'Isolation',               laterality: 'Bilateral'  },
-  { name: 'BB Deadlift',        category: 'Legs',      resistanceType: 'Barbell',    bodyPosition: 'Standing',     movementType: 'Hinge',         pattern: 'Hip Hinge',               laterality: 'Bilateral'  },
-  { name: 'Romanian Deadlift',  category: 'Legs',      resistanceType: 'Barbell',    bodyPosition: 'Standing',     movementType: 'Hinge',         pattern: 'Hip Hinge',               laterality: 'Bilateral'  },
-  { name: 'Pull-Up',            category: 'Back',      resistanceType: 'Bodyweight', bodyPosition: 'Hanging',      movementType: 'Pull',          pattern: 'Vertical Pull',           laterality: 'Bilateral'  },
-  { name: 'Bent-Over BB Row',   category: 'Back',      resistanceType: 'Barbell',    bodyPosition: 'Standing',     movementType: 'Row',           pattern: 'Horizontal Pull',         laterality: 'Bilateral'  },
-  { name: 'Back Squat',         category: 'Legs',      resistanceType: 'Barbell',    bodyPosition: 'Standing',     movementType: 'Squat',         pattern: 'Squat',                   laterality: 'Bilateral'  },
-  { name: 'Front Squat',        category: 'Legs',      resistanceType: 'Barbell',    bodyPosition: 'Standing',     movementType: 'Squat',         pattern: 'Squat',                   laterality: 'Bilateral'  },
-  { name: 'Walking Lunge',      category: 'Legs',      resistanceType: 'Dumbbell',   bodyPosition: 'Standing',     movementType: 'Lunge',         pattern: 'Lunge',                   laterality: 'Alternating'},
-  { name: 'Leg Curl',           category: 'Legs',      resistanceType: 'Machine',    bodyPosition: 'Prone',        movementType: 'Curl',          pattern: 'Isolation',               laterality: 'Bilateral'  },
-  { name: 'Hip Thrust',         category: 'Glutes',    resistanceType: 'Barbell',    bodyPosition: 'Supine',       movementType: 'Hinge',         pattern: 'Hip Hinge',               laterality: 'Bilateral'  },
-  { name: 'Face Pull',          category: 'Back',      resistanceType: 'Cable',      bodyPosition: 'Standing',     movementType: 'Pull',          pattern: 'Horizontal Pull',         laterality: 'Bilateral'  },
-  { name: 'DB Bicep Curl',      category: 'Arms',      resistanceType: 'Dumbbell',   bodyPosition: 'Standing',     movementType: 'Curl',          pattern: 'Isolation',               laterality: 'Bilateral'  },
-  { name: 'Tricep Pushdown',    category: 'Arms',      resistanceType: 'Cable',      bodyPosition: 'Standing',     movementType: 'Extend',        pattern: 'Isolation',               laterality: 'Bilateral'  },
-  { name: 'Hanging Leg Raise',  category: 'Core',      resistanceType: 'Bodyweight', bodyPosition: 'Hanging',      movementType: 'Isometric',     pattern: 'Isolation',               laterality: 'Bilateral'  },
-  { name: 'Plank',              category: 'Core',      resistanceType: 'Bodyweight', bodyPosition: 'Prone',        movementType: 'Isometric',     pattern: 'Isolation',               laterality: 'Bilateral'  },
-  { name: 'Cable Pallof Press', category: 'Core',      resistanceType: 'Cable',      bodyPosition: 'Standing',     movementType: 'Anti-Rotation', pattern: 'Rotation/Anti-Rotation',  laterality: 'Unilateral' },
+  { name: 'BB Bench Press',     category: 'Chest',     resistanceType: 'Barbell',    bodyPosition: 'Supine',       movementType: 'Push',          pattern: 'Horizontal Push',         laterality: 'Bilateral',  primaryJoints: 'Shoulder, Elbow', jointMovements: 'Shoulder Horizontal Adduction, Elbow Extension', primaryMuscles: 'Pectoralis Major', secondaryMuscles: 'Anterior Deltoid, Triceps', cues: 'Retract the scapula, drive the feet, bar to mid-chest.' },
+  { name: 'DB Incline Press',   category: 'Chest',     resistanceType: 'Dumbbell',   bodyPosition: 'Supine',       movementType: 'Push',          pattern: 'Horizontal Push',         laterality: 'Bilateral',  primaryJoints: 'Shoulder, Elbow', jointMovements: 'Shoulder Flexion, Elbow Extension', primaryMuscles: 'Upper Pectoralis', secondaryMuscles: 'Anterior Deltoid, Triceps', cues: 'Slight arch, stack the dumbbells over the elbows.' },
+  { name: 'Cable Fly',          category: 'Chest',     resistanceType: 'Cable',      bodyPosition: 'Standing',     movementType: 'Push',          pattern: 'Isolation',               laterality: 'Bilateral',  primaryJoints: 'Shoulder', jointMovements: 'Shoulder Horizontal Adduction', primaryMuscles: 'Pectoralis Major', secondaryMuscles: 'Anterior Deltoid', cues: 'Soft elbows, hug a barrel, squeeze at the midline.' },
+  { name: 'Standing OHP',       category: 'Shoulders', resistanceType: 'Barbell',    bodyPosition: 'Standing',     movementType: 'Push',          pattern: 'Vertical Push',           laterality: 'Bilateral',  primaryJoints: 'Shoulder, Elbow', jointMovements: 'Shoulder Flexion, Elbow Extension', primaryMuscles: 'Anterior Deltoid', secondaryMuscles: 'Triceps, Upper Traps', cues: 'Brace hard, bar over mid-foot, head through at the top.' },
+  { name: 'Lateral Raise',      category: 'Shoulders', resistanceType: 'Dumbbell',   bodyPosition: 'Standing',     movementType: 'Lateral Raise', pattern: 'Isolation',               laterality: 'Bilateral',  primaryJoints: 'Shoulder', jointMovements: 'Shoulder Abduction', primaryMuscles: 'Lateral Deltoid', secondaryMuscles: 'Supraspinatus', cues: 'Lead with the elbows, no shrug, control the lowering.' },
+  { name: 'BB Deadlift',        category: 'Legs',      resistanceType: 'Barbell',    bodyPosition: 'Standing',     movementType: 'Hinge',         pattern: 'Hip Hinge',               laterality: 'Bilateral',  primaryJoints: 'Hip, Knee', jointMovements: 'Hip Extension, Knee Extension', primaryMuscles: 'Gluteus Maximus, Hamstrings', secondaryMuscles: 'Erector Spinae, Quadriceps', cues: 'Wedge in, lats tight, push the floor away.' },
+  { name: 'Romanian Deadlift',  category: 'Legs',      resistanceType: 'Barbell',    bodyPosition: 'Standing',     movementType: 'Hinge',         pattern: 'Hip Hinge',               laterality: 'Bilateral',  primaryJoints: 'Hip', jointMovements: 'Hip Extension', primaryMuscles: 'Hamstrings, Gluteus Maximus', secondaryMuscles: 'Erector Spinae', cues: 'Soft knees, hinge back, keep the bar close.' },
+  { name: 'Pull-Up',            category: 'Back',      resistanceType: 'Bodyweight', bodyPosition: 'Hanging',      movementType: 'Pull',          pattern: 'Vertical Pull',           laterality: 'Bilateral',  primaryJoints: 'Shoulder, Elbow', jointMovements: 'Shoulder Adduction, Elbow Flexion', primaryMuscles: 'Latissimus Dorsi', secondaryMuscles: 'Biceps, Rhomboids', cues: 'Depress + retract the scapula, chest to the bar.' },
+  { name: 'Bent-Over BB Row',   category: 'Back',      resistanceType: 'Barbell',    bodyPosition: 'Standing',     movementType: 'Row',           pattern: 'Horizontal Pull',         laterality: 'Bilateral',  primaryJoints: 'Shoulder, Elbow', jointMovements: 'Shoulder Extension, Elbow Flexion', primaryMuscles: 'Latissimus Dorsi, Rhomboids', secondaryMuscles: 'Biceps, Posterior Deltoid', cues: 'Flat back, pull to the lower ribs, elbows in.' },
+  { name: 'Back Squat',         category: 'Legs',      resistanceType: 'Barbell',    bodyPosition: 'Standing',     movementType: 'Squat',         pattern: 'Squat',                   laterality: 'Bilateral',  primaryJoints: 'Hip, Knee, Ankle', jointMovements: 'Hip Extension, Knee Extension', primaryMuscles: 'Quadriceps, Gluteus Maximus', secondaryMuscles: 'Hamstrings, Erector Spinae', cues: 'Brace, knees track the toes, hips + chest rise together.' },
+  { name: 'Front Squat',        category: 'Legs',      resistanceType: 'Barbell',    bodyPosition: 'Standing',     movementType: 'Squat',         pattern: 'Squat',                   laterality: 'Bilateral',  primaryJoints: 'Hip, Knee, Ankle', jointMovements: 'Hip Extension, Knee Extension', primaryMuscles: 'Quadriceps', secondaryMuscles: 'Gluteus Maximus, Upper Back', cues: 'Elbows high, upright torso, full depth.' },
+  { name: 'Walking Lunge',      category: 'Legs',      resistanceType: 'Dumbbell',   bodyPosition: 'Standing',     movementType: 'Lunge',         pattern: 'Lunge',                   laterality: 'Alternating', primaryJoints: 'Hip, Knee, Ankle', jointMovements: 'Hip Extension, Knee Extension', primaryMuscles: 'Quadriceps, Gluteus Maximus', secondaryMuscles: 'Hamstrings, Adductors', cues: 'Long step, vertical shin, drive through the front heel.' },
+  { name: 'Leg Curl',           category: 'Legs',      resistanceType: 'Machine',    bodyPosition: 'Prone',        movementType: 'Curl',          pattern: 'Isolation',               laterality: 'Bilateral',  primaryJoints: 'Knee', jointMovements: 'Knee Flexion', primaryMuscles: 'Hamstrings', secondaryMuscles: 'Gastrocnemius', cues: 'Hips down, curl to full range, control the eccentric.' },
+  { name: 'Hip Thrust',         category: 'Glutes',    resistanceType: 'Barbell',    bodyPosition: 'Supine',       movementType: 'Hinge',         pattern: 'Hip Hinge',               laterality: 'Bilateral',  primaryJoints: 'Hip', jointMovements: 'Hip Extension', primaryMuscles: 'Gluteus Maximus', secondaryMuscles: 'Hamstrings', cues: 'Chin tucked, ribs down, full lockout squeeze.' },
+  { name: 'Face Pull',          category: 'Back',      resistanceType: 'Cable',      bodyPosition: 'Standing',     movementType: 'Pull',          pattern: 'Horizontal Pull',         laterality: 'Bilateral',  primaryJoints: 'Shoulder', jointMovements: 'Shoulder External Rotation, Horizontal Abduction', primaryMuscles: 'Posterior Deltoid, Rhomboids', secondaryMuscles: 'Rotator Cuff', cues: 'High elbows, pull to the eyes, rotate at the end.' },
+  { name: 'DB Bicep Curl',      category: 'Arms',      resistanceType: 'Dumbbell',   bodyPosition: 'Standing',     movementType: 'Curl',          pattern: 'Isolation',               laterality: 'Bilateral',  primaryJoints: 'Elbow', jointMovements: 'Elbow Flexion', primaryMuscles: 'Biceps Brachii', secondaryMuscles: 'Brachialis', cues: 'Elbows pinned, supinate, no swing.' },
+  { name: 'Tricep Pushdown',    category: 'Arms',      resistanceType: 'Cable',      bodyPosition: 'Standing',     movementType: 'Extend',        pattern: 'Isolation',               laterality: 'Bilateral',  primaryJoints: 'Elbow', jointMovements: 'Elbow Extension', primaryMuscles: 'Triceps Brachii', secondaryMuscles: '', cues: 'Elbows fixed at the sides, full lockout, control up.' },
+  { name: 'Hanging Leg Raise',  category: 'Core',      resistanceType: 'Bodyweight', bodyPosition: 'Hanging',      movementType: 'Isometric',     pattern: 'Isolation',               laterality: 'Bilateral',  primaryJoints: 'Hip', jointMovements: 'Hip Flexion', primaryMuscles: 'Rectus Abdominis, Hip Flexors', secondaryMuscles: 'Obliques', cues: 'Posterior tilt first, control the swing, legs toward the bar.' },
+  { name: 'Plank',              category: 'Core',      resistanceType: 'Bodyweight', bodyPosition: 'Prone',        movementType: 'Isometric',     pattern: 'Isolation',               laterality: 'Bilateral',  primaryJoints: 'Trunk', jointMovements: 'Trunk Anti-Extension', primaryMuscles: 'Rectus Abdominis', secondaryMuscles: 'Transverse Abdominis', cues: 'Ribs down, squeeze the glutes, one straight line.' },
+  { name: 'Cable Pallof Press', category: 'Core',      resistanceType: 'Cable',      bodyPosition: 'Standing',     movementType: 'Anti-Rotation', pattern: 'Rotation/Anti-Rotation',  laterality: 'Unilateral', primaryJoints: 'Trunk', jointMovements: 'Trunk Anti-Rotation', primaryMuscles: 'Obliques', secondaryMuscles: 'Transverse Abdominis', cues: 'Resist the rotation, press straight out, breathe.' },
 ];
 
 // ─── Shared bits ──────────────────────────────────────────────────────────
@@ -211,7 +215,7 @@ function StatCard({ label, value, sub, subColor, accent = C.ac, total }) {
           <span style={{ fontFamily: FN, fontSize: 13, letterSpacing: '0.08em', fontWeight: 700, color: '#FFFFFF', textTransform: 'uppercase' }}>{label}</span>
         </span>
       </div>
-      <div style={{ fontSize: 30, fontWeight: 800, fontFamily: FN, color: C.tx, lineHeight: 1.05, letterSpacing: '-0.015em', direction: 'ltr', unicodeBidi: 'isolate', textAlign: 'left' }}>
+      <div style={{ fontSize: C.kpiNumberSize || 30, fontWeight: 800, fontFamily: FN, color: C.tx, lineHeight: 1.05, letterSpacing: '-0.015em', direction: 'ltr', unicodeBidi: 'isolate', textAlign: 'left' }}>
         {value}
         {total !== undefined && <span style={{ fontSize: 13, color: C.td, fontWeight: 400, letterSpacing: 0 }}> / {total}</span>}
       </div>
@@ -261,7 +265,7 @@ function DemoDashboard({ onJumpToTrainee }) {
 
       {/* Incoming · 30D — funnel summary, mirrors the real dashboard section. */}
       <div style={{ border: `1px solid ${C.cardBd}`, marginBottom: 20 }}>
-        <div style={{ background: C.ac, color: '#FFFFFF', padding: '8px 14px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em' }}>INCOMING · 30D</div>
+        <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', color: '#FFFFFF', padding: '8px 14px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderBottom: `1px solid ${C.cardBd}` }}>INCOMING · 30D</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8, padding: 14 }}>
           {[['CHAT SESSIONS', '12', C.ac, 'last 30 days'], ['MESSAGES SENT', '7', C.ac, 'to prospects'], ['EMAIL CAPTURES', '3', C.gn, 'captured'], ['WAITLIST', '2', C.ac, 'signed up']].map(([l, v, c, sub], i) => (
             <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '10px 14px', border: `1px solid ${C.cardBd}`, background: C.sf }}>
@@ -276,8 +280,8 @@ function DemoDashboard({ onJumpToTrainee }) {
       {/* Revenue panel — mirrors the real DashboardView RevenueCard (F-36):
           six metric tiles + a 6-month collected bar chart. Static demo data. */}
       <div style={{ border: `1px solid ${C.cardBd}`, marginBottom: 20 }}>
-        <div style={{ background: C.ac, color: '#FFFFFF', padding: '8px 14px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span>REVENUE</span><span style={{ opacity: 0.85, fontSize: 10 }}>INCL. VAT · 6 MO TREND</span>
+        <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', color: '#FFFFFF', padding: '8px 14px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderBottom: `1px solid ${C.cardBd}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>REVENUE</span><span style={{ opacity: 0.85, fontSize: 10 }}>6 MO TREND</span>
         </div>
         <div style={{ padding: 14 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8, marginBottom: 16 }}>
@@ -316,7 +320,7 @@ function DemoDashboard({ onJumpToTrainee }) {
           columns (To Do / In Progress / Waiting / Stuck) so the demo dashboard
           shows the tasks-at-a-glance feature. */}
       <div style={{ border: `1px solid ${C.cardBd}`, marginBottom: 20 }}>
-        <div style={{ background: C.ac, color: '#FFFFFF', padding: '8px 14px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em' }}>
+        <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', color: '#FFFFFF', padding: '8px 14px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderBottom: `1px solid ${C.cardBd}` }}>
           TASKS ({DEMO_TASKS.filter(t => t.status !== 'done').length})
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: 10 }}>
@@ -324,8 +328,8 @@ function DemoDashboard({ onJumpToTrainee }) {
             const rows = DEMO_TASKS.filter(t => t.status === col.id);
             return (
               <div key={col.id} style={{ flex: '1 1 150px', minWidth: 140, border: `1px solid ${C.cardBd}`, display: 'flex', flexDirection: 'column' }}>
-                <div style={{ background: col.color, color: '#FFFFFF', padding: '5px 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>{col.label}</span><span style={{ opacity: 0.85 }}>{rows.length}</span>
+                <div style={{ background: 'var(--c-sf2)', color: C.tx, padding: '5px 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${C.cardBd}`, boxShadow: `inset 3px 0 0 ${col.color}` }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: col.color, flexShrink: 0 }} />{col.label}</span><span style={{ color: C.tm }}>{rows.length}</span>
                 </div>
                 <div style={{ padding: 4, display: 'flex', flexDirection: 'column', gap: 4, minHeight: 40 }}>
                   {rows.map(t => {
@@ -339,6 +343,29 @@ function DemoDashboard({ onJumpToTrainee }) {
               </div>
             );
           })}
+        </div>
+      </div>
+
+      {/* Messages inbox — athlete↔coach messaging surfaced on the dashboard
+          (the real DashboardView renders <MessagesCard> between Tasks and the
+          alert rail). Mock threads for the demo. */}
+      <div style={{ border: `1px solid ${C.cardBd}`, marginBottom: 20 }}>
+        <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', color: '#FFFFFF', padding: '8px 14px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderBottom: `1px solid ${C.cardBd}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>Messages</span><span style={{ fontSize: 10, color: C.ac }}>2 Unread</span>
+        </div>
+        <div>
+          {[
+            { name: MOCK_TRAINEES[0]?.name || 'נועה לוי', msg: 'Felt strong on bench today — hit all 4 sets', when: '2m', unread: true },
+            { name: MOCK_TRAINEES[3]?.name || 'דניאל אבני', msg: 'Can we move tomorrow to 18:00?', when: '1h', unread: true },
+            { name: MOCK_TRAINEES[1]?.name || 'גל מזרחי', msg: 'Sent the deadlift clip for review', when: 'Yesterday', unread: false },
+          ].map((m, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderTop: i ? `1px solid ${C.cardBd}` : 'none' }}>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: m.unread ? C.ac : 'transparent', border: m.unread ? 'none' : `1px solid ${C.td}`, flexShrink: 0 }} />
+              <span style={{ fontFamily: FB, fontWeight: 600, fontSize: 13, color: C.tx, flexShrink: 0, minWidth: 0, maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
+              <span style={{ fontFamily: FB, fontSize: 12, color: m.unread ? C.tx : C.tm, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.msg}</span>
+              <span style={{ fontFamily: FN, fontSize: 10, color: C.td, flexShrink: 0 }}>{m.when}</span>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -396,7 +423,7 @@ function DemoDashboard({ onJumpToTrainee }) {
             <Row key={i}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                  {l.coach && <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: '#A855F7', border: '1px solid #A855F7', padding: '1px 5px', flexShrink: 0 }}>COACH</span>}
+                  {l.coach && <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: C.ac, border: `1px solid ${C.ac}`, padding: '1px 5px', flexShrink: 0 }}>COACH</span>}
                   <div style={{ fontWeight: 600, color: C.tx, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.email}</div>
                 </div>
                 <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, letterSpacing: 1 }}>{l.source.toUpperCase()} · {l.context.toUpperCase()}</div>
@@ -416,9 +443,11 @@ function DemoDashboard({ onJumpToTrainee }) {
         background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0,
         overflowX: 'auto', marginBottom: 8,
       }}>
+          {/* Strip header — mirrors the real DashboardView "All Athletes — N". */}
+          <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '8px 14px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', color: '#FFFFFF', textTransform: 'uppercase' }}>All Athletes · {MOCK_TRAINEES.length}</div>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
             <thead>
-              <tr style={{ borderBottom: `2px solid ${C.bd}` }}>
+              <tr style={{ borderBottom: `1px solid ${C.bd}` }}>
                 {['Athlete', 'Status', 'Format', 'Package', 'Sessions', 'Total Paid', 'Last Payment', 'Workouts', 'Programs'].map(h => (
                   <th key={h} style={{
                     textAlign: 'center', padding: '10px 12px',
@@ -594,10 +623,10 @@ function DemoTrainees({ selected, onSelect, onClear, returnTab }) {
             {
               label: 'Needs Attention',
               opts: [
-                { key: 'pay', label: '⚠ Payment due' },
-                { key: 'dormant', label: '💤 Dormant' },
-                { key: 'lowSessions', label: '⏳ Low sessions' },
-                { key: 'noProgram', label: '📋 No program' },
+                { key: 'pay', label: 'Payment due' },
+                { key: 'dormant', label: 'Dormant' },
+                { key: 'lowSessions', label: 'Low sessions' },
+                { key: 'noProgram', label: 'No program' },
               ].map(o => ({ key: o.key, label: o.label, count: flagCounts[o.key], active: !!attnFlags[o.key], accent: C.or, onClick: () => setAttnFlags(m => ({ ...m, [o.key]: !m[o.key] })) })),
             },
             {
@@ -615,7 +644,7 @@ function DemoTrainees({ selected, onSelect, onClear, returnTab }) {
               }),
             },
           ]}
-          footer={<button title="Demo only" style={{ ...baseBtn, background: C.ac, color: C.acOnSurface, width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 38, marginTop: 'auto', fontSize: 13, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ Add Athlete ▾</button>}
+          footer={<button title="Demo only" style={{ ...baseBtn, background: '#39BDFF', color: '#06131b', border: '1px solid #39BDFF', width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 38, marginTop: 'auto', fontSize: 13, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ Add Athlete ▾</button>}
         />
         {/* RIGHT: the card grid. */}
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -698,7 +727,7 @@ function CardSection({ label, children, center = false, dense = false }) {
   return (
     <div style={{ marginTop: dense ? 8 : 12, paddingTop: dense ? 8 : 10, borderTop: `1px solid rgba(57,189,255,0.149)` }}>
       <div style={{
-        fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: 1.5, fontWeight: 700,
+        fontFamily: FN, fontSize: 9, color: C.acText, letterSpacing: 1.5, fontWeight: 700,
         textTransform: 'uppercase', marginBottom: 6,
         textAlign: center ? 'center' : 'left',
       }}>{label}</div>
@@ -742,7 +771,7 @@ function TrainingBlock({ t, center = false }) {
           <span style={{ fontFamily: FN, fontSize: 11, color: t.sessionsLeft <= 2 ? C.rd : C.gn, fontWeight: 700 }}>{t.sessionsLeft} SESSIONS LEFT</span>
         </div>
         <div style={{ display: 'flex', justifyContent: justify }}>
-          <span style={{ fontFamily: FN, fontSize: 11, color: C.ac, fontWeight: 700 }}>{t.programs} PROGRAMS</span>
+          <span style={{ fontFamily: FN, fontSize: 11, color: C.tx, fontWeight: 700 }}>{t.programs} PROGRAMS</span>
         </div>
         {t.lastWorkout && (
           <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 1, fontWeight: 600, textAlign: center ? 'center' : 'left' }}>
@@ -903,44 +932,33 @@ function CoupleCard({ t, onClick }) {
   ];
   return (
     <div onClick={onClick} style={cardStyle} onMouseEnter={cardEnter} onMouseLeave={cardLeave}>
-      {/* IDENTITY — combined name banner (centered) + status badge centered
-          below + per-member sub-columns underneath. Each member's contact
-          details (name, email, phone, WA) live together in their own column
-          so a coach reading "who do I message" doesn't jump back and forth
-          across the divider. */}
-      <CardSectionFirst center>
-        <div style={{ fontFamily: FB, fontWeight: 700, fontSize: 14, color: C.tx, textAlign: 'center' }}>{t.name}</div>
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 10 }}>
-          <Badge color={t.dormantDays != null ? C.tm : C.gn}>{t.status}</Badge>
-        </div>
-        {parsed && (
-          <div style={{ display: 'flex', marginTop: 8, width: '100%', alignSelf: 'stretch' }}>
-            {[parsed.a, parsed.b].map((member, mi) => (
-              <React.Fragment key={mi}>
-                {mi === 1 && <div style={{ width: 1, background: C.bd, margin: '0 12px', alignSelf: 'stretch' }} />}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <div style={{
-                      fontFamily: FB, fontWeight: 600, fontSize: 13, color: C.tx,
-                      flex: 1, minWidth: 0,
-                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                    }}>{member} {parsed.surname}</div>
-                    <FakeWaButton />
-                  </div>
-                  <div style={{
-                    fontSize: 11, color: C.tm, marginTop: 2,
-                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                  }}>{memberMeta[mi].email}</div>
-                  <div style={{
-                    fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, marginTop: 2, letterSpacing: 0.5,
-                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                  }}>{memberMeta[mi].phone}</div>
-                </div>
-              </React.Fragment>
-            ))}
-          </div>
-        )}
-      </CardSectionFirst>
+      {/* Header strip — full couple name LEFT (white) + status pill RIGHT, the
+          IDENTICAL grammar to the single TraineeCard so couple and single cards
+          align across the grid (Ohad: name colour + status pill were missing). */}
+      <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', margin: '-18px -18px 12px', padding: '8px 18px', borderBottom: `1px solid ${C.cardBd}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minWidth: 0, fontFamily: isHeb(t.name) ? FH : FN, fontWeight: 700, fontSize: isHeb(t.name) ? 15 : 14, letterSpacing: isHeb(t.name) ? 0 : '0.04em', textTransform: isHeb(t.name) ? 'none' : 'uppercase', color: '#FFFFFF' }}>
+          <bdi style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</bdi>
+        </span>
+        <span style={{ flexShrink: 0 }} onClick={e => e.stopPropagation()}><DemoStatusMenu initial={t.status} /></span>
+      </div>
+      {/* 80px member contact slot — two columns, SAME height as the single card's
+          contact slot so WhatsApp icons, phones, emails and every divider below
+          line up flush across every card (Ohad: alignment rules). */}
+      <div style={{ display: 'flex', height: 80, paddingTop: 4, overflow: 'hidden', alignItems: 'stretch' }}>
+        {(parsed ? [parsed.a, parsed.b] : [t.name]).map((member, mi) => (
+          <React.Fragment key={mi}>
+            {mi === 1 && <div style={{ width: 1, background: C.bd, margin: '0 12px', alignSelf: 'stretch' }} />}
+            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, textAlign: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center', minHeight: 22 }}>
+                <div style={{ fontFamily: FB, fontWeight: 600, fontSize: 13, color: C.tx, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{parsed ? `${member} ${parsed.surname}` : member}</div>
+                <FakeWaButton />
+              </div>
+              {parsed && <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, letterSpacing: 0.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{memberMeta[mi].phone}</div>}
+              {parsed && <div style={{ fontSize: 12, color: C.tm, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{memberMeta[mi].email}</div>}
+            </div>
+          </React.Fragment>
+        ))}
+      </div>
 
       <FinancialsBlock t={t} center />
       <TrainingBlock t={t} center />
@@ -1399,8 +1417,18 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
           weight/height/goals/injuries/BW), then a row of SHARED panels
           below (Household terms, Programs, Payments, Recent Workouts). */}
       {isCouple && coupleSplit ? <>
-        <h2 style={{ fontFamily: FB, fontSize: 24, fontWeight: 700, margin: '0 0 4px', letterSpacing: -0.3 }}>{trainee.name}</h2>
-        <div style={{ fontFamily: FN, fontSize: 12, color: C.tm, letterSpacing: 1, marginBottom: 14 }}>{trainee.format} · {trainee.phone}</div>
+        {/* Identity header strip — same grammar as the solo detail (cyan glow
+            name + status dropdown) so couples don't look like a stale build. */}
+        {(() => { const heb = isHeb(trainee.name); return (
+          <DemoDetailCard style={{ marginBottom: 14 }}
+            headerRight={<DemoStatusMenu />}
+            header={<span style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: 10, minWidth: 0, fontWeight: 700, fontSize: heb ? 16 : 14, fontFamily: heb ? FH : undefined, letterSpacing: heb ? 0 : '0.04em', textTransform: heb ? 'none' : 'uppercase' }}>
+              <span style={{ color: C.ac, textShadow: '0 0 12px rgba(57,189,255,0.45)' }}>{trainee.name}</span>
+              <span style={{ fontSize: 11, opacity: 0.78, letterSpacing: '0.02em', textTransform: 'none', fontWeight: 500 }}>{trainee.format}{trainee.phone ? ` · ${trainee.phone}` : ''}</span>
+            </span>}>
+            <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.14em', textTransform: 'uppercase', paddingTop: 8, fontWeight: 700 }}>Shared household · {coupleSplit.length} members</div>
+          </DemoDetailCard>
+        ); })()}
 
         <div style={{
           display: 'grid', gap: 14, marginBottom: 14,
@@ -1538,13 +1566,13 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
             </div>
           </DemoDetailCard>
 
-          {/* Section-filter tab bar — multi-select scroll row (real parity):
-              View All + the 6 filterable sections. Empty = everything shows. */}
-          <div style={{ overflowX: 'auto', margin: '0 0 16px' }}>
-            <div style={{ display: 'inline-flex', gap: 6, minWidth: 'max-content' }}>
-              {[['all', 'View All'], ['billing', 'Billing'], ['bw', 'Bodyweight'], ['readiness', 'Readiness'], ['workouts', 'Workouts'], ['programs', 'Programs'], ['overload', 'Overload']].map(([id, l]) => {
+          {/* Section-filter tab bar — WRAPS to fit (real parity): every tag stays
+              visible, no horizontal scroll. Empty = everything shows. */}
+          <div style={{ margin: '0 0 16px' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {[['all', 'View All'], ['vitals', 'Vitals'], ['billing', 'Billing'], ['bw', 'Bodyweight'], ['readiness', 'Readiness'], ['workouts', 'Workouts'], ['programs', 'Programs'], ['messages', 'Messages'], ['crm', 'Coach History'], ['eval', 'Athletic Eval'], ['overload', 'Overload']].map(([id, l]) => {
                 const active = id === 'all' ? activeSecs.size === 0 : activeSecs.has(id);
-                return <button key={id} onClick={() => id === 'all' ? setActiveSecs(new Set()) : toggleSec(id)} style={{ height: 30, padding: '0 14px', borderRadius: 0, cursor: 'pointer', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', whiteSpace: 'nowrap', background: active ? C.ac : 'transparent', border: `1px solid ${active ? C.ac : C.cardBd}`, color: active ? '#0a0a0b' : C.tm }}>{l}</button>;
+                return <button key={id} onClick={() => id === 'all' ? setActiveSecs(new Set()) : toggleSec(id)} style={{ height: 30, padding: '0 14px', borderRadius: 0, cursor: 'pointer', fontFamily: FN, fontSize: 11, fontWeight: active ? 800 : 700, letterSpacing: '0.09em', textTransform: 'uppercase', whiteSpace: 'nowrap', background: active ? 'color-mix(in srgb, var(--c-ac) 16%, transparent)' : 'transparent', border: `1px solid ${active ? C.ac : C.cardBd}`, color: active ? 'var(--c-ac)' : C.tm }}>{l}</button>;
               })}
             </div>
           </div>
@@ -1650,6 +1678,88 @@ const MOCK_PROGRAM_INDEX = [
   { id: 'p3', name: 'Block #4 — Pull Specialization', traineeId: 't2', dayCount: 4, exerciseCount: 26, phase: 'Volume',   created: '2026-04-14', updated: '2026-04-28' },
 ];
 
+// ─── Training Lineage (demo) ───────────────────────────────────────────────
+// Mirrors the real Programs → Lineage view (src/PlansView.jsx TrainingLineage):
+// per-block working-sets wave + a matrix of staple lifts across blocks. All
+// mock — the demo has no plan history — but shaped like a real periodized log
+// so a prospect sees exactly what the live feature does. cells[i] aligns to
+// DEMO_LINEAGE_BLOCKS[i]; null = the lift wasn't in that block.
+const DEMO_LINEAGE_BLOCKS = [
+  { n: 1, name: 'Block #1 · GPP',     sets: 58 },
+  { n: 2, name: 'Block #2 · Base',    sets: 66 },
+  { n: 3, name: 'Block #3 · Str I',   sets: 74 },
+  { n: 4, name: 'Block #4 · Deload',  sets: 52 },
+  { n: 5, name: 'Block #5 · Str II',  sets: 80 },
+  { n: 6, name: 'Block #6 · Peak',    sets: 86 },
+  { n: 7, name: 'Block #7 · Realize', sets: 70 },
+];
+const DEMO_LINEAGE_LIFTS = [
+  { name: 'BB Back Squat',      cells: [{ s: 4, r: '5' }, { s: 4, r: '5' }, { s: 5, r: '3' }, null, { s: 5, r: '3' }, { s: 3, r: '2' }, { s: 3, r: '3' }] },
+  { name: 'BB Bench Press',     cells: [{ s: 4, r: '6' }, { s: 4, r: '5' }, { s: 5, r: '4' }, null, { s: 5, r: '3' }, { s: 3, r: '2' }, { s: 3, r: '4' }] },
+  { name: 'Trap-Bar Deadlift',  cells: [{ s: 3, r: '5' }, { s: 3, r: '5' }, { s: 4, r: '4' }, { s: 2, r: '5' }, { s: 4, r: '3' }, { s: 3, r: '2' }, null] },
+  { name: 'Weighted Pull-Up',   cells: [{ s: 4, r: '6' }, { s: 4, r: '6' }, { s: 4, r: '5' }, null, { s: 5, r: '4' }, { s: 4, r: '3' }, { s: 3, r: '6' }] },
+  { name: 'DB Reverse Lunge',   cells: [{ s: 3, r: '8' }, { s: 3, r: '8' }, { s: 3, r: '6' }, { s: 2, r: '8' }, { s: 3, r: '6' }, null, { s: 3, r: '8' }] },
+  { name: 'Standing OHP',       cells: [null, { s: 3, r: '6' }, { s: 4, r: '5' }, null, { s: 4, r: '4' }, { s: 3, r: '3' }, { s: 3, r: '5' }] },
+  { name: 'Barbell Row',        cells: [{ s: 4, r: '8' }, { s: 4, r: '8' }, { s: 4, r: '6' }, null, { s: 4, r: '6' }, { s: 3, r: '5' }, { s: 3, r: '8' }] },
+  { name: 'Hanging Leg Raise',  cells: [{ s: 3, r: '12' }, { s: 3, r: '12' }, { s: 3, r: '10' }, { s: 2, r: '12' }, { s: 3, r: '10' }, { s: 2, r: '8' }, { s: 2, r: '12' }] },
+  { name: 'Depth Box Jump',     cells: [null, { s: 3, r: '5' }, { s: 4, r: '4' }, null, { s: 4, r: '3' }, { s: 5, r: '3' }, { s: 3, r: '5' }] },
+];
+
+// Earlier blocks (#1–#6) exist only so the athlete reads as "7 blocks deep".
+// The latest block (#7) is fully detailed — 2 days × 4 weeks — and carries the
+// prescription the logged workouts below are measured against.
+const DEMO_LINEAGE_PLANS = DEMO_LINEAGE_BLOCKS.slice(0, 6).map((b, i) => ({
+  id: 'demo-blk-' + b.n, name: b.name, createdAt: null,
+  weeks: 4,
+  days: [{ name: 'Day 1', exercises: DEMO_LINEAGE_LIFTS.filter(l => l.cells[i]).map(l => ({ title: l.name, sets: l.cells[i].s, reps: l.cells[i].r })) }],
+}));
+DEMO_LINEAGE_PLANS.push({
+  id: 'demo-blk-7', name: 'Block #7 · Realize', createdAt: null, weeks: 4,
+  days: [
+    { name: 'Day 1 · Upper', exercises: [
+      { title: 'BB Bench Press', sets: 4, reps: '5' },
+      { title: 'Weighted Pull-Up', sets: 4, reps: '6' },
+      { title: 'Standing OHP', sets: 3, reps: '5' },
+    ] },
+    { name: 'Day 2 · Lower', exercises: [
+      { title: 'BB Back Squat', sets: 4, reps: '5' },
+      { title: 'Trap-Bar Deadlift', sets: 3, reps: '4' },
+    ] },
+  ],
+});
+
+// Logged workouts for Block #7 — the "deload the squat" story. Squat is flat
+// at a hard, failing effort (STALE·HARD); deadlift is dropping; upper body is
+// progressing; Day 2 (lower) gets skipped in week 4. Shaped so the real
+// TrainingLineageV2 renders a full plan-vs-reality read from mock data.
+const DEMO_LINEAGE_WORKOUTS = (() => {
+  const base = Date.parse('2026-06-01T09:00:00');
+  const day = 86400000;
+  const set = (load, reps, rpe) => ({ load: String(load), reps: String(reps), rpe: String(rpe), done: true });
+  // per-week top sets (weeks 1–4)
+  const upper = {
+    'BB Bench Press': [set(70, 5, 7), set(72.5, 5, 7.5), set(75, 5, 8), set(77.5, 5, 8)],
+    'Weighted Pull-Up': [set(5, 6, 7), set(5, 6, 7), set(7.5, 6, 7.5), set(7.5, 7, 7)],
+    'Standing OHP': [set(45, 5, 7.5), set(47.5, 5, 8), set(50, 5, 8), set(50, 4, 8.5)],
+  };
+  const lower = {
+    'BB Back Squat': [set(105, 5, 8.5), set(105, 4, 9), set(105, 3, 9.5)],          // stale·hard + failing
+    'Trap-Bar Deadlift': [set(145, 4, 8.5), set(140, 4, 9), set(132.5, 3, 9.5)],    // dropping
+  };
+  const rows = [];
+  for (let w = 0; w < 4; w++) {
+    rows.push({ id: `d-u${w}`, clientId: 'demo', planName: 'Block #7 · Realize', dayName: 'Day 1 · Upper', week: w + 1, date: new Date(base + w * 7 * day).toISOString(),
+      exercises: Object.keys(upper).map((t, i) => ({ eid: `u${i}`, title: t, sets: [upper[t][w]] })) });
+    if (w < 3) rows.push({ id: `d-l${w}`, clientId: 'demo', planName: 'Block #7 · Realize', dayName: 'Day 2 · Lower', week: w + 1, date: new Date(base + (w * 7 + 3) * day).toISOString(),
+      exercises: Object.keys(lower).map((t, i) => ({ eid: `l${i}`, title: t, sets: [lower[t][w]] })) });
+  }
+  return rows;
+})();
+
+function DemoLineage({ athleteName }) {
+  return <TrainingLineageV2 traineeId="demo" traineeName={athleteName} exercises={[]} plans={DEMO_LINEAGE_PLANS} clientWorkouts={DEMO_LINEAGE_WORKOUTS} loading={false} onOpenPlan={() => {}} />;
+}
+
 function DemoPrograms() {
   // List view first (mirrors PlansView root) — clicking a card opens the
   // existing block-detail panel as the editor view, with a back-link to
@@ -1677,6 +1787,7 @@ function DemoPrograms() {
   }, []);
   const [search, setSearch] = useState('');
   const [filterTrainee, setFilterTrainee] = useState('');
+  const [progView, setProgView] = useState('table'); // 'table' | 'grid' | 'lineage'
   const [sortField, setSortField] = useState('updated');
   const [sortDir, setSortDir] = useState('desc');
   const [selectedDayIdx, setSelectedDayIdx] = useState(0);
@@ -1804,9 +1915,15 @@ function DemoPrograms() {
     return (
       <section>
 
-        {/* Header — Programs title (mirrors PlansView top row). */}
+        {/* Header — Programs title + TABLE/GRID/LINEAGE toggle (mirrors PlansView top row). */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, gap: 12, flexWrap: 'wrap' }}>
           <h2 style={{ margin: 0, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', color: C.tx, textTransform: 'uppercase' }}>Programs</h2>
+          <div style={{ display: 'flex', gap: 6, width: 252 }}>
+            {[['table', 'Table'], ['grid', 'Grid'], ['lineage', 'Lineage']].map(([v, label]) => {
+              const on = progView === v;
+              return <button key={v} onClick={() => setProgView(v)} style={{ flex: 1, height: 30, boxSizing: 'border-box', borderRadius: 0, cursor: 'pointer', border: `1px solid ${on ? '#39BDFF' : C.cardBd}`, background: on ? '#39BDFF' : C.sf, color: on ? '#FFFFFF' : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{label}</button>;
+            })}
+          </div>
         </div>
         {/* Two-column: shared SideRail (identical to the real PlansView rail) + list. */}
         <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
@@ -1832,7 +1949,7 @@ function DemoPrograms() {
               }),
             },
           ]}
-          footer={<button onClick={e => e.stopPropagation()} style={{ ...baseBtn, background: C.ac, color: C.acOnSurface, width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 38, marginTop: 'auto', fontSize: 13, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ New Program</button>}
+          footer={<button onClick={e => e.stopPropagation()} style={{ ...baseBtn, background: '#39BDFF', color: '#06131b', border: '1px solid #39BDFF', width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 38, marginTop: 'auto', fontSize: 13, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ New Program</button>}
         />
         {/* RIGHT: the program list. */}
         <div style={{ flex: 1, minWidth: 0, boxSizing: 'border-box' }}>
@@ -1841,7 +1958,12 @@ function DemoPrograms() {
             athlete = ONE row showing their current (highest block#) program.
             An expand chevron reveals earlier blocks inline. The same
             transparent border + sparse styling as the real coach app. */}
-        {(() => {
+        {progView === 'lineage' && (
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <DemoLineage athleteName={filterTrainee ? traineeName(filterTrainee) : (MOCK_TRAINEES.find(t => t.id === 't1')?.name || 'Athlete')} />
+          </div>
+        )}
+        {progView !== 'lineage' && (() => {
           // Bucket the filtered programs by athlete id, then derive a row
           // per athlete with current + earlier programs.
           const buckets = new Map();
@@ -2584,6 +2706,7 @@ function DemoExercises() {
   const setF = (k, v) => setFilters(prev => ({ ...prev, [k]: v }));
   const activeFilterCount = Object.values(filters).filter(Boolean).length;
   const clearFilters = () => setFilters(emptyFilters);
+  const [view, setView] = useState('table'); // 'table' | 'grid' — mirrors real ExercisesView
 
   const q = search.trim().toLowerCase();
   const filtered = MOCK_EXERCISES.filter(e => {
@@ -2612,6 +2735,19 @@ function DemoExercises() {
 
   return (
     <section>
+      {/* Header — title + live count (left) + TABLE/GRID toggle (right), mirroring
+          the redesigned real ExercisesView. */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, gap: 12, flexWrap: 'wrap' }}>
+        <h2 style={{ margin: 0, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', color: C.tx, textTransform: 'uppercase' }}>
+          Exercises <span style={{ color: C.tm, fontWeight: 700 }}>· {filtered.length}</span>
+        </h2>
+        <div style={{ display: 'flex', gap: 6, width: 168 }}>
+          {[['table', 'Table'], ['grid', 'Grid']].map(([v, label]) => {
+            const on = view === v;
+            return <button key={v} onClick={() => setView(v)} style={{ flex: 1, height: 30, boxSizing: 'border-box', borderRadius: 0, cursor: 'pointer', border: `1px solid ${on ? '#39BDFF' : C.cardBd}`, background: on ? '#39BDFF' : C.sf, color: on ? '#FFFFFF' : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{label}</button>;
+          })}
+        </div>
+      </div>
 
       {/* Search + Add Exercise — mirrors the real ExercisesView top row
           (cyan-bordered search h42 + solid + Add Exercise button; no count chip). */}
@@ -2631,39 +2767,16 @@ function DemoExercises() {
         <button style={{ height: 42, padding: '0 18px', background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.06em', cursor: 'pointer', borderRadius: 0, whiteSpace: 'nowrap' }}>+ Add Exercise</button>
       </div>
 
-      {/* Filter pane — same 6-col grid of selects as the real ExercisesView,
-          including its ≤720px collapse to 2 columns so mobile doesn't h-scroll. */}
-      <style>{`@media (max-width:720px){.cd-ex-filters{grid-template-columns:repeat(2,1fr)!important}}`}</style>
-      <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 10, marginBottom: 12 }}>
-        {/* Cyan strip header — matches the real ExercisesView RefinedHeaderStrip. */}
-        <div style={{ background: C.ac, padding: '10px', marginBottom: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ fontSize: 11, fontFamily: FN, fontWeight: 700, color: '#FFFFFF', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-            Filters{activeFilterCount > 0 && <span style={{ marginLeft: 6, opacity: 0.85 }}>· {activeFilterCount} active</span>}
-          </div>
-          {activeFilterCount > 0 && (
-            <button onClick={clearFilters} style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.55)', color: '#FFFFFF', cursor: 'pointer', fontSize: 9, fontFamily: FN, fontWeight: 700, letterSpacing: '0.10em', padding: '2px 8px', borderRadius: 0 }}>CLEAR ALL</button>
-          )}
-        </div>
-        <div className="cd-ex-filters" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-          <select value={filters.category} onChange={e => setF('category', e.target.value)} style={selectStyle}>
-            <option value="">Category</option>{CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+      {/* Filter rail — inline UNDERLINE-style controls, matching the redesigned
+          real ExercisesView (filters = underline text, no boxed cyan-header card). */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 14px', padding: '0 1px 10px', marginBottom: 12, borderBottom: `1px solid ${C.cardBd}` }}>
+        {[['category', 'Category', CATEGORIES], ['resistanceType', 'Resistance', RESISTANCE_TYPES], ['bodyPosition', 'Body Position', BODY_POSITIONS], ['movementType', 'Movement', MOVEMENT_TYPES], ['movementPattern', 'Pattern', MOVEMENT_PATTERNS], ['laterality', 'Laterality', LATERALITY]].map(([k, label, opts]) => (
+          <select key={k} value={filters[k]} onChange={e => setF(k, e.target.value)}
+            style={{ background: 'transparent', border: 'none', borderBottom: `2px solid ${filters[k] ? C.ac : 'transparent'}`, color: filters[k] ? C.ac : C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '4px 1px', cursor: 'pointer', outline: 'none', maxWidth: 180 }}>
+            <option value="">{label}</option>{opts.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
-          <select value={filters.resistanceType} onChange={e => setF('resistanceType', e.target.value)} style={selectStyle}>
-            <option value="">Resistance</option>{RESISTANCE_TYPES.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <select value={filters.bodyPosition} onChange={e => setF('bodyPosition', e.target.value)} style={selectStyle}>
-            <option value="">Body Position</option>{BODY_POSITIONS.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <select value={filters.movementType} onChange={e => setF('movementType', e.target.value)} style={selectStyle}>
-            <option value="">Movement Type</option>{MOVEMENT_TYPES.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <select value={filters.movementPattern} onChange={e => setF('movementPattern', e.target.value)} style={selectStyle}>
-            <option value="">Pattern</option>{MOVEMENT_PATTERNS.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <select value={filters.laterality} onChange={e => setF('laterality', e.target.value)} style={selectStyle}>
-            <option value="">Laterality</option>{LATERALITY.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-        </div>
+        ))}
+        {activeFilterCount > 0 && <button onClick={clearFilters} style={{ marginLeft: 'auto', background: 'transparent', border: 'none', color: C.rd, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer', padding: '4px 1px' }}>× Clear</button>}
       </div>
 
       <div style={{ fontSize: 11, color: C.tm, marginBottom: 10, fontFamily: FN }}>
@@ -2680,29 +2793,53 @@ function DemoExercises() {
             Nothing matches {q ? <>"<span style={{ color: C.tx, fontWeight: 700 }}>{search}</span>"</> : 'this filter'}. Clear search or pick another category.
           </div>
         </div>
-      ) : (() => {
-        // "Minimal + rhythm" — mirrors the redesigned src/ExercisesView.jsx: a
-        // zebra stripe + a category-colour dot + name + a dotted leader to one
-        // dim attribute on the right. No boxed tags (the green pattern Badge is
-        // gone), no em-dashes for blanks (Ohad — kept the demo in parity).
-        const CAT_COLOR = { Chest:'#E0736A', Back:'#5B93D6', Shoulders:'#E0A85B', Arms:'#B06AD0', Core:'#D9C755', Legs:'#5FBE86', Glutes:'#D96FAE', 'Full Body':'#5FBEC0', Olympic:'#C9CDD4', Cardio:'#E08A5B', Other:'#7A828C' };
-        return (
-        <div style={{ background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 0 }}>
+      ) : view === 'grid' ? (
+        // GRID — card per exercise, mirroring the real ExercisesView card grammar.
+        <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fill, minmax(min(300px, 100%), 1fr))' }}>
           {filtered.map((e, i) => {
-            const dot = CAT_COLOR[e.category] || 'rgba(127,127,138,0.30)';
-            const right = e.primaryMuscles || e.resistanceType || '';
+            const tags = [...String(e.primaryMuscles || '').split(',').map(x => x.trim()).filter(Boolean).slice(0, 4), ...String(e.primaryJoints || '').split(',').map(x => x.trim()).filter(Boolean).slice(0, 3)];
             return (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 14px', height: 34, borderBottom: `1px solid ${C.bd}`, background: i % 2 ? 'rgba(127,127,138,0.045)' : 'transparent' }}>
-                <span title={e.category} style={{ width: 7, height: 7, borderRadius: '50%', background: dot, flexShrink: 0 }} />
-                <span style={{ fontFamily: FB, fontWeight: 600, fontSize: 13, color: C.tx, flexShrink: 0, maxWidth: '55%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.name}</span>
-                <span style={{ flex: 1, minWidth: 10, borderBottom: `1px dotted ${C.bd}`, opacity: 0.45, height: 0, margin: '0 4px' }} />
-                {right && <span style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.04em', flexShrink: 0, maxWidth: '32%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{right}</span>}
+              <div key={i} className="ex-card" style={{ background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0, display: 'flex', flexDirection: 'column' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '8px 14px' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
+                    <span aria-hidden style={{ width: 3, height: 14, background: C.ac, flexShrink: 0 }} />
+                    <span title={e.name} style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', color: '#FFFFFF', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.name}</span>
+                  </span>
+                  <span style={{ color: C.ac, fontSize: 12 }}>▶</span>
+                </div>
+                <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
+                  <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 600, letterSpacing: '0.03em', color: C.tm }}>{[e.resistanceType, e.bodyPosition, e.movementType].filter(Boolean).join('  ·  ')}</div>
+                  {tags.length > 0 && <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>{tags.map((x, j) => <span key={j} style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 600, letterSpacing: '0.02em', color: C.tm, background: 'var(--c-sf2)', border: `1px solid ${C.cardBd}`, padding: '2px 7px', whiteSpace: 'nowrap' }}>{x}</span>)}</div>}
+                </div>
               </div>
             );
           })}
         </div>
-        );
-      })()}
+      ) : (
+        // TABLE — full-width, every sheet parameter a column (real ExercisesView).
+        <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0, overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
+            <thead>
+              <tr>
+                {['Exercise', 'Resistance', 'Position', 'Movement', 'Joints', 'Joint Movements', 'Primary Muscles', 'Secondary Muscles'].map(h => (
+                  <th key={h} style={{ textAlign: 'left', padding: '9px 12px', fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.13em', fontWeight: 700, whiteSpace: 'nowrap', borderBottom: `1px solid ${C.cardBd}`, background: 'var(--c-sf2)' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((e, i) => {
+                const cell = (v, max = 210) => <td style={{ padding: '9px 12px', fontSize: 10.5, fontFamily: FN, fontWeight: 600, color: v ? C.tm : C.td, whiteSpace: 'nowrap', maxWidth: max, overflow: 'hidden', textOverflow: 'ellipsis' }}>{v || '·'}</td>;
+                return (
+                  <tr key={i} style={{ borderBottom: `1px solid ${C.cardBd}`, background: i % 2 ? 'rgba(127,127,138,0.04)' : 'transparent' }}>
+                    <td style={{ padding: '9px 12px', fontWeight: 600, fontSize: 13, color: C.tx, maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.name}</td>
+                    {cell(e.resistanceType)}{cell(e.bodyPosition)}{cell(e.movementType)}{cell(e.primaryJoints, 160)}{cell(e.jointMovements, 200)}{cell(e.primaryMuscles, 200)}{cell(e.secondaryMuscles, 190)}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </section>
   );
 }
@@ -2764,6 +2901,7 @@ function DemoReview() {
   //      action row (DELETE / UNMARK / BACK TO REVIEW / NEXT PENDING) the
   //      real coach sees.
   const [selectedId, setSelectedId] = useState(null);
+  const [vsDemo, setVsDemo] = useState(false); // Body-Match: form clip vs library reference demo
   const selected = MOCK_REVIEW_QUEUE.find(w => w.id === selectedId);
   const queue = MOCK_REVIEW_QUEUE;
   const byClient = {};
@@ -2813,6 +2951,76 @@ function DemoReview() {
             </div>
           </div>
         </div>
+
+        {/* Readiness check-in — the athlete's pre-session autoregulation
+            (sleep / energy / soreness / pain), surfaced in the real Review detail
+            so the coach programs around it. */}
+        <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0, marginBottom: 12, overflow: 'hidden' }}>
+          <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '8px 14px', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', color: '#FFFFFF', textTransform: 'uppercase' }}>Readiness Check-In</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 12, padding: 14 }}>
+            {[['Sleep', '7.5h', C.gn], ['Energy', '8 / 10', C.gn], ['Soreness', 'Low', C.gn], ['Pain', '2 / 10 · L knee', C.or]].map(([l, v, c]) => (
+              <div key={l} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: C.td, textTransform: 'uppercase' }}>{l}</span>
+                <span style={{ fontFamily: FN, fontSize: 15, fontWeight: 700, color: c }}>{v}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Form-video review — the flagship of the real Review detail
+            (WorkoutReview FormVideoPlayer): watch the athlete's clip + comment at
+            any timestamp. Mocked frame + timestamped comments for the demo. */}
+        {selected.exercises.some(e => e.hasVideo) && (() => {
+          const vidEx = selected.exercises.find(e => e.hasVideo);
+          return (
+            <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0, marginBottom: 12, overflow: 'hidden' }}>
+              <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '8px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', color: '#FFFFFF', textTransform: 'uppercase' }}>Form Video · {vidEx.name}</span>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                  <button onClick={e => { e.stopPropagation(); setVsDemo(v => !v); }} title="Play the athlete's rep next to the branded reference demo"
+                    style={{ background: vsDemo ? '#39BDFF' : 'transparent', border: `1px solid ${vsDemo ? '#39BDFF' : 'rgba(255,255,255,0.35)'}`, color: vsDemo ? '#06131b' : '#fff', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', padding: '3px 9px', borderRadius: 0, cursor: 'pointer', textTransform: 'uppercase' }}>◫ vs Demo</button>
+                  <span style={{ fontFamily: FN, fontSize: 9, color: '#fff', opacity: 0.7, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Draw · comment at any timestamp</span>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 12, padding: 14, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
+                  <div>
+                    {vsDemo && <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, marginBottom: 4 }}>Athlete · this set</div>}
+                    <div style={{ position: 'relative', width: 168, aspectRatio: '9 / 16', background: '#000', border: `1px solid ${C.cardBd}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{ width: 46, height: 46, borderRadius: '50%', background: 'rgba(57,189,255,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="#06131b" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
+                      </div>
+                      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 4, background: 'rgba(255,255,255,0.15)' }}><div style={{ width: '38%', height: '100%', background: '#39BDFF' }} /></div>
+                    </div>
+                  </div>
+                  {vsDemo && (
+                    <div>
+                      <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.ac, marginBottom: 4 }}>Reference demo · library</div>
+                      <div style={{ position: 'relative', width: 168, aspectRatio: '9 / 16', background: 'linear-gradient(160deg,#0f1620,#1a2430)', border: `1px solid ${C.ac}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div style={{ width: 46, height: 46, borderRadius: '50%', background: 'rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="#06131b" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
+                        </div>
+                        <span style={{ position: 'absolute', top: 6, left: 6, fontFamily: FN, fontSize: 8, letterSpacing: '0.06em', color: '#fff', background: 'rgba(0,0,0,0.55)', padding: '2px 5px' }}>{vidEx.name}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div style={{ flex: 1, minWidth: 180, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {[['0:04', 'Brace before you unrack — ribs down.'], ['0:11', 'Depth is good; drive the knees out on the way up.']].map(([ts, c], j) => (
+                    <div key={j} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                      <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.ac, flexShrink: 0, marginTop: 1 }}>{ts}</span>
+                      <span style={{ fontFamily: FB, fontSize: 12, color: C.tm, lineHeight: 1.4 }}>{c}</span>
+                    </div>
+                  ))}
+                  <div style={{ marginTop: 'auto', display: 'flex', gap: 8, alignItems: 'center', borderTop: `1px solid ${C.cardBd}`, paddingTop: 8 }}>
+                    <input placeholder="Comment at 0:04…" readOnly style={{ flex: 1, minWidth: 0, background: 'var(--c-sf2)', border: `1px solid ${C.cardBd}`, color: C.tm, fontFamily: FB, fontSize: 12, padding: '7px 10px', borderRadius: 0, outline: 'none' }} />
+                    <button onClick={e => e.stopPropagation()} style={{ ...baseBtn, background: '#39BDFF', color: '#06131b', border: '1px solid #39BDFF', padding: '7px 14px', fontSize: 11 }}>Send</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {selected.exercises.map((ex, i) => (
           <div key={i} style={{
@@ -2971,7 +3179,6 @@ const TABS = [
   { key: 'trainees',  label: 'ATHLETES',  count: MOCK_TRAINEES.length },
   { key: 'programs',  label: 'PROGRAMS',  count: MOCK_PROGRAM_INDEX.length },
   { key: 'exercises', label: 'EXERCISES', count: MOCK_EXERCISES.length },
-  { key: 'workouts',  label: 'WORKOUTS',  count: MOCK_WORKOUTS.length },
   { key: 'sessions',  label: 'SESSIONS',  count: null },
   { key: 'review',    label: 'REVIEW',    count: null },
   { key: 'tasks',     label: 'TASKS',     count: 8 },
@@ -3224,12 +3431,8 @@ function DemoSingle() {
           </div>
           <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, height: 6, overflow: 'hidden' }}><div style={{ background: C.gn, height: '100%', width: `${pct}%` }} /></div>
         </div>
-        {/* Camera/Movement tools — real 1-on-1 mode pairs the logger with these. */}
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
-          {['◉ MOVEMENT LAB', '◉ AR FORM', '◉ JUMP TEST'].map((t, i) => (
-            <button key={i} onClick={e => e.stopPropagation()} title="Camera tool (demo only)" style={{ flex: '1 1 auto', background: 'var(--c-sf)', border: `1px solid ${C.ac}`, color: C.ac, borderRadius: 0, padding: '8px 12px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', cursor: 'pointer', whiteSpace: 'nowrap' }}>{t}</button>
-          ))}
-        </div>
+        {/* (Camera/movement tools live under Review › Tools in the real app, not
+            inside the 1-on-1 logger — removed here to match.) */}
         {DEMO_SESSION_DAY.map(ex => (
           <div key={ex.id} style={{ background: C.sf, border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${ex.sets.every(s => s.done) && ex.sets.length ? C.gn : C.cardBd}`, marginBottom: 10, padding: 4 }}>
             <DemoSessionExercise ex={ex} open={!!openEx[ex.id]} onToggle={() => setOpenEx(p => ({ ...p, [ex.id]: !p[ex.id] }))} />
@@ -3408,8 +3611,8 @@ function DemoTasks() {
             const rows = visible.filter(t => t.status === col.id);
             return (
               <div key={col.id} style={{ flex: '1 1 175px', minWidth: 175, border: `1px solid ${C.bd}`, display: 'flex', flexDirection: 'column' }}>
-                <div style={{ background: col.color, color: '#FFFFFF', padding: '7px 10px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>{col.label}</span><span style={{ opacity: 0.85 }}>{rows.length}</span>
+                <div style={{ background: 'var(--c-sf2)', color: C.tx, padding: '7px 10px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${C.cardBd}`, boxShadow: `inset 3px 0 0 ${col.color}` }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span aria-hidden style={{ width: 7, height: 7, borderRadius: '50%', background: col.color, flexShrink: 0 }} />{col.label}</span><span style={{ color: C.tm }}>{rows.length}</span>
                 </div>
                 <div style={{ padding: 6, display: 'flex', flexDirection: 'column', gap: 6, minHeight: 46 }}>
                   {rows.map(t => {
@@ -3462,7 +3665,7 @@ function DemoTasks() {
 }
 
 // ── BILLING — mirrors src/BillingView.jsx (bit_payment_requests ledger).
-// Israeli VAT 18% → pre-VAT multiplier 0.8475. Static mock, no writes. ───────
+// Static mock, no writes. VAT removed from billing (Ohad: "vat is useless"). ──
 // Names + statuses mirror the roster (MOCK_TRAINEES): Hebrew names like the
 // rest of the demo (was Latin — the same people appeared in two scripts across
 // tabs), and each row's status matches that athlete's payment state (Noa PAID,
@@ -3478,13 +3681,32 @@ const fmtIls = (n) => `₪${Number(n).toLocaleString()}`;
 function DemoBilling() {
   const [showReq, setShowReq] = useState(false);
   const [amount, setAmount] = useState('600');
-  const [vatPct, setVatPct] = useState('18');   // editable VAT %, like the real Billing
   const pending = DEMO_PAYMENTS.filter(p => p.status === 'pending');
-  const preVat = Math.round((Number(amount) || 0) / (1 + (Number(vatPct) || 0) / 100));
   const panel = (children) => <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, marginBottom: 16 }}>{children}</div>;
   const stripH = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '12px 14px', borderBottom: `1px solid ${C.cardBd}` };
+  const outstanding = pending.reduce((s, p) => s + p.amount, 0);
+  const collected = DEMO_PAYMENTS.filter(p => p.status === 'paid').reduce((s, p) => s + p.amount, 0);
+  const sumTile = (label, value, sub, accent) => (
+    <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0 }}>
+      <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 7 }}>
+        <span style={{ width: 6, height: 6, borderRadius: '50%', background: accent, boxShadow: `0 0 5px ${accent}66`, flexShrink: 0 }} />
+        <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', color: '#FFFFFF', textTransform: 'uppercase' }}>{label}</span>
+      </div>
+      <div style={{ padding: 14 }}>
+        <div style={{ fontFamily: FN, fontSize: 26, fontWeight: 800, color: C.tx, letterSpacing: '-0.015em', direction: 'ltr' }}>{value}</div>
+        <div style={{ fontFamily: FN, fontSize: 10, color: C.td, marginTop: 4, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{sub}</div>
+      </div>
+    </div>
+  );
   return (
     <section>
+      {/* At-a-glance summary tiles — mirrors the real BillingView redesign
+          (Outstanding / Overdue / Collected this month). */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginBottom: 16 }}>
+        {sumTile('Outstanding', fmtIls(outstanding), `${pending.length} pending`, C.or)}
+        {sumTile('Overdue', fmtIls(outstanding), `${pending.length} · ≥ 14d`, C.rd)}
+        {sumTile('Collected · This month', fmtIls(collected), 'received', C.gn)}
+      </div>
       {panel(<>
         <div style={stripH}>
           <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.04em', color: C.ac }}>PAYMENT REQUESTS {pending.length > 0 && <span style={{ color: C.or }}>· {pending.length} PENDING</span>}</span>
@@ -3494,13 +3716,15 @@ function DemoBilling() {
           {DEMO_PAYMENTS.map(p => {
             const st = PAY_STATUS[p.status];
             return (
-              <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '12px 14px', borderTop: `1px solid ${C.cardBd}` }}>
+              <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '12px 14px', borderTop: `1px solid ${C.cardBd}`, borderLeft: p.status === 'pending' ? `3px solid ${C.rd}` : '3px solid transparent' }}>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontFamily: FB, fontSize: 13, fontWeight: 600, color: C.tx }}>{p.name} · {fmtIls(p.amount)}</div>
+                  <div style={{ fontFamily: FB, fontSize: 13, fontWeight: 600, color: p.status === 'pending' ? C.rd : C.tx }}>{p.name} · {fmtIls(p.amount)}</div>
                   <div style={{ fontFamily: FB, fontSize: 11, color: C.tm, marginTop: 2 }}>{p.ref} · {fmtPrettyDate(p.date)}</div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                  {p.status === 'pending' && <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.08em', color: C.rd }}>21D OVERDUE</span>}
                   <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: st.color, border: `1px solid ${st.color}55`, padding: '2px 6px' }}>{st.label}</span>
+                  {p.status === 'pending' && <button title="WhatsApp payment reminder (demo)" style={{ ...baseBtn, background: 'transparent', color: '#25D366', border: '1px solid #25D36655', padding: '3px 8px', fontSize: 9 }}>◔ CHASE</button>}
                   {p.status === 'pending' && <button style={{ ...baseBtn, background: 'transparent', color: C.gn, border: `1px solid ${C.gn}55`, padding: '3px 8px', fontSize: 9 }}>MARK PAID</button>}
                 </div>
               </div>
@@ -3529,11 +3753,9 @@ function DemoBilling() {
             <select style={{ width: '100%', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 14, padding: '11px 13px', marginBottom: 10, outline: 'none' }}>
               {MOCK_TRAINEES.map(t => <option key={t.id}>{t.name}</option>)}
             </select>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-              <input value={amount} onChange={e => setAmount(e.target.value)} type="number" placeholder="Amount (₪, VAT incl.)" style={{ flex: 2, minWidth: 0, boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 14, padding: '11px 13px', outline: 'none' }} />
-              <input value={vatPct} onChange={e => setVatPct(e.target.value)} type="number" placeholder="VAT %" title="VAT %" style={{ width: 80, flexShrink: 0, boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 14, padding: '11px 13px', outline: 'none', textAlign: 'center' }} />
+            <div style={{ marginBottom: 14 }}>
+              <input value={amount} onChange={e => setAmount(e.target.value)} type="number" placeholder="Amount (₪)" style={{ width: '100%', boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 14, padding: '11px 13px', outline: 'none' }} />
             </div>
-            <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, marginBottom: 14, textAlign: 'center' }}>VAT {vatPct || 0}% incl. · pre-VAT <span style={{ color: C.ac, fontWeight: 700 }}>{fmtIls(preVat)}</span></div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={() => setShowReq(false)} style={{ ...baseBtn, flex: 1, background: 'transparent', color: C.tm, border: `1px solid ${C.cardBd}`, padding: '10px 0', fontSize: 11 }}>CANCEL</button>
               <button onClick={() => setShowReq(false)} style={{ ...baseBtn, flex: 1, background: 'transparent', color: C.ac, border: `1px solid ${C.ac}`, padding: '10px 0', fontSize: 11 }}>CREATE</button>
@@ -3783,7 +4005,6 @@ export default function CoachDemo() {
         {tab === 'trainees'  && <DemoTrainees selected={selectedTrainee} onSelect={(id) => selectTrainee(id, 'trainees')} onClear={onClearTrainee} returnTab={returnTab} />}
         {tab === 'programs'  && <DemoPrograms />}
         {tab === 'exercises' && <DemoExercises />}
-        {tab === 'workouts'  && <DemoWorkouts />}
         {tab === 'sessions'  && <DemoSessions />}
         {tab === 'tasks'     && <DemoTasks />}
         {tab === 'billing'   && <DemoBilling />}
