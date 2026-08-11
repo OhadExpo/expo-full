@@ -79,6 +79,35 @@ export function detectFaults(result, title) {
   return { faults, good, note: '2D phone pose — angles are approximate. Flags to eyeball, not diagnoses.' };
 }
 
+// ---- VBT auto-regulation — the "Perch from a phone" read ----------------
+// Velocity-loss within the set tells you where it stopped being the quality it
+// was intended to be. Corpus cutoffs (Pareja-Blanco / Sánchez-Medina): ≤~20%
+// velocity-loss preserves power + type-IIx and gives better jump/strength
+// carry-over; ~20–30% is the general strength/hypertrophy band; >~35–40% only
+// if you're deliberately chasing hypertrophy/junk volume. So for each goal we
+// report the rep where his speed had dropped past that line — i.e. where he
+// should have stopped for that goal. No hardware, from one filmed set.
+export function velocityAutoreg(velocity) {
+  if (!velocity || !Array.isArray(velocity.perRep)) return null;
+  const reps = velocity.perRep.filter(Boolean);
+  if (reps.length < 3) return null;
+  // Velocity-loss is measured from the FASTEST rep, and only reps AFTER it
+  // count toward a fatigue cutoff — an early rep that's simply slower than the
+  // peak (ramp-up, not the fastest) must not read as "stop at rep 1".
+  let peakIdx = 0, peakV = -Infinity;
+  reps.forEach((r, i) => { if (typeof r.meanConcentric === 'number' && r.meanConcentric > peakV) { peakV = r.meanConcentric; peakIdx = i; } });
+  const crossAt = (thr) => { for (let i = peakIdx; i < reps.length; i++) { if (typeof reps[i].lossPct === 'number' && reps[i].lossPct >= thr) return i + 1; } return null; };
+  const finalLoss = typeof velocity.finalLossPct === 'number' ? velocity.finalLossPct : null;
+  return {
+    total: reps.length,
+    powerRep: crossAt(20),      // stop here to keep it a POWER set
+    generalRep: crossAt(30),    // strength/general
+    hyperRep: crossAt(40),      // only worth it for hypertrophy past here
+    finalLoss,
+    bestMean: velocity.bestMean,
+  };
+}
+
 // ---- Movement Asymmetry / Injury Screen ---------------------------------
 const PAIRS = [
   ['Shoulders', 'L SHO', 'R SHO'],

@@ -18,7 +18,7 @@ import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
 import { createPoseLandmarker, getCamera, stopStream } from './usePose';
 import { analyzeClip, jumpMetrics, reactiveJumpMetrics, jumpPower, frameToPoints3D, estimateFps, barSpeedSeries, barAccelSeries, namedAngleSeries, channelSignal, velocityMetrics, romTempoMetrics, movementRepCount, isBallistic } from './poseLab';
-import { detectFaults, detectAsymmetry } from './poseInsights';
+import { detectFaults, detectAsymmetry, velocityAutoreg } from './poseInsights';
 import { savePoseMetric } from './poseMetricsStore';
 import { demoSquatFrames, demoJumpFrames } from './demoMotion';
 
@@ -690,6 +690,7 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
 function FormCheck({ result, exerciseTitle }) {
   const faults = useMemo(() => detectFaults(result, exerciseTitle), [result, exerciseTitle]);
   const asym = useMemo(() => detectAsymmetry(result.jointRom), [result.jointRom]);
+  const vbt = useMemo(() => velocityAutoreg(result.velocity), [result.velocity]);
   const sev = { bad: C.rd, warn: C.or, high: C.rd, mod: C.or, ok: C.gn };
   const secLabel = { fontFamily: FN, fontSize: 10, letterSpacing: '0.14em', color: C.ac, marginBottom: 8 };
   const rowBase = { display: 'flex', gap: 10, padding: '10px 0', borderTop: `1px solid ${C.bd}`, fontFamily: FN, fontSize: 13, lineHeight: 1.5 };
@@ -745,6 +746,25 @@ function FormCheck({ result, exerciseTitle }) {
           <div style={{ color: 'rgba(255,255,255,0.85)' }}>{g}</div>
         </div>
       ))}
+
+      {vbt && (
+        <>
+          <div style={{ ...secLabel, marginTop: 22 }}>STOP-SET · BAR SPEED <span style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: 0 }}>· where the set stopped being what it was for</span></div>
+          <div style={{ fontFamily: FN, fontSize: 13, color: 'rgba(255,255,255,0.85)', lineHeight: 1.6 }}>
+            He did <b style={{ color: '#fff' }}>{vbt.total} reps</b>{vbt.finalLoss != null ? <> · bar speed dropped <b style={{ color: vbt.finalLoss >= 30 ? C.rd : vbt.finalLoss >= 20 ? (C.or || '#f0b429') : C.gn }}>{Math.min(99, vbt.finalLoss)}%</b> by the last one</> : null}.
+            <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {[['power', vbt.powerRep, C.pu || '#8b7cf0', 'keep it fast'], ['strength', vbt.generalRep, C.ac, 'general'], ['size', vbt.hyperRep, C.gn, 'hypertrophy']].map(([goal, rep, col, sub]) => (
+                <div key={goal} style={{ flex: '1 1 0', minWidth: 96, border: `1px solid ${C.bd}`, background: C.sf2, padding: '8px 10px' }}>
+                  <div style={{ fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: col, fontWeight: 700 }}>{goal}</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginTop: 3 }}>{rep ? `stop @ rep ${rep}` : `all ${vbt.total} fine`}</div>
+                  <div style={{ fontSize: 10, color: C.td, marginTop: 2 }}>{goal === 'power' ? '20% speed lost' : goal === 'strength' ? '30% lost' : '40% lost'}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ fontSize: 10, color: C.td, marginTop: 8, lineHeight: 1.5 }}>≤20% velocity-loss keeps a set explosive (protects power + jump carry-over); past ~40% it's only hypertrophy. Camera velocity — use it for the trend + cutoff, not an exact 1RM.</div>
+          </div>
+        </>
+      )}
 
       <div style={{ ...secLabel, marginTop: 22 }}>LEFT / RIGHT SYMMETRY</div>
       {!asym && <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>No paired joints tracked cleanly on this clip.</div>}
