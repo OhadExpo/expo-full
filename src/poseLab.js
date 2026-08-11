@@ -321,8 +321,15 @@ export function velocityMetrics(frames, angle, reps, barLandmark = 'wrist') {
   // but-wrong VBT loss %. Return null so the UI says it couldn't read velocity.
   // (camera audit)
   if (!(best > 0)) return null;
-  const withLoss = perRep.map(r => r && ({ ...r, lossPct: Math.round((1 - r.meanConcentric / best) * 100) }));
-  const lastValid = [...withLoss].reverse().find(Boolean);
+  // A rep with no positive net concentric (mean <= 0) isn't a measurable lift —
+  // it's a bar drop / re-rack / pose noise. Emit lossPct = null for it rather than
+  // a physically-impossible >100% "loss", and never let it become the set's
+  // final-loss anchor (a dropped bar at the end read as "90%+ junk fatigue" when
+  // the working reps actually held speed).
+  const withLoss = perRep.map(r => r && (r.meanConcentric > 0
+    ? { ...r, lossPct: Math.round((1 - r.meanConcentric / best) * 100) }
+    : { ...r, lossPct: null }));
+  const lastValid = [...withLoss].reverse().find(r => r && r.lossPct != null);
   return {
     perRep: withLoss,
     bestMean: round2(best),

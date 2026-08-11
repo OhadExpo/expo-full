@@ -1041,7 +1041,7 @@ function VelocityTable({ v, barSpeed, frames, playheadT = null, onScrub = null }
         <MiniKpi label="VELOCITY LOSS (LAST REP)" value={v.finalLossPct >= 90 ? '90%+' : `${Math.round(v.finalLossPct)}%`} tone={v.finalLossPct >= 20 ? C.rd : v.finalLossPct >= 10 ? C.or : C.gn} />
       </div>
       <Row head cells={['REP', 'MEAN m/s', 'PEAK m/s', 'LOSS']} />
-      {v.perRep.map((r, i) => r && <Row key={i} cells={[i + 1, r.meanConcentric.toFixed(2), r.peak.toFixed(2), r.lossPct >= 90 ? '90%+' : `${Math.round(r.lossPct)}%`]} tone={r.lossPct >= 20 ? C.rd : undefined}
+      {v.perRep.map((r, i) => r && <Row key={i} cells={[i + 1, r.meanConcentric.toFixed(2), r.peak.toFixed(2), r.lossPct == null ? '—' : r.lossPct >= 90 ? '90%+' : `${Math.round(r.lossPct)}%`]} tone={r.lossPct != null && r.lossPct >= 20 ? C.rd : undefined}
         onClick={onScrub && r.startT != null ? () => onScrub(r.startT) : undefined} />)}
     </div>
   );
