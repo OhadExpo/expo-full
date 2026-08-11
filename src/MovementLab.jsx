@@ -18,6 +18,7 @@ import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
 import { createPoseLandmarker, getCamera, stopStream } from './usePose';
 import { analyzeClip, jumpMetrics, reactiveJumpMetrics, jumpPower, frameToPoints3D, estimateFps, barSpeedSeries, barAccelSeries, namedAngleSeries, channelSignal, velocityMetrics, romTempoMetrics } from './poseLab';
+import { detectFaults, detectAsymmetry } from './poseInsights';
 import { demoSquatFrames, demoJumpFrames } from './demoMotion';
 
 // Among several detected poses (multi-pose upload analysis), pick the SUBJECT —
@@ -559,6 +560,7 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
     // names for the same thing (Ohad 2026-07-04).
     { k: 'velocity', label: 'SPEED & ACCEL', on: result.repCount > 0 },
     { k: 'rom', label: 'ROM & TEMPO', on: result.repCount > 0 },
+    { k: 'form', label: 'FORM CHECK', on: result.repCount > 0 },
     { k: 'threeD', label: '3D ANATOMY', on: true },
   ];
   const tabs = view === '3d' ? allTabs.filter(t => t.k === 'threeD')
@@ -614,11 +616,75 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
       )}
       {tab === 'velocity' && <VelocityTable v={trimmedVelocity} barSpeed={result.barSpeed} frames={frames} playheadT={playheadT} onScrub={onScrub} />}
       {tab === 'rom' && <RomTable r={trimmedRomTempo} jointRom={result.jointRom} kind={result.kind} frames={frames} exerciseTitle={exerciseTitle} playheadT={playheadT} onScrub={onScrub} />}
+      {tab === 'form' && <FormCheck result={result} exerciseTitle={exerciseTitle} />}
       {tab === 'threeD' && (
         <Suspense fallback={<div style={{ color: 'rgba(255,255,255,0.6)', textAlign: 'center', padding: 30, fontFamily: FN, fontSize: 12, letterSpacing: '0.12em' }}>LOADING 3D…</div>}>
           <AnatomyViewer frames={frames} />
         </Suspense>
       )}
+    </div>
+  );
+}
+
+// FORM CHECK — auto form-fault coach + left/right symmetry screen, both read
+// straight off the pose the camera already produced (src/poseInsights.js).
+function FormCheck({ result, exerciseTitle }) {
+  const faults = useMemo(() => detectFaults(result, exerciseTitle), [result, exerciseTitle]);
+  const asym = useMemo(() => detectAsymmetry(result.jointRom), [result.jointRom]);
+  const sev = { bad: C.rd, warn: C.or, high: C.rd, mod: C.or, ok: C.gn };
+  const secLabel = { fontFamily: FN, fontSize: 10, letterSpacing: '0.14em', color: C.ac, marginBottom: 8 };
+  const rowBase = { display: 'flex', gap: 10, padding: '10px 0', borderTop: `1px solid ${C.bd}`, fontFamily: FN, fontSize: 13, lineHeight: 1.5 };
+  return (
+    <div style={{ fontFamily: FN }}>
+      <div style={secLabel}>AUTO FORM COACH</div>
+      {faults && faults.faults.length === 0 && faults.good.length === 0 && (
+        <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>Not enough clean reps to read technique on this clip.</div>
+      )}
+      {faults && faults.faults.map((f, i) => (
+        <div key={'f' + i} style={rowBase}>
+          <span style={{ color: sev[f.sev], fontWeight: 700, flex: '0 0 16px', textAlign: 'center' }}>{f.sev === 'bad' ? '✕' : '!'}</span>
+          <div><b style={{ color: '#fff' }}>{f.msg}.</b> <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{f.why}</span></div>
+        </div>
+      ))}
+      {faults && faults.good.map((g, i) => (
+        <div key={'g' + i} style={rowBase}>
+          <span style={{ color: C.gn, fontWeight: 700, flex: '0 0 16px', textAlign: 'center' }}>✓</span>
+          <div style={{ color: 'rgba(255,255,255,0.85)' }}>{g}</div>
+        </div>
+      ))}
+
+      <div style={{ ...secLabel, marginTop: 22 }}>LEFT / RIGHT SYMMETRY</div>
+      {!asym && <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>No paired joints tracked cleanly on this clip.</div>}
+      {asym && asym.rows.map((r) => {
+        const mx = Math.max(r.left, r.right) || 1;
+        const lCol = r.weaker === 'Left' ? sev[r.severity] : C.ac;
+        const rCol = r.weaker === 'Right' ? sev[r.severity] : C.ac;
+        return (
+          <div key={r.joint} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderTop: `1px solid ${C.bd}`, fontFamily: FN }}>
+            <div style={{ width: 74, fontSize: 13, color: '#fff' }}>{r.joint}</div>
+            <span style={{ width: 34, textAlign: 'right', fontSize: 11, color: 'rgba(255,255,255,0.6)', fontVariantNumeric: 'tabular-nums' }}>{r.left}°</span>
+            <div style={{ flex: 1, display: 'flex', height: 10, alignItems: 'stretch' }}>
+              <div style={{ width: '50%', display: 'flex', justifyContent: 'flex-end' }}>
+                <div style={{ width: `${(r.left / mx) * 100}%`, background: lCol, opacity: r.weaker === 'Left' ? 1 : 0.55, borderRadius: '2px 0 0 2px' }} />
+              </div>
+              <div style={{ width: 1, background: C.bd }} />
+              <div style={{ width: '50%' }}>
+                <div style={{ width: `${(r.right / mx) * 100}%`, height: '100%', background: rCol, opacity: r.weaker === 'Right' ? 1 : 0.55, borderRadius: '0 2px 2px 0' }} />
+              </div>
+            </div>
+            <span style={{ width: 34, fontSize: 11, color: 'rgba(255,255,255,0.6)', fontVariantNumeric: 'tabular-nums' }}>{r.right}°</span>
+            <div style={{ width: 96, textAlign: 'right', fontSize: 11, color: sev[r.severity], fontWeight: r.severity === 'ok' ? 400 : 700 }}>
+              {r.severity === 'ok' ? 'balanced' : `${r.asymPct}% ${r.weaker.toLowerCase()}↓`}
+            </div>
+          </div>
+        );
+      })}
+      {asym && asym.flagged.length > 0 && (
+        <div style={{ marginTop: 10, fontSize: 12, color: C.or, lineHeight: 1.5, fontFamily: FN }}>
+          {asym.worst.joint} travel {asym.worst.asymPct}% less on the {asym.worst.weaker.toLowerCase()} — worth screening in person before loading it heavier.
+        </div>
+      )}
+      <div style={{ marginTop: 16, fontSize: 10, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5, fontFamily: FN }}>{faults?.note || asym?.note}</div>
     </div>
   );
 }
