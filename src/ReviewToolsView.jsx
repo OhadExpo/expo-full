@@ -8,6 +8,7 @@ import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
 import { RefinedHeaderStrip, SectionLabel } from './ui';
 import { FormVideoPlayer } from './WorkoutReview';
+import { useAthletePlans } from './usePlansStore';
 
 // Build the reviewed-clip cascade tree from the coach's client workouts:
 // athlete → block (planName) → week → day → [exercises that carry a cloud clip].
@@ -66,11 +67,22 @@ function ReviewedClipPicker({ workouts, trainees, onPick, activeUrl }) {
   const block = athlete && b !== '' ? athlete.blocks[b] : null;
   const week = block && w !== '' ? block.weeks[w] : null;
   const day = week && d !== '' ? week.days[d] : null;
+  // On-demand load the picked athlete's plans so we can show the PRESCRIBED
+  // (target) reps next to the camera count + what he logged. Owner-only read.
+  const { plans, load: loadPlans } = useAthletePlans();
+  useEffect(() => { if (athlete?.cid) loadPlans(athlete.cid); }, [athlete?.cid, loadPlans]);
+  const targetFor = (exTitle) => {
+    if (!plans || !block || !day) return null;
+    const plan = plans.find(p => (p.name || '') === (block.block || ''));
+    const pd = plan?.days?.find(x => (x.name || '').trim() === (day.day || '').trim());
+    const pe = pd?.exercises?.find(x => (x.title || '').trim().toLowerCase() === (exTitle || '').trim().toLowerCase());
+    return pe && pe.reps != null && pe.reps !== '' ? String(pe.reps) : null;
+  };
 
   const sel = { flex: '1 1 130px', minWidth: 0, boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 13, padding: '9px 11px', borderRadius: 0, outline: 'none', cursor: 'pointer' };
   const selDim = { ...sel, color: C.td, cursor: 'default', opacity: 0.6 };
 
-  const onE = (v) => { setE(v); const ex = day && v !== '' ? day.exercises[v] : null; if (ex) onPick(ex.url, ex.title, ex.cid, ex.date, ex.recorded); };
+  const onE = (v) => { setE(v); const ex = day && v !== '' ? day.exercises[v] : null; if (ex) onPick(ex.url, ex.title, ex.cid, ex.date, ex.recorded, targetFor(ex.title)); };
 
   if (!tree.length) {
     return (
@@ -251,7 +263,7 @@ function ToolRow({ t, blocked, isFirst, onOpen }) {
 export default function ReviewToolsView({ clientWorkouts = [], trainees = [] }) {
   const [title, setTitle] = useState('Squat');
   const [clipUrl, setClipUrl] = useState(null); // a picked reviewed-clip URL → fed into the tools
-  const [clipMeta, setClipMeta] = useState({ clientId: null, date: null, recorded: [] }); // athlete+date+logged-reps of the picked clip
+  const [clipMeta, setClipMeta] = useState({ clientId: null, date: null, recorded: [], target: null }); // athlete+date+logged+prescribed of the picked clip
   const [tool, setTool]   = useState(null); // 'lab' | 'metrics' | 'jump' | 'live' | null
   const camOk = useRef(hasCameraApi());
 
@@ -290,7 +302,7 @@ export default function ReviewToolsView({ clientWorkouts = [], trainees = [] }) 
         {/* Reviewed-clip picker — cascade selects only. Once a clip is picked
             the video + tools lay out below as a two-column workspace. */}
         <ReviewedClipPicker workouts={clientWorkouts} trainees={trainees}
-          onPick={(url, t, cid, date, recorded) => { setClipUrl(url); if (t) setTitle(t); setClipMeta({ clientId: cid || null, date: date || null, recorded: recorded || [] }); }} />
+          onPick={(url, t, cid, date, recorded, target) => { setClipUrl(url); if (t) setTitle(t); setClipMeta({ clientId: cid || null, date: date || null, recorded: recorded || [], target: target || null }); }} />
       </div>
 
       {clipUrl ? (
@@ -351,7 +363,7 @@ export default function ReviewToolsView({ clientWorkouts = [], trainees = [] }) 
         <ToolBoundary toolKey={tool} onClose={close}>
           <Suspense fallback={<ToolLoading label={activeTool ? activeTool.label : 'TOOL'} />}>
             {tool === 'lab'     && <MovementLab exerciseTitle={title || 'Squat'} initialMode="analyze" initialView="3d" toolLabel="MOVEMENT LAB" initialClipUrl={clipUrl} onClose={close} />}
-            {tool === 'metrics' && <MovementLab exerciseTitle={title || 'Squat'} initialMode="analyze" initialView="metrics" toolLabel="LIFT METRICS" initialClipUrl={clipUrl} vaultClientId={clipMeta.clientId} vaultDate={clipMeta.date} recordedReps={clipMeta.recorded} onClose={close} />}
+            {tool === 'metrics' && <MovementLab exerciseTitle={title || 'Squat'} initialMode="analyze" initialView="metrics" toolLabel="LIFT METRICS" initialClipUrl={clipUrl} vaultClientId={clipMeta.clientId} vaultDate={clipMeta.date} recordedReps={clipMeta.recorded} targetReps={clipMeta.target} onClose={close} />}
             {tool === 'jump'    && <MovementLab exerciseTitle="Vertical Jump" initialMode="jump" initialClipUrl={clipUrl} onClose={close} />}
             {tool === 'live'    && <ARFormOverlay exerciseTitle={title || 'Squat'} onClose={close} />}
           </Suspense>

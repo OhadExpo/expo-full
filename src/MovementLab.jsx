@@ -171,6 +171,7 @@ export default function MovementLab({
   vaultClientId = null,         // athlete id of the picked clip → Bar-Speed Vault (owner trial, localStorage)
   vaultDate = null,             // date of the picked clip → vault entry key
   recordedReps = [],            // the filmed exercise's LOGGED set reps → cross-check the camera count
+  targetReps = null,            // the exercise's PRESCRIBED reps (e.g. "8-10") from the plan
 }) {
   const videoRef = useRef(null);
   const liveCanvasRef = useRef(null);
@@ -498,7 +499,7 @@ export default function MovementLab({
               {mode === 'jump'
                 ? <JumpResult jump={jump} result={result} onSave={onSaveJump} onClose={onClose} defaultBodyweightKg={defaultBodyweightKg} />
                 : <AnalyzeResult result={result} frames={framesRef.current} exerciseTitle={exerciseTitle} tab={tab} setTab={setTab} view={initialView}
-                    vaultClientId={vaultClientId} vaultDate={vaultDate} recordedReps={recordedReps}
+                    vaultClientId={vaultClientId} vaultDate={vaultDate} recordedReps={recordedReps} targetReps={targetReps}
                     playheadT={videoTime * 1000}
                     onScrub={(tMs) => { const v = analyzeVideoRef.current; if (v) { try { v.currentTime = tMs / 1000; } catch { /* noop */ } setVideoTime(tMs / 1000); } }} />}
             </div>
@@ -525,7 +526,7 @@ export default function MovementLab({
 }
 
 // ----------------------------- results: analyze -----------------------------
-export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view = 'all', vaultClientId = null, vaultDate = null, recordedReps = [], playheadT = null, onScrub = null }) {
+export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view = 'all', vaultClientId = null, vaultDate = null, recordedReps = [], targetReps = null, playheadT = null, onScrub = null }) {
   // First/last-rep trim (Ohad: "I want to be able to set where is the first
   // and last rep, to avoid random movement analyzed into the means") — 1-
   // indexed, inclusive, defaults to the full detected set. Only the MEAN
@@ -606,17 +607,20 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
           trust his log, not the camera (fast plyos / lateral work under-count). */}
       {(() => {
         const rec = (recordedReps || []).filter((n) => typeof n === 'number' && n > 0);
-        if (!rec.length || !(result.repCount > 0)) return null;
+        const tgt = targetReps != null && String(targetReps).trim() !== '' ? String(targetReps).trim() : null;
+        if (!rec.length && !tgt) return null;
+        if (!(result.repCount > 0)) return null;
         const sum = rec.reduce((a, b) => a + b, 0);
         const near = (x) => Math.abs(result.repCount - x) <= 1;
-        const match = rec.some(near) || near(sum);
-        const low = result.repCount < Math.min(...rec);
-        const col = match ? C.gn : (C.warn || '#f0b429');
+        const match = rec.length && (rec.some(near) || near(sum));
+        const low = rec.length && result.repCount < Math.min(...rec);
+        const col = !rec.length ? C.tm : (match ? C.gn : (C.warn || '#f0b429'));
         return (
           <div style={{ fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.04em', marginBottom: 12, marginTop: -6 }}>
-            He logged <b style={{ color: '#fff' }}>{rec.join('·')}</b> reps ·{' '}
+            {tgt && <>target <b style={{ color: '#fff' }}>{tgt}</b>{rec.length ? ' · ' : ' '}</>}
+            {rec.length > 0 && <>logged <b style={{ color: '#fff' }}>{rec.join('·')}</b> · </>}
             <span style={{ color: col, fontWeight: 700 }}>
-              {match ? '✓ camera matches his log' : low ? `⚠ camera counted ${result.repCount} — likely missed reps, trust his log` : `⚠ camera counted ${result.repCount} — check the clip`}
+              {!rec.length ? `camera counted ${result.repCount}` : match ? '✓ camera matches his log' : low ? `⚠ camera counted ${result.repCount} — likely missed reps, trust his log` : `⚠ camera counted ${result.repCount} — check the clip`}
             </span>
           </div>
         );
