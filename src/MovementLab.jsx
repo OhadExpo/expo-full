@@ -785,6 +785,27 @@ function FormCheck({ result, exerciseTitle }) {
       return { rep: i + 1, q, romPct, velRet: Math.round(velRet), collapsed: !!r.collapsed };
     }).filter(Boolean);
   }, [result]);
+  // One-line coach synthesis of the Set Breakdown — WHERE the set turned into
+  // grinding, and whether depth or bar speed led the drop. Pure read of the
+  // already-computed per-rep quality; no new measurement.
+  const breakdown = useMemo(() => {
+    if (!repQuality || repQuality.length < 3) return null;
+    const n = repQuality.length;
+    // Fatigue accrues AFTER the best-quality rep — a low OPENING rep is usually
+    // ramp-up (getting up to speed), not a break. Scan from the peak only, so a
+    // slow first rep never reads as "down from rep 1 / not fresh".
+    let peakIdx = 0, peakQ = -Infinity;
+    repQuality.forEach((r, i) => { if (r.q > peakQ) { peakQ = r.q; peakIdx = i; } });
+    let brk = -1;
+    for (let i = peakIdx + 1; i < n; i++) {
+      const rest = repQuality.slice(i);
+      const avg = rest.reduce((s, r) => s + r.q, 0) / rest.length;
+      if (repQuality[i].q < 82 && avg < 82) { brk = i; break; } // first post-peak rep from which the rest stays soft
+    }
+    if (brk < 0) return { held: true };
+    const r = repQuality[brk];
+    return { held: false, brkRep: brk + 1, lead: r.romPct <= r.velRet ? 'depth' : 'bar speed' };
+  }, [repQuality]);
   const qColor = (q) => (q >= 85 ? C.gn : q >= 70 ? (C.or || '#f0b429') : C.rd);
 
   return (
@@ -807,6 +828,12 @@ function FormCheck({ result, exerciseTitle }) {
               </div>
             ))}
           </div>
+          {breakdown && breakdown.held && (
+            <div style={{ fontSize: 12.5, color: C.gn, marginTop: 8, lineHeight: 1.5 }}>Form held every rep — no fatigue drop-off in this set.</div>
+          )}
+          {breakdown && !breakdown.held && (
+            <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.8)', marginTop: 8, lineHeight: 1.5 }}>Clean through rep <b style={{ color: '#fff' }}>{breakdown.brkRep - 1}</b>, then <b style={{ color: '#fff' }}>{breakdown.lead}</b> started to fade — that's where it turned into grinding. {breakdown.lead === 'depth' ? 'Cut the set a rep or two earlier to keep range honest.' : 'Past here the reps are fatigue, not power — stop earlier if speed is the goal.'}</div>
+          )}
           <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginTop: 6 }}>Bar height = rep quality (the weaker of range kept + speed kept). Green held · amber softened · red broke down.</div>
         </div>
       )}
