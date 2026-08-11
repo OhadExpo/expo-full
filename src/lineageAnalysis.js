@@ -428,8 +428,17 @@ export function blockHistory(plans, deps) {
   // the block's typical prescribed rep range: <6 strength, 6-10 hypertrophy,
   // 10+ volume. This is the periodization Ohad actually PROGRAMMED, block over
   // block — the true "programming arc".
+  // Compound/primary movements carry a block's periodization intent; accessories
+  // (curls, raises, planks) sit at 10-15 reps in EVERY block regardless of phase,
+  // so averaging them in paints every block "hypertrophy". Read character off the
+  // main lifts only. Same inclusion-list the transfer map uses.
+  const PRIMARY_RX = /squat|deadlift|\bdl\b|rdl|hinge|good[-\s]?morning|press|bench|ohp|overhead|row|pull[-\s]?up|chin|pulldown|lunge|split|rfess|bulgarian|thrust|clean|snatch|jerk/i;
   const repMid = (r) => {
     const str = String(r == null ? '' : r).trim();
+    if (!str) return null;
+    // Timed holds/carries ("40s", "60 sec", "1 min", "30\"") are a DURATION, not
+    // reps — a 45s plank must not read as 45 reps and drag the block to endurance.
+    if (/\d\s*(s|sec|secs|second|seconds|m|min|mins|minute|minutes)\b/i.test(str) || /\d\s*["']/.test(str)) return null;
     // "3x8" / "3×8" = sets×reps → the REPS is the second part, not an average of
     // both (averaging would call a 3×8 hypertrophy set a ~5-rep strength set).
     const sxr = str.match(/^\s*\d+\s*[x×*]\s*(\d+(?:[-–]\d+)?)/i);
@@ -439,14 +448,30 @@ export function blockHistory(plans, deps) {
   };
   const withDays = (plans || []).filter((p) => (p.days || []).some((d) => (d.exercises || []).length));
   return withDays.map((p) => {
-    const reps = [];
-    for (const d of p.days || []) for (const ex of d.exercises || []) { const r = repMid(ex.reps); if (r != null && r > 0) reps.push(r); }
-    if (reps.length < 3) return null;
-    const avgReps = reps.reduce((a, c) => a + c, 0) / reps.length;
+    const all = [];   // every parseable rep, for the coverage count + fallback
+    const main = [];  // primary compound lifts only — the block's real emphasis
+    for (const d of p.days || []) for (const ex of d.exercises || []) {
+      const r = repMid(ex.reps);
+      if (r == null || r <= 0) continue;
+      all.push(r);
+      if (PRIMARY_RX.test(String(ex.title || ex.name || ''))) main.push(r);
+    }
+    // Keep a block if it has enough rep-rows OR ≥2 identifiable main lifts — a
+    // strength block that's mostly timed carries + 2 heavy mains shouldn't vanish.
+    if (all.length < 3 && main.length < 2) return null;
+    // Prefer the compound lifts (≥2 of them) as the character signal; fall back to
+    // all rows only when a block genuinely has no identifiable main lift.
+    const basis = main.length >= 2 ? main : all;
+    const fromMains = main.length >= 2;
+    const avgReps = basis.reduce((a, c) => a + c, 0) / basis.length;
     // Standard loading zones: strength <6, hypertrophy 6-12, endurance 12+.
     const character = avgReps < 6 ? 'strength' : avgReps <= 12 ? 'hypertrophy' : 'endurance';
-    return { num: blockNum(p.name), name: p.name, character, avgReps: Math.round(avgReps * 10) / 10, exercises: reps.length };
-  }).filter(Boolean).sort((a, b) => (a.num != null && b.num != null) ? a.num - b.num : 0);
+    return { num: blockNum(p.name), name: p.name, character, avgReps: Math.round(avgReps * 10) / 10, exercises: all.length, fromMains };
+  }).filter(Boolean)
+    // Numbered blocks sort by number; un-numbered ones keep insertion order at the
+    // front (stable key = -1) so the comparator stays transitive and "current
+    // block" = the last numbered one, never a stray "Deload Week".
+    .sort((a, b) => (a.num == null ? -1 : a.num) - (b.num == null ? -1 : b.num));
 }
 
 export function analyzeAthlete(clientWorkouts, traineeId, plans, deps) {
@@ -467,9 +492,12 @@ export function analyzeAthlete(clientWorkouts, traineeId, plans, deps) {
   const acwr = tonnageACWR(allSessions);
   // Journey = the whole-history context that frames the report (the "lineage"):
   // how long he's been logging, across how many blocks + sessions.
-  const jDates = allSessions.map((s) => ms(s.date)).filter((n) => isFinite(n));
+  // Drop implausible dates (1970 epoch zeros, blank→0) before spanning, and cap
+  // the result — one mistyped year shouldn't render the header as "· 260W ·".
+  const MIN_MS = Date.UTC(2015, 0, 1);
+  const jDates = allSessions.map((s) => ms(s.date)).filter((n) => isFinite(n) && n >= MIN_MS);
   const journey = jDates.length ? {
-    weeks: (Math.max(...jDates) - Math.min(...jDates)) > 0 ? Math.round((Math.max(...jDates) - Math.min(...jDates)) / (7 * 86400000)) : 0,
+    weeks: Math.min(400, (Math.max(...jDates) - Math.min(...jDates)) > 0 ? Math.round((Math.max(...jDates) - Math.min(...jDates)) / (7 * 86400000)) : 0),
     loggedSessions: allSessions.length,
   } : null;
   // staples: lifts logged 3+ times across blocks, richest first (cap series

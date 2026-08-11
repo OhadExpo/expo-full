@@ -278,7 +278,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
               const col = b.character === 'strength' ? C.ac : b.character === 'hypertrophy' ? C.pu : C.gn;
               const label = b.num != null ? `#${b.num}` : (b.name || '').replace(/block/i, '').trim().slice(0, 6) || `B${idx + 1}`;
               return (
-                <div key={b.name || idx} title={`${b.name} · avg ${b.avgReps} prescribed reps across ${b.exercises} exercises → ${b.character}`}
+                <div key={b.name || idx} title={`${b.name} · ${b.character} — avg ${b.avgReps} prescribed reps on ${b.fromMains ? 'the main lifts' : 'all exercises'} (${b.exercises} logged)`}
                   style={{ flex: '0 0 auto', border: `1px solid ${col}`, padding: '5px 9px', minWidth: 50, textAlign: 'center', background: `color-mix(in srgb, ${col} 8%, transparent)` }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: C.tx, fontFamily: FN }}>{label}</div>
                   <div style={{ fontSize: 8.5, letterSpacing: '0.05em', textTransform: 'uppercase', color: col, marginTop: 2 }}>{b.character}</div>
@@ -292,10 +292,15 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
             const lastChar = bh[bh.length - 1].character;
             let run = 0; for (let k = bh.length - 1; k >= 0; k--) { if (bh[k].character === lastChar) run++; else break; }
             if (run < 4) return null;
+            // Only fire this prescriptive cue when the run's character reads are
+            // anchored on real main lifts (not an all-rows fallback) — otherwise
+            // the "monotony" is a soft signal, not a periodization fact.
+            const runBlocks = bh.slice(bh.length - run);
+            if (runBlocks.filter((b) => b.fromMains).length < Math.ceil(run * 0.6)) return null;
             const swap = lastChar === 'hypertrophy' ? 'a strength or power/peaking' : lastChar === 'strength' ? 'a hypertrophy or a deload' : 'a strength';
             return (
               <div style={{ fontSize: 12.5, color: C.or || '#f0b429', marginTop: 10, lineHeight: 1.5, fontFamily: FN }}>
-                <b>{run} {lastChar} blocks in a row.</b> He's adapted to this stimulus — {swap} block would be the fresh signal. That's your periodization call.
+                <b>{run} {lastChar} blocks in a row.</b> Same rep emphasis on his main lifts every block — {swap} block is the obvious contrast if you want a fresh stimulus. Your periodization call.
               </div>
             );
           })()}
@@ -310,17 +315,21 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
         <div style={bd}>
           {a.staples.filter((s) => !s.ballistic && s.arc && s.arc.length >= 4 && s.arcGainPct != null)
             .sort((x, y) => y.count - x.count).slice(0, 4).map((s) => {
-              const gc = s.arcGainPct >= 3 ? C.gn : s.arcGainPct <= -3 ? C.rd : C.tm;
+              // e1RM conflates load and reps, so a rep-scheme shift alone moves the
+              // arc %. When the per-lift trend flagged reps as noisy, mute the number
+              // and flatten the spark — never contradict the trend row on the same lift.
+              const noisy = s.trend && s.trend.repNoisy;
+              const gc = noisy ? C.td : s.arcGainPct >= 3 ? C.gn : s.arcGainPct <= -3 ? C.rd : C.tm;
               return (
                 <div key={s.title} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: `1px solid ${C.bd}` }}>
                   <div style={{ flex: '1 1 40%', minWidth: 0 }}>
                     <div style={{ fontSize: 13, color: C.tx, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.title}</div>
                     <div style={{ fontSize: 10, color: C.td, marginTop: 2 }}>{s.count} logs · {s.spanWeeks > 0 ? `over ${s.spanWeeks} weeks` : 'this block'}</div>
                   </div>
-                  <Spark pts={s.arc} dir={s.arcGainPct >= 3 ? 'up' : s.arcGainPct <= -3 ? 'down' : 'flat'} />
+                  <Spark pts={s.arc} dir={noisy ? 'flat' : s.arcGainPct >= 3 ? 'up' : s.arcGainPct <= -3 ? 'down' : 'flat'} />
                   <div style={{ flex: '0 0 auto', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
                     <div style={{ fontSize: 12.5, color: C.tx }}>e{s.firstE1} → e{Math.round(s.arc[s.arc.length - 1])}{s.prE1 > Math.round(s.arc[s.arc.length - 1]) ? <span style={{ color: C.td, fontSize: 10 }}> · pk e{s.prE1}</span> : null}</div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: gc }}>{s.arcGainPct >= 0 ? '+' : ''}{s.arcGainPct}%</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: gc }}>{s.arcGainPct >= 0 ? '+' : ''}{s.arcGainPct}%{noisy ? <span style={{ fontSize: 9, fontWeight: 400, color: C.td }}> · reps varied</span> : null}</div>
                   </div>
                 </div>
               );
