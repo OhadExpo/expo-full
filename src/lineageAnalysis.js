@@ -38,7 +38,7 @@ const median = (arr) => {
 // Epley e1RM, capped at 12 reps (Epley error compounds badly above that).
 export function e1RM(load, reps) {
   const L = num(load), R = num(reps);
-  if (L == null || R == null || R < 1) return null;
+  if (L == null || R == null || R < 1 || L <= 0) return null; // a 0-load bodyweight rep is not a strength data point
   if (R > 12) return null; // suppress false precision; caller greys it out
   return L * (1 + R / 30);
 }
@@ -366,7 +366,11 @@ export function buildBlockSessions(clientWorkouts, traineeId, plans, deps, opts 
   }));
 
   // planned session count for the block: days × weeks
-  const weeks = Array.isArray(latest.weeks) ? latest.weeks.length : (num(latest.weeks) || 1);
+  // weeks may be an array, a number, or a numeric STRING ("4") — Number() handles
+  // all three; num() rejected the string and collapsed it to 1, undercounting
+  // plannedSessionCount and letting sessionPct exceed 100%.
+  const wRaw = Array.isArray(latest.weeks) ? latest.weeks.length : Number(latest.weeks);
+  const weeks = (isFinite(wRaw) && wRaw > 0) ? wRaw : 1;
   const plannedSessionCount = (latest.days || []).length * weeks;
 
   const plannedDays = (latest.days || []).map((d) => d.name || 'Day');
