@@ -27,7 +27,7 @@ import { Btn, Input, Select, Badge, Card, ConfirmDialog, EmptyState, baseInput, 
 // when the exercises array reference changes (load/save), so all callers get
 // O(1) lookups for free without each needing its own useMemo.
 let _exMapSrc = null, _exMap = null;
-function exById(exercises) {
+export function exById(exercises) {
   if (_exMapSrc !== exercises) {
     _exMapSrc = exercises;
     _exMap = new Map((exercises || []).map(e => [e.id, e]));
@@ -45,9 +45,11 @@ function exByTitle(exercises) {
   }
   return _exTitleMap;
 }
-import { useFullPlan, savePlan, deletePlan, duplicatePlan } from './usePlansStore';
+import { useFullPlan, useAthletePlans, savePlan, deletePlan, duplicatePlan } from './usePlansStore';
 import useAutosave, { autosaveStatusLabel } from './hooks/useAutosave';
 import VideoEmbed from './VideoEmbed';
+import { NextBlockReport } from './NextBlockReport';
+import TrainingLineageV2 from './TrainingLineageV2';
 import { sortProgramsRecent } from './traineeUtils';
 import { SideRail } from './SideRail';
 import { fmtPrettyDate } from './dates';
@@ -131,19 +133,36 @@ function PatternCoverage({ plan, exercises, cols = 5 }) {
 function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibrary, exercises, currentId, currentEx, fallbackTitle }) {
   const [search, setSearch] = useState("");
   const [activeIdx, setActiveIdx] = useState(0);
+  const [compareOpen, setCompareOpen] = useState(true); // collapse compare for more list room (Ohad)
   // Only the 3 filters that map to REAL exercise-DB columns (Resistance / Body
   // Position / Movement Type). Category, Pattern and Laterality were dropped —
   // they aren't columns in the library (same mismatch fixed on the Exercises
   // table), so filtering by them just hid everything. Free-text search still
   // covers muscles/joints/etc. via the haystack below.
-  const [filters, setFilters] = useState({ resistanceType: "", bodyPosition: "", movementType: "" });
+  // Every exercise-DB sheet column is filterable now (Ohad: "still only shows 3
+  // parameters to choose from"). Single-value fields match exactly; multi-value
+  // fields (joints / movements / muscles are comma-lists) match on membership.
+  const EMPTY_FILTERS = { resistanceType: "", bodyPosition: "", movementType: "", primaryJoints: "", jointMovements: "", primaryMuscles: "", secondaryMuscles: "" };
+  const [filters, setFilters] = useState(EMPTY_FILTERS);
   const inputRef = React.useRef(null);
   const listRef = React.useRef(null);
 
   const setF = (k, v) => setFilters(prev => ({ ...prev, [k]: v }));
   const activeFilterCount = Object.values(filters).filter(Boolean).length;
-  const clearFilters = () => setFilters({ resistanceType: "", bodyPosition: "", movementType: "" });
+  const clearFilters = () => setFilters(EMPTY_FILTERS);
   const clearAll = () => { setSearch(""); clearFilters(); };
+
+  const splitCsv = (s) => String(s || '').split(',').map(x => x.trim()).filter(Boolean);
+  // Distinct values (by frequency) for the multi-value dropdowns — pulled live
+  // from the library so options reflect what actually exists.
+  const optLists = useMemo(() => {
+    const acc = { primaryJoints: {}, jointMovements: {}, primaryMuscles: {}, secondaryMuscles: {} };
+    for (const e of (exercises || [])) {
+      for (const k of Object.keys(acc)) new Set(splitCsv(e[k])).forEach(v => { acc[k][v] = (acc[k][v] || 0) + 1; });
+    }
+    const sort = m => Object.keys(m).sort((a, b) => m[b] - m[a] || a.localeCompare(b));
+    return { primaryJoints: sort(acc.primaryJoints), jointMovements: sort(acc.jointMovements), primaryMuscles: sort(acc.primaryMuscles), secondaryMuscles: sort(acc.secondaryMuscles) };
+  }, [exercises]);
 
   const filt = useMemo(() => {
     if (!open) return [];
@@ -153,6 +172,10 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
       if (filters.resistanceType && ex.resistanceType !== filters.resistanceType) return false;
       if (filters.bodyPosition && ex.bodyPosition !== filters.bodyPosition) return false;
       if (filters.movementType && ex.movementType !== filters.movementType) return false;
+      if (filters.primaryJoints && !splitCsv(ex.primaryJoints).includes(filters.primaryJoints)) return false;
+      if (filters.jointMovements && !splitCsv(ex.jointMovements).includes(filters.jointMovements)) return false;
+      if (filters.primaryMuscles && !splitCsv(ex.primaryMuscles).includes(filters.primaryMuscles)) return false;
+      if (filters.secondaryMuscles && !splitCsv(ex.secondaryMuscles).includes(filters.secondaryMuscles)) return false;
       if (tokens.length === 0) return true;
       const haystack = [
         ex.title, ex.category, ex.resistanceType, ex.bodyPosition, ex.movementType,
@@ -161,7 +184,7 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
       ].filter(Boolean).join(' ').toLowerCase();
       return tokens.every(t => haystack.includes(t));
     };
-    return exercises.filter(match).slice(0, 200);
+    return (exercises || []).filter(match).slice(0, 200);
   }, [exercises, search, filters, open]);
 
   // Reset state when modal opens. When RELINKING a free-text row (no library
@@ -207,21 +230,41 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
   // movementPattern — those aren't columns in the library.
   const subtitle = (ex) => [ex.resistanceType, ex.bodyPosition, ex.movementType, ex.primaryJoints].filter(Boolean).slice(0, 3).join(' · ');
   const muscles = (ex) => [ex.primaryMuscles, ex.secondaryMuscles].filter(Boolean).join(' / ');
+  // Every column from the final exercise-list sheet — used for the compare panel
+  // (Ohad: "open like a compare view + add all the parameters from the sheet").
+  // Exact column names from the exercise-database sheet (Ohad: "show all
+  // parameters like in the sheet"). Coaching Notes is rendered below as its own
+  // labelled block since it's long free text.
+  const PARAM_ROWS = [['Resistance Type', 'resistanceType'], ['Body Position', 'bodyPosition'], ['Movement Type', 'movementType'], ['Primary Joints', 'primaryJoints'], ['Joint Movements', 'jointMovements'], ['Primary Muscle Groups', 'primaryMuscles'], ['Secondary Muscle Groups', 'secondaryMuscles']];
   const filterSelectStyle = { ...baseInput, padding: '7px 10px', fontSize: 12 };
   // Active filters get the brand cyan border + subtle bg tint so the coach
   // can see at a glance which dimensions are constraining the result list.
   const filterStyleActive = { ...filterSelectStyle, border: `1px solid ${C.ac}`, color: C.tx };
 
+  // Push-not-hide (Ohad: "a panel is fine if it doesn't hide the page but pushes
+  // it and collapses it"). While open, pad the body by the panel width so the
+  // editor stays fully visible + usable beside the panel — no covering scrim.
+  const DRAWER_W = 'min(620px, 94vw)';
+  useEffect(() => {
+    if (!open) return;
+    const w = Math.min(620, Math.round(window.innerWidth * 0.94));
+    document.body.style.transition = 'padding-right 220ms cubic-bezier(0.22,0.61,0.36,1)';
+    document.body.style.paddingRight = w + 'px';
+    return () => { document.body.style.paddingRight = ''; };
+  }, [open]);
+
   const { mounted, closing } = useDelayedUnmount(open);
   if (!mounted) return null;
 
   return (
-    <div role="dialog" aria-modal="true" className={closing ? 'motion-fade-out' : 'motion-fade-in'} style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'stretch', justifyContent: 'flex-end', background: 'rgba(10,11,13,0.20)' }} onClick={onClose}>
+    // pointerEvents:none so the pushed page stays clickable; only the panel
+    // itself captures events. No scrim — the page is visible, not hidden.
+    <div role="dialog" aria-modal="true" className={closing ? 'motion-fade-out' : 'motion-fade-in'} style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'stretch', justifyContent: 'flex-end', pointerEvents: 'none' }}>
       {/* Right-side DRAWER (not a covering modal) so the program stays visible on
           the left while picking — Ohad: "i can't see the program when selecting an
           exercise". Slides in from the right over a light scrim. */}
       <style>{`@keyframes exDrawerIn{from{transform:translateX(100%)}to{transform:translateX(0)}}`}</style>
-      <div onClick={e => e.stopPropagation()} style={{ background: C.sf, borderLeft:`1px solid ${C.ac}`, borderRadius: 0, width: 'min(468px, 94vw)', height: '100vh', maxHeight: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: `-16px 0 50px ${C.shadow}`, animation: closing ? 'none' : 'exDrawerIn 220ms cubic-bezier(0.22,0.61,0.36,1)', transform: closing ? 'translateX(100%)' : 'translateX(0)', transition: closing ? 'transform 200ms cubic-bezier(0.22,0.61,0.36,1)' : 'none' }}>
+      <div onClick={e => e.stopPropagation()} style={{ pointerEvents: 'auto', background: C.sf, borderLeft:`1px solid ${C.ac}`, borderRadius: 0, width: DRAWER_W, height: '100vh', maxHeight: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: `-16px 0 50px ${C.shadow}`, animation: closing ? 'none' : 'exDrawerIn 220ms cubic-bezier(0.22,0.61,0.36,1)', transform: closing ? 'translateX(100%)' : 'translateX(0)', transition: closing ? 'transform 200ms cubic-bezier(0.22,0.61,0.36,1)' : 'none' }}>
         {/* Header hero — eyebrow tag (action), big exercise name, metadata.
             Lifts the current exercise out of the page header and into a
             scannable hierarchy: WHAT you're replacing, in big type, with
@@ -257,10 +300,16 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
               brand-cyan border style when its filter is active (the
               filterStyleActive variant), so the coach can see which
               dimensions are narrowing the result set at a glance. */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 6, marginTop: 10 }}>
-            <select value={filters.resistanceType} onChange={e => setF('resistanceType', e.target.value)} style={filters.resistanceType ? filterStyleActive : filterSelectStyle}><option value="">Resistance</option>{RESISTANCE_TYPES.map(c => <option key={c} value={c}>{c}</option>)}</select>
-            <select value={filters.bodyPosition} onChange={e => setF('bodyPosition', e.target.value)} style={filters.bodyPosition ? filterStyleActive : filterSelectStyle}><option value="">Body Position</option>{BODY_POSITIONS.map(c => <option key={c} value={c}>{c}</option>)}</select>
-            <select value={filters.movementType} onChange={e => setF('movementType', e.target.value)} style={filters.movementType ? filterStyleActive : filterSelectStyle}><option value="">Movement Type</option>{MOVEMENT_TYPES.map(c => <option key={c} value={c}>{c}</option>)}</select>
+          {/* Inline UNDERLINE filter rail — WRAPS to fit with SHORT labels so it
+              packs into ~2 tight rows: no wasted space, no horizontal scroll, and
+              max height left for the suggestion list below (Ohad). */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 12px', marginTop: 8 }}>
+            {[['resistanceType', 'Resistance', RESISTANCE_TYPES], ['bodyPosition', 'Position', BODY_POSITIONS], ['movementType', 'Movement', MOVEMENT_TYPES], ['primaryJoints', 'Joints', optLists.primaryJoints], ['jointMovements', 'Joint Mvmt', optLists.jointMovements], ['primaryMuscles', 'Primary', optLists.primaryMuscles], ['secondaryMuscles', 'Secondary', optLists.secondaryMuscles]].map(([k, label, opts]) => (
+              <select key={k} value={filters[k]} onChange={e => setF(k, e.target.value)}
+                style={{ background: 'transparent', border: 'none', borderBottom: `2px solid ${filters[k] ? C.ac : 'transparent'}`, color: filters[k] ? C.ac : C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', padding: '4px 1px', cursor: 'pointer', outline: 'none', flexShrink: 0, whiteSpace: 'nowrap' }}>
+                <option value="">{label}</option>{opts.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            ))}
           </div>
           {/* Result count + keyboard hints. Count goes bold/cyan to draw the
               eye — that's the number the coach scans as filters change.
@@ -275,7 +324,62 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
             {(search.trim() || activeFilterCount > 0) && <button onClick={clearAll} style={{ background: 'transparent', border: `1px solid ${C.cardBd}`, color: C.ac, cursor: 'pointer', fontSize: 10, fontFamily: FN, fontWeight: 700, letterSpacing: '0.18em', padding: '4px 10px', borderRadius: 0 }}>× CLEAR ALL</button>}
           </div>
         </div>
-        <div ref={listRef} style={{ flex: 1, overflowY: 'auto', padding: '10px 22px 22px', marginTop: 10, borderTop: `1px solid ${C.cardBd}` }}>
+        {/* RICH COMPARE — pinned ABOVE the scrolling list so its top (names +
+            Current/New headers + every sheet param) is always visible (Ohad: "i
+            can't see the top comparison"). The result list scrolls below it. */}
+        <div style={{ padding: '10px 22px 0', flexShrink: 0 }}>
+          {/* Collapse toggle — reclaim the compare's height for the list (Ohad:
+              "the bottom part doesn't have enough vertical space"). */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: compareOpen ? 8 : 2 }}>
+            <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', color: C.tm, textTransform: 'uppercase' }}>Compare</span>
+            <button onClick={() => setCompareOpen(o => !o)} title={compareOpen ? 'Collapse the compare for more list room' : 'Show the compare'} style={{ background: 'transparent', border: 'none', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', display: 'inline-flex', alignItems: 'center', gap: 5, padding: 0 }}>{compareOpen ? 'Collapse' : 'Expand'} <span aria-hidden style={{ fontSize: 8, transform: compareOpen ? 'none' : 'rotate(180deg)' }}>▾</span></button>
+          </div>
+          {compareOpen && (() => {
+            const cand = filt[activeIdx];
+            const detail = (ex, label, base) => {
+              const isNew = label === 'New';
+              return (
+                <div style={{ flex: 1, minWidth: 0, border: `1px solid ${isNew ? C.ac : C.cardBd}`, background: 'var(--c-sf)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                  <div style={{ padding: '6px 10px', background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}`, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: isNew ? C.ac : C.tm }}>{label}</div>
+                  <div style={{ padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <div title={ex ? ex.title : ''} style={{ fontFamily: FB, fontSize: 13, fontWeight: 700, color: ex ? C.tx : C.td, lineHeight: 1.15, minHeight: 30, overflowWrap: 'anywhere' }}>{ex ? ex.title : 'Highlight an exercise →'}</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '92px 1fr', gap: '2px 8px' }}>
+                      {PARAM_ROWS.map(([lab, k]) => {
+                        const v = ex ? (ex[k] || '—') : '—';
+                        const diff = isNew && base && ((base[k] || '') !== (ex?.[k] || '')) && (ex?.[k] || '');
+                        return (
+                          <React.Fragment key={k}>
+                            <div style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.td, lineHeight: 1.2, paddingTop: 1 }}>{lab}</div>
+                            <div style={{ fontFamily: FN, fontSize: 10, color: diff ? C.ac : C.tm, fontWeight: diff ? 700 : 500, overflowWrap: 'anywhere' }}>{v}</div>
+                          </React.Fragment>
+                        );
+                      })}
+                    </div>
+                    {/* Coaching Notes — the 8th sheet column; video shown as a small badge. */}
+                    <div style={{ borderTop: `1px solid ${C.cardBd}`, paddingTop: 5, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.td }}>Coaching Notes</span>
+                        {ex?.videoLink && <span title="Has a demo video" style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontFamily: FN, fontSize: 8, fontWeight: 700, color: C.ac, letterSpacing: '0.08em' }}><svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>VIDEO</span>}
+                      </div>
+                      <div style={{ fontFamily: FB, fontSize: 10, color: ex?.cues ? C.tm : C.td, whiteSpace: 'pre-wrap', lineHeight: 1.35, maxHeight: 38, overflowY: 'auto' }}>{ex?.cues || '—'}</div>
+                    </div>
+                  </div>
+                </div>
+              );
+            };
+            return (
+              <div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
+                  {currentEx && detail(currentEx, 'Current', null)}
+                  {detail(cand, 'New', currentEx)}
+                </div>
+                {cand && <button onClick={() => pick(cand)} title="Replace with this exercise"
+                  style={{ marginTop: 8, width: '100%', background: '#39BDFF', border: '1px solid #39BDFF', color: '#06131b', cursor: 'pointer', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', padding: '9px 0', borderRadius: 0, textTransform: 'uppercase' }}>Use “{cand.title}” →</button>}
+              </div>
+            );
+          })()}
+        </div>
+        <div ref={listRef} style={{ flex: 1, overflowY: 'auto', padding: '10px 22px 22px', marginTop: 8, borderTop: `1px solid ${C.cardBd}` }}>
           {/* "Add by name" / "Create in library" — offered whenever the coach
               has typed something, EVEN when there are matching suggestions
               (Ohad: the exact name they want may not be in the list). */}
@@ -1333,6 +1437,58 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
   // Always-latest plan (setPlan makes new objects on every edit), so handleSave
   // can tell whether an edit landed DURING its await before declaring clean.
   const planRef = useRef(plan); planRef.current = plan;
+
+  // ── Undo / redo (Ohad) ───────────────────────────────────────────────────
+  // Coarse per-pause history: a debounced snapshot coalesces rapid edits (e.g.
+  // typing) into one step. Undo/redo restore a full plan snapshot. `applying`
+  // guards the effect from re-recording an undo/redo as a new edit.
+  const histRef = useRef({ stack: [JSON.stringify(init)], idx: 0, applying: false, t: null });
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+  useEffect(() => {
+    const u = histRef.current;
+    if (u.applying) { u.applying = false; return; }
+    if (u.t) clearTimeout(u.t);
+    u.t = setTimeout(() => {
+      const snap = JSON.stringify(planRef.current);
+      if (snap === u.stack[u.idx]) return;
+      u.stack = u.stack.slice(0, u.idx + 1);
+      u.stack.push(snap);
+      if (u.stack.length > 60) u.stack.shift();
+      u.idx = u.stack.length - 1;
+      setCanUndo(u.idx > 0); setCanRedo(false);
+    }, 350);
+    return () => { if (u.t) clearTimeout(u.t); };
+  }, [plan]);
+  const doUndo = () => {
+    const u = histRef.current;
+    if (u.t) { clearTimeout(u.t); u.t = null; const snap = JSON.stringify(planRef.current); if (snap !== u.stack[u.idx]) { u.stack = u.stack.slice(0, u.idx + 1); u.stack.push(snap); u.idx = u.stack.length - 1; } }
+    if (u.idx <= 0) return;
+    u.idx--; u.applying = true; setPlan(JSON.parse(u.stack[u.idx]));
+    setCanUndo(u.idx > 0); setCanRedo(true);
+  };
+  const doRedo = () => {
+    const u = histRef.current;
+    if (u.idx >= u.stack.length - 1) return;
+    u.idx++; u.applying = true; setPlan(JSON.parse(u.stack[u.idx]));
+    setCanRedo(u.idx < u.stack.length - 1); setCanUndo(true);
+  };
+  useEffect(() => {
+    const onKey = (e) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      // Don't hijack native per-field text undo — only drive the plan-level
+      // history when focus is OUTSIDE an editable control (Ohad's editor is full
+      // of inputs where Ctrl+Z must still undo typing).
+      const t = e.target;
+      const tag = t && t.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (t && t.isContentEditable)) return;
+      const k = e.key.toLowerCase();
+      if (k === 'z' && !e.shiftKey) { e.preventDefault(); doUndo(); }
+      else if ((k === 'z' && e.shiftKey) || k === 'y') { e.preventDefault(); doRedo(); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }); // no deps: closures read refs/latest state each render
   const [activeDay, setActiveDay] = useState(0);
   const [saving, setSaving] = useState(false);
   const [addExerciseOpen, setAddExerciseOpen] = useState(false);
@@ -1611,6 +1767,11 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
         <style>{`@media (max-width:760px){ .editor-top-row{ justify-content: space-between !important; } .editor-top-row > .editor-top-mid{ order: 3 !important; flex-basis: 100% !important; justify-content: flex-start !important; } }`}</style>
         <div className="editor-top-row" style={{display:'flex',gap:12,alignItems:'center',minWidth:0,flexWrap:'wrap'}}>
           <button onClick={handleBack} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',padding:0,whiteSpace:'nowrap',flexShrink:0}}>← BACK</button>
+          {/* Undo / redo (Ohad) — coarse per-pause history; also Ctrl+Z / Ctrl+Shift+Z. */}
+          <div style={{display:'inline-flex',gap:4,flexShrink:0}}>
+            <button onClick={doUndo} disabled={!canUndo} title="Undo (Ctrl+Z)" style={{background:'transparent',border:`1px solid ${C.cardBd}`,color:canUndo?C.tm:C.td,cursor:canUndo?'pointer':'not-allowed',opacity:canUndo?1:0.4,width:30,height:26,borderRadius:0,fontSize:15,lineHeight:1,display:'inline-flex',alignItems:'center',justifyContent:'center'}}>↶</button>
+            <button onClick={doRedo} disabled={!canRedo} title="Redo (Ctrl+Shift+Z)" style={{background:'transparent',border:`1px solid ${C.cardBd}`,color:canRedo?C.tm:C.td,cursor:canRedo?'pointer':'not-allowed',opacity:canRedo?1:0.4,width:30,height:26,borderRadius:0,fontSize:15,lineHeight:1,display:'inline-flex',alignItems:'center',justifyContent:'center'}}>↷</button>
+          </div>
           <div className="editor-top-mid" style={{flex:1,display:'flex',gap:12,alignItems:'center',justifyContent:'center',minWidth:0}}>
           {/* Athlete assignment — editable, to the LEFT of the block dropdown
               (Ohad). This is the ONLY athlete control now (dropped the duplicate
@@ -1972,7 +2133,12 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                       // the resolution (the old `stored !== original` check dropped
                       // every inherited-video resolution, since stored is '').
                       const stored = cur ? (cur.videoUrl ?? cur.vid ?? '') : '';
-                      if (!cur || (stored && stored !== original)) return p;
+                      // Identity-guard: if a reorder/move landed a DIFFERENT
+                      // exercise at this frozen index during the ~1-3s resolve,
+                      // `cur.id` no longer matches the row we started on — drop the
+                      // write rather than stamp the resolved URL onto the wrong
+                      // (possibly inheriting, stored='') exercise.
+                      if (!cur || cur.id !== ex.id || (stored && stored !== original)) return p;
                       return { ...p, days: p.days.map((d, i2) => i2 === dayIdx ? { ...d, exercises: (d.exercises || []).map((e, j2) => j2 === exIdx ? { ...e, videoUrl: resolved } : e) } : d) };
                     });
                     // While a drag is live in this day, render expanded rows
@@ -2072,7 +2238,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                               video URL (50/50, aligned with notes/thumb below). */}
                           <ExEditorExtras ex={ex} exData={exData} exTitle={title} update={update} onResolveVideo={onResolveVideo} showEmbed={exOpen}
                             exercises={exercises} setExercises={setExercises}
-                            picker={<ExPicker exercises={exercises} value={ex.exerciseId} onChange={id=>{ if (id === ex.exerciseId) return; const lib = exById(exercises).get(id); update({ exerciseId: id, title: lib?.title || '', videoUrl: undefined, notes: '', notesEdited: false }); }} onPickName={name=>update({ exerciseId:'', title:name, videoUrl: undefined, notes: '', notesEdited: false })}
+                            picker={<ExPicker exercises={exercises} value={ex.exerciseId} onChange={id=>{ if (id === ex.exerciseId) return; const lib = exById(exercises).get(id); update({ exerciseId: id, title: lib?.title || '', videoUrl: lib?.videoLink || '', vid: undefined, notes: '', notesEdited: false }); }} onPickName={name=>update({ exerciseId:'', title:name, videoUrl: '', vid: undefined, notes: '', notesEdited: false })}
                               onCreateLibrary={setExercises ? (name => { const id = addLibExercise(setExercises, name); if (id) update({ exerciseId: id, title: name }); }) : undefined}
                               label="Exercise" fallbackTitle={ex.title} />} />
                         </div>
@@ -2373,6 +2539,682 @@ function visKeyForPlan(p, trainees) {
   return `${trainee.name}:${p.name}`;
 }
 
+// ────────────────────────────────────────────────────────────────────────
+// TRAINING LINEAGE — cross-block lift progression for one athlete.
+//
+// The coach view no other app has: instead of looking at one block in
+// isolation, lay every block for an athlete side-by-side and read each lift's
+// LINEAGE across them — is the load climbing, has it plateaued, did a pattern
+// drop out. Reads the athlete's full plans (useAthletePlans), extracts a
+// per-lift × per-block matrix, and flags plateaus / progressions / gaps.
+// Pure read + derived UI — writes nothing.
+// ────────────────────────────────────────────────────────────────────────
+
+// Parse a free-text load cell into a comparable number. Loads in this data are
+// prescriptions, not logs: "80", "80kg", "60/70/80" (ramping), "BW", "RPE8",
+// "20 each". Take the MAX number present as the top working load; recognise
+// bodyweight; return raw for display. num=null when nothing numeric is found.
+function parseLoad(str) {
+  const raw = (str == null ? '' : String(str)).trim();
+  if (!raw) return { num: null, bw: false, raw: '' };
+  const bw = /\b(bw|bodyweight|body\s*weight|גוף)\b/i.test(raw);
+  const nums = (raw.match(/\d+(?:\.\d+)?/g) || []).map(Number).filter(n => !isNaN(n));
+  // Drop obvious non-load numbers that ride along in the string (e.g. "RPE 8",
+  // "x3"): if a number is immediately preceded by rpe/@/x it's not a load.
+  const num = nums.length ? Math.max(...nums) : null;
+  return { num, bw, raw };
+}
+
+// A stable key that groups the "same" lift across blocks. Prefer the library
+// exerciseId; fall back to the normalized display title so free-text rows still
+// line up block-to-block.
+function lineageKey(ex, exMap) {
+  if (ex.exerciseId && exMap.has(ex.exerciseId)) return 'id:' + ex.exerciseId;
+  const t = (ex.title || (ex.exerciseId && exMap.get(ex.exerciseId)?.title) || '').trim().toLowerCase();
+  return t ? 'title:' + t : (ex.exerciseId ? 'id:' + ex.exerciseId : '');
+}
+
+// Block chronology — imported plans all share one created_at (the import
+// timestamp), so time order is useless; the real training order is the block
+// NUMBER in the name ("Block #12", "בלוק 3", "#5"). Return it, or null.
+export function blockNum(name) {
+  const m = (name || '').match(/(?:block|בלוק)\s*#?\s*(\d+)|#\s*(\d+)/i);
+  return m ? Number(m[1] || m[2]) : null;
+}
+
+// Reps can be "8", "8-10", "8/6/4", "12,12,10", "AMRAP". Return a representative
+// integer (the max prescribed rep) for volume math, plus the raw label.
+export function repsTop(reps) {
+  const r = (reps == null ? '' : String(reps)).trim();
+  const nums = (r.match(/\d+/g) || []).map(Number);
+  return nums.length ? Math.max(...nums) : null;
+}
+
+// Classify an exercise into a movement pattern from its TITLE (the library
+// taxonomy is only ~9% populated, so title keywords are the reliable signal).
+// Order = priority: more specific patterns first, so e.g. "SL Pogo Jump" →
+// Jump, "Split Squat" → Lunge (not Squat), "Hip Thrust" → Hinge (not Squat).
+// Used for the pattern-lane lineage. Falls back to library category if present.
+const PATTERN_RULES = [
+  ['Jump / Plyo', /jump|pogo|\bhop|bound|plyo|depth|broad|box\s*jump|reactive|throw|slam|toss|med[\s-]*ball|medicine\s*ball|wall\s*ball|skip|snap[\s-]*down|\bcmj\b|\bdj\b|rebound|\btuck\b|scissor|elastic|ankle\s*stiff|stiff[\s-]*ness|bounce|drop\s*(jump|land)|landing/],
+  ['Olympic', /snatch|\bclean\b|jerk|power\s*(clean|snatch)|hang\s*(clean|snatch|pull)|high\s*pull|\bc&j\b/],
+  ['Conditioning', /sprint|\brun\b|\bjog|bike|assault|\berg\b|\bski\b|rower|shuttle|tempo\s*run|interval|conditioning|\bmile\b|prowler\s*(push|sprint)|sled\s*(sprint|push|drag)/],
+  ['Hinge', /deadlift|\brdl\b|\bsldl\b|romanian|stiff[\s-]*leg|hip\s*thrust|thrust|good\s*morning|\bgm\b|\bswing|kettlebell\s*swing|\bkb\s*swing|hinge|pull[\s-]*through|back\s*ext|hip\s*ext|glute\s*(bridge|ham)|\bham(string)?\b|nordic|\bghr\b|reverse\s*hyper|hyperext|kickback|\brack\s*pull/],
+  ['Squat', /squat|\bhack\b|leg\s*press|goblet|kossac|pistol|sissy|wall\s*sit|step[\s-]*down|leg\s*ext|knee\s*ext|\bzercher\b|front\s*squat|back\s*squat/],
+  ['Lunge / SL', /lunge|split\s*squat|\brfess\b|bulgarian|step[\s-]*up|single[\s-]*leg|1[\s-]*leg|skater|shrimp|\bcossac|cossack|copenhagen|reverse\s*lunge|walking\s*lunge|\bsl\s/],
+  ['Vertical Pull', /pull[\s-]*up|chin[\s-]*up|pull[\s-]*down|pulldown|\blat\s*(pull|raise)?|muscle[\s-]*up|\blat\b/],
+  ['Horizontal Pull', /\brow\b|face\s*pull|rear\s*delt|inverted|seal\s*row|t[\s-]*bar|ring\s*row|pull[\s-]*apart|\brow(ing)?\b|meadows|pendlay|chest[\s-]*support/],
+  ['Vertical Push', /overhead|\bohp\b|shoulder\s*press|military|\bz[\s-]*press|pike|handstand|landmine\s*press|arnold|push\s*press|bradford|cuban/],
+  ['Horizontal Push', /bench|chest\s*press|push[\s-]*up|\bdip\b|chest\s*fly|\bpec\b|floor\s*press|db\s*press|dumbbell\s*press|incline\s*press|\bcgbp\b|close[\s-]*grip\s*bench/],
+  ['Core / Carry', /plank|\bab\b|\bcore\b|leg\s*raise|knee\s*raise|pallof|rollout|carry|farmer|suitcase|waiter|crunch|hollow|dead\s*bug|bird\s*dog|anti[\s-]|rotation|twist|woodchop|chop|sit[\s-]*up|\bl[\s-]*sit|hang|sled\s*(drag|pull)?|prowler|crawl|bear|get[\s-]*up|turkish|copenhagen\s*plank|side\s*plank|\bohc\b/],
+  ['Arms / Iso', /curl|tricep|bicep|extension|pushdown|skull|preacher|hammer|forearm|wrist|lateral\s*raise|front\s*raise|\bfly\b|reverse\s*fly|\bcalf\b|shrug|adduction|abduction|delt\s*raise|\braise\b/],
+];
+export function classifyPattern(title, lib) {
+  const t = (title || '').toLowerCase();
+  for (const [name, re] of PATTERN_RULES) if (re.test(t)) return name;
+  // Fall back to a library movement/category hint if the title had no keyword.
+  const cat = (lib?.movementPattern || lib?.movementType || lib?.category || '').toLowerCase();
+  if (cat) {
+    if (/squat/.test(cat)) return 'Squat';
+    if (/hinge|deadlift/.test(cat)) return 'Hinge';
+    if (/push/.test(cat)) return /vert/.test(cat) ? 'Vertical Push' : 'Horizontal Push';
+    if (/pull|row/.test(cat)) return /vert/.test(cat) ? 'Vertical Pull' : 'Horizontal Pull';
+    if (/lunge/.test(cat)) return 'Lunge / SL';
+    if (/olympic/.test(cat)) return 'Olympic';
+    if (/carry|core|rotation|anti/.test(cat)) return 'Core / Carry';
+  }
+  return 'Other';
+}
+
+// ── Periodization science (grounded in the athlete's own sets+reps, since the
+// load field is mostly empty). Sources folded in: NSCA goal table, Issurin block
+// periodization, RP volume landmarks, Zatsiorsky load zones, Mujika taper.
+// Reps are the intensity proxy — the reliable signal when %1RM isn't logged.
+const POWER_PATTERNS = new Set(['Jump / Plyo', 'Olympic']);
+// Training emphasis from the volume-weighted mean reps (NSCA goal table).
+function emphasisFromReps(avgReps) {
+  if (avgReps == null || !isFinite(avgReps)) return { key: 'mixed', label: 'Mixed', reps: '', pct: '' };
+  if (avgReps <= 5.5) return { key: 'strength', label: 'Max strength', reps: '≤5', pct: '85–100%' };
+  if (avgReps <= 8)   return { key: 'func',     label: 'Strength',     reps: '6–8',  pct: '80–85%' };
+  if (avgReps <= 12)  return { key: 'hyper',    label: 'Hypertrophy',  reps: '8–12', pct: '67–80%' };
+  return { key: 'endur', label: 'Endurance', reps: '12+', pct: '<67%' };
+}
+// %1RM proxy from reps — Epley inverse. 10 reps → 75% (matches Zatsiorsky's
+// elite 10RM≈75%), 5→85.7, 3→90.9, 12→71.4. Drives the intensity line.
+function pctFromReps(reps) {
+  if (reps == null || !isFinite(reps) || reps <= 0) return null;
+  return Math.round(100 / (1 + reps / 30));
+}
+// Detect a block's periodization phase: explicit name keywords first, else infer
+// from the numbers (relative volume + rep emphasis + power share).
+function detectPhase(name, { avgReps, totalSets, avgSets, peakSets, powerShare }) {
+  const n = (name || '').toLowerCase();
+  if (/deload|de-load|taper|recover|back[\s-]*off|unload|rest\s*week|פריקה|דילоуд/.test(n)) return 'Deload';
+  if (/peak|realiz|test\s*week|compet|max\s*out/.test(n)) return 'Peak';
+  if (/power|speed|explos|dynamic|convert|conversion|\brfd\b|ballistic/.test(n)) return 'Power';
+  if (/strength|\bstr\b|\bmxs\b|intensif|max\s*str|\bheavy\b|כוח/.test(n)) return 'Strength';
+  if (/hyper|\bhyp\b|mass|volume|accumul|\bgpp\b|\bbase\b|\bprep\b|anatom|foundation|היפרטרופיה|נפח/.test(n)) return 'Hypertrophy';
+  if (/endur|metcon|capacity|work\s*cap/.test(n)) return 'Hypertrophy';
+  // Numeric inference.
+  if (avgSets && totalSets <= avgSets * 0.72) return 'Deload';
+  if (powerShare > 0.30) return 'Power';
+  const emp = emphasisFromReps(avgReps).key;
+  if (emp === 'strength') return (peakSets && totalSets <= peakSets * 0.72) ? 'Peak' : 'Strength';
+  if (emp === 'func') return 'Strength';
+  if (emp === 'hyper' || emp === 'endur') return 'Hypertrophy';
+  return 'Mixed';
+}
+// Phase → display metadata. Palette stays inside the brand (cyan family +
+// neutrals + one warm for peak/warning); readable on both themes.
+const PHASE_META = {
+  Accumulation: { code: 'ACC', color: '#5aa9c9', label: 'Accumulation', hint: 'Volume base' },
+  Hypertrophy:  { code: 'HYP', color: '#39BDFF', label: 'Hypertrophy',  hint: 'Muscle · volume' },
+  Strength:     { code: 'STR', color: '#3f7ce0', label: 'Strength',     hint: 'Heavy · low reps' },
+  Power:        { code: 'PWR', color: '#8b7cf0', label: 'Power',        hint: 'Fast · explosive' },
+  Peak:         { code: 'PK',  color: '#f0b429', label: 'Peak',         hint: 'Realize · test' },
+  Deload:       { code: 'DL',  color: '#8a8f98', label: 'Deload',       hint: 'Recover' },
+  Mixed:        { code: 'MIX', color: '#6b7280', label: 'Mixed',        hint: 'Mixed emphasis' },
+};
+const phaseMeta = (p) => PHASE_META[p] || PHASE_META.Mixed;
+// Shorter labels for the matrix so the two Horizontal/Vertical lanes don't both
+// truncate to an ambiguous "HORIZONTA…".
+const PAT_SHORT = { 'Horizontal Push': 'Horiz. Push', 'Horizontal Pull': 'Horiz. Pull', 'Vertical Push': 'Vert. Push', 'Vertical Pull': 'Vert. Pull' };
+const patLabel = (p) => PAT_SHORT[p] || p;
+
+export function TrainingLineage({ traineeId, traineeName, exercises, plans, loading, onOpenPlan }) {
+  const [metric, setMetric] = useState('sets'); // 'sets' | 'volume'
+  const [briefCopied, setBriefCopied] = useState(false); // next-block brief → clipboard toast
+  const [reportOpen, setReportOpen] = useState(false); // full-page next-block report overlay
+  const exMap = exById(exercises);
+
+  // Aggregate by MOVEMENT PATTERN, not by exercise. Ohad programs with near-
+  // total exercise variety (most lifts appear in one block only), so a per-lift
+  // matrix is 300+ sparse rows of noise. Collapsing to ~10 pattern lanes shows
+  // the actual periodization story: which patterns ramp, hold, or drop across
+  // blocks. Pattern is classified from the exercise TITLE (library taxonomy is
+  // only ~9% populated), so it works regardless of classification coverage.
+  const model = useMemo(() => {
+    if (!plans || !plans.length) return null;
+    const blocks = plans
+      .filter(p => (p.days || []).some(d => (d.exercises || []).length))
+      .map((p, idx) => ({ id: p.id, name: p.name || 'Block', phase: p.phase, createdAt: p.createdAt, weeks: p.weeks, num: blockNum(p.name), _idx: idx }));
+    if (!blocks.length) return null;
+    // Chronological total-order: block NUMBER is the real training order (imported
+    // #N blocks share one created_at import stamp → time-sort useless). Numbered
+    // blocks sort ascending by number; any un-numbered block (e.g. "Morning
+    // Routine") appends at the end in query order — so a single un-numbered block
+    // no longer scrambles the whole numbered timeline.
+    blocks.sort((a, b) => {
+      if (a.num != null && b.num != null) return a.num - b.num;
+      if (a.num != null) return -1;
+      if (b.num != null) return 1;
+      return a._idx - b._idx;
+    });
+    const blockOrder = blocks.map(b => b.id);
+
+    // pattern -> { pattern, cells: {blockId: {sets, vol}}, total }
+    const pats = new Map();
+    const blockEx = new Map();   // blockId -> Set of normalized lift keys (novelty)
+    plans.forEach((p) => {
+      if (!blockOrder.includes(p.id)) return;
+      (p.days || []).forEach(d => (d.exercises || []).forEach(ex => {
+        const lib = ex.exerciseId ? exMap.get(ex.exerciseId) : null;
+        const title = (ex.title || lib?.title || '').trim();
+        const pattern = classifyPattern(title, lib);
+        const sets = Number(ex.sets) || 0;
+        const rt = repsTop(ex.reps);
+        const vol = (sets && rt) ? sets * rt : 0;
+        if (!sets) return;
+        if (title) { let bx = blockEx.get(p.id); if (!bx) { bx = new Set(); blockEx.set(p.id, bx); } bx.add(title.toLowerCase().replace(/\s+/g, ' ').trim()); }
+        let row = pats.get(pattern);
+        if (!row) { row = { pattern, cells: {}, total: 0 }; pats.set(pattern, row); }
+        let cell = row.cells[p.id];
+        if (!cell) { cell = { sets: 0, vol: 0, repSets: 0 }; row.cells[p.id] = cell; }
+        cell.sets += sets; cell.vol += vol; cell.repSets += rt ? sets : 0;
+        row.total += sets;
+      }));
+    });
+
+    const val = (c) => c ? (metric === 'volume' ? c.vol : c.sets) : null;
+    const rows = [...pats.values()].map(row => {
+      const seq = blockOrder.map(bid => row.cells[bid]).filter(Boolean);
+      const nums = seq.map(val).filter(v => v != null && v > 0);
+      let trend = 'flat';
+      if (nums.length >= 2) {
+        const a = nums[0], b = nums[nums.length - 1];
+        trend = b > a * 1.05 ? 'up' : b < a * 0.95 ? 'down' : 'flat';
+      } else if (nums.length === 1) trend = 'single';
+      const inLatest = !!row.cells[blockOrder[blockOrder.length - 1]];
+      return { ...row, trend, inLatest, appears: seq.length };
+    });
+    // Sort by total volume desc — the athlete's biggest emphasis rises to the
+    // top; "Other" (unclassifiable) always sinks to the bottom.
+    rows.sort((a, b) => (a.pattern === 'Other') - (b.pattern === 'Other') || b.total - a.total);
+
+    // Per-block totals — working sets (volume), volume-load, and the intensity
+    // proxy (volume-weighted mean reps → %1RM). Powers the wave + phase detection.
+    blocks.forEach(b => {
+      let sets = 0, vol = 0, pwr = 0, repSets = 0;
+      rows.forEach(r => { const c = r.cells[b.id]; if (!c) return; sets += c.sets; vol += c.vol; repSets += c.repSets; if (POWER_PATTERNS.has(r.pattern)) pwr += c.sets; });
+      b.totalSets = sets;
+      b.totalVol = vol;
+      // Intensity proxy = volume-weighted mean reps, divided by the sets that
+      // ACTUALLY carried reps (blank-rep sets must not drag it toward "strength").
+      b.avgReps = repSets ? vol / repSets : null;
+      b.powerShare = sets ? pwr / sets : 0;
+      b.intensityPct = pctFromReps(b.avgReps);          // %1RM proxy (Epley inverse)
+      b.emphasis = emphasisFromReps(b.avgReps);
+    });
+    const setsSeries = blocks.map(b => b.totalSets);
+    const latestSets = setsSeries[setsSeries.length - 1] || 0;
+    const prevSets = setsSeries.length >= 2 ? setsSeries[setsSeries.length - 2] : null;
+    const peakSets = setsSeries.length ? Math.max(...setsSeries) : 0;
+    const peakBlock = blocks[setsSeries.indexOf(peakSets)];
+    const mean = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0;
+    const avgSetsAll = mean(setsSeries);
+    const win = Math.min(3, setsSeries.length);
+    const eAvg = mean(setsSeries.slice(0, win)), lAvg = mean(setsSeries.slice(-win));
+    const volTrendPct = eAvg ? Math.round(((lAvg - eAvg) / eAvg) * 100) : 0;
+    // Detect each block's phase (needs the series-level avg/peak).
+    blocks.forEach(b => { b.phase = detectPhase(b.name, { avgReps: b.avgReps, totalSets: b.totalSets, avgSets: avgSetsAll, peakSets, powerShare: b.powerShare }); });
+    // ACWR — acute (latest block) : chronic (mean of the last ≤4 blocks incl the
+    // latest). Sweet spot 0.8–1.3; caution >1.3; danger >1.5 (injury-risk model).
+    const chronic = mean(setsSeries.slice(-Math.min(4, setsSeries.length)));
+    // Needs a real chronic window — a single block gives a meaningless 1.00.
+    const acwr = (chronic && setsSeries.length >= 2) ? +(latestSets / chronic).toFixed(2) : null;
+    const intensitySeries = blocks.map(b => b.intensityPct);
+    // Top focus = the pattern with the most sets in the LATEST block.
+    const latestId = blockOrder[blockOrder.length - 1];
+    let topFocus = '—', topFocusN = -1;
+    rows.forEach(r => { const s = r.cells[latestId]?.sets || 0; if (s > topFocusN && r.pattern !== 'Other') { topFocusN = s; topFocus = r.pattern; } });
+
+    // ── NEXT-BLOCK GUIDANCE — turn the history into a plan for the block you're
+    // about to build. Per-pattern set targets (progress / hold / vary / fill a
+    // gap), grounded in the athlete's own recent density + the programming rules
+    // (cover every primary pattern; cap weekly volume growth ~10%).
+    const PRIMARY = new Set(['Squat', 'Hinge', 'Horizontal Push', 'Horizontal Pull', 'Vertical Push', 'Vertical Pull', 'Core / Carry']);
+    const recentIds = blockOrder.slice(-Math.min(3, blockOrder.length));
+    rows.forEach(r => {
+      const latest = r.cells[latestId]?.sets || 0;
+      const recentAvg = recentIds.reduce((a, bid) => a + (r.cells[bid]?.sets || 0), 0) / recentIds.length;
+      const present = blockOrder.map(bid => r.cells[bid]?.sets).filter(v => v > 0);
+      const typical = present.length ? Math.round(present.reduce((a, v) => a + v, 0) / present.length) : 0;
+      // Plateau: trained ≥3 times and the last 3 trained values didn't climb.
+      let plateau = false;
+      if (present.length >= 3) { const t = present.slice(-3); plateau = t[2] <= t[0] * 1.03 && t[1] <= t[0] * 1.03; }
+      r.plateau = plateau;
+      // Volume band (RP landmarks, proxied from the athlete's own history):
+      // MRV = the most sets they've recovered from for this pattern; MEV = a
+      // rough productive floor (~half of MRV). latest positioned in the band.
+      r.mrv = present.length ? Math.max(...present) : 0;
+      r.mev = r.mrv ? Math.max(2, Math.round(r.mrv * 0.5)) : 0;
+      // Accommodation (Zatsiorsky) — response decays to an unchanging stimulus.
+      // Flag if the last two trained blocks held ~equal sets AND ~equal reps.
+      const tc = blockOrder.map(bid => r.cells[bid]).filter(Boolean);
+      let accommodation = false;
+      if (tc.length >= 2) {
+        const a = tc[tc.length - 2], b2 = tc[tc.length - 1];
+        const ar = a.sets ? a.vol / a.sets : 0, br = b2.sets ? b2.vol / b2.sets : 0;
+        accommodation = Math.abs(b2.sets - a.sets) <= 1 && Math.abs(br - ar) <= 1;
+      }
+      r.accommodation = accommodation;
+      // Recency — blocks since last trained (0 = present in the latest block).
+      let since = 0; for (let i = blockOrder.length - 1; i >= 0; i--) { if ((r.cells[blockOrder[i]]?.sets || 0) > 0) break; since++; }
+      r.since = since;
+      // Trend for the RECOMMENDATION is always sets-based (the target is in sets),
+      // so flipping the Sets/Volume display toggle can't change the prescription.
+      const setsUp = present.length >= 2 && present[present.length - 1] > present[0] * 1.05;
+      let target, tag, tone;
+      if (PRIMARY.has(r.pattern) && latest === 0) { target = Math.max(3, typical || 4); tag = 'fill gap'; tone = 'gap'; }
+      else if (latest === 0) { target = 0; tag = ''; tone = 'none'; }
+      else if ((plateau || accommodation)) { target = latest; tag = 'vary'; tone = 'vary'; }
+      else if (setsUp) { target = Math.min(latest + Math.max(1, Math.round(latest * 0.1)), Math.max(latest, r.mrv)); tag = 'progress'; tone = 'up'; }
+      else if (latest < recentAvg * 0.85) { target = Math.round(recentAvg); tag = 'rebuild'; tone = 'up'; }
+      else { target = latest; tag = 'hold'; tone = 'hold'; }
+      r.next = { target, tag, tone };
+    });
+    const coverageGaps = [...PRIMARY].filter(pat => {
+      const row = rows.find(r => r.pattern === pat);
+      return !(row && (row.cells[latestId]?.sets || 0) > 0);
+    });
+    // ── Block composition — variety & balance per block (analysis-only). Ohad
+    // programs with high exercise variety; quantify it: distinct patterns trained,
+    // primary-pattern coverage, and how many lifts are NEW vs everything trained in
+    // earlier blocks. Variety score 0–100 = primary coverage (55%) + spread (45%).
+    const seenLifts = new Set();
+    blocks.forEach((b) => {
+      let distinct = 0, primaryCov = 0;
+      rows.forEach(r => {
+        if (r.pattern === 'Other') return;
+        if ((r.cells[b.id]?.sets || 0) > 0) { distinct++; if (PRIMARY.has(r.pattern)) primaryCov++; }
+      });
+      const ex = blockEx.get(b.id) || new Set();
+      let novel = 0; ex.forEach(k => { if (!seenLifts.has(k)) novel++; });
+      ex.forEach(k => seenLifts.add(k));
+      b.distinctPatterns = distinct;
+      b.primaryCovered = primaryCov;
+      b.exCount = ex.size;
+      b.novelPct = ex.size ? Math.round((novel / ex.size) * 100) : 0;
+      b.varietyScore = Math.round(100 * (0.55 * (primaryCov / PRIMARY.size) + 0.45 * Math.min(1, distinct / 8)));
+    });
+    const latestComp = blocks[blocks.length - 1];
+    const sumRecent = (names) => names.reduce((a, n) => { const row = rows.find(r => r.pattern === n); return a + recentIds.reduce((s, bid) => s + (row?.cells[bid]?.sets || 0), 0); }, 0);
+    const pushSets = sumRecent(['Horizontal Push', 'Vertical Push']);
+    const pullSets = sumRecent(['Horizontal Pull', 'Vertical Pull']);
+    const pushPull = pullSets > 0 ? +(pushSets / pullSets).toFixed(2) : null;
+    // ── Next-block PHASE + volume prescription. Phase potentiation (each block
+    // sets up the next), interrupted by a deload when fatigue is due (ACWR hot,
+    // just peaked, or the 3:1/4:1 loading clock ran out). Deload = cut volume
+    // ~50%, keep intensity (Mujika). Building phases ramp toward MRV, ACWR-capped.
+    const latestBlock = blocks[blocks.length - 1];
+    const latestPhase = latestBlock?.phase || 'Mixed';
+    let sinceDeload = 0; for (let i = blocks.length - 1; i >= 0; i--) { if (blocks[i].phase === 'Deload') break; sinceDeload++; }
+    // Deload is driven by FATIGUE/timing (ACWR hot, or the 3:1/4:1 clock ran out) —
+    // NOT by the latest block merely being the highest-volume one, which is the
+    // normal accumulation state. A post-peak deload comes from the phase sequence.
+    const acwrHot = acwr != null && acwr > 1.3;
+    const NEXT_PHASE = { Accumulation: 'Strength', Hypertrophy: 'Strength', Strength: 'Peak', Power: 'Peak', Peak: 'Deload', Deload: 'Hypertrophy', Mixed: 'Hypertrophy' };
+    const fatigueDeload = latestPhase !== 'Deload' && (acwrHot || sinceDeload >= 4);
+    const suggestedPhase = fatigueDeload ? 'Deload' : (NEXT_PHASE[latestPhase] || 'Hypertrophy');
+    const deloadDue = suggestedPhase === 'Deload';   // banner + volTarget key on the recommendation
+    let volTarget, volNote;
+    if (suggestedPhase === 'Deload') {
+      volTarget = Math.round(latestSets * 0.5);
+      volNote = acwrHot ? 'cut ~50%, hold intensity — load ratio is hot' : sinceDeload >= 4 ? 'planned deload — cut ~50%, hold intensity' : 'post-peak deload — cut ~50%, hold intensity';
+    } else if (suggestedPhase === 'Peak') {
+      volTarget = Math.round(latestSets * 0.8);
+      volNote = 'trim volume, drive intensity (1–3 reps)';
+    } else {
+      const acwrCap = chronic ? Math.round(chronic * 1.3) : Math.round(latestSets * 1.1);
+      volTarget = Math.min(Math.round(latestSets + Math.max(2, latestSets * 0.1)), Math.max(latestSets, acwrCap));
+      const pct = Math.round(((volTarget - latestSets) / (latestSets || 1)) * 100);
+      volNote = `ramp ${pct > 0 ? '+' + pct + '%' : 'hold'} toward MRV · load-ratio safe`;
+    }
+    const PHASE_REPS = { Hypertrophy: '8–12 reps · 67–80%', Accumulation: '8–12 reps · 67–80%', Strength: '3–6 reps · ≥85%', Peak: '1–3 reps · ~90%+', Power: '1–5 fast · 75–90%', Deload: 'hold reps · cut sets', Mixed: 'mixed emphasis' };
+    const repBand = PHASE_REPS[suggestedPhase] || '';
+
+    return {
+      blocks, rows, acwr, latestPhase, intensitySeries,
+      nextPlan: { coverageGaps, pushPull, pushSets, pullSets, volTarget, volNote, suggestedPhase, repBand, deloadDue, acwr, nextNum: (blocks[blocks.length - 1]?.num != null ? blocks[blocks.length - 1].num + 1 : null) },
+      stats: {
+        blocks: blocks.length,
+        avgSets: Math.round(mean(setsSeries)),
+        latestSets,
+        deltaSets: prevSets == null ? null : latestSets - prevSets,
+        peakSets,
+        peakLabel: peakBlock ? (peakBlock.num != null ? `#${peakBlock.num}` : (peakBlock.name || '').slice(0, 8)) : '—',
+        volTrendPct,
+        topFocus,
+        latestPhase,
+        latestEmphasis: latestBlock?.emphasis?.label || '—',
+        latestIntensity: latestBlock?.intensityPct || null,
+        variety: latestComp ? { score: latestComp.varietyScore, primaryCovered: latestComp.primaryCovered, primaryTotal: PRIMARY.size, distinctPatterns: latestComp.distinctPatterns, novelPct: latestComp.novelPct, exCount: latestComp.exCount } : null,
+      },
+    };
+  }, [plans, metric, exMap]);
+
+  const stripHead = (label) => (
+    <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '7px 12px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>{label}</div>
+  );
+
+  if (!traineeId) {
+    return (
+      <div style={{ border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>
+        {stripHead('Training Lineage')}
+        <div style={{ padding: '48px 24px', textAlign: 'center', color: C.tm, fontFamily: FB, fontSize: 13, lineHeight: 1.6 }}>
+          Pick an athlete from the rail to trace every lift's load & volume
+          <br />across all their blocks — plateaus, progressions and dropped patterns at a glance.
+        </div>
+      </div>
+    );
+  }
+  if (loading) {
+    return <div style={{ border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>{stripHead(`Training Lineage · ${traineeName || ''}`)}<div style={{ padding: '48px 24px', textAlign: 'center', color: C.tm, fontFamily: FN, fontSize: 11, letterSpacing: '0.1em' }}>LOADING BLOCKS…</div></div>;
+  }
+  if (!model) {
+    return <div style={{ border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>{stripHead(`Training Lineage · ${traineeName || ''}`)}<div style={{ padding: '48px 24px', textAlign: 'center', color: C.tm, fontFamily: FB, fontSize: 13 }}>No block content to trace yet for this athlete.</div></div>;
+  }
+
+  const { blocks, rows, stats, nextPlan, acwr } = model;
+  // Imported blocks share one created_at (the import stamp) → the per-column
+  // date reads identically on every column (noise). Show it only when dates differ.
+  const allSameDate = blocks.length > 1 && blocks.every(b => fmtPrettyDate(b.createdAt) === fmtPrettyDate(blocks[0].createdAt));
+  const heb = isHebrew(traineeName);
+  const val = (c) => c ? (metric === 'volume' ? c.vol : c.sets) : null;
+  const trendGlyph = (t) => t === 'up' ? '▲' : t === 'down' ? '▼' : t === 'flat' ? '＝' : '·';
+  const trendColor = (t) => t === 'up' ? '#39BDFF' : t === 'down' ? C.rd : C.tm;
+  // Colour for a next-block suggestion tone.
+  const nextTone = (tone) => tone === 'up' ? '#39BDFF' : tone === 'gap' ? C.rd : tone === 'vary' ? C.or : C.tm;
+  // ACWR tone — sweet spot 0.8–1.3 (green), caution outside, danger >1.5 (red).
+  const acwrTone = acwr == null ? C.tm : (acwr >= 0.8 && acwr <= 1.3) ? C.gn : acwr > 1.5 ? C.rd : C.or;
+  const acwrWord = acwr == null ? '—' : (acwr >= 0.8 && acwr <= 1.3) ? 'optimal' : acwr > 1.5 ? 'spike risk' : acwr < 0.8 ? 'detraining' : 'watch';
+  const curPhase = phaseMeta(stats.latestPhase);
+
+  const kpi = (label, value, sub, accent) => (
+    <div style={{ flex: '1 1 0', minWidth: 100, border: `1px solid ${C.cardBd}`, background: 'var(--c-sf2)', padding: '9px 12px' }}>
+      <div style={{ fontFamily: FN, fontSize: 22, fontWeight: 700, lineHeight: 1, color: accent || C.tx, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</div>
+      <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, marginTop: 5 }}>{label}</div>
+      {sub != null && <div style={{ fontFamily: FB, fontSize: 10, color: C.td, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub}</div>}
+    </div>
+  );
+
+  // Next-block BRIEF — the analysis as a copyable periodization starting point.
+  // It prescribes phase, volume & per-pattern set targets; it deliberately does
+  // NOT choose exercises or loads (that stays the coach's value-add).
+  const buildBrief = () => {
+    const L = [];
+    L.push(`EXPO · Next-block brief — ${traineeName || ''}${nextPlan.nextNum != null ? ` · #${nextPlan.nextNum}` : ''}`);
+    L.push(`Phase: ${phaseMeta(nextPlan.suggestedPhase).label}${nextPlan.repBand ? ` (${nextPlan.repBand})` : ''}`);
+    L.push(`Total working sets: ~${nextPlan.volTarget} — ${nextPlan.volNote}`);
+    if (nextPlan.acwr != null) L.push(`Load ratio (ACWR): ${nextPlan.acwr.toFixed(2)} — aim 0.8–1.3 (${acwrWord})`);
+    if (nextPlan.pushPull != null) L.push(`Push:Pull: ${nextPlan.pushPull} — ${nextPlan.pushPull > 1.3 ? 'add pulling' : nextPlan.pushPull < 0.77 ? 'add pushing' : 'balanced'}`);
+    L.push(`Coverage gaps to add: ${nextPlan.coverageGaps.length ? nextPlan.coverageGaps.join(', ') : 'none — every primary pattern covered'}`);
+    const targets = rows.filter(r => r.pattern !== 'Other' && r.next && r.next.target > 0).map(r => `  · ${patLabel(r.pattern)} → ~${r.next.target} sets (${r.next.tag})`);
+    if (targets.length) { L.push('Per-pattern set targets:'); L.push(...targets); }
+    L.push('— Exercise selection & loads are yours; this is a periodization starting point, not a prescription.');
+    return L.join('\n');
+  };
+  const copyBrief = () => {
+    // Only flip to "Copied ✓" on a REAL success — writeText returns a Promise, so a
+    // sync try/catch alone would show a false success on async permission failure.
+    const flag = () => { setBriefCopied(true); setTimeout(() => setBriefCopied(false), 1800); };
+    try { const r = navigator.clipboard?.writeText(buildBrief()); if (r && typeof r.then === 'function') r.then(flag).catch(() => { /* denied — no false toast */ }); else if (r !== undefined) flag(); } catch { /* clipboard unavailable — no false success */ }
+  };
+
+  const NAME_W = 208;
+  const COL_W = 62;
+
+  // ── Periodization-wave geometry (one SVG: volume bars + intensity line + phase
+  // ribbon). Fixed px so it never distorts; the container scrolls horizontally.
+  const n = blocks.length;
+  const SLOT = 46, PADX = 20, PADT = 16, CHARTH = 116, RIBH = 20, LBLH = 16, BARW = 24;
+  const svgW = PADX * 2 + n * SLOT;
+  const svgH = PADT + CHARTH + 8 + RIBH + LBLH;
+  const cx = (i) => PADX + i * SLOT + SLOT / 2;
+  const yBar = (s) => stats.peakSets ? (PADT + CHARTH - Math.max(2, (s / stats.peakSets) * (CHARTH - 4))) : PADT + CHARTH;
+  const yInt = (p) => { const lo = 55, hi = 100; const t = (Math.min(hi, Math.max(lo, p)) - lo) / (hi - lo); return PADT + (CHARTH - 6) - t * (CHARTH - 18); };
+  const intPts = blocks.map((b, i) => b.intensityPct != null ? { x: cx(i), y: yInt(b.intensityPct) } : null);
+  const intLine = intPts.filter(Boolean).map(pt => `${pt.x},${pt.y}`).join(' ');
+
+  return (
+    <div style={{ border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>
+      {stripHead(<>
+        <span>Training Lineage · <span style={{ color: '#fff', fontFamily: heb ? FH : FN }}>{traineeName}</span></span>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {[['sets', 'Sets'], ['volume', 'Volume']].map(([v, l]) => {
+            const on = metric === v;
+            return <button key={v} onClick={() => setMetric(v)} title={v === 'sets' ? 'Working sets per pattern per block' : 'Volume = sets × top reps'} style={{ height: 22, padding: '0 10px', border: `1px solid ${on ? '#39BDFF' : 'rgba(255,255,255,0.25)'}`, background: on ? '#39BDFF' : 'transparent', color: on ? '#06131b' : '#fff', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>{l}</button>;
+          })}
+        </div>
+      </>)}
+
+      {/* KPI band — the athlete's current periodization state at a glance. */}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', padding: '12px 12px 4px' }}>
+        {kpi('Blocks', blocks.length, `avg ${stats.avgSets} sets`)}
+        {kpi(stats.deltaSets == null ? 'This block' : `This block · ${stats.deltaSets >= 0 ? '+' : ''}${stats.deltaSets}`, stats.latestSets, 'working sets', stats.deltaSets == null ? C.tx : stats.deltaSets > 0 ? '#39BDFF' : stats.deltaSets < 0 ? C.or : C.tx)}
+        {kpi('Intensity', stats.latestIntensity ? `${stats.latestIntensity}%` : '—', stats.latestEmphasis)}
+        {kpi('Load ratio', acwr != null ? acwr.toFixed(2) : '—', `ACWR · ${acwrWord}`, acwrTone)}
+        <div style={{ flex: '1 1 0', minWidth: 130, border: `1px solid ${C.cardBd}`, background: 'var(--c-sf2)', padding: '9px 12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+            <span style={{ width: 11, height: 11, background: curPhase.color, flexShrink: 0 }} />
+            <span style={{ fontFamily: FN, fontSize: 16, fontWeight: 700, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{curPhase.label}</span>
+          </div>
+          <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, marginTop: 6 }}>Current phase</div>
+          <div style={{ fontFamily: FB, fontSize: 10, color: C.td, marginTop: 2 }}>{curPhase.hint}</div>
+        </div>
+      </div>
+
+      {/* Periodization wave — volume (bars) vs intensity (%1RM line) with a phase
+          ribbon. Reads the load story: does volume ramp then taper, does intensity
+          climb across blocks, where do the deloads fall. Click a block to open it. */}
+      <div style={{ padding: '10px 12px 4px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
+          <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>Periodization wave</div>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center', fontFamily: FN, fontSize: 9, letterSpacing: '0.06em', color: C.tm }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 9, height: 9, background: 'color-mix(in srgb, #39BDFF 40%, transparent)' }} />VOLUME</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 12, height: 2, background: '#f0b429' }} />INTENSITY %1RM</span>
+          </div>
+        </div>
+        <div style={{ overflowX: 'auto', paddingBottom: 2 }}>
+          <svg width={svgW} height={svgH} style={{ display: 'block' }}>
+            {/* 75% intensity reference line */}
+            <line x1={PADX} y1={yInt(75)} x2={svgW - PADX} y2={yInt(75)} style={{ stroke: C.cardBd }} strokeWidth="1" strokeDasharray="3 3" />
+            <text x={2} y={yInt(75) + 3} textAnchor="start" style={{ fontFamily: FN, fontSize: 8, fill: C.tm }}>75%</text>
+            {blocks.map((b, i) => {
+              const last = i === n - 1;
+              const bx = cx(i) - BARW / 2;
+              const by = yBar(b.totalSets);
+              const pm = phaseMeta(b.phase);
+              return (
+                <g key={b.id} style={{ cursor: 'pointer' }} onClick={() => onOpenPlan && onOpenPlan(b.id)}>
+                  <title>{`${b.name} — ${b.totalSets} sets${b.intensityPct != null ? ' · ' + b.intensityPct + '% 1RM' : ''} · ${pm.label}`}</title>
+                  <rect x={PADX + i * SLOT} y={PADT} width={SLOT} height={CHARTH + 8 + RIBH} fill="transparent" />
+                  <rect x={bx} y={by} width={BARW} height={Math.max(0, (PADT + CHARTH) - by)} style={{ fill: last ? '#39BDFF' : 'color-mix(in srgb, #39BDFF 34%, transparent)' }} />
+                  <text x={cx(i)} y={by - 4} textAnchor="middle" style={{ fontFamily: FN, fontSize: 8.5, fill: last ? '#39BDFF' : C.tm, fontVariantNumeric: 'tabular-nums' }}>{b.totalSets}</text>
+                  <rect x={PADX + i * SLOT + 2} y={PADT + CHARTH + 8} width={SLOT - 4} height={RIBH} style={{ fill: pm.color, opacity: last ? 0.95 : 0.6 }} />
+                  <text x={cx(i)} y={PADT + CHARTH + 8 + RIBH / 2 + 3} textAnchor="middle" style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, fill: '#06131b' }}>{pm.code}</text>
+                  <text x={cx(i)} y={svgH - 4} textAnchor="middle" style={{ fontFamily: FN, fontSize: 8.5, fill: last ? '#39BDFF' : C.td, fontVariantNumeric: 'tabular-nums' }}>{b.num ?? (i + 1)}</text>
+                </g>
+              );
+            })}
+            {intLine && <polyline points={intLine} fill="none" stroke="#f0b429" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />}
+            {intPts.map((pt, i) => pt && <circle key={i} cx={pt.x} cy={pt.y} r={i === n - 1 ? 3.5 : 2.5} fill="#f0b429" style={{ stroke: 'var(--c-sf)' }} strokeWidth="1" />)}
+          </svg>
+        </div>
+      </div>
+
+      {/* Movement-pattern matrix — ~10 lanes, not 300 lifts. Each cell = working
+          sets for that pattern that block; the periodization at a glance. */}
+      <div style={{ padding: '12px 12px 0', fontFamily: FN, fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>
+        Movement patterns · {metric === 'volume' ? 'volume' : 'sets'} per block
+      </div>
+      <div style={{ overflowX: 'auto', padding: '6px 12px 12px' }}>
+        <div style={{ minWidth: NAME_W + blocks.length * COL_W }}>
+          {/* header row */}
+          <div style={{ display: 'grid', gridTemplateColumns: `${NAME_W}px repeat(${blocks.length}, ${COL_W}px)`, gap: 0, alignItems: 'stretch' }}>
+            <div style={{ position: 'sticky', left: 0, zIndex: 2, background: 'var(--c-sf)', borderBottom: `2px solid ${C.cardBd}`, padding: '6px 8px', fontFamily: FN, fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 6 }}><span>Pattern</span><span style={{ color: '#39BDFF' }}>→ next</span></div>
+            {blocks.map((b, i) => (
+              <button key={b.id} onClick={() => onOpenPlan && onOpenPlan(b.id)} title={`Open ${b.name}`}
+                style={{ textAlign: 'center', border: 'none', borderBottom: `2px solid ${i === blocks.length - 1 ? '#39BDFF' : C.cardBd}`, borderLeft: `1px solid ${C.cardBd}`, background: i === blocks.length - 1 ? 'color-mix(in srgb, var(--c-ac) 8%, transparent)' : 'transparent', padding: '6px 4px', cursor: 'pointer', overflow: 'hidden' }}>
+                <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: i === blocks.length - 1 ? '#39BDFF' : C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={b.name}>{b.num != null ? `#${b.num}` : (b.name || '').slice(0, 6)}</div>
+                {!allSameDate && b.createdAt && <div style={{ fontFamily: FB, fontSize: 8, color: C.tm, marginTop: 2 }}>{fmtPrettyDate(b.createdAt)}</div>}
+              </button>
+            ))}
+          </div>
+          {/* pattern rows — one lane per movement pattern. No per-exercise drill-down:
+              the exercise inventory underneath is the noise the lanes exist to escape. */}
+          {rows.map((r, ri) => (
+            <div key={r.pattern} style={{ display: 'grid', gridTemplateColumns: `${NAME_W}px repeat(${blocks.length}, ${COL_W}px)`, alignItems: 'stretch', opacity: r.pattern === 'Other' ? 0.6 : 1 }}>
+              <div style={{ position: 'sticky', left: 0, zIndex: 1, background: ri % 2 ? 'var(--c-sf)' : 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}`, padding: '7px 8px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 4, minWidth: 0 }}>
+                {/* Line 1 — the pattern name gets the full width so it never truncates. */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
+                  <span style={{ color: trendColor(r.trend), fontSize: 10, width: 11, textAlign: 'center', flexShrink: 0 }}>{trendGlyph(r.trend)}</span>
+                  <span style={{ fontFamily: FB, fontSize: 12.5, fontWeight: 600, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, minWidth: 0 }} title={r.pattern}>{patLabel(r.pattern)}</span>
+                </div>
+                {/* Line 2 — MEV→MRV band + accommodation flag + next-block target chip. */}
+                {r.pattern !== 'Other' && (r.mrv > 0 || r.accommodation || (r.next && r.next.target > 0)) && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginLeft: 27, minWidth: 0 }}>
+                    {r.mrv > 0 ? (() => {
+                      const latest = r.cells[blocks[blocks.length - 1].id]?.sets || 0;
+                      const fillPct = Math.min(100, Math.round((latest / r.mrv) * 100));
+                      const mevPct = Math.min(100, Math.round((r.mev / r.mrv) * 100));
+                      const productive = latest >= r.mev;
+                      return (
+                        <div title={`Latest ${latest} sets · your productive band ≈ ${r.mev}–${r.mrv} (MEV–MRV)`} style={{ position: 'relative', flex: 1, height: 4, minWidth: 0, background: 'color-mix(in srgb, var(--c-tx) 8%, transparent)' }}>
+                          <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${fillPct}%`, background: latest === 0 ? 'transparent' : productive ? '#39BDFF' : C.or, opacity: 0.8 }} />
+                          <div style={{ position: 'absolute', left: `${mevPct}%`, top: -1, bottom: -1, width: 1, background: C.tm }} />
+                        </div>
+                      );
+                    })() : <div style={{ flex: 1 }} />}
+                    {r.accommodation && <span title="Accommodation — same sets & reps ≥2 blocks. Change the load or the drill." style={{ flexShrink: 0, color: C.or, fontSize: 11, lineHeight: 1 }}>⚠</span>}
+                    {r.next && r.next.target > 0 && (
+                      <span title={`Next block — ${r.next.tag}: ~${r.next.target} sets`} style={{ flexShrink: 0, fontFamily: FN, fontSize: 10, fontWeight: 700, color: nextTone(r.next.tone), border: `1px solid ${nextTone(r.next.tone)}`, padding: '1px 5px', borderRadius: 0, fontVariantNumeric: 'tabular-nums' }}>→ {r.next.target}</span>
+                    )}
+                  </div>
+                )}
+              </div>
+              {blocks.map((b, ci) => {
+                const c = r.cells[b.id];
+                const prev = ci > 0 ? r.cells[blocks[ci - 1].id] : null;
+                let tint = 'transparent';
+                if (c && prev) {
+                  const cv = val(c), pv = val(prev);
+                  if (cv != null && pv != null) tint = cv > pv ? 'color-mix(in srgb, #39BDFF 13%, transparent)' : cv < pv ? 'color-mix(in srgb, #ef4444 8%, transparent)' : 'transparent';
+                }
+                const num = c ? val(c) : null;
+                return (
+                  <div key={b.id} style={{ borderBottom: `1px solid ${C.cardBd}`, borderLeft: `1px solid ${C.cardBd}`, background: tint, padding: '8px 4px', display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
+                    <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: num ? C.tx : C.td, fontVariantNumeric: 'tabular-nums' }} title={c ? `${r.pattern} · ${b.name} — ${c.sets} sets, ${c.vol} volume` : ''}>{num || '·'}</span>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      </div>
+      {/* Block composition — variety & balance of the LATEST block (analysis-only).
+          Quantifies Ohad's high-variety style: patterns covered, movement spread,
+          and how much of the block is fresh vs recycled from earlier blocks. */}
+      {stats.variety && (
+        <>
+          <div style={{ padding: '4px 12px 0', fontFamily: FN, fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>Block composition · latest</div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', padding: '6px 12px 4px' }}>
+            {kpi('Variety score', stats.variety.score, `${stats.variety.exCount} lifts`, stats.variety.score >= 66 ? C.gn : stats.variety.score >= 40 ? C.tx : C.or)}
+            {kpi('Primary patterns', `${stats.variety.primaryCovered}/${stats.variety.primaryTotal}`, stats.variety.primaryCovered >= stats.variety.primaryTotal - 1 ? 'well covered' : 'gaps to fill', stats.variety.primaryCovered >= stats.variety.primaryTotal - 1 ? C.gn : C.or)}
+            {kpi('Distinct patterns', stats.variety.distinctPatterns, 'movement spread')}
+            {kpi('New lifts', `${stats.variety.novelPct}%`, 'vs earlier blocks', stats.variety.novelPct >= 60 ? '#39BDFF' : C.tx)}
+          </div>
+        </>
+      )}
+      {/* BUILD THE NEXT BLOCK — the lineage as a forward-looking tool: the next
+          phase (potentiation), a volume target (ramp toward MRV & ACWR-capped, or
+          a deload when fatigue is due), the rep/%1RM band, and coverage/balance. */}
+      <div style={{ margin: '4px 12px 12px', border: `1px solid ${C.cardBd}`, background: 'var(--c-sf2)' }}>
+        <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 88%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '7px 12px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+          <span>Build the next block{nextPlan.nextNum != null ? ` · #${nextPlan.nextNum}` : ''}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+            <button onClick={() => setReportOpen(true)} title="Open the full next-block report — goals, parameters, weekly progression, per-movement targets" style={{ height: 22, padding: '0 10px', border: '1px solid #39BDFF', background: '#39BDFF', color: '#06131b', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>⤢ Full report →</button>
+            <button onClick={copyBrief} title="Copy this analysis as a next-block brief — a periodization starting point (you choose the exercises & loads)" style={{ height: 22, padding: '0 10px', border: `1px solid ${briefCopied ? C.gn : 'rgba(255,255,255,0.35)'}`, background: 'transparent', color: briefCopied ? C.gn : '#fff', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>{briefCopied ? 'Copied ✓' : '⧉ Copy brief'}</button>
+          </div>
+        </div>
+        {nextPlan.deloadDue && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderBottom: `1px solid ${C.cardBd}`, background: 'color-mix(in srgb, #f0b429 12%, transparent)', fontFamily: FB, fontSize: 12 }}>
+            <span style={{ color: '#f0b429', fontSize: 13, flexShrink: 0 }}>⚠</span>
+            <span style={{ color: C.tx }}>Deload due — cut volume ~50% and hold intensity to shed fatigue before the next hard block.</span>
+          </div>
+        )}
+        <div style={{ padding: 12, display: 'flex', gap: 18, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+          <div style={{ minWidth: 132 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+              <span style={{ width: 11, height: 11, background: phaseMeta(nextPlan.suggestedPhase).color, flexShrink: 0 }} />
+              <span style={{ fontFamily: FN, fontSize: 18, fontWeight: 700, color: C.tx, lineHeight: 1 }}>{phaseMeta(nextPlan.suggestedPhase).label}</span>
+            </div>
+            <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, marginTop: 6 }}>Suggested phase</div>
+            <div style={{ fontFamily: FB, fontSize: 11, color: '#39BDFF', marginTop: 2 }}>{nextPlan.repBand}</div>
+          </div>
+          <div style={{ minWidth: 104 }}>
+            <div style={{ fontFamily: FN, fontSize: 22, fontWeight: 700, color: '#39BDFF', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>~{nextPlan.volTarget}</div>
+            <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, marginTop: 6 }}>Total sets</div>
+            <div style={{ fontFamily: FB, fontSize: 10, color: C.td, marginTop: 2 }}>{nextPlan.volNote}</div>
+          </div>
+          {nextPlan.acwr != null && (
+            <div style={{ minWidth: 84 }}>
+              <div style={{ fontFamily: FN, fontSize: 22, fontWeight: 700, color: acwrTone, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{nextPlan.acwr.toFixed(2)}</div>
+              <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, marginTop: 6 }}>Load ratio</div>
+              <div style={{ fontFamily: FB, fontSize: 10, color: C.td, marginTop: 2 }}>{acwrWord} · aim 0.8–1.3</div>
+            </div>
+          )}
+          {nextPlan.pushPull != null && (
+            <div style={{ minWidth: 84 }}>
+              <div style={{ fontFamily: FN, fontSize: 22, fontWeight: 700, color: (nextPlan.pushPull > 1.3 || nextPlan.pushPull < 0.77) ? C.or : C.tx, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{nextPlan.pushPull}</div>
+              <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, marginTop: 6 }}>Push : Pull</div>
+              <div style={{ fontFamily: FB, fontSize: 10, color: C.td, marginTop: 2 }}>{nextPlan.pushPull > 1.3 ? 'add pulling' : nextPlan.pushPull < 0.77 ? 'add pushing' : 'balanced'}</div>
+            </div>
+          )}
+          <div style={{ flex: 1, minWidth: 180 }}>
+            <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, marginBottom: 7 }}>Primary-pattern coverage · latest block</div>
+            {nextPlan.coverageGaps.length === 0 ? (
+              <div style={{ fontFamily: FB, fontSize: 12.5, color: C.gn }}>✓ Every primary pattern is covered.</div>
+            ) : (
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {nextPlan.coverageGaps.map(p => <span key={p} title="Not trained in the latest block — add it to the next one" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', color: C.rd, border: `1px solid ${C.rd}`, padding: '2px 7px', whiteSpace: 'nowrap' }}>+ {p}</span>)}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+      {reportOpen && <NextBlockReport model={model} plans={plans} exercises={exercises} traineeName={traineeName} onClose={() => setReportOpen(false)} />}
+      <div style={{ padding: '2px 12px 14px', display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center', fontFamily: FN, fontSize: 10, letterSpacing: '0.04em', color: C.tm }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 10, height: 10, background: 'color-mix(in srgb, #39BDFF 40%, transparent)' }} />Volume (sets)</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 13, height: 2, background: '#f0b429' }} />Intensity (%1RM from reps)</span>
+        <span style={{ color: C.or }}>⚠ accommodation</span>
+        <span>bar under each pattern = your MEV→MRV band</span>
+        <span style={{ color: C.td }}>· click a block to open it</span>
+      </div>
+    </div>
+  );
+}
+
 export default function PlansView({ planIndex, reloadIndex, trainees, exercises, setExercises, clientWorkouts, weeklyFocus, setWeeklyFocus, openPlanId, onPlanOpened, onEditorOpen, onEditorClose, onPreviewPlan, portalVis, setPortalVis, onCloseEditor }) {
   const { plan: editPlanData, loading: editLoading, load: loadFullPlan, clear: clearPlan, setPlan: setEditPlan } = useFullPlan();
   const [linkedTaskId, setLinkedTaskId] = useState(null);
@@ -2403,6 +3245,23 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
   // Persisted so Ohad's pick survives reloads. Only affects the grouped
   // (unfiltered) view — search/trainee-filter always fall back to the flat list.
   const [progView, setProgView] = usePersistentState('programs-view-mode', 'table');
+  // Migrate a stale persisted 'lineage' (a removed view mode — Lineage is now a
+  // per-athlete modal) back to a real view so the list still renders.
+  useEffect(() => { if (progView !== 'table' && progView !== 'grid') setProgView('table'); }, [progView, setProgView]);
+  // Training Lineage — opened per-athlete from a button on their card (not a
+  // top-level view mode). Loads that athlete's full plans on demand into a modal.
+  const [lineageTraineeId, setLineageTraineeId] = useState(null);
+  const { plans: lineagePlans, loading: lineageLoading, load: loadLineage, clear: clearLineage } = useAthletePlans();
+  useEffect(() => {
+    if (lineageTraineeId) loadLineage(lineageTraineeId);
+    else clearLineage();
+  }, [lineageTraineeId, loadLineage, clearLineage]);
+  useEffect(() => {
+    if (!lineageTraineeId) return;
+    const onKey = (e) => { if (e.key === 'Escape') setLineageTraineeId(null); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [lineageTraineeId]);
   // On a phone the filter rail stacked full-width ON TOP of the program cards,
   // so you scrolled through the whole Search / Athlete / Flags / Sort / +New
   // panel before reaching a single program. Collapse it behind a "FILTERS"
@@ -2812,22 +3671,17 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
   // Portal-visibility as a single-line pill (status dot + text) at the same
   // height as the action buttons — replaces the 2-line switch+caption column
   // that didn't vertically align with the rest of the row.
-  const PortalPill = ({ on, onClick, onLabel = 'ON PORTAL', offLabel = 'HIDDEN', title, block }) => (
+  // PORTAL visibility control — the SAME toggle switch on every block (current
+  // AND earlier ones), Ohad: "prefer the portal switch everywhere instead of
+  // HIDDEN". Was a bordered ON PORTAL / HIDDEN text pill.
+  const PortalPill = ({ on, onClick, title, block }) => (
     <button onClick={onClick}
-      title={title || (on ? 'Visible on athlete portal — click to hide' : 'Hidden from athlete portal — click to show')}
-      style={{
-        // Fixed width so both states of a toggle (and every toggle on the
-        // page) are identical length — keeps the pill columns symmetric
-        // across rows regardless of the label inside. `block` opts into
-        // fill-width for the card-grid action cluster.
-        display:'inline-flex', alignItems:'center', justifyContent:'center', gap:6,
-        height:30, width: block ? '100%' : 108, padding:0, lineHeight:1, flexShrink:0, borderRadius:0, cursor:'pointer',
-        background:'transparent', border:`1px solid ${on ? C.gn : C.cardBd}`,
-        color: on ? C.gn : C.tm,
-        fontFamily:FN, fontSize:9, fontWeight:700, letterSpacing:'0.08em', whiteSpace:'nowrap',
-      }}>
-      <span style={{ width:7, height:7, borderRadius:'50%', background: on ? C.gn : C.td, flexShrink:0 }} />
-      {on ? onLabel : offLabel}
+      title={title || (on ? 'On the athlete portal — click to hide' : 'Hidden from the athlete portal — click to show')}
+      style={{ display:'inline-flex', alignItems:'center', justifyContent: block ? 'center' : 'flex-start', gap:8, width: block ? '100%' : 'auto', height:30, padding:0, background:'none', border:'none', cursor:'pointer', flexShrink:0 }}>
+      <span style={{ fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.06em', color: on ? C.gn : C.td }}>PORTAL</span>
+      <span style={{ width:32, height:18, borderRadius:9, background: on ? 'rgba(46,213,115,0.25)' : 'rgba(255,255,255,0.06)', border:`1px solid ${on ? 'rgba(46,213,115,0.5)' : C.cardBd}`, position:'relative', flexShrink:0, transition:'background .15s, border-color .15s' }}>
+        <span style={{ width:14, height:14, borderRadius:7, background: on ? C.gn : C.td, position:'absolute', top:1, left: on ? 15 : 1, transition:'left .15s' }} />
+      </span>
     </button>
   );
 
@@ -3087,10 +3941,10 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 12, flexWrap: 'wrap' }}>
         <h2 style={{ margin: 0, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: C.tx }}>Programs</h2>
         <div style={{ display: 'flex', gap: 6, width: 168 }}>
-          {[['table','Table'],['grid','Grid']].map(([v,label]) => {
+          {[['table','Table','Dense list — one row per athlete'],['grid','Grid','Card grid — double-click a card to expand earlier blocks']].map(([v,label,tip]) => {
             const on = progView === v;
             return (
-              <button key={v} onClick={()=>setProgView(v)} title={v==='table'?'Dense list — one row per athlete':'Card grid — double-click a card to expand earlier blocks'}
+              <button key={v} onClick={()=>setProgView(v)} title={tip}
                 style={{ flex: 1, height: 30, boxSizing: 'border-box', borderRadius: 0, cursor: 'pointer', border: `1px solid ${on ? '#39BDFF' : C.cardBd}`, background: on ? '#39BDFF' : 'var(--c-sf)', color: on ? '#FFFFFF' : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{label}</button>
             );
           })}
@@ -3124,7 +3978,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
             {
               label: 'Flags',
               opts: [
-                { key: 'unassigned', label: '⚠ Unassigned', count: flagCounts.unassigned, title: 'Programs with no athlete assigned', accent: C.or, active: flags.unassigned, onClick: () => { setFlags(m => ({ ...m, unassigned: !m.unassigned })); setVisibleCount(PAGE_SIZE); } },
+                { key: 'unassigned', label: 'Unassigned', count: flagCounts.unassigned, title: 'Programs with no athlete assigned', accent: C.or, active: flags.unassigned, onClick: () => { setFlags(m => ({ ...m, unassigned: !m.unassigned })); setVisibleCount(PAGE_SIZE); } },
                 { key: 'empty', label: '∅ Empty', count: flagCounts.empty, title: 'Programs with no exercises or no days', accent: C.or, active: flags.empty, onClick: () => { setFlags(m => ({ ...m, empty: !m.empty })); setVisibleCount(PAGE_SIZE); } },
               ],
             },
@@ -3140,7 +3994,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               }),
             },
           ]}
-          footer={<Btn title="Create a new, empty program — you pick the athlete inside the editor" onClick={() => handleNewPlan()} style={{ width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 38, marginTop: 'auto' }}>+ New Program</Btn>}
+          footer={<Btn variant="solid" title="Create a new, empty program — you pick the athlete inside the editor" onClick={() => handleNewPlan()} style={{ width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 38, marginTop: 'auto' }}>+ New Program</Btn>}
         />
 
         {/* RIGHT: the program list — grouped (table/grid) or flat, unchanged. */}
@@ -3187,8 +4041,12 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                     <span aria-hidden style={{width:3,height:14,background:C.ac,flexShrink:0}} />
                     <bdi style={{fontWeight:700,fontSize:13,letterSpacing:'0.04em',color:'#FFFFFF',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{row.name}</bdi>
                   </span>
-                  <span title={`Last session: ${tagText.toLowerCase()}`} style={{display:'inline-flex',alignItems:'center',gap:6,flexShrink:0,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',color:tagColor,whiteSpace:'nowrap'}}>
-                    <span style={{width:6,height:6,borderRadius:'50%',background:tagColor}} />{tagText}
+                  <span style={{display:'inline-flex',alignItems:'center',gap:10,flexShrink:0}}>
+                    <button onClick={e=>{e.stopPropagation();setLineageTraineeId(row.tid);}} title="Training Lineage — this athlete's movement-pattern volume across every block"
+                      style={{display:'inline-flex',alignItems:'center',gap:5,height:20,padding:'0 8px',background:'rgba(255,255,255,0.12)',border:'1px solid rgba(255,255,255,0.3)',borderRadius:0,color:'#fff',cursor:'pointer',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.08em',whiteSpace:'nowrap'}}>◫ LINEAGE</button>
+                    <span title={`Last session: ${tagText.toLowerCase()}`} style={{display:'inline-flex',alignItems:'center',gap:6,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',color:tagColor,whiteSpace:'nowrap'}}>
+                      <span style={{width:6,height:6,borderRadius:'50%',background:tagColor}} />{tagText}
+                    </span>
                   </span>
                 </div>
                 <div onClick={()=>handleOpenPlan(cur.id)}
@@ -3353,8 +4211,12 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                   <span aria-hidden style={{width:3,height:14,background:C.ac,flexShrink:0}} />
                   <bdi style={{fontWeight:700,fontSize:13,letterSpacing:'0.04em',color:'#FFFFFF',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{row.name}</bdi>
                 </span>
-                <span title={`Last session: ${tagText}`} style={{display:'inline-flex',alignItems:'center',gap:6,flexShrink:0,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',color:tagColor,whiteSpace:'nowrap'}}>
-                  <span style={{width:6,height:6,borderRadius:'50%',background:tagColor}} />{tagText}
+                <span style={{display:'inline-flex',alignItems:'center',gap:10,flexShrink:0}}>
+                  <button onClick={e=>{e.stopPropagation();setLineageTraineeId(row.tid);}} title="Training Lineage — this athlete's movement-pattern volume across every block"
+                    style={{display:'inline-flex',alignItems:'center',gap:5,height:20,padding:'0 8px',background:'rgba(255,255,255,0.12)',border:'1px solid rgba(255,255,255,0.3)',borderRadius:0,color:'#fff',cursor:'pointer',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.08em',whiteSpace:'nowrap'}}>◫ LINEAGE</button>
+                  <span title={`Last session: ${tagText}`} style={{display:'inline-flex',alignItems:'center',gap:6,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',color:tagColor,whiteSpace:'nowrap'}}>
+                    <span style={{width:6,height:6,borderRadius:'50%',background:tagColor}} />{tagText}
+                  </span>
                 </span>
               </div>
             );
@@ -3399,10 +4261,30 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
           })}
         </div>
       )}
-      {/* Zero-match empty state — search/flags now render as athlete groups
-          above (never a flat list), so the only remaining case is "nothing
-          matched". The `!grouped` fallback below is dead (grouped is always an
-          array) but kept harmless. */}
+      {/* LINEAGE — cross-block lift progression for the selected athlete.
+          Replaces the list entirely while active; reads full plans on demand. */}
+      {/* Training Lineage — opened per-athlete from the ◫ LINEAGE button on a
+          card. Modal so it works identically from Table and Grid, and doesn't
+          disturb the list. */}
+      {lineageTraineeId && createPortal(
+        <div onClick={() => setLineageTraineeId(null)} role="dialog" aria-modal="true" aria-label="Training Lineage"
+          style={{ position: 'fixed', inset: 0, zIndex: 1200, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '32px 16px', overflow: 'auto' }}>
+          <div onClick={e => e.stopPropagation()} style={{ width: 'min(1180px, 96vw)', position: 'relative' }}>
+            <button onClick={() => setLineageTraineeId(null)} title="Close (Esc)"
+              style={{ position: 'absolute', top: 0, right: 0, transform: 'translate(40%,-40%)', zIndex: 2, width: 30, height: 30, borderRadius: '50%', border: `1px solid ${C.cardBd}`, background: 'var(--c-bg, #0a0a0b)', color: C.tm, cursor: 'pointer', fontSize: 15, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+            <TrainingLineageV2
+              traineeId={lineageTraineeId}
+              traineeName={traineeMap[lineageTraineeId] || 'Athlete'}
+              exercises={exercises}
+              plans={lineagePlans}
+              clientWorkouts={clientWorkouts}
+              loading={lineageLoading}
+              onOpenPlan={(id) => { setLineageTraineeId(null); handleOpenPlan(id); }}
+            />
+          </div>
+        </div>, document.body)}
+      {/* Zero-match empty state — search/flags render as athlete groups above
+          (never a flat list), so the only remaining case is "nothing matched". */}
       {displayGrouped && displayGrouped.length === 0 && (
         <EmptyState icon="" message={anyFilterActive ? "No programs match your search." : "No programs yet — add one to get started."} />
       )}

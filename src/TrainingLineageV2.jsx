@@ -1,0 +1,314 @@
+// TrainingLineageV2 — "plan vs reality" athlete review.
+//
+// What Ohad opens before writing an athlete's next block. Reads his LIVE logs
+// (client_workouts: per-set load/reps/rpe/done) against what was prescribed and
+// answers, verdict-first: did he train, how's he responding, which lifts are
+// stuck/climbing/dropping, and what the next block should be. Every number is
+// grounded in real data; thin data is labelled, never faked; nothing here
+// changes his program — it analyses and advises, the coach builds.
+//
+// Analysis engine: src/lineageAnalysis.js (pure). This file is presentation.
+import React, { useMemo } from 'react';
+import { C, FN } from './theme';
+import { analyzeAthlete } from './lineageAnalysis';
+import { blockNum, classifyPattern, repsTop, exById } from './PlansView';
+
+const wrap = { maxWidth: 980, margin: '0 auto', fontFamily: FN };
+const card = { border: `1px solid ${C.bd}`, background: C.sf, marginTop: 12 };
+const hd = { background: C.sf2, borderBottom: `1px solid ${C.bd}`, padding: '8px 14px', fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tx, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 };
+const hdQ = { color: C.tm, fontWeight: 400, letterSpacing: 0, textTransform: 'none', fontSize: 11 };
+const bd = { padding: '13px 14px' };
+
+const toneColor = { warn: C.or, bad: C.rd, ok: C.gn, info: C.ac };
+
+function Read({ tone = 'info', children, why }) {
+  return (
+    <div style={{ display: 'flex', gap: 10, padding: '10px 0', borderTop: `1px solid ${C.bd}`, fontSize: 13, lineHeight: 1.5 }}>
+      <span style={{ flex: '0 0 16px', color: toneColor[tone], fontWeight: 700, textAlign: 'center' }}>
+        {tone === 'ok' ? '✓' : tone === 'bad' ? '✕' : tone === 'warn' ? '!' : '·'}
+      </span>
+      <div>{children}{why && <span style={{ color: C.tm, fontSize: 12 }}> {why}</span>}</div>
+    </div>
+  );
+}
+
+function Kpi({ v, l, s, color }) {
+  return (
+    <div style={{ flex: '1 1 0', minWidth: 110, border: `1px solid ${C.bd}`, background: C.sf2, padding: '9px 11px' }}>
+      <div style={{ fontSize: 21, fontWeight: 700, lineHeight: 1, fontVariantNumeric: 'tabular-nums', color: color || C.tx }}>{v}</div>
+      <div style={{ fontSize: 9, letterSpacing: '0.11em', textTransform: 'uppercase', color: C.tm, marginTop: 5 }}>{l}</div>
+      {s && <div style={{ fontSize: 10, color: C.td, marginTop: 2 }}>{s}</div>}
+    </div>
+  );
+}
+
+// tiny e1RM sparkline
+function Spark({ pts, dir }) {
+  const col = dir === 'up' ? C.gn : dir === 'down' ? C.rd : C.or;
+  const max = Math.max(...pts, 1), min = Math.min(...pts, 0);
+  const rng = max - min || 1;
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'flex-end', gap: 2, height: 20, verticalAlign: 'middle' }}>
+      {pts.map((p, i) => (
+        <i key={i} style={{ width: 5, height: `${Math.max(15, ((p - min) / rng) * 100)}%`, background: col, borderRadius: 1, display: 'inline-block' }} />
+      ))}
+    </span>
+  );
+}
+
+function Tag({ text, color }) {
+  return <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.03em', padding: '2px 7px', border: `1px solid ${color}`, color, whiteSpace: 'nowrap' }}>{text}</span>;
+}
+
+// staple → { tag, tagColor, why }
+function readStaple(s) {
+  if (s.stale?.state === 'ok' && s.stale.stale) {
+    if (s.stale.mode === 'hard') return { tag: 'STALE · HARD', tagColor: C.or, why: 'flat + grinding → change the stimulus, not the weight' };
+    if (s.stale.mode === 'easy') return { tag: 'EASY · ADD', tagColor: C.ac, why: 'flat but easy → add load next block' };
+    return { tag: 'STALE', tagColor: C.or, why: 'load hasn\'t moved in 3 sessions' };
+  }
+  if (s.trend?.state === 'ok') {
+    if (s.trend.dir === 'up') return { tag: 'PROGRESSING', tagColor: C.gn, why: 'e1RM climbing → keep adding' };
+    if (s.trend.dir === 'down') return { tag: 'DROPPING', tagColor: C.rd, why: 'regressing under fatigue' };
+  }
+  return { tag: 'STEADY', tagColor: C.tm, why: 'holding' };
+}
+
+function nextBlockText(a) {
+  const v = a.verdict;
+  const nextNum = a.blockNumber != null ? ` (#${a.blockNumber + 1})` : '';
+  if (v.tone === 'warn') {
+    const region = a.region?.lower?.pct >= a.region?.upper?.pct ? 'lower' : 'upper';
+    const hardStale = a.staples.find((s) => s.stale?.stale && s.stale.mode === 'hard');
+    const climbing = a.staples.filter((s) => s.trend?.dir === 'up').map((s) => s.title);
+    return (
+      <>
+        <b>Deload{nextNum}: cut {region}-body volume ~50%, hold intensity.</b> He's accumulating fatigue faster than he's clearing it.
+        {hardStale && <> When you rebuild: <b>{hardStale.title} is stale at a hard effort</b> — change the stimulus (tempo / pause / variation), not just the number.</>}
+        {climbing.length > 0 && <> Keep pushing <b>{climbing.slice(0, 2).join(' + ')}</b> — still has room.</>}
+        {a.skip && <> And fix the <b>{a.skip.day} skip</b> ({a.skip.logged}/{a.skip.expected} logged) — reprogramming it as-is won't help.</>}
+      </>
+    );
+  }
+  if (v.tone === 'info') {
+    return <><b>Get him logging first.</b> Only {a.adh.sessionPct}% of sessions are logged — every load signal here is unreliable until he's training and recording it. This is a check-in, not a programming change.</>;
+  }
+  const climbing = a.staples.filter((s) => s.trend?.dir === 'up').map((s) => s.title);
+  const stuck = a.staples.filter((s) => s.stale?.stale || s.trend?.dir === 'down').map((s) => s.title);
+  return (
+    <>
+      <b>Progress the block{nextNum}.</b> He's holding or climbing.
+      {climbing.length > 0 && <> Add load on <b>{climbing.slice(0, 3).join(', ')}</b>.</>}
+      {stuck.length > 0 && <> Hold or vary <b>{stuck.slice(0, 2).join(', ')}</b> before forcing more weight.</>}
+    </>
+  );
+}
+
+export default function TrainingLineageV2({ traineeId, traineeName, exercises, plans, clientWorkouts, loading, onOpenPlan }) {
+  const exMap = useMemo(() => exById(exercises), [exercises]);
+  const a = useMemo(() => {
+    if (!plans) return null;
+    return analyzeAthlete(clientWorkouts || [], traineeId, plans, { blockNum, classifyPattern, repsTop, exMap });
+  }, [clientWorkouts, traineeId, plans, exMap]);
+
+  const shell = (children) => (
+    <div style={{ ...wrap, background: C.bg, border: `1px solid ${C.bd}`, borderRadius: 2, overflow: 'hidden' }}>
+      {children}
+    </div>
+  );
+
+  if (loading || !a) {
+    return shell(
+      <div style={{ padding: 40, textAlign: 'center', color: C.tm, fontFamily: FN, fontSize: 13, letterSpacing: '0.08em' }}>READING HIS LOGS…</div>
+    );
+  }
+
+  // strip header — shared
+  const Strip = (
+    <div style={{ background: `linear-gradient(90deg, color-mix(in srgb, ${C.ac} 15%, ${C.bg}), ${C.bg})`, border: `1px solid ${C.bd}`, borderBottom: `2px solid ${C.ac}`, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+      <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tx }}>
+        Training Lineage · <span style={{ color: C.ac }}>{traineeName}</span>
+      </span>
+      <span style={{ fontSize: 10, letterSpacing: '0.1em', color: C.tm }}>
+        {a.totalBlocks} BLOCK{a.totalBlocks === 1 ? '' : 'S'}
+        {a.blockName ? ` · LAST: ${a.blockName.toUpperCase()}` : ''}
+        {a.empty ? '' : ` · ${a.adh.loggedSessions}/${a.plannedSessionCount || '?'} LOGGED`}
+      </span>
+    </div>
+  );
+
+  // no plans at all
+  if (!a.hasPlans) {
+    return shell(<>{Strip}
+      <div style={{ ...bd, color: C.tm, fontSize: 13, lineHeight: 1.5 }}>No program blocks with exercises yet for this athlete.</div>
+    </>);
+  }
+
+  // has plans but NO logged workouts — the honest "flying blind" nudge
+  if (a.empty) {
+    return shell(<>{Strip}
+      <div style={card}><div style={hd}>You're flying blind on this one</div>
+        <div style={bd}>
+          <div style={{ border: `1px dashed ${C.bd}`, background: C.sf2, padding: 16, color: C.tm, fontSize: 13, lineHeight: 1.55 }}>
+            <b style={{ color: C.tx }}>{traineeName} has no logged workouts in {a.blockName || 'the latest block'}.</b><br />
+            You can see what you <i>wrote</i>, not what he <i>did</i> — so there's nothing to analyse against reality. Get him logging in the portal, or ask him directly before you write the next block.
+          </div>
+          {onOpenPlan && <div style={{ marginTop: 10, fontSize: 11, color: C.td }}>Tip: the plan-vs-reality reads here light up the moment he logs a session.</div>}
+        </div>
+      </div>
+    </>);
+  }
+
+  const v = a.verdict;
+  const vColor = toneColor[v.tone] || C.ac;
+  const upperOk = a.region?.upper?.pct != null && a.region.upper.pct < 15;
+
+  return shell(<>
+    {Strip}
+
+    {/* VERDICT FIRST */}
+    <div style={{ border: `1px solid ${vColor}`, borderLeft: `3px solid ${vColor}`, background: `color-mix(in srgb, ${vColor} 8%, ${C.sf})`, padding: '16px 18px', marginTop: 12 }}>
+      <div style={{ fontSize: 9, letterSpacing: '0.16em', textTransform: 'uppercase', color: vColor, marginBottom: 7 }}>
+        If you read one thing
+        <span style={{ fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: v.confidence === 'high' ? C.gn : v.confidence === 'low' ? C.td : C.or, border: `1px solid ${v.confidence === 'high' ? C.gn : v.confidence === 'low' ? C.td : C.or}`, padding: '1px 6px', marginLeft: 8 }}>
+          {v.confidence} confidence{v.logs ? ' · he logs' : ''}
+        </span>
+      </div>
+      <div style={{ fontSize: 20, fontWeight: 700, lineHeight: 1.3, color: C.tx }}>{v.headline}</div>
+      <div style={{ fontSize: 13, color: C.tm, marginTop: 8, lineHeight: 1.5 }}>{v.sub}</div>
+    </div>
+
+    {/* 1. THE GATE */}
+    <div style={card}><div style={hd}>Did he actually train?<span style={hdQ}>the gate — everything below assumes real data</span></div>
+      <div style={bd}>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <Kpi v={a.adh.sessionPct != null ? `${a.adh.sessionPct}%` : '—'} l="Sessions" s={`${a.adh.loggedSessions} of ${a.plannedSessionCount || '?'} logged`} color={a.adh.sessionPct >= 80 ? C.gn : C.or} />
+          <Kpi v={a.adh.setsPct != null ? `${a.adh.setsPct}%` : '—'} l="Sets done" s={`${a.adh.setsDone} of ${a.adh.setsPrescribed}`} color={a.adh.setsPct >= 80 ? C.gn : C.or} />
+          {a.skip
+            ? <Kpi v={a.skip.day} l="The skips" s={`${a.skip.logged}/${a.skip.expected} — a pattern`} color={C.rd} />
+            : <Kpi v="—" l="The skips" s="no clear skip pattern" color={C.tm} />}
+        </div>
+        {a.skip && a.skip.gap >= 2 && (
+          <Read tone="bad" why="Either that day's too much, or it never fits his week. Ask him — don't just re-prescribe it.">
+            <b>He's not skipping randomly — it clusters on {a.skip.day}.</b>
+          </Read>
+        )}
+      </div>
+    </div>
+
+    {/* 2. AUTOREGULATION */}
+    <div style={card}><div style={hd}>How's he responding?<span style={hdQ}>autoregulation — is the load right?</span></div>
+      <div style={bd}>
+        {a.region?.lower?.pct != null && a.region.lower.pct >= 25 && (
+          <Read tone="warn" why="Above ~25% the load's too heavy for now; it compounds.">
+            <b>Grinding the lower body — {a.region.lower.pct}% of sets short of target.</b>
+          </Read>
+        )}
+        {a.staples.some((s) => s.trend?.dir === 'down') && (
+          <Read tone="bad" why="Load or fatigue is winning — back it off before it becomes an injury.">
+            <b>{a.staples.filter((s) => s.trend?.dir === 'down').map((s) => s.title).slice(0, 2).join(', ')} regressing.</b> e1RM trending down across the block.
+          </Read>
+        )}
+        {upperOk && (
+          <Read tone="ok"><b>Upper body's dialed.</b> Hitting reps at {a.region.upper.pct}% miss — room to keep progressing.</Read>
+        )}
+        {!(a.region?.lower?.pct >= 25) && !a.staples.some((s) => s.trend?.dir === 'down') && !upperOk && (
+          <Read tone="info"><b>Nothing flashing.</b> Loads and completion are holding across the block.</Read>
+        )}
+      </div>
+    </div>
+
+    {/* 3. STAPLES */}
+    {a.staples.length > 0 && (
+      <div style={card}><div style={hd}>His lifts<span style={hdQ}>e1RM trend · actual load · the read</span></div>
+        <div style={bd}>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead><tr>
+                {['Lift', 'e1RM', 'Load (kg)', 'Read'].map((h, i) => (
+                  <th key={h} style={{ textAlign: i === 3 ? 'right' : 'left', fontSize: 9, letterSpacing: '0.11em', textTransform: 'uppercase', color: C.tm, fontWeight: 600, padding: '0 8px 7px', borderBottom: `1px solid ${C.bd}` }}>{h}</th>
+                ))}
+              </tr></thead>
+              <tbody>
+                {a.staples.slice(0, 8).map((s) => {
+                  const r = readStaple(s);
+                  const loads = s.loads.filter((x) => x != null).slice(-3).map((x) => (Number.isInteger(x) ? x : x.toFixed(1)));
+                  return (
+                    <tr key={s.title}>
+                      <td style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, verticalAlign: 'middle' }}>
+                        {s.title}
+                        <div style={{ fontSize: 11, color: C.tm, marginTop: 2 }}>{r.why}</div>
+                      </td>
+                      <td style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, whiteSpace: 'nowrap' }}>
+                        {s.trend?.state === 'ok' ? <><Spark pts={s.trend.pts} dir={s.trend.dir} /> <span style={{ fontVariantNumeric: 'tabular-nums', color: C.tx, fontWeight: 600, marginLeft: 4 }}>{s.trend.latest}</span></> : <span style={{ color: C.td, fontSize: 11 }}>{s.count}/3 logs</span>}
+                      </td>
+                      <td style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, fontVariantNumeric: 'tabular-nums', color: C.tm }}>{loads.join(' · ')}</td>
+                      <td style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, textAlign: 'right' }}><Tag text={r.tag} color={r.tagColor} /></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>Only lifts logged 3+ times · e1RM = Epley, suppressed past 12 reps · STALE·HARD vs EASY·ADD are the same flat line with opposite fixes.</div>
+        </div>
+      </div>
+    )}
+
+    {/* 4+5. LOAD/VOLUME + VELOCITY */}
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }} className="lineage-grid2">
+      <div style={{ ...card, marginTop: 0 }}><div style={hd}>Load &amp; volume</div>
+        <div style={bd}>
+          {a.acwr.state === 'ok' ? (
+            <>
+              <Kpi v={a.acwr.acwr} l="Load ratio (ACWR)" s="completed tonnage · watch >1.3" color={a.acwr.band === 'high' ? C.rd : a.acwr.band === 'low' ? C.or : C.gn} />
+              <div style={{ marginTop: 8 }}>
+                {a.acwr.band === 'high' && <Read tone="warn" why="A common heuristic, not a law (Zatsiorsky is skeptical of fixed cutoffs) — but don't add more on top of a spike."><b>Load spiked this week (ACWR {a.acwr.acwr}).</b></Read>}
+                {a.acwr.band === 'low' && <Read tone="warn" why="Troughs often precede a risky rebound spike — a quiet week to watch."><b>Load dropped sharply (ACWR {a.acwr.acwr}).</b></Read>}
+                {a.acwr.band === 'ok' && <Read tone="ok"><b>Load's in the steady band ({a.acwr.acwr}).</b> No spike or crash.</Read>}
+              </div>
+            </>
+          ) : (
+            <div style={{ border: `1px dashed ${C.bd}`, background: C.sf2, padding: 14, color: C.tm, fontSize: 12.5, lineHeight: 1.5 }}>
+              <b style={{ color: C.tx }}>Building the load baseline.</b> Need ~4 weeks of logging for a real acute:chronic ratio — have {a.acwr.haveDays || 0} days.
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div style={{ ...card, marginTop: 0 }}><div style={hd}>Bar speed<span style={{ fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '1px 6px', border: `1px solid ${C.pu}`, color: C.pu }}>camera only</span></div>
+        <div style={bd}>
+          <div style={{ border: `1px dashed ${C.bd}`, background: C.sf2, padding: 14, color: C.tm, fontSize: 12.5, lineHeight: 1.5 }}>
+            <b style={{ color: C.tx }}>No stored velocity yet.</b> Bar speed is the one fatigue signal that drops <i>before</i> load or RPE — and no competitor at this price can read it.
+            <span style={{ color: C.or }}> Not persisted yet</span> — wire velocity capture from the camera tools and this becomes a per-lift fatigue trend that's a real moat.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {/* 6. READINESS honest thin */}
+    <div style={card}><div style={hd}>Readiness / effort log</div>
+      <div style={bd}>
+        <div style={{ border: `1px dashed ${C.bd}`, background: C.sf2, padding: 14, color: C.tm, fontSize: 12.5, lineHeight: 1.5 }}>
+          {a.rpeCoverage >= 40
+            ? <><b style={{ color: C.tx }}>RPE logged on {a.rpeCoverage}% of sets.</b> Enough to trust the effort reads above — the autoregulation signal is real for him.</>
+            : <><b style={{ color: C.tx }}>Not enough effort data to model fatigue.</b> RPE on {a.rpeCoverage}% of sets — need ~10 points for a trend. Right now this is judgment + the load signals above. <span style={{ color: C.td }}>Nudge him to log effort and this unlocks a real fitness-fatigue readout.</span></>}
+        </div>
+      </div>
+    </div>
+
+    {/* 7. NEXT BLOCK */}
+    <div style={card}><div style={hd}>The next block · your call</div>
+      <div style={bd}>
+        <div style={{ border: `1px solid ${C.ac}`, background: `color-mix(in srgb, ${C.ac} 7%, ${C.sf})`, padding: 14, fontSize: 14, lineHeight: 1.6, color: C.tx }}>
+          {nextBlockText(a)}
+        </div>
+      </div>
+    </div>
+
+    <div style={{ fontSize: 11, color: C.td, margin: '18px 2px 4px', lineHeight: 1.6 }}>
+      Verdict up top, gated on "did he train" · velocity from your camera is the moat · thin data is labelled, never faked · nothing here changes his program — it analyses + advises, you build.
+    </div>
+    <style>{`@media(max-width:720px){.lineage-grid2{grid-template-columns:1fr !important}}`}</style>
+  </>);
+}
