@@ -368,10 +368,12 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
         <div style={bd}>
           {asymTrend.joints.length > 0 ? (
             <>
-              <div style={{ fontSize: 12.5, color: asymTrend.anyFlag ? C.rd : C.gn, marginBottom: 4, fontWeight: 600 }}>
+              <div style={{ fontSize: 12.5, color: asymTrend.anyFlag ? C.rd : asymTrend.films < 2 ? C.tm : C.gn, marginBottom: 4, fontWeight: 600 }}>
                 {asymTrend.anyFlag
                   ? `Watch the ${asymTrend.worst.joint.toLowerCase()} — ${asymTrend.worst.weaker.toLowerCase()} side ${asymTrend.worst.current}% behind${asymTrend.worst.drift === 'widening' ? ' and widening' : ''}.`
-                  : `Symmetry holding across ${asymTrend.films} filmed ${asymTrend.films === 1 ? 'set' : 'sets'}.`}
+                  : asymTrend.films < 2
+                    ? `One filmed set — nothing alarming, but film a few more to trend symmetry.`
+                    : `Symmetry holding across ${asymTrend.films} filmed sets.`}
               </div>
               {asymTrend.joints.slice(0, 4).map((j) => {
                 const mx = Math.max(...j.series.map((s) => s.pct), 20);
