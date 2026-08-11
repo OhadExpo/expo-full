@@ -117,8 +117,9 @@ export function staleWeight(series) {
 // ---- #2 e1RM trend ------------------------------------------------------
 // Linear slope of e1RM across the block. Returns direction + pts for spark.
 export function e1rmTrend(series) {
-  const pts = (series || []).map((s) => s.e1).filter((x) => x != null);
-  if (pts.length < 3) return { state: 'thin', have: pts.length, need: 3 };
+  const rows = (series || []).filter((s) => s.e1 != null);
+  if (rows.length < 3) return { state: 'thin', have: rows.length, need: 3 };
+  const pts = rows.map((s) => s.e1);
   // least-squares slope over index
   const n = pts.length;
   const xs = pts.map((_, i) => i);
@@ -128,9 +129,16 @@ export function e1rmTrend(series) {
   for (let i = 0; i < n; i++) { numr += (xs[i] - mx) * (pts[i] - my); den += (xs[i] - mx) ** 2; }
   const slope = den ? numr / den : 0;
   const pctPerStep = my ? (slope / my) * 100 : 0;
+  // Rep-scheme guard: e1RM conflates load with reps, so an intensification block
+  // (5→3→1 at RISING load — real strength UP) yields a NEGATIVE e1RM slope and
+  // would fire a false "slipping → back off". If the top-set reps swing widely
+  // across the series, the slope is a rep artifact, not a strength change — don't
+  // call a direction; the UI reads it as "reps varied, e1RM trend unreliable".
+  const repsArr = rows.map((s) => s.reps).filter((x) => typeof x === 'number');
+  const repNoisy = repsArr.length >= 3 && (Math.max(...repsArr) - Math.min(...repsArr)) >= 3;
   let dir = 'flat';
-  if (pctPerStep > 1.2) dir = 'up'; else if (pctPerStep < -1.2) dir = 'down';
-  return { state: 'ok', dir, latest: Math.round(pts[pts.length - 1]), pts, slopePct: pctPerStep };
+  if (!repNoisy) { if (pctPerStep > 1.2) dir = 'up'; else if (pctPerStep < -1.2) dir = 'down'; }
+  return { state: 'ok', dir, latest: Math.round(pts[pts.length - 1]), pts, slopePct: pctPerStep, repNoisy };
 }
 
 // ---- #3 RPE drift (autoregulation) --------------------------------------
@@ -248,8 +256,11 @@ export function patternCoverage(sessions) {
 export function synthesizeVerdict({ adh, region, staples, acwr, velocity }) {
   const flags = [];
   const lowerGrind = region?.lower?.pct != null && region.lower.pct >= 25;
-  const anyHardStale = staples.some((s) => s.stale?.stale && s.stale.mode === 'hard');
-  const anyDropping = staples.some((s) => s.trend?.dir === 'down');
+  const anyHardStale = staples.some((s) => !s.ballistic && s.stale?.stale && s.stale.mode === 'hard');
+  // Ballistic lifts are meant to be moved light + fast — a falling e1RM on a
+  // filmed speed-squat/jump is correct programming, NOT a fatigue signal. Never
+  // let it drive a "deload him" verdict (the row already reads EXPLOSIVE).
+  const anyDropping = staples.some((s) => !s.ballistic && s.trend?.dir === 'down');
   const highAcwr = acwr?.state === 'ok' && acwr.band === 'high';
   const velHigh = velocity?.state === 'ok' && velocity.lossPct >= 20;
 
@@ -266,7 +277,7 @@ export function synthesizeVerdict({ adh, region, staples, acwr, velocity }) {
       : `Deload him — he's accumulating more fatigue than he's recovering from.`;
     const bits = [];
     if (lowerGrind) bits.push(`missing ${region.lower.pct}% of lower-body top sets`);
-    if (anyDropping) bits.push(`${staples.find((s) => s.trend?.dir === 'down')?.title} e1RM is regressing`);
+    if (anyDropping) bits.push(`${staples.find((s) => !s.ballistic && s.trend?.dir === 'down')?.title} e1RM is regressing`);
     if (velHigh) bits.push(`bar speed down ${velocity.lossPct}% on the last filmed set`);
     if (highAcwr) bits.push(`load ratio spiked to ${acwr.acwr}`);
     sub = bits.length ? `${bits.join(', ')} — that's fatigue, not laziness.` : 'Multiple fatigue signals are stacking up.';
@@ -417,7 +428,7 @@ export function analyzeAthlete(clientWorkouts, traineeId, plans, deps) {
   // Ballistic lifts progress by height/speed, not linear load — so a flat load
   // is NOT a stall for them, and e1RM on a jump is meaningless. Flag them so the
   // view reads them right and they don't dominate the worst-first sort.
-  const BALLISTIC = /\b(jump|pogo|hop|bound|plyo|skip|slam|toss|throw|snap[-\s]?down|bounce|leap)\b/i;
+  const BALLISTIC = /\b(jump|pogo|hop|bound|plyo|skip|slam|toss|throw|snap[-\s]?down|bounce|leap|clean|snatch|jerk|swing|high[-\s]?pull)\b/i;
   const allLifts = [...series.entries()]
     .map(([title, sAll]) => {
       const s = sAll.slice(-6);
@@ -429,8 +440,12 @@ export function analyzeAthlete(clientWorkouts, traineeId, plans, deps) {
       // sessions" misses a lift that's been below its best for two months; this
       // catches it. Find the most recent session at (or within 1% of) the PR.
       let weeksSincePr = null;
+      const prE1max = e1All.length ? Math.max(...e1All) : null;
       if (pr != null) {
-        const prSessions = sAll.filter((x) => x.load != null && x.load >= pr * 0.99);
+        // A PR is either a load PR OR an e1RM PR — adding reps at submax load
+        // (rising e1RM) is real progress and must reset the clock, else an
+        // improving lift gets told to "rotate the variation".
+        const prSessions = sAll.filter((x) => (x.load != null && x.load >= pr * 0.99) || (prE1max != null && x.e1 != null && x.e1 >= prE1max * 0.99));
         const lastPr = prSessions.length ? Math.max(...prSessions.map((x) => ms(x.date))) : null;
         const nowMs = Math.max(...sAll.map((x) => ms(x.date)).filter((n) => isFinite(n)), 0);
         if (lastPr && isFinite(lastPr) && nowMs) weeksSincePr = Math.round((nowMs - lastPr) / (7 * 86400000));
@@ -465,16 +480,25 @@ export function analyzeAthlete(clientWorkouts, traineeId, plans, deps) {
   // e1RM slope of each side. Grounded in the DSI / force-deficit literature —
   // presented as a RELATIONSHIP TO WATCH (squat→jump r≈0.5 is population-level,
   // not this athlete's causal law), a bias for the next block, not a mandate.
-  const STRENGTH_RX = /squat|deadlift|\bdl\b|rdl|hinge|good[-\s]?morning|press|bench|ohp|overhead|row|pull[-\s]?up|chin|pulldown|lunge|split|rfess|bulgarian|thrust|clean|snatch/i;
+  // clean/snatch/jerk/swing now classify as POWER (ballistic), not strength.
+  const STRENGTH_RX = /squat|deadlift|\bdl\b|rdl|hinge|good[-\s]?morning|press|bench|ohp|overhead|row|pull[-\s]?up|chin|pulldown|lunge|split|rfess|bulgarian|thrust/i;
+  // MEDIAN slope per side — robust to a single jumpy low-load accessory that a
+  // mean would let dominate (dividing %/step by a small e1RM amplifies it).
   const groupSlope = (lifts) => {
-    const sl = lifts.map((l) => l.trend?.slopePct).filter((x) => typeof x === 'number' && isFinite(x));
-    return sl.length ? sl.reduce((a, b) => a + b, 0) / sl.length : null;
+    const sl = lifts.map((l) => l.trend?.slopePct).filter((x) => typeof x === 'number' && isFinite(x)).sort((a, b) => a - b);
+    return sl.length ? sl[Math.floor(sl.length / 2)] : null;
   };
   const strengthLifts = staples.filter((x) => !x.ballistic && STRENGTH_RX.test(x.title) && x.count >= 3);
-  const powerLifts = staples.filter((x) => x.ballistic && x.count >= 3);
+  // Power side = LOADED explosive lifts only (clean/loaded jump/swing) — their
+  // load trend IS meaningful. A bodyweight jump (POGO/box jump) has no load to
+  // trend, so it would drag the power slope to ~0 and fake "power not moving";
+  // its progress lives in the JUMP TEST (height/RSI), not here.
+  const powerLifts = staples.filter((x) => x.ballistic && x.hasLoad && x.count >= 3);
   const sT = groupSlope(strengthLifts), pT = groupSlope(powerLifts);
   let transfer = null;
-  if (sT != null && pT != null) {
+  // Flagship needs real data on BOTH sides — never emit a directional
+  // "add max-strength / bias to velocity" call off a single lift per side.
+  if (sT != null && pT != null && strengthLifts.length >= 2 && powerLifts.length >= 2) {
     const up = (x) => x > 0.8;
     let side, read, move;
     if (up(sT) && !up(pT)) { side = 'strength-ahead'; read = 'his strength is climbing but his explosive work isn\'t following it up'; move = 'the strength isn\'t converting to output — bias next block toward velocity + plyo / speed-strength (move lighter loads fast), less grinding'; }
