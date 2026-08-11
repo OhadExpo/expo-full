@@ -273,19 +273,38 @@ export function synthesizeVerdict({ adh, region, staples, acwr, velocity }) {
     flags.push('fatigue');
   }
   const lowAdh = adh?.sessionPct != null && adh.sessionPct < 80;
+  // A "deload him" verdict needs enough logged data to trust the fatigue read. With
+  // <3 logged sessions the signal (often an accessory-lift e1RM dip that's noise or
+  // one light day) can't justify deloading — he may simply not be LOGGING, not
+  // over-reaching. Below this bar the honest call is "get him logging first", never
+  // "deload him". (Confidence is already 'low' here too.)
+  const tooThinToDeload = (adh?.loggedSessions || 0) < 3;
+
+  const fatigueBits = () => {
+    const bits = [];
+    if (lowerGrind) bits.push(`missing ${region.lower.pct}% of lower-body top sets`);
+    if (anyDropping) bits.push(`${staples.find((s) => !s.ballistic && s.trend?.dir === 'down')?.title} e1RM slipping`);
+    if (velHigh) bits.push(`bar speed down ${velocity.lossPct}% on the last filmed set`);
+    if (highAcwr) bits.push(`load ratio spiked to ${acwr.acwr}`);
+    return bits;
+  };
 
   let headline, sub, tone = 'warn';
-  if (flags.includes('fatigue')) {
+  if (flags.includes('fatigue') && !tooThinToDeload) {
     const hardStaleLift = staples.find((s) => s.stale?.stale && s.stale.mode === 'hard');
     headline = hardStaleLift
       ? `Deload — then change the ${hardStaleLift.title}, don't just add weight.`
       : `Deload him — he's accumulating more fatigue than he's recovering from.`;
-    const bits = [];
-    if (lowerGrind) bits.push(`missing ${region.lower.pct}% of lower-body top sets`);
-    if (anyDropping) bits.push(`${staples.find((s) => !s.ballistic && s.trend?.dir === 'down')?.title} e1RM is regressing`);
-    if (velHigh) bits.push(`bar speed down ${velocity.lossPct}% on the last filmed set`);
-    if (highAcwr) bits.push(`load ratio spiked to ${acwr.acwr}`);
+    const bits = fatigueBits();
     sub = bits.length ? `${bits.join(', ')} — that's fatigue, not laziness.` : 'Multiple fatigue signals are stacking up.';
+  } else if (flags.includes('fatigue') && tooThinToDeload) {
+    // Fatigue signals exist but on too little data to act on — surface them, but
+    // point the coach at logging, not a deload.
+    tone = 'info';
+    const n = adh?.loggedSessions || 0;
+    headline = `Get him logging before you deload — only ${n} session${n === 1 ? '' : 's'} in, the fatigue read isn't trustworthy yet.`;
+    const bits = fatigueBits();
+    sub = `${bits.length ? `${bits.join(', ')} — but ` : ''}off this little data that could be noise or one light day. Confirm with a few more logs before backing load off.`;
   } else if (lowAdh) {
     tone = 'info';
     headline = `Before programming — get him training. He logged ${adh.sessionPct}% of sessions.`;
