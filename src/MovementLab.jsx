@@ -764,7 +764,11 @@ function FormCheck({ result, exerciseTitle }) {
     const med = (k, min) => { const xs = rr.filter(Boolean).map((r) => r[k]).filter((x) => typeof x === 'number' && x >= min).sort((a, b) => a - b); return xs.length ? xs[Math.floor(xs.length / 2)] : null; };
     const ecc = med('ecc', 0.05), pause = med('pause', 0), con = med('con', 0.05);
     if (ecc == null && con == null) return null;
-    return { ecc, pause, con };
+    // Time-under-tension: total working time of the set = Σ(ecc+pause+con) over
+    // reps. A real hypertrophy/tempo lever coaches track, straight from the data.
+    const reps = rr.filter(Boolean);
+    let tut = 0; for (const r of reps) { for (const k of ['ecc', 'pause', 'con']) { if (typeof r[k] === 'number' && r[k] > 0) tut += r[k]; } }
+    return { ecc, pause, con, tut: tut > 0 ? Math.round(tut) : null, reps: reps.length };
   }, [result]);
   const sev = { bad: C.rd, warn: C.or, high: C.rd, mod: C.or, ok: C.gn };
   const secLabel = { fontFamily: FN, fontSize: 10, letterSpacing: '0.14em', color: C.ac, marginBottom: 8 };
@@ -866,6 +870,9 @@ function FormCheck({ result, exerciseTitle }) {
               </div>
             ))}
           </div>
+          {tempo.tut != null && tempo.reps >= 2 && (
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', marginTop: 8, fontFamily: FN }}>Time under tension · <b style={{ color: '#fff' }}>{tempo.tut}s</b> <span style={{ color: C.td }}>across {tempo.reps} reps {tempo.tut >= 40 ? '· deep hypertrophy range' : tempo.tut >= 20 ? '· solid TUT' : '· short — more of a strength/speed set'}</span></div>
+          )}
           <div style={{ fontSize: 10, color: C.td, marginTop: 8, lineHeight: 1.5 }}>Measured off the camera, not prescribed — compare it to the tempo you wrote. A fast eccentric ({'<'}1s) is the usual leak.</div>
         </>
       )}
