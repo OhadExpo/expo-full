@@ -752,6 +752,10 @@ function FormCheck({ result, exerciseTitle }) {
   // asymmetry especially needs a clean frontal/steady view). Caveat them rather
   // than present confident numbers off garbage pose.
   const lowCap = result?.captureQuality?.grade === 'poor';
+  // Only a 'good' clip has frame-timings solid enough for a confident tempo/TUT
+  // physiological label — a 'fair' clip dropped up to ~30% of frames, which is
+  // exactly what corrupts the phase durations those numbers are built from.
+  const capGood = result?.captureQuality?.grade === 'good';
   // Measured tempo (median ecc / pause / con across the set, seconds) — coaches
   // PRESCRIBE tempo but never see what the athlete actually did. Straight from
   // romTempoMetrics, no new data. Written eccentric-first (the coach's notation).
@@ -767,8 +771,15 @@ function FormCheck({ result, exerciseTitle }) {
     // Time-under-tension: total working time of the set = Σ(ecc+pause+con) over
     // reps. A real hypertrophy/tempo lever coaches track, straight from the data.
     const reps = rr.filter(Boolean);
-    let tut = 0; for (const r of reps) { for (const k of ['ecc', 'pause', 'con']) { if (typeof r[k] === 'number' && r[k] > 0) tut += r[k]; } }
-    return { ecc, pause, con, tut: tut > 0 ? Math.round(tut) : null, reps: reps.length };
+    // Plausibility ceilings per phase — a duration longer than this is a detector
+    // stall (frozen landmarks read as one long "pause"), NOT real time-under-
+    // tension. Exclude the implausible phase rather than let one 8s freeze inflate
+    // the sum past 40s and flip the label to "deep hypertrophy range". Velocity is
+    // clamped the same way (MAX_SPEED_MPS); TUT had no ceiling until now.
+    const CAP = { ecc: 8, pause: 6, con: 8 };
+    let tut = 0, tutClean = true;
+    for (const r of reps) { for (const k of ['ecc', 'pause', 'con']) { const v = r[k]; if (typeof v === 'number' && v > 0) { if (v <= CAP[k]) tut += v; else tutClean = false; } } }
+    return { ecc, pause, con, tut: tut > 0 ? Math.round(tut) : null, reps: reps.length, tutClean };
   }, [result]);
   const sev = { bad: C.rd, warn: C.or, high: C.rd, mod: C.or, ok: C.gn };
   const secLabel = { fontFamily: FN, fontSize: 10, letterSpacing: '0.14em', color: C.ac, marginBottom: 8 };
@@ -783,10 +794,14 @@ function FormCheck({ result, exerciseTitle }) {
     return rt.map((r, i) => {
       if (!r) return null;
       const romPct = typeof r.romPct === 'number' ? r.romPct : 100;
-      const loss = vel && vel[i] && typeof vel[i].lossPct === 'number' ? vel[i].lossPct : 0;
-      const velRet = 100 - Math.min(99, Math.max(0, loss));
-      const q = Math.min(romPct, velRet);
-      return { rep: i + 1, q, romPct, velRet: Math.round(velRet), collapsed: !!r.collapsed };
+      const rawLoss = vel && vel[i] && typeof vel[i].lossPct === 'number' ? vel[i].lossPct : null;
+      const hasVel = rawLoss != null;
+      // No readable velocity (occlusion / no positive concentric) → judge the rep
+      // on ROM alone. NEVER default to 100% "speed retained" — that turned an
+      // occluded slow grind into a green "speed held" and always blamed "depth".
+      const velRet = hasVel ? 100 - Math.min(99, Math.max(0, rawLoss)) : null;
+      const q = hasVel ? Math.min(romPct, velRet) : romPct;
+      return { rep: i + 1, q, romPct, velRet: hasVel ? Math.round(velRet) : null, hasVel, collapsed: !!r.collapsed };
     }).filter(Boolean);
   }, [result]);
   // One-line coach synthesis of the Set Breakdown — WHERE the set turned into
@@ -808,7 +823,9 @@ function FormCheck({ result, exerciseTitle }) {
     }
     if (brk < 0) return { held: true };
     const r = repQuality[brk];
-    return { held: false, brkRep: brk + 1, lead: r.romPct <= r.velRet ? 'depth' : 'bar speed' };
+    // Only attribute the fade to depth vs bar speed when we actually READ velocity
+    // on that rep — otherwise leave it unattributed rather than blame "depth".
+    return { held: false, brkRep: brk + 1, lead: r.hasVel ? (r.romPct <= r.velRet ? 'depth' : 'bar speed') : null };
   }, [repQuality]);
   const qColor = (q) => (q >= 85 ? C.gn : q >= 70 ? (C.or || '#f0b429') : C.rd);
 
@@ -824,7 +841,7 @@ function FormCheck({ result, exerciseTitle }) {
           <div style={secLabel}>SET BREAKDOWN <span style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: 0 }}>· where it held, where it broke</span></div>
           <div style={{ display: 'flex', gap: 3, alignItems: 'flex-end' }}>
             {repQuality.map((r) => (
-              <div key={r.rep} title={`Rep ${r.rep}: ${r.romPct}% range, ${r.velRet}% speed retained`} style={{ flex: 1, textAlign: 'center' }}>
+              <div key={r.rep} title={`Rep ${r.rep}: ${r.romPct}% range${r.hasVel ? `, ${r.velRet}% speed retained` : ', speed not readable'}`} style={{ flex: 1, textAlign: 'center' }}>
                 <div style={{ height: 26, display: 'flex', alignItems: 'flex-end' }}>
                   <div style={{ width: '100%', height: `${Math.max(18, r.q)}%`, background: qColor(r.q), borderRadius: '2px 2px 0 0' }} />
                 </div>
@@ -833,10 +850,10 @@ function FormCheck({ result, exerciseTitle }) {
             ))}
           </div>
           {breakdown && breakdown.held && (
-            <div style={{ fontSize: 12.5, color: C.gn, marginTop: 8, lineHeight: 1.5 }}>Form held every rep — no fatigue drop-off in this set.</div>
+            <div style={{ fontSize: 12.5, color: C.gn, marginTop: 8, lineHeight: 1.5 }}>No rep-to-rep drop-off — range and speed held across the set.</div>
           )}
           {breakdown && !breakdown.held && (
-            <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.8)', marginTop: 8, lineHeight: 1.5 }}>Clean through rep <b style={{ color: '#fff' }}>{breakdown.brkRep - 1}</b>, then <b style={{ color: '#fff' }}>{breakdown.lead}</b> started to fade — that's where it turned into grinding. {breakdown.lead === 'depth' ? 'Cut the set a rep or two earlier to keep range honest.' : 'Past here the reps are fatigue, not power — stop earlier if speed is the goal.'}</div>
+            <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.8)', marginTop: 8, lineHeight: 1.5 }}>Clean through rep <b style={{ color: '#fff' }}>{breakdown.brkRep - 1}</b>, then {breakdown.lead ? <><b style={{ color: '#fff' }}>{breakdown.lead}</b> started to fade</> : 'his reps started to fade'} — that's where it turned into grinding. {breakdown.lead === 'depth' ? 'Cut the set a rep or two earlier to keep range honest.' : breakdown.lead === 'bar speed' ? 'Past here the reps are fatigue, not power — stop earlier if speed is the goal.' : 'Stop the set around there if clean reps were the goal.'}</div>
           )}
           <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginTop: 6 }}>Bar height = rep quality (the weaker of range kept + speed kept). Green held · amber softened · red broke down.</div>
         </div>
@@ -860,7 +877,7 @@ function FormCheck({ result, exerciseTitle }) {
 
       {tempo && (
         <>
-          <div style={{ ...secLabel, marginTop: 22 }}>TEMPO <span style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: 0 }}>· what he actually did (median rep)</span></div>
+          <div style={{ ...secLabel, marginTop: 22 }}>TEMPO <span style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: 0 }}>· what he actually did ({tempo.reps >= 2 ? 'median rep' : 'single rep'})</span></div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {[['eccentric', tempo.ecc, 'lowering'], ['pause', tempo.pause, 'bottom'], ['concentric', tempo.con, 'lifting']].map(([lab, v, sub]) => (
               <div key={lab} style={{ flex: '1 1 0', minWidth: 90, border: `1px solid ${C.bd}`, background: C.sf2, padding: '8px 10px' }}>
@@ -871,7 +888,7 @@ function FormCheck({ result, exerciseTitle }) {
             ))}
           </div>
           {tempo.tut != null && tempo.reps >= 2 && (
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', marginTop: 8, fontFamily: FN }}>Time under tension · <b style={{ color: '#fff' }}>{tempo.tut}s</b> <span style={{ color: C.td }}>across {tempo.reps} reps {tempo.tut >= 40 ? '· deep hypertrophy range' : tempo.tut >= 20 ? '· solid TUT' : '· short — more of a strength/speed set'}</span></div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', marginTop: 8, fontFamily: FN }}>Time under tension · <b style={{ color: '#fff' }}>{tempo.tut}s</b> <span style={{ color: C.td }}>across {tempo.reps} reps {(capGood && tempo.tutClean) ? (tempo.tut >= 40 ? '· deep hypertrophy range' : tempo.tut >= 20 ? '· solid TUT' : '· short — more of a strength/speed set') : '· rough read (clip quality)'}</span></div>
           )}
           <div style={{ fontSize: 10, color: C.td, marginTop: 8, lineHeight: 1.5 }}>Measured off the camera, not prescribed — compare it to the tempo you wrote. A fast eccentric ({'<'}1s) is the usual leak.</div>
         </>
