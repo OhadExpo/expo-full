@@ -119,7 +119,7 @@ export function FormVideoPlayer(props) {
   );
 }
 
-function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onReviewNotesChange, role = 'trainer' }) {
+function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onReviewNotesChange, role = 'trainer', recordedReps = [] }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const landmarkerRef = useRef(null);
@@ -1351,6 +1351,7 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
           <div style={{padding:'10px 10px 4px'}}>
             <Suspense fallback={<div style={{color:C.tm,fontFamily:FN,fontSize:11,padding:12}}>Loading…</div>}>
               <AnalyzeResult result={metrics.result} frames={metrics.frames} exerciseTitle={exerciseTitle || 'Squat'} tab={metricsTab} setTab={setMetricsTab} view="metrics"
+                recordedReps={recordedReps}
                 playheadT={videoTime * 1000}
                 onScrub={(tMs) => { const v = videoRef.current; if (v) { const t = Math.max(0, tMs / 1000); v.currentTime = t; setVideoTime(t); } }} />
             </Suspense>
@@ -2284,6 +2285,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                       {formVideo.cloudUrl ? (
                         <FormVideoPlayer url={formVideo.cloudUrl} exerciseTitle={ex.title || exName}
                           role="trainer"
+                          recordedReps={(ex.sets || []).map(s => parseFloat(s.reps)).filter(n => isFinite(n))}
                           reviewNotes={formVideo.reviewNotes || []}
                           onReviewNotesChange={updateFormVideos ? (nextNotes) => {
                             const updated = (wo.formVideos || []).map((fv, fi) => fi === i ? { ...fv, reviewNotes: nextNotes } : fv);
