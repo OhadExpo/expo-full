@@ -214,6 +214,55 @@ export function segmentReps(angle, fps = 30, frames = null) {
 }
 
 // ---------------------------------------------------------------------------
+// Movement-based rep count — for ballistic work (jumps, pogos, hops, bounds,
+// snap-downs) the joint-ANGLE channel misses reps: a lateral or ankle-driven
+// hop barely flexes the knee, so findPeaks on the angle signal under-counts
+// badly (e.g. a lateral pogo set of 15 read as 3). But EVERY hop — vertical or
+// lateral — has a flight phase: the higher foot rises off the floor then lands.
+// So we count flights directly from the ankle's vertical position in image
+// space (y is DOWN, so a flight is a TROUGH in the higher-foot y). This is the
+// one signal every jump shares, and it's what a joint-angle counter can't see.
+// Returns { count, method, range } or null if there's no usable ankle track.
+export function movementRepCount(frames) {
+  if (!frames || frames.length < 6) return null;
+  const fps = estimateFps(frames);
+  const minDist = Math.max(2, Math.round(fps * 0.16)); // hops are fast — allow ~0.16s apart
+  // A landmark is usable only if it's confidently tracked AND on-screen —
+  // MediaPipe extrapolates off-frame points to wild values (seen: ankle y at
+  // -3.49) and drops visibility to ~0.2 during flight/occlusion. Reject both,
+  // or the range explodes and the prominence gate silently kills every hop.
+  const ok = (p) => p && (p.visibility == null || p.visibility > 0.5) && isReal(p.y) && p.y > -0.05 && p.y < 1.15;
+  // Higher foot = MIN image-y of the valid ankles. During a hop it dips (foot
+  // leaves the floor) then returns → one trough per hop, for vertical AND
+  // lateral hops (every jump has a flight phase).
+  const y = frames.map(f => {
+    const l = f.landmarks; if (!l) return null;
+    const a = l[LM.L_ANKLE], b = l[LM.R_ANKLE];
+    const va = ok(a) ? a.y : null, vb = ok(b) ? b.y : null;
+    if (va != null && vb != null) return Math.min(va, vb);
+    return va != null ? va : vb;
+  });
+  const sm = medianFilter(y, 3);
+  const reals = sm.filter(isReal).sort((p, q) => p - q);
+  if (reals.length < 6) return null;
+  // Robust range = p5→p95, immune to any surviving off-frame spike.
+  const pct = (a, f) => a[Math.min(a.length - 1, Math.max(0, Math.floor(a.length * f)))];
+  const range = pct(reals, 0.95) - pct(reals, 0.05);
+  if (range < 0.025) return { count: 0, method: 'flight', range: round2(range) }; // barely leaves the floor
+  const inv = sm.map(v => (isReal(v) ? -v : v));            // troughs of y = flight apexes
+  const prom = Math.max(0.02, range * 0.35);
+  const flights = findPeaks(inv, prom, minDist);
+  return { count: flights.length, method: 'flight', range: round2(range) };
+}
+
+// Title → is this a ballistic movement where flight-counting should win over
+// the joint-angle counter? Jumps, pogos, hops, bounds, plyo, snap-downs,
+// skips, and med-ball throws/slams/tosses (whole-body ballistic).
+export function isBallistic(title) {
+  return /\b(jump|pogo|hop|bound|plyo|plyometric|skip|leap|broad[-\s]?jump|box[-\s]?jump|depth[-\s]?jump|snap[-\s]?down|bounce|slam|toss|throw)\b/i.test(title || '');
+}
+
+// ---------------------------------------------------------------------------
 // Velocity — VBT. Vertical speed (m/s) of the bar proxy (wrist midpoint, or a
 // supplied landmark) through the CONCENTRIC portion of each rep.
 // ---------------------------------------------------------------------------
@@ -687,7 +736,21 @@ export function analyzeClip(frames, exerciseTitle, opts = {}) {
   const romTempo = reps.length ? romTempoMetrics(frames, angle, reps) : null;
   const jointRom = jointRomMetrics(frames);
   const barSpeed = barSpeedSeries(frames, opts.barLandmark);
-  return { ok: true, fps, kind, repCount: reps.length, reps, rejectedReps: reps.rejected || [], velocity, romTempo, jointRom, barSpeed, frameCount: frames.length };
+  // Ballistic override: for jumps/pogos/hops the joint-angle channel misses
+  // reps (a lateral or ankle-driven hop barely bends the tracked joint), so
+  // count from the flight phase instead — but ONLY adopt it when it finds MORE
+  // than the joint channel (flight recovers missed hops; it never lowers a
+  // valid count) and the athlete is genuinely leaving the floor. Validated on
+  // real clips: lateral pogo 3→12, deep-squat pogo 4→17, matches where the
+  // joint channel already worked. Per-rep velocity/ROM stay joint-based (the
+  // meaningful jump metrics live in JUMP TEST).
+  let repCount = reps.length;
+  let countMethod = 'joint';
+  if (isBallistic(exerciseTitle)) {
+    const mv = movementRepCount(frames);
+    if (mv && mv.count > repCount && mv.range > 0.04) { repCount = mv.count; countMethod = 'flight'; }
+  }
+  return { ok: true, fps, kind, repCount, jointRepCount: reps.length, countMethod, reps, rejectedReps: reps.rejected || [], velocity, romTempo, jointRom, barSpeed, frameCount: frames.length };
 }
 
 // --- small helpers ---

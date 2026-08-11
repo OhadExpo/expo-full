@@ -17,7 +17,7 @@ import React, { useEffect, useRef, useState, useCallback, useMemo, lazy, Suspens
 import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
 import { createPoseLandmarker, getCamera, stopStream } from './usePose';
-import { analyzeClip, jumpMetrics, reactiveJumpMetrics, jumpPower, frameToPoints3D, estimateFps, barSpeedSeries, barAccelSeries, namedAngleSeries, channelSignal, velocityMetrics, romTempoMetrics } from './poseLab';
+import { analyzeClip, jumpMetrics, reactiveJumpMetrics, jumpPower, frameToPoints3D, estimateFps, barSpeedSeries, barAccelSeries, namedAngleSeries, channelSignal, velocityMetrics, romTempoMetrics, movementRepCount, isBallistic } from './poseLab';
 import { detectFaults, detectAsymmetry } from './poseInsights';
 import { savePoseMetric } from './poseMetricsStore';
 import { demoSquatFrames, demoJumpFrames } from './demoMotion';
@@ -596,6 +596,11 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
       </div>}
       <div style={{ fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.12em', marginBottom: 12 }}>
         {result.repCount} REP{result.repCount === 1 ? '' : 'S'} · {result.fps}fps · {result.frameCount} frames
+        {result.countMethod === 'flight' && (
+          <span style={{ color: C.pu || '#8b7cf0' }} title={`Counted from the flight phase (jumps/hops) — the tracked joint barely moves on ballistic work, so the joint counter saw only ${result.jointRepCount}. Per-rep bar-speed/ROM below still track the joint.`}>
+            {' · '}from flight
+          </span>
+        )}
         {result.rejectedReps?.length > 0 && (
           <span style={{ color: C.warn || '#f0b429' }} title="Shallow dips, walkouts or re-racks — too small to be full reps, so they're excluded from the count and the metrics.">
             {' · '}{result.rejectedReps.length} not counted
@@ -607,7 +612,7 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
           trust his log, not the camera (fast plyos / lateral work under-count). */}
       {(() => {
         const rec = (recordedReps || []).filter((n) => typeof n === 'number' && n > 0);
-        const tgt = targetReps != null && String(targetReps).trim() !== '' ? String(targetReps).trim() : null;
+        const tgt = (targetReps != null && /\d/.test(String(targetReps))) ? String(targetReps).trim() : null;
         if (!rec.length && !tgt) return null;
         if (!(result.repCount > 0)) return null;
         const N = result.repCount;
