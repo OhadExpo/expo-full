@@ -725,6 +725,37 @@ export function frameToPoints3D(worldLandmarks) {
 }
 
 // ---------------------------------------------------------------------------
+// Capture-quality gate — 2D markerless pose is only as good as the framing. A
+// cropped, shaky, low-light or badly-angled clip yields confident-LOOKING but
+// garbage angles/velocities. Grade how well the body was actually tracked so the
+// UI can warn the coach when a read shouldn't be trusted. Honest by default.
+export function captureQuality(frames) {
+  if (!frames || !frames.length) return { coverage: 0, meanVis: 0, grade: 'poor', note: 'No frames captured.' };
+  const KEY = [11, 12, 23, 24, 25, 26, 27, 28]; // shoulders, hips, knees, ankles
+  let detected = 0, visSum = 0, visN = 0;
+  for (const f of frames) {
+    const lm = f.landmarks;
+    if (!lm || !lm.length) continue;
+    detected++;
+    for (const i of KEY) {
+      const p = lm[i];
+      if (p && typeof p.visibility === 'number') { visSum += p.visibility; visN++; }
+    }
+  }
+  const coverage = detected / frames.length;
+  const meanVis = visN ? visSum / visN : 0;
+  let grade = 'good';
+  if (coverage < 0.7 || meanVis < 0.5) grade = 'poor';
+  else if (coverage < 0.9 || meanVis < 0.7) grade = 'fair';
+  const pct = Math.round(coverage * 100);
+  const note = grade === 'good'
+    ? `Body tracked cleanly (${pct}% of frames).`
+    : grade === 'fair'
+      ? `Body tracked in ${pct}% of frames — usable, but reframe fuller and steadier for sharper numbers.`
+      : `Body tracked in only ${pct}% of frames — treat the numbers below as unreliable. Refilm with the whole body in shot (straight-on or a clean side view), steady camera, decent light.`;
+  return { coverage: round2(coverage), meanVis: round2(meanVis), grade, note };
+}
+
 // Top-level: run the full battery on a captured clip.
 // ---------------------------------------------------------------------------
 export function analyzeClip(frames, exerciseTitle, opts = {}) {
@@ -750,7 +781,7 @@ export function analyzeClip(frames, exerciseTitle, opts = {}) {
     const mv = movementRepCount(frames);
     if (mv && mv.count > repCount && mv.range > 0.04) { repCount = mv.count; countMethod = 'flight'; }
   }
-  return { ok: true, fps, kind, repCount, jointRepCount: reps.length, countMethod, reps, rejectedReps: reps.rejected || [], velocity, romTempo, jointRom, barSpeed, frameCount: frames.length };
+  return { ok: true, fps, kind, repCount, jointRepCount: reps.length, countMethod, reps, rejectedReps: reps.rejected || [], velocity, romTempo, jointRom, barSpeed, frameCount: frames.length, captureQuality: captureQuality(frames) };
 }
 
 // --- small helpers ---

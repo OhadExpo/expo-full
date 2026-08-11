@@ -594,6 +594,17 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
           );
         })}
       </div>}
+      {result.captureQuality && result.captureQuality.grade !== 'good' && (
+        <div style={{
+          fontFamily: FN, fontSize: 11, lineHeight: 1.5, letterSpacing: '0.02em', marginBottom: 12,
+          padding: '8px 12px', borderRadius: 0,
+          border: `1px solid ${result.captureQuality.grade === 'poor' ? (C.warn || '#f0b429') : 'rgba(255,255,255,0.18)'}`,
+          background: result.captureQuality.grade === 'poor' ? 'rgba(240,180,41,0.08)' : 'rgba(255,255,255,0.03)',
+          color: result.captureQuality.grade === 'poor' ? (C.warn || '#f0b429') : 'rgba(255,255,255,0.6)',
+        }} title={`Body detected in ${Math.round(result.captureQuality.coverage * 100)}% of frames · mean landmark visibility ${result.captureQuality.meanVis}. Markerless 2D pose degrades with cropping, side-angle, motion blur or low light.`}>
+          <b style={{ letterSpacing: '0.06em' }}>{result.captureQuality.grade === 'poor' ? 'LOW CAPTURE QUALITY' : 'CAPTURE OK'}</b> · {result.captureQuality.note}
+        </div>
+      )}
       <div style={{ fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.12em', marginBottom: 12 }}>
         {result.repCount} REP{result.repCount === 1 ? '' : 'S'} · {result.fps}fps · {result.frameCount} frames
         {result.countMethod === 'flight' && (
