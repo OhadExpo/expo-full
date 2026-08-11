@@ -80,6 +80,7 @@ function readStaple(s) {
     return { tag: 'STUCK', tagColor: C.or, why: 'weight hasn\'t moved in 3 sessions', next: noPr ? `no PR in ${wks} weeks — rotate the variation` : 'push the load or change the stimulus' };
   }
   if (s.trend?.state === 'ok') {
+    if (s.trend.repNoisy) return { tag: 'REPS VARIED', tagColor: C.tm, why: 'rep scheme shifted across the block — e1RM can\'t tell a strength change from the rep change', next: 'read it off load-at-a-fixed-rep, or hold a rep target for 3 sessions for a clean trend' };
     if (s.trend.dir === 'up') return { tag: 'GOING UP', tagColor: C.gn, why: 'climbing', next: '+2–3% load or +1 rep at the same effort' };
     if (s.trend.dir === 'down') return { tag: 'SLIPPING', tagColor: C.rd, why: 'going backwards', next: 'back off ~5–10% intensity, hold volume, check his recovery' };
   }
