@@ -458,6 +458,14 @@ export function analyzeAthlete(clientWorkouts, traineeId, plans, deps) {
         const nowMs = Math.max(...sAll.map((x) => ms(x.date)).filter((n) => isFinite(n)), 0);
         if (lastPr && isFinite(lastPr) && nowMs) weeksSincePr = Math.round((nowMs - lastPr) / (7 * 86400000));
       }
+      // The ARC = the full cross-block journey (every log, not the last 6) — the
+      // actual "lineage": where this lift started and where it is now.
+      const firstMs = sAll.length ? ms(sAll[0].date) : null;
+      const lastMs = last ? ms(last.date) : null;
+      const spanWeeks = (firstMs && lastMs && lastMs > firstMs) ? Math.round((lastMs - firstMs) / (7 * 86400000)) : 0;
+      const firstE1 = e1All.length ? e1All[0] : null;
+      const lastE1 = e1All.length ? e1All[e1All.length - 1] : null;
+      const arcGainPct = (firstE1 && lastE1) ? Math.round(((lastE1 - firstE1) / firstE1) * 100) : null;
       return {
         title, series: s, count: sAll.length,          // total times he's logged it
         ballistic: BALLISTIC.test(title),
@@ -466,6 +474,7 @@ export function analyzeAthlete(clientWorkouts, traineeId, plans, deps) {
         loads: s.map((x) => x.load), hasLoad: loadsAll.length > 0,
         pr, prE1: e1All.length ? Math.round(Math.max(...e1All)) : null, weeksSincePr,
         lastDate: last ? last.date : null, lastLoad: last ? last.load : null, lastReps: last ? last.reps : null,
+        arc: e1All, firstE1: firstE1 != null ? Math.round(firstE1) : null, arcGainPct, spanWeeks,
       };
     });
   // Show every lift he actually LOADED (bodyweight-only lifts can't trend on a

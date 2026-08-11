@@ -269,6 +269,32 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
       </div>
     </div>
 
+    {/* 2.5 THE ARC — the cross-block journey (the actual "lineage") */}
+    {a.staples.filter((s) => s.arc && s.arc.length >= 4 && s.arcGainPct != null).length > 0 && (
+      <div style={card}><div style={hd}>The arc · his journey on the big lifts<span style={hdQ}>e1RM across every block he's logged — where he started vs now</span></div>
+        <div style={bd}>
+          {a.staples.filter((s) => s.arc && s.arc.length >= 4 && s.arcGainPct != null)
+            .sort((x, y) => y.count - x.count).slice(0, 4).map((s) => {
+              const gc = s.arcGainPct >= 3 ? C.gn : s.arcGainPct <= -3 ? C.rd : C.tm;
+              return (
+                <div key={s.title} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: `1px solid ${C.bd}` }}>
+                  <div style={{ flex: '1 1 40%', minWidth: 0 }}>
+                    <div style={{ fontSize: 13, color: C.tx, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.title}</div>
+                    <div style={{ fontSize: 10, color: C.td, marginTop: 2 }}>{s.count} logs · {s.spanWeeks > 0 ? `over ${s.spanWeeks} weeks` : 'this block'}</div>
+                  </div>
+                  <Spark pts={s.arc} dir={s.arcGainPct >= 3 ? 'up' : s.arcGainPct <= -3 ? 'down' : 'flat'} />
+                  <div style={{ flex: '0 0 auto', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                    <div style={{ fontSize: 12.5, color: C.tx }}>e{s.firstE1} → e{Math.round(s.arc[s.arc.length - 1])}{s.prE1 > Math.round(s.arc[s.arc.length - 1]) ? <span style={{ color: C.td, fontSize: 10 }}> · pk e{s.prE1}</span> : null}</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: gc }}>{s.arcGainPct >= 0 ? '+' : ''}{s.arcGainPct}%</div>
+                  </div>
+                </div>
+              );
+            })}
+          <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>His long arc, not just this block — e1RM = est-1RM (Epley). Rep-scheme shifts move e1RM too; read it with the per-lift trend below.</div>
+        </div>
+      </div>
+    )}
+
     {/* 3. STAPLES */}
     {a.staples.length > 0 && (
       <div style={card}><div style={hd}>His lifts · what to do next<span style={hdQ}>worst first · each row tells you the move for next block</span></div>
