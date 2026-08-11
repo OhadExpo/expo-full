@@ -732,7 +732,7 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
       )}
       {tab === 'velocity' && <VelocityTable v={trimmedVelocity} barSpeed={result.barSpeed} frames={frames} playheadT={playheadT} onScrub={onScrub} />}
       {tab === 'rom' && <RomTable r={trimmedRomTempo} jointRom={result.jointRom} kind={result.kind} frames={frames} exerciseTitle={exerciseTitle} playheadT={playheadT} onScrub={onScrub} />}
-      {tab === 'form' && <FormCheck result={result} exerciseTitle={exerciseTitle} />}
+      {tab === 'form' && <FormCheck result={result} exerciseTitle={exerciseTitle} recordedReps={recordedReps} targetReps={targetReps} />}
       {tab === 'threeD' && (
         <Suspense fallback={<div style={{ color: 'rgba(255,255,255,0.6)', textAlign: 'center', padding: 30, fontFamily: FN, fontSize: 12, letterSpacing: '0.12em' }}>LOADING 3D…</div>}>
           <AnatomyViewer frames={frames} />
@@ -744,8 +744,24 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
 
 // FORM CHECK — auto form-fault coach + left/right symmetry screen, both read
 // straight off the pose the camera already produced (src/poseInsights.js).
-function FormCheck({ result, exerciseTitle }) {
+function FormCheck({ result, exerciseTitle, recordedReps = [], targetReps = null }) {
   const faults = useMemo(() => detectFaults(result, exerciseTitle), [result, exerciseTitle]);
+  // Is this clip likely MORE THAN ONE set? The set-breakdown + auto-coach reads
+  // below all assume a single set (each rep compared to the set's best); across
+  // multiple sets/legs that overstates "fatigue" (set 2 vs set 1's peak). Flag it
+  // when the camera count doesn't match any single logged set and exceeds the
+  // largest one (or ≈ the multi-set total) — same signal as the count cross-check.
+  const multiSet = useMemo(() => {
+    const rec = (recordedReps || []).filter((n) => typeof n === 'number' && n > 0);
+    const N = result?.repCount || 0;
+    if (!(N > 2) || rec.length < 1) return false;
+    const perSet = rec.some((x) => Math.abs(N - x) <= 1);
+    if (perSet) return false; // matches a single logged set → it's one set, no caveat
+    const sum = rec.reduce((a, b) => a + b, 0);
+    const maxSet = Math.max(...rec);
+    const sumMatch = rec.length > 1 && Math.abs(N - sum) <= Math.max(2, Math.round(sum * 0.2));
+    return sumMatch || N > maxSet + Math.max(2, Math.round(maxSet * 0.4));
+  }, [result, recordedReps]);
   const asym = useMemo(() => detectAsymmetry(result.jointRom, exerciseTitle), [result.jointRom, exerciseTitle]);
   const vbt = useMemo(() => velocityAutoreg(result.velocity), [result.velocity]);
   // A poorly-tracked clip makes the velocity + L/R reads untrustworthy (2D
@@ -839,6 +855,11 @@ function FormCheck({ result, exerciseTitle }) {
       {repQuality && repQuality.length >= 2 && (
         <div style={{ marginBottom: 20 }}>
           <div style={secLabel}>SET BREAKDOWN <span style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: 0 }}>· where it held, where it broke</span></div>
+          {multiSet && (
+            <div style={{ fontFamily: FN, fontSize: 11, color: C.or || '#f0b429', lineHeight: 1.5, marginBottom: 8, padding: '6px 10px', border: `1px solid ${C.or || '#f0b429'}`, background: 'rgba(240,180,41,0.07)' }}>
+              This clip looks like <b>more than one set</b> — the read below compares every rep to the single best one, so across sets (or both sides of a unilateral lift) it overstates the fatigue drop. For a clean within-set read, load one set.
+            </div>
+          )}
           <div style={{ display: 'flex', gap: 3, alignItems: 'flex-end' }}>
             {repQuality.map((r) => (
               <div key={r.rep} title={`Rep ${r.rep}: ${r.romPct}% range${r.hasVel ? `, ${r.velRet}% speed retained` : ', speed not readable'}`} style={{ flex: 1, textAlign: 'center' }}>
