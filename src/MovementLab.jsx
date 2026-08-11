@@ -610,18 +610,25 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
         const tgt = targetReps != null && String(targetReps).trim() !== '' ? String(targetReps).trim() : null;
         if (!rec.length && !tgt) return null;
         if (!(result.repCount > 0)) return null;
+        const N = result.repCount;
         const sum = rec.reduce((a, b) => a + b, 0);
-        const near = (x) => Math.abs(result.repCount - x) <= 1;
-        const match = rec.length && (rec.some(near) || near(sum));
-        const low = rec.length && result.repCount < Math.min(...rec);
-        const col = !rec.length ? C.tm : (match ? C.gn : (C.warn || '#f0b429'));
+        // Match against an individual SET (a form clip is one set) — NOT the sum.
+        // A camera count that merely equals the multi-set total is a coincidence,
+        // not a verified match, so it must NOT read green (adversarial-review #1).
+        const perSet = rec.some((x) => Math.abs(N - x) <= 1);
+        const sumMatch = rec.length > 1 && Math.abs(N - sum) <= 1;
+        const low = rec.length && N < Math.min(...rec) - 1;
+        let verdict, col;
+        if (!rec.length) { verdict = `camera counted ${N}`; col = C.tm; }
+        else if (perSet) { verdict = '✓ camera matches his log'; col = C.gn; }
+        else if (sumMatch) { verdict = `≈ all sets (${sum} logged in total)`; col = C.tm; }
+        else if (low) { verdict = `⚠ camera counted ${N} — likely missed reps, trust his log`; col = (C.warn || '#f0b429'); }
+        else { verdict = `⚠ camera counted ${N} — check the clip`; col = (C.warn || '#f0b429'); }
         return (
           <div style={{ fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.04em', marginBottom: 12, marginTop: -6 }}>
             {tgt && <>target <b style={{ color: '#fff' }}>{tgt}</b>{rec.length ? ' · ' : ' '}</>}
             {rec.length > 0 && <>logged <b style={{ color: '#fff' }}>{rec.join('·')}</b> · </>}
-            <span style={{ color: col, fontWeight: 700 }}>
-              {!rec.length ? `camera counted ${result.repCount}` : match ? '✓ camera matches his log' : low ? `⚠ camera counted ${result.repCount} — likely missed reps, trust his log` : `⚠ camera counted ${result.repCount} — check the clip`}
-            </span>
+            <span style={{ color: col, fontWeight: 700 }}>{verdict}</span>
           </div>
         );
       })()}

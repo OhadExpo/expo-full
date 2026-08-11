@@ -42,7 +42,7 @@ function buildClipTree(workouts, trainees) {
       if (!W.has(week)) W.set(week, new Map());
       const D = W.get(week);
       if (!D.has(day)) D.set(day, []);
-      D.get(day).push({ title, url: fv.cloudUrl, date: w.date, cid,
+      D.get(day).push({ title, url: fv.cloudUrl, date: w.date, cid, eid: ex && ex.eid,
         recorded: (ex && Array.isArray(ex.sets) ? ex.sets.map(s => parseFloat(s.reps)).filter(n => isFinite(n)) : []) });
     }
   }
@@ -71,18 +71,22 @@ function ReviewedClipPicker({ workouts, trainees, onPick, activeUrl }) {
   // (target) reps next to the camera count + what he logged. Owner-only read.
   const { plans, load: loadPlans } = useAthletePlans();
   useEffect(() => { if (athlete?.cid) loadPlans(athlete.cid); }, [athlete?.cid, loadPlans]);
-  const targetFor = (exTitle) => {
-    if (!plans || !block || !day) return null;
+  const targetFor = (ex) => {
+    if (!plans || !block || !day || !ex) return null;
     const plan = plans.find(p => (p.name || '') === (block.block || ''));
     const pd = plan?.days?.find(x => (x.name || '').trim() === (day.day || '').trim());
-    const pe = pd?.exercises?.find(x => (x.title || '').trim().toLowerCase() === (exTitle || '').trim().toLowerCase());
+    if (!pd?.exercises) return null;
+    // Prefer an exact id match (robust to duplicate/generic day + exercise names,
+    // per adversarial review); fall back to title only if the clip has no eid.
+    const pe = (ex.eid && pd.exercises.find(x => x.exerciseId === ex.eid))
+      || pd.exercises.find(x => (x.title || '').trim().toLowerCase() === (ex.title || '').trim().toLowerCase());
     return pe && pe.reps != null && pe.reps !== '' ? String(pe.reps) : null;
   };
 
   const sel = { flex: '1 1 130px', minWidth: 0, boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 13, padding: '9px 11px', borderRadius: 0, outline: 'none', cursor: 'pointer' };
   const selDim = { ...sel, color: C.td, cursor: 'default', opacity: 0.6 };
 
-  const onE = (v) => { setE(v); const ex = day && v !== '' ? day.exercises[v] : null; if (ex) onPick(ex.url, ex.title, ex.cid, ex.date, ex.recorded, targetFor(ex.title)); };
+  const onE = (v) => { setE(v); const ex = day && v !== '' ? day.exercises[v] : null; if (ex) onPick(ex.url, ex.title, ex.cid, ex.date, ex.recorded, targetFor(ex)); };
 
   if (!tree.length) {
     return (
