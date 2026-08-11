@@ -41,7 +41,7 @@ function buildClipTree(workouts, trainees) {
       if (!W.has(week)) W.set(week, new Map());
       const D = W.get(week);
       if (!D.has(day)) D.set(day, []);
-      D.get(day).push({ title, url: fv.cloudUrl });
+      D.get(day).push({ title, url: fv.cloudUrl, date: w.date, cid });
     }
   }
   return [...A.entries()].map(([cid, B]) => ({
@@ -69,7 +69,7 @@ function ReviewedClipPicker({ workouts, trainees, onPick, activeUrl }) {
   const sel = { flex: '1 1 130px', minWidth: 0, boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 13, padding: '9px 11px', borderRadius: 0, outline: 'none', cursor: 'pointer' };
   const selDim = { ...sel, color: C.td, cursor: 'default', opacity: 0.6 };
 
-  const onE = (v) => { setE(v); const ex = day && v !== '' ? day.exercises[v] : null; if (ex) onPick(ex.url, ex.title); };
+  const onE = (v) => { setE(v); const ex = day && v !== '' ? day.exercises[v] : null; if (ex) onPick(ex.url, ex.title, ex.cid, ex.date); };
 
   if (!tree.length) {
     return (
@@ -85,7 +85,7 @@ function ReviewedClipPicker({ workouts, trainees, onPick, activeUrl }) {
       <div style={{ fontFamily: FB, fontSize: 11, color: C.tm, marginBottom: 9, maxWidth: 480, lineHeight: 1.4 }}>
         Pick an athlete's already-recorded set — only exercises with a video are listed — and the tools analyse it directly, no re-upload.
       </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, maxWidth: 720 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, maxWidth: 720 }}>
         <select value={a} onChange={ev => { setA(ev.target.value); setB(''); setW(''); setD(''); setE(''); }} style={sel}>
           <option value="">Athlete…</option>
           {tree.map((x, i) => <option key={x.cid} value={i}>{x.name}</option>)}
@@ -250,6 +250,7 @@ function ToolRow({ t, blocked, isFirst, onOpen }) {
 export default function ReviewToolsView({ clientWorkouts = [], trainees = [] }) {
   const [title, setTitle] = useState('Squat');
   const [clipUrl, setClipUrl] = useState(null); // a picked reviewed-clip URL → fed into the tools
+  const [clipMeta, setClipMeta] = useState({ clientId: null, date: null }); // athlete+date of the picked clip → Bar-Speed Vault
   const [tool, setTool]   = useState(null); // 'lab' | 'metrics' | 'jump' | 'live' | null
   const camOk = useRef(hasCameraApi());
 
@@ -288,7 +289,7 @@ export default function ReviewToolsView({ clientWorkouts = [], trainees = [] }) 
         {/* Reviewed-clip picker — cascade selects only. Once a clip is picked
             the video + tools lay out below as a two-column workspace. */}
         <ReviewedClipPicker workouts={clientWorkouts} trainees={trainees}
-          onPick={(url, t) => { setClipUrl(url); if (t) setTitle(t); }} />
+          onPick={(url, t, cid, date) => { setClipUrl(url); if (t) setTitle(t); setClipMeta({ clientId: cid || null, date: date || null }); }} />
       </div>
 
       {clipUrl ? (
@@ -300,14 +301,23 @@ export default function ReviewToolsView({ clientWorkouts = [], trainees = [] }) 
             <FormVideoPlayer url={clipUrl} exerciseTitle={title || 'Exercise'} />
           </div>
           <div style={{ flex: '1 1 300px', minWidth: 260, display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {/* Lift being analysed — set AUTOMATICALLY from the picked clip
-                (Ohad: "I don't want to have to pick"), shown read-only. */}
+            {/* Lift being analysed — AUTO-detected from the picked clip's exercise.
+                Editable ONLY here, after a clip is loaded (Ohad: "must be fully
+                automated. i can only change it after analyzing, not before"). */}
             <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '14px 18px' }}>
-              <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 5, textTransform: 'uppercase' }}>Lift being analysed</label>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, maxWidth: '100%', background: 'var(--c-sf2)', border: `1px solid ${C.cardBd}`, padding: '9px 13px', borderRadius: 0 }}>
-                <span style={{ fontFamily: FB, fontSize: 14, fontWeight: 600, color: C.tx, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</span>
-                <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', color: C.ac, whiteSpace: 'nowrap' }}>· AUTO</span>
+              <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>Lift being analysed <span style={{ color: C.ac }}>· AUTO</span></label>
+              <div style={{ fontFamily: FB, fontSize: 11, color: C.tm, marginBottom: 9, lineHeight: 1.4 }}>Detected from the clip. Change it only if the auto-detect is off.</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+                {QUICK_LIFTS.map(l => {
+                  const on = title.trim().toLowerCase() === l.toLowerCase();
+                  return (
+                    <button key={l} onClick={() => setTitle(l)} type="button"
+                      style={{ background: on ? 'var(--c-sf2)' : 'transparent', border: `1px solid ${on ? C.ac : C.cardBd}`, color: on ? C.ac : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', padding: '6px 12px', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>{l}</button>
+                  );
+                })}
               </div>
+              <input value={title} onChange={e => setTitle(e.target.value)} placeholder="…or type any lift"
+                style={{ width: '100%', boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 14, padding: '10px 13px', borderRadius: 0, outline: 'none' }} />
             </div>
             {/* Tools */}
             <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '14px 18px' }}>
@@ -322,26 +332,9 @@ export default function ReviewToolsView({ clientWorkouts = [], trainees = [] }) 
         </div>
       ) : (
         <>
-          {/* No clip — manual / live path: pick the lift, then the tools. */}
-          <div style={{ marginBottom: 16, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '14px 18px' }}>
-            <label htmlFor="rt-exercise" style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 3, textTransform: 'uppercase' }}>Lift being analysed</label>
-            <div style={{ fontFamily: FB, fontSize: 11, color: C.tm, marginBottom: 9, maxWidth: 480, lineHeight: 1.4 }}>
-              Tells the pose engine which joints to read — squat reads knee/hip depth, bench reads elbow lockout.
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
-              {QUICK_LIFTS.map(l => {
-                const on = title.trim().toLowerCase() === l.toLowerCase();
-                return (
-                  <button key={l} onClick={() => setTitle(l)} type="button"
-                    style={{ background: on ? 'var(--c-sf2)' : 'transparent', border: `1px solid ${on ? C.ac : C.cardBd}`, color: on ? C.ac : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', padding: '6px 12px', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>{l}</button>
-                );
-              })}
-            </div>
-            <input id="rt-exercise" value={title} onChange={e => setTitle(e.target.value)} placeholder="…or type any lift, e.g. Front Squat"
-              style={{ width: '100%', maxWidth: 380, boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 14, padding: '10px 13px', borderRadius: 0, outline: 'none' }} />
-          </div>
-
-          {/* Tools card — hairline-divided rows inside the standard surface card. */}
+          {/* No clip yet → just the tools. The "Lift being analysed" card only
+              appears once a clip loads (Ohad: the empty lift row is noise —
+              the lift is auto-detected from the picked clip's exercise). */}
           <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '14px 18px' }}>
             <RefinedHeaderStrip padY={14} padX={18} marginBottom={4}>
               <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>TOOLS</SectionLabel>
@@ -357,7 +350,7 @@ export default function ReviewToolsView({ clientWorkouts = [], trainees = [] }) 
         <ToolBoundary toolKey={tool} onClose={close}>
           <Suspense fallback={<ToolLoading label={activeTool ? activeTool.label : 'TOOL'} />}>
             {tool === 'lab'     && <MovementLab exerciseTitle={title || 'Squat'} initialMode="analyze" initialView="3d" toolLabel="MOVEMENT LAB" initialClipUrl={clipUrl} onClose={close} />}
-            {tool === 'metrics' && <MovementLab exerciseTitle={title || 'Squat'} initialMode="analyze" initialView="metrics" toolLabel="LIFT METRICS" initialClipUrl={clipUrl} onClose={close} />}
+            {tool === 'metrics' && <MovementLab exerciseTitle={title || 'Squat'} initialMode="analyze" initialView="metrics" toolLabel="LIFT METRICS" initialClipUrl={clipUrl} vaultClientId={clipMeta.clientId} vaultDate={clipMeta.date} onClose={close} />}
             {tool === 'jump'    && <MovementLab exerciseTitle="Vertical Jump" initialMode="jump" initialClipUrl={clipUrl} onClose={close} />}
             {tool === 'live'    && <ARFormOverlay exerciseTitle={title || 'Squat'} onClose={close} />}
           </Suspense>

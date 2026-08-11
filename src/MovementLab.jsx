@@ -19,6 +19,7 @@ import { C, FN, FB } from './theme';
 import { createPoseLandmarker, getCamera, stopStream } from './usePose';
 import { analyzeClip, jumpMetrics, reactiveJumpMetrics, jumpPower, frameToPoints3D, estimateFps, barSpeedSeries, barAccelSeries, namedAngleSeries, channelSignal, velocityMetrics, romTempoMetrics } from './poseLab';
 import { detectFaults, detectAsymmetry } from './poseInsights';
+import { savePoseMetric } from './poseMetricsStore';
 import { demoSquatFrames, demoJumpFrames } from './demoMotion';
 
 // Among several detected poses (multi-pose upload analysis), pick the SUBJECT —
@@ -167,6 +168,8 @@ export default function MovementLab({
   onSaveJump,                   // (metrics) => void — wires jump into ath eval
   defaultBodyweightKg = null,   // prefill the jump-power bodyweight from the athlete
   initialClipUrl = null,        // a reviewed form-video URL picked in ReviewToolsView → auto-analyse it
+  vaultClientId = null,         // athlete id of the picked clip → Bar-Speed Vault (owner trial, localStorage)
+  vaultDate = null,             // date of the picked clip → vault entry key
 }) {
   const videoRef = useRef(null);
   const liveCanvasRef = useRef(null);
@@ -494,6 +497,7 @@ export default function MovementLab({
               {mode === 'jump'
                 ? <JumpResult jump={jump} result={result} onSave={onSaveJump} onClose={onClose} defaultBodyweightKg={defaultBodyweightKg} />
                 : <AnalyzeResult result={result} frames={framesRef.current} exerciseTitle={exerciseTitle} tab={tab} setTab={setTab} view={initialView}
+                    vaultClientId={vaultClientId} vaultDate={vaultDate}
                     playheadT={videoTime * 1000}
                     onScrub={(tMs) => { const v = analyzeVideoRef.current; if (v) { try { v.currentTime = tMs / 1000; } catch { /* noop */ } setVideoTime(tMs / 1000); } }} />}
             </div>
@@ -520,7 +524,7 @@ export default function MovementLab({
 }
 
 // ----------------------------- results: analyze -----------------------------
-export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view = 'all', playheadT = null, onScrub = null }) {
+export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view = 'all', vaultClientId = null, vaultDate = null, playheadT = null, onScrub = null }) {
   // First/last-rep trim (Ohad: "I want to be able to set where is the first
   // and last rep, to avoid random movement analyzed into the means") — 1-
   // indexed, inclusive, defaults to the full detected set. Only the MEAN
@@ -530,7 +534,8 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
   // SEE the excluded reps, just not have them pollute the numbers.
   const [repFrom, setRepFrom] = useState(1);
   const [repTo, setRepTo] = useState(null); // null = "to the end", tracks repCount live
-  useEffect(() => { setRepFrom(1); setRepTo(null); }, [frames]);
+  const [vaultSaved, setVaultSaved] = useState(false); // Bar-Speed Vault: this clip logged to the athlete's trend
+  useEffect(() => { setRepFrom(1); setRepTo(null); setVaultSaved(false); }, [frames]);
   const repCount = result?.repCount || 0;
   const effTo = repTo == null ? repCount : Math.min(repTo, repCount);
   const effFrom = Math.min(Math.max(1, repFrom), effTo || 1);
@@ -595,6 +600,23 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
           </span>
         )}
       </div>
+      {/* Bar-Speed Vault — persist this set's velocity/ROM to the athlete's
+          trend so the Lineage can plot a per-lift velocity-fatigue line. Owner
+          trial, this device; only offered when there's real camera velocity. */}
+      {vaultClientId && result.velocity && typeof result.velocity.bestMean === 'number' && (
+        <div style={{ marginBottom: 14 }}>
+          {vaultSaved ? (
+            <span style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.1em', color: C.gn, border: `1px solid ${C.gn}`, padding: '6px 12px', display: 'inline-block' }}>✓ SAVED TO {exerciseTitle.toUpperCase()} TREND</span>
+          ) : (
+            <button type="button"
+              onClick={() => { const e = savePoseMetric({ clientId: vaultClientId, exercise: exerciseTitle, date: vaultDate, analysis: result }); if (e) setVaultSaved(true); }}
+              style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: C.ac, background: 'transparent', border: `1px solid ${C.ac}`, padding: '6px 12px', cursor: 'pointer', borderRadius: 0 }}
+              title="Log this set's bar speed + ROM to the athlete's Lineage velocity trend (owner trial, this device).">
+              ↑ SAVE BAR SPEED TO TREND
+            </button>
+          )}
+        </div>
+      )}
       {(tab === 'velocity' || tab === 'rom') && repCount > 1 && (
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12, fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.1em', flexWrap: 'wrap' }}>
           <span>ANALYZE REPS</span>

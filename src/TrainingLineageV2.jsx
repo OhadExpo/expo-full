@@ -11,6 +11,7 @@
 import React, { useMemo } from 'react';
 import { C, FN } from './theme';
 import { analyzeAthlete } from './lineageAnalysis';
+import { getAthleteVault } from './poseMetricsStore';
 import { blockNum, classifyPattern, repsTop, exById } from './PlansView';
 
 const wrap = { maxWidth: 980, margin: '0 auto', fontFamily: FN };
@@ -110,6 +111,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
     if (!plans) return null;
     return analyzeAthlete(clientWorkouts || [], traineeId, plans, { blockNum, classifyPattern, repsTop, exMap });
   }, [clientWorkouts, traineeId, plans, exMap]);
+  const vault = useMemo(() => getAthleteVault(traineeId), [traineeId]);
 
   const shell = (children) => (
     <div style={{ ...wrap, background: C.bg, border: `1px solid ${C.bd}`, borderRadius: 2, overflow: 'hidden' }}>
@@ -278,10 +280,36 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
 
       <div style={{ ...card, marginTop: 0 }}><div style={hd}>Bar speed<span style={{ fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '1px 6px', border: `1px solid ${C.pu}`, color: C.pu }}>camera only</span></div>
         <div style={bd}>
-          <div style={{ border: `1px dashed ${C.bd}`, background: C.sf2, padding: 14, color: C.tm, fontSize: 12.5, lineHeight: 1.5 }}>
-            <b style={{ color: C.tx }}>No stored velocity yet.</b> Bar speed is the one fatigue signal that drops <i>before</i> load or RPE — and no competitor at this price can read it.
-            <span style={{ color: C.or }}> Not persisted yet</span> — wire velocity capture from the camera tools and this becomes a per-lift fatigue trend that's a real moat.
-          </div>
+          {vault && vault.length > 0 ? (
+            <>
+              {vault.slice(0, 3).map((lift) => {
+                const mx = Math.max(...lift.entries.map((e) => e.lossPct || 0), 20);
+                const tCol = lift.trend === 'worse' ? C.rd : lift.trend === 'better' ? C.gn : C.pu;
+                const last = lift.entries[lift.entries.length - 1];
+                return (
+                  <div key={lift.title} style={{ padding: '9px 0', borderTop: `1px solid ${C.bd}` }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 5 }}>
+                      <span style={{ fontSize: 12.5, color: C.tx }}>{lift.title}</span>
+                      <span style={{ fontSize: 10, color: tCol, letterSpacing: '0.04em' }}>
+                        {last?.lossPct != null ? `${last.lossPct}% loss` : ''}{lift.count >= 2 ? ` · ${lift.trend === 'worse' ? 'fatiguing' : lift.trend === 'better' ? 'recovering' : 'holding'}` : ''}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 30 }}>
+                      {lift.entries.slice(-8).map((e, i) => (
+                        <div key={i} title={`${(e.date || '').slice(0, 10)} · ${e.lossPct}% vel-loss · best ${e.bestMean} m/s`}
+                          style={{ flex: 1, minWidth: 4, height: `${Math.max(12, ((e.lossPct || 0) / mx) * 100)}%`, background: tCol, opacity: 0.85, borderRadius: '1px 1px 0 0' }} />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+              <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>Per-lift velocity-loss from filmed sets — rising bars = fatigue building on the bar, days before load or RPE would show it.</div>
+            </>
+          ) : (
+            <div style={{ border: `1px dashed ${C.bd}`, background: C.sf2, padding: 14, color: C.tm, fontSize: 12.5, lineHeight: 1.5 }}>
+              <b style={{ color: C.tx }}>No stored velocity yet.</b> Bar speed is the one fatigue signal that drops <i>before</i> load or RPE — and no competitor at this price can read it. Film a set in the camera tools and hit <span style={{ color: C.ac }}>Save bar speed to trend</span> — this becomes a per-lift fatigue line that's a real moat.
+            </div>
+          )}
         </div>
       </div>
     </div>
