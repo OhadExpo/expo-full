@@ -159,10 +159,11 @@ export function missRate(sessions, title) {
     for (const ex of sess.exercises || []) {
       if (ex.title !== title) continue;
       for (const s of ex.sets || []) {
+        const reps = num(s.reps);
+        if (reps == null) continue; // only sets actually attempted (reps logged)
         total++;
         const pr = num(s.prescribedReps);
-        if (s.done === false) { short++; continue; }
-        if (pr != null && num(s.reps) != null && s.reps < pr) short++;
+        if (pr != null && reps < pr) short++;
       }
     }
   }
@@ -178,10 +179,16 @@ export function missRateByRegion(sessions) {
     for (const ex of sess.exercises || []) {
       const bucket = lowerRx.test(ex.title || '') ? agg.lower : agg.upper;
       for (const s of ex.sets || []) {
+        // "Grinding" = he ATTEMPTED the set and fell short of target. Only
+        // count sets with real reps logged. A done=false set with no reps is
+        // non-completion (an adherence issue, already in the gate) — counting
+        // it as a "miss" fabricated a fatigue/deload verdict on athletes who
+        // simply prefill a whole block and log it partially.
+        const reps = num(s.reps);
+        if (reps == null) continue;
         bucket.total++;
         const pr = num(s.prescribedReps);
-        if (s.done === false) { bucket.short++; continue; }
-        if (pr != null && num(s.reps) != null && s.reps < pr) bucket.short++;
+        if (pr != null && reps < pr) bucket.short++;
       }
     }
   }
@@ -192,7 +199,6 @@ export function missRateByRegion(sessions) {
 // ---- #5 Completed-tonnage ACWR ------------------------------------------
 // tonnage = Σ(load*reps) per session. Acute=7d, Chronic=28d avg weekly.
 export function tonnageACWR(sessions, nowMs) {
-  const now = nowMs || Math.max(...sessions.map((s) => ms(s.date)), 0);
   const dayMs = 86400000;
   const sessTon = sessions.map((s) => {
     let t = 0;
@@ -200,13 +206,20 @@ export function tonnageACWR(sessions, nowMs) {
       if (num(st.load) != null && num(st.reps) != null && st.done !== false) t += st.load * st.reps;
     }
     return { t, date: ms(s.date) };
-  });
-  const spanDays = (now - Math.min(...sessTon.map((s) => s.date))) / dayMs;
-  if (spanDays < 28) return { state: 'thin', haveDays: Math.round(spanDays), need: 28 };
-  const acute = sessTon.filter((s) => now - s.date <= 7 * dayMs).reduce((a, b) => a + b.t, 0);
-  const chronicTotal = sessTon.filter((s) => now - s.date <= 28 * dayMs).reduce((a, b) => a + b.t, 0);
-  const chronicWeekly = chronicTotal / 4;
-  if (!chronicWeekly) return { state: 'thin', haveDays: Math.round(spanDays), need: 28 };
+  }).filter((s) => isFinite(s.date));
+  if (!sessTon.length) return { state: 'thin', haveDays: 0, need: 28 };
+  const now = nowMs || Math.max(...sessTon.map((s) => s.date));
+  // Only the trailing 28 days form the chronic baseline. Measure coverage
+  // WITHIN that window (now − oldest in-window session), NOT since the athlete's
+  // first-ever session — otherwise a single recent week beside an old block
+  // divides ~acute by 4 and fabricates a ~4.0 spike (the spec's cardinal sin).
+  const recent = sessTon.filter((s) => now - s.date <= 28 * dayMs);
+  const inSpan = (now - Math.min(...recent.map((s) => s.date))) / dayMs;
+  if (inSpan < 21 || recent.length < 4) return { state: 'thin', haveDays: Math.round(inSpan), need: 28 };
+  const acute = recent.filter((s) => now - s.date <= 7 * dayMs).reduce((a, b) => a + b.t, 0);
+  const chronicTotal = recent.reduce((a, b) => a + b.t, 0);
+  const chronicWeekly = chronicTotal / Math.max(1, inSpan / 7); // divide by weeks with actual data
+  if (!chronicWeekly) return { state: 'thin', haveDays: Math.round(inSpan), need: 28 };
   const acwr = acute / chronicWeekly;
   let band = 'ok';
   if (acwr >= 1.5) band = 'high'; else if (acwr < 0.8) band = 'low';
@@ -285,10 +298,15 @@ export { CORE_PATTERNS };
 //   plans:          [{ id, name, weeks, days:[{ name, exercises:[{exerciseId, title, sets, reps, rpe }] }] }]
 //   clientWorkouts: [{ clientId, planName, dayName, week, date, exercises:[{ eid, title, sets:[{reps,load,rpe,done}] }] }]
 export function buildBlockSessions(clientWorkouts, traineeId, plans, deps, opts = {}) {
-  const { blockNum, classifyPattern, repsTop, exMap } = deps;
+  const { blockNum, classifyPattern, exMap } = deps;
   const { allBlocks = false } = opts;
   const pf = (x) => { const n = parseFloat(x); return isFinite(n) ? n : null; };
   const norm = (s) => (s || '').trim().toLowerCase();
+  // Prescribed-reps threshold for the failed-reps read = the LOW end of the
+  // range, not the top. "8–10" is HIT at 8; "10/8/6" descending is hit at 6.
+  // Using the top (repsTop) counted every on-target sub-ceiling rep as a miss,
+  // inflating the "grinding" signal into a false deload verdict.
+  const minReps = (r) => { const ns = String(r == null ? '' : r).match(/\d+(?:\.\d+)?/g); return ns && ns.length ? Math.min(...ns.map(Number)) : null; };
 
   const withDays = (plans || []).filter((p) => (p.days || []).some((d) => (d.exercises || []).length));
   if (!withDays.length) return { sessions: [], plannedSessionCount: 0, blockName: null, blockNumber: null, hasPlans: false };
@@ -296,7 +314,8 @@ export function buildBlockSessions(clientWorkouts, traineeId, plans, deps, opts 
   const ordered = [...withDays].sort((a, b) => {
     const an = blockNum(a.name), bn = blockNum(b.name);
     if (an != null && bn != null) return an - bn;
-    if (an != null) return -1; if (bn != null) return 1; return 0;
+    if (an == null && bn == null) return 0;
+    return an == null ? -1 : 1; // un-numbered plans sort as OLDEST (front), so the highest-numbered block is "latest"
   });
   const latest = ordered[ordered.length - 1];
   const latestNum = blockNum(latest.name);
@@ -314,7 +333,7 @@ export function buildBlockSessions(clientWorkouts, traineeId, plans, deps, opts 
         const pattern = classifyPattern ? classifyPattern(title, lib) : null;
         const keyEid = ex.exerciseId ? `${norm(d.name)}|${ex.exerciseId}` : null;
         const keyTitle = `${norm(d.name)}|t:${norm(title)}`;
-        const rec = { prescribedReps: repsTop ? repsTop(ex.reps) : null, prescribedRpe: pf(ex.rpe), pattern, title };
+        const rec = { prescribedReps: minReps(ex.reps), prescribedRpe: pf(ex.rpe), pattern, title };
         if (keyEid && !presc.has(keyEid)) presc.set(keyEid, rec);
         if (!presc.has(keyTitle)) presc.set(keyTitle, rec);
       }
@@ -360,6 +379,10 @@ export function skipPattern(sessions, plannedDays, weeks) {
   if (!plannedDays || !plannedDays.length || !weeks) return null;
   const logged = {};
   for (const s of sessions) { const d = (s.day || '').trim(); if (d) logged[d] = (logged[d] || 0) + 1; }
+  // If NO planned day name matches any logged day name, the two naming schemes
+  // diverge — every day would read as "0 logged" and we'd falsely brand an
+  // athlete who trained daily as skipping. Suppress rather than fabricate.
+  if (!plannedDays.some((d) => logged[d] != null)) return null;
   let worst = null;
   for (const d of plannedDays) {
     const gap = weeks - (logged[d] || 0);
@@ -385,7 +408,6 @@ export function analyzeAthlete(clientWorkouts, traineeId, plans, deps) {
   const adh = adherence(sessions, plannedSessionCount);
   const region = missRateByRegion(sessions);
   const acwr = tonnageACWR(allSessions);
-  const coverage = patternCoverage(sessions);
   // staples: lifts logged 3+ times across blocks, richest first (cap series
   // to the most recent 6 logs so an old block doesn't drown the current read)
   const staples = [...series.entries()]
@@ -409,5 +431,5 @@ export function analyzeAthlete(clientWorkouts, traineeId, plans, deps) {
   let setsWithRpe = 0, totalSets = 0;
   for (const s of sessions) for (const ex of s.exercises) for (const st of ex.sets) { totalSets++; if (st.rpe != null) setsWithRpe++; }
   const rpeCoverage = totalSets ? Math.round((setsWithRpe / totalSets) * 100) : 0;
-  return { ...built, empty: false, adh, region, acwr, coverage, staples, verdict, rpeCoverage, skip };
+  return { ...built, empty: false, adh, region, acwr, staples, verdict, rpeCoverage, skip };
 }

@@ -19,7 +19,7 @@ function readAll() {
   try { return JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch { return {}; }
 }
 function writeAll(obj) {
-  try { localStorage.setItem(KEY, JSON.stringify(obj)); } catch { /* quota / private mode — trial only */ }
+  try { localStorage.setItem(KEY, JSON.stringify(obj)); return true; } catch { return false; /* quota / private mode */ }
 }
 
 // Save (or replace, same date) one analysed set's headline metrics.
@@ -48,8 +48,10 @@ export function savePoseMetric({ clientId, exercise, date, analysis }) {
   lift.entries = lift.entries.filter((e) => (e.date || '').slice(0, 10) !== d0);
   lift.entries.push(entry);
   lift.entries.sort((a, b) => String(a.date).localeCompare(String(b.date)));
-  writeAll(all);
-  return entry;
+  // Only report success if it actually persisted — otherwise the UI would flash
+  // "Saved to trend" on a device where localStorage is full/blocked and nothing
+  // was written.
+  return writeAll(all) ? entry : null;
 }
 
 // All vaulted lifts for one athlete, richest history first:

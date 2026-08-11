@@ -54,11 +54,13 @@ export function detectFaults(result, title) {
   // Exercise-family geometry checks
   // Depth check is for grinding strength squats — NOT plyometrics, where a
   // short, stiff knee bend is the intended stimulus (flagging it is a false
-  // positive that erodes trust).
-  const isPlyo = /jump|pogo|plyo|bound|hop|depth[-\s]?drop|snap[-\s]?down/.test(t);
-  const isSquat = !isPlyo && /squat|lunge|split|step[-\s]?up|pistol|rfess|bulgarian/.test(t);
-  const isPress = /press|push[-\s]?up|dip|bench|ohp|overhead/.test(t);
-  const isPull = /pull[-\s]?up|chin|row|pulldown|lat[-\s]?pull/.test(t);
+  // positive that erodes trust). All families use \b word boundaries so a bare
+  // substring can't misfire — "chin" must NOT match "maCHINe", "row" must NOT
+  // match "naRROW", and a leg/calf/hack "press" is not an elbow-lockout lift.
+  const isPlyo = /\b(jump|pogo|plyo|bound|hop|depth[-\s]?drop|snap[-\s]?down)\b/.test(t);
+  const isSquat = !isPlyo && /\b(squat|lunge|split[-\s]?squat|step[-\s]?up|pistol|rfess|bulgarian)\b/.test(t);
+  const isPress = (/\b(bench|ohp|overhead|shoulder\s*press|chest\s*press|push[-\s]?up|dip)\b/.test(t) || (/\bpress\b/.test(t) && !/\b(leg|calf|hack)\b/.test(t)));
+  const isPull = /\bpull[-\s]?up|\bchin[-\s]?up|\brow\b|pull[-\s]?down|lat[-\s]?pull/.test(t);
   if (isSquat && jn['L KNE'] && jn['R KNE']) {
     const kneeMin = Math.min(jn['L KNE'].minDeg, jn['R KNE'].minDeg);
     if (kneeMin > 100) faults.push({ sev: 'warn', msg: `Stopping high (knee bends to ~${kneeMin}°)`, why: 'below parallel is roughly a 90° knee angle — he\'s cutting depth. Mobility or intent.' });
