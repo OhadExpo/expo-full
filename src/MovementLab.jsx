@@ -290,7 +290,11 @@ export default function MovementLab({
 
   // Reactive jumps (drop jump, POGO) need ground-contact + RSI; the rest are
   // flight-time height. One helper so both capture paths branch identically.
-  const isReactive = jumpType === 'drop' || jumpType === 'pogo';
+  // Auto-detect reactive from the exercise title too — a reviewed "POGO"/"Drop
+  // Jump" clip defaults to jumpType 'cmj' and would otherwise be fed to the
+  // single-jump reader, which correctly can't read a string of hops.
+  const isReactive = jumpType === 'drop' || jumpType === 'pogo'
+    || /\b(pogo|drop[-\s]?jump|depth[-\s]?jump|hop|bound|bounce|rebound|reactive|rsi|ankle[-\s]?stiff)\b/i.test(exerciseTitle || '');
   const computeJump = useCallback((frames) => {
     if (isReactive) {
       const rm = reactiveJumpMetrics(frames);
