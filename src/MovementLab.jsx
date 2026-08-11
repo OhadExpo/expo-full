@@ -618,6 +618,11 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
           </span>
         )}
       </div>
+      {!(result.repCount > 0) && (
+        <div style={{ fontFamily: FN, fontSize: 12.5, color: 'rgba(255,255,255,0.62)', letterSpacing: '0.02em', marginBottom: 14, lineHeight: 1.6, padding: '9px 12px', border: `1px solid ${C.bd}`, background: C.sf2 }}>
+          <b style={{ color: '#fff', letterSpacing: '0.04em' }}>No distinct reps detected.</b> Likely an isometric hold (nothing to count), or the movement was too small / too off-angle for the camera to segment — a prone push-up or a lateral drill can read flat to a front camera. Bar-speed, tempo and set-quality all need counted reps, so those tabs stay empty; the rotatable skeleton in MOVEMENT LAB still works.
+        </div>
+      )}
       {/* Count cross-check — the camera count vs what the athlete actually
           LOGGED for this exercise. Honest reliability signal: a big gap means
           trust his log, not the camera (fast plyos / lateral work under-count). */}
