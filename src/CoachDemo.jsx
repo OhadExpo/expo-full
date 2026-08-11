@@ -1767,9 +1767,12 @@ const DEMO_LINEAGE_WORKOUTS = (() => {
     const KEY = 'expo-pose-metrics';
     const all = JSON.parse(localStorage.getItem(KEY) || '{}') || {};
     const base = Date.parse('2026-06-01T09:00:00'), day = 86400000;
-    const e = (i, loss, best, rom) => ({ date: new Date(base + i * 7 * day).toISOString(), kind: 'knee', reps: 5, bestMean: best, lossPct: loss, maxRom: rom });
+    // asym = [kneeGap%, hipGap%] so the "Symmetry / injury watch" card shows the
+    // moat too: a right-knee gap widening across filmed squats (a limb pulling
+    // away before it's pain), hip staying balanced.
+    const e = (i, loss, best, rom, asym) => ({ date: new Date(base + i * 7 * day).toISOString(), kind: 'knee', reps: 5, bestMean: best, lossPct: loss, maxRom: rom, asymRows: asym ? [{ joint: 'Knees', pct: asym[0], weaker: 'Right' }, { joint: 'Hips', pct: asym[1], weaker: 'Right' }] : null });
     all.demo = {
-      'bb back squat': { title: 'BB Back Squat', entries: [e(0, 12, 0.62, 118), e(1, 16, 0.58, 116), e(2, 20, 0.55, 114), e(3, 26, 0.49, 110)] }, // fatiguing
+      'bb back squat': { title: 'BB Back Squat', entries: [e(0, 12, 0.62, 118, [6, 4]), e(1, 16, 0.58, 116, [10, 5]), e(2, 20, 0.55, 114, [15, 5]), e(3, 26, 0.49, 110, [20, 6])] }, // fatiguing + knee gap widening
       'bb bench press': { title: 'BB Bench Press', entries: [e(0, 14, 0.44, 92), e(1, 13, 0.46, 93), e(2, 12, 0.47, 93)] }, // holding
     };
     localStorage.setItem(KEY, JSON.stringify(all));
@@ -3520,7 +3523,7 @@ function DemoSessions() {
 // MediaPipe/three.js — clicking a tool explains it runs live in the full app. ──
 const DEMO_REVIEW_TOOLS = [
   { key: 'lab', label: 'MOVEMENT LAB', measures: 'Rotatable 3D skeleton rebuilt from the lift', live: false },
-  { key: 'metrics', label: 'LIFT METRICS', measures: 'Bar speed (VBT) + velocity-loss · ROM + tempo + collapse flags', live: false },
+  { key: 'metrics', label: 'LIFT METRICS', measures: 'Bar speed (VBT) + per-goal stop-set cutoff · ROM/tempo/collapse · L/R symmetry', live: false },
   { key: 'jump', label: 'JUMP TEST', measures: 'Jump height from flight time · estimated peak power', live: false },
   { key: 'live', label: 'LIVE COACH', measures: 'Real-time reps + depth target + bar-path drift on the live feed', live: true },
 ];
