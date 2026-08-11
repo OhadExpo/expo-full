@@ -653,7 +653,9 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
           trial, this device; only offered when there's real camera velocity. */}
       {vaultClientId && result.velocity && typeof result.velocity.bestMean === 'number' && (
         <div style={{ marginBottom: 14 }}>
-          {vaultSaved ? (
+          {result?.captureQuality?.grade === 'poor' ? (
+            <span style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.06em', color: C.or || '#f0b429', border: `1px solid ${C.or || '#f0b429'}`, padding: '6px 12px', display: 'inline-block', lineHeight: 1.4 }} title="This clip tracked poorly — the numbers aren't reliable enough to become a trend point. Refilm cleaner to log it.">CLIP TOO ROUGH TO TREND · REFILM TO LOG</span>
+          ) : vaultSaved ? (
             <span style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.1em', color: C.gn, border: `1px solid ${C.gn}`, padding: '6px 12px', display: 'inline-block' }}>✓ SAVED TO {exerciseTitle.toUpperCase()} TREND</span>
           ) : (
             <button type="button"

@@ -38,6 +38,10 @@ export function savePoseMetric({ clientId, exercise, date, analysis }) {
   const vel = analysis.velocity, rt = analysis.romTempo;
   const bestMean = vel && typeof vel.bestMean === 'number' ? vel.bestMean : null;
   const lossPct = vel && typeof vel.finalLossPct === 'number' ? Math.min(99, Math.max(0, vel.finalLossPct)) : null;
+  // A poorly-tracked clip yields unreliable velocity + L/R numbers — never let it
+  // become a trend point (one garbage film would fake a velocity spike or a
+  // widening injury flag). Refuse it; the UI tells the coach to refilm.
+  if (analysis.captureQuality && analysis.captureQuality.grade === 'poor') return null;
   const maxRom = rt && typeof rt.maxRom === 'number' ? rt.maxRom : null;
   // Per-joint L/R travel so the injury-watch timeline can trend a *widening*
   // gap across sessions — the read every phone tool leaves on the floor.
