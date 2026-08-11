@@ -41,7 +41,8 @@ function buildClipTree(workouts, trainees) {
       if (!W.has(week)) W.set(week, new Map());
       const D = W.get(week);
       if (!D.has(day)) D.set(day, []);
-      D.get(day).push({ title, url: fv.cloudUrl, date: w.date, cid });
+      D.get(day).push({ title, url: fv.cloudUrl, date: w.date, cid,
+        recorded: (ex && Array.isArray(ex.sets) ? ex.sets.map(s => parseFloat(s.reps)).filter(n => isFinite(n)) : []) });
     }
   }
   return [...A.entries()].map(([cid, B]) => ({
@@ -69,7 +70,7 @@ function ReviewedClipPicker({ workouts, trainees, onPick, activeUrl }) {
   const sel = { flex: '1 1 130px', minWidth: 0, boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 13, padding: '9px 11px', borderRadius: 0, outline: 'none', cursor: 'pointer' };
   const selDim = { ...sel, color: C.td, cursor: 'default', opacity: 0.6 };
 
-  const onE = (v) => { setE(v); const ex = day && v !== '' ? day.exercises[v] : null; if (ex) onPick(ex.url, ex.title, ex.cid, ex.date); };
+  const onE = (v) => { setE(v); const ex = day && v !== '' ? day.exercises[v] : null; if (ex) onPick(ex.url, ex.title, ex.cid, ex.date, ex.recorded); };
 
   if (!tree.length) {
     return (
@@ -250,7 +251,7 @@ function ToolRow({ t, blocked, isFirst, onOpen }) {
 export default function ReviewToolsView({ clientWorkouts = [], trainees = [] }) {
   const [title, setTitle] = useState('Squat');
   const [clipUrl, setClipUrl] = useState(null); // a picked reviewed-clip URL → fed into the tools
-  const [clipMeta, setClipMeta] = useState({ clientId: null, date: null }); // athlete+date of the picked clip → Bar-Speed Vault
+  const [clipMeta, setClipMeta] = useState({ clientId: null, date: null, recorded: [] }); // athlete+date+logged-reps of the picked clip
   const [tool, setTool]   = useState(null); // 'lab' | 'metrics' | 'jump' | 'live' | null
   const camOk = useRef(hasCameraApi());
 
@@ -289,7 +290,7 @@ export default function ReviewToolsView({ clientWorkouts = [], trainees = [] }) 
         {/* Reviewed-clip picker — cascade selects only. Once a clip is picked
             the video + tools lay out below as a two-column workspace. */}
         <ReviewedClipPicker workouts={clientWorkouts} trainees={trainees}
-          onPick={(url, t, cid, date) => { setClipUrl(url); if (t) setTitle(t); setClipMeta({ clientId: cid || null, date: date || null }); }} />
+          onPick={(url, t, cid, date, recorded) => { setClipUrl(url); if (t) setTitle(t); setClipMeta({ clientId: cid || null, date: date || null, recorded: recorded || [] }); }} />
       </div>
 
       {clipUrl ? (
@@ -350,7 +351,7 @@ export default function ReviewToolsView({ clientWorkouts = [], trainees = [] }) 
         <ToolBoundary toolKey={tool} onClose={close}>
           <Suspense fallback={<ToolLoading label={activeTool ? activeTool.label : 'TOOL'} />}>
             {tool === 'lab'     && <MovementLab exerciseTitle={title || 'Squat'} initialMode="analyze" initialView="3d" toolLabel="MOVEMENT LAB" initialClipUrl={clipUrl} onClose={close} />}
-            {tool === 'metrics' && <MovementLab exerciseTitle={title || 'Squat'} initialMode="analyze" initialView="metrics" toolLabel="LIFT METRICS" initialClipUrl={clipUrl} vaultClientId={clipMeta.clientId} vaultDate={clipMeta.date} onClose={close} />}
+            {tool === 'metrics' && <MovementLab exerciseTitle={title || 'Squat'} initialMode="analyze" initialView="metrics" toolLabel="LIFT METRICS" initialClipUrl={clipUrl} vaultClientId={clipMeta.clientId} vaultDate={clipMeta.date} recordedReps={clipMeta.recorded} onClose={close} />}
             {tool === 'jump'    && <MovementLab exerciseTitle="Vertical Jump" initialMode="jump" initialClipUrl={clipUrl} onClose={close} />}
             {tool === 'live'    && <ARFormOverlay exerciseTitle={title || 'Squat'} onClose={close} />}
           </Suspense>
