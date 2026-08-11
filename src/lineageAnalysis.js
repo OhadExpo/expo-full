@@ -415,6 +415,36 @@ export function skipPattern(sessions, plannedDays, weeks) {
 }
 
 // One-call analysis producing everything the view renders.
+// Per-block character over the athlete's whole history — the "lineage" of the
+// PROGRAMMING (not just the lifts). Groups his logged sets by block and reads
+// each block's emphasis from the reps he actually did: low = strength, mid =
+// hypertrophy, high = volume/endurance. Lets the coach see the periodization arc
+// and decide what phase should come next.
+export function blockHistory(clientWorkouts, traineeId, deps) {
+  const { blockNum } = deps;
+  const mine = (clientWorkouts || []).filter((w) => String(w.clientId) === String(traineeId));
+  const byBlock = new Map();
+  for (const w of mine) {
+    const bn = blockNum(w.planName);
+    if (bn == null) continue;
+    if (!byBlock.has(bn)) byBlock.set(bn, { num: bn, name: w.planName, reps: [], sets: 0, rpes: [], dates: new Set() });
+    const b = byBlock.get(bn);
+    b.dates.add((w.date || '').slice(0, 10));
+    for (const ex of w.exercises || []) for (const s of ex.sets || []) {
+      if (s.done === false) continue;
+      const r = num(s.reps); const rp = num(s.rpe);
+      if (r != null && r > 0) { b.reps.push(r); b.sets++; }
+      if (rp != null) b.rpes.push(rp);
+    }
+  }
+  return [...byBlock.values()].filter((b) => b.reps.length >= 3).map((b) => {
+    const avgReps = b.reps.reduce((a, c) => a + c, 0) / b.reps.length;
+    const character = avgReps < 6 ? 'strength' : avgReps <= 10 ? 'hypertrophy' : 'volume';
+    const avgRpe = b.rpes.length ? Math.round((b.rpes.reduce((a, c) => a + c, 0) / b.rpes.length) * 10) / 10 : null;
+    return { num: b.num, name: b.name, character, avgReps: Math.round(avgReps * 10) / 10, sets: b.sets, sessions: b.dates.size, avgRpe };
+  }).sort((a, b) => a.num - b.num); // oldest → newest = the arc left-to-right
+}
+
 export function analyzeAthlete(clientWorkouts, traineeId, plans, deps) {
   const built = buildBlockSessions(clientWorkouts, traineeId, plans, deps, { targetBlockNum: deps.targetBlockNum ?? null });
   const { sessions, plannedSessionCount } = built;
