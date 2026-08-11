@@ -1756,6 +1756,26 @@ const DEMO_LINEAGE_WORKOUTS = (() => {
   return rows;
 })();
 
+// Seed a demo Bar-Speed Vault (localStorage, 'demo' client only) so the Lineage
+// "Bar speed" card shows the moat in action — a filmed-set velocity-loss trend
+// climbing on the squat (fatigue building on the bar) — instead of the empty
+// "not stored yet" nudge. Runs once at import, before DemoLineage renders, and
+// never touches a real athlete's key. Idempotent.
+(() => {
+  try {
+    if (typeof localStorage === 'undefined') return;
+    const KEY = 'expo-pose-metrics';
+    const all = JSON.parse(localStorage.getItem(KEY) || '{}') || {};
+    const base = Date.parse('2026-06-01T09:00:00'), day = 86400000;
+    const e = (i, loss, best, rom) => ({ date: new Date(base + i * 7 * day).toISOString(), kind: 'knee', reps: 5, bestMean: best, lossPct: loss, maxRom: rom });
+    all.demo = {
+      'bb back squat': { title: 'BB Back Squat', entries: [e(0, 12, 0.62, 118), e(1, 16, 0.58, 116), e(2, 20, 0.55, 114), e(3, 26, 0.49, 110)] }, // fatiguing
+      'bb bench press': { title: 'BB Bench Press', entries: [e(0, 14, 0.44, 92), e(1, 13, 0.46, 93), e(2, 12, 0.47, 93)] }, // holding
+    };
+    localStorage.setItem(KEY, JSON.stringify(all));
+  } catch { /* demo seed is best-effort */ }
+})();
+
 function DemoLineage({ athleteName }) {
   return <TrainingLineageV2 traineeId="demo" traineeName={athleteName} exercises={[]} plans={DEMO_LINEAGE_PLANS} clientWorkouts={DEMO_LINEAGE_WORKOUTS} loading={false} onOpenPlan={() => {}} />;
 }
