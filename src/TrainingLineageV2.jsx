@@ -61,18 +61,23 @@ function Tag({ text, color }) {
   return <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.03em', padding: '2px 7px', border: `1px solid ${color}`, color, whiteSpace: 'nowrap' }}>{text}</span>;
 }
 
-// staple → { tag, tagColor, why }
+// staple → { tag, tagColor, why } — reads like a coach's shorthand, not a report.
 function readStaple(s) {
+  if (s.count < 3) return { tag: `${s.count}× ONLY`, tagColor: C.td, why: 'too soon to call — need 3+ sessions' };
+  if (s.ballistic) {
+    if (s.trend?.dir === 'up') return { tag: 'GOING UP', tagColor: C.gn, why: 'load creeping up on an explosive lift — good, but height/bar-speed is the real read' };
+    return { tag: 'EXPLOSIVE', tagColor: C.pu, why: 'flat load is fine here — jumps progress on height + speed, not kg. film it for velocity.' };
+  }
   if (s.stale?.state === 'ok' && s.stale.stale) {
-    if (s.stale.mode === 'hard') return { tag: 'STALE · HARD', tagColor: C.or, why: 'flat + grinding → change the stimulus, not the weight' };
-    if (s.stale.mode === 'easy') return { tag: 'EASY · ADD', tagColor: C.ac, why: 'flat but easy → add load next block' };
-    return { tag: 'STALE', tagColor: C.or, why: 'load hasn\'t moved in 3 sessions' };
+    if (s.stale.mode === 'hard') return { tag: 'STUCK · HARD', tagColor: C.or, why: '3 sessions same weight and he\'s grinding — change it (tempo, pause, variation), not just more kg' };
+    if (s.stale.mode === 'easy') return { tag: 'STUCK · EASY', tagColor: C.ac, why: 'flat but moving easy — just put weight on' };
+    return { tag: 'STUCK', tagColor: C.or, why: 'weight hasn\'t moved in 3 sessions' };
   }
   if (s.trend?.state === 'ok') {
-    if (s.trend.dir === 'up') return { tag: 'PROGRESSING', tagColor: C.gn, why: 'e1RM climbing → keep adding' };
-    if (s.trend.dir === 'down') return { tag: 'DROPPING', tagColor: C.rd, why: 'regressing under fatigue' };
+    if (s.trend.dir === 'up') return { tag: 'GOING UP', tagColor: C.gn, why: 'climbing — keep adding' };
+    if (s.trend.dir === 'down') return { tag: 'SLIPPING', tagColor: C.rd, why: 'going backwards — back off or check his recovery' };
   }
-  return { tag: 'STEADY', tagColor: C.tm, why: 'holding' };
+  return { tag: 'HOLDING', tagColor: C.tm, why: 'holding steady' };
 }
 
 function nextBlockText(a) {
@@ -222,37 +227,43 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
 
     {/* 3. STAPLES */}
     {a.staples.length > 0 && (
-      <div style={card}><div style={hd}>His lifts<span style={hdQ}>e1RM trend · actual load · the read</span></div>
+      <div style={card}><div style={hd}>His lifts<span style={hdQ}>every lift he loaded — worst first, so you know what to touch next block</span></div>
         <div style={bd}>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead><tr>
-                {['Lift', 'e1RM', 'Load (kg)', 'Read'].map((h, i) => (
-                  <th key={h} style={{ textAlign: i === 3 ? 'right' : 'left', fontSize: 9, letterSpacing: '0.11em', textTransform: 'uppercase', color: C.tm, fontWeight: 600, padding: '0 8px 7px', borderBottom: `1px solid ${C.bd}` }}>{h}</th>
+                {['Lift', 'Trend', 'Best', 'Last loads', ''].map((h, i) => (
+                  <th key={i} style={{ textAlign: i === 4 ? 'right' : 'left', fontSize: 9, letterSpacing: '0.11em', textTransform: 'uppercase', color: C.tm, fontWeight: 600, padding: '0 8px 7px', borderBottom: `1px solid ${C.bd}` }}>{h}</th>
                 ))}
               </tr></thead>
               <tbody>
-                {a.staples.slice(0, 8).map((s) => {
+                {a.staples.map((s) => {
                   const r = readStaple(s);
-                  const loads = s.loads.filter((x) => x != null).slice(-3).map((x) => (Number.isInteger(x) ? x : x.toFixed(1)));
+                  const loads = s.loads.filter((x) => x != null).slice(-4).map((x) => (Number.isInteger(x) ? x : x.toFixed(1)));
+                  const fmt = (d) => { try { const dt = new Date(d); return `${dt.getDate()}/${dt.getMonth() + 1}`; } catch { return ''; } };
+                  const best = s.pr != null ? `${Number.isInteger(s.pr) ? s.pr : s.pr.toFixed(1)}kg` : (s.prE1 != null ? `e${s.prE1}` : '—');
                   return (
                     <tr key={s.title}>
-                      <td style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, verticalAlign: 'middle' }}>
-                        {s.title}
-                        <div style={{ fontSize: 11, color: C.tm, marginTop: 2 }}>{r.why}</div>
+                      <td style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, verticalAlign: 'top' }}>
+                        <div style={{ color: C.tx }}>{s.title}</div>
+                        <div style={{ fontSize: 11, color: C.tm, marginTop: 2, lineHeight: 1.4 }}>{r.why}</div>
+                        <div style={{ fontSize: 10, color: C.td, marginTop: 2 }}>{s.count}× · last {fmt(s.lastDate)}</div>
                       </td>
-                      <td style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, whiteSpace: 'nowrap' }}>
-                        {s.trend?.state === 'ok' ? <><Spark pts={s.trend.pts} dir={s.trend.dir} /> <span style={{ fontVariantNumeric: 'tabular-nums', color: C.tx, fontWeight: 600, marginLeft: 4 }}>{s.trend.latest}</span></> : <span style={{ color: C.td, fontSize: 11 }}>{s.count}/3 logs</span>}
+                      <td style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, whiteSpace: 'nowrap', verticalAlign: 'top' }}>
+                        {s.trend?.state === 'ok' ? <><Spark pts={s.trend.pts} dir={s.trend.dir} /> <span style={{ fontVariantNumeric: 'tabular-nums', color: C.tx, fontWeight: 600, marginLeft: 4 }}>e{s.trend.latest}</span></> : <span style={{ color: C.td, fontSize: 11 }}>—</span>}
                       </td>
-                      <td style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, fontVariantNumeric: 'tabular-nums', color: C.tm }}>{loads.join(' · ')}</td>
-                      <td style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, textAlign: 'right' }}><Tag text={r.tag} color={r.tagColor} /></td>
+                      <td style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, fontVariantNumeric: 'tabular-nums', color: C.tx, fontWeight: 600, whiteSpace: 'nowrap', verticalAlign: 'top' }}>{best}</td>
+                      <td style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, fontVariantNumeric: 'tabular-nums', color: C.tm, verticalAlign: 'top' }}>{loads.join(' · ')}</td>
+                      <td style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, textAlign: 'right', verticalAlign: 'top' }}><Tag text={r.tag} color={r.tagColor} /></td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
           </div>
-          <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>Only lifts logged 3+ times · e1RM = Epley, suppressed past 12 reps · STALE·HARD vs EASY·ADD are the same flat line with opposite fixes.</div>
+          <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>
+            Every lift he put weight on{a.bodyweightLifts > 0 ? ` · ${a.bodyweightLifts} more bodyweight/accessory lift${a.bodyweightLifts === 1 ? '' : 's'} logged (no load to trend)` : ''} · best = heaviest logged · e = est-1RM (Epley), hidden past 12 reps.
+          </div>
         </div>
       </div>
     )}

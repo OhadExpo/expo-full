@@ -414,26 +414,46 @@ export function analyzeAthlete(clientWorkouts, traineeId, plans, deps) {
   const acwr = tonnageACWR(allSessions);
   // staples: lifts logged 3+ times across blocks, richest first (cap series
   // to the most recent 6 logs so an old block doesn't drown the current read)
-  const staples = [...series.entries()]
+  // Ballistic lifts progress by height/speed, not linear load — so a flat load
+  // is NOT a stall for them, and e1RM on a jump is meaningless. Flag them so the
+  // view reads them right and they don't dominate the worst-first sort.
+  const BALLISTIC = /\b(jump|pogo|hop|bound|plyo|skip|slam|toss|throw|snap[-\s]?down|bounce|leap)\b/i;
+  const allLifts = [...series.entries()]
     .map(([title, sAll]) => {
       const s = sAll.slice(-6);
+      const loadsAll = sAll.map((x) => x.load).filter((l) => l != null && l > 0);
+      const e1All = sAll.map((x) => x.e1).filter((x) => x != null);
+      const last = sAll[sAll.length - 1];
       return {
-        title, series: s, count: s.length,
+        title, series: s, count: sAll.length,          // total times he's logged it
+        ballistic: BALLISTIC.test(title),
         stale: staleWeight(s), trend: e1rmTrend(s),
         drift: rpeDrift(s, null), miss: missRate(allSessions, title),
-        loads: s.map((x) => x.load),
+        loads: s.map((x) => x.load), hasLoad: loadsAll.length > 0,
+        pr: loadsAll.length ? Math.max(...loadsAll) : null,       // heaviest load ever
+        prE1: e1All.length ? Math.round(Math.max(...e1All)) : null, // best est-1RM ever
+        lastDate: last ? last.date : null, lastLoad: last ? last.load : null, lastReps: last ? last.reps : null,
       };
-    })
-    // 3+ logs AND at least one real external load — the staple table is a
-    // load/e1RM read, so pure-bodyweight lifts (all loads 0/null) don't belong
-    // here; they'd render a meaningless "0·0·0 · STALE" row.
-    .filter((x) => x.count >= 3 && x.loads.some((l) => l != null && l > 0))
-    .sort((a, b) => b.count - a.count);
+    });
+  // Show every lift he actually LOADED (bodyweight-only lifts can't trend on a
+  // load/e1RM table — counted separately below). Rank by what needs attention:
+  // dropping first, then stuck-and-hard, then stuck, then climbing, then too-few.
+  const rank = (x) => {
+    if (x.count < 3) return 6;                                   // not enough to call
+    if (x.ballistic) return 5;                                  // load isn't the story for jumps/throws — de-prioritise
+    if (x.trend?.dir === 'down') return 0;                      // going backwards — look first
+    if (x.stale?.stale && x.stale.mode === 'hard') return 1;    // stuck + grinding
+    if (x.stale?.stale) return 2;                               // stuck
+    if (x.trend?.dir === 'up') return 3;                        // climbing
+    return 4;
+  };
+  const staples = allLifts.filter((x) => x.hasLoad).sort((a, b) => rank(a) - rank(b) || b.count - a.count);
+  const bodyweightLifts = allLifts.filter((x) => !x.hasLoad).length; // accessory/bodyweight, no load to trend
   const skip = skipPattern(sessions, built.plannedDays, built.weeks);
   const verdict = synthesizeVerdict({ adh, region, staples, acwr, velocity: { state: 'thin' } });
   // readiness density (rpe on sets, autoreg on sessions) for the honest thin card
   let setsWithRpe = 0, totalSets = 0;
   for (const s of sessions) for (const ex of s.exercises) for (const st of ex.sets) { totalSets++; if (st.rpe != null) setsWithRpe++; }
   const rpeCoverage = totalSets ? Math.round((setsWithRpe / totalSets) * 100) : 0;
-  return { ...built, empty: false, adh, region, acwr, staples, verdict, rpeCoverage, skip };
+  return { ...built, empty: false, adh, region, acwr, staples, bodyweightLifts, verdict, rpeCoverage, skip };
 }
