@@ -61,23 +61,29 @@ function Tag({ text, color }) {
   return <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.03em', padding: '2px 7px', border: `1px solid ${color}`, color, whiteSpace: 'nowrap' }}>{text}</span>;
 }
 
-// staple → { tag, tagColor, why } — reads like a coach's shorthand, not a report.
+// staple → { tag, tagColor, why, next } — every competitor stops at "here's the
+// status"; the coach's actual job is "so what do I write next block". `next` is
+// that concrete move (grounded in the S&C research: multi-signal stall =
+// e1RM-flat + RPE-creep = fatigue-mask → deload/rotate, not more kg; time-since-
+// PR is the rotation trigger). It's a suggestion he can override, with the why.
 function readStaple(s) {
-  if (s.count < 3) return { tag: `${s.count}× ONLY`, tagColor: C.td, why: 'too soon to call — need 3+ sessions' };
+  const wks = s.weeksSincePr;
+  const noPr = wks != null && wks >= 5;   // hasn't beaten its best in 5+ weeks → rotation trigger
+  if (s.count < 3) return { tag: `${s.count}× ONLY`, tagColor: C.td, why: 'too few logs to read a trend', next: 'log 3+ before judging it' };
   if (s.ballistic) {
-    if (s.trend?.dir === 'up') return { tag: 'GOING UP', tagColor: C.gn, why: 'load creeping up on an explosive lift — good, but height/bar-speed is the real read' };
-    return { tag: 'EXPLOSIVE', tagColor: C.pu, why: 'flat load is fine here — jumps progress on height + speed, not kg. film it for velocity.' };
+    if (s.trend?.dir === 'up') return { tag: 'GOING UP', tagColor: C.gn, why: 'load creeping up on an explosive lift', next: 'keep adding — but film a set; height + bar-speed is the real read, not kg' };
+    return { tag: 'EXPLOSIVE', tagColor: C.pu, why: 'jumps progress on speed + height, not load', next: 'film a set for velocity — don\'t chase kg here' };
   }
   if (s.stale?.state === 'ok' && s.stale.stale) {
-    if (s.stale.mode === 'hard') return { tag: 'STUCK · HARD', tagColor: C.or, why: '3 sessions same weight and he\'s grinding — change it (tempo, pause, variation), not just more kg' };
-    if (s.stale.mode === 'easy') return { tag: 'STUCK · EASY', tagColor: C.ac, why: 'flat but moving easy — just put weight on' };
-    return { tag: 'STUCK', tagColor: C.or, why: 'weight hasn\'t moved in 3 sessions' };
+    if (s.stale.mode === 'hard') return { tag: 'STUCK · HARD', tagColor: C.or, why: 'flat weight + effort climbing = hidden fatigue, not a real ceiling', next: 'one lighter week (~50% volume) then re-test, or swap the variation — not more kg' };
+    if (s.stale.mode === 'easy') return { tag: 'STUCK · EASY', tagColor: C.ac, why: 'flat but moving easy — he\'s under-stimulated', next: '+2.5–5kg or add a set' };
+    return { tag: 'STUCK', tagColor: C.or, why: 'weight hasn\'t moved in 3 sessions', next: noPr ? `no PR in ${wks} weeks — rotate the variation` : 'push the load or change the stimulus' };
   }
   if (s.trend?.state === 'ok') {
-    if (s.trend.dir === 'up') return { tag: 'GOING UP', tagColor: C.gn, why: 'climbing — keep adding' };
-    if (s.trend.dir === 'down') return { tag: 'SLIPPING', tagColor: C.rd, why: 'going backwards — back off or check his recovery' };
+    if (s.trend.dir === 'up') return { tag: 'GOING UP', tagColor: C.gn, why: 'climbing', next: '+2–3% load or +1 rep at the same effort' };
+    if (s.trend.dir === 'down') return { tag: 'SLIPPING', tagColor: C.rd, why: 'going backwards', next: 'back off ~5–10% intensity, hold volume, check his recovery' };
   }
-  return { tag: 'HOLDING', tagColor: C.tm, why: 'holding steady' };
+  return { tag: 'HOLDING', tagColor: C.tm, why: 'holding steady', next: noPr ? `no PR in ${wks} weeks — time to change it up` : 'maintain, or nudge the load' };
 }
 
 function nextBlockText(a) {
@@ -227,7 +233,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
 
     {/* 3. STAPLES */}
     {a.staples.length > 0 && (
-      <div style={card}><div style={hd}>His lifts<span style={hdQ}>every lift he loaded — worst first, so you know what to touch next block</span></div>
+      <div style={card}><div style={hd}>His lifts · what to do next<span style={hdQ}>worst first · each row tells you the move for next block</span></div>
         <div style={bd}>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
@@ -247,12 +253,18 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
                       <td style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, verticalAlign: 'top' }}>
                         <div style={{ color: C.tx }}>{s.title}</div>
                         <div style={{ fontSize: 11, color: C.tm, marginTop: 2, lineHeight: 1.4 }}>{r.why}</div>
-                        <div style={{ fontSize: 10, color: C.td, marginTop: 2 }}>{s.count}× · last {fmt(s.lastDate)}</div>
+                        <div style={{ fontSize: 11.5, color: C.ac, marginTop: 3, fontWeight: 600, lineHeight: 1.4 }}>→ {r.next}</div>
+                        <div style={{ fontSize: 10, color: C.td, marginTop: 3 }}>{s.count}× · last {fmt(s.lastDate)}</div>
                       </td>
                       <td style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, whiteSpace: 'nowrap', verticalAlign: 'top' }}>
                         {s.trend?.state === 'ok' ? <><Spark pts={s.trend.pts} dir={s.trend.dir} /> <span style={{ fontVariantNumeric: 'tabular-nums', color: C.tx, fontWeight: 600, marginLeft: 4 }}>e{s.trend.latest}</span></> : <span style={{ color: C.td, fontSize: 11 }}>—</span>}
                       </td>
-                      <td style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, fontVariantNumeric: 'tabular-nums', color: C.tx, fontWeight: 600, whiteSpace: 'nowrap', verticalAlign: 'top' }}>{best}</td>
+                      <td style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, fontVariantNumeric: 'tabular-nums', color: C.tx, fontWeight: 600, whiteSpace: 'nowrap', verticalAlign: 'top' }}>
+                        {best}
+                        {!s.ballistic && s.weeksSincePr != null && s.weeksSincePr >= 2 && (
+                          <div style={{ fontSize: 10, fontWeight: 400, color: s.weeksSincePr >= 6 ? C.or : C.td, marginTop: 2 }}>PR {s.weeksSincePr}w ago</div>
+                        )}
+                      </td>
                       <td style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, fontVariantNumeric: 'tabular-nums', color: C.tm, verticalAlign: 'top' }}>{loads.join(' · ')}</td>
                       <td style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, textAlign: 'right', verticalAlign: 'top' }}><Tag text={r.tag} color={r.tagColor} /></td>
                     </tr>

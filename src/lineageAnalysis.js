@@ -424,14 +424,24 @@ export function analyzeAthlete(clientWorkouts, traineeId, plans, deps) {
       const loadsAll = sAll.map((x) => x.load).filter((l) => l != null && l > 0);
       const e1All = sAll.map((x) => x.e1).filter((x) => x != null);
       const last = sAll[sAll.length - 1];
+      const pr = loadsAll.length ? Math.max(...loadsAll) : null;
+      // Weeks since he last hit that PR — the honest stall signal. "3 flat
+      // sessions" misses a lift that's been below its best for two months; this
+      // catches it. Find the most recent session at (or within 1% of) the PR.
+      let weeksSincePr = null;
+      if (pr != null) {
+        const prSessions = sAll.filter((x) => x.load != null && x.load >= pr * 0.99);
+        const lastPr = prSessions.length ? Math.max(...prSessions.map((x) => ms(x.date))) : null;
+        const nowMs = Math.max(...sAll.map((x) => ms(x.date)).filter((n) => isFinite(n)), 0);
+        if (lastPr && isFinite(lastPr) && nowMs) weeksSincePr = Math.round((nowMs - lastPr) / (7 * 86400000));
+      }
       return {
         title, series: s, count: sAll.length,          // total times he's logged it
         ballistic: BALLISTIC.test(title),
         stale: staleWeight(s), trend: e1rmTrend(s),
         drift: rpeDrift(s, null), miss: missRate(allSessions, title),
         loads: s.map((x) => x.load), hasLoad: loadsAll.length > 0,
-        pr: loadsAll.length ? Math.max(...loadsAll) : null,       // heaviest load ever
-        prE1: e1All.length ? Math.round(Math.max(...e1All)) : null, // best est-1RM ever
+        pr, prE1: e1All.length ? Math.round(Math.max(...e1All)) : null, weeksSincePr,
         lastDate: last ? last.date : null, lastLoad: last ? last.load : null, lastReps: last ? last.reps : null,
       };
     });
