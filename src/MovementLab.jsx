@@ -297,8 +297,11 @@ export default function MovementLab({
     || /\b(pogo|drop[-\s]?jump|depth[-\s]?jump|hop|bound|bounce|rebound|reactive|rsi|ankle[-\s]?stiff)\b/i.test(exerciseTitle || '');
   const computeJump = useCallback((frames) => {
     if (isReactive) {
+      // If reactive was auto-detected from the title (jumpType still the 'cmj'
+      // default), label it as a POGO/RSI read, not "Countermovement Jump".
+      const rType = (jumpType === 'drop' || jumpType === 'pogo') ? jumpType : 'pogo';
       const rm = reactiveJumpMetrics(frames);
-      return rm ? { reactive: true, jumpType, ...rm.best, count: rm.count, avgRsi: rm.avgRsi, avgContactMs: rm.avgContactMs, avgHeightCm: rm.avgHeightCm } : null;
+      return rm ? { reactive: true, jumpType: rType, ...rm.best, count: rm.count, avgRsi: rm.avgRsi, avgContactMs: rm.avgContactMs, avgHeightCm: rm.avgHeightCm } : null;
     }
     const j = jumpMetrics(frames);
     return j ? { reactive: false, jumpType, ...j } : null;

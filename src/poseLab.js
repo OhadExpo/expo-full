@@ -642,16 +642,24 @@ export function reactiveJumpMetrics(frames) {
     if (a && b) return Math.max(a.y, b.y);
     return (a || b) ? (a || b).y : null;
   });
-  const standIdx = frames.map((_, i) => i).filter(i => ankY[i] != null && frames[i].t - t0 < 600);
-  if (standIdx.length < 3) return null;
-  const baseY = median(standIdx.map(i => ankY[i]));
-  const scaleSamples = standIdx.map(i => frameScaleY(frames[i])).filter(isReal);
+  // Ground level = where the ankles rest between hops. A POGO/drop often has NO
+  // still stand at the start, so a first-600ms baseline lands mid-hop; instead
+  // take a high percentile of ankle-Y over the whole clip (ankles sit on the
+  // ground through every contact → the dominant high-Y cluster). This also
+  // covers a still start — standing ankles ARE at ground level.
+  const pctl = (arr, q) => { const a = arr.filter((x) => x != null).sort((p2, q2) => p2 - q2); return a.length ? a[Math.min(a.length - 1, Math.floor(a.length * q))] : null; };
+  const baseY = pctl(ankY, 0.78);
+  if (baseY == null) return null;
+  const scaleSamples = frames.map(frameScaleY).filter(isReal);
   if (scaleSamples.length < 3) return null;
   const scale = median(scaleSamples);
   if (!isReal(scale) || scale <= 0) return null;
   const rise = ankY.map(y => y == null ? null : (baseY - y) * scale);
-
-  const THR = 0.05, n = rise.length;
+  // Adaptive rise threshold — a small stiff pogo rises only a few cm, so a fixed
+  // 5cm misses it (movementRepCount uses the same adaptive idea). Floor at 3cm.
+  const riseVals = rise.filter((r) => r != null).sort((a, b) => a - b);
+  const riseRange = riseVals.length ? (riseVals[Math.floor(riseVals.length * 0.95)] - riseVals[Math.floor(riseVals.length * 0.05)]) : 0;
+  const THR = Math.max(0.03, riseRange * 0.2), n = rise.length;
   const interpAt = (k0, k1, level) => {
     const r0 = rise[k0], r1 = rise[k1], ta = frames[k0]?.t, tb = frames[k1]?.t;
     if (r0 == null || r1 == null || ta == null || tb == null || r1 === r0) return (frames[k1] || frames[k0])?.t ?? 0;
@@ -675,10 +683,17 @@ export function reactiveJumpMetrics(frames) {
   }
   if (windows.length < 2) return null;     // need at least one contact + rebound
 
+  // Ground-contact time drives RSI and is the most fps-sensitive number: a
+  // 1-frame contact at low fps quantizes to a tiny time → an absurd RSI (e.g.
+  // 45ms / 1 frame @21fps → RSI 20). Reject any contact shorter than ~2 frames;
+  // it's timing noise, not a real reactive contact.
+  const dts = frames.slice(1).map((f, i) => f.t - frames[i].t).filter((x) => x > 0).sort((a, b) => a - b);
+  const medDt = dts.length ? dts[Math.floor(dts.length / 2)] : 33;
+  const minContact = Math.max(0.06, (2 * medDt) / 1000);
   const hops = [];
   for (let w = 1; w < windows.length; w++) {
     const contactSec = (windows[w].takeoff - windows[w - 1].landing) / 1000;
-    if (contactSec <= 0.04 || contactSec > 1.5) continue;   // implausible ground contact
+    if (contactSec < minContact || contactSec > 1.5) continue;   // implausible / fps-quantized contact
     const heightCm = (9.81 * windows[w].flightSec * windows[w].flightSec / 8) * 100;
     const rsi = (heightCm / 100) / contactSec;               // m / s
     hops.push({
