@@ -708,6 +708,17 @@ function FormCheck({ result, exerciseTitle }) {
   // asymmetry especially needs a clean frontal/steady view). Caveat them rather
   // than present confident numbers off garbage pose.
   const lowCap = result?.captureQuality?.grade === 'poor';
+  // Measured tempo (median ecc / pause / con across the set, seconds) — coaches
+  // PRESCRIBE tempo but never see what the athlete actually did. Straight from
+  // romTempoMetrics, no new data. Written eccentric-first (the coach's notation).
+  const tempo = useMemo(() => {
+    const rr = result?.romTempo?.perRep;
+    if (!rr) return null;
+    const med = (k) => { const xs = rr.filter(Boolean).map((r) => r[k]).filter((x) => typeof x === 'number' && x >= 0).sort((a, b) => a - b); return xs.length ? xs[Math.floor(xs.length / 2)] : null; };
+    const ecc = med('ecc'), pause = med('pause'), con = med('con');
+    if (ecc == null && con == null) return null;
+    return { ecc, pause, con };
+  }, [result]);
   const capCaveat = (
     <div style={{ fontFamily: FN, fontSize: 10, color: C.or || '#f0b429', letterSpacing: '0.02em', marginBottom: 6, lineHeight: 1.5 }}>
       Low capture quality this clip — treat the numbers below as a rough read, not a verdict. Refilm cleaner to trust them.
@@ -768,6 +779,22 @@ function FormCheck({ result, exerciseTitle }) {
           <div style={{ color: 'rgba(255,255,255,0.85)' }}>{g}</div>
         </div>
       ))}
+
+      {tempo && (
+        <>
+          <div style={{ ...secLabel, marginTop: 22 }}>TEMPO <span style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: 0 }}>· what he actually did (median rep)</span></div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {[['eccentric', tempo.ecc, 'lowering'], ['pause', tempo.pause, 'bottom'], ['concentric', tempo.con, 'lifting']].map(([lab, v, sub]) => (
+              <div key={lab} style={{ flex: '1 1 0', minWidth: 90, border: `1px solid ${C.bd}`, background: C.sf2, padding: '8px 10px' }}>
+                <div style={{ fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.ac, fontWeight: 700 }}>{lab}</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginTop: 3 }}>{v != null ? `${v.toFixed(1)}s` : '—'}</div>
+                <div style={{ fontSize: 10, color: C.td, marginTop: 2 }}>{sub}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ fontSize: 10, color: C.td, marginTop: 8, lineHeight: 1.5 }}>Measured off the camera, not prescribed — compare it to the tempo you wrote. A fast eccentric ({'<'}1s) is the usual leak.</div>
+        </>
+      )}
 
       {vbt && (
         <>
