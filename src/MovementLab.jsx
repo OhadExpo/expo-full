@@ -898,7 +898,7 @@ function FormCheck({ result, exerciseTitle }) {
         <>
           <div style={{ ...secLabel, marginTop: 22 }}>STOP-SET · BAR SPEED <span style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: 0 }}>· where the set stopped being what it was for</span></div>
           <div style={{ fontFamily: FN, fontSize: 13, color: 'rgba(255,255,255,0.85)', lineHeight: 1.6 }}>
-            He did <b style={{ color: '#fff' }}>{vbt.total} reps</b>{vbt.finalLoss != null ? <> · bar speed dropped <b style={{ color: vbt.finalLoss >= 30 ? C.rd : vbt.finalLoss >= 20 ? (C.or || '#f0b429') : C.gn }}>{Math.min(99, vbt.finalLoss)}%</b> by the last one</> : null}.
+            He did <b style={{ color: '#fff' }}>{vbt.total} reps</b>{vbt.finalLoss != null ? <> · bar speed dropped <b style={{ color: vbt.finalLoss >= 30 ? C.rd : vbt.finalLoss >= 20 ? (C.or || '#f0b429') : C.gn }}>{vbt.finalLoss >= 90 ? '90%+' : `${Math.round(vbt.finalLoss)}%`}</b> by the last one</> : null}.
             <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {[['power', vbt.powerRep, C.pu || '#8b7cf0', 'keep it fast'], ['strength', vbt.generalRep, C.ac, 'general'], ['size', vbt.hyperRep, C.gn, 'hypertrophy']].map(([goal, rep, col, sub]) => (
                 <div key={goal} style={{ flex: '1 1 0', minWidth: 96, border: `1px solid ${C.bd}`, background: C.sf2, padding: '8px 10px' }}>
@@ -1038,10 +1038,10 @@ function VelocityTable({ v, barSpeed, frames, playheadT = null, onScrub = null }
           stretch then matches both boxes to the same height automatically. */}
       <div style={{ display: 'flex', gap: 8 }}>
         <MiniKpi label="BEST MEAN VELOCITY" value={`${v.bestMean.toFixed(2)} m/s`} />
-        <MiniKpi label="VELOCITY LOSS (LAST REP)" value={`${v.finalLossPct}%`} tone={v.finalLossPct >= 20 ? C.rd : v.finalLossPct >= 10 ? C.or : C.gn} />
+        <MiniKpi label="VELOCITY LOSS (LAST REP)" value={v.finalLossPct >= 90 ? '90%+' : `${Math.round(v.finalLossPct)}%`} tone={v.finalLossPct >= 20 ? C.rd : v.finalLossPct >= 10 ? C.or : C.gn} />
       </div>
       <Row head cells={['REP', 'MEAN m/s', 'PEAK m/s', 'LOSS']} />
-      {v.perRep.map((r, i) => r && <Row key={i} cells={[i + 1, r.meanConcentric.toFixed(2), r.peak.toFixed(2), `${r.lossPct}%`]} tone={r.lossPct >= 20 ? C.rd : undefined}
+      {v.perRep.map((r, i) => r && <Row key={i} cells={[i + 1, r.meanConcentric.toFixed(2), r.peak.toFixed(2), r.lossPct >= 90 ? '90%+' : `${Math.round(r.lossPct)}%`]} tone={r.lossPct >= 20 ? C.rd : undefined}
         onClick={onScrub && r.startT != null ? () => onScrub(r.startT) : undefined} />)}
     </div>
   );

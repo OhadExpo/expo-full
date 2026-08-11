@@ -45,8 +45,10 @@ export function detectFaults(result, title) {
   // rep's net concentric goes negative (bounce/landing noise) — clamp the shown
   // number so it never claims a physically-impossible ">100% slower".
   if (vel && vel.finalLossPct >= 30) {
-    const shown = Math.min(99, vel.finalLossPct);
-    faults.push({ sev: 'bad', msg: `Last rep ${shown}% slower than the best`, why: 'past ~20–30% velocity loss the set is junk fatigue, not power — stop earlier if speed is the goal.' });
+    // At the extreme the last rep read ~0 velocity — usually a near-failure grind
+    // OR pose noise on the final rep; either way an exact "99%" is false precision.
+    const shown = vel.finalLossPct >= 90 ? '90%+' : `${Math.round(vel.finalLossPct)}%`;
+    faults.push({ sev: 'bad', msg: `Last rep ${shown} slower than the best`, why: 'past ~20–30% velocity loss the set is junk fatigue, not power — stop earlier if speed is the goal.' });
   } else if (vel && vel.finalLossPct != null && vel.finalLossPct < 20 && vel.perRep && vel.perRep.filter(Boolean).length >= 3) {
     good.push(`Bar speed held (${vel.finalLossPct}% loss) — quality reps throughout.`);
   }
