@@ -119,6 +119,22 @@ export function velocityAutoreg(velocity) {
   };
 }
 
+// ---- Warm-up Readiness (between-session VBT) -----------------------------
+// The "Perch from a phone" read. At a REPEATED load, today's bar speed vs the
+// athlete's established speed at that same load flags readiness before reps or
+// RPE move (Sánchez-Medina / González-Badillo fixed-load velocity monitoring).
+// ref = getLoadVelocityRef(...). Reports the delta + a HEDGED load call — never
+// an exact prescription off one phone clip.
+export function warmupReadiness(todayVel, ref) {
+  if (!(todayVel > 0) || !ref || !(ref.refVel > 0)) return null;
+  const deltaPct = Math.round(((todayVel - ref.refVel) / ref.refVel) * 100);
+  let verdict, tone, nudge;
+  if (deltaPct >= -4) { verdict = 'Ready — bar speed is at or above his usual at this load. Run the session as written.'; tone = 'good'; nudge = null; }
+  else if (deltaPct >= -10) { verdict = 'Slightly down — a touch slower than his norm here. Hold today’s top load, don’t chase PRs.'; tone = 'warn'; nudge = 'hold'; }
+  else { verdict = 'Down — notably slower at the same load. Back off ~5–10% or cut a set; he’s not fresh today.'; tone = 'bad'; nudge = 'reduce'; }
+  return { deltaPct, refVel: ref.refVel, todayVel, n: ref.n, lastDate: ref.lastDate, load: ref.load, verdict, tone, nudge };
+}
+
 // ---- Movement Asymmetry / Injury Screen ---------------------------------
 const PAIRS = [
   ['Shoulders', 'L SHO', 'R SHO'],

@@ -33,7 +33,7 @@ function writeAll(obj) {
 // Save (or replace, same date) one analysed set's headline metrics.
 // analysis = analyzeClip() result. Returns the stored entry, or null if there's
 // no real velocity to store (never fabricate a trend point).
-export function savePoseMetric({ clientId, exercise, date, analysis }) {
+export function savePoseMetric({ clientId, exercise, date, analysis, load }) {
   if (!clientId || !exercise || !analysis) return null;
   const vel = analysis.velocity, rt = analysis.romTempo;
   const bestMean = vel && typeof vel.bestMean === 'number' ? vel.bestMean : null;
@@ -56,6 +56,7 @@ export function savePoseMetric({ clientId, exercise, date, analysis }) {
     kind: analysis.kind || null,
     reps: analysis.repCount || null,
     bestMean, lossPct, maxRom,
+    load: (typeof load === 'number' && load > 0) ? load : null, // kg, for same-load readiness
     asymRows: (asymRows && asymRows.length) ? asymRows : null,
   };
   const all = readAll();
@@ -148,6 +149,27 @@ export function getAthleteAsymmetryTrend(clientId) {
   if (!groups.length) return { joints: [], films: 0, worst: null, anyFlag: false };
   groups.sort((a, b) => (b.flag - a.flag) || (b.current - a.current));
   return { joints: groups, films: dates.size, worst: groups[0], anyFlag: groups.some((g) => g.flag) };
+}
+
+// Same-load velocity reference for warm-up readiness (the "Perch from a phone"
+// between-session read). Standard fixed-load VBT monitoring: at a repeated load,
+// today's bar speed vs the athlete's established speed at THAT load = readiness.
+// Returns the best (fastest) prior bestMean at ~the same load on a DIFFERENT day,
+// or null if there's no comparable history yet. tolerance = ±6% of the load.
+export function getLoadVelocityRef(clientId, exercise, load, todayDate) {
+  if (!clientId || !exercise || !(load > 0)) return null;
+  const lift = (readAll()[clientId] || {})[exKey(exercise)];
+  if (!lift) return null;
+  const d0 = (todayDate || '').slice(0, 10);
+  const tol = load * 0.06;
+  const prior = (lift.entries || []).filter((e) =>
+    typeof e.load === 'number' && Math.abs(e.load - load) <= tol &&
+    typeof e.bestMean === 'number' && (e.date || '').slice(0, 10) !== d0);
+  if (!prior.length) return null;
+  // His fastest recorded set at this load is the "fresh" reference.
+  const refVel = Math.max(...prior.map((e) => e.bestMean));
+  const last = prior[prior.length - 1];
+  return { refVel, n: prior.length, lastDate: (last.date || '').slice(0, 10), load };
 }
 
 export function hasVault(clientId) {

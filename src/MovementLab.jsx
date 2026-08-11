@@ -18,8 +18,8 @@ import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
 import { createPoseLandmarker, getCamera, stopStream } from './usePose';
 import { analyzeClip, jumpMetrics, reactiveJumpMetrics, jumpPower, frameToPoints3D, estimateFps, barSpeedSeries, barAccelSeries, namedAngleSeries, channelSignal, velocityMetrics, romTempoMetrics, movementRepCount, isBallistic } from './poseLab';
-import { detectFaults, detectAsymmetry, velocityAutoreg } from './poseInsights';
-import { savePoseMetric } from './poseMetricsStore';
+import { detectFaults, detectAsymmetry, velocityAutoreg, warmupReadiness } from './poseInsights';
+import { savePoseMetric, getLoadVelocityRef } from './poseMetricsStore';
 import { demoSquatFrames, demoJumpFrames } from './demoMotion';
 
 // Among several detected poses (multi-pose upload analysis), pick the SUBJECT —
@@ -537,6 +537,15 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
   const [repFrom, setRepFrom] = useState(1);
   const [repTo, setRepTo] = useState(null); // null = "to the end", tracks repCount live
   const [vaultSaved, setVaultSaved] = useState(false); // Bar-Speed Vault: this clip logged to the athlete's trend
+  const [load, setLoad] = useState(''); // kg for this filmed set → same-load readiness + load-aware trend
+  const loadNum = Number(load) > 0 ? Number(load) : null;
+  // Warm-up readiness: today's bar speed vs the athlete's established speed at
+  // this SAME load (from the vault). The "Perch from a phone" between-session read.
+  const readiness = useMemo(() => {
+    const tv = result?.velocity?.bestMean;
+    if (!(vaultClientId && loadNum && tv > 0)) return null;
+    return warmupReadiness(tv, getLoadVelocityRef(vaultClientId, exerciseTitle, loadNum, vaultDate));
+  }, [vaultClientId, loadNum, result, exerciseTitle, vaultDate]);
   useEffect(() => { setRepFrom(1); setRepTo(null); setVaultSaved(false); }, [frames]);
   const repCount = result?.repCount || 0;
   const effTo = repTo == null ? repCount : Math.min(repTo, repCount);
@@ -658,17 +667,36 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
           trial, this device; only offered when there's real camera velocity. */}
       {vaultClientId && result.velocity && typeof result.velocity.bestMean === 'number' && (
         <div style={{ marginBottom: 14 }}>
-          {result?.captureQuality?.grade === 'poor' ? (
-            <span style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.06em', color: C.or || '#f0b429', border: `1px solid ${C.or || '#f0b429'}`, padding: '6px 12px', display: 'inline-block', lineHeight: 1.4 }} title="This clip tracked poorly — the numbers aren't reliable enough to become a trend point. Refilm cleaner to log it.">CLIP TOO ROUGH TO TREND · REFILM TO LOG</span>
-          ) : vaultSaved ? (
-            <span style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.1em', color: C.gn, border: `1px solid ${C.gn}`, padding: '6px 12px', display: 'inline-block' }}>✓ SAVED TO {exerciseTitle.toUpperCase()} TREND</span>
-          ) : (
-            <button type="button"
-              onClick={() => { const e = savePoseMetric({ clientId: vaultClientId, exercise: exerciseTitle, date: vaultDate, analysis: result }); if (e) setVaultSaved(true); }}
-              style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: C.ac, background: 'transparent', border: `1px solid ${C.ac}`, padding: '6px 12px', cursor: 'pointer', borderRadius: 0 }}
-              title="Log this set's bar speed, ROM + left/right symmetry to the athlete's Lineage trends — feeds both the velocity-fatigue line and the injury-drift timeline (owner trial, this device).">
-              ↑ SAVE TO TREND
-            </button>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <label style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.5)' }}>LOAD
+              <input type="number" min={0} step={0.5} value={load} onChange={(e) => setLoad(e.target.value)} placeholder="kg"
+                style={{ width: 56, marginLeft: 6, textAlign: 'center', background: 'transparent', border: `1px solid ${C.bd}`, color: '#FFF', fontFamily: FN, fontSize: 11, padding: '4px 4px' }}
+                title="Weight on the bar for this set (kg). Enter it to unlock same-load readiness + a load-aware trend." />
+            </label>
+            {result?.captureQuality?.grade === 'poor' ? (
+              <span style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.06em', color: C.or || '#f0b429', border: `1px solid ${C.or || '#f0b429'}`, padding: '6px 12px', display: 'inline-block', lineHeight: 1.4 }} title="This clip tracked poorly — the numbers aren't reliable enough to become a trend point. Refilm cleaner to log it.">CLIP TOO ROUGH TO TREND · REFILM TO LOG</span>
+            ) : vaultSaved ? (
+              <span style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.1em', color: C.gn, border: `1px solid ${C.gn}`, padding: '6px 12px', display: 'inline-block' }}>✓ SAVED TO {exerciseTitle.toUpperCase()} TREND{loadNum ? ` @ ${loadNum}KG` : ''}</span>
+            ) : (
+              <button type="button"
+                onClick={() => { const e = savePoseMetric({ clientId: vaultClientId, exercise: exerciseTitle, date: vaultDate, analysis: result, load: loadNum }); if (e) setVaultSaved(true); }}
+                style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: C.ac, background: 'transparent', border: `1px solid ${C.ac}`, padding: '6px 12px', cursor: 'pointer', borderRadius: 0 }}
+                title="Log this set's bar speed, ROM + left/right symmetry (and load, if entered) to the athlete's Lineage trends — feeds the velocity-fatigue line, the injury-drift timeline, and same-load readiness (owner trial, this device).">
+                ↑ SAVE TO TREND
+              </button>
+            )}
+          </div>
+          {readiness && (
+            <div style={{ marginTop: 10, padding: '9px 12px', border: `1px solid ${readiness.tone === 'bad' ? C.rd : readiness.tone === 'warn' ? (C.or || '#f0b429') : C.gn}`, background: readiness.tone === 'bad' ? 'rgba(255,90,90,0.06)' : readiness.tone === 'warn' ? 'rgba(240,180,41,0.06)' : 'rgba(80,220,140,0.06)' }}>
+              <div style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.12em', color: readiness.tone === 'bad' ? C.rd : readiness.tone === 'warn' ? (C.or || '#f0b429') : C.gn, marginBottom: 4 }}>
+                WARM-UP READINESS · <b>{readiness.deltaPct >= 0 ? '+' : ''}{readiness.deltaPct}%</b> vs his {readiness.load}kg norm
+              </div>
+              <div style={{ fontFamily: FN, fontSize: 12.5, color: 'rgba(255,255,255,0.85)', lineHeight: 1.5 }}>{readiness.verdict}</div>
+              <div style={{ fontFamily: FN, fontSize: 10, color: C.td, marginTop: 4 }}>Today {readiness.todayVel} m/s vs his best {readiness.refVel} m/s at {readiness.load}kg ({readiness.n} prior {readiness.n === 1 ? 'set' : 'sets'}, last {readiness.lastDate}). Fixed-load bar speed drops before reps or RPE do — a rough autoreg cue, not an exact prescription.</div>
+            </div>
+          )}
+          {loadNum && !readiness && !vaultSaved && result?.captureQuality?.grade !== 'poor' && (
+            <div style={{ fontFamily: FN, fontSize: 10, color: C.td, marginTop: 8, lineHeight: 1.5 }}>No prior {loadNum}kg set on {exerciseTitle} yet — save this one, and next time you film {loadNum}kg you'll get a readiness read vs today.</div>
           )}
         </div>
       )}
