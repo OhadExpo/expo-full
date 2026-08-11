@@ -16,6 +16,12 @@ import { detectAsymmetry } from './poseInsights';
 
 const KEY = 'expo-pose-metrics';
 const exKey = (title) => (title || 'exercise').trim().toLowerCase().replace(/\s+/g, ' ');
+const median = (arr) => {
+  const a = (arr || []).filter((x) => typeof x === 'number' && isFinite(x)).sort((p, q) => p - q);
+  if (!a.length) return null;
+  const m = Math.floor(a.length / 2);
+  return a.length % 2 ? a[m] : Math.round((a[m - 1] + a[m]) / 2);
+};
 
 function readAll() {
   try { return JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch { return {}; }
@@ -32,12 +38,15 @@ export function savePoseMetric({ clientId, exercise, date, analysis }) {
   const vel = analysis.velocity, rt = analysis.romTempo;
   const bestMean = vel && typeof vel.bestMean === 'number' ? vel.bestMean : null;
   const lossPct = vel && typeof vel.finalLossPct === 'number' ? Math.min(99, Math.max(0, vel.finalLossPct)) : null;
-  if (bestMean == null) return null; // no camera-verified velocity → don't store
   const maxRom = rt && typeof rt.maxRom === 'number' ? rt.maxRom : null;
   // Per-joint L/R travel so the injury-watch timeline can trend a *widening*
   // gap across sessions — the read every phone tool leaves on the floor.
   const asym = detectAsymmetry(analysis.jointRom);
-  const asymRows = asym ? asym.rows.map((r) => ({ joint: r.joint, pct: r.asymPct, weaker: r.weaker })) : null;
+  const asymRows = (asym && asym.rows.length) ? asym.rows.map((r) => ({ joint: r.joint, pct: r.asymPct, weaker: r.weaker })) : null;
+  // Store if the camera got EITHER a real bar velocity OR a usable L/R symmetry
+  // read — the injury screen must still cover machine/ROM-only work where there's
+  // no clean bar speed. Never store a fully-empty (fabricated) trend point.
+  if (bestMean == null && !asymRows) return null;
   const entry = {
     date: date || new Date().toISOString(),
     kind: analysis.kind || null,
@@ -93,39 +102,48 @@ export function getAthleteVault(clientId) {
 export function getAthleteAsymmetryTrend(clientId) {
   const client = readAll()[clientId];
   if (!client) return { joints: [], films: 0, worst: null, anyFlag: false };
-  // Flatten every entry across every lift that measured joint pairs.
-  const rows = [];
   const dates = new Set();
+  const groups = []; // one series per (lift, joint) — NEVER pool across exercises
   Object.values(client).forEach((lift) => {
+    // A joint's real ROM differs by movement (squat knee ≠ deadlift knee), so
+    // comparing readings only makes sense within the SAME lift. Key by lift+joint.
+    const byJointDate = {};
     (lift.entries || []).forEach((e) => {
       if (!e.asymRows) return;
       const d = (e.date || '').slice(0, 10);
       dates.add(d);
-      e.asymRows.forEach((r) => rows.push({ joint: r.joint, pct: r.pct, weaker: r.weaker, date: d }));
+      e.asymRows.forEach((r) => {
+        const g = byJointDate[r.joint] || (byJointDate[r.joint] = {});
+        (g[d] || (g[d] = { pcts: [], weaker: r.weaker })).pcts.push(r.pct);
+        g[d].weaker = r.weaker;
+      });
+    });
+    Object.entries(byJointDate).forEach(([joint, byDate]) => {
+      // One point per date = the MEDIAN of that day's screens (robust to a single
+      // off-angle 2D reading), not the worst — max-of-noise fabricates widening.
+      const series = Object.entries(byDate)
+        .map(([date, v]) => ({ date, pct: median(v.pcts), weaker: v.weaker }))
+        .filter((s) => s.pct != null)
+        .sort((a, b) => a.date.localeCompare(b.date));
+      if (!series.length) return;
+      const current = series[series.length - 1].pct;
+      const first = series[0].pct;
+      const delta = Math.round(current - first);
+      // Drift must clear single-session 2D pose noise (±several %). Needs a real
+      // multi-session move, and more confidence with fewer points.
+      const drift = series.length >= 3 ? (delta >= 8 ? 'widening' : delta <= -8 ? 'closing' : 'stable')
+        : series.length === 2 ? (delta >= 10 ? 'widening' : delta <= -10 ? 'closing' : 'stable')
+          : 'stable';
+      // Flag a TREND, never a lone reading: needs ≥2 filmed sets AND either a
+      // large persistent gap or an actively-widening one. One noisy 2D set can't
+      // trip a red "screen this joint" claim.
+      const flag = series.length >= 2 && (current >= 18 || (current >= 12 && drift === 'widening'));
+      groups.push({ joint, lift: lift.title, weaker: series[series.length - 1].weaker, series, current, first, delta, drift, flag, films: series.length });
     });
   });
-  if (!rows.length) return { joints: [], films: 0, worst: null, anyFlag: false };
-  // Group by joint; one point per calendar date (worst screen that day wins).
-  const byJoint = {};
-  rows.forEach((r) => {
-    const g = byJoint[r.joint] || (byJoint[r.joint] = {});
-    if (!g[r.date] || r.pct > g[r.date].pct) g[r.date] = { pct: r.pct, weaker: r.weaker };
-  });
-  const joints = Object.entries(byJoint).map(([joint, byDate]) => {
-    const series = Object.entries(byDate)
-      .map(([date, v]) => ({ date, pct: v.pct, weaker: v.weaker }))
-      .sort((a, b) => a.date.localeCompare(b.date));
-    const current = series[series.length - 1].pct;
-    const first = series[0].pct;
-    const delta = current - first;
-    const drift = series.length >= 2 ? (delta >= 5 ? 'widening' : delta <= -5 ? 'closing' : 'stable') : 'stable';
-    // Flag = a limb meaningfully behind (≥15% mod/high in detectAsymmetry terms),
-    // OR a smaller-but-actively-widening gap that's trending the wrong way.
-    const flag = current >= 15 || (current >= 10 && drift === 'widening');
-    return { joint, weaker: series[series.length - 1].weaker, series, current, first, delta, drift, flag };
-  }).sort((a, b) => (b.flag - a.flag) || (b.current - a.current));
-  const worst = joints[0] || null;
-  return { joints, films: dates.size, worst, anyFlag: joints.some((j) => j.flag) };
+  if (!groups.length) return { joints: [], films: 0, worst: null, anyFlag: false };
+  groups.sort((a, b) => (b.flag - a.flag) || (b.current - a.current));
+  return { joints: groups, films: dates.size, worst: groups[0], anyFlag: groups.some((g) => g.flag) };
 }
 
 export function hasVault(clientId) {

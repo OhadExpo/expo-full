@@ -377,11 +377,11 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
                 const mx = Math.max(...j.series.map((s) => s.pct), 20);
                 const jc = j.flag ? C.rd : j.drift === 'widening' ? C.pu : C.gn;
                 return (
-                  <div key={j.joint} style={{ padding: '9px 0', borderTop: `1px solid ${C.bd}` }}>
+                  <div key={`${j.lift}-${j.joint}`} style={{ padding: '9px 0', borderTop: `1px solid ${C.bd}` }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 5 }}>
-                      <span style={{ fontSize: 12.5, color: C.tx }}>{j.joint} · {j.weaker.toLowerCase()} lower</span>
+                      <span style={{ fontSize: 12.5, color: C.tx }}>{j.joint} · {j.weaker.toLowerCase()} lower <span style={{ color: C.td, fontSize: 11 }}>· {j.lift}</span></span>
                       <span style={{ fontSize: 10, color: jc, letterSpacing: '0.04em' }}>
-                        {j.current}%{j.series.length >= 2 ? ` · ${j.drift === 'widening' ? `widened +${j.delta}` : j.drift === 'closing' ? `closing ${j.delta}` : 'stable'}` : ''}
+                        {j.current}%{j.series.length >= 2 ? ` · ${j.drift === 'widening' ? `widened +${j.delta}` : j.drift === 'closing' ? `closing ${j.delta}` : 'stable'}` : ' · 1 set'}
                       </span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 30 }}>

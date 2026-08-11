@@ -89,14 +89,25 @@ export function detectFaults(result, title) {
 // should have stopped for that goal. No hardware, from one filmed set.
 export function velocityAutoreg(velocity) {
   if (!velocity || !Array.isArray(velocity.perRep)) return null;
-  const reps = velocity.perRep.filter(Boolean);
+  // Keep each rep's ORIGINAL physical position so "stop @ rep N" names the real
+  // rep, matching the Set-Breakdown strip even when early reps went undetected.
+  const reps = velocity.perRep.map((r, idx) => (r ? { ...r, _i: idx } : null)).filter(Boolean);
   if (reps.length < 3) return null;
-  // Velocity-loss is measured from the FASTEST rep, and only reps AFTER it
-  // count toward a fatigue cutoff — an early rep that's simply slower than the
-  // peak (ramp-up, not the fastest) must not read as "stop at rep 1".
-  let peakIdx = 0, peakV = -Infinity;
-  reps.forEach((r, i) => { if (typeof r.meanConcentric === 'number' && r.meanConcentric > peakV) { peakV = r.meanConcentric; peakIdx = i; } });
-  const crossAt = (thr) => { for (let i = peakIdx; i < reps.length; i++) { if (typeof reps[i].lossPct === 'number' && reps[i].lossPct >= thr) return i + 1; } return null; };
+  const vels = reps.map((r) => r.meanConcentric).filter((x) => typeof x === 'number' && x > 0);
+  if (vels.length < 3) return null;
+  // Reference = mean of the TWO fastest reps = fresh capacity, robust to a
+  // single noisy spike (a lone fast late rep can't hijack the baseline).
+  const top = [...vels].sort((a, b) => b - a);
+  const ref = (top[0] + top[1]) / 2;
+  if (!(ref > 0)) return null;
+  // Skip the ramp-up: start scanning at the first rep actually up to speed
+  // (within 8% of ref) so a sub-max opening rep never reads as "stop @ rep 1" —
+  // but any real velocity dip AFTER he's up to speed is still caught (we scan
+  // every rep from there, not just after a global peak that could mask a dip).
+  let startScan = 0;
+  for (let i = 0; i < reps.length; i++) { const v = reps[i].meanConcentric; if (typeof v === 'number' && v >= ref * 0.92) { startScan = i; break; } }
+  const lossOf = (v) => (typeof v === 'number' && v > 0 ? (1 - v / ref) * 100 : null);
+  const crossAt = (thr) => { for (let i = startScan; i < reps.length; i++) { const l = lossOf(reps[i].meanConcentric); if (l != null && l >= thr) return reps[i]._i + 1; } return null; };
   const finalLoss = typeof velocity.finalLossPct === 'number' ? velocity.finalLossPct : null;
   return {
     total: reps.length,
@@ -119,13 +130,20 @@ const PAIRS = [
 export function detectAsymmetry(jointRom) {
   if (!jointRom || !jointRom.length) return null;
   const byName = Object.fromEntries(jointRom.map((j) => [j.name, j]));
+  const isFin = (x) => typeof x === 'number' && isFinite(x);
   const rows = [];
   for (const [label, ln, rn] of PAIRS) {
     const L = byName[ln], R = byName[rn];
-    if (!L || !R) continue;
-    const mx = Math.max(L.romDeg, R.romDeg);
-    if (mx < 25) continue; // ignore joints barely moving (not the working joint)
+    if (!L || !R || !isFin(L.romDeg) || !isFin(R.romDeg)) continue;
+    const mx = Math.max(L.romDeg, R.romDeg), mn = Math.min(L.romDeg, R.romDeg);
+    // A left/right read is only meaningful when BOTH sides are actively working
+    // (a bilateral movement). A near-static side — single-arm/leg press, pistol,
+    // split squat, walking lunge, alternating curl — is not an imbalance and must
+    // never fabricate a 90% "injury" flag. Require both sides moving (mn≥30) and
+    // reject implausible gaps that can only be a laterality/measurement artifact.
+    if (mn < 30 || mx < 25) continue;
     const asymPct = Math.round((Math.abs(L.romDeg - R.romDeg) / mx) * 100);
+    if (asymPct >= 55) continue; // no true bilateral imbalance is this large — it's one side not working
     const severity = asymPct >= 20 ? 'high' : asymPct >= 12 ? 'mod' : 'ok';
     rows.push({ joint: label, left: L.romDeg, right: R.romDeg, asymPct, severity, weaker: L.romDeg < R.romDeg ? 'Left' : 'Right' });
   }
