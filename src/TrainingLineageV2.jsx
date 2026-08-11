@@ -287,6 +287,18 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
               );
             })}
           </div>
+          {(() => {
+            const bh = a.blockHistory;
+            const lastChar = bh[bh.length - 1].character;
+            let run = 0; for (let k = bh.length - 1; k >= 0; k--) { if (bh[k].character === lastChar) run++; else break; }
+            if (run < 4) return null;
+            const swap = lastChar === 'hypertrophy' ? 'a strength or power/peaking' : lastChar === 'strength' ? 'a hypertrophy or a deload' : 'a strength';
+            return (
+              <div style={{ fontSize: 12.5, color: C.or || '#f0b429', marginTop: 10, lineHeight: 1.5, fontFamily: FN }}>
+                <b>{run} {lastChar} blocks in a row.</b> He's adapted to this stimulus — {swap} block would be the fresh signal. That's your periodization call.
+              </div>
+            );
+          })()}
           <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>From what you PROGRAMMED each block (avg prescribed reps): under 6 = strength, 6–12 = hypertrophy, 12+ = endurance. The arc shows your periodization — a long run of one colour is the cue to change phase.</div>
         </div>
       </div>
