@@ -702,7 +702,7 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
 // straight off the pose the camera already produced (src/poseInsights.js).
 function FormCheck({ result, exerciseTitle }) {
   const faults = useMemo(() => detectFaults(result, exerciseTitle), [result, exerciseTitle]);
-  const asym = useMemo(() => detectAsymmetry(result.jointRom), [result.jointRom]);
+  const asym = useMemo(() => detectAsymmetry(result.jointRom, exerciseTitle), [result.jointRom, exerciseTitle]);
   const vbt = useMemo(() => velocityAutoreg(result.velocity), [result.velocity]);
   // A poorly-tracked clip makes the velocity + L/R reads untrustworthy (2D
   // asymmetry especially needs a clean frontal/steady view). Caveat them rather

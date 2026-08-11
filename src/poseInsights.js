@@ -126,13 +126,30 @@ const PAIRS = [
   ['Hips', 'L HIP', 'R HIP'],
   ['Knees', 'L KNE', 'R KNE'],
 ];
+// Only screen the joints that actually DRIVE the movement — a passive joint
+// (elbows on a deadlift, that just hold the bar) reads noisy 2D asymmetry and
+// would fire a false "screen this limb" flag. Lower lifts → hips/knees; upper
+// push/pull → shoulders/elbows; unknown/full-body → screen all (safe default).
+function relevantJoints(title) {
+  const t = (title || '').toLowerCase();
+  if (!t) return null;
+  const plyo = /\b(jump|pogo|plyo|bound|hop|depth|snap[-\s]?down|leap|skip)\b/.test(t);
+  const lower = plyo || /\b(squat|lunge|split|pistol|rfess|bulgarian|step[-\s]?up|deadlift|rdl|hinge|hip[-\s]?thrust|glute|leg[-\s]?press|leg[-\s]?curl|leg[-\s]?ext|calf|good[-\s]?morning|nordic)\b/.test(t);
+  const upper = /\b(bench|ohp|overhead|shoulder[-\s]?press|chest[-\s]?press|push[-\s]?up|dip|\brow\b|pull[-\s]?up|chin[-\s]?up|pull[-\s]?down|lat[-\s]?pull|\bfly\b|lateral[-\s]?raise|front[-\s]?raise|shrug|face[-\s]?pull|bicep|tricep)\b/.test(t) && !/\bleg\b/.test(t);
+  if (lower && !upper) return new Set(['Hips', 'Knees']);
+  if (upper && !lower) return new Set(['Shoulders', 'Elbows']);
+  return null; // ambiguous or full-body → screen everything
+}
+
 // jointRom = analyzeClip().jointRom = [{ name, maxDeg, minDeg, romDeg, samples }]
-export function detectAsymmetry(jointRom) {
+export function detectAsymmetry(jointRom, title) {
   if (!jointRom || !jointRom.length) return null;
   const byName = Object.fromEntries(jointRom.map((j) => [j.name, j]));
   const isFin = (x) => typeof x === 'number' && isFinite(x);
+  const relevant = relevantJoints(title);
   const rows = [];
   for (const [label, ln, rn] of PAIRS) {
+    if (relevant && !relevant.has(label)) continue; // skip joints not driving this lift
     const L = byName[ln], R = byName[rn];
     if (!L || !R || !isFin(L.romDeg) || !isFin(R.romDeg)) continue;
     const mx = Math.max(L.romDeg, R.romDeg), mn = Math.min(L.romDeg, R.romDeg);

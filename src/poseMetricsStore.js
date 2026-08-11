@@ -45,7 +45,7 @@ export function savePoseMetric({ clientId, exercise, date, analysis }) {
   const maxRom = rt && typeof rt.maxRom === 'number' ? rt.maxRom : null;
   // Per-joint L/R travel so the injury-watch timeline can trend a *widening*
   // gap across sessions — the read every phone tool leaves on the floor.
-  const asym = detectAsymmetry(analysis.jointRom);
+  const asym = detectAsymmetry(analysis.jointRom, exercise);
   const asymRows = (asym && asym.rows.length) ? asym.rows.map((r) => ({ joint: r.joint, pct: r.asymPct, weaker: r.weaker })) : null;
   // Store if the camera got EITHER a real bar velocity OR a usable L/R symmetry
   // read — the injury screen must still cover machine/ROM-only work where there's
