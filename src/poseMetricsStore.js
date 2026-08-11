@@ -12,6 +12,8 @@
 // would promote this to a `pose_metrics` table on the same (clientId, planName,
 // dayName, week, eid) join key client_workouts already uses.
 
+import { detectAsymmetry } from './poseInsights';
+
 const KEY = 'expo-pose-metrics';
 const exKey = (title) => (title || 'exercise').trim().toLowerCase().replace(/\s+/g, ' ');
 
@@ -32,11 +34,16 @@ export function savePoseMetric({ clientId, exercise, date, analysis }) {
   const lossPct = vel && typeof vel.finalLossPct === 'number' ? Math.min(99, Math.max(0, vel.finalLossPct)) : null;
   if (bestMean == null) return null; // no camera-verified velocity → don't store
   const maxRom = rt && typeof rt.maxRom === 'number' ? rt.maxRom : null;
+  // Per-joint L/R travel so the injury-watch timeline can trend a *widening*
+  // gap across sessions — the read every phone tool leaves on the floor.
+  const asym = detectAsymmetry(analysis.jointRom);
+  const asymRows = asym ? asym.rows.map((r) => ({ joint: r.joint, pct: r.asymPct, weaker: r.weaker })) : null;
   const entry = {
     date: date || new Date().toISOString(),
     kind: analysis.kind || null,
     reps: analysis.repCount || null,
     bestMean, lossPct, maxRom,
+    asymRows: (asymRows && asymRows.length) ? asymRows : null,
   };
   const all = readAll();
   const k = exKey(exercise);
@@ -73,6 +80,52 @@ export function getAthleteVault(clientId) {
     })
     .filter((l) => l.count > 0)
     .sort((a, b) => b.count - a.count);
+}
+
+// Injury-watch: trend each joint's L/R travel gap across EVERY filmed set for
+// one athlete, not just the last one. Returns per-joint series ordered worst-
+// current-first:
+//   { joints:[{ joint, weaker, series:[{date,pct}], current, first, delta,
+//               drift:'widening'|'stable'|'closing', flag:bool }],
+//     films, worst, anyFlag }
+// The market gap this fills: every competitor's L/R read (if any) is one
+// session, descriptive. Trending it flags a limb pulling away BEFORE it's pain.
+export function getAthleteAsymmetryTrend(clientId) {
+  const client = readAll()[clientId];
+  if (!client) return { joints: [], films: 0, worst: null, anyFlag: false };
+  // Flatten every entry across every lift that measured joint pairs.
+  const rows = [];
+  const dates = new Set();
+  Object.values(client).forEach((lift) => {
+    (lift.entries || []).forEach((e) => {
+      if (!e.asymRows) return;
+      const d = (e.date || '').slice(0, 10);
+      dates.add(d);
+      e.asymRows.forEach((r) => rows.push({ joint: r.joint, pct: r.pct, weaker: r.weaker, date: d }));
+    });
+  });
+  if (!rows.length) return { joints: [], films: 0, worst: null, anyFlag: false };
+  // Group by joint; one point per calendar date (worst screen that day wins).
+  const byJoint = {};
+  rows.forEach((r) => {
+    const g = byJoint[r.joint] || (byJoint[r.joint] = {});
+    if (!g[r.date] || r.pct > g[r.date].pct) g[r.date] = { pct: r.pct, weaker: r.weaker };
+  });
+  const joints = Object.entries(byJoint).map(([joint, byDate]) => {
+    const series = Object.entries(byDate)
+      .map(([date, v]) => ({ date, pct: v.pct, weaker: v.weaker }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+    const current = series[series.length - 1].pct;
+    const first = series[0].pct;
+    const delta = current - first;
+    const drift = series.length >= 2 ? (delta >= 5 ? 'widening' : delta <= -5 ? 'closing' : 'stable') : 'stable';
+    // Flag = a limb meaningfully behind (≥15% mod/high in detectAsymmetry terms),
+    // OR a smaller-but-actively-widening gap that's trending the wrong way.
+    const flag = current >= 15 || (current >= 10 && drift === 'widening');
+    return { joint, weaker: series[series.length - 1].weaker, series, current, first, delta, drift, flag };
+  }).sort((a, b) => (b.flag - a.flag) || (b.current - a.current));
+  const worst = joints[0] || null;
+  return { joints, films: dates.size, worst, anyFlag: joints.some((j) => j.flag) };
 }
 
 export function hasVault(clientId) {

@@ -11,7 +11,7 @@
 import React, { useMemo } from 'react';
 import { C, FN } from './theme';
 import { analyzeAthlete } from './lineageAnalysis';
-import { getAthleteVault } from './poseMetricsStore';
+import { getAthleteVault, getAthleteAsymmetryTrend } from './poseMetricsStore';
 import { blockNum, classifyPattern, repsTop, exById } from './PlansView';
 
 const wrap = { maxWidth: 980, margin: '0 auto', fontFamily: FN };
@@ -123,6 +123,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
     return analyzeAthlete(clientWorkouts || [], traineeId, plans, { blockNum, classifyPattern, repsTop, exMap });
   }, [clientWorkouts, traineeId, plans, exMap]);
   const vault = useMemo(() => getAthleteVault(traineeId), [traineeId]);
+  const asymTrend = useMemo(() => getAthleteAsymmetryTrend(traineeId), [traineeId]);
 
   const shell = (children) => (
     <div style={{ ...wrap, background: C.bg, border: `1px solid ${C.bd}`, borderRadius: 2, overflow: 'hidden' }}>
@@ -358,6 +359,45 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
           ) : (
             <div style={{ border: `1px dashed ${C.bd}`, background: C.sf2, padding: 14, color: C.tm, fontSize: 12.5, lineHeight: 1.5 }}>
               <b style={{ color: C.tx }}>No stored velocity yet.</b> Bar speed is the one fatigue signal that drops <i>before</i> load or RPE — and no competitor at this price can read it. Film a set in the camera tools and hit <span style={{ color: C.ac }}>Save bar speed to trend</span> — this becomes a per-lift fatigue line that's a real moat.
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div style={{ ...card, marginTop: 0 }}><div style={hd}>Symmetry · injury watch<span style={{ fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '1px 6px', border: `1px solid ${C.pu}`, color: C.pu }}>camera only</span></div>
+        <div style={bd}>
+          {asymTrend.joints.length > 0 ? (
+            <>
+              <div style={{ fontSize: 12.5, color: asymTrend.anyFlag ? C.rd : C.gn, marginBottom: 4, fontWeight: 600 }}>
+                {asymTrend.anyFlag
+                  ? `Watch the ${asymTrend.worst.joint.toLowerCase()} — ${asymTrend.worst.weaker.toLowerCase()} side ${asymTrend.worst.current}% behind${asymTrend.worst.drift === 'widening' ? ' and widening' : ''}.`
+                  : `Symmetry holding across ${asymTrend.films} filmed ${asymTrend.films === 1 ? 'set' : 'sets'}.`}
+              </div>
+              {asymTrend.joints.slice(0, 4).map((j) => {
+                const mx = Math.max(...j.series.map((s) => s.pct), 20);
+                const jc = j.flag ? C.rd : j.drift === 'widening' ? C.pu : C.gn;
+                return (
+                  <div key={j.joint} style={{ padding: '9px 0', borderTop: `1px solid ${C.bd}` }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 5 }}>
+                      <span style={{ fontSize: 12.5, color: C.tx }}>{j.joint} · {j.weaker.toLowerCase()} lower</span>
+                      <span style={{ fontSize: 10, color: jc, letterSpacing: '0.04em' }}>
+                        {j.current}%{j.series.length >= 2 ? ` · ${j.drift === 'widening' ? `widened +${j.delta}` : j.drift === 'closing' ? `closing ${j.delta}` : 'stable'}` : ''}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 30 }}>
+                      {j.series.slice(-8).map((s, i) => (
+                        <div key={i} title={`${s.date} · ${s.pct}% ${s.weaker.toLowerCase()} behind`}
+                          style={{ flex: 1, minWidth: 4, height: `${Math.max(12, (s.pct / mx) * 100)}%`, background: jc, opacity: 0.85, borderRadius: '1px 1px 0 0' }} />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+              <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>Per-joint L/R travel across filmed sets — a bar climbing = one limb pulling away. 2D pose is approximate; a widening flag is worth screening in person, not a diagnosis.</div>
+            </>
+          ) : (
+            <div style={{ border: `1px dashed ${C.bd}`, background: C.sf2, padding: 14, color: C.tm, fontSize: 12.5, lineHeight: 1.5 }}>
+              <b style={{ color: C.tx }}>No symmetry history yet.</b> Every filmed set logs left-vs-right joint travel. Once a few are saved, this becomes a per-joint drift line — a limb pulling away shows here <i>before</i> it's a tweak. Nobody at this price trends it.
             </div>
           )}
         </div>
