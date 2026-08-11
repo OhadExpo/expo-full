@@ -269,6 +269,29 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
       </div>
     </div>
 
+    {/* 2.4 BLOCK HISTORY — the programming arc across every block */}
+    {a.blockHistory && a.blockHistory.length >= 2 && (
+      <div style={card}><div style={hd}>Block history · the programming arc<span style={hdQ}>what each block emphasized — oldest → newest</span></div>
+        <div style={bd}>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {a.blockHistory.slice(-14).map((b, idx) => {
+              const col = b.character === 'strength' ? C.ac : b.character === 'hypertrophy' ? C.pu : C.gn;
+              const label = b.num != null ? `#${b.num}` : (b.name || '').replace(/block/i, '').trim().slice(0, 6) || `B${idx + 1}`;
+              return (
+                <div key={b.name || idx} title={`${b.name} · avg ${b.avgReps} prescribed reps across ${b.exercises} exercises → ${b.character}`}
+                  style={{ flex: '0 0 auto', border: `1px solid ${col}`, padding: '5px 9px', minWidth: 50, textAlign: 'center', background: `color-mix(in srgb, ${col} 8%, transparent)` }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: C.tx, fontFamily: FN }}>{label}</div>
+                  <div style={{ fontSize: 8.5, letterSpacing: '0.05em', textTransform: 'uppercase', color: col, marginTop: 2 }}>{b.character}</div>
+                  <div style={{ fontSize: 9, color: C.td, marginTop: 1, fontVariantNumeric: 'tabular-nums' }}>{b.avgReps}r</div>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>From what you PROGRAMMED each block (avg prescribed reps): under 6 = strength, 6–10 = hypertrophy, 10+ = volume. The arc shows your periodization — read it to decide what phase comes next.</div>
+        </div>
+      </div>
+    )}
+
     {/* 2.5 THE ARC — the cross-block journey (the actual "lineage") */}
     {a.staples.filter((s) => !s.ballistic && s.arc && s.arc.length >= 4 && s.arcGainPct != null).length > 0 && (
       <div style={card}><div style={hd}>The arc · his journey on the big lifts<span style={hdQ}>e1RM across every block he's logged — where he started vs now</span></div>

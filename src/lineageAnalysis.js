@@ -420,29 +420,24 @@ export function skipPattern(sessions, plannedDays, weeks) {
 // each block's emphasis from the reps he actually did: low = strength, mid =
 // hypertrophy, high = volume/endurance. Lets the coach see the periodization arc
 // and decide what phase should come next.
-export function blockHistory(clientWorkouts, traineeId, deps) {
+export function blockHistory(plans, deps) {
   const { blockNum } = deps;
-  const mine = (clientWorkouts || []).filter((w) => String(w.clientId) === String(traineeId));
-  const byBlock = new Map();
-  for (const w of mine) {
-    const bn = blockNum(w.planName);
-    if (bn == null) continue;
-    if (!byBlock.has(bn)) byBlock.set(bn, { num: bn, name: w.planName, reps: [], sets: 0, rpes: [], dates: new Set() });
-    const b = byBlock.get(bn);
-    b.dates.add((w.date || '').slice(0, 10));
-    for (const ex of w.exercises || []) for (const s of ex.sets || []) {
-      if (s.done === false) continue;
-      const r = num(s.reps); const rp = num(s.rpe);
-      if (r != null && r > 0) { b.reps.push(r); b.sets++; }
-      if (rp != null) b.rpes.push(rp);
-    }
-  }
-  return [...byBlock.values()].filter((b) => b.reps.length >= 3).map((b) => {
-    const avgReps = b.reps.reduce((a, c) => a + c, 0) / b.reps.length;
+  // Read each block's INTENDED character from the PRESCRIBED plan (always
+  // present, spans every block) — not from logged reps, which for a sparse
+  // logger concentrate in the current block and would hide the arc. Character =
+  // the block's typical prescribed rep range: <6 strength, 6-10 hypertrophy,
+  // 10+ volume. This is the periodization Ohad actually PROGRAMMED, block over
+  // block — the true "programming arc".
+  const repMid = (r) => { const ns = String(r == null ? '' : r).match(/\d+(?:\.\d+)?/g); return ns && ns.length ? ns.map(Number).reduce((a, c) => a + c, 0) / ns.length : null; };
+  const withDays = (plans || []).filter((p) => (p.days || []).some((d) => (d.exercises || []).length));
+  return withDays.map((p) => {
+    const reps = [];
+    for (const d of p.days || []) for (const ex of d.exercises || []) { const r = repMid(ex.reps); if (r != null && r > 0) reps.push(r); }
+    if (reps.length < 3) return null;
+    const avgReps = reps.reduce((a, c) => a + c, 0) / reps.length;
     const character = avgReps < 6 ? 'strength' : avgReps <= 10 ? 'hypertrophy' : 'volume';
-    const avgRpe = b.rpes.length ? Math.round((b.rpes.reduce((a, c) => a + c, 0) / b.rpes.length) * 10) / 10 : null;
-    return { num: b.num, name: b.name, character, avgReps: Math.round(avgReps * 10) / 10, sets: b.sets, sessions: b.dates.size, avgRpe };
-  }).sort((a, b) => a.num - b.num); // oldest → newest = the arc left-to-right
+    return { num: blockNum(p.name), name: p.name, character, avgReps: Math.round(avgReps * 10) / 10, exercises: reps.length };
+  }).filter(Boolean).sort((a, b) => (a.num != null && b.num != null) ? a.num - b.num : 0);
 }
 
 export function analyzeAthlete(clientWorkouts, traineeId, plans, deps) {
@@ -567,5 +562,5 @@ export function analyzeAthlete(clientWorkouts, traineeId, plans, deps) {
   let setsWithRpe = 0, totalSets = 0;
   for (const s of sessions) for (const ex of s.exercises) for (const st of ex.sets) { totalSets++; if (st.rpe != null) setsWithRpe++; }
   const rpeCoverage = totalSets ? Math.round((setsWithRpe / totalSets) * 100) : 0;
-  return { ...built, empty: false, adh, region, acwr, staples, bodyweightLifts, transfer, verdict, rpeCoverage, skip, journey };
+  return { ...built, empty: false, adh, region, acwr, staples, bodyweightLifts, transfer, verdict, rpeCoverage, skip, journey, blockHistory: blockHistory(plans, deps) };
 }
