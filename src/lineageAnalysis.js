@@ -529,8 +529,13 @@ export function analyzeAthlete(clientWorkouts, traineeId, plans, deps) {
       }
       // The ARC = the full cross-block journey (every log, not the last 6) — the
       // actual "lineage": where this lift started and where it is now.
-      const firstMs = sAll.length ? ms(sAll[0].date) : null;
-      const lastMs = last ? ms(last.date) : null;
+      // Anchor the span to the SCORED logs (the ones that produced firstE1/lastE1),
+      // not the raw first/last — else "e78 → e110 · over 30 weeks" misdates the
+      // baseline when the earliest logs were high-rep (unscored, e1 = null).
+      const firstScored = sAll.find((x) => x.e1 != null);
+      const lastScored = sAll.length ? [...sAll].reverse().find((x) => x.e1 != null) : null;
+      const firstMs = firstScored ? ms(firstScored.date) : null;
+      const lastMs = lastScored ? ms(lastScored.date) : null;
       const spanWeeks = (firstMs && lastMs && lastMs > firstMs) ? Math.round((lastMs - firstMs) / (7 * 86400000)) : 0;
       const firstE1 = e1All.length ? e1All[0] : null;
       const lastE1 = e1All.length ? e1All[e1All.length - 1] : null;
