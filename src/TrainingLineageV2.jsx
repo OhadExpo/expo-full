@@ -280,6 +280,33 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
       </div>
     )}
 
+    {/* STRENGTH → POWER TRANSFER — the flagship read no competitor has */}
+    {a.transfer && (() => {
+      const t = a.transfer;
+      const tone = t.side === 'balanced' ? C.gn : t.side === 'stalled' ? C.or : C.pu;
+      return (
+        <div style={card}><div style={hd}>Strength → power<span style={hdQ}>is his base converting to explosive output?</span></div>
+          <div style={bd}>
+            <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'stretch', marginBottom: 10 }}>
+              <div style={{ flex: '1 1 0', minWidth: 130, border: `1px solid ${C.bd}`, background: C.sf2, padding: '9px 11px' }}>
+                <div style={{ fontSize: 20, fontWeight: 700, color: t.sT > 0.8 ? C.gn : t.sT < -0.8 ? C.rd : C.or, fontVariantNumeric: 'tabular-nums' }}>{t.sT > 0 ? '+' : ''}{t.sT}%</div>
+                <div style={{ fontSize: 9, letterSpacing: '0.11em', textTransform: 'uppercase', color: C.tm, marginTop: 5 }}>Strength trend</div>
+                <div style={{ fontSize: 10, color: C.td, marginTop: 2 }}>{t.strengthN} heavy lift{t.strengthN === 1 ? '' : 's'} · e1RM/session</div>
+              </div>
+              <div style={{ flex: '1 1 0', minWidth: 130, border: `1px solid ${C.bd}`, background: C.sf2, padding: '9px 11px' }}>
+                <div style={{ fontSize: 20, fontWeight: 700, color: t.pT > 0.8 ? C.gn : t.pT < -0.8 ? C.rd : C.or, fontVariantNumeric: 'tabular-nums' }}>{t.pT > 0 ? '+' : ''}{t.pT}%</div>
+                <div style={{ fontSize: 9, letterSpacing: '0.11em', textTransform: 'uppercase', color: C.tm, marginTop: 5 }}>Power / jump trend</div>
+                <div style={{ fontSize: 10, color: C.td, marginTop: 2 }}>{t.powerN} explosive lift{t.powerN === 1 ? '' : 's'}</div>
+              </div>
+            </div>
+            <div style={{ fontSize: 14, color: C.tx, lineHeight: 1.5 }}><b style={{ color: tone }}>{t.read}.</b></div>
+            <div style={{ fontSize: 13, color: C.ac, fontWeight: 600, marginTop: 5, lineHeight: 1.5 }}>→ {t.move}</div>
+            <div style={{ fontSize: 10, color: C.td, marginTop: 8, lineHeight: 1.5 }}>Trend = avg e1RM slope per side. A relationship to watch, not a law — strength↔power carry-over is individual. Film jumps to swap the load-proxy for real height + bar-speed.</div>
+          </div>
+        </div>
+      );
+    })()}
+
     {/* 4+5. LOAD/VOLUME + VELOCITY */}
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }} className="lineage-grid2">
       <div style={{ ...card, marginTop: 0 }}><div style={hd}>Load &amp; volume</div>

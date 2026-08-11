@@ -459,11 +459,35 @@ export function analyzeAthlete(clientWorkouts, traineeId, plans, deps) {
   };
   const staples = allLifts.filter((x) => x.hasLoad).sort((a, b) => rank(a) - rank(b) || b.count - a.count);
   const bodyweightLifts = allLifts.filter((x) => !x.hasLoad).length; // accessory/bodyweight, no load to trend
+  // STRENGTH → POWER transfer (the flagship read — no competitor does per-
+  // athlete strength↔power diagnosis). Is his max-strength converting to
+  // explosive output, or is one side the limiter? Group his lifts, compare the
+  // e1RM slope of each side. Grounded in the DSI / force-deficit literature —
+  // presented as a RELATIONSHIP TO WATCH (squat→jump r≈0.5 is population-level,
+  // not this athlete's causal law), a bias for the next block, not a mandate.
+  const STRENGTH_RX = /squat|deadlift|\bdl\b|rdl|hinge|good[-\s]?morning|press|bench|ohp|overhead|row|pull[-\s]?up|chin|pulldown|lunge|split|rfess|bulgarian|thrust|clean|snatch/i;
+  const groupSlope = (lifts) => {
+    const sl = lifts.map((l) => l.trend?.slopePct).filter((x) => typeof x === 'number' && isFinite(x));
+    return sl.length ? sl.reduce((a, b) => a + b, 0) / sl.length : null;
+  };
+  const strengthLifts = staples.filter((x) => !x.ballistic && STRENGTH_RX.test(x.title) && x.count >= 3);
+  const powerLifts = staples.filter((x) => x.ballistic && x.count >= 3);
+  const sT = groupSlope(strengthLifts), pT = groupSlope(powerLifts);
+  let transfer = null;
+  if (sT != null && pT != null) {
+    const up = (x) => x > 0.8;
+    let side, read, move;
+    if (up(sT) && !up(pT)) { side = 'strength-ahead'; read = 'his strength is climbing but his explosive work isn\'t following it up'; move = 'the strength isn\'t converting to output — bias next block toward velocity + plyo / speed-strength (move lighter loads fast), less grinding'; }
+    else if (up(pT) && !up(sT)) { side = 'power-ahead'; read = 'his jumps/throws are moving but his base strength has stalled'; move = 'power\'s ahead of his strength base — add max-strength work (heavy squat/hinge/press) to raise the ceiling under the power'; }
+    else if (up(sT) && up(pT)) { side = 'balanced'; read = 'strength and power are both climbing together'; move = 'transfer\'s working — hold the balance, don\'t over-rotate to one side'; }
+    else { side = 'stalled'; read = 'neither strength nor power is moving right now'; move = 'both flat — this is a stimulus-change or a deload block, not a "push harder" one'; }
+    transfer = { side, read, move, sT: Math.round(sT * 10) / 10, pT: Math.round(pT * 10) / 10, strengthN: strengthLifts.length, powerN: powerLifts.length };
+  }
   const skip = skipPattern(sessions, built.plannedDays, built.weeks);
   const verdict = synthesizeVerdict({ adh, region, staples, acwr, velocity: { state: 'thin' } });
   // readiness density (rpe on sets, autoreg on sessions) for the honest thin card
   let setsWithRpe = 0, totalSets = 0;
   for (const s of sessions) for (const ex of s.exercises) for (const st of ex.sets) { totalSets++; if (st.rpe != null) setsWithRpe++; }
   const rpeCoverage = totalSets ? Math.round((setsWithRpe / totalSets) * 100) : 0;
-  return { ...built, empty: false, adh, region, acwr, staples, bodyweightLifts, verdict, rpeCoverage, skip };
+  return { ...built, empty: false, adh, region, acwr, staples, bodyweightLifts, transfer, verdict, rpeCoverage, skip };
 }
