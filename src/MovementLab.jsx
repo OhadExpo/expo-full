@@ -601,7 +601,7 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
           border: `1px solid ${result.captureQuality.grade === 'poor' ? (C.warn || '#f0b429') : 'rgba(255,255,255,0.18)'}`,
           background: result.captureQuality.grade === 'poor' ? 'rgba(240,180,41,0.08)' : 'rgba(255,255,255,0.03)',
           color: result.captureQuality.grade === 'poor' ? (C.warn || '#f0b429') : 'rgba(255,255,255,0.6)',
-        }} title={`Body detected in ${Math.round(result.captureQuality.coverage * 100)}% of frames · mean landmark visibility ${result.captureQuality.meanVis}. Markerless 2D pose degrades with cropping, side-angle, motion blur or low light.`}>
+        }} title={`Body detected in ${Math.round(result.captureQuality.coverage * 100)}% of frames${result.captureQuality.meanVis != null ? ` · mean landmark visibility ${result.captureQuality.meanVis}` : ''}. Markerless 2D pose degrades with cropping, side-angle, motion blur or low light.`}>
           <b style={{ letterSpacing: '0.06em' }}>{result.captureQuality.grade === 'poor' ? 'LOW CAPTURE QUALITY' : 'CAPTURE OK'}</b> · {result.captureQuality.note}
         </div>
       )}
@@ -714,16 +714,14 @@ function FormCheck({ result, exerciseTitle }) {
   const tempo = useMemo(() => {
     const rr = result?.romTempo?.perRep;
     if (!rr) return null;
-    const med = (k) => { const xs = rr.filter(Boolean).map((r) => r[k]).filter((x) => typeof x === 'number' && x >= 0).sort((a, b) => a - b); return xs.length ? xs[Math.floor(xs.length / 2)] : null; };
-    const ecc = med('ecc'), pause = med('pause'), con = med('con');
+    // ecc/con of ~0 = a sub-frame or mis-segmented phase, not a real fast tempo —
+    // exclude it so "0.0s" never reads as what he actually did. A 0 pause IS real
+    // (touch-and-go), so pause keeps zeros.
+    const med = (k, min) => { const xs = rr.filter(Boolean).map((r) => r[k]).filter((x) => typeof x === 'number' && x >= min).sort((a, b) => a - b); return xs.length ? xs[Math.floor(xs.length / 2)] : null; };
+    const ecc = med('ecc', 0.05), pause = med('pause', 0), con = med('con', 0.05);
     if (ecc == null && con == null) return null;
     return { ecc, pause, con };
   }, [result]);
-  const capCaveat = (
-    <div style={{ fontFamily: FN, fontSize: 10, color: C.or || '#f0b429', letterSpacing: '0.02em', marginBottom: 6, lineHeight: 1.5 }}>
-      Low capture quality this clip — treat the numbers below as a rough read, not a verdict. Refilm cleaner to trust them.
-    </div>
-  );
   const sev = { bad: C.rd, warn: C.or, high: C.rd, mod: C.or, ok: C.gn };
   const secLabel = { fontFamily: FN, fontSize: 10, letterSpacing: '0.14em', color: C.ac, marginBottom: 8 };
   const rowBase = { display: 'flex', gap: 10, padding: '10px 0', borderTop: `1px solid ${C.bd}`, fontFamily: FN, fontSize: 13, lineHeight: 1.5 };
@@ -747,6 +745,11 @@ function FormCheck({ result, exerciseTitle }) {
 
   return (
     <div style={{ fontFamily: FN }}>
+      {lowCap && (
+        <div style={{ fontFamily: FN, fontSize: 11, color: C.or || '#f0b429', letterSpacing: '0.02em', marginBottom: 16, lineHeight: 1.5, padding: '8px 12px', border: `1px solid ${C.or || '#f0b429'}`, background: 'rgba(240,180,41,0.08)' }}>
+          <b style={{ letterSpacing: '0.06em' }}>LOW CAPTURE QUALITY</b> — everything in this tab is a rough read off an imperfect clip, not a verdict. Refilm cleaner (whole body, straight-on or clean side, steady) to trust it.
+        </div>
+      )}
       {repQuality && repQuality.length >= 2 && (
         <div style={{ marginBottom: 20 }}>
           <div style={secLabel}>SET BREAKDOWN <span style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: 0 }}>· where it held, where it broke</span></div>
@@ -799,7 +802,6 @@ function FormCheck({ result, exerciseTitle }) {
       {vbt && (
         <>
           <div style={{ ...secLabel, marginTop: 22 }}>STOP-SET · BAR SPEED <span style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: 0 }}>· where the set stopped being what it was for</span></div>
-          {lowCap && capCaveat}
           <div style={{ fontFamily: FN, fontSize: 13, color: 'rgba(255,255,255,0.85)', lineHeight: 1.6 }}>
             He did <b style={{ color: '#fff' }}>{vbt.total} reps</b>{vbt.finalLoss != null ? <> · bar speed dropped <b style={{ color: vbt.finalLoss >= 30 ? C.rd : vbt.finalLoss >= 20 ? (C.or || '#f0b429') : C.gn }}>{Math.min(99, vbt.finalLoss)}%</b> by the last one</> : null}.
             <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -817,9 +819,9 @@ function FormCheck({ result, exerciseTitle }) {
       )}
 
       <div style={{ ...secLabel, marginTop: 22 }}>LEFT / RIGHT SYMMETRY</div>
-      {lowCap && asym && capCaveat}
+      {asym && asym.unilateral &&<div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12.5, lineHeight: 1.5, fontFamily: FN }}>{asym.note}</div>}
       {!asym && <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>No paired joints tracked cleanly on this clip.</div>}
-      {asym && asym.rows.map((r) => {
+      {asym && !asym.unilateral && asym.rows.map((r) => {
         const mx = Math.max(r.left, r.right) || 1;
         const lCol = r.weaker === 'Left' ? sev[r.severity] : C.ac;
         const rCol = r.weaker === 'Right' ? sev[r.severity] : C.ac;

@@ -729,9 +729,17 @@ export function frameToPoints3D(worldLandmarks) {
 // cropped, shaky, low-light or badly-angled clip yields confident-LOOKING but
 // garbage angles/velocities. Grade how well the body was actually tracked so the
 // UI can warn the coach when a read shouldn't be trusted. Honest by default.
-export function captureQuality(frames) {
-  if (!frames || !frames.length) return { coverage: 0, meanVis: 0, grade: 'poor', note: 'No frames captured.' };
-  const KEY = [11, 12, 23, 24, 25, 26, 27, 28]; // shoulders, hips, knees, ankles
+export function captureQuality(frames, title) {
+  if (!frames || !frames.length) return { coverage: 0, meanVis: null, grade: 'poor', note: 'No frames captured.' };
+  // Judge only the joints that matter for THIS lift — an upper-body clip framed
+  // on the torso (legs out of shot) must not be graded 'poor' because the legs
+  // aren't visible, and vice-versa. Elbows (13/14) matter on presses.
+  const t = (title || '').toLowerCase();
+  const upper = /\b(bench|ohp|overhead|press|push[-\s]?up|dip|row|pull[-\s]?up|chin|pull[-\s]?down|lat|fly|raise|shrug|curl|tricep|bicep)\b/.test(t) && !/\bleg\b/.test(t);
+  const lower = /\b(squat|lunge|split|pistol|rfess|bulgarian|step[-\s]?up|deadlift|rdl|hinge|thrust|glute|leg|calf|jump|pogo|hop|bound|nordic|good[-\s]?morning)\b/.test(t);
+  const KEY = (upper && !lower) ? [11, 12, 13, 14]
+    : (lower && !upper) ? [23, 24, 25, 26, 27, 28]
+      : [11, 12, 13, 14, 23, 24, 25, 26, 27, 28];
   let detected = 0, visSum = 0, visN = 0;
   for (const f of frames) {
     const lm = f.landmarks;
@@ -739,21 +747,24 @@ export function captureQuality(frames) {
     detected++;
     for (const i of KEY) {
       const p = lm[i];
-      if (p && typeof p.visibility === 'number') { visSum += p.visibility; visN++; }
+      // Only average visibility that's actually present and positive. A missing
+      // visibility field (some MediaPipe builds omit it — see the `== null` path
+      // in movementRepCount) or a 0 must not drag a well-tracked clip to 'poor'.
+      if (p && typeof p.visibility === 'number' && p.visibility > 0) { visSum += p.visibility; visN++; }
     }
   }
   const coverage = detected / frames.length;
-  const meanVis = visN ? visSum / visN : 0;
+  const meanVis = visN ? visSum / visN : null; // null = no usable visibility signal → judge on coverage alone
   let grade = 'good';
-  if (coverage < 0.7 || meanVis < 0.5) grade = 'poor';
-  else if (coverage < 0.9 || meanVis < 0.7) grade = 'fair';
+  if (coverage < 0.7 || (meanVis != null && meanVis < 0.5)) grade = 'poor';
+  else if (coverage < 0.9 || (meanVis != null && meanVis < 0.7)) grade = 'fair';
   const pct = Math.round(coverage * 100);
   const note = grade === 'good'
-    ? `Body tracked cleanly (${pct}% of frames).`
+    ? `Body tracked in ${pct}% of frames. (2D pose — it can't tell if the camera angle is off; a clean straight-on or side view still matters.)`
     : grade === 'fair'
       ? `Body tracked in ${pct}% of frames — usable, but reframe fuller and steadier for sharper numbers.`
       : `Body tracked in only ${pct}% of frames — treat the numbers below as unreliable. Refilm with the whole body in shot (straight-on or a clean side view), steady camera, decent light.`;
-  return { coverage: round2(coverage), meanVis: round2(meanVis), grade, note };
+  return { coverage: round2(coverage), meanVis: meanVis == null ? null : round2(meanVis), grade, note };
 }
 
 // Top-level: run the full battery on a captured clip.
@@ -781,7 +792,7 @@ export function analyzeClip(frames, exerciseTitle, opts = {}) {
     const mv = movementRepCount(frames);
     if (mv && mv.count > repCount && mv.range > 0.04) { repCount = mv.count; countMethod = 'flight'; }
   }
-  return { ok: true, fps, kind, repCount, jointRepCount: reps.length, countMethod, reps, rejectedReps: reps.rejected || [], velocity, romTempo, jointRom, barSpeed, frameCount: frames.length, captureQuality: captureQuality(frames) };
+  return { ok: true, fps, kind, repCount, jointRepCount: reps.length, countMethod, reps, rejectedReps: reps.rejected || [], velocity, romTempo, jointRom, barSpeed, frameCount: frames.length, captureQuality: captureQuality(frames, exerciseTitle) };
 }
 
 // --- small helpers ---
