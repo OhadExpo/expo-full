@@ -702,6 +702,15 @@ function FormCheck({ result, exerciseTitle }) {
   const faults = useMemo(() => detectFaults(result, exerciseTitle), [result, exerciseTitle]);
   const asym = useMemo(() => detectAsymmetry(result.jointRom), [result.jointRom]);
   const vbt = useMemo(() => velocityAutoreg(result.velocity), [result.velocity]);
+  // A poorly-tracked clip makes the velocity + L/R reads untrustworthy (2D
+  // asymmetry especially needs a clean frontal/steady view). Caveat them rather
+  // than present confident numbers off garbage pose.
+  const lowCap = result?.captureQuality?.grade === 'poor';
+  const capCaveat = (
+    <div style={{ fontFamily: FN, fontSize: 10, color: C.or || '#f0b429', letterSpacing: '0.02em', marginBottom: 6, lineHeight: 1.5 }}>
+      Low capture quality this clip — treat the numbers below as a rough read, not a verdict. Refilm cleaner to trust them.
+    </div>
+  );
   const sev = { bad: C.rd, warn: C.or, high: C.rd, mod: C.or, ok: C.gn };
   const secLabel = { fontFamily: FN, fontSize: 10, letterSpacing: '0.14em', color: C.ac, marginBottom: 8 };
   const rowBase = { display: 'flex', gap: 10, padding: '10px 0', borderTop: `1px solid ${C.bd}`, fontFamily: FN, fontSize: 13, lineHeight: 1.5 };
@@ -761,6 +770,7 @@ function FormCheck({ result, exerciseTitle }) {
       {vbt && (
         <>
           <div style={{ ...secLabel, marginTop: 22 }}>STOP-SET · BAR SPEED <span style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: 0 }}>· where the set stopped being what it was for</span></div>
+          {lowCap && capCaveat}
           <div style={{ fontFamily: FN, fontSize: 13, color: 'rgba(255,255,255,0.85)', lineHeight: 1.6 }}>
             He did <b style={{ color: '#fff' }}>{vbt.total} reps</b>{vbt.finalLoss != null ? <> · bar speed dropped <b style={{ color: vbt.finalLoss >= 30 ? C.rd : vbt.finalLoss >= 20 ? (C.or || '#f0b429') : C.gn }}>{Math.min(99, vbt.finalLoss)}%</b> by the last one</> : null}.
             <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -778,6 +788,7 @@ function FormCheck({ result, exerciseTitle }) {
       )}
 
       <div style={{ ...secLabel, marginTop: 22 }}>LEFT / RIGHT SYMMETRY</div>
+      {lowCap && asym && capCaveat}
       {!asym && <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>No paired joints tracked cleanly on this clip.</div>}
       {asym && asym.rows.map((r) => {
         const mx = Math.max(r.left, r.right) || 1;
