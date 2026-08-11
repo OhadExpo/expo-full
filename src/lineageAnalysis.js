@@ -431,6 +431,13 @@ export function analyzeAthlete(clientWorkouts, traineeId, plans, deps) {
   const adh = adherence(sessions, plannedSessionCount);
   const region = missRateByRegion(sessions);
   const acwr = tonnageACWR(allSessions);
+  // Journey = the whole-history context that frames the report (the "lineage"):
+  // how long he's been logging, across how many blocks + sessions.
+  const jDates = allSessions.map((s) => ms(s.date)).filter((n) => isFinite(n));
+  const journey = jDates.length ? {
+    weeks: (Math.max(...jDates) - Math.min(...jDates)) > 0 ? Math.round((Math.max(...jDates) - Math.min(...jDates)) / (7 * 86400000)) : 0,
+    loggedSessions: allSessions.length,
+  } : null;
   // staples: lifts logged 3+ times across blocks, richest first (cap series
   // to the most recent 6 logs so an old block doesn't drown the current read)
   // Ballistic lifts progress by height/speed, not linear load — so a flat load
@@ -530,5 +537,5 @@ export function analyzeAthlete(clientWorkouts, traineeId, plans, deps) {
   let setsWithRpe = 0, totalSets = 0;
   for (const s of sessions) for (const ex of s.exercises) for (const st of ex.sets) { totalSets++; if (st.rpe != null) setsWithRpe++; }
   const rpeCoverage = totalSets ? Math.round((setsWithRpe / totalSets) * 100) : 0;
-  return { ...built, empty: false, adh, region, acwr, staples, bodyweightLifts, transfer, verdict, rpeCoverage, skip };
+  return { ...built, empty: false, adh, region, acwr, staples, bodyweightLifts, transfer, verdict, rpeCoverage, skip, journey };
 }

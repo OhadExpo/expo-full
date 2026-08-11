@@ -175,7 +175,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
         Training Lineage · <span style={{ color: C.ac }}>{traineeName}</span>
       </span>
       <span style={{ fontSize: 10, letterSpacing: '0.1em', color: C.tm, display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-        {a.totalBlocks} BLOCK{a.totalBlocks === 1 ? '' : 'S'}
+        {a.totalBlocks} BLOCK{a.totalBlocks === 1 ? '' : 'S'}{a.journey && a.journey.weeks > 0 ? ` · ${a.journey.weeks}W · ${a.journey.loggedSessions} SESSIONS` : ''}
         {a.blocks && a.blocks.filter((b) => b.num != null).length > 1 ? (
           <>· <select value={a.blockNumber ?? ''} onChange={(e) => setSelBlock(Number(e.target.value))}
             title="View the report for any block"
