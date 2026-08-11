@@ -8,7 +8,7 @@
 // changes his program — it analyses and advises, the coach builds.
 //
 // Analysis engine: src/lineageAnalysis.js (pure). This file is presentation.
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { C, FN } from './theme';
 import { analyzeAthlete } from './lineageAnalysis';
 import { getAthleteVault, getAthleteAsymmetryTrend } from './poseMetricsStore';
@@ -117,6 +117,34 @@ function nextBlockText(a) {
   );
 }
 
+function LiftRow({ s }) {
+  const r = readStaple(s);
+  const loads = s.loads.filter((x) => x != null).slice(-4).map((x) => (Number.isInteger(x) ? x : x.toFixed(1)));
+  const fmt = (d) => { try { const dt = new Date(d); return `${dt.getDate()}/${dt.getMonth() + 1}`; } catch { return ''; } };
+  const best = s.pr != null ? `${Number.isInteger(s.pr) ? s.pr : s.pr.toFixed(1)}kg` : (s.prE1 != null ? `e${s.prE1}` : '—');
+  return (
+    <tr>
+      <td style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, verticalAlign: 'top' }}>
+        <div style={{ color: C.tx }}>{s.title}</div>
+        <div style={{ fontSize: 11, color: C.tm, marginTop: 2, lineHeight: 1.4 }}>{r.why}</div>
+        <div style={{ fontSize: 11.5, color: C.ac, marginTop: 3, fontWeight: 600, lineHeight: 1.4 }}>→ {r.next}</div>
+        <div style={{ fontSize: 10, color: C.td, marginTop: 3 }}>{s.count}× · last {fmt(s.lastDate)}</div>
+      </td>
+      <td style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, whiteSpace: 'nowrap', verticalAlign: 'top' }}>
+        {s.trend?.state === 'ok' ? <><Spark pts={s.trend.pts} dir={s.trend.dir} /> <span style={{ fontVariantNumeric: 'tabular-nums', color: C.tx, fontWeight: 600, marginLeft: 4 }}>e{s.trend.latest}</span></> : <span style={{ color: C.td, fontSize: 11 }}>—</span>}
+      </td>
+      <td style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, fontVariantNumeric: 'tabular-nums', color: C.tx, fontWeight: 600, whiteSpace: 'nowrap', verticalAlign: 'top' }}>
+        {best}
+        {!s.ballistic && s.weeksSincePr != null && s.weeksSincePr >= 2 && (
+          <div style={{ fontSize: 10, fontWeight: 400, color: s.weeksSincePr >= 6 ? C.or : C.td, marginTop: 2 }}>PR {s.weeksSincePr}w ago</div>
+        )}
+      </td>
+      <td style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, fontVariantNumeric: 'tabular-nums', color: C.tm, verticalAlign: 'top' }}>{loads.join(' · ')}</td>
+      <td style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, textAlign: 'right', verticalAlign: 'top' }}><Tag text={r.tag} color={r.tagColor} /></td>
+    </tr>
+  );
+}
+
 export default function TrainingLineageV2({ traineeId, traineeName, exercises, plans, clientWorkouts, loading, onOpenPlan }) {
   const exMap = useMemo(() => exById(exercises), [exercises]);
   const a = useMemo(() => {
@@ -125,6 +153,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
   }, [clientWorkouts, traineeId, plans, exMap]);
   const vault = useMemo(() => getAthleteVault(traineeId), [traineeId]);
   const asymTrend = useMemo(() => getAthleteAsymmetryTrend(traineeId), [traineeId]);
+  const [showThin, setShowThin] = useState(false); // expand the "logged 1-2× · too few to trend" lifts
 
   const shell = (children) => (
     <div style={{ ...wrap, background: C.bg, border: `1px solid ${C.bd}`, borderRadius: 2, overflow: 'hidden' }}>
@@ -245,38 +274,34 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
                 ))}
               </tr></thead>
               <tbody>
-                {a.staples.map((s) => {
-                  const r = readStaple(s);
-                  const loads = s.loads.filter((x) => x != null).slice(-4).map((x) => (Number.isInteger(x) ? x : x.toFixed(1)));
-                  const fmt = (d) => { try { const dt = new Date(d); return `${dt.getDate()}/${dt.getMonth() + 1}`; } catch { return ''; } };
-                  const best = s.pr != null ? `${Number.isInteger(s.pr) ? s.pr : s.pr.toFixed(1)}kg` : (s.prE1 != null ? `e${s.prE1}` : '—');
-                  return (
-                    <tr key={s.title}>
-                      <td style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, verticalAlign: 'top' }}>
-                        <div style={{ color: C.tx }}>{s.title}</div>
-                        <div style={{ fontSize: 11, color: C.tm, marginTop: 2, lineHeight: 1.4 }}>{r.why}</div>
-                        <div style={{ fontSize: 11.5, color: C.ac, marginTop: 3, fontWeight: 600, lineHeight: 1.4 }}>→ {r.next}</div>
-                        <div style={{ fontSize: 10, color: C.td, marginTop: 3 }}>{s.count}× · last {fmt(s.lastDate)}</div>
-                      </td>
-                      <td style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, whiteSpace: 'nowrap', verticalAlign: 'top' }}>
-                        {s.trend?.state === 'ok' ? <><Spark pts={s.trend.pts} dir={s.trend.dir} /> <span style={{ fontVariantNumeric: 'tabular-nums', color: C.tx, fontWeight: 600, marginLeft: 4 }}>e{s.trend.latest}</span></> : <span style={{ color: C.td, fontSize: 11 }}>—</span>}
-                      </td>
-                      <td style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, fontVariantNumeric: 'tabular-nums', color: C.tx, fontWeight: 600, whiteSpace: 'nowrap', verticalAlign: 'top' }}>
-                        {best}
-                        {!s.ballistic && s.weeksSincePr != null && s.weeksSincePr >= 2 && (
-                          <div style={{ fontSize: 10, fontWeight: 400, color: s.weeksSincePr >= 6 ? C.or : C.td, marginTop: 2 }}>PR {s.weeksSincePr}w ago</div>
-                        )}
-                      </td>
-                      <td style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, fontVariantNumeric: 'tabular-nums', color: C.tm, verticalAlign: 'top' }}>{loads.join(' · ')}</td>
-                      <td style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, textAlign: 'right', verticalAlign: 'top' }}><Tag text={r.tag} color={r.tagColor} /></td>
-                    </tr>
-                  );
-                })}
+                {a.staples.filter((s) => s.count >= 3).map((s) => <LiftRow key={s.title} s={s} />)}
               </tbody>
             </table>
           </div>
+          {a.staples.filter((s) => s.count >= 3).length === 0 && (
+            <div style={{ fontSize: 12.5, color: C.tm, padding: '10px 8px', lineHeight: 1.5 }}>Nothing logged 3+ times yet — no lift has enough history to read a trend. The lifts he's touched are below.</div>
+          )}
+          {(() => {
+            const thin = a.staples.filter((s) => s.count < 3);
+            if (!thin.length) return null;
+            return (
+              <div style={{ marginTop: 8 }}>
+                <button type="button" onClick={() => setShowThin((v) => !v)}
+                  style={{ fontFamily: FN, fontSize: 11, letterSpacing: '0.04em', color: C.tm, background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px 0', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ color: C.ac }}>{showThin ? '▾' : '▸'}</span>{thin.length} more lift{thin.length === 1 ? '' : 's'} logged 1–2× · too few to trend {showThin ? '' : '(show)'}
+                </button>
+                {showThin && (
+                  <div style={{ overflowX: 'auto', marginTop: 4 }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}><tbody>
+                      {thin.map((s) => <LiftRow key={s.title} s={s} />)}
+                    </tbody></table>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
           <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>
-            Every lift he put weight on{a.bodyweightLifts > 0 ? ` · ${a.bodyweightLifts} more bodyweight/accessory lift${a.bodyweightLifts === 1 ? '' : 's'} logged (no load to trend)` : ''} · best = heaviest logged · e = est-1RM (Epley), hidden past 12 reps.
+            Lifts he's logged 3+ times (enough to read){a.bodyweightLifts > 0 ? ` · ${a.bodyweightLifts} more bodyweight/accessory lift${a.bodyweightLifts === 1 ? '' : 's'} (no load to trend)` : ''} · best = heaviest logged · e = est-1RM (Epley), hidden past 12 reps.
           </div>
         </div>
       </div>
