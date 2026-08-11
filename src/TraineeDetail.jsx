@@ -7,11 +7,18 @@ import { C, FN, FB, FH, uid, PAYMENT_STATUSES, TRAINING_FORMATS, TRAINEE_STATUSE
 // helper applied to NotesWidget, PlansView, WorkoutReview,
 // WorkoutsView. Used here for the couple/solo header strip + the
 // per-member name column.
-const isHebrew = (s) => /[\\u0590-\\u05FF]/.test(s || '');
+const isHebrew = (s) => /[\u0590-\u05FF]/.test(s || '');
+// Canonical section-filter id list - ONE source of truth for both the URL-hash
+// parser (apply()) and the tab toggler (toggleSec). They used to diverge (a
+// 6-item parser vs a 10-item toggler), so deep-links / back-forward to vitals,
+// messages, crm or eval were dropped by the parser and silently reverted to
+// View All. Keep this the single list.
+const TD_SECTIONS = ['vitals', 'billing', 'messages', 'crm', 'bw', 'readiness', 'workouts', 'programs', 'eval', 'overload'];
 // Helper to pluralize day/ex counts consistently — "1 day" not "1 days".
 const plur = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 import { Btn, Input, Select, TextArea, Badge, Card, Modal, EmailsInput, baseInput, toast, confirmToast, useEscClose, SectionLabel, CollapsibleSection } from './ui';
 import { savePlan } from './usePlansStore';
+import { useLineageLauncher } from './LineageLauncher';
 import { supabase } from './supabase';
 import OverloadChart from './OverloadChart';
 import { hasReadiness, CHECKIN_METRICS, readinessColor } from './ReadinessRow';
@@ -98,7 +105,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
   // walks it. Hook must precede any early return.
   const [activeSecs, setActiveSecs] = useState(() => new Set());
   useEffect(() => {
-    const FILTERABLE = ['billing', 'bw', 'readiness', 'workouts', 'programs', 'overload'];
+    const FILTERABLE = TD_SECTIONS; // full 10-section list — must match toggleSec's list
     const apply = () => {
       const raw = (typeof window !== 'undefined' ? window.location.hash : '').replace(/^#/, '');
       const ids = raw.split(',').map(s => s.trim()).filter(id => FILTERABLE.includes(id));
@@ -127,6 +134,8 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
   // without that merge, clients who train solo from the portal (Amit, Roey)
   // looked totally inactive in their detail view.
   const tcw = (clientWorkouts || []).filter(w => _allIds.has(w.clientId));
+  const lineageMap = useMemo(() => Object.fromEntries((trainees || []).map(t => [t.id, t.name])), [trainees]);
+  const lineage = useLineageLauncher({ exercises, clientWorkouts, traineeMap: lineageMap, onOpenPlan });
   const tAllWorkouts = [
     ...tw.map(w => ({ id: w.id, date: w.date, dayName: w.dayName, week: w.week, source: 'coach' })),
     ...tcw.map(w => ({ id: w.id, date: w.date, dayName: w.dayName || w.planName || 'Session', week: w.week, source: 'portal', autoregulation: w.autoregulation })),
@@ -313,7 +322,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
   // Helper: render a member column (body stats, injuries, goals, optionally programs)
   const renderMemberColumn = (m, mi, showPrograms = true) => {
     const memberPlans = tpMember(mi);
-    const sorted = [...memberPlans].sort((a,b)=>programSort==='alpha'?a.name.localeCompare(b.name):sortProgramsRecent(a,b));
+    const sorted = [...memberPlans].sort((a,b)=>programSort==='alpha'?(a.name||'').localeCompare(b.name||''):sortProgramsRecent(a,b));
     const memberVisKey = (p) => `${td.name}:${p.name}:m${mi}`;
     // Single-click "make this the only visible plan" for couple members.
     // Sets every sibling explicitly to false so default-undefined rows
@@ -340,8 +349,8 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
               <div key={l}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700}}>{l}</div><div style={{fontSize:14,color:C.tx,marginTop:2}}>{v}</div></div>)}
           </div>
           {m.injuries&&<div style={{marginTop:10,padding:8,background:'var(--c-sf)',border:`1px solid ${C.or}`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.or,textTransform:'uppercase',marginBottom:4,textAlign:'center'}}>Injuries</div><div style={{fontSize:13,color:C.tx,direction:/[\u0590-\u05FF]/.test(m.injuries)?'rtl':'ltr',textAlign:'center',fontFamily:/[\u0590-\u05FF]/.test(m.injuries)?FH:undefined}}>{m.injuries}</div></div>}
-          {m.goals&&<div style={{marginTop:6,padding:8,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.ac,textTransform:'uppercase',marginBottom:4,textAlign:'center'}}>Goals</div><div style={{fontSize:13,color:C.tx,direction:/[\\u0590-\\u05FF]/.test(m.goals)?'rtl':'ltr',textAlign:'center',fontFamily:/[\\u0590-\\u05FF]/.test(m.goals)?FH:undefined}}>{m.goals}</div></div>}
-          {m.notes&&<div style={{marginTop:6,padding:8,background:'var(--c-sf)',border:`1px solid ${C.bd}`,borderRadius:0}}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700,marginBottom:4,textAlign:'center'}}>Notes</div><div style={{fontSize:13,color:C.tm,direction:/[\\u0590-\\u05FF]/.test(m.notes)?'rtl':'ltr',textAlign:'center',fontFamily:/[\\u0590-\\u05FF]/.test(m.notes)?FH:undefined}}>{m.notes}</div></div>}
+          {m.goals&&<div style={{marginTop:6,padding:8,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.ac,textTransform:'uppercase',marginBottom:4,textAlign:'center'}}>Goals</div><div style={{fontSize:13,color:C.tx,direction:/[\u0590-\u05FF]/.test(m.goals)?'rtl':'ltr',textAlign:'center',fontFamily:/[\u0590-\u05FF]/.test(m.goals)?FH:undefined}}>{m.goals}</div></div>}
+          {m.notes&&<div style={{marginTop:6,padding:8,background:'var(--c-sf)',border:`1px solid ${C.bd}`,borderRadius:0}}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700,marginBottom:4,textAlign:'center'}}>Notes</div><div style={{fontSize:13,color:C.tm,direction:/[\u0590-\u05FF]/.test(m.notes)?'rtl':'ltr',textAlign:'center',fontFamily:/[\u0590-\u05FF]/.test(m.notes)?FH:undefined}}>{m.notes}</div></div>}
         </Card>
         {showPrograms && <>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',margin:'12px 0 6px',gap:8}}>
@@ -368,14 +377,14 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
     setPortalVis(nv);
   };
   const renderProgramsList = () => {
-    const sorted = [...tp].sort((a,b)=>programSort==='alpha'?a.name.localeCompare(b.name):sortProgramsRecent(a,b));
+    const sorted = [...tp].sort((a,b)=>programSort==='alpha'?(a.name||'').localeCompare(b.name||''):sortProgramsRecent(a,b));
     return sorted.map(p=>{const visKey=`${td.name}:${p.name}`;const isVis=portalVis?.[visKey]!==false;return <ProgramCard key={p.id} plan={p} isVis={isVis} onOpen={()=>onOpenPlan&&onOpenPlan(p.id)} onUnassign={()=>{setConfirmUnassign(p.id);setUnassignTyped("")}} onOnly={()=>onlyThis(visKey,sorted)} onToggleVis={()=>{const nv={...portalVis,[visKey]:!isVis};setPortalVis(nv)}} />});
   };
 
   // Section-jump tab menu (Tasks-style segmented control). VIEW ALL is the
   // default (leftmost) and scrolls to the top; each section tab scrolls that
   // section into view. Scroll-jump, not filter — every section stays on the page.
-  const FILTERABLE_SECS = ['billing', 'bw', 'readiness', 'workouts', 'programs', 'overload'];
+  const FILTERABLE_SECS = TD_SECTIONS; // single source of truth (see top of file)
   // Empty set = View All (show everything). Otherwise show only the active ids.
   const showSec = (id) => activeSecs.size === 0 || activeSecs.has(id);
   // SINGLE-SELECT (Ohad 2026-08: "if i click on billing, i only want it to show
@@ -400,11 +409,15 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
   };
   const SEC_TABS = [
     { id: 'all', label: 'View All' },
+    { id: 'vitals', label: 'Vitals' },
     { id: 'billing', label: 'Billing' },
+    { id: 'messages', label: 'Messages' },
+    { id: 'crm', label: 'Coach History' },
     { id: 'bw', label: 'Bodyweight' },
     { id: 'readiness', label: 'Readiness' },
     { id: 'workouts', label: 'Workouts' },
     { id: 'programs', label: 'Programs' },
+    { id: 'eval', label: 'Athletic Eval' },
     { id: 'overload', label: 'Overload' },
   ];
 
@@ -455,6 +468,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
               row reads left-to-right by intent instead of leading with a setting. */}
           {onOpenInPersonForTrainee && <Btn variant="ghost" onClick={()=>onOpenInPersonForTrainee(trainee)} style={{fontSize:11,padding:"4px 10px",height:30,boxSizing:"border-box"}} title="Open the in-person workout logger pre-filtered to this athlete">LOG SESSION</Btn>}
           {onPreviewPortal && <Btn variant="ghost" onClick={onPreviewPortal} style={{fontSize:11,padding:"4px 10px",height:30,boxSizing:"border-box"}} title="Open this athlete's portal in preview mode">PORTAL</Btn>}
+          <Btn variant="ghost" onClick={()=>lineage.open(trainee)} style={{fontSize:11,padding:"4px 10px",height:30,boxSizing:"border-box"}} title="Training Lineage — cross-block progression + what to program next">LINEAGE</Btn>
           <Btn variant="ghost" onClick={openEdit} style={{fontSize:11,padding:"4px 10px",height:30,boxSizing:"border-box"}}>EDIT</Btn>
           <button
             onClick={() => { if (setTrainees) setTrainees(prev => prev.map(t => t.id === trainee ? { ...t, notifOff: !t.notifOff } : t)); }}
@@ -473,11 +487,13 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           </> : <Btn variant="danger" onClick={()=>setShowArchiveConfirm(true)} style={{fontSize:11,padding:"4px 10px",height:30,boxSizing:"border-box"}}>ARCHIVE</Btn>}
         </div></div>
 
+      {lineage.node}
       {/* Section filter — SINGLE-SELECT (Ohad). VIEW ALL (leftmost) shows
           everything; each section tab isolates to ONLY that section; clicking
-          the active tab again returns to View All. Scrolls sideways, never reflows. */}
-      <div style={{ overflowX: 'auto', marginBottom: 16, paddingBottom: 2 }}>
-        <div style={{ minWidth: 'max-content', display: 'inline-flex', gap: 6 }} role="group" aria-label="Filter sections">
+          the active tab again returns to View All. WRAPS to fit — every tag stays
+          visible, no horizontal scroll (Ohad: "all the tags need to fit"). */}
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }} role="group" aria-label="Filter sections">
           {SEC_TABS.map(t => {
             const active = t.id === 'all' ? activeSecs.size === 0 : activeSecs.has(t.id);
             return (
@@ -486,10 +502,14 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
                 title={t.id === 'all' ? 'Show all sections' : `Show only ${t.label} — click again for all sections`}
                 style={{
                   height: 30, boxSizing: 'border-box', padding: '0 14px', borderRadius: 0,
-                  background: active ? C.ac : 'transparent',
+                  // Tinted active state (not a solid C.ac fill) — in light-refined
+                  // themes C.ac resolves near-black, so solid-fill + dark label was
+                  // invisible (Ohad: "i cant see the button"). Tint + accent text
+                  // reads in every theme.
+                  background: active ? 'color-mix(in srgb, var(--c-ac) 16%, transparent)' : 'transparent',
                   border: `1px solid ${active ? C.ac : C.cardBd}`,
-                  color: active ? '#0a0a0b' : C.tm,
-                  fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.09em',
+                  color: active ? 'var(--c-ac)' : C.tm,
+                  fontFamily: FN, fontSize: 11, fontWeight: active ? 800 : 700, letterSpacing: '0.09em',
                   textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap',
                   display: 'inline-flex', alignItems: 'center', transition: 'background .12s, color .12s, border-color .12s',
                 }}>{t.label}</button>
@@ -567,7 +587,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       {/* === VITALS · INJURIES · GOALS — slot #2, solo only (couples
           render this inside the member columns above). */}
       {!couple && (
-        <Card style={{marginBottom:16}}
+        <Card style={{marginBottom:16, display: showSec('vitals') ? undefined : 'none'}}
           header={<span style={{fontWeight:700,fontSize:13,letterSpacing:'0.04em',textTransform:'uppercase'}}>Vitals · Injuries · Goals</span>}>
           {/* Centred fixed tiles (not 3×1fr stretch) so vitals read as a compact
               cluster, matching the header stats; empty values dimmed. */}
@@ -581,9 +601,9 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
               hairline) so the borders read as a uniform set — the semantic
               cue lives in the LABEL color (injuries=orange, goals=cyan,
               notes=muted), not the border. Was: orange / cyan / grey borders. */}
-          {td.injuries&&<div style={{marginTop:12,padding:10,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.or,textTransform:"uppercase",marginBottom:4,textAlign:"center"}}>Injuries / Conditions</div><div style={{fontSize:13,color:C.tx,direction:/[\\u0590-\\u05FF]/.test(td.injuries)?'rtl':'ltr',textAlign:'center',fontFamily:/[\\u0590-\\u05FF]/.test(td.injuries)?FH:undefined}}>{td.injuries}</div></div>}
-          {td.goals&&<div style={{marginTop:8,padding:10,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.ac,textTransform:"uppercase",marginBottom:4,textAlign:"center"}}>Goals</div><div style={{fontSize:13,color:C.tx,direction:/[\\u0590-\\u05FF]/.test(td.goals)?'rtl':'ltr',textAlign:'center',fontFamily:/[\\u0590-\\u05FF]/.test(td.goals)?FH:undefined}}>{td.goals}</div></div>}
-          {td.notes&&<div style={{marginTop:8,padding:10,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0}}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700,marginBottom:4,textAlign:"center"}}>Notes</div><div style={{fontSize:13,color:C.tm,direction:/[\\u0590-\\u05FF]/.test(td.notes)?'rtl':'ltr',textAlign:'center',fontFamily:/[\\u0590-\\u05FF]/.test(td.notes)?FH:undefined}}>{td.notes}</div></div>}
+          {td.injuries&&<div style={{marginTop:12,padding:10,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.or,textTransform:"uppercase",marginBottom:4,textAlign:"center"}}>Injuries / Conditions</div><div style={{fontSize:13,color:C.tx,direction:/[\u0590-\u05FF]/.test(td.injuries)?'rtl':'ltr',textAlign:'center',fontFamily:/[\u0590-\u05FF]/.test(td.injuries)?FH:undefined}}>{td.injuries}</div></div>}
+          {td.goals&&<div style={{marginTop:8,padding:10,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.ac,textTransform:"uppercase",marginBottom:4,textAlign:"center"}}>Goals</div><div style={{fontSize:13,color:C.tx,direction:/[\u0590-\u05FF]/.test(td.goals)?'rtl':'ltr',textAlign:'center',fontFamily:/[\u0590-\u05FF]/.test(td.goals)?FH:undefined}}>{td.goals}</div></div>}
+          {td.notes&&<div style={{marginTop:8,padding:10,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0}}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700,marginBottom:4,textAlign:"center"}}>Notes</div><div style={{fontSize:13,color:C.tm,direction:/[\u0590-\u05FF]/.test(td.notes)?'rtl':'ltr',textAlign:'center',fontFamily:/[\u0590-\u05FF]/.test(td.notes)?FH:undefined}}>{td.notes}</div></div>}
         </Card>
       )}
 
@@ -606,7 +626,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           <thead><tr style={{borderBottom:`1px solid ${C.cardBd}`}}>{["Date","Amount","Status","Notes",""].map(h=><th key={h} style={{textAlign:"center",padding:"6px 10px",fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700}}>{h}</th>)}</tr></thead>
           <tbody>{tPay.slice().reverse().map(p=>(<tr key={p.id} style={{borderBottom:`1px solid ${C.cardBd}`}}>
             <td style={{padding:"8px 10px",color:C.tm,textAlign:"center"}}>{fmtPrettyDate(p.date)}</td>
-            <td style={{padding:"8px 10px",color:C.gn,fontWeight:600,textAlign:"center",fontVariantNumeric:"tabular-nums"}}>₪{parseFloat(p.amount).toLocaleString()}</td>
+            <td style={{padding:"8px 10px",color:C.gn,fontWeight:600,textAlign:"center",fontVariantNumeric:"tabular-nums"}}>₪{(parseFloat(p.amount)||0).toLocaleString()}</td>
             <td style={{padding:"8px 10px",textAlign:"center"}}><Badge color={p.status==="Paid"?C.gn:p.status==="Overdue"?C.rd:C.or}>{p.status}</Badge></td>
             <td style={{padding:"8px 10px",color:C.td,textAlign:"center"}}>{p.notes||"—"}</td>
             <td style={{padding:"8px 10px",whiteSpace:"nowrap",textAlign:"center"}}>
@@ -641,17 +661,21 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
 
       {/* === MESSAGES — slot #4: athlete↔coach thread, lifted from
           inside TraineeCRM to its own top-level slot. */}
-      {td && <CoachMessages
+      {td && showSec('messages') && <CoachMessages
         traineeId={trainee}
         role="coach"
         recipientEmail={[
           ...(Array.isArray(td.email) ? td.email : [td.email]),
-          ...((td.members || []).map(m => m && m.email)),   // couples keep emails on members, not top-level
+          // couples keep emails on members, not top-level. A member's email may
+          // itself be an array (the edit form can store arrays), so flatten it —
+          // otherwise the array element isn't a string and .find() skips it,
+          // leaving a couple message with no recipient.
+          ...((td.members || []).flatMap(m => { const e = m && m.email; return Array.isArray(e) ? e : [e]; })),
         ].find(e => typeof e === 'string' && e.trim()) || ''}
         senderLabel="Ohad" />}
 
       {/* === CRM — slot #5: cadence pill, next actions, activity feed */}
-      {td && (
+      {td && showSec('crm') && (
         <TraineeCRM
           trainee={td}
           clientWorkouts={clientWorkouts}
@@ -709,7 +733,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           {[0,1].map(mi => {
             const m = td.members[mi];
             const memberPlans = tpMember(mi);
-            const sorted = [...memberPlans].sort((a,b)=>programSort==='alpha'?a.name.localeCompare(b.name):sortProgramsRecent(a,b));
+            const sorted = [...memberPlans].sort((a,b)=>programSort==='alpha'?(a.name||'').localeCompare(b.name||''):sortProgramsRecent(a,b));
             const memberVisKey = (p) => `${td.name}:${p.name}:m${mi}`;
             // Single-click "only this" within THIS couple member's plan list.
             const onlyThisCouple = (chosenKey) => {
@@ -752,7 +776,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       {/* === ATHLETIC EVALUATION + INTAKE — slot #9. Grouped as one "who is
           this athlete" block: a top gap sets the pair apart from Assigned
           Programs above, while the two sit tight together (Ohad). */}
-      {td && (
+      {td && showSec('eval') && (
         <div style={{ marginTop: 28 }}>
           <TraineeEvaluation trainee={td} />
           {/* Renders nothing until an intake is submitted. */}
