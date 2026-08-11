@@ -287,7 +287,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
               );
             })}
           </div>
-          <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>From what you PROGRAMMED each block (avg prescribed reps): under 6 = strength, 6–10 = hypertrophy, 10+ = volume. The arc shows your periodization — read it to decide what phase comes next.</div>
+          <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>From what you PROGRAMMED each block (avg prescribed reps): under 6 = strength, 6–12 = hypertrophy, 12+ = endurance. The arc shows your periodization — a long run of one colour is the cue to change phase.</div>
         </div>
       </div>
     )}

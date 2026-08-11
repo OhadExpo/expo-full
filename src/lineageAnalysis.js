@@ -443,7 +443,8 @@ export function blockHistory(plans, deps) {
     for (const d of p.days || []) for (const ex of d.exercises || []) { const r = repMid(ex.reps); if (r != null && r > 0) reps.push(r); }
     if (reps.length < 3) return null;
     const avgReps = reps.reduce((a, c) => a + c, 0) / reps.length;
-    const character = avgReps < 6 ? 'strength' : avgReps <= 10 ? 'hypertrophy' : 'volume';
+    // Standard loading zones: strength <6, hypertrophy 6-12, endurance 12+.
+    const character = avgReps < 6 ? 'strength' : avgReps <= 12 ? 'hypertrophy' : 'endurance';
     return { num: blockNum(p.name), name: p.name, character, avgReps: Math.round(avgReps * 10) / 10, exercises: reps.length };
   }).filter(Boolean).sort((a, b) => (a.num != null && b.num != null) ? a.num - b.num : 0);
 }
