@@ -270,10 +270,10 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
     </div>
 
     {/* 2.5 THE ARC — the cross-block journey (the actual "lineage") */}
-    {a.staples.filter((s) => s.arc && s.arc.length >= 4 && s.arcGainPct != null).length > 0 && (
+    {a.staples.filter((s) => !s.ballistic && s.arc && s.arc.length >= 4 && s.arcGainPct != null).length > 0 && (
       <div style={card}><div style={hd}>The arc · his journey on the big lifts<span style={hdQ}>e1RM across every block he's logged — where he started vs now</span></div>
         <div style={bd}>
-          {a.staples.filter((s) => s.arc && s.arc.length >= 4 && s.arcGainPct != null)
+          {a.staples.filter((s) => !s.ballistic && s.arc && s.arc.length >= 4 && s.arcGainPct != null)
             .sort((x, y) => y.count - x.count).slice(0, 4).map((s) => {
               const gc = s.arcGainPct >= 3 ? C.gn : s.arcGainPct <= -3 ? C.rd : C.tm;
               return (
