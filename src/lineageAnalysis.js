@@ -428,7 +428,15 @@ export function blockHistory(plans, deps) {
   // the block's typical prescribed rep range: <6 strength, 6-10 hypertrophy,
   // 10+ volume. This is the periodization Ohad actually PROGRAMMED, block over
   // block — the true "programming arc".
-  const repMid = (r) => { const ns = String(r == null ? '' : r).match(/\d+(?:\.\d+)?/g); return ns && ns.length ? ns.map(Number).reduce((a, c) => a + c, 0) / ns.length : null; };
+  const repMid = (r) => {
+    const str = String(r == null ? '' : r).trim();
+    // "3x8" / "3×8" = sets×reps → the REPS is the second part, not an average of
+    // both (averaging would call a 3×8 hypertrophy set a ~5-rep strength set).
+    const sxr = str.match(/^\s*\d+\s*[x×*]\s*(\d+(?:[-–]\d+)?)/i);
+    const target = sxr ? sxr[1] : str;
+    const ns = target.match(/\d+(?:\.\d+)?/g);
+    return ns && ns.length ? ns.map(Number).reduce((a, c) => a + c, 0) / ns.length : null;
+  };
   const withDays = (plans || []).filter((p) => (p.days || []).some((d) => (d.exercises || []).length));
   return withDays.map((p) => {
     const reps = [];
