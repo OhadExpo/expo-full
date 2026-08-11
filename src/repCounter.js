@@ -107,6 +107,25 @@ export function findPeaks(signal, prominence, minDist) {
   return kept;
 }
 
+// Amplitude gate for real reps. After findPeaks, reject dips whose prominence
+// (the ROM depth of that rep) is only a small fraction of the set's robust
+// median depth — those are fidgets, re-racks, or setup twitches between real
+// reps, not full reps. Mirrors the amplitude gate in poseLab.validateReps so
+// the live counter and the offline camera-tools analyzer agree.
+//   - refROM = median of the top 60% of prominences (robust to a couple of
+//     genuine deep reps skewing the mean; ignores the shallow fakes).
+//   - a rep must clear max(floor, 0.45 * refROM). floor keeps a hard 26° so a
+//     set of uniformly small-ROM real reps isn't wiped out.
+// With <2 peaks there's no set to compare against, so pass through unchanged.
+export function filterRealPeaks(peaks, floor = 26) {
+  if (!peaks || peaks.length < 2) return peaks || [];
+  const proms = peaks.map(p => p.prom).sort((a, b) => b - a);
+  const upper = proms.slice(0, Math.max(1, Math.ceil(proms.length * 0.6)));
+  const refROM = upper[Math.floor(upper.length / 2)] || 0;
+  const thr = Math.max(floor, 0.45 * refROM);
+  return peaks.filter(p => p.prom >= thr);
+}
+
 // Auto-count-on-upload was removed 2026-04-24 — trash accuracy on complex
 // clips made it a distraction. Trainer's interactive REPS toggle in
 // WorkoutReview still uses the helpers above (detectChannels, medianFilter,

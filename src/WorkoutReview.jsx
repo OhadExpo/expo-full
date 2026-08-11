@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { fmtPrettyDate } from './dates';
-import { safeUrl } from './VideoEmbed';
+import VideoEmbed, { safeUrl, canEmbed } from './VideoEmbed';
 // LIFT METRICS on a trainee's uploaded Review clip: capture the clip's pose
 // frames and run the same VBT/ROM/tempo battery MovementLab uses, rendered
 // INLINE on the player (no 3D box, no fullscreen). The on-video skeleton is the
@@ -20,7 +20,7 @@ import { EX } from './exerciseData';
 import useAutosave from './hooks/useAutosave';
 import WeeklyFocusTool from './WeeklyFocusTool';
 import {
-  ANGLE_DEFS, angleAt, detectChannels, medianFilter, findPeaks, SMOOTH_N,
+  ANGLE_DEFS, angleAt, detectChannels, medianFilter, findPeaks, filterRealPeaks, SMOOTH_N,
 } from './repCounter';
 import { detectLift, channelFromPose, CHANNELS } from './liftDetect';
 
@@ -790,7 +790,11 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
       // Invert to count troughs: every rep has exactly one flexion bottom
       // regardless of whether the clip starts extended or flexed.
       const inverted = smoothed.map(x => Number.isFinite(x) ? -x : x);
-      const troughs = findPeaks(inverted, 25, minDist);
+      // Amplitude gate: drop dips too shallow relative to this set's real reps
+      // (fidgets / re-racks / setup twitches). Floor = findPeaks' own bar so a
+      // small-ROM exercise is never over-pruned; the relative 0.45×median gate
+      // only bites when genuinely deeper reps expose the shallow fakes.
+      const troughs = filterRealPeaks(findPeaks(inverted, 25, minDist), 25);
       if (troughs.length > bestCount) bestCount = troughs.length;
     }
     repsCountRef.current = bestCount;
@@ -1213,7 +1217,12 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
                     const reals = smoothed.filter(Number.isFinite);
                     const swing = reals.length ? Math.max(...reals) - Math.min(...reals) : 0;
                     const prominence = Math.max(10, swing * 0.25);
-                    const troughs = findPeaks(inverted, prominence, minDist);
+                    // Amplitude gate (see repCounter.filterRealPeaks): reject
+                    // dips shallow relative to this set's real reps. Floor =
+                    // the adaptive prominence so small-ROM exercises keep the
+                    // earlier "misses a lot" fix; the relative gate removes
+                    // fakes when deeper reps are present.
+                    const troughs = filterRealPeaks(findPeaks(inverted, prominence, minDist), prominence);
                     if (troughs.length > bestCount) bestCount = troughs.length;
                   }
                   repsCountRef.current = bestCount;
@@ -1714,9 +1723,16 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
 // Side-by-side video compare. Two FormVideoPlayer instances + a sync button
 // that copies the left player's currentTime onto the right (cheap manual sync,
 // good enough for "this week vs 4 weeks ago" form review).
-function CompareModal({ leftLabel, leftUrl, leftTitle, rightLabel, rightUrl, rightTitle, onClose, closing }) {
+// Side-by-side video compare. rightMode='demo' puts the branded library
+// reference demo (a YouTube/Google-Photos/file embed, via VideoEmbed) on the
+// right instead of a second form clip — the honest "Body-Match" view: the
+// athlete's own rep next to the model movement. A demo embed exposes no <video>
+// ref, so the timestamp SYNC controls are hidden in demo mode (each player has
+// its own controls); the left form clip keeps the full FormVideoPlayer chrome.
+function CompareModal({ leftLabel, leftUrl, leftTitle, rightLabel, rightUrl, rightTitle, rightMode, onClose, closing }) {
   const [leftVid, setLeftVid] = useState(null);
   const [rightVid, setRightVid] = useState(null);
+  const demo = rightMode === 'demo';
   useEscClose(true, onClose); // Escape closes the compare modal
   const sync = (target) => {
     if (!leftVid || !rightVid) return;
@@ -1729,27 +1745,31 @@ function CompareModal({ leftLabel, leftUrl, leftTitle, rightLabel, rightUrl, rig
     <div onClick={onClose} role="dialog" aria-modal="true" aria-label="Compare videos" className={closing ? 'motion-fade-out' : 'motion-fade-in'} style={{position:'fixed',inset:0,zIndex:1200,background:C.scrim,display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:32,overflow:'auto'}}>
       <div onClick={e => e.stopPropagation()} className={closing ? 'motion-fall' : 'motion-rise'} style={{background:C.bg,border:`1px solid ${C.cardBd}`,borderRadius:0,width:'min(1400px, 96vw)',padding:20}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
-          <h3 style={{margin:0,fontFamily:FN,fontSize:16,color:C.tx}}>Compare</h3>
+          <h3 style={{margin:0,fontFamily:FN,fontSize:16,color:C.tx}}>{demo ? 'Form vs Demo' : 'Compare'}</h3>
           <div style={{display:'flex',gap:6,alignItems:'center'}}>
-            <button onClick={playBoth} style={{background:C.acD,border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:11,padding:'6px 12px',borderRadius:0,cursor:'pointer'}}>▶ PLAY BOTH</button>
-            <button onClick={pauseBoth} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,color:C.tm,fontFamily:FN,fontSize:11,padding:'6px 12px',borderRadius:0,cursor:'pointer'}}>❚❚ PAUSE</button>
+            {!demo && <button onClick={playBoth} style={{background:C.acD,border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:11,padding:'6px 12px',borderRadius:0,cursor:'pointer'}}>▶ PLAY BOTH</button>}
+            {!demo && <button onClick={pauseBoth} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,color:C.tm,fontFamily:FN,fontSize:11,padding:'6px 12px',borderRadius:0,cursor:'pointer'}}>❚❚ PAUSE</button>}
             <button onClick={onClose} style={{background:'none',border:'none',color:C.tm,cursor:'pointer',fontSize:18,padding:'0 8px'}}>✕</button>
           </div>
         </div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr auto 1fr',gap:12,alignItems:'start'}}>
+        <div style={{display:'grid',gridTemplateColumns:demo?'1fr 1fr':'1fr auto 1fr',gap:12,alignItems:'start'}}>
           <div>
             <div style={{fontSize:11,fontFamily:FN,color:C.tm,marginBottom:6}}>{leftLabel}</div>
             <FormVideoPlayer url={leftUrl} exerciseTitle={leftTitle} onVideoRef={setLeftVid} />
           </div>
-          <div style={{display:'flex',flexDirection:'column',gap:6,paddingTop:24}}>
-            <button onClick={() => sync('right')} title="Copy left timestamp to right"
-              style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,color:C.tm,fontFamily:FN,fontSize:10,padding:'6px 8px',borderRadius:0,cursor:'pointer',whiteSpace:'nowrap'}}>SYNC →</button>
-            <button onClick={() => sync('left')} title="Copy right timestamp to left"
-              style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,color:C.tm,fontFamily:FN,fontSize:10,padding:'6px 8px',borderRadius:0,cursor:'pointer',whiteSpace:'nowrap'}}>← SYNC</button>
-          </div>
+          {!demo && (
+            <div style={{display:'flex',flexDirection:'column',gap:6,paddingTop:24}}>
+              <button onClick={() => sync('right')} title="Copy left timestamp to right"
+                style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,color:C.tm,fontFamily:FN,fontSize:10,padding:'6px 8px',borderRadius:0,cursor:'pointer',whiteSpace:'nowrap'}}>SYNC →</button>
+              <button onClick={() => sync('left')} title="Copy right timestamp to left"
+                style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,color:C.tm,fontFamily:FN,fontSize:10,padding:'6px 8px',borderRadius:0,cursor:'pointer',whiteSpace:'nowrap'}}>← SYNC</button>
+            </div>
+          )}
           <div>
             <div style={{fontSize:11,fontFamily:FN,color:C.tm,marginBottom:6}}>{rightLabel}</div>
-            <FormVideoPlayer url={rightUrl} exerciseTitle={rightTitle} onVideoRef={setRightVid} />
+            {demo
+              ? <VideoEmbed url={rightUrl} />
+              : <FormVideoPlayer url={rightUrl} exerciseTitle={rightTitle} onVideoRef={setRightVid} />}
           </div>
         </div>
       </div>
@@ -2036,6 +2056,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
           <CompareModal
             leftLabel={cmpVideosHold.value.left.label} leftUrl={cmpVideosHold.value.left.url} leftTitle={cmpVideosHold.value.left.title}
             rightLabel={cmpVideosHold.value.right.label} rightUrl={cmpVideosHold.value.right.url} rightTitle={cmpVideosHold.value.right.title}
+            rightMode={cmpVideosHold.value.rightMode}
             closing={cmpVideosHold.closing}
             onClose={() => setCompareActive(null)}
           />
@@ -2221,6 +2242,15 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                     <div style={{background:C.gnD,border:`1px solid rgba(46,213,115,0.188)`,borderRadius:0,padding:12,marginBottom:10}}>
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
                         <div style={{fontSize:10,fontFamily:FN,color:C.gn,fontWeight:700,display:'inline-flex',alignItems:'center',gap:6}}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>FORM VIDEO SUBMITTED</div>
+                        <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                        {/* Body-Match: play the athlete's own rep next to the
+                            branded library reference demo (owner-only, read-only,
+                            no CV) — the honest "a demo that looks like them". */}
+                        {formVideo.cloudUrl && canEmbed(fromLib?.videoLink) && (
+                          <button onClick={() => setCompareActive({ left: { url: formVideo.cloudUrl, label: `${wo.planName} · W${wo.week} · ${wo.dayName} — ${ex.title || exName} · ${fmtPrettyDate(wo.date)}`, title: ex.title || exName }, right: { url: fromLib.videoLink, label: 'Reference demo · library', title: ex.title || exName }, rightMode: 'demo' })}
+                            title="Play the athlete's rep next to the branded reference demo"
+                            style={{background:C.acD,border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:9,padding:'3px 8px',borderRadius:0,cursor:'pointer',letterSpacing:0.5}}>◫ vs DEMO</button>
+                        )}
                         {formVideo.cloudUrl && (() => {
                           // Compare candidates: only the SAME exercise from
                           // OTHER weeks of the SAME block (same client). Apples
@@ -2249,6 +2279,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                             </button>
                           );
                         })()}
+                        </div>
                       </div>
                       {formVideo.cloudUrl ? (
                         <FormVideoPlayer url={formVideo.cloudUrl} exerciseTitle={ex.title || exName}

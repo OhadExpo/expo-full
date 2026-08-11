@@ -174,6 +174,7 @@ export default function MovementLab({
   const rafRef = useRef(null);
   const framesRef = useRef([]);
   const recStartRef = useRef(0);
+  const analyzeVideoRef = useRef(null);   // results-view playback <video>, for playhead sync
 
   const [phase, setPhase] = useState('idle');     // idle | loading | countdown | recording | analyzing | results
   const [error, setError] = useState(null);
@@ -188,8 +189,21 @@ export default function MovementLab({
   // Source clip URL (remote reviewed clip or uploaded object URL) kept so the
   // results view can show the video next to the analysis, like the Review player.
   const [srcUrl, setSrcUrl] = useState(null);
+  const [videoTime, setVideoTime] = useState(0);  // results video currentTime (s), drives the graph playhead
   const setSource = useCallback((u) => { setSrcUrl(prev => { if (prev && prev !== u && prev.startsWith('blob:')) { try { URL.revokeObjectURL(prev); } catch { /* noop */ } } return u; }); }, []);
   useEffect(() => () => { setSrcUrl(cur => { if (cur && cur.startsWith('blob:')) { try { URL.revokeObjectURL(cur); } catch { /* noop */ } } return null; }); }, []);
+  // Keep the analyze graphs' playhead synced to the results video's timeline
+  // (mirrors the Review player). The camera tools open MovementLab in analyze
+  // mode, which previously rendered AnalyzeResult with no playheadT/onScrub —
+  // so the graph playhead sat static and scrub-to-seek was dead ("toggler not
+  // synced with the video timeline"). A rAF tick reads the video's currentTime.
+  useEffect(() => {
+    if (phase !== 'results' || !srcUrl) return undefined;
+    let raf;
+    const tick = () => { const v = analyzeVideoRef.current; if (v) setVideoTime(v.currentTime || 0); raf = requestAnimationFrame(tick); };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [phase, srcUrl]);
   const fileInputRef = useRef(null);
   // Which result tab to land on, honouring the tool's scope: the 3D-skeleton
   // tool (Movement Lab) opens straight to the skeleton; the metrics tool (Lift
@@ -471,14 +485,16 @@ export default function MovementLab({
           <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap', maxWidth: 1400, margin: '0 auto' }}>
             {srcUrl && (
               <div style={{ flex: '0 0 320px', maxWidth: 340, minWidth: 240, position: 'sticky', top: 0 }}>
-                <video key={srcUrl} src={srcUrl} controls muted playsInline
+                <video ref={analyzeVideoRef} key={srcUrl} src={srcUrl} controls muted playsInline
                   style={{ width: '100%', maxHeight: '76vh', background: '#000', border: '1px solid rgba(255,255,255,0.15)', display: 'block', objectFit: 'contain' }} />
               </div>
             )}
             <div style={{ flex: 1, minWidth: 300 }}>
               {mode === 'jump'
                 ? <JumpResult jump={jump} result={result} onSave={onSaveJump} onClose={onClose} defaultBodyweightKg={defaultBodyweightKg} />
-                : <AnalyzeResult result={result} frames={framesRef.current} exerciseTitle={exerciseTitle} tab={tab} setTab={setTab} view={initialView} />}
+                : <AnalyzeResult result={result} frames={framesRef.current} exerciseTitle={exerciseTitle} tab={tab} setTab={setTab} view={initialView}
+                    playheadT={videoTime * 1000}
+                    onScrub={(tMs) => { const v = analyzeVideoRef.current; if (v) { try { v.currentTime = tMs / 1000; } catch { /* noop */ } setVideoTime(tMs / 1000); } }} />}
             </div>
           </div>
         </div>
@@ -491,7 +507,6 @@ export default function MovementLab({
         {phase === 'idle' && <>
           <BigBtn color={C.ac} onClick={startRecording}>{mode === 'jump' ? 'RECORD' : 'RECORD'} →</BigBtn>
           <button onClick={pickFile} style={{ flex: 1, padding: 14, background: 'transparent', border: '1px solid rgba(255,255,255,0.4)', color: '#FFF', fontFamily: FN, fontSize: 14, fontWeight: 700, letterSpacing: '0.14em', cursor: 'pointer' }}>⬆ UPLOAD CLIP</button>
-          <button onClick={loadDemo} title="See the 3D skeleton with no camera/upload" style={{ flex: '0 0 auto', padding: 14, background: 'transparent', border: '1px solid rgba(255,255,255,0.25)', color: 'rgba(255,255,255,0.7)', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', cursor: 'pointer' }}>▶ DEMO</button>
         </>}
         {phase === 'loading' && <BigBtn color="#555" disabled>STARTING…</BigBtn>}
         {phase === 'countdown' && <BigBtn color="#555" disabled>GET READY… {countdown}</BigBtn>}
@@ -572,6 +587,11 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
       </div>}
       <div style={{ fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.12em', marginBottom: 12 }}>
         {result.repCount} REP{result.repCount === 1 ? '' : 'S'} · {result.fps}fps · {result.frameCount} frames
+        {result.rejectedReps?.length > 0 && (
+          <span style={{ color: C.warn || '#f0b429' }} title="Shallow dips, walkouts or re-racks — too small to be full reps, so they're excluded from the count and the metrics.">
+            {' · '}{result.rejectedReps.length} not counted
+          </span>
+        )}
       </div>
       {(tab === 'velocity' || tab === 'rom') && repCount > 1 && (
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12, fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.1em', flexWrap: 'wrap' }}>

@@ -127,7 +127,54 @@ export function channelSignal(frames, exerciseTitle) {
 // neighbours). Troughs always sit between tops, so N reps → N troughs.
 // Each rep spans the local max before the trough → trough → local max after.
 // Prominence 25° matches the offline counter. Returns [{startIdx,bottomIdx,endIdx}].
-export function segmentReps(angle, fps = 30) {
+// Reject candidate troughs that aren't REAL reps. The raw peak-finder counts
+// ANY ≥25° joint dip — so a fidget, a re-rack, a walkout, or a shallow setup
+// motion all get counted (verified on real clips: an RDL clip counted 10 when
+// the athlete did 8 — the first two "reps" were 34° twitches vs 100°+ hinges).
+// Two gates, both grounded in real captured pose data:
+//   1. AMPLITUDE — a real rep's ROM clusters near the set's typical ROM. Reject
+//      anything under ~45% of the robust "real-rep" ROM (median of the upper
+//      60% of candidate ROMs, so a few shallow fakes can't drag the reference
+//      down). Absolute floor 26° kills pure noise. Fatigued/partial reps (60%+
+//      ROM) are kept — only twitches/setup are cut.
+//   2. STATIONARY — during a real rep the base stays put; a walkout / walk-back
+//      translates the hip-center along the ground plane. Reject >0.35 m net
+//      horizontal (needs world-landmark frames; skipped for angle-only callers).
+export function validateReps(reps, angle, frames = null, fps = 30) {
+  if (!reps || reps.length < 2) return { kept: reps || [], rejected: [] };
+  const hipXZ = (i) => {
+    const l = frames && frames[i] && frames[i].worldLandmarks;
+    if (!l || !l[23] || !l[24]) return null;
+    return { x: (l[23].x + l[24].x) / 2, z: ((l[23].z ?? 0) + (l[24].z ?? 0)) / 2 };
+  };
+  const m = reps.map(r => {
+    const bot = angle[r.bottomIdx];
+    const desc = isReal(angle[r.startIdx]) ? angle[r.startIdx] - bot : 0;
+    const asc = isReal(angle[r.endIdx]) ? angle[r.endIdx] - bot : 0;
+    const minROM = Math.min(desc, asc);           // full down-up cycle depth
+    const a = hipXZ(r.startIdx), b = hipXZ(r.endIdx);
+    const net = (a && b) ? Math.hypot(b.x - a.x, b.z - a.z) : 0;
+    const dur = frames && frames[r.startIdx] && frames[r.endIdx] ? (frames[r.endIdx].t - frames[r.startIdx].t) / 1000 : 1;
+    return { r, minROM, net, dur };
+  });
+  // Robust real-rep ROM reference: median of the upper 60% of candidate ROMs.
+  const romsDesc = m.map(x => x.minROM).sort((a, b) => b - a);
+  const upper = romsDesc.slice(0, Math.max(1, Math.ceil(romsDesc.length * 0.6)));
+  const refROM = upper[Math.floor(upper.length / 2)] || 0;
+  const ampFloor = Math.max(26, 0.45 * refROM);
+  const kept = [], rejected = [];
+  for (const x of m) {
+    let reason = null;
+    if (x.minROM < ampFloor) reason = 'shallow';                 // twitch / partial setup
+    else if (frames && x.net > 0.35) reason = 'moved';           // walkout / walk-back
+    else if (x.dur < 0.35) reason = 'too-fast';                  // sub-rep flicker
+    if (reason) rejected.push({ bottomIdx: x.r.bottomIdx, minROM: Math.round(x.minROM), reason });
+    else kept.push(x.r);
+  }
+  return { kept, rejected };
+}
+
+export function segmentReps(angle, fps = 30, frames = null) {
   const minDist = Math.max(4, Math.round(fps * 0.4)); // ≥0.4s between reps
   const inv = angle.map(v => (isReal(v) ? -v : v));
   const bottoms = findPeaks(inv, 25, minDist).map(p => p.idx).sort((a, b) => a - b);
@@ -142,7 +189,11 @@ export function segmentReps(angle, fps = 30) {
     for (let j = b; j <= hi; j++) if (isReal(angle[j]) && angle[j] > ev) { ev = angle[j]; endIdx = j; }
     reps.push({ startIdx, bottomIdx: b, endIdx });
   }
-  return reps;
+  // Gate out fake reps (fidget / walkout / shallow setup). Attach rejection
+  // detail as a property so callers can show "8 reps · 2 not counted".
+  const { kept, rejected } = validateReps(reps, angle, frames, fps);
+  kept.rejected = rejected;
+  return kept;
 }
 
 // ---------------------------------------------------------------------------
@@ -609,12 +660,12 @@ export function analyzeClip(frames, exerciseTitle, opts = {}) {
   if (!frames || frames.length < 4) return { ok: false, reason: 'too-few-frames' };
   const fps = estimateFps(frames);
   const { angle, kind, channels } = channelSignal(frames, exerciseTitle);
-  const reps = channels.length ? segmentReps(angle, fps) : [];
+  const reps = channels.length ? segmentReps(angle, fps, frames) : [];
   const velocity = reps.length ? velocityMetrics(frames, angle, reps, opts.barLandmark) : null;
   const romTempo = reps.length ? romTempoMetrics(frames, angle, reps) : null;
   const jointRom = jointRomMetrics(frames);
   const barSpeed = barSpeedSeries(frames, opts.barLandmark);
-  return { ok: true, fps, kind, repCount: reps.length, reps, velocity, romTempo, jointRom, barSpeed, frameCount: frames.length };
+  return { ok: true, fps, kind, repCount: reps.length, reps, rejectedReps: reps.rejected || [], velocity, romTempo, jointRom, barSpeed, frameCount: frames.length };
 }
 
 // --- small helpers ---
