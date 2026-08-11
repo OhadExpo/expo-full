@@ -656,8 +656,42 @@ function FormCheck({ result, exerciseTitle }) {
   const sev = { bad: C.rd, warn: C.or, high: C.rd, mod: C.or, ok: C.gn };
   const secLabel = { fontFamily: FN, fontSize: 10, letterSpacing: '0.14em', color: C.ac, marginBottom: 8 };
   const rowBase = { display: 'flex', gap: 10, padding: '10px 0', borderTop: `1px solid ${C.bd}`, fontFamily: FN, fontSize: 13, lineHeight: 1.5 };
+  // Set Breakdown — per-rep quality strip. Each rep's quality = the weaker of
+  // its ROM retention (romPct) and its velocity retention (100 − loss%), so a
+  // rep that either got shallow OR slow reads as degraded. Shows the coach
+  // exactly WHICH rep the set fell apart on, from data analyzeClip already has.
+  const repQuality = useMemo(() => {
+    const rt = result?.romTempo?.perRep, vel = result?.velocity?.perRep;
+    if (!rt || !rt.length) return null;
+    return rt.map((r, i) => {
+      if (!r) return null;
+      const romPct = typeof r.romPct === 'number' ? r.romPct : 100;
+      const loss = vel && vel[i] && typeof vel[i].lossPct === 'number' ? vel[i].lossPct : 0;
+      const velRet = 100 - Math.min(99, Math.max(0, loss));
+      const q = Math.min(romPct, velRet);
+      return { rep: i + 1, q, romPct, velRet: Math.round(velRet), collapsed: !!r.collapsed };
+    }).filter(Boolean);
+  }, [result]);
+  const qColor = (q) => (q >= 85 ? C.gn : q >= 70 ? (C.or || '#f0b429') : C.rd);
+
   return (
     <div style={{ fontFamily: FN }}>
+      {repQuality && repQuality.length >= 2 && (
+        <div style={{ marginBottom: 20 }}>
+          <div style={secLabel}>SET BREAKDOWN <span style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: 0 }}>· where it held, where it broke</span></div>
+          <div style={{ display: 'flex', gap: 3, alignItems: 'flex-end' }}>
+            {repQuality.map((r) => (
+              <div key={r.rep} title={`Rep ${r.rep}: ${r.romPct}% range, ${r.velRet}% speed retained`} style={{ flex: 1, textAlign: 'center' }}>
+                <div style={{ height: 26, display: 'flex', alignItems: 'flex-end' }}>
+                  <div style={{ width: '100%', height: `${Math.max(18, r.q)}%`, background: qColor(r.q), borderRadius: '2px 2px 0 0' }} />
+                </div>
+                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', marginTop: 3, fontVariantNumeric: 'tabular-nums' }}>{r.rep}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginTop: 6 }}>Bar height = rep quality (the weaker of range kept + speed kept). Green held · amber softened · red broke down.</div>
+        </div>
+      )}
       <div style={secLabel}>AUTO FORM COACH</div>
       {faults && faults.faults.length === 0 && faults.good.length === 0 && (
         <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>Not enough clean reps to read technique on this clip.</div>
