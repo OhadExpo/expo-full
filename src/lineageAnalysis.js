@@ -315,7 +315,7 @@ export { CORE_PATTERNS };
 //   clientWorkouts: [{ clientId, planName, dayName, week, date, exercises:[{ eid, title, sets:[{reps,load,rpe,done}] }] }]
 export function buildBlockSessions(clientWorkouts, traineeId, plans, deps, opts = {}) {
   const { blockNum, classifyPattern, exMap } = deps;
-  const { allBlocks = false } = opts;
+  const { allBlocks = false, targetBlockNum = null } = opts;
   const pf = (x) => { const n = parseFloat(x); return isFinite(n) ? n : null; };
   const norm = (s) => (s || '').trim().toLowerCase();
   // Prescribed-reps threshold for the failed-reps read = the LOW end of the
@@ -325,7 +325,7 @@ export function buildBlockSessions(clientWorkouts, traineeId, plans, deps, opts 
   const minReps = (r) => { const ns = String(r == null ? '' : r).match(/\d+(?:\.\d+)?/g); return ns && ns.length ? Math.min(...ns.map(Number)) : null; };
 
   const withDays = (plans || []).filter((p) => (p.days || []).some((d) => (d.exercises || []).length));
-  if (!withDays.length) return { sessions: [], plannedSessionCount: 0, blockName: null, blockNumber: null, hasPlans: false };
+  if (!withDays.length) return { sessions: [], plannedSessionCount: 0, blockName: null, blockNumber: null, hasPlans: false, blocks: [] };
   // latest block = highest block number, else last in query order
   const ordered = [...withDays].sort((a, b) => {
     const an = blockNum(a.name), bn = blockNum(b.name);
@@ -333,8 +333,11 @@ export function buildBlockSessions(clientWorkouts, traineeId, plans, deps, opts 
     if (an == null && bn == null) return 0;
     return an == null ? -1 : 1; // un-numbered plans sort as OLDEST (front), so the highest-numbered block is "latest"
   });
-  const latest = ordered[ordered.length - 1];
+  // The block to analyse: the requested one (previous-block viewing), else the
+  // latest. The full ordered list is returned so the UI can offer a block picker.
+  const latest = (targetBlockNum != null ? ordered.find((p) => blockNum(p.name) === targetBlockNum) : null) || ordered[ordered.length - 1];
   const latestNum = blockNum(latest.name);
+  const blocks = ordered.map((p) => ({ num: blockNum(p.name), name: p.name })).reverse(); // newest first for the picker
 
   // prescription lookup: (dayName, eid|title) → { prescribedReps, prescribedRpe, pattern }.
   // For staples we want cross-block history, so allBlocks pulls prescriptions
@@ -390,7 +393,7 @@ export function buildBlockSessions(clientWorkouts, traineeId, plans, deps, opts 
   const plannedSessionCount = (latest.days || []).length * weeks;
 
   const plannedDays = (latest.days || []).map((d) => d.name || 'Day');
-  return { sessions, plannedSessionCount, plannedDays, weeks, blockName: latest.name, blockNumber: latestNum, hasPlans: true, totalBlocks: withDays.length };
+  return { sessions, plannedSessionCount, plannedDays, weeks, blockName: latest.name, blockNumber: latestNum, hasPlans: true, totalBlocks: withDays.length, blocks };
 }
 
 // Which planned day is the athlete skipping? Returns the day with the biggest
@@ -413,7 +416,7 @@ export function skipPattern(sessions, plannedDays, weeks) {
 
 // One-call analysis producing everything the view renders.
 export function analyzeAthlete(clientWorkouts, traineeId, plans, deps) {
-  const built = buildBlockSessions(clientWorkouts, traineeId, plans, deps);
+  const built = buildBlockSessions(clientWorkouts, traineeId, plans, deps, { targetBlockNum: deps.targetBlockNum ?? null });
   const { sessions, plannedSessionCount } = built;
   if (!sessions.length) {
     return { ...built, empty: true };

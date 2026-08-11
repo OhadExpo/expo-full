@@ -147,10 +147,11 @@ function LiftRow({ s }) {
 
 export default function TrainingLineageV2({ traineeId, traineeName, exercises, plans, clientWorkouts, loading, onOpenPlan }) {
   const exMap = useMemo(() => exById(exercises), [exercises]);
+  const [selBlock, setSelBlock] = useState(null); // null = latest; else a block number to view a PREVIOUS block
   const a = useMemo(() => {
     if (!plans) return null;
-    return analyzeAthlete(clientWorkouts || [], traineeId, plans, { blockNum, classifyPattern, repsTop, exMap });
-  }, [clientWorkouts, traineeId, plans, exMap]);
+    return analyzeAthlete(clientWorkouts || [], traineeId, plans, { blockNum, classifyPattern, repsTop, exMap, targetBlockNum: selBlock });
+  }, [clientWorkouts, traineeId, plans, exMap, selBlock]);
   const vault = useMemo(() => getAthleteVault(traineeId), [traineeId]);
   const asymTrend = useMemo(() => getAthleteAsymmetryTrend(traineeId), [traineeId]);
   const [showThin, setShowThin] = useState(false); // expand the "logged 1-2× · too few to trend" lifts
@@ -173,10 +174,16 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
       <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tx }}>
         Training Lineage · <span style={{ color: C.ac }}>{traineeName}</span>
       </span>
-      <span style={{ fontSize: 10, letterSpacing: '0.1em', color: C.tm }}>
+      <span style={{ fontSize: 10, letterSpacing: '0.1em', color: C.tm, display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
         {a.totalBlocks} BLOCK{a.totalBlocks === 1 ? '' : 'S'}
-        {a.blockName ? ` · LAST: ${a.blockName.toUpperCase()}` : ''}
-        {a.empty ? '' : ` · ${a.adh.loggedSessions}/${a.plannedSessionCount || '?'} LOGGED`}
+        {a.blocks && a.blocks.filter((b) => b.num != null).length > 1 ? (
+          <>· <select value={a.blockNumber ?? ''} onChange={(e) => setSelBlock(Number(e.target.value))}
+            title="View the report for any block"
+            style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.06em', background: C.bg, color: C.ac, border: `1px solid ${C.bd}`, padding: '2px 6px', cursor: 'pointer', borderRadius: 0 }}>
+            {a.blocks.filter((b) => b.num != null).map((b, i) => <option key={b.num} value={b.num}>{b.name.toUpperCase()}{i === 0 ? ' · LATEST' : ''}</option>)}
+          </select></>
+        ) : (a.blockName ? <>· {a.blockName.toUpperCase()}</> : null)}
+        {a.empty ? '' : `· ${a.adh.loggedSessions}/${a.plannedSessionCount || '?'} LOGGED`}
       </span>
     </div>
   );
