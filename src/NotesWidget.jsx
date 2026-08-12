@@ -121,8 +121,11 @@ function MiniTaskRow({ n, stackBoard, onClick, stripe }) {
       style={{ border: `1px solid var(--c-cardBd)`, borderLeft: `3px solid ${tone}`, padding: '6px 8px', fontSize: stackBoard ? 12 : 11, lineHeight: 1.3, color: 'var(--c-tx)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, whiteSpace: 'nowrap', overflow: 'hidden', transition: 'border-color 120ms ease, background 120ms ease' }}>
       {/* Order (Ohad): NAME first, then the action info, then the kind TAG all
           the way to the right. Body is flex:1 so the tag is pushed to the edge. */}
+      {/* Name sizing MIRRORS the ALL ATHLETES table (Ohad #185): Nord (FN) at 13px
+          for BOTH Hebrew and English — one font, one size — so Hebrew and English
+          render at the same vertical height and match the table. */}
       {name && (
-        <span style={{ fontFamily: nameHeb ? FH : FN, fontSize: nameHeb ? 13 : 10, fontWeight: 800, letterSpacing: nameHeb ? 0 : '0.04em', textTransform: nameHeb ? 'none' : 'uppercase', color: 'var(--c-tx)', flexShrink: 0, maxWidth: '45%', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
+        <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 800, letterSpacing: nameHeb ? 0 : '0.04em', textTransform: nameHeb ? 'none' : 'uppercase', color: 'var(--c-tx)', flexShrink: 0, maxWidth: '45%', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
       )}
       <span style={{ fontFamily: heb ? FH : FB, direction: heb ? 'rtl' : 'ltr', textAlign: 'center', color: name ? 'var(--c-tm)' : 'var(--c-tx)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{body}</span>
       {kindLabel && (
@@ -1060,7 +1063,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                   {/* Name matches the CALLS/BUILDS auto-alert name size exactly
                       (MiniTaskRow: Hebrew 13 / Latin 10, weight 800) so every name
                       across alerts + history reads at one size (Ohad #174). */}
-                  <span style={{ flexShrink: 0, fontFamily: nameHeb ? FH : FN, fontSize: nameHeb ? 13 : 10, fontWeight: 800, letterSpacing: nameHeb ? 0 : '0.04em', textTransform: nameHeb ? 'none' : 'uppercase', whiteSpace: 'nowrap', color: n.target_label ? 'var(--c-ac)' : 'var(--c-td)' }}>
+                  <span style={{ flexShrink: 0, fontFamily: FN, fontSize: 13, fontWeight: 800, letterSpacing: nameHeb ? 0 : '0.04em', textTransform: nameHeb ? 'none' : 'uppercase', whiteSpace: 'nowrap', color: n.target_label ? 'var(--c-tx)' : 'var(--c-td)' }}>
                     {n.target_label || TARGET_LABEL[n.target_kind] || 'NOTE'}
                   </span>
                   <span dir="auto" style={{
