@@ -293,19 +293,25 @@ export default function ExercisesView({ exercises, setExercises }) {
       {/* Filter rail — inline UNDERLINE-style controls (filters = underline text,
           per the control-material differentiation rule), no heavy empty box. Flag
           toggles · divider · every xlsx parameter as a multi-select trigger. */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 16px', padding: '0 1px 10px', marginBottom: 12, borderBottom: `1px solid ${C.cardBd}` }}>
-        {flagChip('video', `▶ Video (${counts.vid})`)}
-        {flagChip('notes', `☰ Notes (${counts.note})`, C.or)}
-        {flagChip('missing', `∅ Unclassified (${counts.miss})`, C.or)}
-        <span style={{ width: 1, height: 16, background: C.cardBd }} />
-        <FilterPill label="Resistance" k="resistanceType" options={dynOpts(counts.rt, f.resistanceType)} />
-        <FilterPill label="Position" k="bodyPosition" options={dynOpts(counts.bp, f.bodyPosition)} />
-        <FilterPill label="Movement" k="movementType" options={dynOpts(counts.mt, f.movementType)} />
-        <FilterPill label="Joints" k="primaryJoints" options={dynOpts(counts.pj, f.primaryJoints)} />
-        <FilterPill label="Joint Movements" k="jointMovements" options={dynOpts(counts.jm, f.jointMovements)} />
-        <FilterPill label="Primary Muscles" k="primaryMuscles" options={dynOpts(counts.pm, f.primaryMuscles)} />
-        <FilterPill label="Secondary Muscles" k="secondaryMuscles" options={dynOpts(counts.sm, f.secondaryMuscles)} />
-        {anyFilter && <button className="filt" onClick={clearAll} title="Clear all filters" style={{ ...railBase, color: C.rd, marginLeft: 'auto' }}>× Clear</button>}
+      {/* Two deliberate rows (Ohad): flag toggles on row 1, the xlsx PARAMETER
+          filters on their OWN row 2 — instead of one wrapping rail where
+          "Secondary Muscles" dangled alone onto a second line. */}
+      <div style={{ marginBottom: 12, borderBottom: `1px solid ${C.cardBd}` }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 16px', padding: '0 1px 6px' }}>
+          {flagChip('video', `▶ Video (${counts.vid})`)}
+          {flagChip('notes', `☰ Notes (${counts.note})`, C.or)}
+          {flagChip('missing', `∅ Unclassified (${counts.miss})`, C.or)}
+          {anyFilter && <button className="filt" onClick={clearAll} title="Clear all filters" style={{ ...railBase, color: C.rd, marginLeft: 'auto' }}>× Clear</button>}
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 16px', padding: '0 1px 10px' }}>
+          <FilterPill label="Resistance" k="resistanceType" options={dynOpts(counts.rt, f.resistanceType)} />
+          <FilterPill label="Position" k="bodyPosition" options={dynOpts(counts.bp, f.bodyPosition)} />
+          <FilterPill label="Movement" k="movementType" options={dynOpts(counts.mt, f.movementType)} />
+          <FilterPill label="Joints" k="primaryJoints" options={dynOpts(counts.pj, f.primaryJoints)} />
+          <FilterPill label="Joint Movements" k="jointMovements" options={dynOpts(counts.jm, f.jointMovements)} />
+          <FilterPill label="Primary Muscles" k="primaryMuscles" options={dynOpts(counts.pm, f.primaryMuscles)} />
+          <FilterPill label="Secondary Muscles" k="secondaryMuscles" options={dynOpts(counts.sm, f.secondaryMuscles)} />
+        </div>
       </div>
       {/* Click-away backdrop to dismiss an open filter menu. */}
       {openKey && <div onClick={() => setOpenKey(null)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />}
