@@ -16,6 +16,17 @@ check('mvt ohp 0.19', mvtForLift('Standing OHP') === 0.19);
 check('mvt pull 0.23', mvtForLift('Barbell Row') === 0.23);
 check('mvt squat 0.30', mvtForLift('Back Squat') === 0.30);
 check('mvt unknown -> default 0.25', mvtForLift('Bicep Curl') === 0.25);
+// Hip thrust must NOT inherit the deadlift 0.15 (2nd adversarial review #1) — a
+// too-low MVT over-estimates the 1RM in the dangerous direction at HIGH conf.
+check('mvt hip thrust 0.30 (not deadlift 0.15)', mvtForLift('Barbell Hip Thrust') === 0.30);
+check('mvt glute bridge 0.30', mvtForLift('Barbell Glute Bridge') === 0.30);
+check('mvt hip HINGE still deadlift 0.15 (not caught by thrust branch)', mvtForLift('Hip Hinge') === 0.15);
+// Regression: the review's exact over-estimate. At 0.15 this returned oneRM 180
+// at HIGH confidence; at the correct 0.30 it is honestly 'invalid' (the estimate
+// would sit BELOW a load he already lifted → needs lighter submax points).
+const htReview = velocityProfile1RM([{ load: 100, velocity: 0.55 }, { load: 130, velocity: 0.40 }, { load: 160, velocity: 0.25 }], mvtForLift('Barbell Hip Thrust'));
+check('hip-thrust review case -> NOT a HIGH-confidence over-estimate', !(htReview.state === 'ok' && htReview.confidence === 'high'));
+check('hip-thrust review case -> honest invalid (below a lifted load)', htReview.state === 'invalid');
 
 // --- thin: fewer than 2 distinct loads can't fit a line ---
 check('single load -> thin', velocityProfile1RM([{ load: 100, velocity: 0.5 }], 0.30).state === 'thin');

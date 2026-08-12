@@ -15,11 +15,18 @@
 // Minimal Velocity Threshold (m/s) — the mean concentric velocity AT a 1RM, by
 // movement family. Approximate literature values; individual, so the UI should
 // label the estimate as a tracked trend, not a tested max.
-const MVT = { squat: 0.30, bench: 0.17, deadlift: 0.15, ohp: 0.19, pull: 0.23, default: 0.25 };
+const MVT = { squat: 0.30, bench: 0.17, deadlift: 0.15, ohp: 0.19, pull: 0.23, hipthrust: 0.30, default: 0.25 };
 
 export function mvtForLift(title) {
   const t = (title || '').toLowerCase();
-  if (/deadlift|\bdl\b|rdl|hinge|good[-\s]?morning|hip[-\s]?thrust/.test(t)) return MVT.deadlift;
+  // Hip thrust / glute bridge is a SHORT-ROM, fast-even-near-max glute push — its
+  // bar velocity at a true 1RM is well above a deadlift's. Grouping it with the
+  // deadlift (0.15) gave it the table's lowest MVT, which OVER-estimates the 1RM
+  // (the dangerous direction) and was being shown at HIGH confidence (2nd
+  // adversarial review, finding #1). Treat it as a fast lower-body push (~0.30).
+  // Checked BEFORE the deadlift/hinge branch so it can't fall through to 0.15.
+  if (/hip[-\s]?thrust|glute[-\s]?bridge/.test(t)) return MVT.hipthrust;
+  if (/deadlift|\bdl\b|rdl|hinge|good[-\s]?morning/.test(t)) return MVT.deadlift;
   if (/bench|chest\s*press|push[-\s]?up|\bdip\b/.test(t)) return MVT.bench;
   // Squat/lunge family BEFORE the overhead branch: "Overhead Squat" / "Overhead
   // Reverse Lunge" must read as a squat pattern (MVT 0.30), not an OHP (0.19) —
