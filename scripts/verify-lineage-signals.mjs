@@ -4,7 +4,7 @@
 //   missRate  — adherence: % of top sets short of prescribed reps, per lift.
 // Both are simple but coach-facing, so pin their thin gates + directions.
 // Run: node scripts/verify-lineage-signals.mjs
-import { rpeDrift, missRate, adherence, patternCoverage } from '../src/lineageAnalysis.js';
+import { rpeDrift, missRate, missRateByRegion, adherence, patternCoverage } from '../src/lineageAnalysis.js';
 
 let pass = 0, fail = 0;
 const check = (name, cond) => { console.log(`${cond ? 'PASS' : 'FAIL'}  ${name}`); cond ? pass++ : fail++; };
@@ -56,6 +56,16 @@ check('patternCoverage: Squat counts only done sets (2, not 3)', cov.counts['Squ
 check('patternCoverage: sets w/o done flag count (Hip Hinge 1)', cov.counts['Hip Hinge'] === 1);
 check('patternCoverage: the 6 untouched patterns are gaps', cov.gaps.length === 6 && cov.gaps.includes('Vertical Push'));
 check('patternCoverage: unclassified exercise -> unclassified tally', patternCoverage([{ exercises: [{ sets: [{ done: true }] }] }]).unclassified === 1);
+
+// ── missRateByRegion (upper/lower grind split → feeds the deload verdict) ──
+const region = missRateByRegion([{ exercises: [
+  { title: 'Back Squat', sets: [{ reps: 5, prescribedReps: 5 }, { reps: 5, prescribedReps: 5 }, { reps: 4, prescribedReps: 5 }, { reps: 3, prescribedReps: 5 }, { reps: null, prescribedReps: 5 }] },
+  { title: 'Bench Press', sets: [{ reps: 5, prescribedReps: 5 }, { reps: 4, prescribedReps: 5 }] },
+] }]);
+check('missRateByRegion: squat -> lower bucket, 2 of 4 short -> 50%', region.lower.total === 4 && region.lower.short === 2 && region.lower.pct === 50);
+check('missRateByRegion: reps-null set excluded from lower total', region.lower.total === 4);
+check('missRateByRegion: bench -> upper bucket', region.upper.short === 1);
+check('missRateByRegion: H4 guard — upper total<4 -> pct null (no fabricated deload)', region.upper.pct === null);
 
 console.log(`\n${fail === 0 ? '✓ ALL PASS' : '✗ FAILURES'} — ${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);
