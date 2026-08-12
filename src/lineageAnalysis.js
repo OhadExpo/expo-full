@@ -200,7 +200,10 @@ export function missRateByRegion(sessions) {
       }
     }
   }
-  const pct = (b) => (b.total ? Math.round((b.short / b.total) * 100) : null);
+  // Need a real denominator before a "grinding %" means anything — 1 short set of
+  // 2 logged is noise, not fatigue (fresh-context review H4). Below ~4 top sets in
+  // the region, return null so it can't fabricate a deload contributor.
+  const pct = (b) => (b.total >= 4 ? Math.round((b.short / b.total) * 100) : null);
   return { lower: { ...agg.lower, pct: pct(agg.lower) }, upper: { ...agg.upper, pct: pct(agg.upper) } };
 }
 
@@ -265,7 +268,10 @@ export function synthesizeVerdict({ adh, region, staples, acwr, velocity }) {
   // Ballistic lifts are meant to be moved light + fast — a falling e1RM on a
   // filmed speed-squat/jump is correct programming, NOT a fatigue signal. Never
   // let it drive a "deload him" verdict (the row already reads EXPLOSIVE).
-  const anyDropping = staples.some((s) => !s.ballistic && s.trend?.dir === 'down');
+  // Systemic fatigue shows in the MAIN compound lifts — a lone accessory (curl,
+  // raise, fly) drifting down is not a reason to deload a progressing athlete
+  // (fresh-context review H1). Require a primary lift regressing.
+  const anyDropping = staples.some((s) => !s.ballistic && s.isMain && s.trend?.dir === 'down');
   const highAcwr = acwr?.state === 'ok' && acwr.band === 'high';
   const velHigh = velocity?.state === 'ok' && velocity.lossPct >= 20;
 
@@ -283,7 +289,7 @@ export function synthesizeVerdict({ adh, region, staples, acwr, velocity }) {
   const fatigueBits = () => {
     const bits = [];
     if (lowerGrind) bits.push(`missing ${region.lower.pct}% of lower-body top sets`);
-    if (anyDropping) bits.push(`${staples.find((s) => !s.ballistic && s.trend?.dir === 'down')?.title} e1RM slipping`);
+    if (anyDropping) bits.push(`${staples.find((s) => !s.ballistic && s.isMain && s.trend?.dir === 'down')?.title} e1RM slipping`);
     if (velHigh) bits.push(`bar speed down ${velocity.lossPct}% on the last filmed set`);
     if (highAcwr) bits.push(`load ratio spiked to ${acwr.acwr}`);
     return bits;
@@ -291,7 +297,7 @@ export function synthesizeVerdict({ adh, region, staples, acwr, velocity }) {
 
   let headline, sub, tone = 'warn';
   if (flags.includes('fatigue') && !tooThinToDeload) {
-    const hardStaleLift = staples.find((s) => s.stale?.stale && s.stale.mode === 'hard');
+    const hardStaleLift = staples.find((s) => !s.ballistic && s.stale?.stale && s.stale.mode === 'hard');
     headline = hardStaleLift
       ? `Deload — then change the ${hardStaleLift.title}, don't just add weight.`
       : `Deload him — he's accumulating more fatigue than he's recovering from.`;
@@ -525,6 +531,12 @@ export function analyzeAthlete(clientWorkouts, traineeId, plans, deps) {
   // is NOT a stall for them, and e1RM on a jump is meaningless. Flag them so the
   // view reads them right and they don't dominate the worst-first sort.
   const BALLISTIC = /\b(jump|pogo|hop|bound|plyo|skip|slam|toss|throw|snap[-\s]?down|bounce|leap|clean|snatch|jerk|swing|high[-\s]?pull)\b/i;
+  // Primary/compound movements — the lifts whose regression signals SYSTEMIC
+  // fatigue. Accessories (curl, raise, fly, extension, pushdown, calf, pullover,
+  // facepull) don't match, so a single accessory wobbling can't drive a "deload
+  // him" verdict (fresh-context review H1). Same inclusion-list the transfer map +
+  // block-character reads use.
+  const PRIMARY = /squat|deadlift|\bdl\b|rdl|hinge|good[-\s]?morning|press|bench|ohp|overhead|row|pull[-\s]?up|chin|pulldown|lunge|split|rfess|bulgarian|thrust|clean|snatch|jerk/i;
   const allLifts = [...series.entries()]
     .map(([title, sAll]) => {
       const s = sAll.slice(-6);
@@ -562,6 +574,8 @@ export function analyzeAthlete(clientWorkouts, traineeId, plans, deps) {
       return {
         title, series: s, count: sAll.length,          // total times he's logged it
         ballistic: BALLISTIC.test(title),
+        isMain: PRIMARY.test(title),                    // compound lift → its regression means systemic fatigue
+
         stale: staleWeight(s), trend: e1rmTrend(s),
         drift: rpeDrift(s, null), miss: missRate(allSessions, title),
         loads: s.map((x) => x.load), hasLoad: loadsAll.length > 0,

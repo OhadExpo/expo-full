@@ -255,12 +255,13 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
             <b>Grinding the lower body — {a.region.lower.pct}% of sets short of target.</b>
           </Read>
         )}
-        {a.staples.some((s) => s.trend?.dir === 'down') && (() => {
-          // With <3 logged sessions a downtrend (often an accessory-lift dip) can't
-          // carry an "injury / back it off" call — keep it an observation, not a
-          // directive, so it doesn't contradict the thin-data verdict above.
+        {a.staples.some((s) => !s.ballistic && s.isMain && s.trend?.dir === 'down') && (() => {
+          // Only MAIN compound lifts regressing is a systemic-fatigue signal — a lone
+          // accessory dip, or a ballistic lift (whose e1RM is meaningless), must not
+          // drive "back off before injury" (matches the verdict; fresh-context review
+          // H1/H3). And with <3 logged sessions keep it an observation, not a directive.
           const thin = (a.adh?.loggedSessions || 0) < 3;
-          const names = a.staples.filter((s) => s.trend?.dir === 'down').map((s) => s.title).slice(0, 2).join(', ');
+          const names = a.staples.filter((s) => !s.ballistic && s.isMain && s.trend?.dir === 'down').map((s) => s.title).slice(0, 2).join(', ');
           return (
             <Read tone={thin ? 'warn' : 'bad'} why={thin ? 'Off this few logs it may be noise or a light day — confirm with more sessions before backing load off.' : 'Load or fatigue is winning — back it off before it becomes an injury.'}>
               <b>{names} {thin ? 'slipping' : 'regressing'}.</b> e1RM trending down{thin ? ` — but only ${a.adh?.loggedSessions || 0} session${(a.adh?.loggedSessions || 0) === 1 ? '' : 's'} logged, so read it as a flag to watch, not a deload trigger.` : ' across the block.'}
