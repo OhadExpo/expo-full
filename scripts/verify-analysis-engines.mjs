@@ -15,6 +15,7 @@ const suites = [
   'verify-velocity-profile-1rm.mjs', // load-velocity -> estimated 1RM
   'verify-periodization-balance.mjs',// block history -> periodization read
   'verify-block-character.mjs',      // classifyBlockCharacter — periodization ZONE + NSCA power rep-ceiling
+  'verify-e1rm-trend.mjs',           // e1rmTrend — POSITIVE/NEGATIVE strength direction + 3 hardening guards
   'verify-auto-analyze.mjs',         // auto-analyze collector — clip scoping / couples cid / load-ambiguity
   'verify-verdict.mjs',              // synthesizeVerdict — the headline coach-acted call (deload gating)
 ];
