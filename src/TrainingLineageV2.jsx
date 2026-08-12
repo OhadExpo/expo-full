@@ -8,10 +8,11 @@
 // changes his program — it analyses and advises, the coach builds.
 //
 // Analysis engine: src/lineageAnalysis.js (pure). This file is presentation.
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { C, FN } from './theme';
 import { analyzeAthlete } from './lineageAnalysis';
 import { getAthleteVault, getAthleteAsymmetryTrend } from './poseMetricsStore';
+import { autoAnalyzeAthleteVideos, pendingCount } from './autoAnalyzeVideos';
 import { velocityProfile1RM, mvtForLift } from './velocityProfile1RM';
 import { blockNum, classifyPattern, repsTop, exById } from './PlansView';
 
@@ -182,8 +183,28 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
     if (!plans) return null;
     return analyzeAthlete(clientWorkouts || [], traineeId, plans, { blockNum, classifyPattern, repsTop, exMap, targetBlockNum: selBlock });
   }, [clientWorkouts, traineeId, plans, exMap, selBlock]);
-  const vault = useMemo(() => getAthleteVault(traineeId), [traineeId]);
-  const asymTrend = useMemo(() => getAthleteAsymmetryTrend(traineeId), [traineeId]);
+  // Auto-analyse EVERY uploaded clip for bar-speed + symmetry — no manual "save
+  // to trend" (Ohad). Runs once per clip in the background when the report opens
+  // (owner-only surface); analysed clips are remembered so re-opens are instant.
+  // `poseBump` bumps on each stored result so the vault/symmetry memos re-read.
+  const [poseBump, setPoseBump] = useState(0);
+  const [autoPose, setAutoPose] = useState({ running: false, done: 0, total: 0 });
+  const stopRef = useRef(false);
+  useEffect(() => {
+    stopRef.current = false;
+    if (!traineeId || traineeId === 'demo' || !clientWorkouts || !clientWorkouts.length) return undefined;
+    const pending = pendingCount(clientWorkouts, traineeId);
+    if (!pending) return undefined;
+    setAutoPose({ running: true, done: 0, total: pending });
+    autoAnalyzeAthleteVideos(clientWorkouts, traineeId, {
+      shouldStop: () => stopRef.current,
+      onProgress: ({ done, total }) => { setAutoPose({ running: true, done, total }); setPoseBump((n) => n + 1); },
+    }).then(() => { setAutoPose((s) => ({ ...s, running: false })); setPoseBump((n) => n + 1); })
+      .catch(() => setAutoPose((s) => ({ ...s, running: false })));
+    return () => { stopRef.current = true; };
+  }, [traineeId, clientWorkouts]);
+  const vault = useMemo(() => getAthleteVault(traineeId), [traineeId, poseBump]);
+  const asymTrend = useMemo(() => getAthleteAsymmetryTrend(traineeId), [traineeId, poseBump]);
   const [showThin, setShowThin] = useState(false); // expand the "logged 1-2× · too few to trend" lifts
   const [liftsOpen, setLiftsOpen] = useState(false); // HIS LIFTS list collapsed by default — click the header to expand (Ohad)
 
@@ -599,7 +620,9 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
             </>
           ) : (
             <div style={{ border: `1px dashed ${C.bd}`, background: C.sf2, padding: 14, color: C.tm, fontSize: 12.5, lineHeight: 1.5 }}>
-              <b style={{ color: C.tx }}>No stored velocity yet.</b> Bar speed is the one fatigue signal that drops <i>before</i> load or RPE — and no competitor at this price can read it. Film a set in the camera tools and hit <span style={{ color: C.ac }}>Save bar speed to trend</span> — this becomes a per-lift fatigue line that's a real moat.
+              {autoPose.running
+                ? <><b style={{ color: C.ac }}>Auto-analysing his clips… {autoPose.done}/{autoPose.total}.</b> Bar speed is read from every uploaded video automatically — no logging needed. This fills in as it goes.</>
+                : <><b style={{ color: C.tx }}>No clean bar-speed read yet.</b> Every uploaded clip is auto-analysed for velocity — none is filmed side-on cleanly enough to trend yet. Bar speed drops <i>before</i> load or RPE; it's the fatigue read no competitor at this price offers.</>}
             </div>
           )}
       </Section>
@@ -638,7 +661,9 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
             </>
           ) : (
             <div style={{ border: `1px dashed ${C.bd}`, background: C.sf2, padding: 14, color: C.tm, fontSize: 12.5, lineHeight: 1.5 }}>
-              <b style={{ color: C.tx }}>No symmetry history yet.</b> Every filmed set logs left-vs-right joint travel. Once a few are saved, this becomes a per-joint drift line — a limb pulling away shows here <i>before</i> it's a tweak. Nobody at this price trends it.
+              {autoPose.running
+                ? <><b style={{ color: C.ac }}>Auto-analysing his clips… {autoPose.done}/{autoPose.total}.</b> Left-vs-right joint travel is read from every uploaded video automatically — no logging needed.</>
+                : <><b style={{ color: C.tx }}>No symmetry read yet.</b> Every uploaded clip is auto-analysed for L/R joint travel — none clean enough to trend yet. A limb pulling away shows here <i>before</i> it's a tweak; nobody at this price trends it.</>}
             </div>
           )}
       </Section>
