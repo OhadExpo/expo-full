@@ -471,14 +471,23 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
               return (
                 <div style={{ marginBottom: 12 }}>
                   <div style={{ fontSize: 10, color: C.td, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>Strength vs power trend · e1RM indexed to each lift's start</div>
-                  <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: '100%', height: 58, display: 'block', background: C.sf2, border: `1px solid ${C.bd}` }}>
-                    <line x1={pad} y1={yOf(100)} x2={W - pad} y2={yOf(100)} stroke={C.bd} strokeWidth="1" strokeDasharray="3 3" />
-                    {line(sCurve, C.ac)}
-                    {line(pCurve, orange)}
-                  </svg>
-                  <div style={{ display: 'flex', gap: 16, marginTop: 5, fontSize: 9.5, color: C.td }}>
-                    {sCurve && <span><span style={{ color: C.ac }}>■</span> strength ({sCurve.length})</span>}
-                    {pCurve && <span><span style={{ color: orange }}>■</span> power ({pCurve.length})</span>}
+                  {/* Y-axis %: hi at top, 100 at the dashed baseline, lo at the floor —
+                      preserveAspectRatio="none" would distort in-SVG text, so label in HTML. */}
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'stretch' }}>
+                    <div style={{ position: 'relative', width: 34, fontSize: 8.5, color: C.td, fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>
+                      <span style={{ position: 'absolute', top: 0, right: 0 }}>{Math.round(hi)}%</span>
+                      <span style={{ position: 'absolute', top: `${(yOf(100) / H) * 100}%`, right: 0, transform: 'translateY(-50%)', color: C.tm }}>100%</span>
+                      <span style={{ position: 'absolute', bottom: 0, right: 0 }}>{Math.round(lo)}%</span>
+                    </div>
+                    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ flex: 1, height: 58, display: 'block', background: C.sf2, border: `1px solid ${C.bd}` }}>
+                      <line x1={pad} y1={yOf(100)} x2={W - pad} y2={yOf(100)} stroke={C.bd} strokeWidth="1" strokeDasharray="3 3" />
+                      {line(sCurve, C.ac)}
+                      {line(pCurve, orange)}
+                    </svg>
+                  </div>
+                  <div style={{ display: 'flex', gap: 16, marginTop: 5, fontSize: 9.5, color: C.td, paddingLeft: 40 }}>
+                    {sCurve && <span><span style={{ color: C.ac }}>■</span> strength ({sCurve.length}) · now {Math.round(sCurve[sCurve.length - 1])}%</span>}
+                    {pCurve && <span><span style={{ color: orange }}>■</span> power ({pCurve.length}) · now {Math.round(pCurve[pCurve.length - 1])}%</span>}
                     <span style={{ marginLeft: 'auto' }}>dashed = 100% (start)</span>
                   </div>
                 </div>
@@ -508,15 +517,27 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
       <Section title="Load & volume" cardStyle={{ ...card, marginTop: 0 }} summary={a.acwr.state === 'ok' ? `ACWR ${a.acwr.acwr}` : 'building the baseline'}>
           {Array.isArray(a.acwr.series) && a.acwr.series.length >= 2 && (() => {
             const mx = Math.max(...a.acwr.series, 1);
+            const last = a.acwr.series[a.acwr.series.length - 1];
+            const avg = Math.round(a.acwr.series.reduce((x, y) => x + y, 0) / a.acwr.series.length);
+            const k = (n) => n >= 1000 ? `${(n / 1000).toFixed(1)}k` : `${n}`; // compact kg·reps
             return (
               <div style={{ marginBottom: 12 }}>
-                <div style={{ fontSize: 10, color: C.td, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>Session tonnage · last {a.acwr.series.length}</div>
-                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 46 }}>
-                  {a.acwr.series.map((t, i) => (
-                    <div key={i} title={`${t.toLocaleString()} kg·reps`} style={{ flex: 1, minWidth: 4, height: `${Math.max(6, (t / mx) * 100)}%`, background: C.ac, opacity: 0.8, borderRadius: '1px 1px 0 0' }} />
-                  ))}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6, gap: 8, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 10, color: C.td, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Session tonnage · last {a.acwr.series.length}</span>
+                  <span style={{ fontSize: 10, color: C.tm, fontVariantNumeric: 'tabular-nums' }}>peak {mx.toLocaleString()} · latest {last.toLocaleString()} kg·reps</span>
                 </div>
-                <div style={{ fontSize: 9, color: C.td, marginTop: 5, lineHeight: 1.5 }}>Σ load×reps per logged session — the raw work trend, before the acute:chronic ratio.</div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {/* Y-axis: peak at top, 0 at the floor — gives the bars a real scale */}
+                  <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', textAlign: 'right', fontSize: 8.5, color: C.td, height: 46, fontVariantNumeric: 'tabular-nums', minWidth: 30 }}>
+                    <span>{k(mx)}</span><span>0</span>
+                  </div>
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', gap: 3, height: 46 }}>
+                    {a.acwr.series.map((t, i) => (
+                      <div key={i} title={`${t.toLocaleString()} kg·reps`} style={{ flex: 1, minWidth: 4, height: `${Math.max(6, (t / mx) * 100)}%`, background: C.ac, opacity: 0.8, borderRadius: '1px 1px 0 0' }} />
+                    ))}
+                  </div>
+                </div>
+                <div style={{ fontSize: 9, color: C.td, marginTop: 5, lineHeight: 1.5 }}>Σ load×reps per logged session · avg {avg.toLocaleString()} kg·reps — the raw work trend, before the acute:chronic ratio.</div>
               </div>
             );
           })()}
