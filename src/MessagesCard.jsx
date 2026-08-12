@@ -325,10 +325,11 @@ export default function MessagesCard({ trainees, onSelectTrainee }) {
                     }}>{name}</span>
                     <span title={fromAthlete ? 'Athlete sent the last message' : 'You sent the last message'}
                       style={{
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
                         fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.12em',
                         color: fromAthlete ? 'var(--c-ac)' : 'var(--c-tm)',
                         border: `1px solid ${fromAthlete ? 'var(--c-ac)' : 'var(--c-cardBd)'}`,
-                        padding: '1px 5px', flexShrink: 0,
+                        padding: '2px 5px', flexShrink: 0,
                       }}>{fromAthlete ? 'INBOUND' : 'SENT'}</span>
                     {unread && (
                       <span style={{

@@ -174,7 +174,7 @@ export default function ExercisesView({ exercises, setExercises }) {
   const railBase = { display: 'inline-flex', alignItems: 'center', gap: 6, height: 30, padding: '0 1px', background: 'transparent', border: 'none', borderBottom: '2px solid transparent', color: C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap' };
   // Muted role-label that leads each filter row (Show / Filter by) — a fixed-width
   // spine so the two rows' controls start at the same x and read as two jobs.
-  const rowLabel = { flexShrink: 0, width: 58, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: C.td, textTransform: 'uppercase', whiteSpace: 'nowrap' };
+  const rowLabel = { flexShrink: 0, width: 58, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: C.tm, textTransform: 'uppercase', whiteSpace: 'nowrap' };
   // Shared width for the two stacked right-side controls (Table/Grid toggle group
   // and the Add Exercise button) so their right edges line up as an equal column
   // (Ohad: "table + grid together = same hoz space as add exercise button").
@@ -190,7 +190,7 @@ export default function ExercisesView({ exercises, setExercises }) {
     return (
       <div style={{ position: 'relative' }}>
         <button className={`filt${active || isOpen ? ' filt-on' : ''}`} onClick={() => setOpenKey(isOpen ? null : k)} title={label}
-          style={{ ...railBase, borderBottomColor: (active || isOpen) ? C.ac : 'transparent', color: active ? C.ac : (isOpen ? C.tx : C.tm) }}>
+          style={{ ...railBase, borderBottomColor: (active || isOpen) ? C.ac : 'var(--c-cardBd)', color: active ? C.ac : (isOpen ? C.tx : C.tx) }}>
           <span style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis' }}>{faceLabel}</span>
           {active
             ? <span onClick={e => { e.stopPropagation(); clearFilter(k); }} title="Clear" style={{ fontSize: 13, lineHeight: 1, opacity: 0.85 }}>×</span>
