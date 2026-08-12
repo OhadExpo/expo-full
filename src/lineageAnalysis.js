@@ -66,6 +66,7 @@ export function perLiftSeries(sessions) {
       byLift.get(ex.title).push({
         date: ms(sess.date), week: sess.week,
         load: num(ts.load), reps: num(ts.reps), rpe: num(ts.rpe),
+        prescribedReps: num(ts.prescribedReps),   // for the rep-scheme trend guard (H2b)
         e1: e1RM(ts.load, ts.reps),
       });
     }
@@ -157,6 +158,18 @@ export function e1rmTrend(series) {
       const loo = slopePctOf(pts.filter((_, i) => i !== k));
       if (Math.sign(loo) !== Math.sign(pctPerStep)) { dir = 'flat'; break; }
     }
+  }
+  // Rep-scheme intensification (review H2, rep-shift half): an e1RM 'down' while the
+  // LOAD isn't falling AND he's HITTING his prescribed reps = the drop is fewer
+  // PRESCRIBED reps (intensification / peaking), not the athlete weakening. Catches
+  // the 2-rep scheme shift that slips past repNoisy. Guarded both ways: if the load
+  // is falling it may be real weakening (keep 'down'); if he's MISSING prescribed
+  // reps it's real (keep 'down'). Only the unambiguous case flips to flat.
+  if (dir === 'down') {
+    const hits = rows.map((s) => (typeof s.reps === 'number' && typeof s.prescribedReps === 'number') ? s.reps >= s.prescribedReps : null).filter((x) => x != null);
+    const loads = rows.map((s) => s.load).filter((x) => typeof x === 'number' && x > 0);
+    const loadPct = loads.length >= 3 ? slopePctOf(loads) : null;
+    if (hits.length >= 2 && hits.every(Boolean) && loadPct != null && loadPct > -1.2) dir = 'flat';
   }
   return { state: 'ok', dir, latest: Math.round(pts[pts.length - 1]), pts, slopePct: pctPerStep, repNoisy };
 }
