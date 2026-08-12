@@ -410,17 +410,20 @@ export default function NotesInline({
                     : toggleDone(n.id)}
                   style={{ width: 14, height: 14, accentColor: n.status === 'cancelled' ? 'var(--c-tm)' : 'var(--c-gn)', cursor: 'pointer', flexShrink: 0, marginTop: 3 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  {(n.status === 'cancelled' || n.completed_at) && (
-                    <div style={{ fontFamily: FN, fontSize: 9, color: n.status === 'cancelled' ? 'var(--c-or)' : 'var(--c-td)', letterSpacing: '0.08em', fontWeight: n.status === 'cancelled' ? 700 : 400, marginBottom: 2 }}>
-                      {n.status === 'cancelled' ? 'CANCELLED' : `done ${fmtPrettyDate(n.completed_at)}`}
-                    </div>
-                  )}
-                  <div style={{
-                    fontSize: 12, color: 'var(--c-tm)', lineHeight: 1.5, whiteSpace: 'pre-wrap', textDecoration: 'line-through',
-                    direction: heb ? 'rtl' : 'ltr',
-                    textAlign: 'center',
-                    fontFamily: FB,
-                  }}>{n.body}</div>
+                  {/* Task text + "done DATE" on ONE row (Ohad): the task leads,
+                      the completion date sits compact on the right (was stacked
+                      — "done DATE" above, centered strikethrough body below). */}
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0 }}>
+                    <span style={{
+                      flex: 1, minWidth: 0, fontSize: 12, color: 'var(--c-tm)', lineHeight: 1.5, textDecoration: 'line-through',
+                      direction: heb ? 'rtl' : 'ltr', textAlign: heb ? 'right' : 'left', fontFamily: FB,
+                    }}>{n.body}</span>
+                    {(n.status === 'cancelled' || n.completed_at) && (
+                      <span style={{ flexShrink: 0, fontFamily: FN, fontSize: 9, color: n.status === 'cancelled' ? 'var(--c-or)' : 'var(--c-td)', letterSpacing: '0.08em', fontWeight: n.status === 'cancelled' ? 700 : 400, whiteSpace: 'nowrap' }}>
+                        {n.status === 'cancelled' ? 'CANCELLED' : `done ${fmtPrettyDate(n.completed_at)}`}
+                      </span>
+                    )}
+                  </div>
                   {n.linked_plan_id && (
                     <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-ac)', letterSpacing: '0.08em', marginTop: 2, fontWeight: 700 }}>
                       ✓ COMPLETED BY PLAN
