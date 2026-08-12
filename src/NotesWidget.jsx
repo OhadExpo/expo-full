@@ -923,9 +923,9 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
 
           const btnBase = { borderRadius:0, fontFamily:FN, fontWeight:700, cursor:'pointer' };
           const SEGS = [
+            { id:'all',    label:'ALL',         n:openRows.length },
             { id:'mine',   label:'GENERAL',     n:manualRows.length },
             { id:'alerts', label:'AUTO-ALERTS', n:autoRows.length },
-            { id:'all',    label:'ALL',         n:openRows.length },
           ];
           return (
             <div>

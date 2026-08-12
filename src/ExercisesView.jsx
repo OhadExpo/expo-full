@@ -172,6 +172,13 @@ export default function ExercisesView({ exercises, setExercises }) {
   // Filter controls are UNDERLINE text (per the control-material differentiation
   // rule: filters = underline, not solid boxes) — light, inline, hug their label.
   const railBase = { display: 'inline-flex', alignItems: 'center', gap: 6, height: 30, padding: '0 1px', background: 'transparent', border: 'none', borderBottom: '2px solid transparent', color: C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap' };
+  // Muted role-label that leads each filter row (Show / Filter by) — a fixed-width
+  // spine so the two rows' controls start at the same x and read as two jobs.
+  const rowLabel = { flexShrink: 0, width: 58, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: C.td, textTransform: 'uppercase', whiteSpace: 'nowrap' };
+  // Shared width for the two stacked right-side controls (Table/Grid toggle group
+  // and the Add Exercise button) so their right edges line up as an equal column
+  // (Ohad: "table + grid together = same hoz space as add exercise button").
+  const RIGHT_CTL_W = 176;
 
   // A multi-select filter trigger: label + ▾, cyan underline when active, opens a
   // checklist menu. Single menu open at a time (openKey).
@@ -266,11 +273,11 @@ export default function ExercisesView({ exercises, setExercises }) {
 
       {/* Header — title + live count (left) + TABLE/GRID toggle (right),
           mirroring the Programs page toggle EXACTLY (Ohad: "like in programs"). */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, gap: 12, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
         <h2 style={{ margin: 0, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', color: C.tx, textTransform: 'uppercase' }}>
           Exercises <span style={{ color: C.tm, fontWeight: 700 }}>· {filtered.length.toLocaleString()}{anyFilter ? ` of ${(exercises || []).length.toLocaleString()}` : ''}</span>
         </h2>
-        <div style={{ display: 'flex', gap: 6, width: 168 }}>
+        <div style={{ display: 'flex', gap: 6, width: RIGHT_CTL_W }}>
           {[['table', 'Table'], ['grid', 'Grid']].map(([v, label]) => {
             const on = view === v;
             return (
@@ -282,28 +289,31 @@ export default function ExercisesView({ exercises, setExercises }) {
       </div>
 
       {/* Search + Add — prominent, full width. */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 10, alignItems: 'stretch', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 12, marginBottom: 18, alignItems: 'stretch', flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: 200, display: 'flex' }}>
           <input placeholder="Search exercises (title, muscle, joint, position…)" value={search} onChange={e => { setSearch(e.target.value); setShowAll(false); }}
             style={{ ...baseInput, height: 30, padding: '0 14px', fontSize: 13, lineHeight: '30px', textAlign: 'left', border: `1px solid ${C.ac}`, width: '100%' }} />
         </div>
-        <Btn onClick={openNew} style={{ height: 30, padding: '0 18px', fontSize: 13, lineHeight: '30px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ Add Exercise</Btn>
+        <Btn onClick={openNew} style={{ height: 30, width: RIGHT_CTL_W, flexShrink: 0, padding: '0 18px', fontSize: 13, lineHeight: '30px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ Add Exercise</Btn>
       </div>
 
       {/* Filter rail — inline UNDERLINE-style controls (filters = underline text,
-          per the control-material differentiation rule), no heavy empty box. Flag
-          toggles · divider · every xlsx parameter as a multi-select trigger. */}
-      {/* Two deliberate rows (Ohad): flag toggles on row 1, the xlsx PARAMETER
-          filters on their OWN row 2 — instead of one wrapping rail where
-          "Secondary Muscles" dangled alone onto a second line. */}
-      <div style={{ marginBottom: 12, borderBottom: `1px solid ${C.cardBd}` }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 16px', padding: '0 1px 6px' }}>
+          per the control-material differentiation rule), no heavy empty box. Two
+          deliberate rows, each led by a muted role-label so the coach reads them as
+          two DIFFERENT jobs (Ohad polish 2026-08-12): row 1 = quick SHOW toggles
+          (has video / has notes / unclassified), row 2 = FILTER BY xlsx parameter.
+          Labels give the block a spine instead of a flat wall of look-alike chips;
+          "Secondary Muscles" no longer dangles onto its own line. */}
+      <div style={{ marginBottom: 16, borderBottom: `1px solid ${C.cardBd}` }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 14px', padding: '0 1px 10px' }}>
+          <span style={rowLabel}>Show</span>
           {flagChip('video', `▶ Video (${counts.vid})`)}
           {flagChip('notes', `☰ Notes (${counts.note})`, C.or)}
           {flagChip('missing', `∅ Unclassified (${counts.miss})`, C.or)}
-          {anyFilter && <button className="filt" onClick={clearAll} title="Clear all filters" style={{ ...railBase, color: C.rd, marginLeft: 'auto' }}>× Clear</button>}
+          {anyFilter && <button className="filt" onClick={clearAll} title="Clear all filters" style={{ ...railBase, color: C.rd, marginLeft: 'auto', letterSpacing: '0.1em' }}>× Clear all</button>}
         </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 16px', padding: '0 1px 10px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 14px', padding: '0 1px 12px', borderTop: `1px solid ${C.cardBd}`, paddingTop: 10 }}>
+          <span style={rowLabel}>Filter&nbsp;by</span>
           <FilterPill label="Resistance" k="resistanceType" options={dynOpts(counts.rt, f.resistanceType)} />
           <FilterPill label="Position" k="bodyPosition" options={dynOpts(counts.bp, f.bodyPosition)} />
           <FilterPill label="Movement" k="movementType" options={dynOpts(counts.mt, f.movementType)} />

@@ -789,7 +789,10 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
                   <td style={{ padding: '12px', fontFamily: FN, color: t.workoutCount > 0 ? C.tx : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
                     {t.workoutCount || '—'}
                   </td>
-                  <td style={{ padding: '12px', fontFamily: FN, color: t.planCount > 0 ? C.tx : C.td, textAlign: 'center' }}>
+                  {/* Programs count recedes to muted grey (like the Format/Package
+                      cells — "gym single" / "monthly"), not bright primary — it's a
+                      reference number, not a headline metric (Ohad 2026-08-12). */}
+                  <td style={{ padding: '12px', fontFamily: FN, fontSize: 12, color: t.planCount > 0 ? C.tm : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
                     {t.planCount || '—'}
                   </td>
                 </tr>
