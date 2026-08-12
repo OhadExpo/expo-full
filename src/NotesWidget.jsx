@@ -1036,6 +1036,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
             ✓ HISTORY ({doneRows.length}{visibleDone.length < doneRows.length ? ` · showing ${visibleDone.length}` : ''})
           </div>
           {visibleDone.map(n => {
+            const nameHeb = isHebrew(n.target_label || '');
             return (
               <div key={n.id} style={{
                 // No wrapper opacity — line-through + muted color (--c-tm)
@@ -1055,8 +1056,11 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                     left · task BODY centered in the middle (line-through) · DONE date
                     on the right. A fixed spine so the eye reads who / what / when
                     across a stack of history rows. */}
-                <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'baseline', gap: 12 }}>
-                  <span style={{ flexShrink: 0, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap', color: n.target_label ? 'var(--c-ac)' : 'var(--c-td)' }}>
+                <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 12 }}>
+                  {/* Name matches the CALLS/BUILDS auto-alert name size exactly
+                      (MiniTaskRow: Hebrew 13 / Latin 10, weight 800) so every name
+                      across alerts + history reads at one size (Ohad #174). */}
+                  <span style={{ flexShrink: 0, fontFamily: nameHeb ? FH : FN, fontSize: nameHeb ? 13 : 10, fontWeight: 800, letterSpacing: nameHeb ? 0 : '0.04em', textTransform: nameHeb ? 'none' : 'uppercase', whiteSpace: 'nowrap', color: n.target_label ? 'var(--c-ac)' : 'var(--c-td)' }}>
                     {n.target_label || TARGET_LABEL[n.target_kind] || 'NOTE'}
                   </span>
                   <span dir="auto" style={{

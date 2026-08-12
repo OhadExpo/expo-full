@@ -96,7 +96,7 @@ export default function InstallAppPrompt() {
       </>
     )
   ) : (
-    <>Get EXPO on your device — it opens full-screen like a native app, loads instantly, and works offline.</>
+    <>Add EXPO to your home screen — one tap, and it's always there, full-screen and ready.</>
   );
 
   // Only the Android/Chrome path has a real one-tap action button; iOS/installed
