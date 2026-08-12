@@ -77,18 +77,68 @@ function pickSubjectIdx(poses, prevCentroid = null) {
   return { idx: best.i, centroid: { x: best.cx, y: best.cy } };
 }
 
+// Measure a video's TRUE frame rate from real presentation timestamps via
+// requestVideoFrameCallback (rVFC gives each painted frame's exact mediaTime).
+// A brief muted play pass samples ~a dozen frames and takes the median inter-
+// frame delta → fps. Returns null when rVFC is unavailable or the read is
+// unreliable, so the caller falls back to a fixed cadence. This is what lets the
+// seek pass sample at the SOURCE cadence (one distinct frame per real frame) —
+// a fixed 50fps step on a 30fps clip re-reads frames and fakes zero-velocity
+// pairs; on 120/240fps slow-mo it under-samples. Both corrupt velocity/tempo.
+async function measureVideoFps(v) {
+  if (typeof v.requestVideoFrameCallback !== 'function') return null;
+  return await new Promise((resolve) => {
+    const times = [];
+    let settled = false;
+    const finish = () => {
+      if (settled) return; settled = true;
+      clearTimeout(to);
+      try { v.pause(); } catch { /* noop */ }
+      // Drop the first couple of deltas — playback ramp-up spaces the opening
+      // frames irregularly and would bias the estimate high.
+      const raw = times.slice(1).map((t, i) => t - times[i]).filter((d) => d > 0.0008);
+      const dts = (raw.length > 4 ? raw.slice(2) : raw).sort((a, b) => a - b);
+      if (dts.length < 2) return resolve(null);
+      const med = dts[Math.floor(dts.length / 2)];
+      const fps = med > 0 ? 1 / med : 0;
+      if (!(fps >= 10 && fps <= 300)) return resolve(null);
+      // Snap to the nearest standard camera rate. A 30fps clip often measures ~31.5
+      // over its first frames; sampling finer than the true frame period would
+      // re-introduce duplicate reads, so lock onto the real rate when close.
+      const STD = [24, 25, 30, 48, 50, 60, 120, 240];
+      const near = STD.find((s) => Math.abs(fps - s) / s <= 0.06);
+      resolve(near || fps);
+    };
+    const onFrame = (_now, meta) => {
+      if (settled) return;
+      times.push(meta.mediaTime);
+      // Enough once we have a stable dozen frames or crossed ~0.6s of media.
+      if (times.length >= 12 || (times.length >= 6 && meta.mediaTime > 0.6)) { finish(); return; }
+      v.requestVideoFrameCallback(onFrame);
+    };
+    const to = setTimeout(finish, 2000);
+    try { v.muted = true; v.currentTime = 0; } catch { /* noop */ }
+    v.play().then(() => { v.requestVideoFrameCallback(onFrame); }).catch(() => resolve(null));
+  });
+}
+
 // Seek-pass frame capture from any playable video src (an uploaded object URL,
 // or a remote clip URL like a Review upload). Returns [{t, landmarks,
 // worldLandmarks}] for poseLab — the same shape live capture produces. Shared by
 // the in-Lab upload path and the Review player's inline LIFT METRICS. Closes its
 // own landmarker. crossOrigin keeps the frames canvas-readable for remote clips.
 export async function captureClipFrames(src, { crossOrigin = false, onProgress } = {}) {
-  let lm;
+  let lm, v;
   try {
     lm = await createPoseLandmarker({ runningMode: 'VIDEO', quality: 'full', numPoses: 5 });
-    const v = document.createElement('video');
+    v = document.createElement('video');
     if (crossOrigin) v.crossOrigin = 'anonymous';
     v.src = src; v.muted = true; v.playsInline = true; v.preload = 'auto';
+    // Offscreen in the DOM (not visible): a detached video won't reliably paint
+    // frames, and requestVideoFrameCallback / decode need painted frames to fire —
+    // this makes the fps measure below dependable. Removed in finally.
+    v.style.cssText = 'position:fixed;left:-9999px;top:0;width:2px;height:2px;opacity:0;pointer-events:none';
+    document.body.appendChild(v);
     await new Promise((res, rej) => { v.onloadedmetadata = () => res(); v.onerror = () => rej(new Error('Could not read that video.')); });
     let dur = v.duration;
     // MediaRecorder WebM (how in-app athlete clips are recorded) reports
@@ -106,11 +156,16 @@ export async function captureClipFrames(src, { crossOrigin = false, onProgress }
     }
     if (!isFinite(dur) || dur <= 0) throw new Error('Could not read that video (no duration).');
     const MAX = 600;                   // frame cap (protects long clips)
-    // Adaptive sampling: the fixed 0.05s (~20fps) step capped flight-time /
-    // velocity resolution for EVERY clip and made FpsBadge paint slow-mo uploads
-    // as "20fps low ≈±9cm". Short clips (jumps are ~2-5s) now sample up to 50fps
-    // for real precision; longer clips grow the step to stay within MAX frames.
-    const STEP = Math.max(0.02, dur / MAX);
+    // Sample at the video's TRUE frame rate so every seek lands on a distinct real
+    // frame (measured via rVFC). A fixed step below the source frame duration
+    // re-reads the same decoded frame under two timestamps → a false zero-velocity
+    // pair that under-reads speed and stair-steps tempo; a step above it drops real
+    // slow-mo detail. frameDur = 1/fps is the correct cadence; long clips still grow
+    // the step to stay within MAX frames. Falls back to ~50fps when fps is unknown.
+    const realFps = await measureVideoFps(v);
+    try { v.pause(); v.currentTime = 0; } catch { /* noop */ }
+    const frameDur = realFps ? 1 / realFps : 0.02;
+    const STEP = Math.max(frameDur, dur / MAX);
     const total = Math.min(MAX, Math.max(2, Math.ceil(dur / STEP)));
     const frames = [];
     // Tracks WHICH detected pose is the subject across the whole seek pass —
@@ -118,11 +173,19 @@ export async function captureClipFrames(src, { crossOrigin = false, onProgress }
     // steal a frame or two and the tracked wrist/hip "teleports" between two
     // different people, producing a huge fake velocity spike.
     let prevCentroid = null;
+    let prevSig = null; // signature of the last KEPT frame — drops exact re-reads
     for (let i = 0; i < total; i++) {
       // +0.001 so the first sample (i=0) never seeks to the already-current
       // position 0 — that assignment fires no 'seeked' event in Chromium and
       // would hang the await forever ("READING THE MOVEMENT…" stuck).
-      const time = Math.min(dur - 0.001, i * STEP + 0.001);
+      // Snap the target to the CENTRE of the real frame it lands in (when fps is
+      // known), so the seek resolves squarely inside one decoded frame rather than
+      // on a boundary where Chromium may pick either neighbour — keeps every
+      // captured frame distinct and its timestamp frame-aligned.
+      const raw = i * STEP + 0.001;
+      const time = realFps
+        ? Math.min(dur - 0.001, Math.max(0.001, (Math.floor(raw * realFps) + 0.5) * frameDur))
+        : Math.min(dur - 0.001, raw);
       v.currentTime = time;
       // Race the seek against a timeout + error handler so a seek that never
       // resolves (already-current position, undecodable/duplicate target)
@@ -137,14 +200,24 @@ export async function captureClipFrames(src, { crossOrigin = false, onProgress }
       try { r = lm.detectForVideo(v, Math.round(time * 1000) + i); } catch {}
       const { idx: si, centroid } = pickSubjectIdx(r?.landmarks, prevCentroid);
       if (si >= 0 && r.worldLandmarks?.[si]) {
-        frames.push({ t: time * 1000, landmarks: r.landmarks?.[si] || null, worldLandmarks: r.worldLandmarks[si] });
-        prevCentroid = centroid;
+        const wl = r.worldLandmarks[si];
+        // Exact-duplicate guard: if this seek resolved to the SAME decoded frame
+        // as the last kept one, MediaPipe returns bit-identical landmarks. Drop it
+        // so a re-read can't fake a zero-velocity pair. A held pose still carries
+        // sensor jitter, so exact equality only ever matches a true re-read.
+        const sig = [0, 11, 12, 15, 16, 27, 28].map((j) => (wl[j] ? `${wl[j].x},${wl[j].y},${wl[j].z}` : 'x')).join('|');
+        if (sig !== prevSig) {
+          frames.push({ t: time * 1000, landmarks: r.landmarks?.[si] || null, worldLandmarks: wl });
+          prevCentroid = centroid;
+          prevSig = sig;
+        }
       }
       if (onProgress) onProgress(Math.round(((i + 1) / total) * 100));
     }
     return frames;
   } finally {
     if (lm) try { lm.close(); } catch {}
+    if (v) try { v.pause(); v.removeAttribute('src'); v.load(); v.remove(); } catch { /* noop */ }
   }
 }
 
