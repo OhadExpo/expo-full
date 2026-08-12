@@ -1,167 +1,409 @@
-import React, { useState, useMemo } from 'react';
-import { C, FN, FB, uid, CATEGORIES, RESISTANCE_TYPES, BODY_POSITIONS, MOVEMENT_TYPES, MOVEMENT_PATTERNS, LATERALITY } from './theme';
-import { Btn, Input, Select, TextArea, Badge, Modal, ConfirmDialog, EmptyState, baseInput, isRefined5b, RefinedHeaderStrip } from './ui';
-const defaultExercise = () => ({ id: uid(), title: "", category: "", resistanceType: "", bodyPosition: "", movementType: "", laterality: "", movementPattern: "", primaryMuscles: "", secondaryMuscles: "", primaryJoints: "", jointMovements: "", videoLink: "", cues: "", notes: "" });
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { C, FN, FB, uid, RESISTANCE_TYPES, BODY_POSITIONS, MOVEMENT_TYPES } from './theme';
+import { Btn, Input, Select, TextArea, Modal, ConfirmDialog, EmptyState, baseInput } from './ui';
+
+// Exercise shape aligned to the canonical library xlsx (Last Draft Exercise
+// Library.xlsx): Resistance Type · Body Position · Movement Type · Primary Joints
+// · Joint Movements · Primary/Secondary Muscle Groups · Coaching Notes(=cues).
+// Legacy fields (category / movementPattern / laterality) are preserved on
+// existing rows via the {...ex} spread but no longer authored — they aren't
+// columns in the library.
+const defaultExercise = () => ({ id: uid(), title: "", resistanceType: "", bodyPosition: "", movementType: "", primaryJoints: "", jointMovements: "", primaryMuscles: "", secondaryMuscles: "", videoLink: "", cues: "", notes: "" });
+
+const hasVideo = e => !!(e.videoLink && String(e.videoLink).trim());
+const hasNotes = e => !!(e.cues && String(e.cues).trim());
+const isMissing = e => !e.resistanceType && !e.bodyPosition && !e.movementType;
+const splitVals = s => String(s || '').split(',').map(x => x.trim()).filter(Boolean);
+
 export default function ExercisesView({ exercises, setExercises }) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(defaultExercise());
   const [editId, setEditId] = useState(null);
   const [search, setSearch] = useState("");
-  const [filters, setFilters] = useState({ category: "", resistanceType: "", bodyPosition: "", movementType: "", movementPattern: "", laterality: "" });
+  // Every xlsx column is a filter (Ohad), each MULTI-select (arrays). Single-value
+  // fields OR together; multi-value fields (joints/movements/muscles) require ALL
+  // picked values to be present on the exercise (AND) — an exercise lists several.
+  const EMPTY_F = { resistanceType: [], bodyPosition: [], movementType: [], primaryJoints: [], jointMovements: [], primaryMuscles: [], secondaryMuscles: [] };
+  const MULTI_VALUE = new Set(['primaryJoints', 'jointMovements', 'primaryMuscles', 'secondaryMuscles']);
+  const [f, setF] = useState(EMPTY_F);
+  const [flags, setFlags] = useState({ video: false, notes: false, missing: false });
+  const [openKey, setOpenKey] = useState(null); // which filter pill's menu is open
+  const [sortKey, setSortKey] = useState('title');
+  const [sortDir, setSortDir] = useState('asc');
+  const [view, setView] = useState('table'); // 'table' | 'grid' — mirrors Programs
   const [confirmDelete, setConfirmDelete] = useState(null);
-
-  const setF = (k, v) => setFilters(prev => ({ ...prev, [k]: v }));
-  const activeFilterCount = Object.values(filters).filter(Boolean).length;
-  const clearFilters = () => setFilters({ category: "", resistanceType: "", bodyPosition: "", movementType: "", movementPattern: "", laterality: "" });
-
-  // 1,467-row library: memoize the filter and cap the rendered rows.
-  // Without the cap every search keystroke re-rendered a ~1,500-row table.
-  const ROW_CAP = 200;
   const [showAll, setShowAll] = useState(false);
-  const filtered = useMemo(() => (exercises||[]).filter(e => {
-    if (search) {
-      const q = search.toLowerCase();
-      const tokens = q.split(/\s+/).filter(Boolean);
-      const haystack = [e.title, e.category, e.resistanceType, e.bodyPosition, e.movementType, e.movementPattern, e.laterality, e.primaryMuscles, e.secondaryMuscles, e.primaryJoints, e.jointMovements].filter(Boolean).join(' ').toLowerCase();
-      if (!tokens.every(t => haystack.includes(t))) return false;
+  const ROW_CAP = 200;
+
+  // Toggle a value in/out of a filter's selection set.
+  const toggleFilter = (k, v) => { setF(prev => { const cur = prev[k] || []; return { ...prev, [k]: cur.includes(v) ? cur.filter(x => x !== v) : [...cur, v] }; }); setShowAll(false); };
+  const clearFilter = (k) => { setF(prev => ({ ...prev, [k]: [] })); setShowAll(false); };
+  const toggleFlag = k => { setFlags(m => ({ ...m, [k]: !m[k] })); setShowAll(false); };
+  const onSort = (k) => { if (sortKey === k) setSortDir(d => d === 'asc' ? 'desc' : 'asc'); else { setSortKey(k); setSortDir('asc'); } };
+  const activeFilterCount = Object.values(f).filter(a => a.length).length + Object.values(flags).filter(Boolean).length;
+  const anyFilter = !!(search.trim() || activeFilterCount);
+  const clearAll = () => { setSearch(''); setF(EMPTY_F); setFlags({ video: false, notes: false, missing: false }); setOpenKey(null); setShowAll(false); };
+
+  // Close any open filter menu on Escape.
+  useEffect(() => {
+    if (!openKey) return;
+    const onKey = e => { if (e.key === 'Escape') setOpenKey(null); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [openKey]);
+
+  // The filter predicate, shared by the result list AND the faceted option counts.
+  // `skip` omits one dimension's own selection so that dimension's counts reflect
+  // every OTHER active filter but not itself — the standard faceted-search rule.
+  const passFilters = useCallback((e, skip) => {
+    const q = search.trim().toLowerCase();
+    const tokens = q ? q.split(/\s+/).filter(Boolean) : [];
+    if (tokens.length) {
+      const hay = [e.title, e.resistanceType, e.bodyPosition, e.movementType, e.primaryJoints, e.jointMovements, e.primaryMuscles, e.secondaryMuscles].filter(Boolean).join(' ').toLowerCase();
+      if (!tokens.every(t => hay.includes(t))) return false;
     }
-    if (filters.category && e.category !== filters.category) return false;
-    if (filters.resistanceType && e.resistanceType !== filters.resistanceType) return false;
-    if (filters.bodyPosition && e.bodyPosition !== filters.bodyPosition) return false;
-    if (filters.movementType && e.movementType !== filters.movementType) return false;
-    if (filters.movementPattern && e.movementPattern !== filters.movementPattern) return false;
-    if (filters.laterality && e.laterality !== filters.laterality) return false;
+    // Single-value fields: OR — the row's value must be one of the picked.
+    if (skip !== 'resistanceType' && f.resistanceType.length && !f.resistanceType.includes(e.resistanceType)) return false;
+    if (skip !== 'bodyPosition' && f.bodyPosition.length && !f.bodyPosition.includes(e.bodyPosition)) return false;
+    if (skip !== 'movementType' && f.movementType.length && !f.movementType.includes(e.movementType)) return false;
+    // Multi-value fields: AND — the row must contain ALL picked values.
+    if (skip !== 'primaryJoints' && f.primaryJoints.length) { const v = splitVals(e.primaryJoints); if (!f.primaryJoints.every(s => v.includes(s))) return false; }
+    if (skip !== 'jointMovements' && f.jointMovements.length) { const v = splitVals(e.jointMovements); if (!f.jointMovements.every(s => v.includes(s))) return false; }
+    if (skip !== 'primaryMuscles' && f.primaryMuscles.length) { const v = splitVals(e.primaryMuscles); if (!f.primaryMuscles.every(s => v.includes(s))) return false; }
+    if (skip !== 'secondaryMuscles' && f.secondaryMuscles.length) { const v = splitVals(e.secondaryMuscles); if (!f.secondaryMuscles.every(s => v.includes(s))) return false; }
+    if (skip !== 'video' && flags.video && !hasVideo(e)) return false;
+    if (skip !== 'notes' && flags.notes && !hasNotes(e)) return false;
+    if (skip !== 'missing' && flags.missing && !isMissing(e)) return false;
     return true;
-  }), [exercises, search, filters]);
+  }, [search, f, flags]);
+
+  // FACETED counts (Ohad): each parameter's count reflects the CURRENT selection,
+  // not the whole library — pick "notes", and every muscle/joint/type count updates
+  // to the notes∩value total. OR facets (single-value) skip their own dimension so
+  // their options still show switchable counts; AND facets (multi-value) apply their
+  // own selection so an unselected option shows the true intersection you'd land on.
+  const counts = useMemo(() => {
+    const rt = {}, bp = {}, mt = {}, pj = {}, jm = {}, pm = {}, sm = {}; let vid = 0, note = 0, miss = 0;
+    const bump = (map, v) => { map[v] = (map[v] || 0) + 1; };
+    for (const e of (exercises || [])) {
+      if (e.resistanceType && passFilters(e, 'resistanceType')) bump(rt, e.resistanceType);
+      if (e.bodyPosition && passFilters(e, 'bodyPosition')) bump(bp, e.bodyPosition);
+      if (e.movementType && passFilters(e, 'movementType')) bump(mt, e.movementType);
+      if (passFilters(e, null)) {
+        new Set(splitVals(e.primaryJoints)).forEach(v => bump(pj, v));
+        new Set(splitVals(e.jointMovements)).forEach(v => bump(jm, v));
+        new Set(splitVals(e.primaryMuscles)).forEach(v => bump(pm, v));
+        new Set(splitVals(e.secondaryMuscles)).forEach(v => bump(sm, v));
+      }
+      if (hasVideo(e) && passFilters(e, 'video')) vid++;
+      if (hasNotes(e) && passFilters(e, 'notes')) note++;
+      if (isMissing(e) && passFilters(e, 'missing')) miss++;
+    }
+    return { rt, bp, mt, pj, jm, pm, sm, vid, note, miss };
+  }, [exercises, passFilters]);
+
+  const filtered = useMemo(() => {
+    let out = (exercises || []).filter(e => passFilters(e, null));
+    out = out.slice().sort((a, b) => {
+      const av = String(a[sortKey] || ''), bv = String(b[sortKey] || '');
+      const cmp = av.localeCompare(bv, undefined, { sensitivity: 'base', numeric: true });
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+    return out;
+  }, [exercises, passFilters, sortKey, sortDir]);
+
   const rows = showAll ? filtered : filtered.slice(0, ROW_CAP);
+
   const handleSave = () => {
     if (!form.title) return;
     if (editId) setExercises(prev => prev.map(e => e.id === editId ? form : e));
     else setExercises(prev => [...prev, form]);
     setForm(defaultExercise()); setEditId(null); setShowForm(false);
   };
+  const openNew = () => { setForm(defaultExercise()); setEditId(null); setShowForm(true); };
+
+  // Dropdown option lists ([value, count]) sorted by (faceted) count. Always
+  // include currently-selected values even if their residual count is 0, so a
+  // selection can never disappear from its own menu and become un-uncheckable.
+  const dynOpts = (cm, sel = []) => {
+    const keys = new Set([...Object.keys(cm), ...sel]);
+    return [...keys].sort((a, b) => (cm[b] || 0) - (cm[a] || 0) || a.localeCompare(b)).map(v => [v, cm[v] || 0]);
+  };
+
+  // Filter controls are UNDERLINE text (per the control-material differentiation
+  // rule: filters = underline, not solid boxes) — light, inline, hug their label.
+  const railBase = { display: 'inline-flex', alignItems: 'center', gap: 6, height: 28, padding: '0 1px', background: 'transparent', border: 'none', borderBottom: '2px solid transparent', color: C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap' };
+
+  // A multi-select filter trigger: label + ▾, cyan underline when active, opens a
+  // checklist menu. Single menu open at a time (openKey).
+  const FilterPill = ({ label, k, options }) => {
+    const sel = f[k] || [];
+    const active = sel.length > 0;
+    const isOpen = openKey === k;
+    const faceLabel = sel.length === 1 ? sel[0] : (sel.length > 1 ? `${label} · ${sel.length}` : label);
+    return (
+      <div style={{ position: 'relative' }}>
+        <button className={`filt${active || isOpen ? ' filt-on' : ''}`} onClick={() => setOpenKey(isOpen ? null : k)} title={label}
+          style={{ ...railBase, borderBottomColor: (active || isOpen) ? C.ac : 'transparent', color: active ? C.ac : (isOpen ? C.tx : C.tm) }}>
+          <span style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis' }}>{faceLabel}</span>
+          {active
+            ? <span onClick={e => { e.stopPropagation(); clearFilter(k); }} title="Clear" style={{ fontSize: 13, lineHeight: 1, opacity: 0.85 }}>×</span>
+            : <span style={{ color: C.td, fontSize: 9 }}>▾</span>}
+        </button>
+        {isOpen && (
+          <div style={{ position: 'absolute', top: 32, left: 0, minWidth: 'max(100%, 230px)', maxHeight: 340, overflowY: 'auto', background: 'var(--c-sf)', border: `1px solid ${C.ac}`, zIndex: 50, boxShadow: '0 10px 28px rgba(0,0,0,0.55)' }}>
+            {options.length === 0 && <div style={{ padding: '9px 12px', color: C.td, fontFamily: FN, fontSize: 10, letterSpacing: '0.04em' }}>No values in library</div>}
+            {options.map(([v, c]) => {
+              const on = sel.includes(v);
+              return (
+                <div key={v} onClick={() => toggleFilter(k, v)}
+                  style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'center', padding: '8px 11px', cursor: 'pointer', fontFamily: FN, fontSize: 11, fontWeight: 600, letterSpacing: '0.02em', color: on ? C.ac : C.tx, background: on ? 'color-mix(in srgb, var(--c-ac) 12%, transparent)' : 'transparent', whiteSpace: 'nowrap' }}
+                  onMouseEnter={e => { if (!on) e.currentTarget.style.background = 'var(--c-sf2)'; }}
+                  onMouseLeave={e => { if (!on) e.currentTarget.style.background = 'transparent'; }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ width: 12, textAlign: 'center', color: C.ac }}>{on ? '✓' : ''}</span>{v}
+                  </span>
+                  <span style={{ color: C.tm, fontSize: 10, fontWeight: 700 }}>{c}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const flagChip = (k, label, color = C.ac) => (
+    <button key={k} className={`filt${flags[k] ? ' filt-on' : ''}`} onClick={() => toggleFlag(k)}
+      style={{ ...railBase, borderBottomColor: flags[k] ? color : 'transparent', color: flags[k] ? color : C.tm }}>{label}</button>
+  );
+
+  // A faint dot for empty cells so blanks recede instead of a loud "—".
+  const emptyDot = <span style={{ color: C.td, opacity: 0.4, fontSize: 12 }}>·</span>;
+  // Single-value classification — quiet uppercase mono, or a faint dot.
+  const oneCell = (v, extra = {}) => (
+    <td style={{ padding: '9px 12px', whiteSpace: 'nowrap', ...extra }}>
+      {v ? <span style={{ fontFamily: FN, fontSize: 10.5, fontWeight: 600, letterSpacing: '0.02em', color: C.tm }}>{v}</span> : emptyDot}
+    </td>
+  );
+  // Multi-value classification — small chips (up to 3) + "+N", or a faint dot.
+  const chipCell = (v, max = 320) => {
+    const vals = splitVals(v);
+    return (
+      <td style={{ padding: '9px 12px', maxWidth: max }}>
+        {vals.length === 0 ? emptyDot : (
+          <div style={{ display: 'flex', gap: 4, flexWrap: 'nowrap', overflow: 'hidden' }}>
+            {vals.slice(0, 3).map((x, i) => (
+              <span key={i} style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 600, letterSpacing: '0.02em', color: C.tm, background: 'var(--c-sf2)', border: `1px solid ${C.cardBd}`, padding: '2px 6px', whiteSpace: 'nowrap', flexShrink: 0 }}>{x}</span>
+            ))}
+            {vals.length > 3 && <span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, color: C.td, padding: '2px 3px', whiteSpace: 'nowrap', flexShrink: 0 }}>+{vals.length - 3}</span>}
+          </div>
+        )}
+      </td>
+    );
+  };
+  // Left-rail status dot: cyan=has video, amber ring=notes only, hollow=bare.
+  const statusDot = (ex) => {
+    const vid = hasVideo(ex), note = hasNotes(ex);
+    const color = vid ? C.ac : note ? C.or : C.td;
+    return <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', flexShrink: 0, background: (vid || note) ? color : 'transparent', border: (vid || note) ? 'none' : `1px solid ${C.td}`, opacity: (vid || note) ? 1 : 0.4 }} />;
+  };
+
   return (
-    // data-allow-copy: same opt-out from the site-wide copyGuard as the program
-    // editor (see copyGuard.js / PlansView) — Ohad wants to select/copy/right-click
-    // exercise data while managing the library.
+    // data-allow-copy: same copyGuard opt-out as the program editor — Ohad wants
+    // to select/copy exercise data while managing the library.
     <div data-allow-copy>
       <style>{`
-        @media (max-width: 720px) { .ex-filters { grid-template-columns: repeat(2, 1fr) !important; } }
-        /* Zebra rhythm so a 1,470-row library scans instead of reading as a flat
-           wall of names; hover wins over the stripe (Ohad "Minimal + rhythm"). */
-        .ex-row:nth-child(odd) { background: rgba(127,127,138,0.045); }
-        .ex-row:hover { background: var(--c-sf2); }
-        .ex-lead { flex: 1; min-width: 10px; border-bottom: 1px dotted var(--c-cardBd); opacity: 0.45; height: 0; margin: 0 4px; }
+        .ex-row:nth-child(odd) td { background: rgba(127,127,138,0.04); }
+        .ex-row:hover td { background: color-mix(in srgb, var(--c-ac) 7%, var(--c-sf)); }
+        .ex-row td:first-child { box-shadow: inset 2px 0 0 transparent; transition: box-shadow .12s; }
+        .ex-row:hover td:first-child { box-shadow: inset 2px 0 0 var(--c-ac); }
+        .ex-table thead th { background: var(--c-sf2) !important; }
+        .filt { transition: color .12s, border-color .12s; }
+        .filt:not(.filt-on):hover { color: var(--c-tx) !important; border-bottom-color: var(--c-tm) !important; }
+        .ex-card { transition: border-color .12s, transform .12s; }
+        .ex-card:hover { border-color: var(--c-ac) !important; }
       `}</style>
-      <div style={{ display: "flex", gap: 12, marginBottom: 10, alignItems: "stretch", flexWrap: "wrap" }}>
-        <div style={{ flex: 1, minWidth: 200, display: 'flex' }}><input placeholder="Search exercises (title, muscle, pattern...)" value={search} onChange={e => setSearch(e.target.value)} style={{ ...baseInput, height: 42, padding: '0 14px', fontSize: 13, lineHeight: '42px', border: `1px solid ${C.ac}` }} /></div>
-        <Btn onClick={() => { setForm(defaultExercise()); setEditId(null); setShowForm(true); }} style={{ height: 42, padding: '0 18px', fontSize: 13, lineHeight: '42px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ Add Exercise</Btn>
-      </div>
-      {/* Filters card — single theme-independent structure (was a strip header +
-          0 outer padding in light vs a plain label + 10 outer padding in dark,
-          with a font-size 11-vs-9 header, i.e. different height per theme). Now
-          the canonical RefinedHeaderStrip carries the header in both themes
-          (only its BG color flips via --c-stripBg) with constant padding. */}
-      <div style={{ background: 'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius: 0, padding: 10, marginBottom: 12, overflow: 'hidden' }}>
-        <RefinedHeaderStrip padY={10} padX={10} marginBottom={10}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ fontSize: 11, fontFamily: FN, fontWeight: 700, color: '#FFFFFF', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-              Filters {activeFilterCount > 0 && <span style={{ marginLeft: 6, opacity: 0.85 }}>· {activeFilterCount} active</span>}
-            </div>
-            {activeFilterCount > 0 && <button onClick={clearFilters} style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.55)', color: '#FFFFFF', cursor: 'pointer', fontSize: 9, fontFamily: FN, fontWeight: 700, letterSpacing: '0.10em', padding: '2px 8px', borderRadius: 0 }}>CLEAR ALL</button>}
-          </div>
-        </RefinedHeaderStrip>
-        <div className="ex-filters" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-          {[
-            ['category', 'Category', CATEGORIES],
-            ['resistanceType', 'Resistance', RESISTANCE_TYPES],
-            ['bodyPosition', 'Body Position', BODY_POSITIONS],
-            ['movementType', 'Movement Type', MOVEMENT_TYPES],
-            ['movementPattern', 'Pattern', MOVEMENT_PATTERNS],
-            ['laterality', 'Laterality', LATERALITY],
-          ].map(([key, label, options]) => (
-            <div key={key} style={{ position: 'relative', display: 'flex' }}>
-              <select value={filters[key]} onChange={e => setF(key, e.target.value)} style={{ ...baseInput, height: 36, padding: '0 32px 0 12px', fontSize: 12, appearance: 'none', WebkitAppearance: 'none', textAlign: 'center', textAlignLast: 'center', flex: 1 }}>
-                <option value="">{label}</option>{options.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-              <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: C.tm, fontSize: 14, lineHeight: 1 }}>▾</span>
-            </div>
-          ))}
+
+      {/* Header — title + live count (left) + TABLE/GRID toggle (right),
+          mirroring the Programs page toggle EXACTLY (Ohad: "like in programs"). */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, gap: 12, flexWrap: 'wrap' }}>
+        <h2 style={{ margin: 0, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', color: C.tx, textTransform: 'uppercase' }}>
+          Exercises <span style={{ color: C.tm, fontWeight: 700 }}>· {filtered.length.toLocaleString()}{anyFilter ? ` of ${(exercises || []).length.toLocaleString()}` : ''}</span>
+        </h2>
+        <div style={{ display: 'flex', gap: 6, width: 168 }}>
+          {[['table', 'Table'], ['grid', 'Grid']].map(([v, label]) => {
+            const on = view === v;
+            return (
+              <button key={v} onClick={() => setView(v)} title={v === 'table' ? 'Dense table — every parameter a sortable column' : 'Card grid — one card per exercise'}
+                style={{ flex: 1, height: 30, boxSizing: 'border-box', borderRadius: 0, cursor: 'pointer', border: `1px solid ${on ? '#39BDFF' : C.cardBd}`, background: on ? '#39BDFF' : 'var(--c-sf)', color: on ? '#FFFFFF' : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{label}</button>
+            );
+          })}
         </div>
       </div>
-      <div style={{ fontSize: 11, color: C.tm, marginBottom: 12, fontFamily: FN }}>{filtered.length} exercise{filtered.length !== 1 ? "s" : ""}</div>
-      {filtered.length === 0 ? <EmptyState icon="🏋️" message="No exercises. Build your library." /> : (() => {
-        const refined = isRefined5b();
-        // Muted category palette — a small colour dot is the only colour on the
-        // row (no boxed tags, per Ohad). Absent category → dim neutral dot.
-        const CAT_COLOR = { Chest:'#E0736A', Back:'#5B93D6', Shoulders:'#E0A85B', Arms:'#B06AD0', Core:'#D9C755', Legs:'#5FBE86', Glutes:'#D96FAE', 'Full Body':'#5FBEC0', Olympic:'#C9CDD4', Cardio:'#E08A5B', Other:'#7A828C' };
-        return (
-        <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0 }}>
-          {/* Redesign v2 (Ohad "Minimal + rhythm"): a 1,470-row library reads as a
-              flat wall of names, and ~90% have no attributes. Rhythm now comes from
-              a zebra stripe + a category-colour dot + a video mark, with the muscle
-              shown (dim, right, via a dotted leader) ONLY when it exists. No tags. */}
-          {rows.map((ex, idx) => {
-            const cat = ex.category && String(ex.category).trim();
-            const muscle = ex.primaryMuscles && String(ex.primaryMuscles).trim();
-            const hasVideo = !!(ex.videoLink && String(ex.videoLink).trim());
-            const dotColor = cat ? (CAT_COLOR[cat] || 'rgba(127,127,138,0.55)') : 'rgba(127,127,138,0.30)';
+
+      {/* Search + Add — prominent, full width. */}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 10, alignItems: 'stretch', flexWrap: 'wrap' }}>
+        <div style={{ flex: 1, minWidth: 200, display: 'flex' }}>
+          <input placeholder="Search exercises (title, muscle, joint, position…)" value={search} onChange={e => { setSearch(e.target.value); setShowAll(false); }}
+            style={{ ...baseInput, height: 42, padding: '0 14px', fontSize: 13, lineHeight: '42px', textAlign: 'left', border: `1px solid ${C.ac}`, width: '100%' }} />
+        </div>
+        <Btn onClick={openNew} style={{ height: 42, padding: '0 18px', fontSize: 13, lineHeight: '42px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ Add Exercise</Btn>
+      </div>
+
+      {/* Filter rail — inline UNDERLINE-style controls (filters = underline text,
+          per the control-material differentiation rule), no heavy empty box. Flag
+          toggles · divider · every xlsx parameter as a multi-select trigger. */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 16px', padding: '0 1px 10px', marginBottom: 12, borderBottom: `1px solid ${C.cardBd}` }}>
+        {flagChip('video', `▶ Video (${counts.vid})`)}
+        {flagChip('notes', `☰ Notes (${counts.note})`, C.or)}
+        {flagChip('missing', `∅ Unclassified (${counts.miss})`, C.or)}
+        <span style={{ width: 1, height: 16, background: C.cardBd }} />
+        <FilterPill label="Resistance" k="resistanceType" options={dynOpts(counts.rt, f.resistanceType)} />
+        <FilterPill label="Position" k="bodyPosition" options={dynOpts(counts.bp, f.bodyPosition)} />
+        <FilterPill label="Movement" k="movementType" options={dynOpts(counts.mt, f.movementType)} />
+        <FilterPill label="Joints" k="primaryJoints" options={dynOpts(counts.pj, f.primaryJoints)} />
+        <FilterPill label="Joint Movements" k="jointMovements" options={dynOpts(counts.jm, f.jointMovements)} />
+        <FilterPill label="Primary Muscles" k="primaryMuscles" options={dynOpts(counts.pm, f.primaryMuscles)} />
+        <FilterPill label="Secondary Muscles" k="secondaryMuscles" options={dynOpts(counts.sm, f.secondaryMuscles)} />
+        {anyFilter && <button className="filt" onClick={clearAll} title="Clear all filters" style={{ ...railBase, color: C.rd, marginLeft: 'auto' }}>× Clear</button>}
+      </div>
+      {/* Click-away backdrop to dismiss an open filter menu. */}
+      {openKey && <div onClick={() => setOpenKey(null)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />}
+
+      {/* FULL-WIDTH data table — every parameter a sortable column. */}
+      {filtered.length === 0 ? (
+        <EmptyState icon="" message={anyFilter ? 'No exercises match your search or filters.' : 'No exercises. Build your library.'} />
+      ) : view === 'grid' ? (
+        // GRID — card per exercise, mirroring the Programs card grammar EXACTLY
+        // (cyan strip header + accent bar + name, calm body, light text actions).
+        <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fill, minmax(min(300px, 100%), 1fr))' }}>
+          {rows.map(ex => {
+            const vid = hasVideo(ex), note = hasNotes(ex);
+            const meta = [ex.resistanceType, ex.bodyPosition, ex.movementType].filter(Boolean);
+            const tags = [...splitVals(ex.primaryMuscles).slice(0, 4), ...splitVals(ex.primaryJoints).slice(0, 3)];
             return (
-              <div key={ex.id} className="ex-row" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 14px', height: 34, borderBottom: `1px solid ${C.cardBd}` }}>
-                <span title={cat || 'Uncategorized'} style={{ width: 7, height: 7, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
-                <span style={{ fontWeight: 600, fontSize: 13, color: C.tx, flexShrink: 0, maxWidth: '55%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ex.title}</span>
-                <span className="ex-lead" />
-                {muscle && <span style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.04em', flexShrink: 0, maxWidth: '32%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{muscle}</span>}
-                {hasVideo && <svg width="12" height="12" viewBox="0 0 24 24" fill="#FFFFFF" style={{ flexShrink: 0, opacity: 0.9 }} aria-label="Has video"><path d="M8 5v14l11-7z"/></svg>}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
-                  <button onClick={() => { setForm({...ex}); setEditId(ex.id); setShowForm(true); }} title="Edit exercise" style={{ background: "none", border: "none", color: C.tm, cursor: "pointer", padding: 4, display: 'inline-flex', alignItems: 'center' }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                  </button>
-                  <button onClick={() => setConfirmDelete(ex.id)} title="Delete exercise" style={{ background: "none", border: "none", color: C.rd, cursor: "pointer", padding: 4, opacity: 0.7, display: 'inline-flex', alignItems: 'center' }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                  </button>
+              <div key={ex.id} className="ex-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, display: 'flex', flexDirection: 'column', boxShadow: C.cardShadow }}>
+                {/* cyan strip header — identical grammar to the program card */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '8px 14px' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
+                    <span aria-hidden style={{ width: 3, height: 14, background: C.ac, flexShrink: 0 }} />
+                    <bdi title={ex.title} style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', color: '#FFFFFF', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ex.title}</bdi>
+                  </span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                    {vid && <span title="Has a demo video" style={{ color: C.ac, fontSize: 12 }}>▶</span>}
+                    {note && <span title="Has coaching cues" style={{ color: C.or, fontSize: 12 }}>☰</span>}
+                    {!vid && !note && <span style={{ width: 6, height: 6, borderRadius: '50%', border: `1px solid ${C.td}`, opacity: 0.5 }} />}
+                  </span>
+                </div>
+                {/* body — classification meta + chips, or an Unclassified label */}
+                <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
+                  {meta.length
+                    ? <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 600, letterSpacing: '0.03em', color: C.tm }}>{meta.join('  ·  ')}</div>
+                    : <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.td }}>Unclassified</div>}
+                  {tags.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                      {tags.map((x, i) => <span key={i} style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 600, letterSpacing: '0.02em', color: C.tm, background: 'var(--c-sf2)', border: `1px solid ${C.cardBd}`, padding: '2px 7px', whiteSpace: 'nowrap' }}>{x}</span>)}
+                    </div>
+                  )}
+                </div>
+                {/* actions — light text buttons, like the program card */}
+                <div style={{ padding: '8px 14px 12px', display: 'flex', gap: 16, alignItems: 'center', borderTop: `1px solid ${C.cardBd}` }}>
+                  <button onClick={() => { setForm({ ...ex }); setEditId(ex.id); setShowForm(true); }} title="Edit exercise" style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', color: C.ac }}>Edit</button>
+                  <div style={{ flex: 1 }} />
+                  <button onClick={() => setConfirmDelete(ex.id)} title="Delete exercise" style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', color: C.rd }}>Delete</button>
                 </div>
               </div>
             );
           })}
-          {!showAll && filtered.length > ROW_CAP && (
-            <div style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, borderTop: `1px solid ${C.cardBd}` }}>
-              <span style={{ fontSize: 11, fontFamily: FN, color: C.tm }}>Showing {ROW_CAP} of {filtered.length} — refine the search, or</span>
-              <button onClick={() => setShowAll(true)} style={{ background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: '3px 12px', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em' }}>SHOW ALL</button>
-            </div>
-          )}
         </div>
-        );
-      })()}
-      <Modal open={showForm} onClose={() => setShowForm(false)} title={editId ? "Edit Exercise" : "New Exercise"} wide>
-        {/* data-allow-copy: this Modal portals to <body> (see ui.jsx), landing
-            OUTSIDE the ExercisesView data-allow-copy wrapper, so the site-wide
-            copyGuard would block Ctrl+C / selection-copy of the video link and
-            cues inside the popup. Re-open the zone here so Ohad can copy while
-            editing an exercise. */}
+      ) : (
+        <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, overflowX: 'auto' }}>
+          <table className="ex-table" style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
+            <thead>
+              <tr>
+                {[['title', 'Exercise'], ['resistanceType', 'Resistance'], ['bodyPosition', 'Position'], ['movementType', 'Movement'], ['primaryJoints', 'Joints'], ['jointMovements', 'Joint Movements'], ['primaryMuscles', 'Primary Muscles'], ['secondaryMuscles', 'Secondary Muscles']].map(([k, l]) => {
+                  const active = sortKey === k;
+                  return (
+                    <th key={k} onClick={() => onSort(k)} style={{ textAlign: 'left', padding: '9px 12px', fontSize: 9, fontFamily: FN, color: active ? C.ac : C.tm, textTransform: 'uppercase', letterSpacing: '0.13em', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', borderBottom: `1px solid ${C.cardBd}`, userSelect: 'none', position: 'sticky', top: 0, background: 'var(--c-sf)', zIndex: 1 }}>
+                      {l}{active && <span style={{ fontSize: 8, marginLeft: 4 }}>{sortDir === 'asc' ? '↑' : '↓'}</span>}
+                    </th>
+                  );
+                })}
+                <th style={{ padding: '9px 12px', fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.13em', fontWeight: 700, textAlign: 'center', whiteSpace: 'nowrap', borderBottom: `1px solid ${C.cardBd}`, position: 'sticky', top: 0, background: 'var(--c-sf)', zIndex: 1 }}>Media</th>
+                <th style={{ borderBottom: `1px solid ${C.cardBd}`, position: 'sticky', top: 0, background: 'var(--c-sf)', zIndex: 1 }} />
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(ex => {
+                return (
+                  <tr key={ex.id} className="ex-row" style={{ borderBottom: `1px solid ${C.cardBd}` }}>
+                    <td style={{ padding: '9px 12px 9px 14px', maxWidth: 320 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
+                        {statusDot(ex)}
+                        <span title={ex.title} style={{ fontWeight: 600, fontSize: 13, color: C.tx, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ex.title}</span>
+                      </div>
+                    </td>
+                    {oneCell(ex.resistanceType)}
+                    {oneCell(ex.bodyPosition)}
+                    {oneCell(ex.movementType)}
+                    {chipCell(ex.primaryJoints, 170)}
+                    {chipCell(ex.jointMovements, 210)}
+                    {chipCell(ex.primaryMuscles, 230)}
+                    {chipCell(ex.secondaryMuscles, 210)}
+                    <td style={{ padding: '9px 12px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                      {hasVideo(ex) && <span title="Has a demo video" style={{ color: C.ac, marginRight: hasNotes(ex) ? 8 : 0, fontSize: 12 }}>▶</span>}
+                      {hasNotes(ex) && <span title="Has coaching cues" style={{ color: C.or, fontSize: 12 }}>☰</span>}
+                      {!hasVideo(ex) && !hasNotes(ex) && emptyDot}
+                    </td>
+                    <td style={{ padding: '9px 8px', whiteSpace: 'nowrap', textAlign: 'right' }}>
+                      <button onClick={() => { setForm({ ...ex }); setEditId(ex.id); setShowForm(true); }} title="Edit exercise" style={{ background: 'none', border: 'none', color: C.tm, cursor: 'pointer', padding: 4 }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                      </button>
+                      <button onClick={() => setConfirmDelete(ex.id)} title="Delete exercise" style={{ background: 'none', border: 'none', color: C.rd, cursor: 'pointer', padding: 4, opacity: 0.7 }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {/* Shared row-cap notice — applies to both table and grid. */}
+      {filtered.length > 0 && !showAll && filtered.length > ROW_CAP && (
+        <div style={{ padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+          <span style={{ fontSize: 11, fontFamily: FN, color: C.tm }}>Showing {ROW_CAP} of {filtered.length.toLocaleString()} — refine the search, or</span>
+          <button onClick={() => setShowAll(true)} style={{ background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: '3px 12px', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em' }}>SHOW ALL</button>
+        </div>
+      )}
+
+      <Modal open={showForm} onClose={() => setShowForm(false)} title={editId ? 'Edit Exercise' : 'New Exercise'} wide>
         <div data-allow-copy>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(200px, 100%), 1fr))", gap: 12 }}>
-          <div style={{ gridColumn: "1 / -1" }}><Input label="Title" value={form.title} onChange={e => setForm({...form, title: e.target.value})} placeholder="e.g., Barbell Back Squat" /></div>
-          <Select label="Category" options={CATEGORIES} value={form.category} onChange={v => setForm({...form, category: v})} placeholder="Select..." />
-          <Select label="Resistance Type" options={RESISTANCE_TYPES} value={form.resistanceType} onChange={v => setForm({...form, resistanceType: v})} placeholder="Select..." />
-          <Select label="Body Position" options={BODY_POSITIONS} value={form.bodyPosition} onChange={v => setForm({...form, bodyPosition: v})} placeholder="Select..." />
-          <Select label="Movement Type" options={MOVEMENT_TYPES} value={form.movementType} onChange={v => setForm({...form, movementType: v})} placeholder="Select..." />
-          <Select label="Movement Pattern" options={MOVEMENT_PATTERNS} value={form.movementPattern} onChange={v => setForm({...form, movementPattern: v})} placeholder="Select..." />
-          <Select label="Laterality" options={LATERALITY} value={form.laterality} onChange={v => setForm({...form, laterality: v})} placeholder="Select..." />
-          <Input label="Primary Muscles" value={form.primaryMuscles} onChange={e => setForm({...form, primaryMuscles: e.target.value})} placeholder="Quads, Glutes" />
-          <Input label="Secondary Muscles" value={form.secondaryMuscles} onChange={e => setForm({...form, secondaryMuscles: e.target.value})} />
-          <div style={{ gridColumn: "1 / -1" }}><Input label="Video Link" value={form.videoLink} onChange={e => setForm({...form, videoLink: e.target.value})} placeholder="https://..." /></div>
-          <div style={{ gridColumn: "1 / -1" }}><TextArea label="Coaching Cues" value={form.cues} onChange={e => setForm({...form, cues: e.target.value})} placeholder="Brace core, drive through heels..." /></div>
-          <div style={{ gridColumn: "1 / -1" }}><TextArea label="Notes" value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} /></div>
-        </div>
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
-          <Btn variant="ghost" onClick={() => setShowForm(false)}>Cancel</Btn>
-          <Btn onClick={handleSave}>{editId ? "Update" : "Create"}</Btn>
-        </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(200px, 100%), 1fr))', gap: 12 }}>
+            <div style={{ gridColumn: '1 / -1' }}><Input label="Title" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="e.g., Barbell Back Squat" /></div>
+            <Select label="Resistance Type" options={RESISTANCE_TYPES} value={form.resistanceType} onChange={v => setForm({ ...form, resistanceType: v })} placeholder="Select..." />
+            <Select label="Body Position" options={BODY_POSITIONS} value={form.bodyPosition} onChange={v => setForm({ ...form, bodyPosition: v })} placeholder="Select..." />
+            <Select label="Movement Type" options={MOVEMENT_TYPES} value={form.movementType} onChange={v => setForm({ ...form, movementType: v })} placeholder="Select..." />
+            <Input label="Primary Joints" value={form.primaryJoints} onChange={e => setForm({ ...form, primaryJoints: e.target.value })} placeholder="Shoulder, Elbow" />
+            <Input label="Joint Movements" value={form.jointMovements} onChange={e => setForm({ ...form, jointMovements: e.target.value })} placeholder="Shoulder Flexion" />
+            <Input label="Primary Muscle Groups" value={form.primaryMuscles} onChange={e => setForm({ ...form, primaryMuscles: e.target.value })} placeholder="Quads, Glutes" />
+            <Input label="Secondary Muscle Groups" value={form.secondaryMuscles} onChange={e => setForm({ ...form, secondaryMuscles: e.target.value })} />
+            <div style={{ gridColumn: '1 / -1' }}><Input label="Video Link" value={form.videoLink} onChange={e => setForm({ ...form, videoLink: e.target.value })} placeholder="https://..." /></div>
+            <div style={{ gridColumn: '1 / -1' }}><TextArea label="Coaching Cues" value={form.cues} onChange={e => setForm({ ...form, cues: e.target.value })} placeholder="Brace core, drive through heels..." /></div>
+            <div style={{ gridColumn: '1 / -1' }}><TextArea label="Notes" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
+            <Btn variant="ghost" onClick={() => setShowForm(false)}>Cancel</Btn>
+            <Btn onClick={handleSave}>{editId ? 'Update' : 'Create'}</Btn>
+          </div>
         </div>
       </Modal>
+
       <ConfirmDialog open={!!confirmDelete} title="Delete Exercise?" message="Plans referencing it will show 'Unknown Exercise'."
         onConfirm={() => { setExercises(p => p.filter(e => e.id !== confirmDelete)); setConfirmDelete(null); }}
         onCancel={() => setConfirmDelete(null)} />
-    </div>);
+    </div>
+  );
 }
