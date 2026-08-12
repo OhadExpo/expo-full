@@ -23,6 +23,11 @@ export function RailGroup({ label, children }) {
 export function RailOpt({ label, count, active, onClick, title, accent }) {
   const [hov, setHov] = useState(false);
   const ac = accent || 'var(--c-ac)';
+  // Hebrew (athlete names) must render clean: Nord has no Hebrew glyphs so it
+  // falls to Heebo everywhere — but letter-spacing + uppercase are Latin-label
+  // treatments that mangle Hebrew (spread-apart, no case), which is what read as
+  // "not the right font" in the sidebar (Ohad #191/#192). Drop both for Hebrew.
+  const heb = /[֐-׿]/.test(String(label || ''));
   return (
     <button onClick={onClick} title={title}
       onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
@@ -30,7 +35,7 @@ export function RailOpt({ label, count, active, onClick, title, accent }) {
         display: 'flex', alignItems: 'center', width: '100%', height: 28, border: 'none', padding: 0, cursor: 'pointer',
         background: active ? `color-mix(in srgb, ${ac} 20%, transparent)` : (hov ? 'var(--c-sf3, rgba(127,127,138,0.10))' : 'transparent'),
         color: active ? ac : (hov ? 'var(--c-tx)' : 'var(--c-tm)'),
-        fontFamily: FN, fontSize: 10, fontWeight: active ? 800 : 700, letterSpacing: '0.05em', textTransform: 'uppercase',
+        fontFamily: FN, fontSize: 10, fontWeight: active ? 800 : 700, letterSpacing: heb ? 0 : '0.05em', textTransform: heb ? 'none' : 'uppercase',
         transition: 'background .12s, color .12s',
       }}>
       <span style={{ width: 3, alignSelf: 'stretch', background: ac, opacity: active ? 1 : 0, flexShrink: 0 }} />
@@ -60,7 +65,7 @@ export function SideRail({
       {/* Search box at the TOP of the sidebar, above Filters (Ohad). */}
       <div style={{ padding: '0 14px 12px' }}>
         <input value={search} onChange={e => onSearch?.(e.target.value)} placeholder={searchPlaceholder} title={searchTitle}
-          style={{ width: '100%', height: 34, boxSizing: 'border-box', padding: '0 11px', borderRadius: 0, background: 'var(--c-sf)', color: 'var(--c-tx)', border: '1px solid var(--c-cardBd)', fontFamily: FN, fontSize: 11, fontWeight: 500, letterSpacing: '0.04em', outline: 'none', textAlign: 'left' }} autoComplete="off" />
+          style={{ width: '100%', height: 38, boxSizing: 'border-box', padding: '0 11px', borderRadius: 0, background: 'var(--c-sf)', color: 'var(--c-tx)', border: '1px solid var(--c-cardBd)', fontFamily: FN, fontSize: 11, fontWeight: 500, letterSpacing: '0.04em', outline: 'none', textAlign: 'left' }} autoComplete="off" />
       </div>
       {/* Filters header — static label + underline on desktop; tap-to-collapse
           toggle with chevron on narrow. */}
@@ -78,7 +83,7 @@ export function SideRail({
             ))}
           </RailGroup>
         ))}
-        {footer}
+        {footer && <div style={{ padding: '0 14px', marginTop: 'auto' }}>{footer}</div>}
       </>)}
     </div>
   );

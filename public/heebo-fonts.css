@@ -12,6 +12,14 @@
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
+  /* size-adjust harmonises Hebrew glyph height with Nord's Latin CAPS so that,
+     at the same font-size, a Hebrew name sits at the same vertical height as an
+     uppercase English label everywhere they appear together (Ohad #208 —
+     "perfectly the same vertical height"). Measured: descender-free Hebrew body
+     ink ≈ 244 vs Nord caps ≈ 269 at the same em (Hebrew ~9% shorter); 109%
+     lifts Hebrew to match. Box heights were already equal via line-height:1;
+     this fixes the visible INK size. Applied only to the Hebrew bucket. */
+  size-adjust: 109%;
   unicode-range: U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F;
 }
 
