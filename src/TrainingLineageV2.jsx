@@ -689,7 +689,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
                       ))}
                     </div>
                     {prof.state === 'ok' && prof.confidence !== 'low' && (
-                      <div title={`Load-velocity profile: linear fit of bar speed vs load across ${prof.loads} loads, extrapolated to this lift's minimal-velocity threshold (${prof.mvt} m/s). R²=${prof.r2}. Not a tested max — a tracked estimate.`}
+                      <div title={`Load-velocity profile: linear fit of phone-camera bar speed vs load across ${prof.loads} loads, extrapolated to this lift's minimal-velocity threshold (${prof.mvt} m/s). R²=${prof.r2}. The speed is uncalibrated 2D-pose m/s, so read the TREND across dates — not the exact kg — and confirm with a real top set before you prescribe loads off it. Not a tested max.`}
                         style={{ marginTop: 6, fontSize: 10.5, color: C.ac, letterSpacing: '0.02em' }}>
                         Est. 1RM ~{prof.oneRM}kg <span style={{ color: C.td }}>· {prof.loads} loads · {prof.confidence} confidence · no max test</span>
                       </div>
