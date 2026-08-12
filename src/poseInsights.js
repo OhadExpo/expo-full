@@ -65,7 +65,7 @@ export function detectFaults(result, title) {
   const isPull = /\bpull[-\s]?up|\bchin[-\s]?up|\brow\b|pull[-\s]?down|lat[-\s]?pull/.test(t);
   if (isSquat && jn['L KNE'] && jn['R KNE']) {
     const kneeMin = Math.min(jn['L KNE'].minDeg, jn['R KNE'].minDeg);
-    if (kneeMin > 100) faults.push({ sev: 'warn', msg: `Stopping high (knee bends to ~${kneeMin}°)`, why: 'below parallel is roughly a 90° knee angle — he\'s cutting depth. Mobility or intent.' });
+    if (kneeMin > 100) faults.push({ sev: 'warn', msg: `Stopping high (knee bends to ~${kneeMin}°)`, why: 'below parallel is roughly a 90° knee angle — cutting depth. Mobility or intent.' });
     else if (kneeMin <= 95) good.push('Hitting depth (below parallel).');
   }
   if (isPress && (jn['L ELB'] || jn['R ELB'])) {
@@ -142,9 +142,9 @@ export function warmupReadiness(todayVel, ref) {
   // is the scale-invariant read; this cross-film one is deliberately hedged.
   const lowConf = (ref.n || 0) < 3;
   let verdict, tone;
-  if (deltaPct >= -10) { verdict = 'In his usual range at this load — nothing here says back off. Train as planned.'; tone = 'good'; }
-  else if (deltaPct >= -18) { verdict = 'Reading a bit slow at this load — could be fatigue, could be the camera angle. Worth a gut check before piling on load today.'; tone = 'warn'; }
-  else { verdict = 'Reading well down at this load. If the filming was consistent, he may not be fresh — confirm by feel/RPE before pushing top sets.'; tone = 'bad'; }
+  if (deltaPct >= -10) { verdict = 'In the usual range at this load — nothing here says back off. Train as planned.'; tone = 'good'; }
+  else if (deltaPct >= -18) { verdict = 'Reading slightly slow at this load — could be fatigue, could be the camera angle. Confirm before adding load today.'; tone = 'warn'; }
+  else { verdict = 'Reading well down at this load. If filming was consistent, the athlete may not be fresh — confirm by feel/RPE before top sets.'; tone = 'bad'; }
   return { deltaPct, refVel: ref.refVel, todayVel, n: ref.n, lastDate: ref.lastDate, load: ref.load, refReps: ref.refReps, lowConf, verdict, tone };
 }
 
