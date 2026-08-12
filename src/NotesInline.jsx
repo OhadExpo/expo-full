@@ -299,6 +299,7 @@ export default function NotesInline({
                 <>
                   <span title={`Auto-generated: ${kindLabel}`}
                     style={{
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
                       fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
                       color: stripeColor, border: `1px solid ${stripeColor}`, padding: '2px 8px',
                     }}>⚙ {kindLabel}</span>
@@ -308,6 +309,7 @@ export default function NotesInline({
               {isStale && (
                 <span title={`Open ${staleDays} days — follow up`}
                   style={{
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
                     fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
                     color: 'var(--c-or)', border: `1px solid var(--c-or)`, padding: '2px 8px',
                   }}>⚠ FOLLOW UP {staleDays}d</span>
@@ -353,8 +355,9 @@ export default function NotesInline({
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: actionBtn ? 8 : 0 }}>
                 {n.tags.map(t => (
                   <span key={t} style={{
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
                     fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.08em', fontWeight: 700,
-                    border: `1px solid var(--c-cardBd)`, padding: '1px 7px',
+                    border: `1px solid var(--c-cardBd)`, padding: '2px 7px',
                   }}>#{t}</span>
                 ))}
               </div>

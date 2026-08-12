@@ -1264,6 +1264,7 @@ function useTraceZoomPan({ svgRef, fullT0, fullT1, zoom, setZoom, onScrub, W, pa
 }
 
 const zoomResetPillStyle = {
+  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
   fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', padding: '2px 8px',
   border: '1px solid rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.08)',
   color: 'rgba(255,255,255,0.75)', cursor: 'pointer', borderRadius: 0, marginLeft: 8,

@@ -225,6 +225,7 @@ export default function ChallengesView({ trainees, clientWorkouts, bwLog }) {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
               <span style={{
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
                 fontFamily: FN, fontSize: 9, color: active ? C.gn : C.tm, fontWeight: 700,
                 letterSpacing: '0.12em', border: `1px solid ${active ? C.gn : C.tm}`, padding: '2px 8px',
               }}>{active ? 'LIVE' : (now < new Date(c.start_at).getTime() ? 'UPCOMING' : 'ENDED')}</span>

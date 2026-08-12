@@ -240,7 +240,7 @@ export default function ExercisesView({ exercises, setExercises }) {
         {vals.length === 0 ? emptyDot : (
           <div style={{ display: 'flex', gap: 4, flexWrap: 'nowrap', overflow: 'hidden' }}>
             {vals.slice(0, 3).map((x, i) => (
-              <span key={i} style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 600, letterSpacing: '0.02em', color: C.tm, background: 'var(--c-sf2)', border: `1px solid ${C.cardBd}`, padding: '2px 6px', whiteSpace: 'nowrap', flexShrink: 0 }}>{x}</span>
+              <span key={i} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 9.5, fontWeight: 600, letterSpacing: '0.02em', color: C.tm, background: 'var(--c-sf2)', border: `1px solid ${C.cardBd}`, padding: '2px 6px', whiteSpace: 'nowrap', flexShrink: 0 }}>{x}</span>
             ))}
             {vals.length > 3 && <span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, color: C.td, padding: '2px 3px', whiteSpace: 'nowrap', flexShrink: 0 }}>+{vals.length - 3}</span>}
           </div>

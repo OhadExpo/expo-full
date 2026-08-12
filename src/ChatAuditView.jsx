@@ -193,7 +193,7 @@ export default function ChatAuditView() {
               leftStripe={g.errorCount > 0 ? C.rd : undefined}
               style={{ marginBottom: 0 }}
               titleNode={<span style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: '#FFFFFF', border: '1px solid rgba(255,255,255,0.6)', borderRadius: 0, padding: '2px 6px', letterSpacing: '0.18em' }}>{(g.site || '').toUpperCase()}</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 9, fontWeight: 700, color: '#FFFFFF', border: '1px solid rgba(255,255,255,0.6)', borderRadius: 0, padding: '2px 6px', letterSpacing: '0.18em' }}>{(g.site || '').toUpperCase()}</span>
                 <span style={{ fontFamily: FB, color: 'rgba(255,255,255,0.85)', fontSize: 11 }}>{g.turns.length} turn{g.turns.length === 1 ? '' : 's'}</span>
                 {g.errorCount > 0 && <span style={{ fontFamily: FN, color: '#FFFFFF', fontSize: 10, fontWeight: 700 }}>⚠ {g.errorCount}</span>}
               </span>}

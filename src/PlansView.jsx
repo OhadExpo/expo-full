@@ -445,7 +445,7 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
                             cues (orange), so the coach picks an informed one (Ohad). */}
                         {ex.videoLink && <span title="Has a demo video" style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 8, fontFamily: FN, fontWeight: 700, color: C.ac, letterSpacing: '0.08em' }}><svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>VIDEO</span>}
                         {ex.cues && <span title="Has coaching notes / cues" style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 8, fontFamily: FN, fontWeight: 700, color: C.or, letterSpacing: '0.08em' }}><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 6h14M5 12h14M5 18h9"/></svg>NOTE</span>}
-                        {isSelected && <span title="Currently linked exercise" style={{ fontSize: 8, fontFamily: FN, fontWeight: 700, color: C.ac, letterSpacing: '0.18em', whiteSpace: 'nowrap', border: `1px solid ${C.ac}`, padding: '1px 5px' }}>CURRENT</span>}
+                        {isSelected && <span title="Currently linked exercise" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontSize: 8, fontFamily: FN, fontWeight: 700, color: C.ac, letterSpacing: '0.18em', whiteSpace: 'nowrap', border: `1px solid ${C.ac}`, padding: '2px 5px' }}>CURRENT</span>}
                       </div>
                     </div>
                     {/* Compact single meta line — category · resistance · position ·
@@ -3109,7 +3109,7 @@ export function TrainingLineage({ traineeId, traineeName, exercises, plans, load
                     })() : <div style={{ flex: 1 }} />}
                     {r.accommodation && <span title="Accommodation — same sets & reps ≥2 blocks. Change the load or the drill." style={{ flexShrink: 0, color: C.or, fontSize: 11, lineHeight: 1 }}>⚠</span>}
                     {r.next && r.next.target > 0 && (
-                      <span title={`Next block — ${r.next.tag}: ~${r.next.target} sets`} style={{ flexShrink: 0, fontFamily: FN, fontSize: 10, fontWeight: 700, color: nextTone(r.next.tone), border: `1px solid ${nextTone(r.next.tone)}`, padding: '1px 5px', borderRadius: 0, fontVariantNumeric: 'tabular-nums' }}>→ {r.next.target}</span>
+                      <span title={`Next block — ${r.next.tag}: ~${r.next.target} sets`} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, flexShrink: 0, fontFamily: FN, fontSize: 10, fontWeight: 700, color: nextTone(r.next.tone), border: `1px solid ${nextTone(r.next.tone)}`, padding: '2px 5px', borderRadius: 0, fontVariantNumeric: 'tabular-nums' }}>→ {r.next.target}</span>
                     )}
                   </div>
                 )}
@@ -3198,7 +3198,7 @@ export function TrainingLineage({ traineeId, traineeName, exercises, plans, load
               <div style={{ fontFamily: FB, fontSize: 12.5, color: C.gn }}>✓ Every primary pattern is covered.</div>
             ) : (
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {nextPlan.coverageGaps.map(p => <span key={p} title="Not trained in the latest block — add it to the next one" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', color: C.rd, border: `1px solid ${C.rd}`, padding: '2px 7px', whiteSpace: 'nowrap' }}>+ {p}</span>)}
+                {nextPlan.coverageGaps.map(p => <span key={p} title="Not trained in the latest block — add it to the next one" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', color: C.rd, border: `1px solid ${C.rd}`, padding: '2px 7px', whiteSpace: 'nowrap' }}>+ {p}</span>)}
               </div>
             )}
           </div>

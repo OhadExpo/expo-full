@@ -1140,6 +1140,7 @@ function MigrationPendingHint() {
 }
 
 const cmtActionBtn = {
+  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
   background: 'transparent', border: '1px solid var(--c-cardBd)', color: 'var(--c-tm)',
   fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
   padding: '2px 7px', cursor: 'pointer', borderRadius: 0,

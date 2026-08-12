@@ -398,7 +398,7 @@ export default function WaitlistView({ trainees }) {
                               const color = kind === 'program' ? C.ac : (kind === 'pain' ? C.or : C.gn);
                               return (
                                 <span key={`${kind}-${i}`} title={kind}
-                                  style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color, background: 'var(--c-sf)', border: `1px solid ${color}`, borderRadius: 0, padding: '1px 5px', letterSpacing: '0.18em' }}>
+                                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 9, fontWeight: 700, color, background: 'var(--c-sf)', border: `1px solid ${color}`, borderRadius: 0, padding: '2px 5px', letterSpacing: '0.18em' }}>
                                   {t}
                                 </span>
                               );
@@ -580,8 +580,9 @@ function LeadCard({ lead, draggable, onDragStart, onDragEnd, isDragging, notes, 
       </div>
       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 6 }}>
         <span style={{
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
           fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.08em',
-          border: `1px solid ${C.cardBd}`, padding: '1px 6px', fontWeight: 700,
+          border: `1px solid ${C.cardBd}`, padding: '2px 6px', fontWeight: 700,
         }}>{(l.source || '—').toUpperCase().slice(0, 16)}</span>
         <span style={{ fontFamily: FN, fontSize: 9, color: C.td }}>
           {ago(l.created_at)} ago

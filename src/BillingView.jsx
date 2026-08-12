@@ -90,10 +90,59 @@ export default function BillingView({ trainees }) {
     return out;
   }, [requests]);
 
+  const OVERDUE_DAYS = 14;
+  const daysSince = (d) => Math.floor((Date.now() - new Date(d).getTime()) / 86400000);
+
+  // Billing at-a-glance — what's owed, what's overdue, what came in this month:
+  // the numbers a solo coach acts on (collections). No VAT (Ohad: "vat is useless").
+  const summary = useMemo(() => {
+    let outstanding = 0, pendingCount = 0, overdueCount = 0, overdueAmt = 0, collectedMonth = 0;
+    const now = new Date(); const y = now.getFullYear(), mo = now.getMonth();
+    for (const r of requests) {
+      const amt = Number(r.amount) || 0;
+      if (r.status === 'pending') {
+        outstanding += amt; pendingCount++;
+        if (daysSince(r.created_at) >= OVERDUE_DAYS) { overdueCount++; overdueAmt += amt; }
+      } else if (r.status === 'paid' && r.paid_at) {
+        const d = new Date(r.paid_at);
+        if (d.getFullYear() === y && d.getMonth() === mo) collectedMonth += amt;
+      }
+    }
+    return { outstanding, pendingCount, overdueCount, overdueAmt, collectedMonth };
+  }, [requests]);
+
+  // One-tap WhatsApp payment reminder (masculine-singular Hebrew register).
+  const chase = (t, r) => {
+    const phone = String(t?.phone || '').replace(/[^\d]/g, '');
+    if (!phone) { toast('No phone number on file for this athlete.', 'warn'); return; }
+    const amt = fmtCurrency(r.amount, r.currency);
+    const msg = encodeURIComponent(`היי ${t?.name || ''}, תזכורת קטנה לגבי התשלום (${amt})${r.reference ? ` — ${r.reference}` : ''}. תודה!`);
+    window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
+  };
+
   if (loading) return <div style={{ padding: 30, textAlign: 'center', color: C.td }}>Loading…</div>;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {/* AT-A-GLANCE — outstanding · overdue · collected this month. */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
+        {[
+          { label: 'Outstanding', value: fmtCurrency(summary.outstanding), sub: `${summary.pendingCount} pending`, dot: summary.outstanding > 0 ? C.or : C.gn },
+          { label: 'Overdue', value: fmtCurrency(summary.overdueAmt), sub: `${summary.overdueCount} · ≥ ${OVERDUE_DAYS}d`, dot: summary.overdueCount > 0 ? C.rd : C.gn },
+          { label: 'Collected · This month', value: fmtCurrency(summary.collectedMonth), sub: 'received', dot: C.gn },
+        ].map((s, i) => (
+          <div key={i} style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '14px 18px', boxShadow: C.cardShadow }}>
+            <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', margin: '-14px -18px 12px', padding: '8px 18px', borderBottom: `1px solid ${C.cardBd}` }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.dot, boxShadow: `0 0 5px ${s.dot}66` }} />
+                <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', color: '#FFFFFF', textTransform: 'uppercase' }}>{s.label}</span>
+              </span>
+            </div>
+            <div style={{ fontFamily: FN, fontSize: 26, fontWeight: 800, color: C.tx, letterSpacing: '-0.015em', lineHeight: 1.05 }}>{s.value}</div>
+            <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, marginTop: 5, letterSpacing: '0.04em' }}>{s.sub}</div>
+          </div>
+        ))}
+      </div>
       {/* REQUESTS */}
       <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: PAD }}>
         <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={12}>
@@ -124,14 +173,16 @@ export default function BillingView({ trainees }) {
           // member (`<parent>__0/__1`) would otherwise miss and render the raw
           // id string as the client name. Fall back to the stripped parent id.
           const t = traineesById[r.trainee_id] || traineesById[String(r.trainee_id || '').replace(/__\d+$/, '')];
-          const tone = r.status === 'paid' ? C.gn : r.status === 'canceled' ? C.tm : C.or;
+          const days = r.status === 'pending' ? daysSince(r.created_at) : null;
+          const overdue = days != null && days >= OVERDUE_DAYS;
+          const tone = r.status === 'paid' ? C.gn : r.status === 'canceled' ? C.tm : (overdue ? C.rd : C.or);
           return (
             <div key={r.id} style={{
               border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${tone}`,
               padding: '10px 12px', marginBottom: 8, background: 'var(--c-sf)',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
-                <span style={{ fontFamily: FN, fontSize: 9, color: tone, fontWeight: 700, letterSpacing: '0.12em', border: `1px solid ${tone}`, padding: '2px 8px', minWidth: 84, textAlign: 'center' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 9, color: tone, fontWeight: 700, letterSpacing: '0.12em', border: `1px solid ${tone}`, padding: '2px 8px', minWidth: 84, textAlign: 'center' }}>
                   {(r.status || '').toUpperCase()}
                 </span>
                 <span style={{ fontWeight: 700, fontSize: 14, color: C.tx }}>{t?.name || r.trainee_id}</span>
@@ -141,10 +192,12 @@ export default function BillingView({ trainees }) {
               {r.reference && <div style={{ fontSize: 12, color: C.tm, marginBottom: 6 }}>{r.reference}</div>}
               <div style={{ fontFamily: FN, fontSize: 10, color: C.td, marginBottom: 6 }}>
                 Created {fmtPrettyDate(r.created_at)}{r.paid_at ? ` · paid ${fmtPrettyDate(r.paid_at)}` : ''}
+                {days != null && <span style={{ color: overdue ? C.rd : C.tm, fontWeight: 700 }}> · {days}d{overdue ? ' overdue' : ''}</span>}
               </div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                 {r.status === 'pending' && (
                   <>
+                    <button onClick={() => chase(t, r)} title="Send a WhatsApp payment reminder" style={btnStyle('#25D366')}>◔ CHASE</button>
                     <button onClick={() => markPaid(r.id)} style={btnStyle(C.gn)}>✓ MARK PAID</button>
                     <button onClick={() => cancelRequest(r.id)} style={btnStyle(C.rd)}>× CANCEL</button>
                   </>
@@ -169,7 +222,7 @@ export default function BillingView({ trainees }) {
           const labelTxt = !r ? 'NO REQUEST' : (r.status || '').toUpperCase();
           return (
             <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 6px', borderBottom: `1px solid ${C.cardBd}`, flexWrap: 'wrap' }}>
-              <span style={{ fontFamily: FN, fontSize: 9, color: tone, fontWeight: 700, letterSpacing: '0.12em', border: `1px solid ${tone}`, padding: '2px 8px', minWidth: 90, textAlign: 'center' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 9, color: tone, fontWeight: 700, letterSpacing: '0.12em', border: `1px solid ${tone}`, padding: '2px 8px', minWidth: 90, textAlign: 'center' }}>
                 {labelTxt}
               </span>
               <span style={{ flex: 1, fontSize: 13, color: C.tx }}>{t.name}</span>
@@ -194,8 +247,6 @@ export default function BillingView({ trainees }) {
 function RequestModal({ trainees, onClose, onCreated }) {
   const [traineeId, setTraineeId] = useState('');
   const [amount, setAmount] = useState(800);
-  // VAT is a per-request choice. Whole-number percent; 18% = Israeli VAT.
-  const [vatPct, setVatPct] = useState(18);
   const [reference, setReference] = useState('');
   const [saving, setSaving] = useState(false);
   const active = trainees.filter(t => t.status !== 'Archived');
@@ -235,15 +286,9 @@ function RequestModal({ trainees, onClose, onCreated }) {
             {active.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 4 }}>
+        <div style={{ marginBottom: 12 }}>
           <Input label="Amount (₪)" type="number" value={amount} onChange={e => setAmount(e.target.value)} />
-          <Input label="VAT %" type="number" value={vatPct} onChange={e => setVatPct(e.target.value)} />
         </div>
-        {Number(vatPct) > 0 && Number(amount) > 0 && (
-          <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, marginBottom: 12, letterSpacing: '0.04em' }}>
-            incl. {vatPct}% VAT · ≈ ₪{(Number(amount) / (1 + Number(vatPct) / 100)).toFixed(0)} pre-VAT
-          </div>
-        )}
         <div style={{ marginBottom: 12 }}>
           <Input label="Reference" value={reference} onChange={e => setReference(e.target.value)} placeholder="May 2026 — 8 sessions" />
         </div>

@@ -275,7 +275,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
     <div style={{ border: `1px solid ${vColor}`, borderLeft: `3px solid ${vColor}`, background: `color-mix(in srgb, ${vColor} 8%, ${C.sf})`, padding: '16px 18px', marginTop: 12 }}>
       <div style={{ fontSize: 9, letterSpacing: '0.16em', textTransform: 'uppercase', color: vColor, marginBottom: 7 }}>
         If you read one thing
-        <span style={{ fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: v.confidence === 'high' ? C.gn : v.confidence === 'low' ? C.td : C.or, border: `1px solid ${v.confidence === 'high' ? C.gn : v.confidence === 'low' ? C.td : C.or}`, padding: '1px 6px', marginLeft: 8 }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: v.confidence === 'high' ? C.gn : v.confidence === 'low' ? C.td : C.or, border: `1px solid ${v.confidence === 'high' ? C.gn : v.confidence === 'low' ? C.td : C.or}`, padding: '2px 6px', marginLeft: 8 }}>
           {v.confidence} confidence{v.logs ? ' · he logs' : ''}
         </span>
       </div>
@@ -659,7 +659,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
           )}
       </Section>
 
-      <Section title="Bar speed" cardStyle={{ ...card, marginTop: 0 }} tag={<span style={{ fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '1px 6px', border: `1px solid ${C.pu}`, color: C.pu, marginLeft: 8 }}>camera only</span>} summary={vault && vault.length > 0 ? `${vault.length} lift${vault.length === 1 ? '' : 's'} tracked` : 'no stored velocity'}>
+      <Section title="Bar speed" cardStyle={{ ...card, marginTop: 0 }} tag={<span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '2px 6px', border: `1px solid ${C.pu}`, color: C.pu, marginLeft: 8 }}>camera only</span>} summary={vault && vault.length > 0 ? `${vault.length} lift${vault.length === 1 ? '' : 's'} tracked` : 'no stored velocity'}>
           {vault && vault.length > 0 ? (
             <>
               {vault.slice(0, 3).map((lift) => {
@@ -708,7 +708,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
           )}
       </Section>
 
-      <Section title="Symmetry · injury watch" cardStyle={{ ...card, marginTop: 0 }} tag={<span style={{ fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '1px 6px', border: `1px solid ${C.pu}`, color: C.pu, marginLeft: 8 }}>camera only</span>} summary={asymTrend.joints.length > 0 ? (asymTrend.anyFlag ? `watch ${asymTrend.worst.joint.toLowerCase()}` : `holding · ${asymTrend.films} film${asymTrend.films === 1 ? '' : 's'}`) : 'no history'}>
+      <Section title="Symmetry · injury watch" cardStyle={{ ...card, marginTop: 0 }} tag={<span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '2px 6px', border: `1px solid ${C.pu}`, color: C.pu, marginLeft: 8 }}>camera only</span>} summary={asymTrend.joints.length > 0 ? (asymTrend.anyFlag ? `watch ${asymTrend.worst.joint.toLowerCase()}` : `holding · ${asymTrend.films} film${asymTrend.films === 1 ? '' : 's'}`) : 'no history'}>
           {asymTrend.joints.length > 0 ? (
             <>
               <div style={{ fontSize: 12.5, color: asymTrend.anyFlag ? C.rd : asymTrend.films < 2 ? C.tm : C.gn, marginBottom: 4, fontWeight: 600 }}>

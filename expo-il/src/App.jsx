@@ -8,6 +8,7 @@ import Chat from './Chat';
 // (existing programs catalog) and PHYSICAL GYM (calendar/booking).
 // EntryChooser is the new homepage; Gym holds the booking UI.
 import EntryChooser, { GCAL_ONLINE } from './EntryChooser';
+import founderOhad from './assets/founder-ohad.jpg';
 
 // Stale-chunk recovery: a visitor whose tab predates a deploy will 404 on a
 // lazy chunk (Vercel then serves index.html → "MIME text/html" error) and see
@@ -690,6 +691,7 @@ function ProgramMeta({ p }) {
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
       {meta.map((m, i) => (
         <span key={i} style={{
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
           fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 0.5,
           border: `1px solid ${C.bd}`, padding: '3px 8px', borderRadius: 0,
           background: C.sf2,
@@ -1599,7 +1601,7 @@ function AboutCoach() {
           border: `1px solid ${C.bd}`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          <img src="/coach-portrait.jpg" alt="Ohad Yossifoff" loading="lazy"
+          <img src={founderOhad} alt="Ohad Yossifoff" loading="lazy"
             decoding="async" width="800" height="1000"
             onLoad={() => setHasPortrait(true)}
             onError={() => setHasPortrait(false)}
@@ -2022,9 +2024,9 @@ function scoreQuiz(answers) {
   });
   const scored = survivors.map(p => {
     let s = 0;
-    if (level && p.quiz.levels.includes(level)) s += 3;
-    if (goal && p.quiz.goals.includes(goal)) s += 3;
-    if (days && p.quiz.daysPerWeek.includes(days)) s += 2;
+    if (level && p.quiz.levels?.includes(level)) s += 3;
+    if (goal && p.quiz.goals?.includes(goal)) s += 3;
+    if (days && p.quiz.daysPerWeek?.includes(days)) s += 2;
     return { p, s };
   });
   scored.sort((a, b) => b.s - a.s);
@@ -2052,6 +2054,8 @@ const FULL_FORM_VIEWFORM = 'https://docs.google.com/forms/d/1KtA2M5yQZYM9JFwUm5e
 
 function QuizModal({ open, onClose }) {
   const t = useT();
+  const [lang] = useLang();
+  const isHe = lang === 'he';
   const STEPS = ['who', 'first', 'exp', 'body', 'goal', 'days', 'result'];
   const [answers, setAnswers] = useState({});
   const [step, setStep] = useState(0);
@@ -2069,9 +2073,11 @@ function QuizModal({ open, onClose }) {
 
   const setAns = (key, val) => {
     setAnswers(a => ({ ...a, [key]: val }));
-    // Auto-advance: clicking an option moves to the next step. Feels more
-    // natural than tapping NEXT for every question.
-    setTimeout(() => setStep(s => Math.min(s + 1, stepsForRun.length - 1)), 140);
+    // Auto-advance: clicking an option moves to the next step. Capture the
+    // target from the CURRENT step (not a functional s+1) so a fast double-tap
+    // on the same option can't queue two increments and skip the next question.
+    const next = Math.min(step + 1, stepsForRun.length - 1);
+    setTimeout(() => setStep(next), 140);
   };
 
   const goBack = () => setStep(s => Math.max(s - 1, 0));
@@ -2145,7 +2151,11 @@ function QuizModal({ open, onClose }) {
   // ───── result rendering ─────
   let body;
   if (currentKey === 'result') {
-    const matches = scoreQuiz(answers).slice(0, 2);
+    // Best match is always shown; the second ("ALSO WORKS") only when it scores
+    // ≥5 — else a weak match (e.g. a lone days-per-week overlap) reads as a real
+    // recommendation. Matches scoreQuiz's documented contract.
+    const ranked = scoreQuiz(answers);
+    const matches = ranked.length ? [ranked[0], ...(ranked[1] && ranked[1].s >= 5 ? [ranked[1]] : [])] : [];
     body = (
       <div>
         <div style={{
@@ -2188,9 +2198,9 @@ function QuizModal({ open, onClose }) {
                   </div>
                   <div style={{
                     fontFamily: FB, fontSize: 16, fontWeight: 700, color: C.tx, marginBottom: 4,
-                  }}>{m.p.title}</div>
+                  }}>{isHe && m.p.titleHe ? m.p.titleHe : m.p.title}</div>
                   <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, lineHeight: 1.5 }}>
-                    {m.p.summary}
+                    {isHe && m.p.summaryHe ? m.p.summaryHe : m.p.summary}
                   </div>
                   <div style={{
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -2625,6 +2635,17 @@ function SampleWeek({ sampleWeek, accent }) {
 
 function ProgramDetail({ program }) {
   const t = useT();
+  const [lang] = useLang();
+  const isHe = lang === 'he';
+  // Localized field accessors — the detail page used to read only the English
+  // fields even on the Hebrew-default site (the cards already localize). The He
+  // variants ship in programs.js; fall back to English when a He field is absent.
+  const pTitle = isHe && program.titleHe ? program.titleHe : program.title;
+  const pAudience = isHe && program.audienceHe ? program.audienceHe : program.audience;
+  const pSummary = isHe && program.summaryHe ? program.summaryHe : program.summary;
+  const pTag = isHe && program.tagHe ? program.tagHe : program.tag;
+  const pDuration = isHe && program.durationHe ? program.durationHe : program.duration;
+  const pHighlights = isHe && Array.isArray(program.highlightsHe) ? program.highlightsHe : program.highlights;
   useEffect(() => { window.scrollTo(0, 0); }, [program.id]);
   // Inject Product structured data so Google + WhatsApp render rich previews.
   // Cleaned up on unmount so we don't leak stale schema across routes.
@@ -2639,7 +2660,7 @@ function ProgramDetail({ program }) {
       category: 'Training Program',
       offers: {
         '@type': 'Offer',
-        priceCurrency: program.currency || 'NIS',
+        priceCurrency: (program.currency || 'NIS') === 'NIS' ? 'ILS' : program.currency, // ISO 4217 for schema (Google rejects "NIS")
         price: program.price,
         availability: 'https://schema.org/InStock',
         url: `https://expo-il.co.il/#/programs/${program.id}`,
@@ -2677,21 +2698,21 @@ function ProgramDetail({ program }) {
             fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1.5,
             background: 'transparent', border: `0.25px solid ${C.ac}`, color: C.ac, padding: '4px 10px', borderRadius: 0,
             border: `1px solid ${C.ac4D}`,
-          }}>{program.tag.toUpperCase()}</span>
-          <span style={{ fontFamily: FN, fontSize: 11, color: C.td }}>{program.duration}</span>
+          }}>{pTag.toUpperCase()}</span>
+          <span style={{ fontFamily: FN, fontSize: 11, color: C.td }}>{pDuration}</span>
         </div>
         <h1 style={{
           fontFamily: FB, fontSize: 'clamp(28px, 4.5vw, 42px)', fontWeight: 700,
           lineHeight: 1.1, marginBottom: 10, letterSpacing: -0.5,
         }}>
-          {program.title}
+          {pTitle}
         </h1>
-        <div style={{ fontFamily: FB, fontSize: 15, color: C.tm, marginBottom: 16 }}>{program.audience}</div>
+        <div style={{ fontFamily: FB, fontSize: 15, color: C.tm, marginBottom: 16 }}>{pAudience}</div>
         <p style={{
           fontFamily: FB, fontSize: 15, color: C.tx, lineHeight: 1.6,
           maxWidth: 760, marginBottom: 18, marginLeft: 'auto', marginRight: 'auto',
         }}>
-          {program.summary}
+          {pSummary}
         </p>
         <div style={{ display: 'flex', justifyContent: 'center' }}>
           <ProgramMeta p={program} />
@@ -2709,7 +2730,7 @@ function ProgramDetail({ program }) {
           listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 10,
           gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
         }}>
-          {program.highlights.map((h, i) => (
+          {pHighlights.map((h, i) => (
             <li key={i} style={{
               background: C.sf, border: `0.25px solid ${C.ac4D}`, borderRadius: 0,
               padding: 14, display: 'flex', gap: 10, alignItems: 'flex-start',

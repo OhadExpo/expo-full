@@ -402,7 +402,7 @@ function ClientPortalMock({ onPick }) {
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {TRAINEE.plans.map(p => (
-                <span key={p.name} style={{ fontSize: 9, fontFamily: FN, color: C.ac, fontWeight: 700, padding: '2px 6px', borderRadius: 0, border: `1px solid rgba(57,189,255,0.251)`, background: C.acD }}>{p.name}</span>
+                <span key={p.name} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontSize: 9, fontFamily: FN, color: C.ac, fontWeight: 700, padding: '2px 6px', borderRadius: 0, border: `1px solid rgba(57,189,255,0.251)`, background: C.acD }}>{p.name}</span>
               ))}
             </div>
           </div>
@@ -1254,7 +1254,7 @@ function ExercisePicker({ pov, onPick }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{ fontFamily: FB, fontSize: 16, color: C.ac, fontWeight: 700 }}>{resolvedJoint}</span>
               {joint === 'AUTO' && (
-                <span style={{ fontFamily: FN, fontSize: 9, color: C.gn, letterSpacing: 1.5, fontWeight: 700, padding: '2px 6px', background: 'rgba(46,213,115,0.125)', borderRadius: 0 }}>AUTO</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 9, color: C.gn, letterSpacing: 1.5, fontWeight: 700, padding: '2px 6px', background: 'rgba(46,213,115,0.125)', borderRadius: 0 }}>AUTO</span>
               )}
             </div>
             <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 1, fontWeight: 600 }}>
