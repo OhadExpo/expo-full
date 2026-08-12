@@ -23,15 +23,17 @@ import { CommentsThread, EventTimeline } from './TasksV8View';
 
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
 
+// No emojis in UI labels (Ohad) — icons intentionally blank; the text label
+// carries the meaning. Kept as a map so any render referencing it stays valid.
 const TARGET_ICON = {
-  trainee: '👤',
-  intake: '📋',
-  review: '🏋',
-  general: '🗒',
+  trainee: '',
+  intake: '',
+  review: '',
+  general: '',
 };
 
 const TARGET_LABEL = {
-  trainee: 'TRAINEE',
+  trainee: 'ATHLETE',   // Ohad: we say "athlete", never "trainee"
   intake: 'INTAKE',
   review: 'REVIEW',
   general: 'GENERAL',
@@ -39,7 +41,7 @@ const TARGET_LABEL = {
 
 const FILTER_OPTIONS = [
   { id: 'all',      label: 'ALL' },
-  { id: 'trainee',  label: 'TRAINEE' },
+  { id: 'trainee',  label: 'ATHLETE' },
   { id: 'intake',   label: 'INTAKE' },
   { id: 'review',   label: 'REVIEW' },
   { id: 'general',  label: 'GENERAL' },
@@ -76,10 +78,10 @@ const TONE_COLOR = {
 // a program, Intake = onboarding/eval gates. A task is AUTO iff it carries
 // an auto_kind; manual tasks (logged by Ohad/Yuval) have none.
 const ALERT_GROUPS = [
-  { id: 'calls',   icon: '📞', label: 'CALLS',   kinds: ['week_missed', 'at_risk_silent', 'payment_overdue', 'lead_callback_pending', 'whatsapp_combined'] },
-  { id: 'reviews', icon: '🎥', label: 'REVIEWS', kinds: ['form_video_pending_review'] },
-  { id: 'builds',  icon: '🏗', label: 'BUILDS',  kinds: ['next_block_due', 'plan_due_after_eval'] },
-  { id: 'intake',  icon: '📋', label: 'INTAKE',  kinds: ['new_intake_pending', 'eval_due_first_session'] },
+  { id: 'calls',   icon: '', label: 'CALLS',   kinds: ['week_missed', 'at_risk_silent', 'payment_overdue', 'lead_callback_pending', 'whatsapp_combined'] },
+  { id: 'reviews', icon: '', label: 'REVIEWS', kinds: ['form_video_pending_review'] },
+  { id: 'builds',  icon: '', label: 'BUILDS',  kinds: ['next_block_due', 'plan_due_after_eval'] },
+  { id: 'intake',  icon: '', label: 'INTAKE',  kinds: ['new_intake_pending', 'eval_due_first_session'] },
 ];
 const KIND_TO_GROUP = {};
 ALERT_GROUPS.forEach(g => g.kinds.forEach(k => { KIND_TO_GROUP[k] = g.id; }));
