@@ -165,9 +165,15 @@ const PAIRS = [
 // not within-clip L/R. So we skip the symmetry screen entirely for these.
 function isUnilateral(title) {
   const t = (title || '').toLowerCase();
-  return /\b(single[-\s]?arm|single[-\s]?leg|one[-\s]?arm|one[-\s]?leg|unilateral|split[-\s]?squat|bulgarian|rfess|pistol|staggered|b[-\s]?stance|skater|1[-\s]?arm|1[-\s]?leg)\b/.test(t)
+  // Every lift here works ONE side per set (or one side at a time) by design, so
+  // a within-clip L-vs-R ROM compare flags the stance, not a deficit. Beyond the
+  // obvious single-arm/leg family: lunges (walking/reverse/curtsy — the two legs
+  // never load simultaneously), shrimp & step-ups (single-leg), and anything
+  // "alternating" (one side per rep). These were fabricating false injury flags
+  // (adversarial review #4/#5/#8) — their honest read is the SAME side over time.
+  return /\b(single[-\s]?arm|single[-\s]?leg|one[-\s]?arm|one[-\s]?leg|unilateral|split[-\s]?squat|bulgarian|rfess|pistol|shrimp|lunge|curtsy|alternating|step[-\s]?up|staggered|b[-\s]?stance|skater|1[-\s]?arm|1[-\s]?leg)\b/.test(t)
     || /\bsl\b/.test(t) || /\bsa\b/.test(t)
-    || /(חד[-\s]?צדדי|רגל אחת|יד אחת)/.test(t); // Hebrew: unilateral / single-leg / single-arm
+    || /(חד[-\s]?צדדי|רגל אחת|יד אחת|לאנג|מכרעה)/.test(t); // Hebrew: unilateral / single-leg / single-arm / lunge
 }
 function relevantJoints(title) {
   const t = (title || '').toLowerCase();

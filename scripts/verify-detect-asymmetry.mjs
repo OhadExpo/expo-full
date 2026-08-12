@@ -20,6 +20,23 @@ check('empty jointRom -> null', detectAsymmetry([], 'Back Squat') === null);
 const uni = detectAsymmetry(knees(120, 60), 'Bulgarian Split Squat');
 check('unilateral lift -> flagged as unilateral, no rows', uni.unilateral === true && uni.rows.length === 0);
 
+// --- more single-side-by-design lifts must ALSO read unilateral (no fabricated
+//     flag off the deliberately-unloaded side) — adversarial review #4/#5/#8 ---
+for (const [title, l, r] of [
+  ['Shrimp Squat', 115, 58],
+  ['Reverse Lunge', 110, 55],
+  ['Walking Lunge', 100, 62],
+  ['Curtsy Lunge', 105, 60],
+  ['Alternating DB Curl', 100, 70],   // elbow pair, but same idea
+  ['Single-Leg Step-Up', 108, 64],
+]) {
+  const rows = title.includes('Curl')
+    ? [{ name: 'L ELB', romDeg: l }, { name: 'R ELB', romDeg: r }]
+    : knees(l, r);
+  const u = detectAsymmetry(rows, title);
+  check(`"${title}" -> unilateral, no fabricated flag`, u && u.unilateral === true && u.rows.length === 0);
+}
+
 // --- symmetric bilateral -> a row, but severity ok / not flagged ---
 const sym = detectAsymmetry(knees(120, 120), 'Back Squat');
 check('symmetric knees -> asymPct 0, no flag', sym.rows[0].asymPct === 0 && sym.flagged.length === 0);
