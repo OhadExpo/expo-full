@@ -36,6 +36,22 @@ const stillJm = jumpMetrics(still);
 check('still stance -> no invented jump', stillJm == null || stillJm.heightCm < 5);
 check('too few frames -> null', jumpMetrics(demoJumpFrames().slice(0, 4)) == null);
 
+// F1/F2 (adversarial review): a mid-clip OCCLUSION where MediaPipe extrapolates
+// the ankles OFF-FRAME (wild y, low visibility) must NOT fabricate a jump for an
+// athlete who never left the floor. Standing frames 0-14 + 26-29 give a clean
+// baseline/scale; frames 16-24 have ankle y=-0.50 at visibility 0.2 (the exact
+// extrapolation the review showed producing a fake ~26 cm vertical).
+const occl = Array.from({ length: 30 }, (_, i) => {
+  const w = new Array(33).fill(null);
+  w[11] = { x: -0.18, y: -0.50, z: 0 }; w[12] = { x: 0.18, y: -0.50, z: 0 };  // shoulders
+  const occluded = i >= 16 && i <= 24;
+  w[27] = { x: -0.11, y: occluded ? -0.50 : 0.90, z: 0, visibility: occluded ? 0.2 : 0.99 };
+  w[28] = { x: 0.11, y: occluded ? -0.50 : 0.90, z: 0, visibility: occluded ? 0.2 : 0.99 };
+  return { t: i * 42, landmarks: w, worldLandmarks: w };
+});
+const occlJm = jumpMetrics(occl);
+check('occlusion (off-frame ankles) -> no fabricated jump', occlJm == null || occlJm.heightCm < 5);
+
 // jumpPower — Sayers peak-power equation, exact + guards.
 const jp = jumpPower(31, 80);
 check('jumpPower(31,80) = Sayers 3451 W', jp && jp.watts === 3451);

@@ -585,11 +585,18 @@ export function jumpMetrics(frames) {
   // Ground-contact reference = the LOWER ankle (max image-y, y is down). Using
   // the lower foot means "airborne" only registers once BOTH feet leave the
   // floor — the correct flight-time gate.
+  // Gate every ankle exactly like movementRepCount (L273): MediaPipe extrapolates
+  // OFF-FRAME points to wild values (seen: ankle y at -3.49), and an unfiltered
+  // read fabricates a "jump" out of an occlusion — the number that SCORES the
+  // athlete (adversarial review F1). Require a confident, on-screen read on BOTH
+  // ankles; a single occluded/off-frame ankle → null for that frame.
+  const okAnkle = (p) => p && (p.visibility == null || p.visibility > 0.5) && isReal(p.y) && p.y > -0.05 && p.y < 1.15;
   const ankY = frames.map(f => {
     const im = f.landmarks; if (!im) return null;
-    const a = im[LM.L_ANKLE], b = im[LM.R_ANKLE];
+    const a = okAnkle(im[LM.L_ANKLE]) ? im[LM.L_ANKLE] : null;
+    const b = okAnkle(im[LM.R_ANKLE]) ? im[LM.R_ANKLE] : null;
     if (a && b) return Math.max(a.y, b.y);
-    return (a || b) ? (a || b).y : null;
+    return null; // one foot unreadable → can't confirm flight (no fabricated rise)
   });
   // Standing window: first 600 ms. Need the athlete still here (the countdown in
   // the UI guarantees it) so the baseline + ruler are clean.
@@ -629,7 +636,15 @@ export function jumpMetrics(frames) {
       const landing = interpAt(b, b + 1 < n ? b + 1 : b, 0);
       const flightSec = (landing - takeoff) / 1000;
       let peak = 0; for (let k = i; k <= j; k++) if (rise[k] != null) peak = Math.max(peak, rise[k]);
-      if (!best || flightSec > best.flightSec) best = { flightSec, peak };
+      // PHYSICAL CONSISTENCY (adversarial review F2): the ankle-rise peak must
+      // corroborate the flight-time-implied height (h = g·t²/8). A real jump lifts
+      // the ankle by ~the jump height, so peak ≈ hTime (a bit MORE, from pre-toe-off
+      // plantarflexion). An occlusion/dropout artefact has a huge peak vs a modest
+      // flight time (or vice-versa) — reject it rather than let "longest window
+      // wins" hand the coach the inflated read.
+      const hTime = 9.81 * flightSec * flightSec / 8;   // metres from flight time
+      const consistent = flightSec > 0 && peak >= 0.35 * hTime && peak <= 3 * hTime;
+      if (consistent && (!best || flightSec > best.flightSec)) best = { flightSec, peak };
       i = j + 1;
     } else i++;
   }
@@ -692,11 +707,16 @@ export function verticalTranslations(frames) {
 export function reactiveJumpMetrics(frames) {
   if (!frames || frames.length < 10) return null;
   const t0 = frames[0].t;
+  // Gate each ankle (visibility + on-screen bounds) like movementRepCount — an
+  // off-frame/occluded ankle MediaPipe extrapolates to a wild y would fabricate
+  // a hop and inflate RSI, the coach-facing score (adversarial review F1).
+  const okAnkle = (p) => p && (p.visibility == null || p.visibility > 0.5) && isReal(p.y) && p.y > -0.05 && p.y < 1.15;
   const ankY = frames.map(f => {
     const im = f.landmarks; if (!im) return null;
-    const a = im[LM.L_ANKLE], b = im[LM.R_ANKLE];
+    const a = okAnkle(im[LM.L_ANKLE]) ? im[LM.L_ANKLE] : null;
+    const b = okAnkle(im[LM.R_ANKLE]) ? im[LM.R_ANKLE] : null;
     if (a && b) return Math.max(a.y, b.y);
-    return (a || b) ? (a || b).y : null;
+    return null;
   });
   // Ground level = where the ankles rest between hops. A POGO/drop often has NO
   // still stand at the start, so a first-600ms baseline lands mid-hop; instead
@@ -733,7 +753,10 @@ export function reactiveJumpMetrics(frames) {
       const landing = interpAt(b, b + 1 < n ? b + 1 : b, 0);
       const flightSec = (landing - takeoff) / 1000;
       let peak = 0; for (let k = i; k <= j; k++) if (rise[k] != null) peak = Math.max(peak, rise[k]);
-      if (flightSec >= 0.1 && flightSec <= 1.0) windows.push({ takeoff, landing, flightSec, peak });
+      // Physical consistency (F2): the ankle-rise peak must corroborate the
+      // flight-time-implied height, else it's a dropout/occlusion artefact.
+      const hTime = 9.81 * flightSec * flightSec / 8;
+      if (flightSec >= 0.1 && flightSec <= 1.0 && peak >= 0.35 * hTime && peak <= 3 * hTime) windows.push({ takeoff, landing, flightSec, peak });
       i = j + 1;
     } else i++;
   }
@@ -752,6 +775,10 @@ export function reactiveJumpMetrics(frames) {
     if (contactSec < minContact || contactSec > 1.5) continue;   // implausible / fps-quantized contact
     const heightCm = (9.81 * windows[w].flightSec * windows[w].flightSec / 8) * 100;
     const rsi = (heightCm / 100) / contactSec;               // m / s
+    // Plausibility ceiling (F4): elite drop-jump RSI tops out ~2.5–3.5; anything
+    // above ~4 is a shortened-contact / timing artefact, not a real reactive
+    // score — drop it rather than print a superhuman RSI to the coach.
+    if (rsi > 4.0) continue;
     hops.push({
       heightCm: Math.round(heightCm),
       flightMs: Math.round(windows[w].flightSec * 1000),
