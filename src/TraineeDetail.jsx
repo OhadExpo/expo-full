@@ -34,7 +34,7 @@ import useAutosave, { autosaveStatusLabel } from './hooks/useAutosave';
 // Status is changed HERE (top-right of the trainee page) via this dropdown —
 // no longer inside the EDIT modal (Ohad). Click the status pill → pick a new
 // one. Flat (no shadow) per the reference.
-const STATUS_COLOR = { Active: C.gn, 'On Hold': C.or, Inactive: C.td, Trial: C.ac, Archived: C.rd };
+const STATUS_COLOR = { Active: C.ac, 'On Hold': C.or, Inactive: C.td, Trial: C.ac, Archived: C.rd };
 const STATUS_CHOICES = ['Active', 'On Hold', 'Inactive', 'Trial'];
 function StatusMenu({ status, onChange }) {
   const [open, setOpen] = useState(false);
@@ -206,7 +206,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
     const { error } = await supabase.from('bit_payment_requests').update({ status: 'canceled' }).eq('id', id);
     if (error) toast(`Update failed: ${error.message}`, 'error');
   };
-  const statusColor={Active:C.gn,"On Hold":C.or,Inactive:C.td,Trial:C.ac};
+  const statusColor={Active:C.ac,"On Hold":C.or,Inactive:C.td,Trial:C.ac};
   // Payments write to bit_payment_requests via the hook callbacks passed in
   // from App.jsx (table name is legacy — it's the plain payments ledger).
   // The `status` field maps 'Paid' / 'Pending' / 'Canceled' → the DB enum.

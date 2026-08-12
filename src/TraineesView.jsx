@@ -10,7 +10,7 @@ import { WhatsAppCheckInButton } from './whatsappButton';
 // Clickable status pill for the athlete cards — same control as the trainee
 // page (Ohad: "click card status to change it"). stopPropagation everywhere so
 // using the menu never triggers the card's onClick (which opens the trainee).
-const SM_COLOR = { Active: C.gn, 'On Hold': C.or, Inactive: C.td, Trial: C.ac, Archived: C.rd };
+const SM_COLOR = { Active: C.ac, 'On Hold': C.or, Inactive: C.td, Trial: C.ac, Archived: C.rd };
 const SM_CHOICES = ['Active', 'On Hold', 'Inactive', 'Trial'];
 function CardStatusMenu({ status, onChange }) {
   const [open, setOpen] = useState(false);
@@ -442,7 +442,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
     return ()=>document.removeEventListener('mousedown',close);
   },[addMenuOpen]);         // step 3: type name to confirm
 
-  const statusColor = { Active: C.gn, "On Hold": C.or, Inactive: C.td, Trial: C.ac, Archived: C.rd };
+  const statusColor = { Active: C.ac, "On Hold": C.or, Inactive: C.td, Trial: C.ac, Archived: C.rd };
   const active = trainees.filter(t => t.status !== "Archived");
   const archived = trainees.filter(t => t.status === "Archived");
   // Archived is a STATUS value → derive the old showArchived flag from it so the

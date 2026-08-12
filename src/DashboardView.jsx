@@ -33,7 +33,7 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
   const [dir, setDir] = useState(1);
   const [filter, setFilter] = useState('');
 
-  const statusColor = { Active: C.gn, "On Hold": C.or, Inactive: C.td, Trial: C.ac };
+  const statusColor = { Active: C.ac, "On Hold": C.or, Inactive: C.td, Trial: C.ac };
 
   const enriched = useMemo(() => (trainees || []).map(t => {
     // Workouts and payments for couple trainees may be recorded under sub-member IDs

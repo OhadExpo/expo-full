@@ -985,7 +985,7 @@ function CoupleCard({ t, onClick }) {
 function DemoStatusMenu({ initial = 'Active' } = {}) {
   const [status, setStatus] = useState(initial);
   const [open, setOpen] = useState(false);
-  const COLORS = { Active: C.gn, 'On Hold': C.or, Inactive: C.td, Trial: C.ac };
+  const COLORS = { Active: C.ac, 'On Hold': C.or, Inactive: C.td, Trial: C.ac };
   const color = COLORS[status] || C.tm;
   return (
     <span style={{ position: 'relative', display: 'inline-block' }}>
