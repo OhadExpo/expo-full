@@ -10,9 +10,11 @@
 import { isVelocityLossLift } from './poseMetricsStore.js';
 
 // LOWER-body signals (legs/glutes/hinge/squat + the plyo landings that are lower).
-const LOWER_RE = /\b(squat|deadlift|dead\s?lift|\bdl\b|rdl|sldl|hinge|lunge|step[\s-]?up|hip[\s-]?thrust|glute|ham|leg\s?curl|leg\s?ext|leg\s?press|calf|split[\s-]?squat|rfess|ffess|bulgarian|nordic|shrimp|pistol|good[\s-]?morning|thrust|kickback|adduction|abduction|sissy|jump|pogo|hop|bound|snap[\s-]?down|depth|broad|vert|land)/i;
+const LOWER_RE = /\b(squat|deadlift|dead\s?lift|\bdl\b|rdl|sldl|hinge|swing|lunge|step[\s-]?up|hip[\s-]?thrust|glute|ham|leg\s?curl|leg\s?ext|leg\s?press|calf|split[\s-]?squat|rfess|ffess|bulgarian|nordic|shrimp|pistol|good[\s-]?morning|thrust|kickback|adduction|abduction|sissy|jump|pogo|hop|bound|snap[\s-]?down|depth|broad|vert|land)/i;
 // UPPER-body signals (chest/back/shoulders/arms + upper-body throws/push-ups).
-const UPPER_RE = /\b(bench|chest|press|push[\s-]?up|push[\s-]?press|\brow\b|rows|pull[\s-]?up|pull[\s-]?down|pulldown|chin[\s-]?up|chin|curl|tricep|bicep|pull[\s-]?over|fly|flye|shrug|lat(?:eral)?\s?raise|front\s?raise|face[\s-]?pull|\bdip\b|overhead|ohp|shoulder|delt|pushup|throw|slam|toss|wall\s?ball|snatch|clean|jerk)/i;
+// Olympic lifts (clean/snatch/jerk) are deliberately NOT here — they're full-body
+// / lower-dominant and belong in the 'Other · Olympic' catch-all, not "upper".
+const UPPER_RE = /\b(bench|chest|press|push[\s-]?up|push[\s-]?press|\brow\b|rows|pull[\s-]?up|pull[\s-]?down|pulldown|chin[\s-]?up|chin|curl|tricep|bicep|pull[\s-]?over|fly|flye|shrug|lat(?:eral)?\s?raise|front\s?raise|face[\s-]?pull|\bdip\b|overhead|ohp|shoulder|delt|pushup|throw|slam|toss|wall\s?ball)/i;
 // UNILATERAL signals (one side works / alternates).
 const UNI_RE = /\b(sl\b|single[\s-]?leg|single[\s-]?arm|\bsa\b|one[\s-]?arm|1[\s-]?arm|uni|unilateral|split|rfess|ffess|bulgarian|pistol|shrimp|step[\s-]?up|lunge|b[\s-]?stance|staggered|offset|alternating|alt\b|1[\s-]?leg|skater|cossack)/i;
 

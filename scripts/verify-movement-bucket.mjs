@@ -41,6 +41,13 @@ B('Standing MED-Ball Lateral Fake Toss', 'upper-plyo');
 // ── other (core/carry/full-body don't map to the six) ──
 check('Short-Lever ABs Sit-Up -> null (other)', movementBucket('Short-Lever ABs Sit-Up') === null);
 check('empty -> null', movementBucket('') === null);
+// hardening: hinge/ballistic + Olympic edge cases
+check('Kettlebell Swing -> lower-plyo (ballistic hinge, was "other")', movementBucket('Kettlebell Swing') === 'lower-plyo');
+check('KB Swing -> lower-plyo', movementBucket('KB Swing') === 'lower-plyo');
+check('Power Clean -> null (Olympic, not "upper")', movementBucket('Power Clean') === null);
+check('Hang Snatch -> null (Olympic)', movementBucket('Hang Snatch') === null);
+check('Snatch-Grip RDL stays lower-bilateral (grind carve-out, not Olympic)', movementBucket('Snatch-Grip RDL') === 'lower-bilateral');
+check('Farmer Carry -> null (carry, outside the six)', movementBucket('Farmer Carry') === null);
 
 // ── the two axes independently ──
 check('region: squat -> lower', movementRegion('BB Back Squat') === 'lower');
