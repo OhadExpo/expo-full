@@ -705,6 +705,7 @@ export const ConfirmDialog = ({ open, onConfirm, onCancel, title, message }) => 
   onCancelRef.current = onCancel;
   React.useEffect(() => {
     if (!open) return;
+    const prevOverflow = document.body.style.overflow; document.body.style.overflow = 'hidden'; // lock bg scroll while open
     // Mirror Modal's a11y — this is a destructive-confirm dialog, so
     // keyboard escape-to-cancel and focus containment matter most here.
     lastFocusRef.current = (typeof document !== 'undefined') ? document.activeElement : null;
@@ -733,6 +734,7 @@ export const ConfirmDialog = ({ open, onConfirm, onCancel, title, message }) => 
     return () => {
       window.removeEventListener('keydown', onKey);
       clearTimeout(t);
+      document.body.style.overflow = prevOverflow;
       try { lastFocusRef.current?.focus?.(); } catch {}
     };
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps -- onCancel via ref
