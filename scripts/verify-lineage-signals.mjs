@@ -4,7 +4,7 @@
 //   missRate  — adherence: % of top sets short of prescribed reps, per lift.
 // Both are simple but coach-facing, so pin their thin gates + directions.
 // Run: node scripts/verify-lineage-signals.mjs
-import { rpeDrift, missRate } from '../src/lineageAnalysis.js';
+import { rpeDrift, missRate, adherence, patternCoverage } from '../src/lineageAnalysis.js';
 
 let pass = 0, fail = 0;
 const check = (name, cond) => { console.log(`${cond ? 'PASS' : 'FAIL'}  ${name}`); cond ? pass++ : fail++; };
@@ -38,6 +38,24 @@ check('missRate: reps-null set excluded from total', missRate(withUnlogged, 'T')
 // no prescribedReps -> can't be short
 const noPrescribed = [{ exercises: [{ title: 'T', sets: [{ reps: 3 }, { reps: 2 }] }] }];
 check('missRate: no prescribedReps -> 0 short', missRate(noPrescribed, 'T').short === 0);
+
+// ── adherence (the gate: are sessions + sets actually getting done) ──
+check('adherence: no sessions -> thin', adherence([], 5).state === 'thin');
+const adh = adherence([{ exercises: [{ sets: [{ done: true }, { done: true }, { done: false }] }] }], null);
+check('adherence: 2 of 3 sets done -> setsPct 67', adh.state === 'ok' && adh.setsDone === 2 && adh.setsPrescribed === 3 && adh.setsPct === 67);
+check('adherence: no plan -> sessionPct null', adh.sessionPct === null);
+const adh2 = adherence([{ exercises: [] }, { exercises: [] }], 4);
+check('adherence: 2 of 4 planned sessions -> sessionPct 50', adh2.sessionPct === 50);
+
+// ── patternCoverage (CLAUDE.md: every microcycle must cover the primary patterns) ──
+const cov = patternCoverage([{ exercises: [
+  { pattern: 'Squat', sets: [{ done: true }, { done: true }, { done: false }] },
+  { pattern: 'Hip Hinge', sets: [{}] },
+] }]);
+check('patternCoverage: Squat counts only done sets (2, not 3)', cov.counts['Squat'] === 2);
+check('patternCoverage: sets w/o done flag count (Hip Hinge 1)', cov.counts['Hip Hinge'] === 1);
+check('patternCoverage: the 6 untouched patterns are gaps', cov.gaps.length === 6 && cov.gaps.includes('Vertical Push'));
+check('patternCoverage: unclassified exercise -> unclassified tally', patternCoverage([{ exercises: [{ sets: [{ done: true }] }] }]).unclassified === 1);
 
 console.log(`\n${fail === 0 ? '✓ ALL PASS' : '✗ FAILURES'} — ${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);
