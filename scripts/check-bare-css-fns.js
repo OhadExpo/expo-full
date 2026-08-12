@@ -128,22 +128,33 @@ function walk(dir, files = []) {
   return files;
 }
 
-const files = walk(SRC);
-const allErrors = [];
-for (const f of files) {
-  const content = fs.readFileSync(f, 'utf8');
-  const rel = path.relative(path.join(__dirname, '..'), f);
-  for (const e of findBareCalls(rel, content)) allErrors.push(e);
+// Exported so the detection logic can be unit-tested directly (see
+// scripts/verify-check-bare-css-fns.mjs) without this CLI scanning src/.
+export { findBareCalls };
+
+function main() {
+  const files = walk(SRC);
+  const allErrors = [];
+  for (const f of files) {
+    const content = fs.readFileSync(f, 'utf8');
+    const rel = path.relative(path.join(__dirname, '..'), f);
+    for (const e of findBareCalls(rel, content)) allErrors.push(e);
+  }
+
+  if (allErrors.length === 0) {
+    console.log(`✓ check-bare-css-fns: scanned ${files.length} files, no bare CSS-function calls in JS context`);
+    process.exit(0);
+  }
+
+  console.error(`✗ check-bare-css-fns: found ${allErrors.length} bare CSS-function calls (would crash with ReferenceError on render):\n`);
+  for (const e of allErrors) {
+    console.error(`  ${e.src}:${e.line}:${e.col}  ${e.snippet.split('\n')[0]}`);
+  }
+  console.error('\nQuote them as strings (e.g., `borderColor: \'rgba(...)\'`) or move them inside a backtick template literal.');
+  process.exit(1);
 }
 
-if (allErrors.length === 0) {
-  console.log(`✓ check-bare-css-fns: scanned ${files.length} files, no bare CSS-function calls in JS context`);
-  process.exit(0);
-}
-
-console.error(`✗ check-bare-css-fns: found ${allErrors.length} bare CSS-function calls (would crash with ReferenceError on render):\n`);
-for (const e of allErrors) {
-  console.error(`  ${e.src}:${e.line}:${e.col}  ${e.snippet.split('\n')[0]}`);
-}
-console.error('\nQuote them as strings (e.g., `borderColor: \'rgba(...)\'`) or move them inside a backtick template literal.');
-process.exit(1);
+// Run the scan only when invoked directly (node scripts/check-bare-css-fns.js),
+// not when imported by the unit test.
+const invokedDirectly = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (invokedDirectly) main();
