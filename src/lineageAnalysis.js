@@ -108,6 +108,12 @@ export function staleWeight(series) {
   const base = loads[0];
   const flat = loads.every((l) => Math.abs(l - base) <= base * 0.025);
   if (!flat) return { state: 'ok', stale: false };
+  // Flat LOAD but RISING reps = rep-progression (adding reps at a held weight — a
+  // normal way to progress, often by design), NOT a stuck lift. Don't brand it
+  // stale (which feeds a "deload / change the lift" verdict); e1RM/weeksSincePr
+  // already credit the rep gain.
+  const repsSeq = last3.map((s) => s.reps).filter((x) => typeof x === 'number');
+  if (repsSeq.length >= 2 && repsSeq[repsSeq.length - 1] - repsSeq[0] >= 1) return { state: 'ok', stale: false };
   const rpes = last3.map((s) => s.rpe).filter((x) => x != null);
   let mode = 'unknown';
   if (rpes.length >= 2) mode = (rpes[rpes.length - 1] - rpes[0] >= 0.5) ? 'hard' : 'easy';
@@ -278,7 +284,7 @@ export function patternCoverage(sessions) {
 export function synthesizeVerdict({ adh, region, staples, acwr, velocity }) {
   const flags = [];
   const lowerGrind = region?.lower?.pct != null && region.lower.pct >= 25;
-  const anyHardStale = staples.some((s) => !s.ballistic && s.stale?.stale && s.stale.mode === 'hard');
+  const anyHardStale = staples.some((s) => !s.ballistic && s.isMain && s.stale?.stale && s.stale.mode === 'hard');
   // Ballistic lifts are meant to be moved light + fast — a falling e1RM on a
   // filmed speed-squat/jump is correct programming, NOT a fatigue signal. Never
   // let it drive a "deload him" verdict (the row already reads EXPLOSIVE).
@@ -311,7 +317,7 @@ export function synthesizeVerdict({ adh, region, staples, acwr, velocity }) {
 
   let headline, sub, tone = 'warn';
   if (flags.includes('fatigue') && !tooThinToDeload) {
-    const hardStaleLift = staples.find((s) => !s.ballistic && s.stale?.stale && s.stale.mode === 'hard');
+    const hardStaleLift = staples.find((s) => !s.ballistic && s.isMain && s.stale?.stale && s.stale.mode === 'hard');
     headline = hardStaleLift
       ? `Deload — then change the ${hardStaleLift.title}, don't just add weight.`
       : `Deload him — he's accumulating more fatigue than he's recovering from.`;
