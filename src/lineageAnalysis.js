@@ -36,6 +36,34 @@ const median = (arr) => {
 };
 
 // Epley e1RM, capped at 12 reps (Epley error compounds badly above that).
+// Block-character classifier (periodization zone) — extracted pure so it can be
+// fixture-pinned. Inputs are the block's computed signals; output is the coach-
+// facing character used to color the programming-arc wave + drive the phase read.
+//   POWER      — explosive intent AND low reps (NSCA power loading is low-rep so
+//                bar velocity doesn't decay; a HIGH-rep explosive block is power-
+//                endurance/conditioning, not power development — reads by rep zone).
+//   STRENGTH   — <=6 reps, or 6-12 reps taken heavy (>=85% 1RM or RPE >=8.5), or
+//                heavy high-rep (accessory-diluted mean).
+//   HYPERTROPHY— 6-12 reps sub-maximal.  ENDURANCE — 13+ reps low intensity.
+// A CLEAR block name (strength/power) overrides the data only in the fuzzy 6-12
+// non-heavy middle, or when the block is heavy — so a named max-strength block
+// whose mean drifted up never mis-reads as hypertrophy/endurance.
+// (Source: NSCA Essentials 4e ch.17 · Bompa · Zatsiorsky. rep-ceiling added 08-12.)
+export function classifyBlockCharacter({ explosiveShare = 0, avgReps = null, heavy = false, nameChar = null }) {
+  const powerReps = avgReps == null || avgReps <= 8;
+  let dataChar = null;
+  if (explosiveShare >= 0.4 && powerReps) dataChar = 'power';
+  else if (avgReps == null) dataChar = null;
+  else if (avgReps <= 6) dataChar = 'strength';
+  else if (avgReps <= 12) dataChar = heavy ? 'strength' : 'hypertrophy';
+  else dataChar = heavy ? 'strength' : 'endurance';
+  let character;
+  if (explosiveShare >= 0.6 && powerReps) character = 'power';
+  else if (dataChar && nameChar && dataChar !== nameChar && ((avgReps != null && avgReps > 6 && avgReps <= 12 && !heavy) || (heavy && (nameChar === 'strength' || nameChar === 'power')))) character = nameChar;
+  else character = dataChar || nameChar || 'hypertrophy';
+  return { dataChar, character };
+}
+
 export function e1RM(load, reps) {
   const L = num(load), R = num(reps);
   if (L == null || R == null || R < 1 || L <= 0) return null; // a 0-load bodyweight rep is not a strength data point
@@ -620,22 +648,8 @@ export function blockHistory(plans, deps) {
     // (<=8, generous for ballistic accessories). A high-rep explosive block is
     // power-ENDURANCE / conditioning, not power development — it reads by its rep
     // zone instead. (Source-verified vs NSCA Essentials Ch.17, 2026-08-12.)
-    const powerReps = avgReps == null || avgReps <= 8;
-    let dataChar = null;
-    if (explosiveShare >= 0.4 && powerReps) dataChar = 'power';
-    else if (avgReps == null) dataChar = null;
-    else if (avgReps <= 6) dataChar = 'strength';
-    else if (avgReps <= 12) dataChar = heavy ? 'strength' : 'hypertrophy';
-    else dataChar = heavy ? 'strength' : 'endurance';          // heavy high-rep (accessory-diluted) still strength-leaning
     const nc = namePhase(p.name);
-    // Reconcile: an overwhelming explosive share is power no matter the name;
-    // otherwise trust the DATA, but let a CLEAR name (strength/power) override in the
-    // fuzzy 6–12-rep middle OR whenever the block is heavy — a named max-strength
-    // block whose mean got dragged up must never read hypertrophy/endurance.
-    let character;
-    if (explosiveShare >= 0.6 && powerReps) character = 'power';
-    else if (dataChar && nc && dataChar !== nc && ((avgReps != null && avgReps > 6 && avgReps <= 12 && !heavy) || (heavy && (nc === 'strength' || nc === 'power')))) character = nc;
-    else character = dataChar || nc || 'hypertrophy';
+    const { character } = classifyBlockCharacter({ explosiveShare, avgReps, heavy, nameChar: nc });
     return { num: blockNum(p.name), name: p.name, character, avgReps: round1(avgReps), avgRpe: round1(avgRpe), avgPct: round1(avgPct), explosiveShare: Math.round(explosiveShare * 100) / 100, exercises: all.length, fromMains };
   }).filter(Boolean)
     // Numbered blocks sort by number; un-numbered ones keep insertion order at the
