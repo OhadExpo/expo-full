@@ -623,10 +623,12 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       {/* Contract terms strip — the billing facts (rate/package/sessions) that
           used to live in the header stat row (Ohad: "payment in billing").
           Empty values dim so real terms stand out. */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, 118px)",justifyContent:"center",gap:"12px 10px",margin:"0 auto 16px",textAlign:"center"}}>
+      <div style={{display:"flex",flexWrap:"wrap",justifyContent:"center",gap:"12px 32px",margin:"0 auto 16px",textAlign:"center"}}>
         {[["Package",td.package],["Sessions Left",td.sessionsRemaining],["Monthly",td.monthly?`₪${td.monthly}`:"—"],["Per Session",td.perSession?`₪${td.perSession}`:"—"],["Last Payment",fmtPrettyDate(lastPaidDate)],["Since",fmtPrettyDate(td.startDate)]].map(([l,v])=>{
           const empty = v===undefined||v===null||v===""||v==="—";
-          return <div key={l}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700}}>{l}</div><div style={{fontSize:14,color:empty?C.td:C.tx,marginTop:2}}>{empty?"—":v}</div></div>;
+          // Auto-width cells + nowrap values so a long date ("1st of January 2025")
+          // stays on ONE row instead of wrapping in a fixed 118px column (Ohad).
+          return <div key={l} style={{whiteSpace:'nowrap'}}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700}}>{l}</div><div style={{fontSize:14,color:empty?C.td:C.tx,marginTop:2}}>{empty?"—":v}</div></div>;
         })}
       </div>
       {tPay.length===0?<div style={{color:C.td,fontSize:13,textAlign:'center',padding:'10px 0'}}>No payments recorded.</div>:(

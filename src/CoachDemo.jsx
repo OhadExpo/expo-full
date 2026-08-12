@@ -1578,10 +1578,10 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
           {showSec('billing') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle(`Billing (${payments.length})`)}
             headerRight={<span style={{ fontFamily: FB, fontSize: 12, color: '#FFFFFF', opacity: 0.85, whiteSpace: 'nowrap' }}>₪{totalPaid.toLocaleString()} paid</span>}>
             {/* Contract terms strip (moved from the removed header cluster, #139 parity). */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, 118px)', justifyContent: 'center', gap: '12px 10px', margin: '0 auto 16px', textAlign: 'center' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '12px 32px', margin: '0 auto 16px', textAlign: 'center' }}>
               {billingTerms.map(([l, v]) => {
                 const empty = v === undefined || v === null || v === '' || v === '—';
-                return <div key={l}><div style={{ fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>{l}</div><div style={{ fontSize: 14, color: empty ? C.td : C.tx, marginTop: 2 }}>{empty ? '—' : v}</div></div>;
+                return <div key={l} style={{ whiteSpace: 'nowrap' }}><div style={{ fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>{l}</div><div style={{ fontSize: 14, color: empty ? C.td : C.tx, marginTop: 2 }}>{empty ? '—' : v}</div></div>;
               })}
             </div>
             <div style={{ overflowX: 'auto' }}>
