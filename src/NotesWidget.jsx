@@ -125,7 +125,10 @@ function MiniTaskRow({ n, stackBoard, onClick, stripe }) {
       {name && (
         <span style={{ fontFamily: nameHeb ? FH : FN, fontSize: nameHeb ? 13 : 10, fontWeight: 800, letterSpacing: nameHeb ? 0 : '0.04em', textTransform: nameHeb ? 'none' : 'uppercase', color: 'var(--c-ac)', flexShrink: 0, maxWidth: '45%', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
       )}
-      <span style={{ fontFamily: heb ? FH : FB, direction: heb ? 'rtl' : 'ltr', textAlign: heb ? 'right' : 'left', color: name ? 'var(--c-tm)' : 'var(--c-tx)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{body}</span>
+      {/* When a name leads the row, the action text hugs it (left) so the alert
+          reads as ONE connected line — not a name on the left and text floating
+          on the far right (which the RTL right-align caused for Hebrew bodies). */}
+      <span style={{ fontFamily: heb ? FH : FB, direction: heb ? 'rtl' : 'ltr', textAlign: name ? 'left' : (heb ? 'right' : 'left'), color: name ? 'var(--c-tm)' : 'var(--c-tx)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{body}</span>
     </div>
   );
 }
