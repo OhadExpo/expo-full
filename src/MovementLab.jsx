@@ -762,6 +762,15 @@ function FormCheck({ result, exerciseTitle, recordedReps = [], targetReps = null
     const sumMatch = rec.length > 1 && Math.abs(N - sum) <= Math.max(2, Math.round(sum * 0.2));
     return sumMatch || N > maxSet + Math.max(2, Math.round(maxSet * 0.4));
   }, [result, recordedReps]);
+  // On a multi-set clip the ROM-collapse fault ("N reps lost >15% of range →
+  // depth is fading") is relative to the clip's single best rep, so across sets it
+  // over-reads exactly like the SET BREAKDOWN did (which now carries the multi-set
+  // caveat). Drop that one fault when multiSet — the caveat above already explains
+  // the across-sets read; the other faults (fast eccentric, geometry) still stand.
+  const coachFaults = useMemo(() => {
+    if (!faults || !multiSet) return faults;
+    return { ...faults, faults: (faults.faults || []).filter((f) => !/lost >\s*15%\s*of range/i.test(f.msg || '')) };
+  }, [faults, multiSet]);
   const asym = useMemo(() => detectAsymmetry(result.jointRom, exerciseTitle), [result.jointRom, exerciseTitle]);
   const vbt = useMemo(() => velocityAutoreg(result.velocity), [result.velocity]);
   // A poorly-tracked clip makes the velocity + L/R reads untrustworthy (2D
@@ -880,16 +889,16 @@ function FormCheck({ result, exerciseTitle, recordedReps = [], targetReps = null
         </div>
       )}
       <div style={secLabel}>AUTO FORM COACH</div>
-      {faults && faults.faults.length === 0 && faults.good.length === 0 && (
+      {coachFaults && coachFaults.faults.length === 0 && coachFaults.good.length === 0 && (
         <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>Not enough clean reps to read technique on this clip.</div>
       )}
-      {faults && faults.faults.map((f, i) => (
+      {coachFaults && coachFaults.faults.map((f, i) => (
         <div key={'f' + i} style={rowBase}>
           <span style={{ color: sev[f.sev], fontWeight: 700, flex: '0 0 16px', textAlign: 'center' }}>{f.sev === 'bad' ? '✕' : '!'}</span>
           <div><b style={{ color: '#fff' }}>{f.msg}.</b> <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{f.why}</span></div>
         </div>
       ))}
-      {faults && faults.good.map((g, i) => (
+      {coachFaults && coachFaults.good.map((g, i) => (
         <div key={'g' + i} style={rowBase}>
           <span style={{ color: C.gn, fontWeight: 700, flex: '0 0 16px', textAlign: 'center' }}>✓</span>
           <div style={{ color: 'rgba(255,255,255,0.85)' }}>{g}</div>
