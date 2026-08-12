@@ -30,16 +30,28 @@ const DONE_KEY = 'expo-autopose-done-v1';
 const ATTEMPTS_KEY = 'expo-autopose-attempts-v1';
 const MAX_ATTEMPTS = 3; // transient retries across report-opens before giving up
 
+// Strip a couple sub-member suffix (`tr_x__0` -> `tr_x`) so the lock/collection
+// key is the couple base, not one member (adversarial-review H2 fix).
+const baseId = (id) => String(id || '').split('__')[0];
+
+// In-memory shadow of the done/attempts caches. If localStorage is blocked
+// (private mode) or full (quota), the persisted map silently stays empty and the
+// warmer would re-grind the ENTIRE backlog on every load (review M1). The mem
+// fallback guarantees at least within-session dedupe so a dead localStorage
+// degrades to "re-analyze once per session", not "re-analyze every open".
+const _doneMem = new Set();
+const _attemptMem = new Map();
+
 function readMap(key) {
   try { return JSON.parse(localStorage.getItem(key) || '{}') || {}; } catch { return {}; }
 }
 function writeMap(key, m) {
   try { localStorage.setItem(key, JSON.stringify(m)); } catch { /* private mode */ }
 }
-function markDone(url) { const d = readMap(DONE_KEY); d[url] = Date.now(); writeMap(DONE_KEY, d); }
-export function isAnalyzed(url) { return !!readMap(DONE_KEY)[url]; }
-function attemptsOf(url) { return readMap(ATTEMPTS_KEY)[url] || 0; }
-function bumpAttempt(url) { const a = readMap(ATTEMPTS_KEY); a[url] = (a[url] || 0) + 1; writeMap(ATTEMPTS_KEY, a); return a[url]; }
+function markDone(url) { _doneMem.add(url); const d = readMap(DONE_KEY); d[url] = Date.now(); writeMap(DONE_KEY, d); }
+export function isAnalyzed(url) { return _doneMem.has(url) || !!readMap(DONE_KEY)[url]; }
+function attemptsOf(url) { return Math.max(_attemptMem.get(url) || 0, readMap(ATTEMPTS_KEY)[url] || 0); }
+function bumpAttempt(url) { const n = attemptsOf(url) + 1; _attemptMem.set(url, n); const a = readMap(ATTEMPTS_KEY); a[url] = n; writeMap(ATTEMPTS_KEY, a); return n; }
 
 // Every uploaded form video for one athlete, from the coach's client_workouts.
 // Matches the athlete id OR a couple sub-member whose base is the athlete. One
@@ -97,20 +109,30 @@ const _inflight = new Set();
 // poorly-tracked clip. Robust per-clip: one bad/blocked video is skipped, never
 // fatal. Returns a summary { total, analyzed, skipped, failed }.
 export async function autoAnalyzeAthleteVideos(clientWorkouts, traineeId, opts = {}) {
-  const { onProgress, shouldStop } = opts;
-  if (!traineeId || _inflight.has(traineeId)) {
+  const { onProgress, shouldStop, onIdle } = opts;
+  // Lock on the couple BASE so a member's report-open (traineeId `tr_x__0`) and
+  // the background warmer (base `tr_x`) collide instead of running two batches
+  // over the same clips — two interleaved read-modify-write passes on the pose
+  // blob can drop a just-written sample (review H2).
+  const lockKey = baseId(traineeId);
+  if (!traineeId || _inflight.has(lockKey)) {
     return { total: 0, analyzed: 0, failed: 0, skipped: 0, busy: !!traineeId };
   }
   const vids = collectAthleteFormVideos(clientWorkouts, traineeId)
     .filter((v) => !isAnalyzed(v.url) && attemptsOf(v.url) < MAX_ATTEMPTS);
   const total = vids.length;
   if (!total) return { total: 0, analyzed: 0, failed: 0, skipped: 0 };
-  _inflight.add(traineeId);
+  _inflight.add(lockKey);
   let analyzed = 0, failed = 0, i = 0;
   try {
     const { captureClipFrames } = await import('./MovementLab');
     for (const v of vids) {
       if (typeof shouldStop === 'function' && shouldStop()) break;
+      // Yield to idle BETWEEN CLIPS (not just between athletes) so a background
+      // warmer with a big backlog never grinds N full-model pose passes back-to-
+      // back on the main thread and janks the coach's UI (review H1). The report-
+      // open path omits onIdle so it stays prompt when the coach is waiting on it.
+      if (typeof onIdle === 'function') { await onIdle(); if (typeof shouldStop === 'function' && shouldStop()) break; }
       i++;
       try {
         const frames = await captureClipFrames(v.url, { crossOrigin: true });
@@ -144,7 +166,7 @@ export async function autoAnalyzeAthleteVideos(clientWorkouts, traineeId, opts =
       if (onProgress) onProgress({ done: i, total, current: v.title });
     }
   } finally {
-    _inflight.delete(traineeId);
+    _inflight.delete(lockKey);
   }
   return { total, analyzed, failed, skipped: total - analyzed - failed };
 }

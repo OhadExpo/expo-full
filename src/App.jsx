@@ -721,10 +721,16 @@ function AuthedApp() {
         if (cancelled) break;
         await idle();
         if (cancelled) break;
-        try { await autoAnalyzeAthleteVideos(clientWorkouts, id, { shouldStop: () => cancelled }); } catch { /* one athlete's clip blip never stops the sweep */ }
+        // onIdle yields to idle BETWEEN CLIPS too (not just between athletes), so
+        // an athlete with many clips can't grind N full-model pose passes back-to-
+        // back and jank the coach's UI (review H1).
+        try { await autoAnalyzeAthleteVideos(clientWorkouts, id, { shouldStop: () => cancelled, onIdle: idle }); } catch { /* one athlete's clip blip never stops the sweep */ }
       }
     })();
-    return () => { cancelled = true; };
+    // Reset the guard on cleanup so a later owner re-login (App stays mounted in
+    // the dual-role portal switch) restarts the warmer instead of leaving it off
+    // for the rest of the tab's life (review M2).
+    return () => { cancelled = true; poseWarmRef.current = false; };
     // Intentionally keyed on isOwner only (+ the ref guard): re-runs on every
     // clientWorkouts identity change would restart the whole sweep on each
     // realtime tick. The report-open path still catches anything uploaded after
