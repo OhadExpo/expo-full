@@ -1287,9 +1287,9 @@ function DemoOverload() {
   return (
     <div>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 10 }}>
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="search exercise" style={{ ...baseInput, flex: '1 1 200px', minWidth: 160, fontSize: 12 }} />
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="search exercise" style={{ ...baseInput, flex: '1 1 200px', minWidth: 160, height: 30, boxSizing: 'border-box', padding: '0 10px', fontSize: 12 }} />
         {[['all', 'ALL'], ['up', '↑'], ['flat', '→'], ['down', '↓']].map(([id, lbl]) => (
-          <button key={id} onClick={() => setFilter(id)} style={{ background: filter === id ? 'transparent' : 'transparent', border: `1px solid ${filter === id ? OV_COLOR[id] : C.cardBd}`, color: filter === id ? OV_COLOR[id] : C.tm, borderRadius: 0, cursor: 'pointer', padding: '6px 10px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em' }}>{lbl} {counts[id]}</button>
+          <button key={id} onClick={() => setFilter(id)} style={{ background: filter === id ? 'transparent' : 'transparent', border: `1px solid ${filter === id ? OV_COLOR[id] : C.cardBd}`, color: filter === id ? OV_COLOR[id] : C.tm, borderRadius: 0, height: 30, boxSizing: 'border-box', cursor: 'pointer', padding: '0 10px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em' }}>{lbl} {counts[id]}</button>
         ))}
       </div>
       <div style={{ overflowX: 'auto', border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>

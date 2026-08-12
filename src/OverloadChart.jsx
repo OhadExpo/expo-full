@@ -249,7 +249,9 @@ export default function OverloadChart({ workouts, exercises }) {
     return (
       <button onClick={() => setTrendFilter(key)} style={{
         background: 'var(--c-sf)', border: `${on ? '1px' : '0.25px'} solid ${on ? col : C.cardBd}`,
-        borderRadius: 0, padding: '5px 10px', color: on ? col : C.tm, cursor: 'pointer',
+        // Same box height as the search input in the same row (Ohad: "search box
+        // must not be bigger than the ALL box"). height + border-box → exactly equal.
+        borderRadius: 0, height: 30, boxSizing: 'border-box', padding: '0 10px', color: on ? col : C.tm, cursor: 'pointer',
         fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', whiteSpace: 'nowrap',
       }}>{label} {counts[key]}</button>
     );
@@ -268,7 +270,7 @@ export default function OverloadChart({ workouts, exercises }) {
     <div>
       <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap', alignItems: 'center' }}>
         <input value={query} onChange={e => setQuery(e.target.value)} placeholder="search exercise"
-          style={{ flex: '1 1 200px', minWidth: 160, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '7px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none' }} />
+          style={{ flex: '1 1 200px', minWidth: 160, height: 30, boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none' }} />
         <div style={{ display: 'flex', gap: 5 }}>
           {chip('all', 'ALL')}{chip('up', '↑')}{chip('flat', '→')}{chip('down', '↓')}
         </div>
