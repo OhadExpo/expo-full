@@ -119,6 +119,9 @@ export default function MessagesCard({ trainees, onSelectTrainee }) {
     return s;
   }, [trainees]);
   const isMuted = (traineeIdRaw) => {
+    // A message with a null/blank trainee_id must not crash the inbox
+    // (adversarial-QA): guard before .includes, default to not-muted so it shows.
+    if (!traineeIdRaw || typeof traineeIdRaw !== 'string') return false;
     const parentId = traineeIdRaw.includes('__') ? traineeIdRaw.split('__')[0] : traineeIdRaw;
     return mutedIds.has(parentId);
   };
