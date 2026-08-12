@@ -73,7 +73,9 @@ const blockAbbrev = (name) => {
 // top-set load; PR session dot highlighted, trend-coloured line + fill.
 function TrendChart({ series }) {
   if (series.length < 2) return null;
-  const VW = 600, VH = 96, pad = 10;
+  // Proportions matched to the Bodyweight chart (800×128 rendered at 128px) so
+  // the non-uniform stretch is mild and the point dots stay round, not blobs.
+  const VW = 800, VH = 128, pad = 12;
   const loads = series.map(s => s.topLoad);
   const min = Math.min(...loads), max = Math.max(...loads);
   const range = max - min || 1;
@@ -86,10 +88,15 @@ function TrendChart({ series }) {
   ]);
   const line = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
   const area = `${line} L ${pts[pts.length - 1][0].toFixed(1)},${VH - 1} L ${pts[0][0].toFixed(1)},${VH - 1} Z`;
-  const color = TREND_COLOR[recentTrend(series).dir] || C.ac;
+  const dir = recentTrend(series).dir;
+  const color = TREND_COLOR[dir] || C.ac;
   const gid = `ovl-fill`;
+  // A flat/stale lift (no real progression) or a 2-session lift is a near-flat
+  // line — don't spend 128px of vertical space on it (Ohad). Shrink to a compact
+  // strip; a genuinely climbing/dropping lift keeps the full-height chart.
+  const chartH = (dir === 'flat' || series.length < 3) ? 46 : 128;
   return (
-    <svg viewBox={`0 0 ${VW} ${VH}`} preserveAspectRatio="none" style={{ display: 'block', width: '100%', height: 72 }}>
+    <svg viewBox={`0 0 ${VW} ${VH}`} preserveAspectRatio="none" style={{ display: 'block', width: '100%', height: chartH }}>
       <defs>
         <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={color} stopOpacity="0.18" />
@@ -97,11 +104,12 @@ function TrendChart({ series }) {
         </linearGradient>
       </defs>
       <path d={area} fill={`url(#${gid})`} />
-      <path d={line} stroke={color} strokeWidth="1.5" vectorEffect="non-scaling-stroke" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <path d={line} stroke={color} strokeWidth="2" vectorEffect="non-scaling-stroke" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      {/* One dot per session, styled exactly like the Bodyweight chart: r=3 with
+          a background-colour ring so each point reads as a crisp dot (Ohad). */}
       {pts.map((p, i) => {
-        const isLast = i === pts.length - 1;
         const isPr = p[2] === prVal;
-        return <circle key={i} cx={p[0]} cy={p[1]} r={isLast ? 4 : isPr ? 3 : 2} fill={isLast ? color : isPr ? C.ac : C.tm} vectorEffect="non-scaling-stroke" />;
+        return <circle key={i} cx={p[0]} cy={p[1]} r="3" fill={isPr ? C.ac : color} stroke={C.bg} strokeWidth="1.5" />;
       })}
     </svg>
   );
