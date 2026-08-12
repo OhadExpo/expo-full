@@ -13,6 +13,7 @@ import { C, FN, FB } from './theme';
 import { isRefined5b, useEscClose, useIsMobile, toast } from './ui';
 import { EVAL_SCHEMA, romKey } from './evaluationSchema';
 import { toolForTest } from './evalTestMap';
+import { romCameraSpec } from './romGoniometer';
 
 // Camera tools pull MediaPipe/three — lazy so opening an eval doesn't carry them
 // until the coach actually runs a test.
@@ -291,7 +292,7 @@ function SectionBlock({ section, scores, setScore, notes, setNote, onTest }) {
   );
 }
 
-function RomBlock({ rom, setRom }) {
+function RomBlock({ rom, setRom, onRomTest }) {
   const set = (key, v) => setRom({ ...rom, [key]: v });
   return (
     <div style={{ marginBottom: 22, background: 'var(--c-sf)', padding: '14px 16px' }}>
@@ -300,8 +301,11 @@ function RomBlock({ rom, setRom }) {
         color: 'var(--c-ac)', marginBottom: 6, paddingBottom: 6,
         borderBottom: `2px solid var(--c-ac)`,
       }}>{EVAL_SCHEMA.rom.title.toUpperCase()}</div>
-      <div style={{ fontFamily: FB, fontSize: 11, color: 'var(--c-tm)', marginBottom: 14, fontStyle: 'italic' }}>
+      <div style={{ fontFamily: FB, fontSize: 11, color: 'var(--c-tm)', marginBottom: 6, fontStyle: 'italic' }}>
         {EVAL_SCHEMA.rom.hint}
+      </div>
+      <div style={{ fontFamily: FB, fontSize: 10.5, color: 'var(--c-ac)', marginBottom: 14 }}>
+        ◉ CAM measures sagittal flexion (knee · hip · shoulder) from a side-on clip — active range, coach-confirmed. Rotation and side-to-side axes stay manual.
       </div>
       {EVAL_SCHEMA.rom.joints.map((j, ji) => (
         <div key={j.id} style={{
@@ -319,11 +323,19 @@ function RomBlock({ rom, setRom }) {
           }}>
             {j.axes.map(ax => {
               const k = romKey(j.id, ax);
+              const camSpec = romCameraSpec(j.id, ax);
               return (
                 <div key={ax} style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
                   {/* Wrap, don't ellipsis — "Internal/External Rotation" must show
                       in full even in the narrow ROM column. */}
                   <div style={{ flex: 1, fontFamily: FB, fontSize: 11, color: 'var(--c-tm)', lineHeight: 1.2 }}>{ax}</div>
+                  {/* Camera goniometer only on axes 2D pose measures honestly
+                      (sagittal flexion). Everything else stays manual — no fake
+                      TEST button on a rotation axis the camera can't see. */}
+                  {camSpec && onRomTest && (
+                    <button type="button" onClick={() => onRomTest(camSpec, k)} title={`Measure ${ax} with the camera`}
+                      style={{ background: 'transparent', border: `1px solid var(--c-ac)`, color: 'var(--c-ac)', fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.08em', padding: '4px 5px', cursor: 'pointer', whiteSpace: 'nowrap' }}>◉ CAM</button>
+                  )}
                   <input value={rom[k] || ''} onChange={e => set(k, e.target.value)}
                     placeholder="°" style={{ ...inputBase, width: 56, padding: '6px 8px', textAlign: 'center' }} />
                 </div>
@@ -381,6 +393,10 @@ export default function EvaluationEditor({ trainee, existing, onSave, onClose })
   // "run the protocol inside the eval" flow — no separate eval row, no retyping.
   const [activeTest, setActiveTest] = useState(null); // { test, map, side }
   const onTest = (test, map, side) => setActiveTest({ test, map, side });
+  // Camera goniometer for a single ROM axis — opens MovementLab in analyze mode
+  // with a romSpec, and writes the coach-confirmed degree into rom[key].
+  const [activeRom, setActiveRom] = useState(null); // { spec, key }
+  const onRomTest = (spec, key) => setActiveRom({ spec, key });
   // Tool-agnostic: `raw` is whatever the active tool hands back (jump metrics
   // object, or hold seconds). map.toValue folds it into the field shape; for a
   // composite test that's an object keyed by part id, which slots straight into
@@ -470,7 +486,7 @@ export default function EvaluationEditor({ trainee, existing, onSave, onClose })
             notes={exNotes} setNote={setExNote} onTest={onTest} />
         ))}
 
-        <RomBlock rom={rom} setRom={setRom} />
+        <RomBlock rom={rom} setRom={setRom} onRomTest={onRomTest} />
 
         {/* Free notes */}
         <div style={{ marginBottom: 16 }}>
@@ -505,6 +521,21 @@ export default function EvaluationEditor({ trainee, existing, onSave, onClose })
           defaultBodyweightKg={parseFloat(weightKg) || null}
           onSaveJump={writeTestResult}
           onClose={() => setActiveTest(null)}
+        />
+      </Suspense>
+    )}
+    {/* Embedded camera goniometer — analyze mode, one joint axis. Writes the
+        coach-confirmed clinical degree into rom[key]. */}
+    {activeRom && (
+      <Suspense fallback={null}>
+        <MovementLab
+          initialMode="analyze"
+          initialView="metrics"
+          exerciseTitle={`${activeRom.spec.jointId} ${activeRom.spec.axis}`}
+          toolLabel={`CAMERA ROM · ${activeRom.spec.jointId.toUpperCase()} ${activeRom.spec.axis.toUpperCase()}`}
+          romSpec={activeRom.spec}
+          onSaveRom={(deg) => { setRom(prev => ({ ...prev, [activeRom.key]: String(deg) })); toast(`Logged ${deg}° to ${activeRom.spec.jointId} ${activeRom.spec.axis}`, 'success', { ttl: 3500 }); }}
+          onClose={() => setActiveRom(null)}
         />
       </Suspense>
     )}

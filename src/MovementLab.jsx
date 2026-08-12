@@ -20,6 +20,7 @@ import { createPoseLandmarker, getCamera, stopStream } from './usePose';
 import { analyzeClip, jumpMetrics, reactiveJumpMetrics, jumpPower, frameToPoints3D, estimateFps, barSpeedSeries, barAccelSeries, namedAngleSeries, channelSignal, velocityMetrics, romTempoMetrics, movementRepCount, isBallistic } from './poseLab';
 import { detectFaults, detectAsymmetry, velocityAutoreg, warmupReadiness } from './poseInsights';
 import { savePoseMetric, getLoadVelocityRef } from './poseMetricsStore';
+import { romReadingFor } from './romGoniometer';
 import { demoSquatFrames, demoJumpFrames } from './demoMotion';
 
 // Among several detected poses (multi-pose upload analysis), pick the SUBJECT —
@@ -239,6 +240,8 @@ export default function MovementLab({
   facingMode = 'environment',   // filming someone on the floor by default
   onClose,
   onSaveJump,                   // (metrics) => void — wires jump into ath eval
+  romSpec = null,               // ROM_CAMERA_AXES entry — when set, analyze mode measures ONE joint axis
+  onSaveRom,                    // (clinicalDeg) => void — coach-confirmed ROM into the eval field
   defaultBodyweightKg = null,   // prefill the jump-power bodyweight from the athlete
   initialClipUrl = null,        // a reviewed form-video URL picked in ReviewToolsView → auto-analyse it
   vaultClientId = null,         // athlete id of the picked clip → Bar-Speed Vault (owner trial, localStorage)
@@ -576,9 +579,12 @@ export default function MovementLab({
               </div>
             )}
             <div style={{ flex: 1, minWidth: 300 }}>
+              {romSpec && result?.jointRom && (
+                <RomConfirm spec={romSpec} jointRom={result.jointRom} onSave={onSaveRom} onClose={onClose} />
+              )}
               {mode === 'jump'
                 ? <JumpResult jump={jump} result={result} onSave={onSaveJump} onClose={onClose} defaultBodyweightKg={defaultBodyweightKg} />
-                : <AnalyzeResult result={result} frames={framesRef.current} exerciseTitle={exerciseTitle} tab={tab} setTab={setTab} view={initialView}
+                : <AnalyzeResult result={result} frames={framesRef.current} exerciseTitle={exerciseTitle} tab={romSpec ? 'rom' : tab} setTab={setTab} view={initialView}
                     vaultClientId={vaultClientId} vaultDate={vaultDate} recordedReps={recordedReps} targetReps={targetReps}
                     playheadT={videoTime * 1000}
                     onScrub={(tMs) => { const v = analyzeVideoRef.current; if (v) { try { v.currentTime = tMs / 1000; } catch { /* noop */ } setVideoTime(tMs / 1000); } }} />}
@@ -1693,6 +1699,62 @@ function FpsBadge({ fps }) {
     : f >= 50 ? { txt: `${f}fps · trend only ≈±3–5cm — film in slow-mo for precision`, tone: C.or }
       : { txt: `${f || '?'}fps · low ≈±9cm — record in slow-mo (120–240fps)`, tone: C.rd };
   return <div style={{ marginTop: 12, fontFamily: FN, fontSize: 10, color: cfg.tone, letterSpacing: '0.03em' }}>◷ {cfg.txt}</div>;
+}
+
+// Coach-confirmed camera ROM: read the measured clinical degree for one joint
+// axis off the clip's jointRom, show L/R + demonstrated max + any L/R gap, and
+// let the coach EDIT before it's written into the eval. The camera proposes; the
+// coach owns the value. Active range (athlete's own movement) reads a few degrees
+// under true passive end-range — said plainly so it's never mistaken for a
+// goniometer measurement.
+function RomConfirm({ spec, jointRom, onSave, onClose }) {
+  const reading = useMemo(() => romReadingFor(spec, jointRom), [spec, jointRom]);
+  const [deg, setDeg] = useState(() => (reading?.max != null ? String(reading.max) : ''));
+  const [saved, setSaved] = useState(false);
+  if (!reading) return (
+    <div style={{ border: `1px solid ${C.rd}`, background: `${C.rd}14`, padding: 16, marginBottom: 16 }}>
+      <div style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.rd, letterSpacing: '0.1em' }}>NO CLEAN {spec.axis.toUpperCase()} READ</div>
+      <div style={{ fontFamily: FB, fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 8, lineHeight: 1.5 }}>
+        Couldn't recover the {spec.jointId} through a clean range. {spec.cue} Full body in frame, good light — or enter the degree by hand in the eval.
+      </div>
+    </div>
+  );
+  const side = (label, v) => (
+    <div style={{ flex: 1, textAlign: 'center', padding: '8px 4px', border: '1px solid rgba(255,255,255,0.12)' }}>
+      <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.16em', color: 'rgba(255,255,255,0.5)' }}>{label}</div>
+      <div style={{ fontFamily: FN, fontSize: 20, fontWeight: 700, color: v == null ? 'rgba(255,255,255,0.3)' : '#FFF' }}>{v == null ? '—' : `${v}°`}</div>
+    </div>
+  );
+  return (
+    <div style={{ border: `1px solid ${C.ac}`, background: `${C.ac}12`, padding: 16, marginBottom: 16 }}>
+      <div style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.ac, letterSpacing: '0.1em' }}>
+        CAMERA ROM · {spec.jointId.toUpperCase()} {spec.axis.toUpperCase()}
+      </div>
+      <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+        {side('LEFT', reading.L)}
+        {side('RIGHT', reading.R)}
+      </div>
+      {reading.asymDeg != null && reading.asymDeg >= 8 && (
+        <div style={{ fontFamily: FB, fontSize: 11, color: C.or, marginTop: 8 }}>
+          {reading.asymDeg}° left/right gap — worth an eyes-on check.
+        </div>
+      )}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 14 }}>
+        <div style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.14em', color: 'rgba(255,255,255,0.6)' }}>LOG</div>
+        <input type="number" value={deg} onChange={e => { setDeg(e.target.value); setSaved(false); }}
+          style={{ width: 84, padding: '8px 10px', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.25)', color: '#FFF', fontFamily: FN, fontSize: 16, textAlign: 'center' }} />
+        <div style={{ fontFamily: FB, fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>degrees · {reading.maxSide === 'L' ? 'left' : 'right'} = demonstrated max</div>
+      </div>
+      <div style={{ fontFamily: FB, fontSize: 10.5, color: 'rgba(255,255,255,0.5)', marginTop: 10, lineHeight: 1.5 }}>
+        Active range from a side-on clip — reads a few degrees under a hands-on passive goniometer. Sagittal flexion only; the camera can't measure rotation or side-to-side axes. Confirm or edit before saving.
+      </div>
+      <button disabled={saved || deg === ''} onClick={() => { onSave(parseInt(deg, 10)); setSaved(true); }}
+        style={{ marginTop: 14, padding: '12px 20px', width: '100%', background: saved ? '#2a2a2a' : C.ac, border: `1px solid ${saved ? '#2a2a2a' : C.ac}`, color: '#FFF', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', cursor: saved || deg === '' ? 'default' : 'pointer' }}>
+        {saved ? '✓ LOGGED TO EVAL' : `USE ${deg || '—'}° →`}
+      </button>
+      {saved && <button onClick={onClose} style={{ marginTop: 8, padding: '10px 20px', width: '100%', background: 'transparent', border: '1px solid rgba(255,255,255,0.3)', color: '#FFF', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', cursor: 'pointer' }}>DONE — BACK TO EVAL</button>}
+    </div>
+  );
 }
 
 function JumpResult({ jump, result, onSave, onClose, defaultBodyweightKg }) {
