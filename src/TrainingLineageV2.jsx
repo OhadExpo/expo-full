@@ -107,7 +107,7 @@ function readStaple(s) {
   if (s.trend?.state === 'ok') {
     if (s.trend.repNoisy) return { tag: 'REPS VARIED', tagColor: C.tm, why: 'rep scheme shifted across the block — e1RM can\'t tell a strength change from the rep change', next: 'read it off load-at-a-fixed-rep, or hold a rep target for 3 sessions for a clean trend' };
     if (s.trend.dir === 'up') return { tag: 'PROGRESS', tagColor: C.gn, why: 'progressing', next: '+2–3% load or +1 rep at the same effort' };
-    if (s.trend.dir === 'down') return { tag: 'REGRESS', tagColor: C.rd, why: 'going backwards', next: 'back off ~5–10% intensity, hold volume, check his recovery' };
+    if (s.trend.dir === 'down') return { tag: 'REGRESS', tagColor: C.rd, why: 'going backwards', next: 'back off ~5–10% intensity, hold volume, check recovery' };
   }
   return { tag: 'HOLDING', tagColor: C.tm, why: 'holding steady', next: noPr ? `no PR in ${wks} weeks — time to change it up` : 'maintain, or nudge the load' };
 }
@@ -123,7 +123,7 @@ function nextBlockText(a) {
     const climbing = a.staples.filter((s) => s.trend?.dir === 'up' && !s.stale?.stale && !s.ballistic).map((s) => s.title);
     return (
       <>
-        <b>Deload{nextNum}: cut {region}-body volume ~50%, hold intensity.</b> He's accumulating fatigue faster than he's clearing it.
+        <b>Deload{nextNum}: cut {region}-body volume ~50%, hold intensity.</b> Fatigue is accumulating faster than it's clearing.
         {hardStale && <> When you rebuild: <b>{hardStale.title} is stale at a hard effort</b> — change the stimulus (tempo / pause / variation), not just the number.</>}
         {climbing.length > 0 && <> Keep pushing <b>{climbing.slice(0, 2).join(' + ')}</b> — still has room.</>}
         {a.skip && <> And fix the <b>{a.skip.day} skip</b> ({a.skip.logged}/{a.skip.expected} logged) — reprogramming it as-is won't help.</>}
@@ -131,7 +131,7 @@ function nextBlockText(a) {
     );
   }
   if (v.tone === 'info') {
-    return <><b>Get him logging first.</b> Only {a.adh.sessionPct}% of sessions are logged — every load signal here is unreliable until he's training and recording it. This is a check-in, not a programming change.</>;
+    return <><b>Get the athlete logging first.</b> Only {a.adh.sessionPct}% of sessions are logged — every load signal here is unreliable until the athlete is training and recording it. This is a check-in, not a programming change.</>;
   }
   // Mutually exclusive: a stale lift is "stuck", never also "climbing" — else
   // the coach is told to both add load AND hold on the same lift. Ballistics
@@ -141,7 +141,7 @@ function nextBlockText(a) {
   const climbing = a.staples.filter((s) => s.trend?.dir === 'up' && !s.stale?.stale && !s.ballistic).map((s) => s.title);
   return (
     <>
-      <b>Progress the block{nextNum}.</b> He's holding or progressing.
+      <b>Progress the block{nextNum}.</b> Holding or progressing.
       {climbing.length > 0 && <> Add load on <b>{climbing.slice(0, 3).join(', ')}</b>.</>}
       {stuck.length > 0 && <> Hold or vary <b>{stuck.slice(0, 2).join(', ')}</b> before forcing more weight.</>}
     </>
@@ -216,7 +216,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
 
   if (loading || !a) {
     return shell(
-      <div style={{ padding: 40, textAlign: 'center', color: C.tm, fontFamily: FN, fontSize: 13, letterSpacing: '0.08em' }}>READING HIS LOGS…</div>
+      <div style={{ padding: 40, textAlign: 'center', color: C.tm, fontFamily: FN, fontSize: 13, letterSpacing: '0.08em' }}>READING LOGS…</div>
     );
   }
 
@@ -250,11 +250,11 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
   // has plans but NO logged workouts — the honest "flying blind" nudge
   if (a.empty) {
     return shell(<>{Strip}
-      <div style={card}><div style={hd}>You're flying blind on this one</div>
+      <div style={card}><div style={hd}>Not enough logged training to analyze</div>
         <div style={bd}>
           <div style={{ border: `1px dashed ${C.bd}`, background: C.sf2, padding: 16, color: C.tm, fontSize: 13, lineHeight: 1.55 }}>
             <b style={{ color: C.tx }}>{traineeName} has no logged workouts in {a.blockName || 'the latest block'}.</b><br />
-            You can see what you <i>wrote</i>, not what he <i>did</i> — so there's nothing to analyse against reality. Get him logging in the portal, or ask him directly before you write the next block.
+            You can see the prescribed program, not what was performed — there's nothing to analyze against actual training. Prompt the athlete to log sessions in the portal before writing the next block.
           </div>
           {onOpenPlan && <div style={{ marginTop: 10, fontSize: 11, color: C.td }}>Tip: the plan-vs-reality reads here light up the moment he logs a session.</div>}
         </div>
@@ -292,15 +292,15 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
             : <Kpi v="—" l="The skips" s="no clear skip pattern" color={C.tm} />}
         </div>
         {a.skip && a.skip.gap >= 2 && (
-          <Read tone="bad" why="Either that day's too much, or it never fits his week. Ask him — don't just re-prescribe it.">
-            <b>He's not skipping randomly — it clusters on {a.skip.day}.</b>
+          <Read tone="bad" why="Either that day is too demanding, or it doesn't fit the athlete's week. Confirm before re-prescribing it.">
+            <b>The skips aren't random — they cluster on {a.skip.day}.</b>
           </Read>
         )}
       </div>
     </div>
 
     {/* 2. AUTOREGULATION — split into what's working vs what to back off (Ohad) */}
-    <div style={card}><div style={hd}>How's he responding?<span style={hdQ}>autoregulation — what's working vs what to back off</span></div>
+    <div style={card}><div style={hd}>Training response<span style={hdQ}>autoregulation — what's working vs what to back off</span></div>
       <div style={bd}>
         {(() => {
           const nm = (arr) => arr.map((s) => s.title).slice(0, 3).join(', ');
@@ -372,7 +372,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
             const swap = lastChar === 'hypertrophy' ? 'a strength or power/peaking' : lastChar === 'strength' ? 'a hypertrophy or a power' : lastChar === 'power' ? 'a strength or hypertrophy base' : 'a strength or power';
             return (
               <div style={{ fontSize: 12.5, color: C.or || '#f0b429', marginTop: 10, lineHeight: 1.5, fontFamily: FN }}>
-                <b>{run} {lastChar} blocks in a row.</b> Same rep emphasis on his main lifts every block — {swap} block is the obvious contrast if you want a fresh stimulus. Your periodization call.
+                <b>{run} {lastChar} blocks in a row.</b> Same rep emphasis on the main lifts every block — {swap} block is the obvious contrast if you want a fresh stimulus. Your periodization call.
               </div>
             );
           })()}
@@ -383,7 +383,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
 
     {/* 2.5 THE ARC — the cross-block journey (the actual "lineage") */}
     {a.staples.filter((s) => !s.ballistic && s.arc && s.arc.length >= 4 && s.arcGainPct != null).length > 0 && (
-      <div style={card}><div style={hd}>The arc · his journey on the big lifts<span style={hdQ}>e# = estimated 1-rep max (Epley) across every block — where he started vs now</span></div>
+      <div style={card}><div style={hd}>The arc · progression on the main lifts<span style={hdQ}>e# = estimated 1-rep max (Epley) across every block — starting point vs now</span></div>
         <div style={bd}>
           {a.staples.filter((s) => !s.ballistic && s.arc && s.arc.length >= 4 && s.arcGainPct != null)
             .sort((x, y) => y.count - x.count).slice(0, 4).map((s) => {
@@ -405,7 +405,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
                 </div>
               );
             })}
-          <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>His long arc, not just this block — e1RM = est-1RM (Epley). Rep-scheme shifts move e1RM too; read it with the per-lift trend below.</div>
+          <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>Long-term arc, not just this block — e1RM = est-1RM (Epley). Rep-scheme shifts move e1RM too; read it with the per-lift trend below.</div>
         </div>
       </div>
     )}
@@ -416,7 +416,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
         <div style={{ ...hd, cursor: 'pointer' }} onClick={() => setLiftsOpen((v) => !v)} role="button" tabIndex={0}
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setLiftsOpen((v) => !v); } }}
           title={liftsOpen ? 'Collapse' : 'Expand the per-lift breakdown'}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ color: C.ac }}>{liftsOpen ? '▾' : '▸'}</span>His lifts · what to do next</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ color: C.ac }}>{liftsOpen ? '▾' : '▸'}</span>Key lifts · what to do next</span>
           <span style={hdQ}>{liftsOpen ? 'worst first · each row tells you the move for next block' : `${a.staples.filter((s) => s.count >= 3).length} lifts · click to expand`}</span>
         </div>
         {liftsOpen && <div style={bd}>
@@ -433,7 +433,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
             </table>
           </div>
           {a.staples.filter((s) => s.count >= 3).length === 0 && (
-            <div style={{ fontSize: 12.5, color: C.tm, padding: '10px 8px', lineHeight: 1.5 }}>Nothing logged 3+ times yet — no lift has enough history to read a trend. The lifts he's touched are below.</div>
+            <div style={{ fontSize: 12.5, color: C.tm, padding: '10px 8px', lineHeight: 1.5 }}>Nothing logged 3+ times yet — no lift has enough history to read a trend. The lifts trained so far are below.</div>
           )}
           {(() => {
             const thin = a.staples.filter((s) => s.count < 3);
@@ -455,7 +455,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
             );
           })()}
           <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>
-            Lifts he's logged 3+ times (enough to read){a.bodyweightLifts > 0 ? ` · ${a.bodyweightLifts} more bodyweight/accessory lift${a.bodyweightLifts === 1 ? '' : 's'} (no load to trend)` : ''} · best = heaviest logged · e = est-1RM (Epley), hidden past 12 reps.
+            Lifts logged 3+ times (enough to read){a.bodyweightLifts > 0 ? ` · ${a.bodyweightLifts} more bodyweight/accessory lift${a.bodyweightLifts === 1 ? '' : 's'} (no load to trend)` : ''} · best = heaviest logged · e = est-1RM (Epley), hidden past 12 reps.
           </div>
         </div>}
       </div>
@@ -674,7 +674,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
       <div style={bd}>
         <div style={{ border: `1px dashed ${C.bd}`, background: C.sf2, padding: 14, color: C.tm, fontSize: 12.5, lineHeight: 1.5 }}>
           {a.rpeCoverage >= 40
-            ? <><b style={{ color: C.tx }}>RPE logged on {a.rpeCoverage}% of sets.</b> Enough to trust the effort reads above — the autoregulation signal is real for him.</>
+            ? <><b style={{ color: C.tx }}>RPE logged on {a.rpeCoverage}% of sets.</b> Enough to trust the effort reads above — the autoregulation signal is reliable.</>
             : <><b style={{ color: C.tx }}>Not enough effort data to model fatigue.</b> RPE on {a.rpeCoverage}% of sets — need ~10 points for a trend. Right now this is judgment + the load signals above. <span style={{ color: C.td }}>Nudge him to log effort and this unlocks a real fitness-fatigue readout.</span></>}
         </div>
       </div>
