@@ -506,7 +506,9 @@ function MacroInput({ label, value, onChange }) {
   return (
     <div style={{ border: `1px solid ${C.cardBd}`, padding: '6px 8px' }}>
       <div style={{ fontFamily: FN, fontSize: 8, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 2 }}>{label}</div>
-      <input type="number" value={value || 0} onChange={e => onChange(parseFloat(e.target.value) || 0)}
+      {/* value||'' (not ||0) so backspacing an AI-estimated macro clears to empty
+          and you can retype, instead of snapping to 0 (adversarial-QA #11). */}
+      <input type="number" value={value || ''} onChange={e => onChange(parseFloat(e.target.value) || 0)}
         style={{
           width: '100%', background: 'transparent', border: 'none', outline: 'none',
           color: C.tx, fontFamily: FN, fontSize: 14, fontWeight: 700, padding: 0,

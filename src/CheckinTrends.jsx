@@ -32,7 +32,10 @@ export default function CheckinTrends({ workouts = [] }) {
   // X axis = every check-in session, oldest → newest (all three metric graphs
   // span the same points even if one metric was skipped on some day).
   const sessions = (workouts || [])
-    .filter(w => hasReadiness(w.autoregulation))
+    // Require a valid date too (adversarial-QA #10): a check-in with no/invalid
+    // date otherwise plots an "Invalid Date" axis tick and NaN-sorts into the
+    // wrong slot, which can flip the trend line.
+    .filter(w => hasReadiness(w.autoregulation) && w.date && !Number.isNaN(new Date(w.date).getTime()))
     .sort((a, b) => new Date(a.date) - new Date(b.date));
   const chkData = sessions.map((w, i) => ({
     i, date: w.date, week: w.week,

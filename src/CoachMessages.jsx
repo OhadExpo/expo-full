@@ -121,12 +121,14 @@ async function uploadVoiceNote(blob, traineeId) {
 function Composer({ onSend, role, draftKey }) {
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
+  const sendingRef = useRef(false); // synchronous guard — `sending` state lags a fast double-tap (adversarial-QA #6: dup message + dup push)
   const rec = useVoiceRecorder();
 
   const submit = async () => {
-    if (sending) return;
+    if (sendingRef.current) return;
     const t = text.trim();
     if (!t && !rec.blob) return;
+    sendingRef.current = true;
     setSending(true);
     try {
       let audio_url = null;
@@ -142,6 +144,7 @@ function Composer({ onSend, role, draftKey }) {
       toast(`Send failed: ${e?.message || e}`, 'error', { ttl: 6000 });
     } finally {
       setSending(false);
+      sendingRef.current = false;
     }
   };
 

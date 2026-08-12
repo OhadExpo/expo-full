@@ -57,7 +57,13 @@ export function AuthProvider({ children, clientList }) {
   };
 
   useEffect(() => {
-    // Get initial session
+    // Get initial session. supabase-js uses the navigator LockManager, which can
+    // hang/deadlock across PWA tabs — if getSession never resolves, `loading`
+    // stays true and the athlete is stuck on the boot splash forever with no way
+    // out (adversarial-QA #4 — total lockout). So always clear loading (catch +
+    // idempotent finishBoot) AND a hard 8s watchdog that forces the login screen.
+    let booted = false;
+    const finishBoot = () => { if (!booted) { booted = true; setLoading(false); } };
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s);
       if (s?.user?.email) {
@@ -65,8 +71,9 @@ export function AuthProvider({ children, clientList }) {
         setRole(r.role);
         setClientId(r.clientId);
       }
-      setLoading(false);
-    });
+      finishBoot();
+    }).catch(() => finishBoot());
+    const bootWatchdog = setTimeout(finishBoot, 8000);
 
     // Listen for auth changes (magic link callback, sign out, etc.)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
@@ -100,6 +107,7 @@ export function AuthProvider({ children, clientList }) {
     if (typeof window !== 'undefined') window.addEventListener('focus', onVisible);
 
     return () => {
+      clearTimeout(bootWatchdog);
       subscription.unsubscribe();
       if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', onVisible);
       if (typeof window !== 'undefined') window.removeEventListener('focus', onVisible);
