@@ -26,6 +26,7 @@ const suites = [
   'verify-lineage-signals.mjs',      // rpeDrift (autoreg) + missRate (adherence) — thin gates + directions
   'verify-vbt-autoreg.mjs',          // velocityAutoreg (stop-set) + warmupReadiness — degenerate honesty + delta direction
   'verify-capture-quality.mjs',      // captureQuality — KEY-joint coverage gate (a framed-out lift must not read 'good')
+  'verify-velocity-metrics.mjs',     // velocityMetrics — locked scale, peak>=mean, bar-drop -> null loss (not >100%), no fabricated baseline
   'verify-lineage-core.mjs',         // e1RM (Epley) + topSet — the primitives every strength read rests on
   'verify-auto-analyze.mjs',         // auto-analyze collector — clip scoping / couples cid / load-ambiguity
   'verify-pose-metrics-store.mjs',   // Bar-Speed vault reads: asymmetry injury-watch + readiness ref + velocity-loss trend
