@@ -19,6 +19,7 @@ const suites = [
   'verify-stale-weight.mjs',         // staleWeight — the STALE->deload gate + rep-progression guard
   'verify-tonnage-acwr.mjs',         // tonnageACWR — acute:chronic injury-risk band + fabricated-spike guards
   'verify-lineage-signals.mjs',      // rpeDrift (autoreg) + missRate (adherence) — thin gates + directions
+  'verify-lineage-core.mjs',         // e1RM (Epley) + topSet — the primitives every strength read rests on
   'verify-auto-analyze.mjs',         // auto-analyze collector — clip scoping / couples cid / load-ambiguity
   'verify-verdict.mjs',              // synthesizeVerdict — the headline coach-acted call (deload gating)
 ];
