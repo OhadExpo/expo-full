@@ -626,6 +626,10 @@ export const Modal = ({ open, onClose, title, children, wide }) => {
   onCloseRef.current = onClose;
   React.useEffect(() => {
     if (!open) return;
+    // Lock background scroll while the modal is open — a blocking overlay must
+    // not let the page behind it scroll (especially on phones). Restored on close.
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
     // Save the focus element so we can restore on close — keyboard users
     // expect focus to return to the trigger that opened the modal.
     lastFocusRef.current = (typeof document !== 'undefined') ? document.activeElement : null;
@@ -671,6 +675,7 @@ export const Modal = ({ open, onClose, title, children, wide }) => {
     return () => {
       window.removeEventListener('keydown', onKey);
       clearTimeout(t);
+      document.body.style.overflow = prevOverflow;
       // Restore focus on close — wrapped in try because the prior element
       // may have unmounted (e.g. modal opened from a deleted row).
       try { lastFocusRef.current?.focus?.(); } catch {}
