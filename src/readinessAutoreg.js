@@ -78,10 +78,17 @@ export function readinessAutoreg(checkin = {}) {
     return { level: painMild ? 'amber' : 'green', loadAdjustPct: 0, regress: null, headline: painMild ? 'Mild pain — train pain-free' : 'Pain clear — train as planned', note: (painMild ? 'Mild pain reported and no sleep/energy read — stay pain-free, autoregulate by feel.' : 'No pain and no sleep/energy read — proceed on the plan, autoregulate by feel.') };
   }
   const avg = eff.reduce((a, b) => a + b, 0) / eff.length; // 0–3 on the corrected scale
+  const bothEff = sleepQ != null && energyQ != null; // full-send confidence needs BOTH markers
 
   if (avg >= 2) { // sleep + energy good or better
     if (painMissing) return { level: 'amber', loadAdjustPct: 0, regress: null, headline: 'Good markers — confirm pain first', note: 'Sleep + energy look good.' + painNote + ' Then proceed as planned.' };
     if (painMild) return { level: 'green', loadAdjustPct: 0, regress: null, headline: 'Recovered — train pain-free', note: 'Sleep + energy good — hit the prescribed loads.' + painNote };
+    // Pain clear + good recovery. Only greenlight a PR attempt when BOTH sleep AND
+    // energy were logged — a single good marker (the other unlogged) is a partial
+    // read, not full-send confidence, and sleep is the strongest recovery signal.
+    // (Adversarial-review MED: don't over-claim a PR day off half the check-in —
+    // same don't-green-on-missing-data discipline as the pain gate above.)
+    if (!bothEff) return { level: 'green', loadAdjustPct: 0, regress: null, headline: 'Looks good — train as planned', note: 'Pain clear and your ' + (sleepQ != null ? 'sleep' : 'energy') + ' read is good; the other marker wasn\'t logged, so hit the prescribed loads and autoregulate by feel (log both to unlock a PR-day call).' };
     return { level: 'green', loadAdjustPct: 0, regress: null, headline: 'Recovered — full send', note: 'Pain clear, sleep + energy good. Hit the prescribed loads; a PR attempt is fair game.' };
   }
   if (avg >= 1) return { level: 'amber', loadAdjustPct: -5, regress: 'volume', headline: 'A bit under — trim, don\'t grind', note: 'Recovery markers are a little down — keep the intensity, cut a back-off set or two (volume before intensity), stop sets a rep short.' + painNote };

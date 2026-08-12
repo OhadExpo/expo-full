@@ -45,6 +45,15 @@ check('none + good/good -> green (good=2, scale fix; was wrongly amber)', readin
 check('none + ok/ok -> amber, trim VOLUME (-5%)', (() => { const r = readinessAutoreg({ pain: 'none', sleep: 'ok', energy: 'ok' }); return r.level === 'amber' && r.regress === 'volume' && r.loadAdjustPct === -5; })());
 check('none + poor/low -> amber, back off INTENSITY (~-12%)', (() => { const r = readinessAutoreg({ pain: 'none', sleep: 'poor', energy: 'low' }); return r.level === 'amber' && r.regress === 'intensity' && r.loadAdjustPct === -12; })());
 
+  // ── PR-day needs BOTH markers: a single good effort read (the other unlogged)
+  //    is still green (pain clear) but must NOT greenlight a PR attempt — same
+  //    don't-over-claim-on-partial-data discipline as the missing-pain gate. ──
+  const oneMarker = readinessAutoreg({ pain: 'none', energy: 'good' }); // sleep unlogged
+  check('none + energy good, sleep UNLOGGED -> green but NO PR', oneMarker.level === 'green' && oneMarker.loadAdjustPct === 0 && !/PR attempt|full send/i.test(oneMarker.note));
+  check('none + sleep good, energy UNLOGGED -> green but NO PR', (() => { const r = readinessAutoreg({ pain: 'none', sleep: 'good' }); return r.level === 'green' && !/PR attempt|full send/i.test(r.note); })());
+  check('none + energy high ONLY (avg 3) -> still no PR off one marker', !/PR attempt/i.test(readinessAutoreg({ pain: 'none', energy: 'high' }).note));
+  check('PR greenlight requires BOTH sleep AND energy logged', /PR attempt/i.test(readinessAutoreg({ pain: 'none', sleep: 'great', energy: 'high' }).note));
+
 // ── honest thin states ──
 check('no check-in -> unknown', (() => { const r = readinessAutoreg({}); return r.level === 'unknown' && r.loadAdjustPct === null; })());
 check('none pain, no sleep/energy -> green by-feel', (() => { const r = readinessAutoreg({ pain: 'none' }); return r.level === 'green' && r.loadAdjustPct === 0; })());
