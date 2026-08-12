@@ -50,7 +50,7 @@ function Spark({ pts, dir }) {
   const max = Math.max(...pts, 1), min = Math.min(...pts, 0);
   const rng = max - min || 1;
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'flex-end', gap: 2, height: 20, verticalAlign: 'middle' }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, height: 20, verticalAlign: 'middle', flexShrink: 0 }}>
       {pts.map((p, i) => (
         <i key={i} style={{ width: 5, height: `${Math.max(15, ((p - min) / rng) * 100)}%`, background: col, borderRadius: 1, display: 'inline-block' }} />
       ))}
