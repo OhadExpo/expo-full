@@ -23,7 +23,9 @@ const LABEL = { power: 'power', strength: 'strength', hypertrophy: 'hypertrophy'
 // opts.recentN = size of the "recent window" (default 6 blocks ≈ a training year).
 // Returns { enough:false } when there's too little history to say anything honest.
 export function periodizationBalance(blocks, opts = {}) {
-  const recentN = opts.recentN || 6;
+  // Guard recentN: 0/undefined -> default 6; a negative would flip slice(-n) into
+  // "all but the first n" and print "last -2 blocks" (review finding #7).
+  const recentN = Math.max(1, Math.floor(opts.recentN) || 6);
   const valid = (Array.isArray(blocks) ? blocks : []).filter((b) => b && QUALITIES.includes(b.character));
   if (valid.length < 4) return { enough: false, n: valid.length };
 
@@ -53,21 +55,29 @@ export function periodizationBalance(blocks, opts = {}) {
   const lopsided = pct[dominant] > 50;
 
   // A neutral, factual read — states the pattern, never prescribes a load.
-  const read = buildRead({ total, recentN: Math.min(recentN, total), currentRun, longest, neglected, dominant, lopsided, pct, qualitiesUsed });
+  const read = buildRead({ total, recentN: Math.min(recentN, total), currentRun, longest, neglected, dominant, lopsided, pct, qualitiesUsed, recentlySkewed: currentRun.length >= 4 || neglected.length >= 2 });
 
-  // A soft "balanced?" verdict for a badge: balanced if it used ≥3 qualities and
-  // isn't currently deep in one camp (≥4 blocks) and isn't lopsided overall.
-  const balanced = qualitiesUsed >= 3 && currentRun.length < 4 && !lopsided;
+  // A soft "balanced?" verdict for a badge. Must also consult the RECENT window,
+  // not just whole-history distribution — else the badge says "balanced" while the
+  // read in the same object flags qualities missing from the last N blocks (review
+  // finding #4). Allow at most one quality absent recently (endurance often isn't
+  // every cycle); more than that isn't "balanced".
+  const balanced = qualitiesUsed >= 3 && currentRun.length < 4 && !lopsided && neglected.length <= 1;
 
   return { enough: true, n: total, counts, pct, qualitiesUsed, dominant, lopsided, neglected, recentCounts, currentRun, longest, balanced, read };
 }
 
-function buildRead({ total, recentN, currentRun, longest, neglected, dominant, lopsided, pct, qualitiesUsed }) {
+function buildRead({ total, recentN, currentRun, longest, neglected, dominant, lopsided, pct, qualitiesUsed, recentlySkewed }) {
   const parts = [];
   if (qualitiesUsed === 1) {
     parts.push(`Every one of the last ${total} blocks emphasized ${LABEL[dominant]} — no variation in training quality at all.`);
   } else if (lopsided) {
     parts.push(`${LABEL[dominant]} dominates the history (${pct[dominant]}% of ${total} blocks).`);
+  } else if (recentlySkewed) {
+    // Whole-history looks spread, but the ACTIONABLE recent window has narrowed —
+    // don't lead with "varied" and let a coach relax (review finding #1). The
+    // current-run / neglected clauses below give the specifics.
+    parts.push(`Varied across ${qualitiesUsed} qualities overall, but the recent stretch has narrowed.`);
   } else {
     parts.push(`Fairly varied across ${qualitiesUsed} qualities over ${total} blocks.`);
   }
@@ -78,6 +88,11 @@ function buildRead({ total, recentN, currentRun, longest, neglected, dominant, l
     const names = neglected.map((q) => LABEL[q]);
     const list = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
     parts.push(`No ${list} phase in the last ${recentN} blocks.`);
+  }
+  // Surface the deepest historical camp when it's a real run (≥4) and isn't just
+  // re-describing the current run the clause above already covered (finding #6).
+  if (longest.length >= 4 && !(longest.character === currentRun.character && longest.length === currentRun.length)) {
+    parts.push(`Deepest camp on record: ${longest.length} straight ${LABEL[longest.character]} blocks.`);
   }
   if (parts.length === 1 && currentRun.length < 3 && !neglected.length) {
     parts.push('Every quality has been touched recently — a well-rounded rotation.');
