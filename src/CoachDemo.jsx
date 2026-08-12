@@ -2752,11 +2752,11 @@ function DemoExercises() {
     <section>
       {/* Header — title + live count (left) + TABLE/GRID toggle (right), mirroring
           the redesigned real ExercisesView. */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, gap: 12, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
         <h2 style={{ margin: 0, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', color: C.tx, textTransform: 'uppercase' }}>
           Exercises <span style={{ color: C.tm, fontWeight: 700 }}>· {filtered.length}</span>
         </h2>
-        <div style={{ display: 'flex', gap: 6, width: 168 }}>
+        <div style={{ display: 'flex', gap: 6, width: 200 }}>
           {[['table', 'Table'], ['grid', 'Grid']].map(([v, label]) => {
             const on = view === v;
             return <button key={v} onClick={() => setView(v)} style={{ flex: 1, height: 30, boxSizing: 'border-box', borderRadius: 0, cursor: 'pointer', border: `1px solid ${on ? '#39BDFF' : C.cardBd}`, background: on ? '#39BDFF' : C.sf, color: on ? '#FFFFFF' : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{label}</button>;
@@ -2764,9 +2764,9 @@ function DemoExercises() {
         </div>
       </div>
 
-      {/* Search + Add Exercise — mirrors the real ExercisesView top row
-          (cyan-bordered search h42 + solid + Add Exercise button; no count chip). */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 10, alignItems: 'stretch', flexWrap: 'wrap' }}>
+      {/* Search + Add Exercise — mirrors the real ExercisesView top row: cyan
+          search + Add Exercise both h30, Add = toggle width (200), one line. */}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 18, alignItems: 'stretch', flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: 200, display: 'flex' }}>
           <input
             type="search"
@@ -2775,16 +2775,17 @@ function DemoExercises() {
             placeholder="Search exercises (title, muscle, pattern...)"
             style={{
               width: '100%', boxSizing: 'border-box', background: C.sf, border: `1px solid ${C.ac}`, borderRadius: 0,
-              height: 42, padding: '0 14px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none',
+              height: 30, padding: '0 14px', color: C.tx, fontFamily: FB, fontSize: 13, lineHeight: '30px', outline: 'none',
             }}
           />
         </div>
-        <button style={{ height: 42, padding: '0 18px', background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.06em', cursor: 'pointer', borderRadius: 0, whiteSpace: 'nowrap' }}>+ Add Exercise</button>
+        <button style={{ height: 30, width: 200, flexShrink: 0, padding: '0 18px', background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.06em', cursor: 'pointer', borderRadius: 0, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ Add Exercise</button>
       </div>
 
-      {/* Filter rail — inline UNDERLINE-style controls, matching the redesigned
-          real ExercisesView (filters = underline text, no boxed cyan-header card). */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 14px', padding: '0 1px 10px', marginBottom: 12, borderBottom: `1px solid ${C.cardBd}` }}>
+      {/* Filter rail — inline UNDERLINE-style controls led by a muted "Filter by"
+          role-label, matching the redesigned real ExercisesView. */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 14px', padding: '0 1px 12px', marginBottom: 16, borderBottom: `1px solid ${C.cardBd}` }}>
+        <span style={{ flexShrink: 0, width: 58, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: C.td, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Filter&nbsp;by</span>
         {[['category', 'Category', CATEGORIES], ['resistanceType', 'Resistance', RESISTANCE_TYPES], ['bodyPosition', 'Body Position', BODY_POSITIONS], ['movementType', 'Movement', MOVEMENT_TYPES], ['movementPattern', 'Pattern', MOVEMENT_PATTERNS], ['laterality', 'Laterality', LATERALITY]].map(([k, label, opts]) => (
           <select key={k} value={filters[k]} onChange={e => setF(k, e.target.value)}
             style={{ background: 'transparent', border: 'none', borderBottom: `2px solid ${filters[k] ? C.ac : 'transparent'}`, color: filters[k] ? C.ac : C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '4px 1px', cursor: 'pointer', outline: 'none', maxWidth: 180 }}>
