@@ -182,7 +182,7 @@ export default function MessagesCard({ trainees, onSelectTrainee }) {
   };
 
   // TraineeDetail routes on parent IDs.
-  const parentFor = (id) => (id.includes('__') ? id.split('__')[0] : id);
+  const parentFor = (id) => (typeof id === 'string' && id.includes('__') ? id.split('__')[0] : id);
 
   return (
     <div style={{
