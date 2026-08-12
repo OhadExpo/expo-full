@@ -12,6 +12,7 @@ import React, { useMemo, useState } from 'react';
 import { C, FN } from './theme';
 import { analyzeAthlete } from './lineageAnalysis';
 import { getAthleteVault, getAthleteAsymmetryTrend } from './poseMetricsStore';
+import { velocityProfile1RM, mvtForLift } from './velocityProfile1RM';
 import { blockNum, classifyPattern, repsTop, exById } from './PlansView';
 
 const wrap = { maxWidth: 980, margin: '0 auto', fontFamily: FN };
@@ -448,6 +449,14 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
                 const mx = Math.max(...lift.entries.map((e) => e.lossPct || 0), 20);
                 const tCol = lift.trend === 'worse' ? C.rd : lift.trend === 'better' ? C.gn : C.pu;
                 const last = lift.entries[lift.entries.length - 1];
+                // Load-velocity 1RM: if he filmed this lift across a real load range,
+                // extrapolate a max WITHOUT a max test (the elite-VBT read no phone
+                // tool does). The engine refuses thin/noisy data, so this line only
+                // appears on a genuinely profilable lift — never a fabricated number.
+                const prof = velocityProfile1RM(
+                  lift.entries.filter((e) => e.load && e.bestMean).map((e) => ({ load: e.load, velocity: e.bestMean })),
+                  mvtForLift(lift.title),
+                );
                 return (
                   <div key={lift.title} style={{ padding: '9px 0', borderTop: `1px solid ${C.bd}` }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 5 }}>
@@ -462,10 +471,16 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
                           style={{ flex: 1, minWidth: 4, height: `${Math.max(12, ((e.lossPct || 0) / mx) * 100)}%`, background: tCol, opacity: 0.85, borderRadius: '1px 1px 0 0' }} />
                       ))}
                     </div>
+                    {prof.state === 'ok' && prof.confidence !== 'low' && (
+                      <div title={`Load-velocity profile: linear fit of bar speed vs load across ${prof.loads} loads, extrapolated to this lift's minimal-velocity threshold (${prof.mvt} m/s). R²=${prof.r2}. Not a tested max — a tracked estimate.`}
+                        style={{ marginTop: 6, fontSize: 10.5, color: C.ac, letterSpacing: '0.02em' }}>
+                        Est. 1RM ~{prof.oneRM}kg <span style={{ color: C.td }}>· {prof.loads} loads · {prof.confidence} confidence · no max test</span>
+                      </div>
+                    )}
                   </div>
                 );
               })}
-              <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>Per-lift velocity-loss from filmed sets — rising bars = fatigue building on the bar, days before load or RPE would show it.</div>
+              <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>Per-lift velocity-loss from filmed sets — rising bars = fatigue building on the bar, days before load or RPE would show it. Film a lift across a load range and it also extrapolates a max-less 1RM (load-velocity profiling — the elite-VBT read no phone tool offers).</div>
             </>
           ) : (
             <div style={{ border: `1px dashed ${C.bd}`, background: C.sf2, padding: 14, color: C.tm, fontSize: 12.5, lineHeight: 1.5 }}>
