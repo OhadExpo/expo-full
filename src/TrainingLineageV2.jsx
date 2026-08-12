@@ -21,6 +21,24 @@ const hd = { background: C.sf2, borderBottom: `1px solid ${C.bd}`, padding: '8px
 const hdQ = { color: C.tm, fontWeight: 400, letterSpacing: 0, textTransform: 'none', fontSize: 11 };
 const bd = { padding: '13px 14px' };
 
+// A collapsible report card: the strip header is the toggle; collapsed it shows a
+// one-line summary on the right, expanded it reveals the full body (Ohad — the
+// analysis sections open on demand). Defaults closed.
+function Section({ title, tag, summary, children, cardStyle = card, defaultOpen = false }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div style={cardStyle}>
+      <div style={{ ...hd, cursor: 'pointer' }} onClick={() => setOpen((o) => !o)} role="button" tabIndex={0} aria-expanded={open}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen((o) => !o); } }}
+        title={open ? 'Collapse' : 'Expand for the full report'}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ color: C.ac, fontSize: 10 }}>{open ? '▾' : '▸'}</span>{title}{tag}</span>
+        <span style={hdQ}>{open ? '' : summary}</span>
+      </div>
+      {open && <div style={bd}>{children}</div>}
+    </div>
+  );
+}
+
 const toneColor = { warn: C.or, bad: C.rd, ok: C.gn, info: C.ac };
 
 function Read({ tone = 'info', children, why }) {
@@ -405,8 +423,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
       const t = a.transfer;
       const tone = t.side === 'balanced' ? C.gn : t.side === 'stalled' ? C.or : C.pu;
       return (
-        <div style={card}><div style={hd}>Strength → power<span style={hdQ}>is his base converting to explosive output?</span></div>
-          <div style={bd}>
+        <Section title="Strength → power" summary={`${t.sT > 0 ? '+' : ''}${t.sT}% str · ${t.pT > 0 ? '+' : ''}${t.pT}% pow`}>
             <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'stretch', marginBottom: 10 }}>
               <div style={{ flex: '1 1 0', minWidth: 130, border: `1px solid ${C.bd}`, background: C.sf2, padding: '9px 11px' }}>
                 <div style={{ fontSize: 20, fontWeight: 700, color: t.sT > 0.8 ? C.gn : t.sT < -0.8 ? C.rd : C.or, fontVariantNumeric: 'tabular-nums' }}>{t.sT > 0 ? '+' : ''}{t.sT}%</div>
@@ -422,15 +439,13 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
             <div style={{ fontSize: 14, color: C.tx, lineHeight: 1.5 }}><b style={{ color: tone }}>{t.read}.</b></div>
             <div style={{ fontSize: 13, color: C.ac, fontWeight: 600, marginTop: 5, lineHeight: 1.5 }}>→ {t.move}</div>
             <div style={{ fontSize: 10, color: C.td, marginTop: 8, lineHeight: 1.5 }}>Trend = avg e1RM slope per side. A relationship to watch, not a law — strength↔power carry-over is individual. Film jumps to swap the load-proxy for real height + bar-speed.</div>
-          </div>
-        </div>
+        </Section>
       );
     })()}
 
     {/* 4+5. LOAD/VOLUME + VELOCITY */}
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }} className="lineage-grid2">
-      <div style={{ ...card, marginTop: 0 }}><div style={hd}>Load &amp; volume</div>
-        <div style={bd}>
+      <Section title="Load & volume" cardStyle={{ ...card, marginTop: 0 }} summary={a.acwr.state === 'ok' ? `ACWR ${a.acwr.acwr}` : 'building the baseline'}>
           {a.acwr.state === 'ok' ? (
             <>
               <Kpi v={a.acwr.acwr} l="Load ratio (ACWR)" s="completed tonnage · watch >1.3" color={a.acwr.band === 'high' ? C.rd : a.acwr.band === 'low' ? C.or : C.gn} />
@@ -445,11 +460,9 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
               <b style={{ color: C.tx }}>Building the load baseline.</b> Need ~4 weeks of logging for a real acute:chronic ratio — have {a.acwr.haveDays || 0} days.
             </div>
           )}
-        </div>
-      </div>
+      </Section>
 
-      <div style={{ ...card, marginTop: 0 }}><div style={hd}>Bar speed<span style={{ fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '1px 6px', border: `1px solid ${C.pu}`, color: C.pu }}>camera only</span></div>
-        <div style={bd}>
+      <Section title="Bar speed" cardStyle={{ ...card, marginTop: 0 }} tag={<span style={{ fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '1px 6px', border: `1px solid ${C.pu}`, color: C.pu, marginLeft: 8 }}>camera only</span>} summary={vault && vault.length > 0 ? `${vault.length} lift${vault.length === 1 ? '' : 's'} tracked` : 'no stored velocity'}>
           {vault && vault.length > 0 ? (
             <>
               {vault.slice(0, 3).map((lift) => {
@@ -494,11 +507,9 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
               <b style={{ color: C.tx }}>No stored velocity yet.</b> Bar speed is the one fatigue signal that drops <i>before</i> load or RPE — and no competitor at this price can read it. Film a set in the camera tools and hit <span style={{ color: C.ac }}>Save bar speed to trend</span> — this becomes a per-lift fatigue line that's a real moat.
             </div>
           )}
-        </div>
-      </div>
+      </Section>
 
-      <div style={{ ...card, marginTop: 0 }}><div style={hd}>Symmetry · injury watch<span style={{ fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '1px 6px', border: `1px solid ${C.pu}`, color: C.pu }}>camera only</span></div>
-        <div style={bd}>
+      <Section title="Symmetry · injury watch" cardStyle={{ ...card, marginTop: 0 }} tag={<span style={{ fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '1px 6px', border: `1px solid ${C.pu}`, color: C.pu, marginLeft: 8 }}>camera only</span>} summary={asymTrend.joints.length > 0 ? (asymTrend.anyFlag ? `watch ${asymTrend.worst.joint.toLowerCase()}` : `holding · ${asymTrend.films} film${asymTrend.films === 1 ? '' : 's'}`) : 'no history'}>
           {asymTrend.joints.length > 0 ? (
             <>
               <div style={{ fontSize: 12.5, color: asymTrend.anyFlag ? C.rd : asymTrend.films < 2 ? C.tm : C.gn, marginBottom: 4, fontWeight: 600 }}>
@@ -535,8 +546,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
               <b style={{ color: C.tx }}>No symmetry history yet.</b> Every filmed set logs left-vs-right joint travel. Once a few are saved, this becomes a per-joint drift line — a limb pulling away shows here <i>before</i> it's a tweak. Nobody at this price trends it.
             </div>
           )}
-        </div>
-      </div>
+      </Section>
     </div>
 
     {/* 6. READINESS honest thin */}
