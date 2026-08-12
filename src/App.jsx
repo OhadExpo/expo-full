@@ -12,6 +12,7 @@ import { Btn, baseBtn, ToastHost, toast } from './ui';
 import BugReportButton from './BugReportButton';
 import { parseTraineeId } from './traineeUtils';
 import { AuthProvider, useAuth, LoginScreen, UnauthorizedScreen, PasswordChangeModal, SaveErrorToast, OfflineStatusPill, RolePickerScreen, PORTAL_CHOICE_KEY, TRAINER_EMAILS, OWNER_EMAILS } from './auth';
+import InstallAppPrompt from './InstallAppPrompt';
 import ErrorBoundary from './ErrorBoundary';
 // Lazy-load every heavy view so the initial bundle stays small.
 // Each tab fetches its own chunk on first navigation; subsequent visits use cache.
@@ -600,7 +601,7 @@ function AuthGate() {
   // SaveErrorToast rides alongside AuthedApp so a failed write from any
   // hook (useSupaStore, useSupaClientWorkouts, useSupaBwLog, useSupaWeeklyFocus)
   // surfaces as a red card bottom-right instead of being swallowed.
-  return <><AuthedApp /><SaveErrorToast /><OfflineStatusPill /><ToastHost /></>;
+  return <><AuthedApp /><SaveErrorToast /><OfflineStatusPill /><ToastHost /><InstallAppPrompt /></>;
 }
 
 function AuthedApp() {
@@ -931,10 +932,17 @@ function AuthedApp() {
   }, [previewPlan]);
 
   const navTo = useCallback((newTab, newTrainee) => {
+    // Staff (non-owner coach) can never navigate to an owner-only tab — not even
+    // via a cross-tab action button surfaced on their dashboard/tasks (e.g. a
+    // task's "open program"/"open athlete"/"review"). Without this, such a click
+    // rendered an owner-only view (PlansView/TraineeDetail/WorkoutReview) and
+    // fired its Supabase reads for one frame before the URL guard bounced them.
+    // Owners (isOwner) are unaffected; athletes never hit the coach app.
+    if (isCoach && !isOwner && newTab && !STAFF_TABS.includes(newTab)) return;
     setTab(newTab);
     setSelectedTrainee(newTrainee || null);
     updateURL(newTab, newTrainee);
-  }, [updateURL]);
+  }, [updateURL, isCoach, isOwner]);
 
   // Stable ref for MemoReview — an inline arrow here would defeat its memo.
   const openTraineeFromReview = useCallback((id) => navTo('trainees', id), [navTo]);
