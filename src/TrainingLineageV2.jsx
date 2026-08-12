@@ -621,8 +621,8 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
           ) : (
             <div style={{ border: `1px dashed ${C.bd}`, background: C.sf2, padding: 14, color: C.tm, fontSize: 12.5, lineHeight: 1.5 }}>
               {autoPose.running
-                ? <><b style={{ color: C.ac }}>Auto-analysing his clips… {autoPose.done}/{autoPose.total}.</b> Bar speed is read from every uploaded video automatically — no logging needed. This fills in as it goes.</>
-                : <><b style={{ color: C.tx }}>No clean bar-speed read yet.</b> Every uploaded clip is auto-analysed for velocity — none is filmed side-on cleanly enough to trend yet. Bar speed drops <i>before</i> load or RPE; it's the fatigue read no competitor at this price offers.</>}
+                ? <><b style={{ color: C.ac, display: 'block', marginBottom: 5 }}>Auto-analysing clips… {autoPose.done}/{autoPose.total}</b><span>Bar speed is read from every uploaded video automatically — no logging needed. This fills in as it goes.</span></>
+                : <><b style={{ color: C.tx, display: 'block', marginBottom: 5 }}>No clean bar-speed read yet.</b><span>Every uploaded clip is auto-analysed for velocity — none is filmed side-on cleanly enough to trend yet. Bar speed drops <i>before</i> load or RPE; it's the fatigue read no competitor at this price offers.</span></>}
             </div>
           )}
       </Section>
@@ -662,8 +662,8 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
           ) : (
             <div style={{ border: `1px dashed ${C.bd}`, background: C.sf2, padding: 14, color: C.tm, fontSize: 12.5, lineHeight: 1.5 }}>
               {autoPose.running
-                ? <><b style={{ color: C.ac }}>Auto-analysing his clips… {autoPose.done}/{autoPose.total}.</b> Left-vs-right joint travel is read from every uploaded video automatically — no logging needed.</>
-                : <><b style={{ color: C.tx }}>No symmetry read yet.</b> Every uploaded clip is auto-analysed for L/R joint travel — none clean enough to trend yet. A limb pulling away shows here <i>before</i> it's a tweak; nobody at this price trends it.</>}
+                ? <><b style={{ color: C.ac, display: 'block', marginBottom: 5 }}>Auto-analysing clips… {autoPose.done}/{autoPose.total}</b><span>Left-vs-right joint travel is read from every uploaded video automatically — no logging needed.</span></>
+                : <><b style={{ color: C.tx, display: 'block', marginBottom: 5 }}>No symmetry read yet.</b><span>Every uploaded clip is auto-analysed for L/R joint travel — none clean enough to trend yet. A limb pulling away shows here <i>before</i> it's a tweak; nobody at this price trends it.</span></>}
             </div>
           )}
       </Section>
