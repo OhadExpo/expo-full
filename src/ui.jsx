@@ -84,6 +84,10 @@ const variants = {
   // text, but using the AA variant keeps the small "ghost"-on-white wins
   // free without re-evaluating per call site.
   primary: { background: 'transparent', color: C.acText, border: `1px solid ${C.ac}` },
+  // Solid brand CTA — literal #39BDFF (not C.ac, which resolves near-black in the
+  // light-refined theme) with dark text, so it's a visible filled button in BOTH
+  // themes. Used for the rail footer actions (+ New Program / + Add Athlete).
+  solid: { background: '#39BDFF', color: '#06131b', border: '1px solid #39BDFF' },
   ghost: { background: "transparent", color: C.tm, border: `1px solid var(--c-ghostBd)` },
   danger: { background: 'transparent', color: C.rd, border: `1px solid ${C.rd}` },
   success: { background: 'transparent', color: C.gn, border: `1px solid ${C.gn}` },
@@ -579,7 +583,10 @@ export const Card = ({ children, style, onClick, onMouseEnter, onMouseLeave, hea
         if (onMouseLeave) onMouseLeave(e);
       }}>
       {hasStrip && (
-        <RefinedHeaderStrip padY={padNum} padX={padNum} marginBottom={12}>
+        // Header-only card (no body content): let the strip bleed to the BOTTOM
+        // edge too (negative margin cancels the card's bottom padding) so there's
+        // no dead band under the title. With a body, keep the normal 12px gap.
+        <RefinedHeaderStrip padY={padNum} padX={padNum} marginBottom={children ? 12 : -padNum}>
           {headerRight ? (
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
               {/* Pure white in BOTH themes so the dark strip's title reads
@@ -798,23 +805,40 @@ export function dismissToast(id) {
 }
 // Async confirm dialog returning a promise<boolean>. Replaces window.confirm()
 // without blocking the JS thread (window.confirm halts video element on iOS).
+// SINGLE-INSTANCE + backdrop-blocking (Ohad: "open once, can't click anything
+// else until resolved — like the update popup"). A second call while one is
+// already open resolves false immediately instead of stacking a duplicate.
+let _confirmActive = false;
+// Module-scoped resolver for the currently-open confirm, so an interrupted
+// confirm (its ToastHost unmounting on a route flip before the user answers)
+// can be force-resolved to `false` instead of stranding `_confirmActive = true`
+// forever — which would make every subsequent confirmToast() silently return
+// false and no dialog ever appear again.
+let _confirmFinish = null;
 export function confirmToast(message, { okLabel = 'OK', cancelLabel = 'Cancel' } = {}) {
+  if (_confirmActive) return Promise.resolve(false); // no stacking
+  _confirmActive = true;
   return new Promise(resolve => {
+    const finish = v => { _confirmActive = false; _confirmFinish = null; resolve(v); dismissToast(id); };
+    _confirmFinish = finish;
     const id = toast(message, 'confirm', {
       ttl: 0,
       actions: [
         { label: cancelLabel, variant: 'ghost', value: false },
         { label: okLabel, variant: 'primary', value: true },
       ],
-      onAction: v => resolve(v),
     });
     // patch the just-created item with onAction (toast() doesn't accept it as-is)
-    _listeners.forEach(fn => fn({ type: 'patch', id, patch: { onAction: v => { resolve(v); dismissToast(id); } } }));
+    _listeners.forEach(fn => fn({ type: 'patch', id, patch: { onAction: finish } }));
   });
 }
 
 export function ToastHost() {
   const [items, setItems] = React.useState([]);
+  // Track whether THIS host is currently showing a confirm, so its unmount
+  // cleanup can release a stranded confirm (and only then).
+  const hasConfirmRef = React.useRef(false);
+  hasConfirmRef.current = items.some(x => x.kind === 'confirm');
   React.useEffect(() => {
     const fn = (ev) => {
       if (ev.type === 'add') setItems(prev => [...prev, ev.item]);
@@ -822,7 +846,12 @@ export function ToastHost() {
       else if (ev.type === 'patch') setItems(prev => prev.map(x => x.id === ev.id ? { ...x, ...ev.patch } : x));
     };
     _listeners.add(fn);
-    return () => { _listeners.delete(fn); };
+    return () => {
+      _listeners.delete(fn);
+      // If this host is torn down (e.g. a route flip) while a confirm is still
+      // open, force-resolve it to false so _confirmActive doesn't stay latched.
+      if (hasConfirmRef.current && _confirmActive && _confirmFinish) _confirmFinish(false);
+    };
   }, []);
   if (!items.length) return null;
   const palette = {
@@ -832,27 +861,52 @@ export function ToastHost() {
     warn:    { bg: C.orD,  fg: C.or,  bd: `rgba(255,165,2,0.4)` },
     confirm: { bg: C.sf2,  fg: C.tx,  bd: `rgba(57,189,255,0.6)` },
   };
+  // Confirms render as a centered, backdrop-blocking modal (Ohad: "can't click
+  // anything else until resolved"); plain toasts keep the bottom stack.
+  const confirms = items.filter(it => it.kind === 'confirm');
+  const toasts = items.filter(it => it.kind !== 'confirm');
+  const confirm = confirms[0]; // single-instance guaranteed by confirmToast()
+  const p = confirm ? (palette.confirm) : null;
   return (
-    <div role="status" aria-live="polite" aria-atomic="false" style={{ position: 'fixed', left: '50%', bottom: 20, transform: 'translateX(-50%)', zIndex: 1300, display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center', pointerEvents: 'none', maxWidth: 'calc(100vw - 32px)' }}>
-      {items.map(it => {
-        const p = palette[it.kind] || palette.info;
-        return (
-          <div key={it.id}
-            role={it.actions ? 'alertdialog' : undefined}
-            aria-modal={it.actions ? 'true' : undefined}
-            onKeyDown={it.actions ? (e => { if (e.key === 'Escape') { if (it.onAction) it.onAction(false); dismissToast(it.id); } }) : undefined}
-            style={{ pointerEvents: 'auto', background: C.sf, color: p.fg, border: `1px solid ${p.bd}`, borderRadius: 0, padding: '12px 16px', fontFamily: FB, fontSize: 13, fontWeight: 500, boxShadow: `0 8px 24px ${C.shadow}`, minWidth: 240, maxWidth: 480, display: 'flex', flexDirection: 'column', gap: 10, textAlign: 'center' }}>
-            <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.45 }}>{it.message}</div>
-            {it.actions && (
+    <>
+      {confirm && (
+        <div role="alertdialog" aria-modal="true"
+          onKeyDown={e => { if (e.key === 'Escape' && confirm.onAction) confirm.onAction(false); }}
+          onClick={e => { if (e.target === e.currentTarget && confirm.onAction) confirm.onAction(false); }}
+          style={{ position: 'fixed', inset: 0, zIndex: 1310, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ background: C.sf, color: p.fg, border: `1px solid ${p.bd}`, borderRadius: 0, padding: '18px 20px', fontFamily: FB, fontSize: 13, fontWeight: 500, boxShadow: `0 16px 48px ${C.shadow}`, minWidth: 280, maxWidth: 460, display: 'flex', flexDirection: 'column', gap: 14, textAlign: 'center' }}>
+            <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.45 }}>{confirm.message}</div>
+            {confirm.actions && (
               <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>
-                {it.actions.map((a, i) => (
-                  <Btn key={i} variant={a.variant || 'ghost'} autoFocus={i === 0} onClick={() => { if (it.onAction) it.onAction(a.value); dismissToast(it.id); }}>{a.label}</Btn>
+                {/* Focus the FIRST action (Cancel) — confirmToast always builds
+                    [cancel, ok], so an accidental Enter cancels instead of
+                    confirming a possibly-destructive action (matches ConfirmDialog). */}
+                {confirm.actions.map((a, i) => (
+                  <Btn key={i} variant={a.variant || 'ghost'} autoFocus={i === 0} onClick={() => { if (confirm.onAction) confirm.onAction(a.value); }}>{a.label}</Btn>
                 ))}
               </div>
             )}
           </div>
-        );
-      })}
-    </div>
+        </div>
+      )}
+      <div role="status" aria-live="polite" aria-atomic="false" style={{ position: 'fixed', left: '50%', bottom: 20, transform: 'translateX(-50%)', zIndex: 1300, display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center', pointerEvents: 'none', maxWidth: 'calc(100vw - 32px)' }}>
+        {toasts.map(it => {
+          const tp = palette[it.kind] || palette.info;
+          return (
+            <div key={it.id}
+              style={{ pointerEvents: 'auto', background: C.sf, color: tp.fg, border: `1px solid ${tp.bd}`, borderRadius: 0, padding: '12px 16px', fontFamily: FB, fontSize: 13, fontWeight: 500, boxShadow: `0 8px 24px ${C.shadow}`, minWidth: 240, maxWidth: 480, display: 'flex', flexDirection: 'column', gap: 10, textAlign: 'center' }}>
+              <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.45 }}>{it.message}</div>
+              {it.actions && (
+                <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>
+                  {it.actions.map((a, i) => (
+                    <Btn key={i} variant={a.variant || 'ghost'} onClick={() => { if (it.onAction) it.onAction(a.value); dismissToast(it.id); }}>{a.label}</Btn>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </>
   );
 }
