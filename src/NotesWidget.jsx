@@ -129,7 +129,7 @@ function MiniTaskRow({ n, stackBoard, onClick, stripe }) {
       )}
       <span style={{ fontFamily: heb ? FH : FB, direction: heb ? 'rtl' : 'ltr', textAlign: 'center', color: name ? 'var(--c-tm)' : 'var(--c-tx)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{body}</span>
       {kindLabel && (
-        <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: kindTone, border: `1px solid ${kindTone}`, padding: '1px 5px', lineHeight: 1.3, flexShrink: 0 }}>{kindLabel}</span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: kindTone, border: `1px solid ${kindTone}`, padding: '2px 5px', lineHeight: 1, flexShrink: 0 }}>{kindLabel}</span>
       )}
     </div>
   );
@@ -273,19 +273,19 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
           style={{
             fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
             color: stripeColor, border: `1px solid ${stripeColor}`,
-            padding: '1px 6px', lineHeight: 1.3,
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '2px 6px', lineHeight: 1,
           }}>{kindIcon} {kindLabel}</span>
         {priority !== 'normal' && (
           <span title={`Priority: ${priority}`} style={{
             fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
             color: PRIORITY_TONE[priority] || 'var(--c-tm)', border: `1px solid ${PRIORITY_TONE[priority] || 'var(--c-cardBd)'}`,
-            padding: '1px 6px', lineHeight: 1.3, textTransform: 'uppercase',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '2px 6px', lineHeight: 1, textTransform: 'uppercase',
           }}>{priority}</span>
         )}
         {owner === 'shared' && (
           <span title="Shared task — needs both Ohad & Yuval" style={{
             fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
-            color: 'var(--c-ac)', border: '1px solid var(--c-ac)', padding: '1px 6px', lineHeight: 1.3,
+            color: 'var(--c-ac)', border: '1px solid var(--c-ac)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '2px 6px', lineHeight: 1,
           }}>SHARED</span>
         )}
         {isAuto && (

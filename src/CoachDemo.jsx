@@ -191,6 +191,7 @@ function OnlineDot() {
 function Badge({ color = C.tm, children }) {
   return (
     <span style={{
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
       fontFamily: FN, fontSize: 9, letterSpacing: 1.2, fontWeight: 700,
       color, background: color + '20', border: `1px solid ${color}40`,
       borderRadius: 0, padding: '2px 6px', whiteSpace: 'nowrap',

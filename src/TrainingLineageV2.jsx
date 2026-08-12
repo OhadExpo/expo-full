@@ -80,7 +80,7 @@ function Spark({ pts, dir }) {
 }
 
 function Tag({ text, color }) {
-  return <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.03em', padding: '2px 7px', border: `1px solid ${color}`, color, whiteSpace: 'nowrap' }}>{text}</span>;
+  return <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontSize: 10, fontWeight: 700, letterSpacing: '0.03em', padding: '3px 7px', border: `1px solid ${color}`, color, whiteSpace: 'nowrap' }}>{text}</span>;
 }
 
 // staple → { tag, tagColor, why, next } — every competitor stops at "here's the
