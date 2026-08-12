@@ -156,6 +156,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
   const vault = useMemo(() => getAthleteVault(traineeId), [traineeId]);
   const asymTrend = useMemo(() => getAthleteAsymmetryTrend(traineeId), [traineeId]);
   const [showThin, setShowThin] = useState(false); // expand the "logged 1-2× · too few to trend" lifts
+  const [liftsOpen, setLiftsOpen] = useState(false); // HIS LIFTS list collapsed by default — click the header to expand (Ohad)
 
   const shell = (children) => (
     <div style={{ ...wrap, background: C.bg, border: `1px solid ${C.bd}`, borderRadius: 2, overflow: 'hidden' }}>
@@ -350,8 +351,14 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
 
     {/* 3. STAPLES */}
     {a.staples.length > 0 && (
-      <div style={card}><div style={hd}>His lifts · what to do next<span style={hdQ}>worst first · each row tells you the move for next block</span></div>
-        <div style={bd}>
+      <div style={card}>
+        <div style={{ ...hd, cursor: 'pointer' }} onClick={() => setLiftsOpen((v) => !v)} role="button" tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setLiftsOpen((v) => !v); } }}
+          title={liftsOpen ? 'Collapse' : 'Expand the per-lift breakdown'}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ color: C.ac }}>{liftsOpen ? '▾' : '▸'}</span>His lifts · what to do next</span>
+          <span style={hdQ}>{liftsOpen ? 'worst first · each row tells you the move for next block' : `${a.staples.filter((s) => s.count >= 3).length} lifts · click to expand`}</span>
+        </div>
+        {liftsOpen && <div style={bd}>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead><tr>
@@ -389,7 +396,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
           <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>
             Lifts he's logged 3+ times (enough to read){a.bodyweightLifts > 0 ? ` · ${a.bodyweightLifts} more bodyweight/accessory lift${a.bodyweightLifts === 1 ? '' : 's'} (no load to trend)` : ''} · best = heaviest logged · e = est-1RM (Epley), hidden past 12 reps.
           </div>
-        </div>
+        </div>}
       </div>
     )}
 

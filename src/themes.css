@@ -20,6 +20,11 @@
 .expo-btn:hover { background: rgba(127,127,127,0.10) !important; }
 .expo-btn:hover { background: color-mix(in srgb, currentColor 12%, transparent) !important; }
 
+/* Single-row control strips that may overflow on narrow widths: keep them on one
+   line and scrollable without a visible scrollbar (e.g. TraineeDetail section tabs). */
+.hide-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+
 /* Program-list rows in split-screen / narrow windows: stack the action cluster
    (date · +N · portal · preview/duplicate/share/delete) BELOW the name instead
    of squeezing them on one line, which truncated the block name to "BL…". The
@@ -582,6 +587,16 @@ html, body {
   /* Clickable cards/rows (inline cursor:pointer) get a whisper-soft hover
      lift so lists feel alive without moving the layout. */
   [style*="cursor: pointer"]:hover { filter: brightness(1.05); }
+  /* Diverse, on-brand accents on top of the base motion (Ohad: add transition
+     effects anywhere it adds to the visuality — same style, a little diverse):
+     solid CTAs lift a hair on hover; clickable cards float with a soft cyan
+     glow. Non-board cards only (board cards drag, so no transform there). */
+  .expo-btn:not(:disabled):hover { transform: translateY(-1px); }
+  .expo-btn:not(:disabled):active { transform: translateY(0); }
+  .prog-card:hover, .ex-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 22px rgba(57, 189, 255, 0.13);
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

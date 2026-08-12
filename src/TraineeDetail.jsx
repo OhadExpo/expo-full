@@ -463,13 +463,13 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
               own notifications (coach messages, missed-day cron) are
               unaffected. State persisted on the trainee object so it syncs
               across coach devices via the trainees store. */}
-          {/* Order: primary actions (LOG SESSION / PORTAL / EDIT) first, then the
-              NOTIFICATION toggle, then ARCHIVE (destructive) last — grouped so the
-              row reads left-to-right by intent instead of leading with a setting. */}
+          {/* Order: EDIT first (right after BACK — Ohad), then the other primary
+              actions (LOG SESSION / PORTAL / LINEAGE), then the NOTIFICATION toggle,
+              then ARCHIVE (destructive) last. */}
+          <Btn variant="ghost" onClick={openEdit} style={{fontSize:11,padding:"4px 10px",height:30,boxSizing:"border-box"}}>EDIT</Btn>
           {onOpenInPersonForTrainee && <Btn variant="ghost" onClick={()=>onOpenInPersonForTrainee(trainee)} style={{fontSize:11,padding:"4px 10px",height:30,boxSizing:"border-box"}} title="Open the in-person workout logger pre-filtered to this athlete">LOG SESSION</Btn>}
           {onPreviewPortal && <Btn variant="ghost" onClick={onPreviewPortal} style={{fontSize:11,padding:"4px 10px",height:30,boxSizing:"border-box"}} title="Open this athlete's portal in preview mode">PORTAL</Btn>}
           <Btn variant="ghost" onClick={()=>lineage.open(trainee)} style={{fontSize:11,padding:"4px 10px",height:30,boxSizing:"border-box"}} title="Training Lineage — cross-block progression + what to program next">LINEAGE</Btn>
-          <Btn variant="ghost" onClick={openEdit} style={{fontSize:11,padding:"4px 10px",height:30,boxSizing:"border-box"}}>EDIT</Btn>
           <button
             onClick={() => { if (setTrainees) setTrainees(prev => prev.map(t => t.id === trainee ? { ...t, notifOff: !t.notifOff } : t)); }}
             title={td.notifOff ? 'Notifications muted for this athlete — click to unmute' : 'Notifications on — click to mute push + dashboard alerts about this athlete'}
@@ -493,7 +493,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           the active tab again returns to View All. WRAPS to fit — every tag stays
           visible, no horizontal scroll (Ohad: "all the tags need to fit"). */}
       <div style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }} role="group" aria-label="Filter sections">
+        <div style={{ display: 'flex', flexWrap: 'nowrap', gap: 5, overflowX: 'auto', paddingBottom: 2 }} className="hide-scrollbar" role="group" aria-label="Filter sections">
           {SEC_TABS.map(t => {
             const active = t.id === 'all' ? activeSecs.size === 0 : activeSecs.has(t.id);
             return (
@@ -501,7 +501,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
                 aria-pressed={active}
                 title={t.id === 'all' ? 'Show all sections' : `Show only ${t.label} — click again for all sections`}
                 style={{
-                  height: 30, boxSizing: 'border-box', padding: '0 14px', borderRadius: 0,
+                  height: 30, boxSizing: 'border-box', padding: '0 11px', borderRadius: 0, flexShrink: 0,
                   // Tinted active state (not a solid C.ac fill) — in light-refined
                   // themes C.ac resolves near-black, so solid-fill + dark label was
                   // invisible (Ohad: "i cant see the button"). Tint + accent text
