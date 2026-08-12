@@ -280,6 +280,7 @@ export function PasswordChangeModal({ onClose, demoMode = false }) {
   const [ok, setOk] = useState(false);
 
   const handleSave = async () => {
+    if (saving) return; // guard double-submit (Enter key bypasses the disabled button) — adversarial-QA #7
     setError('');
     // Preview / sandbox (coach viewing-as an athlete): NEVER touch auth. The
     // live session here is the COACH's, so a real updateUser would rotate the
@@ -308,7 +309,7 @@ export function PasswordChangeModal({ onClose, demoMode = false }) {
   };
 
   return createPortal((
-    <div onClick={onClose} role="dialog" aria-modal="true" aria-label="Change password" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 20 }}>
+    <div onClick={() => { if (!saving) onClose(); }} role="dialog" aria-modal="true" aria-label="Change password" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 20 }}>
       <div onClick={e => e.stopPropagation()} style={{ background: C.bg, border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 24, maxWidth: 360, width: '100%' }}>
         <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 12, textAlign: 'center' }}>CHANGE PASSWORD</div>
         {ok ? (
@@ -323,7 +324,7 @@ export function PasswordChangeModal({ onClose, demoMode = false }) {
               style={{ width: '100%', background: 'var(--c-sf)', border: `1px solid ${error ? C.rd : C.cardBd}`, borderRadius: 0, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 10, textAlign: 'center' }} />
             {error && <div style={{ color: C.rd, fontSize: 12, marginBottom: 10, textAlign: 'center' }}>{error}</div>}
             <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={onClose} style={{ flex: 1, padding: '10px 0', borderRadius: 0, border: `1px solid ${C.cardBd}`, background: 'transparent', color: C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={() => { if (!saving) onClose(); }} style={{ flex: 1, padding: '10px 0', borderRadius: 0, border: `1px solid ${C.cardBd}`, background: 'transparent', color: C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', cursor: 'pointer' }}>Cancel</button>
               {(() => { const canSave = !saving && !demoMode && currentPw && pw && confirmPw; return (
               <button onClick={handleSave} disabled={!canSave} title={demoMode ? 'Disabled in preview' : undefined} style={{ flex: 1, padding: '10px 0', borderRadius: 0, border: `1px solid ${canSave ? C.ac : C.cardBd}`, background: 'transparent', color: canSave ? C.ac : C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', cursor: canSave ? 'pointer' : 'not-allowed', opacity: demoMode ? 0.5 : 1, minWidth: 72, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{saving ? '...' : 'Save'}</button>
               ); })()}
