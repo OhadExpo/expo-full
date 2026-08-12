@@ -49,18 +49,39 @@ export function velocityProfile1RM(points, mvt) {
   for (const p of pts) { num += (p.load - mLoad) * (p.velocity - mVel); den += (p.load - mLoad) ** 2; }
   const b = den ? num / den : 0;
   const a = mVel - b * mLoad;
-  // A valid profile has velocity FALLING with load. If it rises/flat, the data is
-  // too noisy or mixed to profile — refuse rather than fabricate a 1RM.
-  if (b >= -1e-6) return { state: 'invalid', reason: "velocity doesn't fall with load — film cleaner submax sets across a load range" };
+  // A valid profile has velocity FALLING with load. The floor must be a REAL
+  // signal, not 1e-6: a slope shallower than ~-1e-4 m/s/kg (0.1 m/s over 1000 kg)
+  // is noise, and dividing by it blows the 1RM up to nonsense. Refuse it.
+  if (b >= -1e-4) return { state: 'invalid', reason: 'velocity barely changes with load — too flat/noisy to profile; film across a real load range' };
   // 1RM = the load where predicted velocity meets the MVT: m = a + b·L → L = (m−a)/b.
   const oneRM = (m - a) / b;
   // An estimate at/below the heaviest load he already lifted is nonsense.
   const maxLoad = Math.max(...loads);
+  const minLoad = Math.min(...loads);
   if (!(oneRM > maxLoad)) return { state: 'invalid', reason: 'estimate is at/below a load he already lifted — needs lighter submax points for a clean extrapolation' };
-  // R² — goodness of the linear fit → confidence.
+  // Loads bunched together fit a slope out of noise — one rep's velocity wobble
+  // then swings the 1RM tens of kg. Demand a real spread before trusting the line.
+  const minSpread = Math.max(5, maxLoad * 0.1);
+  if ((maxLoad - minLoad) < minSpread) return { state: 'invalid', reason: 'filmed loads are too close together — spread them (a lighter and a heavier set) so the line is real, not noise' };
+  // Extrapolation reach: how far above the heaviest FILMED load the estimate sits.
+  // R² only measures fit WITHIN the filmed loads — it says nothing about a long
+  // reach out to a max far above any real data (the classic LV over-read, and the
+  // direction of error is dangerous: light/fast-only profiles over-estimate 1RM).
+  // Beyond ~2× is fantasy; refuse rather than hand the coach a too-heavy number.
+  const reach = oneRM / maxLoad;
+  if (reach > 2) return { state: 'invalid', reason: 'estimate is >2× your heaviest filmed load — too far to extrapolate; film a heavier, grindier set to anchor it' };
+  // R² — goodness of the linear fit.
   const ssTot = pts.reduce((s, p) => s + (p.velocity - mVel) ** 2, 0);
   const ssRes = pts.reduce((s, p) => s + (p.velocity - (a + b * p.load)) ** 2, 0);
   const r2 = ssTot > 0 ? 1 - ssRes / ssTot : 0;
+  // Confidence needs THREE things, not just a tight in-range fit: ≥3 distinct loads
+  // (2 points fit a line perfectly by definition — r²=1 there proves nothing, so a
+  // 2-load profile can never exceed 'low' and stays hidden), a good fit, AND a short
+  // extrapolation. A long reach or a 2-load fit is 'low' → the UI hides it.
+  let confidence;
+  if (loads.length >= 3 && r2 >= 0.9 && reach <= 1.35) confidence = 'high';
+  else if (loads.length >= 3 && r2 >= 0.75 && reach <= 1.5) confidence = 'medium';
+  else confidence = 'low';
   return {
     state: 'ok',
     oneRM: Math.round(oneRM),
@@ -68,8 +89,7 @@ export function velocityProfile1RM(points, mvt) {
     loads: loads.length,
     points: raw.length,
     mvt: m,
-    // Confidence needs a real load spread AND a tight fit — 2 loads with a perfect
-    // line is still only medium (VBT profiling wants 3–4 loads for a trusted number).
-    confidence: (loads.length >= 3 && r2 >= 0.9) ? 'high' : (r2 >= 0.75) ? 'medium' : 'low',
+    reach: Math.round(reach * 100) / 100,
+    confidence,
   };
 }
