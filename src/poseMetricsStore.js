@@ -33,7 +33,7 @@ function writeAll(obj) {
 // Save (or replace, same date) one analysed set's headline metrics.
 // analysis = analyzeClip() result. Returns the stored entry, or null if there's
 // no real velocity to store (never fabricate a trend point).
-export function savePoseMetric({ clientId, exercise, date, analysis, load }) {
+export function savePoseMetric({ clientId, exercise, date, analysis, load, clipKey }) {
   if (!clientId || !exercise || !analysis) return null;
   const vel = analysis.velocity, rt = analysis.romTempo;
   const bestMean = vel && typeof vel.bestMean === 'number' ? vel.bestMean : null;
@@ -58,15 +58,26 @@ export function savePoseMetric({ clientId, exercise, date, analysis, load }) {
     bestMean, lossPct, maxRom,
     load: (typeof load === 'number' && load > 0) ? load : null, // kg, for same-load readiness
     asymRows: (asymRows && asymRows.length) ? asymRows : null,
+    clip: clipKey || null, // stable per-clip id (the cloud URL) — see same-day dedupe below
   };
   const all = readAll();
   const k = exKey(exercise);
   const client = all[clientId] || (all[clientId] = {});
   const lift = client[k] || (client[k] = { title: exercise, entries: [] });
   lift.title = exercise;
-  // replace any entry with the same calendar date (re-analysing one clip)
+  // Same-day handling. Re-analysing the SAME clip must REPLACE its entry, but a
+  // DIFFERENT second clip of the same lift filmed the same day must COEXIST — the
+  // old code dropped every same-date entry, so a second same-day set silently
+  // clobbered the first (worse now the background warmer analyses every clip).
+  // With a clip id we replace only the matching clip and keep the others; legacy
+  // entries (no clip id) are treated as different clips so nothing is lost. When
+  // the NEW entry has no clip id we fall back to the old one-per-day replace.
   const d0 = entry.date.slice(0, 10);
-  lift.entries = lift.entries.filter((e) => (e.date || '').slice(0, 10) !== d0);
+  lift.entries = lift.entries.filter((e) => {
+    if ((e.date || '').slice(0, 10) !== d0) return true; // different day — keep
+    if (entry.clip) return e.clip !== entry.clip;        // same day — drop only the same clip
+    return false;                                        // legacy: no clip id -> one entry/day
+  });
   lift.entries.push(entry);
   lift.entries.sort((a, b) => String(a.date).localeCompare(String(b.date)));
   // Only report success if it actually persisted — otherwise the UI would flash
@@ -83,7 +94,17 @@ export function getAthleteVault(clientId) {
   if (!client) return [];
   return Object.values(client)
     .map((lift) => {
-      const entries = [...(lift.entries || [])].sort((a, b) => String(a.date).localeCompare(String(b.date)));
+      // Collapse multiple clips filmed the SAME day to ONE point — the best rep of
+      // the day (fastest bestMean, VBT convention) — so a second same-day clip
+      // can't fake a two-point velocity trend from within-day noise. (The injury-
+      // watch keeps every reading and medians per date separately, below.)
+      const byDate = new Map();
+      for (const e of (lift.entries || [])) {
+        const d = String(e.date || '').slice(0, 10);
+        const cur = byDate.get(d);
+        if (!cur || (e.bestMean ?? -Infinity) > (cur.bestMean ?? -Infinity)) byDate.set(d, e);
+      }
+      const entries = [...byDate.values()].sort((a, b) => String(a.date).localeCompare(String(b.date)));
       const losses = entries.map((e) => e.lossPct).filter((x) => typeof x === 'number');
       let trend = 'flat';
       if (losses.length >= 2) {

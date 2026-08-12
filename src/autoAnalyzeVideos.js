@@ -143,7 +143,7 @@ export async function autoAnalyzeAthleteVideos(clientWorkouts, traineeId, opts =
             // traineeId — a couple's members must not pool. A dateless clip is
             // NOT stored (savePoseMetric would stamp it "today" and can then
             // overwrite a real same-day entry); it's still marked done.
-            if (v.date) savePoseMetric({ clientId: v.cid || traineeId, exercise: v.title, date: v.date, analysis, load: v.load });
+            if (v.date) savePoseMetric({ clientId: v.cid || traineeId, exercise: v.title, date: v.date, analysis, load: v.load, clipKey: v.url });
             analyzed++;
             markDone(v.url);
           } else {

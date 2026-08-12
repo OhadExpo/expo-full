@@ -14,7 +14,7 @@ globalThis.localStorage = {
   removeItem: (k) => { _mem.delete(k); },
   clear: () => { _mem.clear(); },
 };
-const { getAthleteAsymmetryTrend, getLoadVelocityRef, getAthleteVault } = await import('../src/poseMetricsStore.js');
+const { getAthleteAsymmetryTrend, getLoadVelocityRef, getAthleteVault, savePoseMetric } = await import('../src/poseMetricsStore.js');
 
 let pass = 0, fail = 0;
 const check = (name, cond) => { console.log(`${cond ? 'PASS' : 'FAIL'}  ${name}`); cond ? pass++ : fail++; };
@@ -76,6 +76,32 @@ const vault = getAthleteVault('a');
 check('vault: richest history first (Bench 3 before Squat 2)', vault[0].title === 'Bench' && vault[0].count === 3);
 check('vault: rising velocity-loss -> trend worse', vault.find((l) => l.title === 'Back Squat').trend === 'worse');
 check('vault: falling velocity-loss -> trend better', vault.find((l) => l.title === 'Bench').trend === 'better');
+
+// ── #150 same-day clip collision: a second DIFFERENT clip of the same lift filmed
+//    the same day must COEXIST (was silently clobbered); re-analysing the SAME
+//    clip must REPLACE; the vault trend collapses same-day clips to one point ──
+const mkAnalysis = (bestMean, lossPct) => ({
+  velocity: { bestMean, finalLossPct: lossPct },
+  romTempo: { maxRom: 100 }, jointRom: [], repCount: 5, kind: 'squat',
+  captureQuality: { grade: 'good' },
+});
+const rawEntries = (cid, ex) => (JSON.parse(localStorage.getItem('expo-pose-metrics') || '{}')[cid] || {})[ex]?.entries || [];
+_mem.clear();
+savePoseMetric({ clientId: 'z', exercise: 'Squat', date: '2026-06-01', analysis: mkAnalysis(0.60, 20), clipKey: 'urlA' });
+savePoseMetric({ clientId: 'z', exercise: 'Squat', date: '2026-06-01', analysis: mkAnalysis(0.70, 30), clipKey: 'urlB' });
+check('#150 two DIFFERENT clips same day COEXIST (2 entries, not clobbered)', rawEntries('z', 'squat').length === 2);
+savePoseMetric({ clientId: 'z', exercise: 'Squat', date: '2026-06-01', analysis: mkAnalysis(0.65, 25), clipKey: 'urlA' });
+check('#150 re-analysing the SAME clip REPLACES (still 2 entries)', rawEntries('z', 'squat').length === 2);
+check('#150 re-analysed clip A updated to bestMean 0.65', rawEntries('z', 'squat').find((e) => e.clip === 'urlA').bestMean === 0.65);
+check('#150 vault collapses same-day clips to ONE date-point', getAthleteVault('z')[0].count === 1);
+// legacy same-day entry (no clip id) + a new clip id -> coexist (nothing lost on migration)
+seed({ y: { squat: { title: 'Squat', entries: [{ date: '2026-06-01', lossPct: 15, bestMean: 0.5 }] } } });
+savePoseMetric({ clientId: 'y', exercise: 'Squat', date: '2026-06-01', analysis: mkAnalysis(0.6, 20), clipKey: 'urlNew' });
+check('#150 legacy id-less same-day entry preserved when a new clip lands', rawEntries('y', 'squat').length === 2);
+// vault collapse must not fake a 2-point trend from two same-day clips alone
+seed({ w: { squat: { title: 'Squat', entries: [
+  { date: '2026-06-01', lossPct: 10, bestMean: 0.5 }, { date: '2026-06-01', lossPct: 40, bestMean: 0.7 } ] } } });
+check('#150 two same-day clips only -> ONE point, trend flat (no fake trend)', getAthleteVault('w')[0].count === 1 && getAthleteVault('w')[0].trend === 'flat');
 
 console.log(`\n${fail === 0 ? '✓ ALL PASS' : '✗ FAILURES'} — ${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);
