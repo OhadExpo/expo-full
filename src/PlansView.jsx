@@ -3994,7 +3994,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               }),
             },
           ]}
-          footer={<Btn variant="solid" title="Create a new, empty program — you pick the athlete inside the editor" onClick={() => handleNewPlan()} style={{ width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 38, marginTop: 'auto' }}>+ New Program</Btn>}
+          footer={<Btn variant="solid" title="Create a new, empty program — you pick the athlete inside the editor" onClick={() => handleNewPlan()} style={{ width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 38, marginTop: 'auto', background: 'transparent', color: '#39BDFF' }}>+ New Program</Btn>}
         />
 
         {/* RIGHT: the program list — grouped (table/grid) or flat, unchanged. */}

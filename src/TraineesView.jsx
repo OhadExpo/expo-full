@@ -656,10 +656,10 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
             {
               label: 'Needs Attention',
               opts: [
-                { key: 'pay', label: '⚠ Payment due' },
-                { key: 'dormant', label: '💤 Dormant' },
-                { key: 'lowSessions', label: '⏳ Low sessions' },
-                { key: 'noProgram', label: '📋 No program' },
+                { key: 'pay', label: 'Payment due' },
+                { key: 'dormant', label: 'Dormant' },
+                { key: 'lowSessions', label: 'Low sessions' },
+                { key: 'noProgram', label: 'No program' },
               ].map(o => ({ key: o.key, label: o.label, count: flagCounts[o.key], active: attnFlags[o.key], accent: C.or, onClick: () => setAttnFlags(m => ({ ...m, [o.key]: !m[o.key] })) })),
             },
             {
@@ -683,7 +683,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
           ]}
           footer={
             <div ref={addMenuRef} style={{position:'relative', marginTop:'auto'}}>
-              <Btn onClick={() => setAddMenuOpen(!addMenuOpen)} style={{ width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 38 }}>+ Add Athlete ▾</Btn>
+              <Btn variant="solid" onClick={() => setAddMenuOpen(!addMenuOpen)} style={{ width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 38, background: 'transparent', color: '#39BDFF' }}>+ Add Athlete ▾</Btn>
               {addMenuOpen && <div style={{position:'absolute',left:0,right:0,top:'100%',marginTop:4,background:C.bg,border:`1px solid ${C.cardBd}`,borderRadius:0,overflow:'hidden',zIndex:50,boxShadow:'0 8px 24px rgba(0,0,0,0.6)'}}>
                 {[['Online Athlete','Online Client'],['Gym, Single','Gym, Single'],['Gym, Couple','Gym, Couple'],['Bnei Herzliya','Bnei Herzliya']].map(([label,format])=>(
                   <button key={format} onClick={()=>{
