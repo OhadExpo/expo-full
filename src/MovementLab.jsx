@@ -19,7 +19,7 @@ import { C, FN, FB } from './theme';
 import { createPoseLandmarker, getCamera, stopStream } from './usePose';
 import { analyzeClip, jumpMetrics, reactiveJumpMetrics, jumpPower, frameToPoints3D, estimateFps, barSpeedSeries, barAccelSeries, namedAngleSeries, channelSignal, velocityMetrics, romTempoMetrics, movementRepCount, isBallistic } from './poseLab';
 import { detectFaults, detectAsymmetry, velocityAutoreg, warmupReadiness } from './poseInsights';
-import { savePoseMetric, getLoadVelocityRef } from './poseMetricsStore';
+import { savePoseMetric, getLoadVelocityRef, isVelocityLossLift } from './poseMetricsStore';
 import { romReadingFor } from './romGoniometer';
 import { demoSquatFrames, demoJumpFrames } from './demoMotion';
 
@@ -821,7 +821,7 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
           )}
         </div>
       )}
-      {tab === 'velocity' && <VelocityTable v={trimmedVelocity} barSpeed={result.barSpeed} frames={frames} playheadT={playheadT} onScrub={onScrub} />}
+      {tab === 'velocity' && <VelocityTable v={trimmedVelocity} barSpeed={result.barSpeed} frames={frames} playheadT={playheadT} onScrub={onScrub} velLoss={isVelocityLossLift(exerciseTitle)} />}
       {tab === 'rom' && <RomTable r={trimmedRomTempo} jointRom={result.jointRom} kind={result.kind} frames={frames} exerciseTitle={exerciseTitle} playheadT={playheadT} onScrub={onScrub} />}
       {tab === 'form' && <FormCheck result={result} exerciseTitle={exerciseTitle} recordedReps={recordedReps} targetReps={targetReps} />}
       {tab === 'threeD' && (
@@ -1015,7 +1015,11 @@ function FormCheck({ result, exerciseTitle, recordedReps = [], targetReps = null
         </>
       )}
 
-      {vbt && (
+      {/* Velocity-LOSS stop-set cutoffs are a GRINDING-lift fatigue read — hide
+          them for a ballistic/reactive drill that slipped the jump router (a
+          snap-down, generic jump, snatch, throw): a "40% loss · stop the set"
+          there is nonsense. Raw velocity + ROM + technique above still show. (#172) */}
+      {vbt && isVelocityLossLift(exerciseTitle) && (
         <>
           <div style={{ ...secLabel, marginTop: 22 }}>STOP-SET · BAR SPEED <span style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: 0 }}>· where the set stopped being what it was for</span></div>
           <div style={{ fontFamily: FN, fontSize: 13, color: 'rgba(255,255,255,0.85)', lineHeight: 1.6 }}>
@@ -1071,7 +1075,7 @@ function FormCheck({ result, exerciseTitle, recordedReps = [], targetReps = null
   );
 }
 
-function VelocityTable({ v, barSpeed, frames, playheadT = null, onScrub = null }) {
+function VelocityTable({ v, barSpeed, frames, playheadT = null, onScrub = null, velLoss = true }) {
   // GRAPH toggle — three DISTINCT graphs, deliberately not overlapping names
   // (Ohad 2026-07-04: "velocity and speed are the same thing" was a fair
   // complaint about the old two-pill picker):
@@ -1157,12 +1161,17 @@ function VelocityTable({ v, barSpeed, frames, playheadT = null, onScrub = null }
           fix to OCD level"). MiniKpi's stacked layout contains any wrapping
           within the label's own line, and the row's default align-items:
           stretch then matches both boxes to the same height automatically. */}
+      {/* velLoss=false on a ballistic/reactive drill: velocity-LOSS is a grinding-
+          set fatigue read that's meaningless there, so drop the LOSS KPI + column
+          and keep raw mean/peak velocity (which is fine on any lift). (#172) */}
       <div style={{ display: 'flex', gap: 8 }}>
         <MiniKpi label="BEST MEAN VELOCITY" value={`${v.bestMean.toFixed(2)} m/s`} />
-        <MiniKpi label="VELOCITY LOSS (LAST REP)" value={v.finalLossPct >= 90 ? '90%+' : `${Math.round(v.finalLossPct)}%`} tone={v.finalLossPct >= 20 ? C.rd : v.finalLossPct >= 10 ? C.or : C.gn} />
+        {velLoss && <MiniKpi label="VELOCITY LOSS (LAST REP)" value={v.finalLossPct >= 90 ? '90%+' : `${Math.round(v.finalLossPct)}%`} tone={v.finalLossPct >= 20 ? C.rd : v.finalLossPct >= 10 ? C.or : C.gn} />}
       </div>
-      <Row head cells={['REP', 'MEAN m/s', 'PEAK m/s', 'LOSS']} />
-      {v.perRep.map((r, i) => r && <Row key={i} cells={[i + 1, r.meanConcentric.toFixed(2), r.peak.toFixed(2), r.lossPct == null ? '—' : r.lossPct >= 90 ? '90%+' : `${Math.round(r.lossPct)}%`]} tone={r.lossPct != null && r.lossPct >= 20 ? C.rd : undefined}
+      <Row head cells={velLoss ? ['REP', 'MEAN m/s', 'PEAK m/s', 'LOSS'] : ['REP', 'MEAN m/s', 'PEAK m/s']} />
+      {v.perRep.map((r, i) => r && <Row key={i} cells={velLoss
+        ? [i + 1, r.meanConcentric.toFixed(2), r.peak.toFixed(2), r.lossPct == null ? '—' : r.lossPct >= 90 ? '90%+' : `${Math.round(r.lossPct)}%`]
+        : [i + 1, r.meanConcentric.toFixed(2), r.peak.toFixed(2)]} tone={velLoss && r.lossPct != null && r.lossPct >= 20 ? C.rd : undefined}
         onClick={onScrub && r.startT != null ? () => onScrub(r.startT) : undefined} />)}
     </div>
   );
