@@ -55,9 +55,14 @@ check('urls are the cloudUrls', got.map((v) => v.url).join(',') === 'https://x/s
 check('title from ex.title', got[0].title === 'Back Squat');
 check('title from ex.name', got[2].title === 'Deadlift');
 
-// --- load = MAX finite positive logged set load (keys velocity-by-load) ---
-check('load = max of logged sets (120, not 100/90)', got[0].load === 120);
-check('single-set load', got[1].load === 80);
+// --- load keyed only when UNAMBIGUOUS: one distinct logged load, else null ---
+check('mixed set loads (100/120/90) -> load null (no max-guess mispair)', got[0].load === null);
+check('single-set load kept (80)', got[1].load === 80);
+check('cid carried = the clip\'s true owner (amit)', got[0].cid === 'amit');
+
+// same load across every set -> that load is trusted
+const cwSame = [{ clientId: 'a', date: 'd', formVideos: [{ cloudUrl: 'u' }], exercises: [{ title: 'T', sets: [{ load: '100' }, { load: '100' }] }] }];
+check('all-sets-same-load -> that load', collectAthleteFormVideos(cwSame, 'a')[0].load === 100);
 
 // --- title fallback + null load when the exercise row is missing ---
 const cw2 = [{ clientId: 'a', date: 'd', formVideos: [{ cloudUrl: 'u1' }], exercises: [] }];
@@ -84,6 +89,20 @@ const cwHoles = [
 ];
 const gh = collectAthleteFormVideos(cwHoles, 'a');
 check('only the one real cloudUrl survives the holes', gh.length === 1 && gh[0].url === 'real');
+
+// --- COUPLES: parent-id collect matches both sub-members, but each entry keeps
+//     its TRUE cid so the runner files metrics under the real person (no pooling) ---
+const cwCouple = [
+  { clientId: 'cpl__0', date: 'd1', formVideos: [{ cloudUrl: 'm0.mp4' }], exercises: [{ title: 'Squat', sets: [{ load: '100' }] }] },
+  { clientId: 'cpl__1', date: 'd1', formVideos: [{ cloudUrl: 'm1.mp4' }], exercises: [{ title: 'Squat', sets: [{ load: '60' }] }] },
+];
+const gc = collectAthleteFormVideos(cwCouple, 'cpl');
+check('couple parent-id collects both members', gc.length === 2);
+check('member 0 clip carries cid cpl__0 (not the parent)', gc.find((v) => v.url === 'm0.mp4').cid === 'cpl__0');
+check('member 1 clip carries cid cpl__1 (not the parent)', gc.find((v) => v.url === 'm1.mp4').cid === 'cpl__1');
+// opening ONE member scopes to that member only
+const gm0 = collectAthleteFormVideos(cwCouple, 'cpl__0');
+check('opening member 0 -> only member 0 clip', gm0.length === 1 && gm0[0].cid === 'cpl__0');
 
 // --- empty / guard inputs ---
 check('null clientWorkouts -> []', collectAthleteFormVideos(null, 'a').length === 0);
