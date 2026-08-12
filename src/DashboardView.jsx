@@ -776,16 +776,20 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
                       <span style={{ fontFamily: FN, fontWeight: 700, fontSize: 14, color: t.sessionsRemaining <= 2 ? C.rd : C.gn }}>{t.sessionsRemaining}</span>
                     ) : <span style={{ color: C.td, fontSize: 12 }}>—</span>}
                   </td>
-                  {isOwner && <td style={{ padding: '12px', fontFamily: FN, fontWeight: 600, color: parseFloat(t.monthly) > 0 ? C.gn : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
-                    {parseFloat(t.monthly) > 0 ? `₪${parseInt(t.monthly).toLocaleString()}/MO` : '—'}
+                  {isOwner && <td style={{ padding: '12px', fontFamily: FN, fontWeight: 600, color: t.totalPaid > 0 ? C.gn : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
+                    {/* Show what the header says + what the sort orders by: TOTAL PAID
+                        (sum of this athlete's payments), not the monthly rate — else
+                        clicking the TOTAL PAID sort reorders by an invisible metric
+                        and reads as "nothing changed" (Ohad). */}
+                    {t.totalPaid > 0 ? `₪${Math.round(t.totalPaid).toLocaleString()}` : '—'}
                   </td>}
                   {isOwner && <td style={{ padding: '12px', color: C.tm, fontSize: 12, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
                     {(() => { const d = t.lastPay?.date || t.lastPayment; return d ? new Date(d).toLocaleDateString('en-GB') : '—'; })()}
                   </td>}
-                  <td style={{ padding: '12px', fontFamily: FN, color: t.workoutCount > 0 ? C.ac : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
+                  <td style={{ padding: '12px', fontFamily: FN, color: t.workoutCount > 0 ? C.tx : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
                     {t.workoutCount || '—'}
                   </td>
-                  <td style={{ padding: '12px', fontFamily: FN, color: t.planCount > 0 ? C.ac : C.td, textAlign: 'center' }}>
+                  <td style={{ padding: '12px', fontFamily: FN, color: t.planCount > 0 ? C.tx : C.td, textAlign: 'center' }}>
                     {t.planCount || '—'}
                   </td>
                 </tr>
