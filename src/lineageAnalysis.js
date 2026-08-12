@@ -49,10 +49,14 @@ const median = (arr) => {
 // non-heavy middle, or when the block is heavy — so a named max-strength block
 // whose mean drifted up never mis-reads as hypertrophy/endurance.
 // (Source: NSCA Essentials 4e ch.17 · Bompa · Zatsiorsky. rep-ceiling added 08-12.)
+// Two-tier explosive gate: >=0.5 (MAJORITY of work explosive) leans power in the
+// data (dataChar); >=0.6 confirms power outright. The floor was 0.4 but a 40%
+// share is a MINORITY — a strength block with power accessories, not a power
+// emphasis — so it over-called power; raised to 0.5 per Bompa/NSCA (#131, 08-12).
 export function classifyBlockCharacter({ explosiveShare = 0, avgReps = null, heavy = false, nameChar = null }) {
   const powerReps = avgReps == null || avgReps <= 8;
   let dataChar = null;
-  if (explosiveShare >= 0.4 && powerReps) dataChar = 'power';
+  if (explosiveShare >= 0.5 && powerReps) dataChar = 'power';
   else if (avgReps == null) dataChar = null;
   else if (avgReps <= 6) dataChar = 'strength';
   else if (avgReps <= 12) dataChar = heavy ? 'strength' : 'hypertrophy';

@@ -39,9 +39,13 @@ check('data=endurance(15r) name=hypertrophy -> endurance (13+ NOT fuzzy, not hea
 check('no reps + no name + no explosive -> hypertrophy fallback', ch({ explosiveShare: 0, avgReps: null, nameChar: null }) === 'hypertrophy');
 check('no reps + name only -> name', ch({ explosiveShare: 0, avgReps: null, nameChar: 'strength' }) === 'strength');
 
-// ── secondary-power threshold: 0.4-0.6 explosive at low reps still reads power (dataChar) ──
-check('0.4 explosive + 5 reps -> power (data threshold)', ch({ explosiveShare: 0.4, avgReps: 5 }) === 'power');
-check('0.3 explosive + 5 reps -> strength (below data threshold, <=6)', ch({ explosiveShare: 0.3, avgReps: 5 }) === 'strength');
+// ── secondary-power threshold (#131): power-LEANING data needs a MAJORITY (>=0.5)
+//    explosive share. A 0.4 (minority) block is a strength block with power
+//    accessories, not a power emphasis — was over-called power. ──
+check('0.5 explosive + 5 reps -> power (data floor, majority explosive)', ch({ explosiveShare: 0.5, avgReps: 5 }) === 'power');
+check('0.4 explosive + 5 reps -> strength (minority explosive, NOT power) [#131]', ch({ explosiveShare: 0.4, avgReps: 5 }) === 'strength');
+check('0.49 explosive + 5 reps -> strength (just below the 0.5 floor)', ch({ explosiveShare: 0.49, avgReps: 5 }) === 'strength');
+check('0.3 explosive + 5 reps -> strength (well below data threshold, <=6)', ch({ explosiveShare: 0.3, avgReps: 5 }) === 'strength');
 
 console.log(`\n${fail === 0 ? '✓ ALL PASS' : '✗ FAILURES'} — ${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);
