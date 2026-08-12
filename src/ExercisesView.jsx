@@ -197,19 +197,27 @@ export default function ExercisesView({ exercises, setExercises }) {
             : <span style={{ color: C.td, fontSize: 9 }}>▾</span>}
         </button>
         {isOpen && (
-          <div style={{ position: 'absolute', top: 32, left: 0, minWidth: 'max(100%, 230px)', maxHeight: 340, overflowY: 'auto', background: 'var(--c-sf)', border: `1px solid ${C.ac}`, zIndex: 50, boxShadow: '0 10px 28px rgba(0,0,0,0.55)' }}>
-            {options.length === 0 && <div style={{ padding: '9px 12px', color: C.td, fontFamily: FN, fontSize: 10, letterSpacing: '0.04em' }}>No values in library</div>}
-            {options.map(([v, c]) => {
+          <div style={{ position: 'absolute', top: 32, left: 0, minWidth: 'max(100%, 248px)', maxHeight: 366, overflowY: 'auto', background: 'var(--c-sf)', border: `1px solid ${C.ac}`, zIndex: 50, boxShadow: '0 12px 30px rgba(0,0,0,0.55)' }}>
+            {/* Cyan strip header — same card-strip-header language as the rest of
+                the site (parameter name left, selected/total count right). */}
+            <div style={{ position: 'sticky', top: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, height: 28, padding: '0 11px', background: 'color-mix(in srgb, var(--c-ac) 15%, var(--c-sf))', borderBottom: `1px solid ${C.ac}`, zIndex: 1 }}>
+              <span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.16em', color: C.ac, textTransform: 'uppercase' }}>{label}</span>
+              {sel.length > 0
+                ? <span onClick={e => { e.stopPropagation(); clearFilter(k); }} title="Clear selection" style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color: C.tm, cursor: 'pointer' }}>CLEAR · {sel.length}</span>
+                : <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: C.td, fontVariantNumeric: 'tabular-nums' }}>{options.length}</span>}
+            </div>
+            {options.length === 0 && <div style={{ padding: '10px 12px', color: C.td, fontFamily: FN, fontSize: 10, letterSpacing: '0.04em' }}>No values in library</div>}
+            {options.map(([v, c], idx) => {
               const on = sel.includes(v);
               return (
                 <div key={v} onClick={() => toggleFilter(k, v)}
-                  style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'center', padding: '8px 11px', cursor: 'pointer', fontFamily: FN, fontSize: 11, fontWeight: 600, letterSpacing: '0.02em', color: on ? C.ac : C.tx, background: on ? 'color-mix(in srgb, var(--c-ac) 12%, transparent)' : 'transparent', whiteSpace: 'nowrap' }}
+                  style={{ display: 'grid', gridTemplateColumns: '14px 1fr auto', gap: 10, alignItems: 'center', height: 30, padding: '0 11px', cursor: 'pointer', fontFamily: FN, fontSize: 11, fontWeight: 600, letterSpacing: '0.02em', color: on ? C.ac : C.tx, background: on ? 'color-mix(in srgb, var(--c-ac) 12%, transparent)' : 'transparent', borderTop: idx === 0 ? 'none' : '1px solid var(--c-cardBd)', whiteSpace: 'nowrap' }}
                   onMouseEnter={e => { if (!on) e.currentTarget.style.background = 'var(--c-sf2)'; }}
                   onMouseLeave={e => { if (!on) e.currentTarget.style.background = 'transparent'; }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ width: 12, textAlign: 'center', color: C.ac }}>{on ? '✓' : ''}</span>{v}
-                  </span>
-                  <span style={{ color: C.tm, fontSize: 10, fontWeight: 700 }}>{c}</span>
+                  {/* Real checkbox — fills cyan when selected (OCD: fixed column). */}
+                  <span style={{ width: 13, height: 13, boxSizing: 'border-box', border: `1px solid ${on ? C.ac : 'var(--c-cardBd)'}`, background: on ? C.ac : 'transparent', color: 'var(--c-bg)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, lineHeight: 1 }}>{on ? '✓' : ''}</span>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{v}</span>
+                  <span style={{ color: on ? C.ac : C.tm, fontSize: 10, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{c}</span>
                 </div>
               );
             })}
