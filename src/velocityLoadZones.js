@@ -62,7 +62,16 @@ export function velocityLoadPrescription(points) {
     const over = z.target > f.vMax ? (z.target - f.vMax) / span
       : z.target < f.vMin ? (f.vMin - z.target) / span : 0;
     const confidence = over === 0 ? 'measured' : over <= 0.5 ? 'near' : 'extrapolated';
-    return { ...z, load: round(load), confidence };
+    const kg = round(load);
+    // Don't emit an EXTRAPOLATED load heavier than anything filmed — that's the
+    // unsafe direction (prescribing more than the athlete has been measured
+    // lifting) off a line the data doesn't support. A near-flat / light-only
+    // profile otherwise yields absurd loads (e.g. 182 kg off a 60-70 kg profile).
+    // Null it (honest 'out-of-range'); keep measured/near and lighter reaches.
+    if (confidence === 'extrapolated' && kg != null && kg > f.maxLoad) {
+      return { ...z, load: null, confidence: 'out-of-range' };
+    }
+    return { ...z, load: kg, confidence };
   });
   return {
     state: 'ok',

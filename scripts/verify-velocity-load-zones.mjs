@@ -52,5 +52,19 @@ const AVG = velocityLoadPrescription([
 ]);
 check('two clips at one load averaged -> same max-strength load ~120', near(zone(AVG, 'max-strength')?.load, 120));
 
+// --- SAFETY: a light/fast-only profile must NOT prescribe a load HEAVIER than
+//     anything filmed off an extrapolated line (the unsafe over-heavy direction).
+//     60-70kg filmed @ ~0.85 m/s used to yield "max-strength 182kg" — now nulled. ---
+const LIGHT = velocityLoadPrescription([
+  { load: 60, velocity: 0.90 }, { load: 60, velocity: 0.88 },
+  { load: 70, velocity: 0.86 }, { load: 70, velocity: 0.84 },
+]);
+check('over-heavy extrapolation nulled (max-strength load == null)', zone(LIGHT, 'max-strength')?.load == null && zone(LIGHT, 'max-strength')?.confidence === 'out-of-range');
+check('no zone prescribes heavier than 1.25x the filmed max off extrapolation',
+  (LIGHT.zones || []).every((z) => z.load == null || z.confidence !== 'extrapolated' || z.load <= 70));
+// a short 'near' reach just above the filmed max is still allowed (not over-killed)
+check('healthy profile keeps a short near-reach above filmed max',
+  (() => { const H = velocityLoadPrescription([{ load: 60, velocity: 1.05 }, { load: 90, velocity: 0.75 }, { load: 120, velocity: 0.45 }]); const z = zone(H, 'max-strength'); return z.load > 120 && z.confidence === 'near'; })());
+
 console.log(`\n${fail === 0 ? '✓ ALL PASS' : '✗ FAILURES'} — ${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);
