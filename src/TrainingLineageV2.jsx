@@ -16,6 +16,7 @@ import { autoAnalyzeAthleteVideos, pendingCount } from './autoAnalyzeVideos';
 import { velocityProfile1RM, mvtForLift } from './velocityProfile1RM';
 import { blockNum, classifyPattern, repsTop, exById } from './PlansView';
 import { groupByBucket, BUCKETS } from './movementBucket';
+import { exerciseContinuity } from './exerciseContinuity';
 
 const wrap = { maxWidth: 980, margin: '0 auto', fontFamily: FN };
 const card = { border: `1px solid ${C.bd}`, background: C.sf, marginTop: 12 };
@@ -496,6 +497,40 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
             </div>
           )}
           <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>Logged lifts catalogued into the library's six buckets. A dim <b style={{ color: C.tm }}>not trained</b> bucket = a movement pattern this block is skipping — the fastest gap-check before you build the next one.</div>
+        </Section>
+      );
+    })()}
+
+    {/* EXERCISE CONTINUITY — how many blocks IN A ROW each main lift has run.
+        The coach's own programming mirror: are the mains being progressed, or
+        churned every block? NEUTRAL — shows the runs, never prescribes rotate-vs-
+        keep (a goal call: specificity for strength vs novel stimulus). */}
+    {a.blockHistory && a.blockHistory.length >= 2 && (() => {
+      const cont = exerciseContinuity(a.blockHistory.map((b) => ({ num: b.num, mains: b.mains || [] })));
+      const rows = cont.lifts.filter((l) => l.count >= 2).slice(0, 12);
+      if (!rows.length) return null;
+      return (
+        <Section title="Exercise continuity" summary={`${cont.totalBlocks} blocks · ${cont.staticNow.length} static`}>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead><tr>
+                {['Main lift', 'In a row', 'Longest', 'Blocks'].map((h, i) => (
+                  <th key={i} style={{ textAlign: i === 0 ? 'left' : 'center', fontSize: 9, letterSpacing: '0.11em', textTransform: 'uppercase', color: C.tm, fontWeight: 600, padding: '0 8px 7px', borderBottom: `1px solid ${C.bd}` }}>{h}</th>
+                ))}
+              </tr></thead>
+              <tbody>
+                {rows.map((l) => (
+                  <tr key={l.title} style={{ borderTop: `1px solid ${C.bd}` }}>
+                    <td dir="auto" style={{ padding: '7px 8px', color: C.tx, minWidth: 0, overflowWrap: 'anywhere' }}>{l.title}</td>
+                    <td style={{ textAlign: 'center', padding: '7px 8px', color: l.static ? C.or : C.tm, fontWeight: l.static ? 700 : 400, fontVariantNumeric: 'tabular-nums' }}>{l.currentRun || '—'}{l.static ? ' ⚑' : ''}</td>
+                    <td style={{ textAlign: 'center', padding: '7px 8px', color: C.tm, fontVariantNumeric: 'tabular-nums' }}>{l.longestRun}</td>
+                    <td style={{ textAlign: 'center', padding: '7px 8px', color: C.td, fontVariantNumeric: 'tabular-nums' }}>{l.count}/{cont.totalBlocks}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>Blocks IN A ROW each main lift has run, up to the latest block. A ⚑ marks ≥4 straight — long enough to ask whether it's still being progressed (specificity) or has gone stale. Your call, not a verdict.</div>
         </Section>
       );
     })()}

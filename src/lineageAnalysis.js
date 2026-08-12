@@ -610,6 +610,7 @@ export function blockHistory(plans, deps) {
   return withDays.map((p) => {
     const all = [];   // every parseable rep, for the coverage count + fallback
     const main = [];  // {reps, rpe, pct, explosive} for the primary compound / explosive lifts
+    const mainTitles = []; // the main-lift TITLES this block programmed (for cross-block continuity)
     for (const d of p.days || []) for (const ex of d.exercises || []) {
       const title = String(ex.title || ex.name || '');
       const accessory = ACCESSORY_RX.test(title);
@@ -625,7 +626,7 @@ export function blockHistory(plans, deps) {
       if (r != null && r > 0) all.push(r);
       // A ballistic main with no clean rep number (a depth jump logs "contacts",
       // not reps) still counts toward POWER — keep it in the basis without a rep.
-      if (isMain) main.push({ reps: (r != null && r > 0) ? r : null, rpe: rpeMid(ex.rpe), pct: loadPct(ex.load), explosive });
+      if (isMain) { main.push({ reps: (r != null && r > 0) ? r : null, rpe: rpeMid(ex.rpe), pct: loadPct(ex.load), explosive }); if (title.trim()) mainTitles.push(title.trim()); }
     }
     // Keep a block if it has enough rep-rows OR ≥2 identifiable main lifts.
     if (all.length < 3 && main.length < 2) return null;
@@ -654,7 +655,7 @@ export function blockHistory(plans, deps) {
     // zone instead. (Source-verified vs NSCA Essentials Ch.17, 2026-08-12.)
     const nc = namePhase(p.name);
     const { character } = classifyBlockCharacter({ explosiveShare, avgReps, heavy, nameChar: nc });
-    return { num: blockNum(p.name), name: p.name, character, avgReps: round1(avgReps), avgRpe: round1(avgRpe), avgPct: round1(avgPct), explosiveShare: Math.round(explosiveShare * 100) / 100, exercises: all.length, fromMains };
+    return { num: blockNum(p.name), name: p.name, character, avgReps: round1(avgReps), avgRpe: round1(avgRpe), avgPct: round1(avgPct), explosiveShare: Math.round(explosiveShare * 100) / 100, exercises: all.length, fromMains, mains: [...new Set(mainTitles)] };
   }).filter(Boolean)
     // Numbered blocks sort by number; un-numbered ones keep insertion order at the
     // front (stable key = -1) so the comparator stays transitive and "current
