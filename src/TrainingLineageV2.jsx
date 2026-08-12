@@ -209,6 +209,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
   const asymTrend = useMemo(() => getAthleteAsymmetryTrend(traineeId), [traineeId, poseBump]);
   const [showThin, setShowThin] = useState(false); // expand the "logged 1-2× · too few to trend" lifts
   const [liftsOpen, setLiftsOpen] = useState(false); // HIS LIFTS list collapsed by default — click the header to expand (Ohad)
+  const [barSpeedAll, setBarSpeedAll] = useState(false); // Bar-speed shows the top 3 lifts, expands to the FULL report of every tracked lift (Ohad #203)
 
   const shell = (children) => (
     <div style={{ ...wrap, background: C.bg, border: `1px solid ${C.bd}`, borderRadius: 2, overflow: 'hidden' }}>
@@ -715,7 +716,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
       <Section title="Bar speed" cardStyle={{ ...card, marginTop: 0 }} tag={<span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '2px 6px', border: `1px solid ${C.pu}`, color: C.pu, marginLeft: 8 }}>camera only</span>} summary={vault && vault.length > 0 ? `${vault.length} lift${vault.length === 1 ? '' : 's'} tracked` : 'no stored velocity'}>
           {vault && vault.length > 0 ? (
             <>
-              {vault.slice(0, 3).map((lift) => {
+              {vault.slice(0, barSpeedAll ? vault.length : 3).map((lift) => {
                 const mx = Math.max(...lift.entries.map((e) => e.lossPct || 0), 20);
                 const tCol = lift.trend === 'worse' ? C.rd : lift.trend === 'better' ? C.gn : C.pu;
                 const last = lift.entries[lift.entries.length - 1];
@@ -750,6 +751,12 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
                   </div>
                 );
               })}
+              {vault.length > 3 && (
+                <button onClick={() => setBarSpeedAll((s) => !s)}
+                  style={{ marginTop: 10, width: '100%', height: 30, boxSizing: 'border-box', background: 'transparent', border: `1px solid ${C.bd}`, borderRadius: 0, color: C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>
+                  {barSpeedAll ? 'Show less' : `Show all ${vault.length} lifts`}
+                </button>
+              )}
               <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>Per-lift velocity-loss from filmed sets — rising bars = fatigue building on the bar, days before load or RPE would show it. Film a lift across a load range and it also extrapolates a max-less 1RM (load-velocity profiling — the elite-VBT read no phone tool offers).</div>
             </>
           ) : (
