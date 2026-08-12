@@ -112,7 +112,9 @@ function nextBlockText(a) {
   if (v.tone === 'warn') {
     const region = a.region?.lower?.pct >= a.region?.upper?.pct ? 'lower' : 'upper';
     const hardStale = a.staples.find((s) => s.stale?.stale && s.stale.mode === 'hard');
-    const climbing = a.staples.filter((s) => s.trend?.dir === 'up').map((s) => s.title);
+    // "Keep pushing" must exclude stale/ballistic lifts — a stale lift isn't
+    // "still has room", and you don't chase kg on a jump.
+    const climbing = a.staples.filter((s) => s.trend?.dir === 'up' && !s.stale?.stale && !s.ballistic).map((s) => s.title);
     return (
       <>
         <b>Deload{nextNum}: cut {region}-body volume ~50%, hold intensity.</b> He's accumulating fatigue faster than he's clearing it.
@@ -125,8 +127,12 @@ function nextBlockText(a) {
   if (v.tone === 'info') {
     return <><b>Get him logging first.</b> Only {a.adh.sessionPct}% of sessions are logged — every load signal here is unreliable until he's training and recording it. This is a check-in, not a programming change.</>;
   }
-  const climbing = a.staples.filter((s) => s.trend?.dir === 'up').map((s) => s.title);
+  // Mutually exclusive: a stale lift is "stuck", never also "climbing" — else
+  // the coach is told to both add load AND hold on the same lift. Ballistics
+  // never land in "add load" (kg isn't the read on a jump). Matches the
+  // responding-split split above.
   const stuck = a.staples.filter((s) => s.stale?.stale || s.trend?.dir === 'down').map((s) => s.title);
+  const climbing = a.staples.filter((s) => s.trend?.dir === 'up' && !s.stale?.stale && !s.ballistic).map((s) => s.title);
   return (
     <>
       <b>Progress the block{nextNum}.</b> He's holding or climbing.
