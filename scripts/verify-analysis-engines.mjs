@@ -17,6 +17,7 @@ const suites = [
   'verify-block-character.mjs',      // classifyBlockCharacter — periodization ZONE + NSCA power rep-ceiling
   'verify-e1rm-trend.mjs',           // e1rmTrend — POSITIVE/NEGATIVE strength direction + 3 hardening guards
   'verify-stale-weight.mjs',         // staleWeight — the STALE->deload gate + rep-progression guard
+  'verify-tonnage-acwr.mjs',         // tonnageACWR — acute:chronic injury-risk band + fabricated-spike guards
   'verify-auto-analyze.mjs',         // auto-analyze collector — clip scoping / couples cid / load-ambiguity
   'verify-verdict.mjs',              // synthesizeVerdict — the headline coach-acted call (deload gating)
 ];
