@@ -450,6 +450,14 @@ export function skipPattern(sessions, plannedDays, weeks) {
     const gap = weeks - (logged[d] || 0);
     if (gap > 0 && (!worst || gap > worst.gap)) worst = { day: d, gap, logged: logged[d] || 0, expected: weeks };
   }
+  // A skip PATTERN means he attends his other days but consistently misses THIS
+  // one — so the worst day must be logged clearly LESS than his best-attended day.
+  // If every day is missed about equally, he's just under-logging globally (an
+  // adherence story, already in the gate) — don't single a day out as "a pattern"
+  // (that misreads a sparse logger as selectively avoiding one day). Needs a real
+  // differential: best-attended day logged ≥2 more times than the worst.
+  const maxLogged = Math.max(0, ...plannedDays.map((d) => logged[d] || 0));
+  if (worst && (maxLogged - worst.logged) < 2) return null;
   return worst;
 }
 
