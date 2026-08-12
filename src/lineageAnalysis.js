@@ -251,7 +251,10 @@ export function tonnageACWR(sessions, nowMs) {
     }
     return { t, date: ms(s.date) };
   }).filter((s) => isFinite(s.date));
-  if (!sessTon.length) return { state: 'thin', haveDays: 0, need: 28 };
+  // Trailing per-session tonnage (Σ load×reps), chronological — so the UI can graph
+  // the VOLUME trend even before there's enough history for a real ACWR ratio.
+  const series = sessTon.slice().sort((a, b) => a.date - b.date).slice(-14).map((s) => Math.round(s.t)).filter((t) => t > 0);
+  if (!sessTon.length) return { state: 'thin', haveDays: 0, need: 28, series };
   const now = nowMs || Math.max(...sessTon.map((s) => s.date));
   // Only the trailing 28 days form the chronic baseline. Measure coverage
   // WITHIN that window (now − oldest in-window session), NOT since the athlete's
@@ -264,15 +267,15 @@ export function tonnageACWR(sessions, nowMs) {
   // baseline made of this week's own load, which inflates the ratio into a fake
   // "load spiked → deload him". Require ≥3 sessions in days 8–28.
   const chronicSessions = recent.filter((s) => now - s.date > 7 * dayMs);
-  if (inSpan < 21 || recent.length < 4 || chronicSessions.length < 3) return { state: 'thin', haveDays: Math.round(inSpan), need: 28 };
+  if (inSpan < 21 || recent.length < 4 || chronicSessions.length < 3) return { state: 'thin', haveDays: Math.round(inSpan), need: 28, series };
   const acute = recent.filter((s) => now - s.date <= 7 * dayMs).reduce((a, b) => a + b.t, 0);
   const chronicTotal = recent.reduce((a, b) => a + b.t, 0);
   const chronicWeekly = chronicTotal / Math.max(1, inSpan / 7); // divide by weeks with actual data
-  if (!chronicWeekly) return { state: 'thin', haveDays: Math.round(inSpan), need: 28 };
+  if (!chronicWeekly) return { state: 'thin', haveDays: Math.round(inSpan), need: 28, series };
   const acwr = acute / chronicWeekly;
   let band = 'ok';
   if (acwr >= 1.5) band = 'high'; else if (acwr < 0.8) band = 'low';
-  return { state: 'ok', acwr: +acwr.toFixed(2), band };
+  return { state: 'ok', acwr: +acwr.toFixed(2), band, series };
 }
 
 // ---- #7 Movement-pattern coverage ---------------------------------------

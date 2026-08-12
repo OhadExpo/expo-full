@@ -454,6 +454,20 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
     {/* 4+5. LOAD/VOLUME + VELOCITY */}
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }} className="lineage-grid2">
       <Section title="Load & volume" cardStyle={{ ...card, marginTop: 0 }} summary={a.acwr.state === 'ok' ? `ACWR ${a.acwr.acwr}` : 'building the baseline'}>
+          {Array.isArray(a.acwr.series) && a.acwr.series.length >= 2 && (() => {
+            const mx = Math.max(...a.acwr.series, 1);
+            return (
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 10, color: C.td, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>Session tonnage · last {a.acwr.series.length}</div>
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 46 }}>
+                  {a.acwr.series.map((t, i) => (
+                    <div key={i} title={`${t.toLocaleString()} kg·reps`} style={{ flex: 1, minWidth: 4, height: `${Math.max(6, (t / mx) * 100)}%`, background: C.ac, opacity: 0.8, borderRadius: '1px 1px 0 0' }} />
+                  ))}
+                </div>
+                <div style={{ fontSize: 9, color: C.td, marginTop: 5, lineHeight: 1.5 }}>Σ load×reps per logged session — the raw work trend, before the acute:chronic ratio.</div>
+              </div>
+            );
+          })()}
           {a.acwr.state === 'ok' ? (
             <>
               <Kpi v={a.acwr.acwr} l="Load ratio (ACWR)" s="completed tonnage · watch >1.3" color={a.acwr.band === 'high' ? C.rd : a.acwr.band === 'low' ? C.or : C.gn} />
