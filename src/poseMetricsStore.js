@@ -16,6 +16,21 @@ import { detectAsymmetry } from './poseInsights.js';
 
 const KEY = 'expo-pose-metrics';
 const exKey = (title) => (title || 'exercise').trim().toLowerCase().replace(/\s+/g, ' ');
+
+// Mean-concentric velocity-LOSS (Sánchez-Medina) is a fatigue read for GRINDING
+// loaded lifts — a barbell/DB compound whose bar speed decays as the set tires.
+// It is NOT a bar-speed read for a ballistic/reactive drill (a pogo, jump, hop,
+// bound, snap-down, throw, slam, depth/box jump, sprint): there the "velocity"
+// isn't a bar speed and a huge "loss" is just the drill's nature — a
+// "50% loss · fatiguing" on a pogo is nonsense that erodes trust (Ohad #171).
+// Those drills are still covered by the ballistic FLIGHT/RSI read + the L/R
+// injury-watch; they just don't belong in the velocity-loss BAR SPEED trend.
+const NON_VELOCITY_RE = /\b(jump|jumps|pogo|hop|hops|bound|bounds|snap[\s-]?down|depth|throw|throws|toss|slam|sprint|plyo|plyos|broad|cmj|countermovement)\b/i;
+export function isVelocityLossLift(title) {
+  const t = String(title || '').trim().toLowerCase();
+  if (!t) return false;
+  return !NON_VELOCITY_RE.test(t);
+}
 const median = (arr) => {
   const a = (arr || []).filter((x) => typeof x === 'number' && isFinite(x)).sort((p, q) => p - q);
   if (!a.length) return null;
@@ -47,15 +62,22 @@ export function savePoseMetric({ clientId, exercise, date, analysis, load, clipK
   // gap across sessions — the read every phone tool leaves on the floor.
   const asym = detectAsymmetry(analysis.jointRom, exercise);
   const asymRows = (asym && asym.rows.length) ? asym.rows.map((r) => ({ joint: r.joint, pct: r.asymPct, weaker: r.weaker })) : null;
+  // Velocity-LOSS is a fatigue read for GRINDING loaded lifts only. On a ballistic/
+  // reactive drill (pogo, jump, snap-down, throw) it's not a bar speed — drop the
+  // velocity numbers so a nonsense "50% loss · fatiguing" never reaches the coach
+  // (Ohad #171). The L/R symmetry read is KEPT (injury-watch still covers plyos).
+  const velValid = isVelocityLossLift(exercise);
+  const vBestMean = velValid ? bestMean : null;
+  const vLossPct = velValid ? lossPct : null;
   // Store if the camera got EITHER a real bar velocity OR a usable L/R symmetry
   // read — the injury screen must still cover machine/ROM-only work where there's
   // no clean bar speed. Never store a fully-empty (fabricated) trend point.
-  if (bestMean == null && !asymRows) return null;
+  if (vBestMean == null && !asymRows) return null;
   const entry = {
     date: date || new Date().toISOString(),
     kind: analysis.kind || null,
     reps: analysis.repCount || null,
-    bestMean, lossPct, maxRom,
+    bestMean: vBestMean, lossPct: vLossPct, maxRom,
     load: (typeof load === 'number' && load > 0) ? load : null, // kg, for same-load readiness
     asymRows: (asymRows && asymRows.length) ? asymRows : null,
     clip: clipKey || null, // stable per-clip id (the cloud URL) — see same-day dedupe below
@@ -111,9 +133,15 @@ export function getAthleteVault(clientId) {
         const d = losses[losses.length - 1] - losses[0];
         trend = d >= 5 ? 'worse' : d <= -5 ? 'better' : 'flat';
       }
-      return { title: lift.title, entries, count: entries.length, trend };
+      // hasVel: does this lift actually carry a velocity read? (a symmetry-only
+      // entry has no bestMean/lossPct and doesn't belong in the BAR SPEED trend.)
+      const hasVel = entries.some((e) => typeof e.bestMean === 'number' || typeof e.lossPct === 'number');
+      return { title: lift.title, entries, count: entries.length, trend, hasVel };
     })
-    .filter((l) => l.count > 0)
+    // BAR SPEED shows only velocity-VALID grinding lifts with a real velocity read
+    // — never a pogo/jump/snap-down (Ohad #171), and never a symmetry-only lift.
+    // Also drops legacy velocity wrongly stored for a ballistic lift before the gate.
+    .filter((l) => l.count > 0 && l.hasVel && isVelocityLossLift(l.title))
     .sort((a, b) => b.count - a.count);
 }
 

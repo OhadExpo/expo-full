@@ -14,7 +14,7 @@ globalThis.localStorage = {
   removeItem: (k) => { _mem.delete(k); },
   clear: () => { _mem.clear(); },
 };
-const { getAthleteAsymmetryTrend, getLoadVelocityRef, getAthleteVault, savePoseMetric } = await import('../src/poseMetricsStore.js');
+const { getAthleteAsymmetryTrend, getLoadVelocityRef, getAthleteVault, savePoseMetric, isVelocityLossLift } = await import('../src/poseMetricsStore.js');
 
 let pass = 0, fail = 0;
 const check = (name, cond) => { console.log(`${cond ? 'PASS' : 'FAIL'}  ${name}`); cond ? pass++ : fail++; };
@@ -102,6 +102,33 @@ check('#150 legacy id-less same-day entry preserved when a new clip lands', rawE
 seed({ w: { squat: { title: 'Squat', entries: [
   { date: '2026-06-01', lossPct: 10, bestMean: 0.5 }, { date: '2026-06-01', lossPct: 40, bestMean: 0.7 } ] } } });
 check('#150 two same-day clips only -> ONE point, trend flat (no fake trend)', getAthleteVault('w')[0].count === 1 && getAthleteVault('w')[0].trend === 'flat');
+
+// ── #171 BAR SPEED gated to grinding LOADED lifts, never a ballistic/reactive
+//    drill — velocity-loss on a pogo/jump/snap-down is nonsense that erodes trust ──
+check('#171 BB RDL is velocity-valid', isVelocityLossLift('BB RDL') === true);
+check('#171 Back Squat is velocity-valid', isVelocityLossLift('Back Squat') === true);
+check('#171 DB Bench Press is velocity-valid', isVelocityLossLift('DB Bench Press') === true);
+check('#171 Weighted SL Snap-Down excluded', isVelocityLossLift('Weighted SL Snap-Down') === false);
+check('#171 SL Pogo Lateral Jump excluded', isVelocityLossLift('SL Pogo Lateral Jump') === false);
+check('#171 Depth Jump excluded', isVelocityLossLift('Depth Jump') === false);
+check('#171 MB Chest Throw excluded', isVelocityLossLift('MB Chest Throw') === false);
+check('#171 Box Jump excluded', isVelocityLossLift('Box Jump') === false);
+check('#171 Broad Jump excluded', isVelocityLossLift('Broad Jump') === false);
+// write path: a ballistic clip with no bilateral L/R read stores NOTHING (velocity
+// gated off, no symmetry) — it never becomes a bar-speed point.
+_mem.clear();
+check('#171 plyo (velocity gated, no L/R) stores nothing',
+  savePoseMetric({ clientId: 'p', exercise: 'Box Jump', date: '2026-07-01', analysis: mkAnalysis(0.9, 50), clipKey: 'u1' }) === null);
+// a valid grinding lift still stores its velocity normally
+check('#171 grinding lift still stores velocity',
+  savePoseMetric({ clientId: 'p', exercise: 'BB RDL', date: '2026-07-01', analysis: mkAnalysis(0.6, 12), clipKey: 'u2' })?.bestMean === 0.6);
+// read path: even legacy velocity wrongly stored on a ballistic lift is dropped
+seed({ q: {
+  'sl pogo lateral jump': { title: 'SL Pogo Lateral Jump', entries: [{ date: '2026-07-01', lossPct: 50, bestMean: 0.9 }, { date: '2026-07-08', lossPct: 55, bestMean: 0.8 }] },
+  'bb rdl': { title: 'BB RDL', entries: [{ date: '2026-07-01', lossPct: 12, bestMean: 0.6 }] },
+} });
+const gated = getAthleteVault('q');
+check('#171 vault drops the legacy-stored pogo, keeps BB RDL', gated.length === 1 && gated[0].title === 'BB RDL');
 
 console.log(`\n${fail === 0 ? '✓ ALL PASS' : '✗ FAILURES'} — ${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);
