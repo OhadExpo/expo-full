@@ -353,7 +353,11 @@ export function synthesizeVerdict({ adh, region, staples, acwr, velocity }) {
     sub = 'Low adherence makes every load signal below unreliable. This is a check-in conversation first, a programming decision second.';
   } else {
     tone = 'ok';
-    const progressing = staples.filter((s) => s.trend?.dir === 'up').map((s) => s.title);
+    // "Progressing" must match the responding-split's ✓Working exactly (main,
+    // non-ballistic, up AND not stale) — else the headline can say "keep adding
+    // load on X" while the responding section lists the same X as "stuck". A
+    // stale-but-up lift isn't climbing, and kg isn't the read on a ballistic lift.
+    const progressing = staples.filter((s) => !s.ballistic && s.isMain && !s.stale?.stale && s.trend?.dir === 'up').map((s) => s.title);
     headline = progressing.length ? `He's responding — keep progressing.` : `Steady block — nothing's flashing red.`;
     sub = progressing.length
       ? `${progressing.slice(0, 3).join(', ')} climbing at an on-target effort. Keep adding load next block.`

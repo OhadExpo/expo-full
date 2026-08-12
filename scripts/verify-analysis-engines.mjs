@@ -14,6 +14,7 @@ const suites = [
   'verify-rom-goniometer.mjs',       // camera goniometer -> clinical ROM degree
   'verify-velocity-profile-1rm.mjs', // load-velocity -> estimated 1RM
   'verify-periodization-balance.mjs',// block history -> periodization read
+  'verify-verdict.mjs',              // synthesizeVerdict — the headline coach-acted call (deload gating)
 ];
 
 let anyFail = false;
