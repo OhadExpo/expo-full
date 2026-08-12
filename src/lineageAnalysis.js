@@ -748,15 +748,19 @@ export function analyzeAthlete(clientWorkouts, traineeId, plans, deps) {
   // e1RM slope of each side. Grounded in the DSI / force-deficit literature —
   // presented as a RELATIONSHIP TO WATCH (squat→jump r≈0.5 is population-level,
   // not this athlete's causal law), a bias for the next block, not a mandate.
-  // clean/snatch/jerk/swing now classify as POWER (ballistic), not strength.
-  const STRENGTH_RX = /squat|deadlift|\bdl\b|rdl|hinge|good[-\s]?morning|press|bench|ohp|overhead|row|pull[-\s]?up|chin|pulldown|lunge|split|rfess|bulgarian|thrust/i;
+  // The strength side = the MAIN, non-ballistic compounds. Use the already-correct
+  // `isMain` (PRIMARY && !ACCESSORY, with \bchin word-boundary) rather than a bare
+  // regex — a bare `chin`/`row`/`press` matched "Ma-chin-e"/"Machine Row"/"Leg
+  // Press", letting isolation accessories pollute the flagship strength↔power read
+  // (same bug-class the blockHistory classifier had). clean/snatch/jerk are
+  // ballistic, so !ballistic already keeps them on the power side.
   // MEDIAN slope per side — robust to a single jumpy low-load accessory that a
   // mean would let dominate (dividing %/step by a small e1RM amplifies it).
   const groupSlope = (lifts) => {
     const sl = lifts.map((l) => l.trend?.slopePct).filter((x) => typeof x === 'number' && isFinite(x)).sort((a, b) => a - b);
     return sl.length ? sl[Math.floor(sl.length / 2)] : null;
   };
-  const strengthLifts = staples.filter((x) => !x.ballistic && STRENGTH_RX.test(x.title) && x.count >= 3);
+  const strengthLifts = staples.filter((x) => !x.ballistic && x.isMain && x.count >= 3);
   // Power side = LOADED explosive lifts only (clean/loaded jump/swing) — their
   // load trend IS meaningful. A bodyweight jump (POGO/box jump) has no load to
   // trend, so it would drag the power slope to ~0 and fake "power not moving";
