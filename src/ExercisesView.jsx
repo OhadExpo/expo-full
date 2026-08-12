@@ -318,21 +318,15 @@ export default function ExercisesView({ exercises, setExercises }) {
         // (cyan strip header + accent bar + name, calm body, light text actions).
         <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fill, minmax(min(300px, 100%), 1fr))' }}>
           {rows.map(ex => {
-            const vid = hasVideo(ex), note = hasNotes(ex);
+            const note = hasNotes(ex);
             const meta = [ex.resistanceType, ex.bodyPosition, ex.movementType].filter(Boolean);
             return (
               <div key={ex.id} className="ex-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, display: 'flex', flexDirection: 'column', boxShadow: C.cardShadow }}>
-                {/* cyan strip header — identical grammar to the program card */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '8px 14px' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
-                    <span aria-hidden style={{ width: 3, height: 14, background: C.ac, flexShrink: 0 }} />
-                    <bdi title={ex.title} style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', color: '#FFFFFF', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ex.title}</bdi>
-                  </span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                    {vid && <span title="Has a demo video" style={{ color: C.ac, fontSize: 12 }}>▶</span>}
-                    {note && <span title="Has coaching cues" style={{ color: C.or, fontSize: 12 }}>☰</span>}
-                    {!vid && !note && <span style={{ width: 6, height: 6, borderRadius: '50%', border: `1px solid ${C.td}`, opacity: 0.5 }} />}
-                  </span>
+                {/* cyan strip header — title only; the video/notes icons are gone
+                    now the card shows the thumbnail + cues directly (Ohad). */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 9, background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '8px 14px', minWidth: 0 }}>
+                  <span aria-hidden style={{ width: 3, height: 14, background: C.ac, flexShrink: 0 }} />
+                  <bdi title={ex.title} style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', color: '#FFFFFF', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ex.title}</bdi>
                 </div>
                 {/* body — half YouTube thumbnail (inline, no fullscreen), half
                     coaching notes (Ohad). Classification recedes to a single meta
