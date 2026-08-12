@@ -3,7 +3,7 @@
 // rep-counting, ROM, the goniometer, everything. Pinned with known geometry.
 // Run: node scripts/verify-pose-primitives.mjs
 import { angleAt, detectChannels, medianFilter, isReal } from '../src/repCounter.js';
-import { jointRomMetrics } from '../src/poseLab.js';
+import { jointRomMetrics, frameScaleY } from '../src/poseLab.js';
 
 let pass = 0, fail = 0;
 const check = (name, cond) => { console.log(`${cond ? 'PASS' : 'FAIL'}  ${name}`); cond ? pass++ : fail++; };
@@ -28,6 +28,37 @@ check('bench -> elbow', detectChannels('Barbell Bench Press').kind === 'elbow');
 check('lateral raise -> shoulder', detectChannels('DB Lateral Raise').kind === 'sho');
 check('plank/hold -> none (no counting)', detectChannels('Front Plank').channels.length === 0);
 check('unknown title -> default knee', detectChannels('Weird Thing').kind === 'knee');
+// matched flag distinguishes a confident route from the knee fallback guess
+check('matched: known lift -> matched true', detectChannels('Back Squat').matched === true);
+check('matched: unknown lift -> matched false (fallback)', detectChannels('Weird Thing').matched === false);
+// off-catalog lifts that used to fall through to knee now route correctly
+check('face pull -> elbow (was knee)', detectChannels('Cable Face Pull').kind === 'elbow');
+check('pec deck -> shoulder (was knee)', detectChannels('Pec Deck').kind === 'sho');
+check('cable crossover -> shoulder (was knee)', detectChannels('Cable Crossover').kind === 'sho');
+check('pallof press -> none/no-count (anti-rotation, not a rep cycle)', detectChannels('Pallof Press').channels.length === 0);
+
+// --- frameScaleY: metres-per-image-unit ruler, better-tracked side wins ---
+// A frame = { worldLandmarks, landmarks }. Build shoulder→ankle per side with a
+// known world length / image length (scale = world/img) and a visibility.
+const IMG = (y, vis) => ({ x: 0, y, visibility: vis });
+const scaleFrame = (Lw, Li, Lv, Rw, Ri, Rv) => {
+  const world = [], img = [];
+  world[11] = P(0, Lw, 0); world[27] = P(0, 0, 0);   // L shoulder / L ankle
+  world[12] = P(0, Rw, 0); world[28] = P(0, 0, 0);   // R shoulder / R ankle
+  img[11] = IMG(Li, Lv); img[27] = IMG(0, Lv);
+  img[12] = IMG(Ri, Rv); img[28] = IMG(0, Rv);
+  return { worldLandmarks: world, landmarks: img };
+};
+// both sides clean + equal (scale 3.0) -> 3.0
+check('frameScaleY: both clean equal -> that scale', near(frameScaleY(scaleFrame(1.5, 0.5, 0.9, 1.5, 0.5, 0.9)), 3.0, 0.01));
+// SAFETY: left occluded (vis 0.2, garbage scale 5.0), right clean (scale 3.0) ->
+// takes the RIGHT side, not left (5.0) and not the average (4.0). This is the bug.
+const occl = frameScaleY(scaleFrame(2.5, 0.5, 0.2, 1.5, 0.5, 0.9));
+check('frameScaleY: occluded side ignored -> tracked side wins (3.0, not 5.0/4.0)', near(occl, 3.0, 0.01) && !near(occl, 5.0, 0.01) && !near(occl, 4.0, 0.01));
+// no visibility field on either side -> treat as visible -> average both sides
+check('frameScaleY: no vis field -> average both (3.1)', near(frameScaleY(scaleFrame(1.5, 0.5, null, 1.6, 0.5, null)), 3.1, 0.01));
+// missing landmarks -> null
+check('frameScaleY: empty frame -> null', frameScaleY({ worldLandmarks: [], landmarks: [] }) === null);
 
 // --- medianFilter: a single-frame spike is smoothed out ---
 const smoothed = medianFilter([100, 100, 100, 300, 100, 100, 100], 5);

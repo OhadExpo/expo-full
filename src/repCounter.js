@@ -31,23 +31,26 @@ export const angleAt = (lms, ai, bi, ci) => {
 };
 
 // Title-regex → channel pair. Order matters — `none` first so isometric /
-// carry / hold exercises skip counting. Unmatched titles default to knee.
+// carry / hold / anti-rotation exercises skip counting. An UNMATCHED title
+// returns matched:false so the caller knows the channel is a fallback guess,
+// not a confident read (adversarial-review 2026-08-12: a silent knee default
+// on an off-catalog upper-body lift counts on a barely-moving channel).
 export const CHANNEL_RULES = [
-  { kind: 'none',  rx: /\b(hold|plank|l[-\s]?sit|dead[-\s]?hang|hanging|carry|farmer|iso|iso[-\s]?metric|wall[-\s]?sit|bear[-\s]?crawl|position|stretch|breath|scap)\b/i,
+  { kind: 'none',  rx: /\b(hold|plank|l[-\s]?sit|dead[-\s]?hang|hanging|carry|farmer|iso|iso[-\s]?metric|wall[-\s]?sit|bear[-\s]?crawl|position|stretch|breath|scap|pallof|anti[-\s]?rotation|bird[-\s]?dog|dead[-\s]?bug)\b/i,
     channels: [] },
   { kind: 'hip',   rx: /\b(hip[-\s]?thrust|glute[-\s]?bridge|deadlift|\bdl\b|rdl|romanian|hinge|good[-\s]?morning|jefferson|clean|snatch|swing|kettlebell\s*swing|crab|reverse[-\s]?tabletop)\b/i,
     channels: ['L HIP', 'R HIP'] },
   { kind: 'knee',  rx: /\b(squat|lunge|step[-\s]?up|split[-\s]?squat|rfess|bulgarian|pistol|leg[-\s]?press|leg[-\s]?extension|leg[-\s]?curl|jump|bounce|goblet|thruster|pogo)\b/i,
     channels: ['L KNE', 'R KNE'] },
-  { kind: 'elbow', rx: /\b(press|bench|push[-\s]?up|ohp|row|pull[-\s]?up|chin[-\s]?up|pulldown|curl|extension|tricep|skull|dip|pushdown|pullover|hammer)\b/i,
+  { kind: 'elbow', rx: /\b(press|bench|push[-\s]?up|ohp|row|pull[-\s]?up|chin[-\s]?up|pulldown|face[-\s]?pull|curl|extension|tricep|skull|dip|pushdown|kick[-\s]?back|pullover|hammer)\b/i,
     channels: ['L ELB', 'R ELB'] },
-  { kind: 'sho',   rx: /\b(fly|flye|raise|lateral|front[-\s]?raise|rear[-\s]?delt)\b/i,
+  { kind: 'sho',   rx: /\b(fly|flye|raise|lateral|front[-\s]?raise|rear[-\s]?delt|pec[-\s]?deck|cross[-\s]?over|crossover)\b/i,
     channels: ['L SHO', 'R SHO'] },
 ];
 export const detectChannels = (title) => {
   const t = String(title || '');
-  for (const r of CHANNEL_RULES) if (r.rx.test(t)) return { kind: r.kind, channels: r.channels };
-  return { kind: 'knee', channels: ['L KNE', 'R KNE'] };
+  for (const r of CHANNEL_RULES) if (r.rx.test(t)) return { kind: r.kind, channels: r.channels, matched: true };
+  return { kind: 'knee', channels: ['L KNE', 'R KNE'], matched: false };
 };
 
 export const SMOOTH_N = 5;

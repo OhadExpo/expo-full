@@ -34,15 +34,41 @@ export const LM = {
 const mid = (a, b) => (a == null || b == null ? null : { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, z: ((a.z ?? 0) + (b.z ?? 0)) / 2 });
 const mid2 = (a, b) => (a == null || b == null ? null : { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
 
-// metres-per-image-unit for this frame, from the shoulder→ankle ruler.
-function frameScaleY(f) {
-  const w = f.worldLandmarks, im = f.landmarks;
-  if (!w || !im) return null;
-  const ws = w[LM.L_SHO], wa = w[LM.L_ANKLE], is = im[LM.L_SHO], ia = im[LM.L_ANKLE];
+// metres-per-image-unit for ONE side's shoulder→ankle ruler, plus how well that
+// side is tracked (min 2D-landmark visibility). Missing visibility field (some
+// MediaPipe builds omit it) is treated as fully visible, matching the
+// movementRepCount convention (`visibility == null || > 0.5`).
+function sideScale(w, im, shoI, ankI) {
+  const ws = w[shoI], wa = w[ankI], is = im[shoI], ia = im[ankI];
   if (!ws || !wa || !is || !ia) return null;
   const worldLen = Math.hypot(ws.x - wa.x, ws.y - wa.y, (ws.z ?? 0) - (wa.z ?? 0));
   const imgLen = Math.hypot(is.x - ia.x, is.y - ia.y);
-  return imgLen > 0 ? worldLen / imgLen : null;
+  if (!(imgLen > 0) || !(worldLen > 0)) return null;
+  const vis = Math.min(is.visibility == null ? 1 : is.visibility, ia.visibility == null ? 1 : ia.visibility);
+  return { scale: worldLen / imgLen, vis };
+}
+// metres-per-image-unit for this frame, from the shoulder→ankle ruler — using
+// whichever side is BETTER TRACKED. The standard VBT camera view is straight
+// side-on, which occludes the far-side shoulder/ankle; MediaPipe extrapolates
+// those to garbage, and reading the ruler off the occluded side (the old
+// LEFT-only behaviour) biased metres-per-unit for the WHOLE clip → every rep's
+// m/s scaled wrong (adversarial-review HIGH, 2026-08-12). Gate each side on 2D
+// visibility, prefer the visible side, average when both are clean.
+export function frameScaleY(f) {
+  const w = f.worldLandmarks, im = f.landmarks;
+  if (!w || !im) return null;
+  const L = sideScale(w, im, LM.L_SHO, LM.L_ANKLE);
+  const R = sideScale(w, im, LM.R_SHO, LM.R_ANKLE);
+  const VIS = 0.5;
+  const okL = L && L.vis > VIS, okR = R && R.vis > VIS;
+  if (okL && okR) return (L.scale + R.scale) / 2; // both clean → average for stability
+  if (okL) return L.scale;
+  if (okR) return R.scale;
+  // neither side clears the gate (both occluded, or no visibility field): fall
+  // back to what exists rather than nulling the clip's scale — captureQuality
+  // separately warns the coach when tracking is poor.
+  if (L && R) return (L.scale + R.scale) / 2;
+  return (L && L.scale) || (R && R.scale) || null;
 }
 // Image "up" position in metres: image y is DOWN, so up = -y · scale. This IS
 // the correct convention — proved definitively 2026-07-04 with a deterministic
