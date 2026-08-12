@@ -321,7 +321,7 @@ export default function TraineeEvaluation({ trainee }) {
                 color: refined ? '#FFFFFF' : 'var(--c-ac)',
                 padding: '3px 10px', borderRadius: 0, fontFamily: 'inherit', fontSize: 10,
                 fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer',
-              }}>+ NEW EVAL</button>
+              }}>+ NEW EVALUATION</button>
           </div>
         </div>
       </RefinedHeaderStrip>

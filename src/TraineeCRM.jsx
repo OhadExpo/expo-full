@@ -137,11 +137,6 @@ function ActivityFeed({ trainee, activity, clientWorkouts, payments, planIndex, 
               <span style={{ width: 7, height: 7, borderRadius: '50%', background: KIND_COLOR[ev.kind] || C.tm, flexShrink: 0 }} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 9, fontFamily: FN, letterSpacing: '0.08em', fontWeight: 700, marginBottom: 3 }}>
-                <span style={{ color: KIND_COLOR[ev.kind] || C.tm }}>{KIND_LABEL[ev.kind] || (ev.kind || '').toUpperCase()}</span>
-                <span style={{ color: C.td }}> · {new Date(ev.ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} · {new Date(ev.ts).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
-                {!isManual && <span style={{ marginLeft: 6, color: C.tm }}>· AUTO</span>}
-              </div>
               {editId === ev.id ? (
                 <textarea value={editText} onChange={e => setEditText(e.target.value)} dir="auto" autoFocus
                   onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) saveEdit(); if (e.key === 'Escape') cancelEdit(); }}
@@ -152,10 +147,16 @@ function ActivityFeed({ trainee, activity, clientWorkouts, payments, planIndex, 
                     resize: 'vertical', fontFamily: heb ? FH : FB,
                   }} />
               ) : (
-                <div dir="auto" style={{
-                  fontSize: 12, color: C.tx, lineHeight: 1.4,
-                  fontFamily: FB,
-                }}>{ev.summary}</div>
+                // Summary + when on ONE row (Ohad): the log text leads, the
+                // kind · date sits compact on the right instead of stacked above.
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0 }}>
+                  <span dir="auto" style={{ flex: 1, minWidth: 0, fontSize: 12, color: C.tx, lineHeight: 1.4, fontFamily: heb ? FH : FB }}>{ev.summary}</span>
+                  <span style={{ flexShrink: 0, fontSize: 9, fontFamily: FN, letterSpacing: '0.06em', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                    <span style={{ color: KIND_COLOR[ev.kind] || C.tm }}>{KIND_LABEL[ev.kind] || (ev.kind || '').toUpperCase()}</span>
+                    <span style={{ color: C.td }}> · {new Date(ev.ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
+                    {!isManual && <span style={{ marginLeft: 6, color: C.tm }}>· AUTO</span>}
+                  </span>
+                </div>
               )}
             </div>
             {isManual && editId !== ev.id && (
@@ -466,15 +467,16 @@ export default function TraineeCRM({ trainee, clientWorkouts, payments, planInde
 
   return (
     <div style={{ marginBottom: 8 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10, flexWrap: 'wrap' }}>
-        <HealthStrip health={health} tenure={tenure} />
-        {trainee?.status && trainee.status !== 'Active' && (
-          <div style={{
-            fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.12em',
-            fontWeight: 700, padding: '6px 10px', border: `1px solid ${C.cardBd}`,
-          }}>STATUS · {(trainee.status || '').toUpperCase()}</div>
-        )}
-      </div>
+      {/* HealthStrip (TRAINING / LAST CONTACT / PAYMENT / CLIENT) removed (Ohad):
+          it duplicated facts that belong in their own sections — last training →
+          Recent Workouts, last contact → the activity feed below, payment →
+          Billing, tenure → Billing "Since". Only the non-Active status pill stays. */}
+      {trainee?.status && trainee.status !== 'Active' && (
+        <div style={{ marginBottom: 10 }}><span style={{
+          fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.12em',
+          fontWeight: 700, padding: '6px 10px', border: `1px solid ${C.cardBd}`,
+        }}>STATUS · {(trainee.status || '').toUpperCase()}</span></div>
+      )}
       <CoachHistoryCard
         trainee={trainee}
         activity={activity}

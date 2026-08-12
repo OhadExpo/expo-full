@@ -259,7 +259,7 @@ export default function NotesInline({
                   const el = document.querySelector('[data-eval-anchor]');
                   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 } catch {}
-              }} style={pillBtn('var(--c-ac)')}>→ RUN EVAL</button>
+              }} style={pillBtn('var(--c-ac)')}>→ RUN EVALUATION</button>
             );
           }
           if (kindAction === 'OPEN_WAITLIST' && typeof window !== 'undefined') {

@@ -1720,7 +1720,7 @@ function RomConfirm({ spec, jointRom, onSave, onClose }) {
     <div style={{ border: `1px solid ${C.rd}`, background: `${C.rd}14`, padding: 16, marginBottom: 16 }}>
       <div style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.rd, letterSpacing: '0.1em' }}>NO CLEAN {spec.axis.toUpperCase()} READ</div>
       <div style={{ fontFamily: FB, fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 8, lineHeight: 1.5 }}>
-        Couldn't recover the {spec.jointId} through a clean range. {spec.cue} Full body in frame, good light — or enter the degree by hand in the eval.
+        Couldn't recover the {spec.jointId} through a clean range. {spec.cue} Full body in frame, good light — or enter the degree by hand in the evaluation.
       </div>
     </div>
   );
@@ -1758,9 +1758,9 @@ function RomConfirm({ spec, jointRom, onSave, onClose }) {
       </div>
       <button disabled={saved || !degValid} onClick={() => { onSave(degNum); setSaved(true); }}
         style={{ marginTop: 14, padding: '12px 20px', width: '100%', background: saved ? '#2a2a2a' : C.ac, border: `1px solid ${saved ? '#2a2a2a' : C.ac}`, color: '#FFF', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', cursor: saved || !degValid ? 'default' : 'pointer' }}>
-        {saved ? '✓ LOGGED TO EVAL' : `USE ${degValid ? degNum : '—'}° →`}
+        {saved ? '✓ LOGGED TO EVALUATION' : `USE ${degValid ? degNum : '—'}° →`}
       </button>
-      {saved && <button onClick={onClose} style={{ marginTop: 8, padding: '10px 20px', width: '100%', background: 'transparent', border: '1px solid rgba(255,255,255,0.3)', color: '#FFF', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', cursor: 'pointer' }}>DONE — BACK TO EVAL</button>}
+      {saved && <button onClick={onClose} style={{ marginTop: 8, padding: '10px 20px', width: '100%', background: 'transparent', border: '1px solid rgba(255,255,255,0.3)', color: '#FFF', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', cursor: 'pointer' }}>DONE — BACK TO EVALUATION</button>}
     </div>
   );
 }
