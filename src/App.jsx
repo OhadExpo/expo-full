@@ -14,6 +14,7 @@ import { parseTraineeId } from './traineeUtils';
 import { AuthProvider, useAuth, LoginScreen, UnauthorizedScreen, PasswordChangeModal, SaveErrorToast, OfflineStatusPill, RolePickerScreen, PORTAL_CHOICE_KEY, TRAINER_EMAILS, OWNER_EMAILS } from './auth';
 import InstallAppPrompt from './InstallAppPrompt';
 import ErrorBoundary from './ErrorBoundary';
+import { autoAnalyzeAthleteVideos } from './autoAnalyzeVideos';
 // Lazy-load every heavy view so the initial bundle stays small.
 // Each tab fetches its own chunk on first navigation; subsequent visits use cache.
 //
@@ -693,6 +694,44 @@ function AuthedApp() {
   // "staff" (e.g. Yuval) — coach portal, but a reduced surface. STAFF_TABS
   // is the whitelist of tab keys a staff coach may reach (UI + URL guard).
   const isOwner = OWNER_EMAILS.includes(email);
+
+  // Pre-warm pose analysis in the BACKGROUND across every athlete as soon as the
+  // coach app has their clips — so bar-speed + symmetry are already computed when
+  // the Analysis report opens, instead of grinding through MediaPipe on-demand
+  // (Ohad 2026-08-12: "analyze as soon as a video is uploaded, always be ready").
+  // Owner-only. Idle-scheduled and STRICTLY sequential per athlete so it never
+  // competes with interactive work; the per-clip cache (isAnalyzed) means the
+  // first pass does the backlog and later passes only touch newly-uploaded clips.
+  const poseWarmRef = useRef(false);
+  useEffect(() => {
+    if (!isOwner) return undefined;
+    if (!clientWorkouts || clientWorkouts.length === 0) return undefined;
+    if (poseWarmRef.current) return undefined; // one warmer per app session
+    poseWarmRef.current = true;
+    let cancelled = false;
+    const base = (id) => String(id || '').split('__')[0];
+    const ids = [...new Set((clientWorkouts || [])
+      .filter((w) => Array.isArray(w.formVideos) && w.formVideos.length)
+      .map((w) => base(w.clientId)).filter(Boolean))];
+    const idle = () => new Promise((r) => (typeof window !== 'undefined' && window.requestIdleCallback
+      ? window.requestIdleCallback(() => r(), { timeout: 5000 })
+      : setTimeout(r, 1500)));
+    (async () => {
+      for (const id of ids) {
+        if (cancelled) break;
+        await idle();
+        if (cancelled) break;
+        try { await autoAnalyzeAthleteVideos(clientWorkouts, id, { shouldStop: () => cancelled }); } catch { /* one athlete's clip blip never stops the sweep */ }
+      }
+    })();
+    return () => { cancelled = true; };
+    // Intentionally keyed on isOwner only (+ the ref guard): re-runs on every
+    // clientWorkouts identity change would restart the whole sweep on each
+    // realtime tick. The report-open path still catches anything uploaded after
+    // this warmer's snapshot, and a fresh reload starts a fresh sweep.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOwner, clientWorkouts && clientWorkouts.length > 0]);
+
   // Staff (e.g. Yuval, a masseur) gets Dashboard + Tasks only for now. Athletes
   // (Roster/Programs/Exercises) and every athlete-derived surface are removed
   // per Ohad — alongside money (Billing, revenue KPIs), leads/marketing
