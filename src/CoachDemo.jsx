@@ -1047,7 +1047,7 @@ function DemoNotifToggle() {
 }
 
 // ─── Athlete-detail deep sections — demo mocks of the real TraineeDetail
-//     sub-surfaces (Messages, CRM, Readiness trends, Athletic Eval + Intake,
+//     sub-surfaces (Messages, CRM, Readiness trends, Evaluation + Intake,
 //     Progressive Overload). Static mock data shaped to mirror each real
 //     component so the demo shows the platform's true depth. ───────────────
 
@@ -1209,7 +1209,7 @@ function DemoReadinessTrends() {
   );
 }
 
-// ATHLETIC EVALUATION + INTAKE — collapsed eval rows + one intake card.
+// EVALUATION + INTAKE — collapsed eval rows + one intake card.
 const DEMO_EVAL = {
   eval_date: '15 Jul 2026', age: 34, height: 178, weight: 82, fields: 26,
   sections: [
@@ -1570,7 +1570,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
               visible, no horizontal scroll. Empty = everything shows. */}
           <div style={{ margin: '0 0 16px' }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {[['all', 'View All'], ['vitals', 'Vitals'], ['billing', 'Billing'], ['bw', 'Bodyweight'], ['readiness', 'Readiness'], ['workouts', 'Workouts'], ['programs', 'Programs'], ['messages', 'Messages'], ['crm', 'Coach History'], ['eval', 'Athletic Eval'], ['overload', 'Overload']].map(([id, l]) => {
+              {[['all', 'View All'], ['vitals', 'Vitals'], ['billing', 'Billing'], ['bw', 'Bodyweight'], ['readiness', 'Readiness'], ['workouts', 'Workouts'], ['programs', 'Programs'], ['messages', 'Messages'], ['crm', 'Coach History'], ['eval', 'Evaluation'], ['overload', 'Overload']].map(([id, l]) => {
                 const active = id === 'all' ? activeSecs.size === 0 : activeSecs.has(id);
                 return <button key={id} onClick={() => id === 'all' ? setActiveSecs(new Set()) : toggleSec(id)} style={{ height: 30, padding: '0 14px', borderRadius: 0, cursor: 'pointer', fontFamily: FN, fontSize: 11, fontWeight: active ? 800 : 700, letterSpacing: '0.09em', textTransform: 'uppercase', whiteSpace: 'nowrap', background: active ? 'color-mix(in srgb, var(--c-ac) 16%, transparent)' : 'transparent', border: `1px solid ${active ? C.ac : C.cardBd}`, color: active ? 'var(--c-ac)' : C.tm }}>{l}</button>;
               })}
@@ -1644,8 +1644,8 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
             ))}
           </DemoDetailCard>}
 
-          {/* ATHLETIC EVALUATION · INTAKE (context — shown in View All) */}
-          {showSec('eval') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle('Athletic Evaluation · Intake')}><DemoEvalIntake /></DemoDetailCard>}
+          {/* EVALUATION · INTAKE (context — shown in View All) */}
+          {showSec('eval') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle('Evaluation · Intake')}><DemoEvalIntake /></DemoDetailCard>}
 
           {/* PROGRESSIVE OVERLOAD — the showpiece */}
           {showSec('overload') && <DemoDetailCard header={secTitle('Progressive Overload')}><DemoOverload /></DemoDetailCard>}

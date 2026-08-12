@@ -417,7 +417,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
     { id: 'readiness', label: 'Readiness' },
     { id: 'workouts', label: 'Workouts' },
     { id: 'programs', label: 'Programs' },
-    { id: 'eval', label: 'Athletic Eval' },
+    { id: 'eval', label: 'Evaluation' },
     { id: 'overload', label: 'Overload' },
   ];
 
@@ -493,7 +493,10 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           the active tab again returns to View All. WRAPS to fit — every tag stays
           visible, no horizontal scroll (Ohad: "all the tags need to fit"). */}
       <div style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', flexWrap: 'nowrap', gap: 5, overflowX: 'auto', paddingBottom: 2 }} className="hide-scrollbar" role="group" aria-label="Filter sections">
+        {/* All section tabs on ONE row that SHRINKS to fit — no wrap, no side-scroll
+            (Ohad): each tab can compress (flex-shrink + min-width 0 + ellipsis) so 11
+            tags always fit the row rather than overflowing into a horizontal scroll. */}
+        <div style={{ display: 'flex', flexWrap: 'nowrap', gap: 4, width: '100%' }} role="group" aria-label="Filter sections">
           {SEC_TABS.map(t => {
             const active = t.id === 'all' ? activeSecs.size === 0 : activeSecs.has(t.id);
             return (
@@ -501,7 +504,8 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
                 aria-pressed={active}
                 title={t.id === 'all' ? 'Show all sections' : `Show only ${t.label} — click again for all sections`}
                 style={{
-                  height: 30, boxSizing: 'border-box', padding: '0 11px', borderRadius: 0, flexShrink: 0,
+                  height: 30, boxSizing: 'border-box', padding: '0 8px', borderRadius: 0,
+                  flex: '0 1 auto', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis',
                   // Tinted active state (not a solid C.ac fill) — in light-refined
                   // themes C.ac resolves near-black, so solid-fill + dark label was
                   // invisible (Ohad: "i cant see the button"). Tint + accent text
@@ -509,9 +513,9 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
                   background: active ? 'color-mix(in srgb, var(--c-ac) 16%, transparent)' : 'transparent',
                   border: `1px solid ${active ? C.ac : C.cardBd}`,
                   color: active ? 'var(--c-ac)' : C.tm,
-                  fontFamily: FN, fontSize: 11, fontWeight: active ? 800 : 700, letterSpacing: '0.09em',
+                  fontFamily: FN, fontSize: 10, fontWeight: active ? 800 : 700, letterSpacing: '0.03em',
                   textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap',
-                  display: 'inline-flex', alignItems: 'center', transition: 'background .12s, color .12s, border-color .12s',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transition: 'background .12s, color .12s, border-color .12s',
                 }}>{t.label}</button>
             );
           })}
@@ -576,7 +580,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
 
       {/* Page section order (Ohad spec 2026-05-16, v3):
             Header → VITALS → BILLING → MESSAGES → CRM → BODYWEIGHT →
-            WORKOUTS → PROGRAMS → ATHLETIC EVAL → OVERLOAD → RECORDS.
+            WORKOUTS → PROGRAMS → EVALUATION → OVERLOAD → RECORDS.
           Vitals leads (most-asked "what is going on with this client?"
           after the header); Billing + Messages cluster the day-to-day
           interactions; CRM + Bodyweight surface signals; Workouts /
@@ -773,7 +777,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
         </CollapsibleSection>
       </>}
 
-      {/* === ATHLETIC EVALUATION + INTAKE — slot #9. Grouped as one "who is
+      {/* === EVALUATION + INTAKE — slot #9. Grouped as one "who is
           this athlete" block: a top gap sets the pair apart from Assigned
           Programs above, while the two sit tight together (Ohad). */}
       {td && showSec('eval') && (

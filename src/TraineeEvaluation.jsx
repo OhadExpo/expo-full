@@ -1,4 +1,4 @@
-// Athletic Evaluation surface on the trainee card. The card stays collapsed
+// Evaluation surface on the trainee card. The card stays collapsed
 // by default — it shows the count + a "+ NEW EVAL" button, then a list of
 // previous evaluations as summary rows (date · age · weight · filled-count).
 // Click a row to expand THAT eval inline into a clean single-column view
@@ -303,7 +303,7 @@ export default function TraineeEvaluation({ trainee }) {
       <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={10}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : 'var(--c-tx)' }}>
-            Athletic Evaluation ({rows.length})
+            Evaluation ({rows.length})
           </span>
           <div style={{ display: 'flex', gap: 0 }}>
             <button onClick={() => setCameraTest(true)}

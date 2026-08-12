@@ -1,4 +1,4 @@
-// Coach-administered editor for one Athletic Evaluation. Mirrors the
+// Coach-administered editor for one Evaluation. Mirrors the
 // ATH EVAL.xlsx layout: section headers + per-test input rows + Passive
 // ROM grid at the bottom. Values are free text (the xlsx accepts "R-4",
 // "SLDL: 4" etc. — we don't over-validate).
@@ -416,7 +416,7 @@ export default function EvaluationEditor({ trainee, existing, onSave, onClose })
 
   return (
     <>
-    {createPortal((<div onClick={onClose} role="dialog" aria-modal="true" aria-label="Athletic evaluation" style={{
+    {createPortal((<div onClick={onClose} role="dialog" aria-modal="true" aria-label="Evaluation" style={{
       position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 300,
       display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: isMobile ? '16px 8px' : '40px 16px',
       overflowY: 'auto',
@@ -428,7 +428,7 @@ export default function EvaluationEditor({ trainee, existing, onSave, onClose })
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16 }}>
           <h2 style={{ margin: 0, fontFamily: FN, fontSize: 18, color: 'var(--c-tx)', letterSpacing: '0.04em' }}>
-            ATHLETIC EVALUATION · {trainee?.name || ''}
+            EVALUATION · {trainee?.name || ''}
           </h2>
           <button onClick={onClose}
             style={{ background: 'transparent', border: 'none', color: 'var(--c-tm)', cursor: 'pointer', fontSize: 18 }}>✕</button>

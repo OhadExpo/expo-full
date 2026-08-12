@@ -1721,7 +1721,7 @@ function JumpResult({ jump, result, onSave, onClose, defaultBodyweightKg }) {
           </div>
         )}
         <FpsBadge fps={result?.fps} />
-        {onSave && <button disabled={saved} onClick={() => { onSave({ ...jump }); setSaved(true); }} style={saveBtn(saved)}>{saved ? 'SAVED TO EVALUATION' : 'SAVE TO ATHLETIC EVALUATION →'}</button>}
+        {onSave && <button disabled={saved} onClick={() => { onSave({ ...jump }); setSaved(true); }} style={saveBtn(saved)}>{saved ? 'SAVED TO EVALUATION' : 'SAVE TO EVALUATION →'}</button>}
         {saved && <button onClick={onClose} style={{ ...btn('rgba(255,255,255,0.3)', 'transparent'), marginTop: 12, width: '100%', padding: '11px' }}>DONE</button>}
       </div>
     );
@@ -1757,7 +1757,7 @@ function JumpResult({ jump, result, onSave, onClose, defaultBodyweightKg }) {
         <button disabled={saved} onClick={() => { onSave({ ...jump, bodyweightKg: power ? massKg : null, powerW: power?.watts ?? null, powerWkg: power?.perKg ?? null }); setSaved(true); }} style={{
           marginTop: 18, padding: '13px 20px', width: '100%', background: saved ? '#2a2a2a' : C.ac,
           border: `1px solid ${saved ? '#2a2a2a' : C.ac}`, color: '#FFF', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', cursor: saved ? 'default' : 'pointer',
-        }}>{saved ? 'SAVED TO EVALUATION' : 'SAVE TO ATHLETIC EVALUATION →'}</button>
+        }}>{saved ? 'SAVED TO EVALUATION' : 'SAVE TO EVALUATION →'}</button>
       )}
       {saved && <button onClick={onClose} style={{ ...btn('rgba(255,255,255,0.3)', 'transparent'), marginTop: 12, width: '100%', padding: '11px' }}>DONE</button>}
     </div>
