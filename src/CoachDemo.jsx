@@ -1012,7 +1012,8 @@ function DemoDetailCard({ header, headerRight, children, padding = 18, style }) 
       {header && (
         <div style={{
           background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))',
-          margin: `-${pad}px -${pad}px 12px`,
+          // Header-only card: strip bleeds to bottom edge too (no dead band) — real Card parity.
+          margin: `-${pad}px -${pad}px ${children ? 12 : -pad}px`,
           padding: `8px ${pad}px`,
           borderBottom: '1px solid var(--c-cardBd)',
           color: '#FFFFFF',
@@ -1530,15 +1531,14 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
         const lastPay = overdue ? '2026-03-01' : '2026-04-01';
         const workoutsCount = trainee.dormantDays != null ? 4 : 12;
         const perSession = trainee.monthly ? Math.round(trainee.monthly / 8) : 0;
-        const stats = [
-          ['Format', trainee.format],
+        // Billing terms (moved out of the removed header cluster → into Billing, #139 parity).
+        const billingTerms = [
           ['Package', '8 Sessions'],
           ['Sessions Left', trainee.sessionsLeft],
           ['Monthly', trainee.monthly ? `₪${trainee.monthly}` : '—'],
           ['Per Session', perSession ? `₪${perSession}` : '—'],
           ['Last Payment', fmtPrettyDate(lastPay)],
           ['Since', fmtPrettyDate(trainee.startDate)],
-          ['Workouts', workoutsCount],
         ];
         const payments = [
           !overdue && { date: '2026-04-01', amount: trainee.monthly || 800, status: 'Paid', notes: 'Monthly package' },
@@ -1557,13 +1557,9 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
               <span style={{ color: C.ac, textShadow: '0 0 12px rgba(57,189,255,0.45)' }}>{trainee.name}</span>
               <span style={{ fontSize: 11, opacity: 0.78, letterSpacing: '0.02em', textTransform: 'none', fontWeight: 500, minWidth: 0 }}>{trainee.email}{trainee.phone ? ` · ${trainee.phone}` : ''}</span>
             </span>}>
-            {/* Horizontal stat cluster — centred 4×2 fixed-tile grid, empties dimmed. */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, 132px)', justifyContent: 'center', gap: '14px 10px', margin: '16px auto 0', maxWidth: 558, textAlign: 'center' }}>
-              {stats.map(([l, v]) => {
-                const empty = v === undefined || v === null || v === '' || v === '—';
-                return <div key={l}><div style={{ fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>{l}</div><div style={{ fontSize: 14, color: empty ? C.td : C.tx, marginTop: 2 }}>{empty ? '—' : v}</div></div>;
-              })}
-            </div>
+            {/* Header stat cluster removed (#139 parity): its facts live in their
+                real homes — billing terms in Billing, Format in Vitals. Header is
+                just identity + status. */}
           </DemoDetailCard>
 
           {/* Section-filter tab bar — WRAPS to fit (real parity): every tag stays
@@ -1579,8 +1575,8 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
 
           {/* VITALS · INJURIES · GOALS (context — shown in View All) */}
           {showSec('vitals') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle('Vitals · Injuries · Goals')}>
-            <div className="demo-td-vitals" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 132px)', justifyContent: 'center', gap: 12, maxWidth: 416, margin: '0 auto', textAlign: 'center' }}>
-              {[['Age', trainee.age ? `${trainee.age}` : '—'], ['Weight', trainee.weight ? `${trainee.weight}kg` : '—'], ['Height', trainee.height ? `${trainee.height}cm` : '—']].map(([l, v]) => {
+            <div className="demo-td-vitals" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, 132px)', justifyContent: 'center', gap: 12, maxWidth: 558, margin: '0 auto', textAlign: 'center' }}>
+              {[['Age', trainee.age ? `${trainee.age}` : '—'], ['Weight', trainee.weight ? `${trainee.weight}kg` : '—'], ['Height', trainee.height ? `${trainee.height}cm` : '—'], ['Format', trainee.format || '—']].map(([l, v]) => {
                 const empty = v === '—';
                 return <div key={l}><div style={{ fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>{l}</div><div style={{ fontSize: 14, color: empty ? C.td : C.tx, marginTop: 2 }}>{v}</div></div>;
               })}
@@ -1592,6 +1588,13 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
           {/* BILLING — Date / Amount / Status / Notes (matches real; no "Method"). */}
           {showSec('billing') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle(`Billing (${payments.length})`)}
             headerRight={<span style={{ fontFamily: FB, fontSize: 12, color: '#FFFFFF', opacity: 0.85, whiteSpace: 'nowrap' }}>₪{totalPaid.toLocaleString()} paid</span>}>
+            {/* Contract terms strip (moved from the removed header cluster, #139 parity). */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, 118px)', justifyContent: 'center', gap: '12px 10px', margin: '0 auto 16px', textAlign: 'center' }}>
+              {billingTerms.map(([l, v]) => {
+                const empty = v === undefined || v === null || v === '' || v === '—';
+                return <div key={l}><div style={{ fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>{l}</div><div style={{ fontSize: 14, color: empty ? C.td : C.tx, marginTop: 2 }}>{empty ? '—' : v}</div></div>;
+              })}
+            </div>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
                 <thead><tr style={{ borderBottom: `1px solid ${C.cardBd}` }}>{['Date', 'Amount', 'Status', 'Notes'].map(h => <th key={h} style={{ textAlign: 'center', padding: '6px 10px', fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>{h}</th>)}</tr></thead>
