@@ -303,14 +303,14 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
         <div style={bd}>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {a.blockHistory.slice(-14).map((b, idx) => {
-              const col = b.character === 'strength' ? C.ac : b.character === 'hypertrophy' ? C.pu : C.gn;
+              const col = b.character === 'strength' ? C.ac : b.character === 'power' ? (C.or || '#f0b429') : b.character === 'hypertrophy' ? C.pu : C.gn;
               const label = b.num != null ? `#${b.num}` : (b.name || '').replace(/block/i, '').trim().slice(0, 6) || `B${idx + 1}`;
               return (
-                <div key={b.name || idx} title={`${b.name} · ${b.character} — avg ${b.avgReps} prescribed reps on ${b.fromMains ? 'the main lifts' : 'all exercises'} (${b.exercises} logged)`}
+                <div key={b.name || idx} title={`${b.name} · ${b.character} — ${b.avgReps != null ? `avg ${b.avgReps} reps` : 'explosive, no rep basis'}${b.avgPct != null ? ` @ ${b.avgPct}% 1RM` : (b.avgRpe != null ? ` @ RPE ${b.avgRpe}` : '')}${b.explosiveShare >= 0.4 ? ` · ${Math.round(b.explosiveShare * 100)}% explosive` : ''} · from ${b.fromMains ? 'the main lifts' : 'all exercises'} (${b.exercises} logged)`}
                   style={{ flex: '0 0 auto', border: `1px solid ${col}`, padding: '5px 9px', minWidth: 50, textAlign: 'center', background: `color-mix(in srgb, ${col} 8%, transparent)` }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: C.tx, fontFamily: FN }}>{label}</div>
                   <div style={{ fontSize: 8.5, letterSpacing: '0.05em', textTransform: 'uppercase', color: col, marginTop: 2 }}>{b.character}</div>
-                  <div style={{ fontSize: 9, color: C.td, marginTop: 1, fontVariantNumeric: 'tabular-nums' }}>{b.avgReps}r</div>
+                  <div style={{ fontSize: 9, color: C.td, marginTop: 1, fontVariantNumeric: 'tabular-nums' }}>{b.avgReps != null ? `${b.avgReps}r` : '⚡'}</div>
                 </div>
               );
             })}
@@ -325,14 +325,14 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
             // the "monotony" is a soft signal, not a periodization fact.
             const runBlocks = bh.slice(bh.length - run);
             if (runBlocks.filter((b) => b.fromMains).length < Math.ceil(run * 0.6)) return null;
-            const swap = lastChar === 'hypertrophy' ? 'a strength or power/peaking' : lastChar === 'strength' ? 'a hypertrophy or a deload' : 'a strength';
+            const swap = lastChar === 'hypertrophy' ? 'a strength or power/peaking' : lastChar === 'strength' ? 'a hypertrophy or a power' : lastChar === 'power' ? 'a strength or hypertrophy base' : 'a strength or power';
             return (
               <div style={{ fontSize: 12.5, color: C.or || '#f0b429', marginTop: 10, lineHeight: 1.5, fontFamily: FN }}>
                 <b>{run} {lastChar} blocks in a row.</b> Same rep emphasis on his main lifts every block — {swap} block is the obvious contrast if you want a fresh stimulus. Your periodization call.
               </div>
             );
           })()}
-          <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>From what you PROGRAMMED each block (avg prescribed reps): under 6 = strength, 6–12 = hypertrophy, 12+ = endurance. The arc shows your periodization — a long run of one colour is the cue to change phase.</div>
+          <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>Character reads what you PROGRAMMED each block, movement type first: explosive lifts (Olympic / jumps / throws / speed) = power; heavy low reps (≤5) or 6–8 at RPE 8+ = strength; 6–12 = hypertrophy; 12+ = endurance. A long run of one colour is the cue to change phase.</div>
         </div>
       </div>
     )}

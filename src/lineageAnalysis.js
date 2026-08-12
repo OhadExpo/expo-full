@@ -499,6 +499,26 @@ export function blockHistory(plans, deps) {
   // so averaging them in paints every block "hypertrophy". Read character off the
   // main lifts only. Same inclusion-list the transfer map uses.
   const PRIMARY_RX = /squat|deadlift|\bdl\b|rdl|hinge|good[-\s]?morning|press|bench|ohp|overhead|row|pull[-\s]?up|chin|pulldown|lunge|split|rfess|bulgarian|thrust|clean|snatch|jerk/i;
+  // Explosive / speed-strength movements. A block built around these is a POWER
+  // block regardless of rep count — a 3-rep power clean and a 3-rep max deadlift
+  // read identically on reps alone; the MOVEMENT is what separates them. Covers
+  // the Olympic lifts + variations, jumps/plyos, throws/slams, ballistic swings,
+  // and sprint/speed work. (NSCA/Bompa: power/conversion phase = high-velocity intent.)
+  const BALLISTIC_RX = /clean|snatch|jerk|\bjump|\bhop\b|bound|pogo|plyo|depth[-\s]*jump|box[-\s]*jump|broad[-\s]*jump|vert(ical)?[-\s]*jump|throw|toss|\bslam|push[-\s]*press|jump[-\s]*squat|med(icine)?[-\s]*ball|\bmb\b|kb[-\s]*swing|kettlebell[-\s]*swing|\bswing\b|sprint|\bdash\b|acceleration|speed[-\s]*(squat|pull|bench|dead)|ballistic/i;
+  const rpeMid = (v) => { const m = String(v == null ? '' : v).match(/\d+(?:\.\d+)?/); return m ? Number(m[0]) : null; };
+  // %1RM from a load field, only when it's a percentage ("80%", "85 %"). A bare
+  // "kg" load carries no intensity info without the athlete's 1RM, so ignore it.
+  const loadPct = (l) => { const m = String(l == null ? '' : l).match(/(\d+(?:\.\d+)?)\s*%/); return m ? Number(m[1]) : null; };
+  // Explosive-INTENT tempo: an "X" in the tempo code (30X0 / 10X0 = explode the
+  // concentric) or an all-fast prescription is speed/power intent, not hypertrophy.
+  // A slow eccentric ("40X0", "3110") is time-under-tension = hypertrophy/control.
+  const explosiveTempo = (t) => {
+    const s = String(t == null ? '' : t).toLowerCase().trim();
+    if (!s) return false;
+    if (/x/.test(s)) return true;                       // explicit explode-the-concentric
+    const ds = s.replace(/[^0-9]/g, '');
+    return ds.length >= 3 && ds.length <= 4 && ds.split('').reduce((a, c) => a + Number(c), 0) <= 2;
+  };
   const repMid = (r) => {
     const str = String(r == null ? '' : r).trim();
     if (!str) return null;
@@ -512,27 +532,80 @@ export function blockHistory(plans, deps) {
     const ns = target.match(/\d+(?:\.\d+)?/g);
     return ns && ns.length ? ns.map(Number).reduce((a, c) => a + c, 0) / ns.length : null;
   };
+  // Prefer the direct reps field; fall back to per-week reps (ex.wk) ONLY when the
+  // direct field is a wave-load placeholder (">") or empty — mixing both inflated
+  // the average and dragged strength blocks to "endurance".
+  const repsOf = (ex) => {
+    const direct = repMid(ex.reps);
+    if (direct != null && direct > 0) return direct;
+    if (Array.isArray(ex.wk) && ex.wk.length) { const rs = ex.wk.map(repMid).filter((x) => typeof x === 'number' && x > 0); return rs.length ? rs.reduce((a, c) => a + c, 0) / rs.length : null; }
+    return null;
+  };
+  // The coach's own phase label in the block name — a strong PRIOR. Used only to
+  // break ties in the ambiguous 6–12-rep middle, never to override clear data.
+  const namePhase = (nm) => {
+    const s = String(nm || '');
+    if (/deload|de-?load|\btaper\b|unload|\brecover/i.test(s)) return 'deload';
+    if (/\bpwr\b|power|explos|ballistic|\bcmj\b|plyo|reactive|\bspeed\b/i.test(s)) return 'power';
+    if (/\bmax\b|maximal|\bstr\b|strength|\bpeak/i.test(s)) return 'strength';
+    if (/\bhyp\b|hypertroph|\bmav\b|\bmev\b|\bmrv\b|\bvol\b|volume|accumulat/i.test(s)) return 'hypertrophy';
+    if (/\bgpp\b|\baa\b|general|\bprep\b|\bbase\b|foundation|condition|work[-\s]?cap/i.test(s)) return 'base';
+    if (/\bint\b|intens/i.test(s)) return 'strength';   // an intensification block = heavy
+    if (/endur|aerobic|\bmet[-\s]?con\b/i.test(s)) return 'endurance';
+    return null;
+  };
+  const round1 = (x) => (x != null ? Math.round(x * 10) / 10 : null);
+  const avg = (arr) => (arr.length ? arr.reduce((a, c) => a + c, 0) / arr.length : null);
+
   const withDays = (plans || []).filter((p) => (p.days || []).some((d) => (d.exercises || []).length));
   return withDays.map((p) => {
     const all = [];   // every parseable rep, for the coverage count + fallback
-    const main = [];  // primary compound lifts only — the block's real emphasis
+    const main = [];  // {reps, rpe, pct, explosive} for the primary compound / explosive lifts
     for (const d of p.days || []) for (const ex of d.exercises || []) {
-      const r = repMid(ex.reps);
-      if (r == null || r <= 0) continue;
-      all.push(r);
-      if (PRIMARY_RX.test(String(ex.title || ex.name || ''))) main.push(r);
+      const title = String(ex.title || ex.name || '');
+      const ballistic = BALLISTIC_RX.test(title);
+      const explosive = ballistic || explosiveTempo(ex.tempo);   // movement OR tempo intent
+      const r = repsOf(ex);
+      const isMain = PRIMARY_RX.test(title) || ballistic;
+      if (r != null && r > 0) all.push(r);
+      // A ballistic main with no clean rep number (a depth jump logs "contacts",
+      // not reps) still counts toward POWER — keep it in the basis without a rep.
+      if (isMain) main.push({ reps: (r != null && r > 0) ? r : null, rpe: rpeMid(ex.rpe), pct: loadPct(ex.load), explosive });
     }
-    // Keep a block if it has enough rep-rows OR ≥2 identifiable main lifts — a
-    // strength block that's mostly timed carries + 2 heavy mains shouldn't vanish.
+    // Keep a block if it has enough rep-rows OR ≥2 identifiable main lifts.
     if (all.length < 3 && main.length < 2) return null;
-    // Prefer the compound lifts (≥2 of them) as the character signal; fall back to
-    // all rows only when a block genuinely has no identifiable main lift.
-    const basis = main.length >= 2 ? main : all;
-    const fromMains = main.length >= 2;
-    const avgReps = basis.reduce((a, c) => a + c, 0) / basis.length;
-    // Standard loading zones: strength <6, hypertrophy 6-12, endurance 12+.
-    const character = avgReps < 6 ? 'strength' : avgReps <= 12 ? 'hypertrophy' : 'endurance';
-    return { num: blockNum(p.name), name: p.name, character, avgReps: Math.round(avgReps * 10) / 10, exercises: all.length, fromMains };
+    // Prefer the main lifts (≥2) as the character signal; fall back to all rows.
+    const useMain = main.length >= 2;
+    const basis = useMain ? main : all.map((r) => ({ reps: r, rpe: null, pct: null, explosive: false }));
+    const fromMains = useMain;
+    const avgReps = avg(basis.map((b) => b.reps).filter((x) => typeof x === 'number' && x > 0));
+    const avgRpe = avg(basis.map((b) => b.rpe).filter((x) => typeof x === 'number' && x > 0));
+    const avgPct = avg(basis.map((b) => b.pct).filter((x) => typeof x === 'number' && x > 0));
+    const explosiveShare = basis.length ? basis.filter((b) => b.explosive).length / basis.length : 0;
+    // ── Periodization zones (NSCA Essentials 4e ch.17 · Bompa · Zatsiorsky) ──
+    // rep count ALONE can't separate a 3-rep power clean from a 3-rep max deadlift,
+    // nor an 8-rep strength set from an 8-rep pump set — so use movement + tempo +
+    // intensity together:
+    //   POWER      — high-velocity intent: explosive movements / tempo dominate.
+    //   STRENGTH   — ≤6 reps, or 6–12 reps taken heavy (≥85% 1RM or RPE ≥8.5).
+    //   HYPERTROPHY— 6–12 reps at sub-maximal loads.
+    //   ENDURANCE  — 13+ reps / low intensity (GPP base).
+    const heavy = (avgPct != null && avgPct >= 85) || (avgRpe != null && avgRpe >= 8.5);
+    let dataChar = null;
+    if (explosiveShare >= 0.4) dataChar = 'power';
+    else if (avgReps == null) dataChar = null;
+    else if (avgReps <= 6) dataChar = 'strength';
+    else if (avgReps <= 12) dataChar = heavy ? 'strength' : 'hypertrophy';
+    else dataChar = 'endurance';
+    const nc = namePhase(p.name);
+    // Reconcile: an overwhelming explosive share is power no matter the name;
+    // otherwise trust the DATA in the clear zones and let the coach's NAME resolve
+    // the fuzzy 6–12-rep middle, where reps alone can't split strength from size.
+    let character;
+    if (explosiveShare >= 0.6) character = 'power';
+    else if (dataChar && nc && dataChar !== nc && avgReps != null && avgReps > 6 && avgReps <= 12 && !heavy) character = nc;
+    else character = dataChar || nc || 'hypertrophy';
+    return { num: blockNum(p.name), name: p.name, character, avgReps: round1(avgReps), avgRpe: round1(avgRpe), avgPct: round1(avgPct), explosiveShare: Math.round(explosiveShare * 100) / 100, exercises: all.length, fromMains };
   }).filter(Boolean)
     // Numbered blocks sort by number; un-numbered ones keep insertion order at the
     // front (stable key = -1) so the comparator stays transitive and "current
