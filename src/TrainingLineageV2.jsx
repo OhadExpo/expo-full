@@ -738,7 +738,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
                     </div>
                     <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 30 }}>
                       {lift.entries.slice(-8).map((e, i) => (
-                        <div key={i} title={`${(e.date || '').slice(0, 10)} · ${e.lossPct}% vel-loss · best ${e.bestMean} m/s`}
+                        <div key={i} title={`${(e.date || '').slice(0, 10)}${e.lossPct != null ? ` · ${e.lossPct}% vel-loss` : ' · vel-loss n/a'} · best ${e.bestMean} m/s`}
                           style={{ flex: 1, minWidth: 4, height: `${Math.max(12, ((e.lossPct || 0) / mx) * 100)}%`, background: tCol, opacity: 0.85, borderRadius: '1px 1px 0 0' }} />
                       ))}
                     </div>
