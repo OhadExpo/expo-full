@@ -1036,7 +1036,6 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
             ✓ HISTORY ({doneRows.length}{visibleDone.length < doneRows.length ? ` · showing ${visibleDone.length}` : ''})
           </div>
           {visibleDone.map(n => {
-            const heb = isHebrew(n.body);
             return (
               <div key={n.id} style={{
                 // No wrapper opacity — line-through + muted color (--c-tm)
@@ -1052,20 +1051,23 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                     ? update(n.id, { status: 'open', completed_at: null })
                     : toggleDone(n.id)}
                   style={{ width: 14, height: 14, accentColor: n.status === 'cancelled' ? 'var(--c-tm)' : 'var(--c-gn)', cursor: 'pointer', flexShrink: 0 }} />
-                {/* ONE row (Ohad 2026-08-12): task text leads (flex, line-through),
-                    target · done DATE compact on the right — was a meta line
-                    stacked above a centered strikethrough body. */}
-                <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'baseline', gap: 10 }}>
+                {/* ONE row, THREE zones (Ohad 2026-08-12): athlete NAME (cyan) on the
+                    left · task BODY centered in the middle (line-through) · DONE date
+                    on the right. A fixed spine so the eye reads who / what / when
+                    across a stack of history rows. */}
+                <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'baseline', gap: 12 }}>
+                  <span style={{ flexShrink: 0, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap', color: n.target_label ? 'var(--c-ac)' : 'var(--c-td)' }}>
+                    {n.target_label || TARGET_LABEL[n.target_kind] || 'NOTE'}
+                  </span>
                   <span dir="auto" style={{
                     flex: 1, minWidth: 0, fontSize: 12, color: 'var(--c-tm)', lineHeight: 1.4,
                     textDecoration: 'line-through', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                    textAlign: heb ? 'right' : 'left', fontFamily: FB,
+                    textAlign: 'center', fontFamily: FB,
                   }}>{displayBodyOf(n.body)}</span>
                   <span style={{ flexShrink: 0, fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>
-                    {n.target_label && <span style={{ color: 'var(--c-ac)' }}>{n.target_label}</span>}
                     {n.status === 'cancelled'
-                      ? <span style={{ color: 'var(--c-or)', fontWeight: 700, marginLeft: 6 }}>· CANCELLED</span>
-                      : n.completed_at && <span style={{ marginLeft: 6 }}>· done {fmtPrettyDate(n.completed_at)}</span>}
+                      ? <span style={{ color: 'var(--c-or)', fontWeight: 700 }}>CANCELLED</span>
+                      : n.completed_at && <span>done {fmtPrettyDate(n.completed_at)}</span>}
                     {n.linked_plan_id && <span style={{ color: 'var(--c-ac)', marginLeft: 6, fontWeight: 700 }}>· ✓ PLAN</span>}
                   </span>
                 </div>
