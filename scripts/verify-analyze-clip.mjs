@@ -38,5 +38,15 @@ check('counts 5 reps', analyzeClip(demoSquatFrames(5, 20, 2), 'Back Squat').repC
 const plank = analyzeClip(demoSquatFrames(3, 20, 2), 'Front Plank');
 check('plank title -> no rep counting (0 reps or no-count kind)', plank && (plank.repCount === 0 || plank.kind === 'none'));
 
+// Degenerate input (a bad clip where MediaPipe found nothing) must return an
+// honest thin result, never throw — the coach films a clip in poor light and
+// the Analysis card should say "couldn't read it", not crash the page.
+for (const [label, frames] of [['empty []', []], ['null', null], ['one junk frame', [{ t: 0, landmarks: [], worldLandmarks: [] }]]]) {
+  let r, threw = false;
+  try { r = analyzeClip(frames, 'Back Squat'); } catch { threw = true; }
+  check(`analyzeClip(${label}) doesn't throw`, !threw);
+  check(`analyzeClip(${label}) -> ok:false (honest thin state)`, !threw && r && r.ok === false);
+}
+
 console.log(`\n${fail === 0 ? '✓ ALL PASS' : '✗ FAILURES'} — ${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);
