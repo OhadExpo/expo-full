@@ -1650,7 +1650,12 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
             // instead of being scrambled by a forced rtl/ltr (Ohad: "hebrew and
             // english get mixed up, some text starts on the left").
             unicodeBidi: 'plaintext',
-            textAlign: 'start',
+            // Centered so every task row reads the same OCD way — priority tag on
+            // the left, title CENTERED, status on the right — matching the auto-
+            // alert rows and the dashboard tasks widget (Ohad #189: "some text in
+            // the middle, some on the right, no rules"). unicodeBidi:plaintext
+            // still resolves mixed Heb/Eng direction correctly within the line.
+            textAlign: 'center',
             // LIST collapsed → single-line ellipsis. BOARD collapsed → clamp to 2
             // lines so cards stay compact (Ohad: board cards "too big/too long").
             // Expanded (either view) → full wrapped title.
