@@ -192,7 +192,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
   const Strip = (
     <div style={{ background: `linear-gradient(90deg, color-mix(in srgb, ${C.ac} 15%, ${C.bg}), ${C.bg})`, border: `1px solid ${C.bd}`, borderBottom: `2px solid ${C.ac}`, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
       <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tx }}>
-        Training Lineage · <span style={{ color: C.ac }}>{traineeName}</span>
+        Training Analysis · <span style={{ color: C.ac }}>{traineeName}</span>
       </span>
       <span style={{ fontSize: 10, letterSpacing: '0.1em', color: C.tm, display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
         {a.totalBlocks} BLOCK{a.totalBlocks === 1 ? '' : 'S'}{a.journey && a.journey.weeks > 0 ? ` · ${a.journey.weeks}W · ${a.journey.loggedSessions} SESSIONS` : ''}

@@ -774,7 +774,7 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
               <button type="button"
                 onClick={() => { const e = savePoseMetric({ clientId: vaultClientId, exercise: exerciseTitle, date: vaultDate, analysis: result, load: loadNum }); if (e) setVaultSaved(true); }}
                 style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: C.ac, background: 'transparent', border: `1px solid ${C.ac}`, padding: '6px 12px', cursor: 'pointer', borderRadius: 0 }}
-                title="Log this set's bar speed, ROM + left/right symmetry (and load, if entered) to the athlete's Lineage trends — feeds the velocity-fatigue line, the injury-drift timeline, and same-load readiness (owner trial, this device).">
+                title="Log this set's bar speed, ROM + left/right symmetry (and load, if entered) to the athlete's Analysis trends — feeds the velocity-fatigue line, the injury-drift timeline, and same-load readiness (owner trial, this device).">
                 ↑ SAVE TO TREND
               </button>
             )}

@@ -1942,7 +1942,7 @@ function DemoPrograms() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, gap: 12, flexWrap: 'wrap' }}>
           <h2 style={{ margin: 0, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', color: C.tx, textTransform: 'uppercase' }}>Programs</h2>
           <div style={{ display: 'flex', gap: 6, width: 252 }}>
-            {[['table', 'Table'], ['grid', 'Grid'], ['lineage', 'Lineage']].map(([v, label]) => {
+            {[['table', 'Table'], ['grid', 'Grid'], ['lineage', 'Analysis']].map(([v, label]) => {
               const on = progView === v;
               return <button key={v} onClick={() => setProgView(v)} style={{ flex: 1, height: 30, boxSizing: 'border-box', borderRadius: 0, cursor: 'pointer', border: `1px solid ${on ? '#39BDFF' : C.cardBd}`, background: on ? '#39BDFF' : C.sf, color: on ? '#FFFFFF' : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{label}</button>;
             })}

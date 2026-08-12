@@ -2920,7 +2920,7 @@ export function TrainingLineage({ traineeId, traineeName, exercises, plans, load
   if (!traineeId) {
     return (
       <div style={{ border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>
-        {stripHead('Training Lineage')}
+        {stripHead('Training Analysis')}
         <div style={{ padding: '48px 24px', textAlign: 'center', color: C.tm, fontFamily: FB, fontSize: 13, lineHeight: 1.6 }}>
           Pick an athlete from the rail to trace every lift's load & volume
           <br />across all their blocks — plateaus, progressions and dropped patterns at a glance.
@@ -2929,10 +2929,10 @@ export function TrainingLineage({ traineeId, traineeName, exercises, plans, load
     );
   }
   if (loading) {
-    return <div style={{ border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>{stripHead(`Training Lineage · ${traineeName || ''}`)}<div style={{ padding: '48px 24px', textAlign: 'center', color: C.tm, fontFamily: FN, fontSize: 11, letterSpacing: '0.1em' }}>LOADING BLOCKS…</div></div>;
+    return <div style={{ border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>{stripHead(`Training Analysis · ${traineeName || ''}`)}<div style={{ padding: '48px 24px', textAlign: 'center', color: C.tm, fontFamily: FN, fontSize: 11, letterSpacing: '0.1em' }}>LOADING BLOCKS…</div></div>;
   }
   if (!model) {
-    return <div style={{ border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>{stripHead(`Training Lineage · ${traineeName || ''}`)}<div style={{ padding: '48px 24px', textAlign: 'center', color: C.tm, fontFamily: FB, fontSize: 13 }}>No block content to trace yet for this athlete.</div></div>;
+    return <div style={{ border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>{stripHead(`Training Analysis · ${traineeName || ''}`)}<div style={{ padding: '48px 24px', textAlign: 'center', color: C.tm, fontFamily: FB, fontSize: 13 }}>No block content to trace yet for this athlete.</div></div>;
   }
 
   const { blocks, rows, stats, nextPlan, acwr } = model;
@@ -2999,7 +2999,7 @@ export function TrainingLineage({ traineeId, traineeName, exercises, plans, load
   return (
     <div style={{ border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>
       {stripHead(<>
-        <span>Training Lineage · <span style={{ color: '#fff', fontFamily: heb ? FH : FN }}>{traineeName}</span></span>
+        <span>Training Analysis · <span style={{ color: '#fff', fontFamily: heb ? FH : FN }}>{traineeName}</span></span>
         <div style={{ display: 'flex', gap: 6 }}>
           {[['sets', 'Sets'], ['volume', 'Volume']].map(([v, l]) => {
             const on = metric === v;
@@ -3248,7 +3248,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
   // Migrate a stale persisted 'lineage' (a removed view mode — Lineage is now a
   // per-athlete modal) back to a real view so the list still renders.
   useEffect(() => { if (progView !== 'table' && progView !== 'grid') setProgView('table'); }, [progView, setProgView]);
-  // Training Lineage — opened per-athlete from a button on their card (not a
+  // Training Analysis — opened per-athlete from a button on their card (not a
   // top-level view mode). Loads that athlete's full plans on demand into a modal.
   const [lineageTraineeId, setLineageTraineeId] = useState(null);
   const { plans: lineagePlans, loading: lineageLoading, load: loadLineage, clear: clearLineage } = useAthletePlans();
@@ -4042,8 +4042,8 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                     <bdi style={{fontWeight:700,fontSize:13,letterSpacing:'0.04em',color:'#FFFFFF',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{row.name}</bdi>
                   </span>
                   <span style={{display:'inline-flex',alignItems:'center',gap:10,flexShrink:0}}>
-                    <button onClick={e=>{e.stopPropagation();setLineageTraineeId(row.tid);}} title="Training Lineage — this athlete's movement-pattern volume across every block"
-                      style={{display:'inline-flex',alignItems:'center',gap:5,height:20,padding:'0 8px',background:'rgba(255,255,255,0.12)',border:'1px solid rgba(255,255,255,0.3)',borderRadius:0,color:'#fff',cursor:'pointer',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.08em',whiteSpace:'nowrap'}}>◫ LINEAGE</button>
+                    <button onClick={e=>{e.stopPropagation();setLineageTraineeId(row.tid);}} title="Training Analysis — this athlete's movement-pattern volume across every block"
+                      style={{display:'inline-flex',alignItems:'center',gap:5,height:20,padding:'0 8px',background:'rgba(255,255,255,0.12)',border:'1px solid rgba(255,255,255,0.3)',borderRadius:0,color:'#fff',cursor:'pointer',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.08em',whiteSpace:'nowrap'}}>◫ ANALYSIS</button>
                     <span title={`Last session: ${tagText.toLowerCase()}`} style={{display:'inline-flex',alignItems:'center',gap:6,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',color:tagColor,whiteSpace:'nowrap'}}>
                       <span style={{width:6,height:6,borderRadius:'50%',background:tagColor}} />{tagText}
                     </span>
@@ -4212,8 +4212,8 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                   <bdi style={{fontWeight:700,fontSize:13,letterSpacing:'0.04em',color:'#FFFFFF',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{row.name}</bdi>
                 </span>
                 <span style={{display:'inline-flex',alignItems:'center',gap:10,flexShrink:0}}>
-                  <button onClick={e=>{e.stopPropagation();setLineageTraineeId(row.tid);}} title="Training Lineage — this athlete's movement-pattern volume across every block"
-                    style={{display:'inline-flex',alignItems:'center',gap:5,height:20,padding:'0 8px',background:'rgba(255,255,255,0.12)',border:'1px solid rgba(255,255,255,0.3)',borderRadius:0,color:'#fff',cursor:'pointer',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.08em',whiteSpace:'nowrap'}}>◫ LINEAGE</button>
+                  <button onClick={e=>{e.stopPropagation();setLineageTraineeId(row.tid);}} title="Training Analysis — this athlete's movement-pattern volume across every block"
+                    style={{display:'inline-flex',alignItems:'center',gap:5,height:20,padding:'0 8px',background:'rgba(255,255,255,0.12)',border:'1px solid rgba(255,255,255,0.3)',borderRadius:0,color:'#fff',cursor:'pointer',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.08em',whiteSpace:'nowrap'}}>◫ ANALYSIS</button>
                   <span title={`Last session: ${tagText}`} style={{display:'inline-flex',alignItems:'center',gap:6,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',color:tagColor,whiteSpace:'nowrap'}}>
                     <span style={{width:6,height:6,borderRadius:'50%',background:tagColor}} />{tagText}
                   </span>
@@ -4263,11 +4263,11 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
       )}
       {/* LINEAGE — cross-block lift progression for the selected athlete.
           Replaces the list entirely while active; reads full plans on demand. */}
-      {/* Training Lineage — opened per-athlete from the ◫ LINEAGE button on a
+      {/* Training Analysis — opened per-athlete from the ◫ ANALYSIS button on a
           card. Modal so it works identically from Table and Grid, and doesn't
           disturb the list. */}
       {lineageTraineeId && createPortal(
-        <div onClick={() => setLineageTraineeId(null)} role="dialog" aria-modal="true" aria-label="Training Lineage"
+        <div onClick={() => setLineageTraineeId(null)} role="dialog" aria-modal="true" aria-label="Training Analysis"
           style={{ position: 'fixed', inset: 0, zIndex: 1200, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '32px 16px', overflow: 'auto' }}>
           <div onClick={e => e.stopPropagation()} style={{ width: 'min(1180px, 96vw)', position: 'relative' }}>
             <button onClick={() => setLineageTraineeId(null)} title="Close (Esc)"

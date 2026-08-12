@@ -23,7 +23,7 @@ export function useLineageLauncher({ exercises, clientWorkouts, traineeMap = {},
   const open = useCallback((id) => setTid(id), []);
   const close = useCallback(() => setTid(null), []);
   const node = tid ? createPortal(
-    <div onClick={close} role="dialog" aria-modal="true" aria-label="Training Lineage"
+    <div onClick={close} role="dialog" aria-modal="true" aria-label="Training Analysis"
       style={{ position: 'fixed', inset: 0, zIndex: 1200, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '32px 16px', overflow: 'auto' }}>
       <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(1180px, 96vw)', position: 'relative' }}>
         <button onClick={close} title="Close (Esc)"
@@ -44,7 +44,7 @@ export function useLineageLauncher({ exercises, clientWorkouts, traineeMap = {},
 
 // A small pill button that opens the Lineage for a trainee. Pass the launcher's
 // `open` fn. Matches the cyan/quiet control grammar used elsewhere.
-export function LineageButton({ onClick, label = 'LINEAGE', title = 'Training Lineage — cross-block progression, what to program next' }) {
+export function LineageButton({ onClick, label = 'ANALYSIS', title = 'Training Analysis — cross-block progression, what to program next' }) {
   return (
     <button type="button" onClick={onClick} title={title}
       style={{ fontFamily: 'inherit', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: C.ac, background: 'transparent', border: `1px solid ${C.ac}`, padding: '5px 10px', cursor: 'pointer', borderRadius: 0, display: 'inline-flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}>

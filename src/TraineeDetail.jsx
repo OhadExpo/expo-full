@@ -469,7 +469,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           <Btn variant="ghost" onClick={openEdit} style={{fontSize:11,padding:"4px 10px",height:30,boxSizing:"border-box"}}>EDIT</Btn>
           {onOpenInPersonForTrainee && <Btn variant="ghost" onClick={()=>onOpenInPersonForTrainee(trainee)} style={{fontSize:11,padding:"4px 10px",height:30,boxSizing:"border-box"}} title="Open the in-person workout logger pre-filtered to this athlete">LOG SESSION</Btn>}
           {onPreviewPortal && <Btn variant="ghost" onClick={onPreviewPortal} style={{fontSize:11,padding:"4px 10px",height:30,boxSizing:"border-box"}} title="Open this athlete's portal in preview mode">PORTAL</Btn>}
-          <Btn variant="ghost" onClick={()=>lineage.open(trainee)} style={{fontSize:11,padding:"4px 10px",height:30,boxSizing:"border-box"}} title="Training Lineage — cross-block progression + what to program next">LINEAGE</Btn>
+          <Btn variant="ghost" onClick={()=>lineage.open(trainee)} style={{fontSize:11,padding:"4px 10px",height:30,boxSizing:"border-box"}} title="Training Analysis — cross-block progression + what to program next">ANALYSIS</Btn>
           <button
             onClick={() => { if (setTrainees) setTrainees(prev => prev.map(t => t.id === trainee ? { ...t, notifOff: !t.notifOff } : t)); }}
             title={td.notifOff ? 'Notifications muted for this athlete — click to unmute' : 'Notifications on — click to mute push + dashboard alerts about this athlete'}
