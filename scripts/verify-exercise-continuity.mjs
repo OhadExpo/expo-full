@@ -38,6 +38,23 @@ check('gapped DL (blocks 1,3,5): longest run 1', lift(gap, 'DL').longestRun === 
 check('gapped DL in latest block -> current run 1 (no back-to-back)', lift(gap, 'DL').currentRun === 1);
 check('gapped DL count 3', lift(gap, 'DL').count === 3);
 
+// SAFETY (adversarial-review finding #1): a block dropped UPSTREAM (near-empty,
+// filtered before this engine) leaves a NUM gap in an otherwise array-adjacent
+// list. Block 3 is gone -> nums 1,2,4,5,6. A lift in all 5 surviving blocks must
+// NOT read as 5-in-a-row / static (that would tell the coach to rotate a lift he
+// only ran 3 straight). The num gap between 2 and 4 breaks the run.
+const dropped = exerciseContinuity([B(1, 'BB Back Squat'), B(2, 'BB Back Squat'), B(4, 'BB Back Squat'), B(5, 'BB Back Squat'), B(6, 'BB Back Squat')]);
+check('dropped block: num gap breaks the run -> current run 3 (blocks 4-6), not 5', lift(dropped, 'BB Back Squat').currentRun === 3);
+check('dropped block: longest run 3 (blocks 4-6), not 5', lift(dropped, 'BB Back Squat').longestRun === 3);
+check('dropped block: NOT static (no false rotate-it flag)', lift(dropped, 'BB Back Squat').static === false);
+check('dropped block: staticNow empty', dropped.staticNow.length === 0);
+// contiguous nums with no drop still count the full run (fix must not under-report)
+const contig = exerciseContinuity([B(1, 'Sq'), B(2, 'Sq'), B(3, 'Sq'), B(4, 'Sq')]);
+check('contiguous nums 1-4: full run 4, static', lift(contig, 'Sq').currentRun === 4 && lift(contig, 'Sq').static === true);
+// un-numbered blocks (null num) fall back to array-adjacency (never penalize)
+const nonum = exerciseContinuity([B(null, 'Sq'), B(null, 'Sq'), B(null, 'Sq'), B(null, 'Sq')]);
+check('null nums: fall back to list-adjacency -> full run 4, static', lift(nonum, 'Sq').currentRun === 4 && lift(nonum, 'Sq').static === true);
+
 // hygiene: duplicate main in one block counts once; empty -> empty
 const dup = exerciseContinuity([B(1, 'Bench', 'Bench', 'Bench')]);
 check('duplicate main in a block counts once', lift(dup, 'Bench').count === 1);

@@ -35,12 +35,26 @@ export function exerciseContinuity(blocks, opts = {}) {
     }
   });
 
+    // Two appearances are "in a row" only if their blocks are adjacent in the
+    // list AND the block NUMBERS are consecutive. The list can have blocks
+    // dropped upstream (near-empty/note-only blocks are filtered before this
+    // engine sees them), so pure array-index adjacency would collapse a real
+    // gap — e.g. blocks 1,2,4,5,6 (3 dropped) would read as 5-in-a-row and earn
+    // a false "static, rotate it" flag. Using the num gap breaks the run at the
+    // missing block. When either num is unknown we fall back to array-adjacency
+    // (never penalize the athlete for un-numbered blocks — under-report is the
+    // safe direction here, a false streak is not).
+  const adjacent = (a, b) => {
+    if (a !== b - 1) return false; // not even next-to-each-other in the list
+    const na = list[a].num, nb = list[b].num;
+    return (Number.isFinite(na) && Number.isFinite(nb)) ? (nb - na === 1) : true;
+  };
+
   const lifts = [...byLift.values()].map(({ title, idxs }) => {
-    // longest unbroken run of consecutive block indices, and the run ending at
-    // the LATEST block the lift was in.
+    // longest unbroken run, and the run ending at the LATEST block the lift was in.
     let longest = 1, cur = 1;
     for (let j = 1; j < idxs.length; j++) {
-      cur = (idxs[j] === idxs[j - 1] + 1) ? cur + 1 : 1;
+      cur = adjacent(idxs[j - 1], idxs[j]) ? cur + 1 : 1;
       if (cur > longest) longest = cur;
     }
     // currentRun: unbroken run counting back from the lift's most-recent block —
@@ -49,7 +63,7 @@ export function exerciseContinuity(blocks, opts = {}) {
     if (idxs[idxs.length - 1] === totalBlocks - 1) {
       currentRun = 1;
       for (let j = idxs.length - 1; j > 0; j--) {
-        if (idxs[j] === idxs[j - 1] + 1) currentRun++; else break;
+        if (adjacent(idxs[j - 1], idxs[j])) currentRun++; else break;
       }
     }
     return {
