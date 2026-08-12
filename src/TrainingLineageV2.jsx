@@ -561,6 +561,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
               const all = [...(sCurve || []), ...(pCurve || []), 100];
               const lo = Math.min(...all), hi = Math.max(...all), rng = (hi - lo) || 1;
               const orange = C.or || '#f0b429';
+              const BRAND = '#39BDFF';  // brand cyan literal: C.ac resolves to BLACK in light mode, so the graph's cyan identity (like the readiness/BW graphs) must be a literal to stay cyan in BOTH themes
               // Richer chart to match the readiness / bodyweight graphs (Ohad):
               // real Y-axis scale with bright % ticks, dashed gridlines, an area
               // gradient under each line, a dot on every session, and a marked
@@ -580,7 +581,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
               const ticks = [...new Set([Math.round(hi), Math.round(lo + rng * 0.5), Math.round(lo)])];
               const peakOf = (curve) => { let mi = 0; curve.forEach((v, i) => { if (v > curve[mi]) mi = i; }); return { i: mi, v: curve[mi] }; };
               const series = [
-                sCurve && { curve: sCurve, col: C.ac, gid: 'spGradS', label: 'STRENGTH', peak: peakOf(sCurve) },
+                sCurve && { curve: sCurve, col: BRAND, gid: 'spGradS', label: 'STRENGTH', peak: peakOf(sCurve) },
                 pCurve && { curve: pCurve, col: orange, gid: 'spGradP', label: 'POWER', peak: peakOf(pCurve) },
               ].filter(Boolean);
               return (
@@ -592,16 +593,16 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
                       {ticks.map((L) => (
                         <span key={L} style={{ position: 'absolute', top: gpctY(L), right: 0, transform: 'translateY(-50%)', color: C.tx, fontWeight: 700 }}>{L}%</span>
                       ))}
-                      {ticks.every((t) => Math.abs(t - 100) > 4) && <span style={{ position: 'absolute', top: gpctY(100), right: 0, transform: 'translateY(-50%)', color: C.ac, fontWeight: 700 }}>100</span>}
+                      {ticks.every((t) => Math.abs(t - 100) > 4) && <span style={{ position: 'absolute', top: gpctY(100), right: 0, transform: 'translateY(-50%)', color: BRAND, fontWeight: 700 }}>100</span>}
                     </div>
                     <div style={{ position: 'relative', flex: 1, height: GH }}>
                       <svg viewBox={`0 0 ${GW} ${GH}`} preserveAspectRatio="none" style={{ width: '100%', height: GH, display: 'block', background: C.sf2, border: `1px solid ${C.bd}` }}>
                         <defs>
-                          <linearGradient id="spGradS" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor={C.ac} stopOpacity="0.22" /><stop offset="100%" stopColor={C.ac} stopOpacity="0" /></linearGradient>
+                          <linearGradient id="spGradS" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor={BRAND} stopOpacity="0.22" /><stop offset="100%" stopColor={BRAND} stopOpacity="0" /></linearGradient>
                           <linearGradient id="spGradP" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor={orange} stopOpacity="0.20" /><stop offset="100%" stopColor={orange} stopOpacity="0" /></linearGradient>
                         </defs>
                         {ticks.map((L) => <line key={L} x1={0} y1={gy(L)} x2={GW} y2={gy(L)} stroke={C.bd} strokeWidth="0.75" strokeDasharray="4" />)}
-                        <line x1={0} y1={gy(100)} x2={GW} y2={gy(100)} stroke={C.ac} strokeWidth="1" strokeDasharray="3 3" strokeOpacity="0.55" />
+                        <line x1={0} y1={gy(100)} x2={GW} y2={gy(100)} stroke={BRAND} strokeWidth="1" strokeDasharray="3 3" strokeOpacity="0.55" />
                         {series.map((s) => <path key={s.gid} d={gArea(s.curve)} fill={`url(#${s.gid})`} />)}
                         {series.map((s) => <polyline key={s.label} points={gLine(s.curve)} fill="none" stroke={s.col} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />)}
                       </svg>
@@ -623,7 +624,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
                   </div>
                   {/* Legend: bright, with each side's NOW value in its colour. */}
                   <div style={{ display: 'flex', gap: 16, marginTop: 8, fontSize: 10, color: C.tm, paddingLeft: 46, flexWrap: 'wrap', alignItems: 'center' }}>
-                    {sCurve && <span style={{ fontWeight: 600 }}><span style={{ color: C.ac }}>●</span> Strength ({sCurve.length}) · now <b style={{ color: C.ac }}>{Math.round(sCurve[sCurve.length - 1])}%</b></span>}
+                    {sCurve && <span style={{ fontWeight: 600 }}><span style={{ color: BRAND }}>●</span> Strength ({sCurve.length}) · now <b style={{ color: BRAND }}>{Math.round(sCurve[sCurve.length - 1])}%</b></span>}
                     {pCurve && <span style={{ fontWeight: 600 }}><span style={{ color: orange }}>●</span> Power ({pCurve.length}) · now <b style={{ color: orange }}>{Math.round(pCurve[pCurve.length - 1])}%</b></span>}
                     <span style={{ marginLeft: 'auto', color: C.td }}>○ = high · dashed = 100% start</span>
                   </div>
@@ -664,11 +665,12 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
             const avg = Math.round(a.acwr.series.reduce((x, y) => x + y, 0) / a.acwr.series.length);
             const k = (n) => n >= 1000 ? `${(n / 1000).toFixed(1)}k` : `${n}`; // compact kg·reps
             const BH = 92; // bar-plot height — taller, to match the readiness / BW graphs
+            const BRAND = '#39BDFF'; // literal cyan — C.ac flips to black in light mode; the bars keep brand cyan in BOTH themes like the readiness/BW graphs
             return (
               <div style={{ marginBottom: 12 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8, gap: 8, flexWrap: 'wrap' }}>
                   <span style={{ fontSize: 10, color: C.tm, letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 700 }}>Session tonnage · last {a.acwr.series.length}</span>
-                  <span style={{ fontSize: 10, color: C.tm, fontVariantNumeric: 'tabular-nums' }}>peak <b style={{ color: C.ac }}>{mx.toLocaleString()}</b> · latest <b style={{ color: C.tx }}>{last.toLocaleString()}</b> kg·reps</span>
+                  <span style={{ fontSize: 10, color: C.tm, fontVariantNumeric: 'tabular-nums' }}>peak <b style={{ color: BRAND }}>{mx.toLocaleString()}</b> · latest <b style={{ color: C.tx }}>{last.toLocaleString()}</b> kg·reps</span>
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   {/* Y-axis: bright peak / mid / 0 ticks give the bars a real scale. */}
@@ -682,15 +684,15 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
                       {a.acwr.series.map((t, i) => {
                         const isPeak = i === peakI, isLast = i === lastI;
                         return (
-                          <div key={i} title={`${t.toLocaleString()} kg·reps`} style={{ position: 'relative', flex: 1, minWidth: 4, height: `${Math.max(4, (t / mx) * 100)}%`, background: C.ac, opacity: isPeak || isLast ? 1 : 0.55, boxShadow: isLast && !isPeak ? `inset 0 0 0 1px ${C.tx}` : 'none', borderRadius: '1px 1px 0 0' }}>
-                            {isPeak && <span style={{ position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: 2, fontSize: 8.5, fontWeight: 700, color: C.ac, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{k(t)}</span>}
+                          <div key={i} title={`${t.toLocaleString()} kg·reps`} style={{ position: 'relative', flex: 1, minWidth: 4, height: `${Math.max(4, (t / mx) * 100)}%`, background: BRAND, opacity: isPeak || isLast ? 1 : 0.55, boxShadow: isLast && !isPeak ? `inset 0 0 0 1px ${C.tx}` : 'none', borderRadius: '1px 1px 0 0' }}>
+                            {isPeak && <span style={{ position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: 2, fontSize: 8.5, fontWeight: 700, color: BRAND, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{k(t)}</span>}
                           </div>
                         );
                       })}
                     </div>
                   </div>
                 </div>
-                <div style={{ fontSize: 9.5, color: C.tm, marginTop: 6, lineHeight: 1.5 }}>Σ load×reps per logged session · avg <b style={{ color: C.tx }}>{avg.toLocaleString()}</b> kg·reps — the raw work trend. <span style={{ color: C.ac }}>▮</span> peak · outlined = latest.</div>
+                <div style={{ fontSize: 9.5, color: C.tm, marginTop: 6, lineHeight: 1.5 }}>Σ load×reps per logged session · avg <b style={{ color: C.tx }}>{avg.toLocaleString()}</b> kg·reps — the raw work trend. <span style={{ color: BRAND }}>▮</span> peak · outlined = latest.</div>
               </div>
             );
           })()}
