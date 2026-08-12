@@ -432,6 +432,44 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
       const tone = t.side === 'balanced' ? C.gn : t.side === 'stalled' ? C.or : C.pu;
       return (
         <Section title="Strength → power" summary={`${t.sT > 0 ? '+' : ''}${t.sT}% str · ${t.pT > 0 ? '+' : ''}${t.pT}% pow`}>
+            {(() => {
+              // Aggregate each side's lifts into ONE trend: index every lift's e1RM
+              // arc to its own start (100%) and average across lifts. Two overlaid
+              // lines = the strength↔power relationship as a graph, not just numbers.
+              const norm = (lifts) => {
+                const cs = lifts.map((s) => (s.arc || []).filter((v) => typeof v === 'number' && v > 0)).filter((a) => a.length >= 3 && a[0] > 0);
+                if (!cs.length) return null;
+                const len = Math.min(...cs.map((a) => a.length));
+                if (len < 3) return null;
+                return Array.from({ length: len }, (_, i) => cs.reduce((x, a) => x + (a[i] / a[0]) * 100, 0) / cs.length);
+              };
+              const sCurve = norm(a.staples.filter((s) => !s.ballistic && s.isMain));
+              const pCurve = norm(a.staples.filter((s) => s.ballistic));
+              if (!sCurve && !pCurve) return null;
+              const all = [...(sCurve || []), ...(pCurve || []), 100];
+              const lo = Math.min(...all), hi = Math.max(...all), rng = (hi - lo) || 1;
+              const W = 300, H = 58, pad = 5;
+              const yOf = (v) => pad + (1 - (v - lo) / rng) * (H - 2 * pad);
+              const line = (curve, col) => curve && curve.length >= 2
+                ? <polyline points={curve.map((v, i) => `${(pad + (i / (curve.length - 1)) * (W - 2 * pad)).toFixed(1)},${yOf(v).toFixed(1)}`).join(' ')} fill="none" stroke={col} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                : null;
+              const orange = C.or || '#f0b429';
+              return (
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ fontSize: 10, color: C.td, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>Strength vs power trend · e1RM indexed to each lift's start</div>
+                  <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: '100%', height: 58, display: 'block', background: C.sf2, border: `1px solid ${C.bd}` }}>
+                    <line x1={pad} y1={yOf(100)} x2={W - pad} y2={yOf(100)} stroke={C.bd} strokeWidth="1" strokeDasharray="3 3" />
+                    {line(sCurve, C.ac)}
+                    {line(pCurve, orange)}
+                  </svg>
+                  <div style={{ display: 'flex', gap: 16, marginTop: 5, fontSize: 9.5, color: C.td }}>
+                    {sCurve && <span><span style={{ color: C.ac }}>■</span> strength ({sCurve.length})</span>}
+                    {pCurve && <span><span style={{ color: orange }}>■</span> power ({pCurve.length})</span>}
+                    <span style={{ marginLeft: 'auto' }}>dashed = 100% (start)</span>
+                  </div>
+                </div>
+              );
+            })()}
             <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'stretch', marginBottom: 10 }}>
               <div style={{ flex: '1 1 0', minWidth: 130, border: `1px solid ${C.bd}`, background: C.sf2, padding: '9px 11px' }}>
                 <div style={{ fontSize: 20, fontWeight: 700, color: t.sT > 0.8 ? C.gn : t.sT < -0.8 ? C.rd : C.or, fontVariantNumeric: 'tabular-nums' }}>{t.sT > 0 ? '+' : ''}{t.sT}%</div>
