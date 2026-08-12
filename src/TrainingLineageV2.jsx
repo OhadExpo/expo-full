@@ -510,7 +510,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
       const rows = cont.lifts.filter((l) => l.count >= 2).slice(0, 12);
       if (!rows.length) return null;
       return (
-        <Section title="Exercise continuity" summary={`${cont.totalBlocks} blocks · ${cont.staticNow.length} static`}>
+        <Section title="Exercise continuity" summary={`${cont.totalBlocks} blocks · ${cont.staticNow.length} kept ≥4`}>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead><tr>
