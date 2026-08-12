@@ -20,7 +20,7 @@
 // image-unit per frame (a mostly-vertical ruler keeps aspect-ratio error low).
 // A "frame" captured by the loop is { t (ms), landmarks, worldLandmarks }.
 
-import { ANGLE_DEFS, angleAt, detectChannels, medianFilter, findPeaks, isReal } from './repCounter';
+import { ANGLE_DEFS, angleAt, detectChannels, medianFilter, findPeaks, isReal } from './repCounter.js';
 
 // MediaPipe Pose landmark indices we lean on.
 export const LM = {

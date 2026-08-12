@@ -7,6 +7,7 @@ import { dirname, join } from 'node:path';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const suites = [
+  'verify-pose-primitives.mjs',      // angleAt / channels / smoothing / jointRomMetrics — camera kernel
   'verify-rom-goniometer.mjs',       // camera goniometer -> clinical ROM degree
   'verify-velocity-profile-1rm.mjs', // load-velocity -> estimated 1RM
   'verify-periodization-balance.mjs',// block history -> periodization read
