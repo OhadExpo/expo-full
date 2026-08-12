@@ -55,7 +55,18 @@ function findBareCalls(src, content) {
 
     // JS or template-expr context. Track strings.
     if (prev !== '\\') {
-      if (!dq && ch === "'") { sq = !sq; i++; continue; }
+      if (!dq && ch === "'") {
+        // A contraction/possessive apostrophe in JSX TEXT (word'word — "it's",
+        // "don't", "athlete's") is not a JS string delimiter. Toggling `sq` on
+        // it desyncs the whole scan so every later quoted rgba('...') string is
+        // mis-flagged as a bare call. A real JS single-quote opener/closer is
+        // never sandwiched between two letters (it sits after `:( ,=[|&` etc.
+        // and before string content, or after `)'"` and before `,;)` etc.).
+        const next = i + 1 < n ? content[i + 1] : '';
+        const inWordApostrophe = /[A-Za-z]/.test(prev) && /[A-Za-z]/.test(next);
+        if (!inWordApostrophe) sq = !sq;
+        i++; continue;
+      }
       if (!sq && ch === '"') { dq = !dq; i++; continue; }
       if (!sq && !dq && ch === '`') { bqDepth++; i++; continue; }
     }
@@ -79,9 +90,19 @@ function findBareCalls(src, content) {
     FN_RE.lastIndex = i;
     const m = FN_RE.exec(content);
     if (m && m.index === i) {
-      // Make sure it's not part of an identifier (e.g. `myrgba()` is fine).
-      const before = i > 0 ? content[i - 1] : ' ';
-      if (!/[a-zA-Z0-9_$]/.test(before)) {
+      // Confirm it's a genuine BARE expression, not a false positive. The state
+      // machine above can desync on apostrophes/quotes inside JSX text and then
+      // misread a quoted rgba('...') as JS context. A real bare call (the bug:
+      // a template got rewritten to a bare `rgba(...)`) always sits in JS
+      // expression position — the nearest non-space char before it is an
+      // introducer (`: , = ( [ ? | &` …). It is NEVER a quote (inside a string),
+      // a word char (part of an identifier like `myrgba`), or `.`. Suppressing
+      // on those can only drop false positives, never a real bare call.
+      let j = m.index - 1;
+      while (j >= 0 && (content[j] === ' ' || content[j] === '\t')) j--;
+      const near = j >= 0 ? content[j] : '';
+      const insideStringOrWord = near === "'" || near === '"' || near === '`' || /[A-Za-z0-9_$.]/.test(near);
+      if (!insideStringOrWord) {
         // Compute line for the match position
         let l = 1, c = 0;
         for (let k = 0; k < m.index; k++) {
