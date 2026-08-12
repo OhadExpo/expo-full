@@ -1,6 +1,45 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { C, FN, FB, uid, RESISTANCE_TYPES, BODY_POSITIONS, MOVEMENT_TYPES } from './theme';
+import { C, FN, FB, uid, ytId, RESISTANCE_TYPES, BODY_POSITIONS, MOVEMENT_TYPES } from './theme';
 import { Btn, Input, Select, TextArea, Modal, ConfirmDialog, EmptyState, baseInput } from './ui';
+
+// Grid-card video: a lightweight YouTube FACADE. The grid can show 200 cards, so
+// it must NOT mount 200 iframes — it paints the lazy poster thumbnail and only
+// swaps to an inline player when clicked. That player is deliberately NON-
+// fullscreen: no allowFullScreen attribute + fs=0, so neither the control nor a
+// double-click can take it fullscreen (Ohad). Non-YouTube / no video get a quiet
+// tile so every card keeps the same half-video / half-notes shape.
+function GridVideo({ url }) {
+  const [play, setPlay] = useState(false);
+  const yid = ytId(url);
+  const box = { position: 'relative', width: '100%', aspectRatio: '16 / 9', background: '#000', overflow: 'hidden', borderBottom: `1px solid ${C.cardBd}`, flexShrink: 0 };
+  if (yid) {
+    if (play) return (
+      <div style={box}>
+        <iframe title="exercise demo" src={`https://www.youtube.com/embed/${yid}?fs=0&rel=0&modestbranding=1&playsinline=1&autoplay=1`}
+          style={{ width: '100%', height: '100%', border: 'none' }} allow="autoplay; encrypted-media" />
+      </div>
+    );
+    return (
+      <div style={{ ...box, cursor: 'pointer' }} onClick={() => setPlay(true)} title="Play inline (no fullscreen)" role="button" tabIndex={0}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setPlay(true); } }}>
+        <img src={`https://img.youtube.com/vi/${yid}/hqdefault.jpg`} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.92, display: 'block' }} />
+        <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ width: 34, height: 34, borderRadius: '50%', background: 'rgba(0,0,0,0.55)', border: '1px solid rgba(255,255,255,0.85)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ width: 0, height: 0, borderTop: '6px solid transparent', borderBottom: '6px solid transparent', borderLeft: '10px solid #fff', marginLeft: 2 }} />
+          </span>
+        </span>
+      </div>
+    );
+  }
+  const embeddable = typeof url === 'string' && /^https?:\/\//i.test(url) && (/\.(mp4|webm|mov|m4v)(\?|$)/i.test(url) || /(photos\.app\.goo\.gl|photos\.google\.com|lh3\.googleusercontent\.com)/i.test(url));
+  return (
+    <div style={{ ...box, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <span style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: embeddable ? C.ac : C.td, opacity: embeddable ? 0.9 : 0.5 }}>
+        {embeddable ? '▶ Video' : 'No video'}
+      </span>
+    </div>
+  );
+}
 
 // Exercise shape aligned to the canonical library xlsx (Last Draft Exercise
 // Library.xlsx): Resistance Type · Body Position · Movement Type · Primary Joints
@@ -281,7 +320,6 @@ export default function ExercisesView({ exercises, setExercises }) {
           {rows.map(ex => {
             const vid = hasVideo(ex), note = hasNotes(ex);
             const meta = [ex.resistanceType, ex.bodyPosition, ex.movementType].filter(Boolean);
-            const tags = [...splitVals(ex.primaryMuscles).slice(0, 4), ...splitVals(ex.primaryJoints).slice(0, 3)];
             return (
               <div key={ex.id} className="ex-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, display: 'flex', flexDirection: 'column', boxShadow: C.cardShadow }}>
                 {/* cyan strip header — identical grammar to the program card */}
@@ -296,16 +334,17 @@ export default function ExercisesView({ exercises, setExercises }) {
                     {!vid && !note && <span style={{ width: 6, height: 6, borderRadius: '50%', border: `1px solid ${C.td}`, opacity: 0.5 }} />}
                   </span>
                 </div>
-                {/* body — classification meta + chips, or an Unclassified label */}
-                <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
-                  {meta.length
-                    ? <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 600, letterSpacing: '0.03em', color: C.tm }}>{meta.join('  ·  ')}</div>
-                    : <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.td }}>Unclassified</div>}
-                  {tags.length > 0 && (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                      {tags.map((x, i) => <span key={i} style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 600, letterSpacing: '0.02em', color: C.tm, background: 'var(--c-sf2)', border: `1px solid ${C.cardBd}`, padding: '2px 7px', whiteSpace: 'nowrap' }}>{x}</span>)}
-                    </div>
-                  )}
+                {/* body — half YouTube thumbnail (inline, no fullscreen), half
+                    coaching notes (Ohad). Classification recedes to a single meta
+                    line so the card reads as demo + cues, not a spec sheet. */}
+                <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+                  <GridVideo url={ex.videoLink} />
+                  <div style={{ padding: '9px 12px', flex: 1, minHeight: 46, maxHeight: 132, overflow: 'auto' }}>
+                    {note
+                      ? <bdi style={{ display: 'block', fontFamily: FB, fontSize: 12, lineHeight: 1.5, color: C.tm, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{ex.cues}</bdi>
+                      : <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.td }}>No coaching cues</span>}
+                    {meta.length > 0 && <div style={{ marginTop: 8, fontFamily: FN, fontSize: 9.5, fontWeight: 600, letterSpacing: '0.04em', color: C.td }}>{meta.join('  ·  ')}</div>}
+                  </div>
                 </div>
                 {/* actions — light text buttons, like the program card */}
                 <div style={{ padding: '8px 14px 12px', display: 'flex', gap: 16, alignItems: 'center', borderTop: `1px solid ${C.cardBd}` }}>
