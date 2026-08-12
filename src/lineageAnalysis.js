@@ -670,7 +670,13 @@ export function analyzeAthlete(clientWorkouts, traineeId, plans, deps) {
   // facepull) don't match, so a single accessory wobbling can't drive a "deload
   // him" verdict (fresh-context review H1). Same inclusion-list the transfer map +
   // block-character reads use.
-  const PRIMARY = /squat|deadlift|\bdl\b|rdl|hinge|good[-\s]?morning|press|bench|ohp|overhead|row|pull[-\s]?up|chin|pulldown|lunge|split|rfess|bulgarian|thrust|clean|snatch|jerk/i;
+  const PRIMARY = /squat|deadlift|\bdl\b|rdl|hinge|good[-\s]?morning|press|bench|ohp|overhead|\brow|pull[-\s]?up|\bchin|pulldown|lunge|split|rfess|bulgarian|thrust|clean|snatch|jerk/i;
+  // Isolation/machine accessories that brush a PRIMARY token ("MACHINE row", "leg
+  // PRESS", "leg curl") must NOT count as a compound whose regression = systemic
+  // fatigue; and a "snatch/clean-GRIP" pull is a slow strength lift, not ballistic.
+  // (fresh-context review — the same regex bugs as blockHistory, applied here too.)
+  const ACCESSORY = /machine|leg[-\s]*press|leg[-\s]*ext|extension|leg[-\s]*curl|\bcalf|pushdown|push[-\s]?down|kickback|\bfly|flye|lateral[-\s]*raise|front[-\s]*raise|rear[-\s]*delt|face[-\s]*pull|shrug|\bcurl\b/i;
+  const gripStrength = (t) => /(snatch|clean)[-\s]*grip/i.test(t) || (/(snatch|clean)/i.test(t) && /deadlift|\brdl\b|\bdl\b|good[-\s]?morning|\brow/i.test(t)) || /jump[-\s]*rope|jumping[-\s]*jack|skipping/i.test(t);
   const allLifts = [...series.entries()]
     .map(([title, sAll]) => {
       const s = sAll.slice(-6);
@@ -707,8 +713,8 @@ export function analyzeAthlete(clientWorkouts, traineeId, plans, deps) {
       const arcGainPct = (firstE1 && lastE1) ? Math.round(((lastE1 - firstE1) / firstE1) * 100) : null;
       return {
         title, series: s, count: sAll.length,          // total times he's logged it
-        ballistic: BALLISTIC.test(title),
-        isMain: PRIMARY.test(title),                    // compound lift → its regression means systemic fatigue
+        ballistic: BALLISTIC.test(title) && !gripStrength(title),
+        isMain: PRIMARY.test(title) && !ACCESSORY.test(title),   // compound lift → its regression means systemic fatigue
 
         stale: staleWeight(s), trend: e1rmTrend(s),
         drift: rpeDrift(s, null), miss: missRate(allSessions, title),
