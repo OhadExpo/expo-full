@@ -634,6 +634,18 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
             {' · '}{result.rejectedReps.length} not counted
           </span>
         )}
+        {(() => {
+          // A counted "rep" whose bar path NET-DESCENDED (mean concentric clearly
+          // negative) is a bar drop / re-rack, not a working rep — the joint
+          // segmenter counts it but it isn't a lift. Flag it honestly rather than
+          // silently inflate the count (velocity already excludes it; #87).
+          const drops = (result.velocity?.perRep || []).filter((r) => r && typeof r.meanConcentric === 'number' && r.meanConcentric < -0.2).length;
+          return drops > 0 ? (
+            <span style={{ color: C.warn || '#f0b429' }} title="The bar net-descended on this rep (negative mean concentric velocity) — a bar drop / re-rack the joint counter picked up, not a working rep. Excluded from the bar-speed reads.">
+              {' · '}{drops} {drops === 1 ? 'looks' : 'look'} like a bar drop
+            </span>
+          ) : null;
+        })()}
       </div>
       {!(result.repCount > 0) && (
         <div style={{ fontFamily: FN, fontSize: 12.5, color: 'rgba(255,255,255,0.62)', letterSpacing: '0.02em', marginBottom: 14, lineHeight: 1.6, padding: '9px 12px', border: `1px solid ${C.bd}`, background: C.sf2 }}>
