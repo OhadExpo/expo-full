@@ -48,6 +48,8 @@ check('today faster than ref -> positive delta, tone good', faster && faster.del
 // ── warmupReadiness: low-confidence gate on a thin reference ──
 check('ref n<3 -> lowConf true (thin baseline)', warmupReadiness(1.0, { refVel: 1.0, n: 1 }).lowConf === true);
 check('ref n>=3 -> lowConf false', warmupReadiness(1.0, { refVel: 1.0, n: 5 }).lowConf === false);
+// a STALE baseline (>8wk) down-ranks confidence even with enough sessions (review #2)
+check('stale ref (n>=3 but stale) -> lowConf true', warmupReadiness(1.0, { refVel: 1.0, n: 5, stale: true }).lowConf === true);
 
 console.log(`\n${fail === 0 ? '✓ ALL PASS' : '✗ FAILURES'} — ${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);

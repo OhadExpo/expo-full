@@ -140,7 +140,7 @@ export function warmupReadiness(todayVel, ref) {
   // even a big drop reads as "worth a gut check", not a set-cutting order —
   // the coach confirms by feel/RPE. Within-set velocity-loss (velocityAutoreg)
   // is the scale-invariant read; this cross-film one is deliberately hedged.
-  const lowConf = (ref.n || 0) < 3;
+  const lowConf = (ref.n || 0) < 3 || !!ref.stale; // <3 distinct sessions OR a stale (>8wk) baseline → caveat the read
   let verdict, tone;
   if (deltaPct >= -10) { verdict = 'In the usual range at this load — nothing here says back off. Train as planned.'; tone = 'good'; }
   else if (deltaPct >= -18) { verdict = 'Reading slightly slow at this load — could be fatigue, could be the camera angle. Confirm before adding load today.'; tone = 'warn'; }

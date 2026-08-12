@@ -67,6 +67,25 @@ check('ref: median prior velocity at ~same load (0.6, not max 0.7)', ref.refVel 
 check('ref: loads outside ±3% excluded (130kg ignored)', ref.n === 3);
 check('ref: excludes TODAY\'s own film', getLoadVelocityRef('a', 'Back Squat', 100, '2026-05-15').n === 2);
 check('ref: no comparable history -> null', getLoadVelocityRef('a', 'Back Squat', 200, '2026-05-25') === null);
+check('ref: recent baseline -> stale false', ref.stale === false);
+// #1 (adversarial review): confidence is per-SESSION, not per-set — several sets
+// filmed on ONE day is still a single-day baseline, so n counts DISTINCT dates
+// (keeps warmupReadiness lowConf on) while `entries` holds the raw set count.
+seed({ a: { 'back squat': { title: 'Back Squat', entries: [
+  { date: '2026-05-08', load: 100, bestMean: 0.60, reps: 5 },
+  { date: '2026-05-08', load: 100, bestMean: 0.62, reps: 5 },
+  { date: '2026-05-08', load: 100, bestMean: 0.58, reps: 5 },
+] } } });
+const oneDay = getLoadVelocityRef('a', 'Back Squat', 100, '2026-05-25');
+check('3 sets on ONE day -> n=1 distinct session (not 3 entries)', oneDay.n === 1 && oneDay.entries === 3);
+// #2 (adversarial review): a >8-week-old baseline is flagged stale so the read is
+// caveated rather than calling a returning-from-layoff athlete "not fresh".
+seed({ a: { 'back squat': { title: 'Back Squat', entries: [
+  { date: '2026-02-01', load: 100, bestMean: 0.50, reps: 5 },
+  { date: '2026-02-08', load: 100, bestMean: 0.55, reps: 5 },
+  { date: '2026-02-15', load: 100, bestMean: 0.52, reps: 5 },
+] } } });
+check('months-old baseline -> stale true', getLoadVelocityRef('a', 'Back Squat', 100, '2026-05-25').stale === true);
 
 // ── getAthleteVault — velocity-loss trend ──
 seed({ a: { 'back squat': { title: 'Back Squat', entries: [

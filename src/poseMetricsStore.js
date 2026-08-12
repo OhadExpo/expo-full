@@ -223,8 +223,9 @@ export function getAthleteAsymmetryTrend(clientId) {
 // Same-load velocity reference for warm-up readiness (the "Perch from a phone"
 // between-session read). Standard fixed-load VBT monitoring: at a repeated load,
 // today's bar speed vs the athlete's established speed at THAT load = readiness.
-// Returns the best (fastest) prior bestMean at ~the same load on a DIFFERENT day,
-// or null if there's no comparable history yet. tolerance = ±6% of the load.
+// Returns the median prior bestMean at ~the same load on a DIFFERENT day, or null
+// if there's no comparable history yet. tolerance = ±3% of the load (tight — bar
+// velocity is load-sensitive, so we compare like loads only).
 export function getLoadVelocityRef(clientId, exercise, load, todayDate) {
   if (!clientId || !exercise || !(load > 0)) return null;
   const lift = (readAll()[clientId] || {})[exKey(exercise)];
@@ -241,8 +242,18 @@ export function getLoadVelocityRef(clientId, exercise, load, todayDate) {
   const refVel = vels[Math.floor(vels.length / 2)];
   const repsArr = prior.map((e) => e.reps).filter((x) => typeof x === 'number').sort((a, b) => a - b);
   const refReps = repsArr.length ? repsArr[Math.floor(repsArr.length / 2)] : null;
-  const last = prior[prior.length - 1];
-  return { refVel, n: prior.length, lastDate: (last.date || '').slice(0, 10), load, refReps };
+  const dates = [...new Set(prior.map((e) => (e.date || '').slice(0, 10)).filter(Boolean))].sort();
+  // Confidence is per-SESSION, not per-set (adversarial review #1): several sets
+  // filmed on ONE day is still a single-day baseline → n counts DISTINCT dates so
+  // warmupReadiness's low-confidence caveat fires until there are ≥3 real sessions.
+  const lastDate = dates.length ? dates[dates.length - 1] : (prior[prior.length - 1].date || '').slice(0, 10);
+  // STALENESS (review #2): a months-old baseline after a layoff is a fitness/
+  // technique change, not acute non-freshness — flag it so the caveat down-ranks
+  // the read rather than calling a returning athlete "not fresh".
+  const ageDays = (Number.isFinite(Date.parse(d0)) && Number.isFinite(Date.parse(lastDate)))
+    ? (Date.parse(d0) - Date.parse(lastDate)) / 86400000 : 0;
+  const stale = ageDays > 56; // > ~8 weeks
+  return { refVel, n: dates.length, entries: prior.length, lastDate, load, refReps, stale };
 }
 
 export function hasVault(clientId) {
