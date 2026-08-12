@@ -1115,7 +1115,6 @@ function DemoMessages() {
 // CRM — health strip + coach-history (ACTIONS / ACTIVITY tabs).
 function DemoCRM() {
   const [tab, setTab] = useState('activity');
-  const cells = [['TRAINING', '3d ago', C.gn], ['LAST CONTACT', '1d ago', C.gn], ['PAYMENT', 'Paid', C.gn], ['CLIENT', '8 mo', C.tx]];
   const actions = ['Check in re: right shoulder after Day B', 'Send updated nutrition targets', 'Confirm payment for August'];
   const activity = [
     { kind: 'SESSION', color: C.gn, when: '30 Jul · 14:20', auto: true,  text: 'Completed Upper A — 6 exercises logged' },
@@ -1125,17 +1124,8 @@ function DemoCRM() {
   ];
   return (
     <div>
-      <div style={{ display: 'flex', gap: 26, flexWrap: 'wrap', padding: '12px 16px', border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)', marginBottom: 12 }}>
-        {cells.map(([l, v, c]) => (
-          <div key={l}>
-            <div style={{ fontFamily: FN, fontSize: 8, color: C.td, letterSpacing: '0.14em', fontWeight: 700 }}>{l}</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
-              {c !== C.tx && <span style={{ width: 7, height: 7, borderRadius: 4, background: c }} />}
-              <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: c }}>{v}</span>
-            </div>
-          </div>
-        ))}
-      </div>
+      {/* Health strip (TRAINING/LAST CONTACT/PAYMENT/CLIENT) removed for parity
+          with the real app — those facts live in their own sections. */}
       <div style={{ display: 'flex', gap: 18, borderBottom: `1px solid ${C.cardBd}`, marginBottom: 10 }}>
         {[['actions', 'ACTIONS'], ['activity', 'ACTIVITY']].map(([id, l]) => (
           <button key={id} onClick={() => setTab(id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', color: tab === id ? C.ac : C.tm, borderBottom: tab === id ? `2px solid ${C.ac}` : '2px solid transparent' }}>{l}</button>
@@ -1150,12 +1140,11 @@ function DemoCRM() {
         ))}</div>
       ) : (
         <div>{activity.map((a, i) => (
-          <div key={i} style={{ display: 'flex', gap: 10, padding: '8px 0', borderBottom: i < activity.length - 1 ? `1px solid ${C.cardBd}` : 'none' }}>
-            <span style={{ width: 7, height: 7, borderRadius: 4, background: a.color, marginTop: 5, flexShrink: 0 }} />
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em' }}><span style={{ color: a.color }}>{a.kind}</span><span style={{ color: C.td }}> · {a.when}{a.auto ? ' · AUTO' : ''}</span></div>
-              <div style={{ fontSize: 12, color: C.tx, marginTop: 2 }}>{a.text}</div>
-            </div>
+          <div key={i} style={{ display: 'flex', gap: 10, padding: '8px 0', alignItems: 'baseline', borderBottom: i < activity.length - 1 ? `1px solid ${C.cardBd}` : 'none' }}>
+            <span style={{ width: 7, height: 7, borderRadius: 4, background: a.color, flexShrink: 0, alignSelf: 'center' }} />
+            {/* summary + when on ONE row (parity with the real app) */}
+            <span style={{ flex: 1, minWidth: 0, fontSize: 12, color: C.tx }}>{a.text}</span>
+            <span style={{ flexShrink: 0, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}><span style={{ color: a.color }}>{a.kind}</span><span style={{ color: C.td }}> · {a.when}{a.auto ? ' · AUTO' : ''}</span></span>
           </div>
         ))}</div>
       )}
