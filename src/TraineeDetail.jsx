@@ -505,7 +505,9 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
                 title={t.id === 'all' ? 'Show all sections' : `Show only ${t.label} — click again for all sections`}
                 style={{
                   height: 30, boxSizing: 'border-box', padding: '0 8px', borderRadius: 0,
-                  flex: '0 1 auto', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis',
+                  // Stretch every tab to fill the full row width equally (Ohad) —
+                  // grow+shrink from a 0 basis so they share the space evenly.
+                  flex: '1 1 0', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis',
                   // Tinted active state (not a solid C.ac fill) — in light-refined
                   // themes C.ac resolves near-black, so solid-fill + dark label was
                   // invisible (Ohad: "i cant see the button"). Tint + accent text
