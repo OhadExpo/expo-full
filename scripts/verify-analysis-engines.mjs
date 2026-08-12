@@ -17,6 +17,7 @@ const suites = [
   'verify-velocity-load-zones.mjs',  // velocityLoadZones — LV profile -> per-quality load prescription (kg on the bar)
   'verify-movement-bucket.mjs',      // movementBucket — lift -> library's 6 buckets (upper/lower x bi/uni/plyo) for the Analysis grouping
   'verify-readiness-autoreg.mjs',    // readinessAutoreg — daily pain/sleep/energy check-in -> concrete session-load nudge (pain-gated)
+  'verify-training-monotony.mjs',    // trainingMonotony — Foster monotony/strain: flat-grind flags high, rest/variation reads low, honest thin
   'verify-exercise-continuity.mjs',  // exerciseContinuity — how many blocks each main lift has run (programming-continuity mirror)
   'verify-periodization-balance.mjs',// block history -> periodization read
   'verify-block-character.mjs',      // classifyBlockCharacter — periodization ZONE + NSCA power rep-ceiling
