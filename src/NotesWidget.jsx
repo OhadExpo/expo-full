@@ -124,7 +124,7 @@ function MiniTaskRow({ n, stackBoard, onClick, stripe }) {
       {name && (
         <span style={{ fontFamily: nameHeb ? FH : FN, fontSize: nameHeb ? 13 : 10, fontWeight: 800, letterSpacing: nameHeb ? 0 : '0.04em', textTransform: nameHeb ? 'none' : 'uppercase', color: 'var(--c-ac)', flexShrink: 0, maxWidth: '45%', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
       )}
-      <span style={{ fontFamily: heb ? FH : FB, direction: heb ? 'rtl' : 'ltr', textAlign: name ? 'left' : (heb ? 'right' : 'left'), color: name ? 'var(--c-tm)' : 'var(--c-tx)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{body}</span>
+      <span style={{ fontFamily: heb ? FH : FB, direction: heb ? 'rtl' : 'ltr', textAlign: name ? 'center' : (heb ? 'right' : 'left'), color: name ? 'var(--c-tm)' : 'var(--c-tx)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{body}</span>
       {kindLabel && (
         <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: kindTone, border: `1px solid ${kindTone}`, padding: '1px 5px', lineHeight: 1.3, flexShrink: 0 }}>{kindLabel}</span>
       )}

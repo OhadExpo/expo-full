@@ -178,7 +178,7 @@ export default function ExercisesView({ exercises, setExercises }) {
   // Shared width for the two stacked right-side controls (Table/Grid toggle group
   // and the Add Exercise button) so their right edges line up as an equal column
   // (Ohad: "table + grid together = same hoz space as add exercise button").
-  const RIGHT_CTL_W = 176;
+  const RIGHT_CTL_W = 200;
 
   // A multi-select filter trigger: label + ▾, cyan underline when active, opens a
   // checklist menu. Single menu open at a time (openKey).
@@ -294,7 +294,7 @@ export default function ExercisesView({ exercises, setExercises }) {
           <input placeholder="Search exercises (title, muscle, joint, position…)" value={search} onChange={e => { setSearch(e.target.value); setShowAll(false); }}
             style={{ ...baseInput, height: 30, padding: '0 14px', fontSize: 13, lineHeight: '30px', textAlign: 'left', border: `1px solid ${C.ac}`, width: '100%' }} />
         </div>
-        <Btn onClick={openNew} style={{ height: 30, width: RIGHT_CTL_W, flexShrink: 0, padding: '0 18px', fontSize: 13, lineHeight: '30px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ Add Exercise</Btn>
+        <Btn onClick={openNew} style={{ height: 30, width: RIGHT_CTL_W, flexShrink: 0, padding: '0 18px', fontSize: 13, lineHeight: '30px', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ Add Exercise</Btn>
       </div>
 
       {/* Filter rail — inline UNDERLINE-style controls (filters = underline text,
