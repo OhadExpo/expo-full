@@ -22,11 +22,28 @@ const BY_KEY = Object.fromEntries(CHECKIN_METRICS.map(m => [m.key, m]));
 const RAMP = ['#35C36A', '#F2CE1E', '#F0862A', '#E23B3B']; // best → worst (yellow/orange/red all distinct)
 
 // 0..3 quality value for a level (3 = best), or null if unknown/blank.
+// Handles TWO stored formats so the trend graph never shows "7 check-ins" and
+// then plots nothing:
+//   • current portal — a named level ('mild' / 'good' / 'high' …).
+//   • legacy numeric — an older check-in stored the value as a number string
+//     ("pain":"4") on a 0-10-style scale (the domain's 0-10 pain model). Map it
+//     MONOTONICALLY to the 0..3 band (pain inverted, higher = worse) so the TREND
+//     direction is preserved no matter the exact old scale; the raw number is
+//     still shown on the point.
 export function checkinQuality(key, val) {
   const m = BY_KEY[key];
   if (!m) return null;
-  const q = m.scale.indexOf(String(val || '').toLowerCase());
-  return q < 0 ? null : q;
+  const s = String(val ?? '').trim().toLowerCase();
+  if (!s) return null;
+  const idx = m.scale.indexOf(s);
+  if (idx >= 0) return idx;
+  const num = parseFloat(s);
+  if (Number.isFinite(num)) {
+    const norm = Math.max(0, Math.min(1, num / 10)); // assume a 0-10 legacy scale
+    const good = key === 'pain' ? (1 - norm) : norm;  // pain: higher number = worse
+    return Math.max(0, Math.min(3, Math.round(good * 3)));
+  }
+  return null;
 }
 
 // Severity colour for a level (green best → red worst), or null.
