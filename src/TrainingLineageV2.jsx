@@ -473,7 +473,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
       const trained = BUCKETS.filter((b) => grouped[b.key].length > 0).length;
       if (trained === 0) return null;
       const cell = (lift) => (
-        <div key={lift.title} dir="auto" style={{ fontSize: 11.5, color: C.tm, lineHeight: 1.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={lift.title}>{lift.title}</div>
+        <div key={lift.title} dir="auto" style={{ fontSize: 11.5, color: C.tm, lineHeight: 1.4, overflowWrap: 'anywhere', marginBottom: 2 }} title={lift.title}>{lift.title}</div>
       );
       return (
         <Section title="Movement map" summary={`${trained} of 6 patterns trained`}>
@@ -493,7 +493,10 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
           </div>
           {grouped.other.length > 0 && (
             <div style={{ fontSize: 10.5, color: C.td, marginTop: 9, lineHeight: 1.5 }}>
-              <span style={{ color: C.tm, fontWeight: 600 }}>Other ({grouped.other.length}):</span> {grouped.other.map((l) => l.title).join(' · ')} <span style={{ opacity: 0.7 }}>— core / carry / full-body (outside the six patterns).</span>
+              <div style={{ color: C.tm, fontWeight: 600, marginBottom: 3 }}>Other ({grouped.other.length}) <span style={{ opacity: 0.7, fontWeight: 400 }}>— core / carry / full-body (outside the six patterns)</span></div>
+              {grouped.other.map((l) => (
+                <div key={l.title} dir="auto" title={l.title} style={{ overflowWrap: 'anywhere', marginBottom: 1 }}>– {l.title}</div>
+              ))}
             </div>
           )}
           <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>Logged lifts catalogued into the library's six buckets. A dim <b style={{ color: C.tm }}>not trained</b> bucket = a movement pattern this block is skipping — the fastest gap-check before you build the next one.</div>

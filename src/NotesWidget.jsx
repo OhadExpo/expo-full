@@ -122,9 +122,9 @@ function MiniTaskRow({ n, stackBoard, onClick, stripe }) {
       {/* Order (Ohad): NAME first, then the action info, then the kind TAG all
           the way to the right. Body is flex:1 so the tag is pushed to the edge. */}
       {name && (
-        <span style={{ fontFamily: nameHeb ? FH : FN, fontSize: nameHeb ? 13 : 10, fontWeight: 800, letterSpacing: nameHeb ? 0 : '0.04em', textTransform: nameHeb ? 'none' : 'uppercase', color: 'var(--c-ac)', flexShrink: 0, maxWidth: '45%', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
+        <span style={{ fontFamily: nameHeb ? FH : FN, fontSize: nameHeb ? 13 : 10, fontWeight: 800, letterSpacing: nameHeb ? 0 : '0.04em', textTransform: nameHeb ? 'none' : 'uppercase', color: 'var(--c-tx)', flexShrink: 0, maxWidth: '45%', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
       )}
-      <span style={{ fontFamily: heb ? FH : FB, direction: heb ? 'rtl' : 'ltr', textAlign: name ? 'center' : (heb ? 'right' : 'left'), color: name ? 'var(--c-tm)' : 'var(--c-tx)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{body}</span>
+      <span style={{ fontFamily: heb ? FH : FB, direction: heb ? 'rtl' : 'ltr', textAlign: 'center', color: name ? 'var(--c-tm)' : 'var(--c-tx)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{body}</span>
       {kindLabel && (
         <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: kindTone, border: `1px solid ${kindTone}`, padding: '1px 5px', lineHeight: 1.3, flexShrink: 0 }}>{kindLabel}</span>
       )}
