@@ -692,7 +692,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                   background: 'transparent',
                   border: `1px solid ${refined ? '#FFFFFF' : 'var(--c-ac)'}`,
                   color: refined ? '#FFFFFF' : 'var(--c-ac)',
-                  padding: '3px 10px', borderRadius: 0, fontFamily: 'inherit', fontSize: 10,
+                  padding: '0 10px', height: 30, boxSizing: 'border-box', borderRadius: 0, fontFamily: 'inherit', fontSize: 10,
                   fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer',
                   minWidth: 72, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 }}>{adding ? 'CLOSE' : '+ TASK'}</button>
@@ -708,7 +708,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
           <button onClick={() => setAdding(!adding)}
             style={{
               background: 'transparent', border: `1px solid var(--c-ac)`, color: 'var(--c-ac)',
-              padding: '3px 8px', borderRadius: 0, fontFamily: FN, fontSize: 9,
+              padding: '0 8px', height: 30, boxSizing: 'border-box', borderRadius: 0, fontFamily: FN, fontSize: 9,
               fontWeight: 700, letterSpacing: '0.08em', cursor: 'pointer',
               minWidth: 58, textAlign: 'center', display: 'inline-flex', justifyContent: 'center',
             }}>{adding ? 'CLOSE' : '+ TASK'}</button>
@@ -942,7 +942,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                     const active = v2Sub === s.id;
                     return (
                       <button key={s.id} onClick={()=>setV2Sub(s.id)}
-                        style={{ ...btnBase, height:28, fontSize:10, letterSpacing:'0.1em', padding:'0 12px',
+                        style={{ ...btnBase, height:30, boxSizing:'border-box', fontSize:10, letterSpacing:'0.1em', padding:'0 12px',
                           border:'none', borderLeft: i ? `1px solid var(--c-cardBd)` : 'none',
                           background: active?'rgba(57,189,255,0.094)':'transparent',
                           color: active?'var(--c-ac)':'var(--c-tm)',
