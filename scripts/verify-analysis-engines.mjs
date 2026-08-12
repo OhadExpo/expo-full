@@ -16,6 +16,7 @@ const suites = [
   'verify-velocity-profile-shift.mjs',// velocityProfileShift — block-over-block LV shift: force vs velocity adaptation
   'verify-velocity-load-zones.mjs',  // velocityLoadZones — LV profile -> per-quality load prescription (kg on the bar)
   'verify-movement-bucket.mjs',      // movementBucket — lift -> library's 6 buckets (upper/lower x bi/uni/plyo) for the Analysis grouping
+  'verify-readiness-autoreg.mjs',    // readinessAutoreg — daily pain/sleep/energy check-in -> concrete session-load nudge (pain-gated)
   'verify-periodization-balance.mjs',// block history -> periodization read
   'verify-block-character.mjs',      // classifyBlockCharacter — periodization ZONE + NSCA power rep-ceiling
   'verify-e1rm-trend.mjs',           // e1rmTrend — POSITIVE/NEGATIVE strength direction + 3 hardening guards
