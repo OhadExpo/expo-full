@@ -72,8 +72,14 @@ export const baseInput = {
   fontWeight: 400, letterSpacing: "0.01em",
   textAlign: "center", fontVariantNumeric: "tabular-nums",  // numbers don't jitter as digit count changes
 };
+// ONE canonical button height across the entire app (Ohad: "same vertical height
+// for everything"). height + border-box so every Btn renders exactly 30px no
+// matter its padding/border; call sites can still override via style when a
+// genuinely different control needs it.
+export const BTN_H = 30;
 export const baseBtn = {
-  display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 18px",
+  display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
+  height: BTN_H, boxSizing: "border-box", padding: "0 18px",
   borderRadius: 0, border: "none", fontFamily: FN, fontSize: 11, fontWeight: 700, cursor: "pointer",
   letterSpacing: "0.12em", textTransform: "uppercase", transition: "all 0.15s",
 };

@@ -171,7 +171,7 @@ export default function ExercisesView({ exercises, setExercises }) {
 
   // Filter controls are UNDERLINE text (per the control-material differentiation
   // rule: filters = underline, not solid boxes) — light, inline, hug their label.
-  const railBase = { display: 'inline-flex', alignItems: 'center', gap: 6, height: 28, padding: '0 1px', background: 'transparent', border: 'none', borderBottom: '2px solid transparent', color: C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap' };
+  const railBase = { display: 'inline-flex', alignItems: 'center', gap: 6, height: 30, padding: '0 1px', background: 'transparent', border: 'none', borderBottom: '2px solid transparent', color: C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap' };
 
   // A multi-select filter trigger: label + ▾, cyan underline when active, opens a
   // checklist menu. Single menu open at a time (openKey).
@@ -285,9 +285,9 @@ export default function ExercisesView({ exercises, setExercises }) {
       <div style={{ display: 'flex', gap: 12, marginBottom: 10, alignItems: 'stretch', flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: 200, display: 'flex' }}>
           <input placeholder="Search exercises (title, muscle, joint, position…)" value={search} onChange={e => { setSearch(e.target.value); setShowAll(false); }}
-            style={{ ...baseInput, height: 42, padding: '0 14px', fontSize: 13, lineHeight: '42px', textAlign: 'left', border: `1px solid ${C.ac}`, width: '100%' }} />
+            style={{ ...baseInput, height: 30, padding: '0 14px', fontSize: 13, lineHeight: '30px', textAlign: 'left', border: `1px solid ${C.ac}`, width: '100%' }} />
         </div>
-        <Btn onClick={openNew} style={{ height: 42, padding: '0 18px', fontSize: 13, lineHeight: '42px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ Add Exercise</Btn>
+        <Btn onClick={openNew} style={{ height: 30, padding: '0 18px', fontSize: 13, lineHeight: '30px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ Add Exercise</Btn>
       </div>
 
       {/* Filter rail — inline UNDERLINE-style controls (filters = underline text,
