@@ -104,14 +104,28 @@ const groupAlerts = (autoRows) => {
 function MiniTaskRow({ n, stackBoard, onClick, stripe }) {
   const body = displayBodyOf(n.body);
   const heb = isHebrew(body);
+  const isAuto = !!n.auto_kind;
   // In the status kanban, `stripe` = the column's status colour so each card
   // reads as belonging to its column; grouped-alert rows fall back to the kind
   // tone / neutral border.
   const tone = stripe || TONE_COLOR[AUTO_KIND_TONE[n.auto_kind]] || 'var(--c-cardBd)';
+  const kindTone = TONE_COLOR[AUTO_KIND_TONE[n.auto_kind]] || 'var(--c-tm)';
+  const kindLabel = isAuto ? (AUTO_KIND_LABEL[n.auto_kind] || 'AUTO') : null;
+  const name = n.target_label || null;
+  const nameHeb = name ? isHebrew(name) : false;
+  // ONE single row (Ohad #134): auto-alerts were a 2-line text blob ("long and
+  // styless"). Now every alert reads as a single horizontal line — kind tag +
+  // athlete name + the action text — clipped with an ellipsis, never wrapping.
   return (
     <div onClick={onClick} title={body} className="mini-task-row"
-      style={{ border: `1px solid var(--c-cardBd)`, borderLeft: `3px solid ${tone}`, padding: '6px 8px', fontFamily: heb ? FH : FB, fontSize: stackBoard ? 12 : 11, lineHeight: 1.3, color: 'var(--c-tx)', cursor: 'pointer', direction: heb ? 'rtl' : 'ltr', textAlign: heb ? 'right' : 'left', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', transition: 'border-color 120ms ease, background 120ms ease' }}>
-      {body}
+      style={{ border: `1px solid var(--c-cardBd)`, borderLeft: `3px solid ${tone}`, padding: '6px 8px', fontSize: stackBoard ? 12 : 11, lineHeight: 1.3, color: 'var(--c-tx)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, whiteSpace: 'nowrap', overflow: 'hidden', transition: 'border-color 120ms ease, background 120ms ease' }}>
+      {kindLabel && (
+        <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: kindTone, border: `1px solid ${kindTone}`, padding: '1px 5px', lineHeight: 1.3, flexShrink: 0 }}>{kindLabel}</span>
+      )}
+      {name && (
+        <span style={{ fontFamily: nameHeb ? FH : FN, fontSize: nameHeb ? 13 : 10, fontWeight: 800, letterSpacing: nameHeb ? 0 : '0.04em', textTransform: nameHeb ? 'none' : 'uppercase', color: 'var(--c-ac)', flexShrink: 0, maxWidth: '45%', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
+      )}
+      <span style={{ fontFamily: heb ? FH : FB, direction: heb ? 'rtl' : 'ltr', textAlign: heb ? 'right' : 'left', color: name ? 'var(--c-tm)' : 'var(--c-tx)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{body}</span>
     </div>
   );
 }
