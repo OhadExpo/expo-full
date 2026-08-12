@@ -3962,7 +3962,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
             sidebar; see SideRail.jsx). Only the DATA differs. */}
         <SideRail
           className="programs-rail"
-          width={204} top={12} maxHeight="calc(100vh - 24px)"
+          width={204} top={64} maxHeight="calc(100vh - 76px)"
           narrow={narrow} railOpen={railOpen} setRailOpen={setRailOpen}
           search={search} onSearch={(v) => { setSearch(v); setVisibleCount(PAGE_SIZE); }}
           searchPlaceholder="Search programs…"
@@ -3994,7 +3994,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               }),
             },
           ]}
-          footer={<Btn variant="solid" title="Create a new, empty program — you pick the athlete inside the editor" onClick={() => handleNewPlan()} style={{ width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 38, marginTop: 'auto', background: 'transparent', color: '#39BDFF' }}>+ New Program</Btn>}
+          footer={<Btn variant="solid" title="Create a new, empty program — you pick the athlete inside the editor" onClick={() => handleNewPlan()} style={{ width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 38, marginTop: 'auto', background: 'transparent', color: '#39BDFF', whiteSpace: 'nowrap', justifyContent: 'center' }}>+ New Program</Btn>}
         />
 
         {/* RIGHT: the program list — grouped (table/grid) or flat, unchanged. */}

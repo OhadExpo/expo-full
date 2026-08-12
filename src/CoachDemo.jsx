@@ -603,7 +603,7 @@ function DemoTrainees({ selected, onSelect, onClear, returnTab }) {
       </div>
       {/* Two-column: shared SideRail (identical to the real TraineesView rail) + card grid. */}
       <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-        <SideRail width={204} top={12} maxHeight="calc(100vh - 24px)"
+        <SideRail width={204} top={64} maxHeight="calc(100vh - 76px)"
           search={search} onSearch={setSearch}
           searchPlaceholder="Search athletes…"
           groups={[
@@ -1950,7 +1950,7 @@ function DemoPrograms() {
         </div>
         {/* Two-column: shared SideRail (identical to the real PlansView rail) + list. */}
         <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-        <SideRail width={204} top={12} maxHeight="calc(100vh - 24px)"
+        <SideRail width={204} top={64} maxHeight="calc(100vh - 76px)"
           search={search} onSearch={setSearch}
           searchPlaceholder="Search programs…"
           groups={[
@@ -3612,7 +3612,7 @@ function DemoTasks() {
       </div>
       {/* Two-column: the shared SideRail (identical to the real Tasks rail) + content. */}
       <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-        <SideRail width={204} top={12} maxHeight="calc(100vh - 24px)"
+        <SideRail width={204} top={64} maxHeight="calc(100vh - 76px)"
           search="" onSearch={() => {}} searchPlaceholder="Search tasks…"
           groups={[
             { label: 'Whose', opts: ['OHAD', 'YUVAL', 'SHARED'].map(o => ({ key: o, label: o.charAt(0) + o.slice(1).toLowerCase(), count: counts[o], active: owner === o, onClick: () => setOwner(o) })) },
