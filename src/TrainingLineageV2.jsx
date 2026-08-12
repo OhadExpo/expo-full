@@ -15,6 +15,7 @@ import { getAthleteVault, getAthleteAsymmetryTrend } from './poseMetricsStore';
 import { autoAnalyzeAthleteVideos, pendingCount } from './autoAnalyzeVideos';
 import { velocityProfile1RM, mvtForLift } from './velocityProfile1RM';
 import { blockNum, classifyPattern, repsTop, exById } from './PlansView';
+import { groupByBucket, BUCKETS } from './movementBucket';
 
 const wrap = { maxWidth: 980, margin: '0 auto', fontFamily: FN };
 const card = { border: `1px solid ${C.bd}`, background: C.sf, marginTop: 12 };
@@ -460,6 +461,44 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
         </div>}
       </div>
     )}
+
+    {/* MOVEMENT MAP — the athlete's logged lifts catalogued into the library's
+        six buckets (upper/lower × bilateral/unilateral/plyo), like the exercise
+        sheet organises them (Ohad #170). An EMPTY bucket is the read: a pattern
+        the block isn't training. Reuses the same PLYO test as the bar-speed gate
+        so plyos land in the plyo column, not among the grinding lifts. */}
+    {a.staples.length > 0 && (() => {
+      const grouped = groupByBucket(a.staples);
+      const trained = BUCKETS.filter((b) => grouped[b.key].length > 0).length;
+      if (trained === 0) return null;
+      const cell = (lift) => (
+        <div key={lift.title} dir="auto" style={{ fontSize: 11.5, color: C.tm, lineHeight: 1.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={lift.title}>{lift.title}</div>
+      );
+      return (
+        <Section title="Movement map" summary={`${trained} of 6 patterns trained`}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 10 }}>
+            {BUCKETS.map((b) => {
+              const lifts = grouped[b.key];
+              const empty = lifts.length === 0;
+              return (
+                <div key={b.key} style={{ border: `1px solid ${empty ? C.bd : C.ac}`, background: empty ? 'transparent' : C.sf2, padding: '9px 11px', opacity: empty ? 0.45 : 1, minWidth: 0 }}>
+                  <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: empty ? C.td : C.ac, fontWeight: 700, marginBottom: empty ? 0 : 7, display: 'flex', justifyContent: 'space-between', gap: 6 }}>
+                    <span>{b.label}</span><span style={{ color: C.tm }}>{lifts.length || ''}</span>
+                  </div>
+                  {empty ? <div style={{ fontSize: 10, color: C.td, fontStyle: 'italic' }}>not trained</div> : lifts.map(cell)}
+                </div>
+              );
+            })}
+          </div>
+          {grouped.other.length > 0 && (
+            <div style={{ fontSize: 10.5, color: C.td, marginTop: 9, lineHeight: 1.5 }}>
+              <span style={{ color: C.tm, fontWeight: 600 }}>Other ({grouped.other.length}):</span> {grouped.other.map((l) => l.title).join(' · ')} <span style={{ opacity: 0.7 }}>— core / carry / full-body (outside the six patterns).</span>
+            </div>
+          )}
+          <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>Logged lifts catalogued into the library's six buckets. A dim <b style={{ color: C.tm }}>not trained</b> bucket = a movement pattern this block is skipping — the fastest gap-check before you build the next one.</div>
+        </Section>
+      );
+    })()}
 
     {/* STRENGTH → POWER TRANSFER — the flagship read no competitor has */}
     {a.transfer && (() => {
