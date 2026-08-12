@@ -560,33 +560,72 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
               if (!sCurve && !pCurve) return null;
               const all = [...(sCurve || []), ...(pCurve || []), 100];
               const lo = Math.min(...all), hi = Math.max(...all), rng = (hi - lo) || 1;
-              const W = 300, H = 58, pad = 5;
-              const yOf = (v) => pad + (1 - (v - lo) / rng) * (H - 2 * pad);
-              const line = (curve, col) => curve && curve.length >= 2
-                ? <polyline points={curve.map((v, i) => `${(pad + (i / (curve.length - 1)) * (W - 2 * pad)).toFixed(1)},${yOf(v).toFixed(1)}`).join(' ')} fill="none" stroke={col} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                : null;
               const orange = C.or || '#f0b429';
+              // Richer chart to match the readiness / bodyweight graphs (Ohad):
+              // real Y-axis scale with bright % ticks, dashed gridlines, an area
+              // gradient under each line, a dot on every session, and a marked
+              // HIGH (peak) + NOW on each series. Geometry in an SVG stretched
+              // edge-to-edge (preserveAspectRatio=none); dots + labels are HTML
+              // overlays so they stay round and unstretched (BWChart technique).
+              const GW = 320, GH = 132, gpadT = 16, gpadB = 8, gpadX = 6;
+              const gplotH = GH - gpadT - gpadB;
+              const domLo = lo - rng * 0.06, domHi = hi + rng * 0.16, domR = (domHi - domLo) || 1;
+              const gy = (v) => gpadT + (1 - (v - domLo) / domR) * gplotH;
+              const gx = (i, len) => gpadX + (len <= 1 ? (GW - 2 * gpadX) / 2 : i * ((GW - 2 * gpadX) / (len - 1)));
+              const gpctX = (i, len) => `${(gx(i, len) / GW) * 100}%`;
+              const gpctY = (v) => `${(gy(v) / GH) * 100}%`;
+              const gLine = (curve) => curve.map((v, i) => `${gx(i, curve.length).toFixed(1)},${gy(v).toFixed(1)}`).join(' ');
+              const gArea = (curve) => `M${gx(0, curve.length).toFixed(1)},${GH - gpadB} L${gLine(curve).replace(/ /g, ' L')} L${gx(curve.length - 1, curve.length).toFixed(1)},${GH - gpadB} Z`;
+              // Bright, evenly-spaced % ticks across the plotted range (hi → lo).
+              const ticks = [...new Set([Math.round(hi), Math.round(lo + rng * 0.5), Math.round(lo)])];
+              const peakOf = (curve) => { let mi = 0; curve.forEach((v, i) => { if (v > curve[mi]) mi = i; }); return { i: mi, v: curve[mi] }; };
+              const series = [
+                sCurve && { curve: sCurve, col: C.ac, gid: 'spGradS', label: 'STRENGTH', peak: peakOf(sCurve) },
+                pCurve && { curve: pCurve, col: orange, gid: 'spGradP', label: 'POWER', peak: peakOf(pCurve) },
+              ].filter(Boolean);
               return (
                 <div style={{ marginBottom: 12 }}>
-                  <div style={{ fontSize: 10, color: C.td, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>Strength vs power trend · e1RM indexed to each lift's start</div>
-                  {/* Y-axis %: hi at top, 100 at the dashed baseline, lo at the floor —
-                      preserveAspectRatio="none" would distort in-SVG text, so label in HTML. */}
-                  <div style={{ display: 'flex', gap: 6, alignItems: 'stretch' }}>
-                    <div style={{ position: 'relative', width: 34, fontSize: 8.5, color: C.td, fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>
-                      <span style={{ position: 'absolute', top: 0, right: 0 }}>{Math.round(hi)}%</span>
-                      <span style={{ position: 'absolute', top: `${(yOf(100) / H) * 100}%`, right: 0, transform: 'translateY(-50%)', color: C.tm }}>100%</span>
-                      <span style={{ position: 'absolute', bottom: 0, right: 0 }}>{Math.round(lo)}%</span>
+                  <div style={{ fontSize: 10, color: C.tm, letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 700, marginBottom: 8 }}>Strength vs power · e1RM indexed to each lift&apos;s start (100%)</div>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
+                    {/* Y-axis: bright tabular % ticks aligned to their gridlines. */}
+                    <div style={{ position: 'relative', width: 38, flexShrink: 0, fontSize: 9, fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>
+                      {ticks.map((L) => (
+                        <span key={L} style={{ position: 'absolute', top: gpctY(L), right: 0, transform: 'translateY(-50%)', color: C.tx, fontWeight: 700 }}>{L}%</span>
+                      ))}
+                      {ticks.every((t) => Math.abs(t - 100) > 4) && <span style={{ position: 'absolute', top: gpctY(100), right: 0, transform: 'translateY(-50%)', color: C.ac, fontWeight: 700 }}>100</span>}
                     </div>
-                    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ flex: 1, height: 58, display: 'block', background: C.sf2, border: `1px solid ${C.bd}` }}>
-                      <line x1={pad} y1={yOf(100)} x2={W - pad} y2={yOf(100)} stroke={C.bd} strokeWidth="1" strokeDasharray="3 3" />
-                      {line(sCurve, C.ac)}
-                      {line(pCurve, orange)}
-                    </svg>
+                    <div style={{ position: 'relative', flex: 1, height: GH }}>
+                      <svg viewBox={`0 0 ${GW} ${GH}`} preserveAspectRatio="none" style={{ width: '100%', height: GH, display: 'block', background: C.sf2, border: `1px solid ${C.bd}` }}>
+                        <defs>
+                          <linearGradient id="spGradS" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor={C.ac} stopOpacity="0.22" /><stop offset="100%" stopColor={C.ac} stopOpacity="0" /></linearGradient>
+                          <linearGradient id="spGradP" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor={orange} stopOpacity="0.20" /><stop offset="100%" stopColor={orange} stopOpacity="0" /></linearGradient>
+                        </defs>
+                        {ticks.map((L) => <line key={L} x1={0} y1={gy(L)} x2={GW} y2={gy(L)} stroke={C.bd} strokeWidth="0.75" strokeDasharray="4" />)}
+                        <line x1={0} y1={gy(100)} x2={GW} y2={gy(100)} stroke={C.ac} strokeWidth="1" strokeDasharray="3 3" strokeOpacity="0.55" />
+                        {series.map((s) => <path key={s.gid} d={gArea(s.curve)} fill={`url(#${s.gid})`} />)}
+                        {series.map((s) => <polyline key={s.label} points={gLine(s.curve)} fill="none" stroke={s.col} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />)}
+                      </svg>
+                      {/* Round dots on every session (HTML → stay circular). */}
+                      {series.map((s) => s.curve.map((v, i) => (
+                        <div key={s.label + i} style={{ position: 'absolute', left: gpctX(i, s.curve.length), top: gpctY(v), width: 7, height: 7, borderRadius: '50%', background: s.col, transform: 'translate(-50%,-50%)', boxShadow: '0 0 0 2px var(--c-sf2)', pointerEvents: 'none' }} />
+                      )))}
+                      {/* HIGH (peak) marker per series: a ring + its % value above. */}
+                      {series.map((s) => (
+                        <div key={s.label + 'pk'} style={{ position: 'absolute', left: gpctX(s.peak.i, s.curve.length), top: gpctY(s.peak.v), transform: 'translate(-50%,-50%)', pointerEvents: 'none' }}>
+                          <div style={{ width: 11, height: 11, borderRadius: '50%', background: 'transparent', border: `2px solid ${s.col}`, boxShadow: '0 0 0 2px var(--c-sf2)' }} />
+                          <div style={{ position: 'absolute', bottom: '120%', left: '50%', transform: 'translateX(-50%)', fontSize: 8.5, fontWeight: 700, color: s.col, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{Math.round(s.peak.v)}%</div>
+                        </div>
+                      ))}
+                      {/* X ends: START (indexed 100%) → NOW. */}
+                      <div style={{ position: 'absolute', left: 2, bottom: 2, fontSize: 8, fontWeight: 700, color: C.tm, letterSpacing: '0.1em', pointerEvents: 'none' }}>START</div>
+                      <div style={{ position: 'absolute', right: 2, bottom: 2, fontSize: 8, fontWeight: 700, color: C.tm, letterSpacing: '0.1em', pointerEvents: 'none' }}>NOW</div>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', gap: 16, marginTop: 5, fontSize: 9.5, color: C.td, paddingLeft: 40 }}>
-                    {sCurve && <span><span style={{ color: C.ac }}>■</span> strength ({sCurve.length}) · now {Math.round(sCurve[sCurve.length - 1])}%</span>}
-                    {pCurve && <span><span style={{ color: orange }}>■</span> power ({pCurve.length}) · now {Math.round(pCurve[pCurve.length - 1])}%</span>}
-                    <span style={{ marginLeft: 'auto' }}>dashed = 100% (start)</span>
+                  {/* Legend: bright, with each side's NOW value in its colour. */}
+                  <div style={{ display: 'flex', gap: 16, marginTop: 8, fontSize: 10, color: C.tm, paddingLeft: 46, flexWrap: 'wrap', alignItems: 'center' }}>
+                    {sCurve && <span style={{ fontWeight: 600 }}><span style={{ color: C.ac }}>●</span> Strength ({sCurve.length}) · now <b style={{ color: C.ac }}>{Math.round(sCurve[sCurve.length - 1])}%</b></span>}
+                    {pCurve && <span style={{ fontWeight: 600 }}><span style={{ color: orange }}>●</span> Power ({pCurve.length}) · now <b style={{ color: orange }}>{Math.round(pCurve[pCurve.length - 1])}%</b></span>}
+                    <span style={{ marginLeft: 'auto', color: C.td }}>○ = high · dashed = 100% start</span>
                   </div>
                 </div>
               );
@@ -620,26 +659,38 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
           {Array.isArray(a.acwr.series) && a.acwr.series.length >= 2 && (() => {
             const mx = Math.max(...a.acwr.series, 1);
             const last = a.acwr.series[a.acwr.series.length - 1];
+            const lastI = a.acwr.series.length - 1;
+            const peakI = a.acwr.series.indexOf(mx);
             const avg = Math.round(a.acwr.series.reduce((x, y) => x + y, 0) / a.acwr.series.length);
             const k = (n) => n >= 1000 ? `${(n / 1000).toFixed(1)}k` : `${n}`; // compact kg·reps
+            const BH = 92; // bar-plot height — taller, to match the readiness / BW graphs
             return (
               <div style={{ marginBottom: 12 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6, gap: 8, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 10, color: C.td, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Session tonnage · last {a.acwr.series.length}</span>
-                  <span style={{ fontSize: 10, color: C.tm, fontVariantNumeric: 'tabular-nums' }}>peak {mx.toLocaleString()} · latest {last.toLocaleString()} kg·reps</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8, gap: 8, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 10, color: C.tm, letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 700 }}>Session tonnage · last {a.acwr.series.length}</span>
+                  <span style={{ fontSize: 10, color: C.tm, fontVariantNumeric: 'tabular-nums' }}>peak <b style={{ color: C.ac }}>{mx.toLocaleString()}</b> · latest <b style={{ color: C.tx }}>{last.toLocaleString()}</b> kg·reps</span>
                 </div>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  {/* Y-axis: peak at top, 0 at the floor — gives the bars a real scale */}
-                  <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', textAlign: 'right', fontSize: 8.5, color: C.td, height: 46, fontVariantNumeric: 'tabular-nums', minWidth: 30 }}>
-                    <span>{k(mx)}</span><span>0</span>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {/* Y-axis: bright peak / mid / 0 ticks give the bars a real scale. */}
+                  <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', textAlign: 'right', fontSize: 9, color: C.tx, fontWeight: 700, height: BH, fontVariantNumeric: 'tabular-nums', minWidth: 32 }}>
+                    <span>{k(mx)}</span><span style={{ color: C.tm }}>{k(Math.round(mx / 2))}</span><span>0</span>
                   </div>
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', gap: 3, height: 46 }}>
-                    {a.acwr.series.map((t, i) => (
-                      <div key={i} title={`${t.toLocaleString()} kg·reps`} style={{ flex: 1, minWidth: 4, height: `${Math.max(6, (t / mx) * 100)}%`, background: C.ac, opacity: 0.8, borderRadius: '1px 1px 0 0' }} />
-                    ))}
+                  <div style={{ position: 'relative', flex: 1, height: BH }}>
+                    {/* dashed gridlines behind the bars (peak / mid / floor). */}
+                    {[0, 50, 100].map((p) => <div key={p} style={{ position: 'absolute', left: 0, right: 0, top: `${p}%`, borderTop: `1px dashed ${C.bd}`, pointerEvents: 'none' }} />)}
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'flex-end', gap: 3 }}>
+                      {a.acwr.series.map((t, i) => {
+                        const isPeak = i === peakI, isLast = i === lastI;
+                        return (
+                          <div key={i} title={`${t.toLocaleString()} kg·reps`} style={{ position: 'relative', flex: 1, minWidth: 4, height: `${Math.max(4, (t / mx) * 100)}%`, background: C.ac, opacity: isPeak || isLast ? 1 : 0.55, boxShadow: isLast && !isPeak ? `inset 0 0 0 1px ${C.tx}` : 'none', borderRadius: '1px 1px 0 0' }}>
+                            {isPeak && <span style={{ position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: 2, fontSize: 8.5, fontWeight: 700, color: C.ac, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{k(t)}</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
-                <div style={{ fontSize: 9, color: C.td, marginTop: 5, lineHeight: 1.5 }}>Σ load×reps per logged session · avg {avg.toLocaleString()} kg·reps — the raw work trend, before the acute:chronic ratio.</div>
+                <div style={{ fontSize: 9.5, color: C.tm, marginTop: 6, lineHeight: 1.5 }}>Σ load×reps per logged session · avg <b style={{ color: C.tx }}>{avg.toLocaleString()}</b> kg·reps — the raw work trend. <span style={{ color: C.ac }}>▮</span> peak · outlined = latest.</div>
               </div>
             );
           })()}
