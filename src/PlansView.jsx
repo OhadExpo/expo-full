@@ -4045,8 +4045,12 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                   <span style={{display:'inline-flex',alignItems:'center',gap:10,flexShrink:0}}>
                     <button onClick={e=>{e.stopPropagation();setLineageTraineeId(row.tid);}} title="Training Analysis — this athlete's movement-pattern volume across every block"
                       style={{display:'inline-flex',alignItems:'center',gap:5,height:24,padding:'0 8px',background:'rgba(255,255,255,0.12)',border:'1px solid rgba(255,255,255,0.3)',borderRadius:0,color:'#fff',cursor:'pointer',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.08em',whiteSpace:'nowrap'}}>◫ ANALYSIS</button>
-                    <span title={`Last session: ${tagText.toLowerCase()}`} style={{display:'inline-flex',alignItems:'center',gap:6,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',color:tagColor,whiteSpace:'nowrap'}}>
-                      <span style={{width:6,height:6,borderRadius:'50%',background:tagColor}} />{tagText}
+                    {/* Recency: the DOT carries the colour signal, the text is muted
+                        (Ohad #195 "colored but less colorful") and the pill has a
+                        fixed min-width so '18D AGO' and 'TRAINED TODAY' are the same
+                        size regardless of length. */}
+                    <span title={`Last session: ${tagText.toLowerCase()}`} style={{display:'inline-flex',alignItems:'center',justifyContent:'flex-end',gap:6,minWidth:104,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',color:'var(--c-tm)',whiteSpace:'nowrap'}}>
+                      <span style={{width:6,height:6,borderRadius:'50%',background:tagColor,flexShrink:0}} />{tagText}
                     </span>
                   </span>
                 </div>
@@ -4215,8 +4219,8 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                 <span style={{display:'inline-flex',alignItems:'center',gap:10,flexShrink:0}}>
                   <button onClick={e=>{e.stopPropagation();setLineageTraineeId(row.tid);}} title="Training Analysis — this athlete's movement-pattern volume across every block"
                     style={{display:'inline-flex',alignItems:'center',gap:5,height:24,padding:'0 8px',background:'rgba(255,255,255,0.12)',border:'1px solid rgba(255,255,255,0.3)',borderRadius:0,color:'#fff',cursor:'pointer',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.08em',whiteSpace:'nowrap'}}>◫ ANALYSIS</button>
-                  <span title={`Last session: ${tagText}`} style={{display:'inline-flex',alignItems:'center',gap:6,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',color:tagColor,whiteSpace:'nowrap'}}>
-                    <span style={{width:6,height:6,borderRadius:'50%',background:tagColor}} />{tagText}
+                  <span title={`Last session: ${tagText}`} style={{display:'inline-flex',alignItems:'center',justifyContent:'flex-end',gap:6,minWidth:96,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',color:'var(--c-tm)',whiteSpace:'nowrap'}}>
+                    <span style={{width:6,height:6,borderRadius:'50%',background:tagColor,flexShrink:0}} />{tagText}
                   </span>
                 </span>
               </div>
