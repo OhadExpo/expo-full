@@ -838,18 +838,27 @@ export function captureQuality(frames, title) {
   const KEY = (upper && !lower) ? [11, 12, 13, 14]
     : (lower && !upper) ? [23, 24, 25, 26, 27, 28]
       : [11, 12, 13, 14, 23, 24, 25, 26, 27, 28];
+  const keyNeeded = Math.max(1, Math.ceil(KEY.length * 0.6));
   let detected = 0, visSum = 0, visN = 0;
   for (const f of frames) {
     const lm = f.landmarks;
     if (!lm || !lm.length) continue;
-    detected++;
+    // A frame only counts as TRACKED when the joints THIS lift is measured on are
+    // actually present with a real position — a clip that frames out the measured
+    // joints (e.g. a squat with the legs out of shot) previously graded 'good' at
+    // "100% tracked" off the torso alone, and the coach trusted garbage depth/ROM.
+    let keyPresent = 0;
     for (const i of KEY) {
       const p = lm[i];
-      // Only average visibility that's actually present and positive. A missing
-      // visibility field (some MediaPipe builds omit it — see the `== null` path
-      // in movementRepCount) or a 0 must not drag a well-tracked clip to 'poor'.
-      if (p && typeof p.visibility === 'number' && p.visibility > 0) { visSum += p.visibility; visN++; }
+      if (p && isReal(p.x) && isReal(p.y)) {
+        keyPresent++;
+        // Only average visibility that's actually present and positive. A missing
+        // visibility field (some MediaPipe builds omit it — see the `== null` path
+        // in movementRepCount) or a 0 must not drag a well-tracked clip to 'poor'.
+        if (typeof p.visibility === 'number' && p.visibility > 0) { visSum += p.visibility; visN++; }
+      }
     }
+    if (keyPresent >= keyNeeded) detected++;
   }
   const coverage = detected / frames.length;
   const meanVis = visN ? visSum / visN : null; // null = no usable visibility signal → judge on coverage alone
