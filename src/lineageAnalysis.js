@@ -120,15 +120,19 @@ export function e1rmTrend(series) {
   const rows = (series || []).filter((s) => s.e1 != null);
   if (rows.length < 3) return { state: 'thin', have: rows.length, need: 3 };
   const pts = rows.map((s) => s.e1);
-  // least-squares slope over index
-  const n = pts.length;
-  const xs = pts.map((_, i) => i);
-  const mx = xs.reduce((a, b) => a + b, 0) / n;
-  const my = pts.reduce((a, b) => a + b, 0) / n;
-  let numr = 0, den = 0;
-  for (let i = 0; i < n; i++) { numr += (xs[i] - mx) * (pts[i] - my); den += (xs[i] - mx) ** 2; }
-  const slope = den ? numr / den : 0;
-  const pctPerStep = my ? (slope / my) * 100 : 0;
+  // least-squares slope-per-step as a % of the mean, over an arbitrary series.
+  const slopePctOf = (arr) => {
+    const m = arr.length;
+    if (m < 2) return 0;
+    const axs = arr.map((_, i) => i);
+    const amx = axs.reduce((a, b) => a + b, 0) / m;
+    const amy = arr.reduce((a, b) => a + b, 0) / m;
+    let nu = 0, de = 0;
+    for (let i = 0; i < m; i++) { nu += (axs[i] - amx) * (arr[i] - amy); de += (axs[i] - amx) ** 2; }
+    const sl = de ? nu / de : 0;
+    return amy ? (sl / amy) * 100 : 0;
+  };
+  const pctPerStep = slopePctOf(pts);
   // Rep-scheme guard: e1RM conflates load with reps, so an intensification block
   // (5→3→1 at RISING load — real strength UP) yields a NEGATIVE e1RM slope and
   // would fire a false "slipping → back off". If the top-set reps swing widely
@@ -138,6 +142,16 @@ export function e1rmTrend(series) {
   const repNoisy = repsArr.length >= 3 && (Math.max(...repsArr) - Math.min(...repsArr)) >= 3;
   let dir = 'flat';
   if (!repNoisy) { if (pctPerStep > 1.2) dir = 'up'; else if (pctPerStep < -1.2) dir = 'down'; }
+  // Single-outlier robustness (review H2, load noise): a direction that REVERSES
+  // when any one log is dropped rests on a single back-off/PR day, not a trend —
+  // don't call it. Only sign-reversal suppresses (a modest real trend keeps its
+  // sign when one point goes), so this never over-flattens genuine slips.
+  if (dir !== 'flat' && pts.length >= 4) {
+    for (let k = 0; k < pts.length; k++) {
+      const loo = slopePctOf(pts.filter((_, i) => i !== k));
+      if (Math.sign(loo) !== Math.sign(pctPerStep)) { dir = 'flat'; break; }
+    }
+  }
   return { state: 'ok', dir, latest: Math.round(pts[pts.length - 1]), pts, slopePct: pctPerStep, repNoisy };
 }
 
