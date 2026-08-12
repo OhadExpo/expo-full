@@ -1,5 +1,9 @@
-/* EXPO Brand Font — Nord */
-@font-face { font-family: 'Nord'; src: url('/fonts/Nord-Light.woff2') format('woff2'); font-weight: 300; font-style: normal; font-display: swap; }
-@font-face { font-family: 'Nord'; src: url('/fonts/Nord-Regular.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
-@font-face { font-family: 'Nord'; src: url('/fonts/Nord-Medium.woff2') format('woff2'); font-weight: 500; font-style: normal; font-display: swap; }
-@font-face { font-family: 'Nord'; src: url('/fonts/Nord-Bold.woff2') format('woff2'); font-weight: 700; font-style: normal; font-display: swap; }
+/* EXPO Brand Font — Nord
+   unicode-range scopes Nord to Latin + symbols only, so Hebrew (U+0590–U+05FF)
+   automatically falls through to the next font in the chain (Heebo). Without
+   this, Nord's empty/system-fallback glyphs for Hebrew win against Heebo and
+   the user sees ugly system Hebrew instead of the brand Hebrew face. */
+@font-face { font-family: 'Nord'; src: url('/fonts/Nord-Light.woff2') format('woff2'); font-weight: 300; font-style: normal; font-display: swap; unicode-range: U+0000-024F, U+0259, U+1E00-1EFF, U+2000-206F, U+2070-209F, U+20A0-20CF, U+2100-214F, U+2190-21FF, U+2200-22FF, U+2300-23FF, U+25A0-25FF, U+2600-26FF, U+FB00-FB4F; }
+@font-face { font-family: 'Nord'; src: url('/fonts/Nord-Regular.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; unicode-range: U+0000-024F, U+0259, U+1E00-1EFF, U+2000-206F, U+2070-209F, U+20A0-20CF, U+2100-214F, U+2190-21FF, U+2200-22FF, U+2300-23FF, U+25A0-25FF, U+2600-26FF, U+FB00-FB4F; }
+@font-face { font-family: 'Nord'; src: url('/fonts/Nord-Medium.woff2') format('woff2'); font-weight: 500; font-style: normal; font-display: swap; unicode-range: U+0000-024F, U+0259, U+1E00-1EFF, U+2000-206F, U+2070-209F, U+20A0-20CF, U+2100-214F, U+2190-21FF, U+2200-22FF, U+2300-23FF, U+25A0-25FF, U+2600-26FF, U+FB00-FB4F; }
+@font-face { font-family: 'Nord'; src: url('/fonts/Nord-Bold.woff2') format('woff2'); font-weight: 700; font-style: normal; font-display: swap; unicode-range: U+0000-024F, U+0259, U+1E00-1EFF, U+2000-206F, U+2070-209F, U+20A0-20CF, U+2100-214F, U+2190-21FF, U+2200-22FF, U+2300-23FF, U+25A0-25FF, U+2600-26FF, U+FB00-FB4F; }
