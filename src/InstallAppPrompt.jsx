@@ -76,6 +76,15 @@ export default function InstallAppPrompt() {
     };
   }, []);
 
+  // Lock background scroll while the blocking modal is open, so a phone can't
+  // scroll the page behind it (review L1 — completes the modal-correctness pass).
+  useEffect(() => {
+    if (!open) return undefined;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, [open]);
+
   if (!open) return null;
 
   const doPrimary = async () => {
