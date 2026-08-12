@@ -13,7 +13,10 @@
 // Normalize one check-in field to a 0–3 QUALITY (3 = best). Accepts the portal's
 // named levels AND legacy numeric strings; pain is inverted (less pain = better).
 // Returns null when the field wasn't logged.
-const SLEEP_ENERGY = { high: 3, good: 3, great: 3, moderate: 2, ok: 2, mild: 1, low: 1, poor: 1, none: 0, bad: 0 };
+// Scale MUST match ReadinessRow.checkinQuality (the declared single source of
+// truth) so the load nudge and the readiness trend graph agree on the same
+// check-in. Portal writes: sleep poor/ok/good/great · energy low/ok/good/high.
+const SLEEP_ENERGY = { poor: 0, low: 0, bad: 0, none: 0, ok: 1, fair: 1, moderate: 1, good: 2, great: 3, high: 3 };
 const PAIN = { none: 3, no: 3, mild: 2, moderate: 1, mod: 1, high: 0, severe: 0 };
 
 export function fieldQuality(key, val) {
@@ -49,21 +52,38 @@ export function readinessAutoreg(checkin = {}) {
     return { level: 'unknown', loadAdjustPct: null, regress: null, headline: 'No check-in logged', note: 'Ask for a quick pain / sleep / energy check-in to unlock a session nudge.' };
   }
 
-  // Pain is the GATE — it overrides sleep/energy (CLAUDE.md pain rules).
+  // Pain is the GATE — it overrides sleep/energy (CLAUDE.md pain rules). This
+  // reads pain MAGNITUDE only, not pathology; a low/mild-pain green can still
+  // harbour a red flag (saddle anaesthesia, night pain, drop foot…) — screen in
+  // person, don't treat this as a clinical clearance.
   if (painQ === 0) { // pain high (≈6+/10) → stop & reassess, never program through
-    return { level: 'red', loadAdjustPct: null, regress: 'frequency', headline: 'Pain 6+ — don\'t load today', note: 'Stop and reassess, not a training-through day. Screen for red flags; swap to pain-free ROM / mobility or rest.' };
+    return { level: 'red', loadAdjustPct: null, regress: 'frequency', headline: 'Pain 6+ — don\'t load today', note: 'Stop and reassess — not a training-through day. Swap to pain-free ROM / mobility or rest, and screen in person for red flags (this reads pain intensity only, not pathology).' };
   }
   if (painQ === 1) { // pain moderate (≈4–5) → MODIFY
-    return { level: 'amber', loadAdjustPct: -10, regress: 'intensity', headline: 'Pain 4–5 — modify the session', note: 'Drop the top load ~10% and stay in a pain-free range (ROM/tempo first, then intensity). Reassess set to set — cut it if pain climbs past 5.' };
+    return { level: 'amber', loadAdjustPct: -10, regress: 'intensity', headline: 'Pain 4–5 — modify the session', note: 'Stay pain-free: regress ROM/tempo first, then pull the top load ~10%. Reassess set to set — cut it if pain climbs past 5.' };
   }
 
-  // Pain fine (0–3): the effort read comes from sleep + energy.
+  // Pain trainable (mild / none) OR pain NOT logged. Effort read = sleep + energy.
+  // SAFETY: a MISSING pain answer is NOT "pain-free" — never green / "PR" a day
+  // pain wasn't reported (adversarial-review HIGH). A logged MILD pain is
+  // trainable but the note must reflect it and drop any PR language.
+  const painMissing = painQ == null;
+  const painMild = painQ === 2;
+  const painNote = painMissing ? ' Pain wasn\'t logged — confirm the athlete is pain-free before loading heavy.'
+    : painMild ? ' Mild pain reported — keep it pain-free, stop if it climbs.' : '';
   const eff = [sleepQ, energyQ].filter((x) => x != null);
-  if (!eff.length) {
-    return { level: 'green', loadAdjustPct: 0, regress: null, headline: 'Pain clear — train as planned', note: 'No pain reported and no sleep/energy read — proceed on the plan, autoregulate by feel.' };
+
+  if (!eff.length) { // pain logged (mild/none) but no sleep/energy read
+    if (painMissing) return { level: 'amber', loadAdjustPct: 0, regress: null, headline: 'Pain not logged — confirm first', note: 'No sleep/energy read and pain wasn\'t answered — confirm pain-free, then train by feel.' };
+    return { level: painMild ? 'amber' : 'green', loadAdjustPct: 0, regress: null, headline: painMild ? 'Mild pain — train pain-free' : 'Pain clear — train as planned', note: (painMild ? 'Mild pain reported and no sleep/energy read — stay pain-free, autoregulate by feel.' : 'No pain and no sleep/energy read — proceed on the plan, autoregulate by feel.') };
   }
-  const avg = eff.reduce((a, b) => a + b, 0) / eff.length;
-  if (avg >= 2.5) return { level: 'green', loadAdjustPct: 0, regress: null, headline: 'Recovered — full send', note: 'Pain clear, sleep + energy good. Hit the prescribed loads; a PR attempt is fair game.' };
-  if (avg >= 1.5) return { level: 'amber', loadAdjustPct: -5, regress: 'volume', headline: 'A bit under — trim, don\'t grind', note: 'Sleep/energy off. Keep the intensity, cut a back-off set or two (volume before intensity) and stop sets a rep short.' };
-  return { level: 'amber', loadAdjustPct: -12, regress: 'intensity', headline: 'Run down — back off today', note: 'Poor sleep AND low energy. Pull the top load ~10–15% and keep it crisp; bank the session, don\'t chase it. Keep frequency — regress load first.' };
+  const avg = eff.reduce((a, b) => a + b, 0) / eff.length; // 0–3 on the corrected scale
+
+  if (avg >= 2) { // sleep + energy good or better
+    if (painMissing) return { level: 'amber', loadAdjustPct: 0, regress: null, headline: 'Good markers — confirm pain first', note: 'Sleep + energy look good.' + painNote + ' Then proceed as planned.' };
+    if (painMild) return { level: 'green', loadAdjustPct: 0, regress: null, headline: 'Recovered — train pain-free', note: 'Sleep + energy good — hit the prescribed loads.' + painNote };
+    return { level: 'green', loadAdjustPct: 0, regress: null, headline: 'Recovered — full send', note: 'Pain clear, sleep + energy good. Hit the prescribed loads; a PR attempt is fair game.' };
+  }
+  if (avg >= 1) return { level: 'amber', loadAdjustPct: -5, regress: 'volume', headline: 'A bit under — trim, don\'t grind', note: 'Recovery markers are a little down — keep the intensity, cut a back-off set or two (volume before intensity), stop sets a rep short.' + painNote };
+  return { level: 'amber', loadAdjustPct: -12, regress: 'intensity', headline: 'Run down — back off today', note: 'Recovery markers are low — pull the top load ~10–15% (a starting point; regress load first, keep frequency) and keep it crisp. Bank the session, don\'t chase it.' + painNote };
 }

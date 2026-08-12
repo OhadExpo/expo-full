@@ -1,40 +1,54 @@
 // Fixtures for readinessAutoreg (src/readinessAutoreg.js) — the check-in → session
-// nudge engine. A coach would BACK OFF an athlete's load off this, so the pain
-// gate (0-3 train / 4-5 modify / 6+ stop), the sleep+energy read, the regression
-// lever, and the honest 'unknown' all have to be right. Run:
-//   node scripts/verify-readiness-autoreg.mjs
+// nudge engine. A coach BACKS OFF an athlete's load off this, so the pain gate
+// (0-3 train / 4-5 modify / 6+ stop), the MISSING-pain safety (never green a day
+// pain wasn't logged), and the sleep+energy read all have to be right. Strings
+// are the REAL portal values: pain none/mild/moderate/high · sleep poor/ok/good/
+// great · energy low/ok/good/high. Run: node scripts/verify-readiness-autoreg.mjs
 import { readinessAutoreg, fieldQuality } from '../src/readinessAutoreg.js';
 
 let pass = 0, fail = 0;
 const check = (name, cond) => { console.log(`${cond ? 'PASS' : 'FAIL'}  ${name}`); cond ? pass++ : fail++; };
 
-// ── fieldQuality: named + numeric, pain inverted + threshold-mapped ──
+// ── fieldQuality: real strings, source-of-truth scale (poor=0..great=3), pain inverted+threshold ──
 check('pain none -> 3 (best)', fieldQuality('pain', 'none') === 3);
 check('pain high -> 0 (worst)', fieldQuality('pain', 'high') === 0);
 check('pain numeric 5 -> 1 (modify band)', fieldQuality('pain', '5') === 1);
 check('pain numeric 6 -> 0 (stop band)', fieldQuality('pain', '6') === 0);
-check('pain numeric 3 -> 2 (trainable)', fieldQuality('pain', '3') === 2);
-check('sleep high -> 3', fieldQuality('sleep', 'high') === 3);
-check('energy numeric 8 -> 2', fieldQuality('energy', '8') === 2);
+check('sleep poor -> 0 (matches checkinQuality scale, not 1)', fieldQuality('sleep', 'poor') === 0);
+check('sleep good -> 2', fieldQuality('sleep', 'good') === 2);
+check('sleep great -> 3', fieldQuality('sleep', 'great') === 3);
+check('energy low -> 0', fieldQuality('energy', 'low') === 0);
+check('energy high -> 3', fieldQuality('energy', 'high') === 3);
 check('blank -> null', fieldQuality('pain', '') === null);
 
-// ── the gate: pain overrides everything ──
-const painHigh = readinessAutoreg({ pain: 'high', sleep: 'high', energy: 'high' });
-check('pain 6+ -> red, do NOT load (even with great sleep/energy)', painHigh.level === 'red' && painHigh.loadAdjustPct === null);
-check('pain 6+ regresses FREQUENCY (stop), never trains through', painHigh.regress === 'frequency');
-const painMod = readinessAutoreg({ pain: 'moderate', sleep: 'high', energy: 'high' });
-check('pain 4-5 -> amber, modify ~-10%, intensity lever (even with great sleep)', painMod.level === 'amber' && painMod.loadAdjustPct === -10 && painMod.regress === 'intensity');
-check('pain numeric 7 -> red (threshold, not linear)', readinessAutoreg({ pain: '7' }).level === 'red');
+// ── SAFETY-CRITICAL: pain NOT logged must never green / recommend a PR ──
+const noPain = readinessAutoreg({ sleep: 'great', energy: 'high' }); // pain omitted
+check('SAFETY: pain unlogged + great sleep/energy -> NOT green', noPain.level !== 'green');
+check('SAFETY: pain unlogged -> no load increase, flags confirm', noPain.loadAdjustPct === 0 && /pain wasn't logged|confirm/i.test(noPain.note));
+check('SAFETY: pain unlogged -> never says "full send" / "PR"', !/full send|PR attempt/i.test(noPain.note));
 
-// ── pain clear: sleep + energy drive the effort read ──
-check('pain clear + great sleep/energy -> green, as planned', (() => { const r = readinessAutoreg({ pain: 'none', sleep: 'high', energy: 'high' }); return r.level === 'green' && r.loadAdjustPct === 0; })());
-check('pain clear + moderate -> amber, trim VOLUME first (-5%)', (() => { const r = readinessAutoreg({ pain: 'none', sleep: 'moderate', energy: 'mild' }); return r.level === 'amber' && r.regress === 'volume' && r.loadAdjustPct === -5; })());
-check('pain clear + run-down -> amber, back off INTENSITY (~-12%), keep frequency', (() => { const r = readinessAutoreg({ pain: 'none', sleep: 'none', energy: 'low' }); return r.level === 'amber' && r.regress === 'intensity' && r.loadAdjustPct === -12; })());
-check('mild pain + good sleep/energy -> green (pain 0-3 trainable)', readinessAutoreg({ pain: 'mild', sleep: 'high', energy: 'high' }).level === 'green');
+// ── pain gate ──
+const painHigh = readinessAutoreg({ pain: 'high', sleep: 'great', energy: 'high' });
+check('pain 6+ -> red, do NOT load (overrides great sleep/energy)', painHigh.level === 'red' && painHigh.loadAdjustPct === null && painHigh.regress === 'frequency');
+const painMod = readinessAutoreg({ pain: 'moderate', sleep: 'great', energy: 'high' });
+check('pain 4-5 -> amber, modify ~-10%, intensity', painMod.level === 'amber' && painMod.loadAdjustPct === -10 && painMod.regress === 'intensity');
+check('pain numeric 7 -> red', readinessAutoreg({ pain: '7' }).level === 'red');
 
-// ── honest thin state ──
-check('no check-in -> unknown, no fabricated number', (() => { const r = readinessAutoreg({}); return r.level === 'unknown' && r.loadAdjustPct === null; })());
-check('pain clear, no sleep/energy -> green by-feel (no fake precision)', (() => { const r = readinessAutoreg({ pain: 'none' }); return r.level === 'green' && r.loadAdjustPct === 0; })());
+// ── mild pain: trainable, but honest note + NO PR language ──
+const mild = readinessAutoreg({ pain: 'mild', sleep: 'great', energy: 'high' });
+check('mild pain + good markers -> green (trainable)', mild.level === 'green');
+check('mild pain note reflects the pain + drops "PR fair game"', /mild pain/i.test(mild.note) && !/PR attempt|full send/i.test(mild.note));
+
+// ── pain clear: sleep + energy drive the read (corrected scale) ──
+check('none + great/high -> green full send (PR ok)', (() => { const r = readinessAutoreg({ pain: 'none', sleep: 'great', energy: 'high' }); return r.level === 'green' && /PR/i.test(r.note); })());
+check('none + good/good -> green (good=2, scale fix; was wrongly amber)', readinessAutoreg({ pain: 'none', sleep: 'good', energy: 'good' }).level === 'green');
+check('none + ok/ok -> amber, trim VOLUME (-5%)', (() => { const r = readinessAutoreg({ pain: 'none', sleep: 'ok', energy: 'ok' }); return r.level === 'amber' && r.regress === 'volume' && r.loadAdjustPct === -5; })());
+check('none + poor/low -> amber, back off INTENSITY (~-12%)', (() => { const r = readinessAutoreg({ pain: 'none', sleep: 'poor', energy: 'low' }); return r.level === 'amber' && r.regress === 'intensity' && r.loadAdjustPct === -12; })());
+
+// ── honest thin states ──
+check('no check-in -> unknown', (() => { const r = readinessAutoreg({}); return r.level === 'unknown' && r.loadAdjustPct === null; })());
+check('none pain, no sleep/energy -> green by-feel', (() => { const r = readinessAutoreg({ pain: 'none' }); return r.level === 'green' && r.loadAdjustPct === 0; })());
+check('run-down note does not assert an unlogged field', (() => { const r = readinessAutoreg({ pain: 'none', sleep: 'poor' }); return !/AND low energy/i.test(r.note); })());
 
 console.log(`\n${fail === 0 ? '✓ ALL PASS' : '✗ FAILURES'} — ${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);
