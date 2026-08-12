@@ -186,16 +186,16 @@ export default function IntakeView({ trainees }) {
               {counts.open} open · {counts.initial} initial · {counts.assessment} assessment · {counts.progress} progress · {counts.total} total
             </div>
           </div>
-          <Btn onClick={() => setShowGen(true)} style={{ height: 36, padding: '0 18px' }}>+ Generate Link</Btn>
+          <Btn onClick={() => setShowGen(true)} style={{ height: 30, padding: '0 18px' }}>+ Generate Link</Btn>
         </div>
       </div>
 
       {/* Filter bar */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 14, alignItems: 'center', flexWrap: 'wrap' }}>
         <input placeholder="Filter by name / email / form type…" value={filter} onChange={e => setFilter(e.target.value)}
-          style={{ height: 36, boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 12px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', minWidth: 280, flex: 1 }} />
+          style={{ height: 30, boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 12px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', minWidth: 280, flex: 1 }} />
         <button onClick={() => setShowReviewed(s => !s)}
-          style={{ height: 36, boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${showReviewed ? C.ac : C.cardBd}`, color: showReviewed ? C.ac : C.tm, padding: '0 12px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', borderRadius: 0, minWidth: 152, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+          style={{ height: 30, boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${showReviewed ? C.ac : C.cardBd}`, color: showReviewed ? C.ac : C.tm, padding: '0 12px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', borderRadius: 0, minWidth: 152, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
           {showReviewed ? 'Showing reviewed' : 'Hide reviewed'}
         </button>
       </div>
@@ -288,7 +288,7 @@ export default function IntakeView({ trainees }) {
               <div>
                 <div style={{ fontSize: 10, fontFamily: FN, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>FORM TYPE</div>
                 <div style={{ position: 'relative', display: 'flex' }}>
-                  <select value={genForm.formType} onChange={e => setGenForm(f => ({ ...f, formType: e.target.value, locale: getForm(e.target.value, f.locale) ? f.locale : 'he' }))}
+                  <select value={genForm.formType} onChange={e => setGenForm(f => ({ ...f, formType: e.target.value, locale: getForm(e.target.value, f.locale) ? f.locale : 'he', traineeId: e.target.value === 'initial' ? '' : f.traineeId }))}
                     style={{ flex: 1, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '8px 32px 8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', appearance: 'none', WebkitAppearance: 'none' }}>
                     <option value="initial">Initial intake</option>
                     <option value="assessment">Physical assessment</option>
