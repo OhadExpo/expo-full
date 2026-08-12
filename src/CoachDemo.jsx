@@ -467,14 +467,14 @@ function DemoDashboard({ onJumpToTrainee }) {
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     style={{ borderBottom: `1px solid ${C.bd}`, cursor: 'pointer', transition: 'background 0.1s' }}>
                     <td style={{ padding: '12px', fontWeight: 600, color: C.tx }}>{t.name}</td>
-                    <td style={{ padding: '12px' }}><Badge color={t.dormantDays != null ? C.tm : C.gn}>{t.status}</Badge></td>
+                    <td style={{ padding: '12px' }}><Badge color={t.dormantDays != null ? C.tm : C.ac}>{t.status}</Badge></td>
                     <td style={{ padding: '12px', color: C.tm, fontSize: 12 }}>{t.format}</td>
                     <td style={{ padding: '12px', color: C.tm, fontSize: 12 }}>{t.isCouple ? '12 Sessions' : '8 Sessions'}</td>
                     <td style={{ padding: '12px' }}><span style={{ fontFamily: FN, fontWeight: 700, fontSize: 14, color: t.sessionsLeft <= 2 ? C.rd : C.gn }}>{t.sessionsLeft}</span></td>
                     <td style={{ padding: '12px', fontFamily: FN, fontWeight: 600, color: C.gn }}>₪{totalPaid.toLocaleString()}</td>
                     <td style={{ padding: '12px', color: t.payment === 'OVERDUE' ? C.rd : C.tm, fontSize: 12 }}>{lastPay}</td>
-                    <td style={{ padding: '12px', fontFamily: FN, color: C.ac }}>{workouts}</td>
-                    <td style={{ padding: '12px', fontFamily: FN, color: C.ac }}>{t.programs}</td>
+                    <td style={{ padding: '12px', fontFamily: FN, color: C.tx }}>{workouts}</td>
+                    <td style={{ padding: '12px', fontFamily: FN, color: C.tx }}>{t.programs}</td>
                   </tr>
                 );
               })}
