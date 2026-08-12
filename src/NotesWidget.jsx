@@ -119,16 +119,15 @@ function MiniTaskRow({ n, stackBoard, onClick, stripe }) {
   return (
     <div onClick={onClick} title={body} className="mini-task-row"
       style={{ border: `1px solid var(--c-cardBd)`, borderLeft: `3px solid ${tone}`, padding: '6px 8px', fontSize: stackBoard ? 12 : 11, lineHeight: 1.3, color: 'var(--c-tx)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, whiteSpace: 'nowrap', overflow: 'hidden', transition: 'border-color 120ms ease, background 120ms ease' }}>
-      {kindLabel && (
-        <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: kindTone, border: `1px solid ${kindTone}`, padding: '1px 5px', lineHeight: 1.3, flexShrink: 0 }}>{kindLabel}</span>
-      )}
+      {/* Order (Ohad): NAME first, then the action info, then the kind TAG all
+          the way to the right. Body is flex:1 so the tag is pushed to the edge. */}
       {name && (
         <span style={{ fontFamily: nameHeb ? FH : FN, fontSize: nameHeb ? 13 : 10, fontWeight: 800, letterSpacing: nameHeb ? 0 : '0.04em', textTransform: nameHeb ? 'none' : 'uppercase', color: 'var(--c-ac)', flexShrink: 0, maxWidth: '45%', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
       )}
-      {/* When a name leads the row, the action text hugs it (left) so the alert
-          reads as ONE connected line — not a name on the left and text floating
-          on the far right (which the RTL right-align caused for Hebrew bodies). */}
       <span style={{ fontFamily: heb ? FH : FB, direction: heb ? 'rtl' : 'ltr', textAlign: name ? 'left' : (heb ? 'right' : 'left'), color: name ? 'var(--c-tm)' : 'var(--c-tx)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{body}</span>
+      {kindLabel && (
+        <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: kindTone, border: `1px solid ${kindTone}`, padding: '1px 5px', lineHeight: 1.3, flexShrink: 0 }}>{kindLabel}</span>
+      )}
     </div>
   );
 }
@@ -1044,7 +1043,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                 // are already enough "this is closed" signal in both themes.
                 // The prior opacity:0.55 was double-dimming and made the
                 // strikethrough body unreadable on white in light mode.
-                display: 'flex', alignItems: 'flex-start', gap: 8, padding: '6px 0',
+                display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0',
                 borderBottom: `1px solid var(--c-cardBd)`,
               }}>
                 <input type="checkbox" checked={true}
@@ -1052,32 +1051,23 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                   onChange={() => n.status === 'cancelled'
                     ? update(n.id, { status: 'open', completed_at: null })
                     : toggleDone(n.id)}
-                  style={{ width: 14, height: 14, accentColor: n.status === 'cancelled' ? 'var(--c-tm)' : 'var(--c-gn)', cursor: 'pointer', flexShrink: 0, marginTop: 3 }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.08em', marginBottom: 2 }}>
-                    {TARGET_ICON[n.target_kind] || '·'} {TARGET_LABEL[n.target_kind] || 'NOTE'}
-                    {n.target_label && <span style={{ color: 'var(--c-ac)', marginLeft: 6 }}>· {n.target_label}</span>}
-                    {n.status === 'cancelled' && <span style={{ color: 'var(--c-or)', marginLeft: 6, fontWeight: 700 }}>· CANCELLED</span>}
-                    {n.completed_at && <span style={{ color: 'var(--c-tm)', marginLeft: 6 }}>· {n.status === 'cancelled' ? 'cancelled' : 'done'} {fmtPrettyDate(n.completed_at)}</span>}
-                  </div>
-                  <div style={{
-                    fontSize: 12, color: 'var(--c-tm)', lineHeight: 1.4, whiteSpace: 'pre-wrap', textDecoration: 'line-through',
-                    direction: heb ? 'rtl' : 'ltr',
-                    // Center-align DONE rows so mixed Hebrew/English content
-                    // doesn't split the eye between right-anchored and
-                    // left-anchored rows (Ohad spec 2026-05-24).
-                    textAlign: 'center',
-                    // FB (Nord-first with Heebo fallback) for BOTH Hebrew and English
-          // bodies so the type renders with the same sharp Nord weight
-          // as the action pills (REVIEW / NEW PROGRAM) and label strips —
-          // no more Hebrew-Heebo / English-Nord mismatch inside a card.
-          fontFamily: FB,
-                  }}>{displayBodyOf(n.body)}</div>
-                  {n.linked_plan_id && (
-                    <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-ac)', letterSpacing: '0.08em', marginTop: 2, fontWeight: 700 }}>
-                      ✓ COMPLETED BY PLAN
-                    </div>
-                  )}
+                  style={{ width: 14, height: 14, accentColor: n.status === 'cancelled' ? 'var(--c-tm)' : 'var(--c-gn)', cursor: 'pointer', flexShrink: 0 }} />
+                {/* ONE row (Ohad 2026-08-12): task text leads (flex, line-through),
+                    target · done DATE compact on the right — was a meta line
+                    stacked above a centered strikethrough body. */}
+                <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'baseline', gap: 10 }}>
+                  <span dir="auto" style={{
+                    flex: 1, minWidth: 0, fontSize: 12, color: 'var(--c-tm)', lineHeight: 1.4,
+                    textDecoration: 'line-through', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                    textAlign: heb ? 'right' : 'left', fontFamily: FB,
+                  }}>{displayBodyOf(n.body)}</span>
+                  <span style={{ flexShrink: 0, fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>
+                    {n.target_label && <span style={{ color: 'var(--c-ac)' }}>{n.target_label}</span>}
+                    {n.status === 'cancelled'
+                      ? <span style={{ color: 'var(--c-or)', fontWeight: 700, marginLeft: 6 }}>· CANCELLED</span>
+                      : n.completed_at && <span style={{ marginLeft: 6 }}>· done {fmtPrettyDate(n.completed_at)}</span>}
+                    {n.linked_plan_id && <span style={{ color: 'var(--c-ac)', marginLeft: 6, fontWeight: 700 }}>· ✓ PLAN</span>}
+                  </span>
                 </div>
                 <button onClick={async () => {
                     if (await confirmToast('Delete this completed task? This cannot be undone.', { okLabel: 'Delete', cancelLabel: 'Cancel' })) {
