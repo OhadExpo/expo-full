@@ -501,7 +501,12 @@ export function blockHistory(plans, deps) {
   // (curls, raises, planks) sit at 10-15 reps in EVERY block regardless of phase,
   // so averaging them in paints every block "hypertrophy". Read character off the
   // main lifts only. Same inclusion-list the transfer map uses.
-  const PRIMARY_RX = /squat|deadlift|\bdl\b|rdl|hinge|good[-\s]?morning|press|bench|ohp|overhead|row|pull[-\s]?up|chin|pulldown|lunge|split|rfess|bulgarian|thrust|clean|snatch|jerk/i;
+  const PRIMARY_RX = /squat|deadlift|\bdl\b|rdl|hinge|good[-\s]?morning|press|bench|ohp|overhead|\brow|pull[-\s]?up|\bchin|pulldown|lunge|split|rfess|bulgarian|thrust|clean|snatch|jerk/i;
+  // Isolation / machine accessories that must NEVER count as a block's "main" even
+  // when they brush a PRIMARY token ("leg PRESS", "MACHINE row", "leg curl"). Without
+  // this, high-rep machine work dilutes the mean and flips a 90% strength block to
+  // "endurance" (fresh-context review, finding #1 — the "chin" in "Ma-chin-e" bug).
+  const ACCESSORY_RX = /machine|leg[-\s]*press|leg[-\s]*ext|extension|leg[-\s]*curl|\bcalf|pushdown|push[-\s]?down|kickback|\bfly|flye|lateral[-\s]*raise|front[-\s]*raise|rear[-\s]*delt|face[-\s]*pull|shrug|\bcurl\b/i;
   // Explosive / speed-strength movements. A block built around these is a POWER
   // block regardless of rep count — a 3-rep power clean and a 3-rep max deadlift
   // read identically on reps alone; the MOVEMENT is what separates them. Covers
@@ -516,11 +521,13 @@ export function blockHistory(plans, deps) {
   // concentric) or an all-fast prescription is speed/power intent, not hypertrophy.
   // A slow eccentric ("40X0", "3110") is time-under-tension = hypertrophy/control.
   const explosiveTempo = (t) => {
+    // Only an explicit "X" in a real tempo code (e.g. 30X0 / 10X0 — explode the
+    // concentric) counts. The X must sit at position ≥2 in an otherwise all-digit
+    // string, so a reps typo like "3x8" (X at index 1) and controlled tempos like
+    // "1010" are NOT misread as power (fresh-context review, finding #5).
     const s = String(t == null ? '' : t).toLowerCase().trim();
-    if (!s) return false;
-    if (/x/.test(s)) return true;                       // explicit explode-the-concentric
-    const ds = s.replace(/[^0-9]/g, '');
-    return ds.length >= 3 && ds.length <= 4 && ds.split('').reduce((a, c) => a + Number(c), 0) <= 2;
+    const xi = s.indexOf('x');
+    return xi >= 2 && /^[0-9x]+$/.test(s);
   };
   const repMid = (r) => {
     const str = String(r == null ? '' : r).trim();
@@ -541,7 +548,10 @@ export function blockHistory(plans, deps) {
   const repsOf = (ex) => {
     const direct = repMid(ex.reps);
     if (direct != null && direct > 0) return direct;
-    if (Array.isArray(ex.wk) && ex.wk.length) { const rs = ex.wk.map(repMid).filter((x) => typeof x === 'number' && x > 0); return rs.length ? rs.reduce((a, c) => a + c, 0) / rs.length : null; }
+    // Wave-load fallback: drop values >40 — a real rep count that high is almost
+    // certainly a leaked load/kg or a mistyped cell, and it would flip a strength
+    // block to endurance (fresh-context review, finding #4).
+    if (Array.isArray(ex.wk) && ex.wk.length) { const rs = ex.wk.map(repMid).filter((x) => typeof x === 'number' && x > 0 && x <= 40); return rs.length ? rs.reduce((a, c) => a + c, 0) / rs.length : null; }
     return null;
   };
   // The coach's own phase label in the block name — a strong PRIOR. Used only to
@@ -566,10 +576,16 @@ export function blockHistory(plans, deps) {
     const main = [];  // {reps, rpe, pct, explosive} for the primary compound / explosive lifts
     for (const d of p.days || []) for (const ex of d.exercises || []) {
       const title = String(ex.title || ex.name || '');
-      const ballistic = BALLISTIC_RX.test(title);
+      const accessory = ACCESSORY_RX.test(title);
+      // A "snatch/clean-grip deadlift/RDL/pull/row" is a slow strength lift, not an
+      // Olympic lift; jump rope / jumping jacks are conditioning, not power.
+      const gripOrCardio = /(snatch|clean)[-\s]*grip/i.test(title)
+        || (/(snatch|clean)/i.test(title) && /deadlift|\brdl\b|\bdl\b|good[-\s]?morning|\brow/i.test(title))
+        || /jump[-\s]*rope|jumping[-\s]*jack|skipping/i.test(title);
+      const ballistic = BALLISTIC_RX.test(title) && !gripOrCardio;
       const explosive = ballistic || explosiveTempo(ex.tempo);   // movement OR tempo intent
       const r = repsOf(ex);
-      const isMain = PRIMARY_RX.test(title) || ballistic;
+      const isMain = (PRIMARY_RX.test(title) || ballistic) && !accessory;
       if (r != null && r > 0) all.push(r);
       // A ballistic main with no clean rep number (a depth jump logs "contacts",
       // not reps) still counts toward POWER — keep it in the basis without a rep.
@@ -599,14 +615,15 @@ export function blockHistory(plans, deps) {
     else if (avgReps == null) dataChar = null;
     else if (avgReps <= 6) dataChar = 'strength';
     else if (avgReps <= 12) dataChar = heavy ? 'strength' : 'hypertrophy';
-    else dataChar = 'endurance';
+    else dataChar = heavy ? 'strength' : 'endurance';          // heavy high-rep (accessory-diluted) still strength-leaning
     const nc = namePhase(p.name);
     // Reconcile: an overwhelming explosive share is power no matter the name;
-    // otherwise trust the DATA in the clear zones and let the coach's NAME resolve
-    // the fuzzy 6–12-rep middle, where reps alone can't split strength from size.
+    // otherwise trust the DATA, but let a CLEAR name (strength/power) override in the
+    // fuzzy 6–12-rep middle OR whenever the block is heavy — a named max-strength
+    // block whose mean got dragged up must never read hypertrophy/endurance.
     let character;
     if (explosiveShare >= 0.6) character = 'power';
-    else if (dataChar && nc && dataChar !== nc && avgReps != null && avgReps > 6 && avgReps <= 12 && !heavy) character = nc;
+    else if (dataChar && nc && dataChar !== nc && ((avgReps != null && avgReps > 6 && avgReps <= 12 && !heavy) || (heavy && (nc === 'strength' || nc === 'power')))) character = nc;
     else character = dataChar || nc || 'hypertrophy';
     return { num: blockNum(p.name), name: p.name, character, avgReps: round1(avgReps), avgRpe: round1(avgRpe), avgPct: round1(avgPct), explosiveShare: Math.round(explosiveShare * 100) / 100, exercises: all.length, fromMains };
   }).filter(Boolean)
