@@ -22,6 +22,7 @@ const suites = [
   'verify-lineage-signals.mjs',      // rpeDrift (autoreg) + missRate (adherence) — thin gates + directions
   'verify-lineage-core.mjs',         // e1RM (Epley) + topSet — the primitives every strength read rests on
   'verify-auto-analyze.mjs',         // auto-analyze collector — clip scoping / couples cid / load-ambiguity
+  'verify-pose-metrics-store.mjs',   // Bar-Speed vault reads: asymmetry injury-watch + readiness ref + velocity-loss trend
   'verify-verdict.mjs',              // synthesizeVerdict — the headline coach-acted call (deload gating)
 ];
 
