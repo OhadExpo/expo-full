@@ -130,33 +130,10 @@ export function LoginScreen() {
   const [submitting, setSubmitting] = useState(false);
   // PWA install. Chrome/Edge/Android fire `beforeinstallprompt` once engagement
   // criteria are met; we capture it and replay on user click for one-tap install.
-  // iOS Safari has no programmatic install API — Apple requires the user to use
-  // the Share menu manually, so we fall back to inline instructions there.
-  const [installPrompt, setInstallPrompt] = useState(null);
-  const [showInstallHelp, setShowInstallHelp] = useState(false);
-  const isStandalone = typeof window !== 'undefined' && (window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone === true);
-  const isIOS = typeof navigator !== 'undefined' && /iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-  useEffect(() => {
-    const handler = (e) => { e.preventDefault(); setInstallPrompt(e); };
-    window.addEventListener('beforeinstallprompt', handler);
-    const installed = () => setInstallPrompt(null);
-    window.addEventListener('appinstalled', installed);
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handler);
-      window.removeEventListener('appinstalled', installed);
-    };
-  }, []);
-
-  const handleInstall = async () => {
-    if (installPrompt) {
-      installPrompt.prompt();
-      try { await installPrompt.userChoice; } catch {}
-      setInstallPrompt(null);
-      return;
-    }
-    setShowInstallHelp(true);
-  };
+  // Install prompt lives ONLY in the post-sign-in InstallAppPrompt now — the
+  // login screen no longer listens for beforeinstallprompt or renders its own
+  // install button (adversarial-review H1: two surfaces sharing one non-reusable
+  // event silently broke the post-login install).
 
   const handleOAuth = async (provider) => {
     setError('');
@@ -270,18 +247,10 @@ export function LoginScreen() {
             Don't have an account? Contact your coach.
           </div>
         </div>
-        {!isStandalone && (
-          <button
-            onClick={handleInstall}
-            style={{ width: '100%', marginTop: 16, padding: showInstallHelp ? '14px 16px' : 12, borderRadius: 0, border: `1px solid ${C.cardBd}`, background: 'transparent', color: C.tm, fontFamily: FB, fontSize: showInstallHelp ? 12 : 14, fontWeight: showInstallHelp ? 400 : 600, cursor: 'pointer', lineHeight: showInstallHelp ? 1.5 : 1.2, textAlign: 'center' }}
-          >
-            {showInstallHelp
-              ? (isIOS
-                  ? <>1. Tap <svg width="12" height="14" viewBox="0 0 16 20" style={{ verticalAlign: '-2px', margin: '0 2px' }}><path fill="none" stroke={C.tm} strokeWidth="1.5" d="M8 1v12M4 5l4-4 4 4M2 9h2v9h8V9h2v11H2z"/></svg> at the bottom of Safari<br/>2. Tap "Add to Home Screen"</>
-                  : 'Open your browser menu and choose "Install app" or "Add to Home Screen".')
-              : 'Add to Home Screen'}
-          </button>
-        )}
+        {/* Install affordance removed from the login screen (adversarial-review
+            H1): it ran a competing beforeinstallprompt listener and consumed the
+            one-shot event, silently killing the post-sign-in "GO TO APP" button.
+            InstallAppPrompt (shown after login) is now the single install surface. */}
       </div>
     </div>
   );

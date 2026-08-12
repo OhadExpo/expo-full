@@ -10,6 +10,7 @@
 // iOS-non-Safari are handled explicitly (H2/M2).
 
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
 import { getInstallEvent, clearInstallEvent, onInstallReady, isIOS, isIOSSafari, isStandalone } from './pwaInstall';
 
@@ -36,9 +37,13 @@ export default function InstallAppPrompt() {
 
     // Android/Chrome: read the globally-captured event now, and subscribe in case
     // it arrives a beat later. Both paths land on the same 'install' modal.
-    const unsub = onInstallReady((e) => { setPrompt(e); show('install'); });
+    // Desktop (mouse-only) doesn't get the phone-oriented "add to home screen"
+    // nag (adversarial-review M5) — capture the event but only surface the modal
+    // on touch devices. iOS/installed branches are already touch-only.
+    const isTouch = (typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches) || 'ontouchstart' in window;
+    const unsub = onInstallReady((e) => { setPrompt(e); if (isTouch) show('install'); });
     const existing = getInstallEvent();
-    if (existing) { setPrompt(existing); show('install'); }
+    if (existing) { setPrompt(existing); if (isTouch) show('install'); }
 
     // Already installed but opened in the BROWSER (not standalone): offer "go to
     // the app" instead of nagging install. getInstalledRelatedApps is Chrome-only
@@ -56,10 +61,13 @@ export default function InstallAppPrompt() {
 
     const onInstalled = () => setOpen(false);
     window.addEventListener('appinstalled', onInstalled);
+    const onKey = (e) => { if (e.key === 'Escape') setOpen(false); }; // review L1
+    window.addEventListener('keydown', onKey);
     return () => {
       cancelled = true;
       unsub();
       window.removeEventListener('appinstalled', onInstalled);
+      window.removeEventListener('keydown', onKey);
       if (t) clearTimeout(t);
     };
   }, []);
@@ -82,7 +90,7 @@ export default function InstallAppPrompt() {
   // Copy per mode.
   const iosNonSafari = mode === 'ios' && !isIOSSafari();
   const body = mode === 'installed' ? (
-    <>You already have EXPO installed. Open it from your <b style={{ color: C.tx }}>home screen</b> for the full-screen app — faster, and it works offline.</>
+    <>You already have EXPO installed — open it from your <b style={{ color: C.tx }}>home screen</b> icon for the full-screen app.</>
   ) : mode === 'ios' ? (
     iosNonSafari ? (
       <>To add EXPO to your home screen, open this page in <b style={{ color: C.tx }}>Safari</b> first, then Share → <b style={{ color: C.tx }}>Add to Home Screen</b>.</>
@@ -91,7 +99,7 @@ export default function InstallAppPrompt() {
         <div style={{ marginTop: 10, color: C.tm, fontSize: 13, lineHeight: 1.7, textAlign: 'left' }}>
           1. Tap the <b style={{ color: C.tx }}>Share</b> button in the browser bar.<br />
           2. Choose <b style={{ color: C.tx }}>Add to Home Screen</b>.<br />
-          3. Tap <b style={{ color: C.tx }}>Add</b> — EXPO opens like a native app.
+          3. Tap <b style={{ color: C.tx }}>Add</b> — EXPO opens full-screen from your home screen.
         </div>
       </>
     )
@@ -113,13 +121,15 @@ export default function InstallAppPrompt() {
     }}>{label}</button>
   );
 
-  return (
-    <div role="dialog" aria-modal="true" aria-label="Get the EXPO app" style={{
+  // Rendered via portal to document.body (app-wide rule: every fixed overlay is
+  // a portal, so no transformed ancestor can break position:fixed — review L1).
+  return createPortal((
+    <div role="dialog" aria-modal="true" aria-label="Get the EXPO app" onClick={close} style={{
       position: 'fixed', inset: 0, zIndex: 99999,
       background: C.scrim || 'rgba(0,0,0,0.72)', backdropFilter: 'blur(6px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
     }}>
-      <div style={{
+      <div onClick={(e) => e.stopPropagation()} style={{
         background: C.sf, border: `1px solid ${C.ac}`, borderRadius: 0,
         padding: '30px 34px', width: 'min(440px, 92vw)', textAlign: 'center',
         boxShadow: `0 24px 70px ${C.shadow || 'rgba(0,0,0,0.6)'}`,
@@ -131,9 +141,11 @@ export default function InstallAppPrompt() {
         {/* Both buttons identical size (Ohad): a flex row, each flex:1, same pad. */}
         <div style={{ display: 'flex', gap: 10 }}>
           {hasPrimary && btn('GO TO APP', true, doPrimary)}
-          {btn('MAYBE LATER', false, close)}
+          {/* Installed-in-browser has no real "launch the app" web API, so the
+              honest CTA is a plain acknowledge, not "MAYBE LATER" (review M3). */}
+          {btn(mode === 'installed' ? 'GOT IT' : 'MAYBE LATER', false, close)}
         </div>
       </div>
     </div>
-  );
+  ), document.body);
 }
