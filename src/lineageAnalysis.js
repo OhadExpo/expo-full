@@ -614,8 +614,15 @@ export function blockHistory(plans, deps) {
     //   HYPERTROPHY— 6–12 reps at sub-maximal loads.
     //   ENDURANCE  — 13+ reps / low intensity (GPP base).
     const heavy = (avgPct != null && avgPct >= 85) || (avgRpe != null && avgRpe >= 8.5);
+    // POWER is a LOW-REP quality — NSCA power loading is 1-2 @ 80-90% / 3-5 @ 75-85%,
+    // kept low-rep so bar velocity (the whole point) doesn't decay. So explosive
+    // movements only read POWER when the block's avg reps stay in that window
+    // (<=8, generous for ballistic accessories). A high-rep explosive block is
+    // power-ENDURANCE / conditioning, not power development — it reads by its rep
+    // zone instead. (Source-verified vs NSCA Essentials Ch.17, 2026-08-12.)
+    const powerReps = avgReps == null || avgReps <= 8;
     let dataChar = null;
-    if (explosiveShare >= 0.4) dataChar = 'power';
+    if (explosiveShare >= 0.4 && powerReps) dataChar = 'power';
     else if (avgReps == null) dataChar = null;
     else if (avgReps <= 6) dataChar = 'strength';
     else if (avgReps <= 12) dataChar = heavy ? 'strength' : 'hypertrophy';
@@ -626,7 +633,7 @@ export function blockHistory(plans, deps) {
     // fuzzy 6–12-rep middle OR whenever the block is heavy — a named max-strength
     // block whose mean got dragged up must never read hypertrophy/endurance.
     let character;
-    if (explosiveShare >= 0.6) character = 'power';
+    if (explosiveShare >= 0.6 && powerReps) character = 'power';
     else if (dataChar && nc && dataChar !== nc && ((avgReps != null && avgReps > 6 && avgReps <= 12 && !heavy) || (heavy && (nc === 'strength' || nc === 'power')))) character = nc;
     else character = dataChar || nc || 'hypertrophy';
     return { num: blockNum(p.name), name: p.name, character, avgReps: round1(avgReps), avgRpe: round1(avgRpe), avgPct: round1(avgPct), explosiveShare: Math.round(explosiveShare * 100) / 100, exercises: all.length, fromMains };

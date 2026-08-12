@@ -90,18 +90,23 @@ function readStaple(s) {
   const noPr = wks != null && wks >= 5;   // hasn't beaten its best in 5+ weeks → rotation trigger
   if (s.count < 3) return { tag: `${s.count}× ONLY`, tagColor: C.td, why: 'too few logs to read a trend', next: 'log 3+ before judging it' };
   if (s.ballistic) {
-    if (s.trend?.dir === 'up') return { tag: 'GOING UP', tagColor: C.gn, why: 'load creeping up on an explosive lift', next: 'keep adding — but film a set; height + bar-speed is the real read, not kg' };
-    return { tag: 'EXPLOSIVE', tagColor: C.pu, why: 'jumps progress on speed + height, not load', next: 'film a set for velocity — don\'t chase kg here' };
+    // A ballistic lift is ALWAYS "EXPLOSIVE" — never a green "GOING UP" off load,
+    // because a jump/throw progresses on speed + height, not kg (Ohad). Load
+    // creeping up is still noted in the 'why', but a "keep adding load" tag would
+    // contradict the "don't chase kg here" cue on the same row.
+    return { tag: 'EXPLOSIVE', tagColor: C.pu,
+      why: s.trend?.dir === 'up' ? 'load creeping up — but a jump progresses on speed + height, not kg' : 'jumps progress on speed + height, not load',
+      next: 'film a set for velocity — don\'t chase kg here' };
   }
   if (s.stale?.state === 'ok' && s.stale.stale) {
-    if (s.stale.mode === 'hard') return { tag: 'STUCK · HARD', tagColor: C.or, why: 'flat weight + effort climbing = hidden fatigue, not a real ceiling', next: 'one lighter week (~50% volume) then re-test, or swap the variation — not more kg' };
-    if (s.stale.mode === 'easy') return { tag: 'STUCK · EASY', tagColor: C.ac, why: 'flat but moving easy — he\'s under-stimulated', next: '+2.5–5kg or add a set' };
-    return { tag: 'STUCK', tagColor: C.or, why: 'weight hasn\'t moved in 3 sessions', next: noPr ? `no PR in ${wks} weeks — rotate the variation` : 'push the load or change the stimulus' };
+    if (s.stale.mode === 'hard') return { tag: 'STALLED · HARD', tagColor: C.or, why: 'flat weight + effort rising = hidden fatigue, not a real ceiling', next: 'one lighter week (~50% volume) then re-test, or swap the variation — not more kg' };
+    if (s.stale.mode === 'easy') return { tag: 'STALLED · EASY', tagColor: C.ac, why: 'flat but moving easy — he\'s under-stimulated', next: '+2.5–5kg or add a set' };
+    return { tag: 'STALLED', tagColor: C.or, why: 'weight hasn\'t moved in 3 sessions', next: noPr ? `no PR in ${wks} weeks — rotate the variation` : 'push the load or change the stimulus' };
   }
   if (s.trend?.state === 'ok') {
     if (s.trend.repNoisy) return { tag: 'REPS VARIED', tagColor: C.tm, why: 'rep scheme shifted across the block — e1RM can\'t tell a strength change from the rep change', next: 'read it off load-at-a-fixed-rep, or hold a rep target for 3 sessions for a clean trend' };
-    if (s.trend.dir === 'up') return { tag: 'GOING UP', tagColor: C.gn, why: 'climbing', next: '+2–3% load or +1 rep at the same effort' };
-    if (s.trend.dir === 'down') return { tag: 'SLIPPING', tagColor: C.rd, why: 'going backwards', next: 'back off ~5–10% intensity, hold volume, check his recovery' };
+    if (s.trend.dir === 'up') return { tag: 'PROGRESS', tagColor: C.gn, why: 'progressing', next: '+2–3% load or +1 rep at the same effort' };
+    if (s.trend.dir === 'down') return { tag: 'REGRESS', tagColor: C.rd, why: 'going backwards', next: 'back off ~5–10% intensity, hold volume, check his recovery' };
   }
   return { tag: 'HOLDING', tagColor: C.tm, why: 'holding steady', next: noPr ? `no PR in ${wks} weeks — time to change it up` : 'maintain, or nudge the load' };
 }
@@ -135,7 +140,7 @@ function nextBlockText(a) {
   const climbing = a.staples.filter((s) => s.trend?.dir === 'up' && !s.stale?.stale && !s.ballistic).map((s) => s.title);
   return (
     <>
-      <b>Progress the block{nextNum}.</b> He's holding or climbing.
+      <b>Progress the block{nextNum}.</b> He's holding or progressing.
       {climbing.length > 0 && <> Add load on <b>{climbing.slice(0, 3).join(', ')}</b>.</>}
       {stuck.length > 0 && <> Hold or vary <b>{stuck.slice(0, 2).join(', ')}</b> before forcing more weight.</>}
     </>
@@ -161,10 +166,10 @@ function LiftRow({ s }) {
       <td style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, fontVariantNumeric: 'tabular-nums', color: C.tx, fontWeight: 600, whiteSpace: 'nowrap', verticalAlign: 'top' }}>
         {best}
         {!s.ballistic && s.weeksSincePr != null && s.weeksSincePr >= 2 && (
-          <div style={{ fontSize: 10, fontWeight: 400, color: s.weeksSincePr >= 6 ? C.or : C.td, marginTop: 2 }}>PR {s.weeksSincePr}w ago</div>
+          <span style={{ fontSize: 10, fontWeight: 400, color: s.weeksSincePr >= 6 ? C.or : C.td, marginLeft: 6 }}>· PR {s.weeksSincePr}w ago</span>
         )}
       </td>
-      <td style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, fontVariantNumeric: 'tabular-nums', color: C.tm, verticalAlign: 'top' }}>{loads.join(' · ')}</td>
+      <td style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, fontVariantNumeric: 'tabular-nums', color: C.tm, verticalAlign: 'top', whiteSpace: 'nowrap' }}>{loads.join(' · ')}</td>
       <td style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, textAlign: 'right', verticalAlign: 'top' }}><Tag text={r.tag} color={r.tagColor} /></td>
     </tr>
   );
@@ -290,13 +295,13 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
           const regressing = a.staples.filter((s) => !s.ballistic && s.isMain && !s.stale?.stale && s.trend?.dir === 'down');
           const lowerGrind = a.region?.lower?.pct != null && a.region.lower.pct >= 25;
           const pos = [];
-          if (climbing.length) pos.push({ t: `Climbing — ${nm(climbing)}`, d: 'e1RM trending up. Keep progressing: +2–3% load or +1 rep at the same effort.' });
-          if (upperOk) pos.push({ t: 'Upper body dialed', d: `hitting reps at ${a.region.upper.pct}% miss — room to push the load.` });
-          if (ballisticUp.length) pos.push({ t: `Power moving — ${nm(ballisticUp)}`, d: 'load is up; film a set to confirm it’s bar speed, not just heavier kg.' });
+          if (climbing.length) pos.push({ t: `Progressing — ${nm(climbing)}`, d: 'e1RM trending up. Keep progressing: +2–3% load or +1 rep at the same effort.' });
+          if (upperOk) pos.push({ t: 'Upper body progressing', d: `hitting reps at ${a.region.upper.pct}% miss — room to push the load.` });
+          if (ballisticUp.length) pos.push({ t: `Power progressing — ${nm(ballisticUp)}`, d: 'load is up; film a set to confirm it’s bar speed, not just heavier kg.' });
           const neg = [];
           if (regressing.length) neg.push({ t: `Regressing — ${nm(regressing)}`, d: thin ? `e1RM sliding, but only ${a.adh?.loggedSessions || 0} session${(a.adh?.loggedSessions || 0) === 1 ? '' : 's'} logged — a flag to watch, not a deload trigger yet.` : 'e1RM down across the block. Back off ~5–10% intensity, hold volume, check recovery.' });
-          if (stuck.length) neg.push({ t: `Stuck — ${nm(stuck)}`, d: 'flat 3+ sessions. Change the stimulus (variation/tempo) or a light week — not more kg.' });
-          if (lowerGrind) neg.push({ t: 'Grinding the lower body', d: `${a.region.lower.pct}% of sets short of target — the load’s too heavy right now and it compounds.` });
+          if (stuck.length) neg.push({ t: `Not progressing — ${nm(stuck)}`, d: 'flat 3+ sessions. Change the stimulus (variation/tempo) or a light week — not more kg.' });
+          if (lowerGrind) neg.push({ t: 'Lower body regressing', d: `${a.region.lower.pct}% of sets short of target — the load’s too heavy right now and it compounds.` });
           const Col = ({ title, color, items, empty }) => (
             <div style={{ border: `1px solid ${color}`, background: `color-mix(in srgb, ${color} 6%, transparent)`, padding: '11px 13px' }}>
               <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color, marginBottom: 9 }}>{title}</div>
@@ -307,8 +312,8 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
           );
           return (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }} className="lineage-grid2">
-              <Col title="✓ Working" color={C.gn} items={pos} empty="Nothing clearly trending up yet — needs more logged sessions to call a win." />
-              <Col title="⚠ Watch / back off" color={C.rd} items={neg} empty="Nothing flashing — loads and completion are holding across the block." />
+              <Col title="✓ Positive" color={C.gn} items={pos} empty="Nothing clearly trending up yet — needs more logged sessions to call a win." />
+              <Col title="⚠ Negative" color={C.rd} items={neg} empty="Nothing flashing — loads and completion are holding across the block." />
             </div>
           );
         })()}
