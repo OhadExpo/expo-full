@@ -84,7 +84,7 @@ export default class ErrorBoundary extends React.Component {
           maxWidth: 520, margin: '28px auto', padding: '22px 24px',
           background: 'var(--c-sf, #111114)',
           border: '1px solid var(--c-cardBd, #1F4A5C)',
-          fontFamily: "'Nord', 'DM Sans', sans-serif",
+          fontFamily: "'Nord', 'Heebo', 'DM Sans', sans-serif",
         }}>
           <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--c-rd, #FF4757)', letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 10 }}>THIS VIEW HIT AN ERROR</div>
           <p style={{ margin: '0 0 14px', fontSize: 13, color: 'var(--c-tm, #7a7a88)', lineHeight: 1.55 }}>
@@ -94,7 +94,7 @@ export default class ErrorBoundary extends React.Component {
           <button onClick={this.handleReload} style={{
             padding: '10px 16px', background: 'transparent',
             border: '1px solid var(--c-ac, #39BDFF)', color: 'var(--c-ac, #39BDFF)',
-            fontFamily: "'Nord', 'DM Sans', sans-serif", fontSize: 11, fontWeight: 700,
+            fontFamily: "'Nord', 'Heebo', 'DM Sans', sans-serif", fontSize: 11, fontWeight: 700,
             letterSpacing: '0.18em', textTransform: 'uppercase', cursor: 'pointer',
           }}>↻ Refresh</button>
         </div>
@@ -110,7 +110,7 @@ export default class ErrorBoundary extends React.Component {
         padding: 24,
         background: 'var(--c-bg, #0a0a0c)',
         color: 'var(--c-tx, #f0f0f4)',
-        fontFamily: "'Nord', 'DM Sans', sans-serif",
+        fontFamily: "'Nord', 'Heebo', 'DM Sans', sans-serif",
       }}>
         <div style={{
           maxWidth: 520, width: '100%',
@@ -152,7 +152,7 @@ export default class ErrorBoundary extends React.Component {
               background: 'transparent',
               border: '1px solid var(--c-ac, #39BDFF)',
               color: 'var(--c-ac, #39BDFF)',
-              fontFamily: "'Nord', 'DM Sans', sans-serif",
+              fontFamily: "'Nord', 'Heebo', 'DM Sans', sans-serif",
               fontSize: 11, fontWeight: 700, letterSpacing: '0.18em',
               textTransform: 'uppercase', cursor: 'pointer',
             }}>↻ Refresh</button>
@@ -161,7 +161,7 @@ export default class ErrorBoundary extends React.Component {
               background: 'transparent',
               border: '1px solid var(--c-bd2, #2a2a32)',
               color: 'var(--c-tm, #7a7a88)',
-              fontFamily: "'Nord', 'DM Sans', sans-serif",
+              fontFamily: "'Nord', 'Heebo', 'DM Sans', sans-serif",
               fontSize: 11, fontWeight: 700, letterSpacing: '0.18em',
               textTransform: 'uppercase', cursor: 'pointer',
             }}>Reset & reload</button>
