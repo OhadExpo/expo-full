@@ -1,4 +1,7 @@
 import './themes.css'
+// Import BEFORE React so the global beforeinstallprompt capture is registered
+// before Chrome fires it (it fires once, early — a component listener misses it).
+import './pwaInstall.js'
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { Analytics } from '@vercel/analytics/react'
