@@ -267,33 +267,42 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
       </div>
     </div>
 
-    {/* 2. AUTOREGULATION */}
-    <div style={card}><div style={hd}>How's he responding?<span style={hdQ}>autoregulation — is the load right?</span></div>
+    {/* 2. AUTOREGULATION — split into what's working vs what to back off (Ohad) */}
+    <div style={card}><div style={hd}>How's he responding?<span style={hdQ}>autoregulation — what's working vs what to back off</span></div>
       <div style={bd}>
-        {a.region?.lower?.pct != null && a.region.lower.pct >= 25 && (
-          <Read tone="warn" why="Above ~25% the load's too heavy for now; it compounds.">
-            <b>Grinding the lower body — {a.region.lower.pct}% of sets short of target.</b>
-          </Read>
-        )}
-        {a.staples.some((s) => !s.ballistic && s.isMain && s.trend?.dir === 'down') && (() => {
-          // Only MAIN compound lifts regressing is a systemic-fatigue signal — a lone
-          // accessory dip, or a ballistic lift (whose e1RM is meaningless), must not
-          // drive "back off before injury" (matches the verdict; fresh-context review
-          // H1/H3). And with <3 logged sessions keep it an observation, not a directive.
+        {(() => {
+          const nm = (arr) => arr.map((s) => s.title).slice(0, 3).join(', ');
           const thin = (a.adh?.loggedSessions || 0) < 3;
-          const names = a.staples.filter((s) => !s.ballistic && s.isMain && s.trend?.dir === 'down').map((s) => s.title).slice(0, 2).join(', ');
+          // Only MAIN compounds drive the systemic reads; a lone accessory dip or a
+          // ballistic lift (whose e1RM is meaningless) never triggers "back off".
+          const climbing = a.staples.filter((s) => !s.ballistic && s.isMain && s.trend?.dir === 'up');
+          const ballisticUp = a.staples.filter((s) => s.ballistic && s.trend?.dir === 'up');
+          const regressing = a.staples.filter((s) => !s.ballistic && s.isMain && s.trend?.dir === 'down');
+          const stuck = a.staples.filter((s) => !s.ballistic && s.isMain && s.stale?.stale);
+          const lowerGrind = a.region?.lower?.pct != null && a.region.lower.pct >= 25;
+          const pos = [];
+          if (climbing.length) pos.push({ t: `Climbing — ${nm(climbing)}`, d: 'e1RM trending up. Keep progressing: +2–3% load or +1 rep at the same effort.' });
+          if (upperOk) pos.push({ t: 'Upper body dialed', d: `hitting reps at ${a.region.upper.pct}% miss — room to push the load.` });
+          if (ballisticUp.length) pos.push({ t: `Power moving — ${nm(ballisticUp)}`, d: 'load is up; film a set to confirm it’s bar speed, not just heavier kg.' });
+          const neg = [];
+          if (regressing.length) neg.push({ t: `Regressing — ${nm(regressing)}`, d: thin ? `e1RM sliding, but only ${a.adh?.loggedSessions || 0} session${(a.adh?.loggedSessions || 0) === 1 ? '' : 's'} logged — a flag to watch, not a deload trigger yet.` : 'e1RM down across the block. Back off ~5–10% intensity, hold volume, check recovery.' });
+          if (stuck.length) neg.push({ t: `Stuck — ${nm(stuck)}`, d: 'flat 3+ sessions. Change the stimulus (variation/tempo) or a light week — not more kg.' });
+          if (lowerGrind) neg.push({ t: 'Grinding the lower body', d: `${a.region.lower.pct}% of sets short of target — the load’s too heavy right now and it compounds.` });
+          const Col = ({ title, color, items, empty }) => (
+            <div style={{ border: `1px solid ${color}`, background: `color-mix(in srgb, ${color} 6%, transparent)`, padding: '11px 13px' }}>
+              <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color, marginBottom: 9 }}>{title}</div>
+              {items.length ? items.map((it, i) => (
+                <div key={i} style={{ marginBottom: i < items.length - 1 ? 10 : 0, fontSize: 12.5, lineHeight: 1.5, color: C.tx }}><b>{it.t}.</b> <span style={{ color: C.tm }}>{it.d}</span></div>
+              )) : <div style={{ fontSize: 12, color: C.td, lineHeight: 1.5 }}>{empty}</div>}
+            </div>
+          );
           return (
-            <Read tone={thin ? 'warn' : 'bad'} why={thin ? 'Off this few logs it may be noise or a light day — confirm with more sessions before backing load off.' : 'Load or fatigue is winning — back it off before it becomes an injury.'}>
-              <b>{names} {thin ? 'slipping' : 'regressing'}.</b> e1RM trending down{thin ? ` — but only ${a.adh?.loggedSessions || 0} session${(a.adh?.loggedSessions || 0) === 1 ? '' : 's'} logged, so read it as a flag to watch, not a deload trigger.` : ' across the block.'}
-            </Read>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }} className="lineage-grid2">
+              <Col title="✓ Working" color={C.gn} items={pos} empty="Nothing clearly trending up yet — needs more logged sessions to call a win." />
+              <Col title="⚠ Watch / back off" color={C.rd} items={neg} empty="Nothing flashing — loads and completion are holding across the block." />
+            </div>
           );
         })()}
-        {upperOk && (
-          <Read tone="ok"><b>Upper body's dialed.</b> Hitting reps at {a.region.upper.pct}% miss — room to keep progressing.</Read>
-        )}
-        {!(a.region?.lower?.pct >= 25) && !a.staples.some((s) => s.trend?.dir === 'down') && !upperOk && (
-          <Read tone="info"><b>Nothing flashing.</b> Loads and completion are holding across the block.</Read>
-        )}
       </div>
     </div>
 
