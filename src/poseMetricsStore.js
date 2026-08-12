@@ -25,10 +25,17 @@ const exKey = (title) => (title || 'exercise').trim().toLowerCase().replace(/\s+
 // "50% loss · fatiguing" on a pogo is nonsense that erodes trust (Ohad #171).
 // Those drills are still covered by the ballistic FLIGHT/RSI read + the L/R
 // injury-watch; they just don't belong in the velocity-loss BAR SPEED trend.
-const NON_VELOCITY_RE = /\b(jump|jumps|pogo|hop|hops|bound|bounds|snap[\s-]?down|depth|throw|throws|toss|slam|sprint|plyo|plyos|broad|cmj|countermovement)\b/i;
+// Ballistic/reactive/Olympic families (velocity-LOSS is not their read). Stems
+// carry inflections (jump/jumping/jumps) so "Box Jumping" is caught too.
+const NON_VELOCITY_RE = /\b(jump(?:ing|s)?|pogo|hop(?:ping|s)?|bound(?:ing|s)?|snap[\s-]?down|depth|throw(?:ing|s)?|toss|slam|sprint|plyo|plyos|broad|cmj|countermovement|snatch|clean|jerk|swing|swings|wall\s?ball)\b/i;
+// Grinding variants that merely BORROW an Olympic word for a grip/style are still
+// valid velocity lifts — a snatch-GRIP RDL / clean-GRIP deadlift is a slow pull,
+// not a snatch (mirrors lineageAnalysis' ballistic carve-out).
+const GRIND_CARVEOUT_RE = /\b(snatch|clean)[\s-]?grip\b/i;
 export function isVelocityLossLift(title) {
   const t = String(title || '').trim().toLowerCase();
   if (!t) return false;
+  if (GRIND_CARVEOUT_RE.test(t)) return true;
   return !NON_VELOCITY_RE.test(t);
 }
 const median = (arr) => {
@@ -97,8 +104,12 @@ export function savePoseMetric({ clientId, exercise, date, analysis, load, clipK
   const d0 = entry.date.slice(0, 10);
   lift.entries = lift.entries.filter((e) => {
     if ((e.date || '').slice(0, 10) !== d0) return true; // different day — keep
-    if (entry.clip) return e.clip !== entry.clip;        // same day — drop only the same clip
-    return false;                                        // legacy: no clip id -> one entry/day
+    if (entry.clip) return e.clip !== entry.clip;        // new entry HAS a clip — replace only the same clip
+    // new entry has NO clip (a manual MovementLab "save to trend"): keep every
+    // clip-stamped entry (the auto-analysed ones) and replace only a prior
+    // clip-less same-day entry. The old `return false` here wiped the auto
+    // entries too — order-dependent silent data-loss (adversarial-review H1).
+    return !!e.clip;
   });
   lift.entries.push(entry);
   lift.entries.sort((a, b) => String(a.date).localeCompare(String(b.date)));
@@ -116,15 +127,24 @@ export function getAthleteVault(clientId) {
   if (!client) return [];
   return Object.values(client)
     .map((lift) => {
-      // Collapse multiple clips filmed the SAME day to ONE point — the best rep of
-      // the day (fastest bestMean, VBT convention) — so a second same-day clip
-      // can't fake a two-point velocity trend from within-day noise. (The injury-
-      // watch keeps every reading and medians per date separately, below.)
+      // Collapse multiple clips filmed the SAME day to ONE point so a second
+      // same-day clip can't fake a two-point trend. Each axis uses its OWN
+      // representative (adversarial-review M1): bestMean = the day's fastest rep
+      // (readiness/velocity), but velocity-LOSS = the MOST-fatigued set of the day
+      // (max lossPct = the working/top set) — NOT the fastest clip's loss, which
+      // is a fresh warm-up set that would understate the fatigue the trend exists
+      // to show. (The injury-watch keeps every reading and medians per date below.)
       const byDate = new Map();
+      const lossByDate = new Map();
       for (const e of (lift.entries || [])) {
         const d = String(e.date || '').slice(0, 10);
         const cur = byDate.get(d);
-        if (!cur || (e.bestMean ?? -Infinity) > (cur.bestMean ?? -Infinity)) byDate.set(d, e);
+        if (!cur || (e.bestMean ?? -Infinity) > (cur.bestMean ?? -Infinity)) byDate.set(d, { ...e });
+        if (typeof e.lossPct === 'number') lossByDate.set(d, Math.max(lossByDate.get(d) ?? -Infinity, e.lossPct));
+      }
+      for (const [d, rep] of byDate) {
+        const ml = lossByDate.get(d);
+        rep.lossPct = (ml != null && ml > -Infinity) ? ml : null; // fatigue axis independent of the bestMean pick
       }
       const entries = [...byDate.values()].sort((a, b) => String(a.date).localeCompare(String(b.date)));
       const losses = entries.map((e) => e.lossPct).filter((x) => typeof x === 'number');

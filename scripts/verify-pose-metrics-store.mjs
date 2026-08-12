@@ -130,5 +130,35 @@ seed({ q: {
 const gated = getAthleteVault('q');
 check('#171 vault drops the legacy-stored pogo, keeps BB RDL', gated.length === 1 && gated[0].title === 'BB RDL');
 
+// ── review H1: a manual (no-clip) save must NOT wipe clip-stamped auto entries ──
+_mem.clear();
+savePoseMetric({ clientId: 'h', exercise: 'BB Squat', date: '2026-08-01', analysis: mkAnalysis(0.60, 20), clipKey: 'auto1' });
+savePoseMetric({ clientId: 'h', exercise: 'BB Squat', date: '2026-08-01', analysis: mkAnalysis(0.58, 25), clipKey: 'auto2' });
+savePoseMetric({ clientId: 'h', exercise: 'BB Squat', date: '2026-08-01', analysis: mkAnalysis(0.62, 18) }); // manual, NO clipKey
+const hEntries = rawEntries('h', 'bb squat');
+check('H1 manual no-clip save coexists, keeps both auto clips (3 entries)', hEntries.length === 3);
+check('H1 re-doing a no-clip save replaces only the prior no-clip (still 3)',
+  (savePoseMetric({ clientId: 'h', exercise: 'BB Squat', date: '2026-08-01', analysis: mkAnalysis(0.61, 19) }), rawEntries('h', 'bb squat').length) === 3);
+
+// ── review M1: the day's velocity-LOSS = the most-fatigued set, not the fastest clip's ──
+seed({ m: { 'bb squat': { title: 'BB Squat', entries: [
+  { date: '2026-08-01', bestMean: 0.70, lossPct: 5 },   // warm-up: fastest, low fatigue
+  { date: '2026-08-01', bestMean: 0.55, lossPct: 35 },  // top set: slower, high fatigue
+] } } });
+const mv = getAthleteVault('m')[0];
+check('M1 collapsed day reports the WORKING set fatigue (loss 35, not warm-up 5)', mv.entries[0].lossPct === 35);
+check('M1 collapsed day keeps the fastest bestMean for readiness (0.70)', mv.entries[0].bestMean === 0.70);
+
+// ── review M2/L1: Olympic lifts, KB swing, wall ball, and gerund plyos excluded ──
+check('M2 Power Clean excluded', isVelocityLossLift('Power Clean') === false);
+check('M2 Hang Snatch excluded', isVelocityLossLift('Hang Snatch') === false);
+check('M2 Push Jerk excluded', isVelocityLossLift('Push Jerk') === false);
+check('M2 Kettlebell Swing excluded', isVelocityLossLift('Kettlebell Swing') === false);
+check('M2 Wall Ball excluded', isVelocityLossLift('Wall Ball') === false);
+check('M2 carve-out: Snatch-Grip RDL stays velocity-valid', isVelocityLossLift('Snatch-Grip RDL') === true);
+check('M2 carve-out: Clean-Grip Deadlift stays velocity-valid', isVelocityLossLift('Clean-Grip Deadlift') === true);
+check('L1 Box Jumping (gerund) excluded', isVelocityLossLift('Box Jumping') === false);
+check('L1 Single-Leg Bounding (gerund) excluded', isVelocityLossLift('Single-Leg Bounding') === false);
+
 console.log(`\n${fail === 0 ? '✓ ALL PASS' : '✗ FAILURES'} — ${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);
