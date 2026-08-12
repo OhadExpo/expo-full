@@ -294,13 +294,19 @@ export function tonnageACWR(sessions, nowMs) {
   // divides ~acute by 4 and fabricates a ~4.0 spike (the spec's cardinal sin).
   const recent = sessTon.filter((s) => now - s.date <= 28 * dayMs);
   const inSpan = (now - Math.min(...recent.map((s) => s.date))) / dayMs;
-  // The chronic baseline must be built from sessions OUTSIDE the acute week —
-  // otherwise a returning logger (one old session + a busy current week) has a
-  // baseline made of this week's own load, which inflates the ratio into a fake
-  // "load spiked → deload him". Require ≥3 sessions in days 8–28.
+  // Require ≥3 sessions in days 8–28 so the chronic baseline isn't dominated by
+  // the acute week — otherwise a returning logger (one old session + a busy
+  // current week) has a baseline made mostly of this week's own load, which
+  // distorts the ratio into a fake "load spiked → deload him".
   const chronicSessions = recent.filter((s) => now - s.date > 7 * dayMs);
   if (inSpan < 21 || recent.length < 4 || chronicSessions.length < 3) return { state: 'thin', haveDays: Math.round(inSpan), need: 28, series };
   const acute = recent.filter((s) => now - s.date <= 7 * dayMs).reduce((a, b) => a + b.t, 0);
+  // NOTE (coupled vs uncoupled ACWR — pending Ohad's decision, see 08-12 brief):
+  // chronic baseline = ALL 28 days INCLUDING the acute week (COUPLED ACWR, the
+  // original Gabbett form). The ≥3-outside gate above keeps the acute week from
+  // dominating it. Uncoupled (Windt & Gabbett 2019) would use Σ(chronicSessions)
+  // over its own weeks — more spike-sensitive. Do NOT flip without Ohad: it moves
+  // a live injury-risk band. (This is a documentation note; behaviour unchanged.)
   const chronicTotal = recent.reduce((a, b) => a + b.t, 0);
   const chronicWeekly = chronicTotal / Math.max(1, inSpan / 7); // divide by weeks with actual data
   if (!chronicWeekly) return { state: 'thin', haveDays: Math.round(inSpan), need: 28, series };
