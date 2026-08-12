@@ -189,14 +189,27 @@ export function validateReps(reps, angle, frames = null, fps = 30) {
   const refROM = upper[Math.floor(upper.length / 2)] || 0;
   const ampFloor = Math.max(26, 0.45 * refROM);
   const kept = [], rejected = [];
-  for (const x of m) {
+  // A genuinely FATIGUED last rep loses lockout ROM (a grind) — it's the single
+  // most informative rep for a fatigue / velocity-loss read, so don't silently
+  // delete it for shallowness the way a mid-set fidget or setup twitch is deleted
+  // (adversarial-review 2026-08-12: dropping it excluded the slowest rep, so
+  // finalLossPct anchored to a faster earlier rep → fatigue UNDER-reported → the
+  // coach over-loads the next set). Grace ONLY the chronologically-last candidate,
+  // and only when it's a real PARTIAL (≥30% of the reference ROM, ≥26° absolute)
+  // rather than a tiny re-rack. It's kept AND flagged `partial` so downstream can
+  // caveat it.
+  const partialFloor = Math.max(26, 0.30 * refROM);
+  const lastI = m.length - 1;
+  m.forEach((x, i) => {
     let reason = null;
-    if (x.minROM < ampFloor) reason = 'shallow';                 // twitch / partial setup
-    else if (frames && x.net > 0.35) reason = 'moved';           // walkout / walk-back
-    else if (x.dur < 0.35) reason = 'too-fast';                  // sub-rep flicker
-    if (reason) rejected.push({ bottomIdx: x.r.bottomIdx, minROM: Math.round(x.minROM), reason });
-    else kept.push(x.r);
-  }
+    const graceShallow = i === lastI && x.minROM >= partialFloor && x.minROM < ampFloor;
+    if (x.minROM < ampFloor && !graceShallow) reason = 'shallow';   // twitch / partial setup
+    else if (frames && x.net > 0.35) reason = 'moved';              // walkout / walk-back
+    else if (x.dur < 0.35) reason = 'too-fast';                     // sub-rep flicker
+    if (reason) { rejected.push({ bottomIdx: x.r.bottomIdx, minROM: Math.round(x.minROM), reason }); return; }
+    if (graceShallow) x.r.partial = true;                          // kept, but it's a fatigued grind
+    kept.push(x.r);
+  });
   return { kept, rejected };
 }
 

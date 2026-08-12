@@ -3,7 +3,7 @@
 // rep-counting, ROM, the goniometer, everything. Pinned with known geometry.
 // Run: node scripts/verify-pose-primitives.mjs
 import { angleAt, detectChannels, medianFilter, isReal } from '../src/repCounter.js';
-import { jointRomMetrics, frameScaleY } from '../src/poseLab.js';
+import { jointRomMetrics, frameScaleY, validateReps } from '../src/poseLab.js';
 
 let pass = 0, fail = 0;
 const check = (name, cond) => { console.log(`${cond ? 'PASS' : 'FAIL'}  ${name}`); cond ? pass++ : fail++; };
@@ -90,6 +90,23 @@ check('romDeg ~40', near(knee.romDeg, 40, 4));
 check('robust hiDeg present and <= maxDeg', typeof knee.hiDeg === 'number' && knee.hiDeg <= knee.maxDeg);
 check('robust loDeg present and >= minDeg', typeof knee.loDeg === 'number' && knee.loDeg >= knee.minDeg);
 check('too few frames -> null', jointRomMetrics([{ t: 0, worldLandmarks: kneeFrame(150) }]) === null);
+
+// --- validateReps: fatigued PARTIAL last rep is kept (not deleted as 'shallow') ---
+// 3 full reps (ROM 100) then a partial last rep (ROM 40 = 40% of ref) — a grind.
+const R = (s, b, e) => ({ startIdx: s, bottomIdx: b, endIdx: e });
+const repsPartial = [R(0, 1, 2), R(2, 3, 4), R(4, 5, 6), R(6, 7, 8)];
+const angPartial = [160, 60, 160, 60, 160, 60, 160, 120, 160]; // last bottom=120 → ROM 40
+const vp = validateReps(repsPartial, angPartial);
+check('fatigued partial LAST rep kept (4 reps, not 3)', vp.kept.length === 4);
+check('the kept partial last rep is flagged partial', vp.kept[vp.kept.length - 1].partial === true);
+// a MID-set shallow rep is still rejected (only the LAST gets grace)
+const angMid = [160, 60, 160, 120, 160, 60, 160, 60, 160]; // rep2 bottom=120 → ROM 40, NOT last
+const vm = validateReps([R(0, 1, 2), R(2, 3, 4), R(4, 5, 6), R(6, 7, 8)], angMid);
+check('mid-set shallow rep still rejected (3 kept)', vm.kept.length === 3);
+// a TINY last rep (ROM 20 = 20% of ref, < partial floor) is still rejected — not a rep
+const angTiny = [160, 60, 160, 60, 160, 60, 160, 140, 160]; // last bottom=140 → ROM 20
+const vt = validateReps([R(0, 1, 2), R(2, 3, 4), R(4, 5, 6), R(6, 7, 8)], angTiny);
+check('tiny last rep (re-rack twitch) still rejected (3 kept)', vt.kept.length === 3);
 
 console.log(`\n${fail === 0 ? '✓ ALL PASS' : '✗ FAILURES'} — ${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);
