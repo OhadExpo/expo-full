@@ -25,10 +25,18 @@
 // jointRom entry into a clinical degree. We measure both sides and surface each,
 // plus the demonstrated max, so the coach sees the fuller range and any L/R gap.
 
-// clamp helper — a measured clinical degree outside a physiological window is a
-// tracking artifact (occlusion, wrong camera plane), not a real end-range, so we
-// null it rather than propose a nonsense number into the eval.
+// clamp helper — only an IMPOSSIBLE degree is nulled (above the physiological
+// ceiling = a plane/occlusion artifact). The FLOOR is kept deliberately low: a
+// knee that flexes only 15° is exactly the restricted reading a goniometer
+// exists to capture, so we must NOT hide it as an "artifact" — a stiff joint is
+// the clinically important case. (Fresh-context review finding #5.)
 const clampDeg = (v, lo, hi) => (v == null || !Number.isFinite(v) || v < lo || v > hi ? null : Math.round(v));
+
+// Prefer the ROBUST extreme (median of the 3 most-extreme frames, from
+// jointRomMetrics) over the raw single-frame max/min, so one occlusion glitch
+// can't inflate the reading. Falls back to raw for older payloads. (Finding #3.)
+const loOf = (e) => (e.loDeg != null ? e.loDeg : e.minDeg);
+const hiOf = (e) => (e.hiDeg != null ? e.hiDeg : e.maxDeg);
 
 // jointId/axis here MUST match evaluationSchema.rom joints + axis labels, so
 // romKey(jointId, axis) lands in the right field.
@@ -37,18 +45,18 @@ export const ROM_CAMERA_AXES = [
     jointId: 'knee', axis: 'Flexion', channels: { L: 'L KNE', R: 'R KNE' },
     cue: 'Film from the SIDE. Athlete bends the knee through its full range (heel to glute) and back.',
     // deepest bend = smallest interior angle
-    toClinical: (e) => clampDeg(180 - e.minDeg, 20, 170),
+    toClinical: (e) => clampDeg(180 - loOf(e), 5, 170),
   },
   {
     jointId: 'hip', axis: 'Flexion', channels: { L: 'L HIP', R: 'R HIP' },
     cue: 'Film from the SIDE. Athlete raises the thigh toward the chest through full range.',
-    toClinical: (e) => clampDeg(180 - e.minDeg, 20, 150),
+    toClinical: (e) => clampDeg(180 - loOf(e), 5, 150),
   },
   {
     jointId: 'shoulder', axis: 'Flexion', channels: { L: 'L SHO', R: 'R SHO' },
     cue: 'Film from the SIDE. Athlete raises the straight arm forward and overhead through full range.',
     // arm overhead = largest interior angle (direct, no inversion)
-    toClinical: (e) => clampDeg(e.maxDeg, 30, 185),
+    toClinical: (e) => clampDeg(hiOf(e), 10, 185),
   },
 ];
 
@@ -59,7 +67,9 @@ export function romCameraSpec(jointId, axisLabel) {
 
 // Fold a jointRomMetrics array (from analyzeClip().jointRom) into a per-side
 // clinical reading for one axis spec. Returns null if neither side is measurable.
-//   { L, R, max, maxSide, asymDeg }  (degrees; L/R may be null individually)
+//   { L, R, max, maxSide, min, minSide, asymDeg }  (degrees; L/R may be null)
+// For all three axes a LARGER clinical degree = MORE range, so `max` is the
+// demonstrated capability and `min` is the worse (restricted) side.
 export function romReadingFor(spec, jointRom) {
   if (!spec || !Array.isArray(jointRom)) return null;
   const byName = Object.fromEntries(jointRom.map((j) => [j.name, j]));
@@ -68,6 +78,7 @@ export function romReadingFor(spec, jointRom) {
   if (L == null && R == null) return null;
   const sides = [['L', L], ['R', R]].filter(([, v]) => v != null);
   const [maxSide, max] = sides.reduce((best, cur) => (cur[1] > best[1] ? cur : best));
+  const [minSide, min] = sides.reduce((worst, cur) => (cur[1] < worst[1] ? cur : worst));
   const asymDeg = (L != null && R != null) ? Math.abs(L - R) : null;
-  return { L, R, max, maxSide, asymDeg };
+  return { L, R, max, maxSide, min, minSide, asymDeg };
 }

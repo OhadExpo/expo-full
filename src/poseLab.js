@@ -515,7 +515,17 @@ export function jointRomMetrics(frames, jointNames = null) {
     const series = medianFilter(clampAngleSeries(raw, t), 5).filter(isReal);
     if (series.length < 4) return null;
     const max = Math.max(...series), min = Math.min(...series);
-    return { name: d.name, maxDeg: Math.round(max), minDeg: Math.round(min), romDeg: Math.round(max - min), samples: series.length };
+    // Robust extremes for anything that writes a number a human acts on (the
+    // camera goniometer): the raw max/min is a SINGLE frame, so a 1–2 frame
+    // occlusion glitch that survives the median-5 filter inflates the reported
+    // range. Take the median of the 3 most-extreme frames — kills a lone spike,
+    // only trims a genuinely-held end-range by a degree or two.
+    const sorted = [...series].sort((a, b) => a - b);
+    const medOf = (arr) => arr.slice().sort((a, b) => a - b)[Math.floor(arr.length / 2)];
+    const k = Math.min(3, sorted.length);
+    const loDeg = Math.round(medOf(sorted.slice(0, k)));
+    const hiDeg = Math.round(medOf(sorted.slice(-k)));
+    return { name: d.name, maxDeg: Math.round(max), minDeg: Math.round(min), romDeg: Math.round(max - min), hiDeg, loDeg, samples: series.length };
   }).filter(Boolean);
   return out.length ? out : null;
 }

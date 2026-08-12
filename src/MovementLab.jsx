@@ -1709,8 +1709,13 @@ function FpsBadge({ fps }) {
 // goniometer measurement.
 function RomConfirm({ spec, jointRom, onSave, onClose }) {
   const reading = useMemo(() => romReadingFor(spec, jointRom), [spec, jointRom]);
-  const [deg, setDeg] = useState(() => (reading?.max != null ? String(reading.max) : ''));
+  // Default the logged value to the WORSE (restricted) side, not the better one:
+  // in a single per-axis clinical field the deficit is the point, and pre-filling
+  // the healthy side would bury it on a fast click-through. (Review finding #6.)
+  const [deg, setDeg] = useState(() => (reading?.min != null ? String(reading.min) : ''));
   const [saved, setSaved] = useState(false);
+  const degNum = parseInt(deg, 10);
+  const degValid = deg !== '' && Number.isFinite(degNum);
   if (!reading) return (
     <div style={{ border: `1px solid ${C.rd}`, background: `${C.rd}14`, padding: 16, marginBottom: 16 }}>
       <div style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.rd, letterSpacing: '0.1em' }}>NO CLEAN {spec.axis.toUpperCase()} READ</div>
@@ -1743,14 +1748,17 @@ function RomConfirm({ spec, jointRom, onSave, onClose }) {
         <div style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.14em', color: 'rgba(255,255,255,0.6)' }}>LOG</div>
         <input type="number" value={deg} onChange={e => { setDeg(e.target.value); setSaved(false); }}
           style={{ width: 84, padding: '8px 10px', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.25)', color: '#FFF', fontFamily: FN, fontSize: 16, textAlign: 'center' }} />
-        <div style={{ fontFamily: FB, fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>degrees · {reading.maxSide === 'L' ? 'left' : 'right'} = demonstrated max</div>
+        <div style={{ fontFamily: FB, fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>degrees · defaulted to {reading.minSide === 'L' ? 'left' : 'right'} (the restricted side)</div>
       </div>
-      <div style={{ fontFamily: FB, fontSize: 10.5, color: 'rgba(255,255,255,0.5)', marginTop: 10, lineHeight: 1.5 }}>
-        Active range from a side-on clip — reads a few degrees under a hands-on passive goniometer. Sagittal flexion only; the camera can't measure rotation or side-to-side axes. Confirm or edit before saving.
+      <div style={{ fontFamily: FB, fontSize: 10.5, color: C.or, marginTop: 10, lineHeight: 1.5 }}>
+        Only valid if the limb moved in the SAGITTAL plane (straight forward, filmed side-on). If it swung out to the side, the camera reads that as flexion too — re-film or enter by hand.
       </div>
-      <button disabled={saved || deg === ''} onClick={() => { onSave(parseInt(deg, 10)); setSaved(true); }}
-        style={{ marginTop: 14, padding: '12px 20px', width: '100%', background: saved ? '#2a2a2a' : C.ac, border: `1px solid ${saved ? '#2a2a2a' : C.ac}`, color: '#FFF', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', cursor: saved || deg === '' ? 'default' : 'pointer' }}>
-        {saved ? '✓ LOGGED TO EVAL' : `USE ${deg || '—'}° →`}
+      <div style={{ fontFamily: FB, fontSize: 10.5, color: 'rgba(255,255,255,0.5)', marginTop: 8, lineHeight: 1.5 }}>
+        Active range — reads a few degrees under a hands-on passive goniometer. Confirm or edit before saving.
+      </div>
+      <button disabled={saved || !degValid} onClick={() => { onSave(degNum); setSaved(true); }}
+        style={{ marginTop: 14, padding: '12px 20px', width: '100%', background: saved ? '#2a2a2a' : C.ac, border: `1px solid ${saved ? '#2a2a2a' : C.ac}`, color: '#FFF', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', cursor: saved || !degValid ? 'default' : 'pointer' }}>
+        {saved ? '✓ LOGGED TO EVAL' : `USE ${degValid ? degNum : '—'}° →`}
       </button>
       {saved && <button onClick={onClose} style={{ marginTop: 8, padding: '10px 20px', width: '100%', background: 'transparent', border: '1px solid rgba(255,255,255,0.3)', color: '#FFF', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', cursor: 'pointer' }}>DONE — BACK TO EVAL</button>}
     </div>
