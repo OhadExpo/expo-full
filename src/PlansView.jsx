@@ -4267,20 +4267,25 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
           card. Modal so it works identically from Table and Grid, and doesn't
           disturb the list. */}
       {lineageTraineeId && createPortal(
-        <div onClick={() => setLineageTraineeId(null)} role="dialog" aria-modal="true" aria-label="Training Analysis"
-          style={{ position: 'fixed', inset: 0, zIndex: 1200, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '32px 16px', overflow: 'auto' }}>
-          <div onClick={e => e.stopPropagation()} style={{ width: 'min(1180px, 96vw)', position: 'relative' }}>
-            <button onClick={() => setLineageTraineeId(null)} title="Close (Esc)"
-              style={{ position: 'absolute', top: 0, right: 0, transform: 'translate(40%,-40%)', zIndex: 2, width: 30, height: 30, borderRadius: '50%', border: `1px solid ${C.cardBd}`, background: 'var(--c-bg, #0a0a0b)', color: C.tm, cursor: 'pointer', fontSize: 15, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
-            <TrainingLineageV2
-              traineeId={lineageTraineeId}
-              traineeName={traineeMap[lineageTraineeId] || 'Athlete'}
-              exercises={exercises}
-              plans={lineagePlans}
-              clientWorkouts={clientWorkouts}
-              loading={lineageLoading}
-              onOpenPlan={(id) => { setLineageTraineeId(null); handleOpenPlan(id); }}
-            />
+        // Full PAGE, not a pop-up (Ohad): opaque full-viewport surface + sticky Back bar.
+        <div role="dialog" aria-modal="true" aria-label="Training Analysis"
+          style={{ position: 'fixed', inset: 0, zIndex: 1200, background: 'var(--c-bg, #0a0a0b)', overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ position: 'sticky', top: 0, zIndex: 3, background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}`, padding: '10px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
+            <button onClick={() => setLineageTraineeId(null)} title="Back (Esc)"
+              style={{ background: 'none', border: 'none', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 6 }}>← Back</button>
+          </div>
+          <div style={{ flex: 1, padding: '18px 16px 60px' }}>
+            <div style={{ width: 'min(1180px, 96vw)', margin: '0 auto' }}>
+              <TrainingLineageV2
+                traineeId={lineageTraineeId}
+                traineeName={traineeMap[lineageTraineeId] || 'Athlete'}
+                exercises={exercises}
+                plans={lineagePlans}
+                clientWorkouts={clientWorkouts}
+                loading={lineageLoading}
+                onOpenPlan={(id) => { setLineageTraineeId(null); handleOpenPlan(id); }}
+              />
+            </div>
           </div>
         </div>, document.body)}
       {/* Zero-match empty state — search/flags render as athlete groups above

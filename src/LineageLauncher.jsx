@@ -22,21 +22,27 @@ export function useLineageLauncher({ exercises, clientWorkouts, traineeMap = {},
   }, [tid]);
   const open = useCallback((id) => setTid(id), []);
   const close = useCallback(() => setTid(null), []);
+  // Opens as a FULL PAGE (Ohad), not a dismissable pop-up: an opaque, full-viewport
+  // surface with a sticky Back bar and its own scroll — reads like a real page.
   const node = tid ? createPortal(
-    <div onClick={close} role="dialog" aria-modal="true" aria-label="Training Analysis"
-      style={{ position: 'fixed', inset: 0, zIndex: 1200, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '32px 16px', overflow: 'auto' }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(1180px, 96vw)', position: 'relative' }}>
-        <button onClick={close} title="Close (Esc)"
-          style={{ position: 'absolute', top: 0, right: 0, transform: 'translate(40%,-40%)', zIndex: 2, width: 30, height: 30, borderRadius: '50%', border: `1px solid ${C.cardBd}`, background: 'var(--c-bg, #0a0a0b)', color: C.tm, cursor: 'pointer', fontSize: 15, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
-        <TrainingLineageV2
-          traineeId={tid}
-          traineeName={traineeMap[tid] || 'Athlete'}
-          exercises={exercises}
-          plans={plans}
-          clientWorkouts={clientWorkouts}
-          loading={loading}
-          onOpenPlan={(id) => { setTid(null); if (onOpenPlan) onOpenPlan(id); }}
-        />
+    <div role="dialog" aria-modal="true" aria-label="Training Analysis"
+      style={{ position: 'fixed', inset: 0, zIndex: 1200, background: 'var(--c-bg, #0a0a0b)', overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ position: 'sticky', top: 0, zIndex: 3, background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}`, padding: '10px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
+        <button onClick={close} title="Back (Esc)"
+          style={{ background: 'none', border: 'none', color: C.ac, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 6 }}>← Back</button>
+      </div>
+      <div style={{ flex: 1, padding: '18px 16px 60px' }}>
+        <div style={{ width: 'min(1180px, 96vw)', margin: '0 auto' }}>
+          <TrainingLineageV2
+            traineeId={tid}
+            traineeName={traineeMap[tid] || 'Athlete'}
+            exercises={exercises}
+            plans={plans}
+            clientWorkouts={clientWorkouts}
+            loading={loading}
+            onOpenPlan={(id) => { setTid(null); if (onOpenPlan) onOpenPlan(id); }}
+          />
+        </div>
       </div>
     </div>, document.body) : null;
   return { open, close, node, openId: tid };
