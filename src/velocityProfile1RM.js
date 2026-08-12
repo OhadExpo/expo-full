@@ -31,10 +31,16 @@ export function mvtForLift(title) {
 // mvt:    minimal velocity threshold for this lift (from mvtForLift).
 export function velocityProfile1RM(points, mvt) {
   const m = (typeof mvt === 'number' && mvt > 0) ? mvt : MVT.default;
-  const pts = (points || []).filter((p) => p && typeof p.load === 'number' && p.load > 0 && typeof p.velocity === 'number' && p.velocity > 0);
-  const loads = [...new Set(pts.map((p) => p.load))];
+  const raw = (points || []).filter((p) => p && typeof p.load === 'number' && p.load > 0 && typeof p.velocity === 'number' && p.velocity > 0);
+  // The LV profile is one point per LOAD, not per set — average velocity across
+  // sets at the same load (e.g. filmed on different dates) so a repeated load can't
+  // outweigh the fit, and per-set noise at each load cancels. Standard LV practice.
+  const byLoad = new Map();
+  for (const p of raw) { if (!byLoad.has(p.load)) byLoad.set(p.load, []); byLoad.get(p.load).push(p.velocity); }
+  const pts = [...byLoad.entries()].map(([load, vs]) => ({ load, velocity: vs.reduce((a, b) => a + b, 0) / vs.length }));
+  const loads = pts.map((p) => p.load);
   // Need ≥2 DISTINCT loads to fit a line — a single load can't define a slope.
-  if (loads.length < 2) return { state: 'thin', have: loads.length, need: 2, points: pts.length };
+  if (loads.length < 2) return { state: 'thin', have: loads.length, need: 2, points: raw.length };
   // Least-squares: velocity = a + b·load. Slope b (m/s per kg) should be NEGATIVE.
   const n = pts.length;
   const mLoad = pts.reduce((s, p) => s + p.load, 0) / n;
@@ -60,7 +66,7 @@ export function velocityProfile1RM(points, mvt) {
     oneRM: Math.round(oneRM),
     r2: Math.round(r2 * 100) / 100,
     loads: loads.length,
-    points: pts.length,
+    points: raw.length,
     mvt: m,
     // Confidence needs a real load spread AND a tight fit — 2 loads with a perfect
     // line is still only medium (VBT profiling wants 3–4 loads for a trusted number).
