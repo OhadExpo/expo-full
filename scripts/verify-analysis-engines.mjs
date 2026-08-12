@@ -13,6 +13,7 @@ const suites = [
   'verify-analyze-clip.mjs',         // analyzeClip end-to-end: rep count + velocity + ROM/tempo + joint ROM
   'verify-rom-goniometer.mjs',       // camera goniometer -> clinical ROM degree
   'verify-velocity-profile-1rm.mjs', // load-velocity -> estimated 1RM
+  'verify-velocity-profile-shift.mjs',// velocityProfileShift — block-over-block LV shift: force vs velocity adaptation
   'verify-periodization-balance.mjs',// block history -> periodization read
   'verify-block-character.mjs',      // classifyBlockCharacter — periodization ZONE + NSCA power rep-ceiling
   'verify-e1rm-trend.mjs',           // e1rmTrend — POSITIVE/NEGATIVE strength direction + 3 hardening guards
