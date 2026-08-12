@@ -8,8 +8,8 @@
 // Heavy + async (MediaPipe over each remote clip), so it runs ONCE per clip:
 // analyzed URLs are remembered in localStorage and skipped on later opens.
 
-import { analyzeClip } from './poseLab';
-import { savePoseMetric } from './poseMetricsStore';
+import { analyzeClip } from './poseLab.js';
+import { savePoseMetric } from './poseMetricsStore.js';
 // captureClipFrames lives in MovementLab (which pulls MediaPipe WASM + a lazy 3D
 // engine). Dynamic-import it inside the runner so opening the Analysis report
 // never eagerly loads all that — it only arrives when a batch actually starts.

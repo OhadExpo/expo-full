@@ -12,7 +12,7 @@
 // would promote this to a `pose_metrics` table on the same (clientId, planName,
 // dayName, week, eid) join key client_workouts already uses.
 
-import { detectAsymmetry } from './poseInsights';
+import { detectAsymmetry } from './poseInsights.js';
 
 const KEY = 'expo-pose-metrics';
 const exKey = (title) => (title || 'exercise').trim().toLowerCase().replace(/\s+/g, ' ');
