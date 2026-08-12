@@ -14,7 +14,12 @@ import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
 import { getInstallEvent, clearInstallEvent, onInstallReady, isIOS, isIOSSafari, isStandalone } from './pwaInstall';
 
-const SESSION_KEY = 'expo-install-prompt-shown';
+// A DISMISSAL snooze in localStorage (not sessionStorage) so tapping "MAYBE
+// LATER" isn't re-nagged with a blocking modal every browser session
+// (adversarial-QA #8). Cleared on appinstalled.
+const SNOOZE_KEY = 'expo-install-snooze-until';
+const SNOOZE_MS = 14 * 24 * 60 * 60 * 1000; // re-offer after ~2 weeks
+const snoozeInstall = () => { try { localStorage.setItem(SNOOZE_KEY, String(Date.now() + SNOOZE_MS)); } catch { /* private mode */ } };
 
 export default function InstallAppPrompt() {
   const [prompt, setPrompt] = useState(null); // captured beforeinstallprompt (Android/Chrome)
@@ -24,13 +29,12 @@ export default function InstallAppPrompt() {
   useEffect(() => {
     if (isStandalone()) return undefined;                 // already IN the installed app
     let shown = false;
-    try { shown = !!sessionStorage.getItem(SESSION_KEY); } catch { /* private mode */ }
+    try { shown = Date.now() < (parseInt(localStorage.getItem(SNOOZE_KEY), 10) || 0); } catch { /* private mode */ }
     let cancelled = false;
 
     const show = (m) => {
       if (cancelled || shown || isStandalone()) return;
       shown = true;
-      try { sessionStorage.setItem(SESSION_KEY, '1'); } catch { /* noop */ }
       setMode(m);
       setOpen(true);
     };
@@ -59,7 +63,7 @@ export default function InstallAppPrompt() {
     let t = null;
     if (isIOS()) t = setTimeout(() => show('ios'), 1200);
 
-    const onInstalled = () => setOpen(false);
+    const onInstalled = () => { try { localStorage.removeItem(SNOOZE_KEY); } catch { /* noop */ } setOpen(false); };
     window.addEventListener('appinstalled', onInstalled);
     const onKey = (e) => { if (e.key === 'Escape') setOpen(false); }; // review L1
     window.addEventListener('keydown', onKey);
@@ -79,13 +83,14 @@ export default function InstallAppPrompt() {
       try { prompt.prompt(); await prompt.userChoice; } catch { /* user dismissed */ }
       clearInstallEvent();
       setPrompt(null);
+      snoozeInstall();   // if they declined the OS sheet, don't re-nag next session; a real install clears it via appinstalled (#8)
       setOpen(false);
       return;
     }
     // No programmatic install (iOS, or installed-in-browser) → the instructions
     // ARE the action; keep the modal on its guidance screen. Nothing to do here.
   };
-  const close = () => setOpen(false);
+  const close = () => { snoozeInstall(); setOpen(false); }; // "MAYBE LATER" snoozes ~2 weeks (#8)
 
   // Copy per mode.
   const iosNonSafari = mode === 'ios' && !isIOSSafari();
