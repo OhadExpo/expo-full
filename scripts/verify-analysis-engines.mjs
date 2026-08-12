@@ -23,6 +23,7 @@ const suites = [
   'verify-lineage-core.mjs',         // e1RM (Epley) + topSet — the primitives every strength read rests on
   'verify-auto-analyze.mjs',         // auto-analyze collector — clip scoping / couples cid / load-ambiguity
   'verify-pose-metrics-store.mjs',   // Bar-Speed vault reads: asymmetry injury-watch + readiness ref + velocity-loss trend
+  'verify-detect-asymmetry.mjs',     // detectAsymmetry — raw L/R imbalance + anti-fabrication guards (feeds the injury flag)
   'verify-verdict.mjs',              // synthesizeVerdict — the headline coach-acted call (deload gating)
 ];
 
