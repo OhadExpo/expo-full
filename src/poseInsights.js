@@ -74,8 +74,12 @@ export function detectFaults(result, title) {
     else if (elbMax >= 165) good.push('Full lockout at the top.');
   }
   if (isPull && (jn['L ELB'] || jn['R ELB'])) {
-    const elbMin = Math.min(jn['L ELB']?.minDeg ?? 180, jn['R ELB']?.minDeg ?? 180);
-    if (elbMin > 60) faults.push({ sev: 'warn', msg: `Partial pull (elbow only to ~${elbMin}°)`, why: 'not pulling to full contraction — half reps at the top.' });
+    // Only judge on a REAL measured elbow min — a missing/untracked elbow must not
+    // default to 180° and fire a false "partial pull" off no data (press/squat
+    // guard this; pull didn't).
+    const mins = [jn['L ELB']?.minDeg, jn['R ELB']?.minDeg].filter((x) => typeof x === 'number');
+    const elbMin = mins.length ? Math.min(...mins) : null;
+    if (elbMin != null && elbMin > 60) faults.push({ sev: 'warn', msg: `Partial pull (elbow only to ~${elbMin}°)`, why: 'not pulling to full contraction — half reps at the top.' });
   }
 
   return { faults, good, note: '2D phone pose — angles are approximate. Flags to eyeball, not diagnoses.' };
