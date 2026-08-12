@@ -275,10 +275,13 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
           const thin = (a.adh?.loggedSessions || 0) < 3;
           // Only MAIN compounds drive the systemic reads; a lone accessory dip or a
           // ballistic lift (whose e1RM is meaningless) never triggers "back off".
-          const climbing = a.staples.filter((s) => !s.ballistic && s.isMain && s.trend?.dir === 'up');
-          const ballisticUp = a.staples.filter((s) => s.ballistic && s.trend?.dir === 'up');
-          const regressing = a.staples.filter((s) => !s.ballistic && s.isMain && s.trend?.dir === 'down');
+          // Buckets are mutually exclusive: a lift flat the last 3 sessions is "stuck",
+          // never also "climbing"/"regressing" — the recent plateau is the actionable
+          // signal, and a lift can't honestly be in both a positive and a negative column.
           const stuck = a.staples.filter((s) => !s.ballistic && s.isMain && s.stale?.stale);
+          const climbing = a.staples.filter((s) => !s.ballistic && s.isMain && !s.stale?.stale && s.trend?.dir === 'up');
+          const ballisticUp = a.staples.filter((s) => s.ballistic && !s.stale?.stale && s.trend?.dir === 'up');
+          const regressing = a.staples.filter((s) => !s.ballistic && s.isMain && !s.stale?.stale && s.trend?.dir === 'down');
           const lowerGrind = a.region?.lower?.pct != null && a.region.lower.pct >= 25;
           const pos = [];
           if (climbing.length) pos.push({ t: `Climbing — ${nm(climbing)}`, d: 'e1RM trending up. Keep progressing: +2–3% load or +1 rep at the same effort.' });
