@@ -566,17 +566,10 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             StatusMenu. The old body block re-rendered the name and a NON-clickable
             status Badge, which read as a duplicate ("mirror") and was the thing
             being clicked instead of the real menu — removed. */}
-        {/* Header stats: constrained to a centred ~4-wide cluster so the 8 tiles
-            wrap to a compact 4×2 block instead of one full-width strip (Ohad:
-            "too spread"). Empty "—" values are dimmed so the real stats stand out
-            instead of reading as a random mix (Ohad: "too random"). No data
-            removed — financials still show ₪ for billable athletes. */}
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, 132px)",justifyContent:"center",gap:"14px 10px",margin:"16px auto 0",maxWidth:558,textAlign:"center"}}>
-          {[["Format",td.format],["Package",td.package],["Sessions Left",td.sessionsRemaining],["Monthly",td.monthly?`₪${td.monthly}`:"—"],["Per Session",td.perSession?`₪${td.perSession}`:"—"],["Last Payment",fmtPrettyDate(lastPaidDate)],["Since",fmtPrettyDate(td.startDate)],["Workouts",tAllWorkouts.length]].map(([l,v])=>{
-            const empty = v===undefined||v===null||v===""||v==="—";
-            return <div key={l}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700}}>{l}</div><div style={{fontSize:14,color:empty?C.td:C.tx,marginTop:2}}>{empty?"—":v}</div></div>;
-          })}
-        </div>
+        {/* Header stat cluster removed (Ohad #139: "the status row … useless").
+            Its facts now live in their real homes: billing terms → Billing
+            section strip, Format → Vitals, Workouts count → Workouts section
+            header. The header card is now just identity + status. */}
       </Card>
       </>}
 
@@ -597,8 +590,8 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           header={<span style={{fontWeight:700,fontSize:13,letterSpacing:'0.04em',textTransform:'uppercase'}}>Vitals · Injuries · Goals</span>}>
           {/* Centred fixed tiles (not 3×1fr stretch) so vitals read as a compact
               cluster, matching the header stats; empty values dimmed. */}
-          <div className="td-vitals-grid" style={{display:"grid",gridTemplateColumns:"repeat(3, 132px)",justifyContent:"center",gap:12,maxWidth:416,margin:"0 auto",textAlign:"center"}}>
-            {[["Age",td.age||"—"],["Weight",td.weight?`${td.weight}kg`:"—"],["Height",td.height?`${td.height}cm`:"—"]].map(([l,v])=>{
+          <div className="td-vitals-grid" style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, 132px)",justifyContent:"center",gap:12,maxWidth:558,margin:"0 auto",textAlign:"center"}}>
+            {[["Age",td.age||"—"],["Weight",td.weight?`${td.weight}kg`:"—"],["Height",td.height?`${td.height}cm`:"—"],["Format",td.format||"—"]].map(([l,v])=>{
               const empty = v==="—";
               return <div key={l}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700,textAlign:"center"}}>{l}</div><div style={{fontSize:14,color:empty?C.td:C.tx,marginTop:2,textAlign:"center"}}>{v}</div></div>;
             })}
@@ -627,6 +620,15 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           <button onClick={()=>setShowPayForm(true)}
             style={{background:'transparent',border:'1px solid rgba(255,255,255,0.55)',borderLeft:'none',color:'#FFFFFF',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',padding:'4px 10px',cursor:'pointer',borderRadius:0}}>+ ADD PAYMENT</button>
         </div></div>}>
+      {/* Contract terms strip — the billing facts (rate/package/sessions) that
+          used to live in the header stat row (Ohad: "payment in billing").
+          Empty values dim so real terms stand out. */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, 118px)",justifyContent:"center",gap:"12px 10px",margin:"0 auto 16px",textAlign:"center"}}>
+        {[["Package",td.package],["Sessions Left",td.sessionsRemaining],["Monthly",td.monthly?`₪${td.monthly}`:"—"],["Per Session",td.perSession?`₪${td.perSession}`:"—"],["Last Payment",fmtPrettyDate(lastPaidDate)],["Since",fmtPrettyDate(td.startDate)]].map(([l,v])=>{
+          const empty = v===undefined||v===null||v===""||v==="—";
+          return <div key={l}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700}}>{l}</div><div style={{fontSize:14,color:empty?C.td:C.tx,marginTop:2}}>{empty?"—":v}</div></div>;
+        })}
+      </div>
       {tPay.length===0?<div style={{color:C.td,fontSize:13,textAlign:'center',padding:'10px 0'}}>No payments recorded.</div>:(
         <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontFamily:FB,fontSize:13}}>
           <thead><tr style={{borderBottom:`1px solid ${C.cardBd}`}}>{["Date","Amount","Status","Notes",""].map(h=><th key={h} style={{textAlign:"center",padding:"6px 10px",fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700}}>{h}</th>)}</tr></thead>
