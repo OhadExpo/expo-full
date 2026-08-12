@@ -14,7 +14,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { fmtPrettyDate } from './dates';
-import { C, FN, FB, FH, CATEGORIES, RESISTANCE_TYPES, BODY_POSITIONS, MOVEMENT_TYPES, MOVEMENT_PATTERNS, LATERALITY } from './theme';
+import { C, FN, FB, FH } from './theme';
 import { EXPOMark } from './expoMark';
 import { SideRail } from './SideRail';
 import TrainingLineageV2 from './TrainingLineageV2';
@@ -2720,36 +2720,95 @@ function DemoExercises() {
   // Pattern / Laterality), with an active-count chip and a Clear all link.
   // Anything dropped here would also land on the real coach app.
   const [search, setSearch] = useState('');
-  const emptyFilters = { category: '', resistanceType: '', bodyPosition: '', movementType: '', movementPattern: '', laterality: '' };
+  // Multi-select filters (arrays), matching the redesigned real ExercisesView
+  // (#212). movementPattern maps to the exercise's `pattern` field.
+  const emptyFilters = { category: [], resistanceType: [], bodyPosition: [], movementType: [], movementPattern: [], laterality: [] };
   const [filters, setFilters] = useState(emptyFilters);
-  const setF = (k, v) => setFilters(prev => ({ ...prev, [k]: v }));
-  const activeFilterCount = Object.values(filters).filter(Boolean).length;
-  const clearFilters = () => setFilters(emptyFilters);
+  const [openKey, setOpenKey] = useState(null); // which filter pill's menu is open
+  const toggleFilter = (k, v) => setFilters(prev => { const cur = prev[k] || []; return { ...prev, [k]: cur.includes(v) ? cur.filter(x => x !== v) : [...cur, v] }; });
+  const clearFilter = (k) => setFilters(prev => ({ ...prev, [k]: [] }));
+  const activeFilterCount = Object.values(filters).reduce((n, a) => n + (a && a.length ? 1 : 0), 0);
+  const clearFilters = () => { setFilters(emptyFilters); setOpenKey(null); };
   const [view, setView] = useState('table'); // 'table' | 'grid' — mirrors real ExercisesView
 
-  const q = search.trim().toLowerCase();
-  const filtered = MOCK_EXERCISES.filter(e => {
-    if (q) {
-      const haystack = [e.name, e.category, e.resistanceType, e.bodyPosition, e.movementType, e.pattern, e.laterality].filter(Boolean).join(' ').toLowerCase();
-      if (!q.split(/\s+/).filter(Boolean).every(tok => haystack.includes(tok))) return false;
-    }
-    if (filters.category && e.category !== filters.category) return false;
-    if (filters.resistanceType && e.resistanceType !== filters.resistanceType) return false;
-    if (filters.bodyPosition && e.bodyPosition !== filters.bodyPosition) return false;
-    if (filters.movementType && e.movementType !== filters.movementType) return false;
-    if (filters.movementPattern && e.pattern !== filters.movementPattern) return false;
-    if (filters.laterality && e.laterality !== filters.laterality) return false;
-    return true;
-  });
+  // Close the open filter menu on Escape (a click-catcher backdrop handles outside
+  // clicks) — same affordance as the real ExercisesView.
+  useEffect(() => {
+    if (!openKey) return;
+    const onKey = (e) => { if (e.key === 'Escape') setOpenKey(null); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [openKey]);
 
-  // Match the real coach-app baseInput look so the demo selects don't drift.
-  const selectStyle = {
-    background: C.sf, border: `1px solid ${C.bd2}`, borderRadius: 0,
-    padding: '6px 10px', color: C.tx, fontFamily: FB, fontSize: 12, outline: 'none',
-    // grid items default to min-width:auto; a <select>'s longest option
-    // ("Medicine Ball", "TRX/Suspension") then pushes the 1fr track wider than
-    // the viewport → h-scroll on mobile. Pin the track and clip the label.
-    width: '100%', minWidth: 0, textOverflow: 'ellipsis',
+  const FILTER_KEYS = ['category', 'resistanceType', 'bodyPosition', 'movementType', 'movementPattern', 'laterality'];
+  const fieldOf = (e, k) => (k === 'movementPattern' ? e.pattern : e[k]);
+  const q = search.trim().toLowerCase();
+  const searchOk = (e) => {
+    if (!q) return true;
+    const haystack = [e.name, e.category, e.resistanceType, e.bodyPosition, e.movementType, e.pattern, e.laterality].filter(Boolean).join(' ').toLowerCase();
+    return q.split(/\s+/).filter(Boolean).every(tok => haystack.includes(tok));
+  };
+  // A row passes filter key k when k has no selection OR the row's value is picked.
+  const passKey = (e, k) => { const sel = filters[k] || []; return sel.length === 0 || sel.includes(fieldOf(e, k)); };
+  const filtered = MOCK_EXERCISES.filter(e => searchOk(e) && FILTER_KEYS.every(k => passKey(e, k)));
+
+  // Faceted option list [value, count] for key k: rows passing search + every
+  // OTHER active filter, counted by this key's value (standard faceted rule).
+  // Selected values are always kept so a selection can't vanish from its menu.
+  const dynOpts = (k) => {
+    const base = MOCK_EXERCISES.filter(e => searchOk(e) && FILTER_KEYS.every(o => o === k || passKey(e, o)));
+    const cm = {};
+    for (const e of base) { const v = fieldOf(e, k); if (v) cm[v] = (cm[v] || 0) + 1; }
+    const keys = new Set([...Object.keys(cm), ...(filters[k] || [])]);
+    return [...keys].sort((a, b) => (cm[b] || 0) - (cm[a] || 0) || a.localeCompare(b)).map(v => [v, cm[v] || 0]);
+  };
+
+  // Underline-trigger base (filters = underline text, not solid boxes).
+  const railBase = { display: 'inline-flex', alignItems: 'center', gap: 6, height: 30, padding: '0 1px', background: 'transparent', border: 'none', borderBottom: '2px solid transparent', color: C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap' };
+
+  // Carded multi-select menu — cyan strip header + OCD checkbox grid + tabular
+  // faceted counts. 1:1 with src/ExercisesView.jsx FilterPill (#212 redesign).
+  const FilterPill = ({ label, k }) => {
+    const options = dynOpts(k);
+    const sel = filters[k] || [];
+    const active = sel.length > 0;
+    const isOpen = openKey === k;
+    const faceLabel = sel.length === 1 ? sel[0] : (sel.length > 1 ? `${label} · ${sel.length}` : label);
+    return (
+      <div style={{ position: 'relative' }}>
+        <button onClick={() => setOpenKey(isOpen ? null : k)} title={label}
+          style={{ ...railBase, borderBottomColor: (active || isOpen) ? C.ac : C.cardBd, color: active ? C.ac : C.tx }}>
+          <span style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis' }}>{faceLabel}</span>
+          {active
+            ? <span onClick={e => { e.stopPropagation(); clearFilter(k); }} title="Clear" style={{ fontSize: 13, lineHeight: 1, opacity: 0.85 }}>×</span>
+            : <span style={{ color: C.td, fontSize: 9 }}>▾</span>}
+        </button>
+        {isOpen && (
+          <div style={{ position: 'absolute', top: 32, left: 0, minWidth: 'max(100%, 248px)', maxHeight: 366, overflowY: 'auto', background: C.sf, border: `1px solid ${C.ac}`, zIndex: 50, boxShadow: '0 12px 30px rgba(0,0,0,0.55)' }}>
+            <div style={{ position: 'sticky', top: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, height: 28, padding: '0 11px', background: 'color-mix(in srgb, var(--c-ac) 15%, var(--c-sf))', borderBottom: `1px solid ${C.ac}`, zIndex: 1 }}>
+              <span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.16em', color: C.ac, textTransform: 'uppercase' }}>{label}</span>
+              {sel.length > 0
+                ? <span onClick={e => { e.stopPropagation(); clearFilter(k); }} title="Clear selection" style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color: C.tm, cursor: 'pointer' }}>CLEAR · {sel.length}</span>
+                : <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: C.td, fontVariantNumeric: 'tabular-nums' }}>{options.length}</span>}
+            </div>
+            {options.length === 0 && <div style={{ padding: '10px 12px', color: C.td, fontFamily: FN, fontSize: 10, letterSpacing: '0.04em' }}>No values</div>}
+            {options.map(([v, c], idx) => {
+              const on = sel.includes(v);
+              return (
+                <div key={v} onClick={() => toggleFilter(k, v)}
+                  style={{ display: 'grid', gridTemplateColumns: '14px 1fr auto', gap: 10, alignItems: 'center', height: 30, padding: '0 11px', cursor: 'pointer', fontFamily: FN, fontSize: 11, fontWeight: 600, letterSpacing: '0.02em', color: on ? C.ac : C.tx, background: on ? 'color-mix(in srgb, var(--c-ac) 12%, transparent)' : 'transparent', borderTop: idx === 0 ? 'none' : `1px solid ${C.cardBd}`, whiteSpace: 'nowrap' }}
+                  onMouseEnter={e => { if (!on) e.currentTarget.style.background = 'rgba(127,127,138,0.08)'; }}
+                  onMouseLeave={e => { if (!on) e.currentTarget.style.background = 'transparent'; }}>
+                  <span style={{ width: 13, height: 13, boxSizing: 'border-box', border: `1px solid ${on ? C.ac : C.cardBd}`, background: on ? C.ac : 'transparent', color: '#0a0a0b', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, lineHeight: 1 }}>{on ? '✓' : ''}</span>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{v}</span>
+                  <span style={{ color: on ? C.ac : C.tm, fontSize: 10, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{c}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -2786,18 +2845,20 @@ function DemoExercises() {
         <button style={{ height: 30, width: 200, flexShrink: 0, padding: '0 18px', background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.06em', cursor: 'pointer', borderRadius: 0, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ Add Exercise</button>
       </div>
 
-      {/* Filter rail — inline UNDERLINE-style controls led by a muted "Filter by"
-          role-label, matching the redesigned real ExercisesView. */}
+      {/* Filter rail — carded multi-select FilterPill menus (matches the
+          redesigned real ExercisesView #212), led by a muted "Filter by". */}
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 14px', padding: '0 1px 12px', marginBottom: 16, borderBottom: `1px solid ${C.cardBd}` }}>
         <span style={{ flexShrink: 0, width: 58, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: C.td, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Filter&nbsp;by</span>
-        {[['category', 'Category', CATEGORIES], ['resistanceType', 'Resistance', RESISTANCE_TYPES], ['bodyPosition', 'Body Position', BODY_POSITIONS], ['movementType', 'Movement', MOVEMENT_TYPES], ['movementPattern', 'Pattern', MOVEMENT_PATTERNS], ['laterality', 'Laterality', LATERALITY]].map(([k, label, opts]) => (
-          <select key={k} value={filters[k]} onChange={e => setF(k, e.target.value)}
-            style={{ background: 'transparent', border: 'none', borderBottom: `2px solid ${filters[k] ? C.ac : 'transparent'}`, color: filters[k] ? C.ac : C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '4px 1px', cursor: 'pointer', outline: 'none', maxWidth: 180 }}>
-            <option value="">{label}</option>{opts.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-        ))}
-        {activeFilterCount > 0 && <button onClick={clearFilters} style={{ marginLeft: 'auto', background: 'transparent', border: 'none', color: C.rd, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer', padding: '4px 1px' }}>× Clear</button>}
+        <FilterPill label="Category" k="category" />
+        <FilterPill label="Resistance" k="resistanceType" />
+        <FilterPill label="Body Position" k="bodyPosition" />
+        <FilterPill label="Movement" k="movementType" />
+        <FilterPill label="Pattern" k="movementPattern" />
+        <FilterPill label="Laterality" k="laterality" />
+        {activeFilterCount > 0 && <button onClick={clearFilters} style={{ ...railBase, marginLeft: 'auto', color: C.rd, letterSpacing: '0.1em', borderBottomColor: 'transparent' }}>× Clear all</button>}
       </div>
+      {/* Click-catcher backdrop: an outside click closes the open menu. */}
+      {openKey && <div onClick={() => setOpenKey(null)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />}
 
       <div style={{ fontSize: 11, color: C.tm, marginBottom: 10, fontFamily: FN }}>
         {filtered.length} exercise{filtered.length !== 1 ? 's' : ''}
