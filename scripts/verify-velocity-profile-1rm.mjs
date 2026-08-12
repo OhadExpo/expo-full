@@ -56,6 +56,22 @@ check('bunched loads -> invalid', bunched.state === 'invalid' && /too close/.tes
 const farReach = velocityProfile1RM([{ load: 100, velocity: 0.60 }, { load: 110, velocity: 0.585 }, { load: 120, velocity: 0.57 }], 0.30);
 check('reach >2x -> invalid (no fantasy max)', farReach.state === 'invalid' && /2×|2x/.test(farReach.reason));
 
+// --- adversarial-review fixes (2026-08-12) ---
+// #1: squat/lunge family resolves BEFORE the overhead branch (a too-low OHP MVT
+// over-estimates the 1RM and was shown as high confidence).
+check('mvt "Overhead Squat" -> squat 0.30, NOT ohp 0.19', mvtForLift('Overhead Squat') === 0.30);
+check('mvt "Overhead Reverse Lunge" -> squat 0.30', mvtForLift('Overhead Reverse Lunge') === 0.30);
+check('mvt plain "Overhead Press" still -> ohp 0.19', mvtForLift('Overhead Press') === 0.19);
+check('mvt "Military Press" still -> ohp 0.19', mvtForLift('Military Press') === 0.19);
+// #2: a bunched third load (100/101 + 140) is really a 2-point fit -> stays 'low',
+// never high, even with a perfect r². (Genuinely separated 3 loads can be high.)
+const bunched3 = velocityProfile1RM([{ load: 100, velocity: 0.70 }, { load: 101, velocity: 0.699 }, { load: 140, velocity: 0.40 }], 0.30);
+check('bunched-3 loads (100/101/140) -> confidence low (2-pt in disguise)', bunched3.state === 'ok' && bunched3.confidence === 'low');
+const sep3 = velocityProfile1RM([{ load: 100, velocity: 0.70 }, { load: 120, velocity: 0.55 }, { load: 140, velocity: 0.40 }], 0.30);
+check('separated-3 loads still -> high confidence', sep3.confidence === 'high');
+// #5: Infinity load can't leak through the input filter
+check('Infinity load filtered out -> thin (only 1 real load)', velocityProfile1RM([{ load: Infinity, velocity: 0.5 }, { load: 100, velocity: 0.6 }], 0.30).state === 'thin');
+
 // --- junk input never throws ---
 check('empty points -> thin', velocityProfile1RM([], 0.30).state === 'thin');
 check('null points -> thin', velocityProfile1RM(null, 0.30).state === 'thin');

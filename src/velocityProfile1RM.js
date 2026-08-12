@@ -21,9 +21,14 @@ export function mvtForLift(title) {
   const t = (title || '').toLowerCase();
   if (/deadlift|\bdl\b|rdl|hinge|good[-\s]?morning|hip[-\s]?thrust/.test(t)) return MVT.deadlift;
   if (/bench|chest\s*press|push[-\s]?up|\bdip\b/.test(t)) return MVT.bench;
+  // Squat/lunge family BEFORE the overhead branch: "Overhead Squat" / "Overhead
+  // Reverse Lunge" must read as a squat pattern (MVT 0.30), not an OHP (0.19) —
+  // a too-low MVT over-estimates the 1RM (the dangerous direction) and was being
+  // shown as HIGH confidence. Plain "Overhead Press" has no squat/lunge token, so
+  // it still falls through to the OHP branch below.
+  if (/squat|lunge|split|rfess|bulgarian|leg\s*press|step[-\s]?up/.test(t)) return MVT.squat;
   if (/ohp|overhead|shoulder\s*press|military/.test(t)) return MVT.ohp;
   if (/\brow\b|pull[-\s]?up|chin|pulldown|\blat\b/.test(t)) return MVT.pull;
-  if (/squat|lunge|split|rfess|bulgarian|leg\s*press|step[-\s]?up/.test(t)) return MVT.squat;
   return MVT.default;
 }
 
@@ -31,7 +36,7 @@ export function mvtForLift(title) {
 // mvt:    minimal velocity threshold for this lift (from mvtForLift).
 export function velocityProfile1RM(points, mvt) {
   const m = (typeof mvt === 'number' && mvt > 0) ? mvt : MVT.default;
-  const raw = (points || []).filter((p) => p && typeof p.load === 'number' && p.load > 0 && typeof p.velocity === 'number' && p.velocity > 0);
+  const raw = (points || []).filter((p) => p && Number.isFinite(p.load) && p.load > 0 && Number.isFinite(p.velocity) && p.velocity > 0);
   // The LV profile is one point per LOAD, not per set — average velocity across
   // sets at the same load (e.g. filmed on different dates) so a repeated load can't
   // outweigh the fit, and per-set noise at each load cancels. Standard LV practice.
@@ -74,13 +79,20 @@ export function velocityProfile1RM(points, mvt) {
   const ssTot = pts.reduce((s, p) => s + (p.velocity - mVel) ** 2, 0);
   const ssRes = pts.reduce((s, p) => s + (p.velocity - (a + b * p.load)) ** 2, 0);
   const r2 = ssTot > 0 ? 1 - ssRes / ssTot : 0;
-  // Confidence needs THREE things, not just a tight in-range fit: ≥3 distinct loads
-  // (2 points fit a line perfectly by definition — r²=1 there proves nothing, so a
-  // 2-load profile can never exceed 'low' and stays hidden), a good fit, AND a short
-  // extrapolation. A long reach or a 2-load fit is 'low' → the UI hides it.
+  // Confidence needs THREE things, not just a tight in-range fit: ≥3 SEPARATED
+  // loads, a good fit, AND a short extrapolation. "Separated" (not merely
+  // distinct): two near-identical loads + one far load is really a 2-point fit —
+  // the third bunched point adds no independent information and r²≈1 is the same
+  // "2 points fit a line perfectly" artifact we exclude for 2 loads. Count loads
+  // that clear a real gap from the previous one, so a bunched-3 profile stays
+  // 'low' → the UI hides it (a 2-load profile already can never exceed 'low').
+  const gap = Math.max(2.5, maxLoad * 0.025);
+  const sortedLoads = [...loads].sort((x, y) => x - y);
+  let sepLoads = 1;
+  for (let i = 1; i < sortedLoads.length; i++) if (sortedLoads[i] - sortedLoads[i - 1] >= gap) sepLoads++;
   let confidence;
-  if (loads.length >= 3 && r2 >= 0.9 && reach <= 1.35) confidence = 'high';
-  else if (loads.length >= 3 && r2 >= 0.75 && reach <= 1.5) confidence = 'medium';
+  if (sepLoads >= 3 && r2 >= 0.9 && reach <= 1.35) confidence = 'high';
+  else if (sepLoads >= 3 && r2 >= 0.75 && reach <= 1.5) confidence = 'medium';
   else confidence = 'low';
   return {
     state: 'ok',
