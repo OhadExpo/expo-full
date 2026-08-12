@@ -398,9 +398,11 @@ function HighlightedText({ text, query, style }) {
 
 // Editable urgency picker — mirrors StatusPill so priority can be changed AFTER
 // a task is created (Ohad). Rewrites the body's [PRIORITY] bracket via onSet.
+// Palette calmed (Ohad: "too colorful") — only URGENT keeps an alarm hue (red);
+// HIGH/NORMAL/LOW ride a neutral grayscale ramp instead of adding an orange.
 const PRIORITY_PICK = [
   { id: 'urgent', label: 'Urgent', color: 'var(--c-rd)' },
-  { id: 'high',   label: 'High',   color: YUVAL_COLOR },
+  { id: 'high',   label: 'High',   color: 'var(--c-tx)' },
   { id: 'normal', label: 'Normal', color: 'var(--c-tm)' },
   { id: 'low',    label: 'Low',    color: 'var(--c-td)' },
 ];
@@ -745,6 +747,14 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
             color: 'var(--c-td)', textTransform: 'uppercase', opacity: 0.75, flexShrink: 0,
           }}>Enter to save</span>
         )}
+        {/* Discard / collapse — resets every field and closes the composer (Ohad:
+            "there's no discard/collapse (×) button"). */}
+        {expanded && (
+          <button
+            onMouseDown={(e) => { e.preventDefault(); setBody(''); setDue(''); setTime(''); setPriority('normal'); setTraineeId(''); setSource('manual'); setAssignee(defaultAssignee); setFocused(false); inputRef.current?.blur(); }}
+            title="Discard" aria-label="Discard task draft"
+            style={{ background: 'transparent', border: '1px solid var(--c-cardBd)', color: 'var(--c-tm)', width: 24, height: 24, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', borderRadius: 0, fontSize: 15, lineHeight: 1, flexShrink: 0 }}>×</button>
+        )}
       </div>
       {expanded && (
         <div style={{
@@ -780,7 +790,7 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
                   onChange={(e) => setDue(e.target.value)}
                   onMouseDown={(e) => e.stopPropagation()}
                   onClick={(e) => { e.stopPropagation(); try { e.currentTarget.showPicker(); } catch { /* noop */ } }}
-                  style={{ background: 'transparent', color: 'transparent', border: `1px solid var(--c-cardBd)`, fontFamily: FN, fontSize: 10, fontWeight: 600, padding: '3px 6px', height: 22, width: 120, borderRadius: 0, outline: 'none', cursor: 'pointer' }} />
+                  style={{ background: 'transparent', color: 'transparent', border: `1px solid var(--c-cardBd)`, fontFamily: FN, fontSize: 10, fontWeight: 600, padding: '3px 6px', height: 24, width: 120, borderRadius: 0, outline: 'none', cursor: 'pointer' }} />
                 {/* dd/mm/yyyy overlay (native text is transparent; calendar icon stays) */}
                 <span style={{ position: 'absolute', left: 7, fontFamily: FN, fontSize: 10, fontWeight: 600, color: due ? 'var(--c-tm)' : 'var(--c-td)', pointerEvents: 'none', letterSpacing: '0.02em' }}>{due ? fmtDMY(due) : 'DD/MM/YYYY'}</span>
               </span>
@@ -791,18 +801,18 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
                 onClick={(e) => { e.stopPropagation(); if (due) { try { e.currentTarget.showPicker(); } catch { /* noop */ } } }}
                 disabled={!due}
                 title={due ? 'Time (default 09:00)' : 'Pick a date first'}
-                style={{ background: 'transparent', color: due ? 'var(--c-tm)' : 'var(--c-td)', border: `1px solid var(--c-cardBd)`, fontFamily: FN, fontSize: 10, fontWeight: 600, padding: '3px 6px', height: 22, borderRadius: 0, outline: 'none', opacity: due ? 1 : 0.5, cursor: due ? 'pointer' : 'default' }} />
+                style={{ background: 'transparent', color: due ? 'var(--c-tm)' : 'var(--c-td)', border: `1px solid var(--c-cardBd)`, fontFamily: FN, fontSize: 10, fontWeight: 600, padding: '3px 6px', height: 24, borderRadius: 0, outline: 'none', opacity: due ? 1 : 0.5, cursor: due ? 'pointer' : 'default' }} />
             </span>
           </div>
           {/* Row 2 — Urgency */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
             <span style={cmpGroup}>
               <span style={cmpLabel}>Urgency</span>
-              {[['low','LOW','var(--c-td)'],['normal','NORMAL','var(--c-tm)'],['high','HIGH',YUVAL_COLOR],['urgent','URGENT',C.rd]].map(([id, label, color]) => (
+              {[['low','LOW','var(--c-td)'],['normal','NORMAL','var(--c-tm)'],['high','HIGH','var(--c-tx)'],['urgent','URGENT',C.rd]].map(([id, label, color]) => (
                 <button key={id}
                   onMouseDown={(e) => { e.preventDefault(); setPriority(id); }}
                   title={`Priority: ${label}`}
-                  style={{ background: priority === id ? color : 'transparent', color: priority === id ? '#FFFFFF' : color, border: `1px solid ${priority === id ? color : 'var(--c-cardBd)'}`, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', padding: '3px 8px', height: 22, cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>{label}</button>
+                  style={{ background: priority === id ? color : 'transparent', color: priority === id ? '#FFFFFF' : color, border: `1px solid ${priority === id ? color : 'var(--c-cardBd)'}`, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', padding: '3px 8px', height: 24, cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>{label}</button>
               ))}
             </span>
           </div>
@@ -813,14 +823,14 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
               {[['manual', 'General'], ['center', 'Performance Center']].map(([id, label]) => (
                 <button key={id}
                   onMouseDown={(e) => { e.preventDefault(); setSource(id); }}
-                  style={{ background: source === id ? 'rgba(57,189,255,0.094)' : 'transparent', color: source === id ? 'var(--c-ac)' : 'var(--c-tm)', border: `1px solid ${source === id ? 'var(--c-ac)' : 'var(--c-cardBd)'}`, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', padding: '3px 8px', height: 22, cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{label}</button>
+                  style={{ background: source === id ? 'rgba(57,189,255,0.094)' : 'transparent', color: source === id ? 'var(--c-ac)' : 'var(--c-tm)', border: `1px solid ${source === id ? 'var(--c-ac)' : 'var(--c-cardBd)'}`, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', padding: '3px 8px', height: 24, cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{label}</button>
               ))}
             </span>
             {(trainees || []).length > 0 && (
               <span style={cmpGroup}>
                 <span style={cmpLabel}>Athlete</span>
                 <select value={traineeId} onChange={(e) => setTraineeId(e.target.value)} onMouseDown={(e) => e.stopPropagation()} title="Link this task to an athlete"
-                  style={{ background: 'transparent', color: traineeId ? C.ac : 'var(--c-tm)', border: `1px solid ${traineeId ? C.ac : 'var(--c-cardBd)'}`, fontFamily: FN, fontSize: 10, fontWeight: 600, padding: '3px 6px', height: 22, borderRadius: 0, outline: 'none', maxWidth: 160, textOverflow: 'ellipsis' }}>
+                  style={{ background: 'transparent', color: traineeId ? C.ac : 'var(--c-tm)', border: `1px solid ${traineeId ? C.ac : 'var(--c-cardBd)'}`, fontFamily: FN, fontSize: 10, fontWeight: 600, padding: '3px 6px', height: 24, borderRadius: 0, outline: 'none', maxWidth: 160, textOverflow: 'ellipsis' }}>
                   <option value="">— no athlete —</option>
                   {[...trainees].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(t => (
                     <option key={t.id} value={t.id}>{t.name || t.id}</option>
@@ -1600,8 +1610,8 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
               <span title="Shared — Ohad + Yuval" style={{
                 boxSizing: 'border-box', height: TASK_PILL_H, display: 'inline-flex', alignItems: 'center',
                 fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
-                color: 'var(--c-gn)', opacity: 0.55, whiteSpace: 'nowrap',
-                border: `1px solid var(--c-gn)`, padding: '0 8px', textTransform: 'uppercase',
+                color: 'var(--c-tm)', opacity: 0.8, whiteSpace: 'nowrap',
+                border: `1px solid var(--c-cardBd)`, padding: '0 8px', textTransform: 'uppercase',
               }}>Shared</span>
             )}
           </span>
@@ -1806,7 +1816,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
               await Promise.all(slice.map(async (r) => {
                 try {
                   await syncRowToCalendar({ ...r, _owner: ownerFromBody(r.body) },
-                    { displayBody: displayBodyOf(r.body) });
+                    { displayBody: displayBodyOf(r.body), assumeConnected: true });
                   done++;
                 } catch { fail++; }
               }));
@@ -1962,7 +1972,13 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
   // future delete. Swallows GoogleCalendarAuthError into a reconnect
   // prompt; other errors propagate to a toast.
   const syncRowToCalendar = async (row, opts = {}) => {
-    if (!gcalConnected) return;
+    // `gcalConnected` here is the render-closure value. The connect handler
+    // batch-syncs in the SAME tick it calls setGcalConnected(true), so the
+    // state hasn't re-rendered yet and this would early-return on every row
+    // (silently doing nothing while still counting done++ → a false "Synced N
+    // ✓" toast). `opts.assumeConnected` lets that just-verified caller bypass
+    // the stale read; per-row manual syncs still gate on real state.
+    if (!gcalConnected && !opts.assumeConnected) return;
     try {
       const result = await reconcileRow(row, opts);
       if (result && result.tags) {
@@ -2385,10 +2401,13 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
       const k = e.key.toLowerCase();
       if (e.key === '/') {
         e.preventDefault();
-        document.querySelector('input[placeholder="Search…"]')?.focus();
+        // Match the ACTUALLY-rendered rail search (placeholder "Search tasks…").
+        // The old "Search…" selector pointed at a never-rendered component, so
+        // the shortcut silently focused nothing.
+        document.querySelector('input[placeholder="Search tasks…"]')?.focus();
       } else if (k === 'n' || k === 'c') {            // N / C = new task (focus composer)
         e.preventDefault();
-        document.querySelector('input[placeholder="Add task…"]')?.focus();
+        document.querySelector('input[placeholder="Add a task…"]')?.focus();
       } else if (k === 'b') {                          // B = toggle Board / List
         e.preventDefault();
         setView(v => (v === 'board' ? 'list' : 'board'));
@@ -2678,13 +2697,19 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                 borderRadius: 0, display: 'flex', flexDirection: 'column', transition: 'background 0.12s, border-color 0.12s',
                 ...(isStatus ? { flex: '1 1 175px', minWidth: 175 } : {}),
               }}>
+              {/* Neutral header for EVERY column (Ohad: "too many colors" — five
+                  saturated header fills were a rainbow). Status/source now reads
+                  from a small dot + a thin left-accent bar, not a full fill. */}
               <div style={{
-                background: headBg, color: '#FFFFFF', padding: '10px 12px',
+                background: 'var(--c-sf2)', color: 'var(--c-tx)', padding: '10px 12px',
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                borderBottom: `1px solid var(--c-cardBd)`,
+                borderBottom: `1px solid var(--c-cardBd)`, boxShadow: `inset 3px 0 0 ${headBg}`,
               }}>
-                <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>{headLabel}</span>
-                <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', opacity: 0.85 }}>{section.rows.length}</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--c-tx)' }}>
+                  <span aria-hidden style={{ width: 7, height: 7, borderRadius: '50%', background: headBg, flexShrink: 0 }} />
+                  {headLabel}
+                </span>
+                <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--c-tm)' }}>{section.rows.length}</span>
               </div>
               <div style={{ maxHeight: 360, minHeight: (isStatus || boardGroup === 'list') ? 52 : undefined, overflowY: 'auto' }}>
                 {section.rows.map(row => (

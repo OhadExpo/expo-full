@@ -1770,8 +1770,8 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           {/* Undo / redo (Ohad) — coarse per-pause history; also Ctrl+Z / Ctrl+Shift+Z. */}
           <div style={{display:'inline-flex',gap:4,flexShrink:0}}>
             {/* Word labels, not glyphs (Ohad) — right next to BACK. */}
-            <button onClick={doUndo} disabled={!canUndo} title="Undo (Ctrl+Z)" style={{background:'transparent',border:`1px solid ${C.cardBd}`,color:canUndo?C.tm:C.td,cursor:canUndo?'pointer':'not-allowed',opacity:canUndo?1:0.4,padding:'0 10px',height:26,borderRadius:0,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',lineHeight:1,display:'inline-flex',alignItems:'center',justifyContent:'center',whiteSpace:'nowrap'}}>UNDO</button>
-            <button onClick={doRedo} disabled={!canRedo} title="Redo (Ctrl+Shift+Z)" style={{background:'transparent',border:`1px solid ${C.cardBd}`,color:canRedo?C.tm:C.td,cursor:canRedo?'pointer':'not-allowed',opacity:canRedo?1:0.4,padding:'0 10px',height:26,borderRadius:0,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',lineHeight:1,display:'inline-flex',alignItems:'center',justifyContent:'center',whiteSpace:'nowrap'}}>REDO</button>
+            <button onClick={doUndo} disabled={!canUndo} title="Undo (Ctrl+Z)" style={{background:'transparent',border:`1px solid ${C.cardBd}`,color:canUndo?C.tm:C.td,cursor:canUndo?'pointer':'not-allowed',opacity:canUndo?1:0.4,padding:'0 10px',height:24,borderRadius:0,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',lineHeight:1,display:'inline-flex',alignItems:'center',justifyContent:'center',whiteSpace:'nowrap'}}>UNDO</button>
+            <button onClick={doRedo} disabled={!canRedo} title="Redo (Ctrl+Shift+Z)" style={{background:'transparent',border:`1px solid ${C.cardBd}`,color:canRedo?C.tm:C.td,cursor:canRedo?'pointer':'not-allowed',opacity:canRedo?1:0.4,padding:'0 10px',height:24,borderRadius:0,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',lineHeight:1,display:'inline-flex',alignItems:'center',justifyContent:'center',whiteSpace:'nowrap'}}>REDO</button>
           </div>
           <div className="editor-top-mid" style={{flex:1,display:'flex',gap:12,alignItems:'center',justifyContent:'center',minWidth:0}}>
           {/* Athlete assignment — editable, to the LEFT of the block dropdown
@@ -3004,7 +3004,7 @@ export function TrainingLineage({ traineeId, traineeName, exercises, plans, load
         <div style={{ display: 'flex', gap: 6 }}>
           {[['sets', 'Sets'], ['volume', 'Volume']].map(([v, l]) => {
             const on = metric === v;
-            return <button key={v} onClick={() => setMetric(v)} title={v === 'sets' ? 'Working sets per pattern per block' : 'Volume = sets × top reps'} style={{ height: 22, padding: '0 10px', border: `1px solid ${on ? '#39BDFF' : 'rgba(255,255,255,0.25)'}`, background: on ? '#39BDFF' : 'transparent', color: on ? '#06131b' : '#fff', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>{l}</button>;
+            return <button key={v} onClick={() => setMetric(v)} title={v === 'sets' ? 'Working sets per pattern per block' : 'Volume = sets × top reps'} style={{ height:24, padding: '0 10px', border: `1px solid ${on ? '#39BDFF' : 'rgba(255,255,255,0.25)'}`, background: on ? '#39BDFF' : 'transparent', color: on ? '#06131b' : '#fff', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>{l}</button>;
           })}
         </div>
       </>)}
@@ -3154,8 +3154,8 @@ export function TrainingLineage({ traineeId, traineeName, exercises, plans, load
         <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 88%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '7px 12px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
           <span>Build the next block{nextPlan.nextNum != null ? ` · #${nextPlan.nextNum}` : ''}</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-            <button onClick={() => setReportOpen(true)} title="Open the full next-block report — goals, parameters, weekly progression, per-movement targets" style={{ height: 22, padding: '0 10px', border: '1px solid #39BDFF', background: '#39BDFF', color: '#06131b', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>⤢ Full report →</button>
-            <button onClick={copyBrief} title="Copy this analysis as a next-block brief — a periodization starting point (you choose the exercises & loads)" style={{ height: 22, padding: '0 10px', border: `1px solid ${briefCopied ? C.gn : 'rgba(255,255,255,0.35)'}`, background: 'transparent', color: briefCopied ? C.gn : '#fff', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>{briefCopied ? 'Copied ✓' : '⧉ Copy brief'}</button>
+            <button onClick={() => setReportOpen(true)} title="Open the full next-block report — goals, parameters, weekly progression, per-movement targets" style={{ height:24, padding: '0 10px', border: '1px solid #39BDFF', background: '#39BDFF', color: '#06131b', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>⤢ Full report →</button>
+            <button onClick={copyBrief} title="Copy this analysis as a next-block brief — a periodization starting point (you choose the exercises & loads)" style={{ height:24, padding: '0 10px', border: `1px solid ${briefCopied ? C.gn : 'rgba(255,255,255,0.35)'}`, background: 'transparent', color: briefCopied ? C.gn : '#fff', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>{briefCopied ? 'Copied ✓' : '⧉ Copy brief'}</button>
           </div>
         </div>
         {nextPlan.deloadDue && (
@@ -3678,7 +3678,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
   const PortalPill = ({ on, onClick, title, block }) => (
     <button onClick={onClick}
       title={title || (on ? 'On the athlete portal — click to hide' : 'Hidden from the athlete portal — click to show')}
-      style={{ display:'inline-flex', alignItems:'center', justifyContent: block ? 'center' : 'flex-start', gap:8, width: block ? '100%' : 'auto', height:30, padding:0, background:'none', border:'none', cursor:'pointer', flexShrink:0 }}>
+      style={{ display:'inline-flex', alignItems:'center', justifyContent: block ? 'center' : 'flex-start', gap:8, width: block ? '100%' : 'auto', height:28, padding:0, background:'none', border:'none', cursor:'pointer', flexShrink:0 }}>
       <span style={{ fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.06em', color: on ? C.gn : C.td }}>PORTAL</span>
       <span style={{ width:32, height:18, borderRadius:9, background: on ? 'rgba(46,213,115,0.25)' : 'rgba(255,255,255,0.06)', border:`1px solid ${on ? 'rgba(46,213,115,0.5)' : C.cardBd}`, position:'relative', flexShrink:0, transition:'background .15s, border-color .15s' }}>
         <span style={{ width:14, height:14, borderRadius:7, background: on ? C.gn : C.td, position:'absolute', top:1, left: on ? 15 : 1, transition:'left .15s' }} />
@@ -4044,7 +4044,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                   </span>
                   <span style={{display:'inline-flex',alignItems:'center',gap:10,flexShrink:0}}>
                     <button onClick={e=>{e.stopPropagation();setLineageTraineeId(row.tid);}} title="Training Analysis — this athlete's movement-pattern volume across every block"
-                      style={{display:'inline-flex',alignItems:'center',gap:5,height:20,padding:'0 8px',background:'rgba(255,255,255,0.12)',border:'1px solid rgba(255,255,255,0.3)',borderRadius:0,color:'#fff',cursor:'pointer',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.08em',whiteSpace:'nowrap'}}>◫ ANALYSIS</button>
+                      style={{display:'inline-flex',alignItems:'center',gap:5,height:24,padding:'0 8px',background:'rgba(255,255,255,0.12)',border:'1px solid rgba(255,255,255,0.3)',borderRadius:0,color:'#fff',cursor:'pointer',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.08em',whiteSpace:'nowrap'}}>◫ ANALYSIS</button>
                     <span title={`Last session: ${tagText.toLowerCase()}`} style={{display:'inline-flex',alignItems:'center',gap:6,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',color:tagColor,whiteSpace:'nowrap'}}>
                       <span style={{width:6,height:6,borderRadius:'50%',background:tagColor}} />{tagText}
                     </span>
@@ -4066,7 +4066,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                       <button onClick={e=>{e.stopPropagation();toggleAthlete(row.tid);}}
                         title={expanded?`Hide ${row.earlier.length} previous block${row.earlier.length===1?'':'s'}`:`Show ${row.earlier.length} previous block${row.earlier.length===1?'':'s'}`}
                         className="prog-plusn"
-                        style={{display:'inline-flex',alignItems:'center',gap:5,height:22,padding:'0 9px',background: expanded ? 'rgba(127,127,138,0.14)' : 'transparent',border:`1px solid ${C.cardBd}`,borderRadius:0,color: C.tm,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.05em',whiteSpace:'nowrap',flexShrink:0,fontVariantNumeric:'tabular-nums'}}>
+                        style={{display:'inline-flex',alignItems:'center',gap:5,height:24,padding:'0 9px',background: expanded ? 'rgba(127,127,138,0.14)' : 'transparent',border:`1px solid ${C.cardBd}`,borderRadius:0,color: C.tm,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.05em',whiteSpace:'nowrap',flexShrink:0,fontVariantNumeric:'tabular-nums'}}>
                         {row.earlier.length} previous
                         <span aria-hidden style={{display:'inline-block',transform: expanded?'rotate(180deg)':'none',transition:'transform .15s',fontSize:8,lineHeight:1}}>▾</span>
                       </button>
@@ -4201,7 +4201,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
             const plusBtn = row.earlier.length > 0 && (
               <button onClick={e=>{e.stopPropagation();toggleAthlete(row.tid);}}
                 title={expanded?`Hide ${row.earlier.length} previous block${row.earlier.length===1?'':'s'}`:`Show ${row.earlier.length} previous block${row.earlier.length===1?'':'s'} (or double-click the card)`}
-                style={{display:'inline-flex',alignItems:'center',gap:5,height:22,padding:'0 9px',background:expanded?'rgba(127,127,138,0.14)':'transparent',border:`1px solid ${C.cardBd}`,borderRadius:0,color:C.tm,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.05em',whiteSpace:'nowrap',flexShrink:0,fontVariantNumeric:'tabular-nums'}}>
+                style={{display:'inline-flex',alignItems:'center',gap:5,height:24,padding:'0 9px',background:expanded?'rgba(127,127,138,0.14)':'transparent',border:`1px solid ${C.cardBd}`,borderRadius:0,color:C.tm,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.05em',whiteSpace:'nowrap',flexShrink:0,fontVariantNumeric:'tabular-nums'}}>
                 {row.earlier.length} previous
                 <span aria-hidden style={{display:'inline-block',transform:expanded?'rotate(180deg)':'none',transition:'transform .15s',fontSize:8,lineHeight:1}}>▾</span>
               </button>
@@ -4214,7 +4214,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                 </span>
                 <span style={{display:'inline-flex',alignItems:'center',gap:10,flexShrink:0}}>
                   <button onClick={e=>{e.stopPropagation();setLineageTraineeId(row.tid);}} title="Training Analysis — this athlete's movement-pattern volume across every block"
-                    style={{display:'inline-flex',alignItems:'center',gap:5,height:20,padding:'0 8px',background:'rgba(255,255,255,0.12)',border:'1px solid rgba(255,255,255,0.3)',borderRadius:0,color:'#fff',cursor:'pointer',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.08em',whiteSpace:'nowrap'}}>◫ ANALYSIS</button>
+                    style={{display:'inline-flex',alignItems:'center',gap:5,height:24,padding:'0 8px',background:'rgba(255,255,255,0.12)',border:'1px solid rgba(255,255,255,0.3)',borderRadius:0,color:'#fff',cursor:'pointer',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.08em',whiteSpace:'nowrap'}}>◫ ANALYSIS</button>
                   <span title={`Last session: ${tagText}`} style={{display:'inline-flex',alignItems:'center',gap:6,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',color:tagColor,whiteSpace:'nowrap'}}>
                     <span style={{width:6,height:6,borderRadius:'50%',background:tagColor}} />{tagText}
                   </span>
