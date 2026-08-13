@@ -15,7 +15,7 @@ import { getAthleteVault, getAthleteAsymmetryTrend } from './poseMetricsStore';
 import { autoAnalyzeAthleteVideos, pendingCount } from './autoAnalyzeVideos';
 import { velocityProfile1RM, mvtForLift } from './velocityProfile1RM';
 import { blockNum, classifyPattern, repsTop, exById } from './PlansView';
-import { groupByBucket, BUCKETS } from './movementBucket';
+import { groupByBucket, BUCKETS, movementRegion } from './movementBucket';
 import { exerciseContinuity } from './exerciseContinuity';
 
 const wrap = { maxWidth: 980, margin: '0 auto', fontFamily: FN };
@@ -318,14 +318,19 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
           const ballisticUp = a.staples.filter((s) => s.ballistic && !s.stale?.stale && s.trend?.dir === 'up');
           const regressing = a.staples.filter((s) => !s.ballistic && s.isMain && !s.stale?.stale && s.trend?.dir === 'down');
           const lowerGrind = a.region?.lower?.pct != null && a.region.lower.pct >= 25;
+          // Dedup: the generic region line ("Upper body progressing" / "Lower body
+          // regressing") is pure restatement when a NAMED lift in the same column is
+          // already in that region — show it only when it adds new coverage (Ohad).
+          const climbingCoversUpper = climbing.some((s) => movementRegion(s.title) === 'upper');
+          const negNamesLower = [...regressing, ...stuck].some((s) => movementRegion(s.title) === 'lower');
           const pos = [];
           if (climbing.length) pos.push({ t: `Progressing — ${nm(climbing)}`, d: 'e1RM trending up. Keep progressing: +2–3% load or +1 rep at the same effort.' });
-          if (upperOk) pos.push({ t: 'Upper body progressing', d: `hitting reps at ${a.region.upper.pct}% miss — room to push the load.` });
+          if (upperOk && !climbingCoversUpper) pos.push({ t: 'Upper body progressing', d: `hitting reps at ${a.region.upper.pct}% miss — room to push the load.` });
           if (ballisticUp.length) pos.push({ t: `Power progressing — ${nm(ballisticUp)}`, d: 'load is up; film a set to confirm it’s bar speed, not just heavier kg.' });
           const neg = [];
           if (regressing.length) neg.push({ t: `Regressing — ${nm(regressing)}`, d: thin ? `e1RM sliding, but only ${a.adh?.loggedSessions || 0} session${(a.adh?.loggedSessions || 0) === 1 ? '' : 's'} logged — a flag to watch, not a deload trigger yet.` : 'e1RM down across the block. Back off ~5–10% intensity, hold volume, check recovery.' });
           if (stuck.length) neg.push({ t: `Not progressing — ${nm(stuck)}`, d: 'flat 3+ sessions. Change the stimulus (variation/tempo) or a light week — not more kg.' });
-          if (lowerGrind) neg.push({ t: 'Lower body regressing', d: `${a.region.lower.pct}% of sets short of target — the load’s too heavy right now and it compounds.` });
+          if (lowerGrind && !negNamesLower) neg.push({ t: 'Lower body regressing', d: `${a.region.lower.pct}% of sets short of target — the load’s too heavy right now and it compounds.` });
           const Col = ({ title, color, items, empty }) => (
             <div style={{ border: `1px solid ${color}`, background: `color-mix(in srgb, ${color} 6%, transparent)`, padding: '11px 13px' }}>
               <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color, marginBottom: 9 }}>{title}</div>
