@@ -290,8 +290,13 @@ export function useSupaClientWorkouts(initial = []) {
   useEffect(() => {
     (async () => {
       try {
-        const { data: rows } = await supabase.from('client_workouts').select('*').order('date', { ascending: false });
-        if (rows && rows.length > 0 && !mutatedRef.current) {
+        const { data: rows, error } = await supabase.from('client_workouts').select('*').order('date', { ascending: false });
+        // Guard on `error`, NOT on rows.length: on a DB/RLS failure supabase-js
+        // returns rows===null (so `rows &&` short-circuits and the local cache is
+        // preserved). A legitimately-EMPTY result ([]) must still clear state —
+        // otherwise a device whose rows were all deleted elsewhere keeps showing
+        // them from localStorage forever (audit BUG 2).
+        if (!error && rows && !mutatedRef.current) {
           const mapped = rows.map(r => ({
             id: r.id, clientId: r.client_id, planName: r.plan_name,
             dayName: r.day_name, week: r.week, date: r.date,
@@ -320,9 +325,24 @@ export function useSupaClientWorkouts(initial = []) {
         const s = localStorage.getItem('expo-cw');
         if (!s) return;
         const parsed = JSON.parse(s);
+        // MERGE the form_videos patch into current state — do NOT replace state
+        // wholesale from localStorage. If an earlier save() hit a quota error the
+        // setItem is swallowed, so the localStorage blob can be MISSING the newest
+        // workout (which lives in React state + the DB). A blind setData(parsed)
+        // would drop it from the UI until reload (audit BUG 4). Keep every current
+        // workout, apply the patched form_videos, and never lose a current-only row.
+        const cur = dataRef.current || [];
+        const patchById = new Map((parsed || []).map(w => [w.id, w]));
+        const seen = new Set();
+        const merged = cur.map(w => {
+          seen.add(w.id);
+          const p = patchById.get(w.id);
+          return p ? { ...w, formVideos: p.formVideos } : w;
+        });
+        for (const p of (parsed || [])) if (p && !seen.has(p.id)) merged.push(p);
         mutatedRef.current = true;
-        setData(parsed);
-        dataRef.current = parsed;
+        setData(merged);
+        dataRef.current = merged;
       } catch {}
     };
     window.addEventListener('expo-cw-patched', onPatch);
@@ -445,8 +465,9 @@ export function useSupaBwLog(initial = []) {
   useEffect(() => {
     (async () => {
       try {
-        const { data: rows } = await supabase.from('bw_logs').select('*').order('date', { ascending: true });
-        if (rows && rows.length > 0 && !mutatedRef.current) {
+        const { data: rows, error } = await supabase.from('bw_logs').select('*').order('date', { ascending: true });
+        // Guard on `error`, not rows.length — empty must clear stale local cache (audit BUG 2).
+        if (!error && rows && !mutatedRef.current) {
           const mapped = rows.map(r => ({
             date: r.date, clientId: r.client_id, week: r.week, bw: r.bw,
             blockName: r.block_name, planId: r.plan_id
@@ -535,12 +556,18 @@ export function useSupaWeeklyFocus(initial = {}) {
   const dataRef = useRef(data);
   const pendingRef = useRef({}); // focus_key -> latest value not yet flushed
   const timerRef = useRef(null);
+  // Sticky latch: once the coach has typed anything, the slow mount-fetch must NOT
+  // overwrite it. The offline-queue overlay only covers writes that already enqueued;
+  // a just-typed value sitting in pendingRef (no error yet, not queued) is invisible
+  // to it, so without this guard the load reverts the edit on-screen (parity with the
+  // three sibling hooks in this file — this one was missing it).
+  const mutatedRef = useRef(false);
 
   useEffect(() => {
     (async () => {
       try {
         const { data: rows } = await supabase.from('weekly_focus').select('*');
-        if (!rows) return;
+        if (!rows || mutatedRef.current) return;
         // Build merged state: cloud first, then overlay any unsynced writes
         // still sitting in the offline queue (e.g. last session typed a longer
         // value but the upsert hadn't drained yet). Without this overlay, a
@@ -594,6 +621,7 @@ export function useSupaWeeklyFocus(initial = {}) {
   }, [flush]);
 
   const save = useCallback((next) => {
+    mutatedRef.current = true; // once the coach types, the mount-fetch must not clobber it
     const prev = dataRef.current;
     const val = typeof next === 'function' ? next(prev) : next;
     setData(val);
