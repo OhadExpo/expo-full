@@ -478,8 +478,13 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
       const grouped = groupByBucket(a.staples);
       const trained = BUCKETS.filter((b) => grouped[b.key].length > 0).length;
       if (trained === 0) return null;
+      // One clean line per lift — truncate long names with … (full name on hover)
+      // instead of wrapping to 2-3 ragged lines, which made the cards messy (Ohad #225).
       const cell = (lift) => (
-        <div key={lift.title} dir="auto" style={{ fontSize: 11.5, color: C.tm, lineHeight: 1.4, overflowWrap: 'anywhere', marginBottom: 2 }} title={lift.title}>{lift.title}</div>
+        <div key={lift.title} dir="auto" title={lift.title} style={{ fontSize: 11.5, color: C.tm, lineHeight: 1.7, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span aria-hidden style={{ flex: '0 0 auto', width: 3, height: 3, borderRadius: '50%', background: C.td }} />
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{lift.title}</span>
+        </div>
       );
       return (
         <Section title="Movement map" summary={`${trained} of 6 patterns trained`}>
@@ -501,7 +506,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
             <div style={{ fontSize: 10.5, color: C.td, marginTop: 9, lineHeight: 1.5 }}>
               <div style={{ color: C.tm, fontWeight: 600, marginBottom: 3 }}>Other ({grouped.other.length}) <span style={{ opacity: 0.7, fontWeight: 400 }}>— core / carry / full-body (outside the six patterns)</span></div>
               {grouped.other.map((l) => (
-                <div key={l.title} dir="auto" title={l.title} style={{ overflowWrap: 'anywhere', marginBottom: 1 }}>– {l.title}</div>
+                <div key={l.title} dir="auto" title={l.title} style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.6 }}>– {l.title}</div>
               ))}
             </div>
           )}
