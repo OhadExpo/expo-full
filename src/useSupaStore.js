@@ -432,18 +432,46 @@ export function useSupaClientWorkouts(initial = []) {
   // Optimistic: updates local state first, then writes to Supabase. Errors
   // surface via emitSaveError and get shown in the save-error toast.
   const updateFormVideos = useCallback(async (id, formVideos) => {
+    // Optimistic local update for immediate UI.
     const next = dataRef.current.map(w => w.id === id ? { ...w, formVideos } : w);
     mutatedRef.current = true;
     setData(next);
     dataRef.current = next;
     try { localStorage.setItem('expo-cw', JSON.stringify(next)); } catch {}
     try {
-      const { error } = await supabase.from('client_workouts').update({ form_videos: formVideos }).eq('id', id);
-      if (error) {
-        if (isTransient(error)) enqueue({ type: 'client_workouts.update', payload: { id, patch: { form_videos: formVideos } }, dedupeKey: 'fv:' + id });
-        else emitSaveError({ key: 'client_workouts', op: 'updateFormVideos', msg: error.message || String(error) });
+      // Server-authoritative READ-MODIFY-WRITE (audit CRITICAL). The coach's
+      // clientWorkouts snapshot is frozen at page-load and never refreshes from
+      // the server, so a whole-column overwrite here SILENTLY ERASED an athlete's
+      // form video uploaded after the coach opened Review (the un-fixed mirror of
+      // the blobQueue.attachUrl per-slot fix). Re-read the row and keep the
+      // SERVER's upload/media fields per slot (cloudUrl / pendingBlobId / has /
+      // uploadFailed / fileName …), applying only the local reviewNotes.
+      const { data: row, error: readErr } = await supabase
+        .from('client_workouts').select('form_videos').eq('id', id).maybeSingle();
+      if (readErr) throw readErr;
+      const serverFv = Array.isArray(row?.form_videos) ? row.form_videos : [];
+      const inc = Array.isArray(formVideos) ? formVideos : [];
+      const len = Math.max(serverFv.length, inc.length);
+      const merged = [];
+      for (let i = 0; i < len; i++) {
+        const s = serverFv[i], c = inc[i];
+        // shared slot: server owns media fields, client owns reviewNotes;
+        // server-only slot (an athlete upload the coach never saw) is preserved.
+        if (s && c) merged.push({ ...s, reviewNotes: c.reviewNotes !== undefined ? c.reviewNotes : s.reviewNotes });
+        else merged.push(s || c);
       }
+      const { error } = await supabase.from('client_workouts').update({ form_videos: merged }).eq('id', id);
+      if (error) throw error;
+      // Reconcile local state to the merged truth (may now include an athlete
+      // upload the coach's stale snapshot lacked).
+      const reconciled = dataRef.current.map(w => w.id === id ? { ...w, formVideos: merged } : w);
+      setData(reconciled); dataRef.current = reconciled;
+      try { localStorage.setItem('expo-cw', JSON.stringify(reconciled)); } catch {}
     } catch (e) {
+      // Offline / DB flap: keep the optimistic local update and durably enqueue.
+      // (The drained update is still a whole-column write — a narrow residual risk
+      // only if an athlete uploads while the coach is offline — acceptable vs
+      // losing the note. Realtime on client_workouts would remove it entirely.)
       if (isTransient(e)) enqueue({ type: 'client_workouts.update', payload: { id, patch: { form_videos: formVideos } }, dedupeKey: 'fv:' + id });
       else emitSaveError({ key: 'client_workouts', op: 'updateFormVideos', msg: e?.message || 'update failed' });
     }
