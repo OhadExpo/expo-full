@@ -674,7 +674,9 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
             const BRAND = '#39BDFF'; // literal cyan — C.ac flips to black in light mode; the bars keep brand cyan in BOTH themes like the readiness/BW graphs
             return (
               <div style={{ marginBottom: 12 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8, gap: 8, flexWrap: 'wrap' }}>
+                {/* extra bottom margin so the peak bar's value label (bottom:100% of a
+                    full-height bar) has headroom and never crowds this header (Ohad #224). */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 20, gap: 8, flexWrap: 'wrap' }}>
                   <span style={{ fontSize: 10, color: C.tm, letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 700 }}>Session tonnage · last {a.acwr.series.length}</span>
                   <span style={{ fontSize: 10, color: C.tm, fontVariantNumeric: 'tabular-nums' }}>peak <b style={{ color: BRAND }}>{mx.toLocaleString()}</b> · latest <b style={{ color: C.tx }}>{last.toLocaleString()}</b> kg·reps</span>
                 </div>
