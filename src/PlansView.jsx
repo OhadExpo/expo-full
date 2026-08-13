@@ -3077,7 +3077,7 @@ export function TrainingLineage({ traineeId, traineeName, exercises, plans, load
             {blocks.map((b, i) => (
               <button key={b.id} onClick={() => onOpenPlan && onOpenPlan(b.id)} title={`Open ${b.name}`}
                 style={{ textAlign: 'center', border: 'none', borderBottom: `2px solid ${i === blocks.length - 1 ? '#39BDFF' : C.cardBd}`, borderLeft: `1px solid ${C.cardBd}`, background: i === blocks.length - 1 ? 'color-mix(in srgb, var(--c-ac) 8%, transparent)' : 'transparent', padding: '6px 4px', cursor: 'pointer', overflow: 'hidden' }}>
-                <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: i === blocks.length - 1 ? '#39BDFF' : C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={b.name}>{b.num != null ? `#${b.num}` : (b.name || '').slice(0, 6)}</div>
+                <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: i === blocks.length - 1 ? '#39BDFF' : C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={b.name}>{b.num != null ? `#${b.num}` : (b.name || '')}</div>
                 {!allSameDate && b.createdAt && <div style={{ fontFamily: FB, fontSize: 8, color: C.tm, marginTop: 2 }}>{fmtPrettyDate(b.createdAt)}</div>}
               </button>
             ))}
