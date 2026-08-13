@@ -284,7 +284,10 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
   const addCommentRef = useRef(addComment);
   useEffect(() => { addCommentRef.current = addComment; });
   useEffect(() => {
-    if (role !== 'trainer') return;
+    // Gate the same as the COMMENT button: without onReviewNotesChange (e.g. the
+    // Compare/vs-DEMO modal) writeNotes is a no-op, so opening the composer via C
+    // would silently discard the typed comment + drawings on save (#123).
+    if (role !== 'trainer' || !onReviewNotesChange) return;
     const handler = (e) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (e.key !== 'c' && e.key !== 'C') return;
@@ -299,7 +302,7 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [role, composing]);
+  }, [role, composing, onReviewNotesChange]);
   // Auto-play once the metadata loads so the trainer doesn't have to click
   // play on every clip in a 60-clip review session. Browsers block autoplay
   // with sound, so we mute on the trainer side. Athlete role keeps the

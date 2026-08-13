@@ -416,7 +416,14 @@ export default function EvaluationEditor({ trainee, existing, onSave, onClose })
     setActiveTest(null);
   };
 
+  const [saving, setSaving] = useState(false);
   const save = async () => {
+    // Guard double-tap/slow-network re-click: create() mints a fresh id per call,
+    // so a second click before the first resolves writes a DUPLICATE evaluation row
+    // (clinical data). Mirrors ContractSign's submitting guard (#123).
+    if (saving) return;
+    setSaving(true);
+    try {
     const scoresOut = Object.keys(exNotes).length ? { ...scores, __notes: exNotes } : scores;
     // onSave is create (row|null) or update (true|false). Only close on a
     // confirmed write — closing unconditionally on a swallowed failure lost the
@@ -428,6 +435,7 @@ export default function EvaluationEditor({ trainee, existing, onSave, onClose })
     });
     if (!ok) { toast('Could not save the evaluation — check your connection and try again.', 'error', { ttl: 5000 }); return; }
     onClose();
+    } finally { setSaving(false); }
   };
 
   return (
@@ -500,10 +508,10 @@ export default function EvaluationEditor({ trainee, existing, onSave, onClose })
           <button onClick={onClose}
             style={{ padding: '10px 18px', borderRadius: 0, border: `1px solid var(--c-cardBd)`,
               background: 'transparent', color: 'var(--c-tm)', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', cursor: 'pointer' }}>CANCEL</button>
-          <button onClick={save}
+          <button onClick={save} disabled={saving}
             style={{ padding: '10px 18px', borderRadius: 0, border: `1px solid var(--c-ac)`,
-              background: 'transparent', color: 'var(--c-ac)', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', cursor: 'pointer' }}>
-            {existing ? 'SAVE CHANGES' : 'SAVE EVALUATION'}
+              background: 'transparent', color: 'var(--c-ac)', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.6 : 1 }}>
+            {saving ? 'SAVING…' : (existing ? 'SAVE CHANGES' : 'SAVE EVALUATION')}
           </button>
         </div>
       </div>
