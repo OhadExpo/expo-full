@@ -1321,10 +1321,17 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       exercises: day.ex.map((ex, i) => {
         const sub = substitutions[ex.eid];
         const prescribedTitle = EX[ex.eid]?.t || '?';
+        // A per-week reps cell can hold a FULL "N×M" prescription (e.g. "2x10 e").
+        // In that case it already carries the set count — prepending the flat `ex.s`
+        // would save "3x2x10 e" and show the athlete a wrong record. Mirror the
+        // rxOf / SetsRepsHero combined-guard so History matches the live logger.
+        const wkReps = String((ex.wk && ex.wk[weekNum]) ?? '').trim() || ex.r;
+        const wkSets = (ex.wkS && ex.wkS[weekNum]) || ex.s;
+        const prescribed = /[x×]/i.test(String(wkReps)) ? String(wkReps) : `${wkSets}x${wkReps}`;
         return {
           eid: ex.eid,
           title: sub ? sub.title : prescribedTitle,
-          prescribed: `${(ex.wkS && ex.wkS[weekNum]) || ex.s}x${(ex.wk && ex.wk[weekNum]) || ex.r}`,
+          prescribed,
           // Blank any set still carrying the untouched-prefill mark: the athlete
           // never actually performed it, so it must save empty (not as a number
           // they'll see resurface next week as a phantom "last week" ghost).
