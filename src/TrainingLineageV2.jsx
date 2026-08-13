@@ -682,12 +682,14 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
       );
     })()}
 
-    {/* 4+5. LOAD/VOLUME + VELOCITY */}
-    {/* alignItems:start so a COLLAPSED card (e.g. Load & Volume) doesn't get
-        stretched to the height of an EXPANDED neighbour (Bar Speed) and show a
-        big empty black box below its header (Ohad #200: "shows literally
-        nothing"). Each card now keeps its own natural height. */}
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12, alignItems: 'start' }} className="lineage-grid2">
+    {/* 4+5. LOAD/VOLUME + VELOCITY + ROM + SYMMETRY */}
+    {/* SINGLE full-width column (Ohad #236): in a 2-col grid a COLLAPSED card
+        (mostly collapsed-by-default here) left its whole half of the page an
+        empty black void next to a tall EXPANDED neighbour — "half the page is
+        empty, not a good look." Full-width stacking means a collapsed card is a
+        clean full-width bar (like the programs list he referenced) and an
+        expanded card uses the full width, giving its graph more room. No void. */}
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12, marginTop: 12, alignItems: 'start' }} className="lineage-grid2">
       <Section title="Load & volume" cardStyle={{ ...card, marginTop: 0 }} summary={a.acwr.state === 'ok' ? `ACWR ${a.acwr.acwr}` : 'building the baseline'}>
           {Array.isArray(a.acwr.series) && a.acwr.series.length >= 2 && (() => {
             const mx = Math.max(...a.acwr.series, 1);

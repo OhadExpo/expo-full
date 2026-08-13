@@ -57,11 +57,19 @@ export default function MessagesCard({ trainees, onSelectTrainee }) {
   // keep any previously-loaded rows on a transient refresh failure.
   const [loadError, setLoadError] = useState(null);
   const reload = useCallback(async () => {
+    // We collapse to latest-per-trainee below, so the window must be big enough
+    // that NO athlete's latest message can fall outside it — otherwise a quieter
+    // athlete's unread inbound gets hidden from the card AND dropped from the
+    // unread badge count (a genuinely missed message). 120 could truncate on a
+    // single busy day; 2000 covers years at this client count. The fully-correct
+    // fix is a DISTINCT ON (trainee_id) … ORDER BY trainee_id, created_at DESC
+    // RPC (returns exactly one latest row per athlete, volume-independent) —
+    // swap to that if coach_messages ever grows large. (messaging audit)
     const { data, error } = await supabase
       .from('coach_messages')
       .select('id,trainee_id,sender_role,body_text,audio_url,created_at')
       .order('created_at', { ascending: false })
-      .limit(120);
+      .limit(2000);
     setLoading(false);
     if (error || !Array.isArray(data)) {
       console.warn('MessagesCard load failed:', error?.message || error);

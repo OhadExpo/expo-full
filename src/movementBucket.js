@@ -10,7 +10,11 @@
 import { isVelocityLossLift } from './poseMetricsStore.js';
 
 // LOWER-body signals (legs/glutes/hinge/squat + the plyo landings that are lower).
-const LOWER_RE = /\b(squat|deadlift|dead\s?lift|\bdl\b|rdl|sldl|hinge|swing|lunge|step[\s-]?up|hip[\s-]?thrust|glute|ham|leg\s?curl|leg\s?ext|leg\s?press|calf|split[\s-]?squat|rfess|ffess|bulgarian|nordic|shrimp|pistol|good[\s-]?morning|thrust|kickback|adduction|abduction|sissy|jump|pogo|hop|bound|snap[\s-]?down|depth|broad|vert|land)/i;
+// NOTE: the final plyo-landing token is `landing`, NOT a bare `land` — a bare
+// `land` also matched "LANDmine" and sent every Landmine Press/Row to LOWER
+// (flipping Upper to a false "not trained" gap). With `landing`, the real
+// movement word decides landmine variants (press/row→upper, squat/rdl→lower).
+const LOWER_RE = /\b(squat|deadlift|dead\s?lift|\bdl\b|rdl|sldl|hinge|swing|lunge|step[\s-]?up|hip[\s-]?thrust|glute|ham|leg\s?curl|leg\s?ext|leg\s?press|calf|split[\s-]?squat|rfess|ffess|bulgarian|nordic|shrimp|pistol|good[\s-]?morning|thrust|kickback|adduction|abduction|sissy|jump|pogo|hop|bound|snap[\s-]?down|depth|broad|vert|landing)/i;
 // UPPER-body signals (chest/back/shoulders/arms + upper-body throws/push-ups).
 // Olympic lifts (clean/snatch/jerk) are deliberately NOT here — they're full-body
 // / lower-dominant and belong in the 'Other · Olympic' catch-all, not "upper".
