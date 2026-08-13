@@ -94,6 +94,28 @@ registerHandler('client_workouts.update', async ({ id, patch }) => {
     .upsert({ id, ...patch }, { onConflict: 'id' });
   if (error) throw error;
 });
+// Coach reviewNotes written while OFFLINE. Distinct from client_workouts.update
+// (blobQueue's URL write, which IS authoritative for a slot's upload fields):
+// here the SERVER owns each slot's upload/media fields and we apply only
+// reviewNotes — the offline mirror of updateFormVideos's online read-modify-write,
+// so a coach note drained later can't clobber an athlete upload. (WorkoutReview
+// audit Finding 1 — residual close.)
+registerHandler('client_workouts.mergeReviewNotes', async ({ id, formVideos }) => {
+  const { data: row, error: readErr } = await supabase
+    .from('client_workouts').select('form_videos').eq('id', id).maybeSingle();
+  if (readErr) throw readErr;
+  const serverFv = Array.isArray(row?.form_videos) ? row.form_videos : [];
+  const inc = Array.isArray(formVideos) ? formVideos : [];
+  const len = Math.max(serverFv.length, inc.length);
+  const merged = [];
+  for (let i = 0; i < len; i++) {
+    const s = serverFv[i], c = inc[i];
+    if (s && c) merged.push({ ...s, reviewNotes: c.reviewNotes !== undefined ? c.reviewNotes : s.reviewNotes });
+    else merged.push(s || c);
+  }
+  const { error } = await supabase.from('client_workouts').upsert({ id, form_videos: merged }, { onConflict: 'id' });
+  if (error) throw error;
+});
 registerHandler('client_workouts.delete', async ({ id }) => {
   const { error } = await supabase.from('client_workouts').delete().eq('id', id);
   if (error) throw error;
@@ -469,10 +491,11 @@ export function useSupaClientWorkouts(initial = []) {
       try { localStorage.setItem('expo-cw', JSON.stringify(reconciled)); } catch {}
     } catch (e) {
       // Offline / DB flap: keep the optimistic local update and durably enqueue.
-      // (The drained update is still a whole-column write — a narrow residual risk
-      // only if an athlete uploads while the coach is offline — acceptable vs
-      // losing the note. Realtime on client_workouts would remove it entirely.)
-      if (isTransient(e)) enqueue({ type: 'client_workouts.update', payload: { id, patch: { form_videos: formVideos } }, dedupeKey: 'fv:' + id });
+      // Drains via the reviewNotes-merge handler (server-authoritative on upload
+      // fields), NOT the generic update — so a note drained after an athlete's
+      // offline-window upload still can't clobber the video. Distinct dedupeKey
+      // from blobQueue's 'fv:' URL writes so the two never replace each other.
+      if (isTransient(e)) enqueue({ type: 'client_workouts.mergeReviewNotes', payload: { id, formVideos }, dedupeKey: 'fvnotes:' + id });
       else emitSaveError({ key: 'client_workouts', op: 'updateFormVideos', msg: e?.message || 'update failed' });
     }
   }, []);
