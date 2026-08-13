@@ -47,5 +47,18 @@ check('0.4 explosive + 5 reps -> strength (minority explosive, NOT power) [#131]
 check('0.49 explosive + 5 reps -> strength (just below the 0.5 floor)', ch({ explosiveShare: 0.49, avgReps: 5 }) === 'strength');
 check('0.3 explosive + 5 reps -> strength (well below data threshold, <=6)', ch({ explosiveShare: 0.3, avgReps: 5 }) === 'strength');
 
+// ── multi-signal upgrade (#223): intensity + confidence, honest "mixed" ──
+import { classifyBlockCharacter as CBC } from '../src/lineageAnalysis.js';
+const full = (name, inp, want) => { const r = CBC(inp); const ok = Object.entries(want).every(([k, v]) => r[k] === v); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}`); ok ? pass++ : fail++; };
+// Ohad's case: mid-rep blocks with NO intensity programmed must NOT read confident
+// hypertrophy — they're low-confidence/mixed (inferred from reps alone).
+full('7.4r, no %/RPE -> mixed/low (not confident)', { avgReps: 7.4 }, { mixed: true, confidence: 'low' });
+full('8.6r, no %/RPE -> mixed/low', { avgReps: 8.6 }, { mixed: true, confidence: 'low' });
+// With intensity, it classifies confidently + correctly.
+full('3r @ 90% -> strength, high, not mixed', { avgReps: 3, avgPct: 90 }, { character: 'strength', confidence: 'high', mixed: false });
+full('10r @ 70% high-vol -> hypertrophy, not mixed', { avgReps: 10, avgPct: 70, volumeLevel: 'high' }, { character: 'hypertrophy', mixed: false });
+full('7r @ RPE 8.5 -> strength (heavy, not hypertrophy)', { avgReps: 7, avgRpe: 8.5 }, { character: 'strength', mixed: false });
+full('15r @ 55% -> endurance, not mixed', { avgReps: 15, avgPct: 55 }, { character: 'endurance', mixed: false });
+
 console.log(`\n${fail === 0 ? '✓ ALL PASS' : '✗ FAILURES'} — ${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);

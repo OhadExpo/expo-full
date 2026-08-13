@@ -53,19 +53,74 @@ const median = (arr) => {
 // data (dataChar); >=0.6 confirms power outright. The floor was 0.4 but a 40%
 // share is a MINORITY — a strength block with power accessories, not a power
 // emphasis — so it over-called power; raised to 0.5 per Bompa/NSCA (#131, 08-12).
-export function classifyBlockCharacter({ explosiveShare = 0, avgReps = null, heavy = false, nameChar = null }) {
-  const powerReps = avgReps == null || avgReps <= 8;
-  let dataChar = null;
-  if (explosiveShare >= 0.5 && powerReps) dataChar = 'power';
-  else if (avgReps == null) dataChar = null;
-  else if (avgReps <= 6) dataChar = 'strength';
-  else if (avgReps <= 12) dataChar = heavy ? 'strength' : 'hypertrophy';
-  else dataChar = heavy ? 'strength' : 'endurance';
+// Multi-signal periodization-phase read — weighs rep zone + INTENSITY (%1RM or RPE)
+// + relative VOLUME + movement intent together, NOT rep count alone (the old version
+// collapsed the whole 6-12 band to "hypertrophy" and mis-tagged strength blocks).
+// Corpus %1RM×rep×volume signatures (Bompa/Issurin/RP/NSCA/Zatsiorsky/Prilepin —
+// knowledge/alexandria SYNTHESIS): Power 30-85%/1-5/explosive · Strength 80-95%/1-6/
+// mod vol · Hypertrophy 60-80%/8-12/HIGH vol/eccentric · Endurance <60%/13+/high vol.
+// INTENSITY is the strongest discriminator; when it's UNKNOWN (no %/RPE programmed)
+// reps+volume can't separate strength from hypertrophy in the 6-10 band — so we return
+// LOW confidence + mixed:true rather than a fake-confident label. `heavy` kept for
+// back-compat (folds into the intensity signal). Returns
+// { character, dataChar, confidence:'high'|'moderate'|'low', mixed, scores }.
+export function classifyBlockCharacter({ explosiveShare = 0, avgReps = null, avgRpe = null, avgPct = null, volumeLevel = null, heavy = false, nameChar = null }) {
+  // Intensity index 0-100: %1RM if given, else RPE mapped (RPE5≈55% … RPE10≈100%),
+  // else the legacy `heavy` flag as a coarse ≥85 stand-in. null = genuinely unknown.
+  const intensity = avgPct != null ? avgPct
+    : (avgRpe != null ? Math.max(40, Math.min(100, 55 + (avgRpe - 5) * 9))
+      : (heavy ? 86 : null));
+  const highIntensity = intensity != null && intensity >= 82;
+  const R = avgReps;
+  // POWER first — MAJORITY explosive (>=0.5, #131 floor) at low reps: velocity intent
+  // dominates regardless of the other signals. >=0.6 = high confidence, 0.5 = moderate.
+  if (explosiveShare >= 0.5 && (R == null || R <= 8)) {
+    const confidence = explosiveShare >= 0.6 ? 'high' : 'moderate';
+    return { character: 'power', dataChar: 'power', confidence, mixed: false, scores: { power: explosiveShare } };
+  }
+  const sc = { strength: 0, hypertrophy: 0, endurance: 0 };
+  // STRENGTH — low reps OR heavy load (high %/RPE dominates — a heavy block whose mean
+  // reps got pulled up by accessories is still strength, not hypertrophy).
+  if (R != null) { if (R <= 5) sc.strength += 0.6; else if (R <= 8) sc.strength += 0.35; }
+  if (highIntensity) sc.strength += 0.55;
+  if (volumeLevel === 'low') sc.strength += 0.12;
+  // HYPERTROPHY / ENDURANCE only apply at SUB-maximal load — high intensity is
+  // incompatible with both (they're 60-80% / <60% qualities).
+  if (!highIntensity) {
+    if (R != null) { if (R > 8 && R <= 12) sc.hypertrophy += 0.5; else if (R > 6 && R <= 8) sc.hypertrophy += 0.22; }
+    if (intensity != null && intensity >= 60 && intensity < 82) sc.hypertrophy += 0.3;
+    if (volumeLevel === 'high') sc.hypertrophy += 0.25;
+    if (R != null && R > 12) sc.endurance += 0.6;
+    if (intensity != null && intensity < 60) sc.endurance += 0.3;
+    if (volumeLevel === 'high') sc.endurance += 0.1;
+  }
+
+  const ranked = Object.entries(sc).sort((a, b) => b[1] - a[1]);
+  const [topName, topScore] = ranked[0];
+  const margin = topScore - ranked[1][1];
+  const intensityKnown = intensity != null;
+
+  // A CLEAR block name overrides in the genuinely-ambiguous middle (intensity unknown
+  // + mid reps, or a thin score margin) — the coach's own label is the best prior there.
+  const ambiguousMiddle = (!intensityKnown && R != null && R > 5 && R <= 10) || margin < 0.2;
   let character;
-  if (explosiveShare >= 0.6 && powerReps) character = 'power';
-  else if (dataChar && nameChar && dataChar !== nameChar && ((avgReps != null && avgReps > 6 && avgReps <= 12 && !heavy) || (heavy && (nameChar === 'strength' || nameChar === 'power')))) character = nameChar;
-  else character = dataChar || nameChar || 'hypertrophy';
-  return { dataChar, character };
+  if (nameChar && ambiguousMiddle) character = nameChar;
+  // Heavy: strength vs power is a velocity-intent split load can't see — if the coach
+  // NAMED it power (or strength), that label breaks the tie between the two heavy qualities.
+  else if (highIntensity && (nameChar === 'power' || nameChar === 'strength') && (topName === 'strength' || topName === 'power')) character = nameChar;
+  else if (topScore > 0) character = topName;
+  else character = nameChar || 'hypertrophy';
+
+  // Confidence: needs a clear winner AND intensity data. Without intensity, a mid-rep
+  // block can't be confidently strength-vs-hypertrophy — cap at low (mixed).
+  let confidence = 'low';
+  if (topScore > 0) {
+    if (margin >= 0.35 && intensityKnown) confidence = 'high';
+    else if (margin >= 0.35 && (character === 'endurance' || character === 'strength')) confidence = 'moderate';
+    else if (margin >= 0.2 && intensityKnown) confidence = 'moderate';
+  }
+  const mixed = confidence === 'low';
+  return { character, dataChar: topScore > 0 ? topName : null, confidence, mixed, scores: sc };
 }
 
 export function e1RM(load, reps) {
@@ -660,8 +715,8 @@ export function blockHistory(plans, deps) {
     // power-ENDURANCE / conditioning, not power development — it reads by its rep
     // zone instead. (Source-verified vs NSCA Essentials Ch.17, 2026-08-12.)
     const nc = namePhase(p.name);
-    const { character } = classifyBlockCharacter({ explosiveShare, avgReps, heavy, nameChar: nc });
-    return { num: blockNum(p.name), name: p.name, character, avgReps: round1(avgReps), avgRpe: round1(avgRpe), avgPct: round1(avgPct), explosiveShare: Math.round(explosiveShare * 100) / 100, exercises: all.length, fromMains, mains: [...new Set(mainTitles)] };
+    const { character, confidence, mixed } = classifyBlockCharacter({ explosiveShare, avgReps, avgRpe, avgPct, heavy, nameChar: nc });
+    return { num: blockNum(p.name), name: p.name, character, confidence, mixed, hasIntensity: (avgPct != null || avgRpe != null), avgReps: round1(avgReps), avgRpe: round1(avgRpe), avgPct: round1(avgPct), explosiveShare: Math.round(explosiveShare * 100) / 100, exercises: all.length, fromMains, mains: [...new Set(mainTitles)] };
   }).filter(Boolean)
     // Numbered blocks sort by number; un-numbered ones keep insertion order at the
     // front (stable key = -1) so the comparator stays transitive and "current

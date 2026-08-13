@@ -357,11 +357,16 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
             {a.blockHistory.slice(-14).map((b, idx) => {
               const col = b.character === 'strength' ? C.ac : b.character === 'power' ? (C.or || '#f0b429') : b.character === 'hypertrophy' ? C.pu : C.gn;
               const label = b.num != null ? `#${b.num}` : (b.name || '').replace(/block/i, '').trim().slice(0, 6) || `B${idx + 1}`;
+              // Low-confidence (mixed) reads — no intensity programmed, so the phase
+              // is inferred from reps alone. Dim them + mark with ~ so a guess never
+              // looks like a fact (Ohad: the tagging must not over-claim).
+              const lowConf = b.mixed || b.confidence === 'low';
+              const intel = b.avgPct != null ? ` @ ${b.avgPct}% 1RM` : (b.avgRpe != null ? ` @ RPE ${b.avgRpe}` : ' · no %/RPE logged');
               return (
-                <div key={b.name || idx} title={`${b.name} · ${b.character} — ${b.avgReps != null ? `avg ${b.avgReps} reps` : 'explosive, no rep basis'}${b.avgPct != null ? ` @ ${b.avgPct}% 1RM` : (b.avgRpe != null ? ` @ RPE ${b.avgRpe}` : '')}${b.explosiveShare >= 0.4 ? ` · ${Math.round(b.explosiveShare * 100)}% explosive` : ''} · from ${b.fromMains ? 'the main lifts' : 'all exercises'} (${b.exercises} logged)`}
-                  style={{ flex: '0 0 auto', border: `1px solid ${col}`, padding: '5px 9px', minWidth: 50, textAlign: 'center', background: `color-mix(in srgb, ${col} 8%, transparent)` }}>
+                <div key={b.name || idx} title={`${b.name} · ${b.character}${lowConf ? ' (low-confidence — no intensity logged, inferred from reps)' : ` (${b.confidence || 'read'})`} — ${b.avgReps != null ? `avg ${b.avgReps} reps` : 'explosive, no rep basis'}${intel}${b.explosiveShare >= 0.4 ? ` · ${Math.round(b.explosiveShare * 100)}% explosive` : ''} · from ${b.fromMains ? 'the main lifts' : 'all exercises'} (${b.exercises} logged)`}
+                  style={{ flex: '0 0 auto', border: `1px ${lowConf ? 'dashed' : 'solid'} ${col}`, padding: '5px 9px', minWidth: 50, textAlign: 'center', background: `color-mix(in srgb, ${col} ${lowConf ? 4 : 8}%, transparent)`, opacity: lowConf ? 0.72 : 1 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: C.tx, fontFamily: FN }}>{label}</div>
-                  <div style={{ fontSize: 8.5, letterSpacing: '0.05em', textTransform: 'uppercase', color: col, marginTop: 2 }}>{b.character}</div>
+                  <div style={{ fontSize: 8.5, letterSpacing: '0.05em', textTransform: 'uppercase', color: col, marginTop: 2 }}>{lowConf ? '~' : ''}{b.character}</div>
                   <div style={{ fontSize: 9, color: C.td, marginTop: 1, fontVariantNumeric: 'tabular-nums' }}>{b.avgReps != null ? `${b.avgReps}r` : '⚡'}</div>
                 </div>
               );
@@ -372,19 +377,28 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
             const lastChar = bh[bh.length - 1].character;
             let run = 0; for (let k = bh.length - 1; k >= 0; k--) { if (bh[k].character === lastChar) run++; else break; }
             if (run < 4) return null;
-            // Only fire this prescriptive cue when the run's character reads are
-            // anchored on real main lifts (not an all-rows fallback) — otherwise
-            // the "monotony" is a soft signal, not a periodization fact.
             const runBlocks = bh.slice(bh.length - run);
+            // Only fire when anchored on real main lifts (not an all-rows fallback).
             if (runBlocks.filter((b) => b.fromMains).length < Math.ceil(run * 0.6)) return null;
+            // If the run is mostly LOW-confidence (no intensity programmed), the
+            // "same phase N times" read is unreliable — say THAT, don't prescribe a
+            // phase change off a guess. Intensity is what makes the arc trustworthy.
+            const confidentRun = runBlocks.filter((b) => !b.mixed && b.confidence !== 'low').length >= Math.ceil(run * 0.6);
+            if (!confidentRun) {
+              return (
+                <div style={{ fontSize: 12.5, color: C.tm, marginTop: 10, lineHeight: 1.5, fontFamily: FN }}>
+                  The last {run} blocks read similar on <b>rep count alone</b> — but you didn't program %1RM or RPE, so the phase is a guess, not a fact. Log intensity on the main lifts and the arc becomes reliable before you decide to change phase.
+                </div>
+              );
+            }
             const swap = lastChar === 'hypertrophy' ? 'a strength or power/peaking' : lastChar === 'strength' ? 'a hypertrophy or a power' : lastChar === 'power' ? 'a strength or hypertrophy base' : 'a strength or power';
             return (
               <div style={{ fontSize: 12.5, color: C.or || '#f0b429', marginTop: 10, lineHeight: 1.5, fontFamily: FN }}>
-                <b>{run} {lastChar} blocks in a row.</b> Same rep emphasis on the main lifts every block — {swap} block is the obvious contrast if you want a fresh stimulus. Your periodization call.
+                <b>{run} {lastChar} blocks in a row.</b> Same intensity + rep emphasis every block — {swap} block is the obvious contrast if you want a fresh stimulus. Your periodization call.
               </div>
             );
           })()}
-          <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>Character reads what you PROGRAMMED each block, movement type first: explosive lifts (Olympic / jumps / throws / speed) = power; heavy low reps (≤5) or 6–8 at RPE 8+ = strength; 6–12 = hypertrophy; 12+ = endurance. A long run of one colour is the cue to change phase.</div>
+          <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>Character weighs <b>intensity (%1RM / RPE)</b>, rep zone, and movement intent together — not reps alone: explosive (Olympic / jumps / throws) = power; heavy low reps or high %/RPE = strength; 8–12 sub-maximal = hypertrophy; 12+ low intensity = endurance. A <b style={{ color: C.tm }}>~dashed</b> block = low confidence (no intensity logged, inferred from reps). A long run of one colour is the cue to change phase.</div>
         </div>
       </div>
     )}
