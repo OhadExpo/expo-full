@@ -1958,7 +1958,14 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
                   the previous upload's setFv against the new one's. */}
               <label style={{flex:1,minHeight:44,padding:'12px 8px',borderRadius:0,border:`0.25px dashed ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',textAlign:'center',cursor:f.uploading?'not-allowed':'pointer',opacity:f.uploading?0.4:1,pointerEvents:f.uploading?'none':'auto',display:'flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box'}}>
                 Replace
-                <input type="file" accept="video/*" capture="environment" style={{display:'none'}} disabled={f.uploading} onChange={async e => { await handleVideoUpload(e, ei); }} />
+                <input type="file" accept="video/*" capture="environment" style={{display:'none'}} disabled={f.uploading} onChange={async e => {
+                  // Drop the slot's prior queued blob before enqueuing the new one —
+                  // Replace overwrites pendingBlobId, so without this the old blob
+                  // (workoutId:null, never drained) leaks until the 7-day GC.
+                  // Mirrors the Remove button's cleanup. (offline audit #3)
+                  if (f.pendingBlobId) { removeBlob(f.pendingBlobId).catch(() => {}); }
+                  await handleVideoUpload(e, ei);
+                }} />
               </label>
               <button disabled={f.uploading} onClick={() => {
                   // Revoke the in-memory blob URL and drop any IDB-queued

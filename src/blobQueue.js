@@ -248,12 +248,16 @@ async function attachUrl(workoutId, exerciseIndex, cloudUrl) {
       // HERE: an unsynced (brand-new) workout has no server-side coach reviews to
       // lose. Returning true lets the blob be dropped (its bytes are already up).
       if (patchedFv) {
-        enqueueOp({
+        const persisted = enqueueOp({
           type: 'client_workouts.update',
           payload: { id: workoutId, patch: { form_videos: patchedFv } },
           dedupeKey: 'fv:' + workoutId,
         });
-        return true;
+        // Drop the blob ONLY if the reference actually persisted to localStorage.
+        // On a quota failure the enqueue is memory-only and dies with the tab —
+        // deleting the blob then would orphan the video (bytes up, no row pointing
+        // at them). Keep the blob + retry next drain instead. (offline audit #1)
+        return persisted !== false;
       }
       return false; // no local copy either — retry on the next drain
     }

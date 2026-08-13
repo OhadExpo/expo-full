@@ -55,6 +55,7 @@ function write(arr) {
   for (const l of listeners) {
     try { l(arr.length); } catch {}
   }
+  return persistOk; // callers that stake durability on the enqueue (blobQueue) check this
 }
 
 export function registerHandler(type, fn) {
@@ -80,7 +81,10 @@ export function enqueue({ type, payload, dedupeKey, critical }) {
     lastError: null,
     createdAt: Date.now(),
   });
-  write(next);
+  // Returns false if localStorage couldn't persist (quota) — the entry is in
+  // memory only and won't survive a reload. A caller that trades a durable copy
+  // (blobQueue deleting an uploaded blob) for this reference MUST check it.
+  return write(next);
 }
 
 export function getCount() {

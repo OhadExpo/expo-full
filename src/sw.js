@@ -11,7 +11,8 @@
 // to revert, swap `strategies: 'injectManifest'` back to the default
 // in vite.config.js and delete this file.
 
-import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
+import { precacheAndRoute, cleanupOutdatedCaches, createHandlerBoundToURL } from 'workbox-precaching';
+import { registerRoute, NavigationRoute } from 'workbox-routing';
 
 // PROMPT update flow (registerType:'prompt'): a new SW must NOT skip-waiting on
 // install — it has to WAIT so useRegisterSW (SwUpdateBanner) can detect it and
@@ -29,6 +30,18 @@ self.addEventListener('activate', (event) => {
 
 cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST || []);
+
+// Deep-path offline fallback (offline-lifecycle audit #2). The app is PATH-routed
+// (/coach/dashboard, /athlete, …), so a RELOAD or webview-restore while offline
+// requests that exact path — which isn't precached → white screen for an
+// offline-first gym app. Serve the precached index.html for any navigation
+// request so the SPA boots offline on ANY route (the client router then takes
+// over). Deny-list API/auth and asset-looking paths so only real navigations hit it.
+registerRoute(
+  new NavigationRoute(createHandlerBoundToURL('index.html'), {
+    denylist: [/^\/api\//, /^\/auth\//, /\/[^/?]+\.[^/?]+$/],
+  })
+);
 
 // ---------------------------------------------------------------------
 // Web Push handlers
