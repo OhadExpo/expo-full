@@ -60,7 +60,10 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
   const sorted = [...filtered].sort((a, b) => {
     if (sort === 'name') return (a.name || '').localeCompare(b.name || '') * dir;
     if (sort === 'status') return (a.status || '').localeCompare(b.status || '') * dir;
-    if (sort === 'sessions') return ((Number.isFinite(a.sessionsRemaining) ? a.sessionsRemaining : 0) - (Number.isFinite(b.sessionsRemaining) ? b.sessionsRemaining : 0)) * dir;
+    // parseFloat (not Number.isFinite, which doesn't coerce) so an imported string
+    // sessionsRemaining like "5" sorts as 5, matching how every other use of the
+    // field reads it (lowSessions/expiring/the table cell all coerce). (#123)
+    if (sort === 'sessions') return ((parseFloat(a.sessionsRemaining) || 0) - (parseFloat(b.sessionsRemaining) || 0)) * dir;
     if (sort === 'paid') return (a.totalPaid - b.totalPaid) * dir;
     if (sort === 'lastPay') return ((a.lastPay ? new Date(a.lastPay.date).getTime() : 0) - (b.lastPay ? new Date(b.lastPay.date).getTime() : 0)) * dir;
     if (sort === 'workouts') return (a.workoutCount - b.workoutCount) * dir;
@@ -107,6 +110,11 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
   const ms90 = 90 * 86400000;
   const paidPayments = payments.filter(p => p.status === 'Paid');
   const collected30 = paidPayments.filter(p => (now - new Date(p.date)) <= ms30).reduce((a, p) => a + (parseFloat(p.amount) || 0), 0);
+  // The 30D tile's own like-for-like basis: the PRIOR rolling 30 days (days 31-60).
+  // The MTD-vs-last-MTD revDelta is only valid on the "Collected MTD" KPI, not here —
+  // pairing it with a trailing-30d number captioned a scary wrong % early in a month (#123).
+  const collectedPrev30 = paidPayments.filter(p => { const age = now - new Date(p.date); return age > ms30 && age <= ms30 * 2; }).reduce((a, p) => a + (parseFloat(p.amount) || 0), 0);
+  const delta30 = collectedPrev30 > 0 ? Math.round(((collected30 - collectedPrev30) / collectedPrev30) * 100) : null;
   const collected90 = paidPayments.filter(p => (now - new Date(p.date)) <= ms90).reduce((a, p) => a + (parseFloat(p.amount) || 0), 0);
   const avgTicket = paidPayments.length ? Math.round(totalAllPaid / paidPayments.length) : 0;
   // Normalize couple sub-member ids (tr__0/__1) to the household parent so a couple
@@ -559,7 +567,7 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
       {isOwner && <RevenueCard
         monthlyRate={monthlyRate}
         thisMonthPaid={thisMonthPaid}
-        revDelta={revDelta}
+        delta30={delta30}
         collected30={collected30}
         collected90={collected90}
         avgLtv={avgLtv}
@@ -831,7 +839,7 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
 // F-36 — RevenueCard. Six-metric grid + 6-month bar chart, slotted into
 // the dashboard between KPI tiles and alert cards. Designed to read at
 // a glance without an analytics tab.
-function RevenueCard({ monthlyRate, thisMonthPaid, revDelta, collected30, collected90, avgLtv, avgTicket, outstanding, monthBars, maxBar }) {
+function RevenueCard({ monthlyRate, thisMonthPaid, delta30, collected30, collected90, avgLtv, avgTicket, outstanding, monthBars, maxBar }) {
   const refined = isRefined5b();
   const PAD = 18;
   const metricStyle = {
@@ -859,9 +867,9 @@ function RevenueCard({ monthlyRate, thisMonthPaid, revDelta, collected30, collec
           <div style={metricStyle}>
             <span style={labelStyle}>30D COLLECTED</span>
             <span style={numStyle}>₪{Math.round(collected30).toLocaleString()}</span>
-            {revDelta !== null && (
-              <span style={{ ...subStyle, color: revDelta >= 0 ? C.gn : C.rd }}>
-                {revDelta >= 0 ? '+' : ''}{revDelta}% vs prev month
+            {delta30 !== null && (
+              <span style={{ ...subStyle, color: delta30 >= 0 ? C.gn : C.rd }}>
+                {delta30 >= 0 ? '+' : ''}{delta30}% vs prev 30d
               </span>
             )}
           </div>
