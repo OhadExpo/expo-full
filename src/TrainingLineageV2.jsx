@@ -210,6 +210,9 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
   const [showThin, setShowThin] = useState(false); // expand the "logged 1-2× · too few to trend" lifts
   const [liftsOpen, setLiftsOpen] = useState(false); // HIS LIFTS list collapsed by default — click the header to expand (Ohad)
   const [barSpeedAll, setBarSpeedAll] = useState(false); // Bar-speed shows the top 3 lifts, expands to the FULL report of every tracked lift (Ohad #203)
+  const [romAll, setRomAll] = useState(false); // Range-of-motion card: same top-3 → full-report expansion as bar speed (Ohad #203)
+  // Lifts that carry a real camera ROM read (peak joint range per filmed set).
+  const romLifts = useMemo(() => (vault || []).filter((l) => l.entries.some((e) => e.maxRom != null)), [vault]);
 
   const shell = (children) => (
     <div style={{ ...wrap, background: C.bg, border: `1px solid ${C.bd}`, borderRadius: 2, overflow: 'hidden' }}>
@@ -356,7 +359,8 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {a.blockHistory.slice(-14).map((b, idx) => {
               const col = b.character === 'strength' ? C.ac : b.character === 'power' ? (C.or || '#f0b429') : b.character === 'hypertrophy' ? C.pu : C.gn;
-              const label = b.num != null ? `#${b.num}` : (b.name || '').replace(/block/i, '').trim().slice(0, 6) || `B${idx + 1}`;
+              // Show the FULL block name — no .slice() (Ohad #205: "comeback block" was cut to "comeba"). The chip is flex:'0 0 auto' so it grows to fit and stays one row (nowrap below).
+              const label = b.num != null ? `#${b.num}` : ((b.name || '').replace(/block/i, '').trim() || `B${idx + 1}`);
               // Low-confidence (mixed) reads — no intensity programmed, so the phase
               // is inferred from reps alone. Dim them + mark with ~ so a guess never
               // looks like a fact (Ohad: the tagging must not over-claim).
@@ -365,7 +369,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
               return (
                 <div key={b.name || idx} title={`${b.name} · ${b.character}${lowConf ? ' (low-confidence — no intensity logged, inferred from reps)' : ` (${b.confidence || 'read'})`} — ${b.avgReps != null ? `avg ${b.avgReps} reps` : 'explosive, no rep basis'}${intel}${b.explosiveShare >= 0.4 ? ` · ${Math.round(b.explosiveShare * 100)}% explosive` : ''} · from ${b.fromMains ? 'the main lifts' : 'all exercises'} (${b.exercises} logged)`}
                   style={{ flex: '0 0 auto', border: `1px ${lowConf ? 'dashed' : 'solid'} ${col}`, padding: '5px 9px', minWidth: 50, textAlign: 'center', background: `color-mix(in srgb, ${col} ${lowConf ? 4 : 8}%, transparent)`, opacity: lowConf ? 0.72 : 1 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: C.tx, fontFamily: FN }}>{label}</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: C.tx, fontFamily: FN, whiteSpace: 'nowrap' }}>{label}</div>
                   <div style={{ fontSize: 8.5, letterSpacing: '0.05em', textTransform: 'uppercase', color: col, marginTop: 2 }}>{lowConf ? '~' : ''}{b.character}</div>
                   <div style={{ fontSize: 9, color: C.td, marginTop: 1, fontVariantNumeric: 'tabular-nums' }}>{b.avgReps != null ? `${b.avgReps}r` : '⚡'}</div>
                 </div>
@@ -791,6 +795,48 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
               {autoPose.running
                 ? <><b style={{ color: C.ac, display: 'block', marginBottom: 5 }}>Auto-analysing clips… {autoPose.done}/{autoPose.total}</b><span>Bar speed is read from every uploaded video automatically — no logging needed. This fills in as it goes.</span></>
                 : <><b style={{ color: C.tx, display: 'block', marginBottom: 5 }}>No clean bar-speed read yet.</b><span>Every uploaded clip is auto-analysed for velocity — none is filmed side-on cleanly enough to trend yet. Bar speed drops <i>before</i> load or RPE; it's the fatigue read no competitor at this price offers.</span></>}
+            </div>
+          )}
+      </Section>
+
+      {/* Range of motion — per-lift peak joint ROM from filmed sets, same
+          top-3 → full-report expansion as bar speed (Ohad #203). ROM is real
+          camera data (romTempo.maxRom), refused on poor-capture clips. */}
+      <Section title="Range of motion" cardStyle={{ ...card, marginTop: 0 }} tag={<span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '2px 6px', border: `1px solid ${C.pu}`, color: C.pu, marginLeft: 8 }}>camera only</span>} summary={romLifts.length > 0 ? `${romLifts.length} lift${romLifts.length === 1 ? '' : 's'} tracked` : 'no stored ROM'}>
+          {romLifts.length > 0 ? (
+            <>
+              {romLifts.slice(0, romAll ? romLifts.length : 3).map((lift) => {
+                const roms = lift.entries.filter((e) => e.maxRom != null);
+                const last = roms[roms.length - 1];
+                const delta = roms.length >= 2 ? Math.round(last.maxRom - roms[0].maxRom) : null;
+                const dCol = delta == null ? C.tm : delta <= -8 ? C.rd : delta >= 5 ? C.gn : C.tm;
+                const mx = Math.max(...roms.map((e) => e.maxRom), 1);
+                return (
+                  <div key={lift.title} style={{ padding: '9px 0', borderTop: `1px solid ${C.bd}` }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 5 }}>
+                      <span style={{ fontSize: 12.5, color: C.tx }}>{lift.title}</span>
+                      <span style={{ fontSize: 10, color: dCol, letterSpacing: '0.04em', fontVariantNumeric: 'tabular-nums' }}>{Math.round(last.maxRom)}°{delta != null ? ` · ${delta >= 0 ? '+' : ''}${delta}° vs first` : ''}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 30 }}>
+                      {roms.slice(-8).map((e, i) => (
+                        <div key={i} title={`${(e.date || '').slice(0, 10)} · ${Math.round(e.maxRom)}° working range`}
+                          style={{ flex: 1, minWidth: 4, height: `${Math.max(12, (e.maxRom / mx) * 100)}%`, background: C.ac, opacity: 0.85, borderRadius: '1px 1px 0 0' }} />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+              {romLifts.length > 3 && (
+                <button onClick={() => setRomAll((s) => !s)}
+                  style={{ marginTop: 10, width: '100%', height: 30, boxSizing: 'border-box', background: 'transparent', border: `1px solid ${C.bd}`, borderRadius: 0, color: C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>
+                  {romAll ? 'Show less' : `Show all ${romLifts.length} lifts`}
+                </button>
+              )}
+              <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>Peak working range per filmed lift, measured from the skeleton. A quietly shrinking range = depth or mobility slipping, or fatigue compensation — visible before it shows in the loads.</div>
+            </>
+          ) : (
+            <div style={{ border: `1px dashed ${C.bd}`, background: C.sf2, padding: 14, color: C.tm, fontSize: 12.5, lineHeight: 1.5 }}>
+              <b style={{ color: C.tx, display: 'block', marginBottom: 5 }}>No ROM read yet.</b><span>Working range is read from filmed sets automatically — film a few clean sets and each lift's range trends here, no logging needed.</span>
             </div>
           )}
       </Section>
