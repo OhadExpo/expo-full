@@ -62,23 +62,25 @@ export function trainingMonotony(sessions, nowMs) {
   const variance = daily.reduce((a, b) => a + (b - mean) ** 2, 0) / 7; // population SD (Foster)
   const sd = Math.sqrt(variance);
   const weeklyLoad = Math.round(daily.reduce((a, b) => a + b, 0));
-  // SD ~0 means every day carried an IDENTICAL non-zero load (7/7 training, no
-  // variation) — the theoretical monotony maximum. Report it capped + honest
-  // rather than dividing by ~0 into Infinity.
-  if (sd < 1e-6) {
-    return { state: 'ok', monotony: 3, strain: weeklyLoad * 3, weeklyLoad, band: 'high', trainingDays, haveDays: trainingDays, dailyLoads: daily, capped: true };
-  }
-  const monotony = mean / sd;
-  const strain = Math.round(weeklyLoad * monotony);
+  // Foster monotony is mean/SD — unbounded as SD -> 0. Its ACTIONABLE range is
+  // ~0.5-2.5; a near-flat week maths out to 30+, which is no more informative than
+  // "extreme grind" yet would swamp any strain trend, and would read absurdly next
+  // to the all-identical (SD=0) case. Cap at one sensible ceiling so the SD=0 and
+  // near-SD=0 cases AGREE and the number stays interpretable. `capped` flags it.
+  const CAP = 3;
+  const rawMon = sd < 1e-9 ? Infinity : mean / sd;
+  const capped = rawMon > CAP;
+  const monotony = capped ? CAP : +rawMon.toFixed(2);
   const band = monotony >= 2.0 ? 'high' : monotony >= 1.5 ? 'moderate' : 'varied';
   return {
     state: 'ok',
-    monotony: +monotony.toFixed(2),
-    strain,
+    monotony,
+    strain: Math.round(weeklyLoad * monotony),
     weeklyLoad,
     band,
     trainingDays,
     haveDays: trainingDays,
     dailyLoads: daily.map((d) => Math.round(d)),
+    capped,
   };
 }

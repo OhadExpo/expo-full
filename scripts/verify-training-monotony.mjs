@@ -20,7 +20,10 @@ const grindIdentical = run(Array.from({ length: 7 }, (_, i) => sess(i, 5000)));
 check('7 identical days -> SD~0 -> capped high monotony', grindIdentical.state === 'ok' && grindIdentical.band === 'high' && grindIdentical.capped === true && grindIdentical.monotony === 3);
 check('grind weeklyLoad = 7 x 5000 = 35000', grindIdentical.weeklyLoad === 35000);
 const grindNear = run([sess(0, 5200), sess(1, 4800), sess(2, 5100), sess(3, 4900), sess(4, 5000), sess(5, 5150), sess(6, 4850)]);
-check('7 near-identical days -> real monotony > 2 -> high (uncapped)', grindNear.state === 'ok' && grindNear.monotony > 2 && grindNear.band === 'high' && !grindNear.capped);
+// Near-flat maths out to ~35 (SD tiny) — capped to the ceiling so it AGREES with
+// the SD=0 identical case instead of reporting an absurd, trend-swamping number.
+check('7 near-identical days -> capped to ceiling (agrees with the identical case)', grindNear.state === 'ok' && grindNear.monotony === 3 && grindNear.band === 'high' && grindNear.capped === true);
+check('cap unifies SD=0 and near-SD=0 (both report the same monotony)', grindNear.monotony === grindIdentical.monotony);
 check('strain = weeklyLoad x monotony (> weeklyLoad when monotony > 1)', grindNear.strain > grindNear.weeklyLoad);
 
 // ── varied training / rest days -> LOW monotony (rest is protective) ──
