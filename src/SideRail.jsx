@@ -61,6 +61,10 @@ export function SideRail({
       alignSelf: 'flex-start',
       position: narrow ? 'static' : 'sticky', top: narrow ? undefined : top,
       maxHeight: narrow ? undefined : maxHeight, overflowY: narrow ? 'visible' : 'auto',
+      // Stop the scrollbar-thumb jitter at the very bottom of the track (Ohad #196):
+      // a reserved gutter kills the width flicker, and scroll-containment stops the
+      // sticky rail from chaining its scroll into the page once it bottoms out.
+      scrollbarGutter: narrow ? undefined : 'stable', overscrollBehavior: 'contain',
     }}>
       {/* Search box at the TOP of the sidebar, above Filters (Ohad). */}
       <div style={{ padding: '0 14px 12px' }}>
