@@ -398,9 +398,15 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
   }, [persist, exById]);
 
   const finishSession = useCallback(async () => {
-    if (!session) return;
+    // Read the LATEST session (sessionRef.current), NOT the render-closure `session`
+    // — an athlete's portal broadcast can merge a freshly-logged set into state in the
+    // window before React rebinds onFinish; finishing off the stale snapshot would
+    // write client_workouts WITHOUT that set and then delete the store row, losing it
+    // permanently. Every other mutating path here already reads the ref (audit).
+    const cur = sessionRef.current;
+    if (!cur) return;
     const finishedAt = new Date().toISOString();
-    const completed = session.athletes
+    const completed = cur.athletes
       .map(a => {
         const exDone = a.exercises.filter(ex => ex.sets.some(s => s.done));
         if (!exDone.length) return null;
@@ -483,14 +489,19 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
         {session.athletes.map((a, ai) => (
           <AthleteCard key={a.rowId} a={a} name={(traineeById[a.traineeId]?.name) || a.traineeId}
             prevMap={prevByKey[`${a.traineeId}|${a.planName}|${a.dayName}|${(Number(a.week) || 1) - 1}`]} exDetail={exDetail}
-            onToggleIn={() => mutate(d => { d.athletes[ai].checkedIn = !d.athletes[ai].checkedIn; })}
+            onToggleIn={() => mutate(d => { const x = d.athletes.find(z => z.rowId === a.rowId); if (x) x.checkedIn = !x.checkedIn; })}
             onSet={(ei, si, patch) => {
-              mutate(d => { Object.assign(d.athletes[ai].exercises[ei].sets[si], patch); });
+              // Resolve the athlete by stable rowId, not render index `ai` — a
+              // concurrent roster shift (another device's remove/reorder committing
+              // between event dispatch and this updater) would otherwise write the set
+              // onto the WRONG athlete's card and rebroadcast it (same hazard onRemove
+              // already guards). ei/si are stable within one athlete's own card.
+              mutate(d => { const x = d.athletes.find(z => z.rowId === a.rowId); const s = x?.exercises?.[ei]?.sets?.[si]; if (s) Object.assign(s, patch); });
               // Granular per-field broadcast so the athlete's portal gets THIS
               // edit live. The full 'session' broadcast can't drive the portal —
               // it carries every (mostly empty) set and would wipe the athlete's
               // own entries; 'athlete-set' overwrites only the field we changed.
-              const a2 = sessionRef.current?.athletes?.[ai];
+              const a2 = sessionRef.current?.athletes?.find(z => z.rowId === a.rowId);
               const setCh = a2 && setChansRef.current.get(a2.traineeId);
               if (setCh) {
                 Object.entries(patch).forEach(([f, v]) => {
@@ -498,7 +509,7 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
                 });
               }
             }}
-            onCurEx={(ei) => mutate(d => { d.athletes[ai].curEx = ei; })}
+            onCurEx={(ei) => mutate(d => { const x = d.athletes.find(z => z.rowId === a.rowId); if (x) x.curEx = ei; })}
             onRemove={() => mutate(d => {
               // Remove by stable rowId, not the render-time index `ai`: the ✕
               // button awaits a confirm dialog first, so on a multi-device floor
