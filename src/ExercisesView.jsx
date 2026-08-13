@@ -236,7 +236,7 @@ export default function ExercisesView({ exercises, setExercises }) {
   const emptyDot = <span style={{ color: C.td, opacity: 0.4, fontSize: 12 }}>·</span>;
   // Single-value classification — quiet uppercase mono, or a faint dot.
   const oneCell = (v, extra = {}) => (
-    <td style={{ padding: '9px 12px', whiteSpace: 'nowrap', ...extra }}>
+    <td title={v || undefined} style={{ padding: '9px 12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', ...extra }}>
       {v ? <span style={{ fontFamily: FN, fontSize: 10.5, fontWeight: 600, letterSpacing: '0.02em', color: C.tm }}>{v}</span> : emptyDot}
     </td>
   );
@@ -244,7 +244,7 @@ export default function ExercisesView({ exercises, setExercises }) {
   const chipCell = (v, max = 320) => {
     const vals = splitVals(v);
     return (
-      <td style={{ padding: '9px 12px', maxWidth: max }}>
+      <td title={vals.join(', ') || undefined} style={{ padding: '9px 12px', maxWidth: max, overflow: 'hidden' }}>
         {vals.length === 0 ? emptyDot : (
           <div style={{ display: 'flex', gap: 4, flexWrap: 'nowrap', overflow: 'hidden' }}>
             {vals.slice(0, 3).map((x, i) => (
@@ -375,14 +375,29 @@ export default function ExercisesView({ exercises, setExercises }) {
           })}
         </div>
       ) : (
-        <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, overflowX: 'auto' }}>
-          <table className="ex-table" style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
+        <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, overflowX: 'hidden' }}>
+          {/* table-layout:fixed + colgroup: every column shares 100% of the width
+              so the table NEVER overflows horizontally (Ohad: "too much scrolling
+              left and right"). Long comma-lists truncate with … (full on hover). */}
+          <table className="ex-table" style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
+            <colgroup>
+              <col style={{ width: '19%' }} />
+              <col style={{ width: '9%' }} />
+              <col style={{ width: '9%' }} />
+              <col style={{ width: '10%' }} />
+              <col style={{ width: '11%' }} />
+              <col style={{ width: '12%' }} />
+              <col style={{ width: '11%' }} />
+              <col style={{ width: '11%' }} />
+              <col style={{ width: '48px' }} />
+              <col style={{ width: '56px' }} />
+            </colgroup>
             <thead>
               <tr>
                 {[['title', 'Exercise'], ['resistanceType', 'Resistance'], ['bodyPosition', 'Position'], ['movementType', 'Movement'], ['primaryJoints', 'Joints'], ['jointMovements', 'Joint Movements'], ['primaryMuscles', 'Primary Muscles'], ['secondaryMuscles', 'Secondary Muscles']].map(([k, l]) => {
                   const active = sortKey === k;
                   return (
-                    <th key={k} onClick={() => onSort(k)} style={{ textAlign: 'left', padding: '9px 12px', fontSize: 9, fontFamily: FN, color: active ? C.ac : C.tm, textTransform: 'uppercase', letterSpacing: '0.13em', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', borderBottom: `1px solid ${C.cardBd}`, userSelect: 'none', position: 'sticky', top: 0, background: 'var(--c-sf)', zIndex: 1 }}>
+                    <th key={k} onClick={() => onSort(k)} style={{ textAlign: 'left', padding: '9px 12px', fontSize: 9, fontFamily: FN, color: active ? C.ac : C.tm, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700, cursor: 'pointer', whiteSpace: 'normal', lineHeight: 1.25, borderBottom: `1px solid ${C.cardBd}`, userSelect: 'none', position: 'sticky', top: 0, background: 'var(--c-sf)', zIndex: 1 }}>
                       {l}{active && <span style={{ fontSize: 8, marginLeft: 4 }}>{sortDir === 'asc' ? '↑' : '↓'}</span>}
                     </th>
                   );
