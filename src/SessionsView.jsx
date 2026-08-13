@@ -499,7 +499,14 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
               }
             }}
             onCurEx={(ei) => mutate(d => { d.athletes[ai].curEx = ei; })}
-            onRemove={() => mutate(d => { d.athletes.splice(ai, 1); })}
+            onRemove={() => mutate(d => {
+              // Remove by stable rowId, not the render-time index `ai`: the ✕
+              // button awaits a confirm dialog first, so on a multi-device floor
+              // a concurrent remove/reorder could have shifted the roster —
+              // splicing `ai` would delete the WRONG athlete and rebroadcast it.
+              const idx = d.athletes.findIndex(x => x.rowId === a.rowId);
+              if (idx !== -1) d.athletes.splice(idx, 1);
+            })}
           />
         ))}
       </div>

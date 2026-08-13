@@ -95,10 +95,14 @@ export default function useAutosave(value, save, options = {}) {
       if (debounceRef.current) { clearTimeout(debounceRef.current); debounceRef.current = null; }
       enqueue();
     };
-    window.addEventListener('visibilitychange', onLeave);
+    // visibilitychange targets `document` — bind it there (binding to window
+    // relied on bubbling, which iOS Safari has historically dropped on
+    // screen-lock/tab-switch, the exact case this flush exists for). pagehide
+    // is a window event. Both flush the last edit before the tab is frozen.
+    document.addEventListener('visibilitychange', onLeave);
     window.addEventListener('pagehide', onLeave);
     return () => {
-      window.removeEventListener('visibilitychange', onLeave);
+      document.removeEventListener('visibilitychange', onLeave);
       window.removeEventListener('pagehide', onLeave);
     };
   }, [enqueue]);

@@ -11,6 +11,19 @@ import { C, FN, ytId, ytIsShort } from './theme';
 // today, so this is defence-in-depth, not a live hole. (security audit) Shared.
 export const safeUrl = (u) => (typeof u === 'string' && /^https?:\/\//i.test(u)) ? u : null;
 
+// True only when VideoEmbed will actually render a player for this URL (one of
+// the 4 recognized kinds below). Callers gate optional "show a demo" affordances
+// on this so they never surface a button that opens a blank pane — matches the
+// render ladder in VideoEmbed() exactly. Keep in sync with it.
+export const canEmbed = (u) => {
+  const url = safeUrl(u);
+  if (!url) return false;
+  return !!ytId(url)
+    || /\.(mp4|webm|mov|m4v)(\?|$)/i.test(url)
+    || /(photos\.app\.goo\.gl|photos\.google\.com)/i.test(url)
+    || /lh3\.googleusercontent\.com/i.test(url);
+};
+
 const _gphCache = new Map();
 
 function GooglePhotos({ url }) {

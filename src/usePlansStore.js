@@ -189,6 +189,52 @@ export function useFullPlan() {
   return { plan, loading, load, clear, setPlan };
 }
 
+// Batch loader — every full plan for one athlete, chronological. Used by the
+// Training Lineage view (cross-block progression). One query, full data JSONB;
+// fine for a single athlete (~10-25 blocks). Days are normalized to the
+// trainer shape so lineage extraction reads one uniform exercise shape.
+export function useAthletePlans() {
+  const [plans, setPlans] = useState(null); // null = idle/unloaded, [] = loaded-empty
+  const [loading, setLoading] = useState(false);
+  const reqRef = useRef(0);
+
+  const load = useCallback(async (traineeId) => {
+    if (!traineeId) { setPlans(null); return []; }
+    const myReq = ++reqRef.current;
+    setLoading(true);
+    let out = [];
+    try {
+      const { data } = await supabase
+        .from('plans')
+        .select('*')
+        .eq('trainee_id', traineeId)
+        .order('created_at', { ascending: true });
+      if (data) {
+        out = data.map(p => ({
+          id: p.id,
+          name: p.name,
+          traineeId: p.trainee_id,
+          phase: p.phase || '',
+          active: p.active,
+          createdAt: p.created_at,
+          updatedAt: p.updated_at,
+          weeks: p.data?.weeks || 4,
+          days: normalizeDays(p.data?.days),
+        }));
+      }
+    } catch (e) { console.error('useAthletePlans load error:', e); }
+    // Ignore a stale response if the athlete changed mid-flight.
+    if (myReq === reqRef.current) { setPlans(out); setLoading(false); }
+    return out;
+  }, []);
+
+  // Bump the request id so any in-flight load is ignored, AND clear loading —
+  // otherwise a load superseded by clear() never hits setLoading(false).
+  const clear = useCallback(() => { reqRef.current++; setPlans(null); setLoading(false); }, []);
+
+  return { plans, loading, load, clear };
+}
+
 // Save plan to Supabase plans table.
 //
 // Template-purchase flag: written into data JSONB so the read path works on

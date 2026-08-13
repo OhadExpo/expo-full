@@ -664,9 +664,16 @@ export async function syncAutoTasks({ trainees, plans, workouts, payments } = {}
     }
   }
 
-  // Execute
-  if (inserts.length > 0) {
-    const { error } = await supabase.from('coach_notes').insert(inserts);
+  // Execute — insert PER ROW, not as one batch. A multi-row INSERT is atomic, so
+  // a single duplicate-key (23505 against the partial unique index
+  // coach_notes_auto_unique_idx on auto_kind,auto_ref) rolls back the ENTIRE
+  // batch — and because dup errors are swallowed below, that silently dropped
+  // every fresh task whenever a second dashboard raced the same (auto_kind,
+  // auto_ref) between our existing-rows read and this write. Per-row isolates the
+  // collision: the duplicate is skipped, the rest land. (Partial index means a
+  // plain onConflict upsert can't reliably infer the target, so per-row it is.)
+  for (const row of inserts) {
+    const { error } = await supabase.from('coach_notes').insert(row);
     if (error && !/duplicate key/i.test(error.message)) {
       console.warn('autoTasks insert failed:', error.message);
       toast(`Auto-task sync warning: ${error.message}`, 'warning', { ttl: 6000 });
