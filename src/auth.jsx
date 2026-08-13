@@ -20,9 +20,16 @@ import { useEscClose } from './ui';
 // `TRAINER_EMAILS.includes(...)` checks stay correct because staff ARE trainers.
 export const OWNER_EMAILS = ['ohadyproductions@gmail.com'];
 export const STAFF_EMAILS = ['yuvalberkovitch@gmail.com'];
-export const TRAINER_EMAILS = [...OWNER_EMAILS, ...STAFF_EMAILS];
+// PARTNER = a trusted evaluator (Elad) who sees EVERYTHING like the owner, but
+// whose writes never land: the DB grants him SELECT-only RLS (no write policy →
+// INSERT/UPDATE/DELETE denied), and the UI shows a persistent "Partner Preview"
+// banner. Treated as owner for UI so he sees all tabs/data. Inert until the
+// SELECT-only RLS is applied (scripts/partner-elad-rls.sql) + his account exists (#232).
+export const PARTNER_EMAILS = ['eladeluz24@gmail.com'];
+export const TRAINER_EMAILS = [...OWNER_EMAILS, ...STAFF_EMAILS, ...PARTNER_EMAILS];
 export const isOwnerEmail = (email) => !!email && OWNER_EMAILS.includes(email.toLowerCase());
 export const isStaffEmail = (email) => !!email && STAFF_EMAILS.includes(email.toLowerCase());
+export const isPartnerEmail = (email) => !!email && PARTNER_EMAILS.includes(email.toLowerCase());
 
 const AuthContext = createContext(null);
 

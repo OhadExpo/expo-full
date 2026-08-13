@@ -11,7 +11,7 @@ import { supabase } from './supabase';
 import { Btn, baseBtn, ToastHost, toast } from './ui';
 import BugReportButton from './BugReportButton';
 import { parseTraineeId } from './traineeUtils';
-import { AuthProvider, useAuth, LoginScreen, UnauthorizedScreen, PasswordChangeModal, SaveErrorToast, OfflineStatusPill, RolePickerScreen, PORTAL_CHOICE_KEY, TRAINER_EMAILS, OWNER_EMAILS } from './auth';
+import { AuthProvider, useAuth, LoginScreen, UnauthorizedScreen, PasswordChangeModal, SaveErrorToast, OfflineStatusPill, RolePickerScreen, PORTAL_CHOICE_KEY, TRAINER_EMAILS, OWNER_EMAILS, isPartnerEmail } from './auth';
 import InstallAppPrompt from './InstallAppPrompt';
 import ErrorBoundary from './ErrorBoundary';
 import { autoAnalyzeAthleteVideos } from './autoAnalyzeVideos';
@@ -693,7 +693,11 @@ function AuthedApp() {
   // Owner = Ohad (full access). Anyone else in TRAINER_EMAILS is limited
   // "staff" (e.g. Yuval) — coach portal, but a reduced surface. STAFF_TABS
   // is the whitelist of tab keys a staff coach may reach (UI + URL guard).
-  const isOwner = OWNER_EMAILS.includes(email);
+  // Partner (Elad) is treated as owner for the UI so he sees every tab + all data.
+  // His writes are blocked at the DB (SELECT-only RLS), and the Partner-Preview
+  // banner (below) makes the read-only intent explicit (#232).
+  const isPartner = isPartnerEmail(email);
+  const isOwner = OWNER_EMAILS.includes(email) || isPartner;
 
   // Pre-warm pose analysis in the BACKGROUND across every athlete as soon as the
   // coach app has their clips — so bar-speed + symmetry are already computed when
@@ -1223,6 +1227,7 @@ function AuthedApp() {
 
   return(
     <div style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB}}>
+      {isPartner && <div style={{background:`color-mix(in srgb, ${C.ac} 22%, ${C.bg})`,borderBottom:`1px solid ${C.ac}`,color:C.tx,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',textAlign:'center',padding:'7px 12px'}}>PARTNER PREVIEW · you're viewing the real EXPO with live data — anything you change isn't saved</div>}
       <header style={{background:C.headerBg,borderBottom:`1px solid ${C.cardBd}`,boxShadow:'0 1px 2px rgba(0,0,0,0.03), 0 4px 12px rgba(0,0,0,0.04)',position:"sticky",top:0,zIndex:100,paddingTop:'env(safe-area-inset-top)'}}>
         <style>{`
           .hdr-scroll::-webkit-scrollbar{display:none}
