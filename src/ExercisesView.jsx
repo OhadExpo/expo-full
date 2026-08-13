@@ -448,8 +448,11 @@ export default function ExercisesView({ exercises, setExercises }) {
             <Input label="Primary Muscle Groups" value={form.primaryMuscles} onChange={e => setForm({ ...form, primaryMuscles: e.target.value })} placeholder="Quads, Glutes" />
             <Input label="Secondary Muscle Groups" value={form.secondaryMuscles} onChange={e => setForm({ ...form, secondaryMuscles: e.target.value })} />
             <div style={{ gridColumn: '1 / -1' }}><Input label="Video Link" value={form.videoLink} onChange={e => setForm({ ...form, videoLink: e.target.value })} placeholder="https://..." /></div>
+            {/* One note field only. "Coaching Cues" IS the note — hasNotes(), the
+                cards, and the athlete portal all read `cues`. The separate "Notes"
+                field was a vestigial duplicate that showed the same role twice
+                (Ohad: "coaching cues and notes are the same"). */}
             <div style={{ gridColumn: '1 / -1' }}><TextArea label="Coaching Cues" value={form.cues} onChange={e => setForm({ ...form, cues: e.target.value })} placeholder="Brace core, drive through heels..." /></div>
-            <div style={{ gridColumn: '1 / -1' }}><TextArea label="Notes" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
             <Btn variant="ghost" onClick={() => setShowForm(false)}>Cancel</Btn>
