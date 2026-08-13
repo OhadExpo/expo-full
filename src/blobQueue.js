@@ -224,46 +224,14 @@ async function markCwBlobFailed(workoutId, exerciseIndex, reason) {
 // its own offlineQueue upsert may not have drained, or the DB flapped — so the
 // caller keeps the blob and retries instead of orphaning the uploaded bytes.
 async function attachUrl(workoutId, exerciseIndex, cloudUrl) {
-  // Best-effort local-cache patch first (drives the UI immediately). When the
-  // cache holds the workout we get back the full form_videos array to write.
+  // Patch the local cache first so the UI shows the URL immediately. Keep the
+  // full patched array for the not-yet-synced fallback below.
   const patchedFv = await patchLocalCw(workoutId, exerciseIndex, cloudUrl);
-  if (patchedFv) {
-    try {
-      const { data, error } = await supabase
-        .from('client_workouts')
-        .update({ form_videos: patchedFv })
-        .eq('id', workoutId)
-        .select('id');
-      if (error) throw error;
-      if (!data || data.length === 0) {
-        // The row isn't on the server yet — an offline-finished workout whose own
-        // client_workouts.upsert hasn't drained. An .update() matching 0 rows
-        // returns NO error, so treating this as done would drop the blob while
-        // the later full-row upsert (form_videos snapshotted before this URL
-        // existed) overwrites it → orphaned bytes. Queue a durable form_videos
-        // update instead; the offlineQueue is FIFO so it lands AFTER the pending
-        // workout upsert (its update handler upserts-with-onConflict), URL last.
-        enqueueOp({
-          type: 'client_workouts.update',
-          payload: { id: workoutId, patch: { form_videos: patchedFv } },
-          dedupeKey: 'fv:' + workoutId,
-        });
-      }
-    } catch {
-      // Direct write flapped — hand it to the durable queue. Still "referenced":
-      // the URL now lives in the persisted offlineQueue, so dropping the blob is
-      // safe (the bytes are already up; only the row update remains, and it will
-      // converge on the next drain).
-      enqueueOp({
-        type: 'client_workouts.update',
-        payload: { id: workoutId, patch: { form_videos: patchedFv } },
-        dedupeKey: 'fv:' + workoutId,
-      });
-    }
-    return true;
-  }
-  // Local cache doesn't have this workout (evicted, or synced from another
-  // device). Read-modify-write the row on the server so the URL still lands.
+  // Persist to the server with a TARGETED per-slot read-modify-write — never a
+  // wholesale write of the locally-cached array. Writing the whole local array
+  // would overwrite a coach `reviewNotes` the coach added to a DIFFERENT slot
+  // while this blob was still queued (the local cache is stale for that slot).
+  // (audit finding #2). This mirrors the old cache-miss path for every case.
   try {
     const { data, error } = await supabase
       .from('client_workouts')
@@ -271,7 +239,26 @@ async function attachUrl(workoutId, exerciseIndex, cloudUrl) {
       .eq('id', workoutId)
       .maybeSingle();
     if (error) throw error;
-    if (!data) return false; // row not synced yet — retry on the next drain
+    if (!data) {
+      // Row isn't on the server yet — an offline-finished workout whose own
+      // client_workouts.upsert hasn't drained. We can't read-modify-write a
+      // missing row, so queue a durable form_videos update; the offlineQueue is
+      // FIFO, so it lands AFTER the pending workout upsert (its handler
+      // upserts-with-onConflict), URL last. Carrying the full local array is safe
+      // HERE: an unsynced (brand-new) workout has no server-side coach reviews to
+      // lose. Returning true lets the blob be dropped (its bytes are already up).
+      if (patchedFv) {
+        enqueueOp({
+          type: 'client_workouts.update',
+          payload: { id: workoutId, patch: { form_videos: patchedFv } },
+          dedupeKey: 'fv:' + workoutId,
+        });
+        return true;
+      }
+      return false; // no local copy either — retry on the next drain
+    }
+    // Row IS on the server: patch ONLY this slot, preserving every other slot's
+    // coach-authored reviewNotes.
     const fv = Array.isArray(data.form_videos) ? data.form_videos.slice() : [];
     while (fv.length <= exerciseIndex) fv.push(null);
     const { pendingBlobId, ...rest } = fv[exerciseIndex] || {};
@@ -283,7 +270,7 @@ async function attachUrl(workoutId, exerciseIndex, cloudUrl) {
     if (e2) throw e2;
     return true;
   } catch {
-    return false; // transient (offline / DB error) — keep the blob, retry
+    return false; // transient (offline / DB flap) — keep the blob, retry next drain
   }
 }
 

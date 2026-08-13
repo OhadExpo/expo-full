@@ -304,6 +304,33 @@ export function useSupaClientWorkouts(initial = []) {
             exercises: r.exercises || [], formVideos: r.form_videos || [],
             reviewedAt: r.reviewed_at || null
           }));
+          // Overlay any workout still sitting in the offline queue that the server
+          // doesn't have yet. A workout finished offline in a PRIOR session is
+          // enqueued (critical) + cached but not yet drained; on next launch the
+          // mount fetch resolves BEFORE the ~1.5s initial drain, so without this
+          // overlay it clobbers state+localStorage and the workout vanishes from
+          // History until a manual reload — risking the athlete re-logging a dup.
+          // mutatedRef only covers THIS session's edits. Mirror the weekly_focus
+          // overlay (audit finding #1).
+          try {
+            const haveIds = new Set(mapped.map(w => w.id));
+            const queued = JSON.parse(localStorage.getItem('expo-offline-queue') || '[]');
+            for (const item of queued) {
+              if (item?.type !== 'client_workouts.upsert') continue;
+              const r = item.payload?.row;
+              if (!r || !r.id || haveIds.has(r.id)) continue;
+              mapped.push({
+                id: r.id, clientId: r.client_id, planName: r.plan_name,
+                dayName: r.day_name, week: r.week, date: r.date,
+                autoregulation: r.autoregulation || {}, notes: r.notes || '',
+                exercises: r.exercises || [], formVideos: r.form_videos || [],
+                reviewedAt: r.reviewed_at || null
+              });
+              haveIds.add(r.id);
+            }
+            // keep the fetch's date-desc ordering after merging queued rows in
+            mapped.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+          } catch {}
           setData(mapped);
           dataRef.current = mapped;
           localStorage.setItem('expo-cw', JSON.stringify(mapped));
@@ -472,6 +499,23 @@ export function useSupaBwLog(initial = []) {
             date: r.date, clientId: r.client_id, week: r.week, bw: r.bw,
             blockName: r.block_name, planId: r.plan_id
           }));
+          // Overlay any weigh-in still queued offline that the server lacks —
+          // same prior-session drain race as client_workouts (audit finding #1).
+          try {
+            const key = (b) => `${b.clientId}|${b.blockName}|${b.week}`;
+            const have = new Set(mapped.map(key));
+            const queued = JSON.parse(localStorage.getItem('expo-offline-queue') || '[]');
+            for (const item of queued) {
+              if (item?.type !== 'bw_logs.upsert') continue;
+              const r = item.payload?.row;
+              if (!r) continue;
+              const entry = { date: r.date, clientId: r.client_id, week: r.week, bw: r.bw, blockName: r.block_name, planId: r.plan_id };
+              if (have.has(key(entry))) continue;
+              mapped.push(entry);
+              have.add(key(entry));
+            }
+            mapped.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+          } catch {}
           setData(mapped);
           dataRef.current = mapped;
           localStorage.setItem('expo-bw', JSON.stringify(mapped));
