@@ -60,26 +60,31 @@ export default function AthleteChallengesWidget({ clientId, clientWorkouts, bwLo
     const parts = participantsByChallenge[c.id] || [];
     const goalDef = GOAL_TYPES.find(g => g.id === c.goal_type);
     const sortDir = goalDef?.sortDir || 'desc';
-    const board = parts.map(p => ({
+    // Only 'custom' goals store each participant's progress (readable by the athlete).
+    // Every OTHER goal type is computed from client_workouts/bw/meals — which are
+    // RLS-scoped to THIS athlete, so a peer's progress computes to 0 here. Showing
+    // those fabricated 0s made the athlete always rank #1 with everyone else at 0
+    // (#123). So for non-custom goals we can't rank peers client-side: show only the
+    // athlete's own real progress, no fake leaderboard.
+    const peersKnown = c.goal_type === 'custom';
+    const isMe = (r) => r.trainee_id === clientId || r.trainee_id?.startsWith(clientId + '__') || (clientId || '').startsWith(r.trainee_id + '__');
+    let board = parts.map(p => ({
       trainee_id: p.trainee_id,
-      progress: c.goal_type === 'custom'
-        ? (Number(p.progress) || 0)
-        : computeProgress(c, p.trainee_id, clientWorkouts, bwLog, meals),
+      progress: peersKnown ? (Number(p.progress) || 0) : computeProgress(c, p.trainee_id, clientWorkouts, bwLog, meals),
       name: traineesById?.[p.trainee_id]?.name || p.trainee_id,
-    })).sort((a, b) => sortDir === 'asc' ? (a.progress - b.progress) : (b.progress - a.progress));
-    const myRank = board.findIndex(r =>
-      r.trainee_id === clientId
-      || r.trainee_id?.startsWith(clientId + '__')
-      || (clientId || '').startsWith(r.trainee_id + '__')
-    );
-    return { challenge: c, board, myRank };
+    }));
+    if (!peersKnown) board = board.filter(isMe); // drop uncomputable peers
+    board.sort((a, b) => sortDir === 'asc' ? (a.progress - b.progress) : (b.progress - a.progress));
+    const myRank = board.findIndex(isMe);
+    return { challenge: c, board, myRank, peersKnown };
   }).filter(r => r.myRank >= 0), [challenges, participantsByChallenge, clientId, clientWorkouts, bwLog, meals, traineesById]);
 
   if (rows.length === 0) return null;
 
   return (
     <div style={{ marginBottom: 14 }}>
-      {rows.map(({ challenge: c, board, myRank }) => {
+      {rows.map(({ challenge: c, board, myRank, peersKnown }) => {
+        const showRank = peersKnown && board.length > 1;
         const unit = GOAL_UNIT[c.goal_type] || '';
         const top = board.slice(0, 3);
         const me = board[myRank];
@@ -98,7 +103,7 @@ export default function AthleteChallengesWidget({ clientId, clientWorkouts, bwLo
             </div>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 6 }}>
               <span style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.08em' }}>
-                YOU · RANK #{myRank + 1} of {board.length}
+                {showRank ? `YOU · RANK #${myRank + 1} of ${board.length}` : 'YOUR PROGRESS'}
               </span>
               <span style={{ fontFamily: FN, fontSize: 16, color: C.ac, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
                 {me?.progress ?? 0}{unit ? ` ${unit}` : ''}

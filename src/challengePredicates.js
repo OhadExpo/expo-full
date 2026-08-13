@@ -11,8 +11,11 @@ import { traineeIdsFor } from './traineeUtils';
 
 // ----- shared helpers ------------------------------------------------
 
-// Day key in UTC — e.g. "2026-05-16"
-const dayKey = (iso) => new Date(iso).toISOString().slice(0, 10);
+// Day key in the athlete's LOCAL calendar day — e.g. "2026-05-16". Must match how
+// the meal logger + workout screens bucket days (local, not UTC) so a streak agrees
+// with what the athlete sees: a meal logged at 01:00 local counts for THAT local day,
+// not the prior UTC day (all athletes are in Israel, UTC+2/+3). en-CA gives YYYY-MM-DD.
+const dayKey = (iso) => { const d = new Date(iso); return isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-CA'); };
 
 // ISO-week key — "2026-W20". Year-week pair so consecutive checks work
 // across year boundaries.
@@ -297,7 +300,9 @@ export const GOAL_TYPES_NEW = {
       for (const m of (meals || [])) {
         if (!ids.has(m.trainee_id)) continue;
         // athlete_meals is keyed by trainee_id + created_at (no meal_date col).
-        const d = m.created_at && m.created_at.slice(0, 10);
+        // Bucket by LOCAL day (dayKey) so the streak agrees with the meal logger —
+        // a 01:00-local meal counts for that local day, not the prior UTC day.
+        const d = m.created_at && dayKey(m.created_at);
         if (!d) continue;
         const t = new Date(d + 'T12:00:00').getTime();
         if (t < start || t > end) continue;
