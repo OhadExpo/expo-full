@@ -2239,8 +2239,8 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                               video URL (50/50, aligned with notes/thumb below). */}
                           <ExEditorExtras ex={ex} exData={exData} exTitle={title} update={update} onResolveVideo={onResolveVideo} showEmbed={exOpen}
                             exercises={exercises} setExercises={setExercises}
-                            picker={<ExPicker exercises={exercises} value={ex.exerciseId} onChange={id=>{ if (id === ex.exerciseId) return; const lib = exById(exercises).get(id); update({ exerciseId: id, title: lib?.title || '', videoUrl: lib?.videoLink || '', vid: undefined, notes: '', notesEdited: false }); }} onPickName={name=>update({ exerciseId:'', title:name, videoUrl: '', vid: undefined, notes: '', notesEdited: false })}
-                              onCreateLibrary={setExercises ? (name => { const id = addLibExercise(setExercises, name); if (id) update({ exerciseId: id, title: name }); }) : undefined}
+                            picker={<ExPicker exercises={exercises} value={ex.exerciseId} onChange={id=>{ if (id === ex.exerciseId) return; const lib = exById(exercises).get(id); update({ exerciseId: id, title: lib?.title || '', videoUrl: lib?.videoLink || '', vid: undefined, notes: '', notesEdited: false, n: lib?.cues || '' }); }} onPickName={name=>update({ exerciseId:'', title:name, videoUrl: '', vid: undefined, notes: '', notesEdited: false, n: '' })}
+                              onCreateLibrary={setExercises ? (name => { const id = addLibExercise(setExercises, name); if (id) update({ exerciseId: id, title: name, notes: '', notesEdited: false, n: '' }); }) : undefined}
                               label="Exercise" fallbackTitle={ex.title} />} />
                         </div>
                        </div>
