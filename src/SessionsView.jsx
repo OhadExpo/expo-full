@@ -92,6 +92,13 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
   const saveTimer = useRef(null);
   // Realtime broadcast channel for live cross-device session sync.
   const chanRef = useRef(null);
+  // Re-entrancy guard for FINISH (a double-tap on the floor touchscreen must not
+  // write every athlete's history twice — the ids differ so save()'s dedupe can't
+  // catch it). (audit #1)
+  const finishingRef = useRef(false);
+  // True once a session has ended — blocks a late athlete-set broadcast from
+  // scheduling a durable store write that resurrects the just-deleted row. (audit #2)
+  const endedRef = useRef(false);
 
   const exById = useMemo(() => {
     const m = new Map();
@@ -168,6 +175,7 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
     })();
   }, []);
   const persist = useCallback((next) => {
+    endedRef.current = false; // a new/continuing session re-enables durable writes (audit #2)
     setSession(next);
     // Live-broadcast the new state to every other device on the channel
     // (immediate — no DB round-trip), then debounce the durable store write.
@@ -188,6 +196,7 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
   // Debounced durable store write (no re-broadcast — every coach device also
   // receives the granular event directly and merges independently).
   const persistStore = useCallback((next) => {
+    if (endedRef.current) return; // session ended — don't resurrect the deleted store row (audit #2)
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => { supabase.from('store').upsert({ key: SKEY, value: next, updated_at: new Date().toISOString() }).then(() => {}, () => {}); }, 500);
   }, []);
@@ -405,6 +414,15 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
     // permanently. Every other mutating path here already reads the ref (audit).
     const cur = sessionRef.current;
     if (!cur) return;
+    // Re-entrancy guard: a double-tap on the floor touchscreen (or "tap again to
+    // be sure it saved") would otherwise re-run this before setSession(null)
+    // commits — cur is still the live session, so it rebuilds `completed` with a
+    // fresh set of ids and appends them AGAIN, writing every athlete's history
+    // twice (trainee-visible, double-counts in analysis; save()'s id-dedupe can't
+    // catch it — the ids differ). (audit #1)
+    if (finishingRef.current) return;
+    finishingRef.current = true;
+    try {
     const finishedAt = new Date().toISOString();
     const completed = cur.athletes
       .map(a => {
@@ -435,6 +453,10 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
       // the previous-week ghost — same store all three logging surfaces use.
       setClientWorkouts(prev => [...prev, ...completed]);
     }
+    // Point of no return: mark the session ended so a late athlete-set broadcast
+    // arriving during the delete window can't schedule a store write that
+    // resurrects the row we're about to delete. (audit #2)
+    endedRef.current = true;
     // Cancel any pending debounced upsert so it can't re-create the row we're
     // about to delete — otherwise a set edited just before FINISH resurrects the
     // finished session on next load. (audit)
@@ -444,6 +466,9 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
     try { await supabase.from('store').delete().eq('key', SKEY); } catch {}
     setSession(null);
     if (completed.length) toast(`${completed.length} athlete${completed.length === 1 ? '' : 's'} logged to their history`, 'success', { ttl: 4000 });
+    } finally {
+      finishingRef.current = false;
+    }
   }, [session, clientWorkouts, setClientWorkouts]);
 
   // Cancel a pending debounced session upsert on unmount (a late write after
@@ -572,7 +597,16 @@ function AthleteCard({ a, name, prevMap, exDetail, onToggleIn, onSet, onCurEx, o
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
           <button onClick={onToggleIn} style={{ ...miniBtn, minWidth: 72, textAlign: 'center', display: 'inline-flex', justifyContent: 'center', background: a.checkedIn ? C.gn : 'transparent', color: a.checkedIn ? '#FFF' : C.tm, border: `1px solid ${a.checkedIn ? C.gn : C.cardBd}` }}>{a.checkedIn ? '✓ IN' : 'CHECK IN'}</button>
-          <button onClick={async () => { if (await confirmToast(`Remove ${name || 'this athlete'} from the floor?`, { okLabel: 'Remove', cancelLabel: 'Keep' })) onRemove(); }} title="Remove from session" style={{ ...miniBtn, color: C.rd, border: `1px solid ${C.cardBd}` }}>✕</button>
+          <button onClick={async () => {
+            // Warn if the coach logged sets on this card — finishSession only
+            // writes athletes still on the roster, so removing them discards that
+            // logged work with no other signal. (audit #4)
+            const hasLogged = (a.exercises || []).some(ex => (ex.sets || []).some(s => s.done));
+            const msg = hasLogged
+              ? `Remove ${name || 'this athlete'} from the floor? The sets you logged for them here are NOT saved yet and will be discarded.`
+              : `Remove ${name || 'this athlete'} from the floor?`;
+            if (await confirmToast(msg, { okLabel: 'Remove', cancelLabel: 'Keep' })) onRemove();
+          }} title="Remove from session" style={{ ...miniBtn, color: C.rd, border: `1px solid ${C.cardBd}` }}>✕</button>
         </div>
       </div>
       <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
