@@ -712,7 +712,8 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
                         const isPeak = i === peakI, isLast = i === lastI;
                         return (
                           <div key={i} title={`${t.toLocaleString()} kg·reps`} style={{ position: 'relative', flex: 1, minWidth: 4, height: `${Math.max(4, (t / mx) * 100)}%`, background: BRAND, opacity: isPeak || isLast ? 1 : 0.55, boxShadow: isLast && !isPeak ? `inset 0 0 0 1px ${C.tx}` : 'none', borderRadius: '1px 1px 0 0' }}>
-                            {isPeak && <span style={{ position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: 2, fontSize: 8.5, fontWeight: 700, color: BRAND, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{k(t)}</span>}
+                            {/* value on top of every bar: peak in cyan, the rest in the same grey as the axis ticks (Ohad 08-13) */}
+                            <span style={{ position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: 2, fontSize: 8.5, fontWeight: 700, color: isPeak ? BRAND : C.tm, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{k(t)}</span>
                           </div>
                         );
                       })}
