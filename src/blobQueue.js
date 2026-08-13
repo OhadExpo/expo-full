@@ -293,6 +293,20 @@ export async function drainBlobs() {
   draining = true;
   try {
     const queue = await readAll();
+    // GC abandoned blobs: a form video recorded offline stores workoutId:null and
+    // only gets a workoutId when the workout is FINISHED (attachWorkout). If the
+    // athlete exits without finishing and never resumes that draft, the 10-40MB blob
+    // stays in IDB forever — drainBlobs skips it (no workoutId) and nothing purges it,
+    // growing IDB unbounded until quota (which then breaks new offline enqueues).
+    // createdAt is written for exactly this; active drafts are seconds old, so a
+    // 7-day cutoff only ever catches genuinely-abandoned blobs. Entries with no
+    // createdAt (legacy) are left alone — never delete on unknown age.
+    const orphanCutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    for (const e of queue) {
+      if (!e.workoutId && e.createdAt && e.createdAt < orphanCutoff) {
+        try { await removeBlob(e.id); } catch { /* keep draining */ }
+      }
+    }
     // Only attempt blobs whose workout has been attached. Unattached blobs
     // belong to in-progress workouts not yet finished — drainBlobs() runs
     // again on the next trigger (or is invoked explicitly post-finish).

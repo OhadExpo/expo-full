@@ -3318,7 +3318,14 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           // from a PRIOR block's log, so the athlete could skip an untrained
           // session (audit H2). Mirrors the planName-scoped pattern used above.
           const dailyCount = isDailyRoutine ? cw.filter(w => w.dayName === day.name && w.planName === vp.name).length : 0;
-          const done = !isDailyRoutine && cw.some(w => w.dayName === day.name && w.week === wk + 1 && w.planName === vp.name);
+          // Per-plan week: the global `wk` strip belongs to the ACTIVE plan. A
+          // secondary visible plan (couples, an opted-in 2nd block) logs its day under
+          // ITS OWN derived week (finish() line ~2387), so the overview must read the
+          // done-badge / prescription / focus against that same week — else a
+          // completed secondary day reads "not done" (duplicate re-log) or an
+          // untrained one reads "done" (skipped), and the rx shown is off-by-week.
+          const vpWeek = (vp.name === activePlan?.name) ? wk : deriveWeekIdx(vp, cw);
+          const done = !isDailyRoutine && cw.some(w => w.dayName === day.name && w.week === vpWeek + 1 && w.planName === vp.name);
           // doneBorderColor hoisted out of the inline template — the
           // build-time guard's parser mis-tracks single-quoted strings
           // inside nested ${ … } expressions (it's how the original bare
@@ -3333,8 +3340,8 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           // overview — it lives in the logging session.
           const rxOf = (ex) => {
             const hw = ex.wk?.length > 0;
-            const wr = hw ? (ex.wk[wk] ?? ex.r) : null;
-            const sets = (ex.wkS && ex.wkS[wk]) || ex.s;
+            const wr = hw ? (ex.wk[vpWeek] ?? ex.r) : null;
+            const sets = (ex.wkS && ex.wkS[vpWeek]) || ex.s;
             if (!hw) return sets + 'x' + ex.r;
             const wrS = String(wr ?? '').trim();
             if (!wrS) return sets + 'x' + ex.r;
@@ -3358,7 +3365,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                 rx: rxOf(ex),
                 tempo: ex.tempo,
                 title: d.t,
-                focus: weeklyFocus?.[`${ci}|${vp.name}|${day.name}|${ex.eid}|W${wk}`] ?? weeklyFocus?.[`${vp.name}|${day.name}|${ex.eid}|W${wk}`],
+                focus: weeklyFocus?.[`${ci}|${vp.name}|${day.name}|${ex.eid}|W${vpWeek}`] ?? weeklyFocus?.[`${vp.name}|${day.name}|${ex.eid}|W${vpWeek}`],
               };
             }),
           });})}</React.Fragment>)})()}
