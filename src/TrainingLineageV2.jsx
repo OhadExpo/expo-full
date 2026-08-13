@@ -180,10 +180,10 @@ function LiftRow({ s }) {
 
 export default function TrainingLineageV2({ traineeId, traineeName, exercises, plans, clientWorkouts, loading, onOpenPlan }) {
   const exMap = useMemo(() => exById(exercises), [exercises]);
-  const [selBlock, setSelBlock] = useState(null); // null = latest; else a block number to view a PREVIOUS block
+  const [selBlock, setSelBlock] = useState(null); // null = latest; else a plan/block ID to view a PREVIOUS block (id keys every block, numbered or not — #231)
   const a = useMemo(() => {
     if (!plans) return null;
-    return analyzeAthlete(clientWorkouts || [], traineeId, plans, { blockNum, classifyPattern, repsTop, exMap, targetBlockNum: selBlock });
+    return analyzeAthlete(clientWorkouts || [], traineeId, plans, { blockNum, classifyPattern, repsTop, exMap, targetBlockId: selBlock });
   }, [clientWorkouts, traineeId, plans, exMap, selBlock]);
   // Auto-analyse EVERY uploaded clip for bar-speed + symmetry — no manual "save
   // to trend" (Ohad). Runs once per clip in the background when the report opens
@@ -234,11 +234,13 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
       </span>
       <span style={{ fontSize: 10, letterSpacing: '0.1em', color: C.tm, display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
         {a.totalBlocks} BLOCK{a.totalBlocks === 1 ? '' : 'S'}{a.journey && a.journey.weeks > 0 ? ` · ${a.journey.weeks}W · ${a.journey.loggedSessions} SESSIONS` : ''}
-        {a.blocks && a.blocks.filter((b) => b.num != null).length > 1 ? (
-          <>· <select value={a.blockNumber ?? ''} onChange={(e) => setSelBlock(Number(e.target.value))}
+        {a.blocks && a.blocks.length > 1 ? (
+          <>· <select value={a.blockId ?? ''} onChange={(e) => setSelBlock(e.target.value)}
             title="View the report for any block"
-            style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.06em', background: C.bg, color: C.ac, border: `1px solid ${C.bd}`, padding: '2px 6px', cursor: 'pointer', borderRadius: 0 }}>
-            {a.blocks.filter((b) => b.num != null).map((b, i) => <option key={b.num} value={b.num}>{b.name.toUpperCase()}{i === 0 ? ' · LATEST' : ''}</option>)}
+            style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.06em', background: C.bg, color: C.ac, border: `1px solid ${C.bd}`, padding: '2px 6px', cursor: 'pointer', borderRadius: 0, maxWidth: 260 }}>
+            {/* Every block, keyed by plan id — numbered AND imported/un-numbered ones,
+                so all 16 of an athlete's blocks are selectable, not just the "#N" ones (#231). */}
+            {a.blocks.map((b, i) => <option key={b.id} value={b.id}>{b.name.toUpperCase()}{i === 0 ? ' · LATEST' : ''}</option>)}
           </select></>
         ) : (a.blockName ? <>· {a.blockName.toUpperCase()}</> : null)}
         {a.empty ? '' : `· ${a.adh.loggedSessions}/${a.plannedSessionCount || '?'} LOGGED`}

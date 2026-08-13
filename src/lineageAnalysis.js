@@ -481,7 +481,7 @@ export { CORE_PATTERNS };
 //   clientWorkouts: [{ clientId, planName, dayName, week, date, exercises:[{ eid, title, sets:[{reps,load,rpe,done}] }] }]
 export function buildBlockSessions(clientWorkouts, traineeId, plans, deps, opts = {}) {
   const { blockNum, classifyPattern, exMap } = deps;
-  const { allBlocks = false, targetBlockNum = null } = opts;
+  const { allBlocks = false, targetBlockNum = null, targetBlockId = null } = opts;
   const pf = (x) => { const n = parseFloat(x); return isFinite(n) ? n : null; };
   const norm = (s) => (s || '').trim().toLowerCase();
   // Prescribed-reps threshold for the failed-reps read = the LOW end of the
@@ -504,9 +504,15 @@ export function buildBlockSessions(clientWorkouts, traineeId, plans, deps, opts 
   });
   // The block to analyse: the requested one (previous-block viewing), else the
   // latest. The full ordered list is returned so the UI can offer a block picker.
-  const latest = (targetBlockNum != null ? ordered.find((p) => blockNum(p.name) === targetBlockNum) : null) || ordered[ordered.length - 1];
+  // Select the viewed block by plan ID first (every block has one, numbered or not),
+  // then by number (back-compat), else the latest. Keying on id lets the picker
+  // offer un-numbered/imported blocks too — an athlete like יובל ברקו has 16 blocks
+  // but only a few parse to a "#N", so a num-only picker hid most of them (#231).
+  const latest = (targetBlockId != null ? ordered.find((p) => p.id === targetBlockId) : null)
+    || (targetBlockNum != null ? ordered.find((p) => blockNum(p.name) === targetBlockNum) : null)
+    || ordered[ordered.length - 1];
   const latestNum = blockNum(latest.name);
-  const blocks = ordered.map((p) => ({ num: blockNum(p.name), name: p.name })).reverse(); // newest first for the picker
+  const blocks = ordered.map((p) => ({ num: blockNum(p.name), name: p.name, id: p.id })).reverse(); // newest first for the picker; id = stable selection key for every block
 
   // prescription lookup: (dayName, eid|title) → { prescribedReps, prescribedRpe, pattern }.
   // For staples we want cross-block history, so allBlocks pulls prescriptions
@@ -562,7 +568,7 @@ export function buildBlockSessions(clientWorkouts, traineeId, plans, deps, opts 
   const plannedSessionCount = (latest.days || []).length * weeks;
 
   const plannedDays = (latest.days || []).map((d) => d.name || 'Day');
-  return { sessions, plannedSessionCount, plannedDays, weeks, blockName: latest.name, blockNumber: latestNum, hasPlans: true, totalBlocks: withDays.length, blocks };
+  return { sessions, plannedSessionCount, plannedDays, weeks, blockName: latest.name, blockNumber: latestNum, blockId: latest.id, hasPlans: true, totalBlocks: withDays.length, blocks };
 }
 
 // Which planned day is the athlete skipping? Returns the day with the biggest
@@ -736,7 +742,7 @@ export function blockHistory(plans, deps) {
 }
 
 export function analyzeAthlete(clientWorkouts, traineeId, plans, deps) {
-  const built = buildBlockSessions(clientWorkouts, traineeId, plans, deps, { targetBlockNum: deps.targetBlockNum ?? null });
+  const built = buildBlockSessions(clientWorkouts, traineeId, plans, deps, { targetBlockNum: deps.targetBlockNum ?? null, targetBlockId: deps.targetBlockId ?? null });
   const { sessions, plannedSessionCount } = built;
   if (!sessions.length) {
     return { ...built, empty: true };
