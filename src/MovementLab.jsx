@@ -604,7 +604,10 @@ export default function MovementLab({
         {phase === 'loading' && <BigBtn color="#555" disabled>STARTING…</BigBtn>}
         {phase === 'countdown' && <BigBtn color="#555" disabled>GET READY… {countdown}</BigBtn>}
         {recording && <BigBtn color={C.rd} onClick={stopAndAnalyze}>STOP &amp; ANALYZE</BigBtn>}
-        {(phase === 'results' || phase === 'analyzing') && <BigBtn color={C.ac} onClick={reset}>↺ RECORD AGAIN</BigBtn>}
+        {/* Only in RESULTS — during 'analyzing' this solid-cyan bar rode up under the
+            header (no camera div to push it down) and read as an ugly cyan slab on the
+            "READING THE MOVEMENT…" loading screen (Ohad #202). BACK still aborts. */}
+        {phase === 'results' && <BigBtn color={C.ac} onClick={reset}>↺ RECORD AGAIN</BigBtn>}
       </div>
     </div>,
     document.body
