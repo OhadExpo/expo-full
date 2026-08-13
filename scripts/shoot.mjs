@@ -43,6 +43,14 @@ async function wsEndpoint() {
       // networkidle can hang on a live app with polling; fall back to domcontentloaded
       await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 });
     });
+    // Dismiss the PWA "NEW VERSION AVAILABLE — UPDATE NOW" popup if it's covering
+    // the page (a rebuild triggers it), so QA screenshots aren't blocked by it.
+    await sleep(800);
+    const dismissed = await page.evaluate(() => {
+      const b = [...document.querySelectorAll('button,a')].find(e => /UPDATE NOW/i.test((e.textContent || '').trim()));
+      if (b) { b.click(); return true; } return false;
+    });
+    if (dismissed) { await sleep(3500); await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 }).catch(() => {}); await sleep(1500); }
     if (selector) {
       await page.waitForSelector(selector, { timeout: 8000 }).catch(() => console.error(`(selector "${selector}" not found — shooting anyway)`));
     }
