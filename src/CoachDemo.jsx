@@ -2776,12 +2776,13 @@ function DemoExercises() {
     const faceLabel = sel.length === 1 ? sel[0] : (sel.length > 1 ? `${label} · ${sel.length}` : label);
     return (
       <div style={{ position: 'relative' }}>
+        {/* Inactive filters: no underline (calm plain text), cyan only when active/open — matches ExercisesView (#230). */}
         <button onClick={() => setOpenKey(isOpen ? null : k)} title={label}
-          style={{ ...railBase, borderBottomColor: (active || isOpen) ? C.ac : C.cardBd, color: active ? C.ac : C.tx }}>
+          style={{ ...railBase, borderBottomColor: (active || isOpen) ? C.ac : 'transparent', color: active ? C.ac : C.tx }}>
           <span style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis' }}>{faceLabel}</span>
           {active
             ? <span onClick={e => { e.stopPropagation(); clearFilter(k); }} title="Clear" style={{ fontSize: 13, lineHeight: 1, opacity: 0.85 }}>×</span>
-            : <span style={{ color: C.td, fontSize: 9 }}>▾</span>}
+            : <span style={{ color: (active || isOpen) ? C.ac : C.tm, fontSize: 9 }}>▾</span>}
         </button>
         {isOpen && (
           <div style={{ position: 'absolute', top: 32, left: 0, minWidth: 'max(100%, 248px)', maxHeight: 366, overflowY: 'auto', background: C.sf, border: `1px solid ${C.ac}`, zIndex: 50, boxShadow: '0 12px 30px rgba(0,0,0,0.55)' }}>

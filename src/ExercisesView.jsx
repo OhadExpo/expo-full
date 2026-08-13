@@ -189,12 +189,17 @@ export default function ExercisesView({ exercises, setExercises }) {
     const faceLabel = sel.length === 1 ? sel[0] : (sel.length > 1 ? `${label} · ${sel.length}` : label);
     return (
       <div style={{ position: 'relative' }}>
+        {/* Inactive filters carry NO underline (transparent) — cyan only when
+            active/open, hover-revealed via the .filt CSS. Was a permanent
+            cyan-30% underline on every one, so the row read as a busy wall of
+            look-alike underlined labels (Ohad #230). Now it's calm plain text
+            with a caret; the active filter is the only lit one. */}
         <button className={`filt${active || isOpen ? ' filt-on' : ''}`} onClick={() => setOpenKey(isOpen ? null : k)} title={label}
-          style={{ ...railBase, borderBottomColor: (active || isOpen) ? C.ac : 'var(--c-cardBd)', color: active ? C.ac : (isOpen ? C.tx : C.tx) }}>
+          style={{ ...railBase, borderBottomColor: (active || isOpen) ? C.ac : 'transparent', color: active ? C.ac : C.tx }}>
           <span style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis' }}>{faceLabel}</span>
           {active
             ? <span onClick={e => { e.stopPropagation(); clearFilter(k); }} title="Clear" style={{ fontSize: 13, lineHeight: 1, opacity: 0.85 }}>×</span>
-            : <span style={{ color: C.td, fontSize: 9 }}>▾</span>}
+            : <span style={{ color: (active || isOpen) ? C.ac : C.tm, fontSize: 9 }}>▾</span>}
         </button>
         {isOpen && (
           <div style={{ position: 'absolute', top: 32, left: 0, minWidth: 'max(100%, 248px)', maxHeight: 366, overflowY: 'auto', background: 'var(--c-sf)', border: `1px solid ${C.ac}`, zIndex: 50, boxShadow: '0 12px 30px rgba(0,0,0,0.55)' }}>
