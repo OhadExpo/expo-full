@@ -22,17 +22,36 @@ const DRAIN_INTERVAL_MS = 30000;
 const listeners = new Set();
 const handlers = {};
 
+// In-memory mirror + persist flag. The queue holds an athlete's logged workout /
+// weigh-in, so a full localStorage must NOT silently drop it. Normal reads still
+// come from localStorage (cross-tab aware); only after a persist FAILS do we trust
+// the in-memory mirror so this session's drain can still ship the entry — and the
+// athlete gets a real "storage full" message instead of a badge that lies.
+let mem = null;
+let persistOk = true;
+
 function read() {
+  if (!persistOk && mem !== null) return mem; // localStorage is stale (last write couldn't persist) — memory is the truth
   try {
     const s = localStorage.getItem(KEY);
-    return s ? JSON.parse(s) : [];
+    mem = s ? JSON.parse(s) : [];
+    return mem;
   } catch {
-    return [];
+    return mem || [];
   }
 }
 
 function write(arr) {
-  try { localStorage.setItem(KEY, JSON.stringify(arr)); } catch {}
+  mem = arr; // record in memory FIRST, before the persist that might throw
+  try {
+    localStorage.setItem(KEY, JSON.stringify(arr));
+    persistOk = true;
+  } catch {
+    persistOk = false;
+    if (onErrorHook) {
+      try { onErrorHook({ type: 'storage', payload: null, msg: 'Storage is full — your log is queued but won\'t survive a page refresh until you free up space.' }); } catch {}
+    }
+  }
   for (const l of listeners) {
     try { l(arr.length); } catch {}
   }

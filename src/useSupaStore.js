@@ -44,15 +44,25 @@ function isTransient(err) {
   //   42501 — insufficient_privilege (RLS denied)
   //   PGRST* — PostgREST request errors (auth, schema, malformed)
   if (typeof code === 'string') {
+    // Auth-token codes recover after a refresh — queue them explicitly BEFORE the
+    // message checks below (a 301 can carry an 'unauthorized'-ish message that would
+    // otherwise mis-classify it as permanent).
+    if (code === 'PGRST301' || code === 'PGRST302') return true;
     if (/^23\d{3}$/.test(code)) return false;
     if (code === '42501') return false;
-    if (code.startsWith('PGRST')) return false;
+    // PGRST* are permanent EXCEPT the auth-token ones: PGRST301 (JWT expired) and
+    // PGRST302 (anon disallowed) recover after supabase-js refreshes the token, so
+    // they MUST be queued — else a workout finished right on the token-refresh
+    // boundary is silently dropped (never retried). Mirrors offlineQueue.isPermanent
+    // exactly; the queue's critical-park logic then guarantees it's never lost.
+    if (code.startsWith('PGRST') && code !== 'PGRST301' && code !== 'PGRST302') return false;
   }
   const msg = (err?.message || String(err || '')).toLowerCase();
   if (!msg) return true;
+  // NB: 'jwt expired'/'invalid jwt' are deliberately NOT here — a stale token is
+  // transient (refresh + retry), so those writes fall through to the queue.
   if (msg.includes('row-level security') || msg.includes('permission denied') ||
       msg.includes('not authorized') || msg.includes('unauthorized') ||
-      msg.includes('jwt expired') || msg.includes('invalid jwt') ||
       msg.includes('duplicate key') || msg.includes('violates') ||
       msg.includes('check constraint') || msg.includes('foreign key')) return false;
   if (msg.includes('network') || msg.includes('failed to fetch') || msg.includes('timeout') ||
