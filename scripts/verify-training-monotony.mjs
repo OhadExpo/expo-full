@@ -43,6 +43,12 @@ check('1 training day -> thin (no distribution)', run([sess(0, 5000)]).state ===
 check('no logged tonnage -> thin', run([]).state === 'thin');
 check('sessions all older than the 7-day window -> thin', run([sess(20, 5000), sess(22, 5000)]).state === 'thin');
 check('two same-day sessions still = 1 training day -> thin', run([sess(0, 3000), sess(0, 3000)]).trainingDays === 1 && run([sess(0, 3000), sess(0, 3000)]).state === 'thin');
+// Bodyweight-only week (reps logged, no external load) = zero TONNAGE -> honest
+// thin, never a fabricated ratio. HONEST LIMIT: monotony is tonnage-based, so a
+// bodyweight-heavy program reads low-load/thin even if trained hard — by design.
+const bw = (d) => ({ date: new Date(NOW - d * DAY).toISOString(), exercises: [{ sets: [{ reps: 15, done: true }, { load: 0, reps: 20, done: true }] }] });
+check('bodyweight-only week (zero tonnage) -> thin, no fabricated number', (() => { const r = run([bw(0), bw(2), bw(4), bw(6)]); return r.state === 'thin' && r.trainingDays === 0; })());
+check('mixed loaded+bodyweight -> only LOADED days carry tonnage', (() => { const r = run([sess(0, 5000), bw(1), sess(2, 4800), bw(3), sess(4, 5200)]); return r.state === 'ok' && r.trainingDays === 3; })());
 
 console.log(`\n${fail === 0 ? '✓ ALL PASS' : '✗ FAILURES'} — ${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);
