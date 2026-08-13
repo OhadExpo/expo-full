@@ -116,7 +116,11 @@ export function classifyBlockCharacter({ explosiveShare = 0, avgReps = null, avg
   let confidence = 'low';
   if (topScore > 0) {
     if (margin >= 0.35 && intensityKnown) confidence = 'high';
-    else if (margin >= 0.35 && (character === 'endurance' || character === 'strength')) confidence = 'moderate';
+    // Key the no-intensity "moderate" on the DATA winner (topName), NOT `character` —
+    // a block NAME override (e.g. "Strength Block") must not upgrade confidence on
+    // data the engine scored as hypertrophy. Only genuinely unambiguous rep-zones
+    // (very high = endurance, very low = strength) earn moderate without %/RPE (#223).
+    else if (margin >= 0.35 && (topName === 'endurance' || topName === 'strength')) confidence = 'moderate';
     else if (margin >= 0.2 && intensityKnown) confidence = 'moderate';
   }
   const mixed = confidence === 'low';
@@ -176,7 +180,7 @@ export function adherence(sessions, plannedSessionCount) {
     }
   }
   const loggedSessions = sessions.length;
-  const sessionPct = plannedSessionCount ? Math.round((loggedSessions / plannedSessionCount) * 100) : null;
+  const sessionPct = plannedSessionCount ? Math.min(100, Math.round((loggedSessions / plannedSessionCount) * 100)) : null; // clamp — make-up/duplicate logs must not show "133% of sessions"
   const setsPct = setsPrescribed ? Math.round((setsDone / setsPrescribed) * 100) : null;
   return {
     state: loggedSessions ? 'ok' : 'thin',
@@ -240,7 +244,10 @@ export function e1rmTrend(series) {
   // when any one log is dropped rests on a single back-off/PR day, not a trend —
   // don't call it. Only sign-reversal suppresses (a modest real trend keeps its
   // sign when one point goes), so this never over-flattens genuine slips.
-  if (dir !== 'flat' && pts.length >= 4) {
+  // Leave-one-out outlier guard runs from 3 points (was 4) — at exactly 3 e1RM
+  // points a single PR/back-off day was driving a fully-confident up/down that
+  // feeds the deload verdict; LOO on 3 pts drops to a defined 2-pt slope (#187).
+  if (dir !== 'flat' && pts.length >= 3) {
     for (let k = 0; k < pts.length; k++) {
       const loo = slopePctOf(pts.filter((_, i) => i !== k));
       if (Math.sign(loo) !== Math.sign(pctPerStep)) { dir = 'flat'; break; }
@@ -348,6 +355,7 @@ export function tonnageACWR(sessions, nowMs) {
   // first-ever session — otherwise a single recent week beside an old block
   // divides ~acute by 4 and fabricates a ~4.0 spike (the spec's cardinal sin).
   const recent = sessTon.filter((s) => now - s.date <= 28 * dayMs);
+  if (!recent.length) return { state: 'thin', haveDays: 0, need: 28, series }; // empty window (caller passed a real nowMs, all sessions stale) → Math.min([]) would be Infinity → haveDays:-Infinity
   const inSpan = (now - Math.min(...recent.map((s) => s.date))) / dayMs;
   // Require ≥3 sessions in days 8–28 so the chronic baseline isn't dominated by
   // the acute week — otherwise a returning logger (one old session + a busy
@@ -480,7 +488,10 @@ export function buildBlockSessions(clientWorkouts, traineeId, plans, deps, opts 
   // range, not the top. "8–10" is HIT at 8; "10/8/6" descending is hit at 6.
   // Using the top (repsTop) counted every on-target sub-ceiling rep as a miss,
   // inflating the "grinding" signal into a false deload verdict.
-  const minReps = (r) => { const ns = String(r == null ? '' : r).match(/\d+(?:\.\d+)?/g); return ns && ns.length ? Math.min(...ns.map(Number)) : null; };
+  // Strip a leading "sets×" prefix before taking the min rep — else "3x8" parses
+  // as min(3,8)=3, so a real miss (5<8) reads as a hit (5<3 false) and grinding is
+  // hidden from the fatigue read. Matches blockHistory's sxr handling (#187).
+  const minReps = (r) => { let str = String(r == null ? '' : r).trim(); const m = str.match(/^\s*\d+\s*[x×*]\s*(.+)$/i); if (m) str = m[1]; const ns = str.match(/\d+(?:\.\d+)?/g); return ns && ns.length ? Math.min(...ns.map(Number)) : null; };
 
   const withDays = (plans || []).filter((p) => (p.days || []).some((d) => (d.exercises || []).length));
   if (!withDays.length) return { sessions: [], plannedSessionCount: 0, blockName: null, blockNumber: null, hasPlans: false, blocks: [] };

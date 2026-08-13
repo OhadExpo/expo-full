@@ -59,6 +59,11 @@ full('3r @ 90% -> strength, high, not mixed', { avgReps: 3, avgPct: 90 }, { char
 full('10r @ 70% high-vol -> hypertrophy, not mixed', { avgReps: 10, avgPct: 70, volumeLevel: 'high' }, { character: 'hypertrophy', mixed: false });
 full('7r @ RPE 8.5 -> strength (heavy, not hypertrophy)', { avgReps: 7, avgRpe: 8.5 }, { character: 'strength', mixed: false });
 full('15r @ 55% -> endurance, not mixed', { avgReps: 15, avgPct: 55 }, { character: 'endurance', mixed: false });
+// A block NAME must not upgrade confidence on no-intensity data (#187 bug #1): a
+// "Strength" block at 10 reps mean with no %/RPE stays mixed/low, even though the
+// name flips the displayed character.
+full('10r no %/RPE, name=strength -> label flips but stays mixed/low', { avgReps: 10, nameChar: 'strength' }, { character: 'strength', confidence: 'low', mixed: true });
+full('9r no %/RPE, name=endurance -> stays mixed/low', { avgReps: 9, nameChar: 'endurance' }, { confidence: 'low', mixed: true });
 
 console.log(`\n${fail === 0 ? '✓ ALL PASS' : '✗ FAILURES'} — ${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);
