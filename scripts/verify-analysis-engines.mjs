@@ -35,6 +35,10 @@ const suites = [
   'verify-detect-asymmetry.mjs',     // detectAsymmetry — raw L/R imbalance + anti-fabrication guards (feeds the injury flag)
   'verify-detect-faults.mjs',        // detectFaults — technique flags + family gates, plyo/real-elbow/word-boundary guards
   'verify-verdict.mjs',              // synthesizeVerdict — the headline coach-acted call (deload gating)
+  // --- 2026-08-14 sensor-triad tools (#234), engines only, UI greenlight-gated ---
+  'verify-pulse.mjs',                // PULSE — camera-PPG heart rate + HRV (readiness), quality-gated
+  'verify-echo.mjs',                 // ECHO — acoustic rep count + grind/RIR from the mic
+  'verify-pivot.mjs',                // PIVOT — phone-as-goniometer joint ROM + %-of-norm
 ];
 
 let anyFail = false;
