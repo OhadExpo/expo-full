@@ -415,14 +415,22 @@ export default function SmartImportView() {
           const entry = { id: 'ex_' + uid(), title: title.trim(), videoLink: '', cues: '', notes: '', category: '', resistanceType: '', bodyPosition: '', movementPattern: '', laterality: '', primaryMuscles: '', secondaryMuscles: '', primaryJoints: '', jointMovements: '', movementType: '' };
           newLibEntries.push(entry); byTitle.set(k, entry); return entry.id;
         };
-        let created = 0;
-        for (const prog of transform.items) {
+        // Build every plan row first (this also fully populates newLibEntries via
+        // resolveEid) so we can write the library BEFORE the plans that point at
+        // it — a mid-loop plan failure must never leave a committed plan
+        // referencing a lib id that was never written. (audit #2)
+        const planRows = transform.items.map(prog => {
           const days = (prog.days || []).map(d => ({
             id: 'pd_' + uid(),
             name: d.name || 'Day',
             exercises: (d.exercises || []).map((ex, i) => ({
               id: 'pe_' + uid(),
               exerciseId: resolveEid(ex.title) || '',
+              // Athletes CANNOT read the exercise library (RLS staff-only), so a
+              // plan row with no `title` renders as "Exercise N" on their portal.
+              // Snapshot the name here — the coach never sees the bug (they resolve
+              // via the library), the athlete gets a broken program. (audit #1)
+              title: (ex.title || '').trim(),
               sets: typeof ex.sets === 'number' ? ex.sets : (parseInt(ex.sets) || 3),
               reps: ex.reps || '',
               load: '', rpe: '', tempo: ex.tempo || '',
@@ -434,8 +442,17 @@ export default function SmartImportView() {
               wkS: null,
             })),
           }));
-          const planRow = {
-            id: 'plan_' + uid(),
+          // weeks must cover the longest wk array, else weeks 5+ are hidden in the
+          // editor and truncated the first time the coach edits a visible week. (audit #3)
+          let wkMax = 4;
+          for (const d of days) for (const ex of d.exercises) {
+            if (Array.isArray(ex.wk)) wkMax = Math.max(wkMax, ex.wk.length);
+          }
+          return {
+            // Stable id per source program (memoized on the item): a retry after a
+            // partial-commit failure upserts the SAME row instead of inserting a
+            // duplicate block with fresh ids. (audit #2)
+            id: prog._planId || (prog._planId = 'plan_' + uid()),
             name: prog.programName || sheetGrid.sheetName || 'Imported Block',
             trainee_id: '',
             phase: '', notes: '',
@@ -443,15 +460,18 @@ export default function SmartImportView() {
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
             is_template_purchase: false,
-            data: { days, warmup: [], weeks: 4, isTemplatePurchase: false },
+            data: { days, warmup: [], weeks: wkMax, isTemplatePurchase: false },
           };
-          const { error } = await supabase.from('plans').upsert(planRow);
-          if (error) throw error;
-          created++;
-        }
+        });
         if (newLibEntries.length) {
           const { error } = await supabase.from('store').upsert({ key: 'expo-exercises', value: [...lib, ...newLibEntries], updated_at: new Date().toISOString() });
           if (error) throw error;
+        }
+        let created = 0;
+        for (const planRow of planRows) {
+          const { error } = await supabase.from('plans').upsert(planRow);
+          if (error) throw error;
+          created++;
         }
         summary = `+${created} program${created === 1 ? '' : 's'} (${newLibEntries.length} new library entries).`;
       }
