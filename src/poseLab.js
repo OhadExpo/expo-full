@@ -312,6 +312,19 @@ export function isBallistic(title) {
 // Concentric = bottom → top (the lift drives the load up). We measure mean
 // concentric velocity (total upward displacement / duration) and peak
 // instantaneous velocity, per rep, then velocity-loss % vs the best rep.
+//
+// Trailing re-rack gate (#242): a bar set-down / re-rack at the END of a set
+// reads as a tiny-but-positive concentric (the wrist drifts up a hair as the
+// bar is racked). That is not a working rep — left alone it both inflates the
+// rep count and, worse, becomes the finalLossPct anchor → a false "huge
+// velocity-loss / deep fatigue" verdict off a rep that never happened. A
+// TRAILING rep is a re-rack only when its mean is positive but below this
+// absolute floor AND far under the set's own working effort (relative to best),
+// so a genuinely light-but-controlled set (best also low) and any fatigued
+// real rep (e.g. 0.18 m/s vs best 0.45) survive. Interior reps are never
+// stripped — the walk stops at the first genuine rep.
+const RERACK_FLOOR_MS = 0.12;  // absolute: no working rep grinds this slow (m/s)
+const RERACK_REL_FRAC = 0.35;  // relative: a re-rack sits under 35% of best mean
 export function velocityMetrics(frames, angle, reps, barLandmark = 'wrist') {
   // Bar position in metres, IMAGE-space (absolute vertical) × ONE stable
   // metres-per-image-unit for the whole clip. Using worldLandmarks here would
@@ -372,11 +385,33 @@ export function velocityMetrics(frames, angle, reps, barLandmark = 'wrist') {
   const withLoss = perRep.map(r => r && (r.meanConcentric > 0
     ? { ...r, lossPct: Math.round((1 - r.meanConcentric / best) * 100) }
     : { ...r, lossPct: null }));
+  // Trailing re-rack gate (#242) — see the header comment. Walk from the last
+  // rep backward and strip TRAILING re-racks only: a rep with positive mean
+  // below the absolute floor AND below RERACK_REL_FRAC·best. Stop at the first
+  // genuine rep (so interior slow reps and a fatigued last rep survive). Null
+  // (bar-drop, mean<=0) entries are transparent junk we walk past — they don't
+  // shield an earlier re-rack — but they're never counted as re-racks. A
+  // stripped rep gets lossPct:null (never anchors finalLoss) and rerack:true.
+  const relCeil = best * RERACK_REL_FRAC;
+  let rerackCount = 0;
+  for (let i = withLoss.length - 1; i >= 0; i--) {
+    const r = withLoss[i];
+    if (!r) continue;               // segmentation gap: skip
+    if (r.lossPct == null) continue; // pre-existing bar-drop (mean<=0): transparent junk
+    if (r.meanConcentric > 0 && r.meanConcentric < RERACK_FLOOR_MS && r.meanConcentric < relCeil) {
+      r.rerack = true;
+      r.lossPct = null;
+      rerackCount++;
+      continue;                     // contiguous trailing re-racks keep stripping
+    }
+    break;                          // first genuine rep — everything earlier is interior
+  }
   const lastValid = [...withLoss].reverse().find(r => r && r.lossPct != null);
   return {
     perRep: withLoss,
     bestMean: round2(best),
     finalLossPct: lastValid ? lastValid.lossPct : 0,
+    rerackCount,
   };
 }
 
@@ -1196,6 +1231,13 @@ export function analyzeClip(frames, exerciseTitle, opts = {}) {
   if (isBallistic(exerciseTitle)) {
     const mv = movementRepCount(frames);
     if (mv && mv.count > repCount && mv.range > 0.04) { repCount = mv.count; countMethod = 'flight'; }
+  }
+  // #242: a trailing re-rack (bar set-down that read as a tiny positive rep)
+  // must not inflate the reported rep count. Subtract it from the JOINT count
+  // only — jointRepCount below keeps the raw pre-gate count, and the flight/
+  // plyo count is a separate path that stays untouched.
+  if (countMethod === 'joint' && velocity?.rerackCount) {
+    repCount = Math.max(0, repCount - velocity.rerackCount);
   }
   // extRom = the extended camera-ROM channels (signed knee / neck / static ankle)
   // kept in a SEPARATE field so nothing that iterates analysis.jointRom (report

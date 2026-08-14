@@ -314,14 +314,27 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
       const SUPA_URL = 'https://gtcbfglttoiyfsnfbhdy.supabase.co';
       const SUPA_KEY = 'sb_publishable_i_ifflCFMUF7rX2ABAY3vA_5JKTmFlv';
       const authHead = (token) => ({ 'apikey': SUPA_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' });
+      // Page through a prefix so a folder with >1000 objects isn't silently
+      // truncated (Supabase list caps a page at 1000). Accumulate until a short
+      // page arrives; a maxPages backstop prevents a runaway if the API ever
+      // keeps returning full pages.
       const listRaw = async (bucket, prefix, token) => {
-        const r = await fetch(`${SUPA_URL}/storage/v1/object/list/${bucket}`, {
-          method: 'POST',
-          headers: authHead(token),
-          body: JSON.stringify({ prefix, limit: 1000 }),
-        });
-        if (!r.ok) throw new Error(`list failed at "${bucket}/${prefix}" (${r.status})`);
-        return r.json();
+        const PAGE = 1000, maxPages = 500;
+        let offset = 0, all = [];
+        for (let p = 0; p < maxPages; p++) {
+          const r = await fetch(`${SUPA_URL}/storage/v1/object/list/${bucket}`, {
+            method: 'POST',
+            headers: authHead(token),
+            body: JSON.stringify({ prefix, limit: PAGE, offset }),
+          });
+          if (!r.ok) throw new Error(`list failed at "${bucket}/${prefix}" (${r.status})`);
+          const page = await r.json();
+          if (!Array.isArray(page) || page.length === 0) break;
+          all = all.concat(page);
+          if (page.length < PAGE) break;
+          offset += PAGE;
+        }
+        return all;
       };
       try {
         const { data: { session } = {} } = await supabase.auth.getSession();

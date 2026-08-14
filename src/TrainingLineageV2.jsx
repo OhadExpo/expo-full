@@ -335,6 +335,11 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
     setAutoPose({ running: true, done: 0, total: pending });
     autoAnalyzeAthleteVideos(clientWorkouts, traineeId, {
       shouldStop: () => stopRef.current,
+      // Cap the on-open batch so a large backlog (esp. the one-time re-analyze
+      // storm after a DONE_KEY bump) can't run dozens of MediaPipe passes back-
+      // to-back and freeze the report on first open; the background warmer drains
+      // the rest gently. Steady state (a few new clips) is unaffected.
+      maxPerRun: 8,
       onProgress: ({ done, total }) => { setAutoPose({ running: true, done, total }); setPoseBump((n) => n + 1); },
     }).then(() => { setAutoPose((s) => ({ ...s, running: false })); setPoseBump((n) => n + 1); })
       .catch(() => setAutoPose((s) => ({ ...s, running: false })));

@@ -1616,21 +1616,27 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
               }}>Shared</span>
             )}
           </span>
-          {dateStr && (
-            <span style={{
-              boxSizing: 'border-box', height: TASK_PILL_H, display: 'inline-flex', alignItems: 'center', gap: 4,
-              fontFamily: FN, fontSize: 11, fontWeight: isOverdue ? 800 : 700, letterSpacing: '0.02em',
-              color: isToday ? 'var(--c-ac)' : isOverdue ? 'var(--c-tx)' : dm.color,
-              whiteSpace: 'nowrap', padding: '0 8px',
-              border: `1px solid ${dateBorder}`, background: dateBg,
-            }}>
-              {isOverdue ? (
-                // "OVERDUE · YESTERDAY" — OVERDUE solid white, the day faded white
-                // (same opacity as the SHARED tag). Ohad's spec.
-                <>OVERDUE<span style={{ opacity: 0.4 }}>·</span><span style={{ opacity: 0.55 }}>{dm.label}</span></>
-              ) : dateStr}
-            </span>
-          )}
+          {/* DATE as a fixed COLUMN — reserved on EVERY row (like SHARED above)
+              so a task WITH a due date can't push its title further in than a
+              dateless task: the title's start-edge stays identical down the
+              column (#207). Empty slot otherwise; the chip hugs the title side. */}
+          <span style={{ flexShrink: 0, width: wrapRow ? 'auto' : 132, display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+            {dateStr && (
+              <span style={{
+                boxSizing: 'border-box', height: TASK_PILL_H, display: 'inline-flex', alignItems: 'center', gap: 4,
+                fontFamily: FN, fontSize: 11, fontWeight: isOverdue ? 800 : 700, letterSpacing: '0.02em', lineHeight: 1,
+                color: isToday ? 'var(--c-ac)' : isOverdue ? 'var(--c-tx)' : dm.color,
+                whiteSpace: 'nowrap', padding: '0 8px',
+                border: `1px solid ${dateBorder}`, background: dateBg,
+              }}>
+                {isOverdue ? (
+                  // "OVERDUE · YESTERDAY" — OVERDUE solid white, the day faded white
+                  // (same opacity as the SHARED tag). Ohad's spec.
+                  <>OVERDUE<span style={{ opacity: 0.4 }}>·</span><span style={{ opacity: 0.55 }}>{dm.label}</span></>
+                ) : dateStr}
+              </span>
+            )}
+          </span>
         </div>
         {showAvatar && !board && <AssigneeDot owner={row._owner} />}
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2, alignItems: heb ? 'flex-end' : 'flex-start',
@@ -1644,6 +1650,10 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
             fontFamily: heb ? FH : FB,
             fontSize: compact ? (heb ? 13 : 12) : (heb ? 14 : 13),
             fontWeight: 500,
+            // Shared line box so a MIXED Hebrew (Heebo) + English (Nord) title
+            // keeps both scripts on one optical centre line instead of the two
+            // fonts drifting apart vertically (#255).
+            lineHeight: 1.3,
             color: 'var(--c-tx)',
             // dir="auto" + unicode-bidi:plaintext lets the browser pick direction
             // from the first strong character and run the bidi algorithm, so a

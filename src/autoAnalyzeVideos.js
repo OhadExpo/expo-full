@@ -115,7 +115,7 @@ const _inflight = new Set();
 // poorly-tracked clip. Robust per-clip: one bad/blocked video is skipped, never
 // fatal. Returns a summary { total, analyzed, skipped, failed }.
 export async function autoAnalyzeAthleteVideos(clientWorkouts, traineeId, opts = {}) {
-  const { onProgress, shouldStop, onIdle } = opts;
+  const { onProgress, shouldStop, onIdle, maxPerRun } = opts;
   // Lock on the couple BASE so a member's report-open (traineeId `tr_x__0`) and
   // the background warmer (base `tr_x`) collide instead of running two batches
   // over the same clips — two interleaved read-modify-write passes on the pose
@@ -133,6 +133,13 @@ export async function autoAnalyzeAthleteVideos(clientWorkouts, traineeId, opts =
   try {
     const { captureClipFrames } = await import('./MovementLab');
     for (const v of vids) {
+      // Bound the work done in ONE call. The report-open path passes a small cap
+      // so a large backlog (e.g. the one-time re-analyze storm after a DONE_KEY
+      // bump) can't run dozens of full-model MediaPipe passes back-to-back and
+      // freeze the coach's UI on first open — the gentle background warmer
+      // (onIdle) drains the remainder across later ticks. Uncapped callers pass
+      // nothing and process everything.
+      if (maxPerRun && i >= maxPerRun) break;
       if (typeof shouldStop === 'function' && shouldStop()) break;
       // Yield to idle BETWEEN CLIPS (not just between athletes) so a background
       // warmer with a big backlog never grinds N full-model pose passes back-to-

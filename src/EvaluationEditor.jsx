@@ -358,9 +358,14 @@ export default function EvaluationEditor({ trainee, existing, metaDefaults = nul
   // Metadata defaults for a NEW eval, resolved by the parent from intake DOB→age /
   // trainee vitals / latest bw_logs (precedence lives there). Editing an existing
   // eval always shows its own saved values first; blank when no source has data.
-  const [age, setAge] = useState(existing?.age ?? metaDefaults?.age ?? trainee?.age ?? '');
-  const [heightCm, setHeightCm] = useState(existing?.height_cm ?? metaDefaults?.height_cm ?? trainee?.height ?? '');
-  const [weightKg, setWeightKg] = useState(existing?.weight_kg ?? metaDefaults?.weight_kg ?? trainee?.weight ?? '');
+  // HARD RULE (never-invent-training-data): a prefill from today's intake/vitals/
+  // bw_logs may seed a NEW eval only. Editing an EXISTING eval must NEVER fall
+  // through to metaDefaults/trainee — that would rewrite a historical row's
+  // age/height/weight to today's values on save, fabricating a measurement.
+  // Existing eval → its own saved value, or blank when it never had one.
+  const [age, setAge] = useState(existing ? (existing.age ?? '') : (metaDefaults?.age ?? trainee?.age ?? ''));
+  const [heightCm, setHeightCm] = useState(existing ? (existing.height_cm ?? '') : (metaDefaults?.height_cm ?? trainee?.height ?? ''));
+  const [weightKg, setWeightKg] = useState(existing ? (existing.weight_kg ?? '') : (metaDefaults?.weight_kg ?? trainee?.weight ?? ''));
   // Per-exercise notes live under a reserved `__notes` key inside the scores
   // JSONB. Split it out of the live scores state so the score-render loops and
   // countFilled (which iterate schema test ids) never see it; re-merge on save.
