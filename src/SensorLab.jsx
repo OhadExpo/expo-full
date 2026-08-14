@@ -17,6 +17,7 @@ import { C, FN, FB } from './theme';
 import { analyzePPG } from './pulsePPG';
 import { analyzeAcousticSet } from './acousticReps';
 import { romFromSweep, inclination, ROM_NORMS } from './goniometer';
+import { analyzeReflex } from './reflexPVT';
 
 const Btn = ({ children, onClick, primary, disabled, style }) => (
   <button onClick={onClick} disabled={disabled} style={{
@@ -233,10 +234,66 @@ function PivotPanel() {
   );
 }
 
+// ---------------- REFLEX ----------------
+function ReflexPanel() {
+  const [phase, setPhase] = useState('idle'); // idle | armed | go | done
+  const [count, setCount] = useState(0);
+  const [res, setRes] = useState(null);
+  const rts = useRef([]);
+  const goAt = useRef(0);
+  const timer = useRef(null);
+  const TRIALS = 8;
+
+  const finish = useCallback(() => { setPhase('done'); setRes(analyzeReflex(rts.current, { baseline: { meanRT: 265, sd: 22 } })); }, []);
+  const arm = useCallback(() => {
+    setPhase('armed');
+    timer.current = setTimeout(() => { goAt.current = performance.now(); setPhase('go'); }, 1200 + Math.random() * 2600);
+  }, []);
+  const nextOrEnd = useCallback(() => { setCount(rts.current.length); if (rts.current.length >= TRIALS) finish(); else arm(); }, [arm, finish]);
+  const start = useCallback(() => { rts.current = []; setRes(null); setCount(0); arm(); }, [arm]);
+  const tap = useCallback(() => {
+    if (phase === 'armed') { clearTimeout(timer.current); rts.current.push(50); nextOrEnd(); }   // false start (<100)
+    else if (phase === 'go') { rts.current.push(Math.round(performance.now() - goAt.current)); nextOrEnd(); }
+  }, [phase, nextOrEnd]);
+  const simulate = useCallback(() => {
+    const arr = [255, 268, 249, 272, 60, 261, 258, 540, 247, 263]; // includes a false start + a lapse
+    setRes(analyzeReflex(arr, { baseline: { meanRT: 265, sd: 22 } })); setPhase('done'); setCount(TRIALS);
+  }, []);
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+
+  const armed = phase === 'armed', go = phase === 'go';
+  return (
+    <div>
+      <Note>Tap the moment the box flashes cyan — {TRIALS} times. Measures your <b>reaction time + attention lapses</b> (a PVT), the gold-standard read of how sharp the nervous system is TODAY. A slow, lapsy CNS = a day to back off heavy neural work.</Note>
+      {(armed || go) && (
+        <div onPointerDown={tap} style={{ marginTop: 12, height: 150, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', userSelect: 'none',
+          background: go ? C.ac : C.sf2 || '#111', border: `1px solid ${go ? C.ac : C.cardBd}`, transition: 'background 60ms' }}>
+          <span style={{ fontFamily: FN, fontWeight: 700, fontSize: 18, letterSpacing: '0.1em', color: go ? '#04121a' : C.tm }}>{go ? 'TAP!' : 'wait…'}</span>
+        </div>
+      )}
+      <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+        <Btn primary onClick={start} disabled={armed || go}>{(armed || go) ? `Trial ${count + 1}/${TRIALS}` : 'Start test'}</Btn>
+        {!(armed || go) && <Btn onClick={simulate}>Simulate</Btn>}
+      </div>
+      {res?.ok && (
+        <div style={{ marginTop: 14 }}>
+          <Row label="Mean reaction" value={`${res.meanRT} ms`} color={C.ac} />
+          <Row label="Fastest 10%" value={`${res.fastest10} ms`} />
+          <Row label="Lapses" value={String(res.lapses)} color={res.lapses ? C.or : C.gn} />
+          {res.falseStarts > 0 && <Row label="False starts" value={String(res.falseStarts)} color={C.or} />}
+          {res.readiness && <Note><b style={{ color: res.readiness.band === 'suppressed' ? C.rd : res.readiness.band === 'primed' ? C.gn : C.tx }}>{res.readiness.band.toUpperCase()}</b> — {res.readiness.note}</Note>}
+        </div>
+      )}
+      {res && !res.ok && <Note><span style={{ color: C.rd }}>{res.reason}</span></Note>}
+    </div>
+  );
+}
+
 const TOOLS = [
-  { key: 'pulse', name: 'PULSE', sub: 'Camera HRV · readiness', Panel: PulsePanel },
-  { key: 'echo', name: 'ECHO', sub: 'Mic reps · grind/RIR', Panel: EchoPanel },
-  { key: 'pivot', name: 'PIVOT', sub: 'Motion goniometer · ROM', Panel: PivotPanel },
+  { key: 'pulse', name: 'PULSE', sub: 'Camera HRV', Panel: PulsePanel },
+  { key: 'echo', name: 'ECHO', sub: 'Mic reps/grind', Panel: EchoPanel },
+  { key: 'pivot', name: 'PIVOT', sub: 'Motion ROM', Panel: PivotPanel },
+  { key: 'reflex', name: 'REFLEX', sub: 'CNS reaction', Panel: ReflexPanel },
 ];
 
 export default function SensorLab() {
@@ -272,7 +329,7 @@ export default function SensorLab() {
         </div>
         <div style={{ padding: 16 }}>
           <Active />
-          <Note><span style={{ color: C.td }}>BETA · engine-verified (43 fixtures) · not a medical device — informs, never diagnoses. HR/ROM are solid; HRV/RIR are gated + confidence-tagged.</span></Note>
+          <Note><span style={{ color: C.td }}>BETA · engine-verified (58 fixtures) · not a medical device — informs, never diagnoses. HR/ROM are solid; HRV/RIR/CNS reads are gated + labelled.</span></Note>
         </div>
       </div>
     </div>,
