@@ -318,7 +318,7 @@ function BalancePanel() {
   }, []);
 
   const simulate = useCallback(() => {
-    const s = []; for (let i = 0; i < 600; i++) { const t = i * 25; const tilt = 3.5 * Math.sin(2 * Math.PI * 0.8 * t / 1000); const rad = tilt / 180 * Math.PI; s.push({ t, g: { x: Math.sin(rad), y: 0, z: Math.cos(rad) } }); }
+    const s = []; for (let i = 0; i < 600; i++) { const t = i * 25; const tilt = 1.4 * Math.sin(2 * Math.PI * 0.35 * t / 1000) + 0.5 * Math.sin(2 * Math.PI * 0.9 * t / 1000); const rad = tilt / 180 * Math.PI; s.push({ t, g: { x: Math.sin(rad), y: 0, z: Math.cos(rad) } }); }
     const r = analyzeBalance(s); setRes(r); setState(r.ok ? 'done' : 'error'); setErr('');
   }, []);
   useEffect(() => () => { stopRef.current = true; }, []);
@@ -385,7 +385,7 @@ export default function SensorLab() {
         </div>
         <div style={{ padding: 16 }}>
           <Active />
-          <Note><span style={{ color: C.td }}>BETA · engine-verified (58 fixtures) · not a medical device — informs, never diagnoses. HR/ROM are solid; HRV/RIR/CNS reads are gated + labelled.</span></Note>
+          <Note><span style={{ color: C.td }}>BETA · engine-verified (70 fixtures) · not a medical device — informs, never diagnoses. HR/ROM are solid; HRV/RIR/CNS/balance reads are gated + labelled.</span></Note>
         </div>
       </div>
     </div>,
