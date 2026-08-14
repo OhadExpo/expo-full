@@ -396,14 +396,13 @@ export default function NotesInline({
             ✓ HISTORY ({doneRows.length}{done.length < doneRows.length ? ` · showing ${done.length}` : ''})
           </div>
           {done.map(n => {
-            const heb = isHebrew(n.body);
             return (
               <div key={n.id} style={{
                 // No wrapper opacity — line-through + muted color (--c-tm)
                 // are enough "this is closed" signal in both themes. Prior
                 // opacity:0.55 double-dimmed the row and made the
                 // strikethrough body unreadable on white in light mode.
-                display: 'flex', alignItems: 'flex-start', gap: 8, padding: '6px 0',
+                display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0',
                 borderBottom: `1px solid var(--c-cardBd)`,
               }}>
                 <input type="checkbox" checked={true}
@@ -411,27 +410,24 @@ export default function NotesInline({
                   onChange={() => n.status === 'cancelled'
                     ? update(n.id, { status: 'open', completed_at: null })
                     : toggleDone(n.id)}
-                  style={{ width: 14, height: 14, accentColor: n.status === 'cancelled' ? 'var(--c-tm)' : 'var(--c-gn)', cursor: 'pointer', flexShrink: 0, marginTop: 3 }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  {/* Task text + "done DATE" on ONE row (Ohad): the task leads,
-                      the completion date sits compact on the right (was stacked
-                      — "done DATE" above, centered strikethrough body below). */}
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0 }}>
-                    <span style={{
-                      flex: 1, minWidth: 0, fontSize: 12, color: 'var(--c-tm)', lineHeight: 1.5, textDecoration: 'line-through',
-                      direction: heb ? 'rtl' : 'ltr', textAlign: heb ? 'right' : 'left', fontFamily: FB,
-                    }}>{n.body}</span>
-                    {(n.status === 'cancelled' || n.completed_at) && (
-                      <span style={{ flexShrink: 0, fontFamily: FN, fontSize: 9, color: n.status === 'cancelled' ? 'var(--c-or)' : 'var(--c-td)', letterSpacing: '0.08em', fontWeight: n.status === 'cancelled' ? 700 : 400, whiteSpace: 'nowrap' }}>
-                        {n.status === 'cancelled' ? 'CANCELLED' : `done ${fmtPrettyDate(n.completed_at)}`}
-                      </span>
-                    )}
-                  </div>
-                  {n.linked_plan_id && (
-                    <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-ac)', letterSpacing: '0.08em', marginTop: 2, fontWeight: 700 }}>
-                      ✓ COMPLETED BY PLAN
-                    </div>
-                  )}
+                  style={{ width: 14, height: 14, accentColor: n.status === 'cancelled' ? 'var(--c-tm)' : 'var(--c-gn)', cursor: 'pointer', flexShrink: 0 }} />
+                {/* One clean spine matching the dashboard history ruling (Ohad
+                    2026-08-12): strikethrough body CENTERED · DONE date right.
+                    dir="auto" keeps each glyph's direction correct, but the block
+                    is centred so a mixed Heb/En task no longer flips the whole row
+                    right and strands the checkbox. (No athlete-name zone here —
+                    it's a single athlete's page, unlike the cross-athlete dash.) */}
+                <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <span dir="auto" style={{
+                    flex: 1, minWidth: 0, fontSize: 12, color: 'var(--c-tm)', lineHeight: 1.4, textDecoration: 'line-through',
+                    textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontFamily: FB,
+                  }}>{n.body}</span>
+                  <span style={{ flexShrink: 0, fontFamily: FN, fontSize: 9, color: n.status === 'cancelled' ? 'var(--c-or)' : 'var(--c-td)', letterSpacing: '0.08em', fontWeight: n.status === 'cancelled' ? 700 : 400, whiteSpace: 'nowrap' }}>
+                    {n.status === 'cancelled'
+                      ? 'CANCELLED'
+                      : n.completed_at && <span>done {fmtPrettyDate(n.completed_at)}</span>}
+                    {n.linked_plan_id && <span style={{ color: 'var(--c-ac)', marginLeft: 6, fontWeight: 700 }}>· ✓ PLAN</span>}
+                  </span>
                 </div>
                 <button onClick={async () => {
                     if (await confirmToast('Delete this completed task? This cannot be undone.', { okLabel: 'Delete', cancelLabel: 'Cancel' })) {

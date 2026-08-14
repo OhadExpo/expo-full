@@ -30,6 +30,31 @@ export const angleAt = (lms, ai, bi, ci) => {
   return Math.acos(Math.max(-1, Math.min(1, cos))) * 180 / Math.PI;
 };
 
+// SIGNED deviation-from-straight at vertex b, in the 2D FILMED plane (x,y only).
+// The plain interior angle (angleAt) is an acos capped at 180°, so it CANNOT
+// tell the two ways a joint leaves straight apart — a knee flexing 10° and a
+// knee HYPER-extending 10° both read as interior 170°. This returns 0 when the
+// segments are straight/collinear-opposed, and a signed magnitude of how far
+// off straight the joint is: |value| = 180 − interior, and the SIGN is the
+// cross-product (z) of b→a × b→c, so the two directions get opposite signs.
+// The sign is facing-dependent (a mirrored view flips it), so a caller that
+// needs a fixed clinical direction (flexion vs hyperextension) must ORIENT the
+// series itself (see poseLab.extendedJointRom). x,y only → honest ONLY for a
+// joint moving in the filmed plane (side-on for sagittal reads).
+export const signedDeviationAt = (lms, ai, bi, ci) => {
+  const a = lms[ai], b = lms[bi], c = lms[ci];
+  if (!a || !b || !c) return null;
+  const v1x = a.x - b.x, v1y = a.y - b.y;
+  const v2x = c.x - b.x, v2y = c.y - b.y;
+  const m1 = Math.hypot(v1x, v1y), m2 = Math.hypot(v2x, v2y);
+  if (m1 === 0 || m2 === 0) return null;
+  const cos = Math.max(-1, Math.min(1, (v1x * v2x + v1y * v2y) / (m1 * m2)));
+  const interior = Math.acos(cos) * 180 / Math.PI;     // 0..180
+  const cross = v1x * v2y - v1y * v2x;                  // z of the 2D cross product
+  const sign = cross > 0 ? 1 : (cross < 0 ? -1 : 0);
+  return sign * (180 - interior);                       // 0 = straight; ± away from straight
+};
+
 // Title-regex → channel pair. Order matters — `none` first so isometric /
 // carry / hold / anti-rotation exercises skip counting. An UNMATCHED title
 // returns matched:false so the caller knows the channel is a fallback guess,

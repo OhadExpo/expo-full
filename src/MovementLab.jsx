@@ -17,7 +17,7 @@ import React, { useEffect, useRef, useState, useCallback, useMemo, lazy, Suspens
 import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
 import { createPoseLandmarker, getCamera, stopStream } from './usePose';
-import { analyzeClip, jumpMetrics, reactiveJumpMetrics, jumpPower, frameToPoints3D, estimateFps, barSpeedSeries, barAccelSeries, namedAngleSeries, channelSignal, velocityMetrics, romTempoMetrics, movementRepCount, isBallistic } from './poseLab';
+import { analyzeClip, jumpMetrics, reactiveJumpMetrics, broadJumpMetrics, jumpPower, frameToPoints3D, estimateFps, barSpeedSeries, barAccelSeries, namedAngleSeries, channelSignal, velocityMetrics, romTempoMetrics, movementRepCount, isBallistic, buildPoseReport } from './poseLab';
 import { detectFaults, detectAsymmetry, velocityAutoreg, warmupReadiness } from './poseInsights';
 import { savePoseMetric, getLoadVelocityRef, isVelocityLossLift } from './poseMetricsStore';
 import { romReadingFor } from './romGoniometer';
@@ -215,6 +215,9 @@ export async function captureClipFrames(src, { crossOrigin = false, onProgress }
       }
       if (onProgress) onProgress(Math.round(((i + 1) / total) * 100));
     }
+    // Frame pixel dims — the broad-jump scale needs the aspect ratio to reconcile
+    // width-normalised x against a height-normalised stature ruler.
+    if (v.videoWidth > 0 && v.videoHeight > 0) frames.dims = { w: v.videoWidth, h: v.videoHeight };
     return frames;
   } finally {
     if (lm) try { lm.close(); } catch {}
@@ -242,7 +245,9 @@ export default function MovementLab({
   onSaveJump,                   // (metrics) => void — wires jump into ath eval
   romSpec = null,               // ROM_CAMERA_AXES entry — when set, analyze mode measures ONE joint axis
   onSaveRom,                    // (clinicalDeg) => void — coach-confirmed ROM into the eval field
+  captureCue = null,            // per-test framing shown on the capture screen (front/side-on, distance)
   defaultBodyweightKg = null,   // prefill the jump-power bodyweight from the athlete
+  defaultHeightCm = null,       // athlete stature (cm) → the scale for the broad-jump distance
   initialClipUrl = null,        // a reviewed form-video URL picked in ReviewToolsView → auto-analyse it
   vaultClientId = null,         // athlete id of the picked clip → Bar-Speed Vault (owner trial, localStorage)
   vaultDate = null,             // date of the picked clip → vault entry key
@@ -372,6 +377,11 @@ export default function MovementLab({
   const isReactive = jumpType === 'drop' || jumpType === 'pogo'
     || /\b(pogo|drop[-\s]?jump|depth[-\s]?jump|hop|bound|bounce|rebound|reactive|rsi|ankle[-\s]?stiff)\b/i.test(exerciseTitle || '');
   const computeJump = useCallback((frames) => {
+    // Broad jump — horizontal distance, scaled by the athlete's stature.
+    if (jumpType === 'broad') {
+      const bj = broadJumpMetrics(frames, { heightCm: Number(defaultHeightCm) > 0 ? Number(defaultHeightCm) : null });
+      return bj || null;
+    }
     if (isReactive) {
       // If reactive was auto-detected from the title (jumpType still the 'cmj'
       // default), label it as a POGO/RSI read, not "Countermovement Jump".
@@ -381,7 +391,7 @@ export default function MovementLab({
     }
     const j = jumpMetrics(frames);
     return j ? { reactive: false, jumpType, ...j } : null;
-  }, [isReactive, jumpType]);
+  }, [isReactive, jumpType, defaultHeightCm]);
 
   const stopAndAnalyze = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -392,6 +402,10 @@ export default function MovementLab({
     stopStream(streamRef.current); streamRef.current = null;
     setPhase('analyzing');
     const frames = framesRef.current;
+    // Frame pixel dims for the broad-jump scale (aspect ratio) — same as the
+    // upload path attaches in captureClipFrames.
+    const vEl = videoRef.current;
+    if (vEl && vEl.videoWidth > 0 && vEl.videoHeight > 0) frames.dims = { w: vEl.videoWidth, h: vEl.videoHeight };
     setTimeout(() => {
       if (mode === 'jump') {
         const j = computeJump(frames);
@@ -521,10 +535,12 @@ export default function MovementLab({
               <div style={{ fontSize: 14, letterSpacing: '0.18em', fontWeight: 700, marginTop: 12 }}>
                 {mode === 'jump' ? 'FILM A JUMP' : 'FILM THE SET'}
               </div>
-              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', maxWidth: 360, lineHeight: 1.55, marginTop: 8 }}>
-                {mode === 'jump'
-                  ? 'Side-on, full body in frame, ~2–3m back. Record, or upload a clip from your gallery — stand still for a second, then jump.'
-                  : 'Side-on, full body in frame, ~2–3m back. Record a work set, or upload a clip from your gallery — keep the whole lift in shot.'}
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', maxWidth: 380, lineHeight: 1.55, marginTop: 8 }}>
+                {captureCue
+                  ? captureCue
+                  : (mode === 'jump'
+                    ? 'Side-on, full body in frame, ~2–3m back. Record, or upload a clip from your gallery — stand still for a second, then jump.'
+                    : 'Side-on, full body in frame, ~2–3m back. Record a work set, or upload a clip from your gallery — keep the whole lift in shot.')}
               </div>
             </Centre>
           )}
@@ -579,11 +595,13 @@ export default function MovementLab({
               </div>
             )}
             <div style={{ flex: 1, minWidth: 300 }}>
-              {romSpec && result?.jointRom && (
-                <RomConfirm spec={romSpec} jointRom={result.jointRom} onSave={onSaveRom} onClose={onClose} />
+              {romSpec && (result?.jointRom || result?.extRom) && (
+                <RomConfirm spec={romSpec} jointRom={[...(result.jointRom || []), ...(result.extRom || [])]} onSave={onSaveRom} onClose={onClose} />
               )}
               {mode === 'jump'
-                ? <JumpResult jump={jump} result={result} onSave={onSaveJump} onClose={onClose} defaultBodyweightKg={defaultBodyweightKg} />
+                ? (jumpType === 'broad'
+                    ? <BroadJumpResult jump={jump} onSave={onSaveJump} onClose={onClose} />
+                    : <JumpResult jump={jump} result={result} onSave={onSaveJump} onClose={onClose} defaultBodyweightKg={defaultBodyweightKg} />)
                 : <AnalyzeResult result={result} frames={framesRef.current} exerciseTitle={exerciseTitle} tab={romSpec ? 'rom' : tab} setTab={setTab} view={initialView}
                     vaultClientId={vaultClientId} vaultDate={vaultDate} recordedReps={recordedReps} targetReps={targetReps}
                     playheadT={videoTime * 1000}
@@ -781,7 +799,7 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
               <span style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.1em', color: C.gn, border: `1px solid ${C.gn}`, padding: '6px 12px', display: 'inline-block' }}>✓ SAVED TO {exerciseTitle.toUpperCase()} TREND{loadNum ? ` @ ${loadNum}KG` : ''}</span>
             ) : (
               <button type="button"
-                onClick={() => { const e = savePoseMetric({ clientId: vaultClientId, exercise: exerciseTitle, date: vaultDate, analysis: result, load: loadNum }); if (e) setVaultSaved(true); }}
+                onClick={() => { const e = savePoseMetric({ clientId: vaultClientId, exercise: exerciseTitle, date: vaultDate, analysis: result, load: loadNum, report: buildPoseReport(frames, exerciseTitle, result) }); if (e) setVaultSaved(true); }}
                 style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: C.ac, background: 'transparent', border: `1px solid ${C.ac}`, padding: '6px 12px', cursor: 'pointer', borderRadius: 0 }}
                 title="Log this set's bar speed, ROM + left/right symmetry (and load, if entered) to the athlete's Analysis trends — feeds the velocity-fatigue line, the injury-drift timeline, and same-load readiness (owner trial, this device).">
                 ↑ SAVE TO TREND
@@ -1702,7 +1720,40 @@ const Legend = ({ color, label }) => (
 );
 
 // ----------------------------- results: jump --------------------------------
-const JUMP_TITLE = { cmj: 'COUNTERMOVEMENT JUMP', svj: 'STANDING VERTICAL JUMP', sl: 'SINGLE-LEG JUMP', drop: 'DROP JUMP · RSI', pogo: 'POGO · RSI' };
+const JUMP_TITLE = { cmj: 'COUNTERMOVEMENT JUMP', svj: 'STANDING VERTICAL JUMP', sl: 'SINGLE-LEG JUMP', drop: 'DROP JUMP · RSI', pogo: 'POGO · RSI', broad: 'STANDING BROAD JUMP' };
+
+// Broad jump — horizontal distance (cm), scaled by the athlete's stature. Coach
+// confirms and can retype the athlete's height to rescale the distance (it scales
+// linearly with stature). Saves distanceCm into the eval via the map's toValue.
+function BroadJumpResult({ jump, onSave, onClose }) {
+  const [saved, setSaved] = useState(false);
+  const [h, setH] = useState(jump && jump.statureCm ? String(jump.statureCm) : '');
+  if (!jump) return <Empty msg="Couldn't read a clean broad jump. Film side-on with the full body + a couple of metres of runway in frame — stand still, jump forward once, land and hold still." />;
+  const hNum = parseFloat(h);
+  const rescaled = (hNum > 0 && jump.statureCm > 0) ? Math.round(jump.distanceCm * (hNum / jump.statureCm)) : jump.distanceCm;
+  const saveBtn = (s) => ({ marginTop: 18, padding: '13px 20px', width: '100%', background: s ? '#2a2a2a' : C.ac, border: `1px solid ${s ? '#2a2a2a' : C.ac}`, color: '#FFF', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', cursor: s ? 'default' : 'pointer' });
+  return (
+    <div style={{ maxWidth: 640, margin: '0 auto', textAlign: 'center' }}>
+      <div style={{ fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.18em', marginBottom: 8 }}>{JUMP_TITLE.broad}</div>
+      <div style={{ fontFamily: FN, fontSize: 88, fontWeight: 800, color: C.ac, lineHeight: 1 }}>{rescaled}<span style={{ fontSize: 28 }}>cm</span></div>
+      {jump.approxScale && (
+        <div style={{ fontFamily: FN, fontSize: 10, color: C.or, marginTop: 8, letterSpacing: '0.04em', lineHeight: 1.5 }}>
+          APPROXIMATE SCALE — enter the athlete&apos;s real height below for an accurate distance.
+        </div>
+      )}
+      <div style={{ marginTop: 20, padding: 14, border: '1px solid rgba(255,255,255,0.14)', textAlign: 'left' }}>
+        <label style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.16em', fontWeight: 700 }}>ATHLETE HEIGHT (CM) — SCALE REFERENCE</label>
+        <input type="number" inputMode="decimal" value={h} onChange={e => setH(e.target.value)} placeholder="e.g. 178"
+          style={{ width: '100%', marginTop: 6, padding: '10px 12px', background: '#000', border: `1px solid ${C.ac}`, color: '#FFF', fontFamily: FN, fontSize: 16, letterSpacing: '0.04em', boxSizing: 'border-box' }} />
+        <div style={{ fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 10, letterSpacing: '0.04em', lineHeight: 1.5 }}>
+          Distance scales with stature — a correct height gives a correct distance. Confirm before saving.
+        </div>
+      </div>
+      {onSave && <button disabled={saved} onClick={() => { onSave({ ...jump, distanceCm: rescaled, statureCm: hNum > 0 ? Math.round(hNum) : jump.statureCm }); setSaved(true); }} style={saveBtn(saved)}>{saved ? 'SAVED TO EVALUATION' : 'SAVE TO EVALUATION →'}</button>}
+      {saved && <button onClick={onClose} style={{ ...btn('rgba(255,255,255,0.3)', 'transparent'), marginTop: 12, width: '100%', padding: '11px' }}>DONE</button>}
+    </div>
+  );
+}
 
 // Honest accuracy badge from captured fps (per research: flight-time height
 // error ≈ ±1cm@240 · ±2cm@120 · ±5cm@60 · ±9cm@30). Green only at slow-mo.
@@ -1749,8 +1800,9 @@ function RomConfirm({ spec, jointRom, onSave, onClose }) {
         CAMERA ROM · {spec.jointId.toUpperCase()} {spec.axis.toUpperCase()}
       </div>
       <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-        {side('LEFT', reading.L)}
-        {side('RIGHT', reading.R)}
+        {reading.single
+          ? side(spec.axis.toUpperCase(), reading.C)
+          : <>{side('LEFT', reading.L)}{side('RIGHT', reading.R)}</>}
       </div>
       {reading.asymDeg != null && reading.asymDeg >= 8 && (
         <div style={{ fontFamily: FB, fontSize: 11, color: C.or, marginTop: 8 }}>
@@ -1761,10 +1813,14 @@ function RomConfirm({ spec, jointRom, onSave, onClose }) {
         <div style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.14em', color: 'rgba(255,255,255,0.6)' }}>LOG</div>
         <input type="number" value={deg} onChange={e => { setDeg(e.target.value); setSaved(false); }}
           style={{ width: 84, padding: '8px 10px', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.25)', color: '#FFF', fontFamily: FN, fontSize: 16, textAlign: 'center' }} />
-        <div style={{ fontFamily: FB, fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>degrees · defaulted to {reading.minSide === 'L' ? 'left' : 'right'} (the restricted side)</div>
+        <div style={{ fontFamily: FB, fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>
+          {reading.single ? 'degrees · camera-measured' : `degrees · defaulted to ${reading.minSide === 'L' ? 'left' : 'right'} (the restricted side)`}
+        </div>
       </div>
       <div style={{ fontFamily: FB, fontSize: 10.5, color: C.or, marginTop: 10, lineHeight: 1.5 }}>
-        Only valid if the limb moved in the SAGITTAL plane (straight forward, filmed side-on). If it swung out to the side, the camera reads that as flexion too — re-film or enter by hand.
+        {spec.plane === 'frontal'
+          ? 'Only valid if the limb moved in the FRONTAL plane (out to the side, filmed front-on). If it drifted forward/back, the camera reads that as range too — re-film or enter by hand.'
+          : 'Only valid if the limb moved in the SAGITTAL plane (straight forward/back, filmed side-on). If it swung out to the side, the camera reads that as range too — re-film or enter by hand.'}
       </div>
       <div style={{ fontFamily: FB, fontSize: 10.5, color: 'rgba(255,255,255,0.5)', marginTop: 8, lineHeight: 1.5 }}>
         Active range — reads a few degrees under a hands-on passive goniometer. Confirm or edit before saving.

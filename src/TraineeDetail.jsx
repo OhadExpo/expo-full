@@ -164,6 +164,9 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
   useEscClose(showArchiveConfirm, ()=>setShowArchiveConfirm(false));
   useEscClose(showDeleteConfirm, ()=>{setShowDeleteConfirm(false);setDeleteTyped("")});
   const [programSort,setProgramSort]=useState('chrono'); // 'chrono' | 'alpha'
+  // Solo programs card: current (front) block always shown; earlier blocks
+  // collapse behind the "N previous" pill — mirrors PlansView's table card.
+  const [programsExpanded,setProgramsExpanded]=useState(false);
   // sortProgramsRecent is the canonical newest-first program sort; lives
   // in traineeUtils.js so PlansView, ClientPortal, etc. share one definition.
   const handleArchive = () => { if(setTrainees) setTrainees(prev=>prev.map(t=>t.id===trainee?{...t,status:"Archived",archivedAt:new Date().toISOString()}:t)); setShowArchiveConfirm(false); onBack(); };
@@ -376,9 +379,120 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
     nv[visKey] = true;
     setPortalVis(nv);
   };
+  // Solo assigned-programs list — restyled to match the coach Programs page
+  // TABLE card (PlansView progView==='table'): ONE card for the athlete, the
+  // current block surfaced (cyan name + spelled-out meta) with earlier blocks
+  // collapsed behind a "N previous" pill and expanded as compact stacked rows.
+  // Every action the old ProgramCard wired is preserved, just re-grammared:
+  //   open plan  → click the card body / the earlier row
+  //   visibility → PORTAL toggle (kept GREEN per Ohad)
+  //   only-this  → "Only" text action
+  //   unassign   → "Remove" text action (red)
   const renderProgramsList = () => {
     const sorted = [...tp].sort((a,b)=>programSort==='alpha'?(a.name||'').localeCompare(b.name||''):sortProgramsRecent(a,b));
-    return sorted.map(p=>{const visKey=`${td.name}:${p.name}`;const isVis=portalVis?.[visKey]!==false;return <ProgramCard key={p.id} plan={p} isVis={isVis} onOpen={()=>onOpenPlan&&onOpenPlan(p.id)} onUnassign={()=>{setConfirmUnassign(p.id);setUnassignTyped("")}} onOnly={()=>onlyThis(visKey,sorted)} onToggleVis={()=>{const nv={...portalVis,[visKey]:!isVis};setPortalVis(nv)}} />});
+    if (sorted.length === 0) return null; // caller renders the empty state
+    const cur = sorted[0];
+    const earlier = sorted.slice(1);
+    const visKeyOf = (p) => `${td.name}:${p.name}`;
+    // Recency pill mirrors PlansView. No per-block session attribution exists
+    // on this page, so it reads the athlete's most recent completed session —
+    // on a single-athlete page the current block is what they're training, so
+    // athlete-last-session is the honest signal (real data, never fabricated).
+    const lastDateRaw = tAllWorkouts[0]?.date;
+    const lastDate = lastDateRaw ? new Date(lastDateRaw) : null;
+    const daysSince = (lastDate && !isNaN(lastDate)) ? Math.floor((Date.now() - lastDate.getTime())/86400000) : null;
+    const tagColor = daysSince == null ? C.td : daysSince <= 3 ? C.gn : daysSince <= 7 ? C.tm : daysSince <= 14 ? C.or : C.rd;
+    const tagText = daysSince == null ? 'NEVER LOGGED' : daysSince <= 0 ? 'TRAINED TODAY' : `${daysSince}D AGO`;
+
+    // Shared text-action builders so the current block and the earlier rows
+    // stay pixel-consistent (only the font size differs, exactly as PlansView).
+    const onlyBtn = (p, fs) => (
+      <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();onlyThis(visKeyOf(p),sorted);}} title="Show only this program on the athlete portal — hide all others" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:fs,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>Only</button>
+    );
+    const removeBtn = (p, fs) => (
+      <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setConfirmUnassign(p.id);setUnassignTyped("");}} title="Remove this program from the athlete" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:fs,fontWeight:700,letterSpacing:'0.04em',color:C.rd}}>Remove</button>
+    );
+
+    return (
+      <div className="prog-card" style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0}}>
+        {/* Cyan STRIP HEADER — matches PlansView: 3px cyan tick + label (white)
+            on the left, recency pill on the right. The athlete name is the page
+            title already, so the strip carries a block label instead (Ohad). */}
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,background:'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))',borderBottom:`1px solid ${C.cardBd}`,padding:'8px 14px'}}>
+          <span style={{display:'flex',alignItems:'center',gap:9,minWidth:0}}>
+            <span aria-hidden style={{width:3,height:14,background:C.ac,flexShrink:0}} />
+            <span style={{fontWeight:700,fontSize:13,letterSpacing:'0.04em',color:'#FFFFFF',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{earlier.length>0?'CURRENT BLOCK':'ASSIGNED PROGRAM'}</span>
+          </span>
+          <span title={`Last session: ${tagText.toLowerCase()}`} style={{display:'inline-flex',alignItems:'center',justifyContent:'flex-end',gap:6,minWidth:104,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',color:'var(--c-tm)',whiteSpace:'nowrap',flexShrink:0}}>
+            <span style={{width:6,height:6,borderRadius:'50%',background:tagColor,flexShrink:0}} />{tagText}
+          </span>
+        </div>
+
+        {/* Clickable body — current block name in cyan, "N previous" collapse
+            pill, spelled-out meta line. Click anywhere opens the editor. */}
+        <div onClick={()=>onOpenPlan&&onOpenPlan(cur.id)} role="button" tabIndex={0}
+          onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); onOpenPlan&&onOpenPlan(cur.id); } }}
+          style={{cursor:'pointer',padding:'12px 14px 4px'}}>
+          <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+            <span style={{fontWeight:700,fontSize:15,color:C.ac,fontFamily:FN,letterSpacing:'0.04em',minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{cur.name||'Untitled'}</span>
+            {earlier.length > 0 && (
+              <button onClick={e=>{e.stopPropagation();setProgramsExpanded(v=>!v);}}
+                title={programsExpanded?`Hide ${earlier.length} previous block${earlier.length===1?'':'s'}`:`Show ${earlier.length} previous block${earlier.length===1?'':'s'}`}
+                className="prog-plusn"
+                style={{display:'inline-flex',alignItems:'center',gap:5,height:24,padding:'0 9px',background: programsExpanded ? 'rgba(127,127,138,0.14)' : 'transparent',border:`1px solid ${C.cardBd}`,borderRadius:0,color: C.tm,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.05em',whiteSpace:'nowrap',flexShrink:0,fontVariantNumeric:'tabular-nums'}}>
+                {earlier.length} previous
+                <span aria-hidden style={{display:'inline-block',transform: programsExpanded?'rotate(180deg)':'none',transition:'transform .15s',fontSize:8,lineHeight:1}}>▾</span>
+              </button>
+            )}
+          </div>
+          <div style={{fontSize:12,color:C.tm,fontFamily:FN,letterSpacing:'0.04em',marginTop:5}}>{cur.dayCount||0} days · {cur.exerciseCount||0} exercises</div>
+        </div>
+
+        {/* Light text actions — PORTAL toggle (green, kept) + spacer + Only / Remove. */}
+        <div className="prog-actions" style={{padding:'8px 14px 12px',display:'flex',gap:16,alignItems:'center',flexWrap:'wrap'}}>
+          {(() => {
+            const vk = visKeyOf(cur);
+            const isVis = portalVis?.[vk] !== false;
+            return <button onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis});}} title={isVis?'On the athlete portal — click to hide':'Hidden from the athlete portal — click to show'} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:8}}>
+              <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',color:isVis?C.gn:C.td}}>PORTAL</span>
+              <span style={{width:32,height:18,borderRadius:9,background:isVis?'rgba(46,213,115,0.25)':'rgba(255,255,255,0.06)',border:`1px solid ${isVis?'rgba(46,213,115,0.5)':C.cardBd}`,position:'relative',transition:'background .15s, border-color .15s',flexShrink:0}}>
+                <span style={{width:14,height:14,borderRadius:7,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?15:1,transition:'left .15s'}} />
+              </span>
+            </button>;
+          })()}
+          <div className="prog-spacer" style={{flex:1,minWidth:8}} />
+          {onlyBtn(cur, 11)}
+          {removeBtn(cur, 11)}
+        </div>
+
+        {/* Expanded earlier blocks — compact stacked rows: faded cyan name +
+            `Nd · Mex` + the same text actions. */}
+        {programsExpanded && earlier.length > 0 && (
+          <div className="prog-reveal" style={{borderTop:`1px solid ${C.cardBd}`,padding:'4px 0'}}>
+            {earlier.map(p => {
+              const vk = visKeyOf(p);
+              const isVis = portalVis?.[vk] !== false;
+              return (
+                <div key={p.id} onClick={()=>onOpenPlan&&onOpenPlan(p.id)}
+                  role="button" tabIndex={0}
+                  onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); onOpenPlan&&onOpenPlan(p.id); } }}
+                  style={{cursor:'pointer',padding:'7px 14px 7px 32px',display:'flex',alignItems:'center',gap:8,opacity:0.78,transition:'opacity 0.12s',borderTop:`1px solid rgba(57,189,255,0.102)`}}>
+                  <div style={{flex:1,minWidth:0,display:'flex',alignItems:'center',gap:8}}>
+                    <div style={{flex:1,minWidth:0,fontSize:13,color:C.ac,opacity:0.72,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'0.04em',fontFamily:FN,fontWeight:700}}>{p.name||'Untitled'}</div>
+                    <div style={{fontSize:11,color:C.td,fontFamily:FN,letterSpacing:'0.04em',fontWeight:500,flexShrink:0,whiteSpace:'nowrap'}}>{p.dayCount||0}d · {p.exerciseCount||0}ex</div>
+                  </div>
+                  <div style={{display:'flex',alignItems:'center',gap:14,flexShrink:0}}>
+                    <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis});}} title={isVis?'On the athlete portal — click to hide':'Hidden from the athlete portal — click to show'} style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.04em',color:isVis?C.gn:C.td,display:'inline-flex',alignItems:'center',gap:5}}><span style={{width:5,height:5,borderRadius:'50%',background:isVis?C.gn:C.td}} />{isVis?'On portal':'Hidden'}</button>
+                    {onlyBtn(p, 10)}
+                    {removeBtn(p, 10)}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
   };
 
   // Section-jump tab menu (Tasks-style segmented control). VIEW ALL is the
@@ -453,38 +567,36 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           split across the two rows read "scattered"). BACK sits first, a divider
           gap, then the action cluster — all left-aligned so they stack cleanly
           above the left-aligned section tabs instead of splitting to both edges. */}
-      <div style={{display:"flex",justifyContent:"flex-start",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:16}}>
+      <div style={{display:"flex",alignItems:"center",marginBottom:16,gap:12}}>
         <button onClick={onBack} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',padding:0,height:30,lineHeight:1,display:"inline-flex",alignItems:"center",flexShrink:0}}>← BACK</button>
-        <div style={{display:"flex",gap:6,flexWrap:"wrap",justifyContent:"flex-start"}}>
-          {/* Notifications on/off — per-athlete mute for the COACH side.
-              When OFF, athlete→coach messages and workout-complete events
-              from this athlete skip push delivery, and the dashboard
-              MessagesCard unread count excludes this athlete. The athlete's
-              own notifications (coach messages, missed-day cron) are
-              unaffected. State persisted on the trainee object so it syncs
-              across coach devices via the trainees store. */}
-          {/* Order: EDIT first (right after BACK — Ohad), then the other primary
-              actions (LOG SESSION / PORTAL / LINEAGE), then the NOTIFICATION toggle,
-              then ARCHIVE (destructive) last. */}
-          <Btn variant="ghost" onClick={openEdit} style={{fontSize:11,padding:"4px 10px",height:30,boxSizing:"border-box"}}>EDIT</Btn>
-          {onOpenInPersonForTrainee && <Btn variant="ghost" onClick={()=>onOpenInPersonForTrainee(trainee)} style={{fontSize:11,padding:"4px 10px",height:30,boxSizing:"border-box"}} title="Open the in-person workout logger pre-filtered to this athlete">LOG SESSION</Btn>}
-          {onPreviewPortal && <Btn variant="ghost" onClick={onPreviewPortal} style={{fontSize:11,padding:"4px 10px",height:30,boxSizing:"border-box"}} title="Open this athlete's portal in preview mode">PORTAL</Btn>}
-          <Btn variant="ghost" onClick={()=>lineage.open(trainee)} style={{fontSize:11,padding:"4px 10px",height:30,boxSizing:"border-box"}} title="Training Analysis — cross-block progression + what to program next">ANALYSIS</Btn>
+        {/* Action buttons STRETCH to fill the row equally (flex:1 1 0) so this
+            row is a full-width segmented control that matches the section-tab row
+            directly below it exactly (Ohad: "the two rows must be the same"). All
+            30px, all equal width. NOTIFICATION gets a touch more room for its toggle.
+            EDIT first (after BACK), then LOG SESSION / PORTAL / ANALYSIS, the
+            NOTIFICATION toggle, ARCHIVE (destructive) last. */}
+        <div style={{display:"flex",gap:4,flex:1,minWidth:0}}>
+          {/* Order (Ohad): EDIT · PORTAL · ANALYSIS · LOG SESSION · ARCHIVE · NOTIFICATION.
+              Border unified to the same cyan hairline (C.cardBd) as the section-tab
+              row below, so the two rows read as ONE consistent segmented system
+              (Ohad: "don't like grey borders on top, cyan on the 2nd row"). */}
+          <Btn variant="ghost" onClick={openEdit} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 0',minWidth:0,border:`1px solid ${C.cardBd}`}}>EDIT</Btn>
+          {onPreviewPortal && <Btn variant="ghost" onClick={onPreviewPortal} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 0',minWidth:0,border:`1px solid ${C.cardBd}`}} title="Open this athlete's portal in preview mode">PORTAL</Btn>}
+          <Btn variant="ghost" onClick={()=>lineage.open(trainee)} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 0',minWidth:0,border:`1px solid ${C.cardBd}`}} title="Training Analysis — cross-block progression + what to program next">ANALYSIS</Btn>
+          {onOpenInPersonForTrainee && <Btn variant="ghost" onClick={()=>onOpenInPersonForTrainee(trainee)} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 0',minWidth:0,border:`1px solid ${C.cardBd}`}} title="Open the in-person workout logger pre-filtered to this athlete">LOG SESSION</Btn>}
+          {td.status==="Archived" ? <>
+            <Btn variant="ghost" onClick={()=>{if(setTrainees)setTrainees(prev=>prev.map(t=>t.id===trainee?{...t,status:"Inactive",archivedAt:undefined}:t));onBack()}} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 0',minWidth:0,border:`1px solid ${C.cardBd}`}}>RESTORE</Btn>
+            <Btn variant="danger" onClick={()=>setShowDeleteConfirm(true)} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 0',minWidth:0}}>DELETE</Btn>
+          </> : <Btn variant="ghost" onClick={()=>setShowArchiveConfirm(true)} title="Archive this athlete" style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",color:'var(--c-tm)',flex:'1 1 0',minWidth:0,border:`1px solid ${C.cardBd}`}}>ARCHIVE</Btn>}
           <button
             onClick={() => { if (setTrainees) setTrainees(prev => prev.map(t => t.id === trainee ? { ...t, notifOff: !t.notifOff } : t)); }}
             title={td.notifOff ? 'Notifications muted for this athlete — click to unmute' : 'Notifications on — click to mute push + dashboard alerts about this athlete'}
-            style={{ background: 'transparent', border: `1px solid var(--c-ghostBd)`, borderRadius: 0, cursor: 'pointer', padding: '4px 10px', height: 30, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', gap: 9 }}>
-            <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', color: td.notifOff ? C.td : C.tx }}>NOTIFICATION</span>
-            {/* color on/off toggle — green = on, grey = muted (matches the
-                program-visibility switches below) */}
-            <span style={{ width: 36, height: 20, borderRadius: 10, background: td.notifOff ? C.sf3 : 'rgba(46,213,115,0.251)', border: `1px solid ${td.notifOff ? C.bd2 : 'rgba(46,213,115,0.376)'}`, position: 'relative', transition: 'all .15s' }}>
-              <span style={{ width: 16, height: 16, borderRadius: 8, background: td.notifOff ? C.td : C.gn, position: 'absolute', top: 1, left: td.notifOff ? 1 : 18, transition: 'all .15s' }} />
+            style={{ background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, cursor: 'pointer', padding: '0 6px', height: 30, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, flex: '1.6 1 0', minWidth: 0 }}>
+            <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: td.notifOff ? C.td : C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>NOTIFICATION</span>
+            <span style={{ width: 34, height: 18, borderRadius: 9, background: td.notifOff ? C.sf3 : 'rgba(57,189,255,0.22)', border: `1px solid ${td.notifOff ? C.bd2 : 'rgba(57,189,255,0.38)'}`, position: 'relative', transition: 'all .15s', flexShrink: 0 }}>
+              <span style={{ width: 14, height: 14, borderRadius: 7, background: td.notifOff ? C.td : C.ac, position: 'absolute', top: 1, left: td.notifOff ? 1 : 17, transition: 'all .15s' }} />
             </span>
           </button>
-          {td.status==="Archived" ? <>
-            <Btn variant="ghost" onClick={()=>{if(setTrainees)setTrainees(prev=>prev.map(t=>t.id===trainee?{...t,status:"Inactive",archivedAt:undefined}:t));onBack()}} style={{fontSize:11,padding:"4px 10px",height:30,boxSizing:"border-box"}}>RESTORE</Btn>
-            <Btn variant="danger" onClick={()=>setShowDeleteConfirm(true)} style={{fontSize:11,padding:"4px 10px",height:30,boxSizing:"border-box"}}>Permanently Delete</Btn>
-          </> : <Btn variant="danger" onClick={()=>setShowArchiveConfirm(true)} style={{fontSize:11,padding:"4px 10px",height:30,boxSizing:"border-box"}}>ARCHIVE</Btn>}
         </div></div>
 
       {lineage.node}
@@ -557,20 +669,10 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           identically — the two groups sit on one line, space-between. On a phone
           (<=760px) the controls wrap BELOW the identity so the email/phone gets
           the full width and never collides with the ACTIVE dropdown (Ohad 2026-08). */}
-      <Card style={{marginBottom:8,position:"relative"}}
-        header={<span className="td-hdr-row" style={{display:'flex',flexWrap:'wrap',alignItems:'baseline',justifyContent:'space-between',gap:'6px 12px',width:'100%'}}>
-          <span className="td-hdr-identity" style={{display:'inline-flex',flexWrap:'wrap',alignItems:'baseline',gap:10,minWidth:0,fontWeight:700,fontSize:14,letterSpacing:'0.04em',textTransform:'uppercase'}}><span style={{color:C.ac,textShadow:'0 0 12px rgba(57,189,255,0.45)'}}>{td.name}</span><span className="td-hdr-contact" style={{fontSize:11,opacity:0.78,letterSpacing:'0.02em',textTransform:'none',fontWeight:500,minWidth:0}}>{Array.isArray(td.email)?td.email.join(', '):(td.email||'')}{td.phone?` · ${td.phone}`:""}</span></span>
-          <span style={{display:'inline-flex',alignItems:'center',gap:8,flexShrink:0}}>{td.branch === 'Bnei Herzliya' && <span title="Bnei Herzliya team" style={{display:'inline-flex',alignItems:'center',height:24,boxSizing:'border-box',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',color:C.ac,border:`1px solid ${C.ac}`,padding:'0 10px',whiteSpace:'nowrap'}}>BNEI HERZLIYA</span>}<StatusMenu status={td.status} onChange={s => { if (setTrainees) setTrainees(prev => prev.map(t => t.id === trainee ? { ...t, status: s } : t)); }} /></span>
-        </span>}>
-        {/* The card strip header already shows the name/email + the interactive
-            StatusMenu. The old body block re-rendered the name and a NON-clickable
-            status Badge, which read as a duplicate ("mirror") and was the thing
-            being clicked instead of the real menu — removed. */}
-        {/* Header stat cluster removed (Ohad #139: "the status row … useless").
-            Its facts now live in their real homes: billing terms → Billing
-            section strip, Format → Vitals, Workouts count → Workouts section
-            header. The header card is now just identity + status. */}
-      </Card>
+      {/* Identity band REMOVED (Ohad: "remove the cyan line beneath [name]"). The
+          cyan name + status strip read as redundant clutter — the coach already
+          knows whose page this is (they clicked in from the roster), and status is
+          editable from the roster's per-card menu. Branch badge dropped with it. */}
       </>}
 
       {/* Page section order (Ohad spec 2026-05-16, v3):
@@ -788,7 +890,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           Programs above, while the two sit tight together (Ohad). */}
       {td && showSec('eval') && (
         <div style={{ marginTop: 28 }}>
-          <TraineeEvaluation trainee={td} />
+          <TraineeEvaluation trainee={td} bwLog={bwLog} />
           {/* Renders nothing until an intake is submitted. */}
           <TraineeIntake trainee={td} />
         </div>

@@ -10,10 +10,9 @@
 import React, { useState, useMemo, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
-import { isRefined5b, useEscClose, useIsMobile, toast } from './ui';
+import { isRefined5b, useEscClose, useIsMobile, toast, ConfirmDialog } from './ui';
 import { EVAL_SCHEMA, romKey } from './evaluationSchema';
-import { toolForTest } from './evalTestMap';
-import { romCameraSpec } from './romGoniometer';
+import { toolForTest, romAxisSpec, applyTestResult, applyRomResult, testValueDisplay } from './evalTestMap';
 
 // Camera tools pull MediaPipe/three — lazy so opening an eval doesn't carry them
 // until the coach actually runs a test.
@@ -305,7 +304,7 @@ function RomBlock({ rom, setRom, onRomTest }) {
         {EVAL_SCHEMA.rom.hint}
       </div>
       <div style={{ fontFamily: FB, fontSize: 10.5, color: 'var(--c-ac)', marginBottom: 14 }}>
-        ◉ CAM measures sagittal flexion (knee · hip · shoulder) from a side-on clip — active range, coach-confirmed. Rotation and side-to-side axes stay manual.
+        ◉ CAM reads active range from one clip, coach-confirmed — shoulder/hip/knee flexion, knee over-extension, neck flex/ext + lateral, and ankle dorsi/plantar (each with its own framing). Rotations, scapula and foot inversion stay manual — 2D pose can&apos;t see them honestly.
       </div>
       {EVAL_SCHEMA.rom.joints.map((j, ji) => (
         <div key={j.id} style={{
@@ -323,7 +322,7 @@ function RomBlock({ rom, setRom, onRomTest }) {
           }}>
             {j.axes.map(ax => {
               const k = romKey(j.id, ax);
-              const camSpec = romCameraSpec(j.id, ax);
+              const camSpec = romAxisSpec(j.id, ax);
               return (
                 <div key={ax} style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
                   {/* Wrap, don't ellipsis — "Internal/External Rotation" must show
@@ -348,13 +347,20 @@ function RomBlock({ rom, setRom, onRomTest }) {
   );
 }
 
-export default function EvaluationEditor({ trainee, existing, onSave, onClose }) {
+// Now-time HH:MM in the LOCAL zone (native <input type="time"> value shape).
+const nowHHMM = () => { const d = new Date(); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+
+export default function EvaluationEditor({ trainee, existing, metaDefaults = null, onSave, onClose }) {
   const isMobile = useIsMobile();
   const [evalDate, setEvalDate] = useState(existing?.eval_date || new Date().toISOString().slice(0, 10));
-  const [evalTime, setEvalTime] = useState(existing?.eval_time || '');
-  const [age, setAge] = useState(existing?.age ?? trainee?.age ?? '');
-  const [heightCm, setHeightCm] = useState(existing?.height_cm ?? trainee?.height ?? '');
-  const [weightKg, setWeightKg] = useState(existing?.weight_kg ?? trainee?.weight ?? '');
+  // A NEW eval defaults TIME to now; editing keeps whatever was saved (even blank).
+  const [evalTime, setEvalTime] = useState(existing ? (existing.eval_time || '') : nowHHMM());
+  // Metadata defaults for a NEW eval, resolved by the parent from intake DOB→age /
+  // trainee vitals / latest bw_logs (precedence lives there). Editing an existing
+  // eval always shows its own saved values first; blank when no source has data.
+  const [age, setAge] = useState(existing?.age ?? metaDefaults?.age ?? trainee?.age ?? '');
+  const [heightCm, setHeightCm] = useState(existing?.height_cm ?? metaDefaults?.height_cm ?? trainee?.height ?? '');
+  const [weightKg, setWeightKg] = useState(existing?.weight_kg ?? metaDefaults?.weight_kg ?? trainee?.weight ?? '');
   // Per-exercise notes live under a reserved `__notes` key inside the scores
   // JSONB. Split it out of the live scores state so the score-render loops and
   // countFilled (which iterate schema test ids) never see it; re-merge on save.
@@ -392,11 +398,22 @@ export default function EvaluationEditor({ trainee, existing, onSave, onClose })
   // value straight into that test's field, verify-then-continue. This is the
   // "run the protocol inside the eval" flow — no separate eval row, no retyping.
   const [activeTest, setActiveTest] = useState(null); // { test, map, side }
-  const onTest = (test, map, side) => setActiveTest({ test, map, side });
+  // Retake guard — if the field already has a value in this evaluation, confirm
+  // (re-capture + overwrite) before re-running; a fresh field launches straight in.
+  const [retake, setRetake] = useState(null); // { label, current, run }
+  const onTest = (test, map, side) => {
+    const cur = testValueDisplay(scores, test, side);
+    if (cur != null) setRetake({ label: `${test.label}${side ? ` · ${side}` : ''}`, current: cur, run: () => setActiveTest({ test, map, side }) });
+    else setActiveTest({ test, map, side });
+  };
   // Camera goniometer for a single ROM axis — opens MovementLab in analyze mode
   // with a romSpec, and writes the coach-confirmed degree into rom[key].
   const [activeRom, setActiveRom] = useState(null); // { spec, key }
-  const onRomTest = (spec, key) => setActiveRom({ spec, key });
+  const onRomTest = (spec, key) => {
+    const cur = rom[key];
+    if (cur != null && cur !== '') setRetake({ label: `${spec.jointId} ${spec.axis}`, current: `${cur}°`, run: () => setActiveRom({ spec, key }) });
+    else setActiveRom({ spec, key });
+  };
   // Tool-agnostic: `raw` is whatever the active tool hands back (jump metrics
   // object, or hold seconds). map.toValue folds it into the field shape; for a
   // composite test that's an object keyed by part id, which slots straight into
@@ -404,13 +421,11 @@ export default function EvaluationEditor({ trainee, existing, onSave, onClose })
   const writeTestResult = (raw) => {
     if (!activeTest) return;
     const { test, map, side } = activeTest;
+    // Single source of truth for the writeback shape (sided { L,R } merge without
+    // clobbering the other side + composite objects) — same helper the writeback
+    // fixture asserts, and the same one the top-level picker uses. Retake overwrites.
+    setScores(prev => applyTestResult(prev, test, map, side, raw));
     const v = map.toValue(raw);
-    if (side) {
-      const cur = (typeof scores[test.id] === 'object' && scores[test.id]) ? scores[test.id] : {};
-      setScore(test.id, { ...cur, [side]: v });
-    } else {
-      setScore(test.id, v);
-    }
     const shown = typeof v === 'object' ? Object.entries(v).map(([k, val]) => `${k}:${val}`).join(' · ') : v;
     toast(`Logged ${shown} to ${test.label}${side ? ` · ${side}` : ''}`, 'success', { ttl: 3500 });
     setActiveTest(null);
@@ -458,36 +473,46 @@ export default function EvaluationEditor({ trainee, existing, onSave, onClose })
             style={{ background: 'transparent', border: 'none', color: 'var(--c-tm)', cursor: 'pointer', fontSize: 18 }}>✕</button>
         </div>
 
-        {/* Meta header — date / time / age / height / weight */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 8, marginBottom: 18 }}>
-          <div>
-            <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>DATE</div>
-            {/* dd/mm/yyyy overlay (native date renders the browser locale = MM/DD/YYYY
-                on Ohad's en-US machine). Transparent native input + centered span. */}
-            <div style={{ position: 'relative', display: 'flex' }}>
-              <input type="date" value={evalDate} onChange={e => setEvalDate(e.target.value)}
-                onClick={e => { try { e.currentTarget.showPicker(); } catch { /* noop */ } }}
-                style={{ ...inputBase, width: '100%', color: 'transparent', cursor: 'pointer' }} />
-              <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', fontFamily: FN, fontSize: 12, color: 'var(--c-tx)', opacity: evalDate ? 1 : 0.45 }}>{evalDate ? evalDate.split('-').reverse().join('/') : 'DD/MM/YYYY'}</span>
+        {/* Meta header — date / time / age / height / weight. One tidy row of
+            EVENLY-distributed, matching boxes: equal columns, one shared input
+            height/border/padding so the native date/time inputs line up with the
+            plain number inputs (no more narrow AGE box / mismatched heights). */}
+        {(() => {
+          const META_H = 34;
+          const metaInput = { ...inputBase, width: '100%', height: META_H, padding: '0 10px', boxSizing: 'border-box' };
+          const metaLabel = { fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 };
+          return (
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(5, minmax(0, 1fr))', gap: 8, marginBottom: 18 }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={metaLabel}>DATE</div>
+                {/* dd/mm/yyyy overlay (native date renders the browser locale = MM/DD/YYYY
+                    on Ohad's en-US machine). Transparent native input + centered span. */}
+                <div style={{ position: 'relative', display: 'flex', height: META_H }}>
+                  <input type="date" value={evalDate} onChange={e => setEvalDate(e.target.value)}
+                    onClick={e => { try { e.currentTarget.showPicker(); } catch { /* noop */ } }}
+                    style={{ ...metaInput, color: 'transparent', cursor: 'pointer' }} />
+                  <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', fontFamily: FN, fontSize: 12, color: 'var(--c-tx)', opacity: evalDate ? 1 : 0.45 }}>{evalDate ? evalDate.split('-').reverse().join('/') : 'DD/MM/YYYY'}</span>
+                </div>
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={metaLabel}>TIME</div>
+                <input type="time" value={evalTime} onChange={e => setEvalTime(e.target.value)} style={metaInput} />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={metaLabel}>AGE</div>
+                <input type="number" value={age} onChange={e => setAge(e.target.value)} style={metaInput} />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={metaLabel}>HEIGHT (cm)</div>
+                <input type="number" value={heightCm} onChange={e => setHeightCm(e.target.value)} style={metaInput} />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={metaLabel}>WEIGHT (kg)</div>
+                <input type="number" step="0.1" value={weightKg} onChange={e => setWeightKg(e.target.value)} style={metaInput} />
+              </div>
             </div>
-          </div>
-          <div>
-            <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>TIME</div>
-            <input type="time" value={evalTime} onChange={e => setEvalTime(e.target.value)} style={{ ...inputBase, width: '100%' }} />
-          </div>
-          <div>
-            <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>AGE</div>
-            <input type="number" value={age} onChange={e => setAge(e.target.value)} style={{ ...inputBase, width: '100%' }} />
-          </div>
-          <div>
-            <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>HEIGHT (cm)</div>
-            <input type="number" value={heightCm} onChange={e => setHeightCm(e.target.value)} style={{ ...inputBase, width: '100%' }} />
-          </div>
-          <div>
-            <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>WEIGHT (kg)</div>
-            <input type="number" step="0.1" value={weightKg} onChange={e => setWeightKg(e.target.value)} style={{ ...inputBase, width: '100%' }} />
-          </div>
-        </div>
+          );
+        })()}
 
         {EVAL_SCHEMA.sections.map(s => (
           <SectionBlock key={s.id} section={s} scores={scores} setScore={setScore}
@@ -526,7 +551,9 @@ export default function EvaluationEditor({ trainee, existing, onSave, onClose })
           jumpType={activeTest.map.jumpType || 'cmj'}
           exerciseTitle={`${activeTest.map.label}${activeTest.side ? ` · ${activeTest.side}` : ''}`}
           toolLabel={String(activeTest.map.label).toUpperCase()}
+          captureCue={activeTest.map.cue || null}
           defaultBodyweightKg={parseFloat(weightKg) || null}
+          defaultHeightCm={parseFloat(heightCm) || null}
           onSaveJump={writeTestResult}
           onClose={() => setActiveTest(null)}
         />
@@ -541,12 +568,22 @@ export default function EvaluationEditor({ trainee, existing, onSave, onClose })
           initialView="metrics"
           exerciseTitle={`${activeRom.spec.jointId} ${activeRom.spec.axis}`}
           toolLabel={`CAMERA ROM · ${activeRom.spec.jointId.toUpperCase()} ${activeRom.spec.axis.toUpperCase()}`}
+          captureCue={activeRom.spec.cue || null}
           romSpec={activeRom.spec}
-          onSaveRom={(deg) => { setRom(prev => ({ ...prev, [activeRom.key]: String(deg) })); toast(`Logged ${deg}° to ${activeRom.spec.jointId} ${activeRom.spec.axis}`, 'success', { ttl: 3500 }); }}
+          onSaveRom={(deg) => { setRom(prev => applyRomResult(prev, activeRom.spec, deg)); toast(`Logged ${deg}° to ${activeRom.spec.jointId} ${activeRom.spec.axis}`, 'success', { ttl: 3500 }); }}
           onClose={() => setActiveRom(null)}
         />
       </Suspense>
     )}
+    {/* Retake confirm — portal + backdrop-blocking (ConfirmDialog); only when the
+        field already holds a value in this evaluation. */}
+    <ConfirmDialog
+      open={!!retake}
+      title="Retake — overwrite result?"
+      message={retake ? `${retake.label} already has ${retake.current} in this evaluation. Re-running the camera test will RE-CAPTURE and REPLACE that value. Continue?` : ''}
+      onConfirm={() => { const r = retake; setRetake(null); r?.run(); }}
+      onCancel={() => setRetake(null)}
+    />
     {/* Embedded hold-to-failure timer for the isometric tests. */}
     {activeTest && activeTest.map.tool === 'hold' && (
       <Suspense fallback={null}>

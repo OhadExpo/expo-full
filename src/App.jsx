@@ -431,7 +431,7 @@ export default function App() {
   return (
     <AuthProvider clientList={[]}>
       <AuthGate />
-      <Suspense fallback={null}><SwUpdateBanner /></Suspense>
+      {!/^(localhost|127\.0\.0\.1)$/.test(typeof window !== 'undefined' ? window.location.hostname : '') && <Suspense fallback={null}><SwUpdateBanner /></Suspense>}
     </AuthProvider>
   );
 }

@@ -55,7 +55,7 @@ function writeAll(obj) {
 // Save (or replace, same date) one analysed set's headline metrics.
 // analysis = analyzeClip() result. Returns the stored entry, or null if there's
 // no real velocity to store (never fabricate a trend point).
-export function savePoseMetric({ clientId, exercise, date, analysis, load, clipKey }) {
+export function savePoseMetric({ clientId, exercise, date, analysis, load, clipKey, report }) {
   if (!clientId || !exercise || !analysis) return null;
   const vel = analysis.velocity, rt = analysis.romTempo;
   const bestMean = vel && typeof vel.bestMean === 'number' ? vel.bestMean : null;
@@ -88,6 +88,12 @@ export function savePoseMetric({ clientId, exercise, date, analysis, load, clipK
     load: (typeof load === 'number' && load > 0) ? load : null, // kg, for same-load readiness
     asymRows: (asymRows && asymRows.length) ? asymRows : null,
     clip: clipKey || null, // stable per-clip id (the cloud URL) — see same-day dedupe below
+    // Rich, review-style per-lift report (downsampled velocity/accel/degrees
+    // series + per-rep tables), built by poseLab.buildPoseReport at analyze
+    // time. Optional + JSON-safe: an old record without it still renders the
+    // trend view (backward compatible). Pruned to the most-recent few entries
+    // below so the heavy series never grow localStorage unbounded.
+    report: (report && typeof report === 'object') ? report : null,
   };
   const all = readAll();
   const k = exKey(exercise);
@@ -113,6 +119,17 @@ export function savePoseMetric({ clientId, exercise, date, analysis, load, clipK
   });
   lift.entries.push(entry);
   lift.entries.sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  // Bound localStorage: the rich per-lift `report` payload (downsampled per-frame
+  // series) is only ever rendered for the LATEST filmed set, so keep it on just
+  // the most-recent few entries and drop it from older ones. Their headline
+  // summaries (bestMean/lossPct/maxRom/asymRows) stay intact for the trend — only
+  // the heavy series is shed, so the injury-watch + velocity trends are unaffected.
+  const KEEP_REPORTS = 4;
+  if (lift.entries.length > KEEP_REPORTS) {
+    for (let i = 0; i < lift.entries.length - KEEP_REPORTS; i++) {
+      if (lift.entries[i] && lift.entries[i].report) lift.entries[i].report = null;
+    }
+  }
   // Only report success if it actually persisted — otherwise the UI would flash
   // "Saved to trend" on a device where localStorage is full/blocked and nothing
   // was written.

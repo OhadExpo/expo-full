@@ -114,7 +114,7 @@ _mem.clear();
 check('pendingCount = all 3 before any analyzed', pendingCount(cw, 'amit') === 3);
 check('isAnalyzed false before marking', isAnalyzed('https://x/sq1.mp4') === false);
 // simulate the runner marking one done
-localStorage.setItem('expo-autopose-done-v1', JSON.stringify({ 'https://x/sq1.mp4': 1 }));
+localStorage.setItem('expo-autopose-done-v2', JSON.stringify({ 'https://x/sq1.mp4': 1 }));
 check('isAnalyzed true after marking', isAnalyzed('https://x/sq1.mp4') === true);
 check('pendingCount drops to 2 after one analyzed', pendingCount(cw, 'amit') === 2);
 

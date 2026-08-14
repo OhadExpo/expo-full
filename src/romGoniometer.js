@@ -73,6 +73,14 @@ export function romCameraSpec(jointId, axisLabel) {
 export function romReadingFor(spec, jointRom) {
   if (!spec || !Array.isArray(jointRom)) return null;
   const byName = Object.fromEntries(jointRom.map((j) => [j.name, j]));
+  // Unsided axis (e.g. neck) — one channel, one value; no L/R split. Surfaced as
+  // `single` so RomConfirm shows a single value box instead of LEFT/RIGHT.
+  if (spec.channels && spec.channels.single) {
+    const e = byName[spec.channels.single];
+    const v = e ? spec.toClinical(e) : null;
+    if (v == null) return null;
+    return { L: null, R: null, C: v, single: true, max: v, maxSide: 'C', min: v, minSide: 'C', asymDeg: null };
+  }
   const L = byName[spec.channels.L] ? spec.toClinical(byName[spec.channels.L]) : null;
   const R = byName[spec.channels.R] ? spec.toClinical(byName[spec.channels.R]) : null;
   if (L == null && R == null) return null;

@@ -304,50 +304,65 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
   // So the probe MUST send the coach's session JWT as Bearer; if there's no
   // session token we bail and leave the tile in its loading state rather
   // than misreport capacity.
-  const STORAGE_CAP_MB = 1024;
+  // Supabase Pro tier = 100 GB (upgraded 2026-08-14). Free tier was 1 GB.
+  const STORAGE_CAP_MB = 100 * 1024;
+  const STORAGE_CAP_LABEL = STORAGE_CAP_MB >= 1024 ? `${(STORAGE_CAP_MB / 1024).toFixed(0)} GB` : `${STORAGE_CAP_MB} MB`;
   const [storage, setStorage] = useState(null);
   useEffect(() => {
     let cancelled = false;
     (async () => {
       const SUPA_URL = 'https://gtcbfglttoiyfsnfbhdy.supabase.co';
       const SUPA_KEY = 'sb_publishable_i_ifflCFMUF7rX2ABAY3vA_5JKTmFlv';
-      const listRaw = async (prefix, token) => {
-        const r = await fetch(`${SUPA_URL}/storage/v1/object/list/form-videos`, {
+      const authHead = (token) => ({ 'apikey': SUPA_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' });
+      const listRaw = async (bucket, prefix, token) => {
+        const r = await fetch(`${SUPA_URL}/storage/v1/object/list/${bucket}`, {
           method: 'POST',
-          headers: {
-            'apikey': SUPA_KEY,
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
+          headers: authHead(token),
           body: JSON.stringify({ prefix, limit: 1000 }),
         });
-        if (!r.ok) throw new Error(`list failed at "${prefix}" (${r.status})`);
+        if (!r.ok) throw new Error(`list failed at "${bucket}/${prefix}" (${r.status})`);
         return r.json();
       };
       try {
         const { data: { session } = {} } = await supabase.auth.getSession();
         const token = session?.access_token;
         if (!token) throw new Error('no session token — authenticated listing required');
-        let total = 0, files = 0;
-        const walk = async (prefix) => {
-          const data = await listRaw(prefix, token);
+        // Discover every bucket so the bar reflects TOTAL Supabase file storage
+        // (not just form-videos). Fall back to the known buckets if the bucket
+        // listing is RLS-denied. A per-bucket walk failure is swallowed so one
+        // inaccessible bucket can't blank the whole signal.
+        let buckets = [];
+        try {
+          const br = await fetch(`${SUPA_URL}/storage/v1/bucket`, { headers: authHead(token) });
+          if (br.ok) {
+            const arr = await br.json();
+            if (Array.isArray(arr)) buckets = arr.map(b => b.name || b.id).filter(Boolean);
+          }
+        } catch { /* fall through to fallback */ }
+        if (buckets.length === 0) buckets = ['form-videos', 'coach-voice'];
+        let total = 0, formVideoFiles = 0;
+        const walk = async (bucket, prefix) => {
+          const data = await listRaw(bucket, prefix, token);
           if (!Array.isArray(data)) return;
           for (const it of data) {
             // Folders come back with id===null + no metadata. Files have a
             // UUID + a metadata object with `size` (bytes).
             if (it.id === null) {
-              await walk(prefix ? `${prefix}/${it.name}` : it.name);
+              await walk(bucket, prefix ? `${prefix}/${it.name}` : it.name);
             } else {
               total += it.metadata?.size || 0;
-              files++;
+              if (bucket === 'form-videos') formVideoFiles++;
             }
           }
         };
-        await walk('');
+        for (const bucket of buckets) {
+          try { await walk(bucket, ''); }
+          catch (be) { console.warn(`Storage: bucket "${bucket}" skipped:`, be?.message || be); }
+        }
         if (cancelled) return;
         const usedMB = total / 1024 / 1024;
         const pct = Math.round((usedMB / STORAGE_CAP_MB) * 100);
-        setStorage({ usedMB, pct, files });
+        setStorage({ usedMB, pct, files: formVideoFiles });
       } catch (e) {
         console.warn('Storage probe failed:', e?.message || e);
         // Don't render the tile as a stale "0 / 0%" — leave it loading so
@@ -497,41 +512,6 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
         })}
       </div>
 
-      {/* STORAGE — slim ops indicator. Color flips orange at 80% / red at
-          95% of the 1 GB Supabase free-tier ceiling so the coach has a
-          chance to clean up before the wall. Hides entirely while loading
-          and on probe failure (anon read could 403 if the public_read
-          policy ever changes — silent failure is safer than a broken UI). */}
-      {isOwner && storage && (() => {
-        const refined = isRefined5b();
-        const pct = Math.min(100, storage.pct);
-        const tone = pct >= 95 ? C.rd : pct >= 80 ? C.or : C.gn;
-        const usedTxt = storage.usedMB >= 1024
-          ? `${(storage.usedMB / 1024).toFixed(2)} GB`
-          : `${storage.usedMB.toFixed(0)} MB`;
-        return (
-          <div style={{
-            background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`,
-            borderRadius: 0, padding: '8px 14px', marginBottom: 14,
-            display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap',
-          }}>
-            <span style={{
-              fontFamily: FN, fontSize: 13, color: C.tm, letterSpacing: '0.08em',
-              fontWeight: 700, textTransform: 'uppercase', flexShrink: 0,
-            }}>Storage</span>
-            <div style={{ flex: '1 1 200px', minWidth: 140, height: 6, background: 'var(--c-sf2)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, position: 'relative' }}>
-              <div style={{ position: 'absolute', inset: 0, width: `${pct}%`, background: tone, transition: 'width 200ms' }} />
-            </div>
-            <span style={{ fontFamily: FN, fontSize: 12, color: tone, fontWeight: 700, letterSpacing: '0.04em', flexShrink: 0 }}>
-              {usedTxt} / 1 GB · {pct}%
-            </span>
-            <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.08em', flexShrink: 0 }}>
-              {storage.files} form videos
-            </span>
-          </div>
-        );
-      })()}
-
       {/* INCOMING — top-of-funnel acquisition counts (chat / messages /
           captures / waitlist) over the last 30 days. Moved 2026-05-16
           above Revenue so the "what's coming IN" question reads before
@@ -576,6 +556,40 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
         monthBars={monthBars}
         maxBar={maxBar}
       />}
+
+      {/* STORAGE — slim ops indicator, placed directly under Revenue/billing
+          (Ohad) so the money block reads first, then the ops footnote. Color
+          flips orange at 80% / red at 95% of the Supabase plan ceiling (100 GB
+          on Pro). Hides while loading and on probe failure (silent-fail is
+          safer than a broken/misreported bar). */}
+      {isOwner && storage && (() => {
+        const pct = Math.min(100, storage.pct);
+        const tone = pct >= 95 ? C.rd : pct >= 80 ? C.or : C.gn;
+        const usedTxt = storage.usedMB >= 1024
+          ? `${(storage.usedMB / 1024).toFixed(2)} GB`
+          : `${storage.usedMB.toFixed(0)} MB`;
+        return (
+          <div style={{
+            background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`,
+            borderRadius: 0, padding: '8px 14px', marginBottom: 14,
+            display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap',
+          }}>
+            <span style={{
+              fontFamily: FN, fontSize: 13, color: C.tm, letterSpacing: '0.08em',
+              fontWeight: 700, textTransform: 'uppercase', flexShrink: 0,
+            }}>Storage</span>
+            <div style={{ flex: '1 1 200px', minWidth: 140, height: 6, background: 'var(--c-sf2)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, position: 'relative' }}>
+              <div style={{ position: 'absolute', inset: 0, width: `${pct}%`, background: tone, transition: 'width 200ms' }} />
+            </div>
+            <span style={{ fontFamily: FN, fontSize: 12, color: tone, fontWeight: 700, letterSpacing: '0.04em', flexShrink: 0 }}>
+              {usedTxt} / {STORAGE_CAP_LABEL} · {pct}%
+            </span>
+            <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.08em', flexShrink: 0 }}>
+              {storage.files} form videos
+            </span>
+          </div>
+        );
+      })()}
 
       {/* TASKS — moved 2026-05-16 to sit beneath Revenue. The KPI
           tiles + Revenue card form the "where is the business at?"

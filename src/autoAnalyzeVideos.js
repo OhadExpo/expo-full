@@ -20,14 +20,20 @@
 //    distinct logged load); a mixed-load session stores null rather than
 //    guessing the max and mispairing a light clip's speed with a heavy load.
 
-import { analyzeClip } from './poseLab.js';
+import { analyzeClip, buildPoseReport } from './poseLab.js';
 import { savePoseMetric } from './poseMetricsStore.js';
 // captureClipFrames lives in MovementLab (which pulls MediaPipe WASM + a lazy 3D
 // engine). Dynamic-import it inside the runner so opening the Analysis report
 // never eagerly loads all that — it only arrives when a batch actually starts.
 
-const DONE_KEY = 'expo-autopose-done-v1';
-const ATTEMPTS_KEY = 'expo-autopose-attempts-v1';
+// v2 (2026-08-14): the persisted set-record now also carries a rich, review-
+// style per-lift REPORT payload (downsampled velocity/accel/degrees series +
+// per-rep tables — see poseLab.buildPoseReport). Bumping the done/attempts keys
+// makes every already-analyzed clip re-analyze ONCE on the next Analysis open so
+// existing athletes' stored sets pick up the new payload (the old v1 maps are
+// left orphaned + harmless). Each re-analysis REPLACES its same-clip entry.
+const DONE_KEY = 'expo-autopose-done-v2';
+const ATTEMPTS_KEY = 'expo-autopose-attempts-v2';
 const MAX_ATTEMPTS = 3; // transient retries across report-opens before giving up
 
 // Strip a couple sub-member suffix (`tr_x__0` -> `tr_x`) so the lock/collection
@@ -139,11 +145,15 @@ export async function autoAnalyzeAthleteVideos(clientWorkouts, traineeId, opts =
         if (frames && frames.length >= 4) {
           const analysis = analyzeClip(frames, v.title);
           if (analysis && analysis.ok) {
+            // Rich per-lift report (downsampled series + per-rep tables) so the
+            // Analysis page can render the same velocity/degrees graphs the Review
+            // screen shows — built from the SAME frames, before they're discarded.
+            const report = buildPoseReport(frames, v.title, analysis);
             // File under the clip's TRUE owner (v.cid), never the passed
             // traineeId — a couple's members must not pool. A dateless clip is
             // NOT stored (savePoseMetric would stamp it "today" and can then
             // overwrite a real same-day entry); it's still marked done.
-            if (v.date) savePoseMetric({ clientId: v.cid || traineeId, exercise: v.title, date: v.date, analysis, load: v.load, clipKey: v.url });
+            if (v.date) savePoseMetric({ clientId: v.cid || traineeId, exercise: v.title, date: v.date, analysis, load: v.load, clipKey: v.url, report });
             analyzed++;
             markDone(v.url);
           } else {

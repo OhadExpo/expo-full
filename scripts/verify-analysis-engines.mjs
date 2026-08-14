@@ -12,6 +12,10 @@ const suites = [
   'verify-reactive-jump.mjs',        // reactiveJumpMetrics RSI + contact-time (drop jump / POGO)
   'verify-analyze-clip.mjs',         // analyzeClip end-to-end: rep count + velocity + ROM/tempo + joint ROM
   'verify-rom-goniometer.mjs',       // camera goniometer -> clinical ROM degree
+  'verify-eval-camera-rom.mjs',      // extended CAMERA TEST ROM catalog (shoulder/hip/knee/over-ext/neck/ankle) -> clinical degree + honest 'soon' boundary
+  'verify-eval-extended-rom.mjs',    // signedDeviationAt + extendedJointRom: over-extension calibration, neck sagittal/lateral, dispersion-gated ankle, occlusion gates
+  'verify-broad-jump.mjs',           // broadJumpMetrics — stature-scaled horizontal distance + aspect reconciliation + honest guards
+  'verify-eval-writeback.mjs',       // end-to-end writeback: applyTestResult/applyRomResult land the numbers in scores[id]/rom[key], sided merge, composite, RETAKE overwrite
   'verify-velocity-profile-1rm.mjs', // load-velocity -> estimated 1RM
   'verify-velocity-profile-shift.mjs',// velocityProfileShift — block-over-block LV shift: force vs velocity adaptation
   'verify-velocity-load-zones.mjs',  // velocityLoadZones — LV profile -> per-quality load prescription (kg on the bar)
@@ -32,6 +36,7 @@ const suites = [
   'verify-lineage-core.mjs',         // e1RM (Epley) + topSet — the primitives every strength read rests on
   'verify-auto-analyze.mjs',         // auto-analyze collector — clip scoping / couples cid / load-ambiguity
   'verify-pose-metrics-store.mjs',   // Bar-Speed vault reads: asymmetry injury-watch + readiness ref + velocity-loss trend
+  'verify-pose-report.mjs',          // buildPoseReport — persistable per-lift report payload (downsampled series + per-rep tables) for the Analysis velocity/ROM graphs
   'verify-detect-asymmetry.mjs',     // detectAsymmetry — raw L/R imbalance + anti-fabrication guards (feeds the injury flag)
   'verify-detect-faults.mjs',        // detectFaults — technique flags + family gates, plyo/real-elbow/word-boundary guards
   'verify-verdict.mjs',              // synthesizeVerdict — the headline coach-acted call (deload gating)

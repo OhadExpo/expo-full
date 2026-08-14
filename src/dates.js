@@ -47,3 +47,17 @@ export function fmtCompactDate(input, fallback = '—') {
   if (isNaN(d.getTime())) return String(input);
   return `${d.getDate()} ${MONTH_ABBR[d.getMonth()]} ${d.getFullYear()}`;
 }
+
+// Age in whole years from a date-of-birth (ISO string / Date). Returns null for
+// missing/unparseable input or an implausible result, so a blank DOB never
+// fabricates an age. Used to prefill the Evaluation's AGE from intake DOB.
+export function ageFromDob(dob) {
+  if (dob == null || dob === '') return null;
+  const d = dob instanceof Date ? dob : new Date(dob);
+  if (isNaN(d.getTime())) return null;
+  const now = new Date();
+  let a = now.getFullYear() - d.getFullYear();
+  const m = now.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < d.getDate())) a--;
+  return a >= 0 && a < 130 ? a : null;
+}

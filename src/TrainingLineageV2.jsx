@@ -14,6 +14,7 @@ import { analyzeAthlete } from './lineageAnalysis';
 import { getAthleteVault, getAthleteAsymmetryTrend } from './poseMetricsStore';
 import { autoAnalyzeAthleteVideos, pendingCount } from './autoAnalyzeVideos';
 import { velocityProfile1RM, mvtForLift } from './velocityProfile1RM';
+import { VelocityReport, RomReport } from './LineageLiftReport';
 import { blockNum, classifyPattern, repsTop, exById } from './PlansView';
 import { groupByBucket, BUCKETS, movementRegion } from './movementBucket';
 import { exerciseContinuity } from './exerciseContinuity';
@@ -175,6 +176,140 @@ function LiftRow({ s }) {
       <td style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, fontVariantNumeric: 'tabular-nums', color: C.tm, verticalAlign: 'top', whiteSpace: 'nowrap' }}>{loads.join(' · ')}</td>
       <td style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, textAlign: 'right', verticalAlign: 'top' }}><Tag text={r.tag} color={r.tagColor} /></td>
     </tr>
+  );
+}
+
+// Per-lift "FULL REPORT" expander — reveals the Review-screen velocity/ROM
+// report built from the latest filmed set's stored payload (report). A shared
+// control so bar-speed + ROM cards read identically. When the latest entry
+// predates the payload (e.g. its clip was re-filmed away / not re-analysed yet),
+// it shows an honest note instead of crashing.
+function ReportToggle({ open, onToggle }) {
+  return (
+    <button type="button" onClick={onToggle}
+      style={{ marginTop: 8, background: 'transparent', border: 'none', padding: 0, color: C.ac, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
+      {open ? '▾ Hide full report' : '▸ Full report'}
+    </button>
+  );
+}
+const NoReportNote = () => (
+  <div style={{ marginTop: 10, border: `1px dashed ${C.bd}`, background: C.sf2, padding: '10px 12px', color: C.tm, fontSize: 11.5, lineHeight: 1.5 }}>
+    The full per-rep report populates after this lift&apos;s latest clip is re-analysed — it runs automatically the next time this page is open. The trend above is live now.
+  </div>
+);
+
+// BAR SPEED per-lift row: the per-session velocity-loss trend (unchanged) + an
+// expander into the Review-style velocity report (speed/accel graph, best mean /
+// velocity loss, per-rep table) rendered from the latest set's stored payload.
+function BarSpeedLiftCard({ lift }) {
+  const [open, setOpen] = useState(false);
+  const mx = Math.max(...lift.entries.map((e) => e.lossPct || 0), 20);
+  const tCol = lift.trend === 'worse' ? C.rd : lift.trend === 'better' ? C.gn : C.pu;
+  const last = lift.entries[lift.entries.length - 1];
+  const report = last && last.report;
+  // Load-velocity 1RM: if he filmed this lift across a real load range,
+  // extrapolate a max WITHOUT a max test (the elite-VBT read no phone tool
+  // does). The engine refuses thin/noisy data, so this line only appears on a
+  // genuinely profilable lift — never a fabricated number.
+  const prof = velocityProfile1RM(
+    lift.entries.filter((e) => e.load && e.bestMean).map((e) => ({ load: e.load, velocity: e.bestMean })),
+    mvtForLift(lift.title),
+  );
+  return (
+    <div style={{ padding: '9px 0', borderTop: `1px solid ${C.bd}` }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 5 }}>
+        <span style={{ fontSize: 12.5, color: C.tx }}>{lift.title}</span>
+        <span style={{ fontSize: 10, color: tCol, letterSpacing: '0.04em' }}>
+          {last?.lossPct != null ? `${last.lossPct}% loss` : ''}{lift.count >= 2 ? ` · ${lift.trend === 'worse' ? 'fatiguing' : lift.trend === 'better' ? 'recovering' : 'holding'}` : ''}
+        </span>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 30 }}>
+        {lift.entries.slice(-8).map((e, i) => (
+          <div key={i} title={`${(e.date || '').slice(0, 10)}${e.lossPct != null ? ` · ${e.lossPct}% vel-loss` : ' · vel-loss n/a'} · best ${e.bestMean} m/s`}
+            style={{ flex: 1, minWidth: 4, height: `${Math.max(12, ((e.lossPct || 0) / mx) * 100)}%`, background: tCol, opacity: 0.85, borderRadius: '1px 1px 0 0' }} />
+        ))}
+      </div>
+      {prof.state === 'ok' && prof.confidence !== 'low' && (
+        <div title={`Load-velocity profile: linear fit of phone-camera bar speed vs load across ${prof.loads} loads, extrapolated to this lift's minimal-velocity threshold (${prof.mvt} m/s). R²=${prof.r2}. The speed is uncalibrated 2D-pose m/s, so read the TREND across dates — not the exact kg — and confirm with a real top set before you prescribe loads off it. Not a tested max.`}
+          style={{ marginTop: 6, fontSize: 10.5, color: C.ac, letterSpacing: '0.02em' }}>
+          Est. 1RM ~{prof.oneRM}kg <span style={{ color: C.td }}>· {prof.loads} loads · {prof.confidence} confidence · no max test</span>
+        </div>
+      )}
+      <ReportToggle open={open} onToggle={() => setOpen((o) => !o)} />
+      {open && (report ? <div style={{ marginTop: 10 }}><VelocityReport report={report} title={lift.title} /></div> : <NoReportNote />)}
+    </div>
+  );
+}
+
+// RANGE OF MOTION per-lift row: the peak-ROM-per-session trend graph (unchanged)
+// + an expander into the Review-style ROM report (degrees-over-time graph, joint
+// + L/R selector, L↔R ROM bars, largest ROM / collapsed reps, tempo, per-rep
+// table) rendered from the latest set's stored payload.
+function RomLiftCard({ lift }) {
+  const [open, setOpen] = useState(false);
+  const roms = lift.entries.filter((e) => e.maxRom != null);
+  const last = roms[roms.length - 1];
+  const report = last && last.report;
+  const delta = roms.length >= 2 ? Math.round(last.maxRom - roms[0].maxRom) : null;
+  const dCol = delta == null ? C.tm : delta <= -8 ? C.rd : delta >= 5 ? C.gn : C.tm;
+  // Full graph (Ohad #240): the same rich treatment as the Load&Volume /
+  // Strength→Power / readiness graphs — a real degree Y-axis with bright ticks,
+  // dashed gridlines, an area gradient, a dot per filmed set, and a marked HIGH
+  // (peak) + NOW. A ZOOMED domain (not 0-based) so a quietly shrinking working
+  // range is actually visible — the whole point of ROM.
+  const pts = roms.slice(-10);
+  const vals = pts.map((e) => e.maxRom);
+  const lo = Math.min(...vals), hi = Math.max(...vals), rng = (hi - lo) || 1;
+  const BRAND = '#39BDFF'; // literal cyan — C.ac flips to black in light mode
+  const GW = 320, GH = 92, padT = 16, padB = 8, padX = 6, plotH = GH - padT - padB;
+  const domLo = lo - rng * 0.14, domHi = hi + rng * 0.20, domR = (domHi - domLo) || 1;
+  const gy = (v) => padT + (1 - (v - domLo) / domR) * plotH;
+  const gx = (i, n) => padX + (n <= 1 ? (GW - 2 * padX) / 2 : i * ((GW - 2 * padX) / (n - 1)));
+  const pctX = (i, n) => `${(gx(i, n) / GW) * 100}%`;
+  const pctY = (v) => `${(gy(v) / GH) * 100}%`;
+  const line = pts.map((e, i) => `${gx(i, pts.length).toFixed(1)},${gy(e.maxRom).toFixed(1)}`).join(' ');
+  const area = `M${gx(0, pts.length).toFixed(1)},${GH - padB} L${line.replace(/ /g, ' L')} L${gx(pts.length - 1, pts.length).toFixed(1)},${GH - padB} Z`;
+  const ticks = [...new Set([Math.round(hi), Math.round(lo + rng * 0.5), Math.round(lo)])];
+  let pkI = 0; pts.forEach((e, i) => { if (e.maxRom > pts[pkI].maxRom) pkI = i; });
+  const gid = `romGrad-${lift.title.replace(/[^a-z0-9]/gi, '')}`;
+  return (
+    <div style={{ padding: '10px 0', borderTop: `1px solid ${C.bd}` }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8, gap: 8, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 12.5, color: C.tx }}>{lift.title}</span>
+        <span style={{ fontSize: 10, color: dCol, letterSpacing: '0.04em', fontVariantNumeric: 'tabular-nums' }}>now <b style={{ color: BRAND }}>{Math.round(last.maxRom)}°</b>{delta != null ? ` · ${delta >= 0 ? '+' : ''}${delta}° vs first` : ''}</span>
+      </div>
+      {pts.length >= 2 ? (
+        <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
+          <div style={{ position: 'relative', width: 30, flexShrink: 0, fontSize: 9, fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>
+            {ticks.map((L) => (
+              <span key={L} style={{ position: 'absolute', top: pctY(L), right: 0, transform: 'translateY(-50%)', color: C.tx, fontWeight: 700 }}>{L}°</span>
+            ))}
+          </div>
+          <div style={{ position: 'relative', flex: 1, height: GH }}>
+            <svg viewBox={`0 0 ${GW} ${GH}`} preserveAspectRatio="none" style={{ width: '100%', height: GH, display: 'block', background: C.sf2, border: `1px solid ${C.bd}` }}>
+              <defs>
+                <linearGradient id={gid} x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor={BRAND} stopOpacity="0.22" /><stop offset="100%" stopColor={BRAND} stopOpacity="0" /></linearGradient>
+              </defs>
+              {ticks.map((L) => <line key={L} x1={0} y1={gy(L)} x2={GW} y2={gy(L)} stroke={C.bd} strokeWidth="0.75" strokeDasharray="4" />)}
+              <path d={area} fill={`url(#${gid})`} />
+              <polyline points={line} fill="none" stroke={BRAND} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            {pts.map((e, i) => (
+              <div key={i} title={`${(e.date || '').slice(0, 10)} · ${Math.round(e.maxRom)}° working range`} style={{ position: 'absolute', left: pctX(i, pts.length), top: pctY(e.maxRom), width: 7, height: 7, borderRadius: '50%', background: BRAND, transform: 'translate(-50%,-50%)', boxShadow: '0 0 0 2px var(--c-sf2)', pointerEvents: 'none' }} />
+            ))}
+            <div style={{ position: 'absolute', left: pctX(pkI, pts.length), top: pctY(pts[pkI].maxRom), transform: 'translate(-50%,-50%)', pointerEvents: 'none' }}>
+              <div style={{ width: 11, height: 11, borderRadius: '50%', background: 'transparent', border: `2px solid ${BRAND}`, boxShadow: '0 0 0 2px var(--c-sf2)' }} />
+              <div style={{ position: 'absolute', bottom: '150%', left: '50%', transform: 'translateX(-50%)', fontSize: 8.5, fontWeight: 700, color: BRAND, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', background: 'var(--c-sf2)', padding: '1px 4px', borderRadius: 2, border: `1px solid ${C.bd}` }}>{Math.round(pts[pkI].maxRom)}°</div>
+            </div>
+            <div style={{ position: 'absolute', right: 2, bottom: 2, fontSize: 8, fontWeight: 700, color: C.tm, letterSpacing: '0.1em', pointerEvents: 'none' }}>NOW</div>
+          </div>
+        </div>
+      ) : (
+        <div style={{ fontSize: 11, color: C.td, paddingLeft: 2 }}>One filmed set · {Math.round(last.maxRom)}° — film another to trend the range.</div>
+      )}
+      <ReportToggle open={open} onToggle={() => setOpen((o) => !o)} />
+      {open && (report ? <div style={{ marginTop: 10 }}><RomReport report={report} /></div> : <NoReportNote />)}
+    </div>
   );
 }
 
@@ -580,8 +715,18 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
               // Aggregate each side's lifts into ONE trend: index every lift's e1RM
               // arc to its own start (100%) and average across lifts. Two overlaid
               // lines = the strength↔power relationship as a graph, not just numbers.
+              // Physiological corruption gate: a lift's e1RM cannot jump >3× its
+              // own starting e1RM within a training history — that's a corrupt set
+              // (e.g. a date-serial that leaked into reps/load inflating Epley),
+              // not real strength. Such a lift produced a 1856% index that blew out
+              // the whole Y-scale and collided the axis labels. Drop the corrupt
+              // lift entirely (honest — never clamp a fabricated point in), so the
+              // legend's "Strength (N)" reflects only the lifts actually charted.
+              const RATIO_CEIL = 3;
               const norm = (lifts) => {
-                const cs = lifts.map((s) => (s.arc || []).filter((v) => typeof v === 'number' && v > 0)).filter((a) => a.length >= 3 && a[0] > 0);
+                const cs = lifts
+                  .map((s) => (s.arc || []).filter((v) => typeof v === 'number' && v > 0))
+                  .filter((a) => a.length >= 3 && a[0] > 0 && Math.max(...a) / a[0] <= RATIO_CEIL);
                 if (!cs.length) return null;
                 const len = Math.min(...cs.map((a) => a.length));
                 if (len < 3) return null;
@@ -592,7 +737,10 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
               if (!sCurve && !pCurve) return null;
               const all = [...(sCurve || []), ...(pCurve || []), 100];
               const lo = Math.min(...all), hi = Math.max(...all), rng = (hi - lo) || 1;
-              const orange = C.or || '#f0b429';
+              // Power series = neutral slate, NOT the app's warning-orange (Ohad
+              // #243: "too many colors we usually don't use"). The chart now reads
+              // cyan (strength, brand) + neutral (power); green stays for the verdict.
+              const orange = '#9aa4b2';
               const BRAND = '#39BDFF';  // brand cyan literal: C.ac resolves to BLACK in light mode, so the graph's cyan identity (like the readiness/BW graphs) must be a literal to stay cyan in BOTH themes
               // Richer chart to match the readiness / bodyweight graphs (Ohad):
               // real Y-axis scale with bright % ticks, dashed gridlines, an area
@@ -646,7 +794,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
                       {series.map((s) => (
                         <div key={s.label + 'pk'} style={{ position: 'absolute', left: gpctX(s.peak.i, s.curve.length), top: gpctY(s.peak.v), transform: 'translate(-50%,-50%)', pointerEvents: 'none' }}>
                           <div style={{ width: 11, height: 11, borderRadius: '50%', background: 'transparent', border: `2px solid ${s.col}`, boxShadow: '0 0 0 2px var(--c-sf2)' }} />
-                          <div style={{ position: 'absolute', bottom: '120%', left: '50%', transform: 'translateX(-50%)', fontSize: 8.5, fontWeight: 700, color: s.col, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{Math.round(s.peak.v)}%</div>
+                          <div style={{ position: 'absolute', bottom: '150%', left: '50%', transform: 'translateX(-50%)', fontSize: 8.5, fontWeight: 700, color: s.col, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', background: 'var(--c-sf2)', padding: '1px 4px', borderRadius: 2, border: `1px solid ${C.bd}` }}>{Math.round(s.peak.v)}%</div>
                         </div>
                       ))}
                       {/* X ends: START (indexed 100%) → NOW. */}
@@ -752,41 +900,9 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
       <Section title="Bar speed" cardStyle={{ ...card, marginTop: 0 }} tag={<span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '2px 6px', border: `1px solid ${C.pu}`, color: C.pu, marginLeft: 8 }}>camera only</span>} summary={vault && vault.length > 0 ? `${vault.length} lift${vault.length === 1 ? '' : 's'} tracked` : 'no stored velocity'}>
           {vault && vault.length > 0 ? (
             <>
-              {vault.slice(0, barSpeedAll ? vault.length : 3).map((lift) => {
-                const mx = Math.max(...lift.entries.map((e) => e.lossPct || 0), 20);
-                const tCol = lift.trend === 'worse' ? C.rd : lift.trend === 'better' ? C.gn : C.pu;
-                const last = lift.entries[lift.entries.length - 1];
-                // Load-velocity 1RM: if he filmed this lift across a real load range,
-                // extrapolate a max WITHOUT a max test (the elite-VBT read no phone
-                // tool does). The engine refuses thin/noisy data, so this line only
-                // appears on a genuinely profilable lift — never a fabricated number.
-                const prof = velocityProfile1RM(
-                  lift.entries.filter((e) => e.load && e.bestMean).map((e) => ({ load: e.load, velocity: e.bestMean })),
-                  mvtForLift(lift.title),
-                );
-                return (
-                  <div key={lift.title} style={{ padding: '9px 0', borderTop: `1px solid ${C.bd}` }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 5 }}>
-                      <span style={{ fontSize: 12.5, color: C.tx }}>{lift.title}</span>
-                      <span style={{ fontSize: 10, color: tCol, letterSpacing: '0.04em' }}>
-                        {last?.lossPct != null ? `${last.lossPct}% loss` : ''}{lift.count >= 2 ? ` · ${lift.trend === 'worse' ? 'fatiguing' : lift.trend === 'better' ? 'recovering' : 'holding'}` : ''}
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 30 }}>
-                      {lift.entries.slice(-8).map((e, i) => (
-                        <div key={i} title={`${(e.date || '').slice(0, 10)}${e.lossPct != null ? ` · ${e.lossPct}% vel-loss` : ' · vel-loss n/a'} · best ${e.bestMean} m/s`}
-                          style={{ flex: 1, minWidth: 4, height: `${Math.max(12, ((e.lossPct || 0) / mx) * 100)}%`, background: tCol, opacity: 0.85, borderRadius: '1px 1px 0 0' }} />
-                      ))}
-                    </div>
-                    {prof.state === 'ok' && prof.confidence !== 'low' && (
-                      <div title={`Load-velocity profile: linear fit of phone-camera bar speed vs load across ${prof.loads} loads, extrapolated to this lift's minimal-velocity threshold (${prof.mvt} m/s). R²=${prof.r2}. The speed is uncalibrated 2D-pose m/s, so read the TREND across dates — not the exact kg — and confirm with a real top set before you prescribe loads off it. Not a tested max.`}
-                        style={{ marginTop: 6, fontSize: 10.5, color: C.ac, letterSpacing: '0.02em' }}>
-                        Est. 1RM ~{prof.oneRM}kg <span style={{ color: C.td }}>· {prof.loads} loads · {prof.confidence} confidence · no max test</span>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+              {vault.slice(0, barSpeedAll ? vault.length : 3).map((lift) => (
+                <BarSpeedLiftCard key={lift.title} lift={lift} />
+              ))}
               {vault.length > 3 && (
                 <button onClick={() => setBarSpeedAll((s) => !s)}
                   style={{ marginTop: 10, width: '100%', height: 30, boxSizing: 'border-box', background: 'transparent', border: `1px solid ${C.bd}`, borderRadius: 0, color: C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>
@@ -810,27 +926,9 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
       <Section title="Range of motion" cardStyle={{ ...card, marginTop: 0 }} tag={<span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '2px 6px', border: `1px solid ${C.pu}`, color: C.pu, marginLeft: 8 }}>camera only</span>} summary={romLifts.length > 0 ? `${romLifts.length} lift${romLifts.length === 1 ? '' : 's'} tracked` : 'no stored ROM'}>
           {romLifts.length > 0 ? (
             <>
-              {romLifts.slice(0, romAll ? romLifts.length : 3).map((lift) => {
-                const roms = lift.entries.filter((e) => e.maxRom != null);
-                const last = roms[roms.length - 1];
-                const delta = roms.length >= 2 ? Math.round(last.maxRom - roms[0].maxRom) : null;
-                const dCol = delta == null ? C.tm : delta <= -8 ? C.rd : delta >= 5 ? C.gn : C.tm;
-                const mx = Math.max(...roms.map((e) => e.maxRom), 1);
-                return (
-                  <div key={lift.title} style={{ padding: '9px 0', borderTop: `1px solid ${C.bd}` }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 5 }}>
-                      <span style={{ fontSize: 12.5, color: C.tx }}>{lift.title}</span>
-                      <span style={{ fontSize: 10, color: dCol, letterSpacing: '0.04em', fontVariantNumeric: 'tabular-nums' }}>{Math.round(last.maxRom)}°{delta != null ? ` · ${delta >= 0 ? '+' : ''}${delta}° vs first` : ''}</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 30 }}>
-                      {roms.slice(-8).map((e, i) => (
-                        <div key={i} title={`${(e.date || '').slice(0, 10)} · ${Math.round(e.maxRom)}° working range`}
-                          style={{ flex: 1, minWidth: 4, height: `${Math.max(12, (e.maxRom / mx) * 100)}%`, background: C.ac, opacity: 0.85, borderRadius: '1px 1px 0 0' }} />
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
+              {romLifts.slice(0, romAll ? romLifts.length : 3).map((lift) => (
+                <RomLiftCard key={lift.title} lift={lift} />
+              ))}
               {romLifts.length > 3 && (
                 <button onClick={() => setRomAll((s) => !s)}
                   style={{ marginTop: 10, width: '100%', height: 30, boxSizing: 'border-box', background: 'transparent', border: `1px solid ${C.bd}`, borderRadius: 0, color: C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>

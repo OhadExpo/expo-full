@@ -20,13 +20,17 @@
 // image-unit per frame (a mostly-vertical ruler keeps aspect-ratio error low).
 // A "frame" captured by the loop is { t (ms), landmarks, worldLandmarks }.
 
-import { ANGLE_DEFS, angleAt, detectChannels, medianFilter, findPeaks, isReal } from './repCounter.js';
+import { ANGLE_DEFS, angleAt, signedDeviationAt, detectChannels, medianFilter, findPeaks, isReal } from './repCounter.js';
 
 // MediaPipe Pose landmark indices we lean on.
 export const LM = {
+  NOSE: 0,
+  L_EAR: 7, R_EAR: 8,
   L_WRIST: 15, R_WRIST: 16,
   L_HIP: 23, R_HIP: 24,
+  L_KNEE: 25, R_KNEE: 26,
   L_ANKLE: 27, R_ANKLE: 28,
+  L_HEEL: 29, R_HEEL: 30,
   L_SHO: 11, R_SHO: 12,
   L_FOOT: 31, R_FOOT: 32,
 };
@@ -570,6 +574,300 @@ export function jointRomMetrics(frames, jointNames = null) {
 }
 
 // ---------------------------------------------------------------------------
+// EXTENDED camera-ROM channels — the honest additions the base jointRomMetrics
+// can't carry because they need a SIGNED angle, a head/neck construction, or a
+// static-hold median rather than the plain interior-angle sweep.
+// ---------------------------------------------------------------------------
+// Every channel is gated HARD (landmark visibility + filmed plane +, for the
+// ankle, sample dispersion). When a read can't be trusted the channel is simply
+// OMITTED, so its eval axis shows "no clean read" and the coach enters it by
+// hand — never a fabricated degree. Entries share the base jointRom shape, so
+// RomConfirm consumes them through romReadingFor exactly like a base channel.
+// Channels (when measurable):
+//   L KNE± / R KNE±  signed knee, carries overExtDeg (hyperextension magnitude)
+//   NECK FLEX        signed neck sagittal (+flexion / −extension), unsided
+//   NECK LAT         neck lateral-flexion magnitude, unsided
+//   L ANK / R ANK    static ankle interior angle (knee·ankle·foot), dorsi/plantar
+const medianOf = (arr) => { const s = [...arr].sort((a, b) => a - b); return s[Math.floor(s.length / 2)]; };
+function robustExtremes(series) {
+  const sorted = [...series].sort((a, b) => a - b);
+  const k = Math.min(3, sorted.length);
+  return {
+    max: Math.max(...series), min: Math.min(...series),
+    hiDeg: Math.round(medianOf(sorted.slice(-k))),
+    loDeg: Math.round(medianOf(sorted.slice(0, k))),
+  };
+}
+const visOK = (lm2, i) => { const p = lm2 && lm2[i]; return !!(p && (p.visibility == null || p.visibility > 0.5) && isReal(p.x) && isReal(p.y)); };
+
+// Signed neck sagittal angle (side-on): +flexion (head forward) / −extension
+// (head back). Magnitude = how far the head-vector (mid-shoulder → ear) tips off
+// the trunk line (mid-hip → mid-shoulder); the sign is fixed by the NOSE, which
+// is anterior of the ear, so it's robust to which way the athlete faces.
+export function neckSagittalAngle(lms) {
+  const nose = lms[LM.NOSE];
+  const earL = lms[LM.L_EAR], earR = lms[LM.R_EAR];
+  const ear = (earL && earR) ? mid(earL, earR) : (earL || earR);
+  const sho = mid(lms[LM.L_SHO], lms[LM.R_SHO]);
+  const hip = mid(lms[LM.L_HIP], lms[LM.R_HIP]);
+  if (!nose || !ear || !sho || !hip) return null;
+  const hvx = ear.x - sho.x, hvy = ear.y - sho.y;
+  const tvx = sho.x - hip.x, tvy = sho.y - hip.y;
+  const mh = Math.hypot(hvx, hvy), mt = Math.hypot(tvx, tvy);
+  if (mh === 0 || mt === 0) return null;
+  const cos = Math.max(-1, Math.min(1, (hvx * tvx + hvy * tvy) / (mh * mt)));
+  const mag = Math.acos(cos) * 180 / Math.PI;          // 0 = head stacked on trunk
+  const ax = Math.sign(nose.x - ear.x) || 1;           // facing direction (nose is anterior)
+  const fwd = (ear.x - sho.x) * ax;                    // >0 ear forward of shoulder = flexion
+  return (fwd >= 0 ? 1 : -1) * mag;
+}
+
+// Neck lateral-flexion magnitude (front-on): tilt of the ear→ear line off the
+// shoulder line. 0 = head upright. Magnitude only (left/right tilt both positive)
+// — the schema carries a single "Lateral Flexion" axis.
+export function neckLateralAngle(lms) {
+  const earL = lms[LM.L_EAR], earR = lms[LM.R_EAR];
+  const shoL = lms[LM.L_SHO], shoR = lms[LM.R_SHO];
+  if (!earL || !earR || !shoL || !shoR) return null;
+  const evx = earR.x - earL.x, evy = earR.y - earL.y;
+  const svx = shoR.x - shoL.x, svy = shoR.y - shoL.y;
+  const me = Math.hypot(evx, evy), ms = Math.hypot(svx, svy);
+  if (me === 0 || ms === 0) return null;
+  const cos = Math.max(-1, Math.min(1, (evx * svx + evy * svy) / (me * ms)));
+  let a = Math.acos(cos) * 180 / Math.PI;
+  if (a > 90) a = 180 - a;                              // acute tilt magnitude
+  return a;
+}
+
+// Steadiest static read of a (mostly-still) angle series: slide a short window,
+// take the one with the LEAST spread, return its median — or null if even the
+// steadiest window is too noisy (honest refusal for a wobbly foot). Foot
+// landmarks are the noisiest MediaPipe gives, so this gate is deliberately tight.
+function stableStaticRead(series, winN = 7, maxSpread = 8) {
+  const vals = series.filter(isReal);
+  if (vals.length < winN) return null;
+  let best = null;
+  for (let i = 0; i + winN <= vals.length; i++) {
+    const w = vals.slice(i, i + winN).slice().sort((a, b) => a - b);
+    const spread = w[w.length - 1] - w[0];
+    if (best == null || spread < best.spread) best = { stable: w[Math.floor(w.length / 2)], spread, n: winN };
+  }
+  if (!best || best.spread > maxSpread) return null;   // too noisy → refuse
+  return best;
+}
+
+export function extendedJointRom(frames) {
+  if (!frames || frames.length < 6) return null;
+  const t = frames.map(f => f.t);
+  const out = [];
+
+  // ---- signed knee → over-extension (needs a clean side-on view) ----
+  for (const [name, hipI, kneeI, ankI] of [['L KNE±', 23, 25, 27], ['R KNE±', 24, 26, 28]]) {
+    const raw = frames.map(f => {
+      const w = f.worldLandmarks; if (!w) return null;
+      if (!(visOK(f.landmarks, hipI) && visOK(f.landmarks, kneeI) && visOK(f.landmarks, ankI))) return null;
+      return signedDeviationAt(w, hipI, kneeI, ankI);
+    });
+    const s0 = medianFilter(clampAngleSeries(raw, t), 5).filter(isReal);
+    if (s0.length < 6) continue;
+    // ORIENT: flexion is the large excursion → force it positive, so whatever's
+    // left on the negative side is hyperextension regardless of which way he faced.
+    const mx = Math.max(...s0), mn = Math.min(...s0);
+    const s = (Math.abs(mn) > Math.abs(mx)) ? s0.map(v => -v) : s0;
+    const flexMax = Math.max(...s);
+    const hyper = Math.max(0, -Math.min(...s));
+    // Need a REAL flexion sweep to trust the sign; a near-straight clip can't tell
+    // a small flexion from a small hyperextension, so we refuse (overExtDeg=null).
+    const calibrated = flexMax >= 25;
+    const overExtDeg = calibrated ? (hyper >= 5 ? Math.round(hyper) : 0) : null;
+    const rex = robustExtremes(s);
+    out.push({ name, maxDeg: Math.round(flexMax), minDeg: Math.round(Math.min(...s)), hiDeg: rex.hiDeg, loDeg: rex.loDeg, romDeg: Math.round(flexMax - Math.min(...s)), overExtDeg, samples: s.length });
+  }
+
+  // ---- neck sagittal (unsided) ----
+  {
+    const raw = frames.map(f => {
+      const w = f.worldLandmarks; if (!w) return null;
+      if (!visOK(f.landmarks, LM.NOSE)) return null;
+      if (!(visOK(f.landmarks, LM.L_SHO) || visOK(f.landmarks, LM.R_SHO))) return null;
+      if (!(visOK(f.landmarks, LM.L_EAR) || visOK(f.landmarks, LM.R_EAR))) return null;
+      return neckSagittalAngle(w);
+    });
+    const s = medianFilter(clampAngleSeries(raw, t), 5).filter(isReal);
+    if (s.length >= 6) {
+      const rex = robustExtremes(s);
+      out.push({ name: 'NECK FLEX', single: true, maxDeg: Math.round(rex.max), minDeg: Math.round(rex.min), hiDeg: rex.hiDeg, loDeg: rex.loDeg, romDeg: Math.round(rex.max - rex.min), samples: s.length });
+    }
+  }
+
+  // ---- neck lateral flexion (unsided) ----
+  {
+    const raw = frames.map(f => {
+      const w = f.worldLandmarks; if (!w) return null;
+      if (!(visOK(f.landmarks, LM.L_EAR) && visOK(f.landmarks, LM.R_EAR) && visOK(f.landmarks, LM.L_SHO) && visOK(f.landmarks, LM.R_SHO))) return null;
+      return neckLateralAngle(w);
+    });
+    const s = medianFilter(clampAngleSeries(raw, t), 5).filter(isReal);
+    if (s.length >= 6) {
+      const rex = robustExtremes(s);
+      out.push({ name: 'NECK LAT', single: true, maxDeg: Math.round(rex.max), minDeg: Math.round(rex.min), hiDeg: rex.hiDeg, loDeg: rex.loDeg, romDeg: Math.round(rex.max - rex.min), samples: s.length });
+    }
+  }
+
+  // ---- ankle dorsi/plantar (static hold, dispersion-gated) ----
+  for (const [name, kneeI, ankI, footI, heelI] of [['L ANK', 25, 27, 31, 29], ['R ANK', 26, 28, 32, 30]]) {
+    const raw = frames.map(f => {
+      const w = f.worldLandmarks; if (!w) return null;
+      if (!(visOK(f.landmarks, kneeI) && visOK(f.landmarks, ankI) && visOK(f.landmarks, footI) && visOK(f.landmarks, heelI))) return null;
+      return angleAt(w, kneeI, ankI, footI);           // interior knee·ankle·foot
+    });
+    const sm = medianFilter(clampAngleSeries(raw, t), 5);
+    const win = stableStaticRead(sm);
+    if (!win) continue;                                 // too noisy → honest omit
+    const v = Math.round(win.stable);
+    out.push({ name, maxDeg: v, minDeg: v, hiDeg: v, loDeg: v, romDeg: 0, samples: win.n });
+  }
+
+  return out.length ? out : null;
+}
+
+// ---------------------------------------------------------------------------
+// Standing broad jump — horizontal distance in cm.
+// ---------------------------------------------------------------------------
+// 2D image landmarks translate with the body (worldLandmarks are hip-centred and
+// cancel it), so we read the feet's horizontal travel in IMAGE units and scale
+// it with the athlete's STATURE — a length we know in cm (from the eval/vitals)
+// or estimate from the standing metric world-pose (rough → flagged approximate).
+// Image x is normalised by WIDTH and y by HEIGHT, so converting an x-displacement
+// via a vertical stature needs the frame aspect (w/h), supplied via opts.dims or
+// frames.dims; absent it we assume 1:1 and flag the scale approximate. Measured
+// start-still → end-still (toe line → landing), coach-confirmed before it writes.
+const okXY = (p) => !!(p && (p.visibility == null || p.visibility > 0.5) && isReal(p.x) && isReal(p.y));
+function standingStatureYUnits(frames, t0) {
+  const vals = frames.filter(f => f.t - t0 < 600).map(f => {
+    const im = f.landmarks; if (!im) return null;
+    const heads = [im[LM.NOSE], im[LM.L_EAR], im[LM.R_EAR]].filter(okXY).map(p => p.y);
+    const feet = [im[LM.L_HEEL], im[LM.R_HEEL], im[LM.L_FOOT], im[LM.R_FOOT], im[LM.L_ANKLE], im[LM.R_ANKLE]].filter(okXY).map(p => p.y);
+    if (!heads.length || !feet.length) return null;
+    return Math.max(...feet) - Math.min(...heads);
+  }).filter(isReal);
+  return vals.length ? median(vals) : 0;
+}
+function standingStatureMetres(frames, t0) {
+  const okY = (p) => p && isReal(p.y);
+  const vals = frames.filter(f => f.t - t0 < 600).map(f => {
+    const w = f.worldLandmarks; if (!w) return null;
+    const heads = [w[LM.NOSE], w[LM.L_EAR], w[LM.R_EAR]].filter(okY).map(p => p.y);
+    const feet = [w[LM.L_HEEL], w[LM.R_HEEL], w[LM.L_FOOT], w[LM.R_FOOT], w[LM.L_ANKLE], w[LM.R_ANKLE]].filter(okY).map(p => p.y);
+    if (!heads.length || !feet.length) return null;
+    return Math.abs(Math.max(...feet) - Math.min(...heads));
+  }).filter(isReal);
+  return vals.length ? median(vals) : 0;
+}
+export function broadJumpMetrics(frames, opts = {}) {
+  if (!frames || frames.length < 8) return null;
+  const dims = opts.dims || frames.dims || null;
+  const aspect = (dims && dims.w > 0 && dims.h > 0) ? (dims.w / dims.h) : 1;
+  const t0 = frames[0].t, tEnd = frames[frames.length - 1].t;
+  const footX = (f) => {
+    const im = f.landmarks; if (!im) return null;
+    const a = im[LM.L_FOOT], b = im[LM.R_FOOT];
+    const va = okXY(a) ? a.x : null, vb = okXY(b) ? b.x : null;
+    if (va != null && vb != null) return (va + vb) / 2;
+    return va != null ? va : vb;
+  };
+  const startXs = frames.filter(f => f.t - t0 < 600).map(footX).filter(isReal);
+  const endXs = frames.filter(f => tEnd - f.t < 600).map(footX).filter(isReal);
+  if (startXs.length < 2 || endXs.length < 2) return null;
+  const pixelDx = Math.abs(median(endXs) - median(startXs));   // x-normalised units
+  if (pixelDx < 0.02) return null;                             // no real horizontal jump
+  const statureYunits = standingStatureYUnits(frames, t0);
+  if (!(statureYunits > 0)) return null;
+  let statureCm = null, approx = false;
+  if (opts.heightCm > 0) statureCm = opts.heightCm;
+  else { const wm = standingStatureMetres(frames, t0); if (wm > 0) { statureCm = wm * 100; approx = true; } }
+  if (!(statureCm > 0)) return null;
+  const cmPerYunit = statureCm / statureYunits;
+  const cmPerXunit = cmPerYunit * aspect;                      // x-units span WIDTH → reconcile via aspect
+  const distanceCm = Math.round(pixelDx * cmPerXunit);
+  if (!(distanceCm >= 20) || distanceCm > 400) return null;   // broad-jump sanity band
+  return { distanceCm, statureCm: Math.round(statureCm), approxScale: approx || !dims, reactive: false, jumpType: 'broad' };
+}
+
+// ---------------------------------------------------------------------------
+// Compact, persistable per-lift REPORT payload for the Analysis vault.
+// ---------------------------------------------------------------------------
+// The camera pipeline computes the full velocity/accel/degrees traces live, but
+// the vault (poseMetricsStore) historically kept only per-set SUMMARIES and
+// discarded the per-frame series — so the Analysis page could show a trend
+// sparkline but not the rich per-lift report the Review screen shows for a clip.
+// This packages the graphable series (downsampled so localStorage stays small)
+// + the per-rep tables into one JSON-safe object stored alongside the summary.
+// Pure: fed the captured frames + the analyzeClip() result, returns null when
+// there's nothing graphable (never a fabricated empty shell).
+
+// Uniformly downsample a {series,peak} trace to at most maxPts points, ALWAYS
+// keeping the first + last sample (so the time axis endpoints stay honest).
+// peak is carried over from the full-resolution series, not the sampled subset.
+// Most form clips are short (≤~200 frames) so this is a no-op on them; it only
+// bites on a long multi-set clip, where a trend-shaped trace loses no meaning.
+export function downsampleTrace(trace, maxPts = 200) {
+  if (!trace || !Array.isArray(trace.series) || !trace.series.length) return null;
+  const s = trace.series;
+  if (s.length <= maxPts) return { series: s, peak: trace.peak };
+  const step = (s.length - 1) / (maxPts - 1);
+  const out = [];
+  for (let i = 0; i < maxPts; i++) out.push(s[Math.round(i * step)]);
+  return { series: out, peak: trace.peak };
+}
+
+const REPORT_KIND_ABBR = { knee: 'KNE', hip: 'HIP', elbow: 'ELB', sho: 'SHO' };
+
+export function buildPoseReport(frames, exerciseTitle, analysis) {
+  if (!frames || frames.length < 4 || !analysis || !analysis.ok) return null;
+  const speed = downsampleTrace(barSpeedSeries(frames, 'wrist'), 200);
+  const accel = downsampleTrace(barAccelSeries(frames, 'wrist'), 200);
+  // Per-joint angle-over-time for every joint the clip actually TRACKED
+  // (jointRomMetrics already dropped joints with too few clean samples), so the
+  // ROM graph's joint + L/R selector only offers channels that carry real data.
+  const angles = {};
+  for (const j of (analysis.jointRom || [])) {
+    const a = downsampleTrace(namedAngleSeries(frames, j.name), 200);
+    if (a && a.series.length >= 3) angles[j.name] = a;
+  }
+  const vel = analysis.velocity, rt = analysis.romTempo;
+  const perRepVel = vel && Array.isArray(vel.perRep)
+    ? vel.perRep.map((r) => (r ? { mean: r.meanConcentric, peak: r.peak, loss: r.lossPct == null ? null : r.lossPct } : null))
+    : null;
+  const perRepRom = rt && Array.isArray(rt.perRep)
+    ? rt.perRep.map((r) => (r ? { rom: r.rom, romPct: r.romPct, ecc: r.ecc, pause: r.pause, con: r.con, collapsed: !!r.collapsed } : null))
+    : null;
+  const jointRom = Array.isArray(analysis.jointRom)
+    ? analysis.jointRom.map((j) => ({ name: j.name, romDeg: j.romDeg })) : null;
+  const hasSpeed = !!(speed && speed.series && speed.series.length >= 3);
+  const hasAngles = Object.keys(angles).length > 0;
+  // Nothing graphable at all (occluded/failed pose) → no report, keep the
+  // summary-only entry. Never persist an empty payload that would render blank.
+  if (!hasSpeed && !hasAngles) return null;
+  return {
+    v: 2,
+    speed: hasSpeed ? speed : null,
+    accel: accel && accel.series && accel.series.length >= 3 ? accel : null,
+    primaryJoint: REPORT_KIND_ABBR[analysis.kind] || null,
+    angles: hasAngles ? angles : null,
+    perRepVel,
+    perRepRom,
+    bestMean: vel && typeof vel.bestMean === 'number' ? vel.bestMean : null,
+    lossPct: vel && typeof vel.finalLossPct === 'number' ? vel.finalLossPct : null,
+    maxRom: rt && typeof rt.maxRom === 'number' ? rt.maxRom : null,
+    collapsedCount: rt && typeof rt.collapsedCount === 'number' ? rt.collapsedCount : 0,
+    jointRom,
+    repCount: analysis.repCount || 0,
+    fps: analysis.fps || null,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Jump test — vertical jump height from flight time (camera "combine").
 // ---------------------------------------------------------------------------
 // Track the ankles' vertical position in IMAGE space (converted to metres via
@@ -899,7 +1197,13 @@ export function analyzeClip(frames, exerciseTitle, opts = {}) {
     const mv = movementRepCount(frames);
     if (mv && mv.count > repCount && mv.range > 0.04) { repCount = mv.count; countMethod = 'flight'; }
   }
-  return { ok: true, fps, kind, repCount, jointRepCount: reps.length, countMethod, reps, rejectedReps: reps.rejected || [], velocity, romTempo, jointRom, barSpeed, frameCount: frames.length, captureQuality: captureQuality(frames, exerciseTitle) };
+  // extRom = the extended camera-ROM channels (signed knee / neck / static ankle)
+  // kept in a SEPARATE field so nothing that iterates analysis.jointRom (report
+  // graphs, asymmetry, faults) sees the non-standard channels; RomConfirm merges
+  // the two when reading a spec. Honest by construction — a channel is present
+  // only when its hard gate passed.
+  const extRom = extendedJointRom(frames);
+  return { ok: true, fps, kind, repCount, jointRepCount: reps.length, countMethod, reps, rejectedReps: reps.rejected || [], velocity, romTempo, jointRom, extRom, barSpeed, frameCount: frames.length, captureQuality: captureQuality(frames, exerciseTitle) };
 }
 
 // --- small helpers ---
