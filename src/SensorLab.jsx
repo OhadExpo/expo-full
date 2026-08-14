@@ -245,7 +245,10 @@ function ReflexPanel() {
   const timer = useRef(null);
   const TRIALS = 8;
 
-  const finish = useCallback(() => { setPhase('done'); setRes(analyzeReflex(rts.current, { baseline: { meanRT: 265, sd: 22 } })); }, []);
+  // A REAL test passes NO baseline → the readiness band honestly reads "building
+  // baseline" (raw RT/lapses are still shown). Only Simulate uses a demo baseline
+  // to illustrate the band. (never fabricate a comparison on live data)
+  const finish = useCallback(() => { setPhase('done'); setRes(analyzeReflex(rts.current, {})); }, []);
   const arm = useCallback(() => {
     setPhase('armed');
     timer.current = setTimeout(() => { goAt.current = performance.now(); setPhase('go'); }, 1200 + Math.random() * 2600);
