@@ -135,6 +135,9 @@ export async function drain() {
   if (draining) return;
   if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
   draining = true;
+  // Track critical unknown-type entries we've already rotated this pass, so a
+  // parked-to-tail entry can't spin the loop forever within one drain.
+  const cycledUnknown = new Set();
   try {
     while (true) {
       const q = read();
@@ -142,9 +145,22 @@ export async function drain() {
       const next = q[0];
       const handler = handlers[next.type];
       if (!handler) {
-        // Unknown op type — drop and continue. Writes that depend on a
-        // missing handler can't ever succeed; better to log and move on
-        // than to loop forever.
+        // Unknown op type. A NON-critical write is tolerable to drop (it can
+        // never succeed without a handler). But a CRITICAL data-bearing write
+        // must NEVER be silently dropped — a future deploy may re-register the
+        // type, and the full row lives in the payload. Park it to the tail
+        // (mirroring the retry-exhaustion path) + surface once, instead of
+        // losing the athlete's data.
+        if (next.critical) {
+          if (cycledUnknown.has(next.id)) break; // already rotated this pass — stop
+          cycledUnknown.add(next.id);
+          const wasParked = next.parked;
+          write([...q.slice(1), { ...next, parked: true }]);
+          if (!wasParked && onErrorHook) {
+            try { onErrorHook({ type: next.type, payload: next.payload, msg: 'Still saving — will retry when the app updates.' }); } catch {}
+          }
+          continue;
+        }
         write(q.slice(1));
         continue;
       }
