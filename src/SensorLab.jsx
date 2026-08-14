@@ -18,6 +18,7 @@ import { analyzePPG } from './pulsePPG';
 import { analyzeAcousticSet } from './acousticReps';
 import { romFromSweep, inclination, ROM_NORMS } from './goniometer';
 import { analyzeReflex } from './reflexPVT';
+import { analyzeBalance } from './balanceSteadiness';
 
 const Btn = ({ children, onClick, primary, disabled, style }) => (
   <button onClick={onClick} disabled={disabled} style={{
@@ -289,11 +290,66 @@ function ReflexPanel() {
   );
 }
 
+// ---------------- SWAY (balance) ----------------
+function BalancePanel() {
+  const [state, setState] = useState('idle');
+  const [progress, setProgress] = useState(0);
+  const [res, setRes] = useState(null);
+  const [err, setErr] = useState('');
+  const stopRef = useRef(false);
+
+  const run = useCallback(async () => {
+    setErr(''); setRes(null); setProgress(0); stopRef.current = false;
+    try {
+      if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+        const p = await DeviceMotionEvent.requestPermission(); if (p !== 'granted') throw new Error('motion permission denied');
+      }
+      const samples = []; const t0 = performance.now();
+      const onMotion = (e) => { const g = e.accelerationIncludingGravity; if (!g) return; samples.push({ t: performance.now() - t0, g: { x: g.x || 0, y: g.y || 0, z: g.z || 0 } }); };
+      window.addEventListener('devicemotion', onMotion);
+      setState('reading');
+      const DUR = 15000;
+      while (performance.now() - t0 < DUR && !stopRef.current) { setProgress(Math.min(100, ((performance.now() - t0) / DUR) * 100)); await sleep(200); }
+      window.removeEventListener('devicemotion', onMotion);
+      if (samples.length < 20) throw new Error('no motion captured — is motion access on?');
+      const r = analyzeBalance(samples);
+      setRes(r); setState(r.ok ? 'done' : 'error'); if (!r.ok) setErr(r.reason || 'no read');
+    } catch (e) { setErr(e?.message || 'motion unavailable'); setState('error'); }
+  }, []);
+
+  const simulate = useCallback(() => {
+    const s = []; for (let i = 0; i < 600; i++) { const t = i * 25; const tilt = 3.5 * Math.sin(2 * Math.PI * 0.8 * t / 1000); const rad = tilt / 180 * Math.PI; s.push({ t, g: { x: Math.sin(rad), y: 0, z: Math.cos(rad) } }); }
+    const r = analyzeBalance(s); setRes(r); setState(r.ok ? 'done' : 'error'); setErr('');
+  }, []);
+  useEffect(() => () => { stopRef.current = true; }, []);
+
+  return (
+    <div>
+      <Note>Hold the phone to your chest, stand on one leg, and stay as still as you can for 15s. Measures <b>postural sway</b> — a real balance / proprioception read that also rises with fatigue and flags an ankle/knee not trusting load. Do both legs and compare.</Note>
+      <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+        <Btn primary onClick={run} disabled={state === 'reading'}>{state === 'reading' ? `Hold still… ${Math.round(progress)}%` : 'Start (stand on one leg)'}</Btn>
+        {state === 'reading' ? <Btn onClick={() => { stopRef.current = true; }}>Stop</Btn> : <Btn onClick={simulate}>Simulate</Btn>}
+      </div>
+      {err && <Note><span style={{ color: C.rd }}>{err}</span></Note>}
+      {res?.ok && (
+        <div style={{ marginTop: 14 }}>
+          <Row label="Stability" value={`${res.stability}/100`} color={res.band === 'poor' ? C.rd : res.band === 'excellent' ? C.gn : C.ac} />
+          <Row label="Rating" value={res.band} color={res.band === 'poor' ? C.rd : res.band === 'excellent' ? C.gn : C.tx} />
+          <Row label="Sway velocity" value={`${res.swayVelDegS}°/s`} />
+          <Row label="Peak lean" value={`${res.swayMax}°`} />
+          {res.note && <Note>{res.note}</Note>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 const TOOLS = [
   { key: 'pulse', name: 'PULSE', sub: 'Camera HRV', Panel: PulsePanel },
-  { key: 'echo', name: 'ECHO', sub: 'Mic reps/grind', Panel: EchoPanel },
+  { key: 'echo', name: 'ECHO', sub: 'Mic reps', Panel: EchoPanel },
   { key: 'pivot', name: 'PIVOT', sub: 'Motion ROM', Panel: PivotPanel },
   { key: 'reflex', name: 'REFLEX', sub: 'CNS reaction', Panel: ReflexPanel },
+  { key: 'sway', name: 'SWAY', sub: 'Balance', Panel: BalancePanel },
 ];
 
 export default function SensorLab() {

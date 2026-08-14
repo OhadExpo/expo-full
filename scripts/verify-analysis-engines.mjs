@@ -40,6 +40,7 @@ const suites = [
   'verify-echo.mjs',                 // ECHO — acoustic rep count + grind/RIR from the mic
   'verify-pivot.mjs',                // PIVOT — phone-as-goniometer joint ROM + %-of-norm
   'verify-reflex.mjs',               // REFLEX — PVT reaction-time CNS readiness (mean RT + lapses)
+  'verify-balance.mjs',              // BALANCE/SWAY — postural sway steadiness (single-leg balance)
 ];
 
 let anyFail = false;
