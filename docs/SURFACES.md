@@ -31,7 +31,7 @@ Last synced to code: 2026-06-09. (Known gate blind spot: `check-surfaces.mjs` on
 | `/p/<token>` | `ProgramShare` | read-only shared program preview |
 | `/sign/<token>` | `ContractSign` | public contract signing; anon UPDATE signature |
 
-### Coach app (auth, `/coach/*`) — `AuthedApp` tab switch (15 tabs)
+### Coach app (auth, `/coach/*`) — `AuthedApp` tab switch (16 tabs)
 
 | URL | tab key | Component | Audited |
 |-----|---------|-----------|---------|
@@ -43,6 +43,7 @@ Last synced to code: 2026-06-09. (Known gate blind spot: `check-surfaces.mjs` on
 | `/coach/programs/<id>` | plans | `PlansView` (editor deep link) | ✅ 2026-06-09 |
 | `/coach/programs/<id>/preview` | plans | `CoachPreviewPortal` (plan) | ✅ pass2 |
 | `/coach/exercises` | exercises | `ExercisesView` | ✅ pass2 |
+| `/coach/exercise-matching` | exerciseMatching | `ExerciseMatchingView` | 🆕 2026-08-16 (Athletes▾→Matching; resolve unmatched plan exercise titles at scale) |
 | `/coach/review` | review | `WorkoutReview` | ✅ pass1 (Review▾→Workouts) |
 | `/coach/review-tools` | reviewTools | `ReviewToolsView` | 🆕 2026-06-14 (Review▾→Tools; owner-only camera suite) |
 | `/coach/workouts` | workouts | `WorkoutsView` | ✅ pass2 |
