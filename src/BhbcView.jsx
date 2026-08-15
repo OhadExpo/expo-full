@@ -344,6 +344,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
               <>
                 <TodayPanel today={today} fixtures={bhbcFixtures} fx={fx} rows={rows} onSessions={() => setView('sessions')} onLog={() => setPracticeOpen(true)} />
                 {fx.nextGame && <NextGamePanel nextGame={fx.nextGame} today={today} onEdit={() => setGameEdit(true)} />}
+                <FixturesAheadPanel fixtures={bhbcFixtures} today={today} />
                 <TeamSnapshotCard team={team} />
                 <LoadBoard rows={rows} rowGrid={rowGrid} cycleAvail={cycleAvail} medical={medical} onOpen={setDetailFor} />
               </>
@@ -758,6 +759,43 @@ function TravelStrip({ travel }) {
       {leg(travel.out, 'Out')}
       {leg(travel.back, 'Back')}
     </div>
+  );
+}
+
+// Road ahead — the next few games after the imminent one, so the coach can see
+// congestion + travel and plan the microcycle. Flags tight turnarounds (≤3 days
+// between games = elevated load risk).
+function FixturesAheadPanel({ fixtures, today }) {
+  const games = (fixtures || []).filter((f) => f.type === 'game' && f.date >= today).sort((a, b) => a.date.localeCompare(b.date)).slice(1, 5);
+  if (!games.length) return null;
+  let prevDate = (fixtures || []).filter((f) => f.type === 'game' && f.date >= today).sort((a, b) => a.date.localeCompare(b.date))[0]?.date;
+  return (
+    <Card padding={18} leftStripe={NAVY} header={secTitle('Road Ahead')}>
+      <div>
+        {games.map((g, i) => {
+          const days = dayDiff(g.date, today);
+          const gap = prevDate ? dayDiff(g.date, prevDate) : null; prevDate = g.date;
+          const tight = gap != null && gap <= 3;
+          return (
+            <div key={i} style={{ display: 'grid', gridTemplateColumns: '46px 1fr auto', gap: 12, alignItems: 'center', padding: '10px 0', borderBottom: i < games.length - 1 ? `0.25px solid ${C.cardBd}` : 'none' }}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 17, lineHeight: 1, color: C.tx, fontVariantNumeric: 'tabular-nums' }}>{days}</div>
+                <div style={{ fontFamily: FN, fontSize: 7.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, marginTop: 2 }}>days</div>
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx }}>{g.opponent ? `vs ${g.opponent}` : 'Opponent TBD'}</span>
+                  <HAChip home={g.home} />
+                  {g.travel && <span style={{ fontFamily: FN, fontSize: 11, color: ORANGE_DEEP }} title="Travel">✈</span>}
+                  {tight && <span style={{ fontFamily: FN, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#fff', background: '#E0A73A', padding: '1px 6px' }} title={`${gap} days after the previous game`}>{gap}d turnaround</span>}
+                </div>
+                <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 3 }}>{[g.comp, `${dow(g.date)} ${monDay(g.date)}`, g.venue].filter(Boolean).join(' · ')}</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </Card>
   );
 }
 
