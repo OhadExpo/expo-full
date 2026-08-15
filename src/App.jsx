@@ -649,6 +649,7 @@ function AuthedApp() {
   const [bhbcLoads,setBhbcLoads,,,setBhbcLoadsLocal]=useSupaStore('expo-bhbc-loads',{});
   const [bhbcFixtures,setBhbcFixtures,,,setBhbcFixturesLocal]=useSupaStore('expo-bhbc-fixtures',[]);
   const [bhbcLeague,,,,setBhbcLeagueLocal]=useSupaStore('expo-bhbc-league',{});
+  const [bhbcMedical,setBhbcMedical,,,setBhbcMedicalLocal]=useSupaStore('expo-bhbc-medical',{});
   // Live portal-visibility sync: when the coach hides/shows a block, the
   // athlete's OPEN portal (and the coach's other devices) reflect it live
   // instead of on reload. Pure broadcast (no DDL); the athlete never sets it,
@@ -1188,7 +1189,7 @@ function AuthedApp() {
     let stop = false;
     const poll = async () => {
       try {
-        const { data: rows } = await supabase.from('store').select('key, value').in('key', ['expo-bhbc-loads', 'expo-bhbc-fixtures', 'expo-bhbc-league', 'expo-trainees']);
+        const { data: rows } = await supabase.from('store').select('key, value').in('key', ['expo-bhbc-loads', 'expo-bhbc-fixtures', 'expo-bhbc-league', 'expo-bhbc-medical', 'expo-trainees']);
         if (stop || !rows) return;
         for (const r of rows) {
           const j = JSON.stringify(r.value);
@@ -1199,6 +1200,7 @@ function AuthedApp() {
           if (r.key === 'expo-bhbc-loads') setBhbcLoadsLocal(r.value);
           else if (r.key === 'expo-bhbc-fixtures') setBhbcFixturesLocal(r.value);
           else if (r.key === 'expo-bhbc-league') setBhbcLeagueLocal(r.value);
+          else if (r.key === 'expo-bhbc-medical') setBhbcMedicalLocal(r.value);
           else if (r.key === 'expo-trainees') setTraineesLocal(r.value);
         }
       } catch { /* transient */ }
@@ -1274,7 +1276,7 @@ function AuthedApp() {
   if (tab === 'bhbc' && isOwner) return (
     <Suspense fallback={<ViewFallback />}>
       <ErrorBoundary inline>
-        <BhbcView trainees={trainees} setTrainees={setTrainees} bhbcLoads={bhbcLoads} setBhbcLoads={setBhbcLoads} bhbcFixtures={bhbcFixtures} setBhbcFixtures={setBhbcFixtures} league={bhbcLeague} planIndex={planIndex} exercises={exercises} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} workouts={workouts} setWorkouts={setWorkouts} onDecrementSession={handleDecrementSession} portalVis={portalVis} bwLog={bwLog} weeklyFocus={weeklyFocus} onOpenTrainee={id=>navTo('trainees',id)} onExit={()=>navTo('trainees')} />
+        <BhbcView trainees={trainees} setTrainees={setTrainees} bhbcLoads={bhbcLoads} setBhbcLoads={setBhbcLoads} bhbcFixtures={bhbcFixtures} setBhbcFixtures={setBhbcFixtures} league={bhbcLeague} medical={bhbcMedical} setMedical={setBhbcMedical} planIndex={planIndex} exercises={exercises} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} workouts={workouts} setWorkouts={setWorkouts} onDecrementSession={handleDecrementSession} portalVis={portalVis} bwLog={bwLog} weeklyFocus={weeklyFocus} onOpenTrainee={id=>navTo('trainees',id)} onExit={()=>navTo('trainees')} />
       </ErrorBoundary>
     </Suspense>
   );

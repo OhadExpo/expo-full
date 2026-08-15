@@ -116,7 +116,7 @@ const Jersey = ({ n, size = 30 }) => (
 
 // ---- component ----
 
-export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, setBhbcLoads, bhbcFixtures = [], setBhbcFixtures, league = {}, planIndex = [], exercises = [], clientWorkouts = [], setClientWorkouts, workouts = [], setWorkouts, onDecrementSession, portalVis = {}, bwLog = [], weeklyFocus = {}, onOpenTrainee, onExit }) {
+export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, setBhbcLoads, bhbcFixtures = [], setBhbcFixtures, league = {}, medical = {}, setMedical, planIndex = [], exercises = [], clientWorkouts = [], setClientWorkouts, workouts = [], setWorkouts, onDecrementSession, portalVis = {}, bwLog = [], weeklyFocus = {}, onOpenTrainee, onExit }) {
   const [manageOpen, setManageOpen] = useState(false);
   const [newAthlete, setNewAthlete] = useState('');
   const [logFor, setLogFor] = useState(null);
@@ -124,6 +124,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   const [practiceOpen, setPracticeOpen] = useState(false);
   const [gameEdit, setGameEdit] = useState(false);
   const [programFor, setProgramFor] = useState(null);
+  const [injuryFor, setInjuryFor] = useState(null); // { athleteId, injuryId? } | null
   const [view, setView] = useState('overview');   // overview | schedule | roster
   const [schedMode, setSchedMode] = useState('calendar'); // calendar | list
   const [sessionMode, setSessionMode] = useState('group'); // group | single
@@ -255,6 +256,32 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
     toast('Game updated');
   }, [setBhbcFixtures]);
 
+  // ---- Medical / injury record (Ohad + physical therapist) ----
+  // Saving an injury/progress entry can also set the athlete's availability that
+  // day, so the medical record and the load board stay in sync.
+  const saveInjury = useCallback(({ athleteId, injury }) => {
+    if (!setMedical) return;
+    setMedical((prev) => {
+      const rec = { ...(prev || {}) };
+      const a = { injuries: [...((rec[athleteId] && rec[athleteId].injuries) || [])] };
+      const idx = a.injuries.findIndex((i) => i.id === injury.id);
+      if (idx >= 0) a.injuries[idx] = injury; else a.injuries.unshift(injury);
+      rec[athleteId] = a;
+      return rec;
+    });
+    // Mirror the current status into availability for today (Out/Limited/etc).
+    const statusToAvail = { available: 1, limited: 2, 'non-contact': 3, out: 4 };
+    const av = statusToAvail[injury.status];
+    if (av && setBhbcLoads && !injury.resolved) {
+      setBhbcLoads((prev) => {
+        const r = prev[athleteId] ? { ...prev[athleteId] } : emptyRec();
+        r.availability = { ...(r.availability || {}), [today]: av };
+        return { ...prev, [athleteId]: r };
+      });
+    }
+    toast('Medical record saved');
+  }, [setMedical, setBhbcLoads, today]);
+
   const rowGrid = '28px minmax(116px,1.5fr) 112px 46px 130px minmax(104px,1.1fr) 92px';
 
   return (
@@ -299,7 +326,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
           <>
             {/* ---- SUB-NAV (tool tabs) — gives the zone "order" ---- */}
             <div style={{ display: 'flex', gap: 2, borderBottom: `1px solid ${C.cardBd}`, flexWrap: 'wrap' }}>
-              {[['overview', 'Overview'], ['roster', 'Roster'], ['schedule', 'Schedule'], ['sessions', 'Sessions'], ['games', 'Games']].map(([k, label]) => {
+              {[['overview', 'Overview'], ['roster', 'Roster'], ['schedule', 'Schedule'], ['medical', 'Medical'], ['sessions', 'Sessions'], ['games', 'Games']].map(([k, label]) => {
                 const active = view === k;
                 return (
                   <button key={k} onClick={() => setView(k)} style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: active ? C.tx : C.td, background: 'transparent', border: 'none', borderBottom: active ? `2px solid ${ORANGE}` : '2px solid transparent', padding: '10px 16px', marginBottom: -1, cursor: 'pointer' }}>{label}</button>
@@ -329,6 +356,10 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
 
             {view === 'games' && (
               <LeagueView league={league} roster={roster} fixtures={bhbcFixtures} onOpen={setDetailFor} />
+            )}
+
+            {view === 'medical' && (
+              <MedicalView roster={roster} medical={medical} onReport={(aid) => setInjuryFor({ athleteId: aid })} onEdit={(aid, iid) => setInjuryFor({ athleteId: aid, injuryId: iid })} onOpen={setDetailFor} />
             )}
 
             {view === 'sessions' && (
@@ -380,6 +411,13 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
       {gameEdit && fx.nextGame && (
         <GameEditModal game={fx.nextGame} onClose={() => setGameEdit(false)} onSave={(patch) => { updateGame(fx.nextGame, patch); setGameEdit(false); }} />
       )}
+
+      {injuryFor && (() => {
+        const ath = roster.find((t) => t.id === injuryFor.athleteId);
+        if (!ath) return null;
+        const existing = injuryFor.injuryId ? ((medical[injuryFor.athleteId] || {}).injuries || []).find((i) => i.id === injuryFor.injuryId) : null;
+        return <InjuryModal athlete={ath} injury={existing} onClose={() => setInjuryFor(null)} onSave={(injury) => { saveInjury({ athleteId: injuryFor.athleteId, injury }); setInjuryFor(null); }} />;
+      })()}
 
       {/* ---- MANAGE ROSTER MODAL ---- */}
       <Modal open={manageOpen} onClose={() => setManageOpen(false)} title="Manage roster">
@@ -1180,6 +1218,180 @@ function LeagueView({ league, roster, fixtures, onOpen }) {
         {allGames.length ? <ResultsList games={allGames} bhbcOnly /> : <div style={{ fontFamily: FB, fontSize: 12.5, color: C.td, padding: '14px 0', textAlign: 'center' }}>Fixtures load as the league publishes them.</div>}
       </Card>
     </>
+  );
+}
+
+// ============================ MEDICAL / INJURY ============================
+// A shared record for Ohad + the physical therapist: injuries, current status,
+// pain, return-to-play target and a dated rehab-progress log per athlete.
+const MED_STATUS = {
+  available: { label: 'Available', color: '#37B27C' },
+  limited: { label: 'Limited', color: '#E0A73A' },
+  'non-contact': { label: 'Non-contact', color: '#4F9DE0' },
+  out: { label: 'Out', color: '#DE4E3B' },
+};
+const BODY_PARTS = ['Ankle', 'Knee', 'Hip', 'Hamstring', 'Groin', 'Quad', 'Calf', 'Achilles', 'Lower back', 'Shoulder', 'Elbow', 'Wrist', 'Hand', 'Foot', 'Head / Concussion', 'Other'];
+const INJURY_TYPES = ['Strain', 'Sprain', 'Contusion', 'Tendinopathy', 'Overuse', 'Fracture', 'Dislocation', 'Illness', 'Other'];
+const activeInjuries = (medical, id) => ((medical[id] || {}).injuries || []).filter((i) => !i.resolved);
+
+function StatusPill({ status, small }) {
+  const s = MED_STATUS[status] || MED_STATUS.available;
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: FN, fontSize: small ? 9.5 : 10.5, fontWeight: 700, letterSpacing: '0.03em', color: s.color, background: `color-mix(in srgb, ${s.color} 13%, transparent)`, border: `1px solid color-mix(in srgb, ${s.color} 38%, transparent)`, padding: small ? '2px 7px' : '3px 9px', whiteSpace: 'nowrap' }}>
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.color }} />{s.label}
+    </span>
+  );
+}
+
+function MedicalView({ roster, medical, onReport, onEdit, onOpen }) {
+  const injured = roster.filter((t) => activeInjuries(medical, t.id).length > 0);
+  const cleared = roster.filter((t) => activeInjuries(medical, t.id).length === 0);
+  const rows = injured.flatMap((t) => activeInjuries(medical, t.id).map((inj) => ({ t, inj })));
+  const counts = { out: 0, limited: 0, nc: 0 };
+  rows.forEach(({ inj }) => { if (inj.status === 'out') counts.out++; else if (inj.status === 'limited') counts.limited++; else if (inj.status === 'non-contact') counts.nc++; });
+  return (
+    <>
+      <Card padding={18} leftStripe={ORANGE} header={secTitle('Medical · Injury Board')} headerRight={<span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>{rows.length} active · shared with PT</span>}>
+        <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap' }}>
+          {[['Out', counts.out, '#DE4E3B'], ['Limited', counts.limited, '#E0A73A'], ['Non-contact', counts.nc, '#4F9DE0'], ['Cleared', cleared.length, '#37B27C']].map(([k, n, c]) => (
+            <div key={k} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <span style={{ fontFamily: FN, fontSize: 26, fontWeight: 800, color: n ? c : C.td, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{n}</span>
+              <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>{k}</span>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      {rows.length > 0 && (
+        <Card padding={0} leftStripe={NAVY} header={secTitle('Active Injuries')}>
+          <div>
+            {rows.map(({ t, inj }) => {
+              const days = inj.onsetDate ? dayDiff(todayISO(), inj.onsetDate) : null;
+              return (
+                <div key={t.id + inj.id} className="bhbc-row" onClick={() => onEdit(t.id, inj.id)} style={{ display: 'grid', gridTemplateColumns: '150px 1fr 120px 110px auto', gap: 12, alignItems: 'center', padding: '11px 18px', borderBottom: `0.25px solid ${C.cardBd}`, cursor: 'pointer' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                    <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums' }}>{t.jersey ?? '—'}</span>
+                    <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>
+                  </div>
+                  <div style={{ fontFamily: FB, fontSize: 12.5, color: C.tx, minWidth: 0 }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : '', inj.type].filter(Boolean).join(' · ')}</div>
+                  <StatusPill status={inj.status} />
+                  <div style={{ fontFamily: FN, fontSize: 11, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{days != null ? `${days}d` : '—'}{inj.pain != null && inj.pain !== '' ? ` · pain ${inj.pain}` : ''}</div>
+                  <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: NAVY }}>Update ›</div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      )}
+
+      <Card padding={0} leftStripe={NAVY} header={secTitle('Squad Health')}>
+        <div>
+          {roster.map((t) => {
+            const act = activeInjuries(medical, t.id);
+            const status = act.length ? (act.find((i) => i.status === 'out') || act.find((i) => i.status === 'limited') || act[0]).status : 'available';
+            const hist = ((medical[t.id] || {}).injuries || []).length;
+            return (
+              <div key={t.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 12, alignItems: 'center', padding: '10px 18px', borderBottom: `0.25px solid ${C.cardBd}` }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0, cursor: 'pointer' }} onClick={() => onOpen(t.id)}>
+                  <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums', width: 20 }}>{t.jersey ?? '—'}</span>
+                  <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 600, color: C.tx }}>{t.name}</span>
+                  {hist > 0 && <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.04em' }}>· {hist} record{hist > 1 ? 's' : ''}</span>}
+                </div>
+                <StatusPill status={status} small />
+                <button onClick={() => (act.length ? onEdit(t.id, act[0].id) : onReport(t.id))} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: act.length ? NAVY : '#fff', background: act.length ? 'transparent' : NAVY, border: act.length ? `1px solid ${C.cardBd}` : 'none', padding: '6px 11px', cursor: 'pointer' }}>{act.length ? 'View' : '+ Report'}</button>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+    </>
+  );
+}
+
+function InjuryModal({ athlete, injury, onClose, onSave }) {
+  const [bodyPart, setBodyPart] = useState(injury?.bodyPart || '');
+  const [side, setSide] = useState(injury?.side || 'N/A');
+  const [type, setType] = useState(injury?.type || '');
+  const [onsetDate, setOnsetDate] = useState(injury?.onsetDate || todayISO());
+  const [status, setStatus] = useState(injury?.status || 'out');
+  const [pain, setPain] = useState(injury?.pain ?? '');
+  const [mechanism, setMechanism] = useState(injury?.mechanism || '');
+  const [rtpTarget, setRtpTarget] = useState(injury?.rtpTarget || '');
+  const [notes, setNotes] = useState(injury?.notes || '');
+  const [resolved, setResolved] = useState(injury?.resolved || false);
+  const [progress, setProgress] = useState(injury?.progress || []);
+  const [pNote, setPNote] = useState(''); const [pPain, setPPain] = useState('');
+  const addProgress = () => {
+    if (!pNote.trim() && pPain === '') return;
+    setProgress((p) => [{ date: todayISO(), note: pNote.trim(), pain: pPain === '' ? null : Number(pPain), status }, ...p]);
+    setPNote(''); setPPain('');
+  };
+  const save = () => {
+    if (!bodyPart) { toast('Pick a body part'); return; }
+    onSave({
+      id: injury?.id || 'inj_' + Math.random().toString(36).slice(2, 9),
+      bodyPart, side, type, onsetDate, status, pain: pain === '' ? null : Number(pain),
+      mechanism: mechanism.trim(), rtpTarget, notes: notes.trim(), resolved, progress,
+      createdAt: injury?.createdAt || new Date().toISOString(),
+    });
+  };
+  const sel = { fontFamily: FN, fontSize: 12.5, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 8px', width: '100%', height: 34, boxSizing: 'border-box' };
+  const lbl = { fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.16em', fontFamily: FN, marginBottom: 4, display: 'block' };
+  return (
+    <Modal open onClose={onClose} wide title={`${injury ? 'Update' : 'Report'} injury · #${athlete.jersey ?? '—'} ${athlete.name}`}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 0.9fr 1.1fr', gap: 10 }}>
+          <div><label style={lbl}>Body part</label><select value={bodyPart} onChange={(e) => setBodyPart(e.target.value)} style={sel}><option value="">— select —</option>{BODY_PARTS.map((b) => <option key={b} value={b}>{b}</option>)}</select></div>
+          <div><label style={lbl}>Side</label><select value={side} onChange={(e) => setSide(e.target.value)} style={sel}>{['N/A', 'Left', 'Right', 'Bilateral'].map((s) => <option key={s} value={s}>{s}</option>)}</select></div>
+          <div><label style={lbl}>Type</label><select value={type} onChange={(e) => setType(e.target.value)} style={sel}><option value="">—</option>{INJURY_TYPES.map((tp) => <option key={tp} value={tp}>{tp}</option>)}</select></div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+          <Input label="Onset date" type="date" value={onsetDate} onChange={(e) => setOnsetDate(e.target.value)} />
+          <div><label style={lbl}>Pain (0–10)</label><input type="number" min="0" max="10" value={pain} onChange={(e) => setPain(e.target.value)} placeholder="—" style={sel} /></div>
+          <Input label="Return-to-play target" type="date" value={rtpTarget} onChange={(e) => setRtpTarget(e.target.value)} />
+        </div>
+        <div>
+          <label style={lbl}>Current status</label>
+          <div style={{ display: 'inline-flex', border: `1px solid ${C.cardBd}`, flexWrap: 'wrap' }}>
+            {Object.entries(MED_STATUS).map(([k, s]) => (
+              <button key={k} type="button" onClick={() => setStatus(k)} style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: status === k ? '#fff' : C.td, background: status === k ? s.color : 'transparent', border: 'none', padding: '7px 14px', cursor: 'pointer' }}>{s.label}</button>
+            ))}
+          </div>
+        </div>
+        <div><label style={lbl}>Mechanism / how it happened</label><input value={mechanism} onChange={(e) => setMechanism(e.target.value)} placeholder="e.g. landed awkwardly on a rebound" style={sel} /></div>
+        <div><label style={lbl}>Notes (diagnosis, plan, PT observations)</label><textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} style={{ ...sel, height: 'auto', padding: '8px', resize: 'vertical' }} /></div>
+
+        {/* Rehab progress log */}
+        <div style={{ border: `1px solid ${C.cardBd}` }}>
+          <div style={{ padding: '8px 12px', background: NAVY, fontFamily: FN, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff' }}>Rehab progress</div>
+          <div style={{ display: 'flex', gap: 8, padding: '10px 12px', borderBottom: progress.length ? `1px solid ${C.cardBd}` : 'none', alignItems: 'center' }}>
+            <input value={pNote} onChange={(e) => setPNote(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') addProgress(); }} placeholder="Progress note for today…" style={{ ...sel, flex: 1 }} />
+            <input type="number" min="0" max="10" value={pPain} onChange={(e) => setPPain(e.target.value)} placeholder="pain" style={{ ...sel, width: 72 }} />
+            <Btn onClick={addProgress} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>Add</Btn>
+          </div>
+          {progress.length > 0 && (
+            <div style={{ maxHeight: 160, overflowY: 'auto' }}>
+              {progress.map((p, i) => (
+                <div key={i} style={{ display: 'flex', gap: 10, padding: '8px 12px', borderBottom: `0.25px solid ${C.cardBd}`, fontFamily: FN, fontSize: 12, alignItems: 'baseline' }}>
+                  <span style={{ color: C.td, width: 50, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{p.date.slice(5)}</span>
+                  <span style={{ color: C.tx, flex: 1, minWidth: 0 }}>{p.note || '—'}</span>
+                  {p.pain != null && <span style={{ color: ORANGE_DEEP, fontWeight: 700, flexShrink: 0 }}>pain {p.pain}</span>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontFamily: FB, fontSize: 12.5, color: C.tx }}>
+          <input type="checkbox" checked={resolved} onChange={(e) => setResolved(e.target.checked)} style={{ accentColor: '#37B27C', width: 16, height: 16 }} />
+          Mark resolved / cleared to play
+        </label>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
+          <Btn onClick={save} style={{ background: NAVY, borderColor: NAVY, color: '#fff' }}>Save record</Btn>
+        </div>
+      </div>
+    </Modal>
   );
 }
 
