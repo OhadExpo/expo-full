@@ -384,6 +384,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
         const row = rows.find((r) => r.t.id === detailFor);
         if (!row) return null;
         return <AthleteModal row={row} rec={bhbcLoads[detailFor]} days28={last28}
+          workouts={(clientWorkouts || []).filter((w) => String(w.clientId || '').split('__')[0] === detailFor)}
           onClose={() => setDetailFor(null)}
           onLog={() => { setLogFor(detailFor); setDetailFor(null); }}
           onOpenExpo={onOpenTrainee ? () => onOpenTrainee(detailFor) : null}
@@ -408,13 +409,18 @@ function BarChart({ series, w = 460, h = 88 }) {
   );
 }
 
-function AthleteModal({ row, rec, days28, onClose, onLog, onOpenExpo, onCycleAvail }) {
+function AthleteModal({ row, rec, days28, workouts = [], onClose, onLog, onOpenExpo, onCycleAvail }) {
   const { t, acwr, avail, readiness } = row;
   const loads = (rec && rec.loads) || {};
   const series28 = days28.map((d) => loads[d] || 0);
   const rc = readiness.level === 'red' ? '#DE4E3B' : readiness.level === 'amber' ? '#E0A73A' : readiness.level === 'green' ? '#37B27C' : '#7C828B';
   const av = AVAIL[avail];
-  const sessions = rec && rec.sessions ? Object.entries(rec.sessions).sort((a, b) => b[0].localeCompare(a[0])).slice(0, 6) : [];
+  // Unified activity: sRPE practice/quick logs + detailed gym sessions (client_workouts).
+  const activity = [];
+  Object.entries((rec && rec.sessions) || {}).forEach(([d, arr]) => (arr || []).forEach((s) => activity.push({ date: d, label: `${s.type} ${s.min}′ @ RPE ${s.rpe}`, load: s.load })));
+  (workouts || []).forEach((w) => { const d = String(w.date || w.completedAt || '').slice(0, 10); const nEx = (w.exercises || []).length; const nSets = (w.exercises || []).reduce((a, e) => a + (e.sets || []).length, 0); if (d) activity.push({ date: d, label: `Gym · ${nEx} lift${nEx === 1 ? '' : 's'}, ${nSets} set${nSets === 1 ? '' : 's'}`, load: null }); });
+  activity.sort((a, b) => b.date.localeCompare(a.date));
+  const recent = activity.slice(0, 8);
   return (
     <Modal open onClose={onClose} wide title={`#${t.jersey ?? '—'} · ${t.name}`}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -438,15 +444,15 @@ function AthleteModal({ row, rec, days28, onClose, onLog, onOpenExpo, onCycleAva
           <span style={{ width: 8, height: 8, borderRadius: '50%', background: rc, flexShrink: 0 }} />
           <span style={{ fontFamily: FB, fontSize: 12.5, color: C.td }}>{readiness.level === 'unknown' ? 'No readiness check-in logged' : readiness.headline}</span>
         </div>
-        {sessions.length > 0 && (
+        {recent.length > 0 && (
           <div>
-            <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, marginBottom: 6 }}>Recent sessions</div>
+            <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, marginBottom: 6 }}>Recent activity</div>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              {sessions.map(([d, arr]) => (
-                <div key={d} style={{ display: 'flex', gap: 10, padding: '7px 0', borderBottom: `0.25px solid ${C.cardBd}`, fontFamily: FN, fontSize: 12 }}>
-                  <span style={{ color: C.td, width: 52, fontVariantNumeric: 'tabular-nums' }}>{d.slice(5)}</span>
-                  <span style={{ color: C.tx, minWidth: 0 }}>{arr.map((s) => `${s.type} ${s.min}′@${s.rpe}`).join(' · ')}</span>
-                  <span style={{ marginLeft: 'auto', color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>{Math.round(loads[d] || 0)}</span>
+              {recent.map((a, i) => (
+                <div key={i} style={{ display: 'flex', gap: 10, padding: '7px 0', borderBottom: `0.25px solid ${C.cardBd}`, fontFamily: FN, fontSize: 12 }}>
+                  <span style={{ color: C.td, width: 52, fontVariantNumeric: 'tabular-nums' }}>{a.date.slice(5)}</span>
+                  <span style={{ color: C.tx, minWidth: 0 }}>{a.label}</span>
+                  {a.load != null && <span style={{ marginLeft: 'auto', color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>{Math.round(a.load)}</span>}
                 </div>
               ))}
             </div>
