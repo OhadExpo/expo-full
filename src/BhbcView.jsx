@@ -33,7 +33,15 @@ const todayISO = () => new Date().toISOString().slice(0, 10);
 const daysAgoISO = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
 const flag = (nat) => String(nat || '').split('/').map((c) => ({ USA: '🇺🇸', ISR: '🇮🇱' }[c.trim()] || '')).join('');
 const heightM = (cm) => (cm ? (cm / 100).toFixed(2) + 'm' : '');
-const emptyRec = () => ({ loads: {}, sessions: {}, readiness: {} });
+const emptyRec = () => ({ loads: {}, sessions: {}, readiness: {}, availability: {} });
+// Availability codes (Ohad's BHBC sheet legend). Semantic status colors.
+const AVAIL = {
+  1: { label: 'Full', color: '#37B27C' },
+  2: { label: 'Limited', color: '#E0A73A' },
+  3: { label: 'Non-contact', color: '#4F9DE0' },
+  4: { label: 'Out · Med', color: '#DE4E3B' },
+  5: { label: 'Out · Personal', color: '#7C828B' },
+};
 
 const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -112,7 +120,8 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
     const series = last14.map((d) => (rec.loads && rec.loads[d]) || 0);
     const rdates = Object.keys(rec.readiness || {}).sort();
     const readiness = readinessAutoreg((rdates.length ? rec.readiness[rdates[rdates.length - 1]] : null) || {});
-    return { t, acwr, series, readiness };
+    const avail = (rec.availability && rec.availability[today]) || 1;
+    return { t, acwr, series, readiness, avail };
   }), [roster, bhbcLoads, today, last14]);
 
   const team = useMemo(() => {
@@ -143,6 +152,14 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
     setTrainees((prev) => prev.map((t) => t.id === id ? { ...t, team: on ? 'BHBC' : undefined } : t));
   }, [setTrainees]);
 
+  const cycleAvail = useCallback((id, current) => {
+    setBhbcLoads((prev) => {
+      const rec = prev[id] ? { ...prev[id] } : emptyRec();
+      rec.availability = { ...(rec.availability || {}), [today]: (current % 5) + 1 };
+      return { ...prev, [id]: rec };
+    });
+  }, [setBhbcLoads, today]);
+
   const logSession = useCallback(({ athleteId, date, type, minutes, rpe, readiness }) => {
     const load = sessionLoad(minutes, rpe);
     setBhbcLoads((prev) => {
@@ -159,7 +176,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
     toast('Logged');
   }, [setBhbcLoads]);
 
-  const rowGrid = '30px minmax(120px,1.6fr) 118px 58px 58px minmax(120px,1.3fr) 108px';
+  const rowGrid = '28px minmax(116px,1.5fr) 112px 46px 130px minmax(104px,1.1fr) 92px';
 
   return (
     <div style={{ ...TOKENS, minHeight: '100vh', background: 'var(--c-bg)', color: C.tx, fontFamily: FB }}>
@@ -260,9 +277,9 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
               <div style={{ overflowX: 'auto' }}>
                 <div style={{ minWidth: 660 }}>
                   <div style={{ display: 'grid', gridTemplateColumns: rowGrid, gap: 12, padding: '2px 2px 10px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.13em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }}>
-                    <div>#</div><div>Athlete</div><div>ACWR</div><div>7d</div><div>28d</div><div>Readiness</div><div style={{ textAlign: 'right' }}>14-day</div>
+                    <div>#</div><div>Athlete</div><div>ACWR</div><div>7d</div><div>Availability</div><div>Readiness</div><div style={{ textAlign: 'right' }}>14-day</div>
                   </div>
-                  {rows.map(({ t, acwr, series, readiness }) => {
+                  {rows.map(({ t, acwr, series, readiness, avail }) => {
                     const rc = readiness.level === 'red' ? BAND.high : readiness.level === 'amber' ? BAND.elevated : readiness.level === 'green' ? BAND.low : BAND.none;
                     return (
                       <div key={t.id} onClick={() => onOpenTrainee && onOpenTrainee(t.id)}
@@ -275,7 +292,13 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
                         </div>
                         <div>{acwr.ratio != null ? <BandPill band={acwr.band} value={acwr.ratio.toFixed(2)} /> : <span style={{ fontFamily: FN, fontSize: 10.5, color: C.tm, letterSpacing: '0.06em' }}>· baseline</span>}</div>
                         <div style={{ fontFamily: FN, fontSize: 13, color: C.tx, fontVariantNumeric: 'tabular-nums' }}>{acwr.acute ? Math.round(acwr.acute) : '—'}</div>
-                        <div style={{ fontFamily: FN, fontSize: 13, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{acwr.chronic ? Math.round(acwr.chronic) : '—'}</div>
+                        <div>
+                          <button onClick={(e) => { e.stopPropagation(); cycleAvail(t.id, avail); }} title="Click to change availability"
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.03em', color: AVAIL[avail].color, background: `color-mix(in srgb, ${AVAIL[avail].color} 13%, transparent)`, border: `1px solid color-mix(in srgb, ${AVAIL[avail].color} 38%, transparent)`, borderRadius: 0, padding: '4px 9px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                            <span style={{ width: 6, height: 6, borderRadius: '50%', background: AVAIL[avail].color, flexShrink: 0 }} />
+                            {AVAIL[avail].label}
+                          </button>
+                        </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
                           <span style={{ width: 7, height: 7, borderRadius: '50%', background: rc, flexShrink: 0 }} />
                           <span style={{ fontFamily: FB, fontSize: 11, color: C.td, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{readiness.level === 'unknown' ? 'no check-in' : readiness.headline}</span>
