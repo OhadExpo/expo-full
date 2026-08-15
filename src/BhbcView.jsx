@@ -345,7 +345,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
                 <TodayPanel today={today} fixtures={bhbcFixtures} fx={fx} rows={rows} onSessions={() => setView('sessions')} onLog={() => setPracticeOpen(true)} />
                 {fx.nextGame && <NextGamePanel nextGame={fx.nextGame} today={today} onEdit={() => setGameEdit(true)} />}
                 <TeamSnapshotCard team={team} />
-                <LoadBoard rows={rows} rowGrid={rowGrid} cycleAvail={cycleAvail} onOpen={setDetailFor} />
+                <LoadBoard rows={rows} rowGrid={rowGrid} cycleAvail={cycleAvail} medical={medical} onOpen={setDetailFor} />
               </>
             )}
 
@@ -863,7 +863,7 @@ function TeamSnapshotCard({ team }) {
   );
 }
 
-function LoadBoard({ rows, rowGrid, cycleAvail, onOpen }) {
+function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, onOpen }) {
   return (
     <CollapsibleSection title="Load & Injury Risk" count={rows.length} storageKey="bhbc-load" defaultOpen leftStripe={ORANGE}>
       <div style={{ overflowX: 'auto' }}>
@@ -878,7 +878,9 @@ function LoadBoard({ rows, rowGrid, cycleAvail, onOpen }) {
                 <Jersey n={t.jersey} size={26} />
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontFamily: FN, fontWeight: 700, fontSize: 13.5, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</div>
-                  <div style={{ fontFamily: FB, fontSize: 10.5, color: C.td }}>{t.position || '—'}</div>
+                  {(() => { const inj = activeInjuries(medical, t.id)[0]; return inj
+                    ? <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: (MED_STATUS[inj.status] || {}).color || '#DE4E3B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{'⚠ '}{inj.bodyPart}{inj.side && inj.side !== 'N/A' ? ` ${inj.side[0]}` : ''}</div>
+                    : <div style={{ fontFamily: FB, fontSize: 10.5, color: C.td }}>{t.position || '—'}</div>; })()}
                 </div>
                 <div>{acwr.ratio != null ? <BandPill band={acwr.band} value={acwr.ratio.toFixed(2)} /> : <span style={{ fontFamily: FN, fontSize: 10.5, color: C.tm, letterSpacing: '0.06em' }}>· baseline</span>}</div>
                 <div style={{ fontFamily: FN, fontSize: 13, color: C.tx, fontVariantNumeric: 'tabular-nums' }}>{acwr.acute ? Math.round(acwr.acute) : '—'}</div>
