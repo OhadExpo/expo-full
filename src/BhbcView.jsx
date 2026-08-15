@@ -105,6 +105,7 @@ const Jersey = ({ n, size = 30 }) => (
 export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, setBhbcLoads, bhbcFixtures = [], planIndex = [], onOpenTrainee, onExit }) {
   const [manageOpen, setManageOpen] = useState(false);
   const [logFor, setLogFor] = useState(null);
+  const [detailFor, setDetailFor] = useState(null);
 
   const roster = useMemo(
     () => trainees.filter((t) => t && t.team === 'BHBC' && t.status !== 'Archived')
@@ -113,6 +114,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   );
   const today = todayISO();
   const last14 = useMemo(() => Array.from({ length: 14 }, (_, i) => daysAgoISO(13 - i)), []);
+  const last28 = useMemo(() => Array.from({ length: 28 }, (_, i) => daysAgoISO(27 - i)), []);
 
   const rows = useMemo(() => roster.map((t) => {
     const rec = bhbcLoads[t.id] || emptyRec();
@@ -282,8 +284,8 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
                   {rows.map(({ t, acwr, series, readiness, avail }) => {
                     const rc = readiness.level === 'red' ? BAND.high : readiness.level === 'amber' ? BAND.elevated : readiness.level === 'green' ? BAND.low : BAND.none;
                     return (
-                      <div key={t.id} onClick={() => onOpenTrainee && onOpenTrainee(t.id)}
-                        style={{ display: 'grid', gridTemplateColumns: rowGrid, gap: 12, alignItems: 'center', padding: '11px 2px', borderBottom: `0.25px solid ${C.cardBd}`, borderLeft: `2px solid ${acwr.band.color}`, paddingLeft: 10, marginLeft: -12, cursor: onOpenTrainee ? 'pointer' : 'default' }}
+                      <div key={t.id} onClick={() => setDetailFor(t.id)}
+                        style={{ display: 'grid', gridTemplateColumns: rowGrid, gap: 12, alignItems: 'center', padding: '11px 2px', borderBottom: `0.25px solid ${C.cardBd}`, borderLeft: `2px solid ${acwr.band.color}`, paddingLeft: 10, marginLeft: -12, cursor: 'pointer' }}
                         className="bhbc-row">
                         <Jersey n={t.jersey} size={26} />
                         <div style={{ minWidth: 0 }}>
@@ -321,9 +323,9 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
             <CollapsibleSection title="Roster" count={roster.length} storageKey="bhbc-roster" defaultOpen leftStripe={NAVY}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(232px, 1fr))', gap: 12 }}>
                 {rows.map(({ t, acwr }) => (
-                  <div key={t.id} onClick={() => onOpenTrainee && onOpenTrainee(t.id)}
+                  <div key={t.id} onClick={() => setDetailFor(t.id)}
                     className="bhbc-card"
-                    style={{ position: 'relative', overflow: 'hidden', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${acwr.band.color}`, padding: '13px 15px', cursor: onOpenTrainee ? 'pointer' : 'default', transition: 'transform 160ms, box-shadow 160ms' }}>
+                    style={{ position: 'relative', overflow: 'hidden', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${acwr.band.color}`, padding: '13px 15px', cursor: 'pointer', transition: 'transform 160ms, box-shadow 160ms' }}>
                     <div aria-hidden="true" style={{ position: 'absolute', right: 6, top: -10, fontFamily: FN, fontWeight: 800, fontSize: 52, lineHeight: 1, color: NAVY, opacity: 0.09, fontVariantNumeric: 'tabular-nums' }}>{t.jersey ?? ''}</div>
                     <div style={{ position: 'relative' }}>
                       <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums' }}>#{t.jersey ?? '—'}</div>
@@ -374,7 +376,86 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
         <LogModal open={!!logFor} initialAthlete={logFor === 'new' ? (roster[0]?.id || '') : logFor} roster={roster} fixtures={bhbcFixtures}
           onClose={() => setLogFor(null)} onSave={(payload) => { logSession(payload); setLogFor(null); }} />
       )}
+
+      {/* ---- ATHLETE DETAIL (in-zone) ---- */}
+      {detailFor && (() => {
+        const row = rows.find((r) => r.t.id === detailFor);
+        if (!row) return null;
+        return <AthleteModal row={row} rec={bhbcLoads[detailFor]} days28={last28}
+          onClose={() => setDetailFor(null)}
+          onLog={() => { setLogFor(detailFor); setDetailFor(null); }}
+          onOpenExpo={onOpenTrainee ? () => onOpenTrainee(detailFor) : null}
+          onCycleAvail={() => cycleAvail(detailFor, row.avail)} />;
+      })()}
     </div>
+  );
+}
+
+function BarChart({ series, w = 460, h = 88 }) {
+  const vals = (series || []).map((v) => v || 0);
+  const n = vals.length || 1;
+  const max = Math.max(1, ...vals);
+  const bw = w / n;
+  const hasData = vals.some((v) => v > 0);
+  return (
+    <svg width="100%" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{ display: 'block', height: 88 }} aria-hidden="true">
+      <line x1="0" y1={h - 1} x2={w} y2={h - 1} stroke="currentColor" opacity="0.16" />
+      {!hasData && <line x1="0" y1={h - 3} x2={w} y2={h - 3} stroke="currentColor" strokeDasharray="3 4" opacity="0.3" />}
+      {vals.map((v, i) => { const bh = hasData ? (v / max) * (h - 6) : 0; return <rect key={i} x={i * bw + 1} y={h - bh - 1} width={Math.max(1, bw - 2)} height={bh} fill={ORANGE} opacity={v > 0 ? 0.9 : 0} />; })}
+    </svg>
+  );
+}
+
+function AthleteModal({ row, rec, days28, onClose, onLog, onOpenExpo, onCycleAvail }) {
+  const { t, acwr, avail, readiness } = row;
+  const loads = (rec && rec.loads) || {};
+  const series28 = days28.map((d) => loads[d] || 0);
+  const rc = readiness.level === 'red' ? '#DE4E3B' : readiness.level === 'amber' ? '#E0A73A' : readiness.level === 'green' ? '#37B27C' : '#7C828B';
+  const av = AVAIL[avail];
+  const sessions = rec && rec.sessions ? Object.entries(rec.sessions).sort((a, b) => b[0].localeCompare(a[0])).slice(0, 6) : [];
+  return (
+    <Modal open onClose={onClose} wide title={`#${t.jersey ?? '—'} · ${t.name}`}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <span style={{ fontFamily: FB, fontSize: 12.5, color: C.td }}>{t.position || '—'} · {heightM(t.heightCm)} {flag(t.nationality)}</span>
+          <button onClick={onCycleAvail} title="Click to change availability" style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 11, fontWeight: 700, color: av.color, background: `color-mix(in srgb, ${av.color} 13%, transparent)`, border: `1px solid color-mix(in srgb, ${av.color} 38%, transparent)`, padding: '4px 10px', cursor: 'pointer' }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: av.color }} />{av.label}</button>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 1, background: C.cardBd, border: `1px solid ${C.cardBd}` }}>
+          {[['ACWR', acwr.ratio != null ? acwr.ratio.toFixed(2) : '—', acwr.ratio != null ? acwr.band.color : C.tx], ['7-day load', acwr.acute ? Math.round(acwr.acute) : '—', C.tx], ['28-day', acwr.chronic ? Math.round(acwr.chronic) : '—', C.td]].map(([k, v, c]) => (
+            <div key={k} style={{ background: 'var(--c-sf)', padding: '12px 14px' }}>
+              <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{k}</div>
+              <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 22, color: c, marginTop: 6, fontVariantNumeric: 'tabular-nums' }}>{v}</div>
+            </div>
+          ))}
+        </div>
+        <div>
+          <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, marginBottom: 6 }}>28-day load</div>
+          <div style={{ color: ORANGE }}><BarChart series={series28} /></div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ width: 8, height: 8, borderRadius: '50%', background: rc, flexShrink: 0 }} />
+          <span style={{ fontFamily: FB, fontSize: 12.5, color: C.td }}>{readiness.level === 'unknown' ? 'No readiness check-in logged' : readiness.headline}</span>
+        </div>
+        {sessions.length > 0 && (
+          <div>
+            <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, marginBottom: 6 }}>Recent sessions</div>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {sessions.map(([d, arr]) => (
+                <div key={d} style={{ display: 'flex', gap: 10, padding: '7px 0', borderBottom: `0.25px solid ${C.cardBd}`, fontFamily: FN, fontSize: 12 }}>
+                  <span style={{ color: C.td, width: 52, fontVariantNumeric: 'tabular-nums' }}>{d.slice(5)}</span>
+                  <span style={{ color: C.tx, minWidth: 0 }}>{arr.map((s) => `${s.type} ${s.min}′@${s.rpe}`).join(' · ')}</span>
+                  <span style={{ marginLeft: 'auto', color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>{Math.round(loads[d] || 0)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+          {onOpenExpo && <Btn variant="ghost" onClick={onOpenExpo}>Open full profile in EXPO ›</Btn>}
+          <Btn onClick={onLog} style={{ background: NAVY, borderColor: NAVY, color: '#fff' }}>Log session</Btn>
+        </div>
+      </div>
+    </Modal>
   );
 }
 
