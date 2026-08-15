@@ -19,7 +19,7 @@ import { createPortal } from 'react-dom';
 import { fmtPrettyDate } from './dates';
 import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
-import { isRefined5b, RefinedHeaderStrip, Btn, Input, toast, confirmToast, useEscClose } from './ui';
+import { isRefined5b, RefinedHeaderStrip, Btn, Input, toast, confirmToast, useEscClose, stripBtnBase } from './ui';
 import { parseTraineeId } from './traineeUtils';
 
 const fmtCurrency = (amount, currency = 'ils') => {
@@ -151,13 +151,7 @@ export default function BillingView({ trainees }) {
               PAYMENT REQUESTS ({requests.filter(r => r.status === 'pending').length} pending)
             </span>
             <button onClick={() => setShowRequest(true)}
-              style={{
-                background: 'transparent',
-                border: `1px solid ${refined ? '#FFFFFF' : C.ac}`,
-                color: refined ? '#FFFFFF' : C.ac,
-                padding: '4px 12px', fontFamily: FN, fontSize: 10, fontWeight: 700,
-                letterSpacing: '0.12em', cursor: 'pointer',
-              }}>+ NEW REQUEST</button>
+              style={{ ...stripBtnBase, border: `1px solid ${refined ? '#FFFFFF' : C.ac}`, color: refined ? '#FFFFFF' : C.ac }}>+ NEW REQUEST</button>
           </div>
         </RefinedHeaderStrip>
         {loadError ? (

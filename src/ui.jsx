@@ -2,6 +2,18 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
 
+// Canonical height for header/strip ACTION buttons (+ TASK, MARK ALL READ,
+// + LOG, CONTRACT, + ADD PAYMENT, …) so this whole button family is ONE uniform
+// size EVERYWHERE in the platform (Ohad). 26 = midpoint of the old 20/30 spread.
+// Use `stripBtnBase` for the shared box metrics; callers add border/color/text.
+export const STRIP_BTN_H = 26;
+export const stripBtnBase = {
+  height: STRIP_BTN_H, boxSizing: 'border-box', padding: '0 10px', borderRadius: 0,
+  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+  fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
+  cursor: 'pointer', whiteSpace: 'nowrap', background: 'transparent',
+};
+
 // Every full-screen overlay in this file renders through <body> via
 // createPortal. Views are wrapped in a `.motion-rise` element whose CSS
 // transform becomes the containing block for position:fixed descendants —

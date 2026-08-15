@@ -21,7 +21,7 @@
 import React, { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { C, FN, FB, FH } from './theme';
-import { isRefined5b, RefinedHeaderStrip, useEscClose, usePersistentState } from './ui';
+import { isRefined5b, RefinedHeaderStrip, useEscClose, usePersistentState, stripBtnBase } from './ui';
 import CoachMessages from './CoachMessages';
 import {
   useTraineeActivity, useCompletedTasksForTrainee,
@@ -382,13 +382,7 @@ function CoachHistoryCard({ trainee, activity, clientWorkouts, payments, planInd
             <span aria-hidden style={{ color: refined ? '#FFFFFF' : C.tx, fontSize: 12, lineHeight: 1, transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease' }}>▾</span>
           </div>
           <button onClick={() => setShowLog(true)}
-            style={{
-              background: 'transparent',
-              border: `1px solid ${refined ? '#FFFFFF' : C.ac}`,
-              color: refined ? '#FFFFFF' : C.ac,
-              padding: '3px 10px', borderRadius: 0, fontFamily: FN, fontSize: 10,
-              fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', flexShrink: 0,
-            }}>+ LOG</button>
+            style={{ ...stripBtnBase, border: `1px solid ${refined ? '#FFFFFF' : C.ac}`, color: refined ? '#FFFFFF' : C.ac, flexShrink: 0 }}>+ LOG</button>
         </div>
       </RefinedHeaderStrip>
 

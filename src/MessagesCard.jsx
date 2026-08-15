@@ -13,7 +13,7 @@
 
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { C, FN, FH } from './theme';
-import { isRefined5b, RefinedHeaderStrip, SectionLabel, usePersistentState } from './ui';
+import { isRefined5b, RefinedHeaderStrip, SectionLabel, usePersistentState, stripBtnBase } from './ui';
 import { useTheme } from './hooks/useTheme';
 import { supabase } from './supabase';
 import { enqueue } from './offlineQueue';
@@ -231,14 +231,7 @@ export default function MessagesCard({ trainees, onSelectTrainee }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             {unreadCount > 0 && (
               <button onClick={(e) => { e.stopPropagation(); markRead(); }}
-                style={{
-                  background: 'transparent',
-                  border: '1px solid rgba(255,255,255,0.55)',
-                  color: '#FFFFFF',
-                  padding: '3px 10px', borderRadius: 0,
-                  fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
-                  cursor: 'pointer',
-                }}>MARK ALL READ</button>
+                style={{ ...stripBtnBase, border: '1px solid rgba(255,255,255,0.55)', color: '#FFFFFF' }}>MARK ALL READ</button>
             )}
             <span aria-hidden style={{ color: '#FFFFFF', fontSize: 12, lineHeight: 1, transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease' }}>▾</span>
           </div>

@@ -12,7 +12,7 @@ import React, { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { fmtPrettyDate } from './dates';
 import { C, FN, FB, FH } from './theme';
-import { isRefined5b, RefinedHeaderStrip, confirmToast, usePersistentState, useIsMobile } from './ui';
+import { isRefined5b, RefinedHeaderStrip, confirmToast, usePersistentState, useIsMobile, stripBtnBase } from './ui';
 import { useCoachNotes, setPendingTaskPlanLink } from './coachNotes';
 import useDraftAutosave from './hooks/useDraftAutosave';
 import { AUTO_KIND_LABEL, AUTO_KIND_ACTION, whatsappMessageForTask, throttleWhatsAppTasks } from './autoTasks';
@@ -693,12 +693,10 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <button onClick={(e) => { e.stopPropagation(); setOpen(true); setAdding(a => !a); }}
                 style={{
-                  background: 'transparent',
+                  ...stripBtnBase,
                   border: `1px solid ${refined ? '#FFFFFF' : 'var(--c-ac)'}`,
                   color: refined ? '#FFFFFF' : 'var(--c-ac)',
-                  padding: '0 10px', height: 30, boxSizing: 'border-box', borderRadius: 0, fontFamily: 'inherit', fontSize: 10,
-                  fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer',
-                  minWidth: 72, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  minWidth: 72,
                 }}>{adding ? 'CLOSE' : '+ TASK'}</button>
               <span aria-hidden style={{ color: refined ? '#FFFFFF' : 'var(--c-tx)', fontSize: 12, lineHeight: 1, transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease' }}>▾</span>
             </div>
@@ -710,12 +708,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
             TASKS ({counts.all})
           </div>
           <button onClick={() => setAdding(!adding)}
-            style={{
-              background: 'transparent', border: `1px solid var(--c-ac)`, color: 'var(--c-ac)',
-              padding: '0 8px', height: 30, boxSizing: 'border-box', borderRadius: 0, fontFamily: FN, fontSize: 9,
-              fontWeight: 700, letterSpacing: '0.08em', cursor: 'pointer',
-              minWidth: 58, textAlign: 'center', display: 'inline-flex', justifyContent: 'center',
-            }}>{adding ? 'CLOSE' : '+ TASK'}</button>
+            style={{ ...stripBtnBase, border: `1px solid var(--c-ac)`, color: 'var(--c-ac)', minWidth: 58 }}>{adding ? 'CLOSE' : '+ TASK'}</button>
         </div>
       )}
 

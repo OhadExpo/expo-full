@@ -1608,7 +1608,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
           {showSec('messages') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle(`Messages (${DEMO_MESSAGES.length})`)}><DemoMessages /></DemoDetailCard>}
 
           {/* CRM · COACH HISTORY */}
-          {showSec('crm') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle('Coach History')} headerRight={<button title="Demo only" style={{ ...baseBtn, background: 'transparent', color: C.ac, border: `1px solid ${C.ac}`, padding: '4px 12px', fontSize: 10 }}>+ LOG</button>}><DemoCRM /></DemoDetailCard>}
+          {showSec('crm') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle('Coach History')} headerRight={<button title="Demo only" style={{ ...baseBtn, background: 'transparent', color: C.ac, border: `1px solid ${C.ac}`, height: 26, boxSizing: 'border-box', padding: '0 12px', fontSize: 10 }}>+ LOG</button>}><DemoCRM /></DemoDetailCard>}
 
           {/* BODYWEIGHT */}
           {showSec('bw') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle('Bodyweight · 8W')}>
@@ -3801,7 +3801,7 @@ function DemoBilling() {
       {panel(<>
         <div style={stripH}>
           <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.04em', color: C.ac }}>PAYMENT REQUESTS {pending.length > 0 && <span style={{ color: C.or }}>· {pending.length} PENDING</span>}</span>
-          <button onClick={() => setShowReq(true)} style={{ ...baseBtn, background: 'transparent', color: C.ac, border: `1px solid ${C.ac}`, padding: '5px 12px', fontSize: 11 }}>+ NEW REQUEST</button>
+          <button onClick={() => setShowReq(true)} style={{ ...baseBtn, background: 'transparent', color: C.ac, border: `1px solid ${C.ac}`, height: 26, boxSizing: 'border-box', padding: '0 12px', fontSize: 10 }}>+ NEW REQUEST</button>
         </div>
         <div>
           {DEMO_PAYMENTS.map(p => {

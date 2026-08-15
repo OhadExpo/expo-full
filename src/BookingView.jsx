@@ -13,7 +13,7 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { fmtPrettyDate } from './dates';
 import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
-import { isRefined5b, RefinedHeaderStrip, Btn, Input, toast, confirmToast, CollapsibleSection } from './ui';
+import { isRefined5b, RefinedHeaderStrip, Btn, Input, toast, confirmToast, CollapsibleSection, stripBtnBase } from './ui';
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -138,7 +138,7 @@ export default function BookingView({ trainees }) {
       {/* AVAILABILITY */}
       <CollapsibleSection title="Weekly Availability" count={rules.length} storageKey="cal-availability" style={{ marginBottom: 0 }}
         right={<button onClick={addRule}
-          style={{ background: 'transparent', border: '1px solid #FFFFFF', color: '#FFFFFF', padding: '4px 12px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer' }}>+ ADD RULE</button>}>
+          style={{ ...stripBtnBase, border: '1px solid #FFFFFF', color: '#FFFFFF' }}>+ ADD RULE</button>}>
         {rules.length === 0 ? (
           <div style={{ padding: 14, textAlign: 'center', color: C.td, fontSize: 13 }}>
             No availability rules. Add one to allow bookings.

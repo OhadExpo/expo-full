@@ -16,7 +16,7 @@ const isHebrew = (s) => /[\u0590-\u05FF]/.test(s || '');
 const TD_SECTIONS = ['vitals', 'billing', 'messages', 'crm', 'bw', 'readiness', 'workouts', 'programs', 'eval', 'overload'];
 // Helper to pluralize day/ex counts consistently — "1 day" not "1 days".
 const plur = (n, one, many) => `${n} ${n === 1 ? one : many}`;
-import { Btn, Input, Select, TextArea, Badge, Card, Modal, EmailsInput, baseInput, toast, confirmToast, useEscClose, SectionLabel, CollapsibleSection } from './ui';
+import { Btn, Input, Select, TextArea, Badge, Card, Modal, EmailsInput, baseInput, toast, confirmToast, useEscClose, SectionLabel, CollapsibleSection, stripBtnBase } from './ui';
 import { savePlan } from './usePlansStore';
 import { useLineageLauncher } from './LineageLauncher';
 import { supabase } from './supabase';
@@ -724,9 +724,9 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           <div style={{display:'flex',gap:0}}>
           {/* F-27 — open the brand-rich contract composer. */}
           <button onClick={()=>setShowContract(true)}
-            style={{background:'transparent',border:'1px solid rgba(255,255,255,0.55)',color:'#FFFFFF',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',padding:'4px 10px',cursor:'pointer',borderRadius:0}}>CONTRACT</button>
+            style={{...stripBtnBase,border:'1px solid rgba(255,255,255,0.55)',color:'#FFFFFF'}}>CONTRACT</button>
           <button onClick={()=>setShowPayForm(true)}
-            style={{background:'transparent',border:'1px solid rgba(255,255,255,0.55)',borderLeft:'none',color:'#FFFFFF',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',padding:'4px 10px',cursor:'pointer',borderRadius:0}}>+ ADD PAYMENT</button>
+            style={{...stripBtnBase,border:'1px solid rgba(255,255,255,0.55)',borderLeft:'none',color:'#FFFFFF'}}>+ ADD PAYMENT</button>
         </div></div>}>
       {/* Contract terms strip — the billing facts (rate/package/sessions) that
           used to live in the header stat row (Ohad: "payment in billing").
