@@ -292,13 +292,17 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
             {view === 'overview' && (
               <>
                 <TodayPanel today={today} fixtures={bhbcFixtures} fx={fx} rows={rows} onSessions={() => setView('sessions')} onLog={() => setPracticeOpen(true)} />
+                {fx.nextGame && <NextGamePanel nextGame={fx.nextGame} today={today} />}
                 <TeamSnapshotCard team={team} />
                 <LoadBoard rows={rows} rowGrid={rowGrid} cycleAvail={cycleAvail} onOpen={setDetailFor} />
               </>
             )}
 
             {view === 'schedule' && (
-              <ScheduleTool fx={fx} fixtures={bhbcFixtures} today={today} mode={schedMode} setMode={setSchedMode} onLog={() => setLogFor('new')} />
+              <>
+                {fx.nextGame && <NextGamePanel nextGame={fx.nextGame} today={today} />}
+                <ScheduleTool fx={fx} fixtures={bhbcFixtures} today={today} mode={schedMode} setMode={setSchedMode} onLog={() => setLogFor('new')} />
+              </>
             )}
 
             {view === 'roster' && (
@@ -516,6 +520,28 @@ function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave }) {
   );
 }
 
+function NextGamePanel({ nextGame, today }) {
+  const days = dayDiff(nextGame.date, today);
+  const when = days <= 0 ? 'Game day' : days === 1 ? 'Tomorrow' : `In ${days} days`;
+  const whereLabel = nextGame.venue ? nextGame.venue : nextGame.home === false ? 'Away' : nextGame.home === true ? 'Home' : null;
+  return (
+    <Card leftStripe={ORANGE} header="Next Game" headerRight={<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff' }}>{when}</span>}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
+        <div style={{ textAlign: 'center', flexShrink: 0 }}>
+          <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 40, lineHeight: 1, color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums' }}>{Math.max(0, days)}</div>
+          <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, marginTop: 4 }}>days</div>
+        </div>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 17, color: C.tx }}>{nextGame.opponent ? `vs ${nextGame.opponent}` : 'Official Game'}</div>
+          <div style={{ fontFamily: FB, fontSize: 12.5, color: C.td, marginTop: 5 }}>
+            {dow(nextGame.date)} {monDay(nextGame.date)} · {nextGame.start}{whereLabel ? ` · ${whereLabel}` : ''}
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 function TodayPanel({ today, fixtures, fx, rows, onSessions, onLog }) {
   const todayFx = (fixtures || []).filter((f) => f.date === today).slice().sort((a, b) => a.start.localeCompare(b.start));
   const next = fx.byDay[0];
@@ -531,7 +557,7 @@ function TodayPanel({ today, fixtures, fx, rows, onSessions, onLog }) {
     </span>
   );
   return (
-    <Card header={`Today · ${dow(today)} ${monDay(today)}`} headerRight={gdLabel ? <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff' }}>{gdLabel}</span> : null}>
+    <Card leftStripe={ORANGE} header={`Today · ${dow(today)} ${monDay(today)}`} headerRight={gdLabel ? <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff' }}>{gdLabel}</span> : null}>
       <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'flex-start' }}>
         <div style={{ flex: '2 1 300px', minWidth: 240 }}>
           <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm, marginBottom: 8 }}>Sessions</div>
@@ -572,7 +598,7 @@ function TeamSnapshotCard({ team }) {
     { k: '7-day load', v: team.week ? team.week.toLocaleString() : '—', sub: 'team sRPE', c: C.tx, spark: team.teamSeries },
   ];
   return (
-    <Card header="Team Snapshot" padding={0}>
+    <Card leftStripe={NAVY} header="Team Snapshot" padding={0}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))' }}>
         {cells.map((s, i) => (
           <div key={s.k} style={{ padding: '16px 18px', borderLeft: i ? `1px solid ${C.cardBd}` : 'none', display: 'flex', flexDirection: 'column', gap: 8, minHeight: 92 }}>
@@ -666,7 +692,7 @@ function ScheduleTool({ fx, fixtures, today, mode, setMode }) {
     </div>
   );
   return (
-    <Card header="Schedule" headerRight={toggle}>
+    <Card leftStripe={ORANGE} header="Schedule" headerRight={toggle}>
       {mode === 'calendar' ? <ScheduleMonth fixtures={fixtures} today={today} /> : <ScheduleList fx={fx} today={today} />}
     </Card>
   );
