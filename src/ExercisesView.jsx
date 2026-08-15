@@ -55,7 +55,8 @@ const hasNotes = e => !!(e.cues && String(e.cues).trim());
 const isMissing = e => !e.resistanceType && !e.bodyPosition && !e.movementType;
 const splitVals = s => String(s || '').split(',').map(x => x.trim()).filter(Boolean);
 
-export default function ExercisesView({ exercises, setExercises }) {
+export default function ExercisesView({ exercises, setExercises, onOpenClassify }) {
+  const unclassifiedCount = useMemo(() => (exercises || []).filter(isMissing).length, [exercises]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(defaultExercise());
   const [editId, setEditId] = useState(null);
@@ -310,6 +311,14 @@ export default function ExercisesView({ exercises, setExercises }) {
         </div>
         <Btn onClick={openNew} style={{ height: 30, width: RIGHT_CTL_W, flexShrink: 0, padding: '0 18px', fontSize: 13, lineHeight: '30px', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ Add Exercise</Btn>
       </div>
+
+      {onOpenClassify && unclassifiedCount > 0 && (
+        <button onClick={onOpenClassify} style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left', marginBottom: 16, padding: '10px 14px', background: `color-mix(in srgb, ${C.ac} 8%, var(--c-sf))`, border: `1px solid color-mix(in srgb, ${C.ac} 35%, transparent)`, borderLeft: `3px solid ${C.ac}`, borderRadius: 0, cursor: 'pointer' }}>
+          <span style={{ fontFamily: FN, fontSize: 12.5, fontWeight: 700, color: C.tx }}><span style={{ color: C.ac, fontVariantNumeric: 'tabular-nums' }}>{unclassifiedCount.toLocaleString()}</span> exercises are unclassified</span>
+          <span style={{ fontFamily: FB, fontSize: 12, color: C.td }}>— resolution/movement/position blank</span>
+          <span style={{ marginLeft: 'auto', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.ac }}>Classify at scale →</span>
+        </button>
+      )}
 
       {/* Filter rail — inline UNDERLINE-style controls (filters = underline text,
           per the control-material differentiation rule), no heavy empty box. Two
