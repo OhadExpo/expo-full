@@ -371,7 +371,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
 
       {/* ---- LOG SESSION MODAL ---- */}
       {logFor && (
-        <LogModal open={!!logFor} initialAthlete={logFor === 'new' ? (roster[0]?.id || '') : logFor} roster={roster}
+        <LogModal open={!!logFor} initialAthlete={logFor === 'new' ? (roster[0]?.id || '') : logFor} roster={roster} fixtures={bhbcFixtures}
           onClose={() => setLogFor(null)} onSave={(payload) => { logSession(payload); setLogFor(null); }} />
       )}
     </div>
@@ -382,7 +382,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
 function bandKey(r) { if (r == null) return 'none'; if (r < 0.8) return 'detrained'; if (r <= 1.3) return 'low'; if (r < 1.5) return 'elevated'; return 'high'; }
 function acwrLabel(r) { return { detrained: 'undertrained', low: 'sweet spot', elevated: 'elevated', high: 'danger', none: '' }[bandKey(r)]; }
 
-function LogModal({ open, initialAthlete, roster, onClose, onSave }) {
+function LogModal({ open, initialAthlete, roster, fixtures = [], onClose, onSave }) {
   const [athleteId, setAthleteId] = useState(initialAthlete);
   const [date, setDate] = useState(todayISO());
   const [type, setType] = useState('Practice');
@@ -419,6 +419,21 @@ function LogModal({ open, initialAthlete, roster, onClose, onSave }) {
         <div style={{ fontFamily: FN, fontSize: 11, color: C.td, textAlign: 'center', letterSpacing: '0.04em' }}>
           sRPE load = <span style={{ color: ORANGE_DEEP, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{preview || 0}</span> units
         </div>
+        {(() => {
+          const day = fixtures.filter((f) => f.date === date);
+          if (!day.length) return null;
+          return (
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>From calendar</span>
+              {day.map((f, i) => (
+                <button key={i} type="button" onClick={() => { setMinutes(String(f.minutes)); setType(f.type === 'lift' ? 'Lift' : f.type === 'game' ? 'Game' : 'Practice'); }}
+                  style={{ fontFamily: FN, fontSize: 10, color: FX_COLOR[f.type] || NAVY, background: 'transparent', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${FX_COLOR[f.type] || NAVY}`, padding: '4px 8px', cursor: 'pointer' }}>
+                  {f.start} {FX_LABEL[f.type] || 'Session'} {f.minutes}′
+                </button>
+              ))}
+            </div>
+          );
+        })()}
         <div style={{ borderTop: `1px solid ${C.cardBd}`, paddingTop: 10 }}>
           <div style={{ ...lab, marginBottom: 8, letterSpacing: '0.16em' }}>Readiness (optional)</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
