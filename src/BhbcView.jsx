@@ -116,7 +116,7 @@ const Jersey = ({ n, size = 30 }) => (
 
 // ---- component ----
 
-export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, setBhbcLoads, bhbcFixtures = [], setBhbcFixtures, planIndex = [], exercises = [], clientWorkouts = [], setClientWorkouts, workouts = [], setWorkouts, onDecrementSession, portalVis = {}, bwLog = [], weeklyFocus = {}, onOpenTrainee, onExit }) {
+export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, setBhbcLoads, bhbcFixtures = [], setBhbcFixtures, league = {}, planIndex = [], exercises = [], clientWorkouts = [], setClientWorkouts, workouts = [], setWorkouts, onDecrementSession, portalVis = {}, bwLog = [], weeklyFocus = {}, onOpenTrainee, onExit }) {
   const [manageOpen, setManageOpen] = useState(false);
   const [newAthlete, setNewAthlete] = useState('');
   const [logFor, setLogFor] = useState(null);
@@ -299,7 +299,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
           <>
             {/* ---- SUB-NAV (tool tabs) — gives the zone "order" ---- */}
             <div style={{ display: 'flex', gap: 2, borderBottom: `1px solid ${C.cardBd}`, flexWrap: 'wrap' }}>
-              {[['overview', 'Overview'], ['roster', 'Roster'], ['schedule', 'Schedule'], ['sessions', 'Sessions']].map(([k, label]) => {
+              {[['overview', 'Overview'], ['roster', 'Roster'], ['schedule', 'Schedule'], ['games', 'Games'], ['sessions', 'Sessions']].map(([k, label]) => {
                 const active = view === k;
                 return (
                   <button key={k} onClick={() => setView(k)} style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: active ? C.tx : C.td, background: 'transparent', border: 'none', borderBottom: active ? `2px solid ${ORANGE}` : '2px solid transparent', padding: '10px 16px', marginBottom: -1, cursor: 'pointer' }}>{label}</button>
@@ -325,6 +325,10 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
 
             {view === 'roster' && (
               <RosterGrid rows={rows} onOpen={setDetailFor} />
+            )}
+
+            {view === 'games' && (
+              <LeagueView league={league} roster={roster} onOpen={setDetailFor} />
             )}
 
             {view === 'sessions' && (
@@ -604,10 +608,22 @@ function GameEditModal({ game, onClose, onSave }) {
   );
 }
 
+// Home/Away chip — form + label (never color alone).
+function HAChip({ home }) {
+  if (home == null) return null;
+  const isHome = home === true;
+  const c = isHome ? NAVY : ORANGE_DEEP;
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: FN, fontSize: 10, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: c, background: `color-mix(in srgb, ${c} 12%, transparent)`, border: `1px solid color-mix(in srgb, ${c} 40%, transparent)`, padding: '2px 7px', whiteSpace: 'nowrap' }}>
+      <span style={{ fontVariantNumeric: 'tabular-nums' }}>{isHome ? 'H' : 'A'}</span>{isHome ? 'Home' : 'Away'}
+    </span>
+  );
+}
+
 function NextGamePanel({ nextGame, today, onEdit }) {
   const days = dayDiff(nextGame.date, today);
   const when = days <= 0 ? 'Game day' : days === 1 ? 'Tomorrow' : `In ${days} days`;
-  const whereLabel = nextGame.venue ? nextGame.venue : nextGame.home === false ? 'Away' : nextGame.home === true ? 'Home' : null;
+  const timeLabel = nextGame.timeTBD || !nextGame.start ? 'Time TBD' : nextGame.start;
   return (
     <Card padding={18} leftStripe={ORANGE} header={secTitle('Next Game')} headerRight={<div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff' }}>{when}</span>{onEdit && <button onClick={onEdit} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', padding: '4px 9px', cursor: 'pointer' }}>Edit</button>}</div>}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
@@ -615,10 +631,14 @@ function NextGamePanel({ nextGame, today, onEdit }) {
           <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 40, lineHeight: 1, color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums' }}>{Math.max(0, days)}</div>
           <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, marginTop: 4 }}>days</div>
         </div>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 17, color: C.tx }}>{nextGame.opponent ? `vs ${nextGame.opponent}` : 'Official Game'}</div>
-          <div style={{ fontFamily: FB, fontSize: 12.5, color: C.td, marginTop: 5 }}>
-            {dow(nextGame.date)} {monDay(nextGame.date)} · {nextGame.start}{whereLabel ? ` · ${whereLabel}` : ''}
+        <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {nextGame.comp && <div style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: ORANGE_DEEP }}>{nextGame.comp}</div>}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <span style={{ fontFamily: FN, fontWeight: 800, fontSize: 17, color: C.tx }}>{nextGame.opponent ? `vs ${nextGame.opponent}` : 'Opponent TBD'}</span>
+            <HAChip home={nextGame.home} />
+          </div>
+          <div style={{ fontFamily: FB, fontSize: 12.5, color: C.td }}>
+            {dow(nextGame.date)} {monDay(nextGame.date)} · {timeLabel}{nextGame.venue ? ` · ${nextGame.venue}` : ''}
           </div>
         </div>
       </div>
@@ -898,6 +918,222 @@ function ScheduleMonth({ fixtures, today }) {
         </div>
       </div>
     </div>
+  );
+}
+
+// ============================ LEAGUE / GAMES TAB ============================
+// Renders the live league feed synced from basket.co.il (מנהלת ליגת העל) into
+// the store key `expo-bhbc-league` by scripts/_bhbc-sync-league.mjs: standings,
+// per-round results, BHBC team + per-player stats. BHBC always highlighted.
+const isBH = (n) => /הרצליה/.test(n || '');
+const relTime = (iso) => {
+  if (!iso) return '';
+  const diff = (Date.now() - new Date(iso).getTime()) / 60000;
+  if (diff < 1) return 'just now';
+  if (diff < 60) return `${Math.round(diff)}m ago`;
+  if (diff < 1440) return `${Math.round(diff / 60)}h ago`;
+  return `${Math.round(diff / 1440)}d ago`;
+};
+
+function FormDots({ form }) {
+  return (
+    <span style={{ display: 'inline-flex', gap: 3 }}>
+      {(form || []).map((r, i) => (
+        <span key={i} title={r === 'W' ? 'Win' : 'Loss'} style={{ width: 14, height: 14, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 8.5, fontWeight: 800, color: '#fff', background: r === 'W' ? '#37B27C' : '#DE4E3B' }}>{r}</span>
+      ))}
+    </span>
+  );
+}
+
+function StandingsTable({ standings }) {
+  const cols = [
+    { k: 'gp', h: 'GP' }, { k: 'w', h: 'W' }, { k: 'l', h: 'L' },
+    { k: 'pf', h: 'PF' }, { k: 'pa', h: 'PA' }, { k: 'diff', h: '+/–' },
+  ];
+  const th = { fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, padding: '8px 10px', textAlign: 'right', whiteSpace: 'nowrap' };
+  return (
+    <div style={{ overflowX: 'auto' }}>
+      <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 560 }}>
+        <thead>
+          <tr style={{ borderBottom: `1px solid ${C.cardBd}` }}>
+            <th style={{ ...th, textAlign: 'center', width: 34 }}>#</th>
+            <th style={{ ...th, textAlign: 'left' }}>Team</th>
+            {cols.map((c) => <th key={c.k} style={{ ...th, textAlign: 'center' }}>{c.h}</th>)}
+            <th style={{ ...th, textAlign: 'center' }}>Form</th>
+          </tr>
+        </thead>
+        <tbody>
+          {standings.map((s) => {
+            const bh = isBH(s.team);
+            const td = { fontFamily: FN, fontSize: 12.5, color: C.tx, padding: '9px 10px', textAlign: 'center', fontVariantNumeric: 'tabular-nums' };
+            return (
+              <tr key={s.team} className="bhbc-row" style={{ borderBottom: `0.25px solid ${C.cardBd}`, background: bh ? `color-mix(in srgb, ${NAVY} 8%, transparent)` : 'transparent', borderLeft: bh ? `3px solid ${ORANGE}` : '3px solid transparent' }}>
+                <td style={{ ...td, fontWeight: 800, color: bh ? ORANGE_DEEP : C.td }}>{s.rank}</td>
+                <td style={{ ...td, textAlign: 'left', fontWeight: bh ? 800 : 600, color: C.tx, whiteSpace: 'nowrap' }}>{s.team}</td>
+                <td style={td}>{s.gp}</td>
+                <td style={{ ...td, fontWeight: 700, color: '#2E9E6B' }}>{s.w}</td>
+                <td style={{ ...td, color: C.td }}>{s.l}</td>
+                <td style={td}>{s.pf}</td>
+                <td style={td}>{s.pa}</td>
+                <td style={{ ...td, fontWeight: 700, color: s.diff > 0 ? '#2E9E6B' : s.diff < 0 ? '#C9462F' : C.td }}>{s.diff > 0 ? '+' : ''}{s.diff}</td>
+                <td style={{ ...td, padding: '9px 10px' }}><FormDots form={s.form} /></td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function PlayerStatsTable({ players, roster, onOpen }) {
+  const [sort, setSort] = useState('ppg');
+  const cols = [
+    { k: 'gp', h: 'GP' }, { k: 'mpg', h: 'MPG' }, { k: 'ppg', h: 'PPG' },
+    { k: 'rpg', h: 'RPG' }, { k: 'apg', h: 'APG' }, { k: 'tpp', h: '3P%' },
+    { k: 'ftp', h: 'FT%' }, { k: 'pirpg', h: 'PIR' },
+  ];
+  const sorted = [...players].sort((a, b) => (b[sort] || 0) - (a[sort] || 0));
+  // Map a league (Hebrew) name to a roster athlete if the coach aliased it.
+  const rosterByLeague = {};
+  (roster || []).forEach((r) => { if (r.leagueName) rosterByLeague[r.leagueName] = r; });
+  const th = (k, h, first) => (
+    <th key={k} onClick={() => k !== 'name' && setSort(k)} style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: sort === k ? ORANGE_DEEP : C.tm, padding: '8px 9px', textAlign: first ? 'left' : 'center', whiteSpace: 'nowrap', cursor: k === 'name' ? 'default' : 'pointer', userSelect: 'none' }}>{h}{sort === k ? ' ↓' : ''}</th>
+  );
+  return (
+    <div style={{ overflowX: 'auto' }}>
+      <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 620 }}>
+        <thead><tr style={{ borderBottom: `1px solid ${C.cardBd}` }}>{th('name', 'Player', true)}{cols.map((c) => th(c.k, c.h))}</tr></thead>
+        <tbody>
+          {sorted.map((p) => {
+            const linked = rosterByLeague[p.name];
+            const td = { fontFamily: FN, fontSize: 12.5, color: C.tx, padding: '9px 9px', textAlign: 'center', fontVariantNumeric: 'tabular-nums' };
+            return (
+              <tr key={p.name} className="bhbc-row" onClick={() => linked && onOpen(linked.id)} style={{ borderBottom: `0.25px solid ${C.cardBd}`, cursor: linked ? 'pointer' : 'default' }}>
+                <td style={{ ...td, textAlign: 'left', fontWeight: 700, color: C.tx, whiteSpace: 'nowrap' }}>{p.name}{linked && <span style={{ marginLeft: 6, fontFamily: FN, fontSize: 8.5, fontWeight: 700, color: ORANGE_DEEP }}>●</span>}</td>
+                <td style={{ ...td, color: C.td }}>{p.gp}</td>
+                <td style={td}>{p.mpg}</td>
+                <td style={{ ...td, fontWeight: 800, color: ORANGE_DEEP }}>{p.ppg}</td>
+                <td style={td}>{p.rpg}</td>
+                <td style={td}>{p.apg}</td>
+                <td style={{ ...td, color: C.td }}>{p.tpp}%</td>
+                <td style={{ ...td, color: C.td }}>{p.ftp}%</td>
+                <td style={{ ...td, fontWeight: 700 }}>{p.pirpg}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function ResultsList({ games, bhbcOnly }) {
+  const played = games.filter((g) => g.played && (!bhbcOnly || isBH(g.home) || isBH(g.away)));
+  const upcoming = games.filter((g) => !g.played && (!bhbcOnly || isBH(g.home) || isBH(g.away)));
+  const byRound = {};
+  [...played].reverse().forEach((g) => { (byRound[g.round] = byRound[g.round] || []).push(g); });
+  const rounds = Object.keys(byRound).map(Number).sort((a, b) => b - a);
+  const Row = ({ g }) => {
+    const bhHome = isBH(g.home), bh = bhHome || isBH(g.away);
+    const won = g.played && ((bhHome && g.hs > g.as) || (!bhHome && g.as > g.hs));
+    const mark = { fontFamily: FN, fontSize: 12.5, fontWeight: 800, fontVariantNumeric: 'tabular-nums' };
+    return (
+      <div style={{ display: 'grid', gridTemplateColumns: '58px 1fr auto', gap: 12, alignItems: 'center', padding: '9px 10px', borderBottom: `0.25px solid ${C.cardBd}`, background: bh ? `color-mix(in srgb, ${NAVY} 7%, transparent)` : 'transparent', borderLeft: bh ? `3px solid ${ORANGE}` : '3px solid transparent' }}>
+        <div style={{ fontFamily: FN, fontSize: 10.5, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{g.date ? g.date.slice(5).replace('-', '/') : ''}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+          <span style={{ fontFamily: FN, fontSize: 12.5, fontWeight: isBH(g.home) ? 800 : 500, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'right', flex: 1 }}>{g.home}</span>
+          {g.played
+            ? <span style={{ ...mark, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '2px 8px', whiteSpace: 'nowrap' }}>{g.hs}<span style={{ color: C.tm, margin: '0 4px' }}>–</span>{g.as}</span>
+            : <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, letterSpacing: '0.06em' }}>vs</span>}
+          <span style={{ fontFamily: FN, fontSize: 12.5, fontWeight: isBH(g.away) ? 800 : 500, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>{g.away}</span>
+        </div>
+        {bh && g.played
+          ? <span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 800, letterSpacing: '0.04em', color: '#fff', background: won ? '#37B27C' : '#DE4E3B', padding: '2px 7px' }}>{won ? 'W' : 'L'}</span>
+          : <span style={{ width: 22 }} />}
+      </div>
+    );
+  };
+  if (!played.length && !upcoming.length) return <div style={{ fontFamily: FB, fontSize: 12.5, color: C.td, padding: '16px 0', textAlign: 'center' }}>No games yet.</div>;
+  return (
+    <div>
+      {upcoming.length > 0 && (
+        <div style={{ marginBottom: rounds.length ? 14 : 0 }}>
+          <div style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: ORANGE_DEEP, padding: '4px 10px 8px' }}>Upcoming</div>
+          {upcoming.slice(0, 8).map((g, i) => <Row key={i} g={g} />)}
+        </div>
+      )}
+      {rounds.map((r) => (
+        <div key={r} style={{ marginBottom: 10 }}>
+          <div style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, padding: '4px 10px 6px' }}>Round {r}</div>
+          {byRound[r].map((g, i) => <Row key={i} g={g} />)}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function LeagueView({ league, roster, onOpen }) {
+  const [scope, setScope] = useState('bhbc'); // bhbc | all
+  const hasData = league && Array.isArray(league.games) && league.games.length > 0;
+  const bhbcRow = hasData ? (league.standings || []).find((s) => isBH(s.team)) : null;
+  const t = league.team || {};
+  if (!hasData) {
+    return (
+      <Card padding={18} header={secTitle('League')}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '30px 16px', textAlign: 'center' }}>
+          <img src="/logos/bhbc-logo.png" alt="" style={{ height: 60, opacity: 0.9, marginBottom: 6 }} />
+          <div style={{ fontFamily: FN, fontWeight: 700, fontSize: 15, color: C.tx }}>Season hasn't tipped off</div>
+          <div style={{ fontFamily: FB, fontSize: 12.5, color: C.td, maxWidth: 380 }}>Results, standings and player stats sync automatically from the league (מנהלת ליגת העל) as games are played.</div>
+        </div>
+      </Card>
+    );
+  }
+  const summary = [
+    { k: 'Position', v: bhbcRow ? `#${bhbcRow.rank}` : '—', c: ORANGE_DEEP },
+    { k: 'Record', v: bhbcRow ? `${bhbcRow.w}–${bhbcRow.l}` : '—', c: C.tx },
+    { k: 'Points', v: t.ppg || '—', sub: 'per game', c: C.tx },
+    { k: 'Allowed', v: t.oppg || '—', sub: 'per game', c: C.tx },
+    { k: 'Margin', v: t.gp ? `${(t.ppg - t.oppg) > 0 ? '+' : ''}${(t.ppg - t.oppg).toFixed(1)}` : '—', c: (t.ppg - t.oppg) >= 0 ? '#2E9E6B' : '#C9462F' },
+  ];
+  return (
+    <>
+      {/* Team summary + live badge */}
+      <Card padding={18} leftStripe={ORANGE} header={secTitle('Bnei Herzliya · League')} headerRight={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ED88A' }} />Live · {league.season} · {relTime(league.updatedAt)}</span>}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))' }}>
+          {summary.map((s, i) => (
+            <div key={s.k} style={{ padding: '14px 18px', borderLeft: i ? `1px solid ${C.cardBd}` : 'none', display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{s.k}</div>
+              <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 26, lineHeight: 1, color: s.c, fontVariantNumeric: 'tabular-nums' }}>{s.v}</div>
+              {s.sub && <div style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.04em' }}>{s.sub}</div>}
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      {/* Player stats */}
+      <Card padding={18} leftStripe={NAVY} header={secTitle('Player Stats')} headerRight={<span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>{(league.players || []).length} players · tap a column</span>}>
+        {(league.players || []).length
+          ? <PlayerStatsTable players={league.players} roster={roster} onOpen={onOpen} />
+          : <div style={{ fontFamily: FB, fontSize: 12.5, color: C.td, padding: '14px 0', textAlign: 'center' }}>Player box scores sync as games are played.</div>}
+      </Card>
+
+      {/* Results + Standings */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.td }}>Show</div>
+        <div style={{ display: 'inline-flex', border: `1px solid ${C.cardBd}` }}>
+          {[['bhbc', 'BHBC'], ['all', 'Whole league']].map(([k, l]) => (
+            <button key={k} onClick={() => setScope(k)} style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: scope === k ? '#fff' : C.td, background: scope === k ? NAVY : 'transparent', border: 'none', padding: '6px 14px', cursor: 'pointer' }}>{l}</button>
+          ))}
+        </div>
+      </div>
+      <Card padding={18} leftStripe={NAVY} header={secTitle('Results')}>
+        <ResultsList games={league.games} bhbcOnly={scope === 'bhbc'} />
+      </Card>
+      <Card padding={18} leftStripe={NAVY} header={secTitle('Standings')}>
+        <StandingsTable standings={league.standings || []} />
+      </Card>
+    </>
   );
 }
 
