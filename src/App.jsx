@@ -632,7 +632,7 @@ function AuthedApp() {
     try { sessionStorage.removeItem(PORTAL_CHOICE_KEY); } catch {}
     await rawSignOut();
   }, [rawSignOut]);
-  const [trainees,setTrainees,tL]=useSupaStore(KEYS.trainees,[]);
+  const [trainees,setTrainees,tL,,setTraineesLocal]=useSupaStore(KEYS.trainees,[]);
   const [exercises,setExercises,eL]=useSupaStore(KEYS.exercises,[]);
   const { index: planIndex, loaded: pL, reload: reloadPlanIndex } = usePlanIndex();
   const [workouts,setWorkouts,wL]=useSupaStore(KEYS.workouts,[]);
@@ -646,8 +646,8 @@ function AuthedApp() {
   const [portalVis,setPortalVis,,,setPortalVisLocal]=useSupaStore('expo-portal-vis',{});
   // BHBC team command center (/coach/bhbc) — per-athlete session-RPE load + readiness.
   // Owner-only store key (never trainee-visible); JSON blob like expo-bw.
-  const [bhbcLoads,setBhbcLoads]=useSupaStore('expo-bhbc-loads',{});
-  const [bhbcFixtures,setBhbcFixtures]=useSupaStore('expo-bhbc-fixtures',[]);
+  const [bhbcLoads,setBhbcLoads,,,setBhbcLoadsLocal]=useSupaStore('expo-bhbc-loads',{});
+  const [bhbcFixtures,setBhbcFixtures,,,setBhbcFixturesLocal]=useSupaStore('expo-bhbc-fixtures',[]);
   // Live portal-visibility sync: when the coach hides/shows a block, the
   // athlete's OPEN portal (and the coach's other devices) reflect it live
   // instead of on reload. Pure broadcast (no DDL); the athlete never sets it,
@@ -1175,6 +1175,37 @@ function AuthedApp() {
     const iv = setInterval(poll, 30000);
     return () => clearInterval(iv);
   }, [isCoach]);
+
+  // Live sync for the BHBC zone — poll the store keys so coaches see each other's
+  // changes without refreshing (shared-Google-Sheet feel). Gated to the zone.
+  // saveLocal applies the incoming value WITHOUT re-writing. First read is
+  // skipped so it never clobbers a local edit made just before entering.
+  // (A true realtime-broadcast layer like portal-sync is the next step.)
+  const bhbcSeenRef = useRef({});
+  useEffect(() => {
+    if (tab !== 'bhbc') return undefined;
+    let stop = false;
+    const poll = async () => {
+      try {
+        const { data: rows } = await supabase.from('store').select('key, value').in('key', ['expo-bhbc-loads', 'expo-bhbc-fixtures', 'expo-trainees']);
+        if (stop || !rows) return;
+        for (const r of rows) {
+          const j = JSON.stringify(r.value);
+          if (bhbcSeenRef.current[r.key] === j) continue;
+          const first = bhbcSeenRef.current[r.key] === undefined;
+          bhbcSeenRef.current[r.key] = j;
+          if (first) continue;
+          if (r.key === 'expo-bhbc-loads') setBhbcLoadsLocal(r.value);
+          else if (r.key === 'expo-bhbc-fixtures') setBhbcFixturesLocal(r.value);
+          else if (r.key === 'expo-trainees') setTraineesLocal(r.value);
+        }
+      } catch { /* transient */ }
+    };
+    poll();
+    const iv = setInterval(poll, 8000);
+    return () => { stop = true; clearInterval(iv); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
 
   // Dual-role accounts: no portal picked yet → show the picker. Wait for
   // trainees to load so we don't briefly render the picker for a pure trainer
