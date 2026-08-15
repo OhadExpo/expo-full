@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { C, FN, FB, uid, ytId, RESISTANCE_TYPES, BODY_POSITIONS, MOVEMENT_TYPES } from './theme';
 import { Btn, Input, Select, TextArea, Modal, ConfirmDialog, EmptyState, baseInput } from './ui';
+import { classify } from './exerciseClassify';
 
 // Grid-card video: a lightweight YouTube FACADE. The grid can show 200 cards, so
 // it must NOT mount 200 iframes — it paints the lazy poster thumbnail and only
@@ -466,6 +467,13 @@ export default function ExercisesView({ exercises, setExercises }) {
         <div data-allow-copy>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(200px, 100%), 1fr))', gap: 12 }}>
             <div style={{ gridColumn: '1 / -1' }}><Input label="Title" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="e.g., Barbell Back Squat" /></div>
+            {(() => { const g = classify(form.title); return (!form.resistanceType || !form.bodyPosition || !form.movementType) && g.filled > 0 ? (
+              <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <button type="button" onClick={() => setForm(f => ({ ...f, resistanceType: f.resistanceType || g.resistanceType, bodyPosition: f.bodyPosition || g.bodyPosition, movementType: f.movementType || g.movementType }))}
+                  style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.ac, background: `color-mix(in srgb, ${C.ac} 12%, transparent)`, border: `1px solid ${C.ac}`, borderRadius: 0, padding: '6px 12px', cursor: 'pointer' }}>✨ Suggest from title</button>
+                <span style={{ fontFamily: FB, fontSize: 11.5, color: C.tm }}>{[g.resistanceType, g.bodyPosition, g.movementType].filter(Boolean).join(' · ')} — fills blank fields only</span>
+              </div>
+            ) : null; })()}
             <Select label="Resistance Type" options={RESISTANCE_TYPES} value={form.resistanceType} onChange={v => setForm({ ...form, resistanceType: v })} placeholder="Select..." />
             <Select label="Body Position" options={BODY_POSITIONS} value={form.bodyPosition} onChange={v => setForm({ ...form, bodyPosition: v })} placeholder="Select..." />
             <Select label="Movement Type" options={MOVEMENT_TYPES} value={form.movementType} onChange={v => setForm({ ...form, movementType: v })} placeholder="Select..." />
