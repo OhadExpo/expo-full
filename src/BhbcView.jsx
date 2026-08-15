@@ -116,7 +116,7 @@ const Jersey = ({ n, size = 30 }) => (
 
 // ---- component ----
 
-export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, setBhbcLoads, bhbcFixtures = [], setBhbcFixtures, league = {}, medical = {}, setMedical, planIndex = [], exercises = [], clientWorkouts = [], setClientWorkouts, workouts = [], setWorkouts, onDecrementSession, portalVis = {}, bwLog = [], weeklyFocus = {}, onOpenTrainee, onExit, coach = false, onSignOut }) {
+export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, setBhbcLoads, bhbcFixtures = [], setBhbcFixtures, league = {}, medical = {}, setMedical, planIndex = [], exercises = [], clientWorkouts = [], setClientWorkouts, workouts = [], setWorkouts, onDecrementSession, portalVis = {}, bwLog = [], weeklyFocus = {}, onOpenTrainee, onExit, coach = false, onSignOut, canMedical = true }) {
   const [manageOpen, setManageOpen] = useState(false);
   const [newAthlete, setNewAthlete] = useState('');
   const [logFor, setLogFor] = useState(null);
@@ -360,7 +360,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
             )}
 
             {view === 'medical' && (
-              <MedicalView roster={roster} medical={medical} onReport={(aid) => setInjuryFor({ athleteId: aid })} onEdit={(aid, iid) => setInjuryFor({ athleteId: aid, injuryId: iid })} onOpen={setDetailFor} />
+              <MedicalView roster={roster} medical={medical} canMedical={canMedical} onReport={(aid) => setInjuryFor({ athleteId: aid })} onEdit={(aid, iid) => setInjuryFor({ athleteId: aid, injuryId: iid })} onOpen={setDetailFor} />
             )}
 
             {view === 'sessions' && (
@@ -413,7 +413,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
         <GameEditModal game={fx.nextGame} onClose={() => setGameEdit(false)} onSave={(patch) => { updateGame(fx.nextGame, patch); setGameEdit(false); }} />
       )}
 
-      {injuryFor && (() => {
+      {injuryFor && canMedical && (() => {
         const ath = roster.find((t) => t.id === injuryFor.athleteId);
         if (!ath) return null;
         const existing = injuryFor.injuryId ? ((medical[injuryFor.athleteId] || {}).injuries || []).find((i) => i.id === injuryFor.injuryId) : null;
@@ -462,7 +462,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
           workouts={(clientWorkouts || []).filter((w) => String(w.clientId || '').split('__')[0] === detailFor)}
           leaguePlayer={leaguePlayerFor(league, row.t.name)} leagueSeason={league.season}
           injuries={activeInjuries(medical, detailFor)}
-          onInjury={() => { const a = activeInjuries(medical, detailFor); setInjuryFor({ athleteId: detailFor, injuryId: a[0] && a[0].id }); setDetailFor(null); }}
+          onInjury={canMedical ? (() => { const a = activeInjuries(medical, detailFor); setInjuryFor({ athleteId: detailFor, injuryId: a[0] && a[0].id }); setDetailFor(null); }) : null}
           onClose={() => setDetailFor(null)}
           onLog={() => { setLogFor(detailFor); setDetailFor(null); }}
           onOpenExpo={onOpenTrainee ? () => onOpenTrainee(detailFor) : null}
@@ -715,6 +715,29 @@ function HAChip({ home }) {
   );
 }
 
+// Travel legs for European games (jet-lag / travel-load planning).
+function TravelStrip({ travel }) {
+  if (!travel) return null;
+  const leg = (l, dir) => {
+    if (!l) return null;
+    const d = l.date ? `${dow(l.date)} ${monDay(l.date)}` : '';
+    return (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 10.5, color: C.td }}>
+        <span style={{ fontFamily: FN, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm }}>{dir}</span>
+        <span style={{ color: C.tx, fontVariantNumeric: 'tabular-nums' }}>{d}</span>
+        <span>{l.tbd ? 'TBD' : `${l.label} · ${l.flight} ${l.dep}`}</span>
+      </span>
+    );
+  };
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginTop: 10, paddingTop: 10, borderTop: `1px solid ${C.cardBd}` }}>
+      <span style={{ fontFamily: FN, fontSize: 12, color: ORANGE_DEEP }} aria-hidden="true">✈</span>
+      {leg(travel.out, 'Out')}
+      {leg(travel.back, 'Back')}
+    </div>
+  );
+}
+
 function NextGamePanel({ nextGame, today, onEdit }) {
   const days = dayDiff(nextGame.date, today);
   const when = days <= 0 ? 'Game day' : days === 1 ? 'Tomorrow' : `In ${days} days`;
@@ -737,6 +760,7 @@ function NextGamePanel({ nextGame, today, onEdit }) {
           </div>
         </div>
       </div>
+      {nextGame.travel && <TravelStrip travel={nextGame.travel} />}
     </Card>
   );
 }
@@ -1262,7 +1286,7 @@ function StatusPill({ status, small }) {
   );
 }
 
-function MedicalView({ roster, medical, onReport, onEdit, onOpen }) {
+function MedicalView({ roster, medical, canMedical = true, onReport, onEdit, onOpen }) {
   const injured = roster.filter((t) => activeInjuries(medical, t.id).length > 0);
   const cleared = roster.filter((t) => activeInjuries(medical, t.id).length === 0);
   const rows = injured.flatMap((t) => activeInjuries(medical, t.id).map((inj) => ({ t, inj })));
@@ -1270,7 +1294,7 @@ function MedicalView({ roster, medical, onReport, onEdit, onOpen }) {
   rows.forEach(({ inj }) => { if (inj.status === 'out') counts.out++; else if (inj.status === 'limited') counts.limited++; else if (inj.status === 'non-contact') counts.nc++; });
   return (
     <>
-      <Card padding={18} leftStripe={ORANGE} header={secTitle('Medical · Injury Board')} headerRight={<span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>{rows.length} active · shared with PT</span>}>
+      <Card padding={18} leftStripe={ORANGE} header={secTitle('Medical · Injury Board')} headerRight={<span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>{rows.length} active · {canMedical ? 'Ohad + PT' : 'view only'}</span>}>
         <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap' }}>
           {[['Out', counts.out, '#DE4E3B'], ['Limited', counts.limited, '#E0A73A'], ['Non-contact', counts.nc, '#4F9DE0'], ['Cleared', cleared.length, '#37B27C']].map(([k, n, c]) => (
             <div key={k} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -1287,7 +1311,7 @@ function MedicalView({ roster, medical, onReport, onEdit, onOpen }) {
             {rows.map(({ t, inj }) => {
               const days = inj.onsetDate ? dayDiff(todayISO(), inj.onsetDate) : null;
               return (
-                <div key={t.id + inj.id} className="bhbc-row" onClick={() => onEdit(t.id, inj.id)} style={{ display: 'grid', gridTemplateColumns: '150px 1fr 120px 110px auto', gap: 12, alignItems: 'center', padding: '11px 0', borderBottom: `0.25px solid ${C.cardBd}`, cursor: 'pointer' }}>
+                <div key={t.id + inj.id} className="bhbc-row" onClick={() => canMedical && onEdit(t.id, inj.id)} style={{ display: 'grid', gridTemplateColumns: '150px 1fr 120px 110px auto', gap: 12, alignItems: 'center', padding: '11px 0', borderBottom: `0.25px solid ${C.cardBd}`, cursor: canMedical ? 'pointer' : 'default' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
                     <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums' }}>{t.jersey ?? '—'}</span>
                     <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>
@@ -1295,7 +1319,7 @@ function MedicalView({ roster, medical, onReport, onEdit, onOpen }) {
                   <div style={{ fontFamily: FB, fontSize: 12.5, color: C.tx, minWidth: 0 }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : '', inj.type].filter(Boolean).join(' · ')}</div>
                   <StatusPill status={inj.status} />
                   <div style={{ fontFamily: FN, fontSize: 11, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{days != null ? `${days}d` : '—'}{inj.pain != null && inj.pain !== '' ? ` · pain ${inj.pain}` : ''}</div>
-                  <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: NAVY }}>Update ›</div>
+                  <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: NAVY }}>{canMedical ? 'Update ›' : ''}</div>
                 </div>
               );
             })}
@@ -1317,7 +1341,9 @@ function MedicalView({ roster, medical, onReport, onEdit, onOpen }) {
                   {hist > 0 && <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.04em' }}>· {hist} record{hist > 1 ? 's' : ''}</span>}
                 </div>
                 <StatusPill status={status} small />
-                <button onClick={() => (act.length ? onEdit(t.id, act[0].id) : onReport(t.id))} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: act.length ? NAVY : '#fff', background: act.length ? 'transparent' : NAVY, border: act.length ? `1px solid ${C.cardBd}` : 'none', padding: '6px 11px', cursor: 'pointer' }}>{act.length ? 'View' : '+ Report'}</button>
+                {canMedical
+                  ? <button onClick={() => (act.length ? onEdit(t.id, act[0].id) : onReport(t.id))} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: act.length ? NAVY : '#fff', background: act.length ? 'transparent' : NAVY, border: act.length ? `1px solid ${C.cardBd}` : 'none', padding: '6px 11px', cursor: 'pointer' }}>{act.length ? 'View' : '+ Report'}</button>
+                  : <span style={{ width: 64 }} />}
               </div>
             );
           })}

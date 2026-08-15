@@ -32,6 +32,11 @@ export const PARTNER_EMAILS = ['eladeluz24@gmail.com'];
 // practices, games, medical); EXPO-only controls are hidden. DB-side write
 // restriction to BHBC tables is the security layer (provisioned separately).
 export const BHBC_COACH_EMAILS = ['benshemer4@gmail.com', 'elishai115@gmail.com', 'yehuorland@gmail.com', 'yoel23919@gmail.com'];
+// Physical therapist — the ONLY BHBC coach (besides the owner) allowed to
+// report/edit injuries. The other coaches view the medical board read-only and
+// may write only basketball work (sessions/practices/games).
+export const PT_EMAILS = ['yoel23919@gmail.com'];
+export const isPtEmail = (email) => !!email && PT_EMAILS.includes(email.toLowerCase());
 export const TRAINER_EMAILS = [...OWNER_EMAILS, ...STAFF_EMAILS, ...PARTNER_EMAILS, ...BHBC_COACH_EMAILS];
 export const isOwnerEmail = (email) => !!email && OWNER_EMAILS.includes(email.toLowerCase());
 export const isStaffEmail = (email) => !!email && STAFF_EMAILS.includes(email.toLowerCase());
