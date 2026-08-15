@@ -1092,7 +1092,9 @@ function AuthedApp() {
   //   • Incoming ▾ groups Intake / Waitlist
   // The row goes from 11 items down to 8 visible tabs, fitting at
   // 1366px viewport without horizontal scroll.
-  const activeAthletesCount = trainees.filter(t=>t.status!=='Archived'&&t.team!=='BHBC').length;
+  // Include BHBC players — they now appear in the athletes roster too, so the nav
+  // badge must match TraineesView's "All" count (Ohad 2026-08-16).
+  const activeAthletesCount = trainees.filter(t=>t.status!=='Archived').length;
   // Ohad spec 2026-05-16:
   //   Dashboard › Athletes › Tasks › Review › Billing › Incoming › Challenges › Portal
   const tabs = [
@@ -1187,7 +1189,10 @@ function AuthedApp() {
   // (A true realtime-broadcast layer like portal-sync is the next step.)
   const bhbcSeenRef = useRef({});
   useEffect(() => {
-    if (tab !== 'bhbc') return undefined;
+    // Runs in the BHBC zone: the owner (tab==='bhbc') AND basketball coaches,
+    // whose whole surface is the zone regardless of `tab` (so they get the same
+    // live-sync as the owner).
+    if (tab !== 'bhbc' && !isBhbcCoach) return undefined;
     let stop = false;
     const poll = async () => {
       try {
@@ -1222,7 +1227,7 @@ function AuthedApp() {
     const iv = setInterval(poll, 5000);
     return () => { stop = true; clearInterval(iv); if (ch) { try { supabase.removeChannel(ch); } catch { /* noop */ } } };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab]);
+  }, [tab, isBhbcCoach]);
 
   // Dual-role accounts: no portal picked yet → show the picker. Wait for
   // trainees to load so we don't briefly render the picker for a pure trainer
