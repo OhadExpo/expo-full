@@ -33,13 +33,15 @@ const NAVY = '#1E3D74', NAVY_DEEP = '#14294F', ORANGE = '#F26A2B', ORANGE_DEEP =
 const TOKENS = {
   '--c-ac': NAVY,
   '--c-stripBg': NAVY,
-  '--c-cardBd': 'color-mix(in srgb, #1E3D74 42%, var(--c-bd))',
+  '--c-cardBd': 'color-mix(in srgb, #1E3D74 20%, var(--c-bd))',
 };
 const BAND = { detrained: '#4F9DE0', low: '#37B27C', elevated: '#E0A73A', high: '#DE4E3B', none: '#7C828B' };
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const daysAgoISO = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
-const flag = (nat) => String(nat || '').split('/').map((c) => ({ USA: '🇺🇸', ISR: '🇮🇱' }[c.trim()] || '')).join('');
+// Nationality as text (flag emoji doesn't render on Windows Chrome → shows "US"
+// letters at a wrong baseline and breaks row alignment).
+const flag = (nat) => String(nat || '').split('/').map((c) => c.trim()).filter(Boolean).join(' · ');
 const heightM = (cm) => (cm ? (cm / 100).toFixed(2) + 'm' : '');
 const emptyRec = () => ({ loads: {}, sessions: {}, readiness: {}, availability: {} });
 // Availability codes (Ohad's BHBC sheet legend). Semantic status colors.
@@ -57,7 +59,7 @@ const parseISO = (iso) => new Date(String(iso) + 'T00:00:00');
 const dow = (iso) => DOW[parseISO(iso).getDay()];
 const monDay = (iso) => { const d = parseISO(iso); return `${d.getDate()} ${MON[d.getMonth()]}`; };
 const dayDiff = (a, b) => Math.round((parseISO(a) - parseISO(b)) / 86400000);
-const FX_COLOR = { game: ORANGE, practice: NAVY, lift: '#5A6B85' };
+const FX_COLOR = { game: ORANGE, practice: '#4E7FCB', lift: '#6C7A93' };
 const FX_LABEL = { game: 'Game', practice: 'Practice', lift: 'Weights' };
 
 // ---- primitives ----
@@ -255,15 +257,15 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
       {/* ---- ZONE TOP BAR ---- */}
       <header style={{ position: 'sticky', top: 0, zIndex: 50, background: NAVY, borderBottom: `2px solid ${ORANGE}` }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', height: 62, display: 'flex', alignItems: 'center', gap: 14 }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#fff', padding: '5px 7px', flexShrink: 0 }}>
-            <img src="/logos/bhbc-logo.png" alt="Bnei Herzliya BC" style={{ height: 36, width: 'auto', display: 'block' }} />
+          <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#fff', padding: '5px 9px', flexShrink: 0 }}>
+            <img src="/logos/bhbc-logo.png" alt="Bnei Herzliya BC" style={{ height: 44, width: 'auto', display: 'block' }} />
           </span>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 16, color: '#fff', letterSpacing: '0.03em', lineHeight: 1 }}>BNEI HERZLIYA</div>
             <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: ORANGE, marginTop: 5 }}>S&amp;C · 2026/27</div>
           </div>
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
-            <ThemeToggle size={30} />
+            <ThemeToggle size={30} style={{ color: '#fff', border: '1px solid rgba(255,255,255,0.4)' }} />
             {onExit && <button onClick={onExit} title="Back to EXPO coach" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#fff', background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.28)', borderRadius: 0, padding: '7px 12px', cursor: 'pointer' }}>‹ EXPO</button>}
           </div>
         </div>
@@ -292,7 +294,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
           <>
             {/* ---- SUB-NAV (tool tabs) — gives the zone "order" ---- */}
             <div style={{ display: 'flex', gap: 2, borderBottom: `1px solid ${C.cardBd}`, flexWrap: 'wrap' }}>
-              {[['overview', 'Overview'], ['schedule', 'Schedule'], ['sessions', 'Sessions'], ['roster', 'Roster']].map(([k, label]) => {
+              {[['overview', 'Overview'], ['roster', 'Roster'], ['schedule', 'Schedule'], ['sessions', 'Sessions']].map(([k, label]) => {
                 const active = view === k;
                 return (
                   <button key={k} onClick={() => setView(k)} style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: active ? C.tx : C.td, background: 'transparent', border: 'none', borderBottom: active ? `2px solid ${ORANGE}` : '2px solid transparent', padding: '10px 16px', marginBottom: -1, cursor: 'pointer' }}>{label}</button>
@@ -436,7 +438,7 @@ function AthleteModal({ row, rec, days28, workouts = [], onClose, onLog, onOpenE
   const av = AVAIL[avail];
   // Unified activity: sRPE practice/quick logs + detailed gym sessions (client_workouts).
   const activity = [];
-  Object.entries((rec && rec.sessions) || {}).forEach(([d, arr]) => (arr || []).forEach((s) => activity.push({ date: d, label: `${s.type} ${s.min}′ @ RPE ${s.rpe}`, load: s.load })));
+  Object.entries((rec && rec.sessions) || {}).forEach(([d, arr]) => (arr || []).forEach((s) => activity.push({ date: d, label: `${s.type} ${s.min} min @ RPE ${s.rpe}`, load: s.load })));
   (workouts || []).forEach((w) => { const d = String(w.date || w.completedAt || '').slice(0, 10); const nEx = (w.exercises || []).length; const nSets = (w.exercises || []).reduce((a, e) => a + (e.sets || []).length, 0); if (d) activity.push({ date: d, label: `Gym · ${nEx} lift${nEx === 1 ? '' : 's'}, ${nSets} set${nSets === 1 ? '' : 's'}`, load: null }); });
   Object.entries((rec && rec.bw) || {}).forEach(([d, kg]) => activity.push({ date: d, label: `Bodyweight ${kg} kg`, load: null }));
   Object.entries((rec && rec.availability) || {}).forEach(([d, code]) => { if (code > 1) activity.push({ date: d, label: `Availability · ${AVAIL[code].label}`, load: null }); });
@@ -531,7 +533,7 @@ function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave }) {
             </select>
           </div>
         </div>
-        {dayFx.length > 0 && <div style={{ fontFamily: FN, fontSize: 10.5, color: C.td }}>From calendar: {dayFx.map((f) => `${f.start} ${FX_LABEL[f.type] || 'Session'} ${f.minutes}′`).join('  ·  ')}</div>}
+        {dayFx.length > 0 && <div style={{ fontFamily: FN, fontSize: 10.5, color: C.td }}>From calendar: {dayFx.map((f) => `${f.start} ${FX_LABEL[f.type] || 'Session'} ${f.minutes} min`).join('  ·  ')}</div>}
         <div style={{ overflowX: 'auto' }}>
           <div style={{ minWidth: 560 }}>
             <div style={{ display: 'grid', gridTemplateColumns: cols, gap: 8, padding: '0 0 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }}>
@@ -595,7 +597,7 @@ function NextGamePanel({ nextGame, today, onEdit }) {
   const when = days <= 0 ? 'Game day' : days === 1 ? 'Tomorrow' : `In ${days} days`;
   const whereLabel = nextGame.venue ? nextGame.venue : nextGame.home === false ? 'Away' : nextGame.home === true ? 'Home' : null;
   return (
-    <Card leftStripe={ORANGE} header="Next Game" headerRight={<div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff' }}>{when}</span>{onEdit && <button onClick={onEdit} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', padding: '4px 9px', cursor: 'pointer' }}>Edit</button>}</div>}>
+    <Card padding={18} leftStripe={ORANGE} header="Next Game" headerRight={<div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff' }}>{when}</span>{onEdit && <button onClick={onEdit} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', padding: '4px 9px', cursor: 'pointer' }}>Edit</button>}</div>}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
         <div style={{ textAlign: 'center', flexShrink: 0 }}>
           <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 40, lineHeight: 1, color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums' }}>{Math.max(0, days)}</div>
@@ -623,11 +625,11 @@ function TodayPanel({ today, fixtures, fx, rows, onSessions, onLog }) {
     <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${FX_COLOR[f.type] || NAVY}`, padding: '6px 11px', background: 'var(--c-sf)' }}>
       <span style={{ fontFamily: FN, fontSize: 12, color: C.tx, fontVariantNumeric: 'tabular-nums' }}>{f.start}</span>
       <span style={{ fontFamily: FN, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: FX_COLOR[f.type] || NAVY }}>{FX_LABEL[f.type] || 'Session'}</span>
-      <span style={{ fontFamily: FN, fontSize: 10, color: C.td }}>{f.minutes}′</span>
+      <span style={{ fontFamily: FN, fontSize: 10, color: C.td }}>{f.minutes} min</span>
     </span>
   );
   return (
-    <Card leftStripe={ORANGE} header={`Today · ${dow(today)} ${monDay(today)}`} headerRight={gdLabel ? <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff' }}>{gdLabel}</span> : null}>
+    <Card padding={18} leftStripe={ORANGE} header={`Today · ${dow(today)} ${monDay(today)}`} headerRight={gdLabel ? <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff' }}>{gdLabel}</span> : null}>
       <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'flex-start' }}>
         <div style={{ flex: '2 1 300px', minWidth: 240 }}>
           <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm, marginBottom: 8 }}>Sessions</div>
@@ -668,7 +670,7 @@ function TeamSnapshotCard({ team }) {
     { k: '7-day load', v: team.week ? team.week.toLocaleString() : '—', sub: 'team sRPE', c: C.tx, spark: team.teamSeries },
   ];
   return (
-    <Card leftStripe={NAVY} header="Team Snapshot" padding={0}>
+    <Card leftStripe={NAVY} header="Team Snapshot" padding={18}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))' }}>
         {cells.map((s, i) => (
           <div key={s.k} style={{ padding: '16px 18px', borderLeft: i ? `1px solid ${C.cardBd}` : 'none', display: 'flex', flexDirection: 'column', gap: 8, minHeight: 92 }}>
@@ -741,8 +743,8 @@ function RosterGrid({ rows, onOpen }) {
               <div style={{ fontFamily: FN, fontWeight: 700, fontSize: 15, color: C.tx, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</div>
               <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 4 }}>{t.position || '—'}</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, paddingTop: 10, borderTop: `0.25px solid ${C.cardBd}` }}>
-                <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontVariantNumeric: 'tabular-nums' }}>{heightM(t.heightCm)}</span>
-                <span style={{ fontSize: 12 }}>{flag(t.nationality)}</span>
+                <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{heightM(t.heightCm)}</span>
+                <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', color: C.tm, lineHeight: 1 }}>{flag(t.nationality)}</span>
                 <span style={{ marginLeft: 'auto' }}>{acwr.ratio != null ? <BandPill band={acwr.band} value={acwr.ratio.toFixed(2)} /> : <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>baseline</span>}</span>
               </div>
             </div>
@@ -762,7 +764,7 @@ function ScheduleTool({ fx, fixtures, today, mode, setMode }) {
     </div>
   );
   return (
-    <Card leftStripe={ORANGE} header="Schedule" headerRight={toggle}>
+    <Card padding={18} leftStripe={ORANGE} header="Schedule" headerRight={toggle}>
       {mode === 'calendar' ? <ScheduleMonth fixtures={fixtures} today={today} /> : mode === 'week' ? <ScheduleWeek fixtures={fixtures} today={today} /> : <ScheduleList fx={fx} today={today} />}
     </Card>
   );
@@ -788,7 +790,7 @@ function ScheduleList({ fx, today }) {
                 <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 9, border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${FX_COLOR[f.type] || NAVY}`, padding: '6px 11px', background: 'var(--c-sf)' }}>
                   <span style={{ fontFamily: FN, fontSize: 12, color: C.tx, fontVariantNumeric: 'tabular-nums' }}>{f.start}</span>
                   <span style={{ fontFamily: FN, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: FX_COLOR[f.type] || NAVY }}>{FX_LABEL[f.type] || 'Session'}</span>
-                  <span style={{ fontFamily: FN, fontSize: 10, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{f.minutes}′</span>
+                  <span style={{ fontFamily: FN, fontSize: 10, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{f.minutes} min</span>
                   {f.location && <span style={{ fontFamily: FB, fontSize: 10, color: C.tm }}>· {f.location}</span>}
                 </span>
               ))}
@@ -823,7 +825,7 @@ function ScheduleWeek({ fixtures, today }) {
                 {items.map((f, i) => (
                   <div key={i} style={{ border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${FX_COLOR[f.type] || NAVY}`, padding: '5px 7px', background: 'var(--c-bg)' }}>
                     <div style={{ fontFamily: FN, fontSize: 10.5, fontWeight: 700, color: FX_COLOR[f.type] || NAVY, textTransform: 'uppercase' }}>{FX_LABEL[f.type] || 'Session'}</div>
-                    <div style={{ fontFamily: FN, fontSize: 10, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{f.start} · {f.minutes}′</div>
+                    <div style={{ fontFamily: FN, fontSize: 10, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{f.start} · {f.minutes} min</div>
                     {f.location && <div style={{ fontFamily: FB, fontSize: 9, color: C.tm }}>{f.location}</div>}
                   </div>
                 ))}
@@ -938,7 +940,7 @@ function LogModal({ open, initialAthlete, roster, fixtures = [], availableCount 
               {day.map((f, i) => (
                 <button key={i} type="button" onClick={() => { setMinutes(String(f.minutes)); setType(f.type === 'lift' ? 'Lift' : f.type === 'game' ? 'Game' : 'Practice'); }}
                   style={{ fontFamily: FN, fontSize: 10, color: FX_COLOR[f.type] || NAVY, background: 'transparent', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${FX_COLOR[f.type] || NAVY}`, padding: '4px 8px', cursor: 'pointer' }}>
-                  {f.start} {FX_LABEL[f.type] || 'Session'} {f.minutes}′
+                  {f.start} {FX_LABEL[f.type] || 'Session'} {f.minutes} min
                 </button>
               ))}
             </div>
