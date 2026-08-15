@@ -237,7 +237,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   // the whole squad in one write (Ohad: "a smart easy system for each practice
   // like the BHBC schedule sheet"). Load = minutes × (per-athlete RPE or team RPE);
   // Out athletes get availability recorded but no load.
-  const savePractice = useCallback(({ date, minutes, teamRpe, intensity, entries }) => {
+  const savePractice = useCallback(({ date, minutes, teamRpe, intensity, entries, sessionType = 'Practice' }) => {
     setBhbcLoads((prev) => {
       const next = { ...prev };
       Object.entries(entries).forEach(([id, e]) => {
@@ -248,7 +248,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
         if (load > 0) {
           rec.loads = { ...(rec.loads || {}), [date]: (rec.loads?.[date] || 0) + load };
           rec.sessions = { ...(rec.sessions || {}) };
-          rec.sessions[date] = [...(rec.sessions[date] || []), { type: 'Practice', min: Number(minutes) || 0, rpe, load, intensity, note: e.note || '', team: true }];
+          rec.sessions[date] = [...(rec.sessions[date] || []), { type: sessionType, min: Number(minutes) || 0, rpe, load, intensity, note: e.note || '', team: true }];
         }
         if (e.bw) rec.bw = { ...(rec.bw || {}), [date]: Number(e.bw) };
         if (e.note) rec.notes = { ...(rec.notes || {}), [date]: e.note };
@@ -256,7 +256,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
       });
       return next;
     });
-    toast('Practice saved'); notify();
+    toast(`${sessionType} saved`); notify();
   }, [setBhbcLoads, notify]);
 
   // Squad morning wellness check-in → readiness[date] per athlete, feeding the
@@ -723,6 +723,7 @@ function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave }) {
   const [minutes, setMinutes] = useState('');
   const [teamRpe, setTeamRpe] = useState('');
   const [intensity, setIntensity] = useState('');
+  const [sessionType, setSessionType] = useState('Practice');
   const [entries, setEntries] = useState({});
   useEffect(() => {
     const e = {};
@@ -731,16 +732,25 @@ function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave }) {
     const list = (fixtures || []).filter((f) => f.date === date);
     const prac = list.find((f) => f.type === 'practice') || list[0];
     setMinutes(prac ? String(prac.minutes) : '');
+    // Default the session type from the day's fixture (game day → Game).
+    const g = list.find((f) => f.type === 'game');
+    setSessionType(g ? 'Game' : (list.find((f) => f.type === 'lift') && !prac ? 'Lift' : 'Practice'));
   }, [date]); // eslint-disable-line react-hooks/exhaustive-deps
   const set = (id, k, v) => setEntries((prev) => ({ ...prev, [id]: { ...prev[id], [k]: v } }));
   const inp = { fontFamily: FN, fontSize: 12, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 8px', width: '100%', height: 32, boxSizing: 'border-box' };
   const canSave = Number(minutes) > 0 && Number(teamRpe) > 0;
   const cols = '24px 1.4fr 116px 56px 66px 1.5fr';
   return (
-    <Modal open onClose={onClose} wide title="Log practice">
+    <Modal open onClose={onClose} wide title="Log session">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.9fr 0.9fr 1.3fr', gap: 10, alignItems: 'end' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr 0.8fr 0.8fr 1fr', gap: 10, alignItems: 'end' }}>
           <Input label="Date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <label style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: FN, textAlign: 'center' }}>Type</label>
+            <select value={sessionType} onChange={(e) => setSessionType(e.target.value)} style={inp}>
+              {['Practice', 'Game', 'Lift', 'Shootaround', 'Conditioning', 'Recovery'].map((o) => <option key={o} value={o}>{o}</option>)}
+            </select>
+          </div>
           <Input label="Minutes" type="number" value={minutes} onChange={(e) => setMinutes(e.target.value)} placeholder="75" />
           <Input label="Team RPE" type="number" min="0" max="10" step="0.5" value={teamRpe} onChange={(e) => setTeamRpe(e.target.value)} placeholder="7" />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -776,7 +786,7 @@ function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave }) {
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{ fontFamily: FN, fontSize: 10.5, color: C.td, marginRight: 'auto' }}>Load = minutes × RPE (per-athlete or team). Out athletes: availability only.</span>
           <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
-          <Btn disabled={!canSave} onClick={() => onSave({ date, minutes, teamRpe, intensity, entries })} style={{ background: canSave ? NAVY : undefined, borderColor: canSave ? NAVY : undefined, color: canSave ? '#fff' : undefined }}>Save practice</Btn>
+          <Btn disabled={!canSave} onClick={() => onSave({ date, minutes, teamRpe, intensity, entries, sessionType })} style={{ background: canSave ? NAVY : undefined, borderColor: canSave ? NAVY : undefined, color: canSave ? '#fff' : undefined }}>Save {sessionType.toLowerCase()}</Btn>
         </div>
       </div>
     </Modal>
