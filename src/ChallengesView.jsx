@@ -17,7 +17,7 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { fmtPrettyDate } from './dates';
 import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
-import { isRefined5b, RefinedHeaderStrip, Modal, Btn, Input, Select, confirmToast, toast } from './ui';
+import { isRefined5b, RefinedHeaderStrip, Modal, Btn, Input, Select, confirmToast, toast, stripBtnBase } from './ui';
 import { GOAL_TYPES, computeProgress, TEMPLATES } from './challengePredicates';
 
 const fmtDate = (d) => {
@@ -197,13 +197,7 @@ export default function ChallengesView({ trainees, clientWorkouts, bwLog }) {
             CHALLENGES ({challenges.length})
           </span>
           <button onClick={() => { setEditChallenge(null); setShowCreate(true); }}
-            style={{
-              background: 'transparent',
-              border: `1px solid ${refined ? '#FFFFFF' : C.ac}`,
-              color: refined ? '#FFFFFF' : C.ac,
-              padding: '4px 12px', borderRadius: 0, fontFamily: FN, fontSize: 10,
-              fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer',
-            }}>+ NEW CHALLENGE</button>
+            style={{ ...stripBtnBase, border: `1px solid ${refined ? '#FFFFFF' : C.ac}`, color: refined ? '#FFFFFF' : C.ac }}>+ NEW CHALLENGE</button>
         </div>
       </RefinedHeaderStrip>
 
