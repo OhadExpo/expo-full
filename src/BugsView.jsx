@@ -11,7 +11,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { C, FN, FB } from './theme';
 import { safeUrl } from './VideoEmbed';
 import { supabase } from './supabase';
-import { isRefined5b, RefinedHeaderStrip, confirmToast, toast } from './ui';
+import { isRefined5b, RefinedHeaderStrip, confirmToast, toast, stripBtnBase } from './ui';
 
 const STATUS_PILLS = [
   { id: 'open',    label: 'OPEN',    color: C.rd },
@@ -92,13 +92,7 @@ export default function BugsView() {
             BUG REPORTS ({counts.open || 0} open)
           </span>
           <button onClick={reload}
-            style={{
-              background: 'transparent',
-              border: `1px solid ${refined ? '#FFFFFF' : C.ac}`,
-              color: refined ? '#FFFFFF' : C.ac,
-              padding: '3px 10px', borderRadius: 0, fontFamily: FN, fontSize: 10,
-              fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer',
-            }}>↻ REFRESH</button>
+            style={{ ...stripBtnBase, border: `1px solid ${refined ? '#FFFFFF' : C.ac}`, color: refined ? '#FFFFFF' : C.ac }}>↻ REFRESH</button>
         </div>
       </RefinedHeaderStrip>
 
