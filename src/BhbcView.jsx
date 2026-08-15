@@ -803,7 +803,9 @@ function ScheduleList({ fx, today }) {
 }
 
 function ScheduleWeek({ fixtures, today }) {
-  const anchor = parseISO(today);
+  // Anchor to the week that holds the next session, so it's never blank pre-season.
+  const upcoming = (fixtures || []).filter((f) => f.date >= today).sort((a, b) => a.date.localeCompare(b.date));
+  const anchor = parseISO(upcoming[0]?.date || today);
   const weekStart = new Date(anchor); weekStart.setDate(anchor.getDate() - anchor.getDay());
   const isoOf = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   const byDate = {};
