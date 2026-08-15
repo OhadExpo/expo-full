@@ -247,7 +247,11 @@ export function RefinedHeaderStrip({ children, padY = 14, padX = 18, marginBotto
       // COLLAPSED (parent passes marginBottom:0, no body follows) it becomes a
       // stray cyan line over emptiness. Drop it when collapsed so a collapsed box
       // reads as a clean strip like Revenue (Ohad #262). (px or 0 both handled.)
-      borderBottom: (marginBottom === 0 || marginBottom === '0') ? 'none' : '1px solid var(--c-cardBd)',
+      // Drawn as an INSET shadow, not a border: a 1px border-box border would
+      // shrink the content box and knock the vertically-centered content 1px
+      // off-center (Ohad: the +TASK button must sit dead-center). Shadow paints
+      // the same hairline with zero layout cost, so top/bottom gaps stay equal.
+      boxShadow: (marginBottom === 0 || marginBottom === '0') ? 'none' : 'inset 0 -1px 0 var(--c-cardBd)',
     }}>{children}</div>
   );
 }
@@ -389,7 +393,10 @@ export function CollapsibleSection({ title, titleNode, count, right, storageKey,
   const stripStyle = bare
     ? { background: stripBg, border: baseBorder, padding: '0 14px', ...stripH }
     : (open
-        ? { background: stripBg, borderBottom: `1px solid ${C.cardBd}`, padding: `0 ${padX}px`, ...stripH }
+        // Divider as an inset shadow (not a border-box borderBottom) so it doesn't
+        // shrink the content box and push the vertically-centered header/buttons
+        // 1px off-center (Ohad). Bare/collapsed use a full border → already symmetric.
+        ? { background: stripBg, boxShadow: `inset 0 -1px 0 ${C.cardBd}`, padding: `0 ${padX}px`, ...stripH }
         // Collapsed non-bare: the strip stands ALONE (the card body box beneath it
         // is gone), so it carries its OWN full border — matching the `bare` collapsed
         // look. Fixes the stray empty white box some sections showed collapsed (#260).
