@@ -17,6 +17,7 @@ export default function CoachPreviewPortal({ traineeId, planId, trainees, exerci
   const [plans, setPlans] = useState(null);
   const [resolvedTraineeId, setResolvedTraineeId] = useState(traineeId || null);
   const [error, setError] = useState(null);
+  const [reloadNonce, setReloadNonce] = useState(0);
 
   // Reshape Supabase plan rows (snake_case + nested data) into the shape
   // ClientPortal expects (camelCase, days/warmup/weeks pulled to top level).
@@ -67,6 +68,22 @@ export default function CoachPreviewPortal({ traineeId, planId, trainees, exerci
       }
     })();
     return () => { alive = false; };
+  }, [traineeId, planId, reloadNonce]);
+
+  // Live shared-sheet (read side): when a coach saves this program elsewhere,
+  // the editor broadcasts on 'plans-live' and this preview refetches — the
+  // athlete-view reflects edits live. Read-only, so there's nothing to clobber.
+  useEffect(() => {
+    let disposed = false;
+    const ch = supabase.channel('plans-live', { config: { broadcast: { self: false } } });
+    ch.on('broadcast', { event: 'plan-changed' }, ({ payload }) => {
+      if (disposed || !payload) return;
+      const hitPlan = planId && payload.planId === planId;
+      const hitTrainee = traineeId && payload.traineeId && (payload.traineeId === traineeId || String(payload.traineeId).startsWith(traineeId + '__'));
+      if (hitPlan || hitTrainee) setReloadNonce((n) => n + 1);
+    });
+    ch.subscribe();
+    return () => { disposed = true; try { supabase.removeChannel(ch); } catch { /* noop */ } };
   }, [traineeId, planId]);
 
   const trainee = (trainees||[]).find(t => t.id === resolvedTraineeId);

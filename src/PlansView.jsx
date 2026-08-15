@@ -1651,6 +1651,31 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
     editorApiRef.current = { flush: flushAutosave, markClean };
     return () => { editorApiRef.current = null; };
   }, [editorApiRef, flushAutosave, markClean]);
+
+  // Live shared-sheet (write side): after each autosave lands, broadcast on the
+  // 'plans-live' channel so any open read-only preview of this program refetches
+  // and reflects the edit live. Broadcast only (self:false); does not touch the
+  // editor's own state, so there's no clobber risk here.
+  const editorIdRef = useRef('ed_' + Math.random().toString(36).slice(2, 9));
+  const liveChanRef = useRef(null);
+  const prevAutoRef = useRef(autoStatus);
+  useEffect(() => {
+    let disposed = false;
+    import('./supabase').then(({ supabase }) => {
+      if (disposed) return;
+      const ch = supabase.channel('plans-live', { config: { broadcast: { self: false } } });
+      ch.subscribe();
+      liveChanRef.current = ch;
+    }).catch(() => {});
+    return () => { disposed = true; const c = liveChanRef.current; liveChanRef.current = null; if (c) import('./supabase').then(({ supabase }) => supabase.removeChannel(c)).catch(() => {}); };
+  }, []);
+  useEffect(() => {
+    if (prevAutoRef.current !== 'saved' && autoStatus === 'saved') {
+      const c = liveChanRef.current;
+      if (c && plan.id) { try { c.send({ type: 'broadcast', event: 'plan-changed', payload: { planId: plan.id, traineeId: plan.traineeId, editorId: editorIdRef.current } }); } catch { /* noop */ } }
+    }
+    prevAutoRef.current = autoStatus;
+  }, [autoStatus, plan.id, plan.traineeId]);
   // Compare mode: pad the fixed Program-Name/Phase/Weeks row right so it
   // ends level with the scroller content (Pattern Coverage), not over the
   // scrollbar.
