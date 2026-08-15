@@ -734,14 +734,14 @@ function RosterGrid({ rows, onOpen }) {
 function ScheduleTool({ fx, fixtures, today, mode, setMode }) {
   const toggle = (
     <div style={{ display: 'inline-flex', border: '1px solid rgba(255,255,255,0.32)' }}>
-      {[['calendar', 'Calendar'], ['list', 'List']].map(([k, l]) => (
+      {[['calendar', 'Month'], ['week', 'Week'], ['list', 'List']].map(([k, l]) => (
         <button key={k} onClick={() => setMode(k)} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: mode === k ? NAVY : '#fff', background: mode === k ? '#fff' : 'transparent', border: 'none', padding: '5px 12px', cursor: 'pointer' }}>{l}</button>
       ))}
     </div>
   );
   return (
     <Card leftStripe={ORANGE} header="Schedule" headerRight={toggle}>
-      {mode === 'calendar' ? <ScheduleMonth fixtures={fixtures} today={today} /> : <ScheduleList fx={fx} today={today} />}
+      {mode === 'calendar' ? <ScheduleMonth fixtures={fixtures} today={today} /> : mode === 'week' ? <ScheduleWeek fixtures={fixtures} today={today} /> : <ScheduleList fx={fx} today={today} />}
     </Card>
   );
 }
@@ -774,6 +774,42 @@ function ScheduleList({ fx, today }) {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+function ScheduleWeek({ fixtures, today }) {
+  const anchor = parseISO(today);
+  const weekStart = new Date(anchor); weekStart.setDate(anchor.getDate() - anchor.getDay());
+  const isoOf = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const byDate = {};
+  (fixtures || []).forEach((f) => { (byDate[f.date] = byDate[f.date] || []).push(f); });
+  const days = Array.from({ length: 7 }, (_, i) => { const d = new Date(weekStart); d.setDate(weekStart.getDate() + i); return d; });
+  return (
+    <div style={{ overflowX: 'auto' }}>
+      <div style={{ minWidth: 640, display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6 }}>
+        {days.map((d) => {
+          const di = isoOf(d); const isToday = di === today;
+          const items = (byDate[di] || []).slice().sort((a, b) => a.start.localeCompare(b.start));
+          return (
+            <div key={di} style={{ border: `1px solid ${C.cardBd}`, background: isToday ? `color-mix(in srgb, ${ORANGE} 8%, var(--c-sf))` : 'var(--c-sf)', minHeight: 168, display: 'flex', flexDirection: 'column' }}>
+              <div style={{ padding: '8px 6px', borderBottom: `1px solid ${C.cardBd}`, textAlign: 'center' }}>
+                <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: isToday ? ORANGE_DEEP : C.tm }}>{DOW[d.getDay()]}</div>
+                <div style={{ fontFamily: FN, fontSize: 16, fontWeight: 800, color: isToday ? ORANGE_DEEP : C.tx, fontVariantNumeric: 'tabular-nums' }}>{d.getDate()}</div>
+              </div>
+              <div style={{ padding: 6, display: 'flex', flexDirection: 'column', gap: 5 }}>
+                {items.map((f, i) => (
+                  <div key={i} style={{ border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${FX_COLOR[f.type] || NAVY}`, padding: '5px 7px', background: 'var(--c-bg)' }}>
+                    <div style={{ fontFamily: FN, fontSize: 10.5, fontWeight: 700, color: FX_COLOR[f.type] || NAVY, textTransform: 'uppercase' }}>{FX_LABEL[f.type] || 'Session'}</div>
+                    <div style={{ fontFamily: FN, fontSize: 10, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{f.start} · {f.minutes}′</div>
+                    {f.location && <div style={{ fontFamily: FB, fontSize: 9, color: C.tm }}>{f.location}</div>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
