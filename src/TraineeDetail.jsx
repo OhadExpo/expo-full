@@ -337,8 +337,13 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       setPortalVis(nv);
     };
     return (
-      <div style={{flex:1,minWidth:0}}>
-        <Card style={{marginBottom:8}}
+      // Flex-column so the member Card can FILL the column, which the couple row
+      // stretches to the taller member's height (align-items:stretch). Result:
+      // both member boxes are the SAME height even when one has an injuries box
+      // and the other doesn't (Ohad — equal boxes). flex:1 on the Card only in
+      // couple mode (showPrograms=false) so a future solo caller isn't squished.
+      <div style={{flex:1,minWidth:0,display:'flex',flexDirection:'column'}}>
+        <Card style={{marginBottom:8, flex: showPrograms ? undefined : 1}}
           header={<span style={{display:'inline-flex',alignItems:'baseline',gap:10,fontWeight:700,fontSize:14,letterSpacing:'0.04em',textTransform:'uppercase'}}>{m.name}</span>}>
           {/* Name + email body block — rendered in BOTH themes (was `!isRefined5b()`,
               i.e. dark only, which made dark 56px taller than light). Ohad wants
