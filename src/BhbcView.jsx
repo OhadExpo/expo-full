@@ -116,7 +116,9 @@ const Jersey = ({ n, size = 30 }) => (
 
 // ---- component ----
 
-export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, setBhbcLoads, bhbcFixtures = [], setBhbcFixtures, league = {}, medical = {}, setMedical, planIndex = [], exercises = [], clientWorkouts = [], setClientWorkouts, workouts = [], setWorkouts, onDecrementSession, portalVis = {}, bwLog = [], weeklyFocus = {}, onOpenTrainee, onExit, coach = false, onSignOut, canMedical = true }) {
+export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, setBhbcLoads, bhbcFixtures = [], setBhbcFixtures, league = {}, medical = {}, setMedical, planIndex = [], exercises = [], clientWorkouts = [], setClientWorkouts, workouts = [], setWorkouts, onDecrementSession, portalVis = {}, bwLog = [], weeklyFocus = {}, onOpenTrainee, onExit, coach = false, onSignOut, canMedical = true, onLocalWrite }) {
+  // Broadcast a change to other open zones after any local write (shared-sheet sync).
+  const notify = useCallback(() => { if (onLocalWrite) onLocalWrite(); }, [onLocalWrite]);
   const [manageOpen, setManageOpen] = useState(false);
   const [newAthlete, setNewAthlete] = useState('');
   const [logFor, setLogFor] = useState(null);
@@ -187,7 +189,8 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
       rec.availability = { ...(rec.availability || {}), [today]: (current % 5) + 1 };
       return { ...prev, [id]: rec };
     });
-  }, [setBhbcLoads, today]);
+    notify();
+  }, [setBhbcLoads, today, notify]);
 
   const logSession = useCallback(({ athleteId, date, type, minutes, rpe, readiness }) => {
     const load = sessionLoad(minutes, rpe);
@@ -202,8 +205,8 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
       if (r.pain || r.sleep || r.energy) rec.readiness[date] = { ...(rec.readiness[date] || {}), ...r };
       return { ...prev, [athleteId]: rec };
     });
-    toast('Logged');
-  }, [setBhbcLoads]);
+    toast('Logged'); notify();
+  }, [setBhbcLoads, notify]);
 
   // Bulk: log one session's load for the WHOLE available squad (a team all does
   // the same practice). Skips anyone marked Out that day. Feeds every athlete's ACWR.
@@ -226,8 +229,8 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
       });
       return next;
     });
-    toast(`Logged for ${n} athletes`);
-  }, [setBhbcLoads, roster]);
+    toast(`Logged for ${n} athletes`); notify();
+  }, [setBhbcLoads, roster, notify]);
 
   // The sheet-like per-practice save: availability + load + bodyweight + note for
   // the whole squad in one write (Ohad: "a smart easy system for each practice
@@ -252,14 +255,14 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
       });
       return next;
     });
-    toast('Practice saved');
-  }, [setBhbcLoads]);
+    toast('Practice saved'); notify();
+  }, [setBhbcLoads, notify]);
 
   const updateGame = useCallback((g, patch) => {
     if (!setBhbcFixtures) return;
     setBhbcFixtures((prev) => (prev || []).map((f) => (f.date === g.date && f.start === g.start && f.type === 'game') ? { ...f, ...patch } : f));
-    toast('Game updated');
-  }, [setBhbcFixtures]);
+    toast('Game updated'); notify();
+  }, [setBhbcFixtures, notify]);
 
   // ---- Medical / injury record (Ohad + physical therapist) ----
   // Saving an injury/progress entry can also set the athlete's availability that
@@ -284,8 +287,8 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
         return { ...prev, [athleteId]: r };
       });
     }
-    toast('Medical record saved');
-  }, [setMedical, setBhbcLoads, today]);
+    toast('Medical record saved'); notify();
+  }, [setMedical, setBhbcLoads, today, notify]);
 
   const rowGrid = '28px minmax(116px,1.5fr) 112px 46px 130px minmax(104px,1.1fr) 92px';
 

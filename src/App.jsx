@@ -1188,6 +1188,12 @@ function AuthedApp() {
   // skipped so it never clobbers a local edit made just before entering.
   // (A true realtime-broadcast layer like portal-sync is the next step.)
   const bhbcSeenRef = useRef({});
+  const bhbcChanRef = useRef(null);
+  // Called by the zone after any local write so other open clients refetch at once.
+  const notifyBhbcChange = useCallback(() => {
+    const c = bhbcChanRef.current;
+    if (c) { try { c.send({ type: 'broadcast', event: 'change', payload: {} }); } catch { /* noop */ } }
+  }, []);
   useEffect(() => {
     // Runs in the BHBC zone: the owner (tab==='bhbc') AND basketball coaches,
     // whose whole surface is the zone regardless of `tab` (so they get the same
@@ -1222,10 +1228,16 @@ function AuthedApp() {
       ['expo-bhbc-loads', 'expo-bhbc-fixtures', 'expo-bhbc-league', 'expo-bhbc-medical', 'expo-trainees'].forEach((k) => {
         ch.on('postgres_changes', { event: '*', schema: 'public', table: 'store', filter: `key=eq.${k}` }, () => { if (!stop) poll(); });
       });
+      // Broadcast layer (works WITHOUT the store table being in the realtime
+      // publication): any client — the app or the sync scripts — sends a
+      // 'change' broadcast after writing a BHBC key; every open zone refetches
+      // instantly. This is the "shared Google Sheet" feel, no DDL required.
+      ch.on('broadcast', { event: 'change' }, () => { if (!stop) poll(); });
       ch.subscribe();
+      bhbcChanRef.current = ch;
     } catch { /* realtime optional */ }
     const iv = setInterval(poll, 5000);
-    return () => { stop = true; clearInterval(iv); if (ch) { try { supabase.removeChannel(ch); } catch { /* noop */ } } };
+    return () => { stop = true; clearInterval(iv); bhbcChanRef.current = null; if (ch) { try { supabase.removeChannel(ch); } catch { /* noop */ } } };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, isBhbcCoach]);
 
@@ -1298,7 +1310,7 @@ function AuthedApp() {
   if (isBhbcCoach || (tab === 'bhbc' && isOwner)) return (
     <Suspense fallback={<ViewFallback />}>
       <ErrorBoundary inline>
-        <BhbcView trainees={trainees} setTrainees={setTrainees} bhbcLoads={bhbcLoads} setBhbcLoads={setBhbcLoads} bhbcFixtures={bhbcFixtures} setBhbcFixtures={setBhbcFixtures} league={bhbcLeague} medical={bhbcMedical} setMedical={setBhbcMedical} planIndex={planIndex} exercises={exercises} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} workouts={workouts} setWorkouts={setWorkouts} onDecrementSession={handleDecrementSession} portalVis={portalVis} bwLog={bwLog} weeklyFocus={weeklyFocus} coach={isBhbcCoach} canMedical={isOwner || isPtEmail(email)} onSignOut={signOut} onOpenTrainee={isBhbcCoach?null:(id=>navTo('trainees',id))} onExit={isBhbcCoach?null:(()=>navTo('trainees'))} />
+        <BhbcView trainees={trainees} setTrainees={setTrainees} bhbcLoads={bhbcLoads} setBhbcLoads={setBhbcLoads} bhbcFixtures={bhbcFixtures} setBhbcFixtures={setBhbcFixtures} league={bhbcLeague} medical={bhbcMedical} setMedical={setBhbcMedical} planIndex={planIndex} exercises={exercises} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} workouts={workouts} setWorkouts={setWorkouts} onDecrementSession={handleDecrementSession} portalVis={portalVis} bwLog={bwLog} weeklyFocus={weeklyFocus} coach={isBhbcCoach} canMedical={isOwner || isPtEmail(email)} onLocalWrite={notifyBhbcChange} onSignOut={signOut} onOpenTrainee={isBhbcCoach?null:(id=>navTo('trainees',id))} onExit={isBhbcCoach?null:(()=>navTo('trainees'))} />
       </ErrorBoundary>
     </Suspense>
   );
