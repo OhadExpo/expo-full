@@ -13,7 +13,7 @@ import ClientPortal from './ClientPortal';
 //
 // Mounted by App.jsx for /coach/athletes/<id>/preview or /coach/programs/<id>/preview.
 // /coach/trainees/<id>/preview still resolves to the same render for legacy links.
-export default function CoachPreviewPortal({ traineeId, planId, trainees, exercises, portalVis, clientWorkouts, bwLog, weeklyFocus, onBack }) {
+export default function CoachPreviewPortal({ traineeId, planId, trainees, exercises, portalVis, clientWorkouts, bwLog, weeklyFocus, onBack, showAllBlocks = false }) {
   const [plans, setPlans] = useState(null);
   const [resolvedTraineeId, setResolvedTraineeId] = useState(traineeId || null);
   const [error, setError] = useState(null);
@@ -103,7 +103,7 @@ export default function CoachPreviewPortal({ traineeId, planId, trainees, exerci
            portalVis filter so a hidden block still renders when the coach
            clicks Preview on its row. traineeId preview keeps the filter so
            it reflects what the athlete actually sees. */
-        portalVis={planId ? null : portalVis}
+        portalVis={(planId || showAllBlocks) ? null : portalVis}
         trainerPlans={plans}
         trainerExercises={exercises}
         trainees={trainees}

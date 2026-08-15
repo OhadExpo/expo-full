@@ -299,7 +299,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
           <>
             {/* ---- SUB-NAV (tool tabs) — gives the zone "order" ---- */}
             <div style={{ display: 'flex', gap: 2, borderBottom: `1px solid ${C.cardBd}`, flexWrap: 'wrap' }}>
-              {[['overview', 'Overview'], ['roster', 'Roster'], ['schedule', 'Schedule'], ['games', 'Games'], ['sessions', 'Sessions']].map(([k, label]) => {
+              {[['overview', 'Overview'], ['roster', 'Roster'], ['schedule', 'Schedule'], ['sessions', 'Sessions'], ['games', 'Games']].map(([k, label]) => {
                 const active = view === k;
                 return (
                   <button key={k} onClick={() => setView(k)} style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: active ? C.tx : C.td, background: 'transparent', border: 'none', borderBottom: active ? `2px solid ${ORANGE}` : '2px solid transparent', padding: '10px 16px', marginBottom: -1, cursor: 'pointer' }}>{label}</button>
@@ -328,7 +328,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
             )}
 
             {view === 'games' && (
-              <LeagueView league={league} roster={roster} onOpen={setDetailFor} />
+              <LeagueView league={league} roster={roster} fixtures={bhbcFixtures} onOpen={setDetailFor} />
             )}
 
             {view === 'sessions' && (
@@ -366,7 +366,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
       {programFor && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'var(--c-bg)', overflowY: 'auto' }}>
           <Suspense fallback={<div style={{ padding: 40, textAlign: 'center', color: C.td, fontFamily: FB }}>Loading program…</div>}>
-            <CoachPreviewPortal traineeId={programFor} trainees={trainees} exercises={exercises} portalVis={portalVis} clientWorkouts={clientWorkouts} bwLog={bwLog} weeklyFocus={weeklyFocus} onBack={() => setProgramFor(null)} />
+            <CoachPreviewPortal traineeId={programFor} trainees={trainees} exercises={exercises} portalVis={portalVis} clientWorkouts={clientWorkouts} bwLog={bwLog} weeklyFocus={weeklyFocus} onBack={() => setProgramFor(null)} showAllBlocks />
           </Suspense>
         </div>
       )}
@@ -421,6 +421,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
         if (!row) return null;
         return <AthleteModal row={row} rec={bhbcLoads[detailFor]} days28={last28}
           workouts={(clientWorkouts || []).filter((w) => String(w.clientId || '').split('__')[0] === detailFor)}
+          leaguePlayer={leaguePlayerFor(league, row.t.name)} leagueSeason={league.season}
           onClose={() => setDetailFor(null)}
           onLog={() => { setLogFor(detailFor); setDetailFor(null); }}
           onOpenExpo={onOpenTrainee ? () => onOpenTrainee(detailFor) : null}
@@ -446,7 +447,7 @@ function BarChart({ series, w = 460, h = 88 }) {
   );
 }
 
-function AthleteModal({ row, rec, days28, workouts = [], onClose, onLog, onOpenExpo, onViewProgram, onCycleAvail }) {
+function AthleteModal({ row, rec, days28, workouts = [], leaguePlayer, leagueSeason, onClose, onLog, onOpenExpo, onViewProgram, onCycleAvail }) {
   const { t, acwr, avail, readiness } = row;
   const loads = (rec && rec.loads) || {};
   const series28 = days28.map((d) => loads[d] || 0);
@@ -467,6 +468,44 @@ function AthleteModal({ row, rec, days28, workouts = [], onClose, onLog, onOpenE
           <span style={{ fontFamily: FB, fontSize: 12.5, color: C.td }}>{t.position || '—'} · {heightM(t.heightCm)} {flag(t.nationality)}</span>
           <button onClick={onCycleAvail} title="Click to change availability" style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 11, fontWeight: 700, color: av.color, background: `color-mix(in srgb, ${av.color} 13%, transparent)`, border: `1px solid color-mix(in srgb, ${av.color} 38%, transparent)`, padding: '4px 10px', cursor: 'pointer' }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: av.color }} />{av.label}</button>
         </div>
+        {leaguePlayer && (() => {
+          const lastG = (leaguePlayer.log || []).length ? [...leaguePlayer.log].sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0] : null;
+          const ago = lastG && lastG.date ? dayDiff(todayISO(), lastG.date) : null;
+          const agoLabel = ago == null ? '' : ago === 0 ? 'today' : ago === 1 ? 'yesterday' : ago < 31 ? `${ago} days ago` : ago < 60 ? 'last month' : `${Math.round(ago / 30)} months ago`;
+          const avg = [['PPG', leaguePlayer.ppg], ['RPG', leaguePlayer.rpg], ['APG', leaguePlayer.apg], ['MPG', leaguePlayer.mpg], ['3P%', leaguePlayer.tpp + '%'], ['FT%', leaguePlayer.ftp + '%'], ['PIR', leaguePlayer.pirpg], ['GP', leaguePlayer.gp]];
+          return (
+            <div style={{ border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${ORANGE}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', background: NAVY }}>
+                <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff' }}>League Stats</span>
+                {leagueSeason && <span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, color: ORANGE, letterSpacing: '0.06em' }}>{leagueSeason}</span>}
+              </div>
+              {lastG && (
+                <div style={{ padding: '10px 12px', borderBottom: `1px solid ${C.cardBd}`, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>Last game{agoLabel ? ` · ${agoLabel}` : ''}</div>
+                    <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, marginTop: 3 }}>vs {lastG.opp || '—'}</div>
+                  </div>
+                  <div style={{ marginLeft: 'auto', display: 'flex', gap: 14 }}>
+                    {[['PTS', lastG.pts], ['REB', lastG.reb], ['AST', lastG.ast], ["MIN", lastG.min]].map(([k, v]) => (
+                      <div key={k} style={{ textAlign: 'center' }}>
+                        <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 18, color: k === 'PTS' ? ORANGE_DEEP : C.tx, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{v}</div>
+                        <div style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.08em', color: C.tm, marginTop: 3 }}>{k}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)' }}>
+                {avg.map(([k, v], i) => (
+                  <div key={k} style={{ padding: '9px 10px', borderRight: (i % 4 !== 3) ? `1px solid ${C.cardBd}` : 'none', borderTop: i >= 4 ? `1px solid ${C.cardBd}` : 'none' }}>
+                    <div style={{ fontFamily: FN, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>{k}</div>
+                    <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 16, color: C.tx, marginTop: 3, fontVariantNumeric: 'tabular-nums' }}>{v}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 1, background: C.cardBd, border: `1px solid ${C.cardBd}` }}>
           {[['ACWR', acwr.ratio != null ? acwr.ratio.toFixed(2) : '—', acwr.ratio != null ? acwr.band.color : C.tx], ['7-day load', acwr.acute ? Math.round(acwr.acute) : '—', C.tx], ['28-day', acwr.chronic ? Math.round(acwr.chronic) : '—', C.td]].map(([k, v, c]) => (
             <div key={k} style={{ background: 'var(--c-sf)', padding: '12px 14px' }}>
@@ -925,7 +964,18 @@ function ScheduleMonth({ fixtures, today }) {
 // Renders the live league feed synced from basket.co.il (מנהלת ליגת העל) into
 // the store key `expo-bhbc-league` by scripts/_bhbc-sync-league.mjs: standings,
 // per-round results, BHBC team + per-player stats. BHBC always highlighted.
-const isBH = (n) => /הרצליה/.test(n || '');
+const isBH = (n) => /הרצליה|herzliy/i.test(n || '');
+// Roster (English) → league box-score (Hebrew) name, so a player's official
+// league stats attach to their EXPO athlete. Only current squad members who
+// have league stats need an entry; new signings simply have none yet.
+const LEAGUE_ALIAS = {
+  'Daeshon Francis': 'דשון פרנסיס', 'Zack Bryant': 'זאק בראיינט',
+  'Noah Carter': 'נואה קרטר', 'DJ Burns': "די-ג'יי ברנס",
+};
+const leaguePlayerFor = (league, name) => {
+  const heb = LEAGUE_ALIAS[name];
+  return heb ? (league?.players || []).find((p) => p.name === heb) || null : null;
+};
 const relTime = (iso) => {
   if (!iso) return '';
   const diff = (Date.now() - new Date(iso).getTime()) / 60000;
@@ -986,17 +1036,19 @@ function StandingsTable({ standings }) {
   );
 }
 
-function PlayerStatsTable({ players, roster, onOpen }) {
+// Roster-driven: one row per CURRENT squad athlete, showing their official
+// league stats (matched via LEAGUE_ALIAS) or dashes if they've no games yet.
+// No departed players — the table IS the roster.
+function PlayerStatsTable({ roster, league, onOpen }) {
   const [sort, setSort] = useState('ppg');
   const cols = [
     { k: 'gp', h: 'GP' }, { k: 'mpg', h: 'MPG' }, { k: 'ppg', h: 'PPG' },
     { k: 'rpg', h: 'RPG' }, { k: 'apg', h: 'APG' }, { k: 'tpp', h: '3P%' },
     { k: 'ftp', h: 'FT%' }, { k: 'pirpg', h: 'PIR' },
   ];
-  const sorted = [...players].sort((a, b) => (b[sort] || 0) - (a[sort] || 0));
-  // Map a league (Hebrew) name to a roster athlete if the coach aliased it.
-  const rosterByLeague = {};
-  (roster || []).forEach((r) => { if (r.leagueName) rosterByLeague[r.leagueName] = r; });
+  const dash = (k, v) => (v == null ? '—' : k === 'tpp' || k === 'ftp' ? `${v}%` : v);
+  const items = (roster || []).map((t) => ({ t, s: leaguePlayerFor(league, t.name) }))
+    .sort((a, b) => ((b.s ? b.s[sort] : -1)) - ((a.s ? a.s[sort] : -1)) || (a.t.jersey ?? 999) - (b.t.jersey ?? 999));
   const th = (k, h, first) => (
     <th key={k} onClick={() => k !== 'name' && setSort(k)} style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: sort === k ? ORANGE_DEEP : C.tm, padding: '8px 9px', textAlign: first ? 'left' : 'center', whiteSpace: 'nowrap', cursor: k === 'name' ? 'default' : 'pointer', userSelect: 'none' }}>{h}{sort === k ? ' ↓' : ''}</th>
   );
@@ -1005,20 +1057,19 @@ function PlayerStatsTable({ players, roster, onOpen }) {
       <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 620 }}>
         <thead><tr style={{ borderBottom: `1px solid ${C.cardBd}` }}>{th('name', 'Player', true)}{cols.map((c) => th(c.k, c.h))}</tr></thead>
         <tbody>
-          {sorted.map((p) => {
-            const linked = rosterByLeague[p.name];
-            const td = { fontFamily: FN, fontSize: 12.5, color: C.tx, padding: '9px 9px', textAlign: 'center', fontVariantNumeric: 'tabular-nums' };
+          {items.map(({ t, s }) => {
+            const td = { fontFamily: FN, fontSize: 12.5, color: s ? C.tx : C.tm, padding: '9px 9px', textAlign: 'center', fontVariantNumeric: 'tabular-nums' };
             return (
-              <tr key={p.name} className="bhbc-row" onClick={() => linked && onOpen(linked.id)} style={{ borderBottom: `0.25px solid ${C.cardBd}`, cursor: linked ? 'pointer' : 'default' }}>
-                <td style={{ ...td, textAlign: 'left', fontWeight: 700, color: C.tx, whiteSpace: 'nowrap' }}>{p.name}{linked && <span style={{ marginLeft: 6, fontFamily: FN, fontSize: 8.5, fontWeight: 700, color: ORANGE_DEEP }}>●</span>}</td>
-                <td style={{ ...td, color: C.td }}>{p.gp}</td>
-                <td style={td}>{p.mpg}</td>
-                <td style={{ ...td, fontWeight: 800, color: ORANGE_DEEP }}>{p.ppg}</td>
-                <td style={td}>{p.rpg}</td>
-                <td style={td}>{p.apg}</td>
-                <td style={{ ...td, color: C.td }}>{p.tpp}%</td>
-                <td style={{ ...td, color: C.td }}>{p.ftp}%</td>
-                <td style={{ ...td, fontWeight: 700 }}>{p.pirpg}</td>
+              <tr key={t.id} className="bhbc-row" onClick={() => onOpen(t.id)} style={{ borderBottom: `0.25px solid ${C.cardBd}`, cursor: 'pointer' }}>
+                <td style={{ ...td, textAlign: 'left', fontWeight: 700, color: C.tx, whiteSpace: 'nowrap' }}><span style={{ color: ORANGE_DEEP, marginRight: 7, fontVariantNumeric: 'tabular-nums' }}>{t.jersey ?? '—'}</span>{t.name}</td>
+                <td style={{ ...td, color: C.td }}>{dash('gp', s ? s.gp : null)}</td>
+                <td style={td}>{dash('mpg', s ? s.mpg : null)}</td>
+                <td style={{ ...td, fontWeight: 800, color: s ? ORANGE_DEEP : C.tm }}>{dash('ppg', s ? s.ppg : null)}</td>
+                <td style={td}>{dash('rpg', s ? s.rpg : null)}</td>
+                <td style={td}>{dash('apg', s ? s.apg : null)}</td>
+                <td style={{ ...td, color: C.td }}>{dash('tpp', s ? s.tpp : null)}</td>
+                <td style={{ ...td, color: C.td }}>{dash('ftp', s ? s.ftp : null)}</td>
+                <td style={{ ...td, fontWeight: 700 }}>{dash('pirpg', s ? s.pirpg : null)}</td>
               </tr>
             );
           })}
@@ -1073,65 +1124,60 @@ function ResultsList({ games, bhbcOnly }) {
   );
 }
 
-function LeagueView({ league, roster, onOpen }) {
-  const [scope, setScope] = useState('bhbc'); // bhbc | all
-  const hasData = league && Array.isArray(league.games) && league.games.length > 0;
-  const bhbcRow = hasData ? (league.standings || []).find((s) => isBH(s.team)) : null;
+// Convert BHBC fixtures (club schedule) into result-row shape so upcoming games
+// show in the Games tab even before basket.co.il has any score for them.
+function fixturesToGames(fixtures) {
+  return (fixtures || []).filter((f) => f.type === 'game').map((f) => ({
+    round: null, date: f.date, time: f.start, comp: f.comp,
+    home: f.home === false ? (f.opponent || 'Opponent') : 'Bnei Herzliya',
+    away: f.home === false ? 'Bnei Herzliya' : (f.opponent || 'Opponent'),
+    hs: null, as: null, played: false, timeTBD: f.timeTBD,
+  }));
+}
+
+function LeagueView({ league, roster, fixtures, onOpen }) {
+  const leagueGames = Array.isArray(league.games) ? league.games : [];
+  const playedGames = leagueGames.filter((g) => g.played);
+  // Merge: played results from basket.co.il + upcoming from the club fixtures.
+  const upcomingFx = fixturesToGames(fixtures).filter((g) => !playedGames.some((p) => p.date === g.date));
+  const allGames = [...playedGames, ...upcomingFx];
+  const hasStats = (league.players || []).length > 0 || playedGames.length > 0;
   const t = league.team || {};
-  if (!hasData) {
-    return (
-      <Card padding={18} header={secTitle('League')}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '30px 16px', textAlign: 'center' }}>
-          <img src="/logos/bhbc-logo.png" alt="" style={{ height: 60, opacity: 0.9, marginBottom: 6 }} />
-          <div style={{ fontFamily: FN, fontWeight: 700, fontSize: 15, color: C.tx }}>Season hasn't tipped off</div>
-          <div style={{ fontFamily: FB, fontSize: 12.5, color: C.td, maxWidth: 380 }}>Results, standings and player stats sync automatically from the league (מנהלת ליגת העל) as games are played.</div>
-        </div>
-      </Card>
-    );
-  }
+  const played = t.gp || 0;
   const summary = [
-    { k: 'Position', v: bhbcRow ? `#${bhbcRow.rank}` : '—', c: ORANGE_DEEP },
-    { k: 'Record', v: bhbcRow ? `${bhbcRow.w}–${bhbcRow.l}` : '—', c: C.tx },
-    { k: 'Points', v: t.ppg || '—', sub: 'per game', c: C.tx },
-    { k: 'Allowed', v: t.oppg || '—', sub: 'per game', c: C.tx },
-    { k: 'Margin', v: t.gp ? `${(t.ppg - t.oppg) > 0 ? '+' : ''}${(t.ppg - t.oppg).toFixed(1)}` : '—', c: (t.ppg - t.oppg) >= 0 ? '#2E9E6B' : '#C9462F' },
+    { k: 'Record', v: played ? `${t.w}–${t.l}` : '—', c: C.tx },
+    { k: 'Points', v: played ? t.ppg : '—', sub: 'per game', c: C.tx },
+    { k: 'Allowed', v: played ? t.oppg : '—', sub: 'per game', c: C.tx },
+    { k: 'Margin', v: played ? `${(t.ppg - t.oppg) > 0 ? '+' : ''}${(t.ppg - t.oppg).toFixed(1)}` : '—', c: played && (t.ppg - t.oppg) >= 0 ? '#2E9E6B' : played ? '#C9462F' : C.tx },
   ];
   return (
     <>
-      {/* Team summary + live badge */}
-      <Card padding={18} leftStripe={ORANGE} header={secTitle('Bnei Herzliya · League')} headerRight={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ED88A' }} />Live · {league.season} · {relTime(league.updatedAt)}</span>}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))' }}>
-          {summary.map((s, i) => (
-            <div key={s.k} style={{ padding: '14px 18px', borderLeft: i ? `1px solid ${C.cardBd}` : 'none', display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <div style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{s.k}</div>
-              <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 26, lineHeight: 1, color: s.c, fontVariantNumeric: 'tabular-nums' }}>{s.v}</div>
-              {s.sub && <div style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.04em' }}>{s.sub}</div>}
-            </div>
-          ))}
-        </div>
+      {/* Team stats + live badge */}
+      <Card padding={18} leftStripe={ORANGE} header={secTitle('Team Stats')} headerRight={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ED88A' }} />Live{league.season ? ` · ${league.season}` : ''}{league.updatedAt ? ` · ${relTime(league.updatedAt)}` : ''}</span>}>
+        {played ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))' }}>
+            {summary.map((s, i) => (
+              <div key={s.k} style={{ padding: '14px 18px', borderLeft: i ? `1px solid ${C.cardBd}` : 'none', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{s.k}</div>
+                <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 26, lineHeight: 1, color: s.c, fontVariantNumeric: 'tabular-nums' }}>{s.v}</div>
+                {s.sub && <div style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.04em' }}>{s.sub}</div>}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ fontFamily: FB, fontSize: 12.5, color: C.td, padding: '6px 2px' }}>No games played yet this season — team stats fill in automatically after tip-off. Last-season stats show on each athlete below.</div>
+        )}
       </Card>
 
-      {/* Player stats */}
-      <Card padding={18} leftStripe={NAVY} header={secTitle('Player Stats')} headerRight={<span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>{(league.players || []).length} players · tap a column</span>}>
-        {(league.players || []).length
-          ? <PlayerStatsTable players={league.players} roster={roster} onOpen={onOpen} />
-          : <div style={{ fontFamily: FB, fontSize: 12.5, color: C.td, padding: '14px 0', textAlign: 'center' }}>Player box scores sync as games are played.</div>}
+      {/* Player stats — the roster, with official league numbers */}
+      <Card padding={18} leftStripe={NAVY} header={secTitle('Player Stats')} headerRight={<span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>tap a column to sort</span>}>
+        <PlayerStatsTable roster={roster} league={league} onOpen={onOpen} />
+        <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 8 }}>Official league stats (מנהלת ליגת העל){league.season ? ` · ${league.season}` : ''} — tap any athlete for their full profile &amp; last game.</div>
       </Card>
 
-      {/* Results + Standings */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.td }}>Show</div>
-        <div style={{ display: 'inline-flex', border: `1px solid ${C.cardBd}` }}>
-          {[['bhbc', 'BHBC'], ['all', 'Whole league']].map(([k, l]) => (
-            <button key={k} onClick={() => setScope(k)} style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: scope === k ? '#fff' : C.td, background: scope === k ? NAVY : 'transparent', border: 'none', padding: '6px 14px', cursor: 'pointer' }}>{l}</button>
-          ))}
-        </div>
-      </div>
-      <Card padding={18} leftStripe={NAVY} header={secTitle('Results')}>
-        <ResultsList games={league.games} bhbcOnly={scope === 'bhbc'} />
-      </Card>
-      <Card padding={18} leftStripe={NAVY} header={secTitle('Standings')}>
-        <StandingsTable standings={league.standings || []} />
+      {/* Games — BHBC only */}
+      <Card padding={18} leftStripe={NAVY} header={secTitle('Games')}>
+        {allGames.length ? <ResultsList games={allGames} bhbcOnly /> : <div style={{ fontFamily: FB, fontSize: 12.5, color: C.td, padding: '14px 0', textAlign: 'center' }}>Fixtures load as the league publishes them.</div>}
       </Card>
     </>
   );
