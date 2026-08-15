@@ -1659,11 +1659,19 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
   const editorIdRef = useRef('ed_' + Math.random().toString(36).slice(2, 9));
   const liveChanRef = useRef(null);
   const prevAutoRef = useRef(autoStatus);
+  // Remote-edit awareness: another device/coach saved THIS program → show a
+  // non-destructive banner. Never auto-applies (would blow away focus/undo/local
+  // edits); the coach chooses Reload (loads the remote version) or Dismiss.
+  const [remoteEdit, setRemoteEdit] = useState(false);
   useEffect(() => {
     let disposed = false;
     import('./supabase').then(({ supabase }) => {
       if (disposed) return;
       const ch = supabase.channel('plans-live', { config: { broadcast: { self: false } } });
+      ch.on('broadcast', { event: 'plan-changed' }, ({ payload }) => {
+        if (disposed || !payload || payload.editorId === editorIdRef.current) return;
+        if (planRef.current && payload.planId === planRef.current.id) setRemoteEdit(true);
+      });
       ch.subscribe();
       liveChanRef.current = ch;
     }).catch(() => {});
@@ -1887,6 +1895,13 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
             "✓ Saved") never re-centers and shifts the button row below (Ohad). */}
         <div style={{display:'flex',justifyContent:'flex-end',alignItems:'center',minHeight:15,marginTop:4,paddingRight:2}}>
           {statusLabel && <span aria-live="polite" style={{fontFamily:FN,fontSize:10,fontWeight:700,color:statusLabel.color,letterSpacing:'0.1em',textTransform:'uppercase'}}>{statusLabel.text}</span>}
+          {remoteEdit && (
+            <span style={{display:'inline-flex',alignItems:'center',gap:8,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:'#E0A73A',background:'color-mix(in srgb, #E0A73A 12%, transparent)',border:'1px solid color-mix(in srgb, #E0A73A 45%, transparent)',padding:'3px 9px'}}>
+              Saved on another device
+              {onSwitchProgram && <button onClick={()=>{ try{markClean();}catch{} setRemoteEdit(false); onSwitchProgram(planRef.current.id); }} style={{fontFamily:FN,fontSize:9.5,fontWeight:700,color:C.ac,background:'transparent',border:`1px solid ${C.ac}`,padding:'2px 7px',cursor:'pointer'}}>Reload</button>}
+              <button onClick={()=>setRemoteEdit(false)} title="Dismiss" style={{fontFamily:FN,fontSize:11,color:C.tm,background:'transparent',border:'none',cursor:'pointer'}}>✕</button>
+            </span>
+          )}
         </div>
         {/* hairline between the two tiers */}
         <div style={{borderTop:`1px solid ${C.cardBd}`,margin:'6px 0 12px'}} />
