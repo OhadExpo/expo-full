@@ -500,6 +500,8 @@ function AthleteModal({ row, rec, days28, workouts = [], leaguePlayer, leagueSea
   Object.entries((rec && rec.bw) || {}).forEach(([d, kg]) => activity.push({ date: d, label: `Bodyweight ${kg} kg`, load: null }));
   Object.entries((rec && rec.availability) || {}).forEach(([d, code]) => { if (code > 1) activity.push({ date: d, label: `Availability · ${AVAIL[code].label}`, load: null }); });
   Object.entries((rec && rec.notes) || {}).forEach(([d, n]) => { if (n) activity.push({ date: d, label: `Note — ${n}`, load: null }); });
+  // League games fold into the same timeline, so the full history covers court + gym.
+  (leaguePlayer && leaguePlayer.log ? leaguePlayer.log : []).forEach((g) => { if (g.date) activity.push({ date: g.date, game: { opp: g.opp && !isBH(g.opp) ? g.opp.replace(/\s*\(.*$/, '') : '—', pts: g.pts, reb: g.reb, ast: g.ast, min: g.min }, load: null }); });
   activity.sort((a, b) => b.date.localeCompare(a.date));
   return (
     <Modal open onClose={onClose} wide title={`#${t.jersey ?? '—'} · ${t.name}`}>
@@ -584,8 +586,16 @@ function AthleteModal({ row, rec, days28, workouts = [], leaguePlayer, leagueSea
             <div style={{ display: 'flex', flexDirection: 'column', maxHeight: 118, overflowY: 'auto' }}>
               {activity.map((a, i) => (
                 <div key={i} style={{ display: 'flex', gap: 10, padding: '7px 0', borderBottom: `0.25px solid ${C.cardBd}`, fontFamily: FN, fontSize: 12 }}>
-                  <span style={{ color: C.td, width: 62, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{a.date.slice(5)}</span>
-                  <span style={{ color: C.tx, minWidth: 0 }}>{a.label}</span>
+                  <span style={{ color: a.game ? ORANGE_DEEP : C.td, width: 62, fontVariantNumeric: 'tabular-nums', flexShrink: 0, fontWeight: a.game ? 700 : 400 }}>{a.date.slice(5)}</span>
+                  {a.game ? (
+                    <span style={{ color: C.tx, minWidth: 0, flex: 1, display: 'flex', gap: 8, alignItems: 'baseline' }} dir="ltr">
+                      <span style={{ fontWeight: 600 }}>Game</span>
+                      <span style={{ unicodeBidi: 'isolate', direction: 'rtl', color: C.td }}>{a.game.opp}</span>
+                      <span style={{ marginLeft: 'auto', fontVariantNumeric: 'tabular-nums', fontWeight: 700, color: ORANGE_DEEP, whiteSpace: 'nowrap' }}>{a.game.pts}p · {a.game.reb}r · {a.game.ast}a · {a.game.min}′</span>
+                    </span>
+                  ) : (
+                    <span style={{ color: C.tx, minWidth: 0 }}>{a.label}</span>
+                  )}
                   {a.load != null && <span style={{ marginLeft: 'auto', color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums', fontWeight: 700, flexShrink: 0 }}>{Math.round(a.load)}</span>}
                 </div>
               ))}
