@@ -15,7 +15,7 @@ import React, { useMemo, useState, useEffect, useCallback, Suspense, lazy } from
 import { C, FN, FB } from './theme';
 import { Card, CollapsibleSection, Btn, Input, Modal, EmptyState, toast } from './ui';
 import { ThemeToggle } from './ThemeToggle';
-import { acwrFromDaily, sessionLoad } from './acwrEngine';
+import { acwrFromDaily, sessionLoad, monotonyStrain } from './acwrEngine';
 import { readinessAutoreg } from './readinessAutoreg';
 
 // EXPO's own group/single session logger — reused INSIDE the BHBC portal, scoped
@@ -598,6 +598,24 @@ function AthleteModal({ row, rec, days28, workouts = [], leaguePlayer, leagueSea
             </div>
           ))}
         </div>
+        {(() => {
+          // Foster monotony & strain over the last 7 days (illness/overtraining
+          // risk). Monotony ≥2 flags too-samey loading; strain = load × monotony.
+          const week7 = (days28 || []).slice(-7).map((d) => (rec && rec.loads && rec.loads[d]) || 0);
+          const ms = monotonyStrain(week7);
+          if (!ms.weekLoad) return null;
+          const monC = ms.monotony == null ? C.tx : ms.monotony >= 2.5 ? '#DE4E3B' : ms.monotony >= 2 ? '#E0A73A' : '#37B27C';
+          return (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 1, background: C.cardBd, border: `1px solid ${C.cardBd}` }}>
+              {[['Week load', ms.weekLoad ? Math.round(ms.weekLoad).toLocaleString() : '—', C.tx], ['Monotony', ms.monotony != null ? ms.monotony.toFixed(2) : '—', monC], ['Strain', ms.strain != null ? Math.round(ms.strain).toLocaleString() : '—', C.td]].map(([k, v, c]) => (
+                <div key={k} style={{ background: 'var(--c-sf)', padding: '10px 12px' }}>
+                  <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{k}</div>
+                  <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 20, color: c, marginTop: 6, fontVariantNumeric: 'tabular-nums' }}>{v}</div>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ width: 8, height: 8, borderRadius: '50%', background: rc, flexShrink: 0 }} />
           <span style={{ fontFamily: FB, fontSize: 12.5, color: C.td }}>{readiness.level === 'unknown' ? 'No readiness check-in logged' : readiness.headline}</span>
