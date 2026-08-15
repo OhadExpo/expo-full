@@ -1404,6 +1404,9 @@ function fixturesToGames(fixtures) {
 function LeagueView({ league, roster, fixtures, onOpen }) {
   const leagueGames = Array.isArray(league.games) ? league.games : [];
   const playedGames = leagueGames.filter((g) => g.played);
+  // A season whose every game is already played is HISTORICAL (last season) —
+  // don't badge it "Live". A season with any unplayed game is in progress.
+  const historical = leagueGames.length > 0 && playedGames.length === leagueGames.length;
   // Merge: played results from basket.co.il + upcoming from the club fixtures.
   const upcomingFx = fixturesToGames(fixtures).filter((g) => !playedGames.some((p) => p.date === g.date));
   const allGames = [...playedGames, ...upcomingFx];
@@ -1419,7 +1422,7 @@ function LeagueView({ league, roster, fixtures, onOpen }) {
   return (
     <>
       {/* Team stats + live badge */}
-      <Card padding={18} leftStripe={ORANGE} header={secTitle('Team Stats')} headerRight={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ED88A' }} />Live{league.season ? ` · ${league.season}` : ''}{league.updatedAt ? ` · ${relTime(league.updatedAt)}` : ''}</span>}>
+      <Card padding={18} leftStripe={ORANGE} header={secTitle('Team Stats')} headerRight={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: historical ? '#7C828B' : '#4ED88A' }} />{historical ? 'Last season' : 'Live'}{league.season ? ` · ${league.season}` : ''}{league.updatedAt ? ` · ${relTime(league.updatedAt)}` : ''}</span>}>
         {played ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))' }}>
             {summary.map((s, i) => (
