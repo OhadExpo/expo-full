@@ -116,7 +116,7 @@ const Jersey = ({ n, size = 30 }) => (
 
 // ---- component ----
 
-export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, setBhbcLoads, bhbcFixtures = [], setBhbcFixtures, league = {}, medical = {}, setMedical, planIndex = [], exercises = [], clientWorkouts = [], setClientWorkouts, workouts = [], setWorkouts, onDecrementSession, portalVis = {}, bwLog = [], weeklyFocus = {}, onOpenTrainee, onExit }) {
+export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, setBhbcLoads, bhbcFixtures = [], setBhbcFixtures, league = {}, medical = {}, setMedical, planIndex = [], exercises = [], clientWorkouts = [], setClientWorkouts, workouts = [], setWorkouts, onDecrementSession, portalVis = {}, bwLog = [], weeklyFocus = {}, onOpenTrainee, onExit, coach = false, onSignOut }) {
   const [manageOpen, setManageOpen] = useState(false);
   const [newAthlete, setNewAthlete] = useState('');
   const [logFor, setLogFor] = useState(null);
@@ -299,6 +299,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
             <ThemeToggle size={30} style={{ color: '#fff', border: '1px solid rgba(255,255,255,0.4)' }} />
             {onExit && <button onClick={onExit} title="Back to EXPO coach" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#fff', background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.28)', borderRadius: 0, padding: '7px 12px', cursor: 'pointer' }}>‹ EXPO</button>}
+            {coach && onSignOut && <button onClick={onSignOut} title="Sign out" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#fff', background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.28)', borderRadius: 0, padding: '7px 12px', cursor: 'pointer' }}>Sign out</button>}
           </div>
         </div>
       </header>
@@ -308,7 +309,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: C.td }}>Squad · {roster.length}</div>
           <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <Btn variant="ghost" onClick={() => setManageOpen(true)}>Manage roster</Btn>
+            {!coach && <Btn variant="ghost" onClick={() => setManageOpen(true)}>Manage roster</Btn>}
             <Btn onClick={() => setPracticeOpen(true)} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>+ Log practice</Btn>
           </div>
         </div>
@@ -460,6 +461,8 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
         return <AthleteModal row={row} rec={bhbcLoads[detailFor]} days28={last28}
           workouts={(clientWorkouts || []).filter((w) => String(w.clientId || '').split('__')[0] === detailFor)}
           leaguePlayer={leaguePlayerFor(league, row.t.name)} leagueSeason={league.season}
+          injuries={activeInjuries(medical, detailFor)}
+          onInjury={() => { const a = activeInjuries(medical, detailFor); setInjuryFor({ athleteId: detailFor, injuryId: a[0] && a[0].id }); setDetailFor(null); }}
           onClose={() => setDetailFor(null)}
           onLog={() => { setLogFor(detailFor); setDetailFor(null); }}
           onOpenExpo={onOpenTrainee ? () => onOpenTrainee(detailFor) : null}
@@ -485,10 +488,9 @@ function BarChart({ series, w = 460, h = 88 }) {
   );
 }
 
-function AthleteModal({ row, rec, days28, workouts = [], leaguePlayer, leagueSeason, onClose, onLog, onOpenExpo, onViewProgram, onCycleAvail }) {
+function AthleteModal({ row, rec, days28, workouts = [], leaguePlayer, leagueSeason, injuries = [], onInjury, onClose, onLog, onOpenExpo, onViewProgram, onCycleAvail }) {
   const { t, acwr, avail, readiness } = row;
   const loads = (rec && rec.loads) || {};
-  const series28 = days28.map((d) => loads[d] || 0);
   const rc = readiness.level === 'red' ? '#DE4E3B' : readiness.level === 'amber' ? '#E0A73A' : readiness.level === 'green' ? '#37B27C' : '#7C828B';
   const av = AVAIL[avail];
   // Unified activity: sRPE practice/quick logs + detailed gym sessions (client_workouts).
@@ -501,7 +503,7 @@ function AthleteModal({ row, rec, days28, workouts = [], leaguePlayer, leagueSea
   activity.sort((a, b) => b.date.localeCompare(a.date));
   return (
     <Modal open onClose={onClose} wide title={`#${t.jersey ?? '—'} · ${t.name}`}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <span style={{ fontFamily: FB, fontSize: 12.5, color: C.td }}>{t.position || '—'} · {heightM(t.heightCm)} {flag(t.nationality)}</span>
           <button onClick={onCycleAvail} title="Click to change availability" style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 11, fontWeight: 700, color: av.color, background: `color-mix(in srgb, ${av.color} 13%, transparent)`, border: `1px solid color-mix(in srgb, ${av.color} 38%, transparent)`, padding: '4px 10px', cursor: 'pointer' }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: av.color }} />{av.label}</button>
@@ -521,7 +523,7 @@ function AthleteModal({ row, rec, days28, workouts = [], leaguePlayer, leagueSea
                 <div style={{ padding: '10px 12px', borderBottom: `1px solid ${C.cardBd}`, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>Last game{agoLabel ? ` · ${agoLabel}` : ''}</div>
-                    <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, marginTop: 3 }}>vs {lastG.opp || '—'}</div>
+                    <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, marginTop: 3 }}>vs {lastG.opp && !isBH(lastG.opp) ? lastG.opp.replace(/\s*\(.*$/, '') : '—'}</div>
                   </div>
                   <div style={{ marginLeft: 'auto', display: 'flex', gap: 14 }}>
                     {[['PTS', lastG.pts], ['REB', lastG.reb], ['AST', lastG.ast], ["MIN", lastG.min]].map(([k, v]) => (
@@ -552,18 +554,34 @@ function AthleteModal({ row, rec, days28, workouts = [], leaguePlayer, leagueSea
             </div>
           ))}
         </div>
-        <div>
-          <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, marginBottom: 6 }}>28-day load</div>
-          <div style={{ color: ORANGE }}><BarChart series={series28} /></div>
-        </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ width: 8, height: 8, borderRadius: '50%', background: rc, flexShrink: 0 }} />
           <span style={{ fontFamily: FB, fontSize: 12.5, color: C.td }}>{readiness.level === 'unknown' ? 'No readiness check-in logged' : readiness.headline}</span>
         </div>
+        {/* Medical / injury — shown on the athlete's profile too, not only the Medical tab */}
+        <div style={{ border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${injuries.length ? '#DE4E3B' : '#37B27C'}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', borderBottom: injuries.length ? `1px solid ${C.cardBd}` : 'none' }}>
+            <span style={{ fontFamily: FN, fontSize: 10.5, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tx }}>Medical</span>
+            {!injuries.length && <StatusPill status="available" small />}
+            {onInjury && <button onClick={onInjury} style={{ marginLeft: 'auto', fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: NAVY, background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '4px 10px', cursor: 'pointer' }}>{injuries.length ? 'Update' : '+ Report injury'}</button>}
+          </div>
+          {injuries.map((inj) => {
+            const days = inj.onsetDate ? dayDiff(todayISO(), inj.onsetDate) : null;
+            const lastP = (inj.progress || [])[0];
+            return (
+              <div key={inj.id} style={{ padding: '9px 12px', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <StatusPill status={inj.status} small />
+                <span style={{ fontFamily: FB, fontSize: 12.5, color: C.tx }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : '', inj.type].filter(Boolean).join(' · ')}</span>
+                <span style={{ fontFamily: FN, fontSize: 10.5, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{days != null ? `${days}d` : ''}{inj.pain != null && inj.pain !== '' ? ` · pain ${inj.pain}` : ''}{inj.rtpTarget ? ` · RTP ${inj.rtpTarget.slice(5)}` : ''}</span>
+                {lastP && <span style={{ fontFamily: FB, fontSize: 11, color: C.tm, width: '100%' }}>Latest ({lastP.date.slice(5)}): {lastP.note}</span>}
+              </div>
+            );
+          })}
+        </div>
         <div>
           <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, marginBottom: 6 }}>Full history{activity.length ? ` (${activity.length})` : ''}</div>
           {activity.length ? (
-            <div style={{ display: 'flex', flexDirection: 'column', maxHeight: 240, overflowY: 'auto' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', maxHeight: 118, overflowY: 'auto' }}>
               {activity.map((a, i) => (
                 <div key={i} style={{ display: 'flex', gap: 10, padding: '7px 0', borderBottom: `0.25px solid ${C.cardBd}`, fontFamily: FN, fontSize: 12 }}>
                   <span style={{ color: C.td, width: 62, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{a.date.slice(5)}</span>
@@ -1263,12 +1281,12 @@ function MedicalView({ roster, medical, onReport, onEdit, onOpen }) {
       </Card>
 
       {rows.length > 0 && (
-        <Card padding={0} leftStripe={NAVY} header={secTitle('Active Injuries')}>
+        <Card padding={18} leftStripe={NAVY} header={secTitle('Active Injuries')}>
           <div>
             {rows.map(({ t, inj }) => {
               const days = inj.onsetDate ? dayDiff(todayISO(), inj.onsetDate) : null;
               return (
-                <div key={t.id + inj.id} className="bhbc-row" onClick={() => onEdit(t.id, inj.id)} style={{ display: 'grid', gridTemplateColumns: '150px 1fr 120px 110px auto', gap: 12, alignItems: 'center', padding: '11px 18px', borderBottom: `0.25px solid ${C.cardBd}`, cursor: 'pointer' }}>
+                <div key={t.id + inj.id} className="bhbc-row" onClick={() => onEdit(t.id, inj.id)} style={{ display: 'grid', gridTemplateColumns: '150px 1fr 120px 110px auto', gap: 12, alignItems: 'center', padding: '11px 0', borderBottom: `0.25px solid ${C.cardBd}`, cursor: 'pointer' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
                     <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums' }}>{t.jersey ?? '—'}</span>
                     <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>
@@ -1284,14 +1302,14 @@ function MedicalView({ roster, medical, onReport, onEdit, onOpen }) {
         </Card>
       )}
 
-      <Card padding={0} leftStripe={NAVY} header={secTitle('Squad Health')}>
+      <Card padding={18} leftStripe={NAVY} header={secTitle('Squad Health')}>
         <div>
           {roster.map((t) => {
             const act = activeInjuries(medical, t.id);
             const status = act.length ? (act.find((i) => i.status === 'out') || act.find((i) => i.status === 'limited') || act[0]).status : 'available';
             const hist = ((medical[t.id] || {}).injuries || []).length;
             return (
-              <div key={t.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 12, alignItems: 'center', padding: '10px 18px', borderBottom: `0.25px solid ${C.cardBd}` }}>
+              <div key={t.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 12, alignItems: 'center', padding: '10px 0', borderBottom: `0.25px solid ${C.cardBd}` }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0, cursor: 'pointer' }} onClick={() => onOpen(t.id)}>
                   <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums', width: 20 }}>{t.jersey ?? '—'}</span>
                   <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 600, color: C.tx }}>{t.name}</span>

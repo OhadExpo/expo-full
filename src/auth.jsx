@@ -26,10 +26,17 @@ export const STAFF_EMAILS = ['yuvalberkovitch@gmail.com'];
 // banner. Treated as owner for UI so he sees all tabs/data. Inert until the
 // SELECT-only RLS is applied (scripts/partner-elad-rls.sql) + his account exists (#232).
 export const PARTNER_EMAILS = ['eladeluz24@gmail.com'];
-export const TRAINER_EMAILS = [...OWNER_EMAILS, ...STAFF_EMAILS, ...PARTNER_EMAILS];
+// BHBC basketball coaches (incl. the head coach / PT). They get a coach login,
+// but their ENTIRE surface is the /bhbc zone — no EXPO coach app, no cross-team
+// data. They can view everything in the zone and log basketball work (sessions,
+// practices, games, medical); EXPO-only controls are hidden. DB-side write
+// restriction to BHBC tables is the security layer (provisioned separately).
+export const BHBC_COACH_EMAILS = ['benshemer4@gmail.com', 'elishai115@gmail.com', 'yehuorland@gmail.com', 'yoel23919@gmail.com'];
+export const TRAINER_EMAILS = [...OWNER_EMAILS, ...STAFF_EMAILS, ...PARTNER_EMAILS, ...BHBC_COACH_EMAILS];
 export const isOwnerEmail = (email) => !!email && OWNER_EMAILS.includes(email.toLowerCase());
 export const isStaffEmail = (email) => !!email && STAFF_EMAILS.includes(email.toLowerCase());
 export const isPartnerEmail = (email) => !!email && PARTNER_EMAILS.includes(email.toLowerCase());
+export const isBhbcCoachEmail = (email) => !!email && BHBC_COACH_EMAILS.includes(email.toLowerCase());
 
 const AuthContext = createContext(null);
 

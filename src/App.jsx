@@ -12,7 +12,7 @@ import { Btn, baseBtn, ToastHost, toast } from './ui';
 import BugReportButton from './BugReportButton';
 import SensorLab from './SensorLab';
 import { parseTraineeId } from './traineeUtils';
-import { AuthProvider, useAuth, LoginScreen, UnauthorizedScreen, PasswordChangeModal, SaveErrorToast, OfflineStatusPill, RolePickerScreen, PORTAL_CHOICE_KEY, TRAINER_EMAILS, OWNER_EMAILS, isPartnerEmail } from './auth';
+import { AuthProvider, useAuth, LoginScreen, UnauthorizedScreen, PasswordChangeModal, SaveErrorToast, OfflineStatusPill, RolePickerScreen, PORTAL_CHOICE_KEY, TRAINER_EMAILS, OWNER_EMAILS, isPartnerEmail, isBhbcCoachEmail } from './auth';
 import InstallAppPrompt from './InstallAppPrompt';
 import ErrorBoundary from './ErrorBoundary';
 import { autoAnalyzeAthleteVideos } from './autoAnalyzeVideos';
@@ -709,6 +709,8 @@ function AuthedApp() {
   // banner (below) makes the read-only intent explicit (#232).
   const isPartner = isPartnerEmail(email);
   const isOwner = OWNER_EMAILS.includes(email) || isPartner;
+  // BHBC basketball coach: their whole app is the /bhbc zone (no EXPO coach app).
+  const isBhbcCoach = isBhbcCoachEmail(email);
 
   // Pre-warm pose analysis in the BACKGROUND across every athlete as soon as the
   // coach app has their clips — so bar-speed + symmetry are already computed when
@@ -1273,10 +1275,14 @@ function AuthedApp() {
   // BHBC = a fully separate ZONE — no EXPO coach nav at all (Ohad: "completely
   // different zone, I don't want to see the rest of the expo stuff"). Full-screen
   // BHBC shell with its own top bar; entered from the Athletes ▾ submenu. Owner-only.
-  if (tab === 'bhbc' && isOwner) return (
+  // A BHBC basketball coach has NO EXPO coach app — their entire session is the
+  // zone (any tab resolves here). Owner enters it from the Athletes ▾ submenu.
+  // For coaches, EXPO-only affordances are withheld (no ‹EXPO exit, no Open-in-
+  // EXPO, no roster management) and they get a Sign-out instead.
+  if (isBhbcCoach || (tab === 'bhbc' && isOwner)) return (
     <Suspense fallback={<ViewFallback />}>
       <ErrorBoundary inline>
-        <BhbcView trainees={trainees} setTrainees={setTrainees} bhbcLoads={bhbcLoads} setBhbcLoads={setBhbcLoads} bhbcFixtures={bhbcFixtures} setBhbcFixtures={setBhbcFixtures} league={bhbcLeague} medical={bhbcMedical} setMedical={setBhbcMedical} planIndex={planIndex} exercises={exercises} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} workouts={workouts} setWorkouts={setWorkouts} onDecrementSession={handleDecrementSession} portalVis={portalVis} bwLog={bwLog} weeklyFocus={weeklyFocus} onOpenTrainee={id=>navTo('trainees',id)} onExit={()=>navTo('trainees')} />
+        <BhbcView trainees={trainees} setTrainees={setTrainees} bhbcLoads={bhbcLoads} setBhbcLoads={setBhbcLoads} bhbcFixtures={bhbcFixtures} setBhbcFixtures={setBhbcFixtures} league={bhbcLeague} medical={bhbcMedical} setMedical={setBhbcMedical} planIndex={planIndex} exercises={exercises} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} workouts={workouts} setWorkouts={setWorkouts} onDecrementSession={handleDecrementSession} portalVis={portalVis} bwLog={bwLog} weeklyFocus={weeklyFocus} coach={isBhbcCoach} onSignOut={signOut} onOpenTrainee={isBhbcCoach?null:(id=>navTo('trainees',id))} onExit={isBhbcCoach?null:(()=>navTo('trainees'))} />
       </ErrorBoundary>
     </Suspense>
   );
