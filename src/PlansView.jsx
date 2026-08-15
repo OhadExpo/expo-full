@@ -2695,10 +2695,14 @@ function detectPhase(name, { avgReps, totalSets, avgSets, peakSets, powerShare }
   const n = (name || '').toLowerCase();
   if (/deload|de-load|taper|recover|back[\s-]*off|unload|rest\s*week|פריקה|דילоуд/.test(n)) return 'Deload';
   if (/peak|realiz|test\s*week|compet|max\s*out/.test(n)) return 'Peak';
-  if (/power|speed|explos|dynamic|convert|conversion|\brfd\b|ballistic/.test(n)) return 'Power';
-  if (/strength|\bstr\b|\bmxs\b|intensif|max\s*str|\bheavy\b|כוח/.test(n)) return 'Strength';
-  if (/hyper|\bhyp\b|mass|volume|accumul|\bgpp\b|\bbase\b|\bprep\b|anatom|foundation|היפרטרופיה|נפח/.test(n)) return 'Hypertrophy';
-  if (/endur|metcon|capacity|work\s*cap/.test(n)) return 'Hypertrophy';
+  if (/power|\bpwr\b|plyo|speed|explos|dynamic|convert|conversion|\brfd\b|ballistic/.test(n)) return 'Power';
+  if (/strength|\bstr\b|\bint\b|\bmxs\b|intensif|max\s*str|\bheavy\b|כוח/.test(n)) return 'Strength';
+  // \bvol\b catches the "VOL" abbrev (VOL I / UNI VOL / VOL Ramp) without matching
+  // the full word "volume" (no word boundary mid-word). Ohad's naming — verified
+  // by the roster phase audit. INT / RP-landmarks (MAV/MEV/MRV/MED) left to numeric
+  // inference pending his phase-mapping call.
+  if (/hyper|\bhyp\b|mass|volume|\bvol\b|accumul|\bgpp\b|\bbase\b|\bprep\b|anatom|foundation|היפרטרופיה|נפח/.test(n)) return 'Hypertrophy';
+  if (/endu|metcon|capacity|work\s*cap/.test(n)) return 'Hypertrophy';
   // Numeric inference.
   if (avgSets && totalSets <= avgSets * 0.72) return 'Deload';
   if (powerShare > 0.30) return 'Power';
