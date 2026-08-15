@@ -11,6 +11,7 @@ const CAP = 150;
 
 export default function ExerciseClassifyView({ exercises = [], setExercises }) {
   const [edits, setEdits] = useState({}); // exId -> { resistanceType, bodyPosition, movementType, skip }
+  const [q, setQ] = useState('');
   const [showAll, setShowAll] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const [applying, setApplying] = useState(false);
@@ -22,7 +23,8 @@ export default function ExerciseClassifyView({ exercises = [], setExercises }) {
     .map((e) => ({ e, g: classify(e.title || e.t) }))
     .sort((a, b) => b.g.filled - a.g.filled), [exercises]);
 
-  const rows = showAll ? items : items.slice(0, CAP);
+  const filtered = useMemo(() => { const n = q.trim().toLowerCase(); return n ? items.filter(({ e }) => (e.title || e.t || '').toLowerCase().includes(n)) : items; }, [items, q]);
+  const rows = showAll ? filtered : filtered.slice(0, CAP);
   const val = (ex, g, k) => { const d = edits[ex.id] || {}; return d[k] !== undefined ? d[k] : (ex[k] || g[k] || ''); };
   const setVal = (exId, k, v) => setEdits((p) => ({ ...p, [exId]: { ...p[exId], [k]: v } }));
   const toggleSkip = (exId) => setEdits((p) => ({ ...p, [exId]: { ...p[exId], skip: !(p[exId] && p[exId].skip) } }));
@@ -62,8 +64,12 @@ export default function ExerciseClassifyView({ exercises = [], setExercises }) {
             {applying ? 'Applying…' : `Apply ${pending.length}`}
           </Btn>
         </div>}>
-        <div style={{ fontFamily: FB, fontSize: 12.5, color: C.td }}>
-          Taxonomy guessed from each title (CLAUDE.md set). Review, edit any dropdown, or skip. Applying writes only the library — never programs.
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ fontFamily: FB, fontSize: 12.5, color: C.td }}>
+            Taxonomy guessed from each title (CLAUDE.md set). Review, edit any dropdown, or skip. Applying writes only the library — never programs.
+          </div>
+          <input value={q} onChange={(e) => { setQ(e.target.value); setShowAll(false); }} placeholder="Filter by title (e.g. push-up, DB, squat) to classify in focused batches…"
+            style={{ fontFamily: FB, fontSize: 13, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.bd}`, borderRadius: 0, padding: '9px 11px', maxWidth: 480 }} />
         </div>
       </Card>
 
@@ -104,9 +110,9 @@ export default function ExerciseClassifyView({ exercises = [], setExercises }) {
               </tbody>
             </table>
           </div>
-          {!showAll && items.length > CAP && (
+          {!showAll && filtered.length > CAP && (
             <div style={{ textAlign: 'center', marginTop: 12 }}>
-              <Btn variant="ghost" onClick={() => setShowAll(true)}>Show all {items.length}</Btn>
+              <Btn variant="ghost" onClick={() => setShowAll(true)}>Show all {filtered.length}</Btn>
               <span style={{ fontFamily: FB, fontSize: 11.5, color: C.td, marginLeft: 10 }}>showing {CAP} — most-complete guesses first</span>
             </div>
           )}
