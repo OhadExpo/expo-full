@@ -357,7 +357,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
             )}
 
             {view === 'roster' && (
-              <RosterGrid rows={rows} onOpen={setDetailFor} />
+              <RosterGrid rows={rows} medical={medical} league={league} onOpen={setDetailFor} />
             )}
 
             {view === 'games' && (
@@ -909,7 +909,7 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, onOpen }) {
   );
 }
 
-function RosterGrid({ rows, onOpen }) {
+function RosterGrid({ rows, medical = {}, league = {}, onOpen }) {
   return (
     <CollapsibleSection title="Roster" count={rows.length} storageKey="bhbc-roster" defaultOpen leftStripe={NAVY}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(232px, 1fr))', gap: 12 }}>
@@ -919,11 +919,14 @@ function RosterGrid({ rows, onOpen }) {
             <div style={{ position: 'relative' }}>
               <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums' }}>#{t.jersey ?? '—'}</div>
               <div style={{ fontFamily: FN, fontWeight: 700, fontSize: 15, color: C.tx, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</div>
-              <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 4 }}>{t.position || '—'}</div>
+              {(() => { const inj = activeInjuries(medical, t.id)[0]; return inj
+                ? <div style={{ fontFamily: FN, fontSize: 10.5, fontWeight: 700, color: (MED_STATUS[inj.status] || {}).color || '#DE4E3B', marginTop: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{'⚠ '}{inj.bodyPart}{inj.side && inj.side !== 'N/A' ? ` ${inj.side[0]}` : ''} · {(MED_STATUS[inj.status] || {}).label}</div>
+                : <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 4 }}>{t.position || '—'}</div>; })()}
               {t.arrival && t.arrival > todayISO() && <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 6, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: ORANGE_DEEP, background: `color-mix(in srgb, ${ORANGE} 12%, transparent)`, padding: '2px 6px' }}><span aria-hidden="true">✈</span> Lands {dow(t.arrival)} {monDay(t.arrival)}</div>}
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, paddingTop: 10, borderTop: `0.25px solid ${C.cardBd}` }}>
                 <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{heightM(t.heightCm)}</span>
                 <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', color: C.tm, lineHeight: 1 }}>{flag(t.nationality)}</span>
+                {(() => { const lp = leaguePlayerFor(league, t.name); return lp ? <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: ORANGE_DEEP, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }} title="League points per game">{lp.ppg} PPG</span> : null; })()}
                 <span style={{ marginLeft: 'auto' }}>{acwr.ratio != null ? <BandPill band={acwr.band} value={acwr.ratio.toFixed(2)} /> : <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>baseline</span>}</span>
               </div>
             </div>
