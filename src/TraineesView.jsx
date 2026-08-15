@@ -443,8 +443,10 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
   },[addMenuOpen]);         // step 3: type name to confirm
 
   const statusColor = { Active: C.ac, "On Hold": C.or, Inactive: C.td, Trial: C.ac, Archived: C.rd };
-  const active = trainees.filter(t => t.status !== "Archived");
-  const archived = trainees.filter(t => t.status === "Archived");
+  // BHBC (Bnei Herzliya pro squad) lives ONLY in the /bhbc zone — keep it out
+  // of the main EXPO athlete roster so the two stay separate (Ohad 2026-08-15).
+  const active = trainees.filter(t => t.status !== "Archived" && t.team !== 'BHBC');
+  const archived = trainees.filter(t => t.status === "Archived" && t.team !== 'BHBC');
   // Archived is a STATUS value → derive the old showArchived flag from it so the
   // dashed-card styling, drag-guard and action rows keep working unchanged.
   const showArchived = statusFilter === 'Archived';

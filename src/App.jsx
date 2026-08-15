@@ -65,6 +65,7 @@ const BookingView = lazyReload(() => import('./BookingView'));
 const BillingView = lazyReload(() => import('./BillingView'));
 const SessionsView = lazyReload(() => import('./SessionsView'));
 const ReviewToolsView = lazyReload(() => import('./ReviewToolsView'));
+const BhbcView = lazyReload(() => import('./BhbcView'));
 // Public unauthenticated try-it sandbox at /try. Lazy-loaded the same way
 // so the heavy MediaPipe-pulling code chunk doesn't bloat the auth path.
 const TrySandbox = lazyReload(() => import('./TrySandbox'));
@@ -643,6 +644,10 @@ function AuthedApp() {
   const [bwLog,setBwLog,bwL]=useSupaBwLog([]);
   const [weeklyFocus,setWeeklyFocus]=useSupaWeeklyFocus({});
   const [portalVis,setPortalVis,,,setPortalVisLocal]=useSupaStore('expo-portal-vis',{});
+  // BHBC team command center (/coach/bhbc) — per-athlete session-RPE load + readiness.
+  // Owner-only store key (never trainee-visible); JSON blob like expo-bw.
+  const [bhbcLoads,setBhbcLoads]=useSupaStore('expo-bhbc-loads',{});
+  const [bhbcFixtures]=useSupaStore('expo-bhbc-fixtures',[]);
   // Live portal-visibility sync: when the coach hides/shows a block, the
   // athlete's OPEN portal (and the coach's other devices) reflect it live
   // instead of on reload. Pure broadcast (no DDL); the athlete never sets it,
@@ -889,7 +894,7 @@ function AuthedApp() {
         const parts = sub.split('/');
         if (parts[1]) return { mode:'coach', tab:'plans', planEditId: parts[1] };
       }
-      const tabMap = {dashboard:'dashboard',athletes:'trainees',trainees:'trainees',programs:'plans',exercises:'exercises',review:'review','review-tools':'reviewTools',workouts:'workouts',sessions:'sessions','sessions-single':'sessionsSolo',intake:'intake',waitlist:'waitlist','chat-audit':'chatAudit','smart-import':'smartImport',tasks:'tasks',bugs:'bugs',challenges:'challenges',calendar:'calendar',billing:'billing'};
+      const tabMap = {dashboard:'dashboard',athletes:'trainees',trainees:'trainees',programs:'plans',exercises:'exercises',review:'review','review-tools':'reviewTools',workouts:'workouts',sessions:'sessions','sessions-single':'sessionsSolo',intake:'intake',waitlist:'waitlist','chat-audit':'chatAudit','smart-import':'smartImport',tasks:'tasks',bugs:'bugs',challenges:'challenges',calendar:'calendar',billing:'billing',bhbc:'bhbc'};
       return { mode:'coach', tab: tabMap[sub] || 'dashboard', traineeId:null };
     }
     return { mode:'portal' };
@@ -942,7 +947,7 @@ function AuthedApp() {
     if (tab === 'client' && !isCoach) return;
     // URL writes the canonical "athletes" segment now; internal tab key
     // stays "trainees" so the rest of AuthedApp doesn't have to be touched.
-    const tabUrl = {dashboard:'dashboard',trainees:'athletes',plans:'programs',exercises:'exercises',review:'review',reviewTools:'review-tools',workouts:'workouts',sessions:'sessions',sessionsSolo:'sessions-single',intake:'intake',waitlist:'waitlist',chatAudit:'chat-audit',smartImport:'smart-import',tasks:'tasks',bugs:'bugs',challenges:'challenges',calendar:'calendar',billing:'billing'};
+    const tabUrl = {dashboard:'dashboard',trainees:'athletes',plans:'programs',exercises:'exercises',review:'review',reviewTools:'review-tools',workouts:'workouts',sessions:'sessions',sessionsSolo:'sessions-single',intake:'intake',waitlist:'waitlist',chatAudit:'chat-audit',smartImport:'smart-import',tasks:'tasks',bugs:'bugs',challenges:'challenges',calendar:'calendar',billing:'billing',bhbc:'bhbc'};
     let path = '/coach/' + (tabUrl[newTab] || 'dashboard');
     if (newTab === 'trainees' && newTrainee) path += '/' + newTrainee;
     if (window.location.pathname !== path) window.history.pushState(null, '', path);
@@ -1083,7 +1088,7 @@ function AuthedApp() {
   //   • Incoming ▾ groups Intake / Waitlist
   // The row goes from 11 items down to 8 visible tabs, fitting at
   // 1366px viewport without horizontal scroll.
-  const activeAthletesCount = trainees.filter(t=>t.status!=='Archived').length;
+  const activeAthletesCount = trainees.filter(t=>t.status!=='Archived'&&t.team!=='BHBC').length;
   // Ohad spec 2026-05-16:
   //   Dashboard › Athletes › Tasks › Review › Billing › Incoming › Challenges › Portal
   const tabs = [
@@ -1093,6 +1098,7 @@ function AuthedApp() {
         { route:'trainees',  label:'Roster',    count:activeAthletesCount },
         { route:'plans',     label:'Programs',  count:null },
         { route:'exercises', label:'Exercises', count:null },
+        { route:'bhbc',      label:'BHBC',      count:null },
       ] },
     { key:'sessions',   label:'Sessions',   count:null,
       submenu: [
@@ -1228,6 +1234,17 @@ function AuthedApp() {
       <img src={logo.nav} alt="EXPO" style={{height:50}} />
       <div style={{color:C.td,fontSize:13}}>Loading data...</div>
     </div>);
+
+  // BHBC = a fully separate ZONE — no EXPO coach nav at all (Ohad: "completely
+  // different zone, I don't want to see the rest of the expo stuff"). Full-screen
+  // BHBC shell with its own top bar; entered from the Athletes ▾ submenu. Owner-only.
+  if (tab === 'bhbc' && isOwner) return (
+    <Suspense fallback={<ViewFallback />}>
+      <ErrorBoundary inline>
+        <BhbcView trainees={trainees} setTrainees={setTrainees} bhbcLoads={bhbcLoads} setBhbcLoads={setBhbcLoads} bhbcFixtures={bhbcFixtures} planIndex={planIndex} onOpenTrainee={id=>navTo('trainees',id)} onExit={()=>navTo('trainees')} />
+      </ErrorBoundary>
+    </Suspense>
+  );
 
   return(
     <div style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB}}>
