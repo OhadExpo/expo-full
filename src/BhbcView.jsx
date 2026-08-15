@@ -11,12 +11,17 @@
 // crest (public/logos/bhbc-logo.png). Semantic ACWR band colors are status-only,
 // never the brand. Load math: src/acwrEngine.js (validated vs the corpus).
 
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useMemo, useState, useCallback, Suspense, lazy } from 'react';
 import { C, FN, FB } from './theme';
 import { Card, CollapsibleSection, Btn, Input, Modal, EmptyState, toast } from './ui';
 import { ThemeToggle } from './ThemeToggle';
 import { acwrFromDaily, sessionLoad } from './acwrEngine';
 import { readinessAutoreg } from './readinessAutoreg';
+
+// EXPO's own group/single session logger — reused INSIDE the BHBC portal, scoped
+// to the BHBC roster. It writes to client_workouts (athlete-visible), so a BHBC
+// session syncs to each player's portal + EXPO review, exactly like the main app.
+const SessionsView = lazy(() => import('./SessionsView'));
 
 const NAVY = '#1E3D74', NAVY_DEEP = '#14294F', ORANGE = '#F26A2B', ORANGE_DEEP = '#D9541A';
 // Scoped theme override — reskins EXPO's components to BHBC while keeping their
@@ -102,12 +107,13 @@ const Jersey = ({ n, size = 30 }) => (
 
 // ---- component ----
 
-export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, setBhbcLoads, bhbcFixtures = [], planIndex = [], onOpenTrainee, onExit }) {
+export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, setBhbcLoads, bhbcFixtures = [], planIndex = [], exercises = [], clientWorkouts = [], setClientWorkouts, workouts = [], setWorkouts, onDecrementSession, onOpenTrainee, onExit }) {
   const [manageOpen, setManageOpen] = useState(false);
   const [logFor, setLogFor] = useState(null);
   const [detailFor, setDetailFor] = useState(null);
   const [view, setView] = useState('overview');   // overview | schedule | roster
   const [schedMode, setSchedMode] = useState('calendar'); // calendar | list
+  const [sessionMode, setSessionMode] = useState('group'); // group | single
 
   const roster = useMemo(
     () => trainees.filter((t) => t && t.team === 'BHBC' && t.status !== 'Archived')
@@ -224,7 +230,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
           <>
             {/* ---- SUB-NAV (tool tabs) — gives the zone "order" ---- */}
             <div style={{ display: 'flex', gap: 2, borderBottom: `1px solid ${C.cardBd}`, flexWrap: 'wrap' }}>
-              {[['overview', 'Overview'], ['schedule', 'Schedule'], ['roster', 'Roster']].map(([k, label]) => {
+              {[['overview', 'Overview'], ['schedule', 'Schedule'], ['sessions', 'Sessions'], ['roster', 'Roster']].map(([k, label]) => {
                 const active = view === k;
                 return (
                   <button key={k} onClick={() => setView(k)} style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: active ? C.tx : C.td, background: 'transparent', border: 'none', borderBottom: active ? `2px solid ${ORANGE}` : '2px solid transparent', padding: '10px 16px', marginBottom: -1, cursor: 'pointer' }}>{label}</button>
@@ -245,6 +251,22 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
 
             {view === 'roster' && (
               <RosterGrid rows={rows} onOpen={setDetailFor} />
+            )}
+
+            {view === 'sessions' && (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'inline-flex', border: `1px solid ${C.cardBd}` }}>
+                    {[['group', 'Group'], ['single', 'Single']].map(([k, l]) => (
+                      <button key={k} onClick={() => setSessionMode(k)} style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: sessionMode === k ? '#fff' : C.td, background: sessionMode === k ? NAVY : 'transparent', border: 'none', padding: '7px 16px', cursor: 'pointer' }}>{l}</button>
+                    ))}
+                  </div>
+                  <span style={{ fontFamily: FB, fontSize: 11.5, color: C.td }}>Logs each athlete's work to their history &amp; portal — synced with EXPO.</span>
+                </div>
+                <Suspense fallback={<div style={{ padding: 24, textAlign: 'center', color: C.td, fontFamily: FB }}>Loading session logger…</div>}>
+                  <SessionsView mode={sessionMode} trainees={roster} planIndex={planIndex} exercises={exercises} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} workouts={workouts} setWorkouts={setWorkouts} onDecrementSession={onDecrementSession} />
+                </Suspense>
+              </>
             )}
 
           </>
