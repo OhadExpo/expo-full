@@ -22,6 +22,9 @@ import { readinessAutoreg } from './readinessAutoreg';
 // to the BHBC roster. It writes to client_workouts (athlete-visible), so a BHBC
 // session syncs to each player's portal + EXPO review, exactly like the main app.
 const SessionsView = lazy(() => import('./SessionsView'));
+// EXPO's read-only program/portal preview — shown INSIDE the BHBC zone so coaches
+// can view an athlete's program here instead of jumping to the EXPO coach app.
+const CoachPreviewPortal = lazy(() => import('./CoachPreviewPortal'));
 
 const NAVY = '#1E3D74', NAVY_DEEP = '#14294F', ORANGE = '#F26A2B', ORANGE_DEEP = '#D9541A';
 // Scoped theme override — reskins EXPO's components to BHBC while keeping their
@@ -107,12 +110,13 @@ const Jersey = ({ n, size = 30 }) => (
 
 // ---- component ----
 
-export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, setBhbcLoads, bhbcFixtures = [], setBhbcFixtures, planIndex = [], exercises = [], clientWorkouts = [], setClientWorkouts, workouts = [], setWorkouts, onDecrementSession, onOpenTrainee, onExit }) {
+export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, setBhbcLoads, bhbcFixtures = [], setBhbcFixtures, planIndex = [], exercises = [], clientWorkouts = [], setClientWorkouts, workouts = [], setWorkouts, onDecrementSession, portalVis = {}, bwLog = [], weeklyFocus = {}, onOpenTrainee, onExit }) {
   const [manageOpen, setManageOpen] = useState(false);
   const [logFor, setLogFor] = useState(null);
   const [detailFor, setDetailFor] = useState(null);
   const [practiceOpen, setPracticeOpen] = useState(false);
   const [gameEdit, setGameEdit] = useState(false);
+  const [programFor, setProgramFor] = useState(null);
   const [view, setView] = useState('overview');   // overview | schedule | roster
   const [schedMode, setSchedMode] = useState('calendar'); // calendar | list
   const [sessionMode, setSessionMode] = useState('group'); // group | single
@@ -247,7 +251,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   const rowGrid = '28px minmax(116px,1.5fr) 112px 46px 130px minmax(104px,1.1fr) 92px';
 
   return (
-    <div style={{ ...TOKENS, minHeight: '100vh', background: 'var(--c-bg)', color: C.tx, fontFamily: FB }}>
+    <div className="bhbc-zone" style={{ ...TOKENS, minHeight: '100vh', background: 'var(--c-bg)', color: C.tx, fontFamily: FB }}>
       {/* ---- ZONE TOP BAR ---- */}
       <header style={{ position: 'sticky', top: 0, zIndex: 50, background: NAVY, borderBottom: `2px solid ${ORANGE}` }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', height: 62, display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -337,10 +341,24 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
       </main>
 
       <style>{`
+        /* Legible secondary text: brighter muted/dim greys, theme-aware, scoped to
+           the zone (Ohad: dark-mode grey text was too faded). */
+        .bhbc-zone{ --c-tm:#6B727B; --c-td:#5F666F; }
+        @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]):not([data-theme="5b"]) .bhbc-zone{ --c-tm:#AEB4BD; --c-td:#B6BCC5; } }
+        :root[data-theme="dark"] .bhbc-zone{ --c-tm:#AEB4BD; --c-td:#B6BCC5; }
         .bhbc-row{transition:background 120ms}
         .bhbc-row:hover{background:color-mix(in srgb, ${NAVY} 6%, transparent)}
         .bhbc-card:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(6,16,37,0.14)}
       `}</style>
+
+      {/* ---- PROGRAM VIEW (EXPO's read-only program, shown in-zone for coaches) ---- */}
+      {programFor && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'var(--c-bg)', overflowY: 'auto' }}>
+          <Suspense fallback={<div style={{ padding: 40, textAlign: 'center', color: C.td, fontFamily: FB }}>Loading program…</div>}>
+            <CoachPreviewPortal traineeId={programFor} trainees={trainees} exercises={exercises} portalVis={portalVis} clientWorkouts={clientWorkouts} bwLog={bwLog} weeklyFocus={weeklyFocus} onBack={() => setProgramFor(null)} />
+          </Suspense>
+        </div>
+      )}
 
       {/* ---- PRACTICE ENTRY (the sheet-like daily entry) ---- */}
       {practiceOpen && (
@@ -388,6 +406,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
           onClose={() => setDetailFor(null)}
           onLog={() => { setLogFor(detailFor); setDetailFor(null); }}
           onOpenExpo={onOpenTrainee ? () => onOpenTrainee(detailFor) : null}
+          onViewProgram={() => { setProgramFor(detailFor); setDetailFor(null); }}
           onCycleAvail={() => cycleAvail(detailFor, row.avail)} />;
       })()}
     </div>
@@ -409,7 +428,7 @@ function BarChart({ series, w = 460, h = 88 }) {
   );
 }
 
-function AthleteModal({ row, rec, days28, workouts = [], onClose, onLog, onOpenExpo, onCycleAvail }) {
+function AthleteModal({ row, rec, days28, workouts = [], onClose, onLog, onOpenExpo, onViewProgram, onCycleAvail }) {
   const { t, acwr, avail, readiness } = row;
   const loads = (rec && rec.loads) || {};
   const series28 = days28.map((d) => loads[d] || 0);
@@ -419,8 +438,10 @@ function AthleteModal({ row, rec, days28, workouts = [], onClose, onLog, onOpenE
   const activity = [];
   Object.entries((rec && rec.sessions) || {}).forEach(([d, arr]) => (arr || []).forEach((s) => activity.push({ date: d, label: `${s.type} ${s.min}′ @ RPE ${s.rpe}`, load: s.load })));
   (workouts || []).forEach((w) => { const d = String(w.date || w.completedAt || '').slice(0, 10); const nEx = (w.exercises || []).length; const nSets = (w.exercises || []).reduce((a, e) => a + (e.sets || []).length, 0); if (d) activity.push({ date: d, label: `Gym · ${nEx} lift${nEx === 1 ? '' : 's'}, ${nSets} set${nSets === 1 ? '' : 's'}`, load: null }); });
+  Object.entries((rec && rec.bw) || {}).forEach(([d, kg]) => activity.push({ date: d, label: `Bodyweight ${kg} kg`, load: null }));
+  Object.entries((rec && rec.availability) || {}).forEach(([d, code]) => { if (code > 1) activity.push({ date: d, label: `Availability · ${AVAIL[code].label}`, load: null }); });
+  Object.entries((rec && rec.notes) || {}).forEach(([d, n]) => { if (n) activity.push({ date: d, label: `Note — ${n}`, load: null }); });
   activity.sort((a, b) => b.date.localeCompare(a.date));
-  const recent = activity.slice(0, 8);
   return (
     <Modal open onClose={onClose} wide title={`#${t.jersey ?? '—'} · ${t.name}`}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -444,23 +465,24 @@ function AthleteModal({ row, rec, days28, workouts = [], onClose, onLog, onOpenE
           <span style={{ width: 8, height: 8, borderRadius: '50%', background: rc, flexShrink: 0 }} />
           <span style={{ fontFamily: FB, fontSize: 12.5, color: C.td }}>{readiness.level === 'unknown' ? 'No readiness check-in logged' : readiness.headline}</span>
         </div>
-        {recent.length > 0 && (
-          <div>
-            <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, marginBottom: 6 }}>Recent activity</div>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              {recent.map((a, i) => (
+        <div>
+          <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, marginBottom: 6 }}>Full history{activity.length ? ` (${activity.length})` : ''}</div>
+          {activity.length ? (
+            <div style={{ display: 'flex', flexDirection: 'column', maxHeight: 240, overflowY: 'auto' }}>
+              {activity.map((a, i) => (
                 <div key={i} style={{ display: 'flex', gap: 10, padding: '7px 0', borderBottom: `0.25px solid ${C.cardBd}`, fontFamily: FN, fontSize: 12 }}>
-                  <span style={{ color: C.td, width: 52, fontVariantNumeric: 'tabular-nums' }}>{a.date.slice(5)}</span>
+                  <span style={{ color: C.td, width: 62, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{a.date.slice(5)}</span>
                   <span style={{ color: C.tx, minWidth: 0 }}>{a.label}</span>
-                  {a.load != null && <span style={{ marginLeft: 'auto', color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>{Math.round(a.load)}</span>}
+                  {a.load != null && <span style={{ marginLeft: 'auto', color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums', fontWeight: 700, flexShrink: 0 }}>{Math.round(a.load)}</span>}
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          ) : <div style={{ fontFamily: FB, fontSize: 12.5, color: C.td, padding: '6px 0' }}>No history logged yet.</div>}
+        </div>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-          {onOpenExpo && <Btn variant="ghost" onClick={onOpenExpo}>Open full profile in EXPO ›</Btn>}
-          <Btn onClick={onLog} style={{ background: NAVY, borderColor: NAVY, color: '#fff' }}>Log session</Btn>
+          {onOpenExpo && <Btn variant="ghost" onClick={onOpenExpo}>Open in EXPO ›</Btn>}
+          <Btn variant="ghost" onClick={onLog}>Log session</Btn>
+          {onViewProgram && <Btn onClick={onViewProgram} style={{ background: NAVY, borderColor: NAVY, color: '#fff' }}>View program</Btn>}
         </div>
       </div>
     </Modal>
