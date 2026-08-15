@@ -240,6 +240,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
 
             {view === 'overview' && (
               <>
+                <TodayPanel today={today} fixtures={bhbcFixtures} fx={fx} rows={rows} onSessions={() => setView('sessions')} onLog={() => setLogFor('new')} />
                 <TeamSnapshotCard team={team} />
                 <LoadBoard rows={rows} rowGrid={rowGrid} cycleAvail={cycleAvail} onOpen={setDetailFor} />
               </>
@@ -390,6 +391,54 @@ function AthleteModal({ row, rec, days28, onClose, onLog, onOpenExpo, onCycleAva
 // band helpers (mirror acwrEngine bands for the snapshot tile)
 function bandKey(r) { if (r == null) return 'none'; if (r < 0.8) return 'detrained'; if (r <= 1.3) return 'low'; if (r < 1.5) return 'elevated'; return 'high'; }
 function acwrLabel(r) { return { detrained: 'undertrained', low: 'sweet spot', elevated: 'elevated', high: 'danger', none: '' }[bandKey(r)]; }
+
+function TodayPanel({ today, fixtures, fx, rows, onSessions, onLog }) {
+  const todayFx = (fixtures || []).filter((f) => f.date === today).slice().sort((a, b) => a.start.localeCompare(b.start));
+  const next = fx.byDay[0];
+  const av = { full: 0, mod: 0, out: 0 };
+  rows.forEach((r) => { if (r.avail <= 1) av.full++; else if (r.avail <= 3) av.mod++; else av.out++; });
+  const gd = fx.nextGame ? dayDiff(today, fx.nextGame.date) : null;
+  const gdLabel = gd == null ? null : gd === 0 ? 'GAME DAY' : gd < 0 ? `${-gd} day${gd === -1 ? '' : 's'} to game` : null;
+  const chip = (f, i) => (
+    <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${FX_COLOR[f.type] || NAVY}`, padding: '6px 11px', background: 'var(--c-sf)' }}>
+      <span style={{ fontFamily: FN, fontSize: 12, color: C.tx, fontVariantNumeric: 'tabular-nums' }}>{f.start}</span>
+      <span style={{ fontFamily: FN, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: FX_COLOR[f.type] || NAVY }}>{FX_LABEL[f.type] || 'Session'}</span>
+      <span style={{ fontFamily: FN, fontSize: 10, color: C.td }}>{f.minutes}′</span>
+    </span>
+  );
+  return (
+    <Card header={`Today · ${dow(today)} ${monDay(today)}`} headerRight={gdLabel ? <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff' }}>{gdLabel}</span> : null}>
+      <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+        <div style={{ flex: '2 1 300px', minWidth: 240 }}>
+          <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm, marginBottom: 8 }}>Sessions</div>
+          {todayFx.length ? (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{todayFx.map(chip)}</div>
+          ) : next ? (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              <span style={{ fontFamily: FB, fontSize: 12.5, color: C.td }}>None today · next {dow(next.date)} {monDay(next.date)}</span>
+              {next.items.slice(0, 3).map(chip)}
+            </div>
+          ) : <span style={{ fontFamily: FB, fontSize: 12.5, color: C.td }}>No sessions scheduled.</span>}
+        </div>
+        <div style={{ flex: '1 1 150px' }}>
+          <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm, marginBottom: 8 }}>Availability</div>
+          <div style={{ display: 'flex', gap: 16, fontFamily: FN }}>
+            {[['#37B27C', av.full, 'available'], ['#E0A73A', av.mod, 'limited'], ['#DE4E3B', av.out, 'out']].map(([c, n, l]) => (
+              <div key={l} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <span style={{ fontSize: 22, fontWeight: 800, color: n ? c : C.td, fontVariantNumeric: 'tabular-nums' }}>{n}</span>
+                <span style={{ fontSize: 9, color: C.td, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{l}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <Btn onClick={onSessions} style={{ background: NAVY, borderColor: NAVY, color: '#fff' }}>Start session ›</Btn>
+          <Btn variant="ghost" onClick={onLog}>Quick log</Btn>
+        </div>
+      </div>
+    </Card>
+  );
+}
 
 function TeamSnapshotCard({ team }) {
   const cells = [
