@@ -124,6 +124,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   const [logFor, setLogFor] = useState(null);
   const [detailFor, setDetailFor] = useState(null);
   const [practiceOpen, setPracticeOpen] = useState(false);
+  const [checkinOpen, setCheckinOpen] = useState(false);
   const [gameEdit, setGameEdit] = useState(false);
   const [programFor, setProgramFor] = useState(null);
   const [injuryFor, setInjuryFor] = useState(null); // { athleteId, injuryId? } | null
@@ -258,6 +259,24 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
     toast('Practice saved'); notify();
   }, [setBhbcLoads, notify]);
 
+  // Squad morning wellness check-in → readiness[date] per athlete, feeding the
+  // readinessAutoreg engine (so the Load board + athlete cards show a real
+  // session nudge before athletes have their own portal accounts).
+  const saveCheckin = useCallback(({ date, entries }) => {
+    setBhbcLoads((prev) => {
+      const next = { ...prev };
+      Object.entries(entries).forEach(([id, e]) => {
+        const hasAny = e.sleep || e.energy || (e.pain !== '' && e.pain != null);
+        if (!hasAny) return;
+        const rec = next[id] ? { ...next[id] } : emptyRec();
+        rec.readiness = { ...(rec.readiness || {}), [date]: { ...((rec.readiness || {})[date] || {}), ...(e.sleep ? { sleep: e.sleep } : {}), ...(e.energy ? { energy: e.energy } : {}), ...(e.pain !== '' && e.pain != null ? { pain: e.pain } : {}) } };
+        next[id] = rec;
+      });
+      return next;
+    });
+    toast('Check-in saved'); notify();
+  }, [setBhbcLoads, notify]);
+
   const updateGame = useCallback((g, patch) => {
     if (!setBhbcFixtures) return;
     setBhbcFixtures((prev) => (prev || []).map((f) => (f.date === g.date && f.start === g.start && f.type === 'game') ? { ...f, ...patch } : f));
@@ -318,6 +337,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
           <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: C.td }}>Squad · {roster.length}</div>
           <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {!coach && <Btn variant="ghost" onClick={() => setManageOpen(true)}>Manage roster</Btn>}
+            <Btn variant="ghost" onClick={() => setCheckinOpen(true)}>Check-in</Btn>
             <Btn onClick={() => setPracticeOpen(true)} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>+ Log practice</Btn>
           </div>
         </div>
@@ -416,6 +436,11 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
       {practiceOpen && (
         <PracticeEntryModal roster={roster} bhbcLoads={bhbcLoads} fixtures={bhbcFixtures}
           onClose={() => setPracticeOpen(false)} onSave={(p) => { savePractice(p); setPracticeOpen(false); }} />
+      )}
+
+      {checkinOpen && (
+        <WellnessModal roster={roster} bhbcLoads={bhbcLoads}
+          onClose={() => setCheckinOpen(false)} onSave={(p) => { saveCheckin(p); setCheckinOpen(false); }} />
       )}
 
       {gameEdit && fx.nextGame && (
@@ -632,6 +657,61 @@ function AthleteModal({ row, rec, days28, workouts = [], leaguePlayer, leagueSea
 // band helpers (mirror acwrEngine bands for the snapshot tile)
 function bandKey(r) { if (r == null) return 'none'; if (r < 0.8) return 'detrained'; if (r <= 1.3) return 'low'; if (r < 1.5) return 'elevated'; return 'high'; }
 function acwrLabel(r) { return { detrained: 'undertrained', low: 'sweet spot', elevated: 'elevated', high: 'danger', none: '' }[bandKey(r)]; }
+
+// Squad wellness check-in — sleep / energy / pain per athlete → feeds the
+// readinessAutoreg engine (session nudge on the load board + athlete profile).
+function WellnessModal({ roster, bhbcLoads, onClose, onSave }) {
+  const [date, setDate] = useState(todayISO());
+  const [entries, setEntries] = useState({});
+  useEffect(() => {
+    const e = {};
+    roster.forEach((t) => { const r = ((bhbcLoads[t.id] || {}).readiness || {})[date] || {}; e[t.id] = { sleep: r.sleep || '', energy: r.energy || '', pain: r.pain ?? '' }; });
+    setEntries(e);
+  }, [date]); // eslint-disable-line react-hooks/exhaustive-deps
+  const set = (id, k, v) => setEntries((prev) => ({ ...prev, [id]: { ...prev[id], [k]: (prev[id] && prev[id][k]) === v ? '' : v } }));
+  const SLEEP = [['poor', 'Poor'], ['ok', 'OK'], ['good', 'Good'], ['great', 'Great']];
+  const ENERGY = [['low', 'Low'], ['ok', 'OK'], ['good', 'Good'], ['high', 'High']];
+  const inp = { fontFamily: FN, fontSize: 12, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 8px', width: '100%', height: 30, boxSizing: 'border-box', textAlign: 'center' };
+  const Seg = ({ id, k, opts }) => (
+    <div style={{ display: 'inline-flex', border: `1px solid ${C.cardBd}` }}>
+      {opts.map(([val, label]) => {
+        const on = (entries[id] || {})[k] === val;
+        return <button key={val} type="button" onClick={() => set(id, k, val)} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: on ? '#fff' : C.td, background: on ? NAVY : 'transparent', border: 'none', padding: '5px 8px', cursor: 'pointer', minWidth: 34 }}>{label}</button>;
+      })}
+    </div>
+  );
+  const count = Object.values(entries).filter((e) => e.sleep || e.energy || (e.pain !== '' && e.pain != null)).length;
+  const cols = '24px 1.3fr auto auto 62px';
+  return (
+    <Modal open onClose={onClose} wide title="Wellness check-in">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'end', gap: 12, flexWrap: 'wrap' }}>
+          <Input label="Date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          <span style={{ fontFamily: FB, fontSize: 11.5, color: C.td, paddingBottom: 8 }}>Sleep · energy · pain (0–10). Pain gates the session; sleep + energy set the effort. Tap a value again to clear.</span>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: cols, gap: 10, padding: '0 2px 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }}>
+          <div>#</div><div>Athlete</div><div style={{ textAlign: 'center' }}>Sleep</div><div style={{ textAlign: 'center' }}>Energy</div><div style={{ textAlign: 'center' }}>Pain</div>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', maxHeight: 380, overflowY: 'auto' }}>
+          {roster.map((t) => (
+            <div key={t.id} style={{ display: 'grid', gridTemplateColumns: cols, gap: 10, alignItems: 'center', padding: '7px 2px', borderBottom: `0.25px solid ${C.cardBd}` }}>
+              <Jersey n={t.jersey} size={22} />
+              <div style={{ fontFamily: FN, fontSize: 12.5, fontWeight: 700, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</div>
+              <div style={{ display: 'flex', justifyContent: 'center' }}><Seg id={t.id} k="sleep" opts={SLEEP} /></div>
+              <div style={{ display: 'flex', justifyContent: 'center' }}><Seg id={t.id} k="energy" opts={ENERGY} /></div>
+              <input type="number" min="0" max="10" value={(entries[t.id] || {}).pain} onChange={(e) => set(t.id, 'pain', e.target.value === '' ? '' : Number(e.target.value))} placeholder="—" style={inp} />
+            </div>
+          ))}
+        </div>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'wrap' }}>
+          <span style={{ fontFamily: FN, fontSize: 10.5, color: C.td, marginRight: 'auto' }}>{count} of {roster.length} filled</span>
+          <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
+          <Btn disabled={!count} onClick={() => onSave({ date, entries })} style={{ background: count ? NAVY : undefined, borderColor: count ? NAVY : undefined, color: count ? '#fff' : undefined }}>Save check-in</Btn>
+        </div>
+      </div>
+    </Modal>
+  );
+}
 
 function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave }) {
   const [date, setDate] = useState(() => {
