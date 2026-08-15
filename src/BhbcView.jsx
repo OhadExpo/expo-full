@@ -106,6 +106,8 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   const [manageOpen, setManageOpen] = useState(false);
   const [logFor, setLogFor] = useState(null);
   const [detailFor, setDetailFor] = useState(null);
+  const [view, setView] = useState('overview');   // overview | schedule | roster
+  const [schedMode, setSchedMode] = useState('calendar'); // calendar | list
 
   const roster = useMemo(
     () => trainees.filter((t) => t && t.team === 'BHBC' && t.status !== 'Archived')
@@ -220,127 +222,31 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
           </Card>
         ) : (
           <>
-            {/* ---- TEAM SNAPSHOT ---- */}
-            <Card header="Team Snapshot" padding={0}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))' }}>
-                {[
-                  { k: 'Squad', v: team.n, sub: 'athletes', c: C.tx },
-                  { k: 'Avg ACWR', v: team.avg != null ? team.avg.toFixed(2) : '—', sub: team.avg != null ? acwrLabel(team.avg) : 'no load logged', c: team.avg != null ? BAND[bandKey(team.avg)] : C.tx },
-                  { k: 'Flagged', v: team.flagged, sub: 'elevated / danger', c: team.flagged ? BAND.high : C.tx },
-                  { k: '7-day load', v: team.week ? team.week.toLocaleString() : '—', sub: 'team sRPE', c: C.tx, spark: team.teamSeries },
-                ].map((s, i) => (
-                  <div key={s.k} style={{ padding: '16px 18px', borderLeft: i ? `1px solid ${C.cardBd}` : 'none', display: 'flex', flexDirection: 'column', gap: 8, minHeight: 92 }}>
-                    <div style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm }}>{s.k}</div>
-                    <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 }}>
-                      <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 28, lineHeight: 1, color: s.c, fontVariantNumeric: 'tabular-nums' }}>{s.v}</div>
-                      {s.spark && <Sparkline series={s.spark} w={72} h={26} />}
-                    </div>
-                    <div style={{ fontFamily: FB, fontSize: 11, color: C.td }}>{s.sub}</div>
-                  </div>
-                ))}
-              </div>
-            </Card>
+            {/* ---- SUB-NAV (tool tabs) — gives the zone "order" ---- */}
+            <div style={{ display: 'flex', gap: 2, borderBottom: `1px solid ${C.cardBd}`, flexWrap: 'wrap' }}>
+              {[['overview', 'Overview'], ['schedule', 'Schedule'], ['roster', 'Roster']].map(([k, label]) => {
+                const active = view === k;
+                return (
+                  <button key={k} onClick={() => setView(k)} style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: active ? C.tx : C.td, background: 'transparent', border: 'none', borderBottom: active ? `2px solid ${ORANGE}` : '2px solid transparent', padding: '10px 16px', marginBottom: -1, cursor: 'pointer' }}>{label}</button>
+                );
+              })}
+            </div>
 
-            {/* ---- SCHEDULE ---- */}
-            {fx.byDay.length > 0 && (
-              <CollapsibleSection title="Schedule" storageKey="bhbc-schedule" defaultOpen leftStripe={ORANGE}
-                right={fx.nextGame ? <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff' }}>Next game · {dow(fx.nextGame.date)} {monDay(fx.nextGame.date)}</span> : null}>
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  {fx.byDay.map((d) => {
-                    const isToday = d.date === today;
-                    const gd = fx.nextGame ? dayDiff(d.date, fx.nextGame.date) : null;
-                    const gdLabel = gd == null ? null : gd === 0 ? 'GAME DAY' : gd < 0 ? `GD${gd}` : `GD+${gd}`;
-                    return (
-                      <div key={d.date} style={{ display: 'flex', gap: 14, padding: '12px 2px', borderBottom: `0.25px solid ${C.cardBd}`, alignItems: 'flex-start' }}>
-                        <div style={{ width: 84, flexShrink: 0 }}>
-                          <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 13, color: isToday ? ORANGE_DEEP : C.tx }}>{dow(d.date)}{isToday ? ' · today' : ''}</div>
-                          <div style={{ fontFamily: FN, fontSize: 11, color: C.td, marginTop: 2 }}>{monDay(d.date)}</div>
-                          {gdLabel && <div style={{ marginTop: 6, display: 'inline-block', fontFamily: FN, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.08em', color: gd === 0 ? '#fff' : C.tm, background: gd === 0 ? ORANGE : 'transparent', border: gd === 0 ? 'none' : `1px solid ${C.cardBd}`, padding: '2px 6px' }}>{gdLabel}</div>}
-                        </div>
-                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', flex: 1 }}>
-                          {d.items.map((f, i) => (
-                            <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 9, border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${FX_COLOR[f.type] || NAVY}`, padding: '6px 11px', background: 'var(--c-sf)' }}>
-                              <span style={{ fontFamily: FN, fontSize: 12, color: C.tx, fontVariantNumeric: 'tabular-nums' }}>{f.start}</span>
-                              <span style={{ fontFamily: FN, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: FX_COLOR[f.type] || NAVY }}>{FX_LABEL[f.type] || 'Session'}</span>
-                              <span style={{ fontFamily: FN, fontSize: 10, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{f.minutes}′</span>
-                              {f.location && <span style={{ fontFamily: FB, fontSize: 10, color: C.tm }}>· {f.location}</span>}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </CollapsibleSection>
+            {view === 'overview' && (
+              <>
+                <TeamSnapshotCard team={team} />
+                <LoadBoard rows={rows} rowGrid={rowGrid} cycleAvail={cycleAvail} onOpen={setDetailFor} />
+              </>
             )}
 
-            {/* ---- LOAD & INJURY RISK ---- */}
-            <CollapsibleSection title="Load & Injury Risk" count={roster.length} storageKey="bhbc-load" defaultOpen leftStripe={ORANGE}>
-              <div style={{ overflowX: 'auto' }}>
-                <div style={{ minWidth: 660 }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: rowGrid, gap: 12, padding: '2px 2px 10px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.13em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }}>
-                    <div>#</div><div>Athlete</div><div>ACWR</div><div>7d</div><div>Availability</div><div>Readiness</div><div style={{ textAlign: 'right' }}>14-day</div>
-                  </div>
-                  {rows.map(({ t, acwr, series, readiness, avail }) => {
-                    const rc = readiness.level === 'red' ? BAND.high : readiness.level === 'amber' ? BAND.elevated : readiness.level === 'green' ? BAND.low : BAND.none;
-                    return (
-                      <div key={t.id} onClick={() => setDetailFor(t.id)}
-                        style={{ display: 'grid', gridTemplateColumns: rowGrid, gap: 12, alignItems: 'center', padding: '11px 2px', borderBottom: `0.25px solid ${C.cardBd}`, borderLeft: `2px solid ${acwr.band.color}`, paddingLeft: 10, marginLeft: -12, cursor: 'pointer' }}
-                        className="bhbc-row">
-                        <Jersey n={t.jersey} size={26} />
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ fontFamily: FN, fontWeight: 700, fontSize: 13.5, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</div>
-                          <div style={{ fontFamily: FB, fontSize: 10.5, color: C.td }}>{t.position || '—'}</div>
-                        </div>
-                        <div>{acwr.ratio != null ? <BandPill band={acwr.band} value={acwr.ratio.toFixed(2)} /> : <span style={{ fontFamily: FN, fontSize: 10.5, color: C.tm, letterSpacing: '0.06em' }}>· baseline</span>}</div>
-                        <div style={{ fontFamily: FN, fontSize: 13, color: C.tx, fontVariantNumeric: 'tabular-nums' }}>{acwr.acute ? Math.round(acwr.acute) : '—'}</div>
-                        <div>
-                          <button onClick={(e) => { e.stopPropagation(); cycleAvail(t.id, avail); }} title="Click to change availability"
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.03em', color: AVAIL[avail].color, background: `color-mix(in srgb, ${AVAIL[avail].color} 13%, transparent)`, border: `1px solid color-mix(in srgb, ${AVAIL[avail].color} 38%, transparent)`, borderRadius: 0, padding: '4px 9px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                            <span style={{ width: 6, height: 6, borderRadius: '50%', background: AVAIL[avail].color, flexShrink: 0 }} />
-                            {AVAIL[avail].label}
-                          </button>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
-                          <span style={{ width: 7, height: 7, borderRadius: '50%', background: rc, flexShrink: 0 }} />
-                          <span style={{ fontFamily: FB, fontSize: 11, color: C.td, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{readiness.level === 'unknown' ? 'no check-in' : readiness.headline}</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'flex-end' }}><Sparkline series={series} /></div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 14, paddingTop: 12, borderTop: `1px solid ${C.cardBd}`, fontFamily: FN, fontSize: 9.5, color: C.td }}>
-                {[[BAND.low, '0.8–1.3 sweet spot'], [BAND.elevated, '>1.3 elevated'], [BAND.high, '≥1.5 danger'], [BAND.detrained, '<0.8 undertrained']].map(([c, l]) => (
-                  <span key={l} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, letterSpacing: '0.04em' }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: c }} />{l}</span>
-                ))}
-                <span style={{ marginLeft: 'auto', color: C.tm }}>ACWR = 7-day ÷ 28-day sRPE · Gabbett 2016</span>
-              </div>
-            </CollapsibleSection>
+            {view === 'schedule' && (
+              <ScheduleTool fx={fx} fixtures={bhbcFixtures} today={today} mode={schedMode} setMode={setSchedMode} onLog={() => setLogFor('new')} />
+            )}
 
-            {/* ---- ROSTER ---- */}
-            <CollapsibleSection title="Roster" count={roster.length} storageKey="bhbc-roster" defaultOpen leftStripe={NAVY}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(232px, 1fr))', gap: 12 }}>
-                {rows.map(({ t, acwr }) => (
-                  <div key={t.id} onClick={() => setDetailFor(t.id)}
-                    className="bhbc-card"
-                    style={{ position: 'relative', overflow: 'hidden', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${acwr.band.color}`, padding: '13px 15px', cursor: 'pointer', transition: 'transform 160ms, box-shadow 160ms' }}>
-                    <div aria-hidden="true" style={{ position: 'absolute', right: 6, top: -10, fontFamily: FN, fontWeight: 800, fontSize: 52, lineHeight: 1, color: NAVY, opacity: 0.09, fontVariantNumeric: 'tabular-nums' }}>{t.jersey ?? ''}</div>
-                    <div style={{ position: 'relative' }}>
-                      <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums' }}>#{t.jersey ?? '—'}</div>
-                      <div style={{ fontFamily: FN, fontWeight: 700, fontSize: 15, color: C.tx, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</div>
-                      <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 4 }}>{t.position || '—'}</div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, paddingTop: 10, borderTop: `0.25px solid ${C.cardBd}` }}>
-                        <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontVariantNumeric: 'tabular-nums' }}>{heightM(t.heightCm)}</span>
-                        <span style={{ fontSize: 12 }}>{flag(t.nationality)}</span>
-                        <span style={{ marginLeft: 'auto' }}>{acwr.ratio != null ? <BandPill band={acwr.band} value={acwr.ratio.toFixed(2)} /> : <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>baseline</span>}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CollapsibleSection>
+            {view === 'roster' && (
+              <RosterGrid rows={rows} onOpen={setDetailFor} />
+            )}
+
           </>
         )}
       </main>
@@ -462,6 +368,192 @@ function AthleteModal({ row, rec, days28, onClose, onLog, onOpenExpo, onCycleAva
 // band helpers (mirror acwrEngine bands for the snapshot tile)
 function bandKey(r) { if (r == null) return 'none'; if (r < 0.8) return 'detrained'; if (r <= 1.3) return 'low'; if (r < 1.5) return 'elevated'; return 'high'; }
 function acwrLabel(r) { return { detrained: 'undertrained', low: 'sweet spot', elevated: 'elevated', high: 'danger', none: '' }[bandKey(r)]; }
+
+function TeamSnapshotCard({ team }) {
+  const cells = [
+    { k: 'Squad', v: team.n, sub: 'athletes', c: C.tx },
+    { k: 'Avg ACWR', v: team.avg != null ? team.avg.toFixed(2) : '—', sub: team.avg != null ? acwrLabel(team.avg) : 'no load logged', c: team.avg != null ? BAND[bandKey(team.avg)] : C.tx },
+    { k: 'Flagged', v: team.flagged, sub: 'elevated / danger', c: team.flagged ? BAND.high : C.tx },
+    { k: '7-day load', v: team.week ? team.week.toLocaleString() : '—', sub: 'team sRPE', c: C.tx, spark: team.teamSeries },
+  ];
+  return (
+    <Card header="Team Snapshot" padding={0}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))' }}>
+        {cells.map((s, i) => (
+          <div key={s.k} style={{ padding: '16px 18px', borderLeft: i ? `1px solid ${C.cardBd}` : 'none', display: 'flex', flexDirection: 'column', gap: 8, minHeight: 92 }}>
+            <div style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm }}>{s.k}</div>
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 }}>
+              <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 28, lineHeight: 1, color: s.c, fontVariantNumeric: 'tabular-nums' }}>{s.v}</div>
+              {s.spark && <Sparkline series={s.spark} w={72} h={26} />}
+            </div>
+            <div style={{ fontFamily: FB, fontSize: 11, color: C.td }}>{s.sub}</div>
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+function LoadBoard({ rows, rowGrid, cycleAvail, onOpen }) {
+  return (
+    <CollapsibleSection title="Load & Injury Risk" count={rows.length} storageKey="bhbc-load" defaultOpen leftStripe={ORANGE}>
+      <div style={{ overflowX: 'auto' }}>
+        <div style={{ minWidth: 660 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: rowGrid, gap: 12, padding: '2px 2px 10px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.13em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }}>
+            <div>#</div><div>Athlete</div><div>ACWR</div><div>7d</div><div>Availability</div><div>Readiness</div><div style={{ textAlign: 'right' }}>14-day</div>
+          </div>
+          {rows.map(({ t, acwr, series, readiness, avail }) => {
+            const rc = readiness.level === 'red' ? BAND.high : readiness.level === 'amber' ? BAND.elevated : readiness.level === 'green' ? BAND.low : BAND.none;
+            return (
+              <div key={t.id} onClick={() => onOpen(t.id)} style={{ display: 'grid', gridTemplateColumns: rowGrid, gap: 12, alignItems: 'center', padding: '11px 2px', borderBottom: `0.25px solid ${C.cardBd}`, borderLeft: `2px solid ${acwr.band.color}`, paddingLeft: 10, marginLeft: -12, cursor: 'pointer' }} className="bhbc-row">
+                <Jersey n={t.jersey} size={26} />
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontFamily: FN, fontWeight: 700, fontSize: 13.5, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</div>
+                  <div style={{ fontFamily: FB, fontSize: 10.5, color: C.td }}>{t.position || '—'}</div>
+                </div>
+                <div>{acwr.ratio != null ? <BandPill band={acwr.band} value={acwr.ratio.toFixed(2)} /> : <span style={{ fontFamily: FN, fontSize: 10.5, color: C.tm, letterSpacing: '0.06em' }}>· baseline</span>}</div>
+                <div style={{ fontFamily: FN, fontSize: 13, color: C.tx, fontVariantNumeric: 'tabular-nums' }}>{acwr.acute ? Math.round(acwr.acute) : '—'}</div>
+                <div>
+                  <button onClick={(e) => { e.stopPropagation(); cycleAvail(t.id, avail); }} title="Click to change availability" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.03em', color: AVAIL[avail].color, background: `color-mix(in srgb, ${AVAIL[avail].color} 13%, transparent)`, border: `1px solid color-mix(in srgb, ${AVAIL[avail].color} 38%, transparent)`, borderRadius: 0, padding: '4px 9px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: AVAIL[avail].color, flexShrink: 0 }} />{AVAIL[avail].label}
+                  </button>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: rc, flexShrink: 0 }} />
+                  <span style={{ fontFamily: FB, fontSize: 11, color: C.td, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{readiness.level === 'unknown' ? 'no check-in' : readiness.headline}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}><Sparkline series={series} /></div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 14, paddingTop: 12, borderTop: `1px solid ${C.cardBd}`, fontFamily: FN, fontSize: 9.5, color: C.td }}>
+        {[[BAND.low, '0.8–1.3 sweet spot'], [BAND.elevated, '>1.3 elevated'], [BAND.high, '≥1.5 danger'], [BAND.detrained, '<0.8 undertrained']].map(([c, l]) => (
+          <span key={l} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, letterSpacing: '0.04em' }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: c }} />{l}</span>
+        ))}
+        <span style={{ marginLeft: 'auto', color: C.tm }}>ACWR = 7-day ÷ 28-day sRPE · Gabbett 2016</span>
+      </div>
+    </CollapsibleSection>
+  );
+}
+
+function RosterGrid({ rows, onOpen }) {
+  return (
+    <CollapsibleSection title="Roster" count={rows.length} storageKey="bhbc-roster" defaultOpen leftStripe={NAVY}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(232px, 1fr))', gap: 12 }}>
+        {rows.map(({ t, acwr }) => (
+          <div key={t.id} onClick={() => onOpen(t.id)} className="bhbc-card" style={{ position: 'relative', overflow: 'hidden', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${acwr.band.color}`, padding: '13px 15px', cursor: 'pointer', transition: 'transform 160ms, box-shadow 160ms' }}>
+            <div aria-hidden="true" style={{ position: 'absolute', right: 10, top: 8, fontFamily: FN, fontWeight: 800, fontSize: 42, lineHeight: 1, color: NAVY, opacity: 0.08, fontVariantNumeric: 'tabular-nums' }}>{t.jersey ?? ''}</div>
+            <div style={{ position: 'relative' }}>
+              <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums' }}>#{t.jersey ?? '—'}</div>
+              <div style={{ fontFamily: FN, fontWeight: 700, fontSize: 15, color: C.tx, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</div>
+              <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 4 }}>{t.position || '—'}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, paddingTop: 10, borderTop: `0.25px solid ${C.cardBd}` }}>
+                <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontVariantNumeric: 'tabular-nums' }}>{heightM(t.heightCm)}</span>
+                <span style={{ fontSize: 12 }}>{flag(t.nationality)}</span>
+                <span style={{ marginLeft: 'auto' }}>{acwr.ratio != null ? <BandPill band={acwr.band} value={acwr.ratio.toFixed(2)} /> : <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>baseline</span>}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </CollapsibleSection>
+  );
+}
+
+function ScheduleTool({ fx, fixtures, today, mode, setMode }) {
+  const toggle = (
+    <div style={{ display: 'inline-flex', border: '1px solid rgba(255,255,255,0.32)' }}>
+      {[['calendar', 'Calendar'], ['list', 'List']].map(([k, l]) => (
+        <button key={k} onClick={() => setMode(k)} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: mode === k ? NAVY : '#fff', background: mode === k ? '#fff' : 'transparent', border: 'none', padding: '5px 12px', cursor: 'pointer' }}>{l}</button>
+      ))}
+    </div>
+  );
+  return (
+    <Card header="Schedule" headerRight={toggle}>
+      {mode === 'calendar' ? <ScheduleMonth fixtures={fixtures} today={today} /> : <ScheduleList fx={fx} today={today} />}
+    </Card>
+  );
+}
+
+function ScheduleList({ fx, today }) {
+  if (!fx.byDay.length) return <div style={{ fontFamily: FB, fontSize: 13, color: C.td, padding: '20px 0', textAlign: 'center' }}>No upcoming sessions.</div>;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      {fx.byDay.map((d) => {
+        const isToday = d.date === today;
+        const gd = fx.nextGame ? dayDiff(d.date, fx.nextGame.date) : null;
+        const gdLabel = gd == null ? null : gd === 0 ? 'GAME DAY' : gd < 0 ? `GD${gd}` : `GD+${gd}`;
+        return (
+          <div key={d.date} style={{ display: 'flex', gap: 14, padding: '12px 2px', borderBottom: `0.25px solid ${C.cardBd}`, alignItems: 'flex-start' }}>
+            <div style={{ width: 84, flexShrink: 0 }}>
+              <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 13, color: isToday ? ORANGE_DEEP : C.tx }}>{dow(d.date)}{isToday ? ' · today' : ''}</div>
+              <div style={{ fontFamily: FN, fontSize: 11, color: C.td, marginTop: 2 }}>{monDay(d.date)}</div>
+              {gdLabel && <div style={{ marginTop: 6, display: 'inline-block', fontFamily: FN, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.08em', color: gd === 0 ? '#fff' : C.tm, background: gd === 0 ? ORANGE : 'transparent', border: gd === 0 ? 'none' : `1px solid ${C.cardBd}`, padding: '2px 6px' }}>{gdLabel}</div>}
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', flex: 1 }}>
+              {d.items.map((f, i) => (
+                <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 9, border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${FX_COLOR[f.type] || NAVY}`, padding: '6px 11px', background: 'var(--c-sf)' }}>
+                  <span style={{ fontFamily: FN, fontSize: 12, color: C.tx, fontVariantNumeric: 'tabular-nums' }}>{f.start}</span>
+                  <span style={{ fontFamily: FN, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: FX_COLOR[f.type] || NAVY }}>{FX_LABEL[f.type] || 'Session'}</span>
+                  <span style={{ fontFamily: FN, fontSize: 10, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{f.minutes}′</span>
+                  {f.location && <span style={{ fontFamily: FB, fontSize: 10, color: C.tm }}>· {f.location}</span>}
+                </span>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function ScheduleMonth({ fixtures, today }) {
+  const anchor = parseISO(today);
+  const y = anchor.getFullYear(), m = anchor.getMonth();
+  const first = new Date(y, m, 1);
+  const gridStart = new Date(y, m, 1 - first.getDay());
+  const isoOf = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const byDate = {};
+  for (const f of fixtures || []) { (byDate[f.date] = byDate[f.date] || []).push(f); }
+  const weeks = [];
+  for (let w = 0; w < 6; w++) {
+    const row = [];
+    for (let d = 0; d < 7; d++) { const dt = new Date(gridStart); dt.setDate(gridStart.getDate() + w * 7 + d); row.push(dt); }
+    weeks.push(row);
+  }
+  const cell = (dt) => {
+    const di = isoOf(dt);
+    const inMonth = dt.getMonth() === m;
+    const isToday = di === today;
+    const items = (byDate[di] || []).slice().sort((a, b) => a.start.localeCompare(b.start));
+    return (
+      <div key={di} style={{ minHeight: 94, border: `0.5px solid ${C.cardBd}`, padding: '6px 7px', background: isToday ? `color-mix(in srgb, ${ORANGE} 9%, var(--c-sf))` : 'var(--c-sf)', opacity: inMonth ? 1 : 0.38, display: 'flex', flexDirection: 'column', gap: 3, overflow: 'hidden' }}>
+        <div style={{ fontFamily: FN, fontSize: 11, fontWeight: isToday ? 800 : 600, color: isToday ? ORANGE_DEEP : C.td, fontVariantNumeric: 'tabular-nums' }}>{dt.getDate()}</div>
+        {items.slice(0, 4).map((f, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 4, fontFamily: FN, fontSize: 9.5, minWidth: 0 }}>
+            <span style={{ width: 5, height: 5, borderRadius: '50%', background: FX_COLOR[f.type] || NAVY, flexShrink: 0 }} />
+            <span style={{ color: C.tm, fontVariantNumeric: 'tabular-nums' }}>{f.start}</span>
+            <span style={{ color: C.tx, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{FX_LABEL[f.type] || 'Session'}</span>
+          </div>
+        ))}
+        {items.length > 4 && <div style={{ fontFamily: FN, fontSize: 9, color: C.td }}>+{items.length - 4} more</div>}
+      </div>
+    );
+  };
+  return (
+    <div style={{ overflowX: 'auto' }}>
+      <div style={{ minWidth: 620 }}>
+        <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 14, color: C.tx, marginBottom: 8, letterSpacing: '0.02em' }}>{MON[m]} {y}</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', marginBottom: 4 }}>
+          {DOW.map((d) => <div key={d} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, textAlign: 'center', padding: '4px 0' }}>{d}</div>)}
+        </div>
+        {weeks.map((week, i) => <div key={i} style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>{week.map(cell)}</div>)}
+      </div>
+    </div>
+  );
+}
 
 function LogModal({ open, initialAthlete, roster, fixtures = [], onClose, onSave }) {
   const [athleteId, setAthleteId] = useState(initialAthlete);
