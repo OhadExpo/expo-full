@@ -1196,19 +1196,24 @@ function ResultsList({ games, bhbcOnly }) {
     const bhHome = isBH(g.home), bh = bhHome || isBH(g.away);
     const won = g.played && ((bhHome && g.hs > g.as) || (!bhHome && g.as > g.hs));
     const mark = { fontFamily: FN, fontSize: 12.5, fontWeight: 800, fontVariantNumeric: 'tabular-nums' };
+    const travelBits = g.travel ? [g.travel.out, g.travel.back].filter(Boolean).map((l) => l.tbd ? `${monDay(l.date)} TBD` : `${monDay(l.date)} ${l.flight}`) : [];
+    const detail = !g.played ? [g.comp, g.venue, travelBits.length ? `✈ ${travelBits.join(' · ')}` : null].filter(Boolean).join('  ·  ') : null;
     return (
-      <div style={{ display: 'grid', gridTemplateColumns: '58px 1fr auto', gap: 12, alignItems: 'center', padding: '9px 10px', borderBottom: `0.25px solid ${C.cardBd}`, background: bh ? `color-mix(in srgb, ${NAVY} 7%, transparent)` : 'transparent', borderLeft: bh ? `3px solid ${ORANGE}` : '3px solid transparent' }}>
-        <div style={{ fontFamily: FN, fontSize: 10.5, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{g.date ? g.date.slice(5).replace('-', '/') : ''}</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-          <span style={{ fontFamily: FN, fontSize: 12.5, fontWeight: isBH(g.home) ? 800 : 500, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'right', flex: 1 }}>{g.home}</span>
-          {g.played
-            ? <span style={{ ...mark, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '2px 8px', whiteSpace: 'nowrap' }}>{g.hs}<span style={{ color: C.tm, margin: '0 4px' }}>–</span>{g.as}</span>
-            : <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, letterSpacing: '0.06em' }}>vs</span>}
-          <span style={{ fontFamily: FN, fontSize: 12.5, fontWeight: isBH(g.away) ? 800 : 500, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>{g.away}</span>
+      <div style={{ borderBottom: `0.25px solid ${C.cardBd}`, background: bh ? `color-mix(in srgb, ${NAVY} 7%, transparent)` : 'transparent', borderLeft: bh ? `3px solid ${ORANGE}` : '3px solid transparent' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '58px 1fr auto', gap: 12, alignItems: 'center', padding: detail ? '9px 10px 3px' : '9px 10px' }}>
+          <div style={{ fontFamily: FN, fontSize: 10.5, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{g.date ? g.date.slice(5).replace('-', '/') : ''}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+            <span style={{ fontFamily: FN, fontSize: 12.5, fontWeight: isBH(g.home) ? 800 : 500, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'right', flex: 1 }}>{g.home}</span>
+            {g.played
+              ? <span style={{ ...mark, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '2px 8px', whiteSpace: 'nowrap' }}>{g.hs}<span style={{ color: C.tm, margin: '0 4px' }}>–</span>{g.as}</span>
+              : <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, letterSpacing: '0.06em' }}>vs</span>}
+            <span style={{ fontFamily: FN, fontSize: 12.5, fontWeight: isBH(g.away) ? 800 : 500, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>{g.away}</span>
+          </div>
+          {bh && g.played
+            ? <span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 800, letterSpacing: '0.04em', color: '#fff', background: won ? '#37B27C' : '#DE4E3B', padding: '2px 7px' }}>{won ? 'W' : 'L'}</span>
+            : <span style={{ width: 22 }} />}
         </div>
-        {bh && g.played
-          ? <span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 800, letterSpacing: '0.04em', color: '#fff', background: won ? '#37B27C' : '#DE4E3B', padding: '2px 7px' }}>{won ? 'W' : 'L'}</span>
-          : <span style={{ width: 22 }} />}
+        {detail && <div style={{ padding: '0 10px 8px 70px', fontFamily: FN, fontSize: 9.5, color: C.tm, letterSpacing: '0.02em' }}>{detail}</div>}
       </div>
     );
   };
@@ -1238,7 +1243,7 @@ function fixturesToGames(fixtures) {
     round: null, date: f.date, time: f.start, comp: f.comp,
     home: f.home === false ? (f.opponent || 'Opponent') : 'Bnei Herzliya',
     away: f.home === false ? 'Bnei Herzliya' : (f.opponent || 'Opponent'),
-    hs: null, as: null, played: false, timeTBD: f.timeTBD,
+    hs: null, as: null, played: false, timeTBD: f.timeTBD, venue: f.venue, travel: f.travel,
   }));
 }
 
