@@ -1038,9 +1038,11 @@ function ScheduleWeek({ fixtures, today }) {
         {days.map((d) => {
           const di = isoOf(d); const isToday = di === today;
           const items = (byDate[di] || []).slice().sort((a, b) => a.start.localeCompare(b.start));
+          const hasGame = items.some((f) => f.type === 'game');
           return (
             <div key={di} style={{ border: `1px solid ${C.cardBd}`, background: isToday ? `color-mix(in srgb, ${ORANGE} 8%, var(--c-sf))` : 'var(--c-sf)', minHeight: 168, display: 'flex', flexDirection: 'column' }}>
-              <div style={{ padding: '8px 6px', borderBottom: `1px solid ${C.cardBd}`, textAlign: 'center' }}>
+              <div style={{ padding: '8px 6px', borderBottom: `1px solid ${C.cardBd}`, textAlign: 'center', position: 'relative' }}>
+                {hasGame && <div style={{ position: 'absolute', top: 5, right: 5, fontFamily: FN, fontSize: 7.5, fontWeight: 800, letterSpacing: '0.06em', color: '#fff', background: ORANGE, padding: '1px 4px' }}>GAME</div>}
                 <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: isToday ? ORANGE_DEEP : C.tm }}>{DOW[d.getDay()]}</div>
                 <div style={{ fontFamily: FN, fontSize: 16, fontWeight: 800, color: isToday ? ORANGE_DEEP : C.tx, fontVariantNumeric: 'tabular-nums' }}>{d.getDate()}</div>
               </div>
