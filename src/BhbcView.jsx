@@ -36,6 +36,10 @@ const TOKENS = {
   '--c-cardBd': 'color-mix(in srgb, #1E3D74 20%, var(--c-bd))',
 };
 const BAND = { detrained: '#4F9DE0', low: '#37B27C', elevated: '#E0A73A', high: '#DE4E3B', none: '#7C828B' };
+// ONE section-title treatment everywhere (must match CollapsibleSection's title:
+// FN / 13 / 700 / 0.08em / uppercase / white). Card headers are plain strings by
+// default, so pass them through this to keep every strip title identical.
+const secTitle = (t) => <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t}</span>;
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const daysAgoISO = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
@@ -114,6 +118,7 @@ const Jersey = ({ n, size = 30 }) => (
 
 export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, setBhbcLoads, bhbcFixtures = [], setBhbcFixtures, planIndex = [], exercises = [], clientWorkouts = [], setClientWorkouts, workouts = [], setWorkouts, onDecrementSession, portalVis = {}, bwLog = [], weeklyFocus = {}, onOpenTrainee, onExit }) {
   const [manageOpen, setManageOpen] = useState(false);
+  const [newAthlete, setNewAthlete] = useState('');
   const [logFor, setLogFor] = useState(null);
   const [detailFor, setDetailFor] = useState(null);
   const [practiceOpen, setPracticeOpen] = useState(false);
@@ -282,7 +287,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
         </div>
 
         {roster.length === 0 ? (
-          <Card header="Roster">
+          <Card header={secTitle('Roster')}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '28px 16px' }}>
               <img src="/logos/bhbc-logo.png" alt="" style={{ height: 68, opacity: 0.9, marginBottom: 8 }} />
               <div style={{ fontFamily: FN, fontWeight: 700, fontSize: 15, color: C.tx }}>No athletes on the roster yet</div>
@@ -376,6 +381,13 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
       <Modal open={manageOpen} onClose={() => setManageOpen(false)} title="Manage roster">
         <div style={{ fontFamily: FB, fontSize: 12.5, color: C.td, marginBottom: 12 }}>
           Tag athletes into Bnei Herzliya. They keep their normal athlete portal — this scopes who appears in the <span style={{ fontFamily: FN, color: NAVY, fontWeight: 700 }}>BHBC</span> zone.
+        </div>
+        <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+          <input value={newAthlete} onChange={(e) => setNewAthlete(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter' && newAthlete.trim()) { setTrainees((prev) => [...prev, { id: 'tr_bh_' + Math.random().toString(36).slice(2, 9), name: newAthlete.trim(), team: 'BHBC', status: 'Active', createdAt: new Date().toISOString() }]); setNewAthlete(''); toast('Added'); } }}
+            placeholder="Add a new athlete — full name" style={{ flex: 1, fontFamily: FB, fontSize: 13, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '9px 10px' }} />
+          <Btn disabled={!newAthlete.trim()} onClick={() => { setTrainees((prev) => [...prev, { id: 'tr_bh_' + Math.random().toString(36).slice(2, 9), name: newAthlete.trim(), team: 'BHBC', status: 'Active', createdAt: new Date().toISOString() }]); setNewAthlete(''); toast('Added'); }}
+            style={{ background: newAthlete.trim() ? NAVY : undefined, borderColor: newAthlete.trim() ? NAVY : undefined, color: newAthlete.trim() ? '#fff' : undefined }}>+ Add</Btn>
         </div>
         <div style={{ maxHeight: 360, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2 }}>
           {trainees.filter((t) => t.status !== 'Archived').sort((a, b) => (b.team === 'BHBC' ? 1 : 0) - (a.team === 'BHBC' ? 1 : 0)).map((t) => {
@@ -597,7 +609,7 @@ function NextGamePanel({ nextGame, today, onEdit }) {
   const when = days <= 0 ? 'Game day' : days === 1 ? 'Tomorrow' : `In ${days} days`;
   const whereLabel = nextGame.venue ? nextGame.venue : nextGame.home === false ? 'Away' : nextGame.home === true ? 'Home' : null;
   return (
-    <Card padding={18} leftStripe={ORANGE} header="Next Game" headerRight={<div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff' }}>{when}</span>{onEdit && <button onClick={onEdit} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', padding: '4px 9px', cursor: 'pointer' }}>Edit</button>}</div>}>
+    <Card padding={18} leftStripe={ORANGE} header={secTitle('Next Game')} headerRight={<div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff' }}>{when}</span>{onEdit && <button onClick={onEdit} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', padding: '4px 9px', cursor: 'pointer' }}>Edit</button>}</div>}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
         <div style={{ textAlign: 'center', flexShrink: 0 }}>
           <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 40, lineHeight: 1, color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums' }}>{Math.max(0, days)}</div>
@@ -621,24 +633,26 @@ function TodayPanel({ today, fixtures, fx, rows, onSessions, onLog }) {
   rows.forEach((r) => { if (r.avail <= 1) av.full++; else if (r.avail <= 3) av.mod++; else av.out++; });
   const gd = fx.nextGame ? dayDiff(today, fx.nextGame.date) : null;
   const gdLabel = gd == null ? null : gd === 0 ? 'GAME DAY' : gd < 0 ? `${-gd} day${gd === -1 ? '' : 's'} to game` : null;
-  const chip = (f, i) => (
-    <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${FX_COLOR[f.type] || NAVY}`, padding: '6px 11px', background: 'var(--c-sf)' }}>
-      <span style={{ fontFamily: FN, fontSize: 12, color: C.tx, fontVariantNumeric: 'tabular-nums' }}>{f.start}</span>
-      <span style={{ fontFamily: FN, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: FX_COLOR[f.type] || NAVY }}>{FX_LABEL[f.type] || 'Session'}</span>
-      <span style={{ fontFamily: FN, fontSize: 10, color: C.td }}>{f.minutes} min</span>
+  // time (with date when it's a future/next session) highlighted in a navy
+  // segment; all text one size.
+  const chip = (f, i, showDate) => (
+    <span key={i} style={{ display: 'inline-flex', alignItems: 'stretch', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${FX_COLOR[f.type] || NAVY}` }}>
+      <span style={{ fontFamily: FN, fontSize: 11.5, fontWeight: 700, color: '#fff', background: NAVY, padding: '5px 9px', display: 'inline-flex', alignItems: 'center', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{showDate ? `${dow(f.date)} ${monDay(f.date)} · ${f.start}` : f.start}</span>
+      <span style={{ fontFamily: FN, fontSize: 11.5, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: FX_COLOR[f.type] || NAVY, padding: '5px 8px', display: 'inline-flex', alignItems: 'center' }}>{FX_LABEL[f.type] || 'Session'}</span>
+      <span style={{ fontFamily: FN, fontSize: 11.5, color: C.td, padding: '5px 9px 5px 2px', display: 'inline-flex', alignItems: 'center' }}>{f.minutes} min</span>
     </span>
   );
   return (
-    <Card padding={18} leftStripe={ORANGE} header={`Today · ${dow(today)} ${monDay(today)}`} headerRight={gdLabel ? <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff' }}>{gdLabel}</span> : null}>
+    <Card padding={18} leftStripe={ORANGE} header={secTitle(`Today · ${dow(today)} ${monDay(today)}`)} headerRight={gdLabel ? <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff' }}>{gdLabel}</span> : null}>
       <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'flex-start' }}>
         <div style={{ flex: '2 1 300px', minWidth: 240 }}>
           <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm, marginBottom: 8 }}>Sessions</div>
           {todayFx.length ? (
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{todayFx.map(chip)}</div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{todayFx.map((f, i) => chip(f, i, false))}</div>
           ) : next ? (
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-              <span style={{ fontFamily: FB, fontSize: 12.5, color: C.td }}>None today · next {dow(next.date)} {monDay(next.date)}</span>
-              {next.items.slice(0, 3).map(chip)}
+              <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.td }}>None today · next</span>
+              {next.items.slice(0, 3).map((f, i) => chip(f, i, true))}
             </div>
           ) : <span style={{ fontFamily: FB, fontSize: 12.5, color: C.td }}>No sessions scheduled.</span>}
         </div>
@@ -670,7 +684,7 @@ function TeamSnapshotCard({ team }) {
     { k: '7-day load', v: team.week ? team.week.toLocaleString() : '—', sub: 'team sRPE', c: C.tx, spark: team.teamSeries },
   ];
   return (
-    <Card leftStripe={NAVY} header="Team Snapshot" padding={18}>
+    <Card leftStripe={NAVY} header={secTitle('Team Snapshot')} padding={18}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))' }}>
         {cells.map((s, i) => (
           <div key={s.k} style={{ padding: '16px 18px', borderLeft: i ? `1px solid ${C.cardBd}` : 'none', display: 'flex', flexDirection: 'column', gap: 8, minHeight: 92 }}>
@@ -764,7 +778,7 @@ function ScheduleTool({ fx, fixtures, today, mode, setMode }) {
     </div>
   );
   return (
-    <Card padding={18} leftStripe={ORANGE} header="Schedule" headerRight={toggle}>
+    <Card padding={18} leftStripe={ORANGE} header={secTitle('Schedule')} headerRight={toggle}>
       {mode === 'calendar' ? <ScheduleMonth fixtures={fixtures} today={today} /> : mode === 'week' ? <ScheduleWeek fixtures={fixtures} today={today} /> : <ScheduleList fx={fx} today={today} />}
     </Card>
   );
@@ -860,16 +874,15 @@ function ScheduleMonth({ fixtures, today }) {
     const isToday = di === today;
     const items = (byDate[di] || []).slice().sort((a, b) => a.start.localeCompare(b.start));
     return (
-      <div key={di} style={{ minHeight: 94, border: `0.5px solid ${C.cardBd}`, padding: '6px 7px', background: isToday ? `color-mix(in srgb, ${ORANGE} 9%, var(--c-sf))` : 'var(--c-sf)', opacity: inMonth ? 1 : 0.38, display: 'flex', flexDirection: 'column', gap: 3, overflow: 'hidden' }}>
-        <div style={{ fontFamily: FN, fontSize: 11, fontWeight: isToday ? 800 : 600, color: isToday ? ORANGE_DEEP : C.td, fontVariantNumeric: 'tabular-nums' }}>{dt.getDate()}</div>
-        {items.slice(0, 4).map((f, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 4, fontFamily: FN, fontSize: 9.5, minWidth: 0 }}>
-            <span style={{ width: 5, height: 5, borderRadius: '50%', background: FX_COLOR[f.type] || NAVY, flexShrink: 0 }} />
-            <span style={{ color: C.tm, fontVariantNumeric: 'tabular-nums' }}>{f.start}</span>
-            <span style={{ color: C.tx, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{FX_LABEL[f.type] || 'Session'}</span>
+      <div key={di} style={{ minHeight: 82, border: '1px solid var(--c-bd)', padding: '5px 6px', background: isToday ? `color-mix(in srgb, ${ORANGE} 8%, var(--c-sf))` : (inMonth ? 'var(--c-sf)' : 'var(--c-bg)'), display: 'flex', flexDirection: 'column', gap: 3, overflow: 'hidden' }}>
+        <div style={{ fontFamily: FN, fontSize: 11, fontWeight: isToday ? 800 : 600, color: isToday ? ORANGE_DEEP : (inMonth ? C.td : C.tm), textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{dt.getDate()}</div>
+        {items.slice(0, 3).map((f, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 5, fontFamily: FN, fontSize: 9.5, background: `color-mix(in srgb, ${FX_COLOR[f.type] || NAVY} 13%, transparent)`, borderLeft: `2px solid ${FX_COLOR[f.type] || NAVY}`, padding: '2px 5px', minWidth: 0 }}>
+            <span style={{ color: FX_COLOR[f.type] || NAVY, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{f.start}</span>
+            <span style={{ color: FX_COLOR[f.type] || NAVY, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{FX_LABEL[f.type] || 'Session'}</span>
           </div>
         ))}
-        {items.length > 4 && <div style={{ fontFamily: FN, fontSize: 9, color: C.td }}>+{items.length - 4} more</div>}
+        {items.length > 3 && <div style={{ fontFamily: FN, fontSize: 8.5, color: C.td, paddingLeft: 2 }}>+{items.length - 3} more</div>}
       </div>
     );
   };
