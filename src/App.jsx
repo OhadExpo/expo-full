@@ -1208,8 +1208,19 @@ function AuthedApp() {
       } catch { /* transient */ }
     };
     poll();
-    const iv = setInterval(poll, 8000);
-    return () => { stop = true; clearInterval(iv); };
+    // True realtime: refetch the instant any BHBC store key changes (a coach or
+    // the sync script writing) — the "shared Google Sheet" feel. The interval
+    // stays as a safety-net fallback if realtime is unavailable.
+    let ch = null;
+    try {
+      ch = supabase.channel('bhbc-live');
+      ['expo-bhbc-loads', 'expo-bhbc-fixtures', 'expo-bhbc-league', 'expo-bhbc-medical', 'expo-trainees'].forEach((k) => {
+        ch.on('postgres_changes', { event: '*', schema: 'public', table: 'store', filter: `key=eq.${k}` }, () => { if (!stop) poll(); });
+      });
+      ch.subscribe();
+    } catch { /* realtime optional */ }
+    const iv = setInterval(poll, 5000);
+    return () => { stop = true; clearInterval(iv); if (ch) { try { supabase.removeChannel(ch); } catch { /* noop */ } } };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
