@@ -23,7 +23,7 @@ import TrainingLineageV2 from './TrainingLineageV2';
 // (minHeight 46, content vertically centred) so EVERY demo section header
 // (Active Athletes / Revenue / Tasks / Messages / Expiring …) is the SAME
 // vertical height. Parity with DashboardView's #261 fix (Ohad).
-const DEMO_STRIP_H = { minHeight: 46, boxSizing: 'border-box', display: 'flex', alignItems: 'center' };
+const DEMO_STRIP_H = { minHeight: 41, boxSizing: 'border-box', display: 'flex', alignItems: 'center' };
 
 // ─── Mock data ────────────────────────────────────────────────────────────
 // Three mock trainees — one per format type (Online / Gym Single / Gym Couple)

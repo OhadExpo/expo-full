@@ -639,7 +639,12 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
 
       {/* === COUPLE LAYOUT === */}
       {couple ? <>
-        {/* Shared billing bar */}
+        {/* Couple identity + status header. Billing stats were shown here AND in
+            the Billing section below (line ~730, identical Package/Sessions/
+            Monthly/Per-Session/Last-Payment/Since) — the section owns billing
+            (it also has the actions + payment ledger), so the duplicate grid is
+            removed here. This bar keeps only the couple identity, status, and the
+            one datum NOT in the Billing section: the household Workouts count. */}
         <Card style={{marginBottom:12,textAlign:'center'}}
           header={(() => {
             const heb = isHebrew(td.name);
@@ -649,7 +654,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           {/* Duplicate status Badge removed — the strip header's StatusMenu is the
               single status control (Ohad: no mirrored status in the back). */}
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, 118px)',justifyContent:'center',gap:'12px 10px'}}>
-            {[['Package',td.package],['Sessions Left',td.sessionsRemaining],['Monthly',td.monthly?`₪${td.monthly}`:'—'],['Per Session',td.perSession?`₪${td.perSession}`:'—'],['Last Payment',fmtPrettyDate(lastPaidDate)],['Since',fmtPrettyDate(td.startDate)],['Workouts',tAllWorkouts.length]].map(([l,v])=>
+            {[['Workouts',tAllWorkouts.length]].map(([l,v])=>
               <div key={l}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700}}>{l}</div><div style={{fontSize:14,color:C.tx,marginTop:2}}>{v}</div></div>)}
           </div>
         </Card>

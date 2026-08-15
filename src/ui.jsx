@@ -240,7 +240,7 @@ export function RefinedHeaderStrip({ children, padY = 14, padX = 18, marginBotto
       // A label-only strip was ~34px while a strip with a 30px action button was
       // ~46px. Fix the box to a single height + vertically center the content, so
       // buttons no longer stretch some bars taller than others.
-      minHeight: 46, boxSizing: 'border-box',
+      minHeight: 41, boxSizing: 'border-box',
       display: 'flex', flexDirection: 'column', justifyContent: 'center',
       padding: `0 ${padX}px`,
       // The bottom hairline divides header from content — but when the section is
@@ -381,10 +381,11 @@ export function CollapsibleSection({ title, titleNode, count, right, storageKey,
   // one shade of cyan above the box (the highlight test) AND one uniform 8px
   // inner height (bare no longer runs taller at 10px/minHeight-45).
   const stripBg = 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))';
-  // minHeight 46 + boxSizing matches RefinedHeaderStrip so EVERY section header
-  // is the same vertical height app-wide (Ohad #261). The strip div below is
+  // minHeight 41 + boxSizing matches RefinedHeaderStrip so EVERY section header
+  // is the same vertical height app-wide (Ohad #261; trimmed ~10% from 46 → 41
+  // per Ohad — bars were slightly too tall). The strip div below is
   // display:flex/alignItems:center, so content stays vertically centered.
-  const stripH = { minHeight: 46, boxSizing: 'border-box' };
+  const stripH = { minHeight: 41, boxSizing: 'border-box' };
   const stripStyle = bare
     ? { background: stripBg, border: baseBorder, padding: '0 14px', ...stripH }
     : (open
