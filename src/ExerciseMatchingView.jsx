@@ -41,7 +41,7 @@ function LibraryPicker({ exercises, initial, onPick, onClose }) {
   );
 }
 
-export default function ExerciseMatchingView({ exercises = [] }) {
+export default function ExerciseMatchingView({ exercises = [], setExercises }) {
   const [plans, setPlans] = useState(null);
   const [err, setErr] = useState(null);
   const [decisions, setDecisions] = useState({}); // titleKey -> { action:'accept'|'skip', ex }
@@ -66,6 +66,15 @@ export default function ExerciseMatchingView({ exercises = [] }) {
   const affectedRows = accepted.reduce((a, [key]) => a + (groups.find((g) => g.key === key)?.count || 0), 0);
 
   const setDecision = (key, action, ex) => setDecisions((prev) => ({ ...prev, [key]: { action, ex } }));
+
+  // Create a brand-new library exercise for a genuinely-new title. Writes the
+  // library (store), NOT trainee plans — the plan rows then resolve by title.
+  const createInLibrary = (g) => {
+    if (!setExercises) return;
+    const ex = { id: 'ex_' + Math.random().toString(36).slice(2, 12), title: g.title, resistanceType: '', bodyPosition: '', movementType: '', primaryMuscles: '', secondaryMuscles: '', videoLink: '', cues: '', notes: '' };
+    setExercises((prev) => [...(prev || []), ex]);
+    toast(`“${g.title}” added to library`);
+  };
 
   const acceptAllHighConfidence = () => {
     const next = { ...decisions };
@@ -150,6 +159,7 @@ export default function ExerciseMatchingView({ exercises = [] }) {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
                 <Btn variant="ghost" onClick={() => setPickerFor({ key: g.key, title: g.title })}>Change…</Btn>
+                {setExercises && <Btn variant="ghost" onClick={() => createInLibrary(g)}>+ New</Btn>}
                 <Btn variant="ghost" onClick={() => setDecision(g.key, 'skip')}>Skip</Btn>
               </div>
             </div>
