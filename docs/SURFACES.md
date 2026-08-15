@@ -57,6 +57,7 @@ Last synced to code: 2026-06-09. (Known gate blind spot: `check-surfaces.mjs` on
 | `/coach/challenges` | challenges | `ChallengesView` | ✅ pass2 |
 | `/coach/calendar` | calendar | `BookingView` | ✅ pass2 |
 | `/coach/billing` | billing | `BillingView` | ✅ pass1 |
+| `/coach/bhbc` | bhbc | `BhbcView` (Bnei Herzliya S&C zone) | 🆕 2026-08-15 (Athletes▾→BHBC; staff-gated separate zone, no EXPO nav) |
 
 Staff (Yuval) coach sees only `STAFF_TABS` — verify gating when touching nav/RLS.
 
