@@ -78,7 +78,7 @@ if (typeof document !== 'undefined' && !document.getElementById('tasks-v8-anim')
 function statusColors(status, theme) {
   const dark = theme === 'dark' || theme === '1' || theme === '2' || theme === '3' || theme === '4';
   if (status === 'done')      return dark ? { bg: '#00A85D', fg: '#FFFFFF' } : { bg: '#00CA72', fg: '#FFFFFF' };
-  if (status === 'working')   return dark ? { bg: '#D9A800', fg: '#000000' } : { bg: '#FFCC00', fg: '#000000' };
+  if (status === 'working')   return dark ? { bg: '#D9A800', fg: '#000000' } : { bg: '#EAA800', fg: '#000000' };
   if (status === 'stuck')     return dark ? { bg: '#C81F4D', fg: '#FFFFFF' } : { bg: '#FB275D', fg: '#FFFFFF' };
   if (status === 'waiting')   return dark ? { bg: '#5A6376', fg: '#FFFFFF' } : { bg: '#8892A6', fg: '#FFFFFF' };
   if (status === 'cancelled') return dark ? { bg: '#3D3D3D', fg: '#9A9A9A' } : { bg: '#E0E0E0', fg: '#666666' };

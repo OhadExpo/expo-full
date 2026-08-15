@@ -653,7 +653,9 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
   return (
     <div style={{
       background: 'var(--c-sf)',
-      border: `1px solid var(--c-cardBd)`, borderRadius: 0, padding: PAD,
+      // Collapsed: drop bottom padding so no empty card-bg box shows beneath the
+      // header — collapsed reads as a clean strip like Revenue (#262).
+      border: `1px solid var(--c-cardBd)`, borderRadius: 0, padding: PAD, paddingBottom: open ? PAD : 0,
       boxShadow: C.cardShadow,
     }}>
       {popupNote && createPortal(

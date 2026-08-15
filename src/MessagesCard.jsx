@@ -198,6 +198,9 @@ export default function MessagesCard({ trainees, onSelectTrainee }) {
       border: `1px solid var(--c-cardBd)`,
       borderRadius: 0,
       padding: PAD,
+      // Collapsed: no bottom padding so no empty card-bg box shows beneath the
+      // header — a collapsed card reads as a clean strip like Revenue (#262).
+      paddingBottom: open ? PAD : 0,
       boxShadow: C.cardShadow,
       marginBottom: 20,
     }}>

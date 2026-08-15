@@ -367,7 +367,9 @@ function CoachHistoryCard({ trainee, activity, clientWorkouts, payments, planInd
   return (
     <div style={{
       background: 'var(--c-sf)',
-      border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: PAD, marginBottom: 12,
+      // Collapsed: drop bottom padding so no empty card-bg strip shows beneath the
+      // header (RefinedHeaderStrip bleeds over top/side padding, not bottom). (#260)
+      border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: PAD, paddingBottom: open ? PAD : 0, marginBottom: 12,
     }}>
       <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={open ? 10 : 0}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>

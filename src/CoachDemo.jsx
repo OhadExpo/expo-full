@@ -19,6 +19,12 @@ import { EXPOMark } from './expoMark';
 import { SideRail } from './SideRail';
 import TrainingLineageV2 from './TrainingLineageV2';
 
+// Uniform dashboard title-strip height — mirrors the real app's RefinedHeaderStrip
+// (minHeight 46, content vertically centred) so EVERY demo section header
+// (Active Athletes / Revenue / Tasks / Messages / Expiring …) is the SAME
+// vertical height. Parity with DashboardView's #261 fix (Ohad).
+const DEMO_STRIP_H = { minHeight: 46, boxSizing: 'border-box', display: 'flex', alignItems: 'center' };
+
 // ─── Mock data ────────────────────────────────────────────────────────────
 // Three mock trainees — one per format type (Online / Gym Single / Gym Couple)
 // with Israeli names. Enough variety to show every kind of card + filter
@@ -210,7 +216,7 @@ function StatCard({ label, value, sub, subColor, accent = C.ac, total }) {
       background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0,
       padding: '16px 20px', boxShadow: C.cardShadow,
     }}>
-      <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', margin: '-16px -20px 12px', padding: '8px 20px', borderBottom: `1px solid ${C.cardBd}` }}>
+      <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', margin: '-16px -20px 12px', padding: '0 20px', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, minHeight: 30 }}>
           <span title="status" style={{ width: 6, height: 6, borderRadius: '50%', background: accent, flexShrink: 0, boxShadow: `0 0 5px ${accent}66` }} />
           <span style={{ fontFamily: FN, fontSize: 13, letterSpacing: '0.08em', fontWeight: 700, color: '#FFFFFF', textTransform: 'uppercase' }}>{label}</span>
@@ -266,7 +272,7 @@ function DemoDashboard({ onJumpToTrainee }) {
 
       {/* Incoming · 30D — funnel summary, mirrors the real dashboard section. */}
       <div style={{ border: `1px solid ${C.cardBd}`, marginBottom: 20 }}>
-        <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', color: '#FFFFFF', padding: '8px 14px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderBottom: `1px solid ${C.cardBd}` }}>INCOMING · 30D</div>
+        <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', color: '#FFFFFF', padding: '0 14px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H }}>INCOMING · 30D</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8, padding: 14 }}>
           {[['CHAT SESSIONS', '12', C.ac, 'last 30 days'], ['MESSAGES SENT', '7', C.ac, 'to prospects'], ['EMAIL CAPTURES', '3', C.gn, 'captured'], ['WAITLIST', '2', C.ac, 'signed up']].map(([l, v, c, sub], i) => (
             <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '10px 14px', border: `1px solid ${C.cardBd}`, background: C.sf }}>
@@ -281,7 +287,7 @@ function DemoDashboard({ onJumpToTrainee }) {
       {/* Revenue panel — mirrors the real DashboardView RevenueCard (F-36):
           six metric tiles + a 6-month collected bar chart. Static demo data. */}
       <div style={{ border: `1px solid ${C.cardBd}`, marginBottom: 20 }}>
-        <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', color: '#FFFFFF', padding: '8px 14px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderBottom: `1px solid ${C.cardBd}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', color: '#FFFFFF', padding: '0 14px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H, justifyContent: 'space-between' }}>
           <span>REVENUE</span><span style={{ opacity: 0.85, fontSize: 10 }}>6 MO TREND</span>
         </div>
         <div style={{ padding: 14 }}>
@@ -321,7 +327,7 @@ function DemoDashboard({ onJumpToTrainee }) {
           columns (To Do / In Progress / Waiting / Stuck) so the demo dashboard
           shows the tasks-at-a-glance feature. */}
       <div style={{ border: `1px solid ${C.cardBd}`, marginBottom: 20 }}>
-        <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', color: '#FFFFFF', padding: '8px 14px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderBottom: `1px solid ${C.cardBd}` }}>
+        <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', color: '#FFFFFF', padding: '0 14px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H }}>
           TASKS ({DEMO_TASKS.filter(t => t.status !== 'done').length})
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: 10 }}>
@@ -351,7 +357,7 @@ function DemoDashboard({ onJumpToTrainee }) {
           (the real DashboardView renders <MessagesCard> between Tasks and the
           alert rail). Mock threads for the demo. */}
       <div style={{ border: `1px solid ${C.cardBd}`, marginBottom: 20 }}>
-        <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', color: '#FFFFFF', padding: '8px 14px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderBottom: `1px solid ${C.cardBd}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', color: '#FFFFFF', padding: '0 14px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H, justifyContent: 'space-between' }}>
           <span>Messages</span><span style={{ fontSize: 10, color: C.ac }}>2 Unread</span>
         </div>
         <div>
@@ -445,7 +451,7 @@ function DemoDashboard({ onJumpToTrainee }) {
         overflowX: 'auto', marginBottom: 8,
       }}>
           {/* Strip header — mirrors the real DashboardView "All Athletes — N". */}
-          <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '8px 14px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', color: '#FFFFFF', textTransform: 'uppercase' }}>All Athletes · {MOCK_TRAINEES.length}</div>
+          <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '0 14px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', color: '#FFFFFF', textTransform: 'uppercase', ...DEMO_STRIP_H }}>All Athletes · {MOCK_TRAINEES.length}</div>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
             <thead>
               <tr style={{ borderBottom: `1px solid ${C.bd}` }}>
@@ -516,7 +522,7 @@ function Panel({ title, tint, icon, children, cyanBorder }) {
       boxShadow: cyanBorder ? undefined : C.cardShadow,
       flex: '0 0 auto', width: 300, boxSizing: 'border-box',
     }}>
-      <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', margin: '-14px -18px 12px', padding: '8px 18px', borderBottom: `1px solid ${C.cardBd}` }}>
+      <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', margin: '-14px -18px 12px', padding: '0 18px', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H }}>
         <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', color: '#FFFFFF', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center' }}>
           {icon && <DemoSectionIcon kind={icon} />}{title}
         </span>

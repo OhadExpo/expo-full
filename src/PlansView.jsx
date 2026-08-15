@@ -102,12 +102,20 @@ function useScrollbarInset(active) {
 function PatternCoverage({ plan, exercises, cols = 5 }) {
   const pats = useMemo(() => {
     const s = new Set();
-    // Guard days/exercises (the one spot in the plan-render path that was missing
-    // the `||[]` its siblings use, :779/:1597) — a null day or missing exercises
-    // array would throw here during PlanEditor render and lose the coach's draft.
+    const exMap = exById(exercises);
+    // Coverage was read from the library `movementPattern` column — but that's
+    // ~91% empty (1,379/1,476 unclassified), so a program packed with squats/
+    // hinges/presses still reported 0/9 (a false "trains nothing" — violates the
+    // no-fake-data rule). Classify from the exercise TITLE instead, the same
+    // library-independent method the Overload chart uses (classifyPattern),
+    // mapped onto the 9 primary patterns. Verified accurate on real blocks.
+    // Guard days/exercises (a null day or missing array would throw here during
+    // PlanEditor render and lose the coach's draft — :779/:1597 use the same ||[]).
     (plan.days || []).forEach(d => (d?.exercises || []).forEach(pe => {
-      const ex = exById(exercises).get(pe?.exerciseId);
-      if (ex?.movementPattern) s.add(ex.movementPattern);
+      const lib = exMap.get(pe?.exerciseId);
+      const title = pe?.title || lib?.title || '';
+      const req = coveragePattern(title, lib);
+      if (req) s.add(req);
     }));
     return s;
   }, [plan.days, exercises]);
@@ -1806,10 +1814,25 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
               the editor. Saves any pending edits first. Mounted only when
               there are 2+ programs to switch between. */}
           {(() => {
+            // Order the picker by BLOCK NUMBER descending (#18 → #1), NOT by
+            // sortProgramsRecent's createdAt-first rank. Imported blocks share
+            // scrambled createdAt stamps, so recency-sort listed them out of
+            // order (#18, then #12→#1, then #17→#13) — "definitely not the right
+            // order" (Ohad). Block# is the real training timeline; descending
+            // puts the latest/current block at the top, matching the selected
+            // value. Un-numbered (freshly-created) blocks float to the top,
+            // newest-first, so a just-made block stays easy to grab.
+            const byBlockDesc = (a, b) => {
+              const na = blockNum(a.name), nb = blockNum(b.name);
+              if (na == null && nb == null) return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+              if (na == null) return -1;
+              if (nb == null) return 1;
+              return nb - na;
+            };
             const sameAthlete = (planIndex || [])
               .filter(p => p.traineeId === plan.traineeId)
               .slice()
-              .sort(sortProgramsRecent);
+              .sort(byBlockDesc);
             if (sameAthlete.length < 2 || !onSwitchProgram) return null;
             // Styled to match the COMPARE / OVERVIEW / SAVE buttons in the
             // same row — same height, font, weight, letter-spacing, border
@@ -2625,6 +2648,26 @@ export function classifyPattern(title, lib) {
     if (/carry|core|rotation|anti/.test(cat)) return 'Core / Carry';
   }
   return 'Other';
+}
+
+// Map classifyPattern's output onto the 9 REQUIRED_PATTERNS the coverage widget
+// tracks. classifyPattern collapses carry + rotation into one 'Core / Carry'
+// bucket, so re-split those two with dedicated title regexes. Title-based (like
+// the Overload chart) so it works on the ~91%-unclassified library. Returns null
+// for non-primary buckets (Jump/Olympic/Conditioning/Arms/Other) so they don't
+// falsely fill a primary slot.
+const COVERAGE_CARRY_RE = /carry|farmer|suitcase|waiter|yoke|sled\s*(drag|push|pull)|prowler|loaded\s*carry|bear\s*crawl/;
+const COVERAGE_ROT_RE = /pallof|rotation|rotat|twist|woodchop|chop|anti[\s-]*rot|russian\s*twist|landmine\s*(rot|twist)|oblique/;
+const COVERAGE_MAP = { 'Squat': 'Squat', 'Hinge': 'Hip Hinge', 'Lunge / SL': 'Lunge', 'Horizontal Push': 'Horizontal Push', 'Horizontal Pull': 'Horizontal Pull', 'Vertical Push': 'Vertical Push', 'Vertical Pull': 'Vertical Pull' };
+function coveragePattern(title, lib) {
+  const p = classifyPattern(title, lib);
+  if (COVERAGE_MAP[p]) return COVERAGE_MAP[p];
+  if (p === 'Core / Carry') {
+    const t = (title || '').toLowerCase();
+    if (COVERAGE_CARRY_RE.test(t)) return 'Carry/Loaded Locomotion';
+    if (COVERAGE_ROT_RE.test(t)) return 'Rotation/Anti-Rotation';
+  }
+  return null;
 }
 
 // ── Periodization science (grounded in the athlete's own sets+reps, since the
@@ -4064,7 +4107,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                   }}
                   onMouseLeave={() => { clearTimeout(hoverTimerRef.current); setHoverPos(null); clearPreviewPlan(); }}
                   style={{cursor:openingId===cur.id?'progress':'pointer',opacity:openingId===cur.id?0.55:1,transition:'opacity 0.12s',padding:'12px 14px 4px'}}>
-                  <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap',minHeight:24}}>
                     <span style={{fontWeight:700,fontSize:15,color:C.ac,fontFamily:FN,letterSpacing:'0.04em',minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{cur.name||"Untitled"}</span>
                     {row.earlier.length > 0 && (
                       <button onClick={e=>{e.stopPropagation();toggleAthlete(row.tid);}}
@@ -4230,7 +4273,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                 style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,display:'flex',flexDirection:'column',gridColumn:expanded?'1 / -1':'auto',willChange:'transform',boxShadow:C.cardShadow}}>
                 {stripHeader}
                 <div {...openHandlers} style={{cursor:openingId===cur.id?'progress':'pointer',opacity:openingId===cur.id?0.55:1,transition:'opacity 0.12s',padding:'12px 14px 4px'}}>
-                  <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap',minHeight:24}}>
                     <span style={{fontWeight:700,fontSize:15,color:C.ac,fontFamily:FN,letterSpacing:'0.04em',minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{cur.name||"Untitled"}</span>
                     {plusBtn}
                   </div>

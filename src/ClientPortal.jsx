@@ -234,8 +234,12 @@ function trainerPlanToPortal(plan, exById, exByTitle) {
             if (!EX[dupEid] && EX[eid]) EX[dupEid] = EX[eid];
             eid = dupEid;
           }
-          const sets = pe.sets ?? pe.s ?? 3;
-          const reps = pe.reps ?? pe.r ?? '8-12';
+          // NEVER invent a prescription. A plan row that omits sets/reps stays
+          // BLANK (renders "—" via SetsRepsHero/rxOf) instead of a fabricated
+          // "3 × 8-12" the coach never wrote — which previously also got PERSISTED
+          // into the athlete's permanent record on finish(). (empty = empty)
+          const sets = pe.sets ?? pe.s ?? '';
+          const reps = pe.reps ?? pe.r ?? '';
           const notes = pe.notes ?? pe.n;
           // Per-instance video override. Three states:
           //   undefined → no override (trainee sees library videoLink)
@@ -1327,7 +1331,10 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         // rxOf / SetsRepsHero combined-guard so History matches the live logger.
         const wkReps = String((ex.wk && ex.wk[weekNum]) ?? '').trim() || ex.r;
         const wkSets = (ex.wkS && ex.wkS[weekNum]) || ex.s;
-        const prescribed = /[x×]/i.test(String(wkReps)) ? String(wkReps) : `${wkSets}x${wkReps}`;
+        // A blank prescription (coach left sets+reps empty) persists as '' — never
+        // a fabricated "x"/"3x8-12" written as if it were prescribed. (empty = empty)
+        const prescribed = /[x×]/i.test(String(wkReps)) ? String(wkReps)
+          : ((String(wkSets ?? '').trim() || String(wkReps ?? '').trim()) ? `${wkSets}x${wkReps}` : '');
         return {
           eid: ex.eid,
           title: sub ? sub.title : prescribedTitle,
@@ -3356,10 +3363,18 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             const hw = ex.wk?.length > 0;
             const wr = hw ? (ex.wk[vpWeek] ?? ex.r) : null;
             const sets = (ex.wkS && ex.wkS[vpWeek]) || ex.s;
-            if (!hw) return sets + 'x' + ex.r;
+            // Compose "SxR" from non-blank parts only; a fully-blank prescription
+            // shows "—", never a fabricated "x"/"3x8-12". (empty = empty)
+            const compose = (r) => {
+              const sS = String(sets ?? '').trim(), rS = String(r ?? '').trim();
+              if (/[x×]/i.test(rS)) return rS;
+              if (!sS && !rS) return '—';
+              return sS && rS ? sS + 'x' + rS : (sS || rS);
+            };
+            if (!hw) return compose(ex.r);
             const wrS = String(wr ?? '').trim();
-            if (!wrS) return sets + 'x' + ex.r;
-            return /[x×]/i.test(wrS) ? wrS : sets + 'x' + wrS;
+            if (!wrS) return compose(ex.r);
+            return /[x×]/i.test(wrS) ? wrS : compose(wr);
           };
           return buildCard({
             key: vp.name + '-' + di,

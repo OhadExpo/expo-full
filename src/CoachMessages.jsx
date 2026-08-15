@@ -326,7 +326,10 @@ export default function CoachMessages({ traineeId, role = 'coach', recipientEmai
       // portal — body text stayed `--c-tx` (light gray in dark) on a forced
       // white card = unreadable.
       background: 'var(--c-sf)',
-      border: `1px solid var(--c-cardBd)`, borderRadius: 0, padding: PAD, marginBottom: 12,
+      // Collapsed: drop the bottom padding so no empty card-bg strip shows beneath
+      // the header (the RefinedHeaderStrip bleeds over the top/side padding via its
+      // negative margins, but the bottom padding remained as a stray box). (#260)
+      border: `1px solid var(--c-cardBd)`, borderRadius: 0, padding: PAD, paddingBottom: open ? PAD : 0, marginBottom: 12,
     }}>
       <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={open ? 10 : 0}>
         <div onClick={() => setOpen(o => !o)} role="button" tabIndex={0}

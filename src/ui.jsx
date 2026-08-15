@@ -235,11 +235,19 @@ export function RefinedHeaderStrip({ children, padY = 14, padX = 18, marginBotto
       // into the strip token; stays subtle in dark, stays branded in light.
       background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))',
       margin: `-${padY}px -${padX}px ${marginBottom}px`,
-      // ONE uniform header height app-wide (Ohad: stop varying it page to page).
-      // 8px inner — matches the original "current expo" height he referenced,
-      // clearly taller than V3's too-short 5px.
-      padding: `8px ${padX}px`,
-      borderBottom: '1px solid var(--c-cardBd)',
+      // ONE uniform header height app-wide (Ohad #261: active-athletes / revenue /
+      // tasks / messages / expiring bars must all be the SAME vertical height).
+      // A label-only strip was ~34px while a strip with a 30px action button was
+      // ~46px. Fix the box to a single height + vertically center the content, so
+      // buttons no longer stretch some bars taller than others.
+      minHeight: 46, boxSizing: 'border-box',
+      display: 'flex', flexDirection: 'column', justifyContent: 'center',
+      padding: `0 ${padX}px`,
+      // The bottom hairline divides header from content — but when the section is
+      // COLLAPSED (parent passes marginBottom:0, no body follows) it becomes a
+      // stray cyan line over emptiness. Drop it when collapsed so a collapsed box
+      // reads as a clean strip like Revenue (Ohad #262). (px or 0 both handled.)
+      borderBottom: (marginBottom === 0 || marginBottom === '0') ? 'none' : '1px solid var(--c-cardBd)',
     }}>{children}</div>
   );
 }
@@ -373,12 +381,25 @@ export function CollapsibleSection({ title, titleNode, count, right, storageKey,
   // one shade of cyan above the box (the highlight test) AND one uniform 8px
   // inner height (bare no longer runs taller at 10px/minHeight-45).
   const stripBg = 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))';
+  // minHeight 46 + boxSizing matches RefinedHeaderStrip so EVERY section header
+  // is the same vertical height app-wide (Ohad #261). The strip div below is
+  // display:flex/alignItems:center, so content stays vertically centered.
+  const stripH = { minHeight: 46, boxSizing: 'border-box' };
   const stripStyle = bare
-    ? { background: stripBg, border: baseBorder, padding: '8px 14px', boxSizing: 'border-box' }
-    : { background: stripBg, borderBottom: open ? `1px solid ${C.cardBd}` : 'none', padding: `8px ${padX}px` };
+    ? { background: stripBg, border: baseBorder, padding: '0 14px', ...stripH }
+    : (open
+        ? { background: stripBg, borderBottom: `1px solid ${C.cardBd}`, padding: `0 ${padX}px`, ...stripH }
+        // Collapsed non-bare: the strip stands ALONE (the card body box beneath it
+        // is gone), so it carries its OWN full border — matching the `bare` collapsed
+        // look. Fixes the stray empty white box some sections showed collapsed (#260).
+        : { background: stripBg, border: baseBorder, padding: `0 ${padX}px`, ...stripH });
   const outerStyle = bare
     ? { ...style }
-    : { background: 'var(--c-sf)', border: baseBorder, borderLeft: leftStripe ? `3px solid ${leftStripe}` : baseBorder, borderRadius: 0, boxShadow: C.cardShadow, marginBottom: 12, ...style };
+    // Card chrome (white bg + border + shadow) only when OPEN; collapsed = no box
+    // (the strip carries its own border), so every section collapses to a bare strip.
+    : (open
+        ? { background: 'var(--c-sf)', border: baseBorder, borderLeft: leftStripe ? `3px solid ${leftStripe}` : baseBorder, borderRadius: 0, boxShadow: C.cardShadow, marginBottom: 12, ...style }
+        : { marginBottom: 12, ...style });
   return (
     <div id={domId} style={outerStyle}>
       <div

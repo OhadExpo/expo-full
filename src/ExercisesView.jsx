@@ -386,14 +386,20 @@ export default function ExercisesView({ exercises, setExercises }) {
               left and right"). Long comma-lists truncate with … (full on hover). */}
           <table className="ex-table" style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
             <colgroup>
-              <col style={{ width: '19%' }} />
+              {/* EXERCISE name is the primary identifier — give it real width so
+                  full titles read ("5m Reverse Sprint to Full-Court Layup") instead
+                  of clipping at ~18 chars. The 7 taxonomy columns are ~91% empty
+                  (1,379/1,476 unclassified) so they don't need equal billing; they
+                  stay wide enough for their populated values and 2-line headers.
+                  All %s still sum to 100 → no horizontal scroll. (Ohad #219.) */}
+              <col style={{ width: '30%' }} />
+              <col style={{ width: '8%' }} />
+              <col style={{ width: '8%' }} />
               <col style={{ width: '9%' }} />
               <col style={{ width: '9%' }} />
               <col style={{ width: '10%' }} />
-              <col style={{ width: '11%' }} />
-              <col style={{ width: '12%' }} />
-              <col style={{ width: '11%' }} />
-              <col style={{ width: '11%' }} />
+              <col style={{ width: '9%' }} />
+              <col style={{ width: '9%' }} />
               <col style={{ width: '48px' }} />
               <col style={{ width: '56px' }} />
             </colgroup>

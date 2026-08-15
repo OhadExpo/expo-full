@@ -339,7 +339,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
     return (
       <div style={{flex:1,minWidth:0}}>
         <Card style={{marginBottom:8}}
-          header={<span style={{display:'inline-flex',alignItems:'baseline',gap:10,fontWeight:700,fontSize:14,letterSpacing:'0.04em',textTransform:'uppercase'}}>{m.name}<span style={{fontSize:10,opacity:0.78,letterSpacing:'0.02em',textTransform:'none',fontWeight:500}}>{emailsDisplay(m.email)}{m.phone?` · ${m.phone}`:''}</span></span>}>
+          header={<span style={{display:'inline-flex',alignItems:'baseline',gap:10,fontWeight:700,fontSize:14,letterSpacing:'0.04em',textTransform:'uppercase'}}>{m.name}</span>}>
           {/* Name + email body block — rendered in BOTH themes (was `!isRefined5b()`,
               i.e. dark only, which made dark 56px taller than light). Ohad wants
               light to match dark's fuller build, so it's now unconditional. */}
@@ -605,10 +605,12 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           the active tab again returns to View All. WRAPS to fit — every tag stays
           visible, no horizontal scroll (Ohad: "all the tags need to fit"). */}
       <div style={{ marginBottom: 16 }}>
-        {/* All section tabs on ONE row that SHRINKS to fit — no wrap, no side-scroll
-            (Ohad): each tab can compress (flex-shrink + min-width 0 + ellipsis) so 11
-            tags always fit the row rather than overflowing into a horizontal scroll. */}
-        <div style={{ display: 'flex', flexWrap: 'nowrap', gap: 4, width: '100%' }} role="group" aria-label="Filter sections">
+        {/* Section tabs SIZE TO THEIR LABEL and WRAP to a second row when the row
+            is too narrow (Ohad: equal-width forced-fit clipped the long labels —
+            "Coach History" → "ach Histo" — unreadable). Natural width + wrap keeps
+            every label fully legible, still with NO horizontal scroll: on a wide
+            screen they sit on one row, on a narrow one they wrap. */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, width: '100%' }} role="group" aria-label="Filter sections">
           {SEC_TABS.map(t => {
             const active = t.id === 'all' ? activeSecs.size === 0 : activeSecs.has(t.id);
             return (
@@ -616,10 +618,9 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
                 aria-pressed={active}
                 title={t.id === 'all' ? 'Show all sections' : `Show only ${t.label} — click again for all sections`}
                 style={{
-                  height: 30, boxSizing: 'border-box', padding: '0 8px', borderRadius: 0,
-                  // Stretch every tab to fill the full row width equally (Ohad) —
-                  // grow+shrink from a 0 basis so they share the space evenly.
-                  flex: '1 1 0', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis',
+                  height: 30, boxSizing: 'border-box', padding: '0 11px', borderRadius: 0,
+                  // Fit the label — never shrink below its text (no clipping).
+                  flex: '0 0 auto',
                   // Tinted active state (not a solid C.ac fill) — in light-refined
                   // themes C.ac resolves near-black, so solid-fill + dark label was
                   // invisible (Ohad: "i cant see the button"). Tint + accent text
