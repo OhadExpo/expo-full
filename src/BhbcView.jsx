@@ -11,7 +11,7 @@
 // crest (public/logos/bhbc-logo.png). Semantic ACWR band colors are status-only,
 // never the brand. Load math: src/acwrEngine.js (validated vs the corpus).
 
-import React, { useMemo, useState, useCallback, Suspense, lazy } from 'react';
+import React, { useMemo, useState, useEffect, useCallback, Suspense, lazy } from 'react';
 import { C, FN, FB } from './theme';
 import { Card, CollapsibleSection, Btn, Input, Modal, EmptyState, toast } from './ui';
 import { ThemeToggle } from './ThemeToggle';
@@ -111,6 +111,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   const [manageOpen, setManageOpen] = useState(false);
   const [logFor, setLogFor] = useState(null);
   const [detailFor, setDetailFor] = useState(null);
+  const [practiceOpen, setPracticeOpen] = useState(false);
   const [view, setView] = useState('overview');   // overview | schedule | roster
   const [schedMode, setSchedMode] = useState('calendar'); // calendar | list
   const [sessionMode, setSessionMode] = useState('group'); // group | single
@@ -186,6 +187,56 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
     toast('Logged');
   }, [setBhbcLoads]);
 
+  // Bulk: log one session's load for the WHOLE available squad (a team all does
+  // the same practice). Skips anyone marked Out that day. Feeds every athlete's ACWR.
+  const logTeamSession = useCallback(({ date, type, minutes, rpe }) => {
+    const load = sessionLoad(minutes, rpe);
+    if (load <= 0) { toast('Add minutes + RPE'); return; }
+    let n = 0;
+    setBhbcLoads((prev) => {
+      const next = { ...prev };
+      roster.forEach((t) => {
+        const rec = next[t.id] ? { ...next[t.id] } : emptyRec();
+        const av = (rec.availability && rec.availability[date]) || 1;
+        if (av >= 4) return; // Out (medical/personal) → skip
+        rec.loads = { ...(rec.loads || {}) };
+        rec.sessions = { ...(rec.sessions || {}) };
+        rec.loads[date] = (rec.loads[date] || 0) + load;
+        rec.sessions[date] = [...(rec.sessions[date] || []), { type, min: Number(minutes) || 0, rpe: Number(rpe) || 0, load, team: true }];
+        next[t.id] = rec;
+        n++;
+      });
+      return next;
+    });
+    toast(`Logged for ${n} athletes`);
+  }, [setBhbcLoads, roster]);
+
+  // The sheet-like per-practice save: availability + load + bodyweight + note for
+  // the whole squad in one write (Ohad: "a smart easy system for each practice
+  // like the BHBC schedule sheet"). Load = minutes × (per-athlete RPE or team RPE);
+  // Out athletes get availability recorded but no load.
+  const savePractice = useCallback(({ date, minutes, teamRpe, intensity, entries }) => {
+    setBhbcLoads((prev) => {
+      const next = { ...prev };
+      Object.entries(entries).forEach(([id, e]) => {
+        const rec = next[id] ? { ...next[id] } : emptyRec();
+        rec.availability = { ...(rec.availability || {}), [date]: e.avail };
+        const rpe = Number(e.rpe || teamRpe);
+        const load = e.avail < 4 ? sessionLoad(minutes, rpe) : 0;
+        if (load > 0) {
+          rec.loads = { ...(rec.loads || {}), [date]: (rec.loads?.[date] || 0) + load };
+          rec.sessions = { ...(rec.sessions || {}) };
+          rec.sessions[date] = [...(rec.sessions[date] || []), { type: 'Practice', min: Number(minutes) || 0, rpe, load, intensity, note: e.note || '', team: true }];
+        }
+        if (e.bw) rec.bw = { ...(rec.bw || {}), [date]: Number(e.bw) };
+        if (e.note) rec.notes = { ...(rec.notes || {}), [date]: e.note };
+        next[id] = rec;
+      });
+      return next;
+    });
+    toast('Practice saved');
+  }, [setBhbcLoads]);
+
   const rowGrid = '28px minmax(116px,1.5fr) 112px 46px 130px minmax(104px,1.1fr) 92px';
 
   return (
@@ -213,7 +264,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
           <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: C.td }}>Squad · {roster.length}</div>
           <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <Btn variant="ghost" onClick={() => setManageOpen(true)}>Manage roster</Btn>
-            <Btn onClick={() => setLogFor('new')} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>+ Log session</Btn>
+            <Btn onClick={() => setPracticeOpen(true)} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>+ Log practice</Btn>
           </div>
         </div>
 
@@ -240,7 +291,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
 
             {view === 'overview' && (
               <>
-                <TodayPanel today={today} fixtures={bhbcFixtures} fx={fx} rows={rows} onSessions={() => setView('sessions')} onLog={() => setLogFor('new')} />
+                <TodayPanel today={today} fixtures={bhbcFixtures} fx={fx} rows={rows} onSessions={() => setView('sessions')} onLog={() => setPracticeOpen(true)} />
                 <TeamSnapshotCard team={team} />
                 <LoadBoard rows={rows} rowGrid={rowGrid} cycleAvail={cycleAvail} onOpen={setDetailFor} />
               </>
@@ -280,6 +331,12 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
         .bhbc-card:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(6,16,37,0.14)}
       `}</style>
 
+      {/* ---- PRACTICE ENTRY (the sheet-like daily entry) ---- */}
+      {practiceOpen && (
+        <PracticeEntryModal roster={roster} bhbcLoads={bhbcLoads} fixtures={bhbcFixtures}
+          onClose={() => setPracticeOpen(false)} onSave={(p) => { savePractice(p); setPracticeOpen(false); }} />
+      )}
+
       {/* ---- MANAGE ROSTER MODAL ---- */}
       <Modal open={manageOpen} onClose={() => setManageOpen(false)} title="Manage roster">
         <div style={{ fontFamily: FB, fontSize: 12.5, color: C.td, marginBottom: 12 }}>
@@ -303,7 +360,8 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
       {/* ---- LOG SESSION MODAL ---- */}
       {logFor && (
         <LogModal open={!!logFor} initialAthlete={logFor === 'new' ? (roster[0]?.id || '') : logFor} roster={roster} fixtures={bhbcFixtures}
-          onClose={() => setLogFor(null)} onSave={(payload) => { logSession(payload); setLogFor(null); }} />
+          availableCount={rows.filter((r) => (r.avail || 1) < 4).length}
+          onClose={() => setLogFor(null)} onSave={(payload) => { (payload.scope === 'squad' ? logTeamSession : logSession)(payload); setLogFor(null); }} />
       )}
 
       {/* ---- ATHLETE DETAIL (in-zone) ---- */}
@@ -392,6 +450,72 @@ function AthleteModal({ row, rec, days28, onClose, onLog, onOpenExpo, onCycleAva
 function bandKey(r) { if (r == null) return 'none'; if (r < 0.8) return 'detrained'; if (r <= 1.3) return 'low'; if (r < 1.5) return 'elevated'; return 'high'; }
 function acwrLabel(r) { return { detrained: 'undertrained', low: 'sweet spot', elevated: 'elevated', high: 'danger', none: '' }[bandKey(r)]; }
 
+function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave }) {
+  const [date, setDate] = useState(todayISO());
+  const dayFx = (fixtures || []).filter((f) => f.date === date).slice().sort((a, b) => a.start.localeCompare(b.start));
+  const [minutes, setMinutes] = useState('');
+  const [teamRpe, setTeamRpe] = useState('');
+  const [intensity, setIntensity] = useState('');
+  const [entries, setEntries] = useState({});
+  useEffect(() => {
+    const e = {};
+    roster.forEach((t) => { const rec = bhbcLoads[t.id] || {}; e[t.id] = { avail: (rec.availability && rec.availability[date]) || 1, rpe: '', bw: '', note: '' }; });
+    setEntries(e);
+    const list = (fixtures || []).filter((f) => f.date === date);
+    const prac = list.find((f) => f.type === 'practice') || list[0];
+    setMinutes(prac ? String(prac.minutes) : '');
+  }, [date]); // eslint-disable-line react-hooks/exhaustive-deps
+  const set = (id, k, v) => setEntries((prev) => ({ ...prev, [id]: { ...prev[id], [k]: v } }));
+  const inp = { fontFamily: FN, fontSize: 12, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '6px 8px', width: '100%' };
+  const canSave = Number(minutes) > 0 && Number(teamRpe) > 0;
+  const cols = '24px 1.4fr 116px 56px 66px 1.5fr';
+  return (
+    <Modal open onClose={onClose} wide title="Log practice">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.9fr 0.9fr 1.3fr', gap: 10, alignItems: 'end' }}>
+          <Input label="Date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          <Input label="Minutes" type="number" value={minutes} onChange={(e) => setMinutes(e.target.value)} placeholder="75" />
+          <Input label="Team RPE" type="number" min="0" max="10" step="0.5" value={teamRpe} onChange={(e) => setTeamRpe(e.target.value)} placeholder="7" />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <label style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: FN, textAlign: 'center' }}>Intensity</label>
+            <select value={intensity} onChange={(e) => setIntensity(e.target.value)} style={inp}>
+              <option value="">—</option>
+              {['Low', 'Moderate', 'High', 'Very High'].map((o) => <option key={o} value={o}>{o}</option>)}
+            </select>
+          </div>
+        </div>
+        {dayFx.length > 0 && <div style={{ fontFamily: FN, fontSize: 10.5, color: C.td }}>From calendar: {dayFx.map((f) => `${f.start} ${FX_LABEL[f.type] || 'Session'} ${f.minutes}′`).join('  ·  ')}</div>}
+        <div style={{ overflowX: 'auto' }}>
+          <div style={{ minWidth: 560 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: cols, gap: 8, padding: '0 0 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }}>
+              <div>#</div><div>Athlete</div><div>Availability</div><div>RPE</div><div>BW kg</div><div>Note</div>
+            </div>
+            {roster.map((t) => {
+              const e = entries[t.id] || { avail: 1, rpe: '', bw: '', note: '' };
+              const av = AVAIL[e.avail];
+              return (
+                <div key={t.id} style={{ display: 'grid', gridTemplateColumns: cols, gap: 8, alignItems: 'center', padding: '7px 0', borderBottom: `0.25px solid ${C.cardBd}` }}>
+                  <Jersey n={t.jersey} size={22} />
+                  <div style={{ fontFamily: FN, fontSize: 12.5, fontWeight: 700, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</div>
+                  <button type="button" onClick={() => set(t.id, 'avail', (e.avail % 5) + 1)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 10, fontWeight: 700, color: av.color, background: `color-mix(in srgb, ${av.color} 13%, transparent)`, border: `1px solid color-mix(in srgb, ${av.color} 38%, transparent)`, padding: '4px 8px', cursor: 'pointer', whiteSpace: 'nowrap' }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: av.color }} />{av.label}</button>
+                  <input type="number" value={e.rpe} onChange={(ev) => set(t.id, 'rpe', ev.target.value)} placeholder={teamRpe || 'RPE'} style={inp} />
+                  <input type="number" value={e.bw} onChange={(ev) => set(t.id, 'bw', ev.target.value)} placeholder="—" style={inp} />
+                  <input value={e.note} onChange={(ev) => set(t.id, 'note', ev.target.value)} placeholder="note" style={inp} />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'wrap' }}>
+          <span style={{ fontFamily: FN, fontSize: 10.5, color: C.td, marginRight: 'auto' }}>Load = minutes × RPE (per-athlete or team). Out athletes: availability only.</span>
+          <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
+          <Btn disabled={!canSave} onClick={() => onSave({ date, minutes, teamRpe, intensity, entries })} style={{ background: canSave ? NAVY : undefined, borderColor: canSave ? NAVY : undefined, color: canSave ? '#fff' : undefined }}>Save practice</Btn>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 function TodayPanel({ today, fixtures, fx, rows, onSessions, onLog }) {
   const todayFx = (fixtures || []).filter((f) => f.date === today).slice().sort((a, b) => a.start.localeCompare(b.start));
   const next = fx.byDay[0];
@@ -433,7 +557,7 @@ function TodayPanel({ today, fixtures, fx, rows, onSessions, onLog }) {
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <Btn onClick={onSessions} style={{ background: NAVY, borderColor: NAVY, color: '#fff' }}>Start session ›</Btn>
-          <Btn variant="ghost" onClick={onLog}>Quick log</Btn>
+          <Btn variant="ghost" onClick={onLog}>Log practice</Btn>
         </div>
       </div>
     </Card>
@@ -626,7 +750,8 @@ function ScheduleMonth({ fixtures, today }) {
   );
 }
 
-function LogModal({ open, initialAthlete, roster, fixtures = [], onClose, onSave }) {
+function LogModal({ open, initialAthlete, roster, fixtures = [], availableCount = 0, onClose, onSave }) {
+  const [scope, setScope] = useState('athlete');
   const [athleteId, setAthleteId] = useState(initialAthlete);
   const [date, setDate] = useState(todayISO());
   const [type, setType] = useState('Practice');
@@ -634,19 +759,28 @@ function LogModal({ open, initialAthlete, roster, fixtures = [], onClose, onSave
   const [rpe, setRpe] = useState('');
   const [pain, setPain] = useState(''); const [sleep, setSleep] = useState(''); const [energy, setEnergy] = useState('');
   const preview = sessionLoad(minutes, rpe);
-  const canSave = athleteId && (preview > 0 || pain || sleep || energy);
+  const canSave = scope === 'squad' ? preview > 0 : (athleteId && (preview > 0 || pain || sleep || energy));
   const selStyle = { fontFamily: FB, fontSize: 13, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '9px 10px', width: '100%' };
   const lab = { fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: FN, textAlign: 'center' };
   return (
     <Modal open={open} onClose={onClose} title="Log a session">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <label style={lab}>Athlete</label>
-          <select value={athleteId} onChange={(e) => setAthleteId(e.target.value)} style={selStyle}>
-            {roster.length === 0 && <option value="">— add roster first —</option>}
-            {roster.map((t) => <option key={t.id} value={t.id}>{t.jersey != null ? `#${t.jersey} ` : ''}{t.name}</option>)}
-          </select>
+        <div style={{ display: 'inline-flex', border: `1px solid ${C.cardBd}`, alignSelf: 'center' }}>
+          {[['athlete', 'One athlete'], ['squad', 'Whole squad']].map(([k, l]) => (
+            <button key={k} type="button" onClick={() => setScope(k)} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: scope === k ? '#fff' : C.td, background: scope === k ? NAVY : 'transparent', border: 'none', padding: '6px 14px', cursor: 'pointer' }}>{l}</button>
+          ))}
         </div>
+        {scope === 'athlete' ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <label style={lab}>Athlete</label>
+            <select value={athleteId} onChange={(e) => setAthleteId(e.target.value)} style={selStyle}>
+              {roster.length === 0 && <option value="">— add roster first —</option>}
+              {roster.map((t) => <option key={t.id} value={t.id}>{t.jersey != null ? `#${t.jersey} ` : ''}{t.name}</option>)}
+            </select>
+          </div>
+        ) : (
+          <div style={{ fontFamily: FB, fontSize: 12.5, color: C.td, textAlign: 'center', padding: '4px 0' }}>Logs this session for <b style={{ color: C.tx }}>{availableCount}</b> available athlete{availableCount === 1 ? '' : 's'} — skips anyone Out.</div>
+        )}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <Input label="Date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -688,7 +822,7 @@ function LogModal({ open, initialAthlete, roster, fixtures = [], onClose, onSave
         </div>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
           <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
-          <Btn disabled={!canSave} onClick={() => onSave({ athleteId, date, type, minutes, rpe, readiness: { pain, sleep, energy } })}
+          <Btn disabled={!canSave} onClick={() => onSave({ scope, athleteId, date, type, minutes, rpe, readiness: { pain, sleep, energy } })}
             style={{ background: canSave ? NAVY : undefined, borderColor: canSave ? NAVY : undefined, color: canSave ? '#fff' : undefined }}>Save</Btn>
         </div>
       </div>
