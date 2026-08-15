@@ -176,6 +176,11 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
     setTrainees((prev) => prev.map((t) => t.id === id ? { ...t, team: on ? 'BHBC' : undefined } : t));
   }, [setTrainees]);
 
+  // Per-player landing/arrival date — some sign late, first practices optional.
+  const setArrival = useCallback((id, date) => {
+    setTrainees((prev) => prev.map((t) => t.id === id ? { ...t, arrival: date || undefined } : t));
+  }, [setTrainees]);
+
   const cycleAvail = useCallback((id, current) => {
     setBhbcLoads((prev) => {
       const rec = prev[id] ? { ...prev[id] } : emptyRec();
@@ -436,12 +441,20 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
           {trainees.filter((t) => t.status !== 'Archived').sort((a, b) => (b.team === 'BHBC' ? 1 : 0) - (a.team === 'BHBC' ? 1 : 0)).map((t) => {
             const on = t.team === 'BHBC';
             return (
-              <label key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px', border: `0.25px solid ${C.cardBd}`, borderLeft: on ? `3px solid ${ORANGE}` : '3px solid transparent', background: on ? `color-mix(in srgb, ${NAVY} 6%, transparent)` : 'transparent', cursor: 'pointer' }}>
-                <input type="checkbox" checked={on} onChange={(e) => setTeam(t.id, e.target.checked)} style={{ accentColor: NAVY, width: 16, height: 16 }} />
+              <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px', border: `0.25px solid ${C.cardBd}`, borderLeft: on ? `3px solid ${ORANGE}` : '3px solid transparent', background: on ? `color-mix(in srgb, ${NAVY} 6%, transparent)` : 'transparent' }}>
+                <input type="checkbox" checked={on} onChange={(e) => setTeam(t.id, e.target.checked)} style={{ accentColor: NAVY, width: 16, height: 16, cursor: 'pointer' }} />
                 {on && t.jersey != null && <Jersey n={t.jersey} size={22} />}
                 <span style={{ fontFamily: FN, fontSize: 13, fontWeight: on ? 700 : 500, color: C.tx }}>{t.name}</span>
-                {on && t.position && <span style={{ fontFamily: FB, fontSize: 11, color: C.td, marginLeft: 'auto' }}>{t.position}</span>}
-              </label>
+                {on && (
+                  <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                    {t.position && <span style={{ fontFamily: FB, fontSize: 11, color: C.td }}>{t.position}</span>}
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }} title="Landing / arrival date">
+                      <span style={{ fontFamily: FN, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm }}>Lands</span>
+                      <input type="date" value={t.arrival || ''} onChange={(e) => setArrival(t.id, e.target.value)} style={{ fontFamily: FN, fontSize: 11, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '3px 6px' }} />
+                    </span>
+                  </span>
+                )}
+              </div>
             );
           })}
         </div>
@@ -905,6 +918,7 @@ function RosterGrid({ rows, onOpen }) {
               <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums' }}>#{t.jersey ?? '—'}</div>
               <div style={{ fontFamily: FN, fontWeight: 700, fontSize: 15, color: C.tx, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</div>
               <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 4 }}>{t.position || '—'}</div>
+              {t.arrival && t.arrival > todayISO() && <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 6, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: ORANGE_DEEP, background: `color-mix(in srgb, ${ORANGE} 12%, transparent)`, padding: '2px 6px' }}><span aria-hidden="true">✈</span> Lands {dow(t.arrival)} {monDay(t.arrival)}</div>}
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, paddingTop: 10, borderTop: `0.25px solid ${C.cardBd}` }}>
                 <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{heightM(t.heightCm)}</span>
                 <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', color: C.tm, lineHeight: 1 }}>{flag(t.nationality)}</span>
