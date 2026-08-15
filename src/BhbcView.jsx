@@ -107,11 +107,12 @@ const Jersey = ({ n, size = 30 }) => (
 
 // ---- component ----
 
-export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, setBhbcLoads, bhbcFixtures = [], planIndex = [], exercises = [], clientWorkouts = [], setClientWorkouts, workouts = [], setWorkouts, onDecrementSession, onOpenTrainee, onExit }) {
+export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, setBhbcLoads, bhbcFixtures = [], setBhbcFixtures, planIndex = [], exercises = [], clientWorkouts = [], setClientWorkouts, workouts = [], setWorkouts, onDecrementSession, onOpenTrainee, onExit }) {
   const [manageOpen, setManageOpen] = useState(false);
   const [logFor, setLogFor] = useState(null);
   const [detailFor, setDetailFor] = useState(null);
   const [practiceOpen, setPracticeOpen] = useState(false);
+  const [gameEdit, setGameEdit] = useState(false);
   const [view, setView] = useState('overview');   // overview | schedule | roster
   const [schedMode, setSchedMode] = useState('calendar'); // calendar | list
   const [sessionMode, setSessionMode] = useState('group'); // group | single
@@ -237,6 +238,12 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
     toast('Practice saved');
   }, [setBhbcLoads]);
 
+  const updateGame = useCallback((g, patch) => {
+    if (!setBhbcFixtures) return;
+    setBhbcFixtures((prev) => (prev || []).map((f) => (f.date === g.date && f.start === g.start && f.type === 'game') ? { ...f, ...patch } : f));
+    toast('Game updated');
+  }, [setBhbcFixtures]);
+
   const rowGrid = '28px minmax(116px,1.5fr) 112px 46px 130px minmax(104px,1.1fr) 92px';
 
   return (
@@ -292,7 +299,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
             {view === 'overview' && (
               <>
                 <TodayPanel today={today} fixtures={bhbcFixtures} fx={fx} rows={rows} onSessions={() => setView('sessions')} onLog={() => setPracticeOpen(true)} />
-                {fx.nextGame && <NextGamePanel nextGame={fx.nextGame} today={today} />}
+                {fx.nextGame && <NextGamePanel nextGame={fx.nextGame} today={today} onEdit={() => setGameEdit(true)} />}
                 <TeamSnapshotCard team={team} />
                 <LoadBoard rows={rows} rowGrid={rowGrid} cycleAvail={cycleAvail} onOpen={setDetailFor} />
               </>
@@ -300,7 +307,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
 
             {view === 'schedule' && (
               <>
-                {fx.nextGame && <NextGamePanel nextGame={fx.nextGame} today={today} />}
+                {fx.nextGame && <NextGamePanel nextGame={fx.nextGame} today={today} onEdit={() => setGameEdit(true)} />}
                 <ScheduleTool fx={fx} fixtures={bhbcFixtures} today={today} mode={schedMode} setMode={setSchedMode} onLog={() => setLogFor('new')} />
               </>
             )}
@@ -339,6 +346,10 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
       {practiceOpen && (
         <PracticeEntryModal roster={roster} bhbcLoads={bhbcLoads} fixtures={bhbcFixtures}
           onClose={() => setPracticeOpen(false)} onSave={(p) => { savePractice(p); setPracticeOpen(false); }} />
+      )}
+
+      {gameEdit && fx.nextGame && (
+        <GameEditModal game={fx.nextGame} onClose={() => setGameEdit(false)} onSave={(patch) => { updateGame(fx.nextGame, patch); setGameEdit(false); }} />
       )}
 
       {/* ---- MANAGE ROSTER MODAL ---- */}
@@ -520,12 +531,39 @@ function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave }) {
   );
 }
 
-function NextGamePanel({ nextGame, today }) {
+function GameEditModal({ game, onClose, onSave }) {
+  const [opponent, setOpponent] = useState(game.opponent || '');
+  const [venue, setVenue] = useState(game.venue || '');
+  const [home, setHome] = useState(game.home == null ? '' : game.home ? 'home' : 'away');
+  return (
+    <Modal open onClose={onClose} title="Game details">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ fontFamily: FB, fontSize: 12.5, color: C.td }}>{dow(game.date)} {monDay(game.date)} · {game.start}</div>
+        <Input label="Opponent" value={opponent} onChange={(e) => setOpponent(e.target.value)} placeholder="e.g. Maccabi Tel Aviv" />
+        <Input label="Venue" value={venue} onChange={(e) => setVenue(e.target.value)} placeholder="e.g. Hayovel Arena" />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <label style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: FN, textAlign: 'center' }}>Home / Away</label>
+          <div style={{ display: 'inline-flex', border: `1px solid ${C.cardBd}`, alignSelf: 'center' }}>
+            {[['home', 'Home'], ['away', 'Away'], ['', '—']].map(([k, l]) => (
+              <button key={k} type="button" onClick={() => setHome(k)} style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: home === k ? '#fff' : C.td, background: home === k ? NAVY : 'transparent', border: 'none', padding: '7px 16px', cursor: 'pointer' }}>{l}</button>
+            ))}
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
+          <Btn onClick={() => onSave({ opponent: opponent.trim(), venue: venue.trim(), home: home === '' ? null : home === 'home' })} style={{ background: NAVY, borderColor: NAVY, color: '#fff' }}>Save</Btn>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function NextGamePanel({ nextGame, today, onEdit }) {
   const days = dayDiff(nextGame.date, today);
   const when = days <= 0 ? 'Game day' : days === 1 ? 'Tomorrow' : `In ${days} days`;
   const whereLabel = nextGame.venue ? nextGame.venue : nextGame.home === false ? 'Away' : nextGame.home === true ? 'Home' : null;
   return (
-    <Card leftStripe={ORANGE} header="Next Game" headerRight={<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff' }}>{when}</span>}>
+    <Card leftStripe={ORANGE} header="Next Game" headerRight={<div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff' }}>{when}</span>{onEdit && <button onClick={onEdit} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', padding: '4px 9px', cursor: 'pointer' }}>Edit</button>}</div>}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
         <div style={{ textAlign: 'center', flexShrink: 0 }}>
           <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 40, lineHeight: 1, color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums' }}>{Math.max(0, days)}</div>

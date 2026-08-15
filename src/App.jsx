@@ -647,7 +647,7 @@ function AuthedApp() {
   // BHBC team command center (/coach/bhbc) — per-athlete session-RPE load + readiness.
   // Owner-only store key (never trainee-visible); JSON blob like expo-bw.
   const [bhbcLoads,setBhbcLoads]=useSupaStore('expo-bhbc-loads',{});
-  const [bhbcFixtures]=useSupaStore('expo-bhbc-fixtures',[]);
+  const [bhbcFixtures,setBhbcFixtures]=useSupaStore('expo-bhbc-fixtures',[]);
   // Live portal-visibility sync: when the coach hides/shows a block, the
   // athlete's OPEN portal (and the coach's other devices) reflect it live
   // instead of on reload. Pure broadcast (no DDL); the athlete never sets it,
@@ -1241,7 +1241,7 @@ function AuthedApp() {
   if (tab === 'bhbc' && isOwner) return (
     <Suspense fallback={<ViewFallback />}>
       <ErrorBoundary inline>
-        <BhbcView trainees={trainees} setTrainees={setTrainees} bhbcLoads={bhbcLoads} setBhbcLoads={setBhbcLoads} bhbcFixtures={bhbcFixtures} planIndex={planIndex} exercises={exercises} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} workouts={workouts} setWorkouts={setWorkouts} onDecrementSession={handleDecrementSession} onOpenTrainee={id=>navTo('trainees',id)} onExit={()=>navTo('trainees')} />
+        <BhbcView trainees={trainees} setTrainees={setTrainees} bhbcLoads={bhbcLoads} setBhbcLoads={setBhbcLoads} bhbcFixtures={bhbcFixtures} setBhbcFixtures={setBhbcFixtures} planIndex={planIndex} exercises={exercises} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} workouts={workouts} setWorkouts={setWorkouts} onDecrementSession={handleDecrementSession} onOpenTrainee={id=>navTo('trainees',id)} onExit={()=>navTo('trainees')} />
       </ErrorBoundary>
     </Suspense>
   );
