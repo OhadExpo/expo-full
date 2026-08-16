@@ -31,14 +31,18 @@ const NAVY = '#1E3D74', NAVY_DEEP = '#14294F', ORANGE = '#F26A2B', ORANGE_DEEP =
 // Scoped theme override — reskins EXPO's components to BHBC while keeping their
 // geometry + light/dark behaviour. Strips go navy (white title text stays legible)
 // in both themes; card hairlines get a navy tint blended into the theme border.
-// BHBC accent = orange (the brand action colour). We deliberately DON'T pin
-// --c-stripBg to navy anymore: the old solid-navy strip read as a loud bright
-// bar on every card and clashed with EXPO's refined "camera-tools" build. Now
-// card header strips fall back to the themed surface + a 10% orange hint, so
-// every strip is a calm dark bar with a brand accent — matching the rest of
-// the app. Navy stays for identity only (zone header, jersey, left stripes).
+// Card header strips = DEEP navy (#14294F) in BOTH themes. Earlier tries were
+// wrong at both extremes: bright #1E3D74 read as a loud bar, and falling back
+// to the app default made the strip inherit EXPO's cyan (light) / a muddy
+// black+orange brown (dark) — both unrelated to the club brand. Deep navy is
+// the club identity colour, dark enough that the white strip titles stay
+// readable in light mode too, and it's calmer than the old bright blue.
+// Orange is the ACTION accent (buttons, left stripes) via the ORANGE constant.
+// --c-ac is pinned to the same deep navy so the RefinedHeaderStrip's
+// color-mix(stripBg, ac) resolves to pure navy instead of a muddy blend.
 const TOKENS = {
-  '--c-ac': ORANGE,
+  '--c-ac': NAVY_DEEP,
+  '--c-stripBg': NAVY_DEEP,
   '--c-cardBd': 'color-mix(in srgb, #1E3D74 20%, var(--c-bd))',
 };
 const BAND = { detrained: '#4F9DE0', low: '#37B27C', elevated: '#E0A73A', high: '#DE4E3B', none: '#7C828B' };
@@ -316,22 +320,33 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   }, [setMedical, setBhbcLoads, today, notify]);
 
   const rowGrid = '28px minmax(116px,1.5fr) 112px 46px 130px minmax(104px,1.1fr) 92px';
+  const NAV_TABS = [['overview', 'Overview'], ['roster', 'Roster'], ['schedule', 'Schedule'], ['medical', 'Medical'], ['sessions', 'Sessions'], ['games', 'Games']];
 
   return (
     <div className="bhbc-zone" style={{ ...TOKENS, minHeight: '100vh', background: 'var(--c-bg)', color: C.tx, fontFamily: FB }}>
-      {/* ---- ZONE TOP BAR ---- */}
-      <header style={{ position: 'sticky', top: 0, zIndex: 50, background: NAVY, borderBottom: `2px solid ${ORANGE}` }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', height: 62, display: 'flex', alignItems: 'center', gap: 14 }}>
-          {/* White logo variant sits directly on the navy header — no white box
-              (the boxed colour crest read as a pasted-on sticker). */}
-          <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <img src="/bnei-herzliya-logo-w.png" alt="Bnei Herzliya BC" style={{ height: 40, width: 'auto', display: 'block' }} />
-          </span>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 16, color: '#fff', letterSpacing: '0.03em', lineHeight: 1 }}>BNEI HERZLIYA</div>
-            <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: ORANGE, marginTop: 5 }}>S&amp;C · 2026/27</div>
+      <style>{`.bhbc-hdr-tabs::-webkit-scrollbar{display:none} .bhbc-hdr-tabs{scrollbar-width:none;-ms-overflow-style:none}`}</style>
+      {/* ---- ZONE TOP BAR — logo + wordmark + inline nav tabs + controls, one
+           clean bar (EXPO-style; tabs moved up here from a separate row). ---- */}
+      <header style={{ position: 'sticky', top: 0, zIndex: 50, background: NAVY, borderBottom: `2px solid ${ORANGE}`, boxShadow: '0 1px 0 rgba(255,255,255,0.06) inset' }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px', minHeight: 60, display: 'flex', alignItems: 'stretch', gap: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0, paddingRight: 6, borderRight: '1px solid rgba(255,255,255,0.12)' }}>
+            <img src="/bnei-herzliya-logo-w.png" alt="Bnei Herzliya BC" style={{ height: 36, width: 'auto', display: 'block' }} />
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 14.5, color: '#fff', letterSpacing: '0.04em', lineHeight: 1 }}>BNEI HERZLIYA</div>
+              <div style={{ fontFamily: FN, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.22em', textTransform: 'uppercase', color: ORANGE, marginTop: 4 }}>S&amp;C · 2026/27</div>
+            </div>
           </div>
-          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <nav className="bhbc-hdr-tabs" style={{ display: 'flex', alignItems: 'stretch', gap: 0, flex: 1, minWidth: 0, overflowX: 'auto' }}>
+            {roster.length > 0 && NAV_TABS.map(([k, label]) => {
+              const on = view === k;
+              return (
+                <button key={k} onClick={() => setView(k)} style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: on ? '#fff' : 'rgba(255,255,255,0.6)', background: on ? 'rgba(255,255,255,0.06)' : 'transparent', border: 'none', borderBottom: on ? `2px solid ${ORANGE}` : '2px solid transparent', padding: '0 15px', height: 60, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'color .12s, background .12s' }}
+                  onMouseEnter={(e) => { if (!on) e.currentTarget.style.color = '#fff'; }}
+                  onMouseLeave={(e) => { if (!on) e.currentTarget.style.color = 'rgba(255,255,255,0.6)'; }}>{label}</button>
+              );
+            })}
+          </nav>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
             <ThemeToggle size={30} style={{ color: '#fff', border: '1px solid rgba(255,255,255,0.4)' }} />
             {onExit && <button onClick={onExit} title="Back to EXPO coach" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#fff', background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.28)', borderRadius: 0, padding: '7px 12px', cursor: 'pointer' }}>‹ EXPO</button>}
             {coach && onSignOut && <button onClick={onSignOut} title="Sign out" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#fff', background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.28)', borderRadius: 0, padding: '7px 12px', cursor: 'pointer' }}>Sign out</button>}
@@ -361,15 +376,6 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
           </Card>
         ) : (
           <>
-            {/* ---- SUB-NAV (tool tabs) — gives the zone "order" ---- */}
-            <div style={{ display: 'flex', gap: 2, borderBottom: `1px solid ${C.cardBd}`, flexWrap: 'wrap' }}>
-              {[['overview', 'Overview'], ['roster', 'Roster'], ['schedule', 'Schedule'], ['medical', 'Medical'], ['sessions', 'Sessions'], ['games', 'Games']].map(([k, label]) => {
-                const active = view === k;
-                return (
-                  <button key={k} onClick={() => setView(k)} style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: active ? C.tx : C.td, background: 'transparent', border: 'none', borderBottom: active ? `2px solid ${ORANGE}` : '2px solid transparent', padding: '10px 16px', marginBottom: -1, cursor: 'pointer' }}>{label}</button>
-                );
-              })}
-            </div>
 
             {view === 'overview' && (
               <>
@@ -993,7 +999,7 @@ function TodayPanel({ today, fixtures, fx, rows, onSessions, onLog }) {
           <div style={{ display: 'flex', gap: 16, fontFamily: FN }}>
             {[['#37B27C', av.full, 'available'], ['#E0A73A', av.mod, 'limited'], ['#DE4E3B', av.out, 'out']].map(([c, n, l]) => (
               <div key={l} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                <span style={{ fontSize: 22, fontWeight: 800, color: n ? c : C.td, fontVariantNumeric: 'tabular-nums' }}>{n}</span>
+                <span style={{ fontSize: 22, fontWeight: 800, color: n ? c : C.tx, fontVariantNumeric: 'tabular-nums' }}>{n}</span>
                 <span style={{ fontSize: 9, color: C.td, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{l}</span>
               </div>
             ))}
@@ -1510,7 +1516,7 @@ function MedicalView({ roster, medical, canMedical = true, onReport, onEdit, onO
         <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap' }}>
           {[['Out', counts.out, '#DE4E3B'], ['Limited', counts.limited, '#E0A73A'], ['Non-contact', counts.nc, '#4F9DE0'], ['Cleared', cleared.length, '#37B27C']].map(([k, n, c]) => (
             <div key={k} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <span style={{ fontFamily: FN, fontSize: 26, fontWeight: 800, color: n ? c : C.td, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{n}</span>
+              <span style={{ fontFamily: FN, fontSize: 26, fontWeight: 800, color: n ? c : C.tx, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{n}</span>
               <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>{k}</span>
             </div>
           ))}
