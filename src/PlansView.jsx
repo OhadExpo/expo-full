@@ -4134,7 +4134,8 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
             if (row.orphan) {
               return (
                 <div key={row.tid} style={{background: 'var(--c-sf)',border:`0.25px dashed rgba(255,165,2,0.502)`,borderRadius:0,padding:'12px 14px',display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
-                  <div style={{minWidth:0,flex:1,display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
+                  <div style={{minWidth:0,flex:1,display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+                    <BhbcBadge tid={row.tid} trainees={trainees} />
                     <div style={{fontWeight:700,fontSize:15,color:C.tx,whiteSpace:'nowrap',letterSpacing:'0.01em',flexShrink:0}}><bdi>{row.name}</bdi></div>
                     <div style={{fontSize:11,color:C.or,fontFamily:FN,letterSpacing:'0.18em',textTransform:'uppercase',fontWeight:700}}>NO PROGRAM ASSIGNED</div>
                   </div>
@@ -4274,7 +4275,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               // border-box so 186 is the outer height, padding included.
               return (
                 <div key={row.tid} data-prog-card={row.tid} style={{background:'var(--c-sf)',border:'0.25px dashed rgba(255,165,2,0.502)',borderRadius:0,padding:'14px',display:'flex',flexDirection:'column',gap:12,minHeight:186,boxSizing:'border-box'}}>
-                  <div style={{fontWeight:700,fontSize:16,color:C.tx,letterSpacing:'0.01em'}}><bdi>{row.name}</bdi></div>
+                  <div style={{display:'flex',alignItems:'center',gap:9,minWidth:0}}><BhbcBadge tid={row.tid} trainees={trainees} /><div style={{fontWeight:700,fontSize:16,color:C.tx,letterSpacing:'0.01em'}}><bdi>{row.name}</bdi></div></div>
                   <div style={{fontSize:11,color:C.or,fontFamily:FN,letterSpacing:'0.18em',textTransform:'uppercase',fontWeight:700}}>No program assigned</div>
                   <div style={{flex:1}} />
                   <button onClick={()=>handleNewPlan(row.tid)} style={{alignSelf:'flex-start',background:'var(--c-sf)',border:`1px solid ${C.or}`,borderRadius:0,color:C.or,cursor:'pointer',padding:'5px 12px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',whiteSpace:'nowrap'}}>+ ASSIGN PROGRAM</button>
