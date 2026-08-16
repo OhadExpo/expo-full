@@ -1518,6 +1518,18 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
   }, [clientWorkouts, plan?.id, plan?.traineeId, plan?.name]);
   const [collapsedDays, setCollapsedDays] = usePersistentState('plan-collapsed-days', {}); // overview day cards collapse
   const toggleDayCollapse = (id) => setCollapsedDays(prev => ({ ...prev, [id]: !prev[id] }));
+  // Ohad: opening ANY program starts with every day collapsed, ALWAYS. The
+  // editor is keyed on plan.id (remounts per program), so this runs on each open.
+  const collapsedInitRef = useRef(false);
+  useEffect(() => {
+    if (collapsedInitRef.current) return;
+    const days = planRef.current && planRef.current.days;
+    if (!days || !days.length) return;
+    collapsedInitRef.current = true;
+    const c = {}; days.forEach(d => { if (d && d.id) c[d.id] = true; });
+    setCollapsedDays(c);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plan.id]);
   // Unified view: expand an OVERVIEW row inline to its full detail (swap +
   // notes + video) — combines overview + detail in one place.
   const [ovExpanded, setOvExpanded] = usePersistentState('plan-ov-expanded', {});

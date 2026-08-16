@@ -221,6 +221,35 @@ export function useSupaStore(key, initial) {
 
   useEffect(() => { dataRef.current = data; }, [data]);
 
+  // TRUE instant realtime (the `store` table is in the supabase_realtime
+  // publication): when this key changes on the server — another device or a
+  // sync script writing — re-fetch and apply it live, so every open client stays
+  // in sync like a shared Google Sheet. Skips our own in-flight write (savingRef)
+  // and no-op diffs. Applies via saveLocal semantics (state + localStorage, no
+  // re-write). A component mid-edit still wins for ~600ms until its own save
+  // lands; last-write-wins after that, which is the shared-sheet contract.
+  useEffect(() => {
+    let disposed = false;
+    let ch = null;
+    try {
+      ch = supabase.channel('store-rt-' + key)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'store', filter: `key=eq.${key}` }, async () => {
+          if (disposed || savingRef.current) return;
+          try {
+            const { data: row, error } = await supabase.from('store').select('value').eq('key', key).maybeSingle();
+            if (disposed || error || !row || row.value === undefined || savingRef.current) return;
+            const val = asShape(row.value);
+            if (JSON.stringify(val) === JSON.stringify(dataRef.current)) return;
+            setData(val); dataRef.current = val;
+            if (key !== 'expo-exercises' && key !== 'expo-trainees') { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} }
+          } catch { /* transient */ }
+        })
+        .subscribe();
+    } catch { /* realtime optional */ }
+    return () => { disposed = true; if (ch) { try { supabase.removeChannel(ch); } catch {} } };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+
   // Single-flight debounced writer. `pendingRef` is the "next value to write"
   // and `savingRef` is the in-flight lock. If a new save lands during a write,
   // it just updates pendingRef — the running loop picks it up on the next turn.
