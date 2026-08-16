@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { fmtPrettyDate } from './dates';
+import { blockNum } from './traineeUtils';
 import VideoEmbed, { safeUrl, canEmbed } from './VideoEmbed';
 // LIFT METRICS on a trainee's uploaded Review clip: capture the clip's pose
 // frames and run the same VBT/ROM/tempo battery MovementLab uses, rendered
@@ -283,6 +284,21 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
   // Stored in a ref so the closure always sees the latest addComment.
   const addCommentRef = useRef(addComment);
   useEffect(() => { addCommentRef.current = addComment; });
+  // Pressing Play dismisses an untouched comment composer. If the coach opened
+  // a comment at a timestamp but never typed or drew anything, resuming
+  // playback should clear the empty box rather than leave it hanging (Ohad).
+  // Editing an existing note is preserved — only fresh, empty composers close.
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    const onPlayClose = () => {
+      if (composing && !composing.editId && !composeText.trim() && composeDrawings.length === 0) {
+        setComposing(null);
+      }
+    };
+    v.addEventListener('play', onPlayClose);
+    return () => v.removeEventListener('play', onPlayClose);
+  }, [composing, composeText, composeDrawings]);
   useEffect(() => {
     // Gate the same as the COMMENT button: without onReviewNotesChange (e.g. the
     // Compare/vs-DEMO modal) writeNotes is a no-op, so opening the composer via C
@@ -2541,23 +2557,39 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
               Athlete page →
             </button>
           ) : null}>
-          {data.workouts.slice()
-            // Hide already-reviewed cards unless the coach opted to show them.
+          {(() => {
+          // Group the day-cards by block + week so multiple workouts logged in
+          // the same week sit together under one quiet week header (Ohad). Sort:
+          // unreviewed before reviewed, then newest block, newest week, newest
+          // date — keeps same-week clips adjacent for the header grouping.
+          const sortedDays = data.workouts.slice()
             .filter(w => showReviewed || !w.reviewedAt)
-            // Unreviewed first (by most-recent date), then reviewed (by most-recent date)
             .sort((a, b) => {
               const ar = a.reviewedAt ? 1 : 0;
               const br = b.reviewedAt ? 1 : 0;
               if (ar !== br) return ar - br;
+              const bn = blockNum(b.planName) - blockNum(a.planName);
+              if (bn !== 0) return bn;
+              if ((b.week || 0) !== (a.week || 0)) return (b.week || 0) - (a.week || 0);
               return new Date(b.date) - new Date(a.date);
-            })
-            .map(wo => {
+            });
+          const wkKey = (w) => `${w.reviewedAt ? 'R' : 'U'}|${w.planName}|${w.week}`;
+          return sortedDays.map((wo, _wi) => {
+            const _showWk = _wi === 0 || wkKey(sortedDays[_wi - 1]) !== wkKey(wo);
+            const _pw = ((planIndex || []).find(p => p.traineeId === wo.clientId && p.name === wo.planName) || (planIndex || []).find(p => p.name === wo.planName))?.weeks || null;
             const doneSets = (wo.exercises || []).reduce((a,ex) => a + (ex.sets || []).filter(s=>s.done).length, 0);
             const totalSets = (wo.exercises || []).reduce((a,ex) => a + (ex.sets || []).length, 0);
             const hasFormVids = hasReviewableVideo(wo);
             const reviewed = !!wo.reviewedAt;
             return (
-              <div key={wo.id} className="wr-day-card" onClick={() => setSelectedWo(wo.id)}
+              <React.Fragment key={wo.id}>
+              {_showWk && (
+                <div style={{display:'flex',alignItems:'center',gap:8,margin:_wi===0?'2px 0 8px':'16px 0 8px',fontFamily:FN,fontSize:9.5,fontWeight:700,letterSpacing:'0.14em',textTransform:'uppercase',color:C.tm}}>
+                  <span>{wo.planName} · Week {wo.week}{_pw?`/${_pw}`:''}</span>
+                  <span style={{flex:1,height:1,background:C.cardBd}} />
+                </div>
+              )}
+              <div className="wr-day-card" onClick={() => setSelectedWo(wo.id)}
                 role="button" tabIndex={0}
                 onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedWo(wo.id); } }}
                 style={{background: 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:"12px 16px",
@@ -2619,8 +2651,10 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                   )}
                 </div>
               </div>
+              </React.Fragment>
             );
-          })}
+          });
+          })()}
         </CollapsibleSection>
         );
         return (
