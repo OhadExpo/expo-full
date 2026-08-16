@@ -397,6 +397,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
             {view === 'schedule' && (
               <>
                 {fx.nextGame && <NextGamePanel nextGame={fx.nextGame} today={today} onEdit={() => setGameEdit(true)} />}
+                <MicrocycleView fx={fx} today={today} />
                 <ScheduleTool fx={fx} fixtures={bhbcFixtures} today={today} mode={schedMode} setMode={setSchedMode} onLog={() => setLogFor('new')} />
               </>
             )}
@@ -1201,6 +1202,70 @@ function RosterGrid({ rows, medical = {}, league = {}, onOpen }) {
         ))}
       </div>
     </CollapsibleSection>
+  );
+}
+
+// Microcycle — anchors the training week to the next game (MD-minus). Standard
+// team-sport periodisation: load heaviest FAR from the game (MD-4/-3), taper
+// MD-1 (Mujika: hold intensity, cut volume), game MD, regenerate MD+1. Gives
+// the coach a day-by-day emphasis + a relative load level for the week ahead.
+const MD_PLAN = {
+  '-6': { label: 'MD-6', emphasis: 'Off / general prep', load: 1 },
+  '-5': { label: 'MD-5', emphasis: 'General strength base', load: 3 },
+  '-4': { label: 'MD-4', emphasis: 'Max strength + power (heaviest, far from game)', load: 5 },
+  '-3': { label: 'MD-3', emphasis: 'Strength + power', load: 5 },
+  '-2': { label: 'MD-2', emphasis: 'Power / speed · moderate volume', load: 3 },
+  '-1': { label: 'MD-1', emphasis: 'Activation + taper — hold intensity, cut volume', load: 1 },
+  '0': { label: 'GAME', emphasis: 'Game day', load: 0, game: true },
+  '1': { label: 'MD+1', emphasis: 'Recovery / regeneration', load: 1 },
+  '2': { label: 'MD+2', emphasis: 'Reload — build back up', load: 3 },
+};
+function mdPlan(md) {
+  if (MD_PLAN[String(md)]) return MD_PLAN[String(md)];
+  if (md <= -7) return { label: `MD${md}`, emphasis: 'General prep', load: 2 };
+  return { label: `MD+${md}`, emphasis: 'In-season maintenance', load: 3 };
+}
+function MicrocycleView({ fx, today }) {
+  const addDaysISO = (iso, n) => { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+  const g = fx.nextGame;
+  if (!g) return (
+    <Card padding={18} leftStripe={ORANGE} header={secTitle('Microcycle')}>
+      <div style={{ fontFamily: FB, fontSize: 12.5, color: C.td }}>No game scheduled — running a general prep block. Add a fixture to anchor the training week.</div>
+    </Card>
+  );
+  const until = dayDiff(g.date, today); // days from today to the game
+  // Show today → game + 1 recovery day (cap at ~8 cells so it stays a week view).
+  const span = Math.min(Math.max(until + 1, 1), 8);
+  const days = Array.from({ length: span + 1 }, (_, i) => {
+    const iso = addDaysISO(today, i);
+    const md = -dayDiff(g.date, iso); // MD-N (neg before, 0 game, +1 after)
+    return { iso, md, plan: mdPlan(md), isToday: iso === today, isGame: md === 0 };
+  });
+  const loadColor = (n, game) => game ? ORANGE : n >= 5 ? ORANGE_DEEP : n >= 3 ? NAVY : '#6B7280';
+  return (
+    <Card padding={18} leftStripe={ORANGE} header={secTitle('Microcycle')} headerRight={<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>→ {g.opponent ? 'vs ' + g.opponent : 'game'} · {until}d</span>}>
+      <div style={{ overflowX: 'auto' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${days.length}, minmax(120px, 1fr))`, gap: 8, minWidth: days.length * 120 }}>
+          {days.map((d) => (
+            <div key={d.iso} style={{ border: `1px solid ${d.isToday ? ORANGE : C.cardBd}`, borderTop: `3px solid ${loadColor(d.plan.load, d.isGame)}`, padding: '10px 10px 12px', background: d.isGame ? `color-mix(in srgb, ${ORANGE} 8%, transparent)` : d.isToday ? `color-mix(in srgb, ${ORANGE} 4%, transparent)` : 'var(--c-sf)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 6 }}>
+                <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>{dow(d.iso)} {monDay(d.iso)}</span>
+                {d.isToday && <span style={{ fontFamily: FN, fontSize: 7.5, fontWeight: 800, letterSpacing: '0.1em', color: ORANGE }}>TODAY</span>}
+              </div>
+              <span style={{ fontFamily: FN, fontSize: 12.5, fontWeight: 800, letterSpacing: '0.04em', color: d.isGame ? ORANGE_DEEP : C.tx }}>{d.plan.label}</span>
+              <span style={{ fontFamily: FB, fontSize: 11, color: C.tm, lineHeight: 1.35, minHeight: 30 }}>{d.plan.emphasis}</span>
+              {/* Relative load — 5-segment bar, colour = intensity (signal, not paint). */}
+              <div style={{ display: 'flex', gap: 2, marginTop: 2 }}>
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <span key={s} style={{ flex: 1, height: 4, background: d.isGame ? (s <= 5 ? ORANGE : C.cardBd) : (s <= d.plan.load ? loadColor(d.plan.load, false) : C.cardBd), opacity: d.isGame ? 0.9 : (s <= d.plan.load ? 1 : 0.5) }} />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div style={{ marginTop: 12, paddingTop: 10, borderTop: `1px solid ${C.cardBd}`, fontFamily: FN, fontSize: 9.5, color: C.td, letterSpacing: '0.02em' }}>Load anchored to the game: heaviest far out (MD-4/-3), taper MD-1 (hold intensity, cut volume — Mujika), regenerate MD+1.</div>
+    </Card>
   );
 }
 
