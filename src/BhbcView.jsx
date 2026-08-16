@@ -581,7 +581,7 @@ function AthleteModal({ row, rec, days28, bw = [], workouts = [], leaguePlayer, 
           const avg = [['PPG', leaguePlayer.ppg], ['RPG', leaguePlayer.rpg], ['APG', leaguePlayer.apg], ['MPG', leaguePlayer.mpg], ['3P%', leaguePlayer.tpp + '%'], ['FT%', leaguePlayer.ftp + '%'], ['PIR', leaguePlayer.pirpg], ['GP', leaguePlayer.gp]];
           return (
             <div style={{ border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${ORANGE}` }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', background: NAVY }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', background: NAVY_DEEP }}>
                 <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff' }}>League Stats</span>
                 {leagueSeason && <span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, color: ORANGE, letterSpacing: '0.06em' }}>{leagueSeason}</span>}
               </div>
@@ -1627,7 +1627,7 @@ function InjuryModal({ athlete, injury, onClose, onSave }) {
 
         {/* Rehab progress log */}
         <div style={{ border: `1px solid ${C.cardBd}` }}>
-          <div style={{ padding: '8px 12px', background: NAVY, fontFamily: FN, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff' }}>Rehab progress</div>
+          <div style={{ padding: '8px 12px', background: NAVY_DEEP, fontFamily: FN, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff' }}>Rehab progress</div>
           <div style={{ display: 'flex', gap: 8, padding: '10px 12px', borderBottom: progress.length ? `1px solid ${C.cardBd}` : 'none', alignItems: 'center' }}>
             <input value={pNote} onChange={(e) => setPNote(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') addProgress(); }} placeholder="Progress note for today…" style={{ ...sel, flex: 1 }} />
             <input type="number" min="0" max="10" value={pPain} onChange={(e) => setPPain(e.target.value)} placeholder="pain" style={{ ...sel, width: 72 }} />
