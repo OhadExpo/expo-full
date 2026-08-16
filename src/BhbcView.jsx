@@ -1538,7 +1538,7 @@ function MedicalView({ roster, medical, canMedical = true, onReport, onEdit, onO
                   <div style={{ fontFamily: FB, fontSize: 12.5, color: C.tx, minWidth: 0 }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : '', inj.type].filter(Boolean).join(' · ')}</div>
                   <StatusPill status={inj.status} />
                   <div style={{ fontFamily: FN, fontSize: 11, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{days != null ? `${days}d` : '—'}{inj.pain != null && inj.pain !== '' ? ` · pain ${inj.pain}` : ''}</div>
-                  <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: NAVY }}>{canMedical ? 'Update ›' : ''}</div>
+                  <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: ORANGE_DEEP }}>{canMedical ? 'Update ›' : ''}</div>
                 </div>
               );
             })}
