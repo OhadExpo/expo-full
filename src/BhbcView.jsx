@@ -385,7 +385,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
 
             {view === 'overview' && (
               <>
-                <CoachBrief rows={rows} fx={fx} medical={medical} today={today} onOpen={setDetailFor} />
+                <CoachBrief rows={rows} fx={fx} medical={medical} today={today} onOpen={setDetailFor} onCheckin={() => setCheckinOpen(true)} onLog={() => setPracticeOpen(true)} />
                 <TodayPanel today={today} fixtures={bhbcFixtures} fx={fx} rows={rows} onSessions={() => setView('sessions')} onLog={() => setPracticeOpen(true)} />
                 {fx.nextGame && <NextGamePanel nextGame={fx.nextGame} today={today} onEdit={() => setGameEdit(true)} />}
                 <FixturesAheadPanel fixtures={bhbcFixtures} today={today} />
@@ -976,7 +976,7 @@ function NextGamePanel({ nextGame, today, onEdit }) {
 // monotony, Mujika taper, ~10%/wk ramp). This is the decision layer: the board
 // shows numbers, the brief says what to DO about them. Action-first, rationale
 // muted. Pre-season (no data) it points at the right first move: baseline.
-function CoachBrief({ rows, fx, medical, today, onOpen }) {
+function CoachBrief({ rows, fx, medical, today, onOpen, onCheckin, onLog }) {
   const first = (r) => (r.t.name || '').trim().split(/\s+/)[0] || r.t.name;
   const names = (arr) => arr.slice(0, 4).map(first).join(', ') + (arr.length > 4 ? ` +${arr.length - 4}` : '');
   const anyLoad = rows.some((r) => r.hasLoad);
@@ -1005,10 +1005,10 @@ function CoachBrief({ rows, fx, medical, today, onOpen }) {
   if (detr.length && anyLoad) A.push({ sev: 'info', do: `Ramp ${names(detr)} up`, why: 'ACWR <0.8 (undertrained) — build ~10%/wk, avoid a spike.', ids: detr.map((r) => r.t.id) });
   // 7) Missing wellness check-ins today.
   const missing = rows.filter((r) => !r.checkedToday);
-  if (missing.length && missing.length < rows.length) A.push({ sev: 'info', do: 'Chase check-ins', why: `${missing.length} of ${rows.length} haven't logged wellness today.` });
+  if (missing.length && missing.length < rows.length) A.push({ sev: 'info', do: 'Chase check-ins', why: `${missing.length} of ${rows.length} haven't logged wellness today.`, act: onCheckin });
   // 8) Pre-season / no data — baseline first.
   if (!anyLoad && rows.every((r) => !r.checkedToday)) {
-    A.unshift({ sev: 'game', do: 'Baseline the squad', why: 'pre-season — log the first sessions + a daily wellness check so ACWR & readiness start tracking, and run the eval battery to set each athlete’s baseline.' });
+    A.unshift({ sev: 'game', do: 'Baseline the squad', why: 'pre-season — log the first sessions + a daily wellness check so ACWR & readiness start tracking, and run the eval battery to set each athlete’s baseline.', act: onCheckin });
   }
   const sevRank = { game: 0, red: 1, amber: 2, info: 3 };
   const top = A.sort((a, b) => sevRank[a.sev] - sevRank[b.sev]).slice(0, 5);
@@ -1021,17 +1021,20 @@ function CoachBrief({ rows, fx, medical, today, onOpen }) {
         </div>
       ) : (
         <div>
-          {top.map((a, i) => (
-            <div key={i} onClick={a.ids && a.ids.length === 1 && onOpen ? () => onOpen(a.ids[0]) : undefined}
-              className={a.ids && a.ids.length === 1 ? 'bhbc-row' : undefined}
-              style={{ display: 'flex', alignItems: 'flex-start', gap: 11, padding: '9px 2px', borderBottom: i < top.length - 1 ? `0.25px solid ${C.cardBd}` : 'none', cursor: a.ids && a.ids.length === 1 && onOpen ? 'pointer' : 'default' }}>
-              <span style={{ width: 7, height: 7, borderRadius: '50%', background: sevColor[a.sev], flexShrink: 0, marginTop: 5 }} />
-              <div style={{ minWidth: 0, lineHeight: 1.5 }}>
-                <span style={{ fontFamily: FN, fontSize: 12.5, fontWeight: 700, letterSpacing: '0.02em', color: C.tx }}>{a.do}</span>
-                <span style={{ fontFamily: FB, fontSize: 12.5, color: C.tm }}> — {a.why}</span>
+          {top.map((a, i) => {
+            const click = a.act ? a.act : (a.ids && a.ids.length === 1 && onOpen ? () => onOpen(a.ids[0]) : null);
+            return (
+              <div key={i} onClick={click || undefined} className={click ? 'bhbc-row' : undefined}
+                style={{ display: 'flex', alignItems: 'flex-start', gap: 11, padding: '9px 2px', borderBottom: i < top.length - 1 ? `0.25px solid ${C.cardBd}` : 'none', cursor: click ? 'pointer' : 'default' }}>
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: sevColor[a.sev], flexShrink: 0, marginTop: 5 }} />
+                <div style={{ minWidth: 0, lineHeight: 1.5, flex: 1 }}>
+                  <span style={{ fontFamily: FN, fontSize: 12.5, fontWeight: 700, letterSpacing: '0.02em', color: C.tx }}>{a.do}</span>
+                  <span style={{ fontFamily: FB, fontSize: 12.5, color: C.tm }}> — {a.why}</span>
+                </div>
+                {click && <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: ORANGE, flexShrink: 0, marginTop: 3 }}>›</span>}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </Card>
