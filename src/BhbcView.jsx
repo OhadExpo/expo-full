@@ -760,6 +760,9 @@ function WellnessModal({ roster, bhbcLoads, onClose, onSave }) {
     setEntries(e);
   }, [date]); // eslint-disable-line react-hooks/exhaustive-deps
   const set = (id, k, v) => setEntries((prev) => ({ ...prev, [id]: { ...prev[id], [k]: (prev[id] && prev[id][k]) === v ? '' : v } }));
+  // Bulk baseline: fill the whole squad as "good sleep, good energy, no pain",
+  // then the coach just adjusts the exceptions — the common case is everyone fine.
+  const fillAll = () => setEntries(() => { const e = {}; roster.forEach((t) => { e[t.id] = { sleep: 'good', energy: 'good', pain: 0 }; }); return e; });
   const SLEEP = [['poor', 'Poor'], ['ok', 'OK'], ['good', 'Good'], ['great', 'Great']];
   const ENERGY = [['low', 'Low'], ['ok', 'OK'], ['good', 'Good'], ['high', 'High']];
   const inp = { fontFamily: FN, fontSize: 12, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 8px', width: '100%', height: 30, boxSizing: 'border-box', textAlign: 'center' };
@@ -778,7 +781,8 @@ function WellnessModal({ roster, bhbcLoads, onClose, onSave }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'end', gap: 12, flexWrap: 'wrap' }}>
           <Input label="Date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-          <span style={{ fontFamily: FB, fontSize: 11.5, color: C.td, paddingBottom: 8 }}>Sleep · energy · pain (0–10). Pain gates the session; sleep + energy set the effort. Tap a value again to clear.</span>
+          <Btn variant="ghost" onClick={fillAll} style={{ marginBottom: 1 }}>Baseline all OK</Btn>
+          <span style={{ fontFamily: FB, fontSize: 11.5, color: C.td, paddingBottom: 8, flex: 1, minWidth: 180 }}>Sleep · energy · pain (0–10). Pain gates the session; sleep + energy set the effort. Tap a value again to clear.</span>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: cols, gap: 10, padding: '0 2px 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }}>
           <div>#</div><div>Athlete</div><div style={{ textAlign: 'center' }}>Sleep</div><div style={{ textAlign: 'center' }}>Energy</div><div style={{ textAlign: 'center' }}>Pain</div>
