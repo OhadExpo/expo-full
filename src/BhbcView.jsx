@@ -158,7 +158,12 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
     const rdates = Object.keys(rec.readiness || {}).sort();
     const readiness = readinessAutoreg((rdates.length ? rec.readiness[rdates[rdates.length - 1]] : null) || {});
     const avail = (rec.availability && rec.availability[today]) || 1;
-    return { t, acwr, series, readiness, avail };
+    // Foster monotony over the trailing 7 days (illness/overtraining risk) +
+    // whether a wellness check-in exists for today — both feed the Coach's Brief.
+    const ms = monotonyStrain(last14.slice(-7).map((d) => (rec.loads && rec.loads[d]) || 0));
+    const checkedToday = !!(rec.readiness && rec.readiness[today]);
+    const hasLoad = Object.values(rec.loads || {}).some((v) => v > 0);
+    return { t, acwr, series, readiness, avail, ms, checkedToday, hasLoad };
   }), [roster, bhbcLoads, today, last14]);
 
   const team = useMemo(() => {
@@ -380,6 +385,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
 
             {view === 'overview' && (
               <>
+                <CoachBrief rows={rows} fx={fx} medical={medical} today={today} onOpen={setDetailFor} />
                 <TodayPanel today={today} fixtures={bhbcFixtures} fx={fx} rows={rows} onSessions={() => setView('sessions')} onLog={() => setPracticeOpen(true)} />
                 {fx.nextGame && <NextGamePanel nextGame={fx.nextGame} today={today} onEdit={() => setGameEdit(true)} />}
                 <FixturesAheadPanel fixtures={bhbcFixtures} today={today} />
@@ -961,6 +967,73 @@ function NextGamePanel({ nextGame, today, onEdit }) {
         </div>
       </div>
       {nextGame.travel && <TravelStrip travel={nextGame.travel} />}
+    </Card>
+  );
+}
+
+// Coach's Brief — turns the live monitoring data into a prioritised "do this
+// today" list, each call grounded in the S&C corpus (Gabbett ACWR, Foster
+// monotony, Mujika taper, ~10%/wk ramp). This is the decision layer: the board
+// shows numbers, the brief says what to DO about them. Action-first, rationale
+// muted. Pre-season (no data) it points at the right first move: baseline.
+function CoachBrief({ rows, fx, medical, today, onOpen }) {
+  const first = (r) => (r.t.name || '').trim().split(/\s+/)[0] || r.t.name;
+  const names = (arr) => arr.slice(0, 4).map(first).join(', ') + (arr.length > 4 ? ` +${arr.length - 4}` : '');
+  const anyLoad = rows.some((r) => r.hasLoad);
+  const A = [];
+  // 1) Taper into a game ≤3 days out (Mujika).
+  if (fx.nextGame) {
+    const d = dayDiff(fx.nextGame.date, today);
+    if (d >= 0 && d <= 3) A.push({ sev: 'game', do: `Taper into ${fx.nextGame.opponent ? 'vs ' + fx.nextGame.opponent : 'the game'} · ${d === 0 ? 'today' : d + 'd'}`, why: 'hold intensity, cut volume ~40–60% (Mujika).' });
+  }
+  // 2) ACWR danger (>1.5) then elevated (1.3–1.5) — Gabbett sweet spot 0.8–1.3.
+  const danger = rows.filter((r) => r.acwr.band.key === 'high');
+  const elevated = rows.filter((r) => r.acwr.band.key === 'elevated');
+  if (danger.length) A.push({ sev: 'red', do: `Pull back ${names(danger)}`, why: 'ACWR in the danger zone (>1.5) — cut load today, injury risk climbs here (Gabbett).', ids: danger.map((r) => r.t.id) });
+  // 3) Readiness red today (autoreg says don't load).
+  const red = rows.filter((r) => r.readiness.level === 'red');
+  if (red.length) A.push({ sev: 'red', do: `Regress ${names(red)} today`, why: `readiness red — ${red[0].readiness.headline || 'reassess before loading'}.`, ids: red.map((r) => r.t.id) });
+  // 4) Injuries in rehab.
+  const injured = rows.filter((r) => activeInjuries(medical, r.t.id).length);
+  if (injured.length) A.push({ sev: 'red', do: `${injured.length} in rehab (${names(injured)})`, why: 'check the Medical board for return-to-play + limits.', ids: injured.map((r) => r.t.id) });
+  if (elevated.length) A.push({ sev: 'amber', do: `Watch ${names(elevated)}`, why: "ACWR elevated (1.3–1.5) — hold, don't add load (Gabbett).", ids: elevated.map((r) => r.t.id) });
+  // 5) Monotony ≥2 (Foster).
+  const mono = rows.filter((r) => r.ms.monotony != null && r.ms.monotony >= 2);
+  if (mono.length) A.push({ sev: 'amber', do: `Vary the stimulus for ${names(mono)}`, why: 'monotony ≥2 (Foster) — add hard/easy contrast to break the sameness.', ids: mono.map((r) => r.t.id) });
+  // 6) Undertrained (ACWR <0.8) — ramp safely.
+  const detr = rows.filter((r) => r.acwr.band.key === 'detrained');
+  if (detr.length && anyLoad) A.push({ sev: 'info', do: `Ramp ${names(detr)} up`, why: 'ACWR <0.8 (undertrained) — build ~10%/wk, avoid a spike.', ids: detr.map((r) => r.t.id) });
+  // 7) Missing wellness check-ins today.
+  const missing = rows.filter((r) => !r.checkedToday);
+  if (missing.length && missing.length < rows.length) A.push({ sev: 'info', do: 'Chase check-ins', why: `${missing.length} of ${rows.length} haven't logged wellness today.` });
+  // 8) Pre-season / no data — baseline first.
+  if (!anyLoad && rows.every((r) => !r.checkedToday)) {
+    A.unshift({ sev: 'game', do: 'Baseline the squad', why: 'pre-season — log the first sessions + a daily wellness check so ACWR & readiness start tracking, and run the eval battery to set each athlete’s baseline.' });
+  }
+  const sevRank = { game: 0, red: 1, amber: 2, info: 3 };
+  const top = A.sort((a, b) => sevRank[a.sev] - sevRank[b.sev]).slice(0, 5);
+  const sevColor = { game: ORANGE, red: '#DE4E3B', amber: '#E0A73A', info: '#4F9DE0' };
+  return (
+    <Card padding={18} leftStripe={ORANGE} header={secTitle('Coach’s Brief')} headerRight={<span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>{dow(today)} {monDay(today)}</span>}>
+      {top.length === 0 ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9, fontFamily: FB, fontSize: 13, color: C.td, padding: '4px 0' }}>
+          <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#37B27C', flexShrink: 0 }} />All clear — no load, readiness or medical flags today.
+        </div>
+      ) : (
+        <div>
+          {top.map((a, i) => (
+            <div key={i} onClick={a.ids && a.ids.length === 1 && onOpen ? () => onOpen(a.ids[0]) : undefined}
+              className={a.ids && a.ids.length === 1 ? 'bhbc-row' : undefined}
+              style={{ display: 'flex', alignItems: 'flex-start', gap: 11, padding: '9px 2px', borderBottom: i < top.length - 1 ? `0.25px solid ${C.cardBd}` : 'none', cursor: a.ids && a.ids.length === 1 && onOpen ? 'pointer' : 'default' }}>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: sevColor[a.sev], flexShrink: 0, marginTop: 5 }} />
+              <div style={{ minWidth: 0, lineHeight: 1.5 }}>
+                <span style={{ fontFamily: FN, fontSize: 12.5, fontWeight: 700, letterSpacing: '0.02em', color: C.tx }}>{a.do}</span>
+                <span style={{ fontFamily: FB, fontSize: 12.5, color: C.tm }}> — {a.why}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </Card>
   );
 }
