@@ -407,7 +407,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
 
             {view === 'overview' && (
               <>
-                <CoachBrief rows={rows} fx={fx} medical={medical} today={today} onOpen={setDetailFor} onCheckin={() => setCheckinOpen(true)} onLog={() => setPracticeOpen(true)} />
+                <CoachBrief rows={rows} fx={fx} fixtures={bhbcFixtures} medical={medical} today={today} onOpen={setDetailFor} onCheckin={() => setCheckinOpen(true)} onLog={() => setPracticeOpen(true)} />
                 <TodayPanel today={today} fixtures={bhbcFixtures} fx={fx} rows={rows} onSessions={() => setView('sessions')} onLog={() => setPracticeOpen(true)} />
                 {fx.nextGame && <NextGamePanel nextGame={fx.nextGame} today={today} onEdit={() => setGameEdit(true)} />}
                 <FixturesAheadPanel fixtures={bhbcFixtures} today={today} />
@@ -1015,7 +1015,7 @@ function NextGamePanel({ nextGame, today, onEdit }) {
 // monotony, Mujika taper, ~10%/wk ramp). This is the decision layer: the board
 // shows numbers, the brief says what to DO about them. Action-first, rationale
 // muted. Pre-season (no data) it points at the right first move: baseline.
-function CoachBrief({ rows, fx, medical, today, onOpen, onCheckin, onLog }) {
+function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onCheckin, onLog }) {
   const first = (r) => (r.t.name || '').trim().split(/\s+/)[0] || r.t.name;
   const names = (arr) => arr.slice(0, 4).map(first).join(', ') + (arr.length > 4 ? ` +${arr.length - 4}` : '');
   const anyLoad = rows.some((r) => r.hasLoad);
@@ -1032,6 +1032,12 @@ function CoachBrief({ rows, fx, medical, today, onOpen, onCheckin, onLog }) {
   // 3) Readiness red today (autoreg says don't load).
   const red = rows.filter((r) => r.readiness.level === 'red');
   if (red.length) A.push({ sev: 'red', do: `Regress ${names(red)} today`, why: `readiness red — ${red[0].readiness.headline || 'reassess before loading'}.`, ids: red.map((r) => r.t.id) });
+  // 3b) Fixture congestion — a tight run of games needs rotation + recovery.
+  const games = (fixtures || []).filter((f) => f.type === 'game' && f.date >= today).sort((a, b) => a.date.localeCompare(b.date));
+  for (let i = 0; i < games.length - 1; i++) {
+    const gap = dayDiff(games[i + 1].date, games[i].date);
+    if (gap > 0 && gap < 4) { A.push({ sev: 'amber', do: `Congestion ${monDay(games[i].date)}–${monDay(games[i + 1].date)}`, why: `${gap}-day turnaround between games — rotate minutes and protect MD+1 recovery.` }); break; }
+  }
   // 4) Injuries in rehab.
   const injured = rows.filter((r) => activeInjuries(medical, r.t.id).length);
   if (injured.length) A.push({ sev: 'red', do: `${injured.length} in rehab (${names(injured)})`, why: 'check the Medical board for return-to-play + limits.', ids: injured.map((r) => r.t.id) });
