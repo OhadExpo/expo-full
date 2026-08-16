@@ -17,6 +17,7 @@ import { Card, CollapsibleSection, Btn, Input, Modal, EmptyState, toast } from '
 import { ThemeToggle } from './ThemeToggle';
 import { acwrFromDaily, sessionLoad, monotonyStrain } from './acwrEngine';
 import { readinessAutoreg } from './readinessAutoreg';
+import BWChart from './BwChart';
 
 // EXPO's own group/single session logger — reused INSIDE the BHBC portal, scoped
 // to the BHBC roster. It writes to client_workouts (athlete-visible), so a BHBC
@@ -500,7 +501,14 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
       {detailFor && (() => {
         const row = rows.find((r) => r.t.id === detailFor);
         if (!row) return null;
-        return <AthleteModal row={row} rec={bhbcLoads[detailFor]} days28={last28}
+        // Bodyweight trend = portal weigh-ins (shared bwLog) + BHBC practice
+        // weigh-ins (rec.bw), merged by date (portal wins a same-day tie),
+        // oldest→newest — the exact same chart the trainee page/portal show.
+        const bwByDate = {};
+        Object.entries((bhbcLoads[detailFor] || {}).bw || {}).forEach(([d, kg]) => { const v = parseFloat(kg); if (Number.isFinite(v)) bwByDate[String(d).slice(0, 10)] = v; });
+        (bwLog || []).forEach((b) => { if (String(b.clientId || '').split('__')[0] !== detailFor) return; const v = parseFloat(b.bw); if (Number.isFinite(v)) bwByDate[String(b.date).slice(0, 10)] = v; });
+        const bwEntries = Object.entries(bwByDate).map(([date, bw]) => ({ date, bw })).sort((a, b) => a.date.localeCompare(b.date));
+        return <AthleteModal row={row} rec={bhbcLoads[detailFor]} days28={last28} bw={bwEntries}
           workouts={(clientWorkouts || []).filter((w) => String(w.clientId || '').split('__')[0] === detailFor)}
           leaguePlayer={leaguePlayerFor(league, row.t.name)} leagueSeason={league.season}
           injuries={activeInjuries(medical, detailFor)}
@@ -530,7 +538,7 @@ function BarChart({ series, w = 460, h = 88 }) {
   );
 }
 
-function AthleteModal({ row, rec, days28, workouts = [], leaguePlayer, leagueSeason, injuries = [], onInjury, onClose, onLog, onOpenExpo, onViewProgram, onCycleAvail }) {
+function AthleteModal({ row, rec, days28, bw = [], workouts = [], leaguePlayer, leagueSeason, injuries = [], onInjury, onClose, onLog, onOpenExpo, onViewProgram, onCycleAvail }) {
   const { t, acwr, avail, readiness } = row;
   const loads = (rec && rec.loads) || {};
   const rc = readiness.level === 'red' ? '#DE4E3B' : readiness.level === 'amber' ? '#E0A73A' : readiness.level === 'green' ? '#37B27C' : '#7C828B';
@@ -598,6 +606,12 @@ function AthleteModal({ row, rec, days28, workouts = [], leaguePlayer, leagueSea
             </div>
           ))}
         </div>
+        {bw && bw.length > 0 && (
+          <div>
+            <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, marginBottom: 6 }}>Bodyweight</div>
+            <BWChart entries={bw} />
+          </div>
+        )}
         {(() => {
           // Foster monotony & strain over the last 7 days (illness/overtraining
           // risk). Monotony ≥2 flags too-samey loading; strain = load × monotony.
@@ -845,7 +859,7 @@ function HAChip({ home }) {
   const c = isHome ? NAVY : ORANGE_DEEP;
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: FN, fontSize: 10, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: c, background: `color-mix(in srgb, ${c} 12%, transparent)`, border: `1px solid color-mix(in srgb, ${c} 40%, transparent)`, padding: '2px 7px', whiteSpace: 'nowrap' }}>
-      <span style={{ fontVariantNumeric: 'tabular-nums' }}>{isHome ? 'H' : 'A'}</span>{isHome ? 'Home' : 'Away'}
+      {isHome ? 'Home' : 'Away'}
     </span>
   );
 }

@@ -548,6 +548,13 @@ html, body {
   color: var(--c-tx);
 }
 
+/* Always reserve the vertical scrollbar gutter so switching tabs/views (or any
+   click that changes content height across the viewport threshold) never
+   shifts the whole page sideways — kills the app-wide "page pops" jump. */
+html {
+  scrollbar-gutter: stable;
+}
+
 /* === Light-mode cyan-labels rule ==========================================
    Small all-caps tile labels (letter-spacing 0.18em — KPI labels, stat tile
    labels, column headers, etc.) render in the AA-safe darkened cyan in light

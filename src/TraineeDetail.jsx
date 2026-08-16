@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { fmtPrettyDate } from './dates';
+import BWChart from './BwChart';
 import { C, FN, FB, FH, uid, PAYMENT_STATUSES, TRAINING_FORMATS, TRAINEE_STATUSES, PACKAGE_TYPES, GENDER_OPTIONS } from './theme';
 
 // Hebrew renders ~3px smaller than Nord at the same fontSize. Same
@@ -98,7 +99,41 @@ function ProgramCard({ plan: p, isVis, onOpen, onUnassign, onOnly, onToggleVis }
   );
 }
 
-export default function TraineeDetail({ trainee, trainees, setTrainees, planIndex, reloadPlanIndex, exercises, workouts, clientWorkouts, payments, addPayment, updatePayment, removePayment, bwLog, onBack, onOpenPlan, onPreviewPortal, onOpenTasksTab, onCreatePlanForTask, onOpenIntakeTab, onOpenInPersonForTrainee, portalVis, setPortalVis }) {
+// Coach-side weigh-in entry. Writes to the shared bwLog with the athlete's
+// clientId, so the point appears on BOTH this chart and the athlete-portal
+// bodyweight graph (bwLog is realtime-synced across coach + portal).
+// Own state → typing here never re-renders the heavy TraineeDetail tree.
+function BwAddRow({ onAdd }) {
+  const [kg, setKg] = React.useState('');
+  const [date, setDate] = React.useState(() => new Date().toISOString().slice(0, 10));
+  const val = parseFloat(kg);
+  const ok = Number.isFinite(val) && val > 0 && val < 400;
+  const submit = () => {
+    if (!ok) return;
+    // Store at noon local to avoid TZ date-shift when sliced back to YYYY-MM-DD.
+    onAdd(Math.round(val * 10) / 10, new Date(date + 'T12:00:00').toISOString());
+    setKg('');
+    toast('Weigh-in added — synced to athlete portal');
+  };
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, flexWrap: 'wrap', marginTop: 10, padding: '12px 14px', border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <label style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm }}>Weight (kg)</label>
+        <input type="number" inputMode="decimal" step="0.1" value={kg} onChange={e => setKg(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') submit(); }} placeholder="e.g. 83.5"
+          style={{ ...baseInput, width: 110, fontFamily: FN, fontVariantNumeric: 'tabular-nums' }} />
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <label style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm }}>Date</label>
+        <input type="date" value={date} max={new Date().toISOString().slice(0, 10)} onChange={e => setDate(e.target.value)}
+          style={{ ...baseInput, width: 150, fontFamily: FN }} />
+      </div>
+      <Btn onClick={submit} disabled={!ok} style={{ opacity: ok ? 1 : 0.5 }}>Add weigh-in</Btn>
+    </div>
+  );
+}
+
+export default function TraineeDetail({ trainee, trainees, setTrainees, planIndex, reloadPlanIndex, exercises, workouts, clientWorkouts, payments, addPayment, updatePayment, removePayment, bwLog, setBwLog, onBack, onOpenPlan, onPreviewPortal, onOpenTasksTab, onCreatePlanForTask, onOpenIntakeTab, onOpenInPersonForTrainee, portalVis, setPortalVis }) {
   // Section tabs are a MULTI-SELECT filter (Ohad): click tags to show only
   // those sections; an empty set = View All. The URL hash carries the active
   // ids (comma-joined) so a filtered view is deep-linkable and back/forward
@@ -813,6 +848,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       {/* === BODYWEIGHT — slot #6 (collapsible; chart is self-carded → bare) */}
       <CollapsibleSection bare domId="td-sec-bw" title="Bodyweight" count={tBw.length} storageKey={`td-bw-${trainee}`} style={{margin:'20px 0 0', display: showSec('bw') ? undefined : 'none'}}>
         <BWChart entries={tBw} />
+        <BwAddRow onAdd={(kg, dateISO) => setBwLog && setBwLog(prev => [...prev, { clientId: trainee, date: dateISO, bw: kg, blockName: null, week: null, source: 'coach' }])} />
       </CollapsibleSection>
 
       {/* === READINESS TRENDS — check-in graph (PAIN/SLEEP/ENERGY over time),
@@ -1051,127 +1087,6 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
 // Bodyweight sparkline + delta. Plots one point per bw_log entry, oldest →
 // newest. Shows the absolute first/current/min/max values plus a Δ from the
 // first logged weight so the coach gets net change at a glance.
-function BWChart({ entries }) {
-  if (!entries || entries.length === 0) {
-    return <Card style={{textAlign:'center',padding:'18px 16px',color:C.td,fontSize:13}}>No bodyweight logged yet — appears once the trainee logs weight from their portal.</Card>;
-  }
-  // Bottom padding shrunk from 24 → 12 because date labels moved OUT
-  // of the SVG and into HTML below (preserveAspectRatio="none" was
-  // stretching the text horizontally as the SVG scaled wider than its
-  // viewBox).
-  const W = 800, H = 128, PAD_X = 14, PAD_TOP = 18, PAD_BOTTOM = 12;
-  const values = entries.map(e => e.bw);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const span = (max - min) || 1;
-  const first = values[0];
-  const last = values[values.length - 1];
-  const delta = last - first;
-  const xStep = entries.length === 1 ? 0 : (W - PAD_X * 2) / (entries.length - 1);
-  const points = entries.map((e, i) => {
-    const x = entries.length === 1 ? W / 2 : PAD_X + i * xStep;
-    const y = PAD_TOP + (1 - (e.bw - min) / span) * (H - PAD_TOP - PAD_BOTTOM);
-    return { x, y, bw: e.bw, date: e.date };
-  });
-  const polyline = points.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
-  const areaPath = `M${points[0].x},${H - PAD_BOTTOM} L${polyline.replace(/ /g, ' L')} L${points[points.length - 1].x},${H - PAD_BOTTOM} Z`;
-  const deltaColor = delta < 0 ? C.gn : delta > 0 ? C.or : C.tm;
-  const fmt = v => `${v.toFixed(1)}kg`;
-  return (
-    <Card style={{padding:14}}>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',flexWrap:'wrap',gap:10,marginBottom:10}}>
-        <div style={{display:'flex',gap:18,flexWrap:'wrap'}}>
-          <div><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700}}>Current</div><div style={{fontSize:18,fontWeight:700,color:C.tx,fontFamily:FN}}>{fmt(last)}</div></div>
-          <div><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700}}>Δ from first</div><div style={{fontSize:18,fontWeight:700,color:deltaColor,fontFamily:FN}}>{delta > 0 ? '+' : ''}{delta.toFixed(1)}kg</div></div>
-          <div><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700}}>Range</div><div style={{fontSize:18,fontWeight:700,color:C.tx,fontFamily:FN}}>{fmt(min)} – {fmt(max)}</div></div>
-        </div>
-        <div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700}}>{entries.length} ENTR{entries.length === 1 ? 'Y' : 'IES'}</div>
-      </div>
-      {/* SVG carries paths + circles (geometry is robust to non-uniform
-          scale; circles render as slight ellipses but visually fine).
-          Text labels are pulled OUT and overlaid as HTML — see comment
-          on the `bw-chart-labels` div below for the why. */}
-      <div style={{position:'relative',width:'100%',height:H}}>
-        <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%',height:H,display:'block'}} aria-label="Bodyweight chart" preserveAspectRatio="none">
-          <defs>
-            {/* Brand cyan literal — C.ac resolves to BLACK in light mode (AA
-                accessibility for active surfaces), so using it here drained
-                the chart shadow to gray. The chart's color identity is
-                brand-cyan in BOTH themes; the stroke + gradient hardcode
-                the brand hex so dark and light render identically. */}
-            <linearGradient id="bwAreaGrad" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stopColor="#39BDFF" stopOpacity="0.35"/>
-              <stop offset="100%" stopColor="#39BDFF" stopOpacity="0"/>
-            </linearGradient>
-          </defs>
-          <path d={areaPath} fill="url(#bwAreaGrad)" />
-          <polyline points={polyline} fill="none" stroke="#39BDFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          {points.map((p, i) => (
-            <circle key={i} cx={p.x} cy={p.y} r="3" fill={C.ac} stroke={C.bg} strokeWidth="1.5">
-              <title>{`${fmtPrettyDate(p.date)} · ${fmt(p.bw)}`}</title>
-            </circle>
-          ))}
-        </svg>
-        {/* HTML overlay for per-point weight labels (83.8 etc). SVG above
-            uses preserveAspectRatio="none" so its width fills the card
-            regardless of container — that's fine for paths/circles but
-            stretches/squishes any <text> horizontally. Moving labels out
-            keeps them at natural aspect at all viewport widths. */}
-        {points.map((p, i) => {
-          // Peak/trough/slope-aware label placement — same algorithm as the
-          // athlete-portal BW chart. Pushes labels above peaks, below troughs,
-          // along the slope direction in between, so adjacent labels don't
-          // collide on tight data.
-          const prevY = i > 0 ? points[i - 1].y : null;
-          const nextY = i < points.length - 1 ? points[i + 1].y : null;
-          const prevDown = prevY != null ? prevY > p.y : null;
-          const nextDown = nextY != null ? nextY > p.y : null;
-          const dirs = [prevDown, nextDown].filter(v => v != null);
-          const isPeak = dirs.length > 0 && dirs.every(v => v === true);
-          const isTrough = dirs.length > 0 && dirs.every(v => v === false);
-          let labelX = p.x, labelY, anchor = 'middle';
-          const innerH = H - PAD_TOP - PAD_BOTTOM;
-          if (!isPeak && !isTrough && prevY != null && nextY != null) {
-            const ascending = nextY < prevY;
-            labelX = ascending ? p.x - 6 : p.x + 6;
-            labelY = p.y - 4;
-            anchor = ascending ? 'end' : 'start';
-          } else {
-            let above = isPeak;
-            if (above && p.y < PAD_TOP + 8) above = false;
-            else if (!above && p.y > PAD_TOP + innerH - 4) above = true;
-            labelY = above ? p.y - 8 : p.y + 14;
-          }
-          const tx = anchor === 'end' ? '-100%' : anchor === 'middle' ? '-50%' : '0';
-          return (
-            <span key={i} style={{
-              position:'absolute',
-              left:`${(labelX / W) * 100}%`,
-              top:labelY,
-              transform:`translate(${tx}, -100%)`,
-              fontSize:10,
-              fontFamily:FN,
-              color:C.tx,
-              fontWeight:600,
-              whiteSpace:'nowrap',
-              pointerEvents:'none',
-              lineHeight:1,
-            }}>{p.bw}</span>
-          );
-        })}
-      </div>
-      {/* Date labels rendered as HTML so they don't get horizontally
-          stretched by the SVG's preserveAspectRatio="none". Same content
-          (first + last entry date), positioned at the chart's left/right
-          edges via flex space-between. */}
-      <div style={{display:'flex',justifyContent:'space-between',marginTop:4,fontFamily:FN,fontSize:9,color:C.td,letterSpacing:'0.04em'}}>
-        <span>{fmtPrettyDate(entries[0].date)}</span>
-        <span>{fmtPrettyDate(entries[entries.length-1].date)}</span>
-      </div>
-    </Card>
-  );
-}
-
 // === EditTraineeModal — isolated subtree for the Edit Athlete form. ========
 //
 // Why this is its own component (and memo'd): TraineeDetail is a heavy page
