@@ -1830,6 +1830,39 @@ function MedicalView({ roster, medical, canMedical = true, onReport, onEdit, onO
           })}
         </div>
       </Card>
+
+      {/* Return-to-Play protocol — the staged framework + safe-progression rules,
+          encoded from EXPO's programming rules (pain gates, regression hierarchy,
+          red-flag referral). A shared reference for Ohad + the PT so returns are
+          structured and defensible. Uses "manage / load management" language. */}
+      <CollapsibleSection title="Return-to-Play Protocol" storageKey="bhbc-rtp" leftStripe={NAVY}>
+        <div style={{ display: 'grid', gap: 1, background: C.cardBd, border: `1px solid ${C.cardBd}`, marginBottom: 14 }}>
+          {[
+            ['1', 'Acute · protect', 'Offload the tissue, manage pain + swelling. Pain-free daily movement only.'],
+            ['2', 'Pain-free ROM', 'Restore full range with no symptoms before adding load.'],
+            ['3', 'Loaded rehab', 'Re-load progressively — isometrics → tempo → full-ROM strength.'],
+            ['4', 'Non-contact', 'Running, change-of-direction and court work, no contact.'],
+            ['5', 'Contact · modified', 'Full-speed contact drills with minutes capped.'],
+            ['6', 'Full training → cleared', 'Complete sessions, no restrictions, then clear to play.'],
+          ].map(([n, stage, detail]) => (
+            <div key={n} style={{ display: 'grid', gridTemplateColumns: '30px 150px 1fr', gap: 12, alignItems: 'center', background: 'var(--c-sf)', padding: '10px 12px' }}>
+              <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums' }}>{n}</span>
+              <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.03em', color: C.tx }}>{stage}</span>
+              <span style={{ fontFamily: FB, fontSize: 12, color: C.tm, lineHeight: 1.4 }}>{detail}</span>
+            </div>
+          ))}
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ fontFamily: FB, fontSize: 12, color: C.tx, lineHeight: 1.5 }}>
+            <span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, marginRight: 8 }}>Pain gate</span>
+            0–3/10 progress · 4–5 hold &amp; modify (regress <span style={{ color: C.tx, fontWeight: 700 }}>ROM → Tempo → Intensity → Volume → Frequency</span>, cut frequency last) · 6+ stop &amp; reassess.
+          </div>
+          <div style={{ fontFamily: FB, fontSize: 12, color: C.tx, lineHeight: 1.5 }}>
+            <span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#DE4E3B', marginRight: 8 }}>Refer out</span>
+            Saddle anaesthesia · bowel/bladder change · drop foot · unexplained weight loss · night pain unrelated to position — never manage through these.
+          </div>
+        </div>
+      </CollapsibleSection>
     </>
   );
 }
