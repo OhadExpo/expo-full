@@ -528,7 +528,13 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
         Object.entries((bhbcLoads[detailFor] || {}).bw || {}).forEach(([d, kg]) => { const v = parseFloat(kg); if (Number.isFinite(v)) bwByDate[String(d).slice(0, 10)] = v; });
         (bwLog || []).forEach((b) => { if (String(b.clientId || '').split('__')[0] !== detailFor) return; const v = parseFloat(b.bw); if (Number.isFinite(v)) bwByDate[String(b.date).slice(0, 10)] = v; });
         const bwEntries = Object.entries(bwByDate).map(([date, bw]) => ({ date, bw })).sort((a, b) => a.date.localeCompare(b.date));
-        return <AthleteModal row={row} rec={bhbcLoads[detailFor]} days28={last28} bw={bwEntries}
+        // Current training block (from the EXPO plan index) so the modal shows
+        // what the athlete is actually training, not just league stats.
+        const _bn = (n) => { const m = String(n || '').match(/#\s*(\d+)/); return m ? +m[1] : 0; };
+        const aPlans = (planIndex || []).filter((p) => String(p.traineeId || '').split('__')[0] === detailFor);
+        const curPlan = aPlans.slice().sort((a, b) => _bn(b.name) - _bn(a.name))[0] || null;
+        const program = { count: aPlans.length, current: curPlan ? curPlan.name : null };
+        return <AthleteModal row={row} rec={bhbcLoads[detailFor]} days28={last28} bw={bwEntries} program={program}
           workouts={(clientWorkouts || []).filter((w) => String(w.clientId || '').split('__')[0] === detailFor)}
           leaguePlayer={leaguePlayerFor(league, row.t.name)} leagueSeason={league.season}
           injuries={activeInjuries(medical, detailFor)}
@@ -558,7 +564,7 @@ function BarChart({ series, w = 460, h = 88 }) {
   );
 }
 
-function AthleteModal({ row, rec, days28, bw = [], workouts = [], leaguePlayer, leagueSeason, injuries = [], onInjury, onClose, onLog, onOpenExpo, onViewProgram, onCycleAvail }) {
+function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = [], leaguePlayer, leagueSeason, injuries = [], onInjury, onClose, onLog, onOpenExpo, onViewProgram, onCycleAvail }) {
   const { t, acwr, avail, readiness } = row;
   const loads = (rec && rec.loads) || {};
   const rc = readiness.level === 'red' ? '#DE4E3B' : readiness.level === 'amber' ? '#E0A73A' : readiness.level === 'green' ? '#37B27C' : '#7C828B';
@@ -696,6 +702,13 @@ function AthleteModal({ row, rec, days28, bw = [], workouts = [], leaguePlayer, 
             </div>
           ) : <div style={{ fontFamily: FB, fontSize: 12.5, color: C.td, padding: '6px 0' }}>No history logged yet.</div>}
         </div>
+        {program && (program.current || program.count > 0) && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 0', borderTop: `1px solid ${C.cardBd}`, fontFamily: FN, fontSize: 11, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>Current block</span>
+            <span style={{ color: C.tx, fontWeight: 700 }}>{program.current || 'None assigned'}</span>
+            {program.count > 1 && <span style={{ color: C.tm }}>· {program.count} total</span>}
+          </div>
+        )}
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
           {onOpenExpo && <Btn variant="ghost" onClick={onOpenExpo}>Open in EXPO ›</Btn>}
           <Btn variant="ghost" onClick={onLog}>Log session</Btn>
