@@ -18,6 +18,7 @@ import { ThemeToggle } from './ThemeToggle';
 import { acwrFromDaily, sessionLoad, monotonyStrain } from './acwrEngine';
 import { readinessAutoreg } from './readinessAutoreg';
 import BWChart from './BwChart';
+import { supabase } from './supabase';
 
 // EXPO's own group/single session logger — reused INSIDE the BHBC portal, scoped
 // to the BHBC roster. It writes to client_workouts (athlete-visible), so a BHBC
@@ -189,6 +190,26 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
     }
     return { byDay: byDay.slice(0, 8), nextGame };
   }, [bhbcFixtures, today]);
+
+  // Baseline-battery status: which roster athletes have an EXPO evaluation on
+  // record (pre-season priority — "EXPO eval = the BHBC battery"). One batched
+  // read; latest eval_date per athlete. Read-only, owner-authenticated.
+  const rosterIds = useMemo(() => roster.map((t) => t.id), [roster]);
+  const rosterIdKey = rosterIds.join(',');
+  const [evalStatus, setEvalStatus] = useState({});
+  useEffect(() => {
+    if (!rosterIds.length) { setEvalStatus({}); return; }
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase.from('trainee_evaluations').select('trainee_id, eval_date').in('trainee_id', rosterIds);
+      if (cancelled || error) return;
+      const m = {};
+      (data || []).forEach((r) => { if (!m[r.trainee_id] || (r.eval_date || '') > m[r.trainee_id]) m[r.trainee_id] = r.eval_date || ''; });
+      setEvalStatus(m);
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rosterIdKey]);
 
   const setTeam = useCallback((id, on) => {
     setTrainees((prev) => prev.map((t) => t.id === id ? { ...t, team: on ? 'BHBC' : undefined } : t));
@@ -403,7 +424,10 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
             )}
 
             {view === 'roster' && (
-              <RosterGrid rows={rows} medical={medical} league={league} onOpen={setDetailFor} />
+              <>
+                <BaselineBattery roster={roster} evalStatus={evalStatus} onOpenExpo={onOpenTrainee} />
+                <RosterGrid rows={rows} medical={medical} league={league} onOpen={setDetailFor} />
+              </>
             )}
 
             {view === 'games' && (
@@ -1172,6 +1196,41 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, onOpen }) {
           <span key={l} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, letterSpacing: '0.04em' }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: c }} />{l}</span>
         ))}
         <span style={{ marginLeft: 'auto', color: C.tm }}>ACWR = 7-day ÷ 28-day sRPE · Gabbett 2016</span>
+      </div>
+    </CollapsibleSection>
+  );
+}
+
+// Baseline Battery — pre-season testing status for the squad. Which athletes
+// have an EXPO evaluation on record (the club's testing baseline), and a quick
+// jump to run/complete one. Colour = signal (tested dot), calm rows.
+function BaselineBattery({ roster, evalStatus, onOpenExpo }) {
+  const tested = roster.filter((t) => evalStatus[t.id]);
+  const pct = roster.length ? Math.round((tested.length / roster.length) * 100) : 0;
+  return (
+    <CollapsibleSection title="Baseline Battery" count={`${tested.length}/${roster.length}`} storageKey="bhbc-baseline" defaultOpen leftStripe={ORANGE}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+        <div style={{ flex: 1, height: 6, background: C.cardBd, position: 'relative', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${pct}%`, background: ORANGE, transition: 'width .3s' }} />
+        </div>
+        <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tx, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{pct}% baselined</span>
+      </div>
+      <div>
+        {roster.map((t) => {
+          const date = evalStatus[t.id];
+          return (
+            <div key={t.id} className="bhbc-row" onClick={onOpenExpo ? () => onOpenExpo(t.id) : undefined}
+              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: `0.25px solid ${C.cardBd}`, cursor: onOpenExpo ? 'pointer' : 'default' }}>
+              <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums', width: 20, flexShrink: 0 }}>{t.jersey ?? '—'}</span>
+              <span style={{ flex: 1, fontFamily: FN, fontSize: 13, fontWeight: 600, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, minWidth: 128, justifyContent: 'flex-end', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: date ? '#37B27C' : '#6B7280', flexShrink: 0 }} />
+                {date ? `Tested · ${monDay(date)}` : 'Not tested'}
+              </span>
+              {onOpenExpo && <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: ORANGE_DEEP, flexShrink: 0 }}>{date ? 'View ›' : 'Test ›'}</span>}
+            </div>
+          );
+        })}
       </div>
     </CollapsibleSection>
   );
