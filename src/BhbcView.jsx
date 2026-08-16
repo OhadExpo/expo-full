@@ -322,8 +322,10 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
       {/* ---- ZONE TOP BAR ---- */}
       <header style={{ position: 'sticky', top: 0, zIndex: 50, background: NAVY, borderBottom: `2px solid ${ORANGE}` }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', height: 62, display: 'flex', alignItems: 'center', gap: 14 }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#fff', padding: '5px 9px', flexShrink: 0 }}>
-            <img src="/logos/bhbc-logo.png" alt="Bnei Herzliya BC" style={{ height: 44, width: 'auto', display: 'block' }} />
+          {/* White logo variant sits directly on the navy header — no white box
+              (the boxed colour crest read as a pasted-on sticker). */}
+          <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <img src="/bnei-herzliya-logo-w.png" alt="Bnei Herzliya BC" style={{ height: 40, width: 'auto', display: 'block' }} />
           </span>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 16, color: '#fff', letterSpacing: '0.03em', lineHeight: 1 }}>BNEI HERZLIYA</div>
@@ -1376,12 +1378,14 @@ function ResultsList({ games, bhbcOnly }) {
       <div style={{ borderBottom: `0.25px solid ${C.cardBd}`, background: bh ? `color-mix(in srgb, ${NAVY} 7%, transparent)` : 'transparent', borderLeft: bh ? `3px solid ${ORANGE}` : '3px solid transparent' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '58px 1fr auto', gap: 12, alignItems: 'center', padding: detail ? '9px 10px 3px' : '9px 10px' }}>
           <div style={{ fontFamily: FN, fontSize: 10.5, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{g.date ? g.date.slice(5).replace('-', '/') : ''}</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-            <span style={{ fontFamily: FN, fontSize: 12.5, fontWeight: isBH(g.home) ? 800 : 500, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'right', flex: 1 }}>{g.home}</span>
+          {/* Matchup packs LEFT right after the date (home · vs/score · away) so
+              rows read cleanly instead of floating centred with a big left gap. */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+            <span style={{ fontFamily: FN, fontSize: 12.5, fontWeight: isBH(g.home) ? 800 : 500, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '40%' }}>{g.home}</span>
             {g.played
-              ? <span style={{ ...mark, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '2px 8px', whiteSpace: 'nowrap' }}>{g.hs}<span style={{ color: C.tm, margin: '0 4px' }}>–</span>{g.as}</span>
-              : <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, letterSpacing: '0.06em' }}>vs</span>}
-            <span style={{ fontFamily: FN, fontSize: 12.5, fontWeight: isBH(g.away) ? 800 : 500, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>{g.away}</span>
+              ? <span style={{ ...mark, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '2px 8px', whiteSpace: 'nowrap', flexShrink: 0 }}>{g.hs}<span style={{ color: C.tm, margin: '0 4px' }}>–</span>{g.as}</span>
+              : <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, letterSpacing: '0.06em', flexShrink: 0 }}>vs</span>}
+            <span style={{ fontFamily: FN, fontSize: 12.5, fontWeight: isBH(g.away) ? 800 : 500, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '40%' }}>{g.away}</span>
           </div>
           {bh && g.played
             ? <span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 800, letterSpacing: '0.04em', color: '#fff', background: won ? '#37B27C' : '#DE4E3B', padding: '2px 7px' }}>{won ? 'W' : 'L'}</span>
