@@ -857,6 +857,15 @@ function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave }) {
           </div>
         </div>
         {dayFx.length > 0 && <div style={{ fontFamily: FN, fontSize: 10.5, color: C.td }}>From calendar: {dayFx.map((f) => `${f.start} ${FX_LABEL[f.type] || 'Session'} ${f.minutes} min`).join('  ·  ')}</div>}
+        {(() => {
+          // Microcycle context for the session's date — the plan's emphasis +
+          // a suggested intensity (informs the coach; never overrides the pick).
+          const g = (fixtures || []).filter((f) => f.type === 'game' && f.date >= date).sort((a, b) => a.date.localeCompare(b.date))[0];
+          if (!g) return null;
+          const plan = mdPlan(-dayDiff(g.date, date));
+          const sug = plan.game ? null : plan.load >= 5 ? 'High' : plan.load >= 3 ? 'Moderate' : 'Low';
+          return <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: FN, fontSize: 10.5, color: C.tm, flexWrap: 'wrap' }}><span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>Microcycle</span><span style={{ fontWeight: 800, color: '#fff', background: plan.game ? ORANGE : plan.load >= 5 ? ORANGE_DEEP : plan.load >= 3 ? NAVY : '#6B7280', padding: '2px 7px' }}>{plan.label}</span><span style={{ color: C.tx }}>{plan.emphasis}</span>{sug && <span style={{ color: C.td }}>· suggest {sug} intensity</span>}</div>;
+        })()}
         <div style={{ overflowX: 'auto' }}>
           <div style={{ minWidth: 560 }}>
             <div style={{ display: 'grid', gridTemplateColumns: cols, gap: 8, padding: '0 0 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }}>
