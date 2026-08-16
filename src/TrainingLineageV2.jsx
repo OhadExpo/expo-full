@@ -66,16 +66,28 @@ function Kpi({ v, l, s, color }) {
   );
 }
 
-// tiny e1RM sparkline
+// tiny e1RM sparkline — a clean mini LINE (same grammar as the full trend
+// charts: accent polyline + faint area + endpoint dot), not a bar strip, so
+// the inline lift-row trend reads like the review/analysis line charts.
 function Spark({ pts, dir }) {
   const col = dir === 'up' ? C.gn : dir === 'down' ? C.rd : C.or;
-  const max = Math.max(...pts, 1), min = Math.min(...pts, 0);
-  const rng = max - min || 1;
+  const W = 54, H = 20, pad = 2.5;
+  if (!pts || pts.length < 2) {
+    return <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: W, height: H, verticalAlign: 'middle', flexShrink: 0 }}><span style={{ width: 5, height: 5, borderRadius: '50%', background: col }} /></span>;
+  }
+  const max = Math.max(...pts), min = Math.min(...pts), rng = (max - min) || 1;
+  const gx = (i) => pad + i * ((W - 2 * pad) / (pts.length - 1));
+  const gy = (v) => pad + (1 - (v - min) / rng) * (H - 2 * pad);
+  const line = pts.map((v, i) => `${gx(i).toFixed(1)},${gy(v).toFixed(1)}`).join(' ');
+  const area = `M${gx(0).toFixed(1)},${H - pad} L${line.replace(/ /g, ' L')} L${gx(pts.length - 1).toFixed(1)},${H - pad} Z`;
+  const lastX = gx(pts.length - 1), lastY = gy(pts[pts.length - 1]);
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, height: 20, verticalAlign: 'middle', flexShrink: 0 }}>
-      {pts.map((p, i) => (
-        <i key={i} style={{ width: 5, height: `${Math.max(15, ((p - min) / rng) * 100)}%`, background: col, borderRadius: 1, display: 'inline-block' }} />
-      ))}
+    <span style={{ display: 'inline-flex', width: W, height: H, verticalAlign: 'middle', flexShrink: 0 }}>
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: W, height: H, display: 'block', overflow: 'visible' }} aria-hidden="true">
+        <path d={area} fill={col} opacity="0.14" />
+        <polyline points={line} fill="none" stroke={col} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx={lastX} cy={lastY} r="2" fill={col} />
+      </svg>
     </span>
   );
 }
