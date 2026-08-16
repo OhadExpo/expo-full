@@ -572,7 +572,7 @@ function AthleteModal({ row, rec, days28, bw = [], workouts = [], leaguePlayer, 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <span style={{ fontFamily: FB, fontSize: 12.5, color: C.td }}>{t.position || '—'} · {heightM(t.heightCm)} {flag(t.nationality)}</span>
-          <button onClick={onCycleAvail} title="Click to change availability" style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 11, fontWeight: 700, color: av.color, background: `color-mix(in srgb, ${av.color} 13%, transparent)`, border: `1px solid color-mix(in srgb, ${av.color} 38%, transparent)`, padding: '4px 10px', cursor: 'pointer' }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: av.color }} />{av.label}</button>
+          <button onClick={onCycleAvail} title="Click to change availability" className="bhbc-ghost-btn" style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 7, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '0 11px', cursor: 'pointer', transition: 'color .12s, border-color .12s' }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: av.color, flexShrink: 0 }} />{av.label}</button>
         </div>
         {leaguePlayer && (() => {
           const lastG = (leaguePlayer.log || []).length ? [...leaguePlayer.log].sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0] : null;
@@ -1062,8 +1062,8 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, onOpen }) {
                 <div>{acwr.ratio != null ? <BandPill band={acwr.band} value={acwr.ratio.toFixed(2)} /> : <span style={{ fontFamily: FN, fontSize: 10.5, color: C.tm, letterSpacing: '0.06em' }}>· baseline</span>}</div>
                 <div style={{ fontFamily: FN, fontSize: 13, color: C.tx, fontVariantNumeric: 'tabular-nums' }}>{acwr.acute ? Math.round(acwr.acute) : '—'}</div>
                 <div>
-                  <button onClick={(e) => { e.stopPropagation(); cycleAvail(t.id, avail); }} title="Click to change availability" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, minWidth: 108, boxSizing: 'border-box', fontFamily: FN, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.03em', color: AVAIL[avail].color, background: `color-mix(in srgb, ${AVAIL[avail].color} 13%, transparent)`, border: `1px solid color-mix(in srgb, ${AVAIL[avail].color} 38%, transparent)`, borderRadius: 0, padding: '5px 9px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: AVAIL[avail].color, flexShrink: 0 }} />{AVAIL[avail].label}
+                  <button onClick={(e) => { e.stopPropagation(); cycleAvail(t.id, avail); }} title="Click to change availability" className="bhbc-ghost-btn" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, minWidth: 108, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 9px', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'color .12s, border-color .12s' }}>
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: AVAIL[avail].color, flexShrink: 0 }} />{AVAIL[avail].label}
                   </button>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
