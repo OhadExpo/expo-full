@@ -456,7 +456,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
       })()}
 
       {/* ---- MANAGE ROSTER MODAL ---- */}
-      <Modal open={manageOpen} onClose={() => setManageOpen(false)} title="Manage roster">
+      <Modal open={manageOpen} onClose={() => setManageOpen(false)} wide title="Manage roster">
         <div style={{ fontFamily: FB, fontSize: 12.5, color: C.td, marginBottom: 12 }}>
           Tag athletes into Bnei Herzliya. They keep their normal athlete portal — this scopes who appears in the <span style={{ fontFamily: FN, color: NAVY, fontWeight: 700 }}>BHBC</span> zone.
         </div>
@@ -465,24 +465,24 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
             onKeyDown={(e) => { if (e.key === 'Enter' && newAthlete.trim()) { setTrainees((prev) => [...prev, { id: 'tr_bh_' + Math.random().toString(36).slice(2, 9), name: newAthlete.trim(), team: 'BHBC', status: 'Active', createdAt: new Date().toISOString() }]); setNewAthlete(''); toast('Added'); } }}
             placeholder="Add a new athlete — full name" style={{ flex: 1, fontFamily: FB, fontSize: 13, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '9px 10px' }} />
           <Btn disabled={!newAthlete.trim()} onClick={() => { setTrainees((prev) => [...prev, { id: 'tr_bh_' + Math.random().toString(36).slice(2, 9), name: newAthlete.trim(), team: 'BHBC', status: 'Active', createdAt: new Date().toISOString() }]); setNewAthlete(''); toast('Added'); }}
-            style={{ background: newAthlete.trim() ? NAVY : undefined, borderColor: newAthlete.trim() ? NAVY : undefined, color: newAthlete.trim() ? '#fff' : undefined }}>+ Add</Btn>
+            style={{ background: newAthlete.trim() ? ORANGE : undefined, borderColor: newAthlete.trim() ? ORANGE : undefined, color: newAthlete.trim() ? '#fff' : undefined }}>+ Add</Btn>
         </div>
         <div style={{ maxHeight: 360, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2 }}>
           {trainees.filter((t) => t.status !== 'Archived').sort((a, b) => (b.team === 'BHBC' ? 1 : 0) - (a.team === 'BHBC' ? 1 : 0)).map((t) => {
             const on = t.team === 'BHBC';
             return (
-              <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px', border: `0.25px solid ${C.cardBd}`, borderLeft: on ? `3px solid ${ORANGE}` : '3px solid transparent', background: on ? `color-mix(in srgb, ${NAVY} 6%, transparent)` : 'transparent' }}>
-                <input type="checkbox" checked={on} onChange={(e) => setTeam(t.id, e.target.checked)} style={{ accentColor: NAVY, width: 16, height: 16, cursor: 'pointer' }} />
-                {on && t.jersey != null && <Jersey n={t.jersey} size={22} />}
-                <span style={{ fontFamily: FN, fontSize: 13, fontWeight: on ? 700 : 500, color: C.tx }}>{t.name}</span>
+              <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', border: `0.25px solid ${C.cardBd}`, borderLeft: on ? `3px solid ${ORANGE}` : '3px solid transparent', background: on ? `color-mix(in srgb, ${NAVY} 6%, transparent)` : 'transparent' }}>
+                <input type="checkbox" checked={on} onChange={(e) => setTeam(t.id, e.target.checked)} style={{ accentColor: NAVY, width: 16, height: 16, cursor: 'pointer', flexShrink: 0 }} />
+                <span style={{ width: 24, display: 'inline-flex', justifyContent: 'center', flexShrink: 0 }}>{on && t.jersey != null && <Jersey n={t.jersey} size={22} />}</span>
+                <span style={{ flex: '1 1 auto', minWidth: 0, fontFamily: FN, fontSize: 13, fontWeight: on ? 700 : 500, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>
                 {on && (
-                  <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                    {t.position && <span style={{ fontFamily: FB, fontSize: 11, color: C.td }}>{t.position}</span>}
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }} title="Landing / arrival date">
+                  <>
+                    <span style={{ flexShrink: 0, width: 108, textAlign: 'right', fontFamily: FB, fontSize: 11, color: C.td, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.position || ''}</span>
+                    <span style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6 }} title="Landing / arrival date">
                       <span style={{ fontFamily: FN, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm }}>Lands</span>
-                      <input type="date" value={t.arrival || ''} onChange={(e) => setArrival(t.id, e.target.value)} style={{ fontFamily: FN, fontSize: 11, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '3px 6px' }} />
+                      <input type="date" value={t.arrival || ''} onChange={(e) => setArrival(t.id, e.target.value)} style={{ fontFamily: FN, fontSize: 11, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '4px 6px' }} />
                     </span>
-                  </span>
+                  </>
                 )}
               </div>
             );
@@ -679,7 +679,7 @@ function AthleteModal({ row, rec, days28, bw = [], workouts = [], leaguePlayer, 
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
           {onOpenExpo && <Btn variant="ghost" onClick={onOpenExpo}>Open in EXPO ›</Btn>}
           <Btn variant="ghost" onClick={onLog}>Log session</Btn>
-          {onViewProgram && <Btn onClick={onViewProgram} style={{ background: NAVY, borderColor: NAVY, color: '#fff' }}>View program</Btn>}
+          {onViewProgram && <Btn onClick={onViewProgram} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>View program</Btn>}
         </div>
       </div>
     </Modal>
@@ -738,7 +738,7 @@ function WellnessModal({ roster, bhbcLoads, onClose, onSave }) {
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{ fontFamily: FN, fontSize: 10.5, color: C.td, marginRight: 'auto' }}>{count} of {roster.length} filled</span>
           <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
-          <Btn disabled={!count} onClick={() => onSave({ date, entries })} style={{ background: count ? NAVY : undefined, borderColor: count ? NAVY : undefined, color: count ? '#fff' : undefined }}>Save check-in</Btn>
+          <Btn disabled={!count} onClick={() => onSave({ date, entries })} style={{ background: count ? ORANGE : undefined, borderColor: count ? ORANGE : undefined, color: count ? '#fff' : undefined }}>Save check-in</Btn>
         </div>
       </div>
     </Modal>
@@ -818,7 +818,7 @@ function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave }) {
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{ fontFamily: FN, fontSize: 10.5, color: C.td, marginRight: 'auto' }}>Load = minutes × RPE (per-athlete or team). Out athletes: availability only.</span>
           <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
-          <Btn disabled={!canSave} onClick={() => onSave({ date, minutes, teamRpe, intensity, entries, sessionType })} style={{ background: canSave ? NAVY : undefined, borderColor: canSave ? NAVY : undefined, color: canSave ? '#fff' : undefined }}>Save {sessionType.toLowerCase()}</Btn>
+          <Btn disabled={!canSave} onClick={() => onSave({ date, minutes, teamRpe, intensity, entries, sessionType })} style={{ background: canSave ? ORANGE : undefined, borderColor: canSave ? ORANGE : undefined, color: canSave ? '#fff' : undefined }}>Save {sessionType.toLowerCase()}</Btn>
         </div>
       </div>
     </Modal>
@@ -845,7 +845,7 @@ function GameEditModal({ game, onClose, onSave }) {
         </div>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
-          <Btn onClick={() => onSave({ opponent: opponent.trim(), venue: venue.trim(), home: home === '' ? null : home === 'home' })} style={{ background: NAVY, borderColor: NAVY, color: '#fff' }}>Save</Btn>
+          <Btn onClick={() => onSave({ opponent: opponent.trim(), venue: venue.trim(), home: home === '' ? null : home === 'home' })} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>Save</Btn>
         </div>
       </div>
     </Modal>
@@ -993,7 +993,7 @@ function TodayPanel({ today, fixtures, fx, rows, onSessions, onLog }) {
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <Btn onClick={onSessions} style={{ background: NAVY, borderColor: NAVY, color: '#fff' }}>Start session ›</Btn>
+          <Btn onClick={onSessions} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>Start session ›</Btn>
           <Btn variant="ghost" onClick={onLog}>Log practice</Btn>
         </div>
       </div>
@@ -1480,11 +1480,11 @@ const BODY_PARTS = ['Ankle', 'Knee', 'Hip', 'Hamstring', 'Groin', 'Quad', 'Calf'
 const INJURY_TYPES = ['Strain', 'Sprain', 'Contusion', 'Tendinopathy', 'Overuse', 'Fracture', 'Dislocation', 'Illness', 'Other'];
 const activeInjuries = (medical, id) => ((medical[id] || {}).injuries || []).filter((i) => !i.resolved);
 
-function StatusPill({ status, small }) {
+function StatusPill({ status, small, full }) {
   const s = MED_STATUS[status] || MED_STATUS.available;
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: FN, fontSize: small ? 9.5 : 10.5, fontWeight: 700, letterSpacing: '0.03em', color: s.color, background: `color-mix(in srgb, ${s.color} 13%, transparent)`, border: `1px solid color-mix(in srgb, ${s.color} 38%, transparent)`, padding: small ? '2px 7px' : '3px 9px', whiteSpace: 'nowrap' }}>
-      <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.color }} />{s.label}
+    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5, height: small ? 28 : 30, boxSizing: 'border-box', width: full ? '100%' : undefined, fontFamily: FN, fontSize: small ? 9.5 : 10.5, fontWeight: 700, letterSpacing: '0.03em', color: s.color, background: `color-mix(in srgb, ${s.color} 13%, transparent)`, border: `1px solid color-mix(in srgb, ${s.color} 38%, transparent)`, padding: small ? '0 10px' : '0 11px', whiteSpace: 'nowrap' }}>
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.color, flexShrink: 0 }} />{s.label}
     </span>
   );
 }
@@ -1537,16 +1537,16 @@ function MedicalView({ roster, medical, canMedical = true, onReport, onEdit, onO
             const status = act.length ? (act.find((i) => i.status === 'out') || act.find((i) => i.status === 'limited') || act[0]).status : 'available';
             const hist = ((medical[t.id] || {}).injuries || []).length;
             return (
-              <div key={t.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 12, alignItems: 'center', padding: '10px 0', borderBottom: `0.25px solid ${C.cardBd}` }}>
+              <div key={t.id} style={{ display: 'grid', gridTemplateColumns: '1fr 108px 108px', gap: 10, alignItems: 'center', padding: '10px 0', borderBottom: `0.25px solid ${C.cardBd}` }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0, cursor: 'pointer' }} onClick={() => onOpen(t.id)}>
                   <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums', width: 20 }}>{t.jersey ?? '—'}</span>
-                  <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 600, color: C.tx }}>{t.name}</span>
-                  {hist > 0 && <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.04em' }}>· {hist} record{hist > 1 ? 's' : ''}</span>}
+                  <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 600, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>
+                  {hist > 0 && <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.04em', flexShrink: 0 }}>· {hist} record{hist > 1 ? 's' : ''}</span>}
                 </div>
-                <StatusPill status={status} small />
+                <StatusPill status={status} small full />
                 {canMedical
-                  ? <button onClick={() => (act.length ? onEdit(t.id, act[0].id) : onReport(t.id))} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: act.length ? NAVY : '#fff', background: act.length ? 'transparent' : NAVY, border: act.length ? `1px solid ${C.cardBd}` : 'none', padding: '6px 11px', cursor: 'pointer' }}>{act.length ? 'View' : '+ Report'}</button>
-                  : <span style={{ width: 64 }} />}
+                  ? <button onClick={() => (act.length ? onEdit(t.id, act[0].id) : onReport(t.id))} style={{ height: 28, boxSizing: 'border-box', width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: act.length ? NAVY : '#fff', background: act.length ? 'transparent' : NAVY, border: act.length ? `1px solid ${C.cardBd}` : 'none', cursor: 'pointer' }}>{act.length ? 'View' : '+ Report'}</button>
+                  : <span />}
               </div>
             );
           })}
@@ -1636,7 +1636,7 @@ function InjuryModal({ athlete, injury, onClose, onSave }) {
         </label>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
-          <Btn onClick={save} style={{ background: NAVY, borderColor: NAVY, color: '#fff' }}>Save record</Btn>
+          <Btn onClick={save} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>Save record</Btn>
         </div>
       </div>
     </Modal>
@@ -1716,7 +1716,7 @@ function LogModal({ open, initialAthlete, roster, fixtures = [], availableCount 
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
           <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
           <Btn disabled={!canSave} onClick={() => onSave({ scope, athleteId, date, type, minutes, rpe, readiness: { pain, sleep, energy } })}
-            style={{ background: canSave ? NAVY : undefined, borderColor: canSave ? NAVY : undefined, color: canSave ? '#fff' : undefined }}>Save</Btn>
+            style={{ background: canSave ? ORANGE : undefined, borderColor: canSave ? ORANGE : undefined, color: canSave ? '#fff' : undefined }}>Save</Btn>
         </div>
       </div>
     </Modal>
