@@ -3315,6 +3315,19 @@ export function TrainingLineage({ traineeId, traineeName, exercises, plans, load
   );
 }
 
+// BHBC team badge — shown next to a Bnei Herzliya-tagged athlete's name on the
+// Programs list (table + grid), matching the athlete-card badge in TraineesView.
+function BhbcBadge({ tid, trainees }) {
+  const base = String(tid || '').split('__')[0];
+  const t = (trainees || []).find((x) => x.id === base);
+  if (!t || !(t.format === 'Bnei Herzliya' || t.branch === 'Bnei Herzliya' || t.team === 'BHBC')) return null;
+  return (
+    <span title="Bnei Herzliya" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20, borderRadius: '50%', background: '#0E1A2B', flexShrink: 0 }}>
+      <img src="/bnei-herzliya-logo-w.png" alt="" style={{ height: 15 }} />
+    </span>
+  );
+}
+
 export default function PlansView({ planIndex, reloadIndex, trainees, exercises, setExercises, clientWorkouts, weeklyFocus, setWeeklyFocus, openPlanId, onPlanOpened, onEditorOpen, onEditorClose, onPreviewPlan, portalVis, setPortalVis, onCloseEditor }) {
   const { plan: editPlanData, loading: editLoading, load: loadFullPlan, clear: clearPlan, setPlan: setEditPlan } = useFullPlan();
   const [linkedTaskId, setLinkedTaskId] = useState(null);
@@ -4139,6 +4152,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,background:'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))',borderBottom:`1px solid ${C.cardBd}`,padding:'8px 14px'}}>
                   <span style={{display:'flex',alignItems:'center',gap:9,minWidth:0}}>
                     <span aria-hidden style={{width:3,height:14,background:C.ac,flexShrink:0}} />
+                    <BhbcBadge tid={row.tid} trainees={trainees} />
                     <bdi style={{fontWeight:700,fontSize:13,letterSpacing:'0.04em',color:'#FFFFFF',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{row.name}</bdi>
                   </span>
                   <span style={{display:'inline-flex',alignItems:'center',gap:10,flexShrink:0}}>
@@ -4313,6 +4327,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,background:'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))',borderBottom:`1px solid ${C.cardBd}`,padding:'8px 14px'}}>
                 <span style={{display:'flex',alignItems:'center',gap:9,minWidth:0}}>
                   <span aria-hidden style={{width:3,height:14,background:C.ac,flexShrink:0}} />
+                  <BhbcBadge tid={row.tid} trainees={trainees} />
                   <bdi style={{fontWeight:700,fontSize:13,letterSpacing:'0.04em',color:'#FFFFFF',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{row.name}</bdi>
                 </span>
                 <span style={{display:'inline-flex',alignItems:'center',gap:10,flexShrink:0}}>

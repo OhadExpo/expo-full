@@ -1106,8 +1106,6 @@ function AuthedApp() {
         { route:'trainees',  label:'Roster',    count:activeAthletesCount },
         { route:'plans',     label:'Programs',  count:null },
         { route:'exercises', label:'Exercises', count:null },
-        { route:'exerciseMatching', label:'Matching', count:null },
-        { route:'exerciseClassify', label:'Classify', count:null },
         { route:'bhbc',      label:'BHBC',      count:null },
       ] },
     { key:'sessions',   label:'Sessions',   count:null,
@@ -1418,9 +1416,23 @@ function AuthedApp() {
           {tab==="trainees"&&!selectedTrainee&&<TraineesView trainees={trainees} setTrainees={setTrainees} planCounts={planCounts} payments={payments} workouts={workouts} clientWorkouts={clientWorkouts} bwLog={bwLog} portalVis={portalVis} presence={presence} onSelect={id=>navTo("trainees",id)} onPreview={openPreview}/>}
           {tab==="trainees"&&selectedTrainee&&previewTrainee===selectedTrainee&&<CoachPreviewPortal traineeId={selectedTrainee} trainees={trainees} exercises={exercises} portalVis={portalVis} clientWorkouts={clientWorkouts} bwLog={bwLog} weeklyFocus={weeklyFocus} onBack={()=>closePreview(selectedTrainee)}/>}
           {tab==="trainees"&&selectedTrainee&&previewTrainee!==selectedTrainee&&<TraineeDetail key={selectedTrainee} trainee={selectedTrainee} trainees={trainees} setTrainees={setTrainees} planIndex={planIndex} reloadPlanIndex={reloadPlanIndex} onOpenPlan={pid=>{setSelectedPlanId(pid);setPlanEditorOrigin({kind:'trainees',traineeId:selectedTrainee});navTo("plans")}} onPreviewPortal={()=>openPreview(selectedTrainee)} onOpenTasksTab={()=>navTo("tasks")} onCreatePlanForTask={()=>navTo("plans")} onOpenIntakeTab={()=>navTo("intake")} onOpenInPersonForTrainee={tid=>{try{sessionStorage.setItem('expo-pendingInPersonTrainee',tid);}catch{} navTo("workouts");}} exercises={exercises} workouts={workouts} clientWorkouts={clientWorkouts} payments={payments} addPayment={addPayment} updatePayment={updateBitPayment} removePayment={removePayment} bwLog={bwLog} setBwLog={setBwLog} portalVis={portalVis} setPortalVis={setPortalVisSynced} presence={presence} onBack={()=>navTo("trainees")}/>}
-          {tab==="exercises"&&<MemoExercises exercises={exercises} setExercises={setExercises} onOpenClassify={()=>navTo('exerciseClassify')}/>}
-          {tab==="exerciseMatching"&&<Suspense fallback={<ViewFallback/>}><ErrorBoundary inline><ExerciseMatchingView exercises={exercises} setExercises={setExercises}/></ErrorBoundary></Suspense>}
-          {tab==="exerciseClassify"&&<Suspense fallback={<ViewFallback/>}><ErrorBoundary inline><ExerciseClassifyView exercises={exercises} setExercises={setExercises}/></ErrorBoundary></Suspense>}
+          {(tab==="exercises"||tab==="exerciseMatching"||tab==="exerciseClassify")&&(
+            <div>
+              {/* Exercises hub: Library + its two maintenance tools (Matching,
+                  Classify) live here as sub-tabs instead of separate Athletes ▾
+                  menu items (Ohad). Underline tabs = the app's filter/sub-nav
+                  control grammar. Deep-link routes still resolve to each tab. */}
+              <div style={{display:'flex',gap:2,borderBottom:`1px solid ${C.cardBd}`,marginBottom:16,flexWrap:'wrap'}}>
+                {[['exercises','Library'],['exerciseMatching','Matching'],['exerciseClassify','Classify']].map(([r,l])=>{
+                  const on=tab===r;
+                  return <button key={r} onClick={()=>navTo(r)} style={{fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:on?C.tx:C.td,background:'transparent',border:'none',borderBottom:on?`2px solid ${C.ac}`:'2px solid transparent',padding:'10px 16px',marginBottom:-1,cursor:'pointer'}}>{l}</button>;
+                })}
+              </div>
+              {tab==="exercises"&&<MemoExercises exercises={exercises} setExercises={setExercises} onOpenClassify={()=>navTo('exerciseClassify')}/>}
+              {tab==="exerciseMatching"&&<Suspense fallback={<ViewFallback/>}><ErrorBoundary inline><ExerciseMatchingView exercises={exercises} setExercises={setExercises}/></ErrorBoundary></Suspense>}
+              {tab==="exerciseClassify"&&<Suspense fallback={<ViewFallback/>}><ErrorBoundary inline><ExerciseClassifyView exercises={exercises} setExercises={setExercises}/></ErrorBoundary></Suspense>}
+            </div>
+          )}
           {tab==="review"&&<MemoReview clientWorkouts={clientWorkouts} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} planIndex={planIndex} trainees={trainees} exercises={exercises} markReviewed={markWorkoutReviewed} updateFormVideos={updateFormVideos} deleteWorkout={deleteClientWorkout} onOpenTrainee={openTraineeFromReview}/>}
           {tab==="reviewTools"&&isOwner&&<ReviewToolsView clientWorkouts={clientWorkouts} trainees={trainees}/>}
           {tab==="plans"&&previewPlan&&<CoachPreviewPortal planId={previewPlan} trainees={trainees} exercises={exercises} portalVis={portalVis} clientWorkouts={clientWorkouts} bwLog={bwLog} weeklyFocus={weeklyFocus} onBack={closePlanPreview}/>}

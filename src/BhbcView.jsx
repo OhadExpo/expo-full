@@ -31,9 +31,14 @@ const NAVY = '#1E3D74', NAVY_DEEP = '#14294F', ORANGE = '#F26A2B', ORANGE_DEEP =
 // Scoped theme override — reskins EXPO's components to BHBC while keeping their
 // geometry + light/dark behaviour. Strips go navy (white title text stays legible)
 // in both themes; card hairlines get a navy tint blended into the theme border.
+// BHBC accent = orange (the brand action colour). We deliberately DON'T pin
+// --c-stripBg to navy anymore: the old solid-navy strip read as a loud bright
+// bar on every card and clashed with EXPO's refined "camera-tools" build. Now
+// card header strips fall back to the themed surface + a 10% orange hint, so
+// every strip is a calm dark bar with a brand accent — matching the rest of
+// the app. Navy stays for identity only (zone header, jersey, left stripes).
 const TOKENS = {
-  '--c-ac': NAVY,
-  '--c-stripBg': NAVY,
+  '--c-ac': ORANGE,
   '--c-cardBd': 'color-mix(in srgb, #1E3D74 20%, var(--c-bd))',
 };
 const BAND = { detrained: '#4F9DE0', low: '#37B27C', elevated: '#E0A73A', high: '#DE4E3B', none: '#7C828B' };
