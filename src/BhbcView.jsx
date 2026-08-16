@@ -324,7 +324,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
 
   return (
     <div className="bhbc-zone" style={{ ...TOKENS, minHeight: '100vh', background: 'var(--c-bg)', color: C.tx, fontFamily: FB }}>
-      <style>{`.bhbc-hdr-tabs::-webkit-scrollbar{display:none} .bhbc-hdr-tabs{scrollbar-width:none;-ms-overflow-style:none}`}</style>
+      <style>{`.bhbc-hdr-tabs::-webkit-scrollbar{display:none} .bhbc-hdr-tabs{scrollbar-width:none;-ms-overflow-style:none} .bhbc-ghost-btn:hover{color:${ORANGE}!important;border-color:${ORANGE}!important}`}</style>
       {/* ---- ZONE TOP BAR — logo + wordmark + inline nav tabs + controls, one
            clean bar (EXPO-style; tabs moved up here from a separate row). ---- */}
       <header style={{ position: 'sticky', top: 0, zIndex: 50, background: NAVY, borderBottom: `2px solid ${ORANGE}`, boxShadow: '0 1px 0 rgba(255,255,255,0.06) inset' }}>
@@ -1553,16 +1553,20 @@ function MedicalView({ roster, medical, canMedical = true, onReport, onEdit, onO
             const status = act.length ? (act.find((i) => i.status === 'out') || act.find((i) => i.status === 'limited') || act[0]).status : 'available';
             const hist = ((medical[t.id] || {}).injuries || []).length;
             return (
-              <div key={t.id} style={{ display: 'grid', gridTemplateColumns: '1fr 108px 108px', gap: 10, alignItems: 'center', padding: '10px 0', borderBottom: `0.25px solid ${C.cardBd}` }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0, cursor: 'pointer' }} onClick={() => onOpen(t.id)}>
-                  <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums', width: 20 }}>{t.jersey ?? '—'}</span>
+              <div key={t.id} className="bhbc-row" style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '11px 0', borderBottom: `0.25px solid ${C.cardBd}` }}>
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, cursor: 'pointer' }} onClick={() => onOpen(t.id)}>
+                  <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums', width: 20, flexShrink: 0 }}>{t.jersey ?? '—'}</span>
                   <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 600, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>
                   {hist > 0 && <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.04em', flexShrink: 0 }}>· {hist} record{hist > 1 ? 's' : ''}</span>}
                 </div>
-                <StatusPill status={status} small full />
+                {/* colour = signal: a coloured status DOT, calm muted label — not a filled pill. */}
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, minWidth: 96, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: (MED_STATUS[status] || MED_STATUS.available).color, flexShrink: 0 }} />
+                  {(MED_STATUS[status] || MED_STATUS.available).label}
+                </span>
                 {canMedical
-                  ? <button onClick={() => (act.length ? onEdit(t.id, act[0].id) : onReport(t.id))} style={{ height: 28, boxSizing: 'border-box', width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: act.length ? NAVY : '#fff', background: act.length ? 'transparent' : NAVY, border: act.length ? `1px solid ${C.cardBd}` : 'none', cursor: 'pointer' }}>{act.length ? 'View' : '+ Report'}</button>
-                  : <span />}
+                  ? <button onClick={() => (act.length ? onEdit(t.id, act[0].id) : onReport(t.id))} className="bhbc-ghost-btn" style={{ height: 26, boxSizing: 'border-box', minWidth: 84, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, cursor: 'pointer', flexShrink: 0, transition: 'color .12s, border-color .12s' }}>{act.length ? 'View ›' : '+ Report'}</button>
+                  : <span style={{ width: 84, flexShrink: 0 }} />}
               </div>
             );
           })}
