@@ -1096,8 +1096,19 @@ function TodayPanel({ today, fixtures, fx, rows, onSessions, onLog }) {
       <span style={{ fontFamily: FN, fontSize: 11.5, color: C.td, padding: '5px 9px 5px 2px', display: 'inline-flex', alignItems: 'center' }}>{f.minutes} min</span>
     </span>
   );
+  // Today's prescribed training focus, from the microcycle (game-anchored).
+  const mdToday = fx.nextGame ? -dayDiff(fx.nextGame.date, today) : null;
+  const focus = mdToday != null ? mdPlan(mdToday) : null;
+  const focusC = focus ? (focus.game ? ORANGE : focus.load >= 5 ? ORANGE_DEEP : focus.load >= 3 ? NAVY : '#6B7280') : NAVY;
   return (
     <Card padding={18} leftStripe={ORANGE} header={secTitle(`Today · ${dow(today)} ${monDay(today)}`)} headerRight={gdLabel ? <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff' }}>{gdLabel}</span> : null}>
+      {focus && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, paddingBottom: 14, borderBottom: `1px solid ${C.cardBd}`, flexWrap: 'wrap' }}>
+          <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm }}>Today’s focus</span>
+          <span style={{ fontFamily: FN, fontSize: 10.5, fontWeight: 800, letterSpacing: '0.06em', color: '#fff', background: focusC, padding: '3px 9px', whiteSpace: 'nowrap' }}>{focus.label}</span>
+          <span style={{ fontFamily: FB, fontSize: 12.5, color: C.tx }}>{focus.emphasis}</span>
+        </div>
+      )}
       <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'flex-start' }}>
         <div style={{ flex: '2 1 300px', minWidth: 240 }}>
           <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm, marginBottom: 8 }}>Sessions</div>
