@@ -29,7 +29,7 @@ import CoachMessages from './CoachMessages';
 import CoachContractComposer from './CoachContractComposer';
 import TraineeEvaluation from './TraineeEvaluation';
 import TraineeIntake from './TraineeIntake';
-import { emailsToArr, emailsToStore, emailsDisplay, traineeIdsFor, subMemberId, sortProgramsRecent } from './traineeUtils';
+import { emailsToArr, emailsToStore, emailsDisplay, traineeIdsFor, subMemberId, sortProgramsChrono } from './traineeUtils';
 import useAutosave, { autosaveStatusLabel } from './hooks/useAutosave';
 
 // Status is changed HERE (top-right of the trainee page) via this dropdown —
@@ -332,7 +332,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
   // otherwise have to do by toggling each block off by hand.
   const bulkOnlyCurrent = (plans, keyFn) => {
     if (plans.length === 0) return;
-    const sorted = [...plans].sort(sortProgramsRecent);
+    const sorted = [...plans].sort(sortProgramsChrono);
     const current = sorted[0];
     const next = { ...portalVis };
     plans.forEach(p => { next[keyFn(p)] = p === current; });
@@ -360,7 +360,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
   // Helper: render a member column (body stats, injuries, goals, optionally programs)
   const renderMemberColumn = (m, mi, showPrograms = true) => {
     const memberPlans = tpMember(mi);
-    const sorted = [...memberPlans].sort((a,b)=>programSort==='alpha'?(a.name||'').localeCompare(b.name||''):sortProgramsRecent(a,b));
+    const sorted = [...memberPlans].sort((a,b)=>programSort==='alpha'?(a.name||'').localeCompare(b.name||''):sortProgramsChrono(a,b));
     const memberVisKey = (p) => `${td.name}:${p.name}:m${mi}`;
     // Single-click "make this the only visible plan" for couple members.
     // Sets every sibling explicitly to false so default-undefined rows
@@ -429,7 +429,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
   //   only-this  → "Only" text action
   //   unassign   → "Remove" text action (red)
   const renderProgramsList = () => {
-    const sorted = [...tp].sort((a,b)=>programSort==='alpha'?(a.name||'').localeCompare(b.name||''):sortProgramsRecent(a,b));
+    const sorted = [...tp].sort((a,b)=>programSort==='alpha'?(a.name||'').localeCompare(b.name||''):sortProgramsChrono(a,b));
     if (sorted.length === 0) return null; // caller renders the empty state
     const cur = sorted[0];
     const earlier = sorted.slice(1);
@@ -615,19 +615,19 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             30px, all equal width. NOTIFICATION gets a touch more room for its toggle.
             EDIT first (after BACK), then LOG SESSION / PORTAL / ANALYSIS, the
             NOTIFICATION toggle, ARCHIVE (destructive) last. */}
-        <div style={{display:"flex",gap:4,flex:1,minWidth:0}}>
+        <div style={{display:"flex",gap:4,flex:1,minWidth:0,flexWrap:"wrap"}}>
           {/* Order (Ohad): EDIT · PORTAL · ANALYSIS · LOG SESSION · ARCHIVE · NOTIFICATION.
               Border unified to the same cyan hairline (C.cardBd) as the section-tab
               row below, so the two rows read as ONE consistent segmented system
               (Ohad: "don't like grey borders on top, cyan on the 2nd row"). */}
-          <Btn variant="ghost" onClick={openEdit} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 0',minWidth:0,border:`1px solid ${C.cardBd}`}}>EDIT</Btn>
-          {onPreviewPortal && <Btn variant="ghost" onClick={onPreviewPortal} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 0',minWidth:0,border:`1px solid ${C.cardBd}`}} title="Open this athlete's portal in preview mode">PORTAL</Btn>}
-          <Btn variant="ghost" onClick={()=>lineage.open(trainee)} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 0',minWidth:0,border:`1px solid ${C.cardBd}`}} title="Training Analysis — cross-block progression + what to program next">ANALYSIS</Btn>
-          {onOpenInPersonForTrainee && <Btn variant="ghost" onClick={()=>onOpenInPersonForTrainee(trainee)} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 0',minWidth:0,border:`1px solid ${C.cardBd}`}} title="Open the in-person workout logger pre-filtered to this athlete">LOG SESSION</Btn>}
+          <Btn variant="ghost" onClick={openEdit} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 88px',minWidth:0,whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}}>EDIT</Btn>
+          {onPreviewPortal && <Btn variant="ghost" onClick={onPreviewPortal} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 88px',minWidth:0,whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}} title="Open this athlete's portal in preview mode">PORTAL</Btn>}
+          <Btn variant="ghost" onClick={()=>lineage.open(trainee)} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 88px',minWidth:0,whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}} title="Training Analysis — cross-block progression + what to program next">ANALYSIS</Btn>
+          {onOpenInPersonForTrainee && <Btn variant="ghost" onClick={()=>onOpenInPersonForTrainee(trainee)} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 88px',minWidth:0,whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}} title="Open the in-person workout logger pre-filtered to this athlete">LOG SESSION</Btn>}
           {td.status==="Archived" ? <>
-            <Btn variant="ghost" onClick={()=>{if(setTrainees)setTrainees(prev=>prev.map(t=>t.id===trainee?{...t,status:"Inactive",archivedAt:undefined}:t));onBack()}} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 0',minWidth:0,border:`1px solid ${C.cardBd}`}}>RESTORE</Btn>
-            <Btn variant="danger" onClick={()=>setShowDeleteConfirm(true)} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 0',minWidth:0}}>DELETE</Btn>
-          </> : <Btn variant="ghost" onClick={()=>setShowArchiveConfirm(true)} title="Archive this athlete" style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",color:'var(--c-tm)',flex:'1 1 0',minWidth:0,border:`1px solid ${C.cardBd}`}}>ARCHIVE</Btn>}
+            <Btn variant="ghost" onClick={()=>{if(setTrainees)setTrainees(prev=>prev.map(t=>t.id===trainee?{...t,status:"Inactive",archivedAt:undefined}:t));onBack()}} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 88px',minWidth:0,whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}}>RESTORE</Btn>
+            <Btn variant="danger" onClick={()=>setShowDeleteConfirm(true)} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 88px',minWidth:0,whiteSpace:'nowrap'}}>DELETE</Btn>
+          </> : <Btn variant="ghost" onClick={()=>setShowArchiveConfirm(true)} title="Archive this athlete" style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",color:'var(--c-tm)',flex:'1 1 88px',minWidth:0,whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}}>ARCHIVE</Btn>}
           <button
             onClick={() => { if (setTrainees) setTrainees(prev => prev.map(t => t.id === trainee ? { ...t, notifOff: !t.notifOff } : t)); }}
             title={td.notifOff ? 'Notifications muted for this athlete — click to unmute' : 'Notifications on — click to mute push + dashboard alerts about this athlete'}
@@ -892,7 +892,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           {[0,1].map(mi => {
             const m = td.members[mi];
             const memberPlans = tpMember(mi);
-            const sorted = [...memberPlans].sort((a,b)=>programSort==='alpha'?(a.name||'').localeCompare(b.name||''):sortProgramsRecent(a,b));
+            const sorted = [...memberPlans].sort((a,b)=>programSort==='alpha'?(a.name||'').localeCompare(b.name||''):sortProgramsChrono(a,b));
             const memberVisKey = (p) => `${td.name}:${p.name}:m${mi}`;
             // Single-click "only this" within THIS couple member's plan list.
             const onlyThisCouple = (chosenKey) => {
