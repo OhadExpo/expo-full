@@ -175,8 +175,9 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
       flagged: rows.filter((r) => ['high', 'elevated'].includes(r.acwr.band.key)).length,
       week: Math.round(rows.reduce((s, r) => s + (r.acwr.acute || 0), 0)),
       teamSeries: last14.map((d) => roster.reduce((s, t) => s + ((bhbcLoads[t.id]?.loads?.[d]) || 0), 0)),
+      series28: last28.map((d) => ({ date: d, load: roster.reduce((s, t) => s + ((bhbcLoads[t.id]?.loads?.[d]) || 0), 0) })),
     };
-  }, [rows, roster, bhbcLoads, last14]);
+  }, [rows, roster, bhbcLoads, last14, last28]);
 
   const fx = useMemo(() => {
     const items = (bhbcFixtures || []).slice().sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start));
@@ -1150,6 +1151,29 @@ function TeamSnapshotCard({ team }) {
           </div>
         ))}
       </div>
+      {(() => {
+        const vals = (team.series28 || []).map((d) => d.load);
+        if (!vals.some((v) => v > 0)) return <div style={{ padding: '14px 18px 2px', borderTop: `1px solid ${C.cardBd}`, fontFamily: FB, fontSize: 11.5, color: C.td }}>Team load trend appears here once sessions are logged.</div>;
+        const max = Math.max(...vals, 1), n = vals.length, W = 800, H = 76, padB = 6, padT = 8;
+        const gx = (i) => (n <= 1 ? W / 2 : (i / (n - 1)) * W);
+        const gy = (v) => padT + (1 - v / max) * (H - padT - padB);
+        const line = vals.map((v, i) => `${gx(i).toFixed(1)},${gy(v).toFixed(1)}`).join(' ');
+        const area = `M0,${H - padB} L${line.replace(/ /g, ' L')} L${W},${H - padB} Z`;
+        return (
+          <div style={{ padding: '14px 18px 4px', borderTop: `1px solid ${C.cardBd}` }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+              <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>28-day team load</span>
+              <span style={{ fontFamily: FN, fontSize: 9, color: C.td, fontVariantNumeric: 'tabular-nums' }}>peak {Math.round(max).toLocaleString()}</span>
+            </div>
+            <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: '100%', height: H, display: 'block' }} aria-hidden="true">
+              <defs><linearGradient id="bhbcTeamLoad" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor={ORANGE} stopOpacity="0.28" /><stop offset="100%" stopColor={ORANGE} stopOpacity="0" /></linearGradient></defs>
+              <path d={area} fill="url(#bhbcTeamLoad)" />
+              <polyline points={line} fill="none" stroke={ORANGE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 2, fontFamily: FN, fontSize: 8.5, color: C.td }}><span>28d ago</span><span>today</span></div>
+          </div>
+        );
+      })()}
     </Card>
   );
 }
