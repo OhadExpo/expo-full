@@ -412,7 +412,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                   <div style={{ display: 'inline-flex', border: `1px solid ${C.cardBd}` }}>
                     {[['group', 'Group'], ['single', 'Single']].map(([k, l]) => (
-                      <button key={k} onClick={() => setSessionMode(k)} style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: sessionMode === k ? '#fff' : C.td, background: sessionMode === k ? NAVY : 'transparent', border: 'none', padding: '7px 16px', cursor: 'pointer' }}>{l}</button>
+                      <button key={k} onClick={() => setSessionMode(k)} style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: sessionMode === k ? '#fff' : C.td, background: sessionMode === k ? NAVY_DEEP : 'transparent', border: 'none', padding: '7px 16px', cursor: 'pointer' }}>{l}</button>
                     ))}
                   </div>
                   <span style={{ fontFamily: FB, fontSize: 11.5, color: C.td }}>Logs each athlete's work to their history &amp; portal — synced with EXPO.</span>
