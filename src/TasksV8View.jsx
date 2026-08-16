@@ -67,6 +67,15 @@ if (typeof document !== 'undefined' && !document.getElementById('tasks-v8-anim')
       from { opacity: 0; }
       to   { opacity: 1; }
     }
+    /* Smooth height reveal so an expanding row eases the rest of the list down
+       instead of snapping (grid-template-rows is animatable in modern browsers). */
+    @keyframes tasks-v8-expand {
+      from { grid-template-rows: 0fr; opacity: 0; }
+      to   { grid-template-rows: 1fr; opacity: 1; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      [data-task-detail] { animation: none !important; }
+    }
   `;
   document.head.appendChild(style);
 }
@@ -1695,9 +1704,12 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
         )}
       </div>
       {expanded && (
-        <div style={{
-          animation: 'tasks-v8-slide-in 200ms ease-out',
+        <div data-task-detail style={{
+          display: 'grid',
+          gridTemplateRows: '1fr',
+          animation: 'tasks-v8-expand 240ms ease-out',
         }}>
+          <div style={{ overflow: 'hidden', minHeight: 0 }}>
           <ExpandedDetail row={row} displayBody={row._display}
             viewer={viewer}
             onSetCategory={onSetCategory}
@@ -1705,6 +1717,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
             onDelete={onDelete}
             readOnly={readOnly}
           />
+          </div>
         </div>
       )}
     </React.Fragment>
