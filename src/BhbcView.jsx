@@ -331,9 +331,10 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
         <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px', minHeight: 60, display: 'flex', alignItems: 'stretch', gap: 20 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0, paddingRight: 6, borderRight: '1px solid rgba(255,255,255,0.12)' }}>
             <img src="/bnei-herzliya-logo-w.png" alt="Bnei Herzliya BC" style={{ height: 36, width: 'auto', display: 'block' }} />
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 14.5, color: '#fff', letterSpacing: '0.04em', lineHeight: 1 }}>BNEI HERZLIYA</div>
-              <div style={{ fontFamily: FN, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.22em', textTransform: 'uppercase', color: ORANGE, marginTop: 4 }}>S&amp;C · 2026/27</div>
+            {/* Wordmark on ONE line (Ohad: no stacked text in the top menu). */}
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, whiteSpace: 'nowrap' }}>
+              <span style={{ fontFamily: FN, fontWeight: 800, fontSize: 14.5, color: '#fff', letterSpacing: '0.04em' }}>BNEI HERZLIYA</span>
+              <span style={{ fontFamily: FN, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: ORANGE }}>S&amp;C · 2026/27</span>
             </div>
           </div>
           <nav className="bhbc-hdr-tabs" style={{ display: 'flex', alignItems: 'stretch', gap: 0, flex: 1, minWidth: 0, overflowX: 'auto' }}>
