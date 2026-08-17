@@ -2238,11 +2238,11 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                       return (
                         <React.Fragment key={si}>
                           {prior && (
-                            <div style={{display:"grid",gridTemplateColumns:"40px 1fr 1fr 1fr",gap:4,padding:"2px 0",opacity:0.55,marginTop:si===0?0:6}}>
+                            <div style={{display:"grid",gridTemplateColumns:"40px 1fr 1fr 1fr",gap:4,padding:"3px 0",opacity:0.55,marginTop:si===0?0:6}}>
                               <div style={{fontFamily:FN,fontSize:9,color:C.ac,textAlign:"center",letterSpacing:"0.08em",fontWeight:800}}>W{prevWeekIdx}</div>
-                              <div style={{fontFamily:FN,fontSize:11,color:C.tx,textAlign:'center',fontWeight:700,fontVariantNumeric:'tabular-nums'}}>{prior.reps || '—'}</div>
-                              <div style={{fontFamily:FN,fontSize:11,color:C.tx,textAlign:'center',fontWeight:700,fontVariantNumeric:'tabular-nums'}}>{parseFloat(prior.load)}kg</div>
-                              <div style={{fontFamily:FN,fontSize:11,color:C.tx,textAlign:'center',fontWeight:700,fontVariantNumeric:'tabular-nums'}}>{prior.rpe || '—'}</div>
+                              <div style={{fontFamily:FN,fontSize:12,color:C.tx,textAlign:'center',fontWeight:700,fontVariantNumeric:'tabular-nums'}}>{prior.reps || '—'}</div>
+                              <div style={{fontFamily:FN,fontSize:12,color:C.tx,textAlign:'center',fontWeight:700,fontVariantNumeric:'tabular-nums'}}>{parseFloat(prior.load)}kg</div>
+                              <div style={{fontFamily:FN,fontSize:12,color:C.tx,textAlign:'center',fontWeight:700,fontVariantNumeric:'tabular-nums'}}>{prior.rpe || '—'}</div>
                             </div>
                           )}
                           <div style={{display:"grid",gridTemplateColumns:"40px 1fr 1fr 1fr",gap:4,padding:"3px 0",

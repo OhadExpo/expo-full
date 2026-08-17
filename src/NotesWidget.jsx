@@ -720,7 +720,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
           leading "#" scopes to tags; bare text searches body + tags +
           target_label. */}
       {!compact && (
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 8 }}>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'stretch', marginBottom: 8 }}>
           <input type="search" value={search} onChange={e => setSearch(e.target.value)}
             placeholder='Search notes / tags  (try "#rehab" or "shoulder")'
             style={{

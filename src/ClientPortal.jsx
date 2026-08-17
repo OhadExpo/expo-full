@@ -3004,7 +3004,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                   role={canExpand ? 'button' : undefined} tabIndex={canExpand ? 0 : undefined} aria-expanded={canExpand ? isOpen : undefined}
                   onKeyDown={canExpand ? (e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpandedHistEx(isOpen ? null : expandKey); } }) : undefined}
                   style={{fontSize:11,fontFamily:FN,color:C.tm,display:'flex',alignItems:'center',gap:6,cursor:canExpand?'pointer':'default',padding:'3px 0'}}>
-                  <span style={{flex:1}}>{i+1}. {x.title} <span style={{color:C.td}}>{x.prescribed} · {(x.sets||[]).filter(s=>s.done).length}/{(x.sets||[]).length}</span></span>
+                  <span style={{flex:1,minWidth:0,color:C.tx}}><span style={{display:'inline-block',width:22,textAlign:'right',flexShrink:0,color:C.td,marginRight:6}}>{i+1}.</span>{x.title} <span style={{color:C.td}}>{x.prescribed} · {(x.sets||[]).filter(s=>s.done).length}/{(x.sets||[]).length}</span></span>
                   {/* VIDEO + NOTES are uniform bare caps tags (matching weight/
                       size, each with a leading severity dot) so the row reads as
                       one clean cluster instead of a bare label next to a boxed
