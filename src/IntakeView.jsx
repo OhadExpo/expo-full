@@ -183,7 +183,7 @@ export default function IntakeView({ trainees }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, padding: '14px 18px' }}>
           <div>
             <div style={{ fontFamily: FB, fontSize: 12, color: C.tm }}>
-              {counts.open} open · {counts.initial} initial · {counts.assessment} assessment · {counts.progress} progress · {counts.total} total
+              <span style={{ color: C.tx, fontWeight: 700 }}>{counts.open} open</span> · {counts.initial} initial · {counts.assessment} assessment · {counts.progress} progress · {counts.total} total
             </div>
           </div>
           <Btn onClick={() => setShowGen(true)} style={{ height: 30, padding: '0 18px' }}>+ Generate Link</Btn>

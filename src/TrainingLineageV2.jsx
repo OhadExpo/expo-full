@@ -596,7 +596,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
         <div style={{ ...hd, cursor: 'pointer' }} onClick={() => setLiftsOpen((v) => !v)} role="button" tabIndex={0}
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setLiftsOpen((v) => !v); } }}
           title={liftsOpen ? 'Collapse' : 'Expand the per-lift breakdown'}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ color: C.ac }}>{liftsOpen ? '▾' : '▸'}</span>Key lifts · what to do next</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ color: C.ac, fontSize: 10 }}>{liftsOpen ? '▾' : '▸'}</span>Key lifts · what to do next</span>
           <span style={hdQ}>{liftsOpen ? 'worst first · each row tells you the move for next block' : `${a.staples.filter((s) => s.count >= 3).length} lifts · click to expand`}</span>
         </div>
         {liftsOpen && <div style={bd}>
