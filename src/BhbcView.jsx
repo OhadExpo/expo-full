@@ -1794,9 +1794,23 @@ function LeagueView({ league, roster, fixtures, onOpen }) {
         )}
       </Card>
 
-      {/* Games — BHBC only */}
+      {/* Games — BHBC only. In a fresh season, lead with this season's fixtures and
+          tuck last season's completed results into a collapse. */}
       <Card padding={18} leftStripe={NAVY} header={secTitle('Games')}>
-        {allGames.length ? <ResultsList games={allGames} bhbcOnly /> : <div style={{ fontFamily: FB, fontSize: 12.5, color: C.td, padding: '14px 0', textAlign: 'center' }}>Fixtures load as the league publishes them.</div>}
+        {pastData ? (
+          <>
+            {upcomingFx.length ? <ResultsList games={upcomingFx} bhbcOnly /> : <div style={{ fontFamily: FB, fontSize: 12.5, color: C.td, padding: '14px 0', textAlign: 'center' }}>Fixtures load as the league publishes them.</div>}
+            {playedGames.length > 0 && (
+              <div style={{ marginTop: 14 }}>
+                <CollapsibleSection domId="bhbc-lastseason-games" storageKey="bhbc-lastseason-games" defaultOpen={false} title={`${league.season} · Last season results`} bare padX={0}>
+                  <div style={{ opacity: 0.72 }}><ResultsList games={playedGames} bhbcOnly /></div>
+                </CollapsibleSection>
+              </div>
+            )}
+          </>
+        ) : (
+          allGames.length ? <ResultsList games={allGames} bhbcOnly /> : <div style={{ fontFamily: FB, fontSize: 12.5, color: C.td, padding: '14px 0', textAlign: 'center' }}>Fixtures load as the league publishes them.</div>
+        )}
       </Card>
     </>
   );
