@@ -374,9 +374,9 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
           <div className="bhbc-header-id" style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, marginRight: 6 }}>
             <img src="/bnei-herzliya-logo-w.png" alt="Bnei Herzliya BC" style={{ height: 30, width: 'auto', display: 'block' }} />
             {/* Wordmark on ONE line (Ohad: no stacked text in the top menu). */}
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, whiteSpace: 'nowrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 11, whiteSpace: 'nowrap' }}>
               <span style={{ fontFamily: FN, fontWeight: 800, fontSize: 13.5, color: '#fff', letterSpacing: '0.02em' }}>BNEI HERZLIYA</span>
-              <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: ORANGE }}>S&amp;C · 2026/27</span>
+              <span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.08em', color: ORANGE, fontVariantNumeric: 'tabular-nums' }}>2026/27</span>
             </div>
           </div>
           {/* Understated EXPO-style nav: tight left-aligned small tabs, active tab is
