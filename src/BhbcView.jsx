@@ -367,16 +367,18 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
       {/* ---- ZONE TOP BAR — logo + wordmark + inline nav tabs + controls, one
            clean bar (EXPO-style; tabs moved up here from a separate row). ---- */}
       <header style={{ position: 'sticky', top: 0, zIndex: 50, background: NAVY, borderBottom: `2px solid ${ORANGE}`, boxShadow: '0 1px 0 rgba(255,255,255,0.06) inset' }}>
-        <div className="bhbc-header-inner" style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px', minHeight: 60, display: 'flex', alignItems: 'stretch', gap: 20 }}>
-          <div className="bhbc-header-id" style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-            <img src="/bnei-herzliya-logo-w.png" alt="Bnei Herzliya BC" style={{ height: 36, width: 'auto', display: 'block' }} />
+        <div className="bhbc-header-inner" style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', minHeight: 58, display: 'flex', alignItems: 'stretch', gap: 28 }}>
+          <div className="bhbc-header-id" style={{ display: 'flex', alignItems: 'center', gap: 11, flexShrink: 0 }}>
+            <img src="/bnei-herzliya-logo-w.png" alt="Bnei Herzliya BC" style={{ height: 34, width: 'auto', display: 'block' }} />
             {/* Wordmark on ONE line (Ohad: no stacked text in the top menu). */}
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, whiteSpace: 'nowrap' }}>
-              <span style={{ fontFamily: FN, fontWeight: 800, fontSize: 14.5, color: '#fff', letterSpacing: '0.04em' }}>BNEI HERZLIYA</span>
-              <span style={{ fontFamily: FN, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: ORANGE }}>S&amp;C · 2026/27</span>
+              <span style={{ fontFamily: FN, fontWeight: 800, fontSize: 14, color: '#fff', letterSpacing: '0.03em' }}>BNEI HERZLIYA</span>
+              <span style={{ fontFamily: FN, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: ORANGE }}>S&amp;C · 2026/27</span>
             </div>
           </div>
-          <nav className="bhbc-hdr-tabs" style={{ display: 'flex', alignItems: 'stretch', justifyContent: 'center', gap: 0, flex: 1, minWidth: 0, overflowX: 'auto' }}>
+          {/* Tabs sit tight next to the wordmark; controls get pushed right (one clean
+              gap, not tabs floating in the middle). */}
+          <nav className="bhbc-hdr-tabs" style={{ display: 'flex', alignItems: 'stretch', justifyContent: 'flex-start', gap: 2, flex: '0 1 auto', minWidth: 0, overflowX: 'auto' }}>
             {roster.length > 0 && NAV_TABS.map(([k, label]) => {
               const on = view === k;
               return (
@@ -386,7 +388,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
               );
             })}
           </nav>
-          <div className="bhbc-header-ctrl" style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+          <div className="bhbc-header-ctrl" style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, marginLeft: 'auto' }}>
             <ThemeToggle size={30} style={{ color: '#fff', border: '1px solid rgba(255,255,255,0.4)' }} />
             {onExit && <button onClick={onExit} title="Back to EXPO coach" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#fff', background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.28)', borderRadius: 0, padding: '7px 12px', cursor: 'pointer' }}>‹ EXPO</button>}
             {coach && onSignOut && <button onClick={onSignOut} title="Sign out" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#fff', background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.28)', borderRadius: 0, padding: '7px 12px', cursor: 'pointer' }}>Sign out</button>}
