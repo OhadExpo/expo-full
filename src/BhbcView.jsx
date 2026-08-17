@@ -1098,7 +1098,11 @@ function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onCheckin, onL
             return (
               <div key={i} onClick={click || undefined} className={click ? 'bhbc-row' : undefined}
                 style={{ display: 'flex', alignItems: 'flex-start', gap: 11, padding: '9px 2px', borderBottom: i < top.length - 1 ? `0.25px solid ${C.cardBd}` : 'none', cursor: click ? 'pointer' : 'default' }}>
-                <span style={{ width: 7, height: 7, borderRadius: '50%', background: sevColor[a.sev], flexShrink: 0, marginTop: 5 }} />
+                {/* Wrap the dot in a box the height of one text line so it centers
+                    on the first line instead of floating high (Ohad: dot alignment). */}
+                <span style={{ display: 'inline-flex', alignItems: 'center', height: 12.5 * 1.5, flexShrink: 0 }}>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: sevColor[a.sev] }} />
+                </span>
                 <div style={{ minWidth: 0, lineHeight: 1.5, flex: 1 }}>
                   <span style={{ fontFamily: FN, fontSize: 12.5, fontWeight: 700, letterSpacing: '0.02em', color: C.tx }}>{a.do}</span>
                   <span style={{ fontFamily: FB, fontSize: 12.5, color: C.tm }}> — {a.why}</span>
