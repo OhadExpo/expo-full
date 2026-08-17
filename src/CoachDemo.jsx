@@ -1149,10 +1149,12 @@ function DemoCRM() {
         ))}</div>
       ) : (
         <div>{activity.map((a, i) => (
-          <div key={i} style={{ display: 'flex', gap: 10, padding: '8px 0', alignItems: 'baseline', borderBottom: i < activity.length - 1 ? `1px solid ${C.cardBd}` : 'none' }}>
-            <span style={{ width: 7, height: 7, borderRadius: 4, background: a.color, flexShrink: 0, alignSelf: 'center' }} />
+          <div key={i} style={{ display: 'flex', gap: 10, padding: '8px 0', alignItems: 'center', borderBottom: i < activity.length - 1 ? `1px solid ${C.cardBd}` : 'none' }}>
+            {/* Dot in a 15px slot matching the Actions checkbox so text starts at the
+                same x across both tabs. */}
+            <span style={{ width: 15, display: 'inline-flex', justifyContent: 'center', flexShrink: 0 }}><span style={{ width: 7, height: 7, borderRadius: 4, background: a.color }} /></span>
             {/* summary + when on ONE row (parity with the real app) */}
-            <span style={{ flex: 1, minWidth: 0, fontSize: 12, color: C.tx }}>{a.text}</span>
+            <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: C.tx }}>{a.text}</span>
             <span style={{ flexShrink: 0, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}><span style={{ color: a.color }}>{a.kind}</span><span style={{ color: C.td }}> · {a.when}{a.auto ? ' · AUTO' : ''}</span></span>
           </div>
         ))}</div>
