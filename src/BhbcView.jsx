@@ -1293,7 +1293,7 @@ function BaselineBattery({ roster, evalStatus, onOpenExpo }) {
           return (
             <div key={t.id} className="bhbc-row" onClick={onOpenExpo ? () => onOpenExpo(t.id) : undefined}
               style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: `0.25px solid ${C.cardBd}`, cursor: onOpenExpo ? 'pointer' : 'default' }}>
-              <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums', width: 20, flexShrink: 0 }}>{t.jersey ?? '—'}</span>
+              <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums', width: 20, textAlign: 'right', flexShrink: 0 }}>{t.jersey ?? '—'}</span>
               <span style={{ flex: 1, fontFamily: FN, fontSize: 13, fontWeight: 600, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, minWidth: 128, justifyContent: 'flex-end', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap', flexShrink: 0 }}>
                 <span style={{ width: 7, height: 7, borderRadius: '50%', background: date ? '#37B27C' : '#6B7280', flexShrink: 0 }} />
@@ -1522,7 +1522,7 @@ function ScheduleMonth({ fixtures, today }) {
   };
   return (
     <div style={{ overflowX: 'auto' }}>
-      <div style={{ minWidth: 620 }}>
+      <div className="bhbc-cal-wrap" style={{ minWidth: 620 }}>
         <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 14, color: C.tx, marginBottom: 8, letterSpacing: '0.02em' }}>{MON[m]} {y}</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', marginBottom: 4 }}>
           {DOW.map((d) => <div key={d} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, textAlign: 'center', padding: '4px 0' }}>{d}</div>)}
@@ -1636,7 +1636,7 @@ function PlayerStatsTable({ roster, league, onOpen }) {
             const td = { fontFamily: FN, fontSize: 12.5, color: s ? C.tx : C.tm, padding: '9px 9px', textAlign: 'center', fontVariantNumeric: 'tabular-nums' };
             return (
               <tr key={t.id} className="bhbc-row" onClick={() => onOpen(t.id)} style={{ borderBottom: `0.25px solid ${C.cardBd}`, cursor: 'pointer' }}>
-                <td style={{ ...td, textAlign: 'left', fontWeight: 700, color: C.tx, whiteSpace: 'nowrap' }}><span style={{ color: ORANGE_DEEP, marginRight: 7, fontVariantNumeric: 'tabular-nums' }}>{t.jersey ?? '—'}</span>{t.name}</td>
+                <td style={{ ...td, textAlign: 'left', fontWeight: 700, color: C.tx, whiteSpace: 'nowrap' }}><span style={{ display: 'inline-block', width: 22, textAlign: 'right', color: ORANGE_DEEP, marginRight: 11, fontVariantNumeric: 'tabular-nums' }}>{t.jersey ?? '—'}</span>{t.name}</td>
                 <td style={{ ...td, color: C.td }}>{dash('gp', s ? s.gp : null)}</td>
                 <td style={td}>{dash('mpg', s ? s.mpg : null)}</td>
                 <td style={{ ...td, fontWeight: 800, color: s ? ORANGE_DEEP : C.tm }}>{dash('ppg', s ? s.ppg : null)}</td>
@@ -1661,29 +1661,33 @@ function ResultsList({ games, bhbcOnly }) {
   [...played].reverse().forEach((g) => { (byRound[g.round] = byRound[g.round] || []).push(g); });
   const rounds = Object.keys(byRound).map(Number).sort((a, b) => b - a);
   const Row = ({ g }) => {
-    const bhHome = isBH(g.home), bh = bhHome || isBH(g.away);
-    const won = g.played && ((bhHome && g.hs > g.as) || (!bhHome && g.as > g.hs));
-    const mark = { fontFamily: FN, fontSize: 12.5, fontWeight: 800, fontVariantNumeric: 'tabular-nums' };
-    const travelBits = g.travel ? [g.travel.out, g.travel.back].filter(Boolean).map((l) => l.tbd ? `${monDay(l.date)} TBD` : `${monDay(l.date)} ${l.flight}`) : [];
-    const detail = !g.played ? [g.comp, g.venue, travelBits.length ? `✈ ${travelBits.join(' · ')}` : null].filter(Boolean).join('  ·  ') : null;
+    // Every visible row involves BHBC (bhbcOnly). Read it from BHBC's side so the
+    // FIRST name is always "Bnei Herzliya" — every row's name column lines up, and
+    // vs/@ tells home vs away. One line per game (Ohad: never stacked/tight rows).
+    const bhHome = isBH(g.home);
+    const opp = bhHome ? g.away : g.home;
+    const bhScore = bhHome ? g.hs : g.as, oppScore = bhHome ? g.as : g.hs;
+    const won = g.played && bhScore > oppScore;
+    const detail = [g.comp, g.venue].filter(Boolean).join(' · ');
+    const nameCell = { fontFamily: FN, fontSize: 12.5, fontWeight: 800, color: C.tx, whiteSpace: 'nowrap' };
     return (
-      <div style={{ borderBottom: `0.25px solid ${C.cardBd}`, background: bh ? `color-mix(in srgb, ${NAVY} 7%, transparent)` : 'transparent', borderLeft: bh ? `3px solid ${ORANGE}` : '3px solid transparent' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '58px 1fr auto', gap: 12, alignItems: 'center', padding: detail ? '9px 10px 3px' : '9px 10px' }}>
-          <div style={{ fontFamily: FN, fontSize: 10.5, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{g.date ? g.date.slice(5).replace('-', '/') : ''}</div>
-          {/* Matchup packs LEFT right after the date (home · vs/score · away) so
-              rows read cleanly instead of floating centred with a big left gap. */}
+      <div style={{ borderBottom: `0.25px solid ${C.cardBd}`, borderLeft: `3px solid ${ORANGE}`, background: `color-mix(in srgb, ${NAVY} 7%, transparent)` }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '54px minmax(0,auto) 1fr 62px', gap: 14, alignItems: 'center', padding: '12px 12px' }}>
+          <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{g.date ? g.date.slice(5).replace('-', '/') : ''}</div>
+          {/* Bnei Herzliya (constant) · vs/@/score · opponent — constant first token
+              means vs/@ and the opponent line up on every row. */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-            <span style={{ fontFamily: FN, fontSize: 12.5, fontWeight: isBH(g.home) ? 800 : 500, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '40%' }}>{g.home}</span>
+            <span style={{ ...nameCell }}>Bnei Herzliya</span>
             {g.played
-              ? <span style={{ ...mark, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '2px 8px', whiteSpace: 'nowrap', flexShrink: 0 }}>{g.hs}<span style={{ color: C.tm, margin: '0 4px' }}>–</span>{g.as}</span>
-              : <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, letterSpacing: '0.06em', flexShrink: 0 }}>vs</span>}
-            <span style={{ fontFamily: FN, fontSize: 12.5, fontWeight: isBH(g.away) ? 800 : 500, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '40%' }}>{g.away}</span>
+              ? <span style={{ fontFamily: FN, fontSize: 12.5, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '2px 8px', whiteSpace: 'nowrap', flexShrink: 0 }}>{bhScore}<span style={{ color: C.tm, margin: '0 4px' }}>–</span>{oppScore}</span>
+              : <span style={{ width: 24, textAlign: 'center', fontFamily: FN, fontSize: 10.5, fontWeight: 700, color: C.tm, letterSpacing: '0.04em', flexShrink: 0 }}>{bhHome ? 'vs' : '@'}</span>}
+            <span style={{ ...nameCell, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{opp}</span>
           </div>
-          {bh && g.played
-            ? <span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 800, letterSpacing: '0.04em', color: '#fff', background: won ? '#37B27C' : '#DE4E3B', padding: '2px 7px' }}>{won ? 'W' : 'L'}</span>
-            : <span style={{ width: 22 }} />}
+          <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.03em', textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, textTransform: 'uppercase' }}>{detail}</div>
+          {g.played
+            ? <span style={{ justifySelf: 'end', fontFamily: FN, fontSize: 9.5, fontWeight: 800, letterSpacing: '0.04em', color: '#fff', background: won ? '#37B27C' : '#DE4E3B', padding: '2px 8px' }}>{won ? 'W' : 'L'}</span>
+            : <span style={{ justifySelf: 'end', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', color: bhHome ? '#fff' : ORANGE, border: `1px solid ${bhHome ? C.cardBd : ORANGE}`, padding: '2px 7px' }}>{bhHome ? 'HOME' : 'AWAY'}</span>}
         </div>
-        {detail && <div style={{ padding: '0 10px 8px 70px', fontFamily: FN, fontSize: 9.5, color: C.tm, letterSpacing: '0.02em' }}>{detail}</div>}
       </div>
     );
   };
@@ -1870,8 +1874,8 @@ function MedicalView({ roster, medical, canMedical = true, onReport, onEdit, onO
               const days = inj.onsetDate ? dayDiff(todayISO(), inj.onsetDate) : null;
               return (
                 <div key={t.id + inj.id} className="bhbc-row" onClick={() => canMedical && onEdit(t.id, inj.id)} style={{ display: 'grid', gridTemplateColumns: '150px 1fr 120px 110px auto', gap: 12, alignItems: 'center', padding: '11px 0', borderBottom: `0.25px solid ${C.cardBd}`, cursor: canMedical ? 'pointer' : 'default' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                    <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums' }}>{t.jersey ?? '—'}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
+                    <span style={{ display: 'inline-block', width: 18, textAlign: 'right', flexShrink: 0, fontFamily: FN, fontSize: 11, fontWeight: 700, color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums' }}>{t.jersey ?? '—'}</span>
                     <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>
                   </div>
                   <div style={{ fontFamily: FB, fontSize: 12.5, color: C.tx, minWidth: 0 }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : '', inj.type].filter(Boolean).join(' · ')}</div>
@@ -1894,7 +1898,7 @@ function MedicalView({ roster, medical, canMedical = true, onReport, onEdit, onO
             return (
               <div key={t.id} className="bhbc-row" style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '11px 0', borderBottom: `0.25px solid ${C.cardBd}` }}>
                 <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, cursor: 'pointer' }} onClick={() => onOpen(t.id)}>
-                  <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums', width: 20, flexShrink: 0 }}>{t.jersey ?? '—'}</span>
+                  <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums', width: 20, textAlign: 'right', flexShrink: 0 }}>{t.jersey ?? '—'}</span>
                   <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 600, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>
                   {hist > 0 && <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.04em', flexShrink: 0 }}>· {hist} record{hist > 1 ? 's' : ''}</span>}
                 </div>
