@@ -133,7 +133,7 @@ export default function BugsView() {
               onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpandedId(expanded ? null : r.id); } }}
               style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
               <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 9, color: sevColor, fontWeight: 700, letterSpacing: '0.12em',
-                border: `1px solid ${sevColor}`, padding: '2px 6px' }}>{(r.status||'').toUpperCase()}</span>
+                border: `1px solid ${sevColor}`, padding: '3px 6px', width: 74, boxSizing: 'border-box', flexShrink: 0 }}>{(r.status||'').toUpperCase()}</span>
               <span style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.08em' }}>
                 {r.role?.toUpperCase() || 'ANON'} · {fmtTs(r.created_at)}
                 {r.reporter_email && <> · {r.reporter_email}</>}

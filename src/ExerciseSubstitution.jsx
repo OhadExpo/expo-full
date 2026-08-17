@@ -167,7 +167,7 @@ export default function ExerciseSubstitution({ currentTitle, currentEx, library,
             const active = activeEquip.has(chip.id);
             return (
               <button key={chip.id} onClick={() => toggleEquip(chip.id)} style={{
-                padding: '3px 8px', borderRadius: 0,
+                padding: '4px 8px', borderRadius: 0,
                 background: active ? 'rgba(57,189,255,0.094)' : 'transparent',
                 color: active ? C.ac : C.tm,
                 border: `1px solid ${active ? C.ac : C.cardBd}`,

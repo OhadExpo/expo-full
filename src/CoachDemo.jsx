@@ -277,7 +277,7 @@ function DemoDashboard({ onJumpToTrainee }) {
           {[['CHAT SESSIONS', '12', C.ac, 'last 30 days'], ['MESSAGES SENT', '7', C.ac, 'to prospects'], ['EMAIL CAPTURES', '3', C.gn, 'captured'], ['WAITLIST', '2', C.ac, 'signed up']].map(([l, v, c, sub], i) => (
             <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '10px 14px', border: `1px solid ${C.cardBd}`, background: C.sf }}>
               <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700 }}>{l}</span>
-              <span style={{ fontFamily: FN, fontSize: 18, fontWeight: 800, color: c, fontVariantNumeric: 'tabular-nums' }}>{v}</span>
+              <span style={{ fontFamily: FN, fontSize: 18, fontWeight: 800, color: C.tx, fontVariantNumeric: 'tabular-nums' }}>{v}</span>
               <span style={{ fontFamily: FN, fontSize: 9, color: C.td, marginTop: 2 }}>{sub}</span>
             </div>
           ))}
@@ -430,7 +430,9 @@ function DemoDashboard({ onJumpToTrainee }) {
             <Row key={i}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                  {l.coach && <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: C.ac, border: `1px solid ${C.ac}`, padding: '2px 5px', flexShrink: 0 }}>COACH</span>}
+                  {/* Reserved leading slot so every email starts at one x whether or not
+                      the lead has a COACH source tag. */}
+                  <span style={{ width: 46, flexShrink: 0, display: 'inline-flex', alignItems: 'center' }}>{l.coach && <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: C.ac, border: `1px solid ${C.ac}`, padding: '2px 5px' }}>COACH</span>}</span>
                   <div style={{ fontWeight: 600, color: C.tx, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.email}</div>
                 </div>
                 <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, letterSpacing: 1 }}>{l.source.toUpperCase()} · {l.context.toUpperCase()}</div>
@@ -457,7 +459,7 @@ function DemoDashboard({ onJumpToTrainee }) {
               <tr style={{ borderBottom: `1px solid ${C.bd}` }}>
                 {['Athlete', 'Status', 'Format', 'Package', 'Sessions', 'Total Paid', 'Last Payment', 'Workouts', 'Programs'].map(h => (
                   <th key={h} style={{
-                    textAlign: 'center', padding: '10px 12px',
+                    textAlign: 'left', padding: '10px 12px',
                     fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700,
                   }}>{h === 'Athlete' ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{h} <span style={{ fontSize: 8 }}>↑</span></span> : h}</th>
                 ))}

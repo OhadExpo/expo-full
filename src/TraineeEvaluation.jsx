@@ -103,7 +103,7 @@ function SingleRomRow({ joint, axis, evaluation }) {
   return (
     <div style={{
       display: 'grid', gridTemplateColumns: SINGLE_GRID,
-      gap: ROW_GAP, padding: '2px 0',
+      gap: ROW_GAP, padding: '4px 0',
       borderBottom: `1px solid var(--c-cardBd)`,
     }}>
       <div style={{ ...cellBase }} />

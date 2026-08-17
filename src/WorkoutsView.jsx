@@ -160,8 +160,9 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
           }}>
           <span style={{ fontWeight: 700, color: C.tx, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {fullyDone && <span style={{ color: C.gn, marginRight: 6 }}>✓</span>}
-            {exIdx+1}. {exData?.title||ex.title||"Unknown"}
+            <span style={{ display: 'inline-block', width: 14, color: C.gn, flexShrink: 0 }}>{fullyDone ? '✓' : ''}</span>
+            <span style={{ display: 'inline-block', width: 22, textAlign: 'right', marginRight: 5, flexShrink: 0 }}>{exIdx+1}.</span>
+            {exData?.title||ex.title||"Unknown"}
           </span>
           <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color: fullyDone ? C.gn : C.tm, flexShrink: 0, whiteSpace: 'nowrap' }}>
             {doneCount}/{ex.sets.length} SETS · EXPAND ▾
@@ -180,7 +181,7 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
         <div style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:10}}>
           <div style={{flex:1,minWidth:0}}>
             <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',marginBottom:8}}>
-              <span style={{fontWeight:700,fontSize:15,color:C.tx,whiteSpace:'normal',overflowWrap:'break-word',lineHeight:1.3}}>{exIdx+1}. {exData?.title||ex.title||"Unknown"}</span>
+              <span style={{fontWeight:700,fontSize:15,color:C.tx,whiteSpace:'normal',overflowWrap:'break-word',lineHeight:1.3}}><span style={{display:'inline-block',width:26,textAlign:'right',marginRight:5}}>{exIdx+1}.</span>{exData?.title||ex.title||"Unknown"}</span>
             </div>
             <div style={{display:'flex',gap:18,flexWrap:'wrap'}}>
               {[['SETS',(ex.sets||[]).length],['REPS',ex.reps],['TEMPO',(ex.tempo && String(ex.tempo)!==String(ex.reps))?ex.tempo:''],['RPE',ex.rpe],['REST',ex.rest?`${ex.rest}s`:'']]
@@ -249,7 +250,7 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
           {isCompleted&&<Badge color={C.gn} style={{fontSize:13,padding:"6px 14px"}}>Completed</Badge>}
         </div>
         <div style={{display:"flex",justifyContent:"space-between",fontSize:12,fontFamily:FN,color:C.tm,marginBottom:4}}>
-          <span>{workout.dayName} {workout.planName&&<span style={{color:C.td}}>({workout.planName})</span>}</span>
+          <span><span style={{color:C.tx,fontWeight:700}}>{workout.dayName}</span> {workout.planName&&<span style={{color:C.td}}>({workout.planName})</span>}</span>
           <span style={{color:C.tx,fontWeight:700}}>W{workout.week} · {doneSets}/{totalSets} · {pct}%</span></div>
         <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,height:6,overflow:"hidden"}}><div style={{background:C.gn,height:"100%",width:`${pct}%`,transition:"width 0.3s"}}/></div>
       </div>

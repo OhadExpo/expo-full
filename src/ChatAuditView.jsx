@@ -152,24 +152,24 @@ export default function ChatAuditView() {
           <button key={s} onClick={() => setSiteFilter(s)}
             style={{
               background: 'var(--c-sf)',
-              border: `${siteFilter === s ? '1px' : '0.25px'} solid ${siteFilter === s ? C.ac : C.cardBd}`,
+              border: `1px solid ${siteFilter === s ? C.ac : C.cardBd}`,
               color: siteFilter === s ? C.ac : C.tm,
-              borderRadius: 0, padding: '6px 12px',
+              borderRadius: 0, height: 34, boxSizing: 'border-box', padding: '0 12px',
               fontFamily: FN, fontSize: 11, fontWeight: 700, cursor: 'pointer', letterSpacing: '0.18em',
             }}>{s === 'all' ? 'ALL SITES' : s.toUpperCase()}</button>
         ))}
         <button onClick={() => setShowErrorsOnly(v => !v)}
           style={{
             background: 'var(--c-sf)',
-            border: `${showErrorsOnly ? '1px' : '0.25px'} solid ${showErrorsOnly ? C.rd : C.cardBd}`,
+            border: `1px solid ${showErrorsOnly ? C.rd : C.cardBd}`,
             color: showErrorsOnly ? C.rd : C.tm,
-            borderRadius: 0, padding: '6px 12px',
-            fontFamily: FN, fontSize: 11, fontWeight: 700, cursor: 'pointer', letterSpacing: '0.18em',
+            borderRadius: 0, height: 34, boxSizing: 'border-box', padding: '0 12px',
+            fontFamily: FN, fontSize: 11, fontWeight: 700, cursor: 'pointer', letterSpacing: '0.18em', display: 'inline-flex', alignItems: 'center',
           }}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: '-1px', marginRight: 4 }}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>ERRORS ONLY</button>
         <input value={filter} onChange={e => setFilter(e.target.value)} placeholder="Filter by message text…"
           style={{
             background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0,
-            padding: '7px 12px', color: C.tx, fontFamily: FB, fontSize: 13,
+            height: 34, boxSizing: 'border-box', padding: '0 12px', color: C.tx, fontFamily: FB, fontSize: 13,
             outline: 'none', minWidth: 220, marginLeft: 'auto',
           }} />
       </div>

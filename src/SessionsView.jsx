@@ -627,7 +627,7 @@ function AthleteCard({ a, name, prevMap, exDetail, onToggleIn, onSet, onCurEx, o
             <div onClick={() => onCurEx(open ? -1 : ei)} style={{ padding: 8, cursor: 'pointer' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
                 <span style={{ fontFamily: FB, fontSize: 12.5, color: C.tx, fontWeight: 600, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: 1.3 }}>
-                  {allDone && <span style={{ color: C.gn, marginRight: 4 }}>✓</span>}{ex.title}
+                  <span style={{ display: 'inline-block', width: 14, color: C.gn, flexShrink: 0 }}>{allDone ? '✓' : ''}</span>{ex.title}
                 </span>
                 <span style={{ color: '#FFF', fontSize: 12, flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>▾</span>
               </div>

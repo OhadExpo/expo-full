@@ -336,7 +336,7 @@ export default function LiveRepCounter({ exerciseTitle = 'Squat', onClose, targe
       {/* Bottom control bar */}
       <div style={{
         background: 'rgba(0,0,0,0.85)', borderTop: '1px solid rgba(255,255,255,0.1)',
-        padding: 14, display: 'flex', gap: 10, alignItems: 'center',
+        padding: 14, display: 'flex', gap: 10, alignItems: 'stretch',
       }}>
         <button onClick={voiceOn ? stopVoice : startVoice}
           style={{

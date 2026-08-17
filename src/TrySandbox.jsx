@@ -555,7 +555,7 @@ function ClientPortalMock({ onPick }) {
                       <div key={i} style={{ marginTop: 2 }}>
                         <div onClick={canExpand ? () => setExpandedHistEx(isOpen ? null : expandKey) : undefined}
                           style={{ fontSize: 11, color: C.tm, display: 'flex', alignItems: 'center', gap: 6, cursor: canExpand ? 'pointer' : 'default', padding: '2px 0' }}>
-                          <span style={{ flex: 1 }}>{i + 1}. {x.title} ({x.prescribed}) — {x.done}/{x.total}</span>
+                          <span style={{ flex: 1, minWidth: 0, color: C.tx }}><span style={{ display: 'inline-block', width: 22, textAlign: 'right', flexShrink: 0, color: C.td, marginRight: 6 }}>{i + 1}.</span>{x.title} <span style={{ color: C.td }}>({x.prescribed}) — {x.done}/{x.total}</span></span>
                           {x.hasVideo && <span style={{ color: C.gn, display: 'inline-flex', alignItems: 'center', verticalAlign: '-2px' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></span>}
                           {x.notes > 0 && (
                             <span style={{

@@ -1598,20 +1598,20 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
             ? { order: 1, flexBasis: '100%', flexShrink: 1, minWidth: 0, justifyContent: 'flex-start' }
             : { flexShrink: 0, justifyContent: 'flex-end' }) }}>
           <PriorityPill priority={priority} onSetPriority={(p) => onSetPriority(row, p)} readOnly={readOnly} />
-          {showAthlete && (
-            <span title={`Athlete: ${athleteName}`} style={{
-              boxSizing: 'border-box', height: TASK_PILL_H, display: 'inline-flex', alignItems: 'center',
-              fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em',
-              // Muted (not cyan) so it reads as quiet metadata, not a loud tag (Ohad).
-              // Fixed width keeps chips aligned; longer names ellipsize.
-              // Desktop reserves a fixed 104px so athlete chips align in a column;
-              // on phones/board (wrapRow) the row wraps anyway, so size to content
-              // to reclaim width and stop the date chip clipping off-screen (#14).
-              color: 'var(--c-tm)', whiteSpace: 'nowrap', width: wrapRow ? 'auto' : 104, maxWidth: wrapRow ? 132 : undefined, justifyContent: 'center',
-              overflow: 'hidden', textOverflow: 'ellipsis',
-              border: `1px solid var(--c-cardBd)`, padding: '0 8px',
-            }}>{athleteName}</span>
-          )}
+          {/* Athlete chip in an ALWAYS-reserved column (like SHARED/DATE below) so a
+              task WITH an athlete can't push the meta cluster wider than one without —
+              chips line up vertically and titles keep an identical edge (Ohad #207). */}
+          <span style={{ flexShrink: 0, width: wrapRow ? 'auto' : 104, display: 'inline-flex', alignItems: 'center' }}>
+            {showAthlete && (
+              <span title={`Athlete: ${athleteName}`} style={{
+                boxSizing: 'border-box', height: TASK_PILL_H, display: 'inline-flex', alignItems: 'center',
+                fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em',
+                color: 'var(--c-tm)', whiteSpace: 'nowrap', width: wrapRow ? 'auto' : '100%', maxWidth: wrapRow ? 132 : undefined, justifyContent: 'center',
+                overflow: 'hidden', textOverflow: 'ellipsis',
+                border: `1px solid var(--c-cardBd)`, padding: '0 8px',
+              }}>{athleteName}</span>
+            )}
+          </span>
           {/* SHARED as a fixed COLUMN — the slot is reserved on EVERY row (even
               non-shared) so shared tags line up vertically (Ohad: "shared a column").
               The date sits to the RIGHT of this column. */}
