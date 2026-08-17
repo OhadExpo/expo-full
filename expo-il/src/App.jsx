@@ -2732,9 +2732,8 @@ function ProgramDetail({ program }) {
           listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 10,
           gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
         }}>
+          {/* Start-aligned (RTL-aware) list rows keep a straight reading edge. */}
           {pHighlights.map((h, i) => (
-            {/* Start-aligned (RTL-aware) so a leading marker + wrapping text keep a
-                straight reading edge instead of centered rows shifting per item. */}
             <li key={i} style={{
               background: C.sf, border: `1px solid ${C.ac4D}`, borderRadius: 0,
               padding: 14, display: 'flex', gap: 10, alignItems: 'flex-start',
