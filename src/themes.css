@@ -548,6 +548,19 @@ html, body {
   color: var(--c-tx);
 }
 
+/* ===== Keyboard focus ring (accessibility) =================================
+   Controls across the app set inline `outline:none` for aesthetics, which left
+   keyboard users with NO visible focus. Restore a brand-cyan ring, shown ONLY
+   on keyboard navigation (:focus-visible) — never on mouse click, so the
+   pointer experience is unchanged. `!important` beats the inline outline:none. */
+:focus-visible { outline: 2px solid var(--c-ac); outline-offset: 2px; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible,
+textarea:focus-visible, [role="button"]:focus-visible, [role="tab"]:focus-visible,
+[tabindex]:focus-visible, summary:focus-visible, [contenteditable]:focus-visible {
+  outline: 2px solid var(--c-ac) !important;
+  outline-offset: 2px;
+}
+
 /* Always reserve the vertical scrollbar gutter so switching tabs/views (or any
    click that changes content height across the viewport threshold) never
    shifts the whole page sideways — kills the app-wide "page pops" jump. */
