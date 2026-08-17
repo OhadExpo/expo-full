@@ -285,7 +285,7 @@ function Panel({ side, heb, dim, highlight, highlight2, onEnter, onLeave, headli
             background: highlight2 ? C.ac : 'transparent',
             color: highlight2 ? '#000000' : C.ac,
             border: `1px solid ${C.ac}`,
-            fontFamily: FN, fontSize: 12, fontWeight: 800, letterSpacing: '0.22em',
+            fontFamily: FN, fontSize: 12, fontWeight: 800, letterSpacing: '0.22em', whiteSpace: 'nowrap',
             boxShadow: highlight ? `0 0 32px ${C.ac}80` : 'none',
             transition: 'box-shadow 240ms ease, transform 240ms ease',
             transform: highlight ? 'translateY(-2px)' : 'translateY(0)',
