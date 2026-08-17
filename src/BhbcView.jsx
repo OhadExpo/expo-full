@@ -399,7 +399,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
       <main style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 24px 72px', display: 'flex', flexDirection: 'column', gap: 20 }}>
         {/* ---- TOOLBAR ---- */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: C.td }}>Squad · {roster.length}</div>
+          <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: C.td }}>Roster · {roster.length}</div>
           <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {!coach && <Btn variant="ghost" onClick={() => setManageOpen(true)}>Manage roster</Btn>}
             <Btn variant="ghost" onClick={() => setCheckinOpen(true)}>Check-in</Btn>
@@ -412,7 +412,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '28px 16px' }}>
               <img src="/logos/bhbc-logo.png" alt="" style={{ height: 68, opacity: 0.9, marginBottom: 8 }} />
               <div style={{ fontFamily: FN, fontWeight: 700, fontSize: 15, color: C.tx }}>No athletes on the roster yet</div>
-              <div style={{ fontFamily: FB, fontSize: 13, color: C.td, marginBottom: 14, textAlign: 'center', maxWidth: 320 }}>Add the squad to start tracking load, availability and readiness.</div>
+              <div style={{ fontFamily: FB, fontSize: 13, color: C.td, marginBottom: 14, textAlign: 'center', maxWidth: 320 }}>Add the roster to start tracking load, availability and readiness.</div>
               <Btn onClick={() => setManageOpen(true)} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>Add athletes</Btn>
             </div>
           </Card>
@@ -1047,15 +1047,15 @@ function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onCheckin, onL
   const names = (arr) => arr.slice(0, 4).map(first).join(', ') + (arr.length > 4 ? ` +${arr.length - 4}` : '');
   const anyLoad = rows.some((r) => r.hasLoad);
   const A = [];
-  // 1) Taper into a game ≤3 days out (Mujika).
+  // 1) Taper into a game ≤3 days out.
   if (fx.nextGame) {
     const d = dayDiff(fx.nextGame.date, today);
-    if (d >= 0 && d <= 3) A.push({ sev: 'game', do: `Taper into ${fx.nextGame.opponent ? 'vs ' + fx.nextGame.opponent : 'the game'} · ${d === 0 ? 'today' : d + 'd'}`, why: 'hold intensity, cut volume ~40–60% (Mujika).' });
+    if (d >= 0 && d <= 3) A.push({ sev: 'game', do: `Taper into ${fx.nextGame.opponent ? 'vs ' + fx.nextGame.opponent : 'the game'} · ${d === 0 ? 'today' : d + 'd'}`, why: 'hold intensity, cut volume ~40–60%.' });
   }
   // 2) ACWR danger (>1.5) then elevated (1.3–1.5) — Gabbett sweet spot 0.8–1.3.
   const danger = rows.filter((r) => r.acwr.band.key === 'high');
   const elevated = rows.filter((r) => r.acwr.band.key === 'elevated');
-  if (danger.length) A.push({ sev: 'red', do: `Pull back ${names(danger)}`, why: 'ACWR in the danger zone (>1.5) — cut load today, injury risk climbs here (Gabbett).', ids: danger.map((r) => r.t.id) });
+  if (danger.length) A.push({ sev: 'red', do: `Pull back ${names(danger)}`, why: 'ACWR in the danger zone (>1.5) — cut load today, injury risk climbs here.', ids: danger.map((r) => r.t.id) });
   // 3) Readiness red today (autoreg says don't load).
   const red = rows.filter((r) => r.readiness.level === 'red');
   if (red.length) A.push({ sev: 'red', do: `Regress ${names(red)} today`, why: `readiness red — ${red[0].readiness.headline || 'reassess before loading'}.`, ids: red.map((r) => r.t.id) });
@@ -1068,10 +1068,10 @@ function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onCheckin, onL
   // 4) Injuries in rehab.
   const injured = rows.filter((r) => activeInjuries(medical, r.t.id).length);
   if (injured.length) A.push({ sev: 'red', do: `${injured.length} in rehab (${names(injured)})`, why: 'check the Medical board for return-to-play + limits.', ids: injured.map((r) => r.t.id) });
-  if (elevated.length) A.push({ sev: 'amber', do: `Watch ${names(elevated)}`, why: "ACWR elevated (1.3–1.5) — hold, don't add load (Gabbett).", ids: elevated.map((r) => r.t.id) });
+  if (elevated.length) A.push({ sev: 'amber', do: `Watch ${names(elevated)}`, why: "ACWR elevated (1.3–1.5) — hold, don't add load.", ids: elevated.map((r) => r.t.id) });
   // 5) Monotony ≥2 (Foster).
   const mono = rows.filter((r) => r.ms.monotony != null && r.ms.monotony >= 2);
-  if (mono.length) A.push({ sev: 'amber', do: `Vary the stimulus for ${names(mono)}`, why: 'monotony ≥2 (Foster) — add hard/easy contrast to break the sameness.', ids: mono.map((r) => r.t.id) });
+  if (mono.length) A.push({ sev: 'amber', do: `Vary the stimulus for ${names(mono)}`, why: 'monotony ≥2 — add hard/easy contrast to break the sameness.', ids: mono.map((r) => r.t.id) });
   // 6) Undertrained (ACWR <0.8) — ramp safely.
   const detr = rows.filter((r) => r.acwr.band.key === 'detrained');
   if (detr.length && anyLoad) A.push({ sev: 'info', do: `Ramp ${names(detr)} up`, why: 'ACWR <0.8 (undertrained) — build ~10%/wk, avoid a spike.', ids: detr.map((r) => r.t.id) });
@@ -1080,7 +1080,7 @@ function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onCheckin, onL
   if (missing.length && missing.length < rows.length) A.push({ sev: 'info', do: 'Chase check-ins', why: `${missing.length} of ${rows.length} haven't logged wellness today.`, act: onCheckin });
   // 8) Pre-season / no data — baseline first.
   if (!anyLoad && rows.every((r) => !r.checkedToday)) {
-    A.unshift({ sev: 'game', do: 'Baseline the squad', why: 'pre-season — log the first sessions + a daily wellness check so ACWR & readiness start tracking, and run the eval battery to set each athlete’s baseline.', act: onCheckin });
+    A.unshift({ sev: 'game', do: 'Baseline the roster', why: 'pre-season — log the first sessions + a daily wellness check so ACWR & readiness start tracking, and run the eval battery to set each athlete’s baseline.', act: onCheckin });
   }
   const sevRank = { game: 0, red: 1, amber: 2, info: 3 };
   const top = A.sort((a, b) => sevRank[a.sev] - sevRank[b.sev]).slice(0, 5);
@@ -1180,7 +1180,7 @@ function TodayPanel({ today, fixtures, fx, rows, onSessions, onLog }) {
 
 function TeamSnapshotCard({ team }) {
   const cells = [
-    { k: 'Squad', v: team.n, sub: 'athletes', c: C.tx },
+    { k: 'Roster', v: team.n, sub: 'athletes', c: C.tx },
     { k: 'Avg ACWR', v: team.avg != null ? team.avg.toFixed(2) : '—', sub: team.avg != null ? acwrLabel(team.avg) : 'no load logged', c: team.avg != null ? BAND[bandKey(team.avg)] : C.tx },
     { k: 'Flagged', v: team.flagged, sub: 'elevated / danger', c: team.flagged ? BAND.high : C.tx },
     { k: '7-day load', v: team.week ? team.week.toLocaleString() : '—', sub: 'team sRPE', c: C.tx, spark: team.teamSeries },
@@ -1267,7 +1267,7 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, onOpen }) {
         {[[BAND.low, '0.8–1.3 sweet spot'], [BAND.elevated, '>1.3 elevated'], [BAND.high, '≥1.5 danger'], [BAND.detrained, '<0.8 undertrained']].map(([c, l]) => (
           <span key={l} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, letterSpacing: '0.04em' }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: c }} />{l}</span>
         ))}
-        <span style={{ marginLeft: 'auto', color: C.tm }}>ACWR = 7-day ÷ 28-day sRPE · Gabbett 2016</span>
+        <span style={{ marginLeft: 'auto', color: C.tm }}>ACWR = 7-day ÷ 28-day sRPE</span>
       </div>
     </CollapsibleSection>
   );
@@ -1395,7 +1395,7 @@ function MicrocycleView({ fx, today }) {
           ))}
         </div>
       </div>
-      <div style={{ marginTop: 12, paddingTop: 10, borderTop: `1px solid ${C.cardBd}`, fontFamily: FN, fontSize: 9.5, color: C.td, letterSpacing: '0.02em' }}>Load anchored to the game: heaviest far out (MD-4/-3), taper MD-1 (hold intensity, cut volume — Mujika), regenerate MD+1.</div>
+      <div style={{ marginTop: 12, paddingTop: 10, borderTop: `1px solid ${C.cardBd}`, fontFamily: FN, fontSize: 9.5, color: C.td, letterSpacing: '0.02em' }}>Load anchored to the game: heaviest far out (MD-4/-3), taper MD-1 (hold intensity, cut volume), regenerate MD+1.</div>
     </Card>
   );
 }
@@ -1686,7 +1686,7 @@ function ResultsList({ games, bhbcOnly }) {
           <div className="bhbc-game-detail" style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.03em', textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, textTransform: 'uppercase' }}>{detail}</div>
           {g.played
             ? <span style={{ justifySelf: 'end', fontFamily: FN, fontSize: 9.5, fontWeight: 800, letterSpacing: '0.04em', color: '#fff', background: won ? '#37B27C' : '#DE4E3B', padding: '2px 8px' }}>{won ? 'W' : 'L'}</span>
-            : <span style={{ justifySelf: 'end', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', color: bhHome ? '#fff' : ORANGE, border: `1px solid ${bhHome ? C.cardBd : ORANGE}`, padding: '2px 7px' }}>{bhHome ? 'HOME' : 'AWAY'}</span>}
+            : <span style={{ justifySelf: 'end', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', color: bhHome ? C.tm : ORANGE, border: `1px solid ${bhHome ? C.cardBd : ORANGE}`, padding: '2px 7px' }}>{bhHome ? 'HOME' : 'AWAY'}</span>}
         </div>
       </div>
     );
@@ -1771,7 +1771,7 @@ function LeagueView({ league, roster, fixtures, onOpen }) {
           <>
             <div style={{ fontFamily: FB, fontSize: 12.5, color: C.td, padding: '2px 2px 14px' }}>The {currentSeason} season hasn't tipped off — official team stats appear here after the first game.</div>
             <CollapsibleSection domId="bhbc-lastseason-team" storageKey="bhbc-lastseason-team" defaultOpen={false} title={`${league.season} · Last season`} bare padX={0}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', opacity: 0.72 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))' }}>
                 {summary.map((s, i) => (
                   <div key={s.k} style={{ padding: '14px 18px', borderLeft: i ? `1px solid ${C.cardBd}` : 'none', display: 'flex', flexDirection: 'column', gap: 6 }}>
                     <div style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{s.k}</div>
@@ -1793,7 +1793,7 @@ function LeagueView({ league, roster, fixtures, onOpen }) {
           <>
             <div style={{ fontFamily: FB, fontSize: 12.5, color: C.td, padding: '2px 2px 14px' }}>No {currentSeason} games played yet — per-player league numbers appear here after tip-off.</div>
             <CollapsibleSection domId="bhbc-lastseason-players" storageKey="bhbc-lastseason-players" defaultOpen={false} title={`${league.season} · Last season`} bare padX={0}>
-              <div style={{ opacity: 0.72 }}><PlayerStatsTable roster={roster} league={league} onOpen={onOpen} /></div>
+              <PlayerStatsTable roster={roster} league={league} onOpen={onOpen} />
             </CollapsibleSection>
           </>
         ) : (
@@ -1813,7 +1813,7 @@ function LeagueView({ league, roster, fixtures, onOpen }) {
             {playedGames.length > 0 && (
               <div style={{ marginTop: 14 }}>
                 <CollapsibleSection domId="bhbc-lastseason-games" storageKey="bhbc-lastseason-games" defaultOpen={false} title={`${league.season} · Last season results`} bare padX={0}>
-                  <div style={{ opacity: 0.72 }}><ResultsList games={playedGames} bhbcOnly /></div>
+                  <ResultsList games={playedGames} bhbcOnly />
                 </CollapsibleSection>
               </div>
             )}
@@ -1889,7 +1889,7 @@ function MedicalView({ roster, medical, canMedical = true, onReport, onEdit, onO
         </Card>
       )}
 
-      <Card padding={18} leftStripe={NAVY} header={secTitle('Squad Health')}>
+      <Card padding={18} leftStripe={NAVY} header={secTitle('Roster Health')}>
         <div>
           {roster.map((t) => {
             const act = activeInjuries(medical, t.id);
@@ -2055,7 +2055,7 @@ function LogModal({ open, initialAthlete, roster, fixtures = [], availableCount 
     <Modal open={open} onClose={onClose} title="Log a session">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={{ display: 'inline-flex', border: `1px solid ${C.cardBd}`, alignSelf: 'center' }}>
-          {[['athlete', 'One athlete'], ['squad', 'Whole squad']].map(([k, l]) => (
+          {[['athlete', 'One athlete'], ['squad', 'Whole roster']].map(([k, l]) => (
             <button key={k} type="button" onClick={() => setScope(k)} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: scope === k ? '#fff' : C.td, background: scope === k ? NAVY : 'transparent', border: 'none', padding: '6px 14px', cursor: 'pointer' }}>{l}</button>
           ))}
         </div>
