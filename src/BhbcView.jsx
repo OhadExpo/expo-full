@@ -360,7 +360,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
           .bhbc-header-inner{flex-wrap:wrap!important;gap:0 10px!important;padding:6px 14px!important;min-height:0!important}
           .bhbc-header-id{flex:1 1 auto!important;padding:8px 0!important}
           .bhbc-header-ctrl{order:2!important;padding:8px 0!important}
-          .bhbc-hdr-tabs{order:3!important;flex-basis:100%!important;width:100%!important;border-top:1px solid rgba(255,255,255,0.12)!important}
+          .bhbc-hdr-tabs{order:3!important;flex-basis:100%!important;width:100%!important;justify-content:flex-start!important;border-top:1px solid rgba(255,255,255,0.12)!important}
           .bhbc-hdr-tabs button{height:46px!important;padding:0 13px!important}
         }
       `}</style>
@@ -376,7 +376,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
               <span style={{ fontFamily: FN, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: ORANGE }}>S&amp;C · 2026/27</span>
             </div>
           </div>
-          <nav className="bhbc-hdr-tabs" style={{ display: 'flex', alignItems: 'stretch', gap: 0, flex: 1, minWidth: 0, overflowX: 'auto' }}>
+          <nav className="bhbc-hdr-tabs" style={{ display: 'flex', alignItems: 'stretch', justifyContent: 'center', gap: 0, flex: 1, minWidth: 0, overflowX: 'auto' }}>
             {roster.length > 0 && NAV_TABS.map(([k, label]) => {
               const on = view === k;
               return (
