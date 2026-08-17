@@ -571,6 +571,9 @@ html {
      2×280px = 560px row that overflows a 390px screen. */
   .alert-rail { flex-wrap: wrap !important; overflow-x: visible !important; }
   .alert-rail > * { flex: 1 1 100% !important; min-width: 0 !important; }
+  /* BHBC modal field rows (injury report, practice entry): stack the cramped
+     multi-column selects/inputs into clean full-width rows on a phone. */
+  .bhbc-form-grid { grid-template-columns: 1fr !important; }
 }
 
 /* === Light-mode cyan-labels rule ==========================================
