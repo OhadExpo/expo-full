@@ -209,8 +209,8 @@ export default function IntakeView({ trainees }) {
               const url = `${origin}/intake/${t.locale}?t=${t.token}`;
               return (
                 <div key={t.token} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, fontFamily: FB, flexWrap: 'wrap' }}>
-                  <Badge color={t.form_type === 'initial' ? C.ac : (t.form_type === 'assessment' ? C.or : C.gn)}>{t.form_type}</Badge>
-                  <span style={{ color: C.tm }}>{(t.locale || '').toUpperCase()}</span>
+                  <span style={{ display: 'inline-flex', width: 92, flexShrink: 0, alignItems: 'center' }}><Badge color={t.form_type === 'initial' ? C.ac : (t.form_type === 'assessment' ? C.or : C.gn)}>{t.form_type}</Badge></span>
+                  <span style={{ display: 'inline-block', width: 28, flexShrink: 0, color: C.tm }}>{(t.locale || '').toUpperCase()}</span>
                   {t.label && <span style={{ color: C.tx }}>· {t.label}</span>}
                   <span style={{ color: C.td }}>· {ago(t.created_at)} ago</span>
                   <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 6 }}>
@@ -243,8 +243,8 @@ export default function IntakeView({ trainees }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={() => setOpenSubmission(s)}>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                <Badge color={s.form_type === 'initial' ? C.ac : (s.form_type === 'assessment' ? C.or : C.gn)}>{s.form_type}</Badge>
-                <span style={{ fontFamily: FN, fontSize: 10, color: C.tm, fontWeight: 700, letterSpacing: '0.18em' }}>{(s.locale || '').toUpperCase()}</span>
+                <span style={{ display: 'inline-flex', width: 92, flexShrink: 0, alignItems: 'center' }}><Badge color={s.form_type === 'initial' ? C.ac : (s.form_type === 'assessment' ? C.or : C.gn)}>{s.form_type}</Badge></span>
+                <span style={{ display: 'inline-block', width: 28, flexShrink: 0, fontFamily: FN, fontSize: 10, color: C.tm, fontWeight: 700, letterSpacing: '0.18em' }}>{(s.locale || '').toUpperCase()}</span>
                 <span style={{ fontFamily: FB, fontSize: 14, color: C.tx, fontWeight: 600, direction: RTL.test(s.name || '') ? 'rtl' : 'ltr' }}>{s.name || '(no name)'}</span>
                 {s.traineeName && (
                   <span style={{ fontFamily: FB, fontSize: 12, color: C.ac }}>→ {s.traineeName}</span>

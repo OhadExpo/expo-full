@@ -577,7 +577,7 @@ function MealRow({ meal, page = false }) {
       <MealThumb url={meal.photo_url} size={56} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.04em', fontWeight: 700 }}>
-          {new Date(meal.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · {meal.kcal} kcal
+          {new Date(meal.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · <span style={{ color: C.ac }}>{meal.kcal} kcal</span>
         </div>
         <div style={{ fontFamily: FN, fontSize: 12, color: C.tx, marginTop: 2 }}>
           {meal.protein_g}P / {meal.carbs_g}C / {meal.fat_g}F
