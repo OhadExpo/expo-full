@@ -127,7 +127,7 @@ export default function BookingView({ trainees }) {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.08em' }}>PUBLIC URL:</span>
-          <code style={{ fontSize: 12, color: C.ac, background: 'var(--c-sf)', padding: '4px 8px', border: `1px solid ${C.cardBd}`, wordBreak: 'break-all', minWidth: 0 }}>
+          <code style={{ fontSize: 12, color: C.ac, background: 'var(--c-sf)', height: 34, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', padding: '0 10px', border: `1px solid ${C.cardBd}`, wordBreak: 'break-all', minWidth: 0 }}>
             {bookingPublicUrl(draftSettings?.slug)}
           </code>
           <span style={{ flex: 1 }} />
