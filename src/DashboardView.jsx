@@ -701,9 +701,11 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
                     const days = t.lastWorkout ? Math.floor((now - new Date(t.lastWorkout.date)) / 86400000) : null;
                     return (
                       <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', fontSize: 13 }}>
-                        <span {...asButton(() => onSelectTrainee(t.id))} aria-label={`Open ${t.name}`} style={{ color: C.tx, cursor: 'pointer', flex: 1 }}>{t.name}</span>
-                        <span style={{ fontFamily: FN, color: C.or, fontSize: 11, marginRight: 8 }}>{days == null ? 'Never trained' : `${days}d ago`}</span>
-                        <DormantWhatsAppButton trainee={t} days={days} />
+                        <span {...asButton(() => onSelectTrainee(t.id))} aria-label={`Open ${t.name}`} style={{ color: C.tx, cursor: 'pointer', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</span>
+                        <span style={{ fontFamily: FN, color: C.or, fontSize: 11, flexShrink: 0, textAlign: 'right' }}>{days == null ? 'Never trained' : `${days}d ago`}</span>
+                        {/* Reserved slot so the status right-edge aligns whether or not the
+                            athlete has a phone (WhatsApp button renders null without one). */}
+                        <span style={{ width: 26, display: 'inline-flex', justifyContent: 'flex-end', flexShrink: 0, marginLeft: 8 }}><DormantWhatsAppButton trainee={t} days={days} /></span>
                       </div>
                     );
                   })}
