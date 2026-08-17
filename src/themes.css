@@ -574,6 +574,11 @@ html {
   /* BHBC modal field rows (injury report, practice entry): stack the cramped
      multi-column selects/inputs into clean full-width rows on a phone. */
   .bhbc-form-grid { grid-template-columns: 1fr !important; }
+  /* Review compare: two videos side-by-side become full-width stacked so each
+     rep is big enough to actually read the movement; sync buttons go horizontal
+     between them. Ohad: 'comparing two videos, the layout is not good'. */
+  .cmp-grid { grid-template-columns: 1fr !important; }
+  .cmp-sync { flex-direction: row !important; padding-top: 0 !important; justify-content: center !important; }
 }
 
 /* === Light-mode cyan-labels rule ==========================================

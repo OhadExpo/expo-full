@@ -1772,13 +1772,13 @@ function CompareModal({ leftLabel, leftUrl, leftTitle, rightLabel, rightUrl, rig
             <button onClick={onClose} style={{background:'none',border:'none',color:C.tm,cursor:'pointer',fontSize:18,padding:'0 8px'}}>✕</button>
           </div>
         </div>
-        <div style={{display:'grid',gridTemplateColumns:demo?'1fr 1fr':'1fr auto 1fr',gap:12,alignItems:'start'}}>
+        <div className="cmp-grid" style={{display:'grid',gridTemplateColumns:demo?'1fr 1fr':'1fr auto 1fr',gap:12,alignItems:'start'}}>
           <div>
             <div style={{fontSize:11,fontFamily:FN,color:C.tm,marginBottom:6}}>{leftLabel}</div>
             <FormVideoPlayer url={leftUrl} exerciseTitle={leftTitle} onVideoRef={setLeftVid} />
           </div>
           {!demo && (
-            <div style={{display:'flex',flexDirection:'column',gap:6,paddingTop:24}}>
+            <div className="cmp-sync" style={{display:'flex',flexDirection:'column',gap:6,paddingTop:24}}>
               <button onClick={() => sync('right')} title="Copy left timestamp to right"
                 style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,color:C.tm,fontFamily:FN,fontSize:10,padding:'6px 8px',borderRadius:0,cursor:'pointer',whiteSpace:'nowrap'}}>SYNC →</button>
               <button onClick={() => sync('left')} title="Copy right timestamp to left"
