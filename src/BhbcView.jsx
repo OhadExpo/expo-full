@@ -422,6 +422,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
 
             {view === 'overview' && (
               <>
+                <HeadCoachBrief rows={rows} fx={fx} fixtures={bhbcFixtures} medical={medical} today={today} onOpen={setDetailFor} onCheckin={() => setCheckinOpen(true)} />
                 <CoachBrief rows={rows} fx={fx} fixtures={bhbcFixtures} medical={medical} today={today} onOpen={setDetailFor} onCheckin={() => setCheckinOpen(true)} onLog={() => setPracticeOpen(true)} />
                 <TodayPanel today={today} fixtures={bhbcFixtures} fx={fx} rows={rows} onSessions={() => setView('sessions')} onLog={() => setPracticeOpen(true)} />
                 {fx.nextGame && <NextGamePanel nextGame={fx.nextGame} today={today} onEdit={() => setGameEdit(true)} />}
@@ -1088,7 +1089,7 @@ function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onCheckin, onL
   const top = A.sort((a, b) => sevRank[a.sev] - sevRank[b.sev]).slice(0, 5);
   const sevColor = { game: ORANGE, red: '#DE4E3B', amber: '#E0A73A', info: '#4F9DE0' };
   return (
-    <Card padding={18} leftStripe={ORANGE} header={secTitle('Coach’s Brief')} headerRight={<span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>{dow(today)} {monDay(today)}</span>}>
+    <Card padding={18} leftStripe={ORANGE} header={secTitle('S&C Brief')} headerRight={<span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>{dow(today)} {monDay(today)}</span>}>
       {top.length === 0 ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 9, fontFamily: FB, fontSize: 13, color: C.td, padding: '4px 0' }}>
           <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#37B27C', flexShrink: 0 }} />All clear — no load, readiness or medical flags today.
@@ -1103,6 +1104,75 @@ function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onCheckin, onL
                 {/* Center the dot on the first text line. The +4px offset accounts for
                     Nord's bottom-heavy line box (measured: line-center sits ~4px below
                     the CSS line-box center). Ohad: dot must be vertically centered. */}
+                <span style={{ display: 'inline-flex', alignItems: 'center', height: 12.5 * 1.5, marginTop: 4, flexShrink: 0 }}>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: sevColor[a.sev] }} />
+                </span>
+                <div style={{ minWidth: 0, lineHeight: 1.5, flex: 1 }}>
+                  <span style={{ fontFamily: FN, fontSize: 12.5, fontWeight: 700, letterSpacing: '0.02em', color: C.tx }}>{a.do}</span>
+                  <span style={{ fontFamily: FB, fontSize: 12.5, color: C.tm }}> — {a.why}</span>
+                </div>
+                {click && <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: ORANGE, flexShrink: 0, marginTop: 3 }}>›</span>}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+// The HEAD COACH's decision layer — selection, availability and rotation (not the
+// S&C load numbers). Reads the same live data but frames it for team selection:
+// who can play, who's limited, where the rotation gets stretched.
+function HeadCoachBrief({ rows, fx, fixtures, medical, today, onOpen, onCheckin }) {
+  const first = (r) => (r.t.name || '').trim().split(/\s+/)[0] || r.t.name;
+  const names = (arr) => arr.slice(0, 4).map(first).join(', ') + (arr.length > 4 ? ` +${arr.length - 4}` : '');
+  const availOf = (r) => r.avail || 1;                 // 1 = full, 2–3 = limited, 4+ = out
+  const out = rows.filter((r) => availOf(r) >= 4);
+  const limited = rows.filter((r) => availOf(r) >= 2 && availOf(r) < 4);
+  const available = rows.filter((r) => availOf(r) < 2);
+  const injured = rows.filter((r) => activeInjuries(medical, r.t.id).length);
+  const anyLoad = rows.some((r) => r.hasLoad);
+  const A = [];
+  // 1) The selection picture for the next game.
+  if (fx.nextGame) {
+    const d = dayDiff(fx.nextGame.date, today);
+    A.push({ sev: 'game', do: `${fx.nextGame.opponent ? 'vs ' + fx.nextGame.opponent : 'Next game'} · ${d === 0 ? 'today' : d < 0 ? 'in progress' : d + 'd out'}`, why: `${available.length} available for selection${limited.length ? `, ${limited.length} limited` : ''}${out.length ? `, ${out.length} out` : ''}.` });
+  }
+  // 2) Ruled out — rotation must work around them.
+  if (out.length) A.push({ sev: 'red', do: `Out: ${names(out)}`, why: 'unavailable — build the rotation without them.', ids: out.map((r) => r.t.id) });
+  // 3) Limited / doubtful — capped minutes.
+  if (limited.length) A.push({ sev: 'amber', do: `Limited: ${names(limited)}`, why: 'manage their minutes — capped or non-contact roles.', ids: limited.map((r) => r.t.id) });
+  // 4) Carrying knocks but not fully out — confirm fitness before naming the squad.
+  const rehab = injured.filter((r) => availOf(r) < 4);
+  if (rehab.length) A.push({ sev: 'amber', do: `Carrying knocks: ${names(rehab)}`, why: 'in rehab — confirm fitness with the S&C/PT before you name them.', ids: rehab.map((r) => r.t.id) });
+  // 5) Fixture congestion → rotate.
+  const games = (fixtures || []).filter((f) => f.type === 'game' && f.date >= today).sort((a, b) => a.date.localeCompare(b.date));
+  for (let i = 0; i < games.length - 1; i++) {
+    const gap = dayDiff(games[i + 1].date, games[i].date);
+    if (gap > 0 && gap < 4) { A.push({ sev: 'amber', do: `Congested run ${monDay(games[i].date)}–${monDay(games[i + 1].date)}`, why: `${gap}-day turnaround — spread the minutes so no one plays heavy twice.` }); break; }
+  }
+  // 6) Availability unknown — can't confirm who's fresh.
+  const noCheckin = rows.filter((r) => !r.checkedToday);
+  if (rows.length && noCheckin.length === rows.length) A.push({ sev: 'info', do: 'Availability unknown today', why: "no wellness check-ins — you can't confirm who's fresh. Run a quick check before selection.", act: onCheckin });
+  // 7) Pre-season — build the rotation.
+  if (!anyLoad) A.unshift({ sev: 'game', do: 'Pre-season — set the rotation', why: 'use practices to lock roles, combinations and minutes so the squad is game-fit for tip-off.' });
+  const sevRank = { game: 0, red: 1, amber: 2, info: 3 };
+  const top = A.sort((a, b) => sevRank[a.sev] - sevRank[b.sev]).slice(0, 5);
+  const sevColor = { game: ORANGE, red: '#DE4E3B', amber: '#E0A73A', info: '#4F9DE0' };
+  return (
+    <Card padding={18} leftStripe={NAVY} header={secTitle('Head Coach Brief')} headerRight={<span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>Selection &amp; rotation</span>}>
+      {top.length === 0 ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9, fontFamily: FB, fontSize: 13, color: C.td, padding: '4px 0' }}>
+          <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#37B27C', flexShrink: 0 }} />Full squad available — no selection or availability flags.
+        </div>
+      ) : (
+        <div>
+          {top.map((a, i) => {
+            const click = a.act ? a.act : (a.ids && a.ids.length === 1 && onOpen ? () => onOpen(a.ids[0]) : null);
+            return (
+              <div key={i} onClick={click || undefined} className={click ? 'bhbc-row' : undefined}
+                style={{ display: 'flex', alignItems: 'flex-start', gap: 11, padding: '9px 2px', borderBottom: i < top.length - 1 ? `0.25px solid ${C.cardBd}` : 'none', cursor: click ? 'pointer' : 'default' }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', height: 12.5 * 1.5, marginTop: 4, flexShrink: 0 }}>
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: sevColor[a.sev] }} />
                 </span>
