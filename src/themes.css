@@ -555,6 +555,17 @@ html {
   scrollbar-gutter: stable;
 }
 
+/* ===== Mobile fit — never let a PAGE scroll sideways (wide content wraps or
+   scrolls inside its own container). Ohad: "no left/right scrolling, everything
+   must fit." Targeted at the known-wide desktop rows. ===================== */
+@media (max-width: 620px) {
+  /* Program-card action row: drop the flex spacer + wrap the text actions so
+     the card stops forcing a ~470px width on a 390px screen. */
+  .prog-actions { gap: 12px 16px !important; flex-wrap: wrap !important; }
+  .prog-actions .prog-spacer { display: none !important; }
+  .prog-txtbtn { font-size: 12px !important; }
+}
+
 /* === Light-mode cyan-labels rule ==========================================
    Small all-caps tile labels (letter-spacing 0.18em — KPI labels, stat tile
    labels, column headers, etc.) render in the AA-safe darkened cyan in light
