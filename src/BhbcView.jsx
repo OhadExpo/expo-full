@@ -351,12 +351,24 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
 
   return (
     <div className="bhbc-zone" style={{ ...TOKENS, minHeight: '100vh', background: 'var(--c-bg)', color: C.tx, fontFamily: FB }}>
-      <style>{`.bhbc-hdr-tabs::-webkit-scrollbar{display:none} .bhbc-hdr-tabs{scrollbar-width:none;-ms-overflow-style:none} .bhbc-ghost-btn:hover{color:${ORANGE}!important;border-color:${ORANGE}!important}`}</style>
+      <style>{`
+        .bhbc-hdr-tabs::-webkit-scrollbar{display:none} .bhbc-hdr-tabs{scrollbar-width:none;-ms-overflow-style:none}
+        .bhbc-ghost-btn:hover{color:${ORANGE}!important;border-color:${ORANGE}!important}
+        /* Never let the zone scroll the PAGE sideways — wide bits scroll inside. */
+        .bhbc-zone{max-width:100vw;overflow-x:clip}
+        @media (max-width:760px){
+          .bhbc-header-inner{flex-wrap:wrap!important;gap:0 10px!important;padding:6px 14px!important;min-height:0!important}
+          .bhbc-header-id{flex:1 1 auto!important;padding:8px 0!important}
+          .bhbc-header-ctrl{order:2!important;padding:8px 0!important}
+          .bhbc-hdr-tabs{order:3!important;flex-basis:100%!important;width:100%!important;border-top:1px solid rgba(255,255,255,0.12)!important}
+          .bhbc-hdr-tabs button{height:46px!important;padding:0 13px!important}
+        }
+      `}</style>
       {/* ---- ZONE TOP BAR — logo + wordmark + inline nav tabs + controls, one
            clean bar (EXPO-style; tabs moved up here from a separate row). ---- */}
       <header style={{ position: 'sticky', top: 0, zIndex: 50, background: NAVY, borderBottom: `2px solid ${ORANGE}`, boxShadow: '0 1px 0 rgba(255,255,255,0.06) inset' }}>
-        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px', minHeight: 60, display: 'flex', alignItems: 'stretch', gap: 20 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0, paddingRight: 6, borderRight: '1px solid rgba(255,255,255,0.12)' }}>
+        <div className="bhbc-header-inner" style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px', minHeight: 60, display: 'flex', alignItems: 'stretch', gap: 20 }}>
+          <div className="bhbc-header-id" style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
             <img src="/bnei-herzliya-logo-w.png" alt="Bnei Herzliya BC" style={{ height: 36, width: 'auto', display: 'block' }} />
             {/* Wordmark on ONE line (Ohad: no stacked text in the top menu). */}
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, whiteSpace: 'nowrap' }}>
@@ -374,7 +386,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
               );
             })}
           </nav>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+          <div className="bhbc-header-ctrl" style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
             <ThemeToggle size={30} style={{ color: '#fff', border: '1px solid rgba(255,255,255,0.4)' }} />
             {onExit && <button onClick={onExit} title="Back to EXPO coach" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#fff', background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.28)', borderRadius: 0, padding: '7px 12px', cursor: 'pointer' }}>‹ EXPO</button>}
             {coach && onSignOut && <button onClick={onSignOut} title="Sign out" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#fff', background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.28)', borderRadius: 0, padding: '7px 12px', cursor: 'pointer' }}>Sign out</button>}
