@@ -582,6 +582,13 @@ html {
   /* BHBC month calendar: let all 7 day-columns fit the phone instead of forcing
      a 620px horizontal scroll. */
   .bhbc-cal-wrap { min-width: 0 !important; }
+  /* BHBC game rows: on a phone drop the secondary comp/venue detail so the
+     matchup (opponent name) keeps its space instead of ellipsing to nothing. */
+  .bhbc-game-row { grid-template-columns: 54px 1fr 62px !important; }
+  .bhbc-game-detail { display: none !important; }
+  /* Drop the redundant constant "Bnei Herzliya" on a phone so the opponent name
+     (the part that actually varies) has room — vs/@ + badge still show home/away. */
+  .bhbc-game-home { display: none !important; }
 }
 
 /* === Light-mode cyan-labels rule ==========================================

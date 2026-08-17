@@ -1672,18 +1672,18 @@ function ResultsList({ games, bhbcOnly }) {
     const nameCell = { fontFamily: FN, fontSize: 12.5, fontWeight: 800, color: C.tx, whiteSpace: 'nowrap' };
     return (
       <div style={{ borderBottom: `0.25px solid ${C.cardBd}`, borderLeft: `3px solid ${ORANGE}`, background: `color-mix(in srgb, ${NAVY} 7%, transparent)` }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '54px minmax(0,auto) 1fr 62px', gap: 14, alignItems: 'center', padding: '12px 12px' }}>
+        <div className="bhbc-game-row" style={{ display: 'grid', gridTemplateColumns: '54px minmax(0,auto) 1fr 62px', gap: 14, alignItems: 'center', padding: '12px 12px' }}>
           <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{g.date ? g.date.slice(5).replace('-', '/') : ''}</div>
           {/* Bnei Herzliya (constant) · vs/@/score · opponent — constant first token
               means vs/@ and the opponent line up on every row. */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-            <span style={{ ...nameCell }}>Bnei Herzliya</span>
+            <span className="bhbc-game-home" style={{ ...nameCell }}>Bnei Herzliya</span>
             {g.played
               ? <span style={{ fontFamily: FN, fontSize: 12.5, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '2px 8px', whiteSpace: 'nowrap', flexShrink: 0 }}>{bhScore}<span style={{ color: C.tm, margin: '0 4px' }}>–</span>{oppScore}</span>
               : <span style={{ width: 24, textAlign: 'center', fontFamily: FN, fontSize: 10.5, fontWeight: 700, color: C.tm, letterSpacing: '0.04em', flexShrink: 0 }}>{bhHome ? 'vs' : '@'}</span>}
             <span style={{ ...nameCell, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{opp}</span>
           </div>
-          <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.03em', textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, textTransform: 'uppercase' }}>{detail}</div>
+          <div className="bhbc-game-detail" style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.03em', textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, textTransform: 'uppercase' }}>{detail}</div>
           {g.played
             ? <span style={{ justifySelf: 'end', fontFamily: FN, fontSize: 9.5, fontWeight: 800, letterSpacing: '0.04em', color: '#fff', background: won ? '#37B27C' : '#DE4E3B', padding: '2px 8px' }}>{won ? 'W' : 'L'}</span>
             : <span style={{ justifySelf: 'end', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', color: bhHome ? '#fff' : ORANGE, border: `1px solid ${bhHome ? C.cardBd : ORANGE}`, padding: '2px 7px' }}>{bhHome ? 'HOME' : 'AWAY'}</span>}
