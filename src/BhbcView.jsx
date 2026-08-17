@@ -29,6 +29,8 @@ const SessionsView = lazy(() => import('./SessionsView'));
 const CoachPreviewPortal = lazy(() => import('./CoachPreviewPortal'));
 
 const NAVY = '#1E3D74', NAVY_DEEP = '#14294F', ORANGE = '#F26A2B', ORANGE_DEEP = '#D9541A';
+// Understated dark-navy header bar (EXPO-header feel, not a loud bright-navy block).
+const HDR_BG = '#0E1C38';
 // Scoped theme override — reskins EXPO's components to BHBC while keeping their
 // geometry + light/dark behaviour. Strips go navy (white title text stays legible)
 // in both themes; card hairlines get a navy tint blended into the theme border.
@@ -354,6 +356,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
       <style>{`
         .bhbc-hdr-tabs::-webkit-scrollbar{display:none} .bhbc-hdr-tabs{scrollbar-width:none;-ms-overflow-style:none}
         .bhbc-ghost-btn:hover{color:${ORANGE}!important;border-color:${ORANGE}!important}
+        .bhbc-tab:hover{color:#fff!important;border-color:rgba(255,255,255,0.30)!important}
         /* Never let the zone scroll the PAGE sideways — wide bits scroll inside. */
         .bhbc-zone{max-width:100vw;overflow-x:clip}
         @media (max-width:760px){
@@ -366,32 +369,30 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
       `}</style>
       {/* ---- ZONE TOP BAR — logo + wordmark + inline nav tabs + controls, one
            clean bar (EXPO-style; tabs moved up here from a separate row). ---- */}
-      <header style={{ position: 'sticky', top: 0, zIndex: 50, background: NAVY, borderBottom: `2px solid ${ORANGE}`, boxShadow: '0 1px 0 rgba(255,255,255,0.06) inset' }}>
-        <div className="bhbc-header-inner" style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', minHeight: 58, display: 'flex', alignItems: 'stretch', gap: 28 }}>
-          <div className="bhbc-header-id" style={{ display: 'flex', alignItems: 'center', gap: 11, flexShrink: 0 }}>
-            <img src="/bnei-herzliya-logo-w.png" alt="Bnei Herzliya BC" style={{ height: 34, width: 'auto', display: 'block' }} />
+      <header style={{ position: 'sticky', top: 0, zIndex: 50, background: HDR_BG, borderBottom: '1px solid rgba(255,255,255,0.07)', boxShadow: '0 2px 10px rgba(0,0,0,0.30)' }}>
+        <div className="bhbc-header-inner" style={{ maxWidth: 1280, margin: '0 auto', padding: '0 18px', minHeight: 54, display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div className="bhbc-header-id" style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, marginRight: 6 }}>
+            <img src="/bnei-herzliya-logo-w.png" alt="Bnei Herzliya BC" style={{ height: 30, width: 'auto', display: 'block' }} />
             {/* Wordmark on ONE line (Ohad: no stacked text in the top menu). */}
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, whiteSpace: 'nowrap' }}>
-              <span style={{ fontFamily: FN, fontWeight: 800, fontSize: 14, color: '#fff', letterSpacing: '0.03em' }}>BNEI HERZLIYA</span>
-              <span style={{ fontFamily: FN, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: ORANGE }}>S&amp;C · 2026/27</span>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, whiteSpace: 'nowrap' }}>
+              <span style={{ fontFamily: FN, fontWeight: 800, fontSize: 13.5, color: '#fff', letterSpacing: '0.02em' }}>BNEI HERZLIYA</span>
+              <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: ORANGE }}>S&amp;C · 2026/27</span>
             </div>
           </div>
-          {/* Tabs sit tight next to the wordmark; controls get pushed right (one clean
-              gap, not tabs floating in the middle). */}
-          <nav className="bhbc-hdr-tabs" style={{ display: 'flex', alignItems: 'stretch', justifyContent: 'flex-start', gap: 2, flex: '0 1 auto', minWidth: 0, overflowX: 'auto' }}>
+          {/* Understated EXPO-style nav: tight left-aligned small tabs, active tab is
+              an orange-outlined box (mirrors EXPO's cyan-outlined active). */}
+          <nav className="bhbc-hdr-tabs" style={{ display: 'flex', alignItems: 'center', gap: 3, flex: '1 1 auto', minWidth: 0, overflowX: 'auto' }}>
             {roster.length > 0 && NAV_TABS.map(([k, label]) => {
               const on = view === k;
               return (
-                <button key={k} onClick={() => setView(k)} style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: on ? '#fff' : 'rgba(255,255,255,0.6)', background: on ? 'rgba(255,255,255,0.06)' : 'transparent', border: 'none', borderBottom: on ? `2px solid ${ORANGE}` : '2px solid transparent', padding: '0 15px', height: 60, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'color .12s, background .12s' }}
-                  onMouseEnter={(e) => { if (!on) e.currentTarget.style.color = '#fff'; }}
-                  onMouseLeave={(e) => { if (!on) e.currentTarget.style.color = 'rgba(255,255,255,0.6)'; }}>{label}</button>
+                <button key={k} onClick={() => setView(k)} className={on ? undefined : 'bhbc-tab'} style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: on ? '#fff' : 'rgba(255,255,255,0.5)', background: 'transparent', border: `1px solid ${on ? ORANGE : 'transparent'}`, borderRadius: 0, padding: '6px 11px', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'color .12s, border-color .12s' }}>{label}</button>
               );
             })}
           </nav>
-          <div className="bhbc-header-ctrl" style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, marginLeft: 'auto' }}>
-            <ThemeToggle size={30} style={{ color: '#fff', border: '1px solid rgba(255,255,255,0.4)' }} />
-            {onExit && <button onClick={onExit} title="Back to EXPO coach" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#fff', background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.28)', borderRadius: 0, padding: '7px 12px', cursor: 'pointer' }}>‹ EXPO</button>}
-            {coach && onSignOut && <button onClick={onSignOut} title="Sign out" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#fff', background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.28)', borderRadius: 0, padding: '7px 12px', cursor: 'pointer' }}>Sign out</button>}
+          <div className="bhbc-header-ctrl" style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, marginLeft: 'auto' }}>
+            <ThemeToggle size={28} style={{ color: 'rgba(255,255,255,0.85)', border: '1px solid rgba(255,255,255,0.18)' }} />
+            {onExit && <button onClick={onExit} className="bhbc-tab" title="Back to EXPO coach" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)', background: 'transparent', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 0, padding: '6px 11px', cursor: 'pointer' }}>‹ EXPO</button>}
+            {coach && onSignOut && <button onClick={onSignOut} className="bhbc-tab" title="Sign out" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)', background: 'transparent', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 0, padding: '6px 11px', cursor: 'pointer' }}>Sign out</button>}
           </div>
         </div>
       </header>
