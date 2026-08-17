@@ -2733,14 +2733,15 @@ function ProgramDetail({ program }) {
           gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
         }}>
           {pHighlights.map((h, i) => (
+            {/* Start-aligned (RTL-aware) so a leading marker + wrapping text keep a
+                straight reading edge instead of centered rows shifting per item. */}
             <li key={i} style={{
-              background: C.sf, border: `0.25px solid ${C.ac4D}`, borderRadius: 0,
+              background: C.sf, border: `1px solid ${C.ac4D}`, borderRadius: 0,
               padding: 14, display: 'flex', gap: 10, alignItems: 'flex-start',
-              justifyContent: 'center',
-              fontFamily: FB, fontSize: 14, color: C.tx, lineHeight: 1.5, textAlign: 'center',
+              fontFamily: FB, fontSize: 14, color: C.tx, lineHeight: 1.5, textAlign: 'start',
             }}>
-              <span style={{ color: C.ac, fontFamily: FN, fontWeight: 700, marginTop: 1 }}>›</span>
-              <span>{h}</span>
+              <span style={{ color: C.ac, fontFamily: FN, fontWeight: 700, flexShrink: 0, lineHeight: 1.5 }}>›</span>
+              <span style={{ minWidth: 0 }}>{h}</span>
             </li>
           ))}
         </ul>

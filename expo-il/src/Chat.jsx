@@ -302,14 +302,14 @@ export default function Chat() {
                           onChange={e => { setCaptureEmail(e.target.value); if (captureState === 'error') setCaptureState('idle'); }}
                           placeholder={isHe ? 'your@email.com' : 'your@email.com'}
                           style={{
-                            flex: 1, background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0,
-                            padding: '6px 9px', color: C.tx, fontFamily: FB, fontSize: 12, outline: 'none',
+                            flex: 1, height: 32, boxSizing: 'border-box', background: 'transparent', border: `1px solid ${C.ac}4D`, borderRadius: 0,
+                            padding: '0 10px', color: C.tx, fontFamily: FB, fontSize: 12, outline: 'none',
                           }} />
                         <button type="submit" disabled={captureState === 'sending'}
                           style={{
-                            background: 'transparent',
+                            height: 32, boxSizing: 'border-box', background: 'transparent',
                             color: captureState === 'sending' ? C.tm : C.ac,
-                            border: `1px solid ${captureState === 'sending' ? C.ac+'4D' : C.ac}`, borderRadius: 0, padding: '6px 10px',
+                            border: `1px solid ${captureState === 'sending' ? C.ac+'4D' : C.ac}`, borderRadius: 0, padding: '0 12px',
                             fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em',
                             cursor: captureState === 'sending' ? 'default' : 'pointer',
                           }}>{captureState === 'sending' ? '…' : (isHe ? 'שלח' : 'SEND')}</button>
@@ -390,18 +390,18 @@ export default function Chat() {
               <textarea ref={inputRef} value={draft} onChange={e => setDraft(e.target.value)} onKeyDown={onKey}
                 placeholder={isHe ? 'כתוב שאלה…' : 'Type a question…'} rows={1}
                 style={{
-                  flex: 1, resize: 'none',
-                  background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0,
+                  flex: 1, resize: 'none', boxSizing: 'border-box',
+                  background: 'transparent', border: `1px solid ${C.ac}4D`, borderRadius: 0,
                   padding: '8px 10px', color: C.tx,
                   fontFamily: FB, fontSize: 13, outline: 'none',
                   minHeight: 36, maxHeight: 100,
                 }} />
               <button onClick={() => send()} disabled={sending || !draft.trim()}
                 style={{
-                  background: 'transparent',
+                  minHeight: 36, boxSizing: 'border-box', background: 'transparent',
                   color: draft.trim() && !sending ? C.ac : C.tm,
                   border: `1px solid ${draft.trim() && !sending ? C.ac : C.ac+'4D'}`, borderRadius: 0,
-                  padding: '8px 14px', fontFamily: FN, fontSize: 12, fontWeight: 700,
+                  padding: '0 14px', fontFamily: FN, fontSize: 12, fontWeight: 700,
                   letterSpacing: '0.18em', cursor: draft.trim() && !sending ? 'pointer' : 'default',
                 }}>{isHe ? 'שלח' : 'SEND'}</button>
             </div>
