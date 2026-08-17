@@ -1721,8 +1721,18 @@ function LeagueView({ league, roster, fixtures, onOpen }) {
   const upcomingFx = fixturesToGames(fixtures).filter((g) => !playedGames.some((p) => p.date === g.date));
   const allGames = [...playedGames, ...upcomingFx];
   const hasStats = (league.players || []).length > 0 || playedGames.length > 0;
+  // Which season are we actually in? (Israeli basketball season spans ~Aug→May.)
+  const now = new Date();
+  const startYr = now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
+  const currentSeason = `${startYr}/${String((startYr + 1) % 100).padStart(2, '0')}`;
+  const seasonNorm = (s) => String(s || '').replace(/\s+/g, '');
+  // The stored league numbers belong to a PAST season if their tag ≠ the current one.
+  // In that case this season hasn't started — show a pre-season state, not last year's
+  // figures dressed up as "live". (Ohad: "only see stats from this year".)
+  const pastData = !!league.season && seasonNorm(league.season) !== seasonNorm(currentSeason);
   const t = league.team || {};
   const played = t.gp || 0;
+  const showCurrent = played && !pastData;
   const summary = [
     { k: 'Record', v: played ? `${t.w}–${t.l}` : '—', c: C.tx },
     { k: 'Points', v: played ? t.ppg : '—', sub: 'per game', c: C.tx },
@@ -1732,8 +1742,12 @@ function LeagueView({ league, roster, fixtures, onOpen }) {
   return (
     <>
       {/* Team stats + live badge */}
-      <Card padding={18} leftStripe={ORANGE} header={secTitle('Team Stats')} headerRight={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: historical ? '#7C828B' : '#4ED88A' }} />{historical ? 'Last season' : 'Live'}{league.season ? ` · ${league.season}` : ''}{league.updatedAt ? ` · ${relTime(league.updatedAt)}` : ''}</span>}>
-        {played ? (
+      <Card padding={18} leftStripe={ORANGE} header={secTitle('Team Stats')} headerRight={
+        pastData
+          ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: '#7C828B' }} />{currentSeason} · Pre-season</span>
+          : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: historical ? '#7C828B' : '#4ED88A' }} />{historical ? 'Last season' : 'Live'}{league.season ? ` · ${league.season}` : ''}{league.updatedAt ? ` · ${relTime(league.updatedAt)}` : ''}</span>
+      }>
+        {showCurrent ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))' }}>
             {summary.map((s, i) => (
               <div key={s.k} style={{ padding: '14px 18px', borderLeft: i ? `1px solid ${C.cardBd}` : 'none', display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -1743,15 +1757,41 @@ function LeagueView({ league, roster, fixtures, onOpen }) {
               </div>
             ))}
           </div>
+        ) : pastData ? (
+          <>
+            <div style={{ fontFamily: FB, fontSize: 12.5, color: C.td, padding: '2px 2px 14px' }}>The {currentSeason} season hasn't tipped off — official team stats appear here after the first game.</div>
+            <CollapsibleSection domId="bhbc-lastseason-team" storageKey="bhbc-lastseason-team" defaultOpen={false} title={`${league.season} · Last season`} bare padX={0}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', opacity: 0.72 }}>
+                {summary.map((s, i) => (
+                  <div key={s.k} style={{ padding: '14px 18px', borderLeft: i ? `1px solid ${C.cardBd}` : 'none', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <div style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{s.k}</div>
+                    <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 26, lineHeight: 1, color: s.c, fontVariantNumeric: 'tabular-nums' }}>{s.v}</div>
+                    {s.sub && <div style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.04em' }}>{s.sub}</div>}
+                  </div>
+                ))}
+              </div>
+            </CollapsibleSection>
+          </>
         ) : (
-          <div style={{ fontFamily: FB, fontSize: 12.5, color: C.td, padding: '6px 2px' }}>No games played yet this season — team stats fill in automatically after tip-off. Last-season stats show on each athlete below.</div>
+          <div style={{ fontFamily: FB, fontSize: 12.5, color: C.td, padding: '6px 2px' }}>No games played yet this season — team stats fill in automatically after tip-off.</div>
         )}
       </Card>
 
       {/* Player stats — the roster, with official league numbers */}
-      <Card padding={18} leftStripe={NAVY} header={secTitle('Player Stats')} headerRight={<span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>tap a column to sort</span>}>
-        <PlayerStatsTable roster={roster} league={league} onOpen={onOpen} />
-        <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 8 }}>Official league stats (מנהלת ליגת העל){league.season ? ` · ${league.season}` : ''} — tap any athlete for their full profile &amp; last game.</div>
+      <Card padding={18} leftStripe={NAVY} header={secTitle('Player Stats')} headerRight={pastData ? null : <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>tap a column to sort</span>}>
+        {pastData ? (
+          <>
+            <div style={{ fontFamily: FB, fontSize: 12.5, color: C.td, padding: '2px 2px 14px' }}>No {currentSeason} games played yet — per-player league numbers appear here after tip-off.</div>
+            <CollapsibleSection domId="bhbc-lastseason-players" storageKey="bhbc-lastseason-players" defaultOpen={false} title={`${league.season} · Last season`} bare padX={0}>
+              <div style={{ opacity: 0.72 }}><PlayerStatsTable roster={roster} league={league} onOpen={onOpen} /></div>
+            </CollapsibleSection>
+          </>
+        ) : (
+          <>
+            <PlayerStatsTable roster={roster} league={league} onOpen={onOpen} />
+            <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 8 }}>Official league stats (מנהלת ליגת העל){league.season ? ` · ${league.season}` : ''} — tap any athlete for their full profile &amp; last game.</div>
+          </>
+        )}
       </Card>
 
       {/* Games — BHBC only */}
