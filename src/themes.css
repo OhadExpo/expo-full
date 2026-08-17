@@ -579,6 +579,9 @@ html {
      between them. Ohad: 'comparing two videos, the layout is not good'. */
   .cmp-grid { grid-template-columns: 1fr !important; }
   .cmp-sync { flex-direction: row !important; padding-top: 0 !important; justify-content: center !important; }
+  /* BHBC month calendar: let all 7 day-columns fit the phone instead of forcing
+     a 620px horizontal scroll. */
+  .bhbc-cal-wrap { min-width: 0 !important; }
 }
 
 /* === Light-mode cyan-labels rule ==========================================

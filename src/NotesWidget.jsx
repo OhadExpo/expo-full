@@ -118,7 +118,7 @@ function MiniTaskRow({ n, stackBoard, onClick, stripe }) {
   // athlete name + the action text — clipped with an ellipsis, never wrapping.
   return (
     <div onClick={onClick} title={body} className="mini-task-row"
-      style={{ border: `1px solid var(--c-cardBd)`, borderLeft: `3px solid ${tone}`, padding: '6px 8px', fontSize: stackBoard ? 12 : 11, lineHeight: 1.3, color: 'var(--c-tx)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, whiteSpace: 'nowrap', overflow: 'hidden', transition: 'border-color 120ms ease, background 120ms ease' }}>
+      style={{ border: `1px solid var(--c-cardBd)`, borderLeft: `3px solid ${tone}`, padding: '0 8px', minHeight: 32, boxSizing: 'border-box', fontSize: stackBoard ? 12 : 11, lineHeight: 1.3, color: 'var(--c-tx)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, whiteSpace: 'nowrap', overflow: 'hidden', transition: 'border-color 120ms ease, background 120ms ease' }}>
       {/* Order (Ohad): NAME first, then the action info, then the kind TAG all
           the way to the right. Body is flex:1 so the tag is pushed to the edge. */}
       {/* Name sizing MIRRORS the ALL ATHLETES table (Ohad #185): Nord (FN) at 13px
@@ -1041,7 +1041,8 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                 // are already enough "this is closed" signal in both themes.
                 // The prior opacity:0.55 was double-dimming and made the
                 // strikethrough body unreadable on white in light mode.
-                display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0',
+                display: 'flex', alignItems: 'center', gap: 8, padding: '0',
+                minHeight: 32, boxSizing: 'border-box',
                 borderBottom: `1px solid var(--c-cardBd)`,
               }}>
                 <input type="checkbox" checked={true}
