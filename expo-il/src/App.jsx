@@ -569,7 +569,7 @@ function Hero({ onOpenQuiz }) {
               lineHeight: 1, marginBottom: 4,
             }}>{s.n}</div>
             <div style={{
-              fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1.5, fontWeight: 700,
+              fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 1.5, fontWeight: 700,
             }}>{s.l}</div>
           </div>
         ))}
@@ -692,7 +692,7 @@ function ProgramMeta({ p }) {
       {meta.map((m, i) => (
         <span key={i} style={{
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
-          fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 0.5,
+          fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 0.5,
           border: `1px solid ${C.bd}`, padding: '3px 8px', borderRadius: 0,
           background: C.sf2,
         }}>{m.toUpperCase()}</span>
@@ -728,10 +728,10 @@ function ProgramCard({ p }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span style={{
           fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1.5,
-          background: 'transparent', border: `0.25px solid ${C.ac}`, color: C.ac, padding: '4px 10px', borderRadius: 0,
-          border: `1px solid ${C.ac4D}`,
+          background: 'transparent', color: C.ac, padding: '4px 10px', borderRadius: 0,
+          border: `1px solid ${C.ac}`,
         }}>{(isHe && p.tagHe ? p.tagHe : p.tag).toUpperCase()}</span>
-        <span style={{ fontFamily: FN, fontSize: 11, color: C.td }}>{isHe ? (p.durationHe || p.duration) : p.duration}</span>
+        <span style={{ fontFamily: FN, fontSize: 11, color: C.tm }}>{isHe ? (p.durationHe || p.duration) : p.duration}</span>
       </div>
       <div>
         <h3 style={{ fontFamily: FB, fontSize: 20, fontWeight: 700, marginBottom: 4, lineHeight: 1.15 }}>{isHe ? (p.titleHe || p.title) : p.title}</h3>
@@ -1930,7 +1930,9 @@ function Testimonials() {
         display: 'grid', gap: 14,
         gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
       }}>
-        {TESTIMONIALS.map((q, i) => (
+        {/* No "COMING SOON" skeletons on a live sales page — show cards only once a
+            real quote exists (else just the testi.empty line above). */}
+        {(realCount > 0 ? TESTIMONIALS : []).map((q, i) => (
           <div key={i} style={{
             background: C.sf, border: `0.25px solid ${C.ac4D}`,
             borderRadius: 0, padding: 18,

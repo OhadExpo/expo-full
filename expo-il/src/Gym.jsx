@@ -209,7 +209,7 @@ function Hero({ heb, onBookClick }) {
               border: `1px solid ${C.ac}`, borderRadius: 0,
               fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.2em',
               cursor: 'pointer', textTransform: 'uppercase',
-              boxShadow: `0 0 32px ${C.ac}40`,
+              boxShadow: `0 0 32px ${C.ac}26`,
             }}>{heb ? 'לקבוע אימון' : 'BOOK A SESSION'} {heb ? '←' : '→'}</button>
           <a href={`https://wa.me/${CONTACT.whatsapp}`} target="_blank" rel="noopener"
             style={{
@@ -346,14 +346,14 @@ function WhyInPerson({ heb }) {
       }}>
         {items.map((it, i) => (
           <div key={i} style={{
-            background: C.sf, border: `1px solid ${C.ac}40`, padding: '24px 22px',
+            background: C.sf, border: `1px solid ${C.ac}26`, padding: '24px 22px',
             position: 'relative',
           }}>
             <div style={{
               position: 'absolute', top: 0, insetInlineStart: 0,
               fontFamily: FN, fontSize: 11, color: C.ac, letterSpacing: '0.2em',
               fontWeight: 800, padding: '6px 12px',
-              background: `${C.ac}1A`, borderInlineEnd: `1px solid ${C.ac}40`, borderBottom: `1px solid ${C.ac}40`,
+              background: `${C.ac}1A`, borderInlineEnd: `1px solid ${C.ac}26`, borderBottom: `1px solid ${C.ac}26`,
             }}>0{i + 1}</div>
             <h3 style={{
               margin: '28px 0 12px', fontFamily: FN, fontSize: 17, fontWeight: 700,
@@ -397,7 +397,7 @@ function Approach({ heb }) {
       }}>
         {pillars.map((p, i) => (
           <div key={i} style={{
-            background: C.bg, border: `1px solid ${C.ac}40`,
+            background: C.bg, border: `1px solid ${C.ac}26`,
             padding: '28px 22px', position: 'relative', overflow: 'hidden',
           }}>
             <div style={{
@@ -565,7 +565,7 @@ function Team({ heb }) {
       }}>
         {people.map((p, i) => (
           <div key={i} style={{
-            background: C.sf, border: `1px solid ${C.ac}40`, padding: '28px 24px',
+            background: C.sf, border: `1px solid ${C.ac}26`, padding: '28px 24px',
             display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 6,
           }}>
             <img src={i === 0 ? founderOhad : founderYuval} alt={p.name} loading="lazy"
@@ -604,7 +604,7 @@ function TrialCallout({ heb, onBookClick }) {
     <section data-fade className="gym-section" style={{ paddingTop: 24, paddingBottom: 24 }}>
       <div className="gym-trial" style={{
         background: `linear-gradient(135deg, ${C.ac}1A 0%, transparent 60%), ${C.sf}`,
-        border: `1px solid ${C.ac}40`,
+        border: `1px solid ${C.ac}26`,
         borderInlineStart: `3px solid ${C.ac}`,
         padding: '28px 26px',
       }}>
@@ -671,8 +671,12 @@ function WhatsIncluded({ heb }) {
             background: C.bg, padding: '26px 20px', display: 'flex', flexDirection: 'column', gap: 10,
             minHeight: 180,
           }}>
+            {/* Fixed-size centered box so the mixed geometric glyphs (◯◇◬◉◈✦) sit on
+                one uniform baseline/footprint instead of a ragged row. */}
             <div style={{
-              fontFamily: FN, fontSize: 24, color: C.ac, fontWeight: 800,
+              width: 30, height: 30, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              fontFamily: FN, fontSize: 20, lineHeight: 1, color: C.ac, fontWeight: 800,
+              border: `1px solid ${C.ac}33`,
             }}>{it.i}</div>
             <h3 style={{
               margin: 0, fontFamily: FN, fontSize: 15, fontWeight: 700, letterSpacing: '0.02em',
@@ -773,7 +777,7 @@ function CalendarSection({ heb }) {
       <div style={{
         marginTop: 32,
         background: C.bg,
-        border: `1px solid ${C.ac}40`,
+        border: `1px solid ${C.ac}26`,
         borderInlineStart: `3px solid ${C.ac}`,
         padding: 6,
         position: 'relative',
