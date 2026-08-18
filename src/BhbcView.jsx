@@ -381,7 +381,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
           </div>
           {/* Understated EXPO-style nav: tight left-aligned small tabs, active tab is
               an orange-outlined box (mirrors EXPO's cyan-outlined active). */}
-          <nav className="bhbc-hdr-tabs" style={{ display: 'flex', alignItems: 'center', gap: 3, flex: '1 1 auto', minWidth: 0, overflowX: 'auto' }}>
+          <nav className="bhbc-hdr-tabs" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-evenly', gap: 6, flex: '1 1 auto', minWidth: 0, overflowX: 'auto' }}>
             {roster.length > 0 && NAV_TABS.map(([k, label]) => {
               const on = view === k;
               return (
