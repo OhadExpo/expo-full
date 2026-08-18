@@ -144,6 +144,11 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   const [view, setView] = useState('overview');   // overview | schedule | roster
   const [schedMode, setSchedMode] = useState('calendar'); // calendar | list
   const [sessionMode, setSessionMode] = useState('group'); // group | single
+  // Owner-only "Preview as coach": renders the exact reduced surface a club coach
+  // sees (no Manage roster / no ‹EXPO, medical view-only) without needing an account.
+  const [previewCoach, setPreviewCoach] = useState(false);
+  const asCoach = coach || previewCoach;
+  const effCanMedical = canMedical && !previewCoach;
 
   const roster = useMemo(
     () => trainees.filter((t) => t && t.team === 'BHBC' && t.status !== 'Archived')
@@ -390,19 +395,27 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
             })}
           </nav>
           <div className="bhbc-header-ctrl" style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, marginLeft: 'auto' }}>
+            {!coach && <button onClick={() => setPreviewCoach((v) => !v)} className="bhbc-tab" title="See exactly what your BHBC coaches see" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: previewCoach ? '#fff' : 'rgba(255,255,255,0.7)', background: previewCoach ? ORANGE : 'transparent', border: `1px solid ${previewCoach ? ORANGE : 'rgba(255,255,255,0.18)'}`, borderRadius: 0, padding: '6px 11px', cursor: 'pointer' }}>{previewCoach ? '● Coach view' : '◉ Preview as coach'}</button>}
             <ThemeToggle size={28} style={{ color: 'rgba(255,255,255,0.85)', border: '1px solid rgba(255,255,255,0.18)' }} />
-            {onExit && <button onClick={onExit} className="bhbc-tab" title="Back to EXPO coach" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)', background: 'transparent', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 0, padding: '6px 11px', cursor: 'pointer' }}>‹ EXPO</button>}
+            {onExit && !previewCoach && <button onClick={onExit} className="bhbc-tab" title="Back to EXPO coach" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)', background: 'transparent', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 0, padding: '6px 11px', cursor: 'pointer' }}>‹ EXPO</button>}
             {coach && onSignOut && <button onClick={onSignOut} className="bhbc-tab" title="Sign out" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)', background: 'transparent', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 0, padding: '6px 11px', cursor: 'pointer' }}>Sign out</button>}
           </div>
         </div>
       </header>
 
       <main style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 24px 72px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+        {previewCoach && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: 'rgba(242,106,43,0.10)', border: `1px solid ${ORANGE}`, borderRadius: 6 }}>
+            <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: ORANGE_DEEP }}>◉ Coach view</span>
+            <span style={{ fontFamily: FN, fontSize: 12, color: C.tm }}>This is exactly what your BHBC coaches see — no roster management, medical is view-only.</span>
+            <button onClick={() => setPreviewCoach(false)} style={{ marginLeft: 'auto', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 4, padding: '5px 10px', cursor: 'pointer' }}>Exit preview</button>
+          </div>
+        )}
         {/* ---- TOOLBAR ---- */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: C.td }}>Roster · {roster.length}</div>
           <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {!coach && <Btn variant="ghost" onClick={() => setManageOpen(true)}>Manage roster</Btn>}
+            {!asCoach && <Btn variant="ghost" onClick={() => setManageOpen(true)}>Manage roster</Btn>}
             <Btn variant="ghost" onClick={() => setCheckinOpen(true)}>Check-in</Btn>
             <Btn onClick={() => setPracticeOpen(true)} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>+ Log practice</Btn>
           </div>
@@ -452,7 +465,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
             )}
 
             {view === 'medical' && (
-              <MedicalView roster={roster} medical={medical} canMedical={canMedical} onReport={(aid) => setInjuryFor({ athleteId: aid })} onEdit={(aid, iid) => setInjuryFor({ athleteId: aid, injuryId: iid })} onOpen={setDetailFor} />
+              <MedicalView roster={roster} medical={medical} canMedical={effCanMedical} onReport={(aid) => setInjuryFor({ athleteId: aid })} onEdit={(aid, iid) => setInjuryFor({ athleteId: aid, injuryId: iid })} onOpen={setDetailFor} />
             )}
 
             {view === 'sessions' && (
@@ -510,7 +523,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
         <GameEditModal game={fx.nextGame} onClose={() => setGameEdit(false)} onSave={(patch) => { updateGame(fx.nextGame, patch); setGameEdit(false); }} />
       )}
 
-      {injuryFor && canMedical && (() => {
+      {injuryFor && effCanMedical && (() => {
         const ath = roster.find((t) => t.id === injuryFor.athleteId);
         if (!ath) return null;
         const existing = injuryFor.injuryId ? ((medical[injuryFor.athleteId] || {}).injuries || []).find((i) => i.id === injuryFor.injuryId) : null;
@@ -580,7 +593,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
           workouts={(clientWorkouts || []).filter((w) => String(w.clientId || '').split('__')[0] === detailFor)}
           leaguePlayer={leaguePlayerFor(league, row.t.name)} leagueSeason={league.season}
           injuries={activeInjuries(medical, detailFor)}
-          onInjury={canMedical ? (() => { const a = activeInjuries(medical, detailFor); setInjuryFor({ athleteId: detailFor, injuryId: a[0] && a[0].id }); setDetailFor(null); }) : null}
+          onInjury={effCanMedical ? (() => { const a = activeInjuries(medical, detailFor); setInjuryFor({ athleteId: detailFor, injuryId: a[0] && a[0].id }); setDetailFor(null); }) : null}
           onClose={() => setDetailFor(null)}
           onLog={() => { setLogFor(detailFor); setDetailFor(null); }}
           onOpenExpo={onOpenTrainee ? () => onOpenTrainee(detailFor) : null}
