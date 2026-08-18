@@ -150,7 +150,25 @@ export function AuthProvider({ children, clientList }) {
 // trigger provisions an auth user with password '1234' whenever a trainee row
 // gets an email). No sign-up, no forgot-password flow. If a client forgets
 // they can't log in, they contact the coach who resets via Supabase dashboard.
-export function LoginScreen() {
+// Per-brand sign-in skins. `expo` is the default (null → house style). `bhbc`
+// gives Bnei Herzliya coaches a club-branded door (same Supabase auth, just
+// navy/orange chrome + the club badge). Add a brand here to skin another zone.
+const LOGIN_BRANDS = {
+  bhbc: {
+    logo: '/bnei-herzliya-logo-w.png',
+    logoMaxH: 112,
+    accent: '#F26A2B',
+    bg: 'radial-gradient(130% 105% at 50% -10%, #1c3a6e 0%, #0e1c38 46%, #070f1e 100%)',
+    eyebrow: 'Bnei Herzliya · S&C Staff',
+    sub: 'Coach sign-in',
+    foot: 'Staff access is provisioned by the S&C team.',
+    home: '/coach/bhbc',
+  },
+};
+
+export function LoginScreen({ brand = 'expo' } = {}) {
+  const bc = LOGIN_BRANDS[brand] || null;
+  const AC = bc ? bc.accent : C.ac;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -216,13 +234,20 @@ export function LoginScreen() {
   const canSubmit = email.trim() && password && !submitting;
 
   return (
-    <div data-theme="dark" style={wrapStyle}>
+    <div data-theme="dark" style={bc ? { ...wrapStyle, background: bc.bg } : wrapStyle}>
       <div style={{ width: '100%', maxWidth: 380 }}>
         <div style={{ textAlign: 'center', marginBottom: 16, padding: '0 28px', boxSizing: 'border-box' }}>
-          <a href="/" title="EXPO" style={{ display: 'block', textDecoration: 'none' }}>
-            <img src={EXPO_LOGO} alt="EXPO" style={{ display: 'block', width: '100%', height: 'auto', maxHeight: '20vh', objectFit: 'contain', marginBottom: 77 }} />
-          </a>
-          <div style={{ color: C.tm, fontSize: 15 }}>Sign<span style={{ color: C.td }}>-</span>in</div>
+          {bc ? (
+            <a href={bc.home} title={bc.eyebrow} style={{ display: 'block', textDecoration: 'none' }}>
+              <img src={bc.logo} alt={bc.eyebrow} style={{ display: 'block', width: 'auto', height: bc.logoMaxH, maxWidth: '100%', objectFit: 'contain', margin: '0 auto 20px' }} />
+            </a>
+          ) : (
+            <a href="/" title="EXPO" style={{ display: 'block', textDecoration: 'none' }}>
+              <img src={EXPO_LOGO} alt="EXPO" style={{ display: 'block', width: '100%', height: 'auto', maxHeight: '20vh', objectFit: 'contain', marginBottom: 77 }} />
+            </a>
+          )}
+          {bc && <div style={{ color: AC, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 6 }}>{bc.eyebrow}</div>}
+          <div style={{ color: C.tm, fontSize: 15 }}>{bc ? bc.sub : <>Sign<span style={{ color: C.td }}>-</span>in</>}</div>
         </div>
         <div style={cardStyle}>
           {/* OAuth buttons */}
@@ -266,12 +291,12 @@ export function LoginScreen() {
           <button
             onClick={handlePassword}
             disabled={!canSubmit}
-            style={{ width: '100%', padding: 12, borderRadius: 0, border: `1px solid ${canSubmit ? C.ac : C.cardBd}`, background: 'transparent', color: canSubmit ? C.ac : C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', cursor: canSubmit ? 'pointer' : 'default', opacity: submitting ? 0.6 : 1 }}
+            style={{ width: '100%', padding: 12, borderRadius: 0, border: `1px solid ${canSubmit ? AC : C.cardBd}`, background: bc && canSubmit ? AC : 'transparent', color: bc && canSubmit ? '#fff' : (canSubmit ? AC : C.tm), fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', cursor: canSubmit ? 'pointer' : 'default', opacity: submitting ? 0.6 : 1 }}
           >
             {submitting ? '...' : 'Sign in'}
           </button>
           <div style={{ fontSize: 11, color: C.td, marginTop: 12, textAlign: 'center', lineHeight: 1.4 }}>
-            Don't have an account? Contact your coach.
+            {bc ? bc.foot : "Don't have an account? Contact your coach."}
           </div>
         </div>
         {/* Install affordance removed from the login screen (adversarial-review

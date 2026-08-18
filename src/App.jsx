@@ -585,7 +585,8 @@ function AuthGate() {
     // PWA mode: every path that isn't already /login renders the LoginScreen
     // directly so the user can authenticate without seeing the marketing
     // chooser or landing page.
-    if (inPwa) return <LoginScreen />;
+    const isBhbcPath = path === '/coach/bhbc' || path === '/coach/bhbc/';
+    if (inPwa) return <LoginScreen brand={isBhbcPath ? 'bhbc' : 'expo'} />;
     // Browser mode: front door at / is the EntryChooser; /demo is the
     // coach-marketing landing (legacy /coaches still resolves); everything
     // else falls through to LoginScreen.
@@ -604,6 +605,7 @@ function AuthGate() {
     if (path === '/demo' || path === '/demo/' || path.startsWith('/coaches')) {
       return <Suspense fallback={<BootSplash />}><CoachLanding lang="en" /></Suspense>;
     }
+    if (isBhbcPath) return <LoginScreen brand="bhbc" />;
     return <LoginScreen />;
   }
   // SaveErrorToast rides alongside AuthedApp so a failed write from any

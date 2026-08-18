@@ -354,7 +354,10 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   }, [setMedical, setBhbcLoads, today, notify]);
 
   const rowGrid = '28px minmax(116px,1.5fr) 112px 46px 130px minmax(104px,1.1fr) 92px';
-  const NAV_TABS = [['overview', 'Overview'], ['roster', 'Roster'], ['schedule', 'Schedule'], ['medical', 'Medical'], ['sessions', 'Sessions'], ['games', 'Games']];
+  // Coaches (head coach + assistants) are VIEWERS: they read the report, roster,
+  // schedule, medical and games — but do NOT operate S&C (no session runner, no
+  // logging practices, no check-in entry, no roster management). Ohad 2026-08-18.
+  const NAV_TABS = [['overview', 'Overview'], ['roster', 'Roster'], ['schedule', 'Schedule'], ['medical', 'Medical'], ...(asCoach ? [] : [['sessions', 'Sessions']]), ['games', 'Games']];
 
   return (
     <div className="bhbc-zone" style={{ ...TOKENS, minHeight: '100vh', background: 'var(--c-bg)', color: C.tx, fontFamily: FB }}>
@@ -414,11 +417,13 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
         {/* ---- TOOLBAR ---- */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: C.td }}>Roster · {roster.length}</div>
-          <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {!asCoach && <Btn variant="ghost" onClick={() => setManageOpen(true)}>Manage roster</Btn>}
-            <Btn variant="ghost" onClick={() => setCheckinOpen(true)}>Check-in</Btn>
-            <Btn onClick={() => setPracticeOpen(true)} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>+ Log practice</Btn>
-          </div>
+          {!asCoach && (
+            <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <Btn variant="ghost" onClick={() => setManageOpen(true)}>Manage roster</Btn>
+              <Btn variant="ghost" onClick={() => setCheckinOpen(true)}>Check-in</Btn>
+              <Btn onClick={() => setPracticeOpen(true)} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>+ Log practice</Btn>
+            </div>
+          )}
         </div>
 
         {roster.length === 0 ? (
@@ -436,20 +441,21 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
             {view === 'overview' && (
               <>
                 <HeadCoachReport rows={rows} fx={fx} fixtures={bhbcFixtures} medical={medical} today={today} onOpen={setDetailFor} />
-                <CoachBrief rows={rows} fx={fx} fixtures={bhbcFixtures} medical={medical} today={today} onOpen={setDetailFor} onCheckin={() => setCheckinOpen(true)} onLog={() => setPracticeOpen(true)} />
-                <TodayPanel today={today} fixtures={bhbcFixtures} fx={fx} rows={rows} onSessions={() => setView('sessions')} onLog={() => setPracticeOpen(true)} />
-                {fx.nextGame && <NextGamePanel nextGame={fx.nextGame} today={today} onEdit={() => setGameEdit(true)} />}
+                {/* S&C Brief = the S&C operator's action list — removed for coaches. */}
+                {!asCoach && <CoachBrief rows={rows} fx={fx} fixtures={bhbcFixtures} medical={medical} today={today} onOpen={setDetailFor} onCheckin={() => setCheckinOpen(true)} onLog={() => setPracticeOpen(true)} />}
+                <TodayPanel today={today} fixtures={bhbcFixtures} fx={fx} rows={rows} onSessions={asCoach ? null : () => setView('sessions')} onLog={asCoach ? null : () => setPracticeOpen(true)} />
+                {fx.nextGame && <NextGamePanel nextGame={fx.nextGame} today={today} onEdit={asCoach ? null : () => setGameEdit(true)} />}
                 <FixturesAheadPanel fixtures={bhbcFixtures} today={today} />
                 <TeamSnapshotCard team={team} />
-                <LoadBoard rows={rows} rowGrid={rowGrid} cycleAvail={cycleAvail} medical={medical} onOpen={setDetailFor} />
+                <LoadBoard rows={rows} rowGrid={rowGrid} cycleAvail={asCoach ? null : cycleAvail} medical={medical} onOpen={setDetailFor} />
               </>
             )}
 
             {view === 'schedule' && (
               <>
-                {fx.nextGame && <NextGamePanel nextGame={fx.nextGame} today={today} onEdit={() => setGameEdit(true)} />}
+                {fx.nextGame && <NextGamePanel nextGame={fx.nextGame} today={today} onEdit={asCoach ? null : () => setGameEdit(true)} />}
                 <MicrocycleView fx={fx} today={today} />
-                <ScheduleTool fx={fx} fixtures={bhbcFixtures} today={today} mode={schedMode} setMode={setSchedMode} onLog={() => setLogFor('new')} />
+                <ScheduleTool fx={fx} fixtures={bhbcFixtures} today={today} mode={schedMode} setMode={setSchedMode} onLog={asCoach ? null : () => setLogFor('new')} />
               </>
             )}
 
@@ -468,7 +474,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
               <MedicalView roster={roster} medical={medical} canMedical={effCanMedical} onReport={(aid) => setInjuryFor({ athleteId: aid })} onEdit={(aid, iid) => setInjuryFor({ athleteId: aid, injuryId: iid })} onOpen={setDetailFor} />
             )}
 
-            {view === 'sessions' && (
+            {view === 'sessions' && !asCoach && (
               <>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                   <div style={{ display: 'inline-flex', border: `1px solid ${C.cardBd}` }}>
@@ -595,10 +601,10 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
           injuries={activeInjuries(medical, detailFor)}
           onInjury={effCanMedical ? (() => { const a = activeInjuries(medical, detailFor); setInjuryFor({ athleteId: detailFor, injuryId: a[0] && a[0].id }); setDetailFor(null); }) : null}
           onClose={() => setDetailFor(null)}
-          onLog={() => { setLogFor(detailFor); setDetailFor(null); }}
-          onOpenExpo={onOpenTrainee ? () => onOpenTrainee(detailFor) : null}
+          onLog={asCoach ? null : () => { setLogFor(detailFor); setDetailFor(null); }}
+          onOpenExpo={!asCoach && onOpenTrainee ? () => onOpenTrainee(detailFor) : null}
           onViewProgram={() => { setProgramFor(detailFor); setDetailFor(null); }}
-          onCycleAvail={() => cycleAvail(detailFor, row.avail)} />;
+          onCycleAvail={asCoach ? null : () => cycleAvail(detailFor, row.avail)} />;
       })()}
     </div>
   );
@@ -639,7 +645,11 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <span style={{ fontFamily: FB, fontSize: 12.5, color: C.td }}>{t.position || '—'} · {heightM(t.heightCm)} {flag(t.nationality)}</span>
-          <button onClick={onCycleAvail} title="Click to change availability" className="bhbc-ghost-btn" style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 7, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '0 11px', cursor: 'pointer', transition: 'color .12s, border-color .12s' }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: av.color, flexShrink: 0 }} />{av.label}</button>
+          {onCycleAvail ? (
+            <button onClick={onCycleAvail} title="Click to change availability" className="bhbc-ghost-btn" style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 7, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '0 11px', cursor: 'pointer', transition: 'color .12s, border-color .12s' }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: av.color, flexShrink: 0 }} />{av.label}</button>
+          ) : (
+            <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 7, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, border: `1px solid ${C.cardBd}`, padding: '0 11px' }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: av.color, flexShrink: 0 }} />{av.label}</span>
+          )}
         </div>
         {leaguePlayer && (() => {
           const lastG = (leaguePlayer.log || []).length ? [...leaguePlayer.log].sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0] : null;
@@ -766,7 +776,7 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
         )}
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
           {onOpenExpo && <Btn variant="ghost" onClick={onOpenExpo}>Open in EXPO ›</Btn>}
-          <Btn variant="ghost" onClick={onLog}>Log session</Btn>
+          {onLog && <Btn variant="ghost" onClick={onLog}>Log session</Btn>}
           {onViewProgram && <Btn onClick={onViewProgram} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>View program</Btn>}
         </div>
       </div>
@@ -1258,10 +1268,12 @@ function TodayPanel({ today, fixtures, fx, rows, onSessions, onLog }) {
             ))}
           </div>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <Btn onClick={onSessions} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>Start session ›</Btn>
-          <Btn variant="ghost" onClick={onLog}>Log practice</Btn>
-        </div>
+        {(onSessions || onLog) && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {onSessions && <Btn onClick={onSessions} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>Start session ›</Btn>}
+            {onLog && <Btn variant="ghost" onClick={onLog}>Log practice</Btn>}
+          </div>
+        )}
       </div>
     </Card>
   );
@@ -1337,9 +1349,15 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, onOpen }) {
                 <div>{acwr.ratio != null ? <BandPill band={acwr.band} value={acwr.ratio.toFixed(2)} /> : <span style={{ fontFamily: FN, fontSize: 10.5, color: C.tm, letterSpacing: '0.06em' }}>· baseline</span>}</div>
                 <div style={{ fontFamily: FN, fontSize: 13, color: C.tx, fontVariantNumeric: 'tabular-nums' }}>{acwr.acute ? Math.round(acwr.acute) : '—'}</div>
                 <div>
-                  <button onClick={(e) => { e.stopPropagation(); cycleAvail(t.id, avail); }} title="Click to change availability" className="bhbc-ghost-btn" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, minWidth: 108, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 9px', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'color .12s, border-color .12s' }}>
-                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: AVAIL[avail].color, flexShrink: 0 }} />{AVAIL[avail].label}
-                  </button>
+                  {cycleAvail ? (
+                    <button onClick={(e) => { e.stopPropagation(); cycleAvail(t.id, avail); }} title="Click to change availability" className="bhbc-ghost-btn" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, minWidth: 108, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 9px', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'color .12s, border-color .12s' }}>
+                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: AVAIL[avail].color, flexShrink: 0 }} />{AVAIL[avail].label}
+                    </button>
+                  ) : (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, minWidth: 108, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, border: `1px solid ${C.cardBd}`, padding: '0 9px', whiteSpace: 'nowrap' }}>
+                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: AVAIL[avail].color, flexShrink: 0 }} />{AVAIL[avail].label}
+                    </span>
+                  )}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: rc, flexShrink: 0 }} />
