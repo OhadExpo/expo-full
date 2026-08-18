@@ -617,6 +617,10 @@ function AuthGate() {
 function AuthedApp() {
   const { session, signOut: rawSignOut } = useAuth();
   const email = (session?.user?.email || '').toLowerCase();
+  // BHBC basketball coach: their whole app is the /bhbc zone. Defined up here so
+  // the store hooks below can scope a coach's data source to the PT-client-free
+  // `expo-bhbc-roster` key — a coach's browser never even requests expo-trainees.
+  const isBhbcCoach = isBhbcCoachEmail(email);
   const logo = useLogoSrc();
   // After a stale-chunk reload (see lazyReload at the top of this file),
   // wait 8s of healthy runtime then clear the once-flag so a *later* chunk
@@ -636,7 +640,9 @@ function AuthedApp() {
     try { sessionStorage.removeItem(PORTAL_CHOICE_KEY); } catch {}
     await rawSignOut();
   }, [rawSignOut]);
-  const [trainees,setTrainees,tL,,setTraineesLocal]=useSupaStore(KEYS.trainees,[]);
+  // Coaches read the BHBC-only projection (no PT clients, no contacts/pricing);
+  // the owner/staff read the full roster. RLS denies coaches expo-trainees anyway.
+  const [trainees,setTrainees,tL,,setTraineesLocal]=useSupaStore(isBhbcCoach ? 'expo-bhbc-roster' : KEYS.trainees,[]);
   const [exercises,setExercises,eL]=useSupaStore(KEYS.exercises,[]);
   const { index: planIndex, loaded: pL, reload: reloadPlanIndex } = usePlanIndex();
   const [workouts,setWorkouts,wL]=useSupaStore(KEYS.workouts,[]);
@@ -713,8 +719,21 @@ function AuthedApp() {
   // banner (below) makes the read-only intent explicit (#232).
   const isPartner = isPartnerEmail(email);
   const isOwner = OWNER_EMAILS.includes(email) || isPartner;
-  // BHBC basketball coach: their whole app is the /bhbc zone (no EXPO coach app).
-  const isBhbcCoach = isBhbcCoachEmail(email);
+  // isBhbcCoach is defined at the top of AuthedApp (needed by the store hooks).
+
+  // Owner-side sync: keep the coach-facing `expo-bhbc-roster` projection in step
+  // with the real roster. Strips PT clients + contact/pricing fields, so coaches
+  // only ever receive BHBC players' court data. Deep-compared to avoid churn.
+  const bhbcRosterSig = useRef('');
+  useEffect(() => {
+    if (!isOwner || !tL) return;
+    const STRIP = ['email','phone','emails','contact','notes','payments','lastPayment','perSession','monthly','package','monthlyPrice','packagePrice','sessionPrice','sessionsRemaining','branch'];
+    const roster = (trainees || []).filter(t => t && t.team === 'BHBC' && t.status !== 'Archived').map(t => { const c = { ...t }; for (const k of STRIP) delete c[k]; return c; });
+    const sig = JSON.stringify(roster);
+    if (sig === bhbcRosterSig.current) return;
+    bhbcRosterSig.current = sig;
+    supabase.from('store').upsert({ key: 'expo-bhbc-roster', value: roster }).then(({ error }) => { if (error) console.warn('[bhbc-roster sync]', error.message); });
+  }, [trainees, isOwner, tL]);
 
   // Pre-warm pose analysis in the BACKGROUND across every athlete as soon as the
   // coach app has their clips — so bar-speed + symmetry are already computed when
