@@ -461,7 +461,8 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
 
             {view === 'roster' && (
               <>
-                <BaselineBattery roster={roster} evalStatus={evalStatus} onOpenExpo={onOpenTrainee} />
+                {/* Baseline Battery = pre-season S&C eval/testing tool — S&C-internal, hidden from coaches. */}
+                {!asCoach && <BaselineBattery roster={roster} evalStatus={evalStatus} onOpenExpo={asCoach ? null : onOpenTrainee} />}
                 <RosterGrid rows={rows} medical={medical} league={league} onOpen={setDetailFor} />
               </>
             )}
