@@ -18,7 +18,6 @@ import { ThemeToggle } from './ThemeToggle';
 import { acwrFromDaily, sessionLoad, monotonyStrain } from './acwrEngine';
 import { readinessAutoreg } from './readinessAutoreg';
 import BWChart from './BwChart';
-import { supabase } from './supabase';
 
 // EXPO's own group/single session logger — reused INSIDE the BHBC portal, scoped
 // to the BHBC roster. It writes to client_workouts (athlete-visible), so a BHBC
@@ -198,26 +197,6 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
     }
     return { byDay: byDay.slice(0, 8), nextGame };
   }, [bhbcFixtures, today]);
-
-  // Baseline-battery status: which roster athletes have an EXPO evaluation on
-  // record (pre-season priority — "EXPO eval = the BHBC battery"). One batched
-  // read; latest eval_date per athlete. Read-only, owner-authenticated.
-  const rosterIds = useMemo(() => roster.map((t) => t.id), [roster]);
-  const rosterIdKey = rosterIds.join(',');
-  const [evalStatus, setEvalStatus] = useState({});
-  useEffect(() => {
-    if (!rosterIds.length) { setEvalStatus({}); return; }
-    let cancelled = false;
-    (async () => {
-      const { data, error } = await supabase.from('trainee_evaluations').select('trainee_id, eval_date').in('trainee_id', rosterIds);
-      if (cancelled || error) return;
-      const m = {};
-      (data || []).forEach((r) => { if (!m[r.trainee_id] || (r.eval_date || '') > m[r.trainee_id]) m[r.trainee_id] = r.eval_date || ''; });
-      setEvalStatus(m);
-    })();
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rosterIdKey]);
 
   const setTeam = useCallback((id, on) => {
     setTrainees((prev) => prev.map((t) => t.id === id ? { ...t, team: on ? 'BHBC' : undefined } : t));
@@ -413,7 +392,6 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
         .bhbc-tab:hover{color:#fff!important;border-color:rgba(255,255,255,0.30)!important}
         /* Never let the zone scroll the PAGE sideways — wide bits scroll inside. */
         .bhbc-zone{max-width:100vw;overflow-x:clip}
-        @media (max-width:480px){ .bhbc-batt-label{display:none} }
         @media (max-width:760px){
           .bhbc-header-inner{flex-wrap:wrap!important;gap:0 10px!important;padding:6px 14px!important;min-height:0!important}
           .bhbc-header-id{flex:1 1 auto!important;padding:8px 0!important}
@@ -511,8 +489,6 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
 
             {view === 'roster' && (
               <>
-                {/* Baseline Battery = pre-season S&C eval/testing tool — S&C-internal, hidden from coaches. */}
-                {!asCoach && <BaselineBattery roster={roster} evalStatus={evalStatus} onOpenExpo={asCoach ? null : onOpenTrainee} />}
                 <RosterGrid rows={rows} medical={medical} league={league} onOpen={setDetailFor} />
               </>
             )}
@@ -1180,7 +1156,7 @@ function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onCheckin, onL
   if (missing.length && missing.length < rows.length) A.push({ sev: 'info', do: 'Chase check-ins', why: `${missing.length} of ${rows.length} haven't logged wellness today.`, act: onCheckin });
   // 8) Pre-season / no data — baseline first.
   if (!anyLoad && rows.every((r) => !r.checkedToday)) {
-    A.unshift({ sev: 'game', do: 'Baseline the roster', why: 'pre-season — log the first sessions + a daily wellness check so ACWR & readiness start tracking, and run the eval battery to set each athlete’s baseline.', act: onCheckin });
+    A.unshift({ sev: 'game', do: 'Start tracking the roster', why: 'pre-season — log the first sessions + a daily wellness check so ACWR & readiness start tracking.', act: onCheckin });
   }
   const sevRank = { game: 0, red: 1, amber: 2, info: 3 };
   const top = A.sort((a, b) => sevRank[a.sev] - sevRank[b.sev]).slice(0, 5);
@@ -1454,43 +1430,6 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, onOpen }) {
   );
 }
 
-// Baseline Battery — pre-season testing status for the squad. Which athletes
-// have an EXPO evaluation on record (the club's testing baseline), and a quick
-// jump to run/complete one. Colour = signal (tested dot), calm rows.
-function BaselineBattery({ roster, evalStatus, onOpenExpo }) {
-  const tested = roster.filter((t) => evalStatus[t.id]);
-  const pct = roster.length ? Math.round((tested.length / roster.length) * 100) : 0;
-  return (
-    <CollapsibleSection title="Baseline Battery" count={`${tested.length}/${roster.length}`} storageKey="bhbc-baseline" defaultOpen leftStripe={ORANGE}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
-        <div style={{ flex: 1, height: 6, background: C.cardBd, position: 'relative', overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${pct}%`, background: ORANGE, transition: 'width .3s' }} />
-        </div>
-        <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tx, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{pct}% baselined</span>
-      </div>
-      <div>
-        {roster.map((t) => {
-          const date = evalStatus[t.id];
-          return (
-            <div key={t.id} className="bhbc-row" onClick={onOpenExpo ? () => onOpenExpo(t.id) : undefined}
-              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: `0.25px solid ${C.cardBd}`, cursor: onOpenExpo ? 'pointer' : 'default' }}>
-              <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums', width: 20, textAlign: 'right', flexShrink: 0 }}>{t.jersey ?? '—'}</span>
-              <span style={{ flex: 1, fontFamily: FN, fontSize: 13, fontWeight: 600, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, justifyContent: 'flex-end', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap', flexShrink: 0 }}>
-                <span style={{ width: 7, height: 7, borderRadius: '50%', background: date ? '#37B27C' : '#6B7280', flexShrink: 0 }} />
-                {/* On phones the status dot carries the state — the text label was
-                    starving athlete names into "ZACK BR…" (mobile audit 2026-08-21). */}
-                <span className="bhbc-batt-label">{date ? `Tested · ${monDay(date)}` : 'Not tested'}</span>
-              </span>
-              {onOpenExpo && <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: ORANGE_DEEP, flexShrink: 0 }}>{date ? 'View ›' : 'Test ›'}</span>}
-            </div>
-          );
-        })}
-      </div>
-    </CollapsibleSection>
-  );
-}
-
 function RosterGrid({ rows, medical = {}, league = {}, onOpen }) {
   return (
     <CollapsibleSection title="Roster" count={rows.length} storageKey="bhbc-roster" defaultOpen leftStripe={NAVY}>
@@ -1509,7 +1448,7 @@ function RosterGrid({ rows, medical = {}, league = {}, onOpen }) {
                 <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{heightM(t.heightCm)}</span>
                 <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', color: C.tm, lineHeight: 1 }}>{flag(t.nationality)}</span>
                 {(() => { const lp = leaguePlayerFor(league, t.name); return lp ? <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: ORANGE_DEEP, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }} title="League points per game">{lp.ppg} PPG</span> : null; })()}
-                <span style={{ marginLeft: 'auto' }}>{acwr.ratio != null ? <BandPill band={acwr.band} value={acwr.ratio.toFixed(2)} /> : <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>baseline</span>}</span>
+                <span style={{ marginLeft: 'auto' }}>{acwr.ratio != null ? <BandPill band={acwr.band} value={acwr.ratio.toFixed(2)} /> : <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>no load yet</span>}</span>
               </div>
             </div>
           </div>
