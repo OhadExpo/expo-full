@@ -413,6 +413,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
         .bhbc-tab:hover{color:#fff!important;border-color:rgba(255,255,255,0.30)!important}
         /* Never let the zone scroll the PAGE sideways — wide bits scroll inside. */
         .bhbc-zone{max-width:100vw;overflow-x:clip}
+        @media (max-width:480px){ .bhbc-batt-label{display:none} }
         @media (max-width:760px){
           .bhbc-header-inner{flex-wrap:wrap!important;gap:0 10px!important;padding:6px 14px!important;min-height:0!important}
           .bhbc-header-id{flex:1 1 auto!important;padding:8px 0!important}
@@ -1475,9 +1476,11 @@ function BaselineBattery({ roster, evalStatus, onOpenExpo }) {
               style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: `0.25px solid ${C.cardBd}`, cursor: onOpenExpo ? 'pointer' : 'default' }}>
               <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums', width: 20, textAlign: 'right', flexShrink: 0 }}>{t.jersey ?? '—'}</span>
               <span style={{ flex: 1, fontFamily: FN, fontSize: 13, fontWeight: 600, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, minWidth: 128, justifyContent: 'flex-end', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap', flexShrink: 0 }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, justifyContent: 'flex-end', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap', flexShrink: 0 }}>
                 <span style={{ width: 7, height: 7, borderRadius: '50%', background: date ? '#37B27C' : '#6B7280', flexShrink: 0 }} />
-                {date ? `Tested · ${monDay(date)}` : 'Not tested'}
+                {/* On phones the status dot carries the state — the text label was
+                    starving athlete names into "ZACK BR…" (mobile audit 2026-08-21). */}
+                <span className="bhbc-batt-label">{date ? `Tested · ${monDay(date)}` : 'Not tested'}</span>
               </span>
               {onOpenExpo && <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: ORANGE_DEEP, flexShrink: 0 }}>{date ? 'View ›' : 'Test ›'}</span>}
             </div>
