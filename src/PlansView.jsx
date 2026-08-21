@@ -4342,9 +4342,11 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
             );
             return (
               <div key={row.tid} data-prog-card={row.tid} className="prog-card"
-                style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,display:'flex',flexDirection:'column',gridColumn:expanded?'1 / -1':'auto',minHeight:(progView==='grid'&&!expanded)?186:undefined,willChange:'transform',boxShadow:C.cardShadow}}>
+                style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,display:'flex',flexDirection:'column',gridColumn:expanded?'1 / -1':'auto',willChange:'transform',boxShadow:C.cardShadow}}>
                 {stripHeader}
-                <div {...openHandlers} style={{cursor:openingId===cur.id?'progress':'pointer',opacity:openingId===cur.id?0.55:1,transition:'opacity 0.12s',padding:'12px 14px 4px',flex:progView==='grid'&&!expanded?1:undefined}}>
+                {/* No minHeight / flex stretch — grid cards compress to the same
+                    natural height as the table rows (Ohad 2026-08-21). */}
+                <div {...openHandlers} style={{cursor:openingId===cur.id?'progress':'pointer',opacity:openingId===cur.id?0.55:1,transition:'opacity 0.12s',padding:'12px 14px 4px'}}>
                   <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap',minHeight:24}}>
                     <span style={{fontWeight:700,fontSize:15,color:C.ac,fontFamily:FN,letterSpacing:'0.04em',minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{cur.name||"Untitled"}</span>
                     {plusBtn}
