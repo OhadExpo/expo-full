@@ -352,10 +352,14 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
     setBhbcLoads((prev) => {
       const next = { ...prev };
       Object.entries(entries).forEach(([id, e]) => {
-        const hasAny = e.sleep || e.energy || (e.pain !== '' && e.pain != null);
+        const hasAny = e.sleep || e.energy || (e.pain !== '' && e.pain != null) || e.bw;
         if (!hasAny) return;
         const rec = next[id] ? { ...next[id] } : emptyRec();
-        rec.readiness = { ...(rec.readiness || {}), [date]: { ...((rec.readiness || {})[date] || {}), ...(e.sleep ? { sleep: e.sleep } : {}), ...(e.energy ? { energy: e.energy } : {}), ...(e.pain !== '' && e.pain != null ? { pain: e.pain } : {}) } };
+        if (e.sleep || e.energy || (e.pain !== '' && e.pain != null)) {
+          rec.readiness = { ...(rec.readiness || {}), [date]: { ...((rec.readiness || {})[date] || {}), ...(e.sleep ? { sleep: e.sleep } : {}), ...(e.energy ? { energy: e.energy } : {}), ...(e.pain !== '' && e.pain != null ? { pain: e.pain } : {}) } };
+        }
+        // BW check-in (Ohad measures players through the season for the head coach)
+        if (e.bw) rec.bw = { ...(rec.bw || {}), [date]: Number(e.bw) };
         next[id] = rec;
       });
       return next;
@@ -862,10 +866,11 @@ function WellnessModal({ roster, bhbcLoads, onClose, onSave }) {
   const [entries, setEntries] = useState({});
   useEffect(() => {
     const e = {};
-    roster.forEach((t) => { const r = ((bhbcLoads[t.id] || {}).readiness || {})[date] || {}; e[t.id] = { sleep: r.sleep || '', energy: r.energy || '', pain: r.pain ?? '' }; });
+    roster.forEach((t) => { const r = ((bhbcLoads[t.id] || {}).readiness || {})[date] || {}; const bw = ((bhbcLoads[t.id] || {}).bw || {})[date]; e[t.id] = { sleep: r.sleep || '', energy: r.energy || '', pain: r.pain ?? '', bw: bw || '' }; });
     setEntries(e);
   }, [date]); // eslint-disable-line react-hooks/exhaustive-deps
   const set = (id, k, v) => setEntries((prev) => ({ ...prev, [id]: { ...prev[id], [k]: (prev[id] && prev[id][k]) === v ? '' : v } }));
+  const setVal = (id, k, v) => setEntries((prev) => ({ ...prev, [id]: { ...prev[id], [k]: v } }));
   // Bulk baseline: fill the whole squad as "good sleep, good energy, no pain",
   // then the coach just adjusts the exceptions — the common case is everyone fine.
   const fillAll = () => setEntries(() => { const e = {}; roster.forEach((t) => { e[t.id] = { sleep: 'good', energy: 'good', pain: 0 }; }); return e; });
@@ -880,8 +885,8 @@ function WellnessModal({ roster, bhbcLoads, onClose, onSave }) {
       })}
     </div>
   );
-  const count = Object.values(entries).filter((e) => e.sleep || e.energy || (e.pain !== '' && e.pain != null)).length;
-  const cols = '24px 1.3fr auto auto 62px';
+  const count = Object.values(entries).filter((e) => e.sleep || e.energy || (e.pain !== '' && e.pain != null) || e.bw).length;
+  const cols = '24px 1.3fr auto auto 62px 76px';
   return (
     <Modal open onClose={onClose} wide title="Wellness check-in">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -890,9 +895,9 @@ function WellnessModal({ roster, bhbcLoads, onClose, onSave }) {
           <Btn variant="ghost" onClick={fillAll} style={{ marginBottom: 1 }}>Baseline all OK</Btn>
         </div>
         {/* Helper as its own clean full-width line (was crammed into the top-right). */}
-        <div style={{ fontFamily: FB, fontSize: 11.5, color: C.td, lineHeight: 1.5 }}>Sleep · energy · pain (0–10). Pain gates the session; sleep + energy set the effort. Tap a value again to clear.</div>
+        <div style={{ fontFamily: FB, fontSize: 11.5, color: C.td, lineHeight: 1.5 }}>Sleep · energy · pain (0–10) · BW kg (optional). Pain gates the session; sleep + energy set the effort. Tap a value again to clear.</div>
         <div style={{ display: 'grid', gridTemplateColumns: cols, gap: 10, padding: '0 2px 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }}>
-          <div>#</div><div>Athlete</div><div style={{ textAlign: 'center' }}>Sleep</div><div style={{ textAlign: 'center' }}>Energy</div><div style={{ textAlign: 'center' }}>Pain</div>
+          <div>#</div><div>Athlete</div><div style={{ textAlign: 'center' }}>Sleep</div><div style={{ textAlign: 'center' }}>Energy</div><div style={{ textAlign: 'center' }}>Pain</div><div style={{ textAlign: 'center' }}>BW kg</div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', maxHeight: 380, overflowY: 'auto' }}>
           {roster.map((t) => (
@@ -902,6 +907,7 @@ function WellnessModal({ roster, bhbcLoads, onClose, onSave }) {
               <div style={{ display: 'flex', justifyContent: 'center' }}><Seg id={t.id} k="sleep" opts={SLEEP} /></div>
               <div style={{ display: 'flex', justifyContent: 'center' }}><Seg id={t.id} k="energy" opts={ENERGY} /></div>
               <input type="number" min="0" max="10" value={(entries[t.id] || {}).pain} onChange={(e) => set(t.id, 'pain', e.target.value === '' ? '' : Number(e.target.value))} placeholder="—" style={inp} />
+              <input type="number" min="0" step="0.1" inputMode="decimal" value={(entries[t.id] || {}).bw} onChange={(e) => setVal(t.id, 'bw', e.target.value)} placeholder="—" style={inp} title="Bodyweight (kg) — optional, shows in the athlete's history + BW trend" />
             </div>
           ))}
         </div>
