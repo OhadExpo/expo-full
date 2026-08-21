@@ -237,6 +237,44 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
     notify();
   }, [setBhbcLoads, today, notify]);
 
+  // Edit / delete an already-logged session (Ohad 2026-08-21: sessions must be
+  // fixable after the fact). Editing rewrites minutes — and load for sRPE
+  // entries; deleting subtracts the entry's load so ACWR stays truthful.
+  const editSession = useCallback((athleteId, date, idx, newMin) => {
+    setBhbcLoads((prev) => {
+      const rec = prev[athleteId]; if (!rec || !rec.sessions || !rec.sessions[date] || !rec.sessions[date][idx]) return prev;
+      const out = { ...rec, sessions: { ...rec.sessions }, loads: { ...(rec.loads || {}) } };
+      const arr = [...out.sessions[date]];
+      const s = { ...arr[idx] };
+      const min = Number(newMin) || 0;
+      if (s.load > 0 && s.rpe) {
+        const newLoad = sessionLoad(min, s.rpe);
+        out.loads[date] = Math.max(0, (out.loads[date] || 0) - s.load + newLoad);
+        s.load = newLoad;
+      }
+      s.min = min;
+      arr[idx] = s; out.sessions[date] = arr;
+      return { ...prev, [athleteId]: out };
+    });
+    toast('Session updated'); notify();
+  }, [setBhbcLoads, notify]);
+
+  const deleteSession = useCallback((athleteId, date, idx) => {
+    setBhbcLoads((prev) => {
+      const rec = prev[athleteId]; if (!rec || !rec.sessions || !rec.sessions[date] || !rec.sessions[date][idx]) return prev;
+      const out = { ...rec, sessions: { ...rec.sessions }, loads: { ...(rec.loads || {}) } };
+      const arr = [...out.sessions[date]];
+      const [s] = arr.splice(idx, 1);
+      if (arr.length) out.sessions[date] = arr; else { const ss = { ...out.sessions }; delete ss[date]; out.sessions = ss; }
+      if (s && s.load > 0) {
+        const nl = Math.max(0, (out.loads[date] || 0) - s.load);
+        if (nl > 0) out.loads[date] = nl; else { const ls = { ...out.loads }; delete ls[date]; out.loads = ls; }
+      }
+      return { ...prev, [athleteId]: out };
+    });
+    toast('Session removed'); notify();
+  }, [setBhbcLoads, notify]);
+
   const logSession = useCallback(({ athleteId, date, type, minutes, rpe, readiness }) => {
     const load = sessionLoad(minutes, rpe);
     setBhbcLoads((prev) => {
@@ -245,6 +283,10 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
       if (load > 0) {
         rec.loads[date] = (rec.loads[date] || 0) + load;
         rec.sessions[date] = [...(rec.sessions[date] || []), { type, min: Number(minutes) || 0, rpe: Number(rpe) || 0, load }];
+      } else if (type === 'Lift' && Number(minutes) > 0) {
+        // Gym sessions are logged WITHOUT RPE (Ohad never records it) — minutes
+        // only, zero load, so lifts show in the history without polluting ACWR.
+        rec.sessions[date] = [...(rec.sessions[date] || []), { type, min: Number(minutes), rpe: null, load: 0, attended: true }];
       }
       const r = readiness || {};
       if (r.pain || r.sleep || r.energy) rec.readiness[date] = { ...(rec.readiness[date] || {}), ...r };
@@ -389,7 +431,10 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
           </div>
           {/* Understated EXPO-style nav: tight left-aligned small tabs, active tab is
               an orange-outlined box (mirrors EXPO's cyan-outlined active). */}
-          <nav className="bhbc-hdr-tabs" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, flex: '1 1 auto', minWidth: 'max-content', overflowX: 'auto' }}>
+          {/* minWidth: 0 (NOT max-content) — the strip must be allowed to shrink
+              below its tabs so overflowX:auto actually scrolls on mobile instead
+              of the zone's overflow-x:clip amputating the tail tabs. */}
+          <nav className="bhbc-hdr-tabs" style={{ display: 'flex', alignItems: 'center', justifyContent: 'safe center', gap: 6, flex: '1 1 auto', minWidth: 0, overflowX: 'auto' }}>
             {roster.length > 0 && NAV_TABS.map(([k, label]) => {
               const on = view === k;
               return (
@@ -605,7 +650,9 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
           onLog={asCoach ? null : () => { setLogFor(detailFor); setDetailFor(null); }}
           onOpenExpo={!asCoach && onOpenTrainee ? () => onOpenTrainee(detailFor) : null}
           onViewProgram={() => { setProgramFor(detailFor); setDetailFor(null); }}
-          onCycleAvail={asCoach ? null : () => cycleAvail(detailFor, row.avail)} />;
+          onCycleAvail={asCoach ? null : () => cycleAvail(detailFor, row.avail)}
+          onEditSession={asCoach ? null : (date, idx, min) => editSession(detailFor, date, idx, min)}
+          onDeleteSession={asCoach ? null : (date, idx) => deleteSession(detailFor, date, idx)} />;
       })()}
     </div>
   );
@@ -626,7 +673,8 @@ function BarChart({ series, w = 460, h = 88 }) {
   );
 }
 
-function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = [], leaguePlayer, leagueSeason, injuries = [], onInjury, onClose, onLog, onOpenExpo, onViewProgram, onCycleAvail }) {
+function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = [], leaguePlayer, leagueSeason, injuries = [], onInjury, onClose, onLog, onOpenExpo, onViewProgram, onCycleAvail, onEditSession, onDeleteSession }) {
+  const [editSess, setEditSess] = useState(null); // { date, idx, min } — inline minutes edit in the history
   const { t, acwr, avail, readiness } = row;
   const loads = (rec && rec.loads) || {};
   const rc = readiness.level === 'red' ? '#DE4E3B' : readiness.level === 'amber' ? '#E0A73A' : readiness.level === 'green' ? '#37B27C' : '#7C828B';
@@ -635,7 +683,7 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
   const activity = [];
   // Attendance-only gym entries (min/rpe unknown — Ohad logs presence, not load)
   // read "Gym · attended" instead of a bogus "Lift 0 min @ RPE 0".
-  Object.entries((rec && rec.sessions) || {}).forEach(([d, arr]) => (arr || []).forEach((s) => activity.push({ date: d, label: s.attended && !s.load ? 'Gym · attended' : `${s.type} ${s.min} min @ RPE ${s.rpe}`, load: s.load || null })));
+  Object.entries((rec && rec.sessions) || {}).forEach(([d, arr]) => (arr || []).forEach((s, idx) => activity.push({ date: d, label: !s.load ? `Gym · ${s.min ? s.min + ' min' : 'attended'}` : `${s.type} ${s.min} min @ RPE ${s.rpe}`, load: s.load || null, sess: { date: d, idx, min: s.min } })));
   (workouts || []).forEach((w) => { const d = String(w.date || w.completedAt || '').slice(0, 10); const nEx = (w.exercises || []).length; const nSets = (w.exercises || []).reduce((a, e) => a + (e.sets || []).length, 0); if (d) activity.push({ date: d, label: `Gym · ${nEx} lift${nEx === 1 ? '' : 's'}, ${nSets} set${nSets === 1 ? '' : 's'}`, load: null }); });
   Object.entries((rec && rec.bw) || {}).forEach(([d, kg]) => activity.push({ date: d, label: `Bodyweight ${kg} kg`, load: null }));
   Object.entries((rec && rec.availability) || {}).forEach(([d, code]) => { if (code > 1) activity.push({ date: d, label: `Availability · ${AVAIL[code].label}`, load: null }); });
@@ -761,10 +809,26 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
                       <span style={{ unicodeBidi: 'isolate', direction: 'rtl', color: C.td }}>{a.game.opp}</span>
                       <span style={{ marginLeft: 'auto', fontVariantNumeric: 'tabular-nums', fontWeight: 700, color: ORANGE_DEEP, whiteSpace: 'nowrap' }}>{a.game.pts}p · {a.game.reb}r · {a.game.ast}a · {a.game.min}′</span>
                     </span>
+                  ) : a.sess && editSess && editSess.date === a.sess.date && editSess.idx === a.sess.idx ? (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flex: 1 }}>
+                      <input autoFocus type="number" inputMode="numeric" min="0" value={editSess.min}
+                        onChange={(e) => setEditSess({ ...editSess, min: e.target.value })}
+                        onKeyDown={(e) => { if (e.key === 'Enter') { onEditSession(editSess.date, editSess.idx, editSess.min); setEditSess(null); } if (e.key === 'Escape') setEditSess(null); }}
+                        style={{ width: 64, fontFamily: FN, fontSize: 12, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '2px 6px' }} />
+                      <span style={{ color: C.td }}>min</span>
+                      <button onClick={() => { onEditSession(editSess.date, editSess.idx, editSess.min); setEditSess(null); }} title="Save" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: '#37B27C', background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '2px 8px', cursor: 'pointer' }}>✓</button>
+                      <button onClick={() => setEditSess(null)} title="Cancel" style={{ fontFamily: FN, fontSize: 10, color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '2px 8px', cursor: 'pointer' }}>✕</button>
+                    </span>
                   ) : (
                     <span style={{ color: C.tx, minWidth: 0 }}>{a.label}</span>
                   )}
-                  {a.load != null && <span style={{ marginLeft: 'auto', color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums', fontWeight: 700, flexShrink: 0 }}>{Math.round(a.load)}</span>}
+                  {a.sess && onEditSession && !(editSess && editSess.date === a.sess.date && editSess.idx === a.sess.idx) && (
+                    <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 4, flexShrink: 0 }}>
+                      <button onClick={() => setEditSess({ date: a.sess.date, idx: a.sess.idx, min: a.sess.min || '' })} title="Edit minutes" className="bhbc-ghost-btn" style={{ fontFamily: FN, fontSize: 10, color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '1px 7px', cursor: 'pointer' }}>✎</button>
+                      {onDeleteSession && <button onClick={() => onDeleteSession(a.sess.date, a.sess.idx)} title="Delete session" className="bhbc-ghost-btn" style={{ fontFamily: FN, fontSize: 10, color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '1px 7px', cursor: 'pointer' }}>✕</button>}
+                    </span>
+                  )}
+                  {a.load != null && <span style={{ marginLeft: a.sess && onEditSession ? 8 : 'auto', color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums', fontWeight: 700, flexShrink: 0 }}>{Math.round(a.load)}</span>}
                 </div>
               ))}
             </div>
@@ -2157,8 +2221,12 @@ function LogModal({ open, initialAthlete, roster, fixtures = [], availableCount 
   const [minutes, setMinutes] = useState('');
   const [rpe, setRpe] = useState('');
   const [pain, setPain] = useState(''); const [sleep, setSleep] = useState(''); const [energy, setEnergy] = useState('');
+  // Gym (Lift) sessions are minutes-only — Ohad never records gym RPE, so the
+  // field disappears and the session saves as attendance + duration, no load.
+  const isLift = type === 'Lift';
   const preview = sessionLoad(minutes, rpe);
-  const canSave = scope === 'squad' ? preview > 0 : (athleteId && (preview > 0 || pain || sleep || energy));
+  const liftOk = isLift && Number(minutes) > 0;
+  const canSave = scope === 'squad' ? (preview > 0 || liftOk) : (athleteId && (preview > 0 || liftOk || pain || sleep || energy));
   const selStyle = { fontFamily: FB, fontSize: 13, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '9px 10px', width: '100%' };
   const lab = { fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: FN, textAlign: 'center' };
   return (
@@ -2189,12 +2257,12 @@ function LogModal({ open, initialAthlete, roster, fixtures = [], availableCount 
             </select>
           </div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          <Input label="Minutes" type="number" inputMode="numeric" min="0" value={minutes} onChange={(e) => setMinutes(e.target.value)} placeholder="75" />
-          <Input label="Session RPE (0–10)" type="number" inputMode="decimal" min="0" max="10" step="0.5" value={rpe} onChange={(e) => setRpe(e.target.value)} placeholder="7" />
+        <div style={{ display: 'grid', gridTemplateColumns: isLift ? '1fr' : '1fr 1fr', gap: 10 }}>
+          <Input label="Minutes" type="number" inputMode="numeric" min="0" value={minutes} onChange={(e) => setMinutes(e.target.value)} placeholder={isLift ? '40' : '75'} />
+          {!isLift && <Input label="Session RPE (0–10)" type="number" inputMode="decimal" min="0" max="10" step="0.5" value={rpe} onChange={(e) => setRpe(e.target.value)} placeholder="7" />}
         </div>
         <div style={{ fontFamily: FN, fontSize: 11, color: C.td, textAlign: 'center', letterSpacing: '0.04em' }}>
-          sRPE load = <span style={{ color: ORANGE_DEEP, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{preview || 0}</span> units
+          {isLift ? 'Gym session — minutes only, no RPE' : <>sRPE load = <span style={{ color: ORANGE_DEEP, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{preview || 0}</span> units</>}
         </div>
         {(() => {
           const day = fixtures.filter((f) => f.date === date);
