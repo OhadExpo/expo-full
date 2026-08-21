@@ -11,6 +11,36 @@ const MISSING_RX = /חסר תרגיל|superset\s*[—-]|missing exercise|\(unres
 export const normTitle = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9֐-׿ ]+/g, ' ').replace(/\s+/g, ' ').trim();
 export const tokenSet = (s) => new Set(normTitle(s).split(' ').filter(Boolean));
 
+// Canonical token layer — collapse abbreviation/synonym/plural spelling variants
+// so the suggester compares meaning, not spelling. The map is grounded in the
+// measured token-diff tally across all real plans (scripts/_measure-matching.cjs,
+// 2026-08-21), not guessed. Both sides are canonicalized, so direction is safe.
+const SYN = {
+  pos: 'position', laying: 'lying', lay: 'lying', lie: 'lying',
+  seated: 'sitting', seating: 'sitting',
+  hoz: 'horizontal', horiz: 'horizontal', vert: 'vertical',
+  w: 'with', wo: 'without',
+  db: 'dumbbell', bb: 'barbell', kb: 'kettlebell',
+  sa: 'single arm', sl: 'single leg', '1': 'single', one: 'single',
+  facepull: 'face pull', pushup: 'push up', pullup: 'pull up',
+  chinup: 'chin up', situp: 'sit up', stepup: 'step up',
+  ohp: 'overhead press', oh: 'overhead',
+  inclined: 'incline', declined: 'decline',
+  cophenhagen: 'copenhagen', // library spelling
+  banded: 'band', resisted: 'band', // "banded" / "band-resisted" describe the same loading
+  med: 'medicine', flye: 'fly', flyes: 'fly',
+};
+// Plural stem: raises→raise, rows→row… but press/abs stay (short or -ss words).
+const stem = (t) => (t.length > 3 && t.endsWith('s') && !t.endsWith('ss') ? t.slice(0, -1) : t);
+export const canonTokens = (s) => {
+  const out = new Set();
+  for (const t of normTitle(s).split(' ')) {
+    if (!t) continue;
+    for (const piece of String(SYN[t] || t).split(' ')) out.add(stem(piece));
+  }
+  return out;
+};
+
 function libIndex(library) {
   const byId = new Set();
   const byNorm = new Map();
@@ -64,25 +94,48 @@ export function groupUnmatched(rows) {
   return [...map.values()].sort((a, b) => b.count - a.count);
 }
 
-// Rank library suggestions for a title: exact → same token-set → near-miss
-// (1–2 token diff) → jaccard-similar. Returns [{ ex, score, why }].
+// Human-readable difference between the plan title and a suggestion, in
+// canonical words: "sitting↔standing" (swap), "+jefferson" (suggestion adds),
+// "−overhead" (suggestion lacks). This is what lets the coach judge a match
+// without diffing two long names by eye.
+function diffLabel(planOnly, libOnly) {
+  const parts = [];
+  if (planOnly.length === 1 && libOnly.length === 1) parts.push(`${planOnly[0]}↔${libOnly[0]}`);
+  else {
+    for (const w of libOnly) parts.push(`+${w}`);
+    for (const w of planOnly) parts.push(`−${w}`);
+  }
+  const s = parts.join(' ');
+  return s.length > 26 ? s.slice(0, 25) + '…' : s;
+}
+
+// Rank library suggestions for a title: exact → same words → same after
+// abbreviations/synonyms (canonical) → near-miss (1–2 canonical-word diff) →
+// jaccard-similar. Returns [{ ex, score, why }].
 export function suggestMatches(title, library, limit = 5) {
   const n = normTitle(title);
   if (!n) return [];
   const ts = tokenSet(title);
+  const cs = canonTokens(title);
   const scored = [];
   for (const ex of library || []) {
     const en = normTitle(ex.title || ex.t);
     if (!en) continue;
     if (en === n) { scored.push({ ex, score: 100, why: 'exact match' }); continue; }
     const es = tokenSet(ex.title || ex.t);
-    let inter = 0; ts.forEach((x) => { if (es.has(x)) inter++; });
-    const union = new Set([...ts, ...es]).size;
+    let rawInter = 0; ts.forEach((x) => { if (es.has(x)) rawInter++; });
+    if (rawInter === ts.size && rawInter === es.size) { scored.push({ ex, score: 98, why: 'same words' }); continue; }
+    const ces = canonTokens(ex.title || ex.t);
+    let inter = 0; cs.forEach((x) => { if (ces.has(x)) inter++; });
+    if (inter === cs.size && inter === ces.size) { scored.push({ ex, score: 96, why: 'same meaning' }); continue; }
+    const union = new Set([...cs, ...ces]).size;
     const jac = union ? inter / union : 0;
-    const diff = (ts.size - inter) + (es.size - inter);
-    if (jac === 1) scored.push({ ex, score: 96, why: 'same words' });
-    else if (diff <= 2 && inter >= Math.max(1, ts.size - 1)) scored.push({ ex, score: 92 - diff * 8, why: diff === 1 ? '1-word difference' : '2-word difference' });
-    else if (jac >= 0.5) scored.push({ ex, score: Math.round(40 + jac * 40), why: 'similar' });
+    const diff = (cs.size - inter) + (ces.size - inter);
+    if (diff <= 2 && inter >= Math.max(1, cs.size - 1)) {
+      const planOnly = [...cs].filter((x) => !ces.has(x));
+      const libOnly = [...ces].filter((x) => !cs.has(x));
+      scored.push({ ex, score: 92 - diff * 8, why: diffLabel(planOnly, libOnly) });
+    } else if (jac >= 0.5) scored.push({ ex, score: Math.round(40 + jac * 40), why: 'similar' });
   }
   return scored.sort((a, b) => b.score - a.score).slice(0, limit);
 }
