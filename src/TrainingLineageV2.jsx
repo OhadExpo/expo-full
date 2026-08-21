@@ -361,6 +361,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
   const asymTrend = useMemo(() => getAthleteAsymmetryTrend(traineeId), [traineeId, poseBump]);
   const [showThin, setShowThin] = useState(false); // expand the "logged 1-2× · too few to trend" lifts
   const [liftsOpen, setLiftsOpen] = useState(false); // HIS LIFTS list collapsed by default — click the header to expand (Ohad)
+  const [arcOpen, setArcOpen] = useState(true); // THE ARC collapsible like its siblings (Ohad 2026-08-21); starts open — it's the headline read
   const [barSpeedAll, setBarSpeedAll] = useState(false); // Bar-speed shows the top 3 lifts, expands to the FULL report of every tracked lift (Ohad #203)
   const [romAll, setRomAll] = useState(false); // Range-of-motion card: same top-3 → full-report expansion as bar speed (Ohad #203)
   // Lifts that carry a real camera ROM read (peak joint range per filmed set).
@@ -563,8 +564,14 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
 
     {/* 2.5 THE ARC — the cross-block journey (the actual "lineage") */}
     {a.staples.filter((s) => !s.ballistic && s.arc && s.arc.length >= 4 && s.arcGainPct != null).length > 0 && (
-      <div style={card}><div style={hd}>The arc · progression on the main lifts<span style={hdQ}>e# = estimated 1-rep max (Epley) across every block — starting point vs now</span></div>
-        <div style={bd}>
+      <div style={card}>
+        <div style={{ ...hd, cursor: 'pointer' }} onClick={() => setArcOpen((v) => !v)} role="button" tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setArcOpen((v) => !v); } }}
+          title={arcOpen ? 'Collapse' : 'Expand the main-lift arc'}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ color: C.ac, fontSize: 10 }}>{arcOpen ? '▾' : '▸'}</span>The arc · progression on the main lifts</span>
+          <span style={hdQ}>{arcOpen ? 'e# = estimated 1-rep max (Epley) across every block — starting point vs now' : `${a.staples.filter((s) => !s.ballistic && s.arc && s.arc.length >= 4 && s.arcGainPct != null).length} lifts · click to expand`}</span>
+        </div>
+        {arcOpen && <div style={bd}>
           {a.staples.filter((s) => !s.ballistic && s.arc && s.arc.length >= 4 && s.arcGainPct != null)
             .sort((x, y) => y.count - x.count).slice(0, 4).map((s) => {
               // e1RM conflates load and reps, so a rep-scheme shift alone moves the
@@ -586,7 +593,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
               );
             })}
           <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>Long-term arc, not just this block — e1RM = est-1RM (Epley). Rep-scheme shifts move e1RM too; read it with the per-lift trend below.</div>
-        </div>
+        </div>}
       </div>
     )}
 
