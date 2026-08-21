@@ -26,46 +26,60 @@ function ExercisePeek({ ex, onAccept, onClose }) {
     ['Joints', ex.primaryJoints], ['Joint movements', ex.jointMovements],
     ['Primary muscles', ex.primaryMuscles], ['Secondary', ex.secondaryMuscles],
   ].filter(([, v]) => v && String(v).trim());
-  const box = { position: 'relative', width: '100%', aspectRatio: '16 / 9', background: '#000', overflow: 'hidden', flexShrink: 0 };
+  const box = { position: 'relative', width: '100%', aspectRatio: '16 / 9', background: '#000', overflow: 'hidden' };
+  const cueLines = [ex.cues, ex.notes].filter(Boolean).join('\n\n').split('\n');
   return (
     <Modal open onClose={onClose} wide title={ex.title || ex.t || 'Exercise'}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        {yid ? (play ? (
-          <div style={box}>
-            <iframe title="exercise demo" src={`https://www.youtube.com/embed/${yid}?fs=0&rel=0&modestbranding=1&playsinline=1&autoplay=1`}
-              style={{ width: '100%', height: '100%', border: 'none' }} allow="autoplay; encrypted-media" />
+        {/* Video + cues SIDE BY SIDE — the old stacked layout buried dim cues
+            under a huge video and pushed the buttons off-screen (Ohad: "horrible
+            screen, can't see anything"). Cues are bright, per-line dir=auto so
+            Hebrew reads RTL with the hyphens on the correct side. */}
+        <div style={{ display: 'flex', gap: 18, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+          <div style={{ flex: '1 1 330px', minWidth: 0 }}>
+            {yid ? (play ? (
+              <div style={box}>
+                <iframe title="exercise demo" src={`https://www.youtube.com/embed/${yid}?fs=0&rel=0&modestbranding=1&playsinline=1&autoplay=1`}
+                  style={{ width: '100%', height: '100%', border: 'none' }} allow="autoplay; encrypted-media" />
+              </div>
+            ) : (
+              <div style={{ ...box, cursor: 'pointer' }} onClick={() => setPlay(true)} role="button" tabIndex={0}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setPlay(true); } }}>
+                <img src={`https://img.youtube.com/vi/${yid}/hqdefault.jpg`} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.92, display: 'block' }} />
+                <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(0,0,0,0.55)', border: '1px solid rgba(255,255,255,0.85)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ width: 0, height: 0, borderTop: '7px solid transparent', borderBottom: '7px solid transparent', borderLeft: '12px solid #fff', marginLeft: 3 }} />
+                  </span>
+                </span>
+              </div>
+            )) : fileVid ? (
+              <video src={ex.videoLink} controls playsInline style={{ ...box, display: 'block' }} />
+            ) : (
+              <div style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: C.td, padding: '14px 0', textAlign: 'center', border: `0.25px solid ${C.bd}` }}>No video in the library for this exercise</div>
+            )}
+            {meta.length > 0 && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '5px 14px', marginTop: 12 }}>
+                {meta.map(([k, v]) => (
+                  <React.Fragment key={k}>
+                    <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, alignSelf: 'center' }}>{k}</span>
+                    <span style={{ fontFamily: FB, fontSize: 12.5, color: C.tx }}>{v}</span>
+                  </React.Fragment>
+                ))}
+              </div>
+            )}
           </div>
-        ) : (
-          <div style={{ ...box, cursor: 'pointer' }} onClick={() => setPlay(true)} role="button" tabIndex={0}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setPlay(true); } }}>
-            <img src={`https://img.youtube.com/vi/${yid}/hqdefault.jpg`} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.92, display: 'block' }} />
-            <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(0,0,0,0.55)', border: '1px solid rgba(255,255,255,0.85)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ width: 0, height: 0, borderTop: '7px solid transparent', borderBottom: '7px solid transparent', borderLeft: '12px solid #fff', marginLeft: 3 }} />
-              </span>
-            </span>
-          </div>
-        )) : fileVid ? (
-          <video src={ex.videoLink} controls playsInline style={{ ...box, display: 'block' }} />
-        ) : (
-          <div style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: C.td, padding: '14px 0', textAlign: 'center', border: `0.25px solid ${C.bd}` }}>No video in the library for this exercise</div>
-        )}
-        {meta.length > 0 && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '5px 14px' }}>
-            {meta.map(([k, v]) => (
-              <React.Fragment key={k}>
-                <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, alignSelf: 'center' }}>{k}</span>
-                <span style={{ fontFamily: FB, fontSize: 12.5, color: C.tx }}>{v}</span>
-              </React.Fragment>
-            ))}
-          </div>
-        )}
-        {(ex.cues || ex.notes) && (
-          <div style={{ fontFamily: FB, fontSize: 12.5, color: C.td, whiteSpace: 'pre-wrap', borderTop: `0.25px solid ${C.bd}`, paddingTop: 10 }}>
-            {[ex.cues, ex.notes].filter(Boolean).join('\n\n')}
-          </div>
-        )}
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          {cueLines.length > 0 && cueLines[0] !== '' && (
+            <div style={{ flex: '1 1 240px', minWidth: 0 }}>
+              <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: C.ac, marginBottom: 8 }}>Cues</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 340, overflowY: 'auto' }}>
+                {cueLines.map((line, i) => (line.trim()
+                  ? <div key={i} dir="auto" style={{ fontFamily: FB, fontSize: 13.5, color: C.tx, lineHeight: 1.55, textAlign: 'start' }}>{line}</div>
+                  : <div key={i} style={{ height: 6 }} />))}
+              </div>
+            </div>
+          )}
+        </div>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', borderTop: `0.25px solid ${C.bd}`, paddingTop: 12 }}>
           <Btn variant="ghost" onClick={onClose}>Close</Btn>
           {onAccept && <Btn onClick={onAccept} style={{ background: '#2E9E6B', borderColor: '#2E9E6B', color: '#04121f' }}>Use this match</Btn>}
         </div>
