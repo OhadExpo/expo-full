@@ -633,7 +633,9 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
   const av = AVAIL[avail];
   // Unified activity: sRPE practice/quick logs + detailed gym sessions (client_workouts).
   const activity = [];
-  Object.entries((rec && rec.sessions) || {}).forEach(([d, arr]) => (arr || []).forEach((s) => activity.push({ date: d, label: `${s.type} ${s.min} min @ RPE ${s.rpe}`, load: s.load })));
+  // Attendance-only gym entries (min/rpe unknown — Ohad logs presence, not load)
+  // read "Gym · attended" instead of a bogus "Lift 0 min @ RPE 0".
+  Object.entries((rec && rec.sessions) || {}).forEach(([d, arr]) => (arr || []).forEach((s) => activity.push({ date: d, label: s.attended && !s.load ? 'Gym · attended' : `${s.type} ${s.min} min @ RPE ${s.rpe}`, load: s.load || null })));
   (workouts || []).forEach((w) => { const d = String(w.date || w.completedAt || '').slice(0, 10); const nEx = (w.exercises || []).length; const nSets = (w.exercises || []).reduce((a, e) => a + (e.sets || []).length, 0); if (d) activity.push({ date: d, label: `Gym · ${nEx} lift${nEx === 1 ? '' : 's'}, ${nSets} set${nSets === 1 ? '' : 's'}`, load: null }); });
   Object.entries((rec && rec.bw) || {}).forEach(([d, kg]) => activity.push({ date: d, label: `Bodyweight ${kg} kg`, load: null }));
   Object.entries((rec && rec.availability) || {}).forEach(([d, code]) => { if (code > 1) activity.push({ date: d, label: `Availability · ${AVAIL[code].label}`, load: null }); });

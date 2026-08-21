@@ -3,7 +3,13 @@
    automatically falls through to the next font in the chain (Heebo). Without
    this, Nord's empty/system-fallback glyphs for Hebrew win against Heebo and
    the user sees ugly system Hebrew instead of the brand Hebrew face. */
-@font-face { font-family: 'Nord'; src: url('/fonts/Nord-Light.woff2') format('woff2'); font-weight: 300; font-style: normal; font-display: swap; unicode-range: U+0000-024F, U+0259, U+1E00-1EFF, U+2000-206F, U+2070-209F, U+20A0-20CF, U+2100-214F, U+2190-21FF, U+2200-22FF, U+2300-23FF, U+25A0-25FF, U+2600-26FF, U+FB00-FB4F; }
-@font-face { font-family: 'Nord'; src: url('/fonts/Nord-Regular.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; unicode-range: U+0000-024F, U+0259, U+1E00-1EFF, U+2000-206F, U+2070-209F, U+20A0-20CF, U+2100-214F, U+2190-21FF, U+2200-22FF, U+2300-23FF, U+25A0-25FF, U+2600-26FF, U+FB00-FB4F; }
-@font-face { font-family: 'Nord'; src: url('/fonts/Nord-Medium.woff2') format('woff2'); font-weight: 500; font-style: normal; font-display: swap; unicode-range: U+0000-024F, U+0259, U+1E00-1EFF, U+2000-206F, U+2070-209F, U+20A0-20CF, U+2100-214F, U+2190-21FF, U+2200-22FF, U+2300-23FF, U+25A0-25FF, U+2600-26FF, U+FB00-FB4F; }
-@font-face { font-family: 'Nord'; src: url('/fonts/Nord-Bold.woff2') format('woff2'); font-weight: 700; font-style: normal; font-display: swap; unicode-range: U+0000-024F, U+0259, U+1E00-1EFF, U+2000-206F, U+2070-209F, U+20A0-20CF, U+2100-214F, U+2190-21FF, U+2200-22FF, U+2300-23FF, U+25A0-25FF, U+2600-26FF, U+FB00-FB4F; }
+/* Vertical-centering metric override (2026-08-21): Nord ships ascent 97% /
+   descent 23%, which parks the baseline at 87% of a line-height:1 box while its
+   66% cap height wants 83% — so every uppercase word sat 4% of font-size LOW (probe-measured 5.13px@dpr2 at 64px; 0.05px after fix)
+   in every badge/box, app-wide. ascent-override 93.5% + descent-override 26.5%
+   keeps the same em total (120%) and re-centers caps optically. Measured via
+   canvas TextMetrics on prod; do not remove without re-measuring. */
+@font-face { font-family: 'Nord'; src: url('/fonts/Nord-Light.woff2') format('woff2'); ascent-override: 93.5%; descent-override: 26.5%; font-weight: 300; font-style: normal; font-display: swap; unicode-range: U+0000-024F, U+0259, U+1E00-1EFF, U+2000-206F, U+2070-209F, U+20A0-20CF, U+2100-214F, U+2190-21FF, U+2200-22FF, U+2300-23FF, U+25A0-25FF, U+2600-26FF, U+FB00-FB4F; }
+@font-face { font-family: 'Nord'; src: url('/fonts/Nord-Regular.woff2') format('woff2'); ascent-override: 93.5%; descent-override: 26.5%; font-weight: 400; font-style: normal; font-display: swap; unicode-range: U+0000-024F, U+0259, U+1E00-1EFF, U+2000-206F, U+2070-209F, U+20A0-20CF, U+2100-214F, U+2190-21FF, U+2200-22FF, U+2300-23FF, U+25A0-25FF, U+2600-26FF, U+FB00-FB4F; }
+@font-face { font-family: 'Nord'; src: url('/fonts/Nord-Medium.woff2') format('woff2'); ascent-override: 93.5%; descent-override: 26.5%; font-weight: 500; font-style: normal; font-display: swap; unicode-range: U+0000-024F, U+0259, U+1E00-1EFF, U+2000-206F, U+2070-209F, U+20A0-20CF, U+2100-214F, U+2190-21FF, U+2200-22FF, U+2300-23FF, U+25A0-25FF, U+2600-26FF, U+FB00-FB4F; }
+@font-face { font-family: 'Nord'; src: url('/fonts/Nord-Bold.woff2') format('woff2'); ascent-override: 93.5%; descent-override: 26.5%; font-weight: 700; font-style: normal; font-display: swap; unicode-range: U+0000-024F, U+0259, U+1E00-1EFF, U+2000-206F, U+2070-209F, U+20A0-20CF, U+2100-214F, U+2190-21FF, U+2200-22FF, U+2300-23FF, U+25A0-25FF, U+2600-26FF, U+FB00-FB4F; }
