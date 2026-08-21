@@ -4120,7 +4120,9 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
           chevron expands the older blocks inline so nothing is lost — they
           just stay out of the daily scan path. */}
       {displayGrouped && displayGrouped.length > 0 && progView === 'table' && (
-        <div style={{display:"grid",gap:8}}>
+        // gap 14 = SAME as the grid view — toggling table↔grid must not shift
+        // the vertical rhythm (Ohad 2026-08-21).
+        <div style={{display:"grid",gap:14}}>
           {displayGrouped.map(row => {
             const expanded = expandedAthletes.has(row.tid) || !!filterTrainee;
             const cur = row.current;
@@ -4268,13 +4270,11 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
             // Orphan (active athlete, no program) — dashed card mirroring the
             // table's zero-state row.
             if (row.orphan) {
-              // minHeight matches a real collapsed card (measured 186px on the
-              // live grid). Grid auto-stretch already equalises an orphan that
-              // shares a row with a full card, so only a LONE orphan (a trailing
-              // row by itself) was short — this makes it match the rest.
-              // border-box so 186 is the outer height, padding included.
+              // No fixed minHeight — cards are content-height now (2026-08-21);
+              // grid auto-stretch still equalises an orphan sharing a row with
+              // a full card.
               return (
-                <div key={row.tid} data-prog-card={row.tid} style={{background:'var(--c-sf)',border:'0.25px dashed rgba(255,165,2,0.502)',borderRadius:0,padding:'14px',display:'flex',flexDirection:'column',gap:12,minHeight:186,boxSizing:'border-box'}}>
+                <div key={row.tid} data-prog-card={row.tid} style={{background:'var(--c-sf)',border:'0.25px dashed rgba(255,165,2,0.502)',borderRadius:0,padding:'14px',display:'flex',flexDirection:'column',gap:12,boxSizing:'border-box'}}>
                   <div style={{display:'flex',alignItems:'center',gap:9,minWidth:0}}><BhbcBadge tid={row.tid} trainees={trainees} /><div style={{fontWeight:700,fontSize:16,color:C.tx,letterSpacing:'0.01em'}}><bdi>{row.name}</bdi></div></div>
                   <div style={{fontSize:11,color:C.or,fontFamily:FN,letterSpacing:'0.18em',textTransform:'uppercase',fontWeight:700}}>No program assigned</div>
                   <div style={{flex:1}} />
