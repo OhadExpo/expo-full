@@ -68,6 +68,7 @@ const ReviewToolsView = lazyReload(() => import('./ReviewToolsView'));
 const BhbcView = lazyReload(() => import('./BhbcView'));
 const ExerciseMatchingView = lazyReload(() => import('./ExerciseMatchingView'));
 const ExerciseClassifyView = lazyReload(() => import('./ExerciseClassifyView'));
+const ExerciseCleanupView = lazyReload(() => import('./ExerciseCleanupView'));
 // Public unauthenticated try-it sandbox at /try. Lazy-loaded the same way
 // so the heavy MediaPipe-pulling code chunk doesn't bloat the auth path.
 const TrySandbox = lazyReload(() => import('./TrySandbox'));
@@ -921,7 +922,7 @@ function AuthedApp() {
         const parts = sub.split('/');
         if (parts[1]) return { mode:'coach', tab:'plans', planEditId: parts[1] };
       }
-      const tabMap = {dashboard:'dashboard',athletes:'trainees',trainees:'trainees',programs:'plans',exercises:'exercises','exercise-matching':'exerciseMatching','exercise-classify':'exerciseClassify',review:'review','review-tools':'reviewTools',workouts:'workouts',sessions:'sessions','sessions-single':'sessionsSolo',intake:'intake',waitlist:'waitlist','chat-audit':'chatAudit','smart-import':'smartImport',tasks:'tasks',bugs:'bugs',challenges:'challenges',calendar:'calendar',billing:'billing',bhbc:'bhbc'};
+      const tabMap = {dashboard:'dashboard',athletes:'trainees',trainees:'trainees',programs:'plans',exercises:'exercises','exercise-matching':'exerciseMatching','exercise-classify':'exerciseClassify','exercise-cleanup':'exerciseCleanup',review:'review','review-tools':'reviewTools',workouts:'workouts',sessions:'sessions','sessions-single':'sessionsSolo',intake:'intake',waitlist:'waitlist','chat-audit':'chatAudit','smart-import':'smartImport',tasks:'tasks',bugs:'bugs',challenges:'challenges',calendar:'calendar',billing:'billing',bhbc:'bhbc'};
       return { mode:'coach', tab: tabMap[sub] || 'dashboard', traineeId:null };
     }
     return { mode:'portal' };
@@ -974,7 +975,7 @@ function AuthedApp() {
     if (tab === 'client' && !isCoach) return;
     // URL writes the canonical "athletes" segment now; internal tab key
     // stays "trainees" so the rest of AuthedApp doesn't have to be touched.
-    const tabUrl = {dashboard:'dashboard',trainees:'athletes',plans:'programs',exercises:'exercises',exerciseMatching:'exercise-matching',exerciseClassify:'exercise-classify',review:'review',reviewTools:'review-tools',workouts:'workouts',sessions:'sessions',sessionsSolo:'sessions-single',intake:'intake',waitlist:'waitlist',chatAudit:'chat-audit',smartImport:'smart-import',tasks:'tasks',bugs:'bugs',challenges:'challenges',calendar:'calendar',billing:'billing',bhbc:'bhbc'};
+    const tabUrl = {dashboard:'dashboard',trainees:'athletes',plans:'programs',exercises:'exercises',exerciseMatching:'exercise-matching',exerciseClassify:'exercise-classify',exerciseCleanup:'exercise-cleanup',review:'review',reviewTools:'review-tools',workouts:'workouts',sessions:'sessions',sessionsSolo:'sessions-single',intake:'intake',waitlist:'waitlist',chatAudit:'chat-audit',smartImport:'smart-import',tasks:'tasks',bugs:'bugs',challenges:'challenges',calendar:'calendar',billing:'billing',bhbc:'bhbc'};
     let path = '/coach/' + (tabUrl[newTab] || 'dashboard');
     if (newTab === 'trainees' && newTrainee) path += '/' + newTrainee;
     if (window.location.pathname !== path) window.history.pushState(null, '', path);
@@ -1437,14 +1438,14 @@ function AuthedApp() {
           {tab==="trainees"&&!selectedTrainee&&<TraineesView trainees={trainees} setTrainees={setTrainees} planCounts={planCounts} payments={payments} workouts={workouts} clientWorkouts={clientWorkouts} bwLog={bwLog} portalVis={portalVis} presence={presence} onSelect={id=>navTo("trainees",id)} onPreview={openPreview}/>}
           {tab==="trainees"&&selectedTrainee&&previewTrainee===selectedTrainee&&<CoachPreviewPortal traineeId={selectedTrainee} trainees={trainees} exercises={exercises} portalVis={portalVis} clientWorkouts={clientWorkouts} bwLog={bwLog} weeklyFocus={weeklyFocus} onBack={()=>closePreview(selectedTrainee)}/>}
           {tab==="trainees"&&selectedTrainee&&previewTrainee!==selectedTrainee&&<TraineeDetail key={selectedTrainee} trainee={selectedTrainee} trainees={trainees} setTrainees={setTrainees} planIndex={planIndex} reloadPlanIndex={reloadPlanIndex} onOpenPlan={pid=>{setSelectedPlanId(pid);setPlanEditorOrigin({kind:'trainees',traineeId:selectedTrainee});navTo("plans")}} onPreviewPortal={()=>openPreview(selectedTrainee)} onOpenTasksTab={()=>navTo("tasks")} onCreatePlanForTask={()=>navTo("plans")} onOpenIntakeTab={()=>navTo("intake")} onOpenInPersonForTrainee={tid=>{try{sessionStorage.setItem('expo-pendingInPersonTrainee',tid);}catch{} navTo("workouts");}} exercises={exercises} workouts={workouts} clientWorkouts={clientWorkouts} payments={payments} addPayment={addPayment} updatePayment={updateBitPayment} removePayment={removePayment} bwLog={bwLog} setBwLog={setBwLog} portalVis={portalVis} setPortalVis={setPortalVisSynced} presence={presence} onBack={()=>navTo("trainees")}/>}
-          {(tab==="exercises"||tab==="exerciseMatching"||tab==="exerciseClassify")&&(
+          {(tab==="exercises"||tab==="exerciseMatching"||tab==="exerciseClassify"||tab==="exerciseCleanup")&&(
             <div>
               {/* Exercises hub: Library + its two maintenance tools (Matching,
                   Classify) live here as sub-tabs instead of separate Athletes ▾
                   menu items (Ohad). Underline tabs = the app's filter/sub-nav
                   control grammar. Deep-link routes still resolve to each tab. */}
               <div style={{display:'flex',gap:2,borderBottom:`1px solid ${C.cardBd}`,marginBottom:16,flexWrap:'wrap'}}>
-                {[['exercises','Library'],['exerciseMatching','Matching'],['exerciseClassify','Classify']].map(([r,l])=>{
+                {[['exercises','Library'],['exerciseMatching','Matching'],['exerciseClassify','Classify'],['exerciseCleanup','Cleanup']].map(([r,l])=>{
                   const on=tab===r;
                   return <button key={r} onClick={()=>navTo(r)} style={{fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:on?C.tx:C.td,background:'transparent',border:'none',borderBottom:on?`2px solid ${C.ac}`:'2px solid transparent',padding:'10px 16px',marginBottom:-1,cursor:'pointer'}}>{l}</button>;
                 })}
@@ -1452,6 +1453,7 @@ function AuthedApp() {
               {tab==="exercises"&&<MemoExercises exercises={exercises} setExercises={setExercises} onOpenClassify={()=>navTo('exerciseClassify')}/>}
               {tab==="exerciseMatching"&&<Suspense fallback={<ViewFallback/>}><ErrorBoundary inline><ExerciseMatchingView exercises={exercises} setExercises={setExercises}/></ErrorBoundary></Suspense>}
               {tab==="exerciseClassify"&&<Suspense fallback={<ViewFallback/>}><ErrorBoundary inline><ExerciseClassifyView exercises={exercises} setExercises={setExercises}/></ErrorBoundary></Suspense>}
+              {tab==="exerciseCleanup"&&<Suspense fallback={<ViewFallback/>}><ErrorBoundary inline><ExerciseCleanupView exercises={exercises} setExercises={setExercises}/></ErrorBoundary></Suspense>}
             </div>
           )}
           {tab==="review"&&<MemoReview clientWorkouts={clientWorkouts} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} planIndex={planIndex} trainees={trainees} exercises={exercises} markReviewed={markWorkoutReviewed} updateFormVideos={updateFormVideos} deleteWorkout={deleteClientWorkout} onOpenTrainee={openTraineeFromReview}/>}

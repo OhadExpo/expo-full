@@ -45,6 +45,7 @@ Last synced to code: 2026-06-09. (Known gate blind spot: `check-surfaces.mjs` on
 | `/coach/exercises` | exercises | `ExercisesView` | ✅ pass2 |
 | `/coach/exercise-matching` | exerciseMatching | `ExerciseMatchingView` | 🆕 2026-08-16 (Athletes▾→Matching; resolve unmatched plan exercise titles at scale) |
 | `/coach/exercise-classify` | exerciseClassify | `ExerciseClassifyView` | 🆕 2026-08-16 (Athletes▾→Classify; batch taxonomy classify unclassified library at scale) |
+| `/coach/exercise-cleanup` | exerciseCleanup | `ExerciseCleanupView` | 🆕 2026-08-21 (Exercises hub→Cleanup; review + bulk-delete trash library entries — set/rep numbers, superset markers, warmup notes) |
 | `/coach/review` | review | `WorkoutReview` | ✅ pass1 (Review▾→Workouts) |
 | `/coach/review-tools` | reviewTools | `ReviewToolsView` | 🆕 2026-06-14 (Review▾→Tools; owner-only camera suite) |
 | `/coach/workouts` | workouts | `WorkoutsView` | ✅ pass2 |
