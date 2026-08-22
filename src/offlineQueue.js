@@ -22,6 +22,14 @@ const DRAIN_INTERVAL_MS = 30000;
 const listeners = new Set();
 const handlers = {};
 
+// Queue entries are tagged with the auth uid active at enqueue time. Drain
+// skips (preserves) entries belonging to a DIFFERENT signed-in user — on a
+// shared device, user A's offline workout must not replay under B's JWT
+// (RLS 42501 would classify it permanent and silently DESTROY it). A's
+// entries drain when A signs back in. (audit 08-22)
+let currentUid = null;
+export function setQueueUser(uid) { currentUid = uid || null; }
+
 // In-memory mirror + persist flag. The queue holds an athlete's logged workout /
 // weigh-in, so a full localStorage must NOT silently drop it. Normal reads still
 // come from localStorage (cross-tab aware); only after a persist FAILS do we trust
@@ -73,6 +81,7 @@ export function enqueue({ type, payload, dedupeKey, critical }) {
   }
   next.push({
     id: 'q_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36),
+    uid: currentUid || undefined,
     type,
     payload,
     dedupeKey: dedupeKey || null,
@@ -139,10 +148,19 @@ export async function drain() {
   // parked-to-tail entry can't spin the loop forever within one drain.
   const cycledUnknown = new Set();
   try {
+    const cycledForeign = new Set();
     while (true) {
       const q = read();
       if (q.length === 0) break;
       const next = q[0];
+      // Foreign-user entry (or signed-out): keep it, rotate to tail, never
+      // attempt it under the wrong (or no) JWT.
+      if (next.uid && next.uid !== currentUid) {
+        if (cycledForeign.has(next.id)) break; // full pass done — everything left is foreign
+        cycledForeign.add(next.id);
+        write([...q.slice(1), next]);
+        continue;
+      }
       const handler = handlers[next.type];
       if (!handler) {
         // Unknown op type. A NON-critical write is tolerable to drop (it can

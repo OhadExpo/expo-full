@@ -207,10 +207,14 @@ export function useSupaStore(key, initial) {
         }
       } catch (e) {
         // Fall back to localStorage snapshot — nothing worse than an empty UI
-        // on a transient network blip.
+        // on a transient network blip. EXCEPT the deliberately-unsynced keys:
+        // a legacy 'expo-trainees' blob holds full-roster PII that RLS now
+        // denies — resurrecting it here defeats the exclusion (audit 08-22).
         try {
-          const s = localStorage.getItem(key);
-          if (s) { const parsed = asShape(JSON.parse(s)); setData(parsed); dataRef.current = parsed; }
+          if (key !== 'expo-trainees' && key !== 'expo-exercises') {
+            const s = localStorage.getItem(key);
+            if (s) { const parsed = asShape(JSON.parse(s)); setData(parsed); dataRef.current = parsed; }
+          }
         } catch {}
         setLoadError(e?.message || 'load failed');
         console.warn(`useSupaStore[${key}] load failed:`, e?.message || e);
@@ -306,7 +310,10 @@ export function useSupaStore(key, initial) {
   // "SAVE FAILED" toast.
   const saveLocal = useCallback((next) => {
     mutatedRef.current = true;
-    const val = typeof next === 'function' ? next(dataRef.current) : next;
+    // asShape: poll/broadcast payloads must never replace a declared-array
+    // store with a non-array — one bad server value would crash every
+    // connected client on its next .map/.filter (audit 08-22).
+    const val = asShape(typeof next === 'function' ? next(dataRef.current) : next);
     setData(val);
     dataRef.current = val;
     if (key !== 'expo-exercises' && key !== 'expo-trainees') {

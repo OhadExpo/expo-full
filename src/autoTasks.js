@@ -127,8 +127,12 @@ const ruleNextBlockDue = {
       const currentPlanId = row.auto_ref;
       const currentPlan = plans.find(p => p.id === currentPlanId);
       if (!currentPlan) { closing.add(currentPlanId); continue; }
+      // Couple-aware: the successor block may be filed under the parent id or
+      // the other member suffix — match the same FAMILY, not the exact id
+      // (audit 08-22).
+      const familyOf = (tid) => String(tid || '').split('__')[0];
       const newer = plans.find(p =>
-        p.traineeId === currentPlan.traineeId &&
+        familyOf(p.traineeId) === familyOf(currentPlan.traineeId) &&
         p.id !== currentPlanId &&
         new Date(p.createdAt || 0) > new Date(currentPlan.createdAt || 0));
       if (newer) closing.add(currentPlanId);
@@ -371,10 +375,12 @@ const rulePaymentOverdue = {
       if (tPay.length === 0) {
         // "Never paid" after 21d since start
         const since = daysAgo(t.startDate);
+        // Missing startDate → daysAgo returns Infinity: still chase, but never
+        // interpolate 'Infinityd since signup' (audit 08-22).
         if (since >= 21) {
           out.push({
             ref: t.id,
-            body: `Chase payment from ${bidi(t.name)} · never paid · ${since}d since signup${monthly ? ` · ₪${monthly}/mo` : ''}`,
+            body: `Chase payment from ${bidi(t.name)} · never paid${Number.isFinite(since) ? ` · ${since}d since signup` : ''}${monthly ? ` · ₪${monthly}/mo` : ''}`,
             target_id: t.id,
             target_label: t.name,
           });
@@ -586,10 +592,14 @@ export async function syncAutoTasks({ trainees, plans, workouts, payments } = {}
   }
 
   // Read existing auto-tasks (one query, all kinds)
+  // body IS selected (the diff below reads it) and open rows sort first so the
+  // 2000-row window can never hide an open task once done-history piles up
+  // (audit 08-22).
   const { data: existingRows, error: rdErr } = await supabase
     .from('coach_notes')
-    .select('id, auto_kind, auto_ref, target_id, target_label, status')
+    .select('id, auto_kind, auto_ref, target_id, target_label, status, body')
     .not('auto_kind', 'is', null)
+    .order('status', { ascending: false })
     .limit(2000);
   if (rdErr) {
     // Migration not applied yet — silently bail so the dashboard still works
@@ -627,8 +637,13 @@ export async function syncAutoTasks({ trainees, plans, workouts, payments } = {}
         // current state. Skip if the row is done — closed tasks
         // shouldn't get retroactively rewritten.
         const existing = byKey.get(key);
-        if (existing.status === 'open' && existing.body !== d.body) {
-          bodyPatches.push({ id: existing.id, body: d.body });
+        if (existing.status === 'open') {
+          // Preserve coach decorations: compare/patch only the detector core,
+          // re-attaching any '[URGENT]/[HIGH]' bracket and trailing '· due …'
+          // suffix the coach added in the tasks view (audit 08-22).
+          const m = String(existing.body || '').match(/^(\s*\[[A-Z]+\]\s*)?([\s\S]*?)(\s*·\s*due\s+\S[\s\S]*)?$/) || [];
+          const pri = m[1] || ''; const core = (m[2] || '').trim(); const due = m[3] || '';
+          if (core !== d.body) bodyPatches.push({ id: existing.id, body: `${pri}${d.body}${due}` });
         }
         continue;
       }
@@ -651,8 +666,11 @@ export async function syncAutoTasks({ trainees, plans, workouts, payments } = {}
   // Phase B: resolve open tasks whose condition no longer applies
   const updates = [];
   for (const rule of RULES) {
+    // Non-terminal statuses (working/waiting/stuck) still auto-close when the
+    // condition clears — an In-Progress 'chase payment' must die when the
+    // athlete pays (audit 08-22).
     const openOfKind = (existingRows || [])
-      .filter(r => r.auto_kind === rule.kind && r.status === 'open');
+      .filter(r => r.auto_kind === rule.kind && ['open', 'working', 'waiting', 'stuck'].includes(r.status));
     if (openOfKind.length === 0) continue;
     let closing = new Set();
     try { closing = rule.resolve(ctx, openOfKind) || new Set(); }

@@ -561,7 +561,10 @@ function AuthGate() {
     if (path === '/try' || path.startsWith('/try/')) {
       return <Suspense fallback={<BootSplash />}><TrySandbox /></Suspense>;
     }
-    if (path === '/demo/coach' || path.startsWith('/demo/coach/') || path === '/coaches/demo/coach') {
+    if (path === '/demo/coach' || path.startsWith('/demo/coach/') || path === '/coaches/demo/coach' || path === '/coaches/try') {
+      // '/coaches/try' included: its replaceState rewrite runs after render, so
+      // without this branch the legacy link painted the marketing landing
+      // instead of the coach demo it redirects to (audit 08-22).
       return <Suspense fallback={<BootSplash />}><CoachDemo /></Suspense>;
     }
     if (path === '/demo/athlete' || path === '/demo/trainee' || path === '/coaches/demo/trainee' || path === '/coaches/demo') {
@@ -835,8 +838,9 @@ function AuthedApp() {
   const [portalChoice, setPortalChoice] = useState(() => {
     if (typeof window === 'undefined') return null;
     try {
-      const stored = sessionStorage.getItem(PORTAL_CHOICE_KEY);
-      if (stored) return stored;
+      // URL intent OVERRIDES the sticky stored choice — a push-notification
+      // click or deep link to /coach/* must not be swallowed by a stale
+      // 'client' preference from earlier in the session (audit 08-22).
       const p = window.location.pathname || '';
       if (p === '/coach' || p.startsWith('/coach/')) {
         sessionStorage.setItem(PORTAL_CHOICE_KEY, 'trainer');
@@ -846,6 +850,8 @@ function AuthedApp() {
         sessionStorage.setItem(PORTAL_CHOICE_KEY, 'client');
         return 'client';
       }
+      const stored = sessionStorage.getItem(PORTAL_CHOICE_KEY);
+      if (stored) return stored;
       return null;
     } catch { return null; }
   });
@@ -985,7 +991,13 @@ function AuthedApp() {
   useEffect(() => {
     const onPop = () => {
       const r = getRoute();
-      if (r.mode === 'coach') { setTab(r.tab); setSelectedTrainee(r.traineeId); setPreviewTrainee(r.preview ? r.traineeId : null); setPreviewPlan(r.planPreviewId || null); setSelectedPlanId(r.planEditId || null); }
+      if (r.mode === 'coach') {
+        setTab(r.tab); setSelectedTrainee(r.traineeId); setPreviewTrainee(r.preview ? r.traineeId : null); setPreviewPlan(r.planPreviewId || null); setSelectedPlanId(r.planEditId || null);
+        // Dual-role Back-desync fix: popping to a /coach URL while the athlete
+        // portal renders left the URL and the view disagreeing (audit 08-22) —
+        // follow the URL and re-pick the trainer side.
+        try { if (sessionStorage.getItem(PORTAL_CHOICE_KEY) === 'client') { sessionStorage.setItem(PORTAL_CHOICE_KEY, 'trainer'); setPortalChoice('trainer'); } } catch {}
+      }
     };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
@@ -1038,6 +1050,9 @@ function AuthedApp() {
   // challenges, bugs, …) gets bounced back to their dashboard. UI hides
   // these tabs; this backstops direct navigation.
   useEffect(() => {
+    // BHBC coaches live at /coach/bhbc — the whole zone is their surface, and
+    // rewriting their URL destroys the club-branded login + bookmarks (audit 08-22).
+    if (isBhbcCoach) return;
     if (isCoach && !isOwner && tab && !STAFF_TABS.includes(tab)) {
       // Bounce via REPLACE, not push. navTo() pushes a new history entry, so
       // a staff user (Yuval) who back-navigated onto a forbidden tab would
@@ -1058,6 +1073,7 @@ function AuthedApp() {
   // guard above (keyed on `tab`) never fires — yet the address bar still shows
   // the forbidden path. Fix the URL once on mount so it matches the view shown.
   useEffect(() => {
+    if (isBhbcCoach) return; // see guard above — /coach/bhbc is their canonical URL
     if (!(isCoach && !isOwner)) return;
     const r = getRoute();
     if (r.mode === 'coach' && r.tab && !STAFF_TABS.includes(r.tab) && window.location.pathname !== '/coach/dashboard') {

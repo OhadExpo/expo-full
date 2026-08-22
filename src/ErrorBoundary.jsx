@@ -64,6 +64,7 @@ export default class ErrorBoundary extends React.Component {
       // user doesn't have to sign back in.
       const keys = ['expo-theme', 'expo-portal-choice'];
       keys.forEach(k => { try { localStorage.removeItem(k); } catch {} });
+    try { sessionStorage.removeItem('expo-portal-choice'); } catch {} // the choice actually lives in sessionStorage (audit 08-22)
       // Clear data-theme so the boot script re-applies fresh.
       try { document.documentElement.removeAttribute('data-theme'); } catch {}
     } catch {}

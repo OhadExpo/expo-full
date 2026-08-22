@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from './supabase';
+import { setQueueUser } from './offlineQueue';
 import { onSaveError } from './useSupaStore';
 import { subscribe as subscribeQueue, drain as drainQueue, getCount as getQueueCount } from './offlineQueue';
 import { subscribe as subscribeBlobs, drainBlobs } from './blobQueue';
@@ -85,6 +86,7 @@ export function AuthProvider({ children, clientList }) {
     const finishBoot = () => { if (!booted) { booted = true; setLoading(false); } };
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s);
+      try { setQueueUser(s?.user?.id || null); } catch {}
       if (s?.user?.email) {
         const r = resolveRole(s.user.email);
         setRole(r.role);
@@ -97,6 +99,7 @@ export function AuthProvider({ children, clientList }) {
     // Listen for auth changes (magic link callback, sign out, etc.)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s);
+      try { setQueueUser(s?.user?.id || null); } catch {}
       if (s?.user?.email) {
         const r = resolveRole(s.user.email);
         setRole(r.role);
@@ -138,6 +141,18 @@ export function AuthProvider({ children, clientList }) {
     setSession(null);
     setRole(null);
     setClientId(null);
+    // Shared-device hygiene (audit 08-22): the next account must not boot into
+    // this user's cached workouts/bodyweight/BHBC data. The offline queue is
+    // NOT cleared — its entries are uid-scoped and drain when their owner
+    // signs back in.
+    try {
+      const CACHE_KEYS_RX = /^expo-(cw|bw|workouts|weekly-focus|portal-vis|bhbc-|checkins|trainees|exercises)/;
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const k = localStorage.key(i);
+        if (k && CACHE_KEYS_RX.test(k)) localStorage.removeItem(k);
+      }
+    } catch {}
+    try { setQueueUser(null); } catch {}
   };
 
   const value = { session, user: session?.user || null, role, clientId, loading, signOut };

@@ -21,6 +21,7 @@ import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
 import { isRefined5b, RefinedHeaderStrip, Btn, Input, toast, confirmToast, useEscClose, stripBtnBase } from './ui';
 import { parseTraineeId } from './traineeUtils';
+import { normalizePhoneIL } from './whatsappButton';
 
 const fmtCurrency = (amount, currency = 'ils') => {
   const sym = currency === 'usd' ? '$' : '₪';
@@ -112,8 +113,10 @@ export default function BillingView({ trainees }) {
   }, [requests]);
 
   // One-tap WhatsApp payment reminder (masculine-singular Hebrew register).
+  // normalizePhoneIL like every other WhatsApp entry point — wa.me rejects the
+  // local 05X format the roster stores (audit 08-22).
   const chase = (t, r) => {
-    const phone = String(t?.phone || '').replace(/[^\d]/g, '');
+    const phone = normalizePhoneIL(t?.phone);
     if (!phone) { toast('No phone number on file for this athlete.', 'warn'); return; }
     const amt = fmtCurrency(r.amount, r.currency);
     const msg = encodeURIComponent(`היי ${t?.name || ''}, תזכורת קטנה לגבי התשלום (${amt})${r.reference ? ` — ${r.reference}` : ''}. תודה!`);

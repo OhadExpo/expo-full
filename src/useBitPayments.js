@@ -59,6 +59,9 @@ export default function useBitPayments() {
       .limit(1000);
     if (error) {
       console.warn('useBitPayments reload failed:', error.message);
+      // Still flip loaded — App gates the WHOLE coach shell on this flag, and a
+      // transient read failure must not strand the loading splash (audit 08-22).
+      setLoaded(true);
       return;
     }
     setRows(data || []);
