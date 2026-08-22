@@ -43,9 +43,14 @@ function aggregate(clientWorkouts, traineeId) {
       const performedTitle = wasSwapped
         ? (ex.substitution.to || ex.title || '?')
         : (ex.title || EX[ex.eid]?.t || '?');
+      // Strip the '#N' duplicate-in-day suffix the portal mints (e.g. 'e33#2'
+      // for a back-off set of the same lift) so both instances merge into ONE
+      // PR series — otherwise the all-time PR splits across two identical
+      // titles and understates the record (audit 08-22).
+      const baseEid = ex.eid ? String(ex.eid).replace(/#\d+$/, '') : ex.eid;
       const stableId = wasSwapped
         ? (ex.substitution.toLibId || `swap:${performedTitle.toLowerCase()}`)
-        : (ex.eid || `title:${performedTitle.toLowerCase()}`);
+        : (baseEid || `title:${performedTitle.toLowerCase()}`);
       if (!byKey.has(stableId)) {
         byKey.set(stableId, { id: stableId, title: performedTitle, series: [], swappedFromAny: false });
       }

@@ -29,11 +29,16 @@ export default function ExerciseClassifyView({ exercises = [], setExercises }) {
   const setVal = (exId, k, v) => setEdits((p) => ({ ...p, [exId]: { ...p[exId], [k]: v } }));
   const toggleSkip = (exId) => setEdits((p) => ({ ...p, [exId]: { ...p[exId], skip: !(p[exId] && p[exId].skip) } }));
 
-  // A row is "ready to apply" when it isn't skipped and has all three fields
-  // (from the classifier or the coach's edits) that aren't already on the record.
-  const pending = items.filter(({ e, g }) => {
-    if ((edits[e.id] || {}).skip) return false;
-    const r = val(e, g, 'resistanceType'), b = val(e, g, 'bodyPosition'), m = val(e, g, 'movementType');
+  // A row applies ONLY when the coach explicitly touched it — a dropdown edit
+  // or "Fill all fully-guessed" (which copies guesses into edits). Raw guesses
+  // for never-reviewed rows must NOT be batch-written (audit 08-22): guesses
+  // prefill the dropdowns for display, but display is not consent.
+  const editVal = (e, k) => { const d = edits[e.id] || {}; return d[k] !== undefined ? d[k] : (e[k] || ''); };
+  const pending = items.filter(({ e }) => {
+    const d = edits[e.id];
+    if (!d || d.skip) return false;
+    if (!['resistanceType', 'bodyPosition', 'movementType'].some((k) => d[k] !== undefined)) return false;
+    const r = editVal(e, 'resistanceType'), b = editVal(e, 'bodyPosition'), m = editVal(e, 'movementType');
     const changed = r !== (e.resistanceType || '') || b !== (e.bodyPosition || '') || m !== (e.movementType || '');
     return changed && (r || b || m);
   });
@@ -47,7 +52,7 @@ export default function ExerciseClassifyView({ exercises = [], setExercises }) {
   const apply = () => {
     setConfirm(false); setApplying(true);
     const patch = {};
-    pending.forEach(({ e, g }) => { patch[e.id] = { resistanceType: val(e, g, 'resistanceType'), bodyPosition: val(e, g, 'bodyPosition'), movementType: val(e, g, 'movementType') }; });
+    pending.forEach(({ e }) => { patch[e.id] = { resistanceType: editVal(e, 'resistanceType'), bodyPosition: editVal(e, 'bodyPosition'), movementType: editVal(e, 'movementType') }; });
     setExercises((prev) => (prev || []).map((ex) => patch[ex.id] ? { ...ex, ...patch[ex.id] } : ex));
     toast(`Classified ${pending.length} exercise${pending.length === 1 ? '' : 's'}`);
     setEdits({}); setApplying(false);

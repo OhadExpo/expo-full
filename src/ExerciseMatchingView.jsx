@@ -163,18 +163,32 @@ export default function ExerciseMatchingView({ exercises = [], setExercises }) {
   const apply = async () => {
     setConfirm(false); setApplying(true);
     try {
-      // Build the new plans array by folding each accepted match in.
-      let working = plans;
-      accepted.forEach(([key, d]) => { working = applyMatch(working, key, d.ex); });
-      // Persist only the plans that actually changed.
-      const changed = working.filter((np) => { const op = plans.find((p) => p.id === np.id); return op && JSON.stringify(op.data) !== JSON.stringify(np.data); });
-      let ok = 0;
+      // RE-FETCH plans first — the mount-time snapshot may be minutes old and a
+      // whole-blob write from it would clobber editor autosaves made since
+      // (audit 08-22). Matches fold into the FRESH data.
+      const { data: fresh, error: fErr } = await supabase.from('plans').select('id,name,trainee_id,data');
+      if (fErr) throw fErr;
+      let working = fresh || [];
+      const groupByKey = new Map(groups.map((g) => [g.key, g]));
+      accepted.forEach(([key, d]) => { const g = groupByKey.get(key); if (g) working = applyMatch(working, g, d.ex, exercises); });
+      const changed = working.filter((np) => { const op = (fresh || []).find((p) => p.id === np.id); return op && JSON.stringify(op.data) !== JSON.stringify(np.data); });
+      let ok = 0; const failedIds = new Set();
       for (const p of changed) {
         const { error } = await supabase.from('plans').update({ data: p.data }).eq('id', p.id);
-        if (!error) ok++;
+        if (!error) ok++; else failedIds.add(p.id);
       }
-      toast(`Applied — ${ok} plan${ok === 1 ? '' : 's'} updated`);
-      setPlans(working); setDecisions({});
+      // Local state reflects reality: successful writes only — a failed plan
+      // keeps its fresh (unapplied) data so its groups stay visible for retry.
+      const next = working.map((np) => (failedIds.has(np.id) ? (fresh || []).find((p) => p.id === np.id) || np : np));
+      setPlans(next);
+      if (failedIds.size) {
+        toast(`Applied ${ok} plan${ok === 1 ? '' : 's'} — ${failedIds.size} FAILED, their rows stay listed for retry`);
+        // keep decisions only for groups that still have unresolved rows in failed plans
+        setDecisions((prev) => { const keep = {}; for (const [k, v] of Object.entries(prev)) { const g = groupByKey.get(k); if (g && g.rows.some((r) => failedIds.has(r.planId))) keep[k] = v; } return keep; });
+      } else {
+        toast(`Applied — ${ok} plan${ok === 1 ? '' : 's'} updated`);
+        setDecisions({});
+      }
     } catch (e) { toast('Apply failed'); setErr(String(e && e.message || e)); }
     setApplying(false);
   };
@@ -199,7 +213,7 @@ export default function ExerciseMatchingView({ exercises = [], setExercises }) {
       </Card>
 
       {groups.length === 0 ? (
-        <EmptyState title="Everything resolves" hint="No unmatched exercise titles across any plan." />
+        <EmptyState message="Everything resolves — no unmatched exercise titles across any plan." />
       ) : groups.map((g) => {
         const dec = decisions[g.key];
         const top = g.suggestions[0];

@@ -18,17 +18,22 @@ import { supabase } from './supabase';
 export function trashVerdict(title) {
   const t = String(title || '').trim();
   if (!t) return { level: 'definite', reason: 'empty title' };
-  if (/^DB .+Superset$/i.test(t)) return { level: 'suspicious', reason: 'superset combo — real pairing?' };
+  // A multi-word "<exercises> Superset" is likely a REAL combo (e.g. "KB Swing +
+  // Squat Superset") — only bare markers are definite (audit 08-22).
+  if (/superset/i.test(t) && /\w+\s+\w+.*superset/i.test(t) && !/חסר תרגיל|super exercies/i.test(t)) return { level: 'suspicious', reason: 'superset combo — real pairing?' };
   if (/^[\d\s,.*x×+\-–/%@()]+$/.test(t)) return { level: 'definite', reason: 'set/rep numbers' };
   if (/superset|חסר תרגיל|super exercies|super exercise/i.test(t)) return { level: 'definite', reason: 'superset marker' };
   if (/warm.?up set|% of (day|last)|of last (week|block)|last week|next week/i.test(t)) return { level: 'definite', reason: 'warmup / % note' };
   if (/\brpe\s*\d/i.test(t)) return { level: 'definite', reason: 'RPE note' };
   if (/^backoff set/i.test(t)) return { level: 'definite', reason: 'backoff prefix' };
-  if (/last\/extra|extra for \d|\bfor time\b|as needed|if needed|each side|per side/i.test(t)) return { level: 'definite', reason: 'instruction note' };
+  if (/last\/extra|extra for \d/i.test(t)) return { level: 'definite', reason: 'set-count note' };
+  // "each side / per side / for time / as needed" can decorate REAL exercises —
+  // suspicious, never pre-checked (audit 08-22).
+  if (/\bfor time\b|as needed|if needed|each side|per side/i.test(t)) return { level: 'suspicious', reason: 'instruction wording' };
   if (/^\d[\d\s,.*x×\-–/+%@]*\s+\d+\s*second (down|up|pause)/i.test(t)) return { level: 'definite', reason: 'tempo prescription' };
   if (/^[\^]+.*[\^]+$/.test(t)) return { level: 'definite', reason: 'marker' };
   if (/^\d+ handed/i.test(t)) return { level: 'definite', reason: 'instruction note' };
-  if (/^\d+(\s*[-–]\s*\d+)?\s*(sec|second|seconds|min|minutes)\b/i.test(t) && !/sprint|run|jog|hold|plank|iso|hang|carry|bike|row|jump|skip/i.test(t)) return { level: 'definite', reason: 'time note' };
+  if (/^\d+(\s*[-–]\s*\d+)?\s*(sec|second|seconds|min|minutes)\b/i.test(t) && !/sprint|run|jog|hold|plank|iso|hang|carry|bike|row|jump|skip|walk|sit|wall|erg|crawl|squat|march/i.test(t)) return { level: 'suspicious', reason: 'time note' };
   // wider net — coach decides
   const letters = (t.match(/[a-zA-Zא-ת]/g) || []).length;
   if (letters / t.length < 0.45) return { level: 'suspicious', reason: 'mostly numbers/symbols' };
@@ -65,15 +70,17 @@ export default function ExerciseCleanupView({ exercises = [], setExercises }) {
   }, [plans]);
 
   const rows = useMemo(() => (exercises || [])
-    .map((ex) => { const v = trashVerdict(ex.title); return v ? { ex, ...v } : null; })
+    .map((ex) => { const v = trashVerdict(ex.title || ex.t); return v ? { ex, ...v } : null; })
     .filter(Boolean)
-    .map((r) => ({ ...r, idRefs: refs.byId.get(r.ex.id) || 0, titleRefs: refs.byTitle.get(normTitle(r.ex.title)) || 0 }))
+    .map((r) => ({ ...r, idRefs: refs.byId.get(r.ex.id) || 0, titleRefs: refs.byTitle.get(normTitle(r.ex.title || r.ex.t)) || 0 }))
     .sort((a, b) => (a.level === b.level ? String(a.ex.title).localeCompare(String(b.ex.title)) : a.level === 'definite' ? -1 : 1)),
   [exercises, refs]);
 
   // initialize checks once rows exist: definite pre-checked, suspicious not
   useEffect(() => {
-    if (checked === null && rows.length) setChecked(new Set(rows.filter((r) => r.level === 'definite').map((r) => r.ex.id)));
+    // Pre-check ONLY definite rows with zero plan references and no video/cues —
+    // anything referenced or carrying media waits for the coach's eye (audit 08-22).
+    if (checked === null && rows.length) setChecked(new Set(rows.filter((r) => r.level === 'definite' && r.idRefs === 0 && r.titleRefs === 0 && !r.ex.videoLink && !(r.ex.cues || r.ex.notes)).map((r) => r.ex.id)));
   }, [rows, checked]);
 
   const sel = checked || new Set();
@@ -102,14 +109,14 @@ export default function ExerciseCleanupView({ exercises = [], setExercises }) {
           <Btn disabled={!sel.size} onClick={() => setConfirm(true)} style={{ background: sel.size ? '#DE4E3B' : undefined, borderColor: sel.size ? '#DE4E3B' : undefined, color: sel.size ? '#fff' : undefined }}>Delete {sel.size} selected</Btn>
         </div>}>
         <div style={{ fontFamily: FB, fontSize: 12.5, color: C.td }}>
-          Entries that look like set/rep prescriptions, warmup notes or markers — not real exercises. <b style={{ color: C.tx }}>{nDef} definite</b> come pre-checked, <b style={{ color: C.tx }}>{nSus} suspicious</b> need your eye. Deleting sends any plan rows that used them to the Matching screen to be re-pointed at real exercises.
+          Entries that look like set/rep prescriptions, warmup notes or markers — not real exercises. <b style={{ color: C.tx }}>{nDef} definite</b>, <b style={{ color: C.tx }}>{nSus} suspicious</b>. Pre-checked = definite AND unreferenced AND no video/cues; everything else waits for your eye. Deleting sends any plan rows that used them to the Matching screen to be re-pointed at real exercises.
         </div>
       </Card>
 
       {plans === null ? (
         <div style={{ padding: 40, textAlign: 'center', color: C.tm, fontFamily: FN, letterSpacing: '0.18em' }}>SCANNING…</div>
       ) : rows.length === 0 ? (
-        <EmptyState title="Library is clean" hint="No trash-looking entries detected." />
+        <EmptyState message="Library is clean — no trash-looking entries detected." />
       ) : (
         <Card>
           <div style={{ display: 'grid', gridTemplateColumns: '28px 1fr 170px 90px 60px', gap: 10, padding: '0 2px 8px', borderBottom: `1px solid ${C.bd}`, ...th }}>
@@ -119,7 +126,7 @@ export default function ExerciseCleanupView({ exercises = [], setExercises }) {
             {rows.map((r) => (
               <label key={r.ex.id} style={{ display: 'grid', gridTemplateColumns: '28px 1fr 170px 90px 60px', gap: 10, alignItems: 'center', padding: '7px 2px', borderBottom: `0.25px solid ${C.bd}`, cursor: 'pointer', opacity: sel.has(r.ex.id) ? 1 : 0.72 }}>
                 <input type="checkbox" checked={sel.has(r.ex.id)} onChange={() => toggle(r.ex.id)} style={{ accentColor: '#DE4E3B', width: 15, height: 15 }} />
-                <span style={{ fontFamily: FN, fontSize: 12.5, fontWeight: 600, color: C.tx, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.ex.title}>{r.ex.title}</span>
+                <span style={{ fontFamily: FN, fontSize: 12.5, fontWeight: 600, color: C.tx, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.ex.title || r.ex.t}>{r.ex.title || r.ex.t}</span>
                 <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: r.level === 'definite' ? '#DE4E3B' : C.or }}>{r.reason}</span>
                 <span style={{ fontFamily: FN, fontSize: 11, color: (r.idRefs + r.titleRefs) ? C.or : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{Math.max(r.idRefs, r.titleRefs) || '—'}</span>
                 <span style={{ textAlign: 'center', fontFamily: FN, fontSize: 9 }}>

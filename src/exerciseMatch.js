@@ -68,13 +68,14 @@ export function scanUnmatched(plans, library) {
         const title = (ex.title || ex.t || '').trim();
         const note = (ex.notes || ex.n || '').trim();
         let reason = null;
+        const idOk = libId && byId.has(libId);
+        const titleOk = title && byNorm.has(normTitle(title));
         if (libId === CORRUPT_ID) reason = 'corrupt-superset-id';
-        else if (MISSING_RX.test(title) || MISSING_RX.test(note)) reason = 'missing-title';
-        else {
-          const idOk = libId && byId.has(libId);
-          const titleOk = title && byNorm.has(normTitle(title));
-          if (!idOk && !titleOk && (libId || title)) reason = 'unresolved';
-        }
+        // The "superset —"/"חסר תרגיל" note heuristic only applies to rows that
+        // ALSO fail id/title resolution — a healthy linked row whose coaching
+        // note merely mentions a superset must never be flagged (audit 08-22).
+        else if (!idOk && !titleOk && (MISSING_RX.test(title) || MISSING_RX.test(note))) reason = 'missing-title';
+        else if (!idOk && !titleOk && (libId || title)) reason = 'unresolved';
         if (reason) out.push({ planId: p.id, planName: p.name, traineeId: p.trainee_id, di, ei, dayName: dayName(d, di), title, libId, reason });
       });
     });
@@ -143,21 +144,42 @@ export function suggestMatches(title, library, limit = 5) {
 export const confidenceLabel = (score) => (score >= 96 ? 'high' : score >= 80 ? 'likely' : 'low');
 
 // Apply a confirmed match: return a NEW plans array with the chosen library
-// exercise linked (exerciseId + refreshed title/videoLink/cues) on every row
-// whose normalized title matches `titleKey`. Pure — caller persists the result.
-export function applyMatch(plans, titleKey, ex) {
+// exercise linked on every UNRESOLVED row of the group. Contract (audit 08-22):
+// - Writes the PLAN-ROW snapshot keys the portal actually reads (videoUrl, n) —
+//   mirroring PlansView's ExPicker relink — never library-shape keys.
+// - The athlete-visible title is NOT touched (the confirm dialog promises it,
+//   and workout-history/PR fallbacks key on title).
+// - Rows whose exerciseId already resolves to the library are skipped, and
+//   fill-only semantics: an existing videoUrl / notes are never clobbered.
+// - Blank-title groups (∅ keys) match by exact (planId, di, ei) coordinates.
+// Pure — caller persists the result. `group` = { key, rows } from
+// groupUnmatched; `library` = the exercises array (for the resolved-id set).
+export function applyMatch(plans, group, ex, library) {
+  const titleKey = group && group.key;
+  const validIds = new Set((library || []).map((l) => l && l.id).filter(Boolean));
+  const coordKey = (planId, di, ei) => `${planId}|${di}|${ei}`;
+  const coords = new Set(((group && group.rows) || []).map((r) => coordKey(r.planId, r.di, r.ei)));
+  const byCoords = String(titleKey || '').startsWith('∅:');
   return (plans || []).map((p) => {
     const days = (p.data && p.data.days) || p.days || [];
     let touched = false;
-    const newDays = days.map((d) => {
+    const newDays = days.map((d, di) => {
       const list = dayEx(d);
       const key = Array.isArray(d.exercises) ? 'exercises' : (Array.isArray(d.ex) ? 'ex' : null);
       if (!key) return d;
-      const newList = list.map((e) => {
+      const newList = list.map((e, ei) => {
         const t = (e.title || e.t || '').trim();
-        if (normTitle(t) !== titleKey) return e;
+        const hit = byCoords ? coords.has(coordKey(p.id, di, ei)) : normTitle(t) === titleKey;
+        if (!hit) return e;
+        const existingId = e.exerciseId || e.eid;
+        if (!byCoords && existingId && validIds.has(existingId) && existingId !== CORRUPT_ID) return e; // already correctly linked
         touched = true;
-        return { ...e, exerciseId: ex.id, title: ex.title || ex.t || t, videoLink: ex.videoLink || e.videoLink, cues: ex.cues || e.cues };
+        const out = { ...e };
+        if ('eid' in e && !('exerciseId' in e)) out.eid = ex.id; else out.exerciseId = ex.id;
+        if (!out.videoUrl && !out.vid && ex.videoLink) out.videoUrl = ex.videoLink;
+        const hasNotes = String(out.notes || out.n || '').trim();
+        if (!hasNotes && ex.cues) { if ('n' in out || !('notes' in out)) out.n = ex.cues; else out.notes = ex.cues; }
+        return out;
       });
       return { ...d, [key]: newList };
     });

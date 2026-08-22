@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { C, FN, FB, uid, ytId, RESISTANCE_TYPES, BODY_POSITIONS, MOVEMENT_TYPES } from './theme';
 import { Btn, Input, Select, TextArea, Modal, ConfirmDialog, EmptyState, baseInput } from './ui';
-import { classify } from './exerciseClassify';
+import { classify, isUnclassified } from './exerciseClassify';
 
 // Grid-card video: a lightweight YouTube FACADE. The grid can show 200 cards, so
 // it must NOT mount 200 iframes — it paints the lazy poster thumbnail and only
@@ -52,7 +52,9 @@ const defaultExercise = () => ({ id: uid(), title: "", resistanceType: "", bodyP
 
 const hasVideo = e => !!(e.videoLink && String(e.videoLink).trim());
 const hasNotes = e => !!(e.cues && String(e.cues).trim());
-const isMissing = e => !e.resistanceType && !e.bodyPosition && !e.movementType;
+// Shared any-field-missing definition — MUST match the Classify screen's count
+// so the banner number and the screen it opens agree (audit 08-22).
+const isMissing = e => isUnclassified(e);
 const splitVals = s => String(s || '').split(',').map(x => x.trim()).filter(Boolean);
 
 export default function ExercisesView({ exercises, setExercises, onOpenClassify }) {

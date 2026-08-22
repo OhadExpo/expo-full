@@ -249,12 +249,16 @@ export default function CoachMessages({ traineeId, role = 'coach', recipientEmai
     if (demoMode) { setRows(DEMO_MESSAGES); setLoading(false); return; }
     const seq = ++reqSeq.current;
     if (showLoading) setLoading(true);
+    // NEWEST 200, then re-sorted ascending for display. Ascending+limit would
+    // freeze the window on the OLDEST 200 — once a thread passed 200 messages
+    // every new message became permanently invisible on both sides (audit 08-22).
     const { data, error } = await supabase
       .from('coach_messages')
       .select('*')
       .eq('trainee_id', traineeId)
-      .order('created_at', { ascending: true })
+      .order('created_at', { ascending: false })
       .limit(200);
+    if (data) data.reverse();
     if (seq !== reqSeq.current) return;   // a newer reload already ran
     if (error) {
       // Migration not yet applied locally — degrade silently with an
