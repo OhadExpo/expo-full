@@ -135,6 +135,7 @@ const QUICK_LIFTS = ['Squat', 'Bench Press', 'Deadlift', 'Overhead Press', 'Row'
 
 const MovementLab   = lazy(() => import('./MovementLab'));
 const ARFormOverlay = lazy(() => import('./ARFormOverlay'));
+const ShotAnalyzer  = lazy(() => import('./ShotAnalyzer'));
 
 // Four tools, one job each. The first three run off a RECORDED clip (record or
 // upload — so no camera is mandatory); only LIVE COACH needs a live camera, and
@@ -157,6 +158,13 @@ const REVIEW_TOOLS = [
     measures: 'Real-time reps + depth target + bar-path drift on the live feed',
     useWhen: 'Coach a set as it happens — feedback before the rep ends.',
     needsTitle: true,  live: true },
+  // Basketball — record/upload a jump shot; pose on every frame → phases
+  // (dip · set · release · apex · follow-through) → 9-checkpoint scorecard
+  // → FIX GUIDE (what / why / how). Engine: shotAnalysis.js.
+  { key: 'shot',    label: 'SHOT ANALYZER', icon: 'target',
+    measures: 'Jump-shot mechanics frame by frame · dip, set point, release, timing, follow-through',
+    useWhen: 'Break a shooter’s form down and hand him the fix guide.',
+    needsTitle: false, live: false },
 ];
 
 const LAST_TOOL_KEY = 'expo-review-tools-last';
@@ -370,6 +378,9 @@ export default function ReviewToolsView({ clientWorkouts = [], trainees = [] }) 
             {tool === 'metrics' && <MovementLab exerciseTitle={title || 'Squat'} initialMode="analyze" initialView="metrics" toolLabel="LIFT METRICS" initialClipUrl={clipUrl} vaultClientId={clipMeta.clientId} vaultDate={clipMeta.date} recordedReps={clipMeta.recorded} targetReps={clipMeta.target} onClose={close} />}
             {tool === 'jump'    && <MovementLab exerciseTitle={title || 'Vertical Jump'} initialMode="jump" initialClipUrl={clipUrl} onClose={close} />}
             {tool === 'live'    && <ARFormOverlay exerciseTitle={title || 'Squat'} onClose={close} />}
+            {/* Camera / gallery ONLY — the reviewed-clip picker never feeds the
+                shot tool (Ohad 08-23: no previously-uploaded EXPO videos). */}
+            {tool === 'shot'    && <ShotAnalyzer onClose={close} />}
           </Suspense>
         </ToolBoundary>
       ), document.body)}
