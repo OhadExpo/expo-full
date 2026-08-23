@@ -50,7 +50,7 @@ import useAutosave, { autosaveStatusLabel } from './hooks/useAutosave';
 import VideoEmbed from './VideoEmbed';
 import { NextBlockReport } from './NextBlockReport';
 import TrainingLineageV2 from './TrainingLineageV2';
-import { sortProgramsRecent } from './traineeUtils';
+import { sortProgramsRecent, sortProgramsByBlockDesc } from './traineeUtils';
 import { SideRail } from './SideRail';
 import { fmtPrettyDate } from './dates';
 
@@ -211,9 +211,15 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
 
   React.useEffect(() => { setActiveIdx(0); }, [search, filters]);
 
-  // Scroll active row into view
+  // Scroll active row into view — KEYBOARD navigation only. Hover also sets
+  // activeIdx; scrolling the list under a resting mouse re-fires mouseenter
+  // on the row that slid under it, which chained into the "entire list
+  // glitches" jump Ohad hit. navByKey flips on in onKeyDown and is consumed
+  // here, so hover never moves the list.
+  const navByKeyRef = React.useRef(false);
   React.useEffect(() => {
-    if (!open || !listRef.current) return;
+    if (!open || !listRef.current || !navByKeyRef.current) return;
+    navByKeyRef.current = false;
     const el = listRef.current.querySelector(`[data-idx="${activeIdx}"]`);
     if (el) el.scrollIntoView({ block: 'nearest' });
   }, [activeIdx, open]);
@@ -222,8 +228,8 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
   // Add the typed search text as a free-text exercise (not in the library).
   const pickName = () => { const t = (search || '').trim(); if (t && onPickName) { onPickName(t); onClose(); } };
   const onKeyDown = (e) => {
-    if (e.key === 'ArrowDown') { e.preventDefault(); setActiveIdx(i => Math.min(i + 1, filt.length - 1)); }
-    else if (e.key === 'ArrowUp') { e.preventDefault(); setActiveIdx(i => Math.max(i - 1, 0)); }
+    if (e.key === 'ArrowDown') { e.preventDefault(); navByKeyRef.current = true; setActiveIdx(i => Math.min(i + 1, filt.length - 1)); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); navByKeyRef.current = true; setActiveIdx(i => Math.max(i - 1, 0)); }
     else if (e.key === 'Enter') { e.preventDefault(); if (filt[activeIdx]) pick(filt[activeIdx]); else pickName(); }
     else if (e.key === 'Escape') { e.preventDefault(); onClose(); }
   };
@@ -311,10 +317,15 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
           {/* Inline UNDERLINE filter rail — WRAPS to fit with SHORT labels so it
               packs into ~2 tight rows: no wasted space, no horizontal scroll, and
               max height left for the suggestion list below (Ohad). */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 12px', marginTop: 8 }}>
+          {/* Aligned 4-column GRID (4 + 3), every select the same width with a
+              resting hairline underline — the old wrap-flex rail packed 7
+              different-width selects into ragged rows ("parameters are a
+              mess", Ohad). Underline = filter material (not a box); cyan
+              when the filter is active. */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '6px 14px', marginTop: 10 }}>
             {[['resistanceType', 'Resistance', RESISTANCE_TYPES], ['bodyPosition', 'Position', BODY_POSITIONS], ['movementType', 'Movement', MOVEMENT_TYPES], ['primaryJoints', 'Joints', optLists.primaryJoints], ['jointMovements', 'Joint Mvmt', optLists.jointMovements], ['primaryMuscles', 'Primary', optLists.primaryMuscles], ['secondaryMuscles', 'Secondary', optLists.secondaryMuscles]].map(([k, label, opts]) => (
-              <select key={k} value={filters[k]} onChange={e => setF(k, e.target.value)}
-                style={{ background: 'transparent', border: 'none', borderBottom: `2px solid ${filters[k] ? C.ac : 'transparent'}`, color: filters[k] ? C.ac : C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', padding: '4px 1px', cursor: 'pointer', outline: 'none', flexShrink: 0, whiteSpace: 'nowrap' }}>
+              <select key={k} value={filters[k]} onChange={e => setF(k, e.target.value)} title={label}
+                style={{ width: '100%', minWidth: 0, boxSizing: 'border-box', background: 'transparent', border: 'none', borderBottom: `1px solid ${filters[k] ? C.ac : C.cardBd}`, color: filters[k] ? C.ac : C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', padding: '5px 0', cursor: 'pointer', outline: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 <option value="">{label}</option>{opts.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             ))}
@@ -350,7 +361,12 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
                 <div style={{ flex: 1, minWidth: 0, border: `1px solid ${isNew ? C.ac : C.cardBd}`, background: 'var(--c-sf)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                   <div style={{ padding: '6px 10px', background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}`, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: isNew ? C.ac : C.tm }}>{label}</div>
                   <div style={{ padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    <div title={ex ? ex.title : ''} style={{ fontFamily: FB, fontSize: 13, fontWeight: 700, color: ex ? C.tx : C.td, lineHeight: 1.15, minHeight: 30, overflowWrap: 'anywhere' }}>{ex ? ex.title : 'Highlight an exercise →'}</div>
+                    {/* Every block below has a FIXED height (title 2 lines,
+                        one line per param, notes 38px) so hovering a different
+                        candidate never changes the compare's height — a
+                        taller/shorter compare shoved the list under the
+                        cursor, which re-fired hover on another row (glitch). */}
+                    <div title={ex ? ex.title : ''} style={{ fontFamily: FB, fontSize: 13, fontWeight: 700, color: ex ? C.tx : C.td, lineHeight: 1.15, height: 30, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflowWrap: 'anywhere' }}>{ex ? ex.title : 'Highlight an exercise →'}</div>
                     <div style={{ display: 'grid', gridTemplateColumns: '92px 1fr', gap: '2px 8px' }}>
                       {PARAM_ROWS.map(([lab, k]) => {
                         const v = ex ? (ex[k] || '—') : '—';
@@ -358,7 +374,7 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
                         return (
                           <React.Fragment key={k}>
                             <div style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.td, lineHeight: 1.2, paddingTop: 1 }}>{lab}</div>
-                            <div style={{ fontFamily: FN, fontSize: 10, color: diff ? C.ac : C.tm, fontWeight: diff ? 700 : 500, overflowWrap: 'anywhere' }}>{v}</div>
+                            <div title={v !== '—' ? v : undefined} style={{ fontFamily: FN, fontSize: 10, color: diff ? C.ac : C.tm, fontWeight: diff ? 700 : 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{v}</div>
                           </React.Fragment>
                         );
                       })}
@@ -369,7 +385,7 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
                         <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.td }}>Coaching Notes</span>
                         {ex?.videoLink && <span title="Has a demo video" style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontFamily: FN, fontSize: 8, fontWeight: 700, color: C.ac, letterSpacing: '0.08em' }}><svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>VIDEO</span>}
                       </div>
-                      <div style={{ fontFamily: FB, fontSize: 10, color: ex?.cues ? C.tm : C.td, whiteSpace: 'pre-wrap', lineHeight: 1.35, maxHeight: 38, overflowY: 'auto' }}>{ex?.cues || '—'}</div>
+                      <div style={{ fontFamily: FB, fontSize: 10, color: ex?.cues ? C.tm : C.td, whiteSpace: 'pre-wrap', lineHeight: 1.35, height: 38, overflowY: 'auto' }}>{ex?.cues || '—'}</div>
                     </div>
                   </div>
                 </div>
@@ -439,8 +455,11 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
                     style={{
                       textAlign: 'left', padding: '7px 11px',
                       background: isSelected ? 'rgba(59,160,255,0.06)' : 'var(--c-sf)',
-                      border: `${isActive ? '1px' : '0.25px'} solid ${isActive ? C.ac : C.cardBd}`,
-                      borderLeft: isSelected ? `3px solid ${C.ac}` : (isActive ? `1px solid ${C.ac}` : `1px solid ${C.cardBd}`),
+                      // Constant 1px border — only the COLOR changes on
+                      // hover/active. A width swap re-flowed every row under
+                      // the cursor and cascaded mouseenters (the glitch).
+                      border: `1px solid ${isActive ? C.ac : C.cardBd}`,
+                      borderLeft: isSelected ? `3px solid ${C.ac}` : `1px solid ${isActive ? C.ac : C.cardBd}`,
                       borderRadius: 0, cursor: 'pointer', fontFamily: FB, color: C.tx,
                       transition: 'all 0.1s', position: 'relative'
                     }}
@@ -614,7 +633,9 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExerc
   // list. Empty programs default to expanded so the "+ Add Warm-Up" button
   // is one click away (otherwise a coach would have to expand the empty
   // card just to discover the add control).
-  const [open, setOpen] = useState(warmup.length === 0);
+  // Starts OPEN — the warm-up list is part of the program's default "first
+  // open" look (Ohad, 08-22): warm-up visible, days visible, rows compact.
+  const [open, setOpen] = useState(true);
   // Drag-to-reorder — same mechanics + visual language as the day-exercise
   // grid: whole grid is the drop zone, slot picked against row centres,
   // dashed dividers double as the insertion line.
@@ -873,7 +894,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
     return (planIndex || [])
       .filter(p => p.id !== currentPlan?.id && p.traineeId === selectedAthleteId)
       .slice()
-      .sort(sortProgramsRecent);
+      .sort(sortProgramsByBlockDesc); // block# desc — see traineeUtils
   }, [planIndex, currentPlan?.id, selectedAthleteId]);
   const [pickedId, setPickedId] = useState(() => candidates[0]?.id || '');
 
@@ -912,7 +933,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
           back). It sits ABOVE the scroller (fixed) so the blue scrollbar
           starts level with the content below the filter boxes — and the
           dropdowns stay reachable however far the pane is scrolled. */}
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:20,position:'relative',flexShrink:0,paddingRight:cmpSbInset+6}}>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr auto',gap:12,marginBottom:20,position:'relative',flexShrink:0,paddingRight:cmpSbInset+6,alignItems:'stretch'}}>
         <div style={{minWidth:0}}>
           <Select label="Athlete Filter" options={athleteOptions} value={selectedAthleteId} onChange={v => { setSelectedAthleteId(v); setPickedId(''); }} placeholder="Select athlete" />
         </div>
@@ -923,8 +944,16 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
             onChange={setPickedId}
             placeholder={selectedAthleteId ? (candidates.length ? 'Select program' : 'No programs for this athlete') : 'Choose athlete first'} />
         </div>
-        <button onClick={onClose} title="Close compare panel"
-          style={{position:'absolute', top:-2, right:-2, background:C.bg, border:`1px solid ${C.cardBd}`, color:C.tm, cursor:'pointer', padding:'1px 6px', borderRadius:0, fontSize:11, lineHeight:1, zIndex:2}}>✕</button>
+        {/* Close = its OWN grid column, level with the two select boxes (same
+            BOX height), not absolutely parked over the label row where it
+            overlapped "PROGRAM FILTER" (Ohad). Ghost square, cardBd border. */}
+        <div style={{display:'flex', flexDirection:'column', gap:4}}>
+          {/* Spacer label = same type as Select's label so the button's top
+              lines up with the select BOXES, its bottom with their bottoms. */}
+          <span aria-hidden style={{fontSize:9, fontWeight:700, letterSpacing:'0.18em', fontFamily:FN, textTransform:'uppercase'}}>&nbsp;</span>
+          <button onClick={onClose} title="Close compare panel" aria-label="Close compare panel"
+            style={{flex:1, width:36, boxSizing:'border-box', background:'var(--c-sf)', border:`1px solid ${C.cardBd}`, color:C.tm, cursor:'pointer', padding:0, borderRadius:0, fontSize:13, lineHeight:1, display:'inline-flex', alignItems:'center', justifyContent:'center', flexShrink:0}}>✕</button>
+        </div>
       </div>
       <div data-compare-pane ref={cmpPaneRef} style={{position:'relative', overflowY:'auto', minHeight:0, flex:1, paddingRight:6}}>
       {!selectedAthleteId ? (
@@ -1012,11 +1041,14 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                 const cmpCollapsed = !!collapsedCmpDays[cmpDayKey];
                 return (
                   <div key={d.id || di} style={{background: 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:12,marginBottom:12}}>
-                    <div style={{display:'flex',alignItems:'center',marginBottom:cmpCollapsed?0:8,gap:10,position:'sticky',top:0,zIndex:3,background:'var(--c-sf)',paddingTop:4,marginTop:-4,paddingBottom:cmpCollapsed?0:8,borderBottom:cmpCollapsed?'none':`1px solid ${C.cardBd}`}}>
+                    <div onClick={e => { if (e.target === e.currentTarget) toggleCmpDay(cmpDayKey); }}
+                      style={{display:'flex',alignItems:'center',marginBottom:cmpCollapsed?0:8,gap:10,position:'sticky',top:0,zIndex:3,background:'var(--c-sf)',paddingTop:4,marginTop:-4,paddingBottom:cmpCollapsed?0:8,borderBottom:cmpCollapsed?'none':`1px solid ${C.cardBd}`}}>
                       <span role="button" tabIndex={0} onClick={()=>toggleCmpDay(cmpDayKey)} onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggleCmpDay(cmpDayKey); } }} title={cmpCollapsed?'Expand day':'Collapse day'} style={{cursor:'pointer',color:C.tm,fontSize:12,lineHeight:1,userSelect:'none'}}>{cmpCollapsed?'▸':'▾'}</span>
                       <input value={d.name || `Day ${di + 1}`} readOnly tabIndex={-1}
                         style={{...baseInput, fontFamily:FB, fontWeight:700, fontSize:14, color:C.tx, padding:'4px 8px', maxWidth:260, cursor:'default'}} />
                       <span style={{color:C.td,fontSize:12,whiteSpace:'nowrap',display:'inline-flex',alignItems:'center',lineHeight:1,alignSelf:'center'}}>({dayExs.length} ex)</span>
+                      {/* Empty header space = click target to expand/collapse (mirrors editor). */}
+                      <div onClick={()=>toggleCmpDay(cmpDayKey)} aria-hidden title={cmpCollapsed?'Expand day':'Collapse day'} style={{flex:'1 1 0',minWidth:0,alignSelf:'stretch',minHeight:24,cursor:'pointer'}} />
                     </div>
                     {!cmpCollapsed && (<>
                     {dayExs.length === 0 ? (
@@ -1518,21 +1550,23 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
   }, [clientWorkouts, plan?.id, plan?.traineeId, plan?.name]);
   const [collapsedDays, setCollapsedDays] = usePersistentState('plan-collapsed-days', {}); // overview day cards collapse
   const toggleDayCollapse = (id) => setCollapsedDays(prev => ({ ...prev, [id]: !prev[id] }));
-  // Ohad: opening ANY program starts with every day collapsed, ALWAYS. The
-  // editor is keyed on plan.id (remounts per program), so this runs on each open.
-  const collapsedInitRef = useRef(false);
-  useEffect(() => {
-    if (collapsedInitRef.current) return;
-    const days = planRef.current && planRef.current.days;
-    if (!days || !days.length) return;
-    collapsedInitRef.current = true;
-    const c = {}; days.forEach(d => { if (d && d.id) c[d.id] = true; });
-    setCollapsedDays(c);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [plan.id]);
   // Unified view: expand an OVERVIEW row inline to its full detail (swap +
   // notes + video) — combines overview + detail in one place.
   const [ovExpanded, setOvExpanded] = usePersistentState('plan-ov-expanded', {});
+  // DEFAULT "FIRST OPEN" LOOK (Ohad, 08-22 — supersedes the older "every day
+  // collapsed" rule): every day card OPEN, every exercise row COMPACT (no
+  // inline detail), warm-up list open. Both maps are persisted across
+  // programs, so without this reset a row expanded yesterday would reopen
+  // expanded today. The editor is keyed on plan.id (remounts per program),
+  // so this runs once per open.
+  const openInitRef = useRef(false);
+  useEffect(() => {
+    if (openInitRef.current) return;
+    openInitRef.current = true;
+    setCollapsedDays({});
+    setOvExpanded({});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plan.id]);
   const toggleOvExpand = (id) => setOvExpanded(prev => ({ ...prev, [id]: !prev[id] }));
   // Compare mode: side-by-side 50/50 split with a read-only view of a
   // previous program (same athlete). (The old overview/detail toggle is
@@ -1859,25 +1893,13 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
               the editor. Saves any pending edits first. Mounted only when
               there are 2+ programs to switch between. */}
           {(() => {
-            // Order the picker by BLOCK NUMBER descending (#18 → #1), NOT by
-            // sortProgramsRecent's createdAt-first rank. Imported blocks share
-            // scrambled createdAt stamps, so recency-sort listed them out of
-            // order (#18, then #12→#1, then #17→#13) — "definitely not the right
-            // order" (Ohad). Block# is the real training timeline; descending
-            // puts the latest/current block at the top, matching the selected
-            // value. Un-numbered (freshly-created) blocks float to the top,
-            // newest-first, so a just-made block stays easy to grab.
-            const byBlockDesc = (a, b) => {
-              const na = blockNum(a.name), nb = blockNum(b.name);
-              if (na == null && nb == null) return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
-              if (na == null) return -1;
-              if (nb == null) return 1;
-              return nb - na;
-            };
+            // Order the picker by BLOCK NUMBER descending (#18 → #1) — shared
+            // sortProgramsByBlockDesc (traineeUtils), same order as the
+            // compare pane's Program Filter.
             const sameAthlete = (planIndex || [])
               .filter(p => p.traineeId === plan.traineeId)
               .slice()
-              .sort(byBlockDesc);
+              .sort(sortProgramsByBlockDesc);
             if (sameAthlete.length < 2 || !onSwitchProgram) return null;
             // Styled to match the COMPARE / OVERVIEW / SAVE buttons in the
             // same row — same height, font, weight, letter-spacing, border
@@ -2098,7 +2120,15 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
               {/* Sticky header (compare) gets a hairline below it — rows
                   scroll under it, so without a divider the pinned row reads
                   as floating over the table (Ohad). */}
-              <div data-dayheader style={{display:"flex",alignItems:"center",flexWrap:"wrap",marginBottom:dayCollapsed?0:8,gap:10, ...(compareActive ? {position:'sticky',top:0,zIndex:3,background:'var(--c-sf)',paddingTop:4,marginTop:-4,paddingBottom:dayCollapsed?0:8,borderBottom:dayCollapsed?'none':`1px solid ${C.cardBd}`} : {})}}>
+              <div data-dayheader
+                onClick={e => { if (e.target === e.currentTarget) toggleDayCollapse(d.id); }}
+                style={{display:"flex",alignItems:"center",flexWrap:"wrap",marginBottom:dayCollapsed?0:8,gap:10, ...(compareActive ? {position:'sticky',top:0,zIndex:3,background:'var(--c-sf)',paddingTop:4,marginTop:-4,paddingBottom:dayCollapsed?0:8,borderBottom:dayCollapsed?'none':`1px solid ${C.cardBd}`} : {})}}>
+                {/* The header's EMPTY space (between the name/count and the
+                    right-hand chips) is a click target too — clicking it
+                    expands/collapses the day, same as the caret (Ohad). The
+                    spacer div carries the pointer cursor; the header's own
+                    self-target onClick catches the residual gaps. Children
+                    (input, buttons) keep their own handlers untouched. */}
                 {/* Day drag handle — a dedicated ⇕ (not the whole header: the
                     header holds the name input, and `draggable` on a parent
                     makes text-selection inside inputs start drags instead). */}
@@ -2121,12 +2151,13 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                 <input value={d.name} onChange={e=>updateDay(dayIdx,{name:e.target.value})}
                   style={{...baseInput, fontFamily:FB, fontWeight:700, fontSize:14, color:C.tx, padding:"4px 8px", maxWidth:260, minWidth:64, flex:'1 1 120px', width:'auto', boxShadow:'0 0 12px -6px var(--c-ac)'}} />
                 <span style={{color:C.ac,fontSize:12,whiteSpace:"nowrap",display:'inline-flex',alignItems:'center',lineHeight:1,alignSelf:'center'}}>({dayExs.length} ex)</span>
+                <div onClick={()=>toggleDayCollapse(d.id)} aria-hidden title={dayCollapsed?'Expand day':'Collapse day'} style={{flex:'1 1 0',minWidth:0,alignSelf:'stretch',minHeight:24,cursor:'pointer'}} />
                 {/* Per-day Daily-Routine toggle — ported from the old detail view
                     (the unified view had dropped it). ON = athlete logs this day
                     unlimited times per block, no DONE lock, no week rotation. */}
                 <button onClick={() => { if (d.kind === 'daily') { const { kind: _k, ...rest } = d; setPlan(p => ({ ...p, days: p.days.map((dd, idx) => idx === dayIdx ? rest : dd) })); } else updateDay(dayIdx, { kind: 'daily' }); }}
                   title={d.kind==='daily' ? 'Daily Routine ON — unlimited logs per block, no DONE lock, no week rotation. Click for a standard week-paced day.' : 'Make this a Daily Routine day (unlimited logs, no DONE lock, no week rotation).'}
-                  style={{marginLeft:'auto',background: d.kind==='daily' ? `${C.ac}1f` : 'var(--c-sf)',border:`1px solid ${d.kind==='daily'?C.ac:C.cardBd}`,borderRadius:0,height:24,padding:0,color: d.kind==='daily'?C.ac:C.tm,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.09em',whiteSpace:'nowrap',width:100,flexShrink:0,boxSizing:'border-box',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>{d.kind==='daily'?'DAILY ✓':'DAILY'}</button>
+                  style={{background: d.kind==='daily' ? `${C.ac}1f` : 'var(--c-sf)',border:`1px solid ${d.kind==='daily'?C.ac:C.cardBd}`,borderRadius:0,height:24,padding:0,color: d.kind==='daily'?C.ac:C.tm,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.09em',whiteSpace:'nowrap',width:100,flexShrink:0,boxSizing:'border-box',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>{d.kind==='daily'?'DAILY ✓':'DAILY'}</button>
                 {(() => {
                   const dayIds = (dayExs||[]).map(e=>e.id);
                   const anyOpen = dayIds.some(id=>ovExpanded[id]);

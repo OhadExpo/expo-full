@@ -128,3 +128,23 @@ export const sortProgramsRecent = (a, b) => {
   if (bn !== 0) return bn;
   return new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0);
 };
+
+/**
+ * Program PICKER order — BLOCK NUMBER descending (#18 → #1), NOT createdAt.
+ * Imported blocks share scrambled createdAt stamps, so recency-sort lists
+ * them out of order (#18, then #12→#1, then #17→#13) — "the blocks are not
+ * in order" (Ohad). Block# is the real training timeline; descending puts
+ * the latest block at the top. Un-numbered (freshly-created) blocks float
+ * to the top, newest-first, so a just-made block stays easy to grab.
+ * Used by the editor's switch-program dropdown AND the compare pane's
+ * Program Filter — one definition, one order.
+ */
+export const sortProgramsByBlockDesc = (a, b) => {
+  const na = blockNum(a.name), nb = blockNum(b.name);
+  const aNum = Number.isFinite(na), bNum = Number.isFinite(nb);
+  if (!aNum && !bNum) return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+  if (!aNum) return -1;
+  if (!bNum) return 1;
+  if (nb !== na) return nb - na;
+  return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+};
