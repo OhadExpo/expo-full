@@ -329,10 +329,13 @@ export function RefinedCard({ header, headerRight, leftStripe, padY = 14, padX =
           text in both themes so the dark strip reads as crisply as the cyan one. */}
       {header && (
         <RefinedHeaderStrip padY={padY} padX={padX} marginBottom={12}>
+          {/* headerRight can shrink + wrap on phone widths — a rigid
+              flex:0 0 auto pushed long action clusters (Matching / Classify /
+              Cleanup hubs) ~300px past the viewport (mobile audit 08-22). */}
           {headerRight ? (
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
               <div style={{ minWidth: 0, flex: '1 1 auto', color: '#FFFFFF' }}>{header}</div>
-              <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 8, color: '#FFFFFF' }}>{headerRight}</div>
+              <div style={{ flex: '0 1 auto', minWidth: 0, display: 'flex', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 8, color: '#FFFFFF' }}>{headerRight}</div>
             </div>
           ) : <div style={{ color: '#FFFFFF' }}>{header}</div>}
         </RefinedHeaderStrip>
@@ -639,7 +642,7 @@ export const Card = ({ children, style, onClick, onMouseEnter, onMouseLeave, hea
               {/* Pure white in BOTH themes so the dark strip's title reads
                   with the same crispness as the cyan-strip light variant. */}
               <div style={{ minWidth: 0, flex: '1 1 auto', color: '#FFFFFF' }}>{header}</div>
-              <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 8, color: '#FFFFFF' }}>{headerRight}</div>
+              <div style={{ flex: '0 1 auto', minWidth: 0, display: 'flex', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 8, color: '#FFFFFF' }}>{headerRight}</div>
             </div>
           ) : <div style={{ color: '#FFFFFF' }}>{header}</div>}
         </RefinedHeaderStrip>
@@ -647,7 +650,7 @@ export const Card = ({ children, style, onClick, onMouseEnter, onMouseLeave, hea
       {!hasStrip && header && (
         <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
           <div style={{ minWidth: 0 }}>{header}</div>
-          {headerRight && <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 8 }}>{headerRight}</div>}
+          {headerRight && <div style={{ flex: '0 1 auto', minWidth: 0, display: 'flex', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 8 }}>{headerRight}</div>}
         </div>
       )}
       {children}

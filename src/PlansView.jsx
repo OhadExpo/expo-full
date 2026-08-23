@@ -4177,7 +4177,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               );
             }
             return (
-              <div key={row.tid} className="prog-card" style={{background: 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0}}>
+              <div key={row.tid} className="prog-card" style={{background: 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,minWidth:0}}>
                 {/* Redesigned card (Ohad: the boxed-button pile read as ugly/tight).
                     Now uses the app's card grammar: a cyan STRIP HEADER (athlete +
                     recency dot), a calm clickable body (block name + spelled-out
@@ -4373,7 +4373,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
             );
             return (
               <div key={row.tid} data-prog-card={row.tid} className="prog-card"
-                style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,display:'flex',flexDirection:'column',gridColumn:expanded?'1 / -1':'auto',willChange:'transform',boxShadow:C.cardShadow}}>
+                style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,display:'flex',flexDirection:'column',gridColumn:expanded?'1 / -1':'auto',willChange:'transform',boxShadow:C.cardShadow,minWidth:0}}>
                 {stripHeader}
                 {/* No minHeight / flex stretch — grid cards compress to the same
                     natural height as the table rows (Ohad 2026-08-21). */}
@@ -4448,12 +4448,15 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
       )}
       {/* Flat-list fallback — dead code (grouped is never null); retained. */}
       {!grouped && (filtered.length===0?<EmptyState icon="" message="No programs match your search." />:(
-        <div style={{display:"grid",gap: progView==='grid'?14:8, gridTemplateColumns: progView==='grid'?'repeat(auto-fill,minmax(min(360px,100%),1fr))':'1fr'}}>{visible.map(p => {
+        /* minmax(0,1fr) + minWidth:0 on every card: grid items' automatic min
+           size is their min-content, so a long nowrap block name made the
+           whole card ~470px wide on a 390px phone (mobile audit 08-22). */
+        <div style={{display:"grid",gap: progView==='grid'?14:8, gridTemplateColumns: progView==='grid'?'repeat(auto-fill,minmax(min(360px,100%),1fr))':'minmax(0,1fr)'}}>{visible.map(p => {
           const tName = traineeMap[p.traineeId] || "Unassigned";
           // Same redesigned card as the grouped list (Ohad: filtering must not
           // change how programs are shown) — strip header (athlete) + clickable
           // body (block + meta) + light text actions.
-          return <div key={p.id} className="prog-card" style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,opacity:openingId===p.id?0.55:1,transition:'opacity 0.12s'}}>
+          return <div key={p.id} className="prog-card" style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,minWidth:0,opacity:openingId===p.id?0.55:1,transition:'opacity 0.12s'}}>
             <div style={{display:'flex',alignItems:'center',gap:9,background:'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))',borderBottom:`1px solid ${C.cardBd}`,padding:'8px 14px'}}>
               <span aria-hidden style={{width:3,height:14,background:C.ac,flexShrink:0}} />
               <bdi style={{fontWeight:700,fontSize:13,letterSpacing:'0.04em',color:'#FFFFFF',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{tName}</bdi>

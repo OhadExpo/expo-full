@@ -318,7 +318,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
       </div>
 
       {onOpenClassify && unclassifiedCount > 0 && (
-        <button onClick={onOpenClassify} style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left', marginBottom: 16, padding: '10px 14px', background: `color-mix(in srgb, ${C.ac} 8%, var(--c-sf))`, border: `1px solid color-mix(in srgb, ${C.ac} 35%, transparent)`, borderLeft: `3px solid ${C.ac}`, borderRadius: 0, cursor: 'pointer' }}>
+        <button onClick={onOpenClassify} style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10, width: '100%', textAlign: 'left', marginBottom: 16, padding: '10px 14px', background: `color-mix(in srgb, ${C.ac} 8%, var(--c-sf))`, border: `1px solid color-mix(in srgb, ${C.ac} 35%, transparent)`, borderLeft: `3px solid ${C.ac}`, borderRadius: 0, cursor: 'pointer' }}>
           <span style={{ fontFamily: FN, fontSize: 12.5, fontWeight: 700, color: C.tx }}><span style={{ color: C.ac, fontVariantNumeric: 'tabular-nums' }}>{unclassifiedCount.toLocaleString()}</span> exercises are unclassified</span>
           <span style={{ fontFamily: FB, fontSize: 12, color: C.td }}>— resolution/movement/position blank</span>
           <span style={{ marginLeft: 'auto', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.ac }}>Classify at scale →</span>

@@ -877,7 +877,11 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
           const kanban = manualRows.length === 0 ? (
             <div style={{ padding:'18px 8px', textAlign:'center', color:'var(--c-td)', fontFamily:FN, fontSize:10, letterSpacing:'0.06em' }}>No open tasks — you're all clear.</div>
           ) : (
-            <div style={{ display:'flex', flexDirection: stackBoard ? 'column' : 'row', gap:8, overflowX: stackBoard ? 'visible' : 'auto', paddingBottom:4, alignItems:'flex-start' }}>
+            /* Stacked (phone): alignItems MUST be 'stretch' — in a column
+               flex, 'flex-start' is the CROSS axis, so each status column
+               shrank to its widest task and "TO DO" rendered half the
+               screen wide while IN PROGRESS spanned full (Ohad 08-22). */
+            <div style={{ display:'flex', flexDirection: stackBoard ? 'column' : 'row', gap:8, overflowX: stackBoard ? 'visible' : 'auto', paddingBottom:4, alignItems: stackBoard ? 'stretch' : 'flex-start' }}>
               {COLS.map(col => {
                 const rows = col.id==='open'
                   ? manualRows.filter(r => !['working','waiting','stuck'].includes(r.status))
