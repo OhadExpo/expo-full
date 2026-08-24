@@ -150,9 +150,15 @@ export default function ChallengesView({ trainees, clientWorkouts, bwLog }) {
       // timestamp). Filter by a created_at range: [start-day 00:00, end-day+1
       // 00:00) so the whole end day is included. The predicate scopes each row
       // to a participant by trainee_id.
-      const startIso = new Date(minStart).toISOString().slice(0, 10) + 'T00:00:00';
-      const endNext  = new Date(maxEnd); endNext.setUTCDate(endNext.getUTCDate() + 1);
-      const endIso   = endNext.toISOString().slice(0, 10) + 'T00:00:00';
+      // LOCAL calendar days on both ends. Deriving the day with toISOString()
+      // and then appending a timezone-less 'T00:00:00' mixes a UTC-derived date
+      // with a locally-interpreted timestamp: in Israel (UTC+2/+3) local
+      // midnight is the PREVIOUS day in UTC, so the window opened a day early
+      // and could count a meal logged before the challenge even started.
+      const localDay = (ms) => { const d = new Date(ms); const p3 = (n) => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p3(d.getMonth() + 1)}-${p3(d.getDate())}`; };
+      const startIso = localDay(minStart) + 'T00:00:00';
+      const endNext  = new Date(maxEnd); endNext.setDate(endNext.getDate() + 1);
+      const endIso   = localDay(endNext.getTime()) + 'T00:00:00';
       const { data } = await supabase
         .from('athlete_meals')
         .select('trainee_id,created_at')

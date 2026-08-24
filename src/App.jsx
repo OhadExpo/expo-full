@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo, Suspense, lazy } from 'react';
+import { todayLocalISO } from './dates';
 import { C, FN, FB, uid } from './theme';
 import { ThemeToggle } from './ThemeToggle';
 import { useLogoSrc } from './hooks/useTheme';
@@ -1151,7 +1152,7 @@ function AuthedApp() {
     }
     const data=JSON.stringify({trainees,exercises,plans:allPlans||[],workouts,payments,clientWorkouts,bwLog,exportDate:new Date().toISOString(),version:"1.0"},null,2);
     const blob=new Blob([data],{type:"application/json"});const url=URL.createObjectURL(blob);
-    const a=document.createElement("a");a.href=url;a.download=`expo-backup-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(url);
+    const a=document.createElement("a");a.href=url;a.download=`expo-backup-${todayLocalISO()}.json`;a.click();URL.revokeObjectURL(url);
   };
 
   // ChatAudit + Bugs were moved out of the primary nav into the ⋯ MORE

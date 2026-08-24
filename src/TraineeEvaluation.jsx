@@ -19,6 +19,7 @@ import { EVAL_SCHEMA, romKey, countFilled } from './evaluationSchema';
 import { toolForTest, romAxisSpec, applyTestResult, applyRomResult, testValueDisplay } from './evalTestMap';
 import { useTraineeEvaluations } from './evaluationsData';
 import EvaluationEditor from './EvaluationEditor';
+import { todayLocalISO } from './dates';
 
 // MovementLab pulls MediaPipe — lazy so the trainee card doesn't carry the
 // pose bundle until the coach actually runs a camera test.
@@ -334,7 +335,10 @@ export default function TraineeEvaluation({ trainee, bwLog = [] }) {
   const draftRef = useRef({ rowId: null, date: null, scores: {}, rom: {}, weight_kg: null });
 
   const openPicker = () => {
-    draftRef.current = { rowId: null, date: new Date().toISOString().slice(0, 10), scores: {}, rom: {}, weight_kg: null };
+    // LOCAL date. toISOString() is UTC, so an evaluation started between local
+    // midnight and 03:00 Israel time was stamped YESTERDAY — the same class as
+    // audit #44, which fixed EvaluationEditor and missed this second entry point.
+    draftRef.current = { rowId: null, date: todayLocalISO(), scores: {}, rom: {}, weight_kg: null };
     setDraftVersion(0);
     setPicker(true);
   };
