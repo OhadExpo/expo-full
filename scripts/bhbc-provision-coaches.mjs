@@ -38,7 +38,7 @@ function ptEmails() {
   return m ? [...m[1].matchAll(/['"]([^'"]+)['"]/g)].map((x) => x[1].toLowerCase()) : [];
 }
 
-const STORE_KEYS = ['expo-bhbc-roster', 'expo-bhbc-loads', 'expo-bhbc-fixtures', 'expo-bhbc-league', 'expo-bhbc-medical'];
+const STORE_KEYS = ['expo-bhbc-roster', 'expo-bhbc-loads', 'expo-bhbc-fixtures', 'expo-bhbc-league', 'expo-bhbc-medical', 'expo-bhbc-plans'];
 
 async function verify(email) {
   const sb = createClient(SUPA_URL, ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
@@ -86,7 +86,7 @@ async function main() {
     const r = await verify(email);
     if (!r.ok) { bad++; console.log(`  ✕ ${email.padEnd(26)} CANNOT SIGN IN — ${r.reason}`); continue; }
     const role = pts.includes(email) ? 'coach+PT' : 'coach';
-    const readable = r.keys.length ? r.keys.join(',') : 'NONE (RLS: run scripts/migrations/2026-08-18-bhbc-coach-rls.sql)';
+    const readable = r.keys.length ? r.keys.join(',') : 'NONE (RLS: run scripts/migrations/2026-08-24-bhbc-coach-rls-v2.sql)';
     console.log(`  ✓ ${email.padEnd(26)} signs in · ${role} · reads: ${readable}${r.readError ? ' · ' + r.readError : ''}`);
   }
   if (bad) {

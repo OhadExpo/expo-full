@@ -487,6 +487,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
             {view === 'overview' && (
               <>
                 <HeadCoachReport rows={rows} fx={fx} fixtures={bhbcFixtures} medical={medical} today={today} onOpen={setDetailFor}
+                  planOf={planOf} onPlan={asCoach ? null : setPlanFor}
                   onMedical={effCanMedical ? ((aid) => { const a = activeInjuries(medical, aid); setInjuryFor({ athleteId: aid, injuryId: a[0] && a[0].id }); }) : null}
                   onReportNew={effCanMedical ? (() => setInjuryFor({ athleteId: (rows[0] && rows[0].t.id) || '' })) : null} />
                 {/* S&C Brief = the S&C operator's action list — removed for coaches. */}
@@ -1315,7 +1316,7 @@ function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onCheckin, onL
 // The HEAD COACH's daily/weekly REPORT — the game-week picture at a glance:
 // next game, who's available, the medical board, and the team's upcoming sessions.
 // (The S&C load decisions live in the separate S&C Brief.)
-function HeadCoachReport({ rows, fx, fixtures, medical, today, onOpen, onMedical, onReportNew }) {
+function HeadCoachReport({ rows, fx, fixtures, medical, today, onOpen, onMedical, onReportNew, planOf, onPlan }) {
   const first = (r) => (r.t.name || '').trim().split(/\s+/)[0] || r.t.name;
   const nameList = (arr) => arr.slice(0, 5).map(first).join(', ') + (arr.length > 5 ? ` +${arr.length - 5}` : '');
   const availOf = (r) => r.avail || 1;                 // 1 = full, 2–3 = limited, 4+ = out
@@ -1377,13 +1378,26 @@ function HeadCoachReport({ rows, fx, fixtures, medical, today, onOpen, onMedical
       <Section label="This week" last>
         {sessions.length
           ? <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-              {sessions.slice(0, 6).map((s, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              {sessions.slice(0, 6).map((s, i) => {
+                const pl = planOf ? planOf(s) : null;
+                const clickable = !!onPlan;
+                return (
+                <div key={i} onClick={clickable ? () => onPlan(s) : undefined}
+                  title={clickable ? (pl ? 'Edit this session’s plan' : 'Add a plan for this session') : undefined}
+                  className={clickable ? 'bhbc-row' : undefined}
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: clickable ? 'pointer' : 'default', padding: '2px 0' }}>
                   <span style={{ fontFamily: FN, fontWeight: 700, fontSize: 11.5, color: C.tx, width: 78, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{s.date === today ? 'Today' : `${dow(s.date)} ${monDay(s.date)}`}</span>
                   <span style={{ fontFamily: FN, fontSize: 11.5, fontWeight: 700, color: FX_COLOR[s.type] || NAVY, width: 46, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{s.start}</span>
-                  <span style={{ color: C.tm }}>{FX_LABEL[s.type] || 'Session'}{s.minutes ? ` · ${s.minutes} min` : ''}</span>
+                  <span style={{ color: C.tm, flexShrink: 0 }}>{FX_LABEL[s.type] || 'Session'}{s.minutes ? ` · ${s.minutes} min` : ''}</span>
+                  {/* The plan for THAT slot, right where the week is read —
+                      the Today card only ever covered today (Ohad: "where can
+                      I see the plan for tonight?"). */}
+                  {pl && (pl.focus || pl.plan)
+                    ? <span dir="auto" style={{ minWidth: 0, color: C.tx, fontFamily: FB, fontSize: 11.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>— {pl.focus || pl.plan}</span>
+                    : clickable ? <span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.06em', color: ORANGE, flexShrink: 0 }}>+ PLAN</span> : null}
                 </div>
-              ))}
+                );
+              })}
             </div>
           : <span style={mut}>No team sessions scheduled this week.</span>}
       </Section>

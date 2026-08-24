@@ -120,7 +120,7 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
           <div style={{ maxWidth: 720, width: '100%' }}>
             <div style={{ fontFamily: FN, fontSize: 22, fontWeight: 700, letterSpacing: '0.06em', marginBottom: 6 }}>Analyse a jump shot, frame by frame.</div>
             <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, lineHeight: 1.6, marginBottom: 18 }}>
-              EXPO tracks the body on every frame, finds the dip, set point, release, jump apex and follow-through, scores 9 mechanical checkpoints, and writes the fix guide — what to change, why it matters, how to train it.
+              EXPO tracks the body on every frame, finds the dip, set point, release, jump apex and follow-through, scores 10 mechanical checkpoints, and writes the fix guide — what to change, why it matters, how to train it.
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10, marginBottom: 18 }}>
               {[['SIDE VIEW', 'Film from the shooting-arm side, camera at chest height, 4–6 m away.'], ['WHOLE BODY', 'Feet to fingertips in frame through the release and the follow-through.'], ['ONE SHOT PER CLIP', 'Several shots in one clip are fine — each is scored and compared for consistency.'], ['60 FPS IF YOU CAN', 'Slow-mo / 60 fps gives sharper release timing. Steady phone, good light.']].map(([h, t]) => (
