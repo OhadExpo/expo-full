@@ -151,7 +151,11 @@ function PlanReadOnly({ plan }) {
           <SectionCard key={di} label={`DAY ${String.fromCharCode(65 + di)}${dayLabel ? ' · ' + dayLabel : ''}`}>
             {/* Plans exist in two shapes: new (d.exercises / sets / reps) and
                 old (d.ex / s / r, names enriched server-side from the eid). */}
-            {(d?.exercises || d?.ex || []).map((ex, ei) => (
+            {/* .filter(Boolean): a null exercise element renders a blank page on
+                the PUBLIC share link — the one surface a client sees before they
+                are a client. The portal filters the same data for the same
+                reason (audit 08-22 #42). */}
+            {(d?.exercises || d?.ex || []).filter(Boolean).map((ex, ei) => (
               <ExerciseLine key={ei} idx={ei} ex={ex} />
             ))}
           </SectionCard>

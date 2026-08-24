@@ -114,8 +114,10 @@ function latestBlockExercises(model, plans, exMap) {
   if (!plan) return [];
   const days = plan.data?.days || plan.days || [];
   const out = [];
-  days.forEach(d => {
-    const exList = d.exercises || d.ex || [];
+  days.filter(Boolean).forEach(d => {
+    // Same null-element guard as the portal (audit #42): ex.exerciseId on a null
+    // entry throws and takes the whole report with it.
+    const exList = (d.exercises || d.ex || []).filter(Boolean);
     exList.forEach(ex => {
       const lib = ex.exerciseId ? exMap.get(ex.exerciseId) : null;
       const title = (ex.title || lib?.title || '').trim();
@@ -138,7 +140,7 @@ function deriveDaysPerWeek(model, plans) {
   const plan = plans.find(p => p.id === latestId);
   if (!plan) return 4;
   const days = plan.data?.days || plan.days || [];
-  const n = days.filter(d => (d.exercises || d.ex || []).length > 0).length;
+  const n = days.filter(Boolean).filter(d => (d.exercises || d.ex || []).filter(Boolean).length > 0).length;
   return n >= 2 && n <= 6 ? n : 4;
 }
 
