@@ -456,8 +456,13 @@ export function CollapsibleSection({ title, titleNode, count, right, storageKey,
             overflow. On desktop it stays on one line. */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end', marginLeft: 'auto', minWidth: 0, maxWidth: '100%' }}>
           {right && <span onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end', minWidth: 0, maxWidth: '100%' }}>{right}</span>}
+          {/* WHITE on purpose — this chevron sits on the COLOURED strip header
+              whose title span three lines up is also #FFFFFF. Switching it to
+              --c-tx made it near-black on BHBC's deep-navy strip (1.33:1,
+              invisible). The plain-surface collapse controls in TasksV8View DO
+              use --c-tx; these two cases are genuinely different backgrounds. */}
           <span aria-hidden style={{
-            color: 'var(--c-tx)', fontSize: 12, lineHeight: 1, display: 'inline-block',
+            color: '#FFFFFF', fontSize: 12, lineHeight: 1, display: 'inline-block',
             transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease',
           }}>▾</span>
         </div>

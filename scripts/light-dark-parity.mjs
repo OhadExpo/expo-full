@@ -114,15 +114,30 @@ const contrast = () => page.evaluate(() => {
   return bad.slice(0, 8);
 });
 
+// Geometry is only comparable once the page has STOPPED moving. An async render
+// landing between the two samples once reported 1198 moved elements on a route
+// that is actually identical — a verifier that cries wolf also masks a real
+// drift. Sample until two consecutive reads agree.
+const settledGeometry = async () => {
+  let prev = await geometry();
+  for (let i = 0; i < 6; i++) {
+    await wait(600);
+    const next = await geometry();
+    if (JSON.stringify(next) === JSON.stringify(prev)) return next;
+    prev = next;
+  }
+  return prev;
+};
+
 const report = [];
 for (const route of ROUTES) {
   try {
     const dInfo = await loadIn(route, 'dark');
-    const gDark = await geometry();
+    const gDark = await settledGeometry();
     const cDark = await contrast();
 
     const lInfo = await loadIn(route, 'light');
-    const gLight = await geometry();
+    const gLight = await settledGeometry();
     const cLight = await contrast();
 
     // If the two loads did not actually differ, every comparison below is

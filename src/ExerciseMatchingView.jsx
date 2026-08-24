@@ -12,7 +12,22 @@ import { Card, Btn, Modal, EmptyState, toast } from './ui';
 import { scanUnmatched, groupUnmatched, suggestMatches, confidenceLabel, applyMatch, normTitle } from './exerciseMatch';
 import { supabase } from './supabase';
 
-const CONF_COLOR = { high: '#2E9E6B', likely: '#39BDFF', low: '#E0A73A' };
+// Confidence tint for the word-diff label ("+single +arm", "machine↔cable",
+// "similar"). These are small UPPERCASE labels printed directly on the card, so
+// unlike a filled chip the colour has to carry itself against the background.
+// On the light theme's white the raw brand tones measured 2.12–2.15:1 — legible
+// only if you already knew what they said (light/dark sweep 08-25). Deeper tones
+// of the SAME hues in light, untouched in dark. This is scoped to this label, not
+// the palette: the brand cyan stays bright everywhere it is brand.
+const CONF_COLOR = {
+  high:   'var(--match-conf-high, #2E9E6B)',
+  likely: 'var(--match-conf-likely, #39BDFF)',
+  low:    'var(--match-conf-low, #E0A73A)',
+};
+const CONF_THEME_CSS = `
+  :root { --match-conf-high: #1B7A4E; --match-conf-likely: #0A6E9E; --match-conf-low: #8A6410; }
+  :root[data-theme="dark"] { --match-conf-high: #2E9E6B; --match-conf-likely: #39BDFF; --match-conf-low: #E0A73A; }
+`;
 
 // Full library-exercise card so the coach can VERIFY a suggestion before
 // accepting it — video (click-to-play, no fullscreen), classification, cues.
@@ -199,6 +214,7 @@ export default function ExerciseMatchingView({ exercises = [], setExercises }) {
   const th = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm };
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 1100, margin: '0 auto', padding: '4px 0 60px' }}>
+      <style>{CONF_THEME_CSS}</style>
       <Card leftStripe={C.ac} header="Exercise Matching" headerRight={
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <span style={{ ...th, color: '#fff' }}>{groups.length} titles · {totalEntries} rows</span>

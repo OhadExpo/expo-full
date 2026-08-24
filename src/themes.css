@@ -98,6 +98,11 @@
   --c-tm: #7a7a88;
   --c-td: #444450;
   --c-ac: #39BDFF;
+  /* Brand cyan used as TEXT on a surface. On the dark theme the brand tone
+     reads fine; on light it lands ~1.9:1 on the pale button/card fills and
+     the label is effectively invisible (light/dark sweep 08-25). Fills,
+     stripes and hairlines keep the bright brand cyan either way. */
+  --c-acText: #39BDFF;
   --c-acH: #5FCDFF;
   --c-acText: #39BDFF;          /* on dark bg this passes AA at 5.4:1 — same as ac */
   --c-acSurface: #39BDFF;
@@ -167,6 +172,7 @@
   --c-tm: #4A5263;
   --c-td: #7B8390;
   --c-ac: #0E0F12;
+  --c-acText: #0A6E9E;            /* same hue, dark enough to read on the pale fills */
   --c-acH: #000000;
   --c-acText: #08668F;            /* AA-safe cyan for small text on white */
   --c-acSurface: #0E0F12;
