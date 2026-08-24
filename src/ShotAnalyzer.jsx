@@ -6,9 +6,9 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { C, FN, FB } from './theme';
 import { toast } from './ui';
-import { captureClipFrames } from './MovementLab';
+import { captureShotFrames } from './shotCapture';
 import { getCamera, stopStream } from './usePose';
-import { analyzeShotClip, frameReadout, CHECKPOINTS } from './shotAnalysis';
+import { analyzeShotClip, frameReadout, CHECKPOINTS, SHOT_TYPES } from './shotAnalysis';
 
 const STATUS = {
   ok:    { label: 'OK',    color: 'var(--c-gn, #2ED573)' },
@@ -31,7 +31,9 @@ const fmt = (v, d = 0) => (v == null || !Number.isFinite(v) ? '—' : v.toFixed(
 export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', demoResult = null }) {
   const [phase, setPhase] = useState(demoResult ? 'results' : 'idle'); // idle | recording | analyzing | results
   const [hand, setHand] = useState('R');
+  const [shotType, setShotType] = useState('mid');
   const [stature, setStature] = useState('');
+  const [progressLabel, setProgressLabel] = useState('');
   const [srcUrl, setSrcUrl] = useState(null);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState(null);
@@ -47,24 +49,26 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
   useEffect(() => () => { stopStream(streamRef.current); }, []);
 
   const analyze = useCallback(async (url, opts = {}) => {
-    setError(null); setPhase('analyzing'); setProgress(0);
+    setError(null); setPhase('analyzing'); setProgress(0); setProgressLabel('');
     try {
-      const frames = await captureClipFrames(url, { onProgress: setProgress });
+      // Two-pass ROI capture: find the athlete, then re-run pose on a crop
+      // around him at the source frame cadence inside each shot window.
+      const frames = await captureShotFrames(url, { onProgress: (pct, label) => { setProgress(pct); if (label) setProgressLabel(label); } });
       framesRef.current = frames;
-      const r = analyzeShotClip(frames, { hand: opts.hand || hand, statureCm: Number(opts.stature ?? stature) || null });
+      const r = analyzeShotClip(frames, { hand: opts.hand || hand, statureCm: Number(opts.stature ?? stature) || null, shotType: opts.shotType || shotType });
       if (!r.ok) { setError(r.error); setPhase('idle'); return; }
       setResult(r); setShotIdx(0); setPhase('results');
     } catch (e) {
       setError(e?.message || 'Analysis failed.'); setPhase('idle');
     }
-  }, [hand, stature]);
+  }, [hand, stature, shotType]);
 
   // Re-score the SAME frames when the hand / stature changes after analysis —
   // no re-capture needed.
-  const rescore = (h, st) => {
+  const rescore = (h, st, type) => {
     const frames = framesRef.current; if (!frames) return;
-    const r = analyzeShotClip(frames, { hand: h, statureCm: Number(st) || null });
-    if (r.ok) { setResult(r); setShotIdx(0); } else toast(r.error, 'error');
+    const r = analyzeShotClip(frames, { hand: h, statureCm: Number(st) || null, shotType: type || shotType });
+    if (r.ok) { setResult(r); } else toast(r.error, 'error');
   };
 
   const pickFile = () => fileRef.current?.click();
@@ -102,9 +106,11 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
         <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', color: C.ac }}>{toolLabel}</div>
         <div style={{ flex: 1 }} />
         <span style={lbl}>Shooting hand</span>
-        {['R', 'L'].map((h) => <button key={h} onClick={() => { setHand(h); if (phase === 'results') rescore(h, stature); }} style={chip(hand === h)}>{h === 'R' ? 'RIGHT' : 'LEFT'}</button>)}
+        {['R', 'L'].map((h) => <button key={h} onClick={() => { setHand(h); if (phase === 'results') rescore(h, stature, shotType); }} style={chip(hand === h)}>{h === 'R' ? 'RIGHT' : 'LEFT'}</button>)}
+        <span style={{ ...lbl, marginLeft: 10 }}>Shot</span>
+        {SHOT_TYPES.map((t) => <button key={t.key} onClick={() => { setShotType(t.key); if (phase === 'results') rescore(hand, stature, t.key); }} style={chip(shotType === t.key)} title={`Release-angle band for a ${t.label.toLowerCase()}`}>{t.label.toUpperCase()}</button>)}
         <span style={{ ...lbl, marginLeft: 10 }}>Height</span>
-        <input value={stature} onChange={(e) => setStature(e.target.value)} onBlur={() => { if (phase === 'results') rescore(hand, stature); }} placeholder="cm" inputMode="numeric"
+        <input value={stature} onChange={(e) => setStature(e.target.value)} onBlur={() => { if (phase === 'results') rescore(hand, stature, shotType); }} placeholder="cm" inputMode="numeric"
           style={{ width: 56, background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.35)', color: '#FFF', fontFamily: FN, fontSize: 12, padding: '4px 2px', textAlign: 'center', outline: 'none' }} />
       </div>
 
@@ -114,7 +120,7 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
           <div style={{ maxWidth: 720, width: '100%' }}>
             <div style={{ fontFamily: FN, fontSize: 22, fontWeight: 700, letterSpacing: '0.06em', marginBottom: 6 }}>Analyse a jump shot, frame by frame.</div>
             <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, lineHeight: 1.6, marginBottom: 18 }}>
-              EXPO tracks the body on every frame, finds the dip, set point, release, jump apex and follow-through, scores 9 mechanical checkpoints against the literature, and writes the fix guide — what to change, why it matters, how to train it.
+              EXPO tracks the body on every frame, finds the dip, set point, release, jump apex and follow-through, scores 9 mechanical checkpoints, and writes the fix guide — what to change, why it matters, how to train it.
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10, marginBottom: 18 }}>
               {[['SIDE VIEW', 'Film from the shooting-arm side, camera at chest height, 4–6 m away.'], ['WHOLE BODY', 'Feet to fingertips in frame through the release and the follow-through.'], ['ONE SHOT PER CLIP', 'Several shots in one clip are fine — each is scored and compared for consistency.'], ['60 FPS IF YOU CAN', 'Slow-mo / 60 fps gives sharper release timing. Steady phone, good light.']].map(([h, t]) => (
@@ -144,7 +150,7 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
 
       {phase === 'analyzing' && (
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
-          <div style={{ fontFamily: FN, fontSize: 13, letterSpacing: '0.18em', fontWeight: 700 }}>READING THE SHOT…</div>
+          <div style={{ fontFamily: FN, fontSize: 13, letterSpacing: '0.18em', fontWeight: 700 }}>{(progressLabel || 'reading the shot').toUpperCase()}…</div>
           <div style={{ width: 220, height: 4, background: 'rgba(255,255,255,0.15)', marginTop: 16 }}><div style={{ width: `${progress}%`, height: '100%', background: C.ac, transition: 'width 120ms' }} /></div>
           <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 8, fontFamily: FN, letterSpacing: '0.12em' }}>{progress}%</div>
         </div>
@@ -165,12 +171,21 @@ function ShotResults({ result, shot, shotIdx, setShotIdx, srcUrl, frames, hand, 
   const n = series.n;
   const [cur, setCur] = useState(shot.cycle.release);
   const [playing, setPlaying] = useState(false);
+  // Which MOMENT of the shot the coach is looking at. Switching shots keeps
+  // the same moment (follow-through → follow-through), never jumps back to
+  // the release.
+  const [phaseKey, setPhaseKey] = useState('release');
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const wrapRef = useRef(null);
   const [openGuide, setOpenGuide] = useState(() => new Set(shot.checks.filter((c) => c.status === 'fix').map((c) => c.key)));
 
-  useEffect(() => { setCur(shot.cycle.release); seekTo(shot.cycle.release); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [shotIdx]);
+  useEffect(() => {
+    const p = shot.phases.find((x) => x.key === phaseKey);
+    const target = p ? p.idx : shot.cycle.release;
+    setCur(target); seekTo(target);
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, [shotIdx]);
 
   const nearestIdx = (tMs) => { const t = series.tMs; let lo = 0, hi = t.length - 1; while (lo < hi) { const m = (lo + hi) >> 1; if (t[m] < tMs) lo = m + 1; else hi = m; } if (lo > 0 && Math.abs(t[lo - 1] - tMs) < Math.abs(t[lo] - tMs)) lo--; return lo; };
   const seekTo = (i) => { const v = videoRef.current; const ii = Math.max(0, Math.min(n - 1, i)); setCur(ii); if (v) { try { v.pause(); v.currentTime = series.tMs[ii] / 1000; } catch { /* noop */ } } };
@@ -188,15 +203,31 @@ function ShotResults({ result, shot, shotIdx, setShotIdx, srcUrl, frames, hand, 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [srcUrl]);
 
-  // Skeleton overlay — mapped onto the video's CONTENT box (object-fit contain).
+  // Redraw the overlay whenever the video box RESIZES — the canvas backing
+  // store must match its CSS box or the skeleton draws at the wrong scale and
+  // sits off the body (that was the misalignment Ohad saw).
+  const [boxTick, setBoxTick] = useState(0);
+  useEffect(() => {
+    const wrap = wrapRef.current; if (!wrap || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => setBoxTick((t) => t + 1));
+    ro.observe(wrap);
+    return () => ro.disconnect();
+  }, []);
+
+  // Skeleton overlay — mapped onto the video's CONTENT box (object-fit contain),
+  // in CSS pixels, with a devicePixelRatio-scaled backing store.
   useEffect(() => {
     const cv = canvasRef.current, v = videoRef.current, wrap = wrapRef.current;
     if (!cv || !wrap) return;
-    const W = wrap.clientWidth, H = wrap.clientHeight;
-    if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
-    const ctx = cv.getContext('2d'); ctx.clearRect(0, 0, W, H);
+    const rect = wrap.getBoundingClientRect();
+    const W = Math.max(1, Math.round(rect.width)), H = Math.max(1, Math.round(rect.height));
+    const dpr = Math.min(3, window.devicePixelRatio || 1);
+    if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+    const ctx = cv.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, W, H);
     const f = frames?.[cur]; if (!f?.landmarks) return;
-    const vw = v?.videoWidth || 16, vh = v?.videoHeight || 9;
+    const vw = v?.videoWidth || (result?.aspect ? result.aspect * 1000 : 16), vh = v?.videoHeight || 1000;
     const s = Math.min(W / vw, H / vh); const cw = vw * s, ch = vh * s; const ox = (W - cw) / 2, oy = (H - ch) / 2;
     const X = (p) => ox + p.x * cw, Y = (p) => oy + p.y * ch;
     const lm = f.landmarks;
@@ -208,7 +239,7 @@ function ShotResults({ result, shot, shotIdx, setShotIdx, srcUrl, frames, hand, 
     for (let i = 11; i <= 28; i++) { const p = lm[i]; if (!p || (p.visibility ?? 1) < 0.3) continue; ctx.fillStyle = arm.includes(i) ? '#FFFFFF' : C.ac; ctx.beginPath(); ctx.arc(X(p), Y(p), 3.5, 0, Math.PI * 2); ctx.fill(); }
     // eye line
     const eye = lm[hand === 'L' ? 2 : 5]; if (eye) { ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.setLineDash([4, 4]); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(ox, Y(eye)); ctx.lineTo(ox + cw, Y(eye)); ctx.stroke(); ctx.setLineDash([]); }
-  }, [cur, frames, hand, srcUrl]);
+  }, [cur, frames, hand, srcUrl, boxTick]);
 
   const rd = frameReadout(series, cur);
   const phaseAt = shot.phases.find((p) => p.idx === cur);
@@ -254,7 +285,7 @@ function ShotResults({ result, shot, shotIdx, setShotIdx, srcUrl, frames, hand, 
             <input type="range" min={0} max={n - 1} value={cur} onChange={(e) => seekTo(Number(e.target.value))} style={{ flex: 1, minWidth: 120, accentColor: '#39BDFF' }} />
           </div>
           <div className="shot-noprint" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
-            {shot.phases.map((p) => <button key={p.key} onClick={() => seekTo(p.idx)} style={chip(cur === p.idx)}>{p.label}</button>)}
+            {shot.phases.map((p) => <button key={p.key} onClick={() => { setPhaseKey(p.key); seekTo(p.idx); }} style={chip(cur === p.idx)} title={`Jump to ${p.label.toLowerCase()} — stays on this moment when you switch shots`}>{p.label}</button>)}
           </div>
           {/* per-frame readout */}
           <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(104px, 1fr))', gap: 6 }}>
@@ -280,11 +311,28 @@ function ShotResults({ result, shot, shotIdx, setShotIdx, srcUrl, frames, hand, 
                 {shot.score == null ? 'Shot read' : shot.score >= 80 ? 'Clean mechanics' : shot.score >= 60 ? 'Solid base — a few things to tighten' : 'Rebuild the chain from the legs up'}
               </div>
               <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12, marginTop: 3, lineHeight: 1.5 }}>
-                {fixes.length} to fix · {watches.length} to watch · {shot.checks.length - fixes.length - watches.length} OK · tracking {result.quality} ({Math.round(result.visRatio * 100)}% frames) · {result.fps} fps
+                {fixes.length} to fix · {watches.length} to watch · {shot.checks.length - fixes.length - watches.length} OK · tracking {result.quality} ({Math.round((result.coverage || 0) * 100)}% of shot frames) · {result.fps} fps
               </div>
               {result.shots.length > 1 && (
-                <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }} className="shot-noprint">
-                  {result.shots.map((s, i) => <button key={i} onClick={() => setShotIdx(i)} style={chip(i === shotIdx)}>SHOT {s.index} · {s.score ?? '—'}</button>)}
+                <div className="shot-noprint" style={{ marginTop: 8 }}>
+                  {/* WHICH SHOT AM I LOOKING AT — a clip can hold many shots; the
+                      scorecard below is ALWAYS the selected one, the session
+                      panel underneath is all of them. */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <button onClick={() => setShotIdx((i) => Math.max(0, i - 1))} disabled={shotIdx === 0} style={{ ...chip(false), opacity: shotIdx === 0 ? 0.35 : 1 }}>&lsaquo;</button>
+                    <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', color: C.ac }}>SHOT {shot.index} / {result.shots.length}</span>
+                    <span style={{ ...lbl, letterSpacing: '0.06em' }}>at {fmt(series.tMs[shot.cycle.release] / 1000, 1)}s</span>
+                    <button onClick={() => setShotIdx((i) => Math.min(result.shots.length - 1, i + 1))} disabled={shotIdx === result.shots.length - 1} style={{ ...chip(false), opacity: shotIdx === result.shots.length - 1 ? 0.35 : 1 }}>&rsaquo;</button>
+                    <div style={{ flex: 1 }} />
+                    <span style={{ ...lbl, letterSpacing: '0.06em' }}>scorecard = this shot · session = all {result.shots.length}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap' }}>
+                    {result.shots.map((s, i) => {
+                      const st = STATUS[s.score == null ? 'na' : s.score >= 80 ? 'ok' : s.score >= 60 ? 'watch' : 'fix'];
+                      return <button key={i} onClick={() => setShotIdx(i)} title={`Shot ${s.index} at ${fmt(series.tMs[s.cycle.release] / 1000, 1)}s, score ${s.score ?? '-'}`}
+                        style={{ ...chip(i === shotIdx), padding: '4px 8px', borderColor: i === shotIdx ? C.ac : st.color, color: i === shotIdx ? C.ac : st.color }}>{s.index}</button>;
+                    })}
+                  </div>
                 </div>
               )}
             </div>
@@ -292,14 +340,66 @@ function ShotResults({ result, shot, shotIdx, setShotIdx, srcUrl, frames, hand, 
 
           {/* info strip */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 6, marginBottom: 14 }}>
-            {[['Dip → release', shot.info.dipToReleaseMs != null ? shot.info.dipToReleaseMs + ' ms' : '—'], ['Jump rise', shot.info.jumpRiseCm != null ? shot.info.jumpRiseCm + ' cm' : 'enter height'], ['Release height', shot.info.releaseHeightCm != null ? shot.info.releaseHeightCm + ' cm' : 'enter height'], ['Arm at release', fmt(shot.info.shoulderAtRelease) + '°']].map(([k, v]) => (
+            {[['Dip → release', shot.info.dipToReleaseMs != null ? shot.info.dipToReleaseMs + ' ms' : '—'],
+              ['Jump rise', shot.info.jumpRiseCm != null ? shot.info.jumpRiseCm + ' cm' : 'enter height'],
+              ['Release height', shot.info.releaseHeightCm != null ? shot.info.releaseHeightCm + ' cm' : (shot.info.releaseHeightRatio != null ? shot.info.releaseHeightRatio + '× eye height' : '—')],
+              ['Arm at release', fmt(shot.info.shoulderAtRelease) + '°'],
+              ['Chain (from dip)', shot.info.sequenceOrder ? `legs ${shot.info.sequenceOrder.kneeMs} · arm ${shot.info.sequenceOrder.shoulderMs} · elbow ${shot.info.sequenceOrder.elbowMs} ms` : '—'],
+              ['Tracked', shot.info.coverage != null ? Math.round(shot.info.coverage * 100) + '% of frames' : '—']].map(([k, v]) => (
               <div key={k} style={{ border: '1px solid rgba(255,255,255,0.12)', padding: '6px 8px' }}><div style={lbl}>{k}</div><div style={{ fontFamily: FN, fontSize: 14, fontWeight: 700 }}>{v}</div></div>
             ))}
-            {result.consistency && <div style={{ border: '1px solid rgba(255,255,255,0.12)', padding: '6px 8px', gridColumn: 'span 2' }}><div style={lbl}>Consistency ({result.consistency.n} shots)</div><div style={{ fontFamily: FN, fontSize: 12, fontWeight: 700 }}>rhythm CV {fmt(result.consistency.rhythmCv)}% · dip CV {fmt(result.consistency.dipCv)}% · release arm CV {fmt(result.consistency.releaseArmCv)}%</div></div>}
+            {result.consistency && <div style={{ border: '1px solid rgba(255,255,255,0.12)', padding: '6px 8px', gridColumn: 'span 2' }}><div style={lbl}>Consistency ({result.consistency.n} shots)</div><div style={{ fontFamily: FN, fontSize: 12, fontWeight: 700 }}>rhythm ±{fmt(result.consistency.rhythmCv)}% · release arm ±{fmt(result.consistency.releaseArmSd, 1)}° · set elbow ±{fmt(result.consistency.setElbowSd, 1)}° · timing ±{fmt(result.consistency.timingSd)} ms</div></div>}
           </div>
 
+          {/* SESSION — every detected shot, scored, so a multi-shot clip is
+              never ambiguous: this table IS the whole clip. */}
+          {result.shots.length > 1 && (
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ ...lbl, color: C.ac, marginBottom: 6 }}>Session · {result.shots.length} shots detected</div>
+              <div style={{ border: '1px solid rgba(255,255,255,0.15)', overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FN, fontSize: 11 }}>
+                  <thead><tr>{['#', 'At', 'Score', 'Dip', 'Set', 'Release', 'Timing', 'Fix first'].map((h) => <th key={h} style={{ ...lbl, textAlign: 'left', padding: '6px 8px', borderBottom: '1px solid rgba(255,255,255,0.15)', whiteSpace: 'nowrap' }}>{h}</th>)}</tr></thead>
+                  <tbody>
+                    {result.shots.map((s, i) => {
+                      const st = STATUS[s.score == null ? 'na' : s.score >= 80 ? 'ok' : s.score >= 60 ? 'watch' : 'fix'];
+                      const worst = s.checks.find((c) => c.status === 'fix') || s.checks.find((c) => c.status === 'watch');
+                      return (
+                        <tr key={i} onClick={() => setShotIdx(i)} style={{ cursor: 'pointer', background: i === shotIdx ? 'rgba(57,189,255,0.10)' : 'transparent', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+                          <td style={{ padding: '6px 8px', fontWeight: 700, color: i === shotIdx ? C.ac : '#FFF' }}>{s.index}</td>
+                          <td style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.7)' }}>{fmt(series.tMs[s.cycle.release] / 1000, 1)}s</td>
+                          <td style={{ padding: '6px 8px', fontWeight: 700, color: st.color }}>{s.score ?? '—'}</td>
+                          <td style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.8)' }}>{fmt(s.raw.dip)}°</td>
+                          <td style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.8)' }}>{fmt(s.raw.setElbow)}°</td>
+                          <td style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.8)' }}>{fmt(s.raw.releaseArm)}°</td>
+                          <td style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.8)' }}>{s.raw.timing == null ? '—' : (s.raw.timing > 0 ? '+' : '') + Math.round(s.raw.timing) + 'ms'}</td>
+                          <td style={{ padding: '6px 8px', color: worst ? STATUS[worst.status].color : 'rgba(255,255,255,0.4)', whiteSpace: 'nowrap' }}>{worst ? worst.label : 'clean'}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              {/* What repeats across the session is what to coach first. */}
+              {(() => {
+                const counts = new Map();
+                for (const s of result.shots) for (const c of s.checks) if (c.status === 'fix') counts.set(c.label, (counts.get(c.label) || 0) + 1);
+                const top = [...counts.entries()].sort((x, y) => y[1] - x[1]).slice(0, 3);
+                const scored = result.shots.filter((s) => s.score != null);
+                const avg = scored.length ? Math.round(scored.reduce((acc, s) => acc + s.score, 0) / scored.length) : null;
+                return (
+                  <div style={{ marginTop: 8, fontSize: 12.5, lineHeight: 1.55, color: 'rgba(255,255,255,0.8)' }}>
+                    Session average <b style={{ color: '#FFF' }}>{avg == null ? '—' : avg + '/100'}</b>
+                    {top.length > 0
+                      ? <> · repeats across the session: {top.map(([l, n]) => `${l} (${n}/${result.shots.length})`).join(' · ')}</>
+                      : <> · no checkpoint failed on more than one shot.</>}
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+
           {/* scorecard */}
-          <div style={{ ...lbl, color: C.ac, marginBottom: 6 }}>Checkpoints</div>
+          <div style={{ ...lbl, color: C.ac, marginBottom: 6 }}>Checkpoints · shot {shot.index}{result.shots.length > 1 ? ' of ' + result.shots.length : ''}</div>
           <div style={{ border: '1px solid rgba(255,255,255,0.15)' }}>
             {shot.checks.map((c, i) => {
               const st = STATUS[c.status];
@@ -316,7 +416,7 @@ function ShotResults({ result, shot, shotIdx, setShotIdx, srcUrl, frames, hand, 
                     </div>
                     <div style={{ fontFamily: FN, fontSize: 14, fontWeight: 700, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{c.display}</div>
                     <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: st.color, border: `1px solid ${st.color}`, padding: '2px 6px', flexShrink: 0 }}>{st.label}</span>
-                    {ph && <button className="shot-noprint" onClick={(e) => { e.stopPropagation(); seekTo(ph.idx); }} style={{ ...chip(false), padding: '3px 7px' }} title="Jump to this frame">▸</button>}
+                    {ph && <button className="shot-noprint" onClick={(e) => { e.stopPropagation(); setPhaseKey(ph.key); seekTo(ph.idx); }} style={{ ...chip(false), padding: '3px 7px' }} title="Jump to this frame">▸</button>}
                     <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, transform: open ? 'rotate(180deg)' : 'none', display: 'inline-block' }}>▾</span>
                   </div>
                   {open && (
@@ -334,7 +434,7 @@ function ShotResults({ result, shot, shotIdx, setShotIdx, srcUrl, frames, hand, 
           </div>
 
           <div style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.45)', lineHeight: 1.5, marginTop: 10 }}>
-            Targets are bands from the shooting-biomechanics literature (Knudson 1993; Okazaki, Rodacki &amp; Satern 2015) and projectile mechanics (Hall, Basic Biomechanics ch.10) — read them with the athlete in front of you. Release arm angle is a proxy for the ball’s launch angle (no ball tracking). Side-on filming is assumed for trunk and elbow-offset reads.
+            Targets are coach-readable bands, not laws — read them with the athlete in front of you. Release arm angle is a proxy for the ball’s launch angle. Side-on filming is assumed for the trunk and elbow-offset reads.
           </div>
 
           <div className="shot-noprint" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
