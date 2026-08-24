@@ -748,18 +748,24 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
               const online = isOnline(t.id, presence);
               const pay = getPaymentStatus(t, payments);
               const lastWk = getLastWorkoutLabel(t, workouts, clientWorkouts);
-              // Per-member BW for couples — sub-IDs (parent__0 / __1) so each
-              // member's curve is their own, not the household average.
-              const bwM0 = (bwLog || [])
-                .filter(b => b.clientId === subMemberId(t.id, 0) && Number.isFinite(parseFloat(b.bw)))
+              // Per-member BW for couples, WHERE IT EXISTS. Weigh-ins are written
+              // against the parent id by every writer (the portal's my_trainee()
+              // resolves a couple member to the parent row; the coach's BwAddRow
+              // writes `trainee`), so member-keyed rows are the exception, not
+              // the rule — reading only those made the card say "NO LOGS" for
+              // both members while the detail page plotted the same data
+              // (audit 08-22 #47).
+              const bwFor = (id) => (bwLog || [])
+                .filter(b => b.clientId === id && Number.isFinite(parseFloat(b.bw)))
                 .map(b => ({ ...b, bw: parseFloat(b.bw) }))
                 .sort((a, b) => new Date(a.date) - new Date(b.date))
                 .slice(-8);
-              const bwM1 = (bwLog || [])
-                .filter(b => b.clientId === subMemberId(t.id, 1) && Number.isFinite(parseFloat(b.bw)))
-                .map(b => ({ ...b, bw: parseFloat(b.bw) }))
-                .sort((a, b) => new Date(a.date) - new Date(b.date))
-                .slice(-8);
+              const bwM0 = bwFor(subMemberId(t.id, 0));
+              const bwM1 = bwFor(subMemberId(t.id, 1));
+              // Nothing member-attributed → fall back to the couple's own,
+              // parent-keyed series and say so, rather than splitting one curve
+              // across two names as if each had been measured separately.
+              const bwShared = (bwM0.length < 2 && bwM1.length < 2) ? bwFor(t.id) : [];
               // Programs assigned to the parent ID are shared between both
               // members; sub-IDs are per-member. For the shared TRAINING block
               // we report the union (max of the two member counts) so we
@@ -806,8 +812,13 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
 
                   {/* BODYWEIGHT — per-member, since each has their own curve.
                       Centered, two mini-blocks under one shared label. */}
-                  <CardSection label="Bodyweight" center>
-                    {[m0, m1].map((m, mi) => {
+                  <CardSection label={bwShared.length >= 2 ? 'Bodyweight · couple' : 'Bodyweight'} center>
+                    {bwShared.length >= 2 ? (
+                      <div style={{flex:1,minWidth:0,display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+                        <div style={{fontFamily:FN,fontSize:9,color:C.tm,letterSpacing:1,fontWeight:700}}>SHARED LOG</div>
+                        <div style={{width:'100%',maxWidth:160}}><CardBWSparkline entries={bwShared} /></div>
+                      </div>
+                    ) : [m0, m1].map((m, mi) => {
                       const memberBw = mi === 0 ? bwM0 : bwM1;
                       const hasData = memberBw.length >= 2;
                       const W = 96, H = 22;

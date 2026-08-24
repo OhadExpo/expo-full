@@ -11,7 +11,7 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { C, FN } from './theme';
 import { analyzeAthlete } from './lineageAnalysis';
-import { getAthleteVault, getAthleteAsymmetryTrend } from './poseMetricsStore';
+import { getAthleteVault, getAthleteAsymmetryTrend, getAthleteRomLifts } from './poseMetricsStore';
 import { autoAnalyzeAthleteVideos, pendingCount } from './autoAnalyzeVideos';
 import { velocityProfile1RM, mvtForLift } from './velocityProfile1RM';
 import { VelocityReport, RomReport } from './LineageLiftReport';
@@ -365,7 +365,10 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
   const [barSpeedAll, setBarSpeedAll] = useState(false); // Bar-speed shows the top 3 lifts, expands to the FULL report of every tracked lift (Ohad #203)
   const [romAll, setRomAll] = useState(false); // Range-of-motion card: same top-3 → full-report expansion as bar speed (Ohad #203)
   // Lifts that carry a real camera ROM read (peak joint range per filmed set).
-  const romLifts = useMemo(() => (vault || []).filter((l) => l.entries.some((e) => e.maxRom != null)), [vault]);
+  // From the FULL store, not the bar-speed-filtered vault: ballistic and
+  // symmetry-only lifts store a real maxRom that the velocity filter hid
+  // (audit 08-22 #48).
+  const romLifts = useMemo(() => getAthleteRomLifts(traineeId), [traineeId]);
 
   const shell = (children) => (
     <div style={{ ...wrap, background: C.bg, border: `1px solid ${C.bd}`, borderRadius: 2, overflow: 'hidden' }}>

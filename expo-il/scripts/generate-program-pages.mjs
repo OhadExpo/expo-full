@@ -80,7 +80,10 @@ function pageHtml(p) {
     category: 'Training Program',
     offers: {
       '@type': 'Offer',
-      priceCurrency: p.currency,
+      // ISO 4217 for schema.org — Google rejects "NIS". The SPA route was
+      // already corrected; these prerendered pages are the ONLY thing the
+      // crawlers see, so the fix has to live here too (audit 08-22 #58).
+      priceCurrency: (p.currency || 'NIS') === 'NIS' ? 'ILS' : p.currency,
       price: p.price,
       availability: 'https://schema.org/InStock',
       url,
@@ -110,7 +113,7 @@ function pageHtml(p) {
   <meta property="og:locale" content="he_IL" />
   <meta property="og:locale:alternate" content="en_US" />
   <meta property="product:price:amount" content="${p.price}" />
-  <meta property="product:price:currency" content="${p.currency}" />
+  <meta property="product:price:currency" content="${(p.currency || 'NIS') === 'NIS' ? 'ILS' : p.currency}" />
 
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${escapeHtml(title)}" />

@@ -74,13 +74,13 @@ export default function TrySandbox({ pov = 'trainee' } = {}) {
   const [videoUrl, setVideoUrl] = useState(null);
   const [secondUrl, setSecondUrl] = useState(null); // for compare step
 
-  // Tear down any blob URLs on unmount so they don't leak across navigations.
-  useEffect(() => {
-    return () => {
-      if (videoUrl) try { URL.revokeObjectURL(videoUrl); } catch {}
-      if (secondUrl) try { URL.revokeObjectURL(secondUrl); } catch {}
-    };
-  }, [videoUrl, secondUrl]);
+  // Tear down blob URLs so they don't leak across navigations — ONE EFFECT PER
+  // URL. With both in a single effect the cleanup ran with the PREVIOUS closure
+  // on every dep change, so uploading the compare clip revoked the first clip's
+  // still-live blob: going BACK rendered a dead black player and clip 1 was
+  // unplayable for the rest of the session (audit 08-22 #49).
+  useEffect(() => () => { if (videoUrl) try { URL.revokeObjectURL(videoUrl); } catch { /* already revoked */ } }, [videoUrl]);
+  useEffect(() => () => { if (secondUrl) try { URL.revokeObjectURL(secondUrl); } catch { /* already revoked */ } }, [secondUrl]);
 
   const onPickExercise = (ex) => { setExercise(ex); setStep('upload'); };
   const onUpload = (file) => {
@@ -1839,16 +1839,31 @@ function SandboxPlayer({ url, exerciseTitle, compact = false }) {
           } catch { /* per-frame errors are noisy and recoverable */ }
         }
       }
-      if (typeof v.requestVideoFrameCallback === 'function') v.requestVideoFrameCallback(detect);
-      else rafRef.current = requestAnimationFrame(detect);
+      schedule();
     };
 
-    if (typeof v.requestVideoFrameCallback === 'function') v.requestVideoFrameCallback(detect);
-    else rafRef.current = requestAnimationFrame(detect);
-    detect();
+    // ONE scheduler, one live chain. detect() re-schedules itself at the end of
+    // every call, so every extra entry point — each 'seeked', each
+    // 'loadeddata', and the duplicated initial detect() — started ANOTHER
+    // self-perpetuating chain that never died. After N scrubs, N+2 parallel
+    // MediaPipe loops ran on the same video (nothing deduped them: lastTs is
+    // bumped past the guard on every call), so CPU load grew with every scrub
+    // and the public demo cooked phones (audit 08-22 #50).
+    let scheduled = false;
+    const tick = (...args) => { scheduled = false; detect(...args); };
+    const schedule = () => {
+      if (scheduled || !active) return;
+      scheduled = true;
+      if (typeof v.requestVideoFrameCallback === 'function') v.requestVideoFrameCallback(tick);
+      else rafRef.current = requestAnimationFrame(tick);
+    };
 
-    v.addEventListener('seeked', detect);
-    v.addEventListener('loadeddata', detect);
+    schedule();
+
+    // Seeking/loading must WAKE the one chain, never start a second.
+    const onNeedFrame = () => schedule();
+    v.addEventListener('seeked', onNeedFrame);
+    v.addEventListener('loadeddata', onNeedFrame);
 
     const onPlay = () => {
       if (!repsOn) return;
@@ -1864,8 +1879,8 @@ function SandboxPlayer({ url, exerciseTitle, compact = false }) {
       active = false;
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       if (hudInterval) clearInterval(hudInterval);
-      v.removeEventListener('seeked', detect);
-      v.removeEventListener('loadeddata', detect);
+      v.removeEventListener('seeked', onNeedFrame);
+      v.removeEventListener('loadeddata', onNeedFrame);
       v.removeEventListener('play', onPlay);
     };
   }, [poseOn, repsOn]);
@@ -2027,7 +2042,11 @@ function BuyCallToAction({ pov = 'coach' }) {
     : 'When your client films a set on their phone, this is the screen they see. Pose lines, rep count, tempo, and a one-tap path to send it for your review. No app install, no account they have to manage — they tap the link in your message and they\'re in.';
   const primaryHref = '/demo#waitlist';
   const primaryLbl  = 'JOIN THE WAITLIST';
-  const secondHref  = isCoach ? '/demo' : '/try';
+  // isCoach is always false on the live /try mount (App mounts <TrySandbox />
+  // with no pov, and pov defaults to 'trainee'), so this CTA linked the visitor
+  // straight back to the page they were already on — the coach leg of the
+  // funnel was unreachable from it (audit 08-22 #51).
+  const secondHref  = isCoach ? '/demo/athlete' : '/demo/coach';
   const secondLbl   = isCoach ? 'NOW SEE THE ATHLETE VIEW →' : 'NOW SEE THE COACH VIEW →';
   return (
     <div style={{

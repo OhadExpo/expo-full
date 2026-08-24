@@ -226,8 +226,24 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
     const ch = supabase.channel('gym-session', { config: { private: true, broadcast: { self: false } } });
     ch.on('broadcast', { event: 'session' }, ({ payload }) => {
       const v = payload?.value;
-      if (v == null) { setSession(null); return; }
-      if (Array.isArray(v.athletes)) setSession(v);
+      if (v == null) {
+        // The other device FINISHED: cancel our own pending debounced upsert
+        // and latch endedRef, or a write scheduled ~400ms ago re-creates the
+        // store row that was just deleted — the finished session comes back on
+        // every device, gets FINISHED a second time, and every athlete gets a
+        // duplicate, trainee-visible history row (audit 08-22 #41).
+        if (saveTimer.current) { clearTimeout(saveTimer.current); saveTimer.current = null; }
+        endedRef.current = true;
+        setSession(null);
+        return;
+      }
+      if (Array.isArray(v.athletes)) {
+        // A new/continuing session re-enables durable writes on a device that
+        // had previously latched endedRef — otherwise it silently drops every
+        // persistStore write for the rest of its life.
+        endedRef.current = false;
+        setSession(v);
+      }
     });
     // setAuth() before joining: a private join is authorized from the JWT on
     // the realtime socket, and this channel can be created before supabase-js
@@ -451,6 +467,9 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
         return {
           id: 'cw_' + uid(),
           clientId: a.traineeId,
+          // planId disambiguates two couple members' identically-named plans —
+          // planName alone cannot (audit 08-22 #31).
+          planId: a.planId || null,
           planName: a.planName,
           dayName: a.dayName,
           week: Number(a.week) || nextWeekFor(a.traineeId, a.planName, a.dayName, a.planWeeks),

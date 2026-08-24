@@ -3078,6 +3078,10 @@ function StickyCTA() {
 export default function App() {
   const route = useHashRoute();
   const t = useT();
+  // The tab title has to re-evaluate when the LANGUAGE changes, not only when
+  // the route does — the EN/HE toggle left a Hebrew title on an English page
+  // (and vice versa) until the next navigation (audit 08-22 #59).
+  const [appLang] = useLang();
   // Quiz modal state lives at the App root so the hero, the dedicated
   // QuizSection, and the nav can all open it from anywhere on the page.
   const [quizOpen, setQuizOpen] = useState(false);
@@ -3123,7 +3127,7 @@ export default function App() {
   // rendered server-side in index.html and need build-time prerendering to vary).
   useEffect(() => {
     document.title = t(docTitleKey, docTitleVars);
-  }, [docTitleKey, docTitleVars && docTitleVars.title]);
+  }, [docTitleKey, docTitleVars && docTitleVars.title, appLang]);
 
   // Scroll-fade: add .fv-visible to each <section> once it enters the viewport.
   // Once visible, stay visible (no flicker on scroll-up). Disabled if the

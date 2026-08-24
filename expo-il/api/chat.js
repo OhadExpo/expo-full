@@ -235,7 +235,15 @@ export default async function handler(req, res) {
   // but we have prior turns logged for this sessionId, prepend them so a
   // returning visitor isn't talking to a stranger. Cap total at ~20 turns.
   let assembled = cleanMessages;
-  if (sessionId && cleanMessages.length <= 2) {
+  // DISABLED — chat_logs grants SELECT to `authenticated` only, and the only
+  // SELECT policy is scoped to Ohad's email, so this read runs as anon and is
+  // denied every single time: recallSession returns [] and the round trip is
+  // pure latency (audit 08-22 #57). Re-enable only behind a scoped RPC or a
+  // server-side read — never by handing this endpoint a service key, which is
+  // the one thing api/ has never had. Kept (not deleted) so the intent and the
+  // exact blocker stay attached to the code.
+  const RECALL_ENABLED = false;
+  if (RECALL_ENABLED && sessionId && cleanMessages.length <= 2) {
     const prior = await recallSession(sessionId, 14);
     if (prior.length) {
       // Drop tail prior turns that duplicate the incoming first message.

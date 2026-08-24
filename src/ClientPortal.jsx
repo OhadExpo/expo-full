@@ -1326,7 +1326,10 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     // programs, etc.).
     const finishedAt = new Date().toISOString();
     onComplete({
-      id: workoutId, clientId, planName: plan.name, dayName: day.name,
+      // planId identifies WHICH plan this is, where the name cannot: two couple
+      // members can hold plans with the same name and the same day names
+      // (audit 08-22 #31).
+      id: workoutId, clientId, planId: plan.id || null, planName: plan.name, dayName: day.name,
       week: weekNum + 1, date: finishedAt, notes, autoregulation: checkin,
       formVideos,
       exercises: day.ex.map((ex, i) => {
@@ -1749,7 +1752,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       const targetWeek = weekNum; // saved w.week is 1-indexed; prev = weekNum
       let prevDate = null;
       for (const w of priorWorkouts) {
-        if (w.planName !== plan.name) continue;
+        if (!isLogOfPlan(w, plan)) continue;   // plan id first, name fallback (audit #31)
         if (w.dayName !== day.name) continue;
         if (w.week !== targetWeek) continue;
         for (const px of (w.exercises || [])) {
@@ -2040,15 +2043,22 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
 // coach single/group surfaces use, so all views agree. Used both to open the
 // active block on the right week AND to log a NON-active visible plan's day
 // under ITS OWN week (a single global `wk` follows the active block only).
+// True when a logged workout belongs to THIS plan. Prefers the plan id and
+// falls back to the name for rows written before planId existed (audit #31).
+function isLogOfPlan(w, plan) {
+  if (!w || !plan) return false;
+  if (w.planId && plan.id) return w.planId === plan.id;
+  return w.planName === plan.name;
+}
+
 function deriveWeekIdx(plan, cw) {
-  const name = plan?.name;
   const planWeeks = Number(plan?.weeks) || 4;
   // Exclude daily-routine days (kind:'daily') from the week-advancement scan —
   // they're logged unlimited times and are NOT a weekly requirement, so counting
   // them as "un-logged" pinned a mixed plan's week forever (and made a non-active
   // plan re-log every set under week 1). Mirrors the header's d.kind !== 'daily'.
   const dayNames = (plan?.days || []).filter(d => d.kind !== 'daily' && plan?.kind !== 'daily').map(d => d.name).filter(Boolean);
-  const logs = (cw || []).filter(w => w.planName === name);
+  const logs = (cw || []).filter(w => isLogOfPlan(w, plan));
   const done = new Set(logs.map(w => `${Number(w.week) || 1}|${w.dayName}`));
   const maxWk = logs.length ? Math.max(...logs.map(w => Number(w.week) || 1)) : 1;
   let nextWk = Math.max(1, maxWk);
@@ -3301,7 +3311,10 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               </div>
             );
           };
-          return visPlans.map((vp,vpIdx) => <React.Fragment key={vp.name}>
+          {/* keyed by ID: two same-named couple plans produced DUPLICATE React
+              keys, so React mis-reconciled one member's cards onto the other's
+              after any state update (audit #31). */}
+          return visPlans.map((vp,vpIdx) => <React.Fragment key={vp.id || vp.name}>
           {visPlans.length>1 && <div style={{display:'flex',alignItems:'center',gap:10,margin:vpIdx===0?'0 0 12px':'20px 0 12px'}}>
             <div style={{flex:1,height:1,background:C.bd2}}/>
             <span style={{fontFamily:FN,fontSize:11,fontWeight:700,color:C.ac,letterSpacing:'0.05em',whiteSpace:'nowrap'}}>{(vp.name || '').toUpperCase()}</span>
@@ -3345,7 +3358,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           // across blocks, so unscoped `cw` marked a current-block day ✓/AGAIN
           // from a PRIOR block's log, so the athlete could skip an untrained
           // session (audit H2). Mirrors the planName-scoped pattern used above.
-          const dailyCount = isDailyRoutine ? cw.filter(w => w.dayName === day.name && w.planName === vp.name).length : 0;
+          const dailyCount = isDailyRoutine ? cw.filter(w => w.dayName === day.name && isLogOfPlan(w, vp)).length : 0;
           // Per-plan week: the global `wk` strip belongs to the ACTIVE plan. A
           // secondary visible plan (couples, an opted-in 2nd block) logs its day under
           // ITS OWN derived week (finish() line ~2387), so the overview must read the
@@ -3353,7 +3366,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           // completed secondary day reads "not done" (duplicate re-log) or an
           // untrained one reads "done" (skipped), and the rx shown is off-by-week.
           const vpWeek = (vp.name === activePlan?.name) ? wk : deriveWeekIdx(vp, cw);
-          const done = !isDailyRoutine && cw.some(w => w.dayName === day.name && w.week === vpWeek + 1 && w.planName === vp.name);
+          const done = !isDailyRoutine && cw.some(w => w.dayName === day.name && w.week === vpWeek + 1 && isLogOfPlan(w, vp));
           // doneBorderColor hoisted out of the inline template — the
           // build-time guard's parser mis-tracks single-quoted strings
           // inside nested ${ … } expressions (it's how the original bare

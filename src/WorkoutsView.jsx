@@ -524,7 +524,7 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
     // (the coach logged it, nothing to review) and source tags its origin.
     if (setClientWorkouts) {
       const row = {
-        id: 'cw_' + uid(), clientId: w.traineeId, planName: w.planName, dayName: w.dayName,
+        id: 'cw_' + uid(), clientId: w.traineeId, planId: w.planId || null, planName: w.planName, dayName: w.dayName,
         week: Number(w.week) || 1, date: finishedAt, completedAt: finishedAt,
         notes: w.notes || '', formVideos: [], reviewedAt: finishedAt, source: 'coach-session',
         exercises: (w.exercises || []).map(ex => ({

@@ -139,7 +139,12 @@ export function savePoseMetric({ clientId, exercise, date, analysis, load, clipK
 // All vaulted lifts for one athlete, richest history first:
 //   [{ title, entries:[{date,bestMean,lossPct,maxRom,...}], count, trend }]
 // trend = velocity-loss direction across the last entries ('worse'|'better'|'flat').
-export function getAthleteVault(clientId) {
+// Every filmed lift for one athlete, collapsed per day — BEFORE any
+// per-card filter. The Bar-Speed card and the Range-of-motion card want
+// different subsets of the SAME data, and deriving ROM from the velocity
+// filtered vault hid every ballistic / symmetry-only lift's stored ROM
+// (audit 08-22 #48).
+function buildAthleteLifts(clientId) {
   const client = readAll()[clientId];
   if (!client) return [];
   return Object.values(client)
@@ -178,7 +183,25 @@ export function getAthleteVault(clientId) {
     // BAR SPEED shows only velocity-VALID grinding lifts with a real velocity read
     // — never a pogo/jump/snap-down (Ohad #171), and never a symmetry-only lift.
     // Also drops legacy velocity wrongly stored for a ballistic lift before the gate.
-    .filter((l) => l.count > 0 && l.hasVel && isVelocityLossLift(l.title))
+    .filter((l) => l.count > 0);
+}
+
+// BAR SPEED shows only velocity-VALID grinding lifts with a real velocity read
+// — never a pogo/jump/snap-down (Ohad #171), and never a symmetry-only lift.
+// Also drops legacy velocity wrongly stored for a ballistic lift before the gate.
+export function getAthleteVault(clientId) {
+  return buildAthleteLifts(clientId)
+    .filter((l) => l.hasVel && isVelocityLossLift(l.title))
+    .sort((a, b) => b.count - a.count);
+}
+
+// RANGE OF MOTION covers everything that actually produced a ROM read —
+// including box jumps, pogos and machine work whose bar-velocity read failed
+// but whose travel was measured. savePoseMetric stores maxRom for those; the
+// card just could not reach it.
+export function getAthleteRomLifts(clientId) {
+  return buildAthleteLifts(clientId)
+    .filter((l) => l.entries.some((e) => e.maxRom != null))
     .sort((a, b) => b.count - a.count);
 }
 
