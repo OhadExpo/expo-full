@@ -497,7 +497,13 @@ export function analyzeShotClip(frames, { hand = 'R', statureCm = null, shotType
     const detail = strictWhy.length
       ? ` I found ${strictWhy.length} candidate release${strictWhy.length === 1 ? '' : 's'} and rejected ${strictWhy.length === 1 ? 'it' : 'them'}: ${top}.`
       : ' I could not find a single frame where a wrist peaks above the shoulders — check that the whole body is in frame.';
-    return { ok: false, error: `No shot detected.${detail} Film the whole shot side-on, shooting arm towards the camera, feet to fingertips in frame.`, rejections: strictWhy, series, fps };
+    // How much of the clip actually had a body? This separates "the pose model
+    // never saw him" from "the shot gates were too strict" at a glance.
+    let tracked = 0;
+    for (const f of frames) { const p = f && (f.pose || f.landmarks || f.lm); if (p && p[11] && p[12] && p[15] && p[16]) tracked++; }
+    const pct = Math.round((tracked / Math.max(1, frames.length)) * 100);
+    const trackNote = ` Body tracked in ${tracked}/${frames.length} frames (${pct}%)${pct < 50 ? ' — that is the real problem: get the whole body in frame, closer and better lit.' : '.'}`;
+    return { ok: false, error: `No shot detected.${detail}${trackNote} Film the whole shot side-on, shooting arm towards the camera, feet to fingertips in frame.`, rejections: strictWhy, tracked: { n: tracked, total: frames.length, pct }, series, fps };
   }
   const shots = cycles.map((c, k) => ({ index: k + 1, cycle: c, ...scoreShot(series, c, { statureCm, shotType }) }));
 
