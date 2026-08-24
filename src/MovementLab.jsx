@@ -140,7 +140,17 @@ export async function captureClipFrames(src, { crossOrigin = false, onProgress, 
     // this makes the fps measure below dependable. Removed in finally.
     v.style.cssText = 'position:fixed;left:-9999px;top:0;width:2px;height:2px;opacity:0;pointer-events:none';
     document.body.appendChild(v);
-    await new Promise((res, rej) => { v.onloadedmetadata = () => res(); v.onerror = () => rej(new Error('Could not read that video.')); });
+    await new Promise((res, rej) => {
+      // A clip that neither loads nor errors (stalled range request, a codec the
+      // browser silently refuses) left this await pending FOREVER: the offscreen
+      // probe <video> stayed in the DOM holding the download, and — because the
+      // auto-analysis sweep is strictly sequential — the entire remaining
+      // backlog never ran again for the rest of the session, with nothing shown
+      // anywhere. Bounded so a bad clip fails and the next one proceeds.
+      const t = setTimeout(() => rej(new Error('Timed out reading that video.')), 20000);
+      v.onloadedmetadata = () => { clearTimeout(t); res(); };
+      v.onerror = () => { clearTimeout(t); rej(new Error('Could not read that video.')); };
+    });
     let dur = v.duration;
     // MediaRecorder WebM (how in-app athlete clips are recorded) reports
     // duration = Infinity until you force a seek past the end — then the real

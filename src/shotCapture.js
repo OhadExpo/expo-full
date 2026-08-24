@@ -149,7 +149,17 @@ export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineR
     v.src = src; v.muted = true; v.playsInline = true; v.preload = 'auto';
     v.style.cssText = 'position:fixed;left:-9999px;top:0;width:2px;height:2px;opacity:0;pointer-events:none';
     document.body.appendChild(v);
-    await new Promise((res, rej) => { v.onloadedmetadata = () => res(); v.onerror = () => rej(new Error('Could not read that video.')); });
+    await new Promise((res, rej) => {
+      // A clip that neither loads nor errors (stalled range request, a codec the
+      // browser silently refuses) left this await pending FOREVER: the offscreen
+      // probe <video> stayed in the DOM holding the download, and — because the
+      // auto-analysis sweep is strictly sequential — the entire remaining
+      // backlog never ran again for the rest of the session, with nothing shown
+      // anywhere. Bounded so a bad clip fails and the next one proceeds.
+      const t = setTimeout(() => rej(new Error('Timed out reading that video.')), 20000);
+      v.onloadedmetadata = () => { clearTimeout(t); res(); };
+      v.onerror = () => { clearTimeout(t); rej(new Error('Could not read that video.')); };
+    });
     let dur = v.duration;
     if (!isFinite(dur) || dur <= 0) {
       await new Promise((res) => { const d = () => { v.onseeked = null; res(); }; v.onseeked = d; setTimeout(d, 1500); try { v.currentTime = 1e7; } catch { d(); } });

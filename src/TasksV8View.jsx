@@ -1692,9 +1692,15 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
             // LIST collapsed → single-line ellipsis. BOARD collapsed → clamp to 2
             // lines so cards stay compact (Ohad: board cards "too big/too long").
             // Expanded (either view) → full wrapped title.
+            // wrapRow (board columns AND phones), not just board: a centred
+            // single-line title cannot ellipsize — the line overflows on BOTH
+            // sides and Chrome clips it at both ends with no ellipsis, so a long
+            // Hebrew task title lost its FIRST 219px as well as its tail at
+            // 390px wide (mobile sweep 08-25). The 2-line clamp Ohad already
+            // accepted for the board wraps instead of clipping.
             ...(expanded
               ? { whiteSpace: 'normal', wordBreak: 'break-word' }
-              : board
+              : wrapRow
                 ? { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', wordBreak: 'break-word' }
                 : { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }),
           }}>

@@ -765,6 +765,18 @@ function AuthedApp() {
     if (!isOwner) return undefined;
     if (!clientWorkouts || clientWorkouts.length === 0) return undefined;
     if (poseWarmRef.current) return undefined; // one warmer per app session
+    // Not on a phone, and not on a metered/slow link. This sweep downloads every
+    // athlete clip and runs a full pose pass over it; on the coach's phone that
+    // is somebody's data plan and battery for work nothing is waiting on. The
+    // report-open path still analyses on demand, so nothing is lost — only
+    // deferred to a desktop session.
+    try {
+      const conn = typeof navigator !== 'undefined' ? navigator.connection : null;
+      const metered = !!(conn && (conn.saveData || /^(slow-2g|2g)$/.test(conn.effectiveType || '')));
+      const phone = typeof window !== 'undefined' && window.matchMedia
+        && window.matchMedia('(max-width: 820px)').matches;
+      if (metered || phone) return undefined;
+    } catch { /* no navigator.connection — carry on */ }
     poseWarmRef.current = true;
     let cancelled = false;
     const base = (id) => String(id || '').split('__')[0];

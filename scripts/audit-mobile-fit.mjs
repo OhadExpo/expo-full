@@ -4,7 +4,7 @@
 // screenshot per route. Usage: node scripts/_tmp_mobile_audit.mjs [base] [routes...]
 import puppeteer from 'puppeteer-core';
 import fs from 'node:fs';
-const SP = 'C:/Users/ADMINI~1/AppData/Local/Temp/claude/C--Users-Administrator-Desktop-expo-full/5eaed3a7-6e52-4110-b142-fbc1967bff69/scratchpad';
+const SP = process.env.AUDIT_OUT || 'C:/Users/ADMINI~1/AppData/Local/Temp/claude/C--Users-Administrator-Desktop-expo-full/5eaed3a7-6e52-4110-b142-fbc1967bff69/scratchpad';
 const BASE = process.argv[2] || 'http://localhost:5173';
 const DEFAULT_ROUTES = [
   '/coach/dashboard', '/coach/athletes', '/coach/programs', '/coach/programs/pl_fkx3okgxmt4hsj2r',

@@ -119,10 +119,15 @@ export default function ExerciseCleanupView({ exercises = [], setExercises }) {
         <EmptyState message="Library is clean — no trash-looking entries detected." />
       ) : (
         <Card>
-          <div style={{ display: 'grid', gridTemplateColumns: '28px 1fr 170px 90px 60px', gap: 10, padding: '0 2px 8px', borderBottom: `1px solid ${C.bd}`, ...th }}>
+          {/* Five fixed columns need 388px before the title column gets a pixel;
+              at 390px the "Has" and "Plan rows" columns were pushed 72px past
+              the viewport and simply could not be read (mobile sweep 08-25).
+              The table scrolls inside its OWN container — the page never does. */}
+          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          <div style={{ minWidth: 420, display: 'grid', gridTemplateColumns: '28px 1fr 170px 90px 60px', gap: 10, padding: '0 2px 8px', borderBottom: `1px solid ${C.bd}`, ...th }}>
             <span /><span>Title</span><span>Why flagged</span><span style={{ textAlign: 'center' }}>Plan rows</span><span style={{ textAlign: 'center' }}>Has</span>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column' }} data-allow-copy>
+          <div style={{ minWidth: 420, display: 'flex', flexDirection: 'column' }} data-allow-copy>
             {rows.map((r) => (
               <label key={r.ex.id} style={{ display: 'grid', gridTemplateColumns: '28px 1fr 170px 90px 60px', gap: 10, alignItems: 'center', padding: '7px 2px', borderBottom: `0.25px solid ${C.bd}`, cursor: 'pointer', opacity: sel.has(r.ex.id) ? 1 : 0.72 }}>
                 <input type="checkbox" checked={sel.has(r.ex.id)} onChange={() => toggle(r.ex.id)} style={{ accentColor: '#DE4E3B', width: 15, height: 15 }} />
@@ -135,6 +140,7 @@ export default function ExerciseCleanupView({ exercises = [], setExercises }) {
                 </span>
               </label>
             ))}
+          </div>
           </div>
         </Card>
       )}

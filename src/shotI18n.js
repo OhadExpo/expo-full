@@ -106,7 +106,9 @@ export const SHOT_I18N = {
       ['זריקה אחת לקליפ', 'גם כמה זריקות בקליפ אחד בסדר — כל אחת מנוקדת ומושווית לעקביות.'],
       ['60 פריימים אם אפשר', 'סלואו-מושן / 60fps נותן תזמון שחרור מדויק יותר. טלפון יציב, תאורה טובה.'],
     ],
-    record: 'הקלטה →', gallery: 'מהגלריה', stopAnalyse: 'עצור ונתח',
+    // Forward CTA arrow points LEFT in RTL and sits at the logical end of the
+    // string, so it renders on the visual left (Ohad's RTL arrow rule).
+    record: 'הקלטה ←', gallery: 'מהגלריה', stopAnalyse: 'עצור ונתח',
     progress: { 'finding the athlete': 'מאתר את השחקן', 'reading the shots': 'קורא את הזריקות', done: 'סיום', '': 'קורא את הזריקה' },
 
     status: { ok: 'תקין', watch: 'לעקוב', fix: 'לתקן', na: 'אין' },

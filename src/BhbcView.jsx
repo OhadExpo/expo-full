@@ -1437,12 +1437,16 @@ function HeadCoachReport({ rows, fx, fixtures, medical, today, onOpen, onMedical
                   style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: clickable ? 'pointer' : 'default', padding: '2px 0' }}>
                   <span style={{ fontFamily: FN, fontWeight: 700, fontSize: 11.5, color: C.tx, width: 78, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{s.date === today ? 'Today' : `${dow(s.date)} ${monDay(s.date)}`}</span>
                   <span style={{ fontFamily: FN, fontSize: 11.5, fontWeight: 700, color: FX_COLOR[s.type] || NAVY, width: 46, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{s.start}</span>
-                  <span style={{ color: C.tm, flexShrink: 0 }}>{FX_LABEL[s.type] || 'Session'}{s.minutes ? ` · ${s.minutes} min` : ''}</span>
+                  {/* The descriptive label is the token that gives way: at 390px the
+                      fixed date + time columns plus this label pushed the + PLAN action
+                      86px past the viewport, where it could not be tapped at all
+                      (mobile sweep 08-25). The ACTION always stays whole. */}
+                  <span style={{ color: C.tm, flexShrink: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{FX_LABEL[s.type] || 'Session'}{s.minutes ? ` · ${s.minutes} min` : ''}</span>
                   {/* The plan for THAT slot, right where the week is read —
                       the Today card only ever covered today (Ohad: "where can
                       I see the plan for tonight?"). */}
                   {pl && (pl.focus || pl.plan)
-                    ? <span dir="auto" style={{ minWidth: 0, color: C.tx, fontFamily: FB, fontSize: 11.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>— {pl.focus || pl.plan}</span>
+                    ? <span dir="auto" style={{ flex: '1 1 auto', minWidth: 0, color: C.tx, fontFamily: FB, fontSize: 11.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>— {pl.focus || pl.plan}</span>
                     : clickable ? <span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.06em', color: ORANGE, flexShrink: 0 }}>+ PLAN</span> : null}
                 </div>
                 );
