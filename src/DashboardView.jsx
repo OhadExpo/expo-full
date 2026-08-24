@@ -8,6 +8,13 @@ import NotesWidget from './NotesWidget';
 import MessagesCard from './MessagesCard';
 import { syncAutoTasks } from './autoTasks';
 
+// A Bnei Herzliya athlete is a CLUB athlete: the club pays, so there is no
+// package and no session balance. Stripping the values at save time was not
+// enough — every record created before that still carries the old default, so
+// the dashboard was raising EXPIRING PACKAGES and LOW SESSIONS for athletes
+// who have neither. Any of the three markers counts (format / branch / team).
+const isClubAthlete = (t) => !!t && (t.format === 'Bnei Herzliya' || t.branch === 'Bnei Herzliya' || t.team === 'BHBC');
+
 // Dormant alert action: opens WhatsApp with a prefilled Hebrew check-in.
 // For couples we pick the member whose phone is set; if both have phones,
 // message the first member only (two conversations would duplicate the nudge).
@@ -91,7 +98,7 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
   const now = new Date();
   const thisMonthPaid = payments.filter(p => { const d=new Date(p.date); return d.getMonth()===now.getMonth() && d.getFullYear()===now.getFullYear() && p.status==='Paid'; }).reduce((a,p) => a + (parseFloat(p.amount)||0), 0);
   const totalAllPaid = payments.filter(p=>p.status==='Paid').reduce((a,p) => a + (parseFloat(p.amount)||0), 0);
-  const lowSessions = enriched.filter(t => t.sessionsRemaining > 0 && t.sessionsRemaining <= 2).length;
+  const lowSessions = enriched.filter(t => !isClubAthlete(t) && t.sessionsRemaining > 0 && t.sessionsRemaining <= 2).length;
 
   // Last month's income for comparison
   const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -183,7 +190,7 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
   });
 
   // Expiring packages: active with ≤2 sessions
-  const expiring = enriched.filter(t => t.status === 'Active' && t.sessionsRemaining > 0 && t.sessionsRemaining <= 2);
+  const expiring = enriched.filter(t => !isClubAthlete(t) && t.status === 'Active' && t.sessionsRemaining > 0 && t.sessionsRemaining <= 2);
 
   // Online now
   const ONLINE_MS = 2 * 60 * 1000;

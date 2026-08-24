@@ -225,7 +225,11 @@ function CardSection({ label, children, center = false }) {
   );
 }
 
-function TrainingBlock({ format, sessionsRemaining, programs, lastWk, center = false }) {
+// The three markers a Bnei Herzliya athlete can carry. PlansView already had to
+// accept all three; keep that in one place rather than re-deriving it per view.
+const isClubAthlete = (t) => !!t && (t.format === 'Bnei Herzliya' || t.branch === 'Bnei Herzliya' || t.team === 'BHBC');
+
+function TrainingBlock({ format, sessionsRemaining, programs, lastWk, center = false, clubAthlete = false }) {
   // Two fixed rows so card structure is uniform regardless of text length:
   //   row 1 — FORMAT · SESSIONS LEFT
   //   row 2 — N PROGRAMS
@@ -233,7 +237,13 @@ function TrainingBlock({ format, sessionsRemaining, programs, lastWk, center = f
   // Programs always starts on its own row even when there's space on row 1,
   // so neighbouring cards line up vertically.
   const justify = center ? 'center' : 'flex-start';
-  const hasSessions = sessionsRemaining != null && sessionsRemaining > 0;
+  // A club athlete has no session balance — the club pays (Ohad: "when bnei
+  // hertzeliya is applied: do not let me fill the packaage, the sessions
+  // remaing and the price"). Suppressing it at SAVE time was not enough: every
+  // record created before that still carries the old default, so the card kept
+  // announcing "8 SESSIONS LEFT" next to its own "NOT BILLABLE" line. Hidden on
+  // READ, so stale data cannot contradict the card.
+  const hasSessions = !clubAthlete && sessionsRemaining != null && sessionsRemaining > 0;
   if (!format && !hasSessions && !(programs > 0) && !lastWk) return null;
   return (
     <CardSection label="Training" center={center}>
@@ -815,7 +825,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                   </div>
 
                   <FinancialsBlock pay={pay} monthly={t.monthly} center />
-                  <TrainingBlock format={t.format} sessionsRemaining={t.sessionsRemaining} programs={sharedProgramsCount} lastWk={lastWk} center />
+                  <TrainingBlock format={t.format} sessionsRemaining={t.sessionsRemaining} programs={sharedProgramsCount} lastWk={lastWk} center clubAthlete={isClubAthlete(t)} />
 
                   {/* BODYWEIGHT — per-member, since each has their own curve.
                       Centered, two mini-blocks under one shared label. */}
@@ -901,7 +911,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
               </div>
 
               <FinancialsBlock pay={pay} monthly={t.monthly} center />
-              <TrainingBlock format={t.format} sessionsRemaining={t.sessionsRemaining} programs={programs} lastWk={lastWk} center />
+              <TrainingBlock format={t.format} sessionsRemaining={t.sessionsRemaining} programs={programs} lastWk={lastWk} center clubAthlete={isClubAthlete(t)} />
               <BodyweightBlock entries={bwEntries} center />
 
               {showArchived && <div style={{ display: "flex", gap: 6, marginTop: 'auto', paddingTop: 10 }}>
