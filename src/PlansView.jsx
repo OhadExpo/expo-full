@@ -1748,11 +1748,20 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
     // shadowed any coach-written note. ex.n is now the single source of
     // truth for what the athlete sees.
     const lib = exerciseId ? (exercises || []).find(e => e.id === exerciseId) : null;
-    if (lib?.cues) ex.n = lib.cues;
+    // Seed the field the CONSUMERS actually read. Writing only ex.n was dead:
+    // ClientPortal resolves `pe.notes ?? pe.n` and defaultPlanEx() already sets
+    // notes:'' (not nullish), so the cues never reached the athlete — and
+    // normalizeDays dropped the stray `n` on the next save (audit 08-22).
+    if (lib?.cues) { ex.notes = lib.cues; ex.n = lib.cues; }
     // Snapshot the title into the plan row. Athletes cannot read the exercise
     // library (RLS staff-only), so a row with only exerciseId renders as
     // "Exercise N" on their device. The plan must be self-contained.
     ex.title = lib?.title || '';
+    // Same reason the title is snapshotted: with an empty library on the athlete
+    // seat, an un-snapshotted video simply never appears. Only set it when one
+    // exists — '' is the explicit "no video" state and would block inheriting a
+    // video the library gains later.
+    if (lib?.videoLink) ex.videoUrl = lib.videoLink;
     updateDay(activeDay, { exercises: [...(plan.days[activeDay]?.exercises || []), ex] });
     setOvExpanded(prev => ({ ...prev, [ex.id]: true })); // Ohad: a newly-added exercise opens expanded
   };
@@ -2345,7 +2354,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                               video URL (50/50, aligned with notes/thumb below). */}
                           <ExEditorExtras ex={ex} exData={exData} exTitle={title} update={update} onResolveVideo={onResolveVideo} showEmbed={exOpen}
                             exercises={exercises} setExercises={setExercises}
-                            picker={<ExPicker exercises={exercises} value={ex.exerciseId} onChange={id=>{ if (id === ex.exerciseId) return; const lib = exById(exercises).get(id); update({ exerciseId: id, title: lib?.title || '', videoUrl: lib?.videoLink || '', vid: undefined, notes: '', notesEdited: false, n: lib?.cues || '' }); }} onPickName={name=>update({ exerciseId:'', title:name, videoUrl: '', vid: undefined, notes: '', notesEdited: false, n: '' })}
+                            picker={<ExPicker exercises={exercises} value={ex.exerciseId} onChange={id=>{ if (id === ex.exerciseId) return; const lib = exById(exercises).get(id); update({ exerciseId: id, title: lib?.title || '', videoUrl: lib?.videoLink || undefined, vid: undefined, notes: lib?.cues || '', notesEdited: false, n: lib?.cues || '' }); }} onPickName={name=>update({ exerciseId:'', title:name, videoUrl: '', vid: undefined, notes: '', notesEdited: false, n: '' })}
                               onCreateLibrary={setExercises ? (name => { const id = addLibExercise(setExercises, name); if (id) update({ exerciseId: id, title: name, notes: '', notesEdited: false, n: '' }); }) : undefined}
                               label="Exercise" fallbackTitle={ex.title} />} />
                         </div>

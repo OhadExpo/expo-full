@@ -42,6 +42,9 @@ const ytId = (url) => {
   const m = String(url || '').match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/);
   return m ? m[1] : null;
 };
+// Title key for previous-week matching — mirrors the portal's normalization.
+const prevTitleKey = (t) => { const n = String(t || '').toLowerCase().trim(); return n ? `t:${n}` : ''; };
+
 function InlineVideo({ url }) {
   const yt = ytId(url);
   if (yt) {
@@ -118,7 +121,18 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
     const out = {};
     for (const [k, w] of Object.entries(tmp)) {
       const m = new Map();
-      for (const ex of (w.exercises || [])) { const id = ex.exerciseId || ex.eid; if (id && !m.has(id)) m.set(id, ex.sets || []); }
+      // Index by id AND normalized title. Portal-logged rows carry portal-derived
+      // eids ('dyn_…' / baseline keys) that never equal the plan's exerciseId, so
+      // an id-only map silently lost the previous-week ghost whenever the athlete
+      // logged that week themselves — the normal case (audit 08-22). Same
+      // eid-then-title rule the portal's own matchers use.
+      for (const ex of (w.exercises || [])) {
+        const id = ex.exerciseId || ex.eid;
+        const sets = ex.sets || [];
+        if (id && !m.has(id)) m.set(id, sets);
+        const tk = prevTitleKey(ex.title);
+        if (tk && !m.has(tk)) m.set(tk, sets);
+      }
       out[k] = m;
     }
     return out;
@@ -612,7 +626,7 @@ function AthleteCard({ a, name, prevMap, exDetail, onToggleIn, onSet, onCurEx, o
       <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
         {a.exercises.length === 0 && <div style={{ color: C.td, fontSize: 12, padding: 8, textAlign: 'center' }}>No exercises on this day.</div>}
         {a.exercises.map((ex, ei) => {
-          const prevSets = prevMap?.get(ex.eid);
+          const prevSets = prevMap?.get(ex.eid) || prevMap?.get(prevTitleKey(ex.title));
           const det = exDetail?.[`${a.planId}|${ex.eid}`] || {};
           const tempo = ex.tempo || det.tempo || '';
           const videoUrl = ex.videoUrl || det.videoUrl || '';

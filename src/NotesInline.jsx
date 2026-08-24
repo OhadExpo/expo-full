@@ -55,6 +55,20 @@ function pillBtn(color) {
   };
 }
 
+// Card chrome for NotesInline, defined at module scope so its identity is
+// stable across renders (see the note in NotesInline).
+function BareOuter({ children }) { return <div>{children}</div>; }
+function CardOuter({ pad, children }) {
+  return (
+    <div style={{
+      background: 'var(--c-sf)',
+      border: '1px solid var(--c-cardBd)', borderRadius: 0,
+      padding: pad, marginBottom: 12,
+      boxShadow: C.cardShadow,
+    }}>{children}</div>
+  );
+}
+
 export default function NotesInline({
   targetKind, targetId, targetLabel, compact = false,
   label = 'NOTES', onCreatePlanForTask, onOpenIntakeTab,
@@ -153,18 +167,13 @@ export default function NotesInline({
   // bareMode = render only the body (no outer card / no header strip).
   // Used by TraineeCRM to merge NEXT ACTIONS into a unified COACH
   // HISTORY card alongside ACTIVITY.
-  const Outer = ({ children }) => bareMode
-    ? <div>{children}</div>
-    : (
-      <div style={{
-        background: 'var(--c-sf)',
-        border: `1px solid var(--c-cardBd)`, borderRadius: 0,
-        padding: PAD, marginBottom: 12,
-        boxShadow: C.cardShadow,
-      }}>{children}</div>
-    );
+  // Outer used to be DEFINED HERE, inside render — a new component identity per
+  // render, so React unmounted/remounted this whole card on every keystroke and
+  // focus fell out of the composer after each character (audit 08-22). It is a
+  // plain element now; nothing below changes identity between renders.
+  const Outer = bareMode ? BareOuter : CardOuter;
   return (
-    <Outer>
+    <Outer pad={PAD}>
       {/* Placeholder uses var(--c-td) — the muted grey we use for "inactive"
           / "no data" labels elsewhere. Browser default renders placeholder
           as a faded version of color, which on the white-on-dark textarea

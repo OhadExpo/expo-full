@@ -658,6 +658,27 @@ export const Card = ({ children, style, onClick, onMouseEnter, onMouseLeave, hea
     </div>
   );
 };
+// Body-scroll lock, refcounted. Per-instance save/restore broke whenever two
+// overlays were open at once: the inner one saved 'hidden' (the outer's lock),
+// and when both unmounted in the SAME commit React ran cleanups in tree order —
+// outer restored '', then inner re-applied 'hidden'. The page stayed
+// permanently unscrollable until a reload (audit 08-22). A counter makes the
+// last overlay out the one that unlocks.
+let scrollLocks = 0;
+let scrollPrev = '';
+function lockBodyScroll() {
+  if (typeof document === 'undefined') return () => {};
+  if (scrollLocks === 0) { scrollPrev = document.body.style.overflow; document.body.style.overflow = 'hidden'; }
+  scrollLocks++;
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    scrollLocks = Math.max(0, scrollLocks - 1);
+    if (scrollLocks === 0) document.body.style.overflow = scrollPrev;
+  };
+}
+
 export const Modal = ({ open, onClose, title, children, wide }) => {
   const titleId = React.useId();
   const cardRef = React.useRef(null);
@@ -673,8 +694,7 @@ export const Modal = ({ open, onClose, title, children, wide }) => {
     if (!open) return;
     // Lock background scroll while the modal is open — a blocking overlay must
     // not let the page behind it scroll (especially on phones). Restored on close.
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const releaseScroll = lockBodyScroll();
     // Save the focus element so we can restore on close — keyboard users
     // expect focus to return to the trigger that opened the modal.
     lastFocusRef.current = (typeof document !== 'undefined') ? document.activeElement : null;
@@ -720,7 +740,7 @@ export const Modal = ({ open, onClose, title, children, wide }) => {
     return () => {
       window.removeEventListener('keydown', onKey);
       clearTimeout(t);
-      document.body.style.overflow = prevOverflow;
+      releaseScroll();
       // Restore focus on close — wrapped in try because the prior element
       // may have unmounted (e.g. modal opened from a deleted row).
       try { lastFocusRef.current?.focus?.(); } catch {}
@@ -753,7 +773,7 @@ export const ConfirmDialog = ({ open, onConfirm, onCancel, title, message }) => 
   onCancelRef.current = onCancel;
   React.useEffect(() => {
     if (!open) return;
-    const prevOverflow = document.body.style.overflow; document.body.style.overflow = 'hidden'; // lock bg scroll while open
+    const releaseScroll = lockBodyScroll(); // refcounted — see lockBodyScroll
     // Mirror Modal's a11y — this is a destructive-confirm dialog, so
     // keyboard escape-to-cancel and focus containment matter most here.
     lastFocusRef.current = (typeof document !== 'undefined') ? document.activeElement : null;
@@ -782,7 +802,7 @@ export const ConfirmDialog = ({ open, onConfirm, onCancel, title, message }) => 
     return () => {
       window.removeEventListener('keydown', onKey);
       clearTimeout(t);
-      document.body.style.overflow = prevOverflow;
+      releaseScroll();
       try { lastFocusRef.current?.focus?.(); } catch {}
     };
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps -- onCancel via ref

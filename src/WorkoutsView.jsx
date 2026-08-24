@@ -24,6 +24,9 @@ const ytId = (url) => {
 const SS_PALETTE = [C.ac, C.pu, C.or, C.gn, C.pk].filter(Boolean);
 const ssColor = (ss) => ss ? SS_PALETTE[(ss.toUpperCase().charCodeAt(0) - 65) % SS_PALETTE.length] : C.td;
 
+// Title key for previous-week matching — mirrors the portal's normalization.
+const prevTitleKey = (t) => { const n = String(t || '').toLowerCase().trim(); return n ? `t:${n}` : ''; };
+
 function InlineVideo({ url }) {
   const yt = ytId(url);
   if (yt) {
@@ -77,19 +80,22 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
         // Tolerate both shapes: coach workouts use exerciseId/completed;
         // athlete client_workouts use eid/done.
         const id = pex.exerciseId || pex.eid;
-        if (!id || out.has(id)) continue;
+        const tk = prevTitleKey(pex.title); // portal eids never match plan ids (audit 08-22)
+        if ((!id || out.has(id)) && (!tk || out.has(tk))) continue;
         const sets = pex.sets || [];
         // A logged load qualifies even if the "done" box was skipped.
         const done = sets.filter(s => (s.completed || s.done) && parseFloat(s.load) > 0);
         const logged = done.length ? done : sets.filter(s => parseFloat(s.load) > 0);
         if (!logged.length) continue;
         const top = logged.reduce((a, b) => parseFloat(b.load) > parseFloat(a.load) ? b : a);
-        out.set(id, { load: top.load, reps: top.reps, date: pw.completedAt || pw.date });
+        const entry = { load: top.load, reps: top.reps, date: pw.completedAt || pw.date };
+        if (id && !out.has(id)) out.set(id, entry);
+        if (tk && !out.has(tk)) out.set(tk, entry);
       }
     }
     return out;
   }, [priorWorkouts]);
-  const lastTimeFor = (ex) => lastTimeById.get(ex.exerciseId) || null;
+  const lastTimeFor = (ex) => lastTimeById.get(ex.exerciseId) || lastTimeById.get(prevTitleKey(ex.title)) || null;
   // Per-set previous-week reference (the portal's progressive-overload ghost):
   // what the athlete logged for THIS plan + day in the immediately previous
   // week. Keyed by exercise id → that exercise's set array. Tolerates both
@@ -103,8 +109,10 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
       if ((Number(pw.week) || 0) !== tgt) continue;
       for (const pex of (pw.exercises || [])) {
         const id = pex.exerciseId || pex.eid;
-        if (!id || out.has(id)) continue;
-        out.set(id, pex.sets || []);
+        const sets = pex.sets || [];
+        if (id && !out.has(id)) out.set(id, sets);
+        const tk = prevTitleKey(pex.title);
+        if (tk && !out.has(tk)) out.set(tk, sets);
       }
     }
     return out;
@@ -139,7 +147,7 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
   const renderExercise = (ex, exIdx, inGroup, withDivider, groupControlled = false) => {
     const exData = exById.get(ex.exerciseId);
     const videoUrl = ex.videoUrl ?? ex.vid ?? exData?.videoLink ?? '';
-    const prevSets = prevWeek.get(ex.exerciseId);   // previous-week set array (or undefined)
+    const prevSets = prevWeek.get(ex.exerciseId) || prevWeek.get(prevTitleKey(ex.title));   // previous-week set array (or undefined) — id, then title (portal eids differ)
     const prevWeekNum = (Number(workout.week) || 1) - 1;
     const cue = ex.q || exData?.cues || ex.notes;
     const doneCount = ex.sets.filter(s => s.completed).length;
