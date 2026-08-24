@@ -17,8 +17,13 @@
    colour (cyan/red/green per variant) on hover. (Ohad OCD audit.) */
 /* !important: every <Btn> carries an inline background (baseBtn/variants) that
    would otherwise outrank this rule and leave the hover inert. */
-.expo-btn:hover { background: rgba(127,127,127,0.10) !important; }
-.expo-btn:hover { background: color-mix(in srgb, currentColor 12%, transparent) !important; }
+.expo-btn:not(.expo-btn--filled):hover { background: rgba(127,127,127,0.10) !important; }
+/* Filled CTAs keep their inline fill and just brighten — the blanket
+   !important rule replaced a solid button's background with a 12% tint of its
+   own TEXT colour on hover, so dark-text-on-cyan CTAs became unreadable
+   exactly at click time (audit 08-22). */
+.expo-btn:not(.expo-btn--filled):hover { background: color-mix(in srgb, currentColor 12%, transparent) !important; }
+.expo-btn--filled:hover { filter: brightness(1.08); }
 
 /* Single-row control strips that may overflow on narrow widths: keep them on one
    line and scrollable without a visible scrollbar (e.g. TraineeDetail section tabs). */

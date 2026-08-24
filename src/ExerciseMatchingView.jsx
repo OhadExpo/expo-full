@@ -203,7 +203,7 @@ export default function ExerciseMatchingView({ exercises = [], setExercises }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <span style={{ ...th, color: '#fff' }}>{groups.length} titles · {totalEntries} rows</span>
           <Btn variant="ghost" onClick={acceptAllHighConfidence}>Accept all high-confidence</Btn>
-          <Btn disabled={!affectedRows || applying} onClick={() => setConfirm(true)} style={{ background: affectedRows ? C.ac : undefined, borderColor: affectedRows ? C.ac : undefined, color: affectedRows ? '#04121f' : undefined }}>
+          <Btn disabled={!affectedRows || applying} onClick={() => setConfirm(true)} style={{ background: affectedRows ? '#39BDFF' : undefined, borderColor: affectedRows ? '#39BDFF' : undefined, color: affectedRows ? '#06131b' : undefined }} /* literal cyan — C.ac resolves near-black in the light theme (audit 08-22) */>
             {applying ? 'Applying…' : `Apply ${accepted.length} match${accepted.length === 1 ? '' : 'es'} (${affectedRows} rows)`}
           </Btn>
         </div>}>
@@ -285,7 +285,7 @@ export default function ExerciseMatchingView({ exercises = [], setExercises }) {
             </div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <Btn variant="ghost" onClick={() => setConfirm(false)}>Cancel</Btn>
-              <Btn onClick={apply} style={{ background: C.ac, borderColor: C.ac, color: '#04121f' }}>Apply {affectedRows} rows</Btn>
+              <Btn onClick={apply} style={{ background: '#39BDFF', borderColor: '#39BDFF', color: '#06131b' }}>Apply {affectedRows} rows</Btn>
             </div>
           </div>
         </Modal>

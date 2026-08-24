@@ -29,8 +29,23 @@ function inAllowedZone(target) {
 
 export function installCopyGuard() {
   if (typeof document === 'undefined') return;
+  // Copying/cutting text you typed into a FORM FIELD is data entry, not content
+  // exfiltration — blocking it made Ctrl+X a silent no-op (clipboard kept its
+  // old contents, and the next paste wrote stale data) and killed right-click
+  // paste in every input (audit 08-22).
+  const isFormField = (el) => {
+    let n = el;
+    while (n && n !== document.body) {
+      const tag = (n.tagName || '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || tag === 'select') return true;
+      if (n.isContentEditable) return true;
+      n = n.parentElement;
+    }
+    return false;
+  };
   const block = (e) => {
     if (inAllowedZone(e.target)) return; // program editor — let it through
+    if (isFormField(e.target)) return;   // the coach's own data entry
     e.preventDefault();
   };
   // Capture phase so the guard wins even if a child stops propagation.

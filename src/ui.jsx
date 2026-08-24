@@ -110,8 +110,15 @@ const variants = {
   danger: { background: 'transparent', color: C.rd, border: `1px solid ${C.rd}` },
   success: { background: 'transparent', color: C.gn, border: `1px solid ${C.gn}` },
 };
-export const Btn = ({ children, variant = "primary", onClick, style, className, ...rest }) =>
-  <button onClick={onClick} className={"expo-btn" + (className ? " " + className : "")} style={{ ...baseBtn, ...variants[variant], ...style }} {...rest}>{children}</button>;
+export const Btn = ({ children, variant = "primary", onClick, style, className, ...rest }) => {
+  // A solid inline background opts out of the blanket hover-tint rule (see
+  // themes.css) so filled CTAs stay readable while hovered.
+  const bg = style && style.background;
+  const filled = !!bg && bg !== 'transparent' && bg !== 'none';
+  return <button onClick={onClick}
+    className={"expo-btn" + (filled ? " expo-btn--filled" : "") + (className ? " " + className : "")}
+    style={{ ...baseBtn, ...variants[variant], ...style }} {...rest}>{children}</button>;
+};
 
 /** Spread onto a non-<button> click target (a div/span row, an expander) to make
  *  it keyboard-operable: asButton(handler) → { role, tabIndex, onClick, onKeyDown }
@@ -658,6 +665,24 @@ export const Card = ({ children, style, onClick, onMouseEnter, onMouseLeave, hea
     </div>
   );
 };
+// Overlay stack. Escape must close ONLY the topmost overlay: Modal,
+// ConfirmDialog and useEscClose all attach window-level keydown listeners, and
+// preventDefault does not stop the others — so one Escape used to close a
+// confirm AND the editor beneath it, discarding a whole unsaved evaluation
+// (audit 08-22). Every overlay registers here on open and asks isTopOverlay()
+// before reacting.
+let overlaySeq = 0;
+const overlayStack = [];
+function pushOverlay() {
+  const id = ++overlaySeq;
+  overlayStack.push(id);
+  return {
+    id,
+    isTop: () => overlayStack[overlayStack.length - 1] === id,
+    release: () => { const i = overlayStack.indexOf(id); if (i >= 0) overlayStack.splice(i, 1); },
+  };
+}
+
 // Body-scroll lock, refcounted. Per-instance save/restore broke whenever two
 // overlays were open at once: the inner one saved 'hidden' (the outer's lock),
 // and when both unmounted in the SAME commit React ran cleanups in tree order —
@@ -695,13 +720,15 @@ export const Modal = ({ open, onClose, title, children, wide }) => {
     // Lock background scroll while the modal is open — a blocking overlay must
     // not let the page behind it scroll (especially on phones). Restored on close.
     const releaseScroll = lockBodyScroll();
+    const layer = pushOverlay();
     // Save the focus element so we can restore on close — keyboard users
     // expect focus to return to the trigger that opened the modal.
     lastFocusRef.current = (typeof document !== 'undefined') ? document.activeElement : null;
     const FOCUSABLE = 'input:not([disabled]), textarea:not([disabled]), select:not([disabled]), button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])';
     const onKey = (e) => {
-      if (e.key === 'Escape') { e.preventDefault(); onCloseRef.current?.(); return; }
+      if (e.key === 'Escape') { if (!layer.isTop()) return; e.preventDefault(); onCloseRef.current?.(); return; }
       if (e.key !== 'Tab') return;
+      if (!layer.isTop()) return; // stacked overlays: only the top one traps Tab (audit 08-22)
       // Focus trap — keep Tab cycling inside the card. Without this,
       // keyboard users can Tab out of the modal into the underlying
       // page even though the modal is visually scrimmed.
@@ -740,6 +767,7 @@ export const Modal = ({ open, onClose, title, children, wide }) => {
     return () => {
       window.removeEventListener('keydown', onKey);
       clearTimeout(t);
+      layer.release();
       releaseScroll();
       // Restore focus on close — wrapped in try because the prior element
       // may have unmounted (e.g. modal opened from a deleted row).
@@ -774,13 +802,15 @@ export const ConfirmDialog = ({ open, onConfirm, onCancel, title, message }) => 
   React.useEffect(() => {
     if (!open) return;
     const releaseScroll = lockBodyScroll(); // refcounted — see lockBodyScroll
+    const layer = pushOverlay();
     // Mirror Modal's a11y — this is a destructive-confirm dialog, so
     // keyboard escape-to-cancel and focus containment matter most here.
     lastFocusRef.current = (typeof document !== 'undefined') ? document.activeElement : null;
     const FOCUSABLE = 'input:not([disabled]), textarea:not([disabled]), select:not([disabled]), button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])';
     const onKey = (e) => {
-      if (e.key === 'Escape') { e.preventDefault(); onCancelRef.current?.(); return; }
+      if (e.key === 'Escape') { if (!layer.isTop()) return; e.preventDefault(); onCancelRef.current?.(); return; }
       if (e.key !== 'Tab') return;
+      if (!layer.isTop()) return; // stacked overlays: only the top one traps Tab (audit 08-22)
       const node = cardRef.current;
       if (!node) return;
       const focusables = Array.from(node.querySelectorAll(FOCUSABLE)).filter(el => el.offsetParent !== null || el === node);
@@ -802,6 +832,7 @@ export const ConfirmDialog = ({ open, onConfirm, onCancel, title, message }) => 
     return () => {
       window.removeEventListener('keydown', onKey);
       clearTimeout(t);
+      layer.release();
       releaseScroll();
       try { lastFocusRef.current?.focus?.(); } catch {}
     };
@@ -841,9 +872,12 @@ export const useEscClose = (active, onClose) => {
     // Element focused before the dialog opened — restored on close so
     // keyboard users return to where they were.
     const prevFocus = (typeof document !== 'undefined') ? document.activeElement : null;
+    const layer = pushOverlay();
     const onKey = (e) => {
-      if (e.key === 'Escape') { e.preventDefault(); onCloseRef.current?.(); return; }
+      // Topmost only — a confirm opened OVER this surface owns the Escape.
+      if (e.key === 'Escape') { if (!layer.isTop()) return; e.preventDefault(); onCloseRef.current?.(); return; }
       if (e.key !== 'Tab') return;
+      if (!layer.isTop()) return; // stacked overlays: only the top one traps Tab (audit 08-22)
       // Trap within the topmost dialog (last one mounted wins for stacks).
       const dialogs = document.querySelectorAll('[role="dialog"]');
       const node = dialogs[dialogs.length - 1];
@@ -857,6 +891,7 @@ export const useEscClose = (active, onClose) => {
     window.addEventListener('keydown', onKey);
     return () => {
       window.removeEventListener('keydown', onKey);
+      layer.release();
       // Wrapped — the trigger may have unmounted (e.g. a deleted row).
       try { prevFocus?.focus?.(); } catch {}
     };
