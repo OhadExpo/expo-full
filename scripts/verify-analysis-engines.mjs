@@ -49,6 +49,7 @@ const suites = [
   'verify-balance.mjs',              // BALANCE/SWAY — postural sway steadiness (single-leg balance)
   // --- 2026-08-25 live-sync ---
   'verify-session-merge.mjs',        // mergeIncomingSession — two coach devices on the floor must not revert each other (audit #43)
+  'verify-offline-queue.mjs',        // the offline write queue — where a bug silently destroys an athlete's logged workout
   'verify-storage-url.mjs',          // parseStoredUrl — the resolver that lets the media buckets go private without breaking playback
   'verify-plan-log-match.mjs',       // isLogOfPlan — a couple's identically-named plans must not cross-contaminate, WITHOUT regressing a recreated block (audit #31)
 ];
