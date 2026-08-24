@@ -613,7 +613,13 @@ function AuthGate() {
     if (path === '/demo' || path === '/demo/' || path.startsWith('/coaches')) {
       return <Suspense fallback={<BootSplash />}><CoachLanding lang="en" /></Suspense>;
     }
-    if (isBhbcPath) return <LoginScreen brand="bhbc" />;
+    if (isBhbcPath) {
+      // Signed out at /bhbc → send them to the club's login URL so the address
+      // bar says what the page is (and a refresh keeps them there). Signed in,
+      // /bhbc goes straight through to the zone (handled below).
+      if (!/\/login\/?$/.test(path)) { try { window.history.replaceState(null, '', '/bhbc/login'); } catch { /* noop */ } }
+      return <LoginScreen brand="bhbc" />;
+    }
     return <LoginScreen />;
   }
   // SaveErrorToast rides alongside AuthedApp so a failed write from any
@@ -920,7 +926,12 @@ function AuthedApp() {
     const p = window.location.pathname;
     // Short club URL: /bhbc (and /bhbc/login) are the Bnei Herzliya door and
     // resolve to the same zone tab as /coach/bhbc.
-    if (/^\/bhbc\/?(login\/?)?$/.test(p)) return { mode: 'coach', tab: 'bhbc', traineeId: null };
+    if (/^\/bhbc\/?(login\/?)?$/.test(p)) {
+      // Already signed in? /bhbc/login is not a page any more — normalise the
+      // URL to the zone so a bookmarked login link just opens the app.
+      if (/login\/?$/.test(p)) { try { window.history.replaceState(null, '', '/bhbc'); } catch { /* noop */ } }
+      return { mode: 'coach', tab: 'bhbc', traineeId: null };
+    }
     if (p === '/coach' || p.startsWith('/coach/')) {
       const sub = p.replace('/coach','').replace(/^\//,'');
       // /coach/athletes is canonical; /coach/trainees still resolves for any
