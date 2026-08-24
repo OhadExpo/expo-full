@@ -145,13 +145,20 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
     let cancelled = false;
     (async () => {
       try {
+        // Ordered + a headroom cap, and truncation is NOTICED. This total is
+        // money owed: an unordered .limit(500) takes an arbitrary 500 rows, so
+        // the moment pending requests pass the cap the figure silently
+        // UNDERSTATES what is owed, with nothing anywhere saying so.
+        const OUTSTANDING_CAP = 2000;
         const { data } = await supabase
           .from('bit_payment_requests')
           .select('amount, status')
           .eq('status', 'pending')
-          .limit(500);
+          .order('created_at', { ascending: false })
+          .limit(OUTSTANDING_CAP);
         if (cancelled) return;
         const arr = data || [];
+        if (arr.length >= OUTSTANDING_CAP) console.warn('[dashboard] outstanding total hit the row cap — the figure is understated');
         setOutstanding({
           amount: arr.reduce((a, r) => a + (parseFloat(r.amount) || 0), 0),
           count: arr.length,
@@ -441,10 +448,17 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
     // `data` instead and project the two keys the rule consumers need.
     let cancelled = false;
     (async () => {
+      // Newest first: the rules reason about CURRENT blocks, so if the cap is
+      // ever reached it must bite on the oldest plans, not on an arbitrary set.
+      // Unordered, a plan count past the cap would silently hide live programs
+      // from every rule and spawn (or miss) tasks with no signal at all.
+      const PLAN_CAP = 2000;
       const { data: plans, error: plansErr } = await supabase
         .from('plans')
         .select('id, name, trainee_id, data, created_at')
-        .limit(500);
+        .order('created_at', { ascending: false })
+        .limit(PLAN_CAP);
+      if ((plans || []).length >= PLAN_CAP) console.warn('[autoTasks] plan read hit the row cap — rules are seeing a subset');
       // A failed read would make the no-plan rule fire for every trainee —
       // one transient error must not spawn ~20 spurious auto-tasks.
       if (plansErr) { console.warn('autoTasks: plans read failed, skipping sync', plansErr); return; }

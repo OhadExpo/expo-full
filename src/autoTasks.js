@@ -578,9 +578,13 @@ export async function syncAutoTasks({ trainees, plans, workouts, payments } = {}
   let leads = [];
   try {
     const [i, e, a, l] = await Promise.all([
-      supabase.from('intake_submissions').select('id, name, email, trainee_id, form_type, reviewed_at, created_at').limit(500),
-      supabase.from('trainee_evaluations').select('id, trainee_id, eval_date').limit(500),
-      supabase.from('trainee_activity').select('id, trainee_id, occurred_at, kind').limit(500),
+      // Newest-first on every one of these: they feed a RULES engine, and an
+      // unordered cap hands it an arbitrary slice — the rules then fire, or fail
+      // to fire, on rows chosen at random. trainee_activity in particular grows
+      // monotonically and will reach the cap.
+      supabase.from('intake_submissions').select('id, name, email, trainee_id, form_type, reviewed_at, created_at').order('created_at', { ascending: false }).limit(500),
+      supabase.from('trainee_evaluations').select('id, trainee_id, eval_date').order('eval_date', { ascending: false }).limit(500),
+      supabase.from('trainee_activity').select('id, trainee_id, occurred_at, kind').order('occurred_at', { ascending: false }).limit(500),
       supabase.from('leads').select('id, email, source, context, notes, consumed_at, created_at').is('consumed_at', null).limit(200),
     ]);
     intakeSubmissions = i.data || [];
