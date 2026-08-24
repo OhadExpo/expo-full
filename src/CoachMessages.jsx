@@ -15,6 +15,7 @@ import { supabase, SUPA_URL, SUPA_PUBLISHABLE_KEY } from './supabase';
 import { isRefined5b, RefinedHeaderStrip, toast, usePersistentState } from './ui';
 import { sendPush, isCoachMutedForAthlete } from './push';
 import { DEMO_MESSAGES } from './demoTraineeData';
+import { resolveStoredUrl } from './storageUrl';
 
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
 const fmt = (iso) => {
@@ -25,6 +26,24 @@ const fmt = (iso) => {
 // Recorder hook — owns the MediaRecorder lifecycle. Returns { recording,
 // elapsed, blob, error, start(), stop(), reset() }. Caller is responsible
 // for uploading the blob to storage.
+// A coach voice note. The URL is resolved through storageUrl: coach-voice paths
+// are `traineeId/timestamp.ext` with no random component, so while the bucket is
+// world-readable they are guessable, not merely leakable. Signing is a no-op
+// today and becomes the fix the moment the bucket goes private; any failure
+// falls back to the stored URL so a note never silently stops playing.
+function VoiceNote({ url, spaced }) {
+  const [src, setSrc] = React.useState(url);
+  React.useEffect(() => {
+    let alive = true;
+    setSrc(url);
+    if (!url) return undefined;
+    resolveStoredUrl(url).then((u) => { if (alive && u) setSrc(u); }).catch(() => {});
+    return () => { alive = false; };
+  }, [url]);
+  return <audio controls preload="none" src={src}
+    style={{ display: 'block', maxWidth: '100%', marginBottom: spaced ? 6 : 0 }} />;
+}
+
 function useVoiceRecorder() {
   const [recording, setRecording] = useState(false);
   const [elapsed, setElapsed] = useState(0);
@@ -215,10 +234,7 @@ function MessageBubble({ msg, viewerRole }) {
         <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.08em', marginBottom: 4 }}>
           {msg.sender_role === 'coach' ? 'COACH' : 'ATHLETE'} · {fmt(msg.created_at)}
         </div>
-        {msg.audio_url && (
-          <audio controls preload="none" src={msg.audio_url}
-            style={{ display: 'block', maxWidth: '100%', marginBottom: msg.body_text ? 6 : 0 }} />
-        )}
+        {msg.audio_url && <VoiceNote url={msg.audio_url} spaced={!!msg.body_text} />}
         {msg.body_text && (
           <div style={{
             fontSize: 13, color: 'var(--c-tx)', lineHeight: 1.4, whiteSpace: 'pre-wrap',

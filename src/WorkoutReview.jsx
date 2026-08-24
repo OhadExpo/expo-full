@@ -24,6 +24,7 @@ import {
   ANGLE_DEFS, angleAt, detectChannels, medianFilter, findPeaks, filterRealPeaks, SMOOTH_N,
 } from './repCounter';
 import { detectLift, channelFromPose, CHANNELS } from './liftDetect';
+import { resolveStoredUrl } from './storageUrl';
 
 const bi = {background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,padding:"8px 10px",borderRadius:0,
   color:C.tx,fontFamily:FB,fontSize:13,outline:"none",width:"100%",boxSizing:"border-box",textAlign:"center"};
@@ -120,7 +121,20 @@ export function FormVideoPlayer(props) {
   );
 }
 
-function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onReviewNotesChange, role = 'trainer', recordedReps = [], targetReps = null }) {
+function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNotes, onReviewNotesChange, role = 'trainer', recordedReps = [], targetReps = null }) {
+  // Athlete form videos are the most private thing the platform stores. The URL
+  // is resolved through storageUrl so it keeps playing when the buckets stop
+  // being world-readable — a no-op while they are still public, because signing
+  // works on a public bucket too, and it falls back to the raw URL on any
+  // failure so a signing hiccup can never blank a clip that would have played.
+  const [url, setUrl] = useState(rawUrl);
+  useEffect(() => {
+    let alive = true;
+    setUrl(rawUrl);
+    if (!rawUrl) return undefined;
+    resolveStoredUrl(rawUrl).then((u) => { if (alive && u) setUrl(u); }).catch(() => {});
+    return () => { alive = false; };
+  }, [rawUrl]);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const landmarkerRef = useRef(null);

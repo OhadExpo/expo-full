@@ -14,6 +14,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
 import { DEMO_MEALS } from './demoTraineeData';
+import { resolveStoredUrl } from './storageUrl';
 
 const BUCKET = 'meal-photos';
 
@@ -521,7 +522,18 @@ function MacroInput({ label, value, onChange }) {
 // but the demo fixture and any legacy/photo-less row must not render a broken
 // <img>. Fall back to a neutral placeholder tile.
 function MealThumb({ url, size }) {
-  if (url) return <img src={url} alt="" style={{ width: size, height: size, objectFit: 'cover', flexShrink: 0 }} />;
+  // Resolved through storageUrl so meal photos keep loading once the buckets
+  // stop being world-readable — a no-op while they are still public, with a
+  // fallback to the stored URL so a thumbnail never silently breaks.
+  const [src, setSrc] = useState(url);
+  useEffect(() => {
+    let alive = true;
+    setSrc(url);
+    if (!url) return undefined;
+    resolveStoredUrl(url).then((u) => { if (alive && u) setSrc(u); }).catch(() => {});
+    return () => { alive = false; };
+  }, [url]);
+  if (url) return <img src={src} alt="" style={{ width: size, height: size, objectFit: 'cover', flexShrink: 0 }} />;
   return (
     <div style={{ width: size, height: size, flexShrink: 0, background: 'var(--c-sf2)', border: `1px solid ${C.cardBd}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: Math.max(7, Math.round(size / 9)), fontWeight: 700, color: C.td, letterSpacing: '0.12em' }}>MEAL</div>
   );
