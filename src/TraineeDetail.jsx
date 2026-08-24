@@ -32,6 +32,10 @@ import TraineeIntake from './TraineeIntake';
 import { emailsToArr, emailsToStore, emailsDisplay, traineeIdsFor, subMemberId, sortProgramsChrono } from './traineeUtils';
 import useAutosave, { autosaveStatusLabel } from './hooks/useAutosave';
 
+// A Bnei Herzliya athlete is a CLUB athlete: the club pays. Any of the three
+// markers counts, the way PlansView already had to accept all three.
+const isClubAthleteRow = (t) => !!t && (t.format === 'Bnei Herzliya' || t.branch === 'Bnei Herzliya' || t.team === 'BHBC');
+
 // Status is changed HERE (top-right of the trainee page) via this dropdown —
 // no longer inside the EDIT modal (Ohad). Click the status pill → pick a new
 // one. Flat (no shadow) per the reference.
@@ -772,7 +776,14 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           used to live in the header stat row (Ohad: "payment in billing").
           Empty values dim so real terms stand out. */}
       <div style={{display:"flex",flexWrap:"wrap",justifyContent:"center",gap:"12px 32px",margin:"0 auto 16px",textAlign:"center"}}>
-        {[["Package",td.package],["Sessions Left",td.sessionsRemaining],["Monthly",td.monthly?`₪${td.monthly}`:"—"],["Per Session",td.perSession?`₪${td.perSession}`:"—"],["Last Payment",fmtPrettyDate(lastPaidDate)],["Since",fmtPrettyDate(td.startDate)]].map(([l,v])=>{
+        {/* A club athlete has no package, balance or rate — the club pays. The
+            EDITOR already hides these; the read-only strip has to hide them too,
+            or a record created before that change still prints "8 Sessions Left"
+            on the page. Same predicate as the roster and the dashboard. */}
+        {(isClubAthleteRow(td)
+          ? [["Last Payment",fmtPrettyDate(lastPaidDate)],["Since",fmtPrettyDate(td.startDate)]]
+          : [["Package",td.package],["Sessions Left",td.sessionsRemaining],["Monthly",td.monthly?`₪${td.monthly}`:"—"],["Per Session",td.perSession?`₪${td.perSession}`:"—"],["Last Payment",fmtPrettyDate(lastPaidDate)],["Since",fmtPrettyDate(td.startDate)]]
+        ).map(([l,v])=>{
           const empty = v===undefined||v===null||v===""||v==="—";
           // Auto-width cells + nowrap values so a long date ("1st of January 2025")
           // stays on ONE row instead of wrapping in a fixed 118px column (Ohad).
