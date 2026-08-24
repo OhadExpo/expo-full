@@ -175,7 +175,14 @@ export function applyMatch(plans, group, ex, library) {
         if (!byCoords && existingId && validIds.has(existingId) && existingId !== CORRUPT_ID) return e; // already correctly linked
         touched = true;
         const out = { ...e };
-        if ('eid' in e && !('exerciseId' in e)) out.eid = ex.id; else out.exerciseId = ex.id;
+        // Write the key that matches the row's SHAPE, not just whichever key it
+        // happens to already carry. A compact row (in d.ex, with t/s/r) that had
+        // no eid yet was being given a NEW-shape exerciseId, quietly mixing the
+        // two schemes inside one row. Every reader tolerates both today, but the
+        // eid-vs-exerciseId mismatch is exactly what audit #13 was, so do not
+        // create more of it. The containing array is the reliable signal.
+        const compactRow = key === 'ex' || ('eid' in e) || ('t' in e && !('title' in e));
+        if (compactRow && !('exerciseId' in e)) out.eid = ex.id; else out.exerciseId = ex.id;
         if (!out.videoUrl && !out.vid && ex.videoLink) out.videoUrl = ex.videoLink;
         const hasNotes = String(out.notes || out.n || '').trim();
         if (!hasNotes && ex.cues) { if ('n' in out || !('notes' in out)) out.n = ex.cues; else out.notes = ex.cues; }
