@@ -128,7 +128,7 @@ async function measureVideoFps(v) {
 // worldLandmarks}] for poseLab — the same shape live capture produces. Shared by
 // the in-Lab upload path and the Review player's inline LIFT METRICS. Closes its
 // own landmarker. crossOrigin keeps the frames canvas-readable for remote clips.
-export async function captureClipFrames(src, { crossOrigin = false, onProgress } = {}) {
+export async function captureClipFrames(src, { crossOrigin = false, onProgress, maxFrames = 600 } = {}) {
   let lm, v;
   try {
     lm = await createPoseLandmarker({ runningMode: 'VIDEO', quality: 'full', numPoses: 5 });
@@ -156,7 +156,7 @@ export async function captureClipFrames(src, { crossOrigin = false, onProgress }
       try { v.currentTime = 0; } catch { /* noop */ }
     }
     if (!isFinite(dur) || dur <= 0) throw new Error('Could not read that video (no duration).');
-    const MAX = 600;                   // frame cap (protects long clips)
+    const MAX = maxFrames;             // frame cap (protects long clips; callers may raise it)
     // Sample at the video's TRUE frame rate so every seek lands on a distinct real
     // frame (measured via rVFC). A fixed step below the source frame duration
     // re-reads the same decoded frame under two timestamps → a false zero-velocity
