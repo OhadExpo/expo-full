@@ -170,14 +170,19 @@ export function AuthProvider({ children, clientList }) {
 // navy/orange chrome + the club badge). Add a brand here to skin another zone.
 const LOGIN_BRANDS = {
   bhbc: {
-    logo: '/bnei-herzliya-logo-w.png',
-    logoMaxH: 112,
+    // The club badge reads on white, so the door matches the zone's LIGHT
+    // theme rather than inverting to a dark gradient: identical layout to the
+    // EXPO sign-in, club logo and club colours (navy type, orange action).
+    logo: '/logos/bhbc-logo.png',
+    logoMaxH: 132,
     accent: '#F26A2B',
-    bg: 'radial-gradient(130% 105% at 50% -10%, #1c3a6e 0%, #0e1c38 46%, #070f1e 100%)',
+    ink: '#14294F',
+    theme: 'light',
+    bg: 'linear-gradient(180deg, #FFFFFF 0%, #F3F5F9 100%)',
     eyebrow: 'Bnei Herzliya · S&C Staff',
     sub: 'Coach sign-in',
     foot: 'Staff access is provisioned by the S&C team.',
-    home: '/coach/bhbc',
+    home: '/bhbc',
   },
 };
 
@@ -249,7 +254,7 @@ export function LoginScreen({ brand = 'expo' } = {}) {
   const canSubmit = email.trim() && password && !submitting;
 
   return (
-    <div data-theme="dark" style={bc ? { ...wrapStyle, background: bc.bg } : wrapStyle}>
+    <div data-theme={bc?.theme || 'dark'} style={bc ? { ...wrapStyle, background: bc.bg, color: bc.ink || C.tx } : wrapStyle}>
       <div style={{ width: '100%', maxWidth: 380 }}>
         <div style={{ textAlign: 'center', marginBottom: 16, padding: '0 28px', boxSizing: 'border-box' }}>
           {bc ? (
@@ -262,7 +267,7 @@ export function LoginScreen({ brand = 'expo' } = {}) {
             </a>
           )}
           {bc && <div style={{ color: AC, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 6 }}>{bc.eyebrow}</div>}
-          <div style={{ color: C.tm, fontSize: 15 }}>{bc ? bc.sub : <>Sign<span style={{ color: C.td }}>-</span>in</>}</div>
+          <div style={{ color: bc?.ink || C.tm, fontSize: 15, fontWeight: bc ? 700 : 400 }}>{bc ? bc.sub : <>Sign<span style={{ color: C.td }}>-</span>in</>}</div>
         </div>
         <div style={cardStyle}>
           {/* OAuth buttons */}

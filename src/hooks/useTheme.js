@@ -7,8 +7,8 @@
 // Boot priority (resolved by inline script in index.html before this hook
 // even mounts):
 //   1. localStorage('expo-theme')
-//   2. matchMedia('(prefers-color-scheme: light)')
-//   3. dark fallback
+//   2. LIGHT (the default first impression — the OS preference is deliberately
+//      NOT consulted; only an explicit in-app choice turns the app dark)
 //
 // On hook mount we ALSO check Supabase user_metadata.theme_pref. If it exists
 // and differs from the current value, it wins (cross-device sync on login).
@@ -20,8 +20,8 @@ const KEY = 'expo-theme';
 const EVT = 'expo-theme-change';
 
 function readCurrent() {
-  if (typeof document === 'undefined') return 'dark';
-  return document.documentElement.getAttribute('data-theme') || 'dark';
+  if (typeof document === 'undefined') return 'light';
+  return document.documentElement.getAttribute('data-theme') || 'light';
 }
 
 function applyTheme(next) {

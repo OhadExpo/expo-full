@@ -17,9 +17,11 @@
     }
     var saved = localStorage.getItem('expo-theme');
     if (saved !== 'light' && saved !== 'dark') saved = null;
-    var pref = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    // LIGHT is the default first impression (Ohad 2026-08-24) — the OS
+    // preference no longer decides it, only an explicit in-app choice does.
+    var pref = saved || 'light';
     document.documentElement.setAttribute('data-theme', pref);
   } catch (e) {
-    document.documentElement.setAttribute('data-theme', 'dark');
+    document.documentElement.setAttribute('data-theme', 'light');
   }
 })();

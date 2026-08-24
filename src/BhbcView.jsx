@@ -128,7 +128,7 @@ const Jersey = ({ n, size = 30 }) => (
 
 // ---- component ----
 
-export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, setBhbcLoads, bhbcFixtures = [], setBhbcFixtures, league = {}, medical = {}, setMedical, planIndex = [], exercises = [], clientWorkouts = [], setClientWorkouts, workouts = [], setWorkouts, onDecrementSession, portalVis = {}, bwLog = [], weeklyFocus = {}, onOpenTrainee, onExit, coach = false, onSignOut, canMedical = true, onLocalWrite }) {
+export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, setBhbcLoads, bhbcFixtures = [], setBhbcFixtures, league = {}, medical = {}, setMedical, sessionPlans = {}, setSessionPlans, planIndex = [], exercises = [], clientWorkouts = [], setClientWorkouts, workouts = [], setWorkouts, onDecrementSession, portalVis = {}, bwLog = [], weeklyFocus = {}, onOpenTrainee, onExit, coach = false, onSignOut, canMedical = true, onLocalWrite }) {
   // Broadcast a change to other open zones after any local write (shared-sheet sync).
   const notify = useCallback(() => { if (onLocalWrite) onLocalWrite(); }, [onLocalWrite]);
   const [manageOpen, setManageOpen] = useState(false);
@@ -302,7 +302,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   // the whole squad in one write (Ohad: "a smart easy system for each practice
   // like the BHBC schedule sheet"). Load = minutes × (per-athlete RPE or team RPE);
   // Out athletes get availability recorded but no load.
-  const savePractice = useCallback(({ date, minutes, teamRpe, intensity, entries, sessionType = 'Practice' }) => {
+  const savePractice = useCallback(({ date, minutes, teamRpe, intensity, entries, sessionType = 'Practice', start = '' }) => {
     setBhbcLoads((prev) => {
       const next = { ...prev };
       Object.entries(entries).forEach(([id, e]) => {
@@ -313,10 +313,12 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
         if (load > 0) {
           rec.loads = { ...(rec.loads || {}), [date]: (rec.loads?.[date] || 0) + load };
           rec.sessions = { ...(rec.sessions || {}) };
-          rec.sessions[date] = [...(rec.sessions[date] || []), { type: sessionType, min: Number(minutes) || 0, rpe, load, intensity, note: e.note || '', team: true }];
+          // `start` = which slot of the day this was, so a morning and an
+          // evening session are two distinct rows, not one overwritten one.
+          rec.sessions[date] = [...(rec.sessions[date] || []), { type: sessionType, min: Number(minutes) || 0, rpe, load, intensity, note: e.note || '', team: true, start }];
         }
         if (e.bw) rec.bw = { ...(rec.bw || {}), [date]: Number(e.bw) };
-        if (e.note) rec.notes = { ...(rec.notes || {}), [date]: e.note };
+        if (e.note) rec.notes = { ...(rec.notes || {}), [date]: e.note, [`${date}|${start || ''}`]: e.note };
         next[id] = rec;
       });
       return next;
@@ -355,6 +357,22 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   // ---- Medical / injury record (Ohad + physical therapist) ----
   // Saving an injury/progress entry can also set the athlete's availability that
   // day, so the medical record and the load board stay in sync.
+  // Which session slot's plan is open: { date, start, type, minutes } | null.
+  const [planFor, setPlanFor] = useState(null);
+  const planKey = (f) => `${f.date}|${f.start || ''}`;
+  const planOf = useCallback((f) => (f ? sessionPlans[`${f.date}|${f.start || ''}`] || null : null), [sessionPlans]);
+  const saveSessionPlan = useCallback(({ date, start, focus, plan }) => {
+    if (!setSessionPlans) return;
+    const key = `${date}|${start || ''}`;
+    setSessionPlans((prev) => {
+      const next = { ...(prev || {}) };
+      if (!focus && !plan) delete next[key];
+      else next[key] = { focus: focus || '', plan: plan || '', updatedAt: new Date().toISOString() };
+      return next;
+    });
+    toast('Session plan saved'); notify();
+  }, [setSessionPlans, notify]);
+
   const saveInjury = useCallback(({ athleteId, injury }) => {
     if (!setMedical) return;
     setMedical((prev) => {
@@ -468,14 +486,17 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
 
             {view === 'overview' && (
               <>
-                <HeadCoachReport rows={rows} fx={fx} fixtures={bhbcFixtures} medical={medical} today={today} onOpen={setDetailFor} />
+                <HeadCoachReport rows={rows} fx={fx} fixtures={bhbcFixtures} medical={medical} today={today} onOpen={setDetailFor}
+                  onMedical={effCanMedical ? ((aid) => { const a = activeInjuries(medical, aid); setInjuryFor({ athleteId: aid, injuryId: a[0] && a[0].id }); }) : null}
+                  onReportNew={effCanMedical ? (() => setInjuryFor({ athleteId: (rows[0] && rows[0].t.id) || '' })) : null} />
                 {/* S&C Brief = the S&C operator's action list — removed for coaches. */}
                 {!asCoach && <CoachBrief rows={rows} fx={fx} fixtures={bhbcFixtures} medical={medical} today={today} onOpen={setDetailFor} onCheckin={() => setCheckinOpen(true)} onLog={() => setPracticeOpen(true)} />}
-                <TodayPanel today={today} fixtures={bhbcFixtures} fx={fx} rows={rows} onSessions={asCoach ? null : () => setView('sessions')} onLog={asCoach ? null : () => setPracticeOpen(true)} />
+                <TodayPanel today={today} fixtures={bhbcFixtures} fx={fx} rows={rows} planOf={planOf} onPlan={asCoach ? null : setPlanFor} onSessions={asCoach ? null : () => setView('sessions')} onLog={asCoach ? null : () => setPracticeOpen(true)} />
                 {fx.nextGame && <NextGamePanel nextGame={fx.nextGame} today={today} onEdit={asCoach ? null : () => setGameEdit(true)} />}
                 <FixturesAheadPanel fixtures={bhbcFixtures} today={today} />
                 <TeamSnapshotCard team={team} />
-                <LoadBoard rows={rows} rowGrid={rowGrid} cycleAvail={asCoach ? null : cycleAvail} medical={medical} onOpen={setDetailFor} />
+                <LoadBoard rows={rows} rowGrid={rowGrid} cycleAvail={asCoach ? null : cycleAvail} medical={medical} onOpen={setDetailFor}
+                  onMedical={effCanMedical ? ((aid) => { const a = activeInjuries(medical, aid); setInjuryFor({ athleteId: aid, injuryId: a[0] && a[0].id }); }) : null} />
               </>
             )}
 
@@ -542,8 +563,18 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
       )}
 
       {/* ---- PRACTICE ENTRY (the sheet-like daily entry) ---- */}
+      {planFor && (
+        <SessionPlanModal
+          slot={planFor}
+          fixtures={bhbcFixtures}
+          plan={planOf(planFor)}
+          onClose={() => setPlanFor(null)}
+          onPick={(f) => setPlanFor(f)}
+          onSave={(v) => { saveSessionPlan({ date: planFor.date, start: planFor.start, ...v }); setPlanFor(null); }}
+        />
+      )}
       {practiceOpen && (
-        <PracticeEntryModal roster={roster} bhbcLoads={bhbcLoads} fixtures={bhbcFixtures}
+        <PracticeEntryModal sessionPlans={sessionPlans} roster={roster} bhbcLoads={bhbcLoads} fixtures={bhbcFixtures}
           onClose={() => setPracticeOpen(false)} onSave={(p) => { savePractice(p); setPracticeOpen(false); }} />
       )}
 
@@ -664,7 +695,7 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
   const activity = [];
   // Attendance-only gym entries (min/rpe unknown — Ohad logs presence, not load)
   // read "Gym · attended" instead of a bogus "Lift 0 min @ RPE 0".
-  Object.entries((rec && rec.sessions) || {}).forEach(([d, arr]) => (arr || []).forEach((s, idx) => activity.push({ date: d, label: !s.load ? `Gym · ${s.min ? s.min + ' min' : 'attended'}` : `${s.type} ${s.min} min @ RPE ${s.rpe}`, load: s.load || null, sess: { date: d, idx, min: s.min } })));
+  Object.entries((rec && rec.sessions) || {}).forEach(([d, arr]) => (arr || []).forEach((s, idx) => activity.push({ date: d, label: !s.load ? `${s.start ? s.start + ' · ' : ''}Gym · ${s.min ? s.min + ' min' : 'attended'}` : `${s.start ? s.start + ' · ' : ''}${s.type} ${s.min} min @ RPE ${s.rpe}`, load: s.load || null, sess: { date: d, idx, min: s.min } })));
   (workouts || []).forEach((w) => { const d = String(w.date || w.completedAt || '').slice(0, 10); const nEx = (w.exercises || []).length; const nSets = (w.exercises || []).reduce((a, e) => a + (e.sets || []).length, 0); if (d) activity.push({ date: d, label: `Gym · ${nEx} lift${nEx === 1 ? '' : 's'}, ${nSets} set${nSets === 1 ? '' : 's'}`, load: null }); });
   Object.entries((rec && rec.bw) || {}).forEach(([d, kg]) => activity.push({ date: d, label: `Bodyweight ${kg} kg`, load: null }));
   Object.entries((rec && rec.availability) || {}).forEach(([d, code]) => { if (code > 1) activity.push({ date: d, label: `Availability · ${AVAIL[code].label}`, load: null }); });
@@ -898,13 +929,70 @@ function WellnessModal({ roster, bhbcLoads, onClose, onSave }) {
   );
 }
 
-function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave }) {
+// Per-SESSION plan editor. A day can hold a morning and an evening practice;
+// each slot is its own plan, so authoring the evening no longer overwrites the
+// morning (and there is finally somewhere to author it at all).
+function SessionPlanModal({ slot, fixtures, plan, onClose, onSave, onPick }) {
+  const [focus, setFocus] = useState(plan?.focus || '');
+  const [text, setText] = useState(plan?.plan || '');
+  useEffect(() => { setFocus(plan?.focus || ''); setText(plan?.plan || ''); }, [plan, slot?.date, slot?.start]);
+  const daySlots = (fixtures || []).filter((f) => f.date === slot.date).slice().sort((a, b) => (a.start || '').localeCompare(b.start || ''));
+  const inp = { fontFamily: FN, fontSize: 12.5, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '8px 10px', width: '100%', boxSizing: 'border-box', outline: 'none' };
+  const title = `${dow(slot.date)} ${monDay(slot.date)} · ${slot.start || ''} ${FX_LABEL[slot.type] || 'Session'}`;
+  return (
+    <Modal open onClose={onClose} title="Session plan">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {daySlots.length > 1 && (
+          <div>
+            <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm, marginBottom: 6 }}>Which session</div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {daySlots.map((f, i) => {
+                const on = (f.start || '') === (slot.start || '') && f.type === slot.type;
+                return (
+                  <button key={i} type="button" onClick={() => onPick && onPick(f)}
+                    style={{ fontFamily: FN, fontSize: 11.5, fontWeight: 700, letterSpacing: '0.04em', padding: '6px 10px', cursor: 'pointer', borderRadius: 0,
+                      background: on ? NAVY : 'transparent', color: on ? '#fff' : C.tx, border: `1px solid ${on ? NAVY : C.cardBd}` }}>
+                    {f.start} · {FX_LABEL[f.type] || 'Session'} {f.minutes ? `· ${f.minutes}m` : ''}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: C.tm, textTransform: 'uppercase' }}>{title}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <label style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: FN }}>Focus</label>
+          <input value={focus} onChange={(e) => setFocus(e.target.value)} placeholder="e.g. Transition D · half-court sets" style={inp} />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <label style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: FN }}>Plan</label>
+          <textarea value={text} onChange={(e) => setText(e.target.value)} rows={8} dir="auto"
+            placeholder={'What the squad does in this session — blocks, timings, limits.\n\n15\u2032 warm-up + activation\n20\u2032 shooting\n30\u2032 5v5 (Amit: non-contact, shooting only)'}
+            style={{ ...inp, resize: 'vertical', lineHeight: 1.5, fontFamily: FB }} />
+        </div>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center' }}>
+          <span style={{ fontFamily: FN, fontSize: 10.5, color: C.td, marginRight: 'auto' }}>{plan?.updatedAt ? `Last edited ${monDay(plan.updatedAt.slice(0, 10))}` : 'Not planned yet'}</span>
+          <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
+          <Btn onClick={() => onSave({ focus: focus.trim(), plan: text.trim() })} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>Save plan</Btn>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave, sessionPlans = {} }) {
   const [date, setDate] = useState(() => {
     const up = (fixtures || []).filter((f) => f.date >= todayISO()).sort((a, b) => a.date.localeCompare(b.date));
     const p = up.find((f) => f.type === 'practice') || up[0];
     return p ? p.date : todayISO();
   });
   const dayFx = (fixtures || []).filter((f) => f.date === date).slice().sort((a, b) => a.start.localeCompare(b.start));
+  // WHICH session on that date. A day can hold a morning and an evening
+  // practice; without this the log silently landed on the first one and the
+  // second was unrecordable.
+  const [slotStart, setSlotStart] = useState('');
+  const slot = dayFx.find((f) => f.start === slotStart) || null;
+  const slotPlan = slot ? sessionPlans[`${date}|${slot.start || ''}`] : null;
   const [minutes, setMinutes] = useState('');
   const [teamRpe, setTeamRpe] = useState('');
   const [intensity, setIntensity] = useState('');
@@ -914,8 +1002,14 @@ function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave }) {
     const e = {};
     roster.forEach((t) => { const rec = bhbcLoads[t.id] || {}; e[t.id] = { avail: (rec.availability && rec.availability[date]) || 1, rpe: '', bw: '', note: '' }; });
     setEntries(e);
-    const list = (fixtures || []).filter((f) => f.date === date);
-    const prac = list.find((f) => f.type === 'practice') || list[0];
+    const list = (fixtures || []).filter((f) => f.date === date).slice().sort((a2, b2) => (a2.start || '').localeCompare(b2.start || ''));
+    // Default to the NEXT slot still ahead on the clock (so an evening log
+    // doesn't default to the morning), else the first practice of the day.
+    const now = new Date();
+    const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const upcoming = date === todayISO() ? list.find((f) => (f.start || '') >= hhmm) : null;
+    const prac = upcoming || list.find((f) => f.type === 'practice') || list[0];
+    setSlotStart(prac ? (prac.start || '') : '');
     setMinutes(prac ? String(prac.minutes) : '');
     // Default the session type from the day's fixture (game day → Game).
     const g = list.find((f) => f.type === 'game');
@@ -946,7 +1040,31 @@ function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave }) {
             </select>
           </div>
         </div>
-        {dayFx.length > 0 && <div style={{ fontFamily: FN, fontSize: 10.5, color: C.td }}>From calendar: {dayFx.map((f) => `${f.start} ${FX_LABEL[f.type] || 'Session'} ${f.minutes} min`).join('  ·  ')}</div>}
+        {dayFx.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm }}>Which session</span>
+              {dayFx.map((f, i) => {
+                const on = (f.start || '') === slotStart;
+                return (
+                  <button key={i} type="button"
+                    onClick={() => { setSlotStart(f.start || ''); setMinutes(String(f.minutes || '')); setSessionType(f.type === 'game' ? 'Game' : f.type === 'lift' ? 'Lift' : 'Practice'); }}
+                    style={{ fontFamily: FN, fontSize: 11.5, fontWeight: 700, padding: '5px 10px', cursor: 'pointer', borderRadius: 0,
+                      background: on ? NAVY : 'transparent', color: on ? '#fff' : C.tx, border: `1px solid ${on ? NAVY : C.cardBd}` }}>
+                    {f.start} · {FX_LABEL[f.type] || 'Session'} {f.minutes ? `· ${f.minutes}m` : ''}
+                  </button>
+                );
+              })}
+            </div>
+            {slotPlan && (slotPlan.focus || slotPlan.plan) && (
+              <div style={{ border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${ORANGE}`, padding: '8px 10px' }}>
+                <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm, marginBottom: 3 }}>Plan for this session</div>
+                {slotPlan.focus && <div style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tx }}>{slotPlan.focus}</div>}
+                {slotPlan.plan && <div dir="auto" style={{ fontFamily: FB, fontSize: 12, color: C.tm, whiteSpace: 'pre-wrap', lineHeight: 1.45, marginTop: 2 }}>{slotPlan.plan}</div>}
+              </div>
+            )}
+          </div>
+        )}
         {(() => {
           // Microcycle context for the session's date — the plan's emphasis +
           // a suggested intensity (informs the coach; never overrides the pick).
@@ -980,7 +1098,7 @@ function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave }) {
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{ fontFamily: FN, fontSize: 10.5, color: C.td, marginRight: 'auto' }}>Load = minutes × RPE (per-athlete or team). Out athletes: availability only.</span>
           <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
-          <Btn disabled={!canSave} onClick={() => onSave({ date, minutes, teamRpe, intensity, entries, sessionType })} style={{ background: canSave ? ORANGE : undefined, borderColor: canSave ? ORANGE : undefined, color: canSave ? '#fff' : undefined }}>Save {sessionType.toLowerCase()}</Btn>
+          <Btn disabled={!canSave} onClick={() => onSave({ date, minutes, teamRpe, intensity, entries, sessionType, start: slotStart })} style={{ background: canSave ? ORANGE : undefined, borderColor: canSave ? ORANGE : undefined, color: canSave ? '#fff' : undefined }}>Save {sessionType.toLowerCase()}</Btn>
         </div>
       </div>
     </Modal>
@@ -1197,7 +1315,7 @@ function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onCheckin, onL
 // The HEAD COACH's daily/weekly REPORT — the game-week picture at a glance:
 // next game, who's available, the medical board, and the team's upcoming sessions.
 // (The S&C load decisions live in the separate S&C Brief.)
-function HeadCoachReport({ rows, fx, fixtures, medical, today, onOpen }) {
+function HeadCoachReport({ rows, fx, fixtures, medical, today, onOpen, onMedical, onReportNew }) {
   const first = (r) => (r.t.name || '').trim().split(/\s+/)[0] || r.t.name;
   const nameList = (arr) => arr.slice(0, 5).map(first).join(', ') + (arr.length > 5 ? ` +${arr.length - 5}` : '');
   const availOf = (r) => r.avail || 1;                 // 1 = full, 2–3 = limited, 4+ = out
@@ -1242,11 +1360,18 @@ function HeadCoachReport({ rows, fx, fixtures, medical, today, onOpen }) {
                     <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.color, flexShrink: 0 }} />
                     <span style={{ fontFamily: FN, fontWeight: 700, fontSize: 12, flexShrink: 0 }}>{t.name}</span>
                     <span style={{ color: C.tm, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : '', inj.type].filter(Boolean).join(' ')} · {s.label}{inj.rtpTarget ? ` · RTP ${monDay(inj.rtpTarget)}` : ''}</span>
-                  </div>
+                                      {onMedical && (
+                      <button onClick={(e) => { e.stopPropagation(); onMedical(t.id); }} title="Update this medical report" className="bhbc-ghost-btn"
+                        style={{ marginLeft: 'auto', flexShrink: 0, fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.08em', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '3px 7px', cursor: 'pointer' }}>UPDATE</button>
+                    )}
+</div>
                 );
               })}
             </div>
-          : <span><span style={{ color: '#37B27C', fontFamily: FN, fontWeight: 700 }}>All clear</span> <span style={mut}>— no active injuries.</span></span>}
+          : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <span><span style={{ color: '#37B27C', fontFamily: FN, fontWeight: 700 }}>All clear</span> <span style={mut}>— no active injuries.</span></span>
+              {onReportNew && <button onClick={onReportNew} className="bhbc-ghost-btn" style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.08em', color: ORANGE, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '3px 7px', cursor: 'pointer' }}>+ REPORT</button>}
+            </span>}
       </Section>
       {/* THIS WEEK — team sessions */}
       <Section label="This week" last>
@@ -1266,7 +1391,7 @@ function HeadCoachReport({ rows, fx, fixtures, medical, today, onOpen }) {
   );
 }
 
-function TodayPanel({ today, fixtures, fx, rows, onSessions, onLog }) {
+function TodayPanel({ today, fixtures, fx, rows, onSessions, onLog, planOf, onPlan }) {
   const todayFx = (fixtures || []).filter((f) => f.date === today).slice().sort((a, b) => a.start.localeCompare(b.start));
   const next = fx.byDay[0];
   const av = { full: 0, mod: 0, out: 0 };
@@ -1275,6 +1400,28 @@ function TodayPanel({ today, fixtures, fx, rows, onSessions, onLog }) {
   const gdLabel = gd == null ? null : gd === 0 ? 'GAME DAY' : gd < 0 ? `${-gd} day${gd === -1 ? '' : 's'} to game` : null;
   // time (with date when it's a future/next session) highlighted in a navy
   // segment; all text one size.
+  // A session chip carries ITS OWN plan: two practices on one day each get
+  // their own focus + plan, authored by clicking the chip.
+  const chipWrap = (f, i, showDate) => {
+    const pl = planOf ? planOf(f) : null;
+    const clickable = !!onPlan;
+    return (
+      <span key={i} style={{ display: 'inline-flex', flexDirection: 'column', gap: 3, alignItems: 'flex-start' }}>
+        <span onClick={clickable ? () => onPlan(f) : undefined}
+          title={clickable ? (pl ? 'Edit this session’s plan' : 'Add a plan for this session') : undefined}
+          style={{ cursor: clickable ? 'pointer' : 'default', display: 'inline-flex' }}>
+          {chip(f, i, showDate)}
+        </span>
+        {pl && (pl.focus || pl.plan) ? (
+          <span onClick={clickable ? () => onPlan(f) : undefined} style={{ cursor: clickable ? 'pointer' : 'default', maxWidth: 260, fontFamily: FB, fontSize: 11.5, color: C.tm, lineHeight: 1.35, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+            {pl.focus ? <b style={{ color: C.tx }}>{pl.focus}</b> : null}{pl.focus && pl.plan ? ' — ' : ''}{pl.plan}
+          </span>
+        ) : clickable ? (
+          <button type="button" onClick={() => onPlan(f)} className="bhbc-ghost-btn" style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: ORANGE }}>+ plan this session</button>
+        ) : null}
+      </span>
+    );
+  };
   const chip = (f, i, showDate) => (
     <span key={i} style={{ display: 'inline-flex', alignItems: 'stretch', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${FX_COLOR[f.type] || NAVY}` }}>
       <span style={{ fontFamily: FN, fontSize: 11.5, fontWeight: 700, color: '#fff', background: NAVY, padding: '5px 9px', display: 'inline-flex', alignItems: 'center', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{showDate ? `${dow(f.date)} ${monDay(f.date)} · ${f.start}` : f.start}</span>
@@ -1299,11 +1446,11 @@ function TodayPanel({ today, fixtures, fx, rows, onSessions, onLog }) {
         <div style={{ flex: '2 1 300px', minWidth: 240 }}>
           <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm, marginBottom: 8 }}>Sessions</div>
           {todayFx.length ? (
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{todayFx.map((f, i) => chip(f, i, false))}</div>
+            <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'flex-start' }}>{todayFx.map((f, i) => chipWrap(f, i, false))}</div>
           ) : next ? (
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
               <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.td }}>None today · next</span>
-              {next.items.slice(0, 3).map((f, i) => chip(f, i, true))}
+              {next.items.slice(0, 3).map((f, i) => chipWrap(f, i, true))}
             </div>
           ) : <span style={{ fontFamily: FB, fontSize: 12.5, color: C.td }}>No sessions scheduled.</span>}
         </div>
@@ -1377,7 +1524,7 @@ function TeamSnapshotCard({ team }) {
   );
 }
 
-function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, onOpen }) {
+function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, onOpen, onMedical }) {
   return (
     <CollapsibleSection title="Load & Injury Risk" count={rows.length} storageKey="bhbc-load" defaultOpen leftStripe={ORANGE}>
       <div style={{ overflowX: 'auto' }}>
@@ -1414,7 +1561,21 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, onOpen }) {
                   {typeof readiness.loadAdjustPct === 'number' && readiness.loadAdjustPct !== 0 && <span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 800, color: rc, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{readiness.loadAdjustPct > 0 ? '+' : ''}{readiness.loadAdjustPct}%</span>}
                   <span style={{ fontFamily: FB, fontSize: 11, color: C.td, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{readiness.level === 'unknown' ? 'no check-in' : readiness.headline}</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'flex-end' }}><Sparkline series={series} /></div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8 }}>
+                  <Sparkline series={series} />
+                  {/* Report / update an injury straight from the board — no need
+                      to open the athlete first (Ohad: make medical easier to reach). */}
+                  {onMedical && (() => {
+                    const inj = activeInjuries(medical, t.id)[0];
+                    return (
+                      <button onClick={(e) => { e.stopPropagation(); onMedical(t.id); }}
+                        title={inj ? 'Update the medical report' : 'Report an injury'} className="bhbc-ghost-btn"
+                        style={{ flexShrink: 0, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: inj ? ((MED_STATUS[inj.status] || {}).color || '#DE4E3B') : C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '4px 8px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                        {inj ? 'MED ✎' : '+ MED'}
+                      </button>
+                    );
+                  })()}
+                </div>
               </div>
             );
           })}

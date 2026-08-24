@@ -589,7 +589,11 @@ function AuthGate() {
     // PWA mode: every path that isn't already /login renders the LoginScreen
     // directly so the user can authenticate without seeing the marketing
     // chooser or landing page.
-    const isBhbcPath = path === '/coach/bhbc' || path === '/coach/bhbc/';
+    // The club's own door: /bhbc (and /bhbc/login) are a short, shareable URL
+    // the coaching staff can be handed directly — same Supabase auth, club
+    // chrome, lands in the zone. /coach/bhbc keeps working for anyone deep-
+    // linked to it.
+    const isBhbcPath = /^\/(coach\/)?bhbc\/?(login\/?)?$/.test(path);
     if (inPwa) return <LoginScreen brand={isBhbcPath ? 'bhbc' : 'expo'} />;
     // Browser mode: front door at / is the EntryChooser; /demo is the
     // coach-marketing landing (legacy /coaches still resolves); everything
@@ -664,6 +668,10 @@ function AuthedApp() {
   const [bhbcFixtures,setBhbcFixtures,,,setBhbcFixturesLocal]=useSupaStore('expo-bhbc-fixtures',[]);
   const [bhbcLeague,,,,setBhbcLeagueLocal]=useSupaStore('expo-bhbc-league',{});
   const [bhbcMedical,setBhbcMedical,,,setBhbcMedicalLocal]=useSupaStore('expo-bhbc-medical',{});
+  // Per-SESSION plan (what the squad actually does in that slot), keyed
+  // `${date}|${start}` so a day with a morning AND an evening practice gets a
+  // plan for each — the fixture rows themselves carry no plan field.
+  const [bhbcPlans,setBhbcPlans,,,setBhbcPlansLocal]=useSupaStore('expo-bhbc-plans',{});
   // Live portal-visibility sync: when the coach hides/shows a block, the
   // athlete's OPEN portal (and the coach's other devices) reflect it live
   // instead of on reload. Pure broadcast (no DDL); the athlete never sets it,
@@ -842,7 +850,9 @@ function AuthedApp() {
       // click or deep link to /coach/* must not be swallowed by a stale
       // 'client' preference from earlier in the session (audit 08-22).
       const p = window.location.pathname || '';
-      if (p === '/coach' || p.startsWith('/coach/')) {
+      // /bhbc is a coach-side door too — a dual-role user opening the club URL
+      // must land in the zone, not on the portal chooser.
+      if (p === '/coach' || p.startsWith('/coach/') || /^\/bhbc\/?(login\/?)?$/.test(p)) {
         sessionStorage.setItem(PORTAL_CHOICE_KEY, 'trainer');
         return 'trainer';
       }
@@ -908,6 +918,9 @@ function AuthedApp() {
   // landing) doesn't get pulled into the trainer router.
   const getRoute = () => {
     const p = window.location.pathname;
+    // Short club URL: /bhbc (and /bhbc/login) are the Bnei Herzliya door and
+    // resolve to the same zone tab as /coach/bhbc.
+    if (/^\/bhbc\/?(login\/?)?$/.test(p)) return { mode: 'coach', tab: 'bhbc', traineeId: null };
     if (p === '/coach' || p.startsWith('/coach/')) {
       const sub = p.replace('/coach','').replace(/^\//,'');
       // /coach/athletes is canonical; /coach/trainees still resolves for any
@@ -960,7 +973,7 @@ function AuthedApp() {
   useEffect(() => {
     if (!tL) return;
     const p = window.location.pathname;
-    const onCoach = p === '/coach' || p.startsWith('/coach/');
+    const onCoach = p === '/coach' || p.startsWith('/coach/') || /^\/bhbc\/?(login\/?)?$/.test(p);
     const onAthlete = p === '/athlete' || p.startsWith('/athlete/');
     const onLogin = p.startsWith('/login');
     if (isClient && !onAthlete) window.history.replaceState(null, '', '/athlete');
@@ -1350,7 +1363,7 @@ function AuthedApp() {
   if (isBhbcCoach || (tab === 'bhbc' && isOwner)) return (
     <Suspense fallback={<ViewFallback />}>
       <ErrorBoundary inline>
-        <BhbcView trainees={trainees} setTrainees={setTrainees} bhbcLoads={bhbcLoads} setBhbcLoads={setBhbcLoads} bhbcFixtures={bhbcFixtures} setBhbcFixtures={setBhbcFixtures} league={bhbcLeague} medical={bhbcMedical} setMedical={setBhbcMedical} planIndex={planIndex} exercises={exercises} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} workouts={workouts} setWorkouts={setWorkouts} onDecrementSession={handleDecrementSession} portalVis={portalVis} bwLog={bwLog} weeklyFocus={weeklyFocus} coach={isBhbcCoach} canMedical={isOwner || isPtEmail(email)} onLocalWrite={notifyBhbcChange} onSignOut={signOut} onOpenTrainee={isBhbcCoach?null:(id=>navTo('trainees',id))} onExit={isBhbcCoach?null:(()=>navTo('trainees'))} />
+        <BhbcView trainees={trainees} setTrainees={setTrainees} bhbcLoads={bhbcLoads} setBhbcLoads={setBhbcLoads} bhbcFixtures={bhbcFixtures} setBhbcFixtures={setBhbcFixtures} league={bhbcLeague} medical={bhbcMedical} setMedical={setBhbcMedical} sessionPlans={bhbcPlans} setSessionPlans={setBhbcPlans} planIndex={planIndex} exercises={exercises} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} workouts={workouts} setWorkouts={setWorkouts} onDecrementSession={handleDecrementSession} portalVis={portalVis} bwLog={bwLog} weeklyFocus={weeklyFocus} coach={isBhbcCoach} canMedical={isOwner || isPtEmail(email)} onLocalWrite={notifyBhbcChange} onSignOut={signOut} onOpenTrainee={isBhbcCoach?null:(id=>navTo('trainees',id))} onExit={isBhbcCoach?null:(()=>navTo('trainees'))} />
       </ErrorBoundary>
     </Suspense>
   );
