@@ -8,6 +8,14 @@ By severity: 17 high · 39 medium · 47 low
 
 > Fixed-and-deployed items are marked ✅ FIXED with the commit. See memory `project_platform_bug_audit_2026_08_22.md` for the resume plan.
 
+
+> **STATUS 2026-08-25.** Every finding in this document has now been actioned:
+> fixed, refuted on verify, or (for #57) deliberately disabled with the blocker
+> documented in the code. Fixes shipped across commits `5fe72b0`, `1d9fdf4`,
+> `e416d93`, `29e64eb` and `f1ae2d1`, each verified live before moving on.
+> Findings still marked _[unverified]_ below were verified as ALREADY FIXED by an
+> earlier wave and left as-is.
+
 ## 1. [HIGH] Stacked Modal+ConfirmDialog closing in one commit strands body overflow:hidden — page permanently unscrollable _[unverified]_
 
 **Where:** `C:/Users/Administrator/Desktop/expo-full/src/ui.jsx:719`
@@ -202,7 +210,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 16. [HIGH] Motion-detected rep channel never reaches the rep counter — REPS stuck at 0 for unmatched/Hebrew titles _[unverified]_
+## 16. [HIGH] Motion-detected rep channel never reaches the rep counter — REPS stuck at 0 for unmatched/Hebrew titles **[FIXED 2026-08-25]**
 
 **Where:** `src/WorkoutReview.jsx:630`
 
@@ -214,7 +222,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 17. [HIGH] Single in-person logger ignores per-week wk/wkS arrays — wrong reps/set-count shown and persisted _[unverified]_
+## 17. [HIGH] Single in-person logger ignores per-week wk/wkS arrays — wrong reps/set-count shown and persisted **[FIXED 2026-08-25]**
 
 **Where:** `src/WorkoutsView.jsx:377`
 
@@ -226,7 +234,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 18. [MEDIUM] copyGuard blocks copy/cut and the context menu inside form fields — Ctrl+X silently no-ops, stale clipboard gets pasted _[unverified]_
+## 18. [MEDIUM] copyGuard blocks copy/cut and the context menu inside form fields — Ctrl+X silently no-ops, stale clipboard gets pasted **[FIXED 2026-08-25]**
 
 **Where:** `C:/Users/Administrator/Desktop/expo-full/src/copyGuard.js:33`
 
@@ -238,7 +246,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 19. [MEDIUM] Apply CTA assumes C.ac is cyan — in light theme --c-ac is #0E0F12, giving #04121f text on a near-black fill (unreadable at rest) _[unverified]_
+## 19. [MEDIUM] Apply CTA assumes C.ac is cyan — in light theme --c-ac is #0E0F12, giving #04121f text on a near-black fill (unreadable at rest) **[FIXED 2026-08-25]**
 
 **Where:** `C:/Users/Administrator/Desktop/expo-full/src/ExerciseMatchingView.jsx:206`
 
@@ -250,7 +258,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 20. [MEDIUM] .expo-btn:hover !important wipes solid inline button fills — Apply/'Use this match' CTAs become dark-text-on-dark while hovered _[unverified]_
+## 20. [MEDIUM] .expo-btn:hover !important wipes solid inline button fills — Apply/'Use this match' CTAs become dark-text-on-dark while hovered **[FIXED 2026-08-25]**
 
 **Where:** `C:/Users/Administrator/Desktop/expo-full/src/themes.css:21`
 
@@ -286,7 +294,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 23. [MEDIUM] Sales-chat system prompt states wrong program duration and promises coach video review the templates don't include _[unverified]_
+## 23. [MEDIUM] Sales-chat system prompt states wrong program duration and promises coach video review the templates don't include **[FIXED 2026-08-25]**
 
 **Where:** `expo-il/api/chat.js:82`
 
@@ -298,7 +306,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 24. [MEDIUM] Mobile sticky CTA bar covers the chat launcher bubble, making chat nearly untappable _[unverified]_
+## 24. [MEDIUM] Mobile sticky CTA bar covers the chat launcher bubble, making chat nearly untappable **[FIXED 2026-08-25]**
 
 **Where:** `expo-il/src/Chat.jsx:210`
 
@@ -352,7 +360,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 28. [MEDIUM] todayISO/daysAgoISO use UTC — between local midnight and 02:00/03:00 Israel time all 'today' writes land on yesterday _[unverified]_
+## 28. [MEDIUM] todayISO/daysAgoISO use UTC — between local midnight and 02:00/03:00 Israel time all 'today' writes land on yesterday **[FIXED 2026-08-25]**
 
 **Where:** `src/BhbcView.jsx:56`
 
@@ -364,7 +372,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 29. [MEDIUM] LogModal shows Readiness inputs in 'Whole roster' scope but logTeamSession discards them silently _[unverified]_
+## 29. [MEDIUM] LogModal shows Readiness inputs in 'Whole roster' scope but logTeamSession discards them silently **[FIXED 2026-08-25]**
 
 **Where:** `src/BhbcView.jsx:2230`
 
@@ -376,7 +384,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 30. [MEDIUM] last14/last28 memoized with empty deps — a tab left open past midnight shows stale windows that disagree with ACWR _[unverified]_
+## 30. [MEDIUM] last14/last28 memoized with empty deps — a tab left open past midnight shows stale windows that disagree with ACWR **[FIXED 2026-08-25]**
 
 **Where:** `src/BhbcView.jsx:158`
 
@@ -484,7 +492,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 38. [MEDIUM] Explicit Save marks autosave clean even when savePlan failed — silent edit loss on exit _[unverified]_
+## 38. [MEDIUM] Explicit Save marks autosave clean even when savePlan failed — silent edit loss on exit **[FIXED 2026-08-25]**
 
 **Where:** `src/PlansView.jsx:1774`
 
@@ -496,7 +504,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 39. [MEDIUM] Orphan '+ ASSIGN PROGRAM' creates the plan under the parent couple id _[unverified]_
+## 39. [MEDIUM] Orphan '+ ASSIGN PROGRAM' creates the plan under the parent couple id **[FIXED 2026-08-25]**
 
 **Where:** `src/PlansView.jsx:4144`
 
@@ -508,7 +516,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 40. [MEDIUM] '+ New Program' flow cannot assign an athlete who already has programs — combo navigates away, stranding an unassigned empty program _[unverified]_
+## 40. [MEDIUM] '+ New Program' flow cannot assign an athlete who already has programs — combo navigates away, stranding an unassigned empty program **[FIXED 2026-08-25]**
 
 **Where:** `src/PlansView.jsx:1845`
 
@@ -520,7 +528,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 41. [MEDIUM] Session-ended broadcast doesn't cancel receivers' pending store upserts — finished session resurrects, history duplicated _[unverified]_
+## 41. [MEDIUM] Session-ended broadcast doesn't cancel receivers' pending store upserts — finished session resurrects, history duplicated **[FIXED 2026-08-25]**
 
 **Where:** `src/SessionsView.jsx:211`
 
@@ -532,7 +540,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 42. [MEDIUM] Null exercise entry in a plan day crashes the coach session surfaces (portal filters the same data) _[unverified]_
+## 42. [MEDIUM] Null exercise entry in a plan day crashes the coach session surfaces (portal filters the same data) **[FIXED 2026-08-25]**
 
 **Where:** `src/SessionsView.jsx:366`
 
@@ -544,7 +552,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 43. [MEDIUM] Full-session broadcast is last-writer-wins — concurrent edits on two coach devices silently revert each other _[unverified]_
+## 43. [MEDIUM] Full-session broadcast is last-writer-wins — concurrent edits on two coach devices silently revert each other **[FIXED 2026-08-25]**
 
 **Where:** `src/SessionsView.jsx:342`
 
@@ -556,7 +564,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 44. [MEDIUM] UTC date defaults mis-date weigh-ins/payments/evals logged after midnight Israel time; BwAddRow's max blocks picking the real 'today' _[unverified]_
+## 44. [MEDIUM] UTC date defaults mis-date weigh-ins/payments/evals logged after midnight Israel time; BwAddRow's max blocks picking the real 'today' **[FIXED 2026-08-25]**
 
 **Where:** `src/TraineeDetail.jsx:108`
 
@@ -568,7 +576,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 45. [MEDIUM] New Bnei Herzliya athlete silently saved with '8 Sessions' package and sessionsRemaining 8 — hidden billing fields are never cleared _[unverified]_
+## 45. [MEDIUM] New Bnei Herzliya athlete silently saved with '8 Sessions' package and sessionsRemaining 8 — hidden billing fields are never cleared **[FIXED 2026-08-25]**
 
 **Where:** `src/TraineesView.jsx:958`
 
@@ -580,7 +588,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 46. [MEDIUM] BHBC membership drift: roster-added 'Bnei Herzliya' athletes never reach the BHBC zone/coach sync (format vs team vs branch three-field split) _[unverified]_
+## 46. [MEDIUM] BHBC membership drift: roster-added 'Bnei Herzliya' athletes never reach the BHBC zone/coach sync (format vs team vs branch three-field split) **[FIXED 2026-08-25]**
 
 **Where:** `src/TraineesView.jsx:691`
 
@@ -592,7 +600,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 47. [MEDIUM] Couple card per-member bodyweight sparklines can never show data — they filter sub-member IDs that no writer ever produces _[unverified]_
+## 47. [MEDIUM] Couple card per-member bodyweight sparklines can never show data — they filter sub-member IDs that no writer ever produces **[FIXED 2026-08-25]**
 
 **Where:** `src/TraineesView.jsx:733`
 
@@ -604,7 +612,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 48. [MEDIUM] Range-of-motion card reads from the velocity-filtered Bar-Speed vault, so ROM trends for ballistic and symmetry-only lifts are invisible _[unverified]_
+## 48. [MEDIUM] Range-of-motion card reads from the velocity-filtered Bar-Speed vault, so ROM trends for ballistic and symmetry-only lifts are invisible **[FIXED 2026-08-25]**
 
 **Where:** `src/TrainingLineageV2.jsx:368`
 
@@ -616,7 +624,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 49. [MEDIUM] Compare flow revokes the first clip's live blob URL, killing it on any later remount _[unverified]_
+## 49. [MEDIUM] Compare flow revokes the first clip's live blob URL, killing it on any later remount **[FIXED 2026-08-25]**
 
 **Where:** `src/TrySandbox.jsx:78`
 
@@ -628,7 +636,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 50. [MEDIUM] Pose-detection loop spawns an extra permanent detect chain per seek (plus a doubled initial chain) _[unverified]_
+## 50. [MEDIUM] Pose-detection loop spawns an extra permanent detect chain per seek (plus a doubled initial chain) **[FIXED 2026-08-25]**
 
 **Where:** `src/TrySandbox.jsx:1846`
 
@@ -640,7 +648,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 51. [MEDIUM] 'NOW SEE THE COACH VIEW →' CTA on /try links back to /try itself (self-link dead end) _[unverified]_
+## 51. [MEDIUM] 'NOW SEE THE COACH VIEW →' CTA on /try links back to /try itself (self-link dead end) **[FIXED 2026-08-25]**
 
 **Where:** `src/TrySandbox.jsx:2030`
 
@@ -666,7 +674,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 53. [MEDIUM] Empty day.exercises[] shadows populated day.ex[] — hybrid days render as 'No exercises' _[unverified]_
+## 53. [MEDIUM] Empty day.exercises[] shadows populated day.ex[] — hybrid days render as 'No exercises' **[FIXED 2026-08-25]**
 
 **Where:** `src/WeeklyFocusTool.jsx:26`
 
@@ -678,7 +686,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 54. [MEDIUM] Couple members' plans invisible in the in-person session picker — flow silently missing for couples _[unverified]_
+## 54. [MEDIUM] Couple members' plans invisible in the in-person session picker — flow silently missing for couples **[FIXED 2026-08-25]**
 
 **Where:** `src/WorkoutsView.jsx:521`
 
@@ -690,7 +698,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 55. [MEDIUM] Cue precedence inverted in single logger — library cue overrides the coach's plan-specific note _[unverified]_
+## 55. [MEDIUM] Cue precedence inverted in single logger — library cue overrides the coach's plan-specific note **[FIXED 2026-08-25]**
 
 **Where:** `src/WorkoutsView.jsx:144`
 
@@ -702,7 +710,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 56. [MEDIUM] completeWorkout has no re-entrancy guard — double-tap writes duplicate history and decrements the paid session count twice _[unverified]_
+## 56. [MEDIUM] completeWorkout has no re-entrancy guard — double-tap writes duplicate history and decrements the paid session count twice **[FIXED 2026-08-25]**
 
 **Where:** `src/WorkoutsView.jsx:479`
 
@@ -714,7 +722,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 57. [LOW] recallSession is dead code: anon key cannot SELECT chat_logs under RLS, so server-side chat memory never works _[unverified]_
+## 57. [LOW] recallSession is dead code: anon key cannot SELECT chat_logs under RLS, so server-side chat memory never works **[DISABLED + DOCUMENTED 2026-08-25]**
 
 **Where:** `expo-il/api/chat.js:24`
 
@@ -726,7 +734,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 58. [LOW] Prerendered /programs/<id>.html pages emit invalid currency "NIS" in Product structured data — the fix applied in the SPA never reached the crawlable pages _[unverified]_
+## 58. [LOW] Prerendered /programs/<id>.html pages emit invalid currency "NIS" in Product structured data — the fix applied in the SPA never reached the crawlable pages **[FIXED 2026-08-25]**
 
 **Where:** `expo-il/scripts/generate-program-pages.mjs:83`
 
@@ -738,7 +746,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 59. [LOW] Browser tab title stays in the previous language after the EN/HE toggle _[unverified]_
+## 59. [LOW] Browser tab title stays in the previous language after the EN/HE toggle **[FIXED 2026-08-25]**
 
 **Where:** `expo-il/src/App.jsx:3126`
 
