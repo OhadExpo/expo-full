@@ -160,6 +160,17 @@ export function buildSeries(frames, { hand = 'R', aspect = 9 / 16 } = {}) {
 export function detectShots(series, fps, opts = {}) {
   const dbg = opts.debug || null;
   const note = (t, reason) => { if (dbg) dbg.push({ t: Math.round(t), reason }); };
+  // Gate thresholds are parameters so the caller can run a FORGIVING second
+  // pass when the strict one finds nothing — a clip filmed slightly off-angle
+  // (or a set shot with almost no knee bend) reads lower on every angle and
+  // used to be rejected outright with "no shot detected" (audit 08-24).
+  const G = {
+    armElev: opts.minArmElev ?? 95,
+    elbow: opts.minElbow ?? 110,
+    knee: opts.maxDipKnee ?? 165,
+    dipWindowMs: opts.dipWindowMs ?? 1400,
+    requireAboveHead: opts.requireAboveHead !== false,
+  };
   const { sm, raw, tMs, n } = series;
   const minGapMs = 700;
   const cands = [];
@@ -200,13 +211,13 @@ export function detectShots(series, fps, opts = {}) {
     // Thresholds calibrated against real release frames (elbow above the
     // shoulder, arm extending). A distant subject reads lower on both angles
     // than a studio capture would, so the bar is where actual shots sit.
-    if (!isReal(sm.armElev[release]) || sm.armElev[release] < 95) { note(tMs[release], 'arm not overhead (' + Math.round(sm.armElev[release] || 0) + '° image-plane)'); continue; }
-    if (!isReal(sm.elbow[release]) || sm.elbow[release] < 110) { note(tMs[release], 'elbow not extended (' + Math.round(sm.elbow[release] || 0) + '°)'); continue; }
-    if (!raw.armAboveHead[release]) { note(tMs[release], 'hand not above head'); continue; }
+    if (!isReal(sm.armElev[release]) || sm.armElev[release] < G.armElev) { note(tMs[release], 'arm not overhead (' + Math.round(sm.armElev[release] || 0) + '° image-plane)'); continue; }
+    if (!isReal(sm.elbow[release]) || sm.elbow[release] < G.elbow) { note(tMs[release], 'elbow not extended (' + Math.round(sm.elbow[release] || 0) + '°)'); continue; }
+    if (G.requireAboveHead && !raw.armAboveHead[release]) { note(tMs[release], 'hand not above head'); continue; }
 
-    const dipFrom = idxAtTime(tMs, tMs[release] - 1400);
+    const dipFrom = idxAtTime(tMs, tMs[release] - G.dipWindowMs);
     const dip = argmin(sm.knee, dipFrom, Math.max(dipFrom, release - 1));
-    if (dip < 0 || !isReal(sm.knee[dip]) || sm.knee[dip] > 165) { note(tMs[release], 'no dip (' + Math.round(sm.knee[dip] || 0) + '°)'); continue; }
+    if (dip < 0 || !isReal(sm.knee[dip]) || sm.knee[dip] > G.knee) { note(tMs[release], 'no dip (' + Math.round(sm.knee[dip] || 0) + '°)'); continue; }
 
     let set = dip, best = Infinity;
     for (let k = dip; k < release; k++) { const e = sm.elbow[k]; if (isReal(e) && Math.abs(e - 90) < best) { best = Math.abs(e - 90); set = k; } }
@@ -436,6 +447,26 @@ export function frameReadout(series, i) {
 }
 
 // ---------------------------------------------------------------- pipeline --
+// Which hand actually shot? The shooting wrist rises highest above the
+// shoulders at the release and stays there through the follow-through. Reading
+// it from the clip removes a setting the coach shouldn't have to think about
+// (Ohad 08-24: hand + shot type should be automatic, overridable).
+export function detectShootingHand(frames) {
+  let rSum = 0, lSum = 0, n = 0;
+  for (const f of frames || []) {
+    const p = f && (f.pose || f.landmarks || f.lm);
+    if (!p || !p[15] || !p[16] || !p[11] || !p[12]) continue;
+    const shoY = (p[11].y + p[12].y) / 2;
+    const rUp = shoY - p[16].y; // +y is DOWN in normalized pose space
+    const lUp = shoY - p[15].y;
+    if (Number.isFinite(rUp) && Number.isFinite(lUp)) { rSum += Math.max(0, rUp); lSum += Math.max(0, lUp); n++; }
+  }
+  if (!n) return null;
+  const diff = Math.abs(rSum - lSum) / Math.max(1e-6, rSum + lSum);
+  if (diff < 0.06) return null; // genuinely two-handed / inconclusive
+  return rSum >= lSum ? 'R' : 'L';
+}
+
 export function analyzeShotClip(frames, { hand = 'R', statureCm = null, shotType = 'mid' } = {}) {
   if (!frames || frames.length < 8) return { ok: false, error: 'Not enough frames with a visible body. Film the whole body, side-on, in good light.' };
   const dims = frames.dims || { w: 9, h: 16 };
@@ -444,9 +475,29 @@ export function analyzeShotClip(frames, { hand = 'R', statureCm = null, shotType
   const span = (tMs[tMs.length - 1] - tMs[0]) / 1000;
   const fps = frames.fps || (span > 0 ? (frames.length - 1) / span : 30);
   const series = buildSeries(frames, { hand, aspect });
-  const cycles = detectShots(series, fps);
+  const strictWhy = [];
+  let cycles = detectShots(series, fps, { debug: strictWhy });
+  // Nothing on the strict pass → try again with forgiving gates before giving
+  // up. A real shot filmed off-angle, or a flat-footed set shot, reads low on
+  // every angle; refusing to analyse it at all was the worst answer (08-24).
+  let relaxed = false;
   if (!cycles.length) {
-    return { ok: false, error: 'No shot detected — I could not find a hands-above-the-head release with a dip before it. Film the whole shot side-on, with the shooting arm towards the camera.', series, fps };
+    const why2 = [];
+    cycles = detectShots(series, fps, {
+      debug: why2, minArmElev: 70, minElbow: 92, maxDipKnee: 173, dipWindowMs: 2400, requireAboveHead: false,
+    });
+    if (cycles.length) relaxed = true; else strictWhy.push(...why2);
+  }
+  if (!cycles.length) {
+    // Tell the coach what the engine actually SAW, not just that it failed.
+    const counts = {};
+    for (const r of strictWhy) counts[r.reason.replace(/\s*\([^)]*\)/, '')] = (counts[r.reason.replace(/\s*\([^)]*\)/, '')] || 0) + 1;
+    const top = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 3)
+      .map(([r, c]) => `${r}${c > 1 ? ` ×${c}` : ''}`).join(' · ');
+    const detail = strictWhy.length
+      ? ` I found ${strictWhy.length} candidate release${strictWhy.length === 1 ? '' : 's'} and rejected ${strictWhy.length === 1 ? 'it' : 'them'}: ${top}.`
+      : ' I could not find a single frame where a wrist peaks above the shoulders — check that the whole body is in frame.';
+    return { ok: false, error: `No shot detected.${detail} Film the whole shot side-on, shooting arm towards the camera, feet to fingertips in frame.`, rejections: strictWhy, series, fps };
   }
   const shots = cycles.map((c, k) => ({ index: k + 1, cycle: c, ...scoreShot(series, c, { statureCm, shotType }) }));
 
@@ -465,5 +516,5 @@ export function analyzeShotClip(frames, { hand = 'R', statureCm = null, shotType
     timingSd: round(sdev(shots.map((s) => s.raw.timing)), 0),
   } : null;
 
-  return { ok: true, fps: round(fps, 1), frameCount: frames.length, hand, shotType, series, shots, consistency, quality, coverage: round(cov, 2), aspect };
+  return { ok: true, fps: round(fps, 1), frameCount: frames.length, hand, shotType, series, shots, consistency, quality: relaxed && quality === 'good' ? 'fair' : quality, relaxed, coverage: round(cov, 2), aspect };
 }

@@ -8,7 +8,7 @@ import { C, FN, FB } from './theme';
 import { toast } from './ui';
 import { captureShotFrames } from './shotCapture';
 import { getCamera, stopStream } from './usePose';
-import { analyzeShotClip, frameReadout, CHECKPOINTS, SHOT_TYPES } from './shotAnalysis';
+import { detectShootingHand, analyzeShotClip, frameReadout, CHECKPOINTS, SHOT_TYPES } from './shotAnalysis';
 
 const STATUS = {
   ok:    { label: 'OK',    color: 'var(--c-gn, #2ED573)' },
@@ -21,7 +21,12 @@ const SAVE_KEY = 'expo-shot-analyses';
 
 const stage = { position: 'fixed', inset: 0, background: '#000', zIndex: 1500, display: 'flex', flexDirection: 'column', color: '#FFF', fontFamily: FB };
 const ghost = { background: 'transparent', border: '1px solid rgba(255,255,255,0.3)', color: '#FFF', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', padding: '9px 16px', cursor: 'pointer', borderRadius: 0 };
-const chip = (active) => ({ ...ghost, padding: '5px 10px', fontSize: 10, letterSpacing: '0.12em', borderColor: active ? C.ac : 'rgba(255,255,255,0.25)', color: active ? C.ac : '#FFF', background: active ? 'rgba(57,189,255,0.10)' : 'transparent' });
+// This tool renders on its own ALWAYS-DARK stage, so it must not use theme
+// tokens for accents: in the light theme C.ac resolves to #0E0F12 and every
+// accented element (selected chips, labels, the pose dots) disappeared into
+// the black background (Ohad 08-24). CYAN is the fixed on-dark accent.
+const CYAN = '#39BDFF';
+const chip = (active) => ({ ...ghost, padding: '5px 10px', fontSize: 10, letterSpacing: '0.12em', borderColor: active ? CYAN : 'rgba(255,255,255,0.25)', color: active ? CYAN : '#FFF', background: active ? 'rgba(57,189,255,0.10)' : 'transparent' });
 const big = (color) => ({ flex: 1, padding: 14, background: color, border: `1px solid ${color}`, color: '#06131b', fontFamily: FN, fontSize: 14, fontWeight: 700, letterSpacing: '0.14em', cursor: 'pointer', borderRadius: 0 });
 const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase' };
 const fmt = (v, d = 0) => (v == null || !Number.isFinite(v) ? '—' : v.toFixed(d));
@@ -30,8 +35,15 @@ const fmt = (v, d = 0) => (v == null || !Number.isFinite(v) ? '—' : v.toFixed(
 // ever fed in — this tool is a standalone shooting lab.
 export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', demoResult = null }) {
   const [phase, setPhase] = useState(demoResult ? 'results' : 'idle'); // idle | recording | analyzing | results
-  const [hand, setHand] = useState('R');
+  // 'auto' until the clip tells us (or the coach overrides). The shooting hand
+  // is read from the pose; the shot type defaults to mid-range and is a
+  // one-tap cycle — the coach shouldn't have to set either before filming
+  // (Ohad 08-24).
+  const [handMode, setHandMode] = useState('auto'); // 'auto' | 'R' | 'L'
+  const [detectedHand, setDetectedHand] = useState(null);
+  const hand = handMode === 'auto' ? (detectedHand || 'R') : handMode;
   const [shotType, setShotType] = useState('mid');
+  const [heightSaved, setHeightSaved] = useState(false);
   const [stature, setStature] = useState('');
   const [progressLabel, setProgressLabel] = useState('');
   const [srcUrl, setSrcUrl] = useState(null);
@@ -55,13 +67,17 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
       // around him at the source frame cadence inside each shot window.
       const frames = await captureShotFrames(url, { onProgress: (pct, label) => { setProgress(pct); if (label) setProgressLabel(label); } });
       framesRef.current = frames;
-      const r = analyzeShotClip(frames, { hand: opts.hand || hand, statureCm: Number(opts.stature ?? stature) || null, shotType: opts.shotType || shotType });
+      // Read the shooting hand off the clip unless the coach pinned one.
+      const auto = detectShootingHand(frames);
+      if (auto) setDetectedHand(auto);
+      const useHand = opts.hand || (handMode === 'auto' ? (auto || hand) : handMode);
+      const r = analyzeShotClip(frames, { hand: useHand, statureCm: Number(opts.stature ?? stature) || null, shotType: opts.shotType || shotType });
       if (!r.ok) { setError(r.error); setPhase('idle'); return; }
       setResult(r); setShotIdx(0); setPhase('results');
     } catch (e) {
       setError(e?.message || 'Analysis failed.'); setPhase('idle');
     }
-  }, [hand, stature, shotType]);
+  }, [hand, handMode, stature, shotType]);
 
   // Re-score the SAME frames when the hand / stature changes after analysis —
   // no re-capture needed.
@@ -103,15 +119,35 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
       {/* top bar */}
       <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.12)', background: 'rgba(0,0,0,0.92)', flexWrap: 'wrap' }}>
         <button onClick={onClose} style={ghost}>← BACK</button>
-        <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', color: C.ac }}>{toolLabel}</div>
+        <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', color: CYAN }}>{toolLabel}</div>
         <div style={{ flex: 1 }} />
-        <span style={lbl}>Shooting hand</span>
-        {['R', 'L'].map((h) => <button key={h} onClick={() => { setHand(h); if (phase === 'results') rescore(h, stature, shotType); }} style={chip(hand === h)}>{h === 'R' ? 'RIGHT' : 'LEFT'}</button>)}
+        {/* ONE control per setting — the old row rendered every option at once,
+            and in the light theme the SELECTED chip used the theme accent (near-black) on
+            this always-dark stage, so it looked like a blank box (Ohad 08-24). */}
+        <span style={lbl}>Hand</span>
+        <button
+          onClick={() => { const next = hand === 'R' ? 'L' : 'R'; setHandMode(next); if (phase === 'results') rescore(next, stature, shotType); }}
+          title={handMode === 'auto' ? 'Read from the clip — tap to set it yourself' : 'Set by you — tap to switch'}
+          style={chip(true)}>{hand === 'R' ? 'RIGHT' : 'LEFT'}{handMode === 'auto' && detectedHand ? ' · AUTO' : ''}</button>
+        {handMode !== 'auto' && (
+          <button onClick={() => { setHandMode('auto'); const h = detectedHand || 'R'; if (phase === 'results') rescore(h, stature, shotType); }} style={chip(false)} title="Back to reading it from the clip">AUTO</button>
+        )}
         <span style={{ ...lbl, marginLeft: 10 }}>Shot</span>
-        {SHOT_TYPES.map((t) => <button key={t.key} onClick={() => { setShotType(t.key); if (phase === 'results') rescore(hand, stature, t.key); }} style={chip(shotType === t.key)} title={`Release-angle band for a ${t.label.toLowerCase()}`}>{t.label.toUpperCase()}</button>)}
+        <button
+          onClick={() => { const i = SHOT_TYPES.findIndex((t) => t.key === shotType); const next = SHOT_TYPES[(i + 1) % SHOT_TYPES.length].key; setShotType(next); if (phase === 'results') rescore(hand, stature, next); }}
+          title="Release-angle band — tap to change the shot distance"
+          style={chip(true)}>{(SHOT_TYPES.find((t) => t.key === shotType) || SHOT_TYPES[1]).label.toUpperCase()}</button>
         <span style={{ ...lbl, marginLeft: 10 }}>Height</span>
-        <input value={stature} onChange={(e) => setStature(e.target.value)} onBlur={() => { if (phase === 'results') rescore(hand, stature, shotType); }} placeholder="cm" inputMode="numeric"
+        <input value={stature}
+          onChange={(e) => { setStature(e.target.value); setHeightSaved(false); }}
+          onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+          onBlur={() => { if (!String(stature).trim()) return; if (phase === 'results') rescore(hand, stature, shotType); setHeightSaved(true); setTimeout(() => setHeightSaved(false), 2600); }}
+          placeholder="cm" inputMode="numeric"
           style={{ width: 56, background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.35)', color: '#FFF', fontFamily: FN, fontSize: 12, padding: '4px 2px', textAlign: 'center', outline: 'none' }} />
+        {/* Height feeds the cm conversions — say so when it lands (Ohad 08-24). */}
+        <span style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', color: heightSaved ? '#37B27C' : 'rgba(255,255,255,0.35)', minWidth: 74 }}>
+          {heightSaved ? (phase === 'results' ? '✓ RESCORED' : '✓ SAVED') : (String(stature).trim() ? 'CM' : 'FOR CM')}
+        </span>
       </div>
 
       {/* body */}
@@ -125,14 +161,14 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10, marginBottom: 18 }}>
               {[['SIDE VIEW', 'Film from the shooting-arm side, camera at chest height, 4–6 m away.'], ['WHOLE BODY', 'Feet to fingertips in frame through the release and the follow-through.'], ['ONE SHOT PER CLIP', 'Several shots in one clip are fine — each is scored and compared for consistency.'], ['60 FPS IF YOU CAN', 'Slow-mo / 60 fps gives sharper release timing. Steady phone, good light.']].map(([h, t]) => (
                 <div key={h} style={{ border: '1px solid rgba(255,255,255,0.15)', padding: '10px 12px' }}>
-                  <div style={{ ...lbl, color: C.ac, marginBottom: 4 }}>{h}</div>
+                  <div style={{ ...lbl, color: CYAN, marginBottom: 4 }}>{h}</div>
                   <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', lineHeight: 1.45 }}>{t}</div>
                 </div>
               ))}
             </div>
             {error && <div style={{ border: '1px solid rgba(255,71,87,0.6)', color: '#FF7B86', padding: '10px 12px', fontSize: 13, marginBottom: 14 }}>⚠ {error}</div>}
             <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={startRecording} style={big(C.ac)}>RECORD →</button>
+              <button onClick={startRecording} style={big(CYAN)}>RECORD →</button>
               <button onClick={pickFile} style={{ ...big('transparent'), color: '#FFF', border: '1px solid rgba(255,255,255,0.4)' }}>FROM GALLERY</button>
             </div>
           </div>
@@ -151,7 +187,7 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
       {phase === 'analyzing' && (
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
           <div style={{ fontFamily: FN, fontSize: 13, letterSpacing: '0.18em', fontWeight: 700 }}>{(progressLabel || 'reading the shot').toUpperCase()}…</div>
-          <div style={{ width: 220, height: 4, background: 'rgba(255,255,255,0.15)', marginTop: 16 }}><div style={{ width: `${progress}%`, height: '100%', background: C.ac, transition: 'width 120ms' }} /></div>
+          <div style={{ width: 220, height: 4, background: 'rgba(255,255,255,0.15)', marginTop: 16 }}><div style={{ width: `${progress}%`, height: '100%', background: CYAN, transition: 'width 120ms' }} /></div>
           <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 8, fontFamily: FN, letterSpacing: '0.12em' }}>{progress}%</div>
         </div>
       )}
@@ -236,7 +272,7 @@ function ShotResults({ result, shot, shotIdx, setShotIdx, srcUrl, frames, hand, 
     const arm = hand === 'L' ? [11, 13, 15] : [12, 14, 16];
     ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 3.5;
     ctx.beginPath(); ctx.moveTo(X(lm[arm[0]]), Y(lm[arm[0]])); ctx.lineTo(X(lm[arm[1]]), Y(lm[arm[1]])); ctx.lineTo(X(lm[arm[2]]), Y(lm[arm[2]])); ctx.stroke();
-    for (let i = 11; i <= 28; i++) { const p = lm[i]; if (!p || (p.visibility ?? 1) < 0.3) continue; ctx.fillStyle = arm.includes(i) ? '#FFFFFF' : C.ac; ctx.beginPath(); ctx.arc(X(p), Y(p), 3.5, 0, Math.PI * 2); ctx.fill(); }
+    for (let i = 11; i <= 28; i++) { const p = lm[i]; if (!p || (p.visibility ?? 1) < 0.3) continue; ctx.fillStyle = arm.includes(i) ? '#FFFFFF' : CYAN; ctx.beginPath(); ctx.arc(X(p), Y(p), 3.5, 0, Math.PI * 2); ctx.fill(); }
     // eye line
     const eye = lm[hand === 'L' ? 2 : 5]; if (eye) { ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.setLineDash([4, 4]); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(ox, Y(eye)); ctx.lineTo(ox + cw, Y(eye)); ctx.stroke(); ctx.setLineDash([]); }
   }, [cur, frames, hand, srcUrl, boxTick]);
@@ -272,7 +308,7 @@ function ShotResults({ result, shot, shotIdx, setShotIdx, srcUrl, frames, hand, 
             {srcUrl ? <video ref={videoRef} src={srcUrl} muted playsInline style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' }} onLoadedMetadata={() => seekTo(cur)} />
               : <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.4)', fontFamily: FN, fontSize: 11, letterSpacing: '0.14em' }}>POSE TRACK</div>}
             <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }} />
-            {phaseAt && <div style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(0,0,0,0.7)', border: `1px solid ${C.ac}`, color: C.ac, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', padding: '3px 8px' }}>{phaseAt.label}</div>}
+            {phaseAt && <div style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(0,0,0,0.7)', border: `1px solid ${CYAN}`, color: CYAN, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', padding: '3px 8px' }}>{phaseAt.label}</div>}
             <div style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(0,0,0,0.7)', fontFamily: FN, fontSize: 10, letterSpacing: '0.08em', padding: '3px 8px', color: 'rgba(255,255,255,0.8)' }}>F{cur + 1}/{n} · {fmt(tMs / 1000, 2)}s</div>
           </div>
           {/* transport */}
@@ -320,7 +356,7 @@ function ShotResults({ result, shot, shotIdx, setShotIdx, srcUrl, frames, hand, 
                       panel underneath is all of them. */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     <button onClick={() => setShotIdx((i) => Math.max(0, i - 1))} disabled={shotIdx === 0} style={{ ...chip(false), opacity: shotIdx === 0 ? 0.35 : 1 }}>&lsaquo;</button>
-                    <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', color: C.ac }}>SHOT {shot.index} / {result.shots.length}</span>
+                    <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', color: CYAN }}>SHOT {shot.index} / {result.shots.length}</span>
                     <span style={{ ...lbl, letterSpacing: '0.06em' }}>at {fmt(series.tMs[shot.cycle.release] / 1000, 1)}s</span>
                     <button onClick={() => setShotIdx((i) => Math.min(result.shots.length - 1, i + 1))} disabled={shotIdx === result.shots.length - 1} style={{ ...chip(false), opacity: shotIdx === result.shots.length - 1 ? 0.35 : 1 }}>&rsaquo;</button>
                     <div style={{ flex: 1 }} />
@@ -330,7 +366,7 @@ function ShotResults({ result, shot, shotIdx, setShotIdx, srcUrl, frames, hand, 
                     {result.shots.map((s, i) => {
                       const st = STATUS[s.score == null ? 'na' : s.score >= 80 ? 'ok' : s.score >= 60 ? 'watch' : 'fix'];
                       return <button key={i} onClick={() => setShotIdx(i)} title={`Shot ${s.index} at ${fmt(series.tMs[s.cycle.release] / 1000, 1)}s, score ${s.score ?? '-'}`}
-                        style={{ ...chip(i === shotIdx), padding: '4px 8px', borderColor: i === shotIdx ? C.ac : st.color, color: i === shotIdx ? C.ac : st.color }}>{s.index}</button>;
+                        style={{ ...chip(i === shotIdx), padding: '4px 8px', borderColor: i === shotIdx ? CYAN : st.color, color: i === shotIdx ? CYAN : st.color }}>{s.index}</button>;
                     })}
                   </div>
                 </div>
@@ -355,7 +391,7 @@ function ShotResults({ result, shot, shotIdx, setShotIdx, srcUrl, frames, hand, 
               never ambiguous: this table IS the whole clip. */}
           {result.shots.length > 1 && (
             <div style={{ marginBottom: 16 }}>
-              <div style={{ ...lbl, color: C.ac, marginBottom: 6 }}>Session · {result.shots.length} shots detected</div>
+              <div style={{ ...lbl, color: CYAN, marginBottom: 6 }}>Session · {result.shots.length} shots detected</div>
               <div style={{ border: '1px solid rgba(255,255,255,0.15)', overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FN, fontSize: 11 }}>
                   <thead><tr>{['#', 'At', 'Score', 'Dip', 'Set', 'Release', 'Timing', 'Fix first'].map((h) => <th key={h} style={{ ...lbl, textAlign: 'left', padding: '6px 8px', borderBottom: '1px solid rgba(255,255,255,0.15)', whiteSpace: 'nowrap' }}>{h}</th>)}</tr></thead>
@@ -365,7 +401,7 @@ function ShotResults({ result, shot, shotIdx, setShotIdx, srcUrl, frames, hand, 
                       const worst = s.checks.find((c) => c.status === 'fix') || s.checks.find((c) => c.status === 'watch');
                       return (
                         <tr key={i} onClick={() => setShotIdx(i)} style={{ cursor: 'pointer', background: i === shotIdx ? 'rgba(57,189,255,0.10)' : 'transparent', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-                          <td style={{ padding: '6px 8px', fontWeight: 700, color: i === shotIdx ? C.ac : '#FFF' }}>{s.index}</td>
+                          <td style={{ padding: '6px 8px', fontWeight: 700, color: i === shotIdx ? CYAN : '#FFF' }}>{s.index}</td>
                           <td style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.7)' }}>{fmt(series.tMs[s.cycle.release] / 1000, 1)}s</td>
                           <td style={{ padding: '6px 8px', fontWeight: 700, color: st.color }}>{s.score ?? '—'}</td>
                           <td style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.8)' }}>{fmt(s.raw.dip)}°</td>
@@ -399,7 +435,7 @@ function ShotResults({ result, shot, shotIdx, setShotIdx, srcUrl, frames, hand, 
           )}
 
           {/* scorecard */}
-          <div style={{ ...lbl, color: C.ac, marginBottom: 6 }}>Checkpoints · shot {shot.index}{result.shots.length > 1 ? ' of ' + result.shots.length : ''}</div>
+          <div style={{ ...lbl, color: CYAN, marginBottom: 6 }}>Checkpoints · shot {shot.index}{result.shots.length > 1 ? ' of ' + result.shots.length : ''}</div>
           <div style={{ border: '1px solid rgba(255,255,255,0.15)' }}>
             {shot.checks.map((c, i) => {
               const st = STATUS[c.status];
@@ -422,8 +458,8 @@ function ShotResults({ result, shot, shotIdx, setShotIdx, srcUrl, frames, hand, 
                   {open && (
                     <div style={{ padding: '0 12px 12px 30px', fontSize: 12.5, lineHeight: 1.55, color: 'rgba(255,255,255,0.85)' }}>
                       <div style={{ marginBottom: 6 }}><span style={{ ...lbl, color: st.color }}>What </span>{c.status === 'ok' ? `Measured ${c.display} — inside the target band.` : `Measured ${c.display}; target ${c.target}.`}</div>
-                      <div style={{ marginBottom: 6 }}><span style={{ ...lbl, color: C.ac }}>Why </span>{c.why}</div>
-                      <div><span style={{ ...lbl, color: C.ac }}>How </span>
+                      <div style={{ marginBottom: 6 }}><span style={{ ...lbl, color: CYAN }}>Why </span>{c.why}</div>
+                      <div><span style={{ ...lbl, color: CYAN }}>How </span>
                         <ul style={{ margin: '4px 0 0', paddingLeft: 18 }}>{c.how.map((h, k) => <li key={k} style={{ marginBottom: 2 }}>{h}</li>)}</ul>
                       </div>
                     </div>
@@ -438,7 +474,7 @@ function ShotResults({ result, shot, shotIdx, setShotIdx, srcUrl, frames, hand, 
           </div>
 
           <div className="shot-noprint" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
-            <button onClick={save} style={{ ...ghost, borderColor: C.ac, color: C.ac }}>↑ SAVE</button>
+            <button onClick={save} style={{ ...ghost, borderColor: CYAN, color: CYAN }}>↑ SAVE</button>
             <button onClick={copySummary} style={ghost}>COPY SUMMARY</button>
             <button onClick={() => window.print()} style={ghost}>PRINT REPORT</button>
             <div style={{ flex: 1 }} />
