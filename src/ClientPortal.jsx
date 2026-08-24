@@ -22,6 +22,7 @@ import TraineePRsView from './TraineePRsView';
 import ReadinessRow, { hasReadiness } from './ReadinessRow';
 import CheckinTrends from './CheckinTrends';
 import { toast, confirmToast, isRefined5b, useEscClose, useDelayedUnmountValue } from './ui';
+import { isLogOfPlan, duplicatePlanNames } from './planLogMatch';
 // F-14 — meal photo → macros logger. Lazy-loaded since most athletes
 // won't open it on every page load (and it pulls in the meals query).
 const MealLogger = React.lazy(() => import('./MealLogger'));
@@ -339,7 +340,7 @@ function OverviewFocus({ text }) {
 }
 
 // StepLogger: warmup steps → pre-workout → exercise steps → finish
-function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFocus, trainerExercises, priorWorkouts, allowSubstitution, demoMode = false, branch = ''}) {
+function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFocus, trainerExercises, priorWorkouts, allowSubstitution, demoMode = false, branch = '', nameAmbiguous = false}) {
   // Steps: 'wu0','wu1',... → 0,1,2,... (group indices) → 'end'
   // Daily-routine days skip warm-up steps entirely — Roei's "morning
   // routine" pattern doesn't tie to a warm-up block. Per-day flag set
@@ -1752,7 +1753,11 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       const targetWeek = weekNum; // saved w.week is 1-indexed; prev = weekNum
       let prevDate = null;
       for (const w of priorWorkouts) {
-        if (!isLogOfPlan(w, plan)) continue;   // plan id first, name fallback (audit #31)
+        // nameAmbiguous is true only when this portal shows two plans with the
+        // SAME name (a couple) — there the plan id decides which member's logs
+        // may ghost into these set rows (audit #31). Everywhere else the name
+        // is the link, exactly as before.
+        if (!isLogOfPlan(w, plan, nameAmbiguous ? new Set([plan.name]) : null)) continue;
         if (w.dayName !== day.name) continue;
         if (w.week !== targetWeek) continue;
         for (const px of (w.exercises || [])) {
@@ -2043,22 +2048,15 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
 // coach single/group surfaces use, so all views agree. Used both to open the
 // active block on the right week AND to log a NON-active visible plan's day
 // under ITS OWN week (a single global `wk` follows the active block only).
-// True when a logged workout belongs to THIS plan. Prefers the plan id and
-// falls back to the name for rows written before planId existed (audit #31).
-function isLogOfPlan(w, plan) {
-  if (!w || !plan) return false;
-  if (w.planId && plan.id) return w.planId === plan.id;
-  return w.planName === plan.name;
-}
 
-function deriveWeekIdx(plan, cw) {
+function deriveWeekIdx(plan, cw, dupNames) {
   const planWeeks = Number(plan?.weeks) || 4;
   // Exclude daily-routine days (kind:'daily') from the week-advancement scan —
   // they're logged unlimited times and are NOT a weekly requirement, so counting
   // them as "un-logged" pinned a mixed plan's week forever (and made a non-active
   // plan re-log every set under week 1). Mirrors the header's d.kind !== 'daily'.
   const dayNames = (plan?.days || []).filter(d => d.kind !== 'daily' && plan?.kind !== 'daily').map(d => d.name).filter(Boolean);
-  const logs = (cw || []).filter(w => isLogOfPlan(w, plan));
+  const logs = (cw || []).filter(w => isLogOfPlan(w, plan, dupNames));
   const done = new Set(logs.map(w => `${Number(w.week) || 1}|${w.dayName}`));
   const maxWk = logs.length ? Math.max(...logs.map(w => Number(w.week) || 1)) : 1;
   let nextWk = Math.max(1, maxWk);
@@ -2275,6 +2273,11 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   // toggles / ONLY pill, which write an explicit true/false into portalVis;
   // those explicit picks always win over the default.
   const sorted = mergedPlans.slice().sort(sortProgramsChrono);
+  // Plan names that appear more than once in what this portal shows. For a
+  // couple — two members, two plans, one shared portal — this is the collision
+  // that let one member's logs mark the other's day done (audit #31). It is the
+  // ONLY place the plan id gets to override the name.
+  const dupPlanNames = React.useMemo(() => duplicatePlanNames(sorted), [sorted]);
   const latestBlock = sorted.find(p => blockNum(p.name) !== -Infinity);
   const visPlans = sorted.filter(p => {
     if (clientName && portalVis) {
@@ -2351,7 +2354,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     // sees in single/group. Fully-done block → last week.
     // Open on the athlete's CURRENT week (first un-logged day, continue from the
     // latest trained week). Same rule single/group/coach derive — see deriveWeekIdx.
-    setWk(deriveWeekIdx(activePlan, cw));
+    setWk(deriveWeekIdx(activePlan, cw, dupPlanNames));
     // cw.length is in the deps ONLY to drive the rescue above. Once a derive
     // has run against real history, derivedFromEmptyRef is false, so later
     // growth (the athlete completing a workout) can never yank the week away
@@ -2422,13 +2425,13 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     // belongs to a DIFFERENT visible plan must file under THAT plan's own
     // current week, not the active block's — else a multi-plan athlete's
     // workout lands under the wrong week (done/AGAIN badge + ghosts too).
-    const logWeek = (targetPlan.name === activePlan?.name) ? wk : deriveWeekIdx(targetPlan, cw);
+    const logWeek = (targetPlan.name === activePlan?.name) ? wk : deriveWeekIdx(targetPlan, cw, dupPlanNames);
     // key by the day's IDENTITY (plan + day index + week), not the flat `lg`
     // index: if portalVis updates over realtime mid-session and the same `lg`
     // now maps to a DIFFERENT day, this forces a fresh StepLogger so allSets is
     // rebuilt from the correct prescription instead of the old day's numbers
     // being saved onto the new day's exercises.
-    return <StepLogger key={`${targetPlan.id || targetPlan.name || 'p'}|${targetDayIdx}|${targetPlan.days[targetDayIdx]?.name || ''}|w${logWeek}`} day={targetPlan.days[targetDayIdx]} plan={targetPlan} weekNum={logWeek} clientId={ci} onBack={() => setLg(null)} onComplete={handleComplete} weeklyFocus={weeklyFocus} trainerExercises={trainerExercises} priorWorkouts={cw} allowSubstitution={true} demoMode={demoMode} branch={isBnei ? 'Bnei Herzliya' : (trainee?.branch || '')}/>; }
+    return <StepLogger key={`${targetPlan.id || targetPlan.name || 'p'}|${targetDayIdx}|${targetPlan.days[targetDayIdx]?.name || ''}|w${logWeek}`} day={targetPlan.days[targetDayIdx]} plan={targetPlan} weekNum={logWeek} clientId={ci} onBack={() => setLg(null)} onComplete={handleComplete} weeklyFocus={weeklyFocus} trainerExercises={trainerExercises} priorWorkouts={cw} allowSubstitution={true} nameAmbiguous={dupPlanNames.has(targetPlan.name)} demoMode={demoMode} branch={isBnei ? 'Bnei Herzliya' : (trainee?.branch || '')}/>; }
 
   // Shared portal header (logo + lock + logout / greeting / block badges +
   // sessions count / tab switcher). Rendered at the top of Program, BW Graph,
@@ -3358,7 +3361,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           // across blocks, so unscoped `cw` marked a current-block day ✓/AGAIN
           // from a PRIOR block's log, so the athlete could skip an untrained
           // session (audit H2). Mirrors the planName-scoped pattern used above.
-          const dailyCount = isDailyRoutine ? cw.filter(w => w.dayName === day.name && isLogOfPlan(w, vp)).length : 0;
+          const dailyCount = isDailyRoutine ? cw.filter(w => w.dayName === day.name && isLogOfPlan(w, vp, dupPlanNames)).length : 0;
           // Per-plan week: the global `wk` strip belongs to the ACTIVE plan. A
           // secondary visible plan (couples, an opted-in 2nd block) logs its day under
           // ITS OWN derived week (finish() line ~2387), so the overview must read the
@@ -3366,7 +3369,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           // completed secondary day reads "not done" (duplicate re-log) or an
           // untrained one reads "done" (skipped), and the rx shown is off-by-week.
           const vpWeek = (vp.name === activePlan?.name) ? wk : deriveWeekIdx(vp, cw);
-          const done = !isDailyRoutine && cw.some(w => w.dayName === day.name && w.week === vpWeek + 1 && isLogOfPlan(w, vp));
+          const done = !isDailyRoutine && cw.some(w => w.dayName === day.name && w.week === vpWeek + 1 && isLogOfPlan(w, vp, dupPlanNames));
           // doneBorderColor hoisted out of the inline template — the
           // build-time guard's parser mis-tracks single-quoted strings
           // inside nested ${ … } expressions (it's how the original bare

@@ -600,8 +600,15 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
     // card rendered "8 SESSIONS LEFT" for a player whose own card says
     // "Club athlete — no billing" (audit 08-22). Strip the values, don't just
     // hide the inputs — and clear them when converting an existing client too.
+    // Keep the two membership markers in lockstep IN BOTH DIRECTIONS (audit
+    // #46). Only stamping team on the way IN leaves an athlete moved off the
+    // club format still sitting in the /bhbc zone and the club-coach roster
+    // sync — the same invisible drift, pointing the other way. Their load
+    // history is keyed by id and is untouched either way.
+    if (toSave.format !== 'Bnei Herzliya' && toSave.branch !== 'Bnei Herzliya' && toSave.team === 'BHBC') {
+      toSave.team = '';
+    }
     if (toSave.format === 'Bnei Herzliya') {
-      // Keep the two membership markers in lockstep (audit #46).
       toSave.team = 'BHBC';
       toSave.package = '';
       toSave.sessionsRemaining = null;

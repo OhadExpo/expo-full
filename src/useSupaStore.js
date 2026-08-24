@@ -377,7 +377,10 @@ export function useSupaClientWorkouts(initial = []) {
         // them from localStorage forever (audit BUG 2).
         if (!error && rows && !mutatedRef.current) {
           const mapped = rows.map(r => ({
-            id: r.id, clientId: r.client_id, planName: r.plan_name,
+            // planId disambiguates two couple members' identically-named plans;
+            // plan_name alone cannot (audit 08-22 #31). Undefined until the
+            // column exists — every consumer falls back to the name.
+            id: r.id, clientId: r.client_id, planId: r.plan_id || null, planName: r.plan_name,
             dayName: r.day_name, week: r.week, date: r.date,
             autoregulation: r.autoregulation || {}, notes: r.notes || '',
             exercises: r.exercises || [], formVideos: r.form_videos || [],
@@ -465,15 +468,25 @@ export function useSupaClientWorkouts(initial = []) {
     // Find new workouts not yet in Supabase
     const newItems = val.filter(w => !prev.find(p => p.id === w.id));
     for (const w of newItems) {
-      const row = {
+      const baseRow = {
         id: w.id, client_id: w.clientId, plan_name: w.planName,
         day_name: w.dayName, week: w.week, date: w.date,
         autoregulation: w.autoregulation, notes: w.notes,
         exercises: w.exercises, form_videos: w.formVideos,
         reviewed_at: w.reviewedAt || null
       };
+      // plan_id is what lets the portal tell two couple members' identically-named
+      // plans apart (audit #31). The column may not exist yet — same pre-migration
+      // fallback usePlansStore uses for is_template_purchase, so this is a no-op
+      // until `scripts/migrations/2026-08-25-client-workouts-plan-id.sql` runs and
+      // starts working by itself the moment it does.
+      let row = w.planId ? { ...baseRow, plan_id: w.planId } : baseRow;
       try {
-        const { error } = await supabase.from('client_workouts').upsert(row);
+        let { error } = await supabase.from('client_workouts').upsert(row);
+        if (error && /column .*plan_id/i.test(error.message || '')) {
+          row = baseRow;
+          ({ error } = await supabase.from('client_workouts').upsert(row));
+        }
         if (error) {
           if (isTransient(error)) enqueue({ type: 'client_workouts.upsert', payload: { row }, dedupeKey: w.id, critical: true });
           else emitSaveError({ key: 'client_workouts', op: 'save', msg: error.message || String(error) });

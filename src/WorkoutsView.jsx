@@ -516,6 +516,10 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
     const w = active;
     if (!w || completingRef.current) return;
     completingRef.current = true;
+    // try/finally, not a trailing release: if anything in here throws (a
+    // decrement handler, a bad exercise row) the ref would stay latched and
+    // "Complete Workout" would be dead for the rest of the session.
+    try {
     const finishedAt = new Date().toISOString();
     if (w.traineeId) onDecrementSession(w.traineeId);
     // FULL PORTAL INTEGRATION: write a client_workouts row so the in-person
@@ -538,9 +542,11 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
       setClientWorkouts(prev => [...prev, row]);
     }
     setActive(null);
-    // Released on the next tick — by then `active` is null, so the `!w` check
-    // carries the guard from here on.
-    setTimeout(() => { completingRef.current = false; }, 0);
+    } finally {
+      // Released on the next tick — by then `active` is null, so the `!w` check
+      // carries the guard from here on.
+      setTimeout(() => { completingRef.current = false; }, 0);
+    }
   };
   // Filter the plan picker. Without this, the picker dumps all 209
   // production plans into one scroll. Active-only by default and a
