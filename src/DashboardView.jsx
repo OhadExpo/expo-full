@@ -949,6 +949,20 @@ function RevenueCard({ monthlyRate, thisMonthPaid, delta30, collected30, collect
             DOM and inherits theme colors. */}
         <div>
           <div style={{ ...labelStyle, marginBottom: 8 }}>LAST 6 MONTHS · COLLECTED</div>
+          {/* With nothing collected in any of the six months every bar renders at
+              its 2% floor in the hairline colour, so the chart reads as an empty
+              axis — i.e. as BROKEN rather than as "nothing came in yet". Say it
+              instead. (Ohad: make it honest; empty is empty.) */}
+          {monthBars.every((b) => !(b.value > 0)) ? (
+            <div style={{
+              height: 90, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              border: `1px dashed var(--c-cardBd)`,
+              fontFamily: FN, fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase',
+              color: 'var(--c-td)', textAlign: 'center', padding: '0 12px',
+            }}>
+              No payments marked collected in the last 6 months
+            </div>
+          ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8, alignItems: 'end', height: 90 }}>
             {monthBars.map((b, i) => (
               <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 4, height: '100%' }}>
@@ -968,6 +982,7 @@ function RevenueCard({ monthlyRate, thisMonthPaid, delta30, collected30, collect
               </div>
             ))}
           </div>
+          )}
         </div>
       </div>
     </CollapsibleSection>

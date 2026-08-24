@@ -2504,7 +2504,11 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
   const autoSection = listGroupedByStatus ? null : autoCat;
 
   return (
-    <div style={{ maxWidth: 1000, margin: '0 auto', padding: '0 14px' }}>
+    // 1200 to match the other coach surfaces (BhbcView 1200, the demo 1280). At
+    // 1000 the list column came out ~750px, the meta cluster's reserved columns
+    // took most of it, and task titles were cut to 160px while needing 273-474 —
+    // with ~360px of empty margin on each side of the page.
+    <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 14px' }}>
       {/* Filter/sort/owner/view buttons: soft hover highlight (Ohad). Theme-aware
           — the old hardcoded white text/bg/border made every button vanish in
           light theme (white-on-white). Active state is handled inline. */}
