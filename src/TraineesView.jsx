@@ -593,6 +593,18 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
       });
       delete toSave._members;
     }
+    // Club athletes have no billing: the form HIDES package/sessions/price for
+    // Bnei Herzliya, but defaultTrainee() still seeds '8 Sessions'/8 — so the
+    // card rendered "8 SESSIONS LEFT" for a player whose own card says
+    // "Club athlete — no billing" (audit 08-22). Strip the values, don't just
+    // hide the inputs — and clear them when converting an existing client too.
+    if (toSave.format === 'Bnei Herzliya') {
+      toSave.package = '';
+      toSave.sessionsRemaining = null;
+      toSave.packagePrice = '';
+      toSave.monthly = 0;
+      toSave.perSession = 0;
+    }
     if (editId) setTrainees(prev => prev.map(t => t.id === editId ? toSave : t));
     else setTrainees(prev => [...prev, toSave]);
     setForm(defaultTrainee()); setEditId(null); setShowForm(false);

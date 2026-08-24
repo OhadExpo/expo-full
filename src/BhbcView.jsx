@@ -283,7 +283,12 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   // the same practice). Skips anyone marked Out that day. Feeds every athlete's ACWR.
   const logTeamSession = useCallback(({ date, type, minutes, rpe }) => {
     const load = sessionLoad(minutes, rpe);
-    if (load <= 0) { toast('Add minutes + RPE'); return; }
+    // Gym (Lift) sessions carry NO RPE by design, so load is 0 — the old guard
+    // rejected the whole-roster gym log with a contradictory "Add minutes + RPE"
+    // and silently recorded nothing (audit 08-22). Mirror logSession: minutes-only
+    // attendance rows, ACWR untouched.
+    const liftOnly = load <= 0 && type === 'Lift' && Number(minutes) > 0;
+    if (load <= 0 && !liftOnly) { toast('Add minutes + RPE'); return; }
     let n = 0;
     setBhbcLoads((prev) => {
       const next = { ...prev };
@@ -293,8 +298,12 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
         if (av >= 4) return; // Out (medical/personal) → skip
         rec.loads = { ...(rec.loads || {}) };
         rec.sessions = { ...(rec.sessions || {}) };
-        rec.loads[date] = (rec.loads[date] || 0) + load;
-        rec.sessions[date] = [...(rec.sessions[date] || []), { type, min: Number(minutes) || 0, rpe: Number(rpe) || 0, load, team: true }];
+        if (liftOnly) {
+          rec.sessions[date] = [...(rec.sessions[date] || []), { type, min: Number(minutes), rpe: null, load: 0, attended: true, team: true }];
+        } else {
+          rec.loads[date] = (rec.loads[date] || 0) + load;
+          rec.sessions[date] = [...(rec.sessions[date] || []), { type, min: Number(minutes) || 0, rpe: Number(rpe) || 0, load, team: true }];
+        }
         next[t.id] = rec;
         n++;
       });
@@ -1379,7 +1388,7 @@ function HeadCoachReport({ rows, fx, fixtures, medical, today, onOpen, onMedical
       {/* NEXT GAME */}
       <Section label="Next game">
         {nextGame
-          ? <span><span style={{ fontFamily: FN, fontWeight: 700 }}>{nextGame.opponent ? 'vs ' + nextGame.opponent : 'Opponent TBD'}</span> <span style={mut}>· {gd === 0 ? 'today' : gd < 0 ? 'in progress' : `in ${gd} day${gd === 1 ? '' : 's'}`} · {isBH(nextGame.home) ? 'Home' : 'Away'}{nextGame.venue ? ' · ' + nextGame.venue : ''}</span></span>
+          ? <span><span style={{ fontFamily: FN, fontWeight: 700 }}>{nextGame.opponent ? 'vs ' + nextGame.opponent : 'Opponent TBD'}</span> <span style={mut}>· {gd === 0 ? 'today' : gd < 0 ? 'in progress' : `in ${gd} day${gd === 1 ? '' : 's'}`} · {nextGame.home === true ? 'Home' : nextGame.home === false ? 'Away' : 'Venue TBD'}{nextGame.venue ? ' · ' + nextGame.venue : ''}</span></span>
           : <span style={mut}>No game scheduled.</span>}
       </Section>
       {/* AVAILABILITY */}
