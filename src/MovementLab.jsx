@@ -147,7 +147,7 @@ export async function captureClipFrames(src, { crossOrigin = false, onProgress, 
       // auto-analysis sweep is strictly sequential — the entire remaining
       // backlog never ran again for the rest of the session, with nothing shown
       // anywhere. Bounded so a bad clip fails and the next one proceeds.
-      const t = setTimeout(() => rej(new Error('Timed out reading that video.')), 20000);
+      const t = setTimeout(() => rej(new Error('Timed out reading that video.')), 45000);
       v.onloadedmetadata = () => { clearTimeout(t); res(); };
       v.onerror = () => { clearTimeout(t); rej(new Error('Could not read that video.')); };
     });

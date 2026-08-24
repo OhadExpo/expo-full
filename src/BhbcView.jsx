@@ -1812,12 +1812,18 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, planOf }
   const [open, setOpen] = useState(null);      // `${date}|${start}`
   const [limit, setLimit] = useState(8);
 
-  // A slot is "past" by date; today's earlier slots still count as past once a
-  // session row exists for them, which is what the coach is looking for.
+  // "Past" = an earlier date, OR a slot on TODAY whose start time has already
+  // gone by — after the morning practice the coach is looking for the morning
+  // practice, and excluding it by date alone hid exactly the session he had just
+  // finished running.
+  const nowHHMM = useMemo(() => {
+    const d = new Date();
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  }, [today]);
   const past = useMemo(() => (fixtures || [])
-    .filter((f) => f && f.type !== 'game' && f.date < today)
+    .filter((f) => f && f.type !== 'game' && (f.date < today || (f.date === today && (f.start || '') && f.start <= nowHHMM)))
     .sort((a, b) => b.date.localeCompare(a.date) || (b.start || '').localeCompare(a.start || ''))
-  , [fixtures, today]);
+  , [fixtures, today, nowHHMM]);
 
   // Attendance for a slot: an athlete's session row for that DATE whose `start`
   // matches. Rows written before per-slot logging carry no start — they belong
