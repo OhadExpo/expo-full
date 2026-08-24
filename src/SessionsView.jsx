@@ -19,6 +19,9 @@ import { C, FN, FB, FH } from './theme';
 import { supabase } from './supabase';
 import { RefinedHeaderStrip, toast, confirmToast, stripBtnBase } from './ui';
 import { traineeIdsFor } from './traineeUtils';
+import { mergeIncomingSession } from './sessionMerge';
+
+
 
 // "Single athlete" reuses the existing in-person coach logger (WorkoutsView).
 // It writes to the coach `workouts` table (NOT client_workouts), which the
@@ -209,6 +212,9 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
   // never receive the echo of our own broadcast.
   const sessionRef = useRef(session);
   sessionRef.current = session;
+  // rowId -> when this device last changed that athlete. Used to protect an
+  // in-flight local edit from a remote full-state snapshot (audit #43).
+  const recentTouchRef = useRef(new Map());
   // Debounced durable store write (no re-broadcast — every coach device also
   // receives the granular event directly and merges independently).
   const persistStore = useCallback((next) => {
@@ -242,7 +248,7 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
         // had previously latched endedRef — otherwise it silently drops every
         // persistStore write for the rest of its life.
         endedRef.current = false;
-        setSession(v);
+        setSession((prev) => mergeIncomingSession(prev, v, recentTouchRef.current, Date.now()));
       }
     });
     // setAuth() before joining: a private join is authorized from the JWT on
@@ -371,6 +377,21 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
     setSession(prev => {
       const draft = structuredClone(prev);
       fn(draft);
+      // Which athlete rows did THIS device just touch? The coach mirror
+      // broadcasts the WHOLE session on every edit and receivers used to replace
+      // wholesale, so the phone's snapshot — built a moment before the big
+      // screen's keystroke landed — reverted that keystroke mid-typing, and the
+      // big screen's next broadcast reverted the phone's check-in back
+      // (audit 08-22 #43). Remembering the rows we just changed lets the
+      // receiver keep OUR version of exactly those.
+      try {
+        const before = new Map((prev?.athletes || []).map((a) => [a.rowId, JSON.stringify(a)]));
+        const now = Date.now();
+        for (const a of (draft.athletes || [])) {
+          if (before.get(a.rowId) !== JSON.stringify(a)) recentTouchRef.current.set(a.rowId, now);
+        }
+        for (const [k, t] of recentTouchRef.current) if (now - t > 6000) recentTouchRef.current.delete(k);
+      } catch { /* diffing is best-effort — never block the edit */ }
       try { chanRef.current?.send({ type: 'broadcast', event: 'session', payload: { value: draft } }); } catch { /* not ready */ }
       if (saveTimer.current) clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(() => { supabase.from('store').upsert({ key: SKEY, value: draft, updated_at: new Date().toISOString() }).then(() => {}, () => {}); }, 400);

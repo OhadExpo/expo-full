@@ -47,6 +47,8 @@ const suites = [
   'verify-pivot.mjs',                // PIVOT — phone-as-goniometer joint ROM + %-of-norm
   'verify-reflex.mjs',               // REFLEX — PVT reaction-time CNS readiness (mean RT + lapses)
   'verify-balance.mjs',              // BALANCE/SWAY — postural sway steadiness (single-leg balance)
+  // --- 2026-08-25 live-sync ---
+  'verify-session-merge.mjs',        // mergeIncomingSession — two coach devices on the floor must not revert each other (audit #43)
 ];
 
 let anyFail = false;
