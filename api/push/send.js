@@ -26,6 +26,39 @@ const SUPA_PUBLISHABLE_KEY = 'sb_publishable_i_ifflCFMUF7rX2ABAY3vA_5JKTmFlv';
 
 export const config = { maxDuration: 15 };
 
+// Per-CALLER rate limit. Every legitimate flow here is a human action — a coach
+// sending a note, an athlete finishing a workout — so the ceiling is generous
+// and abuse still stands out. Without it an athlete could loop this endpoint and
+// flood Ohad's phone: the title is server-attributed so it cannot impersonate
+// EXPO, but nothing bounded the VOLUME, and each call also costs two auth
+// lookups plus a push to every one of the target's devices.
+//
+// Keyed on the caller's verified EMAIL, not the IP: the identity comes from the
+// token this endpoint already validates, so it cannot be spoofed by a header or
+// shared by everyone behind one mobile carrier NAT. In-process like the other
+// limiters in api/ — per-lambda and reset by a cold start, which raises the bar
+// without pretending to be a real quota. A shared store (KV/Postgres counter) is
+// the proper fix and is tracked with the other limiters.
+const pushBuckets = new Map();
+const PUSH_LIMIT_ATHLETE = 20;      // per window — a person tapping send
+const PUSH_LIMIT_OWNER = 200;       // the coach legitimately fans out to the roster
+const PUSH_WINDOW_MS = 5 * 60 * 1000;
+function checkPushRate(email, isOwner) {
+  const now = Date.now();
+  const arr = (pushBuckets.get(email) || []).filter((t) => now - t < PUSH_WINDOW_MS);
+  const ceiling = isOwner ? PUSH_LIMIT_OWNER : PUSH_LIMIT_ATHLETE;
+  if (arr.length >= ceiling) { pushBuckets.set(email, arr); return false; }
+  arr.push(now);
+  pushBuckets.set(email, arr);
+  // Keep the map from growing without bound across a warm lambda's life.
+  if (pushBuckets.size > 500) {
+    for (const [k, v] of pushBuckets) {
+      if (!v.some((t) => now - t < PUSH_WINDOW_MS)) pushBuckets.delete(k);
+    }
+  }
+  return true;
+}
+
 function configured() {
   const pub = process.env.VAPID_PUBLIC_KEY;
   const priv = process.env.VAPID_PRIVATE_KEY;
@@ -109,6 +142,13 @@ export default async function handler(req, res) {
   }
   if (!callerEmail) {
     res.status(401).json({ error: 'no caller identity' });
+    return;
+  }
+
+  // Rate limit AFTER identity is established, so the bucket is per person rather
+  // than per IP.
+  if (!checkPushRate(callerEmail, callerEmail === 'ohadyproductions@gmail.com')) {
+    res.status(429).json({ error: 'Too many notifications — slow down.' });
     return;
   }
 
