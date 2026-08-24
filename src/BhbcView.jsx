@@ -64,7 +64,11 @@ const daysAgoISO = (n) => { const d = new Date(); d.setDate(d.getDate() - n); re
 // letters at a wrong baseline and breaks row alignment).
 const flag = (nat) => String(nat || '').split('/').map((c) => c.trim()).filter(Boolean).join(' · ');
 const heightM = (cm) => (cm ? (cm / 100).toFixed(2) + 'm' : '');
-const emptyRec = () => ({ loads: {}, sessions: {}, readiness: {}, availability: {} });
+// `availability` is a DAY-level fact (medical / personal — it gates ACWR and
+// feeds the medical view). `attendance` is per SLOT, keyed `YYYY-MM-DD|HH:MM`,
+// because a player can miss the morning practice and train in the evening —
+// which the day-level flag could not express at all (Ohad 08-24).
+const emptyRec = () => ({ loads: {}, sessions: {}, readiness: {}, availability: {}, attendance: {} });
 // Availability codes (Ohad's BHBC sheet legend). Semantic status colors.
 const AVAIL = {
   1: { label: 'Full', color: '#37B27C' },
@@ -325,9 +329,21 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
       Object.entries(entries).forEach(([id, e]) => {
         const rec = next[id] ? { ...next[id] } : emptyRec();
         rec.availability = { ...(rec.availability || {}), [date]: e.avail };
-        const rpe = Number(e.rpe || teamRpe);
-        const load = e.avail < 4 ? sessionLoad(minutes, rpe) : 0;
-        if (load > 0) {
+        // Per-slot attendance: an athlete who is Out for the DAY is out of every
+        // slot, but an available athlete can still be marked absent from THIS
+        // one without touching the rest of his day.
+        const attended = e.attended !== false && e.avail < 4;
+        rec.attendance = { ...(rec.attendance || {}), [`${date}|${start || ''}`]: attended ? 'in' : 'out' };
+        // Gym work carries NO RPE, ever (Ohad's hard rule) — it is a
+        // minutes-only attended session with zero load, exactly like the
+        // whole-roster gym log. Court sessions keep minutes × RPE.
+        const isLift = sessionType === 'Lift';
+        const rpe = isLift ? null : Number(e.rpe || teamRpe);
+        const load = attended && !isLift ? sessionLoad(minutes, rpe) : 0;
+        if (attended && isLift && Number(minutes) > 0) {
+          rec.sessions = { ...(rec.sessions || {}) };
+          rec.sessions[date] = [...(rec.sessions[date] || []), { type: sessionType, min: Number(minutes), rpe: null, load: 0, attended: true, note: e.note || '', team: true, start }];
+        } else if (load > 0) {
           rec.loads = { ...(rec.loads || {}), [date]: (rec.loads?.[date] || 0) + load };
           rec.sessions = { ...(rec.sessions || {}) };
           // `start` = which slot of the day this was, so a morning and an
@@ -553,6 +569,9 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
                 {/* Plan the week HERE (Ohad 08-24) — coaches see the board read-only. */}
                 <WeekPlanner fixtures={bhbcFixtures} today={today} planOf={planOf} onSavePlan={asCoach ? null : saveSessionPlan}
                   onUpsert={asCoach ? null : upsertFixture} onRemove={asCoach ? null : removeFixture} />
+                {/* What the team ACTUALLY did, slot by slot (Ohad 08-24:
+                    "where can I see the previous practices details?"). */}
+                <PastPractices fixtures={bhbcFixtures} loads={bhbcLoads} roster={roster} today={today} planOf={planOf} />
                 <MicrocycleView fx={fx} today={today} />
                 <ScheduleTool fx={fx} fixtures={bhbcFixtures} today={today} mode={schedMode} setMode={setSchedMode} onLog={asCoach ? null : () => setLogFor('new')} />
               </>
@@ -1050,7 +1069,7 @@ function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave, sess
   const [entries, setEntries] = useState({});
   useEffect(() => {
     const e = {};
-    roster.forEach((t) => { const rec = bhbcLoads[t.id] || {}; e[t.id] = { avail: (rec.availability && rec.availability[date]) || 1, rpe: '', bw: '', note: '' }; });
+    roster.forEach((t) => { const rec = bhbcLoads[t.id] || {}; e[t.id] = { avail: (rec.availability && rec.availability[date]) || 1, attended: true, rpe: '', bw: '', note: '' }; });
     setEntries(e);
     const list = (fixtures || []).filter((f) => f.date === date).slice().sort((a2, b2) => (a2.start || '').localeCompare(b2.start || ''));
     // Default to the NEXT slot still ahead on the clock (so an evening log
@@ -1067,12 +1086,15 @@ function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave, sess
   }, [date]); // eslint-disable-line react-hooks/exhaustive-deps
   const set = (id, k, v) => setEntries((prev) => ({ ...prev, [id]: { ...prev[id], [k]: v } }));
   const inp = { fontFamily: FN, fontSize: 12, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 8px', width: '100%', height: 32, boxSizing: 'border-box' };
-  const canSave = Number(minutes) > 0 && Number(teamRpe) > 0;
-  const cols = '24px 1.4fr 116px 56px 66px 1.5fr';
+  // A gym session needs minutes and nothing else — demanding an RPE made the
+  // one session type Ohad never scores unsaveable (his hard rule).
+  const isLift = sessionType === 'Lift';
+  const canSave = Number(minutes) > 0 && (isLift || Number(teamRpe) > 0);
+  const cols = isLift ? '24px 1.4fr 116px 72px 66px 1.5fr' : '24px 1.4fr 116px 72px 56px 66px 1.5fr';
   return (
     <Modal open onClose={onClose} wide title="Log session">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr 0.8fr 0.8fr 1fr', gap: 10, alignItems: 'end' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isLift ? '1.1fr 1fr 0.8fr 1fr' : '1.1fr 1fr 0.8fr 0.8fr 1fr', gap: 10, alignItems: 'end' }}>
           <Input label="Date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <label style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: FN, textAlign: 'center' }}>Type</label>
@@ -1081,7 +1103,8 @@ function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave, sess
             </select>
           </div>
           <Input label="Minutes" type="number" value={minutes} onChange={(e) => setMinutes(e.target.value)} placeholder="75" />
-          <Input label="Team RPE" type="number" min="0" max="10" step="0.5" value={teamRpe} onChange={(e) => setTeamRpe(e.target.value)} placeholder="7" />
+          {/* No RPE anywhere on a gym session (Ohad: "i will never write the rpe for the gym workouts"). */}
+          {!isLift && <Input label="Team RPE" type="number" min="0" max="10" step="0.5" value={teamRpe} onChange={(e) => setTeamRpe(e.target.value)} placeholder="7" />}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <label style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: FN, textAlign: 'center' }}>Intensity</label>
             <select value={intensity} onChange={(e) => setIntensity(e.target.value)} style={inp}>
@@ -1127,7 +1150,7 @@ function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave, sess
         <div style={{ overflowX: 'auto' }}>
           <div style={{ minWidth: 560 }}>
             <div style={{ display: 'grid', gridTemplateColumns: cols, gap: 8, padding: '0 0 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }}>
-              <div>#</div><div>Athlete</div><div>Availability</div><div>RPE</div><div>BW kg</div><div>Note</div>
+              <div>#</div><div>Athlete</div><div>Availability</div><div>This slot</div>{!isLift && <div>RPE</div>}<div>BW kg</div><div>Note</div>
             </div>
             {roster.map((t) => {
               const e = entries[t.id] || { avail: 1, rpe: '', bw: '', note: '' };
@@ -1137,7 +1160,23 @@ function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave, sess
                   <Jersey n={t.jersey} size={22} />
                   <div style={{ fontFamily: FN, fontSize: 12.5, fontWeight: 700, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</div>
                   <button type="button" onClick={() => set(t.id, 'avail', (e.avail % 5) + 1)} title="Click to change availability" className="bhbc-ghost-btn" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, width: '100%', height: 32, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '0 6px', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'color .12s, border-color .12s' }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: av.color, flexShrink: 0 }} />{av.label}</button>
-                  <input type="number" value={e.rpe} onChange={(ev) => set(t.id, 'rpe', ev.target.value)} placeholder={teamRpe || 'RPE'} style={inp} />
+                  {/* Attendance for THIS slot only. An athlete Out for the day is
+                      locked out of every slot; anyone else can be marked absent
+                      from this session without changing his day. */}
+                  {(() => {
+                    const dayOut = e.avail >= 4;
+                    const inSlot = !dayOut && e.attended !== false;
+                    return (
+                      <button type="button" disabled={dayOut}
+                        onClick={() => set(t.id, 'attended', !inSlot)}
+                        title={dayOut ? 'Out for the whole day' : inSlot ? 'Trained this session — click to mark absent' : 'Absent from this session — click to mark present'}
+                        className="bhbc-ghost-btn"
+                        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: 32, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: dayOut ? C.td : inSlot ? '#37B27C' : '#DE4E3B', background: 'transparent', border: `1px solid ${dayOut ? C.cardBd : inSlot ? '#37B27C' : '#DE4E3B'}`, padding: '0 6px', cursor: dayOut ? 'not-allowed' : 'pointer', opacity: dayOut ? 0.5 : 1, whiteSpace: 'nowrap' }}>
+                        {dayOut ? '—' : inSlot ? 'In' : 'Out'}
+                      </button>
+                    );
+                  })()}
+                  {!isLift && <input type="number" value={e.rpe} onChange={(ev) => set(t.id, 'rpe', ev.target.value)} placeholder={teamRpe || 'RPE'} style={inp} />}
                   <input type="number" value={e.bw} onChange={(ev) => set(t.id, 'bw', ev.target.value)} placeholder="—" style={inp} />
                   <input value={e.note} onChange={(ev) => set(t.id, 'note', ev.target.value)} placeholder="note" style={inp} />
                 </div>
@@ -1146,7 +1185,9 @@ function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave, sess
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'wrap' }}>
-          <span style={{ fontFamily: FN, fontSize: 10.5, color: C.td, marginRight: 'auto' }}>Load = minutes × RPE (per-athlete or team). Out athletes: availability only.</span>
+          <span style={{ fontFamily: FN, fontSize: 10.5, color: C.td, marginRight: 'auto' }}>{isLift
+            ? 'Gym sessions are minutes only — no RPE, no load. “This slot” records who actually trained THIS session.'
+            : 'Load = minutes × RPE (per-athlete or team). “This slot” records who actually trained THIS session — the day’s availability is separate.'}</span>
           <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
           <Btn disabled={!canSave} onClick={() => onSave({ date, minutes, teamRpe, intensity, entries, sessionType, start: slotStart })} style={{ background: canSave ? ORANGE : undefined, borderColor: canSave ? ORANGE : undefined, color: canSave ? '#fff' : undefined }}>Save {sessionType.toLowerCase()}</Btn>
         </div>
@@ -1756,6 +1797,149 @@ function MicrocycleView({ fx, today }) {
 // takes an inline add/edit: type · time · minutes · focus. The focus line writes
 // through to the SAME per-session plan the Today panel and Head Coach Report
 // already read, so one entry feeds every surface.
+// ── PAST PRACTICES ──────────────────────────────────────────────────────────
+// "Where can I see the previous practices' details?" (Ohad 08-24). The Schedule
+// tab listed fixtures and the saved plans only ever surfaced on Today / This
+// week, so once a practice was past, what the team actually DID was only
+// reachable one athlete at a time. This is the team view of the same data:
+// newest first, one row per SLOT (a morning and an evening practice are two
+// rows), showing the plan that was written for it, who trained, who was out,
+// and the load the squad actually took.
+function PastPractices({ fixtures = [], loads = {}, roster = [], today, planOf }) {
+  const [open, setOpen] = useState(null);      // `${date}|${start}`
+  const [limit, setLimit] = useState(8);
+
+  // A slot is "past" by date; today's earlier slots still count as past once a
+  // session row exists for them, which is what the coach is looking for.
+  const past = useMemo(() => (fixtures || [])
+    .filter((f) => f && f.type !== 'game' && f.date < today)
+    .sort((a, b) => b.date.localeCompare(a.date) || (b.start || '').localeCompare(a.start || ''))
+  , [fixtures, today]);
+
+  // Attendance for a slot: an athlete's session row for that DATE whose `start`
+  // matches. Rows written before per-slot logging carry no start — they belong
+  // to the day, so they count for the day's only slot rather than vanishing.
+  // fixture.type is lowercase ('practice' | 'lift' | 'game'); a logged session
+  // row's type is the capitalised label the coach picked ('Practice' | 'Lift' |
+  // 'Shootaround' | ...). Map them so a start-less row can still find its slot.
+  const slotKind = (fixType) => (fixType === 'lift' ? 'lift' : fixType === 'game' ? 'game' : 'practice');
+  const rowKind = (rowType) => {
+    const t = String(rowType || '').toLowerCase();
+    if (t === 'lift' || t === 'weights') return 'lift';
+    if (t === 'game') return 'game';
+    return 'practice';
+  };
+  const detailFor = useCallback((f) => {
+    const daySlots = past.filter((x) => x.date === f.date)
+      .sort((a, b) => (a.start || '').localeCompare(b.start || ''));
+    const trained = [], out = [], loadsTaken = [], rpes = [], notes = [];
+    for (const t of roster) {
+      const rec = loads[t.id];
+      const rows = (rec && rec.sessions && rec.sessions[f.date]) || [];
+      // Rows written before per-slot logging carry no `start`. Dropping them
+      // whenever the day had two slots reported every practice as 0 attended
+      // even though the squad was logged — so attribute by TYPE first (a gym
+      // row belongs to the weights slot), then to the day's first slot.
+      // An explicitly recorded attendance for this slot is the truth; the
+      // session-row inference below only covers sessions logged before the
+      // per-slot model existed.
+      const att = rec && rec.attendance && rec.attendance[`${f.date}|${f.start || ''}`];
+      const mine = rows.filter((r) => {
+        if (r.start) return r.start === f.start;
+        const sameKind = daySlots.filter((x) => slotKind(x.type) === rowKind(r.type));
+        if (sameKind.length === 1) return sameKind[0].start === f.start;
+        if (sameKind.length > 1) return sameKind[0].start === f.start;
+        return daySlots.length > 0 && daySlots[0].start === f.start;
+      });
+      const avail = (rec && rec.availability && rec.availability[f.date]) || 1;
+      if (att === 'out') { out.push(t); continue; }
+      if (mine.length || att === 'in') {
+        trained.push(t);
+        for (const r of mine) {
+          if (r.load > 0) loadsTaken.push(r.load);
+          if (r.rpe) rpes.push(Number(r.rpe));
+        }
+        const n = (rec.notes && (rec.notes[`${f.date}|${f.start || ''}`] || rec.notes[f.date])) || '';
+        if (n) notes.push({ name: t.name, note: n });
+      } else if (avail >= 4) out.push(t);
+    }
+    const avg = (arr) => (arr.length ? Math.round((arr.reduce((s, x) => s + x, 0) / arr.length) * 10) / 10 : null);
+    return { trained, out, avgRpe: avg(rpes), avgLoad: avg(loadsTaken) ? Math.round(avg(loadsTaken)) : null, notes };
+  }, [loads, roster, past]);
+
+  if (!past.length) return null;
+  const names = (arr) => arr.map((t) => t.name).join(', ');
+
+  return (
+    <Card padding={18} leftStripe={NAVY} header={secTitle('Past practices')}
+      headerRight={<span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>{past.length} logged</span>}>
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        {past.slice(0, limit).map((f) => {
+          const key = `${f.date}|${f.start || ''}`;
+          const pl = planOf ? planOf(f) : null;
+          const d = detailFor(f);
+          const isOpen = open === key;
+          return (
+            <div key={key} style={{ borderBottom: `0.25px solid ${C.cardBd}` }}>
+              <div className="bhbc-row" onClick={() => setOpen(isOpen ? null : key)}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 2px', cursor: 'pointer' }}>
+                {/* 96px + nowrap: at 78px some dates wrapped to two lines and
+                    others didn't, so the column read ragged. */}
+                <span style={{ fontFamily: FN, fontWeight: 700, fontSize: 11.5, color: C.tx, width: 96, flexShrink: 0, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{dow(f.date)} {monDay(f.date)}</span>
+                <span style={{ fontFamily: FN, fontSize: 11.5, fontWeight: 700, color: FX_COLOR[f.type] || NAVY, width: 46, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{f.start}</span>
+                <span style={{ color: C.tm, flexShrink: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {FX_LABEL[f.type] || 'Session'}{f.minutes ? ` · ${f.minutes} min` : ''}
+                </span>
+                <div style={{ flex: 1 }} />
+                {/* The two numbers a head coach actually asks for. */}
+                <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: d.trained.length ? '#37B27C' : C.td, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
+                  {d.trained.length}/{roster.length}
+                </span>
+                {d.avgRpe != null && <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>RPE {d.avgRpe}</span>}
+                <span style={{ color: C.tm, fontSize: 10, flexShrink: 0, transform: isOpen ? 'rotate(180deg)' : 'none', display: 'inline-block' }}>▾</span>
+              </div>
+              {isOpen && (
+                <div style={{ padding: '2px 2px 12px 88px', fontFamily: FB, fontSize: 12, color: C.tx, lineHeight: 1.55 }}>
+                  {/* What was PLANNED for this exact slot. */}
+                  <div style={{ marginBottom: 6 }}>
+                    <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>Plan </span>
+                    {pl && (pl.focus || pl.plan)
+                      ? <span dir="auto">{pl.focus || ''}{pl.focus && pl.plan ? ' — ' : ''}{pl.plan || ''}</span>
+                      : <span style={{ color: C.td }}>nothing was written for this slot</span>}
+                  </div>
+                  <div style={{ marginBottom: 6 }}>
+                    <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>Trained </span>
+                    {d.trained.length ? <span dir="auto">{names(d.trained)}</span> : <span style={{ color: C.td }}>nobody logged</span>}
+                    {d.avgLoad != null && <span style={{ color: C.tm }}> · avg load {d.avgLoad} AU</span>}
+                  </div>
+                  {d.out.length > 0 && (
+                    <div style={{ marginBottom: 6 }}>
+                      <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#DE4E3B' }}>Out </span>
+                      <span dir="auto">{names(d.out)}</span>
+                    </div>
+                  )}
+                  {d.notes.length > 0 && (
+                    <div>
+                      <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>Notes </span>
+                      {d.notes.map((n, i) => <div key={i} dir="auto" style={{ color: C.tm }}>{n.name}: {n.note}</div>)}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      {past.length > limit && (
+        <button onClick={() => setLimit((n) => n + 12)}
+          style={{ marginTop: 10, background: 'transparent', border: `1px solid ${C.cardBd}`, color: C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', padding: '6px 12px', cursor: 'pointer', textTransform: 'uppercase' }}>
+          Show {Math.min(12, past.length - limit)} more
+        </button>
+      )}
+    </Card>
+  );
+}
+
 function WeekPlanner({ fixtures = [], today, planOf, onSavePlan, onUpsert, onRemove }) {
   const isoOfDate = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   const [anchor, setAnchor] = useState(today);
