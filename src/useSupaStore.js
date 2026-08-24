@@ -80,6 +80,27 @@ registerHandler('store.upsert', async ({ key, value }) => {
   if (error) throw error;
 });
 registerHandler('client_workouts.upsert', async ({ row }) => {
+  // form_videos is MERGED, never blindly overwritten. A parked (retry-exhausted)
+  // upsert rotates to the queue tail and can drain AFTER the blob queue already
+  // patched a cloudUrl onto the row — replaying the finish-time snapshot would
+  // reset that slot to {pendingBlobId, cloudUrl:null}, orphaning uploaded bytes
+  // and showing the coach a forever-pending upload (audit 08-22).
+  if (row && row.id && row.form_videos) {
+    try {
+      const { data: existing } = await supabase.from('client_workouts').select('form_videos').eq('id', row.id).maybeSingle();
+      const srv = existing && existing.form_videos;
+      if (srv && typeof srv === 'object') {
+        const merged = Array.isArray(srv) ? [...(row.form_videos || [])] : { ...(row.form_videos || {}) };
+        const entries = Array.isArray(srv) ? srv.map((v, i) => [i, v]) : Object.entries(srv);
+        for (const [k, sv] of entries) {
+          const mine = merged[k];
+          // keep the server's slot when it already carries a real uploaded URL
+          if (sv && sv.cloudUrl && !(mine && mine.cloudUrl)) merged[k] = sv;
+        }
+        row = { ...row, form_videos: merged };
+      }
+    } catch { /* read failed — fall through to the plain upsert */ }
+  }
   const { error } = await supabase.from('client_workouts').upsert(row);
   if (error) throw error;
 });
@@ -747,8 +768,24 @@ export function useSupaWeeklyFocus(initial = {}) {
   }, []);
 
   // Flush any pending writes on unmount so typed notes don't sit in memory.
-  useEffect(() => () => {
-    if (timerRef.current) { clearTimeout(timerRef.current); flush(); }
+  // A tab close / PWA kill does NOT run React unmount cleanups, so a note still
+  // inside the 500ms debounce never reached the server and vanished on every
+  // other device (audit 08-22). pagehide + hidden-visibility are the only
+  // reliable "page is going away" signals on mobile — flush on those too.
+  useEffect(() => {
+    const flushNow = () => { if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; flush(); } };
+    const onHide = () => { if (typeof document !== 'undefined' && document.visibilityState === 'hidden') flushNow(); };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('pagehide', flushNow);
+      document.addEventListener('visibilitychange', onHide);
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('pagehide', flushNow);
+        document.removeEventListener('visibilitychange', onHide);
+      }
+      flushNow();
+    };
   }, [flush]);
 
   const save = useCallback((next) => {

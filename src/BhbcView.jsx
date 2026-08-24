@@ -53,8 +53,13 @@ const BAND = { detrained: '#4F9DE0', low: '#37B27C', elevated: '#E0A73A', high: 
 // default, so pass them through this to keep every strip title identical.
 const secTitle = (t) => <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t}</span>;
 
-const todayISO = () => new Date().toISOString().slice(0, 10);
-const daysAgoISO = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
+// LOCAL calendar date, not UTC. toISOString() is UTC, so between 00:00 and
+// 03:00 Israel time it returns YESTERDAY — "Today" would show the wrong day and
+// a late-night session/availability write would land on the previous date
+// (audit 08-22). Same convention as MealLogger/ChallengesView/BookingPublic.
+const localISO = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const todayISO = () => localISO(new Date());
+const daysAgoISO = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return localISO(d); };
 // Nationality as text (flag emoji doesn't render on Windows Chrome → shows "US"
 // letters at a wrong baseline and breaks row alignment).
 const flag = (nat) => String(nat || '').split('/').map((c) => c.trim()).filter(Boolean).join(' · ');

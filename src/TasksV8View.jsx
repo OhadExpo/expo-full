@@ -181,6 +181,19 @@ function setPriorityInBody(body, newPriority) {
   return m ? m[1] + tag + stripped.slice(m[0].length) : tag + stripped;
 }
 // Composite: strip owner + priority + due → just the actual title
+// Calendar payload options for a row: the title-only display body PLUS the
+// due date/time parsed from the body. Without dueAt, buildEventPayload falls
+// back to created_at and a mere status flip MOVES the event to a past date
+// (audit 08-22) — so every sync path must use this, not just the composer.
+function calendarOptsFor(row, extra) {
+  const opts = { displayBody: displayBodyOf(row && row.body), ...(extra || {}) };
+  const dueAt = dueAtFromBody(row && row.body);
+  if (dueAt) opts.dueAt = dueAt;
+  const dueTime = dueTimeFromBody(row && row.body);
+  if (dueTime) opts.dueTime = dueTime;
+  return opts;
+}
+
 function displayBodyOf(body) {
   return stripDueSuffix(stripPriorityPrefix(stripOwnerPrefix(body || ''))).trim();
 }
@@ -1845,7 +1858,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
               await Promise.all(slice.map(async (r) => {
                 try {
                   await syncRowToCalendar({ ...r, _owner: ownerFromBody(r.body) },
-                    { displayBody: displayBodyOf(r.body), assumeConnected: true });
+                    calendarOptsFor(r, { assumeConnected: true }));
                   done++;
                 } catch { fail++; }
               }));
@@ -1880,7 +1893,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
       return;
     }
     try {
-      const result = await reconcileRow(row, { displayBody: displayBodyOf(row.body) });
+      const result = await reconcileRow(row, calendarOptsFor(row));
       if (result && result.tags) await update(row.id, { tags: result.tags });
       toast(result?.htmlLink ? 'Task added to Google Calendar' : 'Task synced to Google Calendar', 'success', { ttl: 3000 });
     } catch (err) {
@@ -1943,14 +1956,24 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
         // Updated remotely → mirror the title back. Preserve the EXPO
         // body prefix ("Yuval: ", "Ohad + Yuval: ", "Ohad: ") so the
         // assignee chip stays correct.
+        // Compare against the SAME projection we send to Calendar (title only).
+        // Comparing against stripOwnerPrefix left the [PRIORITY] bracket and the
+        // '· due …' suffix in currentDisplay, so any decorated task looked
+        // remotely-renamed on every poll and got rewritten WITHOUT them —
+        // silently deleting the coach's due date and urgency (audit 08-22).
         const newSummary = stripStatusPrefix(event.summary || '');
-        const currentDisplay = stripOwnerPrefix(localRow.body);
+        const currentDisplay = displayBodyOf(localRow.body);
         if (newSummary && newSummary !== currentDisplay) {
           const owner = ownerFromBody(localRow.body);
           const prefix = owner === 'shared' ? 'Ohad + Yuval: '
                        : owner === 'yuval'  ? 'Yuval: '
                        : 'Ohad: ';
-          await update(localRow.id, { body: prefix + newSummary });
+          // Re-attach the local decorations the calendar never carried.
+          const pm = stripOwnerPrefix(localRow.body || '').match(PRIORITY_RE);
+          const priTag = pm ? pm[0] : '';
+          const dm = (localRow.body || '').match(DUE_RE);
+          const dueSuffix = dm ? dm[0] : '';
+          await update(localRow.id, { body: `${prefix}${priTag}${newSummary}${dueSuffix}` });
         }
         // Mirror status from the bracketed prefix if present (e.g.
         // user typed [DONE] manually in Calendar).
@@ -2366,7 +2389,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
     // patch; transient (waiting / stuck / working) → status-prefixed
     // title patch so the calendar event reflects the latest state.
     const rowWithIntent = { ...row, status: target };
-    await syncRowToCalendar(rowWithIntent, { displayBody: displayBodyOf(row.body) });
+    await syncRowToCalendar(rowWithIntent, calendarOptsFor(row));
   };
   // SmartComposer hands us structured input (assignee, due, source). Until
   // Phase 1 schema, we encode assignee as body prefix and source as a tag.
