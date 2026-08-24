@@ -1,0 +1,66 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>shot harness</title></head>
+<body style="background:#111;color:#eee;font:13px monospace">
+<div id="out">idle</div>
+<script type="module">
+  import { captureShotFrames } from '/src/shotCapture.js';
+  import { buildSeries, detectShots, detectShootingHand, analyzeShotClip } from '/src/shotAnalysis.js';
+  import { findPeaks } from '/src/repCounter.js';
+  const median = (a) => { const x = a.filter((v) => Number.isFinite(v)).sort((p, q) => p - q); return x.length ? x[Math.floor(x.length / 2)] : null; };
+
+  const out = document.getElementById('out');
+  const say = (m) => { out.textContent = m; };
+
+  window.runHarness = async (url, opts = {}) => {
+    const frames = await captureShotFrames(url, { onProgress: (p, l) => say(p + '% ' + l) });
+    window.__frames = frames;
+    const hand = detectShootingHand(frames) || 'R';
+    const series = buildSeries(frames, { hand, aspect: (frames.dims.w / frames.dims.h) });
+    const span = (frames[frames.length - 1].t - frames[0].t) / 1000;
+    const fps = frames.fps || (frames.length - 1) / span;
+
+    const torsoRef = median(series.sm.torso) || 0.15;
+    const peakSets = {};
+    for (const pr of [0.35, 0.25, 0.18, 0.12]) {
+      const pk = findPeaks(series.sm.wristY, torsoRef * pr, Math.max(2, Math.round(fps * 0.5)));
+      peakSets['prom' + pr] = pk.map((p) => Math.round(series.tMs[p.idx]));
+    }
+    const sweep = {};
+    for (const ae of [95, 88, 80, 72, 60]) {
+      const d = [];
+      const cy = detectShots(series, fps, { debug: d, minArmElev: ae });
+      sweep['armElev' + ae] = { n: cy.length, t: cy.map((c) => Math.round(series.tMs[c.release])) };
+    }
+    const dbg = [];
+    const cycles = detectShots(series, fps, { debug: dbg });
+    const dbg2 = [];
+    const relaxedCycles = detectShots(series, fps, { debug: dbg2, minArmElev: 70, minElbow: 92, maxDipKnee: 173, dipWindowMs: 2400, requireAboveHead: false });
+    const res = analyzeShotClip(frames, { hand });
+
+    const r = {
+      duration: frames.stats.duration,
+      stats: frames.stats,
+      windows: (frames.windows || []).map((w) => [Math.round(w.from), Math.round(w.to)]),
+      frameCount: frames.length,
+      fps: Math.round(fps * 10) / 10,
+      hand,
+      torsoRef: Math.round(torsoRef * 1000) / 1000,
+      peakSets,
+      sweep,
+      strictShots: cycles.map((c) => Math.round(series.tMs[c.release])),
+      strictRejects: dbg.map((d) => d.t + ' ' + d.reason),
+      relaxedShots: relaxedCycles.map((c) => Math.round(series.tMs[c.release])),
+      relaxedRejects: dbg2.map((d) => d.t + ' ' + d.reason),
+      analyzed: res.ok ? res.shots.map((s) => ({ i: s.index, t: Math.round(series.tMs[s.cycle.release]), score: s.score })) : null,
+      error: res.error || null,
+    };
+    say('done: ' + (r.analyzed ? r.analyzed.length : 0) + ' shots');
+    window.__RESULT = r;
+    return r;
+  };
+  window.__ready = true;
+  say('ready');
+</script>
+</body>
+</html>

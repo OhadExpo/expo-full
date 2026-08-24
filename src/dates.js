@@ -61,3 +61,14 @@ export function ageFromDob(dob) {
   if (m < 0 || (m === 0 && now.getDate() < d.getDate())) a--;
   return a >= 0 && a < 130 ? a : null;
 }
+
+/** Local calendar date as YYYY-MM-DD.
+ *  NEVER use `new Date().toISOString().slice(0,10)` for "today": Israel is
+ *  UTC+2/+3, so between local midnight and 02:00/03:00 that returns YESTERDAY —
+ *  weigh-ins, payments and evaluations logged late at night were saved mis-dated,
+ *  and a date input whose `max` came from the same expression refused to accept
+ *  the real today at all (audit 08-22 #44). */
+export function todayLocalISO(d = new Date()) {
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}

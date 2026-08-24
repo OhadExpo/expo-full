@@ -204,12 +204,21 @@ export default function Chat() {
 
   return (
     <>
+      <style>{`
+        @media (max-width: 720px) {
+          .fv-chat-launcher { bottom: calc(20px + 56px + env(safe-area-inset-bottom, 0px)) !important; }
+        }
+      `}</style>
       {!open && (
         <button onClick={() => setOpen(true)} aria-label={isHe ? 'פתח צ׳אט' : 'Open chat'}
+          className="fv-chat-launcher"
           style={{
             position: 'fixed', bottom: 20,
             ...(anchorRight ? { right: 20 } : { left: 20 }),
-            zIndex: 80,
+            // Above the mobile sticky CTA bar (zIndex 90), and lifted clear of
+            // it below its 721px breakpoint so the whole bubble stays tappable
+            // (audit 08-22 #24).
+            zIndex: 95,
             width: 56, height: 56, borderRadius: '50%',
             background: C.ac, color: '#000',
             border: 'none', cursor: 'pointer',

@@ -627,7 +627,14 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
   // without needing the effect to re-subscribe every render (activeChannels is
   // a fresh array each render → can't just put it in the effect's deps).
   const activeChannelsRef = useRef(activeChannels);
-  useEffect(() => { activeChannelsRef.current = activeChannels; }, [trackOverride, exerciseTitle]);
+  // Keyed on the CHANNEL CONTENTS, not on the two inputs that usually produce
+  // them. When the title matches nothing (every Hebrew title normalises to an
+  // empty string, plus 24%% of the library), the channels arrive later from the
+  // MOTION pick — and keying on [trackOverride, exerciseTitle] left the ref
+  // holding the unknown pick empty array, pinning REPS at 0 for the whole clip
+  // (audit 08-22 #16).
+  const channelsKey = activeChannels.join('|');
+  useEffect(() => { activeChannelsRef.current = activeChannels; }, [channelsKey, activeChannels]);
 
   useEffect(() => { if (videoRef.current) videoRef.current.playbackRate = speed; }, [speed]);
 
@@ -819,7 +826,9 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
     repsCountRef.current = bestCount;
     setReps(bestCount);
     st.lastPeakRunAt = -1;
-  }, [trackOverride, exerciseTitle, repsOn]);
+    // channelsKey, not [trackOverride, exerciseTitle] — a motion-supplied
+    // channel must trigger the recount too (audit 08-22 #16).
+  }, [channelsKey, repsOn]);
 
   // Fullscreen handling: (1) bump a render counter so the drawing canvas
   // useEffect re-runs and resizes its buffer to the new wrapper dims;

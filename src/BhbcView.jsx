@@ -160,8 +160,11 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
     [trainees]
   );
   const today = todayISO();
-  const last14 = useMemo(() => Array.from({ length: 14 }, (_, i) => daysAgoISO(13 - i)), []);
-  const last28 = useMemo(() => Array.from({ length: 28 }, (_, i) => daysAgoISO(27 - i)), []);
+  // Keyed on `today`, not [] — a tab left open past midnight kept the windows
+  // pinned to the mount day while ACWR moved on, so the sparkline and the ratio
+  // disagreed until a reload (audit 08-22 #30).
+  const last14 = useMemo(() => Array.from({ length: 14 }, (_, i) => daysAgoISO(13 - i)), [today]);
+  const last28 = useMemo(() => Array.from({ length: 28 }, (_, i) => daysAgoISO(27 - i)), [today]);
 
   const rows = useMemo(() => roster.map((t) => {
     const rec = bhbcLoads[t.id] || emptyRec();
@@ -648,9 +651,9 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
         </div>
         <div style={{ display: 'flex', gap: 6, marginBottom: 14, alignItems: 'stretch' }}>
           <input value={newAthlete} onChange={(e) => setNewAthlete(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter' && newAthlete.trim()) { setTrainees((prev) => [...prev, { id: 'tr_bh_' + Math.random().toString(36).slice(2, 9), name: newAthlete.trim(), team: 'BHBC', status: 'Active', createdAt: new Date().toISOString() }]); setNewAthlete(''); toast('Added'); } }}
+            onKeyDown={(e) => { if (e.key === 'Enter' && newAthlete.trim()) { setTrainees((prev) => [...prev, { id: 'tr_bh_' + Math.random().toString(36).slice(2, 9), name: newAthlete.trim(), team: 'BHBC', format: 'Bnei Herzliya', status: 'Active', createdAt: new Date().toISOString() }]); setNewAthlete(''); toast('Added'); } }}
             placeholder="Add a new athlete — full name" style={{ flex: 1, height: 38, boxSizing: 'border-box', fontFamily: FB, fontSize: 13, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 10px' }} />
-          <Btn disabled={!newAthlete.trim()} onClick={() => { setTrainees((prev) => [...prev, { id: 'tr_bh_' + Math.random().toString(36).slice(2, 9), name: newAthlete.trim(), team: 'BHBC', status: 'Active', createdAt: new Date().toISOString() }]); setNewAthlete(''); toast('Added'); }}
+          <Btn disabled={!newAthlete.trim()} onClick={() => { setTrainees((prev) => [...prev, { id: 'tr_bh_' + Math.random().toString(36).slice(2, 9), name: newAthlete.trim(), team: 'BHBC', format: 'Bnei Herzliya', status: 'Active', createdAt: new Date().toISOString() }]); setNewAthlete(''); toast('Added'); }}
             style={{ height: 38, boxSizing: 'border-box', background: newAthlete.trim() ? ORANGE : undefined, borderColor: newAthlete.trim() ? ORANGE : undefined, color: newAthlete.trim() ? '#fff' : undefined }}>+ Add</Btn>
         </div>
         <div style={{ maxHeight: 360, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -2566,6 +2569,11 @@ function LogModal({ open, initialAthlete, roster, fixtures = [], availableCount 
             </div>
           );
         })()}
+        {/* Readiness is a PER-ATHLETE check-in. In whole-roster scope the squad
+            path has nowhere honest to put one number — copying it onto every
+            athlete would invent each player's pain/sleep/energy — so the block
+            is hidden instead of silently discarded (audit 08-22 #29). */}
+        {scope !== 'squad' && (
         <div style={{ borderTop: `1px solid ${C.cardBd}`, paddingTop: 10 }}>
           <div style={{ ...lab, marginBottom: 8, letterSpacing: '0.16em' }}>Readiness (optional)</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
@@ -2574,6 +2582,7 @@ function LogModal({ open, initialAthlete, roster, fixtures = [], availableCount 
             <Input label="Energy 0–10" type="number" min="0" max="10" value={energy} onChange={(e) => setEnergy(e.target.value)} />
           </div>
         </div>
+        )}
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
           <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
           <Btn disabled={!canSave} onClick={() => onSave({ scope, athleteId, date, type, minutes, rpe, readiness: { pain, sleep, energy } })}

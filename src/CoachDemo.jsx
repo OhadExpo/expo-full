@@ -3598,6 +3598,9 @@ const DEMO_REVIEW_TOOLS = [
   { key: 'metrics', label: 'LIFT METRICS', measures: 'Bar speed (VBT) + per-goal stop-set cutoff · ROM/tempo/collapse · L/R symmetry', live: false },
   { key: 'jump', label: 'JUMP TEST', measures: 'Jump height from flight time · estimated peak power', live: false },
   { key: 'live', label: 'LIVE COACH', measures: 'Real-time reps + depth target + bar-path drift on the live feed', live: true },
+  // Basketball. Parity with ReviewToolsView's registry — the demo listed four
+  // tools while the real launcher shipped five (parity rule, 08-24).
+  { key: 'shot', label: 'SHOT ANALYZER', measures: 'Jump-shot mechanics frame by frame · dip, set point, release, timing, follow-through', live: false },
 ];
 function DemoReviewTools() {
   const [title, setTitle] = useState('Back Squat');
@@ -3608,7 +3611,7 @@ function DemoReviewTools() {
       <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: 8 }}>REVIEW · TOOLS</div>
       <h2 style={{ fontFamily: FB, fontSize: 24, fontWeight: 800, letterSpacing: '-0.01em', color: C.tx, margin: '0 0 8px' }}>Measure the lift</h2>
       <div style={{ color: C.tm, fontSize: 13, marginBottom: 20, fontFamily: FB, maxWidth: 560, lineHeight: 1.5 }}>
-        Camera &amp; pose tools to read a set — bar speed, range of motion, jump power, live coaching. Owner trial; nothing is saved to the athlete.
+        Camera &amp; pose tools to read a set — bar speed, range of motion, jump power, jump-shot mechanics, live coaching. Owner trial; nothing is saved to the athlete.
       </div>
       <div style={{ marginBottom: 20, maxWidth: 380 }}>
         <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 7, textTransform: 'uppercase' }}>Exercise · for Lab / Metrics / Live</label>

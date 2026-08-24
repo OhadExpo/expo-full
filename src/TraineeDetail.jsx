@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { fmtPrettyDate } from './dates';
+import { fmtPrettyDate, todayLocalISO } from './dates';
 import BWChart from './BwChart';
 import { C, FN, FB, FH, uid, PAYMENT_STATUSES, TRAINING_FORMATS, TRAINEE_STATUSES, PACKAGE_TYPES, GENDER_OPTIONS } from './theme';
 
@@ -105,7 +105,7 @@ function ProgramCard({ plan: p, isVis, onOpen, onUnassign, onOnly, onToggleVis }
 // Own state → typing here never re-renders the heavy TraineeDetail tree.
 function BwAddRow({ onAdd }) {
   const [kg, setKg] = React.useState('');
-  const [date, setDate] = React.useState(() => new Date().toISOString().slice(0, 10));
+  const [date, setDate] = React.useState(() => todayLocalISO());
   const val = parseFloat(kg);
   const ok = Number.isFinite(val) && val > 0 && val < 400;
   const submit = () => {
@@ -125,7 +125,7 @@ function BwAddRow({ onAdd }) {
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         <label style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm }}>Date</label>
-        <input type="date" value={date} max={new Date().toISOString().slice(0, 10)} onChange={e => setDate(e.target.value)}
+        <input type="date" value={date} max={todayLocalISO()} onChange={e => setDate(e.target.value)}
           style={{ ...baseInput, width: 150, fontFamily: FN }} />
       </div>
       <Btn onClick={submit} disabled={!ok} style={{ opacity: ok ? 1 : 0.5 }}>Add weigh-in</Btn>
@@ -217,7 +217,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
     if(setTrainees) setTrainees(prev=>prev.filter(t=>t.id!==trainee));
     setShowDeleteConfirm(false); setDeleteTyped(""); setPurgeHistory(false); onBack();
   };
-  const [payForm,setPayForm]=useState({amount:"",date:new Date().toISOString().slice(0,10),notes:"",status:"Paid"});
+  const [payForm,setPayForm]=useState({amount:"",date:todayLocalISO(),notes:"",status:"Paid"});
   const [editPayId,setEditPayId]=useState(null);
   // `td` may be briefly undefined while the parent re-fetches trainees.
   // Couple values that the hooks below need are nullable in that window;
@@ -261,7 +261,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       // catch unconditionally, so an RLS/network failure closed the modal and
       // read as success — the coach believed money was logged when it wasn't,
       // and the overdue/CRM signals then went wrong.
-      setPayForm({amount:"",date:new Date().toISOString().slice(0,10),notes:"",status:"Paid"});
+      setPayForm({amount:"",date:todayLocalISO(),notes:"",status:"Paid"});
       setShowPayForm(false);
     }catch(err){
       console.warn('payment write failed:', err.message);
@@ -808,14 +808,14 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           onClose={() => setShowContract(false)}
         />
       )}
-      <Modal open={showPayForm} onClose={()=>{setShowPayForm(false);setEditPayId(null);setPayForm({amount:"",date:new Date().toISOString().slice(0,10),notes:"",status:"Paid"})}} title={editPayId?"Edit Payment":"Add Payment"}>
+      <Modal open={showPayForm} onClose={()=>{setShowPayForm(false);setEditPayId(null);setPayForm({amount:"",date:todayLocalISO(),notes:"",status:"Paid"})}} title={editPayId?"Edit Payment":"Add Payment"}>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
           <Input label="Amount (₪)" type="number" value={payForm.amount} onChange={e=>setPayForm({...payForm,amount:e.target.value})} />
           <Input label="Date" type="date" value={payForm.date} onChange={e=>setPayForm({...payForm,date:e.target.value})} />
           <Select label="Status" options={PAYMENT_STATUSES} value={payForm.status} onChange={v=>setPayForm({...payForm,status:v})} />
           <div style={{gridColumn:"1 / -1"}}><Input label="Notes" value={payForm.notes} onChange={e=>setPayForm({...payForm,notes:e.target.value})} /></div></div>
         <div style={{display:"flex",justifyContent:"flex-end",gap:8,marginTop:16}}>
-          <Btn variant="ghost" onClick={()=>{setShowPayForm(false);setEditPayId(null);setPayForm({amount:"",date:new Date().toISOString().slice(0,10),notes:"",status:"Paid"})}}>Cancel</Btn><Btn onClick={handleAddPayment}>{editPayId?"Update":"Save"}</Btn></div></Modal>
+          <Btn variant="ghost" onClick={()=>{setShowPayForm(false);setEditPayId(null);setPayForm({amount:"",date:todayLocalISO(),notes:"",status:"Paid"})}}>Cancel</Btn><Btn onClick={handleAddPayment}>{editPayId?"Update":"Save"}</Btn></div></Modal>
 
       {/* === MESSAGES — slot #4: athlete↔coach thread, lifted from
           inside TraineeCRM to its own top-level slot. */}
@@ -1105,6 +1105,9 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
 const EditTraineeModal = React.memo(function EditTraineeModal({ td, couple, draftKey, onSave, onClose }) {
   const [editForm, setEditForm] = useState(null);
   const [hasDraft, setHasDraft] = useState(false);
+  // Bnei Herzliya players are CLUB athletes — the club pays. Read from the live
+  // form so switching Format to/from Bnei Herzliya updates the fields at once.
+  const isClubAthlete = editForm?.format === 'Bnei Herzliya' || editForm?.branch === 'Bnei Herzliya';
 
   useEffect(() => {
     let restored = null;
@@ -1139,6 +1142,16 @@ const EditTraineeModal = React.memo(function EditTraineeModal({ td, couple, draf
   const handleSave = () => {
     if (!editForm?.name) return;
     const toSave = { ...editForm, email: emailsToStore(editForm._emails || emailsToArr(editForm.email)) };
+    // Strip, don't just hide — otherwise a client converted to Bnei Herzliya
+    // keeps their old package/price alive but invisible, and the card still
+    // renders "8 SESSIONS LEFT" (audit 08-22 #45). Mirrors TraineesView.
+    if (toSave.format === 'Bnei Herzliya' || toSave.branch === 'Bnei Herzliya') {
+      toSave.package = '';
+      toSave.sessionsRemaining = null;
+      toSave.packagePrice = '';
+      toSave.monthly = 0;
+      toSave.perSession = 0;
+    }
     delete toSave._emails;
     if (toSave._members) {
       toSave.members = toSave._members.map(m => {
@@ -1256,10 +1269,13 @@ const EditTraineeModal = React.memo(function EditTraineeModal({ td, couple, draf
             <Select label="Format" options={TRAINING_FORMATS} value={editForm.format || ""} onChange={v => setEditForm({ ...editForm, format: v })} />
             {/* Status moved out of EDIT — changed via the status pill at the top
                 of the trainee page (Ohad). */}
-            <Select label="Package" options={PACKAGE_TYPES} value={editForm.package || ""} onChange={v => setEditForm({ ...editForm, package: v })} />
-            <Input label="Sessions Remaining" type="number" value={editForm.sessionsRemaining || 0} onChange={e => setEditForm({ ...editForm, sessionsRemaining: parseInt(e.target.value) || 0 })} />
-            <Input label="Monthly (₪)" type="number" value={editForm.monthly || ""} onChange={e => setEditForm({ ...editForm, monthly: parseFloat(e.target.value) || 0 })} />
-            <Input label="Per Session (₪)" type="number" value={editForm.perSession || ""} onChange={e => setEditForm({ ...editForm, perSession: parseFloat(e.target.value) || 0 })} />
+            {/* Club athletes: the club pays, so there is no package, no session
+                balance and no price on the record at all. */}
+            {!isClubAthlete && <Select label="Package" options={PACKAGE_TYPES} value={editForm.package || ""} onChange={v => setEditForm({ ...editForm, package: v })} />}
+            {!isClubAthlete && <Input label="Sessions Remaining" type="number" value={editForm.sessionsRemaining || 0} onChange={e => setEditForm({ ...editForm, sessionsRemaining: parseInt(e.target.value) || 0 })} />}
+            {!isClubAthlete && <Input label="Monthly (₪)" type="number" value={editForm.monthly || ""} onChange={e => setEditForm({ ...editForm, monthly: parseFloat(e.target.value) || 0 })} />}
+            {!isClubAthlete && <Input label="Per Session (₪)" type="number" value={editForm.perSession || ""} onChange={e => setEditForm({ ...editForm, perSession: parseFloat(e.target.value) || 0 })} />}
+            {isClubAthlete && <div style={{ gridColumn: "1 / -1", fontFamily: FN, fontSize: 10, letterSpacing: '0.12em', color: C.tm, textTransform: 'uppercase' }}>Club athlete — no billing</div>}
             <Input label="Start Date" type="date" value={editForm.startDate || ""} onChange={e => setEditForm({ ...editForm, startDate: e.target.value })} />
             <Input label="Last Payment" type="date" value={editForm.lastPayment || ""} onChange={e => setEditForm({ ...editForm, lastPayment: e.target.value })} />
             <div style={{ gridColumn: "1 / -1" }}><TextArea label="Injuries / Conditions" value={editForm.injuries || ""} onChange={e => setEditForm({ ...editForm, injuries: e.target.value })} placeholder="L4/L5 disc bulge, R shoulder impingement..." /></div>

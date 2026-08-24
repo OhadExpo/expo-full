@@ -9,6 +9,7 @@ import { toast } from './ui';
 import { captureShotFrames } from './shotCapture';
 import { getCamera, stopStream } from './usePose';
 import { detectShootingHand, analyzeShotClip, frameReadout, CHECKPOINTS, SHOT_TYPES } from './shotAnalysis';
+import { SHOT_I18N, localiseCheck } from './shotI18n';
 
 const STATUS = {
   ok:    { label: 'OK',    color: 'var(--c-gn, #2ED573)' },
@@ -16,6 +17,8 @@ const STATUS = {
   fix:   { label: 'FIX',   color: 'var(--c-rd, #FF4757)' },
   na:    { label: 'N/A',   color: 'rgba(255,255,255,0.35)' },
 };
+const LANG_KEY = 'expo-shot-lang';
+const stKey = (score) => (score == null ? 'na' : score >= 80 ? 'ok' : score >= 60 ? 'watch' : 'fix');
 const BONES = [[11, 13], [13, 15], [12, 14], [14, 16], [11, 12], [11, 23], [12, 24], [23, 24], [23, 25], [25, 27], [24, 26], [26, 28], [27, 31], [28, 32]];
 const SAVE_KEY = 'expo-shot-analyses';
 
@@ -39,7 +42,12 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
   // is read from the pose; the shot type defaults to mid-range and is a
   // one-tap cycle — the coach shouldn't have to set either before filming
   // (Ohad 08-24).
-  const [handMode, setHandMode] = useState('auto'); // 'auto' | 'R' | 'L'
+  // Hebrew is a first-class version of the tool, not an overlay: the choice is
+  // remembered and the whole stage flips to RTL (Ohad 08-24).
+  const [lang, setLang] = useState(() => { try { return localStorage.getItem(LANG_KEY) === 'he' ? 'he' : 'en'; } catch { return 'en'; } });
+  const T = SHOT_I18N[lang] || SHOT_I18N.en;
+  const setLangPersist = (l) => { setLang(l); try { localStorage.setItem(LANG_KEY, l); } catch { /* private mode */ } };
+  const [handMode, setHandMode] = useState('auto'); // auto | R | L
   const [detectedHand, setDetectedHand] = useState(null);
   const hand = handMode === 'auto' ? (detectedHand || 'R') : handMode;
   const [shotType, setShotType] = useState('mid');
@@ -115,38 +123,46 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
   const shot = result?.shots?.[shotIdx] || null;
 
   return (
-    <div style={stage}>
+    <div style={stage} dir={T.dir}>
       {/* top bar */}
       <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.12)', background: 'rgba(0,0,0,0.92)', flexWrap: 'wrap' }}>
-        <button onClick={onClose} style={ghost}>← BACK</button>
+        <button onClick={onClose} style={ghost}>{T.back}</button>
         <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', color: CYAN }}>{toolLabel}</div>
+        <button onClick={() => setLangPersist(lang === 'he' ? 'en' : 'he')} title={T.langTitle} style={{ ...chip(false), fontSize: 10 }}>{T.langBtn}</button>
         <div style={{ flex: 1 }} />
-        {/* ONE control per setting — the old row rendered every option at once,
-            and in the light theme the SELECTED chip used the theme accent (near-black) on
-            this always-dark stage, so it looked like a blank box (Ohad 08-24). */}
-        <span style={lbl}>Hand</span>
-        <button
-          onClick={() => { const next = hand === 'R' ? 'L' : 'R'; setHandMode(next); if (phase === 'results') rescore(next, stature, shotType); }}
-          title={handMode === 'auto' ? 'Read from the clip — tap to set it yourself' : 'Set by you — tap to switch'}
-          style={chip(true)}>{hand === 'R' ? 'RIGHT' : 'LEFT'}{handMode === 'auto' && detectedHand ? ' · AUTO' : ''}</button>
+        {/* Every option stays on screen (Ohad 08-24: "it was way better with the
+            options"). The bug that made this look broken was never the layout —
+            it was the SELECTED chip painting itself with the theme accent, which
+            is near-black in the light theme on this always-dark stage. chip()
+            now pins the literal cyan, so both rows read correctly. AUTO stays a
+            badge on the hand the clip itself reported. */}
+        <span style={lbl}>{T.hand}</span>
+        {[['R', T.right], ['L', T.left]].map(([k, label]) => (
+          <button key={k}
+            onClick={() => { setHandMode(k); if (phase === 'results') rescore(k, stature, shotType); }}
+            title={T.handHint}
+            style={chip(hand === k)}>{label}{handMode === 'auto' && detectedHand === k ? ' · AUTO' : ''}</button>
+        ))}
         {handMode !== 'auto' && (
-          <button onClick={() => { setHandMode('auto'); const h = detectedHand || 'R'; if (phase === 'results') rescore(h, stature, shotType); }} style={chip(false)} title="Back to reading it from the clip">AUTO</button>
+          <button onClick={() => { setHandMode('auto'); const h = detectedHand || 'R'; if (phase === 'results') rescore(h, stature, shotType); }} style={chip(false)} title={T.autoHint}>{T.auto}</button>
         )}
-        <span style={{ ...lbl, marginLeft: 10 }}>Shot</span>
-        <button
-          onClick={() => { const i = SHOT_TYPES.findIndex((t) => t.key === shotType); const next = SHOT_TYPES[(i + 1) % SHOT_TYPES.length].key; setShotType(next); if (phase === 'results') rescore(hand, stature, next); }}
-          title="Release-angle band — tap to change the shot distance"
-          style={chip(true)}>{(SHOT_TYPES.find((t) => t.key === shotType) || SHOT_TYPES[1]).label.toUpperCase()}</button>
-        <span style={{ ...lbl, marginLeft: 10 }}>Height</span>
+        <span style={{ ...lbl, marginInlineStart: 10 }}>{T.shot}</span>
+        {SHOT_TYPES.map((t) => (
+          <button key={t.key}
+            onClick={() => { setShotType(t.key); if (phase === 'results') rescore(hand, stature, t.key); }}
+            title={T.shotHint}
+            style={chip(shotType === t.key)}>{(T.shotTypes[t.key] || t.label).toUpperCase()}</button>
+        ))}
+        <span style={{ ...lbl, marginInlineStart: 10 }}>{T.height}</span>
         <input value={stature}
           onChange={(e) => { setStature(e.target.value); setHeightSaved(false); }}
           onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
           onBlur={() => { if (!String(stature).trim()) return; if (phase === 'results') rescore(hand, stature, shotType); setHeightSaved(true); setTimeout(() => setHeightSaved(false), 2600); }}
-          placeholder="cm" inputMode="numeric"
+          placeholder={T.cmPlaceholder} inputMode="numeric"
           style={{ width: 56, background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.35)', color: '#FFF', fontFamily: FN, fontSize: 12, padding: '4px 2px', textAlign: 'center', outline: 'none' }} />
         {/* Height feeds the cm conversions — say so when it lands (Ohad 08-24). */}
         <span style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', color: heightSaved ? '#37B27C' : 'rgba(255,255,255,0.35)', minWidth: 74 }}>
-          {heightSaved ? (phase === 'results' ? '✓ RESCORED' : '✓ SAVED') : (String(stature).trim() ? 'CM' : 'FOR CM')}
+          {heightSaved ? (phase === 'results' ? T.rescored : T.savedCm) : (String(stature).trim() ? T.cmUnit : T.forCm)}
         </span>
       </div>
 
@@ -154,12 +170,12 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
       {phase === 'idle' && (
         <div style={{ flex: 1, overflow: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
           <div style={{ maxWidth: 720, width: '100%' }}>
-            <div style={{ fontFamily: FN, fontSize: 22, fontWeight: 700, letterSpacing: '0.06em', marginBottom: 6 }}>Analyse a jump shot, frame by frame.</div>
+            <div style={{ fontFamily: FN, fontSize: 22, fontWeight: 700, letterSpacing: '0.06em', marginBottom: 6 }}>{T.idleTitle}</div>
             <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, lineHeight: 1.6, marginBottom: 18 }}>
-              EXPO tracks the body on every frame, finds the dip, set point, release, jump apex and follow-through, scores 10 mechanical checkpoints, and writes the fix guide — what to change, why it matters, how to train it.
+              {T.idleBlurb}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10, marginBottom: 18 }}>
-              {[['SIDE VIEW', 'Film from the shooting-arm side, camera at chest height, 4–6 m away.'], ['WHOLE BODY', 'Feet to fingertips in frame through the release and the follow-through.'], ['ONE SHOT PER CLIP', 'Several shots in one clip are fine — each is scored and compared for consistency.'], ['60 FPS IF YOU CAN', 'Slow-mo / 60 fps gives sharper release timing. Steady phone, good light.']].map(([h, t]) => (
+              {T.tips.map(([h, t]) => (
                 <div key={h} style={{ border: '1px solid rgba(255,255,255,0.15)', padding: '10px 12px' }}>
                   <div style={{ ...lbl, color: CYAN, marginBottom: 4 }}>{h}</div>
                   <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', lineHeight: 1.45 }}>{t}</div>
@@ -168,8 +184,8 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
             </div>
             {error && <div style={{ border: '1px solid rgba(255,71,87,0.6)', color: '#FF7B86', padding: '10px 12px', fontSize: 13, marginBottom: 14 }}>⚠ {error}</div>}
             <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={startRecording} style={big(CYAN)}>RECORD →</button>
-              <button onClick={pickFile} style={{ ...big('transparent'), color: '#FFF', border: '1px solid rgba(255,255,255,0.4)' }}>FROM GALLERY</button>
+              <button onClick={startRecording} style={big(CYAN)}>{T.record}</button>
+              <button onClick={pickFile} style={{ ...big('transparent'), color: '#FFF', border: '1px solid rgba(255,255,255,0.4)' }}>{T.gallery}</button>
             </div>
           </div>
         </div>
@@ -179,21 +195,21 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
         <div style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column' }}>
           <video ref={liveRef} muted playsInline style={{ flex: 1, width: '100%', objectFit: 'contain', background: '#000' }} />
           <div style={{ flexShrink: 0, padding: 14, display: 'flex', gap: 10, background: 'rgba(0,0,0,0.9)' }}>
-            <button onClick={stopRecording} style={big('var(--c-rd, #FF4757)')}>STOP &amp; ANALYSE</button>
+            <button onClick={stopRecording} style={big('var(--c-rd, #FF4757)')}>{T.stopAnalyse}</button>
           </div>
         </div>
       )}
 
       {phase === 'analyzing' && (
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
-          <div style={{ fontFamily: FN, fontSize: 13, letterSpacing: '0.18em', fontWeight: 700 }}>{(progressLabel || 'reading the shot').toUpperCase()}…</div>
+          <div style={{ fontFamily: FN, fontSize: 13, letterSpacing: '0.18em', fontWeight: 700 }}>{(T.progress[progressLabel] || T.progress[''] || progressLabel).toUpperCase()}…</div>
           <div style={{ width: 220, height: 4, background: 'rgba(255,255,255,0.15)', marginTop: 16 }}><div style={{ width: `${progress}%`, height: '100%', background: CYAN, transition: 'width 120ms' }} /></div>
           <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 8, fontFamily: FN, letterSpacing: '0.12em' }}>{progress}%</div>
         </div>
       )}
 
       {phase === 'results' && result && shot && (
-        <ShotResults result={result} shot={shot} shotIdx={shotIdx} setShotIdx={setShotIdx} srcUrl={srcUrl} frames={framesRef.current} hand={hand} onReset={reset} />
+        <ShotResults result={result} shot={shot} shotIdx={shotIdx} setShotIdx={setShotIdx} srcUrl={srcUrl} frames={framesRef.current} hand={hand} onReset={reset} T={T} shotType={shotType} />
       )}
 
       <input ref={fileRef} type="file" accept="video/*" style={{ display: 'none' }} onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; onFile(f); }} />
@@ -202,7 +218,20 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
 }
 
 // ------------------------------------------------------------------ results
-function ShotResults({ result, shot, shotIdx, setShotIdx, srcUrl, frames, hand, onReset }) {
+function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frames, hand, onReset, T, shotType }) {
+  // The engine stays language-free: every checkpoint and phase label is
+  // localised HERE, so the scorecard, the fix guide, the timeline and the
+  // copied summary all speak one language.
+  const typeSpec = SHOT_TYPES.find((t) => t.key === shotType) || SHOT_TYPES[1];
+  const shot = useMemo(() => ({
+    ...rawShot,
+    checks: rawShot.checks.map((c) => localiseCheck(c, T, typeSpec)),
+    phases: rawShot.phases.map((p) => ({ ...p, label: T.phases[p.key] || p.label })),
+  }), [rawShot, T, typeSpec]);
+  const ST = useMemo(() => ({
+    ok: { ...STATUS.ok, label: T.status.ok }, watch: { ...STATUS.watch, label: T.status.watch },
+    fix: { ...STATUS.fix, label: T.status.fix }, na: { ...STATUS.na, label: T.status.na },
+  }), [T]);
   const { series } = result;
   const n = series.n;
   const [cur, setCur] = useState(shot.cycle.release);
@@ -280,7 +309,7 @@ function ShotResults({ result, shot, shotIdx, setShotIdx, srcUrl, frames, hand, 
   const rd = frameReadout(series, cur);
   const phaseAt = shot.phases.find((p) => p.idx === cur);
   const tMs = series.tMs[cur];
-  const sc = STATUS[shot.score == null ? 'na' : shot.score >= 80 ? 'ok' : shot.score >= 60 ? 'watch' : 'fix'];
+  const sc = ST[stKey(shot.score)];
   const fixes = shot.checks.filter((c) => c.status === 'fix'), watches = shot.checks.filter((c) => c.status === 'watch');
 
   const save = () => {
@@ -288,23 +317,47 @@ function ShotResults({ result, shot, shotIdx, setShotIdx, srcUrl, frames, hand, 
       const all = JSON.parse(localStorage.getItem(SAVE_KEY) || '[]');
       all.unshift({ date: new Date().toISOString(), hand, score: shot.score, shots: result.shots.length, checks: shot.checks.map((c) => ({ key: c.key, value: c.value, status: c.status })), info: shot.info });
       localStorage.setItem(SAVE_KEY, JSON.stringify(all.slice(0, 50)));
-      toast('Shot analysis saved', 'success');
-    } catch { toast('Could not save', 'error'); }
+      toast(T.savedToast, 'success');
+    } catch { toast(T.saveFail, 'error'); }
   };
   const copySummary = async () => {
-    const lines = [`EXPO Shot Analyzer — score ${shot.score ?? '—'}/100 (${hand === 'L' ? 'left' : 'right'} hand)`];
-    for (const c of shot.checks) lines.push(`${STATUS[c.status].label.padEnd(5)} ${c.label}: ${c.display} (target ${c.target})`);
-    if (fixes.length) { lines.push('', 'FIX FIRST:'); for (const c of fixes) { lines.push(`• ${c.label} — ${c.why}`); for (const h of c.how) lines.push(`   - ${h}`); } }
-    try { await navigator.clipboard.writeText(lines.join('\n')); toast('Summary copied', 'success'); } catch { toast('Copy failed', 'error'); }
+    const lines = [T.copyHead(shot.score ?? '—', hand === 'L' ? T.handWordL : T.handWordR)];
+    for (const c of shot.checks) lines.push(`${ST[c.status].label.padEnd(5)} ${c.label}: ${c.display} (${c.target})`);
+    if (fixes.length) { lines.push('', T.copyFixFirst); for (const c of fixes) { lines.push(`• ${c.label} — ${c.why}`); for (const h of c.how) lines.push(`   - ${h}`); } }
+    try { await navigator.clipboard.writeText(lines.join('\n')); toast(T.copiedToast, 'success'); } catch { toast(T.copyFail, 'error'); }
   };
 
   return (
-    <div style={{ flex: 1, overflow: 'auto', WebkitOverflowScrolling: 'touch' }} data-allow-copy>
-      <style>{`@media print { .shot-noprint{display:none!important} .shot-print{padding:0!important} }`}</style>
-      <div className="shot-print" style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap', maxWidth: 1440, margin: '0 auto', padding: 16 }}>
+    <div className="shot-wrap" style={{ flex: 1, overflow: 'auto', WebkitOverflowScrolling: 'touch' }} data-allow-copy>
+      <style>{`
+        @media print { .shot-noprint{display:none!important} .shot-print{padding:0!important} }
+        /* One screen, no page scroll: the video column and the report column
+           each scroll on their own, and the video is capped vertically so the
+           transport, the read-out and the actions all sit above the fold
+           (Ohad 08-24: "i want everything to fit without scrolling"). */
+        @media (min-width: 980px) {
+          .shot-wrap { overflow: hidden !important; }
+          .shot-results { flex-wrap: nowrap !important; height: 100%; min-height: 0; align-items: stretch !important; }
+          /* The video column is a FIXED control column and the report takes the
+             rest — with the video box now shrinking to a portrait clip's own
+             aspect, a flexible left column left a wide empty gutter. */
+          .shot-left { flex: 0 0 440px !important; min-height: 0; overflow-y: auto; overflow-x: hidden; padding-right: 4px; }
+          .shot-right { flex: 1 1 auto !important; min-height: 0; overflow-y: auto; padding-right: 4px; }
+          /* Cap the HEIGHT and let the box narrow to the clip's own aspect —
+             capping height alone kept width:100%%, so a portrait phone clip sat
+             in a wide box with black bars down both sides. */
+          .shot-video { max-height: 44vh; max-width: calc(44vh * var(--shot-ar, 1.7778)); margin: 0 auto; }
+          /* Fixed column counts, not auto-fill: eight read-outs in an auto-fill
+             grid wrapped 5 + 3 and the info tiles came out at different heights.
+             Two rows of four, three even columns, nothing ragged. */
+          .shot-readout { grid-template-columns: repeat(4, 1fr) !important; }
+          .shot-info { grid-template-columns: repeat(3, 1fr) !important; }
+        }
+      `}</style>
+      <div className="shot-print shot-results" style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap', maxWidth: 1440, margin: '0 auto', padding: 16 }}>
         {/* LEFT — player */}
-        <div style={{ flex: '1 1 420px', minWidth: 300, maxWidth: 640, position: 'sticky', top: 0 }}>
-          <div ref={wrapRef} style={{ position: 'relative', width: '100%', aspectRatio: result.aspect ? `${result.aspect}` : '16/9', background: '#000', border: '1px solid rgba(255,255,255,0.15)' }}>
+        <div className="shot-left" style={{ flex: '1 1 420px', minWidth: 300, maxWidth: 640 }}>
+          <div ref={wrapRef} className="shot-video" style={{ '--shot-ar': result.aspect || 1.7778, position: 'relative', width: '100%', aspectRatio: result.aspect ? `${result.aspect}` : '16/9', background: '#000', border: '1px solid rgba(255,255,255,0.15)' }}>
             {srcUrl ? <video ref={videoRef} src={srcUrl} muted playsInline style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' }} onLoadedMetadata={() => seekTo(cur)} />
               : <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.4)', fontFamily: FN, fontSize: 11, letterSpacing: '0.14em' }}>POSE TRACK</div>}
             <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }} />
@@ -313,30 +366,43 @@ function ShotResults({ result, shot, shotIdx, setShotIdx, srcUrl, frames, hand, 
           </div>
           {/* transport */}
           <div className="shot-noprint" style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
-            <button onClick={() => step(-10)} style={chip(false)} title="Back 10 frames">«10</button>
-            <button onClick={() => step(-1)} style={chip(false)} title="Previous frame">‹ 1</button>
+            <button onClick={() => step(-10)} style={chip(false)} title={T.back10}>«10</button>
+            <button onClick={() => step(-1)} style={chip(false)} title={T.prev1}>‹ 1</button>
             <button onClick={() => { const v = videoRef.current; if (!v) return; if (v.paused) { v.play().catch(() => {}); } else v.pause(); }} style={chip(playing)}>{playing ? '❚❚' : '▶'}</button>
-            <button onClick={() => step(1)} style={chip(false)} title="Next frame">1 ›</button>
-            <button onClick={() => step(10)} style={chip(false)} title="Forward 10 frames">10»</button>
+            <button onClick={() => step(1)} style={chip(false)} title={T.next1}>1 ›</button>
+            <button onClick={() => step(10)} style={chip(false)} title={T.fwd10}>10»</button>
             <input type="range" min={0} max={n - 1} value={cur} onChange={(e) => seekTo(Number(e.target.value))} style={{ flex: 1, minWidth: 120, accentColor: '#39BDFF' }} />
           </div>
           <div className="shot-noprint" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
-            {shot.phases.map((p) => <button key={p.key} onClick={() => { setPhaseKey(p.key); seekTo(p.idx); }} style={chip(cur === p.idx)} title={`Jump to ${p.label.toLowerCase()} — stays on this moment when you switch shots`}>{p.label}</button>)}
+            {shot.phases.map((p) => <button key={p.key} onClick={() => { setPhaseKey(p.key); seekTo(p.idx); }} style={chip(cur === p.idx)} title={T.phaseJump(p.label)}>{p.label}</button>)}
           </div>
           {/* per-frame readout */}
-          <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(104px, 1fr))', gap: 6 }}>
-            {[['Knee', fmt(rd.knee) + '°'], ['Hip', fmt(rd.hip) + '°'], ['Elbow', fmt(rd.elbow) + '°'], ['Arm elev.', fmt(rd.shoulder) + '°'], ['Forearm ∠', fmt(rd.forearm) + '°'], ['Trunk lean', fmt(rd.trunk) + '°'], ['Wrist vs eye', (rd.wristEye == null ? '—' : (rd.wristEye >= 0 ? '+' : '') + fmt(rd.wristEye, 2))], ['Elbow offset', fmt(rd.wristElbowX, 2)]].map(([k, v]) => (
-              <div key={k} style={{ border: '1px solid rgba(255,255,255,0.12)', padding: '6px 8px' }}>
+          {/* Ordered up the body, four to a row: ground → trunk → shoulder on the
+              first line, then the arm chain elbow → forearm → wrist on the
+              second, so the eye reads it in the same order the shot happens. */}
+          <div className="shot-readout" style={{ marginTop: 10, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(104px, 1fr))', gap: 6 }}>
+            {[[T.metrics.knee, fmt(rd.knee) + '°'], [T.metrics.hip, fmt(rd.hip) + '°'], [T.metrics.trunk, fmt(rd.trunk) + '°'], [T.metrics.armElev, fmt(rd.shoulder) + '°'], [T.metrics.elbow, fmt(rd.elbow) + '°'], [T.metrics.forearm, fmt(rd.forearm) + '°'], [T.metrics.wristEye, (rd.wristEye == null ? '—' : (rd.wristEye >= 0 ? '+' : '') + fmt(rd.wristEye, 2))], [T.metrics.elbowOffset, fmt(rd.wristElbowX, 2)]].map(([k, v]) => (
+              <div key={k} style={{ border: '1px solid rgba(255,255,255,0.12)', padding: '6px 8px', minHeight: 46, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                 <div style={lbl}>{k}</div>
                 <div style={{ fontFamily: FN, fontSize: 15, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{v}</div>
               </div>
             ))}
           </div>
-          <Timeline series={series} shot={shot} cur={cur} onSeek={seekTo} />
+          {/* Actions live UNDER THE VIDEO, not at the end of the report — they
+              used to sit below every checkpoint, so the coach had to scroll the
+              whole guide to reach SAVE / NEW CLIP (Ohad 08-24). */}
+          <div className="shot-noprint" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+            <button onClick={save} style={{ ...ghost, borderColor: CYAN, color: CYAN, padding: '7px 12px', fontSize: 10 }}>{T.save}</button>
+            <button onClick={copySummary} style={{ ...ghost, padding: '7px 12px', fontSize: 10 }}>{T.copy}</button>
+            <button onClick={() => window.print()} style={{ ...ghost, padding: '7px 12px', fontSize: 10 }}>{T.print}</button>
+            <div style={{ flex: 1 }} />
+            <button onClick={onReset} style={{ ...ghost, padding: '7px 12px', fontSize: 10 }}>{T.newClip}</button>
+          </div>
+          <Timeline series={series} shot={shot} cur={cur} onSeek={seekTo} T={T} />
         </div>
 
         {/* RIGHT — score, scorecard, guide */}
-        <div style={{ flex: '1 1 420px', minWidth: 300 }}>
+        <div className="shot-right" style={{ flex: '1 1 420px', minWidth: 300 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', marginBottom: 12 }}>
             <div style={{ width: 84, height: 84, borderRadius: '50%', border: `4px solid ${sc.color}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <div style={{ fontFamily: FN, fontSize: 26, fontWeight: 700, lineHeight: 1 }}>{shot.score ?? '—'}</div>
@@ -344,10 +410,10 @@ function ShotResults({ result, shot, shotIdx, setShotIdx, srcUrl, frames, hand, 
             </div>
             <div style={{ flex: 1, minWidth: 200 }}>
               <div style={{ fontFamily: FN, fontSize: 16, fontWeight: 700, letterSpacing: '0.06em' }}>
-                {shot.score == null ? 'Shot read' : shot.score >= 80 ? 'Clean mechanics' : shot.score >= 60 ? 'Solid base — a few things to tighten' : 'Rebuild the chain from the legs up'}
+                {shot.score == null ? T.verdictNa : shot.score >= 80 ? T.verdictOk : shot.score >= 60 ? T.verdictMid : T.verdictLow}
               </div>
               <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12, marginTop: 3, lineHeight: 1.5 }}>
-                {fixes.length} to fix · {watches.length} to watch · {shot.checks.length - fixes.length - watches.length} OK · tracking {result.quality} ({Math.round((result.coverage || 0) * 100)}% of shot frames) · {result.fps} fps
+                {T.summary(fixes.length, watches.length, shot.checks.length - fixes.length - watches.length, T.quality[result.quality] || result.quality, Math.round((result.coverage || 0) * 100), result.fps)}
               </div>
               {result.shots.length > 1 && (
                 <div className="shot-noprint" style={{ marginTop: 8 }}>
@@ -356,16 +422,16 @@ function ShotResults({ result, shot, shotIdx, setShotIdx, srcUrl, frames, hand, 
                       panel underneath is all of them. */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     <button onClick={() => setShotIdx((i) => Math.max(0, i - 1))} disabled={shotIdx === 0} style={{ ...chip(false), opacity: shotIdx === 0 ? 0.35 : 1 }}>&lsaquo;</button>
-                    <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', color: CYAN }}>SHOT {shot.index} / {result.shots.length}</span>
-                    <span style={{ ...lbl, letterSpacing: '0.06em' }}>at {fmt(series.tMs[shot.cycle.release] / 1000, 1)}s</span>
+                    <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', color: CYAN }}>{T.shotOf(shot.index, result.shots.length)}</span>
+                    <span style={{ ...lbl, letterSpacing: '0.06em' }}>{T.atSec(fmt(series.tMs[shot.cycle.release] / 1000, 1))}</span>
                     <button onClick={() => setShotIdx((i) => Math.min(result.shots.length - 1, i + 1))} disabled={shotIdx === result.shots.length - 1} style={{ ...chip(false), opacity: shotIdx === result.shots.length - 1 ? 0.35 : 1 }}>&rsaquo;</button>
                     <div style={{ flex: 1 }} />
-                    <span style={{ ...lbl, letterSpacing: '0.06em' }}>scorecard = this shot · session = all {result.shots.length}</span>
+                    <span style={{ ...lbl, letterSpacing: '0.06em' }}>{T.scopeHint(result.shots.length)}</span>
                   </div>
                   <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap' }}>
                     {result.shots.map((s, i) => {
-                      const st = STATUS[s.score == null ? 'na' : s.score >= 80 ? 'ok' : s.score >= 60 ? 'watch' : 'fix'];
-                      return <button key={i} onClick={() => setShotIdx(i)} title={`Shot ${s.index} at ${fmt(series.tMs[s.cycle.release] / 1000, 1)}s, score ${s.score ?? '-'}`}
+                      const st = ST[stKey(s.score)];
+                      return <button key={i} onClick={() => setShotIdx(i)} title={T.shotTip(s.index, fmt(series.tMs[s.cycle.release] / 1000, 1), s.score ?? '-')}
                         style={{ ...chip(i === shotIdx), padding: '4px 8px', borderColor: i === shotIdx ? CYAN : st.color, color: i === shotIdx ? CYAN : st.color }}>{s.index}</button>;
                     })}
                   </div>
@@ -375,30 +441,35 @@ function ShotResults({ result, shot, shotIdx, setShotIdx, srcUrl, frames, hand, 
           </div>
 
           {/* info strip */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 6, marginBottom: 14 }}>
-            {[['Dip → release', shot.info.dipToReleaseMs != null ? shot.info.dipToReleaseMs + ' ms' : '—'],
-              ['Jump rise', shot.info.jumpRiseCm != null ? shot.info.jumpRiseCm + ' cm' : 'enter height'],
-              ['Release height', shot.info.releaseHeightCm != null ? shot.info.releaseHeightCm + ' cm' : (shot.info.releaseHeightRatio != null ? shot.info.releaseHeightRatio + '× eye height' : '—')],
-              ['Arm at release', fmt(shot.info.shoulderAtRelease) + '°'],
-              ['Chain (from dip)', shot.info.sequenceOrder ? `legs ${shot.info.sequenceOrder.kneeMs} · arm ${shot.info.sequenceOrder.shoulderMs} · elbow ${shot.info.sequenceOrder.elbowMs} ms` : '—'],
-              ['Tracked', shot.info.coverage != null ? Math.round(shot.info.coverage * 100) + '% of frames' : '—']].map(([k, v]) => (
-              <div key={k} style={{ border: '1px solid rgba(255,255,255,0.12)', padding: '6px 8px' }}><div style={lbl}>{k}</div><div style={{ fontFamily: FN, fontSize: 14, fontWeight: 700 }}>{v}</div></div>
+          {/* Six single-width read-outs fill two clean rows of three; the two
+              long ones (chain order, session consistency) get a row each
+              instead of stretching one tile taller than its neighbours. */}
+          <div className="shot-info" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 6, marginBottom: 14 }}>
+            {[[T.info.dipToRelease, shot.info.dipToReleaseMs != null ? shot.info.dipToReleaseMs + ' ms' : '—'],
+              [T.info.jumpRise, shot.info.jumpRiseCm != null ? shot.info.jumpRiseCm + ' cm' : T.enterHeight],
+              [T.info.releaseHeight, shot.info.releaseHeightCm != null ? shot.info.releaseHeightCm + ' cm' : (shot.info.releaseHeightRatio != null ? shot.info.releaseHeightRatio + T.eyeHeight : '—')],
+              [T.info.armAtRelease, fmt(shot.info.shoulderAtRelease) + '°'],
+              [T.info.releaseVsApex, shot.raw.timing == null ? '—' : (shot.raw.timing > 0 ? '+' : '') + Math.round(shot.raw.timing) + ' ms'],
+              [T.info.tracked, shot.info.coverage != null ? T.ofFrames(Math.round(shot.info.coverage * 100)) : '—']].map(([k, v]) => (
+              <div key={k} style={{ border: '1px solid rgba(255,255,255,0.12)', padding: '6px 8px', minHeight: 46, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}><div style={lbl}>{k}</div><div style={{ fontFamily: FN, fontSize: 14, fontWeight: 700 }}>{v}</div></div>
             ))}
-            {result.consistency && <div style={{ border: '1px solid rgba(255,255,255,0.12)', padding: '6px 8px', gridColumn: 'span 2' }}><div style={lbl}>Consistency ({result.consistency.n} shots)</div><div style={{ fontFamily: FN, fontSize: 12, fontWeight: 700 }}>rhythm ±{fmt(result.consistency.rhythmCv)}% · release arm ±{fmt(result.consistency.releaseArmSd, 1)}° · set elbow ±{fmt(result.consistency.setElbowSd, 1)}° · timing ±{fmt(result.consistency.timingSd)} ms</div></div>}
+            <div style={{ border: '1px solid rgba(255,255,255,0.12)', padding: '6px 8px', gridColumn: '1 / -1' }}><div style={lbl}>{T.info.chain}</div><div style={{ fontFamily: FN, fontSize: 14, fontWeight: 700 }}>{shot.info.sequenceOrder ? T.chainVal(shot.info.sequenceOrder.kneeMs, shot.info.sequenceOrder.shoulderMs, shot.info.sequenceOrder.elbowMs) : '—'}</div></div>
+            {result.consistency && <div style={{ border: '1px solid rgba(255,255,255,0.12)', padding: '6px 8px', gridColumn: '1 / -1' }}><div style={lbl}>{T.consistencyLbl(result.consistency.n)}</div><div style={{ fontFamily: FN, fontSize: 12, fontWeight: 700 }}>{T.consistencyVal(fmt(result.consistency.rhythmCv), fmt(result.consistency.releaseArmSd, 1), fmt(result.consistency.setElbowSd, 1), fmt(result.consistency.timingSd))}</div></div>}
           </div>
 
           {/* SESSION — every detected shot, scored, so a multi-shot clip is
               never ambiguous: this table IS the whole clip. */}
           {result.shots.length > 1 && (
             <div style={{ marginBottom: 16 }}>
-              <div style={{ ...lbl, color: CYAN, marginBottom: 6 }}>Session · {result.shots.length} shots detected</div>
+              <div style={{ ...lbl, color: CYAN, marginBottom: 6 }}>{T.sessionTitle(result.shots.length)}</div>
               <div style={{ border: '1px solid rgba(255,255,255,0.15)', overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FN, fontSize: 11 }}>
-                  <thead><tr>{['#', 'At', 'Score', 'Dip', 'Set', 'Release', 'Timing', 'Fix first'].map((h) => <th key={h} style={{ ...lbl, textAlign: 'left', padding: '6px 8px', borderBottom: '1px solid rgba(255,255,255,0.15)', whiteSpace: 'nowrap' }}>{h}</th>)}</tr></thead>
+                  <thead><tr>{T.cols.map((h) => <th key={h} style={{ ...lbl, textAlign: 'left', padding: '6px 8px', borderBottom: '1px solid rgba(255,255,255,0.15)', whiteSpace: 'nowrap' }}>{h}</th>)}</tr></thead>
                   <tbody>
                     {result.shots.map((s, i) => {
-                      const st = STATUS[s.score == null ? 'na' : s.score >= 80 ? 'ok' : s.score >= 60 ? 'watch' : 'fix'];
-                      const worst = s.checks.find((c) => c.status === 'fix') || s.checks.find((c) => c.status === 'watch');
+                      const st = ST[stKey(s.score)];
+                      const worstRaw = s.checks.find((c) => c.status === 'fix') || s.checks.find((c) => c.status === 'watch');
+                      const worst = worstRaw ? localiseCheck(worstRaw, T, typeSpec) : null;
                       return (
                         <tr key={i} onClick={() => setShotIdx(i)} style={{ cursor: 'pointer', background: i === shotIdx ? 'rgba(57,189,255,0.10)' : 'transparent', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
                           <td style={{ padding: '6px 8px', fontWeight: 700, color: i === shotIdx ? CYAN : '#FFF' }}>{s.index}</td>
@@ -408,7 +479,7 @@ function ShotResults({ result, shot, shotIdx, setShotIdx, srcUrl, frames, hand, 
                           <td style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.8)' }}>{fmt(s.raw.setElbow)}°</td>
                           <td style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.8)' }}>{fmt(s.raw.releaseArm)}°</td>
                           <td style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.8)' }}>{s.raw.timing == null ? '—' : (s.raw.timing > 0 ? '+' : '') + Math.round(s.raw.timing) + 'ms'}</td>
-                          <td style={{ padding: '6px 8px', color: worst ? STATUS[worst.status].color : 'rgba(255,255,255,0.4)', whiteSpace: 'nowrap' }}>{worst ? worst.label : 'clean'}</td>
+                          <td style={{ padding: '6px 8px', color: worst ? ST[worst.status].color : 'rgba(255,255,255,0.4)', whiteSpace: 'nowrap' }}>{worst ? worst.label : T.cleanRow}</td>
                         </tr>
                       );
                     })}
@@ -418,16 +489,16 @@ function ShotResults({ result, shot, shotIdx, setShotIdx, srcUrl, frames, hand, 
               {/* What repeats across the session is what to coach first. */}
               {(() => {
                 const counts = new Map();
-                for (const s of result.shots) for (const c of s.checks) if (c.status === 'fix') counts.set(c.label, (counts.get(c.label) || 0) + 1);
+                for (const s of result.shots) for (const c of s.checks) if (c.status === 'fix') { const lc = localiseCheck(c, T, typeSpec); counts.set(lc.label, (counts.get(lc.label) || 0) + 1); }
                 const top = [...counts.entries()].sort((x, y) => y[1] - x[1]).slice(0, 3);
                 const scored = result.shots.filter((s) => s.score != null);
                 const avg = scored.length ? Math.round(scored.reduce((acc, s) => acc + s.score, 0) / scored.length) : null;
                 return (
                   <div style={{ marginTop: 8, fontSize: 12.5, lineHeight: 1.55, color: 'rgba(255,255,255,0.8)' }}>
-                    Session average <b style={{ color: '#FFF' }}>{avg == null ? '—' : avg + '/100'}</b>
+                    {T.sessionAvg} <b style={{ color: '#FFF' }}>{avg == null ? '—' : avg + '/100'}</b>
                     {top.length > 0
-                      ? <> · repeats across the session: {top.map(([l, n]) => `${l} (${n}/${result.shots.length})`).join(' · ')}</>
-                      : <> · no checkpoint failed on more than one shot.</>}
+                      ? <> · {T.repeats}: {top.map(([l, n]) => `${l} (${n}/${result.shots.length})`).join(' · ')}</>
+                      : <> · {T.noRepeats}</>}
                   </div>
                 );
               })()}
@@ -435,10 +506,10 @@ function ShotResults({ result, shot, shotIdx, setShotIdx, srcUrl, frames, hand, 
           )}
 
           {/* scorecard */}
-          <div style={{ ...lbl, color: CYAN, marginBottom: 6 }}>Checkpoints · shot {shot.index}{result.shots.length > 1 ? ' of ' + result.shots.length : ''}</div>
+          <div style={{ ...lbl, color: CYAN, marginBottom: 6 }}>{T.checksTitle(shot.index, result.shots.length)}</div>
           <div style={{ border: '1px solid rgba(255,255,255,0.15)' }}>
             {shot.checks.map((c, i) => {
-              const st = STATUS[c.status];
+              const st = ST[c.status];
               const open = openGuide.has(c.key);
               const phaseKey = { dip: 'dip', setHeight: 'set', setElbow: 'set', elbowAlign: 'set', releaseExt: 'release', releaseArm: 'release', timing: 'release', follow: 'follow', trunk: 'release' }[c.key];
               const ph = shot.phases.find((p) => p.key === phaseKey);
@@ -452,15 +523,15 @@ function ShotResults({ result, shot, shotIdx, setShotIdx, srcUrl, frames, hand, 
                     </div>
                     <div style={{ fontFamily: FN, fontSize: 14, fontWeight: 700, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{c.display}</div>
                     <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: st.color, border: `1px solid ${st.color}`, padding: '2px 6px', flexShrink: 0 }}>{st.label}</span>
-                    {ph && <button className="shot-noprint" onClick={(e) => { e.stopPropagation(); setPhaseKey(ph.key); seekTo(ph.idx); }} style={{ ...chip(false), padding: '3px 7px' }} title="Jump to this frame">▸</button>}
+                    {ph && <button className="shot-noprint" onClick={(e) => { e.stopPropagation(); setPhaseKey(ph.key); seekTo(ph.idx); }} style={{ ...chip(false), padding: '3px 7px' }} title={T.jumpFrame}>▸</button>}
                     <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, transform: open ? 'rotate(180deg)' : 'none', display: 'inline-block' }}>▾</span>
                   </div>
                   {open && (
                     <div style={{ padding: '0 12px 12px 30px', fontSize: 12.5, lineHeight: 1.55, color: 'rgba(255,255,255,0.85)' }}>
-                      <div style={{ marginBottom: 6 }}><span style={{ ...lbl, color: st.color }}>What </span>{c.status === 'ok' ? `Measured ${c.display} — inside the target band.` : `Measured ${c.display}; target ${c.target}.`}</div>
-                      <div style={{ marginBottom: 6 }}><span style={{ ...lbl, color: CYAN }}>Why </span>{c.why}</div>
-                      <div><span style={{ ...lbl, color: CYAN }}>How </span>
-                        <ul style={{ margin: '4px 0 0', paddingLeft: 18 }}>{c.how.map((h, k) => <li key={k} style={{ marginBottom: 2 }}>{h}</li>)}</ul>
+                      <div style={{ marginBottom: 6 }}><span style={{ ...lbl, color: st.color }}>{T.what}</span>{c.status === 'ok' ? T.measuredOk(c.display) : T.measuredBad(c.display, c.target)}</div>
+                      <div style={{ marginBottom: 6 }}><span style={{ ...lbl, color: CYAN }}>{T.why}</span>{c.why}</div>
+                      <div><span style={{ ...lbl, color: CYAN }}>{T.how}</span>
+                        <ul style={{ margin: '4px 0 0', paddingInlineStart: 18 }}>{c.how.map((h, k) => <li key={k} style={{ marginBottom: 2 }}>{h}</li>)}</ul>
                       </div>
                     </div>
                   )}
@@ -470,16 +541,9 @@ function ShotResults({ result, shot, shotIdx, setShotIdx, srcUrl, frames, hand, 
           </div>
 
           <div style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.45)', lineHeight: 1.5, marginTop: 10 }}>
-            Targets are coach-readable bands, not laws — read them with the athlete in front of you. Release arm angle is a proxy for the ball’s launch angle. Side-on filming is assumed for the trunk and elbow-offset reads.
+            {T.footnote}
           </div>
 
-          <div className="shot-noprint" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
-            <button onClick={save} style={{ ...ghost, borderColor: CYAN, color: CYAN }}>↑ SAVE</button>
-            <button onClick={copySummary} style={ghost}>COPY SUMMARY</button>
-            <button onClick={() => window.print()} style={ghost}>PRINT REPORT</button>
-            <div style={{ flex: 1 }} />
-            <button onClick={onReset} style={ghost}>↺ NEW CLIP</button>
-          </div>
         </div>
       </div>
     </div>
@@ -487,7 +551,7 @@ function ShotResults({ result, shot, shotIdx, setShotIdx, srcUrl, frames, hand, 
 }
 
 // Joint-angle timeline with phase bands + playhead; click/drag to seek.
-function Timeline({ series, shot, cur, onSeek }) {
+function Timeline({ series, shot, cur, onSeek, T }) {
   const W = 600, H = 150, PAD = 6;
   const n = series.n; if (n < 2) return null;
   const t0 = series.tMs[0], t1 = series.tMs[n - 1] || t0 + 1;
@@ -501,7 +565,7 @@ function Timeline({ series, shot, cur, onSeek }) {
   return (
     <div style={{ marginTop: 10 }}>
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 4 }}>
-        {[['Knee', '#39BDFF'], ['Elbow', '#FFFFFF'], ['Arm elev.', '#FFA502'], ['Hip height', '#2ED573']].map(([k, c]) => <span key={k} style={{ ...lbl, color: c }}>— {k}</span>)}
+        {[[T.legend.knee, '#39BDFF'], [T.legend.elbow, '#FFFFFF'], [T.legend.armElev, '#FFA502'], [T.legend.hipHeight, '#2ED573']].map(([k, c]) => <span key={k} style={{ ...lbl, color: c }}>— {k}</span>)}
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.02)', cursor: 'crosshair' }}
         onMouseDown={pick} onMouseMove={(e) => { if (e.buttons === 1) pick(e); }}>

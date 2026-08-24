@@ -1809,12 +1809,21 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
   const handleSave = async () => {
     setSaving(true);
     const snapshot = plan;            // exactly what onSave persists
-    await onSave(snapshot);
+    const ok = await onSave(snapshot);
     // Explicit save covered everything pending — clear dirty so the
     // visibilitychange/unmount paths don't issue a redundant write. BUT only
     // if no edit landed DURING the await; otherwise leaving dirty set lets the
     // debounce/flush persist that interim edit instead of silently dropping it.
-    if (planRef.current === snapshot) markClean();
+    //
+    // And only when the write actually LANDED. Marking clean after a failed
+    // upsert told every flush path (visibilitychange / pagehide / unmount /
+    // BACK) there was nothing to write, so a transient Supabase failure ate
+    // every edit since the last successful autosave in silence (audit 08-22
+    // #38). On failure we stay dirty so those paths retry, and say so.
+    if (ok === false) {
+      const { toast } = await import('./ui');
+      toast('Save failed — your edits are still here. Check the connection and save again.', 'error', { ttl: 8000 });
+    } else if (planRef.current === snapshot) markClean();
     setSaving(false);
     // Stay in the editor after Save (Ohad) — the URL stays /coach/programs/<id>
     // so a refresh keeps you here. BACK is the explicit "leave" action.
@@ -1876,7 +1885,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           <AthleteCombo
             value={plan.traineeId||""}
             options={[{value:'',label:'Unassigned'}, ...trainees.flatMap(t => t.members && t.members.length===2 ? t.members.map((m,i)=>({value:t.id+'__'+i,label:m.name||('Member '+(i+1))})) : [{value:t.id,label:t.name}])]}
-            title="Switch to this athlete's program (assigns the current one if they have none yet) — type to search"
+            title="Assigns THIS program when it has no athlete yet; otherwise switches to that athlete's program — type to search"
             onPick={async (tid, label)=>{
                 const theirs = tid ? (planIndex||[]).filter(p=>p.traineeId===tid).slice().sort(sortProgramsRecent) : [];
                 // Primary behaviour: changing the athlete navigates to THAT
@@ -1885,7 +1894,14 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                 // we fall back to assigning the current program to them — so the
                 // "assign a brand-new program" path still works without silently
                 // hijacking an existing program's owner.
-                if (onSwitchProgram && theirs.length) {
+                // UNASSIGNED program open → the pick ASSIGNS it. "+ New Program"
+                // creates a blank, unowned plan and its tooltip says you pick the
+                // athlete inside the editor; navigating away instead left that
+                // blank plan stranded in the DB for every athlete who already had
+                // programs — i.e. all of them (audit 08-22 #40).
+                if (tid && !plan.traineeId) {
+                  setPlan({ ...plan, traineeId: tid });
+                } else if (onSwitchProgram && theirs.length) {
                   if (theirs[0].id !== plan.id) { await flushAutosave(); onSwitchProgram(theirs[0].id); }
                 } else if (tid && onNewProgramFor) {
                   // The athlete has no programs yet → ASK (styled menu) whether to
@@ -3574,7 +3590,11 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
     await reloadIndex();
   };
   const handleSave = async (plan) => {
-    await savePlan(plan);
+    // savePlan returns false on a failed upsert. Swallowing that told the
+    // editor the plan was safely on disk (audit 08-22 #38) and, worse, marked
+    // the linked task done against a plan the DB never got.
+    const saved = await savePlan(plan);
+    if (saved === false) return false;
     // If this editor was opened from a task → "→ NEW PROGRAM" handoff,
     // auto-mark the task done + link it to the saved plan so the chain
     // becomes visible in the trainee's activity feed.
@@ -3601,6 +3621,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
     // Stay in the editor after Save (Ohad) — refresh the program index in the
     // background, but do NOT unmount the editor. BACK is the explicit leave.
     await reloadIndex();
+    return true;
   };
 
   // Consume a pending task→plan handoff (set by clicking "→ NEW PROGRAM"
@@ -3936,6 +3957,14 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
       return ids.every(id => !covered.has(id));
     });
     for (const t of orphans) {
+      // Couples: plans MUST reference a member id (tr_x__0 / tr_x__1). Passing
+      // the bare parent id into handleNewPlan stamped the plan onto nobody's
+      // member row — portal visibility keys, member plan lists and weekly-focus
+      // keys all miss it (audit 08-22 #39; the couples contract exists for
+      // exactly this). Carry the members so the CTA can offer one per person.
+      const coupleMembers = (t.members && t.members.length === 2)
+        ? t.members.map((m, i) => ({ id: t.id + '__' + i, name: m.name || ('Member ' + (i + 1)) }))
+        : null;
       rows.push({
         tid: t.id,
         name: t.name || t.id,
@@ -3944,6 +3973,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
         daysSince: null,
         totalCount: 0,
         orphan: true,
+        coupleMembers,
       });
     }
     // Sort athletes by the active sortField/sortDir from the SORT bar so
@@ -4181,7 +4211,11 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                     <div style={{fontWeight:700,fontSize:15,color:C.tx,whiteSpace:'nowrap',letterSpacing:'0.01em',flexShrink:0}}><bdi>{row.name}</bdi></div>
                     <div style={{fontSize:11,color:C.or,fontFamily:FN,letterSpacing:'0.18em',textTransform:'uppercase',fontWeight:700}}>NO PROGRAM ASSIGNED</div>
                   </div>
-                  <button onClick={()=>handleNewPlan(row.tid)} style={{background:'var(--c-sf)',border:`1px solid ${C.or}`,borderRadius:0,color:C.or,cursor:'pointer',padding:'3px 10px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',whiteSpace:'nowrap'}}>+ ASSIGN PROGRAM</button>
+                  {row.coupleMembers
+                    ? row.coupleMembers.map(m => (
+                      <button key={m.id} onClick={()=>handleNewPlan(m.id)} style={{background:'var(--c-sf)',border:`1px solid ${C.or}`,borderRadius:0,color:C.or,cursor:'pointer',padding:'3px 10px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',whiteSpace:'nowrap',marginInlineEnd:6}}>+ {String(m.name).toUpperCase()}</button>
+                    ))
+                    : <button onClick={()=>handleNewPlan(row.tid)} style={{background:'var(--c-sf)',border:`1px solid ${C.or}`,borderRadius:0,color:C.or,cursor:'pointer',padding:'3px 10px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',whiteSpace:'nowrap'}}>+ ASSIGN PROGRAM</button>}
                 </div>
               );
             }
@@ -4318,7 +4352,11 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                   <div style={{display:'flex',alignItems:'center',gap:9,minWidth:0}}><BhbcBadge tid={row.tid} trainees={trainees} /><div style={{fontWeight:700,fontSize:16,color:C.tx,letterSpacing:'0.01em'}}><bdi>{row.name}</bdi></div></div>
                   <div style={{fontSize:11,color:C.or,fontFamily:FN,letterSpacing:'0.18em',textTransform:'uppercase',fontWeight:700}}>No program assigned</div>
                   <div style={{flex:1}} />
-                  <button onClick={()=>handleNewPlan(row.tid)} style={{alignSelf:'flex-start',background:'var(--c-sf)',border:`1px solid ${C.or}`,borderRadius:0,color:C.or,cursor:'pointer',padding:'5px 12px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',whiteSpace:'nowrap'}}>+ ASSIGN PROGRAM</button>
+                  {row.coupleMembers
+                    ? <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>{row.coupleMembers.map(m => (
+                        <button key={m.id} onClick={()=>handleNewPlan(m.id)} style={{background:'var(--c-sf)',border:`1px solid ${C.or}`,borderRadius:0,color:C.or,cursor:'pointer',padding:'5px 12px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',whiteSpace:'nowrap'}}>+ {String(m.name).toUpperCase()}</button>
+                      ))}</div>
+                    : <button onClick={()=>handleNewPlan(row.tid)} style={{alignSelf:'flex-start',background:'var(--c-sf)',border:`1px solid ${C.or}`,borderRadius:0,color:C.or,cursor:'pointer',padding:'5px 12px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',whiteSpace:'nowrap'}}>+ ASSIGN PROGRAM</button>}
                 </div>
               );
             }

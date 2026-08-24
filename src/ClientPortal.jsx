@@ -157,7 +157,14 @@ function trainerPlanToPortal(plan, exById, exByTitle) {
     // corrupt entry degrades gracefully instead of crashing every tab.
     warmup: Array.isArray(plan.warmup) ? plan.warmup.filter(Boolean) : [],
     days: (Array.isArray(plan.days) ? plan.days : []).filter(Boolean).map(d => {
-      const rawList = (Array.isArray(d.exercises) ? d.exercises : (Array.isArray(d.ex) ? d.ex : [])).filter(Boolean);
+      // Same hybrid-day rule as WeeklyFocusTool/normalizeDays: an empty
+      // d.exercises must not shadow a populated compact d.ex, or the athlete
+      // sees an empty day the coach sees full (audit 08-22 #53).
+      const trainerArr = Array.isArray(d.exercises) ? d.exercises : null;
+      const compactArr = Array.isArray(d.ex) ? d.ex : null;
+      const rawList = ((trainerArr && trainerArr.length) ? trainerArr
+        : (compactArr && compactArr.length) ? compactArr
+        : (trainerArr || compactArr || [])).filter(Boolean);
       const seenEid = new Map();   // #51: disambiguate the same exercise appearing twice in one day
       return {
         name: d.name,

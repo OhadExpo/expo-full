@@ -12,6 +12,7 @@ import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
 import { isRefined5b, useEscClose, useIsMobile, toast, ConfirmDialog } from './ui';
 import { EVAL_SCHEMA, romKey } from './evaluationSchema';
+import { todayLocalISO } from './dates';
 import { toolForTest, romAxisSpec, applyTestResult, applyRomResult, testValueDisplay } from './evalTestMap';
 
 // Camera tools pull MediaPipe/three — lazy so opening an eval doesn't carry them
@@ -352,7 +353,7 @@ const nowHHMM = () => { const d = new Date(); return `${String(d.getHours()).pad
 
 export default function EvaluationEditor({ trainee, existing, metaDefaults = null, onSave, onClose }) {
   const isMobile = useIsMobile();
-  const [evalDate, setEvalDate] = useState(existing?.eval_date || new Date().toISOString().slice(0, 10));
+  const [evalDate, setEvalDate] = useState(existing?.eval_date || todayLocalISO());
   // A NEW eval defaults TIME to now; editing keeps whatever was saved (even blank).
   const [evalTime, setEvalTime] = useState(existing ? (existing.eval_time || '') : nowHHMM());
   // Metadata defaults for a NEW eval, resolved by the parent from intake DOB→age /

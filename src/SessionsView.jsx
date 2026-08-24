@@ -163,7 +163,9 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
     const out = {};
     for (const [pid, days] of Object.entries(planDays)) {
       for (const d of (days || [])) {
-        for (const ex of (d.exercises || d.ex || [])) {
+        // Same guard as above — a null entry here white-screened the whole
+        // live session floor, including on RESUME (audit 08-22 #42).
+        for (const ex of (d.exercises || d.ex || []).filter(Boolean)) {
           const eid = ex.exerciseId || ex.eid || '';
           if (!eid) continue;
           const lib = exById.get(eid);
@@ -377,7 +379,11 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
       const day = days[p.dayIdx] || {};
       const week = Number(p.week) || 1;
       const wi = week - 1; // 0-indexed into per-week arrays
-      const exList = (day.exercises || day.ex || []).map((ex) => {
+      // .filter(Boolean): a null exercise element (corrupt Drive import,
+      // half-deleted editor row, offline partial) threw inside this async
+      // callback and Add silently did nothing. The athlete portal already
+      // filters the same data for the same reason (audit 08-22 #42).
+      const exList = (day.exercises || day.ex || []).filter(Boolean).map((ex) => {
         const eid = ex.exerciseId || ex.eid || '';
         const lib = exById.get(eid);
         const title = ex.title || lib?.title || lib?.t || '?';

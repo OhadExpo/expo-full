@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { fmtPrettyDate } from './dates';
+import { fmtPrettyDate, todayLocalISO } from './dates';
 import { C, FN, FB, uid, TRAINING_FORMATS, TRAINEE_STATUSES, PACKAGE_TYPES } from './theme';
 import { Btn, Input, Select, TextArea, Badge, Card, Modal, ConfirmDialog, EmptyState, EmailsInput, baseInput, isRefined5b, useEscClose, toast } from './ui';
 import { emailsToArr, emailsToStore, subMemberId, traineeIdsFor } from './traineeUtils';
@@ -354,7 +354,7 @@ const getMemberPlanCounts = (t, planCounts) => {
 const defaultTrainee = () => ({
   id: uid(), name: "", email: "", phone: "", age: "", weight: "", height: "",
   injuries: "", goals: "", format: "In-Person Private", status: "Active",
-  package: "8 Sessions", sessionsRemaining: 8, startDate: new Date().toISOString().slice(0,10),
+  package: "8 Sessions", sessionsRemaining: 8, startDate: todayLocalISO(),
   notes: "", packagePrice: "",
 });
 
@@ -469,7 +469,9 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
     if (formatFilter === 'Online') return t.format === 'Online Client';
     if (formatFilter === 'Gym · Single') return t.format === 'Gym, Single';
     if (formatFilter === 'Gym · Couple') return t.format === 'Gym, Couple';
-    if (formatFilter === 'Bnei Herzliya') return t.format === 'Bnei Herzliya' || t.branch === 'Bnei Herzliya';
+    // Accept the team marker too — players added inside the /bhbc zone carry
+    // only `team` and were missing from this filter and its count (audit #46).
+    if (formatFilter === 'Bnei Herzliya') return t.format === 'Bnei Herzliya' || t.branch === 'Bnei Herzliya' || t.team === 'BHBC';
     return true;
   };
   // Alert-flag predicates. Payment due = billable + overdue/never-paid.
@@ -498,7 +500,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
     Online: statusScoped.filter(t => t.format === 'Online Client').length,
     'Gym · Single': statusScoped.filter(t => t.format === 'Gym, Single').length,
     'Gym · Couple': statusScoped.filter(t => t.format === 'Gym, Couple').length,
-    'Bnei Herzliya': statusScoped.filter(t => t.format === 'Bnei Herzliya' || t.branch === 'Bnei Herzliya').length,
+    'Bnei Herzliya': statusScoped.filter(t => t.format === 'Bnei Herzliya' || t.branch === 'Bnei Herzliya' || t.team === 'BHBC').length,
   };
   // Flag counts over the status+format-scoped pool (each flag independent of
   // the others), so a count reflects what turning that one flag on would show.
@@ -599,6 +601,8 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
     // "Club athlete — no billing" (audit 08-22). Strip the values, don't just
     // hide the inputs — and clear them when converting an existing client too.
     if (toSave.format === 'Bnei Herzliya') {
+      // Keep the two membership markers in lockstep (audit #46).
+      toSave.team = 'BHBC';
       toSave.package = '';
       toSave.sessionsRemaining = null;
       toSave.packagePrice = '';
@@ -703,6 +707,10 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                 {[['Online Athlete','Online Client'],['Gym, Single','Gym, Single'],['Gym, Couple','Gym, Couple'],['Bnei Herzliya','Bnei Herzliya']].map(([label,format])=>(
                   <button key={format} onClick={()=>{
                     const f = {...defaultTrainee(), format};
+                    // A Bnei Herzliya athlete IS a BHBC squad member: stamp the
+                    // team marker the /bhbc zone and the club-coach roster sync
+                    // key on, or the player never reaches either (audit #46).
+                    if (format === 'Bnei Herzliya') f.team = 'BHBC';
                     if(format==='Gym, Couple') f._members=[{name:'',email:'',phone:'',age:'',weight:'',height:'',injuries:'',goals:'',notes:'',_emails:['']},{name:'',email:'',phone:'',age:'',weight:'',height:'',injuries:'',goals:'',notes:'',_emails:['']}];
                     setForm(f); setEditId(null); setShowForm(true); setAddMenuOpen(false);
                   }} style={{display:'block',width:'100%',padding:'10px 16px',background:'transparent',border:'none',borderBottom:`1px solid ${C.bd}`,color:C.tx,fontFamily:FB,fontSize:13,fontWeight:500,cursor:'pointer',textAlign:'left'}}

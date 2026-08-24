@@ -319,7 +319,13 @@ function DemoEmbed({ t }) {
             <div style={{ fontSize: 9, color: C.td, letterSpacing: '0.18em' }}>{t('demo.embed.modelfoot')}</div>
           </div>
         )}
-        <iframe src="/demo/athlete?embed=1" title="EXPO live engine"
+        {/* The engine, not the portal. This section's own copy is "Upload a
+            clip. Watch the engine work." + a "POSE MODEL · ~6MB" spinner, but
+            the frame had been re-pointed at /demo/athlete, where ClientPortal
+            hard-blocks uploads in demoMode — the page's central live-proof
+            claim had no upload surface anywhere in it (audit 08-22 #32).
+            /try?embed=1 IS the own-clip engine and hides its own chrome. */}
+        <iframe src="/try?embed=1" title="EXPO live engine"
           onLoad={() => setLoaded(true)}
           style={{
             display: 'block', width: '100%', border: 'none', position: 'relative', zIndex: 1,

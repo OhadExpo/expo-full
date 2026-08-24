@@ -83,7 +83,7 @@ export function buildSeries(frames, { hand = 'R', aspect = 9 / 16 } = {}) {
     tMs,
     knee: [], kneeOther: [], hip: [], elbow: [], shoulder: [], trunk: [],
     forearm: [], armElev: [], elbowAboveSho: [], wristEye: [], wristElbowX: [], hipY: [], wristY: [], ankleY: [], eyeY: [], headY: [],
-    torso: [], ruler: [], armAboveHead: [], visOk: [], feetOk: [],
+    torso: [], ruler: [], armAboveHead: [], visOk: [], visArm: [], visLegs: [], feetOk: [],
   };
   for (let k = 0; k < n; k++) {
     const f = frames[k];
@@ -140,7 +140,16 @@ export function buildSeries(frames, { hand = 'R', aspect = 9 / 16 } = {}) {
     s.feetOk.push(feetOk);
     // Full-body ruler (eye → ankle) — only trustworthy when the feet are seen.
     s.ruler.push(feetOk && eye && ank ? (ank.y - eye.y) : null);
-    s.visOk.push(!!(el && wr && vis(el) && vis(wr) && P(S.KNE) && vis(P(S.KNE)) && P(S.HIP) && vis(P(S.HIP))));
+    // Tracked ARM (what the release/set checkpoints read) and tracked LEGS
+    // (what the dip reads) are separate facts. The far-side arm of a shooter
+    // filmed from behind scores low visibility even when MediaPipe places it
+    // correctly, so the arm gate runs at a lower bar than the leg gate and the
+    // report carries the coverage number that says how sure to be.
+    const okArm = !!(el && wr && vis(el, 0.12) && vis(wr, 0.12));
+    const okLegs = !!(P(S.KNE) && vis(P(S.KNE)) && P(S.HIP) && vis(P(S.HIP)));
+    s.visArm.push(okArm);
+    s.visLegs.push(okLegs);
+    s.visOk.push(!!(el && wr && vis(el) && vis(wr)) && okLegs);
   }
   const sm = {};
   for (const k of ['knee', 'kneeOther', 'hip', 'elbow', 'shoulder', 'armElev', 'elbowAboveSho', 'trunk', 'forearm', 'wristEye', 'wristElbowX', 'hipY', 'wristY', 'ankleY', 'eyeY', 'headY', 'torso', 'ruler']) sm[k] = smooth(s[k]);
@@ -165,7 +174,13 @@ export function detectShots(series, fps, opts = {}) {
   // (or a set shot with almost no knee bend) reads lower on every angle and
   // used to be rejected outright with "no shot detected" (audit 08-24).
   const G = {
-    armElev: opts.minArmElev ?? 95,
+    // 70, not 95: filmed from behind/side the shooting arm is foreshortened,
+    // so a genuine release reads 70-90 degrees in the image plane. The gate that
+    // actually separates a shot from a rebound here is the combination that
+    // still holds -- wrist above the head + elbow extended + a dip -- and a
+    // sweep on the 11-shot clip returns exactly 11 anywhere from 88 down to 60,
+    // so 70 sits in the middle of the plateau rather than on its edge (08-24).
+    armElev: opts.minArmElev ?? 70,
     elbow: opts.minElbow ?? 110,
     knee: opts.maxDipKnee ?? 165,
     dipWindowMs: opts.dipWindowMs ?? 1400,
@@ -180,12 +195,35 @@ export function detectShots(series, fps, opts = {}) {
   // one five-second run, and the release then lands on an arbitrary frame.)
   const torsoRef = median(sm.torso) || 0.15;
   const peaks = findPeaks(sm.wristY, torsoRef * 0.35, Math.max(2, Math.round(fps * 0.5)));
+  // Only a frame with the arm RAISED can be the release. Measured on an
+  // 11-shot night-court clip: without this mask five real shots were rejected
+  // as "arm not overhead (6–44°)" because argmax(elbow) had locked onto a
+  // straight arm hanging at the hip inside the same 500 ms window (08-24).
+  const ARM_UP_FLOOR = 55;
+  const elbowUp = sm.elbow.map((v, k) => (isReal(v) && isReal(sm.armElev[k]) && sm.armElev[k] >= ARM_UP_FLOOR ? v : null));
   const searchRuns = peaks.map((p) => {
     // Search window around each peak: enough for the whole attempt.
     const a = idxAtTime(tMs, tMs[p.idx] - 250);
     const b = idxAtTime(tMs, tMs[p.idx] + 250);
     return [a, b];
   });
+
+  // Gates read the BEST frame in a short neighbourhood, not the one frame the
+  // capture happened to land on. Pose tracking on a distant, night-lit subject
+  // drops or smears individual frames, and gating on a single sampled frame
+  // made the shot count flip between 10 and 11 on repeat runs of the SAME clip
+  // — one noisy frame could veto a real shot. Thresholds are unchanged; only
+  // the frame they are read from is now robust (08-24).
+  const bestNear = (sig, i, ms) => {
+    const a = idxAtTime(tMs, tMs[i] - ms), b = idxAtTime(tMs, tMs[i] + ms);
+    const j = argmax(sig, a, b);
+    return j >= 0 ? sig[j] : null;
+  };
+  const anyNear = (flags, i, ms) => {
+    const a = idxAtTime(tMs, tMs[i] - ms), b = idxAtTime(tMs, tMs[i] + ms);
+    for (let k = Math.max(0, a); k <= Math.min(flags.length - 1, b); k++) if (flags[k]) return true;
+    return false;
+  };
 
   // First frame in [from,to] that reaches within `tol` of `peak` — the arm holds
   // its extension through the follow-through, so the LAST frame of that plateau
@@ -202,8 +240,8 @@ export function detectShots(series, fps, opts = {}) {
     if (wPeakIdx < 0) continue;
     const wPeak = firstNear(sm.wristY, a, b, sm.wristY[wPeakIdx], Math.max(0.004, Math.abs(sm.wristY[wPeakIdx]) * 0.01));
     const eSearchFrom = Math.max(a, wPeak - Math.round(fps * 0.45)), eSearchTo = Math.min(b, wPeak + Math.round(fps * 0.35));
-    const eMaxIdx = argmax(sm.elbow, eSearchFrom, eSearchTo);
-    let release = eMaxIdx >= 0 ? firstNear(sm.elbow, eSearchFrom, eSearchTo, sm.elbow[eMaxIdx], 6) : wPeak;
+    const eMaxIdx = argmax(elbowUp, eSearchFrom, eSearchTo);
+    let release = eMaxIdx >= 0 ? firstNear(elbowUp, eSearchFrom, eSearchTo, elbowUp[eMaxIdx], 6) : wPeak;
     if (release < 0) release = wPeak;
     if (!isReal(sm.elbow[release]) || sm.elbow[release] < 110) release = wPeak;
     // Gates — every one of these is true of a shot and false of a dribble, a
@@ -211,16 +249,23 @@ export function detectShots(series, fps, opts = {}) {
     // Thresholds calibrated against real release frames (elbow above the
     // shoulder, arm extending). A distant subject reads lower on both angles
     // than a studio capture would, so the bar is where actual shots sit.
-    if (!isReal(sm.armElev[release]) || sm.armElev[release] < G.armElev) { note(tMs[release], 'arm not overhead (' + Math.round(sm.armElev[release] || 0) + '° image-plane)'); continue; }
-    if (!isReal(sm.elbow[release]) || sm.elbow[release] < G.elbow) { note(tMs[release], 'elbow not extended (' + Math.round(sm.elbow[release] || 0) + '°)'); continue; }
-    if (G.requireAboveHead && !raw.armAboveHead[release]) { note(tMs[release], 'hand not above head'); continue; }
+    const armElevNear = bestNear(sm.armElev, release, 150);
+    if (!isReal(armElevNear) || armElevNear < G.armElev) { note(tMs[release], 'arm not overhead (' + Math.round(armElevNear || 0) + '° image-plane)'); continue; }
+    const elbowNear = bestNear(sm.elbow, release, 150);
+    if (!isReal(elbowNear) || elbowNear < G.elbow) { note(tMs[release], 'elbow not extended (' + Math.round(elbowNear || 0) + '°)'); continue; }
+    if (G.requireAboveHead && !anyNear(raw.armAboveHead, release, 200)) { note(tMs[release], 'hand not above head'); continue; }
 
     const dipFrom = idxAtTime(tMs, tMs[release] - G.dipWindowMs);
     const dip = argmin(sm.knee, dipFrom, Math.max(dipFrom, release - 1));
     if (dip < 0 || !isReal(sm.knee[dip]) || sm.knee[dip] > G.knee) { note(tMs[release], 'no dip (' + Math.round(sm.knee[dip] || 0) + '°)'); continue; }
 
-    let set = dip, best = Infinity;
-    for (let k = dip; k < release; k++) { const e = sm.elbow[k]; if (isReal(e) && Math.abs(e - 90) < best) { best = Math.abs(e - 90); set = k; } }
+    // Set point = elbow closest to the 90° L-shape, chosen among TRACKED
+    // frames only — picking an untracked one threw the whole shot away on the
+    // key-frame gate below (three real shots on the 08-24 clip).
+    let set = -1, best = Infinity;
+    for (let k = dip; k < release; k++) { const e = sm.elbow[k]; if (isReal(e) && raw.visArm[k] && Math.abs(e - 90) < best) { best = Math.abs(e - 90); set = k; } }
+    if (set < 0) { for (let k = dip; k < release; k++) { const e = sm.elbow[k]; if (isReal(e) && Math.abs(e - 90) < best) { best = Math.abs(e - 90); set = k; } } }
+    if (set < 0) set = dip;
 
     const apFrom = idxAtTime(tMs, tMs[release] - 700), apTo = idxAtTime(tMs, tMs[release] + 700);
     const apex = argmax(sm.hipY, apFrom, apTo);
@@ -242,8 +287,14 @@ export function detectShots(series, fps, opts = {}) {
     let seen = 0, tot = 0;
     for (let k = dip; k <= ftEnd; k++) { tot++; if (raw.visOk[k]) seen++; }
     const coverage = tot ? seen / tot : 0;
-    // The three frames the scorecard actually reads must each be tracked.
-    if (!(raw.visOk[dip] && raw.visOk[set] && raw.visOk[release])) { note(tMs[release], 'key frame untracked'); continue; }
+    // The three frames the scorecard actually reads must each be tracked — but
+    // each for what it MEASURES: the arm at the set and the release, the legs
+    // at the dip. (Requiring all four joints at all three frames rejected every
+    // real shot in a clip filmed from behind — measured 08-24.)
+    if (!(anyNear(raw.visArm, release, 120) && anyNear(raw.visArm, set, 120) && (anyNear(raw.visLegs, dip, 120) || anyNear(raw.visArm, dip, 120)))) {
+      note(tMs[release], 'key frame untracked (arm rel=' + (raw.visArm[release] ? 1 : 0) + ' set=' + (raw.visArm[set] ? 1 : 0) + ' legs dip=' + (raw.visLegs[dip] ? 1 : 0) + ')');
+      continue;
+    }
     note(tMs[release], 'candidate cov=' + coverage.toFixed(2));
     cands.push({ stance, dip, set, release, apex, followEnd: ftEnd, landing, baseHip, coverage });
   }
@@ -484,7 +535,7 @@ export function analyzeShotClip(frames, { hand = 'R', statureCm = null, shotType
   if (!cycles.length) {
     const why2 = [];
     cycles = detectShots(series, fps, {
-      debug: why2, minArmElev: 70, minElbow: 92, maxDipKnee: 173, dipWindowMs: 2400, requireAboveHead: false,
+      debug: why2, minArmElev: 50, minElbow: 92, maxDipKnee: 173, dipWindowMs: 2400, requireAboveHead: false,
     });
     if (cycles.length) relaxed = true; else strictWhy.push(...why2);
   }

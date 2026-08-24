@@ -23,7 +23,16 @@ const isHeb = (s) => /[֐-׿]/.test(s || '');
 // nameRaw MUST be the bare d.name the portal keys on (line 79 there) — not a
 // d.n fallback — or the focus key diverges and the athlete never sees it.
 function resolveDay(d, idx, exById, exByTitle) {
-  const rawList = Array.isArray(d.exercises) ? d.exercises : (Array.isArray(d.ex) ? d.ex : []);
+  // Prefer whichever array actually HAS exercises — normalizeDays documents the
+  // hybrid state (exercises: [] alongside a populated compact ex: []) as real,
+  // and taking d.exercises purely because it exists rendered a fully populated
+  // day as "No exercises" here while the editor showed its content
+  // (audit 08-22 #53). ClientPortal carries the identical rule.
+  const trainerArr = Array.isArray(d.exercises) ? d.exercises : null;
+  const compactArr = Array.isArray(d.ex) ? d.ex : null;
+  const rawList = (trainerArr && trainerArr.length) ? trainerArr
+    : (compactArr && compactArr.length) ? compactArr
+    : (trainerArr || compactArr || []);
   return {
     nameRaw: d.name,                                   // exact key component (may be undefined)
     label: d.name || d.n || `Day ${idx + 1}`,          // readable UI label only

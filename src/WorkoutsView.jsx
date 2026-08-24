@@ -8,6 +8,7 @@ import { C, FN, FB, FH, uid } from './theme';
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
 import { Btn, TextArea, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b, CollapsibleSection } from './ui';
 import { supabase } from './supabase';
+import { traineeIdsFor } from './traineeUtils';
 
 // Inline exercise video — IDENTICAL rules to the group session (Ohad: "just play
 // and pause, no clicking on the youtube video at all"). Plays in place, never
@@ -149,7 +150,13 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
     const videoUrl = ex.videoUrl ?? ex.vid ?? exData?.videoLink ?? '';
     const prevSets = prevWeek.get(ex.exerciseId) || prevWeek.get(prevTitleKey(ex.title));   // previous-week set array (or undefined) — id, then title (portal eids differ)
     const prevWeekNum = (Number(workout.week) || 1) - 1;
-    const cue = ex.q || exData?.cues || ex.notes;
+    // Plan note FIRST. ex.q never exists on this view's workout exercises
+    // (startWorkout produces `notes`), so the old order resolved the generic
+    // library cue ahead of the athlete-specific instruction the coach wrote —
+    // and a note the coach deliberately cleared came back as the library cue.
+    // SessionsView and the athlete portal both give the plan note precedence
+    // (audit 08-22 #55).
+    const cue = ex.notes || ex.q || exData?.cues || '';
     const doneCount = ex.sets.filter(s => s.completed).length;
     // Collapsed = a one-line summary the coach can tap to reopen. Skipped when
     // groupControlled — a superset's single header drives both members, so each
@@ -360,7 +367,7 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
     // (eid/s/r) instead of day.exercises (id/exerciseId/sets/reps). Without
     // this fallback the in-person log crashes on old-shape plans — 174 of the
     // 209 production plans use the old shape. Mirror useFullPlan's normalize.
-    const dayExercises = Array.isArray(day.exercises) ? day.exercises : (Array.isArray(day.ex) ? day.ex.map(e => ({
+    const dayExercises = Array.isArray(day.exercises) ? day.exercises.filter(Boolean) : (Array.isArray(day.ex) ? day.ex.filter(Boolean).map(e => ({
       id: e.id || uid(),
       exerciseId: e.exerciseId || e.eid || '',
       sets: e.sets ?? e.s ?? 3,
@@ -368,6 +375,10 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
       tempo: e.tempo ?? '',
       superset: e.superset ?? '',
       notes: e.notes ?? e.n ?? '',
+      // Per-week prescriptions must survive the compact-shape normalise, or the
+      // logger silently falls back to the base placeholder (audit 08-22 #17).
+      wk: e.wk,
+      wkS: e.wkS,
     })) : []);
     // Week comes from the picker (chosen before entering the logger). Fall back
     // to the athlete's next un-logged week for this plan+day if none passed.
@@ -382,7 +393,18 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
     week = Math.min(planWeeks, Math.max(1, week));
     const w = {id:uid(),planId:fullPlan.id,traineeId:fullPlan.trainee_id,dayName:day.name,planName:fullPlan.name,
       date:new Date().toISOString(),status:"in-progress", week, planWeeks,
-      exercises:dayExercises.map(ex=>({...ex,id:uid(),sets:Array.from({length:Number(ex.sets)||3},(_,i)=>({setNum:i+1,reps:"",load:"",rpe:"",completed:false}))})),
+      // Plans that vary reps/sets per week store ex.wk / ex.wkS — read the
+      // CHOSEN week, exactly as SessionsView and the athlete portal already do.
+      // Using the base values here showed the placeholder reps ("3x>"),
+      // allocated the wrong number of set rows, wrote the wrong prescribed
+      // string into the athlete's permanent history, and desynced the
+      // index-matched live set-sync (audit 08-22 #17).
+      exercises:dayExercises.map(ex=>{
+        const wi = week - 1;
+        const reps = (Array.isArray(ex.wk) && ex.wk[wi] != null && ex.wk[wi] !== '') ? ex.wk[wi] : (ex.reps ?? '');
+        const setCount = Math.max(1, Number((Array.isArray(ex.wkS) && ex.wkS[wi] != null) ? ex.wkS[wi] : ex.sets) || 3);
+        return {...ex,id:uid(),reps,sets:Array.from({length:setCount},(_,i)=>({setNum:i+1,reps:"",load:"",rpe:"",completed:false}))};
+      }),
       notes:""};
     setActive(w);
   };
@@ -484,9 +506,16 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
       } });
     } catch { /* channel not ready */ }
   };
+  // Double-tap guard. Nothing blocked a second call before setActive(null)
+  // committed, so a laggy phone minted TWO client_workouts rows and dropped the
+  // athlete's paid balance by 2 for one session. Both sibling surfaces already
+  // guard exactly this (ClientPortal submittingRef, SessionsView finishingRef)
+  // — this one didn't (audit 08-22 #56).
+  const completingRef = useRef(false);
   const completeWorkout = () => {
     const w = active;
-    if (!w) return;
+    if (!w || completingRef.current) return;
+    completingRef.current = true;
     const finishedAt = new Date().toISOString();
     if (w.traineeId) onDecrementSession(w.traineeId);
     // FULL PORTAL INTEGRATION: write a client_workouts row so the in-person
@@ -509,6 +538,9 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
       setClientWorkouts(prev => [...prev, row]);
     }
     setActive(null);
+    // Released on the next tick — by then `active` is null, so the `!w` check
+    // carries the guard from here on.
+    setTimeout(() => { completingRef.current = false; }, 0);
   };
   // Filter the plan picker. Without this, the picker dumps all 209
   // production plans into one scroll. Active-only by default and a
@@ -519,8 +551,11 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
   // requires identical hook order each render. Crash repro before this
   // ordering fix was React #300 ("rendered more hooks than during the
   // previous render") when activeWorkout toggled between renders.
+  // Couples: one row, plans on the MEMBER ids — expand so their blocks are
+  // visible here too (audit 08-22 #54). memberOwner maps a member id back to
+  // the row it belongs to, so grouping and the name lookup still work.
   const activeTraineeIds = useMemo(
-    () => new Set((trainees || []).filter(t => t.status !== 'Archived').map(t => t.id)),
+    () => new Set((trainees || []).filter(t => t.status !== 'Archived').flatMap(t => traineeIdsFor(t.id))),
     [trainees]
   );
   const visiblePlans = useMemo(
@@ -545,8 +580,11 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
   const plansByTrainee = useMemo(() => {
     const m = new Map();
     for (const p of visiblePlans) {
-      if (!m.has(p.traineeId)) m.set(p.traineeId, []);
-      m.get(p.traineeId).push(p);
+      // Group a member's plans under their PARENT row so the picker shows one
+      // card per athlete/couple and the name lookup resolves (audit #54).
+      const key = String(p.traineeId || '').split('__')[0] || p.traineeId;
+      if (!m.has(key)) m.set(key, []);
+      m.get(key).push(p);
     }
     const lastLog = (tid, n) => { const ds = (clientWorkouts || []).filter(x => x.clientId === tid && x.planName === n).map(x => new Date(x.date || 0).getTime()).filter(Boolean); return ds.length ? Math.max(...ds) : 0; };
     const score = (p) => Math.max(lastLog(p.traineeId, p.name), new Date(p.createdAt || 0).getTime());
