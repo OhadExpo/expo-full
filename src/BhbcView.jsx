@@ -373,6 +373,35 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
     toast('Session plan saved'); notify();
   }, [setSessionPlans, notify]);
 
+  // ---- Week planner writes (Ohad 2026-08-24: "write what and when the entire
+  // team has an S&C session"). The zone could DISPLAY sessions but never create
+  // one, so planning still lived in the old sheet. Manual entries carry
+  // manual:true so a future calendar sync can tell them from imported ones.
+  const endOfSession = (start, minutes) => {
+    const m = /^(\d{1,2}):(\d{2})$/.exec(String(start || ''));
+    const mins = Number(minutes) || 0;
+    if (!m || !mins) return '';
+    const tot = Number(m[1]) * 60 + Number(m[2]) + mins;
+    return `${String(Math.floor((tot % 1440) / 60)).padStart(2, '0')}:${String(tot % 60).padStart(2, '0')}`;
+  };
+  const sameSlot = (a, b) => a && b && a.date === b.date && String(a.start || '') === String(b.start || '') && a.type === b.type;
+  const upsertFixture = useCallback((orig, next) => {
+    if (!setBhbcFixtures) return;
+    const clean = { date: next.date, type: next.type, start: next.start, minutes: Number(next.minutes) || 0, end: endOfSession(next.start, next.minutes), manual: true };
+    setBhbcFixtures((prev) => {
+      const list = [...(prev || [])];
+      const i = orig ? list.findIndex((f) => sameSlot(f, orig)) : -1;
+      if (i >= 0) list[i] = { ...list[i], ...clean }; else list.push(clean);
+      return list.sort((a, b) => `${a.date}${a.start || ''}`.localeCompare(`${b.date}${b.start || ''}`));
+    });
+    toast(orig ? 'Session updated' : 'Session added'); notify();
+  }, [setBhbcFixtures, notify]);
+  const removeFixture = useCallback((f) => {
+    if (!setBhbcFixtures) return;
+    setBhbcFixtures((prev) => (prev || []).filter((x) => !sameSlot(x, f)));
+    toast('Session removed'); notify();
+  }, [setBhbcFixtures, notify]);
+
   const saveInjury = useCallback(({ athleteId, injury }) => {
     if (!setMedical) return;
     setMedical((prev) => {
@@ -504,6 +533,9 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
             {view === 'schedule' && (
               <>
                 {fx.nextGame && <NextGamePanel nextGame={fx.nextGame} today={today} onEdit={asCoach ? null : () => setGameEdit(true)} />}
+                {/* Plan the week HERE (Ohad 08-24) — coaches see the board read-only. */}
+                <WeekPlanner fixtures={bhbcFixtures} today={today} planOf={planOf} onSavePlan={asCoach ? null : saveSessionPlan}
+                  onUpsert={asCoach ? null : upsertFixture} onRemove={asCoach ? null : removeFixture} />
                 <MicrocycleView fx={fx} today={today} />
                 <ScheduleTool fx={fx} fixtures={bhbcFixtures} today={today} mode={schedMode} setMode={setSchedMode} onLog={asCoach ? null : () => setLogFor('new')} />
               </>
@@ -1696,6 +1728,124 @@ function MicrocycleView({ fx, today }) {
     </Card>
   );
 }
+
+// WeekPlanner — the coach's planning board: WHAT the team does and WHEN, in one
+// Sun→Sat grid (Ohad 2026-08-24: "it's still not easy enough to plan the week…
+// like how it was in the original sheet"). Each day row lists its sessions and
+// takes an inline add/edit: type · time · minutes · focus. The focus line writes
+// through to the SAME per-session plan the Today panel and Head Coach Report
+// already read, so one entry feeds every surface.
+function WeekPlanner({ fixtures = [], today, planOf, onSavePlan, onUpsert, onRemove }) {
+  const isoOfDate = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const [anchor, setAnchor] = useState(today);
+  const [editing, setEditing] = useState(null); // { orig|null, date, type, start, minutes, focus }
+  const days = useMemo(() => {
+    const d = new Date(`${anchor}T12:00:00`);
+    d.setDate(d.getDate() - d.getDay()); // week starts Sunday (Israel)
+    return Array.from({ length: 7 }, (_, i) => { const x = new Date(d); x.setDate(d.getDate() + i); return isoOfDate(x); });
+  }, [anchor]);
+  const shiftWeek = (n) => { const d = new Date(`${anchor}T12:00:00`); d.setDate(d.getDate() + n * 7); setAnchor(isoOfDate(d)); };
+  const byDay = useMemo(() => {
+    const m = {};
+    for (const f of fixtures || []) { if (!days.includes(f.date)) continue; (m[f.date] = m[f.date] || []).push(f); }
+    for (const k of Object.keys(m)) m[k].sort((a, b) => String(a.start || '').localeCompare(String(b.start || '')));
+    return m;
+  }, [fixtures, days]);
+  const weekCount = days.reduce((a, d) => a + ((byDay[d] || []).length), 0);
+  const liftCount = days.reduce((a, d) => a + ((byDay[d] || []).filter((f) => f.type === 'lift').length), 0);
+
+  const startEdit = (date, f) => setEditing({
+    orig: f || null, date, type: (f && f.type) || 'lift',
+    start: (f && f.start) || '', minutes: (f && f.minutes) || (f && f.type === 'game' ? 90 : 60),
+    focus: (f && planOf && (planOf(f) || {}).focus) || '',
+  });
+  const commit = () => {
+    if (!editing || !editing.start) { toast('Set a start time'); return; }
+    onUpsert(editing.orig, editing);
+    if (onSavePlan) {
+      const prevPlan = (editing.orig && planOf && planOf(editing.orig)) || null;
+      onSavePlan({ date: editing.date, start: editing.start, focus: editing.focus, plan: (prevPlan && prevPlan.plan) || '' });
+    }
+    setEditing(null);
+  };
+
+  const lab = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm };
+  const inp = { fontFamily: FN, fontSize: 12, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '6px 8px', height: 30, boxSizing: 'border-box' };
+  const TYPES = [['lift', 'Weights'], ['practice', 'Practice'], ['game', 'Game']];
+
+  return (
+    <CollapsibleSection title="Week Planner" count={`${weekCount} sessions · ${liftCount} S&C`} storageKey="bhbc-week-planner" defaultOpen leftStripe={ORANGE}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+        <button onClick={() => shiftWeek(-1)} className="bhbc-ghost-btn" style={{ ...inp, cursor: 'pointer', fontWeight: 700 }}>‹</button>
+        <span style={{ fontFamily: FN, fontSize: 11.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tx }}>
+          {monDay(days[0])} – {monDay(days[6])}
+        </span>
+        <button onClick={() => shiftWeek(1)} className="bhbc-ghost-btn" style={{ ...inp, cursor: 'pointer', fontWeight: 700 }}>›</button>
+        <button onClick={() => setAnchor(today)} className="bhbc-ghost-btn" style={{ ...inp, cursor: 'pointer', fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase' }}>This week</button>
+        <span style={{ marginLeft: 'auto', fontFamily: FB, fontSize: 11.5, color: C.td }}>Write the session, then its focus — it shows on Today, the Head Coach Report and the practice log.</span>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        {days.map((d) => {
+          const list = byDay[d] || [];
+          const isToday = d === today;
+          return (
+            <div key={d} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '9px 0', borderTop: `0.25px solid ${C.cardBd}`, background: isToday ? 'color-mix(in srgb, var(--c-ac) 6%, transparent)' : 'transparent' }}>
+              <div style={{ width: 86, flexShrink: 0, paddingTop: 3 }}>
+                <div style={{ fontFamily: FN, fontSize: 11.5, fontWeight: 700, color: isToday ? ORANGE_DEEP : C.tx }}>{dow(d)}</div>
+                <div style={{ fontFamily: FN, fontSize: 10, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{monDay(d)}</div>
+              </div>
+              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 5 }}>
+                {list.length === 0 && (!editing || editing.date !== d) && (
+                  <span style={{ fontFamily: FB, fontSize: 11.5, color: C.td, fontStyle: 'italic' }}>No sessions</span>
+                )}
+                {list.map((f, i) => {
+                  const p = planOf ? planOf(f) : null;
+                  const isEditing = editing && editing.orig && sameSlotKey(editing.orig, f);
+                  if (isEditing) return null;
+                  return (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${FX_COLOR[f.type] || NAVY}`, background: 'var(--c-sf)', padding: '6px 9px' }}>
+                      <span style={{ fontFamily: FN, fontSize: 11.5, fontWeight: 700, color: FX_COLOR[f.type] || NAVY, fontVariantNumeric: 'tabular-nums' }}>{f.start}</span>
+                      <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm }}>{FX_LABEL[f.type] || 'Session'}</span>
+                      <span style={{ fontFamily: FN, fontSize: 11, color: C.td }}>{f.minutes ? `${f.minutes} min` : ''}</span>
+                      {p && p.focus ? <span style={{ fontFamily: FB, fontSize: 12, color: C.tx, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>· {p.focus}</span>
+                        : <span style={{ fontFamily: FB, fontSize: 11.5, color: C.td, fontStyle: 'italic' }}>· no focus yet</span>}
+                      {onUpsert && <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 4 }}>
+                        <button onClick={() => startEdit(d, f)} className="bhbc-ghost-btn" title="Edit session" style={{ fontFamily: FN, fontSize: 10, color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '2px 8px', cursor: 'pointer' }}>✎</button>
+                        <button onClick={() => onRemove(f)} className="bhbc-ghost-btn" title="Remove session" style={{ fontFamily: FN, fontSize: 10, color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '2px 8px', cursor: 'pointer' }}>✕</button>
+                      </span>}
+                    </div>
+                  );
+                })}
+                {editing && editing.date === d && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', border: `1px solid ${ORANGE}`, background: 'var(--c-sf)', padding: '8px 9px' }}>
+                    <div style={{ display: 'inline-flex', border: `1px solid ${C.cardBd}` }}>
+                      {TYPES.map(([k, l]) => (
+                        <button key={k} type="button" onClick={() => setEditing((e) => ({ ...e, type: k }))}
+                          style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: editing.type === k ? '#fff' : C.td, background: editing.type === k ? (FX_COLOR[k] || NAVY) : 'transparent', border: 'none', padding: '6px 10px', cursor: 'pointer' }}>{l}</button>
+                      ))}
+                    </div>
+                    <input type="time" value={editing.start} onChange={(e) => setEditing((x) => ({ ...x, start: e.target.value }))} style={{ ...inp, width: 108 }} />
+                    <input type="number" min="0" step="5" value={editing.minutes} onChange={(e) => setEditing((x) => ({ ...x, minutes: e.target.value }))} style={{ ...inp, width: 74 }} title="Minutes" />
+                    <input value={editing.focus} onChange={(e) => setEditing((x) => ({ ...x, focus: e.target.value }))} placeholder="Focus — e.g. Lower INT + landing mechanics" style={{ ...inp, flex: '1 1 220px', minWidth: 140, fontFamily: FB }} />
+                    <Btn onClick={commit} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>{editing.orig ? 'Save' : 'Add'}</Btn>
+                    <Btn variant="ghost" onClick={() => setEditing(null)}>Cancel</Btn>
+                  </div>
+                )}
+                {onUpsert && (!editing || editing.date !== d) && (
+                  <button onClick={() => startEdit(d, null)} className="bhbc-ghost-btn"
+                    style={{ alignSelf: 'flex-start', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `0.25px dashed ${C.cardBd}`, padding: '4px 10px', cursor: 'pointer' }}>+ Session</button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ ...lab, marginTop: 10 }}>S&C sessions are the “Weights” rows — they carry the team focus the whole squad trains that day.</div>
+    </CollapsibleSection>
+  );
+}
+const sameSlotKey = (a, b) => a && b && a.date === b.date && String(a.start || '') === String(b.start || '') && a.type === b.type;
 
 function ScheduleTool({ fx, fixtures, today, mode, setMode }) {
   const toggle = (
