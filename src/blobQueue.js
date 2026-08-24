@@ -28,6 +28,15 @@ import { enqueue as enqueueOp } from './offlineQueue';
 const DB_NAME = 'expo-blob-queue';
 const STORE = 'blobs';
 const MAX_ATTEMPTS = 5;
+// Waiting for the workout ROW to sync is not an upload failure — the bytes are
+// already in storage and the only thing missing is the row the URL attaches to.
+// Sharing the 5-attempt cap meant ~2.5 minutes (5 x the 30s drain) and then the
+// athlete's uploaded video was dead-lettered and shown as FAILED, even though
+// its workout is a `critical` offlineQueue entry that is never dropped and will
+// land as soon as the connection allows. A separate, much longer cap keeps the
+// safety valve for a workout that truly never syncs (app cleared, row deleted)
+// without discarding a good video during an ordinary flaky-connection window.
+const REF_WAIT_MAX_ATTEMPTS = 40;   // ~20 minutes at the 30s drain interval
 const DRAIN_INTERVAL_MS = 30000;
 
 const listeners = new Set();
@@ -372,7 +381,7 @@ export async function drainBlobs() {
         if (e?._transientRef) {
           cur.lastError = msg;
           cur.attempts = (cur.attempts || 0) + 1;
-          if (cur.attempts >= MAX_ATTEMPTS) {
+          if (cur.attempts >= REF_WAIT_MAX_ATTEMPTS) {
             await deleteEntry(cur.id);
             if (onErrorHook) { try { onErrorHook({ type: 'form_video.upload', payload: { storagePath: entry.storagePath, workoutId: entry.workoutId, exerciseIndex: entry.exerciseIndex }, msg: 'video uploaded but its workout never synced' }); } catch {} }
             try { window.dispatchEvent(new CustomEvent('expo-blob-failed', { detail: { blobId: entry.id, workoutId: entry.workoutId, exerciseIndex: entry.exerciseIndex, reason: 'orphan', msg } })); } catch {}
