@@ -218,6 +218,18 @@ function ClientPortalMock({ onPick }) {
       ],
     },
   ];
+  // Shaped like the real portal's meal log (a line of text or a photo per
+  // entry, stamped with when) and coach_messages thread.
+  const MEALS = [
+    { when: 'BREAKFAST', date: 'Today', what: '4 eggs, 2 toast, coffee' },
+    { when: 'LUNCH',     date: 'Today', what: 'Chicken breast, rice, salad' },
+    { when: 'POST-TRAIN', date: 'Yesterday', what: 'Shake + banana' },
+  ];
+  const MESSAGES = [
+    { from: 'coach', when: 'Mon', text: 'Bench felt fast on the last set — add 2.5kg next week.' },
+    { from: 'me',    when: 'Mon', text: 'Got it. Shoulder was quiet today.' },
+    { from: 'coach', when: 'Today', text: 'Good. Keep the pause at 1s and film set 3.' },
+  ];
   const PRS = [
     { name: 'Back Squat',          load: '105kg', date: '2026-04-26', delta: '+5kg / 8w' },
     { name: 'Bench Press',         load: '70kg',  date: '2026-04-22', delta: '+2.5kg / 8w' },
@@ -412,14 +424,22 @@ function ClientPortalMock({ onPick }) {
           </div>
         </div>
       </div>
-      <div style={{ padding: '14px 20px 0', display: 'flex', gap: 4 }}>
-        {[['prog', 'Program'], ['bwt', 'BW'], ['pr', 'PRs'], ['hist', `History (${HISTORY.length})`]].map(([k, l]) => (
+      {/* Six tabs at flex:1 keep min-width:auto, so their content forced the
+          whole portal 77px past a 390px phone. Wrap to two rows of three and
+          let each shrink. */}
+      <div style={{ padding: '14px 20px 0', display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+        {/* The REAL portal's nav is PROGRAM · BW · MEAL LOG · HISTORY · PRs ·
+            MESSAGES (ClientPortal.jsx NAV). This mirror still showed the old
+            four, so a /try visitor saw a portal shape that stopped existing when
+            the meal log and messages shipped (parity pass 08-25). */}
+        {[['prog', 'Program'], ['bwt', 'BW'], ['meal', 'Meal Log'], ['hist', `History (${HISTORY.length})`], ['pr', 'PRs'], ['msg', 'Messages']].map(([k, l]) => (
           <button key={k} onClick={() => setVw(k)} style={{
-            flex: 1, padding: 8, borderRadius: 0, boxSizing: 'border-box',
+            flex: '1 1 28%', minWidth: 0, padding: 8, borderRadius: 0, boxSizing: 'border-box',
             border: `${vw === k ? '2px' : '0.25px'} solid ${C.ac}${vw === k ? '' : '4D'}`,
             background: vw === k ? C.acD : 'transparent',
             color: vw === k ? C.ac : C.tm,
-            fontFamily: FB, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+            fontFamily: FB, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           }}>{l}</button>
         ))}
       </div>
@@ -494,6 +514,48 @@ function ClientPortalMock({ onPick }) {
   }
 
   // ─── PRs tab body ────────────────────────────────────────────
+  // ─── Meal log tab body — mirrors ClientPortal `vw === 'meal'` ───────
+  if (vw === 'meal') {
+    return (
+      <div style={{ background: C.bg, color: C.tx, minHeight: '100vh', fontFamily: FB, maxWidth: 500, margin: '0 auto' }}>
+        {renderTopHeader()}
+        <div style={{ padding: '14px 20px 20px' }}>
+          <h2 style={{ margin: '0 0 12px', fontFamily: FN, fontSize: 18 }}>Meal log</h2>
+          {MEALS.map((m, i) => (
+            <div key={i} style={{ background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '12px 14px', marginBottom: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                <div style={{ fontFamily: FN, fontSize: 10, letterSpacing: 1, color: C.ac, fontWeight: 700 }}>{m.when}</div>
+                <div style={{ fontFamily: FN, fontSize: 10, letterSpacing: 1, color: C.td }}>{m.date}</div>
+              </div>
+              <div style={{ fontFamily: FB, fontSize: 14, color: C.tx, marginTop: 4 }}>{m.what}</div>
+            </div>
+          ))}
+          <div style={{ fontFamily: FN, fontSize: 10, letterSpacing: 1, color: C.td, marginTop: 10 }}>PHOTO OR TEXT · THE COACH SEES IT WITH THE TRAINING</div>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Messages tab body — mirrors ClientPortal `vw === 'msg'` ────────
+  if (vw === 'msg') {
+    return (
+      <div style={{ background: C.bg, color: C.tx, minHeight: '100vh', fontFamily: FB, maxWidth: 500, margin: '0 auto' }}>
+        {renderTopHeader()}
+        <div style={{ padding: '14px 20px 20px' }}>
+          <h2 style={{ margin: '0 0 12px', fontFamily: FN, fontSize: 18 }}>Messages</h2>
+          {MESSAGES.map((m, i) => (
+            <div key={i} style={{ display: 'flex', justifyContent: m.from === 'coach' ? 'flex-start' : 'flex-end', marginBottom: 8 }}>
+              <div style={{ maxWidth: '80%', background: m.from === 'coach' ? C.acD : C.sf, border: `1px solid ${m.from === 'coach' ? C.ac + '4D' : C.cardBd}`, padding: '9px 12px' }}>
+                <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: 1, color: m.from === 'coach' ? C.ac : C.td, fontWeight: 700, marginBottom: 3 }}>{m.from === 'coach' ? 'OHAD' : 'YOU'} · {m.when}</div>
+                <div style={{ fontFamily: FB, fontSize: 13.5, color: C.tx, lineHeight: 1.45 }} dir="auto">{m.text}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   if (vw === 'pr') {
     return (
       <div style={{ background: C.bg, color: C.tx, minHeight: '100vh', fontFamily: FB, maxWidth: 500, margin: '0 auto' }}>

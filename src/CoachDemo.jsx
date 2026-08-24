@@ -3269,16 +3269,28 @@ const MOCK_WORKOUTS = [
   { who: 'נועה לוי',     day: 'Day B · Pull',    when: '1 week ago',    vol: '4,180 kg', topSet: 'BB Row · 50kg × 8' },
 ];
 
+// Mirrors the REAL coach nav (App.jsx: Dashboard › Athletes ▾ › Sessions ›
+// Review ▾ › Tasks › Billing). Programs and Exercises are NOT top-level in the
+// real app — they live under Athletes ▾ — so showing them as top-level tabs
+// here sold a nav shape the product does not have (parity pass 08-25). They now
+// appear in a sub-row, exactly like the Review ▾ WORKOUTS | TOOLS row already
+// did. Tabs the demo genuinely has no content for (Incoming, Challenges, BHBC,
+// Portal) stay out: a dead click is worse drift than a missing one.
 const TABS = [
   { key: 'dashboard', label: 'DASHBOARD', count: null },
   { key: 'trainees',  label: 'ATHLETES',  count: MOCK_TRAINEES.length },
-  { key: 'programs',  label: 'PROGRAMS',  count: MOCK_PROGRAM_INDEX.length },
-  { key: 'exercises', label: 'EXERCISES', count: MOCK_EXERCISES.length },
   { key: 'sessions',  label: 'SESSIONS',  count: null },
   { key: 'review',    label: 'REVIEW',    count: null },
   { key: 'tasks',     label: 'TASKS',     count: 8 },
   { key: 'billing',   label: 'BILLING',   count: null },
 ];
+// Athletes ▾ — the real app's grouping.
+const ATHLETE_SUBTABS = [
+  ['trainees',  'ROSTER'],
+  ['programs',  'PROGRAMS'],
+  ['exercises', 'EXERCISES'],
+];
+const ATHLETE_GROUP = ATHLETE_SUBTABS.map(([k]) => k);
 
 // Card style matches src/ui.jsx Card — 0.25px ac-dimmed border, 10px
 // radius, 18px padding. Used inline so the demo doesn't pull in the
@@ -3868,7 +3880,9 @@ function DemoBilling() {
 // Pull a tab key out of the URL path. Valid keys come from TABS; an unknown
 // or empty trailing segment falls back to dashboard so /demo/coach itself
 // renders the dashboard without forcing a redirect.
-const TAB_KEYS = TABS.map(t => t.key);
+// Deep links still resolve for the grouped sub-tabs even though they are no
+// longer top-level buttons.
+const TAB_KEYS = [...TABS.map(t => t.key), ...ATHLETE_GROUP];
 function tabFromPath(p) {
   const m = (p || '').match(/^\/demo\/coach\/([^/?#]+)/);
   if (!m) return 'dashboard';
@@ -4106,6 +4120,14 @@ export default function CoachDemo() {
         {tab === 'sessions'  && <DemoSessions />}
         {tab === 'tasks'     && <DemoTasks />}
         {tab === 'billing'   && <DemoBilling />}
+        {/* Athletes ▾ — ROSTER | PROGRAMS | EXERCISES, the real app's grouping. */}
+        {ATHLETE_GROUP.includes(tab) && (
+          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+            {ATHLETE_SUBTABS.map(([k, l]) => (
+              <button key={k} onClick={() => navigateToTab(k)} style={{ ...baseBtn, background: tab === k ? C.acD : 'transparent', color: tab === k ? C.ac : C.tm, border: `1px solid ${tab === k ? C.ac : C.bd}`, padding: '6px 18px', fontSize: 12, letterSpacing: 1.5 }}>{l}</button>
+            ))}
+          </div>
+        )}
         {/* Review ▾ — WORKOUTS (engine review) | TOOLS (camera/pose launcher). */}
         {tab === 'review' && (
           <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
