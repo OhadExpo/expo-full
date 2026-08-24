@@ -656,7 +656,7 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
                         <span style={{fontFamily:heb?FH:FB,fontSize:heb?16:14,fontWeight:600,color:C.tx,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{name}</span>
                         <span style={{fontFamily:FN,fontSize:11,color:C.tm,whiteSpace:'nowrap'}}>{latest.name}</span>
                       </span>
-                      <span style={{fontFamily:FN,fontSize:12,color:'#FFF',flexShrink:0,transform:open?'rotate(180deg)':'none',transition:'transform .15s'}}>▾</span>
+                      <span style={{fontFamily:FN,fontSize:12,color:'var(--c-tx)',flexShrink:0,transform:open?'rotate(180deg)':'none',transition:'transform .15s'}}>▾</span>
                     </button>
                     {open && (
                       <div style={{padding:'0 14px 14px'}}>

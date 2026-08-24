@@ -617,6 +617,8 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
         .bhbc-zone{ --c-tm:#6B727B; --c-td:#5F666F; }
         @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]):not([data-theme="5b"]) .bhbc-zone{ --c-tm:#AEB4BD; --c-td:#B6BCC5; } }
         :root[data-theme="dark"] .bhbc-zone{ --c-tm:#AEB4BD; --c-td:#B6BCC5; }
+        :root { --bhbc-ha-home: ${NAVY}; --bhbc-ha-away: ${ORANGE_DEEP}; }
+        :root[data-theme="dark"] { --bhbc-ha-home: #7FA9E8; --bhbc-ha-away: #F0955F; }
         .bhbc-row{transition:background 120ms}
         .bhbc-row:hover{background:color-mix(in srgb, ${NAVY} 6%, transparent)}
         .bhbc-card:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(6,16,37,0.14)}
@@ -1227,7 +1229,8 @@ function GameEditModal({ game, onClose, onSave }) {
 function HAChip({ home }) {
   if (home == null) return null;
   const isHome = home === true;
-  const c = isHome ? NAVY : ORANGE_DEEP;
+  // Theme-aware brand tone — the raw navy is unreadable on the dark page.
+  const c = isHome ? 'var(--bhbc-ha-home, ' + NAVY + ')' : 'var(--bhbc-ha-away, ' + ORANGE_DEEP + ')';
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: FN, fontSize: 10, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: c, background: `color-mix(in srgb, ${c} 12%, transparent)`, border: `1px solid color-mix(in srgb, ${c} 40%, transparent)`, padding: '2px 7px', whiteSpace: 'nowrap' }}>
       {isHome ? 'Home' : 'Away'}

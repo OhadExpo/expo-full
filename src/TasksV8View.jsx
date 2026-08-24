@@ -921,9 +921,11 @@ function CalendarEmbedCard() {
             textTransform: 'uppercase', textDecoration: 'none',
             border: '1px solid var(--c-ac)', padding: '3px 8px',
           }}>↗ Full View</a>
-        {/* canonical collapse affordance: white chevron on the RIGHT (billing style) */}
+        {/* canonical collapse affordance: chevron on the RIGHT (billing style).
+            Uses --c-tx, NOT a literal white: on the light theme a white chevron
+            sat on a white surface and the control was invisible. */}
         <span aria-hidden style={{
-          color: '#FFFFFF', fontSize: 12, lineHeight: 1, display: 'inline-block',
+          color: 'var(--c-tx)', fontSize: 12, lineHeight: 1, display: 'inline-block',
           transition: 'transform 120ms ease',
           transform: open ? 'rotate(0deg)' : 'rotate(-90deg)',
         }}>▾</span>
@@ -978,7 +980,7 @@ function SectionHeader({ label, count, color, collapsed, onToggleCollapse }) {
       <span style={{ flex: 1 }} />
       {/* canonical collapse affordance: white chevron on the RIGHT (billing style) */}
       <span aria-hidden style={{
-        color: '#FFFFFF', fontSize: 12, lineHeight: 1, display: 'inline-block',
+        color: 'var(--c-tx)', fontSize: 12, lineHeight: 1, display: 'inline-block',
         transition: 'transform 120ms ease',
         transform: collapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
       }}>▾</span>

@@ -3441,7 +3441,7 @@ function DemoSessionExercise({ ex, open, onToggle }) {
           <span style={{ fontFamily: FB, fontSize: 12.5, color: C.tx, fontWeight: 600, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: 1.3 }}>
             {allDone && <span style={{ color: C.gn, marginRight: 4 }}>✓</span>}{ex.title}
           </span>
-          <span style={{ color: '#FFF', fontSize: 12, flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>▾</span>
+          <span style={{ color: 'var(--c-tx)', fontSize: 12, flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>▾</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 4 }}>
           <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.02em', color: C.ac }}>{ex.prescribed}</span>
@@ -3565,7 +3565,7 @@ function DemoSingle() {
                   <span style={{ fontFamily: isHeb(t.name) ? FH : FB, fontSize: 14, fontWeight: 600, color: C.tx }}>{t.name}</span>
                   <span style={{ fontFamily: FN, fontSize: 11, color: C.tm }}>BLOCK #4</span>
                 </span>
-                <span style={{ fontFamily: FN, fontSize: 12, color: '#FFF', transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>▾</span>
+                <span style={{ fontFamily: FN, fontSize: 12, color: 'var(--c-tx)', transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>▾</span>
               </button>
               {isOpen && (
                 <div style={{ padding: '0 14px 14px' }}>

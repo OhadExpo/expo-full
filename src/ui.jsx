@@ -457,7 +457,7 @@ export function CollapsibleSection({ title, titleNode, count, right, storageKey,
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end', marginLeft: 'auto', minWidth: 0, maxWidth: '100%' }}>
           {right && <span onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end', minWidth: 0, maxWidth: '100%' }}>{right}</span>}
           <span aria-hidden style={{
-            color: '#FFFFFF', fontSize: 12, lineHeight: 1, display: 'inline-block',
+            color: 'var(--c-tx)', fontSize: 12, lineHeight: 1, display: 'inline-block',
             transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease',
           }}>▾</span>
         </div>

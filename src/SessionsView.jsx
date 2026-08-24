@@ -689,7 +689,7 @@ function AthleteCard({ a, name, prevMap, exDetail, onToggleIn, onSet, onCurEx, o
                 <span style={{ fontFamily: FB, fontSize: 12.5, color: C.tx, fontWeight: 600, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: 1.3 }}>
                   <span style={{ display: 'inline-block', width: 14, color: C.gn, flexShrink: 0 }}>{allDone ? '✓' : ''}</span>{ex.title}
                 </span>
-                <span style={{ color: '#FFF', fontSize: 12, flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>▾</span>
+                <span style={{ color: 'var(--c-tx)', fontSize: 12, flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>▾</span>
               </div>
               {/* Prescription on its own line — clear, not crammed beside the
                   wrapping title. SETS × REPS + a muted done-count. */}
