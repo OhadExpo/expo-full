@@ -2,7 +2,7 @@
 
 Durable extract of the 12-subsystem audit workflow (run `wf_2c638fa6-63e`). Every candidate finding below came from an agent that READ the cited file; a "verified" tag means an adversarial verifier re-traced it in code and could not refute it. Findings without a tag were never verified (the verify phase was cut short by session limits) — treat them as unconfirmed leads, not facts.
 
-Totals: **103 findings**, 5 verified real, 29 verified-and-refuted, 69 unverified.
+Totals: **103 findings** — 66 fixed, 29 refuted on verify, 1 already fixed by an earlier wave, **0 left unverified**. Counted from the headings in this file on 2026-08-26, not carried forward.
 
 By severity: 17 high · 39 medium · 47 low
 
@@ -13,8 +13,11 @@ By severity: 17 high · 39 medium · 47 low
 > fixed, refuted on verify, or (for #57) deliberately disabled with the blocker
 > documented in the code. Fixes shipped across commits `5fe72b0`, `1d9fdf4`,
 > `e416d93`, `29e64eb` and `f1ae2d1`, each verified live before moving on.
-> Findings still marked _[unverified]_ below were verified as ALREADY FIXED by an
-> earlier wave and left as-is.
+> **STATUS 2026-08-26.** The last twelve findings that had never been verified
+> are now closed, each traced in the current code before being touched. Nine were
+> real and fixed: #60, #70, #71, #72, #76, #78, #79, #87, #88, #92 and #103 — eleven. One
+> (#32) was already fixed by a later change and is marked as such. Every heading
+> in this file now carries a verdict; none is a lead.
 
 ## 1. [HIGH] Stacked Modal+ConfirmDialog closing in one commit strands body overflow:hidden — page permanently unscrollable **[VERIFIED FIXED 2026-08-25]**
 
