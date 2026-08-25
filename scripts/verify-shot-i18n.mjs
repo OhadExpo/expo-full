@@ -34,7 +34,10 @@ for (const m of src.matchAll(/\bT\.([a-zA-Z0-9_]+)\b(?!\.)/g)) usedTop.add(m[1])
 console.log(`SHOT I18N\n\nkeys referenced by ShotAnalyzer.jsx: ${used.size} nested, ${usedTop.size} top-level`);
 
 // Split the dictionary into its two language halves so each is checked on its own.
-const heAt = i18n.indexOf('he:');
+// Split on the LANGUAGE boundary, not the first 'he:' that happens to appear —
+// that matched inside a string and put most of the dictionary on the wrong side,
+// reporting 154 phantom failures.
+const heAt = i18n.search(/^\s*he\s*:\s*\{/m);
 if (heAt < 0) { console.log('  ✗ cannot find the `he` half of shotI18n'); process.exit(1); }
 const halves = { en: i18n.slice(0, heAt), he: i18n.slice(heAt) };
 
@@ -43,6 +46,16 @@ for (const [lang, body] of Object.entries(halves)) {
     const key = path.split('.')[1];
     // A key is present if it appears as `key:` somewhere in that half.
     ok(`${lang} has ${path}`, new RegExp(`\\b${key}\\s*:`).test(body));
+  }
+}
+
+// TOP-LEVEL keys too. The first version of this check collected them and then
+// only asserted on the nested ones — which is the very gap it exists to close.
+const JS_ON_OBJ = new Set(['info', 'tips', 'cols', 'checks', 'phases']);
+for (const lang of ['en', 'he']) {
+  for (const key of usedTop) {
+    if (JS_METHODS.has(key) || JS_ON_OBJ.has(key)) continue;
+    ok(`${lang} has T.${key}`, new RegExp(`\\b${key}\\s*:`).test(halves[lang]));
   }
 }
 
