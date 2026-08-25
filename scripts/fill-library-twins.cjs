@@ -1,5 +1,6 @@
 // Some library entries are the SAME exercise written short: "BB DL" vs
-// "BB Deadlift". When one carries a video and the other does not, copy it.
+// "BB Deadlift". When one carries a video (or coaching cues) and the other does
+// not, copy it across.
 //
 // Guarded: the canonical key must be non-empty and at least two tokens. Hebrew
 // titles contain no a-z characters, so an unguarded key collapses ALL of them
@@ -18,19 +19,31 @@ const key=(t)=>{const toks=expand(t).split(' ').filter(Boolean); if(toks.length<
   await s.auth.signInWithPassword({email:'ohadyproductions@gmail.com',password:'1234'});
   const {data:row}=await s.from('store').select('value').eq('key','expo-exercises').single();
   const lib=row.value||[];
-  const byKey=new Map(); for(const e of lib) if(okUrl(e.videoLink)){const k=key(e.title); if(k&&!byKey.has(k)) byKey.set(k,e);}
+  const hasCue=(e)=>!!String(e.cues||'').trim();
+  const vidKey=new Map(), cueKey=new Map();
+  for(const e of lib){ const k=key(e.title); if(!k) continue;
+    if(okUrl(e.videoLink)&&!vidKey.has(k)) vidKey.set(k,e);
+    if(hasCue(e)&&!cueKey.has(k)) cueKey.set(k,e); }
   const pick=new Map();
-  for(const e of lib){ if(okUrl(e.videoLink)) continue; const k=key(e.title); if(!k) continue; const t=byKey.get(k); if(t) pick.set(e.id,{url:t.videoLink,from:t.title,to:e.title}); }
+  for(const e of lib){
+    const k=key(e.title); if(!k) continue;
+    const patch={};
+    if(!okUrl(e.videoLink)){ const t=vidKey.get(k); if(t){patch.videoLink=t.videoLink; patch.vidFrom=t.title;} }
+    if(!hasCue(e)){ const t=cueKey.get(k); if(t){patch.cues=t.cues; patch.cueFrom=t.title;} }
+    if(Object.keys(patch).length) pick.set(e.id,{...patch,to:e.title});
+  }
   console.log(`twins to fill: ${pick.size}`);
-  [...pick.values()].forEach(v=>console.log(`   ${v.to.slice(0,38).padEnd(39)} <- ${v.from.slice(0,38)}`));
+  [...pick.values()].forEach(v=>console.log(`   ${v.to.slice(0,36).padEnd(37)} ${v.videoLink?'VIDEO<-'+String(v.vidFrom).slice(0,20):''} ${v.cues?'CUES<-'+String(v.cueFrom).slice(0,20):''}`));
   if(!APPLY){console.log('DRY RUN — pass --apply');process.exit(0);}
   if(!pick.size) process.exit(0);
   const bak='scripts/_backup-expo-exercises-twins-'+new Date().toISOString().slice(0,10)+'.json';
   if(!fs.existsSync(bak)) fs.writeFileSync(bak,JSON.stringify(lib,null,2));
-  const next=lib.map(e=>pick.has(e.id)?{...e,videoLink:pick.get(e.id).url}:e);
+  const next=lib.map(e=>{ const p=pick.get(e.id); if(!p) return e;
+    const o={...e}; if(p.videoLink) o.videoLink=p.videoLink; if(p.cues) o.cues=p.cues; return o; });
   const {error}=await s.from('store').update({value:next}).eq('key','expo-exercises');
   if(error){console.log('WRITE FAILED',error.message);process.exit(1);}
   const {data:after}=await s.from('store').select('value').eq('key','expo-exercises').single();
-  console.log(`VERIFIED FROM DB: ${(after.value||[]).filter(e=>okUrl(e.videoLink)).length} of ${(after.value||[]).length} have a video`);
+  const A=after.value||[];
+  console.log(`VERIFIED FROM DB: ${A.filter(e=>okUrl(e.videoLink)).length} have a video, ${A.filter(e=>String(e.cues||'').trim()).length} have cues, of ${A.length}`);
   process.exit(0);
 })();
