@@ -629,8 +629,8 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
         .bhbc-zone{ --c-tm:#6B727B; --c-td:#5F666F; }
         @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]):not([data-theme="5b"]) .bhbc-zone{ --c-tm:#AEB4BD; --c-td:#B6BCC5; } }
         :root[data-theme="dark"] .bhbc-zone{ --c-tm:#AEB4BD; --c-td:#B6BCC5; }
-        :root { --bhbc-ha-home: ${NAVY}; --bhbc-ha-away: ${ORANGE_DEEP}; }
-        :root[data-theme="dark"] { --bhbc-ha-home: #7FA9E8; --bhbc-ha-away: #F0955F; }
+        :root { --bhbc-ha-home: ${NAVY}; --bhbc-ha-away: ${ORANGE_DEEP}; --bhbc-amber-text: #8A6410; }
+        :root[data-theme="dark"] { --bhbc-ha-home: #7FA9E8; --bhbc-ha-away: #F0955F; --bhbc-amber-text: #E0A73A; }
         .bhbc-row{transition:background 120ms}
         .bhbc-row:hover{background:color-mix(in srgb, ${NAVY} 6%, transparent)}
         .bhbc-card:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(6,16,37,0.14)}
@@ -1452,7 +1452,7 @@ function HeadCoachReport({ rows, fx, fixtures, medical, today, onOpen, onMedical
       </Section>
       {/* AVAILABILITY */}
       <Section label="Availability">
-        <span><span style={{ color: '#37B27C', fontFamily: FN, fontWeight: 800 }}>{available.length}</span> available <span style={mut}>·</span> <span style={{ color: limited.length ? '#E0A73A' : C.tm, fontFamily: FN, fontWeight: 800 }}>{limited.length}</span> limited <span style={mut}>·</span> <span style={{ color: out.length ? '#DE4E3B' : C.tm, fontFamily: FN, fontWeight: 800 }}>{out.length}</span> out</span>
+        <span><span style={{ color: '#37B27C', fontFamily: FN, fontWeight: 800 }}>{available.length}</span> available <span style={mut}>·</span> <span style={{ color: limited.length ? 'var(--bhbc-amber-text, #E0A73A)' : C.tm, fontFamily: FN, fontWeight: 800 }}>{limited.length}</span> limited <span style={mut}>·</span> <span style={{ color: out.length ? '#DE4E3B' : C.tm, fontFamily: FN, fontWeight: 800 }}>{out.length}</span> out</span>
         {(out.length > 0 || limited.length > 0) && <div style={{ marginTop: 3, color: C.tm, fontSize: 11.5 }}>{out.length ? `Out: ${nameList(out)}. ` : ''}{limited.length ? `Limited: ${nameList(limited)}.` : ''}</div>}
       </Section>
       {/* MEDICAL */}
@@ -1580,7 +1580,10 @@ function TodayPanel({ today, fixtures, fx, rows, onSessions, onLog, planOf, onPl
         <div style={{ flex: '1 1 150px' }}>
           <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm, marginBottom: 8 }}>Availability</div>
           <div style={{ display: 'flex', gap: 16, fontFamily: FN }}>
-            {[['#37B27C', av.full, 'available'], ['#E0A73A', av.mod, 'limited'], ['#DE4E3B', av.out, 'out']].map(([c, n, l]) => (
+            {/* The amber COUNT has to carry itself against the light theme white
+                card, so it uses the text token; the brand amber is unchanged for
+                dots, bands and fills. */}
+            {[['#37B27C', av.full, 'available'], ['var(--bhbc-amber-text, #E0A73A)', av.mod, 'limited'], ['#DE4E3B', av.out, 'out']].map(([c, n, l]) => (
               <div key={l} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                 <span style={{ fontSize: 22, fontWeight: 800, color: n ? c : C.tx, fontVariantNumeric: 'tabular-nums' }}>{n}</span>
                 <span style={{ fontSize: 9, color: C.td, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{l}</span>
