@@ -94,3 +94,36 @@ export function worstRep(shots, spread, verdict) {
   if (worst.delta < second.delta * 1.5) return null;
   return { index: worst.index, value: worst.value, delta: Math.round(worst.delta * 100) / 100, key };
 }
+
+/**
+ * The whole session read in one object: the spreads, the verdict, and the rep
+ * to look at.
+ *
+ * This exists because the plain verdict got Ohad's own clip wrong. Ten tracked
+ * reps: nine sit at sd 0.34 m/s, comfortably repeatable, and one released 27%
+ * slower than the rest. Taken together their sd is 0.55, over the threshold, so
+ * the verdict was "the force behind the shot is moving rep to rep" — which is a
+ * statement about all ten reps and is false about nine of them. The coachable
+ * truth is the opposite: he repeats, and one rep did not.
+ *
+ * So: if dropping the single worst rep brings the reading back inside the
+ * threshold, the finding is that ONE rep, not the session.
+ */
+export function sessionRead(shots) {
+  const spread = sessionSpread(shots);
+  const verdict = sessionVerdict(spread);
+  const culprit = worstRep(shots, spread, verdict);
+  if (!verdict || verdict === 'repeatable' || !culprit) return { spread, verdict, culprit };
+
+  // Re-measure without the named rep. Its index is 1-based over ALL reps.
+  const without = shots.filter((_, i) => i + 1 !== culprit.index);
+  const rest = sessionSpread(without);
+  const key = culprit.key === 'ballSpeedMs' ? 'speed' : 'angle';
+  const restTight = rest[key] && rest[key].tight;
+  // Only when the REST is genuinely a session on its own — dropping a rep from
+  // three leaves two, which spreadOf refuses to call a session at all.
+  if (restTight && rest[key].n >= 3) {
+    return { spread, verdict: 'outlier', culprit, rest: rest[key] };
+  }
+  return { spread, verdict, culprit };
+}
