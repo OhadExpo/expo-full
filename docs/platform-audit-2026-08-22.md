@@ -1308,7 +1308,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 103. [LOW] Single logger missed the F4 fix — coach edits during the subscribe window never reach an already-open portal _[unverified]_
+## 103. [LOW] Single logger missed the F4 fix — coach edits during the subscribe window never reach an already-open portal **[VERIFIED REAL — FIXED 2026-08-26]** — the 1-on-1 logger now pushes a sync-state snapshot on SUBSCRIBED, mirroring the group session
 
 **Where:** `src/WorkoutsView.jsx:461`
 
