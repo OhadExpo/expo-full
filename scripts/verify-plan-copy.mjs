@@ -13,11 +13,15 @@ const eq = (name, got, want) => {
   if (ok) pass++; else { fail++; console.log(`  ✗ ${name}\n     got  ${JSON.stringify(got)}\n     want ${JSON.stringify(want)}`); }
 };
 
+// Shaped like the REAL library: entries carry `title` and `videoLink`. The
+// first version of this fixture used `name`, which let a bug through — the
+// code read `.name` too, and the live library has none.
 const LIB = [
-  { id: 'e10', name: 'BB Lunge', videoLink: 'https://youtu.be/lunge' },
-  { id: 'e42', name: 'DB Goblet Squat', video: 'https://youtu.be/goblet' },
-  { id: 'ex_novid', name: 'Depth Landing', videoLink: '' },
-  { id: 'ex_named', name: 'Pogo Jump', videoLink: 'https://youtu.be/pogo' },
+  { id: 'e10', title: 'BB Lunge', videoLink: 'https://youtu.be/lunge' },
+  { id: 'e42', title: 'DB Goblet Squat', video: 'https://youtu.be/goblet' },
+  { id: 'ex_novid', title: 'Depth Landing', videoLink: '' },
+  { id: 'ex_named', title: 'Pogo Jump', videoLink: 'https://youtu.be/pogo' },
+  { id: 'ex_alias', name: 'Legacy Alias Only', videoLink: 'https://youtu.be/alias' },
 ];
 let n = 0;
 const newId = () => `id${++n}`;
@@ -87,6 +91,11 @@ eq('an empty day survives', cloneDayForCopy({ exercises: [] }, LIB, newId).exerc
 eq('a day with neither shape survives', cloneDayForCopy({}, LIB, newId).exercises, []);
 eq('no library → nothing invented', cloneExerciseForCopy({ exerciseId: 'e10' }, [], newId).videoUrl, undefined);
 eq('lookup by the compact eid works', libVideoFor({ eid: 'e10' }, LIB), 'https://youtu.be/lunge');
+// The live library keys the name as `title`; `name` is only a fixture alias.
+eq('the title comes from the library `title` field',
+   cloneExerciseForCopy({ exerciseId: 'ex_named' }, LIB, newId).title, 'Pogo Jump');
+eq('a legacy `name` entry still resolves',
+   cloneExerciseForCopy({ exerciseId: 'ex_alias' }, LIB, newId).title, 'Legacy Alias Only');
 {
   // An empty d.exercises must not shadow a populated d.ex — the hybrid state
   // that has destroyed day content before ([[plan_dual_shape]]).

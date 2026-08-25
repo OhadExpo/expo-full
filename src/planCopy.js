@@ -21,15 +21,23 @@ export function libVideoFor(ex, exercises) {
   const eid = (ex && (ex.exerciseId || ex.eid)) || '';
   if (!eid) return undefined;
   const lib = (exercises || []).find((e) => e && e.id === eid);
+  // `videoLink` is the real field (641 of 1326 entries carry one); `video` is
+  // tolerated for fixtures and older shapes.
   return (lib && (lib.videoLink || lib.video)) || undefined;
 }
 
-/** The library's name for a row, or undefined. */
+/**
+ * The library's name for a row, or undefined.
+ *
+ * The field is `title` — verified against the live library: all 1326 entries
+ * have `title` and NONE has `name`. An earlier version read `.name` only, so
+ * this never fired at all. `name` is kept as a tolerated alias for fixtures.
+ */
 export function libNameFor(ex, exercises) {
   const eid = (ex && (ex.exerciseId || ex.eid)) || '';
   if (!eid) return undefined;
   const lib = (exercises || []).find((e) => e && e.id === eid);
-  return (lib && lib.name) || undefined;
+  return (lib && (lib.title || lib.name)) || undefined;
 }
 
 /**
