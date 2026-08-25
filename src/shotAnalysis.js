@@ -21,6 +21,7 @@
 // biomechanics and projectile mechanics, expressed as coach-readable bands.
 // They are bands, not laws: read them with the athlete in front of you.
 import { angleAt, medianFilter, findPeaks, isReal } from './repCounter.js';
+import { launchAngle } from './ballTrack.js';   // .js on purpose: this module is imported directly by node in the verify suites
 
 // MediaPipe Pose indices.
 const I = {
@@ -83,7 +84,7 @@ export function buildSeries(frames, { hand = 'R', aspect = 9 / 16 } = {}) {
     tMs,
     knee: [], kneeOther: [], hip: [], elbow: [], shoulder: [], trunk: [],
     forearm: [], armElev: [], elbowAboveSho: [], wristEye: [], wristElbowX: [], hipY: [], wristY: [], ankleY: [], eyeY: [], headY: [],
-    torso: [], ruler: [], armAboveHead: [], visOk: [], visArm: [], visLegs: [], feetOk: [],
+    torso: [], ruler: [], armAboveHead: [], visOk: [], visArm: [], visLegs: [], feetOk: [], ball: [],
   };
   for (let k = 0; k < n; k++) {
     const f = frames[k];
@@ -150,6 +151,9 @@ export function buildSeries(frames, { hand = 'R', aspect = 9 / 16 } = {}) {
     s.visArm.push(okArm);
     s.visLegs.push(okLegs);
     s.visOk.push(!!(el && wr && vis(el) && vis(wr)) && okLegs);
+    // The ball, when the capture found one. Kept in raw normalised coords; the
+    // launch-angle fit scales them to pixels itself.
+    s.ball.push(f.ball || null);
   }
   const sm = {};
   for (const k of ['knee', 'kneeOther', 'hip', 'elbow', 'shoulder', 'armElev', 'elbowAboveSho', 'trunk', 'forearm', 'wristEye', 'wristElbowX', 'hipY', 'wristY', 'ankleY', 'eyeY', 'headY', 'torso', 'ruler']) sm[k] = smooth(s[k]);
@@ -158,7 +162,8 @@ export function buildSeries(frames, { hand = 'R', aspect = 9 / 16 } = {}) {
   sm.shoulderVel = deriv(sm.shoulder, tMs);
   sm.elbowVel = deriv(sm.elbow, tMs);
   sm.wristVel = deriv(sm.wristY, tMs);
-  return { raw: s, sm, n, tMs };
+  // aspect travels with the series so the ball fit can share one unit system.
+  return { raw: s, sm, n, tMs, aspect };
 }
 
 // ------------------------------------------------------------- detection ---
@@ -441,6 +446,25 @@ export function scoreShot(series, c, { statureCm = null, shotType = 'mid' } = {}
     follow: c.followEnd > c.release ? tMs[c.followEnd] - tMs[c.release] : 0,
     trunk: at(sm.trunk, c.release),
   };
+  // BALL LAUNCH ANGLE — the real thing, where the release-arm angle is only a
+  // proxy for it. Sampled from the release forward, and it returns null unless
+  // the points genuinely fit a projectile, so a bad detection run shows nothing
+  // rather than a confident wrong number.
+  const ballLaunch = (() => {
+    const balls = series.raw && series.raw.ball;
+    if (!Array.isArray(balls) || c.release < 0) return null;
+    const aspect = series.aspect || (9 / 16);
+    const pts = [];
+    for (let k = c.release; k < Math.min(balls.length, idxAtTime(tMs, tMs[c.release] + 600) + 1); k++) {
+      const bl = balls[k];
+      if (!bl) continue;
+      // Into a common pixel-ish space: x is scaled by the aspect so horizontal
+      // and vertical distances share a unit, matching the rest of this engine.
+      pts.push({ t: tMs[k], x: bl.x * 1000 * aspect, y: bl.y * 1000 });
+    }
+    return launchAngle(pts);
+  })();
+
   const defs = buildCheckpoints(shotType);
   const checks = defs.map((d) => {
     const val = v[d.key];
@@ -462,6 +486,11 @@ export function scoreShot(series, c, { statureCm = null, shotType = 'mid' } = {}
     shoulderAtRelease: at(sm.shoulder, c.release),
     sequenceOrder: seq.order,
     coverage: round(c.coverage, 2),
+    // Measured from the BALL, not inferred from the arm. Null unless the samples
+    // actually fit a projectile.
+    ballLaunchDeg: ballLaunch ? ballLaunch.angleDeg : null,
+    ballLaunchFit: ballLaunch ? ballLaunch.fit : null,
+    ballSamples: ballLaunch ? ballLaunch.n : 0,
   };
   const phases = [
     { key: 'stance', label: 'STANCE', idx: c.stance },
