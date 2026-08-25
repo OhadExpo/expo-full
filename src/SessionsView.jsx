@@ -461,7 +461,12 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
       : { id: uid(), startedAt: new Date().toISOString(), athletes };
     persist(next);
     setPicking(false);
-  }, [persist, exById]);
+    // planIndex is READ above (planWeeks) and must be a dependency: without it
+    // the callback keeps whatever planIndex existed when exercises last changed,
+    // so a plan created or edited mid-day is missed, planWeeks falls back to
+    // undefined, and the auto-week caps at 8 instead of the block's real length
+    // — the exact regression planWeeks was added to fix (audit #92).
+  }, [persist, exById, planIndex]);
 
   const finishSession = useCallback(async () => {
     // Read the LATEST session (sessionRef.current), NOT the render-closure `session`
