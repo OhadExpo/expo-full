@@ -44,7 +44,28 @@ const overlap = (a, b) => {
   let hit = 0; for (const x of A) if (B.has(x)) hit++;
   return hit / Math.min(A.size, B.size);
 };
-const RELATED = 0.5;   // at or above this they are the same movement, differently written
+const RELATED = 0.5;
+// Two more ways the SAME name is written differently, neither of which token
+// overlap can see:
+//   separators   — "Pushup" / "Push-Up", "Chinup" / "Chin-Up"
+//   abbreviation — "BB OHP" / "BB Overhead Press", "SA" / "Single Arm"
+const ABBR = {
+  ohp: 'overheadpress', sa: 'singlearm', sl: 'singleleg', bw: 'bodyweight', bb: 'barbell',
+  db: 'dumbbell', dl: 'deadlift', rdl: 'romaniandeadlift', sldl: 'singlelegdeadlift',
+  hoz: 'horizontal', iso: 'isometric', ohs: 'overheadsquat', bp: 'benchpress',
+  rfess: 'rearfootelevatedsplitsquat', ffess: 'frontfootelevatedsplitsquat',
+  vert: 'vertical', pos: 'position', ext: 'extension', abs: 'ab',
+};
+const squash = (t) => norm(t).split(' ').filter(Boolean).map((w) => ABBR[w] || w).join('');
+// Same exercise if the squashed forms match, or one contains the other and the
+// extra text is short (a qualifier like "(w Straps)").
+const sameName = (a, b) => {
+  const A = squash(a), B = squash(b);
+  if (!A || !B) return false;
+  if (A === B) return true;
+  const long = A.length >= B.length ? A : B, short = A.length >= B.length ? B : A;
+  return long.includes(short) && long.length - short.length <= 6;
+};   // at or above this they are the same movement, differently written
 
 (async () => {
   await s.auth.signInWithPassword({ email: 'ohadyproductions@gmail.com', password: '1234' });
@@ -92,7 +113,11 @@ const RELATED = 0.5;   // at or above this they are the same movement, different
         if (eid && !L) { F.idNotInLibrary.push(`${where}  eid=${eid}`); }
 
         // 1) does the row's TITLE match the library entry it points at?
-        if (L && title && canon(title) !== canon(L.title)) {
+        // Only a genuinely DIFFERENT exercise matters. "SA DB Chest Press" vs
+        // "Single Arm DB Chest Press" is one movement spelled two ways — all 87
+        // findings here were that, and none was a real mix-up.
+        if (L && title && canon(title) !== canon(L.title) && !sameName(title, L.title)
+            && overlap(title, L.title) < RELATED) {
           F.titleVsId.push(`${where}\n      row title : ${title}\n      its eid is: ${L.title}`);
         }
 
@@ -106,7 +131,7 @@ const RELATED = 0.5;   // at or above this they are the same movement, different
           checkedVideo++;
           const owner = ownerOfVideo.get(vidKey(v));
           if (owner && self && owner.id !== self.id && canon(owner.title) !== canon(self.title)
-              && overlap(owner.title, self.title) < RELATED) {
+              && !sameName(owner.title, self.title) && overlap(owner.title, self.title) < RELATED) {
             F.videoBelongsElsewhere.push(`${where}\n      video is the library clip for: ${owner.title}`);
           }
         }
@@ -127,7 +152,7 @@ const RELATED = 0.5;   // at or above this they are the same movement, different
           const vo = ownerOfVideo.get(vidKey(v));
           const co = ownerOfCue.get(cueKey(n));
           if (vo && co && vo.id !== co.id && canon(vo.title) !== canon(co.title)
-              && overlap(vo.title, co.title) < RELATED) {
+              && !sameName(vo.title, co.title) && overlap(vo.title, co.title) < RELATED) {
             F.videoVsCueDisagree.push(`${where}\n      video: ${vo.title}\n      notes: ${co.title}`);
           }
         }

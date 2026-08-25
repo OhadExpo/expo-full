@@ -8,22 +8,20 @@ This does not judge the text. It uses the library as a dictionary and asks a fac
 ```
 rows examined: 4240 (videos 711, notes 3440)
 
-    87  row title disagrees with the exercise its id points at
-     3  VIDEO is another exercise's clip
+     0  row title disagrees with the exercise its id points at
+     0  VIDEO is another exercise's clip
     16  NOTES are another exercise's cues
-     3  video and notes describe DIFFERENT exercises
+     1  video and notes describe DIFFERENT exercises
      0  exerciseId is not in the library
      0  row has neither a title nor an id
-   109  TOTAL
+    17  TOTAL
 
---- row title disagrees with the exercise its id points at (87) ---
-  איילת קזצב / Block #15 / Day 2 / Seated Cable Face-Pull
+--- NOTES are another exercise's cues (16) ---
+  רועי סולומון / Block #1 / day c / Wide-Grip Deficit Push-Up
 ```
 
-### The video and the notes describe different exercises (3)
+### The video and the notes describe different exercises (1)
 
-- רון יונקר / Block #3 - UNI INT & BI VOL (MA / Day 3 - S-SSC, UNI Pull INT, BI Push VOL / DB SLDL — video: DB Single Leg Deadlift — notes: DB SLDL
-- רועי הצבי / Block #3 - Strength II / Day 3 - / DB SLDL — video: DB Single Leg Deadlift — notes: DB SLDL
 - רועי הצבי / Block #25 / Day B / Hollow-POS Clams — video: Hollow-POS Clams — notes: DB AB's Sit-Up + Leg Raise (Clam)
 
 ### The NOTES are another exercise's cues (16)
@@ -44,12 +42,6 @@ rows examined: 4240 (videos 711, notes 3440)
 - עומר שדה / Block #9 / Day 2 / BB Close-Grip Bench Press — notes are the library cues for: Seated Arnold DB OHP
 - נדבר בלצ'ר / Block #2 / Game Day -1 (BW/Mobility) / Wide-Grip Deficit Push-Up — notes are the library cues for: Single Leg Hip Thrust
 - יואב שמרי / Block #5 / Day b / ATH-POS SA DB Row — notes are the library cues for: SA Cable Pulldown
-
-### The VIDEO is another exercise's clip (3)
-
-- רון יונקר / Block #3 - UNI INT & BI VOL (MA / Day 3 - S-SSC, UNI Pull INT, BI Push VOL / DB SLDL — video is the library clip for: DB Single Leg Deadlift
-- רועי הצבי / Block #3 - Strength II / Day 3 - / DB SLDL — video is the library clip for: DB Single Leg Deadlift
-- יובל ברקו / Phase 8 / Day 3 (כפר) - Lower VOL + Arms / Pushup — video is the library clip for: Pushups
 
 ## Library
 ```
