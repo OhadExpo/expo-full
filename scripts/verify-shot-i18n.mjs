@@ -71,5 +71,73 @@ for (const path of used) {
 ok('no referenced key is missing from either language', missing.length === 0);
 if (missing.length) console.log('     missing: ' + missing.join(', '));
 
+
+// ── DUPLICATE KEYS ─────────────────────────────────────────────────────────
+// `verdictOk` was defined twice in the same object: once as the per-shot
+// verdict ('Clean mechanics'), once as the session verdict ('repeatable across
+// the session'). JavaScript resolves that silently at parse time — the second
+// wins — so a single shot scoring 80+ told the coach it was "repeatable across
+// the session", which is a statement about a set of reps, not about one shot.
+//
+// A runtime check cannot see this (by the time the object exists, one of the
+// two is simply gone), so the source has to be scanned. Walk the language body
+// tracking brace depth, skipping strings, template literals and comments, and
+// collect every identifier used as a key at the TOP level of that language.
+const BS = String.fromCharCode(92); // an escape inside a string; written this way
+                                    // because a literal backslash does not survive
+                                    // being piped through the shell here.
+// `body` is the WHOLE file and `lang` the language object to walk. The first
+// version took a half-file and started at its first `{` — which landed inside
+// a template literal on line 16, so the walk read garbage and reported no
+// duplicates even when one was there. Anchor on `en: {` / `he: {` instead.
+function topLevelKeys(body, lang) {
+  // WS is a regex escape built at runtime: a literal backslash does not
+  // survive being piped through the shell, and a silently de-escaped '\s'
+  // becomes a plain 's', which is how this check first failed to match.
+  const WS = String.fromCharCode(92) + 's';
+  const start = body.search(new RegExp('^' + WS + '*' + lang + WS + '*:' + WS + '*[{]', 'm'));
+  if (start < 0) throw new Error('cannot find the ' + lang + ' object');
+  const keys = [];
+  let depth = 0, i = body.indexOf('{', start);
+  while (i < body.length) {
+    const c = body[i];
+    if (c === '/' && body[i + 1] === '/') { i = body.indexOf('\n', i); if (i < 0) break; continue; }
+    if (c === '/' && body[i + 1] === '*') { i = body.indexOf('*/', i) + 2; continue; }
+    if (c === "'" || c === '"' || c === '`') {
+      const q = c; i++;
+      while (i < body.length && body[i] !== q) { if (body[i] === BS) i++; i++; }
+      i++; continue;
+    }
+    if (c === '{' || c === '(' || c === '[') { depth++; i++; continue; }
+    if (c === '}' || c === ')' || c === ']') { depth--; i++; if (depth === 0) break; continue; }
+    if (depth === 1 && /[a-zA-Z_]/.test(c)) {
+      let j = i; while (j < body.length && /[a-zA-Z0-9_]/.test(body[j])) j++;
+      let k = j; while (k < body.length && /\s/.test(body[k])) k++;
+      if (body[k] === ':') keys.push(body.slice(i, j));
+      i = j; continue;
+    }
+    i++;
+  }
+  return keys;
+}
+
+for (const lang of ['en', 'he']) {
+  const keys = topLevelKeys(i18n, lang);
+  const seen = new Set(), dups = new Set();
+  for (const k of keys) { if (seen.has(k)) dups.add(k); seen.add(k); }
+  ok(`${lang} defines every key exactly once (${keys.length} keys)`, dups.size === 0);
+  if (dups.size) console.log(`     defined twice in ${lang}: ${[...dups].join(', ')}`);
+}
+
+// And the two verdicts must stay distinct texts, not the same sentence reused.
+for (const lang of ['en', 'he']) {
+  const perShot = /verdictOk\s*:\s*(['"`])(.*?)\1/.exec(halves[lang]);
+  const session = /sessionRepeatable\s*:\s*(['"`])(.*?)\1/.exec(halves[lang]);
+  ok(`${lang} has a per-shot verdictOk`, !!perShot);
+  ok(`${lang} has a session sessionRepeatable`, !!session);
+  ok(`${lang} does not say the same thing for a shot and a session`,
+    perShot && session && perShot[2] !== session[2]);
+}
+
 console.log(`\nSHOT I18N: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
