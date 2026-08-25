@@ -17,7 +17,20 @@ const isHttp = (u) => typeof u === 'string' && /^https?:\/\//i.test(u);
 const APPLY = process.argv.includes('--apply');
 (async () => {
   await s.auth.signInWithPassword({ email:'ohadyproductions@gmail.com', password:'1234' });
-  const map = JSON.parse(fs.readFileSync('scripts/omer-video-map.json','utf8'));
+  // Merge every known title -> video source. omer-video-map.json came from one
+  // athlete's workbooks; sheet-video-map.json is built from ALL 18 sheets.
+  const MAPS = process.argv.filter((a) => a.endsWith('.json'));
+  const sources = MAPS.length ? MAPS : ['scripts/omer-video-map.json', 'scripts/sheet-video-map.json'];
+  const map = {};
+  for (const f of sources) {
+    if (!fs.existsSync(f)) continue;
+    const m = JSON.parse(fs.readFileSync(f, 'utf8'));
+    for (const [k, v] of Object.entries(m)) if (!map[k]) map[k] = v;
+  }
+  // A canonical key catches the same exercise written slightly differently.
+  const canon = (t) => norm(t).split(' ').filter(Boolean).map((w) => w.slice(0, 5)).sort().join('|');
+  const byCanon = {};
+  for (const [k, v] of Object.entries(map)) { const c = canon(k); if (!byCanon[c]) byCanon[c] = v; }
   console.log('sheet map entries:', Object.keys(map).length);
   const { data: row } = await s.from('store').select('value').eq('key','expo-exercises').single();
   const lib = row.value || [];
@@ -31,8 +44,8 @@ const APPLY = process.argv.includes('--apply');
   const changes = [];
   const next = lib.map((e) => {
     if (isHttp(e.videoLink)) { had++; return e; }
-    const v = map[norm(e.title)];
-    if (isHttp(v)) { filled++; changes.push(`${e.id}  ${e.title}`); return { ...e, videoLink: v }; }
+    const v = map[norm(e.title)] || byCanon[canon(e.title)];
+    if (isHttp(v) && /^https:\/\/(www\.)?(youtube\.com|youtu\.be)\//i.test(v)) { filled++; changes.push(`${e.id}  ${e.title}`); return { ...e, videoLink: v }; }
     noMatch++; return e;
   });
   console.log(`library=${lib.length} alreadyHadVideo=${had} FILLED=${filled} stillNoVideo=${noMatch}`);
