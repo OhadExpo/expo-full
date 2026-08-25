@@ -478,8 +478,10 @@ export function scoreShot(series, c, { statureCm = null, shotType = 'mid' } = {}
     const wp = (series.raw && series.raw.wristPos && series.raw.wristPos[c.release]) || null;
     const origin = wp ? { x: wp.x * K, y: wp.y * K } : null;
     const tr = trackBall(frames, origin ? { origin } : {});
-    if (!tr) return null;
-    return launchAngle(tr.points, tMs[c.release], tr.ballPx);
+    if (!tr) return { failed: 'no track', frames: frames.length, blobs: frames.reduce((a, f) => a + f.blobs.length, 0) };
+    const la = launchAngle(tr.points, tMs[c.release], tr.ballPx);
+    if (!la) return { failed: 'track rejected', frames: frames.length, n: tr.points.length, fit: tr.fit, ballPx: tr.ballPx };
+    return la;
   })();
 
   const defs = buildCheckpoints(shotType);
@@ -505,13 +507,16 @@ export function scoreShot(series, c, { statureCm = null, shotType = 'mid' } = {}
     coverage: round(c.coverage, 2),
     // Measured from the BALL, not inferred from the arm. Null unless the samples
     // actually fit a projectile.
-    ballLaunchDeg: ballLaunch ? ballLaunch.angleDeg : null,
+    ballLaunchDeg: ballLaunch && !ballLaunch.failed ? ballLaunch.angleDeg : null,
+    // Why a shot produced no ball reading — so a coverage gap is diagnosable
+    // instead of just an em dash.
+    ballWhy: ballLaunch && ballLaunch.failed ? ballLaunch : null,
     // Real-world units, scaled by the ball's own 0.24 m width. Null unless the
     // flight was tracked well enough to trust the scale.
-    ballSpeedMs: ballLaunch ? ballLaunch.speedMs : null,
-    ballRiseM: ballLaunch ? ballLaunch.riseM : null,
-    ballLaunchFit: ballLaunch ? ballLaunch.fit : null,
-    ballSamples: ballLaunch ? ballLaunch.n : 0,
+    ballSpeedMs: ballLaunch && !ballLaunch.failed ? ballLaunch.speedMs : null,
+    ballRiseM: ballLaunch && !ballLaunch.failed ? ballLaunch.riseM : null,
+    ballLaunchFit: ballLaunch && !ballLaunch.failed ? ballLaunch.fit : null,
+    ballSamples: ballLaunch && !ballLaunch.failed ? ballLaunch.n : 0,
   };
   const phases = [
     { key: 'stance', label: 'STANCE', idx: c.stance },
