@@ -111,6 +111,52 @@ for (const tab of ['Overview', 'Roster', 'Schedule', 'Medical', 'Games']) {
   report(`bhbc > ${tab}${ok ? '' : ' (tab not found — measured default)'}`, await measure());
 }
 
+// -- MODALS — the same blind spot as the tabs, one level deeper -----------
+// A modal is never a route either, so nothing has ever measured one at 390px.
+const openModal = async (path, tab, trigger, name, needle) => {
+  await page.goto(`${BASE}${path}`, { waitUntil: 'networkidle2', timeout: 60000 });
+  await sleep(2200);
+  await enterCoach(page, `${BASE}${path}`, sleep);
+  if (tab) { await clickText(tab); await sleep(1400); }
+  const hit = await page.evaluate((t) => {
+    const re = new RegExp(t, 'i');
+    const el = [...document.querySelectorAll('button,[role="button"],a,tr,div')]
+      .find(e => re.test((e.textContent || '').trim()) && e.getBoundingClientRect().width > 0 && e.children.length < 8);
+    if (!el) return false;
+    (el.closest('button,[role="button"],tr') || el).click();
+    return true;
+  }, trigger);
+  await sleep(2200);
+  if (!hit) { console.log(`SKIP     ${name} (no trigger matching /${trigger}/)`); return; }
+  const open = await page.evaluate((n) => new RegExp(n, 'i').test(document.body.innerText), needle);
+  if (!open) { console.log(`SKIP     ${name} (trigger clicked, modal did not open)`); return; }
+  report(`${name} [open]`, await measure());
+};
+
+await openModal('/coach/bhbc', null, 'CHECK-IN', 'bhbc > wellness check-in', 'sleep|energy|pain');
+await openModal('/coach/bhbc', null, 'LOG PRACTICE', 'bhbc > log practice', 'minutes|rpe|roster');
+// The roster row has no stable text to match on — click the row itself.
+{
+  const path = `${BASE}/coach/bhbc`;
+  await page.goto(path, { waitUntil: 'networkidle2', timeout: 60000 });
+  await sleep(2200);
+  await enterCoach(page, path, sleep);
+  await clickText('Roster');
+  await sleep(1600);
+  const hit = await page.evaluate(() => {
+    // RosterGrid renders athlete CARDS (.bhbc-card), not the .bhbc-row used
+    // by the board views.
+    const row = document.querySelector('.bhbc-card') || document.querySelector('.bhbc-row');
+    if (!row) return false;
+    row.click();
+    return true;
+  });
+  await sleep(2200);
+  const open = hit && await page.evaluate(() => /READINESS|FULL HISTORY|BODYWEIGHT|SESSIONS/i.test(document.body.innerText));
+  if (!open) console.log('SKIP     bhbc > athlete detail (row not found or modal did not open)');
+  else report('bhbc > athlete detail [open]', await measure());
+}
+
 console.log(fails ? `\n${fails} surface(s) overflow at 390px` : '\nall nested surfaces clear at 390px');
 await page.close();
 await browser.disconnect();
