@@ -53,6 +53,7 @@ import TrainingLineageV2 from './TrainingLineageV2';
 import { sortProgramsRecent, sortProgramsByBlockDesc } from './traineeUtils';
 import { SideRail } from './SideRail';
 import { fmtPrettyDate } from './dates';
+import { cloneDayForCopy } from './planCopy.js';
 
 // "1 DAYS" read wrong on every single-day block. One helper, used by every
 // place that prints a count next to a noun.
@@ -3716,15 +3717,18 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
   };
   // COPY DAY(S) → append selected day(s) from the open program to another
   // program (existing or a brand-new one) as new days at the BOTTOM. Days are
-  // deep-cloned with fresh ids and FULL exercise fields (spread preserves
-  // sets/reps/tempo/load/rpe/rest/notes/videoUrl/cues/superset/wk — nothing
-  // is dropped). Target is written directly to the DB (savePlan) so the open
+  // deep-cloned with fresh ids and FULL exercise fields. NOTE: the spread
+  // alone does NOT preserve the video — a row inheriting its video from the
+  // library carries no videoUrl at all, and the receiving athlete cannot read
+  // the library. cloneDayForCopy materialises it. Target is written directly to the DB (savePlan) so the open
   // editor's own plan is untouched; a "new" target is created unassigned.
-  const cloneDayFresh = (day) => ({
-    ...day,
-    id: uid(),
-    exercises: (day.exercises || []).map(ex => ({ ...ex, id: uid() })),
-  });
+  // Cloning lives in src/planCopy.js so it can be tested in node. A plain
+  // spread is NOT enough: a plan row stores an exerciseId and resolves its
+  // video out of the library at render time, and the library is staff-RLS'd —
+  // so a day copied to another athlete reached that athlete with every
+  // exercise intact and zero videos. cloneDayForCopy snapshots the library's
+  // video (and name) onto the row. Pinned by scripts/verify-plan-copy.mjs.
+  const cloneDayFresh = (day) => cloneDayForCopy(day, exercises, uid);
   const handleCopyDays = async (days, target) => {
     const cloned = (days || []).map(cloneDayFresh);
     if (!cloned.length) return { ok: false };
