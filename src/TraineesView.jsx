@@ -389,6 +389,12 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
   const [form, setForm] = useState(defaultTrainee());
   const [search, setSearch] = useState("");
   const [editId, setEditId] = useState(null);
+  // The row as it stood when EDIT was opened. Saving used to write the whole
+  // form snapshot back over the row, so anything that changed while the modal
+  // was open — a session counter decremented by the athlete's portal, an
+  // availability flag — was silently reverted (audit 08-22 #97). Keeping the
+  // open-time copy lets the save apply only what the coach actually touched.
+  const editBaseRef = useRef(null);
   // Roster segmentation state. STATUS is single-select (default All); the
   // "Archived" value is what drives the old showArchived-based card styling &
   // drag-guard, derived below. FORMAT is single-select. attnFlags are the
@@ -626,7 +632,15 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
       toSave.monthly = 0;
       toSave.perSession = 0;
     }
-    if (editId) setTrainees(prev => prev.map(t => t.id === editId ? toSave : t));
+    if (editId) {
+      // Apply only the fields the coach actually changed, onto whatever the row
+      // looks like NOW — never the whole open-time snapshot.
+      const base = editBaseRef.current || {};
+      const same = (a, b) => JSON.stringify(a === undefined ? null : a) === JSON.stringify(b === undefined ? null : b);
+      const changed = {};
+      for (const k of Object.keys(toSave)) if (!same(toSave[k], base[k])) changed[k] = toSave[k];
+      setTrainees(prev => prev.map(t => (t.id === editId ? { ...t, ...changed } : t)));
+    }
     else setTrainees(prev => [...prev, toSave]);
     setForm(defaultTrainee()); setEditId(null); setShowForm(false);
   };
@@ -867,7 +881,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                   {!showArchived && (
                     <div style={{display:'flex',justifyContent:'space-between',marginTop:'auto',paddingTop:8,gap:8}}>
                       {onPreview ? <button onClick={e => {e.stopPropagation(); onPreview(t.id)}} title="Preview this athlete's portal" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${isRefined5b() ? C.ac : C.cardBd}`,color: isRefined5b() ? C.ac : C.tm,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'0 14px',height:28,boxSizing:'border-box',borderRadius:0,display:'inline-flex',alignItems:'center',gap:6}}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>PORTAL</button> : <span/>}
-                      <button onClick={e => {e.stopPropagation(); const f = {...t, _emails: emailsToArr(t.email)}; if(t.members) f._members = t.members.map(m=>({...m, _emails: emailsToArr(m.email)})); setForm(f); setEditId(t.id); setShowForm(true)}} style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'0 14px',height:28,boxSizing:'border-box',display:'inline-flex',alignItems:'center',justifyContent:'center',borderRadius:0}}>EDIT</button>
+                      <button onClick={e => {e.stopPropagation(); const f = {...t, _emails: emailsToArr(t.email)}; editBaseRef.current = t; if(t.members) f._members = t.members.map(m=>({...m, _emails: emailsToArr(m.email)})); setForm(f); setEditId(t.id); setShowForm(true)}} style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'0 14px',height:28,boxSizing:'border-box',display:'inline-flex',alignItems:'center',justifyContent:'center',borderRadius:0}}>EDIT</button>
                     </div>
                   )}
                   {showArchived && <div style={{display:'flex',gap:6,marginTop:'auto',paddingTop:10}}>
@@ -920,7 +934,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
               </div>}
               {!showArchived && <div style={{display:'flex',justifyContent:'space-between',marginTop:'auto',paddingTop:8,gap:8}}>
                 {onPreview ? <button onClick={(e) => {e.stopPropagation(); onPreview(t.id)}} title="Preview this athlete's portal" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${isRefined5b() ? C.ac : C.cardBd}`,color: isRefined5b() ? C.ac : C.tm,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'0 14px',height:28,boxSizing:'border-box',borderRadius:0,display:'inline-flex',alignItems:'center',gap:6}}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>PORTAL</button> : <span/>}
-                <button onClick={(e) => {e.stopPropagation(); setForm({...t, _emails: emailsToArr(t.email)}); setEditId(t.id); setShowForm(true)}} style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'0 14px',height:28,boxSizing:'border-box',display:'inline-flex',alignItems:'center',justifyContent:'center',borderRadius:0}}>EDIT</button>
+                <button onClick={(e) => {e.stopPropagation(); setForm({...t, _emails: emailsToArr(t.email)}); editBaseRef.current = t; setEditId(t.id); setShowForm(true)}} style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'0 14px',height:28,boxSizing:'border-box',display:'inline-flex',alignItems:'center',justifyContent:'center',borderRadius:0}}>EDIT</button>
               </div>}
             </Card>);
           })}

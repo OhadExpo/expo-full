@@ -1230,7 +1230,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 97. [LOW] Roster edit modal replaces the whole trainee row with its open-time snapshot — concurrent updates (portal session decrement, status change) silently reverted on Update _[unverified]_
+## 97. [LOW] Roster edit modal replaces the whole trainee row with its open-time snapshot — concurrent updates (portal session decrement, status change) silently reverted on Update **[FIXED 2026-08-25]**
 
 **Where:** `src/TraineesView.jsx:596`
 
@@ -1242,7 +1242,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 98. [LOW] useFullPlan.load has no stale-request guard — rapid program switches can resolve out of order _[unverified]_
+## 98. [LOW] useFullPlan.load has no stale-request guard — rapid program switches can resolve out of order **[FIXED 2026-08-25]**
 
 **Where:** `src/usePlansStore.js:145`
 

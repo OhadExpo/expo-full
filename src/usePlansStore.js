@@ -141,8 +141,14 @@ export function usePlanIndex() {
 export function useFullPlan() {
   const [plan, setPlan] = useState(null);
   const [loading, setLoading] = useState(false);
+  // Stale-request guard, mirroring useAthletePlans below. Without it, switching
+  // programs quickly let a SLOW earlier fetch resolve last and overwrite the
+  // program the coach actually opened — they would then be editing one athlete's
+  // block while looking at another's name (audit 08-22 #98).
+  const reqRef = useRef(0);
 
   const load = useCallback(async (planId) => {
+    const myReq = ++reqRef.current;
     setLoading(true);
     let loaded = null;
     try {
@@ -174,17 +180,19 @@ export function useFullPlan() {
             || data.data?.isTemplatePurchase === true
             || /^(\[expo\]|expo · |expo - )/i.test(data.name || ''),
         };
-        setPlan(loaded);
+        if (myReq === reqRef.current) setPlan(loaded);
       }
     } catch (e) { console.error('useFullPlan load error:', e); }
-    setLoading(false);
+    if (myReq === reqRef.current) setLoading(false);
     // Return the loaded plan (or null on missing/denied/error) so callers can
     // gate on success — e.g. the editor only enters edit mode when a plan
     // actually loaded, instead of getting stuck on a permanent "Loading…".
     return loaded;
   }, []);
 
-  const clear = useCallback(() => setPlan(null), []);
+  // Bumping the counter also cancels any in-flight load, so a pending fetch
+  // cannot repopulate a plan the caller just cleared.
+  const clear = useCallback(() => { reqRef.current++; setPlan(null); setLoading(false); }, []);
 
   return { plan, loading, load, clear, setPlan };
 }
