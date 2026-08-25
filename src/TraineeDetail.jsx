@@ -707,9 +707,11 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             Programs render at the bottom of the page (after Overload chart),
             grouped per member, instead of inline inside each column. */}
         <div className="td-couple-row" style={{display:'flex',gap:12}}>
-          {renderMemberColumn(td.members[0], 0, false)}
+          {/* A null element in members[] used to white-screen the ENTIRE trainee
+              detail page rather than degrade one column (audit 08-22 #94). */}
+          {renderMemberColumn(td.members[0] || {}, 0, false)}
           <div className="td-couple-divider" style={{width:1,background:`${C.cardBd}`,alignSelf:'stretch',flexShrink:0}} />
-          {renderMemberColumn(td.members[1], 1, false)}
+          {renderMemberColumn(td.members[1] || {}, 1, false)}
         </div>
       </> : <>
 

@@ -60,7 +60,17 @@ ok('no data → ratio null', acwrFromDaily({}, '2026-01-28').ratio === null);
 const ms = monotonyStrain([400, 0, 300, 0, 500, 0, 0]);
 ok('monotony computed', ms.monotony != null && ms.monotony > 0);
 ok('strain = monotony × weekLoad', near(ms.strain, ms.monotony * ms.weekLoad, 0.001));
-ok('flat week → higher monotony than spiky', monotonyStrain([200, 200, 200, 200, 200, 200, 200]).monotony === null ? true : monotonyStrain([200, 200, 200, 200, 200, 200, 200]).monotony > ms.monotony);
+// An IDENTICAL-load week is the most monotonous week there is (sd = 0, so
+// Foster's mean/SD is infinite). It used to return null and was reported as
+// "no data", so it never tripped the >= 2 flag — audit 08-22 #62. This test
+// previously tolerated that null, which is how it survived.
+const flatWk = monotonyStrain([200, 200, 200, 200, 200, 200, 200]);
+ok('identical-load week yields a monotony value, not null', flatWk.monotony != null);
+ok('and it is flagged as high (>= 2)', flatWk.monotony >= 2);
+ok('flat week → higher monotony than spiky', flatWk.monotony > ms.monotony);
+ok('and its strain follows monotony x weekLoad', near(flatWk.strain, flatWk.monotony * flatWk.weekLoad, 0.001));
+// Zero load all week is genuinely nothing to report.
+ok('all-zero week stays null', monotonyStrain([0, 0, 0, 0, 0, 0, 0]).monotony === null);
 ok('empty → nulls', monotonyStrain([]).monotony === null);
 
 console.log(`\nverify-acwr: ${pass} passed, ${fail} failed`);

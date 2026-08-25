@@ -88,7 +88,13 @@ export function monotonyStrain(dailyLoads) {
   const mean = weekLoad / n;
   const variance = arr.reduce((s, x) => s + (x - mean) ** 2, 0) / n;
   const sd = Math.sqrt(variance);
-  const monotony = sd > 0 ? mean / sd : null;
+  // Foster's monotony is mean/SD, so an IDENTICAL-load week (sd = 0) is the most
+  // monotonous week possible — mathematically infinite. Returning null there
+  // reported the worst case as "no data" and it never tripped the >= 2 flag
+  // (audit 08-22 #62). Cap it instead: still clearly flagged, still a number
+  // downstream arithmetic can survive. sd = 0 with NO load is genuinely nothing.
+  const MONOTONY_CAP = 10;
+  const monotony = sd > 0 ? mean / sd : (mean > 0 ? MONOTONY_CAP : null);
   const strain = monotony != null ? monotony * weekLoad : null;
   return { mean, sd, monotony, strain, weekLoad };
 }
