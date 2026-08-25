@@ -147,7 +147,7 @@ const REVIEW_TOOLS = [
     useWhen: 'See a movement in 3D — orbit it, scrub the rep, read joint angles.',
     needsTitle: true,  live: false },
   { key: 'metrics', label: 'LIFT METRICS', icon: 'trendingUp',
-    measures: 'Bar speed (VBT) + velocity-loss · ROM + tempo + collapse flags',
+    measures: 'Bar speed (VBT) + per-goal stop-set cutoff · ROM/tempo/collapse · L/R symmetry',
     useWhen: 'Pull the numbers off a recorded set — fatigue, depth, tempo.',
     needsTitle: true,  live: false },
   { key: 'jump',    label: 'JUMP TEST', icon: 'zap',
