@@ -53,6 +53,7 @@ const suites = [
   'verify-ball-track.mjs',           // ball detection + launch angle — every REFUSAL case matters more than the happy path
   'verify-shot-session.mjs',        // session-level consistency: the spread across reps, which survives camera obliquity
   'verify-shot-i18n.mjs',           // every i18n key the Shot Analyzer renders must exist in BOTH languages
+  'verify-no-duplicate-keys.mjs',   // a key defined twice in one object is silent: JS keeps the last, no warning
   'verify-lift-channel.mjs',        // channelFromTitle — which JOINT the rep counter watches; a wrong one silently counts 0 reps
   'verify-plan-copy.mjs',            // copying a day to another athlete must carry the VIDEO — the athlete cannot read the library
   'verify-shot-detect.mjs',          // detectShots gates on synthetic skeletons — a squat, arms-up-no-dip and standing still must NOT count as shots
