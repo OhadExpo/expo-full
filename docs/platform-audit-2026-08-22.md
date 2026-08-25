@@ -1180,7 +1180,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 93. [LOW] AthletePicker allows the same athlete twice in one batch — duplicate cards, two history rows on finish _[unverified]_
+## 93. [LOW] AthletePicker allows the same athlete twice in one batch — duplicate cards, two history rows on finish **[FIXED 2026-08-25]**
 
 **Where:** `src/SessionsView.jsx:739`
 

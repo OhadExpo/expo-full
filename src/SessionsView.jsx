@@ -806,7 +806,18 @@ function AthletePicker({ trainees, planIndex, existing = [], clientWorkouts = []
       return { traineeId: r.traineeId, planId: r.planId, dayIdx: Number(r.dayIdx) || 0, dayName: plan?.dayNames?.[r.dayIdx] || '', week: Number(r.week) || dfltWeek(r) };
     });
     if (!picks.length) { toast('Pick at least one athlete + program.', 'warn'); return; }
-    onConfirm(picks);
+    // Two rows can name the SAME athlete on the same program/day/week — each
+    // picker row lists every athlete, so nothing stopped it. That produced two
+    // cards for one person and two history rows on finish (audit 08-22 #93).
+    const seen = new Set();
+    const unique = picks.filter((p) => {
+      const k = `${p.traineeId}|${p.planId}|${p.dayIdx}|${p.week}`;
+      if (seen.has(k)) return false;
+      seen.add(k); return true;
+    });
+    const dropped = picks.length - unique.length;
+    if (dropped) toast(`Skipped ${dropped} duplicate ${dropped === 1 ? 'athlete' : 'athletes'}.`, 'warn');
+    onConfirm(unique);
   };
 
   return createPortal((
