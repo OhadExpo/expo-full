@@ -41,6 +41,19 @@ const APPLY = process.argv.includes('--apply');
     const data = JSON.parse(JSON.stringify(plan.data));
     let touched = 0;
     for (const f of list) {
+      // Warm-up steps hang off the PLAN, not off a day.
+      if (f.field === 'warmAdd') {
+        data.warmup = data.warmup || [];
+        // Never add the same step twice.
+        const already = data.warmup.some((w) => String(w.t || '').toLowerCase() === String(f.value.t || '').toLowerCase());
+        if (already) { skipped++; continue; }
+        data.warmup.push(f.value); touched++; continue;
+      }
+      if (f.field === 'warmVid') {
+        const w = (data.warmup || [])[f.warmIdx];
+        if (!w) { skipped++; continue; }
+        w.vid = f.value; touched++; continue;
+      }
       // By INDEX — plan data contains duplicate day ids.
       const day = (data.days || [])[f.dayIdx];
       if (!day) { skipped++; continue; }
@@ -69,6 +82,16 @@ const APPLY = process.argv.includes('--apply');
     const { data: plan } = await s.from('plans').select('data').eq('id', planId).single();
     if (!plan) { bad += list.length; continue; }
     for (const f of list) {
+      if (f.field === 'warmAdd') {
+        const hit = (plan.data.warmup || []).some((w) => String(w.t || '').toLowerCase() === String(f.value.t || '').toLowerCase());
+        if (hit) ok++; else bad++;
+        continue;
+      }
+      if (f.field === 'warmVid') {
+        const w = (plan.data.warmup || [])[f.warmIdx];
+        if (w && String(w.vid || '') === String(f.value || '')) ok++; else bad++;
+        continue;
+      }
       const day = (plan.data.days || [])[f.dayIdx];
       const row = day && (day.exercises || day.ex || [])[f.rowIdx];
       if (!row) { bad++; continue; }

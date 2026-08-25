@@ -67,7 +67,7 @@ for (const [trainee, slug, fileId] of SHEETS) {
 }
 
 console.log('\n================ COMBINED ================');
-const cats = ['missingBlock', 'missingDay', 'missingRow', 'extraRow', 'sets', 'reps', 'tempo', 'notes', 'superset', 'url'];
+const cats = ['missingBlock', 'missingDay', 'missingRow', 'extraRow', 'sets', 'reps', 'tempo', 'notes', 'superset', 'warmup', 'url'];
 console.log('athlete'.padEnd(22) + 'rows  cmp  ' + cats.map((c) => c.slice(0, 6).padStart(7)).join('') + '   TOTAL');
 const totals = Object.fromEntries(cats.map((c) => [c, 0]));
 const allFixes = [];

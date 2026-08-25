@@ -112,15 +112,41 @@ function parseWorkbook(path) {
       cur.rows.push({
         n: num,
         title,
-        // The URL can hang off the title cell or the Vid cell.
+        // The URL can hang off the title cell OR the Vid cell, and they are not
+        // always the same link — taking only the first missed real videos.
         url: link(r, cols.title) || (cols.vid != null ? link(r, cols.vid) : ''),
+        urlAlt: (cols.vid != null ? link(r, cols.vid) : '') || link(r, cols.title),
         tempo: cols.tempo != null ? rowVals[cols.tempo] : '',
         sets: cols.sets != null ? rowVals[cols.sets] : '',
         reps: cols.reps != null ? rowVals[cols.reps] : '',
         notes: cols.notes != null ? rowVals[cols.notes] : '',
       });
     }
-    blocks.push({ tab, days: days.filter((d) => d.rows.length) });
+    // WARM-UP. It sits above the day tables under a "Warm-Up" header, in its
+    // own column, and carries its own hyperlinks. The audit walked only day
+    // rows for a long time, so every warm-up video was invisible to it — an
+    // adversarial spot-check against the raw sheets is what surfaced this.
+    const warmup = [];
+    outer:
+    for (let r = range.s.r; r <= Math.min(range.e.r, range.s.r + 12); r++) {
+      for (let c = range.s.c; c <= range.e.c; c++) {
+        if (!/^warm[\s-]?up\s*:?\s*$/i.test(val(r, c))) continue;
+        for (let rr = r + 1; rr <= Math.min(range.e.r, r + 14); rr++) {
+          const t = val(rr, c);
+          if (!t) break;
+          if (/^(#|day\s)/i.test(t)) break;
+          // "High BW Step-Up (1x10 E)" -> title + prescription
+          const m = t.match(/^(.*?)\s*\(([^)]*)\)\s*$/);
+          const wt = clean(m ? m[1] : t);
+          // A bare number is the Vid column's index, not a warm-up exercise —
+          // some blocks put that column right under a "Warm-Up" header.
+          if (!wt || /^\d+[a-z]?$/i.test(wt) || wt.length < 4) continue;
+          warmup.push({ title: wt, rx: clean(m ? m[2] : ''), url: link(rr, c) });
+        }
+        break outer;
+      }
+    }
+    blocks.push({ tab, warmup, days: days.filter((d) => d.rows.length) });
   }
   return blocks;
 }
@@ -160,7 +186,7 @@ if (require.main !== module) { /* imported for parseWorkbook only */ } else (asy
   }
 
   const sheetBlocks = parseWorkbook(XLSX_PATH);
-  const gaps = { missingBlock: [], missingDay: [], missingRow: [], extraRow: [], title: [], sets: [], reps: [], tempo: [], notes: [], url: [], superset: [], rehosted: [] };
+  const gaps = { missingBlock: [], missingDay: [], missingRow: [], extraRow: [], title: [], sets: [], reps: [], tempo: [], notes: [], url: [], superset: [], warmup: [], rehosted: [] };
   let compared = 0;
   // Machine-applicable fixes: exact plan id + day + row index, so the
   // applier never has to re-match anything by string.
@@ -184,6 +210,27 @@ if (require.main !== module) { /* imported for parseWorkbook only */ } else (asy
       gaps.missingBlock.push(`${sb.tab} (${rows} rows) — no app plan`);
       continue;
     }
+    // Warm-up steps are stored as { t, rx, vid } on the plan, not on a day.
+    const appWarm = plan.data?.warmup || [];
+    for (const sw of sb.warmup) {
+      if (!sw.url) continue;
+      const wi = appWarm.findIndex((w) => norm(w.t) === norm(sw.title) || canonKey(w.t) === canonKey(sw.title));
+      if (wi < 0) {
+        gaps.warmup.push(`${sb.tab} / warm-up / ${sw.title} — not in the app's warm-up`);
+        // Restore the step the sheet says belongs here. Purely additive.
+        fixes.push({ planId: plan.id, field: 'warmAdd', value: { t: sw.title, rx: sw.rx, vid: clean(sw.url).replace(/&amp;/g, '&') }, where: `${sb.tab} / warm-up / ${sw.title}` });
+        continue;
+      }
+      const have = clean(appWarm[wi].vid || '');
+      if (!have) {
+        gaps.warmup.push(`${sb.tab} / warm-up / ${sw.title} — sheet has a video, app has NONE`);
+        fixes.push({ planId: plan.id, warmIdx: wi, field: 'warmVid', value: clean(sw.url).replace(/&amp;/g, '&'), where: `${sb.tab} / warm-up / ${sw.title}` });
+      } else if (normUrl(have) !== normUrl(sw.url) && !isRehosted(have)) {
+        gaps.warmup.push(`${sb.tab} / warm-up / ${sw.title} — differs`);
+        fixes.push({ planId: plan.id, warmIdx: wi, field: 'warmVid', value: clean(sw.url).replace(/&amp;/g, '&'), where: `${sb.tab} / warm-up / ${sw.title}` });
+      }
+    }
+
     const appDays = plan.data?.days || [];
     // One app day may be claimed by only ONE sheet day. Without this, two sheet
     // days both matched the same app day and wrote fixes to the same row index —
@@ -283,6 +330,7 @@ if (require.main !== module) { /* imported for parseWorkbook only */ } else (asy
             fixes.push({ planId: plan.id, dayIdx: adIdx, rowIdx: match.idx, field: 'videoUrl', value: sheetUrl, reason: 'app had none', where });
           }
           else if (isRehosted(effective) || isRehosted(sr.url)) gaps.rehosted.push(`${where} — re-hosted copy`);
+          else if (sr.urlAlt && normUrl(effective) === normUrl(sr.urlAlt)) { /* the row's other link — agrees */ }
           else if (normUrl(effective) !== normUrl(sr.url)) {
             gaps.url.push(`${where}\n      sheet: ${normUrl(sr.url).slice(0, 58)}\n      app:   ${normUrl(effective).slice(0, 58)}`);
             fixes.push({ planId: plan.id, dayIdx: adIdx, rowIdx: match.idx, field: 'videoUrl', value: sheetUrl, reason: 'differs from sheet', where });
@@ -300,7 +348,7 @@ if (require.main !== module) { /* imported for parseWorkbook only */ } else (asy
   const sheetRows = sheetBlocks.reduce((a, b) => a + b.days.reduce((x, d) => x + d.rows.length, 0), 0);
   console.log(`\n=== ${XLSX_PATH.split(/[\\/]/).pop()} → ${TRAINEE} ===`);
   console.log(`sheet: ${sheetBlocks.length} blocks, ${sheetRows} exercise rows | app plans matched: ${byBlock.size} | rows compared: ${compared}`);
-  const order = ['missingBlock', 'missingDay', 'missingRow', 'extraRow', 'sets', 'reps', 'tempo', 'notes', 'superset', 'url'];
+  const order = ['missingBlock', 'missingDay', 'missingRow', 'extraRow', 'sets', 'reps', 'tempo', 'notes', 'superset', 'warmup', 'url'];
   let total = 0;
   for (const k of order) { if (k !== 'extraRow') total += gaps[k].length; console.log(`  ${k.padEnd(13)} ${gaps[k].length}`); }
   console.log(`  ${'TOTAL GAPS'.padEnd(13)} ${total}`);
