@@ -135,8 +135,8 @@ const STRINGS = {
   'inside.shot.tag':     { en: 'SHOT',              he: 'זריקה' },
   'inside.shot.h':       { en: 'Jump-shot analyzer', he: 'ניתוח זריקה' },
   'inside.shot.d': {
-    en: 'Film a jump shot and get it back split into dip, set point, release and follow-through — ten checkpoints scored against coaching bands, each one with the fix.',
-    he: 'תצלם זריקה ותקבל אותה מפורקת לדיפ, נקודת סט, שחרור וליווי — עשר נקודות בדיקה מול טווחי אימון, וכל אחת עם התיקון שלה.',
+    en: 'Film a jump shot and get it back split into dip, set point, release and follow-through — ten checkpoints scored against coaching bands, each one with the fix. Film a set and it reads the reps together, says whether the release actually repeats, and names the one to watch.',
+    he: 'תצלם זריקה ותקבל אותה מפורקת לדיפ, נקודת סט, שחרור וליווי — עשר נקודות בדיקה מול טווחי אימון, וכל אחת עם התיקון שלה. תצלם סדרה והוא יקרא את כל החזרות יחד, יגיד לך אם השחרור באמת חוזר על עצמו, ויצביע על החזרה ששווה לבדוק.',
   },
   'inside.shot.foot':    { en: '10 CHECKPOINTS · PHASE BY PHASE', he: '10 נקודות בדיקה · שלב אחר שלב' },
 
