@@ -16,7 +16,7 @@ By severity: 17 high · 39 medium · 47 low
 > Findings still marked _[unverified]_ below were verified as ALREADY FIXED by an
 > earlier wave and left as-is.
 
-## 1. [HIGH] Stacked Modal+ConfirmDialog closing in one commit strands body overflow:hidden — page permanently unscrollable _[unverified]_
+## 1. [HIGH] Stacked Modal+ConfirmDialog closing in one commit strands body overflow:hidden — page permanently unscrollable **[VERIFIED FIXED 2026-08-25]**
 
 **Where:** `C:/Users/Administrator/Desktop/expo-full/src/ui.jsx:719`
 
@@ -28,7 +28,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 2. [HIGH] Whole-roster Lift session is silently dropped — Save enabled but logTeamSession rejects zero-load lifts _[unverified]_
+## 2. [HIGH] Whole-roster Lift session is silently dropped — Save enabled but logTeamSession rejects zero-load lifts **[VERIFIED FIXED 2026-08-25]**
 
 **Where:** `src/BhbcView.jsx:2177`
 
@@ -40,7 +40,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 3. [HIGH] Head Coach Report shows every next game as 'Away' — boolean home passed to the isBH() name matcher _[unverified]_
+## 3. [HIGH] Head Coach Report shows every next game as 'Away' — boolean home passed to the isBH() name matcher **[VERIFIED FIXED 2026-08-25]**
 
 **Where:** `src/BhbcView.jsx:1226`
 
@@ -66,7 +66,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 5. [HIGH] One Escape press closes the whole evaluation editor through stacked overlays — full manual eval discarded _[unverified]_
+## 5. [HIGH] One Escape press closes the whole evaluation editor through stacked overlays — full manual eval discarded **[VERIFIED FIXED 2026-08-25]**
 
 **Where:** `src/EvaluationEditor.jsx:378`
 
@@ -134,7 +134,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 10. [HIGH] Outer component defined inside render — entire card remounts every keystroke, composer loses focus per character _[unverified]_
+## 10. [HIGH] Outer component defined inside render — entire card remounts every keystroke, composer loses focus per character **[VERIFIED FIXED 2026-08-25]**
 
 **Where:** `src/NotesInline.jsx:156`
 
@@ -146,7 +146,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 11. [HIGH] Library-cue snapshot seeded into ex.n is dead — athletes never see cues for picker-added/swapped exercises _[unverified]_
+## 11. [HIGH] Library-cue snapshot seeded into ex.n is dead — athletes never see cues for picker-added/swapped exercises **[VERIFIED FIXED 2026-08-25]**
 
 **Where:** `src/PlansView.jsx:1717`
 
@@ -158,7 +158,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 12. [HIGH] addExWithId never snapshots videoUrl — newly added exercises have no demo video on the athlete portal _[unverified]_
+## 12. [HIGH] addExWithId never snapshots videoUrl — newly added exercises have no demo video on the athlete portal **[VERIFIED FIXED 2026-08-25]**
 
 **Where:** `src/PlansView.jsx:1721`
 
@@ -170,7 +170,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 13. [HIGH] Previous-week ghost never matches portal-logged workouts — eid scheme mismatch, no title fallback _[unverified]_
+## 13. [HIGH] Previous-week ghost never matches portal-logged workouts — eid scheme mismatch, no title fallback **[VERIFIED FIXED 2026-08-25]**
 
 **Where:** `src/SessionsView.jsx:121`
 
@@ -270,7 +270,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 21. [MEDIUM] Escape closes every stacked dialog at once — inner confirm's Escape also discards the outer edit modal _[unverified]_
+## 21. [MEDIUM] Escape closes every stacked dialog at once — inner confirm's Escape also discards the outer edit modal **[VERIFIED FIXED 2026-08-25]**
 
 **Where:** `C:/Users/Administrator/Desktop/expo-full/src/ui.jsx:679`
 
@@ -282,7 +282,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 22. [MEDIUM] Focus traps of stacked dialogs fight — Tab is pinned to the top dialog's first control, Confirm button unreachable by keyboard _[unverified]_
+## 22. [MEDIUM] Focus traps of stacked dialogs fight — Tab is pinned to the top dialog's first control, Confirm button unreachable by keyboard **[VERIFIED FIXED 2026-08-25]**
 
 **Where:** `C:/Users/Administrator/Desktop/expo-full/src/ui.jsx:699`
 
@@ -954,7 +954,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 75. [LOW] DayChip border interpolates a literal '${C.cardBd}' string — invalid CSS, chips render borderless _[unverified]_
+## 75. [LOW] DayChip border interpolates a literal '${C.cardBd}' string — invalid CSS, chips render borderless **[FIXED 2026-08-25]**
 
 **Where:** `src/CoachDemo.jsx:2696`
 
@@ -1296,7 +1296,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 102. [LOW] Compact-shape mapping drops the per-row video override — library video shown where coach overrode or cleared it _[unverified]_
+## 102. [LOW] Compact-shape mapping drops the per-row video override — library video shown where coach overrode or cleared it **[FIXED 2026-08-25]**
 
 **Where:** `src/WorkoutsView.jsx:355`
 

@@ -379,6 +379,12 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
       // logger silently falls back to the base placeholder (audit 08-22 #17).
       wk: e.wk,
       wkS: e.wkS,
+      // The per-row video override must survive too (audit 08-22 #102). Without
+      // it the logger fell back to the library clip on old-shape plans — 174 of
+      // 209 — showing a video the coach had overridden, or one they had
+      // deliberately CLEARED. `??` keeps the three states apart: undefined
+      // inherits, '' means "no video here", a url wins.
+      videoUrl: e.videoUrl ?? e.vid,
     })) : []);
     // Week comes from the picker (chosen before entering the logger). Fall back
     // to the athlete's next un-logged week for this plan+day if none passed.

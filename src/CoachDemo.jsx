@@ -2693,7 +2693,9 @@ function DayChip({ children, muted }) {
       fontFamily: FN, fontSize: 9, letterSpacing: 1.5, fontWeight: 700,
       color: muted ? C.td : C.ac,
       background: muted ? 'transparent' : C.acD,
-      border: `1px solid ${muted ? C.bd : '${C.cardBd}'}`,
+      // The non-muted branch was the literal text ${C.cardBd} in quotes, so the
+      // border was invalid CSS and the chip rendered with none (audit 08-22 #75).
+      border: `1px solid ${muted ? C.bd : C.cardBd}`,
       borderRadius: 0, padding: '3px 8px', whiteSpace: 'nowrap',
     }}>{children}</span>
   );
