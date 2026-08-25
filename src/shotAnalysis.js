@@ -196,7 +196,16 @@ export function detectShots(series, fps, opts = {}) {
     requireAboveHead: opts.requireAboveHead !== false,
   };
   const { sm, raw, tMs, n } = series;
-  const minGapMs = 700;
+  // Two releases closer together than this are the SAME rep seen twice — the
+  // follow-through, the catch, or the rebound reading as a second shot.
+  //
+  // 700 was too low. On Ohad's 11-rep clip a twelfth "shot" appeared 933ms
+  // after the eleventh and passed every gate, which would have shown him 12
+  // shots for 11 reps and dragged the session spread with a rep that does not
+  // exist. His real gaps are 3.62-4.55s, so the floor has enormous room; 1200
+  // still leaves space for a fast catch-and-shoot drill (~2s) while putting the
+  // duplicate well outside.
+  const minGapMs = 1200;
   const cands = [];
 
   // Releases are LOCAL PEAKS of wrist height, one per attempt. (Scanning
@@ -477,10 +486,15 @@ export function scoreShot(series, c, { statureCm = null, shotType = 'mid' } = {}
     // eleven, and it read 17 degrees.
     const wp = (series.raw && series.raw.wristPos && series.raw.wristPos[c.release]) || null;
     const origin = wp ? { x: wp.x * K, y: wp.y * K } : null;
-    const tr = trackBall(frames, origin ? { origin } : {});
-    if (!tr) return { failed: 'no track', frames: frames.length, blobs: frames.reduce((a, f) => a + f.blobs.length, 0) };
-    const la = launchAngle(tr.points, tMs[c.release], tr.ballPx);
-    if (!la) return { failed: 'track rejected', frames: frames.length, n: tr.points.length, fit: tr.fit, ballPx: tr.ballPx };
+    // Collect WHY when it fails. An untracked rep used to be indistinguishable
+    // from one that was never filmed, both for the coach and for anyone trying
+    // to improve the tracker.
+    const stats = {};
+    const tr = trackBall(frames, { ...(origin ? { origin } : {}), stats });
+    if (!tr) return { failed: 'no track', frames: frames.length, blobs: frames.reduce((a, f) => a + f.blobs.length, 0), stats };
+    const out = {};
+    const la = launchAngle(tr.points, tMs[c.release], tr.ballPx, out);
+    if (!la) return { failed: 'track rejected', why: out.why, frames: frames.length, n: tr.points.length, fit: tr.fit, ballPx: tr.ballPx, stats };
     return la;
   })();
 
