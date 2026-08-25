@@ -259,7 +259,36 @@ export function launchAngle(points, releaseMs = null, ballPx = 0) {
 
   const angleDeg = Math.atan2(vy, Math.abs(vx)) * 180 / Math.PI;
   if (!(angleDeg > 15 && angleDeg < 80)) return null;   // outside any real jump shot
-  return { angleDeg: Math.round(angleDeg * 10) / 10, fit: Math.round(quad.r2 * 1000) / 1000, n: p.length };
+
+  // REAL-WORLD UNITS. The ball's apparent size is a ruler: it is 0.24 m across,
+  // always. So once the flight is tracked, the pixel scale is known and the same
+  // fit yields metres and metres-per-second — no extra measurement, no
+  // calibration step, nothing for the coach to enter.
+  //
+  //   speed  = |v| at the release
+  //   rise   = how far ABOVE the release point the ball peaks, v_y^2 / 2g,
+  //            using the gravity this clip actually measured rather than 9.81
+  //            in assumed units.
+  let speedMs = null, riseM = null;
+  if (ballPx > 0) {
+    const mPerPx = BALL_DIAMETER_M / ballPx;
+    speedMs = Math.hypot(vx, vy) * mPerPx;
+    const gPx = -2 * quad.a;                      // px/s2, measured from this flight
+    if (gPx > 0) riseM = (vy * vy) / (2 * gPx) * mPerPx;
+    // Sanity: a jump shot leaves the hand at roughly 3-11 m/s and peaks less
+    // than 4 m above the release. Outside that the scale is not trustworthy, so
+    // report nothing rather than a confident wrong number.
+    if (!(speedMs > 2 && speedMs < 14)) speedMs = null;
+    if (!(riseM > 0.05 && riseM < 4)) riseM = null;
+  }
+
+  return {
+    angleDeg: Math.round(angleDeg * 10) / 10,
+    fit: Math.round(quad.r2 * 1000) / 1000,
+    n: p.length,
+    speedMs: speedMs == null ? null : Math.round(speedMs * 10) / 10,
+    riseM: riseM == null ? null : Math.round(riseM * 100) / 100,
+  };
 }
 
 // --- small least-squares helpers (no dependencies) --------------------------

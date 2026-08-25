@@ -452,6 +452,9 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
               // Measured from the BALL. Blank when the ball could not be tracked
               // confidently — an empty tile beats a confident wrong angle.
               [T.info.ballLaunch, shot.info.ballLaunchDeg != null ? shot.info.ballLaunchDeg + '°' : '—'],
+              // Scaled off the ball itself — no calibration, nothing to enter.
+              [T.info.ballSpeed, shot.info.ballSpeedMs != null ? shot.info.ballSpeedMs + ' m/s' : '—'],
+              [T.info.ballRise, shot.info.ballRiseM != null ? shot.info.ballRiseM + ' m' : '—'],
               [T.info.releaseVsApex, shot.raw.timing == null ? '—' : (shot.raw.timing > 0 ? '+' : '') + Math.round(shot.raw.timing) + ' ms'],
               [T.info.tracked, shot.info.coverage != null ? T.ofFrames(Math.round(shot.info.coverage * 100)) : '—']].map(([k, v]) => (
               <div key={k} style={{ border: '1px solid rgba(255,255,255,0.12)', padding: '6px 8px', minHeight: 46, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}><div style={lbl}>{k}</div><div style={{ fontFamily: FN, fontSize: 14, fontWeight: 700 }}>{v}</div></div>
