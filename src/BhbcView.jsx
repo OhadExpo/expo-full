@@ -1491,7 +1491,10 @@ function HeadCoachReport({ rows, fx, fixtures, medical, today, onOpen, onMedical
                   title={clickable ? (pl ? 'Edit this session’s plan' : 'Add a plan for this session') : undefined}
                   className={clickable ? 'bhbc-row' : undefined}
                   style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: clickable ? 'pointer' : 'default', padding: '2px 0' }}>
-                  <span style={{ fontFamily: FN, fontWeight: 700, fontSize: 11.5, color: C.tx, width: 78, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{s.date === today ? 'Today' : `${dow(s.date)} ${monDay(s.date)}`}</span>
+                  {/* 96 + nowrap, same as the past-practice list: at 78px some dates
+                      wrapped to two lines and others did not, so the column read
+                      ragged down the card. */}
+                  <span style={{ fontFamily: FN, fontWeight: 700, fontSize: 11.5, color: C.tx, width: 96, flexShrink: 0, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{s.date === today ? 'Today' : `${dow(s.date)} ${monDay(s.date)}`}</span>
                   <span style={{ fontFamily: FN, fontSize: 11.5, fontWeight: 700, color: FX_COLOR[s.type] || NAVY, width: 46, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{s.start}</span>
                   {/* The descriptive label is the token that gives way: at 390px the
                       fixed date + time columns plus this label pushed the + PLAN action
