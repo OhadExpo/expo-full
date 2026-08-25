@@ -978,7 +978,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 77. [LOW] Deep link to an unknown trainee id renders a blank Athletes tab _[unverified]_
+## 77. [LOW] Deep link to an unknown trainee id renders a blank Athletes tab **[FIXED 2026-08-25]**
 
 **Where:** `src/CoachDemo.jsx:573`
 
@@ -1096,7 +1096,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 86. [LOW] 'kickback' (hip) outweighs 'tricep' (elbow) — Tricep Kickback rep-counts on the static hip _[unverified]_
+## 86. [LOW] 'kickback' (hip) outweighs 'tricep' (elbow) — Tricep Kickback rep-counts on the static hip **[FIXED 2026-08-25]**
 
 **Where:** `src/liftDetect.js:119`
 

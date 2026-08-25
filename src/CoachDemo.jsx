@@ -570,7 +570,10 @@ function DemoTrainees({ selected, onSelect, onClear, returnTab }) {
   const [sortDir, setSortDir] = useState('asc');
   if (selected) {
     const t = MOCK_TRAINEES.find(x => x.id === selected);
-    if (!t) return null;
+    // An unknown id used to render NOTHING — a deep link to a stale athlete id
+    // left the visitor staring at a blank tab (audit 08-22 #77). Fall back to
+    // the roster instead of a white page.
+    if (!t) { onClear && onClear(); return null; }
     return <DemoTraineeDetail trainee={t} onBack={onClear} backLabel="← BACK" />;
   }
   const q = search.trim().toLowerCase();

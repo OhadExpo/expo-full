@@ -20,7 +20,7 @@
 // decisive margin — always reporting `source` and `disagreement` so the coach
 // sees why, and can still force a channel with the existing override control.
 
-import { medianFilter, findPeaks, isReal } from './repCounter';
+import { medianFilter, findPeaks, isReal } from './repCounter.js';
 
 export const CHANNELS = {
   none:  [],
@@ -162,6 +162,9 @@ const DEFAULT_WEIGHT = (tok) => tok.trim().split(' ').length * 10 + tok.length;
 const WEIGHT = {
   calf: 60,          // "Squatting Calf Raise" is a calf raise, not a squat/raise
   curl: 45,          // "Cable Squatting Bicep Curl" reps on the elbow
+  tricep: 45,        // "Tricep Kickback" reps on the ELBOW — 'kickback' lives in
+                     // the hip group and was winning, so the counter watched a
+                     // joint that barely moves and reps stuck at 0 (audit #86)
   row: 40,           // "SLDL POS SA DB Row" reps on the elbow, SLDL is the stance
   squat: 30,         // must beat "trap bar", which only implies a hinge for DLs
   'trap bar': 25,
