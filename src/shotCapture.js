@@ -19,7 +19,7 @@
 //   [{ t(ms), landmarks (full-frame normalised), worldLandmarks (metric) }]
 // plus frames.dims, frames.fps, frames.windows and frames.stats.
 import { createPoseLandmarker } from './usePose';
-import { findBall } from './ballTrack';
+import { toGray, motionBlobs } from './ballTrack.js';
 
 const LM_HEAD = [0, 2, 5, 7, 8];
 const LM_BODY = [11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28];
@@ -231,6 +231,17 @@ export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineR
     const CROP = 512;
     canvas.width = CROP; canvas.height = CROP;
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    // A SECOND, small canvas holding the WHOLE frame at a fixed scale, used only
+    // to find the ball. It cannot share the pose crop: that crop follows the
+    // athlete and so moves between frames, and frame-differencing a moving
+    // window sees motion everywhere. This one never moves, so a difference
+    // between consecutive frames is real movement in the scene.
+    const MW = 270;
+    const mCanvas = document.createElement('canvas');
+    const MH = Math.max(1, Math.round(MW * vh / vw));
+    mCanvas.width = MW; mCanvas.height = MH;
+    const mctx = mCanvas.getContext('2d', { willReadFrequently: true });
+    let prevGray = null, prevGrayT = -1e9;
     lmFine = await createPoseLandmarker({ runningMode: 'IMAGE', quality: 'full', numPoses: 1 });
     const fine = [];
     const totalMs = windows.reduce((a, w) => a + (w.to - w.from), 0) || 1;
@@ -257,19 +268,32 @@ export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineR
           const sub = pickSubject(r?.landmarks, null);
           if (sub.idx >= 0 && r.worldLandmarks?.[sub.idx]) {
             const mapped = r.landmarks[sub.idx].map((p) => (p ? { x: (sx + p.x * sideLen) / vw, y: (sy + p.y * sideLen) / vh, z: p.z, visibility: p.visibility } : p));
-            // Look for the BALL in the upper part of the crop — at and after the
-            // release that is where it is, and restricting the search keeps a
-            // stray orange blob on the floor out of it entirely. Purely additive:
-            // a frame with no confident ball simply carries none, and the launch
-            // angle is only computed when enough of them describe a parabola.
-            let ball = null;
+            // Candidate BALL positions: small round things that moved since the
+            // previous frame, searched only above the athlete's waist because
+            // that is the only place a released ball can be. Nothing is decided
+            // here — a limb passes these tests too. Picking the ball out of the
+            // candidates is trackBall's job, and it needs a whole flight to do
+            // it. Purely additive: a frame with no candidates simply carries
+            // none, and the launch angle is only computed when enough of them
+            // describe a parabola that falls at gravity.
+            let blobs = null;
             try {
-              const bh2 = Math.round(CROP * 0.62);
-              const region = ctx.getImageData(0, 0, CROP, bh2);
-              const hit = findBall(region, { x0: 0, y0: 0, x1: CROP, y1: bh2 }, { step: 3, minPixels: 26 });
-              if (hit) ball = { x: (sx + (hit.x / CROP) * sideLen) / vw, y: (sy + (hit.y / CROP) * sideLen) / vh, r: (hit.r / CROP) * sideLen / vw };
-            } catch { /* canvas read blocked — carry on without a ball */ }
-            fine.push({ t: mt * 1000, landmarks: mapped, worldLandmarks: r.worldLandmarks[sub.idx], ball, fine: true });
+              mctx.drawImage(vid, 0, 0, vw, vh, 0, 0, MW, MH);
+              const g = toGray(mctx.getImageData(0, 0, MW, MH).data, MW, MH, 4);
+              const tNow = mt * 1000;
+              // Only difference against a frame that really is the one before —
+              // across a window boundary the gap is huge and everything "moved".
+              if (prevGray && tNow - prevGrayT > 0 && tNow - prevGrayT < 60) {
+                const yCut = Math.min(MH, Math.round((b.y0 + (b.y1 - b.y0) * 0.5) * MH));
+                // Reported in FRAME-HEIGHT fractions, the same isotropic unit the
+                // analysis uses for every other distance, so nothing downstream
+                // has to know the capture resolution.
+                blobs = motionBlobs(prevGray, g, MW, MH, { x0: 0, y0: 0, x1: MW, y1: yCut })
+                  .map((bb) => ({ x: bb.x / MH, y: bb.y / MH, w: bb.w / MH, h: bb.h / MH, n: bb.n }));
+              }
+              prevGray = g; prevGrayT = tNow;
+            } catch { /* canvas read blocked — carry on without ball candidates */ }
+            fine.push({ t: mt * 1000, landmarks: mapped, worldLandmarks: r.worldLandmarks[sub.idx], blobs, fine: true });
           }
           report(40 + ((doneMs + (mt * 1000 - w.from)) / totalMs) * 58, 'reading the shots');
         },

@@ -53,7 +53,26 @@
       relaxedShots: relaxedCycles.map((c) => Math.round(series.tMs[c.release])),
       relaxedRejects: dbg2.map((d) => d.t + ' ' + d.reason),
       analyzed: res.ok ? res.shots.map((s) => ({ i: s.index, t: Math.round(series.tMs[s.cycle.release]), score: s.score, ballDeg: s.info.ballLaunchDeg, ballFit: s.info.ballLaunchFit, ballN: s.info.ballSamples })) : null,
-      ballFramesSeen: frames.filter((f) => f.ball).length,
+      ballFramesSeen: frames.filter((f) => f.blobs && f.blobs.length).length,
+      // How far the nearest moving blob is from the shooting hand, in ball
+      // diameters, over the frames right after each release. This is the number
+      // the origin constraint compares against.
+      originProbe: cycles.map((c) => {
+        const wp = series.raw.wristPos[c.release];
+        if (!wp) return 'noWrist';
+        const out = [];
+        for (let k = c.release; k < Math.min(series.raw.ball.length, c.release + 12); k++) {
+          const bs = series.raw.ball[k];
+          if (!bs || !bs.length) { out.push('-'); continue; }
+          let bestD = 1e9, px = 1;
+          for (const b of bs) {
+            const d = Math.hypot(b.x - wp.x, b.y - wp.y);
+            if (d < bestD) { bestD = d; px = (b.w + b.h) / 2; }
+          }
+          out.push((bestD / Math.max(px, 1e-9)).toFixed(1));
+        }
+        return Math.round(series.tMs[c.release]) + ': ' + out.join(' ');
+      }),
       error: res.error || null,
     };
     say('done: ' + (r.analyzed ? r.analyzed.length : 0) + ' shots');
