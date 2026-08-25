@@ -14,8 +14,8 @@ By severity: 17 high · 39 medium · 47 low
 > documented in the code. Fixes shipped across commits `5fe72b0`, `1d9fdf4`,
 > `e416d93`, `29e64eb` and `f1ae2d1`, each verified live before moving on.
 > **STATUS 2026-08-26.** The last twelve findings that had never been verified
-> are now closed, each traced in the current code before being touched. Nine were
-> real and fixed: #60, #70, #71, #72, #76, #78, #79, #87, #88, #92 and #103 — eleven. One
+> are now closed, each traced in the current code before being touched. Eleven
+> were real and fixed: #60, #70, #71, #72, #76, #78, #79, #87, #88, #92 and #103. One
 > (#32) was already fixed by a later change and is marked as such. Every heading
 > in this file now carries a verdict; none is a lead.
 
