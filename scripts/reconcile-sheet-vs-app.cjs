@@ -316,8 +316,12 @@ if (require.main !== module) { /* imported for parseWorkbook only */ } else (asy
             gaps.superset.push(`${where}  sheet groups it as a superset (${sr.n}), app has NONE`);
             fixes.push({ planId: plan.id, dayIdx: adIdx, rowIdx: match.idx, field: 'superset', value: wantSS, where });
           } else if (gotSS.toUpperCase() !== wantSS) {
-            gaps.superset.push(`${where}  sheet group ${sr.n} -> ${wantSS}, app has ${gotSS}`);
-            fixes.push({ planId: plan.id, dayIdx: adIdx, rowIdx: match.idx, field: 'superset', value: wantSS, where });
+            // REPORT the disagreement, never auto-write it. The sheet's 3a/3b
+            // numbering derived a different grouping from the one the app held
+            // — the app had three distinct pairs and the derived version
+            // collapsed two of them into a group of four. The app's grouping
+            // was the better record. A superset fix may FILL A BLANK only.
+            gaps.superset.push(`${where}  sheet group ${sr.n} -> ${wantSS}, app has ${gotSS} (reported only — never overwritten)`);
           }
         }
         if (sr.url) {
