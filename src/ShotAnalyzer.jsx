@@ -10,6 +10,7 @@ import { captureShotFrames } from './shotCapture';
 import { getCamera, stopStream } from './usePose';
 import { detectShootingHand, analyzeShotClip, frameReadout, CHECKPOINTS, SHOT_TYPES } from './shotAnalysis';
 import { SHOT_I18N, localiseCheck } from './shotI18n';
+import { sessionSpread, sessionVerdict } from './shotSession.js';
 
 const STATUS = {
   ok:    { label: 'OK',    color: 'var(--c-gn, #2ED573)' },
@@ -503,33 +504,33 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
                 // A single rep's angle says little on a phone clip; the SPREAD
                 // across reps is the coachable thing, and it needs no extra
                 // measurement — the angles are already there.
-                const degs = result.shots.map((s) => s.info && s.info.ballLaunchDeg).filter((v) => v != null);
-                let spread = null;
-                if (degs.length >= 3) {
-                  const m = degs.reduce((a, b) => a + b, 0) / degs.length;
-                  const sd = Math.sqrt(degs.reduce((a, b) => a + (b - m) ** 2, 0) / degs.length);
-                  spread = {
-                    mean: Math.round(m * 10) / 10,
-                    sd: Math.round(sd * 10) / 10,
-                    lo: Math.round(Math.min(...degs) * 10) / 10,
-                    hi: Math.round(Math.max(...degs) * 10) / 10,
-                    n: degs.length,
-                    // 4 degrees is where a release stops being repeatable.
-                    tight: sd <= 4,
-                  };
-                }
+                // Session consistency across every tracked rep. Logic lives in
+                // src/shotSession.js so it is testable without a clip.
+                const spread = sessionSpread(result.shots);
+                const verdict = sessionVerdict(spread);
+                const band = (sp) => (sp && sp.tight ? '#37B27C' : '#E0A73A');
+                const row = (label, sp, unit) => (sp ? (
+                  <span style={{ marginRight: 14 }}>
+                    {label} <b style={{ color: '#FFF' }}>{sp.mean}{unit}</b>
+                    {' ± '}<b style={{ color: band(sp) }}>{sp.sd}{unit}</b>
+                    <span style={{ opacity: 0.7 }}> ({sp.lo}–{sp.hi})</span>
+                  </span>
+                ) : null);
                 return (
                   <div style={{ marginTop: 8, fontSize: 12.5, lineHeight: 1.55, color: 'rgba(255,255,255,0.8)' }}>
                     {T.sessionAvg} <b style={{ color: '#FFF' }}>{avg == null ? '—' : avg + '/100'}</b>
                     {top.length > 0
                       ? <> · {T.repeats}: {top.map(([l, n]) => `${l} (${n}/${result.shots.length})`).join(' · ')}</>
                       : <> · {T.noRepeats}</>}
-                    {spread && (
+                    {verdict && (
                       <div style={{ marginTop: 4 }}>
-                        {T.launchSpread} <b style={{ color: '#FFF' }}>{spread.mean}°</b>
-                        {' ± '}<b style={{ color: spread.tight ? '#37B27C' : '#E0A73A' }}>{spread.sd}°</b>
-                        {' '}({spread.lo}–{spread.hi}°, {T.launchSpreadOn(spread.n, result.shots.length)})
-                        {' — '}<span style={{ color: spread.tight ? '#37B27C' : '#E0A73A' }}>{spread.tight ? T.tight : T.loose}</span>
+                        {row(T.launchSpread, spread.angle, '°')}
+                        {row(T.spreadSpeed, spread.speed, ' m/s')}
+                        {row(T.spreadRise, spread.rise, ' m')}
+                        <div style={{ marginTop: 2, color: verdict === 'repeatable' ? '#37B27C' : '#E0A73A' }}>
+                          {verdict === 'speed' ? T.verdictSpeed : verdict === 'angle' ? T.verdictAngle : T.verdictOk}
+                          {spread.angle ? ' · ' + T.launchSpreadOn(spread.angle.n, result.shots.length) : ''}
+                        </div>
                       </div>
                     )}
                   </div>
