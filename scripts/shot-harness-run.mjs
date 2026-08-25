@@ -41,6 +41,7 @@ if (r) {
   console.log('relaxed rejects', r.relaxedRejects.length); r.relaxedRejects.forEach((x) => console.log('   -', x));
   console.log('ball frames seen:', r.ballFramesSeen);
   console.log('analyzed', r.analyzed ? r.analyzed.length : 0, JSON.stringify(r.analyzed));
+  if (r.originProbe) { console.log('origin probe (ball diameters from the shooting hand, per frame after release):'); for (const line of r.originProbe) console.log('  ', line); }
   if (r.error) console.log('error:', r.error);
 }
 await page.close();

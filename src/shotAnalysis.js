@@ -21,7 +21,7 @@
 // biomechanics and projectile mechanics, expressed as coach-readable bands.
 // They are bands, not laws: read them with the athlete in front of you.
 import { angleAt, medianFilter, findPeaks, isReal } from './repCounter.js';
-import { launchAngle } from './ballTrack.js';   // .js on purpose: this module is imported directly by node in the verify suites
+import { trackBall, launchAngle } from './ballTrack.js';   // .js on purpose: this module is imported directly by node in the verify suites
 
 // MediaPipe Pose indices.
 const I = {
@@ -84,7 +84,7 @@ export function buildSeries(frames, { hand = 'R', aspect = 9 / 16 } = {}) {
     tMs,
     knee: [], kneeOther: [], hip: [], elbow: [], shoulder: [], trunk: [],
     forearm: [], armElev: [], elbowAboveSho: [], wristEye: [], wristElbowX: [], hipY: [], wristY: [], ankleY: [], eyeY: [], headY: [],
-    torso: [], ruler: [], armAboveHead: [], visOk: [], visArm: [], visLegs: [], feetOk: [], ball: [],
+    torso: [], ruler: [], armAboveHead: [], visOk: [], visArm: [], visLegs: [], feetOk: [], ball: [], wristPos: [],
   };
   for (let k = 0; k < n; k++) {
     const f = frames[k];
@@ -122,6 +122,10 @@ export function buildSeries(frames, { hand = 'R', aspect = 9 / 16 } = {}) {
       s.armElev.push(Math.atan2(dy, Math.abs(dx)) * DEG + 90);  // 0..180
       s.elbowAboveSho.push(dy);
     } else { s.armElev.push(null); s.elbowAboveSho.push(null); }
+    // Where the shooting hand IS, in the same height-fraction unit as
+    // everything else. The ball leaves from here, which is what tells a real
+    // shot apart from some other object drifting across the upper frame.
+    s.wristPos.push(wr && vis(wr) ? { x: wr.x * aspect, y: wr.y } : null);
     s.wristEye.push(wr && eye && torso ? (eye.y - wr.y) / torso : null);
     s.hipY.push(hp ? -hp.y : null);
     s.wristY.push(wr ? -wr.y : null);
@@ -151,9 +155,9 @@ export function buildSeries(frames, { hand = 'R', aspect = 9 / 16 } = {}) {
     s.visArm.push(okArm);
     s.visLegs.push(okLegs);
     s.visOk.push(!!(el && wr && vis(el) && vis(wr)) && okLegs);
-    // The ball, when the capture found one. Kept in raw normalised coords; the
-    // launch-angle fit scales them to pixels itself.
-    s.ball.push(f.ball || null);
+    // Candidate ball positions from the capture's motion pass, already in a
+    // single isotropic pixel space, so they can be fitted as-is.
+    s.ball.push(f.blobs || null);
   }
   const sm = {};
   for (const k of ['knee', 'kneeOther', 'hip', 'elbow', 'shoulder', 'armElev', 'elbowAboveSho', 'trunk', 'forearm', 'wristEye', 'wristElbowX', 'hipY', 'wristY', 'ankleY', 'eyeY', 'headY', 'torso', 'ruler']) sm[k] = smooth(s[k]);
@@ -451,18 +455,31 @@ export function scoreShot(series, c, { statureCm = null, shotType = 'mid' } = {}
   // the points genuinely fit a projectile, so a bad detection run shows nothing
   // rather than a confident wrong number.
   const ballLaunch = (() => {
-    const balls = series.raw && series.raw.ball;
-    if (!Array.isArray(balls) || c.release < 0) return null;
-    const aspect = series.aspect || (9 / 16);
-    const pts = [];
-    for (let k = c.release; k < Math.min(balls.length, idxAtTime(tMs, tMs[c.release] + 600) + 1); k++) {
-      const bl = balls[k];
-      if (!bl) continue;
-      // Into a common pixel-ish space: x is scaled by the aspect so horizontal
-      // and vertical distances share a unit, matching the rest of this engine.
-      pts.push({ t: tMs[k], x: bl.x * 1000 * aspect, y: bl.y * 1000 });
+    const cands = series.raw && series.raw.ball;
+    if (!Array.isArray(cands) || c.release < 0) return null;
+    // From the release out to 700ms — long enough for the ball to clear the
+    // hand and show a full arc, short enough that it has not been caught,
+    // bounced or replaced by the next rep.
+    const end = Math.min(cands.length - 1, idxAtTime(tMs, tMs[c.release] + 700));
+    // x1000 purely so the fits work on comfortable numbers; the unit is the
+    // same height-fraction the whole engine uses, so it cancels everywhere.
+    const K = 1000;
+    const frames = [];
+    for (let k = c.release; k <= end; k++) {
+      if (Array.isArray(cands[k]) && cands[k].length) {
+        frames.push({ t: tMs[k], blobs: cands[k].map((b) => ({ x: b.x * K, y: b.y * K, w: b.w * K, h: b.h * K, n: b.n })) });
+      }
     }
-    return launchAngle(pts);
+    // The ball has to come OUT OF THE SHOOTING HAND. Without this, a ball
+    // already in flight from a previous rep — or anything else drifting across
+    // the upper frame — can fit a parabola perfectly well and be reported as
+    // this shot's launch. On the real clip exactly that happened once in
+    // eleven, and it read 17 degrees.
+    const wp = (series.raw && series.raw.wristPos && series.raw.wristPos[c.release]) || null;
+    const origin = wp ? { x: wp.x * K, y: wp.y * K } : null;
+    const tr = trackBall(frames, origin ? { origin } : {});
+    if (!tr) return null;
+    return launchAngle(tr.points, tMs[c.release], tr.ballPx);
   })();
 
   const defs = buildCheckpoints(shotType);
