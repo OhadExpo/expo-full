@@ -1813,7 +1813,20 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
   const removeExFromDay = (di, ei) => setPlan(p => ({...p, days: p.days.map((d, idx) => idx === di ? {...d, exercises: (d.exercises||[]).filter((_,i) => i !== ei)} : d)}));
   const handleSave = async () => {
     setSaving(true);
-    const snapshot = plan;            // exactly what onSave persists
+    // Land whatever the autosave already has in flight or pending BEFORE
+    // issuing the explicit write (audit #88). The autosave exists to serialize
+    // writes through one chain, and this call used to go straight round it: an
+    // upsert of an older snapshot already on the wire could resolve at Supabase
+    // AFTER the explicit save's upsert, leaving the row at the older state
+    // while the editor showed "✓ Saved" and marked itself clean. The coach's
+    // last edit was gone and nothing on screen said so.
+    //
+    // flush() returns the in-flight chain even when nothing is dirty, so this
+    // awaits the pending write either way, and the snapshot is taken after it
+    // so the explicit save carries the newest plan rather than the one that was
+    // on screen when the button was pressed.
+    await flushAutosave();
+    const snapshot = planRef.current; // latest, and after the chain has drained
     const ok = await onSave(snapshot);
     // Explicit save covered everything pending — clear dirty so the
     // visibilitychange/unmount paths don't issue a redundant write. BUT only
