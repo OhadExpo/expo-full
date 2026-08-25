@@ -1204,7 +1204,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 95. [LOW] Shared (parent-assigned) couple plans: coach visibility toggles write ':mN' keys the portal never reads — hide/Only would silently not apply _[unverified]_
+## 95. [LOW] Shared (parent-assigned) couple plans: coach visibility toggles write ':mN' keys the portal never reads — hide/Only would silently not apply **[FIXED 2026-08-25]**
 
 **Where:** `src/TraineeDetail.jsx:896`
 

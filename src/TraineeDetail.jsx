@@ -29,7 +29,7 @@ import CoachMessages from './CoachMessages';
 import CoachContractComposer from './CoachContractComposer';
 import TraineeEvaluation from './TraineeEvaluation';
 import TraineeIntake from './TraineeIntake';
-import { emailsToArr, emailsToStore, emailsDisplay, traineeIdsFor, subMemberId, sortProgramsChrono } from './traineeUtils';
+import { emailsToArr, emailsToStore, emailsDisplay, traineeIdsFor, subMemberId, sortProgramsChrono, memberIndexFromId } from './traineeUtils';
 import useAutosave, { autosaveStatusLabel } from './hooks/useAutosave';
 
 // A Bnei Herzliya athlete is a CLUB athlete: the club pays. Any of the three
@@ -365,7 +365,14 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
   const renderMemberColumn = (m, mi, showPrograms = true) => {
     const memberPlans = tpMember(mi);
     const sorted = [...memberPlans].sort((a,b)=>programSort==='alpha'?(a.name||'').localeCompare(b.name||''):sortProgramsChrono(a,b));
-    const memberVisKey = (p) => `${td.name}:${p.name}:m${mi}`;
+    // Mirror ClientPortal's key exactly: the ':mN' suffix belongs ONLY to a plan
+    // assigned to a member sub-id. A plan assigned to the couple's PARENT id is
+    // keyed without it, so always appending the suffix wrote a key the portal
+    // never reads and the visibility toggle silently did nothing (audit #95).
+    const memberVisKey = (p) => {
+      const idx = memberIndexFromId(p.traineeId, td.id);
+      return idx != null ? `${td.name}:${p.name}:m${idx}` : `${td.name}:${p.name}`;
+    };
     // Single-click "make this the only visible plan" for couple members.
     // Sets every sibling explicitly to false so default-undefined rows
     // don't bleed through as visible. Confined to this member's plans.
@@ -906,7 +913,14 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             const m = td.members[mi];
             const memberPlans = tpMember(mi);
             const sorted = [...memberPlans].sort((a,b)=>programSort==='alpha'?(a.name||'').localeCompare(b.name||''):sortProgramsChrono(a,b));
-            const memberVisKey = (p) => `${td.name}:${p.name}:m${mi}`;
+            // Mirror ClientPortal's key exactly: the ':mN' suffix belongs ONLY to a plan
+    // assigned to a member sub-id. A plan assigned to the couple's PARENT id is
+    // keyed without it, so always appending the suffix wrote a key the portal
+    // never reads and the visibility toggle silently did nothing (audit #95).
+    const memberVisKey = (p) => {
+      const idx = memberIndexFromId(p.traineeId, td.id);
+      return idx != null ? `${td.name}:${p.name}:m${idx}` : `${td.name}:${p.name}`;
+    };
             // Single-click "only this" within THIS couple member's plan list.
             const onlyThisCouple = (chosenKey) => {
               const nv = { ...(portalVis || {}) };
