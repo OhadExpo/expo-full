@@ -3617,7 +3617,7 @@ const DEMO_REVIEW_TOOLS = [
   { key: 'live', label: 'LIVE COACH', measures: 'Real-time reps + depth target + bar-path drift on the live feed', live: true },
   // Basketball. Parity with ReviewToolsView's registry — the demo listed four
   // tools while the real launcher shipped five (parity rule, 08-24).
-  { key: 'shot', label: 'SHOT ANALYZER', measures: 'Jump-shot mechanics frame by frame · dip, set point, release, timing, follow-through', live: false },
+  { key: 'shot', label: 'SHOT ANALYZER', measures: 'Jump-shot mechanics frame by frame · dip, set point, release, timing, follow-through · across a whole set: does the release repeat, and which rep does not', live: false },
 ];
 function DemoReviewTools() {
   const [title, setTitle] = useState('Back Squat');
