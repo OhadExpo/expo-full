@@ -176,14 +176,27 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
     const series = last14.map((d) => (rec.loads && rec.loads[d]) || 0);
     const rdates = Object.keys(rec.readiness || {}).sort();
     const readiness = readinessAutoreg((rdates.length ? rec.readiness[rdates[rdates.length - 1]] : null) || {});
-    const avail = (rec.availability && rec.availability[today]) || 1;
+    // Today's availability is at least as restrictive as any UNRESOLVED injury.
+    //
+    // Saving a medical record mirrors its status into availability for THAT DAY
+    // only, so an ongoing non-contact injury silently reverted to "Full" on every
+    // later day — the Head Coach Report then printed "0 LIMITED" directly under a
+    // Medical line reading "ANKLE LEFT SPRAIN · NON-CONTACT", contradicting itself
+    // on one card. The daily value is still the coach's call and can only make it
+    // WORSE, never better than the medical fact.
+    const dayAvail = (rec.availability && rec.availability[today]) || 1;
+    const injuryAvail = activeInjuries(medical || {}, t.id)
+      .reduce((worst, inj) => Math.max(worst, MEDICAL_STATUS_AVAIL[inj.status] || 1), 1);
+    const avail = Math.max(dayAvail, injuryAvail);
     // Foster monotony over the trailing 7 days (illness/overtraining risk) +
     // whether a wellness check-in exists for today — both feed the Coach's Brief.
     const ms = monotonyStrain(last14.slice(-7).map((d) => (rec.loads && rec.loads[d]) || 0));
     const checkedToday = !!(rec.readiness && rec.readiness[today]);
     const hasLoad = Object.values(rec.loads || {}).some((v) => v > 0);
     return { t, acwr, series, readiness, avail, ms, checkedToday, hasLoad };
-  }), [roster, bhbcLoads, today, last14]);
+  // medical is a dependency now: an active injury floors todays availability,
+  // so resolving or adding one has to recompute the rows.
+  }), [roster, bhbcLoads, today, last14, medical]);
 
   const team = useMemo(() => {
     const wr = rows.filter((r) => r.acwr.ratio != null);
@@ -446,8 +459,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
       return rec;
     });
     // Mirror the current status into availability for today (Out/Limited/etc).
-    const statusToAvail = { available: 1, limited: 2, 'non-contact': 3, out: 4 };
-    const av = statusToAvail[injury.status];
+    const av = MEDICAL_STATUS_AVAIL[injury.status];
     if (av && setBhbcLoads && !injury.resolved) {
       setBhbcLoads((prev) => {
         const r = prev[athleteId] ? { ...prev[athleteId] } : emptyRec();
@@ -2498,6 +2510,10 @@ const MED_STATUS = {
 };
 const BODY_PARTS = ['Ankle', 'Knee', 'Hip', 'Hamstring', 'Groin', 'Quad', 'Calf', 'Achilles', 'Lower back', 'Shoulder', 'Elbow', 'Wrist', 'Hand', 'Foot', 'Head / Concussion', 'Other'];
 const INJURY_TYPES = ['Strain', 'Sprain', 'Contusion', 'Tendinopathy', 'Overuse', 'Fracture', 'Dislocation', 'Illness', 'Other'];
+// A medical status expressed on the availability scale (1 full -> 4 out).
+// Shared by saveInjury (which mirrors it onto the day it is saved) and the
+// roster rows (which floor today's availability by any ACTIVE injury).
+const MEDICAL_STATUS_AVAIL = { available: 1, limited: 2, 'non-contact': 3, out: 4 };
 const activeInjuries = (medical, id) => ((medical[id] || {}).injuries || []).filter((i) => !i.resolved);
 
 function StatusPill({ status, small, full }) {
