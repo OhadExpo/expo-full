@@ -18,6 +18,7 @@ import { ThemeToggle } from './ThemeToggle';
 import { acwrFromDaily, sessionLoad, monotonyStrain } from './acwrEngine';
 import { readinessAutoreg } from './readinessAutoreg';
 import BWChart from './BwChart';
+import { sessionSig } from './bhbcSession.js';
 
 // EXPO's own group/single session logger — reused INSIDE the BHBC portal, scoped
 // to the BHBC roster. It writes to client_workouts (athlete-visible), so a BHBC
@@ -246,7 +247,10 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   // Edit / delete an already-logged session (Ohad 2026-08-21: sessions must be
   // fixable after the fact). Editing rewrites minutes — and load for sRPE
   // entries; deleting subtracts the entry's load so ACWR stays truthful.
-  const editSession = useCallback((athleteId, date, idx, newMin) => {
+  const editSession = useCallback((athleteId, date, idx, newMin, sig) => {
+    const cur = bhbcLoads && bhbcLoads[athleteId] && bhbcLoads[athleteId].sessions
+      && bhbcLoads[athleteId].sessions[date] && bhbcLoads[athleteId].sessions[date][idx];
+    if (sig != null && sessionSig(cur) !== sig) { toast('That session moved — reopen it'); return; }
     setBhbcLoads((prev) => {
       const rec = prev[athleteId]; if (!rec || !rec.sessions || !rec.sessions[date] || !rec.sessions[date][idx]) return prev;
       const out = { ...rec, sessions: { ...rec.sessions }, loads: { ...(rec.loads || {}) } };
@@ -263,9 +267,12 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
       return { ...prev, [athleteId]: out };
     });
     toast('Session updated'); notify();
-  }, [setBhbcLoads, notify]);
+  }, [setBhbcLoads, bhbcLoads, notify]);
 
-  const deleteSession = useCallback((athleteId, date, idx) => {
+  const deleteSession = useCallback((athleteId, date, idx, sig) => {
+    const cur = bhbcLoads && bhbcLoads[athleteId] && bhbcLoads[athleteId].sessions
+      && bhbcLoads[athleteId].sessions[date] && bhbcLoads[athleteId].sessions[date][idx];
+    if (sig != null && sessionSig(cur) !== sig) { toast('That session moved — reopen the list'); return; }
     setBhbcLoads((prev) => {
       const rec = prev[athleteId]; if (!rec || !rec.sessions || !rec.sessions[date] || !rec.sessions[date][idx]) return prev;
       const out = { ...rec, sessions: { ...rec.sessions }, loads: { ...(rec.loads || {}) } };
@@ -279,7 +286,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
       return { ...prev, [athleteId]: out };
     });
     toast('Session removed'); notify();
-  }, [setBhbcLoads, notify]);
+  }, [setBhbcLoads, bhbcLoads, notify]);
 
   const logSession = useCallback(({ athleteId, date, type, minutes, rpe, readiness }) => {
     const load = sessionLoad(minutes, rpe);
@@ -760,8 +767,8 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
           onOpenExpo={!asCoach && onOpenTrainee ? () => onOpenTrainee(detailFor) : null}
           onViewProgram={() => { setProgramFor(detailFor); setDetailFor(null); }}
           onCycleAvail={asCoach ? null : () => cycleAvail(detailFor, row.avail)}
-          onEditSession={asCoach ? null : (date, idx, min) => editSession(detailFor, date, idx, min)}
-          onDeleteSession={asCoach ? null : (date, idx) => deleteSession(detailFor, date, idx)} />;
+          onEditSession={asCoach ? null : (date, idx, min, sig) => editSession(detailFor, date, idx, min, sig)}
+          onDeleteSession={asCoach ? null : (date, idx, sig) => deleteSession(detailFor, date, idx, sig)} />;
       })()}
     </div>
   );
@@ -792,7 +799,7 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
   const activity = [];
   // Attendance-only gym entries (min/rpe unknown — Ohad logs presence, not load)
   // read "Gym · attended" instead of a bogus "Lift 0 min @ RPE 0".
-  Object.entries((rec && rec.sessions) || {}).forEach(([d, arr]) => (arr || []).forEach((s, idx) => activity.push({ date: d, label: !s.load ? `${s.start ? s.start + ' · ' : ''}Gym · ${s.min ? s.min + ' min' : 'attended'}` : `${s.start ? s.start + ' · ' : ''}${s.type} ${s.min} min @ RPE ${s.rpe}`, load: s.load || null, sess: { date: d, idx, min: s.min } })));
+  Object.entries((rec && rec.sessions) || {}).forEach(([d, arr]) => (arr || []).forEach((s, idx) => activity.push({ date: d, label: !s.load ? `${s.start ? s.start + ' · ' : ''}Gym · ${s.min ? s.min + ' min' : 'attended'}` : `${s.start ? s.start + ' · ' : ''}${s.type} ${s.min} min @ RPE ${s.rpe}`, load: s.load || null, sess: { date: d, idx, min: s.min, sig: sessionSig(s) } })));
   (workouts || []).forEach((w) => { const d = String(w.date || w.completedAt || '').slice(0, 10); const nEx = (w.exercises || []).length; const nSets = (w.exercises || []).reduce((a, e) => a + (e.sets || []).length, 0); if (d) activity.push({ date: d, label: `Gym · ${nEx} lift${nEx === 1 ? '' : 's'}, ${nSets} set${nSets === 1 ? '' : 's'}`, load: null }); });
   Object.entries((rec && rec.bw) || {}).forEach(([d, kg]) => activity.push({ date: d, label: `Bodyweight ${kg} kg`, load: null }));
   Object.entries((rec && rec.availability) || {}).forEach(([d, code]) => { if (code > 1) activity.push({ date: d, label: `Availability · ${AVAIL[code].label}`, load: null }); });
@@ -922,10 +929,10 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
                     <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flex: 1 }}>
                       <input autoFocus type="number" inputMode="numeric" min="0" value={editSess.min}
                         onChange={(e) => setEditSess({ ...editSess, min: e.target.value })}
-                        onKeyDown={(e) => { if (e.key === 'Enter') { onEditSession(editSess.date, editSess.idx, editSess.min); setEditSess(null); } if (e.key === 'Escape') setEditSess(null); }}
+                        onKeyDown={(e) => { if (e.key === 'Enter') { onEditSession(editSess.date, editSess.idx, editSess.min, editSess.sig); setEditSess(null); } if (e.key === 'Escape') setEditSess(null); }}
                         style={{ width: 64, fontFamily: FN, fontSize: 12, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '2px 6px' }} />
                       <span style={{ color: C.td }}>min</span>
-                      <button onClick={() => { onEditSession(editSess.date, editSess.idx, editSess.min); setEditSess(null); }} title="Save" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: '#37B27C', background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '2px 8px', cursor: 'pointer' }}>✓</button>
+                      <button onClick={() => { onEditSession(editSess.date, editSess.idx, editSess.min, editSess.sig); setEditSess(null); }} title="Save" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: '#37B27C', background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '2px 8px', cursor: 'pointer' }}>✓</button>
                       <button onClick={() => setEditSess(null)} title="Cancel" style={{ fontFamily: FN, fontSize: 10, color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '2px 8px', cursor: 'pointer' }}>✕</button>
                     </span>
                   ) : (
@@ -933,8 +940,8 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
                   )}
                   {a.sess && onEditSession && !(editSess && editSess.date === a.sess.date && editSess.idx === a.sess.idx) && (
                     <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 4, flexShrink: 0 }}>
-                      <button onClick={() => setEditSess({ date: a.sess.date, idx: a.sess.idx, min: a.sess.min || '' })} title="Edit minutes" className="bhbc-ghost-btn" style={{ fontFamily: FN, fontSize: 10, color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '1px 7px', cursor: 'pointer' }}>✎</button>
-                      {onDeleteSession && <button onClick={() => onDeleteSession(a.sess.date, a.sess.idx)} title="Delete session" className="bhbc-ghost-btn" style={{ fontFamily: FN, fontSize: 10, color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '1px 7px', cursor: 'pointer' }}>✕</button>}
+                      <button onClick={() => setEditSess({ date: a.sess.date, idx: a.sess.idx, min: a.sess.min || '', sig: a.sess.sig })} title="Edit minutes" className="bhbc-ghost-btn" style={{ fontFamily: FN, fontSize: 10, color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '1px 7px', cursor: 'pointer' }}>✎</button>
+                      {onDeleteSession && <button onClick={() => { setEditSess(null); onDeleteSession(a.sess.date, a.sess.idx, a.sess.sig); }} title="Delete session" className="bhbc-ghost-btn" style={{ fontFamily: FN, fontSize: 10, color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '1px 7px', cursor: 'pointer' }}>✕</button>}
                     </span>
                   )}
                   {a.load != null && <span style={{ marginLeft: a.sess && onEditSession ? 8 : 'auto', color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums', fontWeight: 700, flexShrink: 0 }}>{Math.round(a.load)}</span>}

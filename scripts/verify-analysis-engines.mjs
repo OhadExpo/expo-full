@@ -55,6 +55,7 @@ const suites = [
   'verify-ball-track.mjs',           // ball detection + launch angle — every REFUSAL case matters more than the happy path
   'verify-no-duplicate-keys.mjs',   // a key defined twice in one object is silent: JS keeps the last, no warning
   'verify-tool-parity.mjs',         // the demo's camera-tool list must mirror the real launcher's — it has drifted before
+  'verify-session-sig.mjs',         // audit #70: editing a BHBC session by a stale INDEX writes to the wrong session
   'verify-shot-detect.mjs',          // detectShots gates on synthetic skeletons — a squat, arms-up-no-dip and standing still must NOT count as shots
   'verify-trainee-utils.mjs',        // couple identity + the PostgREST-injection guard + the canonical program sort
   'verify-exercise-match.mjs',       // applyMatch — the riskiest writer in the app: it rewrites rows inside real athletes' programs
