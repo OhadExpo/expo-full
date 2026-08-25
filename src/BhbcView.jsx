@@ -490,6 +490,18 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
           .bhbc-header-ctrl{order:2!important;padding:8px 0!important}
           .bhbc-hdr-tabs{order:3!important;flex-basis:100%!important;width:100%!important;justify-content:flex-start!important;border-top:1px solid rgba(255,255,255,0.12)!important}
           .bhbc-hdr-tabs button{height:46px!important;padding:0 13px!important}
+          /* The injury row is a fixed 5-column grid (150px 1fr 120px 110px auto)
+             — about 430px before gaps, so on a phone it ran a good 130px past
+             the viewport and the 'Update ›' target sat off-screen entirely.
+             Restack it: name + status, then the injury, then days/pain + the
+             action. Explicit areas because auto-placement reorders once one
+             child spans the row. */
+          .bhbc-inj-row{grid-template-columns:1fr auto!important;gap:5px 10px!important}
+          .bhbc-inj-row>:nth-child(1){grid-area:1/1!important}
+          .bhbc-inj-row>:nth-child(3){grid-area:1/2!important;justify-self:end!important}
+          .bhbc-inj-row>:nth-child(2){grid-area:2/1/auto/-1!important}
+          .bhbc-inj-row>:nth-child(4){grid-area:3/1!important}
+          .bhbc-inj-row>:nth-child(5){grid-area:3/2!important;justify-self:end!important}
         }
       `}</style>
       {/* ---- ZONE TOP BAR — logo + wordmark + inline nav tabs + controls, one
@@ -2556,7 +2568,7 @@ function MedicalView({ roster, medical, canMedical = true, onReport, onEdit, onO
             {rows.map(({ t, inj }) => {
               const days = inj.onsetDate ? dayDiff(todayISO(), inj.onsetDate) : null;
               return (
-                <div key={t.id + inj.id} className="bhbc-row" onClick={() => canMedical && onEdit(t.id, inj.id)} style={{ display: 'grid', gridTemplateColumns: '150px 1fr 120px 110px auto', gap: 12, alignItems: 'center', padding: '11px 0', borderBottom: `0.25px solid ${C.cardBd}`, cursor: canMedical ? 'pointer' : 'default' }}>
+                <div key={t.id + inj.id} className="bhbc-row bhbc-inj-row" onClick={() => canMedical && onEdit(t.id, inj.id)} style={{ display: 'grid', gridTemplateColumns: '150px 1fr 120px 110px auto', gap: 12, alignItems: 'center', padding: '11px 0', borderBottom: `0.25px solid ${C.cardBd}`, cursor: canMedical ? 'pointer' : 'default' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
                     <span style={{ display: 'inline-block', width: 18, textAlign: 'right', flexShrink: 0, fontFamily: FN, fontSize: 11, fontWeight: 700, color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums' }}>{t.jersey ?? '—'}</span>
                     <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>

@@ -20,6 +20,26 @@ const j = await (await fetch('http://localhost:9222/json/version')).json();
 const browser = await puppeteer.connect({ browserWSEndpoint: j.webSocketDebuggerUrl, protocolTimeout: 120000 });
 const page = await browser.newPage();
 await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+
+// This app routes on window.location.pathname, NOT the hash — a URL like
+// /#/coach/bhbc renders the portal chooser, not the page. Use real paths.
+// A dual-role account still meets the chooser on a cold profile; the choice
+// survives a reload, so click through it once and carry on.
+async function enterCoach(page, url, sleepFn) {
+  const onChooser = await page.evaluate(() => /CHOOSE YOUR PORTAL/i.test(document.body.innerText));
+  if (!onChooser) return false;
+  // The chooser card is a real <button> ("ManageCoachTasks, athletes & plans
+  // ENTER") — a synthetic click on the inner text node does nothing.
+  for (const h of await page.$$('button')) {
+    const txt = await h.evaluate((n) => (n.textContent || '').trim());
+    if (/^Manage/i.test(txt)) { await h.click(); break; }
+  }
+  await sleepFn(1800);
+  await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
+  await sleepFn(2800);
+  return true;
+}
+
 const report = [];
 for (const r of routes) {
   const slug = r.replace(/[^a-z0-9]+/gi, '_').replace(/^_|_$/g, '') || 'root';
@@ -27,6 +47,8 @@ for (const r of routes) {
     await page.goto(BASE + r, { waitUntil: 'domcontentloaded', timeout: 30000 });
     await page.waitForFunction(() => !/LOADING DATA/i.test(document.body.innerText), { timeout: 40000 }).catch(() => {});
     await sleep(2500);
+    await enterCoach(page, BASE + r, sleep);
+    await page.waitForFunction(() => !/LOADING DATA/i.test(document.body.innerText), { timeout: 40000 }).catch(() => {});
     // dashboard: make sure the Tasks section is expanded so the board is measured
     if (/dashboard/.test(r)) {
       await page.evaluate(() => {
