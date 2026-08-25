@@ -130,6 +130,16 @@ const STRINGS = {
   'inside.pose.depth':   { en: 'DEPTH 92%',         he: 'עומק 92%' },
   'inside.pose.foot':    { en: '33 LANDMARKS · LITE MODEL', he: '33 נקודות · מודל LITE' },
 
+  // Phone 4 — jump-shot analyzer. Numbers here must match the real engine:
+  // buildCheckpoints() in src/shotAnalysis.js returns exactly 10.
+  'inside.shot.tag':     { en: 'SHOT',              he: 'זריקה' },
+  'inside.shot.h':       { en: 'Jump-shot analyzer', he: 'ניתוח זריקה' },
+  'inside.shot.d': {
+    en: 'Film a jump shot and get it back split into dip, set point, release and follow-through — ten checkpoints scored against coaching bands, each one with the fix.',
+    he: 'תצלם זריקה ותקבל אותה מפורקת לדיפ, נקודת סט, שחרור וליווי — עשר נקודות בדיקה מול טווחי אימון, וכל אחת עם התיקון שלה.',
+  },
+  'inside.shot.foot':    { en: '10 CHECKPOINTS · PHASE BY PHASE', he: '10 נקודות בדיקה · שלב אחר שלב' },
+
   // Phone 2 — rep counter
   'inside.rep.tag':      { en: 'REP COUNT',         he: 'ספירת חזרות' },
   'inside.rep.h':        { en: 'Auto rep counter',  he: 'ספירת חזרות אוטומטית' },
@@ -155,9 +165,10 @@ const STRINGS = {
   'inside.cmp.foot':     { en: 'ROM +6° · TEMPO MATCH', he: 'ROM +6° · טמפו תואם' },
 
   // Footer line
+  // Counts the cards in WhatsInside — keep it in step when a card is added.
   'inside.note': {
-    en: 'All three are included in every program — no separate add-on, no extra charge.',
-    he: 'שלושתם נכללים בכל תוכנית. בלי תוסף, בלי תשלום נוסף.',
+    en: 'All four are included in every program — no separate add-on, no extra charge.',
+    he: 'כולם נכללים בכל תוכנית. בלי תוסף, בלי תשלום נוסף.',
   },
 
   // CTA from WhatsInside section to the public sandbox at expo-app.co.il/demo/trainee.
@@ -496,6 +507,12 @@ const STRINGS = {
     he: 'תגרור את הסליידר כדי לעבור לאורך הסקוואט — זוויות הברך והירך מתעדכנות בזמן אמת, בדיוק כמו שהפורטל עושה על קליפ אמיתי.',
   },
   'demo.pose.scrub':  { en: 'SQUAT PHASE',          he: 'שלב הסקוואט' },
+  'demo.shot.h':      { en: 'Jump shot · interactive', he: 'זריקה · אינטראקטיבי' },
+  'demo.shot.body': {
+    en: 'Drag through the shot — the phase, the elbow angle and the ball all move together, the same way the analyzer walks a real clip frame by frame.',
+    he: 'תגרור לאורך הזריקה — השלב, זווית המרפק והכדור זזים ביחד, בדיוק כמו שהניתוח עובר על קליפ אמיתי פריים אחרי פריים.',
+  },
+  'demo.shot.scrub':  { en: 'SHOT PHASE',           he: 'שלב הזריקה' },
   'demo.rep.h':       { en: 'Rep counter · interactive', he: 'ספירת חזרות · אינטראקטיבי' },
   'demo.rep.body': {
     en: "Tap the bar to add a rep. The path lights a trough at each tap — that's exactly how the portal counts off your real video.",
