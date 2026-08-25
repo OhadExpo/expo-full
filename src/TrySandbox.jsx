@@ -12,6 +12,7 @@ import { fmtPrettyDate } from './dates';
 import { C, FN, FB } from './theme';
 import { safeUrl } from './VideoEmbed';
 import { EXPOMark } from './expoMark';
+import { todayLocalISO } from './dates';
 import {
   ANGLE_DEFS, angleAt, detectChannels, medianFilter, findPeaks, SMOOTH_N,
 } from './repCounter';
@@ -1013,7 +1014,8 @@ function TraineeHomeMock({ onPick }) {
   const submitBw = () => {
     const v = parseFloat(bwInput);
     if (!Number.isFinite(v)) return;
-    const today = new Date().toISOString().slice(0, 10);
+    // Local, not UTC — same trap as audit #80/#44.
+    const today = todayLocalISO();
     setBwLog(arr => [...arr.filter(b => b.date !== today), { date: today, bw: v }].sort((a, b) => a.date.localeCompare(b.date)));
     setBwInput('');
   };

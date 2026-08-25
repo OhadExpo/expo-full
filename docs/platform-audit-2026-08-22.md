@@ -770,7 +770,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 61. [LOW] Gym page hardcodes Instagram handle @expo_il, bypassing the declared single source of truth (CONTACT.instagram = @ohadaptable) _[unverified]_
+## 61. [LOW] Gym page hardcodes Instagram handle @expo_il, bypassing the declared single source of truth (CONTACT.instagram = @ohadaptable) **[CONFIRMED — needs Ohad: is @expo_il the gym’s own account? Not a code fix]**
 
 **Where:** `expo-il/src/Gym.jsx:725`
 
@@ -1014,7 +1014,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 80. [LOW] Demo fixture 'today' computed via UTC toISOString — dates drift a day during 00:00–03:00 Asia/Jerusalem _[unverified]_
+## 80. [LOW] Demo fixture 'today' computed via UTC toISOString — dates drift a day during 00:00–03:00 Asia/Jerusalem **[FIXED 2026-08-25]**
 
 **Where:** `src/demoTraineeData.js:93`
 

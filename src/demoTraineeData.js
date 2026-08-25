@@ -1,3 +1,4 @@
+import { todayLocalISO } from './dates';
 // Mock dataset for /demo/trainee. Mirrors the real ClientPortal data shape so
 // the page renders the actual production component — no separate demo UI.
 // Exercise IDs reference real seeded library entries so videos resolve.
@@ -90,7 +91,10 @@ export const DEMO_PLANS = [
 ];
 
 const today = new Date();
-const daysAgo = n => { const d = new Date(today); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
+// Local calendar date, not UTC. toISOString() here made every demo fixture jump
+// back a day between local midnight and 03:00 in Israel (audit 08-22 #80), so
+// the demo showed "yesterday" as today to anyone browsing late at night.
+const daysAgo = n => { const d = new Date(today); d.setDate(d.getDate() - n); return todayLocalISO(d); };
 
 // These rows are already in the CONSUMED (post-normalization) shape that
 // ClientPortal reads — camelCase keys, `exercises[]` each with per-set
