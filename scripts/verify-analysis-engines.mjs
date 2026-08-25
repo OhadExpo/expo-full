@@ -50,6 +50,7 @@ const suites = [
   // --- 2026-08-25 live-sync ---
   'verify-session-merge.mjs',        // mergeIncomingSession — two coach devices on the floor must not revert each other (audit #43)
   'verify-auto-tasks.mjs',           // the outreach throttle — one card per athlete on the dashboard, and the __sources the mark-done fan-out closes
+  'verify-ball-track.mjs',           // ball detection + launch angle — every REFUSAL case matters more than the happy path
   'verify-shot-detect.mjs',          // detectShots gates on synthetic skeletons — a squat, arms-up-no-dip and standing still must NOT count as shots
   'verify-trainee-utils.mjs',        // couple identity + the PostgREST-injection guard + the canonical program sort
   'verify-exercise-match.mjs',       // applyMatch — the riskiest writer in the app: it rewrites rows inside real athletes' programs

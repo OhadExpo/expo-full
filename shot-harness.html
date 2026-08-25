@@ -52,7 +52,8 @@
       strictRejects: dbg.map((d) => d.t + ' ' + d.reason),
       relaxedShots: relaxedCycles.map((c) => Math.round(series.tMs[c.release])),
       relaxedRejects: dbg2.map((d) => d.t + ' ' + d.reason),
-      analyzed: res.ok ? res.shots.map((s) => ({ i: s.index, t: Math.round(series.tMs[s.cycle.release]), score: s.score })) : null,
+      analyzed: res.ok ? res.shots.map((s) => ({ i: s.index, t: Math.round(series.tMs[s.cycle.release]), score: s.score, ballDeg: s.info.ballLaunchDeg, ballFit: s.info.ballLaunchFit, ballN: s.info.ballSamples })) : null,
+      ballFramesSeen: frames.filter((f) => f.ball).length,
       error: res.error || null,
     };
     say('done: ' + (r.analyzed ? r.analyzed.length : 0) + ' shots');

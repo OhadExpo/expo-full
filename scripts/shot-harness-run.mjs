@@ -39,6 +39,7 @@ if (r) {
   console.log('strict rejects', r.strictRejects.length); r.strictRejects.forEach((x) => console.log('   -', x));
   console.log('relaxed shots', r.relaxedShots.length, JSON.stringify(r.relaxedShots));
   console.log('relaxed rejects', r.relaxedRejects.length); r.relaxedRejects.forEach((x) => console.log('   -', x));
+  console.log('ball frames seen:', r.ballFramesSeen);
   console.log('analyzed', r.analyzed ? r.analyzed.length : 0, JSON.stringify(r.analyzed));
   if (r.error) console.log('error:', r.error);
 }
