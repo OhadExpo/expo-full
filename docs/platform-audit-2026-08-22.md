@@ -782,7 +782,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 62. [LOW] Monotony blind spot: sd=0 with positive load returns null, so a maximally monotonous week is never flagged _[unverified]_
+## 62. [LOW] Monotony blind spot: sd=0 with positive load returns null, so a maximally monotonous week is never flagged **[FIXED 2026-08-25]**
 
 **Where:** `src/acwrEngine.js:91`
 
@@ -928,7 +928,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 73. [LOW] Fixture rows without a `start` key crash the Overview/Schedule sorts (future trap) _[unverified]_
+## 73. [LOW] Fixture rows without a `start` key crash the Overview/Schedule sorts (future trap) **[FIXED 2026-08-25]**
 
 **Where:** `src/BhbcView.jsx:1270`
 
@@ -1192,7 +1192,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 94. [LOW] Corrupt couple member (null element in members[]) white-screens the whole trainee detail page — the roster card guards this exact state, the detail page doesn't _[unverified]_
+## 94. [LOW] Corrupt couple member (null element in members[]) white-screens the whole trainee detail page — the roster card guards this exact state, the detail page doesn't **[FIXED 2026-08-25]**
 
 **Where:** `src/TraineeDetail.jsx:706`
 

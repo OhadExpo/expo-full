@@ -211,7 +211,9 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   }, [rows, roster, bhbcLoads, last14, last28]);
 
   const fx = useMemo(() => {
-    const items = (bhbcFixtures || []).slice().sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start));
+    // A fixture with no `start` made this concatenate 'undefined' and made the
+    // sort at line ~1084 throw outright (audit 08-22 #73).
+    const items = (bhbcFixtures || []).slice().sort((a, b) => `${a.date || ''}${a.start || ''}`.localeCompare(`${b.date || ''}${b.start || ''}`));
     const upcoming = items.filter((f) => f.date >= today);
     const nextGame = upcoming.find((f) => f.type === 'game') || null;
     const byDay = [];
@@ -1081,7 +1083,7 @@ function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave, sess
     const p = up.find((f) => f.type === 'practice') || up[0];
     return p ? p.date : todayISO();
   });
-  const dayFx = (fixtures || []).filter((f) => f.date === date).slice().sort((a, b) => a.start.localeCompare(b.start));
+  const dayFx = (fixtures || []).filter((f) => f.date === date).slice().sort((a, b) => String(a.start || '').localeCompare(String(b.start || '')));
   // WHICH session on that date. A day can hold a morning and an evening
   // practice; without this the log silently landed on the first one and the
   // second was unrecordable.
