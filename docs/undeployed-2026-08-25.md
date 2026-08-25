@@ -15,7 +15,7 @@ audit. `git diff origin/master bhbc-hub` shows **no change at all** outside
 `shotAnalysis.js`, `shotCapture.js`, `shot-harness.html`, `expo-il/src/i18n.js`
 and `expo-il/src/App.jsx` are all **identical** on master and the branch.
 
-Verified live in production by code marker rather than by a deploy dashboard:
+Production is level with master (). Verified by code marker rather than by a deploy dashboard:
 the `ShotAnalyzer` chunk production serves contains "Release speed", "Clean
 mechanics", "of the reps repeat", "watch rep" and "could not be followed" — all
 five of today's strings.
@@ -90,30 +90,23 @@ Every DATA repair is in Supabase and is live now:
    column at all). `docs/missing-videos.md` ranks them by how many plan rows
    each would fix.
 
-## The deploy pipeline itself
+## The deploy pipeline itself — CAUGHT UP
 
-**The one thing on this list that needs you and cannot be done from here.**
+Production is now serving `5479db8`, which is master. Nothing is waiting.
 
-GitHub `master` is `5479db8`. Production is serving the `70b9dcd` build — **five
-commits behind**:
+Proved two ways rather than asserted:
 
-| SHA | What production does not have |
-|---|---|
-| `6a520a4` | demo parity: the analyzer's session read; the tool-parity gate |
-| `8c14300` | the launcher's Lift Metrics blurb, two features behind the demo |
-| `866c0da` | **BHBC #70** — editing a session by a stale index writes to the WRONG session |
-| `e883866` | **BHBC #71** — a Practice edited to 0 minutes becomes a gym attendance row |
-| `5479db8` | BHBC #72 blank page; the marketing skip-link fix |
+- **String markers.** Production's chunks contain "That session moved" (#70),
+  "Minutes must be more than 0" (#71), "per-goal stop-set cutoff" (the corrected
+  Lift Metrics blurb) and "which rep does not" (the analyzer's session read), as
+  well as all five of the Shot Analyzer's new strings.
+- **Chunk hash.** #72's fix contains no string that survives minification, so
+  that one was checked by building `5479db8` locally and comparing: both the
+  local build and production serve `BhbcView-CmQyIREI.js`. Identical hash means
+  identical bytes, so the deployed bundle IS that commit.
 
-Measured, not inferred: production's `BhbcView` chunk contains **0** occurrences
-of "That session moved" and "Minutes must be more than 0", both of which are in
-`866c0da` and `e883866`.
-
-The pipeline was stopped all day, cleared one batch this evening — that is how
-the Shot Analyzer work reached production, and it is verified live — and has not
-moved since. Every build and every test suite passes locally on the exact tree
-that was pushed, so this is Vercel-side. **Open the Vercel dashboard.**
-
-The two BHBC fixes waiting in that queue are the ones worth caring about: both
-silently write to the wrong session's record and subtract the wrong load from an
-athlete's ACWR.
+It was not smooth. The pipeline was stopped for most of the day, cleared one
+batch in the evening, stopped again for about an hour, then cleared the rest. If
+a push appears not to arrive, check by code marker — not by the deploy list, and
+not by reloading the page, which the service worker will happily answer from
+cache.
