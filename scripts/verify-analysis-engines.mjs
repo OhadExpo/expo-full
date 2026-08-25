@@ -53,6 +53,7 @@ const suites = [
   'verify-shot-session.mjs',        // session-level consistency: the spread across reps, which survives camera obliquity
   'verify-shot-i18n.mjs',           // every i18n key the Shot Analyzer renders must exist in BOTH languages
   'verify-ball-track.mjs',           // ball detection + launch angle — every REFUSAL case matters more than the happy path
+  'verify-no-duplicate-keys.mjs',   // a key defined twice in one object is silent: JS keeps the last, no warning
   'verify-shot-detect.mjs',          // detectShots gates on synthetic skeletons — a squat, arms-up-no-dip and standing still must NOT count as shots
   'verify-trainee-utils.mjs',        // couple identity + the PostgREST-injection guard + the canonical program sort
   'verify-exercise-match.mjs',       // applyMatch — the riskiest writer in the app: it rewrites rows inside real athletes' programs
