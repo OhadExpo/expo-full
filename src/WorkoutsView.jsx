@@ -494,7 +494,28 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
       try { await supabase.realtime.setAuth(); } catch { /* surfaced below */ }
       if (disposed) return;
       ch.subscribe((status) => {
-        if (status === 'SUBSCRIBED') { subscribedRef.current = true; ping(activeRef.current); }
+        if (status === 'SUBSCRIBED') {
+          subscribedRef.current = true;
+          ping(activeRef.current);
+          // AND push what the coach has already typed. A sync-request only
+          // PULLS; broadcasts sent before the channel finished subscribing were
+          // swallowed. So on slow gym wifi the coach could type the first set's
+          // load during the ~1s join window, have it dropped, and the portal —
+          // already open on the athlete's phone — would never learn about it,
+          // then blank those values from the athlete's own finish() as
+          // untouched prefills. The group session already does this (audit F4);
+          // the single logger was missed (audit #103).
+          //
+          // The portal applies sync-state fill-empty-only, so this cannot
+          // clobber anything the athlete has entered himself.
+          const a = activeRef.current;
+          if (a && a.traineeId) {
+            const exercises = (a.exercises || []).map(ex => ({ sets: (ex.sets || []).map(s2 => ({ reps: s2.reps, load: s2.load, rpe: s2.rpe, done: s2.done })) }));
+            if (exercises.some(x => x.sets.some(s2 => s2.reps || s2.load || s2.rpe || s2.done))) {
+              try { ch.send({ type: 'broadcast', event: 'sync-state', payload: { traineeId: a.traineeId, planName: a.planName, dayName: a.dayName, week: a.week, exercises } }); } catch { /* not ready */ }
+            }
+          }
+        }
         else if (status === 'CHANNEL_ERROR') console.warn('[live-sync] coach 1-on-1 channel not authorized for', tid);
       });
     })();
