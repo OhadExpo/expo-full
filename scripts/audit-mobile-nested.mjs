@@ -157,6 +157,12 @@ await openModal('/coach/bhbc', null, 'LOG PRACTICE', 'bhbc > log practice', 'min
   else report('bhbc > athlete detail [open]', await measure());
 }
 
+// The main coach app has the same blind spot. EDIT on an athlete row opens the
+// Edit Athlete modal — the one the 08-22 audit found stacking a ConfirmDialog
+// on top of it, so it is worth a phone measurement.
+await openModal('/coach/athletes', null, '^EDIT$', 'coach > edit athlete', 'archive|save|phone|email');
+await openModal('/coach/tasks', null, '^Board$', 'coach > tasks board', 'to do|doing|done|no tasks');
+
 console.log(fails ? `\n${fails} surface(s) overflow at 390px` : '\nall nested surfaces clear at 390px');
 await page.close();
 await browser.disconnect();
