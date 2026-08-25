@@ -1,15 +1,29 @@
-# What is on `bhbc-hub` and NOT on `master` — 2026-08-25
+# What is on `bhbc-hub` and NOT on `master` — updated 2026-08-26
 
-Derived from `git diff origin/master origin/bhbc-hub`, not from memory. Every
-row below was checked against the actual diff.
+Derived from `git diff origin/master bhbc-hub`, run at the time of writing, not
+from memory. The counts below are that diff's output.
 
-**Deployed today** (master `6f07c05` → `80414ce`, rollback with
-`git push origin 6f07c05:master --force`):
-the Shot Analyzer in full, the BHBC zone, and the marketing parity that ships
-with the analyzer. Verified file-by-file: `ballTrack.js`, `shotAnalysis.js`,
-`shotCapture.js`, `shotI18n.js`, `ShotAnalyzer.jsx`, `BhbcView.jsx`,
-`acwrEngine.js` and `expo-il/src/App.jsx` are **identical** on master and the
-branch.
+**Master is `70b9dcd`.** Rollback for the whole of this deploy sequence is
+`git push origin 6f07c05:master --force`.
+
+**Deployed since 6f07c05** — the Shot Analyzer in full, the BHBC zone, and the
+marketing parity that ships with them. 21 commits (`git rev-list --count
+6f07c05..origin/master`), ending with these six from 2026-08-26:
+
+| SHA | What |
+|---|---|
+| `f4f6deb` | names the rep to watch; fixes `verdictOk` defined twice, which made a single shot report "repeatable across the session" |
+| `9267107` | codebase-wide gate for a key defined twice in one object |
+| `68d81dc` | marketing: the site never mentioned the session read |
+| `bca4229` | stops blaming the session for one odd rep |
+| `80431ae` | a rep counted twice (933ms apart); every tracker refusal now names itself; the harness refuses to run against a stale dev-server transform |
+| `70b9dcd` | an unread ball says why instead of showing three em dashes |
+
+Verified file-by-file: `ballTrack.js`, `shotSession.js`, `shotI18n.js`,
+`ShotAnalyzer.jsx`, `shotAnalysis.js`, `shotCapture.js`, `shot-harness.html`
+and `expo-il/src/i18n.js` are **identical** on master and `bhbc-hub`, and
+`git diff origin/master bhbc-hub` shows **no change at all** outside `src/`,
+`scripts/` and `docs/`.
 
 ---
 
@@ -35,7 +49,7 @@ it was written. None of them touches the Shot Analyzer or BHBC.
 
 ## Undeployed tooling and docs — no runtime effect
 
-30 files: the reconciliation engine (`reconcile-sheet-vs-app.cjs`,
+36 files (31 scripts, 5 docs): the reconciliation engine (`reconcile-sheet-vs-app.cjs`,
 `reconcile-all.cjs`, `apply-sheet-fixes.cjs`, `restore-plan-backups.cjs`,
 `import-sheet-block.cjs`, `resync-plan-from-sheet.cjs`), eleven `audit-*.cjs`
 scripts, the library backfills, `spotcheck-sheet-vs-app.cjs`, and four docs
@@ -81,8 +95,17 @@ Every DATA repair is in Supabase and is live now:
 
 ## The deploy pipeline itself
 
-Production had not been tracking `master` for most of the day — proven by a code
-marker, not a header: prod's `BhbcView` chunk contained **0** occurrences of a
-CSS token that `6f07c05` introduced. Builds and tests pass locally, so it is a
-Vercel-side stop. **This still needs Ohad's dashboard**, and today's push will
-only reach athletes once it clears.
+**This is the one thing on the list that needs Ohad and cannot be done from
+here.** GitHub `master` is correct at `70b9dcd`. Production is not serving it.
+
+Measured, not inferred: production's index bundle has been `index-C78d7_ro.js`
+across every check today, through three separate pushes to `master`, and the
+`ShotAnalyzer` chunk it resolves to (`ShotAnalyzer-BPEkNVrJ.js`) contains **0**
+occurrences of the string "Release speed" — a label that has been in the source
+since yesterday. The pipeline cleared its backlog once mid-afternoon and then
+stopped again.
+
+Builds and every test suite pass locally on the exact tree that was pushed, so
+this is Vercel-side. Until it clears, none of today's work reaches anyone —
+including the fix that stops a single shot being described as "repeatable
+across the session". **Open the Vercel dashboard.**
