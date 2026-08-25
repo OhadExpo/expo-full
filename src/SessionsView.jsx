@@ -499,9 +499,14 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
           formVideos: [], reviewedAt: finishedAt, source: 'group-session',
           exercises: a.exercises.map(ex => ({
             eid: ex.eid, title: ex.title, prescribed: ex.prescribed,
-            sets: ex.sets.filter(s => s.done).map(s => ({ reps: s.reps, load: s.load, rpe: s.rpe, done: true })),
+            // Write the FULL set array with done flags, the way the portal and
+            // the single logger do. Compacting to done-only sets shifted every
+            // later set down a slot, so an athlete who did sets 1 and 3 had
+            // set 3's numbers show up against set 2 in next week's per-set
+            // ghost — the ghost consumers read positionally (audit 08-22 #91).
+            sets: ex.sets.map(s => ({ reps: s.reps, load: s.load, rpe: s.rpe, done: !!s.done })),
             substitution: null,
-          })).filter(ex => ex.sets.length),
+          })).filter(ex => ex.sets.some(s => s.done)),
         };
       })
       .filter(Boolean);

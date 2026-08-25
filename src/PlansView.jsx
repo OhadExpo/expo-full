@@ -2327,28 +2327,34 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                         style={{...tinyInput, background: ex.superset ? `color-mix(in srgb, ${sc} 20%, var(--c-sf))` : tinyInput.background, color: ex.superset ? C.tx : C.td, border: ex.superset ? `1px solid ${sc}` : tinyInput.border, fontFamily:FN, fontWeight: ex.superset ? 800 : 600, height:24, minHeight:24, padding:'0 6px', boxSizing:'border-box', appearance:'none', WebkitAppearance:'none', textAlignLast:'center'}}>
                         {SUPERSET_LABELS.map(s => <option key={s} value={s} style={{color: supersetColor(s), fontWeight: 700}}>{s||"—"}</option>)}
                       </select>
-                      {ex.wkS && Array.isArray(ex.wkS) && ex.wkS.length > 0 ? (
-                        <div style={{display:"grid", gridTemplateColumns:`repeat(${weeks},minmax(0,1fr))`, gap:2}}>
-                          {Array.from({length:weeks}).map((_,wi) => (
-                            <input key={wi} value={ex.wkS[wi]||""} onChange={e=>{const next=resize(ex.wkS,weeks,""); next[wi]=e.target.value; update({wkS:next});}}
+                      {ex.wkS && Array.isArray(ex.wkS) && ex.wkS.length > 0 ? (() => {
+                        // Never render or resize to FEWER weeks than the row already
+                        // holds. A row programmed for more weeks than plan.weeks had
+                        // those weeks hidden, and the first edit truncated them for
+                        // good (audit 08-22 #89). Grow to fit, never shrink.
+                        const wN = Math.max(weeks, ex.wkS.length);
+                        return (
+                        <div style={{display:"grid", gridTemplateColumns:`repeat(${wN},minmax(0,1fr))`, gap:2}}>
+                          {Array.from({length:wN}).map((_,wi) => (
+                            <input key={wi} value={ex.wkS[wi]||""} onChange={e=>{const next=resize(ex.wkS,wN,""); next[wi]=e.target.value; update({wkS:next});}}
                               placeholder={"W"+(wi+1)} style={{...tinyInput, padding:"3px 4px", fontSize:10}} />
                           ))}
-                        </div>
-                      ) : (
+                        </div>); })() : (
                         // Sets accepts an integer OR a range ("2-3", as Ohad's sheets
                         // program): a pure integer stores as a NUMBER (setCountFor +
                         // numeric consumers stay exact), a range stores as a STRING
                         // (everything defaults to 3 rows). type=number blanked "2-3".
                         <input value={ex.sets ?? ""} onChange={e=>{const v=e.target.value;const n=parseInt(v,10);update({sets:(v.trim()!=='' && String(n)===v.trim())?n:v});}} placeholder="3" style={tinyInput} />
                       )}
-                      {ex.wk && Array.isArray(ex.wk) && ex.wk.length > 0 ? (
-                        <div style={{display:"grid", gridTemplateColumns:`repeat(${weeks},minmax(0,1fr))`, gap:2}}>
-                          {Array.from({length:weeks}).map((_,wi) => (
-                            <input key={wi} value={ex.wk[wi]||""} onChange={e=>{const next=resize(ex.wk,weeks,""); next[wi]=e.target.value; update({wk:next});}}
+                      {ex.wk && Array.isArray(ex.wk) && ex.wk.length > 0 ? (() => {
+                        const wN = Math.max(weeks, ex.wk.length);   // see #89 above
+                        return (
+                        <div style={{display:"grid", gridTemplateColumns:`repeat(${wN},minmax(0,1fr))`, gap:2}}>
+                          {Array.from({length:wN}).map((_,wi) => (
+                            <input key={wi} value={ex.wk[wi]||""} onChange={e=>{const next=resize(ex.wk,wN,""); next[wi]=e.target.value; update({wk:next});}}
                               placeholder={"W"+(wi+1)} style={{...tinyInput, padding:"3px 4px", fontSize:10}} />
                           ))}
-                        </div>
-                      ) : (
+                        </div>); })() : (
                         <input value={ex.reps||""} onChange={e=>update({reps:e.target.value})} placeholder="8-12" style={tinyInput} />
                       )}
                       <input value={ex.tempo||""} onChange={e=>update({tempo:e.target.value})} placeholder="3010" style={tinyInput} />

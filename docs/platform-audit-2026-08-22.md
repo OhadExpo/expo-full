@@ -1132,7 +1132,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 89. [LOW] Per-week wk/wkS arrays longer than plan.weeks are invisible and truncated on first edit _[unverified]_
+## 89. [LOW] Per-week wk/wkS arrays longer than plan.weeks are invisible and truncated on first edit **[FIXED 2026-08-25]**
 
 **Where:** `src/PlansView.jsx:2272`
 
@@ -1156,7 +1156,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 91. [LOW] Group finish compacts set arrays (done-only) — next week's per-set ghost misaligns after skipped sets _[unverified]_
+## 91. [LOW] Group finish compacts set arrays (done-only) — next week's per-set ghost misaligns after skipped sets **[FIXED 2026-08-25]**
 
 **Where:** `src/SessionsView.jsx:442`
 
