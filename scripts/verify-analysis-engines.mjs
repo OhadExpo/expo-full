@@ -55,6 +55,7 @@ const suites = [
   'verify-shot-i18n.mjs',           // every i18n key the Shot Analyzer renders must exist in BOTH languages
   'verify-no-duplicate-keys.mjs',   // a key defined twice in one object is silent: JS keeps the last, no warning
   'verify-tool-parity.mjs',         // the demo's camera-tool list must mirror the real launcher's — it has drifted before
+  'verify-session-sig.mjs',         // audit #70: editing a BHBC session by a stale INDEX writes to the wrong session
   'verify-lift-channel.mjs',        // channelFromTitle — which JOINT the rep counter watches; a wrong one silently counts 0 reps
   'verify-plan-copy.mjs',            // copying a day to another athlete must carry the VIDEO — the athlete cannot read the library
   'verify-shot-detect.mjs',          // detectShots gates on synthetic skeletons — a squat, arms-up-no-dip and standing still must NOT count as shots
