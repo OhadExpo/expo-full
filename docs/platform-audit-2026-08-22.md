@@ -410,7 +410,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 32. [MEDIUM] Landing embed promises a clip-upload engine but now iframes the athlete portal where uploads are disabled _[unverified]_
+## 32. [MEDIUM] Landing embed promises a clip-upload engine but now iframes the athlete portal where uploads are disabled **[ALREADY FIXED — verified 2026-08-26]** — CoachLanding.jsx:328 iframes /try?embed=1, the own-clip engine, which is option (a) of the proposed fix
 
 **Where:** `src/CoachLanding.jsx:322`
 
@@ -758,7 +758,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 60. [LOW] Skip-link on standalone routes (gym, chooser) navigates the user to the catalog instead of skipping to content _[unverified]_
+## 60. [LOW] Skip-link on standalone routes (gym, chooser) navigates the user to the catalog instead of skipping to content **[VERIFIED REAL — FIXED 2026-08-26]** — the skip-link now renders only where a Nav exists
 
 **Where:** `expo-il/src/App.jsx:3206`
 
@@ -916,7 +916,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 72. [LOW] Toggling 'Preview as coach' while on the Sessions tab leaves a blank main area with no active tab _[unverified]_
+## 72. [LOW] Toggling 'Preview as coach' while on the Sessions tab leaves a blank main area with no active tab **[VERIFIED REAL — FIXED 2026-08-26]** — the view falls back to the first tab whenever it is not among the tabs on screen
 
 **Where:** `src/BhbcView.jsx:504`
 
@@ -966,7 +966,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 76. [LOW] Clicking the PROGRAMS tab while inside a program detail rewrites the URL to the list but leaves the detail on screen _[unverified]_
+## 76. [LOW] Clicking the PROGRAMS tab while inside a program detail rewrites the URL to the list but leaves the detail on screen **[VERIFIED REAL — FIXED 2026-08-26]** — navigateToTab bumps a reset token that DemoPrograms watches
 
 **Where:** `src/CoachDemo.jsx:3900`
 
