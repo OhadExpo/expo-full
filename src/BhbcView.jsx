@@ -251,12 +251,20 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
     const cur = bhbcLoads && bhbcLoads[athleteId] && bhbcLoads[athleteId].sessions
       && bhbcLoads[athleteId].sessions[date] && bhbcLoads[athleteId].sessions[date][idx];
     if (sig != null && sessionSig(cur) !== sig) { toast('That session moved — reopen it'); return; }
+    // An sRPE session with no minutes is not a session (audit #71). Say so,
+    // rather than accepting the edit and quietly turning a Practice into a
+    // zero-load gym attendance row.
+    if (Number(newMin) <= 0 && cur && cur.rpe != null) { toast('Minutes must be more than 0 — delete the session instead'); return; }
     setBhbcLoads((prev) => {
       const rec = prev[athleteId]; if (!rec || !rec.sessions || !rec.sessions[date] || !rec.sessions[date][idx]) return prev;
       const out = { ...rec, sessions: { ...rec.sessions }, loads: { ...(rec.loads || {}) } };
       const arr = [...out.sessions[date]];
       const s = { ...arr[idx] };
       const min = Number(newMin) || 0;
+      // An sRPE session with zero minutes is not a session (audit #71). Editing
+      // the minutes to 0 or clearing the field used to zero its load and leave
+      // an unrecoverable stub behind. Deleting is the way to remove a session.
+      if (min <= 0 && s.rpe != null) return prev;
       if (s.load > 0 && s.rpe) {
         const newLoad = sessionLoad(min, s.rpe);
         out.loads[date] = Math.max(0, (out.loads[date] || 0) - s.load + newLoad);
@@ -799,7 +807,13 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
   const activity = [];
   // Attendance-only gym entries (min/rpe unknown — Ohad logs presence, not load)
   // read "Gym · attended" instead of a bogus "Lift 0 min @ RPE 0".
-  Object.entries((rec && rec.sessions) || {}).forEach(([d, arr]) => (arr || []).forEach((s, idx) => activity.push({ date: d, label: !s.load ? `${s.start ? s.start + ' · ' : ''}Gym · ${s.min ? s.min + ' min' : 'attended'}` : `${s.start ? s.start + ' · ' : ''}${s.type} ${s.min} min @ RPE ${s.rpe}`, load: s.load || null, sess: { date: d, idx, min: s.min, sig: sessionSig(s) } })));
+  //
+  // Branch on whether an RPE was ever recorded, NOT on whether the load is
+  // zero (audit #71). A gym attendance entry has no rpe; an sRPE session always
+  // does. Keyed on load, a Practice whose minutes were edited down to zero
+  // silently redrew itself as a gym attendance row, with no way to see it had
+  // ever been a Practice.
+  Object.entries((rec && rec.sessions) || {}).forEach(([d, arr]) => (arr || []).forEach((s, idx) => activity.push({ date: d, label: s.rpe == null ? `${s.start ? s.start + ' · ' : ''}Gym · ${s.min ? s.min + ' min' : 'attended'}` : `${s.start ? s.start + ' · ' : ''}${s.type} ${s.min} min @ RPE ${s.rpe}`, load: s.load || null, sess: { date: d, idx, min: s.min, sig: sessionSig(s) } })));
   (workouts || []).forEach((w) => { const d = String(w.date || w.completedAt || '').slice(0, 10); const nEx = (w.exercises || []).length; const nSets = (w.exercises || []).reduce((a, e) => a + (e.sets || []).length, 0); if (d) activity.push({ date: d, label: `Gym · ${nEx} lift${nEx === 1 ? '' : 's'}, ${nSets} set${nSets === 1 ? '' : 's'}`, load: null }); });
   Object.entries((rec && rec.bw) || {}).forEach(([d, kg]) => activity.push({ date: d, label: `Bodyweight ${kg} kg`, load: null }));
   Object.entries((rec && rec.availability) || {}).forEach(([d, code]) => { if (code > 1) activity.push({ date: d, label: `Availability · ${AVAIL[code].label}`, load: null }); });
