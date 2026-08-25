@@ -58,7 +58,7 @@ export const SHOT_I18N = {
     scopeHint: (n) => `scorecard = this shot · session = all ${n}`,
     shotTip: (i, t, s) => `Shot ${i} at ${t}s, score ${s}`,
 
-    info: { dipToRelease: 'Dip → release', jumpRise: 'Jump rise', releaseHeight: 'Release height', armAtRelease: 'Arm at release', ballLaunch: 'Ball launch', releaseVsApex: 'Release vs apex', chain: 'Chain (from dip)', tracked: 'Tracked' },
+    info: { dipToRelease: 'Dip → release', jumpRise: 'Jump rise', releaseHeight: 'Release height', armAtRelease: 'Arm at release', ballLaunch: 'Ball launch', ballSpeed: 'Release speed', ballRise: 'Arc above release', releaseVsApex: 'Release vs apex', chain: 'Chain (from dip)', tracked: 'Tracked' },
     enterHeight: 'enter height', eyeHeight: '× eye height', ofFrames: (p) => `${p}% of frames`,
     chainVal: (k, s, e) => `legs ${k} · arm ${s} · elbow ${e} ms`,
     consistencyLbl: (n) => `Consistency (${n} shots)`,
@@ -132,7 +132,7 @@ export const SHOT_I18N = {
     scopeHint: (n) => `כרטיס הניקוד = הזריקה הזו · האימון = כל ${n}`,
     shotTip: (i, t, s) => `זריקה ${i} בשנייה ${t}, ניקוד ${s}`,
 
-    info: { dipToRelease: 'דיפ → שחרור', jumpRise: 'גובה קפיצה', releaseHeight: 'גובה שחרור', armAtRelease: 'זווית יד בשחרור', ballLaunch: 'זווית שיגור הכדור', releaseVsApex: 'שחרור מול שיא', chain: 'שרשרת (מהדיפ)', tracked: 'מעקב' },
+    info: { dipToRelease: 'דיפ → שחרור', jumpRise: 'גובה קפיצה', releaseHeight: 'גובה שחרור', armAtRelease: 'זווית יד בשחרור', ballLaunch: 'זווית שיגור הכדור', ballSpeed: 'מהירות שחרור', ballRise: 'גובה הקשת מעל השחרור', releaseVsApex: 'שחרור מול שיא', chain: 'שרשרת (מהדיפ)', tracked: 'מעקב' },
     enterHeight: 'הזן גובה', eyeHeight: '× גובה עיניים', ofFrames: (p) => `${p}% מהפריימים`,
     chainVal: (k, s, e) => `רגליים ${k} · יד ${s} · מרפק ${e} מ״ש`,
     consistencyLbl: (n) => `עקביות (${n} זריקות)`,

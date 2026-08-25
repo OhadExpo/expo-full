@@ -51,6 +51,7 @@ const suites = [
   'verify-session-merge.mjs',        // mergeIncomingSession — two coach devices on the floor must not revert each other (audit #43)
   'verify-auto-tasks.mjs',           // the outreach throttle — one card per athlete on the dashboard, and the __sources the mark-done fan-out closes
   'verify-ball-track.mjs',           // ball detection + launch angle — every REFUSAL case matters more than the happy path
+  'verify-shot-i18n.mjs',           // every i18n key the Shot Analyzer renders must exist in BOTH languages
   'verify-lift-channel.mjs',        // channelFromTitle — which JOINT the rep counter watches; a wrong one silently counts 0 reps
   'verify-plan-copy.mjs',            // copying a day to another athlete must carry the VIDEO — the athlete cannot read the library
   'verify-shot-detect.mjs',          // detectShots gates on synthetic skeletons — a squat, arms-up-no-dip and standing still must NOT count as shots
