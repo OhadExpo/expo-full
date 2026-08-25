@@ -68,6 +68,10 @@ export const SHOT_I18N = {
     cols: ['#', 'At', 'Score', 'Dip', 'Set', 'Release', 'Timing', 'Fix first'],
     cleanRow: 'clean',
     sessionAvg: 'Session average',
+    launchSpread: 'Ball launch',
+    launchSpreadOn: (n, total) => `measured on ${n} of ${total}`,
+    tight: 'repeatable',
+    loose: 'inconsistent — the release angle is moving rep to rep',
     repeats: 'repeats across the session',
     noRepeats: 'no checkpoint failed on more than one shot.',
 
@@ -138,6 +142,10 @@ export const SHOT_I18N = {
     cols: ['#', 'זמן', 'ניקוד', 'דיפ', 'סט', 'שחרור', 'תזמון', 'לתקן קודם'],
     cleanRow: 'נקי',
     sessionAvg: 'ממוצע האימון',
+    launchSpread: 'זווית שיגור',
+    launchSpreadOn: (n, total) => `נמדדה ב-${n} מתוך ${total}`,
+    tight: 'עקבי',
+    loose: 'לא עקבי — זווית השחרור זזה בין חזרה לחזרה',
     repeats: 'חוזר על עצמו לאורך האימון',
     noRepeats: 'אף נקודת בקרה לא נכשלה ביותר מזריקה אחת.',
 

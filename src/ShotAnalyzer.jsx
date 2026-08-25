@@ -496,12 +496,39 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
                 const top = [...counts.entries()].sort((x, y) => y[1] - x[1]).slice(0, 3);
                 const scored = result.shots.filter((s) => s.score != null);
                 const avg = scored.length ? Math.round(scored.reduce((acc, s) => acc + s.score, 0) / scored.length) : null;
+                // CONSISTENCY of the ball's launch angle across the session.
+                // A single rep's angle says little on a phone clip; the SPREAD
+                // across reps is the coachable thing, and it needs no extra
+                // measurement — the angles are already there.
+                const degs = result.shots.map((s) => s.info && s.info.ballLaunchDeg).filter((v) => v != null);
+                let spread = null;
+                if (degs.length >= 3) {
+                  const m = degs.reduce((a, b) => a + b, 0) / degs.length;
+                  const sd = Math.sqrt(degs.reduce((a, b) => a + (b - m) ** 2, 0) / degs.length);
+                  spread = {
+                    mean: Math.round(m * 10) / 10,
+                    sd: Math.round(sd * 10) / 10,
+                    lo: Math.round(Math.min(...degs) * 10) / 10,
+                    hi: Math.round(Math.max(...degs) * 10) / 10,
+                    n: degs.length,
+                    // 4 degrees is where a release stops being repeatable.
+                    tight: sd <= 4,
+                  };
+                }
                 return (
                   <div style={{ marginTop: 8, fontSize: 12.5, lineHeight: 1.55, color: 'rgba(255,255,255,0.8)' }}>
                     {T.sessionAvg} <b style={{ color: '#FFF' }}>{avg == null ? '—' : avg + '/100'}</b>
                     {top.length > 0
                       ? <> · {T.repeats}: {top.map(([l, n]) => `${l} (${n}/${result.shots.length})`).join(' · ')}</>
                       : <> · {T.noRepeats}</>}
+                    {spread && (
+                      <div style={{ marginTop: 4 }}>
+                        {T.launchSpread} <b style={{ color: '#FFF' }}>{spread.mean}°</b>
+                        {' ± '}<b style={{ color: spread.tight ? '#37B27C' : '#E0A73A' }}>{spread.sd}°</b>
+                        {' '}({spread.lo}–{spread.hi}°, {T.launchSpreadOn(spread.n, result.shots.length)})
+                        {' — '}<span style={{ color: spread.tight ? '#37B27C' : '#E0A73A' }}>{spread.tight ? T.tight : T.loose}</span>
+                      </div>
+                    )}
                   </div>
                 );
               })()}
