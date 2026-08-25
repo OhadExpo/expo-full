@@ -104,12 +104,33 @@ function classifyBucket(title) {
   const quality = PLYO_RE.test(t) ? 'PLYO' : (UNI_RE.test(t) ? 'UNI' : 'BI');
   return `${side}·${quality}`;
 }
+// Which block is the athlete's CURRENT one.
+//
+// PlansView sorts un-numbered plans to the END of model.blocks (so a stray
+// "Morning Routine" or an imported "Deload Week" lands last), while
+// lineageAnalysis.js deliberately sorts them to the FRONT so that "the
+// highest-numbered block is latest". Taking the last element therefore read the
+// stray plan as the athlete's current block on one screen while the Training
+// Analysis header on the SAME athlete named the real #16 (audit #87) — a wrong
+// volume target and false "empty bucket, floor applied" rows.
+//
+// Read the highest-numbered block, which is what both surfaces mean by latest,
+// and fall back to the last entry only when nothing is numbered at all. Fixing
+// it here rather than resorting model.blocks leaves every block LIST on screen
+// in the order the coach is used to.
+function latestBlockId(model) {
+  const bs = model?.blocks || [];
+  if (!bs.length) return null;
+  let best = null;
+  for (const b of bs) if (b && b.num != null && (!best || b.num > best.num)) best = b;
+  return (best || bs[bs.length - 1]).id;
+}
 // Pull the athlete's latest-block exercises out of `plans`, handling both known
 // plan shapes: top-level p.days OR p.data.days, and per-day d.exercises OR d.ex,
 // and per-exercise ex.title/ex.sets OR the compact ex.sets-as-ex.s form.
 function latestBlockExercises(model, plans, exMap) {
   if (!model?.blocks?.length || !plans?.length) return [];
-  const latestId = model.blocks[model.blocks.length - 1].id;
+  const latestId = latestBlockId(model);
   const plan = plans.find(p => p.id === latestId);
   if (!plan) return [];
   const days = plan.data?.days || plan.days || [];
@@ -136,7 +157,7 @@ function exById(exercises) {
 // Days/week from the athlete's latest block — count of days carrying ≥1 exercise.
 function deriveDaysPerWeek(model, plans) {
   if (!model?.blocks?.length || !plans?.length) return 4;
-  const latestId = model.blocks[model.blocks.length - 1].id;
+  const latestId = latestBlockId(model);
   const plan = plans.find(p => p.id === latestId);
   if (!plan) return 4;
   const days = plan.data?.days || plan.days || [];
