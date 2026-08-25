@@ -49,6 +49,14 @@ const DITTO = /^(>|»|"|''|”|same|idem|-{1,2})$/;
 const isDateSerial = (v) => /^\d{5}(\.\d+)?$/.test(clean(v)) && Number(clean(v)) > 30000 && Number(clean(v)) < 60000;
 const hasVal = (v) => { const c = clean(v); return !!c && !DITTO.test(c) && !isDateSerial(c); };
 const normVal = (v) => clean(v).toLowerCase().replace(/\s+/g, '');
+// The sheet annotates numbers — "2 E POS", "2 x 2 E". If the leading number is
+// the same on both sides the prescription agrees and the rest is shorthand.
+const leadNum = (v) => { const m = clean(v).match(/^(\d+(?:\.\d+)?)/); return m ? m[1] : null; };
+const sameVal = (a, b) => {
+  if (normVal(a) === normVal(b)) return true;
+  const la = leadNum(a), lb = leadNum(b);
+  return !!(la && lb && la === lb);
+};
 
 // ---------- parse the workbook ----------
 function parseWorkbook(path) {
@@ -92,7 +100,9 @@ function parseWorkbook(path) {
       // 'SuperSet:' is a LABEL the sheet puts above a grouped pair — the real
       // exercise sits elsewhere on the row. Treating it as a title produced 172
       // bogus "title" gaps for one athlete alone.
-      const isLabel = /^(superset|super ?set|circuit|giant ?set|complex|back-?off ?set|dropset|drop ?set|amrap|rest|note)s?\s*:?\s*$/i.test(title);
+      const isLabel = (/^(superset|super ?set|circuit|giant ?set|complex|back-?off ?set|dropset|drop ?set|amrap|rest|note)s?\s*:?\s*$/i.test(title)
+        // decorative group banners: '^ Super Exercies # 5+6 ^'
+        || /^\s*[\^*~]+.*[\^*~]+\s*$/.test(title) || /super\s*exerc/i.test(title));
       if (isLabel) { cur.sawSupersetLabel = true; continue; }
       if (!/^\d+[a-z]?$/i.test(num) || !title) {
         // A blank/rest line ends the day section.
@@ -115,6 +125,10 @@ function parseWorkbook(path) {
   return blocks;
 }
 
+// Exported so the importer reads a block with the EXACT same parser the audit
+// uses — one implementation, no second opinion to drift out of step.
+module.exports = { parseWorkbook };
+
 // ---------- compare ----------
 // A typo-tolerant key: sorted tokens, each shortened to its first 5 letters so
 // "Suppoted"/"Supported" and "Thorasic"/"Thoracic" collapse together.
@@ -123,9 +137,13 @@ function parseWorkbook(path) {
 // before matching, or the same exercise reads as missing.
 const baseTitle = (t) => clean(t).split(/\s+[-–—]\s+/)[0];
 const canonKey = (t) => norm(t).split(' ').filter(Boolean).map((w) => w.slice(0, 5)).sort().join('|');
+// A letter-sorted key catches TRANSPOSITIONS that a prefix key misses:
+// "Golbet" and "Goblet" are anagrams, so they collapse; "Suppoted"/"Supported"
+// are already handled by the prefix key above.
+const anagramKey = (t) => norm(t).split(' ').filter(Boolean).map((w) => w.split('').sort().join('')).sort().join('|');
 const blockNum = (name) => { const m = String(name).match(/#\s*(\d+)/); return m ? Number(m[1]) : null; };
 
-(async () => {
+if (require.main !== module) { /* imported for parseWorkbook only */ } else (async () => {
   await s.auth.signInWithPassword({ email: 'ohadyproductions@gmail.com', password: '1234' });
   const { data: libRow } = await s.from('store').select('value').eq('key', 'expo-exercises').single();
   const lib = libRow.value || [];
@@ -149,6 +167,7 @@ const blockNum = (name) => { const m = String(name).match(/#\s*(\d+)/); return m
   const fixes = [];
 
   for (const sb of sheetBlocks) {
+    if (/^(history|log|archive|records?|maxes|testing)\b/i.test(sb.tab.trim())) continue;
     const n = blockNum(sb.tab);
     // Not every block is called "Block #N" — there are tabs named "Phase 9",
     // "Comeback Block", "Lower-Body WO". Fall back to the NAME before calling a
@@ -226,6 +245,7 @@ const blockNum = (name) => { const m = String(name).match(/#\s*(\d+)/); return m
       const takeByTitle = (t) => {
         let hit = pool.find((c) => !c.used && c.t === t);
         if (!hit) { const k = canonKey(t); if (k) hit = pool.find((c) => !c.used && c.k === k); }
+        if (!hit) { const a = anagramKey(t); if (a) hit = pool.find((c) => !c.used && anagramKey(c.t) === a); }
         if (!hit) hit = pool.find((c) => !c.used && c.t && (c.t.includes(t) || t.includes(c.t)) && Math.abs(c.t.length - t.length) <= 4);
         if (hit) hit.used = true;
         return hit;
@@ -238,9 +258,9 @@ const blockNum = (name) => { const m = String(name).match(/#\s*(\d+)/); return m
         const ar = match.e;
         compared++;
         const aSets = clean(ar.sets ?? ar.s), aReps = clean(ar.reps ?? ar.r), aTempo = clean(ar.tempo);
-        if (hasVal(sr.sets) && normVal(aSets) !== normVal(sr.sets)) gaps.sets.push(`${where}  sheet=${sr.sets} app=${aSets}`);
-        if (hasVal(sr.reps) && normVal(aReps) !== normVal(sr.reps)) gaps.reps.push(`${where}  sheet=${sr.reps} app=${aReps}`);
-        if (hasVal(sr.tempo) && normVal(aTempo) !== normVal(sr.tempo)) gaps.tempo.push(`${where}  sheet=${sr.tempo} app=${aTempo}`);
+        if (hasVal(sr.sets) && !sameVal(aSets, sr.sets)) gaps.sets.push(`${where}  sheet=${sr.sets} app=${aSets}`);
+        if (hasVal(sr.reps) && !sameVal(aReps, sr.reps)) gaps.reps.push(`${where}  sheet=${sr.reps} app=${aReps}`);
+        if (hasVal(sr.tempo) && !sameVal(aTempo, sr.tempo)) gaps.tempo.push(`${where}  sheet=${sr.tempo} app=${aTempo}`);
         if (hasVal(sr.notes) && !clean(ar.notes ?? ar.n)) gaps.notes.push(`${where}  sheet note not in app`);
         const wantSS = letterFor(groupOf(sr.n));
         if (wantSS) {
