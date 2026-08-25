@@ -1789,7 +1789,7 @@ function DemoLineage({ athleteName }) {
   return <TrainingLineageV2 traineeId="demo" traineeName={athleteName} exercises={[]} plans={DEMO_LINEAGE_PLANS} clientWorkouts={DEMO_LINEAGE_WORKOUTS} loading={false} onOpenPlan={() => {}} />;
 }
 
-function DemoPrograms() {
+function DemoPrograms({ resetToken = 0 }) {
   // List view first (mirrors PlansView root) — clicking a card opens the
   // existing block-detail panel as the editor view, with a back-link to
   // return. The block editor below is unchanged from before; it just lives
@@ -1808,6 +1808,14 @@ function DemoPrograms() {
     const target = selectedProgramId ? `${base}/${encodeURIComponent(selectedProgramId)}` : base;
     if (window.location.pathname !== target) window.history.pushState({ program: selectedProgramId || null }, '', target + window.location.hash);
   }, [selectedProgramId]);
+
+  // Clicking the PROGRAMS nav tab while inside a program detail used to rewrite
+  // the URL to the bare list and leave the detail on screen (audit #76):
+  // setTab('programs') is a no-op when already on that tab, and nothing cleared
+  // this component's selection. The visitor then saw the p1 editor under a list
+  // URL, and pressing Back popped to the detail path with no visible change —
+  // so Back looked broken, and a copied URL described a page nobody was on.
+  useEffect(() => { if (resetToken) setSelectedProgramId(null); }, [resetToken]);
   // Sync selection FROM the URL on back/forward.
   useEffect(() => {
     const onPop = () => setSelectedProgramId(programIdFromPath(window.location.pathname));
@@ -3919,9 +3927,13 @@ export default function CoachDemo() {
   // Tab → URL: each tab gets its own path under /demo/coach/<key> so users
   // can deep-link, refresh, and use browser back/forward. Dashboard sits at
   // the bare /demo/coach for shareability.
+  const [programsReset, setProgramsReset] = useState(0);
   const navigateToTab = (key) => {
     setTab(key);
     setSelectedTrainee(null);
+    // Clearing selectedTrainee is not enough: DemoPrograms holds its own
+    // selection and stays mounted when the tab does not actually change.
+    setProgramsReset((n) => n + 1);
     if (typeof window === 'undefined') return;
     const target = key === 'dashboard' ? '/demo/coach' : `/demo/coach/${key}`;
     if (window.location.pathname !== target) {
@@ -4120,7 +4132,7 @@ export default function CoachDemo() {
       <main style={{ flex: 1, padding: '28px 16px 80px', maxWidth: 1280, margin: '0 auto', width: '100%' }}>
         {tab === 'dashboard' && <DemoDashboard onJumpToTrainee={onJumpToTrainee} />}
         {tab === 'trainees'  && <DemoTrainees selected={selectedTrainee} onSelect={(id) => selectTrainee(id, 'trainees')} onClear={onClearTrainee} returnTab={returnTab} />}
-        {tab === 'programs'  && <DemoPrograms />}
+        {tab === 'programs'  && <DemoPrograms resetToken={programsReset} />}
         {tab === 'exercises' && <DemoExercises />}
         {tab === 'sessions'  && <DemoSessions />}
         {tab === 'tasks'     && <DemoTasks />}
