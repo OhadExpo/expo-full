@@ -990,7 +990,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 78. [LOW] Parity drift: demo exercise-grid chips missing tonight's ExercisesView chip-ellipsis fix _[unverified]_
+## 78. [LOW] Parity drift: demo exercise-grid chips missing tonight's ExercisesView chip-ellipsis fix **[VERIFIED REAL — FIXED 2026-08-26]** — the demo chip is now byte-identical to ExercisesView's, asserted by comparison rather than by eye
 
 **Where:** `src/CoachDemo.jsx:2907`
 
@@ -1120,7 +1120,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 88. [LOW] Explicit Save bypasses the autosave serial chain — stale in-flight autosave can land after it _[unverified]_
+## 88. [LOW] Explicit Save bypasses the autosave serial chain — stale in-flight autosave can land after it **[VERIFIED REAL — FIXED 2026-08-26]** — handleSave now awaits flushAutosave() before issuing the explicit write, and snapshots planRef.current afterwards
 
 **Where:** `src/PlansView.jsx:1769`
 
@@ -1168,7 +1168,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 92. [LOW] addAthletes closes over planIndex but omits it from its deps — planWeeks silently wrong after a plan-index refresh _[unverified]_
+## 92. [LOW] addAthletes closes over planIndex but omits it from its deps — planWeeks silently wrong after a plan-index refresh **[VERIFIED REAL — FIXED 2026-08-26]** — planIndex added to the deps; a survey of all 39 exhaustive-deps warnings in src/ found the rest benign (stable constants or deliberately narrowed deps)
 
 **Where:** `src/SessionsView.jsx:407`
 
