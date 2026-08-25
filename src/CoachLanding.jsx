@@ -504,8 +504,22 @@ export default function CoachLanding({ lang = 'en' }) {
       while (el && el !== document.body && el.tagName !== 'A') el = el.parentElement;
       if (!el || el.tagName !== 'A') return;
       const href = el.getAttribute('href') || '';
-      if (href.startsWith('/demo/')) {
+      // Only the actual demo surfaces count as opening the demo (audit #79).
+      // The language toggle on this page is <a href="/demo/he">, which matched
+      // the old startsWith('/demo/') test — so every visitor who switched the
+      // page to Hebrew was counted as having clicked a demo CTA, inflating the
+      // one conversion rate this page exists to measure and adding a bogus 'he'
+      // bucket to the target dimension.
+      // Segment match, not a regex: an escape written here does not survive
+      // the tooling reliably, and a mangled pattern still RUNS - the previous
+      // version of this line ended up with a literal backspace character in it
+      // and would have matched NOTHING, recording zero demo opens.
+      const seg = href.split('/');   // '/demo/coach/programs/p1' -> ['', 'demo', 'coach', ...]
+      const isDemoSurface = seg[1] === 'demo' && (seg[2] === 'coach' || seg[2] === 'athlete');
+      if (isDemoSurface) {
         trackFunnel('coach_demo_open', { target: href.replace('/demo/', '') });
+      } else if (href === '/demo/he' || href === '/demo') {
+        trackFunnel('coach_lang_switch', { to: href === '/demo/he' ? 'he' : 'en' });
       } else if (href === '#waitlist') {
         trackFunnel('coach_waitlist_view', {});
       }

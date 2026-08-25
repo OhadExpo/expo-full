@@ -54,6 +54,7 @@ const suites = [
   'verify-shot-session.mjs',        // session-level consistency: the spread across reps, which survives camera obliquity
   'verify-shot-i18n.mjs',           // every i18n key the Shot Analyzer renders must exist in BOTH languages
   'verify-no-duplicate-keys.mjs',   // a key defined twice in one object is silent: JS keeps the last, no warning
+  'verify-source-sanity.mjs',       // a mangled escape becomes a control character, still RUNS, and matches nothing
   'verify-tool-parity.mjs',         // the demo's camera-tool list must mirror the real launcher's — it has drifted before
   'verify-session-sig.mjs',         // audit #70: editing a BHBC session by a stale INDEX writes to the wrong session
   'verify-lift-channel.mjs',        // channelFromTitle — which JOINT the rep counter watches; a wrong one silently counts 0 reps
