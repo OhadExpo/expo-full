@@ -43,7 +43,11 @@ const normUrl = (u) => {
 // it is a formatting device, not a value. Reading it as one produced 334 false
 // "sets" gaps on the first full run.
 const DITTO = /^(>|»|"|''|”|same|idem|-{1,2})$/;
-const hasVal = (v) => { const c = clean(v); return !!c && !DITTO.test(c); };
+// Google Sheets silently turns "6-8" into a DATE. Such a cell comes back as a
+// 5-digit serial (~40000-50000). The APP holds the real value in these cases,
+// so the sheet is the corrupted side and must not be treated as authoritative.
+const isDateSerial = (v) => /^\d{5}(\.\d+)?$/.test(clean(v)) && Number(clean(v)) > 30000 && Number(clean(v)) < 60000;
+const hasVal = (v) => { const c = clean(v); return !!c && !DITTO.test(c) && !isDateSerial(c); };
 const normVal = (v) => clean(v).toLowerCase().replace(/\s+/g, '');
 
 // ---------- parse the workbook ----------
@@ -88,7 +92,7 @@ function parseWorkbook(path) {
       // 'SuperSet:' is a LABEL the sheet puts above a grouped pair — the real
       // exercise sits elsewhere on the row. Treating it as a title produced 172
       // bogus "title" gaps for one athlete alone.
-      const isLabel = /^(superset|super set|circuit|giant set|complex)\s*:?\s*$/i.test(title);
+      const isLabel = /^(superset|super ?set|circuit|giant ?set|complex|back-?off ?set|dropset|drop ?set|amrap|rest|note)s?\s*:?\s*$/i.test(title);
       if (isLabel) { cur.sawSupersetLabel = true; continue; }
       if (!/^\d+[a-z]?$/i.test(num) || !title) {
         // A blank/rest line ends the day section.
@@ -112,6 +116,13 @@ function parseWorkbook(path) {
 }
 
 // ---------- compare ----------
+// A typo-tolerant key: sorted tokens, each shortened to its first 5 letters so
+// "Suppoted"/"Supported" and "Thorasic"/"Thoracic" collapse together.
+// The sheet appends load qualifiers to a title — "BB Squat - 80% of Last 3x5".
+// The app stores the exercise, and the qualifier lives in load/notes. Strip it
+// before matching, or the same exercise reads as missing.
+const baseTitle = (t) => clean(t).split(/\s+[-–—]\s+/)[0];
+const canonKey = (t) => norm(t).split(' ').filter(Boolean).map((w) => w.slice(0, 5)).sort().join('|');
 const blockNum = (name) => { const m = String(name).match(/#\s*(\d+)/); return m ? Number(m[1]) : null; };
 
 (async () => {
@@ -122,8 +133,13 @@ const blockNum = (name) => { const m = String(name).match(/#\s*(\d+)/); return m
 
   const ids = [TRAINEE, TRAINEE + '__0', TRAINEE + '__1'];
   const { data: plans } = await s.from('plans').select('id,name,data').in('trainee_id', ids);
-  const byBlock = new Map();
-  for (const p of plans || []) { const n = blockNum(p.name); if (n != null) byBlock.set(n, p); }
+  const byBlock = new Map();      // numeric "Block #N"
+  const byName = new Map();       // everything else, matched on the name itself
+  for (const p of plans || []) {
+    const n = blockNum(p.name);
+    if (n != null) byBlock.set(n, p);
+    byName.set(norm(p.name), p);
+  }
 
   const sheetBlocks = parseWorkbook(XLSX_PATH);
   const gaps = { missingBlock: [], missingDay: [], missingRow: [], extraRow: [], title: [], sets: [], reps: [], tempo: [], notes: [], url: [], superset: [], rehosted: [] };
@@ -134,8 +150,21 @@ const blockNum = (name) => { const m = String(name).match(/#\s*(\d+)/); return m
 
   for (const sb of sheetBlocks) {
     const n = blockNum(sb.tab);
-    const plan = n != null ? byBlock.get(n) : null;
-    if (!plan) { gaps.missingBlock.push(`${sb.tab} (${sb.days.reduce((a, d) => a + d.rows.length, 0)} rows) — no app plan`); continue; }
+    // Not every block is called "Block #N" — there are tabs named "Phase 9",
+    // "Comeback Block", "Lower-Body WO". Fall back to the NAME before calling a
+    // block missing, or a differently-named plan reads as never imported.
+    let plan = n != null ? byBlock.get(n) : null;
+    if (!plan) plan = byName.get(norm(sb.tab));
+    if (!plan) {
+      const rows = sb.days.reduce((a, d) => a + d.rows.length, 0);
+      // A tab with no exercise rows is a note/scratch tab, not a program.
+      if (rows === 0) continue;
+      // Neither is a history/log tab — it records what was done, and is not
+      // something the app is supposed to hold as a program.
+      if (/^(history|log|archive|records?|maxes|testing)/i.test(sb.tab.trim())) continue;
+      gaps.missingBlock.push(`${sb.tab} (${rows} rows) — no app plan`);
+      continue;
+    }
     const appDays = plan.data?.days || [];
     // One app day may be claimed by only ONE sheet day. Without this, two sheet
     // days both matched the same app day and wrote fixes to the same row index —
@@ -156,17 +185,18 @@ const blockNum = (name) => { const m = String(name).match(/#\s*(\d+)/); return m
         }
         return rows.length ? hit / Math.max(rows.length, sheetTitles.size) : 0;
       };
-      let ad = appDays.find((d) => !claimed.has(d) && norm(d.name || d.n) === norm(sd.name));
-      if (!ad) {
-        let best = null, bestScore = 0;
-        for (const d of appDays) {
-          if (claimed.has(d)) continue;
-          const sc = overlap(d);
-          if (sc > bestScore) { bestScore = sc; best = d; }
-        }
-        // Below half-overlap it is not the same day; say so instead of guessing.
-        ad = bestScore >= 0.5 ? best : null;
+      // Pick the day by a SCORE, not by a rule: content overlap plus a bonus
+      // when the name also matches. A hard name-match trusted the label over the
+      // content and mis-paired days; a hard content threshold threw away days
+      // whose exercises had simply been rewritten. Scoring gets both right.
+      let ad = null, bestScore = 0;
+      for (const d of appDays) {
+        if (claimed.has(d)) continue;
+        const nameHit = norm(d.name || d.n) === norm(sd.name) ? 0.4 : 0;
+        const sc = overlap(d) + nameHit;
+        if (sc > bestScore) { bestScore = sc; ad = d; }
       }
+      if (bestScore < 0.3) ad = null;
       if (ad) claimed.add(ad);
       // Address the day by INDEX: plan data contains duplicate day ids, so
       // find(d => d.id === dayId) resolved three different days to the first
@@ -189,12 +219,21 @@ const blockNum = (name) => { const m = String(name).match(/#\s*(\d+)/); return m
       // or carried two extra warm-up rows — into dozens of bogus title/reps
       // gaps. The title is the join key; ordering is not data.
       const appTitleOf = (e) => norm(clean(e.title || (libById.get(e.exerciseId || e.eid || '') || {}).title));
-      const pool = appRows.map((e, idx) => ({ e, idx, t: appTitleOf(e), used: false }));
-      const takeByTitle = (t) => { const hit = pool.find((c) => !c.used && c.t === t); if (hit) hit.used = true; return hit; };
+      const pool = appRows.map((e, idx) => ({ e, idx, t: appTitleOf(e), k: canonKey(appTitleOf(e)), used: false }));
+      // Exact title first; then a canonical token key. The sheets are full of
+      // typos — "Chest-Suppoted", "DB Golbet", "Thorasic" — and an exact join
+      // reported those real exercises as missing from the app.
+      const takeByTitle = (t) => {
+        let hit = pool.find((c) => !c.used && c.t === t);
+        if (!hit) { const k = canonKey(t); if (k) hit = pool.find((c) => !c.used && c.k === k); }
+        if (!hit) hit = pool.find((c) => !c.used && c.t && (c.t.includes(t) || t.includes(c.t)) && Math.abs(c.t.length - t.length) <= 4);
+        if (hit) hit.used = true;
+        return hit;
+      };
 
       sd.rows.forEach((sr) => {
         const where = `${sb.tab} / ${sd.name} / #${sr.n} ${sr.title}`;
-        const match = takeByTitle(norm(sr.title));
+        const match = takeByTitle(norm(sr.title)) || takeByTitle(norm(baseTitle(sr.title)));
         if (!match) { gaps.missingRow.push(`${where} — no app row with this exercise`); return; }
         const ar = match.e;
         compared++;
