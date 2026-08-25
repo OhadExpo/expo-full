@@ -270,11 +270,20 @@ export function launchAngle(points, releaseMs = null, ballPx = 0) {
   //            using the gravity this clip actually measured rather than 9.81
   //            in assumed units.
   let speedMs = null, riseM = null;
-  if (ballPx > 0) {
-    const mPerPx = BALL_DIAMETER_M / ballPx;
+  const gPx = -2 * quad.a;                        // px/s2, measured from this flight
+  if (ballPx > 0 && gPx > 0) {
+    // SCALE FROM GRAVITY, not from the blob. The ball's apparent width is
+    // inflated by motion blur — the motion blob is the union of two ball
+    // positions — and that error goes straight into every metre. Gravity does
+    // not have that problem: it is exactly 9.81 m/s2, so the curvature this
+    // flight measured in px/s2 IS the pixel scale, and it comes from the same
+    // 20-sample fit that already had to pass an r2 gate.
+    //
+    // The ball width still earns its keep as the sanity check that decides
+    // whether the flight is a ball at all (see the gravity gate above).
+    const mPerPx = 9.81 / gPx;
     speedMs = Math.hypot(vx, vy) * mPerPx;
-    const gPx = -2 * quad.a;                      // px/s2, measured from this flight
-    if (gPx > 0) riseM = (vy * vy) / (2 * gPx) * mPerPx;
+    riseM = (vy * vy) / (2 * gPx) * mPerPx;
     // Sanity: a jump shot leaves the hand at roughly 3-11 m/s and peaks less
     // than 4 m above the release. Outside that the scale is not trustworthy, so
     // report nothing rather than a confident wrong number.
