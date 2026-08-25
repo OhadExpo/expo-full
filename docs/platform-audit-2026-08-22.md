@@ -892,7 +892,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 70. [LOW] Session edit/delete indices go stale when the sessions array mutates — wrong session edited or deleted _[unverified]_
+## 70. [LOW] Session edit/delete indices go stale when the sessions array mutates — wrong session edited or deleted **[VERIFIED REAL — FIXED 2026-08-26]** — the row now carries a fingerprint (src/bhbcSession.js) and the write is refused when the entry at that index no longer matches; 10 assertions in scripts/verify-session-sig.mjs
 
 **Where:** `src/BhbcView.jsx:806`
 
@@ -904,7 +904,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 71. [LOW] Editing an sRPE session's minutes to 0/blank zeroes its load and relabels it 'Gym · attended' _[unverified]_
+## 71. [LOW] Editing an sRPE session's minutes to 0/blank zeroes its load and relabels it 'Gym · attended' **[VERIFIED REAL — FIXED 2026-08-26]** — the history now labels by whether an RPE was recorded, not by whether the load is zero, and a zero-minute edit on an sRPE session is refused with a message
 
 **Where:** `src/BhbcView.jsx:229`
 
