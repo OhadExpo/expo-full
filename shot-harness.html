@@ -52,7 +52,7 @@
       strictRejects: dbg.map((d) => d.t + ' ' + d.reason),
       relaxedShots: relaxedCycles.map((c) => Math.round(series.tMs[c.release])),
       relaxedRejects: dbg2.map((d) => d.t + ' ' + d.reason),
-      analyzed: res.ok ? res.shots.map((s) => ({ i: s.index, t: Math.round(series.tMs[s.cycle.release]), score: s.score, ballDeg: s.info.ballLaunchDeg, ballFit: s.info.ballLaunchFit, ballN: s.info.ballSamples, speed: s.info.ballSpeedMs, rise: s.info.ballRiseM })) : null,
+      analyzed: res.ok ? res.shots.map((s) => ({ i: s.index, t: Math.round(series.tMs[s.cycle.release]), score: s.score, ballDeg: s.info.ballLaunchDeg, ballFit: s.info.ballLaunchFit, ballN: s.info.ballSamples, speed: s.info.ballSpeedMs, rise: s.info.ballRiseM, why: s.info.ballWhy })) : null,
       ballFramesSeen: frames.filter((f) => f.blobs && f.blobs.length).length,
       // How far the nearest moving blob is from the shooting hand, in ball
       // diameters, over the frames right after each release. This is the number
