@@ -192,6 +192,31 @@ eq('no frames to track', trackBall(null), null);
   eq('falling far too fast for its size is refused', launchAngle(fast, null, 16), null);
 }
 
+// ── real-world units from the ball's own size ──────────────────────────────
+{
+  // A ball 16px across is 0.24 m, so 1 px = 0.015 m. flight() below launches at
+  // vx = 160, vy = 260 px/s under g = 650 px/s2 — i.e. gravity for that scale.
+  const pts = flight(14, { g: 9.81 * (16 / BALL_DIAMETER_M) });
+  const la = launchAngle(pts, null, 16);
+  eq('reports a release speed', la.speedMs != null, true);
+  eq('reports how far the ball rises above the release', la.riseM != null, true);
+  // |v| = hypot(160, 260) = 305 px/s * (0.24/16) m/px = 4.58 m/s
+  near('release speed in m/s', la.speedMs, 4.58, 0.15);
+  // rise = vy^2 / 2g = 260^2 / (2*654) = 51.7 px = 0.78 m
+  near('arc rise in metres', la.riseM, 0.78, 0.08);
+  // The SAME flight measured with no ball size cannot be scaled at all.
+  const noScale = launchAngle(pts);
+  eq('without a ball size there is no speed', noScale.speedMs, null);
+  eq('and no rise', noScale.riseM, null);
+}
+{
+  // A physically absurd scale must produce nothing, not a confident number:
+  // claiming this ball is 2px across implies ~37 m/s.
+  const pts = flight(14, { g: 9.81 * (16 / BALL_DIAMETER_M) });
+  const silly = launchAngle(pts, null, 2);
+  eq('an implausible speed is withheld', silly === null || silly.speedMs === null, true);
+}
+
 // ── and REFUSES everything that is not a shot ──────────────────────────────
 eq('too few samples', launchAngle([{ t: 0, x: 0, y: 0 }, { t: 30, x: 5, y: -5 }]), null);
 {

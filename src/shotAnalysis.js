@@ -506,6 +506,10 @@ export function scoreShot(series, c, { statureCm = null, shotType = 'mid' } = {}
     // Measured from the BALL, not inferred from the arm. Null unless the samples
     // actually fit a projectile.
     ballLaunchDeg: ballLaunch ? ballLaunch.angleDeg : null,
+    // Real-world units, scaled by the ball's own 0.24 m width. Null unless the
+    // flight was tracked well enough to trust the scale.
+    ballSpeedMs: ballLaunch ? ballLaunch.speedMs : null,
+    ballRiseM: ballLaunch ? ballLaunch.riseM : null,
     ballLaunchFit: ballLaunch ? ballLaunch.fit : null,
     ballSamples: ballLaunch ? ballLaunch.n : 0,
   };
