@@ -80,7 +80,17 @@ function ReviewedClipPicker({ workouts, trainees, onPick, activeUrl }) {
     // per adversarial review); fall back to title only if the clip has no eid.
     const pe = (ex.eid && pd.exercises.find(x => x.exerciseId === ex.eid))
       || pd.exercises.find(x => (x.title || '').trim().toLowerCase() === (ex.title || '').trim().toLowerCase());
-    return pe && pe.reps != null && pe.reps !== '' ? String(pe.reps) : null;
+    if (!pe) return null;
+    // Wave-loaded programs prescribe per WEEK (ex.wk = ["8","6","4",...], index
+    // 0 = week 1; client_workouts.week is 1-based). Reading pe.reps alone showed
+    // the base prescription for every week, so the camera tool's target never
+    // moved through the wave (audit 08-22 #90).
+    const wkIdx = Number(week && week.week) - 1;
+    if (Array.isArray(pe.wk) && wkIdx >= 0 && wkIdx < pe.wk.length) {
+      const v = pe.wk[wkIdx];
+      if (v != null && String(v).trim() !== '') return String(v);
+    }
+    return pe.reps != null && pe.reps !== '' ? String(pe.reps) : null;
   };
 
   const sel = { flex: '1 1 130px', minWidth: 0, boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 13, padding: '9px 11px', borderRadius: 0, outline: 'none', cursor: 'pointer' };

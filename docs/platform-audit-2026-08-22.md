@@ -1144,7 +1144,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 90. [LOW] Clip target-reps lookup ignores per-week (wave-load) prescriptions and can read a stale previous athlete's plans _[unverified]_
+## 90. [LOW] Clip target-reps lookup ignores per-week (wave-load) prescriptions and can read a stale previous athlete's plans **[FIXED 2026-08-25]**
 
 **Where:** `src/ReviewToolsView.jsx:83`
 
