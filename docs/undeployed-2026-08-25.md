@@ -92,17 +92,28 @@ Every DATA repair is in Supabase and is live now:
 
 ## The deploy pipeline itself
 
-**This is the one thing on the list that needs Ohad and cannot be done from
-here.** GitHub `master` is correct at `70b9dcd`. Production is not serving it.
+**The one thing on this list that needs you and cannot be done from here.**
 
-Measured, not inferred: production's index bundle has been `index-C78d7_ro.js`
-across every check today, through three separate pushes to `master`, and the
-`ShotAnalyzer` chunk it resolves to (`ShotAnalyzer-BPEkNVrJ.js`) contains **0**
-occurrences of the string "Release speed" — a label that has been in the source
-since yesterday. The pipeline cleared its backlog once mid-afternoon and then
-stopped again.
+GitHub `master` is `5479db8`. Production is serving the `70b9dcd` build — **five
+commits behind**:
 
-Builds and every test suite pass locally on the exact tree that was pushed, so
-this is Vercel-side. Until it clears, none of today's work reaches anyone —
-including the fix that stops a single shot being described as "repeatable
-across the session". **Open the Vercel dashboard.**
+| SHA | What production does not have |
+|---|---|
+| `6a520a4` | demo parity: the analyzer's session read; the tool-parity gate |
+| `8c14300` | the launcher's Lift Metrics blurb, two features behind the demo |
+| `866c0da` | **BHBC #70** — editing a session by a stale index writes to the WRONG session |
+| `e883866` | **BHBC #71** — a Practice edited to 0 minutes becomes a gym attendance row |
+| `5479db8` | BHBC #72 blank page; the marketing skip-link fix |
+
+Measured, not inferred: production's `BhbcView` chunk contains **0** occurrences
+of "That session moved" and "Minutes must be more than 0", both of which are in
+`866c0da` and `e883866`.
+
+The pipeline was stopped all day, cleared one batch this evening — that is how
+the Shot Analyzer work reached production, and it is verified live — and has not
+moved since. Every build and every test suite passes locally on the exact tree
+that was pushed, so this is Vercel-side. **Open the Vercel dashboard.**
+
+The two BHBC fixes waiting in that queue are the ones worth caring about: both
+silently write to the wrong session's record and subtract the wrong load from an
+athlete's ACWR.
