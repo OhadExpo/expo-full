@@ -3379,7 +3379,13 @@ export default function App() {
         }
         .fv-skip:focus { top: 12px; }
       `}</style>
-      <a className="fv-skip" href="#programs">Skip to content</a>
+      {/* Only where there is a nav to skip. On a standalone route (gym, entry
+          chooser) there is no Nav, and href="#programs" is not a no-op there:
+          parseHash maps 'programs' to the HOME view, so a keyboard or
+          screen-reader user pressing Tab — this is the first focusable element
+          — and activating it was thrown off the page they were on and onto the
+          catalog (audit #60). */}
+      {!isStandalone && <a className="fv-skip" href="#programs">Skip to content</a>}
       {!isStandalone && <Nav />}
       <main id="main" className={isHome ? 'fv-home-root' : undefined}>
         {body}

@@ -493,6 +493,17 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   // logging practices, no check-in entry, no roster management). Ohad 2026-08-18.
   const NAV_TABS = [['overview', 'Overview'], ['roster', 'Roster'], ['schedule', 'Schedule'], ['medical', 'Medical'], ...(asCoach ? [] : [['sessions', 'Sessions']]), ['games', 'Games']];
 
+  // Never sit on a tab that is not in the list. 'Sessions' disappears in the
+  // coach view, but `view` was not reset when 'Preview as coach' was switched
+  // on: no content block matched, no tab rendered active, and the owner got a
+  // header floating over an empty page that reads as the preview being broken
+  // (audit #72). Stated as "the view must be one of the tabs on screen" rather
+  // than as a special case for sessions, so a tab hidden later cannot bring the
+  // blank page back.
+  useEffect(() => {
+    if (!NAV_TABS.some(([k]) => k === view)) setView(NAV_TABS[0][0]);
+  }, [asCoach]);   // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <div className="bhbc-zone" style={{ ...TOKENS, minHeight: '100vh', background: 'var(--c-bg)', color: C.tx, fontFamily: FB }}>
       <style>{`
