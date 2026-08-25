@@ -2,6 +2,7 @@
 // MediaPipe pipeline runs against a real clip and reports how many shots it
 // finds, where it rejects the rest, and how the peak-prominence threshold
 // changes the count. Diagnostic only — never part of the app build.
+import fs from 'node:fs';
 import puppeteer from 'puppeteer-core';
 
 const CLIP = process.argv.slice(2).find((a) => !a.startsWith('--')) || '/10%20of%2011.mp4';
@@ -51,6 +52,19 @@ if (r) {
 // so a failure means something really moved.
 if (process.argv.includes('--assert')) {
   if (!r) { console.log('\nSHOT CLIP: the harness produced no result - is the dev server on :5199 up?'); await page.close(); await b.disconnect(); process.exit(1); }
+  // Is the page running the code that is on disk? Vite caches the transform of
+  // an inline module script; a dev server started before the page was last
+  // edited keeps serving the old one. That is not hypothetical — it happened,
+  // and every run for a day tested harness code that no longer existed.
+  const DISK = fs.readFileSync(new URL('../shot-harness.html', import.meta.url), 'utf8');
+  const want = (DISK.match(/harnessBuild:\s*'([^']+)'/) || [])[1];
+  if (want && r.harnessBuild !== want) {
+    console.log(`
+SHOT CLIP: the dev server is serving a STALE shot-harness.html`);
+    console.log(`  page reports ${JSON.stringify(r.harnessBuild)}, disk says ${JSON.stringify(want)}`);
+    console.log('  Restart the vite dev server on :5199 and re-run. Nothing was tested.');
+    await page.close(); await b.disconnect(); process.exit(1);
+  }
   const A = (r && r.analyzed) || [];
   const tracked = A.filter((x) => x.ballDeg != null);
   const speeds = tracked.map((x) => x.speed).filter((v) => v != null);
@@ -68,6 +82,11 @@ if (process.argv.includes('--assert')) {
 
   need('detects at least 10 of the 11 shots', (r.strictShots || []).length >= 10, `got ${(r.strictShots || []).length}`);
   need('analyzes every detected shot', A.length === (r.strictShots || []).length, `${A.length} vs ${(r.strictShots || []).length}`);
+  // An UPPER bound too. The clip has exactly 11 reps, and a gate that only
+  // checks "at least 10" happily passed a run that reported 12 — the eleventh
+  // rep counted twice, 933ms apart. Detecting shots that are not there is as
+  // wrong as missing ones, and it corrupts every session-level reading.
+  need('detects no more shots than the clip contains (11)', A.length <= 11, `got ${A.length}`);
   need('tracks the ball on at least 8 reps', tracked.length >= 8, `got ${tracked.length}`);
   need('every accepted track fits a parabola (r2 >= 0.98)', fits.length > 0 && fits.every((f) => f >= 0.98), fits.length ? `min ${Math.min(...fits)}` : 'no fits');
   need('every launch angle is a jump shot (40-80 deg)', tracked.every((x) => x.ballDeg > 40 && x.ballDeg < 80),

@@ -122,9 +122,17 @@ export function trackBall(frames, opts = {}) {
     // start — in ball diameters, because the ball only separates from the hand
     // a few frames after the release and has travelled by then.
     origin = null, maxOriginBalls = 9,
+    // Optional out-object. The builder rejects candidates in a loop, so there is
+    // no single reason it failed — but there IS a shape to the failure, and it
+    // says different things. Mostly `tooShort` means the ball was not detected
+    // in enough frames; mostly `badFit` means it was detected but what got
+    // tracked was clutter. Without this the only way to tell them apart was to
+    // add a console.log and re-run a two-minute clip.
+    stats = null,
   } = opts;
+  const bump = (k) => { if (stats) stats[k] = (stats[k] || 0) + 1; };
   const fs = (frames || []).filter((f) => f && Array.isArray(f.blobs));
-  if (fs.length < minLen) return null;
+  if (fs.length < minLen) { bump('tooFewFrames'); return null; }
 
   let best = null;
   // Seed from ANY frame, not just the first few: the ball only separates from
@@ -135,7 +143,7 @@ export function trackBall(frames, opts = {}) {
     for (const a of fs[i].blobs) {
       const aPx = Math.max((a.w + a.h) / 2, 1e-9);
       const tol = tolBalls * aPx, maxStep = maxStepBalls * aPx;
-      if (origin && Math.hypot(a.x - origin.x, a.y - origin.y) > maxOriginBalls * aPx) continue;
+      if (origin && Math.hypot(a.x - origin.x, a.y - origin.y) > maxOriginBalls * aPx) { bump('farFromHand'); continue; }
       for (let j = i + 1; j <= Math.min(fs.length - 1, i + seedSpan); j++) {
         for (const b of fs[j].blobs) {
           const dt = fs[j].t - fs[i].t;
@@ -160,13 +168,15 @@ export function trackBall(frames, opts = {}) {
             misses = 0; lastIdx = k;
             pts.push({ t: fs[k].t, x: pick.x, y: pick.y, px: (pick.w + pick.h) / 2 });
           }
-          if (pts.length < minLen) continue;
+          bump('seeds');
+          if (pts.length < minLen) { bump('tooShort'); continue; }
           // A real flight is seen in nearly every frame it spans. A path picked
           // out of clutter is sparse — it only lands on a candidate now and
           // then, and those few points can still curve convincingly.
-          if (pts.length / (lastIdx - i + 1) < minDensity) continue;
+          if (pts.length / (lastIdx - i + 1) < minDensity) { bump('tooSparse'); continue; }
           const q = fitQuadratic(pts.map((p) => (p.t - pts[0].t) / 1000), pts.map((p) => -p.y));
-          if (!q || q.r2 < 0.9) continue;
+          if (!q || q.r2 < 0.9) { bump('badFit'); continue; }
+          bump('kept');
           // Density matters as much as length. A track that had to bridge gaps
           // is usually two different objects stitched together — on the real
           // clip that was an arm followed by the ball, and the arm's much
@@ -177,7 +187,7 @@ export function trackBall(frames, opts = {}) {
       }
     }
   }
-  if (!best) return null;
+  if (!best) { bump('noTrack'); return null; }
   // Median apparent size of the tracked blob. This is what lets the caller
   // convert pixels to metres — a basketball is 0.24 m wide, always — and so
   // check that the thing being tracked is falling at GRAVITY.
@@ -204,9 +214,15 @@ export function trackBall(frames, opts = {}) {
  * Returns { angleDeg, fit, n } or null when the samples do not describe a
  * projectile — the normal outcome for a bad detection run, and the entire point.
  */
-export function launchAngle(points, releaseMs = null, ballPx = 0) {
+export function launchAngle(points, releaseMs = null, ballPx = 0, out = null) {
+  // Every refusal below says WHY. There are a dozen ways for a track to fail
+  // this and they all used to return a bare null, so an untracked rep was
+  // indistinguishable from a rep that was never filmed — and unfixable without
+  // adding a console.log and re-running a two-minute clip. Callers who want the
+  // reason pass an object; everyone else is unaffected.
+  const no = (why) => { if (out) out.why = why; return null; };
   const p = (points || []).filter((q) => q && Number.isFinite(q.t) && Number.isFinite(q.x) && Number.isFinite(q.y));
-  if (p.length < 5) return null;
+  if (p.length < 5) return no('fewer than 5 ball samples');
 
   const t0 = p[0].t;
   const ts = p.map((q) => (q.t - t0) / 1000);          // seconds
@@ -215,23 +231,23 @@ export function launchAngle(points, releaseMs = null, ballPx = 0) {
 
   // The ball must actually travel — a stationary blob is not a shot.
   const dx = xs[xs.length - 1] - xs[0];
-  if (Math.abs(dx) < 8) return null;
+  if (Math.abs(dx) < 8) return no('the blob never travelled sideways');
 
   const lin = fitLinear(ts, xs);
-  if (!lin) return null;
+  if (!lin) return no('no linear fit in x');
 
   // y(t) = a t^2 + b t + c. Gravity means a is clearly NEGATIVE (y is up).
   const quad = fitQuadratic(ts, ys);
-  if (!quad) return null;
-  if (!(quad.a < -50)) return null;                     // not falling like a projectile
-  if (quad.r2 < 0.9) return null;                       // not a parabola
+  if (!quad) return no('no quadratic fit in y');
+  if (!(quad.a < -50)) return no('not falling like a projectile');
+  if (quad.r2 < 0.9) return no(`the path is not a parabola (r2 ${quad.r2.toFixed(2)})`);
 
   // Did it actually GO UP? A shot climbs for many ball-widths before it falls.
   // Something drifting almost level can still fit a parabola beautifully — on
   // the real clip one such track rose by less than a third of a ball.
   if (ballPx > 0) {
     const climb = Math.max(...ys) - ys[0];
-    if (climb < 1.2 * ballPx) return null;
+    if (climb < 1.2 * ballPx) return no(`it barely rose (${(climb / ballPx).toFixed(1)} ball widths)`);
   }
 
   // Is it falling at gravity? Generous bounds, because the motion blob is the
@@ -240,7 +256,7 @@ export function launchAngle(points, releaseMs = null, ballPx = 0) {
   if (ballPx > 0) {
     const expected = 9.81 * (ballPx / BALL_DIAMETER_M);   // px/s2
     const measured = -2 * quad.a;
-    if (measured < expected * 0.45 || measured > expected * 2.2) return null;
+    if (measured < expected * 0.45 || measured > expected * 2.2) return no(`it is not falling at gravity (${(measured / expected).toFixed(2)}x)`);
   }
 
   // Evaluate at the release when we know it, else at the first sample. Only
@@ -254,11 +270,11 @@ export function launchAngle(points, releaseMs = null, ballPx = 0) {
 
   const vx = lin.m;
   const vy = 2 * quad.a * tEval + quad.b;               // dy/dt at tEval
-  if (!Number.isFinite(vx) || !Number.isFinite(vy)) return null;
-  if (vy <= 0) return null;                             // the ball must be going UP
+  if (!Number.isFinite(vx) || !Number.isFinite(vy)) return no('the fit produced no velocity');
+  if (vy <= 0) return no('the ball was already coming down');
 
   const angleDeg = Math.atan2(vy, Math.abs(vx)) * 180 / Math.PI;
-  if (!(angleDeg > 15 && angleDeg < 80)) return null;   // outside any real jump shot
+  if (!(angleDeg > 15 && angleDeg < 80)) return no(`launch ${angleDeg.toFixed(0)} deg is outside any jump shot`);
 
   // REAL-WORLD UNITS. The ball's apparent size is a ruler: it is 0.24 m across,
   // always. So once the flight is tracked, the pixel scale is known and the same
