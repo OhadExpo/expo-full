@@ -1108,7 +1108,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 87. [LOW] "Latest block" convention conflict: an un-numbered plan is treated as the newest block by the Next-Block report but as the oldest by the Analysis engine _[unverified]_
+## 87. [LOW] "Latest block" convention conflict: an un-numbered plan is treated as the newest block by the Next-Block report but as the oldest by the Analysis engine **[VERIFIED REAL — FIXED 2026-08-26]** — the Next-Block report now reads the highest-NUMBERED block, matching lineageAnalysis; block lists on screen keep their existing order
 
 **Where:** `src/NextBlockReport.jsx:112`
 
