@@ -1443,10 +1443,181 @@ function CompareDemoInteractive() {
   );
 }
 
+
+// ── Jump-shot analyzer mock ────────────────────────────────────────────────
+// Side-on shooter driven by ONE 0..1 phase, shaped to the four phases the real
+// analyzer segments a clip into — dip, set point, release, follow-through — so
+// the mock teaches the vocabulary the coach actually sees in the app.
+// Geometry only; the real read is MediaPipe pose in src/shotAnalysis.js.
+const SHOT_RELEASE_AT = 0.83;
+function shotFigure(p) {
+  const lerp = (a2, b2, u) => a2 + (b2 - a2) * u;
+  const clamp01 = (v) => Math.max(0, Math.min(1, v));
+  // The dip loads, drives back up, and is gone by the set point.
+  const dipAt = (q) => (q < 0.3 ? q / 0.3 : q < 0.62 ? 1 - (q - 0.3) / 0.32 : 0);
+  // The arm extends from the set point up through the release.
+  const extAt = (q) => clamp01((q - 0.45) / 0.38);
+  const liftAt = (q) => clamp01((q - 0.5) / 0.5) * 6;   // leaving the floor
+  const shoAt = (q) => 42 + dipAt(q) * 9 - liftAt(q);
+  const wristAt = (q) => [
+    lerp(51, 59, extAt(q)),
+    lerp(shoAt(q) + 1, shoAt(q) - 19, extAt(q)),
+  ];
+
+  const dip = dipAt(p), ext = extAt(p), lift = liftAt(p), shoY = shoAt(p);
+  const joints = {
+    head:     [46, 26 + dip * 9 - lift],
+    shoulder: [46, shoY],
+    elbow:    [lerp(52, 55, ext), lerp(shoY + 15, shoY - 5, ext)],
+    wrist:    wristAt(p),
+    hip:      [45, 74 + dip * 10 - lift],
+    knee:     [45 + dip * 5, 100 + dip * 3 - lift * 0.9],
+    ankle:    [43, 126 - lift * 1.4],
+    // The guide hand rides the side of the ball and comes off at the release.
+    guideElbow: [39, shoY + 14],
+    guideWrist: [lerp(47, 44, ext), lerp(shoY + 2, shoY + 7, ext)],
+  };
+
+  // The ball sits just past the shooting wrist until it leaves, then arcs away
+  // from wherever the wrist was AT the release — not from the still-rising body.
+  const anchor = wristAt(Math.min(p, SHOT_RELEASE_AT));
+  const flight = p > SHOT_RELEASE_AT ? (p - SHOT_RELEASE_AT) / (1 - SHOT_RELEASE_AT) : 0;
+  // Tuned so the apex and the far end of the arc both stay inside the frame —
+  // a ball that flies off the top just reads as a bug.
+  const ball = [
+    anchor[0] + 2 + flight * 22,
+    anchor[1] - 4 - (flight * 12 - flight * flight * 7),
+  ];
+
+  return {
+    joints, ball, flight,
+    elbowAngle: Math.round(lerp(84, 168, ext)),
+    phase: p < 0.3 ? 'DIP' : p < 0.55 ? 'SET' : p <= SHOT_RELEASE_AT ? 'RELEASE' : 'FOLLOW',
+  };
+}
+
+const SHOT_LINES = [
+  ['shoulder', 'elbow'], ['elbow', 'wrist'],
+  ['shoulder', 'guideElbow'], ['guideElbow', 'guideWrist'],
+  ['shoulder', 'hip'], ['hip', 'knee'], ['knee', 'ankle'],
+];
+
+function ShotSkeleton({ p }) {
+  const { joints, ball, flight, elbowAngle } = shotFigure(p);
+  return (
+    <svg viewBox="0 0 100 140" width="100%" height="100%" preserveAspectRatio="xMidYMid meet"
+      style={{ display: 'block' }}>
+      <ellipse cx="50" cy="72" rx="22" ry="50" fill={C.bd} opacity="0.25" />
+      {/* The arc the ball has already travelled */}
+      {flight > 0 && (
+        <path d={`M ${joints.wrist[0] + 2} ${joints.wrist[1] - 4} Q ${ball[0] - 10} ${ball[1] - 9} ${ball[0]} ${ball[1]}`}
+          fill="none" stroke={C.ac} strokeWidth="0.5" strokeDasharray="1.6 1.8" opacity="0.55" />
+      )}
+      {SHOT_LINES.map(([m, n], i) => (
+        <line key={i} x1={joints[m][0]} y1={joints[m][1]} x2={joints[n][0]} y2={joints[n][1]}
+          stroke={C.ac} strokeWidth="0.8" strokeLinecap="round" opacity="0.85" />
+      ))}
+      <circle cx={joints.head[0]} cy={joints.head[1]} r="6" fill="none" stroke={C.ac} strokeWidth="0.8" />
+      {Object.values(joints).map(([x, y], i) => (
+        <circle key={i} cx={x} cy={y} r="1.6" fill={C.ac} />
+      ))}
+      {/* The elbow is the checkpoint the eye should land on */}
+      <circle cx={joints.elbow[0]} cy={joints.elbow[1]} r={3.2 + (elbowAngle - 84) / 84 * 1.2}
+        fill="none" stroke={C.ac} strokeWidth="0.7" opacity="0.75" />
+      <circle cx={ball[0]} cy={ball[1]} r="4.6" fill="none" stroke={C.ac} strokeWidth="0.9" />
+      <path d={`M ${ball[0] - 4.6} ${ball[1]} h 9.2`} stroke={C.ac} strokeWidth="0.5" opacity="0.7" />
+    </svg>
+  );
+}
+
+function ShotScreen() {
+  const t = useT();
+  const [p, setP] = useState(0.62);   // parked at the release for reduced motion
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    let raf, t0;
+    const tick = (now) => {
+      if (!t0) t0 = now;
+      // 2.6s: the shot, then a beat on the follow-through before it resets.
+      const e = ((now - t0) % 2600) / 2600;
+      setP(e < 0.82 ? e / 0.82 : 1);
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+  const { elbowAngle, phase } = shotFigure(p);
+  return (
+    <>
+      <div style={{
+        flex: 1, position: 'relative', borderRadius: 0,
+        background: 'linear-gradient(180deg, #0e0e12 0%, #08080a 100%)',
+        border: `1px solid ${C.bd}`, overflow: 'hidden',
+      }}>
+        <ShotSkeleton p={p} />
+        <div style={{
+          position: 'absolute', top: 8, left: 8, padding: '3px 6px',
+          fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: 0.8,
+          background: C.acD, color: C.ac, borderRadius: 0, border: `1px solid ${C.ac4D}`,
+        }}>ELBOW {elbowAngle}°</div>
+        <div style={{
+          position: 'absolute', bottom: 8, right: 8, padding: '3px 6px',
+          fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: 0.8,
+          background: C.acD, color: C.ac, borderRadius: 0, border: `1px solid ${C.ac4D}`,
+        }}>{phase}</div>
+      </div>
+      <div style={{
+        fontFamily: FN, fontSize: 8, color: C.td, letterSpacing: 1.2,
+        textAlign: 'center', paddingTop: 6,
+      }}>{t('inside.shot.foot')}</div>
+    </>
+  );
+}
+
+function ShotDemoInteractive() {
+  const t = useT();
+  const [p, setP] = useState(0.62);
+  const { elbowAngle, phase } = shotFigure(p);
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{
+        position: 'relative', borderRadius: 0, height: 280,
+        background: 'linear-gradient(180deg, #0e0e12 0%, #08080a 100%)',
+        border: `1px solid ${C.bd}`, overflow: 'hidden',
+      }}>
+        <ShotSkeleton p={p} />
+        <div style={{
+          position: 'absolute', top: 10, left: 12, padding: '4px 8px',
+          fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1,
+          background: C.acD, color: C.ac, borderRadius: 0, border: `1px solid ${C.ac4D}`,
+        }}>ELBOW {elbowAngle}°</div>
+        <div style={{
+          position: 'absolute', top: 10, right: 12, padding: '4px 8px',
+          fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1,
+          background: C.acD, color: C.ac, borderRadius: 0, border: `1px solid ${C.ac4D}`,
+        }}>{phase}</div>
+      </div>
+      <div style={{ background: C.sf2, border: `1px solid ${C.bd}`, borderRadius: 0, padding: 12 }}>
+        <div style={{
+          fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 2,
+          fontWeight: 700, marginBottom: 8,
+        }}>
+          {t('demo.shot.scrub')} — {Math.round(p * 100)}%
+        </div>
+        <input type="range" min={0} max={100} value={Math.round(p * 100)}
+          onChange={e => setP(Number(e.target.value) / 100)}
+          aria-label={t('demo.shot.scrub')}
+          style={{ width: '100%', accentColor: C.ac, cursor: 'pointer' }} />
+      </div>
+    </div>
+  );
+}
+
 const DEMOS = {
   pose: { titleKey: 'demo.pose.h', bodyKey: 'demo.pose.body', Body: PoseDemoInteractive },
   rep:  { titleKey: 'demo.rep.h',  bodyKey: 'demo.rep.body',  Body: RepDemoInteractive  },
   cmp:  { titleKey: 'demo.cmp.h',  bodyKey: 'demo.cmp.body',  Body: CompareDemoInteractive },
+  shot: { titleKey: 'demo.shot.h', bodyKey: 'demo.shot.body', Body: ShotDemoInteractive },
 };
 
 function DemoModal({ which, onClose }) {
@@ -1483,11 +1654,12 @@ function DemoModal({ which, onClose }) {
 
 function WhatsInside() {
   const t = useT();
-  const [demo, setDemo] = useState(null); // 'pose' | 'rep' | 'cmp' | null
+  const [demo, setDemo] = useState(null); // 'pose' | 'rep' | 'cmp' | 'shot' | null
   const cards = [
     { key: 'pose', tag: t('inside.pose.tag'), h: t('inside.pose.h'), d: t('inside.pose.d'), Inner: PoseScreen        },
     { key: 'rep',  tag: t('inside.rep.tag'),  h: t('inside.rep.h'),  d: t('inside.rep.d'),  Inner: RepCounterScreen  },
     { key: 'cmp',  tag: t('inside.cmp.tag'),  h: t('inside.cmp.h'),  d: t('inside.cmp.d'),  Inner: CompareScreen     },
+    { key: 'shot', tag: t('inside.shot.tag'), h: t('inside.shot.h'), d: t('inside.shot.d'), Inner: ShotScreen        },
   ];
   return (
     <section id="inside" style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 16px' }}>
@@ -1507,7 +1679,7 @@ function WhatsInside() {
 
       <div className="fv-inside-grid" style={{
         display: 'grid', gap: 28, alignItems: 'start',
-        gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+        gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
       }}>
         {cards.map((card) => {
           const Inner = card.Inner;
@@ -3177,7 +3349,7 @@ export default function App() {
         @media (prefers-reduced-motion: reduce) {
           .fv-home-root section { opacity: 1 !important; transform: none !important; transition: none !important; }
         }
-        @media (max-width: 980px) {
+        @media (max-width: 1120px) {
           .fv-inside-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
         }
         @media (max-width: 620px) {
