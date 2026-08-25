@@ -460,6 +460,16 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
               [T.info.tracked, shot.info.coverage != null ? T.ofFrames(Math.round(shot.info.coverage * 100)) : '—']].map(([k, v]) => (
               <div key={k} style={{ border: '1px solid rgba(255,255,255,0.12)', padding: '6px 8px', minHeight: 46, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}><div style={lbl}>{k}</div><div style={{ fontFamily: FN, fontSize: 14, fontWeight: 700 }}>{v}</div></div>
             ))}
+            {/* An untracked ball used to be three em dashes and no explanation.
+                The plain sentence is for the coach; the technical reason the
+                tracker actually gave is on the tooltip, for whoever is fixing it. */}
+            {shot.info.ballLaunchDeg == null && shot.info.ballWhy && (
+              <div title={shot.info.ballWhy.why || shot.info.ballWhy.failed || ''}
+                style={{ border: '1px solid rgba(255,255,255,0.12)', padding: '6px 8px', gridColumn: '1 / -1',
+                  fontSize: 12, lineHeight: 1.5, color: 'rgba(255,255,255,0.62)' }}>
+                {T.ballUnread}
+              </div>
+            )}
             <div style={{ border: '1px solid rgba(255,255,255,0.12)', padding: '6px 8px', gridColumn: '1 / -1' }}><div style={lbl}>{T.info.chain}</div><div style={{ fontFamily: FN, fontSize: 14, fontWeight: 700 }}>{shot.info.sequenceOrder ? T.chainVal(shot.info.sequenceOrder.kneeMs, shot.info.sequenceOrder.shoulderMs, shot.info.sequenceOrder.elbowMs) : '—'}</div></div>
             {result.consistency && <div style={{ border: '1px solid rgba(255,255,255,0.12)', padding: '6px 8px', gridColumn: '1 / -1' }}><div style={lbl}>{T.consistencyLbl(result.consistency.n)}</div><div style={{ fontFamily: FN, fontSize: 12, fontWeight: 700 }}>{T.consistencyVal(fmt(result.consistency.rhythmCv), fmt(result.consistency.releaseArmSd, 1), fmt(result.consistency.setElbowSd, 1), fmt(result.consistency.timingSd))}</div></div>}
           </div>
