@@ -1,55 +1,52 @@
 # What is on `bhbc-hub` and NOT on `master` — updated 2026-08-26
 
-Derived from `git diff origin/master bhbc-hub`, run at the time of writing, not
-from memory. The counts below are that diff's output.
+Every count and file below comes from `git diff origin/master bhbc-hub`, run at
+the time of writing. Nothing here is carried forward from an earlier version of
+this document.
 
-**Master is `70b9dcd`.** Rollback for the whole of this deploy sequence is
+**Master is `5479db8`.** Rollback for the whole of this deploy sequence is
 `git push origin 6f07c05:master --force`.
 
-**Deployed since 6f07c05** — the Shot Analyzer in full, the BHBC zone, and the
-marketing parity that ships with them. 21 commits (`git rev-list --count
-6f07c05..origin/master`), ending with these six from 2026-08-26:
+**Deployed today** — the Shot Analyzer in full, the BHBC zone, the marketing and
+demo parity that ships with them, and three BHBC/accessibility fixes from the
+audit. `git diff origin/master bhbc-hub` shows **no change at all** outside
+`src/`, `scripts/` and `docs/`, and `BhbcView.jsx`, `bhbcSession.js`,
+`ballTrack.js`, `shotSession.js`, `shotI18n.js`, `ShotAnalyzer.jsx`,
+`shotAnalysis.js`, `shotCapture.js`, `shot-harness.html`, `expo-il/src/i18n.js`
+and `expo-il/src/App.jsx` are all **identical** on master and the branch.
 
-| SHA | What |
-|---|---|
-| `f4f6deb` | names the rep to watch; fixes `verdictOk` defined twice, which made a single shot report "repeatable across the session" |
-| `9267107` | codebase-wide gate for a key defined twice in one object |
-| `68d81dc` | marketing: the site never mentioned the session read |
-| `bca4229` | stops blaming the session for one odd rep |
-| `80431ae` | a rep counted twice (933ms apart); every tracker refusal now names itself; the harness refuses to run against a stale dev-server transform |
-| `70b9dcd` | an unread ball says why instead of showing three em dashes |
-
-Verified file-by-file: `ballTrack.js`, `shotSession.js`, `shotI18n.js`,
-`ShotAnalyzer.jsx`, `shotAnalysis.js`, `shotCapture.js`, `shot-harness.html`
-and `expo-il/src/i18n.js` are **identical** on master and `bhbc-hub`, and
-`git diff origin/master bhbc-hub` shows **no change at all** outside `src/`,
-`scripts/` and `docs/`.
+Verified live in production by code marker rather than by a deploy dashboard:
+the `ShotAnalyzer` chunk production serves contains "Release speed", "Clean
+mechanics", "of the reps repeat", "watch rep" and "could not be followed" — all
+five of today's strings.
 
 ---
 
-## Undeployed app code — 12 files
+## Undeployed app code — 14 files
 
-Each is a fix, each has a finding number, each is verified live in code before
-it was written. None of them touches the Shot Analyzer or BHBC.
+Each is a fix with a finding number, each traced in live code before it was
+written. **None touches the Shot Analyzer or the BHBC zone.**
 
 | File | What it fixes | Who feels it |
 |---|---|---|
 | `src/planCopy.js` **(new)** | **The original bug.** A copied program now carries the exercise VIDEO and TITLE onto the row. Proven on Omer's Block #3: 4 rows carried a video before, 30 after. | Any athlete receiving a copied program |
-| `src/PlansView.jsx` | Uses `planCopy`; **#89** per-week grids no longer hide and then truncate weeks beyond `plan.weeks` | Coach editing a wave-loaded block |
-| `src/WorkoutsView.jsx` | **#102** the in-person logger dropped the coach's per-row video on old-shape plans (174 of 209) | Coach logging in person |
+| `src/PlansView.jsx` | Uses `planCopy`; **#89** per-week grids no longer truncate weeks beyond `plan.weeks`; **#88** Save Program could silently lose the coach's last edit by racing the autosave | Coach editing any program |
+| `src/WorkoutsView.jsx` | **#102** the in-person logger dropped the coach's per-row video on old-shape plans (174 of 209); **#103** values typed during the ~1s channel-join window never reached an already-open athlete portal, and were then blanked by the athlete's own finish | Coach logging in person |
+| `src/SessionsView.jsx` | **#91** group finish compacted set arrays; **#93** the same athlete could be added twice; **#92** a stale `planIndex` capped the auto-week at 8 instead of the block's real length | Group sessions |
+| `src/NextBlockReport.jsx` | **#87** a stray un-numbered plan was read as the athlete's current block, so the volume target and the whole "current" column came off the wrong program | Any athlete with an un-numbered side plan |
+| `src/CoachDemo.jsx` | **#75** a chip border was the literal text `${C.cardBd}`; **#77** an unknown athlete id rendered a blank page; **#78** a grid chip that could not compress ran off the card; **#76** the PROGRAMS tab left the previous program detail on screen | Prospects in the demo |
+| `src/CoachLanding.jsx` | **#79** switching the landing page to Hebrew was counted as a demo-open in the funnel, inflating the one conversion rate the page measures | Your analytics |
 | `src/usePlansStore.js` | **#98** stale-request guard — a slow earlier fetch could overwrite the program the coach actually opened | Coach switching programs quickly |
-| `src/TraineesView.jsx` | **#97** the roster edit modal wrote its open-time snapshot back, silently reverting live fields (session counters, availability) | Any concurrent change while the modal is open |
-| `src/TraineeDetail.jsx` | **#95** the couple portal-visibility toggle wrote a key the portal never reads — the switch moved, nothing happened | Couples with parent-assigned plans |
-| `src/SessionsView.jsx` | **#91** group finish compacted set arrays, so a skipped set shifted every later set in next week's ghost; **#93** the same athlete could be added twice | Group sessions |
-| `src/ReviewToolsView.jsx` | **#90** camera target reps ignored the wave and showed the same target every week; Lift Metrics label now names what the tool measures | Camera tools |
+| `src/TraineesView.jsx` | **#97** the roster edit modal wrote its open-time snapshot back, reverting live fields | Any concurrent change while the modal is open |
+| `src/TraineeDetail.jsx` | **#95** the couple portal-visibility toggle wrote a key the portal never reads | Couples with parent-assigned plans |
+| `src/ReviewToolsView.jsx` | **#90** camera target reps ignored the wave and showed the same target every week | Camera tools |
 | `src/liftDetect.js` | **#86** "Tricep Kickback" counted reps on the HIP, so reps sat at 0 with no error | Rep counting |
-| `src/CoachDemo.jsx` | **#75** a chip border was the literal text `${C.cardBd}` — invalid CSS, borderless; **#77** an unknown athlete id rendered a blank page | Prospects in the demo |
 | `src/demoTraineeData.js` | **#80** UTC dates showed "yesterday" between midnight and 03:00 | Demo visitors at night |
 | `src/TrySandbox.jsx` | The same UTC drift — **not in the audit**, found by grepping for the pattern | `/try` visitors at night |
 
 ## Undeployed tooling and docs — no runtime effect
 
-36 files (31 scripts, 5 docs): the reconciliation engine (`reconcile-sheet-vs-app.cjs`,
+37 files (32 scripts, 5 docs): the reconciliation engine (`reconcile-sheet-vs-app.cjs`,
 `reconcile-all.cjs`, `apply-sheet-fixes.cjs`, `restore-plan-backups.cjs`,
 `import-sheet-block.cjs`, `resync-plan-from-sheet.cjs`), eleven `audit-*.cjs`
 scripts, the library backfills, `spotcheck-sheet-vs-app.cjs`, and four docs
