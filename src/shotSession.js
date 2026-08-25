@@ -57,3 +57,40 @@ export function sessionVerdict(spread) {
   if (speed || angle) return 'repeatable';
   return null;
 }
+
+/**
+ * The rep that deviates most from the session, on the reading that matters.
+ *
+ * A spread tells the coach THAT the shot moved; it does not tell him which rep
+ * to look at. This names one — the single largest deviation on the reading the
+ * verdict picked — because "watch rep 10" is a thing he can actually do,
+ * whereas "sd 0.65 m/s" is not.
+ *
+ * Returns { index, value, delta, key } (index is 1-based, as the UI numbers
+ * reps) or null when there is nothing worth singling out.
+ */
+export function worstRep(shots, spread, verdict) {
+  if (!shots || !spread || !verdict || verdict === 'repeatable') return null;
+  const key = verdict === 'speed' ? 'ballSpeedMs' : 'ballLaunchDeg';
+  const sp = verdict === 'speed' ? spread.speed : spread.angle;
+  if (!sp) return null;
+  const devs = [];
+  shots.forEach((s, i) => {
+    const v = s && s.info && s.info[key];
+    if (typeof v !== 'number' || !Number.isFinite(v)) return;
+    // index counts EVERY rep, tracked or not — the UI numbers them all, so
+    // "rep 5" has to mean the fifth thing he sees, not the fifth tracked one.
+    devs.push({ index: i + 1, value: v, delta: Math.abs(v - sp.mean), key });
+  });
+  if (devs.length < 3) return null;
+  devs.sort((a, b) => b.delta - a.delta);
+  const [worst, second] = devs;
+  // An outlier is one rep apart from THE REST, not merely the extreme of an
+  // even spread. In an evenly spread set the extreme always sits ~1.4 sd from
+  // the mean, so a "1 sd" rule names a culprit in every session, including the
+  // ones where every rep drifted equally — which is a different fault and must
+  // not be reported as one bad rep. Requiring the worst to stand half again
+  // clear of the SECOND worst is what separates the two.
+  if (worst.delta < second.delta * 1.5) return null;
+  return { index: worst.index, value: worst.value, delta: Math.round(worst.delta * 100) / 100, key };
+}

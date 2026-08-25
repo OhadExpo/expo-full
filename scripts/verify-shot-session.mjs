@@ -1,5 +1,5 @@
 // Session-level consistency across a set of shots.
-import { spreadOf, sessionSpread, sessionVerdict, TIGHT } from '../src/shotSession.js';
+import { spreadOf, sessionSpread, sessionVerdict, worstRep, TIGHT } from '../src/shotSession.js';
 
 let pass = 0, fail = 0;
 const eq = (name, got, want) => {
@@ -84,6 +84,47 @@ eq('null in, null out', sessionVerdict(null), null);
   eq('and the session still reads as repeatable', sp.speed.tight, true);
 }
 eq('the thresholds are stated, not magic', [TIGHT.angleDeg, TIGHT.speedMs, TIGHT.riseM], [4, 0.4, 0.15]);
+// ── naming the rep to look at ──────────────────────────────────────────────
+{
+  // One clearly slow rep among steady ones.
+  const shots = [4.5, 4.4, 4.6, 3.1, 4.5].map((s) => ({ info: { ballLaunchDeg: 60, ballSpeedMs: s } }));
+  const sp = sessionSpread(shots);
+  const w = worstRep(shots, sp, sessionVerdict(sp));
+  eq('names the rep that deviates most', w && w.index, 4);
+  eq('and says which reading', w && w.key, 'ballSpeedMs');
+  eq('and reports its value', w && w.value, 3.1);
+}
+{
+  // Evenly spread, no single culprit — do not invent one.
+  const shots = [4.0, 4.3, 4.6, 4.9, 5.2].map((s) => ({ info: { ballSpeedMs: s } }));
+  const sp = sessionSpread(shots);
+  eq('an even spread names nobody', worstRep(shots, sp, sessionVerdict(sp)), null);
+}
+{
+  // A repeatable session has no rep to single out.
+  const shots = [4.4, 4.4, 4.5, 4.4].map((s) => ({ info: { ballSpeedMs: s } }));
+  const sp = sessionSpread(shots);
+  eq('a repeatable session names nobody', worstRep(shots, sp, sessionVerdict(sp)), null);
+}
+{
+  // Speed repeats, angle wanders: the culprit is named on the ANGLE, and the
+  // index must count untracked reps too — the UI numbers every rep, not just
+  // the ones the ball tracker caught.
+  const shots = [
+    { info: { ballLaunchDeg: 60, ballSpeedMs: 4.4 } },
+    { info: { ballSpeedMs: 4.4 } },
+    { info: { ballLaunchDeg: 61, ballSpeedMs: 4.4 } },
+    { info: { ballLaunchDeg: 59, ballSpeedMs: 4.4 } },
+    { info: { ballLaunchDeg: 78, ballSpeedMs: 4.4 } },
+  ];
+  const sp = sessionSpread(shots);
+  const w = worstRep(shots, sp, sessionVerdict(sp));
+  eq('the angle culprit is found', w && w.key, 'ballLaunchDeg');
+  eq('and its index counts untracked reps', w && w.index, 5);
+}
+eq('no shots, no culprit', worstRep([], null, null), null);
+eq('null spread, no culprit', worstRep([{ info: { ballSpeedMs: 4 } }], null, 'speed'), null);
+
 
 console.log(`\nSHOT SESSION: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

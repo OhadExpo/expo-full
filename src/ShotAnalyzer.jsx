@@ -10,7 +10,7 @@ import { captureShotFrames } from './shotCapture';
 import { getCamera, stopStream } from './usePose';
 import { detectShootingHand, analyzeShotClip, frameReadout, CHECKPOINTS, SHOT_TYPES } from './shotAnalysis';
 import { SHOT_I18N, localiseCheck } from './shotI18n';
-import { sessionSpread, sessionVerdict } from './shotSession.js';
+import { sessionSpread, sessionVerdict, worstRep } from './shotSession.js';
 
 const STATUS = {
   ok:    { label: 'OK',    color: 'var(--c-gn, #2ED573)' },
@@ -508,6 +508,9 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
                 // src/shotSession.js so it is testable without a clip.
                 const spread = sessionSpread(result.shots);
                 const verdict = sessionVerdict(spread);
+                // Which rep to actually watch. A spread says the shot moved; this
+                // says where to look, and stays null unless one rep really is apart.
+                const culprit = worstRep(result.shots, spread, verdict);
                 const band = (sp) => (sp && sp.tight ? '#37B27C' : '#E0A73A');
                 const row = (label, sp, unit) => (sp ? (
                   <span style={{ marginRight: 14 }}>
@@ -528,9 +531,14 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
                         {row(T.spreadSpeed, spread.speed, ' m/s')}
                         {row(T.spreadRise, spread.rise, ' m')}
                         <div style={{ marginTop: 2, color: verdict === 'repeatable' ? '#37B27C' : '#E0A73A' }}>
-                          {verdict === 'speed' ? T.verdictSpeed : verdict === 'angle' ? T.verdictAngle : T.verdictOk}
+                          {verdict === 'speed' ? T.verdictSpeed : verdict === 'angle' ? T.verdictAngle : T.sessionRepeatable}
                           {spread.angle ? ' · ' + T.launchSpreadOn(spread.angle.n, result.shots.length) : ''}
                         </div>
+                        {culprit && (
+                          <div style={{ marginTop: 2, color: '#E0A73A' }}>
+                            {T.worstRep(culprit.index, culprit.value, culprit.key === 'ballSpeedMs' ? ' m/s' : '°')}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
