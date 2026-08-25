@@ -1002,7 +1002,7 @@ By severity: 17 high · 39 medium · 47 low
 
 ---
 
-## 79. [LOW] Language toggle fires the coach_demo_open funnel event, polluting the demo-open conversion metric _[unverified]_
+## 79. [LOW] Language toggle fires the coach_demo_open funnel event, polluting the demo-open conversion metric **[VERIFIED REAL — FIXED 2026-08-26]** — the click handler now matches the /demo/coach and /demo/athlete path SEGMENTS, and a locale switch is tracked as coach_lang_switch
 
 **Where:** `src/CoachLanding.jsx:501`
 
