@@ -217,6 +217,20 @@ eq('no frames to track', trackBall(null), null);
   eq('an implausible speed is withheld', silly === null || silly.speedMs === null, true);
 }
 
+{
+  // THE POINT of scaling from gravity: the motion blob is the union of two ball
+  // positions, so its width over-reads — and a width-based scale would put that
+  // error straight into every metre. Here the true ball is 16px but the blob
+  // measures 20px (25% blur). The speed must be unchanged, because gravity does
+  // not care how wide the blob looked.
+  const pts = flight(14, { g: 9.81 * (16 / BALL_DIAMETER_M) });
+  const exact = launchAngle(pts, null, 16);
+  const blurred = launchAngle(pts, null, 20);
+  eq('a blurred blob still yields a speed', blurred != null && blurred.speedMs != null, true);
+  near('and the SAME speed as an exact blob', blurred.speedMs, exact.speedMs, 0.01);
+  near('and the same arc rise', blurred.riseM, exact.riseM, 0.01);
+}
+
 // ── and REFUSES everything that is not a shot ──────────────────────────────
 eq('too few samples', launchAngle([{ t: 0, x: 0, y: 0 }, { t: 30, x: 5, y: -5 }]), null);
 {
