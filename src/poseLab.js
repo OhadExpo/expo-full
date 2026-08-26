@@ -623,7 +623,9 @@ export function jointRomMetrics(frames, jointNames = null) {
 //   NECK FLEX        signed neck sagittal (+flexion / −extension), unsided
 //   NECK LAT         neck lateral-flexion magnitude, unsided
 //   L ANK / R ANK    static ankle interior angle (knee·ankle·foot), dorsi/plantar
-const medianOf = (arr) => { const s = [...arr].sort((a, b) => a - b); return s[Math.floor(s.length / 2)]; };
+// True median: on an even count average the two middle values. Returning the
+// upper one biased every even-length sample high.
+const medianOf = (arr) => { const s = [...arr].sort((a, b) => a - b); if (!s.length) return undefined; const m = Math.floor(s.length / 2); return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
 function robustExtremes(series) {
   const sorted = [...series].sort((a, b) => a - b);
   const k = Math.min(3, sorted.length);
@@ -1254,6 +1256,10 @@ export function estimateFps(frames) {
   const span = frames[frames.length - 1].t - frames[0].t;
   return span > 0 ? Math.round(((frames.length - 1) / span) * 1000) : 30;
 }
-function median(arr) { const s = [...arr].sort((a, b) => a - b); return s[Math.floor(s.length / 2)]; }
+// True median. This one feeds `scale` (the normalised-to-real unit factor on
+// lines 342/432/479/945/1021), `baseY` (a SHORT standing window), and the
+// broad-jump pixelDx on line 817 - all rulers. An upper-biased ruler skews
+// every distance and velocity derived from it.
+function median(arr) { const s = [...arr].sort((a, b) => a - b); if (!s.length) return undefined; const m = Math.floor(s.length / 2); return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; }
 function round2(x) { return Math.round(x * 100) / 100; }
 function round1(x) { return Math.round(x * 10) / 10; }
