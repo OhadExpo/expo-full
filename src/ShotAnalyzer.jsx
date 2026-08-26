@@ -250,7 +250,11 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const wrapRef = useRef(null);
-  const [openGuide, setOpenGuide] = useState(() => new Set(shot.checks.filter((c) => c.status === 'fix').map((c) => c.key)));
+  // Collapsed by default (Ohad 2026-08-26: "the drills/solutions should be
+  // expandable, and collapsed when not clicked on"). It used to auto-open every
+  // failing check, so the panel arrived as a wall of prose and the scorecard —
+  // the part that is meant to be scannable — was pushed off the screen.
+  const [openGuide, setOpenGuide] = useState(() => new Set());
 
   // When the SHOT changes, jump the video to that shot's current phase — unless
   // the change came from the user scrubbing, in which case they are already
@@ -629,11 +633,18 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
                     <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, transform: open ? 'rotate(180deg)' : 'none', display: 'inline-block' }}>▾</span>
                   </div>
                   {open && (
-                    <div style={{ padding: '0 12px 12px 30px', fontSize: 12.5, lineHeight: 1.55, color: 'rgba(255,255,255,0.85)' }}>
-                      <div style={{ marginBottom: 6 }}><span style={{ ...lbl, color: st.color }}>{T.what}</span>{c.status === 'ok' ? T.measuredOk(c.display) : T.measuredBad(c.display, c.target)}</div>
-                      <div style={{ marginBottom: 6 }}><span style={{ ...lbl, color: CYAN }}>{T.why}</span>{c.why}</div>
-                      <div><span style={{ ...lbl, color: CYAN }}>{T.how}</span>
-                        <ul style={{ margin: '4px 0 0', paddingInlineStart: 18 }}>{c.how.map((h, k) => <li key={k} style={{ marginBottom: 2 }}>{h}</li>)}</ul>
+                    <div style={{ padding: '0 12px 12px 30px', fontSize: 12.5, lineHeight: 1.55, color: 'rgba(255,255,255,0.85)', minWidth: 0, overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
+                      <div style={{ marginBottom: 9 }}>
+                        <div style={{ ...lbl, color: st.color, marginBottom: 3 }}>{T.what}</div>
+                        <div>{c.status === 'ok' ? T.measuredOk(c.display) : T.measuredBad(c.display, c.target)}</div>
+                      </div>
+                      <div style={{ marginBottom: 9 }}>
+                        <div style={{ ...lbl, color: CYAN, marginBottom: 3 }}>{T.why}</div>
+                        <div>{c.why}</div>
+                      </div>
+                      <div>
+                        <div style={{ ...lbl, color: CYAN, marginBottom: 3 }}>{T.how}</div>
+                        <ul style={{ margin: 0, paddingInlineStart: 18 }}>{c.how.map((h, k) => <li key={k} style={{ marginBottom: 3 }}>{h}</li>)}</ul>
                       </div>
                     </div>
                   )}
@@ -654,6 +665,11 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
 
 // Joint-angle timeline with phase bands + playhead; click/drag to seek.
 function Timeline({ series, shot, cur, onSeek, T }) {
+  // Click a legend entry to show ONLY that line; click it again for all four
+  // (Ohad 2026-08-26: "i wanna be able to only see one graph (knee/hip etc if i
+  // click on it)"). Four traces over one another is unreadable when the
+  // question is "what did the knee actually do".
+  const [soloLine, setSoloLine] = useState(null);
   const W = 600, H = 150, PAD = 6;
   const n = series.n; if (n < 2) return null;
   const t0 = series.tMs[0], t1 = series.tMs[n - 1] || t0 + 1;
@@ -667,16 +683,22 @@ function Timeline({ series, shot, cur, onSeek, T }) {
   return (
     <div style={{ marginTop: 10 }}>
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 4 }}>
-        {[[T.legend.knee, '#39BDFF'], [T.legend.elbow, '#FFFFFF'], [T.legend.armElev, '#FFA502'], [T.legend.hipHeight, '#2ED573']].map(([k, c]) => <span key={k} style={{ ...lbl, color: c }}>— {k}</span>)}
+        {[[T.legend.knee, '#39BDFF', 'knee'], [T.legend.elbow, '#FFFFFF', 'elbow'], [T.legend.armElev, '#FFA502', 'shoulder'], [T.legend.hipHeight, '#2ED573', 'hipY']].map(([k, c, id]) => (
+          <button key={k} onClick={() => setSoloLine((v) => (v === id ? null : id))}
+            title={soloLine === id ? T.legendAll : T.legendOnly(k)}
+            style={{ ...lbl, color: c, background: 'transparent', border: 'none', cursor: 'pointer', padding: '2px 4px',
+              opacity: soloLine && soloLine !== id ? 0.3 : 1,
+              textDecoration: soloLine === id ? 'underline' : 'none' }}>— {k}</button>
+        ))}
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.02)', cursor: 'crosshair' }}
         onMouseDown={pick} onMouseMove={(e) => { if (e.buttons === 1) pick(e); }}>
         {shot.phases.map((p) => <line key={p.key} x1={X(p.idx)} x2={X(p.idx)} y1={0} y2={H} stroke="rgba(255,255,255,0.22)" strokeDasharray="3 3" />)}
         {shot.phases.map((p) => <text key={p.key + 't'} x={X(p.idx) + 2} y={10} fill="rgba(255,255,255,0.55)" fontFamily="Nord, monospace" fontSize="8">{p.label}</text>)}
-        {line(series.sm.knee, 60, 180, '#39BDFF')}
-        {line(series.sm.elbow, 30, 180, '#FFFFFF')}
-        {line(series.sm.shoulder, 0, 180, '#FFA502')}
-        {line(series.sm.hipY.map((v) => (v == null ? null : v * 400)), (Math.min(...series.sm.hipY.filter(Number.isFinite)) || 0) * 400, (Math.max(...series.sm.hipY.filter(Number.isFinite)) || 1) * 400 + 0.01, '#2ED573')}
+        {(!soloLine || soloLine === 'knee') && line(series.sm.knee, 60, 180, '#39BDFF')}
+        {(!soloLine || soloLine === 'elbow') && line(series.sm.elbow, 30, 180, '#FFFFFF')}
+        {(!soloLine || soloLine === 'shoulder') && line(series.sm.shoulder, 0, 180, '#FFA502')}
+        {(!soloLine || soloLine === 'hipY') && line(series.sm.hipY.map((v) => (v == null ? null : v * 400)), (Math.min(...series.sm.hipY.filter(Number.isFinite)) || 0) * 400, (Math.max(...series.sm.hipY.filter(Number.isFinite)) || 1) * 400 + 0.01, '#2ED573')}
         <line x1={X(cur)} x2={X(cur)} y1={0} y2={H} stroke="#39BDFF" strokeWidth="1.5" />
       </svg>
     </div>
