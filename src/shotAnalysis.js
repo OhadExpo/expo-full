@@ -638,6 +638,18 @@ export function analyzeShotClip(frames, { hand = 'R', statureCm = null, shotType
   const tMs = frames.map((f) => f.t);
   const span = (tMs[tMs.length - 1] - tMs[0]) / 1000;
   const fps = frames.fps || (span > 0 ? (frames.length - 1) / span : 30);
+  // `fps` above is the SOURCE video's frame rate whenever capture could measure
+  // it, so it says nothing about how much of the clip actually reached the
+  // model. The starved-capture warning was keyed on it and therefore could not
+  // fire for the very failure it exists to catch: a 60 fps clip that lost half
+  // its frames still reports 60.
+  //
+  // effFps is what we really analysed — frames kept, over the span they cover.
+  // skipRatio comes from capture: frames discarded because pose detection was
+  // still busy. Together they are why the same clip returned 11, 10 and 9 shots
+  // on 2026-08-27.
+  const effFps = span > 0 ? round((frames.length - 1) / span, 1) : null;
+  const skipRatio = (frames.stats && typeof frames.stats.skipRatio === 'number') ? frames.stats.skipRatio : null;
   const series = buildSeries(frames, { hand, aspect });
   const strictWhy = [];
   let cycles = detectShots(series, fps, { debug: strictWhy });
@@ -667,7 +679,7 @@ export function analyzeShotClip(frames, { hand = 'R', statureCm = null, shotType
     for (const f of frames) { const p = f && (f.pose || f.landmarks || f.lm); if (p && p[11] && p[12] && p[15] && p[16]) tracked++; }
     const pct = Math.round((tracked / Math.max(1, frames.length)) * 100);
     const trackNote = ` Body tracked in ${tracked}/${frames.length} frames (${pct}%)${pct < 50 ? ' — that is the real problem: get the whole body in frame, closer and better lit.' : '.'}`;
-    return { ok: false, error: `No shot detected.${detail}${trackNote} Film the whole shot side-on, shooting arm towards the camera, feet to fingertips in frame.`, rejections: strictWhy, tracked: { n: tracked, total: frames.length, pct }, series, fps };
+    return { ok: false, error: `No shot detected.${detail}${trackNote} Film the whole shot side-on, shooting arm towards the camera, feet to fingertips in frame.`, rejections: strictWhy, tracked: { n: tracked, total: frames.length, pct }, series, fps, effFps, skipRatio };
   }
   const shots = cycles.map((c, k) => ({ index: k + 1, cycle: c, ...scoreShot(series, c, { statureCm, shotType }) }));
 
@@ -686,5 +698,5 @@ export function analyzeShotClip(frames, { hand = 'R', statureCm = null, shotType
     timingSd: round(sdev(shots.map((s) => s.raw.timing)), 0),
   } : null;
 
-  return { ok: true, fps: round(fps, 1), frameCount: frames.length, hand, shotType, series, shots, consistency, quality: relaxed && quality === 'good' ? 'fair' : quality, relaxed, coverage: round(cov, 2), aspect };
+  return { ok: true, fps: round(fps, 1), effFps, skipRatio, frameCount: frames.length, hand, shotType, series, shots, consistency, quality: relaxed && quality === 'good' ? 'fair' : quality, relaxed, coverage: round(cov, 2), aspect };
 }

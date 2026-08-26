@@ -79,12 +79,23 @@ for (const route of ROUTES) {
   page.on('pageerror', onPageErr);
   page.on('requestfailed', onReqFail);
 
-  try {
+  // A navigation can abort because the PREVIOUS route still had work in
+  // flight — /coach/tasks failed once this way and was clean on both repeats.
+  // Reporting that as a defect is how a sweep earns a reputation for flaking,
+  // so an aborted navigation gets exactly one retry before it counts.
+  const load = async () => {
     await page.goto(BASE + route, { waitUntil: 'domcontentloaded', timeout: 45000 });
     await page.waitForFunction(() => !/LOADING DATA/i.test(document.body.innerText), { timeout: 30000 }).catch(() => {});
     await new Promise((r) => setTimeout(r, 2500));
+  };
+  try {
+    await load();
   } catch (e) {
-    errs.push('navigation: ' + String(e).slice(0, 90));
+    if (/ERR_ABORTED/.test(String(e))) {
+      try { await load(); } catch (e2) { errs.push('navigation: ' + String(e2).slice(0, 90)); }
+    } else {
+      errs.push('navigation: ' + String(e).slice(0, 90));
+    }
   }
 
   page.off('console', onConsole);

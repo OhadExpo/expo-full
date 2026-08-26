@@ -74,7 +74,13 @@ const seekTo = (v, time) => new Promise((res) => {
  * DISTINCT source frame. Resolves when `to` is reached or the video ends.
  * Falls back to a seek-step loop when requestVideoFrameCallback is missing.
  */
-async function playThrough(v, { from, to, rate, onFrame, frameDur }) {
+// `drops` (optional) collects how many presented frames were thrown away
+// because pose detection was still busy. That number is the difference between
+// a reliable read and an unreliable one: the same clip analysed three times on
+// 2026-08-27 returned 11, 10 and 9 shots, purely because a busier machine
+// discarded more frames. Nothing downstream is random — this is where the
+// variance enters, so it must at least be measurable.
+async function playThrough(v, { from, to, rate, onFrame, frameDur, drops }) {
   await seekTo(v, Math.max(0, from));
   v.playbackRate = rate;
   if (typeof v.requestVideoFrameCallback !== 'function') {
@@ -91,10 +97,17 @@ async function playThrough(v, { from, to, rate, onFrame, frameDur }) {
       const mt = meta.mediaTime;
       if (mt > to + 0.001) { stop(); return; }
       // One callback per distinct source frame; skip re-presentations.
-      if (!busy && mt > last + frameDur * 0.5) {
+      const isNewFrame = mt > last + frameDur * 0.5;
+      if (!busy && isNewFrame) {
         busy = true; last = mt;
         try { await onFrame(v, mt); } catch { /* noop */ }
         busy = false;
+      } else if (busy && isNewFrame && drops) {
+        // A genuinely new source frame arrived while pose detection was still
+        // running, so it is discarded — not queued. This is the sole source of
+        // run-to-run variation in the shot count.
+        drops.skipped = (drops.skipped || 0) + 1;
+        drops.lastSkipMs = Math.round(mt * 1000);
       }
       v.requestVideoFrameCallback(cb);
     };
@@ -176,11 +189,14 @@ export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineR
     // Whole clip at playback speed, fast model, whole frame: where is he, and
     // when are his hands above his head.
     const t0 = performance.now();
+    // Frames thrown away because pose detection was still busy. See the
+    // note on playThrough: this is where run-to-run variance comes from.
+    const drops = { skipped: 0, lastSkipMs: null };
     const track = [];
     const coarse = [];
     let prevC = null;
     await playThrough(v, {
-      from: 0, to: dur, rate: 1, frameDur,
+      from: 0, to: dur, rate: 1, frameDur, drops,
       onFrame: (vid, mt) => {
         let r = null;
         try { r = lmCoarse.detect(vid); } catch { /* noop */ }
@@ -249,7 +265,7 @@ export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineR
     for (const w of windows) {
       if (fine.length >= maxFine) break;
       await playThrough(v, {
-        from: w.from / 1000, to: w.to / 1000, rate: fineRate, frameDur,
+        from: w.from / 1000, to: w.to / 1000, rate: fineRate, frameDur, drops,
         onFrame: (vid, mt) => {
           if (fine.length >= maxFine) return;
           const b = boxAt(track, mt) || { x0: 0.2, y0: 0.1, x1: 0.8, y1: 0.9 };
@@ -312,7 +328,14 @@ export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineR
     out.dims = { w: vw, h: vh };
     out.windows = windows;
     out.fps = fps;
-    out.stats = { coarse: coarse.length, fine: fine.length, windows: windows.length, duration: dur, msCoarse, msFine };
+    // skipped: frames discarded mid-detection. skipRatio: how much of the
+    // clip never reached the model. A high ratio means the shot COUNT is
+    // unreliable, which no fps average will reveal - the fps figure is
+    // computed from the frames that did arrive, so heavy skipping just
+    // looks like a lower-frame-rate video.
+    const seen = coarse.length + fine.length + drops.skipped;
+    out.stats = { coarse: coarse.length, fine: fine.length, windows: windows.length, duration: dur, msCoarse, msFine,
+                  skipped: drops.skipped, skipRatio: seen ? Math.round((drops.skipped / seen) * 100) / 100 : 0 };
     report(100, 'done');
     try { console.log('[shot-capture]', JSON.stringify(out.stats), 'out', out.length); } catch { /* noop */ }
     return out;
