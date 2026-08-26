@@ -6,10 +6,10 @@
   "scripts": {
     "dev": "vite",
     "lint": "eslint src expo-il/src",
-    "build": "node scripts/check-bare-css-fns.js && node scripts/check-surfaces.mjs && node scripts/verify-font-parity.mjs && node scripts/verify-hebrew.mjs && eslint src expo-il/src && vite build",
+    "build": "node scripts/verify-lockfile-sync.mjs && node scripts/check-bare-css-fns.js && node scripts/check-surfaces.mjs && node scripts/verify-font-parity.mjs && node scripts/verify-hebrew.mjs && eslint src expo-il/src && vite build",
     "surfaces": "node scripts/check-surfaces.mjs",
     "test": "node scripts/verify-analysis-engines.mjs",
-    "verify": "node scripts/verify-analysis-engines.mjs && node scripts/verify-font-parity.mjs && node scripts/verify-check-bare-css-fns.mjs && node scripts/verify-hebrew.mjs",
+    "verify": "node scripts/verify-analysis-engines.mjs && node scripts/verify-font-parity.mjs && node scripts/verify-check-bare-css-fns.mjs && node scripts/verify-hebrew.mjs && node scripts/verify-lockfile-sync.mjs",
     "build:nocheck": "vite build",
     "preview": "vite preview",
     "guard": "node scripts/check-bare-css-fns.js"
