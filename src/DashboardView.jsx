@@ -649,6 +649,27 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
       {/* PushToggle moved from here to the ⋯ MoreMenu (Push Notifications
           ON/OFF item above Change Password) per Ohad 2026-05-23. */}
 
+      {/* ONLINE NOW — lifted OUT of the alerts grid and up under Tasks
+          (Ohad 2026-08-26: "the online now should be higher up top"). Who is
+          training RIGHT NOW is the most perishable thing on this screen: it is
+          worth acting on for minutes, while an expiring package or an overdue
+          payment keeps. It was sitting below the inbox, off the first screen on
+          a phone. Messages stays its own full-width row below it, never inside
+          the alerts grid. */}
+          {onlineNow.length > 0 && (
+        <div className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.gn}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
+          <RefinedHeaderStrip>
+            <SectionLabel style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="dot" color="#FFFFFF"/>Online Now ({onlineNow.length})</SectionLabel>
+          </RefinedHeaderStrip>
+          {onlineNow.map(t => (
+            <div key={t.id} {...asButton(() => onSelectTrainee(t.id))} aria-label={`Open ${t.name}`} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', cursor: 'pointer', color: C.tx, fontSize: 13 }}>
+              <span style={{display:'inline-block',width:6,height:6,borderRadius:'50%',background:C.gn,boxShadow:`0 0 4px ${C.gn}`}} />
+              {t.name}
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* MESSAGES — full-width inbox card, slotted between Tasks
           ("what should I do?") and the alerts grid ("what is the system
           flagging?"). Always renders so the dashboard has a permanent
@@ -662,19 +683,6 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
       {(onlineNow.length > 0 || expiring.length > 0 || overduePayment.length > 0 || dropoutRisk.length > 0 || (leads && leads.length > 0)) && (
         <div ref={alertRailRef} className="alert-rail" onMouseDown={onAlertDown} onMouseMove={onAlertMove} onMouseUp={onAlertUp} onMouseLeave={onAlertUp} onClickCapture={onAlertClickCapture}
           style={{ display: 'flex', gap: 12, marginBottom: 20, alignItems: 'stretch', overflowX: 'auto', cursor: 'grab', paddingBottom: 4 }}>
-          {onlineNow.length > 0 && (
-            <div className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.gn}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
-              <RefinedHeaderStrip>
-                <SectionLabel style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="dot" color="#FFFFFF"/>Online Now ({onlineNow.length})</SectionLabel>
-              </RefinedHeaderStrip>
-              {onlineNow.map(t => (
-                <div key={t.id} {...asButton(() => onSelectTrainee(t.id))} aria-label={`Open ${t.name}`} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', cursor: 'pointer', color: C.tx, fontSize: 13 }}>
-                  <span style={{display:'inline-block',width:6,height:6,borderRadius:'50%',background:C.gn,boxShadow:`0 0 4px ${C.gn}`}} />
-                  {t.name}
-                </div>
-              ))}
-            </div>
-          )}
           {(() => {
             // Expiring / Overdue / Dormant are drag-reorderable (alertOrder) —
             // see the hook block above. Each card's HEADER is the drag handle
