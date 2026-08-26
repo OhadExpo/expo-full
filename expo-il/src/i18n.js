@@ -393,7 +393,7 @@ const STRINGS = {
   'faq.q4':           { en: 'I am rehabbing an injury. Is the Rehab block right for me?', he: 'אני בשיקום אחרי פציעה. הבלוק שיקום מתאים לי?' },
   'faq.a4': {
     en: 'Only if your physiotherapist or doctor cleared you to load. The block uses a per-exercise pain gate (0–3 OK, 4–5 modify, 6+ stop) and load-management hierarchy: ROM → Tempo → Intensity → Volume → Frequency. If you are still in active rehab without clearance, do not buy — message me first.',
-    he: 'רק אם הפיזיותרפיסט או הרופא אישרו לך לעמוס. הבלוק עובד עם שער כאב לכל תרגיל (0–3 בסדר, 4–5 התאם, 6+ עצור) והיררכיית עומס: טווח → טמפו → עוצמה → נפח → תדירות. אם אתה עוד בשיקום פעיל בלי אישור — אל תקנה, תכתוב לי קודם.',
+    he: 'רק אם הפיזיותרפיסט או הרופא אישרו לך לעמוס. הבלוק עובד עם שער כאב לכל תרגיל (0–3 בסדר, 4–5 התאם, 6+ עצור) והיררכיית עומס: טווח ← טמפו ← עוצמה ← נפח ← תדירות. אם אתה עוד בשיקום פעיל בלי אישור — אל תקנה, תכתוב לי קודם.',
   },
   'faq.q5':           { en: 'Can I customise the block once I get it?', he: 'אפשר להתאים את הבלוק אחרי שאני מקבל?' },
   'faq.a5': {
