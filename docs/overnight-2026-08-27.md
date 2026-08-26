@@ -95,6 +95,14 @@ tick it here and start the next one in the same turn.
 | Console audit skipped a quarter of the app | `03f6f02` |
 | **Laptop cleanup - ~20 GB freed** | (no commit) |
 
+| Mobile sweep enumerates from the manifest, writes somewhere real | `8286af3` |
+
+**Platform health, measured tonight across every route in the manifest:**
+- **36/36 routes free of console errors** — including the 19 that had never once
+  been checked (`/coach/bugs`, `/coach/challenges`, `/coach/exercise-matching`,
+  `/coach/waitlist`, `/coach/smart-import`, `/demo/he`, `/intake/he`, `/login` …)
+- **37/37 routes fit a 390px phone** with no horizontal overflow
+
 Verified on real data, not asserted:
 - 11 of 11 shots still detected on his clip after the median change
 - `origin/master` installs (`npm ci`) AND builds clean from a fresh checkout,
