@@ -5,6 +5,7 @@
 // text lands on a background it cannot be read against.
 import puppeteer from 'puppeteer-core';
 import fs from 'node:fs';
+import { signIn, assertAuthed } from './lib/authed-page.mjs';
 
 const OUT = process.env.AUDIT_OUT || (process.argv[2] || '.');
 const BASE = process.argv[3] || 'http://localhost:5199';
@@ -36,6 +37,14 @@ const b = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', protoco
 const page = await b.newPage();
 await page.setViewport({ width: 1440, height: 950 });
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Sign in and PROVE it. The first run of this sweep was unauthenticated, so
+// every coach route redirected and it measured the same login page over and
+// over — which is exactly how it reported the identical two low-contrast
+// strings on all 36 routes. That symptom is what exposed the same flaw in the
+// console and mobile sweeps.
+await signIn(page, BASE);
+if (!(await assertAuthed(page, BASE))) { await page.close(); await b.disconnect(); process.exit(2); }
 
 // Load the route with ?theme=… so public/boot-theme.js applies it BEFORE paint.
 // Setting data-theme from the outside does not hold: the app's own theme hook
