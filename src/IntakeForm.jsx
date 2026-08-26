@@ -321,7 +321,7 @@ export default function IntakeForm() {
       <div data-theme="dark" style={wrapper}><div style={card}>
         <div style={{ textAlign: 'center' }}>
           <h2 style={{ fontFamily: FN, fontSize: 18, color: C.rd, margin: 0 }}>
-            {dir === 'rtl' ? 'אירעה תקלה' : 'Something went wrong'}
+            {dir === 'rtl' ? 'משהו השתבש' : 'Something went wrong'}
           </h2>
           <p style={{ fontSize: 13, color: C.tm, marginTop: 12 }}>{errorMsg}</p>
         </div>
