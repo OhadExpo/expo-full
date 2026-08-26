@@ -73,5 +73,16 @@ ok('and its strain follows monotony x weekLoad', near(flatWk.strain, flatWk.mono
 ok('all-zero week stays null', monotonyStrain([0, 0, 0, 0, 0, 0, 0]).monotony === null);
 ok('empty → nulls', monotonyStrain([]).monotony === null);
 
+
+// The coupled-method blind spot, pinned so nobody wires weeklyACWR to UI
+// without noticing it. A first week of 1000 from nothing is the most dangerous
+// jump an athlete can make; the weekly method calls it "Sweet spot" because the
+// acute week sits inside its own chronic mean. The DAILY engine the app
+// actually uses does not have this blind spot.
+ok('weeklyACWR forces the first week to exactly 1.0', weeklyACWR([1000], 0).ratio === 1);
+ok('...and mislabels that as the safest band', weeklyACWR([1000], 0).band.key === 'low');
+ok('the daily engine calls the same load Danger', acwrFromDaily({ '2026-08-27': 1000 }, '2026-08-27').band.key === 'high');
+ok('daily engine ratio is 4, not 1', acwrFromDaily({ '2026-08-27': 1000 }, '2026-08-27').ratio === 4);
+
 console.log(`\nverify-acwr: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

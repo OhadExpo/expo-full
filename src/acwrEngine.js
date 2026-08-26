@@ -66,6 +66,23 @@ export function acwrFromDaily(daily, asOfISO, { acute = 7, chronic = 28 } = {}) 
 // Weekly-resolution ACWR — reproduces the corpus's own method exactly:
 // acute = this week's load; chronic = MEAN of the trailing `chronicWeeks`
 // weeks INCLUDING this one; ratio = acute ÷ chronic. `weekLoads` is oldest→newest.
+//
+// ⚠ DO NOT SHOW THE FIRST WEEKS TO A COACH. Because the acute week is inside
+// its own chronic mean, early indices are forced toward 1.0:
+//
+//   weeklyACWR([1000], 0)          -> ratio 1.0  "Sweet spot"
+//   weeklyACWR([500, 1000], 1)     -> ratio 1.33 "Elevated"
+//
+// A 1000-load first week out of nothing is the single most dangerous jump an
+// athlete can make, and this reports it as the safest band there is. That is a
+// property of the coupled method, not a bug — which is exactly why it must not
+// be rendered without enough history behind it.
+//
+// This function has NO callers in src/ today; it exists so verify-acwr.mjs can
+// check our numbers against the corpus's published weekly figures. The daily
+// engine below is the one the app uses, and it does not have this blind spot:
+// acwrFromDaily({'2026-08-27': 1000}, '2026-08-27') returns ratio 4 → "Danger".
+// If you ever wire this one to UI, gate it on i >= chronicWeeks - 1.
 export function weeklyACWR(weekLoads, i, { chronicWeeks = 4 } = {}) {
   if (!Array.isArray(weekLoads) || i < 0 || i >= weekLoads.length) {
     return { acute: null, chronic: null, ratio: null, band: acwrBand(null) };
