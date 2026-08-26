@@ -64,7 +64,7 @@ const STRINGS = {
   'catalog.h2':          { en: 'Pick the block that matches where you are.', he: 'תבחר את הבלוק שמתאים לך עכשיו.' },
   'catalog.body': {
     en: 'Every program ships as a 4-week block (or longer) inside the EXPO portal — log sets on your phone, watch your bodyweight trend, and follow the same auto-regulation rules I use with the athletes I coach.',
-    he: 'כל תוכנית היא בלוק של 4 שבועות ומעלה. בתוך פורטל EXPO. מתעד סטים בטלפון, רואה את משקל הגוף לאורך זמן, ועובד לפי אותה אוטו-רגולציה שאני עובד עם הספורטאים שאני מאמן.',
+    he: 'כל תוכנית היא בלוק של 4 שבועות ומעלה. בתוך פורטל EXPO. מתעד סטים בטלפון, רואה את משקל הגוף לאורך זמן, ועובד לפי אותה אוטו-רגולציה שאני עובד איתה עם הספורטאים שאני מאמן.',
   },
   'catalog.chip.all':    { en: 'ALL',            he: 'הכל' },
   'catalog.empty':       { en: 'NO PROGRAMS IN THIS CATEGORY', he: 'אין תוכניות בקטגוריה הזאת' },
