@@ -40,7 +40,20 @@ const visOf = (p) => (p ? (p.visibility == null ? 1 : p.visibility) : 0);
 const vis = (p, min = 0.3) => visOf(p) >= min;
 const mid = (a, b) => (a && b ? { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, z: ((a.z ?? 0) + (b.z ?? 0)) / 2 } : null);
 const mean = (arr) => { const a = arr.filter(isReal); return a.length ? a.reduce((s, x) => s + x, 0) / a.length : null; };
-const median = (arr) => { const a = arr.filter(isReal).sort((x, y) => x - y); return a.length ? a[Math.floor(a.length / 2)] : null; };
+// A true median: on an even count this averages the two middle values.
+// It used to return the UPPER one, which biased every even-length sample high.
+// That matters most at line ~450, where median() computes rulerPx, the eye-to-
+// ankle pixel distance the whole cm scale is calibrated from. A ruler biased
+// high makes cm-per-pixel small, so release height, jump height and every
+// derived metre reads LOW - the same direction as the oblique-camera error.
+// lineageAnalysis.js and poseMetricsStore.js already do it this way; this file
+// was the odd one out.
+export const median = (arr) => {
+  const a = arr.filter(isReal).sort((x, y) => x - y);
+  if (!a.length) return null;
+  const m = Math.floor(a.length / 2);
+  return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
+};
 const round = (v, d = 0) => (isReal(v) ? Math.round(v * 10 ** d) / 10 ** d : null);
 const sdev = (arr) => { const a = arr.filter(isReal); if (a.length < 2) return null; const m = mean(a); return Math.sqrt(mean(a.map((x) => (x - m) ** 2))); };
 

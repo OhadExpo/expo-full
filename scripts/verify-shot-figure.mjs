@@ -12,7 +12,29 @@
 // than judging a mock from screenshots.
 import puppeteer from 'puppeteer-core';
 const [, , url] = process.argv;
-const browser = await puppeteer.connect({ browserURL: 'http://localhost:9222', defaultViewport: null });
+
+// Without this guard, a missing URL reached Page.navigate as undefined and came
+// back as "Failed to deserialize params.url - BINDINGS: mandatory field
+// missing", which reads like a puppeteer bug rather than a missing argument.
+// A harness that cannot say why it did not run is a harness nobody trusts.
+if (!url || !/^https?:\/\//.test(url)) {
+  console.log('SHOT FIGURE: needs the URL of a running expo-il preview.');
+  console.log('');
+  console.log('  cd expo-il && npx vite preview --port 4182 --strictPort &');
+  console.log('  node scripts/verify-shot-figure.mjs http://localhost:4182/#/online');
+  console.log('');
+  console.log('Nothing was tested.');
+  process.exit(2);
+}
+
+let browser;
+try {
+  browser = await puppeteer.connect({ browserURL: 'http://localhost:9222', defaultViewport: null });
+} catch (e) {
+  console.log('SHOT FIGURE: no debug Chrome on :9222 —', String(e.message || e).slice(0, 120));
+  console.log('Nothing was tested.');
+  process.exit(2);
+}
 const page = await browser.newPage();
 await page.setViewport({ width: 1000, height: 900 });
 await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
