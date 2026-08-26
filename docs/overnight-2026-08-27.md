@@ -94,6 +94,27 @@ tick it here and start the next one in the same turn.
 | Trailing `+` detaches from its number in RTL | `cce0cf9` |
 | Console audit skipped a quarter of the app | `03f6f02` |
 | **Laptop cleanup - ~20 GB freed** | (no commit) |
+| Scroll-lock invariant pinned (page-unscrollable bug) | `d70322b` |
+| Shot analyzer measured; ball-track gap + fixture | `296426d` `ff55ac1` |
+| ACWR coupled-method blind spot pinned | `89e5aed` |
+| Trailing `+` detaches from its number in RTL | `cce0cf9` |
+| Console + mobile + theme audits enumerate from SURFACES.md | `03f6f02` `8286af3` `c637754` |
+| **RETRACTION** - those sweeps had measured the login page | `77daaaa` |
+| Detection is 11 / 10 / 9 on three runs of one clip | `10c0332` |
+| Starved-capture guard could never fire; now keys on effFps | `ba43f5b` |
+| CORRECTION - the busy flag was not the cause | `44caa79` |
+| `npm test` ran 1 file of 71; now runs 68 in 12s | `fada25d` |
+| Four more intake-form Hebrew errors (one my own) | `9c29f05` |
+| Light/dark parity measured signed-in: geometry PERFECT | `08d1da2` |
+| Athlete portal verified from the ATHLETE's seat | `6a8ba65` |
+
+**Verified, signed in, across every route in the manifest:**
+- **Geometry parity light vs dark: perfect** — `moved=0 countDelta=0` on all 32.
+  Contrast flags reduce to two colours, both his locked palette calls.
+- **Athlete portal from the athlete's seat**: no bounce, no overflow at 430px,
+  live block/week/BW/notes and both day cards intact.
+- **Suite: 68 green, 0 red in 12 seconds.**
+
 
 | Mobile sweep enumerates from the manifest, writes somewhere real | `8286af3` |
 
