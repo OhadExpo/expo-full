@@ -84,3 +84,21 @@ Ohad saying so.
    cannot silently remove a video from a written programme.
 3. The 544 library entries with no video — same backlog as `missing-videos.md`.
 4. The 137 free-text rows: promote to real library exercises, or accept no video.
+
+## Cue text with a detached comma — 2 strings, 11 rows (2026-08-26)
+
+Found while chasing a display bug on the athlete's prescription line. Two cue
+texts start a line with `- ,` — a bullet, a space, then a comma before the Hebrew:
+
+- `"- ,תרים את הרגל האחורית וקפל את כף הרגל לישבן..."` — on **10** rows
+- `"משקולת ביד של הרגל שנשארת על הרצפה. - ,תרים את..."` — on **1** row
+
+In Hebrew display the comma detaches from the words it belongs to. It looks like
+a trailing comma that ended up leading when the bullet was prepended.
+
+**Not changed — cue authoring is Ohad's.** It is two strings, so one edit each
+fixes all eleven rows.
+
+A wider scan of all 4,240 exercise rows found nothing else: the 102 "double
+space" hits were my regex matching newlines inside multi-line cues, which are
+legitimate formatting, not defects.
