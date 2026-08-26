@@ -4,17 +4,35 @@
 // screenshot per route. Usage: node scripts/_tmp_mobile_audit.mjs [base] [routes...]
 import puppeteer from 'puppeteer-core';
 import fs from 'node:fs';
-const SP = process.env.AUDIT_OUT || 'C:/Users/ADMINI~1/AppData/Local/Temp/claude/C--Users-Administrator-Desktop-expo-full/5eaed3a7-6e52-4110-b142-fbc1967bff69/scratchpad';
+// AUDIT_OUT used to default to a scratchpad path belonging to a session that
+// ended long ago, so screenshots silently went nowhere useful.
+const SP = process.env.AUDIT_OUT || './audit-out';
 const BASE = process.argv[2] || 'http://localhost:5173';
-const DEFAULT_ROUTES = [
-  '/coach/dashboard', '/coach/athletes', '/coach/programs', '/coach/programs/pl_fkx3okgxmt4hsj2r',
-  '/coach/exercises', '/coach/exercise-matching', '/coach/exercise-classify', '/coach/exercise-cleanup',
-  '/coach/review', '/coach/review-tools', '/coach/workouts', '/coach/sessions', '/coach/sessions-single',
-  '/coach/intake', '/coach/waitlist', '/coach/chat-audit', '/coach/smart-import', '/coach/tasks',
-  '/coach/bugs', '/coach/challenges', '/coach/calendar', '/coach/billing', '/coach/bhbc',
-  '/athlete', '/demo/coach', '/demo/athlete', '/try', '/demo',
-];
-const routes = process.argv.length > 3 ? process.argv.slice(3) : DEFAULT_ROUTES;
+
+// Routes come from docs/SURFACES.md, which says outright: "Any audit, sweep,
+// regression check, or 'review everything' task MUST enumerate from this file,
+// not from memory." A hand-written list drifts the moment a route is added —
+// this one silently missed /demo/he, /intake/he, /login and the /coaches/*
+// aliases. One parameterised route is kept by hand because the manifest cannot
+// supply a real id.
+function routesFromManifest() {
+  try {
+    const md = fs.readFileSync('docs/SURFACES.md', 'utf8');
+    const out = new Set();
+    for (const m of md.matchAll(/\|\s*`([^`]+)`/g)) {
+      for (const part of m[1].split(',')) {
+        const p = part.trim().replace(/`/g, '');
+        if (p.startsWith('/') && !p.includes('*') && !p.includes('<') && !p.includes(':')) out.add(p);
+      }
+    }
+    out.add('/coach/programs/pl_fkx3okgxmt4hsj2r'); // a real plan, for the editor
+    return [...out].sort();
+  } catch {
+    console.log('! could not read docs/SURFACES.md — pass routes explicitly.');
+    return [];
+  }
+}
+const routes = process.argv.length > 3 ? process.argv.slice(3) : routesFromManifest();
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 // Wait until the page STOPS changing before measuring.
