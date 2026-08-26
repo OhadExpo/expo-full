@@ -35,7 +35,7 @@ export function looksLikeLogin(text) {
 // The app redirects on boot, so an evaluate() fired at the wrong moment dies
 // with "Execution context was destroyed, most likely because of a navigation."
 // That killed the theme sweep outright. Retry through it rather than crash.
-async function safeEval(page, fn, arg, tries = 4) {
+export async function safeEval(page, fn, arg, tries = 4) {
   for (let i = 0; i < tries; i++) {
     try { return await page.evaluate(fn, arg); }
     catch (e) {
