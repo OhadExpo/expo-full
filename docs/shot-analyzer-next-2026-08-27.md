@@ -41,6 +41,53 @@ The fix is probably in **candidate selection**, not in the rise gate: prefer the
 arc whose origin starts AT the hand and whose vertical travel is largest, rather
 than the best pure r².
 
+## SECOND GAP, found on the repeat run — the count is not deterministic
+
+Two runs of the SAME clip, same build, minutes apart:
+
+```
+run A   11 shots   3000  6733 10350 14100 18400 23017 27067 31183 35300 38867 42700
+run B   10 shots         6883 10317 13717 18500 23000 27150 31233 35300 38900 42817
+```
+
+The ten shared shots line up within about 100 ms — ordinary frame-sampling
+jitter, nothing to worry about. **Run B simply never saw the first shot at
+3.0 s.**
+
+This matters more than the ball-track gap. Ohad's original complaint was "it
+only recognized 6 out of 11". A tool that answers 11 one minute and 10 the next,
+on the same video, cannot be trusted on the number no matter how good the
+mechanics scoring is.
+
+The first shot sits 3 seconds into the clip, and it is the one that disappears.
+That points at capture WARM-UP: the pose model, the video decode and the first
+frames all stabilise over the opening seconds, so the dip/release window of an
+early shot can arrive incomplete. Nothing in the analysis code is random — the
+detector is deterministic given the same frames — so the variation has to be in
+which frames the capture managed to sample.
+
+Where to look:
+- `src/shotCapture.js` — does it start sampling before the model is warm, and
+  are early frames dropped rather than retried?
+- The capture-quality banner already warns below 18 fps; that is a whole-clip
+  average, so a slow first two seconds hides inside a healthy mean.
+
+Suggested check before any fix: run the harness three times and record the
+count each time. If the first shot is the only one that ever disappears, warm-up
+is confirmed and the fix is to discard or re-sample the opening frames rather
+than to loosen any detection gate.
+
+## Fixture for the rejected shot
+
+`scripts/fixtures/ball-rejected.json` now holds the real candidate blobs for the
+rejected shot (index 3 in run B, t = 13717, the same rep as index 4 in run A),
+captured straight from the pipeline: every candidate blob per frame for 30
+frames after release, plus the wrist position and the refusal reason.
+
+That turns the ball-selector work from a five-minute harness run per attempt
+into a unit test. `scripts/_replay-candidates.mjs` already sweeps the blob-size
+gate and lists every distinct arc it could have chosen — point it at this file.
+
 ## Why this was not attempted tonight
 
 Ball tracking is delicate — 48 assertions in `verify-ball-track.mjs` and ten

@@ -41,6 +41,17 @@ if (r) {
   console.log('relaxed shots', r.relaxedShots.length, JSON.stringify(r.relaxedShots));
   console.log('relaxed rejects', r.relaxedRejects.length); r.relaxedRejects.forEach((x) => console.log('   -', x));
   console.log('ball frames seen:', r.ballFramesSeen);
+  // The REJECTED shot's candidates, written to disk as a reusable fixture so
+  // the selector can be iterated against a unit test instead of a 5-minute run.
+  if (r.ballDebugFailed) {
+    const d = r.ballDebugFailed;
+    const path = process.env.BALL_FIXTURE || 'scripts/fixtures/ball-rejected.json';
+    try {
+      fs.mkdirSync(path.replace(/[/][^/]+$/, ''), { recursive: true });
+      fs.writeFileSync(path, JSON.stringify(d, null, 1));
+      console.log('BALLFAILED shot', d.index, 'why', JSON.stringify(d.why), '-> wrote', path);
+    } catch (e) { console.log('BALLFAILED shot', d.index, 'could not write fixture:', e.message); }
+  }
   if (r.ballDebug) { const d = r.ballDebug; console.log('BALLDEBUG shot', d.index, 'aspect', d.aspect, 'deg', d.deg, 'speed', d.speed, 'rise', d.rise, 'n', d.n, 'fit', d.fit); console.log('BALLFRAMES', JSON.stringify(d.frames)); }
   console.log('analyzed', r.analyzed ? r.analyzed.length : 0, JSON.stringify(r.analyzed));
   if (r.originProbe) { console.log('origin probe (ball diameters from the shooting hand, per frame after release):'); for (const line of r.originProbe) console.log('  ', line); }
