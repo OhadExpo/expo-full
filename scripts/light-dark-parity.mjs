@@ -25,11 +25,34 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 // re-applies the attribute after mount, so the sample could silently be taken in
 // the wrong theme — and then "geometry identical" would be trivially true and
 // completely meaningless.
+// Sample the element count and document height until two consecutive samples
+// agree. Cheap, and it is the actual property that matters: nothing has moved.
+const settle = async (tries = 15, gapMs = 350) => {
+  let prev = null;
+  for (let i = 0; i < tries; i++) {
+    const sig = await page.evaluate(() => document.querySelectorAll('*').length + ':' + Math.round(document.body.scrollHeight) + ':' + Math.round(document.body.scrollWidth));
+    if (sig === prev) return sig;
+    prev = sig;
+    await wait(gapMs);
+  }
+  return prev;
+};
+
 const loadIn = async (route, theme) => {
   const url = `${BASE}${route}${route.includes('?') ? '&' : '?'}theme=${theme}`;
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 40000 });
   await page.waitForFunction(() => !/LOADING DATA/i.test(document.body.innerText), { timeout: 40000 }).catch(() => {});
-  await wait(2600);
+  await wait(1200);
+  // Then wait until the layout actually STOPS changing.
+  //
+  // A fixed sleep is a guess, and on 2026-08-26 it guessed wrong: /coach/dashboard
+  // reported moved=16, countDelta=-5 — a textbook geometry drift — and an
+  // immediate re-run of the same route was completely clean. Async data had
+  // landed after the sleep on one pass and before it on the other, so light and
+  // dark were measured on two different pages and the comparison faithfully
+  // reported the difference. A phantom finding is worse than no finding here:
+  // it is indistinguishable from a real one.
+  await settle();
   // PROVE the theme actually applied before measuring anything.
   return page.evaluate(() => ({
     attr: document.documentElement.getAttribute('data-theme'),
