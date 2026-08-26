@@ -16,6 +16,24 @@ const DEFAULT_ROUTES = [
 ];
 const routes = process.argv.length > 3 ? process.argv.slice(3) : DEFAULT_ROUTES;
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+// Wait until the page STOPS changing before measuring.
+//
+// A fixed sleep is a guess and it guessed wrong: a run reported 27/28 naming no
+// route, and two immediate re-runs were 28/28. Whatever was still laying out
+// when the measurement fired produced a phantom overflow. Same class as the
+// light/dark harness, fixed the same way — a phantom finding is worse than
+// none, because it cannot be told apart from a real one.
+const settle = async (page, tries = 12, gapMs = 300) => {
+  let prev = null;
+  for (let i = 0; i < tries; i++) {
+    const sig = await page.evaluate(() => document.querySelectorAll('*').length + ':' +
+      Math.round(document.documentElement.scrollWidth) + ':' + Math.round(document.body.scrollHeight));
+    if (sig === prev) return;
+    prev = sig;
+    await new Promise((r) => setTimeout(r, gapMs));
+  }
+};
 const j = await (await fetch('http://localhost:9222/json/version')).json();
 const browser = await puppeteer.connect({ browserWSEndpoint: j.webSocketDebuggerUrl, protocolTimeout: 120000 });
 const page = await browser.newPage();
@@ -51,6 +69,7 @@ for (const r of routes) {
     await page.waitForFunction(() => !/LOADING DATA/i.test(document.body.innerText), { timeout: 40000 }).catch(() => {});
     // dashboard: make sure the Tasks section is expanded so the board is measured
     if (/dashboard/.test(r)) {
+    await settle(page);
       await page.evaluate(() => {
         const h = [...document.querySelectorAll('*')].find(e => e.children.length === 0 && /^TASKS \(\d+\)$/i.test((e.textContent || '').trim()));
         if (!h) return;
