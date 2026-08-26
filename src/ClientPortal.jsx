@@ -3208,8 +3208,8 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                   <span style={{flex:1,minWidth:0,fontWeight:600,fontSize:12,lineHeight:1.3,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{r.title}</span>
                   {/* fixed tempo column so the orange values form a true rail
                       instead of floating ragged between title and rx */}
-                  <span style={{fontSize:10,color:tempoColor,fontFamily:FN,letterSpacing:'0.04em',flexShrink:0,whiteSpace:'nowrap',minWidth:76,textAlign:'right'}}>{r.tempo || ''}</span>
-                  <span style={{fontSize:11,fontWeight:700,color:C.ac,fontFamily:FN,letterSpacing:'0.04em',flexShrink:0,whiteSpace:'nowrap',width:72,textAlign:'right',fontVariantNumeric:'tabular-nums'}}>{r.rx}</span>
+                  <span dir="ltr" style={{fontSize:10,color:tempoColor,fontFamily:FN,letterSpacing:'0.04em',flexShrink:0,whiteSpace:'nowrap',minWidth:76,textAlign:'right',unicodeBidi:'isolate'}}>{r.tempo || ''}</span>
+                  <span dir="ltr" style={{unicodeBidi:'isolate',fontSize:11,fontWeight:700,color:C.ac,fontFamily:FN,letterSpacing:'0.04em',flexShrink:0,whiteSpace:'nowrap',width:72,textAlign:'right',fontVariantNumeric:'tabular-nums'}}>{r.rx}</span>
                 </div>
               );
               // number element per identity — square (BASE/RAIL), mono
@@ -3227,12 +3227,22 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                           // reps cyan; the rest/tempo after the first comma goes
                           // grey so combined free-text ("5XI, 30 SEC REST") reads
                           // the same as the logger + day rows (consistency).
+                          // The prescription is Latin and numeric inside an RTL
+                          // page, and it is rendered as TWO spans so the part
+                          // after the comma can be tinted. Two adjacent Latin
+                          // runs in an RTL container get reordered by the bidi
+                          // algorithm, which is why an athlete saw
+                          // "5X1  , 30 SEC REST" and "(35  ,45,40KG)" — the
+                          // comma detached and jumped. Wrapping the pair in one
+                          // LTR isolate keeps them in the order they were
+                          // written while still allowing the two colours.
                           const rx = String(r.rx || ''); const ci = rx.indexOf(',');
                           const base = {fontSize:11,fontWeight:700,fontFamily:FN,letterSpacing:'0.04em'};
-                          if (ci === -1) return <span style={{...base,color:C.ac}}>{rx}</span>;
-                          return <><span style={{...base,color:C.ac}}>{rx.slice(0,ci)}</span><span style={{...base,color:tempoColor}}>{rx.slice(ci)}</span></>;
+                          const iso = {unicodeBidi:'isolate', display:'inline-block'};
+                          if (ci === -1) return <span dir="ltr" style={{...base,...iso,color:C.ac}}>{rx}</span>;
+                          return <span dir="ltr" style={iso}><span style={{...base,color:C.ac}}>{rx.slice(0,ci)}</span><span style={{...base,color:tempoColor}}>{rx.slice(ci)}</span></span>;
                         })()}
-                        {r.tempo && <span style={{fontSize:11,color:tempoColor,fontFamily:FN,letterSpacing:'0.04em'}}>{r.tempo}</span>}
+                        {r.tempo && <span dir="ltr" style={{fontSize:11,color:tempoColor,fontFamily:FN,letterSpacing:'0.04em',unicodeBidi:'isolate',display:'inline-block'}}>{r.tempo}</span>}
                       </div>
                       <div style={{marginTop:4,fontWeight:600,fontSize:12,lineHeight:1.35,wordBreak:'break-word'}}>{r.title}</div>
                     </div>
