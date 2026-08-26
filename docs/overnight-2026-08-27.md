@@ -74,8 +74,32 @@ tick it here and start the next one in the same turn.
 - [ ] **7. Light/dark parity sweep** — rolling; pickup list in
       `project_light_dark_parity_sweep`.
 
+## Done so far (00:41 - 01:54)
+
+| what | commit |
+|---|---|
+| RTL sequence arrows pointed against the reading direction | `0982aae` |
+| **Prod deploy stall — root cause found and fixed** | `015b694` |
+| Gated both silent deploy-killers (lockfile sync, import case) | `124eaeb` |
+| BHBC rollback + one-paste apply doc | `f2a5525` |
+| Shot analyzer ruler was biased high (median) | `fc3aa4b` |
+| Bounded that change numerically | `30483c0` |
+| Same biased median in poseLab (velocity/ROM/jump rulers) | `e5f820b` |
+| BHBC wellness control remounted every keystroke | `fa7c313` |
+| Gate for components defined inside a render | `a437ec5` |
+| Real check for whether prod serves what we build | `d1857cd` |
+| **Laptop cleanup — ~20 GB freed** | (no commit) |
+
+Checked and deliberately NOT changed: async effects without cancellation (the
+risky ones already guard with `let stop = false`, and `SessionsView:154` merges
+by plan id so overlapping fetches are idempotent); population vs sample SD.
+
 ## Gotchas found during this run
 
+- **`Start-Process` does not inherit the shell's working directory.** Vite
+  started in the wrong root and served the APP's index.html for
+  `/shot-harness.html` — a 200, so it looked fine. Put an explicit
+  `cd /d "<repo>" && ...` inside the cmd string.
 - **The dev server hangs when launched from a backgrounded Bash task.** It
   prints "ready in 726ms", listens on `[::1]`, and then never answers a single
   request — no error in its log. Chrome hangs on it too, so it is not a curl
