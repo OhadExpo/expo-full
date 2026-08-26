@@ -996,6 +996,31 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
 function bandKey(r) { if (r == null) return 'none'; if (r < 0.8) return 'detrained'; if (r <= 1.3) return 'low'; if (r < 1.5) return 'elevated'; return 'high'; }
 function acwrLabel(r) { return { detrained: 'undertrained', low: 'sweet spot', elevated: 'elevated', high: 'danger', none: '' }[bandKey(r)]; }
 
+// Hoisted out of WellnessModal deliberately. Defined inside the render body its
+// function identity changed every render, so React saw a different element TYPE
+// each time and unmounted/remounted all four buttons for every athlete on every
+// keystroke in the pain and BW inputs — roughly 60 button remounts per character
+// on a 15-athlete roster.
+//
+// The inputs themselves never lost focus, because they are siblings of Seg
+// rather than children of it, so this was wasted work rather than the
+// focus-eating variant of the same mistake (audit finding #10).
+const WellnessSeg = ({ value, opts, onPick }) => (
+  <div style={{ display: 'inline-flex', border: `1px solid ${C.cardBd}` }}>
+    {opts.map(([val, label]) => {
+      const on = value === val;
+      return (
+        <button
+          key={val}
+          type="button"
+          onClick={() => onPick(val)}
+          style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: on ? '#fff' : C.td, background: on ? NAVY : 'transparent', border: 'none', padding: '5px 8px', cursor: 'pointer', minWidth: 34 }}
+        >{label}</button>
+      );
+    })}
+  </div>
+);
+
 // Squad wellness check-in — sleep / energy / pain per athlete → feeds the
 // readinessAutoreg engine (session nudge on the load board + athlete profile).
 function WellnessModal({ roster, bhbcLoads, onClose, onSave }) {
@@ -1014,14 +1039,6 @@ function WellnessModal({ roster, bhbcLoads, onClose, onSave }) {
   const SLEEP = [['poor', 'Poor'], ['ok', 'OK'], ['good', 'Good'], ['great', 'Great']];
   const ENERGY = [['low', 'Low'], ['ok', 'OK'], ['good', 'Good'], ['high', 'High']];
   const inp = { fontFamily: FN, fontSize: 12, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 8px', width: '100%', height: 30, boxSizing: 'border-box', textAlign: 'center' };
-  const Seg = ({ id, k, opts }) => (
-    <div style={{ display: 'inline-flex', border: `1px solid ${C.cardBd}` }}>
-      {opts.map(([val, label]) => {
-        const on = (entries[id] || {})[k] === val;
-        return <button key={val} type="button" onClick={() => set(id, k, val)} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: on ? '#fff' : C.td, background: on ? NAVY : 'transparent', border: 'none', padding: '5px 8px', cursor: 'pointer', minWidth: 34 }}>{label}</button>;
-      })}
-    </div>
-  );
   const count = Object.values(entries).filter((e) => e.sleep || e.energy || (e.pain !== '' && e.pain != null) || e.bw).length;
   const cols = '24px 1.3fr auto auto 62px 76px';
   return (
@@ -1041,8 +1058,8 @@ function WellnessModal({ roster, bhbcLoads, onClose, onSave }) {
             <div key={t.id} style={{ display: 'grid', gridTemplateColumns: cols, gap: 10, alignItems: 'center', padding: '7px 2px', borderBottom: `0.25px solid ${C.cardBd}` }}>
               <Jersey n={t.jersey} size={22} />
               <div style={{ fontFamily: FN, fontSize: 12.5, fontWeight: 700, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</div>
-              <div style={{ display: 'flex', justifyContent: 'center' }}><Seg id={t.id} k="sleep" opts={SLEEP} /></div>
-              <div style={{ display: 'flex', justifyContent: 'center' }}><Seg id={t.id} k="energy" opts={ENERGY} /></div>
+              <div style={{ display: 'flex', justifyContent: 'center' }}><WellnessSeg value={(entries[t.id] || {}).sleep} opts={SLEEP} onPick={(v) => set(t.id, 'sleep', v)} /></div>
+              <div style={{ display: 'flex', justifyContent: 'center' }}><WellnessSeg value={(entries[t.id] || {}).energy} opts={ENERGY} onPick={(v) => set(t.id, 'energy', v)} /></div>
               <input type="number" min="0" max="10" value={(entries[t.id] || {}).pain} onChange={(e) => set(t.id, 'pain', e.target.value === '' ? '' : Number(e.target.value))} placeholder="—" style={inp} />
               <input type="number" min="0" step="0.1" inputMode="decimal" value={(entries[t.id] || {}).bw} onChange={(e) => setVal(t.id, 'bw', e.target.value)} placeholder="—" style={inp} title="Bodyweight (kg) — optional, shows in the athlete's history + BW trend" />
             </div>

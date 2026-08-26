@@ -89,6 +89,25 @@ tick it here and start the next one in the same turn.
 ` and `\` inside Python/JS string literals. For
   anything with escapes, use the Write/Edit tools instead.
 
+## For Ohad to decide (measured, deliberately NOT changed)
+
+**`spreadOf` uses population SD, not sample SD.** `src/shotSession.js:17`
+divides by `n`, which describes the reps you filmed. Dividing by `n-1` is the
+unbiased estimate of how variable the SHOOTER is, which is what the verdict
+("your release angle moves between reps") actually claims. Switching would widen
+every spread and make some sessions flip from tight to not-tight:
+
+| shots | spread reads wider |
+|---|---|
+| 3 | +22.5% |
+| 5 | +11.8% |
+| 11 | +4.9% |
+| 20 | +2.6% |
+
+The TIGHT thresholds were calibrated against the current formula, so changing
+one without the other silently re-grades his shooting. Left alone on purpose —
+it needs a decision plus re-calibration, not a 2am edit.
+
 ## Standing rules for this run
 
 - Branch `bhbc-hub`; he has authorised deploying this work to `master`.
