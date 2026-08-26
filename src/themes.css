@@ -726,3 +726,69 @@ select.task-select {
   background-image: none !important;
   padding-right: 8px !important;
 }
+
+/* ========================================================================
+   THEME CROSS-FADE (Ohad 2026-08-26: "it switches in a weird glitchy way,
+   make sure it has a nice soothing effect that's nicer on the eyes").
+
+   Flipping data-theme swaps every colour variable in a single frame, while
+   the JS consumers of useTheme re-render a frame or two later. On top of
+   that, the block above gives buttons and links their own transition but
+   leaves cards, text and page backgrounds with none — so a switch repainted
+   in stages: some things eased, most things snapped. That mixture is what
+   reads as glitchy.
+
+   For the ~260ms around a switch, EVERYTHING eases its colours together.
+   The class is added just before data-theme changes and removed afterwards,
+   so ordinary interaction keeps its own faster transitions and nothing feels
+   sluggish. Colour only, never layout, so light/dark geometry parity is
+   untouched (reference_theme_geometry_parity).
+   ======================================================================== */
+@media (prefers-reduced-motion: no-preference) {
+  html.theme-anim,
+  html.theme-anim body,
+  html.theme-anim *,
+  html.theme-anim *::before,
+  html.theme-anim *::after {
+    transition: background-color 260ms cubic-bezier(.4, 0, .2, 1),
+                color 260ms cubic-bezier(.4, 0, .2, 1),
+                border-color 260ms cubic-bezier(.4, 0, .2, 1),
+                fill 260ms cubic-bezier(.4, 0, .2, 1),
+                stroke 260ms cubic-bezier(.4, 0, .2, 1),
+                box-shadow 260ms cubic-bezier(.4, 0, .2, 1),
+                outline-color 260ms cubic-bezier(.4, 0, .2, 1) !important;
+    transition-delay: 0s !important;
+  }
+}
+
+/* The View Transition cross-fade itself (see applyTheme in hooks/useTheme.js).
+   Slightly longer than a UI transition because it is the whole page changing:
+   long enough to read as a fade, short enough not to feel like waiting. */
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 380ms;
+    animation-timing-function: cubic-bezier(.4, 0, .2, 1);
+  }
+  /* Both images sit on top of each other and fade — no wipe, no slide. */
+  ::view-transition-new(root) { animation-name: expoThemeFadeIn; }
+  ::view-transition-old(root) { animation-name: expoThemeFadeOut; }
+}
+@keyframes expoThemeFadeIn  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes expoThemeFadeOut { from { opacity: 1; } to { opacity: 0; } }
+
+/* While a theme switch is cross-fading, nothing eases on its own. Measured:
+   without this a switch spawned 434 element transitions (0 at rest) that were
+   still running 800ms later, staggered against the single page fade. The page
+   fade IS the animation; everything else must hold still underneath it. */
+html.theme-switching,
+html.theme-switching *,
+html.theme-switching *::before,
+html.theme-switching *::after {
+  /* TRANSITIONS only. An earlier version also forced animation-duration to 0
+     and silently killed the view-transition's own cross-fade with it, leaving
+     a switch that was perfectly smooth because nothing moved at all. Verified
+     by asking the browser which pseudo-element animations run during a switch:
+     the answer was NONE. */
+  transition: none !important;
+}

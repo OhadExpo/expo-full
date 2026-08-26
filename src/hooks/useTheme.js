@@ -15,6 +15,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../supabase';
+import { flushSync } from 'react-dom';
 
 const KEY = 'expo-theme';
 const EVT = 'expo-theme-change';
@@ -24,8 +25,33 @@ function readCurrent() {
   return document.documentElement.getAttribute('data-theme') || 'light';
 }
 
-function applyTheme(next) {
-  if (typeof document === 'undefined') return;
+let animTimer = null;
+/**
+ * Cross-fade the switch instead of hard-flipping it.
+ *
+ * Adding the class BEFORE data-theme changes means the transition is already
+ * in place when every colour variable swaps, so the whole page eases together
+ * rather than repainting in stages. Removed afterwards so ordinary interaction
+ * keeps its own faster transitions. See the THEME CROSS-FADE block in
+ * src/themes.css.
+ *
+ * Only on an actual CHANGE — never on the initial apply at boot, where a
+ * cross-fade from an unstyled page would read as a flash.
+ */
+function beginThemeCrossFade(next) {
+  const root = document.documentElement;
+  const current = root.getAttribute('data-theme');
+  if (!current || current === next) return;
+  root.classList.add('theme-anim');
+  if (animTimer) clearTimeout(animTimer);
+  animTimer = setTimeout(() => {
+    root.classList.remove('theme-anim');
+    animTimer = null;
+  }, 320);
+}
+
+/** The actual switch: attribute, system chrome, then tell every consumer. */
+function commitTheme(next) {
   document.documentElement.setAttribute('data-theme', next);
   // Update <meta name="theme-color"> so iOS/Android system chrome matches.
   // Light mode is now cyan-bg, so the system chrome paints cyan, not white.
@@ -33,6 +59,74 @@ function applyTheme(next) {
   if (meta) meta.setAttribute('content', next === 'light' ? '#39BDFF' : '#000000');
   // Broadcast so every other useTheme consumer re-renders.
   try { window.dispatchEvent(new CustomEvent(EVT, { detail: next })); } catch {}
+}
+
+/**
+ * Switch the theme as ONE cross-fade.
+ *
+ * The CSS class alone was not enough (Ohad: "better, but it's still not smooth
+ * at all"), and the reason is that a theme switch has two independent sources
+ * of colour. The CSS custom properties flip the instant data-theme changes;
+ * but every component that reads useTheme() re-renders with new INLINE colours
+ * a frame or two later, and this codebase styles almost everything inline. So
+ * the page changes in two waves however nicely each wave eases.
+ *
+ * The View Transition API removes the problem rather than smoothing it: the
+ * browser snapshots the page, lets us make every change, and cross-fades the
+ * before and after images as a single element. Staggered React commits inside
+ * the callback are invisible — they all land in the "after" snapshot.
+ *
+ * The callback returns a promise, and the API waits for it, so we give React
+ * two frames to commit before the new state is captured. Browsers without the
+ * API (and anyone who asked for reduced motion) fall back to the CSS
+ * cross-fade, which is still better than a hard flip.
+ */
+function applyTheme(next) {
+  if (typeof document === 'undefined') return;
+  const root = document.documentElement;
+  const current = root.getAttribute('data-theme');
+  const changing = !!current && current !== next;
+  const reduced = typeof window !== 'undefined' && window.matchMedia
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (!changing || reduced || typeof document.startViewTransition !== 'function') {
+    if (changing && !reduced) beginThemeCrossFade(next);
+    commitTheme(next);
+    return;
+  }
+
+  try {
+    // Silence every PER-ELEMENT transition for the duration.
+    //
+    // Measured: a switch with the page cross-fade alone still spawned 434
+    // element transitions (baseline at rest is 0) which were still running
+    // 800ms later — every button, link and card easing its own colour on the
+    // React re-render, staggered, on top of and outlasting the single page
+    // fade. That is what was left of the jank. With the View Transition doing
+    // the cross-fade, those are redundant as well as harmful.
+    root.classList.add('theme-switching');
+    const vt = document.startViewTransition(() => {
+      // flushSync, NOT an awaited requestAnimationFrame.
+      //
+      // The obvious "give React two frames to commit" version deadlocks: the
+      // browser suspends rendering while the update callback runs, so rAF
+      // never fires, the returned promise never settles, and the transition is
+      // skipped altogether. Verified by asking which pseudo-element animations
+      // ran during a switch — the answer was NONE, twice.
+      //
+      // flushSync forces every useTheme consumer to re-render synchronously
+      // inside the callback, so the inline-styled half of the page is already
+      // correct when the browser captures the "after" snapshot.
+      flushSync(() => commitTheme(next));
+    });
+    const done = () => root.classList.remove('theme-switching');
+    if (vt && vt.finished && typeof vt.finished.then === 'function') vt.finished.then(done, done);
+    else setTimeout(done, 500);
+  } catch {
+    root.classList.remove('theme-switching');
+    beginThemeCrossFade(next);
+    commitTheme(next);
+  }
 }
 
 export function useTheme() {
