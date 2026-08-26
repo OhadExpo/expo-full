@@ -749,10 +749,10 @@ export function whatsappMessageForTask(note, trainee) {
     }
     case 'payment_overdue': {
       const never = /never paid/i.test(body);
-      if (never) return `היי ${first}. רק תזכורת — עוד לא נסגר תשלום מאז ההרשמה. תוכל לסגור את זה השבוע?`;
+      if (never) return `היי ${first}. רק תזכורת — עוד לא נסגר תשלום מאז ההרשמה. תסגור את זה השבוע?`;
       const m = body.match(/(\d+)d ago/);
       const ago = m ? `${m[1]} ימים מאז התשלום האחרון. ` : '';
-      return `היי ${first}. ${ago}תוכל לסגור את התשלום הנוכחי השבוע?`;
+      return `היי ${first}. ${ago}תסגור את התשלום הנוכחי השבוע?`;
     }
     case 'whatsapp_combined': {
       // The throttled card stacks several reasons. Open ONE conversation
@@ -760,9 +760,9 @@ export function whatsappMessageForTask(note, trainee) {
       // text before sending if any reason needs softening.
       const sources = Array.isArray(note?.__sources) ? note.__sources : [];
       const parts = sources.map(s => whatsappMessageForTask(s, trainee)).filter(Boolean);
-      if (parts.length === 0) return `היי ${first}. רוצה לתאם איתך משהו השבוע.`;
+      if (parts.length === 0) return `היי ${first}. בוא נתאם משהו השבוע.`;
       if (parts.length === 1) return parts[0];
-      return `היי ${first}. צריך לתאם איתך כמה דברים:\n\n` + parts.map((p, i) => `${i + 1}. ${p.replace(/^היי \S+\.\s*/, '')}`).join('\n\n');
+      return `היי ${first}. בוא נתאם כמה דברים:\n\n` + parts.map((p, i) => `${i + 1}. ${p.replace(/^היי \S+\.\s*/, '')}`).join('\n\n');
     }
     default:
       return `היי ${first}. מה קורה?`;
