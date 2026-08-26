@@ -564,9 +564,14 @@ function Hero({ onOpenQuiz }) {
           { n: t('hero.stat3.n'), l: t('hero.stat3.l') },
         ].map((s, i) => (
           <div key={i} style={{ textAlign: 'center', minWidth: 96 }}>
-            <div style={{
+            {/* dir="ltr" + isolate, because these read "500+" and the trailing
+                plus is a bidi-neutral. Inside the Hebrew (RTL) hero it detaches
+                from the number and lands on the far side, so "500+" displayed
+                as "+500" — five-hundred-plus turning into plus-five-hundred.
+                Verified by rendering both and looking at the screenshot. */}
+            <div dir="ltr" style={{
               fontFamily: FN, fontSize: 22, fontWeight: 700, color: C.ac,
-              lineHeight: 1, marginBottom: 4,
+              lineHeight: 1, marginBottom: 4, unicodeBidi: 'isolate',
             }}>{s.n}</div>
             <div style={{
               fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 1.5, fontWeight: 700,

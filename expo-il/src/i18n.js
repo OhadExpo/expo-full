@@ -245,7 +245,7 @@ const STRINGS = {
   'why.row.cost':        { en: 'COST',                 he: 'עלות' },
   'why.col1.cost':       { en: '0 NIS',                he: '0 ₪' },
   'why.col2.cost':       { en: '290–490 NIS one-time', he: '290–490 ₪ חד-פעמי' },
-  'why.col3.cost':       { en: '1,500+ NIS / month',   he: '1,500+ ₪ לחודש' },
+  'why.col3.cost':       { en: '1,500+ NIS / month',   he: '1,500 ₪ ומעלה לחודש' },
 
   // Programmed row
   'why.row.programmed':  { en: 'BLOCK PROGRAMMED',     he: 'מבוסס בלוקים' },
@@ -393,12 +393,12 @@ const STRINGS = {
   'faq.q4':           { en: 'I am rehabbing an injury. Is the Rehab block right for me?', he: 'אני בשיקום אחרי פציעה. הבלוק שיקום מתאים לי?' },
   'faq.a4': {
     en: 'Only if your physiotherapist or doctor cleared you to load. The block uses a per-exercise pain gate (0–3 OK, 4–5 modify, 6+ stop) and load-management hierarchy: ROM → Tempo → Intensity → Volume → Frequency. If you are still in active rehab without clearance, do not buy — message me first.',
-    he: 'רק אם הפיזיותרפיסט או הרופא אישרו לך לעמוס. הבלוק עובד עם שער כאב לכל תרגיל (0–3 בסדר, 4–5 התאם, 6+ עצור) והיררכיית עומס: טווח ← טמפו ← עוצמה ← נפח ← תדירות. אם אתה עוד בשיקום פעיל בלי אישור — אל תקנה, תכתוב לי קודם.',
+    he: 'רק אם הפיזיותרפיסט או הרופא אישרו לך לעמוס. הבלוק עובד עם שער כאב לכל תרגיל (0–3 בסדר, 4–5 התאם, 6 ומעלה עצור) והיררכיית עומס: טווח ← טמפו ← עוצמה ← נפח ← תדירות. אם אתה עוד בשיקום פעיל בלי אישור — אל תקנה, תכתוב לי קודם.',
   },
   'faq.q5':           { en: 'Can I customise the block once I get it?', he: 'אפשר להתאים את הבלוק אחרי שאני מקבל?' },
   'faq.a5': {
     en: "Inside the portal you swap any exercise for an alternative from the EXPO library (500+ exercises with the same movement pattern). For deeper changes — different days per week, different priorities — message me on WhatsApp and I will adjust manually. That is included in the one-time price.",
-    he: 'בתוך הפורטל אתה מחליף כל תרגיל באלטרנטיבה מספריית EXPO (500+ תרגילים עם אותה תבנית תנועה). לשינויים יותר עמוקים — מספר ימים בשבוע, סדר עדיפויות — תכתוב לי בוואטסאפ ואני אסדר ידנית. זה כלול במחיר החד-פעמי.',
+    he: 'בתוך הפורטל אתה מחליף כל תרגיל באלטרנטיבה מספריית EXPO (יותר מ-500 תרגילים עם אותה תבנית תנועה). לשינויים יותר עמוקים — מספר ימים בשבוע, סדר עדיפויות — תכתוב לי בוואטסאפ ואני אסדר ידנית. זה כלול במחיר החד-פעמי.',
   },
   'faq.q6':           { en: 'How do I get the program after I pay?', he: 'איך אני מקבל את התוכנית אחרי התשלום?' },
   'faq.a6': {
@@ -447,7 +447,7 @@ const STRINGS = {
   'quiz.q3.lt6':      { en: 'Less than 6 months',    he: 'פחות מ-6 חודשים' },
   'quiz.q3.6to12':    { en: '6 to 12 months',        he: '6 עד 12 חודשים' },
   'quiz.q3.1to3':     { en: '1 to 3 years',          he: '1 עד 3 שנים' },
-  'quiz.q3.gt3':      { en: '3+ years',              he: '3+ שנים' },
+  'quiz.q3.gt3':      { en: '3+ years',              he: '3 שנים ומעלה' },
 
   // Q4 — current physical state
   'quiz.q4':          { en: 'What is your body telling you right now?', he: 'מה הגוף שלך אומר לך עכשיו?' },
@@ -469,7 +469,7 @@ const STRINGS = {
   'quiz.q6.2':        { en: '2 days',                he: 'יומיים' },
   'quiz.q6.3':        { en: '3 days',                he: '3 ימים' },
   'quiz.q6.4':        { en: '4 days',                he: '4 ימים' },
-  'quiz.q6.5':        { en: '5+ days',               he: '5+ ימים' },
+  'quiz.q6.5':        { en: '5+ days',               he: '5 ימים ומעלה' },
 
   // Result screen
   'quiz.r.h':         { en: 'Your match',            he: 'ההתאמה שלך' },
