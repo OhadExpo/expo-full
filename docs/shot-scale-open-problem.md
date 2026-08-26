@@ -38,17 +38,32 @@ For comparison, a 6.75 m three at that angle needs 9.31 m/s and would peak at
 **0.85 s** — nearly twice the 0.48 s actually measured. The launch angle is
 scale-free too: it is the ratio of two pixel velocities.
 
-## So the real question is different
+## So the real question is for Ohad
 
-The instrument is coherent. What it is measuring is a ~5.3 m/s arc that peaks in
-0.48 s, and that is not a three-point flight. Candidates, in order of how much I
-believe them:
+The instrument is coherent, the scale is right, no window or tracking choice
+changes the answer. What it measures is a ~5.3 m/s arc peaking in 0.48 s.
 
-- **The tracker is not following the ball's true flight.** The motion blob is
-  the union of two positions, blob width was measured at 27 per-mille when the
-  ball's own size implies ~44, and the blob shrinks from 48 to 25 across the
-  window. It may be locking onto a partial edge, or onto a nearer, slower
-  object, for part of the arc.
+**The decisive number is the vertical velocity: 4.71 m/s.** It comes from
+time-to-apex alone, so it is immune to pixel units, to the ball's apparent size,
+and to how obliquely the camera sees the HORIZONTAL travel. A 6.75 m three needs
+roughly 7-8 m/s of vertical velocity whatever the camera angle; 4.7 m/s peaks
+about 1.1 m above the release and cannot reach the rim from the arc.
+
+So one of these is true, and only Ohad can say which:
+
+1. The shots in that clip are not from the three-point line.
+2. The camera is not level. A tilted camera mixes horizontal into the vertical
+   axis and would corrupt the apex timing too.
+
+Everything below has been eliminated with evidence:
+
+- ~~**The tracker is not following the ball's true flight.**~~ **Ruled out.**
+  Sweeping a minimum blob size over the candidates
+  (`scripts/_replay-candidates.mjs`) — 120 candidate blobs, 25 of 30 frames
+  offering more than one — every gate returns the same arc: 5.1-5.6 m/s at
+  60-65 degrees. Even forcing genuinely ball-sized blobs (min 35 per-mille,
+  ballPx 43.8) gives 5.1 m/s at 60.7 with r2 0.996. There is no faster arc
+  hiding in the data for the tracker to have missed.
 - ~~**The window ends too early.**~~ **Ruled out.** Refitting the same
   candidates over 500/700/900/1100/1400 ms windows
   (`scripts/_replay-window.mjs`): the 700 ms window already contains the apex
