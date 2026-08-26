@@ -374,6 +374,20 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
   const sc = ST[stKey(shot.score)];
   const fixes = shot.checks.filter((c) => c.status === 'fix'), watches = shot.checks.filter((c) => c.status === 'watch');
 
+  // SAVE has been writing analyses to localStorage since it shipped, and
+  // nothing has ever read them back — a coach could store fifty sessions and
+  // never see whether an athlete was improving. This reads the most recent
+  // previous one so the result can answer the question he actually asks.
+  //
+  // Same shooting hand only: a left-handed rep is not a comparison for a
+  // right-handed one. Read once per analysis, not per render.
+  const prevSaved = useMemo(() => {
+    try {
+      const all = JSON.parse(localStorage.getItem(SAVE_KEY) || '[]');
+      return all.find((a) => a && a.hand === hand && typeof a.score === 'number') || null;
+    } catch { return null; }
+  }, [hand, result]);
+
   const save = () => {
     try {
       const all = JSON.parse(localStorage.getItem(SAVE_KEY) || '[]');
@@ -535,6 +549,52 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
             {result.consistency && <div style={{ border: '1px solid rgba(255,255,255,0.12)', padding: '6px 8px', gridColumn: '1 / -1' }}><div style={lbl}>{T.consistencyLbl(result.consistency.n)}</div><div style={{ fontFamily: FN, fontSize: 12, fontWeight: 700 }}>{T.consistencyVal(fmt(result.consistency.rhythmCv), fmt(result.consistency.releaseArmSd, 1), fmt(result.consistency.setElbowSd, 1), fmt(result.consistency.timingSd))}</div></div>}
           </div>
 
+          {/* VS LAST SESSION.
+              The one question a coach actually asks — "is he better than last
+              time?" — and until now the analyzer could not answer it, even
+              though SAVE had been storing every session for months.
+              Compares against the most recent save for the SAME hand, and
+              reports the checkpoints whose STATUS changed, because "elbow at
+              set went from fix to ok" is coachable and "63.4 vs 64.1 degrees"
+              is noise. */}
+          {prevSaved && (() => {
+            const was = new Map((prevSaved.checks || []).map((c) => [c.key, c.status]));
+            const rank = { fix: 0, watch: 1, ok: 2, na: 3 };
+            const moved = shot.checks
+              .filter((c) => was.has(c.key) && was.get(c.key) !== c.status)
+              .map((c) => ({ label: c.label, from: was.get(c.key), to: c.status,
+                better: (rank[c.status] ?? 3) > (rank[was.get(c.key)] ?? 3) }));
+            const better = moved.filter((m) => m.better);
+            const worse = moved.filter((m) => !m.better);
+            const d = new Date(prevSaved.date);
+            const when = Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString();
+            const delta = typeof shot.score === 'number' ? shot.score - prevSaved.score : null;
+            return (
+              <div style={{ border: '1px solid rgba(255,255,255,0.15)', padding: '10px 12px', marginBottom: 14, fontSize: 12.5, lineHeight: 1.6 }}>
+                <div style={{ ...lbl, color: CYAN, marginBottom: 4 }}>{T.vsLastHead(when)}</div>
+                <div>
+                  <span dir="ltr" style={{ unicodeBidi: 'isolate', fontFamily: FN, fontWeight: 700,
+                    color: delta == null ? '#FFF' : delta > 0 ? '#37B27C' : delta < 0 ? '#E0574A' : '#FFF' }}>
+                    {T.vsScore(prevSaved.score, shot.score ?? '—')}
+                  </span>
+                  {delta != null && delta !== 0 && (
+                    <span dir="ltr" style={{ unicodeBidi: 'isolate', marginInlineStart: 8, color: delta > 0 ? '#37B27C' : '#E0574A' }}>
+                      {(delta > 0 ? '+' : '') + delta}
+                    </span>
+                  )}
+                </div>
+                {better.length > 0 && (
+                  <div style={{ color: '#37B27C', marginTop: 3 }}>{T.vsBetter}: {better.map((m) => m.label).join(' · ')}</div>
+                )}
+                {worse.length > 0 && (
+                  <div style={{ color: '#E0574A', marginTop: 3 }}>{T.vsWorse}: {worse.map((m) => m.label).join(' · ')}</div>
+                )}
+                {moved.length === 0 && (
+                  <div style={{ color: 'rgba(255,255,255,0.55)', marginTop: 3 }}>{T.vsSame}</div>
+                )}
+              </div>
+            );
+          })()}
           {/* A starved capture reports FEWER SHOTS with full confidence.
               Measured on one identical clip across runs: 9, 10, 11 and 12
               shots, depending only on what else was driving the browser.
