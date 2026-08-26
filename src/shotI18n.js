@@ -78,6 +78,7 @@ export const SHOT_I18N = {
     worstRep: (i, v, unit) => `watch rep ${i} — it released at ${v}${unit}`,
     verdictOutlier: (n) => `${n} of the reps repeat — one does not`,
     unitSpeedProse: ' m/s',
+    displayUnits: { torso: ' torso', ms: ' ms', inOrder: ' in order' },
     legendOnly: (k) => `Show only ${k}`,
     legendAll: 'Show all four',
     starved: (fps, n) => `The capture only managed ${fps} frames a second (${n} frames). Shots can be MISSED at that rate — close other tabs, keep this one in front, and analyse again.`,
@@ -164,6 +165,7 @@ export const SHOT_I18N = {
     worstRep: (i, v, unit) => `תסתכל על חזרה ${i}: שחררת שם ב-${v}${unit}`,
     verdictOutlier: (n) => `${n} חזרות יצאו אותו דבר. אחת לא`,
     unitSpeedProse: ' מ׳/ש׳',
+    displayUnits: { torso: ' גו', ms: ' מ״ש', inOrder: ' בסדר' },
     legendOnly: (k) => `להציג רק ${k}`,
     legendAll: 'להציג את כולם',
     starved: (fps, n) => `הקליטה רצה ב-${fps} פריימים לשנייה בלבד (${n} פריימים). בקצב כזה אפשר לפספס זריקות — תסגור לשוניות אחרות, תשאיר את זו מלפנים, ותנתח שוב.`,
@@ -261,5 +263,14 @@ export function localiseCheck(check, L, typeSpec) {
       ? `אמה ${armBand(typeSpec)} מעל האופק בשחרור (${name})`
       : `Forearm ${armBand(typeSpec)} above horizontal at release (${String(name).toLowerCase()})`;
   }
-  return { ...check, label: t.label || check.label, target: target || check.target, why: t.why || check.why, how: t.how || check.how };
+  // The display string is built by the analysis engine in English (" torso",
+  // " ms", " in order"), which then rendered untranslated inside the Hebrew
+  // panel — "TORSO 0.27" in the middle of a Hebrew row. Swap the unit here,
+  // where the language is known, rather than threading it through the engine.
+  let display = check.display;
+  const U = L.displayUnits;
+  if (U && typeof display === 'string') {
+    display = display.replace(' torso', U.torso).replace(' ms', U.ms).replace(' in order', U.inOrder);
+  }
+  return { ...check, display, label: t.label || check.label, target: target || check.target, why: t.why || check.why, how: t.how || check.how };
 }
