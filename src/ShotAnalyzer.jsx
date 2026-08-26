@@ -11,6 +11,8 @@ import { getCamera, stopStream } from './usePose';
 import { detectShootingHand, analyzeShotClip, frameReadout, CHECKPOINTS, SHOT_TYPES } from './shotAnalysis';
 import { SHOT_I18N, localiseCheck } from './shotI18n';
 import { sessionRead } from './shotSession.js';
+import { crossFade } from './viewTransition';
+import { flushSync } from 'react-dom';
 
 const STATUS = {
   ok:    { label: 'OK',    color: 'var(--c-gn, #2ED573)' },
@@ -47,7 +49,15 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
   // remembered and the whole stage flips to RTL (Ohad 08-24).
   const [lang, setLang] = useState(() => { try { return localStorage.getItem(LANG_KEY) === 'he' ? 'he' : 'en'; } catch { return 'en'; } });
   const T = SHOT_I18N[lang] || SHOT_I18N.en;
-  const setLangPersist = (l) => { setLang(l); try { localStorage.setItem(LANG_KEY, l); } catch { /* private mode */ } };
+  // Switching language repaints every string on the page AND flips the whole
+  // layout between LTR and RTL — the biggest single repaint in the app. It gets
+  // the same one-image cross-fade as the theme switch (Ohad 2026-08-26: "add
+  // the same effect for he/eng transition. everywhere"). flushSync so the new
+  // language is committed before the browser captures the "after" snapshot.
+  const setLangPersist = (l) => {
+    try { localStorage.setItem(LANG_KEY, l); } catch { /* private mode */ }
+    crossFade(() => { flushSync(() => setLang(l)); });
+  };
   const [handMode, setHandMode] = useState('auto'); // auto | R | L
   const [detectedHand, setDetectedHand] = useState(null);
   const hand = handMode === 'auto' ? (detectedHand || 'R') : handMode;

@@ -57,7 +57,7 @@
       // module script and does not always invalidate it when the html
       // changes — a long-lived dev server then serves harness code older
       // than the file on disk, and every run silently tests the wrong thing.
-      harnessBuild: 'balldebug-2',
+      harnessBuild: 'recede-1',
       // Raw ball track for the FIRST tracked shot, so the 1.75x scale error can
       // be reasoned about from real numbers instead of theory: the samples, the
       // time span, the fitted acceleration and what they imply.
@@ -79,7 +79,7 @@
                  deg: s1.info.ballLaunchDeg, speed: s1.info.ballSpeedMs, rise: s1.info.ballRiseM,
                  n: s1.info.ballSamples, fit: s1.info.ballLaunchFit, frames: out };
       })(),
-      analyzed: res.ok ? res.shots.map((s) => ({ i: s.index, t: Math.round(series.tMs[s.cycle.release]), score: s.score, ballDeg: s.info.ballLaunchDeg, ballFit: s.info.ballLaunchFit, ballN: s.info.ballSamples, speed: s.info.ballSpeedMs, rise: s.info.ballRiseM, why: s.info.ballWhy })) : null,
+      analyzed: res.ok ? res.shots.map((s) => ({ i: s.index, t: Math.round(series.tMs[s.cycle.release]), score: s.score, ballDeg: s.info.ballLaunchDeg, ballFit: s.info.ballLaunchFit, ballN: s.info.ballSamples, speed: s.info.ballSpeedMs, rise: s.info.ballRiseM, why: s.info.ballWhy, recede: s.info.ballRecede, oblique: s.info.ballOblique })) : null,
       ballFramesSeen: frames.filter((f) => f.blobs && f.blobs.length).length,
       // How far the nearest moving blob is from the shooting hand, in ball
       // diameters, over the frames right after each release. This is the number

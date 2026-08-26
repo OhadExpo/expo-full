@@ -12,6 +12,8 @@
 // If a key is missing in 'he' it transparently falls back to 'en'.
 
 import { useEffect, useState } from 'react';
+import { crossFade } from './viewTransition';
+import { flushSync } from 'react-dom';
 
 export const LANGS = ['he', 'en'];
 const STORAGE_KEY = 'expo-il-lang';
@@ -567,6 +569,13 @@ if (typeof window !== 'undefined') {
 
 export function setLang(next) {
   if (!LANGS.includes(next) || next === current) return;
+  // Switching language repaints every string AND flips the page between LTR and
+  // RTL. Same one-image cross-fade as the app's theme and language switches
+  // (Ohad 2026-08-26: "add the same effect for he/eng transition. everywhere").
+  crossFade(() => { flushSync(() => applyLang(next)); });
+}
+
+function applyLang(next) {
   current = next;
   try { localStorage.setItem(STORAGE_KEY, next); } catch {}
   applyDocLang(next);

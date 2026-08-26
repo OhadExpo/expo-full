@@ -16,6 +16,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../supabase';
 import { flushSync } from 'react-dom';
+import { crossFade } from '../viewTransition';
 
 const KEY = 'expo-theme';
 const EVT = 'expo-theme-change';
@@ -85,48 +86,14 @@ function applyTheme(next) {
   if (typeof document === 'undefined') return;
   const root = document.documentElement;
   const current = root.getAttribute('data-theme');
-  const changing = !!current && current !== next;
-  const reduced = typeof window !== 'undefined' && window.matchMedia
-    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!current || current === next) { commitTheme(next); return; }
 
-  if (!changing || reduced || typeof document.startViewTransition !== 'function') {
-    if (changing && !reduced) beginThemeCrossFade(next);
-    commitTheme(next);
-    return;
-  }
-
-  try {
-    // Silence every PER-ELEMENT transition for the duration.
-    //
-    // Measured: a switch with the page cross-fade alone still spawned 434
-    // element transitions (baseline at rest is 0) which were still running
-    // 800ms later — every button, link and card easing its own colour on the
-    // React re-render, staggered, on top of and outlasting the single page
-    // fade. That is what was left of the jank. With the View Transition doing
-    // the cross-fade, those are redundant as well as harmful.
-    root.classList.add('theme-switching');
-    const vt = document.startViewTransition(() => {
-      // flushSync, NOT an awaited requestAnimationFrame.
-      //
-      // The obvious "give React two frames to commit" version deadlocks: the
-      // browser suspends rendering while the update callback runs, so rAF
-      // never fires, the returned promise never settles, and the transition is
-      // skipped altogether. Verified by asking which pseudo-element animations
-      // ran during a switch — the answer was NONE, twice.
-      //
-      // flushSync forces every useTheme consumer to re-render synchronously
-      // inside the callback, so the inline-styled half of the page is already
-      // correct when the browser captures the "after" snapshot.
-      flushSync(() => commitTheme(next));
-    });
-    const done = () => root.classList.remove('theme-switching');
-    if (vt && vt.finished && typeof vt.finished.then === 'function') vt.finished.then(done, done);
-    else setTimeout(done, 500);
-  } catch {
-    root.classList.remove('theme-switching');
-    beginThemeCrossFade(next);
-    commitTheme(next);
-  }
+  // flushSync, not an awaited rAF — see the notes in src/viewTransition.js.
+  // It forces every useTheme consumer to re-render synchronously inside the
+  // callback, so the inline-styled half of the page is already correct when the
+  // browser captures the "after" snapshot. This codebase styles almost
+  // everything inline, so without it the page changes in two waves.
+  crossFade(() => { flushSync(() => commitTheme(next)); });
 }
 
 export function useTheme() {
