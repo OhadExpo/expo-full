@@ -32,14 +32,28 @@ export function looksLikeLogin(text) {
   return LOGIN_MARKERS.some((re) => re.test(text || ''));
 }
 
+// The app redirects on boot, so an evaluate() fired at the wrong moment dies
+// with "Execution context was destroyed, most likely because of a navigation."
+// That killed the theme sweep outright. Retry through it rather than crash.
+async function safeEval(page, fn, arg, tries = 4) {
+  for (let i = 0; i < tries; i++) {
+    try { return await page.evaluate(fn, arg); }
+    catch (e) {
+      if (!/context was destroyed|Target closed|Cannot find context/i.test(String(e)) || i === tries - 1) throw e;
+      await wait(1200);
+    }
+  }
+  return undefined;
+}
+
 export async function signIn(page, base) {
   await page.goto(base + '/login', { waitUntil: 'domcontentloaded', timeout: 45000 }).catch(() => {});
-  await wait(2500);
+  await wait(3000);
 
-  const already = await page.evaluate(() => document.body.innerText.slice(0, 400));
+  const already = await safeEval(page, () => document.body.innerText.slice(0, 400));
   if (!looksLikeLogin(already)) return { signedIn: true, note: 'already signed in' };
 
-  await page.evaluate(({ email, pw }) => {
+  await safeEval(page, ({ email, pw }) => {
     const ins = [...document.querySelectorAll('input')];
     const e = ins.find((i) => /email/i.test(i.type + i.placeholder + i.name + (i.getAttribute('aria-label') || '')));
     const p = ins.find((i) => i.type === 'password');
@@ -53,7 +67,7 @@ export async function signIn(page, base) {
   }, { email: OWNER, pw: PW });
 
   await wait(400);
-  await page.evaluate(() => {
+  await safeEval(page, () => {
     const btn = [...document.querySelectorAll('button')]
       .find((b) => /^\s*sign\s*in\s*$/i.test(b.textContent || ''));
     if (btn) btn.click();
@@ -66,7 +80,7 @@ export async function signIn(page, base) {
 export async function assertAuthed(page, base, route = '/coach/dashboard') {
   await page.goto(base + route, { waitUntil: 'domcontentloaded', timeout: 45000 }).catch(() => {});
   await wait(3000);
-  const text = await page.evaluate(() => document.body.innerText.slice(0, 600));
+  const text = await safeEval(page, () => document.body.innerText.slice(0, 600));
   if (looksLikeLogin(text)) {
     console.log(`\nNOT SIGNED IN — ${route} came back as the sign-in screen.`);
     console.log('Every route would have measured the same login page, so the');
