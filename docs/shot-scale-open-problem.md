@@ -1,66 +1,84 @@
-# The Shot Analyzer's absolute scale is wrong by ~1.75x — open
+# Ball speed: the SCALE is right. The tracked arc is not a three-pointer. — open
+
+**This document previously claimed the absolute scale was 1.75x low. That was
+wrong, and the correction matters more than the original claim.**
 
 Ohad, 2026-08-26: *"IT'S a 3 pointer (the 10/11 video) and the tool didn't auto
-choose it."* Chasing that turned up something bigger than the missing
-auto-select.
+choose it."*
 
-## The measurement
+## What the first pass concluded, and why it was wrong
 
-On his own three-point clip, the tracker reads a median **5.3–5.5 m/s at
-63–64 degrees**. Solving the projectile from a ~2.3 m release to a 3.05 m rim:
+The analyzer reads ~5.3-5.6 m/s at 63-65 degrees on his clip. Solving the
+projectile, that describes a ~1.7-1.9 m shot, while a 6.75 m three needs
+9.35 m/s. From that I concluded the scale was under-reading by 1.75x.
+
+**That reasoning assumed the answer.** It took "this is a 6.75 m three" as
+given and blamed the instrument for disagreeing.
+
+## The check that settles it, because it involves no pixels
+
+Replaying the real tracker offline on candidates captured from a live run
+(`scripts/_replay-ball.mjs`), the arc **turns over inside the tracked window** —
+peak at sample 14 of 29, **0.48 s** after release.
+
+Time-to-apex is **scale-free**. It does not care about frame size, pixel units,
+aspect ratio, or the ball's apparent width:
 
 | | |
 |---|---|
-| what those numbers describe | a **1.7–1.9 m** shot |
-| speed a 6.75 m three needs at that angle | **9.35 m/s** |
-| speed a 4.6 m free throw needs | **7.82 m/s** |
+| measured time to apex | **0.48 s** |
+| therefore vertical velocity (`g·t`) | **4.71 m/s** |
+| at the measured 63 degrees, total speed | **5.28 m/s** |
+| what the analyzer reports | **5.6 m/s** |
 
-So the absolute readings are low by roughly **1.75x**. The launch ANGLE and the
-rep-to-rep SPREAD are unaffected — both survive a wrong scale — but every metre
-and every m/s should be treated as uncalibrated until this is found.
+**The analyzer agrees with scale-free physics to about 6%.** The scale is not
+broken.
 
-**This is why the shot type is not auto-detected.** Picking it from this physics
-would label his three a free throw with total confidence. It is remembered
-instead.
+For comparison, a 6.75 m three at that angle needs 9.31 m/s and would peak at
+**0.85 s** — nearly twice the 0.48 s actually measured. The launch angle is
+scale-free too: it is the ratio of two pixel velocities.
 
-## What has been ruled out, with evidence
+## So the real question is different
 
-**The time base.** `shotCapture.js` stamps every frame with
-`meta.mediaTime` from `requestVideoFrameCallback` — real video time, not an
-assumed frame interval. Speed scales linearly with the time base, so a 1.75x
-error would need the clock to be 33-43% out. It is not.
+The instrument is coherent. What it is measuring is a ~5.3 m/s arc that peaks in
+0.48 s, and that is not a three-point flight. Candidates, in order of how much I
+believe them:
 
-**The aspect ratio.** This was the strongest candidate. Normalised coordinates
-are x/width and y/height, `buildSeries` multiplies pose x by the aspect so both
-axes share one unit, and its own comment says the ball fit should share it too —
-which it does not. On a 9:16 clip that mismatch is 1.78x, and a jump shot's ball
-travels mostly horizontally. The number matched almost exactly.
+- **The tracker is not following the ball's true flight.** The motion blob is
+  the union of two positions, blob width was measured at 27 per-mille when the
+  ball's own size implies ~44, and the blob shrinks from 48 to 25 across the
+  window. It may be locking onto a partial edge, or onto a nearer, slower
+  object, for part of the arc.
+- **The window ends too early.** Release + 700 ms. A three is still in the air.
+  The fit then describes the first, flattest part of a longer flight.
+- **The shots in that clip are not all threes.**
 
-It is still wrong. Applying the scaling moved speed only **5.30 -> 5.10 m/s**
-and pushed the launch angle **63 -> 74 degrees**. 74 degrees is not a jump shot;
-real release angles sit near 45-55. The correction made the geometry less
-plausible, so the ball blobs are already in a consistent unit system. Reverted,
-with the experiment recorded in the code so nobody re-runs it.
+## Ruled out, with evidence
 
-**A uniform spatial scale error.** Cannot be the cause: the scale is derived
-from gravity (`mPerPx = 9.81 / gPx`), so multiplying every pixel measure by any
-constant cancels out of the speed entirely.
+- **The time base** — `shotCapture` stamps frames with `meta.mediaTime` from
+  `requestVideoFrameCallback`, real video time.
+- **A uniform spatial error** — impossible by construction: the scale comes from
+  gravity (`mPerPx = 9.81 / gPx`), so any constant pixel factor cancels.
+- **The aspect ratio** — blobs are already isotropic. `shotCapture` divides BOTH
+  x and y by MH ("Reported in FRAME-HEIGHT fractions, the same isotropic unit"),
+  and `wristPos` is scaled to match. Applying an aspect correction anyway moved
+  speed only 5.30 -> 5.10 and pushed the angle 63 -> 74 degrees, which is not a
+  jump shot. Tested and reverted; the experiment is recorded in the code.
 
-## What is still worth trying
+## What still stands
 
-- The gravity fit itself. `gPx = -2a` from a quadratic over ~18-22 samples of a
-  ~1 s arc. If the tracked arc is a fragment near the apex, `a` can come out
-  high; a high `a` gives a small `mPerPx` and a low speed. Worth measuring the
-  fitted `a` against the arc's span.
-- Whether the tracked blob is the ball at all on some reps. The motion blob is
-  the union of two ball positions, so it reads wider than the ball; if it is
-  sometimes locking onto a limb the velocity would be systematically low.
-- The two-pass ROI capture. If blob coordinates are relative to the ROI crop
-  while the origin is full-frame, distances mix units. The origin gate compares
-  them directly, so this would show up there first.
+Shot type is **not** auto-detected. Not because the ruler is broken — it is not
+— but because the tracked arc does not currently describe the shot Ohad says he
+took, and until that is understood, deriving the shot type from it would be
+guessing with extra steps. It is remembered instead.
 
-## Not to be trusted until fixed
+The angle and the rep-to-rep spread never depended on any of this: both are
+ratios, and both survive a wrong scale and an oblique camera.
 
-`ballSpeedMs`, `ballRiseM`, and anything derived from them — including the
-session spread THRESHOLD in m/s (`TIGHT.speedMs`), which was calibrated against
-these same readings. The angle spread and the outlier verdict are unaffected.
+## Tools
+
+- `scripts/_replay-ball.mjs <harness-output>` replays the real `trackBall` and
+  `launchAngle` on candidates dumped by a live run, so this can be investigated
+  in seconds instead of a three-minute MediaPipe pass.
+- `shot-harness.html` emits `ballDebug` with every blob candidate per frame plus
+  the wrist origin (`harnessBuild: balldebug-2`).
