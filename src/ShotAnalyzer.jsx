@@ -53,7 +53,13 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
   const hand = handMode === 'auto' ? (detectedHand || 'R') : handMode;
   const [shotType, setShotType] = useState('mid');
   const [heightSaved, setHeightSaved] = useState(false);
-  const [stature, setStature] = useState('');
+  // Remember the athlete's height. It was state-only, so every reload lost it
+  // and the coach had to retype it before any centimetre reading was real
+  // (Ohad 2026-08-26: "there's no saving mechanism and i wrote 177cm").
+  const STATURE_KEY = 'expo-shot-stature';
+  const [stature, setStature] = useState(() => {
+    try { return localStorage.getItem(STATURE_KEY) || ''; } catch { return ''; }
+  });
   const [progressLabel, setProgressLabel] = useState('');
   const [srcUrl, setSrcUrl] = useState(null);
   const [progress, setProgress] = useState(0);
@@ -157,8 +163,8 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
         <span style={{ ...lbl, marginInlineStart: 10 }}>{T.height}</span>
         <input value={stature}
           onChange={(e) => { setStature(e.target.value); setHeightSaved(false); }}
-          onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
-          onBlur={() => { if (!String(stature).trim()) return; if (phase === 'results') rescore(hand, stature, shotType); setHeightSaved(true); setTimeout(() => setHeightSaved(false), 2600); }}
+          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); } }}
+          onBlur={() => { if (!String(stature).trim()) return; try { localStorage.setItem(STATURE_KEY, String(stature).trim()); } catch { /* private mode */ } if (phase === 'results') rescore(hand, stature, shotType); setHeightSaved(true); setTimeout(() => setHeightSaved(false), 2600); }}
           placeholder={T.cmPlaceholder} inputMode="numeric"
           style={{ width: 56, background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.35)', color: '#FFF', fontFamily: FN, fontSize: 12, padding: '4px 2px', textAlign: 'center', outline: 'none' }} />
         {/* Height feeds the cm conversions — say so when it lands (Ohad 08-24). */}
@@ -246,7 +252,12 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
   const wrapRef = useRef(null);
   const [openGuide, setOpenGuide] = useState(() => new Set(shot.checks.filter((c) => c.status === 'fix').map((c) => c.key)));
 
+  // When the SHOT changes, jump the video to that shot's current phase — unless
+  // the change came from the user scrubbing, in which case they are already
+  // exactly where they want to be and yanking the video away is the bug.
+  const fromScrubRef = useRef(false);
   useEffect(() => {
+    if (fromScrubRef.current) { fromScrubRef.current = false; return; }
     const p = shot.phases.find((x) => x.key === phaseKey);
     const target = p ? p.idx : shot.cycle.release;
     setCur(target); seekTo(target);
@@ -255,7 +266,29 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
 
   const nearestIdx = (tMs) => { const t = series.tMs; let lo = 0, hi = t.length - 1; while (lo < hi) { const m = (lo + hi) >> 1; if (t[m] < tMs) lo = m + 1; else hi = m; } if (lo > 0 && Math.abs(t[lo - 1] - tMs) < Math.abs(t[lo] - tMs)) lo--; return lo; };
   const seekTo = (i) => { const v = videoRef.current; const ii = Math.max(0, Math.min(n - 1, i)); setCur(ii); if (v) { try { v.pause(); v.currentTime = series.tMs[ii] / 1000; } catch { /* noop */ } } };
-  const step = (d) => seekTo(cur + d);
+  // Which rep does a frame belong to? The nearest release: phases butt up
+  // against each other, so a frame between two reps belongs to whichever
+  // release it is closer to.
+  const shotAtFrame = (i) => {
+    let best = shotIdx, bestD = Infinity;
+    (result.shots || []).forEach((s2, k) => {
+      const rel = s2.cycle && s2.cycle.release;
+      if (rel == null) return;
+      const d = Math.abs(rel - i);
+      if (d < bestD) { bestD = d; best = k; }
+    });
+    return best;
+  };
+  // A USER scrub also re-selects the rep. Scrubbing back to the start of the
+  // clip used to leave the panel showing the last rep analysed, so every
+  // reading on screen described a shot that was nowhere near the playhead
+  // (Ohad 2026-08-26).
+  const userSeek = (i) => {
+    const k = shotAtFrame(Math.max(0, Math.min(n - 1, i)));
+    if (k !== shotIdx) { fromScrubRef.current = true; setShotIdx(k); }
+    seekTo(i);
+  };
+  const step = (d) => userSeek(cur + d);
 
   // Follow playback → overlay follows the nearest captured frame.
   useEffect(() => {
@@ -372,7 +405,7 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
             <button onClick={() => { const v = videoRef.current; if (!v) return; if (v.paused) { v.play().catch(() => {}); } else v.pause(); }} style={chip(playing)}>{playing ? '❚❚' : '▶'}</button>
             <button onClick={() => step(1)} style={chip(false)} title={T.next1}>1 ›</button>
             <button onClick={() => step(10)} style={chip(false)} title={T.fwd10}>10»</button>
-            <input type="range" min={0} max={n - 1} value={cur} onChange={(e) => seekTo(Number(e.target.value))} style={{ flex: 1, minWidth: 120, accentColor: '#39BDFF' }} />
+            <input type="range" min={0} max={n - 1} value={cur} onChange={(e) => userSeek(Number(e.target.value))} style={{ flex: 1, minWidth: 120, accentColor: '#39BDFF' }} />
           </div>
           <div className="shot-noprint" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
             {shot.phases.map((p) => <button key={p.key} onClick={() => { setPhaseKey(p.key); seekTo(p.idx); }} style={chip(cur === p.idx)} title={T.phaseJump(p.label)}>{p.label}</button>)}
