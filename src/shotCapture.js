@@ -74,12 +74,19 @@ const seekTo = (v, time) => new Promise((res) => {
  * DISTINCT source frame. Resolves when `to` is reached or the video ends.
  * Falls back to a seek-step loop when requestVideoFrameCallback is missing.
  */
-// `drops` (optional) collects how many presented frames were thrown away
-// because pose detection was still busy. That number is the difference between
-// a reliable read and an unreliable one: the same clip analysed three times on
-// 2026-08-27 returned 11, 10 and 9 shots, purely because a busier machine
-// discarded more frames. Nothing downstream is random — this is where the
-// variance enters, so it must at least be measurable.
+// `drops` (optional) counts frames thrown away because pose detection was still
+// busy when the next one arrived.
+//
+// MEASURED, and the answer was not what I expected: on Ohad's 45 s clip this
+// counter reads ZERO, while the capture still only analysed 741 frames — about
+// 16 fps out of a 60 fps source. So the busy flag is NOT where the frames go.
+// The browser simply presents fewer frames than 60 a second while MediaPipe is
+// running, so requestVideoFrameCallback fires that much less often. The loss is
+// upstream of us, exactly as the note at the top of this file always said.
+//
+// The counter stays because it is what proved that, and because if the balance
+// ever tips — a faster machine, a lighter model — this is the first place the
+// frames would start disappearing instead.
 async function playThrough(v, { from, to, rate, onFrame, frameDur, drops }) {
   await seekTo(v, Math.max(0, from));
   v.playbackRate = rate;
