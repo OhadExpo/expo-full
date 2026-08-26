@@ -562,7 +562,11 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
                           <td style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.8)' }}>{fmt(s.raw.setElbow)}°</td>
                           <td style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.8)' }}>{fmt(s.raw.releaseArm)}°</td>
                           <td style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.8)' }}>{s.raw.timing == null ? '—' : (s.raw.timing > 0 ? '+' : '') + Math.round(s.raw.timing) + 'ms'}</td>
-                          <td style={{ padding: '6px 8px', color: worst ? ST[worst.status].color : 'rgba(255,255,255,0.4)', whiteSpace: 'nowrap' }}>{worst ? worst.label : T.cleanRow}</td>
+                          {(() => { // Same derivation as `worst` above, or the comparison is meaningless.
+                            const prevRaw = i > 0 ? (result.shots[i - 1].checks.find((c) => c.status === 'fix') || result.shots[i - 1].checks.find((c) => c.status === 'watch')) : null;
+                            const prev = prevRaw ? localiseCheck(prevRaw, T, typeSpec) : null;
+                            const same = worst && prev && prev.label === worst.label;
+                            return (<td style={{ padding: '6px 8px', color: worst ? ST[worst.status].color : 'rgba(255,255,255,0.4)', whiteSpace: 'nowrap', opacity: same ? 0.45 : 1 }}>{worst ? worst.label : '—'}</td>); })()}
                         </tr>
                       );
                     })}
