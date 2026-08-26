@@ -74,12 +74,12 @@ tick it here and start the next one in the same turn.
 - [ ] **7. Light/dark parity sweep** — rolling; pickup list in
       `project_light_dark_parity_sweep`.
 
-## Done so far (00:41 - 01:54)
+## Done so far (00:41 - 02:15)
 
 | what | commit |
 |---|---|
 | RTL sequence arrows pointed against the reading direction | `0982aae` |
-| **Prod deploy stall — root cause found and fixed** | `015b694` |
+| **Prod deploy stall - root cause found and fixed** | `015b694` |
 | Gated both silent deploy-killers (lockfile sync, import case) | `124eaeb` |
 | BHBC rollback + one-paste apply doc | `f2a5525` |
 | Shot analyzer ruler was biased high (median) | `fc3aa4b` |
@@ -88,7 +88,18 @@ tick it here and start the next one in the same turn.
 | BHBC wellness control remounted every keystroke | `fa7c313` |
 | Gate for components defined inside a render | `a437ec5` |
 | Real check for whether prod serves what we build | `d1857cd` |
-| **Laptop cleanup — ~20 GB freed** | (no commit) |
+| Scroll-lock invariant pinned (page-unscrollable bug) | `d70322b` |
+| Shot analyzer measured state + the one real gap | `296426d` |
+| ACWR coupled-method blind spot pinned | `89e5aed` |
+| Trailing `+` detaches from its number in RTL | `cce0cf9` |
+| Console audit skipped a quarter of the app | `03f6f02` |
+| **Laptop cleanup - ~20 GB freed** | (no commit) |
+
+Verified on real data, not asserted:
+- 11 of 11 shots still detected on his clip after the median change
+- `origin/master` installs (`npm ci`) AND builds clean from a fresh checkout,
+  every gate passing - so the remaining deploy gap is Vercel-side, not ours
+- the original 17 routes are all console-clean after tonight's changes
 
 Checked and deliberately NOT changed: async effects without cancellation (the
 risky ones already guard with `let stop = false`, and `SessionsView:154` merges
