@@ -372,7 +372,29 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
   const phaseAt = shot.phases.find((p) => p.idx === cur);
   const tMs = series.tMs[cur];
   const sc = ST[stKey(shot.score)];
-  const fixes = shot.checks.filter((c) => c.status === 'fix'), watches = shot.checks.filter((c) => c.status === 'watch');
+  // WHAT IS EACH FAULT ACTUALLY COSTING?
+  //
+  // The score is a WEIGHTED mean and the weights are not equal — 0.7 to 1.2 —
+  // so the faults are not worth the same to fix. Set point height is worth
+  // +11.5 points and trunk at release +6.7, nearly half. The guide listed them
+  // in definition order, so a coach working top-down could spend a session on
+  // the cheapest fault on the board.
+  //
+  // Recoverable points for a check = its weight, times how far its status is
+  // from ok, over the weight actually in play. Same arithmetic the score uses,
+  // so the numbers add up to the difference they claim.
+  const gainOf = (() => {
+    const S = { ok: 1, watch: 0.55, fix: 0.1 };
+    const wsum = shot.checks.reduce((a, c) => a + (S[c.status] == null ? 0 : c.weight), 0);
+    return (c) => {
+      const sc = S[c.status];
+      if (sc == null || !wsum) return 0;
+      return Math.round((c.weight * (1 - sc)) / wsum * 100 * 10) / 10;
+    };
+  })();
+  const byGain = (a, b) => gainOf(b) - gainOf(a);
+  const fixes = shot.checks.filter((c) => c.status === 'fix').sort(byGain);
+  const watches = shot.checks.filter((c) => c.status === 'watch').sort(byGain);
 
   // SAVE has been writing analyses to localStorage since it shipped, and
   // nothing has ever read them back — a coach could store fifty sessions and
@@ -638,7 +660,19 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
                   <tbody>
                     {result.shots.map((s, i) => {
                       const st = ST[stKey(s.score)];
-                      const worstRaw = s.checks.find((c) => c.status === 'fix') || s.checks.find((c) => c.status === 'watch');
+                      // The COSTLIEST fault, not the first one defined. The
+                      // score is a weighted mean, so "set point height" is
+                      // worth +11.5 and "trunk at release" +6.7 — telling a
+                      // coach to fix whichever happens to be listed first can
+                      // point him at the cheapest thing on the board.
+                      const gainIn = (row) => {
+                        const S = { ok: 1, watch: 0.55, fix: 0.1 };
+                        const wsum = row.checks.reduce((a, c) => a + (S[c.status] == null ? 0 : c.weight), 0);
+                        return (c) => (S[c.status] == null || !wsum ? 0 : (c.weight * (1 - S[c.status])) / wsum);
+                      };
+                      const g = gainIn(s);
+                      const pick = (st) => s.checks.filter((c) => c.status === st).sort((a, b) => g(b) - g(a))[0];
+                      const worstRaw = pick('fix') || pick('watch');
                       const worst = worstRaw ? localiseCheck(worstRaw, T, typeSpec) : null;
                       return (
                         <tr key={i} onClick={() => setShotIdx(i)} style={{ cursor: 'pointer', background: i === shotIdx ? 'rgba(57,189,255,0.10)' : 'transparent', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
@@ -650,7 +684,8 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
                           <td style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.8)' }}>{fmt(s.raw.releaseArm)}°</td>
                           <td style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.8)' }}>{s.raw.timing == null ? '—' : (s.raw.timing > 0 ? '+' : '') + Math.round(s.raw.timing) + 'ms'}</td>
                           {(() => { // Same derivation as `worst` above, or the comparison is meaningless.
-                            const prevRaw = i > 0 ? (result.shots[i - 1].checks.find((c) => c.status === 'fix') || result.shots[i - 1].checks.find((c) => c.status === 'watch')) : null;
+                            const prevPick = (st) => { const row = result.shots[i - 1]; const gp = gainIn(row); return row.checks.filter((c) => c.status === st).sort((a, b) => gp(b) - gp(a))[0]; };
+                            const prevRaw = i > 0 ? (prevPick('fix') || prevPick('watch')) : null;
                             const prev = prevRaw ? localiseCheck(prevRaw, T, typeSpec) : null;
                             const same = worst && prev && prev.label === worst.label;
                             return (<td style={{ padding: '6px 8px', color: worst ? ST[worst.status].color : 'rgba(255,255,255,0.4)', whiteSpace: 'nowrap', opacity: same ? 0.45 : 1 }}>{worst ? worst.label : '—'}</td>); })()}
@@ -739,6 +774,10 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
                       <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>{c.target}</div>
                     </div>
                     <div dir="ltr" style={{ fontFamily: FN, fontSize: 14, fontWeight: 700, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', unicodeBidi: 'isolate' }}>{c.display}</div>
+                    {c.status !== 'ok' && c.status !== 'na' && gainOf(c) > 0 && (
+                      <span dir="ltr" title={T.gainPts(gainOf(c))} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
+                        color: 'rgba(255,255,255,0.5)', unicodeBidi: 'isolate', whiteSpace: 'nowrap' }}>+{gainOf(c)}</span>
+                    )}
                     <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: st.color, border: `1px solid ${st.color}`, padding: '2px 6px', flexShrink: 0 }}>{st.label}</span>
                     {ph && <button className="shot-noprint" onClick={(e) => { e.stopPropagation(); setPhaseKey(ph.key); seekTo(ph.idx); }} style={{ ...chip(false), padding: '3px 7px' }} title={T.jumpFrame}>▸</button>}
                     <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, transform: open ? 'rotate(180deg)' : 'none', display: 'inline-block' }}>▾</span>
