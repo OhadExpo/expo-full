@@ -69,7 +69,6 @@ for (const r of routes) {
     await page.waitForFunction(() => !/LOADING DATA/i.test(document.body.innerText), { timeout: 40000 }).catch(() => {});
     // dashboard: make sure the Tasks section is expanded so the board is measured
     if (/dashboard/.test(r)) {
-    await settle(page);
       await page.evaluate(() => {
         const h = [...document.querySelectorAll('*')].find(e => e.children.length === 0 && /^TASKS \(\d+\)$/i.test((e.textContent || '').trim()));
         if (!h) return;
@@ -78,6 +77,8 @@ for (const r of routes) {
       });
       await sleep(800);
     }
+    // Settle FIRST: measure a page that has stopped moving, not one mid-layout.
+    await settle(page);
     const m = await page.evaluate(() => {
       const iw = window.innerWidth;
       const de = document.documentElement;
