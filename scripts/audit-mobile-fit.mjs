@@ -76,10 +76,17 @@ for (const r of routes) {
       }
       offenders.sort((a, b) => b.over - a.over);
       // de-dup: keep the OUTERMOST offenders by dropping those whose parent is also an offender with same over
-      return { iw, sw: de.scrollWidth, bsw: document.body.scrollWidth, title: document.title, offenders: offenders.slice(0, 10), text: document.body.innerText.slice(0, 80).replace(/\s+/g, ' ') };
+      return { iw, broke: /EXPO HIT A RENDER ERROR|SOMETHING BROKE/i.test(document.body.innerText), thin: document.body.innerText.trim().length < 40, sw: de.scrollWidth, bsw: document.body.scrollWidth, title: document.title, offenders: offenders.slice(0, 10), text: document.body.innerText.slice(0, 80).replace(/\s+/g, ' ') };
     });
     await page.screenshot({ path: `${SP}/ma_${slug}.png`, fullPage: true });
-    const status = (m.sw > m.iw + 1 || m.bsw > m.iw + 1 || m.offenders.length) ? 'OVERFLOW' : 'ok';
+    // A page that CRASHED does not overflow, so it used to be reported as 'ok'.
+    // That is exactly how a broken /try passed this audit on 2026-08-26 while
+    // showing nothing but the render-error card. A blank or crashed route is a
+    // failure, not a pass.
+    const status = m.broke ? 'RENDER-ERROR'
+      : m.thin ? 'BLANK'
+      : (m.sw > m.iw + 1 || m.bsw > m.iw + 1 || m.offenders.length) ? 'OVERFLOW'
+      : 'ok';
     console.log(`${status.padEnd(8)} ${r}  sw=${m.sw} bsw=${m.bsw} iw=${m.iw}  ${m.offenders.slice(0, 3).map(o => `<${o.tag}${o.id ? '#' + o.id : ''} +${o.over} "${o.txt.slice(0, 24)}">`).join(' ')}`);
     report.push({ route: r, status, ...m });
   } catch (e) {

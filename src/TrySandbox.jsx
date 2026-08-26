@@ -13,6 +13,7 @@ import { C, FN, FB } from './theme';
 import { safeUrl } from './VideoEmbed';
 import { EXPOMark } from './expoMark';
 import { todayLocalISO } from './dates';
+import DemoTraineePortal from './DemoTraineePortal';
 import {
   ANGLE_DEFS, angleAt, detectChannels, medianFilter, findPeaks, SMOOTH_N,
 } from './repCounter';
@@ -121,7 +122,16 @@ export default function TrySandbox({ pov = 'trainee' } = {}) {
       {!isEmbedded && !isTraineePortal && <POVBanner pov={pov} />}
       {!isEmbedded && !isTraineePortal && pov === 'trainee' && <TraineeContextStrip exercise={exercise} />}
       {isTraineePortal ? (
-        <ClientPortalMock onPick={onPickExercise} />
+        <DemoTraineePortal onFilmSet={(file, exMeta) => {
+          // The REAL portal, not a copy of it. When the visitor films a set
+          // from inside it, the sandbox takes over with their actual clip.
+          onPickExercise({
+            key: exMeta.eid || exMeta.key || 'custom',
+            label: exMeta.t || exMeta.label || 'Your set',
+            sample: exMeta.t || exMeta.label || 'Your set',
+          });
+          if (file) onUpload(file);
+        }} />
       ) : (
         <main style={{ flex:1, padding: isEmbedded ? '14px 16px 24px' : '18px 16px 80px', maxWidth:1180, margin:'0 auto', width:'100%' }}>
           {step === 'exercise' && <ExercisePicker pov={pov} onPick={onPickExercise} />}

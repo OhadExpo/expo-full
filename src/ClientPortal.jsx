@@ -340,7 +340,7 @@ function OverviewFocus({ text }) {
 }
 
 // StepLogger: warmup steps → pre-workout → exercise steps → finish
-function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFocus, trainerExercises, priorWorkouts, allowSubstitution, demoMode = false, branch = '', nameAmbiguous = false}) {
+function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFocus, trainerExercises, priorWorkouts, allowSubstitution, demoMode = false, branch = '', nameAmbiguous = false, onFilmSet = null}) {
   // Steps: 'wu0','wu1',... → 0,1,2,... (group indices) → 'end'
   // Daily-routine days skip warm-up steps entirely — Roei's "morning
   // routine" pattern doesn't tie to a warm-up block. Per-day flag set
@@ -1023,14 +1023,23 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     xhr.send(blob); // Send raw blob, NOT FormData
   });
 
-  const handleVideoUpload = async (e, exIdx) => {
+  const handleVideoUpload = async (e, exIdx, exMeta = null) => {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = '';
     // Demo mode is a public marketing surface — never write to production
     // storage. Other portal paths (handleComplete, plans-load, presence) gate
     // on demoMode already; the upload handler had been the one omission.
-    if (demoMode) { toast('Demo mode — uploads disabled', 'info'); return; }
+    if (demoMode) {
+      // A demo surface that wants the clip (the /try sandbox) gets it and
+      // takes over; nothing is written to production storage either way. This
+      // is what lets /try show the REAL portal rather than a hand-written copy
+      // of it that drifts — the copy had a red play button on every row, a
+      // greeting the portal does not use, and its exercise rows inverted.
+      if (onFilmSet) { onFilmSet(file, exMeta || {}, exIdx); return; }
+      toast('Demo mode — uploads disabled', 'info');
+      return;
+    }
 
     // Re-entrancy guard: the Record/Replace inputs are disabled while
     // uploading, but a double-tap can fire two change events before React
@@ -1986,7 +1995,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
                   // (workoutId:null, never drained) leaks until the 7-day GC.
                   // Mirrors the Remove button's cleanup. (offline audit #3)
                   if (f.pendingBlobId) { removeBlob(f.pendingBlobId).catch(() => {}); }
-                  await handleVideoUpload(e, ei);
+                  await handleVideoUpload(e, ei, d);
                 }} />
               </label>
               <button disabled={f.uploading} onClick={() => {
@@ -2010,11 +2019,11 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           <div style={{display:'flex',gap:8}}>
             <label style={{flex:1,padding:'16px 8px',borderRadius:0,border:`1px dashed ${C.ac}`,background:'transparent',color:C.tm,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',textAlign:'center',display:'flex',alignItems:'center',justifyContent:'center'}}>
               <span>Record</span>
-              <input type="file" accept="video/*" capture="environment" style={{display:'none'}} onChange={async e => { await handleVideoUpload(e, ei); }} />
+              <input type="file" accept="video/*" capture="environment" style={{display:'none'}} onChange={async e => { await handleVideoUpload(e, ei, d); }} />
             </label>
             <label style={{flex:1,padding:'16px 8px',borderRadius:0,border:`1px dashed ${C.ac}`,background:'transparent',color:C.tm,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',textAlign:'center',display:'flex',alignItems:'center',justifyContent:'center'}}>
               <span>Gallery</span>
-              <input type="file" accept="video/*" style={{display:'none'}} onChange={async e => { await handleVideoUpload(e, ei); }} />
+              <input type="file" accept="video/*" style={{display:'none'}} onChange={async e => { await handleVideoUpload(e, ei, d); }} />
             </label>
           </div>
         )}
@@ -2071,7 +2080,7 @@ function deriveWeekIdx(plan, cw, dupNames) {
 }
 
 // Main client portal
-export default function ClientPortal({ clientId, signOut, clientWorkouts, setClientWorkouts, bwLog, setBwLog, weeklyFocus, setWeeklyFocus, portalVis, trainerPlans, trainerExercises, trainees, selfTrainee = null, onDecrementSession, updateFormVideos, demoMode = false, demoPlans = null, onReturnToCoach = null, embedded = false }) {
+export default function ClientPortal({ clientId, signOut, clientWorkouts, setClientWorkouts, bwLog, setBwLog, weeklyFocus, setWeeklyFocus, portalVis, trainerPlans, trainerExercises, trainees, selfTrainee = null, onDecrementSession, updateFormVideos, demoMode = false, demoPlans = null, onReturnToCoach = null, embedded = false, onFilmSet = null }) {
   // clientId comes from the authenticated session (resolved upstream in App.jsx).
   // The old email-lookup login lived inside this component and bypassed auth;
   // it's gone. Trainee is fixed for the session.
@@ -2431,7 +2440,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     // now maps to a DIFFERENT day, this forces a fresh StepLogger so allSets is
     // rebuilt from the correct prescription instead of the old day's numbers
     // being saved onto the new day's exercises.
-    return <StepLogger key={`${targetPlan.id || targetPlan.name || 'p'}|${targetDayIdx}|${targetPlan.days[targetDayIdx]?.name || ''}|w${logWeek}`} day={targetPlan.days[targetDayIdx]} plan={targetPlan} weekNum={logWeek} clientId={ci} onBack={() => setLg(null)} onComplete={handleComplete} weeklyFocus={weeklyFocus} trainerExercises={trainerExercises} priorWorkouts={cw} allowSubstitution={true} nameAmbiguous={dupPlanNames.has(targetPlan.name)} demoMode={demoMode} branch={isBnei ? 'Bnei Herzliya' : (trainee?.branch || '')}/>; }
+    return <StepLogger key={`${targetPlan.id || targetPlan.name || 'p'}|${targetDayIdx}|${targetPlan.days[targetDayIdx]?.name || ''}|w${logWeek}`} day={targetPlan.days[targetDayIdx]} plan={targetPlan} weekNum={logWeek} clientId={ci} onBack={() => setLg(null)} onComplete={handleComplete} weeklyFocus={weeklyFocus} trainerExercises={trainerExercises} priorWorkouts={cw} allowSubstitution={true} nameAmbiguous={dupPlanNames.has(targetPlan.name)} demoMode={demoMode} onFilmSet={onFilmSet} branch={isBnei ? 'Bnei Herzliya' : (trainee?.branch || '')}/>; }
 
   // Shared portal header (logo + lock + logout / greeting / block badges +
   // sessions count / tab switcher). Rendered at the top of Program, BW Graph,

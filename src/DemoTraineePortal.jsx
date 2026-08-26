@@ -16,7 +16,7 @@ import {
   DEMO_PORTAL_VIS,
 } from './demoTraineeData';
 
-export default function DemoTraineePortal() {
+export default function DemoTraineePortal({ onFilmSet = null } = {}) {
   // Local stand-ins for the setters ClientPortal expects. All writes stay
   // in-memory — closing the tab discards them.
   const [clientWorkouts, setClientWorkouts] = useState(DEMO_CLIENT_WORKOUTS);
@@ -65,6 +65,7 @@ export default function DemoTraineePortal() {
         updateFormVideos={updateFormVideos}
         demoMode
         demoPlans={DEMO_PLANS}
+        onFilmSet={onFilmSet}
         embedded={isEmbed}
       />
     </div>
