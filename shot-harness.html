@@ -57,7 +57,28 @@
       // module script and does not always invalidate it when the html
       // changes — a long-lived dev server then serves harness code older
       // than the file on disk, and every run silently tests the wrong thing.
-      harnessBuild: 'ballwhy-1',
+      harnessBuild: 'balldebug-2',
+      // Raw ball track for the FIRST tracked shot, so the 1.75x scale error can
+      // be reasoned about from real numbers instead of theory: the samples, the
+      // time span, the fitted acceleration and what they imply.
+      ballDebug: (() => {
+        if (!res.ok) return null;
+        const s1 = res.shots.find((x) => x.info && x.info.ballSamples > 0);
+        if (!s1) return null;
+        const cands = series.raw && series.raw.ball;
+        const rel = s1.cycle.release;
+        const out = [];
+        for (let k = rel; k < Math.min(cands.length, rel + 30); k++) {
+          const c = cands[k];
+          // ALL candidates, not blobs[0] — the tracker CHOOSES among them, so
+          // dumping the first one describes a path nothing followed.
+          if (Array.isArray(c) && c.length) out.push({ t: Math.round(series.tMs[k]), b: c.map((z) => [+z.x.toFixed(4), +z.y.toFixed(4), +z.w.toFixed(4), +z.h.toFixed(4)]) });
+        }
+        const wp = series.raw.wristPos && series.raw.wristPos[rel];
+        return { index: s1.index, releaseT: Math.round(series.tMs[rel]), aspect: series.aspect, wrist: wp ? [+wp.x.toFixed(4), +wp.y.toFixed(4)] : null,
+                 deg: s1.info.ballLaunchDeg, speed: s1.info.ballSpeedMs, rise: s1.info.ballRiseM,
+                 n: s1.info.ballSamples, fit: s1.info.ballLaunchFit, frames: out };
+      })(),
       analyzed: res.ok ? res.shots.map((s) => ({ i: s.index, t: Math.round(series.tMs[s.cycle.release]), score: s.score, ballDeg: s.info.ballLaunchDeg, ballFit: s.info.ballLaunchFit, ballN: s.info.ballSamples, speed: s.info.ballSpeedMs, rise: s.info.ballRiseM, why: s.info.ballWhy })) : null,
       ballFramesSeen: frames.filter((f) => f.blobs && f.blobs.length).length,
       // How far the nearest moving blob is from the shooting hand, in ball
