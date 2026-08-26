@@ -49,8 +49,12 @@ believe them:
   ball's own size implies ~44, and the blob shrinks from 48 to 25 across the
   window. It may be locking onto a partial edge, or onto a nearer, slower
   object, for part of the arc.
-- **The window ends too early.** Release + 700 ms. A three is still in the air.
-  The fit then describes the first, flattest part of a longer flight.
+- ~~**The window ends too early.**~~ **Ruled out.** Refitting the same
+  candidates over 500/700/900/1100/1400 ms windows
+  (`scripts/_replay-window.mjs`): the 700 ms window already contains the apex
+  and fits at r2 0.998. Widening it nudges the answer 5.3 -> 5.5 -> 5.6 while
+  the fit DEGRADES to 0.987, so the extra samples are drifting off the
+  parabola rather than completing it. It converges near 5.6, not 9.3.
 - **The shots in that clip are not all threes.**
 
 ## Ruled out, with evidence
