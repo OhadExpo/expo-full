@@ -474,6 +474,21 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
             {result.consistency && <div style={{ border: '1px solid rgba(255,255,255,0.12)', padding: '6px 8px', gridColumn: '1 / -1' }}><div style={lbl}>{T.consistencyLbl(result.consistency.n)}</div><div style={{ fontFamily: FN, fontSize: 12, fontWeight: 700 }}>{T.consistencyVal(fmt(result.consistency.rhythmCv), fmt(result.consistency.releaseArmSd, 1), fmt(result.consistency.setElbowSd, 1), fmt(result.consistency.timingSd))}</div></div>}
           </div>
 
+          {/* A starved capture reports FEWER SHOTS with full confidence.
+              Measured on one identical clip across runs: 9, 10, 11 and 12
+              shots, depending only on what else was driving the browser.
+              MediaPipe drops frames under load and the analyzer cannot tell
+              a rep that was never filmed from a rep whose frames were lost.
+              Below ~18fps say so, loudly, rather than showing a short count
+              as if it were the truth. (Ohad, 2026-08-26: "it only recognized
+              6 out of 11 shots i took" — on a clip that reads 11 when the
+              browser is idle.) */}
+          {result.fps != null && result.fps < 18 && (
+            <div style={{ border: `1px solid ${'#E0A73A'}`, background: 'rgba(224,167,58,0.08)', color: '#E0A73A',
+              padding: '10px 12px', marginBottom: 14, fontSize: 12.5, lineHeight: 1.5 }}>
+              {T.starved(result.fps, result.frameCount)}
+            </div>
+          )}
           {/* SESSION — every detected shot, scored, so a multi-shot clip is
               never ambiguous: this table IS the whole clip. */}
           {result.shots.length > 1 && (

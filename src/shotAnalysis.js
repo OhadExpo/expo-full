@@ -321,8 +321,23 @@ export function detectShots(series, fps, opts = {}) {
   const kept = [];
   for (const c of cands) {
     const last = kept[kept.length - 1];
-    if (last && tMs[c.release] - tMs[last.release] < minGapMs) {
+    // Close together in TIME is not enough to call two candidates the same rep.
+    //
+    // A pure time gate trades one error for the other: at 700ms a
+    // follow-through was counted as a twelfth shot; at 1200ms a genuinely fast
+    // set risks losing real reps, which is far worse — a shot the athlete took
+    // and cannot see. So time only RAISES THE QUESTION; the dip answers it.
+    //
+    // Every real jump shot has its own dip. A duplicate — the follow-through,
+    // the catch, the rebound — is detected off the SAME dip as the shot before
+    // it. So two candidates merge only when they are both close in time AND
+    // share a dip. Two dips means two shots, however fast they came.
+    const closeInTime = last && tMs[c.release] - tMs[last.release] < minGapMs;
+    const sameDip = last && (c.dip === last.dip
+      || (c.dip >= 0 && last.dip >= 0 && Math.abs(tMs[c.dip] - tMs[last.dip]) < 250));
+    if (closeInTime && sameDip) {
       if (c.coverage > last.coverage) kept[kept.length - 1] = c;   // keep the better-tracked of the two
+      note(tMs[c.release], 'same dip as the previous shot — merged as one rep');
       continue;
     }
     kept.push(c);
