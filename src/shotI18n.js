@@ -77,6 +77,7 @@ export const SHOT_I18N = {
     launchSpreadOn: (n, total) => `measured on ${n} of ${total}`,
     worstRep: (i, v, unit) => `watch rep ${i} — it released at ${v}${unit}`,
     verdictOutlier: (n) => `${n} of the reps repeat — one does not`,
+    unitSpeedProse: ' m/s',
     ballUnread: 'The ball could not be followed on this rep, so the three ball readings are blank. Everything measured from the body still stands.',
     tight: 'repeatable',
     loose: 'inconsistent — the release angle is moving rep to rep',
@@ -111,7 +112,7 @@ export const SHOT_I18N = {
     savedCm: '✓ נשמר', rescored: '✓ חושב מחדש', cmUnit: 'ס״מ', forCm: 'לחישוב ס״מ',
 
     idleTitle: 'ניתוח זריקה, פריים אחר פריים.',
-    idleBlurb: 'EXPO עוקב אחרי הגוף בכל פריים, מאתר את הדיפ, נקודת הסט, השחרור, שיא הקפיצה והליווי, מנקד 10 נקודות בקרה מכניות, וכותב את מדריך התיקון — מה לשנות, למה זה משנה, ואיך לאמן את זה.',
+    idleBlurb: 'EXPO עוקב אחרי הגוף בכל פריים. הוא מסמן דיפ, נקודת סט, שחרור, שיא וליווי, ונותן ציון ל-10 נקודות בדיקה. בסוף אתה מקבל מדריך תיקון: מה לשנות, למה, ואיך לאמן את זה.',
     tips: [
       ['צילום מהצד', 'צלם מצד יד הזריקה, המצלמה בגובה החזה, במרחק 4–6 מ׳.'],
       ['כל הגוף בפריים', 'מכפות הרגליים עד קצות האצבעות, לאורך השחרור והליווי.'],
@@ -120,14 +121,14 @@ export const SHOT_I18N = {
     ],
     // Forward CTA arrow points LEFT in RTL and sits at the logical end of the
     // string, so it renders on the visual left (Ohad's RTL arrow rule).
-    record: 'הקלטה ←', gallery: 'מהגלריה', stopAnalyse: 'עצור ונתח',
+    record: 'צלם ←', gallery: 'מהגלריה', stopAnalyse: 'עצור ונתח',
     progress: { 'finding the athlete': 'מאתר את השחקן', 'reading the shots': 'קורא את הזריקות', done: 'סיום', '': 'קורא את הזריקה' },
 
-    status: { ok: 'תקין', watch: 'לעקוב', fix: 'לתקן', na: 'אין' },
+    status: { ok: 'תקין', watch: 'במעקב', fix: 'לתיקון', na: 'אין' },
     phases: { stance: 'עמידה', dip: 'דיפ', set: 'סט', release: 'שחרור', apex: 'שיא', follow: 'ליווי', landing: 'נחיתה' },
     back10: 'אחורה 10 פריימים', prev1: 'פריים קודם', next1: 'פריים הבא', fwd10: 'קדימה 10 פריימים',
     phaseJump: (l) => `קפיצה ל${l} — נשאר על אותו רגע גם כשמחליפים זריקה`,
-    metrics: { knee: 'ברך', hip: 'ירך', elbow: 'מרפק', armElev: 'הרמת יד', forearm: 'זווית אמה', trunk: 'נטיית גו', wristEye: 'שורש מול עין', elbowOffset: 'סטיית מרפק' },
+    metrics: { knee: 'ברך', hip: 'ירך', elbow: 'מרפק', armElev: 'זווית הזרוע', forearm: 'זווית אמה', trunk: 'נטיית גו', wristEye: 'שורש מול עין', elbowOffset: 'סטיית מרפק' },
 
     save: '↑ שמירה', copy: 'העתק סיכום', print: 'הדפסת דוח', newClip: '↺ קליפ חדש',
     savedToast: 'ניתוח הזריקה נשמר', saveFail: 'השמירה נכשלה', copiedToast: 'הסיכום הועתק', copyFail: 'ההעתקה נכשלה',
@@ -157,9 +158,10 @@ export const SHOT_I18N = {
     verdictAngle: 'זווית השחרור זזה בין חזרה לחזרה',
     sessionRepeatable: 'עקבי לאורך האימון',
     launchSpreadOn: (n, total) => `נמדדה ב-${n} מתוך ${total}`,
-    worstRep: (i, v, unit) => `שים לב לחזרה ${i} — השחרור בה היה ${v}${unit}`,
-    verdictOutlier: (n) => `${n} מהחזרות חוזרות על עצמן — אחת לא`,
-    ballUnread: 'לא היה אפשר לעקוב אחרי הכדור בחזרה הזו, אז שלושת הנתונים של הכדור ריקים. כל מה שנמדד מהגוף עדיין תקף.',
+    worstRep: (i, v, unit) => `תסתכל על חזרה ${i}: שחררת שם ב-${v}${unit}`,
+    verdictOutlier: (n) => `${n} חזרות יצאו אותו דבר. אחת לא`,
+    unitSpeedProse: ' מ׳/ש׳',
+    ballUnread: 'לא הצלחנו לעקוב אחרי הכדור בחזרה הזאת, אז נתוני הכדור ריקים. מה שנמדד מהגוף עדיין תקף.',
     tight: 'עקבי',
     loose: 'לא עקבי — זווית השחרור זזה בין חזרה לחזרה',
     repeats: 'חוזר על עצמו לאורך האימון',
@@ -171,7 +173,7 @@ export const SHOT_I18N = {
     measuredBad: (d, t) => `נמדד ${d}; היעד ${t}.`,
     jumpFrame: 'קפיצה לפריים הזה',
     footnote: 'היעדים הם טווחים לקריאה של מאמן, לא חוקים — קרא אותם מול השחקן שעומד מולך. זווית היד בשחרור היא של היד; כשאפשר לעקוב אחרי הכדור עצמו, זווית השיגור האמיתית שלו מוצגת לצידה. הקריאות של הגו, סטיית המרפק וזווית שיגור הכדור מניחות צילום מהצד.',
-    legend: { knee: 'ברך', elbow: 'מרפק', armElev: 'הרמת יד', hipHeight: 'גובה ירך' },
+    legend: { knee: 'ברך', elbow: 'מרפק', armElev: 'זווית הזרוע', hipHeight: 'גובה ירך' },
     copyHead: (s, h) => `EXPO מנתח זריקה — ניקוד ${s}/100 (יד ${h})`,
     copyFixFirst: 'לתקן קודם:',
     handWordR: 'ימין', handWordL: 'שמאל',
