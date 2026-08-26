@@ -51,7 +51,21 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
   const [handMode, setHandMode] = useState('auto'); // auto | R | L
   const [detectedHand, setDetectedHand] = useState(null);
   const hand = handMode === 'auto' ? (detectedHand || 'R') : handMode;
-  const [shotType, setShotType] = useState('mid');
+  // Remember the shot type. It reset to 'mid' every time, so a coach who only
+  // ever films threes re-picked it on every clip (Ohad 2026-08-26: "IT'S a 3
+  // pointer and the tool didn't auto choose it").
+  //
+  // Deliberately NOT auto-detected from the ball. The physics would pick the
+  // wrong answer today: on his own three-point clip the tracker reads 5.3 m/s
+  // at 63 degrees, which is a 1.7m shot — a three needs 9.35 m/s and even a
+  // free throw needs 7.8. The absolute speed scale is under-reading by about
+  // 1.75x, and auto-selecting from it would confidently label a three as a
+  // free throw. Remembering his choice is honest; guessing from a broken ruler
+  // is not.
+  const SHOTTYPE_KEY = 'expo-shot-type';
+  const [shotType, setShotType] = useState(() => {
+    try { const v = localStorage.getItem(SHOTTYPE_KEY); return (v === 'ft' || v === 'mid' || v === 'three') ? v : 'mid'; } catch { return 'mid'; }
+  });
   const [heightSaved, setHeightSaved] = useState(false);
   // Remember the athlete's height. It was state-only, so every reload lost it
   // and the coach had to retype it before any centimetre reading was real
@@ -156,7 +170,7 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
         <span style={{ ...lbl, marginInlineStart: 10 }}>{T.shot}</span>
         {SHOT_TYPES.map((t) => (
           <button key={t.key}
-            onClick={() => { setShotType(t.key); if (phase === 'results') rescore(hand, stature, t.key); }}
+            onClick={() => { setShotType(t.key); try { localStorage.setItem(SHOTTYPE_KEY, t.key); } catch { /* private mode */ } if (phase === 'results') rescore(hand, stature, t.key); }}
             title={T.shotHint}
             style={chip(shotType === t.key)}>{(T.shotTypes[t.key] || t.label).toUpperCase()}</button>
         ))}
@@ -419,7 +433,7 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
               first line, then the arm chain elbow → forearm → wrist on the
               second, so the eye reads it in the same order the shot happens. */}
           <div className="shot-readout" style={{ marginTop: 10, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(104px, 1fr))', gap: 6 }}>
-            {[[T.metrics.knee, fmt(rd.knee) + '°'], [T.metrics.hip, fmt(rd.hip) + '°'], [T.metrics.trunk, fmt(rd.trunk) + '°'], [T.metrics.armElev, fmt(rd.shoulder) + '°'], [T.metrics.elbow, fmt(rd.elbow) + '°'], [T.metrics.forearm, fmt(rd.forearm) + '°'], [T.metrics.wristEye, (rd.wristEye == null ? '—' : (rd.wristEye >= 0 ? '+' : '') + fmt(rd.wristEye, 2))], [T.metrics.elbowOffset, fmt(rd.wristElbowX, 2)]].map(([k, v]) => (
+            {[[T.metrics.knee, fmt(rd.knee) + '°'], [T.metrics.hip, fmt(rd.hip) + '°'], [T.metrics.trunk, fmt(rd.trunk) + '°'], [T.metrics.armElev, fmt(rd.shoulder) + '°'], [T.metrics.elbow, fmt(rd.elbow) + '°'], [T.metrics.elbowOffset, fmt(rd.wristElbowX, 2)], [T.metrics.forearm, fmt(rd.forearm) + '°'], [T.metrics.wristEye, (rd.wristEye == null ? '—' : (rd.wristEye >= 0 ? '+' : '') + fmt(rd.wristEye, 2))]].map(([k, v]) => (
               <div key={k} style={{ border: '1px solid rgba(255,255,255,0.12)', padding: '6px 8px', minHeight: 46, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                 <div style={lbl}>{k}</div>
                 <div style={{ fontFamily: FN, fontSize: 15, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{v}</div>
@@ -683,7 +697,7 @@ function Timeline({ series, shot, cur, onSeek, T }) {
   return (
     <div style={{ marginTop: 10 }}>
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 4 }}>
-        {[[T.legend.knee, '#39BDFF', 'knee'], [T.legend.elbow, '#FFFFFF', 'elbow'], [T.legend.armElev, '#FFA502', 'shoulder'], [T.legend.hipHeight, '#2ED573', 'hipY']].map(([k, c, id]) => (
+        {[[T.legend.knee, '#39BDFF', 'knee'], [T.legend.hipHeight, '#2ED573', 'hipY'], [T.legend.armElev, '#FFA502', 'shoulder'], [T.legend.elbow, '#FFFFFF', 'elbow']].map(([k, c, id]) => (
           <button key={k} onClick={() => setSoloLine((v) => (v === id ? null : id))}
             title={soloLine === id ? T.legendAll : T.legendOnly(k)}
             style={{ ...lbl, color: c, background: 'transparent', border: 'none', cursor: 'pointer', padding: '2px 4px',

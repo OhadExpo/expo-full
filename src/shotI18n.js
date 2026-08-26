@@ -60,7 +60,7 @@ export const SHOT_I18N = {
 
     info: { dipToRelease: 'Dip → release', jumpRise: 'Jump rise', releaseHeight: 'Release height', armAtRelease: 'Arm at release', ballLaunch: 'Ball launch', ballSpeed: 'Release speed', ballRise: 'Arc above release', releaseVsApex: 'Release vs apex', chain: 'Chain (from dip)', tracked: 'Tracked' },
     enterHeight: 'enter height', eyeHeight: '× eye height', ofFrames: (p) => `${p}% of frames`,
-    chainVal: (k, s, e) => `legs ${k} · arm ${s} · elbow ${e} ms`,
+    chainVal: (k, s, e) => `knee ${k} · arm ${s} · elbow ${e} ms`,
     consistencyLbl: (n) => `Consistency (${n} shots)`,
     consistencyVal: (r, a, se, t) => `rhythm ±${r}% · release arm ±${a}° · set elbow ±${se}° · timing ±${t} ms`,
 
@@ -146,7 +146,7 @@ export const SHOT_I18N = {
 
     info: { dipToRelease: 'דיפ → שחרור', jumpRise: 'גובה קפיצה', releaseHeight: 'גובה שחרור', armAtRelease: 'זווית יד בשחרור', ballLaunch: 'זווית שיגור הכדור', ballSpeed: 'מהירות שחרור', ballRise: 'גובה הקשת מעל השחרור', releaseVsApex: 'שחרור מול שיא', chain: 'שרשרת (מהדיפ)', tracked: 'מעקב' },
     enterHeight: 'הזן גובה', eyeHeight: '× גובה עיניים', ofFrames: (p) => `${p}% מהפריימים`,
-    chainVal: (k, s, e) => `רגליים ${k} · יד ${s} · מרפק ${e} מ״ש`,
+    chainVal: (k, s, e) => `ברך ${k} · זרוע ${s} · מרפק ${e} מ״ש`,
     consistencyLbl: (n) => `עקביות (${n} זריקות)`,
     consistencyVal: (r, a, se, t) => `קצב ±${r}% · יד בשחרור ±${a}° · מרפק בסט ±${se}° · תזמון ±${t} מ״ש`,
 
