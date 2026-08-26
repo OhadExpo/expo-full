@@ -549,7 +549,13 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
             {result.consistency && <div style={{ border: '1px solid rgba(255,255,255,0.12)', padding: '6px 8px', gridColumn: '1 / -1' }}><div style={lbl}>{T.consistencyLbl(result.consistency.n)}</div><div style={{ fontFamily: FN, fontSize: 12, fontWeight: 700 }}>{T.consistencyVal(fmt(result.consistency.rhythmCv), fmt(result.consistency.releaseArmSd, 1), fmt(result.consistency.setElbowSd, 1), fmt(result.consistency.timingSd))}</div></div>}
           </div>
 
-          {/* VS LAST SESSION.
+          {/* VS THE LAST SAVED ANALYSIS.
+              NOT "vs his last session" — this tool has no athlete. It films
+              whoever is in front of the camera, and the reviewed-clip picker is
+              deliberately not wired to it (Ohad 08-23: no previously-uploaded
+              EXPO videos). Saves are therefore global, so a coach who analysed
+              two athletes in a row would otherwise be shown one compared
+              against the other. The heading says what it actually is.
               The one question a coach actually asks — "is he better than last
               time?" — and until now the analyzer could not answer it, even
               though SAVE had been storing every session for months.
