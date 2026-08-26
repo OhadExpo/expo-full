@@ -557,6 +557,11 @@ export function scoreShot(series, c, { statureCm = null, shotType = 'mid' } = {}
     ballRiseM: ballLaunch && !ballLaunch.failed ? ballLaunch.riseM : null,
     ballLaunchFit: ballLaunch && !ballLaunch.failed ? ballLaunch.fit : null,
     ballSamples: ballLaunch && !ballLaunch.failed ? ballLaunch.n : 0,
+    // The shot was filmed obliquely: the ball receded from the camera, so the
+    // metre and m/s readings under-read and the launch angle over-reads. The
+    // angle SPREAD and the rep-to-rep comparison are unaffected.
+    ballOblique: !!(ballLaunch && !ballLaunch.failed && ballLaunch.obliqueShot),
+    ballRecede: ballLaunch && !ballLaunch.failed ? ballLaunch.recede : null,
   };
   const phases = [
     { key: 'stance', label: 'STANCE', idx: c.stance },

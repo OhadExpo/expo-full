@@ -276,6 +276,32 @@ export function launchAngle(points, releaseMs = null, ballPx = 0, out = null) {
   const angleDeg = Math.atan2(vy, Math.abs(vx)) * 180 / Math.PI;
   if (!(angleDeg > 15 && angleDeg < 80)) return no(`launch ${angleDeg.toFixed(0)} deg is outside any jump shot`);
 
+  // IS THE SHOT IN THE IMAGE PLANE?
+  //
+  // Everything below assumes the ball travels ACROSS the sensor, not away from
+  // it. When it recedes, the component along the view axis is invisible, so the
+  // projection under-reads the speed and over-reads the launch angle — and the
+  // fit cannot tell, because a receding parabola is still a lovely parabola.
+  //
+  // The ball's own apparent size is the giveaway: it scales as 1/distance, so a
+  // square-on shot holds its size and a receding one shrinks. On Ohad's clip it
+  // shrank 1.45x across the flight, which is why that shot measured 5.3 m/s at
+  // 63 degrees when a three needs about 9.3 at nearer 50.
+  //
+  // Measured, never gated: the angle SPREAD and the rep-to-rep comparison
+  // survive an oblique camera, and refusing the whole reading would throw away
+  // the coachable part. The caller is told so it can say so.
+  let recede = null;
+  {
+    const px = p.map((q) => q.px).filter((v) => v > 0);
+    if (px.length >= 8) {
+      const k = Math.max(3, Math.round(px.length / 5));
+      const head = px.slice(0, k).reduce((a, b) => a + b, 0) / k;
+      const tail = px.slice(-k).reduce((a, b) => a + b, 0) / k;
+      if (tail > 0) recede = Math.round((head / tail) * 100) / 100;
+    }
+  }
+
   // REAL-WORLD UNITS. The ball's apparent size is a ruler: it is 0.24 m across,
   // always. So once the flight is tracked, the pixel scale is known and the same
   // fit yields metres and metres-per-second — no extra measurement, no
@@ -308,6 +334,10 @@ export function launchAngle(points, releaseMs = null, ballPx = 0, out = null) {
   }
 
   return {
+    // How much the ball shrank across the flight, and whether that is enough to
+    // say the shot was not square to the camera. 1.0 = square.
+    recede,
+    obliqueShot: recede != null && recede >= 1.2,
     angleDeg: Math.round(angleDeg * 10) / 10,
     fit: Math.round(quad.r2 * 1000) / 1000,
     n: p.length,

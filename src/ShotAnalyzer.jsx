@@ -534,6 +534,17 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
               as if it were the truth. (Ohad, 2026-08-26: "it only recognized
               6 out of 11 shots i took" — on a clip that reads 11 when the
               browser is idle.) */}
+          {/* Filmed obliquely: the ball receded from the camera, so the
+              absolute readings are projections of a 3D flight onto 2D and read
+              low. Measured from the ball's own apparent size, which scales as
+              1/distance. This is why Ohad's three-point clip solved to a 1.7m
+              shot — the physics was right, the geometry was not. */}
+          {shot.info.ballOblique && (
+            <div style={{ border: '1px solid #E0A73A', background: 'rgba(224,167,58,0.08)', color: '#E0A73A',
+              padding: '10px 12px', marginBottom: 14, fontSize: 12.5, lineHeight: 1.5 }}>
+              {T.oblique}
+            </div>
+          )}
           {result.fps != null && result.fps < 18 && (
             <div style={{ border: `1px solid ${'#E0A73A'}`, background: 'rgba(224,167,58,0.08)', color: '#E0A73A',
               padding: '10px 12px', marginBottom: 14, fontSize: 12.5, lineHeight: 1.5 }}>
