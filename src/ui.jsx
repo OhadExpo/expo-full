@@ -1,6 +1,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
+import { lockBodyScroll } from './scrollLock';
 
 // Canonical height for header/strip ACTION buttons (+ TASK, MARK ALL READ,
 // + LOG, CONTRACT, + ADD PAYMENT, …) so this whole button family is ONE uniform
@@ -688,26 +689,10 @@ function pushOverlay() {
   };
 }
 
-// Body-scroll lock, refcounted. Per-instance save/restore broke whenever two
-// overlays were open at once: the inner one saved 'hidden' (the outer's lock),
-// and when both unmounted in the SAME commit React ran cleanups in tree order —
-// outer restored '', then inner re-applied 'hidden'. The page stayed
-// permanently unscrollable until a reload (audit 08-22). A counter makes the
-// last overlay out the one that unlocks.
-let scrollLocks = 0;
-let scrollPrev = '';
-function lockBodyScroll() {
-  if (typeof document === 'undefined') return () => {};
-  if (scrollLocks === 0) { scrollPrev = document.body.style.overflow; document.body.style.overflow = 'hidden'; }
-  scrollLocks++;
-  let released = false;
-  return () => {
-    if (released) return;
-    released = true;
-    scrollLocks = Math.max(0, scrollLocks - 1);
-    if (scrollLocks === 0) document.body.style.overflow = scrollPrev;
-  };
-}
+// Body-scroll lock, refcounted — moved to ./scrollLock.js so the node harness
+// can import it (plain .js; node cannot import .jsx). The full history of the
+// bug it replaced lives in that file, and scripts/verify-scroll-lock.mjs pins
+// the behaviour.
 
 export const Modal = ({ open, onClose, title, children, wide }) => {
   const titleId = React.useId();
