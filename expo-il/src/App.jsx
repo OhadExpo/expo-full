@@ -2068,7 +2068,7 @@ function Contact() {
 const TESTIMONIALS = [
   // Example shape (uncomment + fill once you have permission):
   // {
-  //   quote: 'הראשון בלוק אחרי כמה שנים בלי תוכנית. כל אימון ידעתי בדיוק מה לעשות.',
+  //   quote: 'הבלוק הראשון אחרי כמה שנים בלי תוכנית. כל אימון ידעתי בדיוק מה לעשות.',
   //   who: 'Diego Day',
   //   role: 'Hypertrophy 16',
   //   photoSrc: '/testimonials/diego.jpg',
