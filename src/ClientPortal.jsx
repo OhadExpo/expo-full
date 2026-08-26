@@ -3227,20 +3227,26 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                           // reps cyan; the rest/tempo after the first comma goes
                           // grey so combined free-text ("5XI, 30 SEC REST") reads
                           // the same as the logger + day rows (consistency).
-                          // The prescription is Latin and numeric inside an RTL
-                          // page, and it is rendered as TWO spans so the part
-                          // after the comma can be tinted. Two adjacent Latin
-                          // runs in an RTL container get reordered by the bidi
-                          // algorithm, which is why an athlete saw
-                          // "5X1  , 30 SEC REST" and "(35  ,45,40KG)" — the
-                          // comma detached and jumped. Wrapping the pair in one
-                          // LTR isolate keeps them in the order they were
-                          // written while still allowing the two colours.
+                          // The prescription is split at the first comma so the
+                          // part after it can be tinted. The source often has a
+                          // SPACE before that comma ("5x1 , 30 sec rest"), so the
+                          // split put it at the end of the first span and it
+                          // rendered as "5X1 , 30 SEC REST" — a comma floating
+                          // away from its number, on the one line that tells an
+                          // athlete what to lift.
+                          //
+                          // Trim it. (An earlier version of this fix blamed RTL
+                          // bidi reordering and wrapped the pair in an isolate.
+                          // That explanation was wrong — this portal renders
+                          // LTR, direction:ltr on html, body and the element —
+                          // and it only appeared to work because inline-block
+                          // collapsed the trailing space. The isolate is kept:
+                          // harmless, and correct if this ever renders RTL.)
                           const rx = String(r.rx || ''); const ci = rx.indexOf(',');
                           const base = {fontSize:11,fontWeight:700,fontFamily:FN,letterSpacing:'0.04em'};
-                          const iso = {unicodeBidi:'isolate', display:'inline-block'};
+                          const iso = {};
                           if (ci === -1) return <span dir="ltr" style={{...base,...iso,color:C.ac}}>{rx}</span>;
-                          return <span dir="ltr" style={iso}><span style={{...base,color:C.ac}}>{rx.slice(0,ci)}</span><span style={{...base,color:tempoColor}}>{rx.slice(ci)}</span></span>;
+                          return <span dir="ltr" style={iso}><span style={{...base,color:C.ac}}>{rx.slice(0,ci).trimEnd()}</span><span style={{...base,color:tempoColor}}>{rx.slice(ci)}</span></span>;
                         })()}
                         {r.tempo && <span dir="ltr" style={{fontSize:11,color:tempoColor,fontFamily:FN,letterSpacing:'0.04em',unicodeBidi:'isolate',display:'inline-block'}}>{r.tempo}</span>}
                       </div>
