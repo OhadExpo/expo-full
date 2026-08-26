@@ -18,6 +18,7 @@
 // With explicit routes it checks only those; otherwise it reads the manifest.
 import fs from 'node:fs';
 import puppeteer from 'puppeteer-core';
+import { signIn, assertAuthed } from './lib/authed-page.mjs';
 
 const BASE = process.argv[2] || 'http://localhost:5199';
 
@@ -49,6 +50,13 @@ const IGNORE = [
 const b = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: { width: 1280, height: 900 } });
 const page = await b.newPage();
 let bad = 0;
+
+// Sign in and PROVE it. Without this every coach route bounces to the sign-in
+// screen and the sweep measures the same small login page over and over,
+// reporting perfect coverage of nothing. That is exactly what happened on
+// 2026-08-27: "36/36 routes clean" was 36 measurements of the login page.
+await signIn(page, BASE);
+if (!(await assertAuthed(page, BASE))) { await page.close(); await b.disconnect(); process.exit(2); }
 const failures = [];
 
 console.log(`${ROUTES.length} routes from docs/SURFACES.md against ${BASE}\n`);

@@ -97,11 +97,20 @@ tick it here and start the next one in the same turn.
 
 | Mobile sweep enumerates from the manifest, writes somewhere real | `8286af3` |
 
-**Platform health, measured tonight across every route in the manifest:**
-- **36/36 routes free of console errors** — including the 19 that had never once
-  been checked (`/coach/bugs`, `/coach/challenges`, `/coach/exercise-matching`,
-  `/coach/waitlist`, `/coach/smart-import`, `/demo/he`, `/intake/he`, `/login` …)
-- **37/37 routes fit a 390px phone** with no horizontal overflow
+**RETRACTED — the platform-health numbers below were wrong.**
+
+I reported "36/36 routes free of console errors" and "37/37 routes fit a 390px
+phone". Both were worthless. The browser was not signed in, so every coach route
+redirected to the sign-in screen and the sweeps measured the same small login
+page thirty-six times. Perfect coverage of nothing.
+
+The theme audit is what exposed it: every single route came back with the
+identical two low-contrast strings, one of them "Don't have an account? Contact
+your coach." A screenshot of `/coach/dashboard` confirmed it renders SIGN-IN.
+
+Fixed in `scripts/lib/authed-page.mjs`: the sweeps now sign in and then PROVE it
+by loading a coach route and refusing to continue if what comes back is the
+login screen — exit 2, "Nothing was tested." Re-running them properly.
 
 Verified on real data, not asserted:
 - 11 of 11 shots still detected on his clip after the median change
