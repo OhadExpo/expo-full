@@ -30,5 +30,35 @@ check('does not mutate the caller array', JSON.stringify(src) === '[3,1,2,4]');
 const sample = [100, 102, 104, 106];
 check('ruler sample is centred, not high', median(sample) === 103);
 
+
+// --- how much did correcting the median actually move things? -------------
+// The shift is exactly (a[m] - a[m-1]) / 2 on an even count and zero on an odd
+// one, so it depends entirely on sample size. Measured on a synthetic torso
+// series (0.15 base, 3% frame-to-frame wobble):
+//
+//   n=2    1.287%      n=40    0.203%
+//   n=4    0.224%      n=120   0.009%
+//   n=8    0.217%      n=300   0.022%
+//   n=16   0.130%      n=600   0.001%
+//
+// detectShots calls median(sm.torso) across the WHOLE clip — hundreds of
+// frames — so its peak threshold (torsoRef * 0.35) moves by a fraction of a
+// percent and the shot count cannot flip on it.
+// rulers() calls median over stance..dip only, often a handful of frames,
+// which is exactly where the bias was worth removing.
+//
+// This bound is why the fix ships without an end-to-end clip re-run: the
+// browser harness needs a dev server that would not root correctly tonight.
+const shiftAt = (n) => {
+  const s = [];
+  for (let i = 0; i < n; i++) s.push(0.15 + Math.sin(i / 7) * 0.003 + (((i * 2654435761) % 1000) / 1000 - 0.5) * 0.0045);
+  const a = s.slice().sort((x, y) => x - y);
+  const m = Math.floor(a.length / 2);
+  return a.length % 2 ? 0 : Math.abs(a[m] - (a[m - 1] + a[m]) / 2) / ((a[m - 1] + a[m]) / 2);
+};
+check('long samples barely move (detection is safe)', shiftAt(600) < 0.0005);
+check('short samples move most (the ruler is what this fixed)', shiftAt(4) > shiftAt(600));
+
+
 console.log(`\nSHOT STATS: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

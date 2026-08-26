@@ -74,6 +74,21 @@ tick it here and start the next one in the same turn.
 - [ ] **7. Light/dark parity sweep** — rolling; pickup list in
       `project_light_dark_parity_sweep`.
 
+## Gotchas found during this run
+
+- **The dev server hangs when launched from a backgrounded Bash task.** It
+  prints "ready in 726ms", listens on `[::1]`, and then never answers a single
+  request — no error in its log. Chrome hangs on it too, so it is not a curl
+  artifact. Launching it detached with its own console works instantly:
+  `Start-Process cmd.exe '/c npx vite --port 5210 --strictPort > log 2>&1'`.
+  Almost certainly the task's stdout pipe blocking. NOT a problem with Ohad's
+  dev setup - do not report it as one.
+- `git commit -m` with a message containing quotes or em-dashes gets torn apart
+  by the shell. Write the message to a file and use `-F`.
+- Heredocs here collapse `
+` and `\` inside Python/JS string literals. For
+  anything with escapes, use the Write/Edit tools instead.
+
 ## Standing rules for this run
 
 - Branch `bhbc-hub`; he has authorised deploying this work to `master`.
