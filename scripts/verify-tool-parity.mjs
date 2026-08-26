@@ -42,5 +42,24 @@ for (const key of D.keys()) {
   ok(`the demo does not invent "${key}"`, R.has(key), `the demo shows ${key} and the real launcher does not`);
 }
 
+
+// Each description must fit ONE line in the tool list.
+//
+// A row that wraps is not a cosmetic nit: every other row in that list is a
+// single line, so a two-line row breaks the rhythm, pushes its text ~400px
+// further right than any of its neighbours and leaves the OPEN control floating
+// against a taller block. That is exactly what happened when the Shot Analyzer
+// blurb grew to 154 characters to describe the session read.
+//
+// The cap is measured, not guessed: "Bar speed (VBT) + per-goal stop-set cutoff
+// - ROM/tempo/collapse - L/R symmetry" is 78 characters and was screenshotted
+// on one line at 1440px; 154 wrapped. 80 leaves the proven one intact with no
+// meaningful extrapolation.
+const ONE_LINE_MAX = 80;
+for (const [key, r] of R) {
+  ok(`"${key}" description fits one line (<= ${ONE_LINE_MAX} chars)`, r.measures.length <= ONE_LINE_MAX,
+    `${r.measures.length} chars: "${r.measures}"`);
+}
+
 console.log(`\nCAMERA TOOL PARITY: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

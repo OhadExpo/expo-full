@@ -172,7 +172,7 @@ const REVIEW_TOOLS = [
   // (dip · set · release · apex · follow-through) → 9-checkpoint scorecard
   // → FIX GUIDE (what / why / how). Engine: shotAnalysis.js.
   { key: 'shot',    label: 'SHOT ANALYZER', icon: 'target',
-    measures: 'Jump-shot mechanics frame by frame · dip, set point, release, timing, follow-through · across a whole set: does the release repeat, and which rep does not',
+    measures: 'Jump-shot mechanics, phase by phase · does the release repeat across the set',
     useWhen: 'Break a shooter’s form down and hand him the fix guide. Film a set, not one shot — the spread across reps is the coachable part.',
     needsTitle: false, live: false },
 ];
