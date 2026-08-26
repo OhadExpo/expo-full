@@ -643,12 +643,22 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
               {T.oblique}
             </div>
           )}
-          {result.fps != null && result.fps < 18 && (
-            <div style={{ border: `1px solid ${'#E0A73A'}`, background: 'rgba(224,167,58,0.08)', color: '#E0A73A',
-              padding: '10px 12px', marginBottom: 14, fontSize: 12.5, lineHeight: 1.5 }}>
-              {T.starved(result.fps, result.frameCount)}
-            </div>
-          )}
+          {/* Keyed on effFps — the rate we ACTUALLY analysed — not on fps,
+              which is the source video's rate whenever capture could measure
+              it. Ohad's clip is 60fps; a run that analysed only 16 fps of it
+              and found 9 shots instead of 11 reported fps=60 and this banner
+              stayed silent. The guard could not fire for the failure it exists
+              to catch. Falls back to fps when effFps is unavailable. */}
+          {(() => {
+            const rate = result.effFps != null ? result.effFps : result.fps;
+            if (rate == null || rate >= 18) return null;
+            return (
+              <div style={{ border: `1px solid ${'#E0A73A'}`, background: 'rgba(224,167,58,0.08)', color: '#E0A73A',
+                padding: '10px 12px', marginBottom: 14, fontSize: 12.5, lineHeight: 1.5 }}>
+                {T.starved(rate, result.frameCount)}
+              </div>
+            );
+          })()}
           {/* SESSION — every detected shot, scored, so a multi-shot clip is
               never ambiguous: this table IS the whole clip. */}
           {result.shots.length > 1 && (
