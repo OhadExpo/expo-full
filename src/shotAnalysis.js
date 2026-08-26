@@ -491,6 +491,17 @@ export function scoreShot(series, c, { statureCm = null, shotType = 'mid' } = {}
     const frames = [];
     for (let k = c.release; k <= end; k++) {
       if (Array.isArray(cands[k]) && cands[k].length) {
+        // NOT aspect-scaled, and that was TESTED rather than assumed.
+        //
+        // buildSeries multiplies pose x by the aspect so both axes share one
+        // unit, and its comment says the ball fit should share it too. Applying
+        // the same scaling here is the obvious fix for the speed being ~1.75x
+        // too low — and it is wrong. Measured on Ohad's clip: speed moved only
+        // 5.30 -> 5.10 m/s while the launch angle went 63 -> 74 degrees, and 74
+        // is not a jump shot. Real release angles sit near 45-55. The
+        // correction made the geometry less plausible, so the ball blobs are
+        // already in a consistent unit system and the scale error is somewhere
+        // else. Left alone deliberately; see docs for what is still open.
         frames.push({ t: tMs[k], blobs: cands[k].map((b) => ({ x: b.x * K, y: b.y * K, w: b.w * K, h: b.h * K, n: b.n })) });
       }
     }
