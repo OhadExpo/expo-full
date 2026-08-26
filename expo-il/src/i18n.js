@@ -57,7 +57,7 @@ const STRINGS = {
   'hero.stat2.n':        { en: '90+',                he: '90+' },
   'hero.stat2.l':        { en: 'programs delivered', he: 'תוכניות שכתבתי' },
   'hero.stat3.n':        { en: '500+',               he: '500+' },
-  'hero.stat3.l':        { en: 'exercises in the library', he: 'תרגילים בספריה' },
+  'hero.stat3.l':        { en: 'exercises in the library', he: 'תרגילים בספרייה' },
 
   // ─── Catalog ──────────────────────────────────────────────────────
   'catalog.badge':       { en: 'CATALOG',        he: 'קטלוג' },
@@ -158,7 +158,7 @@ const STRINGS = {
   'inside.cmp.h':        { en: 'Side-by-side check',he: 'השוואה צד לצד' },
   'inside.cmp.d': {
     en: 'Every clip slots into your library by exercise + weight. Two taps to see today against your last attempt at the same load — ROM, tempo, depth, all visible.',
-    he: 'כל קליפ נכנס לספריה לפי תרגיל ומשקל. שתי לחיצות וזה מראה לך את היום מול הסט הקודם באותו עומס. ROM, טמפו, עומק — הכל גלוי.',
+    he: 'כל קליפ נכנס לספרייה לפי תרגיל ומשקל. שתי לחיצות וזה מראה לך את היום מול הסט הקודם באותו עומס. ROM, טמפו, עומק — הכל גלוי.',
   },
   'inside.cmp.last.t':   { en: 'LAST · 90 KG',      he: 'קודם · 90 ק״ג' },
   'inside.cmp.last.s':   { en: '4 reps · grindy #4',he: '4 חזרות · #4 כבדה' },
