@@ -128,7 +128,7 @@ const STRINGS = {
     en: 'MediaPipe Pose Landmarker tracks 33 joints in real time on any phone. Knee angle, hip depth, bar path — visible the moment you finish the set.',
     he: 'MediaPipe Pose Landmarker עוקב אחרי 33 מפרקים בזמן אמת. בכל טלפון. זווית ברך, עומק ירך, מסלול מוט — הכל מופיע ברגע שסיימת את הסט.',
   },
-  'inside.pose.angle':   { en: 'KNEE 87°',          he: 'ברך °87' },
+  'inside.pose.angle':   { en: 'KNEE 87°',          he: 'ברך 87°' },
   'inside.pose.depth':   { en: 'DEPTH 92%',         he: 'עומק 92%' },
   'inside.pose.foot':    { en: '33 LANDMARKS · LITE MODEL', he: '33 נקודות · מודל LITE' },
 
