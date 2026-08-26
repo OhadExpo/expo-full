@@ -64,18 +64,37 @@ looks at.
 
 Nothing in the analysis code is random. `detectShots` is deterministic given
 the same series, and the unit suites pass every time. So the variance lives in
-CAPTURE: how many frames `src/shotCapture.js` manages to sample, and which ones
-it drops, depends on what else the machine is doing. A dropped frame near a
-release costs the whole shot.
+CAPTURE — and it has now been measured rather than guessed at.
 
-Where to look:
-- `src/shotCapture.js` — is it sampling in real time off a playing `<video>`?
-  If so the count is hostage to machine load, and the fix is to decode
-  deterministically (seek frame by frame, or `requestVideoFrameCallback`) rather
-  than to loosen a detection gate.
-- The capture-quality banner warns below 18 fps, but that is a whole-clip
-  average — losing three seconds' worth of frames in bursts hides inside a
-  healthy mean.
+**Measured, on the run that found 9:**
+
+```
+[shot-capture] {"coarse":693,"fine":644,"windows":7,"duration":45.3,
+                "skipped":0,"skipRatio":0}   analyzed 9
+```
+
+- source video: **60 fps**
+- frames actually analysed: **741 over 45.3 s → 16.4 fps effective**
+- frames discarded by our own busy-flag: **zero**
+
+So we are not throwing frames away. The browser is presenting roughly 16 a
+second while MediaPipe runs, and `requestVideoFrameCallback` fires that much
+less often. The loss is upstream of our loop, exactly as the note at the top of
+`shotCapture.js` has said all along. (I first blamed the `busy` flag in
+`playThrough` and committed that as fact; the counter I added to prove it
+returned zero and disproved me.)
+
+**What was fixed as a result.** The starved-capture banner was keyed on
+`result.fps`, which is the SOURCE rate — 60 — so it could never fire. It now
+keys on `effFps`, the rate actually analysed. That 9-shot run would now warn.
+Pinned by `scripts/verify-starved-guard.mjs`.
+
+**What is still open.** Warning is the honest half; the count is still hostage
+to machine load. Making it reliable means decoding deterministically instead of
+sampling a playing video — stepping frames with a seek loop (the fallback path
+already in `playThrough`, rejected originally because a seek costs 100–175 ms
+on a 60 fps portrait clip) or decoding via WebCodecs. That is a real piece of
+work and wants Ohad's call on the speed/reliability trade.
 
 **Do not tune detection thresholds against this.** The gates are not the
 problem; two of these three runs prove the same thresholds find 11. Chasing the
