@@ -190,11 +190,11 @@ export const ASSESSMENT_HE = {
     { id: 'plank_seconds',   type: 'number',    label: 'פלאנק על האמות — זמן בשניות עד שהירכיים נופלות', required: true },
     { id: 'pullup_ability',  type: 'choice',    label: 'יכולת מתח (Chin/Pull-Up)', required: true, choices: ['בלי יכולת בכלל', 'יכולת בעזרה (Band/Assist)', 'משיכה מלאה — חזרה אחת', 'משיכה מלאה — 2–5 חזרות', 'משיכה מלאה — 6+ חזרות'] },
     // --- Pain map
-    { id: 'pain_regions',    type: 'multichoice', label: 'אזורים בגוף שכואבים או מגבילים תנועה כרגע (סמן/י את כל מה שרלוונטי)', required: true, choices: PAIN_REGIONS_HE },
+    { id: 'pain_regions',    type: 'multichoice', label: 'איזורים בגוף שכואבים או מגבילים תנועה כרגע (סמן/י את כל מה שרלוונטי)', required: true, choices: PAIN_REGIONS_HE },
     { id: 'pain_worst',      type: 'scale',     label: 'דירוג הכאב הכי חזק כרגע (0=ללא כאב, 10=חזק מנשוא)', required: true, scale: { min: 0, max: 10, minLabel: 'ללא', maxLabel: 'חזק מנשוא' } },
     { id: 'pain_detail',     type: 'paragraph', label: 'תאר/י את הכאב הכי משמעותי — מתי הוא מופיע, מה מחמיר אותו, מה מקל' },
     // --- History
-    { id: 'prior_injuries',  type: 'paragraph', label: 'פציעות קודמות — מקום, שנה, האם טופל פיזיותרפית', required: true },
+    { id: 'prior_injuries',  type: 'paragraph', label: 'פציעות קודמות — מקום, שנה, האם טופל בפיזיותרפיה', required: true },
     { id: 'surgeries',       type: 'paragraph', label: 'ניתוחים — סוג, שנה, איזורים' },
     { id: 'medications',     type: 'paragraph', label: 'תרופות שמשפיעות על אימון (מדללי דם, סטרואידים, חוסמי-β וכו\')' },
     { id: 'red_flags',       type: 'choice',    label: 'האם חווית לאחרונה: ירידה דרסטית במשקל ללא סיבה / כאבי לילה לא תלויי תנוחה / חוסר תחושה במפשעה / חולשה פתאומית באחת מהרגליים', required: true, choices: ['לא', 'כן'] },
