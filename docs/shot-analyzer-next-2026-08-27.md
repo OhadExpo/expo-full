@@ -41,41 +41,45 @@ The fix is probably in **candidate selection**, not in the rise gate: prefer the
 arc whose origin starts AT the hand and whose vertical travel is largest, rather
 than the best pure r².
 
-## SECOND GAP, found on the repeat run — the count is not deterministic
+## SECOND GAP — the count is not deterministic. This is the bigger one.
 
-Two runs of the SAME clip, same build, minutes apart:
+Three runs of the SAME clip, same build, minutes apart:
 
 ```
-run A   11 shots   3000  6733 10350 14100 18400 23017 27067 31183 35300 38867 42700
-run B   10 shots         6883 10317 13717 18500 23000 27150 31233 35300 38900 42817
+run A   11 shots   3000 6733 10350 14100 18400 23017 27067 31183 35300 38867 42700
+run B   10 shots        6883 10317 13717 18500 23000 27150 31233 35300 38900 42817
+run C    9 shots   3033 6650 10417 ...
 ```
 
-The ten shared shots line up within about 100 ms — ordinary frame-sampling
-jitter, nothing to worry about. **Run B simply never saw the first shot at
-3.0 s.**
+**11, then 10, then 9.** Run B lost the first shot entirely; run C saw the
+first shot and lost two others. Where runs share a shot they agree within about
+100 ms, which is ordinary frame-sampling jitter — so the detector is not
+wandering. Different runs are simply being handed different frames.
 
-This matters more than the ball-track gap. Ohad's original complaint was "it
-only recognized 6 out of 11". A tool that answers 11 one minute and 10 the next,
-on the same video, cannot be trusted on the number no matter how good the
-mechanics scoring is.
+This matters more than the ball-track gap, and more than any scoring tweak.
+Ohad's original complaint was "it only recognized 6 out of 11". A tool that
+answers 11, then 10, then 9 for the same video cannot be trusted on the count,
+however good the mechanics scoring is — and the count is the first number he
+looks at.
 
-The first shot sits 3 seconds into the clip, and it is the one that disappears.
-That points at capture WARM-UP: the pose model, the video decode and the first
-frames all stabilise over the opening seconds, so the dip/release window of an
-early shot can arrive incomplete. Nothing in the analysis code is random — the
-detector is deterministic given the same frames — so the variation has to be in
-which frames the capture managed to sample.
+Nothing in the analysis code is random. `detectShots` is deterministic given
+the same series, and the unit suites pass every time. So the variance lives in
+CAPTURE: how many frames `src/shotCapture.js` manages to sample, and which ones
+it drops, depends on what else the machine is doing. A dropped frame near a
+release costs the whole shot.
 
 Where to look:
-- `src/shotCapture.js` — does it start sampling before the model is warm, and
-  are early frames dropped rather than retried?
-- The capture-quality banner already warns below 18 fps; that is a whole-clip
-  average, so a slow first two seconds hides inside a healthy mean.
+- `src/shotCapture.js` — is it sampling in real time off a playing `<video>`?
+  If so the count is hostage to machine load, and the fix is to decode
+  deterministically (seek frame by frame, or `requestVideoFrameCallback`) rather
+  than to loosen a detection gate.
+- The capture-quality banner warns below 18 fps, but that is a whole-clip
+  average — losing three seconds' worth of frames in bursts hides inside a
+  healthy mean.
 
-Suggested check before any fix: run the harness three times and record the
-count each time. If the first shot is the only one that ever disappears, warm-up
-is confirmed and the fix is to discard or re-sample the opening frames rather
-than to loosen any detection gate.
+**Do not tune detection thresholds against this.** The gates are not the
+problem; two of these three runs prove the same thresholds find 11. Chasing the
+count by loosening gates would trade a missed shot for a phantom one.
 
 ## Fixture for the rejected shot
 
