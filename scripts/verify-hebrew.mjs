@@ -78,6 +78,14 @@ const RULES = [
     fix: 'direct future-imperative: תסגור, תתאם',
   },
   {
+    id: 'spelling-drift',
+    why: 'one word, two spellings - the platform writes תוכנית 44 times to 1',
+    // Objective, not taste: the minority spelling is a slip, and a form that
+    // says תכנית next to 44 תוכנית reads careless to a client.
+    test: /(?<![֐-׿])[והבלמשכ]{0,2}תכני(?:ת|ות)(?![֐-׿])/g,
+    fix: 'תוכנית / תוכניות',
+  },
+  {
     id: 'space-before-punctuation',
     why: 'shipped once already — a stray space before a comma read as a dangling comma',
     test: /[\u0590-\u05FF]\s+[,.;](?:\s|$)/g,
