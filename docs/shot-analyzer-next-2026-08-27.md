@@ -234,7 +234,37 @@ what finds the shots, 255 s) and leave the fine pass on playback. That would cos
 about 6 minutes instead of 10 and should fix the count, though the ball data
 would stay as sparse as before. Not tested.
 
-## Do these in order — the second gap BLOCKS the first
+### Confirmed reproducible — twice, and the second run was under load
+
+```
+ #   run1 t   run2 t   delta   ballN 1   ballN 2
+ 1    3017     3017      0       40        40
+ 2    6650     6650      0       39        39
+ 3   10317    10317      0       25        25
+ 4   14083    14083      0        0         0
+ 5   18400    18400      0       27        27
+ 6   23000    23000      0       38        38
+ 7   27067    27067      0       39        39
+ 8   31167    31167      0       38        38
+ 9   35417    35417      0       42        42
+10   38667    38667      0       39        39
+11   42717    42717      0       40        40
+```
+
+**Every shot at the identical millisecond. Every ball-sample count identical.**
+Coarse frame count identical too (2459 both runs); the merged total differed by
+one frame out of 2632.
+
+And this is the part that matters: **run 2 ran while the mobile audit was
+hammering the same browser** — three of that audit's routes timed out from the
+load. The capture did not care. That is what load-independence means, and it is
+the difference from the default path, where the same clip gave 11, 10 and 9 with
+shot times drifting up to 383 ms.
+
+So the diagnosis is settled and the fix is validated. What remains is only the
+price: ~10 minutes instead of ~3.
+
+## Do these in order — the second gap blocked the first, and is now UNBLOCKED
 
 It is tempting to fix the ball-track rejection first, because it is small and
 well understood. It cannot be validated yet, and that is the real reason it was
@@ -253,15 +283,19 @@ tell whether the change broke a shot or the capture simply dropped frames
 again. Any A/B against a ±2 baseline is noise, and a "verified" claim off it
 would be worthless.
 
-**Sequence:**
+**Sequence — step 1 is now DONE:**
 
-1. Make capture deterministic — seek-step or WebCodecs decoding, so the same
-   clip always yields the same frames and therefore the same count. Verify by
-   running it three times and getting one number three times.
-2. THEN change the ball-arc selector, with `scripts/fixtures/ball-rejected.json`
-   for fast iteration and the now-stable clip run as the acceptance test.
+1. ~~Make capture deterministic~~ — **done and verified.** Two deterministic runs
+   returned the same 11 shots at the same millisecond, the second under heavy
+   load. `DETERMINISTIC=1` is the stable baseline the selector work needed.
+2. NOW the ball-arc selector can be changed against a fixed reference:
+   `scripts/fixtures/ball-rejected.json` for fast iteration, and a deterministic
+   clip run as the acceptance test. "The other ten are unchanged" is finally a
+   statement that can be checked — it means byte-identical shot times and ball
+   counts, which is what two deterministic runs already produce.
 
-Doing it the other way round means tuning against a moving target.
+Note the fixture sweep says the arc simply is not in the candidate set, so start
+at `motionBlobs` for that release rather than at the selector.
 
 ## Why this was not attempted tonight
 
