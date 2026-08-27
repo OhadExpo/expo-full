@@ -23,7 +23,7 @@ Guarded so it cannot recur: `scripts/verify-lockfile-sync.mjs` runs inside
 
 ## Still stuck, and it is not our side
 
-Since that deploy landed at ~00:46, **47 commits** have reached GitHub and
+Since that deploy landed at ~00:46, **68 commits** have reached GitHub and
 **none has deployed** (counted: `git log --oneline 015b694..HEAD`). As of 02:23 prod still serves `Bd9iKZxz`.
 
 What I ruled out, each by testing rather than reasoning:
@@ -57,3 +57,17 @@ builds" in about ten seconds, without needing the dashboard. Exit 0 current,
 All work is committed and pushed to `origin/master`. Nothing is lost by the
 delay — the moment Vercel builds, all of tonight goes live at once. Restore
 point if anything needs undoing: `2d5829e`.
+
+## Final deploy-readiness check (04:27)
+
+A clean clone of `origin/master`, built exactly as Vercel would:
+
+```
+npm ci        -> added 508 packages, audited 509
+npm run build -> LOCKFILE SYNC ok · surface gate ok (45 routes)
+                 font parity 13/13 · HEBREW gate clean · INLINE gate clean
+                 built in 29.76s
+```
+
+So the code is deploy-ready and the problem is entirely on Vercel's side.
+Nothing in this repo needs changing for the deploy to succeed.
