@@ -1524,6 +1524,16 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
   // On phones, wrap the list row the same way board columns do — title on its
   // own line, meta + status pill below — so nothing gets clipped off-screen.
   const wrapRow = board || narrow;
+  // PHONE-ONLY tweaks. The board cards are a layout Ohad already signed off, so
+  // they keep the behaviour they have; only the phone list changes here.
+  //
+  // What was wrong (Ohad: the tasks screen is "ugly and messy" on mobile): the
+  // title shared line 1 with the status pill and the meta chips sat alone on
+  // line 2, so every task put its content in opposite diagonal corners with a
+  // dead gap between. Giving the title the whole first line and letting the
+  // meta and the status pill share the second — meta left, status right —
+  // makes each task a tidy two-line block with no dead space.
+  const phone = narrow && !board;
   const heb = isHebrew(row._display || '');
   // Date pill reads the parsed _dueAt (from inline `· due …`) and falls
   // back to created_at only as a last resort — without a real due date,
@@ -1609,9 +1619,18 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
           // OWN full line BELOW the title+status line (order:1 + flex-basis:100%),
           // its chips packed tight to the left — a dense 2-line row, no dead gaps,
           // no date chip clipping off-screen (#14, Ohad 2026-08 "unusable" pass). */
-          ...(wrapRow
-            ? { order: 1, flexBasis: '100%', flexShrink: 1, minWidth: 0, justifyContent: 'flex-start' }
-            : { flexShrink: 0, justifyContent: 'flex-end' }) }}>
+          ...(phone
+            // flexBasis 0, not auto: with `auto` the cluster demands its full
+            // content width (URGENT + SHARED + OVERDUE·28 JUN ~ 281px of a
+            // 390px phone), which overflows the line and wraps the STATUS pill
+            // down to a third row on exactly the busiest tasks. At 0 the
+            // cluster takes only what is left after the status pill, and its
+            // own chips wrap INSIDE it — so status stays put and every task
+            // row keeps the same shape.
+            ? { order: 1, flexBasis: 0, flexGrow: 1, flexShrink: 1, minWidth: 0, justifyContent: 'flex-start' }
+            : wrapRow
+              ? { order: 1, flexBasis: '100%', flexShrink: 1, minWidth: 0, justifyContent: 'flex-start' }
+              : { flexShrink: 0, justifyContent: 'flex-end' }) }}>
           <PriorityPill priority={priority} onSetPriority={(p) => onSetPriority(row, p)} readOnly={readOnly} />
           {/* Athlete chip in an ALWAYS-reserved column (like SHARED/DATE below) so a
               task WITH an athlete can't push the meta cluster wider than one without —
@@ -1668,7 +1687,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
           // (flex:1 pushes the pill to the right edge). The meta cluster wraps to
           // line 2 below (order:1). Was flexBasis:100% which forced the title onto
           // a line of its own and sprawled the row to 3-4 lines (Ohad: "trash").
-          ...(wrapRow ? { order: -1, flex: '1 1 0%' } : null) }}>
+          ...(phone ? { order: -1, flex: '1 1 100%' } : wrapRow ? { order: -1, flex: '1 1 0%' } : null) }}>
           <div dir="auto" style={{
             maxWidth: '100%', alignSelf: 'stretch',
             fontFamily: heb ? FH : FB,
@@ -1719,7 +1738,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
             (Yuval: make the board status more readable). Status there is
             changed by dragging between columns / from the expanded detail. */}
         {!hideStatus && (
-          <span style={{ display: 'inline-flex', flexShrink: 0, marginLeft: wrapRow ? 'auto' : undefined }}>
+          <span style={{ display: 'inline-flex', flexShrink: 0, marginLeft: wrapRow ? 'auto' : undefined, ...(phone ? { order: 2 } : null) }}>
             <StatusPill status={row.status} theme={theme} onSetStatus={(s) => onSetStatus(row, s)} readOnly={readOnly} />
           </span>
         )}
