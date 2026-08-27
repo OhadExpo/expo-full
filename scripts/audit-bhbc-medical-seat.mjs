@@ -58,8 +58,12 @@ const r = await safeEval(p, () => {
   // and "N active · view only" when it is not.
   const viewOnly = /active\s*·\s*view only/i.test(t);
   const editable = /active\s*·\s*Ohad \+ PT/i.test(t);
-  const updateLinks = (t.match(/Update ›/g) || []).length;
-  const reportBtn = [...document.querySelectorAll('button')].filter((b) => /report (an )?injur/i.test(b.textContent || '')).length;
+  // innerText returns the CSS-TRANSFORMED text, so the label renders as
+  // "UPDATE ›", not "Update ›". Matching the source casing counted zero on
+  // BOTH seats and made the PT look locked out when the screenshot showed him
+  // holding an UPDATE link and a + REPORT button on every roster row.
+  const updateLinks = (t.match(/update\s*›/gi) || []).length;
+  const reportBtn = [...document.querySelectorAll('button')].filter((b) => /\+\s*report/i.test(b.textContent || '')).length;
   return { onLogin, viewOnly, editable, updateLinks, reportBtn, sample: t.slice(0, 260).replace(/\n{2,}/g, '\n') };
 });
 
@@ -68,8 +72,16 @@ console.log(`bounced to login : ${r.onLogin}`);
 console.log(`board header     : ${r.viewOnly ? 'VIEW ONLY' : r.editable ? 'EDITABLE (Ohad + PT)' : 'not found'}`);
 console.log(`"Update ›" links : ${r.updateLinks}`);
 console.log(`report buttons   : ${r.reportBtn}`);
-const ok = !r.onLogin && r.viewOnly && r.updateLinks === 0 && r.reportBtn === 0;
-console.log(`\n${ok ? 'PASS — a regular coach sees the medical board read-only' : 'CHECK — see the numbers above'}`);
+// Expectation follows the seat. Asserting only the negative case would let a
+// change that locks EVERYONE out — including the PT — pass silently.
+const shouldEdit = ['yoel23919@gmail.com', 'ohadyproductions@gmail.com'].includes(EMAIL.toLowerCase());
+const ok = !r.onLogin && (shouldEdit
+  ? (r.editable && r.updateLinks > 0 && r.reportBtn > 0)
+  : (r.viewOnly && r.updateLinks === 0 && r.reportBtn === 0));
+console.log(`\nexpected: ${shouldEdit ? 'CAN edit (PT or owner)' : 'read-only (regular coach)'}`);
+console.log(ok
+  ? (shouldEdit ? 'PASS - the PT can edit the medical board' : 'PASS - a regular coach sees it read-only')
+  : 'CHECK - see the numbers above');
 if (process.argv[4]) await p.screenshot({ path: process.argv[4] });
 await p.close();
 await b.disconnect();
