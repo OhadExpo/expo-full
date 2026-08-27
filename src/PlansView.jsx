@@ -269,7 +269,21 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
     const w = Math.min(620, Math.round(window.innerWidth * 0.94));
     document.body.style.transition = 'padding-right 220ms cubic-bezier(0.22,0.61,0.36,1)';
     document.body.style.paddingRight = w + 'px';
-    return () => { document.body.style.paddingRight = ''; };
+    // Padding alone was not "push" — it was "shove off the edge". <main> is
+    // maxWidth:1200 + margin:0 auto, so shrinking the body just RE-CENTRES it:
+    // measured at 1920, main slid from left:354 to left:44 without shrinking at
+    // all, and on a narrower window the left column lands past x=0. The app root
+    // is overflowX:clip, so whatever goes off the left is unreachable — you
+    // cannot scroll it back. Hence Ohad seeing his day cards cut in half.
+    //
+    // The class (styles below) pins main to the LEFT while the drawer is open
+    // and relaxes the clip, so the page shrinks in place instead of sliding,
+    // and anything that still cannot fit stays scrollable rather than lost.
+    document.body.classList.add('ex-drawer-open');
+    return () => {
+      document.body.style.paddingRight = '';
+      document.body.classList.remove('ex-drawer-open');
+    };
   }, [open]);
 
   const { mounted, closing } = useDelayedUnmount(open);
@@ -282,7 +296,17 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
       {/* Right-side DRAWER (not a covering modal) so the program stays visible on
           the left while picking — Ohad: "i can't see the program when selecting an
           exercise". Slides in from the right over a light scrim. */}
-      <style>{`@keyframes exDrawerIn{from{transform:translateX(100%)}to{transform:translateX(0)}}`}</style>
+      <style>{`@keyframes exDrawerIn{from{transform:translateX(100%)}to{transform:translateX(0)}}
+        /* Push, don't shove — see the effect above for the measurements.
+           Compare mode's full-bleed breakout assumes <main> is centred in the
+           viewport. While this drawer is open it is not, and the breakout throws
+           the editor 300px off the left edge where it cannot be scrolled back.
+           Switch the breakout off for the duration: Compare keeps working, just
+           at the normal column width. */
+        body.ex-drawer-open .editor-bleed{width:auto !important;margin-left:0 !important;}
+        /* Safety net: anything that still cannot fit stays reachable rather
+           than being silently clipped away. */
+        body.ex-drawer-open .app-root{overflow-x:auto !important;}`}</style>
       <div onClick={e => e.stopPropagation()} style={{ pointerEvents: 'auto', background: C.sf, borderLeft:`1px solid ${C.ac}`, borderRadius: 0, width: DRAWER_W, height: '100vh', maxHeight: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: `-16px 0 50px ${C.shadow}`, animation: closing ? 'none' : 'exDrawerIn 220ms cubic-bezier(0.22,0.61,0.36,1)', transform: closing ? 'translateX(100%)' : 'translateX(0)', transition: closing ? 'transform 200ms cubic-bezier(0.22,0.61,0.36,1)' : 'none' }}>
         {/* Header hero — eyebrow tag (action), big exercise name, metadata.
             Lifts the current exercise out of the page header and into a
@@ -1862,7 +1886,19 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
     // Centered via margin, NOT transform: a transformed ancestor becomes the
     // containing block for position:fixed, which would anchor every modal
     // (exercise browser, confirm dialog) to this wrapper instead of the viewport.
-    <div data-allow-copy style={compareActive ? { width: 'min(96vw, 2400px)', marginLeft: 'calc(50% - min(48vw, 1200px))' } : undefined}>
+    // Compare mode breaks OUT of <main>'s 1200px to use the full window. The
+    // trick is `marginLeft: 50% - 48vw`, where 50% is half of MAIN and 48vw is
+    // half the VIEWPORT — which only lands correctly while main is centred in
+    // the viewport.
+    // The exercise drawer pads the body, main stops being centred, and the
+    // breakout then throws the editor 300px off the LEFT edge, where
+    // overflowX:clip makes it unreachable. Measured: 420 elements past x=0,
+    // worst at -300px, including the ← BACK / UNDO / REDO row. That is Ohad's
+    // "i cant see the rest of the screen ... i need to see everything".
+    // `editor-bleed` lets the drawer switch the breakout off while it is open
+    // (see the rule in the drawer's <style>), so Compare simply uses the normal
+    // column width instead of a miscalculated one.
+    <div data-allow-copy className={compareActive ? 'editor-bleed' : undefined} style={compareActive ? { width: 'min(96vw, 2400px)', marginLeft: 'calc(50% - min(48vw, 1200px))' } : undefined}>
       <style>{`
         /* Editor field row: 3 across on wide, 1 on narrow, so Phase/Block
            always has room (no label wrap / misalignment). */
