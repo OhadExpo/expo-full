@@ -788,3 +788,39 @@ coarse costs ~46–56 s of the ~161 s default capture, and the deterministic
 coarse pass measured 255 s, so coarse-deterministic + fine-playback lands near
 **6 minutes against 10** for the fully deterministic run, and should buy the same
 count reliability. Untested, and it is the next thing worth measuring.
+
+### MEASURED: the middle path gets the count right in 7 minutes, not 10
+
+`deterministic: 'coarse'` — coarse pass seek-stepped, fine pass left on playback.
+One run, 05:15:18 → 05:22:21:
+
+```
+coarse 2459 frames -> 8 windows -> 11 shots
+{"coarse":2459,"fine":810,"windows":8,"msCoarse":277804,"msFine":134306,"skipped":0}
+strict shots 11 [2983,6633,10383,14083,18367,23017,27033,31250,35450,38817,42667]
+```
+
+| mode | wall clock | shots | fine frames |
+|---|---|---|---|
+| default (both on playback) | ~2.7 min | **8–11** | ~640–810 |
+| **`'coarse'`** | **7.0 min** | **11** | 810 |
+| `true` (both stepped) | 10.1 min | 11 | ~2,100 |
+
+**The coarse pass saw 2,459 frames — the same as the fully deterministic run** —
+because it is the identical code path. So it brackets all 8 windows and finds
+all 11 reps, which is the whole count problem, for 3 minutes less than the full
+mode.
+
+What you give up is *ball* data, exactly as predicted: 810 fine frames rather
+than ~2,100, so ball samples stay in the sparse 13–20-per-shot regime instead of
+25–42. That matters for the launch-angle fit, not for the count.
+
+**Reading of the trade:** `'coarse'` is the right default if the count is the
+number you care about. Full `true` remains right when you are analysing a
+specific rep's ball flight and want the density.
+
+**Honesty about strength of evidence:** this is **one run**. It shows the mode
+works and roughly what it costs; it does not establish run-to-run reproducibility
+the way the two matching deterministic runs did. Two more runs would settle that,
+and the shot times here (2983, 6633, 10383 …) are close to but not identical with
+the deterministic run's, which is expected since the fine pass still floats.

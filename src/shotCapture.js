@@ -178,6 +178,24 @@ async function measureFps(v) {
  * MEASURED before anyone decides. See docs/shot-analyzer-next-2026-08-27.md.
  */
 export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineRate = 0.34, deterministic = false } = {}) {
+  // Three settings, because measurement showed the two passes do not deserve
+  // the same treatment. Three default-path captures on an IDLE machine returned
+  // 11, 8 and 11 shots, and the per-run stats pinned the loss precisely:
+  //
+  //   coarse 727 frames -> 8 windows -> 11 shots
+  //   coarse 500 frames -> 5 windows ->  8 shots
+  //   coarse 698 frames -> 8 windows -> 11 shots
+  //
+  // The coarse pass brackets the reps; the fine pass only refines brackets that
+  // already exist, so it can never recover a rep the coarse pass never saw. The
+  // count is decided entirely by the coarse pass - which means 'coarse' buys the
+  // reliability where it matters and leaves the expensive fine pass on the fast
+  // path.
+  //   false      both passes on playback (default, unchanged)
+  //   'coarse'   coarse seek-stepped, fine on playback
+  //   true       both seek-stepped (slowest, byte-identical between runs)
+  const detCoarse = deterministic === true || deterministic === 'coarse';
+  const detFine = deterministic === true;
   let lmCoarse, lmFine, v, canvas;
   const report = (p, label) => { if (onProgress) onProgress(Math.max(0, Math.min(100, Math.round(p))), label); };
   try {
@@ -221,7 +239,7 @@ export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineR
     const coarse = [];
     let prevC = null;
     await playThrough(v, {
-      from: 0, to: dur, rate: 1, frameDur, drops, deterministic,
+      from: 0, to: dur, rate: 1, frameDur, drops, deterministic: detCoarse,
       onFrame: (vid, mt) => {
         let r = null;
         try { r = lmCoarse.detect(vid); } catch { /* noop */ }
@@ -290,7 +308,7 @@ export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineR
     for (const w of windows) {
       if (fine.length >= maxFine) break;
       await playThrough(v, {
-        from: w.from / 1000, to: w.to / 1000, rate: fineRate, frameDur, drops, deterministic,
+        from: w.from / 1000, to: w.to / 1000, rate: fineRate, frameDur, drops, deterministic: detFine,
         onFrame: (vid, mt) => {
           if (fine.length >= maxFine) return;
           const b = boxAt(track, mt) || { x0: 0.2, y0: 0.1, x1: 0.8, y1: 0.9 };

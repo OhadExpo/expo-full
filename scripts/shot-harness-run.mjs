@@ -33,8 +33,8 @@ try {
   // video. Slower, but it sees every frame regardless of machine load - which
   // is the question, since the default path returned 11, 10 and 9 shots on
   // three runs of this same clip.
-  const det = process.env.DETERMINISTIC === '1';
-  if (det) console.log('deterministic capture: ON (seek-stepped, slower)');
+  const det = process.env.DETERMINISTIC === 'coarse' ? 'coarse' : process.env.DETERMINISTIC === '1';
+  if (det) console.log(`deterministic capture: ${det === 'coarse' ? 'COARSE PASS ONLY (the pass that decides the count)' : 'ON (both passes, slowest)'}`);
   r = await page.evaluate((u, d) => window.runHarness(u, { deterministic: d }), CLIP, det, { timeout: 0 });
 } catch (e) {
   console.log('FAILED:', String(e).slice(0, 500));
