@@ -121,7 +121,7 @@ export function trackBall(frames, opts = {}) {
     // Where the ball was released, if known, and how far from it a track may
     // start — in ball diameters, because the ball only separates from the hand
     // a few frames after the release and has travelled by then.
-    origin = null, maxOriginBalls = 9,
+    origin = null, maxOriginBalls = 9, originBias = 0,
     // Optional out-object. The builder rejects candidates in a loop, so there is
     // no single reason it failed — but there IS a shape to the failure, and it
     // says different things. Mostly `tooShort` means the ball was not detected
@@ -181,7 +181,25 @@ export function trackBall(frames, opts = {}) {
           // is usually two different objects stitched together — on the real
           // clip that was an arm followed by the ball, and the arm's much
           // steeper motion dragged the launch angle up by twenty degrees.
-          const score = pts.length + q.r2 - gaps * 1.5;
+          // DEFAULT scoring, unchanged: length dominates, because r2 only ever
+          // contributes 0..1. That is deliberate for the normal case — a longer
+          // run of the same object is better evidence than a short one.
+          //
+          // It is also why shot 4 of Ohad's clip picks the WRONG ball: the
+          // previous shot, still sailing across an empty night sky, is visible
+          // for ~20 frames while the ball just off his hand manages ~11. Length
+          // wins regardless of which one actually started at the hand.
+          //
+          // `originBias` (opt-in, default 0) adds a reward for starting CLOSE to
+          // the hand, so a shorter arc that genuinely left the shooter can beat
+          // a longer one that merely drifted past. Exposed for measurement
+          // before anyone changes the default — see
+          // docs/shot-analyzer-next-2026-08-27.md.
+          let score = pts.length + q.r2 - gaps * 1.5;
+          if (originBias && origin) {
+            const d0 = Math.hypot(pts[0].x - origin.x, pts[0].y - origin.y) / Math.max(pts[0].px, 1e-9);
+            score += originBias * Math.max(0, 1 - d0 / maxOriginBalls);
+          }
           if (!best || score > best.score) best = { score, points: pts, fit: q.r2 };
         }
       }

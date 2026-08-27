@@ -346,6 +346,50 @@ I am leaving the code untouched. Three of my four hypotheses tonight were wrong
 and each was disproved by measurement rather than argument; the fourth is not
 measured yet.
 
+### Where the investigation actually ended — the real ball is lost after ~6 frames
+
+Sweeping the origin gate against the minimum arc length, on the deterministic
+fixture:
+
+```
+maxOrigin  minLen   n   startedAt   result
+     3       6      6      1.5 ø    REFUSED: not falling like a projectile
+     2       4      6      1.5 ø    REFUSED: not falling like a projectile
+     3       3      3      2.9 ø    REFUSED: fewer than 5 ball samples
+   1.5       6      -       -       no track
+```
+
+**With a tight origin the tracker DOES find the real ball** — an arc starting
+1.5 ball diameters from the hand, which is the ball leaving it. It is only
+**6 points long**, roughly 100 ms at 60 fps, and fails `quad.a < -50`: over that
+short a baseline the flight is still essentially straight, so gravity's curvature
+is not yet measurable.
+
+So the chain is:
+
+1. The real ball's track **dies after ~6 frames** of flight.
+2. Six frames is too short to fit a projectile, so it is refused.
+3. That leaves the previous shot's ball — long, clean, and at apex — as the only
+   surviving candidate, and length-dominated scoring hands it the win.
+4. It "barely rose", so the whole shot reports no ball data.
+
+**Everything ruled out along the way**, each by measurement: selector choice
+alone, the athlete crop, a stale wrist reference, the origin threshold, the
+window start, origin-biased scoring, and the minimum arc length.
+
+**The remaining question is why the track dies at ~6 frames.** Candidates:
+`maxStepBalls = 2.5` failing to follow a ball that is fastest right after
+release, blob merging as it crosses the previous ball's region, or the ball
+simply leaving the 270 px motion canvas' usable area. That is one more
+instrumented run away — log the walk-forward loop's exit reason for the arc that
+seeds nearest the hand.
+
+`originBias` was added to `trackBall` while testing this (opt-in, **default 0, so
+shipped behaviour is unchanged**). It did not help — at every setting the
+20-point arc still wins, because the bias caps well below the length gap. It
+stays because it is what disproved that hypothesis, and because the probes use
+it.
+
 ## SECOND GAP — the count is not deterministic. This is the bigger one.
 
 Three runs of the SAME clip, same build, minutes apart:
