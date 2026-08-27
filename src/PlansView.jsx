@@ -54,6 +54,7 @@ import { sortProgramsRecent, sortProgramsByBlockDesc } from './traineeUtils';
 import { SideRail } from './SideRail';
 import { fmtPrettyDate } from './dates';
 import { cloneDayForCopy } from './planCopy.js';
+import { useT as useAppT } from './i18n';
 
 // "1 DAYS" read wrong on every single-day block. One helper, used by every
 // place that prints a count next to a noun.
@@ -144,6 +145,7 @@ function PatternCoverage({ plan, exercises, cols = 5 }) {
 // onPickName(name) — optional: pick a FREE-TEXT name not in the library.
 // onCreateLibrary(name) — optional: create a real library exercise + link it.
 function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibrary, exercises, currentId, currentEx, fallbackTitle }) {
+  const tt = useAppT();
   const [search, setSearch] = useState("");
   const [activeIdx, setActiveIdx] = useState(0);
   const [compareOpen, setCompareOpen] = useState(true); // collapse compare for more list room (Ohad)
@@ -412,7 +414,7 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
                     <div style={{ borderTop: `1px solid ${C.cardBd}`, paddingTop: 5, display: 'flex', flexDirection: 'column', gap: 3 }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.td }}>Coaching Notes</span>
-                        {ex?.videoLink && <span title="Has a demo video" style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontFamily: FN, fontSize: 8, fontWeight: 700, color: C.ac, letterSpacing: '0.08em' }}><svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>VIDEO</span>}
+                        {ex?.videoLink && <span title="Has a demo video" style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontFamily: FN, fontSize: 8, fontWeight: 700, color: C.ac, letterSpacing: '0.08em' }}><svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>{tt("VIDEO")}</span>}
                       </div>
                       <div style={{ fontFamily: FB, fontSize: 10, color: ex?.cues ? C.tm : C.td, whiteSpace: 'pre-wrap', lineHeight: 1.35, height: 38, overflowY: 'auto' }}>{ex?.cues || '—'}</div>
                     </div>
@@ -499,8 +501,8 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
                         {/* Media / notes indicators — show at a glance which library
                             exercises already have a demo video (cyan) and coaching
                             cues (orange), so the coach picks an informed one (Ohad). */}
-                        {ex.videoLink && <span title="Has a demo video" style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 8, fontFamily: FN, fontWeight: 700, color: C.ac, letterSpacing: '0.08em' }}><svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>VIDEO</span>}
-                        {ex.cues && <span title="Has coaching notes / cues" style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 8, fontFamily: FN, fontWeight: 700, color: C.or, letterSpacing: '0.08em' }}><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 6h14M5 12h14M5 18h9"/></svg>NOTE</span>}
+                        {ex.videoLink && <span title="Has a demo video" style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 8, fontFamily: FN, fontWeight: 700, color: C.ac, letterSpacing: '0.08em' }}><svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>{tt("VIDEO")}</span>}
+                        {ex.cues && <span title="Has coaching notes / cues" style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 8, fontFamily: FN, fontWeight: 700, color: C.or, letterSpacing: '0.08em' }}><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 6h14M5 12h14M5 18h9"/></svg>{tt("NOTE")}</span>}
                         {isSelected && <span title="Currently linked exercise" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontSize: 8, fontFamily: FN, fontWeight: 700, color: C.ac, letterSpacing: '0.18em', whiteSpace: 'nowrap', border: `1px solid ${C.ac}`, padding: '2px 5px' }}>CURRENT</span>}
                       </div>
                     </div>
@@ -537,6 +539,7 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
 // Deliberately NOT editable. It is for reading the shape of the block — the
 // editor one click away is where you change things. Clicking a day jumps there.
 function PlanOverview({ plan, exercises, onJumpToDay = null }) {
+  const tt = useAppT();
   const days = plan?.days || [];
   // One Map for the whole render. exercises.find() per row is the documented
   // way this screen gets slow with a 1,300-row library.
@@ -669,7 +672,7 @@ function PlanOverview({ plan, exercises, onJumpToDay = null }) {
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
             boxShadow: 'inset 0 -1px 0 var(--c-cardBd)',
           }}>
-            <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.or }}>Warm-up</span>
+            <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.or }}>{tt("Warm-up")}</span>
             <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.td, letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{warmRows.length} EX</span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}>
@@ -773,6 +776,7 @@ function wuRx(w) {
 // day-exercise ExEditorExtras library buttons against those fields — SAME
 // markup/styles so both editors read identically (Ohad: OCD consistency).
 function WarmupLibraryControls({ w, onLink, exercises, setExercises }) {
+  const tt = useAppT();
   const [libConfirm, setLibConfirm] = useState(null); // 'update' | 'new' | null
   const libEnabled = typeof setExercises === 'function' && Array.isArray(exercises);
   const title = (w.t || '').trim();
@@ -809,7 +813,7 @@ function WarmupLibraryControls({ w, onLink, exercises, setExercises }) {
   return (
     <>
       <div style={{display:'flex',gap:8,flexWrap:'wrap',justifyContent:'flex-end',alignItems:'center',paddingTop:12,marginTop:2,borderTop:`1px solid ${C.cardBd}`}}>
-        <span style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.td,letterSpacing:'0.09em',marginRight:'auto'}}>EXERCISE DATABASE</span>
+        <span style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.td,letterSpacing:'0.09em',marginRight:'auto'}}>{tt("EXERCISE DATABASE")}</span>
         <button onClick={()=>setLibConfirm('update')} disabled={!canUpdateLib}
           title={!libTarget ? 'No matching library exercise to update — use “Save new exercise”.'
             : canUpdateLib ? `Overwrite "${libTarget.title}" in the exercise database with this warm-up's name, video and notes.`
@@ -838,6 +842,7 @@ function WarmupLibraryControls({ w, onLink, exercises, setExercises }) {
 }
 
 function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExercises = null, onCopyWarmup = null }) {
+  const tt = useAppT();
   const warmup = Array.isArray(plan.warmup) ? plan.warmup : [];
   // Collapsed by default whenever there's content, so the warm-up doesn't
   // dominate the editor when the coach is iterating on the main exercise
@@ -1031,7 +1036,7 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExerc
                             onCreateLibrary={setExercises ? (name => { const id = addLibExercise(setExercises, name); if (id) update(i, { exerciseId: id, t: name }); }) : undefined} />
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
-                          <label style={{ fontSize: 11, fontWeight: 600, color: C.tm, textTransform: 'uppercase', fontFamily: FN }}>Video</label>
+                          <label style={{ fontSize: 11, fontWeight: 600, color: C.tm, textTransform: 'uppercase', fontFamily: FN }}>{tt("Video")}</label>
                           <Input value={w.vid || ''} onChange={e => update(i, { vid: e.target.value })}
                             onBlur={async e => { const original = e.target.value; const resolved = await maybeResolveGooglePhotos(original); if (resolved !== original) setPlan(p => { const cur = (p.warmup || [])[i]; if (!cur || (cur.vid ?? '') !== original) return p; return { ...p, warmup: p.warmup.map((w2, j) => j === i ? { ...w2, vid: resolved } : w2) }; }); }}
                             placeholder="Video URL" />
@@ -1040,7 +1045,7 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExerc
                       <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 16, alignItems: 'stretch' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, gap: 6 }}>
                           <div style={{ display: 'flex', alignItems: 'center', minHeight: 16 }}>
-                            <span style={{ fontSize: 9, fontFamily: FN, fontWeight: 700, color: C.td, letterSpacing: '0.18em' }}>NOTES</span>
+                            <span style={{ fontSize: 9, fontFamily: FN, fontWeight: 700, color: C.td, letterSpacing: '0.18em' }}>{tt("NOTES")}</span>
                           </div>
                           <textarea value={w.note || ''} onChange={e => update(i, { note: e.target.value })} placeholder="Notes, cues... (shown to the athlete on this warm-up step)"
                             style={{ ...baseInput, textAlign: 'center', flex: 1, minHeight: 120, padding: '10px 12px', lineHeight: 1.5, resize: 'vertical', fontFamily: FB, fontSize: 13 }} />
@@ -1079,6 +1084,7 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExerc
 // rows with sets/reps/load/RPE/tempo/notes). The compared plan is never
 // mutated — every input is replaced with display text.
 function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClose, overview = false }) {
+  const tt = useAppT();
   // Athlete filter drives everything: until one is chosen, the program
   // dropdown is empty/disabled. Defaults to the current plan's athlete so
   // the most useful comparison appears first.
@@ -1219,7 +1225,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                           {wuOpen && (
                             <div style={{background:'var(--c-sf2)', border:`1px solid ${C.cardBd}`, borderLeft:`3px solid ${C.or}`, padding:'12px 14px', margin:'2px 0 8px'}}>
                               <div style={{marginBottom:10}}>
-                                <div style={{fontSize:9, fontFamily:FN, fontWeight:700, color:C.td, letterSpacing:'0.18em', marginBottom:6}}>VIDEO URL</div>
+                                <div style={{fontSize:9, fontFamily:FN, fontWeight:700, color:C.td, letterSpacing:'0.18em', marginBottom:6}}>{tt("VIDEO URL")}</div>
                                 {w.vid ? (
                                   <div style={{display:'grid', gridTemplateColumns:'1fr auto', gap:6, alignItems:'stretch'}}>
                                     <input value={w.vid} readOnly onFocus={e => e.target.select()}
@@ -1232,7 +1238,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                               </div>
                               <div style={{display:'grid', gridTemplateColumns:w.vid?'1fr 1fr':'1fr', gap:16, alignItems:'start'}}>
                                 <div style={{minWidth:0}}>
-                                  <div style={{fontSize:9, fontFamily:FN, fontWeight:700, color:C.td, letterSpacing:'0.18em', marginBottom:6}}>NOTE</div>
+                                  <div style={{fontSize:9, fontFamily:FN, fontWeight:700, color:C.td, letterSpacing:'0.18em', marginBottom:6}}>{tt("NOTE")}</div>
                                   <div dir="auto" style={{fontSize:13, color:note?C.tx:C.td, lineHeight:1.55, whiteSpace:'pre-wrap', fontFamily:isHebrew(note)?FH:FB}}>{note || 'No note.'}</div>
                                 </div>
                                 {w.vid && (
@@ -1363,15 +1369,15 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                                   <div style={{display:'grid',gridTemplateColumns:cmpVid?'1fr 1fr':'1fr',gap:16,alignItems:'start'}}>
                                     <div style={{minWidth:0}}>
                                       <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
-                                        <span style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.td,letterSpacing:'0.18em'}}>NOTES</span>
-                                        {cmpNoteFromLib && <span style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.tm,letterSpacing:'0.12em'}}>FROM LIBRARY</span>}
+                                        <span style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.td,letterSpacing:'0.18em'}}>{tt("NOTES")}</span>
+                                        {cmpNoteFromLib && <span style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.tm,letterSpacing:'0.12em'}}>{tt("FROM LIBRARY")}</span>}
                                       </div>
                                       <div dir="auto" style={{fontSize:13,color:cmpNote?C.tx:C.td,lineHeight:1.55,whiteSpace:'pre-wrap',fontFamily:isHebrew(cmpNote)?FH:FB}}>{cmpNote || 'No notes.'}</div>
-                                      {pe.rest && <div style={{marginTop:10,fontSize:11,color:C.tm,fontFamily:FN}}><span style={{color:C.td,fontSize:9,fontWeight:700,letterSpacing:'0.15em',marginRight:8}}>REST</span>{pe.rest}</div>}
+                                      {pe.rest && <div style={{marginTop:10,fontSize:11,color:C.tm,fontFamily:FN}}><span style={{color:C.td,fontSize:9,fontWeight:700,letterSpacing:'0.15em',marginRight:8}}>{tt("REST")}</span>{pe.rest}</div>}
                                     </div>
                                     {cmpVid && (
                                       <div style={{minWidth:0}}>
-                                        <div style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.td,letterSpacing:'0.18em',marginBottom:6}}>VIDEO</div>
+                                        <div style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.td,letterSpacing:'0.18em',marginBottom:6}}>{tt("VIDEO")}</div>
                                         <div style={{maxWidth:440}}><VideoEmbed url={cmpVid} /></div>
                                       </div>
                                     )}
@@ -1487,6 +1493,7 @@ function newLibExercise({ title, videoLink, cues }) {
 // `exercises`/`setExercises` (when passed) enable the two library-write buttons
 // so the coach can push this row's edits back to the Exercise Database.
 function ExEditorExtras({ ex, exData, exTitle, update, onResolveVideo = null, showEmbed = true, picker = null, exercises = null, setExercises = null }) {
+  const tt = useAppT();
   const libCues = exData?.cues || '';
   const hasNoteOverride = !!ex.notesEdited || !!(ex.notes && ex.notes.length > 0);
   const noteValue = hasNoteOverride ? (ex.notes || '') : libCues;
@@ -1564,7 +1571,7 @@ function ExEditorExtras({ ex, exData, exTitle, update, onResolveVideo = null, sh
         <div style={{display:'grid',gridTemplateColumns:picker?'1.2fr 1fr':'1fr',gap:16,alignItems:'end'}}>
           {picker && <div style={{minWidth:0}}>{picker}</div>}
           <div style={{display:'flex',flexDirection:'column',gap:4,minWidth:0}}>
-            <label style={{fontSize:11,fontWeight:600,color:C.tm,textTransform:'uppercase',fontFamily:FN}}>Video</label>
+            <label style={{fontSize:11,fontWeight:600,color:C.tm,textTransform:'uppercase',fontFamily:FN}}>{tt("Video")}</label>
             <Input value={vidValue} onChange={e=>update({videoUrl:e.target.value})}
               onBlur={async e => { const original = e.target.value; const resolved = await maybeResolveGooglePhotos(original); if (resolved !== original) { if (onResolveVideo) onResolveVideo(original, resolved); else update({ videoUrl: resolved }); } }}
               placeholder="Video URL" />
@@ -1574,9 +1581,9 @@ function ExEditorExtras({ ex, exData, exTitle, update, onResolveVideo = null, sh
           {/* NOTES (left) */}
           <div style={{gridColumn:1,display:'flex',flexDirection:'column',minWidth:0,gap:6}}>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',minHeight:16,gap:8,flexWrap:'wrap'}}>
-              <span style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.td,letterSpacing:'0.18em'}}>NOTES</span>
+              <span style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.td,letterSpacing:'0.18em'}}>{tt("NOTES")}</span>
               <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
-                {isFallback && <span title="Auto-prefilled from the exercise library — start typing to override for this program only" style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.tm,letterSpacing:'0.12em'}}>FROM LIBRARY</span>}
+                {isFallback && <span title="Auto-prefilled from the exercise library — start typing to override for this program only" style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.tm,letterSpacing:'0.12em'}}>{tt("FROM LIBRARY")}</span>}
                 {hasNoteOverride && libCues && <button onClick={()=>update({notes:'',notesEdited:false})} title="Discard this program's override and show the library cues again. Doesn't touch the library." style={{background:'transparent',border:`1px solid ${C.cardBd}`,color:C.tm,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.1em',padding:'2px 7px',cursor:'pointer',borderRadius:0}}>↩ LIBRARY</button>}
                 {hasNoteOverride && (ex.notes||'').length>0 && <button onClick={()=>update({notes:'',notesEdited:true})} title="Clear the note for this program only (library is untouched)." style={{background:'transparent',border:`1px solid ${C.cardBd}`,color:C.rd,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.1em',padding:'2px 7px',cursor:'pointer',borderRadius:0,opacity:0.7}}>× CLEAR</button>}
               </div>
@@ -1599,7 +1606,7 @@ function ExEditorExtras({ ex, exData, exTitle, update, onResolveVideo = null, sh
           edit made for one program can't silently rewrite the shared library. */}
       {libEnabled && (exTitle || vidValue || noteValue) ? (
         <div style={{display:'flex',gap:8,flexWrap:'wrap',justifyContent:'flex-end',alignItems:'center',paddingTop:12,marginTop:2,borderTop:`1px solid ${C.cardBd}`}}>
-          <span style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.td,letterSpacing:'0.09em',marginRight:'auto'}}>EXERCISE DATABASE</span>
+          <span style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.td,letterSpacing:'0.09em',marginRight:'auto'}}>{tt("EXERCISE DATABASE")}</span>
           <button onClick={()=>setLibConfirm('update')} disabled={!canUpdateLib}
             title={!libTarget ? 'No matching library exercise to update — use “Save new exercise”.'
               : canUpdateLib ? `Overwrite "${libTarget.title}" in the exercise database with this card's name, video and notes.`
@@ -1692,6 +1699,7 @@ function EditorMoreMenu({ items }) {
 }
 
 function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, exercises, setExercises, planIndex, onPreviewPlan, onDelete, onNewProgramFor, onShare, onDuplicate, onCopyDays, onCopyWarmup, clientWorkouts, portalVis, setPortalVis, editorApiRef }) {
+  const tt = useAppT();
   const [plan, setPlan] = useState(init);
   // Always-latest plan (setPlan makes new objects on every edit), so handleSave
   // can tell whether an edit landed DURING its await before declaring clean.
@@ -2123,8 +2131,8 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           {/* Undo / redo (Ohad) — coarse per-pause history; also Ctrl+Z / Ctrl+Shift+Z. */}
           <div style={{display:'inline-flex',gap:4,flexShrink:0}}>
             {/* Word labels, not glyphs (Ohad) — right next to BACK. */}
-            <button onClick={doUndo} disabled={!canUndo} title="Undo (Ctrl+Z)" style={{background:'transparent',border:`1px solid ${C.cardBd}`,color:canUndo?C.tm:C.td,cursor:canUndo?'pointer':'not-allowed',opacity:canUndo?1:0.4,padding:'0 10px',height:24,borderRadius:0,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',lineHeight:1,display:'inline-flex',alignItems:'center',justifyContent:'center',whiteSpace:'nowrap'}}>UNDO</button>
-            <button onClick={doRedo} disabled={!canRedo} title="Redo (Ctrl+Shift+Z)" style={{background:'transparent',border:`1px solid ${C.cardBd}`,color:canRedo?C.tm:C.td,cursor:canRedo?'pointer':'not-allowed',opacity:canRedo?1:0.4,padding:'0 10px',height:24,borderRadius:0,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',lineHeight:1,display:'inline-flex',alignItems:'center',justifyContent:'center',whiteSpace:'nowrap'}}>REDO</button>
+            <button onClick={doUndo} disabled={!canUndo} title="Undo (Ctrl+Z)" style={{background:'transparent',border:`1px solid ${C.cardBd}`,color:canUndo?C.tm:C.td,cursor:canUndo?'pointer':'not-allowed',opacity:canUndo?1:0.4,padding:'0 10px',height:24,borderRadius:0,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',lineHeight:1,display:'inline-flex',alignItems:'center',justifyContent:'center',whiteSpace:'nowrap'}}>{tt("UNDO")}</button>
+            <button onClick={doRedo} disabled={!canRedo} title="Redo (Ctrl+Shift+Z)" style={{background:'transparent',border:`1px solid ${C.cardBd}`,color:canRedo?C.tm:C.td,cursor:canRedo?'pointer':'not-allowed',opacity:canRedo?1:0.4,padding:'0 10px',height:24,borderRadius:0,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',lineHeight:1,display:'inline-flex',alignItems:'center',justifyContent:'center',whiteSpace:'nowrap'}}>{tt("REDO")}</button>
           </div>
           <div className="editor-top-mid" style={{flex:1,display:'flex',gap:12,alignItems:'center',justifyContent:'center',minWidth:0}}>
           {/* Athlete assignment — editable, to the LEFT of the block dropdown
@@ -2223,7 +2231,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           {onPreviewPlan && plan?.id && <button onClick={async () => { if (await flushAutosave()) onPreviewPlan(plan.id); else toast('Save failed — preview may be stale. Retry once your edits save.', 'error'); }}
             title="Open this program in the athlete portal view" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:38,padding:'0 13px',lineHeight:'38px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.09em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-            PORTAL
+            {tt("PORTAL")}
           </button>}
           {/* OVERVIEW — placed immediately after PORTAL (Ohad: "it should be
               displayed as a button, after portal"). Fixed width regardless of
@@ -2284,7 +2292,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           {onDelete && plan?.id && <button onClick={onDelete}
             title="Delete this program" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.rd}`,borderRadius:0,height:38,padding:'0 13px',lineHeight:'38px',color:C.rd,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.09em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-            DELETE
+            {tt("DELETE")}
           </button>}
           </div>
         </div>
@@ -2767,7 +2775,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                           return (
                             <div key={i} style={{fontSize:11,fontFamily:FN,color:C.tm,display:'flex',alignItems:'center',gap:6,padding:'3px 0'}}>
                               <span style={{flex:1,minWidth:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',color:C.tx}}><span style={{display:'inline-block',width:22,textAlign:'right',flexShrink:0,color:C.td,marginRight:6}}>{i+1}.</span>{x.title} <span style={{color:C.td}}>{x.prescribed ? x.prescribed + ' · ' : ''}{(x.sets||[]).filter(s=>s.done).length}/{(x.sets||[]).length}</span></span>
-                              {hasVideo && <span style={{display:'inline-flex',alignItems:'center',gap:4,color:C.gn,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',lineHeight:1,flexShrink:0}}><span style={{width:5,height:5,background:C.gn,borderRadius:'50%'}}/>VIDEO</span>}
+                              {hasVideo && <span style={{display:'inline-flex',alignItems:'center',gap:4,color:C.gn,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',lineHeight:1,flexShrink:0}}><span style={{width:5,height:5,background:C.gn,borderRadius:'50%'}}/>{tt("VIDEO")}</span>}
                               {notesCount > 0 && <span style={{display:'inline-flex',alignItems:'center',gap:4,color:C.ac,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',lineHeight:1,flexShrink:0}}><span style={{width:5,height:5,background:C.ac,borderRadius:'50%'}}/>{notesCount} {notesCount===1?'NOTE':'NOTES'}</span>}
                             </div>
                           );
@@ -2789,6 +2797,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
 // handleCopyDays deep-clones with fresh ids, spreading every field). Selected
 // days append to the BOTTOM of the target.
 function CopyDaysModal({ days, currentPlanId, preselected, planIndex, sourceWeeks, traineeMap, athleteOptions, onClose, onCopy, warmupMode = false, warmup = [], onCopyWarmup = null }) {
+  const tt = useAppT();
   // Escape closes (backdrop + × already do). Listener, not autoFocus-only,
   // so it works before the coach touches anything.
   useEffect(() => {
@@ -2859,7 +2868,7 @@ function CopyDaysModal({ days, currentPlanId, preselected, planIndex, sourceWeek
             <div style={{ fontFamily:FN, fontSize:9, color:C.td, letterSpacing:'0.16em', fontWeight:700, marginBottom:8, textTransform:'uppercase' }}>{warmupMode ? 'Warm-up to copy' : 'Days to copy'}</div>
             {warmupMode ? (
               <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 12px', border:`1px solid ${C.ac}`, background:`${C.ac}1f` }}>
-                <span style={{ color:C.or, fontFamily:FN, fontSize:12, fontWeight:700, letterSpacing:'0.06em' }}>WARM-UP</span>
+                <span style={{ color:C.or, fontFamily:FN, fontSize:12, fontWeight:700, letterSpacing:'0.06em' }}>{tt("WARM-UP")}</span>
                 <span style={{ flex:1, color:C.tx, fontFamily:FB, fontSize:13 }}>{wuSteps} step{wuSteps===1?'':'s'}</span>
               </div>
             ) : (
@@ -2889,7 +2898,7 @@ function CopyDaysModal({ days, currentPlanId, preselected, planIndex, sourceWeek
                add-athletes row (Ohad: "two pickers like in groups"). */
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
               <div>
-                <div style={fieldLbl}>Athlete</div>
+                <div style={fieldLbl}>{tt("Athlete")}</div>
                 <select value={existAthlete} onChange={e=>{ setExistAthlete(e.target.value); setTargetId(''); }} style={sel}>
                   <option value="">— athlete —</option>
                   {athletesWithTargets.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -2907,9 +2916,9 @@ function CopyDaysModal({ days, currentPlanId, preselected, planIndex, sourceWeek
             /* New program — same two-picker rhythm: athlete select + block name. */
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
               <div>
-                <div style={fieldLbl}>Athlete</div>
+                <div style={fieldLbl}>{tt("Athlete")}</div>
                 <select value={newAthlete} onChange={e=>setNewAthlete(e.target.value)} style={sel}>
-                  <option value="">Unassigned</option>
+                  <option value="">{tt("Unassigned")}</option>
                   {(athleteOptions||[]).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
@@ -3116,6 +3125,7 @@ const PAT_SHORT = { 'Horizontal Push': 'Horiz. Push', 'Horizontal Pull': 'Horiz.
 const patLabel = (p) => PAT_SHORT[p] || p;
 
 export function TrainingLineage({ traineeId, traineeName, exercises, plans, loading, onOpenPlan }) {
+  const tt = useAppT();
   const [metric, setMetric] = useState('sets'); // 'sets' | 'volume'
   const [briefCopied, setBriefCopied] = useState(false); // next-block brief → clipboard toast
   const [reportOpen, setReportOpen] = useState(false); // full-page next-block report overlay
@@ -3465,7 +3475,7 @@ export function TrainingLineage({ traineeId, traineeName, exercises, plans, load
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
           <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>Periodization wave</div>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', fontFamily: FN, fontSize: 9, letterSpacing: '0.06em', color: C.tm }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 9, height: 9, background: 'color-mix(in srgb, #39BDFF 40%, transparent)' }} />VOLUME</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 9, height: 9, background: 'color-mix(in srgb, #39BDFF 40%, transparent)' }} />{tt("VOLUME")}</span>
             <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 12, height: 2, background: '#f0b429' }} />INTENSITY %1RM</span>
           </div>
         </div>
@@ -3608,7 +3618,7 @@ export function TrainingLineage({ traineeId, traineeName, exercises, plans, load
           </div>
           <div style={{ minWidth: 104 }}>
             <div style={{ fontFamily: FN, fontSize: 22, fontWeight: 700, color: '#39BDFF', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>~{nextPlan.volTarget}</div>
-            <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, marginTop: 6 }}>Total sets</div>
+            <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, marginTop: 6 }}>{tt("Total sets")}</div>
             <div style={{ fontFamily: FB, fontSize: 10, color: C.td, marginTop: 2 }}>{nextPlan.volNote}</div>
           </div>
           {nextPlan.acwr != null && (
@@ -3639,7 +3649,7 @@ export function TrainingLineage({ traineeId, traineeName, exercises, plans, load
       </div>
       {reportOpen && <NextBlockReport model={model} plans={plans} exercises={exercises} traineeName={traineeName} onClose={() => setReportOpen(false)} />}
       <div style={{ padding: '2px 12px 14px', display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center', fontFamily: FN, fontSize: 10, letterSpacing: '0.04em', color: C.tm }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 10, height: 10, background: 'color-mix(in srgb, #39BDFF 40%, transparent)' }} />Volume (sets)</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 10, height: 10, background: 'color-mix(in srgb, #39BDFF 40%, transparent)' }} />{tt("Volume (sets)")}</span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 13, height: 2, background: '#f0b429' }} />Intensity (%1RM from reps)</span>
         <span style={{ color: C.or }}>⚠ accommodation</span>
         <span>bar under each pattern = your MEV→MRV band</span>
@@ -3663,6 +3673,7 @@ function BhbcBadge({ tid, trainees }) {
 }
 
 export default function PlansView({ planIndex, reloadIndex, trainees, exercises, setExercises, clientWorkouts, weeklyFocus, setWeeklyFocus, openPlanId, onPlanOpened, onEditorOpen, onEditorClose, onPreviewPlan, portalVis, setPortalVis, onCloseEditor }) {
+  const tt = useAppT();
   const { plan: editPlanData, loading: editLoading, load: loadFullPlan, clear: clearPlan, setPlan: setEditPlan } = useFullPlan();
   const [linkedTaskId, setLinkedTaskId] = useState(null);
   const { plan: previewPlan, load: loadPreviewPlan, clear: clearPreviewPlan } = useFullPlan();
@@ -4133,7 +4144,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
     <button onClick={onClick}
       title={title || (on ? 'On the athlete portal — click to hide' : 'Hidden from the athlete portal — click to show')}
       style={{ display:'inline-flex', alignItems:'center', justifyContent: block ? 'center' : 'flex-start', gap:8, width: block ? '100%' : 'auto', height:28, padding:0, background:'none', border:'none', cursor:'pointer', flexShrink:0 }}>
-      <span style={{ fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.06em', color: on ? C.gn : C.td }}>PORTAL</span>
+      <span style={{ fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.06em', color: on ? C.gn : C.td }}>{tt("PORTAL")}</span>
       <span style={{ width:32, height:18, borderRadius:9, background: on ? 'rgba(46,213,115,0.25)' : 'rgba(255,255,255,0.06)', border:`1px solid ${on ? 'rgba(46,213,115,0.5)' : C.cardBd}`, position:'relative', flexShrink:0, transition:'background .15s, border-color .15s' }}>
         <span style={{ width:14, height:14, borderRadius:7, background: on ? C.gn : C.td, position:'absolute', top:1, left: on ? 15 : 1, transition:'left .15s' }} />
       </span>
@@ -4308,8 +4319,8 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
             onKeyDown={e=>{ if (e.key==='Enter' && ok) doDelete(); if (e.key==='Escape') close(); }}
             style={{ margin:'0 18px', width:'calc(100% - 36px)', boxSizing:'border-box', padding:'9px 12px', background:'transparent', color:C.tx, border:`1px solid ${C.cardBd}`, borderRadius:0, fontFamily:FN, fontSize:13, outline:'none' }} />
           <div style={{ display:'flex', justifyContent:'flex-end', gap:8, padding:'14px 18px' }}>
-            <button onClick={close} style={{ background:'transparent', border:`1px solid ${C.cardBd}`, color:C.tm, borderRadius:0, padding:'8px 16px', fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.09em', cursor:'pointer', textTransform:'uppercase' }}>Cancel</button>
-            <button onClick={doDelete} disabled={!ok} style={{ background: ok ? C.rd : 'transparent', border:`1px solid ${C.rd}`, color: ok ? '#FFFFFF' : C.rd, opacity: ok ? 1 : 0.5, borderRadius:0, padding:'8px 16px', fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.09em', cursor: ok ? 'pointer' : 'not-allowed', textTransform:'uppercase' }}>Delete</button>
+            <button onClick={close} style={{ background:'transparent', border:`1px solid ${C.cardBd}`, color:C.tm, borderRadius:0, padding:'8px 16px', fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.09em', cursor:'pointer', textTransform:'uppercase' }}>{tt("Cancel")}</button>
+            <button onClick={doDelete} disabled={!ok} style={{ background: ok ? C.rd : 'transparent', border:`1px solid ${C.rd}`, color: ok ? '#FFFFFF' : C.rd, opacity: ok ? 1 : 0.5, borderRadius:0, padding:'8px 16px', fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.09em', cursor: ok ? 'pointer' : 'not-allowed', textTransform:'uppercase' }}>{tt("Delete")}</button>
           </div>
         </div>
       </div>
@@ -4338,7 +4349,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
             {newProgramPrompt.name} has no programs. Start a new one for them?
           </div>
           <div style={{ display:'flex', justifyContent:'flex-end', gap:8, padding:'4px 18px 16px' }}>
-            <button onClick={close} style={{ background:'transparent', border:`1px solid ${C.cardBd}`, color:C.tm, borderRadius:0, padding:'8px 16px', fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.09em', cursor:'pointer', textTransform:'uppercase' }}>Cancel</button>
+            <button onClick={close} style={{ background:'transparent', border:`1px solid ${C.cardBd}`, color:C.tm, borderRadius:0, padding:'8px 16px', fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.09em', cursor:'pointer', textTransform:'uppercase' }}>{tt("Cancel")}</button>
             <button onClick={create} style={{ background:C.ac, border:`1px solid ${C.ac}`, color:'#FFFFFF', borderRadius:0, padding:'8px 16px', fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.09em', cursor:'pointer', textTransform:'uppercase' }}>+ New Program</button>
           </div>
         </div>
@@ -4403,7 +4414,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
           list — same spot, same segmented style as tasks. Sitting above BOTH
           columns keeps the rail's Search box top-aligned with the first card. */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 12, flexWrap: 'wrap' }}>
-        <h2 style={{ margin: 0, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: C.tx }}>Programs</h2>
+        <h2 style={{ margin: 0, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: C.tx }}>{tt("Programs")}</h2>
         <div style={{ display: 'flex', gap: 6, width: 168 }}>
           {[['table','Table','Dense list — one row per athlete'],['grid','Grid','Card grid — double-click a card to expand earlier blocks']].map(([v,label,tip]) => {
             const on = progView === v;
@@ -4557,17 +4568,17 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                     if (!vk) return null;
                     const isVis = portalVis?.[vk] !== false;
                     return <button onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} title={isVis?'On the athlete portal — click to hide':'Hidden from the athlete portal — click to show'} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:8}}>
-                      <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',color:isVis?C.gn:C.td}}>PORTAL</span>
+                      <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',color:isVis?C.gn:C.td}}>{tt("PORTAL")}</span>
                       <span style={{width:32,height:18,borderRadius:9,background:isVis?'rgba(46,213,115,0.25)':'rgba(255,255,255,0.06)',border:`1px solid ${isVis?'rgba(46,213,115,0.5)':C.cardBd}`,position:'relative',transition:'background .15s, border-color .15s',flexShrink:0}}>
                         <span style={{width:14,height:14,borderRadius:7,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?15:1,transition:'left .15s'}} />
                       </span>
                     </button>;
                   })()}
                   <div className="prog-spacer" style={{flex:1,minWidth:8}} />
-                  {onPreviewPlan && <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();onPreviewPlan(cur.id);}} title="Preview as trainee" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>Preview</button>}
-                  <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();handleDuplicate(cur.id);}} title="Duplicate program" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>Duplicate</button>
-                  <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setShareTarget(cur.id);}} title="Share to an athlete — duplicates this program for them" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>Share</button>
-                  <button className="prog-txtbtn" onClick={e=>{e.stopPropagation(); setPendingDelete({ id: cur.id, name: cur.name, fromEditor: false }); setDeleteTyped('');}} title="Delete program" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.rd}}>Delete</button>
+                  {onPreviewPlan && <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();onPreviewPlan(cur.id);}} title="Preview as trainee" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{tt("Preview")}</button>}
+                  <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();handleDuplicate(cur.id);}} title="Duplicate program" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{tt("Duplicate")}</button>
+                  <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setShareTarget(cur.id);}} title="Share to an athlete — duplicates this program for them" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{tt("Share")}</button>
+                  <button className="prog-txtbtn" onClick={e=>{e.stopPropagation(); setPendingDelete({ id: cur.id, name: cur.name, fromEditor: false }); setDeleteTyped('');}} title="Delete program" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.rd}}>{tt("Delete")}</button>
                 </div>
                 {/* Expanded earlier blocks — same hover preview, slightly compressed
                     visual treatment so the eye stays on the current block. */}
@@ -4597,10 +4608,10 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                           const isVis = portalVis?.[vk] !== false;
                           return <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} title={isVis?'On the athlete portal — click to hide':'Hidden from the athlete portal — click to show'} style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.04em',color:isVis?C.gn:C.td,display:'inline-flex',alignItems:'center',gap:5}}><span style={{width:5,height:5,borderRadius:'50%',background:isVis?C.gn:C.td}} />{isVis?'On portal':'Hidden'}</button>;
                         })()}
-                        {onPreviewPlan && <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();onPreviewPlan(p.id);}} title="Preview as trainee" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>Preview</button>}
-                        <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();handleDuplicate(p.id);}} title="Duplicate program" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>Duplicate</button>
-                        <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setShareTarget(p.id);}} title="Share to an athlete — duplicates this program for them" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>Share</button>
-                        <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setConfirmDelete(p.id);}} title="Delete program" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.04em',color:C.rd}}>Delete</button>
+                        {onPreviewPlan && <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();onPreviewPlan(p.id);}} title="Preview as trainee" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{tt("Preview")}</button>}
+                        <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();handleDuplicate(p.id);}} title="Duplicate program" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{tt("Duplicate")}</button>
+                        <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setShareTarget(p.id);}} title="Share to an athlete — duplicates this program for them" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{tt("Share")}</button>
+                        <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setConfirmDelete(p.id);}} title="Delete program" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.04em',color:C.rd}}>{tt("Delete")}</button>
                         </div>
                       </div>
                     ))}
@@ -4663,17 +4674,17 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               if (!vk) return null;
               const isVis = portalVis?.[vk] !== false;
               return <button onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} title={isVis?'On the athlete portal — click to hide':'Hidden from the athlete portal — click to show'} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:8}}>
-                <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',color:isVis?C.gn:C.td}}>PORTAL</span>
+                <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',color:isVis?C.gn:C.td}}>{tt("PORTAL")}</span>
                 <span style={{width:32,height:18,borderRadius:9,background:isVis?'rgba(46,213,115,0.25)':'rgba(255,255,255,0.06)',border:`1px solid ${isVis?'rgba(46,213,115,0.5)':C.cardBd}`,position:'relative',flexShrink:0}}>
                   <span style={{width:14,height:14,borderRadius:7,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?15:1,transition:'left .15s'}} />
                 </span>
               </button>;
             };
             const txtActs = (id, delFn) => <>
-              {onPreviewPlan && <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();onPreviewPlan(id);}} title="Preview as trainee" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>Preview</button>}
-              <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();handleDuplicate(id);}} title="Duplicate program" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>Duplicate</button>
-              <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setShareTarget(id);}} title="Share to an athlete — duplicates this program for them" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>Share</button>
-              <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();delFn();}} title="Delete program" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.rd}}>Delete</button>
+              {onPreviewPlan && <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();onPreviewPlan(id);}} title="Preview as trainee" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{tt("Preview")}</button>}
+              <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();handleDuplicate(id);}} title="Duplicate program" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{tt("Duplicate")}</button>
+              <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setShareTarget(id);}} title="Share to an athlete — duplicates this program for them" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{tt("Share")}</button>
+              <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();delFn();}} title="Delete program" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.rd}}>{tt("Delete")}</button>
             </>;
             const plusBtn = row.earlier.length > 0 && (
               <button onClick={e=>{e.stopPropagation();toggleAthlete(row.tid);}}
@@ -4803,17 +4814,17 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                 if (!vk) return null;
                 const isVis = portalVis?.[vk] !== false;
                 return <button onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} title={isVis?'On the athlete portal — click to hide':'Hidden from the athlete portal — click to show'} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:8}}>
-                  <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',color:isVis?C.gn:C.td}}>PORTAL</span>
+                  <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',color:isVis?C.gn:C.td}}>{tt("PORTAL")}</span>
                   <span style={{width:32,height:18,borderRadius:9,background:isVis?'rgba(46,213,115,0.25)':'rgba(255,255,255,0.06)',border:`1px solid ${isVis?'rgba(46,213,115,0.5)':C.cardBd}`,position:'relative',flexShrink:0}}>
                     <span style={{width:14,height:14,borderRadius:7,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?15:1,transition:'left .15s'}} />
                   </span>
                 </button>;
               })()}
               <div className="prog-spacer" style={{flex:1,minWidth:8}} />
-              {onPreviewPlan && <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();onPreviewPlan(p.id)}} title="Preview as trainee" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>Preview</button>}
-              <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();handleDuplicate(p.id)}} title="Duplicate program" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>Duplicate</button>
-              <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setShareTarget(p.id)}} title="Share to an athlete — duplicates this program for them" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>Share</button>
-              <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setConfirmDelete(p.id)}} title="Delete program" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.rd}}>Delete</button>
+              {onPreviewPlan && <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();onPreviewPlan(p.id)}} title="Preview as trainee" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{tt("Preview")}</button>}
+              <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();handleDuplicate(p.id)}} title="Duplicate program" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{tt("Duplicate")}</button>
+              <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setShareTarget(p.id)}} title="Share to an athlete — duplicates this program for them" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{tt("Share")}</button>
+              <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setConfirmDelete(p.id)}} title="Delete program" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.rd}}>{tt("Delete")}</button>
             </div>
           </div>})}
           {hasMore && <Btn variant="ghost" onClick={()=>setVisibleCount(c=>c+PAGE_SIZE)} style={{width:"100%",justifyContent:"center",marginTop:8}}>Load more ({filtered.length - visibleCount} remaining)</Btn>}
