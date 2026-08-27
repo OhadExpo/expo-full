@@ -1555,10 +1555,14 @@ function HeadCoachReport({ rows, fx, fixtures, medical, today, onOpen, onMedical
               {injuries.slice(0, 6).map(({ t, inj }, i) => {
                 const s = MED_STATUS[inj.status] || MED_STATUS.available;
                 return (
-                  <div key={i} onClick={onOpen ? () => onOpen(t.id) : undefined} className={onOpen ? 'bhbc-row' : undefined} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: onOpen ? 'pointer' : 'default' }}>
+                  // Wraps for the same reason as the This-week rows: on a phone
+                  // the injury description was ellipsized to "AN…", which is not
+                  // an injury report. It now takes its own line and the UPDATE
+                  // button stays whole.
+                  <div key={i} onClick={onOpen ? () => onOpen(t.id) : undefined} className={onOpen ? 'bhbc-row' : undefined} style={{ display: 'flex', alignItems: 'center', gap: 8, rowGap: 2, flexWrap: 'wrap', cursor: onOpen ? 'pointer' : 'default' }}>
                     <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.color, flexShrink: 0 }} />
                     <span style={{ fontFamily: FN, fontWeight: 700, fontSize: 12, flexShrink: 0 }}>{t.name}</span>
-                    <span style={{ color: C.tm, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : '', inj.type].filter(Boolean).join(' ')} · {s.label}{inj.rtpTarget ? ` · RTP ${monDay(inj.rtpTarget)}` : ''}</span>
+                    <span style={{ color: C.tm, minWidth: 128, flexShrink: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : '', inj.type].filter(Boolean).join(' ')} · {s.label}{inj.rtpTarget ? ` · RTP ${monDay(inj.rtpTarget)}` : ''}</span>
                                       {onMedical && (
                       <button onClick={(e) => { e.stopPropagation(); onMedical(t.id); }} title="Update this medical report" className="bhbc-ghost-btn"
                         style={{ marginLeft: 'auto', flexShrink: 0, fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.08em', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '3px 7px', cursor: 'pointer' }}>UPDATE</button>
@@ -1583,7 +1587,11 @@ function HeadCoachReport({ rows, fx, fixtures, medical, today, onOpen, onMedical
                 <div key={i} onClick={clickable ? () => onPlan(s) : undefined}
                   title={clickable ? (pl ? 'Edit this session’s plan' : 'Add a plan for this session') : undefined}
                   className={clickable ? 'bhbc-row' : undefined}
-                  style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: clickable ? 'pointer' : 'default', padding: '2px 0' }}>
+                  // flexWrap so a squeezed label moves to its own LINE instead of
+                  // being crushed to "PR…". The action still never breaks: it
+                  // wraps whole rather than sliding off the viewport, which was
+                  // the failure the fixed columns were protecting against.
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, rowGap: 2, flexWrap: 'wrap', cursor: clickable ? 'pointer' : 'default', padding: '2px 0' }}>
                   {/* 96 + nowrap, same as the past-practice list: at 78px some dates
                       wrapped to two lines and others did not, so the column read
                       ragged down the card. */}
@@ -1593,7 +1601,10 @@ function HeadCoachReport({ rows, fx, fixtures, medical, today, onOpen, onMedical
                       fixed date + time columns plus this label pushed the + PLAN action
                       86px past the viewport, where it could not be tapped at all
                       (mobile sweep 08-25). The ACTION always stays whole. */}
-                  <span style={{ color: C.tm, flexShrink: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{FX_LABEL[s.type] || 'Session'}{s.minutes ? ` · ${s.minutes} min` : ''}</span>
+                  {/* minWidth gives the label a floor: below it the row wraps and
+                      the label keeps its own line, rather than ellipsizing down to
+                      two characters, which told the coach nothing. */}
+                  <span style={{ color: C.tm, flexShrink: 1, minWidth: 104, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{FX_LABEL[s.type] || 'Session'}{s.minutes ? ` · ${s.minutes} min` : ''}</span>
                   {/* The plan for THAT slot, right where the week is read —
                       the Today card only ever covered today (Ohad: "where can
                       I see the plan for tonight?"). */}
