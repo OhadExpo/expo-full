@@ -559,6 +559,10 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
         .bhbc-tab:hover{color:#fff!important;border-color:rgba(255,255,255,0.30)!important}
         /* Never let the zone scroll the PAGE sideways — wide bits scroll inside. */
         .bhbc-zone{max-width:100vw;overflow-x:clip}
+        .bhbc-week-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;align-items:stretch}
+        @media (max-width:900px){ .bhbc-week-grid{grid-template-columns:repeat(4,minmax(0,1fr))} }
+        @media (max-width:620px){ .bhbc-week-grid{grid-template-columns:repeat(2,minmax(0,1fr))} }
+        @media (max-width:400px){ .bhbc-week-grid{grid-template-columns:1fr} }
         @media (max-width:760px){
           .bhbc-header-inner{flex-wrap:wrap!important;gap:0 10px!important;padding:6px 14px!important;min-height:0!important}
           .bhbc-header-id{flex:1 1 auto!important;padding:8px 0!important}
@@ -2196,11 +2200,13 @@ function WeekPlanner({ fixtures = [], today, planOf, onSavePlan, onUpsert, onRem
         <span style={{ marginLeft: 'auto', fontFamily: FB, fontSize: 11.5, color: C.td }}>{he ? 'תכתוב את האימון, ואז את הפוקוס. זה מופיע בהיום ובדוח למאמן.' : 'Write the session, then its focus — it shows on Today, the Head Coach Report and the practice log.'}</span>
       </div>
 
-      <div style={horizontalWeek
-        // auto-fit rather than a hard 7 columns: on a narrow screen the week
-        // reflows to 3-4 columns instead of squeezing seven unreadable ones.
-        ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(148px, 1fr))', gap: 8, alignItems: 'stretch' }
-        : { display: 'flex', flexDirection: 'column' }}>
+      {/* SEVEN across, like a calendar week (Ohad: "all 7 days in one row, like
+          google calendar"). auto-fit wrapped them into ragged rows, which is
+          not a week. The class carries breakpoints so a phone still gets a
+          readable column count instead of seven 50px slivers — inline styles
+          cannot express a media query. */}
+      <div className={horizontalWeek ? 'bhbc-week-grid' : undefined}
+        style={horizontalWeek ? undefined : { display: 'flex', flexDirection: 'column' }}>
         {days.map((d) => {
           const list = byDay[d] || [];
           const isToday = d === today;
