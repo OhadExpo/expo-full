@@ -31,6 +31,7 @@ import TraineeEvaluation from './TraineeEvaluation';
 import TraineeIntake from './TraineeIntake';
 import { emailsToArr, emailsToStore, emailsDisplay, traineeIdsFor, subMemberId, sortProgramsChrono, memberIndexFromId } from './traineeUtils';
 import useAutosave, { autosaveStatusLabel } from './hooks/useAutosave';
+import { useT } from './i18n';
 
 // A Bnei Herzliya athlete is a CLUB athlete: the club pays. Any of the three
 // markers counts, the way PlansView already had to accept all three.
@@ -138,6 +139,7 @@ function BwAddRow({ onAdd }) {
 }
 
 export default function TraineeDetail({ trainee, trainees, setTrainees, planIndex, reloadPlanIndex, exercises, workouts, clientWorkouts, payments, addPayment, updatePayment, removePayment, bwLog, setBwLog, onBack, onOpenPlan, onPreviewPortal, onOpenTasksTab, onCreatePlanForTask, onOpenIntakeTab, onOpenInPersonForTrainee, portalVis, setPortalVis }) {
+  const t = useT();
   // Section tabs are a MULTI-SELECT filter (Ohad): click tags to show only
   // those sections; an empty set = View All. The URL hash carries the active
   // ids (comma-joined) so a filtered view is deep-linkable and back/forward
@@ -573,17 +575,17 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
     }
   };
   const SEC_TABS = [
-    { id: 'all', label: 'View All' },
-    { id: 'vitals', label: 'Vitals' },
-    { id: 'billing', label: 'Billing' },
-    { id: 'messages', label: 'Messages' },
-    { id: 'crm', label: 'Coach History' },
-    { id: 'bw', label: 'Bodyweight' },
-    { id: 'readiness', label: 'Readiness' },
-    { id: 'workouts', label: 'Workouts' },
-    { id: 'programs', label: 'Programs' },
-    { id: 'eval', label: 'Evaluation' },
-    { id: 'overload', label: 'Overload' },
+    { id: 'all', label: t('View All') },
+    { id: 'vitals', label: t('Vitals') },
+    { id: 'billing', label: t('Billing') },
+    { id: 'messages', label: t('Messages') },
+    { id: 'crm', label: t('Coach History') },
+    { id: 'bw', label: t('Bodyweight') },
+    { id: 'readiness', label: t('Readiness') },
+    { id: 'workouts', label: t('Workouts') },
+    { id: 'programs', label: t('Programs') },
+    { id: 'eval', label: t('Evaluation') },
+    { id: 'overload', label: t('Overload') },
   ];
 
   return (
@@ -637,7 +639,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           {onOpenInPersonForTrainee && <Btn variant="ghost" onClick={()=>onOpenInPersonForTrainee(trainee)} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 88px',minWidth:0,whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}} title="Open the in-person workout logger pre-filtered to this athlete">LOG SESSION</Btn>}
           {td.status==="Archived" ? <>
             <Btn variant="ghost" onClick={()=>{if(setTrainees)setTrainees(prev=>prev.map(t=>t.id===trainee?{...t,status:"Inactive",archivedAt:undefined}:t));onBack()}} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 88px',minWidth:0,whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}}>RESTORE</Btn>
-            <Btn variant="danger" onClick={()=>setShowDeleteConfirm(true)} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 88px',minWidth:0,whiteSpace:'nowrap'}}>DELETE</Btn>
+            <Btn variant="danger" onClick={()=>setShowDeleteConfirm(true)} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 88px',minWidth:0,whiteSpace:'nowrap'}}>{t("DELETE")}</Btn>
           </> : <Btn variant="ghost" onClick={()=>setShowArchiveConfirm(true)} title="Archive this athlete" style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",color:'var(--c-tm)',flex:'1 1 88px',minWidth:0,whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}}>ARCHIVE</Btn>}
           <button
             onClick={() => { if (setTrainees) setTrainees(prev => prev.map(t => t.id === trainee ? { ...t, notifOff: !t.notifOff } : t)); }}
@@ -835,7 +837,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           <Select label="Status" options={PAYMENT_STATUSES} value={payForm.status} onChange={v=>setPayForm({...payForm,status:v})} />
           <div style={{gridColumn:"1 / -1"}}><Input label="Notes" value={payForm.notes} onChange={e=>setPayForm({...payForm,notes:e.target.value})} /></div></div>
         <div style={{display:"flex",justifyContent:"flex-end",gap:8,marginTop:16}}>
-          <Btn variant="ghost" onClick={()=>{setShowPayForm(false);setEditPayId(null);setPayForm({amount:"",date:todayLocalISO(),notes:"",status:"Paid"})}}>Cancel</Btn><Btn onClick={handleAddPayment}>{editPayId?"Update":"Save"}</Btn></div></Modal>
+          <Btn variant="ghost" onClick={()=>{setShowPayForm(false);setEditPayId(null);setPayForm({amount:"",date:todayLocalISO(),notes:"",status:"Paid"})}}>{t("Cancel")}</Btn><Btn onClick={handleAddPayment}>{editPayId?"Update":"Save"}</Btn></div></Modal>
 
       {/* === MESSAGES — slot #4: athlete↔coach thread, lifted from
           inside TraineeCRM to its own top-level slot. */}
@@ -1066,7 +1068,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             <label style={{fontSize:11,fontWeight:600,color:C.tm,textTransform:"uppercase",fontFamily:FN,display:"block",marginBottom:4,textAlign:"center"}}>Type "remove" to confirm</label>
             <input value={unassignTyped} onChange={e=>setUnassignTyped(e.target.value)} style={{background: 'var(--c-sf2)',border:`1px solid ${C.rd}`,borderRadius:0,padding:"8px 12px",color:C.tx,fontFamily:FN,fontSize:14,outline:"none",width:"100%",boxSizing:"border-box",textAlign:"center"}} placeholder="remove" autoComplete="off" autoFocus/></div>
           <div style={{display:"flex",justifyContent:"flex-end",gap:8}}>
-            <Btn variant="ghost" onClick={()=>{setConfirmUnassign(null);setUnassignTyped("")}}>Cancel</Btn>
+            <Btn variant="ghost" onClick={()=>{setConfirmUnassign(null);setUnassignTyped("")}}>{t("Cancel")}</Btn>
             <Btn variant="danger" onClick={()=>{if(unassignTyped.trim().toLowerCase()==="remove"){unassignPlan(confirmUnassign);setConfirmUnassign(null);setUnassignTyped("")}}} style={{opacity:unassignTyped.trim().toLowerCase()==="remove"?1:0.3,pointerEvents:unassignTyped.trim().toLowerCase()==="remove"?"auto":"none"}}>Remove</Btn></div></div></div>, document.body)}
 
       {/* Edit trainee modal — extracted to a memoized child so per-keystroke
@@ -1089,7 +1091,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           <h3 style={{margin:"0 0 8px",fontFamily:FN,fontSize:15,color:C.tx}}>Archive {td.name}?</h3>
           <p style={{margin:"0 0 20px",fontSize:13,color:C.tm}}>Client will be moved to archive. Plans, workouts, and payments are preserved. You can restore anytime.</p>
           <div style={{display:"flex",justifyContent:"flex-end",gap:8}}>
-            <Btn variant="ghost" onClick={()=>setShowArchiveConfirm(false)}>Cancel</Btn>
+            <Btn variant="ghost" onClick={()=>setShowArchiveConfirm(false)}>{t("Cancel")}</Btn>
             <Btn variant="danger" onClick={handleArchive}>Archive</Btn></div></div></div>, document.body)}
       {/* Permanent delete confirm */}
       {showDeleteConfirm && createPortal(<div role="dialog" aria-modal="true" aria-label="Permanent deletion" style={{position:"fixed",inset:0,zIndex:1100,display:"flex",alignItems:"center",justifyContent:"center",background:C.scrim}} onClick={()=>{setShowDeleteConfirm(false);setDeleteTyped("");setPurgeHistory(false)}}>
@@ -1106,7 +1108,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             <label style={{fontSize:11,fontWeight:600,color:C.tm,textTransform:"uppercase",fontFamily:FN,display:"block",marginBottom:4,textAlign:"center"}}>Type "DELETE" to confirm</label>
             <input value={deleteTyped} onChange={e=>setDeleteTyped(e.target.value)} style={{background: 'var(--c-sf2)',border:`1px solid ${C.rd}`,borderRadius:0,padding:"8px 12px",color:C.tx,fontFamily:FN,fontSize:14,outline:"none",width:"100%",boxSizing:"border-box",letterSpacing:"0.1em",textAlign:"center"}} placeholder="DELETE" autoComplete="off"/></div>
           <div style={{display:"flex",justifyContent:"flex-end",gap:8}}>
-            <Btn variant="ghost" onClick={()=>{setShowDeleteConfirm(false);setDeleteTyped("");setPurgeHistory(false)}}>Cancel</Btn>
+            <Btn variant="ghost" onClick={()=>{setShowDeleteConfirm(false);setDeleteTyped("");setPurgeHistory(false)}}>{t("Cancel")}</Btn>
             <Btn variant="danger" disabled={purging} onClick={()=>{if(deleteTyped.trim().toUpperCase()==="DELETE")handlePermanentDelete()}} style={{opacity:(deleteTyped.trim().toUpperCase()==="DELETE"&&!purging)?1:0.3,pointerEvents:(deleteTyped.trim().toUpperCase()==="DELETE"&&!purging)?"auto":"none"}}>{purging?'Purging…':(purgeHistory?'Delete + Erase History':'Delete Permanently')}</Btn></div></div></div>, document.body)}
     </div>);
 }
@@ -1130,6 +1132,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
 // On unmount, all state is GC'd; the next open re-runs init. This is by design
 // so a stale form can never linger between opens.
 const EditTraineeModal = React.memo(function EditTraineeModal({ td, couple, draftKey, onSave, onClose }) {
+  const t = useT();
   const [editForm, setEditForm] = useState(null);
   const [hasDraft, setHasDraft] = useState(false);
   // Bnei Herzliya players are CLUB athletes — the club pays. Read from the live
@@ -1216,7 +1219,7 @@ const EditTraineeModal = React.memo(function EditTraineeModal({ td, couple, draf
           {editStatus && <span aria-live="polite" style={{ fontSize: 11, fontFamily: FN, color: editStatus.color, fontWeight: 600, letterSpacing: '0.04em' }}>{editStatus.text}</span>}
         </div>
         {couple && editForm._members ? <>
-          <div style={{ fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>Shared</div>
+          <div style={{ fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>{t("Shared")}</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
             <Input label="Couple Name" value={editForm.name || ""} onChange={e => setEditForm({ ...editForm, name: e.target.value })} />
             <Select label="Format" options={TRAINING_FORMATS} value={editForm.format || ""} onChange={v => setEditForm({ ...editForm, format: v })} />
@@ -1311,8 +1314,8 @@ const EditTraineeModal = React.memo(function EditTraineeModal({ td, couple, draf
           </div>
         </>}
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
-          <Btn variant="ghost" onClick={handleCancel}>Cancel</Btn>
-          <Btn onClick={handleSave}>Save</Btn>
+          <Btn variant="ghost" onClick={handleCancel}>{t("Cancel")}</Btn>
+          <Btn onClick={handleSave}>{t("Save")}</Btn>
         </div>
       </>}
     </Modal>
