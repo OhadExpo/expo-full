@@ -111,6 +111,35 @@ That turns the ball-selector work from a five-minute harness run per attempt
 into a unit test. `scripts/_replay-candidates.mjs` already sweeps the blob-size
 gate and lists every distinct arc it could have chosen — point it at this file.
 
+## A deterministic capture mode now exists — opt-in, default unchanged
+
+`captureShotFrames(src, { deterministic: true })` steps the clip with seeks
+instead of reading a playing video, so it sees every frame regardless of machine
+load. It was already the fallback path for browsers without
+`requestVideoFrameCallback`; it is now reachable deliberately.
+
+```bash
+DETERMINISTIC=1 node scripts/shot-harness-run.mjs "/10%20of%2011.mp4" <port>
+```
+
+**Nothing in the app passes the flag.** It exists so the trade can be MEASURED
+before anyone decides, because the cost is real: a seek on a 60 fps portrait clip
+costs 100–175 ms, and there are hundreds of them. That expense is exactly why
+playback was chosen originally, and it is why this is not simply switched on.
+
+The question it answers is narrow and worth answering:
+
+- **If three deterministic runs return the same count**, the diagnosis is
+  confirmed and what remains is a product decision about how long an analysis is
+  allowed to take. A slower analysis that can be trusted on the number beats a
+  fast one that cannot.
+- **If it still wanders**, the variance is somewhere other than frame sampling,
+  and this has ruled out the obvious suspect.
+
+Either answer is worth the runtime. Note the runner's `protocolTimeout` is
+raised to 45 minutes for this path — the default kills a seek-stepped run
+mid-way and reports a puppeteer error instead of a result.
+
 ## Do these in order — the second gap BLOCKS the first
 
 It is tempting to fix the ball-track rejection first, because it is small and

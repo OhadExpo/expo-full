@@ -8,7 +8,11 @@ import puppeteer from 'puppeteer-core';
 const CLIP = process.argv.slice(2).find((a) => !a.startsWith('--')) || '/10%20of%2011.mp4';
 const PORT = process.argv[3] || '5199';
 
-const b = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: { width: 1280, height: 900 } });
+// protocolTimeout: a deterministic (seek-stepped) capture can run for many
+// minutes - a seek on a 60 fps portrait clip costs 100-175 ms and there are
+// hundreds of them. The default protocol timeout kills it mid-run and reports
+// a puppeteer error rather than a result.
+const b = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: { width: 1280, height: 900 }, protocolTimeout: 45 * 60 * 1000 });
 const page = await b.newPage();
 page.on('console', (m) => { const t = m.text(); if (/shot-capture|error|Error/.test(t)) console.log('  [page]', t.slice(0, 300)); });
 page.on('pageerror', (e) => console.log('  [pageerror]', String(e).slice(0, 300)));
