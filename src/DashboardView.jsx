@@ -6,6 +6,7 @@ import { supabase } from './supabase';
 import { WhatsAppCheckInButton, normalizePhoneIL } from './whatsappButton';
 import NotesWidget from './NotesWidget';
 import MessagesCard from './MessagesCard';
+import { useT } from './i18n';
 import { syncAutoTasks } from './autoTasks';
 
 // A Bnei Herzliya athlete is a CLUB athlete: the club pays, so there is no
@@ -32,6 +33,7 @@ function DormantWhatsAppButton({ trainee, days }) {
 }
 
 export default function DashboardView({ isOwner = true, trainees = [], planCounts, workouts = [], clientWorkouts = [], payments = [], presence, onSelectTrainee, onOpenTraineeMessages, onOpenTasksTab, onCreatePlanForTask, onOpenIntakeTab, onOpenWaitlist, onOpenReviewWorkout }) {
+  const t = useT();
   // Staff (non-owner, e.g. Yuval a masseur) share Ohad's clients but not his
   // money: every revenue / pricing / leads surface below is gated on isOwner.
   // What stays: client-engagement signals (active count, low sessions, online,
@@ -514,16 +516,16 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
       {/* Summary cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 10, marginBottom: 20 }}>
         {[
-          { label: 'Active Athletes', value: active, total: trainees.filter(t=>t.status!=='Archived').length, color: C.gn },
-          { label: 'Low Sessions', value: lowSessions, color: lowSessions > 0 ? C.or : C.gn },
+          { label: t('Active Athletes'), value: active, total: trainees.filter(t=>t.status!=='Archived').length, color: C.gn },
+          { label: t('Low Sessions'), value: lowSessions, color: lowSessions > 0 ? C.or : C.gn },
           // Money KPIs — owner-only.
           ...(isOwner ? [
-            { label: 'Estimated Monthly', value: `₪${monthlyRate.toLocaleString()}`, color: C.ac },
+            { label: t('Estimated Monthly'), value: `₪${monthlyRate.toLocaleString()}`, color: C.ac },
             // Label shortened from "Collected This Month" → "Collected MTD"
             // so the cyan title strip matches the height of the other 3
             // KPI tiles (the long form wrapped to two lines on common
             // viewport widths). MTD = month-to-date, finance standard.
-            { label: 'Collected MTD', value: `₪${thisMonthPaid.toLocaleString()}`, sub: revDelta !== null ? `${revDelta >= 0 ? '+' : ''}${revDelta}% vs last month` : null, subColor: revDelta >= 0 ? C.gn : C.rd, color: thisMonthPaid>0?C.gn:C.td },
+            { label: t('Collected MTD'), value: `₪${thisMonthPaid.toLocaleString()}`, sub: revDelta !== null ? `${revDelta >= 0 ? '+' : ''}${revDelta}% vs last month` : null, subColor: revDelta >= 0 ? C.gn : C.rd, color: thisMonthPaid>0?C.gn:C.td },
           ] : []),
         ].map((s, i) => {
           const refined = isRefined5b();
@@ -824,7 +826,7 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
                 {isOwner && <SH k="paid" label="Total Paid" />}
                 {isOwner && <SH k="lastPay" label="Last Payment" />}
                 <SH k="workouts" label="Workouts" />
-                <th style={plainHeadStyle}>Programs</th>
+                <th style={plainHeadStyle}>{t("Programs")}</th>
               </tr>
             </thead>
             <tbody>
@@ -898,6 +900,7 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
 // the dashboard between KPI tiles and alert cards. Designed to read at
 // a glance without an analytics tab.
 function RevenueCard({ monthlyRate, thisMonthPaid, delta30, collected30, collected90, avgLtv, avgTicket, outstanding, monthBars, maxBar }) {
+  const t = useT();
   const refined = isRefined5b();
   const PAD = 18;
   const metricStyle = {
@@ -912,18 +915,18 @@ function RevenueCard({ monthlyRate, thisMonthPaid, delta30, collected30, collect
 
   return (
     <CollapsibleSection title="Revenue" storageKey="dash-revenue" style={{ marginBottom: 20 }}
-      right={<span style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.75)', letterSpacing: '0.12em', fontWeight: 700 }}>INCL. VAT · 6 MO TREND</span>}>
+      right={<span style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.75)', letterSpacing: '0.12em', fontWeight: 700 }}>{t("INCL. VAT · 6 MO TREND")}</span>}>
       <div>
         {/* Top row — 6 metric tiles. responsive auto-fit so it collapses
             to 3 / 2 / 1 column at narrower viewports. */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8, marginBottom: 16 }}>
           <div style={metricStyle}>
-            <span style={labelStyle}>MRR (ACTIVE)</span>
+            <span style={labelStyle}>{t('MRR (ACTIVE)')}</span>
             <span style={numStyle}>₪{Math.round(monthlyRate).toLocaleString()}</span>
             <span style={subStyle}>recurring committed</span>
           </div>
           <div style={metricStyle}>
-            <span style={labelStyle}>30D COLLECTED</span>
+            <span style={labelStyle}>{t('30D COLLECTED')}</span>
             <span style={numStyle}>₪{Math.round(collected30).toLocaleString()}</span>
             {delta30 !== null && (
               <span style={{ ...subStyle, color: delta30 >= 0 ? C.gn : C.rd }}>
@@ -932,7 +935,7 @@ function RevenueCard({ monthlyRate, thisMonthPaid, delta30, collected30, collect
             )}
           </div>
           <div style={metricStyle}>
-            <span style={labelStyle}>90D COLLECTED</span>
+            <span style={labelStyle}>{t('90D COLLECTED')}</span>
             <span style={numStyle}>₪{Math.round(collected90).toLocaleString()}</span>
             <span style={subStyle}>trailing 3 months</span>
           </div>
@@ -942,18 +945,18 @@ function RevenueCard({ monthlyRate, thisMonthPaid, delta30, collected30, collect
                 to a small amber dot beside the label, exactly like LOW SESSIONS. */}
             <span style={{ ...labelStyle, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               {outstanding.amount > 0 && <span title="outstanding balance" style={{ width: 6, height: 6, borderRadius: '50%', background: C.or, flexShrink: 0, boxShadow: `0 0 5px ${C.or}66` }} />}
-              OUTSTANDING
+              {t('OUTSTANDING')}
             </span>
             <span style={numStyle}>₪{Math.round(outstanding.amount).toLocaleString()}</span>
             <span style={subStyle}>{outstanding.count} pending request{outstanding.count === 1 ? '' : 's'}</span>
           </div>
           <div style={metricStyle}>
-            <span style={labelStyle}>AVG LTV</span>
+            <span style={labelStyle}>{t('AVG LTV')}</span>
             <span style={numStyle}>₪{avgLtv.toLocaleString()}</span>
             <span style={subStyle}>per paying client</span>
           </div>
           <div style={metricStyle}>
-            <span style={labelStyle}>AVG TICKET</span>
+            <span style={labelStyle}>{t('AVG TICKET')}</span>
             <span style={numStyle}>₪{avgTicket.toLocaleString()}</span>
             <span style={subStyle}>per payment row</span>
           </div>
@@ -963,7 +966,7 @@ function RevenueCard({ monthlyRate, thisMonthPaid, delta30, collected30, collect
             free implementation (just divs) so it stays under 2kb of
             DOM and inherits theme colors. */}
         <div>
-          <div style={{ ...labelStyle, marginBottom: 8 }}>LAST 6 MONTHS · COLLECTED</div>
+          <div style={{ ...labelStyle, marginBottom: 8 }}>{t("LAST 6 MONTHS · COLLECTED")}</div>
           {/* With nothing collected in any of the six months every bar renders at
               its 2% floor in the hairline colour, so the chart reads as an empty
               axis — i.e. as BROKEN rather than as "nothing came in yet". Say it

@@ -17,6 +17,7 @@ import { isRefined5b, RefinedHeaderStrip, SectionLabel, usePersistentState, stri
 import { useTheme } from './hooks/useTheme';
 import { supabase } from './supabase';
 import { enqueue } from './offlineQueue';
+import { useT } from './i18n';
 
 const SEEN_KEY = 'expo-msgs-seen-at';
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
@@ -39,6 +40,7 @@ const ago = (iso) => {
 };
 
 export default function MessagesCard({ trainees, onSelectTrainee, onOpenMessages }) {
+  const t = useT();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [seenAt, setSeenAt] = useState(() => {
@@ -231,7 +233,7 @@ export default function MessagesCard({ trainees, onSelectTrainee, onOpenMessages
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             {unreadCount > 0 && (
               <button onClick={(e) => { e.stopPropagation(); markRead(); }}
-                style={{ ...stripBtnBase, border: '1px solid rgba(255,255,255,0.55)', color: '#FFFFFF' }}>MARK ALL READ</button>
+                style={{ ...stripBtnBase, border: '1px solid rgba(255,255,255,0.55)', color: '#FFFFFF' }}>{t("MARK ALL READ")}</button>
             )}
             <span aria-hidden style={{ color: '#FFFFFF', fontSize: 12, lineHeight: 1, transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease' }}>▾</span>
           </div>
@@ -256,7 +258,7 @@ export default function MessagesCard({ trainees, onSelectTrainee, onOpenMessages
             style={{
               background: 'transparent', border: 'none', color: 'var(--c-ac)', cursor: 'pointer',
               fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', padding: 0,
-            }}>RETRY</button>
+            }}>{t("RETRY")}</button>
         </div>
       ) : threads.length === 0 ? (
         <div style={{ padding: '24px 6px', textAlign: 'center', color: 'var(--c-td)', fontSize: 13 }}>

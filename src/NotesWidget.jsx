@@ -20,6 +20,7 @@ import { AutoTaskExplainModal } from './components/AutoTaskExplain';
 import { normalizePhoneIL } from './whatsappButton';
 import { displayBodyOf, ownerFromBody, priorityFromBody, visibleTags, PRIORITY_TONE } from './taskFormat';
 import { CommentsThread, EventTimeline } from './TasksV8View';
+import { useT } from './i18n';
 
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
 
@@ -440,6 +441,7 @@ function TaskActionButton({ note, trainee, onCreatePlan, onOpenReview, onOpenInt
 }
 
 export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanForTask, onOpenIntakeTab, onOpenWaitlist, compact = false, trainees = [], viewerOwner = 'ohad' }) {
+  const t = useT();
   const { rows, create, update, togglePin, toggleDone, remove } = useCoachNotes({ limit: 60 });
   // Phone-narrow: the compact dashboard mini-board (a 4-col status kanban) is
   // cramped side-by-side at ~140px/col and scrolls sideways with clipped text.
@@ -831,7 +833,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                 background: 'transparent', color: body.trim() ? 'var(--c-ac)' : 'var(--c-td)',
                 fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
                 cursor: body.trim() ? 'pointer' : 'default',
-              }}>SAVE</button>
+              }}>{t("SAVE")}</button>
           </div>
         </div>
       )}

@@ -22,6 +22,7 @@ import { supabase } from './supabase';
 import { isRefined5b, RefinedHeaderStrip, Btn, Input, toast, confirmToast, useEscClose, stripBtnBase } from './ui';
 import { parseTraineeId } from './traineeUtils';
 import { normalizePhoneIL } from './whatsappButton';
+import { useT } from './i18n';
 
 const fmtCurrency = (amount, currency = 'ils') => {
   const sym = currency === 'usd' ? '$' : '₪';
@@ -29,6 +30,7 @@ const fmtCurrency = (amount, currency = 'ils') => {
 };
 
 export default function BillingView({ trainees }) {
+  const t = useT();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showRequest, setShowRequest] = useState(false);
@@ -159,7 +161,7 @@ export default function BillingView({ trainees }) {
         </RefinedHeaderStrip>
         {loadError ? (
           <div style={{ padding: 14, textAlign: 'center', color: C.rd, fontSize: 13 }}>
-            Couldn’t load billing data: {loadError}. <button onClick={reload} style={{ background: 'transparent', border: 'none', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textDecoration: 'underline' }}>RETRY</button>
+            Couldn’t load billing data: {loadError}. <button onClick={reload} style={{ background: 'transparent', border: 'none', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textDecoration: 'underline' }}>{t("RETRY")}</button>
           </div>
         ) : requests.length === 0 ? (
           <div style={{ padding: 14, textAlign: 'center', color: C.td, fontSize: 13 }}>
@@ -199,7 +201,7 @@ export default function BillingView({ trainees }) {
                     <button onClick={() => cancelRequest(r.id)} style={btnStyle(C.rd)}>× CANCEL</button>
                   </>
                 )}
-                <button onClick={() => remove(r.id)} style={btnStyle(C.td)}>DELETE</button>
+                <button onClick={() => remove(r.id)} style={btnStyle(C.td)}>{t("DELETE")}</button>
               </div>
             </div>
           );

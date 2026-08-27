@@ -48,6 +48,7 @@ function CardStatusMenu({ status, onChange }) {
   );
 }
 import { supabase } from './supabase';
+import { useT } from './i18n';
 
 const isCouple = (t) => t.members && t.members.length === 2;
 
@@ -385,6 +386,7 @@ const saveSortPrefs = (prefs) => {
 };
 
 export default function TraineesView({ trainees, setTrainees, planCounts, payments, workouts, clientWorkouts, bwLog, portalVis, presence, onSelect, onPreview }) {
+  const t = useT();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(defaultTrainee());
   const [search, setSearch] = useState("");

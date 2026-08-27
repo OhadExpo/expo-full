@@ -31,6 +31,7 @@ import { isRefined5b, toast, confirmToast, usePersistentState, asButton } from '
 import { useTheme } from './hooks/useTheme';
 import { useCoachNoteComments, useCoachNoteEvents, recordNoteEvent } from './coachNoteComments';
 import { supabase } from './supabase';
+import { useT } from './i18n';
 import {
   isCalendarConnected,
   connectGoogleCalendar,
@@ -1769,6 +1770,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
 // ────────────────────────────────────────────────────────────────────
 
 export default function TasksV8View({ trainees = [], onSelectTrainee }) {
+  const t = useT();
   const { rows, loading, connected, update, create, remove } = useCoachNotes({ limit: 200 });
   // Subscribe to theme changes so StatusPill colors update live on a dark/light
   // toggle (was read once via getAttribute → went stale until next re-render).
@@ -2554,7 +2556,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
             margin: 0, fontFamily: FN, fontSize: 13, fontWeight: 700,
             letterSpacing: '0.18em', textTransform: 'uppercase',
             color: 'var(--c-tx)',
-          }}>Tasks</h2>
+          }}>{t("Tasks")}</h2>
           {/* No always-on "LIVE" badge (a permanently-green dot carries no info).
               Instead, surface a warning ONLY when the realtime channel actually
               drops — that's information. The 90s poll still refreshes data, so

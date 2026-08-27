@@ -2,6 +2,7 @@ import React, { useState, useCallback, useRef, useEffect, useMemo, Suspense, laz
 import { todayLocalISO } from './dates';
 import { C, FN, FB, uid } from './theme';
 import { ThemeToggle } from './ThemeToggle';
+import { LangCtx, LANG_KEY, tr as trFn, readLang } from './i18n';
 import { useLogoSrc } from './hooks/useTheme';
 import { EXPOMark } from './expoMark';
 import { useStore } from './useStore';
@@ -1074,6 +1075,12 @@ function AuthedApp() {
     if (window.location.pathname !== path) window.history.pushState(null, '', path);
   }, [previewPlan]);
 
+  // App-wide Hebrew. Persisted, defaults to English, and OFF unless the coach
+  // asks for it — nothing moves for anyone who does not click it.
+  const [lang, setLang] = useState(readLang);
+  const t = useCallback((str) => trFn(lang, str), [lang]);
+  useEffect(() => { try { localStorage.setItem(LANG_KEY, lang); } catch {} }, [lang]);
+
   const navTo = useCallback((newTab, newTrainee, hash) => {
     // Staff (non-owner coach) can never navigate to an owner-only tab — not even
     // via a cross-tab action button surfaced on their dashboard/tasks (e.g. a
@@ -1183,33 +1190,33 @@ function AuthedApp() {
   // Ohad spec 2026-05-16:
   //   Dashboard › Athletes › Tasks › Review › Billing › Incoming › Challenges › Portal
   const tabs = [
-    { key:'dashboard',  label:'Dashboard',  count:null },
-    { key:'trainees',   label:'Athletes',   count:activeAthletesCount,
+    { key:'dashboard',  label:t('Dashboard'),  count:null },
+    { key:'trainees',   label:t('Athletes'),   count:activeAthletesCount,
       submenu: [
-        { route:'trainees',  label:'Roster',    count:activeAthletesCount },
-        { route:'plans',     label:'Programs',  count:null },
-        { route:'exercises', label:'Exercises', count:null },
+        { route:'trainees',  label:t('Roster'),    count:activeAthletesCount },
+        { route:'plans',     label:t('Programs'),  count:null },
+        { route:'exercises', label:t('Exercises'), count:null },
         { route:'bhbc',      label:'BHBC',      count:null },
       ] },
-    { key:'sessions',   label:'Sessions',   count:null,
+    { key:'sessions',   label:t('Sessions'),   count:null,
       submenu: [
-        { route:'sessions',     label:'Group',  count:null },
-        { route:'sessionsSolo', label:'Single', count:null },
+        { route:'sessions',     label:t('Group'),  count:null },
+        { route:'sessionsSolo', label:t('Single'), count:null },
       ] },
-    { key:'review',     label:'Review',     count:null,
+    { key:'review',     label:t('Review'),     count:null,
       submenu: [
-        { route:'review',      label:'Workouts', count:null },
-        { route:'reviewTools', label:'Tools',    count:null },
+        { route:'review',      label:t('Workouts'), count:null },
+        { route:'reviewTools', label:t('Tools'),    count:null },
       ] },
-    { key:'tasks',      label:'Tasks',      count:null },
-    { key:'billing',    label:'Billing',    count:null },
-    { key:'intake',     label:'Incoming',   count:null,
+    { key:'tasks',      label:t('Tasks'),      count:null },
+    { key:'billing',    label:t('Billing'),    count:null },
+    { key:'intake',     label:t('Incoming'),   count:null,
       submenu: [
-        { route:'intake',    label:'Intake',    count:null },
-        { route:'waitlist',  label:'Waitlist',  count:null },
+        { route:'intake',    label:t('Intake'),    count:null },
+        { route:'waitlist',  label:t('Waitlist'),  count:null },
       ] },
-    { key:'challenges', label:'Challenges', count:null },
-    { key:'client',     label:'Portal',     count:null },
+    { key:'challenges', label:t('Challenges'), count:null },
+    { key:'client',     label:t('Portal'),     count:null },
   ];
   // Staff see only their whitelisted top-level tabs (STAFF_TABS = dashboard +
   // tasks only — they do NOT get Athletes/Programs/Exercises/Billing/etc; the
@@ -1406,7 +1413,11 @@ function AuthedApp() {
   // pushed the left half of the editor off the screen (Ohad: "i cant see the
   // rest of the screen it shouldnt be pushed all the way out").
   return(
-    <div className="app-root" style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB,maxWidth:"100vw",overflowX:"clip"}}>
+    // dir on the app root, not just Hebrew words in an LTR layout: the nav
+    // reads right-to-left, labels sit on the correct side, and mixed
+    // Hebrew/English lines resolve through the browser's own bidi algorithm.
+    <LangCtx.Provider value={lang}>
+    <div className="app-root" dir={lang === 'he' ? 'rtl' : 'ltr'} style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB,maxWidth:"100vw",overflowX:"clip"}}>
       {isPartner && <div style={{background:`color-mix(in srgb, ${C.ac} 22%, ${C.bg})`,borderBottom:`1px solid ${C.ac}`,color:C.tx,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',textAlign:'center',padding:'7px 12px'}}>PARTNER PREVIEW · you're viewing the real EXPO with live data — anything you change isn't saved</div>}
       {isOwner && <SensorLab />}
       <header style={{background:C.headerBg,borderBottom:`1px solid ${C.cardBd}`,boxShadow:'0 1px 2px rgba(0,0,0,0.03), 0 4px 12px rgba(0,0,0,0.04)',position:"sticky",top:0,zIndex:100,paddingTop:'env(safe-area-inset-top)'}}>
@@ -1472,6 +1483,15 @@ function AuthedApp() {
               dividers now. */}
           <div className="hdr-right" style={{flex:"0 0 auto",display:"flex",alignItems:"center",gap:2,marginLeft:12}}>
             <MoreMenu tab={tab} navTo={navTo} onExport={handleExport} onChangePassword={()=>setShowPwModal(true)} isOwner={isOwner} />
+            <span style={{width:1,height:22,background:C.ac,opacity:0.15,alignSelf:'center',marginLeft:6,marginRight:6}} aria-hidden="true" />
+            {/* HE / EN. Shows the language it switches TO, which is how a
+                two-state language control is read. Fixed width so the row does
+                not reflow when the label changes. */}
+            <button onClick={() => setLang(lang === 'he' ? 'en' : 'he')}
+              title={lang === 'he' ? 'Switch to English' : 'עברית'}
+              style={{...baseBtn, background:'transparent', border:'none', color:C.tm, cursor:'pointer', fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.08em', minWidth:34, height:32, display:'inline-flex', alignItems:'center', justifyContent:'center', lineHeight:1}}>
+              {lang === 'he' ? 'EN' : 'עב'}
+            </button>
             <span style={{width:1,height:22,background:C.ac,opacity:0.15,alignSelf:'center',marginLeft:6,marginRight:6}} aria-hidden="true" />
             <ThemeToggle size={32} />
             <span style={{width:1,height:22,background:C.ac,opacity:0.15,alignSelf:'center',marginLeft:6,marginRight:6}} aria-hidden="true" />
@@ -1540,5 +1560,6 @@ function AuthedApp() {
           </ErrorBoundary>
         </Suspense>
       </main>
-    </div>);
+    </div>
+    </LangCtx.Provider>);
 }
