@@ -2,7 +2,7 @@
 // LOOKED AT instead of reasoned about. Pass forward-slash paths only.
 import puppeteer from 'puppeteer-core';
 const [file, out] = process.argv.slice(2);
-const b = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: { width: 1200, height: 460 } });
+const b = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: { width: 1000, height: 260 } });
 const p = await b.newPage();
 await p.goto('file:///' + file, { waitUntil: 'load' });
 await new Promise((r) => setTimeout(r, 700));
