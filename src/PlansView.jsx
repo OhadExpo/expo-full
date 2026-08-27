@@ -552,51 +552,144 @@ function PlanOverview({ plan, exercises, onJumpToDay = null }) {
   };
   const warm = plan?.warmup || plan?.warmUp || [];
 
-  const card = (key, heading, count, rows, onClick) => (
-    <div key={key} style={{ border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)', minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-      <div
-        onClick={onClick || undefined}
-        title={onClick ? 'Open this day in the editor' : undefined}
-        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '7px 10px', borderBottom: `1px solid ${C.cardBd}`, borderLeft: `2px solid ${C.ac}`, cursor: onClick ? 'pointer' : 'default' }}>
-        <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', color: C.tx, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{heading}</span>
-        <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.td, flexShrink: 0 }}>{count}</span>
-      </div>
-      <div style={{ padding: '4px 0' }}>
-        {rows.length === 0
-          ? <div style={{ padding: '8px 10px', fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.06em' }}>EMPTY</div>
-          : rows}
-      </div>
-    </div>
-  );
+  // Total prescribed sets for a day — the one number that says how big a
+  // session is, next to the exercise count that says how varied it is.
+  const setsOf = (list) => list.reduce((n, ex) => {
+    const s = parseInt(ex?.sets ?? ex?.s, 10);
+    return n + (Number.isFinite(s) ? s : 0);
+  }, 0);
 
-  const exRow = (ex, i) => {
-    const sc = supersetColor(ex?.superset);
-    const rx = rxOf(ex);
+  const card = (key, heading, list, rows, onClick, accent) => {
+    const sets = setsOf(list);
     return (
-      <div key={ex?.id || i} style={{ display: 'flex', alignItems: 'baseline', gap: 6, padding: '3px 10px', minWidth: 0 }}>
-        <span style={{ fontFamily: FN, fontSize: 10, color: C.td, width: 15, flexShrink: 0, textAlign: 'right' }}>{i + 1}</span>
-        {/* Superset letter keeps its group colour, so the pairing is readable
-            here exactly as it is in the editor's GRP column. */}
-        {ex?.superset ? <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: sc, flexShrink: 0 }}>{ex.superset}</span> : null}
-        <span style={{ fontSize: 12, color: C.tx, lineHeight: 1.3, flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>{nameOf(ex)}</span>
-        {rx ? <span style={{ fontFamily: FN, fontSize: 10, color: C.tm, flexShrink: 0, whiteSpace: 'nowrap' }}>{rx}</span> : null}
+      <div key={key} style={{ border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)', minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+        {/* Same strip the rest of the app uses — one uniform header height, so
+            every column's title line sits on the same baseline across the row
+            (the app-wide rule). Hand-rolled here rather than RefinedHeaderStrip
+            because this card has no padding to bleed the strip out of. */}
+        <div
+          onClick={onClick || undefined}
+          title={onClick ? 'Open this day in the editor' : undefined}
+          style={{
+            background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))',
+            minHeight: 41, boxSizing: 'border-box', padding: '0 14px',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+            boxShadow: 'inset 0 -1px 0 var(--c-cardBd)',
+            cursor: onClick ? 'pointer' : 'default',
+          }}>
+          <span style={{ fontFamily: FN, fontSize: isHebrew(heading) ? 16 : 13, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: accent || C.tx, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{heading}</span>
+          {/* Count and volume as plain coloured text, not badges: badge padding
+              breaks tight alignment, and this is a reading surface. */}
+          <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.td, flexShrink: 0, letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>
+            {list.length} EX{sets ? ` · ${sets} SETS` : ''}
+          </span>
+        </div>
+        <div>
+          {rows.length === 0
+            ? <div style={{ padding: '10px 14px', fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.06em' }}>EMPTY</div>
+            : rows}
+        </div>
       </div>
     );
   };
 
+  const exRow = (list) => (ex, i) => {
+    const ss = ex?.superset || '';
+    const sc = supersetColor(ss);
+    const rx = rxOf(ex);
+    const prev = list[i - 1], next = list[i + 1];
+    // A superset is a GROUP, so draw it as one continuous rail down the rows
+    // that share the letter rather than repeating a letter on each row. The
+    // letter prints once, on the first row of the group.
+    const inGroup = !!ss;
+    const groupStart = inGroup && (prev?.superset || '') !== ss;
+    const groupEnd = inGroup && (next?.superset || '') !== ss;
+    const name = nameOf(ex);
+    return (
+      <div key={ex?.id || i} style={{
+        display: 'flex', alignItems: 'baseline', gap: 7, padding: '5px 14px 5px 0', minWidth: 0,
+        // Hairline between rows, never after the last one — the card border
+        // already closes the bottom.
+        boxShadow: i === list.length - 1 ? 'none' : 'inset 0 -1px 0 var(--c-cardBd)',
+      }}>
+        {/* Group rail: 2px, the group's colour, continuous across the group. */}
+        <span aria-hidden style={{
+          width: 2, alignSelf: 'stretch', flexShrink: 0,
+          background: inGroup ? sc : 'transparent',
+          marginLeft: 6,
+          borderTopLeftRadius: groupStart ? 2 : 0, borderTopRightRadius: groupStart ? 2 : 0,
+          borderBottomLeftRadius: groupEnd ? 2 : 0, borderBottomRightRadius: groupEnd ? 2 : 0,
+        }} />
+        <span style={{ fontFamily: FN, fontSize: 10, color: C.td, width: 16, flexShrink: 0, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+          {inGroup && !groupStart ? '' : i + 1}
+        </span>
+        <span style={{
+          fontSize: isHebrew(name) ? 15 : 12, color: C.tx, lineHeight: 1.35, flex: 1, minWidth: 0,
+          // break-word, NOT anywhere: `anywhere` split "MACHINE" into
+          // "MACHIN / E" mid-word, which is what made this look cheap.
+          overflowWrap: 'break-word',
+        }}>
+          {groupStart && <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: sc, marginRight: 5, letterSpacing: '0.08em' }}>{ss}</span>}
+          {name}
+        </span>
+        {/* Fixed-width, tabular rx column so the numbers form a clean right
+            edge instead of a ragged one. */}
+        <span style={{ fontFamily: FN, fontSize: 10, color: C.tm, flexShrink: 0, minWidth: 52, textAlign: 'right', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{rx}</span>
+      </div>
+    );
+  };
+
+  const warmRows = warm.map((w, i) => ({ ...w, title: w.t || w.title, id: w.id || `w${i}` }));
+
   return (
-    // auto-fit + minmax is what makes "one screen" hold for 2 days or 7: the
-    // columns share the width they are given rather than each demanding a fixed
-    // size and pushing the last day off the edge.
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 10, alignItems: 'start', marginBottom: 16 }}>
-      {warm.length > 0 && card('warmup', 'Warm-up', `${warm.length} EX`, warm.map((w, i) => exRow({ ...w, title: w.t || w.title, id: w.id || `w${i}` }, i)), null)}
-      {days.map((d, i) => card(
-        d.id || `d${i}`,
-        d.name || d.title || `Day ${i + 1}`,
-        `${(d.exercises || d.ex || []).length} EX`,
-        (d.exercises || d.ex || []).map(exRow),
-        onJumpToDay ? () => onJumpToDay(i) : null,
-      ))}
+    <div style={{ marginBottom: 16 }}>
+      {/* Warm-up spans the FULL width ABOVE the days (Ohad: "warm up above the
+          other cells"). It belongs to the whole block, not to one day, so
+          standing it in the day row read as a fifth day. Its exercises lay out
+          across the width instead of stacking, since there are only ever a few. */}
+      {warmRows.length > 0 && (
+        <div style={{ border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)', marginBottom: 10 }}>
+          <div style={{
+            background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))',
+            minHeight: 41, boxSizing: 'border-box', padding: '0 14px',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+            boxShadow: 'inset 0 -1px 0 var(--c-cardBd)',
+          }}>
+            <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.or }}>Warm-up</span>
+            <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.td, letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{warmRows.length} EX</span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}>
+            {warmRows.map((w, i) => {
+              const name = nameOf(w);
+              const rx = rxOf(w);
+              return (
+                <div key={w.id || i} style={{ display: 'flex', alignItems: 'baseline', gap: 7, padding: '6px 14px', minWidth: 0, boxShadow: 'inset 0 -1px 0 var(--c-cardBd)' }}>
+                  <span style={{ fontFamily: FN, fontSize: 10, color: C.td, width: 16, flexShrink: 0, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{i + 1}</span>
+                  <span style={{ fontSize: isHebrew(name) ? 15 : 12, color: C.tx, lineHeight: 1.35, flex: 1, minWidth: 0, overflowWrap: 'break-word' }}>{name}</span>
+                  <span style={{ fontFamily: FN, fontSize: 10, color: C.tm, flexShrink: 0, minWidth: 52, textAlign: 'right', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{rx}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+      {/* Days. auto-fit + minmax is what makes "one screen" hold for 2 days or
+          7. `stretch` (not `start`) is what stops the ragged bottom edge: cards
+          on the same row end level, so the grid reads as a grid instead of a
+          pile of different-length boxes. */}
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(min(200px, 100%), 1fr))`, gap: 10, alignItems: 'stretch' }}>
+        {days.map((d, i) => {
+          const list = d.exercises || d.ex || [];
+          return card(
+            d.id || `d${i}`,
+            d.name || d.title || `Day ${i + 1}`,
+            list,
+            list.map(exRow(list)),
+            onJumpToDay ? () => onJumpToDay(i) : null,
+            null,
+          );
+        })}
+      </div>
     </div>
   );
 }
