@@ -31,7 +31,7 @@ function DormantWhatsAppButton({ trainee, days }) {
   return <WhatsAppCheckInButton name={target.name} phone={target.phone} gender={target.gender} days={days} />;
 }
 
-export default function DashboardView({ isOwner = true, trainees = [], planCounts, workouts = [], clientWorkouts = [], payments = [], presence, onSelectTrainee, onOpenTasksTab, onCreatePlanForTask, onOpenIntakeTab, onOpenWaitlist, onOpenReviewWorkout }) {
+export default function DashboardView({ isOwner = true, trainees = [], planCounts, workouts = [], clientWorkouts = [], payments = [], presence, onSelectTrainee, onOpenTraineeMessages, onOpenTasksTab, onCreatePlanForTask, onOpenIntakeTab, onOpenWaitlist, onOpenReviewWorkout }) {
   // Staff (non-owner, e.g. Yuval a masseur) share Ohad's clients but not his
   // money: every revenue / pricing / leads surface below is gated on isOwner.
   // What stays: client-engagement signals (active count, low sessions, online,
@@ -674,7 +674,7 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
           ("what should I do?") and the alerts grid ("what is the system
           flagging?"). Always renders so the dashboard has a permanent
           home for athlete↔coach communication. */}
-      <MessagesCard trainees={trainees} onSelectTrainee={onSelectTrainee} />
+      <MessagesCard trainees={trainees} onSelectTrainee={onSelectTrainee} onOpenMessages={onOpenTraineeMessages} />
 
       {/* Alert sections — Overdue + New Leads stack as one cell so leads
           sits directly beneath overdue (Ohad's eye-tracks money first, then

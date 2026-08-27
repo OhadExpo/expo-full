@@ -1014,14 +1014,22 @@ function AuthedApp() {
   }, [tL, isClient, isTrainer]);
 
   // Sync URL when tab or trainee changes (coach mode only)
-  const updateURL = useCallback((newTab, newTrainee) => {
+  // `hash` lets a caller deep-link to a SECTION of the destination, e.g.
+  // navTo('trainees', id, 'messages'). TraineeDetail's section filter is driven
+  // by the URL hash, and pushing a bare pathname silently drops it — which is
+  // why clicking a dashboard message landed on the athlete page with no
+  // messages in sight (Ohad).
+  const updateURL = useCallback((newTab, newTrainee, hash = '') => {
     if (tab === 'client' && !isCoach) return;
     // URL writes the canonical "athletes" segment now; internal tab key
     // stays "trainees" so the rest of AuthedApp doesn't have to be touched.
     const tabUrl = {dashboard:'dashboard',trainees:'athletes',plans:'programs',exercises:'exercises',exerciseMatching:'exercise-matching',exerciseClassify:'exercise-classify',exerciseCleanup:'exercise-cleanup',review:'review',reviewTools:'review-tools',workouts:'workouts',sessions:'sessions',sessionsSolo:'sessions-single',intake:'intake',waitlist:'waitlist',chatAudit:'chat-audit',smartImport:'smart-import',tasks:'tasks',bugs:'bugs',challenges:'challenges',calendar:'calendar',billing:'billing',bhbc:'bhbc'};
     let path = '/coach/' + (tabUrl[newTab] || 'dashboard');
     if (newTab === 'trainees' && newTrainee) path += '/' + newTrainee;
-    if (window.location.pathname !== path) window.history.pushState(null, '', path);
+    const want = path + (hash ? '#' + hash : '');
+    // Compare pathname+hash, not pathname alone: navigating to the SAME athlete
+    // with a different section hash is a real navigation and must still push.
+    if (window.location.pathname + window.location.hash !== want) window.history.pushState(null, '', want);
   }, [tab, isCoach]);
 
   // Handle browser back/forward
@@ -1066,7 +1074,7 @@ function AuthedApp() {
     if (window.location.pathname !== path) window.history.pushState(null, '', path);
   }, [previewPlan]);
 
-  const navTo = useCallback((newTab, newTrainee) => {
+  const navTo = useCallback((newTab, newTrainee, hash) => {
     // Staff (non-owner coach) can never navigate to an owner-only tab — not even
     // via a cross-tab action button surfaced on their dashboard/tasks (e.g. a
     // task's "open program"/"open athlete"/"review"). Without this, such a click
@@ -1076,7 +1084,7 @@ function AuthedApp() {
     if (isCoach && !isOwner && newTab && !STAFF_TABS.includes(newTab)) return;
     setTab(newTab);
     setSelectedTrainee(newTrainee || null);
-    updateURL(newTab, newTrainee);
+    updateURL(newTab, newTrainee, hash);
   }, [updateURL, isCoach, isOwner]);
 
   // Stable ref for MemoReview — an inline arrow here would defeat its memo.
@@ -1488,7 +1496,7 @@ function AuthedApp() {
               back on the programs list. tab + trainee already reset a stuck
               recovery card on navigation. */}
           <ErrorBoundary key={`${tab}:${selectedTrainee||''}:${previewTrainee||''}`} inline>
-          {tab==="dashboard"&&<DashboardView isOwner={isOwner} trainees={trainees} planCounts={planCounts} workouts={workouts} clientWorkouts={clientWorkouts} payments={payments} presence={presence} onSelectTrainee={id=>navTo("trainees",id)} onOpenTasksTab={()=>navTo("tasks")} onCreatePlanForTask={()=>navTo("plans")} onOpenIntakeTab={()=>navTo("intake")} onOpenWaitlist={()=>navTo("waitlist")} onOpenReviewWorkout={id=>{try{sessionStorage.setItem('expo-pendingReviewWorkout',id);}catch{} navTo("review");}}/>}
+          {tab==="dashboard"&&<DashboardView isOwner={isOwner} trainees={trainees} planCounts={planCounts} workouts={workouts} clientWorkouts={clientWorkouts} payments={payments} presence={presence} onSelectTrainee={id=>navTo("trainees",id)} onOpenTraineeMessages={id=>navTo("trainees",id,"messages")} onOpenTasksTab={()=>navTo("tasks")} onCreatePlanForTask={()=>navTo("plans")} onOpenIntakeTab={()=>navTo("intake")} onOpenWaitlist={()=>navTo("waitlist")} onOpenReviewWorkout={id=>{try{sessionStorage.setItem('expo-pendingReviewWorkout',id);}catch{} navTo("review");}}/>}
           {tab==="waitlist"&&<WaitlistView trainees={trainees}/>}
           {tab==="intake"&&<IntakeView trainees={trainees}/>}
           {tab==="chatAudit"&&<ChatAuditView/>}

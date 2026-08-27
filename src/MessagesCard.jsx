@@ -38,7 +38,7 @@ const ago = (iso) => {
   return `${Math.floor(d / 7)}w`;
 };
 
-export default function MessagesCard({ trainees, onSelectTrainee }) {
+export default function MessagesCard({ trainees, onSelectTrainee, onOpenMessages }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [seenAt, setSeenAt] = useState(() => {
@@ -298,7 +298,12 @@ export default function MessagesCard({ trainees, onSelectTrainee }) {
             return (
               <div
                 key={r.id}
-                onClick={() => onSelectTrainee?.(parentFor(r.trainee_id))}
+                // Open the athlete ON their messages, not just on their page.
+                // Clicking a message and landing on the top of the athlete
+                // record - with the thread four sections further down - is not
+                // opening the message (Ohad). onOpenMessages deep-links to the
+                // #messages section; falls back to the plain open if absent.
+                onClick={() => (onOpenMessages || onSelectTrainee)?.(parentFor(r.trainee_id))}
                 style={{
                   display: 'grid',
                   gridTemplateColumns: '36px 1fr auto',
