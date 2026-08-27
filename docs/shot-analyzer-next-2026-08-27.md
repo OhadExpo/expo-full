@@ -109,6 +109,48 @@ look at them. That is a visual question and it needs eyes, not more inference �
 and it is now cheap, because a deterministic run reproduces those exact frames
 every time.
 
+### ROOT CAUSE, found by looking at the actual frames
+
+I dumped the real video frames around shot 4 and looked at them. The answer was
+not in any of my three hypotheses.
+
+**There are TWO balls in the air during shot 4's tracking window.**
+
+```
+t=14083  (the frame detected as shot 4's RELEASE)
+         - an orange ball is ALREADY high at y≈0.29, x≈0.40, against the night sky
+         - the shooter is holding a SECOND ball at chest height, hands together
+t=14283  - shooter's arm is extended, hands empty
+         - the airborne ball has drifted LEFT to x≈0.32, still y≈0.297
+t=14383  - shooter's arm is coming down
+         - the airborne ball is at x≈0.28, y≈0.30, heading for the rim
+```
+
+The airborne ball moves **left toward the hoop at a near-constant height**. That
+is a ball at its APEX, from a release that happened *before* 14083. He is
+shooting a sequence with more than one ball: the previous shot is still in flight
+when the next one begins.
+
+So the tracker is not failing to see the ball. It is seeing **the wrong ball** —
+the previous shot's, which by definition barely rises because it is already at
+the top of its arc. Hence "it barely rose (0.2 ball widths)" on a rep where the
+ball is plainly visible in every frame.
+
+This also explains why the blob-size sweep could not help: the wrong ball is a
+perfectly good, well-fitting arc. It is just not this shot's.
+
+**Where to fix it.** `trackBall`'s origin constraint (`maxOriginBalls`) exists
+precisely to reject an arc that does not start at the hand, and the stats show
+it rejecting 6–14 candidates per attempt. It is not rejecting this one, either
+because the tracking window opens before the release (so the previous ball is
+near the hand at some frame), or because the tolerance is wide enough for it to
+pass. Start by logging which frame the winning arc seeds from, and how far that
+seed is from the wrist.
+
+**Why the other ten shots are fine:** in those, the previous ball has already
+landed by the time the next release begins. Shot 4 is the one rep where two
+balls overlap — which is also why no amount of capture improvement fixed it.
+
 ## SECOND GAP — the count is not deterministic. This is the bigger one.
 
 Three runs of the SAME clip, same build, minutes apart:
