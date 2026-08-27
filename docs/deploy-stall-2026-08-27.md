@@ -23,8 +23,10 @@ Guarded so it cannot recur: `scripts/verify-lockfile-sync.mjs` runs inside
 
 ## Still stuck, and it is not our side
 
-Since that deploy landed at ~00:46, **68 commits** have reached GitHub and
-**none has deployed** (counted: `git log --oneline 015b694..HEAD`). As of 02:23 prod still serves `Bd9iKZxz`.
+Since that deploy landed at ~00:46, **85 commits** have reached GitHub and
+**none has deployed** (counted: `git log --oneline 015b694..HEAD`, re-counted at
+05:05 — it read 68 earlier in the night and the number kept moving). As of
+**05:05** prod still serves `Bd9iKZxz`.
 
 What I ruled out, each by testing rather than reasoning:
 
