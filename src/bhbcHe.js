@@ -188,6 +188,9 @@ Object.assign(HE, {
   // 'מול' is what a coach says before an opponent — 'נגד' is combative.
   vs: 'מול',
   'Pre-season': 'טרום עונה',
+  'no focus yet': 'עוד אין פוקוס',
+  logged: 'נרשמו',
+  'No sessions scheduled.': 'אין אימונים מתוכננים.',
   PRE_SEASON: 'טרום עונה',
 });
 

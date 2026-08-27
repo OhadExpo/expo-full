@@ -2054,7 +2054,7 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, planOf }
 
   return (
     <Card padding={18} leftStripe={NAVY} header={secTitle('Past practices')}
-      headerRight={<span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>{past.length} logged</span>}>
+      headerRight={<span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>{past.length} {tr('logged')}</span>}>
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         {past.slice(0, limit).map((f) => {
           const key = `${f.date}|${f.start || ''}`;
@@ -2123,6 +2123,7 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, planOf }
 }
 
 function WeekPlanner({ fixtures = [], today, planOf, onSavePlan, onUpsert, onRemove }) {
+  const he = useHe();
   const tr = useT();
   // 'rows' (the original vertical list) or 'columns' (the week as day columns).
   // Persisted per coach — a layout preference you have to re-pick every visit
@@ -2167,14 +2168,14 @@ function WeekPlanner({ fixtures = [], today, planOf, onSavePlan, onUpsert, onRem
   const TYPES = [['lift', 'Weights'], ['practice', 'Practice'], ['game', 'Game']];
 
   return (
-    <CollapsibleSection title={tr("Week Planner")} count={`${weekCount} sessions · ${liftCount} S&C`} storageKey="bhbc-week-planner" defaultOpen leftStripe={ORANGE}>
+    <CollapsibleSection title={tr("Week Planner")} count={he ? `${weekCount} אימונים · ${liftCount} כוח` : `${weekCount} sessions · ${liftCount} S&C`} storageKey="bhbc-week-planner" defaultOpen leftStripe={ORANGE}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
         <button onClick={() => shiftWeek(-1)} className="bhbc-ghost-btn" style={{ ...inp, cursor: 'pointer', fontWeight: 700 }}>‹</button>
         <span style={{ fontFamily: FN, fontSize: 11.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tx }}>
           {monDay(days[0])} – {monDay(days[6])}
         </span>
         <button onClick={() => shiftWeek(1)} className="bhbc-ghost-btn" style={{ ...inp, cursor: 'pointer', fontWeight: 700 }}>›</button>
-        <button onClick={() => setAnchor(today)} className="bhbc-ghost-btn" style={{ ...inp, cursor: 'pointer', fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase' }}>This week</button>
+        <button onClick={() => setAnchor(today)} className="bhbc-ghost-btn" style={{ ...inp, cursor: 'pointer', fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{tr('This week')}</button>
         {/* Layout choice (Ohad: "an option for a horizontal layout for the days
             in addition the vertical"). Rows read well for a week with a few
             long sessions; columns show the SHAPE of the week - which days are
@@ -2184,9 +2185,9 @@ function WeekPlanner({ fixtures = [], today, planOf, onSavePlan, onUpsert, onRem
           className="bhbc-ghost-btn"
           title={wpLayout === 'columns' ? 'Switch to a vertical list of days' : 'Switch to seven day columns'}
           style={{ ...inp, cursor: 'pointer', fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', minWidth: 104, textAlign: 'center' }}>
-          {wpLayout === 'columns' ? '▤ Rows' : '▥ Columns'}
+          {wpLayout === 'columns' ? `▤ ${tr('Rows')}` : `▥ ${tr('Columns')}`}
         </button>
-        <span style={{ marginLeft: 'auto', fontFamily: FB, fontSize: 11.5, color: C.td }}>Write the session, then its focus — it shows on Today, the Head Coach Report and the practice log.</span>
+        <span style={{ marginLeft: 'auto', fontFamily: FB, fontSize: 11.5, color: C.td }}>{he ? 'תכתוב את האימון, ואז את הפוקוס. זה מופיע בהיום ובדוח למאמן.' : 'Write the session, then its focus — it shows on Today, the Head Coach Report and the practice log.'}</span>
       </div>
 
       <div style={horizontalWeek
@@ -2207,7 +2208,7 @@ function WeekPlanner({ fixtures = [], today, planOf, onSavePlan, onUpsert, onRem
               </div>
               <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 5 }}>
                 {list.length === 0 && (!editing || editing.date !== d) && (
-                  <span style={{ fontFamily: FB, fontSize: 11.5, color: C.td, fontStyle: 'italic' }}>No sessions</span>
+                  <span style={{ fontFamily: FB, fontSize: 11.5, color: C.td, fontStyle: 'italic' }}>{tr('No sessions')}</span>
                 )}
                 {list.map((f, i) => {
                   const p = planOf ? planOf(f) : null;
@@ -2219,7 +2220,7 @@ function WeekPlanner({ fixtures = [], today, planOf, onSavePlan, onUpsert, onRem
                       <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm }}>{fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')}</span>
                       <span style={{ fontFamily: FN, fontSize: 11, color: C.td }}>{f.minutes ? `${f.minutes} ${tr('min')}` : ''}</span>
                       {p && p.focus ? <span style={{ fontFamily: FB, fontSize: 12, color: C.tx, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>· {p.focus}</span>
-                        : <span style={{ fontFamily: FB, fontSize: 11.5, color: C.td, fontStyle: 'italic' }}>· no focus yet</span>}
+                        : <span style={{ fontFamily: FB, fontSize: 11.5, color: C.td, fontStyle: 'italic' }}>· {tr('no focus yet')}</span>}
                       {onUpsert && <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 4 }}>
                         <button onClick={() => startEdit(d, f)} className="bhbc-ghost-btn" title="Edit session" style={{ fontFamily: FN, fontSize: 10, color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '2px 8px', cursor: 'pointer' }}>✎</button>
                         <button onClick={() => onRemove(f)} className="bhbc-ghost-btn" title="Remove session" style={{ fontFamily: FN, fontSize: 10, color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '2px 8px', cursor: 'pointer' }}>✕</button>
@@ -2251,7 +2252,7 @@ function WeekPlanner({ fixtures = [], today, planOf, onSavePlan, onUpsert, onRem
           );
         })}
       </div>
-      <div style={{ ...lab, marginTop: 10 }}>S&C sessions are the “Weights” rows — they carry the team focus the whole squad trains that day.</div>
+      <div style={{ ...lab, marginTop: 10 }}>{he ? 'שורות הכוח הן אימוני ה-S&C. הפוקוס שלהן הוא מה שכל הסגל עושה באותו יום.' : 'S&C sessions are the “Weights” rows — they carry the team focus the whole squad trains that day.'}</div>
     </CollapsibleSection>
   );
 }
