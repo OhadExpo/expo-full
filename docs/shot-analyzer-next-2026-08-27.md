@@ -215,6 +215,41 @@ Worth noting shot 1 also has a second ball in frame, resting on the ground by hi
 feet. That one is harmless: it is stationary, so frame-differencing never
 produces a blob for it. Only a MOVING second ball causes this.
 
+### Window start alone does not fix it either — and why the fixture cannot close this
+
+`node scripts/probe-ball-window.mjs scripts/fixtures/ball-rejected-det1.json`
+sweeps the window start against the origin threshold:
+
+```
+dropFirst  t0      maxOrigin   n    result
+    0     14083       9       20   REFUSED: it barely rose (0.2 ball widths)
+    0     14083       5        6   REFUSED: not falling like a projectile
+    8     14283       9       11   REFUSED: it barely rose (0.0 ball widths)
+    8     14283       5        -   no track
+   10     14333       5        -   no track
+```
+
+No combination produces a valid arc. Either the previous ball wins, or nothing
+tracks at all.
+
+**But the probe cannot settle this, and the reason is a fixture limitation worth
+fixing before the next attempt.** The fixture stores ONE wrist position — the one
+at the detected release (t=14083). By t=14283 his arm has fully extended and the
+wrist has moved a long way. So every "distance from the hand" the probe computes
+after 14083 is measured against a stale hand position, which is exactly why
+`maxOrigin=5` reports "no track" from t=14283 onward: the real seed IS near his
+hand at that moment, just not near where his hand used to be.
+
+**Next step, concretely:** make `shot-harness.html` dump `series.raw.wristPos`
+for the whole window alongside the blobs, not a single point
+(`ballDebugFailed.wrist` → `wristTrack`). Then the origin constraint can be
+evaluated per frame, the way `trackBall` actually does it inside the app, and
+these two probes become conclusive instead of suggestive.
+
+That is a ten-minute change and one harness run. Until then, treat the origin and
+window numbers above as **not yet decisive** — the mechanism (two balls, wrong
+one chosen) is established from the frames; the right thresholds are not.
+
 ## SECOND GAP — the count is not deterministic. This is the bigger one.
 
 Three runs of the SAME clip, same build, minutes apart:
