@@ -35,10 +35,17 @@ check('a stranger may NOT edit medical', canEditMedical(STRANGER) === false);
 check('staff may NOT edit medical', canEditMedical(STAFF_EMAILS[0]) === false);
 check('the partner may NOT edit medical', canEditMedical(PARTNER_EMAILS[0]) === false);
 
-// --- exactly one PT, and he is a BHBC coach -------------------------------
-check('there is exactly one PT', PT_EMAILS.length === 1);
-check('the PT is also a BHBC coach', BHBC_COACH_EMAILS.includes(PT_EMAILS[0]));
-check('no other BHBC coach is a PT', BHBC_COACH_EMAILS.filter(isPtEmail).length === 1);
+// --- the PTs, and they are BHBC coaches -----------------------------------
+// There were two PTs from 2026-08-27 (Yoel, Tomer). The count is not the
+// invariant worth asserting - these are the ones that actually matter:
+check('there is at least one PT', PT_EMAILS.length >= 1);
+// A PT who is not in the coach list gets medical rights without the zone they
+// live in, which is a half-provisioned account.
+check('EVERY PT is also a BHBC coach', PT_EMAILS.every((e) => BHBC_COACH_EMAILS.includes(e)));
+// And the read-only coaches must still exist, or the medical board is editable
+// by everyone and the whole distinction is gone.
+check('not every BHBC coach is a PT', BHBC_COACH_EMAILS.some((e) => !isPtEmail(e)));
+check('the PT count matches the coaches flagged as PT', BHBC_COACH_EMAILS.filter(isPtEmail).length === PT_EMAILS.length);
 
 // --- case and junk must not open a door -----------------------------------
 check('an upper-case PT address still matches', isPtEmail('YOEL23919@GMAIL.COM') === true);

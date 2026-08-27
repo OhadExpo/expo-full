@@ -20,8 +20,11 @@
 export const OWNER_EMAILS = ['ohadyproductions@gmail.com'];
 export const STAFF_EMAILS = ['yuvalberkovitch@gmail.com'];
 export const PARTNER_EMAILS = ['eladeluz24@gmail.com'];
-export const BHBC_COACH_EMAILS = ['benshemer4@gmail.com', 'elishai115@gmail.com', 'yehuorland@gmail.com', 'yoel23919@gmail.com'];
-export const PT_EMAILS = ['yoel23919@gmail.com'];
+export const BHBC_COACH_EMAILS = ['benshemer4@gmail.com', 'elishai115@gmail.com', 'yehuorland@gmail.com', 'yoel23919@gmail.com', 'tomerlich11@gmail.com'];
+// A PT is also a coach — every PT_EMAIL must appear in BHBC_COACH_EMAILS above,
+// or they get medical rights without the zone they live in. verify-auth-roles
+// asserts that, so the two lists cannot drift apart.
+export const PT_EMAILS = ['yoel23919@gmail.com', 'tomerlich11@gmail.com'];
 
 // Everyone who gets coach-portal access at all. Existing
 // `TRAINER_EMAILS.includes(...)` checks stay correct because staff ARE trainers.

@@ -167,7 +167,9 @@ const LOGIN_BRANDS = {
     ink: '#14294F',
     theme: 'light',
     bg: 'linear-gradient(180deg, #FFFFFF 0%, #F3F5F9 100%)',
-    eyebrow: 'Bnei Herzliya · S&C Staff',
+    // "Coaches & Staff", not "S&C Staff": the door is for the club's coaches as
+    // well as the S&C team, and the old label read as if it were S&C-only (Ohad).
+    eyebrow: 'Bnei Herzliya · Coaches & Staff',
     sub: 'Coach sign-in',
     foot: 'Staff access is provisioned by the S&C team.',
     home: '/bhbc',

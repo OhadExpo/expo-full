@@ -13,8 +13,9 @@
 
 import React, { useMemo, useState, useEffect, useCallback, Suspense, lazy } from 'react';
 import { C, FN, FB } from './theme';
-import { Card, CollapsibleSection, Btn, Input, Modal, EmptyState, toast } from './ui';
+import { Card, CollapsibleSection, Btn, Input, Modal, EmptyState, toast, usePersistentState } from './ui';
 import { ThemeToggle } from './ThemeToggle';
+import { useTheme } from './hooks/useTheme';
 import { acwrFromDaily, sessionLoad, monotonyStrain } from './acwrEngine';
 import { readinessAutoreg } from './readinessAutoreg';
 import BWChart from './BwChart';
@@ -29,6 +30,12 @@ const SessionsView = lazy(() => import('./SessionsView'));
 const CoachPreviewPortal = lazy(() => import('./CoachPreviewPortal'));
 
 const NAVY = '#1E3D74', NAVY_DEEP = '#14294F', ORANGE = '#F26A2B', ORANGE_DEEP = '#D9541A';
+// One ink + one hairline for every control in the header's right-hand cluster
+// (theme toggle, Sign out, ‹ EXPO, Preview as coach). They were drifting apart
+// — Sign out at 0.7 next to a toggle at 0.85 — which reads as two different
+// control families sitting side by side.
+const HDR_INK = 'rgba(255,255,255,0.85)';
+const HDR_BD = 'rgba(255,255,255,0.18)';
 // Understated dark-navy header bar (EXPO-header feel, not a loud bright-navy block).
 const HDR_BG = '#0E1C38';
 // Scoped theme override — reskins EXPO's components to BHBC while keeping their
@@ -139,6 +146,17 @@ const Jersey = ({ n, size = 30 }) => (
 // ---- component ----
 
 export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, setBhbcLoads, bhbcFixtures = [], setBhbcFixtures, league = {}, medical = {}, setMedical, sessionPlans = {}, setSessionPlans, planIndex = [], exercises = [], clientWorkouts = [], setClientWorkouts, workouts = [], setWorkouts, onDecrementSession, portalVis = {}, bwLog = [], weeklyFocus = {}, onOpenTrainee, onExit, coach = false, onSignOut, canMedical = true, onLocalWrite }) {
+  // The club zone OPENS WHITE, always (Ohad). The crest and the navy/orange
+  // palette were built on white, and a coach arriving in whatever theme the
+  // last session left behind saw a different club. Forced once on mount, not
+  // on every render — the toggle in the header still works, so a coach who
+  // deliberately switches to dark inside the zone keeps it for the session.
+  const { setTheme: setZoneTheme } = useTheme();
+  useEffect(() => {
+    setZoneTheme('light');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Broadcast a change to other open zones after any local write (shared-sheet sync).
   const notify = useCallback(() => { if (onLocalWrite) onLocalWrite(); }, [onLocalWrite]);
   const [manageOpen, setManageOpen] = useState(false);
@@ -540,8 +558,15 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
             <img src="/bnei-herzliya-logo-w.png" alt="Bnei Herzliya BC" style={{ height: 30, width: 'auto', display: 'block' }} />
             {/* Wordmark on ONE line (Ohad: no stacked text in the top menu). */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 11, whiteSpace: 'nowrap' }}>
-              <span style={{ fontFamily: FN, fontWeight: 800, fontSize: 13.5, color: '#fff', letterSpacing: '0.02em' }}>BNEI HERZLIYA</span>
-              <span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.08em', color: ORANGE, fontVariantNumeric: 'tabular-nums' }}>2026/27</span>
+              {/* lineHeight:1 on BOTH, or they do not sit on the same line:
+                  alignItems:center centres each span's BOX, and at 13.5px vs
+                  11px the default line-heights give the two boxes different
+                  heights, so the smaller text lands visibly high (Ohad: "the
+                  2026/2027 is not vertically centered"). With line-height
+                  pinned to the glyph size, centring the boxes centres the text.
+                  Season bumped 9.5 → 11 ("slightly too small"). */}
+              <span style={{ fontFamily: FN, fontWeight: 800, fontSize: 13.5, lineHeight: 1, color: '#fff', letterSpacing: '0.02em' }}>BNEI HERZLIYA</span>
+              <span style={{ fontFamily: FN, fontSize: 11, lineHeight: 1, fontWeight: 700, letterSpacing: '0.08em', color: ORANGE, fontVariantNumeric: 'tabular-nums' }}>2026/27</span>
             </div>
           </div>
           {/* Understated EXPO-style nav: tight left-aligned small tabs, active tab is
@@ -557,11 +582,16 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
               );
             })}
           </nav>
+          {/* One ink for EVERY control in this cluster. Sign out was
+              rgba(255,255,255,0.7) while the theme toggle was 0.85, so they
+              read as two different families sitting next to each other
+              (Ohad: "make sure the sign out and the light/dark mode are the
+              same color"). HDR_INK/HDR_BD are defined once at module scope. */}
           <div className="bhbc-header-ctrl" style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, marginLeft: 'auto' }}>
-            {!coach && <button onClick={() => setPreviewCoach((v) => !v)} className="bhbc-tab" title="See exactly what your BHBC coaches see" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: previewCoach ? '#fff' : 'rgba(255,255,255,0.7)', background: previewCoach ? ORANGE : 'transparent', border: `1px solid ${previewCoach ? ORANGE : 'rgba(255,255,255,0.18)'}`, borderRadius: 0, padding: '6px 11px', cursor: 'pointer' }}>{previewCoach ? '● Coach view' : '◉ Preview as coach'}</button>}
-            <ThemeToggle size={28} style={{ color: 'rgba(255,255,255,0.85)', border: '1px solid rgba(255,255,255,0.18)' }} />
-            {onExit && !previewCoach && <button onClick={onExit} className="bhbc-tab" title="Back to EXPO coach" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)', background: 'transparent', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 0, padding: '6px 11px', cursor: 'pointer' }}>‹ EXPO</button>}
-            {coach && onSignOut && <button onClick={onSignOut} className="bhbc-tab" title="Sign out" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)', background: 'transparent', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 0, padding: '6px 11px', cursor: 'pointer' }}>Sign out</button>}
+            {!coach && <button onClick={() => setPreviewCoach((v) => !v)} className="bhbc-tab" title="See exactly what your BHBC coaches see" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: previewCoach ? '#fff' : HDR_INK, background: previewCoach ? ORANGE : 'transparent', border: `1px solid ${previewCoach ? ORANGE : HDR_BD}`, borderRadius: 0, padding: '6px 11px', cursor: 'pointer' }}>{previewCoach ? '● Coach view' : '◉ Preview as coach'}</button>}
+            <ThemeToggle size={28} style={{ color: HDR_INK, border: `1px solid ${HDR_BD}` }} />
+            {onExit && !previewCoach && <button onClick={onExit} className="bhbc-tab" title="Back to EXPO coach" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: HDR_INK, background: 'transparent', border: `1px solid ${HDR_BD}`, borderRadius: 0, padding: '6px 11px', cursor: 'pointer' }}>‹ EXPO</button>}
+            {coach && onSignOut && <button onClick={onSignOut} className="bhbc-tab" title="Sign out" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: HDR_INK, background: 'transparent', border: `1px solid ${HDR_BD}`, borderRadius: 0, padding: '6px 11px', cursor: 'pointer' }}>Sign out</button>}
           </div>
         </div>
       </header>
@@ -2031,6 +2061,11 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, planOf }
 }
 
 function WeekPlanner({ fixtures = [], today, planOf, onSavePlan, onUpsert, onRemove }) {
+  // 'rows' (the original vertical list) or 'columns' (the week as day columns).
+  // Persisted per coach — a layout preference you have to re-pick every visit
+  // is not a preference.
+  const [wpLayout, setWpLayout] = usePersistentState('bhbc-week-layout', 'rows');
+  const horizontalWeek = wpLayout === 'columns';
   const isoOfDate = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   const [anchor, setAnchor] = useState(today);
   const [editing, setEditing] = useState(null); // { orig|null, date, type, start, minutes, focus }
@@ -2077,16 +2112,33 @@ function WeekPlanner({ fixtures = [], today, planOf, onSavePlan, onUpsert, onRem
         </span>
         <button onClick={() => shiftWeek(1)} className="bhbc-ghost-btn" style={{ ...inp, cursor: 'pointer', fontWeight: 700 }}>›</button>
         <button onClick={() => setAnchor(today)} className="bhbc-ghost-btn" style={{ ...inp, cursor: 'pointer', fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase' }}>This week</button>
+        {/* Layout choice (Ohad: "an option for a horizontal layout for the days
+            in addition the vertical"). Rows read well for a week with a few
+            long sessions; columns show the SHAPE of the week - which days are
+            loaded and which are empty - at a glance. Persisted, and the label
+            is fixed-width so the control never resizes as it toggles. */}
+        <button onClick={() => setWpLayout(wpLayout === 'columns' ? 'rows' : 'columns')}
+          className="bhbc-ghost-btn"
+          title={wpLayout === 'columns' ? 'Switch to a vertical list of days' : 'Switch to seven day columns'}
+          style={{ ...inp, cursor: 'pointer', fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', minWidth: 104, textAlign: 'center' }}>
+          {wpLayout === 'columns' ? '▤ Rows' : '▥ Columns'}
+        </button>
         <span style={{ marginLeft: 'auto', fontFamily: FB, fontSize: 11.5, color: C.td }}>Write the session, then its focus — it shows on Today, the Head Coach Report and the practice log.</span>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <div style={horizontalWeek
+        // auto-fit rather than a hard 7 columns: on a narrow screen the week
+        // reflows to 3-4 columns instead of squeezing seven unreadable ones.
+        ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(148px, 1fr))', gap: 8, alignItems: 'stretch' }
+        : { display: 'flex', flexDirection: 'column' }}>
         {days.map((d) => {
           const list = byDay[d] || [];
           const isToday = d === today;
           return (
-            <div key={d} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '9px 0', borderTop: `0.25px solid ${C.cardBd}`, background: isToday ? 'color-mix(in srgb, var(--c-ac) 6%, transparent)' : 'transparent' }}>
-              <div style={{ width: 86, flexShrink: 0, paddingTop: 3 }}>
+            <div key={d} style={horizontalWeek
+              ? { display: 'flex', flexDirection: 'column', gap: 6, padding: '8px 9px', border: `1px solid ${C.cardBd}`, borderTop: `2px solid ${isToday ? ORANGE : 'transparent'}`, background: isToday ? 'color-mix(in srgb, var(--c-ac) 6%, transparent)' : 'transparent', minWidth: 0 }
+              : { display: 'flex', gap: 12, alignItems: 'flex-start', padding: '9px 0', borderTop: `0.25px solid ${C.cardBd}`, background: isToday ? 'color-mix(in srgb, var(--c-ac) 6%, transparent)' : 'transparent' }}>
+              <div style={horizontalWeek ? { flexShrink: 0 } : { width: 86, flexShrink: 0, paddingTop: 3 }}>
                 <div style={{ fontFamily: FN, fontSize: 11.5, fontWeight: 700, color: isToday ? ORANGE_DEEP : C.tx }}>{dow(d)}</div>
                 <div style={{ fontFamily: FN, fontSize: 10, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{monDay(d)}</div>
               </div>
