@@ -35,6 +35,12 @@ const NAVY = '#1E3D74', NAVY_DEEP = '#14294F', ORANGE = '#F26A2B', ORANGE_DEEP =
 // (theme toggle, Sign out, ‹ EXPO, Preview as coach). They were drifting apart
 // — Sign out at 0.7 next to a toggle at 0.85 — which reads as two different
 // control families sitting side by side.
+// One height for every control in the zone header row. Fixed box + centred
+// content, so Hebrew and English sit identically inside it.
+const HDR_BTN_H = 28;
+// One height for an action sitting inside a card ROW (+ Report, View ›,
+// UPDATE, MED ✎). They do the same job, so they are the same size.
+const ROW_BTN_H = 26;
 const HDR_INK = 'rgba(255,255,255,0.85)';
 const HDR_BD = 'rgba(255,255,255,0.18)';
 // Understated dark-navy header bar (EXPO-header feel, not a loud bright-navy block).
@@ -601,7 +607,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
             {roster.length > 0 && NAV_TABS.map(([k, label]) => {
               const on = view === k;
               return (
-                <button key={k} onClick={() => setView(k)} className={on ? undefined : 'bhbc-tab'} style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: on ? '#fff' : 'rgba(255,255,255,0.5)', background: 'transparent', border: `1px solid ${on ? ORANGE : 'transparent'}`, borderRadius: 0, padding: '6px 11px', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'color .12s, border-color .12s' }}>{label}</button>
+                <button key={k} onClick={() => setView(k)} className={on ? undefined : 'bhbc-tab'} style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: on ? '#fff' : 'rgba(255,255,255,0.5)', background: 'transparent', border: `1px solid ${on ? ORANGE : 'transparent'}`, borderRadius: 0, height: HDR_BTN_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, padding: '0 11px', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'color .12s, border-color .12s' }}>{label}</button>
               );
             })}
           </nav>
@@ -611,19 +617,19 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
               (Ohad: "make sure the sign out and the light/dark mode are the
               same color"). HDR_INK/HDR_BD are defined once at module scope. */}
           <div className="bhbc-header-ctrl" style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, marginLeft: 'auto' }}>
-            {!coach && <button onClick={() => setPreviewCoach((v) => !v)} className="bhbc-tab" title="See exactly what your BHBC coaches see" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: previewCoach ? '#fff' : HDR_INK, background: previewCoach ? ORANGE : 'transparent', border: `1px solid ${previewCoach ? ORANGE : HDR_BD}`, borderRadius: 0, padding: '6px 11px', cursor: 'pointer' }}>{previewCoach ? '● Coach view' : '◉ Preview as coach'}</button>}
+            {!coach && <button onClick={() => setPreviewCoach((v) => !v)} className="bhbc-tab" title="See exactly what your BHBC coaches see" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: previewCoach ? '#fff' : HDR_INK, background: previewCoach ? ORANGE : 'transparent', border: `1px solid ${previewCoach ? ORANGE : HDR_BD}`, borderRadius: 0, height: HDR_BTN_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, padding: '0 11px', cursor: 'pointer' }}>{previewCoach ? '● Coach view' : '◉ Preview as coach'}</button>}
             {/* HE / EN. Fixed width so the control does not resize as the
                 label changes — a control that changes size on click reads as a
                 flash bug. Shows the language it will SWITCH TO, which is how a
                 two-state language switch is read. */}
             <button onClick={() => setBhbcLang(he ? 'en' : 'he')}
               title={he ? 'Switch to English' : 'עברית'}
-              style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: HDR_INK, background: 'transparent', border: `1px solid ${HDR_BD}`, borderRadius: 0, height: 28, minWidth: 42, padding: '0 8px', cursor: 'pointer', boxSizing: 'border-box' }}>
+              style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: HDR_INK, background: 'transparent', border: `1px solid ${HDR_BD}`, borderRadius: 0, height: HDR_BTN_H, minWidth: 42, padding: '0 8px', cursor: 'pointer', boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
               {he ? 'EN' : 'עב'}
             </button>
-            <ThemeToggle size={28} style={{ color: HDR_INK, border: `1px solid ${HDR_BD}` }} />
-            {onExit && !previewCoach && <button onClick={onExit} className="bhbc-tab" title="Back to EXPO coach" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: HDR_INK, background: 'transparent', border: `1px solid ${HDR_BD}`, borderRadius: 0, padding: '6px 11px', cursor: 'pointer' }}>{he ? 'EXPO ›' : '‹ EXPO'}</button>}
-            {coach && onSignOut && <button onClick={onSignOut} className="bhbc-tab" title="Sign out" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: HDR_INK, background: 'transparent', border: `1px solid ${HDR_BD}`, borderRadius: 0, padding: '6px 11px', cursor: 'pointer' }}>{tr('Sign out')}</button>}
+            <ThemeToggle size={HDR_BTN_H} style={{ color: HDR_INK, border: `1px solid ${HDR_BD}` }} />
+            {onExit && !previewCoach && <button onClick={onExit} className="bhbc-tab" title="Back to EXPO coach" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: HDR_INK, background: 'transparent', border: `1px solid ${HDR_BD}`, borderRadius: 0, height: HDR_BTN_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, padding: '0 11px', cursor: 'pointer' }}>{he ? 'EXPO ›' : '‹ EXPO'}</button>}
+            {coach && onSignOut && <button onClick={onSignOut} className="bhbc-tab" title="Sign out" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: HDR_INK, background: 'transparent', border: `1px solid ${HDR_BD}`, borderRadius: 0, height: HDR_BTN_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, padding: '0 11px', cursor: 'pointer' }}>{tr('Sign out')}</button>}
           </div>
         </div>
       </header>
@@ -1610,7 +1616,7 @@ function HeadCoachReport({ rows, fx, fixtures, medical, today, onOpen, onMedical
                     <span style={{ color: C.tm, minWidth: 128, flexShrink: 1, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : '', inj.type].filter(Boolean).join(' ')} · {s.label}{inj.rtpTarget ? ` · RTP ${monDay(inj.rtpTarget)}` : ''}</span>
                                       {onMedical && (
                       <button onClick={(e) => { e.stopPropagation(); onMedical(t.id); }} title="Update this medical report" className="bhbc-ghost-btn"
-                        style={{ marginLeft: 'auto', flexShrink: 0, fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.08em', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '3px 7px', cursor: 'pointer' }}>{tr('UPDATE')}</button>
+                        style={{ marginLeft: 'auto', flexShrink: 0, fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.08em', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, height: ROW_BTN_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, padding: '0 9px', cursor: 'pointer' }}>{tr('UPDATE')}</button>
                     )}
 </div>
                 );
@@ -1618,7 +1624,7 @@ function HeadCoachReport({ rows, fx, fixtures, medical, today, onOpen, onMedical
             </div>
           : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
               <span><span style={{ color: '#37B27C', fontFamily: FN, fontWeight: 700 }}>All clear</span> <span style={mut}>— no active injuries.</span></span>
-              {onReportNew && <button onClick={onReportNew} className="bhbc-ghost-btn" style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.08em', color: ORANGE, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '3px 7px', cursor: 'pointer' }}>+ REPORT</button>}
+              {onReportNew && <button onClick={onReportNew} className="bhbc-ghost-btn" style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.08em', color: ORANGE, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, height: ROW_BTN_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, padding: '0 9px', cursor: 'pointer' }}>+ REPORT</button>}
             </span>}
       </Section>
       {/* THIS WEEK — team sessions */}
@@ -1851,7 +1857,7 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, onOpen, onMedical 
                     return (
                       <button onClick={(e) => { e.stopPropagation(); onMedical(t.id); }}
                         title={inj ? 'Update the medical report' : 'Report an injury'} className="bhbc-ghost-btn"
-                        style={{ flexShrink: 0, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: inj ? ((MED_STATUS[inj.status] || {}).color || '#DE4E3B') : C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '4px 8px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                        style={{ flexShrink: 0, height: ROW_BTN_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: inj ? ((MED_STATUS[inj.status] || {}).color || '#DE4E3B') : C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '4px 8px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
                         {inj ? 'MED ✎' : '+ MED'}
                       </button>
                     );
@@ -2713,6 +2719,7 @@ function StatusPill({ status, small, full }) {
 }
 
 function MedicalView({ roster, medical, canMedical = true, onReport, onEdit, onOpen }) {
+  const he = useHe();
   const tr = useT();
   const injured = roster.filter((t) => activeInjuries(medical, t.id).length > 0);
   const cleared = roster.filter((t) => activeInjuries(medical, t.id).length === 0);
@@ -2723,7 +2730,7 @@ function MedicalView({ roster, medical, canMedical = true, onReport, onEdit, onO
     <>
       <Card padding={18} leftStripe={ORANGE} header={secTitle('Medical · Injury Board')} headerRight={<span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>{rows.length} active · {canMedical ? 'Ohad + PT' : 'view only'}</span>}>
         <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap' }}>
-          {[['Out', counts.out, '#DE4E3B'], ['Limited', counts.limited, '#E0A73A'], ['Non-contact', counts.nc, '#4F9DE0'], ['Cleared', cleared.length, '#37B27C']].map(([k, n, c]) => (
+          {[[tr('Out'), counts.out, '#DE4E3B'], [tr('Limited'), counts.limited, '#E0A73A'], [tr('Non-contact'), counts.nc, '#4F9DE0'], [tr('Cleared'), cleared.length, '#37B27C']].map(([k, n, c]) => (
             <div key={k} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               <span style={{ fontFamily: FN, fontSize: 26, fontWeight: 800, color: n ? c : C.tx, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{n}</span>
               <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>{k}</span>
@@ -2770,10 +2777,10 @@ function MedicalView({ roster, medical, canMedical = true, onReport, onEdit, onO
                 {/* colour = signal: a coloured status DOT, calm muted label — not a filled pill. */}
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, minWidth: 96, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap', flexShrink: 0 }}>
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: (MED_STATUS[status] || MED_STATUS.available).color, flexShrink: 0 }} />
-                  {(MED_STATUS[status] || MED_STATUS.available).label}
+                  {tr((MED_STATUS[status] || MED_STATUS.available).label)}
                 </span>
                 {canMedical
-                  ? <button onClick={() => (act.length ? onEdit(t.id, act[0].id) : onReport(t.id))} className="bhbc-ghost-btn" style={{ height: 26, boxSizing: 'border-box', minWidth: 84, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, cursor: 'pointer', flexShrink: 0, transition: 'color .12s, border-color .12s' }}>{act.length ? 'View ›' : '+ Report'}</button>
+                  ? <button onClick={() => (act.length ? onEdit(t.id, act[0].id) : onReport(t.id))} className="bhbc-ghost-btn" style={{ height: 26, boxSizing: 'border-box', minWidth: 84, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, cursor: 'pointer', flexShrink: 0, transition: 'color .12s, border-color .12s' }}>{act.length ? (he ? '‹ צפייה' : 'View ›') : (he ? '+ דיווח' : '+ Report')}</button>
                   : <span style={{ width: 84, flexShrink: 0 }} />}
               </div>
             );

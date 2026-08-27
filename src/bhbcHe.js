@@ -190,6 +190,15 @@ Object.assign(HE, {
   'Pre-season': 'טרום עונה',
   'no focus yet': 'עוד אין פוקוס',
   logged: 'נרשמו',
+  // ---- medical board ----------------------------------------------------
+  'Medical · Injury Board': 'רפואי · לוח פציעות',
+  'Active Injuries': 'פציעות פעילות',
+  'Roster Health': 'מצב הסגל',
+  Out: 'בחוץ',
+  'Non-contact': 'ללא מגע',
+  Cleared: 'כשירים',
+  Available: 'זמין',
+
   'No sessions scheduled.': 'אין אימונים מתוכננים.',
   PRE_SEASON: 'טרום עונה',
 });
