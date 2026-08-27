@@ -3,6 +3,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from './supabase';
 import { enqueue, registerHandler, drain, setOnError } from './offlineQueue';
 import { setOnError as setBlobOnError } from './blobQueue';
+import { checkStoreWrite } from './storeWriteGuard';
 
 // ─────────────────────────────────────────────────────────────
 // Save-error emitter. Every silent `catch {}` around a Supabase
@@ -202,6 +203,19 @@ export function useSupaStore(key, initial) {
   // just-saved value back to the stale server snapshot. This latch is set on the
   // first save/saveLocal and never reset, so the load permanently defers to it.
   const mutatedRef = useRef(false);
+  // DATA-LOSS GUARD (2026-08-27). The exercise library was replaced by a
+  // TWO-ROW array because a save ran before the store had ever loaded: the
+  // picker's "create in library" did setExercises(prev => [...prev, one]) while
+  // `prev` was still the empty initial value, and save() writes the WHOLE
+  // array. 1,326 exercises gone in one click.
+  //
+  // serverLoadedRef: has the server's value for this key actually been applied
+  // (or confirmed absent)? Until it has, this store does not know what it
+  // holds, and writing the whole array destroys data we never read.
+  // serverLenRef: the last array length the SERVER reported — the baseline a
+  // catastrophic shrink is measured against.
+  const serverLoadedRef = useRef(false);
+  const serverLenRef = useRef(null);
 
   // Load from Supabase on mount. On failure, fall back to any localStorage
   // snapshot and surface the error so the caller can show a banner.
@@ -210,14 +224,37 @@ export function useSupaStore(key, initial) {
       try {
         const { data: row, error } = await supabase.from('store').select('value').eq('key', key).maybeSingle();
         if (error) throw error;
-        if (row && row.value !== undefined && !savingRef.current && !mutatedRef.current) {
+        // Record what the SERVER holds before deciding whether to apply it.
+        // This must happen even when the apply is skipped below, because it is
+        // what unlocks writing at all (see the guard in save()).
+        if (row && row.value !== undefined) {
+          serverLenRef.current = Array.isArray(row.value) ? row.value.length : null;
+          serverLoadedRef.current = true;
+        } else if (!error) {
+          // No row for this key: legitimately empty, so writing is safe.
+          serverLoadedRef.current = true;
+          serverLenRef.current = 0;
+        }
+        // A local mutation normally wins over a slow load. But if the local
+        // value is EMPTY and the server has rows, deferring means the store
+        // stays empty forever — which is precisely how one click replaced the
+        // library. An empty local value is not an edit worth protecting.
+        const localIsEmpty = Array.isArray(dataRef.current) && dataRef.current.length === 0;
+        const serverHasRows = Array.isArray(row?.value) && row.value.length > 0;
+        const deferToLocal = (savingRef.current || mutatedRef.current) && !(localIsEmpty && serverHasRows);
+        if (row && row.value !== undefined && !deferToLocal) {
           const val = asShape(row.value);
           if (key === 'expo-exercises') {
             // Yield so React doesn't block on committing a very large list.
             // Re-check savingRef INSIDE the timer: a save dispatched between the
             // outer guard and this macrotask would otherwise be clobbered back to
             // the stale server snapshot (data loss).
-            setTimeout(() => { if (!savingRef.current && !mutatedRef.current) { setData(val); dataRef.current = val; } }, 0);
+            // Same empty-local exception as the outer guard: never leave the
+            // library empty because a mutation beat this macrotask.
+            setTimeout(() => {
+              const emptyNow = Array.isArray(dataRef.current) && dataRef.current.length === 0;
+              if ((!savingRef.current && !mutatedRef.current) || emptyNow) { setData(val); dataRef.current = val; }
+            }, 0);
           } else {
             setData(val);
             dataRef.current = val;
@@ -313,8 +350,28 @@ export function useSupaStore(key, initial) {
   }, [key]);
 
   const save = useCallback(async (next) => {
-    mutatedRef.current = true;
     const val = typeof next === 'function' ? next(dataRef.current) : next;
+
+    // ---- DATA-LOSS GUARD (2026-08-27) ---------------------------------
+    // A save writes the WHOLE array, so it must never run before the store has
+    // been read, and must never accept a value that collapses it. Both rules
+    // live in src/storeWriteGuard.js so they are unit-tested. See that file for
+    // the incident this exists to prevent.
+    const verdict = checkStoreWrite({
+      value: val,
+      serverLoaded: serverLoadedRef.current,
+      serverLen: serverLenRef.current,
+    });
+    if (!verdict.ok) {
+      console.warn(`useSupaStore[${key}] BLOCKED save (${verdict.reason}):`, verdict.message);
+      emitSaveError({ key, op: 'save', msg: verdict.message });
+      return;
+    }
+    // An accepted write becomes the new baseline for the next shrink check.
+    if (Array.isArray(val)) serverLenRef.current = val.length;
+    // -------------------------------------------------------------------
+
+    mutatedRef.current = true;
     setData(val);
     dataRef.current = val;
     if (key !== 'expo-exercises' && key !== 'expo-trainees') {
