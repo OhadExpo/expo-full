@@ -4,8 +4,9 @@
 // changes the count. Diagnostic only — never part of the app build.
 import fs from 'node:fs';
 import puppeteer from 'puppeteer-core';
+import { unmangleArg } from './lib/unmangle.mjs';
 
-const CLIP = process.argv.slice(2).find((a) => !a.startsWith('--')) || '/10%20of%2011.mp4';
+const CLIP = unmangleArg(process.argv.slice(2).find((a) => !a.startsWith('--')) || '/10%20of%2011.mp4');
 const PORT = process.argv[3] || '5199';
 
 // protocolTimeout: a deterministic (seek-stepped) capture can run for many

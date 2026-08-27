@@ -6,6 +6,7 @@
 import puppeteer from 'puppeteer-core';
 import fs from 'node:fs';
 import { signIn, assertAuthed } from './lib/authed-page.mjs';
+import { unmangleArg } from './lib/unmangle.mjs';
 
 const OUT = process.env.AUDIT_OUT || (process.argv[2] || '.');
 const BASE = process.argv[3] || 'http://localhost:5199';
@@ -31,17 +32,7 @@ function routesFromManifest() {
     return [];
   }
 }
-// Git Bash rewrites a bare "/login" argument into "C:/Program Files/Git/login"
-// before node ever sees it (MSYS path conversion). That turned an explicit
-// re-run of four routes into four "Cannot navigate to invalid URL" errors that
-// looked like the ROUTES were broken. Undo it here rather than making every
-// caller remember MSYS_NO_PATHCONV=1.
-const unmangle = (r) => {
-  const fwd = r.split(String.fromCharCode(92)).join("/");
-  const cut = fwd.indexOf("/Git/");
-  return /^[A-Za-z]:/.test(r) && cut >= 0 ? fwd.slice(cut + 4) : r;
-};
-const ROUTES = (process.argv.length > 4 ? process.argv.slice(4) : routesFromManifest()).map(unmangle);
+const ROUTES = (process.argv.length > 4 ? process.argv.slice(4) : routesFromManifest()).map(unmangleArg);
 
 const b = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', protocolTimeout: 180000 });
 const page = await b.newPage();
