@@ -936,7 +936,7 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExerc
             {/* marginRight cancels the trailing letter-space (letterSpacing
                 adds 0.14em AFTER the last glyph too), so the arrow+text group
                 optically centres in the box instead of sitting ~1.4px left. */}
-            <span style={{ marginRight:'-0.14em' }}>{anyOpen ? 'COLLAPSE ALL' : 'EXPAND ALL'}</span>
+            <span style={{ marginRight:'-0.14em' }}>{anyOpen ? tt('COLLAPSE ALL') : tt('EXPAND ALL')}</span>
           </button>
           {/* ⤴ copy + hidden × spacer = the same icon-pair cluster the day
               cards use, so the warm-up right edge lines up column-for-column.
@@ -1070,7 +1070,7 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExerc
           </div>
           </div>
         }
-        <Btn variant="ghost" onClick={add} style={{ width: '100%', justifyContent: 'center', marginTop: 4 }}>+ Add Warm-Up</Btn>
+        <Btn variant="ghost" onClick={add} style={{ width: '100%', justifyContent: 'center', marginTop: 4 }}>+ {tt('ADD WARM-UP')}</Btn>
       </div></div>
     </div>
   );
@@ -1289,7 +1289,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                             mirror has no button so the space read as dead
                             whitespace after TEMPO. */}
                         <div style={{display:'grid',gridTemplateColumns:'30px minmax(0,3.3fr) 44px minmax(0,0.9fr) minmax(0,1.4fr) minmax(0,1.3fr) minmax(0,0.9fr) minmax(0,60px)',gap:'3px 8px',fontSize:12,alignItems:'center',minWidth:Math.max(592,518+(cmpPlan.weeks||4)*40)}}>
-                          {['#','EXERCISE','GRP','SETS','REPS','TEMPO','LOAD','RPE'].map((h,hi) =>
+                          {['#',tt('EXERCISE'),tt('GRP'),tt('SETS'),tt('REPS'),tt('TEMPO'),tt('LOAD'),tt('RPE')].map((h,hi) =>
                             hi === 0 ? (
                               <div key={hi} style={{display:'flex', alignItems:'center', gap:5, minWidth:0}}>
                                 <span style={{fontFamily:FN, fontSize:12, lineHeight:1, fontWeight:400, opacity:0}}>⇕</span>
@@ -2203,7 +2203,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
             );
           })()}
           </div>
-          <Btn onClick={handleSave} disabled={saving} style={{height:42,minWidth:150,padding:'0 18px',fontSize:13,letterSpacing:'0.09em',lineHeight:'42px',background:'#39BDFF',color:'#FFFFFF',border:'1px solid #39BDFF',opacity:saving?0.6:1,display:'inline-flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{saving ? 'Saving...' : 'Save Program'}</Btn>
+          <Btn onClick={handleSave} disabled={saving} style={{height:42,minWidth:150,padding:'0 18px',fontSize:13,letterSpacing:'0.09em',lineHeight:'42px',background:'#39BDFF',color:'#FFFFFF',border:'1px solid #39BDFF',opacity:saving?0.6:1,display:'inline-flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{saving ? tt('Saving...') : tt('SAVE PROGRAM')}</Btn>
         </div>
         {/* Autosave status on its OWN right-aligned line with a RESERVED height,
             so it appearing / disappearing / changing width ("Saving…" ⇄
@@ -2673,7 +2673,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
               {/* Add-exercise — ported to the unified view (the only add buttons
                   used to live in the dead detail view, so the unified editor
                   couldn't add exercises at all). Targets THIS day. */}
-              <Btn variant="ghost" onClick={()=>{ setActiveDay(dayIdx); setAddExerciseOpen(true); }} style={{width:"100%",justifyContent:"center",marginTop:4}}>+ Add Exercise</Btn>
+              <Btn variant="ghost" onClick={()=>{ setActiveDay(dayIdx); setAddExerciseOpen(true); }} style={{width:"100%",justifyContent:"center",marginTop:4}}>+ {tt('ADD EXERCISE')}</Btn>
               </div></div>
             </div>
           );
@@ -2681,7 +2681,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
         {/* Add-day — ported to the unified view (the only add-day button lived
             in the dead detail view, so the unified editor couldn't add days). */}
         <button onClick={addDay} title="Add a day to this program"
-          style={{background:`${C.ac}12`,border:`1px solid ${C.ac}`,borderRadius:0,padding:'15px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.09em',textTransform:'uppercase'}}>+ ADD DAY</button>
+          style={{background:`${C.ac}12`,border:`1px solid ${C.ac}`,borderRadius:0,padding:'15px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.09em',textTransform:'uppercase'}}>+ {tt('ADD DAY')}</button>
         {/* Day insertion bar — absolute overlay, glides between card slots
             without moving the cards (same pattern as the exercise rows). */}
         {dayDragging && dayDragOver && dayDragOver.y != null && (

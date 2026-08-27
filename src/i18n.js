@@ -147,6 +147,7 @@ export const HE = {
   'ADD DAY': 'הוספת יום',
   'ADD EXERCISE': 'הוספת תרגיל',
   'ADD WARM-UP': 'הוספת חימום',
+  'Saving...': 'שומר...',
   'EXPAND ALL': 'פתח הכל',
   'COLLAPSE ALL': 'סגור הכל',
   DAILY: 'יומי',
