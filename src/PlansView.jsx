@@ -545,8 +545,16 @@ function PlanOverview({ plan, exercises, onJumpToDay = null }) {
   // Plans carry two shapes; the editor writes {sets, reps} but older sheet
   // imports use {s, r}. Read both or half the block renders blank.
   const rxOf = (ex) => {
-    const s = ex?.sets ?? ex?.s ?? '';
     const r = ex?.reps ?? ex?.r ?? '';
+    // Per-week sets (wkS) are the block's PROGRESSION, and the editor keeps
+    // them behind a per-row toggle. On a read-at-a-glance screen that is
+    // exactly what you want to see: "3·3·4·4" says more about the block than
+    // "3" does. Collapse to a single number when every week is the same.
+    let s = ex?.sets ?? ex?.s ?? '';
+    if (Array.isArray(ex?.wkS) && ex.wkS.length) {
+      const wk = ex.wkS.map((v) => String(v ?? '').trim()).filter(Boolean);
+      if (wk.length) s = new Set(wk).size === 1 ? wk[0] : wk.join('·');
+    }
     if (s !== '' && r !== '') return `${s}×${r}`;
     return String(s || r || '');
   };
@@ -593,7 +601,7 @@ function PlanOverview({ plan, exercises, onJumpToDay = null }) {
     );
   };
 
-  const exRow = (list) => (ex, i) => {
+  const exRow = (list, onOpen = null) => (ex, i) => {
     const ss = ex?.superset || '';
     const sc = supersetColor(ss);
     const rx = rxOf(ex);
@@ -606,8 +614,14 @@ function PlanOverview({ plan, exercises, onJumpToDay = null }) {
     const groupEnd = inGroup && (next?.superset || '') !== ss;
     const name = nameOf(ex);
     return (
-      <div key={ex?.id || i} style={{
+      <div key={ex?.id || i}
+        onClick={onOpen || undefined}
+        title={onOpen ? 'Open this day in the editor' : undefined}
+        onMouseEnter={(e) => { if (onOpen) e.currentTarget.style.background = 'color-mix(in srgb, var(--c-sf) 88%, var(--c-ac))'; }}
+        onMouseLeave={(e) => { if (onOpen) e.currentTarget.style.background = 'transparent'; }}
+        style={{
         display: 'flex', alignItems: 'baseline', gap: 7, padding: '5px 14px 5px 0', minWidth: 0,
+        cursor: onOpen ? 'pointer' : 'default', background: 'transparent', transition: 'background 120ms ease',
         // Hairline between rows, never after the last one — the card border
         // already closes the bottom.
         boxShadow: i === list.length - 1 ? 'none' : 'inset 0 -1px 0 var(--c-cardBd)',
@@ -684,7 +698,7 @@ function PlanOverview({ plan, exercises, onJumpToDay = null }) {
             d.id || `d${i}`,
             d.name || d.title || `Day ${i + 1}`,
             list,
-            list.map(exRow(list)),
+            list.map(exRow(list, onJumpToDay ? () => onJumpToDay(i) : null)),
             onJumpToDay ? () => onJumpToDay(i) : null,
             null,
           );
