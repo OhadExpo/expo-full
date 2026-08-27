@@ -182,6 +182,29 @@ Checked and deliberately NOT changed: async effects without cancellation (the
 risky ones already guard with `let stop = false`, and `SessionsView:154` merges
 by plan id so overlapping fetches are idempotent); population vs sample SD.
 
+## Final verified state (04:10)
+
+Everything below was measured signed-in, on this build:
+
+| check | result |
+|---|---|
+| pure-node suite (`npm test`) | **69 green, 0 red** in ~18 s |
+| console errors, all manifest routes | **36/36 clean** |
+| mobile fit at 390×844 | **37/37 fit** |
+| light/dark geometry | **36/36 `moved=0`** — identical in both themes |
+| shot detection, deterministic capture | **11/11, twice, byte-identical** |
+| athlete portal, from a trainee's seat | clean, no overflow |
+| BHBC medical board, both seats | PT editable · regular coach VIEW ONLY |
+| build, all gates | green |
+
+Still red, both known and documented:
+- `verify-bhbc-write-scope` — 5/8, needs Ohad's SQL paste
+- `verify-prod-current` — prod is behind, Vercel-side
+
+**Three times tonight a self-inflicted timeout looked like a finding** (3 mobile
+routes, 4 theme routes) because I ran a browser sweep alongside a heavy capture.
+The harnesses reported each honestly as ERROR; the fault was my scheduling.
+
 ## Gotchas found during this run
 
 - **`Start-Process` does not inherit the shell's working directory.** Vite
