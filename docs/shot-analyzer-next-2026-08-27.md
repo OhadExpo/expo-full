@@ -756,3 +756,35 @@ They had all failed — Git Bash had rewritten the clip argument into
 read that video". Runtime, not output, was the tell. Fixed in
 `scripts/lib/unmangle.mjs`; the loop now echoes an explicit marker on a non-zero
 exit instead of trusting a grep.
+
+### And the same three runs say exactly WHERE to spend the time
+
+The per-run capture stats make the chain unambiguous:
+
+| | coarse frames | coarse rate | windows | shots |
+|---|---|---|---|---|
+| run 1 | 727 | 16.0 fps | 8 | **11** |
+| run 2 | 500 | **11.0 fps** | **5** | **8** |
+| run 3 | 698 | 15.4 fps | 8 | **11** |
+
+`skipped: 0` in all three — nothing is being discarded internally. The coarse
+pass simply *saw* 31% fewer frames on run 2, found five windows of interest
+instead of eight, and the three windows it never opened are three reps that were
+never analysed at all. Hence the missing opening: those shots were not
+mis-scored, they were never looked at.
+
+**The count is decided entirely by the coarse pass.** The fine pass only refines
+windows the coarse pass already found — it cannot recover a rep that was never
+bracketed.
+
+That promotes the middle path from a guess to the indicated fix: **run the
+coarse pass deterministically and leave the fine pass on playback.** Earlier this
+was listed as an untested idea with "should fix the count" attached, which was
+speculation. It is now the option the evidence points at, because the coarse
+pass is precisely and only where the count is lost.
+
+Rough arithmetic from these runs — worth confirming rather than trusting:
+coarse costs ~46–56 s of the ~161 s default capture, and the deterministic
+coarse pass measured 255 s, so coarse-deterministic + fine-playback lands near
+**6 minutes against 10** for the fully deterministic run, and should buy the same
+count reliability. Untested, and it is the next thing worth measuring.
