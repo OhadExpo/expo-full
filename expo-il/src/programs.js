@@ -122,7 +122,7 @@ export const PROGRAMS = [
     title: 'Hypertrophy 16',
     titleHe: 'היפרטרופיה 16',
     tagHe: 'היפרטרופיה',
-    audienceHe: 'שנה+ של ניסיון, מטרה היא מסה',
+    audienceHe: 'שנה ומעלה של ניסיון, מטרה היא מסה',
     durationHe: '16 שבועות · 4 ימים בשבוע',
     duration: '16 weeks · 4 days/week',
     audience: '1+ year base, goal is size',
