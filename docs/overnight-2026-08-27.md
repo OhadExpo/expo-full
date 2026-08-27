@@ -182,7 +182,7 @@ Checked and deliberately NOT changed: async effects without cancellation (the
 risky ones already guard with `let stop = false`, and `SessionsView:154` merges
 by plan id so overlapping fetches are idempotent); population vs sample SD.
 
-## Final verified state (04:10)
+## Final verified state (04:28)
 
 Everything below was measured signed-in, on this build:
 
@@ -196,6 +196,8 @@ Everything below was measured signed-in, on this build:
 | athlete portal, from a trainee's seat | clean, no overflow |
 | BHBC medical board, both seats | PT editable · regular coach VIEW ONLY |
 | build, all gates | green |
+| **clean clone of `origin/master`** | `npm ci` 508 pkgs + full build **green** |
+| shot 4 root cause | found — two balls in the air, tracker takes the wrong one |
 
 Still red, both known and documented:
 - `verify-bhbc-write-scope` — 5/8, needs Ohad's SQL paste
