@@ -111,6 +111,14 @@ for (const f of files) {
   if (!HEB.test(src)) continue;
   src.split('\n').forEach((line, i) => {
     if (!HEB.test(line)) return;
+    // A COMMENT never reaches a user, and any file documenting this gate has to
+    // quote the bad Hebrew in order to explain the rule — src/bhbcHe.js cites
+    // `נקרא מהקליפ` for exactly that reason and got flagged for it. Skipping
+    // comment-only lines drops that false positive without losing coverage:
+    // user-visible Hebrew is never inside a `//` line. A Hebrew string with a
+    // trailing comment is still scanned, because the line does not START here.
+    const lead = line.trim();
+    if (lead.startsWith('//') || lead.startsWith('*') || lead.startsWith('/*')) return;
     const re = /'([^'\n]*)'|"([^"\n]*)"|`([^`\n]*)`/g;
     let m;
     while ((m = re.exec(line))) {
