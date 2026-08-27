@@ -188,7 +188,7 @@ function SubmenuTab({ id, label, count, items, tab, navTo, activeStyle, isChosen
         // chevron share one optical center-line. baseline-mode let
         // the chevron drift below the cap-height of the label.
         // gap:6 inherits from baseBtn, no per-child margins needed.
-        style={{ ...baseBtn, alignItems: 'center', borderRadius: 0, padding: '6px 10px', fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', whiteSpace: 'nowrap', ...activeStyle }}>
+        style={{ ...baseBtn, height: HDR_ICON_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, borderRadius: 0, padding: '0 10px', fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', whiteSpace: 'nowrap', ...activeStyle }}>
         <span>{label}</span>
         {count != null && <span style={{ fontSize: 10, color: countColor, fontFamily: FN }}>{count}</span>}
         <span style={{ fontSize: 10, lineHeight: 1, display: 'inline-block', transition: 'transform .2s cubic-bezier(.22,.61,.36,1)', transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
@@ -329,9 +329,10 @@ function MoreMenu({ tab, navTo, onExport, onChangePassword, isOwner = true }) {
         style={{
           background: isActiveTab ? C.acD : 'transparent',
           color: isActiveTab ? C.ac : C.tm,
-          border: 'none', padding: '6px 8px', fontSize: 14,
+          border: 'none', padding: '0 8px', fontSize: 14,
           borderRadius: 0, cursor: 'pointer',
-          display: 'inline-flex', alignItems: 'center',
+          height: HDR_ICON_H, boxSizing: 'border-box',
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
         }}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="5" r="1.5"/>
@@ -432,6 +433,9 @@ function MoreMenu({ tab, navTo, onExport, onChangePassword, isOwner = true }) {
     </div>
   );
 }
+
+// One box for every icon control in the coach header row.
+const HDR_ICON_H = 32;
 
 export default function App() {
   return (
@@ -1474,7 +1478,7 @@ function AuthedApp() {
               // 0.06em — was 11 / 0.18em) so the 8-item row clears 1366px
               // viewport comfortably. alignItems:'center' (was 'baseline')
               // matches SubmenuTab so label + count share one center-line.
-              return(<button key={t.key} className={!isActive?'nav-item-inactive':undefined} onClick={async()=>{if(t.key==='client'){if(isBoth){pickPortal('client');}else{await signOut();window.location.href='/';}}else{navTo(t.key)}}} style={{...baseBtn,alignItems:'center',borderRadius:0,padding:"6px 10px",fontSize:10,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',whiteSpace:"nowrap",...activeStyle}}>
+              return(<button key={t.key} className={!isActive?'nav-item-inactive':undefined} onClick={async()=>{if(t.key==='client'){if(isBoth){pickPortal('client');}else{await signOut();window.location.href='/';}}else{navTo(t.key)}}} style={{...baseBtn,height:HDR_ICON_H,boxSizing:'border-box',display:'inline-flex',alignItems:'center',justifyContent:'center',lineHeight:1,borderRadius:0,padding:"0 10px",fontSize:10,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',whiteSpace:"nowrap",...activeStyle}}>
                 <span>{t.label}</span>{t.count!==null&&<span style={{fontSize:10,color:countColor,fontFamily:FN}}>{t.count}</span>}</button>)})}</nav>
           {/* Right cluster: ⋯ MORE | Theme | Bug | Sign out, separated
               by cyan hairlines. Ohad 2026-05-16 — removed the left
@@ -1497,7 +1501,7 @@ function AuthedApp() {
             <span style={{width:1,height:22,background:C.ac,opacity:0.15,alignSelf:'center',marginLeft:6,marginRight:6}} aria-hidden="true" />
             <BugReportButton role="coach" reporterEmail={email} variant="coach" />
             <span style={{width:1,height:22,background:C.ac,opacity:0.15,alignSelf:'center',marginLeft:6,marginRight:6}} aria-hidden="true" />
-            <button className="hdr-icon-btn" onClick={signOut} title="Sign out" aria-label="Sign out" style={{...baseBtn,background:"transparent",color:C.tx,padding:"6px 8px",fontSize:14,borderRadius:0}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
+            <button className="hdr-icon-btn" onClick={signOut} title="Sign out" aria-label="Sign out" style={{...baseBtn,height:HDR_ICON_H,boxSizing:"border-box",display:"inline-flex",alignItems:"center",justifyContent:"center",lineHeight:1,background:"transparent",color:C.tx,padding:"6px 8px",fontSize:14,borderRadius:0}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
             </div></div></header>
       {showPwModal && <PasswordChangeModal onClose={()=>setShowPwModal(false)}/>}
       <main style={{maxWidth:1200,margin:"0 auto",padding:"12px"}}>

@@ -661,7 +661,7 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
           {onlineNow.length > 0 && (
         <div className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.gn}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
           <RefinedHeaderStrip>
-            <SectionLabel style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="dot" color="#FFFFFF"/>Online Now ({onlineNow.length})</SectionLabel>
+            <SectionLabel style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="dot" color="#FFFFFF"/>{t('Online Now')} ({onlineNow.length})</SectionLabel>
           </RefinedHeaderStrip>
           {onlineNow.map(t => (
             <div key={t.id} {...asButton(() => onSelectTrainee(t.id))} aria-label={`Open ${t.name}`} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', cursor: 'pointer', color: C.tx, fontSize: 13 }}>
@@ -695,7 +695,7 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
                 <div key="expiring" data-alert-key="expiring" className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.or}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow, ...alertCardWrapStyle('expiring') }}>
                   <div {...alertHeaderDragProps('expiring')}>
                     <RefinedHeaderStrip>
-                      <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="alert" color="#FFFFFF"/>Expiring Packages ({expiring.length})</SectionLabel>
+                      <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="alert" color="#FFFFFF"/>{t('Expiring Packages')} ({expiring.length})</SectionLabel>
                     </RefinedHeaderStrip>
                   </div>
                   {expiring.map(t => (
@@ -710,7 +710,7 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
                 <div key="overdue" data-alert-key="overdue" className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.rd}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow, ...alertCardWrapStyle('overdue') }}>
                   <div {...alertHeaderDragProps('overdue')}>
                     <RefinedHeaderStrip>
-                      <SectionLabel style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="dollar" color="#FFFFFF"/>Overdue Payment ({overduePayment.length})</SectionLabel>
+                      <SectionLabel style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="dollar" color="#FFFFFF"/>{t('Overdue Payment')} ({overduePayment.length})</SectionLabel>
                     </RefinedHeaderStrip>
                   </div>
                   {overduePayment.map(t => (
@@ -725,7 +725,7 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
                 <div key="dormant" data-alert-key="dormant" className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.or}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow, ...alertCardWrapStyle('dormant') }}>
                   <div {...alertHeaderDragProps('dormant')}>
                     <RefinedHeaderStrip>
-                      <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="moon" color="#FFFFFF"/>Dormant ({dropoutRisk.length})</SectionLabel>
+                      <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="moon" color="#FFFFFF"/>{t('Dormant')} ({dropoutRisk.length})</SectionLabel>
                     </RefinedHeaderStrip>
                   </div>
                   {dropoutRisk.map(t => {
@@ -758,7 +758,7 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
             <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: '14px 18px' }}>
               <RefinedHeaderStrip>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <SectionLabel as="span" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="mail" color="#FFFFFF"/>New Leads ({leads.length})</SectionLabel>
+                  <SectionLabel as="span" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="mail" color="#FFFFFF"/>{t('New Leads')} ({leads.length})</SectionLabel>
                   <span title={gateOpen ? 'Gate open — apply multi-tenant migration' : `Multi-tenant migration applies once ${COACH_GATE} serious coach signups arrive`}
                     style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 9, color: '#FFFFFF', border: '1px solid rgba(255,255,255,0.55)', background: 'transparent', borderRadius: 0, padding: '2px 6px', letterSpacing: '0.04em' }}>
                     🎯 {coachLeads}/{COACH_GATE} {gateOpen ? 'OPEN' : 'GATE'}

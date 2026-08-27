@@ -129,7 +129,10 @@ export default function BugReportButton({ role = 'anon', reporterEmail = '', var
   const errColor = justErrored ? (C.rd || '#ff5b5b') : C.tx;
   const btnStyle = isAthlete
     ? { background: 'transparent', border: 'none', color: justErrored ? (C.rd || '#ff5b5b') : C.tm, cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', fontSize: 14, animation: justErrored ? 'bug-pulse 1s ease-in-out 0s 3' : undefined }
-    : { background: 'transparent', border: 'none', color: errColor, padding: '6px 8px', fontSize: 14, borderRadius: 0, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', animation: justErrored ? 'bug-pulse 1s ease-in-out 0s 3' : undefined };
+    : { background: 'transparent', border: 'none', color: errColor, padding: '0 8px', fontSize: 14, borderRadius: 0, cursor: 'pointer',
+        // 32px to match every other control in the coach header row — it was
+        // 28 and stood a hair short of its neighbours.
+        height: 32, boxSizing: 'border-box', justifyContent: 'center', lineHeight: 1, display: 'inline-flex', alignItems: 'center', animation: justErrored ? 'bug-pulse 1s ease-in-out 0s 3' : undefined };
 
   return (
     <>

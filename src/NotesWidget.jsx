@@ -867,10 +867,10 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
           const grouped = groupAlerts(autoRows);
 
           const COLS = [
-            { id:'open',    label:'To Do',       color:'#5B6B7A' },
-            { id:'working', label:'In Progress', color:'#2C82C9' },
-            { id:'waiting', label:'Waiting',     color:'#C9851E' },
-            { id:'stuck',   label:'Stuck',       color:'#C0392B' },
+            { id:'open',    label:t('To Do'),       color:'#5B6B7A' },
+            { id:'working', label:t('In Progress'), color:'#2C82C9' },
+            { id:'waiting', label:t('Waiting'),     color:'#C9851E' },
+            { id:'stuck',   label:t('Stuck'),       color:'#C0392B' },
           ];
           // Status kanban of MANUAL tasks only — coaching alerts never sit here
           // (they carry no meaningful In-Progress/Waiting/Stuck state). Feeds the
