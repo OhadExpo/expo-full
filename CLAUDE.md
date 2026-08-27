@@ -26,7 +26,7 @@ Fitness coaching platform for Ohad's personal training business. Replaces a Goog
 
 ### Active backlog (verify against `docs/backlog.md` if it exists, otherwise ask)
 
-- Exercise Library Batch Matching Screen — resolve unmatched exercise titles at scale (next priority)
+- ~~Exercise Library Batch Matching Screen — resolve unmatched exercise titles at scale~~ — SHIPPED. `src/ExerciseMatchingView.jsx` (311 lines) is live at `/coach/exercise-matching` (Athletes▾ → Matching), listed in `docs/SURFACES.md` since 2026-08-16, and console-clean in the 2026-08-27 route sweep. Verified 2026-08-27 — it had still been listed as "next priority", which misdirects every session that reads this file.
 - ~~Two plans imported under wrong trainee IDs (Amit Block #16, Roey Block #24)~~ — investigated 2026-04-27: Amit Block #16 (`plan_w9z2pkxl91mo91eomv`) and Roey Block #24 (`plan_k4xiv4r7hemo91eq1v`) both present and active under their expected trainee_ids. Day names are generic ("Day A/B/C") so contents can't auto-identify the owner. Memory `reference_amit_drive_sheets.md` already confirmed all 17 Amit plans correctly imported on 2026-04-24. Treating as resolved unless source-Drive comparison turns up an actual mismatch.
 - ~~Logo regen: `EXPO_LOGO_NAV` PNG needs trimmed transparent padding, patched into `theme.js` via regex~~ — verified 2026-04-27: PNG is already at tight bbox (188×64, alpha histogram shows content touches every edge). No-op.
 - Longer-term: MediaPipe Pose Landmarker integration for exercise form video analysis
