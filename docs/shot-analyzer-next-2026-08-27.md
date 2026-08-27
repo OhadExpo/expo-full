@@ -190,6 +190,31 @@ Two notes for whoever picks this up:
   which is why its blob-size sweep showed the same refusal at every threshold.
   It was never exercising the constraint that matters.
 
+### Checked, and NOT systematic: release detection is right on the other reps
+
+Shot 4's window opening ~200 ms before he lets go raised a much worse
+possibility — that release detection is early on every rep, which would skew
+every release angle, every timing-vs-apex number and every arc measurement in
+the tool.
+
+It does not. I pulled the actual frames at three detected release times and
+looked:
+
+| shot | detected release | what the frame shows |
+|---|---|---|
+| 1 | t=3017 | ball at the hand, arm extending — **correct** |
+| 5 | t=18400 | ball at the hand, arm extending, feet off the ground — **correct** |
+| 4 | t=14083 | hands together at chest, a SECOND ball already high in the sky |
+
+So the phase detection is sound and the scorecard's angles are measured at the
+right instant. **Shot 4 is the anomaly, not the rule** — and the thing that makes
+it anomalous is the same thing that breaks its ball track: a second ball in the
+air.
+
+Worth noting shot 1 also has a second ball in frame, resting on the ground by his
+feet. That one is harmless: it is stationary, so frame-differencing never
+produces a blob for it. Only a MOVING second ball causes this.
+
 ## SECOND GAP — the count is not deterministic. This is the bigger one.
 
 Three runs of the SAME clip, same build, minutes apart:
