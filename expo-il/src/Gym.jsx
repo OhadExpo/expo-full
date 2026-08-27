@@ -711,7 +711,7 @@ function Location({ heb }) {
           <div style={{
             fontFamily: FN, fontSize: 18, color: C.tx, fontWeight: 700,
             lineHeight: 1.4, marginBottom: 20,
-          }}>{heb ? 'תל אביב — צפון הישן' : 'Tel Aviv — Old North'}</div>
+          }}>{heb ? 'תל אביב — הצפון הישן' : 'Tel Aviv — Old North'}</div>
           <div style={{
             fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.2em',
             fontWeight: 700, marginBottom: 8,
@@ -740,7 +740,7 @@ function Location({ heb }) {
           }}>
             <div>
               <div style={{ fontSize: 32, color: C.ac, marginBottom: 8 }}>◉</div>
-              {heb ? 'מפה מדוייקת לאחר תיאום' : 'EXACT LOCATION SHARED ON BOOKING'}
+              {heb ? 'מפה מדויקת לאחר תיאום' : 'EXACT LOCATION SHARED ON BOOKING'}
             </div>
           </div>
           {/* Decorative grid pattern — subtle, brand-consistent */}
