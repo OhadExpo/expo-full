@@ -1384,7 +1384,9 @@ function FixturesAheadPanel({ fixtures, today }) {
             <div key={i} style={{ display: 'grid', gridTemplateColumns: '46px 1fr auto', gap: 12, alignItems: 'center', padding: '10px 0', borderBottom: i < games.length - 1 ? `0.25px solid ${C.cardBd}` : 'none' }}>
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 17, lineHeight: 1, color: C.tx, fontVariantNumeric: 'tabular-nums' }}>{days}</div>
-                <div style={{ fontFamily: FN, fontSize: 7.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, marginTop: 2 }}>days</div>
+                {/* 9, not 7.5: measured at 390px this was the smallest text in the zone,
+                    and it labels the number a coach reads first. */}
+                <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, marginTop: 2 }}>days</div>
               </div>
               <div style={{ minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -1897,7 +1899,7 @@ function MicrocycleView({ fx, today }) {
             <div key={d.iso} style={{ border: `1px solid ${d.isToday ? ORANGE : C.cardBd}`, borderTop: `3px solid ${loadColor(d.plan.load, d.isGame)}`, padding: '10px 10px 12px', background: d.isGame ? `color-mix(in srgb, ${ORANGE} 8%, transparent)` : d.isToday ? `color-mix(in srgb, ${ORANGE} 4%, transparent)` : 'var(--c-sf)', display: 'flex', flexDirection: 'column', gap: 6 }}>
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 6 }}>
                 <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>{dow(d.iso)} {monDay(d.iso)}</span>
-                {d.isToday && <span style={{ fontFamily: FN, fontSize: 7.5, fontWeight: 800, letterSpacing: '0.1em', color: ORANGE }}>TODAY</span>}
+                {d.isToday && <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 800, letterSpacing: '0.1em', color: ORANGE }}>TODAY</span>}
               </div>
               <span style={{ fontFamily: FN, fontSize: 12.5, fontWeight: 800, letterSpacing: '0.04em', color: d.isGame ? ORANGE_DEEP : C.tx }}>{d.plan.label}</span>
               <span style={{ fontFamily: FB, fontSize: 11, color: C.tm, lineHeight: 1.35, minHeight: 30 }}>{d.plan.emphasis}</span>
@@ -2272,7 +2274,7 @@ function ScheduleWeek({ fixtures, today }) {
           return (
             <div key={di} style={{ border: `1px solid ${C.cardBd}`, background: isToday ? `color-mix(in srgb, ${ORANGE} 8%, var(--c-sf))` : 'var(--c-sf)', minHeight: 168, display: 'flex', flexDirection: 'column' }}>
               <div style={{ padding: '8px 6px', borderBottom: `1px solid ${C.cardBd}`, textAlign: 'center', position: 'relative' }}>
-                {hasGame && <div style={{ position: 'absolute', top: 5, right: 5, fontFamily: FN, fontSize: 7.5, fontWeight: 800, letterSpacing: '0.06em', color: '#fff', background: ORANGE, padding: '1px 4px' }}>GAME</div>}
+                {hasGame && <div style={{ position: 'absolute', top: 5, right: 5, fontFamily: FN, fontSize: 9, fontWeight: 800, letterSpacing: '0.06em', color: '#fff', background: ORANGE, padding: '1px 4px' }}>GAME</div>}
                 <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: isToday ? ORANGE_DEEP : C.tm }}>{DOW[d.getDay()]}</div>
                 <div style={{ fontFamily: FN, fontSize: 16, fontWeight: 800, color: isToday ? ORANGE_DEEP : C.tx, fontVariantNumeric: 'tabular-nums' }}>{d.getDate()}</div>
               </div>
