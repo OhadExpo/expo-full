@@ -271,9 +271,23 @@ export function useSupaStore(key, initial) {
         try {
           if (key !== 'expo-trainees' && key !== 'expo-exercises') {
             const s = localStorage.getItem(key);
-            if (s) { const parsed = asShape(JSON.parse(s)); setData(parsed); dataRef.current = parsed; }
+            if (s) {
+              const parsed = asShape(JSON.parse(s));
+              setData(parsed); dataRef.current = parsed;
+              // We recovered a real snapshot, so we DO know what this store
+              // holds and saving is safe again. Without this, a transient read
+              // failure would leave the write guard latched shut and the coach
+              // unable to save anything for the rest of the session — trading
+              // one data-loss bug for a different one.
+              serverLoadedRef.current = true;
+              serverLenRef.current = Array.isArray(parsed) ? parsed.length : null;
+            }
           }
         } catch {}
+        // Deliberately NOT unlocked for expo-exercises / expo-trainees: those
+        // have no local snapshot, so after a failed read we genuinely do not
+        // know what the server holds. Refusing to save is the correct answer —
+        // it is exactly the write that destroyed the library.
         setLoadError(e?.message || 'load failed');
         console.warn(`useSupaStore[${key}] load failed:`, e?.message || e);
       }
