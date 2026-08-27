@@ -31,7 +31,17 @@ function routesFromManifest() {
     return [];
   }
 }
-const ROUTES = process.argv.length > 4 ? process.argv.slice(4) : routesFromManifest();
+// Git Bash rewrites a bare "/login" argument into "C:/Program Files/Git/login"
+// before node ever sees it (MSYS path conversion). That turned an explicit
+// re-run of four routes into four "Cannot navigate to invalid URL" errors that
+// looked like the ROUTES were broken. Undo it here rather than making every
+// caller remember MSYS_NO_PATHCONV=1.
+const unmangle = (r) => {
+  const fwd = r.split(String.fromCharCode(92)).join("/");
+  const cut = fwd.indexOf("/Git/");
+  return /^[A-Za-z]:/.test(r) && cut >= 0 ? fwd.slice(cut + 4) : r;
+};
+const ROUTES = (process.argv.length > 4 ? process.argv.slice(4) : routesFromManifest()).map(unmangle);
 
 const b = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', protocolTimeout: 180000 });
 const page = await b.newPage();
@@ -179,6 +189,8 @@ for (const route of ROUTES) {
     console.log(`ERROR  ${route}  ${String(e).slice(0, 80)}`);
   }
 }
+// Create the directory rather than dying with ENOENT after doing all the work.
+fs.mkdirSync(OUT, { recursive: true });
 fs.writeFileSync(`${OUT}/light_dark_parity.json`, JSON.stringify(report, null, 1));
 await page.close();
 await b.disconnect();

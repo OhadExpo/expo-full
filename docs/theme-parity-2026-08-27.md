@@ -3,11 +3,23 @@
 `node scripts/audit-theme-parity.mjs <outDir> <baseUrl>` — 2026-08-27, **all 36
 routes** enumerated from `docs/SURFACES.md`, authenticated as the owner.
 
-32 completed in the sweep; the other four (`/coach/smart-import`, `/intake/he`,
-`/login`, `/try`) hit a 40 s navigation timeout because a deterministic shot
-capture was running on the same machine. Re-run on a quiet machine they are
-clean — `moved=0`, and zero low-contrast on all four. The harness reported the
-timeouts honestly as ERROR rather than counting them as passes.
+32 completed in the first sweep; the other four (`/coach/smart-import`,
+`/intake/he`, `/login`, `/try`) hit a 40 s navigation timeout because a
+deterministic shot capture was running on the same machine. The harness reported
+those honestly as ERROR rather than counting them as passes.
+
+**Re-run at 04:59 on a quiet machine, and now measured rather than assumed:**
+
+```
+ok     /coach/smart-import   moved=0 countDelta=0 lowContrast(light)=0 (dark)=0
+ok     /intake/he            moved=0 countDelta=0 lowContrast(light)=0 (dark)=0
+ok     /login                moved=0 countDelta=0 lowContrast(light)=0 (dark)=0
+ok     /try                  moved=0 countDelta=0 lowContrast(light)=0 (dark)=0
+```
+
+I had written that they "are clean" before running them. They are — but that
+sentence was a prediction stated as a result, which is exactly the habit that
+produced the retracted 36/36 claim earlier tonight. It is now a measurement.
 
 The harness loads each route twice with `?theme=…` so `boot-theme.js` applies the
 theme BEFORE paint, and it refuses to compare unless the two loads actually
@@ -15,7 +27,7 @@ differed — otherwise "geometry identical" would be trivially true.
 
 ## Geometry: perfect
 
-**`moved=0 countDelta=0` on all 36 routes.** Not one element changes
+**`moved=0 countDelta=0` on all 36 routes**, all 36 now actually measured. Not one element changes
 position or size when only the theme changes. That is the locked rule
 (`reference_theme_geometry_parity`) and it holds everywhere, including the nine
 routes never checked before: `/coach/bugs`, `/coach/challenges`,
