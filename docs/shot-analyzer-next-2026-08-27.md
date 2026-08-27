@@ -151,6 +151,45 @@ seed is from the wrist.
 landed by the time the next release begins. Shot 4 is the one rep where two
 balls overlap — which is also why no amount of capture improvement fixed it.
 
+### The origin constraint DOES control the choice — swept against the fixture
+
+`node scripts/probe-ball-origin.mjs scripts/fixtures/ball-rejected-det1.json`:
+
+```
+maxOriginBalls   n    ballPx   result
+     9          20     25.0    REFUSED: it barely rose (0.2 ball widths)
+     7           6     20.8    REFUSED: not falling like a projectile
+     5           6     20.8    REFUSED: not falling like a projectile
+     3           6     20.8    REFUSED: not falling like a projectile
+   1.5           -       -     no track (farFromHand=73)
+```
+
+At the shipped value of **9**, the tracker takes a **20-point** arc — the
+previous shot's ball, long and clean because it is against an empty night sky.
+Tighten the constraint and it switches to a **6-point** arc. So the origin gate
+is exactly the lever, and it confirms the two-ball diagnosis from the frames.
+
+**But tightening alone does not fix it.** The 6-point alternative is refused as
+"not falling like a projectile" — it is the bare minimum length and not a clean
+flight either. That points at a second problem: the ball-tracking window opens at
+the DETECTED release (t=14083), and the frames show he does not actually let go
+until ≈14283. The window spends its first ~200 ms on a ball still in his hands
+while the previous one sails past.
+
+So the real fix is probably both: tighten the origin AND make the window start
+at the true release. **I did not change either.** A guess here trades a broken
+shot for a broken threshold across the other ten, and the honest state is that I
+know the mechanism but not yet the right values.
+
+Two notes for whoever picks this up:
+- `scripts/probe-ball-origin.mjs` sweeps this in seconds against the fixture. The
+  fixture is normalised; `launchAngle` works in PIXELS, so scale by 1000 — the
+  first version of this probe passed normalised coordinates and every arc failed
+  the "never travelled sideways" gate, which looks exactly like a tracking bug.
+- `replay-ball-candidates.mjs` passes NO origin at all (`trackBall(frames, {})`),
+  which is why its blob-size sweep showed the same refusal at every threshold.
+  It was never exercising the constraint that matters.
+
 ## SECOND GAP — the count is not deterministic. This is the bigger one.
 
 Three runs of the SAME clip, same build, minutes apart:
