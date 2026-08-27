@@ -19,30 +19,18 @@ import { useEscClose } from './ui';
 //             gating is UI-only on the frontend + email-allowlist on RLS.
 // TRAINER_EMAILS = everyone who gets coach-portal access at all. Existing
 // `TRAINER_EMAILS.includes(...)` checks stay correct because staff ARE trainers.
-export const OWNER_EMAILS = ['ohadyproductions@gmail.com'];
-export const STAFF_EMAILS = ['yuvalberkovitch@gmail.com'];
-// PARTNER = a trusted evaluator (Elad) who sees EVERYTHING like the owner, but
-// whose writes never land: the DB grants him SELECT-only RLS (no write policy →
-// INSERT/UPDATE/DELETE denied), and the UI shows a persistent "Partner Preview"
-// banner. Treated as owner for UI so he sees all tabs/data. Inert until the
-// SELECT-only RLS is applied (scripts/partner-elad-rls.sql) + his account exists (#232).
-export const PARTNER_EMAILS = ['eladeluz24@gmail.com'];
-// BHBC basketball coaches (incl. the head coach / PT). They get a coach login,
-// but their ENTIRE surface is the /bhbc zone — no EXPO coach app, no cross-team
-// data. They can view everything in the zone and log basketball work (sessions,
-// practices, games, medical); EXPO-only controls are hidden. DB-side write
-// restriction to BHBC tables is the security layer (provisioned separately).
-export const BHBC_COACH_EMAILS = ['benshemer4@gmail.com', 'elishai115@gmail.com', 'yehuorland@gmail.com', 'yoel23919@gmail.com'];
-// Physical therapist — the ONLY BHBC coach (besides the owner) allowed to
-// report/edit injuries. The other coaches view the medical board read-only and
-// may write only basketball work (sessions/practices/games).
-export const PT_EMAILS = ['yoel23919@gmail.com'];
-export const isPtEmail = (email) => !!email && PT_EMAILS.includes(email.toLowerCase());
-export const TRAINER_EMAILS = [...OWNER_EMAILS, ...STAFF_EMAILS, ...PARTNER_EMAILS, ...BHBC_COACH_EMAILS];
-export const isOwnerEmail = (email) => !!email && OWNER_EMAILS.includes(email.toLowerCase());
-export const isStaffEmail = (email) => !!email && STAFF_EMAILS.includes(email.toLowerCase());
-export const isPartnerEmail = (email) => !!email && PARTNER_EMAILS.includes(email.toLowerCase());
-export const isBhbcCoachEmail = (email) => !!email && BHBC_COACH_EMAILS.includes(email.toLowerCase());
+// Role allow-lists and their predicates live in ./authRoles.js — plain JS so
+// the node test suite can import them. They are re-exported here unchanged, so
+// every existing `import { TRAINER_EMAILS, isPtEmail, ... } from './auth'`
+// keeps working exactly as before.
+//
+// They were split out because the PT check is, until the RLS migration lands,
+// the ONLY thing stopping a regular BHBC coach editing the medical board — and
+// a guard carrying that much weight has to be covered by a test.
+export * from './authRoles';
+// `export *` re-exports without binding locally, and this module uses these
+// two itself, so they are imported as well.
+import { TRAINER_EMAILS, isPtEmail } from './authRoles';
 
 const AuthContext = createContext(null);
 
