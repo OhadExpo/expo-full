@@ -390,6 +390,36 @@ shipped behaviour is unchanged**). It did not help — at every setting the
 stays because it is what disproved that hypothesis, and because the probes use
 it.
 
+### Fifth hypothesis, also disproved: it is not the constant-velocity walk
+
+The walk-forward loop predicts the next position with a velocity fixed from the
+two seed points and never updated — a straight-line prediction. That looked like
+a clean explanation of the asymmetry: a ball at apex has near-zero, barely
+changing vertical velocity so a straight prediction holds for 20 frames, while a
+just-released ball is fast and decelerating hard and should drift out of the
+0.7-ball tolerance within a few frames.
+
+Implemented it as an opt-in flag and measured:
+
+```
+adaptiveVelocity   maxOrigin   n   startedAt   result
+    false             3        6     1.5 ø     REFUSED: not falling like a projectile
+    true              3        -      -        no track
+    true              2        -      -        no track
+```
+
+**It makes things worse.** Re-estimating velocity from the last two accepted
+points amplifies their noise, and the walk dies immediately instead of surviving
+six frames. **Reverted** — unlike `originBias`, which the probes still use, this
+one helped nothing and added a branch to a hot loop.
+
+So the reason the real ball's track dies at ~6 frames is still open, and it is
+now the ONLY thing standing between this rep and a working ball read. What has
+not been tried: `tolBalls` (0.7 — the search radius), `maxMiss` (1 — two
+consecutive misses end the walk), and simply logging which of those two ends it.
+Instrument before theorising again; five theories in, that is clearly the faster
+route.
+
 ## SECOND GAP — the count is not deterministic. This is the bigger one.
 
 Three runs of the SAME clip, same build, minutes apart:
