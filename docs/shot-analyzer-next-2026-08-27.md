@@ -111,6 +111,23 @@ That turns the ball-selector work from a five-minute harness run per attempt
 into a unit test. `scripts/_replay-candidates.mjs` already sweeps the blob-size
 gate and lists every distinct arc it could have chosen — point it at this file.
 
+### A confound in my own measurement, stated plainly
+
+The 11 / 10 / 9 runs were taken on a machine **I was loading**. By 03:40 the
+debug browser had 29 tabs open from the console, mobile and theme sweeps I had
+been running all night, plus three stale vite servers.
+
+That does not make the variance unreal — the counts genuinely differed, and the
+mechanism (fewer presented frames while MediaPipe runs) is measured, not
+inferred. But it does mean **the spread is an upper bound, not the number a
+coach on a quiet phone would see.** Ohad analysing one clip on an idle machine
+may well get 11 every time.
+
+So the honest statement is: the count is load-sensitive, and I proved it by
+being the load. What is NOT established is how often it bites in normal use.
+Worth re-running three times on a quiet machine before deciding how much the
+deterministic mode is worth.
+
 ## A deterministic capture mode now exists — opt-in, default unchanged
 
 `captureShotFrames(src, { deterministic: true })` steps the clip with seeks
