@@ -297,6 +297,55 @@ caller. I have not made it: it alters ball tracking for all eleven shots, the
 acceptance test is a 10-minute deterministic run, and it deserves to be done with
 Ohad able to see the before and after.
 
+### RETRACTION — the stale-wrist theory was wrong
+
+I wrote above that the origin gate fails because it compares against a stale
+wrist, and called it "the single most concrete improvement available". Then I
+made the harness dump the whole wrist track and measured it:
+
+```
+frames where the two references disagree by >1.5 ball diameters: 0 of 20
+the wrist moves at most 0.3 ball diameters across the entire window
+```
+
+**The reference is not stale.** His wrist barely moves through the whole window,
+so comparing against the release-frame wrist and against the per-frame wrist give
+the same answer everywhere. Changing `trackBall` to take a wrist track would
+achieve nothing.
+
+**What the numbers actually say.** Distance from the hand to the nearest blob,
+per frame:
+
+```
+14083  3.0 ø     14183  1.0 ø     14283  0.2 ø   <- the ball leaving his hand
+14333  3.9 ø     14450  7.6 ø     14550  2.1 ø   <- it flying away
+```
+
+The true ball IS seeded right at the hand at t=14283. So **both balls pass the
+origin gate** — the previous one at ≤9 diameters, the real one at 0.2. The gate
+is not what picks the wrong one.
+
+**The selector is.** `score = pts.length + q.r2 - gaps * 1.5` is dominated by
+LENGTH: r² only ever contributes 0–1, so a 20-point arc beats an 11-point one no
+matter how much better the shorter one fits. The previous ball, sailing across an
+empty night sky, is visible for far more frames than a ball that has just left
+the hand near a cluttered background.
+
+That is my original hypothesis, which I abandoned too early — the blob-size sweep
+that seemed to refute it was passing **no origin at all**, so it was never
+testing the real configuration.
+
+**Where this actually leaves it.** The candidate fix is to score arcs by fit and
+by starting-at-the-hand, not by raw length. But when the origin gate is tightened
+so only the true ball survives, the arc found is 6 points and reads "not falling
+like a projectile" — so the real ball is also being lost after a handful of
+frames, probably to `maxStepBalls` or to blob merging. **Two problems, not one**,
+and the second is not diagnosed.
+
+I am leaving the code untouched. Three of my four hypotheses tonight were wrong
+and each was disproved by measurement rather than argument; the fourth is not
+measured yet.
+
 ## SECOND GAP — the count is not deterministic. This is the bigger one.
 
 Three runs of the SAME clip, same build, minutes apart:
