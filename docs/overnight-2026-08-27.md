@@ -55,7 +55,7 @@ tick it here and start the next one in the same turn.
       before tonight. Serves `ShotAnalyzer-Dulx_QZE.js`. Try every path that does
       not need Ohad: Supabase/Vercel MCP OAuth, an empty commit to re-trigger the
       hook, checking whether the build fails rather than never starts.
-      Harness: `scripts/_watch-prod-hebrew.mjs`.
+      Harness: `node scripts/verify-prod-current.mjs` (tracked).
 - [ ] **2. BHBC RLS migration, still unapplied.** A regular coach can write the
       medical board AND the 1,326-row shared exercise library.
       `scripts/migrations/2026-08-26-bhbc-coach-write-scope.sql` is written and
