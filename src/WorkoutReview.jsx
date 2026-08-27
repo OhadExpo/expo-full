@@ -25,6 +25,7 @@ import {
 } from './repCounter';
 import { detectLift, channelFromPose, CHANNELS } from './liftDetect';
 import { resolveStoredUrl } from './storageUrl';
+import { useT as useAppT } from './i18n';
 
 const bi = {background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,padding:"8px 10px",borderRadius:0,
   color:C.tx,fontFamily:FB,fontSize:13,outline:"none",width:"100%",boxSizing:"border-box",textAlign:"center"};
@@ -122,6 +123,7 @@ export function FormVideoPlayer(props) {
 }
 
 function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNotes, onReviewNotesChange, role = 'trainer', recordedReps = [], targetReps = null }) {
+  const tt = useAppT();
   // Athlete form videos are the most private thing the platform stores. The URL
   // is resolved through storageUrl so it keeps playing when the buckets stop
   // being world-readable — a no-op while they are still public, because signing
@@ -1386,7 +1388,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
               anchored top-right), silently blocking the ROM & TEMPO tab's click
               area. A proper header row keeps it clear of the tabs entirely. */}
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'7px 10px',borderBottom:`1px solid ${C.cardBd}`}}>
-            <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.16em',color:C.tm}}>LIFT METRICS</span>
+            <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.16em',color:C.tm}}>{tt("LIFT METRICS")}</span>
             <button onClick={() => { setMetricsState('idle'); setMetrics(null); }} title="Hide metrics"
               style={{background:'transparent',border:`1px solid ${C.bd}`,color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer',padding:'2px 7px'}}>× CLOSE</button>
           </div>
@@ -1485,7 +1487,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
               cursor:hudDragArmed?'grabbing':'grab',
               touchAction:'none',userSelect:'none'}}>
             <div style={{textAlign:'center'}}>
-              <div style={{fontSize:9,color:C.td,letterSpacing:0.5}}>REPS</div>
+              <div style={{fontSize:9,color:C.td,letterSpacing:0.5}}>{tt("REPS")}</div>
               <div style={{fontSize:18,fontWeight:700,color:C.gn,lineHeight:1}}>{reps}</div>
               {tempo != null && <div style={{fontSize:9,color:C.tm,marginTop:2}}>{tempo.toFixed(1)}s</div>}
             </div>
@@ -1567,8 +1569,8 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
                   {autoPick.source === 'motion' ? ' · MOTION' : autoPick.source === 'library' ? ' · LIB' : ''})
                 </option>
                 <option value="hip">HIP</option>
-                <option value="knee">KNEE</option>
-                <option value="elbow">ELBOW</option>
+                <option value="knee">{tt("KNEE")}</option>
+                <option value="elbow">{tt("ELBOW")}</option>
                 <option value="sho">SHOULDER</option>
                 <option value="none">SKIP</option>
               </select>
@@ -1614,7 +1616,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
           {onReviewNotesChange && role === 'trainer' && (
             <button onClick={addComment} title="Comment & draw at this timestamp — color swatches appear once a comment is open"
               style={{padding:'3px 10px',height:22,boxSizing:'border-box',borderRadius:0,border:`1px solid rgba(57,189,255,0.251)`,
-                background:C.acD,color:C.ac,fontFamily:FN,fontSize:10,cursor:'pointer'}}>COMMENT</button>
+                background:C.acD,color:C.ac,fontFamily:FN,fontSize:10,cursor:'pointer'}}>{tt("COMMENT")}</button>
           )}
         </div>
         <div style={{flex:'0 1 auto',display:'flex',gap:4,alignItems:'center'}}>
@@ -1657,7 +1659,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
           Clear manage the current comment's stroke list. */}
       {canDraw && commentsEnabled && (
         <div style={{display:'flex',gap:6,alignItems:'center',marginTop:6,flexWrap:'wrap'}}>
-          <span style={{fontSize:9,fontFamily:FN,color:C.td,letterSpacing:0.5,marginRight:2}}>DRAW</span>
+          <span style={{fontSize:9,fontFamily:FN,color:C.td,letterSpacing:0.5,marginRight:2}}>{tt("DRAW")}</span>
           {DRAW_COLORS.map(c => {
             const active = activeDrawColor === c.hex;
             return (
@@ -1696,8 +1698,8 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
             placeholder={composing.replyToId ? 'Type your reply…' : 'What should the athlete focus on at this moment?'}
             style={{width:'100%',minHeight:60,background:C.sf,border:`1px solid ${C.bd}`,borderRadius:0,padding:8,color:C.tx,fontFamily:FB,fontSize:13,boxSizing:'border-box',resize:'vertical',textAlign:'center'}}/>
           <div style={{display:'flex',gap:6,justifyContent:'flex-end',marginTop:6}}>
-            <button onClick={cancelCompose} style={{padding:'4px 10px',borderRadius:0,border:`1px solid ${C.bd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,cursor:'pointer'}}>Cancel</button>
-            <button onClick={submitCompose} disabled={!composeText.trim()} style={{padding:'4px 10px',borderRadius:0,border:'none',background:composeText.trim()?C.ac:C.sf3,color:composeText.trim()?'#fff':C.td,fontFamily:FB,fontSize:11,fontWeight:700,cursor:composeText.trim()?'pointer':'default'}}>Save</button>
+            <button onClick={cancelCompose} style={{padding:'4px 10px',borderRadius:0,border:`1px solid ${C.bd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,cursor:'pointer'}}>{tt("Cancel")}</button>
+            <button onClick={submitCompose} disabled={!composeText.trim()} style={{padding:'4px 10px',borderRadius:0,border:'none',background:composeText.trim()?C.ac:C.sf3,color:composeText.trim()?'#fff':C.td,fontFamily:FB,fontSize:11,fontWeight:700,cursor:composeText.trim()?'pointer':'default'}}>{tt("Save")}</button>
           </div>
         </div>
       )}
@@ -1821,6 +1823,7 @@ function CompareModal({ leftLabel, leftUrl, leftTitle, rightLabel, rightUrl, rig
 }
 
 export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFocus, planIndex, trainees, exercises, markReviewed, updateFormVideos, deleteWorkout, onOpenTrainee }) {
+  const tt = useAppT();
   // "Log In-Person Session" used to live as a subtab here. It moved out
   // 2026-05-28 — the in-person logging surface is now reachable directly
   // via `▶ LOG SESSION` on each TraineeDetail and at /coach/workouts.
@@ -1961,7 +1964,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
       style={{position:'fixed',inset:0,background:C.scrim,display:'flex',alignItems:'center',justifyContent:'center',zIndex:1200,padding:20}}>
       <div onClick={e => e.stopPropagation()} className={delHold.closing ? 'motion-fall' : 'motion-rise'}
         style={{background:C.bg,border:`1px solid ${C.rd||'#c94444'}`,borderRadius:0,padding:20,maxWidth:380,width:'100%'}}>
-        <div style={{fontFamily:FN,fontSize:13,color:C.rd||'#ff6b6b',marginBottom:6,fontWeight:700,textAlign:'center'}}>DELETE WORKOUT</div>
+        <div style={{fontFamily:FN,fontSize:13,color:C.rd||'#ff6b6b',marginBottom:6,fontWeight:700,textAlign:'center'}}>{tt("DELETE WORKOUT")}</div>
         <div style={{fontSize:13,color:C.tx,marginBottom:6,textAlign:'center'}}>
           {delHold.value.dayName} · {delHold.value.planName} · W{delHold.value.week}
         </div>
@@ -1975,7 +1978,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
         <div style={{display:'flex',gap:8}}>
           <button onClick={() => { setDeleteConfirmFor(null); setDeleteConfirmText(''); }}
             style={{flex:1,padding:'10px 0',borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FB,fontSize:13,fontWeight:600,cursor:'pointer'}}>
-            Cancel
+            {tt("Cancel")}
           </button>
           <button disabled={!confirmOk} onClick={onDeleteConfirm}
             style={{flex:1,padding:'10px 0',borderRadius:0,border:'none',
@@ -1983,7 +1986,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
               color: confirmOk ? '#fff' : C.td,
               fontFamily:FB,fontSize:13,fontWeight:700,
               cursor: confirmOk ? 'pointer' : 'default'}}>
-            Delete
+            {tt("Delete")}
           </button>
         </div>
       </div>
@@ -2138,7 +2141,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
 
           {wo.notes && (
             <div style={{marginTop:10,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:10}}>
-              <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',marginBottom:4}}>ATHLETE NOTES</div>
+              <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',marginBottom:4}}>{tt("ATHLETE NOTES")}</div>
               <div style={{fontSize:13,color:C.tx}}>{wo.notes}</div>
             </div>
           )}
@@ -2284,7 +2287,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                   {(formVideo?.has || formVideo?.cloudUrl) ? (
                     <div style={{background:C.gnD,border:`1px solid rgba(46,213,115,0.188)`,borderRadius:0,padding:12,marginBottom:10}}>
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
-                        <div style={{fontSize:10,fontFamily:FN,color:C.gn,fontWeight:700,display:'inline-flex',alignItems:'center',gap:6}}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>FORM VIDEO SUBMITTED</div>
+                        <div style={{fontSize:10,fontFamily:FN,color:C.gn,fontWeight:700,display:'inline-flex',alignItems:'center',gap:6}}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>{tt("FORM VIDEO SUBMITTED")}</div>
                         <div style={{display:'flex',gap:6,alignItems:'center'}}>
                         {/* Body-Match: play the athlete's own rep next to the
                             branded library reference demo (owner-only, read-only,
@@ -2342,7 +2345,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                     </div>
                   ) : (
                     <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:10,marginBottom:10,textAlign:"center"}}>
-                      <div style={{fontSize:11,color:C.tm}}>No form video submitted</div>
+                      <div style={{fontSize:11,color:C.tm}}>{tt("No form video submitted")}</div>
                     </div>
                   )}
 
@@ -2456,7 +2459,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
               style={{padding:"12px 16px",borderRadius:0,border:`1px solid ${C.rd||'#c94444'}`,
                 background:"transparent",color:C.rd||'#ff6b6b',fontFamily:FN,fontSize:12,fontWeight:600,
                 cursor:"pointer"}}>
-              DELETE
+              {tt("DELETE")}
             </button>
           )}
           {/* Order: DELETE · UNMARK (small status toggles, left-aligned)
@@ -2522,7 +2525,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
       </div>
       <div style={{textAlign:"center",padding:60,color:C.td}}>
         <EXPOMark height={22} style={{opacity:0.2,marginBottom:12}} />
-        <div style={{fontSize:14}}>No completed workouts yet</div>
+        <div style={{fontSize:14}}>{tt("No completed workouts yet")}</div>
         <div style={{fontSize:12,marginTop:4}}>Workouts logged in the Athlete Portal will appear here</div>
       </div>
     </div>
@@ -2669,7 +2672,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                       title="Delete this workout"
                       style={{background:'transparent',border:`1px solid ${(C.rd||'#c94444')}40`,color:C.rd||'#ff6b6b',
                         borderRadius:0,padding:'5px 10px',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.08em',cursor:'pointer'}}>
-                      DELETE
+                      {tt("DELETE")}
                     </button>
                   )}
                 </div>
@@ -2697,7 +2700,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
           }`}</style>
           {pending.length === 0 && !showReviewed && (
             <div style={{ textAlign: 'center', padding: 48, color: C.td }}>
-              <div style={{ fontFamily: FN, fontSize: 13, letterSpacing: '0.08em' }}>ALL CAUGHT UP</div>
+              <div style={{ fontFamily: FN, fontSize: 13, letterSpacing: '0.08em' }}>{tt("ALL CAUGHT UP")}</div>
               <div style={{ fontFamily: FB, fontSize: 12, marginTop: 6 }}>No workouts waiting on your review.</div>
             </div>
           )}

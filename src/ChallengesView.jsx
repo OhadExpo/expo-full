@@ -19,6 +19,7 @@ import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
 import { isRefined5b, RefinedHeaderStrip, Modal, Btn, Input, Select, confirmToast, toast, stripBtnBase } from './ui';
 import { GOAL_TYPES, computeProgress, TEMPLATES } from './challengePredicates';
+import { useT as useAppT } from './i18n';
 
 const fmtDate = (d) => {
   try { return fmtPrettyDate(d); } catch { return ''; }
@@ -271,6 +272,7 @@ export default function ChallengesView({ trainees, clientWorkouts, bwLog }) {
 }
 
 function ChallengeForm({ initial, trainees, existingParticipants, onClose, onSaved }) {
+  const tt = useAppT();
   // For new challenges, show the template picker first. Editing skips
   // straight to the form (we already know what the challenge is).
   const [stage, setStage] = useState(initial ? 'form' : 'pick');
@@ -395,7 +397,7 @@ function ChallengeForm({ initial, trainees, existingParticipants, onClose, onSav
             fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
             padding: '6px 12px', cursor: 'pointer', borderRadius: 0,
           }}>BLANK CHALLENGE →</button>
-          <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
+          <Btn variant="ghost" onClick={onClose}>{tt("Cancel")}</Btn>
         </div>
       </Modal>
     );
@@ -445,7 +447,7 @@ function ChallengeForm({ initial, trainees, existingParticipants, onClose, onSav
         </div>
       </div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-        <Btn variant="ghost" onClick={onClose} disabled={saving}>Cancel</Btn>
+        <Btn variant="ghost" onClick={onClose} disabled={saving}>{tt("Cancel")}</Btn>
         <Btn onClick={save} disabled={saving} style={{minWidth:104,justifyContent:'center'}}>{saving ? 'Saving…' : 'Save'}</Btn>
       </div>
     </Modal>

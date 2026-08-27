@@ -20,6 +20,7 @@ import { supabase } from './supabase';
 import { RefinedHeaderStrip, toast, confirmToast, stripBtnBase } from './ui';
 import { traineeIdsFor } from './traineeUtils';
 import { mergeIncomingSession } from './sessionMerge';
+import { useT as useAppT } from './i18n';
 
 
 
@@ -755,6 +756,7 @@ function AthleteCard({ a, name, prevMap, exDetail, onToggleIn, onSet, onCurEx, o
 
 // ---- athlete + program + day picker ----
 function AthletePicker({ trainees, planIndex, existing = [], clientWorkouts = [], onCancel, onConfirm }) {
+  const tt = useAppT();
   const [rows, setRows] = useState([]); // { traineeId, planId, dayIdx, week }
   const active = trainees.filter(t => t.status !== 'Archived' && !existing.includes(t.id));
   const plansFor = (traineeId) => {
@@ -878,7 +880,7 @@ function AthletePicker({ trainees, planIndex, existing = [], clientWorkouts = []
         </div>
         <button onClick={addRow} style={{ ...miniBtn, marginTop: 10, padding: '8px 12px', border: `1px solid ${C.cardBd}`, color: C.ac }}>+ ANOTHER</button>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
-          <button onClick={onCancel} style={{ ...miniBtn, padding: '9px 16px', border: `1px solid ${C.cardBd}`, color: C.tm }}>Cancel</button>
+          <button onClick={onCancel} style={{ ...miniBtn, padding: '9px 16px', border: `1px solid ${C.cardBd}`, color: C.tm }}>{tt("Cancel")}</button>
           <button onClick={confirm} style={{ ...primaryBtn, width: 'auto', padding: '9px 18px' }}>Add to session</button>
         </div>
       </div>

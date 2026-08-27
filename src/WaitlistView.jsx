@@ -10,6 +10,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { C, FN, FB } from './theme';
 import { isRefined5b, confirmToast, toast, SectionLabel, CollapsibleSection } from './ui';
 import { supabase } from './supabase';
+import { useT as useAppT } from './i18n';
 
 const COACH_GATE = 5;
 const NOTES_KEY = 'expo-lead-notes';
@@ -77,6 +78,7 @@ function StatTile({ label, value, sub, color }) {
 }
 
 export default function WaitlistView({ trainees }) {
+  const tt = useAppT();
   const [leads, setLeads] = useState(null);
   const [notes, setNotes] = useState({});
   const [savingNote, setSavingNote] = useState(null);
@@ -287,7 +289,7 @@ export default function WaitlistView({ trainees }) {
       {/* Header + gate progress */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 18, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '14px 18px' }}>
         <div>
-          <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.tm, letterSpacing: '0.18em', textTransform: 'uppercase' }}>COACH WAITLIST</div>
+          <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.tm, letterSpacing: '0.18em', textTransform: 'uppercase' }}>{tt("COACH WAITLIST")}</div>
           <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 4 }}>
             {total} total · {active} uncontacted · gate at {COACH_GATE}+ serious signups
           </div>
@@ -343,7 +345,7 @@ export default function WaitlistView({ trainees }) {
 
       {sorted.length === 0 ? (
         <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 40, textAlign: 'center' }}>
-          <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>NO COACH SIGNUPS YET</div>
+          <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>{tt("NO COACH SIGNUPS YET")}</div>
           <div style={{ fontFamily: FB, fontSize: 13, color: C.tm }}>
             When a coach submits the form on /coaches#waitlist, they'll appear here.
           </div>
@@ -363,12 +365,12 @@ export default function WaitlistView({ trainees }) {
             <thead>
               <tr style={{ background: refined ? 'var(--c-sf)' : 'transparent', borderBottom: `1px solid ${headBorder}` }}>
                 <SH k="email" label="Email" />
-                <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: 9, fontFamily: FN, color: refined ? '#FFFFFF' : C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>Source</th>
+                <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: 9, fontFamily: FN, color: refined ? '#FFFFFF' : C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>{tt("Source")}</th>
                 <SH k="intent" label="Intent" />
                 <SH k="date" label="Signed up" />
                 <SH k="status" label="Status" />
-                <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: 9, fontFamily: FN, color: refined ? '#FFFFFF' : C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700, minWidth: 220 }}>Notes</th>
-                <th style={{ textAlign: 'center', padding: '10px 12px', fontSize: 9, fontFamily: FN, color: refined ? '#FFFFFF' : C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>Actions</th>
+                <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: 9, fontFamily: FN, color: refined ? '#FFFFFF' : C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700, minWidth: 220 }}>{tt("Notes")}</th>
+                <th style={{ textAlign: 'center', padding: '10px 12px', fontSize: 9, fontFamily: FN, color: refined ? '#FFFFFF' : C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>{tt("Actions")}</th>
               </tr>
             </thead>
             <tbody>
@@ -429,7 +431,7 @@ export default function WaitlistView({ trainees }) {
                     </td>
                     <td style={{ padding: '10px 12px' }}>
                       {l.contacted ? (
-                        <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.gn, background: 'var(--c-sf)', border: `1px solid ${C.gn}`, borderRadius: 0, padding: '3px 6px', letterSpacing: '0.18em' }} title={`Contacted ${ago(l.consumed_at)} ago`}>CONTACTED</span>
+                        <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.gn, background: 'var(--c-sf)', border: `1px solid ${C.gn}`, borderRadius: 0, padding: '3px 6px', letterSpacing: '0.18em' }} title={`Contacted ${ago(l.consumed_at)} ago`}>{tt("CONTACTED")}</span>
                       ) : (
                         <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.ac, background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: '3px 6px', letterSpacing: '0.18em' }}>NEW</span>
                       )}

@@ -159,6 +159,35 @@ export const HE = {
   WEEKS: 'שבועות',
   'PROGRAM NAME': 'שם התוכנית',
   'PHASE / BLOCK': 'שלב / בלוק',
+
+  // ---- workout review ---------------------------------------------------
+  'ALL CAUGHT UP': 'הכל מעודכן',
+  'ATHLETE NOTES': 'הערות המתאמן',
+  COMMENT: 'תגובה',
+  'DELETE WORKOUT': 'מחיקת האימון',
+  DRAW: 'ציור',
+  'LIFT METRICS': 'נתוני הרמה',
+  'FORM VIDEO SUBMITTED': 'נשלח וידאו טכניקה',
+  'No completed workouts yet': 'עוד אין אימונים שהושלמו',
+  'No form video submitted': 'לא נשלח וידאו טכניקה',
+  ELBOW: 'מרפק',
+  KNEE: 'ברך',
+
+  // ---- exercise library -------------------------------------------------
+  Edit: 'עריכה',
+  Media: 'מדיה',
+  Show: 'הצג',
+  'SHOW ALL': 'הצג הכל',
+  'No coaching cues': 'אין דגשים',
+  'No values in library': 'אין ערכים בספרייה',
+
+  // ---- waitlist / intake ------------------------------------------------
+  'COACH WAITLIST': 'רשימת המתנה למאמנים',
+  CONTACTED: 'נוצר קשר',
+  'NO COACH SIGNUPS YET': 'עוד לא נרשמו מאמנים',
+  Notes: 'הערות',
+  Source: 'מקור',
+  Actions: 'פעולות',
   // ---- athlete portal: the six tabs ------------------------------------
   PROGRAM: 'תוכנית',
   BW: 'משקל',
