@@ -111,13 +111,42 @@ That turns the ball-selector work from a five-minute harness run per attempt
 into a unit test. `scripts/_replay-candidates.mjs` already sweeps the blob-size
 gate and lists every distinct arc it could have chosen — point it at this file.
 
+## Do these in order — the second gap BLOCKS the first
+
+It is tempting to fix the ball-track rejection first, because it is small and
+well understood. It cannot be validated yet, and that is the real reason it was
+not attempted tonight — not that the code is delicate.
+
+Success for the selector change is defined as **"11 of 11 ball tracks, with the
+other ten unchanged"**. That comparison needs a stable baseline. The baseline
+currently moves by two shots between runs of the same clip:
+
+```
+run A  11 shots      run B  10 shots      run C  9 shots
+```
+
+So if a selector change is followed by a run that finds 10, there is no way to
+tell whether the change broke a shot or the capture simply dropped frames
+again. Any A/B against a ±2 baseline is noise, and a "verified" claim off it
+would be worthless.
+
+**Sequence:**
+
+1. Make capture deterministic — seek-step or WebCodecs decoding, so the same
+   clip always yields the same frames and therefore the same count. Verify by
+   running it three times and getting one number three times.
+2. THEN change the ball-arc selector, with `scripts/fixtures/ball-rejected.json`
+   for fast iteration and the now-stable clip run as the acceptance test.
+
+Doing it the other way round means tuning against a moving target.
+
 ## Why this was not attempted tonight
 
 Ball tracking is delicate — 48 assertions in `verify-ball-track.mjs` and ten
-currently-working shots that a selection change could break. Tuning it needs a
-full harness run per attempt (~5 min) and a careful before/after on all eleven
-reps, which is daylight work with Ohad able to look at the result, not a 2am
-change.
+currently-working shots a selection change could break. But the deciding reason
+is the one above: **the acceptance test is not measurable yet.** With the shot
+count swinging 9–11 between runs, "the other ten are unchanged" cannot be
+established, so any fix would ship on a claim I could not stand behind.
 
 ## How to pick it up
 
