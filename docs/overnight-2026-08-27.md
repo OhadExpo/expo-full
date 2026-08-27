@@ -111,6 +111,22 @@ tick it here and start the next one in the same turn.
 | Medical board verified from BOTH BHBC seats | `6af4f18` `69178f2` |
 | Mobile sweep was measuring the login page too | `5c8f7b0` |
 | Opt-in deterministic capture mode | `82cde04` `9a8a5af` |
+| **MEASURED: deterministic capture finds all 11 shots** | `3a10322` |
+| Fixture says the selector hypothesis was wrong | `50d8c30` |
+| CLAUDE.md backlog was stale — both items shipped | `f911e8e` `0e8e7c8` |
+| Regenerated the OG card whose Hebrew changed | `6769d86` |
+
+**The headline result.** Same clip, same build:
+
+| | frames | eff fps | shots | ball tracks | capture |
+|---|---|---|---|---|---|
+| default (playback) | 741 | 16.4 | **9–11** | 10/11 | 161 s |
+| deterministic | 2632 | 58.1 | **11** | 10/11 | 607 s |
+
+Ball samples per shot roughly doubled (25–42 vs 13–20). Shot 4 stayed rejected
+with 3.5× the frames, which independently confirms it is a real tracking
+problem, not starvation.
+
 | Four marketing Hebrew errors + last trailing plus | `02b45a7` `0dbcfe5` |
 
 **Verified authenticated, at the end of the run:**
