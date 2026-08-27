@@ -120,8 +120,19 @@ tick it here and start the next one in the same turn.
 **37/37 routes fit a 390px phone.** 34 passed in the sweep; the other three
 (`/coach/waitlist`, `/coach/workouts`, `/coaches/try`) hit a 30 s navigation
 timeout because I was running it *concurrently with the deterministic capture*.
-Re-run alone, all three are clean. The harness reported them honestly as ERROR —
-my grep pattern was the thing that missed them, not the tool.
+The harness reported them honestly as ERROR — my grep pattern was the thing that
+missed them, not the tool.
+
+Re-measured at 05:01 on a quiet machine, so this is evidence and not a
+prediction:
+
+```
+ok  /coach/waitlist   sw=390 bsw=390 iw=390
+ok  /coach/workouts   sw=390 bsw=390 iw=390
+ok  /coaches/try      sw=390 bsw=390 iw=390
+```
+
+All three fit. 37/37 stands, and all 37 are now measured.
 
 Lesson worth keeping: do not run the browser sweeps alongside a heavy capture.
 The timeouts are self-inflicted and look exactly like real failures.
