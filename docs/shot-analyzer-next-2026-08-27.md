@@ -420,6 +420,54 @@ consecutive misses end the walk), and simply logging which of those two ends it.
 Instrument before theorising again; five theories in, that is clearly the faster
 route.
 
+### Instrumented at last — and where six hypotheses leave it
+
+Added a diagnostic `trace` to `trackBall` (default `null`, zero cost when unused)
+that records why each walk stopped. It should have been the first move, not the
+sixth.
+
+```
+all walks, why they ended: { "lost the ball": 120, "reached the end": 28 }
+
+walks seeding near the true release:
+  startT   n   ended            atT
+  14200    5   lost the ball    14400
+  14200    2   lost the ball    14283   <- repeatedly, right here
+  14200    2   lost the ball    14300
+```
+
+**The walks die at t=14283 — precisely the frame where the ball separates from
+his hand** and accelerates away. The search radius is `0.7 × ballPx` around a
+straight-line prediction, and at release speed the ball covers roughly that much
+between frames. It is marginal exactly when it matters.
+
+Widening it does not rescue the shot:
+
+```
+tolBalls  maxOrigin   n   startedAt   result
+  0.7        3        6     1.5 ø     REFUSED: not falling like a projectile
+  1.4        3        7     3.0 ø     REFUSED: the blob never travelled sideways
+  2.0        3        8     3.0 ø     REFUSED: the blob never travelled sideways
+```
+
+A wider radius simply latches onto the hand, which does not travel horizontally.
+
+**Six hypotheses, all measured, none sufficient:** selector choice, the athlete
+crop, a stale wrist, the origin threshold, the window start, origin-biased
+scoring, minimum arc length, constant-velocity prediction, and search radius.
+
+**Honest conclusion.** Shot 4's ball cannot be recovered by tuning any single
+parameter of the current tracker. Two balls are genuinely in frame, one at apex
+and one leaving the hand, and the tracker has no concept of "the ball that
+belongs to THIS release". Fixing it properly means associating blobs across
+frames with an ID, or seeding from the release frame and requiring the arc to
+start there — a design change, not a constant.
+
+**Cost/benefit before anyone starts:** this is 1 rep in 11 on one clip, and it
+already fails loudly and legibly ("no ball data" with a stated reason) rather
+than reporting a wrong angle. The count problem — which was silent and affected
+every run — is fixed. This one can wait for a deliberate redesign.
+
 ## SECOND GAP — the count is not deterministic. This is the bigger one.
 
 Three runs of the SAME clip, same build, minutes apart:

@@ -121,7 +121,7 @@ export function trackBall(frames, opts = {}) {
     // Where the ball was released, if known, and how far from it a track may
     // start — in ball diameters, because the ball only separates from the hand
     // a few frames after the release and has travelled by then.
-    origin = null, maxOriginBalls = 9, originBias = 0,
+    origin = null, maxOriginBalls = 9, originBias = 0, trace = null,
     // Optional out-object. The builder rejects candidates in a loop, so there is
     // no single reason it failed — but there IS a shape to the failure, and it
     // says different things. Mostly `tooShort` means the ball was not detected
@@ -164,11 +164,19 @@ export function trackBall(frames, opts = {}) {
               const d = Math.hypot(c.x - px, c.y - py);
               if (d < bestD) { bestD = d; pick = c; }
             }
-            if (!pick) { misses++; gaps++; if (misses > maxMiss) break; continue; }
+            if (!pick) {
+              misses++; gaps++;
+              // `trace` (optional, diagnostic only) records WHY a walk stopped.
+              // Five hypotheses about shot 4 were argued and disproved before
+              // anyone simply logged this.
+              if (misses > maxMiss) { if (trace) trace.push({ startT: pts[0].t, n: pts.length, ended: 'lost the ball', atT: fs[k].t, gaps }); break; }
+              continue;
+            }
             misses = 0; lastIdx = k;
             pts.push({ t: fs[k].t, x: pick.x, y: pick.y, px: (pick.w + pick.h) / 2 });
           }
           bump('seeds');
+          if (trace && pts.length >= minLen) trace.push({ startT: pts[0].t, n: pts.length, ended: 'reached the end of the window', gaps });
           if (pts.length < minLen) { bump('tooShort'); continue; }
           // A real flight is seen in nearly every frame it spans. A path picked
           // out of clutter is sparse — it only lands on a candidate now and
