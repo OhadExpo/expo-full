@@ -72,6 +72,43 @@ the shooter or the background for the frames where it climbs.
 That is a more useful place to start than the selector, and it was one command
 away the whole time. The fixture paid for itself.
 
+### Shot 4, narrowed further — and two wrong paths eliminated
+
+From the deterministic fixture (`scripts/fixtures/ball-rejected-det1.json`),
+release at t=14083, wrist at y=0.468:
+
+```
+  t       n    nearest-to-wrist (ball ø)   highest blob y
+  14083   5     3.0                         0.298
+  14183   9     1.5                         0.292
+  14283   7     0.2                         0.295   <- something IS at the hand
+  14350   2     4.0                         0.302
+  14500   3     3.6                         0.325
+```
+
+**The highest blob in every frame sits at y ≈ 0.29–0.32 and barely moves.** That
+is a near-stationary feature, not a ball. A released ball starts at the wrist
+(y = 0.468) and should climb well past 0.29 — nothing in the candidate set does.
+
+Two hypotheses now eliminated:
+
+1. ~~The selector is choosing the wrong arc.~~ The blob-size sweep refuses every
+   candidate at every threshold. There is no better arc to choose.
+2. ~~The ball leaves the athlete crop.~~ It cannot. Ball detection runs on a
+   SEPARATE full-frame canvas (`MW = 270`, whole frame, deliberately never
+   moves, so frame-differencing is not confused by a travelling window). The
+   pose crop is irrelevant to it.
+
+So the ball's blobs are genuinely absent from `motionBlobs` output on the frames
+where it climbs, on THIS rep and not the other ten. The remaining suspects are
+about that rep specifically: what the ball passes in front of, and whether at
+270 px wide its motion signature falls under the threshold there.
+
+**Next concrete step:** dump the 270 px difference frames for t=14083–14500 and
+look at them. That is a visual question and it needs eyes, not more inference —
+and it is now cheap, because a deterministic run reproduces those exact frames
+every time.
+
 ## SECOND GAP — the count is not deterministic. This is the bigger one.
 
 Three runs of the SAME clip, same build, minutes apart:
