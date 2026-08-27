@@ -824,3 +824,31 @@ works and roughly what it costs; it does not establish run-to-run reproducibilit
 the way the two matching deterministic runs did. Two more runs would settle that,
 and the shot times here (2983, 6633, 10383 …) are close to but not identical with
 the deterministic run's, which is expected since the fine pass still floats.
+
+### Repeated: `'coarse'` reproduces the COUNT, not the timings
+
+Second run, 05:25:10 → 05:31:52 (402 s against the first run's 423 s):
+
+```
+{"coarse":2459,"fine":783,"windows":8,...}
+strict shots 11 [3033,6667,10483,13783,18417,23033,27283,31233,35283,38833,42683]
+```
+
+**Coarse frames: 2,459 — byte-identical to run 1 and to the fully deterministic
+run.** Eight windows both times, 11 shots both times. The count is reproducible,
+which is precisely the claim the mode was built to support, and the one-run
+caveat written an hour ago is now discharged.
+
+The timings are *not* reproducible: against run 1 they drift by up to **300 ms**
+(median 50 ms). That is expected and worth stating plainly rather than glossing —
+the fine pass still runs on playback, and the fine pass is what fixes the exact
+release instant inside a window. So:
+
+| | count | shot timing | ball density | wall |
+|---|---|---|---|---|
+| default | 8–11, unreliable | ±383 ms | sparse | 2.7 min |
+| `'coarse'` | **11, reproducible** | ±300 ms | sparse | ~7 min |
+| `true` | 11, reproducible | **identical, delta 0** | ~2× | 10.1 min |
+
+Which makes the choice cleaner than "fast vs slow": **`'coarse'` if you want to
+trust the count, `true` if you want to compare one rep against another rep.**
