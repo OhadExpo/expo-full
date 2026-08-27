@@ -594,16 +594,22 @@ export default function CoachLanding({ lang = 'en' }) {
           <div style={{ flex: 1 }} />
           <a href={isHe ? '/demo' : '/demo/he'} style={{
             ...baseBtn, background: 'transparent', color: C.tm,
-            border: `1px solid ${C.bd}`, padding: '8px 10px', fontSize: 10,
+            border: `1px solid ${C.bd}`, padding: '0 10px', fontSize: 10,
             letterSpacing: '0.18em', fontWeight: 700,
+            height: 34, boxSizing: 'border-box', display: 'inline-flex',
+            alignItems: 'center', justifyContent: 'center', lineHeight: 1,
           }}>{isHe ? 'EN' : 'עבר'}</a>
           <a href="/demo/coach" className="cl-header-demo-btn" style={{
             ...baseBtn, background: 'transparent', color: C.tx,
-            border: `1px solid ${C.bd2}`, padding: '8px 14px', fontSize: 11,
+            border: `1px solid ${C.bd2}`, padding: '0 14px', fontSize: 11,
+            height: 34, boxSizing: 'border-box', display: 'inline-flex',
+            alignItems: 'center', justifyContent: 'center', lineHeight: 1,
           }}>{t('header.demo')}</a>
           <a href="/login" style={{
             ...baseBtn, background: 'transparent', color: C.tm,
-            padding: '8px 14px', fontSize: 11,
+            padding: '0 14px', fontSize: 11,
+            height: 34, boxSizing: 'border-box', display: 'inline-flex',
+            alignItems: 'center', justifyContent: 'center', lineHeight: 1,
           }}>{t('header.signin')}</a>
         </div>
       </header>
