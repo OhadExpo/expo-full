@@ -24,7 +24,13 @@ const poll = setInterval(async () => {
 
 let r;
 try {
-  r = await page.evaluate((u) => window.runHarness(u), CLIP, { timeout: 0 });
+  // DETERMINISTIC=1 steps the clip with seeks instead of reading a playing
+  // video. Slower, but it sees every frame regardless of machine load - which
+  // is the question, since the default path returned 11, 10 and 9 shots on
+  // three runs of this same clip.
+  const det = process.env.DETERMINISTIC === '1';
+  if (det) console.log('deterministic capture: ON (seek-stepped, slower)');
+  r = await page.evaluate((u, d) => window.runHarness(u, { deterministic: d }), CLIP, det, { timeout: 0 });
 } catch (e) {
   console.log('FAILED:', String(e).slice(0, 500));
 } finally { clearInterval(poll); }

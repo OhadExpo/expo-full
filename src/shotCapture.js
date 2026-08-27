@@ -87,10 +87,14 @@ const seekTo = (v, time) => new Promise((res) => {
 // The counter stays because it is what proved that, and because if the balance
 // ever tips — a faster machine, a lighter model — this is the first place the
 // frames would start disappearing instead.
-async function playThrough(v, { from, to, rate, onFrame, frameDur, drops }) {
+async function playThrough(v, { from, to, rate, onFrame, frameDur, drops, deterministic = false }) {
   await seekTo(v, Math.max(0, from));
   v.playbackRate = rate;
-  if (typeof v.requestVideoFrameCallback !== 'function') {
+  // The seek-step path sees every frame no matter how loaded the machine is.
+  // It is the fallback for browsers without requestVideoFrameCallback, and it
+  // is also the only way to get a repeatable shot count - so callers can ask
+  // for it deliberately.
+  if (deterministic || typeof v.requestVideoFrameCallback !== 'function') {
     // Safari-old / unsupported: step by seeking (slow but correct).
     for (let t = from; t <= to; t += frameDur) { await seekTo(v, t); await onFrame(v, t); }
     return;
@@ -157,9 +161,23 @@ async function measureFps(v) {
 
 /**
  * @param {string} src object URL / file URL
- * @param {{onProgress?:(pct:number,label?:string)=>void, maxFine?:number, fineRate?:number}} opts
+ * @param {{onProgress?:(pct:number,label?:string)=>void, maxFine?:number, fineRate?:number, deterministic?:boolean}} opts
+ *
+ * `deterministic` steps the clip frame by frame with seeks instead of reading
+ * a playing video. SLOWER - a seek on a 60 fps portrait clip costs 100-175 ms,
+ * which is why playback is the default - but it sees EVERY frame regardless of
+ * machine load.
+ *
+ * That matters because the default path does not: the same 45 s clip analysed
+ * three times on 2026-08-27 returned 11, 10 and 9 shots, because the browser
+ * presents fewer frames while MediaPipe is running (~16 fps of a 60 fps source)
+ * and a release that lands in a gap is simply never seen. Nothing downstream is
+ * random; this is the only place the variance enters.
+ *
+ * Not wired to any UI yet - it is here so the speed/reliability trade can be
+ * MEASURED before anyone decides. See docs/shot-analyzer-next-2026-08-27.md.
  */
-export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineRate = 0.34 } = {}) {
+export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineRate = 0.34, deterministic = false } = {}) {
   let lmCoarse, lmFine, v, canvas;
   const report = (p, label) => { if (onProgress) onProgress(Math.max(0, Math.min(100, Math.round(p))), label); };
   try {
@@ -203,7 +221,7 @@ export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineR
     const coarse = [];
     let prevC = null;
     await playThrough(v, {
-      from: 0, to: dur, rate: 1, frameDur, drops,
+      from: 0, to: dur, rate: 1, frameDur, drops, deterministic,
       onFrame: (vid, mt) => {
         let r = null;
         try { r = lmCoarse.detect(vid); } catch { /* noop */ }
@@ -272,7 +290,7 @@ export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineR
     for (const w of windows) {
       if (fine.length >= maxFine) break;
       await playThrough(v, {
-        from: w.from / 1000, to: w.to / 1000, rate: fineRate, frameDur, drops,
+        from: w.from / 1000, to: w.to / 1000, rate: fineRate, frameDur, drops, deterministic,
         onFrame: (vid, mt) => {
           if (fine.length >= maxFine) return;
           const b = boxAt(track, mt) || { x0: 0.2, y0: 0.1, x1: 0.8, y1: 0.9 };
