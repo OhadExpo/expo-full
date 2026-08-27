@@ -250,6 +250,53 @@ That is a ten-minute change and one harness run. Until then, treat the origin an
 window numbers above as **not yet decisive** — the mechanism (two balls, wrong
 one chosen) is established from the frames; the right thresholds are not.
 
+### The constraint was WRITTEN for this case — and a stale wrist is why it fails
+
+`shotAnalysis.js` around line 521 already says it:
+
+```js
+// The ball has to come OUT OF THE SHOOTING HAND. Without this, a ball
+// already in flight from a previous rep — or anything else drifting across
+// the upper frame — can fit a parabola perfectly well and be reported as
+// this shot's launch. On the real clip exactly that happened once in
+// eleven, and it read 17 degrees.
+const wp = series.raw.wristPos[c.release];
+const origin = wp ? { x: wp.x * K, y: wp.y * K } : null;
+```
+
+Someone already diagnosed "a ball in flight from a previous rep", already noted
+it happens **once in eleven** on this very clip, and added the origin gate to stop
+it. It is not stopping it, and the reason is in the next line:
+
+**`origin` is a SINGLE point — the wrist at the detected release.**
+
+`trackBall` compares every candidate seed against that one position, no matter
+how many frames later the seed occurs. On shot 4 the detected release is at
+t=14083 and the ball does not leave his hand until ≈14283, by which time his arm
+has fully extended and the wrist has moved a long way.
+
+So:
+- at `maxOriginBalls = 9` the gate is loose enough that the PREVIOUS ball
+  (~6.5 diameters from the stale wrist) passes → it wins on arc length
+- tighten it, and the TRUE ball is rejected as well, because its seed is also far
+  from where the hand *used to be*
+
+That is exactly what both sweeps showed, and why neither a tighter threshold nor
+a later window start fixed anything. **Tuning the number cannot work; the
+reference point is wrong.**
+
+**The fix:** compare each seed against `wristPos` at THAT seed's frame, not at
+the release frame. `trackBall` would take a wrist track (or a lookup) instead of
+a single `origin`. Then a tight threshold becomes safe — the true ball is always
+near the hand at the instant it leaves it, which is the whole idea the comment
+describes.
+
+This is the most concrete, best-evidenced improvement available to the analyzer
+right now, and it is a contained change to one function's signature plus its
+caller. I have not made it: it alters ball tracking for all eleven shots, the
+acceptance test is a 10-minute deterministic run, and it deserves to be done with
+Ohad able to see the before and after.
+
 ## SECOND GAP — the count is not deterministic. This is the bigger one.
 
 Three runs of the SAME clip, same build, minutes apart:
