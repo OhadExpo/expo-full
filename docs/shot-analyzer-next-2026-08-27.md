@@ -716,3 +716,43 @@ and lists every distinct arc it could have chosen.
 
 Success is: **11 of 11 ball tracks, with the other ten unchanged** — same
 angles, same speeds, same fits.
+
+---
+
+## The quiet-machine control run (05:03–05:12) — the caveat was wrong
+
+I had written that the 9–11 count spread was probably inflated by my own load
+(29 debug tabs by 03:40) and was "an upper bound, not what you would see
+analysing one clip on a quiet phone", and told Ohad it was worth three runs on
+an idle machine before paying 3.8× for deterministic capture.
+
+Ran them. Default path, idle machine, three back-to-back captures:
+
+```
+run 1   11 shots   [3000, 6733, 10400, 14050, 18450, 23000, 27083, 31167, 35300, 38767, 42800]
+run 2    8 shots   [14067, 18433, 23033, 27083, 31167, 35267, 38650, 42667]
+run 3   11 shots   [3333, 6733, 10600, 14083, 18683, 23017, 27067, 31200, 35317, 38950, 42683]
+```
+
+**The caveat was wrong in the direction that matters.** 8 is a new floor — the
+idle-machine spread (8–11) is *wider* than the one measured under load (9–11).
+And the failure is not a shot lost here and there: run 2 missed the entire
+opening of the clip, reporting the first rep as happening 14 seconds in.
+
+Even the two runs that agreed on the count disagree on timing by up to
+**333 ms** (3000 vs 3333, 18450 vs 18683). Deterministic capture returned 11
+twice with every shot at the identical millisecond, delta 0.
+
+**Consequence for the recommendation.** This was written up as "your call, I lean
+slow." It is not really a judgement call any more: the fast path can report 8
+shots for 11 reps on an idle machine with nothing else running. The remaining
+question is only whether the coarse-pass-only middle path (~6 min, still
+untested) buys the same reliability for less time.
+
+**Method note.** The first attempt at this control run produced three "captures"
+that each finished in three seconds and printed nothing my grep pattern matched.
+They had all failed — Git Bash had rewritten the clip argument into
+`C:/Program Files/Git/10%20of%2011.mp4` and the harness honestly said "Could not
+read that video". Runtime, not output, was the tell. Fixed in
+`scripts/lib/unmangle.mjs`; the loop now echoes an explicit marker on a non-zero
+exit instead of trusting a grep.
