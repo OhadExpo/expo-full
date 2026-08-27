@@ -107,6 +107,19 @@ tick it here and start the next one in the same turn.
 | Four more intake-form Hebrew errors (one my own) | `9c29f05` |
 | Light/dark parity measured signed-in: geometry PERFECT | `08d1da2` |
 | Athlete portal verified from the ATHLETE's seat | `6a8ba65` |
+| Auth roles extracted + 25 assertions on the medical guard | `dc06ce5` |
+| Medical board verified from BOTH BHBC seats | `6af4f18` `69178f2` |
+| Mobile sweep was measuring the login page too | `5c8f7b0` |
+| Opt-in deterministic capture mode | `82cde04` `9a8a5af` |
+| Four marketing Hebrew errors + last trailing plus | `02b45a7` `0dbcfe5` |
+
+**Verified authenticated, at the end of the run:**
+- **36/36 routes console-clean** — signed in this time, so the number is real.
+- **Medical board, both seats**: PT sees EDITABLE with an update link and 9
+  report buttons; a regular coach sees VIEW ONLY with zero of each. That UI
+  check is the *only* thing protecting the board until the RLS paste lands.
+- **Suite: 69 green, 0 red.**
+
 
 **Verified, signed in, across every route in the manifest:**
 - **Geometry parity light vs dark: perfect** — `moved=0 countDelta=0` on all 32.
