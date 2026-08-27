@@ -526,6 +526,81 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
 // blank for the coach to fill in later in the Exercises screen — same shape as
 // createLibraryExercise, but it returns the id so the caller can link the row
 // it was invoked from instead of appending a new one.
+// OVERVIEW — every day and every exercise of a program on ONE screen.
+//
+// Ohad: "add overview where i can see all the days and exercises in one screen"
+// / "make sure i can still see the entire screen". The editor stacks day cards
+// vertically, so a 4-day block is a long scroll and you can never see the shape
+// of the week at once. This is the read-at-a-glance view of the same data:
+// days as columns that auto-fit the available width, exercises as compact rows.
+//
+// Deliberately NOT editable. It is for reading the shape of the block — the
+// editor one click away is where you change things. Clicking a day jumps there.
+function PlanOverview({ plan, exercises, onJumpToDay = null }) {
+  const days = plan?.days || [];
+  // One Map for the whole render. exercises.find() per row is the documented
+  // way this screen gets slow with a 1,300-row library.
+  const byId = useMemo(() => exById(exercises), [exercises]);
+  const nameOf = (ex) => (ex?.title || byId.get(ex?.exerciseId)?.title || '—');
+  // Plans carry two shapes; the editor writes {sets, reps} but older sheet
+  // imports use {s, r}. Read both or half the block renders blank.
+  const rxOf = (ex) => {
+    const s = ex?.sets ?? ex?.s ?? '';
+    const r = ex?.reps ?? ex?.r ?? '';
+    if (s !== '' && r !== '') return `${s}×${r}`;
+    return String(s || r || '');
+  };
+  const warm = plan?.warmup || plan?.warmUp || [];
+
+  const card = (key, heading, count, rows, onClick) => (
+    <div key={key} style={{ border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)', minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+      <div
+        onClick={onClick || undefined}
+        title={onClick ? 'Open this day in the editor' : undefined}
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '7px 10px', borderBottom: `1px solid ${C.cardBd}`, borderLeft: `2px solid ${C.ac}`, cursor: onClick ? 'pointer' : 'default' }}>
+        <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', color: C.tx, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{heading}</span>
+        <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.td, flexShrink: 0 }}>{count}</span>
+      </div>
+      <div style={{ padding: '4px 0' }}>
+        {rows.length === 0
+          ? <div style={{ padding: '8px 10px', fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.06em' }}>EMPTY</div>
+          : rows}
+      </div>
+    </div>
+  );
+
+  const exRow = (ex, i) => {
+    const sc = supersetColor(ex?.superset);
+    const rx = rxOf(ex);
+    return (
+      <div key={ex?.id || i} style={{ display: 'flex', alignItems: 'baseline', gap: 6, padding: '3px 10px', minWidth: 0 }}>
+        <span style={{ fontFamily: FN, fontSize: 10, color: C.td, width: 15, flexShrink: 0, textAlign: 'right' }}>{i + 1}</span>
+        {/* Superset letter keeps its group colour, so the pairing is readable
+            here exactly as it is in the editor's GRP column. */}
+        {ex?.superset ? <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: sc, flexShrink: 0 }}>{ex.superset}</span> : null}
+        <span style={{ fontSize: 12, color: C.tx, lineHeight: 1.3, flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>{nameOf(ex)}</span>
+        {rx ? <span style={{ fontFamily: FN, fontSize: 10, color: C.tm, flexShrink: 0, whiteSpace: 'nowrap' }}>{rx}</span> : null}
+      </div>
+    );
+  };
+
+  return (
+    // auto-fit + minmax is what makes "one screen" hold for 2 days or 7: the
+    // columns share the width they are given rather than each demanding a fixed
+    // size and pushing the last day off the edge.
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 10, alignItems: 'start', marginBottom: 16 }}>
+      {warm.length > 0 && card('warmup', 'Warm-up', `${warm.length} EX`, warm.map((w, i) => exRow({ ...w, title: w.t || w.title, id: w.id || `w${i}` }, i)), null)}
+      {days.map((d, i) => card(
+        d.id || `d${i}`,
+        d.name || d.title || `Day ${i + 1}`,
+        `${(d.exercises || d.ex || []).length} EX`,
+        (d.exercises || d.ex || []).map(exRow),
+        onJumpToDay ? () => onJumpToDay(i) : null,
+      ))}
+    </div>
+  );
+}
+
 function addLibExercise(setExercises, name) {
   const t = (name || '').trim();
   if (!t || !setExercises) return null;
@@ -896,7 +971,7 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExerc
 // renders an editor-shaped read-only view (day tabs, warm-up, exercise
 // rows with sets/reps/load/RPE/tempo/notes). The compared plan is never
 // mutated — every input is replaced with display text.
-function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClose }) {
+function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClose, overview = false }) {
   // Athlete filter drives everything: until one is chosen, the program
   // dropdown is empty/disabled. Defaults to the current plan's athlete so
   // the most useful comparison appears first.
@@ -993,6 +1068,14 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
         <div style={{padding:'24px 16px', color:C.td, fontSize:12, textAlign:'center', fontFamily:FB}}>Pick a program from the filter above to compare.</div>
       ) : loading || !cmpPlan ? (
         <div style={{padding:'30px 12px', color:C.td, fontSize:12, textAlign:'center', fontFamily:FN, letterSpacing:'0.18em'}}>LOADING…</div>
+      ) : overview ? (
+        // Overview applies to BOTH halves (Ohad: "when i use overview, i can
+        // also use compare — overview mode in both"). Comparing two blocks is
+        // exactly when you want each one condensed to its shape, side by side.
+        <>
+          <PatternCoverage plan={cmpPlan} exercises={exercises} cols={3} />
+          <PlanOverview plan={cmpPlan} exercises={exercises} />
+        </>
       ) : (
         <>
           {/* Pattern coverage of the compared plan. Same component the
@@ -1602,6 +1685,10 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
   // gone — the unified overview is the only view, so compareActive is
   // simply compareOpen.)
   const [compareOpen, setCompareOpen] = useState(false);
+  // OVERVIEW: the whole block — every day, every exercise — on one screen.
+  // Persisted, because it is a way of working rather than a peek: a coach who
+  // reads blocks this way wants it still on when the next program opens.
+  const [overviewOpen, setOverviewOpen] = usePersistentState('expo-plan-overview', false);
   const compareActive = compareOpen;
   // Three scrollers in compare: wheel OVER a pane scrolls only that pane (each
   // half is its own bounded overflow:auto with its own scrollbar); wheel over
@@ -2031,6 +2118,16 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
             PORTAL
           </button>}
+          {/* OVERVIEW — placed immediately after PORTAL (Ohad: "it should be
+              displayed as a button, after portal"). Fixed width regardless of
+              label so the row never re-flows when it toggles: a control that
+              changes size on click reads as a flash bug. */}
+          <button onClick={() => setOverviewOpen(v => !v)}
+            title={overviewOpen ? 'Back to the full editor' : 'See every day and exercise of this block on one screen'}
+            style={{background: overviewOpen ? `${C.ac}1f` : (isRefined5b() ? 'transparent' : 'var(--c-sf)'),border:`1px solid ${C.ac}`,borderRadius:0,height:38,padding:'0 13px',lineHeight:'38px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.09em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6,whiteSpace:'nowrap',minWidth:132,boxSizing:'border-box'}}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+            {overviewOpen ? 'EDITOR' : 'OVERVIEW'}
+          </button>
           {/* Secondary program actions (Compare · History · Share · Duplicate ·
               New Program) collapsed behind one ⋯ MORE popover — the eight-button
               row read as a wall (Ohad). PORTAL, SHOW ONLY and DELETE stay as
@@ -2115,8 +2212,11 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           touching the pane's cyan scrollbar. */}
       <div data-compare-pane ref={leftPaneRef} style={{overflowY:compareActive?'auto':'visible',minHeight:0,flex:compareActive?1:'unset',paddingRight:compareActive?6:0}}>
       <PatternCoverage plan={plan} exercises={exercises} cols={compareActive ? 3 : 5} />
-      <WarmupEditor plan={plan} setPlan={setPlan} compact={compareActive} exercises={exercises} setExercises={setExercises}
-        onCopyWarmup={onCopyWarmup ? () => setCopyDaysModal({ warmup: true }) : null} />
+      {/* The overview carries its own warm-up card, so the full editor version
+          would be the same content twice and cost the screen space the overview
+          exists to save. */}
+      {!overviewOpen && <WarmupEditor plan={plan} setPlan={setPlan} compact={compareActive} exercises={exercises} setExercises={setExercises}
+        onCopyWarmup={onCopyWarmup ? () => setCopyDaysModal({ warmup: true }) : null} />}
       {/* Day tabs. Each tab can be individually flagged as a "daily routine"
           via a small 📆 toggle inside the day's content (see below). A daily
           day in a multi-day plan lets the athlete log it any number of times
@@ -2128,7 +2228,17 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           card sits flush at the top and "drop before Day A" is unreachable
           (Ohad: "it only lets me drag day a down"). The insertion bar also needs
           this space to render at the top instead of being clipped above. */}
-      <div onDragOver={onDaysDragOver} onDrop={onDaysDrop} style={{display:"flex",flexDirection:"column",gap:12,marginBottom:16,position:'relative', paddingTop: dayDragging ? 16 : 0, paddingBottom: dayDragging ? 16 : 0, transition:'padding 120ms ease'}}>
+      {overviewOpen && <PlanOverview plan={plan} exercises={exercises} onJumpToDay={(i) => {
+        // Jump straight to the day you clicked: leave overview, then scroll to
+        // that card once it has rendered.
+        setOverviewOpen(false);
+        setTimeout(() => {
+          const cards = document.querySelectorAll('[data-daycard]');
+          const el = cards[i];
+          if (el) el.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        }, 80);
+      }} />}
+      <div onDragOver={onDaysDragOver} onDrop={onDaysDrop} style={{display: overviewOpen ? 'none' : "flex",flexDirection:"column",gap:12,marginBottom:16,position:'relative', paddingTop: dayDragging ? 16 : 0, paddingBottom: dayDragging ? 16 : 0, transition:'padding 120ms ease'}}>
         {plan.days.map((d, dayIdx) => {
           const dayExs = d.exercises || [];
           const weeks = plan.weeks || 4;
@@ -2478,6 +2588,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           exercises={exercises}
           trainees={trainees}
           onClose={() => setCompareOpen(false)}
+          overview={overviewOpen}
         />
       )}
       </div>
