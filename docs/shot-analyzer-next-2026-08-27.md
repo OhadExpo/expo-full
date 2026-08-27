@@ -41,6 +41,37 @@ The fix is probably in **candidate selection**, not in the rise gate: prefer the
 arc whose origin starts AT the hand and whose vertical travel is largest, rather
 than the best pure r².
 
+### What the fixture actually says — my selector hypothesis is probably wrong
+
+Ran `scripts/replay-ball-candidates.mjs scripts/fixtures/ball-rejected.json`,
+which sweeps the blob-size gate and refits every arc it could have chosen:
+
+```
+fixture refusal reason: "it barely rose (0.5 ball widths)"
+candidate blobs: 92 | size per-mille  min 5.3  med 15.6  max 49.0
+frames with >1 candidate: 24 of 28
+
+minSize  0  n=24 ballPx=26.0  REFUSED: it barely rose (0.8 ball widths)
+minSize 15  n=24 ballPx=26.0  REFUSED: it barely rose (0.8 ball widths)
+minSize 25  n=23 ballPx=26.0  REFUSED: it barely rose (0.8 ball widths)
+minSize 35  no track
+minSize 45  no track
+```
+
+**No candidate arc rises enough, at any blob-size threshold.** That undercuts the
+"prefer the arc that starts at the hand and travels furthest vertically" idea I
+suggested above — there is no better arc sitting in this candidate set to
+prefer. The best available still only climbs 0.8 ball widths against a 1.2
+threshold.
+
+So the problem is upstream of selection: on this rep the ball's blobs are not in
+the candidate set at all, or only its early, flat portion is. Look at
+`motionBlobs` and what the ball looks like on THIS release — likely it overlaps
+the shooter or the background for the frames where it climbs.
+
+That is a more useful place to start than the selector, and it was one command
+away the whole time. The fixture paid for itself.
+
 ## SECOND GAP — the count is not deterministic. This is the bigger one.
 
 Three runs of the SAME clip, same build, minutes apart:
@@ -108,7 +139,7 @@ captured straight from the pipeline: every candidate blob per frame for 30
 frames after release, plus the wrist position and the refusal reason.
 
 That turns the ball-selector work from a five-minute harness run per attempt
-into a unit test. `scripts/_replay-candidates.mjs` already sweeps the blob-size
+into a unit test. `scripts/replay-ball-candidates.mjs` already sweeps the blob-size
 gate and lists every distinct arc it could have chosen — point it at this file.
 
 ### A confound in my own measurement, stated plainly
@@ -204,7 +235,7 @@ MSYS_NO_PATHCONV=1 node scripts/shot-harness-run.mjs "/10%20of%2011.mp4" 5212
 
 The harness prints per-shot `why` for every rejection, plus `BALLFRAMES` for the
 first shot. To debug shot 4 specifically, make it dump that shot's frames and
-feed them to `scripts/_replay-candidates.mjs`, which sweeps the blob-size gate
+feed them to `scripts/replay-ball-candidates.mjs`, which sweeps the blob-size gate
 and lists every distinct arc it could have chosen.
 
 Success is: **11 of 11 ball tracks, with the other ten unchanged** — same
