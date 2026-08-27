@@ -1,7 +1,13 @@
 # Light/dark parity — measured across every route, signed in
 
-`node scripts/audit-theme-parity.mjs <outDir> <baseUrl>` — 2026-08-27, 32 routes
-enumerated from `docs/SURFACES.md`, authenticated as the owner.
+`node scripts/audit-theme-parity.mjs <outDir> <baseUrl>` — 2026-08-27, **all 36
+routes** enumerated from `docs/SURFACES.md`, authenticated as the owner.
+
+32 completed in the sweep; the other four (`/coach/smart-import`, `/intake/he`,
+`/login`, `/try`) hit a 40 s navigation timeout because a deterministic shot
+capture was running on the same machine. Re-run on a quiet machine they are
+clean — `moved=0`, and zero low-contrast on all four. The harness reported the
+timeouts honestly as ERROR rather than counting them as passes.
 
 The harness loads each route twice with `?theme=…` so `boot-theme.js` applies the
 theme BEFORE paint, and it refuses to compare unless the two loads actually
@@ -9,7 +15,7 @@ differed — otherwise "geometry identical" would be trivially true.
 
 ## Geometry: perfect
 
-**`moved=0 countDelta=0` on every single route.** Not one element changes
+**`moved=0 countDelta=0` on all 36 routes.** Not one element changes
 position or size when only the theme changes. That is the locked rule
 (`reference_theme_geometry_parity`) and it holds everywhere, including the nine
 routes never checked before: `/coach/bugs`, `/coach/challenges`,
