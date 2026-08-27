@@ -188,6 +188,52 @@ Either answer is worth the runtime. Note the runner's `protocolTimeout` is
 raised to 45 minutes for this path — the default kills a seek-stepped run
 mid-way and reports a puppeteer error instead of a result.
 
+## MEASURED: deterministic capture found all 11
+
+First deterministic run of the same clip, on the same build:
+
+```
+                    frames analysed   effective fps   shots   ball tracks
+default (playback)        741              16.4        9-11        10/11
+deterministic            2632              58.1          11        10/11
+```
+
+```
+[shot-capture] {"coarse":2459,"fine":2371,"windows":8,"skipped":0}  out 2632
+analyzed 11
+  #1  t=3017   ballN 40   deg 68.0      #7  t=27067  ballN 39   deg 66.4
+  #2  t=6650   ballN 39   deg 67.5      #8  t=31167  ballN 38   deg 66.3
+  #3  t=10317  ballN 25   deg 63.3      #9  t=35417  ballN 42   deg 52.5
+  #4  t=14083  ballN 0    REJECTED      #10 t=38667  ballN 39   deg 68.2
+  #5  t=18400  ballN 27   deg 62.8      #11 t=42717  ballN 40   deg 63.8
+  #6  t=23000  ballN 38   deg 66.4
+```
+
+**Three things this establishes.**
+
+1. **All 11 shots, first try.** The default path gave 11, 10 and 9 on three runs.
+2. **The ball data got much richer** — 25–42 samples per shot against 13–20
+   before. Every angle is fitted on roughly twice the evidence.
+3. **Shot 4 is still rejected**, with 3.5× the frames. So its failure is NOT
+   frame starvation — it is a genuine tracking problem, exactly as the fixture
+   sweep said. Two independent lines of evidence now agree, which is why it is
+   worth fixing separately rather than hoping better capture solves it.
+
+**The cost, measured:** 607 s of capture (255 s coarse + 351 s fine) against
+161 s on the default path. About 3.8× slower — roughly 10 minutes for a 45-second
+clip on this machine.
+
+**This is the trade, and it is Ohad's call:** a ~10-minute analysis whose shot
+count can be trusted, or a ~3-minute one that returns 9, 10 or 11. For a tool
+whose first number is the shot count, and which a coach runs once per session
+rather than continuously, the slower answer looks like the right one — but that
+is a product decision, not a technical one.
+
+Worth noting a middle path exists: run the COARSE pass deterministically (it is
+what finds the shots, 255 s) and leave the fine pass on playback. That would cost
+about 6 minutes instead of 10 and should fix the count, though the ball data
+would stay as sparse as before. Not tested.
+
 ## Do these in order — the second gap BLOCKS the first
 
 It is tempting to fix the ball-track rejection first, because it is small and
