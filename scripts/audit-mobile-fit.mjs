@@ -4,6 +4,7 @@
 // screenshot per route. Usage: node scripts/_tmp_mobile_audit.mjs [base] [routes...]
 import puppeteer from 'puppeteer-core';
 import fs from 'node:fs';
+import { signIn, assertAuthed } from './lib/authed-page.mjs';
 // AUDIT_OUT used to default to a scratchpad path belonging to a session that
 // ended long ago, so screenshots silently went nowhere useful.
 const SP = process.env.AUDIT_OUT || './audit-out';
@@ -56,6 +57,13 @@ const j = await (await fetch('http://localhost:9222/json/version')).json();
 const browser = await puppeteer.connect({ browserWSEndpoint: j.webSocketDebuggerUrl, protocolTimeout: 120000 });
 const page = await browser.newPage();
 await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+
+// Sign in and PROVE it. Unauthenticated, every coach route redirects and this
+// sweep measures the same small login page over and over — which is exactly how
+// it once reported "37/37 routes fit a phone" while having looked at one page
+// thirty-seven times. A login screen always fits; that number meant nothing.
+await signIn(page, BASE);
+if (!(await assertAuthed(page, BASE))) { await page.close(); await browser.disconnect(); process.exit(2); }
 
 // This app routes on window.location.pathname, NOT the hash — a URL like
 // /#/coach/bhbc renders the portal chooser, not the page. Use real paths.
