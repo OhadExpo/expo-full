@@ -3029,6 +3029,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
 }
 
 function InjuryModal({ athlete, injury, onClose, onSave }) {
+  const tr = useT();
   const [bodyPart, setBodyPart] = useState(injury?.bodyPart || '');
   const [side, setSide] = useState(injury?.side || 'N/A');
   const [type, setType] = useState(injury?.type || '');
@@ -3061,33 +3062,33 @@ function InjuryModal({ athlete, injury, onClose, onSave }) {
     <Modal open onClose={onClose} wide title={`${injury ? 'Update' : 'Report'} injury · #${athlete.jersey ?? '—'} ${athlete.name}`}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div className="bhbc-form-grid" style={{ display: 'grid', gridTemplateColumns: '1.3fr 0.9fr 1.1fr', gap: 10 }}>
-          <div><label style={lbl}>Body part</label><select value={bodyPart} onChange={(e) => setBodyPart(e.target.value)} style={sel}><option value="">— select —</option>{BODY_PARTS.map((b) => <option key={b} value={b}>{b}</option>)}</select></div>
-          <div><label style={lbl}>Side</label><select value={side} onChange={(e) => setSide(e.target.value)} style={sel}>{['N/A', 'Left', 'Right', 'Bilateral'].map((s) => <option key={s} value={s}>{s}</option>)}</select></div>
-          <div><label style={lbl}>Type</label><select value={type} onChange={(e) => setType(e.target.value)} style={sel}><option value="">—</option>{INJURY_TYPES.map((tp) => <option key={tp} value={tp}>{tp}</option>)}</select></div>
+          <div><label style={lbl}>{tr('Body part')}</label><select value={bodyPart} onChange={(e) => setBodyPart(e.target.value)} style={sel}><option value="">— select —</option>{BODY_PARTS.map((b) => <option key={b} value={b}>{b}</option>)}</select></div>
+          <div><label style={lbl}>{tr('Side')}</label><select value={side} onChange={(e) => setSide(e.target.value)} style={sel}>{['N/A', 'Left', 'Right', 'Bilateral'].map((s) => <option key={s} value={s}>{s}</option>)}</select></div>
+          <div><label style={lbl}>{tr('Type')}</label><select value={type} onChange={(e) => setType(e.target.value)} style={sel}><option value="">—</option>{INJURY_TYPES.map((tp) => <option key={tp} value={tp}>{tp}</option>)}</select></div>
         </div>
         <div className="bhbc-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
-          <Input label="Onset date" type="date" value={onsetDate} onChange={(e) => setOnsetDate(e.target.value)} />
-          <div><label style={lbl}>Pain (0–10)</label><input type="number" min="0" max="10" value={pain} onChange={(e) => setPain(e.target.value)} placeholder="—" style={sel} /></div>
-          <Input label="Return-to-play target" type="date" value={rtpTarget} onChange={(e) => setRtpTarget(e.target.value)} />
+          <Input label={tr('Onset date')} type="date" value={onsetDate} onChange={(e) => setOnsetDate(e.target.value)} />
+          <div><label style={lbl}>{tr('Pain (0–10)')}</label><input type="number" min="0" max="10" value={pain} onChange={(e) => setPain(e.target.value)} placeholder="—" style={sel} /></div>
+          <Input label={tr('Return-to-play target')} type="date" value={rtpTarget} onChange={(e) => setRtpTarget(e.target.value)} />
         </div>
         <div>
-          <label style={lbl}>Current status</label>
+          <label style={lbl}>{tr('Current status')}</label>
           <div style={{ display: 'inline-flex', border: `1px solid ${C.cardBd}`, flexWrap: 'wrap' }}>
             {Object.entries(MED_STATUS).map(([k, s]) => (
               <button key={k} type="button" onClick={() => setStatus(k)} style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: status === k ? '#fff' : C.td, background: status === k ? s.color : 'transparent', border: 'none', padding: '7px 14px', cursor: 'pointer' }}>{s.label}</button>
             ))}
           </div>
         </div>
-        <div><label style={lbl}>Mechanism / how it happened</label><input value={mechanism} onChange={(e) => setMechanism(e.target.value)} placeholder="e.g. landed awkwardly on a rebound" style={sel} /></div>
+        <div><label style={lbl}>{tr('Mechanism / how it happened')}</label><input value={mechanism} onChange={(e) => setMechanism(e.target.value)} placeholder={tr('e.g. landed awkwardly on a rebound')} style={sel} /></div>
         <div><label style={lbl}>Notes (diagnosis, plan, PT observations)</label><textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} style={{ ...sel, height: 'auto', padding: '8px', resize: 'vertical' }} /></div>
 
         {/* Rehab progress log */}
         <div style={{ border: `1px solid ${C.cardBd}` }}>
-          <div style={{ padding: '8px 12px', background: NAVY_DEEP, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff' }}>Rehab progress</div>
+          <div style={{ padding: '8px 12px', background: NAVY_DEEP, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff' }}>{tr('Rehab progress')}</div>
           <div style={{ display: 'flex', gap: 8, padding: '10px 12px', borderBottom: progress.length ? `1px solid ${C.cardBd}` : 'none', alignItems: 'center' }}>
-            <input value={pNote} onChange={(e) => setPNote(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') addProgress(); }} placeholder="Progress note for today…" style={{ ...sel, flex: 1 }} />
-            <input type="number" min="0" max="10" value={pPain} onChange={(e) => setPPain(e.target.value)} placeholder="pain" style={{ ...sel, width: 72 }} />
-            <Btn onClick={addProgress} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>Add</Btn>
+            <input value={pNote} onChange={(e) => setPNote(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') addProgress(); }} placeholder={tr('Progress note for today…')} style={{ ...sel, flex: 1 }} />
+            <input type="number" min="0" max="10" value={pPain} onChange={(e) => setPPain(e.target.value)} placeholder={tr('pain')} style={{ ...sel, width: 72 }} />
+            <Btn onClick={addProgress} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>{tr('Add')}</Btn>
           </div>
           {progress.length > 0 && (
             <div style={{ maxHeight: 160, overflowY: 'auto' }}>
@@ -3107,8 +3108,8 @@ function InjuryModal({ athlete, injury, onClose, onSave }) {
           Mark resolved / cleared to play
         </label>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
-          <Btn onClick={save} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>Save record</Btn>
+          <Btn variant="ghost" onClick={onClose}>{tr('Cancel')}</Btn>
+          <Btn onClick={save} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>{tr('Save record')}</Btn>
         </div>
       </div>
     </Modal>
