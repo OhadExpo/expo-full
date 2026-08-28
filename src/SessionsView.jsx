@@ -92,6 +92,7 @@ export default function SessionsView({ mode = 'group', ...props }) {
 }
 
 function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWorkouts = [], setClientWorkouts, workouts = [], onBack }) {
+  const tt = useAppT();
   const [session, setSession] = useState(null); // { id, startedAt, athletes: [...] }
   const [loaded, setLoaded] = useState(false);
   const [picking, setPicking] = useState(false);
@@ -552,12 +553,12 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
   if (!session) {
     return (
       <div style={{ maxWidth: 760, margin: '0 auto' }}>
-        <BackBar label="GROUP SESSION" onBack={onBack} />
-        <Card title="START A GROUP SESSION">
+        <BackBar label={tt('GROUP SESSION')} onBack={onBack} />
+        <Card title={tt('START A GROUP SESSION')}>
           <div style={{ padding: '8px 2px 14px', color: C.tm, fontSize: 13, lineHeight: 1.6 }}>
-            Add the athletes training now, check them in as they arrive, and log all their sets in one grid. Built to run on a big screen on the floor.
+            {tt('Add the athletes training now, check them in as they arrive, and log all their sets in one grid. Built to run on a big screen on the floor.')}
           </div>
-          <button onClick={() => setPicking(true)} style={primaryBtn}>+ START SESSION</button>
+          <button onClick={() => setPicking(true)} style={primaryBtn}>{tt('+ START SESSION')}</button>
         </Card>
         {picking && <AthletePicker trainees={trainees} planIndex={planIndex} clientWorkouts={clientWorkouts} onCancel={() => setPicking(false)} onConfirm={addAthletes} />}
       </div>
@@ -902,9 +903,10 @@ function Card({ title, children }) {
 // Back row — fixed 28px-high control, cyan ghost, matches the editor/preview
 // back affordances elsewhere in the app.
 function BackBar({ label, onBack }) {
+  const tt = useAppT();
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-      <button onClick={onBack} style={{ background: 'var(--c-sf)', border: `1px solid ${C.ac}`, color: C.ac, height: 28, padding: '0 14px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', borderRadius: 0, display: 'inline-flex', alignItems: 'center' }}>← BACK</button>
+      <button onClick={onBack} style={{ background: 'var(--c-sf)', border: `1px solid ${C.ac}`, color: C.ac, height: 28, padding: '0 14px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', borderRadius: 0, display: 'inline-flex', alignItems: 'center' }}>← {tt('BACK')}</button>
       <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: '0.12em', fontWeight: 700 }}>{label}</span>
     </div>
   );

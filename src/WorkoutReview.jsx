@@ -2519,9 +2519,9 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
 
   if (allWorkouts.length === 0) return (
     <div>
-      <div style={{fontFamily:FN,fontSize:9,fontWeight:700,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',marginBottom:8}}>WORKOUT REVIEW</div>
+      <div style={{fontFamily:FN,fontSize:9,fontWeight:700,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',marginBottom:8}}>{tt('WORKOUT REVIEW')}</div>
       <div style={{color:C.tm,fontSize:13,marginBottom:20}}>
-        Review completed workouts, watch client form videos, and set weekly focus for next week.
+        {tt('Review completed workouts, watch client form videos, and set weekly focus for next week.')}
       </div>
       <div style={{textAlign:"center",padding:60,color:C.td}}>
         <EXPOMark height={22} style={{opacity:0.2,marginBottom:12}} />
@@ -2533,9 +2533,9 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
 
   return (
     <div>
-      <div style={{fontFamily:FN,fontSize:9,fontWeight:700,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',marginBottom:4}}>WORKOUT REVIEW</div>
+      <div style={{fontFamily:FN,fontSize:9,fontWeight:700,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',marginBottom:4}}>{tt('WORKOUT REVIEW')}</div>
       <div style={{color:C.tm,fontSize:11,marginBottom:16,fontFamily:FB}}>
-        Review completed workouts, watch client form videos, and write focus notes for next week.
+        {tt('Review completed workouts, watch client form videos, and write focus notes for next week.')}
       </div>
 
       <WeeklyFocusTool trainees={trainees} exercises={exercises} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} />
@@ -2580,7 +2580,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                 textTransform:'uppercase',cursor:'pointer',whiteSpace:'nowrap',lineHeight:1.5}}
               onMouseEnter={e=>e.currentTarget.style.borderColor='#FFFFFF'}
               onMouseLeave={e=>e.currentTarget.style.borderColor='rgba(255,255,255,0.55)'}>
-              Athlete page →
+              {tt('Athlete page')} →
             </button>
           ) : null}>
           {(() => {

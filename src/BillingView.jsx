@@ -30,7 +30,7 @@ const fmtCurrency = (amount, currency = 'ils') => {
 };
 
 export default function BillingView({ trainees }) {
-  const t = useT();
+  const tt = useT();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showRequest, setShowRequest] = useState(false);
@@ -134,7 +134,7 @@ export default function BillingView({ trainees }) {
         {[
           { label: 'Outstanding', value: fmtCurrency(summary.outstanding), sub: `${summary.pendingCount} pending`, dot: summary.outstanding > 0 ? C.or : C.gn },
           { label: 'Overdue', value: fmtCurrency(summary.overdueAmt), sub: `${summary.overdueCount} · ≥ ${OVERDUE_DAYS}d`, dot: summary.overdueCount > 0 ? C.rd : C.gn },
-          { label: 'Collected · This month', value: fmtCurrency(summary.collectedMonth), sub: 'received', dot: C.gn },
+          { label: tt('Collected · This month'), value: fmtCurrency(summary.collectedMonth), sub: tt('received'), dot: C.gn },
         ].map((s, i) => (
           <div key={i} style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '14px 18px', boxShadow: C.cardShadow }}>
             <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', margin: '-14px -18px 12px', padding: '8px 18px', borderBottom: `1px solid ${C.cardBd}` }}>
@@ -153,19 +153,19 @@ export default function BillingView({ trainees }) {
         <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={12}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : C.tx }}>
-              PAYMENT REQUESTS ({requests.filter(r => r.status === 'pending').length} pending)
+              {tt('PAYMENT REQUESTS')} ({requests.filter(r => r.status === 'pending').length} {tt('Waiting')})
             </span>
             <button onClick={() => setShowRequest(true)}
-              style={{ ...stripBtnBase, border: `1px solid ${refined ? '#FFFFFF' : C.ac}`, color: refined ? '#FFFFFF' : C.ac }}>+ NEW REQUEST</button>
+              style={{ ...stripBtnBase, border: `1px solid ${refined ? '#FFFFFF' : C.ac}`, color: refined ? '#FFFFFF' : C.ac }}>{tt('+ NEW REQUEST')}</button>
           </div>
         </RefinedHeaderStrip>
         {loadError ? (
           <div style={{ padding: 14, textAlign: 'center', color: C.rd, fontSize: 13 }}>
-            Couldn’t load billing data: {loadError}. <button onClick={reload} style={{ background: 'transparent', border: 'none', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textDecoration: 'underline' }}>{t("RETRY")}</button>
+            Couldn’t load billing data: {loadError}. <button onClick={reload} style={{ background: 'transparent', border: 'none', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textDecoration: 'underline' }}>{tt("RETRY")}</button>
           </div>
         ) : requests.length === 0 ? (
           <div style={{ padding: 14, textAlign: 'center', color: C.td, fontSize: 13 }}>
-            No payment requests yet. Tap "+ NEW REQUEST" to create one.
+            {tt('No payment requests yet')}
           </div>
         ) : requests.map(r => {
           // traineesById is keyed by parent id; a payment filed against a couple
@@ -201,7 +201,7 @@ export default function BillingView({ trainees }) {
                     <button onClick={() => cancelRequest(r.id)} style={btnStyle(C.rd)}>× CANCEL</button>
                   </>
                 )}
-                <button onClick={() => remove(r.id)} style={btnStyle(C.td)}>{t("DELETE")}</button>
+                <button onClick={() => remove(r.id)} style={btnStyle(C.td)}>{tt("DELETE")}</button>
               </div>
             </div>
           );
@@ -212,7 +212,7 @@ export default function BillingView({ trainees }) {
       <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: PAD }}>
         <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={12}>
           <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : C.tx }}>
-            ROSTER STATUS
+            {tt('ROSTER STATUS')}
           </span>
         </RefinedHeaderStrip>
         {(trainees || []).filter(t => t.status === 'Active').map(t => {

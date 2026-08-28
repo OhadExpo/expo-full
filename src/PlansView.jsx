@@ -54,7 +54,7 @@ import { sortProgramsRecent, sortProgramsByBlockDesc } from './traineeUtils';
 import { SideRail } from './SideRail';
 import { fmtPrettyDate } from './dates';
 import { cloneDayForCopy } from './planCopy.js';
-import { useT as useAppT } from './i18n';
+import { useT as useAppT, useHe, daysAgoHe } from './i18n';
 
 // "1 DAYS" read wrong on every single-day block. One helper, used by every
 // place that prints a count next to a noun.
@@ -3674,6 +3674,7 @@ function BhbcBadge({ tid, trainees }) {
 
 export default function PlansView({ planIndex, reloadIndex, trainees, exercises, setExercises, clientWorkouts, weeklyFocus, setWeeklyFocus, openPlanId, onPlanOpened, onEditorOpen, onEditorClose, onPreviewPlan, portalVis, setPortalVis, onCloseEditor }) {
   const tt = useAppT();
+  const he = useHe();
   const { plan: editPlanData, loading: editLoading, load: loadFullPlan, clear: clearPlan, setPlan: setEditPlan } = useFullPlan();
   const [linkedTaskId, setLinkedTaskId] = useState(null);
   const { plan: previewPlan, load: loadPreviewPlan, clear: clearPreviewPlan } = useFullPlan();
@@ -4350,7 +4351,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
           </div>
           <div style={{ display:'flex', justifyContent:'flex-end', gap:8, padding:'4px 18px 16px' }}>
             <button onClick={close} style={{ background:'transparent', border:`1px solid ${C.cardBd}`, color:C.tm, borderRadius:0, padding:'8px 16px', fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.09em', cursor:'pointer', textTransform:'uppercase' }}>{tt("Cancel")}</button>
-            <button onClick={create} style={{ background:C.ac, border:`1px solid ${C.ac}`, color:'#FFFFFF', borderRadius:0, padding:'8px 16px', fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.09em', cursor:'pointer', textTransform:'uppercase' }}>+ New Program</button>
+            <button onClick={create} style={{ background:C.ac, border:`1px solid ${C.ac}`, color:'#FFFFFF', borderRadius:0, padding:'8px 16px', fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.09em', cursor:'pointer', textTransform:'uppercase' }}>{tt('+ New Program')}</button>
           </div>
         </div>
       </div>
@@ -4453,23 +4454,23 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
             {
               label: 'Flags',
               opts: [
-                { key: 'unassigned', label: 'Unassigned', count: flagCounts.unassigned, title: 'Programs with no athlete assigned', accent: C.or, active: flags.unassigned, onClick: () => { setFlags(m => ({ ...m, unassigned: !m.unassigned })); setVisibleCount(PAGE_SIZE); } },
-                { key: 'empty', label: '∅ Empty', count: flagCounts.empty, title: 'Programs with no exercises or no days', accent: C.or, active: flags.empty, onClick: () => { setFlags(m => ({ ...m, empty: !m.empty })); setVisibleCount(PAGE_SIZE); } },
+                { key: 'unassigned', label: tt('Unassigned'), count: flagCounts.unassigned, title: 'Programs with no athlete assigned', accent: C.or, active: flags.unassigned, onClick: () => { setFlags(m => ({ ...m, unassigned: !m.unassigned })); setVisibleCount(PAGE_SIZE); } },
+                { key: 'empty', label: `∅ ${tt('Empty')}`, count: flagCounts.empty, title: 'Programs with no exercises or no days', accent: C.or, active: flags.empty, onClick: () => { setFlags(m => ({ ...m, empty: !m.empty })); setVisibleCount(PAGE_SIZE); } },
               ],
             },
             {
               label: 'Sort',
               opts: [
-                ['created', 'Uploaded', 'Sort by when the program was created/imported. Click again to flip newest/oldest.'],
-                ['name', 'Name', 'Sort by program name. Click again to flip A–Z / Z–A.'],
-                ['updated', 'Last edited', 'Sort by when the program was last edited. Click again to flip newest/oldest.'],
+                ['created', tt('Uploaded'), 'Sort by when the program was created/imported. Click again to flip newest/oldest.'],
+                ['name', tt('Name'), 'Sort by program name. Click again to flip A–Z / Z–A.'],
+                ['updated', tt('Last edited'), 'Sort by when the program was last edited. Click again to flip newest/oldest.'],
               ].map(([field, label, tip]) => {
                 const active = sortField === field;
                 return { key: field, title: tip, active, label: active ? `${sortDir === 'asc' ? '↑' : '↓'} ${label}` : label, onClick: () => { if (active) setSortDir(d => d === 'asc' ? 'desc' : 'asc'); else setSortField(field); } };
               }),
             },
           ]}
-          footer={<Btn variant="solid" title="Create a new, empty program — you pick the athlete inside the editor" onClick={() => handleNewPlan()} style={{ width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 38, marginTop: 'auto', background: 'transparent', color: 'var(--c-acText, #39BDFF)', whiteSpace: 'nowrap', justifyContent: 'center' }}>+ New Program</Btn>}
+          footer={<Btn variant="solid" title="Create a new, empty program — you pick the athlete inside the editor" onClick={() => handleNewPlan()} style={{ width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 38, marginTop: 'auto', background: 'transparent', color: 'var(--c-acText, #39BDFF)', whiteSpace: 'nowrap', justifyContent: 'center' }}>{tt('+ New Program')}</Btn>}
         />
 
         {/* RIGHT: the program list — grouped (table/grid) or flat, unchanged. */}
@@ -4489,7 +4490,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
             const expanded = expandedAthletes.has(row.tid) || !!filterTrainee;
             const cur = row.current;
             const tagColor = row.daysSince == null ? C.td : row.daysSince <= 3 ? C.gn : row.daysSince <= 7 ? C.tm : row.daysSince <= 14 ? C.or : C.rd;
-            const tagText = row.daysSince == null ? 'NEVER LOGGED' : row.daysSince === 0 ? 'TRAINED TODAY' : `${row.daysSince}D AGO`;
+            const tagText = row.daysSince == null ? tt('NEVER LOGGED') : row.daysSince === 0 ? tt('TRAINED TODAY') : (he ? daysAgoHe(row.daysSince) : `${row.daysSince}D AGO`);
             // Zero-state: active trainee with no plan at all. Skip the
             // current-block row entirely — render a single "NO PROGRAM ASSIGNED"
             // line with a + NEW PROGRAM CTA pre-bound to this athlete via
@@ -4526,7 +4527,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                   </span>
                   <span style={{display:'inline-flex',alignItems:'center',gap:10,flexShrink:0}}>
                     <button onClick={e=>{e.stopPropagation();setLineageTraineeId(row.tid);}} title="Training Analysis — this athlete's movement-pattern volume across every block"
-                      style={{display:'inline-flex',alignItems:'center',gap:5,height:24,padding:'0 8px',background:'rgba(255,255,255,0.12)',border:'1px solid rgba(255,255,255,0.3)',borderRadius:0,color:'#fff',cursor:'pointer',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.08em',whiteSpace:'nowrap'}}>◫ ANALYSIS</button>
+                      style={{display:'inline-flex',alignItems:'center',gap:5,height:24,padding:'0 8px',background:'rgba(255,255,255,0.12)',border:'1px solid rgba(255,255,255,0.3)',borderRadius:0,color:'#fff',cursor:'pointer',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.08em',whiteSpace:'nowrap'}}>◫ {tt('ANALYSIS')}</button>
                     {/* Recency: the DOT carries the colour signal, the text is muted
                         (Ohad #195 "colored but less colorful") and the pill has a
                         fixed min-width so '18D AGO' and 'TRAINED TODAY' are the same
@@ -4703,7 +4704,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                 </span>
                 <span style={{display:'inline-flex',alignItems:'center',gap:10,flexShrink:0}}>
                   <button onClick={e=>{e.stopPropagation();setLineageTraineeId(row.tid);}} title="Training Analysis — this athlete's movement-pattern volume across every block"
-                    style={{display:'inline-flex',alignItems:'center',gap:5,height:24,padding:'0 8px',background:'rgba(255,255,255,0.12)',border:'1px solid rgba(255,255,255,0.3)',borderRadius:0,color:'#fff',cursor:'pointer',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.08em',whiteSpace:'nowrap'}}>◫ ANALYSIS</button>
+                    style={{display:'inline-flex',alignItems:'center',gap:5,height:24,padding:'0 8px',background:'rgba(255,255,255,0.12)',border:'1px solid rgba(255,255,255,0.3)',borderRadius:0,color:'#fff',cursor:'pointer',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.08em',whiteSpace:'nowrap'}}>◫ {tt('ANALYSIS')}</button>
                   <span title={`Last session: ${tagText}`} style={{display:'inline-flex',alignItems:'center',justifyContent:'flex-end',gap:6,minWidth:96,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',color:'var(--c-tm)',whiteSpace:'nowrap'}}>
                     <span style={{width:6,height:6,borderRadius:'50%',background:tagColor,flexShrink:0}} />{tagText}
                   </span>
