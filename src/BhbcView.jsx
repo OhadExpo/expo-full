@@ -358,7 +358,15 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   }, [setBhbcLoads, bhbcLoads, notify]);
 
   const logSession = useCallback(({ athleteId, date, type, minutes, rpe, readiness }) => {
-    const load = sessionLoad(minutes, rpe);
+    // GYM IS ZERO LOAD — decided by TYPE, never by whatever is left in the RPE
+    // field. The modal only HIDES the RPE input when the type is Lift; it does
+    // not clear the state and is not unmounted between opens. So a coach who
+    // typed Practice/60/RPE 7, realised it was the gym and switched Type ->
+    // Lift still had rpe=7 in state, load came out 420, and the zero-load Lift
+    // branch below was never reached — the gym session injected load that does
+    // not exist. In squad scope that wrote 420 AU to EVERY available athlete.
+    // savePractice already derives it from the type; these two now match it.
+    const load = type === 'Lift' ? 0 : sessionLoad(minutes, rpe);
     setBhbcLoads((prev) => {
       const rec = prev[athleteId] ? { ...prev[athleteId] } : emptyRec();
       rec.loads = { ...(rec.loads || {}) }; rec.sessions = { ...(rec.sessions || {}) }; rec.readiness = { ...(rec.readiness || {}) };
@@ -388,7 +396,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   // Bulk: log one session's load for the WHOLE available squad (a team all does
   // the same practice). Skips anyone marked Out that day. Feeds every athlete's ACWR.
   const logTeamSession = useCallback(({ date, type, minutes, rpe }) => {
-    const load = sessionLoad(minutes, rpe);
+    const load = type === 'Lift' ? 0 : sessionLoad(minutes, rpe);
     // Gym (Lift) sessions carry NO RPE by design, so load is 0 — the old guard
     // rejected the whole-roster gym log with a contradictory "Add minutes + RPE"
     // and silently recorded nothing (audit 08-22). Mirror logSession: minutes-only
@@ -3165,7 +3173,10 @@ function LogModal({ open, initialAthlete, roster, fixtures = [], availableCount 
   // Gym (Lift) sessions are minutes-only — Ohad never records gym RPE, so the
   // field disappears and the session saves as attendance + duration, no load.
   const isLift = type === 'Lift';
-  const preview = sessionLoad(minutes, rpe);
+  // The preview the coach reads must agree with what will be SAVED, so it is
+  // derived from the type the same way. Before this it showed 420 AU under a
+  // panel that said "Gym session — minutes only, no RPE".
+  const preview = isLift ? 0 : sessionLoad(minutes, rpe);
   const liftOk = isLift && Number(minutes) > 0;
   const canSave = scope === 'squad' ? (preview > 0 || liftOk) : (athleteId && (preview > 0 || liftOk || pain || sleep || energy));
   const selStyle = { fontFamily: FB, fontSize: 13, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '9px 10px', width: '100%' };

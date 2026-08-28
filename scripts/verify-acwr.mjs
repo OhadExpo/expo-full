@@ -69,6 +69,18 @@ ok('identical-load week yields a monotony value, not null', flatWk.monotony != n
 ok('and it is flagged as high (>= 2)', flatWk.monotony >= 2);
 ok('flat week → higher monotony than spiky', flatWk.monotony > ms.monotony);
 ok('and its strain follows monotony x weekLoad', near(flatWk.strain, flatWk.monotony * flatWk.weekLoad, 0.001));
+// The cap must apply to the RESULT, not only to sd = 0. Capping just the
+// identical-load week left the NEAR-identical week uncapped and INVERTED the
+// metric: [500 x7] returned 10.00 while [420 x6, 425] — strictly less
+// monotonous — returned 240.46, with a strain 20x higher. Ordering is the
+// property that matters here, so assert the ordering, not a magic number.
+const nearFlat = monotonyStrain([420, 420, 420, 420, 420, 420, 425]);
+ok('a near-flat week never scores worse than a perfectly flat one',
+  monotonyStrain([500, 500, 500, 500, 500, 500, 500]).monotony >= nearFlat.monotony);
+ok('and it stays inside an interpretable range', nearFlat.monotony <= 10);
+ok('its strain stays comparable week to week', nearFlat.strain <= 10 * nearFlat.weekLoad + 0.001);
+ok('a varied week still scores lower than both', ms.monotony < nearFlat.monotony);
+
 // Zero load all week is genuinely nothing to report.
 ok('all-zero week stays null', monotonyStrain([0, 0, 0, 0, 0, 0, 0]).monotony === null);
 ok('empty → nulls', monotonyStrain([]).monotony === null);

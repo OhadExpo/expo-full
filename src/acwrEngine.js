@@ -110,8 +110,18 @@ export function monotonyStrain(dailyLoads) {
   // reported the worst case as "no data" and it never tripped the >= 2 flag
   // (audit 08-22 #62). Cap it instead: still clearly flagged, still a number
   // downstream arithmetic can survive. sd = 0 with NO load is genuinely nothing.
+  // The cap has to apply to the RESULT, not only to the sd = 0 case.
+  //
+  // Capping just the identical-load week left the near-identical week
+  // uncapped, which INVERTED the metric: [500 x7] (the most monotonous week
+  // possible) returned 10.00, while [420 x6, 425] — strictly less monotonous —
+  // returned 240.46, and its strain 708,150 against the flat week's 35,000. A
+  // number that large is also not interpretable: Foster monotony lives in
+  // roughly 0.5-3, and everything at or above the cap means the same thing to a
+  // coach ("this week has no hard/easy contrast at all"). Clamping keeps the
+  // ordering monotonic and keeps strain comparable week to week.
   const MONOTONY_CAP = 10;
-  const monotony = sd > 0 ? mean / sd : (mean > 0 ? MONOTONY_CAP : null);
+  const monotony = sd > 0 ? Math.min(MONOTONY_CAP, mean / sd) : (mean > 0 ? MONOTONY_CAP : null);
   const strain = monotony != null ? monotony * weekLoad : null;
   return { mean, sd, monotony, strain, weekLoad };
 }
