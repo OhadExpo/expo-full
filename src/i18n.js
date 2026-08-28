@@ -32,6 +32,9 @@ export const HE = {
   // Latin while the app was in Hebrew. That — not phrasing — is why he said
   // "hebrew still sucks, its 15%". Half a screen in English is not an accent
   // problem, it is an untranslated screen.
+  'Bnei Herzliya': 'בני הרצליה',
+  Filters: 'סינון',
+  'Search athletes…': 'חיפוש מתאמן',
   Status: 'סטטוס',
   Format: 'סוג אימון',
   'Needs attention': 'דורש טיפול',
@@ -318,9 +321,20 @@ export const HE = {
 
 /** Translate one label; falls back to the English so a missing key renders
  *  readable rather than blank. Blank is worse than English. */
+// Case-insensitive second lookup, and it earns its place: this codebase
+// renders the same words in several casings — a card shows NOT BILLABLE, the
+// map holds 'Not billable'; the rail passes 'Needs Attention', the map holds
+// 'Needs attention'. An exact-match miss does not throw, it silently ships
+// ENGLISH, which is invisible until someone photographs the screen. Both of
+// those were live when this was written.
+const HE_CI = new Map(Object.keys(HE).map((k) => [k.toLowerCase(), HE[k]]));
+
 export function tr(lang, s) {
   if (lang !== 'he' || typeof s !== 'string') return s;
-  return HE[s] ?? s;
+  const hit = HE[s];
+  if (hit !== undefined) return hit;
+  const ci = HE_CI.get(s.toLowerCase());
+  return ci !== undefined ? ci : s;
 }
 
 /** `const t = useT();` then `t('PROGRAM')`. */

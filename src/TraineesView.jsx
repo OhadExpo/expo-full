@@ -13,6 +13,7 @@ import { WhatsAppCheckInButton } from './whatsappButton';
 const SM_COLOR = { Active: C.ac, 'On Hold': C.or, Inactive: C.td, Trial: C.ac, Archived: C.rd };
 const SM_CHOICES = ['Active', 'On Hold', 'Inactive', 'Trial'];
 function CardStatusMenu({ status, onChange }) {
+  const tt = useT();
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   useEffect(() => {
@@ -32,14 +33,14 @@ function CardStatusMenu({ status, onChange }) {
             after the last glyph so the group is optically centred, not shifted
             left by ~1px (space-between used to pin the label left / caret right,
             which read as mis-aligned in the box). */}
-        <span style={{ marginRight: '-0.12em' }}>{status}</span><span style={{ fontSize: 8, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>▾</span>
+        <span style={{ marginRight: '-0.12em' }}>{tt(status)}</span><span style={{ fontSize: 8, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>▾</span>
       </button>
       {open && (
         <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 200, background: 'var(--c-bg)', border: `1px solid ${C.cardBd}`, minWidth: 124, boxShadow: '0 8px 24px rgba(0,0,0,0.35)' }}>
           {SM_CHOICES.map(s => (
             <button key={s} onClick={e => { e.stopPropagation(); onChange(s); setOpen(false); }}
               style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 11px', background: s === status ? 'var(--c-sf)' : 'transparent', border: 'none', borderLeft: `3px solid ${s === status ? (SM_COLOR[s] || C.ac) : 'transparent'}`, color: SM_COLOR[s] || C.tx, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer' }}>
-              {s}
+              {tt(s)}
             </button>
           ))}
         </div>
@@ -48,7 +49,7 @@ function CardStatusMenu({ status, onChange }) {
   );
 }
 import { supabase } from './supabase';
-import { useT } from './i18n';
+import { useT, useHe, daysAgoHe, daysOverdueHe } from './i18n';
 
 const isCouple = (t) => t.members && t.members.length === 2;
 
@@ -110,10 +111,10 @@ const getPaymentStatus = (t, payments) => {
   const latest = tPay.sort((a, b) => new Date(b.date) - new Date(a.date))[0];
   const fallback = t.lastPayment ? new Date(t.lastPayment) : null;
   const latestDate = latest ? new Date(latest.date) : (fallback && !isNaN(fallback.getTime()) ? fallback : null);
-  if (!latestDate) return { label: 'NEVER PAID', color: C.rd, sub: null };
+  if (!latestDate) return { label: 'NEVER PAID', kind: 'never', days: null, color: C.rd, sub: null };
   const days = Math.floor((Date.now() - latestDate.getTime()) / 86400000);
-  if (days >= OVERDUE_DAYS) return { label: `OVERDUE · ${days}D`, color: C.rd, sub: fmtPrettyDate(latestDate) };
-  return { label: `PAID · ${days}D AGO`, color: C.gn, sub: fmtPrettyDate(latestDate) };
+  if (days >= OVERDUE_DAYS) return { label: `OVERDUE · ${days}D`, kind: 'overdue', days, color: C.rd, sub: fmtPrettyDate(latestDate) };
+  return { label: `PAID · ${days}D AGO`, kind: 'paid', days, color: C.gn, sub: fmtPrettyDate(latestDate) };
 };
 
 // Last workout label for the card: pulls from BOTH coach-logged workouts and
@@ -149,13 +150,10 @@ const paymentSeverity = (t, payments) => {
   return 1;
 };
 
-const getLastWorkoutLabel = (t, workouts, clientWorkouts) => {
+const getLastWorkoutDays = (t, workouts, clientWorkouts) => {
   const ms = getLastWorkoutMs(t, workouts, clientWorkouts);
   if (!ms) return null;
-  const days = Math.floor((Date.now() - ms) / 86400000);
-  if (days <= 0) return 'TODAY';
-  if (days === 1) return 'YESTERDAY';
-  return `${days}D AGO`;
+  return Math.max(0, Math.floor((Date.now() - ms) / 86400000));
 };
 
 // Tiny BW sparkline for the trainee card. Plots up to the last 8 bw_log
@@ -186,7 +184,7 @@ function CardBWSparkline({ entries }) {
   // the leftover space and shrinks (preserveAspectRatio=none) when the
   // parent column is too narrow — needed for couple-member columns.
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+    <div dir="ltr" style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none"
         style={{ display: 'block', height: H, width: '100%', maxWidth: W, minWidth: 32, flexShrink: 1 }}
         aria-label="Bodyweight trend">
@@ -217,12 +215,13 @@ function CardBWSparkline({ entries }) {
 // the design, not of the roster. Sized to the observed worst case so nothing
 // clips ("i cant see some of the words" — never). Section ORDER is untouched:
 // IDENTITY / FINANCIALS / TRAINING / BODYWEIGHT, which is the order he locked.
-const CARD_H = 404;
+const CARD_H = 412;
 const FIN_SLOT = 34;   // worst case = pay label + monthly on one line
 
 const MidDot = () => <span style={{ color: C.tm, opacity: 0.5, fontSize: 11 }}>·</span>;
 
 function CardSection({ label, children, center = false }) {
+  const tt = useT();
   return (
     <div style={{ marginTop: 18, paddingTop: 0 }}>
       <div style={{
@@ -232,7 +231,7 @@ function CardSection({ label, children, center = false }) {
         fontFamily: FN, fontSize: 9, color: C.acText, letterSpacing: 1.5, fontWeight: 700,
         textTransform: 'uppercase', marginBottom: 6,
         textAlign: center ? 'center' : 'left',
-      }}>{label}</div>
+      }}>{tt(label)}</div>
       <div style={{
         display: 'flex', flexWrap: 'wrap', gap: '4px 10px', alignItems: 'center',
         justifyContent: center ? 'center' : 'flex-start',
@@ -246,6 +245,8 @@ function CardSection({ label, children, center = false }) {
 const isClubAthlete = (t) => !!t && (t.format === 'Bnei Herzliya' || t.branch === 'Bnei Herzliya' || t.team === 'BHBC');
 
 function TrainingBlock({ format, sessionsRemaining, programs, lastWk, center = false, clubAthlete = false }) {
+  const tt = useT();
+  const he = useHe();
   // Two fixed rows so card structure is uniform regardless of text length:
   //   row 1 — FORMAT · SESSIONS LEFT
   //   row 2 — N PROGRAMS
@@ -260,7 +261,7 @@ function TrainingBlock({ format, sessionsRemaining, programs, lastWk, center = f
   // announcing "8 SESSIONS LEFT" next to its own "NOT BILLABLE" line. Hidden on
   // READ, so stale data cannot contradict the card.
   const hasSessions = !clubAthlete && sessionsRemaining != null && sessionsRemaining > 0;
-  if (!format && !hasSessions && !(programs > 0) && !lastWk) return null;
+  if (!format && !hasSessions && !(programs > 0) && lastWk == null) return null;
   return (
     <CardSection label="Training" center={center}>
       {/* Reserve 3 rows so the section is the same height on every card —
@@ -271,23 +272,23 @@ function TrainingBlock({ format, sessionsRemaining, programs, lastWk, center = f
             + programs share one row. */}
         {format && (
           <div style={{ display: 'flex', justifyContent: justify }}>
-            <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, fontWeight: 700, textTransform: 'uppercase' }}>{format}</span>
+            <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, fontWeight: 700, textTransform: 'uppercase' }}>{tt(format)}</span>
           </div>
         )}
         {(hasSessions || programs > 0) && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 10px', alignItems: 'center', justifyContent: justify }}>
             {hasSessions && (
-              <span style={{ fontFamily: FN, fontSize: 11, color: sessionsRemaining <= 2 ? C.rd : C.gn, fontWeight: 700 }}>{sessionsRemaining} SESSIONS LEFT</span>
+              <span style={{ fontFamily: FN, fontSize: 11, color: sessionsRemaining <= 2 ? C.rd : C.gn, fontWeight: 700 }}>{sessionsRemaining} {tt('Sessions left')}</span>
             )}
             {hasSessions && programs > 0 && <MidDot />}
             {programs > 0 && (
-              <span style={{ fontFamily: FN, fontSize: 11, color: C.tx, fontWeight: 700 }}>{programs} PROGRAMS</span>
+              <span style={{ fontFamily: FN, fontSize: 11, color: C.tx, fontWeight: 700 }}>{programs} {tt('Programs')}</span>
             )}
           </div>
         )}
-        {lastWk && (
+        {lastWk != null && (
           <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 1, fontWeight: 600, textAlign: center ? 'center' : 'left' }}>
-            LAST WORKOUT · {lastWk}
+            {tt('Last workout')} · {he ? daysAgoHe(lastWk) : (lastWk === 0 ? 'TODAY' : lastWk === 1 ? 'YESTERDAY' : `${lastWk}D AGO`)}
           </div>
         )}
       </div>
@@ -296,21 +297,28 @@ function TrainingBlock({ format, sessionsRemaining, programs, lastWk, center = f
 }
 
 function FinancialsBlock({ pay, monthly, center = false }) {
+  const tt = useT();
+  const he = useHe();
   // Always render the block — even when there's no pay history and no
   // monthly rate — so cards line up section-for-section. Empty state shows
   // a dim "NOT BILLABLE" so the slot is still visible.
   const items = [];
   if (pay) items.push(
-    <span key="pay" style={{ fontFamily: FN, fontSize: 11, color: pay.color, fontWeight: 700, letterSpacing: 1 }}>{pay.label}</span>
+    <span key="pay" style={{ fontFamily: FN, fontSize: 11, color: pay.color, fontWeight: 700, letterSpacing: 1 }}>{
+      !he ? pay.label
+        : pay.kind === 'never' ? 'לא שילם'
+        : pay.kind === 'overdue' ? daysOverdueHe(pay.days)
+        : `שילם · ${daysAgoHe(pay.days)}`
+    }</span>
   );
   if (monthly > 0) items.push(
-    <span key="mo" style={{ fontFamily: FN, fontSize: 11, color: C.tx, fontWeight: 700, letterSpacing: 1 }}>₪{monthly}/MO</span>
+    <span key="mo" style={{ fontFamily: FN, fontSize: 11, color: C.tx, fontWeight: 700, letterSpacing: 1 }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>₪{monthly}</span>{he ? ' לחודש' : '/MO'}</span>
   );
   if (items.length === 0) {
     return (
       <CardSection label="Financials" center={center}>
         <div style={{ width: '100%', minHeight: FIN_SLOT, display: 'flex', flexWrap: 'wrap', gap: '4px 10px', alignItems: 'center', justifyContent: center ? 'center' : 'flex-start' }}>
-          <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontWeight: 700, letterSpacing: 1, opacity: 0.55 }}>NOT BILLABLE</span>
+          <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontWeight: 700, letterSpacing: 1, opacity: 0.55 }}>{tt('Not billable')}</span>
         </div>
       </CardSection>
     );
@@ -329,6 +337,7 @@ function FinancialsBlock({ pay, monthly, center = false }) {
 // uniform 4-section rhythm. Empty state shows a dim flatline + "NO LOGS
 // YET" so the coach knows the slot exists but hasn't been used.
 function BodyweightBlock({ entries, center = false, label = null }) {
+  const tt = useT();
   const hasData = entries && entries.length >= 2;
   const W = 96, H = 22;
   return (
@@ -348,7 +357,7 @@ function BodyweightBlock({ entries, center = false, label = null }) {
                 <line x1="2" y1={H/2} x2={W-2} y2={H/2} stroke={C.tm} strokeWidth="1" strokeDasharray="2 3" />
               </svg>
               <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: 1, color: C.tm, flexShrink: 0 }}>
-                NO LOGS YET
+                {tt('No logs yet')}
               </span>
             </div>
           )}
@@ -409,7 +418,7 @@ const saveSortPrefs = (prefs) => {
 };
 
 export default function TraineesView({ trainees, setTrainees, planCounts, payments, workouts, clientWorkouts, bwLog, portalVis, presence, onSelect, onPreview }) {
-  const t = useT();
+  const tt = useT();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(defaultTrainee());
   const [search, setSearch] = useState("");
@@ -713,32 +722,32 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
           width={204} top={64} maxHeight="calc(100vh - 76px)"
           narrow={narrow} railOpen={railOpen} setRailOpen={setRailOpen}
           search={search} onSearch={(v) => setSearch(v)}
-          searchPlaceholder="Search athletes…"
+          searchPlaceholder={tt('Search athletes…')}
           groups={[
             {
-              label: 'Status',
+              label: tt('Status'),
               opts: ['All', 'Active', 'On Hold', 'Inactive', 'Trial', 'Archived'].map(s => ({
-                key: s, label: s, count: statusCounts[s], active: statusFilter === s,
+                key: s, label: tt(s), count: statusCounts[s], active: statusFilter === s,
                 accent: s === 'Archived' ? C.rd : undefined, onClick: () => setStatusFilter(s),
               })),
             },
             {
-              label: 'Format',
+              label: tt('Format'),
               opts: ['All', 'Online', 'Gym · Single', 'Gym · Couple', 'Bnei Herzliya'].map(f => ({
-                key: f, label: f, count: formatCounts[f], active: formatFilter === f, onClick: () => setFormatFilter(f),
+                key: f, label: tt(f), count: formatCounts[f], active: formatFilter === f, onClick: () => setFormatFilter(f),
               })),
             },
             {
-              label: 'Needs Attention',
+              label: tt('Needs Attention'),
               opts: [
                 { key: 'pay', label: 'Payment due' },
                 { key: 'dormant', label: 'Dormant' },
                 { key: 'lowSessions', label: 'Low sessions' },
                 { key: 'noProgram', label: 'No program' },
-              ].map(o => ({ key: o.key, label: o.label, count: flagCounts[o.key], active: attnFlags[o.key], accent: C.or, onClick: () => setAttnFlags(m => ({ ...m, [o.key]: !m[o.key] })) })),
+              ].map(o => ({ key: o.key, label: tt(o.label), count: flagCounts[o.key], active: attnFlags[o.key], accent: C.or, onClick: () => setAttnFlags(m => ({ ...m, [o.key]: !m[o.key] })) })),
             },
             {
-              label: 'Sort',
+              label: tt('Sort'),
               opts: [
                 { id: 'name', label: 'Name' },
                 { id: 'status', label: 'Status' },
@@ -751,14 +760,15 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                   : o.id === 'status' ? (desc ? '↑ Inactive' : '↓ Active')
                   : o.id === 'lastTrained' ? (desc ? '↓ Newest' : '↑ Oldest')
                   : (desc ? '↑ Overdue' : '↓ Paid');
-                return { key: o.id, title: on ? `Flip ${o.label} direction` : `Sort by ${o.label}`, active: on, label: on ? `${dirLbl} · ${o.label}` : o.label,
+                const oLabel = tt(o.label);
+                return { key: o.id, title: on ? `Flip ${oLabel} direction` : `Sort by ${oLabel}`, active: on, label: on ? `${dirLbl} · ${oLabel}` : oLabel,
                   onClick: () => { setManualSort(false); if (on) setSortDirs(m => ({ ...m, [o.id]: desc ? 'asc' : 'desc' })); else { setSortDirs(m => (m[o.id] ? m : { ...m, [o.id]: 'asc' })); setSortKeys([o.id]); } } };
               }),
             },
           ]}
           footer={
             <div ref={addMenuRef} style={{position:'relative', marginTop:'auto'}}>
-              <Btn variant="solid" onClick={() => setAddMenuOpen(!addMenuOpen)} style={{ width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 38, background: 'transparent', color: 'var(--c-acText, #39BDFF)', whiteSpace: 'nowrap', justifyContent: 'center' }}>+ Add Athlete ▾</Btn>
+              <Btn variant="solid" onClick={() => setAddMenuOpen(!addMenuOpen)} style={{ width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 38, background: 'transparent', color: 'var(--c-acText, #39BDFF)', whiteSpace: 'nowrap', justifyContent: 'center' }}>{tt('+ Add Athlete')} ▾</Btn>
               {addMenuOpen && <div style={{position:'absolute',left:0,right:0,top:'100%',marginTop:4,background:C.bg,border:`1px solid ${C.cardBd}`,borderRadius:0,overflow:'hidden',zIndex:50,boxShadow:'0 8px 24px rgba(0,0,0,0.6)'}}>
                 {[['Online Athlete','Online Client'],['Gym, Single','Gym, Single'],['Gym, Couple','Gym, Couple'],['Bnei Herzliya','Bnei Herzliya']].map(([label,format])=>(
                   <button key={format} onClick={()=>{
@@ -803,7 +813,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
               const m1 = (t.members && t.members[1]) || {};
               const online = isOnline(t.id, presence);
               const pay = getPaymentStatus(t, payments);
-              const lastWk = getLastWorkoutLabel(t, workouts, clientWorkouts);
+              const lastWk = getLastWorkoutDays(t, workouts, clientWorkouts);
               // Per-member BW for couples, WHERE IT EXISTS. Weigh-ins are written
               // against the parent id by every writer (the portal's my_trainee()
               // resolves a couple member to the parent row; the coach's BwAddRow
@@ -855,7 +865,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                             <div style={{
                               fontFamily:FN,fontSize:11,color:C.tm,letterSpacing:0.5,textAlign:'center',width:'100%',
                               whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',
-                            }}>{m.phone}</div>
+                            }} dir="ltr">{m.phone}</div>
                           )}
                           <EmailsCell email={m.email} style={{ fontSize:12, color:C.tm, textAlign:'center', width:'100%' }} />
                         </div>
@@ -905,8 +915,8 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
 
                   {!showArchived && (
                     <div style={{display:'flex',justifyContent:'space-between',marginTop:'auto',paddingTop:8,gap:8}}>
-                      {onPreview ? <button onClick={e => {e.stopPropagation(); onPreview(t.id)}} title="Preview this athlete's portal" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${isRefined5b() ? C.ac : C.cardBd}`,color: isRefined5b() ? C.ac : C.tm,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'0 14px',height:28,boxSizing:'border-box',borderRadius:0,display:'inline-flex',alignItems:'center',gap:6}}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>PORTAL</button> : <span/>}
-                      <button onClick={e => {e.stopPropagation(); const f = {...t, _emails: emailsToArr(t.email)}; editBaseRef.current = t; if(t.members) f._members = t.members.map(m=>({...m, _emails: emailsToArr(m.email)})); setForm(f); setEditId(t.id); setShowForm(true)}} style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'0 14px',height:28,boxSizing:'border-box',display:'inline-flex',alignItems:'center',justifyContent:'center',borderRadius:0}}>EDIT</button>
+                      {onPreview ? <button onClick={e => {e.stopPropagation(); onPreview(t.id)}} title="Preview this athlete's portal" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${isRefined5b() ? C.ac : C.cardBd}`,color: isRefined5b() ? C.ac : C.tm,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'0 14px',height:28,boxSizing:'border-box',borderRadius:0,display:'inline-flex',alignItems:'center',gap:6}}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>{tt('Portal')}</button> : <span/>}
+                      <button onClick={e => {e.stopPropagation(); const f = {...t, _emails: emailsToArr(t.email)}; editBaseRef.current = t; if(t.members) f._members = t.members.map(m=>({...m, _emails: emailsToArr(m.email)})); setForm(f); setEditId(t.id); setShowForm(true)}} style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'0 14px',height:28,boxSizing:'border-box',display:'inline-flex',alignItems:'center',justifyContent:'center',borderRadius:0}}>{tt('Edit')}</button>
                     </div>
                   )}
                   {showArchived && <div style={{display:'flex',gap:6,marginTop:'auto',paddingTop:10}}>
@@ -922,7 +932,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
             // the blocks.
             const online = isOnline(t.id, presence);
             const pay = getPaymentStatus(t, payments);
-            const lastWk = getLastWorkoutLabel(t, workouts, clientWorkouts);
+            const lastWk = getLastWorkoutDays(t, workouts, clientWorkouts);
             const bwEntries = getBwEntries(t, bwLog);
             const programs = planCounts?.[t.id] || 0;
             return (
@@ -939,12 +949,12 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                   first divider below it — float card-to-card. A fixed slot
                   sized for the worst case (icon + 2-line email + phone) keeps
                   every card's dividers on the same horizontal lines. */}
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, height: 80, justifyContent: 'flex-start', paddingTop: 4, overflow: 'hidden' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, height: 88, justifyContent: 'flex-start', paddingTop: 4, overflow: 'hidden' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 28 }}>
                   <WhatsAppCheckInButton name={t.name} phone={t.phone} gender={t.gender} />
                 </div>
                 {t.phone && (
-                  <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 0.5, textAlign: 'center' }}>{t.phone}</div>
+                  <div dir="ltr" style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 0.5, textAlign: 'center', unicodeBidi: 'isolate' }}>{t.phone}</div>
                 )}
                 <EmailsCell email={t.email} style={{ fontSize: 12, color: C.tm, textAlign: 'center', maxWidth: '100%' }} />
               </div>
@@ -958,8 +968,8 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                 <Btn variant="danger" onClick={(e) => {e.stopPropagation(); setDeleteConfirm(t)}} style={{fontSize:11,padding:"4px 10px"}}>Permanently Delete</Btn>
               </div>}
               {!showArchived && <div style={{display:'flex',justifyContent:'space-between',marginTop:'auto',paddingTop:8,gap:8}}>
-                {onPreview ? <button onClick={(e) => {e.stopPropagation(); onPreview(t.id)}} title="Preview this athlete's portal" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${isRefined5b() ? C.ac : C.cardBd}`,color: isRefined5b() ? C.ac : C.tm,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'0 14px',height:28,boxSizing:'border-box',borderRadius:0,display:'inline-flex',alignItems:'center',gap:6}}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>PORTAL</button> : <span/>}
-                <button onClick={(e) => {e.stopPropagation(); setForm({...t, _emails: emailsToArr(t.email)}); editBaseRef.current = t; setEditId(t.id); setShowForm(true)}} style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'0 14px',height:28,boxSizing:'border-box',display:'inline-flex',alignItems:'center',justifyContent:'center',borderRadius:0}}>EDIT</button>
+                {onPreview ? <button onClick={(e) => {e.stopPropagation(); onPreview(t.id)}} title="Preview this athlete's portal" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${isRefined5b() ? C.ac : C.cardBd}`,color: isRefined5b() ? C.ac : C.tm,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'0 14px',height:28,boxSizing:'border-box',borderRadius:0,display:'inline-flex',alignItems:'center',gap:6}}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>{tt('Portal')}</button> : <span/>}
+                <button onClick={(e) => {e.stopPropagation(); setForm({...t, _emails: emailsToArr(t.email)}); editBaseRef.current = t; setEditId(t.id); setShowForm(true)}} style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'0 14px',height:28,boxSizing:'border-box',display:'inline-flex',alignItems:'center',justifyContent:'center',borderRadius:0}}>{tt('Edit')}</button>
               </div>}
             </Card>);
           })}

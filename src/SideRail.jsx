@@ -6,6 +6,7 @@
 // `groups` prop; a page-specific action (e.g. + New Program) via `footer`.
 import React, { useState } from 'react';
 import { FN } from './theme';
+import { useT } from './i18n';
 
 // Section label — dim mono heading above a group of options.
 export function RailGroup({ label, children }) {
@@ -53,6 +54,7 @@ export function SideRail({
   narrow = false, railOpen = false, setRailOpen,
   width = 204, top = 66, maxHeight = 'calc(100vh - 84px)', className = '',
 }) {
+  const tt = useT();
   return (
     <div className={`side-rail ${className}`} style={{
       width: narrow ? 'auto' : width, flexShrink: 0,
@@ -75,7 +77,7 @@ export function SideRail({
           toggle with chevron on narrow. */}
       <div onClick={narrow ? () => setRailOpen?.(o => !o) : undefined}
         style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.22em', color: 'var(--c-ac)', textTransform: 'uppercase', padding: (narrow && !railOpen) ? '0 16px' : '0 16px 10px', borderBottom: (narrow && !railOpen) ? 'none' : '1px solid var(--c-cardBd)', cursor: narrow ? 'pointer' : 'default', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-        <span>Filters</span>
+        <span>{tt('Filters')}</span>
         {narrow && <span aria-hidden style={{ fontSize: 11, lineHeight: 1, transform: railOpen ? 'rotate(180deg)' : 'none', transition: 'transform 180ms ease' }}>▾</span>}
       </div>
 
