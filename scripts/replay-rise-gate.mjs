@@ -12,10 +12,19 @@ const file = process.argv[2] || 'scripts/fixtures/ball-rejected.json';
 const j = JSON.parse(fs.readFileSync(file, 'utf8'));
 const pts = j.frames;
 const K = 1000;
-const frames = pts.map((f) => ({
-  t: f.t,
-  blobs: f.b.map(([x, y, w, h]) => ({ x: x * K, y: y * K, w: w * K, h: h * K, n: 1 })),
-})).filter((f) => f.blobs.length);
+// Match the window the PRODUCT actually uses: shotAnalysis takes release ->
+// release+700ms. Some saved fixtures are far wider (one spans 1534 ms), which
+// runs past the landing and flattens the quadratic — so replaying the whole
+// fixture answers a question the app never asks.
+const WINDOW_MS = Number(process.env.WINDOW_MS || 700);
+const t0f = j.releaseT ?? pts[0].t;
+const frames = pts
+  .filter((f) => f.t <= t0f + WINDOW_MS)
+  .map((f) => ({
+    t: f.t,
+    blobs: f.b.map(([x, y, w, h]) => ({ x: x * K, y: y * K, w: w * K, h: h * K, n: 1 })),
+  })).filter((f) => f.blobs.length);
+console.log(`window: ${t0f} -> ${t0f + WINDOW_MS} ms (${frames.length} of ${pts.length} fixture frames)`);
 
 const origin = j.wrist ? { x: j.wrist[0] * K, y: j.wrist[1] * K } : null;
 console.log(`fixture: ${file}`);

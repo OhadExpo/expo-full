@@ -923,6 +923,21 @@ nothing rather than a confident wrong number.*
   the ball has left. Fixing the release detector would recover the real launch
   angle instead of withholding it — that is the next target, and it is a
   detection question, not a tracking one.
-- `ball-rejected.json` still refuses at an earlier gate ("not falling like a
-  projectile") because its window runs long past the landing and the tail
-  flattens the quadratic. Trim the window to the flight.
+- `ball-rejected.json` still refuses. I first wrote that this was its window
+  running past the landing — that was wrong, and measuring it corrected me.
+  The PRODUCT only ever looks at release -> release+700 ms; that fixture is
+  1534 ms wide, so replaying all of it asked a question the app never asks.
+  Replayed at the real 700 ms window (`WINDOW_MS` in replay-rise-gate.mjs),
+  three of the four saved fixtures now TRACK:
+
+  ```
+  ball-rejected-det1   TRACKED (partial) r2=0.994 n=20
+  ball-rejected-det2   TRACKED (partial) r2=0.994 n=20
+  ball-rejected-runC   TRACKED (partial) r2=0.994 n=20
+  ball-rejected        REFUSED "it is not falling at gravity (0.30x)"
+  ```
+
+  The fourth carries `releaseT 13783`, ~300 ms earlier than the others' 14083,
+  so its 700 ms window holds only the flat apex and the curvature under-reads.
+  That is the SAME late/early release estimate, not a separate defect — which
+  is further evidence that the release detector is the real remaining target.
