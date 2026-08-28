@@ -23,6 +23,7 @@ import ReadinessRow, { hasReadiness } from './ReadinessRow';
 import CheckinTrends from './CheckinTrends';
 import { toast, confirmToast, isRefined5b, useEscClose, useDelayedUnmountValue } from './ui';
 import { isLogOfPlan, duplicatePlanNames } from './planLogMatch';
+import { useT as useAppT } from './i18n';
 // F-14 — meal photo → macros logger. Lazy-loaded since most athletes
 // won't open it on every page load (and it pulls in the meals query).
 const MealLogger = React.lazy(() => import('./MealLogger'));
@@ -291,6 +292,7 @@ const Bg = ({children,color=C.ac,style:s}) => <span style={{display:"inline-bloc
 // day, so subsequent loads are instant.
 const _gphResolveCache = new Map();
 function GooglePhotosEmbed({ url }) {
+  const tt = useAppT();
   const [state, setState] = useState(() => _gphResolveCache.get(url) || { phase: 'loading' });
   const [streamFailed, setStreamFailed] = useState(false);
   useEffect(() => {
@@ -314,7 +316,7 @@ function GooglePhotosEmbed({ url }) {
   const wrap = {marginTop:16,marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'#000',border:`1px solid ${C.cardBd}`};
   if (state.phase === 'loading') return <div style={{...wrap,display:'flex',alignItems:'center',justifyContent:'center',color:C.tm,fontFamily:FN,fontSize:11,letterSpacing:'0.18em'}}>LOADING VIDEO…</div>;
   if (state.phase === 'err' || streamFailed) return <div style={{...wrap,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:8,color:C.tm,fontFamily:FN,fontSize:11,padding:16,textAlign:'center'}}>
-    <div>VIDEO COULD NOT BE EMBEDDED</div>
+    <div>{tt("VIDEO COULD NOT BE EMBEDDED")}</div>
     {safeUrl(url) && <a href={safeUrl(url)} target="_blank" rel="noopener noreferrer" style={{color:C.ac,textDecoration:'none',letterSpacing:'0.18em'}}>OPEN IN GOOGLE PHOTOS →</a>}</div>;
   const handleBadStream = () => setStreamFailed(true);
   const handleMeta = (e) => { if (!(e.currentTarget.duration > 0)) setStreamFailed(true); };
@@ -325,6 +327,7 @@ function GooglePhotosEmbed({ url }) {
 // MORE/LESS toggle that reveals the full text on tap (Ohad: don't balloon the
 // cards, don't let any length of text size them).
 function OverviewFocus({ text }) {
+  const tt = useAppT();
   const [open, setOpen] = useState(false);
   const [overflows, setOverflows] = useState(false);
   const ref = useRef(null);
@@ -332,7 +335,7 @@ function OverviewFocus({ text }) {
   return (
     <div style={{marginInlineStart:30,marginTop:4}}>
       <div ref={ref} style={{fontSize:11,color:C.ac,opacity:0.85,lineHeight:1.4,...(open?null:{display:'-webkit-box',WebkitBoxOrient:'vertical',WebkitLineClamp:2,overflow:'hidden'})}}>
-        <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',marginRight:8,opacity:0.7}}>FOCUS</span>{text}
+        <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',marginRight:8,opacity:0.7}}>{tt("FOCUS")}</span>{text}
       </div>
       {(overflows || open) && <span onClick={(e)=>{e.stopPropagation();setOpen(o=>!o);}} style={{display:'inline-block',marginTop:3,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.1em',color:C.ac,cursor:'pointer',opacity:0.85}}>{open?'▲ LESS':'▼ MORE'}</span>}
     </div>
@@ -341,6 +344,7 @@ function OverviewFocus({ text }) {
 
 // StepLogger: warmup steps → pre-workout → exercise steps → finish
 function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFocus, trainerExercises, priorWorkouts, allowSubstitution, demoMode = false, branch = '', nameAmbiguous = false, onFilmSet = null}) {
+  const tt = useAppT();
   // Steps: 'wu0','wu1',... → 0,1,2,... (group indices) → 'end'
   // Daily-routine days skip warm-up steps entirely — Roei's "morning
   // routine" pattern doesn't tie to a warm-up block. Per-day flag set
@@ -1448,10 +1452,10 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
             {pendingBlobs > 0 && <span style={{opacity:0.85}}>· ↑{pendingBlobs}</span>}
           </span>
         )}
-        {showResumedPill && <span title="Restored from your last session" style={{color:C.or,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.1em',whiteSpace:'nowrap',display:'inline-flex',alignItems:'center',gap:5,lineHeight:1}}><span style={{lineHeight:1}}>↻</span><span style={{lineHeight:1}}>RESUMED</span></span>}
+        {showResumedPill && <span title="Restored from your last session" style={{color:C.or,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.1em',whiteSpace:'nowrap',display:'inline-flex',alignItems:'center',gap:5,lineHeight:1}}><span style={{lineHeight:1}}>↻</span><span style={{lineHeight:1}}>{tt("RESUMED")}</span></span>}
         {/* Bnei Herzliya team crest — readable size, vertically centered. */}
         {branch === 'Bnei Herzliya' && <img src="/bnei-herzliya-logo-w.png" alt="Bnei Herzliya" style={{height:40,width:'auto',objectFit:'contain',flexShrink:0}} />}
-        <button onClick={onBack} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',padding:0,display:'inline-flex',alignItems:'center',gap:5,lineHeight:1,whiteSpace:'nowrap'}}><span style={{lineHeight:1}}>←</span><span style={{lineHeight:1}}>EXIT</span></button>
+        <button onClick={onBack} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',padding:0,display:'inline-flex',alignItems:'center',gap:5,lineHeight:1,whiteSpace:'nowrap'}}><span style={{lineHeight:1}}>←</span><span style={{lineHeight:1}}>{tt("EXIT")}</span></button>
       </div></div>
     <div style={{display:'flex',gap:2}}>
       {/* Warm-up dots (orange) + Exercise dots (blue/green) */}
@@ -1511,7 +1515,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         {/* Coach note for this warm-up (authored in the plan editor's
             warm-up expand panel). */}
         {wu.note && <div style={{background:'transparent',border:`1px solid ${C.cardBd}`,borderLeft:`3px solid ${C.cardBd}`,borderRadius:0,padding:12,marginBottom:14}}>
-          <div style={{fontSize:10,fontFamily:FN,color:C.td,marginBottom:6,fontWeight:700,letterSpacing:'0.18em'}}>EXERCISE NOTE</div>
+          <div style={{fontSize:10,fontFamily:FN,color:C.td,marginBottom:6,fontWeight:700,letterSpacing:'0.18em'}}>{tt("EXERCISE NOTE")}</div>
           <div dir="auto" style={{fontSize:13,color:C.tx,lineHeight:1.5,whiteSpace:'pre-wrap',wordBreak:'break-word',direction:/[֐-׿]/.test(wu.note||'')?'rtl':'ltr',fontFamily:/[֐-׿]/.test(wu.note||'')?FH:undefined}}>{wu.note}</div>
         </div>}
         {vid ? <div style={vidShort
@@ -1523,7 +1527,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           : wu.vid && /(photos\.app\.goo\.gl|photos\.google\.com)/i.test(wu.vid) ? <GooglePhotosEmbed url={wu.vid} />
           : wu.vid && /lh3\.googleusercontent\.com/i.test(wu.vid) ? <div style={{marginTop:16,marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'#000',border:`1px solid ${C.cardBd}`}}>
           <video src={wu.vid} controls playsInline style={{width:'100%',height:'100%',objectFit:'contain',background:'#000'}}/></div>
-          : <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:30,marginBottom:14,textAlign:'center',color:C.tm}}>No video for this exercise</div>}
+          : <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:30,marginBottom:14,textAlign:'center',color:C.tm}}>{tt("No video for this exercise")}</div>}
         <div style={{display:'flex',gap:8}}>
           <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>← Back</button>
           <button onClick={goNext} style={{flex:2,padding:14,borderRadius:0,border:`1px solid ${C.or}`,background:'transparent',color:C.or,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>
@@ -1554,11 +1558,11 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     );
     return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>{bar}
       <div style={{padding:20}}>
-        <h2 style={{margin:'0 0 4px',fontFamily:FN,fontSize:18,textAlign:'center'}}>Readiness Check-In</h2>
+        <h2 style={{margin:'0 0 4px',fontFamily:FN,fontSize:18,textAlign:'center'}}>{tt("Readiness Check-In")}</h2>
         <div style={{fontSize:13,color:C.tm,textAlign:'center',marginBottom:24}}>How are you feeling today? <span style={{color:C.td}}>(optional)</span></div>
-        <div style={{marginBottom:18}}><div style={lbl}>PAIN</div>{scale('pain',[['high','HIGH'],['moderate','MODERATE'],['mild','MILD'],['none','NONE']], false)}</div>
-        <div style={{marginBottom:18}}><div style={lbl}>SLEEP</div>{scale('sleep',[['poor','POOR'],['ok','OK'],['good','GOOD'],['great','GREAT']], false)}</div>
-        <div style={{marginBottom:26}}><div style={lbl}>ENERGY</div>{scale('energy',[['low','LOW'],['ok','OK'],['good','GOOD'],['high','HIGH']], false)}</div>
+        <div style={{marginBottom:18}}><div style={lbl}>{tt("PAIN")}</div>{scale('pain',[['high','HIGH'],['moderate','MODERATE'],['mild','MILD'],['none','NONE']], false)}</div>
+        <div style={{marginBottom:18}}><div style={lbl}>{tt("SLEEP")}</div>{scale('sleep',[['poor','POOR'],['ok','OK'],['good','GOOD'],['great','GREAT']], false)}</div>
+        <div style={{marginBottom:26}}><div style={lbl}>{tt("ENERGY")}</div>{scale('energy',[['low','LOW'],['ok','OK'],['good','GOOD'],['high','HIGH']], false)}</div>
         <div style={{display:'flex',gap:8}}>
           <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>← Back</button>
           <button onClick={goNext} style={{flex:2,padding:14,borderRadius:0,border:`1px solid ${C.ac}`,background:'transparent',color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>Start Workout →</button>
@@ -1826,7 +1830,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
               <button onClick={() => setSubstitutions(s => { const n={...s}; delete n[ex.eid]; return n; })}
                 title="Undo swap"
                 style={{background:'transparent',border:'none',color:C.ac,fontFamily:FN,fontSize:10,letterSpacing:1.2,fontWeight:700,cursor:'pointer',padding:0,textDecoration:'underline'}}>
-                UNDO
+                {tt("UNDO")}
               </button>
             </span>
           )}
@@ -1967,7 +1971,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
 
       <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:14}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
-          <div style={{fontSize:11,fontFamily:FN,color:C.tm}}>FORM CHECK</div>
+          <div style={{fontSize:11,fontFamily:FN,color:C.tm}}>{tt("FORM CHECK")}</div>
           {f.uploaded && <div style={{display:'flex',alignItems:'center',gap:4,background:'var(--c-sf)',border:`1px solid ${C.gn}`,padding:'3px 10px',borderRadius:0}}>
             <span style={{fontSize:11,fontFamily:FN,color:C.gn,fontWeight:700,letterSpacing:'0.08em'}}>✓ UPLOADED</span></div>}
           {f.uploading && <div style={{display:'flex',alignItems:'center',gap:4,background:'var(--c-sf)',border:`1px solid ${C.ac}`,padding:'3px 10px',borderRadius:0}}>
@@ -2018,11 +2022,11 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         ) : (
           <div style={{display:'flex',gap:8}}>
             <label style={{flex:1,padding:'16px 8px',borderRadius:0,border:`1px dashed ${C.ac}`,background:'transparent',color:C.tm,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',textAlign:'center',display:'flex',alignItems:'center',justifyContent:'center'}}>
-              <span>Record</span>
+              <span>{tt("Record")}</span>
               <input type="file" accept="video/*" capture="environment" style={{display:'none'}} onChange={async e => { await handleVideoUpload(e, ei, d); }} />
             </label>
             <label style={{flex:1,padding:'16px 8px',borderRadius:0,border:`1px dashed ${C.ac}`,background:'transparent',color:C.tm,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',textAlign:'center',display:'flex',alignItems:'center',justifyContent:'center'}}>
-              <span>Gallery</span>
+              <span>{tt("Gallery")}</span>
               <input type="file" accept="video/*" style={{display:'none'}} onChange={async e => { await handleVideoUpload(e, ei, d); }} />
             </label>
           </div>
@@ -2081,6 +2085,7 @@ function deriveWeekIdx(plan, cw, dupNames) {
 
 // Main client portal
 export default function ClientPortal({ clientId, signOut, clientWorkouts, setClientWorkouts, bwLog, setBwLog, weeklyFocus, setWeeklyFocus, portalVis, trainerPlans, trainerExercises, trainees, selfTrainee = null, onDecrementSession, updateFormVideos, demoMode = false, demoPlans = null, onReturnToCoach = null, embedded = false, onFilmSet = null }) {
+  const tt = useAppT();
   // clientId comes from the authenticated session (resolved upstream in App.jsx).
   // The old email-lookup login lived inside this component and bypassed auth;
   // it's gone. Trainee is fixed for the session.
@@ -2580,7 +2585,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           // week progress as the bigger centre element, countdown right.
           if (hv === '1') return (
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,padding:'2px 2px 0',whiteSpace:'nowrap'}}>
-              <span style={metaLbl}>Block <span style={metaVal}>{blockLabel}</span></span>
+              <span style={metaLbl}>{tt("Block")} <span style={metaVal}>{blockLabel}</span></span>
               {weekDays.length > 0 && (
                 <div style={{display:'flex',alignItems:'center',gap:10}}>
                   {/* count sits BEFORE the fill blocks (Ohad) */}
@@ -2590,7 +2595,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                   </div>
                 </div>
               )}
-              <span style={metaLbl}><span style={metaVal}>{blockLeft}</span> Left</span>
+              <span style={metaLbl}><span style={metaVal}>{blockLeft}</span> {tt("Left")}</span>
             </div>
           );
 
@@ -2600,20 +2605,20 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           if (hv === '2') return (
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:16,padding:'2px 2px 0'}}>
               <div style={{display:'flex',flexDirection:'column',gap:6,minWidth:0}}>
-                <span style={{fontSize:20,color:C.tx,fontFamily:FN,fontWeight:700,letterSpacing:'0.03em',textTransform:'uppercase',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',lineHeight:1}}>Block <span style={{color:C.ac}}>{blockLabel}</span></span>
+                <span style={{fontSize:20,color:C.tx,fontFamily:FN,fontWeight:700,letterSpacing:'0.03em',textTransform:'uppercase',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',lineHeight:1}}>{tt("Block")} <span style={{color:C.ac}}>{blockLabel}</span></span>
                 {weekDays.length > 0 && (
                   <div style={{display:'flex',alignItems:'center',gap:8}}>
                     <span style={{...metaLbl,letterSpacing:'0.14em'}}>{doneThisWeek}/{weekDays.length}</span>
                     <div style={{display:'flex',gap:4}}>
                       {weekDays.map((d,i)=><div key={i} title={d.name} style={{width:22,height:7,borderRadius:0,background:isDayDone(d)?C.ac:'transparent',border:`1px solid ${isDayDone(d)?C.ac:'var(--c-cardBd)'}`,transition:'background .2s'}}/>)}
                     </div>
-                    <span style={{...metaLbl,letterSpacing:'0.14em'}}>This Week</span>
+                    <span style={{...metaLbl,letterSpacing:'0.14em'}}>{tt("This Week")}</span>
                   </div>
                 )}
               </div>
               <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:3,flexShrink:0}}>
                 <span style={{fontSize:34,color:C.ac,fontFamily:FN,fontWeight:700,lineHeight:0.9,letterSpacing:'-0.02em',fontVariantNumeric:'tabular-nums'}}>{blockLeft}</span>
-                <span style={metaLbl}>Left</span>
+                <span style={metaLbl}>{tt("Left")}</span>
               </div>
             </div>
           );
@@ -2628,15 +2633,15 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                 <div style={{position:'absolute',inset:'0 auto 0 0',width:`${totalPct}%`,background:C.ac,transition:'width .3s'}}/>
               </div>
               <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',whiteSpace:'nowrap'}}>
-                <span style={metaLbl}>Block <span style={metaVal}>{blockLabel}</span></span>
+                <span style={metaLbl}>{tt("Block")} <span style={metaVal}>{blockLabel}</span></span>
                 {weekDays.length > 0 && <span style={{display:'inline-flex',alignItems:'center',gap:6}}>
                   <span style={metaVal}>{doneThisWeek}/{weekDays.length}</span>
                   <span style={{display:'inline-flex',gap:3}}>
                     {weekDays.map((d,i)=><span key={i} title={d.name} style={{width:12,height:6,borderRadius:0,display:'inline-block',background:isDayDone(d)?C.ac:'transparent',border:`1px solid ${isDayDone(d)?C.ac:'var(--c-cardBd)'}`}}/>)}
                   </span>
-                  <span style={metaLbl}>Week</span>
+                  <span style={metaLbl}>{tt("Week")}</span>
                 </span>}
-                <span style={metaLbl}><span style={metaVal}>{blockLeft}</span> Left</span>
+                <span style={metaLbl}><span style={metaVal}>{blockLeft}</span> {tt("Left")}</span>
               </div>
             </div>
           );
@@ -2651,7 +2656,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                   truncates instead of shoving the LEFT group off the right edge and
                   overflowing the phone viewport. The week + left groups are
                   flexShrink:0 so only the label gives way. */}
-              <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',color:C.tx,lineHeight:1,minWidth:0,overflow:'hidden',textOverflow:'ellipsis'}}>BLOCK <span style={{color:C.ac}}>{blockLabel}</span></span>
+              <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',color:C.tx,lineHeight:1,minWidth:0,overflow:'hidden',textOverflow:'ellipsis'}}>{tt("BLOCK")} <span style={{color:C.ac}}>{blockLabel}</span></span>
               {weekDays.length > 0 && <span style={{display:'inline-flex',alignItems:'center',gap:8,fontFamily:FN,flexShrink:0}}>
                 <span style={{fontSize:11,fontWeight:700,color:C.ac,fontVariantNumeric:'tabular-nums',lineHeight:1}}>{doneThisWeek}/{weekDays.length}</span>
                 {/* squares carry a −1px lift so their geometric centre sits on the
@@ -2660,7 +2665,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                 <span style={{display:'inline-flex',gap:2,transform:'translateY(-1px)'}}>
                   {weekDays.map((d,i)=><span key={i} title={d.name} style={{width:10,height:10,display:'inline-block',background:isDayDone(d)?C.ac:'var(--c-sf2)',border:`1px solid ${isDayDone(d)?C.ac:C.cardBd}`}}/>)}
                 </span>
-                <span style={{fontSize:9,color:C.tm,letterSpacing:'0.14em',fontWeight:700,lineHeight:1}}>WEEK</span>
+                <span style={{fontSize:9,color:C.tm,letterSpacing:'0.14em',fontWeight:700,lineHeight:1}}>{tt("WEEK")}</span>
               </span>}
               <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',color:C.tm,lineHeight:1,flexShrink:0}}><span style={{color:C.ac,fontVariantNumeric:'tabular-nums'}}>{blockLeft}</span> LEFT</span>
             </div>
@@ -2671,7 +2676,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           // the page centre like the greeting above it.
           if (hv === '5') return (
             <div style={{display:'flex',alignItems:'center',justifyContent:'center',whiteSpace:'nowrap',padding:'2px 0 0'}}>
-              <span style={{...metaLbl,letterSpacing:'0.24em'}}>Block <span style={metaVal}>{blockLabel}</span></span>
+              <span style={{...metaLbl,letterSpacing:'0.24em'}}>{tt("Block")} <span style={metaVal}>{blockLabel}</span></span>
               {weekDays.length > 0 && <>
                 {metaDot}
                 <span style={{display:'inline-flex',alignItems:'center',gap:8}}>
@@ -2682,7 +2687,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                 </span>
               </>}
               {metaDot}
-              <span style={{...metaLbl,letterSpacing:'0.24em'}}><span style={metaVal}>{blockLeft}</span> Left</span>
+              <span style={{...metaLbl,letterSpacing:'0.24em'}}><span style={metaVal}>{blockLeft}</span> {tt("Left")}</span>
             </div>
           );
 
@@ -2691,7 +2696,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           // countdown right as quiet anchors. Same-row rule holds.
           return (
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,padding:'2px 2px 0',whiteSpace:'nowrap'}}>
-              <span style={metaLbl}>Block <span style={metaVal}>{blockLabel}</span></span>
+              <span style={metaLbl}>{tt("Block")} <span style={metaVal}>{blockLabel}</span></span>
               {weekDays.length > 0 && (
                 <div style={{display:'flex',alignItems:'center',gap:10}}>
                   <span style={{fontSize:17,color:C.ac,fontFamily:FN,fontWeight:700,letterSpacing:'0.02em',fontVariantNumeric:'tabular-nums',lineHeight:1}}>{doneThisWeek}/{weekDays.length}</span>
@@ -2700,7 +2705,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                   </div>
                 </div>
               )}
-              <span style={metaLbl}><span style={metaVal}>{blockLeft}</span> Left</span>
+              <span style={metaLbl}><span style={metaVal}>{blockLeft}</span> {tt("Left")}</span>
             </div>
           );
         })()}
@@ -2833,7 +2838,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
       {renderTopHeader()}
       <div style={{padding:'14px 20px 20px'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}>
-          <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',fontWeight:700}}>BODYWEIGHT</div>
+          <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',fontWeight:700}}>{tt("BODYWEIGHT")}</div>
           <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}>{clientName} · {bwData.length} ENTRIES</div>
         </div>
 
@@ -2850,7 +2855,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           <div style={{display:'flex',gap:8}}>
             <input value={bwDisplay} onChange={e => setBw(e.target.value)} placeholder="Weight in kg" type="number" disabled={!activePlan} style={{flex:1,background: 'var(--c-sf2)',border:`1px solid ${existingBw?'rgba(46,213,115,0.376)':C.ac}`,borderRadius:0,padding:'10px 12px',color:C.tx,fontFamily:FN,fontSize:14,outline:'none',boxSizing:'border-box',opacity:activePlan?1:0.5,textAlign:'center'}}/>
             <button disabled={!activePlan||demoMode} onClick={()=>{if(demoMode)return;const val=bw||bwDisplay;if(val&&Number.isFinite(parseFloat(val))&&activePlan){setBwLog(prev=>{const filtered=prev.filter(b=>!(b.clientId===ci&&b.blockName===activePlan.name&&b.week===wk+1));return[...filtered,{date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(val),blockName:activePlan.name,planId:activePlan.id||null}]});setBw('')}}}
-              style={{padding:'10px 20px',borderRadius:0,border:`1px solid ${(bw&&activePlan)?C.ac:C.cardBd}`,background:'transparent',color:(bw&&activePlan)?C.ac:C.td,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',cursor:(bw&&activePlan)?'pointer':'default'}}>SAVE</button>
+              style={{padding:'10px 20px',borderRadius:0,border:`1px solid ${(bw&&activePlan)?C.ac:C.cardBd}`,background:'transparent',color:(bw&&activePlan)?C.ac:C.td,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',cursor:(bw&&activePlan)?'pointer':'default'}}>{tt("SAVE")}</button>
           </div>
           {!activePlan && <div style={{fontSize:10,color:C.td,marginTop:6}}>Assign an active program to log bodyweight.</div>}
         </div>
@@ -2863,7 +2868,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           </div>
         ) : (
           <div style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,padding:14,marginBottom:16}}>
-            <div style={{fontSize:10,fontFamily:FN,color:C.ac,letterSpacing:'0.15em',fontWeight:700,marginBottom:10}}>TREND</div>
+            <div style={{fontSize:10,fontFamily:FN,color:C.ac,letterSpacing:'0.15em',fontWeight:700,marginBottom:10}}>{tt("TREND")}</div>
             <svg viewBox={`0 -10 ${Math.max(bwData.length * 60, 300)} 185`} style={{width:'100%',height:185}}>
               {/* Grid lines */}
               {[0,0.25,0.5,0.75,1].map((p,i) => {
@@ -2915,16 +2920,16 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             {/* Stats */}
             <div style={{display:'flex',gap:8,marginTop:10}}>
               <div style={{flex:1,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:10,textAlign:'center'}}>
-                <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}>LATEST</div>
+                <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}>{tt("LATEST")}</div>
                 <div style={{fontSize:16,fontWeight:700,fontFamily:FN,color:C.tx}}>{bwData[bwData.length-1].bw}kg</div>
               </div>
               <div style={{flex:1,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:10,textAlign:'center'}}>
-                <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}>CHANGE</div>
+                <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}>{tt("CHANGE")}</div>
                 <div style={{fontSize:16,fontWeight:700,fontFamily:FN,color:(bwData[bwData.length-1].bw-bwData[0].bw)<=0?C.gn:C.or}}>
                   {(bwData[bwData.length-1].bw-bwData[0].bw)>0?'+':''}{(bwData[bwData.length-1].bw-bwData[0].bw).toFixed(1)}kg</div>
               </div>
               <div style={{flex:1,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:10,textAlign:'center'}}>
-                <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}>ENTRIES</div>
+                <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}>{tt("ENTRIES")}</div>
                 <div style={{fontSize:16,fontWeight:700,fontFamily:FN,color:C.tx}}>{bwData.length}</div>
               </div>
             </div>
@@ -2951,15 +2956,15 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             </div>
           </div>;
         })}
-        {bwHistOpen && bwData.length === 0 && <div style={{textAlign:'center',padding:20,color:C.td,fontSize:13}}>No bodyweight entries yet</div>}
+        {bwHistOpen && bwData.length === 0 && <div style={{textAlign:'center',padding:20,color:C.td,fontSize:13}}>{tt("No bodyweight entries yet")}</div>}
       </div>
       {bwDel.value && createPortal(<div role="dialog" aria-modal="true" aria-label="Delete bodyweight entry" className={bwDel.closing ? 'motion-fade-out' : 'motion-fade-in'} onClick={() => setBwDeleteConfirm(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.85)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:100,padding:20}}>
         <div onClick={e=>e.stopPropagation()} className={bwDel.closing ? 'motion-fall' : 'motion-rise'} style={{background:C.bg,border:`1px solid ${C.cardBd}`,borderRadius:0,padding:24,maxWidth:320,width:'100%'}}>
-          <div style={{fontFamily:FN,fontSize:10,color:C.td,marginBottom:8,letterSpacing:'0.12em',fontWeight:700}}>DELETE ENTRY</div>
+          <div style={{fontFamily:FN,fontSize:10,color:C.td,marginBottom:8,letterSpacing:'0.12em',fontWeight:700}}>{tt("DELETE ENTRY")}</div>
           <div style={{fontSize:13,color:C.tx,marginBottom:20,fontFamily:FB,lineHeight:1.5}}>Remove {bwDel.value.bw}kg from {bwDel.value.blockName || '?'} · W{bwDel.value.week || '?'}?</div>
           <div style={{display:'flex',gap:8}}>
-            <button onClick={() => setBwDeleteConfirm(null)} style={{flex:1,padding:'10px 0',borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',cursor:'pointer'}}>CANCEL</button>
-            <button onClick={() => { const d = bwDel.value; if (d) setBwLog(prev => prev.filter(b => !(b.clientId===d.clientId && b.blockName===d.blockName && b.week===d.week && b.date===d.date))); setBwDeleteConfirm(null); }} style={{flex:1,padding:'10px 0',borderRadius:0,border:`1px solid ${C.rd}`,background:'transparent',color:C.rd,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',cursor:'pointer'}}>DELETE</button>
+            <button onClick={() => setBwDeleteConfirm(null)} style={{flex:1,padding:'10px 0',borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',cursor:'pointer'}}>{tt("CANCEL")}</button>
+            <button onClick={() => { const d = bwDel.value; if (d) setBwLog(prev => prev.filter(b => !(b.clientId===d.clientId && b.blockName===d.blockName && b.week===d.week && b.date===d.date))); setBwDeleteConfirm(null); }} style={{flex:1,padding:'10px 0',borderRadius:0,border:`1px solid ${C.rd}`,background:'transparent',color:C.rd,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',cursor:'pointer'}}>{tt("DELETE")}</button>
           </div>
         </div>
       </div>, document.body)}
@@ -3038,7 +3043,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                       size, each with a leading severity dot) so the row reads as
                       one clean cluster instead of a bare label next to a boxed
                       pill (Ohad: the mixed treatment looked awkward). */}
-                  {hasVideo && <span style={{display:'inline-flex',alignItems:'center',gap:4,color:C.gn,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',lineHeight:1}}><span style={{width:5,height:5,background:C.gn,borderRadius:'50%'}}/>VIDEO</span>}
+                  {hasVideo && <span style={{display:'inline-flex',alignItems:'center',gap:4,color:C.gn,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',lineHeight:1}}><span style={{width:5,height:5,background:C.gn,borderRadius:'50%'}}/>{tt("VIDEO")}</span>}
                   {notesCount > 0 && <span style={{display:'inline-flex',alignItems:'center',gap:4,color:C.ac,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',lineHeight:1}}><span style={{width:5,height:5,background:C.ac,borderRadius:'50%'}}/>{notesCount} {notesCount===1?'NOTE':'NOTES'}</span>}
                   {canExpand && <span style={{color:C.td,fontSize:10}}>{isOpen ? '▲' : '▼'}</span>}
                 </div>
@@ -3106,7 +3111,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               hairline box, active cell filled) so it speaks the same boxed
               language as the header stats strip; label style matches the
               strip cell labels. */}
-          {activePlan?.kind !== 'daily' && <div style={{flex:1}}><div style={{fontSize:8,fontFamily:FN,color:C.tm,marginBottom:6,letterSpacing:'0.16em',fontWeight:700}}>WEEK</div>
+          {activePlan?.kind !== 'daily' && <div style={{flex:1}}><div style={{fontSize:8,fontFamily:FN,color:C.tm,marginBottom:6,letterSpacing:'0.16em',fontWeight:700}}>{tt("WEEK")}</div>
             {/* Weeks per identity. All fixed 32px so the KG input stays
                 level in every version. */}
             {(() => {
@@ -3149,7 +3154,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                   {Array.from({length:N},(_,w)=>mk(w,{flex:1,padding:0,borderRadius:0,border:`1px solid ${activePlan&&wk===w?C.ac:C.cardBd}`,background:activePlan&&wk===w?'rgba(57,189,255,0.12)':'transparent',color:activePlan&&wk===w?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:activePlan&&wk===w?700:600,letterSpacing:'0.06em',cursor:'pointer',transition:'color .15s, background .15s, border-color .15s'}))}
                 </div>);
             })()}</div>}
-          <div style={{width:120}}><div style={{fontSize:9,fontFamily:FN,marginBottom:6,letterSpacing:'0.14em',fontWeight:700,textAlign:'center'}}><span style={{color:C.tm}}>BW</span>{lb?<span style={{color:C.ac}}>{` · ${lb}KG`}</span>:''}</div>
+          <div style={{width:120}}><div style={{fontSize:9,fontFamily:FN,marginBottom:6,letterSpacing:'0.14em',fontWeight:700,textAlign:'center'}}><span style={{color:C.tm}}>{tt("BW")}</span>{lb?<span style={{color:C.ac}}>{` · ${lb}KG`}</span>:''}</div>
             <div style={{display:'flex',gap:4}}>
             {/* KG matches the week cells: 32px border-box in every identity;
                 underline material where the identity is underline/bare. */}
@@ -3157,9 +3162,9 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               style={(ident === 'EDITORIAL' || ident === 'AIR')
                 ? {background:'transparent',border:'none',borderBottom:`1px solid ${C.cardBd}`,borderRadius:0,height:32,padding:'0 8px',color:C.tx,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',outline:'none',width:'100%',boxSizing:'border-box',textAlign:'center',opacity:activePlan?1:0.5}
                 : {background:'transparent',border:`1px solid ${C.cardBd}`,borderRadius:0,height:32,padding:'0 8px',color:C.tx,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',outline:'none',width:'100%',boxSizing:'border-box',textAlign:'center',opacity:activePlan?1:0.5}}/>
-            {bw && Number.isFinite(parseFloat(bw)) && activePlan && <button onClick={()=>{setBwLog(prev=>{const filtered=prev.filter(b=>!(b.clientId===ci&&b.blockName===activePlan.name&&b.week===wk+1));return[...filtered,{date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(bw),blockName:activePlan.name,planId:activePlan.id||null}]});setBw('')}} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,padding:'4px 10px',color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.1em',cursor:'pointer',whiteSpace:'nowrap'}}>SAVE</button>}
+            {bw && Number.isFinite(parseFloat(bw)) && activePlan && <button onClick={()=>{setBwLog(prev=>{const filtered=prev.filter(b=>!(b.clientId===ci&&b.blockName===activePlan.name&&b.week===wk+1));return[...filtered,{date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(bw),blockName:activePlan.name,planId:activePlan.id||null}]});setBw('')}} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,padding:'4px 10px',color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.1em',cursor:'pointer',whiteSpace:'nowrap'}}>{tt("SAVE")}</button>}
             </div></div></div>
-        {activePlan?.rest && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'10px 14px',marginBottom:14,fontSize:12,color:C.tm,fontFamily:FN}}><span style={{color:C.td,fontSize:9,fontWeight:700,letterSpacing:'0.15em',marginRight:10}}>REST</span>{activePlan.rest}</div>}
+        {activePlan?.rest && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'10px 14px',marginBottom:14,fontSize:12,color:C.tm,fontFamily:FN}}><span style={{color:C.td,fontSize:9,fontWeight:700,letterSpacing:'0.15em',marginRight:10}}>{tt("REST")}</span>{activePlan.rest}</div>}
         {unreadCoachNotes > 0 && <div onClick={() => setVw('hist')}
           role="button" tabIndex={0}
           onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setVw('hist'); } }}
@@ -3175,11 +3180,11 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             now their own pages (vw='msg' / vw='meal') reached via the
             two-row nav above. Removed 2026-05-16. */}
         {plansLoadError && <div style={{background:'var(--c-sf)',border:`1px solid ${C.rd||'#c94444'}`,borderRadius:0,padding:14,marginBottom:14}}>
-          <div style={{fontSize:11,color:C.rd||'#ff6b6b',fontWeight:700,fontFamily:FN,letterSpacing:'0.1em',marginBottom:6,textTransform:'uppercase'}}>Couldn't load programs</div>
+          <div style={{fontSize:11,color:C.rd||'#ff6b6b',fontWeight:700,fontFamily:FN,letterSpacing:'0.1em',marginBottom:6,textTransform:'uppercase'}}>{tt("Couldn't load programs")}</div>
           <div style={{fontSize:11,color:C.tm,marginBottom:10}}>{plansLoadError}</div>
-          <button onClick={()=>{setPlansLoadError(null);setPlansReloadKey(k=>k+1);}} style={{background:'var(--c-sf)',border:`1px solid ${C.rd||'#c94444'}`,color:C.rd||'#ff6b6b',borderRadius:0,padding:'6px 14px',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',cursor:'pointer'}}>RETRY</button>
+          <button onClick={()=>{setPlansLoadError(null);setPlansReloadKey(k=>k+1);}} style={{background:'var(--c-sf)',border:`1px solid ${C.rd||'#c94444'}`,color:C.rd||'#ff6b6b',borderRadius:0,padding:'6px 14px',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',cursor:'pointer'}}>{tt("RETRY")}</button>
         </div>}
-        {visPlans.length===0 && !plansLoadError && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'40px 30px',textAlign:'center',color:C.td,marginBottom:14}}><div style={{fontSize:10,fontFamily:FN,fontWeight:700,letterSpacing:'0.18em',color:C.tm,marginBottom:10}}>NO ACTIVE PROGRAM</div><div style={{fontSize:13,color:C.td}}>Contact your coach to start training.</div></div>}
+        {visPlans.length===0 && !plansLoadError && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'40px 30px',textAlign:'center',color:C.td,marginBottom:14}}><div style={{fontSize:10,fontFamily:FN,fontWeight:700,letterSpacing:'0.18em',color:C.tm,marginBottom:10}}>{tt("NO ACTIVE PROGRAM")}</div><div style={{fontSize:13,color:C.td}}>Contact your coach to start training.</div></div>}
         {/* Per-plan block: divider → warm-up → rest → training days */}
         {(()=>{ let globalDayIdx = 0;
           // ── buildCard: ONE card renderer, six identities ────────────────
@@ -3373,7 +3378,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               title: w.t,
             })),
           })}
-          {vp.rest && visPlans.length>1 && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'8px 12px',marginBottom:12,fontSize:11,color:C.tm,fontFamily:FN}}><span style={{color:C.td,fontSize:9,fontWeight:700,letterSpacing:'0.15em',marginRight:10}}>REST</span>{vp.rest}</div>}
+          {vp.rest && visPlans.length>1 && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'8px 12px',marginBottom:12,fontSize:11,color:C.tm,fontFamily:FN}}><span style={{color:C.td,fontSize:9,fontWeight:700,letterSpacing:'0.15em',marginRight:10}}>{tt("REST")}</span>{vp.rest}</div>}
           {vp.days.map((day,di) => { const dayIdx = globalDayIdx++;
           // Daily-routine: PER-DAY flag (`day.kind === 'daily'`) lets the
           // athlete log THIS specific day any number of times during the
