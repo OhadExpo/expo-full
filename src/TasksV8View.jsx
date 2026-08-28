@@ -681,6 +681,7 @@ function sortRailLabel(mode, sortDir) {
 }
 
 function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
+  const tt = useT();
   const [body, setBody] = useState('');
   const [assignee, setAssignee] = useState(defaultAssignee);
   const [due, setDue] = useState('');
@@ -768,7 +769,7 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
           <span style={{
             fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
             color: 'var(--c-td)', textTransform: 'uppercase', opacity: 0.75, flexShrink: 0,
-          }}>Enter to save</span>
+          }}>{tt('Enter to save')}</span>
         )}
         {/* Discard / collapse — resets every field and closes the composer (Ohad:
             "there's no discard/collapse (×) button"). */}
@@ -1770,7 +1771,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
 // ────────────────────────────────────────────────────────────────────
 
 export default function TasksV8View({ trainees = [], onSelectTrainee }) {
-  const t = useT();
+  const tt = useT();
   const { rows, loading, connected, update, create, remove } = useCoachNotes({ limit: 200 });
   // Subscribe to theme changes so StatusPill colors update live on a dark/light
   // toggle (was read once via getAttribute → went stale until next re-render).
@@ -2556,7 +2557,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
             margin: 0, fontFamily: FN, fontSize: 13, fontWeight: 700,
             letterSpacing: '0.18em', textTransform: 'uppercase',
             color: 'var(--c-tx)',
-          }}>{t("Tasks")}</h2>
+          }}>{tt("Tasks")}</h2>
           {/* No always-on "LIVE" badge (a permanently-green dot carries no info).
               Instead, surface a warning ONLY when the realtime channel actually
               drops — that's information. The 90s poll still refreshes data, so
@@ -2628,8 +2629,8 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
           </RailGroup>
 
           <RailGroup label="Group">
-            <RailOpt label="By status"   active={boardGroup === 'status'} onClick={() => setBoardGroup('status')} />
-            <RailOpt label="By category" active={boardGroup === 'list'}   onClick={() => setBoardGroup('list')} />
+            <RailOpt label={tt("By status")}   active={boardGroup === 'status'} onClick={() => setBoardGroup('status')} />
+            <RailOpt label={tt("By category")} active={boardGroup === 'list'}   onClick={() => setBoardGroup('list')} />
           </RailGroup>
 
           </>)}
