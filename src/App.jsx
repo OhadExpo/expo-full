@@ -1427,6 +1427,19 @@ function AuthedApp() {
       <header style={{background:C.headerBg,borderBottom:`1px solid ${C.cardBd}`,boxShadow:'0 1px 2px rgba(0,0,0,0.03), 0 4px 12px rgba(0,0,0,0.04)',position:"sticky",top:0,zIndex:100,paddingTop:'env(safe-area-inset-top)'}}>
         <style>{`
           .hdr-scroll::-webkit-scrollbar{display:none}
+          /* THE NAV MUST NOT CLIP. Measured 2026-08-28: the header is capped at
+             1200px, and below ~1000px of viewport the nine English labels no
+             longer fit — DASHBOARD and PORTAL were cut at both ends (14px over
+             at 940, 89px at 820), which is what Ohad photographed as
+             ")ASHBOARD". Hebrew never clips because its words are shorter, so
+             this only ever showed in English.
+             Scrolling was the old answer and it hides the ends with no
+             affordance. Wrapping to a second row shows every tab instead —
+             "i cant see some of the words ... never do". */
+          @media (max-width: 1240px) {
+            nav.hdr-scroll { flex-wrap: wrap; row-gap: 2px; overflow-x: visible !important; justify-content: flex-start !important; }
+            .hdr-scroll { height: auto !important; min-height: 56px; padding-top: 4px; padding-bottom: 4px; }
+          }
           .nav-item-inactive{transition:color 120ms, background 120ms}
           .nav-item-inactive:hover{color:var(--c-acText) !important;background:rgba(57,189,255,0.035) !important}
           .hdr-icon-btn{transition:color 120ms, background 120ms}
