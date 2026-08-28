@@ -61,6 +61,10 @@ export const HE = {
   Microcycle: 'מיקרו-מחזור',
   'No sessions': 'אין אימונים',
   'Log a session': 'תוסיף אימון',        // future-as-imperative, his register
+  'Previous injuries': 'פציעות קודמות',
+  '+ Log': '+ רישום',
+  'No athletes on the roster yet': 'עוד אין שחקנים בסגל',
+  'Add athletes': 'הוספת שחקנים',
   '+ PLAN': '+ תכנון',
   '+ Log practice': '+ רישום אימון',
   'Log practice': 'רישום אימון',
