@@ -152,6 +152,7 @@ export const HE = {
   'Click to change availability': 'לחיצה משנה זמינות',
   Round: 'מחזור',
   'logged by': 'נרשם על ידי',
+  'Brief for the staff': 'תקציר לצוות',
   'avg load': 'עומס ממוצע',
   '+ PLAN': '+ תכנון',
   '+ Log practice': '+ רישום אימון',

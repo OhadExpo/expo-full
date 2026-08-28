@@ -603,6 +603,33 @@ html {
   /* BHBC modal field rows (injury report, practice entry): stack the cramped
      multi-column selects/inputs into clean full-width rows on a phone. */
   .bhbc-form-grid { grid-template-columns: 1fr !important; }
+
+  /* BHBC LOAD BOARD on a phone. The desktop row is a 7-column grid with a hard
+     700px floor (28 + 116 + 112 + 46 + 130 + 104 + 92 + six 12px gaps), so at
+     390px the two controls a coach actually TAPS on the floor — cycle
+     availability and report an injury — sat at x≈350 and x≈608, entirely
+     off-screen behind a horizontal scroll.
+     Horizontal scroll is the right answer for a dense numeric table you READ
+     (standings, player stats). It is the wrong answer for the row you OPERATE.
+     So on a phone the row becomes two lines: identity + load on top, the two
+     write actions beneath, both in the thumb zone. The header row is hidden,
+     because a column header means nothing once the row is no longer columnar. */
+  .bhbc-load-head { display: none !important; }
+  .bhbc-load-row {
+    grid-template-columns: 28px 1fr auto !important;
+    grid-template-areas: "jersey name acwr" "avail avail med" !important;
+    row-gap: 8px !important;
+    padding-bottom: 10px !important;
+  }
+  .bhbc-load-row > *:nth-child(1) { grid-area: jersey; }
+  .bhbc-load-row > *:nth-child(2) { grid-area: name; }
+  .bhbc-load-row > *:nth-child(3) { grid-area: acwr; }
+  /* 7d and readiness are READING data — they stay on the athlete's own card
+     rather than crushing the row down to nothing. */
+  .bhbc-load-row > *:nth-child(4),
+  .bhbc-load-row > *:nth-child(6) { display: none !important; }
+  .bhbc-load-row > *:nth-child(5) { grid-area: avail; }
+  .bhbc-load-row > *:nth-child(7) { grid-area: med; justify-self: end; }
   /* Review compare: two videos side-by-side become full-width stacked so each
      rep is big enough to actually read the movement; sync buttons go horizontal
      between them. Ohad: 'comparing two videos, the layout is not good'. */

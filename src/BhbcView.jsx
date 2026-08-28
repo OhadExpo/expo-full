@@ -799,6 +799,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
                   onReportNew={effCanMedical ? (() => setInjuryFor({ athleteId: (rows[0] && rows[0].t.id) || '' })) : null} />
                 {/* S&C Brief = the S&C operator's action list — removed for coaches. */}
                 {!asCoach && <CoachBrief rows={rows} fx={fx} fixtures={bhbcFixtures} medical={medical} today={today} onOpen={setDetailFor} onLog={canLog ? () => setPracticeOpen(true) : null} />}
+                <StaffBrief today={today} fx={fx} rows={rows} medical={medical} planOf={planOf} />
                 <TodayPanel today={today} fixtures={bhbcFixtures} fx={fx} rows={rows} planOf={planOf} onPlan={asCoach ? null : setPlanFor} onSessions={asCoach ? null : () => setView('sessions')} onLog={canLog ? () => setPracticeOpen(true) : null} />
                 {fx.nextGame && <NextGamePanel nextGame={fx.nextGame} today={today} onEdit={asCoach ? null : () => setGameEdit(true)} />}
                 <FixturesAheadPanel fixtures={bhbcFixtures} today={today} />
@@ -1839,6 +1840,77 @@ function HeadCoachReport({ rows, fx, fixtures, medical, today, onOpen, onMedical
   );
 }
 
+// ============================ STAFF BRIEF ============================
+// Ohad, 2026-08-28, on what this zone is actually for:
+//
+//   "just the s&c period on the court which is in the begging of the
+//    basketball practice and thats what i plan log and tell the basketball
+//    coaches and head coach about"
+//
+// He plans it, runs it, logs it — and then TELLS SOMEONE. That last step is
+// the output of the whole product, and the zone has never produced it: the
+// coach had to read four cards and retype the summary into a message.
+//
+// Built from what the zone already knows — the S&C slot, its focus, and who
+// cannot do it — and copied in one tap. Plain text on purpose: it is going
+// into a message to a basketball coach, not into another app.
+function StaffBrief({ today, fx, rows, medical, planOf }) {
+  const tr = useT();
+  const he = useHe();
+  const [copied, setCopied] = useState(false);
+  const dayGroup = ((fx && fx.byDay) || []).find((d) => d.date === today);
+  const slots = (dayGroup && dayGroup.items) || [];
+  // The S&C period sits at the START of a basketball practice, so the
+  // practice slot is the one he briefs. A weights session is not briefed.
+  const period = slots.find((f) => f.type === 'practice') || null;
+  const plan = period && planOf ? planOf(period) : null;
+  const limited = [], outList = [];
+  for (const r of (rows || [])) {
+    const inj = activeInjuries(medical || {}, r.t.id);
+    const worst = inj.find((i) => i.status === 'out') || inj.find((i) => i.status === 'non-contact') || inj.find((i) => i.status === 'limited');
+    const label = (x) => [x.bodyPart, x.type].filter(Boolean).map((v) => tr(v)).join(' ');
+    if (worst && worst.status === 'out') outList.push(r.t.name + ' — ' + label(worst));
+    else if (worst) limited.push(r.t.name + ' — ' + label(worst) + ' (' + tr((MED_STATUS[worst.status] || {}).label || worst.status) + ')');
+  }
+  const availCount = (rows || []).length - limited.length - outList.length;
+  const L = he
+    ? { when: 'מתי', focus: 'פוקוס', limited: 'מוגבלים', out: 'בחוץ', avail: 'זמינים', none: 'אין', noFocus: 'לא נכתב פוקוס', noSession: 'אין אימון היום', copy: 'העתק', copied: 'הועתק' }
+    : { when: 'When', focus: 'Focus', limited: 'Limited', out: 'Out', avail: 'Available', none: 'none', noFocus: 'no focus written', noSession: 'no practice today', copy: 'Copy', copied: 'Copied' };
+  // One date string that is correct in both languages: dowFor/monDayFor
+  // return the English fallback when the zone is not in Hebrew, so both
+  // arguments are required.
+  const dObj = new Date(today + 'T12:00:00');
+  const EN_DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const EN_MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const briefDate = dowFor(dObj, EN_DOW[dObj.getDay()]) + ' ' + monDayFor(dObj, dObj.getDate() + ' ' + EN_MON[dObj.getMonth()]);
+  const whenLine = period
+    ? L.when + ': ' + (period.start || '') + ' ' + fxLabelFor(period.type, 'Practice') + (period.minutes ? ' · ' + period.minutes + ' ' + fxLabelFor('__min', 'min') : '')
+    : L.when + ': ' + L.noSession;
+  const text = [
+    'BHBC · ' + briefDate,
+    whenLine,
+    L.focus + ': ' + ((plan && (plan.focus || plan.plan)) || L.noFocus),
+    '',
+    L.avail + ': ' + availCount,
+    L.limited + ' (' + limited.length + '): ' + (limited.length ? limited.join('; ') : L.none),
+    L.out + ' (' + outList.length + '): ' + (outList.length ? outList.join('; ') : L.none),
+  ].join(String.fromCharCode(10));
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(text); } catch { /* denied — the text is on screen anyway */ }
+    setCopied(true); setTimeout(() => setCopied(false), 1800);
+  };
+  return (
+    <Card padding={18} leftStripe={ORANGE} header={secTitle('Brief for the staff')}
+      headerRight={
+        <button onClick={copy} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', height: 24, boxSizing: 'border-box', padding: '0 10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, cursor: 'pointer', borderRadius: 0 }}>
+          {copied ? L.copied : L.copy}
+        </button>
+      }>
+      {/* Shown exactly as it will be pasted — what he sends is what he sees. */}
+      <div dir="auto" style={{ fontFamily: FB, fontSize: 13, color: C.tx, lineHeight: 1.6, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>{text}</div>
+    </Card>
+  );
+}
 function TodayPanel({ today, fixtures, fx, rows, onSessions, onLog, planOf, onPlan }) {
   const he = useHe();
   const tr = useT();
@@ -1984,13 +2056,13 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, onOpen, onMedical 
     <CollapsibleSection title={tr("Load & Injury Risk")} count={rows.length} storageKey="bhbc-load" defaultOpen leftStripe={ORANGE}>
       <div style={{ overflowX: 'auto' }}>
         <div style={{ minWidth: 660 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: rowGrid, gap: 12, padding: '2px 2px 10px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.13em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }}>
+          <div className="bhbc-load-head" style={{ display: 'grid', gridTemplateColumns: rowGrid, gap: 12, padding: '2px 2px 10px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.13em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }}>
             <div>#</div><div>Athlete</div><div>ACWR</div><div>7d</div><div>{tr('Availability')}</div><div>Readiness</div><div style={{ textAlign: 'right' }}>14-day</div>
           </div>
           {rows.map(({ t, acwr, series, readiness, avail }) => {
             const rc = readiness.level === 'red' ? BAND.high : readiness.level === 'amber' ? BAND.elevated : readiness.level === 'green' ? BAND.low : BAND.none;
             return (
-              <div key={t.id} onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }} style={{ display: 'grid', gridTemplateColumns: rowGrid, gap: 12, alignItems: 'center', padding: '11px 2px', borderBottom: `0.25px solid ${C.cardBd}`, borderInlineStart: `2px solid ${acwr.band.color}`, paddingInlineStart: 10, marginInlineStart: -12, cursor: 'pointer' }} className="bhbc-row">
+              <div key={t.id} onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }} style={{ display: 'grid', gridTemplateColumns: rowGrid, gap: 12, alignItems: 'center', padding: '11px 2px', borderBottom: `0.25px solid ${C.cardBd}`, borderInlineStart: `2px solid ${acwr.band.color}`, paddingInlineStart: 10, marginInlineStart: -12, cursor: 'pointer' }} className="bhbc-row bhbc-load-row">
                 <Jersey n={t.jersey} size={26} />
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontFamily: FN, fontWeight: 700, fontSize: 13, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{t.name}</div>
