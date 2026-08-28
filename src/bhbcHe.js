@@ -150,6 +150,7 @@ export const HE = {
   'Which session': 'איזה אימון',
   note: 'הערה',
   'Click to change availability': 'לחיצה משנה זמינות',
+  Round: 'מחזור',
   'avg load': 'עומס ממוצע',
   '+ PLAN': '+ תכנון',
   '+ Log practice': '+ רישום אימון',

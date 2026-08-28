@@ -524,7 +524,29 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
 
   const updateGame = useCallback((g, patch) => {
     if (!setBhbcFixtures) return;
-    setBhbcFixtures((prev) => (prev || []).map((f) => (f.date === g.date && f.start === g.start && f.type === 'game') ? { ...f, ...patch } : f));
+    // UPDATE ONE GAME, NOT EVERY GAME THAT DAY.
+    //
+    // `start` is '' on every TBD fixture and the predicate never looked at the
+    // opponent, so two TBD games on one date both matched: setting "Maccabi Tel
+    // Aviv / away" on the second rewrote the first as well. The fixture sync
+    // keys games by `date|opponent`, so two opponents on one date is a
+    // supported state.
+    //
+    // Match on the opponent too, and even then apply the patch to the FIRST
+    // match only — when two rows are genuinely indistinguishable (both TBD,
+    // both opponent-less) editing one must not silently rewrite the other.
+    setBhbcFixtures((prev) => {
+      const list = (prev || []);
+      const norm = (v) => String(v ?? '');
+      const i = list.findIndex((f) => f.type === 'game'
+        && f.date === g.date
+        && norm(f.start) === norm(g.start)
+        && norm(f.opponent) === norm(g.opponent));
+      if (i < 0) return list;
+      const next = list.slice();
+      next[i] = { ...next[i], ...patch };
+      return next;
+    });
     toast('Game updated'); notify();
   }, [setBhbcFixtures, notify]);
 
@@ -2667,10 +2689,19 @@ function PlayerStatsTable({ roster, league, onOpen }) {
 function ResultsList({ games, bhbcOnly }) {
   const tr = useT();
   const played = games.filter((g) => g.played && (!bhbcOnly || isBH(g.home) || isBH(g.away)));
-  const upcoming = games.filter((g) => !g.played && (!bhbcOnly || isBH(g.home) || isBH(g.away)));
+  const todayStr = todayISO();
+  const upcoming = games.filter((g) => !g.played && (!g.date || g.date >= todayStr) && (!bhbcOnly || isBH(g.home) || isBH(g.away)));
   const byRound = {};
   [...played].reverse().forEach((g) => { (byRound[g.round] = byRound[g.round] || []).push(g); });
-  const rounds = Object.keys(byRound).map(Number).sort((a, b) => b - a);
+  // A result row that precedes the first "מחזור N" heading in the scrape has
+  // round = null, which becomes the key "null" -> Number("null") = NaN. That
+  // rendered a literal "Round NaN" header over real results, and made the
+  // comparator non-total (every NaN pair returns NaN), so the group order was
+  // engine-defined. Keep those games — they are real — but group them under no
+  // round rather than a fabricated one, and sort them last.
+  const rounds = Object.keys(byRound)
+    .map((k) => (k === 'null' || k === 'undefined' || Number.isNaN(Number(k)) ? null : Number(k)))
+    .sort((a, b) => (a == null ? 1 : b == null ? -1 : b - a));
   const Row = ({ g }) => {
     // Every visible row involves BHBC (bhbcOnly). Read it from BHBC's side so the
     // FIRST name is always "Bnei Herzliya" — every row's name column lines up, and
@@ -2697,6 +2728,7 @@ function ResultsList({ games, bhbcOnly }) {
           <div className="bhbc-game-detail" style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.03em', textAlign: 'right', whiteSpace: 'normal', overflowWrap: 'break-word', minWidth: 0, textTransform: 'uppercase' }}>{detail}</div>
           {g.played
             ? <span style={{ justifySelf: 'end', display: 'inline-flex', alignItems: 'center', gap: 5, height: 20, boxSizing: 'border-box', padding: '0 8px', fontFamily: FN, fontSize: 10, fontWeight: 800, letterSpacing: '0.04em', color: won ? '#37B27C' : '#DE4E3B', background: `color-mix(in srgb, ${won ? '#37B27C' : '#DE4E3B'} 13%, transparent)`, border: `1px solid color-mix(in srgb, ${won ? '#37B27C' : '#DE4E3B'} 38%, transparent)` }}>{won ? 'W' : 'L'}</span>
+            : g.homeKnown === false ? null
             : <span style={{ justifySelf: 'end', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', color: bhHome ? C.tm : ORANGE, border: `1px solid ${bhHome ? C.cardBd : ORANGE}`, padding: '2px 7px' }}>{bhHome ? tr('HOME') : tr('AWAY')}</span>}
         </div>
       </div>
@@ -2712,9 +2744,10 @@ function ResultsList({ games, bhbcOnly }) {
         </div>
       )}
       {rounds.map((r) => (
-        <div key={r} style={{ marginBottom: 10 }}>
-          <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, padding: '4px 10px 6px' }}>Round {r}</div>
-          {byRound[r].map((g, i) => <Row key={i} g={g} />)}
+        <div key={r == null ? 'no-round' : r} style={{ marginBottom: 10 }}>
+          {/* Only claim a round number when the feed actually gave one. */}
+          {r != null && <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, padding: '4px 10px 6px' }}>{tr('Round')} {r}</div>}
+          {(byRound[r == null ? 'null' : r] || []).map((g, i) => <Row key={i} g={g} />)}
         </div>
       ))}
     </div>
@@ -2728,6 +2761,9 @@ function fixturesToGames(fixtures) {
     round: null, date: f.date, time: f.start, comp: f.comp,
     home: f.home === false ? (f.opponent || 'Opponent') : 'Bnei Herzliya',
     away: f.home === false ? 'Bnei Herzliya' : (f.opponent || 'Opponent'),
+    // null means the coach picked "—": the venue is genuinely unknown, so
+    // downstream must not paint a HOME/AWAY chip for it.
+    homeKnown: f.home === true || f.home === false,
     hs: null, as: null, played: false, timeTBD: f.timeTBD, venue: f.venue, travel: f.travel,
   }));
 }
