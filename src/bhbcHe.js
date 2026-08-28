@@ -57,7 +57,6 @@ export const HE = {
 
   // ---- schedule ---------------------------------------------------------
   'Week Planner': 'תכנון השבוע',
-  Microcycle: 'מיקרו-מחזור',
   'No sessions': 'אין אימונים',
   'Log a session': 'תוסיף אימון',        // future-as-imperative, his register
   'Previous injuries': 'פציעות קודמות',
@@ -139,11 +138,18 @@ export const HE = {
   'Rehab progress': 'התקדמות בשיקום',
   'Save record': 'שמירת הרשומה',
   Add: 'הוספה',
-  'Onset date': 'תאריך הפציעה',
-  'Return-to-play target': 'יעד לחזרה למשחק',
   'Progress note for today…': 'מה קרה היום בשיקום',
   'e.g. landed awkwardly on a rebound': 'לדוגמה: נחת לא טוב אחרי ריבאונד',
   pain: 'כאב',
+  'BW kg': 'משקל ק״ג',
+  Intensity: 'עצימות',
+  Microcycle: 'מיקרו-מחזור',
+  Note: 'הערה',
+  'Plan for this session': 'התוכנית לאימון הזה',
+  'This slot': 'המשבצת הזו',
+  'Which session': 'איזה אימון',
+  note: 'הערה',
+  'Click to change availability': 'לחיצה משנה זמינות',
   'avg load': 'עומס ממוצע',
   '+ PLAN': '+ תכנון',
   '+ Log practice': '+ רישום אימון',

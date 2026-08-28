@@ -1335,21 +1335,21 @@ function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave, sess
   const canSave = Number(minutes) > 0 && (isLift || Number(teamRpe) > 0);
   const cols = isLift ? '24px 1.4fr 116px 72px 66px 1.5fr' : '24px 1.4fr 116px 72px 56px 66px 1.5fr';
   return (
-    <Modal open onClose={onClose} wide title="Log session">
+    <Modal open onClose={onClose} wide title={tr('Log session')}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div style={{ display: 'grid', gridTemplateColumns: isLift ? '1.1fr 1fr 0.8fr 1fr' : '1.1fr 1fr 0.8fr 0.8fr 1fr', gap: 10, alignItems: 'end' }}>
-          <Input label="Date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          <Input label={tr('Date')} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <label style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: FN, textAlign: 'center' }}>Type</label>
+            <label style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: FN, textAlign: 'center' }}>{tr('Type')}</label>
             <select value={sessionType} onChange={(e) => setSessionType(e.target.value)} style={inp}>
               {['Practice', 'Game', 'Lift', 'Shootaround', 'Conditioning', 'Recovery'].map((o) => <option key={o} value={o}>{o}</option>)}
             </select>
           </div>
-          <Input label="Minutes" type="number" value={minutes} onChange={(e) => setMinutes(e.target.value)} placeholder="75" />
+          <Input label={tr('Minutes')} type="number" value={minutes} onChange={(e) => setMinutes(e.target.value)} placeholder="75" />
           {/* No RPE anywhere on a gym session (Ohad: "i will never write the rpe for the gym workouts"). */}
-          {!isLift && <Input label="Team RPE" type="number" min="0" max="10" step="0.5" value={teamRpe} onChange={(e) => setTeamRpe(e.target.value)} placeholder="7" />}
+          {!isLift && <Input label={tr('Team RPE')} type="number" min="0" max="10" step="0.5" value={teamRpe} onChange={(e) => setTeamRpe(e.target.value)} placeholder="7" />}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <label style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: FN, textAlign: 'center' }}>Intensity</label>
+            <label style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: FN, textAlign: 'center' }}>{tr('Intensity')}</label>
             <select value={intensity} onChange={(e) => setIntensity(e.target.value)} style={inp}>
               <option value="">—</option>
               {['Low', 'Moderate', 'High', 'Very High'].map((o) => <option key={o} value={o}>{o}</option>)}
@@ -1359,7 +1359,7 @@ function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave, sess
         {dayFx.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm }}>Which session</span>
+              <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm }}>{tr('Which session')}</span>
               {dayFx.map((f, i) => {
                 const on = (f.start || '') === slotStart;
                 return (
@@ -1374,7 +1374,7 @@ function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave, sess
             </div>
             {slotPlan && (slotPlan.focus || slotPlan.plan) && (
               <div style={{ border: `1px solid ${C.cardBd}`, borderInlineStart: `3px solid ${ORANGE}`, padding: '8px 10px' }}>
-                <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm, marginBottom: 3 }}>Plan for this session</div>
+                <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm, marginBottom: 3 }}>{tr('Plan for this session')}</div>
                 {slotPlan.focus && <div style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tx }}>{slotPlan.focus}</div>}
                 {slotPlan.plan && <div dir="auto" style={{ fontFamily: FB, fontSize: 12, color: C.tm, whiteSpace: 'pre-wrap', lineHeight: 1.45, marginTop: 2 }}>{slotPlan.plan}</div>}
               </div>
@@ -1388,12 +1388,12 @@ function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave, sess
           if (!g) return null;
           const plan = mdPlan(-dayDiff(g.date, date));
           const sug = plan.game ? null : plan.load >= 5 ? 'High' : plan.load >= 3 ? 'Moderate' : 'Low';
-          return <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: FN, fontSize: 11, color: C.tm, flexWrap: 'wrap' }}><span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>Microcycle</span><span style={{ fontWeight: 800, color: '#fff', background: plan.game ? ORANGE : plan.load >= 5 ? ORANGE_DEEP : plan.load >= 3 ? NAVY : '#6B7280', padding: '2px 7px' }}>{plan.label}</span><span style={{ color: C.tx }}>{plan.emphasis}</span>{sug && <span style={{ color: C.td }}>· suggest {sug} intensity</span>}</div>;
+          return <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: FN, fontSize: 11, color: C.tm, flexWrap: 'wrap' }}><span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{tr('Microcycle')}</span><span style={{ fontWeight: 800, color: '#fff', background: plan.game ? ORANGE : plan.load >= 5 ? ORANGE_DEEP : plan.load >= 3 ? NAVY : '#6B7280', padding: '2px 7px' }}>{plan.label}</span><span style={{ color: C.tx }}>{plan.emphasis}</span>{sug && <span style={{ color: C.td }}>· suggest {sug} intensity</span>}</div>;
         })()}
         <div style={{ overflowX: 'auto' }}>
           <div style={{ minWidth: 560 }}>
             <div style={{ display: 'grid', gridTemplateColumns: cols, gap: 8, padding: '0 0 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }}>
-              <div>#</div><div>Athlete</div><div>{tr('Availability')}</div><div>This slot</div>{!isLift && <div>RPE</div>}<div>BW kg</div><div>Note</div>
+              <div>#</div><div>{tr('Athlete')}</div><div>{tr('Availability')}</div><div>{tr('This slot')}</div>{!isLift && <div>{tr('RPE')}</div>}<div>{tr('BW kg')}</div><div>{tr('Note')}</div>
             </div>
             {roster.map((t) => {
               const e = entries[t.id] || { avail: 1, rpe: '', bw: '', note: '' };
@@ -1402,7 +1402,7 @@ function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave, sess
                 <div key={t.id} style={{ display: 'grid', gridTemplateColumns: cols, gap: 8, alignItems: 'center', padding: '7px 0', borderBottom: `0.25px solid ${C.cardBd}` }}>
                   <Jersey n={t.jersey} size={22} />
                   <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{t.name}</div>
-                  <button type="button" onClick={() => set(t.id, 'avail', (e.avail % 5) + 1)} title="Click to change availability" className="bhbc-ghost-btn" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, width: '100%', height: 32, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '0 6px', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'color .12s, border-color .12s' }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: av.color, flexShrink: 0 }} />{av.label}</button>
+                  <button type="button" onClick={() => set(t.id, 'avail', (e.avail % 5) + 1)} title={tr('Click to change availability')} className="bhbc-ghost-btn" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, width: '100%', height: 32, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '0 6px', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'color .12s, border-color .12s' }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: av.color, flexShrink: 0 }} />{av.label}</button>
                   {/* Attendance for THIS slot only. An athlete Out for the day is
                       locked out of every slot; anyone else can be marked absent
                       from this session without changing his day. */}
@@ -1421,7 +1421,7 @@ function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave, sess
                   })()}
                   {!isLift && <input type="number" value={e.rpe} onChange={(ev) => set(t.id, 'rpe', ev.target.value)} placeholder={teamRpe || 'RPE'} style={inp} />}
                   <input type="number" value={e.bw} onChange={(ev) => set(t.id, 'bw', ev.target.value)} placeholder="—" style={inp} />
-                  <input value={e.note} onChange={(ev) => set(t.id, 'note', ev.target.value)} placeholder="note" style={inp} />
+                  <input value={e.note} onChange={(ev) => set(t.id, 'note', ev.target.value)} placeholder={tr('note')} style={inp} />
                 </div>
               );
             })}
@@ -1431,7 +1431,7 @@ function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave, sess
           <span style={{ fontFamily: FN, fontSize: 11, color: C.td, marginRight: 'auto' }}>{isLift
             ? 'Gym sessions are minutes only — no RPE, no load. “This slot” records who actually trained THIS session.'
             : 'Load = minutes × RPE (per-athlete or team). “This slot” records who actually trained THIS session — the day’s availability is separate.'}</span>
-          <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
+          <Btn variant="ghost" onClick={onClose}>{tr('Cancel')}</Btn>
           <Btn disabled={!canSave} onClick={() => onSave({ date, minutes, teamRpe, intensity, entries, sessionType, start: slotStart })} style={{ background: canSave ? ORANGE : undefined, borderColor: canSave ? ORANGE : undefined, color: canSave ? '#fff' : undefined }}>Save {sessionType.toLowerCase()}</Btn>
         </div>
       </div>
