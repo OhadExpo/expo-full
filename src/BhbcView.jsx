@@ -611,7 +611,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
                   2026/2027 is not vertically centered"). With line-height
                   pinned to the glyph size, centring the boxes centres the text.
                   Season bumped 9.5 → 11 ("slightly too small"). */}
-              <span style={{ fontFamily: FN, fontWeight: 800, fontSize: 13, lineHeight: 1, color: '#fff', letterSpacing: '0.02em' }}>BNEI HERZLIYA</span>
+              <span style={{ fontFamily: FN, fontWeight: 800, fontSize: 13, lineHeight: 1, color: '#fff', letterSpacing: '0.02em' }}>{tr('BNEI HERZLIYA')}</span>
               <span style={{ fontFamily: FN, fontSize: 11, lineHeight: 1, fontWeight: 700, letterSpacing: '0.08em', color: ORANGE, fontVariantNumeric: 'tabular-nums' }}>2026/27</span>
             </div>
           </div>
@@ -634,7 +634,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
               (Ohad: "make sure the sign out and the light/dark mode are the
               same color"). HDR_INK/HDR_BD are defined once at module scope. */}
           <div className="bhbc-header-ctrl" style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, marginLeft: 'auto' }}>
-            {!coach && <button onClick={() => setPreviewCoach((v) => !v)} className="bhbc-tab" title="See exactly what your BHBC coaches see" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: previewCoach ? '#fff' : HDR_INK, background: previewCoach ? ORANGE : 'transparent', border: `1px solid ${previewCoach ? ORANGE : HDR_BD}`, borderRadius: 0, height: HDR_BTN_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, padding: '0 11px', cursor: 'pointer' }}>{previewCoach ? '● Coach view' : '◉ Preview as coach'}</button>}
+            {!coach && <button onClick={() => setPreviewCoach((v) => !v)} className="bhbc-tab" title="See exactly what your BHBC coaches see" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: previewCoach ? '#fff' : HDR_INK, background: previewCoach ? ORANGE : 'transparent', border: `1px solid ${previewCoach ? ORANGE : HDR_BD}`, borderRadius: 0, height: HDR_BTN_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, padding: '0 11px', cursor: 'pointer' }}>{previewCoach ? `● ${tr('Coach view')}` : `◉ ${tr('Preview as coach')}`}</button>}
             {/* HE / EN. Fixed width so the control does not resize as the
                 label changes — a control that changes size on click reads as a
                 flash bug. Shows the language it will SWITCH TO, which is how a
@@ -664,8 +664,8 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
           <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: C.td }}>{tr('Roster')} · {roster.length}</div>
           {!asCoach && (
             <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <Btn variant="ghost" onClick={() => setManageOpen(true)}>Manage roster</Btn>
-              <Btn onClick={() => setPracticeOpen(true)} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>+ Log practice</Btn>
+              <Btn variant="ghost" onClick={() => setManageOpen(true)}>{tr('Manage roster')}</Btn>
+              <Btn onClick={() => setPracticeOpen(true)} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>{tr('+ Log practice')}</Btn>
             </div>
           )}
         </div>
@@ -1773,7 +1773,7 @@ function TodayPanel({ today, fixtures, fx, rows, onSessions, onLog, planOf, onPl
         {(onSessions || onLog) && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {onSessions && <Btn onClick={onSessions} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>Start session ›</Btn>}
-            {onLog && <Btn variant="ghost" onClick={onLog}>Log practice</Btn>}
+            {onLog && <Btn variant="ghost" onClick={onLog}>{tr('Log practice')}</Btn>}
           </div>
         )}
       </div>
