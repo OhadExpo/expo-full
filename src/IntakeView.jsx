@@ -13,6 +13,7 @@ import { Btn, Modal, Card, Badge, isRefined5b, toast, SectionLabel, CollapsibleS
 import { supabase } from './supabase';
 import { generateIntakeToken, getForm } from './intakeFormSchemas';
 import PayloadDetail from './IntakePayloadDetail';
+import { useT } from './i18n';
 
 function fmt(iso) {
   if (!iso) return '—';
@@ -35,6 +36,7 @@ function ago(iso) {
 const RTL = /[֐-׿]/;
 
 export default function IntakeView({ trainees }) {
+  const tt = useT();
   const [submissions, setSubmissions] = useState(null);
   const [tokens, setTokens] = useState([]);
   const [filter, setFilter] = useState(''); // text filter
@@ -178,7 +180,7 @@ export default function IntakeView({ trainees }) {
       {/* Header — counts + Generate Link CTA */}
       <div style={{ marginBottom: 18, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}` }}>
         <div style={{ background: 'var(--c-stripBg, var(--c-sf))', borderBottom: '1px solid var(--c-cardBd)', padding: '10px 14px' }}>
-          <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>INTAKE</SectionLabel>
+          <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>{tt('INTAKE')}</SectionLabel>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, padding: '14px 18px' }}>
           <div>
@@ -186,7 +188,7 @@ export default function IntakeView({ trainees }) {
               <span style={{ color: C.tx, fontWeight: 700 }}>{counts.open} open</span> · {counts.initial} initial · {counts.assessment} assessment · {counts.progress} progress · {counts.total} total
             </div>
           </div>
-          <Btn onClick={() => setShowGen(true)} style={{ height: 30, padding: '0 18px' }}>+ Generate Link</Btn>
+          <Btn onClick={() => setShowGen(true)} style={{ height: 30, padding: '0 18px' }}>{tt('+ Generate Link')}</Btn>
         </div>
       </div>
 
@@ -196,7 +198,7 @@ export default function IntakeView({ trainees }) {
           style={{ height: 30, boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 12px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', minWidth: 280, flex: 1 }} />
         <button onClick={() => setShowReviewed(s => !s)}
           style={{ height: 30, boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${showReviewed ? C.ac : C.cardBd}`, color: showReviewed ? C.ac : C.tm, padding: '0 12px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', borderRadius: 0, minWidth: 152, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-          {showReviewed ? 'Showing reviewed' : 'Hide reviewed'}
+          {showReviewed ? tt('Showing reviewed') : tt('Hide reviewed')}
         </button>
       </div>
 
@@ -216,7 +218,7 @@ export default function IntakeView({ trainees }) {
                   <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 6 }}>
                     <button onClick={async () => { try { await navigator.clipboard.writeText(url); } catch {} }}
                       style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.ac, padding: '3px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', borderRadius: 0 }}>
-                      Copy URL
+                      {tt('Copy URL')}
                     </button>
                     <button onClick={() => setPendingDelete({ kind: 'token', key: t.token })} title="Delete this unused link" aria-label="Delete link"
                       style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, color: C.rd, padding: '3px 9px', fontFamily: FN, fontSize: 11, fontWeight: 700, lineHeight: 1, cursor: 'pointer', borderRadius: 0 }}>

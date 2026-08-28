@@ -9,6 +9,7 @@ const isHebrew = (s) => /[֐-׿]/.test(s || '');
 import { Btn, TextArea, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b, CollapsibleSection } from './ui';
 import { supabase } from './supabase';
 import { traineeIdsFor } from './traineeUtils';
+import { useT } from './i18n';
 
 // Inline exercise video — IDENTICAL rules to the group session (Ohad: "just play
 // and pause, no clicking on the youtube video at all"). Plays in place, never
@@ -302,6 +303,7 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
 }
 
 export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainees, exercises, onDecrementSession, clientWorkouts = [], setClientWorkouts, deleteClientWorkout }) {
+  const tt = useT();
   const libById = useMemo(() => new Map((exercises || []).map(e => [e.id, e])), [exercises]);
   // The active session is LOCAL (component state), never persisted as an
   // "in-progress" record — a half-logged session shouldn't be saved unless an
@@ -664,7 +666,7 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
               accordion — same card/strip language as the Exercise Library. */}
           <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,overflow:'hidden'}}>
             <div style={{background:'var(--c-stripBg, var(--c-sf))',borderBottom:'1px solid var(--c-cardBd)',padding:'10px 14px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-              <span style={{fontFamily:FN,fontSize:11,fontWeight:700,color:'#FFF',textTransform:'uppercase',letterSpacing:'0.08em'}}>Start a Session</span>
+              <span style={{fontFamily:FN,fontSize:11,fontWeight:700,color:'#FFF',textTransform:'uppercase',letterSpacing:'0.08em'}}>{tt('Start a Session')}</span>
               <span style={{fontFamily:FN,fontSize:10,fontWeight:700,color:'#FFF',opacity:0.85,letterSpacing:'0.08em'}}>{pickerRows.length} athlete{pickerRows.length!==1?'s':''}</span>
             </div>
             {(() => {

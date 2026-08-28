@@ -93,6 +93,7 @@ export const HE = {
   Table: 'טבלה',
   Grid: 'רשת',
   Flags: 'סימונים',
+  'Showing reviewed': 'מציג שנבדקו',
   Filters: 'סינון',
   'Search athletes…': 'חיפוש מתאמנים',
   Status: 'סטטוס',
