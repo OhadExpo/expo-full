@@ -57,7 +57,6 @@ export const HE = {
 
   // ---- schedule ---------------------------------------------------------
   'Week Planner': 'תכנון השבוע',
-  'Past practices': 'אימונים שהיו',
   Microcycle: 'מיקרו-מחזור',
   'No sessions': 'אין אימונים',
   'Log a session': 'תוסיף אימון',        // future-as-imperative, his register
@@ -124,6 +123,14 @@ export const HE = {
   Dislocation: 'פריקה',
   Illness: 'מחלה',
   Other: 'אחר',
+  'Log a session': 'רישום אימון',
+  'From calendar': 'מהיומן',
+  Type: 'סוג',
+  'Session RPE (0–10)': 'RPE של האימון (0–10)',
+  'Readiness (optional)': 'מוכנות (לא חובה)',
+  'Energy 0–10': 'אנרגיה 0–10',
+  'Pain 0–10': 'כאב 0–10',
+  'Sleep 0–10': 'שינה 0–10',
   'avg load': 'עומס ממוצע',
   '+ PLAN': '+ תכנון',
   '+ Log practice': '+ רישום אימון',

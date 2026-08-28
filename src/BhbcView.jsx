@@ -3116,6 +3116,7 @@ function InjuryModal({ athlete, injury, onClose, onSave }) {
 }
 
 function LogModal({ open, initialAthlete, roster, fixtures = [], availableCount = 0, onClose, onSave }) {
+  const tr = useT();
   const [scope, setScope] = useState('athlete');
   const [athleteId, setAthleteId] = useState(initialAthlete);
   const [date, setDate] = useState(todayISO());
@@ -3132,7 +3133,7 @@ function LogModal({ open, initialAthlete, roster, fixtures = [], availableCount 
   const selStyle = { fontFamily: FB, fontSize: 13, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '9px 10px', width: '100%' };
   const lab = { fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: FN, textAlign: 'center' };
   return (
-    <Modal open={open} onClose={onClose} title="Log a session">
+    <Modal open={open} onClose={onClose} title={tr('Log a session')}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={{ display: 'inline-flex', border: `1px solid ${C.cardBd}`, alignSelf: 'center' }}>
           {[['athlete', 'One athlete'], ['squad', 'Whole roster']].map(([k, l]) => (
@@ -3141,7 +3142,7 @@ function LogModal({ open, initialAthlete, roster, fixtures = [], availableCount 
         </div>
         {scope === 'athlete' ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <label style={lab}>Athlete</label>
+            <label style={lab}>{tr('Athlete')}</label>
             <select value={athleteId} onChange={(e) => setAthleteId(e.target.value)} style={selStyle}>
               {roster.length === 0 && <option value="">— add roster first —</option>}
               {roster.map((t) => <option key={t.id} value={t.id}>{t.jersey != null ? `#${t.jersey} ` : ''}{t.name}</option>)}
@@ -3151,17 +3152,17 @@ function LogModal({ open, initialAthlete, roster, fixtures = [], availableCount 
           <div style={{ fontFamily: FB, fontSize: 13, color: C.td, textAlign: 'center', padding: '4px 0' }}>Logs this session for <b style={{ color: C.tx }}>{availableCount}</b> available athlete{availableCount === 1 ? '' : 's'} — skips anyone Out.</div>
         )}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          <Input label="Date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          <Input label={tr('Date')} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <label style={lab}>Type</label>
+            <label style={lab}>{tr('Type')}</label>
             <select value={type} onChange={(e) => setType(e.target.value)} style={selStyle}>
               {['Practice', 'Game', 'Lift', 'Shootaround', 'Travel', 'Recovery'].map((o) => <option key={o} value={o}>{o}</option>)}
             </select>
           </div>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: isLift ? '1fr' : '1fr 1fr', gap: 10 }}>
-          <Input label="Minutes" type="number" inputMode="numeric" min="0" value={minutes} onChange={(e) => setMinutes(e.target.value)} placeholder={isLift ? '40' : '75'} />
-          {!isLift && <Input label="Session RPE (0–10)" type="number" inputMode="decimal" min="0" max="10" step="0.5" value={rpe} onChange={(e) => setRpe(e.target.value)} placeholder="7" />}
+          <Input label={tr('Minutes')} type="number" inputMode="numeric" min="0" value={minutes} onChange={(e) => setMinutes(e.target.value)} placeholder={isLift ? '40' : '75'} />
+          {!isLift && <Input label={tr('Session RPE (0–10)')} type="number" inputMode="decimal" min="0" max="10" step="0.5" value={rpe} onChange={(e) => setRpe(e.target.value)} placeholder="7" />}
         </div>
         <div style={{ fontFamily: FN, fontSize: 11, color: C.td, textAlign: 'center', letterSpacing: '0.04em' }}>
           {isLift ? 'Gym session — minutes only, no RPE' : <>sRPE load = <span style={{ color: ORANGE_DEEP, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{preview || 0}</span> units</>}
@@ -3171,7 +3172,7 @@ function LogModal({ open, initialAthlete, roster, fixtures = [], availableCount 
           if (!day.length) return null;
           return (
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>From calendar</span>
+              <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{tr('From calendar')}</span>
               {day.map((f, i) => (
                 <button key={i} type="button" onClick={() => { setMinutes(String(f.minutes)); setType(f.type === 'lift' ? 'Lift' : f.type === 'game' ? 'Game' : 'Practice'); }}
                   style={{ fontFamily: FN, fontSize: 10, color: FX_COLOR[f.type] || NAVY, background: 'transparent', border: `1px solid ${C.cardBd}`, borderInlineStart: `3px solid ${FX_COLOR[f.type] || NAVY}`, padding: '4px 8px', cursor: 'pointer' }}>
@@ -3187,18 +3188,18 @@ function LogModal({ open, initialAthlete, roster, fixtures = [], availableCount 
             is hidden instead of silently discarded (audit 08-22 #29). */}
         {scope !== 'squad' && (
         <div style={{ borderTop: `1px solid ${C.cardBd}`, paddingTop: 10 }}>
-          <div style={{ ...lab, marginBottom: 8, letterSpacing: '0.16em' }}>Readiness (optional)</div>
+          <div style={{ ...lab, marginBottom: 8, letterSpacing: '0.16em' }}>{tr('Readiness (optional)')}</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
-            <Input label="Pain 0–10" type="number" min="0" max="10" value={pain} onChange={(e) => setPain(e.target.value)} />
-            <Input label="Sleep 0–10" type="number" min="0" max="10" value={sleep} onChange={(e) => setSleep(e.target.value)} />
-            <Input label="Energy 0–10" type="number" min="0" max="10" value={energy} onChange={(e) => setEnergy(e.target.value)} />
+            <Input label={tr('Pain 0–10')} type="number" min="0" max="10" value={pain} onChange={(e) => setPain(e.target.value)} />
+            <Input label={tr('Sleep 0–10')} type="number" min="0" max="10" value={sleep} onChange={(e) => setSleep(e.target.value)} />
+            <Input label={tr('Energy 0–10')} type="number" min="0" max="10" value={energy} onChange={(e) => setEnergy(e.target.value)} />
           </div>
         </div>
         )}
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
-          <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
+          <Btn variant="ghost" onClick={onClose}>{tr('Cancel')}</Btn>
           <Btn disabled={!canSave} onClick={() => onSave({ scope, athleteId, date, type, minutes, rpe, readiness: { pain, sleep, energy } })}
-            style={{ background: canSave ? ORANGE : undefined, borderColor: canSave ? ORANGE : undefined, color: canSave ? '#fff' : undefined }}>Save</Btn>
+            style={{ background: canSave ? ORANGE : undefined, borderColor: canSave ? ORANGE : undefined, color: canSave ? '#fff' : undefined }}>{tr('Save')}</Btn>
         </div>
       </div>
     </Modal>
