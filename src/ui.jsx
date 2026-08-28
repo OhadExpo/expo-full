@@ -2,6 +2,11 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
 import { lockBodyScroll } from './scrollLock';
+// Section and dialog titles are shared by every screen, so translating them
+// HERE covers the whole app at once. tr() falls back to the input string when
+// there is no key, so a title that is DATA (an athlete's name in a modal)
+// passes through untouched.
+import { useT } from './i18n';
 
 // Canonical height for header/strip ACTION buttons (+ TASK, MARK ALL READ,
 // + LOG, CONTRACT, + ADD PAYMENT, …) so this whole button family is ONE uniform
@@ -380,6 +385,7 @@ export function RefinedCard({ header, headerRight, leftStripe, padY = 14, padX =
 //                 for Hebrew/RTL or non-uppercase labels. Render it white so
 //                 it reads on the strip.
 export function CollapsibleSection({ title, titleNode, count, right, storageKey, defaultOpen = true, leftStripe, padY = 14, padX = 18, bare = false, style, children, domId, openSignal }) {
+  const tt = useT();
   const storeId = storageKey ? `expo-collapse:${storageKey}` : null;
   const [open, setOpen] = React.useState(() => {
     if (!storeId) return defaultOpen;
@@ -450,7 +456,7 @@ export function CollapsibleSection({ title, titleNode, count, right, storageKey,
             color: '#FFFFFF', fontFamily: FN, fontSize: 13, fontWeight: 700,
             letterSpacing: '0.08em', textTransform: 'uppercase',
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0,
-          }}>{title}{count != null && ` (${count})`}</span>
+          }}>{tt(title)}{count != null && ` (${count})`}</span>
         )}
         {/* flexWrap on the strip + the action cluster lets a wide button group
             drop to its own line on a phone instead of forcing horizontal page

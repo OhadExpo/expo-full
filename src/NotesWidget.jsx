@@ -441,7 +441,7 @@ function TaskActionButton({ note, trainee, onCreatePlan, onOpenReview, onOpenInt
 }
 
 export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanForTask, onOpenIntakeTab, onOpenWaitlist, compact = false, trainees = [], viewerOwner = 'ohad' }) {
-  const t = useT();
+  const tt = useT();
   const { rows, create, update, togglePin, toggleDone, remove } = useCoachNotes({ limit: 60 });
   // Phone-narrow: the compact dashboard mini-board (a 4-col status kanban) is
   // cramped side-by-side at ~140px/col and scrolls sideways with clipped text.
@@ -690,7 +690,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(o => !o); } }}
             style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }}>
             <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : 'var(--c-tx)' }}>
-              Tasks ({counts.all})
+              {tt('Tasks')} ({counts.all})
             </span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <button onClick={(e) => { e.stopPropagation(); setOpen(true); setAdding(a => !a); }}
@@ -699,7 +699,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                   border: `1px solid ${refined ? '#FFFFFF' : 'var(--c-ac)'}`,
                   color: refined ? '#FFFFFF' : 'var(--c-ac)',
                   minWidth: 72,
-                }}>{adding ? 'CLOSE' : '+ TASK'}</button>
+                }}>{adding ? tt('Close') : tt('+ Task')}</button>
               <span aria-hidden style={{ color: refined ? '#FFFFFF' : 'var(--c-tx)', fontSize: 12, lineHeight: 1, transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease' }}>▾</span>
             </div>
           </div>
@@ -707,10 +707,10 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
       ) : (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
           <div style={{ fontSize: 10, fontFamily: FN, color: 'var(--c-ac)', letterSpacing: '0.18em', fontWeight: 700 }}>
-            TASKS ({counts.all})
+            {tt('Tasks')} ({counts.all})
           </div>
           <button onClick={() => setAdding(!adding)}
-            style={{ ...stripBtnBase, border: `1px solid var(--c-ac)`, color: 'var(--c-ac)', minWidth: 58 }}>{adding ? 'CLOSE' : '+ TASK'}</button>
+            style={{ ...stripBtnBase, border: `1px solid var(--c-ac)`, color: 'var(--c-ac)', minWidth: 58 }}>{adding ? tt('Close') : tt('+ Task')}</button>
         </div>
       )}
 
@@ -833,7 +833,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                 background: 'transparent', color: body.trim() ? 'var(--c-ac)' : 'var(--c-td)',
                 fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
                 cursor: body.trim() ? 'pointer' : 'default',
-              }}>{t("SAVE")}</button>
+              }}>{tt("SAVE")}</button>
           </div>
         </div>
       )}
@@ -867,10 +867,10 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
           const grouped = groupAlerts(autoRows);
 
           const COLS = [
-            { id:'open',    label:t('To Do'),       color:'#5B6B7A' },
-            { id:'working', label:t('In Progress'), color:'#2C82C9' },
-            { id:'waiting', label:t('Waiting'),     color:'#C9851E' },
-            { id:'stuck',   label:t('Stuck'),       color:'#C0392B' },
+            { id:'open',    label:tt('To Do'),       color:'#5B6B7A' },
+            { id:'working', label:tt('In Progress'), color:'#2C82C9' },
+            { id:'waiting', label:tt('Waiting'),     color:'#C9851E' },
+            { id:'stuck',   label:tt('Stuck'),       color:'#C0392B' },
           ];
           // Status kanban of MANUAL tasks only — coaching alerts never sit here
           // (they carry no meaningful In-Progress/Waiting/Stuck state). Feeds the
@@ -927,9 +927,9 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
 
           const btnBase = { borderRadius:0, fontFamily:FN, fontWeight:700, cursor:'pointer' };
           const SEGS = [
-            { id:'all',    label:'ALL',         n:openRows.length },
-            { id:'mine',   label:'GENERAL',     n:manualRows.length },
-            { id:'alerts', label:'AUTO-ALERTS', n:autoRows.length },
+            { id:'all',    label:tt('All'),         n:openRows.length },
+            { id:'mine',   label:tt('General'),     n:manualRows.length },
+            { id:'alerts', label:tt('Auto-alerts'), n:autoRows.length },
           ];
           return (
             <div>

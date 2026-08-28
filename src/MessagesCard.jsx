@@ -40,7 +40,7 @@ const ago = (iso) => {
 };
 
 export default function MessagesCard({ trainees, onSelectTrainee, onOpenMessages }) {
-  const t = useT();
+  const tt = useT();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [seenAt, setSeenAt] = useState(() => {
@@ -233,7 +233,7 @@ export default function MessagesCard({ trainees, onSelectTrainee, onOpenMessages
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             {unreadCount > 0 && (
               <button onClick={(e) => { e.stopPropagation(); markRead(); }}
-                style={{ ...stripBtnBase, border: '1px solid rgba(255,255,255,0.55)', color: '#FFFFFF' }}>{t("MARK ALL READ")}</button>
+                style={{ ...stripBtnBase, border: '1px solid rgba(255,255,255,0.55)', color: '#FFFFFF' }}>{tt("MARK ALL READ")}</button>
             )}
             <span aria-hidden style={{ color: '#FFFFFF', fontSize: 12, lineHeight: 1, transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease' }}>▾</span>
           </div>
@@ -258,7 +258,7 @@ export default function MessagesCard({ trainees, onSelectTrainee, onOpenMessages
             style={{
               background: 'transparent', border: 'none', color: 'var(--c-ac)', cursor: 'pointer',
               fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', padding: 0,
-            }}>{t("RETRY")}</button>
+            }}>{tt("RETRY")}</button>
         </div>
       ) : threads.length === 0 ? (
         <div style={{ padding: '24px 6px', textAlign: 'center', color: 'var(--c-td)', fontSize: 13 }}>
@@ -284,7 +284,7 @@ export default function MessagesCard({ trainees, onSelectTrainee, onOpenMessages
                   background:'transparent', border:'none', color:'var(--c-ac)', cursor:'pointer',
                   fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', padding: 0,
                 }}>
-                SHOW {handledThreads.length} ANSWERED →
+                {tt('Show')} {handledThreads.length} {tt('Answered')} →
               </button>
             </>
           )}
@@ -344,7 +344,7 @@ export default function MessagesCard({ trainees, onSelectTrainee, onOpenMessages
                         color: fromAthlete ? 'var(--c-ac)' : 'var(--c-tm)',
                         border: `1px solid ${fromAthlete ? 'var(--c-ac)' : 'var(--c-cardBd)'}`,
                         padding: '2px 5px', flexShrink: 0,
-                      }}>{fromAthlete ? 'INBOUND' : 'SENT'}</span>
+                      }}>{fromAthlete ? tt('Inbound') : tt('Sent')}</span>
                     {unread && (
                       <span style={{
                         display: 'inline-block', width: 6, height: 6, borderRadius: '50%',
@@ -390,7 +390,7 @@ export default function MessagesCard({ trainees, onSelectTrainee, onOpenMessages
                 fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
                 cursor: 'pointer',
               }}>
-              + {handledThreads.length} ANSWERED
+              + {handledThreads.length} {tt('Answered')}
             </button>
           )}
           {showHandled && (
@@ -401,7 +401,7 @@ export default function MessagesCard({ trainees, onSelectTrainee, onOpenMessages
                 fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
                 cursor: 'pointer',
               }}>
-              HIDE ANSWERED
+              {tt('Hide answered')}
             </button>
           )}
         </div>

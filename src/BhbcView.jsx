@@ -2742,7 +2742,7 @@ function MedicalView({ roster, medical, canMedical = true, onReport, onEdit, onO
     <>
       <Card padding={18} leftStripe={ORANGE} header={secTitle('Medical · Injury Board')} headerRight={<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>{rows.length} active · {canMedical ? 'Ohad + PT' : 'view only'}</span>}>
         <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap' }}>
-          {[[tr('Out'), counts.out, '#DE4E3B'], [tr('Limited'), counts.limited, '#E0A73A'], [tr('Non-contact'), counts.nc, '#4F9DE0'], [tr('Cleared'), cleared.length, '#37B27C']].map(([k, n, c]) => (
+          {[[tr('Out'), counts.out, '#DE4E3B'], [tr('limited'), counts.limited, '#E0A73A'], [tr('Non-contact'), counts.nc, '#4F9DE0'], [tr('Cleared'), cleared.length, '#37B27C']].map(([k, n, c]) => (
             <div key={k} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               <span style={{ fontFamily: FN, fontSize: 26, fontWeight: 800, color: n ? c : C.tx, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{n}</span>
               <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>{k}</span>

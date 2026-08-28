@@ -6,7 +6,7 @@ import { supabase } from './supabase';
 import { WhatsAppCheckInButton, normalizePhoneIL } from './whatsappButton';
 import NotesWidget from './NotesWidget';
 import MessagesCard from './MessagesCard';
-import { useT } from './i18n';
+import { useT, useHe, daysAgoHe, daysOverdueHe } from './i18n';
 import { syncAutoTasks } from './autoTasks';
 
 // A Bnei Herzliya athlete is a CLUB athlete: the club pays, so there is no
@@ -33,7 +33,8 @@ function DormantWhatsAppButton({ trainee, days }) {
 }
 
 export default function DashboardView({ isOwner = true, trainees = [], planCounts, workouts = [], clientWorkouts = [], payments = [], presence, onSelectTrainee, onOpenTraineeMessages, onOpenTasksTab, onCreatePlanForTask, onOpenIntakeTab, onOpenWaitlist, onOpenReviewWorkout }) {
-  const t = useT();
+  const tt = useT();
+  const he = useHe();
   // Staff (non-owner, e.g. Yuval a masseur) share Ohad's clients but not his
   // money: every revenue / pricing / leads surface below is gated on isOwner.
   // What stays: client-engagement signals (active count, low sessions, online,
@@ -516,16 +517,16 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
       {/* Summary cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 10, marginBottom: 20 }}>
         {[
-          { label: t('Active Athletes'), value: active, total: trainees.filter(t=>t.status!=='Archived').length, color: C.gn },
-          { label: t('Low Sessions'), value: lowSessions, color: lowSessions > 0 ? C.or : C.gn },
+          { label: tt('Active Athletes'), value: active, total: trainees.filter(t=>t.status!=='Archived').length, color: C.gn },
+          { label: tt('Low Sessions'), value: lowSessions, color: lowSessions > 0 ? C.or : C.gn },
           // Money KPIs — owner-only.
           ...(isOwner ? [
-            { label: t('Estimated Monthly'), value: `₪${monthlyRate.toLocaleString()}`, color: C.ac },
+            { label: tt('Estimated Monthly'), value: `₪${monthlyRate.toLocaleString()}`, color: C.ac },
             // Label shortened from "Collected This Month" → "Collected MTD"
             // so the cyan title strip matches the height of the other 3
             // KPI tiles (the long form wrapped to two lines on common
             // viewport widths). MTD = month-to-date, finance standard.
-            { label: t('Collected MTD'), value: `₪${thisMonthPaid.toLocaleString()}`, sub: revDelta !== null ? `${revDelta >= 0 ? '+' : ''}${revDelta}% vs last month` : null, subColor: revDelta >= 0 ? C.gn : C.rd, color: thisMonthPaid>0?C.gn:C.td },
+            { label: tt('Collected MTD'), value: `₪${thisMonthPaid.toLocaleString()}`, sub: revDelta !== null ? `${revDelta >= 0 ? '+' : ''}${revDelta}% vs last month` : null, subColor: revDelta >= 0 ? C.gn : C.rd, color: thisMonthPaid>0?C.gn:C.td },
           ] : []),
         ].map((s, i) => {
           const refined = isRefined5b();
@@ -613,15 +614,15 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
             <span style={{
               fontFamily: FN, fontSize: 13, color: C.tm, letterSpacing: '0.08em',
               fontWeight: 700, textTransform: 'uppercase', flexShrink: 0,
-            }}>Storage</span>
+            }}>{tt('Storage')}</span>
             <div style={{ flex: '1 1 200px', minWidth: 140, height: 6, background: 'var(--c-sf2)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, position: 'relative' }}>
               <div style={{ position: 'absolute', inset: 0, width: `${pct}%`, background: tone, transition: 'width 200ms' }} />
             </div>
-            <span style={{ fontFamily: FN, fontSize: 12, color: tone, fontWeight: 700, letterSpacing: '0.04em', flexShrink: 0 }}>
+            <span dir="ltr" style={{ fontFamily: FN, fontSize: 12, color: tone, fontWeight: 700, letterSpacing: '0.04em', flexShrink: 0, unicodeBidi: 'isolate' }}>
               {usedTxt} / {STORAGE_CAP_LABEL} · {pct}%
             </span>
             <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.08em', flexShrink: 0 }}>
-              {storage.files} form videos
+              {storage.files} {tt('form videos')}
             </span>
           </div>
         );
@@ -661,7 +662,7 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
           {onlineNow.length > 0 && (
         <div className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.gn}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
           <RefinedHeaderStrip>
-            <SectionLabel style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="dot" color="#FFFFFF"/>{t('Online Now')} ({onlineNow.length})</SectionLabel>
+            <SectionLabel style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="dot" color="#FFFFFF"/>{tt('Online Now')} ({onlineNow.length})</SectionLabel>
           </RefinedHeaderStrip>
           {onlineNow.map(t => (
             <div key={t.id} {...asButton(() => onSelectTrainee(t.id))} aria-label={`Open ${t.name}`} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', cursor: 'pointer', color: C.tx, fontSize: 13 }}>
@@ -695,7 +696,7 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
                 <div key="expiring" data-alert-key="expiring" className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.or}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow, ...alertCardWrapStyle('expiring') }}>
                   <div {...alertHeaderDragProps('expiring')}>
                     <RefinedHeaderStrip>
-                      <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="alert" color="#FFFFFF"/>{t('Expiring Packages')} ({expiring.length})</SectionLabel>
+                      <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="alert" color="#FFFFFF"/>{tt('Expiring Packages')} ({expiring.length})</SectionLabel>
                     </RefinedHeaderStrip>
                   </div>
                   {expiring.map(t => (
@@ -710,13 +711,13 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
                 <div key="overdue" data-alert-key="overdue" className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.rd}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow, ...alertCardWrapStyle('overdue') }}>
                   <div {...alertHeaderDragProps('overdue')}>
                     <RefinedHeaderStrip>
-                      <SectionLabel style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="dollar" color="#FFFFFF"/>{t('Overdue Payment')} ({overduePayment.length})</SectionLabel>
+                      <SectionLabel style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="dollar" color="#FFFFFF"/>{tt('Overdue Payment')} ({overduePayment.length})</SectionLabel>
                     </RefinedHeaderStrip>
                   </div>
                   {overduePayment.map(t => (
                     <div key={t.id} {...asButton(() => onSelectTrainee(t.id))} aria-label={`Open ${t.name}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', cursor: 'pointer', fontSize: 13 }}>
                       <span style={{ color: C.tx, flex: 1 }}>{t.name}</span>
-                      <span style={{ fontFamily: FN, color: C.rd, fontSize: 11 }}>{t.neverPaid ? 'Never paid' : `${t.daysOverdue}d overdue`}</span>
+                      <span style={{ fontFamily: FN, color: C.rd, fontSize: 11 }}>{t.neverPaid ? tt('Never paid') : (he ? daysOverdueHe(t.daysOverdue) : `${t.daysOverdue}d overdue`)}</span>
                     </div>
                   ))}
                 </div>
@@ -725,7 +726,7 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
                 <div key="dormant" data-alert-key="dormant" className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.or}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow, ...alertCardWrapStyle('dormant') }}>
                   <div {...alertHeaderDragProps('dormant')}>
                     <RefinedHeaderStrip>
-                      <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="moon" color="#FFFFFF"/>{t('Dormant')} ({dropoutRisk.length})</SectionLabel>
+                      <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="moon" color="#FFFFFF"/>{tt('Dormant')} ({dropoutRisk.length})</SectionLabel>
                     </RefinedHeaderStrip>
                   </div>
                   {dropoutRisk.map(t => {
@@ -733,7 +734,7 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
                     return (
                       <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', fontSize: 13 }}>
                         <span {...asButton(() => onSelectTrainee(t.id))} aria-label={`Open ${t.name}`} style={{ color: C.tx, cursor: 'pointer', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</span>
-                        <span style={{ fontFamily: FN, color: C.or, fontSize: 11, flexShrink: 0, textAlign: 'right' }}>{days == null ? 'Never trained' : `${days}d ago`}</span>
+                        <span style={{ fontFamily: FN, color: C.or, fontSize: 11, flexShrink: 0, textAlign: 'right' }}>{days == null ? tt('Never trained') : (he ? daysAgoHe(days) : `${days}d ago`)}</span>
                         {/* Reserved slot so the status right-edge aligns whether or not the
                             athlete has a phone (WhatsApp button renders null without one). */}
                         <span style={{ width: 26, display: 'inline-flex', justifyContent: 'flex-end', flexShrink: 0, marginLeft: 8 }}><DormantWhatsAppButton trainee={t} days={days} /></span>
@@ -758,7 +759,7 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
             <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: '14px 18px' }}>
               <RefinedHeaderStrip>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <SectionLabel as="span" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="mail" color="#FFFFFF"/>{t('New Leads')} ({leads.length})</SectionLabel>
+                  <SectionLabel as="span" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="mail" color="#FFFFFF"/>{tt('New Leads')} ({leads.length})</SectionLabel>
                   <span title={gateOpen ? 'Gate open — apply multi-tenant migration' : `Multi-tenant migration applies once ${COACH_GATE} serious coach signups arrive`}
                     style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 9, color: '#FFFFFF', border: '1px solid rgba(255,255,255,0.55)', background: 'transparent', borderRadius: 0, padding: '2px 6px', letterSpacing: '0.04em' }}>
                     🎯 {coachLeads}/{COACH_GATE} {gateOpen ? 'OPEN' : 'GATE'}
@@ -826,7 +827,7 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
                 {isOwner && <SH k="paid" label="Total Paid" />}
                 {isOwner && <SH k="lastPay" label="Last Payment" />}
                 <SH k="workouts" label="Workouts" />
-                <th style={plainHeadStyle}>{t("Programs")}</th>
+                <th style={plainHeadStyle}>{tt("Programs")}</th>
               </tr>
             </thead>
             <tbody>
@@ -900,7 +901,8 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
 // the dashboard between KPI tiles and alert cards. Designed to read at
 // a glance without an analytics tab.
 function RevenueCard({ monthlyRate, thisMonthPaid, delta30, collected30, collected90, avgLtv, avgTicket, outstanding, monthBars, maxBar }) {
-  const t = useT();
+  const tt = useT();
+  const he = useHe();
   const refined = isRefined5b();
   const PAD = 18;
   const metricStyle = {
@@ -915,29 +917,29 @@ function RevenueCard({ monthlyRate, thisMonthPaid, delta30, collected30, collect
 
   return (
     <CollapsibleSection title="Revenue" storageKey="dash-revenue" style={{ marginBottom: 20 }}
-      right={<span style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.75)', letterSpacing: '0.12em', fontWeight: 700 }}>{t("INCL. VAT · 6 MO TREND")}</span>}>
+      right={<span style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.75)', letterSpacing: '0.12em', fontWeight: 700 }}>{tt("INCL. VAT · 6 MO TREND")}</span>}>
       <div>
         {/* Top row — 6 metric tiles. responsive auto-fit so it collapses
             to 3 / 2 / 1 column at narrower viewports. */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8, marginBottom: 16 }}>
           <div style={metricStyle}>
-            <span style={labelStyle}>{t('MRR (ACTIVE)')}</span>
+            <span style={labelStyle}>{tt('MRR (ACTIVE)')}</span>
             <span style={numStyle}>₪{Math.round(monthlyRate).toLocaleString()}</span>
-            <span style={subStyle}>recurring committed</span>
+            <span style={subStyle}>{tt('Recurring committed')}</span>
           </div>
           <div style={metricStyle}>
-            <span style={labelStyle}>{t('30D COLLECTED')}</span>
+            <span style={labelStyle}>{tt('30D COLLECTED')}</span>
             <span style={numStyle}>₪{Math.round(collected30).toLocaleString()}</span>
             {delta30 !== null && (
               <span style={{ ...subStyle, color: delta30 >= 0 ? C.gn : C.rd }}>
-                {delta30 >= 0 ? '+' : ''}{delta30}% vs prev 30d
+                <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{delta30 >= 0 ? '+' : ''}{delta30}%</span> {tt('vs prev 30d')}
               </span>
             )}
           </div>
           <div style={metricStyle}>
-            <span style={labelStyle}>{t('90D COLLECTED')}</span>
+            <span style={labelStyle}>{tt('90D COLLECTED')}</span>
             <span style={numStyle}>₪{Math.round(collected90).toLocaleString()}</span>
-            <span style={subStyle}>trailing 3 months</span>
+            <span style={subStyle}>{tt('Trailing 3 months')}</span>
           </div>
           <div style={metricStyle}>
             {/* OUTSTANDING carries a real status (overdue money) — per the
@@ -945,20 +947,20 @@ function RevenueCard({ monthlyRate, thisMonthPaid, delta30, collected30, collect
                 to a small amber dot beside the label, exactly like LOW SESSIONS. */}
             <span style={{ ...labelStyle, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               {outstanding.amount > 0 && <span title="outstanding balance" style={{ width: 6, height: 6, borderRadius: '50%', background: C.or, flexShrink: 0, boxShadow: `0 0 5px ${C.or}66` }} />}
-              {t('OUTSTANDING')}
+              {tt('OUTSTANDING')}
             </span>
             <span style={numStyle}>₪{Math.round(outstanding.amount).toLocaleString()}</span>
-            <span style={subStyle}>{outstanding.count} pending request{outstanding.count === 1 ? '' : 's'}</span>
+            <span style={subStyle}>{outstanding.count} {tt('Pending requests')}</span>
           </div>
           <div style={metricStyle}>
-            <span style={labelStyle}>{t('AVG LTV')}</span>
+            <span style={labelStyle}>{tt('AVG LTV')}</span>
             <span style={numStyle}>₪{avgLtv.toLocaleString()}</span>
-            <span style={subStyle}>per paying client</span>
+            <span style={subStyle}>{tt('Per paying client')}</span>
           </div>
           <div style={metricStyle}>
-            <span style={labelStyle}>{t('AVG TICKET')}</span>
+            <span style={labelStyle}>{tt('AVG TICKET')}</span>
             <span style={numStyle}>₪{avgTicket.toLocaleString()}</span>
-            <span style={subStyle}>per payment row</span>
+            <span style={subStyle}>{tt('Per payment row')}</span>
           </div>
         </div>
 
@@ -966,7 +968,7 @@ function RevenueCard({ monthlyRate, thisMonthPaid, delta30, collected30, collect
             free implementation (just divs) so it stays under 2kb of
             DOM and inherits theme colors. */}
         <div>
-          <div style={{ ...labelStyle, marginBottom: 8 }}>{t("LAST 6 MONTHS · COLLECTED")}</div>
+          <div style={{ ...labelStyle, marginBottom: 8 }}>{tt("LAST 6 MONTHS · COLLECTED")}</div>
           {/* With nothing collected in any of the six months every bar renders at
               its 2% floor in the hairline colour, so the chart reads as an empty
               axis — i.e. as BROKEN rather than as "nothing came in yet". Say it
@@ -978,7 +980,7 @@ function RevenueCard({ monthlyRate, thisMonthPaid, delta30, collected30, collect
               fontFamily: FN, fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase',
               color: 'var(--c-td)', textAlign: 'center', padding: '0 12px',
             }}>
-              No payments marked collected in the last 6 months
+              {tt('No payments marked collected in the last 6 months')}
             </div>
           ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8, alignItems: 'end', height: 90 }}>

@@ -61,7 +61,7 @@ export const HE = {
   Microcycle: 'מיקרו-מחזור',
   'No sessions': 'אין אימונים',
   'Log a session': 'תוסיף אימון',        // future-as-imperative, his register
-  'Log session': 'תוסיף אימון',
+  'Log session': 'הוספת אימון',
   'Edit session': 'עריכת אימון',
   'Remove session': 'מחיקת אימון',
   'Delete session': 'מחיקת אימון',

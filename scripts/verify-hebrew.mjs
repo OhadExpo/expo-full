@@ -91,6 +91,15 @@ const RULES = [
     test: /[\u0590-\u05FF]\s+[,.;](?:\s|$)/g,
     fix: 'no space before , . ;',
   },
+  {
+    id: 'bare-participle-label',
+    why: 'Ohad on "אימונים נגמרים": "is not even proper hebrew". A plural noun plus a bare plural participle is neither a label nor a sentence - it needs a relative ש or a different construction. The same fault had already shipped a second time as "חבילות נגמרות", which is why this is a RULE and not two string edits.',
+    // Curated participle list on purpose: adjectives also end in ים/ות
+    // ("התראות אוטומטיות", "פציעות פעילות") and a generic suffix rule would
+    // flag correct Hebrew. Extend the list when a new one turns up.
+    test: /(?<![\u0590-\u05FF])[\u0590-\u05FF]{2,}(?:ים|ות)\s+(?:נגמר|מסתיימ|אוזל|נשאר|מתקרב|עומד)(?:ים|ות)(?![\u0590-\u05FF])/g,
+    fix: 'add the relative ש (חבילות שנגמרות) or say it differently (מעט אימונים שנותרו)',
+  },
 ];
 
 const files = [];
