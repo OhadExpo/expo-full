@@ -776,7 +776,13 @@ export const Modal = ({ open, onClose, title, children, wide }) => {
     <div
       role="dialog" aria-modal="true" aria-labelledby={titleId} className={closing ? 'motion-fade-out' : 'motion-fade-in'}
       style={{ position: "fixed", inset: 0, zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: 60, background: C.scrim, backdropFilter: "blur(8px)" }}
-      onClick={onClose}
+      /* Ohad 2026-08-28: "when a pop-up screen like a medical report is open,
+         never allow me to click back on the rest of the website to leave it.
+         either save or exit."
+         The backdrop used to close the dialog, so a stray click outside a
+         half-filled injury report discarded it silently. A dialog now leaves
+         only by its own controls — Save, or the ✕ / Cancel. Escape still
+         works: it is an explicit exit, not a misclick. */
     >
       <div ref={cardRef} tabIndex={-1} onClick={e => e.stopPropagation()} className={closing ? 'motion-fall' : 'motion-rise'} style={{ background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 0, width: wide ? 700 : 480, maxWidth: 'calc(100vw - 24px)', maxHeight: "80vh", overflow: "auto", padding: 28, boxShadow: C.cardShadow, outline: 'none' }}>
         {/* Sticky title row: stays pinned (with the ✕) while the body scrolls —

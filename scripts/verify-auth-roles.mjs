@@ -16,7 +16,7 @@
 import {
   OWNER_EMAILS, STAFF_EMAILS, PARTNER_EMAILS, BHBC_COACH_EMAILS, PT_EMAILS,
   TRAINER_EMAILS, isPtEmail, isOwnerEmail, isStaffEmail, isPartnerEmail,
-  isBhbcCoachEmail, canEditMedical,
+  isBhbcCoachEmail, canEditMedical, canLogLoad,
 } from '../src/authRoles.js';
 
 let pass = 0, fail = 0;
@@ -34,6 +34,19 @@ check('a regular BHBC coach may NOT edit medical', canEditMedical(COACH) === fal
 check('a stranger may NOT edit medical', canEditMedical(STRANGER) === false);
 check('staff may NOT edit medical', canEditMedical(STAFF_EMAILS[0]) === false);
 check('the partner may NOT edit medical', canEditMedical(PARTNER_EMAILS[0]) === false);
+
+// --- who may record practice load (RPE x minutes) -------------------------
+// Added 2026-08-28 with the capability itself. Same shape as the medical
+// check and for the same reason: this predicate is the only thing standing
+// between a regular coach and writing load data that feeds every athlete's
+// ACWR.
+check('the owner may log load', canLogLoad(OWNER) === true);
+check('the PT may log load', canLogLoad(PT) === true);
+check('Tomer (PT) may log load', canLogLoad('tomerlich11@gmail.com') === true);
+check('a regular BHBC coach may NOT log load', canLogLoad(COACH) === false);
+check('a stranger may NOT log load', canLogLoad(STRANGER) === false);
+check('the partner may NOT log load', canLogLoad(PARTNER_EMAILS[0]) === false);
+check('canLogLoad is case-insensitive', canLogLoad('TomerLich11@Gmail.com') === true);
 
 // --- the PTs, and they are BHBC coaches -----------------------------------
 // There were two PTs from 2026-08-27 (Yoel, Tomer). The count is not the

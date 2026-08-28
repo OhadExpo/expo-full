@@ -61,6 +61,9 @@ export const HE = {
   Microcycle: 'מיקרו-מחזור',
   'No sessions': 'אין אימונים',
   'Log a session': 'תוסיף אימון',        // future-as-imperative, his register
+  'Session load · RPE x minutes': 'עומס אימון · RPE כפול דקות',
+  'No load logged yet': 'עוד לא נרשם עומס',
+  '7 days': '7 ימים',
   'Log session': 'הוספת אימון',
   'Edit session': 'עריכת אימון',
   'Remove session': 'מחיקת אימון',

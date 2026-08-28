@@ -161,7 +161,7 @@ const Jersey = ({ n, size = 30 }) => (
 
 // ---- component ----
 
-export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, setBhbcLoads, bhbcFixtures = [], setBhbcFixtures, league = {}, medical = {}, setMedical, sessionPlans = {}, setSessionPlans, planIndex = [], exercises = [], clientWorkouts = [], setClientWorkouts, workouts = [], setWorkouts, onDecrementSession, portalVis = {}, bwLog = [], weeklyFocus = {}, onOpenTrainee, onExit, coach = false, onSignOut, canMedical = true, onLocalWrite }) {
+export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, setBhbcLoads, bhbcFixtures = [], setBhbcFixtures, league = {}, medical = {}, setMedical, sessionPlans = {}, setSessionPlans, planIndex = [], exercises = [], clientWorkouts = [], setClientWorkouts, workouts = [], setWorkouts, onDecrementSession, portalVis = {}, bwLog = [], weeklyFocus = {}, onOpenTrainee, onExit, coach = false, onSignOut, canMedical = true, canLogLoad = false, onLocalWrite }) {
   // The club zone OPENS WHITE, always (Ohad). The crest and the navy/orange
   // palette were built on white, and a coach arriving in whatever theme the
   // last session left behind saw a different club. Forced once on mount, not
@@ -198,6 +198,13 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   // sees (no Manage roster / no ‹EXPO, medical view-only) without needing an account.
   const [previewCoach, setPreviewCoach] = useState(false);
   const asCoach = coach || previewCoach;
+  // Ohad 2026-08-28: "allow tomer to log practice details and log rpe and time
+  // and everything related". `asCoach` is one boolean gating EVERY write, so
+  // flipping it would have handed over roster management and the S&C session
+  // runner too. `canLog` is the narrow right he actually asked for: record a
+  // practice — its minutes, its RPE, who was available. Never granted in
+  // preview mode, where nothing may be written at all.
+  const canLog = (!asCoach || canLogLoad) && !previewCoach;
   const effCanMedical = canMedical && !previewCoach;
 
   const roster = useMemo(
@@ -658,7 +665,6 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
           {!asCoach && (
             <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <Btn variant="ghost" onClick={() => setManageOpen(true)}>Manage roster</Btn>
-              <Btn variant="ghost" onClick={() => setCheckinOpen(true)}>Check-in</Btn>
               <Btn onClick={() => setPracticeOpen(true)} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>+ Log practice</Btn>
             </div>
           )}
@@ -683,12 +689,12 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
                   onMedical={effCanMedical ? ((aid) => { const a = activeInjuries(medical, aid); setInjuryFor({ athleteId: aid, injuryId: a[0] && a[0].id }); }) : null}
                   onReportNew={effCanMedical ? (() => setInjuryFor({ athleteId: (rows[0] && rows[0].t.id) || '' })) : null} />
                 {/* S&C Brief = the S&C operator's action list — removed for coaches. */}
-                {!asCoach && <CoachBrief rows={rows} fx={fx} fixtures={bhbcFixtures} medical={medical} today={today} onOpen={setDetailFor} onCheckin={() => setCheckinOpen(true)} onLog={() => setPracticeOpen(true)} />}
-                <TodayPanel today={today} fixtures={bhbcFixtures} fx={fx} rows={rows} planOf={planOf} onPlan={asCoach ? null : setPlanFor} onSessions={asCoach ? null : () => setView('sessions')} onLog={asCoach ? null : () => setPracticeOpen(true)} />
+                {!asCoach && <CoachBrief rows={rows} fx={fx} fixtures={bhbcFixtures} medical={medical} today={today} onOpen={setDetailFor} onCheckin={() => setCheckinOpen(true)} onLog={canLog ? () => setPracticeOpen(true) : null} />}
+                <TodayPanel today={today} fixtures={bhbcFixtures} fx={fx} rows={rows} planOf={planOf} onPlan={asCoach ? null : setPlanFor} onSessions={asCoach ? null : () => setView('sessions')} onLog={canLog ? () => setPracticeOpen(true) : null} />
                 {fx.nextGame && <NextGamePanel nextGame={fx.nextGame} today={today} onEdit={asCoach ? null : () => setGameEdit(true)} />}
                 <FixturesAheadPanel fixtures={bhbcFixtures} today={today} />
                 <TeamSnapshotCard team={team} />
-                <LoadBoard rows={rows} rowGrid={rowGrid} cycleAvail={asCoach ? null : cycleAvail} medical={medical} onOpen={setDetailFor}
+                <LoadBoard rows={rows} rowGrid={rowGrid} cycleAvail={canLog ? cycleAvail : null} medical={medical} onOpen={setDetailFor}
                   onMedical={effCanMedical ? ((aid) => { const a = activeInjuries(medical, aid); setInjuryFor({ athleteId: aid, injuryId: a[0] && a[0].id }); }) : null} />
               </>
             )}
@@ -703,7 +709,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
                     "where can I see the previous practices details?"). */}
                 <PastPractices fixtures={bhbcFixtures} loads={bhbcLoads} roster={roster} today={today} planOf={planOf} />
                 <MicrocycleView fx={fx} today={today} />
-                <ScheduleTool fx={fx} fixtures={bhbcFixtures} today={today} mode={schedMode} setMode={setSchedMode} onLog={asCoach ? null : () => setLogFor('new')} />
+                <ScheduleTool fx={fx} fixtures={bhbcFixtures} today={today} mode={schedMode} setMode={setSchedMode} onLog={canLog ? () => setLogFor('new') : null} />
               </>
             )}
 
@@ -718,7 +724,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
             )}
 
             {view === 'medical' && (
-              <MedicalView roster={roster} medical={medical} canMedical={effCanMedical} onReport={(aid) => setInjuryFor({ athleteId: aid })} onEdit={(aid, iid) => setInjuryFor({ athleteId: aid, injuryId: iid })} onOpen={setDetailFor} />
+              <MedicalView roster={roster} rows={rows} loads={bhbcLoads} medical={medical} canMedical={effCanMedical} onLog={canLog ? ((aid) => setLogFor(aid)) : null} onReport={(aid) => setInjuryFor({ athleteId: aid })} onEdit={(aid, iid) => setInjuryFor({ athleteId: aid, injuryId: iid })} onOpen={setDetailFor} />
             )}
 
             {view === 'sessions' && !asCoach && (
@@ -860,10 +866,10 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
           injuries={activeInjuries(medical, detailFor)}
           onInjury={effCanMedical ? (() => { const a = activeInjuries(medical, detailFor); setInjuryFor({ athleteId: detailFor, injuryId: a[0] && a[0].id }); setDetailFor(null); }) : null}
           onClose={() => setDetailFor(null)}
-          onLog={asCoach ? null : () => { setLogFor(detailFor); setDetailFor(null); }}
+          onLog={canLog ? () => { setLogFor(detailFor); setDetailFor(null); } : null}
           onOpenExpo={!asCoach && onOpenTrainee ? () => onOpenTrainee(detailFor) : null}
           onViewProgram={() => { setProgramFor(detailFor); setDetailFor(null); }}
-          onCycleAvail={asCoach ? null : () => cycleAvail(detailFor, row.avail)}
+          onCycleAvail={canLog ? () => cycleAvail(detailFor, row.avail) : null}
           onEditSession={asCoach ? null : (date, idx, min, sig) => editSession(detailFor, date, idx, min, sig)}
           onDeleteSession={asCoach ? null : (date, idx, sig) => deleteSession(detailFor, date, idx, sig)} />;
       })()}
@@ -992,10 +998,12 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
             </div>
           );
         })()}
+        {readiness.level !== 'unknown' && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ width: 8, height: 8, borderRadius: '50%', background: rc, flexShrink: 0 }} />
-          <span style={{ fontFamily: FB, fontSize: 13, color: C.td }}>{readiness.level === 'unknown' ? 'No readiness check-in logged' : readiness.headline}</span>
+          <span style={{ fontFamily: FB, fontSize: 13, color: C.td }}>{readiness.headline}</span>
         </div>
+        )}
         {/* Medical / injury — shown on the athlete's profile too, not only the Medical tab */}
         <div style={{ border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${injuries.length ? '#DE4E3B' : '#37B27C'}` }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderBottom: injuries.length ? `1px solid ${C.cardBd}` : 'none' }}>
@@ -1064,6 +1072,7 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
           {onOpenExpo && <Btn variant="ghost" onClick={onOpenExpo}>Open in EXPO ›</Btn>}
           {onLog && <Btn variant="ghost" onClick={onLog}>Log session</Btn>}
+          {onInjury && <Btn variant="ghost" onClick={onInjury}>Medical report</Btn>}
           {onViewProgram && <Btn onClick={onViewProgram} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>View program</Btn>}
         </div>
       </div>
@@ -2093,6 +2102,7 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, planOf }
                 <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: d.trained.length ? '#37B27C' : C.td, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
                   {d.trained.length}/{roster.length}
                 </span>
+                {d.avgLoad != null && <span title={`${d.avgRpe} RPE x ${f.minutes || '?'} min`} style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tx, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }} dir="ltr">{d.avgLoad} AU</span>}
                 {d.avgRpe != null && <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>RPE {d.avgRpe}</span>}
                 <span style={{ color: C.tm, fontSize: 10, flexShrink: 0, transform: isOpen ? 'rotate(180deg)' : 'none', display: 'inline-block' }}>▾</span>
               </div>
@@ -2720,6 +2730,7 @@ const INJURY_TYPES = ['Strain', 'Sprain', 'Contusion', 'Tendinopathy', 'Overuse'
 // roster rows (which floor today's availability by any ACTIVE injury).
 const MEDICAL_STATUS_AVAIL = { available: 1, limited: 2, 'non-contact': 3, out: 4 };
 const activeInjuries = (medical, id) => ((medical[id] || {}).injuries || []).filter((i) => !i.resolved);
+const resolvedInjuries = (medical, id) => ((medical[id] || {}).injuries || []).filter((i) => i.resolved);
 
 function StatusPill({ status, small, full }) {
   const s = MED_STATUS[status] || MED_STATUS.available;
@@ -2730,7 +2741,77 @@ function StatusPill({ status, small, full }) {
   );
 }
 
-function MedicalView({ roster, medical, canMedical = true, onReport, onEdit, onOpen }) {
+
+// Ohad 2026-08-28: "make sure the medical stuff has an output of rpe x time of
+// practice in minutes and display it where-ever it needs to be displayed, so
+// any other coach can see."
+//
+// This is session load (Foster sRPE): RPE x minutes, in AU. acwrEngine has
+// computed it since the load board shipped, but only ever showed the RATIO it
+// feeds — a PT looking at an injured player could not see the actual load that
+// player is taking. The arithmetic is written out ("7 x 60 = 420 AU") rather
+// than just the product, because the point is that a coach can check it.
+//
+// Injured athletes sort first: on the medical board they are the reason
+// anyone opens this card.
+function lastSessionOf(loads, id) {
+  const rec = loads[id];
+  if (!rec || !rec.sessions) return null;
+  const dates = Object.keys(rec.sessions).filter((d) => (rec.sessions[d] || []).length).sort();
+  if (!dates.length) return null;
+  const date = dates[dates.length - 1];
+  const rowsForDay = rec.sessions[date];
+  // The last row of the most recent day that actually carries load. A gym
+  // session is minutes-only by Ohad's rule (no RPE ever), so it has no load
+  // and is not what this card is reporting.
+  const withLoad = rowsForDay.filter((r) => Number(r.load) > 0);
+  const r = withLoad.length ? withLoad[withLoad.length - 1] : null;
+  return r ? { date, minutes: Number(r.minutes) || null, rpe: Number(r.rpe) || null, load: Math.round(Number(r.load)) } : null;
+}
+
+function LoadOutputCard({ rows, loads, medical }) {
+  const tr = useT();
+  const ordered = [...rows].sort((a, b) => {
+    const ai = activeInjuries(medical, a.t.id).length > 0 ? 0 : 1;
+    const bi = activeInjuries(medical, b.t.id).length > 0 ? 0 : 1;
+    if (ai !== bi) return ai - bi;
+    return (b.acwr.acute || 0) - (a.acwr.acute || 0);
+  });
+  const any = ordered.some((r) => (r.acwr.acute || 0) > 0 || lastSessionOf(loads, r.t.id));
+  return (
+    <Card padding={18} leftStripe={NAVY} header={secTitle('Session load · RPE x minutes')}
+      headerRight={<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>AU</span>}>
+      {!any ? (
+        <div style={{ fontFamily: FB, fontSize: 13, color: C.td, padding: '10px 0', textAlign: 'center' }}>{tr('No load logged yet')}</div>
+      ) : (
+        <div>
+          {ordered.map(({ t, acwr }) => {
+            const last = lastSessionOf(loads, t.id);
+            const injured = activeInjuries(medical, t.id).length > 0;
+            return (
+              <div key={t.id} className="bhbc-row" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 2px', borderBottom: `0.25px solid ${C.cardBd}` }}>
+                <span style={{ display: 'inline-block', width: 18, textAlign: 'right', flexShrink: 0, fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{t.jersey != null ? t.jersey : ''}</span>
+                <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: injured ? ORANGE : C.tx, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{t.name}</span>
+                <div style={{ flex: 1 }} />
+                {/* The arithmetic, spelled out, isolated LTR so the x and the
+                    = do not drift in an RTL page. */}
+                <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, color: C.tm, flexShrink: 0, fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate' }}>
+                  {last && last.rpe && last.minutes ? `${last.rpe} × ${last.minutes} = ${last.load} AU` : '—'}
+                </span>
+                <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.td, flexShrink: 0 }}>{tr('7 days')}</span>
+                <span dir="ltr" style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tx, flexShrink: 0, fontVariantNumeric: 'tabular-nums', minWidth: 62, textAlign: 'right' }}>
+                  {Math.round(acwr.acute || 0)} AU
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedical = true, onReport, onEdit, onOpen, onLog }) {
   const he = useHe();
   const tr = useT();
   const injured = roster.filter((t) => activeInjuries(medical, t.id).length > 0);
@@ -2773,6 +2854,34 @@ function MedicalView({ roster, medical, canMedical = true, onReport, onEdit, onO
         </Card>
       )}
 
+      {(() => {
+        // Every cleared injury, newest first. This is the history he asked
+        // for: resolving moves a record HERE, it never removes it.
+        const past = roster.flatMap((t) => resolvedInjuries(medical, t.id).map((inj) => ({ t, inj })));
+        past.sort((a, b) => String(b.inj.onsetDate || '').localeCompare(String(a.inj.onsetDate || '')));
+        if (!past.length) return null;
+        return (
+          <Card padding={18} leftStripe={'#37B27C'} header={secTitle('Previous injuries')}
+            headerRight={<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>{past.length}</span>}>
+            <div>
+              {past.map(({ t, inj }) => (
+                <div key={t.id + inj.id} className="bhbc-row" onClick={() => canMedical && onEdit(t.id, inj.id)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 2px', borderBottom: `0.25px solid ${C.cardBd}`, cursor: canMedical ? 'pointer' : 'default' }}>
+                  <span style={{ display: 'inline-block', width: 18, textAlign: 'right', flexShrink: 0, fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{t.jersey != null ? t.jersey : ''}</span>
+                  <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{t.name}</span>
+                  <span style={{ fontFamily: FB, fontSize: 13, color: C.tm, minWidth: 0 }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : null, inj.type].filter(Boolean).join(' · ')}</span>
+                  <div style={{ flex: 1 }} />
+                  {inj.onsetDate && <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, color: C.td, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{inj.onsetDate}</span>}
+                  <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#37B27C', flexShrink: 0 }}>{tr('Cleared')}</span>
+                </div>
+              ))}
+            </div>
+          </Card>
+        );
+      })()}
+
+      <LoadOutputCard rows={loadRows} loads={loads} medical={medical} />
+
       <Card padding={18} leftStripe={NAVY} header={secTitle('Roster Health')}>
         <div>
           {roster.map((t) => {
@@ -2791,6 +2900,10 @@ function MedicalView({ roster, medical, canMedical = true, onReport, onEdit, onO
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: (MED_STATUS[status] || MED_STATUS.available).color, flexShrink: 0 }} />
                   {tr((MED_STATUS[status] || MED_STATUS.available).label)}
                 </span>
+                {onLog && (
+                  <button onClick={(e) => { e.stopPropagation(); onLog(t.id); }} className="bhbc-ghost-btn" title="Log a practice for this athlete"
+                    style={{ height: 30, boxSizing: 'border-box', padding: '0 12px', flexShrink: 0, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{tr('+ Log')}</button>
+                )}
                 {canMedical
                   ? <button onClick={() => (act.length ? onEdit(t.id, act[0].id) : onReport(t.id))} className="bhbc-ghost-btn" style={{ height: 26, boxSizing: 'border-box', minWidth: 84, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, cursor: 'pointer', flexShrink: 0, transition: 'color .12s, border-color .12s' }}>{act.length ? (he ? '‹ צפייה' : 'View ›') : (he ? '+ דיווח' : '+ Report')}</button>
                   : <span style={{ width: 84, flexShrink: 0 }} />}

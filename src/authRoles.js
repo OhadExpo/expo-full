@@ -41,3 +41,15 @@ export const isBhbcCoachEmail = (email) => !!email && BHBC_COACH_EMAILS.includes
 // The medical-board rule, in one place instead of inline at the call site.
 // App.jsx passes `canMedical={isOwner || isPtEmail(email)}` to BhbcView.
 export const canEditMedical = (email) => isOwnerEmail(email) || isPtEmail(email);
+
+// Ohad 2026-08-28: "allow tomer to log practice details and log rpe and time
+// and everything related". Tomer is a PT, and Ohad's earlier rule was that
+// Tomer gets the same permissions as Yoel — so this is a PT capability, not a
+// Tomer-shaped exception. It is its OWN predicate rather than a reuse of
+// canEditMedical: reporting an injury and recording a session's load are
+// different rights that happen to share a list today, and folding them into
+// one name is how a permission quietly widens later.
+//
+// Deliberately does NOT grant roster management or the S&C session runner —
+// he asked for practice/RPE/time logging, not the whole coach surface.
+export const canLogLoad = (email) => isOwnerEmail(email) || isPtEmail(email);
