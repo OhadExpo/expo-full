@@ -161,7 +161,7 @@ const Jersey = ({ n, size = 30 }) => (
 
 // ---- component ----
 
-export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, setBhbcLoads, bhbcFixtures = [], setBhbcFixtures, league = {}, medical = {}, setMedical, sessionPlans = {}, setSessionPlans, planIndex = [], exercises = [], clientWorkouts = [], setClientWorkouts, workouts = [], setWorkouts, onDecrementSession, portalVis = {}, bwLog = [], weeklyFocus = {}, onOpenTrainee, onExit, coach = false, onSignOut, canMedical = true, canLogLoad = false, onLocalWrite }) {
+export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, setBhbcLoads, bhbcFixtures = [], setBhbcFixtures, league = {}, medical = {}, setMedical, sessionPlans = {}, setSessionPlans, planIndex = [], exercises = [], clientWorkouts = [], setClientWorkouts, workouts = [], setWorkouts, onDecrementSession, portalVis = {}, bwLog = [], weeklyFocus = {}, onOpenTrainee, onExit, coach = false, onSignOut, canMedical = true, canLogLoad = false, currentUser = '', onLocalWrite }) {
   // The club zone OPENS WHITE, always (Ohad). The crest and the navy/orange
   // palette were built on white, and a coach arriving in whatever theme the
   // last session left behind saw a different club. Forced once on mount, not
@@ -482,13 +482,13 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
         const load = attended && !isLift ? sessionLoad(minutes, rpe) : 0;
         if (attended && isLift && Number(minutes) > 0) {
           rec.sessions = { ...(rec.sessions || {}) };
-          rec.sessions[date] = [...(rec.sessions[date] || []), { type: sessionType, min: Number(minutes), rpe: null, load: 0, attended: true, note: e.note || '', team: true, start }];
+          rec.sessions[date] = [...(rec.sessions[date] || []), { type: sessionType, min: Number(minutes), rpe: null, load: 0, attended: true, note: e.note || '', team: true, start, by: currentUser || null }];
         } else if (load > 0) {
           rec.loads = { ...(rec.loads || {}), [date]: (rec.loads?.[date] || 0) + load };
           rec.sessions = { ...(rec.sessions || {}) };
           // `start` = which slot of the day this was, so a morning and an
           // evening session are two distinct rows, not one overwritten one.
-          rec.sessions[date] = [...(rec.sessions[date] || []), { type: sessionType, min: Number(minutes) || 0, rpe, load, intensity, note: e.note || '', team: true, start }];
+          rec.sessions[date] = [...(rec.sessions[date] || []), { type: sessionType, min: Number(minutes) || 0, rpe, load, intensity, note: e.note || '', team: true, start, by: currentUser || null }];
         }
         if (e.bw) rec.bw = { ...(rec.bw || {}), [date]: Number(e.bw) };
         if (e.note) rec.notes = { ...(rec.notes || {}), [date]: e.note, [`${date}|${start || ''}`]: e.note };
@@ -908,7 +908,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
         const ath = roster.find((t) => t.id === injuryFor.athleteId);
         if (!ath) return null;
         const existing = injuryFor.injuryId ? ((medical[injuryFor.athleteId] || {}).injuries || []).find((i) => i.id === injuryFor.injuryId) : null;
-        return <InjuryModal athlete={ath} injury={existing} onClose={() => setInjuryFor(null)} onSave={(injury) => { saveInjury({ athleteId: injuryFor.athleteId, injury }); setInjuryFor(null); }} />;
+        return <InjuryModal athlete={ath} injury={existing} currentUser={currentUser} onClose={() => setInjuryFor(null)} onSave={(injury) => { saveInjury({ athleteId: injuryFor.athleteId, injury }); setInjuryFor(null); }} />;
       })()}
 
       {/* ---- MANAGE ROSTER MODAL ---- */}
@@ -1791,7 +1791,8 @@ function HeadCoachReport({ rows, fx, fixtures, medical, today, onOpen, onMedical
           ? <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
               {sessions.slice(0, 6).map((s, i) => {
                 const pl = planOf ? planOf(s) : null;
-                const clickable = !!onPlan;
+                // Weight-room sessions appear on the calendar but are not planned.
+                const clickable = !!onPlan && s.type !== 'lift';
                 return (
                 <div key={i} onClick={clickable ? () => onPlan(s) : undefined}
               role={clickable ? 'button' : undefined} tabIndex={clickable ? 0 : undefined}
@@ -1847,7 +1848,8 @@ function TodayPanel({ today, fixtures, fx, rows, onSessions, onLog, planOf, onPl
   // their own focus + plan, authored by clicking the chip.
   const chipWrap = (f, i, showDate) => {
     const pl = planOf ? planOf(f) : null;
-    const clickable = !!onPlan;
+      // Weight-room sessions appear on the calendar but are not planned.
+    const clickable = !!onPlan && f.type !== 'lift';
     return (
       <span key={i} style={{ display: 'inline-flex', flexDirection: 'column', gap: 3, alignItems: 'flex-start' }}>
         <span onClick={clickable ? () => onPlan(f) : undefined}
@@ -2180,7 +2182,7 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, planOf }
   const detailFor = useCallback((f) => {
     const daySlots = past.filter((x) => x.date === f.date)
       .sort((a, b) => (a.start || '').localeCompare(b.start || ''));
-    const trained = [], out = [], loadsTaken = [], rpes = [], notes = [];
+    const trained = [], out = [], loadsTaken = [], rpes = [], notes = [], rowsBy = [];
     for (const t of roster) {
       const rec = loads[t.id];
       const rows = (rec && rec.sessions && rec.sessions[f.date]) || [];
@@ -2206,13 +2208,18 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, planOf }
         for (const r of mine) {
           if (r.load > 0) loadsTaken.push(r.load);
           if (r.rpe) rpes.push(Number(r.rpe));
+          if (r.by) rowsBy.push(r.by);
         }
         const n = (rec.notes && (rec.notes[`${f.date}|${f.start || ''}`] || rec.notes[f.date])) || '';
         if (n) notes.push({ name: t.name, note: n });
       } else if (avail >= 4) out.push(t);
     }
     const avg = (arr) => (arr.length ? Math.round((arr.reduce((s, x) => s + x, 0) / arr.length) * 10) / 10 : null);
-    return { trained, out, avgRpe: avg(rpes), avgLoad: avg(loadsTaken) ? Math.round(avg(loadsTaken)) : null, notes };
+    // WHO logged this session. Past practices is what the basketball staff
+    // read, so the row needs an author for the same reason a medical record
+    // does — you cannot ask a question of an unsigned entry.
+    const loggers = [...new Set(rowsBy.filter(Boolean))];
+    return { trained, out, avgRpe: avg(rpes), avgLoad: avg(loadsTaken) ? Math.round(avg(loadsTaken)) : null, notes, loggers };
   }, [loads, roster, past]);
 
   if (!past.length) return null;
@@ -2262,6 +2269,7 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, planOf }
                     <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>Trained </span>
                     {d.trained.length ? <span dir="auto">{names(d.trained)}</span> : <span style={{ color: C.td }}>nobody logged</span>}
                     {d.avgLoad != null && <span style={{ color: C.tm }}> · {tr('avg load')} <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{d.avgLoad} AU</span></span>}
+                    {d.loggers && d.loggers.length > 0 && <span style={{ color: C.td }}> · {tr('logged by')} {d.loggers.map(byName).join(', ')}</span>}
                   </div>
                   {d.out.length > 0 && (
                     <div style={{ marginBottom: 6 }}>
@@ -2894,6 +2902,15 @@ const INJURY_TYPES = ['Strain', 'Sprain', 'Contusion', 'Tendinopathy', 'Overuse'
 // Shared by saveInjury (which mirrors it onto the day it is saved) and the
 // roster rows (which floor today's availability by any ACTIVE injury).
 const MEDICAL_STATUS_AVAIL = { available: 1, limited: 2, 'non-contact': 3, out: 4 };
+// Who wrote a record, in a form a coach recognises. The BHBC staff are a
+// known, tiny set, so this stays a formatting rule rather than a directory:
+// local part of the address, trailing digits dropped, title-cased.
+export function byName(email) {
+  const s = String(email || '').split('@')[0].replace(/[0-9._-]+$/, '').replace(/[._-]+/g, ' ').trim();
+  if (!s) return '';
+  return s.split(' ').filter(Boolean).map((w) => w[0].toUpperCase() + w.slice(1)).join(' ');
+}
+
 const activeInjuries = (medical, id) => ((medical[id] || {}).injuries || []).filter((i) => !i.resolved);
 const resolvedInjuries = (medical, id) => ((medical[id] || {}).injuries || []).filter((i) => i.resolved);
 
@@ -3014,6 +3031,9 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                   <div style={{ fontFamily: FB, fontSize: 13, color: C.tx, minWidth: 0 }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : '', inj.type].filter(Boolean).map((x) => tr(x)).join(' · ')}</div>
                   <StatusPill status={inj.status} />
                   <div style={{ fontFamily: FN, fontSize: 11, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{days != null ? `${days}d` : '—'}{inj.pain != null && inj.pain !== '' ? ` · pain ${inj.pain}` : ''}</div>
+                  {/* WHO assessed this. With two PTs sharing the board, an
+                      unsigned record cannot be questioned or followed up. */}
+                  <div style={{ fontFamily: FN, fontSize: 10, color: C.td }}>{(inj.updatedBy || inj.by) ? byName(inj.updatedBy || inj.by) : ''}</div>
                   <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: ORANGE_DEEP }}>{canMedical ? 'Update ›' : ''}</div>
                 </div>
               );
@@ -3119,7 +3139,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
   );
 }
 
-function InjuryModal({ athlete, injury, onClose, onSave }) {
+function InjuryModal({ athlete, injury, onClose, onSave, currentUser = '' }) {
   const tr = useT();
   const [bodyPart, setBodyPart] = useState(injury?.bodyPart || '');
   const [side, setSide] = useState(injury?.side || 'N/A');
@@ -3135,7 +3155,7 @@ function InjuryModal({ athlete, injury, onClose, onSave }) {
   const [pNote, setPNote] = useState(''); const [pPain, setPPain] = useState('');
   const addProgress = () => {
     if (!pNote.trim() && pPain === '') return;
-    setProgress((p) => [{ date: todayISO(), note: pNote.trim(), pain: pPain === '' ? null : Number(pPain), status }, ...p]);
+    setProgress((p) => [{ date: todayISO(), note: pNote.trim(), pain: pPain === '' ? null : Number(pPain), status, by: currentUser || null }, ...p]);
     setPNote(''); setPPain('');
   };
   const save = () => {
@@ -3145,6 +3165,11 @@ function InjuryModal({ athlete, injury, onClose, onSave }) {
       bodyPart, side, type, onsetDate, status, pain: pain === '' ? null : Number(pain),
       mechanism: mechanism.trim(), rtpTarget, notes: notes.trim(), resolved, progress,
       createdAt: injury?.createdAt || new Date().toISOString(),
+      // Who wrote it first stays put; who touched it last is what a second
+      // PT needs to see before acting on somebody else's assessment.
+      by: injury?.by || currentUser || null,
+      updatedBy: currentUser || null,
+      updatedAt: new Date().toISOString(),
     });
   };
   const sel = { fontFamily: FN, fontSize: 13, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 8px', width: '100%', height: 34, boxSizing: 'border-box' };
@@ -3187,7 +3212,8 @@ function InjuryModal({ athlete, injury, onClose, onSave }) {
                 <div key={i} style={{ display: 'flex', gap: 10, padding: '8px 12px', borderBottom: `0.25px solid ${C.cardBd}`, fontFamily: FN, fontSize: 12, alignItems: 'baseline' }}>
                   <span style={{ color: C.td, width: 50, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{p.date.slice(5)}</span>
                   <span style={{ color: C.tx, flex: 1, minWidth: 0 }}>{p.note || '—'}</span>
-                  {p.pain != null && <span style={{ color: ORANGE_DEEP, fontWeight: 700, flexShrink: 0 }}>pain {p.pain}</span>}
+                  {p.pain != null && <span style={{ color: ORANGE_DEEP, fontWeight: 700, flexShrink: 0 }}>{tr('pain')} {p.pain}</span>}
+                  {p.by && <span style={{ color: C.td, fontSize: 10, flexShrink: 0 }}>{byName(p.by)}</span>}
                 </div>
               ))}
             </div>

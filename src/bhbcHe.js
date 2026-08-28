@@ -151,6 +151,7 @@ export const HE = {
   note: 'הערה',
   'Click to change availability': 'לחיצה משנה זמינות',
   Round: 'מחזור',
+  'logged by': 'נרשם על ידי',
   'avg load': 'עומס ממוצע',
   '+ PLAN': '+ תכנון',
   '+ Log practice': '+ רישום אימון',
