@@ -1396,7 +1396,13 @@ function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave, sess
   return (
     <Modal open onClose={onClose} wide title={tr('Log session')}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: isLift ? '1.1fr 1fr 0.8fr 1fr' : '1.1fr 1fr 0.8fr 0.8fr 1fr', gap: 10, alignItems: 'end' }}>
+        {/* bhbc-form-grid: the ≤620px rule that stacks these into full-width
+            rows already exists in themes.css and is used by the injury modal —
+            this row never got the class. Measured, it needs ~460px of fixed
+            column floors (a date input alone is ~130px) inside a 310px sheet,
+            and it holds Minutes and Team RPE, the two fields canSave requires.
+            So the primary daily write was the one squeezed off a phone. */}
+        <div className="bhbc-form-grid" style={{ display: 'grid', gridTemplateColumns: isLift ? '1.1fr 1fr 0.8fr 1fr' : '1.1fr 1fr 0.8fr 0.8fr 1fr', gap: 10, alignItems: 'end' }}>
           <Input label={tr('Date')} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <label style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: FN, textAlign: 'center' }}>{tr('Type')}</label>
