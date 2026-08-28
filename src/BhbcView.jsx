@@ -406,12 +406,33 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
       const next = { ...prev };
       Object.entries(entries).forEach(([id, e]) => {
         const rec = next[id] ? { ...next[id] } : emptyRec();
+        // RE-SAVING A SLOT MUST REPLACE IT, NOT ADD TO IT.
+        //
+        // The attendance write below is keyed `${date}|${start}` and so is
+        // already idempotent — the slot has an identity. The load and session
+        // rows ignored it and appended unconditionally, so saving the 18:00
+        // practice, noticing a wrong note and saving again gave every athlete
+        // the load TWICE (525 AU -> 1050) plus a duplicate history row. A
+        // 7-day acute of 2100 becomes 2625 and ACWR jumps a full band, with no
+        // way back except deleting the duplicate athlete by athlete.
+        //
+        // So drop any row already recorded for THIS slot first, and take its
+        // load back out of the day's total.
+        const slotKey = `${date}|${start || ''}`;
+        const priorRows = (rec.sessions && rec.sessions[date]) || [];
+        const mine = priorRows.filter((r) => r && r.team && (r.start || '') === (start || ''));
+        if (mine.length) {
+          const undo = mine.reduce((a, r) => a + (Number(r.load) || 0), 0);
+          rec.sessions = { ...(rec.sessions || {}) };
+          rec.sessions[date] = priorRows.filter((r) => !mine.includes(r));
+          if (undo > 0) rec.loads = { ...(rec.loads || {}), [date]: Math.max(0, (rec.loads?.[date] || 0) - undo) };
+        }
         rec.availability = { ...(rec.availability || {}), [date]: e.avail };
         // Per-slot attendance: an athlete who is Out for the DAY is out of every
         // slot, but an available athlete can still be marked absent from THIS
         // one without touching the rest of his day.
         const attended = e.attended !== false && e.avail < 4;
-        rec.attendance = { ...(rec.attendance || {}), [`${date}|${start || ''}`]: attended ? 'in' : 'out' };
+        rec.attendance = { ...(rec.attendance || {}), [slotKey]: attended ? 'in' : 'out' };
         // Gym work carries NO RPE, ever (Ohad's hard rule) — it is a
         // minutes-only attended session with zero load, exactly like the
         // whole-roster gym log. Court sessions keep minutes × RPE.
@@ -532,8 +553,33 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
         return { ...prev, [athleteId]: r };
       });
     }
+    // CLEARING AN INJURY HAS TO CLEAR THE FLOOR IT WROTE.
+    //
+    // Reporting one mirrors its status onto today's availability (out -> 4).
+    // Resolving skipped the mirror entirely, so that 4 stayed — and `rows`
+    // takes Math.max(dayAvail, injuryAvail), which by design can only make
+    // availability WORSE. So a player cleared to play still read "out": the
+    // head-coach report counted him out, logTeamSession skipped him (av >= 4)
+    // and the practice log recorded him absent, until somebody happened to
+    // cycle the chip by hand.
+    //
+    // Only lift a MEDICAL floor (2-4), and only when nothing else is still
+    // active. 5 is "Out · Personal" and has nothing to do with the injury, so
+    // it is left exactly where it is.
+    if (injury.resolved && setBhbcLoads) {
+      setBhbcLoads((prev) => {
+        const r = prev[athleteId] ? { ...prev[athleteId] } : emptyRec();
+        const cur = (r.availability || {})[today];
+        if (!(cur >= 2 && cur <= 4)) return prev;
+        const stillHurt = ((medical[athleteId] || {}).injuries || [])
+          .some((i) => i.id !== injury.id && !i.resolved);
+        if (stillHurt) return prev;
+        r.availability = { ...(r.availability || {}), [today]: 1 };
+        return { ...prev, [athleteId]: r };
+      });
+    }
     toast('Medical record saved'); notify();
-  }, [setMedical, setBhbcLoads, today, notify]);
+  }, [setMedical, setBhbcLoads, today, notify, medical]);
 
   const rowGrid = '28px minmax(116px,1.5fr) 112px 46px 130px minmax(104px,1.1fr) 92px';
   // Coaches (head coach + assistants) are VIEWERS: they read the report, roster,
