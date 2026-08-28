@@ -94,6 +94,8 @@ export const HE = {
   Grid: 'רשת',
   Flags: 'סימונים',
   'Showing reviewed': 'מציג שנבדקו',
+  '+ NEW CHALLENGE': '+ אתגר חדש',
+  'No challenges yet': 'עוד אין אתגרים. תנסה "רצף סקוואט ל-30 יום" או "נפח קבוצתי כולל".',
   Filters: 'סינון',
   'Search athletes…': 'חיפוש מתאמנים',
   Status: 'סטטוס',

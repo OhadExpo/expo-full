@@ -76,6 +76,7 @@ function Leaderboard({ challenge, participants, traineesById, workouts, bwLog, m
 }
 
 export default function ChallengesView({ trainees, clientWorkouts, bwLog }) {
+  const tt = useAppT();
   const [challenges, setChallenges] = useState([]);
   const [participantsByChallenge, setParticipantsByChallenge] = useState({});
   const [loading, setLoading] = useState(true);
@@ -201,10 +202,10 @@ export default function ChallengesView({ trainees, clientWorkouts, bwLog }) {
       <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={12}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : C.tx }}>
-            CHALLENGES ({challenges.length})
+            {tt('Challenges')} ({challenges.length})
           </span>
           <button onClick={() => { setEditChallenge(null); setShowCreate(true); }}
-            style={{ ...stripBtnBase, border: `1px solid ${refined ? '#FFFFFF' : C.ac}`, color: refined ? '#FFFFFF' : C.ac }}>+ NEW CHALLENGE</button>
+            style={{ ...stripBtnBase, border: `1px solid ${refined ? '#FFFFFF' : C.ac}`, color: refined ? '#FFFFFF' : C.ac }}>{tt('+ NEW CHALLENGE')}</button>
         </div>
       </RefinedHeaderStrip>
 
@@ -212,7 +213,7 @@ export default function ChallengesView({ trainees, clientWorkouts, bwLog }) {
         <div style={{ padding: 30, textAlign: 'center', color: C.td, fontSize: 13 }}>Loading…</div>
       ) : challenges.length === 0 ? (
         <div style={{ padding: 30, textAlign: 'center', color: C.td, fontSize: 13 }}>
-          No challenges yet. Try "30-day squat streak" or "team total volume."
+          {tt('No challenges yet')}
         </div>
       ) : challenges.map(c => {
         const parts = participantsByChallenge[c.id] || [];
