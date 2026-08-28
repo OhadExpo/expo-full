@@ -168,15 +168,16 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
             now pins the literal cyan, so both rows read correctly. AUTO stays a
             badge on the hand the clip itself reported. */}
         <span style={lbl}>{T.hand}</span>
+        <button
+          onClick={() => { setHandMode('auto'); const h = detectedHand || 'R'; if (phase === 'results') rescore(h, stature, shotType); }}
+          title={T.handHint}
+          style={chip(handMode === 'auto')}>{T.auto || 'AUTO'}</button>
         {[['R', T.right], ['L', T.left]].map(([k, label]) => (
           <button key={k}
             onClick={() => { setHandMode(k); if (phase === 'results') rescore(k, stature, shotType); }}
             title={T.handHint}
-            style={chip(hand === k)}>{label}{handMode === 'auto' && detectedHand === k ? ' · AUTO' : ''}</button>
+            style={chip(handMode === k)}>{label}{handMode === 'auto' && detectedHand === k ? ' · AUTO' : ''}</button>
         ))}
-        {handMode !== 'auto' && (
-          <button onClick={() => { setHandMode('auto'); const h = detectedHand || 'R'; if (phase === 'results') rescore(h, stature, shotType); }} style={chip(false)} title={T.autoHint}>{T.auto}</button>
-        )}
         <span style={{ ...lbl, marginInlineStart: 10 }}>{T.shot}</span>
         {SHOT_TYPES.map((t) => (
           <button key={t.key}
@@ -193,7 +194,7 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
           style={{ width: 56, background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.35)', color: '#FFF', fontFamily: FN, fontSize: 12, padding: '4px 2px', textAlign: 'center', outline: 'none' }} />
         {/* Height feeds the cm conversions — say so when it lands (Ohad 08-24). */}
         <span style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', color: heightSaved ? '#37B27C' : 'rgba(255,255,255,0.35)', minWidth: 74 }}>
-          {heightSaved ? (phase === 'results' ? T.rescored : T.savedCm) : (String(stature).trim() ? T.cmUnit : T.forCm)}
+          {heightSaved ? (phase === 'results' ? T.rescored : T.savedCm) : (String(stature).trim() ? T.cmUnit : '')}
         </span>
       </div>
 
