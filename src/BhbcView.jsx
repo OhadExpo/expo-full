@@ -223,8 +223,21 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
     const rec = bhbcLoads[t.id] || emptyRec();
     const acwr = acwrFromDaily(rec.loads || {}, today);
     const series = last14.map((d) => (rec.loads && rec.loads[d]) || 0);
-    const rdates = Object.keys(rec.readiness || {}).sort();
-    const readiness = readinessAutoreg((rdates.length ? rec.readiness[rdates[rdates.length - 1]] : null) || {});
+    // READINESS IS A DAILY MEASURE, so it has to be bounded by a date.
+    //
+    // This took the newest entry EVER recorded, with no bound at all — and the
+    // very next line computes `checkedToday` correctly, which shows the two
+    // were meant to be different things. The consequence: an athlete who
+    // reported pain 7 on the 20th and never checked in again still showed a red
+    // readiness dot on the 28th, and CoachBrief emitted "Regress <name> TODAY —
+    // readiness red" off an eight-day-old check-in. Telling a coach to cut a
+    // session on stale data is worse than telling him nothing.
+    //
+    // Yesterday still counts (an evening check-in is about this morning);
+    // anything older is not today's readiness and reads as unknown.
+    const yday = new Date(new Date(`${today}T00:00:00Z`).getTime() - 86400000).toISOString().slice(0, 10);
+    const rEntry = (rec.readiness && (rec.readiness[today] || rec.readiness[yday])) || null;
+    const readiness = readinessAutoreg(rEntry || {});
     // Today's availability is at least as restrictive as any UNRESOLVED injury.
     //
     // Saving a medical record mirrors its status into availability for THAT DAY
@@ -358,7 +371,15 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
         rec.sessions[date] = [...(rec.sessions[date] || []), { type, min: Number(minutes), rpe: null, load: 0, attended: true }];
       }
       const r = readiness || {};
-      if (r.pain || r.sleep || r.energy) rec.readiness[date] = { ...(rec.readiness[date] || {}), ...r };
+      // MERGE ONLY WHAT WAS ACTUALLY ENTERED. LogModal always sends all three
+      // fields, empty or not, and an unconditional spread let '' overwrite a
+      // real value: a morning check-in of {sleep:'good', energy:'good', pain:2}
+      // became {sleep:'', energy:'8', pain:''} as soon as the coach logged that
+      // athlete's session and filled in energy alone. fieldQuality then read
+      // pain as null and readinessAutoreg flipped him from green to "Pain not
+      // logged — confirm first". Silent loss of clinical input.
+      const entered = Object.fromEntries(Object.entries(r).filter(([, v]) => v !== '' && v != null));
+      if (Object.keys(entered).length) rec.readiness[date] = { ...(rec.readiness[date] || {}), ...entered };
       return { ...prev, [athleteId]: rec };
     });
     toast('Logged'); notify();
@@ -1262,11 +1283,20 @@ function SessionPlanModal({ slot, fixtures, plan, onClose, onSave, onPick }) {
 
 function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave, sessionPlans = {} }) {
   const tr = useT();
-  const [date, setDate] = useState(() => {
-    const up = (fixtures || []).filter((f) => f.date >= todayISO()).sort((a, b) => a.date.localeCompare(b.date));
-    const p = up.find((f) => f.type === 'practice') || up[0];
-    return p ? p.date : todayISO();
-  });
+  // DEFAULT TO TODAY, not to the next fixture on the calendar.
+  //
+  // This used to pick the next UPCOMING fixture's date, so with no session
+  // scheduled today the modal opened on Sunday's practice. A coach running an
+  // unscheduled Saturday session fills in minutes and RPE, saves without
+  // re-reading the date, and the whole squad's load lands three days in the
+  // future — where acwrEngine excludes it from BOTH the acute and chronic
+  // windows (sumWindow takes n <= end), so the load board still reports today
+  // unchanged and the work simply does not exist until Sunday arrives.
+  //
+  // The slot picker below still lists whatever is scheduled on the chosen date,
+  // so logging a scheduled practice is unchanged — it just no longer silently
+  // starts on a different day.
+  const [date, setDate] = useState(() => todayISO());
   const dayFx = (fixtures || []).filter((f) => f.date === date).slice().sort((a, b) => String(a.start || '').localeCompare(String(b.start || '')));
   // WHICH session on that date. A day can hold a morning and an evening
   // practice; without this the log silently landed on the first one and the
