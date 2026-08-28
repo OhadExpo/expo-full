@@ -188,7 +188,7 @@ function SubmenuTab({ id, label, count, items, tab, navTo, activeStyle, isChosen
         // chevron share one optical center-line. baseline-mode let
         // the chevron drift below the cap-height of the label.
         // gap:6 inherits from baseBtn, no per-child margins needed.
-        style={{ ...baseBtn, height: HDR_ICON_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, borderRadius: 0, padding: '0 10px', fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', whiteSpace: 'nowrap', ...activeStyle }}>
+        style={{ ...baseBtn, height: HDR_ICON_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, borderRadius: 0, padding: '0 8px', fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', whiteSpace: 'nowrap', ...activeStyle }}>
         <span>{label}</span>
         {count != null && <span style={{ fontSize: 10, color: countColor, fontFamily: FN }}>{count}</span>}
         <span style={{ fontSize: 10, lineHeight: 1, display: 'inline-block', transition: 'transform .2s cubic-bezier(.22,.61,.36,1)', transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
@@ -1478,7 +1478,7 @@ function AuthedApp() {
               // 0.06em — was 11 / 0.18em) so the 8-item row clears 1366px
               // viewport comfortably. alignItems:'center' (was 'baseline')
               // matches SubmenuTab so label + count share one center-line.
-              return(<button key={t.key} className={!isActive?'nav-item-inactive':undefined} onClick={async()=>{if(t.key==='client'){if(isBoth){pickPortal('client');}else{await signOut();window.location.href='/';}}else{navTo(t.key)}}} style={{...baseBtn,height:HDR_ICON_H,boxSizing:'border-box',display:'inline-flex',alignItems:'center',justifyContent:'center',lineHeight:1,borderRadius:0,padding:"0 10px",fontSize:10,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',whiteSpace:"nowrap",...activeStyle}}>
+              return(<button key={t.key} className={!isActive?'nav-item-inactive':undefined} onClick={async()=>{if(t.key==='client'){if(isBoth){pickPortal('client');}else{await signOut();window.location.href='/';}}else{navTo(t.key)}}} style={{...baseBtn,height:HDR_ICON_H,boxSizing:'border-box',display:'inline-flex',alignItems:'center',justifyContent:'center',lineHeight:1,borderRadius:0,padding:"0 8px",fontSize:10,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',whiteSpace:"nowrap",...activeStyle}}>
                 <span>{t.label}</span>{t.count!==null&&<span style={{fontSize:10,color:countColor,fontFamily:FN}}>{t.count}</span>}</button>)})}</nav>
           {/* Right cluster: ⋯ MORE | Theme | Bug | Sign out, separated
               by cyan hairlines. Ohad 2026-05-16 — removed the left

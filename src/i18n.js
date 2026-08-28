@@ -26,6 +26,63 @@ export const LANG_KEY = 'expo-lang';
 
 export const HE = {
 
+
+  // ---- the roster: filter rail + athlete card --------------------------
+  // Measured 2026-08-28: 246 strings on the core coach screens still rendered
+  // Latin while the app was in Hebrew. That — not phrasing — is why he said
+  // "hebrew still sucks, its 15%". Half a screen in English is not an accent
+  // problem, it is an untranslated screen.
+  Status: 'סטטוס',
+  Format: 'סוג אימון',
+  'Needs attention': 'דורש טיפול',
+  Sort: 'מיון',
+  All: 'הכל',
+  'On Hold': 'מוקפא',
+  Inactive: 'לא פעיל',
+  Trial: 'ניסיון',
+  Online: 'אונליין',
+  'Payment due': 'ממתין לתשלום',
+  'No program': 'בלי תוכנית',
+  'Last trained': 'אימון אחרון',
+  Payment: 'תשלום',
+  Name: 'שם',
+  '+ Add Athlete': '+ מתאמן חדש',
+  'All Athletes': 'כל המתאמנים',
+  // Card sections. "כספים" and not "תשלומים" — תשלומים is already the BILLING
+  // tab, and two screens must not answer to the same word.
+  Financials: 'כספים',
+  Training: 'אימונים',
+  'Not billable': 'ללא חיוב',
+  'No logs yet': 'עדיין אין מדידות',
+  Restore: 'שחזור',
+  'Permanently Delete': 'מחיקה סופית',
+  'Sessions left': 'אימונים שנותרו',
+  'Last workout': 'אימון אחרון',
+  'Gym, Single': 'חדר כושר · יחיד',
+  'Gym, Couple': 'חדר כושר · זוג',
+  'Gym · Single': 'חדר כושר · יחיד',
+  'Gym · Couple': 'חדר כושר · זוג',
+  'Online client': 'מתאמן אונליין',
+
+  // ---- dashboard tiles --------------------------------------------------
+  // Tile captions are NOUN PHRASES, not sentences. That is also what keeps
+  // them on one line — a wrapped caption pushed two tiles' numbers out of
+  // line with their neighbours, which is the fault he photographed.
+  Revenue: 'הכנסות',
+  'Recurring committed': 'התחייבות חודשית',
+  'Per paying client': 'ללקוח משלם',
+  'Per payment row': 'לכל תשלום',
+  'Pending requests': 'בקשות פתוחות',
+  'Open debt': 'חוב פתוח',
+  General: 'כללי',
+  'Auto-alerts': 'התראות אוטומטיות',
+  History: 'היסטוריה',
+  Inbound: 'נכנס',
+  Answered: 'נענה',
+  Open: 'פתוח',
+  'Voice note': 'הודעה קולית',
+  done: 'בוצע',
+
   // ---- coach app: the nav ----------------------------------------------
   // A coach reads this row all day, so these are the words Ohad uses out
   // loud, not dictionary equivalents.
@@ -120,7 +177,6 @@ export const HE = {
   Delete: 'מחיקה',
   Cancel: 'ביטול',
   Save: 'שמירה',
-  Format: 'פורמט',
   Package: 'חבילה',
   Active: 'פעיל',
 
@@ -281,4 +337,17 @@ export function useHe() {
 
 export function readLang() {
   try { return localStorage.getItem(LANG_KEY) === 'he' ? 'he' : 'en'; } catch { return 'en'; }
+}
+
+// Relative days. A map cannot hold these: Hebrew does not say "לפני 1 ימים",
+// it says "אתמול". English "2d ago" collapses all of that into one shape.
+export function daysAgoHe(n) {
+  if (n <= 0) return 'היום';
+  if (n === 1) return 'אתמול';
+  if (n === 2) return 'שלשום';
+  return `לפני ${n} ימים`;
+}
+export function daysOverdueHe(n) {
+  if (n === 1) return 'באיחור יום';
+  return `באיחור ${n} ימים`;
 }

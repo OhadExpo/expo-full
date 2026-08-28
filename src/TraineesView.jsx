@@ -205,6 +205,21 @@ function CardBWSparkline({ entries }) {
 // Card layout: 4 labeled blocks — IDENTITY / TRAINING / BODYWEIGHT / FINANCIALS.
 // Each block answers one scan question, separated by a hairline so the eye
 // anchors on labels rather than parsing a single dense row.
+// Ohad 2026-08-28: "all boxes should be the same size regardless" — he
+// photographed the ALL filter (404px cards) against the BNEI HERZLIYA filter
+// (382px). Measured cause: every SECTION was already uniform (contact 80 /
+// financials 29 / training 66 / bodyweight 38), but ONE athlete carrying a
+// second financials line ("NEVER PAID · ₪81/MO") made its grid row taller, and
+// height:100% then pushed every other card in that filter to match. So the
+// card size was a function of WHO was on screen.
+//
+// Fixed slot per section + one fixed card height = the size is a function of
+// the design, not of the roster. Sized to the observed worst case so nothing
+// clips ("i cant see some of the words" — never). Section ORDER is untouched:
+// IDENTITY / FINANCIALS / TRAINING / BODYWEIGHT, which is the order he locked.
+const CARD_H = 404;
+const FIN_SLOT = 34;   // worst case = pay label + monthly on one line
+
 const MidDot = () => <span style={{ color: C.tm, opacity: 0.5, fontSize: 11 }}>·</span>;
 
 function CardSection({ label, children, center = false }) {
@@ -294,12 +309,20 @@ function FinancialsBlock({ pay, monthly, center = false }) {
   if (items.length === 0) {
     return (
       <CardSection label="Financials" center={center}>
-        <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontWeight: 700, letterSpacing: 1, opacity: 0.55 }}>NOT BILLABLE</span>
+        <div style={{ width: '100%', minHeight: FIN_SLOT, display: 'flex', flexWrap: 'wrap', gap: '4px 10px', alignItems: 'center', justifyContent: center ? 'center' : 'flex-start' }}>
+          <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontWeight: 700, letterSpacing: 1, opacity: 0.55 }}>NOT BILLABLE</span>
+        </div>
       </CardSection>
     );
   }
   const interleaved = items.flatMap((n, i) => i === 0 ? [n] : [<MidDot key={`d${i}`} />, n]);
-  return <CardSection label="Financials" center={center}>{interleaved}</CardSection>;
+  return (
+    <CardSection label="Financials" center={center}>
+      <div style={{ width: '100%', minHeight: FIN_SLOT, display: 'flex', flexWrap: 'wrap', gap: '4px 10px', alignItems: 'center', justifyContent: center ? 'center' : 'flex-start' }}>
+        {interleaved}
+      </div>
+    </CardSection>
+  );
 }
 
 // Always render a BW block — even if no entries yet — so cards have a
@@ -808,7 +831,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                 <Card key={t.id} {...dragProps(t)} onClick={() => showArchived ? null : onSelect(t.id)}
                   header={<span style={{display:'inline-flex',alignItems:'center',gap:6,fontWeight:700,fontSize: hasHebrew(t.name) ? hebSize(14) : 14,letterSpacing:'0.04em',textTransform:'uppercase'}}>{t.name}{online && <OnlineDot />}{(t.format === 'Bnei Herzliya' || t.branch === 'Bnei Herzliya') && <span title="Bnei Herzliya" style={{display:'inline-flex',alignItems:'center',justifyContent:'center',width:22,height:22,borderRadius:'50%',background:'#0E1A2B',flexShrink:0}}><img src="/bnei-herzliya-logo-w.png" alt="" style={{height:18,width:'auto',objectFit:'contain'}}/></span>}</span>}
                   headerRight={showArchived ? <Badge color={statusColor[t.status] || C.tm} style={isRefined5b()?{background:'#FFFFFF'}:undefined}>{t.status}</Badge> : <CardStatusMenu status={t.status} onChange={s => setTrainees(prev => prev.map(x => x.id === t.id ? {...x, status: s} : x))} />}
-                  style={{height:'100%',display:'flex',flexDirection:'column',boxSizing:'border-box',border:`1px solid ${C.divider}`,borderLeft:`1px solid ${C.divider}`,...(showArchived ? {opacity: 0.7, borderStyle: "dashed"} : {})}}>
+                  style={{height:CARD_H,display:'flex',flexDirection:'column',boxSizing:'border-box',border:`1px solid ${C.divider}`,borderLeft:`1px solid ${C.divider}`,...(showArchived ? {opacity: 0.7, borderStyle: "dashed"} : {})}}>
                   {/* IDENTITY: name + status badge live in the card header
                       (Card's header + headerRight props). No duplicate body
                       banner — Ohad called the inner repeat useless 2026-05-12. */}
@@ -906,7 +929,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
             <Card key={t.id} {...dragProps(t)} onClick={() => showArchived ? null : onSelect(t.id)}
               header={<span style={{display:'inline-flex',alignItems:'center',gap:6,fontWeight:700,fontSize: hasHebrew(t.name) ? hebSize(14) : 14,letterSpacing:'0.04em',textTransform:'uppercase'}}>{t.name}{online && <OnlineDot />}{(t.format === 'Bnei Herzliya' || t.branch === 'Bnei Herzliya') && <span title="Bnei Herzliya" style={{display:'inline-flex',alignItems:'center',justifyContent:'center',width:22,height:22,borderRadius:'50%',background:'#0E1A2B',flexShrink:0}}><img src="/bnei-herzliya-logo-w.png" alt="" style={{height:18,width:'auto',objectFit:'contain'}}/></span>}</span>}
               headerRight={showArchived ? <Badge color={statusColor[t.status] || C.tm} style={isRefined5b()?{background:'#FFFFFF'}:undefined}>{t.status}</Badge> : <CardStatusMenu status={t.status} onChange={s => setTrainees(prev => prev.map(x => x.id === t.id ? {...x, status: s} : x))} />}
-              style={{height:'100%',display:'flex',flexDirection:'column',boxSizing:'border-box',border:`1px solid ${C.divider}`,borderLeft:`1px solid ${C.divider}`,...(showArchived ? {opacity: 0.7, borderStyle: "dashed"} : {})}}>
+              style={{height:CARD_H,display:'flex',flexDirection:'column',boxSizing:'border-box',border:`1px solid ${C.divider}`,borderLeft:`1px solid ${C.divider}`,...(showArchived ? {opacity: 0.7, borderStyle: "dashed"} : {})}}>
               {/* IDENTITY: name + status badge live in the card header — no
                   body duplicate. Same shape in both themes; OnlineDot moves
                   into the header span via the {online && <OnlineDot />} above. */}
