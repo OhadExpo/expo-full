@@ -61,6 +61,7 @@ export const HE = {
   Microcycle: 'מיקרו-מחזור',
   'No sessions': 'אין אימונים',
   'Log a session': 'תוסיף אימון',        // future-as-imperative, his register
+  '+ PLAN': '+ תכנון',
   '+ Log practice': '+ רישום אימון',
   'Log practice': 'רישום אימון',
   'BNEI HERZLIYA': 'בני הרצליה',

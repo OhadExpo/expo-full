@@ -1680,7 +1680,7 @@ function HeadCoachReport({ rows, fx, fixtures, medical, today, onOpen, onMedical
                       I see the plan for tonight?"). */}
                   {pl && (pl.focus || pl.plan)
                     ? <span dir="auto" style={{ flex: '1 1 auto', minWidth: 0, color: C.tx, fontFamily: FB, fontSize: 12, whiteSpace: 'normal', overflowWrap: 'break-word' }}>— {pl.focus || pl.plan}</span>
-                    : clickable ? <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: ORANGE, flexShrink: 0 }}>+ PLAN</span> : null}
+                    : clickable ? <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: ORANGE, flexShrink: 0 }}>{tr('+ PLAN')}</span> : null}
                 </div>
                 );
               })}
@@ -2733,10 +2733,11 @@ const activeInjuries = (medical, id) => ((medical[id] || {}).injuries || []).fil
 const resolvedInjuries = (medical, id) => ((medical[id] || {}).injuries || []).filter((i) => i.resolved);
 
 function StatusPill({ status, small, full }) {
+  const tr = useT();
   const s = MED_STATUS[status] || MED_STATUS.available;
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5, height: small ? 28 : 30, boxSizing: 'border-box', width: full ? '100%' : undefined, fontFamily: FN, fontSize: small ? 9.5 : 10.5, fontWeight: 700, letterSpacing: '0.03em', color: s.color, background: `color-mix(in srgb, ${s.color} 13%, transparent)`, border: `1px solid color-mix(in srgb, ${s.color} 38%, transparent)`, padding: small ? '0 10px' : '0 11px', whiteSpace: 'nowrap' }}>
-      <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.color, flexShrink: 0 }} />{s.label}
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.color, flexShrink: 0 }} />{tr(s.label)}
     </span>
   );
 }
