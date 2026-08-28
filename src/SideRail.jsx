@@ -83,7 +83,7 @@ export function SideRail({
 
       {(!narrow || railOpen) && (<>
         {groups.map((g, i) => (
-          <RailGroup key={g.label || i} label={g.label}>
+          <RailGroup key={g.label || i} label={tt(g.label)}>
             {g.opts.map((o, j) => (
               <RailOpt key={o.key || o.label || j} label={o.label} count={o.count} active={o.active} onClick={o.onClick} title={o.title} accent={o.accent} />
             ))}

@@ -89,6 +89,10 @@ export const HE = {
   'Review completed workouts, watch client form videos, and set weekly focus for next week.': 'תעבור על האימונים שנסגרו, תראה סרטוני טכניקה, ותקבע פוקוס לשבוע הבא.',
   'Review completed workouts, watch client form videos, and write focus notes for next week.': 'תעבור על האימונים שנסגרו, תראה סרטוני טכניקה, ותכתוב פוקוס לשבוע הבא.',
   'TRAINED TODAY': 'התאמן היום',
+  'Search programs…': 'חיפוש תוכנית',
+  Table: 'טבלה',
+  Grid: 'רשת',
+  Flags: 'סימונים',
   Filters: 'סינון',
   'Search athletes…': 'חיפוש מתאמנים',
   Status: 'סטטוס',
@@ -419,4 +423,23 @@ export function daysAgoHe(n) {
 export function daysOverdueHe(n) {
   if (n === 1) return 'באיחור יום';
   return `באיחור ${n} ימים`;
+}
+
+// Counted nouns. English builds "3 days" by appending an s; Hebrew does not
+// pluralise that way, and a number glued to an English word also breaks
+// direction inside an RTL line. So the NOUN is chosen per language.
+const COUNT_HE = {
+  day: ['יום', 'ימים'],
+  exercise: ['תרגיל', 'תרגילים'],
+  set: ['סט', 'סטים'],
+  rep: ['חזרה', 'חזרות'],
+  week: ['שבוע', 'שבועות'],
+  program: ['תוכנית', 'תוכניות'],
+  athlete: ['מתאמן', 'מתאמנים'],
+  session: ['אימון', 'אימונים'],
+};
+export function countIn(lang, n, word) {
+  const k = String(word).toLowerCase();
+  if (lang === 'he' && COUNT_HE[k]) return `${n} ${COUNT_HE[k][Number(n) === 1 ? 0 : 1]}`;
+  return `${n} ${word}${Number(n) === 1 ? '' : 's'}`;
 }

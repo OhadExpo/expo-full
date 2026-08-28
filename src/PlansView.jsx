@@ -54,11 +54,11 @@ import { sortProgramsRecent, sortProgramsByBlockDesc } from './traineeUtils';
 import { SideRail } from './SideRail';
 import { fmtPrettyDate } from './dates';
 import { cloneDayForCopy } from './planCopy.js';
-import { useT as useAppT, useHe, daysAgoHe } from './i18n';
+import { useT as useAppT, useHe, daysAgoHe, countIn } from './i18n';
 
 // "1 DAYS" read wrong on every single-day block. One helper, used by every
 // place that prints a count next to a noun.
-const plural = (n, word) => `${n} ${word}${Number(n) === 1 ? '' : 's'}`;
+const plural = (n, word, lang = 'en') => countIn(lang, n, word);
 
 const defaultPlanEx = () => ({ id: uid(), exerciseId: "", sets: "", reps: "", load: "", rpe: "", tempo: "", rest: "", notes: "", order: 0, superset: "", wk: null });
 const defaultDay = (n) => ({ id: uid(), name: `Day ${n}`, exercises: [] });
@@ -4417,7 +4417,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 12, flexWrap: 'wrap' }}>
         <h2 style={{ margin: 0, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: C.tx }}>{tt("Programs")}</h2>
         <div style={{ display: 'flex', gap: 6, width: 168 }}>
-          {[['table','Table','Dense list — one row per athlete'],['grid','Grid','Card grid — double-click a card to expand earlier blocks']].map(([v,label,tip]) => {
+          {[['table',tt('Table'),'Dense list — one row per athlete'],['grid',tt('Grid'),'Card grid — double-click a card to expand earlier blocks']].map(([v,label,tip]) => {
             const on = progView === v;
             return (
               <button key={v} onClick={()=>setProgView(v)} title={tip}
@@ -4441,13 +4441,13 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
           width={204} top={64} maxHeight="calc(100vh - 76px)"
           narrow={narrow} railOpen={railOpen} setRailOpen={setRailOpen}
           search={search} onSearch={(v) => { setSearch(v); setVisibleCount(PAGE_SIZE); }}
-          searchPlaceholder="Search programs…"
+          searchPlaceholder={tt('Search programs…')}
           searchTitle="Search programs by name or block (e.g. “Block #5”, “GPP”)"
           groups={[
             {
               label: 'Athlete',
               opts: [
-                { key: 'all', label: 'All', count: planIndex.length, active: !filterTrainee, onClick: () => { setFilterTrainee(''); setVisibleCount(PAGE_SIZE); } },
+                { key: 'all', label: tt('All'), count: planIndex.length, active: !filterTrainee, onClick: () => { setFilterTrainee(''); setVisibleCount(PAGE_SIZE); } },
                 ...athleteRail.map(a => ({ key: a.id, label: a.label, count: a.count, title: a.label, active: filterTrainee === a.id, onClick: () => { setFilterTrainee(a.id); setVisibleCount(PAGE_SIZE); } })),
               ],
             },
@@ -4554,12 +4554,12 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                         title={expanded?`Hide ${row.earlier.length} previous block${row.earlier.length===1?'':'s'}`:`Show ${row.earlier.length} previous block${row.earlier.length===1?'':'s'}`}
                         className="prog-plusn"
                         style={{display:'inline-flex',alignItems:'center',gap:5,height:24,padding:'0 9px',background: expanded ? 'rgba(127,127,138,0.14)' : 'transparent',border:`1px solid ${C.cardBd}`,borderRadius:0,color: C.tm,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.05em',whiteSpace:'nowrap',flexShrink:0,fontVariantNumeric:'tabular-nums'}}>
-                        {row.earlier.length} previous
+                        {row.earlier.length} {tt('previous')}
                         <span aria-hidden style={{display:'inline-block',transform: expanded?'rotate(180deg)':'none',transition:'transform .15s',fontSize:8,lineHeight:1}}>▾</span>
                       </button>
                     )}
                   </div>
-                  <div style={{fontSize:12,color:C.tm,fontFamily:FN,letterSpacing:'0.04em',marginTop:5}}>{plural(cur.dayCount, 'day')} · {plural(cur.exerciseCount, 'exercise')}</div>
+                  <div style={{fontSize:12,color:C.tm,fontFamily:FN,letterSpacing:'0.04em',marginTop:5}}>{plural(cur.dayCount, 'day', he ? 'he' : 'en')} · {plural(cur.exerciseCount, 'exercise', he ? 'he' : 'en')}</div>
                 </div>
                 {/* Light text actions — hovering here cancels the plan hover-preview. */}
                 <div className="prog-actions" onMouseEnter={() => { clearTimeout(hoverTimerRef.current); setHoverPos(null); clearPreviewPlan(); }}
@@ -4722,7 +4722,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                     <span style={{fontWeight:700,fontSize:15,color:C.ac,fontFamily:FN,letterSpacing:'0.04em',minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{cur.name||"Untitled"}</span>
                     {plusBtn}
                   </div>
-                  <div style={{fontSize:12,color:C.tm,fontFamily:FN,letterSpacing:'0.04em',marginTop:5}}>{plural(cur.dayCount, 'day')} · {plural(cur.exerciseCount, 'exercise')}</div>
+                  <div style={{fontSize:12,color:C.tm,fontFamily:FN,letterSpacing:'0.04em',marginTop:5}}>{plural(cur.dayCount, 'day', he ? 'he' : 'en')} · {plural(cur.exerciseCount, 'exercise', he ? 'he' : 'en')}</div>
                 </div>
                 <div className="prog-actions" onMouseEnter={cancelHover} style={{padding:'8px 14px 12px',display:'flex',gap:16,alignItems:'center',flexWrap:'wrap'}}>
                   {portalToggle(cur)}
@@ -4807,7 +4807,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               onMouseLeave={() => { clearTimeout(hoverTimerRef.current); setHoverPos(null); clearPreviewPlan(); }}
               style={{cursor:openingId===p.id?'progress':'pointer',padding:'12px 14px 4px'}}>
               <div style={{fontWeight:700,fontSize:15,color:C.ac,fontFamily:FN,letterSpacing:'0.04em',minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.name||"Untitled"}</div>
-              <div style={{fontSize:12,color:C.tm,fontFamily:FN,letterSpacing:'0.04em',marginTop:5}}>{plural(p.dayCount, 'day')} · {plural(p.exerciseCount, 'exercise')}{p.phase?` · ${p.phase}`:''}</div>
+              <div style={{fontSize:12,color:C.tm,fontFamily:FN,letterSpacing:'0.04em',marginTop:5}}>{plural(p.dayCount, 'day', he ? 'he' : 'en')} · {plural(p.exerciseCount, 'exercise', he ? 'he' : 'en')}{p.phase?` · ${p.phase}`:''}</div>
             </div>
             <div className="prog-actions" onMouseEnter={() => { clearTimeout(hoverTimerRef.current); setHoverPos(null); clearPreviewPlan(); }} style={{padding:'8px 14px 12px',display:'flex',gap:16,alignItems:'center',flexWrap:'wrap'}}>
               {setPortalVis && (() => {
