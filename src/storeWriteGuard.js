@@ -39,8 +39,28 @@ export const SHRINK_MIN_RATIO = 0.5;
  * @returns {{ ok: true } | { ok: false, reason: string, message: string }}
  */
 export function checkStoreWrite({ value, serverLoaded, serverLen }) {
-  // Non-array stores (config blobs) are replaced wholesale by design.
-  if (!Array.isArray(value)) return { ok: true };
+  // KEYED COLLECTIONS COUNT TOO.
+  //
+  // This used to read `if (!Array.isArray(value)) return { ok: true }` on the
+  // grounds that non-array stores are "config blobs replaced wholesale by
+  // design". That was true of the stores it was written for, and false of the
+  // BHBC season stores: `expo-bhbc-loads`, `expo-bhbc-medical` and
+  // `expo-bhbc-plans` are objects keyed by athlete id — collections, with
+  // exactly the same collapse risk as the library, and they were exempt from
+  // BOTH rules at the time this was found.
+  //
+  // The concrete path: a coach opens the zone cold, `expo-trainees` resolves
+  // first so the roster renders, `expo-bhbc-loads` is still in flight so the
+  // value is still `{}`. One tap on an availability chip runs
+  // `setBhbcLoads(prev => ({ ...prev, [id]: rec }))` with `prev = {}` and
+  // writes a ONE-ATHLETE object over the season. Identical in shape to the
+  // library wipe, and it would have been just as silent.
+  //
+  // A primitive (string/number/bool) or null genuinely is replaced wholesale.
+  const isCollection = Array.isArray(value)
+    || (value !== null && typeof value === 'object' && !(value instanceof Date));
+  if (!isCollection) return { ok: true };
+  const size = Array.isArray(value) ? value.length : Object.keys(value).length;
 
   if (!serverLoaded) {
     return {
@@ -52,11 +72,11 @@ export function checkStoreWrite({ value, serverLoaded, serverLen }) {
 
   if (typeof serverLen === 'number'
       && serverLen >= SHRINK_MIN_BASELINE
-      && value.length < Math.ceil(serverLen * SHRINK_MIN_RATIO)) {
+      && size < Math.ceil(serverLen * SHRINK_MIN_RATIO)) {
     return {
       ok: false,
       reason: BLOCK_SHRINK,
-      message: `Not saved — that would have deleted ${serverLen - value.length} of ${serverLen} rows.`,
+      message: `Not saved — that would have deleted ${serverLen - size} of ${serverLen} rows.`,
     };
   }
 

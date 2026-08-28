@@ -5,6 +5,14 @@ import { enqueue, registerHandler, drain, setOnError } from './offlineQueue';
 import { setOnError as setBlobOnError } from './blobQueue';
 import { checkStoreWrite } from './storeWriteGuard';
 
+// The size the shrink rule compares against. An array is its length; an OBJECT
+// store is its key count — the BHBC season stores (expo-bhbc-loads, -medical,
+// -plans) are keyed by athlete id, and leaving this null meant the shrink rule
+// could never fire for them even once the server value was known.
+const storeSize = (v) => (Array.isArray(v) ? v.length
+  : (v !== null && typeof v === 'object' && !(v instanceof Date)) ? Object.keys(v).length
+  : null);
+
 // ─────────────────────────────────────────────────────────────
 // Save-error emitter. Every silent `catch {}` around a Supabase
 // write used to mean: write failed, user typed into the void,
@@ -228,7 +236,7 @@ export function useSupaStore(key, initial) {
         // This must happen even when the apply is skipped below, because it is
         // what unlocks writing at all (see the guard in save()).
         if (row && row.value !== undefined) {
-          serverLenRef.current = Array.isArray(row.value) ? row.value.length : null;
+          serverLenRef.current = storeSize(row.value);
           serverLoadedRef.current = true;
         } else if (!error) {
           // No row for this key: legitimately empty, so writing is safe.
@@ -280,7 +288,7 @@ export function useSupaStore(key, initial) {
               // unable to save anything for the rest of the session — trading
               // one data-loss bug for a different one.
               serverLoadedRef.current = true;
-              serverLenRef.current = Array.isArray(parsed) ? parsed.length : null;
+              serverLenRef.current = storeSize(parsed);
             }
           }
         } catch {}
