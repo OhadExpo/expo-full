@@ -330,7 +330,7 @@ export function RefinedCard({ header, headerRight, leftStripe, padY = 14, padX =
     <div className={className} style={{
       background: 'var(--c-sf)',
       border: baseBorder,
-      borderLeft: leftStripe ? `3px solid ${leftStripe}` : baseBorder,
+      borderInlineStart: leftStripe ? `3px solid ${leftStripe}` : baseBorder,
       borderRadius: 0,
       padding: `${padY}px ${padX}px`,
       boxShadow: C.cardShadow,
@@ -436,7 +436,7 @@ export function CollapsibleSection({ title, titleNode, count, right, storageKey,
     // Card chrome (white bg + border + shadow) only when OPEN; collapsed = no box
     // (the strip carries its own border), so every section collapses to a bare strip.
     : (open
-        ? { background: 'var(--c-sf)', border: baseBorder, borderLeft: leftStripe ? `3px solid ${leftStripe}` : baseBorder, borderRadius: 0, boxShadow: C.cardShadow, marginBottom: 12, ...style }
+        ? { background: 'var(--c-sf)', border: baseBorder, borderInlineStart: leftStripe ? `3px solid ${leftStripe}` : baseBorder, borderRadius: 0, boxShadow: C.cardShadow, marginBottom: 12, ...style }
         : { marginBottom: 12, ...style });
   return (
     <div id={domId} style={outerStyle}>
@@ -461,7 +461,7 @@ export function CollapsibleSection({ title, titleNode, count, right, storageKey,
         {/* flexWrap on the strip + the action cluster lets a wide button group
             drop to its own line on a phone instead of forcing horizontal page
             overflow. On desktop it stays on one line. */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end', marginLeft: 'auto', minWidth: 0, maxWidth: '100%' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end', marginInlineStart: 'auto', minWidth: 0, maxWidth: '100%' }}>
           {right && <span onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end', minWidth: 0, maxWidth: '100%' }}>{right}</span>}
           {/* WHITE on purpose — this chevron sits on the COLOURED strip header
               whose title span three lines up is also #FFFFFF. Switching it to
@@ -544,7 +544,7 @@ export function RefinedTable({ columns, rows, sort, onSort, empty }) {
             <tr><td colSpan={columns.length} style={{ padding: 40, textAlign: 'center', color: C.td }}>{empty}</td></tr>
           ) : rows.map(r => (
             <tr key={r.id} onClick={r.onClick}
-              style={{ borderBottom: `1px solid ${C.cardBd}`, cursor: r.onClick ? 'pointer' : 'default', borderLeft: r.leftStripe ? `3px solid ${r.leftStripe}` : undefined, transition: 'background 0.1s' }}
+              style={{ borderBottom: `1px solid ${C.cardBd}`, cursor: r.onClick ? 'pointer' : 'default', borderInlineStart: r.leftStripe ? `3px solid ${r.leftStripe}` : undefined, transition: 'background 0.1s' }}
               onMouseEnter={r.onClick ? (e => e.currentTarget.style.background = refined ? 'rgba(0,0,0,0.04)' : C.sf2) : undefined}
               onMouseLeave={r.onClick ? (e => e.currentTarget.style.background = 'transparent') : undefined}>
               {r.cells.map((cell, i) => (
@@ -629,7 +629,7 @@ export const Card = ({ children, style, onClick, onMouseEnter, onMouseLeave, hea
       style={{
       background: 'var(--c-sf)',
       border: `1px solid ${C.cardBd}`,
-      borderLeft: leftStripe ? `3px solid ${leftStripe}` : `1px solid ${C.cardBd}`,
+      borderInlineStart: leftStripe ? `3px solid ${leftStripe}` : `1px solid ${C.cardBd}`,
       borderRadius: 0,
       padding: padNum,
       cursor: draggable ? "grab" : (onClick ? "pointer" : "default"),
