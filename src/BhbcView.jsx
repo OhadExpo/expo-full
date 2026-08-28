@@ -1473,7 +1473,7 @@ function NextGamePanel({ nextGame, today, onEdit }) {
   const when = days <= 0 ? tr('GAME DAY') : days === 1 ? tr('Tomorrow') : (he ? `בעוד ${days} ימים` : `In ${days} days`);
   const timeLabel = nextGame.timeTBD || !nextGame.start ? tr('Time TBD') : nextGame.start;
   return (
-    <Card padding={18} leftStripe={ORANGE} header={secTitle('Next Game')} headerRight={<div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff' }}>{when}</span>{onEdit && <button onClick={onEdit} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', padding: '4px 9px', cursor: 'pointer' }}>Edit</button>}</div>}>
+    <Card padding={18} leftStripe={ORANGE} header={secTitle('Next Game')} headerRight={<div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff' }}>{when}</span>{onEdit && <button onClick={onEdit} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', padding: '4px 9px', cursor: 'pointer' }}>{tr('Edit')}</button>}</div>}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
         <div style={{ textAlign: 'center', flexShrink: 0 }}>
           <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 40, lineHeight: 1, color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums' }}>{Math.max(0, days)}</div>
@@ -1501,6 +1501,7 @@ function NextGamePanel({ nextGame, today, onEdit }) {
 // shows numbers, the brief says what to DO about them. Action-first, rationale
 // muted. Pre-season (no data) it points at the right first move: baseline.
 function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onCheckin, onLog }) {
+  const tr = useT();
   const first = (r) => (r.t.name || '').trim().split(/\s+/)[0] || r.t.name;
   const names = (arr) => arr.slice(0, 4).map(first).join(', ') + (arr.length > 4 ? ` +${arr.length - 4}` : '');
   const anyLoad = rows.some((r) => r.hasLoad);
@@ -1513,10 +1514,10 @@ function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onCheckin, onL
   // 2) ACWR danger (>1.5) then elevated (1.3–1.5) — Gabbett sweet spot 0.8–1.3.
   const danger = rows.filter((r) => r.acwr.band.key === 'high');
   const elevated = rows.filter((r) => r.acwr.band.key === 'elevated');
-  if (danger.length) A.push({ sev: 'red', do: `Pull back ${names(danger)}`, why: 'ACWR in the danger zone (>1.5) — cut load today, injury risk climbs here.', ids: danger.map((r) => r.t.id) });
+  if (danger.length) A.push({ sev: 'red', do: `${tr('Pull back')} ${names(danger)}`, why: tr('ACWR danger zone'), ids: danger.map((r) => r.t.id) });
   // 3) Readiness red today (autoreg says don't load).
   const red = rows.filter((r) => r.readiness.level === 'red');
-  if (red.length) A.push({ sev: 'red', do: `Regress ${names(red)} today`, why: `readiness red — ${red[0].readiness.headline || 'reassess before loading'}.`, ids: red.map((r) => r.t.id) });
+  if (red.length) A.push({ sev: 'red', do: `${tr('Regress')} ${names(red)} ${tr('today')}`, why: `${tr('readiness red')} — ${red[0].readiness.headline || tr('reassess before loading')}.`, ids: red.map((r) => r.t.id) });
   // 3b) Fixture congestion — a tight run of games needs rotation + recovery.
   const games = (fixtures || []).filter((f) => f.type === 'game' && f.date >= today).sort((a, b) => a.date.localeCompare(b.date));
   for (let i = 0; i < games.length - 1; i++) {
@@ -1525,20 +1526,20 @@ function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onCheckin, onL
   }
   // 4) Injuries in rehab.
   const injured = rows.filter((r) => activeInjuries(medical, r.t.id).length);
-  if (injured.length) A.push({ sev: 'red', do: `${injured.length} in rehab (${names(injured)})`, why: 'check the Medical board for return-to-play + limits.', ids: injured.map((r) => r.t.id) });
-  if (elevated.length) A.push({ sev: 'amber', do: `Watch ${names(elevated)}`, why: "ACWR elevated (1.3–1.5) — hold, don't add load.", ids: elevated.map((r) => r.t.id) });
+  if (injured.length) A.push({ sev: 'red', do: `${injured.length} ${tr('in rehab')} (${names(injured)})`, why: tr('check the medical board'), ids: injured.map((r) => r.t.id) });
+  if (elevated.length) A.push({ sev: 'amber', do: `${tr('Watch')} ${names(elevated)}`, why: tr('ACWR elevated'), ids: elevated.map((r) => r.t.id) });
   // 5) Monotony ≥2 (Foster).
   const mono = rows.filter((r) => r.ms.monotony != null && r.ms.monotony >= 2);
-  if (mono.length) A.push({ sev: 'amber', do: `Vary the stimulus for ${names(mono)}`, why: 'monotony ≥2 — add hard/easy contrast to break the sameness.', ids: mono.map((r) => r.t.id) });
+  if (mono.length) A.push({ sev: 'amber', do: `${tr('Vary the stimulus for')} ${names(mono)}`, why: tr('monotony high'), ids: mono.map((r) => r.t.id) });
   // 6) Undertrained (ACWR <0.8) — ramp safely.
   const detr = rows.filter((r) => r.acwr.band.key === 'detrained');
-  if (detr.length && anyLoad) A.push({ sev: 'info', do: `Ramp ${names(detr)} up`, why: 'ACWR <0.8 (undertrained) — build ~10%/wk, avoid a spike.', ids: detr.map((r) => r.t.id) });
+  if (detr.length && anyLoad) A.push({ sev: 'info', do: `${tr('Ramp up')} ${names(detr)}`, why: tr('ACWR undertrained'), ids: detr.map((r) => r.t.id) });
   // 7) Missing wellness check-ins today.
   const missing = rows.filter((r) => !r.checkedToday);
-  if (missing.length && missing.length < rows.length) A.push({ sev: 'info', do: 'Chase check-ins', why: `${missing.length} of ${rows.length} haven't logged wellness today.`, act: onCheckin });
+  if (missing.length && missing.length < rows.length) A.push({ sev: 'info', do: tr('Chase check-ins'), why: `${missing.length} of ${rows.length} haven't logged wellness today.`, act: onCheckin });
   // 8) Pre-season / no data — baseline first.
   if (!anyLoad && rows.every((r) => !r.checkedToday)) {
-    A.unshift({ sev: 'game', do: 'Start tracking the roster', why: 'pre-season — log the first sessions + a daily wellness check so ACWR & readiness start tracking.', act: onCheckin });
+    A.unshift({ sev: 'game', do: tr('Start tracking the roster'), why: tr('pre-season start'), act: onCheckin });
   }
   const sevRank = { game: 0, red: 1, amber: 2, info: 3 };
   const top = A.sort((a, b) => sevRank[a.sev] - sevRank[b.sev]).slice(0, 5);
@@ -1632,7 +1633,7 @@ function HeadCoachReport({ rows, fx, fixtures, medical, today, onOpen, onMedical
                     {/* WRAP, do not ellipsize. The row already wraps, and on a narrow RTL line
     the ellipsis eats the START of the diagnosis — "…T SPRAIN" instead of
     "ANKLE LEFT SPRAIN". A truncated injury is not an injury report. */}
-                    <span style={{ color: C.tm, minWidth: 128, flexShrink: 1, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : '', inj.type].filter(Boolean).join(' ')} · {s.label}{inj.rtpTarget ? ` · RTP ${monDay(inj.rtpTarget)}` : ''}</span>
+                    <span style={{ color: C.tm, minWidth: 128, flexShrink: 1, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : '', inj.type].filter(Boolean).map((x) => tr(x)).join(' ')} · {tr(s.label)}{inj.rtpTarget ? ` · RTP ${monDay(inj.rtpTarget)}` : ''}</span>
                                       {onMedical && (
                       <button onClick={(e) => { e.stopPropagation(); onMedical(t.id); }} title="Update this medical report" className="bhbc-ghost-btn"
                         style={{ marginLeft: 'auto', flexShrink: 0, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, height: ROW_BTN_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, padding: '0 9px', cursor: 'pointer' }}>{tr('UPDATE')}</button>
@@ -1719,7 +1720,7 @@ function TodayPanel({ today, fixtures, fx, rows, onSessions, onLog, planOf, onPl
             {pl.focus ? <b style={{ color: C.tx }}>{pl.focus}</b> : null}{pl.focus && pl.plan ? ' — ' : ''}{pl.plan}
           </span>
         ) : clickable ? (
-          <button type="button" onClick={() => onPlan(f)} className="bhbc-ghost-btn" style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: ORANGE }}>+ plan this session</button>
+          <button type="button" onClick={() => onPlan(f)} className="bhbc-ghost-btn" style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: ORANGE }}>+ {tr('plan this session')}</button>
         ) : null}
       </span>
     );
@@ -1741,7 +1742,7 @@ function TodayPanel({ today, fixtures, fx, rows, onSessions, onLog, planOf, onPl
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, paddingBottom: 14, borderBottom: `1px solid ${C.cardBd}`, flexWrap: 'wrap' }}>
           <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm }}>{tr('Today’s focus')}</span>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 22, boxSizing: 'border-box', padding: '0 9px', fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.06em', color: focusC, background: `color-mix(in srgb, ${focusC} 13%, transparent)`, border: `1px solid color-mix(in srgb, ${focusC} 38%, transparent)`, whiteSpace: 'nowrap' }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: focusC, flexShrink: 0 }} />{focus.label}</span>
-          <span style={{ fontFamily: FB, fontSize: 13, color: C.tx }}>{focus.emphasis}</span>
+          <span style={{ fontFamily: FB, fontSize: 13, color: C.tx }}>{tr(focus.emphasis)}</span>
         </div>
       )}
       <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'flex-start' }}>
@@ -1751,10 +1752,10 @@ function TodayPanel({ today, fixtures, fx, rows, onSessions, onLog, planOf, onPl
             <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'flex-start' }}>{todayFx.map((f, i) => chipWrap(f, i, false))}</div>
           ) : next ? (
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-              <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.td }}>None today · next</span>
+              <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.td }}>{tr('None today · next')}</span>
               {next.items.slice(0, 3).map((f, i) => chipWrap(f, i, true))}
             </div>
-          ) : <span style={{ fontFamily: FB, fontSize: 13, color: C.td }}>No sessions scheduled.</span>}
+          ) : <span style={{ fontFamily: FB, fontSize: 13, color: C.td }}>{tr('No sessions scheduled.')}</span>}
         </div>
         <div style={{ flex: '1 1 150px' }}>
           <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm, marginBottom: 8 }}>{tr('Availability')}</div>
@@ -1772,7 +1773,7 @@ function TodayPanel({ today, fixtures, fx, rows, onSessions, onLog, planOf, onPl
         </div>
         {(onSessions || onLog) && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {onSessions && <Btn onClick={onSessions} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>Start session ›</Btn>}
+            {onSessions && <Btn onClick={onSessions} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>{tr('Start session')} ›</Btn>}
             {onLog && <Btn variant="ghost" onClick={onLog}>{tr('Log practice')}</Btn>}
           </div>
         )}
@@ -1888,7 +1889,7 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, onOpen, onMedical 
         </div>
       </div>
       <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 14, paddingTop: 12, borderTop: `1px solid ${C.cardBd}`, fontFamily: FN, fontSize: 10, color: C.td }}>
-        {[[BAND.low, '0.8–1.3 sweet spot'], [BAND.elevated, '>1.3 elevated'], [BAND.high, '≥1.5 danger'], [BAND.detrained, '<0.8 undertrained']].map(([c, l]) => (
+        {[[BAND.low, tr('band sweet spot')], [BAND.elevated, tr('band elevated')], [BAND.high, tr('band danger')], [BAND.detrained, tr('band undertrained')]].map(([c, l]) => (
           <span key={l} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, letterSpacing: '0.04em' }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: c }} />{l}</span>
         ))}
         <span style={{ marginLeft: 'auto', color: C.tm }}>ACWR = 7-day ÷ 28-day sRPE</span>
@@ -1915,7 +1916,7 @@ function RosterGrid({ rows, medical = {}, league = {}, onOpen }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, paddingTop: 10, borderTop: `0.25px solid ${C.cardBd}` }}>
                 <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{heightM(t.heightCm)}</span>
                 <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', color: C.tm, lineHeight: 1 }}>{flag(t.nationality)}</span>
-                {(() => { const lp = leaguePlayerFor(league, t.name); return lp ? <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: ORANGE_DEEP, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }} title="League points per game">{lp.ppg} PPG</span> : null; })()}
+                {(() => { const lp = leaguePlayerFor(league, t.name); return lp ? <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: ORANGE_DEEP, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }} title="League points per game"><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{lp.ppg} PPG</span></span> : null; })()}
                 <span style={{ marginLeft: 'auto' }}>{acwr.ratio != null ? <BandPill band={acwr.band} value={acwr.ratio.toFixed(2)} /> : <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>no load yet</span>}</span>
               </div>
             </div>
@@ -1975,7 +1976,7 @@ function MicrocycleView({ fx, today }) {
                 {d.isToday && <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 800, letterSpacing: '0.1em', color: ORANGE }}>TODAY</span>}
               </div>
               <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 800, letterSpacing: '0.04em', color: d.isGame ? ORANGE_DEEP : C.tx }}>{d.plan.label}</span>
-              <span style={{ fontFamily: FB, fontSize: 11, color: C.tm, lineHeight: 1.35, minHeight: 30 }}>{d.plan.emphasis}</span>
+              <span style={{ fontFamily: FB, fontSize: 11, color: C.tm, lineHeight: 1.35, minHeight: 30 }}>{tr(d.plan.emphasis)}</span>
               {/* Relative load — 5-segment bar, colour = intensity (signal, not paint). */}
               <div style={{ display: 'flex', gap: 2, marginTop: 2 }}>
                 {[1, 2, 3, 4, 5].map((s) => (
@@ -2118,7 +2119,7 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, planOf }
                   <div style={{ marginBottom: 6 }}>
                     <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>Trained </span>
                     {d.trained.length ? <span dir="auto">{names(d.trained)}</span> : <span style={{ color: C.td }}>nobody logged</span>}
-                    {d.avgLoad != null && <span style={{ color: C.tm }}> · avg load {d.avgLoad} AU</span>}
+                    {d.avgLoad != null && <span style={{ color: C.tm }}> · {tr('avg load')} <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{d.avgLoad} AU</span></span>}
                   </div>
                   {d.out.length > 0 && (
                     <div style={{ marginBottom: 6 }}>

@@ -772,8 +772,19 @@ export const Modal = ({ open, onClose, title, children, wide }) => {
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps -- onClose via ref
   const { mounted, closing } = useDelayedUnmount(open);
   if (!mounted) return null;
+  // A dialog is portalled to document.body, which puts it OUTSIDE both
+  // `.app-root` and `.bhbc-zone` — the only two elements that carry `dir`. So
+  // every modal rendered Hebrew text inside an LTR box: left-aligned, with the
+  // close button on the wrong side of the title bar. React context crosses the
+  // portal (so the strings were correctly translated) but DOM direction does
+  // not. Read the direction off whichever zone is mounted and carry it across.
+  const zoneDir = (typeof document !== 'undefined'
+    && (document.querySelector('.bhbc-zone')?.getAttribute('dir')
+      || document.querySelector('.app-root')?.getAttribute('dir'))) || undefined;
+
   return portal(
     <div
+      dir={zoneDir}
       role="dialog" aria-modal="true" aria-labelledby={titleId} className={closing ? 'motion-fade-out' : 'motion-fade-in'}
       style={{ position: "fixed", inset: 0, zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: 60, background: C.scrim, backdropFilter: "blur(8px)" }}
       /* Ohad 2026-08-28: "when a pop-up screen like a medical report is open,
