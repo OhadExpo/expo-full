@@ -187,7 +187,6 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   const [logFor, setLogFor] = useState(null);
   const [detailFor, setDetailFor] = useState(null);
   const [practiceOpen, setPracticeOpen] = useState(false);
-  const [checkinOpen, setCheckinOpen] = useState(false);
   const [gameEdit, setGameEdit] = useState(false);
   const [programFor, setProgramFor] = useState(null);
   const [injuryFor, setInjuryFor] = useState(null); // { athleteId, injuryId? } | null
@@ -799,7 +798,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
                   onMedical={effCanMedical ? ((aid) => { const a = activeInjuries(medical, aid); setInjuryFor({ athleteId: aid, injuryId: a[0] && a[0].id }); }) : null}
                   onReportNew={effCanMedical ? (() => setInjuryFor({ athleteId: (rows[0] && rows[0].t.id) || '' })) : null} />
                 {/* S&C Brief = the S&C operator's action list — removed for coaches. */}
-                {!asCoach && <CoachBrief rows={rows} fx={fx} fixtures={bhbcFixtures} medical={medical} today={today} onOpen={setDetailFor} onCheckin={() => setCheckinOpen(true)} onLog={canLog ? () => setPracticeOpen(true) : null} />}
+                {!asCoach && <CoachBrief rows={rows} fx={fx} fixtures={bhbcFixtures} medical={medical} today={today} onOpen={setDetailFor} onLog={canLog ? () => setPracticeOpen(true) : null} />}
                 <TodayPanel today={today} fixtures={bhbcFixtures} fx={fx} rows={rows} planOf={planOf} onPlan={asCoach ? null : setPlanFor} onSessions={asCoach ? null : () => setView('sessions')} onLog={canLog ? () => setPracticeOpen(true) : null} />
                 {fx.nextGame && <NextGamePanel nextGame={fx.nextGame} today={today} onEdit={asCoach ? null : () => setGameEdit(true)} />}
                 <FixturesAheadPanel fixtures={bhbcFixtures} today={today} />
@@ -895,10 +894,11 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
           onClose={() => setPracticeOpen(false)} onSave={(p) => { savePractice(p); setPracticeOpen(false); }} />
       )}
 
-      {checkinOpen && (
-        <WellnessModal roster={roster} bhbcLoads={bhbcLoads}
-          onClose={() => setCheckinOpen(false)} onSave={(p) => { saveCheckin(p); setCheckinOpen(false); }} />
-      )}
+      {/* WELLNESS CHECK-IN — every entry point removed on Ohad's instruction
+          ("remove the check-in option for now"). WellnessModal and saveCheckin
+          are deliberately left in the file, unused: "for now" means he expects
+          to want it back, and deleting the component would turn restoring it
+          into a rebuild instead of re-adding one button. */}
 
       {gameEdit && fx.nextGame && (
         <GameEditModal game={fx.nextGame} onClose={() => setGameEdit(false)} onSave={(patch) => { updateGame(fx.nextGame, patch); setGameEdit(false); }} />
@@ -1636,7 +1636,7 @@ function NextGamePanel({ nextGame, today, onEdit }) {
 // monotony, Mujika taper, ~10%/wk ramp). This is the decision layer: the board
 // shows numbers, the brief says what to DO about them. Action-first, rationale
 // muted. Pre-season (no data) it points at the right first move: baseline.
-function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onCheckin, onLog }) {
+function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onLog }) {
   const tr = useT();
   const first = (r) => (r.t.name || '').trim().split(/\s+/)[0] || r.t.name;
   const names = (arr) => arr.slice(0, 4).map(first).join(', ') + (arr.length > 4 ? ` +${arr.length - 4}` : '');
@@ -1672,10 +1672,10 @@ function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onCheckin, onL
   if (detr.length && anyLoad) A.push({ sev: 'info', do: `${tr('Ramp up')} ${names(detr)}`, why: tr('ACWR undertrained'), ids: detr.map((r) => r.t.id) });
   // 7) Missing wellness check-ins today.
   const missing = rows.filter((r) => !r.checkedToday);
-  if (missing.length && missing.length < rows.length) A.push({ sev: 'info', do: tr('Chase check-ins'), why: `${missing.length} of ${rows.length} haven't logged wellness today.`, act: onCheckin });
+  // (the "chase check-ins" item went with the rest of the check-in flow)
   // 8) Pre-season / no data — baseline first.
   if (!anyLoad && rows.every((r) => !r.checkedToday)) {
-    A.unshift({ sev: 'game', do: tr('Start tracking the roster'), why: tr('pre-season start'), act: onCheckin });
+    A.unshift({ sev: 'game', do: tr('Start tracking the roster'), why: tr('pre-season start') });
   }
   const sevRank = { game: 0, red: 1, amber: 2, info: 3 };
   const top = A.sort((a, b) => sevRank[a.sev] - sevRank[b.sev]).slice(0, 5);
