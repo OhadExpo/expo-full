@@ -532,7 +532,10 @@ export function scoreShot(series, c, { statureCm = null, shotType = 'mid' } = {}
     const tr = trackBall(frames, { ...(origin ? { origin } : {}), stats });
     if (!tr) return { failed: 'no track', frames: frames.length, blobs: frames.reduce((a, f) => a + f.blobs.length, 0), stats };
     const out = {};
-    const la = launchAngle(tr.points, tMs[c.release], tr.ballPx, out);
+    // `origin` is the shooting wrist at release — already computed above for
+    // trackBall. launchAngle needs it too, so the rise gate can measure from
+    // the hand rather than from wherever the track happened to begin.
+    const la = launchAngle(tr.points, tMs[c.release], tr.ballPx, out, origin);
     if (!la) return { failed: 'track rejected', why: out.why, frames: frames.length, n: tr.points.length, fit: tr.fit, ballPx: tr.ballPx, stats };
     return la;
   })();

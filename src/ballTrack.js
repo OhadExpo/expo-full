@@ -240,7 +240,7 @@ export function trackBall(frames, opts = {}) {
  * Returns { angleDeg, fit, n } or null when the samples do not describe a
  * projectile — the normal outcome for a bad detection run, and the entire point.
  */
-export function launchAngle(points, releaseMs = null, ballPx = 0, out = null) {
+export function launchAngle(points, releaseMs = null, ballPx = 0, out = null, origin = null) {
   // Every refusal below says WHY. There are a dozen ways for a track to fail
   // this and they all used to return a bare null, so an untracked rep was
   // indistinguishable from a rep that was never filmed — and unfixable without
@@ -269,10 +269,41 @@ export function launchAngle(points, releaseMs = null, ballPx = 0, out = null) {
   if (quad.r2 < 0.9) return no(`the path is not a parabola (r2 ${quad.r2.toFixed(2)})`);
 
   // Did it actually GO UP? A shot climbs for many ball-widths before it falls.
+  let ascentMissing = false;
   // Something drifting almost level can still fit a parabola beautifully — on
   // the real clip one such track rose by less than a third of a ball.
   if (ballPx > 0) {
-    const climb = Math.max(...ys) - ys[0];
+    // Measure the rise from the HAND, not from the first blob the tracker
+    // managed to lock onto.
+    //
+    // Shot 4 of Ohad's clip was rejected as "it barely rose (0.5 ball widths)"
+    // for months of work. It is a real, clean shot. Reading the fixture frame
+    // by frame: the highest blob traces 0.308 -> 0.292 (apex) -> 0.451, a
+    // textbook parabola whose descent accelerates at gravity. The problem is
+    // that at the labelled release the ball is ALREADY 0.12 frame-heights
+    // above the wrist — the ascent out of the hand is not in the candidate set
+    // at all, so the arc begins near its own apex and the climb measured
+    // WITHIN it is meaningless.
+    //
+    // The ball starts in the hand. That is the base. With it, the same rep
+    // measures ~5 ball widths instead of 0.5.
+    //
+    // This can only ever INCREASE the measured climb, so no rep that passes
+    // today can start failing. The gravity check below is what still keeps a
+    // drifting object out; this gate only ever answered "did it go up".
+    let base = ys[0];
+    // Set when the base had to come from the hand — i.e. the climb out of the
+    // hand was never tracked. Recorded because it decides, below, which
+    // numbers this flight can honestly report.
+    if (origin && Number.isFinite(origin.y) && Number.isFinite(origin.x)) {
+      const originUp = -origin.y;
+      // Only when the hand is genuinely BELOW the first tracked point (i.e. the
+      // ascent was missed) and the arc starts near the hand horizontally —
+      // otherwise this would anchor to a hand that has nothing to do with the
+      // tracked object.
+      if (originUp < base && Math.abs(xs[0] - origin.x) < 6 * ballPx) { base = originUp; ascentMissing = true; }
+    }
+    const climb = Math.max(...ys) - base;
     if (climb < 1.2 * ballPx) return no(`it barely rose (${(climb / ballPx).toFixed(1)} ball widths)`);
   }
 
@@ -359,6 +390,33 @@ export function launchAngle(points, releaseMs = null, ballPx = 0, out = null) {
     if (!(riseM > 0.05 && riseM < 4)) riseM = null;
   }
 
+  // WHAT THIS FLIGHT CAN HONESTLY REPORT.
+  //
+  // When the ascent out of the hand was never tracked, the arc begins near its
+  // own apex. Everything measured AT THE RELEASE — launch angle, release speed,
+  // rise — is then an extrapolation across frames that were never seen, and it
+  // reads far too low: the rescued rep on Ohad's clip fits at r2 0.994 and
+  // still yields 19 degrees at 3.2 m/s, when a jump shot leaves the hand near
+  // 45-55 degrees at ~7 m/s.
+  //
+  // The shot is real and is now correctly DETECTED and tracked. But a wrong
+  // number presented as a measurement is worse than no number — the file
+  // already nulls a speed outside 2-14 m/s for exactly this reason. Same rule
+  // here: keep the flight, drop the release-time figures, and say why.
+  if (ascentMissing) {
+    return {
+      recede,
+      obliqueShot: recede != null && recede >= 1.2,
+      angleDeg: null,
+      fit: Math.round(quad.r2 * 1000) / 1000,
+      n: p.length,
+      speedMs: null,
+      riseM: null,
+      ascentMissing: true,
+      partialWhy: 'the ball was already above the hand when tracking began, so the release angle and speed are not measurable on this rep',
+    };
+  }
+
   return {
     // How much the ball shrank across the flight, and whether that is enough to
     // say the shot was not square to the camera. 1.0 = square.
@@ -369,6 +427,7 @@ export function launchAngle(points, releaseMs = null, ballPx = 0, out = null) {
     n: p.length,
     speedMs: speedMs == null ? null : Math.round(speedMs * 10) / 10,
     riseM: riseM == null ? null : Math.round(riseM * 100) / 100,
+    ascentMissing: false,
   };
 }
 

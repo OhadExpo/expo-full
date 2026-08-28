@@ -852,3 +852,77 @@ release instant inside a window. So:
 
 Which makes the choice cleaner than "fast vs slow": **`'coarse'` if you want to
 trust the count, `true` if you want to compare one rep against another rep.**
+
+---
+
+## 2026-08-28 — shot 4 is solved, and it was not where anyone was looking
+
+**Root cause: the tracker only ever sees the ball from ABOVE the release point.**
+The rise gate then measures the climb *within the tracked arc*, which begins
+near its own apex, so a real shot reads as "it barely rose".
+
+How it was found — by reading the fixture frame by frame instead of inferring:
+
+```
+ t       highest blob y        (ball-rejected.json, wrist at y=0.429)
+ 13783   0.308   <- at the labelled release the ball is ALREADY 0.12 above the hand
+ 14183   0.292   <- apex
+ 14933   0.451   <- descent, and the gaps GROW: 2 6 6 9 12 14 17 22 px
+```
+
+That is a textbook parabola whose descent accelerates at gravity. The "near
+stationary feature at y≈0.29" from the 08-27 note is not a feature — **it is the
+ball**, seen only from apex onward. The band the ball must cross on its way up
+(y 0.33–0.45) contains **1 blob in 20 frames**: the ascent is simply not in the
+candidate set.
+
+The wrist track settles it. Across the whole 470 ms window the wrist moves from
+y 0.4678 to 0.4662 and x 0.3432 to 0.3450 — a **static hand**. Whatever
+`releaseT` is pointing at on this rep, it is not the instant of release.
+
+### A third hypothesis eliminated
+
+3. ~~The ball's blob exceeds `maxPixels = 400` and is discarded as too big.~~
+   Plausible on paper — the failure reports `ballPx: 26`, and a 26 px ball is
+   ~531 px² — but `ballPx` is the median size of the blob it actually TRACKED
+   (the wrong object), not the ball. Measured from the fixture, the largest blob
+   in the whole window is **245 px²**. The cap is not binding. Tested before
+   changing anything, and it was wrong.
+
+### The fix, and what it deliberately does NOT claim
+
+`launchAngle` now takes the release `origin` — the shooting wrist, already
+computed at the call site for `trackBall` — and measures the climb from the
+HAND when the arc starts above it. Same rep: 0.2 → **7.0 ball widths**.
+
+Verified offline against the fixtures (`scripts/replay-rise-gate.mjs`), which
+answers in a second instead of re-running a two-minute clip:
+
+```
+ball-rejected-det1   before: REFUSED "it barely rose (0.2 ball widths)"
+                     after:  TRACKED r2=0.994 n=20
+ball-rejected-runC   before: REFUSED "it barely rose (0.5 ball widths)"
+                     after:  TRACKED r2=0.997 n=24
+```
+
+**But the rescued rep must not report a launch angle.** With the ascent missing,
+everything measured at the release is extrapolated across frames that were never
+seen, and it reads far too low — r² 0.994 and still 19° at 3.2 m/s, when a jump
+shot leaves the hand near 45–55° at ~7 m/s. So the result carries
+`ascentMissing: true` and returns `angleDeg`/`speedMs`/`riseM` as **null** with a
+stated reason. The shot is detected and tracked; the numbers it cannot honestly
+measure are withheld. `fmtValue` already renders those as "—".
+
+This mirrors what the file already did for a speed outside 2–11 m/s: *report
+nothing rather than a confident wrong number.*
+
+### Still open
+
+- **Why the ascent is missing on this rep specifically.** The release timestamp
+  is late (static wrist across the window), so the analysis window opens after
+  the ball has left. Fixing the release detector would recover the real launch
+  angle instead of withholding it — that is the next target, and it is a
+  detection question, not a tracking one.
+- `ball-rejected.json` still refuses at an earlier gate ("not falling like a
+  projectile") because its window runs long past the landing and the tail
+  flattens the quadratic. Trim the window to the flight.
