@@ -441,7 +441,20 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
         // load back out of the day's total.
         const slotKey = `${date}|${start || ''}`;
         const priorRows = (rec.sessions && rec.sessions[date]) || [];
-        const mine = priorRows.filter((r) => r && r.team && (r.start || '') === (start || ''));
+        // REPLACE ONLY WHEN THE SLOT IS IDENTIFIABLE.
+        //
+        // The replace above is keyed on `start`, and `start` is '' whenever the
+        // chosen date has no fixture — an unscheduled or backdated session.
+        // Matching on (r.start || '') === '' then swept up every LEGACY team row
+        // on that date (rows written before per-slot logging carry no `start`
+        // at all), deleted them from every athlete and subtracted their load.
+        // Backdating one shootaround to a day with two old sessions would have
+        // silently removed both and dropped the squad's ACWR.
+        //
+        // Without a slot identity there is nothing to replace, so append. A
+        // duplicate row is visible and deletable; a wiped legacy session is
+        // neither.
+        const mine = start ? priorRows.filter((r) => r && r.team && r.start === start) : [];
         if (mine.length) {
           const undo = mine.reduce((a, r) => a + (Number(r.load) || 0), 0);
           rec.sessions = { ...(rec.sessions || {}) };
@@ -2380,7 +2393,8 @@ function WeekPlanner({ fixtures = [], today, planOf, onSavePlan, onUpsert, onRem
 }
 const sameSlotKey = (a, b) => a && b && a.date === b.date && String(a.start || '') === String(b.start || '') && a.type === b.type;
 
-function ScheduleTool({ fx, fixtures, today, mode, setMode }) {
+function ScheduleTool({ fx, fixtures, today, mode, setMode, onLog }) {
+  const tr = useT();
   const toggle = (
     <div style={{ display: 'inline-flex', border: '1px solid rgba(255,255,255,0.32)' }}>
       {[['calendar', 'Month'], ['week', 'Week'], ['list', 'List']].map(([k, l]) => (
@@ -2389,7 +2403,14 @@ function ScheduleTool({ fx, fixtures, today, mode, setMode }) {
     </div>
   );
   return (
-    <Card padding={18} leftStripe={ORANGE} header={secTitle('Schedule')} headerRight={toggle}>
+    <Card padding={18} leftStripe={ORANGE} header={secTitle('Schedule')} headerRight={
+      onLog ? (
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          {toggle}
+          <button onClick={onLog} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', height: 24, boxSizing: 'border-box', padding: '0 9px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, cursor: 'pointer', borderRadius: 0 }}>{tr('Log session')}</button>
+        </div>
+      ) : toggle
+    }>
       {mode === 'calendar' ? <ScheduleMonth fixtures={fixtures} today={today} /> : mode === 'week' ? <ScheduleWeek fixtures={fixtures} today={today} /> : <ScheduleList fx={fx} today={today} />}
     </Card>
   );
@@ -3022,7 +3043,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
             ['5', 'Contact · modified', 'Full-speed contact drills with minutes capped.'],
             ['6', 'Full training → cleared', 'Complete sessions, no restrictions, then clear to play.'],
           ].map(([n, stage, detail]) => (
-            <div key={n} style={{ display: 'grid', gridTemplateColumns: '30px 150px 1fr', gap: 12, alignItems: 'center', background: 'var(--c-sf)', padding: '10px 12px' }}>
+            <div key={n} style={{ display: 'grid', gridTemplateColumns: '30px minmax(0, 150px) minmax(0, 1fr)', gap: 12, alignItems: 'center', background: 'var(--c-sf)', padding: '10px 12px' }}>
               <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums' }}>{n}</span>
               <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.03em', color: C.tx }}>{stage}</span>
               <span style={{ fontFamily: FB, fontSize: 12, color: C.tm, lineHeight: 1.4 }}>{detail}</span>
