@@ -981,7 +981,23 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
   (workouts || []).forEach((w) => { const d = String(w.date || w.completedAt || '').slice(0, 10); const nEx = (w.exercises || []).length; const nSets = (w.exercises || []).reduce((a, e) => a + (e.sets || []).length, 0); if (d) activity.push({ date: d, label: `Gym · ${nEx} lift${nEx === 1 ? '' : 's'}, ${nSets} set${nSets === 1 ? '' : 's'}`, load: null }); });
   Object.entries((rec && rec.bw) || {}).forEach(([d, kg]) => activity.push({ date: d, label: `Bodyweight ${kg} kg`, load: null }));
   Object.entries((rec && rec.availability) || {}).forEach(([d, code]) => { if (code > 1) activity.push({ date: d, label: `Availability · ${AVAIL[code].label}`, load: null }); });
-  Object.entries((rec && rec.notes) || {}).forEach(([d, n]) => { if (n) activity.push({ date: d, label: `Note — ${n}`, load: null }); });
+  // NOTES ARE STORED UNDER TWO KEYS. savePractice writes each note as both
+  // `date` and `date|start` — the slot-keyed copy so a morning and an evening
+  // note can coexist, the day-level one so older readers still find it. This
+  // loop treated every key as a date, so one note appeared TWICE in the
+  // athlete's history and the slot-keyed row rendered its date column as
+  // "08-27|18:00" (a.date.slice(5) into a 62px tabular column).
+  //
+  // Prefer the slot-keyed copies — they are the accurate record, since the
+  // day-level key holds only whichever slot was saved last — and show the DAY
+  // in the date column either way.
+  const noteEntries = (rec && rec.notes) || {};
+  const daysWithSlotNote = new Set(Object.keys(noteEntries).filter((k) => k.includes('|')).map((k) => k.split('|')[0]));
+  Object.entries(noteEntries).forEach(([k, n]) => {
+    if (!n) return;
+    if (!k.includes('|') && daysWithSlotNote.has(k)) return;   // the duplicate
+    activity.push({ date: k.split('|')[0], label: `Note — ${n}`, load: null });
+  });
   // League games fold into the same timeline, so the full history covers court + gym.
   (leaguePlayer && leaguePlayer.log ? leaguePlayer.log : []).forEach((g) => { if (g.date) activity.push({ date: g.date, game: { opp: g.opp && !isBH(g.opp) ? g.opp.replace(/\s*\(.*$/, '') : '—', pts: g.pts, reb: g.reb, ast: g.ast, min: g.min }, load: null }); });
   activity.sort((a, b) => b.date.localeCompare(a.date));
