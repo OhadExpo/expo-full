@@ -127,3 +127,91 @@ export function sessionRead(shots) {
   }
   return { spread, verdict, culprit };
 }
+
+// WHAT THE WHOLE SESSION SAYS - beyond one rep's scorecard.
+//
+// A per-rep scorecard answers "what went wrong on THIS shot". A coach standing
+// on the court is asking three different questions: what is already solid and
+// should be left alone, what is broken on nearly every rep, and what is
+// wandering rather than wrong. Those need different responses - the first
+// nothing, the second a technical change, the third repetition - so lumping
+// them into one "fix first" list makes them unactionable (Ohad 08-30: "i need
+// more conclusions from analyzing all the reps, positive, negative, focuses").
+//
+// Everything here is counted across reps. Nothing is inferred from a single
+// shot, because a single phone-clip reading carries an unknown camera offset.
+
+const RATE = { solid: 0.8, broken: 0.5 };
+
+/** Per-checkpoint tallies across every rep in the clip. */
+export function checkTally(shots) {
+  const by = new Map();
+  for (const s of shots || []) {
+    for (const c of (s.checks || [])) {
+      if (!by.has(c.key)) by.set(c.key, { key: c.key, label: c.label, ok: 0, watch: 0, fix: 0, na: 0, n: 0, weight: c.weight || 1 });
+      const t = by.get(c.key);
+      if (t[c.status] == null) continue;
+      t[c.status] += 1;
+      if (c.status !== 'na') t.n += 1;
+    }
+  }
+  for (const t of by.values()) {
+    t.okRate = t.n ? t.ok / t.n : 0;
+    t.fixRate = t.n ? t.fix / t.n : 0;
+    t.badRate = t.n ? (t.fix + t.watch) / t.n : 0;
+  }
+  return [...by.values()];
+}
+
+/**
+ * Did the shooter hold up across the clip? Compares the mean score of the first
+ * third of the reps with the last third. Needs six reps: with fewer, a single
+ * bad rep moves the mean more than fatigue ever would, and the answer would be
+ * noise wearing a number.
+ */
+export function fatigueTrend(shots, { minReps = 6, minDelta = 5 } = {}) {
+  const sc = (shots || []).map((s) => s.score).filter((x) => typeof x === 'number' && Number.isFinite(x));
+  if (sc.length < minReps) return null;
+  const k = Math.max(2, Math.floor(sc.length / 3));
+  const mean = (a) => a.reduce((x, y) => x + y, 0) / a.length;
+  const first = mean(sc.slice(0, k)), last = mean(sc.slice(-k));
+  const delta = Math.round(last - first);
+  if (Math.abs(delta) < minDelta) return { delta, dir: 'flat', first: Math.round(first), last: Math.round(last), n: k };
+  return { delta, dir: delta < 0 ? 'declined' : 'improved', first: Math.round(first), last: Math.round(last), n: k };
+}
+
+/**
+ * The session read a coach can act on:
+ *   solid    - right on at least 80% of reps. Leave these alone.
+ *   broken   - wrong on at least half. A technical change, not repetition.
+ *   wandering- sometimes right, sometimes wrong. Repetition, not a change.
+ *   focus    - the one or two worth a session, worst first by weight.
+ */
+export function sessionConclusions(shots) {
+  const reps = (shots || []).length;
+  if (!reps) return null;
+  const tally = checkTally(shots).filter((t) => t.n > 0);
+  const solid = tally.filter((t) => t.okRate >= RATE.solid).sort((a, b) => b.okRate - a.okRate);
+  const broken = tally.filter((t) => t.fixRate >= RATE.broken).sort((a, b) => (b.fixRate * b.weight) - (a.fixRate * a.weight));
+  // Wandering = it has been right AND wrong in the same clip, without either
+  // being the clear rule. That is the definition of a consistency problem.
+  const wandering = tally
+    .filter((t) => t.ok > 0 && (t.fix + t.watch) > 0 && t.okRate < RATE.solid && t.fixRate < RATE.broken)
+    .sort((a, b) => b.badRate - a.badRate);
+  const scores = shots.map((s) => s.score).filter((x) => typeof x === 'number' && Number.isFinite(x));
+  const best = scores.length ? Math.max(...scores) : null;
+  const worst = scores.length ? Math.min(...scores) : null;
+  return {
+    reps,
+    scored: scores.length,
+    avg: scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null,
+    best,
+    worst,
+    band: best != null && worst != null ? best - worst : null,
+    solid,
+    broken,
+    wandering,
+    focus: (broken.length ? broken : wandering).slice(0, 2),
+    trend: fatigueTrend(shots),
+  };
+}

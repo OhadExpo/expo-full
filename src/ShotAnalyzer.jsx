@@ -10,7 +10,7 @@ import { captureShotFrames } from './shotCapture';
 import { getCamera, stopStream } from './usePose';
 import { detectShootingHand, analyzeShotClip, frameReadout, CHECKPOINTS, SHOT_TYPES } from './shotAnalysis';
 import { SHOT_I18N, localiseCheck } from './shotI18n';
-import { sessionRead } from './shotSession.js';
+import { sessionRead, sessionConclusions } from './shotSession.js';
 import { crossFade } from './viewTransition';
 import { flushSync } from 'react-dom';
 
@@ -534,7 +534,8 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
           {/* Ordered up the body, four to a row: ground → trunk → shoulder on the
               first line, then the arm chain elbow → forearm → wrist on the
               second, so the eye reads it in the same order the shot happens. */}
-          <div className="shot-readout" style={{ marginTop: 10, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(104px, 1fr))', gap: 6 }}>
+          <div style={{ ...lbl, marginTop: 10, marginBottom: 4 }}>{(T.measuredOnSide ? T.measuredOnSide(hand === 'L' ? T.left : T.right) : 'MEASURED ON THE SHOOTING SIDE · ' + (hand === 'L' ? 'LEFT' : 'RIGHT'))}</div>
+          <div className="shot-readout" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(104px, 1fr))', gap: 6 }}>
             {[[T.metrics.knee, fmt(rd.knee) + '°'], [T.metrics.hip, fmt(rd.hip) + '°'], [T.metrics.trunk, fmt(rd.trunk) + '°'], [T.metrics.armElev, fmt(rd.shoulder) + '°'], [T.metrics.elbow, fmt(rd.elbow) + '°'], [T.metrics.elbowOffset, fmt(rd.wristElbowX, 2)], [T.metrics.forearm, fmt(rd.forearm) + '°'], [T.metrics.wristEye, (rd.wristEye == null ? '—' : (rd.wristEye >= 0 ? '+' : '') + fmt(rd.wristEye, 2))]].map(([k, v]) => (
               <div key={k} style={{ border: '1px solid rgba(255,255,255,0.12)', padding: '6px 8px', minHeight: 46, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                 <div style={lbl}>{k}</div>
@@ -552,12 +553,18 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
             <div style={{ flex: 1 }} />
             <button onClick={onReset} style={{ ...ghost, padding: '0 12px', fontSize: 10 }}>{T.newClip}</button>
           </div>
-          <Timeline series={series} shot={shot} cur={cur} onSeek={seekTo} T={T} />
+          <Timeline series={series} shot={shot} cur={cur} onSeek={seekTo} T={T} hand={hand} />
         </div>
 
         {/* RIGHT — score, scorecard, guide */}
         <div className="shot-right" style={{ flex: '1 1 420px', minWidth: 300 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', marginBottom: 12 }}>
+          {/* The score, the verdict and the rep picker STICK to the top of the
+              scroller. Scrolling into the checkpoint list used to take the rep
+              number off screen, so a coach reading a row had no way to see
+              which rep it belonged to, or to move to the next one without
+              scrolling back up (Ohad 08-30). */}
+          <div style={{ position: 'sticky', top: 0, zIndex: 3, background: '#000', paddingTop: 4, paddingBottom: 10,
+            borderBottom: '1px solid rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', marginBottom: 12 }}>
             <div style={{ width: 84, height: 84, borderRadius: '50%', border: `4px solid ${sc.color}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <div style={{ fontFamily: FN, fontSize: 26, fontWeight: 700, lineHeight: 1 }}>{shot.score ?? '—'}</div>
               <div style={{ ...lbl, fontSize: 8 }}>/ 100</div>
@@ -850,6 +857,16 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
           )}
 
           {/* scorecard */}
+          {/* THE WHOLE SESSION, not this rep.
+              The scorecard below answers "what went wrong on this shot". A coach
+              on the court is asking three other questions, and they need three
+              different answers: what is already solid (leave it alone), what is
+              wrong on nearly every rep (change the technique), and what wanders
+              between right and wrong (repeat it, do not change it). Collapsing
+              those into one list is what made the old summary unusable
+              (Ohad 08-30: "i need more conclusions from analyzing all the reps,
+              positive, negative, focuses"). */}
+          <SessionPanel result={result} T={T} />
           <div style={{ ...lbl, color: CYAN, marginBottom: 6 }}>{T.checksTitle(shot.index, result.shots.length)}</div>
           <div style={{ border: '1px solid rgba(255,255,255,0.15)' }}>
             {shot.checks.map((c, i) => {
@@ -908,42 +925,147 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
 }
 
 // Joint-angle timeline with phase bands + playhead; click/drag to seek.
-function Timeline({ series, shot, cur, onSeek, T }) {
+// The session-level read: solid / broken / wandering / focus, plus whether the
+// shooter held up across the clip. All arithmetic lives in shotSession.js so it
+// can be tested without a video; this only draws it.
+function SessionPanel({ result, T }) {
+  const c = useMemo(() => sessionConclusions(result.shots), [result]);
+  if (!c || c.reps < 2) return null;
+  const pct = (x) => Math.round(x * 100) + '%';
+  const Row = ({ title, color, items, render }) => {
+    if (!items || !items.length) return null;
+    return (
+      <div style={{ marginBottom: 8 }}>
+        <div style={{ ...lbl, color, marginBottom: 3 }}>{title}</div>
+        <div style={{ fontSize: 12.5, lineHeight: 1.5, color: 'rgba(255,255,255,0.85)' }}>
+          {items.map((t) => <div key={t.key}>{render(t)}</div>)}
+        </div>
+      </div>
+    );
+  };
+  const trendColor = !c.trend || c.trend.dir === 'flat' ? 'rgba(255,255,255,0.65)' : c.trend.dir === 'declined' ? '#E0A73A' : '#37B27C';
+  return (
+    <div style={{ border: '1px solid rgba(255,255,255,0.15)', padding: '10px 12px', marginBottom: 12 }}>
+      <div style={{ ...lbl, color: CYAN, marginBottom: 6 }}>{T.sessionReadTitle ? T.sessionReadTitle(c.reps) : 'ACROSS ALL ' + c.reps + ' REPS'}</div>
+      <div dir="ltr" style={{ fontSize: 12.5, marginBottom: 8, color: 'rgba(255,255,255,0.8)', unicodeBidi: 'isolate' }}>
+        {(T.sessionSpan || 'best {b} · worst {w} · spread {s}')
+          .replace('{b}', c.best == null ? '—' : c.best)
+          .replace('{w}', c.worst == null ? '—' : c.worst)
+          .replace('{s}', c.band == null ? '—' : c.band)}
+      </div>
+      <Row title={T.sessionSolid || 'HOLDING UP'} color="#37B27C" items={c.solid}
+        render={(t) => (T.sessionSolidLine ? T.sessionSolidLine(t.label, t.ok, t.n) : `${t.label} — right on ${t.ok} of ${t.n}`)} />
+      <Row title={T.sessionBroken || 'WRONG ON MOST REPS'} color="#FF4757" items={c.broken}
+        render={(t) => (T.sessionBrokenLine ? T.sessionBrokenLine(t.label, t.fix, t.n) : `${t.label} — off on ${t.fix} of ${t.n}`)} />
+      <Row title={T.sessionWander || 'INCONSISTENT (REPEAT, DO NOT CHANGE)'} color="#E0A73A" items={c.wandering}
+        render={(t) => (T.sessionWanderLine ? T.sessionWanderLine(t.label, pct(t.okRate)) : `${t.label} — right ${pct(t.okRate)} of the time`)} />
+      {c.trend && (
+        <div style={{ marginTop: 8, fontSize: 12.5, color: trendColor }}>
+          {c.trend.dir === 'flat'
+            ? (T.trendFlat || 'Held the same level from the first reps to the last.')
+            : (T.trendMoved
+              ? T.trendMoved(c.trend.dir, c.trend.first, c.trend.last, Math.abs(c.trend.delta))
+              : `Score ${c.trend.dir} across the clip: ${c.trend.first} → ${c.trend.last} (${Math.abs(c.trend.delta)} points).`)}
+        </div>
+      )}
+      {c.focus.length > 0 && (
+        <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.12)' }}>
+          <div style={{ ...lbl, color: CYAN, marginBottom: 3 }}>{T.sessionFocus || 'FOCUS NEXT SESSION'}</div>
+          <div style={{ fontSize: 13, lineHeight: 1.5 }}>{c.focus.map((t) => t.label).join(' · ')}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Timeline({ series, shot, cur, onSeek, T, hand }) {
   // Click a legend entry to show ONLY that line; click it again for all four
   // (Ohad 2026-08-26: "i wanna be able to only see one graph (knee/hip etc if i
   // click on it)"). Four traces over one another is unreadable when the
   // question is "what did the knee actually do".
   const [soloLine, setSoloLine] = useState(null);
-  const W = 600, H = 150, PAD = 6;
+  // Four traces with four different ranges are squeezed into one box, so a
+  // numbered y-axis is meaningless while they are all drawn. Solo ONE and the
+  // axis becomes real - which is the moment Ohad asked for the numbers.
+  const W = 600, H = 150, PAD = 6, GUT = 34, BOT = 13;
   const n = series.n; if (n < 2) return null;
   const t0 = series.tMs[0], t1 = series.tMs[n - 1] || t0 + 1;
-  const X = (i) => PAD + ((series.tMs[i] - t0) / (t1 - t0)) * (W - 2 * PAD);
-  const line = (arr, lo, hi, color) => {
+  const X = (i) => GUT + ((series.tMs[i] - t0) / (t1 - t0)) * (W - GUT - PAD);
+  const Y = (v, lo, hi) => PAD + (1 - (Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo || 1)) * (H - PAD - BOT);
+  const hips = series.sm.hipY.filter(Number.isFinite);
+  const hipLo = hips.length ? Math.min(...hips) : 0, hipHi = hips.length ? Math.max(...hips) : 1;
+  // Every angle here is measured on the SHOOTING side - the engine reads
+  // side(hand) for all of them. The graph never said so, and neither did the
+  // metric boxes, so "which knee?" had no answer on screen (Ohad 08-30).
+  const SIDE = hand === 'L' ? 'L' : 'R';
+  const TRACES = [
+    { id: 'knee', label: T.legend.knee, color: '#39BDFF', data: series.sm.knee, lo: 60, hi: 180, unit: '°', dec: 0 },
+    { id: 'hipY', label: T.legend.hipHeight, color: '#2ED573', data: series.sm.hipY, lo: hipLo, hi: hipHi, unit: '', dec: 3 },
+    { id: 'shoulder', label: T.legend.armElev, color: '#FFA502', data: series.sm.shoulder, lo: 0, hi: 180, unit: '°', dec: 0 },
+    { id: 'elbow', label: T.legend.elbow, color: '#FFFFFF', data: series.sm.elbow, lo: 30, hi: 180, unit: '°', dec: 0 },
+  ];
+  const solo = TRACES.find((tr) => tr.id === soloLine) || null;
+  const poly = (tr) => {
     const pts = [];
-    for (let i = 0; i < n; i++) { const v = arr[i]; if (v == null || !Number.isFinite(v)) continue; const y = PAD + (1 - (Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo)) * (H - 2 * PAD); pts.push(`${X(i).toFixed(1)},${y.toFixed(1)}`); }
-    return <polyline points={pts.join(' ')} fill="none" stroke={color} strokeWidth="1.6" />;
+    for (let i = 0; i < n; i++) {
+      const v = tr.data[i];
+      if (v == null || !Number.isFinite(v)) continue;
+      pts.push(X(i).toFixed(1) + ',' + Y(v, tr.lo, tr.hi).toFixed(1));
+    }
+    return <polyline key={tr.id} points={pts.join(' ')} fill="none" stroke={tr.color} strokeWidth="1.6" />;
   };
-  const pick = (e) => { const r = e.currentTarget.getBoundingClientRect(); const fx = (e.clientX - r.left) / r.width; const t = t0 + fx * (t1 - t0); let best = 0, bd = Infinity; for (let i = 0; i < n; i++) { const d = Math.abs(series.tMs[i] - t); if (d < bd) { bd = d; best = i; } } onSeek(best); };
+  const pick = (e) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    // The plot no longer starts at the left edge: undo the gutter before
+    // turning a pixel into a time, or every seek lands early.
+    const fx = ((e.clientX - r.left) / r.width * W - GUT) / (W - GUT - PAD);
+    const t = t0 + Math.max(0, Math.min(1, fx)) * (t1 - t0);
+    let best = 0, bd = Infinity;
+    for (let i = 0; i < n; i++) { const d = Math.abs(series.tMs[i] - t); if (d < bd) { bd = d; best = i; } }
+    onSeek(best);
+  };
+  const secs = (ms) => ((ms - t0) / 1000).toFixed(1) + 's';
+  const fmtV = (v, tr) => (v == null || !Number.isFinite(v) ? '—' : v.toFixed(tr.dec) + tr.unit);
+  const xTicks = [0, 0.25, 0.5, 0.75, 1].map((f) => ({ f, ms: t0 + f * (t1 - t0) }));
+  const yTicks = solo ? [0, 0.5, 1].map((f) => solo.lo + f * (solo.hi - solo.lo)) : [];
+  const curVal = solo ? solo.data[cur] : null;
   return (
     <div style={{ marginTop: 10 }}>
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 4 }}>
-        {[[T.legend.knee, '#39BDFF', 'knee'], [T.legend.hipHeight, '#2ED573', 'hipY'], [T.legend.armElev, '#FFA502', 'shoulder'], [T.legend.elbow, '#FFFFFF', 'elbow']].map(([k, c, id]) => (
-          <button key={k} onClick={() => setSoloLine((v) => (v === id ? null : id))}
-            title={soloLine === id ? T.legendAll : T.legendOnly(k)}
-            style={{ ...lbl, color: c, background: 'transparent', border: 'none', cursor: 'pointer', padding: '2px 4px',
-              opacity: soloLine && soloLine !== id ? 0.3 : 1,
-              textDecoration: soloLine === id ? 'underline' : 'none' }}>— {k}</button>
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 4, alignItems: 'center' }}>
+        {TRACES.map((tr) => (
+          <button key={tr.id} onClick={() => setSoloLine((v) => (v === tr.id ? null : tr.id))}
+            title={soloLine === tr.id ? T.legendAll : T.legendOnly(tr.label)}
+            style={{ ...lbl, color: tr.color, background: 'transparent', border: 'none', cursor: 'pointer', padding: '2px 4px',
+              opacity: soloLine && soloLine !== tr.id ? 0.3 : 1,
+              textDecoration: soloLine === tr.id ? 'underline' : 'none' }}>
+            — {tr.label} ({SIDE})
+          </button>
         ))}
       </div>
-      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.02)', cursor: 'crosshair' }}
+      {/* What the axes MEAN, in words, above the box - and while one trace is
+          soloed, its value at the playhead, so the graph and the frame readout
+          can never disagree. */}
+      <div dir="ltr" style={{ ...lbl, display: 'flex', justifyContent: 'space-between', gap: 8, marginBottom: 3, unicodeBidi: 'isolate' }}>
+        <span>{solo ? (T.axisSolo ? T.axisSolo(solo.label, SIDE, solo.unit) : 'Y ' + solo.label + ' (' + SIDE + ')' + (solo.unit ? ' ' + solo.unit : '') + '  X time s') : (T.axisAll || 'Y each trace on its own scale  X time s')}</span>
+        {solo && <span style={{ color: solo.color }}>{secs(series.tMs[cur])} → {fmtV(curVal, solo)}</span>}
+      </div>
+      <svg viewBox={'0 0 ' + W + ' ' + H} style={{ width: '100%', height: 'auto', display: 'block', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.02)', cursor: 'crosshair' }}
         onMouseDown={pick} onMouseMove={(e) => { if (e.buttons === 1) pick(e); }}>
-        {shot.phases.map((p) => <line key={p.key} x1={X(p.idx)} x2={X(p.idx)} y1={0} y2={H} stroke="rgba(255,255,255,0.22)" strokeDasharray="3 3" />)}
+        {solo && yTicks.map((v, i) => (
+          <g key={'y' + i}>
+            <line x1={GUT} x2={W - PAD} y1={Y(v, solo.lo, solo.hi)} y2={Y(v, solo.lo, solo.hi)} stroke="rgba(255,255,255,0.10)" />
+            <text x={GUT - 4} y={Y(v, solo.lo, solo.hi) + 3} textAnchor="end" fill="rgba(255,255,255,0.55)" fontFamily="Nord, monospace" fontSize="8">{v.toFixed(solo.dec)}</text>
+          </g>
+        ))}
+        {xTicks.map((tk, i) => (
+          <text key={'x' + i} x={GUT + tk.f * (W - GUT - PAD)} y={H - 3}
+            textAnchor={i === 0 ? 'start' : i === xTicks.length - 1 ? 'end' : 'middle'}
+            fill="rgba(255,255,255,0.55)" fontFamily="Nord, monospace" fontSize="8">{secs(tk.ms)}</text>
+        ))}
+        {shot.phases.map((p) => <line key={p.key} x1={X(p.idx)} x2={X(p.idx)} y1={0} y2={H - BOT} stroke="rgba(255,255,255,0.22)" strokeDasharray="3 3" />)}
         {shot.phases.map((p) => <text key={p.key + 't'} x={X(p.idx) + 2} y={10} fill="rgba(255,255,255,0.55)" fontFamily="Nord, monospace" fontSize="8">{p.label}</text>)}
-        {(!soloLine || soloLine === 'knee') && line(series.sm.knee, 60, 180, '#39BDFF')}
-        {(!soloLine || soloLine === 'elbow') && line(series.sm.elbow, 30, 180, '#FFFFFF')}
-        {(!soloLine || soloLine === 'shoulder') && line(series.sm.shoulder, 0, 180, '#FFA502')}
-        {(!soloLine || soloLine === 'hipY') && line(series.sm.hipY.map((v) => (v == null ? null : v * 400)), (Math.min(...series.sm.hipY.filter(Number.isFinite)) || 0) * 400, (Math.max(...series.sm.hipY.filter(Number.isFinite)) || 1) * 400 + 0.01, '#2ED573')}
-        <line x1={X(cur)} x2={X(cur)} y1={0} y2={H} stroke="#39BDFF" strokeWidth="1.5" />
+        {TRACES.filter((tr) => !soloLine || soloLine === tr.id).map(poly)}
+        <line x1={X(cur)} x2={X(cur)} y1={0} y2={H - BOT} stroke="#39BDFF" strokeWidth="1.5" />
       </svg>
     </div>
   );
