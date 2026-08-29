@@ -162,3 +162,27 @@ meters. He wants tools that MEASURE SOMETHING NOBODY CAN CURRENTLY MEASURE.
 7. **Fixture-density-driven microcycle.** Generate the week's S&C dose from the
    real fixture list, not a template.
 8. **One camera pass over the warm-up = squad-wide movement screen.**
+
+## Round 4 — the pattern in what he approves
+
+Approved so far: #3 (load x medical), G (game minutes from the box score),
+#7 (fixture-density microcycle). All three either MAKE A PROGRAMMING DECISION
+or PULL IN REAL BASKETBALL DATA. Every measurement gadget and every dashboard
+has been rejected. Build along that axis.
+
+1. **Projection simulator.** Add two jump sessions Tuesday, see Sunday's ACWR
+   board BEFORE committing. Every load system reports after the fact; none let
+   you plan against the number you will have.
+2. **Per-athlete prescription inside the one window.** 14 athletes share a
+   20-minute S&C period and four cannot do what the ten are doing. Generate
+   each athlete's variation from the medical board + load state + position.
+3. **Minutes projection drives the week's dose.** With G: 30 projected minutes
+   Thursday is a different Tuesday from 8.
+4. **Opponent style to physical demand.** High-transition opponent = eccentric/
+   deceleration emphasis. From league pace data.
+5. **The season from the fixture list, once.** Accumulation / intensification /
+   taper positioned against real game density. #7 is the week; this is the year.
+6. **Last session seeds the next.** Logged loads propose the progression by
+   rule, so he edits a draft instead of authoring from scratch.
+7. **Availability as a practice consequence.** "Three bigs out - your rebounding
+   block needs four bodies you don't have." The version the head coach acts on.
