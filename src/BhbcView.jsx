@@ -3072,7 +3072,7 @@ function ReturnLoadAlert({ roster, loads, medical, today, onOpen }) {
             <span style={{ minWidth: 0 }}>
               <span style={{ fontWeight: 700 }}>{f.name}</span>
               <span style={{ color: C.td }}>
-                {' \u00B7 '}{tr('back')} {f.daysBack}{tr('d')}
+                {' \u00B7 '}{tr('back')} {f.daysBack} {tr('days')}
                 {f.bodyPart ? ' \u00B7 ' + tr(f.bodyPart) : ''}
               </span>
               <div dir="ltr" style={{ fontFamily: FN, fontSize: 11.5, color: C.td, marginTop: 2, unicodeBidi: 'isolate' }}>
