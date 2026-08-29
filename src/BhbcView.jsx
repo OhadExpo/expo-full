@@ -18,6 +18,7 @@ import { ThemeToggle } from './ThemeToggle';
 import { useTheme } from './hooks/useTheme';
 import { bhbcT, BhbcLangCtx, useT, useHe, setBhbcDateLang, dowFor, monDayFor, fxLabelFor } from './bhbcHe';
 import { acwrFromDaily, sessionLoad, monotonyStrain } from './acwrEngine';
+import { returnToLoadFlags } from './bhbcReturnLoad';
 import { readinessAutoreg } from './readinessAutoreg';
 import BWChart from './BwChart';
 import { sessionSig } from './bhbcSession.js';
@@ -820,6 +821,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
 
             {view === 'overview' && (
               <>
+                <ReturnLoadAlert roster={roster} loads={bhbcLoads} medical={medical} today={today} onOpen={setDetailFor} />
                 <HeadCoachReport rows={rows} fx={fx} fixtures={bhbcFixtures} medical={medical} today={today} onOpen={setDetailFor}
                   planOf={planOf} onPlan={asCoach ? null : setPlanFor}
                   onMedical={null}   /* see MED on the load board — same closure, one screen */
@@ -1754,7 +1756,7 @@ function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onLog }) {
 // The HEAD COACH's daily/weekly REPORT — the game-week picture at a glance:
 // next game, who's available, the medical board, and the team's upcoming sessions.
 // (The S&C load decisions live in the separate S&C Brief.)
-function HeadCoachReport({ rows, fx, fixtures, medical, today, onOpen, onMedical, onReportNew, planOf, onPlan }) {
+function HeadCoachReport({ rows, fx, fixtures, medical, today, onOpen, onMedical, onReportNew, planOf, onPlan, onCopy, copied }) {
   const he = useHe();
   const tr = useT();
   const first = (r) => (r.t.name || '').trim().split(/\s+/)[0] || r.t.name;
@@ -1778,7 +1780,7 @@ function HeadCoachReport({ rows, fx, fixtures, medical, today, onOpen, onMedical
     </div>
   );
   return (
-    <Card padding={18} leftStripe={NAVY} header={secTitle('Head Coach Report')} headerRight={<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>{dow(today)} {monDay(today)}</span>}>
+    <Card padding={18} leftStripe={NAVY} header={secTitle('Head Coach Report')} headerRight={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>{onCopy && <button onClick={onCopy} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', height: 24, boxSizing: 'border-box', padding: '0 10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, cursor: 'pointer', borderRadius: 0 }}>{copied ? tr('Copied') : tr('Copy')}</button>}<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>{dow(today)} {monDay(today)}</span></span>}>
       {/* NEXT GAME */}
       <Section label={tr("Next game")}>
         {nextGame
@@ -3025,6 +3027,53 @@ export function byName(email) {
 
 const activeInjuries = (medical, id) => ((medical[id] || {}).injuries || []).filter((i) => !i.resolved);
 const resolvedInjuries = (medical, id) => ((medical[id] || {}).injuries || []).filter((i) => i.resolved);
+
+// LOAD x MEDICAL - the one cross-check the zone was missing.
+//
+// The load board knows a 7-day load. The medical board knows he came back from
+// an ankle six days ago. Neither knew both, so the most predictable re-injury
+// pattern in team sport was invisible in a zone holding all the data.
+//
+// It renders NOTHING when there is nothing to say. An alert that is always on
+// screen stops being an alert.
+function ReturnLoadAlert({ roster, loads, medical, today, onOpen }) {
+  const tr = useT();
+  const flags = React.useMemo(
+    () => returnToLoadFlags({ roster: roster || [], loads: loads || {}, medical: medical || {}, today }),
+    [roster, loads, medical, today],
+  );
+  if (!flags.length) return null;
+  return (
+    <div style={{ border: `1px solid ${C.rd}`, marginBottom: 14 }}>
+      <RefinedHeaderStrip title={tr('Back from injury, loading too fast')} accent={C.rd} />
+      <div style={{ padding: '10px 14px' }}>
+        {flags.map((f) => (
+          <button key={f.id} onClick={() => onOpen && onOpen(f.id)}
+            style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'center', gap: 10,
+              width: '100%', textAlign: 'start', background: 'transparent', border: 'none', borderTop: '1px solid ' + C.ln,
+              padding: '8px 0', cursor: onOpen ? 'pointer' : 'default', color: C.tx }}>
+            <span style={{ minWidth: 0 }}>
+              <span style={{ fontWeight: 700 }}>{f.name}</span>
+              <span style={{ color: C.td }}>
+                {' \u00B7 '}{tr('back')} {f.daysBack}{tr('d')}
+                {f.bodyPart ? ' \u00B7 ' + tr(f.bodyPart) : ''}
+              </span>
+              <div dir="ltr" style={{ fontFamily: FN, fontSize: 11.5, color: C.td, marginTop: 2, unicodeBidi: 'isolate' }}>
+                {f.weekLoad} AU {tr('this week')} {'\u00B7'} {f.pct}% {tr('of his own pre-injury week')} ({f.baseline} AU) {'\u00B7'} {tr('guide')} {f.cap}%
+              </div>
+            </span>
+            <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em',
+              color: f.severity === 'high' ? C.rd : C.or, border: '1px solid ' + (f.severity === 'high' ? C.rd : C.or),
+              height: 22, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              padding: '0 8px', lineHeight: 1, flexShrink: 0 }}>
+              {f.severity === 'high' ? tr('CUT TODAY') : tr('WATCH')}
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function StatusPill({ status, small, full }) {
   const tr = useT();
