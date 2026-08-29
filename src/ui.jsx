@@ -31,7 +31,14 @@ const portal = (node) => (typeof document !== 'undefined') ? createPortal(node, 
 // after `open` flips false so it can play a .motion-fade-out / .motion-fall
 // exit before React removes it. Returns { mounted, closing }. Keep `delay`
 // in sync with the exit keyframe duration in themes.css (~190ms).
+// True when the user has asked for reduced motion. Read at call time, not
+// module load, so a mid-session OS change is respected.
+function prefersReducedMotion() {
+  try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; }
+}
+
 export function useDelayedUnmount(open, delay = 200) {
+  if (prefersReducedMotion()) delay = 0;
   const [mounted, setMounted] = React.useState(open);
   const [closing, setClosing] = React.useState(false);
   React.useEffect(() => {
@@ -47,6 +54,7 @@ export function useDelayedUnmount(open, delay = 200) {
 // the body reads `state`. Holds the last non-null value through the exit so
 // the content doesn't blank out mid-animation. Returns { value, closing }.
 export function useDelayedUnmountValue(value, delay = 200) {
+  if (prefersReducedMotion()) delay = 0;
   const [held, setHeld] = React.useState(value);
   const [closing, setClosing] = React.useState(false);
   React.useEffect(() => {
@@ -1022,7 +1030,7 @@ export function ToastHost() {
         {toasts.map(it => {
           const tp = palette[it.kind] || palette.info;
           return (
-            <div key={it.id}
+            <div key={it.id} className="motion-rise"
               style={{ pointerEvents: 'auto', background: C.sf, color: tp.fg, border: `1px solid ${tp.bd}`, borderRadius: 0, padding: '12px 16px', fontFamily: FB, fontSize: 13, fontWeight: 500, boxShadow: `0 8px 24px ${C.shadow}`, minWidth: 240, maxWidth: 480, display: 'flex', flexDirection: 'column', gap: 10, textAlign: 'center' }}>
               <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.45 }}>{it.message}</div>
               {it.actions && (

@@ -1,0 +1,161 @@
+{
+  "id": "plan_g8jfdq6k1qfmo91eq1w",
+  "name": "Block #14",
+  "trainee_id": "tr_roei",
+  "data": {
+    "days": [
+      {
+        "ex": [
+          {
+            "n": "- תעמוד על הגבהה קטנה לעקבים!\n- בית חזה לרצפה ושמירה על זווית כל הסט\n- מרפקים מתקרבים אחד לשני (גב מכווץ) ללא הפסקה!\n- משקל על כל כף הרגל (אך רובו על העקב בירידה ועל הבוהן בעלייה)",
+            "r": ">",
+            "s": 3,
+            "wk": [
+              "80KG (8 Reps)",
+              "80kg",
+              "6 Reps 85.6kg",
+              "6 Reps 85kg"
+            ],
+            "eid": "e100",
+            "title": "BB Elevated-Heel Back Squat"
+          },
+          {
+            "n": "- כפות רגליים מתחת לישבן\n- עקב נדחף לרצפה\n- כתפיים כמה שיותר קרובות, וכמה שיותר לכיוון הרגליים",
+            "r": "2",
+            "s": 3,
+            "wk": [
+              "101KG (6 Sets)",
+              "6 Sets",
+              "4 Sets 104kg",
+              "4 Sets 100kg+++"
+            ],
+            "eid": "e33",
+            "title": "BB Bench Press",
+            "videoUrl": "https://www.youtube.com/watch?v=_L33BPe31uo&ab_channel=KYRIAKOSKAPAKOULAK"
+          },
+          {
+            "n": "- החלפה רק אחרי שאתה יציב לכמה שניות\n- ברך נוחתת נעולה\n- עקב רחוק מאוד מהרצפה!\n- כף רגל מוכנה לצעד הבא",
+            "r": "6 E",
+            "s": 3,
+            "eid": "e34",
+            "title": "Elbow-Supported DB SA Row"
+          },
+          {
+            "n": "- אגודל מעל המוט עם שאר האצבעת\n- טווח תנועה מלא כל חזרה:\nראש בפנים בהרפייה המלאה, וזרועות לצידי האוזניים.\n- מרפקים עוברים את הקו של הגוף אחורה כשאתה למעלה ! כיווץ מלא",
+            "r": "10",
+            "s": 2,
+            "eid": "ex_w2op23ke6y9mo7afh8i",
+            "title": "Wide-Grip Pull-Up"
+          },
+          {
+            "n": "- הגבהה של כף הרגל והגב\n- זרועות כולל המרפקים נחות על ההגבהה\n- פלקס, בטן מכווצת, ועלייה",
+            "r": "15 SEC to 15 Reps E",
+            "s": 2,
+            "eid": "ex_rhvd2k0023mo7afd6v",
+            "tempo": "Paused to Reps",
+            "title": "SL Hip-Bridge"
+          },
+          {
+            "r": "10",
+            "s": 2,
+            "eid": "ex_m1752aqfs3pmo7afh8i",
+            "title": "Super Set:",
+            "superset": "A"
+          }
+        ],
+        "name": "Day A"
+      },
+      {
+        "ex": [
+          {
+            "n": "- פירמידת חימום של ! 4 ! סטים של 2-5 חזרות (עולה באחוזים מוריד חזרות כדי להישאר טרי לסטים הכבדים)\n- כל חזרה בנפרד\n- מתח מקסימלי לפני שמנתקים\n- לנעול הכל למעלה",
+            "r": "3",
+            "s": 3,
+            "wk": [
+              "5 Sets 120kg 2/5 pain in the hip",
+              "3 Sets 120kg",
+              "3 Sets 140kg++ feels better",
+              "2 Sets 145 kg ++"
+            ],
+            "eid": "ex_yh5xvnxojtimo7afcd9",
+            "title": "BB Deadlift"
+          },
+          {
+            "n": "- תחזיק במיד-פוזישן או פרונציה\n- סט אפ של לחיצות חזה רגילות\n- לג דרייב מהעקבים\n- גב תחתון לא נוגע בספה",
+            "r": ">",
+            "s": 2,
+            "wk": [
+              "10 Reps 110",
+              "10 Reps 125 lbs",
+              "8 Reps 140lbs",
+              "8 Reps 63kg+"
+            ],
+            "eid": "ex_qc4dul4furhmo7afh8i",
+            "title": "Machine MID-POS Shoulder Press"
+          },
+          {
+            "r": "6",
+            "s": 4,
+            "eid": "ex_m1752aqfs3pmo7afh8i",
+            "title": "Super Set:",
+            "superset": "A"
+          },
+          {
+            "n": "- גב תחתון לא נוגע בספה\n- ישבן בקצה של הכסא\n- כפות רגליים מתחת לישבן\n- שורש כף יד ואמה בקו ישר",
+            "r": "8",
+            "s": 3,
+            "eid": "ex_ss04c7qra7nmo7afh8i",
+            "title": "Machine Chest-Press"
+          },
+          {
+            "n": "- כפות רגליים מתחת לישבן\n- עקב נדחף לרצפה\n- כתפיים כמה שיותר קרובות, וכמה שיותר לכיוון הרגליים",
+            "r": "12",
+            "s": 2,
+            "eid": "e33",
+            "title": "BB Bench Press",
+            "videoUrl": "https://www.youtube.com/watch?v=_L33BPe31uo&ab_channel=KYRIAKOSKAPAKOULAK"
+          },
+          {
+            "r": "15 SEC to 15 Reps E",
+            "s": 2,
+            "eid": "ex_m1752aqfs3pmo7afh8i",
+            "title": "Super Set:",
+            "superset": "A"
+          }
+        ],
+        "name": "Day B"
+      }
+    ],
+    "warmup": [
+      {
+        "t": "Prone-Laying Scorpion Strech",
+        "rx": "2x8 E",
+        "vid": "https://www.youtube.com/watch?v=q9Sllm2jEss"
+      },
+      {
+        "t": "Step ups",
+        "rx": "1x8 E"
+      },
+      {
+        "t": "BW RDL to Squat to Trunk ROT",
+        "rx": "2 x 10 E",
+        "vid": "https://www.youtube.com/watch?v=MqFSJt3PQNk"
+      },
+      {
+        "t": "Plank POS Knee to Elbow",
+        "rx": "1x15 E",
+        "vid": "https://www.youtube.com/watch?v=dq9r3RUSyIE&ab_channel=TEJEAN.FITNESS"
+      },
+      {
+        "t": "Dead-Hang SCAP PRO/RET",
+        "rx": "1x12 - SLOW!",
+        "vid": "https://www.youtube.com/watch?v=q7H4AQPQAz0&ab_channel=JourneymanFitness"
+      },
+      {
+        "t": "ISO Neck Bridge",
+        "rx": "3 x 15 SEC",
+        "vid": "https://www.youtube.com/shorts/WUXmAow5H2Q"
+      }
+    ]
+  }
+}

@@ -400,10 +400,10 @@ function MoreMenu({ tab, navTo, onExport, onChangePassword, isOwner = true }) {
                 }}>
                 <span style={{
                   position: 'absolute',
-                  top: 1, left: pushOn ? 17 : 1,
+                  top: 1, left: 1, transform: pushOn ? 'translateX(16px)' : 'none',
                   width: 16, height: 16, borderRadius: '50%',
                   background: '#FFFFFF',
-                  transition: 'left 0.15s',
+                  transition: 'transform 0.15s cubic-bezier(.22,.61,.36,1)',
                   boxShadow: '0 1px 2px rgba(0,0,0,0.3)',
                 }} />
               </button>

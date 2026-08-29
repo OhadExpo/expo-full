@@ -1553,11 +1553,11 @@ function ExEditorExtras({ ex, exData, exTitle, update, onResolveVideo = null, sh
 
   return (
     <>
-      {(exData && (exData.movementPattern || exData.laterality || exData.primaryMuscles)) ? <div style={{display:"flex",gap:6,marginBottom:8,flexWrap:"wrap",alignItems:"center"}}>
-        {exData.movementPattern && <Badge color={C.gn}>{exData.movementPattern}</Badge>}
-        {exData.laterality && <Badge color={C.tm}>{exData.laterality}</Badge>}
-        {exData.primaryMuscles && <span style={{fontSize:11,color:C.td}}>{exData.primaryMuscles}</span>}
-      </div> : null}{/* the redundant orange "📝 {title}" line was removed — the
+      {(exData && (exData.movementPattern || exData.laterality || exData.primaryMuscles)) ? (
+        <div style={{fontSize:10,color:C.td,fontFamily:FN,letterSpacing:"0.04em",marginBottom:10,textTransform:"uppercase",whiteSpace:"normal",overflowWrap:"break-word"}}>
+          {[exData.movementPattern, exData.laterality, exData.primaryMuscles].filter(Boolean).join(" · ")}
+        </div>
+      ) : null}{/* the redundant orange "📝 {title}" line was removed — the
           name already shows in the row header and the EXERCISE picker below */}
       {/* Video URL spans the top; NOTES (left) + thumbnail (right) sit in an
           aligned row below — the spacer on the right matches the NOTES label

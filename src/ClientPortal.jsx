@@ -1463,7 +1463,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       {/* Group dots (one per superset group or solo exercise) */}
       {groups.map((_,i) => <div key={'g'+i} style={{flex:1,height:3,borderRadius:0,background:stepIndex>wuCount+i?C.gn:stepIndex===wuCount+i?C.ac:C.bd}} />)}
     </div>
-    <div style={{fontSize:10,color:C.td,fontFamily:FN,marginTop:4,textAlign:'center'}}>
+    <div style={{fontSize: groups[step]?.superset ? 11 : 10, color: groups[step]?.superset ? C.ac : C.td, fontWeight: groups[step]?.superset ? 700 : 400, letterSpacing: groups[step]?.superset ? '0.06em' : 0, fontFamily:FN, marginTop:4, textAlign:'center'}}>
       {typeof step==='string'&&step.startsWith('wu') ? `Warm-Up ${parseInt(step.slice(2))+1}/${wuCount}` :
        step==='checkin' ? 'Check-In' :
        step==='end' ? 'Complete' :
@@ -1797,7 +1797,10 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     }
 
     return <div key={ei} style={{marginBottom: blockIdx < groupExs.length - 1 ? 24 : 0, paddingBottom: blockIdx < groupExs.length - 1 ? 20 : 0, borderBottom: blockIdx < groupExs.length - 1 ? `2px dashed ${C.bd2}` : 'none'}}>
-      {isSuperset && <div style={{fontSize:10,fontFamily:FN,color:C.ac,fontWeight:700,letterSpacing:'0.08em',textAlign:'center',marginBottom:8}}>EXERCISE {blockIdx+1} OF {groupExs.length}</div>}
+      {isSuperset && <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginBottom:8}}>
+        <span style={{fontSize:10,fontFamily:FN,fontWeight:800,letterSpacing:'0.1em',color:'#fff',background:C.ac,padding:'3px 8px',borderRadius:0}}>{tt('SUPERSET')} {group.superset}</span>
+        <span style={{fontSize:10,fontFamily:FN,color:C.ac,fontWeight:700,letterSpacing:'0.08em'}}>{blockIdx+1}/{groupExs.length} · {tt('alternate each round')}</span>
+      </div>}
 
       {/* Title (reflects swap if any) */}
       <h2 style={{margin:'0 0 4px',fontFamily:FN,fontSize:18,textAlign:'center'}}>{d.t}</h2>
