@@ -19,6 +19,7 @@ import { useTheme } from './hooks/useTheme';
 import { bhbcT, BhbcLangCtx, useT, useHe, setBhbcDateLang, dowFor, monDayFor, fxLabelFor } from './bhbcHe';
 import { acwrFromDaily, sessionLoad, monotonyStrain } from './acwrEngine';
 import { returnToLoadFlags } from './bhbcReturnLoad';
+import { applyGameMinutes, gameMinutesOf, gameRpeOf } from './bhbcGameLoad';
 import { readinessAutoreg } from './readinessAutoreg';
 import BWChart from './BwChart';
 import { sessionSig } from './bhbcSession.js';
@@ -191,6 +192,9 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   const [gameEdit, setGameEdit] = useState(false);
   const [programFor, setProgramFor] = useState(null);
   const [injuryFor, setInjuryFor] = useState(null); // { athleteId, injuryId? } | null
+  // Which played game we are recording minutes for. Minutes on court are the
+  // biggest load a player takes and the board could not see them at all.
+  const [minutesFor, setMinutesFor] = useState(null);
   const [view, setView] = useState('overview');   // overview | schedule | roster
   const [schedMode, setSchedMode] = useState('calendar'); // calendar | list
   const [sessionMode, setSessionMode] = useState('group'); // group | single
@@ -859,7 +863,8 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
             )}
 
             {view === 'games' && (
-              <LeagueView league={league} roster={roster} fixtures={bhbcFixtures} onOpen={setDetailFor} />
+              <LeagueView league={league} roster={roster} fixtures={bhbcFixtures} onOpen={setDetailFor}
+                bhbcLoads={bhbcLoads} today={today} onPickMinutes={setMinutesFor} />
             )}
 
             {view === 'medical' && (
@@ -935,6 +940,14 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
       {gameEdit && fx.nextGame && (
         <GameEditModal game={fx.nextGame} onClose={() => setGameEdit(false)} onSave={(patch) => { updateGame(fx.nextGame, patch); setGameEdit(false); }} />
       )}
+        {minutesFor && (
+          <GameMinutesModal game={minutesFor} roster={roster} bhbcLoads={bhbcLoads}
+            onClose={() => setMinutesFor(null)}
+            onSave={({ date, rpe, minutes }) => {
+              setBhbcLoads((prev) => applyGameMinutes(prev, { date, rpe, minutes, emptyRec }));
+              setMinutesFor(null);
+            }} />
+        )}
 
       {injuryFor && effCanMedical && (() => {
         const ath = roster.find((t) => t.id === injuryFor.athleteId);
@@ -2895,7 +2908,7 @@ function fixturesToGames(fixtures) {
   }));
 }
 
-function LeagueView({ league, roster, fixtures, onOpen }) {
+function LeagueView({ league, roster, fixtures, onOpen, bhbcLoads = {}, today, onPickMinutes }) {
   const tr = useT();
   const leagueGames = Array.isArray(league.games) ? league.games : [];
   const playedGames = leagueGames.filter((g) => g.played);
@@ -2982,6 +2995,10 @@ function LeagueView({ league, roster, fixtures, onOpen }) {
       {/* Games — BHBC only. In a fresh season, lead with this season's fixtures and
           tuck last season's completed results into a collapse. */}
       <Card padding={18} leftStripe={NAVY} header={secTitle('Games')}>
+        {/* MINUTES PLAYED -> LOAD. Until now a 32-minute game and a DNP were
+            identical to the load board, so every ACWR figure in the zone was
+            computed on a week with its biggest day missing. */}
+        <GameMinutesList fixtures={fixtures} today={today} bhbcLoads={bhbcLoads} onPick={onPickMinutes} />
         {pastData ? (
           <>
             {upcomingFx.length ? <ResultsList games={upcomingFx} bhbcOnly /> : <div style={{ fontFamily: FB, fontSize: 13, color: C.td, padding: '14px 0', textAlign: 'center' }}>Fixtures load as the league publishes them.</div>}
@@ -3072,6 +3089,89 @@ function ReturnLoadAlert({ roster, loads, medical, today, onOpen }) {
         ))}
       </div>
     </div>
+  );
+}
+
+// Played BHBC games, most recent first, each opening the minutes editor.
+// Shows at a glance which games still have no minutes recorded, because a game
+// nobody logged is a hole in every load number that week.
+function GameMinutesList({ fixtures, today, bhbcLoads, onPick }) {
+  const tr = useT();
+  const games = React.useMemo(() => (fixtures || [])
+    .filter((f) => f && f.type === 'game' && f.date && f.date <= today)
+    .sort((a, b) => String(b.date).localeCompare(String(a.date)))
+    .slice(0, 8), [fixtures, today]);
+  if (!games.length) return null;
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <div style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.16em', color: C.ac, textTransform: 'uppercase', marginBottom: 6 }}>
+        {tr('Minutes played')}
+      </div>
+      {games.map((g) => {
+        const mins = gameMinutesOf(bhbcLoads || {}, g.date);
+        const n = Object.values(mins).filter((m) => Number(m) > 0).length;
+        return (
+          <button key={`${g.date}|${g.opponent || ''}`} onClick={() => onPick(g)}
+            style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'center', gap: 10,
+              width: '100%', textAlign: 'start', background: 'transparent', border: 'none', borderTop: '1px solid ' + C.ln,
+              padding: '8px 0', cursor: 'pointer', color: C.tx }}>
+            <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, color: C.td, unicodeBidi: 'isolate' }}>{g.date}</span>
+              {'  '}{g.opponent ? tr('vs') + ' ' + g.opponent : tr('Game')}
+            </span>
+            <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
+              color: n ? C.gn : C.td, border: '1px solid ' + (n ? C.gn : C.ln),
+              height: 22, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              padding: '0 8px', lineHeight: 1, flexShrink: 0 }}>
+              {n ? `${n} ${tr('logged')}` : tr('ADD MINUTES')}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// One RPE for the game, minutes per athlete. Foster sRPE is rpe x minutes, so a
+// starter and a bench player come out of the same game with very different
+// loads - which is the entire point of recording it.
+function GameMinutesModal({ game, roster, bhbcLoads, onClose, onSave }) {
+  const tr = useT();
+  const date = game.date;
+  const [rpe, setRpe] = useState(() => String(gameRpeOf(bhbcLoads || {}, date) || 8));
+  const [mins, setMins] = useState(() => {
+    const saved = gameMinutesOf(bhbcLoads || {}, date);
+    const out = {};
+    for (const t of roster || []) out[t.id] = saved[t.id] == null ? '' : String(saved[t.id]);
+    return out;
+  });
+  const total = Object.values(mins).reduce((a, m) => a + (Number(m) || 0), 0);
+  const played = Object.values(mins).filter((m) => Number(m) > 0).length;
+  return (
+    <Modal open onClose={onClose} wide title={`${tr('Minutes played')} \u00B7 ${game.opponent ? tr('vs') + ' ' + game.opponent : tr('Game')}`}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
+        <span style={{ fontFamily: FN, fontSize: 11, color: C.td }}>{tr('Game RPE')}</span>
+        <input type="number" min="1" max="10" value={rpe} onChange={(e) => setRpe(e.target.value)}
+          style={{ width: 64, height: 30, boxSizing: 'border-box', background: 'var(--c-sf)', border: '1px solid ' + C.ln, color: C.tx, fontFamily: FN, padding: '0 8px' }} />
+        <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, color: C.td, unicodeBidi: 'isolate' }}>
+          {played} {tr('played')} \u00B7 {total} {tr('min total')}
+        </span>
+      </div>
+      <div style={{ maxHeight: '46vh', overflowY: 'auto' }}>
+        {(roster || []).map((t) => (
+          <div key={t.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 86px', alignItems: 'center', gap: 10, padding: '6px 0', borderTop: '1px solid ' + C.ln }}>
+            <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name || t.id}</span>
+            <input type="number" min="0" max="60" inputMode="numeric" placeholder={tr('DNP')}
+              value={mins[t.id] ?? ''} onChange={(e) => setMins((p) => ({ ...p, [t.id]: e.target.value }))}
+              style={{ width: '100%', height: 30, boxSizing: 'border-box', background: 'var(--c-sf)', border: '1px solid ' + C.ln, color: C.tx, fontFamily: FN, padding: '0 8px' }} />
+          </div>
+        ))}
+      </div>
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 14 }}>
+        <Btn variant="ghost" onClick={onClose}>{tr('Cancel')}</Btn>
+        <Btn onClick={() => onSave({ date, rpe: Number(rpe) || 0, minutes: mins })}>{tr('Save')}</Btn>
+      </div>
+    </Modal>
   );
 }
 
