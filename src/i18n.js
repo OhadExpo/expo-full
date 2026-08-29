@@ -346,7 +346,11 @@ export const HE = {
   'DELETE ENTRY': 'מחיקת רשומה',
   RETRY: 'נסה שוב',
   EXIT: 'יציאה',
-  LOG: 'תרשום',            // future-as-imperative, his register
+  // Ohad picked התחלה / START from the 40-option sheet (2026-08-30): the
+  // button OPENS the day rather than recording it, so a verbal noun reads as a
+  // label on a door instead of an order to write something down.
+  START: 'התחלה',
+  LOG: 'התחלה',
   AGAIN: 'שוב',
   Complete: 'הושלם',
   LATEST: 'אחרון',

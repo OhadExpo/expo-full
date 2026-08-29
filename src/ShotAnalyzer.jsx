@@ -173,7 +173,7 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
   const shot = result?.shots?.[shotIdx] || null;
 
   return (
-    <div style={stage} dir={T.dir}>
+    <div className="shot-stage" style={stage} dir={T.dir}>
       {/* top bar */}
       <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.12)', background: 'rgba(0,0,0,0.92)', flexWrap: 'wrap' }}>
         <button onClick={onClose} style={ghost}>{T.back}</button>
@@ -498,7 +498,37 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
   return (
     <div className="shot-wrap" style={{ flex: 1, overflow: 'auto', WebkitOverflowScrolling: 'touch' }} data-allow-copy>
       <style>{`
-        @media print { .shot-noprint{display:none!important} .shot-print{padding:0!important} }
+        /* PRINT.
+           The tool renders on a fixed, always-dark stage: white text on #000.
+           Browsers drop backgrounds when printing, so the report came out as
+           white text on white paper - which is what "the print button doesnt
+           work good" looked like. A fixed container also prints only its first
+           screenful. So printing gets its own document: static flow, ink on
+           white, and rows that do not split across a page break. */
+        @media print {
+          .shot-noprint { display: none !important; }
+          .shot-print { padding: 0 !important; }
+          .shot-stage {
+            position: static !important; inset: auto !important; height: auto !important;
+            background: #FFF !important; color: #000 !important; z-index: auto !important;
+            display: block !important;
+          }
+          .shot-wrap { overflow: visible !important; height: auto !important; flex: none !important; }
+          .shot-stage * { color: #000 !important; background-color: transparent !important; }
+          /* Status dots and score rings carry meaning in their colour, so keep
+             their borders - the text is what has to be legible in ink. */
+          .shot-stage [style*="border"] { border-color: #999 !important; }
+          .shot-results { display: block !important; }
+          .shot-left, .shot-right { max-width: 100% !important; width: 100% !important; }
+          .shot-video { break-inside: avoid; page-break-inside: avoid; max-height: 340px !important; }
+          .shot-readout { break-inside: avoid; page-break-inside: avoid; }
+          /* A checkpoint and its explanation belong on the same page. */
+          .shot-check-row { break-inside: avoid; page-break-inside: avoid; }
+          /* The sticky header must not repeat down the page. */
+          .shot-sticky { position: static !important; border-bottom: 1px solid #999 !important; }
+          svg polyline { stroke: #000 !important; }
+          @page { margin: 12mm; }
+        }
         /* One screen, no page scroll: the video column and the report column
            each scroll on their own, and the video is capped vertically so the
            transport, the read-out and the actions all sit above the fold
@@ -582,7 +612,7 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
               number off screen, so a coach reading a row had no way to see
               which rep it belonged to, or to move to the next one without
               scrolling back up (Ohad 08-30). */}
-          <div style={{ position: 'sticky', top: 0, zIndex: 3, background: '#000', paddingTop: 4, paddingBottom: 10,
+          <div className="shot-sticky" style={{ position: 'sticky', top: 0, zIndex: 3, background: '#000', paddingTop: 4, paddingBottom: 10,
             borderBottom: '1px solid rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', marginBottom: 12 }}>
             <div style={{ width: 84, height: 84, borderRadius: '50%', border: `4px solid ${sc.color}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <div style={{ fontFamily: FN, fontSize: 26, fontWeight: 700, lineHeight: 1 }}>{shot.score ?? '—'}</div>
@@ -909,7 +939,7 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
               const phaseKey = { dip: 'dip', setHeight: 'set', setElbow: 'set', elbowAlign: 'set', releaseExt: 'release', releaseArm: 'release', timing: 'release', follow: 'follow', trunk: 'release' }[c.key];
               const ph = shot.phases.find((p) => p.key === phaseKey);
               return (
-                <div key={c.key} style={{ borderTop: i ? '1px solid rgba(255,255,255,0.1)' : 'none' }}>
+                <div key={c.key} className="shot-check-row" style={{ borderTop: i ? '1px solid rgba(255,255,255,0.1)' : 'none' }}>
                   {/* GRID, not flex: fixed trailing columns so every value, gain,
                       status chip and jump arrow shares an x with the row above.
                       Flex sized each by its own text, which is why 135 and

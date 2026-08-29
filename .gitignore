@@ -132,3 +132,4 @@ src/real-video-test.jsx
 scripts/_*.mjs
 .jv.mjs
 .t.mjs
+test-clips/

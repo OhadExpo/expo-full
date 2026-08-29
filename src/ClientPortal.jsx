@@ -3446,7 +3446,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               {done && <span title="Completed this week" style={{display:'inline-flex',alignItems:'center',justifyContent:'center',lineHeight:1,padding:'5px 10px',border:`1px solid ${C.gn}`,color:C.gn,fontFamily:FN,fontSize:12,fontWeight:700,flexShrink:0}}>✓</span>}
               {isDailyRoutine && dailyCount > 0 && <span style={{display:'inline-flex',alignItems:'center',lineHeight:1,padding:'3px 7px',border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:8,fontWeight:700,letterSpacing:'0.18em'}}>{dailyCount} LOGGED</span>}
             </>,
-            action: { label: done ? 'AGAIN' : 'LOG', onClick: () => setLg(dayIdx) },
+            action: { label: done ? 'AGAIN' : 'START', onClick: () => setLg(dayIdx) },
             rows: day.ex.map((ex,i) => {
               const d = EX[ex.eid] || { t: `Exercise ${i+1}`, vid: '', q: '' };
               return {
