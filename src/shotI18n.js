@@ -47,7 +47,9 @@ export const SHOT_I18N = {
     phaseJump: (l) => `Jump to ${String(l).toLowerCase()} — stays on this moment when you switch shots`,
     metrics: { knee: 'Knee', hip: 'Hip', elbow: 'Elbow', armElev: 'Arm elev.', forearm: 'Forearm ∠', trunk: 'Trunk lean', wristEye: 'Wrist vs eye', elbowOffset: 'Elbow offset' },
 
-    save: '↑ SAVE', copy: 'COPY SUMMARY', print: 'PRINT REPORT', newClip: '↺ NEW CLIP',
+    save: 'SAVE SESSION', copy: 'COPY SUMMARY', print: 'PRINT REPORT', newClip: '↺ NEW CLIP',
+    savedTitle: 'SAVED SESSIONS', savedNone: 'Nothing saved yet.', savedDrop: 'Remove',
+    savedRow: (d, score, reps) => `${d} · ${score}/100 · ${reps} reps`,
     savedToast: 'Shot analysis saved', saveFail: 'Could not save', copiedToast: 'Summary copied', copyFail: 'Copy failed',
 
     verdictNa: 'Shot read', verdictOk: 'Clean mechanics', verdictMid: 'Solid base — a few things to tighten', verdictLow: 'Rebuild the chain from the legs up',
@@ -145,7 +147,9 @@ export const SHOT_I18N = {
     phaseJump: (l) => `קפיצה ל${l} — נשאר על אותו רגע גם כשמחליפים זריקה`,
     metrics: { knee: 'ברך', hip: 'ירך', elbow: 'מרפק', armElev: 'זווית הזרוע', forearm: 'זווית אמה', trunk: 'נטיית גו', wristEye: 'שורש מול עין', elbowOffset: 'סטיית מרפק' },
 
-    save: '↑ שמירה', copy: 'העתק סיכום', print: 'הדפסת דוח', newClip: '↺ קליפ חדש',
+    save: 'שמור את האימון', copy: 'העתק סיכום', print: 'הדפסת דוח', newClip: '↺ קליפ חדש',
+    savedTitle: 'אימונים שנשמרו', savedNone: 'עדיין לא שמרת כלום.', savedDrop: 'מחק',
+    savedRow: (d, score, reps) => `${d} · ${score}/100 · ${reps} זריקות`,
     savedToast: 'ניתוח הזריקה נשמר', saveFail: 'השמירה נכשלה', copiedToast: 'הסיכום הועתק', copyFail: 'ההעתקה נכשלה',
 
     verdictNa: 'הזריקה נקראה', verdictOk: 'מכניקה נקייה', verdictMid: 'בסיס טוב — יש כמה דברים להדק', verdictLow: 'בונים את השרשרת מחדש מהרגליים למעלה',

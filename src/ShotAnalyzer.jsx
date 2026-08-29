@@ -430,11 +430,30 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
     } catch { return null; }
   }, [hand, result]);
 
+  // SAVE wrote to localStorage and NOTHING ever read it back, so from the
+  // coach's seat the button did nothing at all (Ohad 08-30: "the save button
+  // doesnt save anything"). The stored list is rendered below now, and this
+  // counter is what makes it repaint after a write.
+  const [savedTick, setSavedTick] = useState(0);
+  const saved = useMemo(() => {
+    try {
+      const all = JSON.parse(localStorage.getItem(SAVE_KEY) || '[]');
+      return Array.isArray(all) ? all.filter((a) => a && typeof a.score === 'number') : [];
+    } catch { return []; }
+  }, [savedTick]);
+  const dropSaved = (date) => {
+    try {
+      const all = JSON.parse(localStorage.getItem(SAVE_KEY) || '[]');
+      localStorage.setItem(SAVE_KEY, JSON.stringify(all.filter((a) => a && a.date !== date)));
+      setSavedTick((v) => v + 1);
+    } catch { /* nothing to remove */ }
+  };
   const save = () => {
     try {
       const all = JSON.parse(localStorage.getItem(SAVE_KEY) || '[]');
       all.unshift({ date: new Date().toISOString(), hand, score: shot.score, shots: result.shots.length, checks: shot.checks.map((c) => ({ key: c.key, value: c.value, status: c.status })), info: shot.info });
       localStorage.setItem(SAVE_KEY, JSON.stringify(all.slice(0, 50)));
+      setSavedTick((v) => v + 1);
       toast(T.savedToast, 'success');
     } catch { toast(T.saveFail, 'error'); }
   };
@@ -867,6 +886,21 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
               (Ohad 08-30: "i need more conclusions from analyzing all the reps,
               positive, negative, focuses"). */}
           <SessionPanel result={result} T={T} />
+          {saved.length > 0 && (
+            <div style={{ border: '1px solid rgba(255,255,255,0.15)', padding: '10px 12px', marginBottom: 12 }}>
+              <div style={{ ...lbl, color: CYAN, marginBottom: 6 }}>{T.savedTitle || 'SAVED SESSIONS'}</div>
+              {saved.slice(0, 8).map((a) => (
+                <div key={a.date} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 60px', alignItems: 'center', gap: 8, padding: '3px 0', fontSize: 12.5 }}>
+                  <span dir="ltr" style={{ unicodeBidi: 'isolate', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {T.savedRow
+                      ? T.savedRow(new Date(a.date).toLocaleDateString(), a.score, a.shots ?? 1)
+                      : `${new Date(a.date).toLocaleDateString()} - ${a.score}/100`}
+                  </span>
+                  <button onClick={() => dropSaved(a.date)} style={{ ...chip(false), fontSize: 9 }} title={T.savedDrop || 'Remove'}>{T.savedDrop || 'Remove'}</button>
+                </div>
+              ))}
+            </div>
+          )}
           <div style={{ ...lbl, color: CYAN, marginBottom: 6 }}>{T.checksTitle(shot.index, result.shots.length)}</div>
           <div style={{ border: '1px solid rgba(255,255,255,0.15)' }}>
             {shot.checks.map((c, i) => {
