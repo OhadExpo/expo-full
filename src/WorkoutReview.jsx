@@ -2474,13 +2474,13 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
               UNMARK
             </button>
           )}
-          <button onClick={() => { setSelectedWo(null); setExpandedEx(null); window.scrollTo(0,0); }}
+          {!(wo.reviewedAt && !findNextUnreviewed()) && <button onClick={() => { setSelectedWo(null); setExpandedEx(null); window.scrollTo(0,0); }}
             title="Return to the review queue"
             style={{flex:1,padding:"12px 0",borderRadius:0,border:`1px solid ${C.cardBd}`,
               background:"transparent",color:C.tx,fontFamily:FN,fontSize:13,fontWeight:700,
               letterSpacing:0.5,cursor:"pointer"}}>
             ← BACK
-          </button>
+          </button>}
           {wo.reviewedAt ? (
             findNextUnreviewed() ? (
               <button onClick={() => { const nextId = findNextUnreviewed(); if (nextId) { setSelectedWo(nextId); setExpandedEx(null); window.scrollTo(0,0); } }}

@@ -1406,17 +1406,21 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     else if (typeof step === 'number' && step < groupCount - 1) setStep(step + 1);
     else setStep('end');
   };
+  // True on the very first step of the session, where Back has nowhere to go.
+  // (A daily day has no warm-ups at all, so its Check-In is the first step.)
+  const atFirstStep = (typeof step === 'string' && step.startsWith('wu') && parseInt(step.slice(2)) === 0)
+    || (step === 'checkin' && wuCount === 0);
   const goPrev = () => {
     window.scrollTo(0,0);
     if (typeof step === 'string' && step.startsWith('wu')) {
       const wi = parseInt(step.slice(2));
-      if (wi > 0) setStep('wu' + (wi - 1)); else onBack();
+      if (wi > 0) setStep('wu' + (wi - 1));   // first step: stay put — EXIT is the way out
     }
     else if (step === 0) setStep('checkin');
     else if (step === 'checkin') {
       // Back from the check-in: into the last warmup if any, else exit.
       if (wuCount > 0) setStep('wu' + (wuCount - 1));
-      else onBack();
+      // no warm-ups: this IS the first step, so stay put
     }
     else if (typeof step === 'number') setStep(step - 1);
     else if (step === 'end') setStep(groupCount - 1);
@@ -1529,7 +1533,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           <video src={wu.vid} controls playsInline style={{width:'100%',height:'100%',objectFit:'contain',background:'#000'}}/></div>
           : <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:30,marginBottom:14,textAlign:'center',color:C.tm}}>{tt("No video for this exercise")}</div>}
         <div style={{display:'flex',gap:8}}>
-          <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>← Back</button>
+          {!atFirstStep && <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>← Back</button>}
           <button onClick={goNext} style={{flex:2,padding:14,borderRadius:0,border:`1px solid ${C.or}`,background:'transparent',color:C.or,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>
             {wi === wuCount - 1 ? 'Start Check-In →' : 'Next Warm-Up →'}</button></div>
       </div></div>;
@@ -1564,7 +1568,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         <div style={{marginBottom:18}}><div style={lbl}>{tt("SLEEP")}</div>{scale('sleep',[['poor','POOR'],['ok','OK'],['good','GOOD'],['great','GREAT']], false)}</div>
         <div style={{marginBottom:26}}><div style={lbl}>{tt("ENERGY")}</div>{scale('energy',[['low','LOW'],['ok','OK'],['good','GOOD'],['high','HIGH']], false)}</div>
         <div style={{display:'flex',gap:8}}>
-          <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>← Back</button>
+          {!atFirstStep && <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>← Back</button>}
           <button onClick={goNext} style={{flex:2,padding:14,borderRadius:0,border:`1px solid ${C.ac}`,background:'transparent',color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>Start Workout →</button>
         </div>
       </div></div>;
@@ -1655,7 +1659,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       ) : (
         <button onClick={finish} style={{width:'100%',padding:16,borderRadius:0,border:`1px solid ${C.gn}`,background:'transparent',color:C.gn,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>✓ Complete Workout</button>
       )}
-      <button onClick={goPrev} style={{width:'100%',padding:12,border:'none',background:'transparent',color:C.tm,cursor:'pointer',marginTop:8}}>← Back</button>
+      {!atFirstStep && <button onClick={goPrev} style={{width:'100%',padding:12,border:'none',background:'transparent',color:C.tm,cursor:'pointer',marginTop:8}}>← Back</button>}
     </div></div>;
 
   // ===== EXERCISE STEP (single exercise OR grouped superset) =====
@@ -2053,7 +2057,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       {groupExs.map(renderExerciseBlock)}
 
       <div style={{display:'flex',gap:8,marginTop:20}}>
-        <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>← Back</button>
+        {!atFirstStep && <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>← Back</button>}
         <button onClick={anyUploading ? undefined : goNext} style={{flex:2,padding:14,borderRadius:0,border:`1px solid ${anyUploading?C.cardBd:C.ac}`,background:'transparent',color:anyUploading?C.tm:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:anyUploading?'wait':'pointer',opacity:anyUploading?0.6:1}}>
           {anyUploading ? `Processing video…` : step===groupCount-1 ? 'Finish →' : 'Next →'}</button></div>
     </div></div>;
