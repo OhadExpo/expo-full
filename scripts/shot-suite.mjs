@@ -15,6 +15,7 @@
 //   node scripts/shot-suite.mjs <port> --repeat 3 <clip>       stability check
 import { execFile, spawn } from 'node:child_process';
 import { promisify } from 'node:util';
+import fs from 'node:fs';
 
 const run = promisify(execFile);
 const CHROME = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
@@ -63,6 +64,20 @@ for (const clip of clips) {
     // thousand pose inferences is where the CDP connection drops.
     const ok = await ensureChrome({ fresh: true });
     if (!ok) { rows.push({ clip, pass: k + 1, shots: null, secs: null, note: 'chrome would not start' }); continue; }
+    // Prime the file before timing anything. A hard-killed Chrome comes back
+    // with a cold cache and the first read of a 40 MB clip blew the harness's
+    // 45 s metadata timeout twice in three passes - a measurement artefact that
+    // looks exactly like the engine failing. Pulling the bytes once puts every
+    // pass on the same footing, and it is also the honest model of the product,
+    // where the coach's clip is already on his device.
+    try {
+      const r = await fetch(`http://127.0.0.1:${PORT}${clip}`, { signal: AbortSignal.timeout(120000) });
+      const b = await r.arrayBuffer();
+      process.stdout.write(`  primed ${(b.byteLength / 1e6).toFixed(1)} MB\n`);
+    } catch (e) {
+      process.stdout.write(`  prime failed: ${String(e.message || e).slice(0, 60)}\n`);
+    }
+
     const t0 = Date.now();
     let out = '';
     try {
@@ -72,7 +87,21 @@ for (const clip of clips) {
       out = String((e.stdout || '') + (e.stderr || '') + (e.message || ''));
     }
     const secs = Math.round((Date.now() - t0) / 1000);
+    // Keep the whole transcript. A pass that disagrees with its neighbours is
+    // the only interesting pass, and without its frame counts and drop stats
+    // there is nothing to diagnose it with afterwards - which is how a 17/17/10
+    // result turned into guesswork.
+    try {
+      const tag = `${clip.replace(/[^a-z0-9]+/gi, '_')}_p${k + 1}`;
+      fs.mkdirSync('audit-out/passes', { recursive: true });
+      fs.writeFileSync(`audit-out/passes/${tag}.txt`, out);
+    } catch { /* diagnostics are best-effort */ }
     const m = out.match(/analyzed (\d+)/);
+    const frames = out.match(/"frameCount":(\d+)/);
+    const skipped = out.match(/"skipped":\s*(\d+)/);
+    if (frames || skipped) {
+      process.stdout.write(`  frames=${frames ? frames[1] : '?'} skipped=${skipped ? skipped[1] : '?'}\n`);
+    }
     const fail = out.match(/FAILED: ([^\n]{0,90})/);
     rows.push({ clip, pass: k + 1, shots: m ? Number(m[1]) : null, secs, note: m ? '' : (fail ? fail[1] : 'no result') });
     console.log(`${clip}  pass ${k + 1}  shots=${m ? m[1] : '-'}  ${secs}s  ${m ? '' : rows[rows.length - 1].note}`);
@@ -87,8 +116,13 @@ for (const r of rows) {
 }
 for (const [clip, rs] of byClip) {
   const counts = rs.map((r) => r.shots);
-  const uniq = [...new Set(counts.filter((c) => c != null))];
-  const stable = uniq.length <= 1;
+  // A pass that FAILED is not evidence of stability. Filtering nulls out
+  // reported [7,null,null] as STABLE, which is exactly the kind of green light
+  // that hides the bug being measured.
+  const uniq = [...new Set(counts)];
+  const stable = uniq.length === 1 && uniq[0] != null;
+  const failed = counts.filter((c) => c == null).length;
   const avg = Math.round(rs.reduce((a, r) => a + (r.secs || 0), 0) / rs.length);
-  console.log(`${clip.padEnd(34)} counts=[${counts.join(',')}] ${rs.length > 1 ? (stable ? 'STABLE' : 'UNSTABLE') : ''} avg ${avg}s`);
+  const verdict = rs.length > 1 ? (stable ? 'STABLE' : 'UNSTABLE') : '';
+  console.log(`${clip.padEnd(34)} counts=[${counts.map((c) => (c == null ? 'FAIL' : c)).join(',')}] ${verdict}${failed ? ` (${failed} failed)` : ''} avg ${avg}s`);
 }

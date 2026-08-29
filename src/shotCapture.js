@@ -45,7 +45,20 @@ function pickSubject(landmarks, prev) {
     const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
     const h = maxY - minY;
     const near = prev ? Math.hypot(cx - prev.x, cy - prev.y) : 0;
-    const score = h * 2 - near * 3 + (vsum / seen) * 0.5;
+    // A body touching the frame edge is cut off, and a body we cannot see whole
+    // is not one we can measure a shot on. Without this the score preferred
+    // whoever was LARGEST, which on real footage is whoever stands nearest the
+    // camera - so the tracker locked onto a foreground team-mate and reported
+    // no shots at all on a clip that plainly contains them.
+    //
+    // Deliberately a penalty rather than a hard reject: a shooter who steps
+    // briefly over the edge should not vanish from his own clip mid-rep, he
+    // should just lose to a fully visible alternative when one exists.
+    const EDGE = 0.02;
+    const clipped = (minX <= EDGE ? 1 : 0) + (maxX >= 1 - EDGE ? 1 : 0)
+      + (minY <= EDGE ? 1 : 0) + (maxY >= 1 - EDGE ? 1 : 0);
+    const cropPenalty = clipped * 0.35;
+    const score = h * 2 - near * 3 + (vsum / seen) * 0.5 - cropPenalty;
     if (!best || score > best.score) best = { idx: i, score, cx, cy, box: { x0: minX, y0: minY, x1: maxX, y1: maxY } };
   }
   return best ? { idx: best.idx, centroid: { x: best.cx, y: best.cy }, box: best.box } : { idx: -1 };
@@ -287,7 +300,54 @@ export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineR
         report((mt / dur) * 40, 'finding the athlete');
       },
     });
+    // WHAT THE PLAYBACK PASS DROPPED, READ BACK EXACTLY.
+    //
+    // requestVideoFrameCallback only fires for frames the browser actually
+    // presents. Under CPU load it presents fewer, skipRatio stays 0 because
+    // nothing was RE-presented, and the reps inside the gap are never
+    // bracketed - which is how the same clip returned 17, 17 and then 10.
+    //
+    // Gaps are found in the timestamps we did get, and only those windows are
+    // re-read by seek, which is exact. A clean pass finds no gaps and pays
+    // nothing.
+    let recovered = 0, recoveryCapped = false;
+    if (coarse.length > 1) {
+      const gapMs = frameDur * 1000 * 2.5;
+      const holes = [];
+      for (let i = 1; i < coarse.length; i++) {
+        const dt = coarse[i].t - coarse[i - 1].t;
+        if (dt > gapMs) holes.push({ from: coarse[i - 1].t, to: coarse[i].t });
+      }
+      // A cap, because a pathologically bad pass could otherwise seek for
+      // minutes - and it is REPORTED rather than silently truncating.
+      const MAX_RECOVER = 700;
+      if (holes.length) {
+        report(40, 'reading the frames that were dropped');
+        outer:
+        for (const h of holes) {
+          for (let tMsHole = h.from + frameDur * 1000; tMsHole < h.to - frameDur * 500; tMsHole += frameDur * 1000) {
+            if (recovered >= MAX_RECOVER) { recoveryCapped = true; break outer; }
+            await seekTo(v, tMsHole / 1000);
+            let r = null;
+            try { r = lmCoarse.detect(v); } catch { /* a single frame may fail */ }
+            const sub = pickSubject(r?.landmarks, prevC);
+            if (sub.idx >= 0) {
+              prevC = sub.centroid;
+              track.push({ t: tMsHole / 1000, box: sub.box });
+              coarse.push({ t: tMsHole, landmarks: r.landmarks[sub.idx], worldLandmarks: r.worldLandmarks?.[sub.idx] || null, fine: false });
+              recovered++;
+            }
+          }
+        }
+        // Everything downstream assumes chronological order.
+        coarse.sort((a, b) => a.t - b.t);
+        track.sort((a, b) => a.t - b.t);
+      }
+    }
+
     const msCoarse = Math.round(performance.now() - t0);
+    if (recovered) drops.recovered = recovered;
+    if (recoveryCapped) drops.recoveryCapped = true;
     if (track.length < 6) throw new Error('I could not find a person in this clip. Film the whole body, side-on, in good light.');
 
     // Shot candidates: either wrist above the top of the head.

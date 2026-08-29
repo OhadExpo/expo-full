@@ -32,6 +32,16 @@ const QUERIES = [
   'basketball mid range jumper slow motion',
   'basketball shooting workout side angle',
   'basketball set shot technique',
+  // Spares: a search returns nothing usable often enough that ten queries
+  // yield well under ten clips, and the point of the set is breadth.
+  'basketball jump shot slow motion full body',
+  'basketball shooting form breakdown video',
+  'basketball free throw routine full body',
+  'basketball shooting practice gym footage',
+  'basketball fadeaway jumper slow motion',
+  'basketball shooting mechanics side camera',
+  'basketball player shooting drill outdoor court',
+  'basketball corner three shooting form',
 ];
 
 const COUNT = Number(process.argv[2] || QUERIES.length);
@@ -57,8 +67,10 @@ for (let i = 0; i < Math.min(COUNT, QUERIES.length); i++) {
       '-f', 'bv*+ba/b',
       '-S', 'res:720,ext:mp4',
       '--merge-output-format', 'mp4',
-      '--download-sections', '*0-90',
-      '--force-keyframes-at-cuts',
+      // No --download-sections: it makes yt-dlp shell out to ffmpeg for the
+      // cut, and this ffmpeg build exits non-zero on that path for every clip
+      // tried. The local transcode step trims to 90 s anyway, so the cut just
+      // moves one stage later.
       '--no-playlist', '--no-warnings', '--quiet',
       '-o', out,
     ], { timeout: 180000, maxBuffer: 1 << 26 });
