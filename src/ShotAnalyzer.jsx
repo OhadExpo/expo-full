@@ -26,13 +26,22 @@ const BONES = [[11, 13], [13, 15], [12, 14], [14, 16], [11, 12], [11, 23], [12, 
 const SAVE_KEY = 'expo-shot-analyses';
 
 const stage = { position: 'fixed', inset: 0, background: '#000', zIndex: 1500, display: 'flex', flexDirection: 'column', color: '#FFF', fontFamily: FB };
-const ghost = { background: 'transparent', border: '1px solid rgba(255,255,255,0.3)', color: '#FFF', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', padding: '9px 16px', cursor: 'pointer', borderRadius: 0 };
+// ONE height scale for every control on this page. Both primitives used to be
+// sized by their padding, so a control's height followed its font-size and its
+// label — BACK (ghost, 11px) stood taller than the language chip beside it, and
+// no two adjacent buttons agreed. Ohad's rule: buttons that sit next to each
+// other are always the same height. A fixed box is the only way to guarantee
+// that regardless of label or language.
+const CTL_H = 30;   // top bar + action rows
+const CTL_SM = 24;  // dense transport/phase chips
+const boxed = (h) => ({ height: h, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, paddingTop: 0, paddingBottom: 0 });
+const ghost = { background: 'transparent', border: '1px solid rgba(255,255,255,0.3)', color: '#FFF', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', padding: '0 14px', cursor: 'pointer', borderRadius: 0, ...boxed(CTL_H) };
 // This tool renders on its own ALWAYS-DARK stage, so it must not use theme
 // tokens for accents: in the light theme C.ac resolves to #0E0F12 and every
 // accented element (selected chips, labels, the pose dots) disappeared into
 // the black background (Ohad 08-24). CYAN is the fixed on-dark accent.
 const CYAN = '#39BDFF';
-const chip = (active) => ({ ...ghost, padding: '5px 10px', fontSize: 10, letterSpacing: '0.12em', borderColor: active ? CYAN : 'rgba(255,255,255,0.25)', color: active ? CYAN : '#FFF', background: active ? 'rgba(57,189,255,0.10)' : 'transparent' });
+const chip = (active) => ({ ...ghost, padding: '0 10px', fontSize: 10, letterSpacing: '0.12em', borderColor: active ? CYAN : 'rgba(255,255,255,0.25)', color: active ? CYAN : '#FFF', background: active ? 'rgba(57,189,255,0.10)' : 'transparent', ...boxed(CTL_SM) });
 const big = (color) => ({ flex: 1, padding: 14, background: color, border: `1px solid ${color}`, color: '#06131b', fontFamily: FN, fontSize: 14, fontWeight: 700, letterSpacing: '0.14em', cursor: 'pointer', borderRadius: 0 });
 const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase' };
 const fmt = (v, d = 0) => (v == null || !Number.isFinite(v) ? '—' : v.toFixed(d));
@@ -430,10 +439,41 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
     } catch { toast(T.saveFail, 'error'); }
   };
   const copySummary = async () => {
-    const lines = [T.copyHead(shot.score ?? '—', hand === 'L' ? T.handWordL : T.handWordR)];
-    for (const c of shot.checks) lines.push(`${ST[c.status].label.padEnd(5)} ${c.label}: ${c.display} (${c.target})`);
-    if (fixes.length) { lines.push('', T.copyFixFirst); for (const c of fixes) { lines.push(`• ${c.label} — ${c.why}`); for (const h of c.how) lines.push(`   - ${h}`); } }
-    try { await navigator.clipboard.writeText(lines.join('\n')); toast(T.copiedToast, 'success'); } catch { toast(T.copyFail, 'error'); }
+    // Building the text used to sit OUTSIDE the try. Only about half the
+    // checkpoint definitions carry `how`, so the first fix-item without one
+    // threw on `for (const h of c.how)` and the button did nothing at all: no
+    // copy, no toast, no error. Everything that can throw is inside the guard
+    // now, and the clipboard has a fallback for when the async API is refused.
+    let text = '';
+    try {
+      const L = [T.copyHead(shot.score ?? '—', hand === 'L' ? T.handWordL : T.handWordR)];
+      for (const c of shot.checks) L.push(`${(ST[c.status] || STATUS.na).label.padEnd(5)} ${c.label}: ${c.display} (${c.target})`);
+      if (fixes.length) {
+        L.push('', T.copyFixFirst);
+        for (const c of fixes) {
+          L.push(`• ${c.label}${c.why ? ` — ${c.why}` : ''}`);
+          for (const h of (c.how || [])) L.push(`   - ${h}`);
+        }
+      }
+      text = L.join('\n');
+    } catch { toast(T.copyFail, 'error'); return; }
+    try {
+      await navigator.clipboard.writeText(text);
+      toast(T.copiedToast, 'success');
+      return;
+    } catch { /* fall through to the textarea path */ }
+    // copyGuard blocks document-level copy events but exempts form fields, so a
+    // real textarea is the one path that still works when the async API fails.
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;';
+      document.body.appendChild(ta);
+      ta.focus(); ta.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      toast(ok ? T.copiedToast : T.copyFail, ok ? 'success' : 'error');
+    } catch { toast(T.copyFail, 'error'); }
   };
 
   return (
@@ -482,8 +522,13 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
             <button onClick={() => step(10)} style={chip(false)} title={T.fwd10}>10»</button>
             <input type="range" min={0} max={n - 1} value={cur} onChange={(e) => userSeek(Number(e.target.value))} style={{ flex: 1, minWidth: 120, accentColor: '#39BDFF' }} />
           </div>
-          <div className="shot-noprint" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
-            {shot.phases.map((p) => <button key={p.key} onClick={() => { setPhaseKey(p.key); seekTo(p.idx); }} style={chip(cur === p.idx)} title={T.phaseJump(p.label)}>{p.label}</button>)}
+          {/* STANCE -> LAND is ONE SEQUENCE, so it gets one strip: equal
+              columns, one height, no wrapping to a ragged second row. Sized by
+              grid rather than by each label's length — RELEASE and DIP are very
+              different widths and padding alone made the row look accidental.
+              (Ohad: "the stance to land buttons are still a ocd mess".) */}
+          <div className="shot-noprint" style={{ display: 'grid', gridTemplateColumns: `repeat(${shot.phases.length}, minmax(0, 1fr))`, gap: 4, marginTop: 8 }}>
+            {shot.phases.map((p) => <button key={p.key} onClick={() => { setPhaseKey(p.key); seekTo(p.idx); }} style={{ ...chip(cur === p.idx), padding: '0 4px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={T.phaseJump(p.label)}>{p.label}</button>)}
           </div>
           {/* per-frame readout */}
           {/* Ordered up the body, four to a row: ground → trunk → shoulder on the
@@ -501,11 +546,11 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
               used to sit below every checkpoint, so the coach had to scroll the
               whole guide to reach SAVE / NEW CLIP (Ohad 08-24). */}
           <div className="shot-noprint" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
-            <button onClick={save} style={{ ...ghost, borderColor: CYAN, color: CYAN, padding: '7px 12px', fontSize: 10 }}>{T.save}</button>
-            <button onClick={copySummary} style={{ ...ghost, padding: '7px 12px', fontSize: 10 }}>{T.copy}</button>
-            <button onClick={() => window.print()} style={{ ...ghost, padding: '7px 12px', fontSize: 10 }}>{T.print}</button>
+            <button onClick={save} style={{ ...ghost, borderColor: CYAN, color: CYAN, padding: '0 12px', fontSize: 10 }}>{T.save}</button>
+            <button onClick={copySummary} style={{ ...ghost, padding: '0 12px', fontSize: 10 }}>{T.copy}</button>
+            <button onClick={() => window.print()} style={{ ...ghost, padding: '0 12px', fontSize: 10 }}>{T.print}</button>
             <div style={{ flex: 1 }} />
-            <button onClick={onReset} style={{ ...ghost, padding: '7px 12px', fontSize: 10 }}>{T.newClip}</button>
+            <button onClick={onReset} style={{ ...ghost, padding: '0 12px', fontSize: 10 }}>{T.newClip}</button>
           </div>
           <Timeline series={series} shot={shot} cur={cur} onSeek={seekTo} T={T} />
         </div>
@@ -814,20 +859,22 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
               const ph = shot.phases.find((p) => p.key === phaseKey);
               return (
                 <div key={c.key} style={{ borderTop: i ? '1px solid rgba(255,255,255,0.1)' : 'none' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', cursor: 'pointer' }} onClick={() => setOpenGuide((s) => { const nx = new Set(s); nx.has(c.key) ? nx.delete(c.key) : nx.add(c.key); return nx; })}>
+                  {/* GRID, not flex: fixed trailing columns so every value, gain,
+                      status chip and jump arrow shares an x with the row above.
+                      Flex sized each by its own text, which is why 135 and
+                      -0.24 TORSO ended in different places. */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '8px minmax(0, 1fr) 132px 34px 60px 26px 18px', alignItems: 'center', gap: 10, padding: '9px 12px', cursor: 'pointer' }} onClick={() => setOpenGuide((s) => { const nx = new Set(s); nx.has(c.key) ? nx.delete(c.key) : nx.add(c.key); return nx; })}>
                     <span style={{ width: 8, height: 8, borderRadius: '50%', background: st.color, flexShrink: 0 }} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ minWidth: 0 }}>
                       <div style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em' }}>{c.label}</div>
                       <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>{c.target}</div>
                     </div>
-                    <div dir="ltr" style={{ fontFamily: FN, fontSize: 14, fontWeight: 700, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', unicodeBidi: 'isolate' }}>{c.display}</div>
-                    {c.status !== 'ok' && c.status !== 'na' && gainOf(c) > 0 && (
-                      <span dir="ltr" title={T.gainPts(gainOf(c))} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
-                        color: 'rgba(255,255,255,0.5)', unicodeBidi: 'isolate', whiteSpace: 'nowrap' }}>+{gainOf(c)}</span>
-                    )}
-                    <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: st.color, border: `1px solid ${st.color}`, padding: '2px 6px', flexShrink: 0 }}>{st.label}</span>
-                    {ph && <button className="shot-noprint" onClick={(e) => { e.stopPropagation(); setPhaseKey(ph.key); seekTo(ph.idx); }} style={{ ...chip(false), padding: '3px 7px' }} title={T.jumpFrame}>▸</button>}
-                    <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, transform: open ? 'rotate(180deg)' : 'none', display: 'inline-block' }}>▾</span>
+                    <div dir="ltr" style={{ fontFamily: FN, fontSize: 14, fontWeight: 700, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', unicodeBidi: 'isolate', textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.display}</div>
+                    <span dir="ltr" title={gainOf(c) > 0 ? T.gainPts(gainOf(c)) : undefined} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
+                      color: 'rgba(255,255,255,0.5)', unicodeBidi: 'isolate', whiteSpace: 'nowrap', textAlign: 'right' }}>{c.status !== 'ok' && c.status !== 'na' && gainOf(c) > 0 ? `+${gainOf(c)}` : ''}</span>
+                    <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: st.color, border: `1px solid ${st.color}`, height: 18, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, padding: '0 4px' }}>{st.label}</span>
+                    {ph ? <button className="shot-noprint" onClick={(e) => { e.stopPropagation(); setPhaseKey(ph.key); seekTo(ph.idx); }} style={{ ...chip(false), width: 26, height: 18, boxSizing: 'border-box', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }} title={T.jumpFrame}>▸</button> : <span />}
+                    <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, transform: open ? 'rotate(180deg)' : 'none', height: 18, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>▾</span>
                   </div>
                   {open && (
                     <div style={{ padding: '0 12px 12px 30px', fontSize: 12.5, lineHeight: 1.55, color: 'rgba(255,255,255,0.85)', minWidth: 0, overflowWrap: 'anywhere', wordBreak: 'break-word' }}>

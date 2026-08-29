@@ -301,7 +301,23 @@ export function launchAngle(points, releaseMs = null, ballPx = 0, out = null, or
       // ascent was missed) and the arc starts near the hand horizontally —
       // otherwise this would anchor to a hand that has nothing to do with the
       // tracked object.
-      if (originUp < base && Math.abs(xs[0] - origin.x) < 6 * ballPx) { base = originUp; ascentMissing = true; }
+      if (originUp < base && Math.abs(xs[0] - origin.x) < 6 * ballPx) {
+        // How much of the ascent did the tracker actually miss? The hand is
+        // ALWAYS below the first confident blob — release is labelled the
+        // instant the ball leaves, and the tracker needs a few frames to lock
+        // on. Treating that as "ascent missing" fired on nearly every rep, so
+        // every rep reported a null angle and the UI said the ball could not be
+        // followed. Measured on the 17-shot clip: fit r2 0.999, 10 samples, and
+        // still no reading.
+        //
+        // The quadratic is evaluated at RELEASE time (tEval, capped at 200 ms
+        // before the first sample), so a short extrapolation back to the hand
+        // is precisely what the fit is for. Only refuse when the gap is big
+        // enough that the extrapolation is guesswork.
+        const gapBalls = ballPx > 0 ? (base - originUp) / ballPx : 0;
+        base = originUp;
+        ascentMissing = gapBalls > 4;
+      }
     }
     const climb = Math.max(...ys) - base;
     if (climb < 1.2 * ballPx) return no(`it barely rose (${(climb / ballPx).toFixed(1)} ball widths)`);
