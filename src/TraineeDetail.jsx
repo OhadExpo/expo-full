@@ -336,24 +336,17 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
   // Pin only the most recent block (chronological tip). For an athlete with
   // 17+ historical blocks this is the one-click "tidy the portal" we'd
   // otherwise have to do by toggling each block off by hand.
-  const bulkOnlyCurrent = (plans, keyFn) => {
-    if (plans.length === 0) return;
-    const sorted = [...plans].sort(sortProgramsChrono);
-    const current = sorted[0];
-    const next = { ...portalVis };
-    plans.forEach(p => { next[keyFn(p)] = p === current; });
-    setPortalVis(next);
-  };
   const bulkToggleBtn = (plans, keyFn) => {
     if (plans.length === 0) return null;
     const showing = anyVisible(plans, keyFn);
     return (
       <div style={{display:'flex',gap:6,alignItems:'center'}}>
-        {plans.length > 1 && <button onClick={()=>bulkOnlyCurrent(plans, keyFn)}
-          title="Hide all blocks except the most recent one"
-          style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:28,boxSizing:'border-box',padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',lineHeight:1}}>
-          ONLY CURRENT
-        </button>}
+        {/* ONLY CURRENT lived here and was removed: it did exactly what the
+            ONLY pill on the CURRENT BLOCK card does (hide every block but the
+            newest). Ohad, on seeing both on one screen: "pick one". The
+            per-card control wins — it names the block it isolates, works for
+            any block rather than only the newest, and sits with the other
+            per-block actions. */}
         <button onClick={()=>bulkSetVis(plans, keyFn, !showing)}
           title={showing ? "Hide all from portal" : "Show all on portal"}
           style={{background:'var(--c-sf)',border:`1px solid ${showing?C.rd:C.gn}`,borderRadius:0,height:28,boxSizing:'border-box',padding:"0 12px",color:showing?C.rd:C.gn,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',lineHeight:1}}>
