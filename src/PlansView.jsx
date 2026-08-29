@@ -2209,7 +2209,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
             so it appearing / disappearing / changing width ("Saving…" ⇄
             "✓ Saved") never re-centers and shifts the button row below (Ohad). */}
         <div style={{display:'flex',justifyContent:'flex-end',alignItems:'center',minHeight:15,marginTop:4,paddingRight:2}}>
-          {statusLabel && <span aria-live="polite" style={{fontFamily:FN,fontSize:10,fontWeight:700,color:statusLabel.color,letterSpacing:'0.1em',textTransform:'uppercase'}}>{statusLabel.text}</span>}
+          {statusLabel && <span key={statusLabel.text} className="motion-rise" aria-live="polite" style={{fontFamily:FN,fontSize:10,fontWeight:700,color:statusLabel.color,letterSpacing:'0.1em',textTransform:'uppercase'}}>{statusLabel.text}</span>}
           {remoteEdit && (
             <span style={{display:'inline-flex',alignItems:'center',gap:8,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:'#E0A73A',background:'color-mix(in srgb, #E0A73A 12%, transparent)',border:'1px solid color-mix(in srgb, #E0A73A 45%, transparent)',padding:'3px 9px'}}>
               Saved on another device

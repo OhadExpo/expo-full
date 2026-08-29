@@ -338,6 +338,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   }, [setBhbcLoads, bhbcLoads, notify]);
 
   const deleteSession = useCallback((athleteId, date, idx, sig) => {
+    let removed = null;
     const cur = bhbcLoads && bhbcLoads[athleteId] && bhbcLoads[athleteId].sessions
       && bhbcLoads[athleteId].sessions[date] && bhbcLoads[athleteId].sessions[date][idx];
     if (sig != null && sessionSig(cur) !== sig) { toast('That session moved — reopen the list'); return; }
@@ -346,6 +347,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
       const out = { ...rec, sessions: { ...rec.sessions }, loads: { ...(rec.loads || {}) } };
       const arr = [...out.sessions[date]];
       const [s] = arr.splice(idx, 1);
+      removed = s;
       if (arr.length) out.sessions[date] = arr; else { const ss = { ...out.sessions }; delete ss[date]; out.sessions = ss; }
       if (s && s.load > 0) {
         const nl = Math.max(0, (out.loads[date] || 0) - s.load);
@@ -353,7 +355,26 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
       }
       return { ...prev, [athleteId]: out };
     });
-    toast('Session removed'); notify();
+    // Undo restores the exact row and its load. `removed` is captured
+    // inside the updater above, so it is the row that was actually spliced.
+    toast('Session removed', 'info', {
+      ttl: 8000,
+      actions: [{ label: 'Undo', value: 'undo' }],
+      onAction: (v) => {
+        if (v !== 'undo' || !removed) return;
+        setBhbcLoads((prev) => {
+          const rec = prev[athleteId] ? { ...prev[athleteId] } : emptyRec();
+          rec.sessions = { ...(rec.sessions || {}) };
+          const arr = [...(rec.sessions[date] || [])];
+          arr.splice(Math.min(idx, arr.length), 0, removed);
+          rec.sessions[date] = arr;
+          if (removed.load > 0) rec.loads = { ...(rec.loads || {}), [date]: (rec.loads?.[date] || 0) + removed.load };
+          return { ...prev, [athleteId]: rec };
+        });
+        toast('Session restored'); notify();
+      },
+    });
+    notify();
   }, [setBhbcLoads, bhbcLoads, notify]);
 
   const logSession = useCallback(({ athleteId, date, type, minutes, rpe, readiness }) => {
@@ -2070,7 +2091,7 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, onOpen, onMedical 
           {rows.map(({ t, acwr, series, readiness, avail }) => {
             const rc = readiness.level === 'red' ? BAND.high : readiness.level === 'amber' ? BAND.elevated : readiness.level === 'green' ? BAND.low : BAND.none;
             return (
-              <div key={t.id} onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }} style={{ display: 'grid', gridTemplateColumns: rowGrid, gap: 12, alignItems: 'center', padding: '11px 2px', borderBottom: `0.25px solid ${C.cardBd}`, borderInlineStart: `2px solid ${acwr.band.color}`, paddingInlineStart: 10, marginInlineStart: -12, cursor: 'pointer' }} className="bhbc-row bhbc-load-row">
+              <div key={t.id} onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }} style={{ display: 'grid', gridTemplateColumns: rowGrid, gap: 12, alignItems: 'center', padding: '11px 2px', borderBottom: `0.25px solid ${C.cardBd}`, borderInlineStart: `2px solid ${acwr.band.color}`, paddingInlineStart: 10, marginInlineStart: -12, cursor: 'pointer', transition: 'border-color 240ms ease-out' }} className="bhbc-row bhbc-load-row">
                 <Jersey n={t.jersey} size={26} />
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontFamily: FN, fontWeight: 700, fontSize: 13, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{t.name}</div>
@@ -2132,7 +2153,7 @@ function RosterGrid({ rows, medical = {}, league = {}, onOpen }) {
     <CollapsibleSection title={tr("Roster")} count={rows.length} storageKey="bhbc-roster" defaultOpen leftStripe={NAVY}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(232px, 1fr))', gap: 12 }}>
         {rows.map(({ t, acwr }) => (
-          <div key={t.id} onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }} className="bhbc-card" style={{ position: 'relative', overflow: 'hidden', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderInlineStart: `3px solid ${acwr.band.color}`, padding: '13px 15px', cursor: 'pointer', transition: 'transform 160ms, box-shadow 160ms' }}>
+          <div key={t.id} onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }} className="bhbc-card" style={{ position: 'relative', overflow: 'hidden', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderInlineStart: `3px solid ${acwr.band.color}`, padding: '13px 15px', cursor: 'pointer', transition: 'transform 160ms, box-shadow 160ms, border-color 240ms ease-out' }}>
             <div aria-hidden="true" style={{ position: 'absolute', right: 10, top: 8, fontFamily: FN, fontWeight: 800, fontSize: 42, lineHeight: 1, color: NAVY, opacity: 0.08, fontVariantNumeric: 'tabular-nums' }}>{t.jersey ?? ''}</div>
             <div style={{ position: 'relative' }}>
               <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums' }}>#{t.jersey ?? '—'}</div>
