@@ -595,12 +595,18 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
           {/* Actions live UNDER THE VIDEO, not at the end of the report — they
               used to sit below every checkpoint, so the coach had to scroll the
               whole guide to reach SAVE / NEW CLIP (Ohad 08-24). */}
-          <div className="shot-noprint" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
-            <button onClick={save} style={{ ...ghost, borderColor: CYAN, color: CYAN, padding: '0 12px', fontSize: 10 }}>{T.save}</button>
-            <button onClick={copySummary} style={{ ...ghost, padding: '0 12px', fontSize: 10 }}>{T.copy}</button>
-            <button onClick={() => window.print()} style={{ ...ghost, padding: '0 12px', fontSize: 10 }}>{T.print}</button>
-            <div style={{ flex: 1 }} />
-            <button onClick={onReset} style={{ ...ghost, padding: '0 12px', fontSize: 10 }}>{T.newClip}</button>
+          {/* Four actions, four equal columns. This was a wrapping flex row with
+              a flex:1 spacer before NEW CLIP: at full width the spacer pushed it
+              to the right edge, and the moment the row wrapped the spacer ate a
+              whole line and left NEW CLIP orphaned underneath. Equal columns
+              reflow 4 -> 2 -> 1 with every edge still aligned, and no orphan
+              (Ohad: "same for save to new clip"). NEW CLIP keeps a dimmer border
+              so starting over does not read as a peer of SAVE. */}
+          <div className="shot-noprint" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(124px, 1fr))', gap: 8, marginTop: 10 }}>
+            <button onClick={save} style={{ ...ghost, borderColor: CYAN, color: CYAN, padding: '0 10px', fontSize: 10 }}>{T.save}</button>
+            <button onClick={copySummary} style={{ ...ghost, padding: '0 10px', fontSize: 10 }}>{T.copy}</button>
+            <button onClick={() => window.print()} style={{ ...ghost, padding: '0 10px', fontSize: 10 }}>{T.print}</button>
+            <button onClick={onReset} style={{ ...ghost, padding: '0 10px', fontSize: 10, borderColor: 'rgba(255,255,255,0.18)', color: 'rgba(255,255,255,0.75)' }}>{T.newClip}</button>
           </div>
           <Timeline series={series} shot={shot} cur={cur} onSeek={seekTo} T={T} hand={hand} />
         </div>

@@ -50,7 +50,12 @@ for (let i = 0; i < Math.min(COUNT, QUERIES.length); i++) {
       // reached yt-dlp intact. Take whatever <=720p exists and cut the first
       // 90 seconds at download time: the engine needs a minute of shooting,
       // not the whole video.
-      '-f', 'b[height<=720]/bv[height<=720]+ba/b',
+      // No '<' anywhere in these arguments: it is a shell redirect on Windows
+      // and never reaches yt-dlp intact, which is what silently killed every
+      // format selector written as 'height<=720'. -S expresses the same
+      // preference without a metacharacter.
+      '-f', 'bv*+ba/b',
+      '-S', 'res:720,ext:mp4',
       '--merge-output-format', 'mp4',
       '--download-sections', '*0-90',
       '--force-keyframes-at-cuts',
