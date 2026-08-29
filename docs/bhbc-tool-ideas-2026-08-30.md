@@ -186,3 +186,24 @@ has been rejected. Build along that axis.
    rule, so he edits a draft instead of authoring from scratch.
 7. **Availability as a practice consequence.** "Three bigs out - your rebounding
    block needs four bodies you don't have." The version the head coach acts on.
+
+## Round 5 — approved: #5 (season from the fixture list). The five that beat everything prior
+
+1. **Game film to the external-load ledger.** BHBC already films games. Run the
+   pose/tracking pipeline over that footage for jumps, sprints, decelerations
+   and court coverage per player - the exact data a GPS vest programme sells at
+   ~$200/player/season. With G (minutes) it is a complete external load model
+   with no hardware. The pose stack pointed at its highest-value target.
+2. **An injury-risk model trained on BHBC's own history.** After a season,
+   learn which combinations preceded THIS squad's injuries instead of applying
+   a population ACWR threshold. Improves monthly; defensible to a head coach.
+3. **Voice as the entire input layer.** He is on court holding a ball - that is
+   WHY data does not get logged. "Amit 18 minutes, RPE 7, ankle felt fine"
+   parsed into session + load + medical. Every other tool is downstream of it.
+4. **Shot chart x mechanics.** Cross shooting outcomes by zone with the
+   analyzer's measured mechanics: "corner three at 24%, release angle 6 degrees
+   flatter from that corner". Links S&C to WINNING, which is how the S&C window
+   gets protected.
+5. **The player-facing pre-practice line.** Three lines to each athlete: where
+   he stands, what he is cleared for, one focus. Coach-facing tools inform;
+   player-facing tools change behaviour.
