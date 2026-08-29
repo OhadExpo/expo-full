@@ -126,3 +126,39 @@ the audio already works elsewhere in the app.
   hardware nobody owns is a tool nobody uses.
 - **A second alert system.** The zone already over-notifies.
 - **Anything the basketball staff must log in to see.** They will not.
+
+---
+
+# Round 2 — approved and rejected (Ohad, 2026-08-30)
+
+**Approved to build:** #3 load x medical cross-check, and G (game minutes from
+the box score into the load model).
+
+**Rejected:** everything else in tiers 1-3 above, and the whole second list
+(readiness sweep, data-integrity score, drift ranker, minutes-delivered,
+contact load, pain map, explain-this-number) — "1/10 ideas, worse than
+previous". The lesson: he does not want dashboards, rankers or data-quality
+meters. He wants tools that MEASURE SOMETHING NOBODY CAN CURRENTLY MEASURE.
+
+## Round 3 — the swings (pose pipeline is the asset)
+
+1. **Shot-form decay under fatigue.** 10 shots at the start of practice, 10 at
+   the end. The analyzer already scores every checkpoint on every rep, so it
+   can name which element collapses first FOR THIS PLAYER.
+2. **Landing asymmetry from ordinary practice video.** Ten minutes of court
+   footage; pose finds every landing and reports which leg absorbs more.
+   Post-injury athletes offload for months without knowing — the mechanism
+   behind re-injury.
+3. **Movement-signature drift.** Track each athlete's own movement fingerprint
+   weekly; flag drift. Pain lags; mechanics lead it by weeks.
+4. **Free-throw tempo as a CNS readout.** Dip-to-release timing is already
+   measured and is remarkably stable per shooter. 10 free throws = a 90-second
+   readiness check that feels like basketball, not testing.
+5. **The rehab form gate.** Athlete films one set; pose checks the specific
+   criterion (knee valgus on a step-down, hip drop on a single-leg squat) and
+   advances him or routes it to the PT. How one PT covers fourteen athletes.
+6. **Shooting under load.** Shoot, loaded set, shoot again — quantify how
+   strength work acutely changes shooting mechanics.
+7. **Fixture-density-driven microcycle.** Generate the week's S&C dose from the
+   real fixture list, not a template.
+8. **One camera pass over the warm-up = squad-wide movement screen.**
