@@ -53,7 +53,13 @@ async function ensureChrome({ fresh = false } = {}) {
     '--proxy-bypass-list=<-loopback>',
     'about:blank',
   ], { detached: true, stdio: 'ignore' }).unref();
-  for (let i = 0; i < 20; i++) { await sleep(1000); if (await chromeUp()) return true; }
+  for (let i = 0; i < 20; i++) {
+    await sleep(1000);
+    // The debug port answers before the browser has finished coming up, and
+    // driving a heavy pose run into a browser that is still settling is where
+    // most of the mid-run deaths happened. Give it a moment.
+    if (await chromeUp()) { await sleep(2500); return true; }
+  }
   return false;
 }
 
@@ -80,11 +86,24 @@ for (const clip of clips) {
 
     const t0 = Date.now();
     let out = '';
-    try {
-      const r = await run('node', ['scripts/shot-harness-run.mjs', clip, PORT], { timeout: 900000, maxBuffer: 1 << 28 });
-      out = r.stdout + r.stderr;
-    } catch (e) {
-      out = String((e.stdout || '') + (e.stderr || '') + (e.message || ''));
+    // A CRASHED PASS IS NOT A MEASUREMENT.
+    //
+    // Chrome dies mid-run often enough that recording the crash as a result
+    // would poison the very thing being measured - a TargetCloseError at 49s is
+    // the browser going away, not the detector finding nothing. Infrastructure
+    // failures are retried on a fresh browser; a pass that runs to completion is
+    // recorded whatever it says, because THAT is the measurement.
+    const INFRA = /TargetCloseError|Protocol error|Session closed|Target closed|ECONNREFUSED|Navigation timeout|browser has disconnected/i;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const r = await run('node', ['scripts/shot-harness-run.mjs', clip, PORT], { timeout: 900000, maxBuffer: 1 << 28 });
+        out = r.stdout + r.stderr;
+      } catch (e) {
+        out = String((e.stdout || '') + (e.stderr || '') + (e.message || ''));
+      }
+      if (/analyzed \d+/.test(out) || !INFRA.test(out) || attempt === 3) break;
+      process.stdout.write(`  browser died (attempt ${attempt}) - retrying on a fresh one\n`);
+      await ensureChrome({ fresh: true });
     }
     const secs = Math.round((Date.now() - t0) / 1000);
     // Keep the whole transcript. A pass that disagrees with its neighbours is
