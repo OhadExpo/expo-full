@@ -207,3 +207,31 @@ has been rejected. Build along that axis.
 5. **The player-facing pre-practice line.** Three lines to each athlete: where
    he stands, what he is cleared for, one focus. Coach-facing tools inform;
    player-facing tools change behaviour.
+
+## Round 6
+
+1. **The player's physical CV.** A one-page record that follows the athlete
+   between clubs: jump height, ROM, asymmetry, availability history, load
+   tolerance. Israeli basketball transfers constantly and the physical record
+   currently dies with the club. Issue it first and the format becomes the
+   league's. A land-grab, not a feature.
+2. **Injury cost in games missed and points lost.** Management does not act on
+   "ACWR 1.4"; it acts on "this ankle cost four games and 38 points". The
+   argument that funds the S&C window, the PT hours and the equipment.
+3. **Opponent injury intelligence.** Publicly reported injuries across the
+   league, so he knows who BHBC actually faces. A scraper and nothing else.
+4. **A substitution engine, not a plan generator.** A player is limited - what
+   does he do INSTEAD, now, that keeps his load in band and avoids the injured
+   pattern? From the existing 1,470-exercise library with constraints applied.
+   The thing he improvises on court every day.
+5. **Measured drill hardness.** Learn which drills in HIS library actually
+   produce high RPE, per athlete. Program by measured cost, not assumed cost.
+6. **Three-year development arc for the youth squad.** Physical development
+   against age curves; surface late developers being under-selected. A scouting
+   edge with money behind it.
+7. **Sideline flag.** Tap a player during a game when he lands badly; it
+   timestamps against the film for review that night. Sideline observation
+   currently evaporates.
+8. **The unreported-injury detector.** Marked fully available but his load
+   quietly dropped 40 percent - cross that with mechanics drift. Finds the
+   injuries athletes hide, which are the ones that become serious.
