@@ -2669,7 +2669,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                 {/* squares carry a −1px lift so their geometric centre sits on the
                     text CAP axis, not the font-box centre (caps ride ~1px high in
                     Nord). Measured, matches "0/3"/"WEEK" cap-centres. */}
-                <span style={{display:'inline-flex',gap:2,transform:'translateY(-1px)'}}>
+                <span style={{display:'inline-flex',alignItems:'center',gap:2}}>
                   {weekDays.map((d,i)=><span key={i} title={d.name} style={{width:10,height:10,display:'inline-block',background:isDayDone(d)?C.ac:'var(--c-sf2)',border:`1px solid ${isDayDone(d)?C.ac:C.cardBd}`}}/>)}
                 </span>
                 <span style={{fontSize:9,color:C.tm,letterSpacing:'0.14em',fontWeight:700,lineHeight:1}}>{tt("WEEK")}</span>
