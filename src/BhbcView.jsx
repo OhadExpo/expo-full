@@ -822,7 +822,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
               <>
                 <HeadCoachReport rows={rows} fx={fx} fixtures={bhbcFixtures} medical={medical} today={today} onOpen={setDetailFor}
                   planOf={planOf} onPlan={asCoach ? null : setPlanFor}
-                  onMedical={effCanMedical ? ((aid) => { const a = activeInjuries(medical, aid); setInjuryFor({ athleteId: aid, injuryId: a[0] && a[0].id }); }) : null}
+                  onMedical={null}   /* see MED on the load board — same closure, one screen */
                   onReportNew={effCanMedical ? (() => setInjuryFor({ athleteId: (rows[0] && rows[0].t.id) || '' })) : null} />
                 {/* S&C Brief = the S&C operator's action list — removed for coaches. */}
                 {!asCoach && <CoachBrief rows={rows} fx={fx} fixtures={bhbcFixtures} medical={medical} today={today} onOpen={setDetailFor} onLog={canLog ? () => setPracticeOpen(true) : null} />}
@@ -2023,7 +2023,11 @@ function TodayPanel({ today, fixtures, fx, rows, onSessions, onLog, planOf, onPl
         {(onSessions || onLog) && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'stretch' }}>
             {onSessions && <Btn onClick={onSessions} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff', justifyContent: 'center' }}>{tr('Start session')} ›</Btn>}
-            {onLog && <Btn variant="ghost" onClick={onLog} style={{ justifyContent: 'center' }}>{tr('Log practice')}</Btn>}
+            {/* 'Log practice' lived here too, ~300px below the identical
+                toolbar button and calling the same setPracticeOpen(true). The
+                toolbar one survives because it is present on EVERY tab, not
+                only Overview — a coach on Schedule or Medical still needs it.
+                'Start session' stays: it does something genuinely different. */}
           </div>
         )}
       </div>

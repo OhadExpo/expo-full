@@ -2276,13 +2276,6 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
             // off restores them all to visible. (Ohad)
             const siblings = (planIndex || []).filter(p => p.traineeId === plan.traineeId);
             const myVk = visKeyForPlan(plan, trainees);
-            const isOnly = !!myVk && portalVis?.[myVk] !== false && siblings.every(p => p.id === plan.id || portalVis?.[visKeyForPlan(p, trainees)] === false);
-            const toggle = () => {
-              const next = { ...(portalVis || {}) };
-              siblings.forEach(p => { const vk = visKeyForPlan(p, trainees); if (vk) next[vk] = isOnly ? true : (p.id === plan.id); });
-              if (myVk) next[myVk] = true;
-              setPortalVis(next);
-            };
             const vis = !!myVk && portalVis?.[myVk] !== false;
             const toggleVis = () => { if (!myVk) return; setPortalVis({ ...(portalVis || {}), [myVk]: !vis }); };
             return <button onClick={toggleVis}
@@ -4617,7 +4610,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                         {onPreviewPlan && <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();onPreviewPlan(p.id);}} title="Preview as trainee" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{tt("Preview")}</button>}
                         <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();handleDuplicate(p.id);}} title="Duplicate program" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{tt("Duplicate")}</button>
                         <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setShareTarget(p.id);}} title="Share to an athlete — duplicates this program for them" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{tt("Share")}</button>
-                        <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setConfirmDelete(p.id);}} title="Delete program" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.04em',color:C.rd}}>{tt("Delete")}</button>
+                        <button className="prog-txtbtn" onClick={e=>{e.stopPropagation(); setPendingDelete({ id: p.id, name: p.name, fromEditor: false }); setDeleteTyped('');}} title="Delete program" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.04em',color:C.rd}}>{tt("Delete")}</button>
                         </div>
                       </div>
                     ))}
@@ -4748,7 +4741,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                         <div style={{flex:1,minWidth:12}} />
                         <div onMouseEnter={cancelHover} style={{display:'flex',gap:14,alignItems:'center',flexShrink:0,flexWrap:'wrap',justifyContent:'flex-end'}}>
                           {portalToggle(p)}
-                          {txtActs(p.id, () => setConfirmDelete(p.id))}
+                          {txtActs(p.id, () => { setPendingDelete({ id: p.id, name: p.name, fromEditor: false }); setDeleteTyped(''); })}
                         </div>
                       </div>
                     ))}
@@ -4830,7 +4823,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               {onPreviewPlan && <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();onPreviewPlan(p.id)}} title="Preview as trainee" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{tt("Preview")}</button>}
               <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();handleDuplicate(p.id)}} title="Duplicate program" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{tt("Duplicate")}</button>
               <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setShareTarget(p.id)}} title="Share to an athlete — duplicates this program for them" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{tt("Share")}</button>
-              <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setConfirmDelete(p.id)}} title="Delete program" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.rd}}>{tt("Delete")}</button>
+              <button className="prog-txtbtn" onClick={e=>{e.stopPropagation(); setPendingDelete({ id: p.id, name: p.name, fromEditor: false }); setDeleteTyped('');}} title="Delete program" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.rd}}>{tt("Delete")}</button>
             </div>
           </div>})}
           {hasMore && <Btn variant="ghost" onClick={()=>setVisibleCount(c=>c+PAGE_SIZE)} style={{width:"100%",justifyContent:"center",marginTop:8}}>Load more ({filtered.length - visibleCount} remaining)</Btn>}
