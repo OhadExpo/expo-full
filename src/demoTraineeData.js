@@ -73,7 +73,8 @@ export const DEMO_PLANS = [
       {
         name: 'Day B — Pull',
         exercises: [
-          ex('e201', 4, '5 E', { tempo: '5-5-5 ISO', wk: ['BW','+5kg','+7.5kg','+10kg'] }),
+          ex('e201', 4, '5 E', { tempo: '5-5-5 ISO', wk: ['BW','+5kg','+7.5kg','+10kg'], superset: 'A' }),
+          ex('e63', 3, '12 E', { superset: 'A' }),
           ex('e61',  3, '10 E'),
           ex('ex_jba6g9hgk7kmo7afevm', 3, '6 E'),
         ],
