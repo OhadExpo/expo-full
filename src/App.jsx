@@ -1460,7 +1460,7 @@ function AuthedApp() {
           [data-theme="5b"] .alert-row,[data-theme="light"] .alert-row{transition:background 120ms}
           [data-theme="5b"] .alert-row:hover,[data-theme="light"] .alert-row:hover{background:rgba(255,255,255,0.10)}
         `}</style>
-        <div className="hdr-scroll" style={{maxWidth:1200,margin:"0 auto",padding:"0 16px",display:"flex",alignItems:"center",height:56,overflowX:"visible",WebkitOverflowScrolling:"touch",msOverflowStyle:"none",scrollbarWidth:"none"}}>
+        <div className="hdr-scroll" style={{maxWidth:1360,margin:"0 auto",padding:"0 16px",display:"flex",alignItems:"center",height:56,overflowX:"visible",WebkitOverflowScrolling:"touch",msOverflowStyle:"none",scrollbarWidth:"none"}}>
           <EXPOMark height={36} onClick={()=>navTo('dashboard')} title="Back to dashboard" style={{flex:"0 0 auto",marginRight:12,cursor:'pointer'}} />
           <nav className="hdr-scroll" style={{display:"flex",gap:6,alignItems:"center",flex:"1 1 auto",justifyContent:"center",minWidth:0,overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
             {/* alignItems:'baseline' overrides baseBtn's 'center' so the
@@ -1510,7 +1510,7 @@ function AuthedApp() {
               {lang === 'he' ? 'EN' : 'עב'}
             </button>
             <span style={{width:1,height:22,background:C.ac,opacity:0.15,alignSelf:'center',marginLeft:6,marginRight:6}} aria-hidden="true" />
-            <ThemeToggle size={32} />
+            <ThemeToggle size={32} style={{ border: 'none' }} />
             <span style={{width:1,height:22,background:C.ac,opacity:0.15,alignSelf:'center',marginLeft:6,marginRight:6}} aria-hidden="true" />
             <BugReportButton role="coach" reporterEmail={email} variant="coach" />
             <span style={{width:1,height:22,background:C.ac,opacity:0.15,alignSelf:'center',marginLeft:6,marginRight:6}} aria-hidden="true" />

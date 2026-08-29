@@ -754,7 +754,13 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
               {he ? 'EN' : 'עב'}
             </button>
             <ThemeToggle size={HDR_BTN_H} style={{ color: HDR_INK, border: `1px solid ${HDR_BD}` }} />
-            {onExit && !previewCoach && <button onClick={onExit} className="bhbc-tab" title="Back to EXPO coach" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: HDR_INK, background: 'transparent', border: `1px solid ${HDR_BD}`, borderRadius: 0, height: HDR_BTN_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, padding: '0 11px', cursor: 'pointer' }}>{he ? 'EXPO ›' : '‹ EXPO'}</button>}
+            {onExit && !previewCoach && <button onClick={onExit} className="bhbc-tab" title="Back to EXPO coach" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: HDR_INK, background: 'transparent', border: `1px solid ${HDR_BD}`, borderRadius: 0, height: HDR_BTN_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, padding: '0 9px', cursor: 'pointer', gap: 6 }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+            </button>}
             {coach && onSignOut && <button onClick={onSignOut} className="bhbc-tab" title="Sign out" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: HDR_INK, background: 'transparent', border: `1px solid ${HDR_BD}`, borderRadius: 0, height: HDR_BTN_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, padding: '0 11px', cursor: 'pointer' }}>{tr('Sign out')}</button>}
           </div>
         </div>
@@ -883,6 +889,8 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
       {planFor && (
         <SessionPlanModal
           slot={planFor}
+          rows={rows}
+          medical={medical}
           fixtures={bhbcFixtures}
           plan={planOf(planFor)}
           onClose={() => setPlanFor(null)}
@@ -1294,7 +1302,7 @@ function WellnessModal({ roster, bhbcLoads, onClose, onSave }) {
 // Per-SESSION plan editor. A day can hold a morning and an evening practice;
 // each slot is its own plan, so authoring the evening no longer overwrites the
 // morning (and there is finally somewhere to author it at all).
-function SessionPlanModal({ slot, fixtures, plan, onClose, onSave, onPick }) {
+function SessionPlanModal({ slot, fixtures, plan, onClose, onSave, onPick, rows = [], medical = {} }) {
   const [focus, setFocus] = useState(plan?.focus || '');
   const [text, setText] = useState(plan?.plan || '');
   useEffect(() => { setFocus(plan?.focus || ''); setText(plan?.plan || ''); }, [plan, slot?.date, slot?.start]);
@@ -1329,7 +1337,7 @@ function SessionPlanModal({ slot, fixtures, plan, onClose, onSave, onPick }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <label style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: FN }}>Plan</label>
           <textarea value={text} onChange={(e) => setText(e.target.value)} rows={8} dir="auto"
-            placeholder={'What the squad does in this session — blocks, timings, limits.\n\n15\u2032 warm-up + activation\n20\u2032 shooting\n30\u2032 5v5 (Amit: non-contact, shooting only)'}
+            placeholder={'The S&C period at the start of practice — blocks, timings, limits.\n\n15\u2032 warm-up + activation\n20\u2032 shooting\n30\u2032 5v5 (Amit: non-contact, shooting only)'}
             style={{ ...inp, resize: 'vertical', lineHeight: 1.5, fontFamily: FB }} />
         </div>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center' }}>
