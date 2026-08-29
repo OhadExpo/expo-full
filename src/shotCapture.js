@@ -61,6 +61,36 @@ function boxAt(track, t) {
   return { x0: lerp(a.box.x0, b.box.x0, u), y0: lerp(a.box.y0, b.box.y0, u), x1: lerp(a.box.x1, b.box.x1, u), y1: lerp(a.box.y1, b.box.y1, u) };
 }
 
+// WAIT FOR THE CLIP TO BE IN MEMORY BEFORE MEASURING ANYTHING.
+//
+// This is why the shot count moved between runs on the SAME video - 17, then
+// 7, then whatever the machine felt like. Nothing ever waited for the file:
+// preload='auto' was set and the coarse pass started as soon as metadata
+// arrived, so playback raced the download. A decode stall costs frames
+// silently - requestVideoFrameCallback simply fires fewer times, skipRatio
+// stays 0 because nothing was RE-presented, and a rep that happened during
+// the stall is never bracketed. Warm cache: 17. Cold cache: 7.
+//
+// A shot count that changes when you press the button twice is worse than no
+// shot count, so the download is finished first and the pass runs against
+// memory. The timeout is a floor, not a target: a clip that will not buffer
+// still gets analysed, just with the old risk.
+const awaitBuffered = (v, { timeoutMs = 90000, onTick } = {}) => new Promise((res) => {
+  const t0 = performance.now();
+  const tick = () => {
+    const d = v.duration;
+    let covered = 0;
+    try {
+      for (let i = 0; i < v.buffered.length; i++) covered += v.buffered.end(i) - v.buffered.start(i);
+    } catch { /* buffered can throw while the element is settling */ }
+    if (onTick && Number.isFinite(d) && d > 0) onTick(Math.min(1, covered / d));
+    if (Number.isFinite(d) && d > 0 && covered >= d - 0.3) return res({ ok: true, covered });
+    if (performance.now() - t0 > timeoutMs) return res({ ok: false, covered });
+    setTimeout(tick, 150);
+  };
+  tick();
+});
+
 const seekTo = (v, time) => new Promise((res) => {
   let done = false;
   const fin = () => { if (!done) { done = true; res(); } };
@@ -226,6 +256,11 @@ export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineR
     const fps = (await measureFps(v)) || 30;
     try { v.pause(); v.currentTime = 0; } catch { /* noop */ }
     const frameDur = 1 / fps;
+
+    // The coarse pass decides the shot count, so it does not start until the
+    // clip is in memory. See awaitBuffered above.
+    const buf = await awaitBuffered(v, { onTick: (f) => report(f * 12, 'loading the clip') });
+    if (!buf.ok) report(12, 'loading the clip');
     const vw = v.videoWidth || 1080, vh = v.videoHeight || 1920;
 
     // ------------------------------------------------------------ pass 1 ---
