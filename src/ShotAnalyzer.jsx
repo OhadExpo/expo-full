@@ -58,7 +58,12 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
     try { localStorage.setItem(LANG_KEY, l); } catch { /* private mode */ }
     crossFade(() => { flushSync(() => setLang(l)); });
   };
-  const [handMode, setHandMode] = useState('auto'); // auto | R | L
+  const HAND_KEY = 'expo-shot-hand';
+  // Remembered like the shot type: a coach who pins a hand should not have to
+  // pin it again next clip.
+  const [handMode, setHandMode] = useState(() => {
+    try { const v = localStorage.getItem(HAND_KEY); return (v === 'R' || v === 'L') ? v : 'auto'; } catch { return 'auto'; }
+  }); // auto | R | L
   const [detectedHand, setDetectedHand] = useState(null);
   const hand = handMode === 'auto' ? (detectedHand || 'R') : handMode;
   // Remember the shot type. It reset to 'mid' every time, so a coach who only
@@ -76,7 +81,12 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
   const [shotType, setShotType] = useState(() => {
     try { const v = localStorage.getItem(SHOTTYPE_KEY); return (v === 'ft' || v === 'mid' || v === 'three') ? v : 'mid'; } catch { return 'mid'; }
   });
-  const [heightSaved, setHeightSaved] = useState(false);
+  // A height restored from storage IS saved — starting false made a remembered
+  // value look unsaved on every load, which is the other half of 'it doesnt get
+  // updated'.
+  const [heightSaved, setHeightSaved] = useState(() => {
+    try { return !!localStorage.getItem('expo-shot-stature'); } catch { return false; }
+  });
   // Remember the athlete's height. It was state-only, so every reload lost it
   // and the coach had to retype it before any centimetre reading was real
   // (Ohad 2026-08-26: "there's no saving mechanism and i wrote 177cm").
@@ -169,12 +179,12 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
             badge on the hand the clip itself reported. */}
         <span style={lbl}>{T.hand}</span>
         <button
-          onClick={() => { setHandMode('auto'); const h = detectedHand || 'R'; if (phase === 'results') rescore(h, stature, shotType); }}
+          onClick={() => { setHandMode('auto'); try { localStorage.setItem(HAND_KEY, 'auto'); } catch { /* private mode */ } const h = detectedHand || 'R'; if (phase === 'results') rescore(h, stature, shotType); }}
           title={T.handHint}
-          style={chip(handMode === 'auto')}>{T.auto || 'AUTO'}</button>
+          style={chip(handMode === 'auto')}>{T.auto || 'AUTO'}{handMode === 'auto' && detectedHand ? ` · ${detectedHand === 'L' ? T.left : T.right}` : ''}</button>
         {[['R', T.right], ['L', T.left]].map(([k, label]) => (
           <button key={k}
-            onClick={() => { setHandMode(k); if (phase === 'results') rescore(k, stature, shotType); }}
+            onClick={() => { setHandMode(k); try { localStorage.setItem(HAND_KEY, k); } catch { /* private mode */ } if (phase === 'results') rescore(k, stature, shotType); }}
             title={T.handHint}
             style={chip(handMode === k)}>{label}{handMode === 'auto' && detectedHand === k ? ' · AUTO' : ''}</button>
         ))}
@@ -189,7 +199,7 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
         <input value={stature}
           onChange={(e) => { setStature(e.target.value); setHeightSaved(false); }}
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); } }}
-          onBlur={() => { if (!String(stature).trim()) return; try { localStorage.setItem(STATURE_KEY, String(stature).trim()); } catch { /* private mode */ } if (phase === 'results') rescore(hand, stature, shotType); setHeightSaved(true); setTimeout(() => setHeightSaved(false), 2600); }}
+          onBlur={() => { if (!String(stature).trim()) return; try { localStorage.setItem(STATURE_KEY, String(stature).trim()); } catch { /* private mode */ } if (phase === 'results') rescore(hand, stature, shotType); setHeightSaved(true); }}
           placeholder={T.cmPlaceholder} inputMode="numeric"
           style={{ width: 56, background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.35)', color: '#FFF', fontFamily: FN, fontSize: 12, padding: '4px 2px', textAlign: 'center', outline: 'none' }} />
         {/* Height feeds the cm conversions — say so when it lands (Ohad 08-24). */}
@@ -685,6 +695,25 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
                       const pick = (st) => s.checks.filter((c) => c.status === st).sort((a, b) => g(b) - g(a))[0];
                       const worstRaw = pick('fix') || pick('watch');
                       const worst = worstRaw ? localiseCheck(worstRaw, T, typeSpec) : null;
+                      // Deviation from the shooter own norm, not the absolute worst —
+                      // see the note in git history: the absolute worst is identical on
+                      // every rep of a clip, so it made the column constant.
+                      const devPick = () => {
+                        const keys = ['dip', 'setElbow', 'releaseArm'];
+                        let best = null;
+                        for (const k of keys) {
+                          const vals = result.shots.map((x) => x.raw && x.raw[k]).filter((v) => typeof v === 'number' && isFinite(v));
+                          if (vals.length < 3) continue;
+                          const mean = vals.reduce((a, v) => a + v, 0) / vals.length;
+                          const v = s.raw && s.raw[k];
+                          if (typeof v !== 'number' || !isFinite(v)) continue;
+                          const d = Math.abs(v - mean);
+                          if (d < 4) continue;   // inside his own noise
+                          if (!best || d > best.d) best = { k, d, v, mean };
+                        }
+                        return best;
+                      };
+                      const dev = devPick();
                       return (
                         <tr key={i} onClick={() => setShotIdx(i)} style={{ cursor: 'pointer', background: i === shotIdx ? 'rgba(57,189,255,0.10)' : 'transparent', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
                           <td style={{ padding: '6px 8px', fontWeight: 700, color: i === shotIdx ? CYAN : '#FFF' }}>{s.index}</td>
@@ -699,7 +728,14 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
                             const prevRaw = i > 0 ? (prevPick('fix') || prevPick('watch')) : null;
                             const prev = prevRaw ? localiseCheck(prevRaw, T, typeSpec) : null;
                             const same = worst && prev && prev.label === worst.label;
-                            return (<td style={{ padding: '6px 8px', color: worst ? ST[worst.status].color : 'rgba(255,255,255,0.4)', whiteSpace: 'nowrap', opacity: same ? 0.45 : 1 }}>{worst ? worst.label : '—'}</td>); })()}
+                            // Prefer what moved THIS rep; fall back to the standing fault
+                            // only when the rep is genuinely at his norm.
+                            const LBL = { dip: T.cols[3], setElbow: T.cols[4], releaseArm: T.cols[5] };
+                            if (dev) {
+                              const dir = dev.v > dev.mean ? '+' : '-';
+                              return (<td style={{ padding: '6px 8px', color: '#FFF', whiteSpace: 'nowrap' }}>{LBL[dev.k] || dev.k} <span style={{ color: 'rgba(255,255,255,0.55)' }}>{dir}{Math.round(dev.d)}°</span></td>);
+                            }
+                            return (<td style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.4)', whiteSpace: 'nowrap' }}>{worst ? T.onNorm || 'on his norm' : '—'}</td>); })()}
                         </tr>
                       );
                     })}
