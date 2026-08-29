@@ -373,19 +373,51 @@ const SCORE = { ok: 1, watch: 0.55, fix: 0.1, na: null };
 
 // The release-arm band shifts with shot distance: the further out, the flatter
 // the arm can be while the ball still drops in steeply enough.
+// WHAT ACTUALLY DIFFERS BETWEEN THE THREE SHOTS.
+//
+// This table used to vary ONE checkpoint - the release arm angle - by three or
+// four degrees, so picking a shot type changed almost nothing on screen and the
+// control read as decorative (Ohad 08-29: the shot parameter "does not affect
+// anything"). The three shots differ in more than the arm:
+//
+//   Free throw  no jump at all, so there is no apex to time a release against
+//               and scoring one is noise. Least leg drive, most upright trunk,
+//               and the hold matters most because a free throw is a repeated
+//               routine before it is anything else.
+//   Mid-range   the reference shot; the defaults are its numbers.
+//   Three       needs the legs, so a deeper dip is correct rather than a fault,
+//               a few degrees of forward lean is normal at that range, and the
+//               kinetic-chain order matters more because the arm alone cannot
+//               make the distance.
+//
+// Bands are coach-readable guidance, not laws - the same caveat the report
+// carries at the bottom of the checkpoint list.
 export const SHOT_TYPES = [
-  { key: 'ft', label: 'Free throw', arm: [48, 66], armWatch: [40, 74] },
-  { key: 'mid', label: 'Mid-range', arm: [45, 62], armWatch: [37, 71] },
-  { key: 'three', label: 'Three', arm: [42, 58], armWatch: [34, 67] },
+  { key: 'ft', label: 'Free throw', arm: [48, 66], armWatch: [40, 74],
+    dip: [115, 150], dipWatch: [100, 160], trunk: [0, 8], trunkWatch: [0, 14],
+    follow: [400, 5000], followWatch: [200, 5000], jump: false,
+    w: { dip: 0.8, follow: 1.1, sequence: 0.9 } },
+  { key: 'mid', label: 'Mid-range', arm: [45, 62], armWatch: [37, 71],
+    dip: [105, 140], dipWatch: [92, 152], trunk: [0, 10], trunkWatch: [0, 18],
+    follow: [300, 5000], followWatch: [150, 5000], jump: true, w: {} },
+  { key: 'three', label: 'Three', arm: [42, 58], armWatch: [34, 67],
+    dip: [95, 130], dipWatch: [85, 145], trunk: [0, 14], trunkWatch: [0, 22],
+    follow: [300, 5000], followWatch: [150, 5000], jump: true,
+    timing: [-180, 40], timingWatch: [-300, 130],
+    w: { dip: 1.2, sequence: 1.3, follow: 0.7 } },
 ];
 const typeSpec = (k) => SHOT_TYPES.find((t) => t.key === k) || SHOT_TYPES[1];
 
 export function buildCheckpoints(shotType = 'mid') {
   const T = typeSpec(shotType);
+  // Per-type weight nudges: what matters most is not the same on a free
+  // throw as it is on a three.
+  const W = (key, base) => Math.round(base * ((T.w && T.w[key]) || 1) * 100) / 100;
+  const R = (a, b) => `${a}\u2013${b}`;
   return [
-    { key: 'dip', label: 'Dip depth', weight: 1,
-      target: '105–140° knee angle at the bottom of the dip',
-      band: (v) => band(v, 105, 140, 92, 152),
+    { key: 'dip', label: 'Dip depth', weight: W('dip', 1),
+      target: `${R(T.dip[0], T.dip[1])}° knee angle at the bottom of the dip (${T.label.toLowerCase()})`,
+      band: (v) => band(v, T.dip[0], T.dip[1], T.dipWatch[0], T.dipWatch[1]),
       why: 'The legs are the engine. Too shallow a dip leaves the arm to generate the power — a flat, arm-heavy shot that dies short at range; too deep slows the rhythm and lets the defence close. Mid-range knee flexion keeps leg drive AND rhythm.',
       how: ['One-dribble pull-ups: count "down-UP" out loud — the "down" is the dip, the "UP" is the rise.', 'Form shooting from 2–3 m: 10 reps changing nothing but a repeatable quarter-squat dip.', 'Film 5 free throws side-on and compare the dip frame — same depth every rep.'] },
     { key: 'setHeight', label: 'Set point height', weight: 1.2,
@@ -413,24 +445,28 @@ export function buildCheckpoints(shotType = 'mid') {
       band: (v) => band(v, T.arm[0], T.arm[1], T.armWatch[0], T.armWatch[1]),
       why: 'The forearm angle at release drives the ball’s launch angle. Too flat and the rim window shrinks; too steep costs range and timing. This is the ARM angle — the true ball angle needs ball tracking.',
       how: ['Arc drill: shoot over a target 30–40 cm above the rim (a partner’s hand on a box) — swish only.', 'Cue: "shoot UP, not AT" — aim at the high point of the arc, not the rim.', 'Film side-on: the follow-through fingers finish high, not pointing flat at the rim.'] },
-    { key: 'timing', label: 'Release vs jump apex', weight: 0.9,
-      target: 'Release between −120 ms and +60 ms around the apex',
-      band: (v) => band(v, -120, 60, -250, 150),
+    { key: 'timing', label: 'Release vs jump apex', weight: W('timing', 0.9),
+      target: T.jump === false
+        ? 'Not scored on a free throw \u2014 there is no jump to time the release against'
+        : `Release between ${(T.timing || [-120, 60])[0]} ms and +${(T.timing || [-120, 60])[1]} ms around the apex`,
+      // Scoring a free throw against a jump apex it does not have was noise
+      // in the score, not information. 'na' is excluded from the weighting.
+      band: (v) => (T.jump === false ? 'na' : band(v, (T.timing || [-120, 60])[0], (T.timing || [-120, 60])[1], (T.timingWatch || [-250, 150])[0], (T.timingWatch || [-250, 150])[1])),
       why: 'Releasing at or just before the top of the jump uses the leg drive and the highest release point; releasing on the way down adds a downward body velocity the arm has to overcome and lowers the release.',
       how: ['Rhythm shooting: "1-2-UP" — the release finishes on the UP.', 'Jump-stop into shot off a pass; a partner calls "late" when the feet are already falling.', 'If the release is always late, shorten the dip — the jump is taking too long.'] },
-    { key: 'sequence', label: 'Kinetic-chain order', weight: 1.1,
+    { key: 'sequence', label: 'Kinetic-chain order', weight: W('sequence', 1.1),
       target: 'Legs → shoulder → elbow, in that order',
       band: (v) => band(v, 3, 3, 2, 3),
       why: 'Power should travel from the ground up: the knees finish extending first, then the shoulder lifts, then the elbow fires and the wrist snaps. When the arm fires before the legs finish, the shot is all arm — it drains at range and falls apart with fatigue.',
       how: ['Slow "down-up-through" reps: feel the legs finish before the arm goes.', 'One-motion form shooting close to the rim, stepping back gradually — keep the same order.', 'Cue: "push the floor, then the ball".'] },
-    { key: 'follow', label: 'Follow-through hold', weight: 0.8,
-      target: 'Arm held high ≥ 300 ms after release, wrist flexed',
-      band: (v) => band(v, 300, 5000, 150, 5000),
+    { key: 'follow', label: 'Follow-through hold', weight: W('follow', 0.8),
+      target: `Arm held high ≥ ${T.follow[0]} ms after release, wrist flexed`,
+      band: (v) => band(v, T.follow[0], T.follow[1], T.followWatch[0], T.followWatch[1]),
       why: 'The follow-through is the receipt for a complete extension and wrist snap; dropping the arm early almost always means the snap was cut short, and it costs the backspin that softens the bounce.',
       how: ['"Hold it till it hits" — freeze the finish until the ball reaches the rim, every rep, for a whole session.', 'Cue: "hand in the cookie jar" — fingers down over the rim at the finish.'] },
-    { key: 'trunk', label: 'Trunk at release', weight: 0.7,
-      target: 'Near vertical (≤ 10° lean) at release',
-      band: (v) => band(v, 0, 10, 0, 18),
+    { key: 'trunk', label: 'Trunk at release', weight: W('trunk', 0.7),
+      target: `Near vertical (≤ ${T.trunk[1]}° lean) at release`,
+      band: (v) => band(v, T.trunk[0], T.trunk[1], T.trunkWatch[0], T.trunkWatch[1]),
       why: 'A vertical trunk keeps the shoulders square and the release height maximal; a lean or fade moves the release point every rep (unless the fade is deliberate). Forward lean on the catch usually means the feet were late.',
       how: ['Feet first: land the jump-stop with the feet set and the chest up before the ball arrives.', 'Tall-kneeling shooting, 10 reps — the trunk cannot lean.', 'Single-leg RDL holds 3×20 s for the balance underneath it.'] },
   ];

@@ -44,9 +44,16 @@ for (let i = 0; i < Math.min(COUNT, QUERIES.length); i++) {
   try {
     await run('yt-dlp.exe', [
       `ytsearch1:${q}`,
-      '--match-filter', 'duration<180',
-      '--max-filesize', '80M',
-      '-f', 'mp4[height<=720]/best[height<=720]',
+      // '--max-filesize' made yt-dlp abort the download silently, so nothing
+      // landed and the script reported a filter miss it had never applied.
+      // '<' in a match-filter is also a shell redirect on Windows and never
+      // reached yt-dlp intact. Take whatever <=720p exists and cut the first
+      // 90 seconds at download time: the engine needs a minute of shooting,
+      // not the whole video.
+      '-f', 'b[height<=720]/bv[height<=720]+ba/b',
+      '--merge-output-format', 'mp4',
+      '--download-sections', '*0-90',
+      '--force-keyframes-at-cuts',
       '--no-playlist', '--no-warnings', '--quiet',
       '-o', out,
     ], { timeout: 180000, maxBuffer: 1 << 26 });

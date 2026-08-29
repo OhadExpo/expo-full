@@ -18,7 +18,7 @@ const page = await b.newPage();
 page.on('console', (m) => { const t = m.text(); if (/shot-capture|error|Error/.test(t)) console.log('  [page]', t.slice(0, 300)); });
 page.on('pageerror', (e) => console.log('  [pageerror]', String(e).slice(0, 300)));
 
-await page.goto(`http://localhost:${PORT}/shot-harness.html`, { waitUntil: 'domcontentloaded' });
+await page.goto(`http://127.0.0.1:${PORT}/shot-harness.html`, { waitUntil: 'domcontentloaded' });
 await page.waitForFunction('window.__ready === true', { timeout: 30000 });
 console.log('harness ready; analysing', CLIP);
 
