@@ -94,6 +94,10 @@ export const SHOT_I18N = {
     axisAll: 'Y each trace on its own scale · X time, seconds',
     measuredOnSide: (side) => `Measured on the shooting side · ${side}`,
     // The session read: what is solid, what is broken, what merely wanders.
+    // Distinct from ballUnread: the ball WAS followed, it simply had already
+    // left the hand before the tracker locked on, so the release angle is not
+    // measurable on that rep. Saying 'could not be followed' there was wrong.
+    ballAscent: 'The ball was already above the hand when tracking began, so the release angle and speed cannot be read on this rep.',
     onNorm: 'on his norm',
     sessionReadTitle: (n) => `ACROSS ALL ${n} REPS`,
     sessionSpan: 'best {b} · worst {w} · spread {s}',
@@ -206,6 +210,7 @@ export const SHOT_I18N = {
     axisSolo: (label, side, unit) => `ציר Y ${label} (${side})${unit ? ` ${unit}` : ''} · ציר X זמן בשניות`,
     axisAll: 'כל קו בסקלה שלו · ציר X זמן בשניות',
     measuredOnSide: (side) => `נמדד בצד הזורק · ${side}`,
+    ballAscent: 'הכדור כבר היה מעל היד כשהמעקב התחיל, אז אי אפשר לקרוא זווית ומהירות שחרור בזריקה הזאת.',
     onNorm: 'על הנורמה שלו',
     sessionReadTitle: (n) => `כל ${n} הזריקות`,
     sessionSpan: 'הכי טוב {b} · הכי חלש {w} · פער {s}',
