@@ -602,7 +602,7 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
               reflow 4 -> 2 -> 1 with every edge still aligned, and no orphan
               (Ohad: "same for save to new clip"). NEW CLIP keeps a dimmer border
               so starting over does not read as a peer of SAVE. */}
-          <div className="shot-noprint" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(124px, 1fr))', gap: 8, marginTop: 10 }}>
+          <div className="shot-noprint" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(45%, 1fr))', gap: 8, marginTop: 10 }}>
             <button onClick={save} style={{ ...ghost, borderColor: CYAN, color: CYAN, padding: '0 10px', fontSize: 10 }}>{T.save}</button>
             <button onClick={copySummary} style={{ ...ghost, padding: '0 10px', fontSize: 10 }}>{T.copy}</button>
             <button onClick={() => window.print()} style={{ ...ghost, padding: '0 10px', fontSize: 10 }}>{T.print}</button>
@@ -1133,7 +1133,7 @@ function Timeline({ series, shot, cur, onSeek, T, hand }) {
             fill="rgba(255,255,255,0.55)" fontFamily="Nord, monospace" fontSize="8">{secs(tk.ms)}</text>
         ))}
         {shot.phases.map((p) => <line key={p.key} x1={X(p.idx)} x2={X(p.idx)} y1={0} y2={H - BOT} stroke="rgba(255,255,255,0.22)" strokeDasharray="3 3" />)}
-        {shot.phases.map((p) => <text key={p.key + 't'} x={X(p.idx) + 2} y={10} fill="rgba(255,255,255,0.55)" fontFamily="Nord, monospace" fontSize="8">{p.label}</text>)}
+        {(() => { let lastX = -99; return shot.phases.map((p) => { const x = X(p.idx); if (x - lastX < 34) return null; lastX = x; return <text key={p.key + 't'} x={x + 2} y={10} fill="rgba(255,255,255,0.55)" fontFamily="Nord, monospace" fontSize="8">{p.label}</text>; }); })()}
         {TRACES.filter((tr) => !soloLine || soloLine === tr.id).map(poly)}
         <line x1={X(cur)} x2={X(cur)} y1={0} y2={H - BOT} stroke="#39BDFF" strokeWidth="1.5" />
       </svg>
