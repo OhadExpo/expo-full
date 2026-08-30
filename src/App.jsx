@@ -1452,9 +1452,20 @@ function AuthedApp() {
              Scrolling was the old answer and it hides the ends with no
              affordance. Wrapping to a second row shows every tab instead —
              "i cant see some of the words ... never do". */
+          /* 760-1240px used to WRAP the nav. That stopped DASHBOARD being
+             clipped and produced something worse: at ~945px (Ohad's PWA
+             window) the tabs broke onto THREE ragged rows, the logo sat
+             stranded beside them, and the right-hand cluster floated in the
+             middle of the second row.
+             One row that slides is what mobile already does, and the header
+             keeps its 56px. Nothing is cut off - everything stays reachable
+             by scroll or swipe - and the row still reads as a single line. */
           @media (max-width: 1240px) {
-            nav.hdr-scroll { flex-wrap: wrap; row-gap: 2px; overflow-x: visible !important; justify-content: flex-start !important; }
-            .hdr-scroll { height: auto !important; min-height: 56px; padding-top: 4px; padding-bottom: 4px; }
+            nav.hdr-scroll { flex-wrap: nowrap; overflow-x: auto !important; justify-content: flex-start !important; }
+            .hdr-scroll { height: 56px; }
+            .hdr-right { position: static !important; right: auto !important;
+              margin-left: 8px !important; background: transparent !important;
+              box-shadow: none !important; z-index: auto !important; }
           }
           .nav-item-inactive{transition:color 120ms, background 120ms}
           .nav-item-inactive:hover{color:var(--c-acText) !important;background:rgba(57,189,255,0.035) !important}
