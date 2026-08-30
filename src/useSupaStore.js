@@ -9,6 +9,49 @@ import { checkStoreWrite } from './storeWriteGuard';
 // store is its key count — the BHBC season stores (expo-bhbc-loads, -medical,
 // -plans) are keyed by athlete id, and leaving this null meant the shrink rule
 // could never fire for them even once the server value was known.
+// SNAPSHOTS MUST NEVER CONSUME THE SPACE THE SESSION NEEDS.
+//
+// These localStorage copies are an offline convenience: every one of them can
+// be refetched from Supabase. The auth token cannot - and it lives in the same
+// origin quota. On 2026-08-30 Ohad could not sign in on any surface:
+//
+//   QuotaExceededError: Failed to execute 'setItem' on 'Storage': setting the
+//   value of 'sb-gtcbfglttoiyfsnfbhdy-auth-token' exceeded the quota.
+//
+// Sign-in succeeded every time and the token was then thrown away, which looks
+// exactly like a login failure. Evicting caches at the moment of failure was
+// tried first and measured NOT to work - with storage genuinely exhausted the
+// session still failed to persist - so the space is reserved up front instead.
+//
+// A snapshot write that would eat into the reserve is skipped. Skipping costs
+// one refetch. Not skipping costs the user their account.
+const LS_QUOTA_EST = 5 * 1024 * 1024;   // the usual per-origin allowance
+const LS_RESERVE = 1024 * 1024;         // always left free for auth + headroom
+
+const lsUsedBytes = () => {
+  let n = 0;
+  try {
+    for (const k of Object.keys(localStorage)) n += k.length + (localStorage.getItem(k) || '').length;
+  } catch { return Infinity; }   // cannot measure - assume no room
+  return n;
+};
+
+/** Write a snapshot only if it leaves the reserve intact. Returns success. */
+export const lsSnapshot = (key, val) => {
+  try {
+    const text = JSON.stringify(val);
+    const existing = (localStorage.getItem(key) || '').length;
+    if (lsUsedBytes() - existing + text.length > LS_QUOTA_EST - LS_RESERVE) {
+      // Too big to hold without crowding the session: drop any stale copy so
+      // the app reads from the server rather than trusting a partial one.
+      try { localStorage.removeItem(key); } catch { /* nothing to do */ }
+      return false;
+    }
+    localStorage.setItem(key, text);
+    return true;
+  } catch { return false; }
+};
+
 const storeSize = (v) => (Array.isArray(v) ? v.length
   : (v !== null && typeof v === 'object' && !(v instanceof Date)) ? Object.keys(v).length
   : null);
@@ -267,7 +310,7 @@ export function useSupaStore(key, initial) {
             setData(val);
             dataRef.current = val;
             if (key !== 'expo-trainees') {
-              try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
+              try { lsSnapshot(key, val); } catch {}
             }
           }
         }
@@ -325,7 +368,7 @@ export function useSupaStore(key, initial) {
             const val = asShape(row.value);
             if (JSON.stringify(val) === JSON.stringify(dataRef.current)) return;
             setData(val); dataRef.current = val;
-            if (key !== 'expo-exercises' && key !== 'expo-trainees') { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} }
+            if (key !== 'expo-exercises' && key !== 'expo-trainees') { try { lsSnapshot(key, val); } catch {} }
           } catch { /* transient */ }
         })
         .subscribe();
@@ -397,7 +440,7 @@ export function useSupaStore(key, initial) {
     setData(val);
     dataRef.current = val;
     if (key !== 'expo-exercises' && key !== 'expo-trainees') {
-      try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
+      try { lsSnapshot(key, val); } catch {}
     }
     writeToSupa(val);
   }, [key, writeToSupa]);
@@ -417,7 +460,7 @@ export function useSupaStore(key, initial) {
     setData(val);
     dataRef.current = val;
     if (key !== 'expo-exercises' && key !== 'expo-trainees') {
-      try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
+      try { lsSnapshot(key, val); } catch {}
     }
   }, [key]);
 
@@ -494,7 +537,7 @@ export function useSupaClientWorkouts(initial = []) {
           } catch {}
           setData(mapped);
           dataRef.current = mapped;
-          localStorage.setItem('expo-cw', JSON.stringify(mapped));
+          lsSnapshot('expo-cw', mapped);
         }
       } catch {}
       setLoaded(true);
@@ -543,7 +586,7 @@ export function useSupaClientWorkouts(initial = []) {
     mutatedRef.current = true;
     setData(val);
     dataRef.current = val;
-    try { localStorage.setItem('expo-cw', JSON.stringify(val)); } catch {}
+    try { lsSnapshot('expo-cw', val); } catch {}
     // Find new workouts not yet in Supabase
     const newItems = val.filter(w => !prev.find(p => p.id === w.id));
     for (const w of newItems) {
@@ -585,7 +628,7 @@ export function useSupaClientWorkouts(initial = []) {
     mutatedRef.current = true;
     setData(next);
     dataRef.current = next;
-    try { localStorage.setItem('expo-cw', JSON.stringify(next)); } catch {}
+    try { lsSnapshot('expo-cw', next); } catch {}
     try {
       const { error } = await supabase.from('client_workouts').update({ reviewed_at: ts }).eq('id', id);
       if (error) {
@@ -608,7 +651,7 @@ export function useSupaClientWorkouts(initial = []) {
     mutatedRef.current = true;
     setData(next);
     dataRef.current = next;
-    try { localStorage.setItem('expo-cw', JSON.stringify(next)); } catch {}
+    try { lsSnapshot('expo-cw', next); } catch {}
     try {
       // Server-authoritative READ-MODIFY-WRITE (audit CRITICAL). The coach's
       // clientWorkouts snapshot is frozen at page-load and never refreshes from
@@ -637,7 +680,7 @@ export function useSupaClientWorkouts(initial = []) {
       // upload the coach's stale snapshot lacked).
       const reconciled = dataRef.current.map(w => w.id === id ? { ...w, formVideos: merged } : w);
       setData(reconciled); dataRef.current = reconciled;
-      try { localStorage.setItem('expo-cw', JSON.stringify(reconciled)); } catch {}
+      try { lsSnapshot('expo-cw', reconciled); } catch {}
     } catch (e) {
       // Offline / DB flap: keep the optimistic local update and durably enqueue.
       // Drains via the reviewNotes-merge handler (server-authoritative on upload
@@ -656,7 +699,7 @@ export function useSupaClientWorkouts(initial = []) {
     mutatedRef.current = true;
     setData(next);
     dataRef.current = next;
-    try { localStorage.setItem('expo-cw', JSON.stringify(next)); } catch {}
+    try { lsSnapshot('expo-cw', next); } catch {}
     try {
       const { error } = await supabase.from('client_workouts').delete().eq('id', id);
       if (error) {
@@ -718,7 +761,7 @@ export function useSupaBwLog(initial = []) {
           } catch {}
           setData(mapped);
           dataRef.current = mapped;
-          localStorage.setItem('expo-bw', JSON.stringify(mapped));
+          lsSnapshot('expo-bw', mapped);
         }
       } catch {}
       setLoaded(true);
@@ -735,7 +778,7 @@ export function useSupaBwLog(initial = []) {
     mutatedRef.current = true;
     setData(val);
     dataRef.current = val;
-    try { localStorage.setItem('expo-bw', JSON.stringify(val)); } catch {}
+    try { lsSnapshot('expo-bw', val); } catch {}
     // Upsert entries that are new or whose bw/date changed for (clientId, blockName, week)
     const changed = val.filter(b => {
       const p = prev.find(x => x.clientId === b.clientId && x.blockName === b.blockName && x.week === b.week);
@@ -831,7 +874,7 @@ export function useSupaWeeklyFocus(initial = {}) {
         const merged = { ...cloud, ...pending };
         setData(merged);
         dataRef.current = merged;
-        try { localStorage.setItem('expo-weekly-focus', JSON.stringify(merged)); } catch {}
+        try { lsSnapshot('expo-weekly-focus', merged); } catch {}
       } catch {}
     })();
   }, []);
@@ -886,7 +929,7 @@ export function useSupaWeeklyFocus(initial = {}) {
     const val = typeof next === 'function' ? next(prev) : next;
     setData(val);
     dataRef.current = val;
-    try { localStorage.setItem('expo-weekly-focus', JSON.stringify(val)); } catch {}
+    try { lsSnapshot('expo-weekly-focus', val); } catch {}
 
     for (const [k, v] of Object.entries(val)) {
       if (prev[k] !== v) pendingRef.current[k] = v;
