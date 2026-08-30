@@ -183,6 +183,38 @@ export function LoginScreen({ brand = 'expo' } = {}) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  // AN OAUTH FAILURE MUST NOT LOOK LIKE NOTHING HAPPENED.
+  //
+  // Ohad, 2026-08-30: "google appears, then back to login", on every surface -
+  // browser, PWA and phone. Measured the same day: the OUTBOUND leg is healthy,
+  // Supabase 302s /login, / and /coach alike to accounts.google.com, so the
+  // provider is enabled and the redirect allowlist is correct. The failure is
+  // on the RETURN leg, and Supabase reports those by sending the browser back
+  // to the redirect URL carrying #error=...&error_description=...
+  //
+  // Nothing read that. The app mounted the login form, the hash was dropped,
+  // and the only thing the user could see was the form again - which is
+  // indistinguishable from the button doing nothing and impossible to
+  // diagnose. Show the provider's own words instead.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const read = (raw) => {
+      if (!raw) return null;
+      const q = new URLSearchParams(raw.replace(/^[#?]/, ''));
+      const e = q.get('error') || q.get('error_code');
+      if (!e) return null;
+      const d = q.get('error_description') || '';
+      return (d || e).replace(/\+/g, ' ');
+    };
+    const msg = read(window.location.hash) || read(window.location.search);
+    if (!msg) return;
+    setError(msg);
+    // Clear it so a refresh does not re-show a stale failure.
+    try {
+      window.history.replaceState(null, '', window.location.pathname);
+    } catch { /* history blocked */ }
+  }, []);
   // PWA install. Chrome/Edge/Android fire `beforeinstallprompt` once engagement
   // criteria are met; we capture it and replay on user click for one-tap install.
   // Install prompt lives ONLY in the post-sign-in InstallAppPrompt now — the
