@@ -327,7 +327,27 @@ export function launchAngle(points, releaseMs = null, ballPx = 0, out = null, or
         // enough that the extrapolation is guesswork.
         const gapBalls = ballPx > 0 ? (base - originUp) / ballPx : 0;
         base = originUp;
-        ascentMissing = gapBalls > 4;
+        // DID WE SEE THE BALL TURN AROUND?
+        //
+        // A gap threshold alone throws away good arcs. Measured 2026-08-30 on
+        // Ohad's own clip: 19 ball blobs, one per frame, x rising 312 -> 481,
+        // y falling to an apex of 23 then accelerating down to 272 - and the
+        // fitted downward acceleration matches real gravity to within 1%. It
+        // was refused because the ball sits 4.2 ball widths above the hand when
+        // tracking begins and the cutoff was 4. It missed by 0.2.
+        //
+        // The camera is framed on the shooter, so the ball's ascent happens
+        // mostly ABOVE the frame on every rep. That is normal footage, not bad
+        // footage, and it is not a reason to refuse a measurable arc.
+        //
+        // Once the apex is inside the tracked window the parabola is fully
+        // determined - three coefficients from a curve we watched turn over -
+        // so evaluating it back at the release instant is precisely what the
+        // fit is for. The gap only matters when we never saw the turn and hold
+        // a fragment that could belong to any trajectory.
+        const tApex = quad.a !== 0 ? -quad.b / (2 * quad.a) : null;
+        const sawApex = tApex != null && tApex > ts[0] && tApex < ts[ts.length - 1];
+        ascentMissing = !sawApex && gapBalls > 4;
       }
     }
     const climb = Math.max(...ys) - base;

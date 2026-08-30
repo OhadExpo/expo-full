@@ -1341,6 +1341,22 @@ function AuthedApp() {
   // trainees to load so we don't briefly render the picker for a pure trainer
   // before the trainee match resolves (would flash for one frame otherwise).
   if (tL && isBoth && !portalChoice) {
+    // GET OFF /login BEFORE SHOWING THE PICKER.
+    //
+    // Ohad, 2026-08-30: "sign in with google auth isnt working for me it
+    // throws me back to the login page." It was working. OAuth returns a valid
+    // token to /login (proven: the redirect chain lands on
+    // /login#access_token=... and the session persists), and a dual-role
+    // account then gets this picker - but redirectTo is origin+pathname, so a
+    // sign-in started at /login comes back to /login, and the routing effect
+    // below cannot move it because neither isClient nor isTrainer resolves
+    // until a portal is picked. The address bar still reads /login while the
+    // picker renders, which is indistinguishable from being bounced back.
+    //
+    // The picker is correct for a two-role account; the URL was not.
+    if (typeof window !== 'undefined' && /^\/login/.test(window.location.pathname)) {
+      try { window.history.replaceState(null, '', '/'); } catch { /* history blocked */ }
+    }
     return <RolePickerScreen name={clientTrainee?.name || ''} onPick={pickPortal} onSignOut={signOut} />;
   }
 
