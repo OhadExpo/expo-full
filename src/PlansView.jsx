@@ -4385,6 +4385,12 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
         .prog-card { transition: background 140ms ease; }
         .prog-card:hover { background: var(--c-sf2); }
         .prog-txtbtn:hover { text-decoration: underline; }
+        /* Ohad, 2026-08-30: two or more buttons in the same row are the same
+           vertical height, everywhere. This row pairs the PORTAL toggle -
+           whose 18px pill sets its height - with four bare text buttons that
+           were sized by their text alone and came out at 14px. Fixed box with
+           centred content, so the two fonts cannot disagree either. */
+        .prog-actions button { height: 18px; box-sizing: border-box; display: inline-flex; align-items: center; line-height: 1; }
         /* Mobile: drop the flex-spacer that pushes the actions right (which made
            DELETE wrap onto its own line) and tighten the gap so PORTAL + the
            text actions group left and wrap evenly (Ohad mobile OCD pass). */
