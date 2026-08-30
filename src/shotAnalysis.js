@@ -522,7 +522,7 @@ function rulers(series, c, statureCm) {
   return { cmPerUnit, torsoPx, rulerPx };
 }
 
-export function scoreShot(series, c, { statureCm = null, shotType = 'mid' } = {}) {
+export function scoreShot(series, c, { statureCm = null, shotType = 'mid', ballOriginBias = 0, ballRiseBias = 0 } = {}) {
   const { sm, tMs } = series;
   const at = (arr, i) => (i >= 0 && i < arr.length ? arr[i] : null);
   const seq = sequenceScore(series, c);
@@ -580,7 +580,11 @@ export function scoreShot(series, c, { statureCm = null, shotType = 'mid' } = {}
     // from one that was never filmed, both for the coach and for anyone trying
     // to improve the tracker.
     const stats = {};
-    const tr = trackBall(frames, { ...(origin ? { origin } : {}), stats });
+    // ballOriginBias is an opt-in MEASUREMENT hook, default 0 - the tracker
+    // scores candidates by length and fit, so on a busy frame the longest
+    // arc wins whether or not it left the shooter's hand. Swept offline
+    // before any default changes; see docs/ball-launch-diagnosis-2026-08-31.md.
+    const tr = trackBall(frames, { ...(origin ? { origin } : {}), stats, originBias: ballOriginBias, riseBias: ballRiseBias });
     if (!tr) return { failed: 'no track', frames: frames.length, blobs: frames.reduce((a, f) => a + f.blobs.length, 0), stats };
     const out = {};
     // `origin` is the shooting wrist at release — already computed above for
@@ -691,7 +695,7 @@ export function detectShootingHand(frames) {
   return rSum >= lSum ? 'R' : 'L';
 }
 
-export function analyzeShotClip(frames, { hand = 'R', statureCm = null, shotType = 'mid' } = {}) {
+export function analyzeShotClip(frames, { hand = 'R', statureCm = null, shotType = 'mid', ballOriginBias = 0, ballRiseBias = 0 } = {}) {
   if (!frames || frames.length < 8) return { ok: false, error: 'Not enough frames with a visible body. Film the whole body, side-on, in good light.' };
   const dims = frames.dims || { w: 9, h: 16 };
   const aspect = dims.w / dims.h;
@@ -741,7 +745,7 @@ export function analyzeShotClip(frames, { hand = 'R', statureCm = null, shotType
     const trackNote = ` Body tracked in ${tracked}/${frames.length} frames (${pct}%)${pct < 50 ? ' — that is the real problem: get the whole body in frame, closer and better lit.' : '.'}`;
     return { ok: false, error: `No shot detected.${detail}${trackNote} Film the whole shot side-on, shooting arm towards the camera, feet to fingertips in frame.`, rejections: strictWhy, tracked: { n: tracked, total: frames.length, pct }, series, fps, effFps, skipRatio };
   }
-  const shots = cycles.map((c, k) => ({ index: k + 1, cycle: c, ...scoreShot(series, c, { statureCm, shotType }) }));
+  const shots = cycles.map((c, k) => ({ index: k + 1, cycle: c, ...scoreShot(series, c, { statureCm, shotType, ballOriginBias, ballRiseBias }) }));
 
   // Tracking quality is measured WHERE THE SHOTS ARE, not over the whole clip —
   // the athlete walking out to rebound is irrelevant to the report.

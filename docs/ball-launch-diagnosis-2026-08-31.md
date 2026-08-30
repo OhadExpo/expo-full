@@ -69,3 +69,45 @@ mean anything.
 `/testclips/clip02.mp4` into `C:/Program Files/Git/testclips/clip02.mp4`, the
 clip fails to load, and the harness reports "Could not read that video." That
 cost six runs tonight and looked exactly like an intermittent decoder fault.
+
+## Two levers measured, both dead
+
+Both were swept on a single capture so every value scored identical frames.
+
+**`originBias`** (prefer a track that starts near the hand) — the knob that was
+left in the code specifically for this question:
+
+    bias   0  1  2  4  8  16
+    angles 1/5 for every value, and the SAME angle each time (65 degrees)
+
+It cannot help, and the diagnosis above says why: the losing fragments already
+start 0.8–2.6 ball widths from the hand, well inside the window. Biasing toward
+the hand cannot change a winner that is already at the hand.
+
+**`riseBias`** (prefer a track that actually ascends) — added because rise is
+the property that separates a released ball from other nearby motion:
+
+    bias   0  1  2  4  8  16  32
+    angles 0/6 for every value (deterministic capture)
+
+Also nothing. A selection term can only reorder the candidates that exist. If
+no candidate rises, reordering is a no-op.
+
+## Where the fault actually is
+
+Candidate GENERATION, not selection. The funnel discards 700–900 of roughly
+1000 seeds as `tooShort` before scoring ever runs, and the surviving fragments
+are the late, flat ones. The ball's ascent is not in the candidate set — which
+is consistent with the note already in ballTrack.js that on this framing the
+ascent happens largely above the frame.
+
+Next session should look at seed linking and the `tooShort` cutoff, NOT at the
+gates and NOT at these two knobs. They are measured dead ends.
+
+## Capture nondeterminism
+
+The default capture samples a playing video and loses frames under load: the
+same clip gave 5 shots with 1 angle on one run and 5 shots with 0 on the next,
+with identical code. Any before/after claim about the ball MUST use
+`runHarness(url, { deterministic: 'coarse' })`, or it is comparing two
+different sets of frames and the result means nothing.

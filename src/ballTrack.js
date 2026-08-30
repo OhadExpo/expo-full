@@ -132,7 +132,7 @@ export function trackBall(frames, opts = {}) {
     // Where the ball was released, if known, and how far from it a track may
     // start — in ball diameters, because the ball only separates from the hand
     // a few frames after the release and has travelled by then.
-    origin = null, maxOriginBalls = 9, originBias = 0, trace = null,
+    origin = null, maxOriginBalls = 9, originBias = 0, riseBias = 0, trace = null,
     // Optional out-object. The builder rejects candidates in a loop, so there is
     // no single reason it failed — but there IS a shape to the failure, and it
     // says different things. Mostly `tooShort` means the ball was not detected
@@ -215,6 +215,21 @@ export function trackBall(frames, opts = {}) {
           // before anyone changes the default — see
           // docs/shot-analyzer-next-2026-08-27.md.
           let score = pts.length + q.r2 - gaps * 1.5;
+          // `riseBias` (opt-in, default 0) rewards a candidate that actually
+          // ASCENDS from where it was first seen. Measured 2026-08-31 on
+          // clip02: the arcs that lose start BELOW the shooting hand and rise
+          // by 0.00-0.07 ball widths, so length and fit alone hand the win to a
+          // fragment that is not the shot. originBias cannot fix that - swept
+          // 0..16, identical 1/5 and identical angles - because those fragments
+          // already start close to the hand. Rise is the property that
+          // separates a released ball from everything else moving nearby.
+          if (riseBias) {
+            const y0 = pts[0].y;
+            let top = y0;
+            for (const q2 of pts) if (q2.y < top) top = q2.y;   // image y grows DOWNWARD
+            const risen = (y0 - top) / Math.max(pts[0].px, 1e-9);
+            score += riseBias * Math.min(1, risen / 4);
+          }
           if (originBias && origin) {
             const d0 = Math.hypot(pts[0].x - origin.x, pts[0].y - origin.y) / Math.max(pts[0].px, 1e-9);
             score += originBias * Math.max(0, 1 - d0 / maxOriginBalls);
