@@ -303,6 +303,12 @@ export function launchAngle(points, releaseMs = null, ballPx = 0, out = null, or
     // today can start failing. The gravity check below is what still keeps a
     // drifting object out; this gate only ever answered "did it go up".
     let base = ys[0];
+    // Recorded so a refusal can be argued with numbers instead of guesses:
+    // how far the tracked arc rose, and how far from the hand it was first
+    // seen - the two quantities that decide this gate and the anchor below.
+    const xGapBalls = origin && Number.isFinite(origin.x) && ballPx > 0
+      ? Math.abs(xs[0] - origin.x) / ballPx : null;
+    let anchored = false;
     // Set when the base had to come from the hand — i.e. the climb out of the
     // hand was never tracked. Recorded because it decides, below, which
     // numbers this flight can honestly report.
@@ -327,6 +333,7 @@ export function launchAngle(points, releaseMs = null, ballPx = 0, out = null, or
         // enough that the extrapolation is guesswork.
         const gapBalls = ballPx > 0 ? (base - originUp) / ballPx : 0;
         base = originUp;
+        anchored = true;
         // DID WE SEE THE BALL TURN AROUND?
         //
         // A gap threshold alone throws away good arcs. Measured 2026-08-30 on
@@ -351,6 +358,7 @@ export function launchAngle(points, releaseMs = null, ballPx = 0, out = null, or
       }
     }
     const climb = Math.max(...ys) - base;
+    if (out) out.diag = { climbBalls: ballPx > 0 ? +(climb / ballPx).toFixed(2) : null, xGapBalls: xGapBalls == null ? null : +xGapBalls.toFixed(2), anchored, samples: p.length };
     if (climb < 1.2 * ballPx) return no(`it barely rose (${(climb / ballPx).toFixed(1)} ball widths)`);
   }
 
