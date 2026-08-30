@@ -36,6 +36,37 @@ const lsUsedBytes = () => {
   return n;
 };
 
+// The workout cache is the one store that grows without limit: measured at
+// 3.2 KB per logged workout, so 500 athletes with a season each projects to
+// ~94 MB against a ~5 MB quota. Headcount is not the driver - logged history
+// is, and it never stops growing.
+//
+// The cache exists so a returning device has something to show instantly. That
+// job is done by the RECENT rows; the deep history is a server fetch away. So
+// the newest rows that fit a budget are kept and the rest are left to the
+// server, which makes the cache flat at any roster size instead of unbounded.
+//
+// Rows arrive ordered by date descending (see the client_workouts select), so
+// "newest first" is already true and trimming is a prefix.
+const CW_BUDGET = 384 * 1024;
+
+const trimToBudget = (rows, budget) => {
+  if (!Array.isArray(rows)) return rows;
+  const out = [];
+  let used = 0;
+  for (const r of rows) {
+    const n = JSON.stringify(r).length + 1;
+    if (used + n > budget) break;
+    out.push(r);
+    used += n;
+  }
+  return out;
+};
+
+/** Snapshot a newest-first list, keeping only what fits the budget. */
+export const lsSnapshotRecent = (key, rows, budget = CW_BUDGET) =>
+  lsSnapshot(key, trimToBudget(rows, budget));
+
 /** Write a snapshot only if it leaves the reserve intact. Returns success. */
 export const lsSnapshot = (key, val) => {
   try {
@@ -537,7 +568,7 @@ export function useSupaClientWorkouts(initial = []) {
           } catch {}
           setData(mapped);
           dataRef.current = mapped;
-          lsSnapshot('expo-cw', mapped);
+          lsSnapshotRecent('expo-cw', mapped);
         }
       } catch {}
       setLoaded(true);
@@ -586,7 +617,7 @@ export function useSupaClientWorkouts(initial = []) {
     mutatedRef.current = true;
     setData(val);
     dataRef.current = val;
-    try { lsSnapshot('expo-cw', val); } catch {}
+    try { lsSnapshotRecent('expo-cw', val); } catch {}
     // Find new workouts not yet in Supabase
     const newItems = val.filter(w => !prev.find(p => p.id === w.id));
     for (const w of newItems) {
@@ -628,7 +659,7 @@ export function useSupaClientWorkouts(initial = []) {
     mutatedRef.current = true;
     setData(next);
     dataRef.current = next;
-    try { lsSnapshot('expo-cw', next); } catch {}
+    try { lsSnapshotRecent('expo-cw', next); } catch {}
     try {
       const { error } = await supabase.from('client_workouts').update({ reviewed_at: ts }).eq('id', id);
       if (error) {
@@ -651,7 +682,7 @@ export function useSupaClientWorkouts(initial = []) {
     mutatedRef.current = true;
     setData(next);
     dataRef.current = next;
-    try { lsSnapshot('expo-cw', next); } catch {}
+    try { lsSnapshotRecent('expo-cw', next); } catch {}
     try {
       // Server-authoritative READ-MODIFY-WRITE (audit CRITICAL). The coach's
       // clientWorkouts snapshot is frozen at page-load and never refreshes from
@@ -680,7 +711,7 @@ export function useSupaClientWorkouts(initial = []) {
       // upload the coach's stale snapshot lacked).
       const reconciled = dataRef.current.map(w => w.id === id ? { ...w, formVideos: merged } : w);
       setData(reconciled); dataRef.current = reconciled;
-      try { lsSnapshot('expo-cw', reconciled); } catch {}
+      try { lsSnapshotRecent('expo-cw', reconciled); } catch {}
     } catch (e) {
       // Offline / DB flap: keep the optimistic local update and durably enqueue.
       // Drains via the reviewNotes-merge handler (server-authoritative on upload
@@ -699,7 +730,7 @@ export function useSupaClientWorkouts(initial = []) {
     mutatedRef.current = true;
     setData(next);
     dataRef.current = next;
-    try { lsSnapshot('expo-cw', next); } catch {}
+    try { lsSnapshotRecent('expo-cw', next); } catch {}
     try {
       const { error } = await supabase.from('client_workouts').delete().eq('id', id);
       if (error) {
