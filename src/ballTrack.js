@@ -117,7 +117,18 @@ export function trackBall(frames, opts = {}) {
     // whatever coordinate unit the caller uses. An earlier version hard-coded
     // pixels and silently stopped finding anything the moment the unit changed.
     tolBalls = 0.7, maxStepBalls = 2.5,
-    minLen = 6, seedSpan = 2, maxMiss = 1, minDensity = 0.75,
+    // maxMiss was 1: a track died after a SINGLE frame in which the ball was
+    // not detected. At release the ball is at its fastest and most
+    // motion-blurred - exactly when detection is least reliable - so tracks
+    // died before reaching minLen and the stats showed it: 21 seeds, 21
+    // 'tooShort', nothing kept. Measured on the 17-shot clip, 0 of 17 reps
+    // produced a launch angle.
+    //
+    // Bridging two missing frames is not a loosened standard: minDensity
+    // still rejects a track that is mostly gaps, the score still penalises
+    // each gap, and the parabola, gravity and rise gates downstream are
+    // unchanged. It only lets the tracker survive a blurred frame.
+    minLen = 6, seedSpan = 2, maxMiss = 2, minDensity = 0.75,
     // Where the ball was released, if known, and how far from it a track may
     // start — in ball diameters, because the ball only separates from the hand
     // a few frames after the release and has travelled by then.
