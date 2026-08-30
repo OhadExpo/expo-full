@@ -176,6 +176,25 @@ const LOGIN_BRANDS = {
   },
 };
 
+// 'Connection error. Try again.' hid the only fact worth having.
+//
+// Ohad, 2026-08-30: sign-in failed in his Chrome and his PWA with exactly that
+// line. Measured the same day from the same machine: Node reached the project
+// (health 200, password grant 200) and a clean browser profile signed in fine
+// against production. So the server, the key and the credentials were all
+// healthy and the request was being stopped inside his browser - but the
+// screen said the same six words either way, so there was nothing to act on.
+//
+// A blocked request throws TypeError: Failed to fetch (or NetworkError /
+// Load failed on other engines). Name that, and name the usual causes.
+const netMessage = (e) => {
+  const raw = String((e && e.message) || e || '').slice(0, 140);
+  if (/failed to fetch|networkerror|load failed|network request failed/i.test(raw)) {
+    return 'Could not reach the server. An ad-blocker or privacy extension, a VPN, or a stale offline cache can block it — try an incognito window, or clear this site’s data.';
+  }
+  return raw ? `Connection error: ${raw}` : 'Connection error. Try again.';
+};
+
 export function LoginScreen({ brand = 'expo' } = {}) {
   const bc = LOGIN_BRANDS[brand] || null;
   const AC = bc ? bc.accent : C.ac;
@@ -251,7 +270,7 @@ export function LoginScreen({ brand = 'expo' } = {}) {
       } catch {} // Opaque/CORS failures are fine — the real redirect will work.
       window.location.href = data.url;
     } catch (e) {
-      setError('Connection error. Try again.');
+      setError(netMessage(e));
       setSubmitting(false);
     }
   };
@@ -268,7 +287,7 @@ export function LoginScreen({ brand = 'expo' } = {}) {
       if (authError) setError(authError.message);
       // On success, AuthProvider's onAuthStateChange listener picks up the session.
     } catch (e) {
-      setError('Connection error. Try again.');
+      setError(netMessage(e));
     }
     setSubmitting(false);
   };
@@ -389,7 +408,7 @@ export function PasswordChangeModal({ onClose, demoMode = false }) {
       setOk(true);
       setTimeout(onClose, 1200);
     } catch (e) {
-      setError('Connection error. Try again.');
+      setError(netMessage(e));
       setSaving(false);
     }
   };
