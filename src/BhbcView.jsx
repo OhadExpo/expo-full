@@ -19,6 +19,7 @@ import { useTheme } from './hooks/useTheme';
 import { bhbcT, BhbcLangCtx, useT, useHe, setBhbcDateLang, dowFor, monDayFor, fxLabelFor } from './bhbcHe';
 import { acwrFromDaily, sessionLoad, monotonyStrain } from './acwrEngine';
 import { returnToLoadFlags } from './bhbcReturnLoad';
+import { EXPOMark } from './expoMark';
 import { applyGameMinutes, gameMinutesOf, gameRpeOf } from './bhbcGameLoad';
 import { readinessAutoreg } from './readinessAutoreg';
 import BWChart from './BwChart';
@@ -780,12 +781,15 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
               {he ? 'EN' : 'עב'}
             </button>
             <ThemeToggle size={HDR_BTN_H} style={{ color: HDR_INK, border: `1px solid ${HDR_BD}` }} />
-            {onExit && !previewCoach && <button onClick={onExit} className="bhbc-tab" title="Back to EXPO coach" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: HDR_INK, background: 'transparent', border: `1px solid ${HDR_BD}`, borderRadius: 0, height: HDR_BTN_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, padding: '0 9px', cursor: 'pointer', gap: 6 }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                <polyline points="16 17 21 12 16 7" />
-                <line x1="21" y1="12" x2="9" y2="12" />
-              </svg>
+            {/* The way back to EXPO is Ohad's alone, and it is a door, not a
+                feature of the club zone. A bordered button with an exit arrow
+                gave it the same weight as the tabs beside it; the mark says
+                where it goes without competing with them (Ohad 08-30: "a small
+                transparent expo icon"). Colourless on purpose - the club's
+                header is its own brand, and EXPO blue inside it reads as a
+                second logo. */}
+            {onExit && !previewCoach && <button onClick={onExit} className="bhbc-tab" title="Back to EXPO coach" aria-label="Back to EXPO coach" style={{ background: 'transparent', border: 'none', borderRadius: 0, height: HDR_BTN_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, padding: '0 4px', cursor: 'pointer', opacity: 0.55 }}>
+              <EXPOMark height={15} style={{ filter: 'grayscale(1)', display: 'block' }} />
             </button>}
             {coach && onSignOut && <button onClick={onSignOut} className="bhbc-tab" title="Sign out" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: HDR_INK, background: 'transparent', border: `1px solid ${HDR_BD}`, borderRadius: 0, height: HDR_BTN_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, padding: '0 11px', cursor: 'pointer' }}>{tr('Sign out')}</button>}
           </div>
