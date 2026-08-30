@@ -3357,7 +3357,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                 </span>
                 {onLog && (
                   <button onClick={(e) => { e.stopPropagation(); onLog(t.id); }} className="bhbc-ghost-btn" title="Log a practice for this athlete"
-                    style={{ height: 30, boxSizing: 'border-box', padding: '0 12px', flexShrink: 0, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{tr('+ Log')}</button>
+                    style={{ height: ROW_BTN_H, boxSizing: 'border-box', padding: '0 12px', flexShrink: 0, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{tr('+ Log')}</button>
                 )}
                 {canMedical
                   ? <button onClick={() => (act.length ? onEdit(t.id, act[0].id) : onReport(t.id))} className="bhbc-ghost-btn" style={{ height: 26, boxSizing: 'border-box', minWidth: 84, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, cursor: 'pointer', flexShrink: 0, transition: 'color .12s, border-color .12s' }}>{act.length ? (he ? '‹ צפייה' : 'View ›') : (he ? '+ דיווח' : '+ Report')}</button>

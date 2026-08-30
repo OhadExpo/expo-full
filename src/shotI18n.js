@@ -18,7 +18,10 @@ const armBand = (t) => `${t.arm[0]}–${t.arm[1]}°`;
 export const SHOT_I18N = {
   en: {
     dir: 'ltr',
-    langBtn: 'עברית',
+    // One label everywhere the toggle appears: the coach app header uses
+    // EN / עב, and the analyzer said עברית / ENGLISH, so the same control
+    // read differently depending on the screen (Ohad 08-30).
+    langBtn: 'עב',
     langTitle: 'Switch the tool to Hebrew',
     back: '← BACK',
     hand: 'Hand', right: 'RIGHT', left: 'LEFT', auto: 'AUTO',
@@ -133,7 +136,7 @@ export const SHOT_I18N = {
 
   he: {
     dir: 'rtl',
-    langBtn: 'ENGLISH',
+    langBtn: 'EN',
     langTitle: 'חזרה לאנגלית',
     back: '→ חזרה',
     hand: 'יד', right: 'ימין', left: 'שמאל', auto: 'אוטומטי',

@@ -433,7 +433,11 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
   // "Archived" value is what drives the old showArchived-based card styling &
   // drag-guard, derived below. FORMAT is single-select. attnFlags are the
   // multi-toggle "needs attention" alert filters (AND-combined).
-  const [statusFilter, setStatusFilter] = useState('All');
+  // ALL sits at the BOTTOM of each filter group and ACTIVE is the default
+  // (Ohad 2026-08-30). The roster he works from is the active one; ALL is the
+  // escape hatch you reach for occasionally, so it reads last rather than
+  // first and does not decide what he sees on arrival.
+  const [statusFilter, setStatusFilter] = useState('Active');
   const [formatFilter, setFormatFilter] = useState('All');
   const [attnFlags, setAttnFlags] = useState({ pay: false, dormant: false, lowSessions: false, noProgram: false });
   const [archiveConfirm, setArchiveConfirm] = useState(null);
@@ -726,14 +730,14 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
           groups={[
             {
               label: tt('Status'),
-              opts: ['All', 'Active', 'On Hold', 'Inactive', 'Trial', 'Archived'].map(s => ({
+              opts: ['Active', 'On Hold', 'Inactive', 'Trial', 'Archived', 'All'].map(s => ({
                 key: s, label: tt(s), count: statusCounts[s], active: statusFilter === s,
                 accent: s === 'Archived' ? C.rd : undefined, onClick: () => setStatusFilter(s),
               })),
             },
             {
               label: tt('Format'),
-              opts: ['All', 'Online', 'Gym · Single', 'Gym · Couple', 'Bnei Herzliya'].map(f => ({
+              opts: ['Online', 'Gym · Single', 'Gym · Couple', 'Bnei Herzliya', 'All'].map(f => ({
                 key: f, label: tt(f), count: formatCounts[f], active: formatFilter === f, onClick: () => setFormatFilter(f),
               })),
             },
