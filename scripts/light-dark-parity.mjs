@@ -53,6 +53,32 @@ const loadIn = async (route, theme) => {
   // reported the difference. A phantom finding is worse than no finding here:
   // it is indistinguishable from a real one.
   await settle();
+
+  // Some zones deliberately force their own theme on mount, so the URL preview
+  // param never sticks there. /coach/bhbc is one: "The club zone OPENS WHITE,
+  // always" (Ohad) - the crest and navy palette were built on white. That is
+  // correct app behaviour, but it made this harness SKIP the route, and a
+  // skipped route silently stopped guarding "the dark and white modes are
+  // always the same". A coach can still reach dark in there via the header
+  // toggle, so reach it the same way the coach does.
+  const applied = await page.evaluate(() => document.documentElement.getAttribute('data-theme'));
+  if (applied !== theme) {
+    await page.evaluate(() => {
+      const el = [...document.querySelectorAll('button')]
+        .find((x) => /^switch to (dark|light) mode$/i.test(x.getAttribute('aria-label') || '') && x.offsetParent);
+      if (el) el.click();
+    });
+    // Toggling re-renders the whole zone. Measuring before it comes back gave
+    // a 96px-tall 'dark' page against a 2600px light one and reported it as
+    // geometry drift - a phantom finding, which is worse than none because it
+    // is indistinguishable from a real one. Wait for the theme to LAND and the
+    // content to return before believing anything.
+    await page.waitForFunction((t) => document.documentElement.getAttribute('data-theme') === t, { timeout: 8000 }, theme).catch(() => {});
+    await page.waitForFunction(() => document.body.scrollHeight > 400, { timeout: 15000 }).catch(() => {});
+    await wait(1200);
+    await settle();
+  }
+
   // PROVE the theme actually applied before measuring anything.
   return page.evaluate(() => ({
     attr: document.documentElement.getAttribute('data-theme'),
@@ -132,7 +158,26 @@ const contrast = () => page.evaluate(() => {
     const lf = lum(cs.color), lb = lum(bgOf(el));
     if (lf == null || lb == null) continue;
     const ratio = (Math.max(lf, lb) + 0.05) / (Math.min(lf, lb) + 0.05);
-    if (ratio < 2.2) bad.push({ text: t.slice(0, 40), ratio: Math.round(ratio * 100) / 100, color: cs.color, bg: bgOf(el) });
+    // Two pairings are RULED-ON DECISIONS, not defects, and reporting them
+    // every run buried the ones that were:
+    //   white on brand cyan #39BDFF (2.12) - the active nav pill and primary
+    //     CTAs. Ohad: the cyan stays bright, the brand wins; a contrast-led
+    //     palette was proposed once and rejected outright.
+    //   muted grey #444450 on the near-black ground (2.06) - dark-mode
+    //     secondary text, same ruling.
+    // Anything else under 2.2 is a real finding and still reported. The BHBC
+    // amber that this exclusion let surface was exactly that: a token with a
+    // light-mode value that the medical labels were simply not using.
+    const fg = (cs.color || '').replace(/\s/g, '');
+    const bgRaw = bgOf(el) || '';
+    const bgc = bgRaw.replace(/\s/g, '');
+    // Match the PAIRING, not one exact ground: the same muted grey sits on the
+    // near-black card, the black page and the demo stage, and pinning exact
+    // triples just moved the noise around.
+    const bgLum = (() => { const m = bgRaw.match(/[\d.]+/g); if (!m || m.length < 3) return 255; /* Chrome reports some grounds as color(srgb 0.05 0.09 0.12) - 0..1, not 0..255. */ const v = m.slice(0, 3).map(Number).map((x) => (x <= 1 ? x * 255 : x)); return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]; })();
+    const ruledOn = (/^rgba?\(255,255,255/.test(fg) && bgc === 'rgb(57,189,255)')
+      || (fg === 'rgb(68,68,80)' && bgLum < 40);
+    if (ratio < 2.2 && !ruledOn) bad.push({ text: t.slice(0, 40), ratio: Math.round(ratio * 100) / 100, color: cs.color, bg: bgOf(el) });
   }
   return bad.slice(0, 8);
 });
@@ -171,18 +216,36 @@ for (const route of ROUTES) {
       continue;
     }
 
+    // A SAME-THEME baseline, because settling within one load is not enough.
+    // /coach/athletes shifts ~40 elements down by exactly 2px on roughly one
+    // load in three, and it does it light-against-LIGHT - so it is run-to-run
+    // variation, not a theme difference. Without this baseline the harness
+    // reported it as dark-mode drift, which is precisely the complaint it
+    // exists to catch, and a verifier that invents that finding is worse than
+    // none: it is indistinguishable from the real thing.
+    await loadIn(route, 'light');
+    const gLight2 = await settledGeometry();
+    const noise = new Set();
+    for (const k of Object.keys(gLight2)) {
+      const a = gLight2[k], c = gLight[k];
+      if (!c) { noise.add(k); continue; }
+      const d = Math.max(Math.abs(a[0] - c[0]), Math.abs(a[1] - c[1]), Math.abs(a[2] - c[2]), Math.abs(a[3] - c[3]));
+      if (d > 1) noise.add(k);
+    }
+
     const moved = [];
     for (const k of Object.keys(gDark)) {
       const a = gDark[k], c = gLight[k];
-      if (!c) continue;
+      if (!c || noise.has(k)) continue;
       const d = Math.max(Math.abs(a[0] - c[0]), Math.abs(a[1] - c[1]), Math.abs(a[2] - c[2]), Math.abs(a[3] - c[3]));
       if (d > 1) moved.push({ k, dark: a, light: c, delta: d });
     }
     moved.sort((x, y) => y.delta - x.delta);
     const onlyDark = Object.keys(gDark).length - Object.keys(gLight).length;
+    const noisy = noise.size;
 
     const status = (moved.length || cLight.length || cDark.length) ? 'DRIFT' : 'ok';
-    console.log(`${status.padEnd(6)} ${route.padEnd(26)} moved=${moved.length} countDelta=${onlyDark} lowContrast(light)=${cLight.length} (dark)=${cDark.length}`);
+    console.log(`${status.padEnd(6)} ${route.padEnd(26)} moved=${moved.length} countDelta=${onlyDark} noise=${noisy} lowContrast(light)=${cLight.length} (dark)=${cDark.length}`);
     if (moved.length) console.log('        worst:', JSON.stringify(moved.slice(0, 2)));
     if (cLight.length) console.log('        light:', JSON.stringify(cLight.slice(0, 3)));
     if (cDark.length) console.log('        dark: ', JSON.stringify(cDark.slice(0, 3)));

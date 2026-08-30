@@ -1820,7 +1820,7 @@ function HeadCoachReport({ rows, fx, fixtures, medical, today, onOpen, onMedical
       {/* MEDICAL */}
       <Section label={tr("Medical")}>
         {injuries.length
-          ? <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+          ? <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(330px, 1fr))', columnGap: 26, rowGap: 5 }}>
               {injuries.slice(0, 6).map(({ t, inj }, i) => {
                 const s = MED_STATUS[inj.status] || MED_STATUS.available;
                 return (
@@ -1851,7 +1851,7 @@ function HeadCoachReport({ rows, fx, fixtures, medical, today, onOpen, onMedical
       {/* THIS WEEK — team sessions */}
       <Section label={tr("This week")} last>
         {sessions.length
-          ? <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+          ? <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(330px, 1fr))', columnGap: 26, rowGap: 5 }}>
               {sessions.slice(0, 6).map((s, i) => {
                 const pl = planOf ? planOf(s) : null;
                 // Weight-room sessions appear on the calendar but are not planned.
@@ -2127,7 +2127,7 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, onOpen, onMedical 
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontFamily: FN, fontWeight: 700, fontSize: 13, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{t.name}</div>
                   {(() => { const inj = activeInjuries(medical, t.id)[0]; return inj
-                    ? <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: (MED_STATUS[inj.status] || {}).color || '#DE4E3B', whiteSpace: 'normal', overflowWrap: 'break-word' }}>{'⚠ '}{inj.bodyPart}{inj.side && inj.side !== 'N/A' ? ` ${inj.side[0]}` : ''}</div>
+                    ? <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: medText(inj.status), whiteSpace: 'normal', overflowWrap: 'break-word' }}>{'⚠ '}{inj.bodyPart}{inj.side && inj.side !== 'N/A' ? ` ${inj.side[0]}` : ''}</div>
                     : <div style={{ fontFamily: FB, fontSize: 11, color: C.td }}>{t.position || '—'}</div>; })()}
                 </div>
                 <div>{acwr.ratio != null ? <BandPill band={acwr.band} value={acwr.ratio.toFixed(2)} /> : <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: '0.06em' }}>· baseline</span>}</div>
@@ -2157,7 +2157,7 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, onOpen, onMedical 
                     return (
                       <button onClick={(e) => { e.stopPropagation(); onMedical(t.id); }}
                         title={inj ? 'Update the medical report' : 'Report an injury'} className="bhbc-ghost-btn"
-                        style={{ flexShrink: 0, height: ROW_BTN_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: inj ? ((MED_STATUS[inj.status] || {}).color || '#DE4E3B') : C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '4px 8px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                        style={{ flexShrink: 0, height: ROW_BTN_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: inj ? medText(inj.status) : C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '4px 8px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
                         {inj ? 'MED ✎' : '+ MED'}
                       </button>
                     );
@@ -2203,7 +2203,7 @@ function RosterGrid({ rows, medical = {}, league = {}, onOpen }) {
                   Nord disagree about 'normal'. */}
               <div style={{ fontFamily: FN, fontWeight: 700, fontSize: 15, lineHeight: 1.2, color: C.tx, marginTop: 3, minHeight: 36, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{t.name}</div>
               {(() => { const inj = activeInjuries(medical, t.id)[0]; return inj
-                ? <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: (MED_STATUS[inj.status] || {}).color || '#DE4E3B', marginTop: 4, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{'⚠ '}{inj.bodyPart}{inj.side && inj.side !== 'N/A' ? ` ${inj.side[0]}` : ''} · {(MED_STATUS[inj.status] || {}).label}</div>
+                ? <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: medText(inj.status), marginTop: 4, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{'⚠ '}{inj.bodyPart}{inj.side && inj.side !== 'N/A' ? ` ${inj.side[0]}` : ''} · {(MED_STATUS[inj.status] || {}).label}</div>
                 : <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 4 }}>{t.position || '—'}</div>; })()}
               {t.arrival && t.arrival > todayISO() && <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 6, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: ORANGE_DEEP, background: `color-mix(in srgb, ${ORANGE} 12%, transparent)`, padding: '2px 6px' }}><span aria-hidden="true">✈</span> Lands {dow(t.arrival)} {monDay(t.arrival)}</div>}
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, paddingTop: 10, borderTop: `0.25px solid ${C.cardBd}` }}>
@@ -3048,10 +3048,13 @@ function LeagueView({ league, roster, fixtures, onOpen, bhbcLoads = {}, today, o
 // pain, return-to-play target and a dated rehab-progress log per athlete.
 const MED_STATUS = {
   available: { label: 'Available', color: '#37B27C' },
-  limited: { label: 'Limited', color: '#E0A73A' },
+  // color paints DOTS, text paints WORDS. Raw amber measures 2.15:1 on
+  // white - the light-mode token is the same amber darkened to stay legible.
+  limited: { label: 'Limited', color: '#E0A73A', text: 'var(--bhbc-amber-text, #E0A73A)' },
   'non-contact': { label: 'Non-contact', color: '#4F9DE0' },
   out: { label: 'Out', color: '#DE4E3B' },
 };
+const medText = (st) => { const m = MED_STATUS[st] || {}; return m.text || m.color || '#DE4E3B'; };
 const BODY_PARTS = ['Ankle', 'Knee', 'Hip', 'Hamstring', 'Groin', 'Quad', 'Calf', 'Achilles', 'Lower back', 'Shoulder', 'Elbow', 'Wrist', 'Hand', 'Foot', 'Head / Concussion', 'Other'];
 const INJURY_TYPES = ['Strain', 'Sprain', 'Contusion', 'Tendinopathy', 'Overuse', 'Fracture', 'Dislocation', 'Illness', 'Other'];
 // A medical status expressed on the availability scale (1 full -> 4 out).
