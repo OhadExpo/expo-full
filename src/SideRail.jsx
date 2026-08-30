@@ -33,7 +33,8 @@ export function RailOpt({ label, count, active, onClick, title, accent }) {
     <button onClick={onClick} title={title}
       onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
       style={{
-        display: 'flex', alignItems: 'center', width: '100%', height: 28, border: 'none', padding: 0, cursor: 'pointer',
+        display: 'flex', alignItems: 'center', width: `calc(100% + ${RAIL_GUTTER}px)`, marginInlineStart: -RAIL_GUTTER,
+        height: 28, border: 'none', padding: 0, cursor: 'pointer',
         background: active ? `color-mix(in srgb, ${ac} 20%, transparent)` : (hov ? 'var(--c-sf3, rgba(127,127,138,0.10))' : 'transparent'),
         color: active ? ac : (hov ? 'var(--c-tx)' : 'var(--c-tm)'),
         fontFamily: FN, fontSize: 10, fontWeight: active ? 800 : 700, letterSpacing: heb ? 0 : '0.05em', textTransform: heb ? 'none' : 'uppercase',
@@ -49,6 +50,9 @@ export function RailOpt({ label, count, active, onClick, title, accent }) {
 // The rail. `groups` = [{ label, opts:[{ key?, label, count?, active, onClick, title?, accent? }] }].
 // `footer` renders pinned at the bottom (page action). Narrow collapses to just
 // the search + Filters toggle, exactly like the Tasks rail.
+// One gutter width for every rail. See the note on the container padding.
+const RAIL_GUTTER = 10;   // 12px scrollbar gutter minus the rail's 1px border each side
+
 export function SideRail({
   groups = [], footer = null, search = '', onSearch, searchPlaceholder = 'Search…', searchTitle,
   narrow = false, railOpen = false, setRailOpen,
@@ -59,7 +63,15 @@ export function SideRail({
     <div className={`side-rail ${className}`} style={{
       width: narrow ? 'auto' : width, flexShrink: 0,
       background: 'var(--c-sf2)', border: '1px solid var(--c-cardBd)', boxSizing: 'border-box',
-      padding: (narrow && !railOpen) ? '12px 0' : '14px 0 16px', display: 'flex', flexDirection: 'column', gap: 12,
+      // Chrome honours scrollbar-gutter:stable but NOT both-edges, so the
+      // reserved gutter lands on the scrollbar side only and anything centred
+      // in the rail sits half a gutter off. Measured on /coach/athletes:
+      // SEARCH and + ADD ATHLETE at gapL 15 / gapR 25 in a 204px rail.
+      // A matching start gutter puts them back on the centre line; the
+      // full-bleed filter rows below opt out with a negative margin so the
+      // active cyan bar still meets the rail edge.
+      padding: (narrow && !railOpen) ? '12px 0' : '14px 0 16px',
+      paddingInlineStart: RAIL_GUTTER, display: 'flex', flexDirection: 'column', gap: 12,
       alignSelf: 'flex-start',
       position: narrow ? 'static' : 'sticky', top: narrow ? undefined : top,
       maxHeight: narrow ? undefined : maxHeight, overflowY: narrow ? 'visible' : 'auto',

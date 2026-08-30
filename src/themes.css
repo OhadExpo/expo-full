@@ -58,7 +58,14 @@
 /* Shared vertical filter-rail scroll — identical thin scrollbar + stable
    gutter on every page that has a left sidebar (programs / tasks / athletes)
    so the scrollbar spacing reads the same everywhere (Ohad). */
+/* Chrome honours `stable` but NOT `both-edges`, so the reserved gutter lands
+   on the scrollbar side only and anything centred inside the rail sits half
+   a gutter off. Measured on /coach/athletes: SEARCH and + ADD ATHLETE at
+   gapL 15 / gapR 25 in a 204px rail (Ohad: "isnt centered horizontally
+   within the borders of the side bar"). An equal start gutter puts the
+   content back on the rail's centre line. */
 .side-rail { scrollbar-width: thin; scrollbar-gutter: stable both-edges;
+  padding-inline-start: 12px;
   /* scrollbar-width:thin makes Chrome use the STANDARD scrollbar and ignore the
      ::-webkit-scrollbar rules below, so it fell back to the light OS default —
      visibly lighter than the dark page scrollbar. scrollbar-color forces the
