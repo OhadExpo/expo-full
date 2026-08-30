@@ -103,6 +103,11 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
   const [stature, setStature] = useState(() => {
     try { return localStorage.getItem(STATURE_KEY) || ''; } catch { return ''; }
   });
+  // A height typed WHILE a clip is analysing used to be lost twice over:
+  // analyze() had already closed over the old value, and the blur handler
+  // refused to re-score because phase was 'analyzing', not 'results'. The
+  // result then read ENTER HEIGHT with the number sitting in the box.
+  const statureRef = useRef(stature);
   const [progressLabel, setProgressLabel] = useState('');
   const [srcUrl, setSrcUrl] = useState(null);
   const [progress, setProgress] = useState(0);
@@ -129,7 +134,7 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
       const auto = detectShootingHand(frames);
       if (auto) setDetectedHand(auto);
       const useHand = opts.hand || (handMode === 'auto' ? (auto || hand) : handMode);
-      const r = analyzeShotClip(frames, { hand: useHand, statureCm: Number(opts.stature ?? stature) || null, shotType: opts.shotType || shotType });
+      const r = analyzeShotClip(frames, { hand: useHand, statureCm: Number(opts.stature ?? statureRef.current) || null, shotType: opts.shotType || shotType });
       if (!r.ok) { setError(r.error); setPhase('idle'); return; }
       setResult(r); setShotIdx(0); setPhase('results');
     } catch (e) {
@@ -188,27 +193,27 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
             badge on the hand the clip itself reported. */}
         <span style={lbl}>{T.hand}</span>
         <button
-          onClick={() => { setHandMode('auto'); try { localStorage.setItem(HAND_KEY, 'auto'); } catch { /* private mode */ } const h = detectedHand || 'R'; if (phase === 'results') rescore(h, stature, shotType); }}
+          onClick={() => { setHandMode('auto'); try { localStorage.setItem(HAND_KEY, 'auto'); } catch { /* private mode */ } const h = detectedHand || 'R'; rescore(h, stature, shotType); }}
           title={T.handHint}
           style={chip(handMode === 'auto')}>{T.auto || 'AUTO'}{handMode === 'auto' && detectedHand ? ` · ${detectedHand === 'L' ? T.left : T.right}` : ''}</button>
         {[['R', T.right], ['L', T.left]].map(([k, label]) => (
           <button key={k}
-            onClick={() => { setHandMode(k); try { localStorage.setItem(HAND_KEY, k); } catch { /* private mode */ } if (phase === 'results') rescore(k, stature, shotType); }}
+            onClick={() => { setHandMode(k); try { localStorage.setItem(HAND_KEY, k); } catch { /* private mode */ } rescore(k, stature, shotType); }}
             title={T.handHint}
             style={chip(handMode === k)}>{label}{handMode === 'auto' && detectedHand === k ? ' · AUTO' : ''}</button>
         ))}
         <span style={{ ...lbl, marginInlineStart: 10 }}>{T.shot}</span>
         {SHOT_TYPES.map((t) => (
           <button key={t.key}
-            onClick={() => { setShotType(t.key); try { localStorage.setItem(SHOTTYPE_KEY, t.key); } catch { /* private mode */ } if (phase === 'results') rescore(hand, stature, t.key); }}
+            onClick={() => { setShotType(t.key); try { localStorage.setItem(SHOTTYPE_KEY, t.key); } catch { /* private mode */ } rescore(hand, stature, t.key); }}
             title={T.shotHint}
             style={chip(shotType === t.key)}>{(T.shotTypes[t.key] || t.label).toUpperCase()}</button>
         ))}
         <span style={{ ...lbl, marginInlineStart: 10 }}>{T.height}</span>
         <input value={stature}
-          onChange={(e) => { setStature(e.target.value); setHeightSaved(false); }}
+          onChange={(e) => { statureRef.current = e.target.value; setStature(e.target.value); setHeightSaved(false); }}
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); } }}
-          onBlur={() => { if (!String(stature).trim()) return; try { localStorage.setItem(STATURE_KEY, String(stature).trim()); } catch { /* private mode */ } if (phase === 'results') rescore(hand, stature, shotType); setHeightSaved(true); }}
+          onBlur={() => { if (!String(stature).trim()) return; try { localStorage.setItem(STATURE_KEY, String(stature).trim()); } catch { /* private mode */ } rescore(hand, stature, shotType); setHeightSaved(true); }}
           placeholder={T.cmPlaceholder} inputMode="numeric"
           style={{ width: 56, height: CTL_SM, boxSizing: 'border-box', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.35)', color: '#FFF', fontFamily: FN, fontSize: 12, padding: '0 2px', textAlign: 'center', outline: 'none' }} />
         {/* Height feeds the cm conversions — say so when it lands (Ohad 08-24). */}
