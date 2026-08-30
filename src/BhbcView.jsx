@@ -1702,43 +1702,47 @@ function NextGamePanel({ nextGame, today, onEdit }) {
 function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onLog }) {
   const tr = useT();
   const first = (r) => (r.t.name || '').trim().split(/\s+/)[0] || r.t.name;
-  const names = (arr) => arr.slice(0, 4).map(first).join(', ') + (arr.length > 4 ? ` +${arr.length - 4}` : '');
+  // FSI/PDI: a Hebrew first name inside an English sentence dragged the
+  // closing bracket to the wrong side - "(Daeshon, Dusty, עמית, DJ +1)"
+  // rendered with the paren orphaned. Isolating the run fixes it in both
+  // languages without touching the surrounding direction.
+  const names = (arr) => '⁨' + (arr.slice(0, 4).map(first).join(', ') + (arr.length > 4 ? ` +${arr.length - 4}` : '')) + '⁩';
   const anyLoad = rows.some((r) => r.hasLoad);
   const A = [];
   // 1) Taper into a game ≤3 days out.
   if (fx.nextGame) {
     const d = dayDiff(fx.nextGame.date, today);
-    if (d >= 0 && d <= 3) A.push({ sev: 'game', do: `Taper into ${fx.nextGame.opponent ? 'vs ' + fx.nextGame.opponent : 'the game'} · ${d === 0 ? 'today' : d + 'd'}`, why: 'hold intensity, cut volume ~40–60%.' });
+    if (d >= 0 && d <= 3) A.push({ k: 'Game', sev: 'game', do: `Taper into ${fx.nextGame.opponent ? 'vs ' + fx.nextGame.opponent : 'the game'} · ${d === 0 ? 'today' : d + 'd'}`, why: 'hold intensity, cut volume ~40–60%.' });
   }
   // 2) ACWR danger (>1.5) then elevated (1.3–1.5) — Gabbett sweet spot 0.8–1.3.
   const danger = rows.filter((r) => r.acwr.band.key === 'high');
   const elevated = rows.filter((r) => r.acwr.band.key === 'elevated');
-  if (danger.length) A.push({ sev: 'red', do: `${tr('Pull back')} ${names(danger)}`, why: tr('ACWR danger zone'), ids: danger.map((r) => r.t.id) });
+  if (danger.length) A.push({ k: 'Load', sev: 'red', do: `${tr('Pull back')} ${names(danger)}`, why: tr('ACWR danger zone'), ids: danger.map((r) => r.t.id) });
   // 3) Readiness red today (autoreg says don't load).
   const red = rows.filter((r) => r.readiness.level === 'red');
-  if (red.length) A.push({ sev: 'red', do: `${tr('Regress')} ${names(red)} ${tr('today')}`, why: `${tr('readiness red')} — ${red[0].readiness.headline || tr('reassess before loading')}.`, ids: red.map((r) => r.t.id) });
+  if (red.length) A.push({ k: 'Readiness', sev: 'red', do: `${tr('Regress')} ${names(red)} ${tr('today')}`, why: `${tr('readiness red')} — ${red[0].readiness.headline || tr('reassess before loading')}.`, ids: red.map((r) => r.t.id) });
   // 3b) Fixture congestion — a tight run of games needs rotation + recovery.
   const games = (fixtures || []).filter((f) => f.type === 'game' && f.date >= today).sort((a, b) => a.date.localeCompare(b.date));
   for (let i = 0; i < games.length - 1; i++) {
     const gap = dayDiff(games[i + 1].date, games[i].date);
-    if (gap > 0 && gap < 4) { A.push({ sev: 'amber', do: `Congestion ${monDay(games[i].date)}–${monDay(games[i + 1].date)}`, why: `${gap}-day turnaround between games — rotate minutes and protect MD+1 recovery.` }); break; }
+    if (gap > 0 && gap < 4) { A.push({ k: 'Fixtures', sev: 'amber', do: `Congestion ${monDay(games[i].date)}–${monDay(games[i + 1].date)}`, why: `${gap}-day turnaround between games — rotate minutes and protect MD+1 recovery.` }); break; }
   }
   // 4) Injuries in rehab.
   const injured = rows.filter((r) => activeInjuries(medical, r.t.id).length);
-  if (injured.length) A.push({ sev: 'red', do: `${injured.length} ${tr('in rehab')} (${names(injured)})`, why: tr('check the medical board'), ids: injured.map((r) => r.t.id) });
-  if (elevated.length) A.push({ sev: 'amber', do: `${tr('Watch')} ${names(elevated)}`, why: tr('ACWR elevated'), ids: elevated.map((r) => r.t.id) });
+  if (injured.length) A.push({ k: 'Medical', sev: 'red', do: `${injured.length} ${tr('in rehab')} (${names(injured)})`, why: tr('check the medical board'), ids: injured.map((r) => r.t.id) });
+  if (elevated.length) A.push({ k: 'Load', sev: 'amber', do: `${tr('Watch')} ${names(elevated)}`, why: tr('ACWR elevated'), ids: elevated.map((r) => r.t.id) });
   // 5) Monotony ≥2 (Foster).
   const mono = rows.filter((r) => r.ms.monotony != null && r.ms.monotony >= 2);
-  if (mono.length) A.push({ sev: 'amber', do: `${tr('Vary the stimulus for')} ${names(mono)}`, why: tr('monotony high'), ids: mono.map((r) => r.t.id) });
+  if (mono.length) A.push({ k: 'Load', sev: 'amber', do: `${tr('Vary the stimulus for')} ${names(mono)}`, why: tr('monotony high'), ids: mono.map((r) => r.t.id) });
   // 6) Undertrained (ACWR <0.8) — ramp safely.
   const detr = rows.filter((r) => r.acwr.band.key === 'detrained');
-  if (detr.length && anyLoad) A.push({ sev: 'info', do: `${tr('Ramp up')} ${names(detr)}`, why: tr('ACWR undertrained'), ids: detr.map((r) => r.t.id) });
+  if (detr.length && anyLoad) A.push({ k: 'Load', sev: 'info', do: `${tr('Ramp up')} ${names(detr)}`, why: tr('ACWR undertrained'), ids: detr.map((r) => r.t.id) });
   // 7) Missing wellness check-ins today.
   const missing = rows.filter((r) => !r.checkedToday);
   // (the "chase check-ins" item went with the rest of the check-in flow)
   // 8) Pre-season / no data — baseline first.
   if (!anyLoad && rows.every((r) => !r.checkedToday)) {
-    A.unshift({ sev: 'game', do: tr('Start tracking the roster'), why: tr('pre-season start') });
+    A.unshift({ k: 'Setup', sev: 'game', do: tr('Start tracking the roster'), why: tr('pre-season start') });
   }
   const sevRank = { game: 0, red: 1, amber: 2, info: 3 };
   const top = A.sort((a, b) => sevRank[a.sev] - sevRank[b.sev]).slice(0, 5);
@@ -1764,10 +1768,16 @@ function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onLog }) {
                 <span style={{ display: 'inline-flex', alignItems: 'center', height: 12.5 * 1.5, marginTop: 4, flexShrink: 0 }}>
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: sevColor[a.sev] }} />
                 </span>
+                {/* Same left-label column as every other card on this screen.
+                    Without it this was the one card built differently, which is
+                    most of why it read as a mess next to the report above it -
+                    and the reason now sits at the right edge instead of trailing
+                    the action, so the row is scannable and the width is used. */}
+                <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, width: 74, flexShrink: 0, marginTop: 5 }}>{a.k ? tr(a.k) : ''}</span>
                 <div style={{ minWidth: 0, lineHeight: 1.5, flex: 1 }}>
                   <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.02em', color: C.tx }}>{a.do}</span>
-                  <span style={{ fontFamily: FB, fontSize: 13, color: C.tm }}> — {a.why}</span>
                 </div>
+                <div style={{ fontFamily: FB, fontSize: 13, color: C.tm, lineHeight: 1.5, textAlign: 'end', flexShrink: 1, minWidth: 0, marginInlineStart: 16 }}>{a.why}</div>
                 {click && <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: ORANGE, flexShrink: 0, marginTop: 3 }}>›</span>}
               </div>
             );
