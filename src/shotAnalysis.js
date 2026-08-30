@@ -231,6 +231,10 @@ export function detectShots(series, fps, opts = {}) {
   // as "arm not overhead (6–44°)" because argmax(elbow) had locked onto a
   // straight arm hanging at the hip inside the same 500 ms window (08-24).
   const ARM_UP_FLOOR = 55;
+// A shot needs enough clip after the release to observe the follow-through
+// the scorecard asks for (300 ms), plus a margin. Shorter than this and the
+// rep cannot be scored, so counting it only inflates the number.
+const MIN_TAIL_MS = 400;
   const elbowUp = sm.elbow.map((v, k) => (isReal(v) && isReal(sm.armElev[k]) && sm.armElev[k] >= ARM_UP_FLOOR ? v : null));
   const searchRuns = peaks.map((p) => {
     // Search window around each peak: enough for the whole attempt.
@@ -280,6 +284,17 @@ export function detectShots(series, fps, opts = {}) {
     // Thresholds calibrated against real release frames (elbow above the
     // shoulder, arm extending). A distant subject reads lower on both angles
     // than a studio capture would, so the bar is where actual shots sit.
+    // THERE HAS TO BE CLIP LEFT TO MEASURE THE SHOT IN.
+    //
+    // The follow-through checkpoint wants the arm held for 300 ms after
+    // release, so a release with less clip than that remaining cannot be
+    // scored on its own terms - and a truncated tail is exactly what noise
+    // turns into a phantom rep. A darkened copy of Ohad's clip returned 18
+    // shots against the reference encode's 17, and the extra one sat 250 ms
+    // from the end of the file: the camera being switched off, read as a
+    // shot. Rejecting it is not a tuned threshold, it is the definition of
+    // a rep this engine can measure.
+    if (tMs[n - 1] - tMs[release] < MIN_TAIL_MS) { note(tMs[release], 'clip ends ' + Math.round(tMs[n - 1] - tMs[release]) + 'ms after release'); continue; }
     const armElevNear = bestNear(sm.armElev, release, 150);
     if (!isReal(armElevNear) || armElevNear < G.armElev) { note(tMs[release], 'arm not overhead (' + Math.round(armElevNear || 0) + '° image-plane)'); continue; }
     const elbowNear = bestNear(sm.elbow, release, 150);
