@@ -133,3 +133,4 @@ scripts/_*.mjs
 .jv.mjs
 .t.mjs
 test-clips/
+public/testclips/

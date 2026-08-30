@@ -8,6 +8,7 @@ import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
 import { RefinedHeaderStrip, SectionLabel } from './ui';
 import { FormVideoPlayer } from './WorkoutReview';
+import ErrorBoundary from './ErrorBoundary';
 import { useAthletePlans } from './usePlansStore';
 
 // Build the reviewed-clip cascade tree from the coach's client workouts:
@@ -383,6 +384,14 @@ export default function ReviewToolsView({ clientWorkouts = [], trainees = [] }) 
 
       {tool && createPortal((
         <ToolBoundary toolKey={tool} onClose={close}>
+          {/* The camera tools are the most complex components in the app and
+              they were rendering with NO error boundary - only Suspense, which
+              catches a slow import, not a throw. One bad frame of pose data or
+              a null landmark in render took the whole Review Tools screen down
+              with it, in front of a coach mid-session. A boundary per tool
+              means a failure costs that tool, not the screen.
+              Keyed on the tool so switching tools clears a previous error. */}
+          <ErrorBoundary key={tool || 'none'} inline>
           <Suspense fallback={<ToolLoading label={activeTool ? activeTool.label : 'TOOL'} />}>
             {tool === 'lab'     && <MovementLab exerciseTitle={title || 'Squat'} initialMode="analyze" initialView="3d" toolLabel="MOVEMENT LAB" initialClipUrl={clipUrl} onClose={close} />}
             {tool === 'metrics' && <MovementLab exerciseTitle={title || 'Squat'} initialMode="analyze" initialView="metrics" toolLabel="LIFT METRICS" initialClipUrl={clipUrl} vaultClientId={clipMeta.clientId} vaultDate={clipMeta.date} recordedReps={clipMeta.recorded} targetReps={clipMeta.target} onClose={close} />}
@@ -392,6 +401,7 @@ export default function ReviewToolsView({ clientWorkouts = [], trainees = [] }) 
                 shot tool (Ohad 08-23: no previously-uploaded EXPO videos). */}
             {tool === 'shot'    && <ShotAnalyzer onClose={close} />}
           </Suspense>
+          </ErrorBoundary>
         </ToolBoundary>
       ), document.body)}
     </div>

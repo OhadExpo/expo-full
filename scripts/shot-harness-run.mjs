@@ -56,7 +56,18 @@ if (r) {
   // the selector can be iterated against a unit test instead of a 5-minute run.
   if (r.ballDebugFailed) {
     const d = r.ballDebugFailed;
-    const path = process.env.BALL_FIXTURE || 'scripts/fixtures/ball-rejected.json';
+    // DEFAULT TO SCRATCH, NEVER TO A COMMITTED FIXTURE.
+    //
+    // This used to default to scripts/fixtures/ball-rejected.json, so every
+    // measurement run silently rewrote curated test data. Found on 2026-08-30
+    // during an audit: the fixture was +1368/-34 lines against the committed
+    // version, mtime 06:15 - the middle of an overnight regression run. The
+    // ball suite had been re-run against data a run had produced, which is a
+    // green light that proves nothing.
+    //
+    // Refreshing the real fixture is now a deliberate act:
+    //   BALL_FIXTURE=scripts/fixtures/ball-rejected.json node scripts/shot-harness-run.mjs ...
+    const path = process.env.BALL_FIXTURE || 'audit-out/ball-rejected.latest.json';
     try {
       fs.mkdirSync(path.replace(/[/][^/]+$/, ''), { recursive: true });
       fs.writeFileSync(path, JSON.stringify(d, null, 1));
