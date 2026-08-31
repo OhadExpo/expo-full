@@ -21,13 +21,14 @@
 // measured 2026-08-31 across ten clips including two full-court games:
 // 91 swap-sized steps before the lock, 11 after, seven of ten clips at zero.
 //
-//   node scripts/verify-shooter-lock.mjs [port] [label]
+//   node scripts/verify-shooter-lock.mjs [port] [label] [clipFilter]
 import fs from 'node:fs';
 import puppeteer from 'puppeteer-core';
 const PORT = process.argv[2] || '5202';
 const LABEL = process.argv[3] || 'run';
 const DIR = 'public/testclips/_corpus';
-const clips = fs.readdirSync(DIR).filter((f) => f.endsWith('.mp4')).sort();
+const ONLY = process.argv[4] || '';   // optional substring filter, e.g. c05
+const clips = fs.readdirSync(DIR).filter((f) => f.endsWith('.mp4') && (!ONLY || f.includes(ONLY))).sort();
 const b = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 60 * 60 * 1000 });
 const rows = [];
 for (const c of clips) {

@@ -73,7 +73,7 @@ function pickSubject(landmarks, prev, maxStep = Infinity) {
     const cropPenalty = clipped * 0.35;
     const score = h * 2 - near * 3 + (vsum / seen) * 0.5 - cropPenalty;
     const reachable = !prev || near <= maxStep;
-    cands.push({ idx: i, score, cx, cy, reachable, box: { x0: minX, y0: minY, x1: maxX, y1: maxY } });
+    cands.push({ idx: i, score, cx, cy, reachable, clipped, box: { x0: minX, y0: minY, x1: maxX, y1: maxY } });
   }
   if (!cands.length) return { idx: -1 };
   // Nothing reachable means the subject was not detected THIS frame. Falling
@@ -86,7 +86,23 @@ function pickSubject(landmarks, prev, maxStep = Infinity) {
   // subject has been gone long enough to be genuinely lost (maxStep=Infinity).
   const reach = cands.filter((c) => c.reachable);
   if (!reach.length && Number.isFinite(maxStep)) return { idx: -1, lost: true };
-  const pool = reach.length ? reach : cands;
+  let pool = reach.length ? reach : cands;
+  // ACQUISITION: prefer a body we can see WHOLE.
+  //
+  // With no previous position the score is height-led, and height in frame
+  // is proximity to the camera, not evidence of being the subject. Measured
+  // on clip02 frame 0: a bystander on the near baseline, cut off by the left
+  // edge, scored 2.011 against the shooter's 1.847 purely on size - and the
+  // crop penalty could not close it, 0.35 per edge against a 0.54 height
+  // advantage. Holding identity then made that first wrong pick sticky, and
+  // a real shot released at 0.70s went uncounted.
+  //
+  // Only at acquisition. Once locked, the step limit decides, so a shooter
+  // who briefly clips the edge mid-rep is not handed to a bystander.
+  if (!prev) {
+    const whole = pool.filter((c) => !c.clipped);
+    if (whole.length) pool = whole;
+  }
   let best = null;
   for (const c of pool) if (!best || c.score > best.score) best = c;
   return best ? { idx: best.idx, centroid: { x: best.cx, y: best.cy }, box: best.box, jumped: !best.reachable } : { idx: -1 };
