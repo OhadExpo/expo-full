@@ -34,7 +34,15 @@ const stage = { position: 'fixed', inset: 0, background: '#000', zIndex: 1500, d
 // that regardless of label or language.
 const CTL_H = 30;   // top bar + action rows
 const CTL_SM = 24;  // dense transport/phase chips
-const boxed = (h) => ({ height: h, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, paddingTop: 0, paddingBottom: 0 });
+// lineHeight NORMAL, not 1. Ohad: "the buttons at the top are not vertically
+// center aligned inside the box". The box always was centred - the LETTERS
+// were not. line-height 1 on a 10px Nord label gives a 10px line box around
+// a 12px glyph box, and flex centres the LINE box, so the ink rides 0.6px
+// high against a border that makes it obvious. Letting the font's own
+// metrics set the line box centres the ink instead - measured 0.00px on the
+// demo's control, which already did this. The height is fixed and the box is
+// border-box, so line-height cannot move the button itself.
+const boxed = (h) => ({ height: h, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 'normal', paddingTop: 0, paddingBottom: 0 });
 const ghost = { background: 'transparent', border: '1px solid rgba(255,255,255,0.3)', color: '#FFF', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', padding: '0 14px', cursor: 'pointer', borderRadius: 0, ...boxed(CTL_H) };
 // This tool renders on its own ALWAYS-DARK stage, so it must not use theme
 // tokens for accents: in the light theme C.ac resolves to #0E0F12 and every
@@ -581,8 +589,16 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
               grid rather than by each label's length — RELEASE and DIP are very
               different widths and padding alone made the row look accidental.
               (Ohad: "the stance to land buttons are still a ocd mess".) */}
-          <div className="shot-noprint" style={{ display: 'grid', gridTemplateColumns: `repeat(${shot.phases.length}, minmax(0, 1fr))`, gap: 4, marginTop: 8 }}>
-            {shot.phases.map((p) => <button key={p.key} onClick={() => { setPhaseKey(p.key); seekTo(p.idx); }} style={{ ...chip(cur === p.idx), padding: '0 4px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={T.phaseJump(p.label)}>{p.label}</button>)}
+          {/* Ohad: "the stance dip set release etc buttons are overflowing and not
+              showing". Six phases fit this column; a rep with a detected LAND
+              makes SEVEN, each column drops to ~62px, and RELEASE - the widest
+              label - was ellipsised inside its own border. An ellipsis here is
+              the UI deciding he does not need the rest of the word.
+              auto-fit wraps to a second row instead of shrinking past the
+              widest label, and the ellipsis is gone so a squeeze can never be
+              silent again. Columns stay equal width either way. */}
+          <div className="shot-noprint" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(76px, 1fr))', gap: 4, marginTop: 8 }}>
+            {shot.phases.map((p) => <button key={p.key} onClick={() => { setPhaseKey(p.key); seekTo(p.idx); }} style={{ ...chip(cur === p.idx), padding: '0 4px', minWidth: 0, letterSpacing: '0.06em', whiteSpace: 'nowrap' }} title={T.phaseJump(p.label)}>{p.label}</button>)}
           </div>
           {/* per-frame readout */}
           {/* Ordered up the body, four to a row: ground → trunk → shoulder on the
@@ -798,35 +814,7 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
                       // worth +11.5 and "trunk at release" +6.7 — telling a
                       // coach to fix whichever happens to be listed first can
                       // point him at the cheapest thing on the board.
-                      const gainIn = (row) => {
-                        const S = { ok: 1, watch: 0.55, fix: 0.1 };
-                        const wsum = row.checks.reduce((a, c) => a + (S[c.status] == null ? 0 : c.weight), 0);
-                        return (c) => (S[c.status] == null || !wsum ? 0 : (c.weight * (1 - S[c.status])) / wsum);
-                      };
-                      const g = gainIn(s);
-                      const pick = (st) => s.checks.filter((c) => c.status === st).sort((a, b) => g(b) - g(a))[0];
-                      const worstRaw = pick('fix') || pick('watch');
-                      const worst = worstRaw ? localiseCheck(worstRaw, T, typeSpec) : null;
-                      // Deviation from the shooter own norm, not the absolute worst —
-                      // see the note in git history: the absolute worst is identical on
-                      // every rep of a clip, so it made the column constant.
-                      const devPick = () => {
-                        const keys = ['dip', 'setElbow', 'releaseArm'];
-                        let best = null;
-                        for (const k of keys) {
-                          const vals = result.shots.map((x) => x.raw && x.raw[k]).filter((v) => typeof v === 'number' && isFinite(v));
-                          if (vals.length < 3) continue;
-                          const mean = vals.reduce((a, v) => a + v, 0) / vals.length;
-                          const v = s.raw && s.raw[k];
-                          if (typeof v !== 'number' || !isFinite(v)) continue;
-                          const d = Math.abs(v - mean);
-                          if (d < 4) continue;   // inside his own noise
-                          if (!best || d > best.d) best = { k, d, v, mean };
-                        }
-                        return best;
-                      };
-                      const dev = devPick();
-                      return (
+                       return (
                         <tr key={i} onClick={() => setShotIdx(i)} style={{ cursor: 'pointer', background: i === shotIdx ? 'rgba(57,189,255,0.10)' : 'transparent', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
                           <td style={{ padding: '6px 8px', fontWeight: 700, color: i === shotIdx ? CYAN : '#FFF' }}>{s.index}</td>
                           <td style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.7)' }}>{fmt(series.tMs[s.cycle.release] / 1000, 1)}s</td>
@@ -835,19 +823,25 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
                           <td style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.8)' }}>{fmt(s.raw.setElbow)}°</td>
                           <td style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.8)' }}>{fmt(s.raw.releaseArm)}°</td>
                           <td style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.8)' }}>{s.raw.timing == null ? '—' : (s.raw.timing > 0 ? '+' : '') + Math.round(s.raw.timing) + 'ms'}</td>
-                          {(() => { // Same derivation as `worst` above, or the comparison is meaningless.
-                            const prevPick = (st) => { const row = result.shots[i - 1]; const gp = gainIn(row); return row.checks.filter((c) => c.status === st).sort((a, b) => gp(b) - gp(a))[0]; };
-                            const prevRaw = i > 0 ? (prevPick('fix') || prevPick('watch')) : null;
-                            const prev = prevRaw ? localiseCheck(prevRaw, T, typeSpec) : null;
-                            const same = worst && prev && prev.label === worst.label;
-                            // Prefer what moved THIS rep; fall back to the standing fault
-                            // only when the rep is genuinely at his norm.
-                            const LBL = { dip: T.cols[3], setElbow: T.cols[4], releaseArm: T.cols[5] };
-                            if (dev) {
-                              const dir = dev.v > dev.mean ? '+' : '-';
-                              return (<td style={{ padding: '6px 8px', color: '#FFF', whiteSpace: 'nowrap' }}>{LBL[dev.k] || dev.k} <span style={{ color: 'rgba(255,255,255,0.55)' }}>{dir}{Math.round(dev.d)}°</span></td>);
-                            }
-                            return (<td style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.4)', whiteSpace: 'nowrap' }}>{worst ? T.onNorm || 'on his norm' : '—'}</td>); })()}
+                          {/* RELEASE HEIGHT, not "fix first". Ohad: "fix first is
+                              useless you may remove it and fill it with something more
+                              importnant". He was right, and the git history already
+                              shows one attempt to rescue it: the absolute worst
+                              checkpoint is identical on every rep, so it was replaced
+                              by a deviation-from-his-own-norm pick that needs at least
+                              THREE shots. His session had two, so every row fell
+                              through to "on his norm" - a column that says the same
+                              word on every line is a column of nothing.
+                              Release height is on every rep whether or not a stature
+                              has been entered, and it is the other axis of the
+                              question this tool exists to answer: does the release
+                              REPEAT across the set. The release ANGLE is already the
+                              column beside it. */}
+                          <td style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.8)', whiteSpace: 'nowrap' }}>
+                            {s.info.releaseHeightCm != null
+                              ? `${s.info.releaseHeightCm} cm`
+                              : (s.info.releaseHeightRatio != null ? `${s.info.releaseHeightRatio.toFixed(2)}×` : '—')}
+                          </td>
                         </tr>
                       );
                     })}

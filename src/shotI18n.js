@@ -70,7 +70,10 @@ export const SHOT_I18N = {
     consistencyVal: (r, a, se, t) => `rhythm ±${r}% · release arm ±${a}° · set elbow ±${se}° · timing ±${t} ms`,
 
     sessionTitle: (n) => `Session · ${n} shots detected`,
-    cols: ['#', 'At', 'Score', 'Dip', 'Set', 'Release', 'Timing', 'Fix first'],
+    // 'Release ht' replaced 'Fix first': that column said the same words on
+    // every row of a real session, because the deviation pick behind it needs
+    // three shots and most clips are shorter. Release height is on every rep.
+    cols: ['#', 'At', 'Score', 'Dip', 'Set', 'Release', 'Timing', 'Release ht'],
     cleanRow: 'clean',
     sessionAvg: 'Session average',
     launchSpread: 'Ball launch',
@@ -191,7 +194,7 @@ export const SHOT_I18N = {
     consistencyVal: (r, a, se, t) => `קצב ±${r}% · יד בשחרור ±${a}° · מרפק בסט ±${se}° · תזמון ±${t} מ״ש`,
 
     sessionTitle: (n) => `אימון · זוהו ${n} זריקות`,
-    cols: ['#', 'זמן', 'ניקוד', 'דיפ', 'סט', 'שחרור', 'תזמון', 'לתקן קודם'],
+    cols: ['#', 'זמן', 'ניקוד', 'דיפ', 'סט', 'שחרור', 'תזמון', 'גובה שחרור'],
     cleanRow: 'נקי',
     sessionAvg: 'ממוצע האימון',
     launchSpread: 'זווית שיגור',
