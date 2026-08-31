@@ -25,7 +25,12 @@ import { unmangleArg } from './lib/unmangle.mjs';
 
 const BASE = process.argv[2] || 'http://127.0.0.1:5199';
 const W = parseInt(process.argv[3] || '1600', 10);
-const TOL = 0.75;
+// 1.0px. Calibrated, not guessed: every real defect this found measured 1.2px or
+// more (the S&C brief's 16px-inheriting wrapper at 1.2, the label columns at
+// 1.6, the greeting at 3.6), while a Hebrew name beside Latin text sits 0.8-0.9
+// apart purely from script metrics - Hebrew ink spans differently and no layout
+// change closes it. Flagging that band trains you to ignore the gate.
+const TOL = 1.0;
 
 const routesFromManifest = () => {
   try {
@@ -41,24 +46,50 @@ const MEASURE = (tol) => {
   document.querySelectorAll('div').forEach((el) => {
     const cs = getComputedStyle(el);
     if (!/flex/.test(cs.display) || cs.flexDirection.startsWith('column')) return;
-    const kids = [...el.children].filter((c) => c.getBoundingClientRect().height > 3);
+    // Respect the alignment the row DECLARES, the same way the button-height
+    // gate respects flex-end. A price set on the baseline - 30px number beside
+    // an 11px "/ month" - is aligned on purpose, and judging it against centre
+    // reports the design as the fault.
+    if (cs.alignItems === 'baseline' || cs.alignItems === 'flex-end') return;
+    // LEAF text only. Comparing two GROUPS - each holding a stacked label and
+    // its controls - is not ink centring, and it reported the portal's week
+    // selector as 2px off because one group is 4px shorter than the other. What
+    // this gate is about is two runs of TEXT sharing a line.
+    const kids = [...el.children].filter((c) => c.getBoundingClientRect().height > 3
+      && c.children.length === 0 && (c.textContent || '').trim());
     if (kids.length < 2) return;
     const r = el.getBoundingClientRect();
     if (r.height > 60 || r.height < 10) return;
     // Single-line only. A wrapped value legitimately sits top-aligned.
     const oneLine = kids.every((c) => {
       const q = c.getBoundingClientRect();
-      const lh = parseFloat(getComputedStyle(c).lineHeight) || q.height;
-      return q.height <= lh * 1.6 + 2;
+      const cs2 = getComputedStyle(c);
+      const lh = parseFloat(cs2.lineHeight) || parseFloat(cs2.fontSize) * 1.2 || q.height;
+      // A wrapped run is more than one line box tall; comparing its centre to a
+      // single-line sibling is meaningless. 1.25 leaves room for descenders
+      // without letting a two-line run through.
+      return q.height <= lh * 1.25 + 2;
     });
     if (!oneLine) return;
     const mids = kids.map((c) => {
       const rng = document.createRange();
       rng.selectNodeContents(c);
       const b = rng.getBoundingClientRect();
-      return b.height ? b.top + b.height / 2 : null;
+      // An element with no text (a dot, a rule) gives a collapsed Range that can
+      // land anywhere - one reported an ink centre 319px outside its own row.
+      return b.height > 0 && b.width > 0 ? b.top + b.height / 2 : null;
     }).filter((v) => v != null);
     if (mids.length < 2) return;
+    // All on the SAME line. A flex row that WRAPS puts its children on separate
+    // lines by design - the BHBC medical row wraps the diagnosis under the name -
+    // and comparing centres across lines reports a 20px "misalignment" that is
+    // simply two lines of text. Each child being one line is not enough; they
+    // have to share one.
+    const tallest = Math.max(...kids.map((c) => {
+      const cs2 = getComputedStyle(c);
+      return parseFloat(cs2.lineHeight) || parseFloat(cs2.fontSize) * 1.2 || 0;
+    }));
+    if (Math.max(...mids) - Math.min(...mids) > tallest * 0.9) return;
     const spread = Math.max(...mids) - Math.min(...mids);
     if (spread > tol) out.push({ spread: Math.round(spread * 100) / 100, h: Math.round(r.height), txt: (el.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 38) });
   });
