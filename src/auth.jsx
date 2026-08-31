@@ -566,10 +566,19 @@ export function RolePickerScreen({ name, onPick, onSignOut }) {
           <div style={{ fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: '0.3em', fontWeight: 700, textTransform: 'uppercase', marginBottom: 10 }}>Choose your portal</div>
           {/* "HEY" in Nord (FB), the Hebrew name in Heebo (FH). Both sit on the
               shared text baseline so the two words read as one line — centering
-              line-boxes of different fonts/sizes staggers them visually. */}
+              line-boxes of different fonts/sizes staggers them visually.
+
+              SAME font-size for both. Ohad: "hey and אוהד are not the same
+              vertical height. and they need to be." The Hebrew was set 2px
+              larger, on top of the 109% size-adjust the Heebo face already
+              carries to match Nord's caps — two corrections for one problem, so
+              the name rendered visibly bigger than the word beside it. The
+              size-adjust is the right place for that harmonisation; a per-site
+              font-size bump is not, because it has to be repeated and kept in
+              step everywhere the two scripts meet. */}
           <div style={{ display: 'inline-flex', alignItems: 'baseline', justifyContent: 'center', gap: 9, color: C.tx, fontWeight: 600, lineHeight: 1 }}>
             <span style={{ fontFamily: FB, fontSize: 15, letterSpacing: '0.06em' }}>HEY</span>
-            <span style={{ fontFamily: FH, fontSize: 17 }}>{name || 'there'}</span>
+            <span style={{ fontFamily: FH, fontSize: 15 }}>{name || 'there'}</span>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
