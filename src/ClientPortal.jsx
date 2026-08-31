@@ -3454,7 +3454,18 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                 rx: rxOf(ex),
                 tempo: ex.tempo,
                 title: d.t,
-                focus: weeklyFocus?.[`${ci}|${vp.name}|${day.name}|${ex.eid}|W${vpWeek}`] ?? weeklyFocus?.[`${vp.name}|${day.name}|${ex.eid}|W${vpWeek}`],
+                // Fall back to the exercise's own cue. Ohad: "there's no focus on the
+                // real athlete portal" - the demo shows a FOCUS line under every
+                // exercise and the real portal showed none, because it only read the
+                // WEEKLY focus store, which is keyed per exercise per week and is
+                // almost always empty. Meanwhile 81% of plan rows (3,457 of 4,264,
+                // measured) already carry `notes` - the cue snapshotted from the
+                // library, which is the coaching line for that movement. The weekly
+                // focus still wins when it exists: it is this week's emphasis and
+                // overrides the standing cue.
+                focus: weeklyFocus?.[`${ci}|${vp.name}|${day.name}|${ex.eid}|W${vpWeek}`]
+                  ?? weeklyFocus?.[`${vp.name}|${day.name}|${ex.eid}|W${vpWeek}`]
+                  ?? ((ex.notes ?? ex.n) || undefined),
               };
             }),
           });})}</React.Fragment>)})()}
