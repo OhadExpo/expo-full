@@ -44,11 +44,29 @@ for (const c of clips) {
       const T = [11, 12, 23, 24];
       const cen = (lm) => { let x = 0, y = 0, n = 0; for (const j of T) { const p = lm && lm[j]; if (p && (p.visibility == null || p.visibility > 0.3)) { x += p.x; y += p.y; n++; } } return n ? { x: x / n, y: y / n } : null; };
       const cs = f.map((fr) => cen(fr.landmarks));
+      // A SCENE CUT IS NOT A SWAP.
+      //
+      // Stock footage is edited. c01 is an instructional video that cuts from a
+      // low close-up to a wide shot mid-drill: the tracked centroid jumps 0.39
+      // of the frame and the shoulder width goes 0.038 -> 0.118. A body cannot
+      // triple in size in 167ms, so that is the camera changing, not the
+      // tracker changing its mind - same man, different shot. Counting those as
+      // swaps blamed the tracker for the editor's work.
+      //
+      // Ohad films single continuous takes on a phone, so this never fires on
+      // his own clips; it only stops the corpus from lying.
+      const shoulder = (lm) => { const a2 = lm && lm[11], b2 = lm && lm[12]; return a2 && b2 ? Math.hypot(a2.x - b2.x, a2.y - b2.y) : null; };
       const steps = [];
+      let cuts = 0;
       for (let i = 1; i < cs.length; i++) {
         if (!cs[i] || !cs[i - 1]) continue;
         const dt = (f[i].t - f[i - 1].t) / 1000;
         if (dt > 0.25) continue;                 // a long gap may move legitimately
+        const s0 = shoulder(f[i - 1].landmarks), s1 = shoulder(f[i].landmarks);
+        if (s0 && s1) {
+          const ratio = Math.max(s0, s1) / Math.min(s0, s1);
+          if (ratio > 1.6) { cuts++; continue; }
+        }
         steps.push(Math.hypot(cs[i].x - cs[i - 1].x, cs[i].y - cs[i - 1].y));
       }
       const sorted = [...steps].sort((a, c2) => a - c2);
@@ -83,13 +101,14 @@ for (const c of clips) {
         median: +med.toFixed(4),
         max: +(sorted[sorted.length - 1] || 0).toFixed(4),
         swaps: steps.filter((s) => s > 0.15).length,
+        cuts,
         blobFrames: withBlobs,
         ballAtHandPct: withBlobs ? Math.round((nearHand / withBlobs) * 100) : null };
     }) };
   } catch (e) { row.err = String(e.message || e).slice(0, 60); }
   await page.close().catch(() => {});
   rows.push(row);
-  console.log(`${row.clip}  ${row.err ? 'ERR ' + row.err : `frames ${String(row.frames).padStart(4)} median ${String(row.median).padEnd(7)} max ${String(row.max).padEnd(7)} swaps ${String(row.swaps).padEnd(3)} ballAtHand ${row.ballAtHandPct == null ? 'n/a' : row.ballAtHandPct + '%'} (${row.blobFrames}f)`}`);
+  console.log(`${row.clip}  ${row.err ? 'ERR ' + row.err : `frames ${String(row.frames).padStart(4)} median ${String(row.median).padEnd(7)} max ${String(row.max).padEnd(7)} swaps ${String(row.swaps).padEnd(3)} cuts ${String(row.cuts).padEnd(3)} ballAtHand ${row.ballAtHandPct == null ? 'n/a' : row.ballAtHandPct + '%'} (${row.blobFrames}f)`}`);
 }
 fs.writeFileSync(`audit-out/corpus-${LABEL}.json`, JSON.stringify(rows, null, 1));
 const ok = rows.filter((r) => !r.err);
