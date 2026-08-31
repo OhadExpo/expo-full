@@ -300,10 +300,24 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
     setTrainees((prev) => prev.map((t) => t.id === id ? { ...t, arrival: date || undefined } : t));
   }, [setTrainees]);
 
-  const cycleAvail = useCallback((id, current) => {
+  // Read the CURRENT value out of state, never off the rendered row.
+  //
+  // Ohad: "clicking on availability sometimes work and sometimes doesnt change
+  // anything". Reproduced: clicking faster than React re-renders, 3 of 10
+  // clicks changed nothing. The old signature took `current` from the row's
+  // props, so two clicks landing in the same render both read the same value
+  // and both computed the same next one - the second was a no-op that wrote the
+  // value already there. It also meant an athlete with no entry for today
+  // passed `undefined`, and undefined % 5 is NaN, which JSON stores as null and
+  // reads back as Full.
+  //
+  // Deriving inside the updater makes every click see the result of the one
+  // before it, however fast they land.
+  const cycleAvail = useCallback((id) => {
     setBhbcLoads((prev) => {
       const rec = prev[id] ? { ...prev[id] } : emptyRec();
-      rec.availability = { ...(rec.availability || {}), [today]: (current % 5) + 1 };
+      const cur = Number((rec.availability || {})[today]) || 1;
+      rec.availability = { ...(rec.availability || {}), [today]: (cur % 5) + 1 };
       return { ...prev, [id]: rec };
     });
     notify();
@@ -1035,7 +1049,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
           onLog={canLog ? () => { setLogFor(detailFor); setDetailFor(null); } : null}
           onOpenExpo={!asCoach && onOpenTrainee ? () => onOpenTrainee(detailFor) : null}
           onViewProgram={() => { setProgramFor(detailFor); setDetailFor(null); }}
-          onCycleAvail={canLog ? () => cycleAvail(detailFor, row.avail) : null}
+          onCycleAvail={canLog ? () => cycleAvail(detailFor) : null}
           onEditSession={asCoach ? null : (date, idx, min, sig) => editSession(detailFor, date, idx, min, sig)}
           onDeleteSession={asCoach ? null : (date, idx, sig) => deleteSession(detailFor, date, idx, sig)} />;
       })()}
@@ -1888,7 +1902,7 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
                   // being crushed to "PR…". The action still never breaks: it
                   // wraps whole rather than sliding off the viewport, which was
                   // the failure the fixed columns were protecting against.
-                  style={{ display: 'flex', alignItems: 'center', gap: 10, rowGap: 2, flexWrap: 'wrap', cursor: clickable ? 'pointer' : 'default', padding: '2px 0' }}>
+                  style={{ display: 'flex', alignItems: 'center', lineHeight: 'normal', gap: 10, rowGap: 2, flexWrap: 'wrap', cursor: clickable ? 'pointer' : 'default', padding: '2px 0' }}>
                   {/* 96 + nowrap, same as the past-practice list: at 78px some dates
                       wrapped to two lines and others did not, so the column read
                       ragged down the card. */}
@@ -2156,7 +2170,7 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, onOpen, onMedical 
                 <div style={{ fontFamily: FN, fontSize: 13, color: C.tx, fontVariantNumeric: 'tabular-nums' }}>{acwr.acute ? Math.round(acwr.acute) : '—'}</div>
                 <div>
                   {cycleAvail ? (
-                    <button onClick={(e) => { e.stopPropagation(); cycleAvail(t.id, avail); }} title="Click to change availability" className="bhbc-ghost-btn" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, minWidth: 108, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 9px', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'color .12s, border-color .12s' }}>
+                    <button onClick={(e) => { e.stopPropagation(); cycleAvail(t.id); }} title="Click to change availability" className="bhbc-ghost-btn" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, minWidth: 108, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 9px', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'color .12s, border-color .12s' }}>
                       <span style={{ width: 7, height: 7, borderRadius: '50%', background: AVAIL[avail].color, flexShrink: 0 }} />{AVAIL[avail].label}
                     </button>
                   ) : (

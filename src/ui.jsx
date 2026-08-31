@@ -356,7 +356,13 @@ export function RefinedCard({ header, headerRight, leftStripe, padY = 14, padX =
               Cleanup hubs) ~300px past the viewport (mobile audit 08-22). */}
           {headerRight ? (
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-              <div style={{ minWidth: 0, flex: '1 1 auto', color: '#FFFFFF' }}>{header}</div>
+              {/* flex + centre, so the TITLE's own box is what gets aligned.
+                  As a plain block this div had no font-size of its own: it
+                  inherited 16px and built a 19.2px line box around a 13px
+                  title, putting the title 1.2px above the date beside it on
+                  every card in the app. Ohad, zoomed in: "nothing here is
+                  vertically center alligned". */}
+              <div style={{ minWidth: 0, flex: '1 1 auto', color: '#FFFFFF', display: 'flex', alignItems: 'center' }}>{header}</div>
               <div style={{ flex: '0 1 auto', minWidth: 0, display: 'flex', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 8, color: '#FFFFFF' }}>{headerRight}</div>
             </div>
           ) : <div style={{ color: '#FFFFFF' }}>{header}</div>}
@@ -669,7 +675,7 @@ export const Card = ({ children, style, onClick, onMouseEnter, onMouseLeave, hea
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
               {/* Pure white in BOTH themes so the dark strip's title reads
                   with the same crispness as the cyan-strip light variant. */}
-              <div style={{ minWidth: 0, flex: '1 1 auto', color: '#FFFFFF' }}>{header}</div>
+              <div style={{ minWidth: 0, flex: '1 1 auto', color: '#FFFFFF', display: 'flex', alignItems: 'center' }}>{header}</div>
               <div style={{ flex: '0 1 auto', minWidth: 0, display: 'flex', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 8, color: '#FFFFFF' }}>{headerRight}</div>
             </div>
           ) : <div style={{ color: '#FFFFFF' }}>{header}</div>}
