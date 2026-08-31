@@ -12,7 +12,7 @@
 // never the brand. Load math: src/acwrEngine.js (validated vs the corpus).
 
 import React, { useMemo, useState, useEffect, useCallback, Suspense, lazy } from 'react';
-import { C, FN, FB } from './theme';
+import { C, FN, FB, EXPO_ICON_LG } from './theme';
 import { Card, CollapsibleSection, Btn, Input, Modal, EmptyState, toast, usePersistentState } from './ui';
 import { ThemeToggle } from './ThemeToggle';
 import { useTheme } from './hooks/useTheme';
@@ -788,16 +788,15 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
                 header is its own brand, and EXPO blue inside it reads as a
                 second logo. */}
             {onExit && !previewCoach && <button onClick={onExit} className="bhbc-tab" title="Back to EXPO coach" aria-label="Back to EXPO coach" style={{ background: 'transparent', border: 'none', borderRadius: 0, height: HDR_BTN_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, padding: '0 4px', cursor: 'pointer', opacity: 0.55 }}>
-              {/* The EXPO chevron alone, not the wordmark: inside the club's
-                  own header a second full logo competes with BNEI HERZLIYA.
-                  EXPO_ICON is only an alias for the full logo, so the mark is
-                  drawn rather than cropped - it scales, takes currentColor and
-                  centres on the row like every other control here. */}
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                strokeWidth="3" strokeLinecap="square" strokeLinejoin="miter" aria-hidden="true"
-                style={{ display: 'block' }}>
-                <polyline points="4 16 12 8 20 16" />
-              </svg>
+              {/* The REAL EXPO mark. Ohad: "the bhbc is lacking expo icon which i
+                  asked" - and he was right: I had drawn a bare chevron here,
+                  which reads as a collapse caret, not as EXPO. expo-icon-lg.png
+                  is the actual icon (white X, cyan caret, transparent ground),
+                  so it says where the door goes. Small and slightly held back so
+                  it does not compete with BNEI HERZLIYA beside it - it is a way
+                  out, not a second logo. */}
+              <img src={EXPO_ICON_LG} alt="" aria-hidden="true" width="16" height="16"
+                style={{ display: 'block', opacity: 0.85 }} />
             </button>}
             {coach && onSignOut && <button onClick={onSignOut} className="bhbc-tab" title="Sign out" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: HDR_INK, background: 'transparent', border: `1px solid ${HDR_BD}`, borderRadius: 0, height: HDR_BTN_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, padding: '0 11px', cursor: 'pointer' }}>{tr('Sign out')}</button>}
           </div>

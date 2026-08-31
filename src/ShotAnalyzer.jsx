@@ -258,12 +258,22 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
             to be hilighted like i manually chose it". The reading is already
             being taken on that side, so the menu should say so instead of
             leaving both sides looking untouched. The " · AUTO" suffix stays —
-            it is what tells a detected side apart from a pinned one. */}
+            it is what tells a detected side apart from a pinned one.
+
+            It keys off `hand` - the side the reading is actually taken on -
+            not off detectedHand. They differ more often than you would think:
+            detectShootingHand returns null on plenty of clips and `hand`
+            quietly falls back to R, which is why his AUTO chip read just
+            "AUTO" with no side while the panel beside it said "MEASURED ON
+            THE SHOOTING SIDE · RIGHT". Highlighting detectedHand would have
+            left the menu blank on exactly those clips. The suffix still keys
+            off detectedHand, so a fallback is never dressed up as a
+            detection. */}
         {[['R', T.right], ['L', T.left]].map(([k, label]) => (
           <button key={k}
             onClick={() => { setHandMode(k); try { localStorage.setItem(HAND_KEY, k); } catch { /* private mode */ } rescore(k, stature, shotType); }}
             title={T.handHint}
-            style={chip(handMode === k || (handMode === 'auto' && detectedHand === k))}>{label}{handMode === 'auto' && detectedHand === k ? ' · AUTO' : ''}</button>
+            style={chip(handMode === k || (handMode === 'auto' && hand === k))}>{label}{handMode === 'auto' && detectedHand === k ? ' · AUTO' : ''}</button>
         ))}
         <span style={{ ...lbl, marginInlineStart: 10 }}>{T.shot}</span>
         {SHOT_TYPES.map((t) => (
