@@ -1761,11 +1761,11 @@ function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onLog }) {
               <div key={i} onClick={click || undefined} className={click ? 'bhbc-row' : undefined}
                   role={click ? 'button' : undefined} tabIndex={click ? 0 : undefined}
                   onKeyDown={click ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); click(); } }) : undefined}
-                style={{ display: 'flex', alignItems: 'flex-start', gap: 11, padding: '9px 2px', borderBottom: i < top.length - 1 ? `0.25px solid ${C.cardBd}` : 'none', cursor: click ? 'pointer' : 'default' }}>
+                style={{ display: 'flex', alignItems: 'flex-start', gap: 11, padding: i < top.length - 1 ? '9px 2px' : '9px 2px 0', borderBottom: i < top.length - 1 ? `0.25px solid ${C.cardBd}` : 'none', cursor: click ? 'pointer' : 'default' }}>
                 {/* Center the dot on the first text line. The +4px offset accounts for
                     Nord's bottom-heavy line box (measured: line-center sits ~4px below
                     the CSS line-box center). Ohad: dot must be vertically centered. */}
-                <span style={{ display: 'inline-flex', alignItems: 'center', height: 12.5 * 1.5, marginTop: 4, flexShrink: 0 }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', height: 19.5, flexShrink: 0 }}>
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: sevColor[a.sev] }} />
                 </span>
                 {/* Same left-label column as every other card on this screen.
@@ -1773,11 +1773,11 @@ function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onLog }) {
                     most of why it read as a mess next to the report above it -
                     and the reason now sits at the right edge instead of trailing
                     the action, so the row is scannable and the width is used. */}
-                <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, width: 74, flexShrink: 0, marginTop: 5 }}>{a.k ? tr(a.k) : ''}</span>
-                <div style={{ minWidth: 0, lineHeight: 1.5, flex: 1 }}>
+                <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, width: 74, flexShrink: 0, lineHeight: '19.5px' }}>{a.k ? tr(a.k) : ''}</span>
+                <div style={{ minWidth: 0, lineHeight: '19.5px', flex: 1 }}>
                   <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.02em', color: C.tx }}>{a.do}</span>
                 </div>
-                <div style={{ fontFamily: FB, fontSize: 13, color: C.tm, lineHeight: 1.5, textAlign: 'end', flexShrink: 1, minWidth: 0, marginInlineStart: 16 }}>{a.why}</div>
+                <div style={{ fontFamily: FB, fontSize: 13, color: C.tm, lineHeight: '19.5px', textAlign: 'end', flexShrink: 1, minWidth: 0, marginInlineStart: 16 }}>{a.why}</div>
                 {click && <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: ORANGE, flexShrink: 0, marginTop: 3 }}>›</span>}
               </div>
             );
@@ -1807,9 +1807,17 @@ function HeadCoachReport({ rows, fx, fixtures, medical, today, onOpen, onMedical
   const weekEnd = addDays(today, 7);
   const sessions = (fixtures || []).filter((f) => f.type !== 'game' && f.date >= today && f.date <= weekEnd).sort((a, b) => a.date.localeCompare(b.date) || (a.start || '').localeCompare(b.start || ''));
   const mut = { color: C.tm };
-  const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, width: 92, flexShrink: 0, paddingTop: 2 };
+  // The label shares the VALUE's first-line box (13px x 1.5 = 19.5px) instead of
+// hanging on its own 9px one. Ohad: "nothing is center aligned". These rows
+// are flex-start on purpose - the value can be a multi-line list - so the fix
+// is to make the two FIRST lines share a centre, not to centre the whole row.
+const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, width: 92, flexShrink: 0, lineHeight: '19.5px' };
+  // The LAST row drops its bottom padding. Ohad: "too much white space at the
+  // end of every white box". Measured: this card left 32px under its last line
+  // against 18px of card padding, because the row's own 11px was being added on
+  // top of it - the other cards on the same screen sit at 19px.
   const Section = ({ label, children, last }) => (
-    <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', padding: '11px 2px', borderBottom: last ? 'none' : `0.25px solid ${C.cardBd}` }}>
+    <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', padding: last ? '11px 2px 0' : '11px 2px', borderBottom: last ? 'none' : `0.25px solid ${C.cardBd}` }}>
       <div style={lbl}>{label}</div>
       <div style={{ flex: 1, minWidth: 0, fontFamily: FB, fontSize: 13, color: C.tx, lineHeight: 1.5 }}>{children}</div>
     </div>

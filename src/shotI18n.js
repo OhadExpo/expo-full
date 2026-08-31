@@ -129,7 +129,7 @@ export const SHOT_I18N = {
     noRepeats: 'no checkpoint failed on more than one shot.',
 
     checksTitle: (i, n) => `Checkpoints · shot ${i}${n > 1 ? ' of ' + n : ''}`,
-    what: 'What ', why: 'Why ', how: 'How ',
+    what: 'What ', why: 'Why ', how: 'How ', drills: 'Drills',
     measuredOk: (d) => `Measured ${d} — inside the target band.`,
     measuredBad: (d, t) => `Measured ${d}; target ${t}.`,
     jumpFrame: 'Jump to this frame',
@@ -245,7 +245,7 @@ export const SHOT_I18N = {
     noRepeats: 'אף נקודת בקרה לא נכשלה ביותר מזריקה אחת.',
 
     checksTitle: (i, n) => `נקודות בקרה · זריקה ${i}${n > 1 ? ' מתוך ' + n : ''}`,
-    what: 'מה ', why: 'למה ', how: 'איך ',
+    what: 'מה ', why: 'למה ', how: 'איך ', drills: 'תרגילים',
     measuredOk: (d) => `נמדד ${d} — בתוך טווח היעד.`,
     measuredBad: (d, t) => `נמדד ${d}; היעד ${t}.`,
     jumpFrame: 'קפיצה לפריים הזה',

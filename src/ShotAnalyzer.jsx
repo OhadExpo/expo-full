@@ -52,6 +52,38 @@ const CYAN = '#39BDFF';
 const chip = (active) => ({ ...ghost, padding: '0 10px', fontSize: 10, letterSpacing: '0.12em', borderColor: active ? CYAN : 'rgba(255,255,255,0.25)', color: active ? CYAN : '#FFF', background: active ? 'rgba(57,189,255,0.10)' : 'transparent', ...boxed(CTL_SM) });
 const big = (color) => ({ flex: 1, padding: 14, background: color, border: `1px solid ${color}`, color: '#06131b', fontFamily: FN, fontSize: 14, fontWeight: 700, letterSpacing: '0.14em', cursor: 'pointer', borderRadius: 0 });
 const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase' };
+
+// DRILLS, collapsed until asked for.
+//
+// Ohad: "the 'how' should be drills and it should be expandable list,
+// collapsed before touched". Every checkpoint carries two or three of them, so
+// leaving them open put a wall of prose between the reading he came for and
+// the next checkpoint. WHAT and WHY answer the question; the drills are what he
+// does about it, and he asks for those when he wants them.
+//
+// A module-level component, not an inline one - there is a build gate against
+// declaring components inside render, because remounting on every parent render
+// loses their state (this one's open/closed included).
+function DrillList({ label, items }) {
+  const [open, setOpen] = useState(false);
+  if (!items || !items.length) return null;
+  return (
+    <div>
+      <button type="button" onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        style={{ ...lbl, color: CYAN, background: 'transparent', border: 'none', padding: 0, margin: 0,
+          cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, lineHeight: 'normal' }}>
+        <span>{label} ({items.length})</span>
+        <span style={{ fontSize: 8, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>▾</span>
+      </button>
+      {open && (
+        <ul style={{ margin: '3px 0 0', paddingInlineStart: 18 }}>
+          {items.map((h, k) => <li key={k} style={{ marginBottom: 3 }}>{h}</li>)}
+        </ul>
+      )}
+    </div>
+  );
+}
 const fmt = (v, d = 0) => (v == null || !Number.isFinite(v) ? '—' : v.toFixed(d));
 
 // Input is CAMERA or GALLERY only (Ohad): no reviewed/uploaded EXPO clips are
@@ -152,10 +184,27 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
 
   // Re-score the SAME frames when the hand / stature changes after analysis —
   // no re-capture needed.
+  // SAY that it re-scored. Ohad: "they're not working or affecting anything",
+  // twice. They were working - measured on the real tool, switching MID-RANGE to
+  // FREE THROW moved the verdict from "5 to fix / 3 OK" to "4 to fix / 4 OK" and
+  // rewrote every checkpoint target. But the six big readings are MEASUREMENTS
+  // of his body, so they cannot move when the shot type changes; only the
+  // judgements do, and those live in a small line and inside collapsed rows.
+  // From his seat the button did nothing. A control that changes something
+  // invisible is indistinguishable from a dead one, so it now confirms itself
+  // the same way the height box already does.
+  const flashRef = useRef(null);
+  const [rescored, setRescored] = useState(false);
+  useEffect(() => () => clearTimeout(flashRef.current), []);
   const rescore = (h, st, type) => {
     const frames = framesRef.current; if (!frames) return;
     const r = analyzeShotClip(frames, { hand: h, statureCm: Number(st) || null, shotType: type || shotType });
-    if (r.ok) { setResult(r); } else toast(r.error, 'error');
+    if (r.ok) {
+      setResult(r);
+      setRescored(true);
+      clearTimeout(flashRef.current);
+      flashRef.current = setTimeout(() => setRescored(false), 2200);
+    } else toast(r.error, 'error');
   };
 
   const pickFile = () => fileRef.current?.click();
@@ -204,11 +253,17 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
           onClick={() => { setHandMode('auto'); try { localStorage.setItem(HAND_KEY, 'auto'); } catch { /* private mode */ } const h = detectedHand || 'R'; rescore(h, stature, shotType); }}
           title={T.handHint}
           style={chip(handMode === 'auto')}>{T.auto || 'AUTO'}{handMode === 'auto' && detectedHand ? ` · ${detectedHand === 'L' ? T.left : T.right}` : ''}</button>
+        {/* When AUTO has picked a side, light that side up as well. Ohad: "when
+            the auto hand picker chooses a hand i want the r/l hand in that menu
+            to be hilighted like i manually chose it". The reading is already
+            being taken on that side, so the menu should say so instead of
+            leaving both sides looking untouched. The " · AUTO" suffix stays —
+            it is what tells a detected side apart from a pinned one. */}
         {[['R', T.right], ['L', T.left]].map(([k, label]) => (
           <button key={k}
             onClick={() => { setHandMode(k); try { localStorage.setItem(HAND_KEY, k); } catch { /* private mode */ } rescore(k, stature, shotType); }}
             title={T.handHint}
-            style={chip(handMode === k)}>{label}{handMode === 'auto' && detectedHand === k ? ' · AUTO' : ''}</button>
+            style={chip(handMode === k || (handMode === 'auto' && detectedHand === k))}>{label}{handMode === 'auto' && detectedHand === k ? ' · AUTO' : ''}</button>
         ))}
         <span style={{ ...lbl, marginInlineStart: 10 }}>{T.shot}</span>
         {SHOT_TYPES.map((t) => (
@@ -217,6 +272,8 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
             title={T.shotHint}
             style={chip(shotType === t.key)}>{(T.shotTypes[t.key] || t.label).toUpperCase()}</button>
         ))}
+        <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: '#37B27C',
+          minWidth: 62, opacity: rescored ? 1 : 0, transition: 'opacity .15s' }}>{T.rescored}</span>
         <span style={{ ...lbl, marginInlineStart: 10 }}>{T.height}</span>
         <input value={stature}
           onChange={(e) => { statureRef.current = e.target.value; setStature(e.target.value); setHeightSaved(false); }}
@@ -972,10 +1029,7 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
                         <div style={{ ...lbl, color: CYAN, marginBottom: 3 }}>{T.why}</div>
                         <div>{c.why}</div>
                       </div>
-                      <div>
-                        <div style={{ ...lbl, color: CYAN, marginBottom: 3 }}>{T.how}</div>
-                        <ul style={{ margin: 0, paddingInlineStart: 18 }}>{c.how.map((h, k) => <li key={k} style={{ marginBottom: 3 }}>{h}</li>)}</ul>
-                      </div>
+                      <DrillList label={T.drills || T.how} items={c.how} />
                     </div>
                   )}
                 </div>
