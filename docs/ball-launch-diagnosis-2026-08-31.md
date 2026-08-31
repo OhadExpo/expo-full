@@ -167,5 +167,5 @@ confident wrong number.
 ## If someone still wants to improve the tracker
 
 Do it on footage where the release is INSIDE the frame. Confirm that first with
-`scripts/_probe-release.mjs` — if `wrist y at release` is under ~0.03, the clip
+`scripts/verify-clip-usable.mjs` — if `wrist y at release` is under ~0.03, the clip
 cannot answer the question and any tuning done against it is fitting noise.

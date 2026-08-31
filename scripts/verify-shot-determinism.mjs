@@ -1,0 +1,61 @@
+// verify-shot-determinism.mjs — the same clip must give the same answer.
+//
+// CLAUDE.md's standing "actually next": the analyzer returned a different shot
+// count on repeat runs of one clip - 11, then 10, then 9 - because the default
+// capture samples a PLAYING video and drops frames under load. The count is the
+// first number a coach reads, and a number that moves is worse than a number
+// that is slightly wrong: he cannot tell which run to believe.
+//
+// This does NOT assert a particular count. Ground truth for a clip is a
+// separate argument. It asserts that N runs agree with each other - count AND
+// per-shot release times - which is the property that was actually broken.
+//
+//   node scripts/verify-shot-determinism.mjs [clip] [port] [runs]
+import puppeteer from 'puppeteer-core';
+
+const CLIP = process.argv[2] || '/testclips/clip02.mp4';
+const PORT = process.argv[3] || '5199';
+const RUNS = Number(process.argv[4] || 3);
+
+const b = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 60 * 60 * 1000 });
+const results = [];
+let bad = 0;
+
+try {
+  for (let n = 1; n <= RUNS; n++) {
+    const page = await b.newPage();
+    try {
+      await page.goto(`http://127.0.0.1:${PORT}/shot-harness.html`, { waitUntil: 'domcontentloaded' });
+      await page.waitForFunction('window.__ready === true', { timeout: 30000 });
+      // Deterministic capture: seek frame by frame instead of sampling a
+      // playing video. Without this the comparison below is meaningless -
+      // two runs would be looking at two different sets of frames.
+      await page.evaluate((c) => window.runHarness(c, { deterministic: 'coarse' }), CLIP);
+      const r = await page.evaluate(async () => {
+        const M = await import('/src/shotAnalysis.js');
+        const f = window.__frames;
+        const res = M.analyzeShotClip(f, { hand: M.detectShootingHand(f) || 'R', statureCm: 190 });
+        return {
+          frames: f.length,
+          shots: (res.shots || []).length,
+          releases: (res.shots || []).map((s) => Math.round(f[s.cycle.release].t)),
+        };
+      });
+      results.push(r);
+      console.log(`run ${n}: ${r.shots} shots, ${r.frames} frames, releases ${JSON.stringify(r.releases)}`);
+    } finally { await page.close().catch(() => {}); }
+  }
+
+  const counts = [...new Set(results.map((r) => r.shots))];
+  const times = [...new Set(results.map((r) => JSON.stringify(r.releases)))];
+  console.log('');
+  if (counts.length === 1) console.log(`PASS - all ${RUNS} runs agree on ${counts[0]} shots`);
+  else { console.log(`FAIL - shot count varies across runs: ${JSON.stringify(counts)}`); bad = 1; }
+  if (times.length === 1) console.log('PASS - release times identical across runs');
+  else { console.log(`FAIL - release times differ across runs (${times.length} distinct)`); bad = 1; }
+} catch (e) {
+  console.log('ERROR:', String(e.message || e).split('\n')[0]);
+  bad = 1;
+} finally { b.disconnect(); }
+
+process.exit(bad);

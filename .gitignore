@@ -134,3 +134,7 @@ scripts/_*.mjs
 .t.mjs
 test-clips/
 public/testclips/
+
+# Downloaded test-video corpus and extracted frames (large, reproducible)
+audit-out/dl/
+audit-out/frames/
