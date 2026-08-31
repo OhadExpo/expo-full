@@ -118,7 +118,7 @@ function LibraryPicker({ exercises, initial, onPick, onPeek, onClose }) {
         <div style={{ maxHeight: 420, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
           {results.map((ex) => (
             <button key={ex.id} onClick={() => onPick(ex)} style={{ display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left', padding: '9px 10px', border: 'none', borderBottom: `0.25px solid ${C.bd}`, background: 'transparent', cursor: 'pointer', fontFamily: FB, fontSize: 13, color: C.tx }}>
-              <span style={{ flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={ex.title || ex.t}>{ex.title || ex.t}</span>
+              <span style={{ flex: 1, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'anywhere' }} title={ex.title || ex.t}>{ex.title || ex.t}</span>
               {ex.videoLink && <span style={{ fontFamily: FN, fontSize: 9, color: C.ac }}>▶</span>}
               {(ex.cues || ex.notes) && <span style={{ fontFamily: FN, fontSize: 9, color: C.tm }}>✎</span>}
               {onPeek && <span role="button" tabIndex={0} title="Preview this exercise" onClick={(e) => { e.stopPropagation(); onPeek(ex); }}
@@ -257,7 +257,7 @@ export default function ExerciseMatchingView({ exercises = [], setExercises }) {
                       return (
                         <button key={s.ex.id} onClick={() => setDecision(g.key, 'accept', s.ex)} style={{ display: 'flex', alignItems: 'center', gap: 8, textAlign: 'left', padding: '7px 10px', border: `1px solid ${on ? '#2E9E6B' : C.bd}`, background: on ? 'color-mix(in srgb, #2E9E6B 10%, transparent)' : 'var(--c-sf)', cursor: 'pointer', borderRadius: 0 }}>
                           <span style={{ width: 8, height: 8, borderRadius: '50%', background: CONF_COLOR[conf], flexShrink: 0 }} />
-                          <span style={{ flex: 1, minWidth: 0, fontFamily: FB, fontSize: 12.5, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={s.ex.title || s.ex.t}>{s.ex.title || s.ex.t}</span>
+                          <span style={{ flex: 1, minWidth: 0, fontFamily: FB, fontSize: 12.5, color: C.tx, whiteSpace: 'normal', overflowWrap: 'anywhere' }} title={s.ex.title || s.ex.t}>{s.ex.title || s.ex.t}</span>
                           {s.ex.videoLink && <span style={{ fontFamily: FN, fontSize: 9, color: C.ac, flexShrink: 0 }} title="has video">▶</span>}
                           {(s.ex.cues || s.ex.notes) && <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, flexShrink: 0 }} title="has cues">✎</span>}
                           <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: CONF_COLOR[conf] }}>{s.why}</span>

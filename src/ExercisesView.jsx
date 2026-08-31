@@ -202,7 +202,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
             with a caret; the active filter is the only lit one. */}
         <button className={`filt${active || isOpen ? ' filt-on' : ''}`} onClick={() => setOpenKey(isOpen ? null : k)} title={label}
           style={{ ...railBase, borderBottomColor: (active || isOpen) ? C.ac : 'transparent', color: active ? C.ac : C.tx }}>
-          <span style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis' }}>{faceLabel}</span>
+          <span style={{ maxWidth: 220, whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{faceLabel}</span>
           {active
             ? <span onClick={e => { e.stopPropagation(); clearFilter(k); }} title="Clear" style={{ fontSize: 13, lineHeight: 1, opacity: 0.85 }}>×</span>
             : <span style={{ color: (active || isOpen) ? C.ac : C.tm, fontSize: 9 }}>▾</span>}
@@ -227,7 +227,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
                   onMouseLeave={e => { if (!on) e.currentTarget.style.background = 'transparent'; }}>
                   {/* Real checkbox — fills cyan when selected (OCD: fixed column). */}
                   <span style={{ width: 13, height: 13, boxSizing: 'border-box', border: `1px solid ${on ? C.ac : 'var(--c-cardBd)'}`, background: on ? C.ac : 'transparent', color: 'var(--c-bg)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, lineHeight: 1 }}>{on ? '✓' : ''}</span>
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{v}</span>
+                  <span style={{ whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{v}</span>
                   <span style={{ color: on ? C.ac : C.tm, fontSize: 10, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{c}</span>
                 </div>
               );
@@ -247,7 +247,10 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
   const emptyDot = <span style={{ color: C.td, opacity: 0.4, fontSize: 12 }}>·</span>;
   // Single-value classification — quiet uppercase mono, or a faint dot.
   const oneCell = (v, extra = {}) => (
-    <td title={v || undefined} style={{ padding: '9px 12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', ...extra }}>
+  // Wrap, never ellipsise. Ohad: "i cant see some of the words... never do."
+  // A classification value cut to "Shoulder Horizontal Adducti…" is not a
+  // classification. The row gets taller; the word stays whole.
+    <td title={v || undefined} style={{ padding: '9px 12px', whiteSpace: 'normal', overflowWrap: 'anywhere', ...extra }}>
       {v ? <span style={{ fontFamily: FN, fontSize: 10.5, fontWeight: 600, letterSpacing: '0.02em', color: C.tm }}>{v}</span> : emptyDot}
     </td>
   );
@@ -257,12 +260,14 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
     return (
       <td title={vals.join(', ') || undefined} style={{ padding: '9px 12px', maxWidth: max, overflow: 'hidden' }}>
         {vals.length === 0 ? emptyDot : (
-          <div style={{ display: 'flex', gap: 4, flexWrap: 'nowrap', overflow: 'hidden' }}>
-            {/* minWidth:0 + shrink + ellipsis: a chip that doesn't fit compresses
-                to "GLUTEUS MAX…" inside an intact border — never sliced mid-glyph
-                by the cell's overflow:hidden. Full list stays on the td title. */}
+          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', rowGap: 3 }}>
+            {/* The ROW wraps instead of the chips being cut. Ohad: never
+                truncate - "i cant see some of the words". Letting a chip
+                ellipsise hid the muscle it names; letting it overflow a
+                nowrap row spilled it over the next column. Wrapping keeps
+                every chip whole and grows the row instead. */}
             {vals.slice(0, 3).map((x, i) => (
-              <span key={i} style={{ display: 'inline-block', minWidth: 0, flexShrink: 1, overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1, fontFamily: FN, fontSize: 9.5, fontWeight: 600, letterSpacing: '0.02em', color: C.tm, background: 'var(--c-sf2)', border: `1px solid ${C.cardBd}`, padding: '2px 6px', whiteSpace: 'nowrap' }}>{x}</span>
+              <span key={i} style={{ display: 'inline-block', minWidth: 0, flexShrink: 1, whiteSpace: 'normal', overflowWrap: 'anywhere', lineHeight: 1, fontFamily: FN, fontSize: 9.5, fontWeight: 600, letterSpacing: '0.02em', color: C.tm, background: 'var(--c-sf2)', border: `1px solid ${C.cardBd}`, padding: '2px 6px' }}>{x}</span>
             ))}
             {vals.length > 3 && <span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, color: C.td, padding: '2px 3px', whiteSpace: 'nowrap', flexShrink: 0 }}>+{vals.length - 3}</span>}
           </div>
@@ -372,7 +377,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
                     now the card shows the thumbnail + cues directly (Ohad). */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 9, background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '8px 14px', minWidth: 0 }}>
                   <span aria-hidden style={{ width: 3, height: 14, background: C.ac, flexShrink: 0 }} />
-                  <bdi title={ex.title} style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', color: '#FFFFFF', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ex.title}</bdi>
+                  <bdi title={ex.title} style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', color: '#FFFFFF', whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{ex.title}</bdi>
                 </div>
                 {/* body — half YouTube thumbnail (inline, no fullscreen), half
                     coaching notes (Ohad). Classification recedes to a single meta
@@ -441,7 +446,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
                     <td style={{ padding: '9px 12px 9px 14px', maxWidth: 320 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
                         {statusDot(ex)}
-                        <span title={ex.title} style={{ fontWeight: 600, fontSize: 13, color: C.tx, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ex.title}</span>
+                        <span title={ex.title} style={{ fontWeight: 600, fontSize: 13, color: C.tx, whiteSpace: 'normal', overflowWrap: 'anywhere', whiteSpace: 'nowrap' }}>{ex.title}</span>
                       </div>
                     </td>
                     {oneCell(ex.resistanceType)}

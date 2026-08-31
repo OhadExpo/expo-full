@@ -62,7 +62,11 @@ function EmailsCell({ email, style }) {
   const [expanded, setExpanded] = useState(false);
   if (arr.length === 0) return null;
   if (arr.length <= 2) {
-    return <div style={{ ...style, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{arr.join(', ')}</div>;
+    // Wrap, do not ellipsise. A couple's two addresses joined with a comma
+    // ran 197px past the card and the second one vanished - and an address
+    // you cannot read is not a contact detail. Ohad: "i cant see some of the
+    // words... never do."
+    return <div style={{ ...style, whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{arr.join(', ')}</div>;
   }
   const visible = expanded ? arr : arr.slice(0, 2);
   return (
