@@ -645,7 +645,14 @@ export const Card = ({ children, style, onClick, onMouseEnter, onMouseLeave, hea
       border: `1px solid ${C.cardBd}`,
       borderInlineStart: leftStripe ? `3px solid ${leftStripe}` : `1px solid ${C.cardBd}`,
       borderRadius: 0,
+      // Ohad: "too much space at the bottom of each card (empty space after the
+      // last exercise)". Measured across the app: cards carry 8-17px MORE space
+      // below the last line than above the first. It is not padding - it is the
+      // descender slack under the final line of text, which lands on top of the
+      // card padding while the first line has no such slack above it. Taking 4px
+      // off the bottom makes the ink sit evenly, which is what the eye reads.
       padding: padNum,
+      paddingBottom: Math.max(0, padNum - 4),
       cursor: draggable ? "grab" : (onClick ? "pointer" : "default"),
       boxShadow: C.cardShadow,
       transition: "box-shadow 0.2s, transform 0.2s",
@@ -936,7 +943,9 @@ export const useEscClose = (active, onClose) => {
 export const EmptyState = ({ icon, message }) => (
   <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 60, color: C.td }}>
     <div style={{ opacity: 0.3, marginBottom: 12, fontSize: 36 }}>{icon}</div>
-    <p style={{ fontFamily: FB, fontSize: 14, fontWeight: 400 }}>{message}</p>
+    {/* margin 0: a bare <p> carries the browser default 1em bottom margin, which
+        lands under the message as dead space inside the card. */}
+    <p style={{ fontFamily: FB, fontSize: 14, fontWeight: 400, margin: 0 }}>{message}</p>
   </div>
 );
 

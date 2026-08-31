@@ -3020,7 +3020,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         // workout the athlete just completed at the very BOTTOM of History.
         // Sorting here is order-independent and always puts today's session up
         // top. (~dozens of rows; trivial cost.)
-        [...cw].sort((a,b) => new Date(b.date||0) - new Date(a.date||0)).map(w => { const wActive = !!expandedHistEx && expandedHistEx.startsWith(w.id + ':'); return <div key={w.id} style={{background:'var(--c-sf)',border:`${wActive?'2px':'0.25px'} solid ${C.ac}${wActive?'':'4D'}`,borderRadius:0,padding:12,marginBottom:8}}>
+        [...cw].sort((a,b) => new Date(b.date||0) - new Date(a.date||0)).map(w => { const wActive = !!expandedHistEx && expandedHistEx.startsWith(w.id + ':'); return <div key={w.id} style={{background:'var(--c-sf)',border:`${wActive?'2px':'0.25px'} solid ${C.ac}${wActive?'':'4D'}`,borderRadius:0,padding:12,paddingBottom:4,marginBottom:8}}>
           {/* header strip — day/block on the left, date/week on the right, on a
               tinted band with a cyan left rail + bottom border (card-header look
               like the coach dashboard). Spans the card via negative margins. */}

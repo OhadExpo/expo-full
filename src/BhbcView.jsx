@@ -713,6 +713,8 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
         .bhbc-hdr-tabs::-webkit-scrollbar{display:none} .bhbc-hdr-tabs{scrollbar-width:none;-ms-overflow-style:none}
         .bhbc-ghost-btn:hover{color:${ORANGE}!important;border-color:${ORANGE}!important}
         .bhbc-tab:hover{color:#fff!important;border-color:rgba(255,255,255,0.30)!important}
+        .bhbc-expo-mark{opacity:.55}
+        .bhbc-tab:hover .bhbc-expo-mark,.bhbc-tab:focus-visible .bhbc-expo-mark{opacity:1}
         /* Never let the zone scroll the PAGE sideways — wide bits scroll inside. */
         .bhbc-zone{max-width:100vw;overflow-x:clip}
         .bhbc-week-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;align-items:stretch}
@@ -809,8 +811,9 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
                   so it says where the door goes. Small and slightly held back so
                   it does not compete with BNEI HERZLIYA beside it - it is a way
                   out, not a second logo. */}
-              <img src={EXPO_ICON_LG} alt="" aria-hidden="true" width="16" height="16"
-                style={{ display: 'block', opacity: 0.85 }} />
+              <img src={EXPO_ICON_LG} alt="" aria-hidden="true"
+                className="bhbc-expo-mark"
+                style={{ display: 'block', height: 19, width: 'auto', opacity: 0.55, transition: 'opacity .15s' }} />
             </button>}
             {coach && onSignOut && <button onClick={onSignOut} className="bhbc-tab" title="Sign out" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: HDR_INK, background: 'transparent', border: `1px solid ${HDR_BD}`, borderRadius: 0, height: HDR_BTN_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, padding: '0 11px', cursor: 'pointer' }}>{tr('Sign out')}</button>}
           </div>
