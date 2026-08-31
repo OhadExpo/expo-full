@@ -28,9 +28,22 @@ const lerp = (a, b, u) => a + (b - a) * u;
 
 // Subject = the pose closest to the last known subject, preferring the taller
 // figure — a bystander on the baseline is smaller and further away.
-function pickSubject(landmarks, prev) {
+// `maxStep` is how far the subject's torso centroid may plausibly travel
+// since the previous sample, in frame widths. Measured on clip02: the
+// typical step is 0.0028 and the tracker was taking steps of 0.28-0.40 in a
+// single 33ms frame - 145x the median, a third of the frame. No body moves
+// like that; that is the tracker changing its mind about WHICH PLAYER it is
+// following. Ohad: it must only follow the shooter, even when there are
+// several players on the video.
+//
+// Candidates inside the step are preferred as a GROUP - the old score could
+// always be out-bid by a nearer-to-camera bystander, because height was
+// worth more than distance. If nothing is reachable we fall back to the
+// full field, so a subject genuinely lost behind a screen is re-acquired
+// rather than dropped for the rest of the clip.
+function pickSubject(landmarks, prev, maxStep = Infinity) {
   if (!landmarks || !landmarks.length) return { idx: -1 };
-  let best = null;
+  const cands = [];
   for (let i = 0; i < landmarks.length; i++) {
     const lms = landmarks[i]; if (!lms) continue;
     let minX = 1, maxX = 0, minY = 1, maxY = 0, seen = 0, vsum = 0;
@@ -59,9 +72,24 @@ function pickSubject(landmarks, prev) {
       + (minY <= EDGE ? 1 : 0) + (maxY >= 1 - EDGE ? 1 : 0);
     const cropPenalty = clipped * 0.35;
     const score = h * 2 - near * 3 + (vsum / seen) * 0.5 - cropPenalty;
-    if (!best || score > best.score) best = { idx: i, score, cx, cy, box: { x0: minX, y0: minY, x1: maxX, y1: maxY } };
+    const reachable = !prev || near <= maxStep;
+    cands.push({ idx: i, score, cx, cy, reachable, box: { x0: minX, y0: minY, x1: maxX, y1: maxY } });
   }
-  return best ? { idx: best.idx, centroid: { x: best.cx, y: best.cy }, box: best.box } : { idx: -1 };
+  if (!cands.length) return { idx: -1 };
+  // Nothing reachable means the subject was not detected THIS frame. Falling
+  // back to the whole field here is what produced the swap: measured on
+  // clip02, frame 5 jumped to x=0.107 while frames 4 and 6 sat at x=0.49 -
+  // one frame on a player at the far edge, because he was briefly the only
+  // pose returned. Emitting nothing is honest and the hole-filling pass
+  // re-seeks it; emitting a different body corrupts every measurement built
+  // on the series. Re-acquisition is allowed only when the caller says the
+  // subject has been gone long enough to be genuinely lost (maxStep=Infinity).
+  const reach = cands.filter((c) => c.reachable);
+  if (!reach.length && Number.isFinite(maxStep)) return { idx: -1, lost: true };
+  const pool = reach.length ? reach : cands;
+  let best = null;
+  for (const c of pool) if (!best || c.score > best.score) best = c;
+  return best ? { idx: best.idx, centroid: { x: best.cx, y: best.cy }, box: best.box, jumped: !best.reachable } : { idx: -1 };
 }
 
 function boxAt(track, t) {
@@ -286,14 +314,46 @@ export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineR
     const track = [];
     const coarse = [];
     let prevC = null;
+    // Paired with prevC so the reachable radius scales with the real gap
+    // between samples: a 200ms recovery seek may legitimately move further
+    // than a 33ms step, and a fixed radius would either leak swaps at the
+    // long gaps or drop the subject at the short ones.
+    let prevT = null;
+    // Every accepted subject position, by time. The recovery pass below
+    // re-seeks scattered holes, so the RUNNING prev is meaningless there -
+    // consecutive holes can be seconds apart, the gate opens to Infinity and
+    // it re-acquires whoever is largest. Those frames then sort back in
+    // beside good ones, which is where the 0.44-of-a-frame steps between
+    // adjacent 33ms samples came from. A hole is anchored to its nearest
+    // neighbour IN TIME instead.
+    const subjSeen = [];
+    const nearestSeen = (t) => {
+      let best = null;
+      for (const e of subjSeen) {
+        const d = Math.abs(e.t - t);
+        if (!best || d < best.d) best = { d, c: e.c };
+      }
+      return best;
+    };
+    // Under 0.5s since the last accepted sample we hold identity and accept a
+    // gap. Past that the subject is genuinely lost - he walked behind a
+    // screen, the clip cut - and anything may be re-acquired.
+    const REACQUIRE_S = 0.5;
+    const stepFor = (t) => {
+      if (prevC == null || prevT == null) return Infinity;
+      const gap = Math.abs(t - prevT);
+      return gap > REACQUIRE_S ? Infinity : Math.max(0.05, gap * 1.0);
+    };
     await playThrough(v, {
       from: 0, to: dur, rate: 1, frameDur, drops, deterministic: detCoarse,
       onFrame: (vid, mt) => {
         let r = null;
         try { r = lmCoarse.detect(vid); } catch { /* noop */ }
-        const sub = pickSubject(r?.landmarks, prevC);
+        const sub = pickSubject(r?.landmarks, prevC, stepFor(mt));
         if (sub.idx >= 0) {
           prevC = sub.centroid;
+          prevT = mt;
+          subjSeen.push({ t: mt, c: sub.centroid });
           track.push({ t: mt, box: sub.box });
           coarse.push({ t: mt * 1000, landmarks: r.landmarks[sub.idx], worldLandmarks: r.worldLandmarks?.[sub.idx] || null, fine: false });
         }
@@ -330,9 +390,11 @@ export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineR
             await seekTo(v, tMsHole / 1000);
             let r = null;
             try { r = lmCoarse.detect(v); } catch { /* a single frame may fail */ }
-            const sub = pickSubject(r?.landmarks, prevC);
+            const anchor = nearestSeen(tMsHole / 1000);
+            const aStep = anchor ? (anchor.d > 0.5 ? Infinity : Math.max(0.05, anchor.d * 1.0)) : Infinity;
+            const sub = pickSubject(r?.landmarks, anchor ? anchor.c : null, aStep);
             if (sub.idx >= 0) {
-              prevC = sub.centroid;
+              subjSeen.push({ t: tMsHole / 1000, c: sub.centroid });
               track.push({ t: tMsHole / 1000, box: sub.box });
               coarse.push({ t: tMsHole, landmarks: r.landmarks[sub.idx], worldLandmarks: r.worldLandmarks?.[sub.idx] || null, fine: false });
               recovered++;
@@ -401,6 +463,12 @@ export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineR
     const totalMs = windows.reduce((a, w) => a + (w.to - w.from), 0) || 1;
     let doneMs = 0;
     for (const w of windows) {
+      // Identity inside a window, held to the same physical limit as the
+      // coarse pass. Comparing against the coarse BOX alone was too loose:
+      // its tolerance scales with body width, so a wide box let a 0.22 step
+      // between adjacent 33ms frames pass. Reset per window - a new window
+      // starts somewhere else in the clip and that jump is legitimate.
+      let prevFineC = null, prevFineT = null;
       if (fine.length >= maxFine) break;
       await playThrough(v, {
         from: w.from / 1000, to: w.to / 1000, rate: fineRate, frameDur, drops, deterministic: detFine,
@@ -422,6 +490,41 @@ export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineR
           const sub = pickSubject(r?.landmarks, null);
           if (sub.idx >= 0 && r.worldLandmarks?.[sub.idx]) {
             const mapped = r.landmarks[sub.idx].map((p) => (p ? { x: (sx + p.x * sideLen) / vw, y: (sy + p.y * sideLen) / vh, z: p.z, visibility: p.visibility } : p));
+            // IS THIS STILL THE SAME MAN?
+            //
+            // The crop is padded to 1.9x the body so the arms stay in frame,
+            // which on a busy court means a team-mate is often inside it too.
+            // This pass runs with numPoses 1, so the model returns ONE pose and
+            // pickSubject has no choice to make - whoever it locked onto is
+            // what we get. Measured on clip02: the torso centroid stepped 0.44
+            // of the frame between adjacent frames, repeatedly, around frames
+            // 50-69. That is not a body moving, it is the model changing its
+            // mind about which body.
+            //
+            // We already know where the subject is: the coarse box that decided
+            // this crop. Anything landing outside it is a different player, and
+            // the frame is dropped rather than recorded. Ohad: it must only
+            // follow the shooter, even when there are several players on the
+            // video.
+            const TORSO_J = [11, 12, 23, 24];
+            let tx = 0, ty = 0, tn = 0;
+            for (const j of TORSO_J) {
+              const q = mapped[j];
+              if (q && (q.visibility == null || q.visibility > 0.3)) { tx += q.x; ty += q.y; tn++; }
+            }
+            const bcx = (b.x0 + b.x1) / 2, bcy = (b.y0 + b.y1) / 2;
+            const tolX = Math.max((b.x1 - b.x0) * 0.85, 0.06);
+            const tolY = Math.max((b.y1 - b.y0) * 0.85, 0.06);
+            if (tn && (Math.abs(tx / tn - bcx) > tolX || Math.abs(ty / tn - bcy) > tolY)) return;
+            if (tn) {
+              const fc = { x: tx / tn, y: ty / tn };
+              if (prevFineC && prevFineT != null) {
+                const gap = Math.abs(mt - prevFineT);
+                const lim = gap > 0.5 ? Infinity : Math.max(0.05, gap * 1.0);
+                if (Math.hypot(fc.x - prevFineC.x, fc.y - prevFineC.y) > lim) return;
+              }
+              prevFineC = fc; prevFineT = mt;
+            }
             // Candidate BALL positions: small round things that moved since the
             // previous frame, searched only above the athlete's waist because
             // that is the only place a released ball can be. Nothing is decided
