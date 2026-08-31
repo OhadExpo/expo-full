@@ -168,7 +168,16 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
     try {
       // Two-pass ROI capture: find the athlete, then re-run pose on a crop
       // around him at the source frame cadence inside each shot window.
-      const frames = await captureShotFrames(url, { onProgress: (pct, label) => { setProgress(pct); if (label) setProgressLabel(label); } });
+      // opts.deterministic steps the clip frame by frame with seeks instead of
+      // reading a playing video. Measured on clip02: 754 frames against 639,
+      // 24.5 effective fps against 20.7 on a 24 fps source - i.e. every frame
+      // rather than one in six lost - and the shot count is then identical run
+      // to run. It is opt-in because a seek costs more on a 60 fps portrait
+      // clip, so the fast path stays the default and this is the retry.
+      const frames = await captureShotFrames(url, {
+        deterministic: opts.deterministic || false,
+        onProgress: (pct, label) => { setProgress(pct); if (label) setProgressLabel(label); },
+      });
       framesRef.current = frames;
       // Read the shooting hand off the clip unless the coach pinned one.
       const auto = detectShootingHand(frames);
@@ -862,6 +871,17 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
               <div style={{ border: `1px solid ${'#E0A73A'}`, background: 'rgba(224,167,58,0.08)', color: '#E0A73A',
                 padding: '10px 12px', marginBottom: 14, fontSize: 12.5, lineHeight: 1.5 }}>
                 {T.starved(rate, result.frameCount)}
+                {/* NO "analyse frame by frame" button here, and that is a measured
+                    decision rather than an omission.
+                    
+                    Stepping the clip with seeks looked like the fix: on clip02
+                    (24 fps, landscape) it captured 754 frames against 639 and
+                    every run agreed. On OHAD'S OWN 17-shot clip it captured
+                    FEWER - 1541 against 2286 - found 9 of the 17 shots, and took
+                    1445s against 487s. His footage is 60 fps portrait, where a
+                    seek is expensive and the fixed step under-samples the source.
+                    Offering it would have halved his shot count while promising
+                    precision. */}
               </div>
             );
           })()}

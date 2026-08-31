@@ -30,6 +30,14 @@ try {
       // Deterministic capture: seek frame by frame instead of sampling a
       // playing video. Without this the comparison below is meaningless -
       // two runs would be looking at two different sets of frames.
+      //
+      // It buys REPEATABILITY, not completeness, and the difference matters.
+      // Measured 2026-09-01 on Ohad's own 17-shot clip (60 fps portrait):
+      // deterministic captured 1541 frames and found 9 shots in 1445s, while
+      // the default playback path captured 2286 and found all 17 in 487s. A
+      // seek is expensive there and the fixed step under-samples the source.
+      // So use this gate to prove a change did not add VARIANCE - never as
+      // evidence that a shot count is correct.
       await page.evaluate((c) => window.runHarness(c, { deterministic: 'coarse' }), CLIP);
       const r = await page.evaluate(async () => {
         const M = await import('/src/shotAnalysis.js');

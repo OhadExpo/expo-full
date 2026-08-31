@@ -55,8 +55,16 @@ const MEASURE = (tol) => {
     // its controls - is not ink centring, and it reported the portal's week
     // selector as 2px off because one group is 4px shorter than the other. What
     // this gate is about is two runs of TEXT sharing a line.
-    const kids = [...el.children].filter((c) => c.getBoundingClientRect().height > 3
-      && c.children.length === 0 && (c.textContent || '').trim());
+    // TEXT, ICONS AND NUMBERS. Ohad: "make sure everything is vertically center
+    // alligned vs the row and borders and vs all the other text, icons and
+    // numbers." An icon is judged on its box (that IS its ink); text is judged
+    // on a Range over the glyphs.
+    const ICON = /^(SVG|IMG|CANVAS|INPUT|SELECT|BUTTON)$/;
+    const kids = [...el.children].filter((c) => {
+      if (c.getBoundingClientRect().height <= 3) return false;
+      if (ICON.test(c.tagName)) return true;
+      return c.children.length === 0 && (c.textContent || '').trim();
+    });
     if (kids.length < 2) return;
     const r = el.getBoundingClientRect();
     if (r.height > 60 || r.height < 10) return;
@@ -72,6 +80,10 @@ const MEASURE = (tol) => {
     });
     if (!oneLine) return;
     const mids = kids.map((c) => {
+      if (/^(SVG|IMG|CANVAS|INPUT|SELECT|BUTTON)$/.test(c.tagName)) {
+        const q = c.getBoundingClientRect();
+        return q.height > 0 ? q.top + q.height / 2 : null;
+      }
       const rng = document.createRange();
       rng.selectNodeContents(c);
       const b = rng.getBoundingClientRect();
@@ -87,7 +99,8 @@ const MEASURE = (tol) => {
     // have to share one.
     const tallest = Math.max(...kids.map((c) => {
       const cs2 = getComputedStyle(c);
-      return parseFloat(cs2.lineHeight) || parseFloat(cs2.fontSize) * 1.2 || 0;
+      const lh = parseFloat(cs2.lineHeight) || parseFloat(cs2.fontSize) * 1.2 || 0;
+      return Math.max(lh, c.getBoundingClientRect().height);
     }));
     if (Math.max(...mids) - Math.min(...mids) > tallest * 0.9) return;
     const spread = Math.max(...mids) - Math.min(...mids);

@@ -2196,7 +2196,13 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, onOpen, onMedical 
                     return (
                       <button onClick={(e) => { e.stopPropagation(); onMedical(t.id); }}
                         title={inj ? 'Update the medical report' : 'Report an injury'} className="bhbc-ghost-btn"
-                        style={{ flexShrink: 0, height: ROW_BTN_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: inj ? medText(inj.status) : C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '4px 8px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                        // minWidth so the two states are the same box. Ohad: "make sure
+                        // all buttons no matter the tag (for each column) are the same
+                        // horizontal size". Measured: "+ MED" 55px, "MED ✎" 58px - a
+                        // column that shifts by 3px per row depending on the athlete's
+                        // medical state. lineHeight normal so the label sits on its own
+                        // centre, like every other control.
+                        style={{ flexShrink: 0, minWidth: 62, height: ROW_BTN_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: inj ? medText(inj.status) : C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '4px 8px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
                         {inj ? 'MED ✎' : '+ MED'}
                       </button>
                     );
