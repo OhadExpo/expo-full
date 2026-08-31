@@ -683,11 +683,11 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
             {/* An untracked ball used to be three em dashes and no explanation.
                 The plain sentence is for the coach; the technical reason the
                 tracker actually gave is on the tooltip, for whoever is fixing it. */}
-            {shot.info.ballLaunchDeg == null && (shot.info.ballWhy || shot.info.ballPartial) && (
+            {shot.info.ballLaunchDeg == null && (shot.info.ballWhy || shot.info.ballPartial || shot.info.ballAboveFrame) && (
               <div title={(shot.info.ballWhy && (shot.info.ballWhy.why || shot.info.ballWhy.failed)) || shot.info.ballPartial || ''}
                 style={{ border: '1px solid rgba(255,255,255,0.12)', padding: '6px 8px', gridColumn: '1 / -1',
                   fontSize: 12, lineHeight: 1.5, color: 'rgba(255,255,255,0.62)' }}>
-                {shot.info.ballPartial === 'ascent' ? T.ballAscent : T.ballUnread}
+                {shot.info.ballAboveFrame ? T.ballAboveFrame : (shot.info.ballPartial === 'ascent' ? T.ballAscent : T.ballUnread)}
               </div>
             )}
             <div style={{ border: '1px solid rgba(255,255,255,0.12)', padding: '6px 8px', gridColumn: '1 / -1' }}><div style={lbl}>{T.info.chain}</div><div dir="ltr" style={{ fontFamily: FN, fontSize: 14, fontWeight: 700, unicodeBidi: 'isolate', textAlign: 'start' }}>{shot.info.sequenceOrder ? T.chainVal(shot.info.sequenceOrder.kneeMs, shot.info.sequenceOrder.shoulderMs, shot.info.sequenceOrder.elbowMs) : '—'}</div></div>

@@ -111,3 +111,61 @@ same clip gave 5 shots with 1 angle on one run and 5 shots with 0 on the next,
 with identical code. Any before/after claim about the ball MUST use
 `runHarness(url, { deterministic: 'coarse' })`, or it is comparing two
 different sets of frames and the result means nothing.
+
+---
+
+# ROOT CAUSE FOUND — supersedes the "candidate generation" conclusion above
+
+The section above ends by pointing at candidate generation and the `tooShort`
+cutoff. That was the right next place to look and it was wrong. Keep reading
+before touching the tracker.
+
+## The measurement that settled it
+
+Release is labelled CORRECTLY. On clip02 it lands 0–3 frames from the shooting
+wrist's apex, which is where the ball leaves a jump shot:
+
+| shot | release frame | wrist apex | gap | **wrist y at release** |
+|---|---|---|---|---|
+| 1 | 158 | 158 | 0 frames | **−0.016** |
+| 2 | 296 | 295 | 33 ms | 0.038 |
+| 3 | 430 | 429 | 33 ms | 0.019 |
+| 4 | 644 | 641 | 100 ms | **−0.017** |
+
+Normalised y is 0 at the top edge. **Negative means above it.** At the instant
+of release the shooting hand is at, or past, the top of the picture. The ball
+leaves the hand outside the frame, and the launch is therefore not in the
+footage at all.
+
+## Why every algorithmic lead dead-ended
+
+Because they were all downstream of missing data:
+
+- `originBias` 0→16: identical results. Nothing to re-rank.
+- `riseBias` 0→32: identical results. No candidate rises because the rising part
+  is off-screen.
+- A clean-room tracker, written from scratch, anchored at the hand and
+  predicting forward: built chains of 11, 7 and 6 points — and every one had a
+  rise of **exactly 0.00 ball widths**, first point highest. Two independent
+  implementations agreeing that the arc never rises is not two bugs. It is the
+  data.
+
+The blobs that do appear near the top of frame are the ball clipped at the edge,
+not the arc.
+
+## What shipped instead
+
+The analyzer now says so. When the shooting wrist is at or above the top edge at
+release, the ball panel explains that the release happened above the frame and
+asks for the camera to be tilted up, in English and Hebrew, instead of printing
+a dash. Verified on the real tool from the coach's seat with clip02.
+
+That is the only actionable fix: **no tracker can recover an arc that was never
+filmed.** Tuning the gates to produce a number here would have produced a
+confident wrong number.
+
+## If someone still wants to improve the tracker
+
+Do it on footage where the release is INSIDE the frame. Confirm that first with
+`scripts/_probe-release.mjs` — if `wrist y at release` is under ~0.03, the clip
+cannot answer the question and any tuning done against it is fitting noise.

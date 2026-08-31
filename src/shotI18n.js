@@ -101,6 +101,10 @@ export const SHOT_I18N = {
     // left the hand before the tracker locked on, so the release angle is not
     // measurable on that rep. Saying 'could not be followed' there was wrong.
     ballAscent: 'The ball was already above the hand when tracking began, so the release angle and speed cannot be read on this rep.',
+    // The framing, not the tracker. Measured: the shooting wrist is at or above
+    // the top edge at the instant of release, so the ball leaves the hand
+    // outside the picture. Tilting up is the only fix, so say that.
+    ballAboveFrame: 'The release happened above the top of the frame, so the ball readings are blank. Tilt the camera up — the hand must stay in shot at full extension. Everything measured from the body still stands.',
     onNorm: 'on his norm',
     sessionReadTitle: (n) => `ACROSS ALL ${n} REPS`,
     sessionSpan: 'best {b} · worst {w} · spread {s}',
@@ -214,6 +218,7 @@ export const SHOT_I18N = {
     axisAll: 'כל קו בסקלה שלו · ציר X זמן בשניות',
     measuredOnSide: (side) => `נמדד בצד הזורק · ${side}`,
     ballAscent: 'הכדור כבר היה מעל היד כשהמעקב התחיל, אז אי אפשר לקרוא זווית ומהירות שחרור בזריקה הזאת.',
+    ballAboveFrame: 'השחרור יצא מעל הפריים, ולכן נתוני הכדור ריקים. הטה את המצלמה למעלה — היד צריכה להישאר בתמונה בפתיחה המלאה. כל מה שנמדד מהגוף עדיין תקף.',
     onNorm: 'על הנורמה שלו',
     sessionReadTitle: (n) => `כל ${n} הזריקות`,
     sessionSpan: 'הכי טוב {b} · הכי חלש {w} · פער {s}',

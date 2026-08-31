@@ -618,6 +618,20 @@ export function scoreShot(series, c, { statureCm = null, shotType = 'mid', ballO
     coverage: round(c.coverage, 2),
     // Measured from the BALL, not inferred from the arm. Null unless the samples
     // actually fit a projectile.
+    // WHY there is no angle, when the reason is the framing rather than the
+    // tracker. Measured on Ohad's own clip02: release is labelled correctly -
+    // within 0 to 3 frames of the wrist's apex - but the shooting wrist is at
+    // y = -0.016, 0.038, 0.019, -0.017 at that instant. Negative y is ABOVE
+    // the top edge. The ball leaves the hand outside the picture, so the
+    // launch is not in the footage and no tracker can recover it. Both the
+    // shipped tracker and a clean-room reimplementation independently built
+    // chains that never rise, which is what that looks like from the inside.
+    //
+    // Saying so beats showing a dash: it is the one thing a coach can act on.
+    ballAboveFrame: (() => {
+      const w = (series.raw && series.raw.wristPos && series.raw.wristPos[c.release]) || null;
+      return !!(w && Number.isFinite(w.y) && w.y < 0.03);
+    })(),
     ballLaunchDeg: ballLaunch && !ballLaunch.failed ? ballLaunch.angleDeg : null,
     // Why a shot produced no ball reading — so a coverage gap is diagnosable
     // instead of just an em dash.
