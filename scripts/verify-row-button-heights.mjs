@@ -117,7 +117,20 @@ try {
         }, tab);
         await new Promise((r) => setTimeout(r, 2500));
       }
-      const bad = await page.evaluate(MEASURE);
+      // Sample TWICE and keep only faults present in both. A single sample
+      // caught /athlete mid-render once and reported a height mismatch that
+      // two immediate re-runs could not reproduce. A gate that cries wolf
+      // erodes the rule it exists to protect - he has to be able to trust a
+      // FAIL here, because the whole point is that the rule always holds.
+      const first = await page.evaluate(MEASURE);
+      let bad = [];
+      if (first.length) {
+        await new Promise((r) => setTimeout(r, 1200));
+        const second = await page.evaluate(MEASURE);
+        const key = (f) => f.material + f.heights.join(',') + f.items.join('|');
+        const seen2 = new Set(second.map(key));
+        bad = first.filter((f) => seen2.has(key(f)));
+      }
       const where = `${route}${tab ? ' · ' + tab : ''}`;
       if (!bad.length) { console.log(`OK    ${where}`); continue; }
       total += bad.length;
