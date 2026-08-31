@@ -70,7 +70,7 @@ function ExercisePeek({ ex, onAccept, onClose }) {
             )) : fileVid ? (
               <video src={ex.videoLink} controls playsInline style={{ ...box, display: 'block' }} />
             ) : (
-              <div style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: C.td, padding: '14px 0', textAlign: 'center', border: `0.25px solid ${C.bd}` }}>No video in the library for this exercise</div>
+              <div style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: C.td, padding: '14px 0', textAlign: 'center', border: `1px solid ${C.bd}` }}>No video in the library for this exercise</div>
             )}
             {meta.length > 0 && (
               <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '5px 14px', marginTop: 12 }}>
@@ -94,7 +94,7 @@ function ExercisePeek({ ex, onAccept, onClose }) {
             </div>
           )}
         </div>
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', borderTop: `0.25px solid ${C.bd}`, paddingTop: 12 }}>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', borderTop: `1px solid ${C.bd}`, paddingTop: 12 }}>
           <Btn variant="ghost" onClick={onClose}>Close</Btn>
           {onAccept && <Btn onClick={onAccept} style={{ background: '#2E9E6B', borderColor: '#2E9E6B', color: '#04121f' }}>Use this match</Btn>}
         </div>
@@ -117,13 +117,13 @@ function LibraryPicker({ exercises, initial, onPick, onPeek, onClose }) {
           style={{ fontFamily: FB, fontSize: 14, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.bd}`, borderRadius: 0, padding: '10px 12px' }} />
         <div style={{ maxHeight: 420, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
           {results.map((ex) => (
-            <button key={ex.id} onClick={() => onPick(ex)} style={{ display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left', padding: '9px 10px', border: 'none', borderBottom: `0.25px solid ${C.bd}`, background: 'transparent', cursor: 'pointer', fontFamily: FB, fontSize: 13, color: C.tx }}>
+            <button key={ex.id} onClick={() => onPick(ex)} style={{ display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left', padding: '9px 10px', border: 'none', borderBottom: `1px solid ${C.bd}`, background: 'transparent', cursor: 'pointer', fontFamily: FB, fontSize: 13, color: C.tx }}>
               <span style={{ flex: 1, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'anywhere' }} title={ex.title || ex.t}>{ex.title || ex.t}</span>
               {ex.videoLink && <span style={{ fontFamily: FN, fontSize: 9, color: C.ac }}>▶</span>}
               {(ex.cues || ex.notes) && <span style={{ fontFamily: FN, fontSize: 9, color: C.tm }}>✎</span>}
               {onPeek && <span role="button" tabIndex={0} title="Preview this exercise" onClick={(e) => { e.stopPropagation(); onPeek(ex); }}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onPeek(ex); } }}
-                style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: C.tm, border: `0.25px solid ${C.bd}`, padding: '3px 7px', flexShrink: 0 }}>VIEW</span>}
+                style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: C.tm, border: `1px solid ${C.bd}`, padding: '3px 7px', flexShrink: 0 }}>VIEW</span>}
             </button>
           ))}
           {!results.length && <div style={{ fontFamily: FB, fontSize: 13, color: C.td, padding: 16, textAlign: 'center' }}>No library exercise matches “{q}”.</div>}
@@ -263,7 +263,7 @@ export default function ExerciseMatchingView({ exercises = [], setExercises }) {
                           <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: CONF_COLOR[conf] }}>{s.why}</span>
                           <span role="button" tabIndex={0} title="Preview this library exercise — video, cues, classification" onClick={(e) => { e.stopPropagation(); setPeek({ ex: s.ex, key: g.key }); }}
                             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); setPeek({ ex: s.ex, key: g.key }); } }}
-                            style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: C.tm, border: `0.25px solid ${C.bd}`, padding: '3px 7px', flexShrink: 0 }}>VIEW</span>
+                            style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: C.tm, border: `1px solid ${C.bd}`, padding: '3px 7px', flexShrink: 0 }}>VIEW</span>
                         </button>
                       );
                     })}

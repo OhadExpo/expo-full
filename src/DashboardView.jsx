@@ -615,7 +615,7 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
               fontFamily: FN, fontSize: 13, color: C.tm, letterSpacing: '0.08em',
               fontWeight: 700, textTransform: 'uppercase', flexShrink: 0,
             }}>{tt('Storage')}</span>
-            <div style={{ flex: '1 1 200px', minWidth: 140, height: 6, background: 'var(--c-sf2)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, position: 'relative' }}>
+            <div style={{ flex: '1 1 200px', minWidth: 140, height: 6, background: 'var(--c-sf2)', border: `1px solid ${C.cardBd}`, borderRadius: 0, position: 'relative' }}>
               <div style={{ position: 'absolute', inset: 0, width: `${pct}%`, background: tone, transition: 'width 200ms' }} />
             </div>
             <span dir="ltr" style={{ fontFamily: FN, fontSize: 12, color: tone, fontWeight: 700, letterSpacing: '0.04em', flexShrink: 0, unicodeBidi: 'isolate' }}>

@@ -96,7 +96,7 @@ export default function ExerciseClassifyView({ exercises = [], setExercises }) {
                   const skip = (edits[e.id] || {}).skip;
                   const cell = { padding: '6px 8px', verticalAlign: 'middle' };
                   return (
-                    <tr key={e.id} style={{ borderBottom: `0.25px solid ${C.cardBd}`, opacity: skip ? 0.45 : 1 }}>
+                    <tr key={e.id} style={{ borderBottom: `1px solid ${C.cardBd}`, opacity: skip ? 0.45 : 1 }}>
                       <td style={{ ...cell, minWidth: 220 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <span style={{ width: 6, height: 6, borderRadius: '50%', background: g.filled === 3 ? '#2E9E6B' : g.filled ? C.ac : '#E0A73A', flexShrink: 0 }} title={`${g.filled}/3 guessed`} />

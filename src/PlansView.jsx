@@ -2761,7 +2761,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                     // already names the block, unlike the multi-block athlete view.)
                     const exs = w.exercises || [];
                     return (
-                      <div key={w.id} style={{background:'var(--c-sf)',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:12,marginBottom:8}}>
+                      <div key={w.id} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}4D`,borderRadius:0,padding:12,marginBottom:8}}>
                         <div style={{background:'var(--c-sf2)',borderLeft:`3px solid ${C.ac}`,borderBottom:`1px solid ${C.cardBd}`,margin:'-12px -12px 10px',padding:'8px 12px',display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:10}}>
                           <div style={{fontFamily:FN,fontWeight:700,fontSize:13,letterSpacing:'0.02em',color:C.tx,minWidth:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{w.dayName || 'Workout'}{w.week!=null && <span style={{color:C.ac,fontWeight:700,fontSize:11,letterSpacing:'0.04em'}}> · W{w.week}</span>}</div>
                           <div style={{fontSize:10,fontFamily:FN,color:C.tm,letterSpacing:'0.08em',whiteSpace:'nowrap',flexShrink:0}}>{fmtPrettyDate(w.date || w.createdAt)}</div>
