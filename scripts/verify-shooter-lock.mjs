@@ -21,6 +21,14 @@
 // measured 2026-08-31 across ten clips including two full-court games:
 // 91 swap-sized steps before the lock, 11 after, seven of ten clips at zero.
 //
+// KNOWN LIMIT, measured rather than assumed: the residual swaps concentrate in
+// footage where the subject is genuinely ambiguous. c09 is a WIDE wheelchair
+// game - ten-plus players at similar scale, no designated shooter - and at its
+// worst step both bodies are near-identical in size (shoulder 0.028 vs 0.037),
+// so there is no signal that says which one the tool is meant to follow. That
+// is not Ohad's case: he films one athlete deliberately. Tuning against clips
+// like c09 would trade his real case for a synthetic one, so do not.
+//
 //   node scripts/verify-shooter-lock.mjs [port] [label] [clipFilter]
 import fs from 'node:fs';
 import puppeteer from 'puppeteer-core';
