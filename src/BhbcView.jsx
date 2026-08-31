@@ -1830,7 +1830,7 @@ function HeadCoachReport({ rows, fx, fixtures, medical, today, onOpen, onMedical
       {/* MEDICAL */}
       <Section label={tr("Medical")}>
         {injuries.length
-          ? <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(330px, 1fr))', columnGap: 26, rowGap: 5 }}>
+          ? <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(330px, 100%), 1fr))', columnGap: 26, rowGap: 5 }}>
               {injuries.slice(0, 6).map(({ t, inj }, i) => {
                 const s = MED_STATUS[inj.status] || MED_STATUS.available;
                 return (
@@ -1861,7 +1861,7 @@ function HeadCoachReport({ rows, fx, fixtures, medical, today, onOpen, onMedical
       {/* THIS WEEK — team sessions */}
       <Section label={tr("This week")} last>
         {sessions.length
-          ? <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(330px, 1fr))', columnGap: 26, rowGap: 5 }}>
+          ? <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(330px, 100%), 1fr))', columnGap: 26, rowGap: 5 }}>
               {sessions.slice(0, 6).map((s, i) => {
                 const pl = planOf ? planOf(s) : null;
                 // Weight-room sessions appear on the calendar but are not planned.
