@@ -450,7 +450,7 @@ export function CollapsibleSection({ title, titleNode, count, right, storageKey,
     // Card chrome (white bg + border + shadow) only when OPEN; collapsed = no box
     // (the strip carries its own border), so every section collapses to a bare strip.
     : (open
-        ? { background: 'var(--c-sf)', border: baseBorder, borderInlineStart: leftStripe ? `3px solid ${leftStripe}` : baseBorder, borderRadius: 0, boxShadow: C.cardShadow, marginBottom: 12, ...style }
+        ? { background: 'var(--c-sf)', border: baseBorder, borderInlineStart: baseBorder, borderRadius: 0, boxShadow: C.cardShadow, marginBottom: 12, ...style }
         : { marginBottom: 12, ...style });
   return (
     <div id={domId} style={outerStyle}>
@@ -494,7 +494,11 @@ export function CollapsibleSection({ title, titleNode, count, right, storageKey,
             and Enter-activatable while invisible. Empty string = set the
             attribute (React 18 passes unknown attrs through as strings). */}
         <div style={{ overflow: 'hidden' }} inert={open ? undefined : ''}>
-          <div style={{ padding: bare ? '8px 0 0' : `12px ${padX}px ${padY}px` }}>{children}</div>
+          {/* Rail on the BODY, not the whole section - same reason as Card:
+              alongside the title strip it reads as a stripe on the title.
+              Ohad: "only next to the white part of the card". */}
+          <div style={{ padding: bare ? '8px 0 0' : `12px ${padX}px ${padY}px`,
+            ...(leftStripe && !bare ? { borderInlineStart: `3px solid ${leftStripe}`, paddingInlineStart: padX - 3 } : null) }}>{children}</div>
         </div>
       </div>
     </div>
@@ -643,7 +647,13 @@ export const Card = ({ children, style, onClick, onMouseEnter, onMouseLeave, hea
       style={{
       background: 'var(--c-sf)',
       border: `1px solid ${C.cardBd}`,
-      borderInlineStart: leftStripe ? `3px solid ${leftStripe}` : `1px solid ${C.cardBd}`,
+      // The severity rail is NOT painted here any more - see the body below.
+      // Ohad: it "should not be on the title of the card, only next to the white
+      // part of the card... aligned with where the title starts (beneath it)".
+      // As a border on the card it necessarily ran the full height, alongside
+      // the navy title strip, which reads as a stripe on the title.
+      position: 'relative',
+      borderInlineStart: `1px solid ${C.cardBd}`,
       borderRadius: 0,
       // Ohad: "too much space at the bottom of each card (empty space after the
       // last exercise)". Measured across the app: cards carry 8-17px MORE space
@@ -694,7 +704,27 @@ export const Card = ({ children, style, onClick, onMouseEnter, onMouseLeave, hea
           {headerRight && <div style={{ flex: '0 1 auto', minWidth: 0, display: 'flex', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 8 }}>{headerRight}</div>}
         </div>
       )}
-      {children}
+      {/* THE SEVERITY RAIL, on the body only.
+          Ohad: it "should not be on the title of the card, only next to the
+          white part of the card... aligned with where the title starts
+          (beneath it, not 'outside' of it)".
+          Pulled out to the card's own edge with a negative margin and re-padded
+          by the same amount, so the rail sits exactly where the card border was
+          and not one pixel of content moves. It starts under the strip and runs
+          to the bottom edge. */}
+      {leftStripe ? (
+        <div style={{
+          borderInlineStart: `3px solid ${leftStripe}`,
+          marginInlineStart: -padNum,
+          paddingInlineStart: padNum - 3,
+          // Start it flush under the strip, not 12px below: the strip carries a
+          // 12px bottom margin and the rail would otherwise float free of the
+          // title it belongs to. Pull up by that, pad back by the same.
+          ...(hasStrip ? { marginTop: -12, paddingTop: 12 } : null),
+          marginBottom: -(Math.max(0, padNum - 4)),
+          paddingBottom: Math.max(0, padNum - 4),
+        }}>{children}</div>
+      ) : children}
     </div>
   );
 };
