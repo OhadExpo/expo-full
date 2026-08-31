@@ -24,6 +24,7 @@ import CheckinTrends from './CheckinTrends';
 import { toast, confirmToast, isRefined5b, useEscClose, useDelayedUnmountValue } from './ui';
 import { isLogOfPlan, duplicatePlanNames } from './planLogMatch';
 import { useT as useAppT } from './i18n';
+import { resolveStoredUrl } from './storageUrl';
 // F-14 — meal photo → macros logger. Lazy-loaded since most athletes
 // won't open it on every page load (and it pulls in the meals query).
 const MealLogger = React.lazy(() => import('./MealLogger'));
@@ -291,6 +292,27 @@ const Bg = ({children,color=C.ac,style:s}) => <span style={{display:"inline-bloc
 // stream URL we can hand to <video>. Resolution is cached at the edge for a
 // day, so subsequent loads are instant.
 const _gphResolveCache = new Map();
+// A stored form video, resolved before it is played.
+//
+// The athlete's own video is stored as an /object/public/ URL, which only
+// works while the bucket is world-readable - and it being world-readable is a
+// finding, not a feature: an unauthenticated fetch returns a real athlete's
+// training video today. resolveStoredUrl signs the URL, works unchanged on a
+// public bucket, and falls back to the original on any failure, so this changes
+// nothing now and is what keeps playback alive the moment the bucket is made
+// private. Every other surface (coach review, meal photos, voice notes) already
+// goes through it; this was the last raw one.
+function StoredVideo({ src, ...rest }) {
+  const [url, setUrl] = useState(src);
+  useEffect(() => {
+    let alive = true;
+    setUrl(src);
+    if (src) resolveStoredUrl(src).then((u) => { if (alive && u) setUrl(u); }).catch(() => {});
+    return () => { alive = false; };
+  }, [src]);
+  return <video src={url} {...rest} />;
+}
+
 function GooglePhotosEmbed({ url }) {
   const tt = useAppT();
   const [state, setState] = useState(() => _gphResolveCache.get(url) || { phase: 'loading' });
@@ -1986,7 +2008,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         </div>
         {f.has && f.videoUrl ? (
           <div style={{marginBottom:10}}>
-            <video src={f.videoUrl} controls playsInline
+            <StoredVideo src={f.videoUrl} controls playsInline
               onError={() => setFv(prev => { const n=[...prev]; n[ei]={...n[ei], videoError:true}; return n; })}
               style={{width:'100%',borderRadius:0,maxHeight:200,background:'transparent'}} />
             {f.videoError && (
