@@ -708,7 +708,12 @@ function pushOverlay() {
 // bug it replaced lives in that file, and scripts/verify-scroll-lock.mjs pins
 // the behaviour.
 
-export const Modal = ({ open, onClose, title, children, wide }) => {
+// `sticky` makes a dialog require an explicit decision: no Escape, no close X.
+// Ohad, on the injury modal: "do not let me quit this popup screen without
+// clicking cancel or save record". A rehab note typed into that form lives in
+// local state until Save, so a stray Escape threw the work away and looked
+// exactly like the app deleting what he had just added.
+export const Modal = ({ open, onClose, title, children, wide, sticky = false }) => {
   const titleId = React.useId();
   const cardRef = React.useRef(null);
   const lastFocusRef = React.useRef(null);
@@ -719,6 +724,10 @@ export const Modal = ({ open, onClose, title, children, wide }) => {
   // first field. That was the app-wide "input gets stuck after every digit".
   const onCloseRef = React.useRef(onClose);
   onCloseRef.current = onClose;
+  // Through a ref for the same reason onClose is: the key handler binds once
+  // and must not read a stale value.
+  const stickyRef = React.useRef(sticky);
+  stickyRef.current = sticky;
   React.useEffect(() => {
     if (!open) return;
     // Lock background scroll while the modal is open — a blocking overlay must
@@ -730,7 +739,7 @@ export const Modal = ({ open, onClose, title, children, wide }) => {
     lastFocusRef.current = (typeof document !== 'undefined') ? document.activeElement : null;
     const FOCUSABLE = 'input:not([disabled]), textarea:not([disabled]), select:not([disabled]), button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])';
     const onKey = (e) => {
-      if (e.key === 'Escape') { if (!layer.isTop()) return; e.preventDefault(); onCloseRef.current?.(); return; }
+      if (e.key === 'Escape') { if (!layer.isTop()) return; e.preventDefault(); if (!stickyRef.current) onCloseRef.current?.(); return; }
       if (e.key !== 'Tab') return;
       if (!layer.isTop()) return; // stacked overlays: only the top one traps Tab (audit 08-22)
       // Focus trap — keep Tab cycling inside the card. Without this,
@@ -809,7 +818,7 @@ export const Modal = ({ open, onClose, title, children, wide }) => {
             docks flush at the card top (Ohad, 2026-08-21). */}
         <div style={{ position: "sticky", top: -28, zIndex: 5, background: C.sf, margin: "-28px -28px 22px", padding: "28px 28px 14px", borderBottom: `1px solid ${C.bd}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <h3 id={titleId} style={{ margin: 0, fontFamily: FN, fontSize: 13, color: C.tx, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>{title}</h3>
-          <button onClick={onClose} aria-label="Close dialog" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tm, cursor: "pointer", padding: "4px 10px", borderRadius: 0, fontSize: 14 }}>✕</button>
+          {!sticky && <button onClick={onClose} aria-label="Close dialog" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tm, cursor: "pointer", padding: "4px 10px", borderRadius: 0, fontSize: 14 }}>✕</button>}
         </div>{children}</div></div>);
 };
 export const ConfirmDialog = ({ open, onConfirm, onCancel, title, message }) => {

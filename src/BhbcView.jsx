@@ -1760,11 +1760,11 @@ function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onLog }) {
               <div key={i} onClick={click || undefined} className={click ? 'bhbc-row' : undefined}
                   role={click ? 'button' : undefined} tabIndex={click ? 0 : undefined}
                   onKeyDown={click ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); click(); } }) : undefined}
-                style={{ display: 'flex', alignItems: 'flex-start', gap: 11, padding: i < top.length - 1 ? '9px 2px' : '9px 2px 0', borderBottom: i < top.length - 1 ? `0.25px solid ${C.cardBd}` : 'none', cursor: click ? 'pointer' : 'default' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 11, padding: i < top.length - 1 ? '9px 2px' : '9px 2px 0', borderBottom: i < top.length - 1 ? `0.25px solid ${C.cardBd}` : 'none', cursor: click ? 'pointer' : 'default' }}>
                 {/* Center the dot on the first text line. The +4px offset accounts for
                     Nord's bottom-heavy line box (measured: line-center sits ~4px below
                     the CSS line-box center). Ohad: dot must be vertically centered. */}
-                <span style={{ display: 'inline-flex', alignItems: 'center', height: 19.5, flexShrink: 0 }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: sevColor[a.sev] }} />
                 </span>
                 {/* Same left-label column as every other card on this screen.
@@ -1772,11 +1772,16 @@ function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onLog }) {
                     most of why it read as a mess next to the report above it -
                     and the reason now sits at the right edge instead of trailing
                     the action, so the row is scannable and the width is used. */}
-                <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, width: 74, flexShrink: 0, lineHeight: '19.5px' }}>{a.k ? tr(a.k) : ''}</span>
-                <div style={{ minWidth: 0, lineHeight: '19.5px', flex: 1 }}>
+                <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, width: 74, flexShrink: 0, lineHeight: 'normal' }}>{a.k ? tr(a.k) : ''}</span>
+                {/* fontSize 13 on the WRAPPER, not just the span inside it. Without
+                    it the div inherits 16px and builds a 19.2px line box around
+                    15.2px of ink, so the text sat 0.8px below centre while every
+                    sibling in the row sat at -0.4 - measured, and exactly the 1.2px
+                    spread Ohad could see when he zoomed in. */}
+                <div style={{ minWidth: 0, lineHeight: 'normal', fontSize: 13, flex: 1 }}>
                   <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.02em', color: C.tx }}>{a.do}</span>
                 </div>
-                <div style={{ fontFamily: FB, fontSize: 13, color: C.tm, lineHeight: '19.5px', textAlign: 'end', flexShrink: 1, minWidth: 0, marginInlineStart: 16 }}>{a.why}</div>
+                <div style={{ fontFamily: FB, fontSize: 13, color: C.tm, lineHeight: 'normal', textAlign: 'end', flexShrink: 1, minWidth: 0, marginInlineStart: 16 }}>{a.why}</div>
                 {click && <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: ORANGE, flexShrink: 0, marginTop: 3 }}>›</span>}
               </div>
             );
@@ -3459,6 +3464,18 @@ function InjuryModal({ athlete, injury, onClose, onSave, currentUser = '' }) {
   const [resolved, setResolved] = useState(injury?.resolved || false);
   const [progress, setProgress] = useState(injury?.progress || []);
   const [pNote, setPNote] = useState(''); const [pPain, setPPain] = useState('');
+  const [editIdx, setEditIdx] = useState(-1);
+  const [editNote, setEditNote] = useState(''); const [editPain, setEditPain] = useState('');
+  const commitEdit = () => {
+    setProgress((arr) => arr.map((x, k) => (k === editIdx
+      ? { ...x, note: editNote.trim(), pain: editPain === '' ? null : Number(editPain) }
+      : x)));
+    setEditIdx(-1);
+  };
+  const rehabBtn = (color) => ({
+    background: 'transparent', border: 'none', color, cursor: 'pointer', padding: 0,
+    fontFamily: FN, fontSize: 12, lineHeight: 'normal', display: 'inline-flex', alignItems: 'center',
+  });
   const addProgress = () => {
     if (!pNote.trim() && pPain === '') return;
     setProgress((p) => [{ date: todayISO(), note: pNote.trim(), pain: pPain === '' ? null : Number(pPain), status, by: currentUser || null }, ...p]);
@@ -3481,7 +3498,7 @@ function InjuryModal({ athlete, injury, onClose, onSave, currentUser = '' }) {
   const sel = { fontFamily: FN, fontSize: 13, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 8px', width: '100%', height: 34, boxSizing: 'border-box' };
   const lbl = { fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.16em', fontFamily: FN, marginBottom: 4, display: 'block' };
   return (
-    <Modal open onClose={onClose} wide title={`${injury ? 'Update' : 'Report'} injury · #${athlete.jersey ?? '—'} ${athlete.name}`}>
+    <Modal open sticky onClose={onClose} wide title={`${injury ? 'Update' : 'Report'} injury · #${athlete.jersey ?? '—'} ${athlete.name}`}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div className="bhbc-form-grid" style={{ display: 'grid', gridTemplateColumns: '1.3fr 0.9fr 1.1fr', gap: 10 }}>
           <div><label style={lbl}>{tr('Body part')}</label><select value={bodyPart} onChange={(e) => setBodyPart(e.target.value)} style={sel}><option value="">— select —</option>{BODY_PARTS.map((b) => <option key={b} value={b}>{b}</option>)}</select></div>
@@ -3515,11 +3532,35 @@ function InjuryModal({ athlete, injury, onClose, onSave, currentUser = '' }) {
           {progress.length > 0 && (
             <div style={{ maxHeight: 160, overflowY: 'auto' }}>
               {progress.map((p, i) => (
-                <div key={i} style={{ display: 'flex', gap: 10, padding: '8px 12px', borderBottom: `0.25px solid ${C.cardBd}`, fontFamily: FN, fontSize: 12, alignItems: 'baseline' }}>
+                <div key={i} style={{ display: 'flex', gap: 10, padding: '8px 12px', borderBottom: `0.25px solid ${C.cardBd}`, fontFamily: FN, fontSize: 12, alignItems: 'center' }}>
                   <span style={{ color: C.td, width: 50, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{p.date.slice(5)}</span>
-                  <span style={{ color: C.tx, flex: 1, minWidth: 0 }}>{p.note || '—'}</span>
-                  {p.pain != null && <span style={{ color: ORANGE_DEEP, fontWeight: 700, flexShrink: 0 }}>{tr('pain')} {p.pain}</span>}
-                  {p.by && <span style={{ color: C.td, fontSize: 10, flexShrink: 0 }}>{byName(p.by)}</span>}
+                  {editIdx === i ? (
+                    <input autoFocus value={editNote} onChange={(e) => setEditNote(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commitEdit(); } if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); setEditIdx(-1); } }}
+                      style={{ ...sel, flex: 1, minWidth: 0, height: 24 }} />
+                  ) : (
+                    <span style={{ color: C.tx, flex: 1, minWidth: 0 }}>{p.note || '—'}</span>
+                  )}
+                  {editIdx === i ? (
+                    <input type="number" min="0" max="10" value={editPain} onChange={(e) => setEditPain(e.target.value)}
+                      placeholder={tr('pain')} style={{ ...sel, width: 62, height: 24, flexShrink: 0 }} />
+                  ) : (p.pain != null && <span style={{ color: ORANGE_DEEP, fontWeight: 700, flexShrink: 0 }}>{tr('pain')} {p.pain}</span>)}
+                  {p.by && editIdx !== i && <span style={{ color: C.td, fontSize: 10, flexShrink: 0 }}>{byName(p.by)}</span>}
+                  {/* Ohad: "rehab progress doesnt allow me to edit/delete". A dated
+                      log a PT writes into is not append-only in practice - a wrong
+                      pain score typed on the floor has to be correctable by the
+                      person who typed it, not left standing as the record. */}
+                  {editIdx === i ? (
+                    <span style={{ display: 'inline-flex', gap: 6, flexShrink: 0 }}>
+                      <button type="button" onClick={commitEdit} title={tr('Save')} style={rehabBtn(ORANGE)}>✓</button>
+                      <button type="button" onClick={() => setEditIdx(-1)} title={tr('Cancel')} style={rehabBtn(C.tm)}>✕</button>
+                    </span>
+                  ) : (
+                    <span style={{ display: 'inline-flex', gap: 6, flexShrink: 0 }}>
+                      <button type="button" onClick={() => { setEditIdx(i); setEditNote(p.note || ''); setEditPain(p.pain == null ? '' : String(p.pain)); }} title={tr('Edit')} style={rehabBtn(C.tm)}>✎</button>
+                      <button type="button" onClick={() => setProgress((arr) => arr.filter((_, k) => k !== i))} title={tr('Delete')} style={rehabBtn('#DE4E3B')}>✕</button>
+                    </span>
+                  )}
                 </div>
               ))}
             </div>
