@@ -64,6 +64,17 @@ const TOKENS = {
   '--c-stripBg': NAVY_DEEP,
   '--c-cardBd': 'color-mix(in srgb, #1E3D74 20%, var(--c-bd))',
 };
+// EVERY BHBC MODAL CARRIES THE ZONE'S TOKENS.
+//
+// Modal renders through a PORTAL, so its card mounts on document.body -
+// OUTSIDE .bhbc-zone - and none of the zone's CSS variable overrides reach it.
+// That is not cosmetic: measured in the injury form, a shared Input's label
+// came out rgb(8,102,143) beside rgb(74,82,99) on every label around it,
+// because one resolved the zone's --c-tm and the other the app's. Re-declaring
+// the tokens on a wrapper inside the card fixes it for all nine at once.
+const BModal = ({ children, ...rest }) => (
+  <Modal {...rest}><div style={TOKENS}>{children}</div></Modal>
+);
 const BAND = { detrained: '#4F9DE0', low: '#37B27C', elevated: '#E0A73A', high: '#DE4E3B', none: '#7C828B' };
 // ONE section-title treatment everywhere (must match CollapsibleSection's title:
 // FN / 13 / 700 / 0.08em / uppercase / white). Card headers are plain strings by
@@ -1129,7 +1140,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
       })()}
 
       {/* ---- MANAGE ROSTER MODAL ---- */}
-      <Modal open={manageOpen} onClose={() => setManageOpen(false)} wide title="Manage roster">
+      <BModal open={manageOpen} onClose={() => setManageOpen(false)} wide title="Manage roster">
         <div style={{ fontFamily: FB, fontSize: 13, color: C.td, marginBottom: 12 }}>
           Tag athletes into Bnei Herzliya. They keep their normal athlete portal — this scopes who appears in the <span style={{ fontFamily: FN, color: NAVY, fontWeight: 700 }}>BHBC</span> zone.
         </div>
@@ -1161,7 +1172,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
             );
           })}
         </div>
-      </Modal>
+      </BModal>
 
       {/* ---- LOG SESSION MODAL ---- */}
       {logFor && (
@@ -1262,7 +1273,7 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
   (leaguePlayer && leaguePlayer.log ? leaguePlayer.log : []).forEach((g) => { if (g.date) activity.push({ date: g.date, game: { opp: g.opp && !isBH(g.opp) ? g.opp.replace(/\s*\(.*$/, '') : '—', pts: g.pts, reb: g.reb, ast: g.ast, min: g.min }, load: null }); });
   activity.sort((a, b) => b.date.localeCompare(a.date));
   return (
-    <Modal open onClose={onClose} wide title={`#${t.jersey ?? '—'} · ${t.name}`}>
+    <BModal open onClose={onClose} wide title={`#${t.jersey ?? '—'} · ${t.name}`}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <span style={{ fontFamily: FB, fontSize: 13, color: C.td }}>{t.position || '—'} · {heightM(t.heightCm)} {flag(t.nationality)}</span>
@@ -1444,7 +1455,7 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
           {onViewProgram && <Btn onClick={onViewProgram} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>View program</Btn>}
         </div>
       </div>
-    </Modal>
+    </BModal>
   );
 }
 
@@ -1498,7 +1509,7 @@ function WellnessModal({ roster, bhbcLoads, onClose, onSave }) {
   const count = Object.values(entries).filter((e) => e.sleep || e.energy || (e.pain !== '' && e.pain != null) || e.bw).length;
   const cols = '24px 1.3fr auto auto 62px 76px';
   return (
-    <Modal open onClose={onClose} wide title="Wellness check-in">
+    <BModal open onClose={onClose} wide title="Wellness check-in">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'end', gap: 12, flexWrap: 'wrap' }}>
           <Input label="Date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
@@ -1527,7 +1538,7 @@ function WellnessModal({ roster, bhbcLoads, onClose, onSave }) {
           <Btn disabled={!count} onClick={() => onSave({ date, entries })} style={{ background: count ? ORANGE : undefined, borderColor: count ? ORANGE : undefined, color: count ? '#fff' : undefined }}>Save check-in</Btn>
         </div>
       </div>
-    </Modal>
+    </BModal>
   );
 }
 
@@ -1542,7 +1553,7 @@ function SessionPlanModal({ slot, fixtures, plan, onClose, onSave, onPick, rows 
   const inp = { fontFamily: FN, fontSize: 13, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '8px 10px', width: '100%', boxSizing: 'border-box', outline: 'none' };
   const title = `${dow(slot.date)} ${monDay(slot.date)} · ${slot.start || ''} ${fxLabelFor(slot.type, fxLabelFor(slot.type, FX_LABEL[slot.type] || 'Session'))}`;
   return (
-    <Modal open onClose={onClose} title="Session plan">
+    <BModal open onClose={onClose} title="Session plan">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         {daySlots.length > 1 && (
           <div>
@@ -1578,7 +1589,7 @@ function SessionPlanModal({ slot, fixtures, plan, onClose, onSave, onPick, rows 
           <Btn onClick={() => onSave({ focus: focus.trim(), plan: text.trim() })} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>Save plan</Btn>
         </div>
       </div>
-    </Modal>
+    </BModal>
   );
 }
 
@@ -1639,7 +1650,7 @@ function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave, sess
   const canSave = Number(minutes) > 0 && (isLift || Number(teamRpe) > 0);
   const cols = isLift ? '24px 1.4fr 116px 72px 66px 1.5fr' : '24px 1.4fr 116px 72px 56px 66px 1.5fr';
   return (
-    <Modal open onClose={onClose} wide title={tr('Log session')}>
+    <BModal open onClose={onClose} wide title={tr('Log session')}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         {/* bhbc-form-grid: the ≤620px rule that stacks these into full-width
             rows already exists in themes.css and is used by the injury modal —
@@ -1755,7 +1766,7 @@ function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave, sess
           <Btn disabled={!canSave} onClick={() => onSave({ date, minutes, teamRpe, intensity, entries, sessionType, start: slotStart, note: (note || '').trim() })} style={{ background: canSave ? ORANGE : undefined, borderColor: canSave ? ORANGE : undefined, color: canSave ? '#fff' : undefined }}>Save {sessionType.toLowerCase()}</Btn>
         </div>
       </div>
-    </Modal>
+    </BModal>
   );
 }
 
@@ -1764,7 +1775,7 @@ function GameEditModal({ game, onClose, onSave }) {
   const [venue, setVenue] = useState(game.venue || '');
   const [home, setHome] = useState(game.home == null ? '' : game.home ? 'home' : 'away');
   return (
-    <Modal open onClose={onClose} title="Game details">
+    <BModal open onClose={onClose} title="Game details">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={{ fontFamily: FB, fontSize: 13, color: C.td }}>{dow(game.date)} {monDay(game.date)} · {game.start}</div>
         <Input label="Opponent" value={opponent} onChange={(e) => setOpponent(e.target.value)} placeholder="e.g. Maccabi Tel Aviv" />
@@ -1782,7 +1793,7 @@ function GameEditModal({ game, onClose, onSave }) {
           <Btn onClick={() => onSave({ opponent: opponent.trim(), venue: venue.trim(), home: home === '' ? null : home === 'home' })} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>Save</Btn>
         </div>
       </div>
-    </Modal>
+    </BModal>
   );
 }
 
@@ -3548,7 +3559,7 @@ function GameMinutesModal({ game, roster, bhbcLoads, onClose, onSave }) {
   const total = Object.values(mins).reduce((a, m) => a + (Number(m) || 0), 0);
   const played = Object.values(mins).filter((m) => Number(m) > 0).length;
   return (
-    <Modal open onClose={onClose} wide title={`${tr('Minutes played')} \u00B7 ${game.opponent ? tr('vs') + ' ' + game.opponent : tr('Game')}`}>
+    <BModal open onClose={onClose} wide title={`${tr('Minutes played')} \u00B7 ${game.opponent ? tr('vs') + ' ' + game.opponent : tr('Game')}`}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
         <span style={{ fontFamily: FN, fontSize: 11, color: C.td }}>{tr('Game RPE')}</span>
         <input type="number" min="1" max="10" value={rpe} onChange={(e) => setRpe(e.target.value)}
@@ -3571,7 +3582,7 @@ function GameMinutesModal({ game, roster, bhbcLoads, onClose, onSave }) {
         <Btn variant="ghost" onClick={onClose}>{tr('Cancel')}</Btn>
         <Btn onClick={() => onSave({ date, rpe: Number(rpe) || 0, minutes: mins })}>{tr('Save')}</Btn>
       </div>
-    </Modal>
+    </BModal>
   );
 }
 
@@ -3904,7 +3915,7 @@ function InjuryModal({ athlete, injury, onClose, onSave, currentUser = '' }) {
   const sel = { fontFamily: FN, fontSize: 13, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 8px', width: '100%', height: 34, boxSizing: 'border-box' };
   const lbl = { fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.16em', fontFamily: FN, marginBottom: 4, display: 'block' };
   return (
-    <Modal open sticky onClose={onClose} wide title={`${injury ? 'Update' : 'Report'} injury · #${athlete.jersey ?? '—'} ${athlete.name}`}>
+    <BModal open sticky onClose={onClose} wide title={`${injury ? 'Update' : 'Report'} injury · #${athlete.jersey ?? '—'} ${athlete.name}`}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div className="bhbc-form-grid" style={{ display: 'grid', gridTemplateColumns: '1.3fr 0.9fr 1.1fr', gap: 10 }}>
           <div><label style={lbl}>{tr('Body part')}</label><select value={bodyPart} onChange={(e) => setBodyPart(e.target.value)} style={sel}><option value="">— select —</option>{BODY_PARTS.map((b) => <option key={b} value={b}>{b}</option>)}</select></div>
@@ -3994,7 +4005,7 @@ function InjuryModal({ athlete, injury, onClose, onSave, currentUser = '' }) {
           <Btn onClick={save} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>{tr('Save record')}</Btn>
         </div>
       </div>
-    </Modal>
+    </BModal>
   );
 }
 
@@ -4024,7 +4035,7 @@ function LogModal({ open, initialAthlete, roster, fixtures = [], availableCount 
   const selStyle = { fontFamily: FB, fontSize: 13, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '9px 10px', width: '100%' };
   const lab = { fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: FN, textAlign: 'center' };
   return (
-    <Modal open={open} onClose={onClose} title={tr('Log a session')}>
+    <BModal open={open} onClose={onClose} title={tr('Log a session')}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={{ display: 'inline-flex', border: `1px solid ${C.cardBd}`, alignSelf: 'center' }}>
           {[['athlete', 'One athlete'], ['squad', 'Whole roster']].map(([k, l]) => (
@@ -4104,6 +4115,6 @@ function LogModal({ open, initialAthlete, roster, fixtures = [], availableCount 
             style={{ background: canSave ? ORANGE : undefined, borderColor: canSave ? ORANGE : undefined, color: canSave ? '#fff' : undefined }}>{tr('Save')}</Btn>
         </div>
       </div>
-    </Modal>
+    </BModal>
   );
 }
