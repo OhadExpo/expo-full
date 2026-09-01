@@ -264,7 +264,7 @@ async function measureFps(v) {
  * Not wired to any UI yet - it is here so the speed/reliability trade can be
  * MEASURED before anyone decides. See docs/shot-analyzer-next-2026-08-27.md.
  */
-export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineRate = 0.34, coarseRate = 1, deterministic = false } = {}) {
+export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineRate = 0.34, coarseRate = 0.5, deterministic = false } = {}) {
   // Three settings, because measurement showed the two passes do not deserve
   // the same treatment. Three default-path captures on an IDLE machine returned
   // 11, 8 and 11 shots, and the per-run stats pinned the loss precisely:
@@ -361,6 +361,47 @@ export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineR
       return gap > REACQUIRE_S ? Infinity : Math.max(0.05, gap * 1.0);
     };
     await playThrough(v, {
+      // coarseRate 0.5, MEASURED. The coarse pass used to run at 1, and the
+      // frames it lost were not lost to our busy flag (that counter reads zero)
+      // - the browser simply presents fewer frames while MediaPipe is running,
+      // so requestVideoFrameCallback fires less often. Halving playback gives
+      // the browser twice the wall-clock per source frame on the SAME decode
+      // path, which is what seek-stepping got wrong (9 of 17 shots, 3x slower).
+      //
+      // Three runs of Ohad's 11-shot clip, each rate:
+      //   rate 1    11/11/11 shots, but 0/10/10 launch ANGLES, 421s avg
+      //   rate 0.5  11/11/11 shots and 10/10/10 angles,        357s avg
+      // The detector was never the unstable part; the ball track was, and one
+      // run in three produced no angle at all. It is also FASTER and far more
+      // consistent in wall-clock (spread 10s vs 153s) - a cleaner coarse series
+      // leaves the fine pass less to re-examine.
+      // coarseRate 0.5, MEASURED on two clips, seven runs.
+      //
+      // The frames the coarse pass loses are not lost to our busy flag - that
+      // counter reads zero. The browser presents fewer frames than the source
+      // has while MediaPipe is running, so requestVideoFrameCallback fires less
+      // often, and it fires a different number of times each run. Halving
+      // playback gives the browser twice the wall clock per source frame on the
+      // SAME decode path - which is what seek-stepping got wrong when it was
+      // tried (9 of 17 shots, 3x slower).
+      //
+      //                       rate 1                    rate 0.5
+      //   his 11-shot clip    11/11/11 shots            11/11/11 shots
+      //   (3 runs)            angles 0/10/10            angles 10/10/10
+      //   clip02 (4 runs)     5/5/5/6 shots             5/5/5/5 shots
+      //
+      // The detector was never the unstable part - the ball track was, and at
+      // rate 1 one run in three produced no launch angle at all.
+      //
+      // A 2-run sample of clip02 first said 0.5 was WORSE (5 then 4). Four runs
+      // say 0.5 is the stable one and rate 1 is the one that wanders. Two runs
+      // is not a measurement here; the noise is the size of the effect.
+      //
+      // Deeper cause still open: shotAnalysis smooth() is medianFilter(sig, 5)
+      // plus an EMA with a fixed alpha - both counted in SAMPLES, so their time
+      // constant changes with capture density. Making them time-based would
+      // make detection invariant to how many frames the browser hands us, which
+      // is the disease this rate change only treats.
       from: 0, to: dur, rate: coarseRate, frameDur, drops, deterministic: detCoarse,
       onFrame: (vid, mt) => {
         let r = null;

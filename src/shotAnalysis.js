@@ -73,6 +73,25 @@ function ema(sig, alpha = 0.55) {
   }
   return out;
 }
+// SMOOTHING IS COUNTED IN SAMPLES, AND TIME-BASED WAS TRIED AND MEASURED WORSE.
+//
+// medianFilter(sig, 5) and a fixed alpha both have a time constant that moves
+// with however many frames the browser hands us, and that number is not stable.
+// On one synthetic jump shot resampled from 12 to 90 fps (identical motion in
+// TIME, only the density changing) the shot count held at 1 throughout, but the
+// detected RELEASE drifted 1583 -> 1322 ms, monotonically later as sampling got
+// sparser. So the criticism is real: 261 ms is most of a dip-to-release window.
+//
+// Rewriting both in milliseconds (295 ms window, 74 ms lag, converted per clip)
+// cut that synthetic drift to 50 ms and kept all nine detection assertions. It
+// then made the REAL clip worse: three runs of Ohad's 11-shot clip went from
+// 11/11/11 shots and 10/10/10 launch angles to 10/11/11 and 0/9/10. The clean
+// synthetic shot is simply not what real footage looks like, and the sample-
+// based filter is evidently doing some of its work on noise the synthetic case
+// does not have.
+//
+// Reverted. Do not re-derive it from first principles - measure it on the real
+// clip with scripts/shot-stability.mjs, which is how this was settled.
 const smooth = (sig) => ema(medianFilter(sig, 5), 0.55);
 
 function deriv(sig, tMs) {
