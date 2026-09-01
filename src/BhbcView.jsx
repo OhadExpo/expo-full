@@ -827,6 +827,13 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
              padding to 3 closes it, so the month fits without scrolling. */
           .bhbc-cal-cell{padding:5px 3px!important;min-width:0!important;overflow:hidden!important}
           .bhbc-cal-cell *{min-width:0!important;max-width:100%!important}
+          /* Next game: the day count is 40px type in a column of its own, and
+             with flex-wrap the details dropped BELOW it - so two characters
+             owned about 200px of height and the card was mostly white. Keep
+             them side by side and let the count be the size it needs. */
+          .bhbc-nextgame{flex-wrap:nowrap!important;gap:14px!important;align-items:flex-start!important}
+          .bhbc-nextgame > *:first-child{flex:0 0 auto!important}
+          .bhbc-nextgame > *:nth-child(2){flex:1 1 auto!important;min-width:0!important}
         }
         @media (max-width:760px){
           /* ONE ROW. The logo is pinned and everything else scrolls past it -
@@ -1845,7 +1852,7 @@ function NextGamePanel({ nextGame, today, onEdit }) {
   const timeLabel = nextGame.timeTBD || !nextGame.start ? tr('Time TBD') : nextGame.start;
   return (
     <Card padding={18} leftStripe={ORANGE} header={secTitle('Next Game')} headerRight={<div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff' }}>{when}</span>{onEdit && <button onClick={onEdit} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', height: 24, boxSizing: 'border-box', padding: '0 9px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, cursor: 'pointer' }}>{tr('Edit')}</button>}</div>}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
+      <div className="bhbc-nextgame" style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
         <div style={{ textAlign: 'center', flexShrink: 0 }}>
           <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 40, lineHeight: 1, color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums' }}>{Math.max(0, days)}</div>
           <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, marginTop: 4 }}>{tr('days')}</div>
