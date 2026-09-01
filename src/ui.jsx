@@ -473,7 +473,7 @@ export function CollapsibleSection({ title, titleNode, count, right, storageKey,
           <span style={{
             color: '#FFFFFF', fontFamily: FN, fontSize: 13, fontWeight: 700,
             letterSpacing: '0.08em', textTransform: 'uppercase',
-            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0,
+            overflowWrap: 'anywhere', minWidth: 0,
           }}>{tt(title)}{count != null && ` (${count})`}</span>
         )}
         {/* flexWrap on the strip + the action cluster lets a wide button group
