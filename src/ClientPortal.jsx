@@ -2764,7 +2764,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             <div aria-hidden="true" style={{position:'absolute',top:14,bottom:0,right:20,width:26,background:`linear-gradient(90deg, transparent, ${C.bg})`,pointerEvents:'none',zIndex:1}}/>
             <div className="pv-scroll" style={{display:'flex',gap:0,borderBottom:`1px solid ${C.cardBd}`,overflowX:'auto',scrollbarWidth:'none',msOverflowStyle:'none'}}>
               {NAV.map(([k,l]) =>
-                <button key={k} onClick={() => setVw(k)}
+                <button key={k} role="tab" aria-selected={vw===k} onClick={() => setVw(k)}
                   style={{padding:'10px 10px',marginBottom:-1,borderRadius:0,border:'none',
                     borderBottom:`2px solid ${vw===k?C.ac:'transparent'}`,
                     background:'transparent',color:vw===k?C.ac:C.tm,
@@ -2787,7 +2787,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                 wanted gone is the header section's bd2 divider, removed below. */}
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',border:`1px solid ${C.cardBd}`}}>
               {NAV.map(([k,l], i) =>
-                <button key={k} onClick={() => setVw(k)}
+                <button key={k} role="tab" aria-selected={vw===k} onClick={() => setVw(k)}
                   style={{padding:'11px 4px',borderRadius:0,border:'none',
                     borderLeft: i % 3 ? `1px solid ${C.cardBd}` : 'none',
                     borderTop: i >= 3 ? `1px solid ${C.cardBd}` : 'none',
@@ -2810,7 +2810,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             {[NAV.slice(0,3), NAV.slice(3)].map((row, ri) => (
               <div key={ri} style={{display:'flex',justifyContent:'center',gap:26}}>
                 {row.map(([k,l]) =>
-                  <button key={k} onClick={() => setVw(k)}
+                  <button key={k} role="tab" aria-selected={vw===k} onClick={() => setVw(k)}
                     style={{padding:'5px 10px',borderRadius:0,border:'none',
                       background: vw===k ? C.ac : 'transparent',
                       color: vw===k ? '#000000' : C.tm,
@@ -2835,7 +2835,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           <div style={{padding:'14px 20px 0'}}>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',border:`1px solid ${C.cardBd}`,background:'var(--c-sf)'}}>
               {NAV.map(([k,l], i) =>
-                <button key={k} onClick={() => setVw(k)}
+                <button key={k} role="tab" aria-selected={vw===k} onClick={() => setVw(k)}
                   style={{padding:'12px 4px',borderRadius:0,border:'none',
                     borderLeft: i % 3 ? `1px solid ${C.cardBd}` : 'none',
                     borderTop: i >= 3 ? `1px solid ${C.cardBd}` : 'none',
