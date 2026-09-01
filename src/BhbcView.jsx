@@ -1756,7 +1756,11 @@ function NextGamePanel({ nextGame, today, onEdit }) {
 // muted. Pre-season (no data) it points at the right first move: baseline.
 function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onLog }) {
   const tr = useT();
-  const first = (r) => (r.t.name || '').trim().split(/\s+/)[0] || r.t.name;
+  // SURNAME, not given name (Ohad 09-01): the report read "OUT: DAESHON,
+  // NATHAN" while the medical list right above it said DAESHON FRANCIS and
+  // NATHAN KNIGHT. A squad is called by last names. Last token works for the
+  // Hebrew names too (עמית מנחם -> מנחם), and a one-word name is left alone.
+  const first = (r) => { const p = (r.t.name || '').trim().split(/\s+/); return p[p.length - 1] || r.t.name; };
   // FSI/PDI: a Hebrew first name inside an English sentence dragged the
   // closing bracket to the wrong side - "(Daeshon, Dusty, עמית, DJ +1)"
   // rendered with the paren orphaned. Isolating the run fixes it in both
@@ -1854,7 +1858,11 @@ function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onLog }) {
 function HeadCoachReport({ rows, fx, fixtures, medical, today, onOpen, onMedical, onReportNew, planOf, onPlan, onCopy, copied }) {
   const he = useHe();
   const tr = useT();
-  const first = (r) => (r.t.name || '').trim().split(/\s+/)[0] || r.t.name;
+  // SURNAME, not given name (Ohad 09-01): the report read "OUT: DAESHON,
+  // NATHAN" while the medical list right above it said DAESHON FRANCIS and
+  // NATHAN KNIGHT. A squad is called by last names. Last token works for the
+  // Hebrew names too (עמית מנחם -> מנחם), and a one-word name is left alone.
+  const first = (r) => { const p = (r.t.name || '').trim().split(/\s+/); return p[p.length - 1] || r.t.name; };
   const nameList = (arr) => arr.slice(0, 5).map(first).join(', ') + (arr.length > 5 ? ` +${arr.length - 5}` : '');
   const availOf = (r) => r.avail || 1;                 // 1 = full, 2–3 = limited, 4+ = out
   const out = rows.filter((r) => availOf(r) >= 4);
