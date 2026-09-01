@@ -122,16 +122,19 @@ export default function ExerciseCleanupView({ exercises = [], setExercises }) {
           {/* Five fixed columns need 388px before the title column gets a pixel;
               at 390px the "Has" and "Plan rows" columns were pushed 72px past
               the viewport and simply could not be read (mobile sweep 08-25).
-              The table scrolls inside its OWN container — the page never does. */}
+              The table scrolls inside its OWN container — the page never does.
+              minWidth was 420, which is only 32px more than the fixed tracks, so
+              the 1fr title column got 28px and a superset name lost 333px of
+              itself. 700 leaves the title 312px; the container still scrolls. */}
           <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-          <div style={{ minWidth: 420, display: 'grid', gridTemplateColumns: '28px 1fr 170px 90px 60px', gap: 10, padding: '0 2px 8px', borderBottom: `1px solid ${C.bd}`, ...th }}>
+          <div style={{ minWidth: 700, display: 'grid', gridTemplateColumns: '28px 1fr 170px 90px 60px', gap: 10, padding: '0 2px 8px', borderBottom: `1px solid ${C.bd}`, ...th }}>
             <span /><span>Title</span><span>Why flagged</span><span style={{ textAlign: 'center' }}>Plan rows</span><span style={{ textAlign: 'center' }}>Has</span>
           </div>
-          <div style={{ minWidth: 420, display: 'flex', flexDirection: 'column' }} data-allow-copy>
+          <div style={{ minWidth: 700, display: 'flex', flexDirection: 'column' }} data-allow-copy>
             {rows.map((r) => (
               <label key={r.ex.id} style={{ display: 'grid', gridTemplateColumns: '28px 1fr 170px 90px 60px', gap: 10, alignItems: 'center', padding: '7px 2px', borderBottom: `1px solid ${C.bd}`, cursor: 'pointer', opacity: sel.has(r.ex.id) ? 1 : 0.72 }}>
                 <input type="checkbox" checked={sel.has(r.ex.id)} onChange={() => toggle(r.ex.id)} style={{ accentColor: '#DE4E3B', width: 15, height: 15 }} />
-                <span style={{ fontFamily: FN, fontSize: 12.5, fontWeight: 600, color: C.tx, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.ex.title || r.ex.t}>{r.ex.title || r.ex.t}</span>
+                <span style={{ fontFamily: FN, fontSize: 12.5, fontWeight: 600, color: C.tx, minWidth: 0, overflowWrap: 'anywhere' }} title={r.ex.title || r.ex.t}>{r.ex.title || r.ex.t}</span>
                 <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: r.level === 'definite' ? '#DE4E3B' : C.or }}>{r.reason}</span>
                 <span style={{ fontFamily: FN, fontSize: 11, color: (r.idRefs + r.titleRefs) ? C.or : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{Math.max(r.idRefs, r.titleRefs) || '—'}</span>
                 <span style={{ textAlign: 'center', fontFamily: FN, fontSize: 9 }}>

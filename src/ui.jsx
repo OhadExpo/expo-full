@@ -355,7 +355,11 @@ export function RefinedCard({ header, headerRight, leftStripe, padY = 14, padX =
               flex:0 0 auto pushed long action clusters (Matching / Classify /
               Cleanup hubs) ~300px past the viewport (mobile audit 08-22). */}
           {headerRight ? (
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              {/* flexWrap: at 390px the header action leaves the title 62px for
+                  88px of text and, being overflow:visible, it SPILLED over its
+                  neighbour rather than truncating. Wrapping puts the action on
+                  its own line instead; at desktop width nothing wraps. */}
               {/* flex + centre, so the TITLE's own box is what gets aligned.
                   As a plain block this div had no font-size of its own: it
                   inherited 16px and built a 19.2px line box around a 13px
@@ -689,7 +693,7 @@ export const Card = ({ children, style, onClick, onMouseEnter, onMouseLeave, hea
         // no dead band under the title. With a body, keep the normal 12px gap.
         <RefinedHeaderStrip padY={padNum} padX={padNum} marginBottom={children ? 12 : -padNum}>
           {headerRight ? (
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
               {/* Pure white in BOTH themes so the dark strip's title reads
                   with the same crispness as the cyan-strip light variant. */}
               <div style={{ minWidth: 0, flex: '1 1 auto', color: '#FFFFFF', display: 'flex', alignItems: 'center' }}>{header}</div>
@@ -699,7 +703,7 @@ export const Card = ({ children, style, onClick, onMouseEnter, onMouseLeave, hea
         </RefinedHeaderStrip>
       )}
       {!hasStrip && header && (
-        <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+        <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <div style={{ minWidth: 0 }}>{header}</div>
           {headerRight && <div style={{ flex: '0 1 auto', minWidth: 0, display: 'flex', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 8 }}>{headerRight}</div>}
         </div>

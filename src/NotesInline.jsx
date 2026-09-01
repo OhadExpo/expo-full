@@ -426,10 +426,10 @@ export default function NotesInline({
                     is centred so a mixed Heb/En task no longer flips the whole row
                     right and strands the checkbox. (No athlete-name zone here —
                     it's a single athlete's page, unlike the cross-athlete dash.) */}
-                <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                   <span dir="auto" style={{
                     flex: 1, minWidth: 0, fontSize: 12, color: 'var(--c-tm)', lineHeight: 1.4, textDecoration: 'line-through',
-                    textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontFamily: FB,
+                    textAlign: 'center', overflowWrap: 'anywhere', fontFamily: FB,
                   }}>{n.body}</span>
                   <span style={{ flexShrink: 0, fontFamily: FN, fontSize: 9, color: n.status === 'cancelled' ? 'var(--c-or)' : 'var(--c-td)', letterSpacing: '0.08em', fontWeight: n.status === 'cancelled' ? 700 : 400, whiteSpace: 'nowrap' }}>
                     {n.status === 'cancelled'

@@ -3305,7 +3305,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                     count ≈ 3.28 above — so lift = 3.28−0.333·size (−1.05px at
                     size 13). Same value for "(N)" and "N EX". */}
                 <span style={{display:'inline-flex',alignItems:'baseline',gap:7,whiteSpace:'nowrap',minWidth:0,lineHeight:1}}>
-                  <span style={{fontWeight:700,fontSize:size,fontFamily:FN,letterSpacing:tracking,textTransform:'uppercase',lineHeight:1,color:ident==='EDITORIAL'&&accent===C.or?C.or:(accent===C.or?C.or:C.tx),overflow:'hidden',textOverflow:'ellipsis'}}>{title}</span>
+                  <span style={{fontWeight:700,fontSize:size,fontFamily:FN,letterSpacing:tracking,textTransform:'uppercase',lineHeight:1,color:ident==='EDITORIAL'&&accent===C.or?C.or:(accent===C.or?C.or:C.tx),overflowWrap:'anywhere'}}>{title}</span>
                   <span style={{fontSize:10,color:countColor || C.tm,fontFamily:FN,letterSpacing:'0.08em',textTransform:'uppercase',lineHeight:1,transform:`translateY(${(3.28 - 0.333 * size).toFixed(2)}px)`,...(countColor?{opacity:0.65}:{})}}>{count}</span>
                 </span>
                 {extras}

@@ -118,8 +118,12 @@ function MiniTaskRow({ n, stackBoard, onClick, stripe }) {
   // styless"). Now every alert reads as a single horizontal line — kind tag +
   // athlete name + the action text — clipped with an ellipsis, never wrapping.
   return (
+    /* whiteSpace normal, not nowrap: the row INHERITED nowrap down to the body,
+        so letting the body wrap did nothing and a Hebrew task lost 103px of
+        itself behind an ellipsis at 390px. minHeight 32 still holds the row at
+        one line whenever the text fits, so desktop is unchanged. */
     <div onClick={onClick} title={body} className="mini-task-row"
-      style={{ border: `1px solid var(--c-cardBd)`, borderLeft: `3px solid ${tone}`, padding: '0 8px', minHeight: 32, boxSizing: 'border-box', fontSize: stackBoard ? 12 : 11, lineHeight: 1.3, color: 'var(--c-tx)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, whiteSpace: 'nowrap', overflow: 'hidden', transition: 'border-color 120ms ease, background 120ms ease' }}>
+      style={{ border: `1px solid var(--c-cardBd)`, borderLeft: `3px solid ${tone}`, padding: '0 8px', minHeight: 32, boxSizing: 'border-box', fontSize: stackBoard ? 12 : 11, lineHeight: 1.3, color: 'var(--c-tx)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, whiteSpace: 'normal', overflow: 'hidden', transition: 'border-color 120ms ease, background 120ms ease' }}>
       {/* Order (Ohad): NAME first, then the action info, then the kind TAG all
           the way to the right. Body is flex:1 so the tag is pushed to the edge. */}
       {/* Name sizing MIRRORS the ALL ATHLETES table (Ohad #185): Nord (FN) at 13px
@@ -128,7 +132,7 @@ function MiniTaskRow({ n, stackBoard, onClick, stripe }) {
       {name && (
         <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 800, letterSpacing: nameHeb ? 0 : '0.04em', textTransform: nameHeb ? 'none' : 'uppercase', color: 'var(--c-tx)', flexShrink: 0, maxWidth: '45%', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
       )}
-      <span style={{ fontFamily: heb ? FH : FB, direction: heb ? 'rtl' : 'ltr', textAlign: 'center', color: name ? 'var(--c-tm)' : 'var(--c-tx)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{body}</span>
+      <span style={{ fontFamily: heb ? FH : FB, direction: heb ? 'rtl' : 'ltr', textAlign: 'center', color: name ? 'var(--c-tm)' : 'var(--c-tx)', flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>{body}</span>
       {kindLabel && (
         <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: kindTone, border: `1px solid ${kindTone}`, padding: '2px 5px', lineHeight: 1, flexShrink: 0 }}>{kindLabel}</span>
       )}
@@ -1070,7 +1074,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                   </span>
                   <span dir="auto" style={{
                     flex: 1, minWidth: 0, fontSize: 12, color: 'var(--c-tm)', lineHeight: 1.4,
-                    textDecoration: 'line-through', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                    textDecoration: 'line-through', overflowWrap: 'anywhere',
                     textAlign: 'center', fontFamily: FB,
                   }}>{displayBodyOf(n.body)}</span>
                   <span style={{ flexShrink: 0, fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>

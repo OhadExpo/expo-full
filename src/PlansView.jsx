@@ -4527,7 +4527,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                   <span style={{display:'flex',alignItems:'center',gap:9,minWidth:0}}>
                     <span aria-hidden style={{width:3,height:14,background:C.ac,flexShrink:0}} />
                     <BhbcBadge tid={row.tid} trainees={trainees} />
-                    <bdi style={{fontWeight:700,fontSize:13,letterSpacing:'0.04em',color:'#FFFFFF',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{row.name}</bdi>
+                    <bdi style={{fontWeight:700,fontSize:13,letterSpacing:'0.04em',color:'#FFFFFF',overflowWrap:'anywhere'}}>{row.name}</bdi>
                   </span>
                   <span style={{display:'inline-flex',alignItems:'center',gap:10,flexShrink:0}}>
                     <button onClick={e=>{e.stopPropagation();setLineageTraineeId(row.tid);}} title="Training Analysis — this athlete's movement-pattern volume across every block"
@@ -4704,7 +4704,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                 <span style={{display:'flex',alignItems:'center',gap:9,minWidth:0}}>
                   <span aria-hidden style={{width:3,height:14,background:C.ac,flexShrink:0}} />
                   <BhbcBadge tid={row.tid} trainees={trainees} />
-                  <bdi style={{fontWeight:700,fontSize:13,letterSpacing:'0.04em',color:'#FFFFFF',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{row.name}</bdi>
+                  <bdi style={{fontWeight:700,fontSize:13,letterSpacing:'0.04em',color:'#FFFFFF',overflowWrap:'anywhere'}}>{row.name}</bdi>
                 </span>
                 <span style={{display:'inline-flex',alignItems:'center',gap:10,flexShrink:0}}>
                   <button onClick={e=>{e.stopPropagation();setLineageTraineeId(row.tid);}} title="Training Analysis — this athlete's movement-pattern volume across every block"

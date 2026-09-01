@@ -180,7 +180,9 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
   const railBase = { display: 'inline-flex', alignItems: 'center', gap: 6, height: 30, padding: '0 1px', background: 'transparent', border: 'none', borderBottom: '2px solid transparent', color: C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap' };
   // Muted role-label that leads each filter row (Show / Filter by) — a fixed-width
   // spine so the two rows' controls start at the same x and read as two jobs.
-  const rowLabel = { flexShrink: 0, width: 58, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: C.tm, textTransform: 'uppercase', whiteSpace: 'nowrap' };
+  // 58 was 6px short of "FILTER BY" at 9px/0.14em, so the label spilled its own
+  // box; 66 fits it. Both rows share the constant, so the spine still lines up.
+  const rowLabel = { flexShrink: 0, width: 66, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: C.tm, textTransform: 'uppercase', whiteSpace: 'nowrap' };
   // Shared width for the two stacked right-side controls (Table/Grid toggle group
   // and the Add Exercise button) so their right edges line up as an equal column
   // (Ohad: "table + grid together = same hoz space as add exercise button").

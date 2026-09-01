@@ -369,7 +369,7 @@ function DemoDashboard({ onJumpToTrainee }) {
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderTop: i ? `1px solid ${C.cardBd}` : 'none' }}>
               <span style={{ width: 7, height: 7, borderRadius: '50%', background: m.unread ? C.ac : 'transparent', border: m.unread ? 'none' : `1px solid ${C.td}`, flexShrink: 0 }} />
               <span style={{ fontFamily: FB, fontWeight: 600, fontSize: 13, color: C.tx, flexShrink: 0, minWidth: 0, maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
-              <span style={{ fontFamily: FB, fontSize: 12, color: m.unread ? C.tx : C.tm, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.msg}</span>
+              <span style={{ fontFamily: FB, fontSize: 12, color: m.unread ? C.tx : C.tm, flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>{m.msg}</span>
               <span style={{ fontFamily: FN, fontSize: 10, color: C.td, flexShrink: 0 }}>{m.when}</span>
             </div>
           ))}
@@ -2088,7 +2088,7 @@ function DemoPrograms({ resetToken = 0 }) {
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '8px 14px' }}>
                         <span style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
                           <span aria-hidden style={{ width: 3, height: 14, background: C.ac, flexShrink: 0 }} />
-                          <bdi style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', color: '#FFFFFF', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.name}</bdi>
+                          <bdi style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', color: '#FFFFFF', overflowWrap: 'anywhere' }}>{row.name}</bdi>
                         </span>
                         {/* Recency: colour on the DOT, muted text, fixed min-width so
                             all read the same size — parity with the real Programs
