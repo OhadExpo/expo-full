@@ -878,7 +878,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
                   onMedical={null}   /* see MED on the load board — same closure, one screen */
                   onReportNew={effCanMedical ? (() => setInjuryFor({ athleteId: (rows[0] && rows[0].t.id) || '' })) : null} />
                 {/* S&C Brief = the S&C operator's action list — removed for coaches. */}
-                {!asCoach && <CoachBrief rows={rows} fx={fx} fixtures={bhbcFixtures} medical={medical} today={today} onOpen={setDetailFor} onLog={canLog ? () => setPracticeOpen(true) : null} />}
+                {!asCoach && <CoachBrief rows={rows} fx={fx} fixtures={bhbcFixtures} medical={medical} today={today} onOpen={setDetailFor} onLog={canLog ? () => setPracticeOpen(true) : null} onGo={setView} />}
                 <StaffBrief today={today} fx={fx} rows={rows} medical={medical} planOf={planOf} />
                 <TodayPanel today={today} fixtures={bhbcFixtures} fx={fx} rows={rows} planOf={planOf} onPlan={asCoach ? null : setPlanFor} onSessions={asCoach ? null : () => setView('sessions')} onLog={canLog ? () => setPracticeOpen(true) : null} />
                 {fx.nextGame && <NextGamePanel nextGame={fx.nextGame} today={today} onEdit={asCoach ? null : () => setGameEdit(true)} />}
@@ -1772,7 +1772,18 @@ function NextGamePanel({ nextGame, today, onEdit }) {
 // monotony, Mujika taper, ~10%/wk ramp). This is the decision layer: the board
 // shows numbers, the brief says what to DO about them. Action-first, rationale
 // muted. Pre-season (no data) it points at the right first move: baseline.
-function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onLog }) {
+// Every brief line is an instruction, so every line gets somewhere to go.
+// Ohad: "there's no action buttons (what does starting to track the roster
+// mean?)". A brief that names a problem and offers no way to act on it is a
+// list of worries. One destination per kind, one fixed button width.
+const BRIEF_GO = {
+  Setup: ['roster', 'Roster'],
+  Game: ['schedule', 'Schedule'],
+  Fixtures: ['schedule', 'Schedule'],
+  Medical: ['medical', 'Medical'],
+  Sessions: ['sessions', 'Sessions'],
+};
+function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onLog, onGo }) {
   const tr = useT();
   // SURNAME, not given name (Ohad 09-01): the report read "OUT: DAESHON,
   // NATHAN" while the medical list right above it said DAESHON FRANCIS and
@@ -1783,7 +1794,11 @@ function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onLog }) {
   // closing bracket to the wrong side - "(Daeshon, Dusty, עמית, DJ +1)"
   // rendered with the paren orphaned. Isolating the run fixes it in both
   // languages without touching the surrounding direction.
-  const names = (arr) => '⁨' + (arr.slice(0, 4).map(first).join(', ') + (arr.length > 4 ? ` +${arr.length - 4}` : '')) + '⁩';
+  // The "+3" belongs OUTSIDE the bidi isolate. Inside it, a list ending in a
+  // Hebrew surname reorders to "3+ מנחם" - the plus lands on the wrong side of
+  // the number. Isolating only the NAMES keeps the count in logical order.
+  const names = (arr) => '⁨' + arr.slice(0, 4).map(first).join(', ') + '⁩'
+    + (arr.length > 4 ? ` +${arr.length - 4}` : '');
   const anyLoad = rows.some((r) => r.hasLoad);
   const A = [];
   // 1) Taper into a game ≤3 days out.
@@ -1834,11 +1849,13 @@ function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onLog }) {
         <div>
           {top.map((a, i) => {
             const click = a.act ? a.act : (a.ids && a.ids.length === 1 && onOpen ? () => onOpen(a.ids[0]) : null);
+            const dest = BRIEF_GO[a.k];
+            const goTo = dest && onGo ? () => onGo(dest[0]) : null;
             return (
               <div key={i} onClick={click || undefined} className={click ? 'bhbc-row' : undefined}
                   role={click ? 'button' : undefined} tabIndex={click ? 0 : undefined}
                   onKeyDown={click ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); click(); } }) : undefined}
-                style={{ display: 'flex', alignItems: 'center', gap: 11, padding: i < top.length - 1 ? '9px 2px' : '9px 2px 0', borderBottom: i < top.length - 1 ? `1px solid ${C.cardBd}` : 'none', cursor: click ? 'pointer' : 'default' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 11, minHeight: 40, boxSizing: 'border-box', padding: '9px 2px', borderBottom: `1px solid ${i < top.length - 1 ? C.cardBd : 'transparent'}`, cursor: click ? 'pointer' : 'default' }}>
                 {/* Center the dot on the first text line. The +4px offset accounts for
                     Nord's bottom-heavy line box (measured: line-center sits ~4px below
                     the CSS line-box center). Ohad: dot must be vertically centered. */}
@@ -1860,7 +1877,19 @@ function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onLog }) {
                   <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.02em', color: C.tx }}>{a.do}</span>
                 </div>
                 <div style={{ fontFamily: FB, fontSize: 13, color: C.tm, lineHeight: 'normal', textAlign: 'end', flexShrink: 1, minWidth: 0, marginInlineStart: 16 }}>{a.why}</div>
-                {click && <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: ORANGE, flexShrink: 0, marginTop: 3 }}>›</span>}
+                {/* A real button, not a bare chevron. Fixed width so the column
+                    is one size down the card, which is the rule everywhere else
+                    here. Falls back to the athlete card when the line is about one
+                    person and there is no tab for it. */}
+                {(goTo || click) && (
+                  <button onClick={(e) => { e.stopPropagation(); (goTo || click)(); }}
+                    style={{ flexShrink: 0, width: 96, height: 24, boxSizing: 'border-box', display: 'inline-flex',
+                      alignItems: 'center', justifyContent: 'center', gap: 4, fontFamily: FN, fontSize: 10,
+                      fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: ORANGE,
+                      background: 'transparent', border: `1px solid ${ORANGE}`, borderRadius: 0, cursor: 'pointer' }}>
+                    {dest ? tr(dest[1]) : tr('Open')}
+                  </button>
+                )}
               </div>
             );
           })}
@@ -2055,6 +2084,25 @@ function StaffBrief({ today, fx, rows, medical, planOf }) {
     L.limited + ' (' + limited.length + '): ' + (limited.length ? limited.join('; ') : L.none),
     L.out + ' (' + outList.length + '): ' + (outList.length ? outList.join('; ') : L.none),
   ].join(String.fromCharCode(10));
+  // WHAT IS SHOWN vs WHAT IS COPIED.
+  //
+  // The card rendered `text` as one pre-wrapped string in one colour, which is
+  // why Ohad called it "all text is gray and boring design". The string still
+  // exists and is still exactly what COPY puts on the clipboard - staff paste
+  // it into WhatsApp and it must stay plain - but the SCREEN gets a structured
+  // version built from the same values, with the availability counts carrying
+  // the same semantic colours they have everywhere else in the zone.
+  const shown = [
+    { k: L.when, v: (period
+      ? (period.start || '') + ' ' + fxLabelFor(period.type, 'Practice') + (period.minutes ? ' · ' + period.minutes + ' ' + fxLabelFor('__min', 'min') : '')
+      : L.noSession), tone: C.tx },
+    { k: L.focus, v: ((plan && (plan.focus || plan.plan)) || L.noFocus), tone: (plan && (plan.focus || plan.plan)) ? C.tx : C.td },
+  ];
+  const counts = [
+    { k: L.avail, n: availCount, list: null, color: '#37B27C' },
+    { k: L.limited, n: limited.length, list: limited, color: '#E0A73A' },
+    { k: L.out, n: outList.length, list: outList, color: '#DE4E3B' },
+  ];
   const copy = async () => {
     try { await navigator.clipboard.writeText(text); } catch { /* denied — the text is on screen anyway */ }
     setCopied(true); setTimeout(() => setCopied(false), 1800);
@@ -2067,7 +2115,29 @@ function StaffBrief({ today, fx, rows, medical, planOf }) {
         </button>
       }>
       {/* Shown exactly as it will be pasted — what he sends is what he sees. */}
-      <div dir="auto" style={{ fontFamily: FB, fontSize: 13, color: C.tx, lineHeight: 1.6, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>{text}</div>
+      <div dir="auto">
+        <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: ORANGE, marginBottom: 10 }}>{'BHBC · ' + briefDate}</div>
+        {shown.map((r) => (
+          <div key={r.k} style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+            <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm, width: 58, flexShrink: 0 }}>{r.k}</span>
+            <span style={{ fontFamily: FB, fontSize: 13, color: r.tone, minWidth: 0, overflowWrap: 'anywhere' }}>{r.v}</span>
+          </div>
+        ))}
+        <div style={{ display: 'flex', gap: 1, background: C.cardBd, border: `1px solid ${C.cardBd}`, marginTop: 12 }}>
+          {counts.map((c) => (
+            <div key={c.k} style={{ flex: 1, background: 'var(--c-sf)', padding: '8px 10px', minWidth: 0 }}>
+              <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{c.k}</div>
+              <div style={{ fontFamily: FN, fontSize: 20, fontWeight: 800, color: c.color, lineHeight: 'normal', fontVariantNumeric: 'tabular-nums' }}>{c.n}</div>
+            </div>
+          ))}
+        </div>
+        {counts.filter((c) => c.list && c.list.length).map((c) => (
+          <div key={c.k} style={{ marginTop: 10 }}>
+            <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: c.color, marginInlineEnd: 8 }}>{c.k}</span>
+            <span style={{ fontFamily: FB, fontSize: 13, color: C.td, overflowWrap: 'anywhere' }}>{c.list.join('; ')}</span>
+          </div>
+        ))}
+      </div>
     </Card>
   );
 }
