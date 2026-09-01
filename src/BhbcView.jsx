@@ -818,6 +818,15 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
              Number and stage on line one, description full width under them. */
           .bhbc-rtp-row{grid-template-columns:30px minmax(0,1fr)!important;row-gap:2px!important}
           .bhbc-rtp-row > *:nth-child(3){grid-column:1 / -1!important}
+          /* Microcycle: N days x 120px is a hard floor, so three days needed
+             360 in a 305px card and the week scrolled sideways. Two columns on
+             a phone, like the week grid beside it. */
+          .bhbc-micro-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;min-width:0!important}
+          /* The month grid overflowed by 16px - seven cells at 5px/7px padding
+             plus their borders exceed 305/7 = 43.5 each. Trimming the side
+             padding to 3 closes it, so the month fits without scrolling. */
+          .bhbc-cal-cell{padding:5px 3px!important;min-width:0!important;overflow:hidden!important}
+          .bhbc-cal-cell *{min-width:0!important;max-width:100%!important}
         }
         @media (max-width:760px){
           /* ONE ROW. The logo is pinned and everything else scrolls past it -
@@ -2584,7 +2593,7 @@ function MicrocycleView({ fx, today }) {
   return (
     <Card padding={18} leftStripe={ORANGE} header={secTitle('Microcycle')} headerRight={<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>→ {g.opponent ? 'vs ' + g.opponent : 'game'} · {until}d</span>}>
       <div style={{ overflowX: 'auto' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${days.length}, minmax(120px, 1fr))`, gap: 8, minWidth: days.length * 120 }}>
+        <div className="bhbc-micro-grid" style={{ display: 'grid', gridTemplateColumns: `repeat(${days.length}, minmax(120px, 1fr))`, gap: 8, minWidth: days.length * 120 }}>
           {days.map((d) => (
             <div key={d.iso} style={{ border: `1px solid ${d.isToday ? ORANGE : C.cardBd}`, borderTop: `3px solid ${loadColor(d.plan.load, d.isGame)}`, padding: '10px 10px 12px', background: d.isGame ? `color-mix(in srgb, ${ORANGE} 8%, transparent)` : d.isToday ? `color-mix(in srgb, ${ORANGE} 4%, transparent)` : 'var(--c-sf)', display: 'flex', flexDirection: 'column', gap: 6 }}>
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 6 }}>
@@ -3028,7 +3037,7 @@ function ScheduleMonth({ fixtures, today }) {
     const isToday = di === today;
     const items = (byDate[di] || []).slice().sort((a, b) => a.start.localeCompare(b.start));
     return (
-      <div key={di} style={{ minHeight: 82, borderRight: '1px solid var(--c-bd)', borderBottom: '1px solid var(--c-bd)', padding: '5px 7px', background: isToday ? `color-mix(in srgb, ${ORANGE} 7%, var(--c-sf))` : 'var(--c-sf)', display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <div key={di} className="bhbc-cal-cell" style={{ minHeight: 82, borderRight: '1px solid var(--c-bd)', borderBottom: '1px solid var(--c-bd)', padding: '5px 7px', background: isToday ? `color-mix(in srgb, ${ORANGE} 7%, var(--c-sf))` : 'var(--c-sf)', display: 'flex', flexDirection: 'column', gap: 3 }}>
         <div style={{ fontFamily: FN, fontSize: 11, fontWeight: isToday ? 800 : 600, color: isToday ? ORANGE_DEEP : (inMonth ? C.td : C.tm), textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{dt.getDate()}</div>
         {items.slice(0, 3).map((f, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 5, fontFamily: FN, fontSize: 10, background: `color-mix(in srgb, ${FX_COLOR[f.type] || NAVY} 13%, transparent)`, borderInlineStart: `2px solid ${FX_COLOR[f.type] || NAVY}`, padding: '2px 5px', minWidth: 0 }}>
