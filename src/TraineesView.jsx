@@ -220,6 +220,12 @@ function CardBWSparkline({ entries }) {
 // clips ("i cant see some of the words" — never). Section ORDER is untouched:
 // IDENTITY / FINANCIALS / TRAINING / BODYWEIGHT, which is the order he locked.
 const CARD_H = 412;
+// The audit proposed letting these size to content on a phone, on the grounds
+// that a card holds ~152px of ink in 412. MEASURED, and it is wrong: with
+// height:auto the cards come out 421 and the list gets LONGER, 10,784 -> 10,999.
+// The ink measure counted text only; the card genuinely needs that height.
+// Left fixed. The class stays because the shared Card forwards it now.
+const CARD_MOBILE_CSS = '';
 const FIN_SLOT = 34;   // worst case = pay label + monthly on one line
 
 const MidDot = () => <span style={{ color: C.tm, opacity: 0.5, fontSize: 11 }}>·</span>;
@@ -712,6 +718,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
       {/* Mobile: stack the rail ABOVE the cards (full-width each) — a fixed 210px
           side column crushes the athlete cards off-screen on phones (Ohad). */}
       <style>{`
+        ${CARD_MOBILE_CSS}
         @media (max-width: 760px) {
           .athletes-rail { width: 100% !important; position: static !important; top: auto !important; max-height: none !important; overflow: visible !important; }
         }
@@ -849,7 +856,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                 <Card key={t.id} {...dragProps(t)} onClick={() => showArchived ? null : onSelect(t.id)}
                   header={<span style={{display:'inline-flex',alignItems:'center',gap:6,fontWeight:700,fontSize: hasHebrew(t.name) ? hebSize(14) : 14,letterSpacing:'0.04em',textTransform:'uppercase'}}>{t.name}{online && <OnlineDot />}{(t.format === 'Bnei Herzliya' || t.branch === 'Bnei Herzliya') && <span title="Bnei Herzliya" style={{display:'inline-flex',alignItems:'center',justifyContent:'center',width:22,height:22,borderRadius:'50%',background:'#0E1A2B',flexShrink:0}}><img src="/bnei-herzliya-logo-w.png" alt="" style={{height:18,width:'auto',objectFit:'contain'}}/></span>}</span>}
                   headerRight={showArchived ? <Badge color={statusColor[t.status] || C.tm} style={isRefined5b()?{background:'#FFFFFF'}:undefined}>{t.status}</Badge> : <CardStatusMenu status={t.status} onChange={s => setTrainees(prev => prev.map(x => x.id === t.id ? {...x, status: s} : x))} />}
-                  style={{height:CARD_H,display:'flex',flexDirection:'column',boxSizing:'border-box',border:`1px solid ${C.divider}`,borderLeft:`1px solid ${C.divider}`,...(showArchived ? {opacity: 0.7, borderStyle: "dashed"} : {})}}>
+                  className="tv-athlete-card" style={{height:CARD_H,display:'flex',flexDirection:'column',boxSizing:'border-box',border:`1px solid ${C.divider}`,borderLeft:`1px solid ${C.divider}`,...(showArchived ? {opacity: 0.7, borderStyle: "dashed"} : {})}}>
                   {/* IDENTITY: name + status badge live in the card header
                       (Card's header + headerRight props). No duplicate body
                       banner — Ohad called the inner repeat useless 2026-05-12. */}
@@ -947,7 +954,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
             <Card key={t.id} {...dragProps(t)} onClick={() => showArchived ? null : onSelect(t.id)}
               header={<span style={{display:'inline-flex',alignItems:'center',gap:6,fontWeight:700,fontSize: hasHebrew(t.name) ? hebSize(14) : 14,letterSpacing:'0.04em',textTransform:'uppercase'}}>{t.name}{online && <OnlineDot />}{(t.format === 'Bnei Herzliya' || t.branch === 'Bnei Herzliya') && <span title="Bnei Herzliya" style={{display:'inline-flex',alignItems:'center',justifyContent:'center',width:22,height:22,borderRadius:'50%',background:'#0E1A2B',flexShrink:0}}><img src="/bnei-herzliya-logo-w.png" alt="" style={{height:18,width:'auto',objectFit:'contain'}}/></span>}</span>}
               headerRight={showArchived ? <Badge color={statusColor[t.status] || C.tm} style={isRefined5b()?{background:'#FFFFFF'}:undefined}>{t.status}</Badge> : <CardStatusMenu status={t.status} onChange={s => setTrainees(prev => prev.map(x => x.id === t.id ? {...x, status: s} : x))} />}
-              style={{height:CARD_H,display:'flex',flexDirection:'column',boxSizing:'border-box',border:`1px solid ${C.divider}`,borderLeft:`1px solid ${C.divider}`,...(showArchived ? {opacity: 0.7, borderStyle: "dashed"} : {})}}>
+              className="tv-athlete-card" style={{height:CARD_H,display:'flex',flexDirection:'column',boxSizing:'border-box',border:`1px solid ${C.divider}`,borderLeft:`1px solid ${C.divider}`,...(showArchived ? {opacity: 0.7, borderStyle: "dashed"} : {})}}>
               {/* IDENTITY: name + status badge live in the card header — no
                   body duplicate. Same shape in both themes; OnlineDot moves
                   into the header span via the {online && <OnlineDot />} above. */}
