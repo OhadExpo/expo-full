@@ -3575,11 +3575,16 @@ function GameMinutesModal({ game, roster, bhbcLoads, onClose, onSave }) {
   );
 }
 
+// COLOUR IS SIGNAL, NOT PAINT - the locked BHBC rule, and this pill was breaking
+// it: a 13% tint fill and a 38% coloured border, so the medical board read as a
+// row of filled amber/red/green boxes. The rule says a status is a small
+// coloured DOT plus a calm muted label. The dot keeps the colour; the box does
+// not. minWidth 96 so OUT and NON-CONTACT are the same box down the column.
 function StatusPill({ status, small, full }) {
   const tr = useT();
   const s = MED_STATUS[status] || MED_STATUS.available;
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5, height: small ? 28 : 30, boxSizing: 'border-box', width: full ? '100%' : undefined, fontFamily: FN, fontSize: small ? 10 : 11, fontWeight: 700, letterSpacing: '0.03em', color: s.color, background: `color-mix(in srgb, ${s.color} 13%, transparent)`, border: `1px solid color-mix(in srgb, ${s.color} 38%, transparent)`, padding: small ? '0 10px' : '0 11px', whiteSpace: 'nowrap' }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5, height: small ? 28 : 30, boxSizing: 'border-box', width: full ? '100%' : undefined, minWidth: full ? undefined : 96, padding: '0 9px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, whiteSpace: 'nowrap' }}>
       <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.color, flexShrink: 0 }} />{tr(s.label)}
     </span>
   );
