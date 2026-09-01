@@ -4390,6 +4390,14 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
           minimum lines their hit areas and their left edges up without giving a
           text button a box, which would break the material rule. */
         @media (max-width: 620px){ .prog-txtbtn{ min-width: 96px; text-align: start; } }
+        /* The card's strip header is name | ANALYSIS | status in one nowrap row.
+           At 390 a two-word name wraps and the ANALYSIS button sits ON TOP of
+           its second line - text under a button. Let the header wrap, with a
+           row gap so the button lands under the name instead of over it. */
+        @media (max-width: 620px){
+          .prog-striphdr{ flex-wrap: wrap !important; row-gap: 6px !important; align-items: center !important; }
+          .prog-striphdr > *{ min-width: 0; }
+        }
         /* Ohad, 2026-08-30: two or more buttons in the same row are the same
            vertical height, everywhere. This row pairs the PORTAL toggle -
            whose 18px pill sets its height - with four bare text buttons that
@@ -4528,7 +4536,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                     recency dot), a calm clickable body (block name + spelled-out
                     meta), and LIGHT text actions instead of a row of bordered boxes.
                     The demo (CoachDemo DemoPrograms) mirrors this exactly. */}
-                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,background:'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))',borderBottom:`1px solid ${C.cardBd}`,padding:'8px 14px'}}>
+                <div className="prog-striphdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,background:'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))',borderBottom:`1px solid ${C.cardBd}`,padding:'8px 14px'}}>
                   <span style={{display:'flex',alignItems:'center',gap:9,minWidth:0}}>
                     <span aria-hidden style={{width:3,height:14,background:C.ac,flexShrink:0}} />
                     <BhbcBadge tid={row.tid} trainees={trainees} />
@@ -4709,7 +4717,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               </button>
             );
             const stripHeader = (
-              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,background:'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))',borderBottom:`1px solid ${C.cardBd}`,padding:'8px 14px'}}>
+              <div className="prog-striphdr" style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,background:'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))',borderBottom:`1px solid ${C.cardBd}`,padding:'8px 14px'}}>
                 <span style={{display:'flex',alignItems:'center',gap:9,minWidth:0}}>
                   <span aria-hidden style={{width:3,height:14,background:C.ac,flexShrink:0}} />
                   <BhbcBadge tid={row.tid} trainees={trainees} />
