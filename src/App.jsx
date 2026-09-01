@@ -1478,9 +1478,14 @@ function AuthedApp() {
              right cluster stays on row one, which is what the earlier wrap
              attempt got wrong by letting it float into the second row. */
           @media (max-width: 700px) {
-            div.hdr-scroll { flex-wrap: wrap !important; height: auto !important; padding-bottom: 6px !important; }
-            nav.hdr-scroll { order: 3; flex: 1 0 100% !important; width: 100%; min-width: 100%; height: 40px; }
-            .hdr-right { order: 2; margin-left: auto !important; }
+            /* ONE ROW, logo pinned, everything else scrolls past it. Wrapping
+               the nav onto its own row fixed the 12px-wide nav but broke the
+               rule, so the header became two rows on every phone. The bar
+               itself is the scroller now and the logo is sticky at its left. */
+            div.hdr-scroll { flex-wrap: nowrap !important; height: 56px !important; overflow-x: auto !important; overflow-y: hidden !important; padding-left: 16px !important; padding-right: 0 !important; }
+            div.hdr-scroll > img, div.hdr-scroll > a:first-child, div.hdr-scroll > :first-child { position: sticky; left: 0; z-index: 3; background: var(--c-headerBg, #0a0a0b); }
+            nav.hdr-scroll { flex: 0 0 auto !important; overflow: visible !important; min-width: 0 !important; }
+            .hdr-right { flex: 0 0 auto !important; margin-left: 8px !important; padding-right: 16px !important; }
           }
           .nav-item-inactive{transition:color 120ms, background 120ms}
           .nav-item-inactive:hover{color:var(--c-acText) !important;background:rgba(57,189,255,0.035) !important}

@@ -747,11 +747,19 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
         .bhbc-week-grid .bhbc-chip .bhbc-chip-focus{font-size:11px;display:block;margin-top:2px}
         .bhbc-week-grid .bhbc-chip .bhbc-chip-meta{margin-inline-end:6px}
         @media (max-width:760px){
-          .bhbc-header-inner{flex-wrap:wrap!important;gap:0 10px!important;padding:6px 14px!important;min-height:0!important}
-          .bhbc-header-id{flex:1 1 auto!important;padding:8px 0!important}
-          .bhbc-header-ctrl{order:2!important;padding:8px 0!important}
-          .bhbc-hdr-tabs{order:3!important;flex-basis:100%!important;width:100%!important;justify-content:flex-start!important;border-top:1px solid rgba(255,255,255,0.12)!important}
-          .bhbc-hdr-tabs button{height:46px!important;padding:0 13px!important}
+          /* ONE ROW. The logo is pinned and everything else scrolls past it -
+             Ohad's rule, and I broke it by wrapping the header onto three rows,
+             which ate a third of a phone screen and clipped the exit icon off
+             the right edge. The whole bar is the horizontal scroller now and the
+             identity block is sticky at its left, so the wordmark stays put
+             while the tabs and controls slide under it. */
+          .bhbc-header-inner{flex-wrap:nowrap!important;gap:0!important;padding:0 0 0 14px!important;min-height:52px!important;overflow-x:auto!important;overflow-y:hidden!important;-webkit-overflow-scrolling:touch}
+          .bhbc-header-inner::-webkit-scrollbar{display:none}
+          .bhbc-header-inner{scrollbar-width:none;-ms-overflow-style:none}
+          .bhbc-header-id{position:sticky!important;left:0!important;z-index:3!important;flex:0 0 auto!important;background:#0E1C38!important;padding:0 12px 0 0!important;margin-left:-14px!important;padding-left:14px!important}
+          .bhbc-header-ctrl{order:3!important;flex:0 0 auto!important;padding:0 14px 0 0!important;margin-left:0!important}
+          .bhbc-hdr-tabs{order:2!important;flex:0 0 auto!important;width:auto!important;overflow:visible!important;justify-content:flex-start!important;border-top:none!important}
+          .bhbc-hdr-tabs button{height:52px!important;padding:0 12px!important}
           /* The injury row is a fixed 5-column grid (150px 1fr 120px 110px auto)
              — about 430px before gaps, so on a phone it ran a good 130px past
              the viewport and the 'Update ›' target sat off-screen entirely.
