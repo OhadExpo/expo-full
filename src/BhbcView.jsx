@@ -749,7 +749,18 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
         @media (max-width:620px){
           /* Label above value, both full width. A 150px label column on a 390px
              screen leaves the value ~200px and everything wraps three deep. */
-          .bhbc-labelrow{flex-direction:column!important;gap:3px!important}
+          /* The label sits ON the first line of its value, not above it.
+             Stacking it was worse than the 150px column it replaced: it made
+             every fact TWO rows, which is what Ohad meant by "way too many rows
+             spreaded out". Floating it keeps one row per fact and the value
+             flows around it, so no gutter is reserved either. */
+          /* The return-to-play date is what pushes each medical line onto a
+             second row. It is a SUMMARY here; the date lives on the Medical
+             tab. Hiding it turns six two-line entries into six one-line ones. */
+          .bhbc-mob-hide{display:none!important}
+          .bhbc-labelrow{display:block!important}
+          .bhbc-labelrow > div:first-child{float:inline-start;width:auto!important;min-width:0!important;margin-inline-end:8px;line-height:1.55}
+          .bhbc-labelrow::after{content:'';display:block;clear:both}
         }
         @media (max-width:760px){
           /* ONE ROW. The logo is pinned and everything else scrolls past it -
@@ -1985,11 +1996,11 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
                   // button stays whole.
                   <div key={i} onClick={onOpen ? () => onOpen(t.id) : undefined} role={onOpen ? 'button' : undefined} tabIndex={onOpen ? 0 : undefined} onKeyDown={onOpen ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }) : undefined} className={onOpen ? 'bhbc-row' : undefined} style={{ display: 'flex', alignItems: 'center', gap: 8, rowGap: 2, flexWrap: 'wrap', cursor: onOpen ? 'pointer' : 'default' }}>
                     <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.color, flexShrink: 0 }} />
-                    <span style={{ fontFamily: FN, fontWeight: 700, fontSize: 12, flexShrink: 0 }}>{t.name}</span>
+                    <span style={{ fontFamily: FN, fontWeight: 700, fontSize: 12, flexShrink: 0 }}>{surnameOf(t.name)}</span>
                     {/* WRAP, do not ellipsize. The row already wraps, and on a narrow RTL line
     the ellipsis eats the START of the diagnosis — "…T SPRAIN" instead of
     "ANKLE LEFT SPRAIN". A truncated injury is not an injury report. */}
-                    <span style={{ color: C.tm, minWidth: 128, flexShrink: 1, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : '', inj.type].filter(Boolean).map((x) => tr(x)).join(' ')} · {tr(s.label)}{inj.rtpTarget ? ` · RTP ${monDay(inj.rtpTarget)}` : ''}</span>
+                    <span style={{ color: C.tm, minWidth: 0, flexShrink: 1, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{tr((inj.bodyPart || '').split('/')[0].trim())}{inj.side && inj.side !== 'N/A' ? ` ${inj.side[0]}` : ''} · {tr(s.label)}{inj.rtpTarget ? <span className="bhbc-mob-hide">{` · RTP ${monDay(inj.rtpTarget)}`}</span> : null}</span>
                                       {onMedical && (
                       <button onClick={(e) => { e.stopPropagation(); onMedical(t.id); }} title="Update this medical report" className="bhbc-ghost-btn"
                         style={{ marginInlineStart: 'auto', flexShrink: 0, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, height: ROW_BTN_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, padding: '0 9px', cursor: 'pointer' }}>{tr('UPDATE')}</button>
@@ -3308,6 +3319,9 @@ const BODY_PARTS = ['Ankle', 'Knee', 'Hip', 'Hamstring', 'Groin', 'Quad', 'Calf'
 const INJURY_TYPES = ['Strain', 'Sprain', 'Contusion', 'Concussion', 'Tendinopathy', 'Overuse', 'Fracture', 'Dislocation', 'Illness', 'Other'];
 // A head injury has no side and no left/right, and asking for one invites a
 // wrong answer in the record.
+// One surname helper. Ohad calls the squad by last names, and on a phone the
+// given name is the difference between a one-line row and a two-line one.
+const surnameOf = (n) => { const p = String(n || '').trim().split(/\s+/); return p[p.length - 1] || n; };
 const isConcussion = (inj) => /concussion/i.test((inj && (inj.type || '')) || '')
   || /^head/i.test((inj && (inj.bodyPart || '')) || '');
 // A medical status expressed on the availability scale (1 full -> 4 out).
