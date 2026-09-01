@@ -75,19 +75,36 @@ try {
   for (const route of ROUTES) {
     await page.goto(BASE + route, { waitUntil: 'domcontentloaded', timeout: 45000 });
     await new Promise((r) => setTimeout(r, 4500));
-    const first = await page.evaluate(MEASURE);
-    let bad = [];
-    if (first.length) {
-      await new Promise((r) => setTimeout(r, 1200));
-      const second = await page.evaluate(MEASURE);
-      const key = (f) => f.kind + f.t + f.by;
-      const s2 = new Set(second.map(key));
-      bad = first.filter((f) => s2.has(key(f)));
+
+    // Tabs hide most of a screen, and a page-load-only sweep reports the hidden
+    // parts as clean. Same pattern the button-height gate already uses: walk
+    // every tab on the route, not just the one it lands on.
+    const tabs = await page.evaluate(() => [...document.querySelectorAll('button')]
+      .map((x) => (x.textContent || '').trim())
+      .filter((t) => /^(overview|roster|schedule|medical|sessions|games)$/i.test(t)));
+    for (const tab of (tabs.length ? tabs : [null])) {
+      if (tab) {
+        await page.evaluate((label) => {
+          const el = [...document.querySelectorAll('button')].find((x) => (x.textContent || '').trim() === label);
+          if (el) el.click();
+        }, tab);
+        await new Promise((r) => setTimeout(r, 2500));
+      }
+      const where = route + (tab ? ' · ' + tab : '');
+      const first = await page.evaluate(MEASURE);
+      let bad = [];
+      if (first.length) {
+        await new Promise((r) => setTimeout(r, 1200));
+        const second = await page.evaluate(MEASURE);
+        const key = (f) => f.kind + f.t + f.by;
+        const s2 = new Set(second.map(key));
+        bad = first.filter((f) => s2.has(key(f)));
+      }
+      if (!bad.length) { console.log(`OK    ${where}`); continue; }
+      total += bad.length;
+      console.log(`FAIL  ${where}  (${bad.length})`);
+      for (const f of bad.slice(0, 5)) console.log(`        ${f.kind.padEnd(8)} by ${String(f.by).padStart(4)}px  "${f.t}"`);
     }
-    if (!bad.length) { console.log(`OK    ${route}`); continue; }
-    total += bad.length;
-    console.log(`FAIL  ${route}  (${bad.length})`);
-    for (const f of bad.slice(0, 5)) console.log(`        ${f.kind.padEnd(8)} by ${String(f.by).padStart(4)}px  "${f.t}"`);
   }
 } catch (e) {
   console.log('SWEEP ERROR:', String(e.message || e).split('\n')[0]);
