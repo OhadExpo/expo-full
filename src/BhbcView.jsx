@@ -1855,7 +1855,7 @@ function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onLog, onGo })
               <div key={i} onClick={click || undefined} className={click ? 'bhbc-row' : undefined}
                   role={click ? 'button' : undefined} tabIndex={click ? 0 : undefined}
                   onKeyDown={click ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); click(); } }) : undefined}
-                style={{ display: 'flex', alignItems: 'center', gap: 11, minHeight: 40, boxSizing: 'border-box', padding: '9px 2px', borderBottom: `1px solid ${i < top.length - 1 ? C.cardBd : 'transparent'}`, cursor: click ? 'pointer' : 'default' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 11, rowGap: 6, flexWrap: 'wrap', minHeight: 40, boxSizing: 'border-box', padding: '9px 2px', borderBottom: `1px solid ${i < top.length - 1 ? C.cardBd : 'transparent'}`, cursor: click ? 'pointer' : 'default' }}>
                 {/* Center the dot on the first text line. The +4px offset accounts for
                     Nord's bottom-heavy line box (measured: line-center sits ~4px below
                     the CSS line-box center). Ohad: dot must be vertically centered. */}
@@ -1873,7 +1873,12 @@ function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onLog, onGo })
                     15.2px of ink, so the text sat 0.8px below centre while every
                     sibling in the row sat at -0.4 - measured, and exactly the 1.2px
                     spread Ohad could see when he zoomed in. */}
-                <div style={{ minWidth: 0, lineHeight: 'normal', fontSize: 13, flex: 1 }}>
+                {/* basis 170, and the row wraps. At 390 - especially in Hebrew, where
+                    this was caught - the 74px label, the reason column and the new
+                    96px action button left the INSTRUCTION about 20px, so it came
+                    out one word per line. The instruction is the point of the row;
+                    the button drops to its own line before the text gives way. */}
+                <div style={{ minWidth: 0, lineHeight: 'normal', fontSize: 13, flex: '1 1 170px' }}>
                   <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.02em', color: C.tx }}>{a.do}</span>
                 </div>
                 <div style={{ fontFamily: FB, fontSize: 13, color: C.tm, lineHeight: 'normal', textAlign: 'end', flexShrink: 1, minWidth: 0, marginInlineStart: 16 }}>{a.why}</div>
