@@ -1467,6 +1467,20 @@ function AuthedApp() {
               margin-left: 8px !important; background: transparent !important;
               box-shadow: none !important; z-index: auto !important; }
           }
+          /* ...and at phone width that single sliding row collapses to NOTHING.
+             Measured at 390px: nav.hdr-scroll is 12px wide, so all that shows is
+             a sliver of the cyan active tab while every other destination sits
+             at x=236..478, off-screen. Technically scrollable, practically
+             un-navigable - the coach cannot leave the page he is on. The logo
+             (101px) plus the right cluster leave nothing for a flex:1 nav. So
+             below 700px the nav takes its OWN full-width row underneath and the
+             right cluster stays on row one, which is what the earlier wrap
+             attempt got wrong by letting it float into the second row. */
+          @media (max-width: 700px) {
+            div.hdr-scroll { flex-wrap: wrap !important; height: auto !important; padding-bottom: 6px !important; }
+            nav.hdr-scroll { order: 3; flex: 1 0 100% !important; width: 100%; min-width: 100%; height: 40px; }
+            .hdr-right { order: 2; margin-left: auto !important; }
+          }
           .nav-item-inactive{transition:color 120ms, background 120ms}
           .nav-item-inactive:hover{color:var(--c-acText) !important;background:rgba(57,189,255,0.035) !important}
           .hdr-icon-btn{transition:color 120ms, background 120ms}

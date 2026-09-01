@@ -379,7 +379,12 @@ function DemoDashboard({ onJumpToTrainee }) {
       {/* Alert rail — horizontal flex (overflowX auto, cursor grab), mirroring
           the real DashboardView. Order: Online Now → Expiring Packages →
           Overdue Payment → Dormant → New Leads. */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 20, alignItems: 'stretch', overflowX: 'auto', cursor: 'grab', paddingBottom: 4 }}>
+      {/* flex-start, not stretch: on a phone one tile whose Hebrew names wrap to
+      three lines grew to 270px and STRETCHED every short tile to match,
+      leaving 224-256px of measured dead air under two-row tiles. Desktop
+      never showed it because the heights are close there. Ohad: get rid of
+      those empty spaces on cards, full-wide-all-platforms. */}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 20, alignItems: 'flex-start', overflowX: 'auto', cursor: 'grab', paddingBottom: 4 }}>
         {onlineNow.length > 0 && (
           <Panel title={`Online Now (${onlineNow.length})`} tint={C.gn} icon="dot">
             {onlineNow.map(t => (

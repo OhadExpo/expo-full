@@ -95,6 +95,19 @@ const MEASURE = (slack) => {
     // empty element, a list reserving a row it never fills.
     const padBot = parseFloat(cs.paddingBottom) || 0;
     if (gapBot - padBot <= slack) return;
+    // ...AND beyond the card's OWN rhythm. At 390px most cards declare zero
+    // padding and let their rows carry the spacing, so a fixed 6px threshold
+    // called 148 cards broken when their bottom gap simply equalled the gap
+    // between their rows - which is correct design, not dead air. Dead air is
+    // a bottom gap LARGER than the spacing the card uses internally.
+    const kids = [...el.children].map((k) => k.getBoundingClientRect()).filter((q) => q.height > 0);
+    const gaps = [];
+    for (let n = 1; n < kids.length; n++) gaps.push(kids[n].top - kids[n - 1].bottom);
+    if (gaps.length) {
+      const sorted = gaps.slice().sort((x, y) => x - y);
+      const rhythm = sorted[Math.floor(sorted.length / 2)];
+      if (gapBot <= rhythm + slack) return;
+    }
     const label = (el.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 34);
     const key = label + '|' + gapTop + '|' + gapBot;
     if (seen.has(key)) return;

@@ -684,8 +684,13 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
           the inbound funnel). Dormant + online + expiring fill remaining
           tracks via auto-fit so the dashboard stays a single visual scan. */}
       {(onlineNow.length > 0 || expiring.length > 0 || overduePayment.length > 0 || dropoutRisk.length > 0 || (leads && leads.length > 0)) && (
+          /* flex-start, not stretch: on a phone one tile whose Hebrew names wrap to
+          three lines grew to 270px and STRETCHED every short tile to match,
+          leaving 224-256px of measured dead air under two-row tiles. Desktop
+          never showed it because the heights are close there. Ohad: get rid of
+          those empty spaces on cards, full-wide-all-platforms. */
         <div ref={alertRailRef} className="alert-rail" onMouseDown={onAlertDown} onMouseMove={onAlertMove} onMouseUp={onAlertUp} onMouseLeave={onAlertUp} onClickCapture={onAlertClickCapture}
-          style={{ display: 'flex', gap: 12, marginBottom: 20, alignItems: 'stretch', overflowX: 'auto', cursor: 'grab', paddingBottom: 4 }}>
+          style={{ display: 'flex', gap: 12, marginBottom: 20, alignItems: 'flex-start', overflowX: 'auto', cursor: 'grab', paddingBottom: 4 }}>
           {(() => {
             // Expiring / Overdue / Dormant are drag-reorderable (alertOrder) —
             // see the hook block above. Each card's HEADER is the drag handle
