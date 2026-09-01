@@ -779,6 +779,30 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
           .bhbc-week-row > span:nth-child(1){width:74px!important}
           .bhbc-week-row > span:nth-child(2){width:38px!important}
           .bhbc-week-row > span:nth-child(3){font-size:11px!important}
+          /* S&C brief on a phone: the 74px label column and the 96px action
+             button left the instruction ~120px, so each item took three lines.
+             The label goes above the instruction, the reason and the button
+             share the line under it. Two lines per item, not three, and the
+             instruction gets the full width it deserves. */
+          /* The brief keeps its flex row - a grid made it worse twice, once by
+             stacking every child and once by trapping the reason in two narrow
+             columns where it wrapped to seven lines. What actually costs the
+             rows is the REASON: on 301px the instruction alone needs two lines,
+             and the reason adds two more. The instruction and its action are
+             what a coach acts on; the reason is on the card he lands on. */
+          .bhbc-brief-row > *:nth-child(4){display:none!important}
+          /* ...and the label and button are desktop measures too: 74 + 96 of a
+             301px row left the instruction 139px. The dot colour already
+             carries severity and the button names the destination, so the
+             label can be narrow. */
+          .bhbc-brief-row{gap:8px!important}
+          .bhbc-brief-row > *:nth-child(2){width:48px!important;font-size:8.5px!important;letter-spacing:0.08em!important}
+          .bhbc-brief-row > *:nth-child(5){width:78px!important}
+          /* The instruction's 170px flex-basis is larger than the 137px the row
+             can give it, so flex-wrap pushed it onto its OWN line and every
+             item cost three. A basis it can actually have keeps it beside its
+             label. */
+          .bhbc-brief-row > *:nth-child(3){flex:1 1 110px!important}
         }
         @media (max-width:760px){
           /* ONE ROW. The logo is pinned and everything else scrolls past it -
@@ -1903,7 +1927,7 @@ function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onLog, onGo })
             const dest = BRIEF_GO[a.k];
             const goTo = dest && onGo ? () => onGo(dest[0]) : null;
             return (
-              <div key={i} onClick={click || undefined} className={click ? 'bhbc-row' : undefined}
+              <div key={i} onClick={click || undefined} className={click ? 'bhbc-row bhbc-brief-row' : 'bhbc-brief-row'}
                   role={click ? 'button' : undefined} tabIndex={click ? 0 : undefined}
                   onKeyDown={click ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); click(); } }) : undefined}
                 style={{ display: 'flex', alignItems: 'center', gap: 11, rowGap: 6, flexWrap: 'wrap', minHeight: 40, boxSizing: 'border-box', padding: '9px 2px', borderBottom: `1px solid ${i < top.length - 1 ? C.cardBd : 'transparent'}`, cursor: click ? 'pointer' : 'default' }}>
