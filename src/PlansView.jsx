@@ -4385,6 +4385,11 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
         .prog-card { transition: background 140ms ease; }
         .prog-card:hover { background: var(--c-sf2); }
         .prog-txtbtn:hover { text-decoration: underline; }
+        /* On a phone the action row WRAPS, so these stack into a visual column -
+          and PORTAL (93px) beside Delete (52px) reads as a ragged one. A shared
+          minimum lines their hit areas and their left edges up without giving a
+          text button a box, which would break the material rule. */
+        @media (max-width: 620px){ .prog-txtbtn{ min-width: 96px; text-align: start; } }
         /* Ohad, 2026-08-30: two or more buttons in the same row are the same
            vertical height, everywhere. This row pairs the PORTAL toggle -
            whose 18px pill sets its height - with four bare text buttons that
