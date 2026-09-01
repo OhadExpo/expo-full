@@ -63,6 +63,11 @@ export const HE = {
   '+ Log': '+ רישום',
   'No athletes on the roster yet': 'עוד אין שחקנים בסגל',
   'Add athletes': 'הוספת שחקנים',
+  // Athlete-card metric strip: says why a tile is empty instead of a bare dash.
+  'needs sRPE': 'חסר sRPE',
+  'none logged': 'לא נרשם',
+  'sRPE × min': 'sRPE × דקות',
+  '4-week base': 'בסיס 4 שבועות',
   'ACWR danger zone': 'ACWR מעל 1.5 — תוריד עומס היום, הסיכון לפציעה עולה כאן.',
   'ACWR elevated': 'ACWR בין 1.3 ל-1.5 — תחזיק, אל תוסיף עומס.',
   'monotony high': 'מונוטוניות 2 ומעלה — תוסיף ניגוד בין קשה לקל.',

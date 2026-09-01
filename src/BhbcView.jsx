@@ -1167,10 +1167,20 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
           );
         })()}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 1, background: C.cardBd, border: `1px solid ${C.cardBd}` }}>
-          {[['ACWR', acwr.ratio != null ? acwr.ratio.toFixed(2) : '—', acwr.ratio != null ? acwr.band.color : C.tx], ['7-day load', acwr.acute ? Math.round(acwr.acute) : '—', C.tx], ['28-day', acwr.chronic ? Math.round(acwr.chronic) : '—', C.td]].map(([k, v, c]) => (
+          {/* The biggest numbers on the card were three em-dashes for anyone whose
+              history is gym-only: BHBC gym sessions are minutes with NO sRPE by
+              design, so ACWR is genuinely undefined - but a bare dash reads as a
+              broken card. Each tile now says WHY it is empty, and when there IS a
+              ratio the band name earns the space instead. */}
+          {[
+            ['ACWR', acwr.ratio != null ? acwr.ratio.toFixed(2) : '—', acwr.ratio != null ? acwr.band.color : C.tm, acwr.ratio != null ? acwrLabel(acwr.ratio) : tr('needs sRPE')],
+            ['7-day load', acwr.acute ? Math.round(acwr.acute) : '—', C.tx, acwr.acute ? tr('sRPE × min') : tr('none logged')],
+            ['28-day', acwr.chronic ? Math.round(acwr.chronic) : '—', C.td, acwr.chronic ? tr('4-week base') : tr('none logged')],
+          ].map(([k, v, c, sub]) => (
             <div key={k} style={{ background: 'var(--c-sf)', padding: '10px 12px' }}>
               <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{k}</div>
-              <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 22, color: c, marginTop: 6, fontVariantNumeric: 'tabular-nums' }}>{v}</div>
+              <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 22, color: c, marginTop: 6, fontVariantNumeric: 'tabular-nums', lineHeight: 'normal' }}>{v}</div>
+              {sub ? <div style={{ fontFamily: FB, fontSize: 10, color: C.tm, marginTop: 2 }}>{sub}</div> : null}
             </div>
           ))}
         </div>
@@ -1226,11 +1236,16 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
         </div>
         <div>
           <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, marginBottom: 6 }}>Full history{activity.length ? ` (${activity.length})` : ''}</div>
+          {/* 118px against a 32.4px row always sliced the 4th entry in half, which
+              reads as a broken table rather than a scrollable one. Pin the pitch at
+              33 (font-independent, so Heebo cannot shift it) and cap at exactly four
+              of them PLUS the 2px of border-box border, so the cut lands on a divider
+              and four entries do not summon a scrollbar for 2px. */}
           {activity.length ? (
-            <div style={{ display: 'flex', flexDirection: 'column', maxHeight: 118, overflowY: 'auto',
+            <div style={{ display: 'flex', flexDirection: 'column', maxHeight: 134, overflowY: 'auto',
               border: `1px solid ${C.cardBd}`, borderRadius: 0 }}>
               {activity.map((a, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 9px',
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 9px', minHeight: 33, boxSizing: 'border-box',
                   borderBottom: i < activity.length - 1 ? `1px solid ${C.cardBd}` : 'none', fontFamily: FN, fontSize: 12 }}>
                   <span style={{ color: a.game ? ORANGE_DEEP : C.td, width: 62, fontVariantNumeric: 'tabular-nums', flexShrink: 0, fontWeight: a.game ? 700 : 400 }}>{a.date.slice(5)}</span>
                   {a.game ? (
@@ -1271,10 +1286,17 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
             {program.count > 1 && <span style={{ color: C.tm }}>· {program.count} total</span>}
           </div>
         )}
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+        {/* Equal columns. Ohad: "make sure all buttons no matter the tag are the
+            same horizontal size" - measured here at 134 / 166 / 149px, so the
+            footer read as three different weights. auto-fit keeps them equal
+            whether the owner sees four or a coach sees three, and wraps rather
+            than squeezing below the widest label. */}
+        <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(168px, 1fr))`, gap: 8 }}>
           {onOpenExpo && <Btn variant="ghost" onClick={onOpenExpo}>Open in EXPO ›</Btn>}
           {onLog && <Btn variant="ghost" onClick={onLog}>Log session</Btn>}
-          {onInjury && <Btn variant="ghost" onClick={onInjury}>Medical report</Btn>}
+          {/* No footer 'Medical report': it fired the SAME onInjury as UPDATE on the
+              medical strip above, and the fourth button is what squeezed the row to
+              155px and wrapped its own label onto two lines. Three buttons fit. */}
           {onViewProgram && <Btn onClick={onViewProgram} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>View program</Btn>}
         </div>
       </div>
