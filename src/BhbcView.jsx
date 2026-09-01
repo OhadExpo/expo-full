@@ -770,6 +770,10 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
           .bhbc-labelrow{display:block!important}
           .bhbc-labelrow > div:first-child{float:inline-start;width:auto!important;min-width:0!important;margin-inline-end:8px;line-height:1.55}
           .bhbc-labelrow::after{content:'';display:block;clear:both}
+          /* Same tightening as the desktop sweep, applied to the phone: the page
+             gutter and the gap between cards are desktop measures on a 390px
+             screen, where every pixel of chrome is a pixel of content lost. */
+          .bhbc-zone main{padding:12px 10px 40px!important;gap:10px!important}
           /* A LIST does not float its label. Floating indents only the first
              line, so item one sat at x=120 beside the label while items two to
              six started at x=43 - Ohad: "most of the text in the titles is
@@ -950,7 +954,11 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
         </div>
       </header>
 
-      <main style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 24px 72px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* 14px between cards and 18 of page padding, from 20 and 24. Ohad on the
+          desktop zone: "each box still has way too much extra space, beneath and
+          above texts, all of them". The cards themselves came down from 18 to 14
+          of padding and their rows from 11 to 8; this is the last of it. */}
+      <main style={{ maxWidth: 1200, margin: '0 auto', padding: '18px 18px 56px', display: 'flex', flexDirection: 'column', gap: 14 }}>
         {previewCoach && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: 'rgba(242,106,43,0.10)', border: `1px solid ${ORANGE}`, borderRadius: 6 }}>
             <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: ORANGE_DEEP }}>◉ Coach view</span>
@@ -1818,7 +1826,7 @@ function FixturesAheadPanel({ fixtures, today }) {
   if (!games.length) return null;
   let prevDate = (fixtures || []).filter((f) => f.type === 'game' && f.date >= today).sort((a, b) => a.date.localeCompare(b.date))[0]?.date;
   return (
-    <Card padding={18} leftStripe={NAVY} header={secTitle('Road Ahead')}>
+    <Card padding={14} leftStripe={NAVY} header={secTitle('Road Ahead')}>
       <div>
         {games.map((g, i) => {
           const days = dayDiff(g.date, today);
@@ -1856,7 +1864,7 @@ function NextGamePanel({ nextGame, today, onEdit }) {
   const when = days <= 0 ? tr('GAME DAY') : days === 1 ? tr('Tomorrow') : (he ? `בעוד ${days} ימים` : `In ${days} days`);
   const timeLabel = nextGame.timeTBD || !nextGame.start ? tr('Time TBD') : nextGame.start;
   return (
-    <Card padding={18} leftStripe={ORANGE} header={secTitle('Next Game')} headerRight={<div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff' }}>{when}</span>{onEdit && <button onClick={onEdit} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', height: 24, boxSizing: 'border-box', padding: '0 9px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, cursor: 'pointer' }}>{tr('Edit')}</button>}</div>}>
+    <Card padding={14} leftStripe={ORANGE} header={secTitle('Next Game')} headerRight={<div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff' }}>{when}</span>{onEdit && <button onClick={onEdit} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', height: 24, boxSizing: 'border-box', padding: '0 9px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, cursor: 'pointer' }}>{tr('Edit')}</button>}</div>}>
       <div className="bhbc-nextgame" style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
         <div style={{ textAlign: 'center', flexShrink: 0 }}>
           <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 40, lineHeight: 1, color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums' }}>{Math.max(0, days)}</div>
@@ -1951,7 +1959,7 @@ function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onLog, onGo })
   const top = A.sort((a, b) => sevRank[a.sev] - sevRank[b.sev]).slice(0, 5);
   const sevColor = { game: ORANGE, red: '#DE4E3B', amber: '#E0A73A', info: '#4F9DE0' };
   return (
-    <Card padding={18} leftStripe={ORANGE} header={secTitle('S&C Brief')} headerRight={<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>{dow(today)} {monDay(today)}</span>}>
+    <Card padding={14} leftStripe={ORANGE} header={secTitle('S&C Brief')} headerRight={<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>{dow(today)} {monDay(today)}</span>}>
       {top.length === 0 ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 9, fontFamily: FB, fontSize: 13, color: C.td, padding: '4px 0' }}>
           <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#37B27C', flexShrink: 0 }} />All clear — no load, readiness or medical flags today.
@@ -1966,7 +1974,7 @@ function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onLog, onGo })
               <div key={i} onClick={click || undefined} className={click ? 'bhbc-row bhbc-brief-row' : 'bhbc-brief-row'}
                   role={click ? 'button' : undefined} tabIndex={click ? 0 : undefined}
                   onKeyDown={click ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); click(); } }) : undefined}
-                style={{ display: 'flex', alignItems: 'center', gap: 11, rowGap: 6, flexWrap: 'wrap', minHeight: 40, boxSizing: 'border-box', padding: '9px 2px', borderBottom: `1px solid ${i < top.length - 1 ? C.cardBd : 'transparent'}`, cursor: click ? 'pointer' : 'default' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 11, rowGap: 6, flexWrap: 'wrap', minHeight: 32, boxSizing: 'border-box', padding: '6px 2px', borderBottom: `1px solid ${i < top.length - 1 ? C.cardBd : 'transparent'}`, cursor: click ? 'pointer' : 'default' }}>
                 {/* Center the dot on the first text line. The +4px offset accounts for
                     Nord's bottom-heavy line box (measured: line-center sits ~4px below
                     the CSS line-box center). Ohad: dot must be vertically centered. */}
@@ -2051,14 +2059,17 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
   // every value wraps three deep - which is what Ohad was looking at when he
   // said nothing is aligned. The class does the stacking in CSS so desktop is
   // untouched.
+  // 8px, not 11: a single 15px line inside 11+11 makes a 40px row, and stacked
+  // down five sections that is most of what Ohad means by "way too much extra
+  // space beneath and above texts". 8 keeps the rows separable without the air.
   const Section = ({ label, children, last, list }) => (
-    <div className={list ? 'bhbc-labelrow bhbc-labelrow-list' : 'bhbc-labelrow'} style={{ display: 'flex', gap: 14, alignItems: 'flex-start', padding: last ? '11px 2px 0' : '11px 2px', borderBottom: last ? 'none' : `1px solid ${C.cardBd}` }}>
+    <div className={list ? 'bhbc-labelrow bhbc-labelrow-list' : 'bhbc-labelrow'} style={{ display: 'flex', gap: 14, alignItems: 'flex-start', padding: last ? '8px 2px 0' : '8px 2px', borderBottom: last ? 'none' : `1px solid ${C.cardBd}` }}>
       <div style={lbl}>{label}</div>
       <div style={{ flex: 1, minWidth: 0, fontFamily: FB, fontSize: 13, color: C.tx, lineHeight: 1.5 }}>{children}</div>
     </div>
   );
   return (
-    <Card padding={18} leftStripe={NAVY} header={secTitle('Head Coach Report')} headerRight={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>{onCopy && <button onClick={onCopy} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', height: 24, boxSizing: 'border-box', padding: '0 10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, cursor: 'pointer', borderRadius: 0 }}>{copied ? tr('Copied') : tr('Copy')}</button>}<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>{dow(today)} {monDay(today)}</span></span>}>
+    <Card padding={14} leftStripe={NAVY} header={secTitle('Head Coach Report')} headerRight={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>{onCopy && <button onClick={onCopy} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', height: 24, boxSizing: 'border-box', padding: '0 10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, cursor: 'pointer', borderRadius: 0 }}>{copied ? tr('Copied') : tr('Copy')}</button>}<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>{dow(today)} {monDay(today)}</span></span>}>
       {/* NEXT GAME */}
       <Section label={tr("Next game")}>
         {nextGame
@@ -2229,7 +2240,7 @@ function StaffBrief({ today, fx, rows, medical, planOf }) {
     setCopied(true); setTimeout(() => setCopied(false), 1800);
   };
   return (
-    <Card padding={18} leftStripe={ORANGE} header={secTitle('Brief for the staff')}
+    <Card padding={14} leftStripe={ORANGE} header={secTitle('Brief for the staff')}
       headerRight={
         <button onClick={copy} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', height: 24, boxSizing: 'border-box', padding: '0 10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, cursor: 'pointer', borderRadius: 0 }}>
           {copied ? L.copied : L.copy}
@@ -2308,7 +2319,7 @@ function TodayPanel({ today, fixtures, fx, rows, onSessions, onLog, planOf, onPl
   const focus = mdToday != null ? mdPlan(mdToday) : null;
   const focusC = focus ? (focus.game ? ORANGE : focus.load >= 5 ? ORANGE_DEEP : focus.load >= 3 ? NAVY : '#6B7280') : NAVY;
   return (
-    <Card padding={18} leftStripe={ORANGE} header={secTitle(`Today · ${dow(today)} ${monDay(today)}`)} headerRight={gdLabel ? <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff' }}>{gdLabel}</span> : null}>
+    <Card padding={14} leftStripe={ORANGE} header={secTitle(`Today · ${dow(today)} ${monDay(today)}`)} headerRight={gdLabel ? <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff' }}>{gdLabel}</span> : null}>
       {focus && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, paddingBottom: 14, borderBottom: `1px solid ${C.cardBd}`, flexWrap: 'wrap' }}>
           <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm }}>{tr('Today’s focus')}</span>
@@ -2365,7 +2376,7 @@ function TeamSnapshotCard({ team }) {
     { k: '7-day load', v: team.week ? team.week.toLocaleString() : '—', sub: 'team sRPE', c: C.tx, spark: team.teamSeries },
   ];
   return (
-    <Card leftStripe={NAVY} header={secTitle('Team Snapshot')} padding={18}>
+    <Card leftStripe={NAVY} header={secTitle('Team Snapshot')} padding={14}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))' }}>
         {cells.map((s, i) => (
           <div key={s.k} style={{ padding: '16px 18px', borderInlineStart: i ? `1px solid ${C.cardBd}` : 'none', display: 'flex', flexDirection: 'column', gap: 8, minHeight: 92 }}>
@@ -2419,7 +2430,7 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, onOpen, onMedical 
               .reduce((worst, inj) => Math.max(worst, MEDICAL_STATUS_AVAIL[inj.status] || 1), 1);
             const rc = readiness.level === 'red' ? BAND.high : readiness.level === 'amber' ? BAND.elevated : readiness.level === 'green' ? BAND.low : BAND.none;
             return (
-              <div key={t.id} className="bhbc-load-row" onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }} style={{ display: 'grid', gridTemplateColumns: rowGrid, gap: 12, alignItems: 'center', padding: '11px 2px', borderBottom: `1px solid ${C.cardBd}`, borderInlineStart: `2px solid ${acwr.band.color}`, paddingInlineStart: 10, marginInlineStart: -12, cursor: 'pointer', transition: 'border-color 240ms ease-out' }} className="bhbc-row bhbc-load-row">
+              <div key={t.id} className="bhbc-load-row" onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }} style={{ display: 'grid', gridTemplateColumns: rowGrid, gap: 12, alignItems: 'center', padding: '8px 2px', borderBottom: `1px solid ${C.cardBd}`, borderInlineStart: `2px solid ${acwr.band.color}`, paddingInlineStart: 10, marginInlineStart: -12, cursor: 'pointer', transition: 'border-color 240ms ease-out' }} className="bhbc-row bhbc-load-row">
                 <Jersey n={t.jersey} size={26} />
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontFamily: FN, fontWeight: 700, fontSize: 13, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{t.name}</div>
@@ -2589,7 +2600,7 @@ function MicrocycleView({ fx, today }) {
   const addDaysISO = (iso, n) => { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
   const g = fx.nextGame;
   if (!g) return (
-    <Card padding={18} leftStripe={ORANGE} header={secTitle('Microcycle')}>
+    <Card padding={14} leftStripe={ORANGE} header={secTitle('Microcycle')}>
       <div style={{ fontFamily: FB, fontSize: 13, color: C.td }}>No game scheduled — running a general prep block. Add a fixture to anchor the training week.</div>
     </Card>
   );
@@ -2603,7 +2614,7 @@ function MicrocycleView({ fx, today }) {
   });
   const loadColor = (n, game) => game ? ORANGE : n >= 5 ? ORANGE_DEEP : n >= 3 ? NAVY : '#6B7280';
   return (
-    <Card padding={18} leftStripe={ORANGE} header={secTitle('Microcycle')} headerRight={<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>→ {g.opponent ? 'vs ' + g.opponent : 'game'} · {until}d</span>}>
+    <Card padding={14} leftStripe={ORANGE} header={secTitle('Microcycle')} headerRight={<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>→ {g.opponent ? 'vs ' + g.opponent : 'game'} · {until}d</span>}>
       <div style={{ overflowX: 'auto' }}>
         <div className="bhbc-micro-grid" style={{ display: 'grid', gridTemplateColumns: `repeat(${days.length}, minmax(120px, 1fr))`, gap: 8, minWidth: days.length * 120 }}>
           {days.map((d) => (
@@ -2721,7 +2732,7 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, planOf }
   const names = (arr) => arr.map((t) => t.name).join(', ');
 
   return (
-    <Card padding={18} leftStripe={NAVY} header={secTitle('Past practices')}
+    <Card padding={14} leftStripe={NAVY} header={secTitle('Past practices')}
       headerRight={<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>{past.length} {tr('logged')}</span>}>
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         {past.slice(0, limit).map((f) => {
@@ -2942,7 +2953,7 @@ function ScheduleTool({ fx, fixtures, today, mode, setMode, onLog }) {
     </div>
   );
   return (
-    <Card padding={18} leftStripe={ORANGE} header={secTitle('Schedule')} headerRight={
+    <Card padding={14} leftStripe={ORANGE} header={secTitle('Schedule')} headerRight={
       onLog ? (
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
           {toggle}
@@ -2965,7 +2976,7 @@ function ScheduleList({ fx, today }) {
         const gd = fx.nextGame ? dayDiff(d.date, fx.nextGame.date) : null;
         const gdLabel = gd == null ? null : gd === 0 ? 'GAME DAY' : gd < 0 ? `GD${gd}` : `GD+${gd}`;
         return (
-          <div key={d.date} style={{ display: 'flex', gap: 14, padding: '12px 2px', borderBottom: `1px solid ${C.cardBd}`, alignItems: 'flex-start' }}>
+          <div key={d.date} style={{ display: 'flex', gap: 14, padding: '9px 2px', borderBottom: `1px solid ${C.cardBd}`, alignItems: 'flex-start' }}>
             <div style={{ width: 84, flexShrink: 0 }}>
               <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 13, color: isToday ? ORANGE_DEEP : C.tx }}>{dow(d.date)}{isToday ? ' · today' : ''}</div>
               <div style={{ fontFamily: FN, fontSize: 11, color: C.td, marginTop: 2 }}>{monDay(d.date)}</div>
@@ -3309,7 +3320,7 @@ function LeagueView({ league, roster, fixtures, onOpen, bhbcLoads = {}, today, o
   return (
     <>
       {/* Team stats + live badge */}
-      <Card padding={18} leftStripe={ORANGE} header={secTitle('Team Stats')} headerRight={
+      <Card padding={14} leftStripe={ORANGE} header={secTitle('Team Stats')} headerRight={
         pastData
           ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: '#7C828B' }} />{currentSeason} · Pre-season</span>
           : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: historical ? '#7C828B' : '#4ED88A' }} />{historical ? 'Last season' : 'Live'}{league.season ? ` · ${league.season}` : ''}{league.updatedAt ? ` · ${relTime(league.updatedAt)}` : ''}</span>
@@ -3345,7 +3356,7 @@ function LeagueView({ league, roster, fixtures, onOpen, bhbcLoads = {}, today, o
       </Card>
 
       {/* Player stats — the roster, with official league numbers */}
-      <Card padding={18} leftStripe={NAVY} header={secTitle('Player Stats')} headerRight={pastData ? null : <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>tap a column to sort</span>}>
+      <Card padding={14} leftStripe={NAVY} header={secTitle('Player Stats')} headerRight={pastData ? null : <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>tap a column to sort</span>}>
         {pastData ? (
           <>
             <div style={{ fontFamily: FB, fontSize: 13, color: C.td, padding: '2px 2px 14px' }}>No {currentSeason} games played yet — per-player league numbers appear here after tip-off.</div>
@@ -3363,7 +3374,7 @@ function LeagueView({ league, roster, fixtures, onOpen, bhbcLoads = {}, today, o
 
       {/* Games — BHBC only. In a fresh season, lead with this season's fixtures and
           tuck last season's completed results into a collapse. */}
-      <Card padding={18} leftStripe={NAVY} header={secTitle('Games')}>
+      <Card padding={14} leftStripe={NAVY} header={secTitle('Games')}>
         {/* MINUTES PLAYED -> LOAD. Until now a 32-minute game and a DNP were
             identical to the load board, so every ACWR figure in the zone was
             computed on a week with its biggest day missing. */}
@@ -3606,7 +3617,7 @@ function LoadOutputCard({ rows, loads, medical }) {
   });
   const any = ordered.some((r) => (r.acwr.acute || 0) > 0 || lastSessionOf(loads, r.t.id));
   return (
-    <Card padding={18} leftStripe={NAVY} header={secTitle('Session load · RPE x minutes')}
+    <Card padding={14} leftStripe={NAVY} header={secTitle('Session load · RPE x minutes')}
       headerRight={<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>AU</span>}>
       {!any ? (
         <div style={{ fontFamily: FB, fontSize: 13, color: C.td, padding: '10px 0', textAlign: 'center' }}>{tr('No load logged yet')}</div>
@@ -3648,7 +3659,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
   rows.forEach(({ inj }) => { if (inj.status === 'out') counts.out++; else if (inj.status === 'limited') counts.limited++; else if (inj.status === 'non-contact') counts.nc++; });
   return (
     <>
-      <Card padding={18} leftStripe={ORANGE} header={secTitle('Medical · Injury Board')} headerRight={<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>{rows.length} {tr('active')} · {canMedical ? 'Ohad + PT' : tr('view only')}</span>}>
+      <Card padding={14} leftStripe={ORANGE} header={secTitle('Medical · Injury Board')} headerRight={<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>{rows.length} {tr('active')} · {canMedical ? 'Ohad + PT' : tr('view only')}</span>}>
         <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap' }}>
           {[[tr('Out'), counts.out, '#DE4E3B'], [tr('limited'), counts.limited, '#E0A73A'], [tr('Non-contact'), counts.nc, '#4F9DE0'], [tr('Cleared'), cleared.length, '#37B27C']].map(([k, n, c]) => (
             <div key={k} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -3660,7 +3671,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
       </Card>
 
       {rows.length > 0 && (
-        <Card padding={18} leftStripe={NAVY} header={secTitle('Active Injuries')}>
+        <Card padding={14} leftStripe={NAVY} header={secTitle('Active Injuries')}>
           <div>
             {rows.map(({ t, inj }) => {
               const days = inj.onsetDate ? dayDiff(todayISO(), inj.onsetDate) : null;
@@ -3693,7 +3704,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
         past.sort((a, b) => String(b.inj.onsetDate || '').localeCompare(String(a.inj.onsetDate || '')));
         if (!past.length) return null;
         return (
-          <Card padding={18} leftStripe={'#37B27C'} header={secTitle('Previous injuries')}
+          <Card padding={14} leftStripe={'#37B27C'} header={secTitle('Previous injuries')}
             headerRight={<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>{past.length}</span>}>
             <div>
               {past.map(({ t, inj }) => (
@@ -3716,7 +3727,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
 
       <LoadOutputCard rows={loadRows} loads={loads} medical={medical} />
 
-      <Card padding={18} leftStripe={NAVY} header={secTitle('Roster Health')}>
+      <Card padding={14} leftStripe={NAVY} header={secTitle('Roster Health')}>
         <div>
           {roster.map((t) => {
             const act = activeInjuries(medical, t.id);
