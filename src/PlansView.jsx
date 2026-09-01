@@ -4554,10 +4554,14 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                   <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap',minHeight:24}}>
                     <span style={{fontWeight:700,fontSize:15,color:C.ac,fontFamily:FN,letterSpacing:'0.04em',minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{cur.name||"Untitled"}</span>
                     {row.earlier.length > 0 && (
+                      /* Fixed width: the count changes the label, and 1 / 3 / 10
+                          previous measured 102 / 106 / 110px down one column. A
+                          control that resizes with its own content reads as a flash
+                          bug, so reserve the widest and use tabular digits. */
                       <button onClick={e=>{e.stopPropagation();toggleAthlete(row.tid);}}
                         title={expanded?`Hide ${row.earlier.length} previous block${row.earlier.length===1?'':'s'}`:`Show ${row.earlier.length} previous block${row.earlier.length===1?'':'s'}`}
                         className="prog-plusn"
-                        style={{display:'inline-flex',alignItems:'center',gap:5,height:24,padding:'0 9px',background: expanded ? 'rgba(127,127,138,0.14)' : 'transparent',border:`1px solid ${C.cardBd}`,borderRadius:0,color: C.tm,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.05em',whiteSpace:'nowrap',flexShrink:0,fontVariantNumeric:'tabular-nums'}}>
+                        style={{display:'inline-flex',alignItems:'center',justifyContent:'center',minWidth:112,fontVariantNumeric:'tabular-nums',gap:5,height:24,padding:'0 9px',background: expanded ? 'rgba(127,127,138,0.14)' : 'transparent',border:`1px solid ${C.cardBd}`,borderRadius:0,color: C.tm,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.05em',whiteSpace:'nowrap',flexShrink:0,fontVariantNumeric:'tabular-nums'}}>
                         {row.earlier.length} {tt('previous')}
                         <span aria-hidden style={{display:'inline-block',transform: expanded?'rotate(180deg)':'none',transition:'transform .15s',fontSize:8,lineHeight:1}}>▾</span>
                       </button>
