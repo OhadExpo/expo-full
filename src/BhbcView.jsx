@@ -774,6 +774,12 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
              gutter and the gap between cards are desktop measures on a 390px
              screen, where every pixel of chrome is a pixel of content lost. */
           .bhbc-zone main{padding:12px 10px 40px!important;gap:10px!important}
+          /* Today panel: three blocks that sit in a row on desktop stack on a
+             phone with a 24px gap between each, and the availability trio is
+             rendered as three tall tiles - 366px for what the report above it
+             already said in one line. Tighter gap, and the counts go inline. */
+          .bhbc-today-row{gap:10px!important;row-gap:10px!important}
+          .bhbc-today-row > *{min-width:0!important}
           /* A LIST does not float its label. Floating indents only the first
              line, so item one sat at x=120 beside the label while items two to
              six started at x=43 - Ohad: "most of the text in the titles is
@@ -2327,7 +2333,7 @@ function TodayPanel({ today, fixtures, fx, rows, onSessions, onLog, planOf, onPl
           <span style={{ fontFamily: FB, fontSize: 13, color: C.tx }}>{tr(focus.emphasis)}</span>
         </div>
       )}
-      <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+      <div className="bhbc-today-row" style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'flex-start' }}>
         <div style={{ flex: '2 1 300px', minWidth: 240 }}>
           <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm, marginBottom: 8 }}>{tr('Sessions')}</div>
           {todayFx.length ? (
