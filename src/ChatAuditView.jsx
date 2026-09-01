@@ -53,6 +53,10 @@ export default function ChatAuditView() {
   const [showErrorsOnly, setShowErrorsOnly] = useState(false);
   const [filter, setFilter] = useState('');
   const [migrationMissing, setMigrationMissing] = useState(false);
+  // A refresh that returns the same rows changed NOTHING on screen, so the
+  // button read as dead - it is exactly the class Ohad said must not exist
+  // anywhere. It reports on itself now.
+  const [refreshing, setRefreshing] = useState(false);
 
   const reload = useCallback(async (ctx) => {
     const live = () => !ctx || !ctx.cancelled;
@@ -142,14 +146,14 @@ export default function ChatAuditView() {
               : `${sessions} session${sessions === 1 ? '' : 's'} · ${total} turn${total === 1 ? '' : 's'} · ${errors} error${errors === 1 ? '' : 's'}`}
           </div>
         </div>
-        <button onClick={reload}
-          style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tm, borderRadius: 0, padding: '8px 14px', fontFamily: FN, fontSize: 11, fontWeight: 700, cursor: 'pointer', letterSpacing: '0.18em' }}>↻ REFRESH</button>
+        <button onClick={async () => { setRefreshing(true); try { await reload(); } finally { setTimeout(() => setRefreshing(false), 550); } }} disabled={refreshing}
+          style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tm, borderRadius: 0, padding: '8px 14px', fontFamily: FN, fontSize: 11, fontWeight: 700, cursor: 'pointer', letterSpacing: '0.18em' }}>{refreshing ? '↻ REFRESHING…' : '↻ REFRESH'}</button>
       </div>
 
       {/* Filter row */}
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 14 }}>
         {['all', 'expo-app', 'expo-il'].map(s => (
-          <button key={s} onClick={() => setSiteFilter(s)}
+          <button key={s} aria-pressed={siteFilter === s} onClick={() => setSiteFilter(s)}
             style={{
               background: 'var(--c-sf)',
               border: `1px solid ${siteFilter === s ? C.ac : C.cardBd}`,

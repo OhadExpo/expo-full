@@ -183,6 +183,7 @@ function SubmenuTab({ id, label, count, items, tab, navTo, activeStyle, isChosen
     <div data-submenu-id={id} onMouseEnter={hoverOpen} onMouseLeave={hoverClose} style={{ display: 'inline-flex', position: 'relative' }}>
       <button ref={btnRef} onClick={() => setOpen(o => !o)}
         aria-expanded={open}
+        aria-current={isSectionActive ? 'page' : undefined} aria-selected={isSectionActive}
         className={!isSectionActive ? 'nav-item-inactive' : undefined}
         // alignItems:center (was baseline) so the label, count, and
         // chevron share one optical center-line. baseline-mode let
@@ -203,7 +204,7 @@ function SubmenuTab({ id, label, count, items, tab, navTo, activeStyle, isChosen
           {items.map(it => {
             const isItemActive = tab === it.route;
             return (
-              <button key={it.route} className={!isItemActive ? 'nav-item-inactive' : undefined} onClick={() => { setOpen(false); navTo(it.route); }}
+              <button key={it.route} aria-current={isItemActive ? 'page' : undefined} aria-selected={isItemActive} role="menuitem" className={!isItemActive ? 'nav-item-inactive' : undefined} onClick={() => { setOpen(false); navTo(it.route); }}
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14,
                   width: '100%', padding: '10px 14px',
@@ -1591,7 +1592,7 @@ function AuthedApp() {
               <div style={{display:'flex',gap:2,borderBottom:`1px solid ${C.cardBd}`,marginBottom:16,flexWrap:'wrap'}}>
                 {[['exercises','Library'],['exerciseMatching','Matching'],['exerciseClassify','Classify'],['exerciseCleanup','Cleanup']].map(([r,l])=>{
                   const on=tab===r;
-                  return <button key={r} onClick={()=>navTo(r)} style={{fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:on?C.tx:C.td,background:'transparent',border:'none',borderBottom:on?`2px solid ${C.ac}`:'2px solid transparent',padding:'10px 16px',marginBottom:-1,cursor:'pointer'}}>{l}</button>;
+                  return <button key={r} role="tab" aria-selected={on} onClick={()=>navTo(r)} style={{fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:on?C.tx:C.td,background:'transparent',border:'none',borderBottom:on?`2px solid ${C.ac}`:'2px solid transparent',padding:'10px 16px',marginBottom:-1,cursor:'pointer'}}>{l}</button>;
                 })}
               </div>
               {tab==="exercises"&&<MemoExercises exercises={exercises} setExercises={setExercises} onOpenClassify={()=>navTo('exerciseClassify')}/>}

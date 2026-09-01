@@ -34,6 +34,9 @@ export default function BugsView() {
   const [shaVal, setShaVal] = useState('');
   const markFixed = (id) => { const c = shaVal.trim(); if (c) setFixedIn(id, c.slice(0, 40)); else setStatus(id, 'fixed'); setShaFor(null); setShaVal(''); };
 
+  // Same as chat-audit: a refresh returning the same rows left the screen
+  // identical, so the control looked dead. It says what it is doing now.
+  const [refreshing, setRefreshing] = useState(false);
   const reload = useCallback(async () => {
     setLoading(true);
     let q = supabase.from('bug_reports').select('*').order('created_at', { ascending: false }).limit(200);
@@ -91,8 +94,8 @@ export default function BugsView() {
           <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : C.tx }}>
             BUG REPORTS ({counts.open || 0} open)
           </span>
-          <button onClick={reload}
-            style={{ ...stripBtnBase, border: `1px solid ${refined ? '#FFFFFF' : C.ac}`, color: refined ? '#FFFFFF' : C.ac }}>↻ REFRESH</button>
+          <button onClick={async () => { setRefreshing(true); try { await reload(); } finally { setTimeout(() => setRefreshing(false), 550); } }} disabled={refreshing}
+            style={{ ...stripBtnBase, border: `1px solid ${refined ? '#FFFFFF' : C.ac}`, color: refined ? '#FFFFFF' : C.ac }}>{refreshing ? '↻ REFRESHING…' : '↻ REFRESH'}</button>
         </div>
       </RefinedHeaderStrip>
 
@@ -101,7 +104,7 @@ export default function BugsView() {
           const active = filter === p.id;
           const n = p.id === 'all' ? rows.length : (counts[p.id] || 0);
           return (
-            <button key={p.id} onClick={() => setFilter(p.id)}
+            <button key={p.id} aria-pressed={active} onClick={() => setFilter(p.id)}
               style={{
                 padding: '4px 10px', borderRadius: 0,
                 border: `1px solid ${active ? p.color : C.cardBd}`,
