@@ -611,6 +611,15 @@ html {
      multi-column selects/inputs into clean full-width rows on a phone. */
   .bhbc-form-grid { grid-template-columns: 1fr !important; }
 
+  /* MODALS ON A PHONE. The card is calc(100vw - 24px) with 28px of padding on
+     each side, so on a 390px screen 80 of 390 is chrome and the content gets
+     310 - which is why the athlete card's metric strip and history rows wrap so
+     hard. 16px of padding and a 12px gutter give the content 358. The sticky
+     header inside uses negative margins equal to the padding, so it has to move
+     with it or the title detaches from the edge. */
+  .ui-modal-card { max-width: calc(100vw - 12px) !important; padding: 16px !important; }
+  .ui-modal-card > div:first-child { margin: -16px -16px 14px !important; padding: 16px 16px 10px !important; top: -16px !important; }
+
   /* BHBC LOAD BOARD on a phone. The desktop row is a 7-column grid with a hard
      700px floor (28 + 116 + 112 + 46 + 130 + 104 + 92 + six 12px gaps), so at
      390px the two controls a coach actually TAPS on the floor — cycle

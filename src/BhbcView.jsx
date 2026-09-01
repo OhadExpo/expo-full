@@ -1389,7 +1389,7 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
             <div style={{ display: 'flex', flexDirection: 'column', maxHeight: 134, overflowY: 'auto',
               border: `1px solid ${C.cardBd}`, borderRadius: 0 }}>
               {activity.map((a, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 9px', minHeight: 33, boxSizing: 'border-box',
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 9px', minHeight: 33, flexShrink: 0, boxSizing: 'border-box',
                   borderBottom: i < activity.length - 1 ? `1px solid ${C.cardBd}` : 'none', fontFamily: FN, fontSize: 12 }}>
                   <span style={{ color: a.game ? ORANGE_DEEP : C.td, width: 62, fontVariantNumeric: 'tabular-nums', flexShrink: 0, fontWeight: a.game ? 700 : 400 }}>{a.date.slice(5)}</span>
                   {a.game ? (
