@@ -2436,9 +2436,21 @@ function RosterGrid({ rows, medical = {}, league = {}, onOpen }) {
                   the same y. lineHeight is fixed for the same reason - Heebo and
                   Nord disagree about 'normal'. */}
               <div style={{ fontFamily: FN, fontWeight: 700, fontSize: 15, lineHeight: 1.2, color: C.tx, marginTop: 3, minHeight: 36, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{t.name}</div>
-              {(() => { const inj = activeInjuries(medical, t.id)[0]; return inj
-                ? <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: medText(inj.status), marginTop: 4, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{inj.bodyPart}{inj.side && inj.side !== 'N/A' ? ` ${inj.side[0]}` : ''} · {(MED_STATUS[inj.status] || {}).label}</div>
-                : <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 4 }}>{t.position || '—'}</div>; })()}
+              {/* Position ALWAYS, injury appended - the same line every card in
+                  the zone uses. This was injury-OR-position too, so on the roster
+                  an injured athlete lost his position entirely while a fit one
+                  kept it. Ohad flagged exactly this on the load board. */}
+              {(() => {
+                const inj = activeInjuries(medical, t.id)[0];
+                const injShort = !inj ? null
+                  : `${(inj.bodyPart || '').split('/')[0].trim()}${inj.side && inj.side !== 'N/A' ? ` ${inj.side[0]}` : ''}`;
+                return (
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 4, minWidth: 0, flexWrap: 'wrap' }}>
+                    <span style={{ fontFamily: FB, fontSize: 11, color: C.td }}>{t.position || '—'}{injShort ? ' ·' : ''}</span>
+                    {injShort && <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: medText(inj.status) }}>{injShort} · {tr(inj.status)}</span>}
+                  </div>
+                );
+              })()}
               {t.arrival && t.arrival > todayISO() && <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 6, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: ORANGE_DEEP, background: `color-mix(in srgb, ${ORANGE} 12%, transparent)`, padding: '2px 6px' }}><span aria-hidden="true">✈</span> Lands {dow(t.arrival)} {monDay(t.arrival)}</div>}
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, paddingTop: 10, borderTop: `1px solid ${C.cardBd}` }}>
                 <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{heightM(t.heightCm)}</span>
