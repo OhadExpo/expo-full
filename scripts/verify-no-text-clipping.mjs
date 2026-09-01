@@ -45,7 +45,16 @@ const MEASURE = () => {
     if (cs.visibility === 'hidden' || cs.opacity === '0') return;
     const hidesX = cs.overflowX === 'hidden' || cs.textOverflow === 'ellipsis';
     // Only leaf-ish text: a wrapper's scrollWidth reflects its children.
-    const leafish = el.children.length === 0;
+    //
+    // ...EXCEPT when the element itself declares the truncation. A composite
+    // title - `BLOCK <b>#4</b> - HYPERTROPHY` - carries nowrap and ellipsis on
+    // the PARENT, so the leaf-only rule skipped it and the sweep called the
+    // page clean while the athlete read "BLOCK #4 - HYPE...". Measured on
+    // /demo/athlete at 390: scrollWidth 202 against clientWidth 152, 50px of
+    // the block name gone, and every gate reported zero. If an element sets
+    // ellipsis on itself and overflows, that is a clip whoever owns the text.
+    const declaresClip = cs.textOverflow === 'ellipsis' && cs.whiteSpace === 'nowrap';
+    const leafish = el.children.length === 0 || declaresClip;
     if (leafish && hidesX && el.scrollWidth > el.clientWidth + 1) {
       const key = 'C' + txt.slice(0, 30);
       if (!seen.has(key)) { seen.add(key); out.push({ kind: 'CLIPPED', by: el.scrollWidth - el.clientWidth, t: txt.slice(0, 40) }); }

@@ -3125,7 +3125,15 @@ const MED_STATUS = {
 };
 const medText = (st) => { const m = MED_STATUS[st] || {}; return m.text || m.color || '#DE4E3B'; };
 const BODY_PARTS = ['Ankle', 'Knee', 'Hip', 'Hamstring', 'Groin', 'Quad', 'Calf', 'Achilles', 'Lower back', 'Shoulder', 'Elbow', 'Wrist', 'Hand', 'Foot', 'Head / Concussion', 'Other'];
-const INJURY_TYPES = ['Strain', 'Sprain', 'Contusion', 'Tendinopathy', 'Overuse', 'Fracture', 'Dislocation', 'Illness', 'Other'];
+// Concussion is a TYPE, not just a body part. 'Head / Concussion' was already
+// in BODY_PARTS, so the only way to record one was to file it as a Contusion or
+// an 'Other' - which then read on the board like any soft-tissue knock and got
+// the same load-progression ladder, which is the wrong management entirely.
+const INJURY_TYPES = ['Strain', 'Sprain', 'Contusion', 'Concussion', 'Tendinopathy', 'Overuse', 'Fracture', 'Dislocation', 'Illness', 'Other'];
+// A head injury has no side and no left/right, and asking for one invites a
+// wrong answer in the record.
+const isConcussion = (inj) => /concussion/i.test((inj && (inj.type || '')) || '')
+  || /^head/i.test((inj && (inj.bodyPart || '')) || '');
 // A medical status expressed on the availability scale (1 full -> 4 out).
 // Shared by saveInjury (which mirrors it onto the day it is saved) and the
 // roster rows (which floor today's availability by any ACTIVE injury).
@@ -3493,6 +3501,47 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
           </div>
         </div>
       </CollapsibleSection>
+
+      {/* CONCUSSION — a different framework, deliberately its own section.
+          The ladder above is a LOAD progression for soft tissue: offload, restore
+          range, re-load. A head injury does not work that way, and running a
+          concussion up that ladder is the wrong management. This is the graduated
+          return-to-sport strategy (Concussion in Sport Group consensus): each step
+          at least 24 hours, symptom-limited, and the step into contact is a
+          MEDICAL decision, never the coach's and never this screen's. Collapsed by
+          default - it is reference, not a daily read. */}
+      <CollapsibleSection title={tr("Concussion — Graduated Return to Sport")} storageKey="bhbc-concussion" defaultOpen={false} leftStripe="#DE4E3B">
+        <div style={{ display: 'grid', gap: 1, background: C.cardBd, border: `1px solid ${C.cardBd}`, marginBottom: 14 }}>
+          {[
+            ['1', tr('Symptom-limited activity'), tr('Daily activities that do not provoke symptoms. No training.')],
+            ['2', tr('Light aerobic'), tr('Walking or stationary bike, low intensity. No resistance training.')],
+            ['3', tr('Sport-specific'), tr('Running and court movement, alone. No head-impact activity.')],
+            ['4', tr('Non-contact drills'), tr('Harder drills, passing, change of direction. Resistance training may resume.')],
+            ['5', tr('Full-contact practice'), tr('Only after written medical clearance. Normal training activities.')],
+            ['6', tr('Return to play'), tr('Normal game play.')],
+          ].map(([n, stage, detail]) => (
+            <div key={n} style={{ display: 'grid', gridTemplateColumns: '30px minmax(0, 150px) minmax(0, 1fr)', gap: 12, alignItems: 'center', background: 'var(--c-sf)', padding: '10px 12px' }}>
+              <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: '#DE4E3B', fontVariantNumeric: 'tabular-nums' }}>{n}</span>
+              <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.03em', color: C.tx, overflowWrap: 'anywhere' }}>{stage}</span>
+              <span style={{ fontFamily: FB, fontSize: 12, color: C.tm, lineHeight: 1.4, overflowWrap: 'anywhere' }}>{detail}</span>
+            </div>
+          ))}
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ fontFamily: FB, fontSize: 12, color: C.tx, lineHeight: 1.5 }}>
+            <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, marginRight: 8 }}>{tr('Pacing')}</span>
+            {tr('At least 24 hours per step. If symptoms come back, go back one step and try again after 24 hours symptom-free.')}
+          </div>
+          <div style={{ fontFamily: FB, fontSize: 12, color: C.tx, lineHeight: 1.5 }}>
+            <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#DE4E3B', marginRight: 8 }}>{tr('Refer out')}</span>
+            {tr('Deteriorating consciousness · repeated vomiting · seizure · worsening headache · neck pain · weakness or tingling · out-of-character behaviour — emergency assessment, same day.')}
+          </div>
+          <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, lineHeight: 1.5 }}>
+            {tr('Steps 5 and 6 need medical clearance. This screen tracks the plan; it does not clear anyone to play.')}
+          </div>
+        </div>
+      </CollapsibleSection>
+
     </>
   );
 }
@@ -3502,6 +3551,10 @@ function InjuryModal({ athlete, injury, onClose, onSave, currentUser = '' }) {
   const [bodyPart, setBodyPart] = useState(injury?.bodyPart || '');
   const [side, setSide] = useState(injury?.side || 'N/A');
   const [type, setType] = useState(injury?.type || '');
+  // A concussion has no left or right. Leaving the picker live invites a wrong
+  // answer into the record, so it is pinned to N/A while the injury is a head
+  // injury - by TYPE or by body part, since either can be chosen first.
+  const headInjury = /concussion/i.test(type || '') || /^head/i.test(bodyPart || '');
   const [onsetDate, setOnsetDate] = useState(injury?.onsetDate || todayISO());
   const [status, setStatus] = useState(injury?.status || 'out');
   const [pain, setPain] = useState(injury?.pain ?? '');
@@ -3549,7 +3602,7 @@ function InjuryModal({ athlete, injury, onClose, onSave, currentUser = '' }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div className="bhbc-form-grid" style={{ display: 'grid', gridTemplateColumns: '1.3fr 0.9fr 1.1fr', gap: 10 }}>
           <div><label style={lbl}>{tr('Body part')}</label><select value={bodyPart} onChange={(e) => setBodyPart(e.target.value)} style={sel}><option value="">— select —</option>{BODY_PARTS.map((b) => <option key={b} value={b}>{b}</option>)}</select></div>
-          <div><label style={lbl}>{tr('Side')}</label><select value={side} onChange={(e) => setSide(e.target.value)} style={sel}>{['N/A', 'Left', 'Right', 'Bilateral'].map((s) => <option key={s} value={s}>{s}</option>)}</select></div>
+          <div><label style={lbl}>{tr('Side')}</label><select value={headInjury ? 'N/A' : side} disabled={headInjury} title={headInjury ? tr('A head injury has no side.') : undefined} onChange={(e) => setSide(e.target.value)} style={{ ...sel, ...(headInjury ? { opacity: 0.5 } : null) }}>{['N/A', 'Left', 'Right', 'Bilateral'].map((s) => <option key={s} value={s}>{s}</option>)}</select></div>
           <div><label style={lbl}>{tr('Type')}</label><select value={type} onChange={(e) => setType(e.target.value)} style={sel}><option value="">—</option>{INJURY_TYPES.map((tp) => <option key={tp} value={tp}>{tp}</option>)}</select></div>
         </div>
         <div className="bhbc-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>

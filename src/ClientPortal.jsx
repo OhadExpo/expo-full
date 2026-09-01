@@ -2680,12 +2680,15 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           // inverse-video accents, everything tabular. Symmetric: banner
           // padding 10/10, groups share one baseline.
           if (hv === '4') return (
-            <div style={{borderTop:`1px solid ${C.cardBd}`,borderBottom:`1px solid ${C.cardBd}`,padding:'10px 2px',display:'flex',alignItems:'center',justifyContent:'space-between',whiteSpace:'nowrap',gap:10}}>
-              {/* min-width:0 + ellipsis so a LONG block name (e.g. "#4 — Hypertrophy…")
-                  truncates instead of shoving the LEFT group off the right edge and
-                  overflowing the phone viewport. The week + left groups are
-                  flexShrink:0 so only the label gives way. */}
-              <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',color:C.tx,lineHeight:1,minWidth:0,overflow:'hidden',textOverflow:'ellipsis'}}>{tt("BLOCK")} <span style={{color:C.ac}}>{blockLabel}</span></span>
+            <div style={{borderTop:`1px solid ${C.cardBd}`,borderBottom:`1px solid ${C.cardBd}`,padding:'10px 2px',display:'flex',alignItems:'center',justifyContent:'space-between',whiteSpace:'nowrap',gap:10,flexWrap:'wrap',rowGap:6}}>
+              {/* The block name WRAPS; it used to truncate. Truncating did stop the
+                  week + left groups being shoved off a phone, but it cost the athlete
+                  the name of the block he is training: measured on /demo/athlete at
+                  390, scrollWidth 202 against clientWidth 152 rendered "BLOCK #4 -
+                  HYPE...". Letting the row wrap gives the name a full line and moves
+                  the week group under it instead, which is the same answer the header
+                  nav needed at this width. Nothing wraps at desktop. */}
+              <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',color:C.tx,lineHeight:1.35,minWidth:0,overflowWrap:'anywhere'}}>{tt("BLOCK")} <span style={{color:C.ac}}>{blockLabel}</span></span>
               {weekDays.length > 0 && <span style={{display:'inline-flex',alignItems:'center',gap:8,fontFamily:FN,flexShrink:0}}>
                 <span style={{fontSize:11,fontWeight:700,color:C.ac,fontVariantNumeric:'tabular-nums',lineHeight:1}}>{doneThisWeek}/{weekDays.length}</span>
                 {/* squares carry a −1px lift so their geometric centre sits on the
