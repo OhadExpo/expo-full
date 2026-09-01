@@ -2061,7 +2061,7 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
           : <span style={mut}>No game scheduled.</span>}
       </Section>
       {/* AVAILABILITY */}
-      <Section label={tr("Availability")}>
+      <Section label={tr("Availability")} list>
         <span><span style={{ color: '#37B27C', fontFamily: FN, fontWeight: 800 }}>{available.length}</span> {tr('available')} <span style={mut}>·</span> <span style={{ color: limited.length ? 'var(--bhbc-amber-text, #E0A73A)' : C.tm, fontFamily: FN, fontWeight: 800 }}>{limited.length}</span> {tr('limited')} <span style={mut}>·</span> <span style={{ color: out.length ? '#DE4E3B' : C.tm, fontFamily: FN, fontWeight: 800 }}>{out.length}</span> {tr('out')}</span>
         {(out.length > 0 || limited.length > 0) && <div style={{ marginTop: 3, color: C.tm, fontSize: 12 }}>{out.length ? `${tr('out')}: ${nameList(out)}. ` : ''}{limited.length ? `${tr('limited')}: ${nameList(limited)}.` : ''}</div>}
       </Section>
