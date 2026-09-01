@@ -313,15 +313,30 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   //
   // Deriving inside the updater makes every click see the result of the one
   // before it, however fast they land.
+  // CYCLE WITHIN WHAT THE MEDICAL RECORD ALLOWS.
+  //
+  // An active injury FLOORS today's availability - the board renders
+  // max(dayAvail, injuryAvail) so a coach can never mark an injured athlete
+  // better than the medical fact. That part is right. But the cycle still ran
+  // 1..5 UNDER that floor, so for Zack Bryant with a concussion (status out,
+  // floor 4) four clicks in five changed a number nobody could see and the
+  // control looked dead. Ohad: "i can't change the availability to limited".
+  //
+  // Cycle from the floor upward instead. Floor 1 behaves exactly as before;
+  // floor 4 gives the two states actually available, Out-Med and Out-Personal.
+  // To go below the floor you change the medical record, which is where that
+  // value really lives.
   const cycleAvail = useCallback((id) => {
+    const floor = activeInjuries(medical || {}, id)
+      .reduce((worst, inj) => Math.max(worst, MEDICAL_STATUS_AVAIL[inj.status] || 1), 1);
     setBhbcLoads((prev) => {
       const rec = prev[id] ? { ...prev[id] } : emptyRec();
-      const cur = Number((rec.availability || {})[today]) || 1;
-      rec.availability = { ...(rec.availability || {}), [today]: (cur % 5) + 1 };
+      const cur = Math.max(Number((rec.availability || {})[today]) || 1, floor);
+      rec.availability = { ...(rec.availability || {}), [today]: cur >= 5 ? floor : cur + 1 };
       return { ...prev, [id]: rec };
     });
     notify();
-  }, [setBhbcLoads, today, notify]);
+  }, [setBhbcLoads, today, notify, medical]);
 
   // Edit / delete an already-logged session (Ohad 2026-08-21: sessions must be
   // fixable after the fact). Editing rewrites minutes — and load for sRPE
@@ -2183,6 +2198,8 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, onOpen, onMedical 
             <div>#</div><div>Athlete</div><div>ACWR</div><div>7d</div><div>{tr('Availability')}</div><div>Readiness</div><div style={{ textAlign: 'right' }}>14-day</div>
           </div>
           {rows.map(({ t, acwr, series, readiness, avail }) => {
+            const medFloor = activeInjuries(medical || {}, t.id)
+              .reduce((worst, inj) => Math.max(worst, MEDICAL_STATUS_AVAIL[inj.status] || 1), 1);
             const rc = readiness.level === 'red' ? BAND.high : readiness.level === 'amber' ? BAND.elevated : readiness.level === 'green' ? BAND.low : BAND.none;
             return (
               <div key={t.id} onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }} style={{ display: 'grid', gridTemplateColumns: rowGrid, gap: 12, alignItems: 'center', padding: '11px 2px', borderBottom: `1px solid ${C.cardBd}`, borderInlineStart: `2px solid ${acwr.band.color}`, paddingInlineStart: 10, marginInlineStart: -12, cursor: 'pointer', transition: 'border-color 240ms ease-out' }} className="bhbc-row bhbc-load-row">
@@ -2193,11 +2210,17 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, onOpen, onMedical 
                     ? <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: medText(inj.status), whiteSpace: 'normal', overflowWrap: 'break-word' }}>{'⚠ '}{inj.bodyPart}{inj.side && inj.side !== 'N/A' ? ` ${inj.side[0]}` : ''}</div>
                     : <div style={{ fontFamily: FB, fontSize: 11, color: C.td }}>{t.position || '—'}</div>; })()}
                 </div>
+                {/* What the MEDICAL record forces, so the cell can say so. The
+                    board renders max(dayAvail, medFloor): a coach can make today
+                    worse than the medical fact but never better, or a card would
+                    read "CONCUSSION · FULL". That rule was invisible, so clicking
+                    a floored cell looked broken. Ohad: "having an injury can still
+                    be limited on practice" - it can, and this points at where. */}
                 <div>{acwr.ratio != null ? <BandPill band={acwr.band} value={acwr.ratio.toFixed(2)} /> : <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: '0.06em' }}>· baseline</span>}</div>
                 <div style={{ fontFamily: FN, fontSize: 13, color: C.tx, fontVariantNumeric: 'tabular-nums' }}>{acwr.acute ? Math.round(acwr.acute) : '—'}</div>
                 <div>
                   {cycleAvail ? (
-                    <button onClick={(e) => { e.stopPropagation(); cycleAvail(t.id); }} title="Click to change availability" className="bhbc-ghost-btn" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, minWidth: 108, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 9px', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'color .12s, border-color .12s' }}>
+                    <button onClick={(e) => { e.stopPropagation(); cycleAvail(t.id); }} title={medFloor > 1 ? `${AVAIL[medFloor].label} comes from the medical record. Open Medical to change it — an injured athlete can still be Limited.` : 'Click to change availability'} className="bhbc-ghost-btn" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, minWidth: 108, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 9px', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'color .12s, border-color .12s' }}>
                       <span style={{ width: 7, height: 7, borderRadius: '50%', background: AVAIL[avail].color, flexShrink: 0 }} />{AVAIL[avail].label}
                     </button>
                   ) : (
