@@ -225,7 +225,12 @@ const CARD_H = 412;
 // height:auto the cards come out 421 and the list gets LONGER, 10,784 -> 10,999.
 // The ink measure counted text only; the card genuinely needs that height.
 // Left fixed. The class stays because the shared Card forwards it now.
-const CARD_MOBILE_CSS = '';
+// The 88px contact slot is sized for the worst case so every card's dividers
+// land on the same horizontal lines in a 3-up grid. That is right on a desktop
+// and pure waste on a phone, where the grid is ONE column and no two cards sit
+// side by side - an athlete with no phone got a void where the slot was
+// reserved. Same shape as the load board: correct on desktop, wrong at 390.
+const CARD_MOBILE_CSS = `@media (max-width: 700px){ .tv-contact-slot{ height: auto !important; min-height: 0 !important; } .tv-athlete-card{ height: auto !important; min-height: 412px !important; } }`;
 const FIN_SLOT = 34;   // worst case = pay label + monthly on one line
 
 const MidDot = () => <span style={{ color: C.tm, opacity: 0.5, fontSize: 11 }}>·</span>;
@@ -964,7 +969,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                   first divider below it — float card-to-card. A fixed slot
                   sized for the worst case (icon + 2-line email + phone) keeps
                   every card's dividers on the same horizontal lines. */}
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, height: 88, justifyContent: 'flex-start', paddingTop: 4, overflow: 'hidden' }}>
+              <div className="tv-contact-slot" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, height: 88, justifyContent: 'flex-start', paddingTop: 4, overflow: 'hidden' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 28 }}>
                   <WhatsAppCheckInButton name={t.name} phone={t.phone} gender={t.gender} />
                 </div>
