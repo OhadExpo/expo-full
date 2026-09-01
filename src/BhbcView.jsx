@@ -812,6 +812,12 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
              item cost three. A basis it can actually have keeps it beside its
              label. */
           .bhbc-brief-row > *:nth-child(3){flex:1 1 110px!important}
+          /* RTP ladder: 30px + 150px + gaps left the description 75.8px, so it
+             broke words mid-syllable - PROGRESSI/VELY, ISOMETRIC/S,
+             RESTRICTI/ONS - and the grid ran 933px for six one-line sentences.
+             Number and stage on line one, description full width under them. */
+          .bhbc-rtp-row{grid-template-columns:30px minmax(0,1fr)!important;row-gap:2px!important}
+          .bhbc-rtp-row > *:nth-child(3){grid-column:1 / -1!important}
         }
         @media (max-width:760px){
           /* ONE ROW. The logo is pinned and everything else scrolls past it -
@@ -2214,7 +2220,7 @@ function StaffBrief({ today, fx, rows, medical, planOf }) {
         {shown.map((r) => (
           <div key={r.k} style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
             <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm, width: 58, flexShrink: 0 }}>{r.k}</span>
-            <span style={{ fontFamily: FB, fontSize: 13, color: r.tone, minWidth: 0, overflowWrap: 'anywhere' }}>{r.v}</span>
+            <span style={{ fontFamily: FB, fontSize: 13, color: r.tone, minWidth: 0, overflowWrap: 'break-word' }}>{r.v}</span>
           </div>
         ))}
         <div style={{ display: 'flex', gap: 1, background: C.cardBd, border: `1px solid ${C.cardBd}`, marginTop: 12 }}>
@@ -2228,7 +2234,7 @@ function StaffBrief({ today, fx, rows, medical, planOf }) {
         {counts.filter((c) => c.list && c.list.length).map((c) => (
           <div key={c.k} style={{ marginTop: 10 }}>
             <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: c.color, marginInlineEnd: 8 }}>{c.k}</span>
-            <span style={{ fontFamily: FB, fontSize: 13, color: C.td, overflowWrap: 'anywhere' }}>{c.list.join('; ')}</span>
+            <span style={{ fontFamily: FB, fontSize: 13, color: C.td, overflowWrap: 'break-word' }}>{c.list.join('; ')}</span>
           </div>
         ))}
       </div>
@@ -3734,10 +3740,10 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
             ['5', 'Contact · modified', 'Full-speed contact drills with minutes capped.'],
             ['6', 'Full training → cleared', 'Complete sessions, no restrictions, then clear to play.'],
           ].map(([n, stage, detail]) => (
-            <div key={n} style={{ display: 'grid', gridTemplateColumns: '30px minmax(0, 150px) minmax(0, 1fr)', gap: 12, alignItems: 'center', background: 'var(--c-sf)', padding: '10px 12px' }}>
+            <div key={n} className="bhbc-rtp-row" style={{ display: 'grid', gridTemplateColumns: '30px minmax(0, 150px) minmax(0, 1fr)', gap: 12, alignItems: 'center', background: 'var(--c-sf)', padding: '10px 12px' }}>
               <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums' }}>{n}</span>
-              <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.03em', color: C.tx, overflowWrap: 'anywhere' }}>{stage}</span>
-              <span style={{ fontFamily: FB, fontSize: 12, color: C.tm, lineHeight: 1.4, overflowWrap: 'anywhere' }}>{detail}</span>
+              <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.03em', color: C.tx, overflowWrap: 'break-word' }}>{stage}</span>
+              <span style={{ fontFamily: FB, fontSize: 12, color: C.tm, lineHeight: 1.4, overflowWrap: 'break-word' }}>{detail}</span>
             </div>
           ))}
         </div>
@@ -3771,10 +3777,10 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
             ['5', tr('Full-contact practice'), tr('Only after written medical clearance. Normal training activities.')],
             ['6', tr('Return to play'), tr('Normal game play.')],
           ].map(([n, stage, detail]) => (
-            <div key={n} style={{ display: 'grid', gridTemplateColumns: '30px minmax(0, 150px) minmax(0, 1fr)', gap: 12, alignItems: 'center', background: 'var(--c-sf)', padding: '10px 12px' }}>
+            <div key={n} className="bhbc-rtp-row" style={{ display: 'grid', gridTemplateColumns: '30px minmax(0, 150px) minmax(0, 1fr)', gap: 12, alignItems: 'center', background: 'var(--c-sf)', padding: '10px 12px' }}>
               <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: '#DE4E3B', fontVariantNumeric: 'tabular-nums' }}>{n}</span>
-              <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.03em', color: C.tx, overflowWrap: 'anywhere' }}>{stage}</span>
-              <span style={{ fontFamily: FB, fontSize: 12, color: C.tm, lineHeight: 1.4, overflowWrap: 'anywhere' }}>{detail}</span>
+              <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.03em', color: C.tx, overflowWrap: 'break-word' }}>{stage}</span>
+              <span style={{ fontFamily: FB, fontSize: 12, color: C.tm, lineHeight: 1.4, overflowWrap: 'break-word' }}>{detail}</span>
             </div>
           ))}
         </div>

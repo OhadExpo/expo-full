@@ -66,7 +66,7 @@ function EmailsCell({ email, style }) {
     // ran 197px past the card and the second one vanished - and an address
     // you cannot read is not a contact detail. Ohad: "i cant see some of the
     // words... never do."
-    return <div style={{ ...style, whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{arr.join(', ')}</div>;
+    return <div style={{ ...style, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{arr.join(', ')}</div>;
   }
   const visible = expanded ? arr : arr.slice(0, 2);
   return (

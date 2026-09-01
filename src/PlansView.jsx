@@ -397,7 +397,7 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
                         candidate never changes the compare's height — a
                         taller/shorter compare shoved the list under the
                         cursor, which re-fired hover on another row (glitch). */}
-                    <div title={ex ? ex.title : ''} style={{ fontFamily: FB, fontSize: 13, fontWeight: 700, color: ex ? C.tx : C.td, lineHeight: 1.15, height: 30, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflowWrap: 'anywhere' }}>{ex ? ex.title : 'Highlight an exercise →'}</div>
+                    <div title={ex ? ex.title : ''} style={{ fontFamily: FB, fontSize: 13, fontWeight: 700, color: ex ? C.tx : C.td, lineHeight: 1.15, height: 30, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflowWrap: 'break-word' }}>{ex ? ex.title : 'Highlight an exercise →'}</div>
                     <div style={{ display: 'grid', gridTemplateColumns: '92px 1fr', gap: '2px 8px' }}>
                       {PARAM_ROWS.map(([lab, k]) => {
                         const v = ex ? (ex[k] || '—') : '—';
@@ -496,7 +496,7 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-                      <div style={{ fontWeight: 600, fontSize: 13, color: C.tx, lineHeight: 1.25, flex: 1, overflowWrap: 'anywhere' }}>{ex.title}</div>
+                      <div style={{ fontWeight: 600, fontSize: 13, color: C.tx, lineHeight: 1.25, flex: 1, overflowWrap: 'break-word' }}>{ex.title}</div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0 }}>
                         {/* Media / notes indicators — show at a glance which library
                             exercises already have a demo video (cyan) and coaching
@@ -996,7 +996,7 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExerc
                   onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleWuExpand(i); } }}
                   style={{ color: C.tx, minWidth: 0, borderLeft: '3px solid transparent', paddingLeft: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ color: C.ac, fontSize: 11, fontWeight: 700, lineHeight: 1, flexShrink: 0, transform: wuOpen ? 'none' : 'rotate(-90deg)', transition: 'transform 150ms ease' }}>▾</span>
-                  <span style={{ overflowWrap: 'anywhere', wordBreak: 'break-word', color: w.t ? C.tx : C.td }}>{w.t || 'New warm-up — click to name'}</span>
+                  <span style={{ overflowWrap: 'break-word', wordBreak: 'break-word', color: w.t ? C.tx : C.td }}>{w.t || 'New warm-up — click to name'}</span>
                 </div>
                 <input type="number" value={w.sets ?? ''} onChange={e => update(i, { sets: e.target.value === '' ? '' : (parseInt(e.target.value) || 0) })} placeholder="1" style={tinyInput} />
                 <input value={w.reps ?? ''} onChange={e => update(i, { reps: e.target.value })} placeholder="10 / 30s" style={tinyInput} />
@@ -4527,7 +4527,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                   <span style={{display:'flex',alignItems:'center',gap:9,minWidth:0}}>
                     <span aria-hidden style={{width:3,height:14,background:C.ac,flexShrink:0}} />
                     <BhbcBadge tid={row.tid} trainees={trainees} />
-                    <bdi style={{fontWeight:700,fontSize:13,letterSpacing:'0.04em',color:'#FFFFFF',overflowWrap:'anywhere'}}>{row.name}</bdi>
+                    <bdi style={{fontWeight:700,fontSize:13,letterSpacing:'0.04em',color:'#FFFFFF',overflowWrap:'break-word'}}>{row.name}</bdi>
                   </span>
                   <span style={{display:'inline-flex',alignItems:'center',gap:10,flexShrink:0}}>
                     <button onClick={e=>{e.stopPropagation();setLineageTraineeId(row.tid);}} title="Training Analysis — this athlete's movement-pattern volume across every block"
@@ -4708,7 +4708,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                 <span style={{display:'flex',alignItems:'center',gap:9,minWidth:0}}>
                   <span aria-hidden style={{width:3,height:14,background:C.ac,flexShrink:0}} />
                   <BhbcBadge tid={row.tid} trainees={trainees} />
-                  <bdi style={{fontWeight:700,fontSize:13,letterSpacing:'0.04em',color:'#FFFFFF',overflowWrap:'anywhere'}}>{row.name}</bdi>
+                  <bdi style={{fontWeight:700,fontSize:13,letterSpacing:'0.04em',color:'#FFFFFF',overflowWrap:'break-word'}}>{row.name}</bdi>
                 </span>
                 <span style={{display:'inline-flex',alignItems:'center',gap:10,flexShrink:0}}>
                   <button onClick={e=>{e.stopPropagation();setLineageTraineeId(row.tid);}} title="Training Analysis — this athlete's movement-pattern volume across every block"

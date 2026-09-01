@@ -2688,7 +2688,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                   HYPE...". Letting the row wrap gives the name a full line and moves
                   the week group under it instead, which is the same answer the header
                   nav needed at this width. Nothing wraps at desktop. */}
-              <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',color:C.tx,lineHeight:1.35,minWidth:0,overflowWrap:'anywhere'}}>{tt("BLOCK")} <span style={{color:C.ac}}>{blockLabel}</span></span>
+              <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',color:C.tx,lineHeight:1.35,minWidth:0,overflowWrap:'break-word'}}>{tt("BLOCK")} <span style={{color:C.ac}}>{blockLabel}</span></span>
               {weekDays.length > 0 && <span style={{display:'inline-flex',alignItems:'center',gap:8,fontFamily:FN,flexShrink:0}}>
                 <span style={{fontSize:11,fontWeight:700,color:C.ac,fontVariantNumeric:'tabular-nums',lineHeight:1}}>{doneThisWeek}/{weekDays.length}</span>
                 {/* squares carry a −1px lift so their geometric centre sits on the
@@ -3308,7 +3308,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                     count ≈ 3.28 above — so lift = 3.28−0.333·size (−1.05px at
                     size 13). Same value for "(N)" and "N EX". */}
                 <span style={{display:'inline-flex',alignItems:'baseline',gap:7,whiteSpace:'nowrap',minWidth:0,lineHeight:1}}>
-                  <span style={{fontWeight:700,fontSize:size,fontFamily:FN,letterSpacing:tracking,textTransform:'uppercase',lineHeight:1,color:ident==='EDITORIAL'&&accent===C.or?C.or:(accent===C.or?C.or:C.tx),overflowWrap:'anywhere'}}>{title}</span>
+                  <span style={{fontWeight:700,fontSize:size,fontFamily:FN,letterSpacing:tracking,textTransform:'uppercase',lineHeight:1,color:ident==='EDITORIAL'&&accent===C.or?C.or:(accent===C.or?C.or:C.tx),overflowWrap:'break-word'}}>{title}</span>
                   <span style={{fontSize:10,color:countColor || C.tm,fontFamily:FN,letterSpacing:'0.08em',textTransform:'uppercase',lineHeight:1,transform:`translateY(${(3.28 - 0.333 * size).toFixed(2)}px)`,...(countColor?{opacity:0.65}:{})}}>{count}</span>
                 </span>
                 {extras}

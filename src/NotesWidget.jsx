@@ -132,7 +132,7 @@ function MiniTaskRow({ n, stackBoard, onClick, stripe }) {
       {name && (
         <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 800, letterSpacing: nameHeb ? 0 : '0.04em', textTransform: nameHeb ? 'none' : 'uppercase', color: 'var(--c-tx)', flexShrink: 0, maxWidth: '45%', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
       )}
-      <span style={{ fontFamily: heb ? FH : FB, direction: heb ? 'rtl' : 'ltr', textAlign: 'center', color: name ? 'var(--c-tm)' : 'var(--c-tx)', flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>{body}</span>
+      <span style={{ fontFamily: heb ? FH : FB, direction: heb ? 'rtl' : 'ltr', textAlign: 'center', color: name ? 'var(--c-tm)' : 'var(--c-tx)', flex: 1, minWidth: 0, overflowWrap: 'break-word' }}>{body}</span>
       {kindLabel && (
         <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: kindTone, border: `1px solid ${kindTone}`, padding: '2px 5px', lineHeight: 1, flexShrink: 0 }}>{kindLabel}</span>
       )}
@@ -1074,7 +1074,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                   </span>
                   <span dir="auto" style={{
                     flex: 1, minWidth: 0, fontSize: 12, color: 'var(--c-tm)', lineHeight: 1.4,
-                    textDecoration: 'line-through', overflowWrap: 'anywhere',
+                    textDecoration: 'line-through', overflowWrap: 'break-word',
                     textAlign: 'center', fontFamily: FB,
                   }}>{displayBodyOf(n.body)}</span>
                   <span style={{ flexShrink: 0, fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>

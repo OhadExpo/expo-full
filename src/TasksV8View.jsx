@@ -1295,7 +1295,7 @@ export function CommentsThread({ noteId, viewer }) {
                 whiteSpace: 'pre-wrap',
                 // Break long unbroken strings (a pasted URL has no spaces, so
                 // pre-wrap alone let it run past the card's right edge).
-                overflowWrap: 'anywhere', wordBreak: 'break-word',
+                overflowWrap: 'break-word', wordBreak: 'break-word',
               }}>{c.body}</div>
             )}
             {Array.isArray(c.mentions) && c.mentions.length > 0 && !editing && (

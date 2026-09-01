@@ -429,7 +429,7 @@ export default function NotesInline({
                 <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                   <span dir="auto" style={{
                     flex: 1, minWidth: 0, fontSize: 12, color: 'var(--c-tm)', lineHeight: 1.4, textDecoration: 'line-through',
-                    textAlign: 'center', overflowWrap: 'anywhere', fontFamily: FB,
+                    textAlign: 'center', overflowWrap: 'break-word', fontFamily: FB,
                   }}>{n.body}</span>
                   <span style={{ flexShrink: 0, fontFamily: FN, fontSize: 9, color: n.status === 'cancelled' ? 'var(--c-or)' : 'var(--c-td)', letterSpacing: '0.08em', fontWeight: n.status === 'cancelled' ? 700 : 400, whiteSpace: 'nowrap' }}>
                     {n.status === 'cancelled'

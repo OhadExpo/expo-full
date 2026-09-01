@@ -369,7 +369,7 @@ function DemoDashboard({ onJumpToTrainee }) {
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderTop: i ? `1px solid ${C.cardBd}` : 'none' }}>
               <span style={{ width: 7, height: 7, borderRadius: '50%', background: m.unread ? C.ac : 'transparent', border: m.unread ? 'none' : `1px solid ${C.td}`, flexShrink: 0 }} />
               <span style={{ fontFamily: FB, fontWeight: 600, fontSize: 13, color: C.tx, flexShrink: 0, minWidth: 0, maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
-              <span style={{ fontFamily: FB, fontSize: 12, color: m.unread ? C.tx : C.tm, flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>{m.msg}</span>
+              <span style={{ fontFamily: FB, fontSize: 12, color: m.unread ? C.tx : C.tm, flex: 1, minWidth: 0, overflowWrap: 'break-word' }}>{m.msg}</span>
               <span style={{ fontFamily: FN, fontSize: 10, color: C.td, flexShrink: 0 }}>{m.when}</span>
             </div>
           ))}
@@ -438,7 +438,7 @@ function DemoDashboard({ onJumpToTrainee }) {
                   {/* Reserved leading slot so every email starts at one x whether or not
                       the lead has a COACH source tag. */}
                   <span style={{ width: 46, flexShrink: 0, display: 'inline-flex', alignItems: 'center' }}>{l.coach && <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: C.ac, border: `1px solid ${C.ac}`, padding: '2px 5px' }}>COACH</span>}</span>
-                  <div style={{ fontWeight: 600, color: C.tx, whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{l.email}</div>
+                  <div style={{ fontWeight: 600, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{l.email}</div>
                 </div>
                 <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, letterSpacing: 1 }}>{l.source.toUpperCase()} · {l.context.toUpperCase()}</div>
               </div>
@@ -868,7 +868,7 @@ function TraineeCard({ t, onClick }) {
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, height: 80, justifyContent: 'flex-start', paddingTop: 4, overflow: 'hidden' }}>
         <FakeWaButton />
         {t.phone && <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 0.5, textAlign: 'center' }}>{t.phone}</div>}
-        <div style={{ fontSize: 12, color: C.tm, textAlign: 'center', whiteSpace: 'normal', overflowWrap: 'anywhere', maxWidth: '100%' }}>{t.email}</div>
+        <div style={{ fontSize: 12, color: C.tm, textAlign: 'center', whiteSpace: 'normal', overflowWrap: 'break-word', maxWidth: '100%' }}>{t.email}</div>
       </div>
       <FinancialsBlock t={t} center />
       <TrainingBlock t={t} center />
@@ -2088,7 +2088,7 @@ function DemoPrograms({ resetToken = 0 }) {
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '8px 14px' }}>
                         <span style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
                           <span aria-hidden style={{ width: 3, height: 14, background: C.ac, flexShrink: 0 }} />
-                          <bdi style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', color: '#FFFFFF', overflowWrap: 'anywhere' }}>{row.name}</bdi>
+                          <bdi style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', color: '#FFFFFF', overflowWrap: 'break-word' }}>{row.name}</bdi>
                         </span>
                         {/* Recency: colour on the DOT, muted text, fixed min-width so
                             all read the same size — parity with the real Programs
@@ -2527,7 +2527,7 @@ function DemoPrograms({ resetToken = 0 }) {
                           <span style={{ color: C.tm, fontFamily: FN, fontWeight: 700, fontSize: 12 }}>{ei + 1}</span>
                         </div>
                         <div title={ex.name}
-                          style={{ color: C.tx, fontFamily: FB, fontSize: 12, minWidth: 0, overflowWrap: 'anywhere', wordBreak: 'break-word', borderLeft: `3px solid ${ex.superset ? sc : 'transparent'}`, paddingLeft: 6 }}>{ex.name}</div>
+                          style={{ color: C.tx, fontFamily: FB, fontSize: 12, minWidth: 0, overflowWrap: 'break-word', wordBreak: 'break-word', borderLeft: `3px solid ${ex.superset ? sc : 'transparent'}`, paddingLeft: 6 }}>{ex.name}</div>
                         <input value={ex.superset || ''} readOnly tabIndex={-1} style={{ ...tinyRO, color: ex.superset ? sc : C.td, fontFamily: FN, fontWeight: 600 }} />
                         <input value={ex.sets ?? ''} readOnly tabIndex={-1} style={tinyRO} />
                         <input value={ex.reps || ''} readOnly tabIndex={-1} style={tinyRO} />
@@ -2670,7 +2670,7 @@ function DemoPrograms({ resetToken = 0 }) {
                             <span style={{ color: C.tm, fontFamily: FN, fontWeight: 700, fontSize: 12 }}>{ei + 1}</span>
                           </div>
                           <div title={ex.name}
-                            style={{ color: C.tx, fontFamily: FB, fontSize: 12, minWidth: 0, overflowWrap: 'anywhere', wordBreak: 'break-word', borderLeft: `3px solid ${ex.superset ? sc : 'transparent'}`, paddingLeft: 6 }}>{ex.name}</div>
+                            style={{ color: C.tx, fontFamily: FB, fontSize: 12, minWidth: 0, overflowWrap: 'break-word', wordBreak: 'break-word', borderLeft: `3px solid ${ex.superset ? sc : 'transparent'}`, paddingLeft: 6 }}>{ex.name}</div>
                           <input value={ex.superset || ''} readOnly tabIndex={-1} style={{ ...tinyRO, background: ex.superset ? `color-mix(in srgb, ${sc} 20%, var(--c-sf))` : undefined, border: ex.superset ? `1px solid ${sc}` : tinyRO.border, color: ex.superset ? C.tx : C.td, fontFamily: FN, fontWeight: ex.superset ? 800 : 600, textAlign: 'center' }} />
                           <input value={ex.sets ?? ''} readOnly tabIndex={-1} style={tinyRO} />
                           <input value={ex.reps || ''} readOnly tabIndex={-1} style={tinyRO} />
