@@ -768,6 +768,17 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
              one left edge. Single-value sections keep the float, where it costs
              no row. */
           .bhbc-labelrow-list > div:first-child{float:none!important;display:block!important;margin:0 0 5px 0!important}
+          /* This-week rows fit on ONE line. Measured at 390: the row gets 301px
+             and wanted 349 - date box 96 for 72px of ink, time box 46 for 35,
+             label 133, action 44, three 10px gaps. Trimming each fixed column to
+             its real ink (74 / 38) and the gap to 7 buys 39px, and 11px type on
+             the label buys the rest. 74 is above the 72px widest date, so no
+             date wraps - which is what went wrong when this was tried at 78 in
+             an earlier pass and the column read ragged. */
+          .bhbc-week-row{gap:7px!important}
+          .bhbc-week-row > span:nth-child(1){width:74px!important}
+          .bhbc-week-row > span:nth-child(2){width:38px!important}
+          .bhbc-week-row > span:nth-child(3){font-size:11px!important}
         }
         @media (max-width:760px){
           /* ONE ROW. The logo is pinned and everything else scrolls past it -
