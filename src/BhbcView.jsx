@@ -200,6 +200,15 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   // biggest load a player takes and the board could not see them at all.
   const [minutesFor, setMinutesFor] = useState(null);
   const [view, setView] = useState('overview');   // overview | schedule | roster
+  // KEEP THE TAB YOU ARE ON IN VIEW. The bar is a horizontal scroller with a
+  // pinned crest (his rule), and the scrollbar is hidden by design - so on a
+  // phone the ACTIVE tab could sit entirely off-screen: measured on MEDICAL,
+  // the current tab was 166px past the right edge with nothing to indicate it.
+  const navRef = React.useRef(null);
+  React.useEffect(() => {
+    const el = navRef.current && navRef.current.querySelector('[aria-selected="true"]');
+    if (el && el.scrollIntoView) el.scrollIntoView({ inline: 'center', block: 'nearest' });
+  }, [view]);
   const [schedMode, setSchedMode] = useState('calendar'); // calendar | list
   const [sessionMode, setSessionMode] = useState('group'); // group | single
   // Owner-only "Preview as coach": renders the exact reduced surface a club coach
@@ -865,7 +874,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
           {/* minWidth: 0 (NOT max-content) — the strip must be allowed to shrink
               below its tabs so overflowX:auto actually scrolls on mobile instead
               of the zone's overflow-x:clip amputating the tail tabs. */}
-          <nav className="bhbc-hdr-tabs" style={{ display: 'flex', alignItems: 'center', justifyContent: 'safe center', gap: 6, flex: '1 1 auto', minWidth: 0, overflowX: 'auto' }}>
+          <nav ref={navRef} className="bhbc-hdr-tabs" style={{ display: 'flex', alignItems: 'center', justifyContent: 'safe center', gap: 6, flex: '1 1 auto', minWidth: 0, overflowX: 'auto' }}>
             {roster.length > 0 && NAV_TABS.map(([k, label]) => {
               const on = view === k;
               return (

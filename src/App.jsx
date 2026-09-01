@@ -636,6 +636,10 @@ function AuthGate() {
 }
 
 function AuthedApp() {
+  // Keep the ACTIVE destination in view. The header is a horizontal scroller
+  // with a pinned logo and a hidden scrollbar, so on a phone the tab you are on
+  // could sit entirely off-screen - measured: 7 of 9 destinations past x=390.
+  const coachNavRef = React.useRef(null);
   const { session, signOut: rawSignOut } = useAuth();
   const email = (session?.user?.email || '').toLowerCase();
   // BHBC basketball coach: their whole app is the /bhbc zone. Defined up here so
@@ -1086,6 +1090,10 @@ function AuthedApp() {
   const t = useCallback((str) => trFn(lang, str), [lang]);
   useEffect(() => { try { localStorage.setItem(LANG_KEY, lang); } catch {} }, [lang]);
 
+  React.useEffect(() => {
+    const el = coachNavRef.current && coachNavRef.current.querySelector('[aria-current="page"], [aria-selected="true"]');
+    if (el && el.scrollIntoView) el.scrollIntoView({ inline: 'center', block: 'nearest' });
+  }, [tab]);
   const navTo = useCallback((newTab, newTrainee, hash) => {
     // Staff (non-owner coach) can never navigate to an owner-only tab — not even
     // via a cross-tab action button surfaced on their dashboard/tasks (e.g. a
@@ -1515,7 +1523,7 @@ function AuthedApp() {
         `}</style>
         <div className="hdr-scroll" style={{maxWidth:1360,margin:"0 auto",padding:"0 16px",display:"flex",alignItems:"center",height:56,overflowX:"visible",WebkitOverflowScrolling:"touch",msOverflowStyle:"none",scrollbarWidth:"none"}}>
           <EXPOMark height={36} onClick={()=>navTo('dashboard')} title="Back to dashboard" style={{flex:"0 0 auto",marginRight:12,cursor:'pointer'}} />
-          <nav className="hdr-scroll" style={{display:"flex",gap:6,alignItems:"center",flex:"1 1 auto",justifyContent:"center",minWidth:0,overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
+          <nav ref={coachNavRef} className="hdr-scroll" style={{display:"flex",gap:6,alignItems:"center",flex:"1 1 auto",justifyContent:"center",minWidth:0,overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
             {/* alignItems:'baseline' overrides baseBtn's 'center' so the
                 count digit (fontSize:10) baseline-aligns with the label
                 (fontSize:11) instead of floating above it. See CoachDemo
