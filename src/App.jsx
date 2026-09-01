@@ -1483,7 +1483,13 @@ function AuthedApp() {
                rule, so the header became two rows on every phone. The bar
                itself is the scroller now and the logo is sticky at its left. */
             div.hdr-scroll { flex-wrap: nowrap !important; height: 56px !important; overflow-x: auto !important; overflow-y: hidden !important; padding-left: 16px !important; padding-right: 0 !important; }
-            div.hdr-scroll > img, div.hdr-scroll > a:first-child, div.hdr-scroll > :first-child { position: sticky; left: 0; z-index: 3; background: var(--c-headerBg, #0a0a0b); }
+            /* Opaque, with an edge - otherwise the nav scrolls UNDER the logo and
+               shows through it. The header's own background is the only correct
+               fill here, and it differs per theme. */
+            div.hdr-scroll > :first-child { position: sticky; left: 0; z-index: 3; background: inherit;
+              align-self: stretch; display: flex; align-items: center; padding-right: 12px;
+              border-inline-end: 1px solid var(--c-cardBd); box-shadow: 6px 0 10px -6px rgba(0,0,0,0.35); }
+            div.hdr-scroll { background: inherit; }
             nav.hdr-scroll { flex: 0 0 auto !important; overflow: visible !important; min-width: 0 !important; }
             .hdr-right { flex: 0 0 auto !important; margin-left: 8px !important; padding-right: 16px !important; }
           }

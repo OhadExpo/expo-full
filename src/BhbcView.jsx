@@ -761,6 +761,13 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
           .bhbc-labelrow{display:block!important}
           .bhbc-labelrow > div:first-child{float:inline-start;width:auto!important;min-width:0!important;margin-inline-end:8px;line-height:1.55}
           .bhbc-labelrow::after{content:'';display:block;clear:both}
+          /* A LIST does not float its label. Floating indents only the first
+             line, so item one sat at x=120 beside the label while items two to
+             six started at x=43 - Ohad: "most of the text in the titles is
+             misaligned". For a list the label goes above and every row shares
+             one left edge. Single-value sections keep the float, where it costs
+             no row. */
+          .bhbc-labelrow-list > div:first-child{float:none!important;display:block!important;margin:0 0 5px 0!important}
         }
         @media (max-width:760px){
           /* ONE ROW. The logo is pinned and everything else scrolls past it -
@@ -772,7 +779,15 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
           .bhbc-header-inner{flex-wrap:nowrap!important;gap:0!important;padding:0 0 0 14px!important;min-height:52px!important;overflow-x:auto!important;overflow-y:hidden!important;-webkit-overflow-scrolling:touch}
           .bhbc-header-inner::-webkit-scrollbar{display:none}
           .bhbc-header-inner{scrollbar-width:none;-ms-overflow-style:none}
-          .bhbc-header-id{position:sticky!important;left:0!important;z-index:3!important;flex:0 0 auto!important;background:#0E1C38!important;padding:0 12px 0 0!important;margin-left:-14px!important;padding-left:14px!important}
+          /* The pinned identity block must be OPAQUE and must have an EDGE, or
+             the tabs scroll UNDER it and show through - Ohad: "the side
+             scrolling doesnt have borders and underflows under the logo". Solid
+             fill, a hairline on its trailing edge, and a short shadow so the
+             content visibly passes behind it. align-items centre so the crest
+             sits on the row's axis, not its top. */
+          .bhbc-header-id{position:sticky!important;left:0!important;z-index:3!important;flex:0 0 auto!important;align-self:stretch!important;display:flex!important;align-items:center!important;background:#0E1C38!important;margin-left:-14px!important;padding:0 12px 0 14px!important;border-inline-end:1px solid rgba(255,255,255,0.14)!important;box-shadow:6px 0 10px -6px rgba(0,0,0,0.55)!important}
+          /* The crest already says who this is; the words are 150px of a 390px bar. */
+          .bhbc-wordmark{display:none!important}
           .bhbc-header-ctrl{order:3!important;flex:0 0 auto!important;padding:0 14px 0 0!important;margin-left:0!important}
           .bhbc-hdr-tabs{order:2!important;flex:0 0 auto!important;width:auto!important;overflow:visible!important;justify-content:flex-start!important;border-top:none!important}
           .bhbc-hdr-tabs button{height:52px!important;padding:0 12px!important}
@@ -795,7 +810,9 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
       <header style={{ position: 'sticky', top: 0, zIndex: 50, background: HDR_BG, borderBottom: '1px solid rgba(255,255,255,0.07)', boxShadow: '0 2px 10px rgba(0,0,0,0.30)' }}>
         <div className="bhbc-header-inner" style={{ maxWidth: 1280, margin: '0 auto', padding: '0 18px', minHeight: 54, display: 'flex', alignItems: 'center', gap: 14 }}>
           <div className="bhbc-header-id" style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, marginRight: 6 }}>
-            <img src="/bnei-herzliya-logo-w.png" alt="Bnei Herzliya BC" style={{ height: 30, width: 'auto', display: 'block' }} />
+            {/* The crest goes HOME, like the EXPO logo does. */}
+            <img src="/bnei-herzliya-logo-w.png" alt="Bnei Herzliya BC" onClick={() => setView('overview')}
+              style={{ height: 30, width: 'auto', display: 'block', cursor: 'pointer' }} title={tr('Overview')} />
             {/* Wordmark on ONE line (Ohad: no stacked text in the top menu). */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 11, whiteSpace: 'nowrap' }}>
               {/* lineHeight:1 on BOTH, or they do not sit on the same line:
@@ -805,8 +822,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
                   2026/2027 is not vertically centered"). With line-height
                   pinned to the glyph size, centring the boxes centres the text.
                   Season bumped 9.5 → 11 ("slightly too small"). */}
-              <span style={{ fontFamily: FN, fontWeight: 800, fontSize: 13, lineHeight: 1, color: '#fff', letterSpacing: '0.02em' }}>{tr('BNEI HERZLIYA')}</span>
-              <span style={{ fontFamily: FN, fontSize: 11, lineHeight: 1, fontWeight: 700, letterSpacing: '0.08em', color: ORANGE, fontVariantNumeric: 'tabular-nums' }}>2026/27</span>
+              <span className="bhbc-wordmark" style={{ fontFamily: FN, fontWeight: 800, fontSize: 13, lineHeight: 1, color: '#fff', letterSpacing: '0.02em' }}>{tr('BNEI HERZLIYA')}</span>
             </div>
           </div>
           {/* Understated EXPO-style nav: tight left-aligned small tabs, active tab is
@@ -1964,8 +1980,8 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
   // every value wraps three deep - which is what Ohad was looking at when he
   // said nothing is aligned. The class does the stacking in CSS so desktop is
   // untouched.
-  const Section = ({ label, children, last }) => (
-    <div className="bhbc-labelrow" style={{ display: 'flex', gap: 14, alignItems: 'flex-start', padding: last ? '11px 2px 0' : '11px 2px', borderBottom: last ? 'none' : `1px solid ${C.cardBd}` }}>
+  const Section = ({ label, children, last, list }) => (
+    <div className={list ? 'bhbc-labelrow bhbc-labelrow-list' : 'bhbc-labelrow'} style={{ display: 'flex', gap: 14, alignItems: 'flex-start', padding: last ? '11px 2px 0' : '11px 2px', borderBottom: last ? 'none' : `1px solid ${C.cardBd}` }}>
       <div style={lbl}>{label}</div>
       <div style={{ flex: 1, minWidth: 0, fontFamily: FB, fontSize: 13, color: C.tx, lineHeight: 1.5 }}>{children}</div>
     </div>
@@ -1984,7 +2000,7 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
         {(out.length > 0 || limited.length > 0) && <div style={{ marginTop: 3, color: C.tm, fontSize: 12 }}>{out.length ? `${tr('out')}: ${nameList(out)}. ` : ''}{limited.length ? `${tr('limited')}: ${nameList(limited)}.` : ''}</div>}
       </Section>
       {/* MEDICAL */}
-      <Section label={tr("Medical")}>
+      <Section label={tr("Medical")} list>
         {injuries.length
           ? <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(330px, 100%), 1fr))', columnGap: 26, rowGap: 5 }}>
               {injuries.slice(0, 6).map(({ t, inj }, i) => {
@@ -2015,7 +2031,7 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
             </span>}
       </Section>
       {/* THIS WEEK — team sessions */}
-      <Section label={tr("This week")} last>
+      <Section label={tr("This week")} list last>
         {sessions.length
           ? <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(330px, 100%), 1fr))', columnGap: 26, rowGap: 5 }}>
               {sessions.slice(0, 6).map((s, i) => {
@@ -2032,6 +2048,7 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
                   // being crushed to "PR…". The action still never breaks: it
                   // wraps whole rather than sliding off the viewport, which was
                   // the failure the fixed columns were protecting against.
+                  className="bhbc-week-row"
                   style={{ display: 'flex', alignItems: 'center', lineHeight: 'normal', gap: 10, rowGap: 2, flexWrap: 'wrap', cursor: clickable ? 'pointer' : 'default', padding: '2px 0' }}>
                   {/* 96 + nowrap, same as the past-practice list: at 78px some dates
                       wrapped to two lines and others did not, so the column read
