@@ -3912,13 +3912,25 @@ function InjuryModal({ athlete, injury, onClose, onSave, currentUser = '' }) {
           <div><label style={lbl}>{tr('Type')}</label><select value={type} onChange={(e) => setType(e.target.value)} style={sel}><option value="">—</option>{INJURY_TYPES.map((tp) => <option key={tp} value={tp}>{tp}</option>)}</select></div>
         </div>
         <div className="bhbc-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
-          <Input label={tr('Onset date')} type="date" value={onsetDate} onChange={(e) => setOnsetDate(e.target.value)} />
+          {/* The modal renders through a PORTAL, outside .bhbc-zone, so the zone's
+              token overrides never reach the shared Input - measured, its label
+              came out rgb(8,102,143) at 1.62px tracking beside rgb(74,82,99) at
+              1.44 on every label around it. Same local label as the rest of the
+              form, so one form has one label style. */}
+          <div><label style={lbl}>{tr('Onset date')}</label>
+            <input type="date" value={onsetDate} onChange={(e) => setOnsetDate(e.target.value)} style={sel} /></div>
           <div><label style={lbl}>{tr('Pain (0–10)')}</label><input type="number" min="0" max="10" value={pain} onChange={(e) => setPain(e.target.value)} placeholder="—" style={sel} /></div>
-          <Input label={tr('Return-to-play target')} type="date" value={rtpTarget} onChange={(e) => setRtpTarget(e.target.value)} />
+          <div><label style={lbl}>{tr('Return-to-play target')}</label>
+            <input type="date" value={rtpTarget} onChange={(e) => setRtpTarget(e.target.value)} style={sel} /></div>
         </div>
         <div>
           <label style={lbl}>{tr('Current status')}</label>
-          <div style={{ display: 'inline-flex', border: `1px solid ${C.cardBd}`, flexWrap: 'wrap' }}>
+          {/* A 2x2 grid of EQUAL cells, not a wrapping inline row. Wrapping sized
+              each option to its own label, so AVAILABLE / LIMITED / NON-CONTACT
+              filled line one and OUT dropped alone onto line two at a different
+              width - four peer options, four different boxes. This is the PT's
+              most-used control. */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', border: `1px solid ${C.cardBd}` }}>
             {Object.entries(MED_STATUS).map(([k, s]) => (
               <button key={k} type="button" onClick={() => setStatus(k)} style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: status === k ? '#fff' : C.td, background: status === k ? s.color : 'transparent', border: 'none', padding: '7px 14px', cursor: 'pointer' }}>{s.label}</button>
             ))}

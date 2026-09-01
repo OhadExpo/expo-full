@@ -147,12 +147,17 @@ export const asButton = (handler) => ({
 // ISO (YYYY-MM-DD) → Israeli dd/mm/yyyy, or the placeholder when empty.
 const fmtDMY = (iso) => { if (!iso) return 'DD/MM/YYYY'; const [y, m, d] = String(iso).split('-'); return (d && m && y) ? `${d}/${m}/${y}` : 'DD/MM/YYYY'; };
 
+// Field labels align to the START of the line, like every other label in the
+// product. These three shared inputs centred theirs, so a form mixed centred
+// and left-aligned labels in the same column - Ohad on the injury modal:
+// "nothing is aligned, random". ONSET DATE and RETURN-TO-PLAY TARGET sat
+// centred between BODY PART, SIDE, TYPE and PAIN, which do not.
 export const Input = ({ label, style: s, id, ...props }) => {
   const autoId = React.useId();
   const inputId = id || autoId;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-      {label && <label htmlFor={inputId} style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: "uppercase", letterSpacing: "0.18em", fontFamily: FN, textAlign: "center" }}>{label}</label>}
+      {label && <label htmlFor={inputId} style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: "uppercase", letterSpacing: "0.18em", fontFamily: FN, textAlign: "start" }}>{label}</label>}
       {props.type === 'date' ? (
         // Native <input type=date> renders the BROWSER-LOCALE format (MM/DD/YYYY on
         // en-US machines, which is what Ohad's browser is). Overlay a dd/mm/yyyy span
@@ -196,7 +201,7 @@ export const Select = ({ label, options, value, onChange, placeholder }) => {
   const selectId = React.useId();
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-      {label && <label htmlFor={selectId} style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: "uppercase", letterSpacing: "0.18em", fontFamily: FN, textAlign: "center" }}>{label}</label>}
+      {label && <label htmlFor={selectId} style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: "uppercase", letterSpacing: "0.18em", fontFamily: FN, textAlign: "start" }}>{label}</label>}
       <select id={selectId} value={value || ""} onChange={e => onChange(e.target.value)} style={{ ...baseInput, appearance: "none", paddingRight: 30 }}>
         {/* disabled+hidden: the placeholder is display-only when nothing is
             selected — it never appears as a pickable item in the dropdown
@@ -213,7 +218,7 @@ export const TextArea = ({ label, id, ...props }) => {
   const taId = id || autoId;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-      {label && <label htmlFor={taId} style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: "uppercase", letterSpacing: "0.18em", fontFamily: FN, textAlign: "center" }}>{label}</label>}
+      {label && <label htmlFor={taId} style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: "uppercase", letterSpacing: "0.18em", fontFamily: FN, textAlign: "start" }}>{label}</label>}
       <textarea id={taId} style={{ ...baseInput, minHeight: 60, resize: "vertical" }} {...props} />
     </div>
   );
