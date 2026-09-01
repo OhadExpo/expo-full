@@ -330,7 +330,7 @@ function DemoDashboard({ onJumpToTrainee }) {
         <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', color: '#FFFFFF', padding: '0 14px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', borderBottom: `1px solid ${C.cardBd}`, ...DEMO_STRIP_H }}>
           TASKS ({DEMO_TASKS.filter(t => t.status !== 'done').length})
         </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: 10 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: 10, alignItems: 'flex-start' }}>
           {STATUS_COLS.slice(0, 4).map(col => {
             const rows = DEMO_TASKS.filter(t => t.status === col.id);
             return (
