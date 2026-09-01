@@ -641,7 +641,7 @@ export function scoreShot(series, c, { statureCm = null, shotType = 'mid', ballO
     // failure, so it fell through the ballWhy branch above and the screen
     // said nothing at all about that rep.
     ballPartial: ballLaunch && !ballLaunch.failed && ballLaunch.angleDeg == null
-      ? (ballLaunch.ascentMissing ? 'ascent' : 'unreadable') : null,
+      ? (ballLaunch.ascentMissing ? 'ascent' : ballLaunch.flatFlight ? 'flat' : 'unreadable') : null,
     // Real-world units, scaled by the ball's own 0.24 m width. Null unless the
     // flight was tracked well enough to trust the scale.
     ballSpeedMs: ballLaunch && !ballLaunch.failed ? ballLaunch.speedMs : null,

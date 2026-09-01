@@ -17,7 +17,7 @@
     // video. Slower, but it sees every frame regardless of machine load - which
     // is the whole question, since the same clip returns 11, 10 or 9 shots on
     // the default path. window.runHarness(url, { deterministic: true }) to try it.
-    const frames = await captureShotFrames(url, { onProgress: (p, l) => say(p + '% ' + l), deterministic: opts.deterministic === 'coarse' ? 'coarse' : !!opts.deterministic });
+    const frames = await captureShotFrames(url, { onProgress: (p, l) => say(p + '% ' + l), ...(opts.coarseRate ? { coarseRate: opts.coarseRate } : null), deterministic: opts.deterministic === 'coarse' ? 'coarse' : !!opts.deterministic });
     window.__frames = frames;
     const hand = detectShootingHand(frames) || 'R';
     const series = buildSeries(frames, { hand, aspect: (frames.dims.w / frames.dims.h) });

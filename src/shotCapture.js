@@ -264,7 +264,7 @@ async function measureFps(v) {
  * Not wired to any UI yet - it is here so the speed/reliability trade can be
  * MEASURED before anyone decides. See docs/shot-analyzer-next-2026-08-27.md.
  */
-export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineRate = 0.34, deterministic = false } = {}) {
+export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineRate = 0.34, coarseRate = 1, deterministic = false } = {}) {
   // Three settings, because measurement showed the two passes do not deserve
   // the same treatment. Three default-path captures on an IDLE machine returned
   // 11, 8 and 11 shots, and the per-run stats pinned the loss precisely:
@@ -361,7 +361,7 @@ export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineR
       return gap > REACQUIRE_S ? Infinity : Math.max(0.05, gap * 1.0);
     };
     await playThrough(v, {
-      from: 0, to: dur, rate: 1, frameDur, drops, deterministic: detCoarse,
+      from: 0, to: dur, rate: coarseRate, frameDur, drops, deterministic: detCoarse,
       onFrame: (vid, mt) => {
         let r = null;
         try { r = lmCoarse.detect(vid); } catch { /* noop */ }

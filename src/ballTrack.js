@@ -438,7 +438,7 @@ export function launchAngle(points, releaseMs = null, ballPx = 0, out = null, or
   //   rise   = how far ABOVE the release point the ball peaks, v_y^2 / 2g,
   //            using the gravity this clip actually measured rather than 9.81
   //            in assumed units.
-  let speedMs = null, riseM = null;
+  let speedMs = null, riseM = null, riseRaw = null;
   const gPx = -2 * quad.a;                        // px/s2, measured from this flight
   if (ballPx > 0 && gPx > 0) {
     // SCALE FROM GRAVITY, not from the blob. The ball's apparent width is
@@ -453,6 +453,7 @@ export function launchAngle(points, releaseMs = null, ballPx = 0, out = null, or
     const mPerPx = 9.81 / gPx;
     speedMs = Math.hypot(vx, vy) * mPerPx;
     riseM = (vy * vy) / (2 * gPx) * mPerPx;
+    riseRaw = riseM;
     // Sanity: a jump shot leaves the hand at roughly 3-11 m/s and peaks less
     // than 4 m above the release. Outside that the scale is not trustworthy, so
     // report nothing rather than a confident wrong number.
@@ -473,6 +474,34 @@ export function launchAngle(points, releaseMs = null, ballPx = 0, out = null, or
   // number presented as a measurement is worse than no number — the file
   // already nulls a speed outside 2-14 m/s for exactly this reason. Same rule
   // here: keep the flight, drop the release-time figures, and say why.
+  // A SHOT HAS TO REACH THE RIM.
+  //
+  // This flight's own fit says how high the ball would peak above the hand.
+  // On Ohad's 11-shot clip the ten good reps peak 0.50 to 1.69 m; one rep
+  // reported 0.06 m - six centimetres - and was still handed to the coach as
+  // an 18 degree launch beside ten reps at 52-67. Six centimetres of rise
+  // cannot reach a 3.05 m rim from any release height, so whatever that chain
+  // followed, it was not the shot. The old sanity floor was 0.05 m, which this
+  // cleared by a centimetre while being physically impossible.
+  //
+  // 0.35 m sits below every good rep measured (0.50) and far above the bad one,
+  // and it is the same rule the file already applies to speed: keep the flight,
+  // drop the release-time figures, say why.
+  if (riseRaw != null && riseRaw < 0.35) {
+    return {
+      recede,
+      obliqueShot: recede != null && recede >= 1.2,
+      angleDeg: null,
+      fit: Math.round(quad.r2 * 1000) / 1000,
+      n: p.length,
+      speedMs: null,
+      riseM: null,
+      ascentMissing: false,
+      flatFlight: true,
+      partialWhy: 'the tracked flight only rises ' + Math.round(riseRaw * 100) + ' cm, which cannot reach the rim, so this chain is not the shot and its angle would be wrong',
+    };
+  }
+
   if (ascentMissing) {
     return {
       recede,
