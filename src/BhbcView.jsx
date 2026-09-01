@@ -851,12 +851,17 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
              fill, a hairline on its trailing edge, and a short shadow so the
              content visibly passes behind it. align-items centre so the crest
              sits on the row's axis, not its top. */
-          .bhbc-header-id{position:sticky!important;left:0!important;z-index:3!important;flex:0 0 auto!important;align-self:stretch!important;display:flex!important;align-items:center!important;background:#0E1C38!important;margin-left:-14px!important;padding:0 12px 0 14px!important;border-inline-end:1px solid rgba(255,255,255,0.14)!important;box-shadow:6px 0 10px -6px rgba(0,0,0,0.55)!important}
+          .bhbc-header-id{position:sticky!important;left:0!important;z-index:3!important;flex:0 0 auto!important;align-self:stretch!important;display:flex!important;align-items:center!important;background:#0E1C38!important;margin-left:-14px!important;padding:0 12px 0 14px!important;box-shadow:8px 0 12px -8px rgba(0,0,0,0.7)!important}
           /* The crest already says who this is; the words are 150px of a 390px bar. */
           .bhbc-wordmark{display:none!important}
           .bhbc-header-ctrl{order:3!important;flex:0 0 auto!important;padding:0 14px 0 0!important;margin-left:0!important}
           .bhbc-hdr-tabs{order:2!important;flex:0 0 auto!important;width:auto!important;overflow:visible!important;justify-content:flex-start!important;border-top:none!important}
-          .bhbc-hdr-tabs button{height:52px!important;padding:0 12px!important}
+          /* The tab BUTTON is not the bar. At 52px the active tab's orange
+             outline became a full-height rectangle - on desktop it is a neat
+             small box, and that difference is most of why the mobile bar read
+             as heavy. Same 30px box as desktop, centred in the 52px bar. */
+          .bhbc-hdr-tabs{align-items:center!important}
+          .bhbc-hdr-tabs button{height:30px!important;padding:0 11px!important}
           /* The injury row is a fixed 5-column grid (150px 1fr 120px 110px auto)
              — about 430px before gaps, so on a phone it ran a good 130px past
              the viewport and the 'Update ›' target sat off-screen entirely.
