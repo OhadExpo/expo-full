@@ -96,12 +96,16 @@ const heightM = (cm) => (cm ? (cm / 100).toFixed(2) + 'm' : '');
 // which the day-level flag could not express at all (Ohad 08-24).
 const emptyRec = () => ({ loads: {}, sessions: {}, readiness: {}, availability: {}, attendance: {} });
 // Availability codes (Ohad's BHBC sheet legend). Semantic status colors.
+// 'Out · Pers' rather than 'Out · Personal': the long label made ONE button in
+// the column 168px against 135px for every other state, and Ohad wants a single
+// button size. 'Non-contact' is the width driver now, and both OUT states keep
+// the word OUT so the reason still reads at a glance.
 const AVAIL = {
   1: { label: 'Full', color: '#37B27C' },
   2: { label: 'Limited', color: '#E0A73A' },
   3: { label: 'Non-contact', color: '#4F9DE0' },
   4: { label: 'Out · Med', color: '#DE4E3B' },
-  5: { label: 'Out · Personal', color: '#7C828B' },
+  5: { label: 'Out · Pers', color: '#7C828B' },
 };
 
 const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -2214,9 +2218,32 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, onOpen, onMedical 
                 <Jersey n={t.jersey} size={26} />
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontFamily: FN, fontWeight: 700, fontSize: 13, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{t.name}</div>
-                  {(() => { const inj = activeInjuries(medical, t.id)[0]; return inj
-                    ? <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: medText(inj.status), whiteSpace: 'normal', overflowWrap: 'break-word' }}>{'⚠ '}{inj.bodyPart}{inj.side && inj.side !== 'N/A' ? ` ${inj.side[0]}` : ''}</div>
-                    : <div style={{ fontFamily: FB, fontSize: 11, color: C.td }}>{t.position || '—'}</div>; })()}
+                  {/* ONE line under the name, and the SAME line for everyone.
+                      It used to be injury-OR-position, so some rows showed a
+                      position and some an injury and the column read as two
+                      different tables (Ohad). Position is a stable fact and
+                      always shows; the injury appends to it. A head injury shows
+                      its TYPE - "CONCUSSION" - because its body part is literally
+                      "Head / Concussion" and printing that wrapped to two rows. */}
+                  {(() => {
+                    const inj = activeInjuries(medical, t.id)[0];
+                    // Body part + side for everyone, same as every other row.
+                    // The head body part is literally "Head / Concussion", which
+                    // wrapped to two lines, so it collapses at the slash. Printing
+                    // the TYPE instead was worse: Zack's record is typed Contusion,
+                    // so the cell read "Contusion" for a concussion.
+                    const injShort = !inj ? null
+                      : `${(inj.bodyPart || '').split('/')[0].trim()}${inj.side && inj.side !== 'N/A' ? ` ${inj.side[0]}` : ''}`;
+                    return (
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0, whiteSpace: 'nowrap' }}>
+                        <span style={{ fontFamily: FB, fontSize: 11, color: C.td }}>{t.position || '—'}{injShort ? ' ·' : ''}</span>
+                        {/* No warning glyph. Ohad: "no emojies or icons, just
+                            colors" - medText already carries the severity, and a
+                            triangle in front of every injured athlete was noise. */}
+                        {injShort && <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: medText(inj.status) }}>{injShort}</span>}
+                      </div>
+                    );
+                  })()}
                 </div>
                 {/* What the MEDICAL record forces, so the cell can say so. The
                     board renders max(dayAvail, medFloor): a coach can make today
@@ -2228,11 +2255,11 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, onOpen, onMedical 
                 <div style={{ fontFamily: FN, fontSize: 13, color: C.tx, fontVariantNumeric: 'tabular-nums' }}>{acwr.acute ? Math.round(acwr.acute) : '—'}</div>
                 <div>
                   {cycleAvail ? (
-                    <button onClick={(e) => { e.stopPropagation(); cycleAvail(t.id); }} title={medFloor > 1 ? `${AVAIL[medFloor].label} comes from the medical record. Open Medical to change it — an injured athlete can still be Limited.` : 'Click to change availability'} className="bhbc-ghost-btn" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, minWidth: 108, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 9px', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'color .12s, border-color .12s' }}>
+                    <button onClick={(e) => { e.stopPropagation(); cycleAvail(t.id); }} title={medFloor > 1 ? `${AVAIL[medFloor].label} comes from the medical record. Open Medical to change it — an injured athlete can still be Limited.` : 'Click to change availability'} className="bhbc-ghost-btn" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, minWidth: 132, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 9px', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'color .12s, border-color .12s' }}>
                       <span style={{ width: 7, height: 7, borderRadius: '50%', background: AVAIL[avail].color, flexShrink: 0 }} />{AVAIL[avail].label}
                     </button>
                   ) : (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, minWidth: 108, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, border: `1px solid ${C.cardBd}`, padding: '0 9px', whiteSpace: 'nowrap' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, minWidth: 132, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, border: `1px solid ${C.cardBd}`, padding: '0 9px', whiteSpace: 'nowrap' }}>
                       <span style={{ width: 7, height: 7, borderRadius: '50%', background: AVAIL[avail].color, flexShrink: 0 }} />{AVAIL[avail].label}
                     </span>
                   )}
@@ -2303,7 +2330,7 @@ function RosterGrid({ rows, medical = {}, league = {}, onOpen }) {
                   Nord disagree about 'normal'. */}
               <div style={{ fontFamily: FN, fontWeight: 700, fontSize: 15, lineHeight: 1.2, color: C.tx, marginTop: 3, minHeight: 36, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{t.name}</div>
               {(() => { const inj = activeInjuries(medical, t.id)[0]; return inj
-                ? <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: medText(inj.status), marginTop: 4, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{'⚠ '}{inj.bodyPart}{inj.side && inj.side !== 'N/A' ? ` ${inj.side[0]}` : ''} · {(MED_STATUS[inj.status] || {}).label}</div>
+                ? <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: medText(inj.status), marginTop: 4, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{inj.bodyPart}{inj.side && inj.side !== 'N/A' ? ` ${inj.side[0]}` : ''} · {(MED_STATUS[inj.status] || {}).label}</div>
                 : <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 4 }}>{t.position || '—'}</div>; })()}
               {t.arrival && t.arrival > todayISO() && <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 6, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: ORANGE_DEEP, background: `color-mix(in srgb, ${ORANGE} 12%, transparent)`, padding: '2px 6px' }}><span aria-hidden="true">✈</span> Lands {dow(t.arrival)} {monDay(t.arrival)}</div>}
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, paddingTop: 10, borderTop: `1px solid ${C.cardBd}` }}>
