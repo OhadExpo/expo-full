@@ -2979,7 +2979,7 @@ function ScheduleWeek({ fixtures, today }) {
   const days = Array.from({ length: 7 }, (_, i) => { const d = new Date(weekStart); d.setDate(weekStart.getDate() + i); return d; });
   return (
     <div style={{ overflowX: 'auto' }}>
-      <div style={{ minWidth: 640, display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6 }}>
+      <div style={{ minWidth: 640, display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 6 }}>
         {days.map((d) => {
           const di = isoOf(d); const isToday = di === today;
           const items = (byDate[di] || []).slice().sort((a, b) => a.start.localeCompare(b.start));
@@ -3044,11 +3044,11 @@ function ScheduleMonth({ fixtures, today }) {
     <div style={{ overflowX: 'auto' }}>
       <div className="bhbc-cal-wrap" style={{ minWidth: 620 }}>
         <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 14, color: C.tx, marginBottom: 8, letterSpacing: '0.02em' }}>{MON[m]} {y}</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', marginBottom: 4 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', marginBottom: 4 }}>
           {DOW.map((d) => <div key={d} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, textAlign: 'center', padding: '4px 0' }}>{d}</div>)}
         </div>
         <div style={{ borderTop: '1px solid var(--c-bd)', borderInlineStart: '1px solid var(--c-bd)' }}>
-          {weeks.map((week, i) => <div key={i} style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>{week.map(cell)}</div>)}
+          {weeks.map((week, i) => <div key={i} style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))' }}>{week.map(cell)}</div>)}
         </div>
       </div>
     </div>
@@ -3713,9 +3713,15 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: (MED_STATUS[status] || MED_STATUS.available).color, flexShrink: 0 }} />
                   {tr((MED_STATUS[status] || MED_STATUS.available).label)}
                 </span>
+                    {/* This one carried .bhbc-ghost-btn and nothing else, and that
+                        class only defines :hover - so it fell through to the
+                        BROWSER's chrome: rgb(240,240,240) fill and a 1.6px black
+                        border, neither of which exists in this palette. Every one
+                        of its fifteen siblings supplies the look inline. minWidth 84
+                        matches the medical button beside it, one size per column. */}
                 {onLog && (
                   <button onClick={(e) => { e.stopPropagation(); onLog(t.id); }} className="bhbc-ghost-btn" title="Log a practice for this athlete"
-                    style={{ height: ROW_BTN_H, boxSizing: 'border-box', padding: '0 12px', flexShrink: 0, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{tr('+ Log')}</button>
+                    style={{ height: ROW_BTN_H, boxSizing: 'border-box', padding: '0 12px', minWidth: 84, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, color: C.tm, cursor: 'pointer', flexShrink: 0, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{tr('+ Log')}</button>
                 )}
                 {canMedical
                   ? <button onClick={() => (act.length ? onEdit(t.id, act[0].id) : onReport(t.id))} className="bhbc-ghost-btn" style={{ height: 26, boxSizing: 'border-box', minWidth: 84, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, cursor: 'pointer', flexShrink: 0, transition: 'color .12s, border-color .12s' }}>{act.length ? (he ? '‹ צפייה' : 'View ›') : (he ? '+ דיווח' : '+ Report')}</button>
