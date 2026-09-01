@@ -746,6 +746,12 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
         .bhbc-week-grid .bhbc-chip{display:block;line-height:1.45}
         .bhbc-week-grid .bhbc-chip .bhbc-chip-focus{font-size:11px;display:block;margin-top:2px}
         .bhbc-week-grid .bhbc-chip .bhbc-chip-meta{margin-inline-end:6px}
+        @media (max-width:620px){
+          /* Label above value, both full width. A 150px label column on a 390px
+             screen leaves the value ~200px and everything wraps three deep. */
+          .bhbc-labelrow{flex-direction:column!important;gap:3px!important}
+          .bhbc-labelrow > div:first-child{width:auto!important;min-width:0!important}
+        }
         @media (max-width:760px){
           /* ONE ROW. The logo is pinned and everything else scrolls past it -
              Ohad's rule, and I broke it by wrapping the header onto three rows,
@@ -1944,8 +1950,12 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
   // end of every white box". Measured: this card left 32px under its last line
   // against 18px of card padding, because the row's own 11px was being added on
   // top of it - the other cards on the same screen sit at 19px.
-  const Section = ({ label, children, last }) => (
-    <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', padding: last ? '11px 2px 0' : '11px 2px', borderBottom: last ? 'none' : `1px solid ${C.cardBd}` }}>
+  // STACKS ON A PHONE. Side by side, the label column takes ~150 of 390 and
+  // every value wraps three deep - which is what Ohad was looking at when he
+  // said nothing is aligned. The class does the stacking in CSS so desktop is
+  // untouched.
+  const Section = ({ label, children, last }) => (
+    <div className="bhbc-labelrow" style={{ display: 'flex', gap: 14, alignItems: 'flex-start', padding: last ? '11px 2px 0' : '11px 2px', borderBottom: last ? 'none' : `1px solid ${C.cardBd}` }}>
       <div style={lbl}>{label}</div>
       <div style={{ flex: 1, minWidth: 0, fontFamily: FB, fontSize: 13, color: C.tx, lineHeight: 1.5 }}>{children}</div>
     </div>

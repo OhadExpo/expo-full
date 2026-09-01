@@ -76,7 +76,22 @@ const MEASURE = () => {
 
 const b = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null });
 const page = await b.newPage();
-await page.setViewport({ width: W, height: 1000 });
+// A phone is not a narrow desktop. `setViewport` alone leaves the desktop UA,
+// DPR 1 and isMobile false, so hover styles apply, mobile-only CSS may not, and
+// text metrics differ - which is how every mobile pass here read clean while
+// Ohad's actual phone screen was a mess. Below 700px this emulates a real
+// device; above it, a plain viewport is correct.
+const applyViewport = async (pg, w) => {
+  if (w <= 700) {
+    await pg.emulate({
+      viewport: { width: w, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 },
+      userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+    });
+    return;
+  }
+  await pg.setViewport({ width: w, height: 1000 });
+};
+await applyViewport(page, W);
 let total = 0;
 try {
   await signIn(page, BASE);
