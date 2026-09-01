@@ -750,7 +750,6 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
           /* Label above value, both full width. A 150px label column on a 390px
              screen leaves the value ~200px and everything wraps three deep. */
           .bhbc-labelrow{flex-direction:column!important;gap:3px!important}
-          .bhbc-labelrow > div:first-child{width:auto!important;min-width:0!important}
         }
         @media (max-width:760px){
           /* ONE ROW. The logo is pinned and everything else scrolls past it -
@@ -2311,8 +2310,8 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, onOpen, onMedical 
   const tr = useT();
   return (
     <CollapsibleSection title={tr("Load & Injury Risk")} count={rows.length} storageKey="bhbc-load" defaultOpen leftStripe={ORANGE}>
-      <div style={{ overflowX: 'auto' }}>
-        <div style={{ minWidth: 660 }}>
+      <div className="bhbc-load-scroll" style={{ overflowX: 'auto' }}>
+        <div className="bhbc-load-inner" style={{ minWidth: 660 }}>
           <div className="bhbc-load-head" style={{ display: 'grid', gridTemplateColumns: rowGrid, gap: 12, padding: '2px 2px 10px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.13em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }}>
             <div>#</div><div>Athlete</div><div>ACWR</div><div>7d</div><div>{tr('Availability')}</div><div>Readiness</div><div style={{ textAlign: 'right' }}>14-day</div>
           </div>
@@ -2321,7 +2320,7 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, onOpen, onMedical 
               .reduce((worst, inj) => Math.max(worst, MEDICAL_STATUS_AVAIL[inj.status] || 1), 1);
             const rc = readiness.level === 'red' ? BAND.high : readiness.level === 'amber' ? BAND.elevated : readiness.level === 'green' ? BAND.low : BAND.none;
             return (
-              <div key={t.id} onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }} style={{ display: 'grid', gridTemplateColumns: rowGrid, gap: 12, alignItems: 'center', padding: '11px 2px', borderBottom: `1px solid ${C.cardBd}`, borderInlineStart: `2px solid ${acwr.band.color}`, paddingInlineStart: 10, marginInlineStart: -12, cursor: 'pointer', transition: 'border-color 240ms ease-out' }} className="bhbc-row bhbc-load-row">
+              <div key={t.id} className="bhbc-load-row" onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }} style={{ display: 'grid', gridTemplateColumns: rowGrid, gap: 12, alignItems: 'center', padding: '11px 2px', borderBottom: `1px solid ${C.cardBd}`, borderInlineStart: `2px solid ${acwr.band.color}`, paddingInlineStart: 10, marginInlineStart: -12, cursor: 'pointer', transition: 'border-color 240ms ease-out' }} className="bhbc-row bhbc-load-row">
                 <Jersey n={t.jersey} size={26} />
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontFamily: FN, fontWeight: 700, fontSize: 13, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{t.name}</div>
@@ -2358,9 +2357,9 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, onOpen, onMedical 
                     read "CONCUSSION · FULL". That rule was invisible, so clicking
                     a floored cell looked broken. Ohad: "having an injury can still
                     be limited on practice" - it can, and this points at where. */}
-                <div>{acwr.ratio != null ? <BandPill band={acwr.band} value={acwr.ratio.toFixed(2)} /> : <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: '0.06em' }}>· baseline</span>}</div>
-                <div style={{ fontFamily: FN, fontSize: 13, color: C.tx, fontVariantNumeric: 'tabular-nums' }}>{acwr.acute ? Math.round(acwr.acute) : '—'}</div>
-                <div>
+                <div data-lbl="ACWR">{acwr.ratio != null ? <BandPill band={acwr.band} value={acwr.ratio.toFixed(2)} /> : <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: '0.06em' }}>· baseline</span>}</div>
+                <div data-lbl="7-day" style={{ fontFamily: FN, fontSize: 13, color: C.tx, fontVariantNumeric: 'tabular-nums' }}>{acwr.acute ? Math.round(acwr.acute) : '—'}</div>
+                <div data-lbl="Availability">
                   {cycleAvail ? (
                     <button onClick={(e) => { e.stopPropagation(); cycleAvail(t.id); }} title={medFloor > 1 ? `${AVAIL[medFloor].label} comes from the medical record. Open Medical to change it — an injured athlete can still be Limited.` : 'Click to change availability'} className="bhbc-ghost-btn" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, minWidth: 132, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 9px', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'color .12s, border-color .12s' }}>
                       <span style={{ width: 7, height: 7, borderRadius: '50%', background: AVAIL[avail].color, flexShrink: 0 }} />{AVAIL[avail].label}
@@ -2371,7 +2370,7 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, onOpen, onMedical 
                     </span>
                   )}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
+                <div data-lbl="Readiness" style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: rc, flexShrink: 0 }} />
                   {typeof readiness.loadAdjustPct === 'number' && readiness.loadAdjustPct !== 0 && <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 800, color: rc, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{readiness.loadAdjustPct > 0 ? '+' : ''}{readiness.loadAdjustPct}%</span>}
                   <span style={{ fontFamily: FB, fontSize: 11, color: C.td, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{readiness.level === 'unknown' ? 'no check-in' : readiness.headline}</span>

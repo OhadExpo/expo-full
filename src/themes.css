@@ -621,6 +621,15 @@ html {
      So on a phone the row becomes two lines: identity + load on top, the two
      write actions beneath, both in the thumb zone. The header row is hidden,
      because a column header means nothing once the row is no longer columnar. */
+  /* ...and the restack below was DEAD until now. The board sits inside a
+     wrapper with a hard `min-width: 660` and no class, so no media query could
+     reach it: the row dutifully restacked INSIDE a 660px box that a 390px
+     screen then scrolled sideways. Measured before: scrollWidth 660 against
+     clientWidth 305 - 46% of the board visible - and the ten MED buttons at
+     x 638-700, a full 248px past the right edge. Releasing the wrapper is what
+     makes every rule under this comment actually apply. */
+  .bhbc-load-scroll { overflow-x: visible !important; }
+  .bhbc-load-inner { min-width: 0 !important; }
   .bhbc-load-head { display: none !important; }
   .bhbc-load-row {
     grid-template-columns: 28px 1fr auto !important;

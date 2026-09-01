@@ -5,7 +5,18 @@ import * as A from '../scripts/lib/authed-page.mjs';
 const W = parseInt(process.argv[2] || '1500', 10);
 const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null });
 const pg = await b.newPage();
-await pg.setViewport({ width: W, height: 1100 });
+const applyViewport = async (pg, w) => {
+  // Real device below 700px - a plain setViewport is a narrow desktop, not a phone.
+  if (w <= 700) {
+    await pg.emulate({
+      viewport: { width: w, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 },
+      userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+    });
+    return;
+  }
+  await pg.setViewport({ width: w, height: 1100 });
+};
+await applyViewport(pg, W);
 await A.signIn(pg, 'http://127.0.0.1:5199');
 const ROUTES = ['/coach/bhbc', '/coach/athletes', '/coach/programs', '/coach/dashboard', '/coach/exercises'];
 let total = 0;
