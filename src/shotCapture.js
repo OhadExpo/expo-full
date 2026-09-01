@@ -397,6 +397,12 @@ export async function captureShotFrames(src, { onProgress, maxFine = 2600, fineR
       // say 0.5 is the stable one and rate 1 is the one that wanders. Two runs
       // is not a measurement here; the noise is the size of the effect.
       //
+      // SLOWER IS NOT MONOTONICALLY BETTER - 0.5 is a sweet spot, not a
+      // direction. A third independent 3-run sample of his clip reconfirmed 0.5
+      // at 11/11/11 shots and 10/10/10 angles in 352s; 0.34 in the same session
+      // gave 11/11/11 shots but only 9/9/10 angles, and took 381s. Do not
+      // "improve" this by lowering it further without measuring.
+      //
       // Deeper cause still open: shotAnalysis smooth() is medianFilter(sig, 5)
       // plus an EMA with a fixed alpha - both counted in SAMPLES, so their time
       // constant changes with capture density. Making them time-based would
