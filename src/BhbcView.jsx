@@ -848,6 +848,21 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
              padding to 3 closes it, so the month fits without scrolling. */
           .bhbc-cal-cell{padding:5px 3px!important;min-width:0!important;overflow:hidden!important}
           .bhbc-cal-cell *{min-width:0!important;max-width:100%!important}
+          /* A month cell is 43px wide on a phone. An event chip carrying a time
+             cannot fit in it - "10:30" alone is 35px before padding - so the
+             text spilled 20px past the cell. The month view answers WHICH DAYS;
+             the week planner directly below it carries the times. */
+          /* A month cell is 43px wide. Its event chip carries a time and a label
+             that need ~29px each, so max-width:100% squeezed the time element to
+             9px and its text spilled 20px past the cell - measured boxW 9,
+             inkW 29. The month view answers WHICH DAYS; each event becomes a
+             coloured bar and the week planner right below carries the detail. */
+          /* Target by STRUCTURE, not class - the time sits in an unclassed
+             element, which is why hiding .bhbc-chip-meta missed it. The first
+             child of a day cell is the date; everything after it is an event,
+             and each becomes a 5px coloured bar. */
+          .bhbc-cal-cell > *:not(:first-child){height:5px!important;min-height:0!important;padding:0!important;margin:2px 0 0!important;font-size:0!important;line-height:0!important;overflow:hidden!important;border-radius:0!important}
+          .bhbc-cal-cell > *:not(:first-child) *{display:none!important}
           /* Next game: the day count is 40px type in a column of its own, and
              with flex-wrap the details dropped BELOW it - so two characters
              owned about 200px of height and the card was mostly white. Keep
