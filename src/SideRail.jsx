@@ -34,14 +34,14 @@ export function RailOpt({ label, count, active, onClick, title, accent }) {
       onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
       style={{
         display: 'flex', alignItems: 'center', width: `calc(100% + ${RAIL_GUTTER}px)`, marginInlineStart: -RAIL_GUTTER,
-        height: 28, border: 'none', padding: 0, cursor: 'pointer',
+        minHeight: 28, border: 'none', padding: '3px 0', boxSizing: 'border-box', cursor: 'pointer',
         background: active ? `color-mix(in srgb, ${ac} 20%, transparent)` : (hov ? 'var(--c-sf3, rgba(127,127,138,0.10))' : 'transparent'),
         color: active ? ac : (hov ? 'var(--c-tx)' : 'var(--c-tm)'),
         fontFamily: FN, fontSize: 10, fontWeight: active ? 800 : 700, letterSpacing: heb ? 0 : '0.05em', textTransform: heb ? 'none' : 'uppercase',
         transition: 'background .12s, color .12s',
       }}>
       <span style={{ width: 3, alignSelf: 'stretch', background: ac, opacity: active ? 1 : 0, flexShrink: 0 }} />
-      <span style={{ flex: 1, textAlign: 'left', padding: '0 8px 0 14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
+      <span style={{ flex: 1, textAlign: 'left', padding: '0 8px 0 14px', minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: 1.25 }}>{label}</span>
       {count != null && <span style={{ paddingRight: 14, fontSize: 9, fontWeight: 700, opacity: active ? 0.9 : 0.55, flexShrink: 0 }}>{count}</span>}
     </button>
   );
