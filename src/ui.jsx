@@ -258,7 +258,7 @@ export const isRefined5b = () => {
 // Card border (and any severity left-stripe) sits OUTSIDE the strip.
 // Pass `padY` and `padX` matching the parent card's padding (defaults
 // match the dashboard alert-card padding of 14/18).
-export function RefinedHeaderStrip({ children, padY = 14, padX = 18, marginBottom = 12 }) {
+export function RefinedHeaderStrip({ children, padY = 14, padX = 18, marginBottom = 12, bleed = true }) {
   // --c-stripBg is full BSG cyan in light, black in dark. Strip bleeds
   // to the card's outer edge via negative margins, so the card's own
   // cyan border becomes the strip's top + left + right border. The
@@ -272,7 +272,13 @@ export function RefinedHeaderStrip({ children, padY = 14, padX = 18, marginBotto
       // without a hard fill (Ohad's test, 2026-07-30). ~10% brand cyan mixed
       // into the strip token; stays subtle in dark, stays branded in light.
       background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))',
-      margin: `-${padY}px -${padX}px ${marginBottom}px`,
+      // The bleed CANCELS the parent Card's padding so the strip reaches the
+      // card's border. In a container that has NO padding it does the opposite:
+      // measured at 390 on /coach/sessions, the floor bar's strip ran from
+      // -1.2px to 391.6px - 28px wider than the box it lives in - because it
+      // was still subtracting a padding that was not there. bleed={false} for
+      // those callers; every existing caller keeps today's behaviour.
+      margin: bleed ? `-${padY}px -${padX}px ${marginBottom}px` : `0 0 ${marginBottom}px`,
       // ONE uniform header height app-wide (Ohad #261: active-athletes / revenue /
       // tasks / messages / expiring bars must all be the SAME vertical height).
       // A label-only strip was ~34px while a strip with a 30px action button was

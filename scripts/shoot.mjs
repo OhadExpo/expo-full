@@ -40,10 +40,15 @@ async function wsEndpoint() {
     browser = await puppeteer.connect({ browserWSEndpoint, protocolTimeout: 60000 });
     page = await browser.newPage();
     await setWidth(page, parseInt(w) || 1440, parseInt(h) || 900);
+    // Re-assert after navigation: a fresh document can come up at the window's
+    // own size, and a screenshot at the wrong width is a screenshot of a layout
+    // nobody is looking at.
+    const reassert = async () => { try { await setWidth(page, parseInt(w) || 1440, parseInt(h) || 900); } catch { /* reported below */ } };
     await page.goto(url, { waitUntil: 'networkidle2', timeout: 45000 }).catch(async () => {
       // networkidle can hang on a live app with polling; fall back to domcontentloaded
       await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 });
     });
+    await reassert();
     // Dismiss the PWA "NEW VERSION AVAILABLE — UPDATE NOW" popup if it's covering
     // the page (a rebuild triggers it), so QA screenshots aren't blocked by it.
     await sleep(800);
@@ -52,6 +57,15 @@ async function wsEndpoint() {
       if (b) { b.click(); return true; } return false;
     });
     if (dismissed) { await sleep(3500); await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 }).catch(() => {}); await sleep(1500); }
+    // The iPhone user-agent also brings up the "GET THE EXPO APP / ADD TO HOME
+    // SCREEN" sheet, which covered the whole 390px shot and is NOT the update
+    // banner above. Dismiss that too, or every mobile screenshot is a picture
+    // of the install prompt.
+    await page.evaluate(() => {
+      const b = [...document.querySelectorAll('button,a')].find((e) => /maybe later|dismiss/i.test((e.textContent || '').trim()));
+      if (b) b.click();
+    });
+    await sleep(600);
     if (selector) {
       await page.waitForSelector(selector, { timeout: 8000 }).catch(() => console.error(`(selector "${selector}" not found — shooting anyway)`));
     }

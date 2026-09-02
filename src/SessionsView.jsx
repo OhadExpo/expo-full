@@ -628,7 +628,7 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
 function FloorBar({ session, checkedIn, traineeById, onAdd, onFinish }) {
   return (
     <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, overflow: 'hidden' }}>
-      <RefinedHeaderStrip padY={14} padX={14} marginBottom={0}>
+      <RefinedHeaderStrip padY={14} padX={14} marginBottom={0} bleed={false}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
           <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#FFF', lineHeight: 1, display: 'inline-flex', alignItems: 'center', position: 'relative', top: 0.5 }}>
             ON THE FLOOR · {checkedIn}/{session.athletes.length} CHECKED IN

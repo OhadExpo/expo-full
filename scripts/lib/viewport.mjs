@@ -24,7 +24,16 @@ export async function setWidth(pg, W, H = 1000) {
     viewport: { width: W, height: H, isMobile: true, hasTouch: phone, deviceScaleFactor: phone ? 2 : 1 },
     userAgent: phone ? IPHONE : DESKTOP,
   });
-  const got = await pg.evaluate(() => innerWidth);
-  if (got !== W) throw new Error(`viewport did not take: asked ${W}, got ${got}`);
-  return got;
+  // about:blank has no <meta name="viewport">, so under isMobile the layout
+  // viewport falls back to 980px no matter what was asked for. Checking there
+  // proves nothing - assert only once a real document is loaded.
+  const blank = await pg.evaluate(() => location.href.startsWith('about:'));
+  if (blank) return W;
+  let got = 0;
+  for (let i = 0; i < 4; i++) {
+    got = await pg.evaluate(() => innerWidth);
+    if (got === W) return got;
+    await new Promise((r) => setTimeout(r, 150));
+  }
+  throw new Error(`viewport did not take: asked ${W}, got ${got}`);
 }
