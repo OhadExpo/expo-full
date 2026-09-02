@@ -3052,7 +3052,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           <div style={{background:'var(--c-sf2)',borderLeft:`3px solid ${C.ac}`,borderBottom:`1px solid ${C.cardBd}`,margin:'-12px -12px 10px',padding:'8px 12px',display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:10}}>
             {/* order: DAY · W# · BLOCK — the week sits between the day and the
                 block (Ohad); the date moves to the right on its own. */}
-            <div style={{fontFamily:FN,fontWeight:700,fontSize:13,letterSpacing:'0.02em',minWidth:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{w.dayName} <span style={{color:C.ac,fontWeight:700,fontSize:11,letterSpacing:'0.04em'}}>· W{w.week} ·</span> <span style={{color:C.tm,fontWeight:400,fontSize:12}}>{w.planName}</span></div>
+            <div style={{fontFamily:FN,fontWeight:700,fontSize:13,letterSpacing:'0.02em',minWidth:0,whiteSpace:'normal',overflowWrap:'break-word',lineHeight:1.3}}>{w.dayName} <span style={{color:C.ac,fontWeight:700,fontSize:11,letterSpacing:'0.04em'}}>· W{w.week} ·</span> <span style={{color:C.tm,fontWeight:400,fontSize:12}}>{w.planName}</span></div>
             <div style={{fontSize:10,fontFamily:FN,color:C.tm,letterSpacing:'0.08em',whiteSpace:'nowrap',flexShrink:0}}>{fmtPrettyDate(w.date)}</div>
           </div>
           {/* Pre-workout readiness check-in the athlete logged for this session. */}

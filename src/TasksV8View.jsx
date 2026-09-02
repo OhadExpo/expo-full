@@ -1723,9 +1723,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
             // accepted for the board wraps instead of clipping.
             ...(expanded
               ? { whiteSpace: 'normal', wordBreak: 'break-word' }
-              : wrapRow
-                ? { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', wordBreak: 'break-word' }
-                : { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }),
+              : { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', wordBreak: 'break-word' }),
           }}>
             <HighlightedText text={row._display} query={search} />
           </div>

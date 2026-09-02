@@ -261,7 +261,7 @@ function DemoDashboard({ onJumpToTrainee }) {
       {/* Summary card grid — same shape as the real DashboardView's
           repeat(auto-fit, minmax(170px, 1fr)) at 10px gap. */}
       <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',
         gap: 10, marginBottom: 20,
       }}>
         <StatCard label="Active Athletes" value={String(active.length)} total={String(MOCK_TRAINEES.length)} accent={C.gn} />
