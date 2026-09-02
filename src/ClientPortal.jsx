@@ -3490,18 +3490,18 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                 rx: rxOf(ex),
                 tempo: ex.tempo,
                 title: d.t,
-                // Fall back to the exercise's own cue. Ohad: "there's no focus on the
-                // real athlete portal" - the demo shows a FOCUS line under every
-                // exercise and the real portal showed none, because it only read the
-                // WEEKLY focus store, which is keyed per exercise per week and is
-                // almost always empty. Meanwhile 81% of plan rows (3,457 of 4,264,
-                // measured) already carry `notes` - the cue snapshotted from the
-                // library, which is the coaching line for that movement. The weekly
-                // focus still wins when it exists: it is this week's emphasis and
-                // overrides the standing cue.
+                // FOCUS IS THE COACH'S WEEKLY EMPHASIS. NOTHING ELSE.
+                //
+                // On 09-01 this was given a fallback to the exercise's own `notes`
+                // - the cue snapshotted from the library - because the weekly store
+                // is nearly always empty and the demo showed a FOCUS line where the
+                // real portal showed none. That published a library coaching
+                // paragraph under 81% of every athlete's exercises. Ohad, 09-02:
+                // "i never asked for the focus to appear like that." He asked for
+                // the FEATURE to match the demo; the fallback silently redefined
+                // what the word FOCUS means, which he never asked for. Reverted.
                 focus: weeklyFocus?.[`${ci}|${vp.name}|${day.name}|${ex.eid}|W${vpWeek}`]
-                  ?? weeklyFocus?.[`${vp.name}|${day.name}|${ex.eid}|W${vpWeek}`]
-                  ?? ((ex.notes ?? ex.n) || undefined),
+                  ?? weeklyFocus?.[`${vp.name}|${day.name}|${ex.eid}|W${vpWeek}`],
               };
             }),
           });})}</React.Fragment>)})()}
