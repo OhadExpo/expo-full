@@ -765,7 +765,7 @@ function pushOverlay() {
 // clicking cancel or save record". A rehab note typed into that form lives in
 // local state until Save, so a stray Escape threw the work away and looked
 // exactly like the app deleting what he had just added.
-export const Modal = ({ open, onClose, title, children, wide, sticky = false }) => {
+export const Modal = ({ open, onClose, title, children, wide, sticky = false, themeAttr }) => {
   const titleId = React.useId();
   const cardRef = React.useRef(null);
   const lastFocusRef = React.useRef(null);
@@ -864,7 +864,7 @@ export const Modal = ({ open, onClose, title, children, wide, sticky = false }) 
          only by its own controls — Save, or the ✕ / Cancel. Escape still
          works: it is an explicit exit, not a misclick. */
     >
-      <div ref={cardRef} tabIndex={-1} onClick={e => e.stopPropagation()} className={(closing ? 'motion-fall' : 'motion-rise') + ' ui-modal-card'} style={{ background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 0, width: wide ? 700 : 480, maxWidth: 'calc(100vw - 24px)', maxHeight: "80vh", overflow: "auto", padding: 28, boxShadow: C.cardShadow, outline: 'none' }}>
+      <div ref={cardRef} tabIndex={-1} data-theme={themeAttr} onClick={e => e.stopPropagation()} className={(closing ? 'motion-fall' : 'motion-rise') + ' ui-modal-card'} style={{ background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 0, width: wide ? 700 : 480, maxWidth: 'calc(100vw - 24px)', maxHeight: "80vh", overflow: "auto", padding: 28, boxShadow: C.cardShadow, outline: 'none' }}>
         {/* Sticky title row: stays pinned (with the ✕) while the body scrolls —
             top:-28 + negative margins swallow the card's own padding so the row
             docks flush at the card top (Ohad, 2026-08-21). */}

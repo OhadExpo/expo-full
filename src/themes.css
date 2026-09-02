@@ -641,13 +641,13 @@ html {
   .bhbc-load-inner { min-width: 0 !important; }
   .bhbc-load-head { display: none !important; }
   .bhbc-load-row {
-    grid-template-columns: 28px 1fr auto !important;
+    grid-template-columns: 28px minmax(0, 1fr) auto !important;
     grid-template-areas: "jersey name acwr" "avail avail med" !important;
     row-gap: 8px !important;
     padding-bottom: 10px !important;
   }
   .bhbc-load-row > *:nth-child(1) { grid-area: jersey; }
-  .bhbc-load-row > *:nth-child(2) { grid-area: name; }
+  .bhbc-load-row > *:nth-child(2) { grid-area: name; min-width: 0; overflow-wrap: anywhere; }
   .bhbc-load-row > *:nth-child(3) { grid-area: acwr; }
   /* 7d and readiness are READING data — they stay on the athlete's own card
      rather than crushing the row down to nothing. */

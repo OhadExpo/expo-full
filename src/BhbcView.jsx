@@ -23,6 +23,7 @@ import { applyGameMinutes, gameMinutesOf, gameRpeOf } from './bhbcGameLoad';
 import { readinessAutoreg } from './readinessAutoreg';
 import BWChart from './BwChart';
 import { sessionSig } from './bhbcSession.js';
+import { useFullPlan } from './usePlansStore';
 
 // EXPO's own group/single session logger — reused INSIDE the BHBC portal, scoped
 // to the BHBC roster. It writes to client_workouts (athlete-visible), so a BHBC
@@ -73,7 +74,7 @@ const TOKENS = {
 // because one resolved the zone's --c-tm and the other the app's. Re-declaring
 // the tokens on a wrapper inside the card fixes it for all nine at once.
 const BModal = ({ children, ...rest }) => (
-  <Modal {...rest}><div style={TOKENS}>{children}</div></Modal>
+  <Modal themeAttr="light" {...rest}><div style={TOKENS}>{children}</div></Modal>
 );
 const BAND = { detrained: '#4F9DE0', low: '#37B27C', elevated: '#E0A73A', high: '#DE4E3B', none: '#7C828B' };
 // ONE section-title treatment everywhere (must match CollapsibleSection's title:
@@ -1105,13 +1106,27 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
         .bhbc-card:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(6,16,37,0.14)}
       `}</style>
 
-      {/* ---- PROGRAM VIEW (EXPO's read-only program, shown in-zone for coaches) ---- */}
+      {/* ---- PROGRAM POPUP (the athlete's EXPO block, read-only, in-zone) ---- */}
       {programFor && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'var(--c-bg)', overflowY: 'auto' }}>
-          <Suspense fallback={<div style={{ padding: 40, textAlign: 'center', color: C.td, fontFamily: FB }}>Loading program…</div>}>
-            <CoachPreviewPortal traineeId={programFor} trainees={trainees} exercises={exercises} portalVis={portalVis} clientWorkouts={clientWorkouts} bwLog={bwLog} weeklyFocus={weeklyFocus} onBack={() => setProgramFor(null)} showAllBlocks />
-          </Suspense>
-        </div>
+        <ProgramModal
+          athleteName={(roster.find((t) => t && t.id === programFor) || {}).name || ''}
+          plans={(planIndex || [])
+            .filter((p) => String(p.traineeId || '').split('__')[0] === programFor)
+            .slice()
+            .sort((a, b) => {
+              const n = (x) => { const m = String(x.name || '').match(/#\s*(\d+)/); return m ? +m[1] : 0; };
+              return n(b) - n(a);
+            })}
+          exercises={exercises}
+          currentWeek={(() => {
+            // The week he is actually IN: the highest week logged against this
+            // athlete, which is what the portal counts too. No logs yet = W1.
+            const mine = (clientWorkouts || []).filter((w) => String(w.clientId || '').split('__')[0] === programFor);
+            const wk = mine.map((w) => Number(w.week)).filter((n2) => Number.isFinite(n2) && n2 > 0);
+            return wk.length ? Math.max(...wk) : 1;
+          })()}
+          onClose={() => setProgramFor(null)}
+        />
       )}
 
       {/* ---- PRACTICE ENTRY (the sheet-like daily entry) ---- */}
@@ -1457,6 +1472,12 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
             <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>Current block</span>
             <span style={{ color: C.tx, fontWeight: 700 }}>{program.current || 'None assigned'}</span>
             {program.count > 1 && <span style={{ color: C.tm }}>· {program.count} total</span>}
+            {onOpenExpo && (
+              <button type="button" onClick={onOpenExpo} title="Open this athlete in EXPO"
+                style={{ marginInlineStart: 'auto', flexShrink: 0, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }}>
+                Open in EXPO ›
+              </button>
+            )}
           </div>
         )}
         {/* Equal columns. Ohad: "make sure all buttons no matter the tag are the
@@ -1465,7 +1486,6 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
             whether the owner sees four or a coach sees three, and wraps rather
             than squeezing below the widest label. */}
         <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(168px, 1fr))`, gap: 8 }}>
-          {onOpenExpo && <Btn variant="ghost" onClick={onOpenExpo}>Open in EXPO ›</Btn>}
           {onLog && <Btn variant="ghost" onClick={onLog}>Log session</Btn>}
           {/* No footer 'Medical report': it fired the SAME onInjury as UPDATE on the
               medical strip above, and the fourth button is what squeezed the row to
@@ -2061,6 +2081,121 @@ function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onLog, onGo })
 // The HEAD COACH's daily/weekly REPORT — the game-week picture at a glance:
 // next game, who's available, the medical board, and the team's upcoming sessions.
 // (The S&C load decisions live in the separate S&C Brief.)
+// THE ATHLETE'S EXPO BLOCK, INSIDE BHBC.
+//
+// Ohad: "make sure the bhbc shows the expo block programs for each athlete
+// inside a pop-up inside bhbc... just the program (uneditable) - something like
+// how it looks in sessions > single/group", and "make sure the pt's and the
+// coaches can view it as well".
+//
+// It used to open CoachPreviewPortal FULL SCREEN - the athlete's portal, a
+// different app's chrome taking over the zone. This is a BHBC modal that reads
+// the plan rows and prints them: block picker, week picker, one card per day,
+// exercise + prescription. No inputs anywhere, so there is nothing to edit by
+// accident, and it is handed to coaches and PTs exactly as to the owner.
+function ProgramModal({ athleteName, plans, exercises, currentWeek = 1, onClose }) {
+  const tr = useT();
+  const { plan, loading, load } = useFullPlan();
+  const [planId, setPlanId] = useState(plans[0] ? plans[0].id : null);
+  useEffect(() => { if (planId) load(planId); }, [planId, load]);
+
+  // Titles: prefer what the plan ROW stored. A BHBC coach cannot necessarily
+  // read the exercise library (athletes cannot either - the title-resolution
+  // rule), so the library is only ever a fallback.
+  const exById = useMemo(() => {
+    const m = new Map();
+    for (const e of (exercises || [])) m.set(e.id, e);
+    return m;
+  }, [exercises]);
+
+  // Ohad: "i don't need to see the entire w1-4 just the current week." The week
+  // is where the athlete actually IS, so the per-week reps/sets resolve to what
+  // he is doing now and there is nothing to click.
+  const weeks = Math.max(1, Number(plan && plan.weeks) || 4);
+  const week = Math.min(Math.max(1, currentWeek || 1), weeks);
+  const wi = week - 1;
+  const days = (plan && Array.isArray(plan.days)) ? plan.days : [];
+
+  // Both plan shapes, as everywhere else that reads a plan: d.exercises / d.ex,
+  // ex.reps / ex.r, ex.sets / ex.s, with per-week overrides in wk / wkS.
+  const rowsFor = (d) => ((d.exercises || d.ex || []).filter(Boolean)).map((ex) => {
+    const lib = exById.get(ex.exerciseId || ex.eid || '');
+    const reps = (Array.isArray(ex.wk) && ex.wk[wi] != null && ex.wk[wi] !== '') ? ex.wk[wi] : (ex.reps ?? ex.r ?? '');
+    const sets = (Array.isArray(ex.wkS) && ex.wkS[wi] != null && ex.wkS[wi] !== '') ? ex.wkS[wi] : (ex.sets ?? ex.s ?? '');
+    const both = sets !== '' && sets != null && reps !== '' && reps != null;
+    // Tempo is PROSE in these plans ("שניות לחזרה 5-6"), not a number. Left in
+    // the prescription column it was wider than the title and squeezed every
+    // name into three lines, which is what made the popup unreadable. It reads
+    // as what it is - a coaching note - under the exercise.
+    const tempo = ex.tempo || '';
+    const note = [tempo, ex.notes || ex.n || ''].filter(Boolean).join(' · ');
+    return {
+      title: ex.title || (lib && (lib.title || lib.t)) || '—',
+      rx: both ? (sets + '×' + reps) : (reps || sets || ''),
+      note,
+    };
+  });
+
+  const chip = (on) => ({
+    fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+    padding: '6px 10px', minHeight: 28, boxSizing: 'border-box', cursor: 'pointer', borderRadius: 0,
+    background: on ? NAVY : 'transparent', color: on ? '#fff' : C.tm,
+    border: '1px solid ' + (on ? NAVY : C.cardBd),
+  });
+
+  return (
+    <BModal open onClose={onClose} wide title={athleteName + ' · ' + tr('Program')}>
+      {plans.length === 0 ? (
+        <div style={{ padding: 24, textAlign: 'center', fontFamily: FB, color: C.tm }}>{tr('No EXPO program assigned yet')}</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+            {plans.map((p) => (
+              <button key={p.id} type="button" aria-pressed={p.id === planId} onClick={() => setPlanId(p.id)} style={chip(p.id === planId)}>{p.name}</button>
+            ))}
+            <span style={{ marginInlineStart: 'auto', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap' }}>
+              {tr('Week')} <span style={{ color: ORANGE_DEEP }}>{'W' + week}</span>{weeks > 1 ? ' / ' + weeks : ''}
+            </span>
+          </div>
+
+          {loading && <div style={{ padding: 20, textAlign: 'center', fontFamily: FN, fontSize: 11, letterSpacing: '0.14em', color: C.tm }}>{tr('Loading')}</div>}
+          {!loading && days.length === 0 && (
+            <div style={{ padding: 20, textAlign: 'center', fontFamily: FB, color: C.tm }}>{tr('This block has no days yet')}</div>
+          )}
+          {!loading && days.map((d, di) => {
+            const list = rowsFor(d);
+            return (
+              <div key={di} style={{ border: '1px solid ' + C.cardBd, background: 'var(--c-sf)' }}>
+                <div style={{ background: NAVY_DEEP, color: '#fff', padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                  <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{d.name || d.n || (tr('Day') + ' ' + (di + 1))}</span>
+                  <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', opacity: 0.85 }}>{list.length} EX</span>
+                </div>
+                {list.length === 0
+                  ? <div style={{ padding: '10px 12px', fontFamily: FB, fontSize: 12, color: C.td }}>{'—'}</div>
+                  : list.map((r, ri) => (
+                    <div key={ri} style={{ display: 'grid', gridTemplateColumns: '20px minmax(0,1fr) max-content', columnGap: 10, rowGap: 2, alignItems: 'baseline', padding: '9px 12px', borderTop: ri ? '1px solid ' + C.cardBd : 'none' }}>
+                      <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.td, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{ri + 1}</span>
+                      <span style={{ minWidth: 0, fontFamily: FB, fontSize: 13, fontWeight: 600, color: C.tx, overflowWrap: 'break-word' }}>{r.title}</span>
+                      <span dir="ltr" style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate', whiteSpace: 'nowrap' }}>{r.rx}</span>
+                      {r.note && (
+                        // Two lines, with the whole cue on hover. A block has
+                        // eight of these and every one of them is a paragraph;
+                        // unclamped they buried the exercises.
+                        <span title={r.note} style={{ gridColumn: 2, fontFamily: FB, fontSize: 11.5, lineHeight: 1.45, color: C.tm, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', overflowWrap: 'break-word' }}>
+                          <bdi>{r.note}</bdi>
+                        </span>
+                      )}
+                    </div>
+                  ))}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </BModal>
+  );
+}
+
 function HeadCoachReport({ rows, fx, fixtures, medical, today, onOpen, onMedical, onReportNew, planOf, onPlan, onCopy, copied }) {
   const he = useHe();
   const tr = useT();
