@@ -191,11 +191,13 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   const he = bhbcLang === 'he';
   setBhbcDateLang(bhbcLang);
   const tr = React.useCallback((str) => bhbcT(bhbcLang, str), [bhbcLang]);
-  const { setTheme: setZoneTheme } = useTheme();
-  useEffect(() => {
-    setZoneTheme('light');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // The zone is light BY DESIGN (white -> blue -> orange, locked 08-16), but
+  // that is a property of the ZONE, not of the app. It used to call
+  // setTheme('light') on mount, and setTheme writes the root attribute,
+  // localStorage AND user_metadata.theme_pref - so opening BHBC converted his
+  // saved theme to light everywhere, and going back to the Dashboard showed
+  // light. The wrapper carries data-theme="light" now: same look, and the
+  // choice he made for EXPO is left alone.
 
   // Broadcast a change to other open zones after any local write (shared-sheet sync).
   const notify = useCallback(() => { if (onLocalWrite) onLocalWrite(); }, [onLocalWrite]);
@@ -747,7 +749,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
     // instead of being forced. Numbers, times and club names stay LTR on their
     // own because they are strongly-typed LTR runs.
     <BhbcLangCtx.Provider value={bhbcLang}>
-    <div className="bhbc-zone" dir={he ? 'rtl' : 'ltr'} style={{ ...TOKENS, minHeight: '100vh', background: 'var(--c-bg)', color: C.tx, fontFamily: FB }}>
+    <div className="bhbc-zone" data-theme="light" dir={he ? 'rtl' : 'ltr'} style={{ ...TOKENS, minHeight: '100vh', background: 'var(--c-bg)', color: C.tx, fontFamily: FB }}>
       <style>{`
         .bhbc-hdr-tabs::-webkit-scrollbar{display:none} .bhbc-hdr-tabs{scrollbar-width:none;-ms-overflow-style:none}
         .bhbc-ghost-btn:hover{color:${ORANGE}!important;border-color:${ORANGE}!important}
@@ -804,7 +806,10 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
              the label buys the rest. 74 is above the 72px widest date, so no
              date wraps - which is what went wrong when this was tried at 78 in
              an earlier pass and the column read ragged. */
-          .bhbc-week-row{gap:7px!important}
+  .bhbc-med-row{ grid-template-columns: 10px minmax(0,1fr) !important; }
+          .bhbc-med-row > *:nth-child(3){ grid-column: 2 !important; }
+          .bhbc-med-row > *:nth-child(4){ grid-column: 2 !important; justify-self: start !important; }
+                  .bhbc-week-row{gap:7px!important}
           .bhbc-week-row > span:nth-child(1){width:74px!important}
           .bhbc-week-row > span:nth-child(2){width:38px!important}
           .bhbc-week-row > span:nth-child(3){font-size:11px!important}
@@ -1092,8 +1097,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
         /* Legible secondary text: brighter muted/dim greys, theme-aware, scoped to
            the zone (Ohad: dark-mode grey text was too faded). */
         .bhbc-zone{ --c-tm:#6B727B; --c-td:#5F666F; }
-        @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]):not([data-theme="5b"]) .bhbc-zone{ --c-tm:#AEB4BD; --c-td:#B6BCC5; } }
-        :root[data-theme="dark"] .bhbc-zone{ --c-tm:#AEB4BD; --c-td:#B6BCC5; }
+        .bhbc-zone[data-theme="dark"]{ --c-tm:#AEB4BD; --c-td:#B6BCC5; }
         :root { --bhbc-ha-home: ${NAVY}; --bhbc-ha-away: ${ORANGE_DEEP}; --bhbc-amber-text: #8A6410; }
         :root[data-theme="dark"] { --bhbc-ha-home: #7FA9E8; --bhbc-ha-away: #F0955F; --bhbc-amber-text: #E0A73A; }
         .bhbc-row{transition:background 120ms}
@@ -2133,13 +2137,13 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
                   // the injury description was ellipsized to "AN…", which is not
                   // an injury report. It now takes its own line and the UPDATE
                   // button stays whole.
-                  <div key={i} onClick={onOpen ? () => onOpen(t.id) : undefined} role={onOpen ? 'button' : undefined} tabIndex={onOpen ? 0 : undefined} onKeyDown={onOpen ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }) : undefined} className={onOpen ? 'bhbc-row' : undefined} style={{ display: 'flex', alignItems: 'center', gap: 8, rowGap: 2, flexWrap: 'wrap', cursor: onOpen ? 'pointer' : 'default' }}>
+                  <div key={i} onClick={onOpen ? () => onOpen(t.id) : undefined} role={onOpen ? 'button' : undefined} tabIndex={onOpen ? 0 : undefined} onKeyDown={onOpen ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }) : undefined} className={onOpen ? 'bhbc-row bhbc-med-row' : 'bhbc-med-row'} style={{ display: 'grid', gridTemplateColumns: '10px minmax(0, 96px) minmax(0, 1fr) auto', alignItems: 'center', columnGap: 8, rowGap: 2, cursor: onOpen ? 'pointer' : 'default' }}>
                     <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.color, flexShrink: 0 }} />
-                    <span style={{ fontFamily: FN, fontWeight: 700, fontSize: 12, flexShrink: 0 }}>{surnameOf(t.name)}</span>
+                    <span style={{ fontFamily: FN, fontWeight: 700, fontSize: 12, minWidth: 0, overflowWrap: 'break-word' }}>{surnameOf(t.name)}</span>
                     {/* WRAP, do not ellipsize. The row already wraps, and on a narrow RTL line
     the ellipsis eats the START of the diagnosis — "…T SPRAIN" instead of
     "ANKLE LEFT SPRAIN". A truncated injury is not an injury report. */}
-                    <span style={{ color: C.tm, minWidth: 0, flexShrink: 1, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{tr((inj.bodyPart || '').split('/')[0].trim())}{inj.side && inj.side !== 'N/A' ? ` ${inj.side[0]}` : ''} · {tr(s.label)}{inj.rtpTarget ? <span className="bhbc-mob-hide">{` · RTP ${monDay(inj.rtpTarget)}`}</span> : null}</span>
+                    <span style={{ color: C.tm, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{tr((inj.bodyPart || '').split('/')[0].trim())}{inj.side && inj.side !== 'N/A' ? ` ${inj.side[0]}` : ''} · {tr(s.label)}{inj.rtpTarget ? <span className="bhbc-mob-hide">{` · RTP ${monDay(inj.rtpTarget)}`}</span> : null}</span>
                                       {onMedical && (
                       <button onClick={(e) => { e.stopPropagation(); onMedical(t.id); }} title="Update this medical report" className="bhbc-ghost-btn"
                         style={{ marginInlineStart: 'auto', flexShrink: 0, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, height: ROW_BTN_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, padding: '0 9px', cursor: 'pointer' }}>{tr('UPDATE')}</button>
