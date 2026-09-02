@@ -291,7 +291,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                   border: `1px solid ${open ? C.ac : `${C.cardBd}`}`,
                   borderRadius: 0, padding: '12px 14px', color: C.tx,
                   fontFamily: FB, fontSize: 15, fontWeight: 600,
-                  outline: 'none', boxSizing: 'border-box', cursor: 'text', textAlign: 'start',
+                  outline: 'none', boxSizing: 'border-box', cursor: 'text',
                 }}
               />
               {open && (
