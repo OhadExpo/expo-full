@@ -588,7 +588,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
                 // e1RM change · gain%. The log/week context moves to the name tooltip.
                 <div key={s.title} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderTop: `1px solid ${C.bd}` }}>
                   <span title={`${s.count} logs · ${s.spanWeeks > 0 ? `over ${s.spanWeeks} weeks` : 'this block'}`}
-                    style={{ flex: '1 1 auto', minWidth: 0, fontSize: 13, color: C.tx, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.title}</span>
+                    style={{ flex: '1 1 auto', minWidth: 0, fontSize: 13, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: 1.3 }}>{s.title}</span>
                   <Spark pts={s.arc} dir={noisy ? 'flat' : s.arcGainPct >= 3 ? 'up' : s.arcGainPct <= -3 ? 'down' : 'flat'} />
                   <span style={{ flexShrink: 0, fontSize: 12.5, color: C.tx, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }} title="estimated 1-rep max (Epley), first → now">e{s.firstE1} → e{lastE}{s.prE1 > lastE ? <span style={{ color: C.td, fontSize: 10 }}> · pk e{s.prE1}</span> : null}</span>
                   <span style={{ flexShrink: 0, minWidth: 46, textAlign: 'right', fontSize: 12, fontWeight: 700, color: gc, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{s.arcGainPct >= 0 ? '+' : ''}{s.arcGainPct}%{noisy ? <span style={{ fontSize: 9, fontWeight: 400, color: C.td }}> · reps varied</span> : null}</span>
