@@ -2100,7 +2100,10 @@ function ProgramModal({ athleteName, plans, exercises, currentWeek = 1, onClose 
   const { plan, loading, load } = useFullPlan();
   const [planId, setPlanId] = useState(plans[0] ? plans[0].id : null);
   const [pickOpen, setPickOpen] = useState(false);
+  // One exercise open at a time, exactly like the group session on the floor.
+  const [openEx, setOpenEx] = useState(null);
   useEffect(() => { if (planId) load(planId); }, [planId, load]);
+  useEffect(() => { setOpenEx(null); }, [planId]);
 
   // Titles: prefer what the plan ROW stored. A BHBC coach cannot necessarily
   // read the exercise library (athletes cannot either - the title-resolution
@@ -2131,11 +2134,25 @@ function ProgramModal({ athleteName, plans, exercises, currentWeek = 1, onClose 
     // name into three lines, which is what made the popup unreadable. It reads
     // as what it is - a coaching note - under the exercise.
     const tempo = ex.tempo || '';
-    const note = [tempo, ex.notes || ex.n || ''].filter(Boolean).join(' · ');
+    const note = String(ex.notes || ex.n || '').trim();
+    // The per-week arrays ARE the block's progression. Collapsed we show this
+    // week; expanded we show every week, which is the thing a coach opens an
+    // old block to look at.
+    const weekly = [];
+    const nWeeks = Math.max(Array.isArray(ex.wk) ? ex.wk.length : 0, Array.isArray(ex.wkS) ? ex.wkS.length : 0);
+    for (let w = 0; w < nWeeks; w++) {
+      const r = Array.isArray(ex.wk) ? ex.wk[w] : null;
+      const st = Array.isArray(ex.wkS) ? ex.wkS[w] : null;
+      const cell = (st != null && st !== '' && r != null && r !== '') ? (st + '×' + r) : (r || st || '');
+      weekly.push(String(cell || '').trim());
+    }
     return {
       title: ex.title || (lib && (lib.title || lib.t)) || '—',
       rx: both ? (sets + '×' + reps) : (reps || sets || ''),
       note,
+      tempo,
+      weekly: weekly.some(Boolean) ? weekly : null,
+      video: ex.videoUrl || ex.vid || (lib && lib.videoLink) || '',
     };
   });
 
@@ -2207,12 +2224,60 @@ function ProgramModal({ athleteName, plans, exercises, currentWeek = 1, onClose 
                         // One card per exercise: name, then the prescription on
                         // its own line with the cue beside it - the shape of the
                         // exercise cards on the floor.
-                        <div key={ri} style={{ border: '1px solid ' + C.cardBd, background: 'var(--c-sf)', padding: '9px 11px' }}>
-                          <div style={{ display: 'flex', gap: 8, minWidth: 0 }}><span style={{ width: 16, flexShrink: 0, fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tm, fontVariantNumeric: 'tabular-nums', lineHeight: 1.35 }}>{ri + 1}</span><span style={{ minWidth: 0, fontFamily: FB, fontSize: 13, fontWeight: 700, color: C.tx, overflowWrap: 'break-word', lineHeight: 1.3 }}>{r.title}</span></div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3, minWidth: 0, paddingInlineStart: 24 }}>
-                            <span dir="ltr" style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate', whiteSpace: 'nowrap', flexShrink: 0 }}>{r.rx || '—'}</span>
+                        (() => {
+                          const key = di + ':' + ri;
+                          const open = openEx === key;
+                          return (
+                        <div key={ri} style={{
+                          border: '1px solid ' + (open ? ORANGE : C.cardBd),
+                          borderInlineStart: '3px solid ' + (open ? ORANGE : NAVY),
+                          background: open ? 'rgba(242,106,43,0.05)' : 'var(--c-sf)',
+                          transition: 'border-color .15s, background .15s',
+                        }}>
+                          {/* Tap to expand, one at a time - the shape of the
+                              exercise cards on the floor. The left rail and the
+                              orange are what give the card its character; a flat
+                              white box reads as a spreadsheet. */}
+                          <div role="button" tabIndex={0} aria-expanded={open}
+                            onClick={() => setOpenEx(open ? null : key)}
+                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpenEx(open ? null : key); } }}
+                            style={{ padding: '9px 11px', cursor: 'pointer' }}>
+                            <div style={{ display: 'flex', gap: 8, minWidth: 0, alignItems: 'flex-start' }}>
+                              <span style={{ width: 16, flexShrink: 0, fontFamily: FN, fontSize: 11, fontWeight: 700, color: open ? ORANGE_DEEP : C.tm, fontVariantNumeric: 'tabular-nums', lineHeight: 1.35 }}>{ri + 1}</span>
+                              <span style={{ minWidth: 0, flex: 1, fontFamily: FB, fontSize: 13, fontWeight: 700, color: C.tx, overflowWrap: 'break-word', lineHeight: 1.3 }}>{r.title}</span>
+                              <span aria-hidden style={{ flexShrink: 0, fontSize: 11, color: open ? ORANGE_DEEP : C.tm, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s', lineHeight: 1.3 }}>▾</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3, minWidth: 0, paddingInlineStart: 24 }}>
+                              <span dir="ltr" style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate', whiteSpace: 'nowrap', flexShrink: 0 }}>{r.rx || '—'}</span>
+                              {r.tempo && <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: C.tm, whiteSpace: 'nowrap' }}>{r.tempo}</span>}
+                            </div>
                           </div>
+                          {open && (
+                            <div style={{ padding: '0 11px 10px 24px', borderTop: '1px solid ' + C.cardBd, marginTop: 2, paddingTop: 8 }}>
+                              {r.weekly && (
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: r.note ? 8 : 0 }}>
+                                  {r.weekly.map((cell, wi) => (
+                                    <span key={wi} style={{
+                                      display: 'inline-flex', alignItems: 'baseline', gap: 5, padding: '4px 8px',
+                                      border: '1px solid ' + (wi + 1 === week ? ORANGE : C.cardBd),
+                                      background: wi + 1 === week ? 'rgba(242,106,43,0.10)' : 'transparent',
+                                      fontFamily: FN, fontSize: 11, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap',
+                                    }}>
+                                      <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', color: C.tm }}>{'W' + (wi + 1)}</span>
+                                      <span dir="ltr" style={{ fontWeight: 700, color: wi + 1 === week ? ORANGE_DEEP : C.tx, unicodeBidi: 'isolate' }}>{cell || '—'}</span>
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                              {!r.weekly && <div style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.08em', color: C.tm, marginBottom: r.note ? 8 : 0 }}>{tr('Same every week')}</div>}
+                              {r.note && (
+                                <div style={{ fontFamily: FB, fontSize: 11.5, lineHeight: 1.5, color: C.tm, overflowWrap: 'break-word' }}><bdi>{r.note}</bdi></div>
+                              )}
+                            </div>
+                          )}
                         </div>
+                          );
+                        })()
                       ))}
                     </div>
                   )}
