@@ -252,7 +252,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
   // Wrap, never ellipsise. Ohad: "i cant see some of the words... never do."
   // A classification value cut to "Shoulder Horizontal Adducti…" is not a
   // classification. The row gets taller; the word stays whole.
-    <td title={v || undefined} style={{ padding: '9px 12px', whiteSpace: 'normal', overflowWrap: 'break-word', ...extra }}>
+    <td className="ex-taxo" title={v || undefined} style={{ padding: '9px 12px', whiteSpace: 'normal', overflowWrap: 'break-word', ...extra }}>
       {v ? <span style={{ fontFamily: FN, fontSize: 10.5, fontWeight: 600, letterSpacing: '0.02em', color: C.tm }}>{v}</span> : emptyDot}
     </td>
   );
@@ -260,7 +260,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
   const chipCell = (v, max = 320) => {
     const vals = splitVals(v);
     return (
-      <td title={vals.join(', ') || undefined} style={{ padding: '9px 12px', maxWidth: max, overflow: 'hidden' }}>
+      <td className="ex-taxo" title={vals.join(', ') || undefined} style={{ padding: '9px 12px', maxWidth: max, overflow: 'hidden' }}>
         {vals.length === 0 ? emptyDot : (
           <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', rowGap: 3 }}>
             {/* The ROW wraps instead of the chips being cut. Ohad: never
@@ -294,6 +294,28 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
         .ex-row td:first-child { box-shadow: inset 2px 0 0 transparent; transition: box-shadow .12s; }
         .ex-row:hover td:first-child { box-shadow: inset 2px 0 0 var(--c-ac); }
         .ex-table thead th { background: var(--c-sf2) !important; }
+        /* index.html has a blanket rule under 768px making every table
+           display:block, overflow-x:auto, white-space:nowrap. It is a reasonable default for a
+           wide data table, but it also switches OFF table-layout: fixed, and
+           this table is built around a colgroup that sums to 100% precisely so
+           it never scrolls sideways (Ohad #219). Measured at 390: the columns
+           wanted 1117px inside a 365px box, so eight of the ten sat behind a
+           horizontal scroll he has asked repeatedly not to have.
+           On a phone the seven taxonomy columns are dropped - they are ~91%
+           empty, they are what the FILTER BY controls are for, and the GRID
+           view shows every field per card - leaving name, media and the two
+           actions, which fit. */
+        @media (max-width: 700px) {
+          .ex-table { display: table !important; width: 100% !important; table-layout: auto !important; white-space: normal !important; overflow-x: visible !important; }
+          .ex-table th, .ex-table td { white-space: normal !important; }
+          .ex-table .ex-taxo { display: none !important; }
+          /* The name cell carries an inline max-width of 320 for the desktop
+             layout; with the taxonomy gone that alone plus media and the two
+             actions still wanted 412px in a 366px box, so the actions column
+             sat off the right edge - the very thing being fixed. 240 leaves
+             room for both. */
+          .ex-table td:first-child, .ex-table th:first-child { max-width: 240px !important; }
+        }
         .filt { transition: color .12s, border-color .12s; }
         .filt:not(.filt-on):hover { color: var(--c-tx) !important; border-bottom-color: var(--c-tm) !important; }
         .ex-card { transition: border-color .12s, transform .12s; }
@@ -432,7 +454,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
                 {[['title', 'Exercise'], ['resistanceType', 'Resistance'], ['bodyPosition', 'Position'], ['movementType', 'Movement'], ['primaryJoints', 'Joints'], ['jointMovements', 'Joint Movements'], ['primaryMuscles', 'Primary Muscles'], ['secondaryMuscles', 'Secondary Muscles']].map(([k, l]) => {
                   const active = sortKey === k;
                   return (
-                    <th key={k} onClick={() => onSort(k)} style={{ textAlign: 'left', padding: '9px 12px', fontSize: 9, fontFamily: FN, color: active ? C.ac : C.tm, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700, cursor: 'pointer', whiteSpace: 'normal', lineHeight: 1.25, borderBottom: `1px solid ${C.cardBd}`, userSelect: 'none', position: 'sticky', top: 0, background: 'var(--c-sf)', zIndex: 1 }}>
+                    <th key={k} className={k === 'title' ? undefined : 'ex-taxo'} onClick={() => onSort(k)} style={{ textAlign: 'left', padding: '9px 12px', fontSize: 9, fontFamily: FN, color: active ? C.ac : C.tm, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700, cursor: 'pointer', whiteSpace: 'normal', lineHeight: 1.25, borderBottom: `1px solid ${C.cardBd}`, userSelect: 'none', position: 'sticky', top: 0, background: 'var(--c-sf)', zIndex: 1 }}>
                       {l}{active && <span style={{ fontSize: 8, marginLeft: 4 }}>{sortDir === 'asc' ? '↑' : '↓'}</span>}
                     </th>
                   );
@@ -448,7 +470,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
                     <td style={{ padding: '9px 12px 9px 14px', maxWidth: 320 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
                         {statusDot(ex)}
-                        <span title={ex.title} style={{ fontWeight: 600, fontSize: 13, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word', whiteSpace: 'nowrap' }}>{ex.title}</span>
+                        <span title={ex.title} style={{ fontWeight: 600, fontSize: 13, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word', minWidth: 0 }}>{ex.title}</span>
                       </div>
                     </td>
                     {oneCell(ex.resistanceType)}

@@ -2167,12 +2167,11 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
               role={clickable ? 'button' : undefined} tabIndex={clickable ? 0 : undefined}
               onKeyDown={clickable ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onPlan(s); } }) : undefined}
                   title={clickable ? (pl ? 'Edit this session’s plan' : 'Add a plan for this session') : undefined}
-                  className={clickable ? 'bhbc-row' : undefined}
                   // flexWrap so a squeezed label moves to its own LINE instead of
                   // being crushed to "PR…". The action still never breaks: it
                   // wraps whole rather than sliding off the viewport, which was
                   // the failure the fixed columns were protecting against.
-                  className="bhbc-week-row"
+                  className={clickable ? 'bhbc-row bhbc-week-row' : 'bhbc-week-row'}
                   style={{ display: 'flex', alignItems: 'center', lineHeight: 'normal', gap: 10, rowGap: 2, flexWrap: 'wrap', cursor: clickable ? 'pointer' : 'default', padding: '2px 0' }}>
                   {/* 96 + nowrap, same as the past-practice list: at 78px some dates
                       wrapped to two lines and others did not, so the column read
@@ -2475,7 +2474,7 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, onOpen, onMedical 
               .reduce((worst, inj) => Math.max(worst, MEDICAL_STATUS_AVAIL[inj.status] || 1), 1);
             const rc = readiness.level === 'red' ? BAND.high : readiness.level === 'amber' ? BAND.elevated : readiness.level === 'green' ? BAND.low : BAND.none;
             return (
-              <div key={t.id} className="bhbc-load-row" onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }} style={{ display: 'grid', gridTemplateColumns: rowGrid, gap: 12, alignItems: 'center', padding: '8px 2px', borderBottom: `1px solid ${C.cardBd}`, borderInlineStart: `2px solid ${acwr.band.color}`, paddingInlineStart: 10, marginInlineStart: -12, cursor: 'pointer', transition: 'border-color 240ms ease-out' }} className="bhbc-row bhbc-load-row">
+              <div key={t.id} onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }} style={{ display: 'grid', gridTemplateColumns: rowGrid, gap: 12, alignItems: 'center', padding: '8px 2px', borderBottom: `1px solid ${C.cardBd}`, borderInlineStart: `2px solid ${acwr.band.color}`, paddingInlineStart: 10, marginInlineStart: -12, cursor: 'pointer', transition: 'border-color 240ms ease-out' }} className="bhbc-row bhbc-load-row">
                 <Jersey n={t.jersey} size={26} />
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontFamily: FN, fontWeight: 700, fontSize: 13, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{t.name}</div>

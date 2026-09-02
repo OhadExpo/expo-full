@@ -147,7 +147,6 @@ export const HE = {
   Dislocation: 'פריקה',
   Illness: 'מחלה',
   Other: 'אחר',
-  'Log a session': 'רישום אימון',
   'From calendar': 'מהיומן',
   Type: 'סוג',
   'Session RPE (0–10)': 'RPE של האימון (0–10)',
@@ -222,7 +221,6 @@ export const HE = {
   Weights: 'כוח',
   Rows: 'שורות',
   Columns: 'עמודות',
-  days: 'ימים',
   min: 'דק׳',
 
   // ---- roster / medical -------------------------------------------------

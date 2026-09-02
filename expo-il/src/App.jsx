@@ -2875,7 +2875,7 @@ function ProgramDetail({ program }) {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 18, alignItems: 'center', justifyContent: 'center' }}>
           <span style={{
             fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1.5,
-            background: 'transparent', border: `0.25px solid ${C.ac}`, color: C.ac, padding: '4px 10px', borderRadius: 0,
+            background: 'transparent', color: C.ac, padding: '4px 10px', borderRadius: 0,
             border: `1px solid ${C.ac4D}`,
           }}>{pTag.toUpperCase()}</span>
           <span style={{ fontFamily: FN, fontSize: 11, color: C.td }}>{pDuration}</span>
