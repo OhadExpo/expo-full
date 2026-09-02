@@ -2142,20 +2142,17 @@ function ProgramModal({ athleteName, plans, exercises, currentWeek = 1, onClose 
     // The per-week arrays ARE the block's progression. Collapsed we show this
     // week; expanded we show every week, which is the thing a coach opens an
     // old block to look at.
-    const weekly = [];
-    const nWeeks = Math.max(Array.isArray(ex.wk) ? ex.wk.length : 0, Array.isArray(ex.wkS) ? ex.wkS.length : 0);
-    for (let w = 0; w < nWeeks; w++) {
-      const r = Array.isArray(ex.wk) ? ex.wk[w] : null;
-      const st = Array.isArray(ex.wkS) ? ex.wkS[w] : null;
-      const cell = (st != null && st !== '' && r != null && r !== '') ? (st + '×' + r) : (r || st || '');
-      weekly.push(String(cell || '').trim());
-    }
+    // One row per prescribed set, which is the shape the group session card
+    // opens to. Only a clean numeric set count produces rows - a prescription
+    // like "3-4" or "AMRAP" is shown as written rather than invented into a
+    // list, because a made-up set count is worse than none.
+    const nSets = /^[0-9]+$/.test(String(sets).trim()) ? Number(String(sets).trim()) : 0;
     return {
       title: ex.title || (lib && (lib.title || lib.t)) || '—',
       rx: both ? (sets + '×' + reps) : (reps || sets || ''),
-      note,
       tempo,
-      weekly: weekly.some(Boolean) ? weekly : null,
+      setCount: nSets > 0 && nSets <= 12 ? nSets : 0,
+      reps: String(reps || '').trim(),
       video: ex.videoUrl || ex.vid || (lib && lib.videoLink) || '',
     };
   });
@@ -2258,24 +2255,20 @@ function ProgramModal({ athleteName, plans, exercises, currentWeek = 1, onClose 
                           </div>
                           {open && (
                             <div style={{ padding: '0 11px 10px 24px', borderTop: '1px solid ' + C.cardBd, marginTop: 2, paddingTop: 8 }}>
-                              {r.weekly && (
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: r.note ? 8 : 0 }}>
-                                  {r.weekly.map((cell, wi) => (
-                                    <span key={wi} style={{
-                                      display: 'inline-flex', alignItems: 'baseline', gap: 5, padding: '4px 8px',
-                                      border: '1px solid ' + (wi + 1 === week ? ORANGE : C.cardBd),
-                                      background: wi + 1 === week ? 'rgba(242,106,43,0.10)' : 'transparent',
-                                      fontFamily: FN, fontSize: 11, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap',
-                                    }}>
-                                      <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', color: C.tm }}>{'W' + (wi + 1)}</span>
-                                      <span dir="ltr" style={{ fontWeight: 700, color: wi + 1 === week ? ORANGE_DEEP : C.tx, unicodeBidi: 'isolate' }}>{cell || '—'}</span>
-                                    </span>
+                              {r.tempo && <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: ORANGE_DEEP, marginBottom: 7 }}>{'⏱ ' + r.tempo}</div>}
+                              {r.setCount > 0 ? (
+                                <div style={{ display: 'grid', gridTemplateColumns: '28px minmax(0, 1fr)', columnGap: 10, rowGap: 3 }}>
+                                  <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: C.tm }}>{tr('SET')}</span>
+                                  <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: C.tm }}>{tr('REPS')}</span>
+                                  {Array.from({ length: r.setCount }, (_, si) => (
+                                    <React.Fragment key={si}>
+                                      <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontVariantNumeric: 'tabular-nums' }}>{si + 1}</span>
+                                      <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tx, fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate' }}>{r.reps || '—'}</span>
+                                    </React.Fragment>
                                   ))}
                                 </div>
-                              )}
-                              {!r.weekly && <div style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.08em', color: C.tm, marginBottom: r.note ? 8 : 0 }}>{tr('Same every week')}</div>}
-                              {r.note && (
-                                <div style={{ fontFamily: FB, fontSize: 11.5, lineHeight: 1.5, color: C.tm, overflowWrap: 'break-word' }}><bdi>{r.note}</bdi></div>
+                              ) : (
+                                <div style={{ fontFamily: FN, fontSize: 11, color: C.tm }}>{r.rx || '—'}</div>
                               )}
                             </div>
                           )}
