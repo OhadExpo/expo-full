@@ -3273,7 +3273,28 @@ function ScheduleTool({ fx, fixtures, today, mode, setMode, onLog }) {
         </div>
       ) : toggle
     }>
-      {mode === 'calendar' ? <ScheduleMonth fixtures={fixtures} today={today} /> : mode === 'week' ? <ScheduleWeek fixtures={fixtures} today={today} /> : <ScheduleList fx={fx} today={today} />}
+      {/* ONE GRID CELL, three views stacked in it. Ohad: "month/week/list are
+          differnt vetrical sizes and the website jumps and glitches from
+          switching them" - measured at 1500, the page was 2125 / 1752 / 2181,
+          a 429px swing, so everything below the card moved and a scrolled
+          reader was thrown every time he changed view.
+          Stacking them in the same cell makes the cell as tall as the TALLEST
+          in one layout pass, at every width, with no stored height to go stale
+          and no measure-then-set flicker. visibility:hidden (not display:none)
+          keeps that height while taking the inactive views out of the tab order
+          and the accessibility tree. */}
+      <div style={{ display: 'grid' }}>
+        {[
+          ['calendar', <ScheduleMonth key="m" fixtures={fixtures} today={today} />],
+          ['week', <ScheduleWeek key="w" fixtures={fixtures} today={today} />],
+          ['list', <ScheduleList key="l" fx={fx} today={today} />],
+        ].map(([k, node]) => (
+          <div key={k} aria-hidden={mode === k ? undefined : 'true'}
+            style={{ gridArea: '1 / 1', minWidth: 0, visibility: mode === k ? 'visible' : 'hidden' }}>
+            {node}
+          </div>
+        ))}
+      </div>
     </Card>
   );
 }
