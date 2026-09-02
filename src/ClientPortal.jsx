@@ -2691,7 +2691,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           // inverse-video accents, everything tabular. Symmetric: banner
           // padding 10/10, groups share one baseline.
           if (hv === '4') return (
-            <div style={{borderTop:`1px solid ${C.cardBd}`,borderBottom:`1px solid ${C.cardBd}`,padding:'10px 2px',display:'flex',alignItems:'center',justifyContent:'space-between',whiteSpace:'nowrap',gap:10,flexWrap:'wrap',rowGap:6}}>
+            <div style={{borderTop:`1px solid ${C.cardBd}`,borderBottom:`1px solid ${C.cardBd}`,padding:'10px 2px',display:'grid',gridTemplateColumns:'minmax(0,1fr) auto auto',alignItems:'center',columnGap:10,rowGap:6}}>
               {/* The block name WRAPS; it used to truncate. Truncating did stop the
                   week + left groups being shoved off a phone, but it cost the athlete
                   the name of the block he is training: measured on /demo/athlete at
