@@ -633,7 +633,7 @@ function FloorBar({ session, checkedIn, traineeById, onAdd, onFinish }) {
           <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#FFF', lineHeight: 1, display: 'inline-flex', alignItems: 'center', position: 'relative', top: 0.5 }}>
             ON THE FLOOR · {checkedIn}/{session.athletes.length} CHECKED IN
           </span>
-          <div style={{ display: 'flex', gap: 0 }}>
+          <div style={{ display: 'grid', gridAutoFlow: 'column', gridAutoColumns: '1fr', gap: 0 }}>
             <button onClick={onAdd} style={stripBtn}>+ ADD</button>
             <button onClick={onFinish} style={{ ...stripBtn, borderLeft: 'none' }}>■ FINISH</button>
           </div>

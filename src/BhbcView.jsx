@@ -1007,7 +1007,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: C.td }}>{tr('Roster')} · {roster.length}</div>
           {(!asCoach || canLog) && (
-            <div style={{ marginInlineStart: 'auto', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <div style={{ marginInlineStart: 'auto', display: 'inline-grid', gridAutoFlow: 'column', gridAutoColumns: '1fr', gap: 8 }}>
               {!asCoach && <Btn variant="ghost" onClick={() => setManageOpen(true)}>{tr('Manage roster')}</Btn>}
               {canLog && <Btn onClick={() => setPracticeOpen(true)} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>{tr('+ Log practice')}</Btn>}
             </div>
