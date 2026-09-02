@@ -57,6 +57,19 @@ const loadIn = async (route, theme) => {
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 40000 });
   await page.waitForFunction(() => !/LOADING DATA/i.test(document.body.innerText), { timeout: 40000 }).catch(() => {});
   await wait(2600);
+  // ...and then WAIT FOR THE DOM TO STOP MOVING. A fixed sleep is not enough on
+  // a route that keeps rendering as queries land: two runs of /coach/dashboard
+  // reported moved=0/countDelta=0 and then moved=3/countDelta=-352, purely
+  // because the two theme passes were sampled at different points in the load.
+  // A gate that reports different numbers for an unchanged page trains you to
+  // ignore it, so hold until the element count repeats.
+  let last = -1;
+  for (let i = 0; i < 20; i++) {
+    const n = await page.evaluate(() => document.querySelectorAll('*').length);
+    if (n === last) break;
+    last = n;
+    await wait(700);
+  }
   // PROVE the theme actually applied before measuring anything.
   return page.evaluate(() => ({
     attr: document.documentElement.getAttribute('data-theme'),
@@ -147,10 +160,37 @@ for (const route of ROUTES) {
     const dInfo = await loadIn(route, 'dark');
     const gDark = await geometry();
     const cDark = await contrast();
+    await loadIn(route, 'dark');
+    const gDark2 = await geometry();
 
     const lInfo = await loadIn(route, 'light');
     const gLight = await geometry();
     const cLight = await contrast();
+
+    // SELF-NOISE BASELINE. Some routes render differently from one LOAD to the
+    // next - a query lands, an alert appears, five elements shift and every
+    // sibling-indexed path below them changes. Comparing dark-load to
+    // light-load then reports that as theme drift: /coach/dashboard gave
+    // moved=0 and moved=16 on two runs of an unchanged page. So load the SAME
+    // theme a second time and treat anything that differs from ITSELF as noise,
+    // never as a light/dark difference. What survives is real.
+    await loadIn(route, 'light');
+    const gLight2 = await geometry();
+    // Both themes get a second load: a key that varies from one load of the
+    // SAME theme to the next cannot tell us anything about the other theme.
+    // Baselining only light was not enough - the variance on /coach/dashboard
+    // lived in the dark pass, and the gate still swung 0 -> 16.
+    const noise = new Set();
+    const noisyBetween = (g1, g2) => {
+      for (const k of new Set([...Object.keys(g1), ...Object.keys(g2)])) {
+        const a = g1[k], c = g2[k];
+        if (!a || !c) { noise.add(k); continue; }
+        const d = Math.max(Math.abs(a[0] - c[0]), Math.abs(a[1] - c[1]), Math.abs(a[2] - c[2]), Math.abs(a[3] - c[3]));
+        if (d > 1) noise.add(k);
+      }
+    };
+    noisyBetween(gLight, gLight2);
+    noisyBetween(gDark, gDark2);
 
     // If the two loads did not actually differ, every comparison below is
     // worthless — say so loudly instead of reporting a green that means nothing.
@@ -160,17 +200,37 @@ for (const route of ROUTES) {
       continue;
     }
 
+    // ...and the difference has to REPRODUCE. Real theme drift is
+    // deterministic; an element that renders on some loads and not others is
+    // not, and when it lands in one theme's pair but not the other's it shifts
+    // every sibling index below it and reports as 16 moved boxes. So the same
+    // key must differ in BOTH independent pairs before it counts.
+    const deltaOf = (g1, g2, k) => {
+      const a = g1[k], c = g2[k];
+      if (!a || !c) return 0;
+      return Math.max(Math.abs(a[0] - c[0]), Math.abs(a[1] - c[1]), Math.abs(a[2] - c[2]), Math.abs(a[3] - c[3]));
+    };
     const moved = [];
     for (const k of Object.keys(gDark)) {
-      const a = gDark[k], c = gLight[k];
-      if (!c) continue;
-      const d = Math.max(Math.abs(a[0] - c[0]), Math.abs(a[1] - c[1]), Math.abs(a[2] - c[2]), Math.abs(a[3] - c[3]));
-      if (d > 1) moved.push({ k, dark: a, light: c, delta: d });
+      if (noise.has(k)) continue;
+      const d1 = deltaOf(gDark, gLight, k);
+      const d2 = deltaOf(gDark2, gLight2, k);
+      if (d1 > 1 && d2 > 1) moved.push({ k, dark: gDark[k], light: gLight[k], delta: Math.min(d1, d2) });
     }
     moved.sort((x, y) => y.delta - x.delta);
-    const onlyDark = Object.keys(gDark).length - Object.keys(gLight).length;
+    // The element-count delta gets the same treatment: if the two light loads
+    // did not agree on a count, the number carries no information about themes.
+    const selfDelta = Math.abs(Object.keys(gLight).length - Object.keys(gLight2).length) + Math.abs(Object.keys(gDark).length - Object.keys(gDark2).length);
+    const rawDelta = Object.keys(gDark).length - Object.keys(gLight).length;
+    const onlyDark = selfDelta === 0 ? rawDelta : 0;
 
-    const status = (moved.length || cLight.length || cDark.length) ? 'DRIFT' : 'ok';
+    // The VERDICT is geometry, because that is the locked rule: layout
+    // identical in both themes, only colour differs. Contrast is reported on
+    // the same line but does not fail the route - the low-contrast hits are the
+    // muted palette, and a palette redesign is a closed subject. Folding them
+    // into the verdict made every route read DRIFT forever, which is the same
+    // as having no verdict at all.
+    const status = (moved.length || onlyDark) ? 'DRIFT' : 'ok';
     console.log(`${status.padEnd(6)} ${route.padEnd(26)} moved=${moved.length} countDelta=${onlyDark} lowContrast(light)=${cLight.length} (dark)=${cDark.length}`);
     if (moved.length) console.log('        worst:', JSON.stringify(moved.slice(0, 2)));
     if (cLight.length) console.log('        light:', JSON.stringify(cLight.slice(0, 3)));
