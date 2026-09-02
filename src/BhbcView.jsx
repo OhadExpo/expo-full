@@ -2187,11 +2187,6 @@ function ProgramModal({ athleteName, plans, exercises, currentWeek = 1, onClose 
                           <div style={{ display: 'flex', gap: 8, minWidth: 0 }}><span style={{ width: 16, flexShrink: 0, fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tm, fontVariantNumeric: 'tabular-nums', lineHeight: 1.35 }}>{ri + 1}</span><span style={{ minWidth: 0, fontFamily: FB, fontSize: 13, fontWeight: 700, color: C.tx, overflowWrap: 'break-word', lineHeight: 1.3 }}>{r.title}</span></div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3, minWidth: 0, paddingInlineStart: 24 }}>
                             <span dir="ltr" style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate', whiteSpace: 'nowrap', flexShrink: 0 }}>{r.rx || '—'}</span>
-                            {r.note && (
-                              <span title={r.note} style={{ minWidth: 0, fontFamily: FB, fontSize: 11, lineHeight: 1.4, color: C.tm, display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden', overflowWrap: 'anywhere' }}>
-                                <bdi>{r.note}</bdi>
-                              </span>
-                            )}
                           </div>
                         </div>
                       ))}
@@ -2251,9 +2246,13 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
   // 8px, not 11: a single 15px line inside 11+11 makes a 40px row, and stacked
   // down five sections that is most of what Ohad means by "way too much extra
   // space beneath and above texts". 8 keeps the rows separable without the air.
-  const Section = ({ label, children, last, list }) => (
+  // The FIRST row sat 33px below the card header and 8px above its divider -
+  // measured 25px of air above the row and 0 below it, which is what Ohad saw
+  // as "too close to the bottom". The header strip already carries its own
+  // bottom margin, so the first row must not add the full 8 on top of it.
+  const Section = ({ label, children, last, list, first }) => (
 
-    <div className={list ? 'bhbc-labelrow bhbc-labelrow-list' : 'bhbc-labelrow'} style={{ display: 'flex', gap: 14, alignItems: 'flex-start', padding: last ? '8px 2px 0' : '8px 2px', borderBottom: last ? 'none' : `1px solid ${C.cardBd}` }}>
+    <div className={list ? 'bhbc-labelrow bhbc-labelrow-list' : 'bhbc-labelrow'} style={{ display: 'flex', gap: 14, alignItems: 'flex-start', padding: last ? '8px 2px 0' : '8px 2px', ...(first ? { marginTop: -25 } : null), borderBottom: last ? 'none' : `1px solid ${C.cardBd}` }}>
       <div style={lbl}>{label}</div>
       <div style={{ flex: 1, minWidth: 0, fontFamily: FB, fontSize: 13, color: C.tx, lineHeight: 1.5 }}>{children}</div>
     </div>
@@ -2261,7 +2260,7 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
   return (
     <Card padding={14} leftStripe={NAVY} header={secTitle('Head Coach Report')} headerRight={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>{onCopy && <button onClick={onCopy} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', height: 24, boxSizing: 'border-box', padding: '0 10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, cursor: 'pointer', borderRadius: 0 }}>{copied ? tr('Copied') : tr('Copy')}</button>}<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>{dow(today)} {monDay(today)}</span></span>}>
       {/* NEXT GAME */}
-      <Section label={tr("Next game")}>
+      <Section label={tr("Next game")} first>
         {nextGame
           ? <span><span style={{ fontFamily: FN, fontWeight: 700 }}>{nextGame.opponent ? `${tr('vs')} ${nextGame.opponent}` : tr('Opponent TBD')}</span> <span style={mut}>· {gd === 0 ? tr('Today') : gd < 0 ? tr('in progress') : (he ? `בעוד ${gd} ימים` : `in ${gd} day${gd === 1 ? '' : 's'}`)} · {nextGame.home === true ? tr('HOME') : nextGame.home === false ? tr('AWAY') : tr('Venue TBD')}{nextGame.venue ? ' · ' + nextGame.venue : ''}</span></span>
           : <span style={mut}>No game scheduled.</span>}

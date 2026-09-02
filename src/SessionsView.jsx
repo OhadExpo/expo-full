@@ -630,7 +630,7 @@ function FloorBar({ session, checkedIn, traineeById, onAdd, onFinish }) {
     <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, overflow: 'hidden' }}>
       <RefinedHeaderStrip padY={14} padX={14} marginBottom={0}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#FFF', lineHeight: 1, display: 'inline-flex', alignItems: 'center' }}>
+          <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#FFF', lineHeight: 1, display: 'inline-flex', alignItems: 'center', position: 'relative', top: 0.5 }}>
             ON THE FLOOR · {checkedIn}/{session.athletes.length} CHECKED IN
           </span>
           <div style={{ display: 'flex', gap: 0 }}>
@@ -705,7 +705,7 @@ function AthleteCard({ a, name, prevMap, exDetail, onToggleIn, onSet, onCurEx, o
               </div>
               {/* Prescription on its own line — clear, not crammed beside the
                   wrapping title. SETS × REPS + a muted done-count. */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, paddingInlineStart: 18 }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 4, paddingInlineStart: 18 }}>
                 <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.02em', color: C.ac, lineHeight: 1 }}>{ex.prescribed}</span>
                 <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: allDone ? C.gn : C.tm, lineHeight: 1 }}>{doneCount}/{ex.sets.length} DONE</span>
               </div>
