@@ -330,7 +330,7 @@ export default function WaitlistView({ trainees }) {
           style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '8px 12px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', minWidth: 280 }} />
         <div style={{ display: 'flex', gap: 4 }}>
           {['list', 'board'].map(mode => (
-            <button key={mode} onClick={() => setViewMode(mode)}
+            <button key={mode} aria-pressed={viewMode === mode} onClick={() => setViewMode(mode)}
               style={{
                 padding: '6px 12px', borderRadius: 0,
                 border: `1px solid ${viewMode === mode ? C.ac : C.cardBd}`,

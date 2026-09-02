@@ -126,6 +126,8 @@ try {
             // when clicked - the tab you are already on, the filter already
             // applied. Reporting those as dead would bury the real ones.
             if (el.getAttribute('aria-selected') === 'true' || el.getAttribute('aria-pressed') === 'true') return false;
+            const cur = el.getAttribute('aria-current');
+            if (cur && cur !== 'false') return false;
             const t = (el.textContent || '').trim();
             return t.length > 0 && t.length < 40 && !never.test(t);
           })

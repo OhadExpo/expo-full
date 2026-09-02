@@ -1560,7 +1560,7 @@ function AuthedApp() {
               // 0.06em — was 11 / 0.18em) so the 8-item row clears 1366px
               // viewport comfortably. alignItems:'center' (was 'baseline')
               // matches SubmenuTab so label + count share one center-line.
-              return(<button key={t.key} className={!isActive?'nav-item-inactive':undefined} onClick={async()=>{if(t.key==='client'){if(isBoth){pickPortal('client');}else{await signOut();window.location.href='/';}}else{navTo(t.key)}}} style={{...baseBtn,height:HDR_ICON_H,boxSizing:'border-box',display:'inline-flex',alignItems:'center',justifyContent:'center',lineHeight:1,borderRadius:0,padding:"0 8px",fontSize:10,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',whiteSpace:"nowrap",...activeStyle}}>
+              return(<button key={t.key} aria-current={isActive ? 'page' : undefined} className={!isActive?'nav-item-inactive':undefined} onClick={async()=>{if(t.key==='client'){if(isBoth){pickPortal('client');}else{await signOut();window.location.href='/';}}else{navTo(t.key)}}} style={{...baseBtn,height:HDR_ICON_H,boxSizing:'border-box',display:'inline-flex',alignItems:'center',justifyContent:'center',lineHeight:1,borderRadius:0,padding:"0 8px",fontSize:10,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',whiteSpace:"nowrap",...activeStyle}}>
                 <span>{t.label}</span>{t.count!==null&&<span style={{fontSize:10,color:countColor,fontFamily:FN}}>{t.count}</span>}</button>)})}</nav>
           {/* Right cluster: ⋯ MORE | Theme | Bug | Sign out, separated
               by cyan hairlines. Ohad 2026-05-16 — removed the left

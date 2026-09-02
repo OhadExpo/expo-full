@@ -496,7 +496,7 @@ function ViewToggle({ value, onChange }) {
   return (
     <div style={{ display: 'flex', gap: 6, width: '100%' }}>
       {items.map((it) => (
-        <button key={it.id} onClick={() => onChange(it.id)} className="tfbtn" data-active={value === it.id ? '' : undefined} style={{
+        <button key={it.id} aria-pressed={value === it.id} onClick={() => onChange(it.id)} className="tfbtn" data-active={value === it.id ? '' : undefined} style={{
           ...segBtn(value === it.id), flex: 1, height: 30,
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           fontSize: 10, letterSpacing: '0.12em', padding: '0 14px',
