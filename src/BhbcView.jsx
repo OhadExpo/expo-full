@@ -2839,9 +2839,18 @@ function RosterGrid({ rows, medical = {}, league = {}, onOpen }) {
             // height and built should be perfectly the same for each.'
             // A fixed height with the content laid out top-down makes the grid
             // read as one object instead of ten slightly different ones.
-            height: 146, boxSizing: 'border-box', cursor: 'pointer', transition: 'transform 160ms, box-shadow 160ms, border-color 240ms ease-out' }}>
+            // ...but a FIXED height with top-down flow only works while every
+            // card's content is the same height, and it is not: when the
+            // position line wraps to two lines (GUARD-FORWARD - KNEE R -
+            // AVAILABLE) everything below it shifted 16px down, so Broughton's
+            // and Burns's footers crossed the bottom border and their hairlines
+            // sat 23px below their row-mates'. Ohad: "text overflows, text and
+            // borders don't align from card to card".
+            // The footer is now PINNED to the bottom of the card, so the
+            // hairline lands on the same y in every card whatever is above it.
+            height: 162, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', cursor: 'pointer', transition: 'transform 160ms, box-shadow 160ms, border-color 240ms ease-out' }}>
             <div aria-hidden="true" style={{ position: 'absolute', right: 10, top: 8, fontFamily: FN, fontWeight: 800, fontSize: 42, lineHeight: 1, color: NAVY, opacity: 0.08, fontVariantNumeric: 'tabular-nums' }}>{t.jersey ?? ''}</div>
-            <div style={{ position: 'relative' }}>
+            <div style={{ position: 'relative', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
               <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums' }}>#{t.jersey ?? '—'}</div>
               {/* Two lines are reserved whether or not the name needs them, so a
                   short Latin name and a long Hebrew one leave the rows below at
@@ -2857,18 +2866,18 @@ function RosterGrid({ rows, medical = {}, league = {}, onOpen }) {
                 const injShort = !inj ? null
                   : `${(inj.bodyPart || '').split('/')[0].trim()}${inj.side && inj.side !== 'N/A' ? ` ${inj.side[0]}` : ''}`;
                 return (
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 4, minWidth: 0, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 4, minWidth: 0, flexWrap: 'wrap', minHeight: 30, alignContent: 'flex-start' }}>
                     <span style={{ fontFamily: FB, fontSize: 11, color: C.td }}>{t.position || '—'}{injShort ? ' ·' : ''}</span>
                     {injShort && <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: medText(inj.status) }}>{injShort} · {tr(inj.status)}</span>}
                   </div>
                 );
               })()}
               {t.arrival && t.arrival > todayISO() && <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 6, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: ORANGE_DEEP, background: `color-mix(in srgb, ${ORANGE} 12%, transparent)`, padding: '2px 6px' }}><span aria-hidden="true">✈</span> Lands {dow(t.arrival)} {monDay(t.arrival)}</div>}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, paddingTop: 10, borderTop: `1px solid ${C.cardBd}` }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 'auto', paddingTop: 10, borderTop: `1px solid ${C.cardBd}`, flexShrink: 0 }}>
                 <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{heightM(t.heightCm)}</span>
                 <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', color: C.tm, lineHeight: 1 }}>{flag(t.nationality)}</span>
                 {(() => { const lp = leaguePlayerFor(league, t.name); return lp ? <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: ORANGE_DEEP, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }} title="League points per game"><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{lp.ppg} PPG</span></span> : null; })()}
-                <span style={{ marginInlineStart: 'auto' }}>{acwr.ratio != null ? <BandPill band={acwr.band} value={acwr.ratio.toFixed(2)} /> : <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>{tr('no load yet')}</span>}</span>
+                <span style={{ marginInlineStart: 'auto' }}>{acwr.ratio != null ? <BandPill band={acwr.band} value={acwr.ratio.toFixed(2)} /> : <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, lineHeight: 1 }}>{tr('no load yet')}</span>}</span>
               </div>
             </div>
           </div>
