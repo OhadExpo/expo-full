@@ -780,7 +780,8 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
              second row. It is a SUMMARY here; the date lives on the Medical
              tab. Hiding it turns six two-line entries into six one-line ones. */
           .bhbc-mob-hide{display:none!important}
-          .bhbc-labelrow{display:block!important}
+          .bhbc-roster-actions{display:flex!important;flex-wrap:wrap!important}
+        .bhbc-labelrow{display:block!important}
           .bhbc-labelrow > div:first-child{float:inline-start;width:auto!important;min-width:0!important;margin-inline-end:8px;line-height:1.55}
           .bhbc-labelrow::after{content:'';display:block;clear:both}
           /* Same tightening as the desktop sweep, applied to the phone: the page
@@ -1007,7 +1008,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: C.td }}>{tr('Roster')} · {roster.length}</div>
           {(!asCoach || canLog) && (
-            <div style={{ marginInlineStart: 'auto', display: 'inline-grid', gridAutoFlow: 'column', gridAutoColumns: '1fr', gap: 8 }}>
+            <div className="bhbc-roster-actions" style={{ marginInlineStart: 'auto', gap: 8 }}>
               {!asCoach && <Btn variant="ghost" onClick={() => setManageOpen(true)}>{tr('Manage roster')}</Btn>}
               {canLog && <Btn onClick={() => setPracticeOpen(true)} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>{tr('+ Log practice')}</Btn>}
             </div>
@@ -1101,7 +1102,8 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
         .bhbc-zone[data-theme="dark"]{ --c-tm:#AEB4BD; --c-td:#B6BCC5; }
         :root { --bhbc-ha-home: ${NAVY}; --bhbc-ha-away: ${ORANGE_DEEP}; --bhbc-amber-text: #8A6410; }
         :root[data-theme="dark"] { --bhbc-ha-home: #7FA9E8; --bhbc-ha-away: #F0955F; --bhbc-amber-text: #E0A73A; }
-        .bhbc-row{transition:background 120ms}
+        .bhbc-roster-actions{display:inline-grid;grid-auto-flow:column;grid-auto-columns:1fr}
+                .bhbc-row{transition:background 120ms}
         .bhbc-row:hover{background:color-mix(in srgb, ${NAVY} 6%, transparent)}
         .bhbc-card:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(6,16,37,0.14)}
       `}</style>
