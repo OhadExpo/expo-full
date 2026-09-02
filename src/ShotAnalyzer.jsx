@@ -1137,12 +1137,22 @@ function Timeline({ series, shot, cur, onSeek, T, hand }) {
   // click on it)"). Four traces over one another is unreadable when the
   // question is "what did the knee actually do".
   const [soloLine, setSoloLine] = useState(null);
+  const [wholeClip, setWholeClip] = useState(false);
   // Four traces with four different ranges are squeezed into one box, so a
   // numbered y-axis is meaningless while they are all drawn. Solo ONE and the
   // axis becomes real - which is the moment Ohad asked for the numbers.
   const W = 600, H = 150, PAD = 6, GUT = 34, BOT = 13;
   const n = series.n; if (n < 2) return null;
-  const t0 = series.tMs[0], t1 = series.tMs[n - 1] || t0 + 1;
+  // The window is the viewed shot, padded so the run-up and the landing are
+  // both visible. Falls back to the whole clip when a shot has no usable
+  // phase indices, rather than drawing an empty box.
+  const pIdx = (shot.phases || []).map((p) => p.idx).filter((i) => Number.isFinite(i) && i >= 0);
+  const span = pIdx.length >= 2 ? { a: Math.min(...pIdx), b: Math.max(...pIdx) } : null;
+  const padF = span ? Math.max(6, Math.round((span.b - span.a) * 0.22)) : 0;
+  const zoomed = !wholeClip && !!span && (span.b - span.a) >= 2;
+  const i0 = zoomed ? Math.max(0, span.a - padF) : 0;
+  const i1 = zoomed ? Math.min(n - 1, span.b + padF) : n - 1;
+  const t0 = series.tMs[i0], t1 = series.tMs[i1] || t0 + 1;
   const X = (i) => GUT + ((series.tMs[i] - t0) / (t1 - t0)) * (W - GUT - PAD);
   const Y = (v, lo, hi) => PAD + (1 - (Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo || 1)) * (H - PAD - BOT);
   const hips = series.sm.hipY.filter(Number.isFinite);
@@ -1160,7 +1170,7 @@ function Timeline({ series, shot, cur, onSeek, T, hand }) {
   const solo = TRACES.find((tr) => tr.id === soloLine) || null;
   const poly = (tr) => {
     const pts = [];
-    for (let i = 0; i < n; i++) {
+    for (let i = i0; i <= i1; i++) {
       const v = tr.data[i];
       if (v == null || !Number.isFinite(v)) continue;
       pts.push(X(i).toFixed(1) + ',' + Y(v, tr.lo, tr.hi).toFixed(1));
@@ -1173,8 +1183,8 @@ function Timeline({ series, shot, cur, onSeek, T, hand }) {
     // turning a pixel into a time, or every seek lands early.
     const fx = ((e.clientX - r.left) / r.width * W - GUT) / (W - GUT - PAD);
     const t = t0 + Math.max(0, Math.min(1, fx)) * (t1 - t0);
-    let best = 0, bd = Infinity;
-    for (let i = 0; i < n; i++) { const d = Math.abs(series.tMs[i] - t); if (d < bd) { bd = d; best = i; } }
+    let best = i0, bd = Infinity;
+    for (let i = i0; i <= i1; i++) { const d = Math.abs(series.tMs[i] - t); if (d < bd) { bd = d; best = i; } }
     onSeek(best);
   };
   const secs = (ms) => ((ms - t0) / 1000).toFixed(1) + 's';
@@ -1194,6 +1204,11 @@ function Timeline({ series, shot, cur, onSeek, T, hand }) {
             — {tr.label} ({SIDE})
           </button>
         ))}
+        <button onClick={() => setWholeClip((v) => !v)}
+          title={wholeClip ? "Zoom back to the shot the scorecard is showing" : "Show the whole clip - every rep, for the rhythm question"}
+          style={{ ...lbl, marginInlineStart: "auto", color: "rgba(255,255,255,0.75)", background: "transparent", border: "1px solid rgba(255,255,255,0.18)", cursor: "pointer", padding: "2px 7px" }}>
+          {wholeClip ? (T.wholeClip || "WHOLE CLIP") : (T.thisShot || "THIS SHOT")}
+        </button>
       </div>
       {/* What the axes MEAN, in words, above the box - and while one trace is
           soloed, its value at the playhead, so the graph and the frame readout
@@ -1215,10 +1230,10 @@ function Timeline({ series, shot, cur, onSeek, T, hand }) {
             textAnchor={i === 0 ? 'start' : i === xTicks.length - 1 ? 'end' : 'middle'}
             fill="rgba(255,255,255,0.55)" fontFamily="Nord, monospace" fontSize="8">{secs(tk.ms)}</text>
         ))}
-        {shot.phases.map((p) => <line key={p.key} x1={X(p.idx)} x2={X(p.idx)} y1={0} y2={H - BOT} stroke="rgba(255,255,255,0.22)" strokeDasharray="3 3" />)}
-        {(() => { let lastX = -99; return shot.phases.map((p) => { const x = X(p.idx); if (x - lastX < 34) return null; lastX = x; return <text key={p.key + 't'} x={x + 2} y={10} fill="rgba(255,255,255,0.55)" fontFamily="Nord, monospace" fontSize="8">{p.label}</text>; }); })()}
+        {shot.phases.filter((p) => p.idx >= i0 && p.idx <= i1).map((p) => <line key={p.key} x1={X(p.idx)} x2={X(p.idx)} y1={0} y2={H - BOT} stroke="rgba(255,255,255,0.22)" strokeDasharray="3 3" />)}
+        {(() => { let lastX = -99; return shot.phases.filter((p) => p.idx >= i0 && p.idx <= i1).map((p) => { const x = X(p.idx); if (x - lastX < 34) return null; lastX = x; return <text key={p.key + 't'} x={x + 2} y={10} fill="rgba(255,255,255,0.55)" fontFamily="Nord, monospace" fontSize="8">{p.label}</text>; }); })()}
         {TRACES.filter((tr) => !soloLine || soloLine === tr.id).map(poly)}
-        <line x1={X(cur)} x2={X(cur)} y1={0} y2={H - BOT} stroke="#39BDFF" strokeWidth="1.5" />
+        {cur >= i0 && cur <= i1 && <line x1={X(cur)} x2={X(cur)} y1={0} y2={H - BOT} stroke="#39BDFF" strokeWidth="1.5" />}
       </svg>
     </div>
   );
