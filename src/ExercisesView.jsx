@@ -332,7 +332,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
           {[['table', 'Table'], ['grid', 'Grid']].map(([v, label]) => {
             const on = view === v;
             return (
-              <button key={v} onClick={() => setView(v)} title={v === 'table' ? 'Dense table — every parameter a sortable column' : 'Card grid — one card per exercise'}
+              <button key={v} onClick={() => setView(v)} aria-pressed={on} title={v === 'table' ? 'Dense table — every parameter a sortable column' : 'Card grid — one card per exercise'}
                 style={{ flex: 1, height: 30, boxSizing: 'border-box', borderRadius: 0, cursor: 'pointer', border: `1px solid ${on ? '#39BDFF' : C.cardBd}`, background: on ? '#39BDFF' : 'var(--c-sf)', color: on ? '#FFFFFF' : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{label}</button>
             );
           })}
