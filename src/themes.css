@@ -157,6 +157,15 @@
  * as architectural anchors against cyan brand strokes.
  */
 [data-theme="light"] {
+  /* A custom property resolves its var() where it is DECLARED, not where it is
+     used. --c-ghostBd is declared once on :root as 34% of --c-tx, and the note
+     there claims it "recomputes per theme" - it does not. Redefining --c-tx on a
+     descendant leaves the INHERITED computed value alone, so any subtree that
+     carries its own data-theme kept the root theme's ghost border. That is why
+     LOG SESSION in the BHBC athlete card had a white-at-34% border on a white
+     card and read as unstyled text: the zone declares its own light theme now,
+     and this token stayed dark. Redeclared here so it recomputes. */
+  --c-ghostBd: color-mix(in srgb, var(--c-tx) 34%, transparent);
   /* Page bg darkened from #EBEDF1 to #D2D6DD — Ohad called the prior tint
      "too white". Cool blue-grey with more presence; cards still stand off
      it cleanly thanks to the cyan-42% hairline + shadow. */

@@ -2097,6 +2097,7 @@ function ProgramModal({ athleteName, plans, exercises, currentWeek = 1, onClose 
   const tr = useT();
   const { plan, loading, load } = useFullPlan();
   const [planId, setPlanId] = useState(plans[0] ? plans[0].id : null);
+  const [pickOpen, setPickOpen] = useState(false);
   useEffect(() => { if (planId) load(planId); }, [planId, load]);
 
   // Titles: prefer what the plan ROW stored. A BHBC coach cannot necessarily
@@ -2152,14 +2153,35 @@ function ProgramModal({ athleteName, plans, exercises, currentWeek = 1, onClose 
         <div style={{ padding: 24, textAlign: 'center', fontFamily: FB, color: C.tm }}>{tr('No EXPO program assigned yet')}</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-            {plans.map((p) => (
-              <button key={p.id} type="button" aria-pressed={p.id === planId} onClick={() => setPlanId(p.id)} style={chip(p.id === planId)}>{p.name}</button>
-            ))}
+          {/* Ohad: "the block buttons when show a program on bhbc needs to be a
+              picker like in programs on expo". Same control: the block you are
+              looking at is named, and the older ones sit behind an "N previous"
+              expander with a reserved width and tabular digits, so it does not
+              resize as the count changes. */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+            <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tx, minWidth: 0, overflowWrap: 'anywhere' }}>
+              {(plans.find((p) => p.id === planId) || plans[0] || {}).name}
+            </span>
+            {plans.length > 1 && (
+              <button type="button" aria-expanded={pickOpen} onClick={() => setPickOpen((v) => !v)}
+                title={pickOpen ? 'Hide earlier blocks' : 'Show earlier blocks'}
+                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5, minWidth: 112, height: 24, padding: '0 9px', boxSizing: 'border-box', background: pickOpen ? 'rgba(127,127,138,0.14)' : 'transparent', border: '1px solid ' + C.cardBd, borderRadius: 0, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, fontVariantNumeric: 'tabular-nums' }}>
+                {plans.length - 1} {tr('previous')}
+                <span aria-hidden style={{ display: 'inline-block', transform: pickOpen ? 'rotate(180deg)' : 'none', transition: 'transform .15s', fontSize: 8, lineHeight: 1 }}>▾</span>
+              </button>
+            )}
             <span style={{ marginInlineStart: 'auto', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap' }}>
               {tr('Week')} <span style={{ color: ORANGE_DEEP }}>{'W' + week}</span>{weeks > 1 ? ' / ' + weeks : ''}
             </span>
           </div>
+          {pickOpen && plans.length > 1 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {plans.map((p) => (
+                <button key={p.id} type="button" aria-pressed={p.id === planId}
+                  onClick={() => { setPlanId(p.id); setPickOpen(false); }} style={chip(p.id === planId)}>{p.name}</button>
+              ))}
+            </div>
+          )}
 
           {loading && <div style={{ padding: 20, textAlign: 'center', fontFamily: FN, fontSize: 11, letterSpacing: '0.14em', color: C.tm }}>{tr('Loading')}</div>}
           {!loading && days.length === 0 && (
@@ -2252,7 +2274,7 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
   // bottom margin, so the first row must not add the full 8 on top of it.
   const Section = ({ label, children, last, list, first }) => (
 
-    <div className={list ? 'bhbc-labelrow bhbc-labelrow-list' : 'bhbc-labelrow'} style={{ display: 'flex', gap: 14, alignItems: 'flex-start', padding: last ? '8px 2px 0' : '8px 2px', ...(first ? { marginTop: -25 } : null), borderBottom: last ? 'none' : `1px solid ${C.cardBd}` }}>
+    <div className={list ? 'bhbc-labelrow bhbc-labelrow-list' : 'bhbc-labelrow'} style={{ display: 'flex', gap: 14, alignItems: 'flex-start', padding: last ? '8px 2px 0' : '8px 2px', ...(first ? { marginTop: -25, paddingTop: 12, paddingBottom: 12 } : null), borderBottom: last ? 'none' : `1px solid ${C.cardBd}` }}>
       <div style={lbl}>{label}</div>
       <div style={{ flex: 1, minWidth: 0, fontFamily: FB, fontSize: 13, color: C.tx, lineHeight: 1.5 }}>{children}</div>
     </div>
