@@ -634,8 +634,8 @@ function FloorBar({ session, checkedIn, traineeById, onAdd, onFinish }) {
             ON THE FLOOR · {checkedIn}/{session.athletes.length} CHECKED IN
           </span>
           <div style={{ display: 'grid', gridAutoFlow: 'column', gridAutoColumns: '1fr', gap: 0 }}>
-            <button onClick={onAdd} style={stripBtn}>+ ADD</button>
-            <button onClick={onFinish} style={{ ...stripBtn, borderLeft: 'none' }}>■ FINISH</button>
+            <button onClick={onAdd} style={{ ...stripBtn, minWidth: 88 }}>+ ADD</button>
+            <button onClick={onFinish} style={{ ...stripBtn, borderLeft: 'none', minWidth: 88 }}>■ FINISH</button>
           </div>
         </div>
       </RefinedHeaderStrip>
