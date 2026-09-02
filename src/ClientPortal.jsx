@@ -1472,8 +1472,14 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
                 fallback font with a taller baseline. Splitting the mark into
                 its own flex item lets alignItems:center line it up with the
                 mono digits instead of floating high. (Ohad — OCD timer align) */}
+            {/* "SAVE FAILED" used to sit HERE, and it is wide. The day label
+                beside it is absolutely centred on the whole bar, so it is not
+                in the flow and cannot be pushed aside - at 390 the two printed
+                on top of each other and neither could be read. A failed save is
+                also the most important thing on this screen, so it gets its own
+                full-width strip below instead of a corner it does not fit. */}
             {sessionAutosave.status === 'saving' ? <span>… SAVING</span> :
-             sessionAutosave.status === 'error' ? <span>⚠ SAVE FAILED</span> :
+             sessionAutosave.status === 'error' ? <span aria-hidden="true" style={{width:7,height:7,borderRadius:'50%',background:'#E0574A',display:'inline-block'}} /> :
              lastSavedAt ? <span style={{lineHeight:1}}>✓</span> : ''}
             {pendingBlobs > 0 && <span style={{opacity:0.85}}>· ↑{pendingBlobs}</span>}
           </span>
@@ -1483,6 +1489,11 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         {branch === 'Bnei Herzliya' && <img src="/bnei-herzliya-logo-w.png" alt="Bnei Herzliya" style={{height:40,width:'auto',objectFit:'contain',flexShrink:0}} />}
         <button onClick={onBack} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',padding:0,display:'inline-flex',alignItems:'center',gap:5,lineHeight:1,whiteSpace:'nowrap'}}><span style={{lineHeight:1}}>←</span><span style={{lineHeight:1}}>{tt("EXIT")}</span></button>
       </div></div>
+    {sessionAutosave.status === 'error' && (
+      <div role="status" style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,margin:'0 0 8px',padding:'6px 10px',background:'rgba(224,87,74,0.12)',border:'1px solid rgba(224,87,74,0.55)',color:'#E0574A',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.08em'}}>
+        <span>SAVE FAILED — YOUR LAST EDITS ARE NOT SAVED YET</span>
+      </div>
+    )}
     <div style={{display:'flex',gap:2}}>
       {/* Warm-up dots (orange) + Exercise dots (blue/green) */}
       {warmup.map((_,i) => <div key={'wu'+i} style={{flex:1,height:3,borderRadius:0,background:stepIndex>i?C.or:stepIndex===i?'rgba(255,165,2,0.502)':C.bd}} />)}
