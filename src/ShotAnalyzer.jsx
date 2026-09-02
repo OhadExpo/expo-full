@@ -156,6 +156,8 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
   const [shotIdx, setShotIdx] = useState(0);
   const framesRef = useRef(demoResult?.frames || null);
   const fileRef = useRef(null);
+  // A DOM ref (statureRef above holds the VALUE, for analyze's closure).
+  const heightBoxRef = useRef(null);
   const streamRef = useRef(null);
   const recRef = useRef(null);
   const chunksRef = useRef([]);
@@ -294,7 +296,7 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
         <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: '#37B27C',
           minWidth: 62, opacity: rescored ? 1 : 0, transition: 'opacity .15s' }}>{T.rescored}</span>
         <span style={{ ...lbl, marginInlineStart: 10 }}>{T.height}</span>
-        <input value={stature}
+        <input ref={heightBoxRef} value={stature}
           onChange={(e) => { statureRef.current = e.target.value; setStature(e.target.value); setHeightSaved(false); }}
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); } }}
           onBlur={() => { if (!String(stature).trim()) return; try { localStorage.setItem(STATURE_KEY, String(stature).trim()); } catch { /* private mode */ } rescore(hand, stature, shotType); setHeightSaved(true); }}
@@ -349,7 +351,8 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
       )}
 
       {phase === 'results' && result && shot && (
-        <ShotResults result={result} shot={shot} shotIdx={shotIdx} setShotIdx={setShotIdx} srcUrl={srcUrl} frames={framesRef.current} hand={hand} onReset={reset} T={T} shotType={shotType} />
+        <ShotResults result={result} shot={shot} shotIdx={shotIdx} setShotIdx={setShotIdx} srcUrl={srcUrl} frames={framesRef.current} hand={hand} onReset={reset} T={T} shotType={shotType}
+          onNeedHeight={() => { const el = heightBoxRef.current; if (el) { el.scrollIntoView({ block: 'nearest' }); el.focus(); el.select(); } }} />
       )}
 
       <input ref={fileRef} type="file" accept="video/*" style={{ display: 'none' }} onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; onFile(f); }} />
@@ -358,7 +361,7 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
 }
 
 // ------------------------------------------------------------------ results
-function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frames, hand, onReset, T, shotType }) {
+function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frames, hand, onReset, T, shotType, onNeedHeight }) {
   // The engine stays language-free: every checkpoint and phase label is
   // localised HERE, so the scorecard, the fix guide, the timeline and the
   // copied summary all speak one language.
@@ -759,7 +762,10 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
               instead of stretching one tile taller than its neighbours. */}
           <div className="shot-info" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 6, marginBottom: 14 }}>
             {[[T.info.dipToRelease, shot.info.dipToReleaseMs != null ? shot.info.dipToReleaseMs + ' ms' : '—'],
-              [T.info.jumpRise, shot.info.jumpRiseCm != null ? shot.info.jumpRiseCm + ' cm' : T.enterHeight],
+              // Third slot = an action for the value. Only the height prompt has
+              // one; every other tile is a reading, and a reading is not a button.
+              [T.info.jumpRise, shot.info.jumpRiseCm != null ? shot.info.jumpRiseCm + ' cm' : T.enterHeight,
+                shot.info.jumpRiseCm == null ? onNeedHeight : null],
               [T.info.releaseHeight, shot.info.releaseHeightCm != null ? shot.info.releaseHeightCm + ' cm' : (shot.info.releaseHeightRatio != null ? shot.info.releaseHeightRatio + T.eyeHeight : '—')],
               [T.info.armAtRelease, fmt(shot.info.shoulderAtRelease) + '°'],
               // Measured from the BALL. Blank when the ball could not be tracked
@@ -769,8 +775,12 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
               [T.info.ballSpeed, shot.info.ballSpeedMs != null ? shot.info.ballSpeedMs + ' m/s' : '—'],
               [T.info.ballRise, shot.info.ballRiseM != null ? shot.info.ballRiseM + ' m' : '—'],
               [T.info.releaseVsApex, shot.raw.timing == null ? '—' : (shot.raw.timing > 0 ? '+' : '') + Math.round(shot.raw.timing) + ' ms'],
-              [T.info.tracked, shot.info.coverage != null ? T.ofFrames(Math.round(shot.info.coverage * 100)) : '—']].map(([k, v]) => (
-              <div key={k} style={{ border: '1px solid rgba(255,255,255,0.12)', padding: '6px 8px', minHeight: 46, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}><div style={lbl}>{k}</div><div dir="ltr" style={{ fontFamily: FN, fontSize: 14, fontWeight: 700, unicodeBidi: 'isolate', textAlign: 'start' }}>{v}</div></div>
+              [T.info.tracked, shot.info.coverage != null ? T.ofFrames(Math.round(shot.info.coverage * 100)) : '—']].map(([k, v, act]) => (
+              <div key={k} style={{ border: '1px solid rgba(255,255,255,0.12)', padding: '6px 8px', minHeight: 46, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}><div style={lbl}>{k}</div>
+                {act
+                  ? <button type="button" onClick={act} dir="ltr" style={{ fontFamily: FN, fontSize: 14, fontWeight: 700, unicodeBidi: 'isolate', textAlign: 'start', background: 'transparent', border: 'none', padding: 0, color: '#39BDFF', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }}>{v}</button>
+                  : <div dir="ltr" style={{ fontFamily: FN, fontSize: 14, fontWeight: 700, unicodeBidi: 'isolate', textAlign: 'start' }}>{v}</div>}
+              </div>
             ))}
             {/* An untracked ball used to be three em dashes and no explanation.
                 The plain sentence is for the coach; the technical reason the
