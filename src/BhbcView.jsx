@@ -2319,7 +2319,7 @@ function HeadCoachReport({ rows, fx, fixtures, medical, today, onOpen, onMedical
 // hanging on its own 9px one. Ohad: "nothing is center aligned". These rows
 // are flex-start on purpose - the value can be a multi-line list - so the fix
 // is to make the two FIRST lines share a centre, not to centre the whole row.
-const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, width: 92, flexShrink: 0, lineHeight: '19.5px' };
+const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, width: 86, flexShrink: 0, lineHeight: '19.5px' };
   // The LAST row drops its bottom padding. Ohad: "too much white space at the
   // end of every white box". Measured: this card left 32px under its last line
   // against 18px of card padding, because the row's own 11px was being added on
@@ -2351,7 +2351,30 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
       {/* NEXT GAME */}
       <Section label={tr("Next game")} first>
         {nextGame
-          ? <span><span style={{ fontFamily: FN, fontWeight: 700 }}>{nextGame.opponent ? `${tr('vs')} ${nextGame.opponent}` : tr('Opponent TBD')}</span> <span style={mut}>· {gd === 0 ? tr('Today') : gd < 0 ? tr('in progress') : (he ? `בעוד ${gd} ימים` : `in ${gd} day${gd === 1 ? '' : 's'}`)} · {nextGame.home === true ? tr('HOME') : nextGame.home === false ? tr('AWAY') : tr('Venue TBD')}{nextGame.venue ? ' · ' + nextGame.venue : ''}</span></span>
+          ? (() => {
+              // The row is a chain of `·`-separated FACTS, and the browser was
+              // breaking it wherever a space happened to fall - at 470 the venue
+              // split as "HADAR / YOSEF, TEL AVIV", which is what reads as the
+              // box being too narrow for the text. Each fact is an atom, so a
+              // wrap lands ON a separator and never inside a name.
+              //
+              // Short facts only: an atom wider than the row would OVERFLOW
+              // instead of wrapping, so anything long keeps normal wrapping.
+              // The separators stay outside the atoms - they are where the line
+              // is allowed to break.
+              const atom = (t, extra) => <span style={{ whiteSpace: String(t).length <= 26 ? 'nowrap' : 'normal', ...extra }}>{t}</span>;
+              const facts = [
+                gd === 0 ? tr('Today') : gd < 0 ? tr('in progress') : (he ? `בעוד ${gd} ימים` : `in ${gd} day${gd === 1 ? '' : 's'}`),
+                nextGame.home === true ? tr('HOME') : nextGame.home === false ? tr('AWAY') : tr('Venue TBD'),
+                ...(nextGame.venue ? [nextGame.venue] : []),
+              ];
+              return (
+                <span>
+                  {atom(nextGame.opponent ? `${tr('vs')} ${nextGame.opponent}` : tr('Opponent TBD'), { fontFamily: FN, fontWeight: 700 })}
+                  {facts.map((f, i) => <span key={i} style={mut}>{' · '}{atom(f)}</span>)}
+                </span>
+              );
+            })()
           : <span style={mut}>No game scheduled.</span>}
       </Section>
       {/* AVAILABILITY */}
