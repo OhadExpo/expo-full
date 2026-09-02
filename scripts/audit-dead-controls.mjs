@@ -18,6 +18,7 @@
 import fs from 'node:fs';
 import puppeteer from 'puppeteer-core';
 import { signIn, assertAuthed } from './lib/authed-page.mjs';
+import { listTabs, clickTab } from './lib/tabs.mjs';
 import { unmangleArg } from './lib/unmangle.mjs';
 
 // Same manifest the other gates enumerate from, so this sweep covers exactly
@@ -96,17 +97,19 @@ try {
     await page.goto(BASE + route, { waitUntil: 'domcontentloaded', timeout: 45000 });
     await new Promise((r) => setTimeout(r, 4500));
 
-    const tabs = await page.evaluate(() => [...document.querySelectorAll('button')]
-      .map((x) => (x.textContent || '').trim())
-      .filter((t) => /^(overview|roster|schedule|medical|sessions|games)$/i.test(t)));
+    const tabs = await listTabs(page);
 
     for (const tab of (tabs.length ? tabs : [null])) {
       if (tab) {
-        await page.evaluate((l) => {
-          const el = [...document.querySelectorAll('button')].find((x) => (x.textContent || '').trim() === l);
-          if (el) el.click();
-        }, tab);
-        await new Promise((r) => setTimeout(r, 2200));
+        // A route link wearing a tab role (the Exercises sub-tabs) lands on a
+        // DIFFERENT screen; measuring it and filing it under this route would
+        // be a lie, and it is swept under its own SURFACES.md entry anyway.
+        const how = await clickTab(page, tab, 2200);
+        if (how !== 'ok') {
+          await page.goto(BASE + route, { waitUntil: 'domcontentloaded', timeout: 45000 });
+          await new Promise((r) => setTimeout(r, 4000));
+          if (how === 'navigated') continue;
+        }
       }
       const where = route + (tab ? ' · ' + tab : '');
 

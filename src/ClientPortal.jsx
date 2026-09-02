@@ -357,7 +357,7 @@ function OverviewFocus({ text }) {
   return (
     <div style={{marginInlineStart:30,marginTop:4}}>
       <div ref={ref} style={{fontSize:11,color:C.ac,opacity:0.85,lineHeight:1.4,...(open?null:{display:'-webkit-box',WebkitBoxOrient:'vertical',WebkitLineClamp:2,overflow:'hidden'})}}>
-        <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',marginRight:8,opacity:0.7}}>{tt("FOCUS")}</span>{text}
+        <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',marginRight:8,opacity:0.7}}>{tt("FOCUS")}</span><bdi>{text}</bdi>
       </div>
       {(overflows || open) && <span onClick={(e)=>{e.stopPropagation();setOpen(o=>!o);}} style={{display:'inline-block',marginTop:3,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.1em',color:C.ac,cursor:'pointer',opacity:0.85}}>{open?'▲ LESS':'▼ MORE'}</span>}
     </div>
@@ -2871,7 +2871,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
       <div style={{padding:'14px 20px 20px'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}>
           <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',fontWeight:700}}>{tt("BODYWEIGHT")}</div>
-          <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}>{clientName} · {bwData.length} ENTRIES</div>
+          <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}><bdi>{clientName}</bdi> · {bwData.length} ENTRIES</div>
         </div>
 
         {/* Quick log */}
@@ -3018,7 +3018,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
       <div style={{padding:'14px 20px 20px'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}>
           <button onClick={() => setVw('hist')} style={{background:'transparent',border:'none',color:C.ac,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',cursor:'pointer',padding:0}}>← HISTORY</button>
-          <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}>{clientName} · {checkinCount} CHECK-IN{checkinCount===1?'':'S'}</div>
+          <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}><bdi>{clientName}</bdi> · {checkinCount} CHECK-IN{checkinCount===1?'':'S'}</div>
         </div>
         <CheckinTrends workouts={cw} />
       </div>

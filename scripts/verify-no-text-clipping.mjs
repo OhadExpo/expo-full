@@ -18,6 +18,7 @@
 import fs from 'node:fs';
 import puppeteer from 'puppeteer-core';
 import { signIn, assertAuthed } from './lib/authed-page.mjs';
+import { listTabs, clickTab } from './lib/tabs.mjs';
 import { unmangleArg } from './lib/unmangle.mjs';
 
 const BASE = process.argv[2] || 'http://127.0.0.1:5199';
@@ -103,16 +104,18 @@ try {
     // Tabs hide most of a screen, and a page-load-only sweep reports the hidden
     // parts as clean. Same pattern the button-height gate already uses: walk
     // every tab on the route, not just the one it lands on.
-    const tabs = await page.evaluate(() => [...document.querySelectorAll('button')]
-      .map((x) => (x.textContent || '').trim())
-      .filter((t) => /^(overview|roster|schedule|medical|sessions|games)$/i.test(t)));
+    const tabs = await listTabs(page);
     for (const tab of (tabs.length ? tabs : [null])) {
       if (tab) {
-        await page.evaluate((label) => {
-          const el = [...document.querySelectorAll('button')].find((x) => (x.textContent || '').trim() === label);
-          if (el) el.click();
-        }, tab);
-        await new Promise((r) => setTimeout(r, 2500));
+        // A route link wearing a tab role (the Exercises sub-tabs) lands on a
+        // DIFFERENT screen; measuring it and filing it under this route would
+        // be a lie, and it is swept under its own SURFACES.md entry anyway.
+        const how = await clickTab(page, tab, 2500);
+        if (how !== 'ok') {
+          await page.goto(BASE + route, { waitUntil: 'domcontentloaded', timeout: 45000 });
+          await new Promise((r) => setTimeout(r, 4000));
+          if (how === 'navigated') continue;
+        }
       }
       const where = route + (tab ? ' · ' + tab : '');
       const first = await page.evaluate(MEASURE);
