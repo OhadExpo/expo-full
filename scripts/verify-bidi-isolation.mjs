@@ -60,10 +60,26 @@ const MEASURE = () => {
     // THE LINE is the nearest ancestor whose text mixes Hebrew with Latin or
     // digits - that is the run the bidi algorithm reorders. Above it there is
     // nothing left to scramble.
+    // Walk up only as far as the shared INLINE context. A flex or grid
+    // container lays each child out as its own box, and each box is its own
+    // bidi paragraph - a bare text node among them becomes an anonymous item
+    // and is isolated too. So Hebrew in one cell and Latin in the next cell of
+    // the same row is NOT a bidi problem, which is why the billing roster
+    // renders correctly at 390 despite reading "NO REQUEST<name>-" in the DOM.
     let line = parent;
-    while (line && !LAT.test(line.textContent || '')) line = line.parentElement;
+    while (line && line !== document.body) {
+      if (LAT.test(line.textContent || '')) break;
+      const par = line.parentElement;
+      if (!par || /flex|grid/.test(getComputedStyle(par).display)) { line = null; break; }
+      line = par;
+    }
     if (!line || line === document.body) continue;
+    if (/flex|grid/.test(getComputedStyle(line).display)) continue;
     if (getComputedStyle(line).direction !== 'ltr') continue;
+    // Isolation can also be done in the STRING, with U+2066..U+2069
+    // (FSI/LRI/RLI/PDI). The dashboard's task lines already do exactly that,
+    // and they are correct - flagging them would be the gate crying wolf.
+    if (/[⁦-⁩]/.test(line.textContent || '')) continue;
 
     // Isolation only helps if it sits BETWEEN the Hebrew and that line. An
     // isolate on the line itself wraps the whole mixed string and reorders it
@@ -73,6 +89,21 @@ const MEASURE = () => {
     let ok = false;
     for (let n = parent; n && n !== line; n = n.parentElement) { if (isBoundary(n)) { ok = true; break; } }
     if (ok) continue;
+
+    // THE SIGNATURE, derived from UAX#9 rather than guessed. A number after
+    // Hebrew is the case that actually breaks: rule N1 treats an EN adjacent
+    // to an R run as R, so the separator AND the digits join the Hebrew run
+    // and reverse with it - "אוהד · 4 ENTRIES" renders "4 · אוהד ENTRIES".
+    //
+    // Latin AFTER Hebrew does not break (N2 gives the neutral the paragraph's
+    // own direction), and a trailing bracket or full stop after Hebrew lands
+    // at the visual end correctly. Flagging those made the sweep report 132
+    // lines, most of which render perfectly - a gate nobody can trust.
+    // ...and only when the number does NOT go back into Hebrew. A number
+    // written INSIDE a Hebrew phrase sits in the RTL run where it belongs
+    // and reads correctly; the broken case is a count that belongs to the
+    // LATIN side but trails a Hebrew name.
+    if (!/[֐-׿][^\p{L}\p{N}]*[0-9][^֐-׿]*$/u.test((line.textContent || '').trim())) continue;
 
     const r = line.getBoundingClientRect();
     if (r.width < 4 || r.height < 4) continue;

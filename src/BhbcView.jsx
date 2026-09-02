@@ -2066,7 +2066,12 @@ function HeadCoachReport({ rows, fx, fixtures, medical, today, onOpen, onMedical
   // NATHAN KNIGHT. A squad is called by last names. Last token works for the
   // Hebrew names too (עמית מנחם -> מנחם), and a one-word name is left alone.
   const first = (r) => { const p = (r.t.name || '').trim().split(/\s+/); return p[p.length - 1] || r.t.name; };
-  const nameList = (arr) => arr.slice(0, 5).map(first).join(', ') + (arr.length > 5 ? ` +${arr.length - 5}` : '');
+  // Each NAME is its own bidi run (U+2068 FSI .. U+2069 PDI). Without it a
+  // Hebrew surname among Latin ones pulls the commas and the closing full
+  // stop into its RTL run - the line read "limited: Bryant, .מנחם". Same
+  // device the roster summary above already uses.
+  const iso = (n) => '⁨' + n + '⁩';
+  const nameList = (arr) => arr.slice(0, 5).map((r) => iso(first(r))).join(', ') + (arr.length > 5 ? ` +${arr.length - 5}` : '');
   const availOf = (r) => r.avail || 1;                 // 1 = full, 2–3 = limited, 4+ = out
   const out = rows.filter((r) => availOf(r) >= 4);
   const limited = rows.filter((r) => availOf(r) >= 2 && availOf(r) < 4);
@@ -2087,14 +2092,19 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
   // end of every white box". Measured: this card left 32px under its last line
   // against 18px of card padding, because the row's own 11px was being added on
   // top of it - the other cards on the same screen sit at 19px.
-  // STACKS ON A PHONE. Side by side, the label column takes ~150 of 390 and
-  // every value wraps three deep - which is what Ohad was looking at when he
-  // said nothing is aligned. The class does the stacking in CSS so desktop is
-  // untouched.
+  // STACKS ON A PHONE. Side by side, the label column takes ~150 of 390 and
+
+  // every value wraps three deep - which is what Ohad was looking at when he
+
+  // said nothing is aligned. The class does the stacking in CSS so desktop is
+
+  // untouched.
+
   // 8px, not 11: a single 15px line inside 11+11 makes a 40px row, and stacked
   // down five sections that is most of what Ohad means by "way too much extra
   // space beneath and above texts". 8 keeps the rows separable without the air.
-  const Section = ({ label, children, last, list }) => (
+  const Section = ({ label, children, last, list }) => (
+
     <div className={list ? 'bhbc-labelrow bhbc-labelrow-list' : 'bhbc-labelrow'} style={{ display: 'flex', gap: 14, alignItems: 'flex-start', padding: last ? '8px 2px 0' : '8px 2px', borderBottom: last ? 'none' : `1px solid ${C.cardBd}` }}>
       <div style={lbl}>{label}</div>
       <div style={{ flex: 1, minWidth: 0, fontFamily: FB, fontSize: 13, color: C.tx, lineHeight: 1.5 }}>{children}</div>
@@ -2222,9 +2232,10 @@ function StaffBrief({ today, fx, rows, medical, planOf }) {
     const inj = activeInjuries(medical || {}, r.t.id);
     const worst = inj.find((i) => i.status === 'out') || inj.find((i) => i.status === 'non-contact') || inj.find((i) => i.status === 'limited');
     const label = (x) => [x.bodyPart, x.type].filter(Boolean).map((v) => tr(v)).join(' ');
-    if (worst && worst.status === 'out') outList.push(r.t.name + ' — ' + label(worst));
-    else if (worst) limited.push(r.t.name + ' — ' + label(worst) + ' (' + tr((MED_STATUS[worst.status] || {}).label || worst.status) + ')');
+    if (worst && worst.status === 'out') outList.push({ name: r.t.name, detail: label(worst) });
+    else if (worst) limited.push({ name: r.t.name, detail: label(worst) + ' (' + tr((MED_STATUS[worst.status] || {}).label || worst.status) + ')' });
   }
+  const flat = (e) => e.name + ' — ' + e.detail;
   const availCount = (rows || []).length - limited.length - outList.length;
   const L = he
     ? { when: 'מתי', focus: 'פוקוס', limited: 'מוגבלים', out: 'בחוץ', avail: 'זמינים', none: 'אין', noFocus: 'לא נכתב פוקוס', noSession: 'אין אימון היום', copy: 'העתק', copied: 'הועתק' }
@@ -2245,8 +2256,8 @@ function StaffBrief({ today, fx, rows, medical, planOf }) {
     L.focus + ': ' + ((plan && (plan.focus || plan.plan)) || L.noFocus),
     '',
     L.avail + ': ' + availCount,
-    L.limited + ' (' + limited.length + '): ' + (limited.length ? limited.join('; ') : L.none),
-    L.out + ' (' + outList.length + '): ' + (outList.length ? outList.join('; ') : L.none),
+    L.limited + ' (' + limited.length + '): ' + (limited.length ? limited.map(flat).join('; ') : L.none),
+    L.out + ' (' + outList.length + '): ' + (outList.length ? outList.map(flat).join('; ') : L.none),
   ].join(String.fromCharCode(10));
   // WHAT IS SHOWN vs WHAT IS COPIED.
   //
@@ -2298,7 +2309,7 @@ function StaffBrief({ today, fx, rows, medical, planOf }) {
         {counts.filter((c) => c.list && c.list.length).map((c) => (
           <div key={c.k} style={{ marginTop: 10 }}>
             <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: c.color, marginInlineEnd: 8 }}>{c.k}</span>
-            <span style={{ fontFamily: FB, fontSize: 13, color: C.td, overflowWrap: 'break-word' }}>{c.list.join('; ')}</span>
+            <span style={{ fontFamily: FB, fontSize: 13, color: C.td, overflowWrap: 'break-word' }}>{c.list.map((e, i) => <span key={i}><bdi>{e.name}</bdi>{' — ' + e.detail}{i < c.list.length - 1 ? '; ' : ''}</span>)}</span>
           </div>
         ))}
       </div>
@@ -2452,8 +2463,10 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, onOpen, onMedical 
   const tr = useT();
   return (
     <CollapsibleSection title={tr("Load & Injury Risk")} count={rows.length} storageKey="bhbc-load" defaultOpen leftStripe={ORANGE}>
-      <div className="bhbc-load-scroll" style={{ overflowX: 'auto' }}>
-        <div className="bhbc-load-inner" style={{ minWidth: 660 }}>
+      <div className="bhbc-load-scroll" style={{ overflowX: 'auto' }}>
+
+        <div className="bhbc-load-inner" style={{ minWidth: 660 }}>
+
           <div className="bhbc-load-head" style={{ display: 'grid', gridTemplateColumns: rowGrid, gap: 12, padding: '2px 2px 10px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.13em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }}>
             <div>#</div><div>Athlete</div><div>ACWR</div><div>7d</div><div>{tr('Availability')}</div><div>Readiness</div><div style={{ textAlign: 'right' }}>14-day</div>
           </div>
