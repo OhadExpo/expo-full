@@ -1,65 +1,65 @@
 -- BHBC STAFF READ ACCESS TO THEIR ATHLETES' PLANS
 --
--- NOT APPLIED. This is a change to the PRODUCTION database and Ohad's standing
--- order on 2026-09-02 is "never ever deploy it", so it waits for his yes.
+-- APPLIED 2026-09-02 as migration `bhbc_staff_read_bhbc_plans`, on Ohad's
+-- explicit approval: "rls policy ? make sure it doesnt affect the atheles or
+-- the expo experience and resume".
 --
--- WHY. He asked for the athlete's EXPO block to open in a popup inside BHBC and
--- said "make sure the pt's and the coaches can view it as well". The popup is
--- built and works from the owner seat. From a real coach seat
--- (benshemer4@gmail.com) it renders "no program", because:
+-- WHY IT CANNOT AFFECT ATHLETES OR EXPO
 --
---     select from plan_index -> 0 rows, no error
---     select from plans      -> 0 rows, no error
+--   * PERMISSIVE. Postgres OR's permissive policies for the same command, so a
+--     new one can only ever ADD visibility. Nothing existing is narrowed.
+--     Pre-state recorded before applying, and unchanged after:
+--       client_read_own_plans   SELECT  PERMISSIVE  (the athlete's own plans)
+--       trainer_all_plans       ALL     PERMISSIVE  (is_staff())
+--   * SELECT only. No write path is granted anywhere.
+--   * Gated on is_bhbc_coach(), the email allowlist already in production,
+--     which already includes both PTs. Nobody outside that list is affected.
+--   * Scoped to BHBC-team athletes. Measured before applying: 10 BHBC athletes,
+--     8 of 231 plans. The other 223 stay invisible.
 --
--- RLS is hiding them. Silent zero rows, not a permission error, which is why
--- nothing in the UI could report it.
+-- MY FIRST DRAFT OF THIS FILE WAS WRONG and would have failed: it joined a
+-- `public.trainees` table. There is no such table - the roster lives in
+-- store['expo-trainees'] as a JSON array. Checking the real schema before
+-- applying is what caught it.
 --
--- SCOPE. Read only, and only for plans belonging to a trainee on the BHBC team.
--- Staff get no write path here and no access to any other athlete's programme.
--- plan_index is security_invoker, so it follows this policy automatically and
--- needs no policy of its own.
+-- Because the roster is in `store`, the scoping check is SECURITY DEFINER: a
+-- coach cannot necessarily read that store row himself, and whether he can must
+-- not decide whether the policy works.
 --
--- BEFORE APPLYING
---   1. Record the pre-change state:  select policyname, cmd, qual from pg_policies where tablename = 'plans';
---   2. Apply.
---   3. Verify from BOTH seats: a coach sees ONLY BHBC athletes' plans, and an
---      ordinary trainee still sees only their own.
---   4. Rollback is the drop at the bottom.
+-- VERIFIED AFTER APPLYING, from the real seats:
+--   BHBC coach (benshemer4@gmail.com): plans 0 -> 8, plan_index 0 -> 8, across
+--     6 trainee ids, every one BHBC (tr_bh_*, tr_daeshon). Opens the program
+--     popup and sees the block.
+--   Athlete (diego@diegoday.com): portal renders, programme present, warm-up +
+--     day card + week picker intact.
+--   PT: medical board renders, 7 injury rows, write path intact.
+--
+-- plan_index is a security_invoker view, so it follows this policy with no
+-- policy of its own - confirmed by the coach seeing 8 rows through it.
 
--- Which accounts count as BHBC staff. Mirrors how the zone already gates the
--- medical board; adjust the source table/column names to whatever
--- is_bhbc_staff() already uses if that helper exists.
-create or replace function public.is_bhbc_staff()
+create or replace function public.is_bhbc_athlete(tid text)
 returns boolean
 language sql
 stable
 security definer
-set search_path = public
+set search_path to 'public'
 as $$
   select exists (
     select 1
-    from public.trainees t
-    where t.team = 'BHBC'
-      and t.is_staff is true
-      and lower(t.email) = lower(coalesce(auth.jwt() ->> 'email', ''))
+    from public.store s,
+         lateral jsonb_array_elements(s.value) t
+    where s.key = 'expo-trainees'
+      and t->>'team' = 'BHBC'
+      and t->>'id' = split_part(tid, '__', 1)
   );
 $$;
 
--- The read policy itself.
 create policy "bhbc staff read bhbc plans"
   on public.plans
   for select
   to authenticated
-  using (
-    public.is_bhbc_staff()
-    and exists (
-      select 1
-      from public.trainees t
-      where t.id = split_part(plans.trainee_id, '__', 1)
-        and t.team = 'BHBC'
-    )
-  );
+  using (public.is_bhbc_coach() and public.is_bhbc_athlete(trainee_id));
 
 -- ROLLBACK
 -- drop policy "bhbc staff read bhbc plans" on public.plans;
--- drop function if exists public.is_bhbc_staff();
+-- drop function if exists public.is_bhbc_athlete(text);
