@@ -861,3 +861,38 @@ html.theme-switching *::after {
      the answer was NONE. */
   transition: none !important;
 }
+
+
+/* ===== PRINTING A BLOCK ==================================================
+   Ohad: "create a export to pdf option that works perfectly and produces a
+   perfect template of the block". The sheet lives in the page and is invisible
+   on screen; for print everything else is hidden and only the sheet is laid
+   out, so the browser's own PDF writer produces real selectable text.
+
+   visibility (not display) is what hides the rest: display:none on an ancestor
+   would take the sheet down with it, and the sheet is rendered INSIDE the
+   editor. Hiding by visibility and then turning it back on for the sheet's
+   subtree is the one arrangement that survives being nested anywhere. */
+.plan-print { display: none; }
+
+@media print {
+  @page { size: A4 portrait; margin: 14mm 12mm; }
+  html, body { background: #fff !important; }
+  body * { visibility: hidden !important; }
+  .plan-print, .plan-print * { visibility: visible !important; }
+  .plan-print {
+    display: block !important;
+    position: absolute !important;
+    inset: 0 auto auto 0;
+    width: 100%;
+    background: #fff !important;
+    color: #000 !important;
+    font-family: system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+  }
+  /* A day never breaks across pages, and its header repeats if one ever must. */
+  .plan-print table { break-inside: avoid; page-break-inside: avoid; }
+  .plan-print thead { display: table-header-group; }
+  .plan-print tr { break-inside: avoid; page-break-inside: avoid; }
+  /* Nothing interactive belongs on paper. */
+  .plan-print button, .plan-print input, .plan-print select { display: none !important; }
+}

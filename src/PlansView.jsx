@@ -538,6 +538,117 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
 //
 // Deliberately NOT editable. It is for reading the shape of the block — the
 // editor one click away is where you change things. Clicking a day jumps there.
+// Plans carry two shapes; the editor writes {sets, reps} but older sheet
+// imports use {s, r}. Read both or half the block renders blank.
+//
+// Per-week sets (wkS) are the block's PROGRESSION, and the editor keeps them
+// behind a per-row toggle. On a read-at-a-glance screen that is exactly what
+// you want: "3·3·4·4" says more about the block than "3" does. Collapse to a
+// single number when every week is the same.
+//
+// Module scope so the printed template and the on-screen overview cannot drift
+// apart - a template that says something different from the screen is worse
+// than no template.
+const rxOf = (ex) => {
+  const r = ex?.reps ?? ex?.r ?? '';
+  let s = ex?.sets ?? ex?.s ?? '';
+  if (Array.isArray(ex?.wkS) && ex.wkS.length) {
+    const wk = ex.wkS.map((v) => String(v ?? '').trim()).filter(Boolean);
+    if (wk.length) s = new Set(wk).size === 1 ? wk[0] : wk.join('·');
+  }
+  if (s !== '' && r !== '') return `${s}×${r}`;
+  return String(s || r || '');
+};
+
+// EXPORT A BLOCK AS A PDF.
+//
+// Ohad: "create a export to pdf option that works perfectly and produces a
+// perfect template of the block (in expo coach, inside a program)".
+//
+// No PDF library. The browser already has a typesetter and a PDF writer, and
+// going through them means real selectable vector text at any paper size, no
+// 4MB dependency, no canvas rasterisation, and it works offline. The sheet is
+// rendered into the page and everything else is hidden for print; the coach
+// picks "Save as PDF" (or a printer) in the dialog he already knows.
+//
+// Rules this layout follows, because a template is read on paper:
+//   * one <table> per day, and days never split across a page (break-inside)
+//   * the header repeats on every page (thead), so page 3 still says whose
+//     block it is
+//   * black on white with hairline rules - the app's dark palette would eat a
+//     cartridge and print grey on grey
+//   * per-week sets stay as "3·3·4·4": that IS the block's progression, and a
+//     template that flattened it to "3" would be a different block
+function PlanPrintSheet({ plan, athleteName, exercises }) {
+  const exById = React.useMemo(() => {
+    const m = new Map();
+    for (const e of (exercises || [])) m.set(e.id, e);
+    return m;
+  }, [exercises]);
+  const titleOf = (ex) => ex.title || (exById.get(ex.exerciseId || ex.eid || '') || {}).title || (exById.get(ex.exerciseId || ex.eid || '') || {}).t || '—';
+  const days = Array.isArray(plan?.days) ? plan.days : [];
+  const warm = plan?.warmup || plan?.warmUp || [];
+  const weeks = Math.max(1, Number(plan?.weeks) || 4);
+  const printedOn = new Date().toLocaleDateString('en-GB');
+
+  const th = { textAlign: 'start', fontSize: 8.5, letterSpacing: '0.10em', textTransform: 'uppercase', color: '#555', fontWeight: 700, padding: '0 6px 4px', borderBottom: '1px solid #000' };
+  const td = { fontSize: 11, padding: '5px 6px', borderBottom: '0.5px solid #bbb', verticalAlign: 'top', color: '#000' };
+
+  const Block = ({ label, rows }) => (
+    rows.length === 0 ? null : (
+      <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 14, breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+        <thead>
+          <tr><th colSpan={4} style={{ textAlign: 'start', fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '10px 6px 5px', borderBottom: '2px solid #000', color: '#000' }}>{label}</th></tr>
+          <tr>
+            <th style={{ ...th, width: 24 }}>#</th>
+            <th style={th}>Exercise</th>
+            <th style={{ ...th, width: 96 }}>Sets × Reps</th>
+            <th style={{ ...th, width: 78 }}>Tempo</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((ex, i) => (
+            <tr key={i}>
+              <td style={{ ...td, color: '#666', fontVariantNumeric: 'tabular-nums' }}>{i + 1}</td>
+              <td style={{ ...td, fontWeight: 600 }}>
+                <bdi>{titleOf(ex)}</bdi>
+                {(ex.notes || ex.n) ? <div style={{ fontSize: 9.5, color: '#444', fontWeight: 400, marginTop: 2 }}><bdi>{ex.notes || ex.n}</bdi></div> : null}
+              </td>
+              <td style={{ ...td, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{rxOf(ex)}</td>
+              <td style={{ ...td, color: '#444' }}>{ex.tempo || ''}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )
+  );
+
+  return (
+    <div className="plan-print" aria-hidden="true">
+      <div style={{ borderBottom: '2px solid #000', paddingBottom: 8, marginBottom: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
+          <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: '0.02em', color: '#000' }}>{plan?.name || 'Block'}</div>
+          <div style={{ fontSize: 10, color: '#555', letterSpacing: '0.08em', textTransform: 'uppercase' }}>EXPO</div>
+        </div>
+        <div style={{ fontSize: 11, color: '#333', marginTop: 3 }}>
+          {athleteName ? <span><bdi><strong>{athleteName}</strong></bdi>{' · '}</span> : null}
+          {days.length} {days.length === 1 ? 'day' : 'days'}{' · '}{weeks} {weeks === 1 ? 'week' : 'weeks'}{' · '}printed {printedOn}
+        </div>
+      </div>
+      <Block label="Warm-up" rows={(warm || []).filter(Boolean)} />
+      {days.map((d, i) => (
+        <Block key={i} label={d.name || d.n || ('Day ' + (i + 1))} rows={((d.exercises || d.ex || []).filter(Boolean))} />
+      ))}
+      {plan?.notes ? (
+        <div style={{ breakInside: 'avoid', marginTop: 10, fontSize: 10, color: '#333' }}>
+          <div style={{ fontSize: 8.5, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#555', fontWeight: 700, marginBottom: 3 }}>Notes</div>
+          {plan.notes}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function PlanOverview({ plan, exercises, onJumpToDay = null }) {
   const tt = useAppT();
   const days = plan?.days || [];
@@ -545,22 +656,6 @@ function PlanOverview({ plan, exercises, onJumpToDay = null }) {
   // way this screen gets slow with a 1,300-row library.
   const byId = useMemo(() => exById(exercises), [exercises]);
   const nameOf = (ex) => (ex?.title || byId.get(ex?.exerciseId)?.title || '—');
-  // Plans carry two shapes; the editor writes {sets, reps} but older sheet
-  // imports use {s, r}. Read both or half the block renders blank.
-  const rxOf = (ex) => {
-    const r = ex?.reps ?? ex?.r ?? '';
-    // Per-week sets (wkS) are the block's PROGRESSION, and the editor keeps
-    // them behind a per-row toggle. On a read-at-a-glance screen that is
-    // exactly what you want to see: "3·3·4·4" says more about the block than
-    // "3" does. Collapse to a single number when every week is the same.
-    let s = ex?.sets ?? ex?.s ?? '';
-    if (Array.isArray(ex?.wkS) && ex.wkS.length) {
-      const wk = ex.wkS.map((v) => String(v ?? '').trim()).filter(Boolean);
-      if (wk.length) s = new Set(wk).size === 1 ? wk[0] : wk.join('·');
-    }
-    if (s !== '' && r !== '') return `${s}×${r}`;
-    return String(s || r || '');
-  };
   const warm = plan?.warmup || plan?.warmUp || [];
 
   // Total prescribed sets for a day — the one number that says how big a
@@ -1704,6 +1799,9 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
   // Always-latest plan (setPlan makes new objects on every edit), so handleSave
   // can tell whether an edit landed DURING its await before declaring clean.
   const planRef = useRef(plan); planRef.current = plan;
+  // Mounted only while the print dialog is open - the sheet is a whole second
+  // rendering of the block and there is no reason to keep it in the tree.
+  const [printOpen, setPrintOpen] = useState(false);
 
   // ── Undo / redo (Ohad) ───────────────────────────────────────────────────
   // Coarse per-pause history: a debounced snapshot coalesces rapid edits (e.g.
@@ -2101,6 +2199,19 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
     // (see the rule in the drawer's <style>), so Compare simply uses the normal
     // column width instead of a miscalculated one.
     <div data-allow-copy className={compareActive ? 'editor-bleed' : undefined} style={compareActive ? { width: 'min(96vw, 2400px)', marginLeft: 'calc(50% - min(48vw, 1200px))' } : undefined}>
+       {/* The printable block. Mounted only while the print dialog is open, and
+           invisible on screen - the print stylesheet is what reveals it. */}
+       {printOpen && (
+         <PlanPrintSheet
+           plan={plan}
+           exercises={exercises}
+           athleteName={(() => {
+             const tid = String(plan?.traineeId || '').split('__')[0];
+             const t = (trainees || []).find((x) => x && x.id === tid);
+             return t ? t.name : '';
+           })()}
+         />
+       )}
       <style>{`
         /* Editor field row: 3 across on wide, 1 on narrow, so Phase/Block
            always has room (no label wrap / misalignment). */
@@ -2249,6 +2360,22 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
               first-class buttons. Each moved action keeps its exact original
               handler (autosave-flush guards intact) and icon. */}
           <EditorMoreMenu items={[
+            // Save the draft first: printing a stale copy would hand him a
+            // template that does not match the block he is looking at.
+            { key:'pdf', label:'Export PDF', onClick: async () => {
+              if (!(await flushAutosave())) { toast('Save failed — not exporting a stale copy. Check your connection and retry.', 'error'); return; }
+              // One frame for the sheet to mount before the print dialog reads
+              // the document; window.print() is synchronous and would otherwise
+              // capture the page without it.
+              setPrintOpen(true);
+              requestAnimationFrame(() => requestAnimationFrame(() => {
+                const done = () => { window.removeEventListener('afterprint', done); setPrintOpen(false); };
+                window.addEventListener('afterprint', done);
+                setTimeout(done, 60000);
+                window.print();
+              }));
+            },
+              icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg> },
             { key:'compare', label:'Compare', active: compareActive, onClick:()=>setCompareOpen(v=>!v),
               icon: compareActive
                 ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
