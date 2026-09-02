@@ -18,6 +18,7 @@
 //   node scripts/verify-shot-height-live.mjs [base] [after|during]
 import puppeteer from 'puppeteer-core';
 import { signIn } from './lib/authed-page.mjs';
+import { setWidth } from './lib/viewport.mjs';
 
 const BASE = process.argv[2] || 'http://127.0.0.1:5199';
 const MODE = (process.argv[3] || 'after').toLowerCase();
@@ -26,7 +27,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const b = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null });
 const page = await b.newPage();
-await page.setViewport({ width: 1500, height: 1000 });
+await setWidth(page, 1500, 1000);
 let bad = 0;
 
 const jumpRise = () => page.evaluate(() => {

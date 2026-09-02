@@ -13,6 +13,7 @@
 // closes the tab it opened and disconnects.
 
 import puppeteer from 'puppeteer-core';
+import { setWidth } from './lib/viewport.mjs';
 
 const [, , url, out, w = '1440', h = '900', full = '', waitMs = '1500', selector = ''] = process.argv;
 if (!url || !out) {
@@ -38,7 +39,7 @@ async function wsEndpoint() {
     const browserWSEndpoint = await wsEndpoint();
     browser = await puppeteer.connect({ browserWSEndpoint, protocolTimeout: 60000 });
     page = await browser.newPage();
-    await page.setViewport({ width: parseInt(w) || 1440, height: parseInt(h) || 900, deviceScaleFactor: 1 });
+    await setWidth(page, parseInt(w) || 1440, parseInt(h) || 900);
     await page.goto(url, { waitUntil: 'networkidle2', timeout: 45000 }).catch(async () => {
       // networkidle can hang on a live app with polling; fall back to domcontentloaded
       await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 });

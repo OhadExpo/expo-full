@@ -7,6 +7,7 @@ import puppeteer from 'puppeteer-core';
 import fs from 'node:fs';
 import { signIn, assertAuthed } from './lib/authed-page.mjs';
 import { unmangleArg } from './lib/unmangle.mjs';
+import { setWidth } from './lib/viewport.mjs';
 
 const OUT = process.env.AUDIT_OUT || (process.argv[2] || '.');
 const BASE = process.argv[3] || 'http://localhost:5199';
@@ -36,7 +37,7 @@ const ROUTES = (process.argv.length > 4 ? process.argv.slice(4) : routesFromMani
 
 const b = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', protocolTimeout: 180000 });
 const page = await b.newPage();
-await page.setViewport({ width: 1440, height: 950 });
+await setWidth(page, 1440, 950);
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // Sign in and PROVE it. The first run of this sweep was unauthenticated, so

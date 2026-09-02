@@ -20,6 +20,7 @@ import puppeteer from 'puppeteer-core';
 import { signIn, assertAuthed } from './lib/authed-page.mjs';
 import { listTabs, clickTab } from './lib/tabs.mjs';
 import { unmangleArg } from './lib/unmangle.mjs';
+import { setWidth } from './lib/viewport.mjs';
 
 // Same manifest the other gates enumerate from, so this sweep covers exactly
 // the surfaces SURFACES.md claims exist.
@@ -74,7 +75,7 @@ const SIG = () => {
 
 const browser = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 600000 });
 const page = await browser.newPage();
-await page.setViewport({ width: W, height: 1100 });
+await setWidth(page, W, 1100);
 
 // --- the safety net -------------------------------------------------------
 await page.setRequestInterception(true);

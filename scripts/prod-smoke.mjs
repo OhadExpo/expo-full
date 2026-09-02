@@ -2,6 +2,7 @@
 // the service worker so a cached bundle can't fake a pass, and checks that every
 // key surface renders without a runtime error.
 import puppeteer from 'puppeteer-core';
+import { setWidth } from './lib/viewport.mjs';
 
 const BASE = process.argv[2] || 'https://expo-app.co.il';
 const ROUTES = process.argv.length > 3 ? process.argv.slice(3) : [
@@ -11,7 +12,7 @@ const ROUTES = process.argv.length > 3 ? process.argv.slice(3) : [
 
 const b = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', protocolTimeout: 120000 });
 const page = await b.newPage();
-await page.setViewport({ width: 1440, height: 950 });
+await setWidth(page, 1440, 950);
 // A stale SW would serve the OLD bundle and every check below would be a lie.
 const client = await page.createCDPSession();
 await client.send('Network.setBypassServiceWorker', { bypass: true });

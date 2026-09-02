@@ -20,6 +20,7 @@
 import fs from 'node:fs';
 import puppeteer from 'puppeteer-core';
 import { signIn } from './lib/authed-page.mjs';
+import { setWidth } from './lib/viewport.mjs';
 
 const routesFromManifest = () => {
   try {
@@ -37,7 +38,7 @@ const browser = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', d
 // in, and this test is about what the APP does, not the profile.
 const ctx = await (browser.createBrowserContext ? browser.createBrowserContext() : browser.createIncognitoBrowserContext());
 const page = await ctx.newPage();
-await page.setViewport({ width: 1400, height: 1000 });
+await setWidth(page, 1400, 1000);
 
 let bad = 0;
 try {

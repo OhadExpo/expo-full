@@ -11,6 +11,7 @@
 // arm extends, the ball leaves the hand and arcs. Cheaper and far more reliable
 // than judging a mock from screenshots.
 import puppeteer from 'puppeteer-core';
+import { setWidth } from './lib/viewport.mjs';
 const [, , url] = process.argv;
 
 // Without this guard, a missing URL reached Page.navigate as undefined and came
@@ -36,7 +37,7 @@ try {
   process.exit(2);
 }
 const page = await browser.newPage();
-await page.setViewport({ width: 1000, height: 900 });
+await setWidth(page, 1000, 900);
 await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
 await new Promise(r => setTimeout(r, 1000));
 await page.evaluate(() => {

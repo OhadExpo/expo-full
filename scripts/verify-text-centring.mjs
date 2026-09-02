@@ -18,6 +18,7 @@ import fs from 'node:fs';
 import puppeteer from 'puppeteer-core';
 import { signIn, assertAuthed } from './lib/authed-page.mjs';
 import { unmangleArg } from './lib/unmangle.mjs';
+import { setWidth } from './lib/viewport.mjs';
 
 const BASE = process.argv[2] || 'http://127.0.0.1:5199';
 const W = parseInt(process.argv[3] || '1600', 10);
@@ -74,7 +75,7 @@ const MEASURE = (tol) => {
 
 const b = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null });
 const page = await b.newPage();
-await page.setViewport({ width: W, height: 1000 });
+await setWidth(page, W, 1000);
 let total = 0;
 try {
   await signIn(page, BASE);
