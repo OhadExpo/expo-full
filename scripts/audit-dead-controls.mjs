@@ -42,7 +42,7 @@ const NEVER = 'delete|remove|discard|clear all|log ?out|sign ?out|exit|reset|rev
 // filesystem, where a DOM diff is the wrong instrument.
 // Controls that legitimately show nothing: they act on the clipboard, the
 // filesystem, or a native picker, where a DOM diff is the wrong instrument.
-const CLIPBOARD = /copy|export|download|print|share|pick file|choose file|upload|browse/i;
+const CLIPBOARD = /copy|export|download|print|share|pick file|choose file|upload|browse|rec|record|film|camera/i;
 
 const SIG = () => {
   // Text is the obvious signal, but a toggle can change only its own active
@@ -66,7 +66,10 @@ const SIG = () => {
     .map((el, i) => { const cs = getComputedStyle(el); return cs.opacity !== '1' ? i + cs.opacity + cs.borderLeftColor + cs.backgroundColor : (cs.borderLeftWidth !== '0px' ? i + cs.borderLeftColor : ''); })
     .join('');
   for (let i = 0; i < visual.length; i++) { h3 = (h3 * 31 + visual.charCodeAt(i)) | 0; }
-  return [h, h2, h3, txt.length, document.querySelectorAll('*').length, location.href].join(':');
+  const geo = document.documentElement.scrollHeight + 'x' + document.body.scrollHeight + 'x'
+    + [...document.querySelectorAll('div,section,ul')].slice(0, 400)
+      .reduce((a, el) => a + (el.getBoundingClientRect().height < 1 ? 1 : 0), 0);
+  return [h, h2, h3, geo, txt.length, document.querySelectorAll('*').length, location.href].join(':');
 };
 
 const browser = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 600000 });
