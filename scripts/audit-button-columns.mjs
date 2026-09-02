@@ -2,7 +2,9 @@
 // same horizontal size". A column = buttons sharing a left edge down a screen.
 import P from 'puppeteer-core';
 import * as A from '../scripts/lib/authed-page.mjs';
-const W = parseInt(process.argv[2] || '1500', 10);
+const ARGS = process.argv.slice(2);
+const BASE = ARGS.find((a) => /^https?:\/\//.test(a)) || 'http://127.0.0.1:5199';
+const W = parseInt(ARGS.find((a) => /^\d+$/.test(a)) || '1500', 10);
 const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null });
 const pg = await b.newPage();
 const applyViewport = async (pg, w) => {
@@ -17,11 +19,11 @@ const applyViewport = async (pg, w) => {
   await pg.setViewport({ width: w, height: 1100 });
 };
 await applyViewport(pg, W);
-await A.signIn(pg, 'http://127.0.0.1:5199');
+await A.signIn(pg, BASE);
 const ROUTES = ['/coach/bhbc', '/coach/athletes', '/coach/programs', '/coach/dashboard', '/coach/exercises'];
 let total = 0;
 for (const route of ROUTES) {
-  await pg.goto('http://127.0.0.1:5199' + route, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await pg.goto(BASE + route, { waitUntil: 'domcontentloaded', timeout: 60000 });
   await new Promise((r) => setTimeout(r, 9000));
   const tabs = await pg.evaluate(() => [...document.querySelectorAll('button')].map((x) => (x.textContent || '').trim())
     .filter((t) => /^(overview|roster|schedule|medical|sessions|games)$/i.test(t)));
