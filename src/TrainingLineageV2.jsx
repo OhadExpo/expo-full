@@ -672,7 +672,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
       );
       return (
         <Section title="Movement map" summary={`${trained} of 6 patterns trained`}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 10, alignItems: 'start' }}>
             {BUCKETS.map((b) => {
               const lifts = grouped[b.key];
               const empty = lifts.length === 0;
