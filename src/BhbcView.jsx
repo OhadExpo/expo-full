@@ -916,6 +916,10 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
           .bhbc-inj-row>:nth-child(2){grid-area:2/1/auto/-1!important}
           .bhbc-inj-row>:nth-child(4){grid-area:3/1!important}
           .bhbc-inj-row>:nth-child(5){grid-area:3/2!important;justify-self:end!important}
+          /* The sixth child is the Update action. It was never mapped, so on a
+             phone it landed wherever auto-placement put it. */
+          .bhbc-inj-row>:nth-child(6){grid-area:4/1/auto/-1!important;justify-self:start!important}
+          .bhbc-inj-head{display:none!important}
         }
       `}</style>
       {/* ---- ZONE TOP BAR — logo + wordmark + inline nav tabs + controls, one
@@ -3987,6 +3991,8 @@ function LoadOutputCard({ rows, loads, medical }) {
   );
 }
 
+const INJ_COLS = '190px minmax(0, 1fr) 120px 118px 96px 72px';
+
 function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedical = true, onReport, onEdit, onOpen, onLog }) {
   const he = useHe();
   const tr = useT();
@@ -3998,7 +4004,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
   return (
     <>
       <Card padding={14} leftStripe={ORANGE} header={secTitle('Medical · Injury Board')} headerRight={<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>{rows.length} {tr('active')} · {canMedical ? 'Ohad + PT' : tr('view only')}</span>}>
-        <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 22 }}>
           {[[tr('Out'), counts.out, '#DE4E3B'], [tr('limited'), counts.limited, '#E0A73A'], [tr('Non-contact'), counts.nc, '#4F9DE0'], [tr('Cleared'), cleared.length, '#37B27C']].map(([k, n, c]) => (
             <div key={k} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               <span style={{ fontFamily: FN, fontSize: 26, fontWeight: 800, color: n ? c : C.tx, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{n}</span>
@@ -4011,12 +4017,22 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
       {rows.length > 0 && (
         <Card padding={14} leftStripe={NAVY} header={secTitle('Active Injuries')}>
           <div>
+            {/* Column headers: the row carries four bare values (a status, a
+                day count, a pain score and a name) and nothing said which was
+                which. Same grid as the rows, so the labels sit over the
+                columns they name. Hidden on a phone, where the rows restack
+                and the header would no longer line up with anything. */}
+            <div className="bhbc-inj-head" style={{ display: 'grid', gridTemplateColumns: INJ_COLS, gap: 12, alignItems: 'end', padding: '0 0 7px', borderBottom: `1px solid ${C.cardBd}` }}>
+              {[tr('Athlete'), tr('Injury'), tr('Status'), tr('Since · pain'), tr('Reported by'), ''].map((h, i) => (
+                <div key={i} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{h}</div>
+              ))}
+            </div>
             {rows.map(({ t, inj }) => {
               const days = inj.onsetDate ? dayDiff(todayISO(), inj.onsetDate) : null;
               return (
                 <div key={t.id + inj.id} className="bhbc-row bhbc-inj-row" onClick={() => canMedical && onEdit(t.id, inj.id)}
                   role={canMedical ? 'button' : undefined} tabIndex={canMedical ? 0 : undefined}
-                  onKeyDown={canMedical ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onEdit(t.id, inj.id); } }) : undefined} style={{ display: 'grid', gridTemplateColumns: '150px 1fr 120px 110px auto', gap: 12, alignItems: 'center', padding: '11px 0', borderBottom: `1px solid ${C.cardBd}`, cursor: canMedical ? 'pointer' : 'default' }}>
+                  onKeyDown={canMedical ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onEdit(t.id, inj.id); } }) : undefined} style={{ display: 'grid', gridTemplateColumns: INJ_COLS, gap: 12, alignItems: 'center', padding: '11px 0', borderBottom: `1px solid ${C.cardBd}`, cursor: canMedical ? 'pointer' : 'default' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
                     <span style={{ display: 'inline-block', width: 18, textAlign: 'right', flexShrink: 0, fontFamily: FN, fontSize: 11, fontWeight: 700, color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums' }}>{t.jersey ?? '—'}</span>
                     <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{t.name}</span>
