@@ -1452,6 +1452,14 @@ function AuthedApp() {
       <header style={{background:C.headerBg,borderBottom:`1px solid ${C.cardBd}`,boxShadow:'0 1px 2px rgba(0,0,0,0.03), 0 4px 12px rgba(0,0,0,0.04)',position:"sticky",top:0,zIndex:100,paddingTop:'env(safe-area-inset-top)'}}>
         <style>{`
           .hdr-scroll::-webkit-scrollbar{display:none}
+          .subtab-scroll::-webkit-scrollbar{display:none}
+          /* The Exercises hub sub-tabs wrapped to a second row at 390 -
+             LIBRARY MATCHING CLASSIFY on one line, CLEANUP alone on the next.
+             Ohad on the header: one row, the rest scrolls. Same grammar here. */
+          @media (max-width: 700px) {
+            .subtab-scroll { flex-wrap: nowrap !important; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+            .subtab-scroll > button { flex: 0 0 auto; }
+          }
           /* THE NAV MUST NOT CLIP. Measured 2026-08-28: the header is capped at
              1200px, and below ~1000px of viewport the nine English labels no
              longer fit — DASHBOARD and PORTAL were cut at both ends (14px over
@@ -1608,7 +1616,7 @@ function AuthedApp() {
                   Classify) live here as sub-tabs instead of separate Athletes ▾
                   menu items (Ohad). Underline tabs = the app's filter/sub-nav
                   control grammar. Deep-link routes still resolve to each tab. */}
-              <div style={{display:'flex',gap:2,borderBottom:`1px solid ${C.cardBd}`,marginBottom:16,flexWrap:'wrap'}}>
+              <div className="subtab-scroll" style={{display:'flex',gap:2,borderBottom:`1px solid ${C.cardBd}`,marginBottom:16,flexWrap:'wrap'}}>
                 {[['exercises','Library'],['exerciseMatching','Matching'],['exerciseClassify','Classify'],['exerciseCleanup','Cleanup']].map(([r,l])=>{
                   const on=tab===r;
                   return <button key={r} role="tab" aria-selected={on} onClick={()=>navTo(r)} style={{fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:on?C.tx:C.td,background:'transparent',border:'none',borderBottom:on?`2px solid ${C.ac}`:'2px solid transparent',padding:'10px 16px',marginBottom:-1,cursor:'pointer'}}>{l}</button>;

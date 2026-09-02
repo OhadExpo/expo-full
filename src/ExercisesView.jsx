@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { C, FN, FB, uid, ytId, RESISTANCE_TYPES, BODY_POSITIONS, MOVEMENT_TYPES } from './theme';
-import { Btn, Input, Select, TextArea, Modal, ConfirmDialog, EmptyState, baseInput } from './ui';
+import { Btn, Input, Select, TextArea, Modal, ConfirmDialog, EmptyState, baseInput, useIsMobile } from './ui';
 import { classify, isUnclassified } from './exerciseClassify';
 import { useT as useAppT } from './i18n';
 
@@ -59,6 +59,7 @@ const isMissing = e => isUnclassified(e);
 const splitVals = s => String(s || '').split(',').map(x => x.trim()).filter(Boolean);
 
 export default function ExercisesView({ exercises, setExercises, onOpenClassify }) {
+  const narrowUI = useIsMobile(700);
   const tt = useAppT();
   const unclassifiedCount = useMemo(() => (exercises || []).filter(isMissing).length, [exercises]);
   const [showForm, setShowForm] = useState(false);
@@ -342,7 +343,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
       {/* Search + Add — prominent, full width. */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 18, alignItems: 'stretch', flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: 200, display: 'flex' }}>
-          <input placeholder="Search exercises (title, muscle, joint, position…)" value={search} onChange={e => { setSearch(e.target.value); setShowAll(false); }}
+          <input placeholder={narrowUI ? "Search exercises…" : "Search exercises (title, muscle, joint, position…)"} value={search} onChange={e => { setSearch(e.target.value); setShowAll(false); }}
             style={{ ...baseInput, height: 30, padding: '0 14px', fontSize: 13, lineHeight: '30px', textAlign: 'left', border: `1px solid ${C.ac}`, width: '100%' }} />
         </div>
         <Btn onClick={openNew} style={{ height: 30, width: RIGHT_CTL_W, flexShrink: 0, padding: '0 18px', fontSize: 13, lineHeight: '30px', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ Add Exercise</Btn>
