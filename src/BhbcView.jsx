@@ -1029,7 +1029,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
             </div>
           </Card>
         ) : (
-          <>
+          <div key={view} className="motion-rise" style={{ display: 'flex', flexDirection: 'column', gap: 'inherit' }}>
 
             {view === 'overview' && (
               <>
@@ -1095,7 +1095,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
               </>
             )}
 
-          </>
+          </div>
         )}
       </main>
 
@@ -2253,7 +2253,8 @@ function ProgramModal({ athleteName, plans, exercises, currentWeek = 1, onClose 
                               {r.tempo && <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: C.tm, whiteSpace: 'nowrap' }}>{r.tempo}</span>}
                             </div>
                           </div>
-                          {open && (
+                          <div style={{ display: 'grid', gridTemplateRows: open ? '1fr' : '0fr', transition: 'grid-template-rows 220ms ease' }}>
+                            <div style={{ overflow: 'hidden' }} inert={open ? undefined : ''}>
                             <div style={{ padding: '0 11px 10px 24px', borderTop: '1px solid ' + C.cardBd, marginTop: 2, paddingTop: 8 }}>
                               {r.tempo && <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: ORANGE_DEEP, marginBottom: 7 }}>{'⏱ ' + r.tempo}</div>}
                               {r.setCount > 0 ? (
@@ -2271,7 +2272,8 @@ function ProgramModal({ athleteName, plans, exercises, currentWeek = 1, onClose 
                                 <div style={{ fontFamily: FN, fontSize: 11, color: C.tm }}>{r.rx || '—'}</div>
                               )}
                             </div>
-                          )}
+                            </div>
+                          </div>
                         </div>
                           );
                         })()
