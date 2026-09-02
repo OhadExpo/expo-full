@@ -31,6 +31,75 @@ const fmt = (iso) => {
 // world-readable they are guessable, not merely leakable. Signing is a no-op
 // today and becomes the fix the moment the bucket goes private; any failure
 // falls back to the stored URL so a note never silently stops playing.
+// One themed player for every bit of audio in this surface.
+function AudioPlayer({ src, spaced }) {
+  // The browser's own <audio controls> is a white rounded pill. In a portal
+  // that is black with 1px square borders it was the loudest thing on the
+  // screen, and it was the only control in the app the athlete sees that we
+  // never drew ourselves. Same fault as the "+ Log" button falling through to
+  // UA chrome. The element still does the work - it is just not the skin.
+  const ref = React.useRef(null);
+  const [playing, setPlaying] = React.useState(false);
+  const [cur, setCur] = React.useState(0);
+  const [dur, setDur] = React.useState(0);
+  const mmss = (n) => {
+    const v = Number.isFinite(n) && n > 0 ? n : 0;
+    return Math.floor(v / 60) + ':' + String(Math.floor(v % 60)).padStart(2, '0');
+  };
+  const toggle = () => {
+    const a = ref.current;
+    if (!a) return;
+    if (a.paused) a.play().catch(() => {}); else a.pause();
+  };
+  // Tap anywhere on the bar to scrub. Only possible once the duration is
+  // known, which with preload="none" means after the first play - so the bar
+  // is inert rather than lying about where it would jump to.
+  const seek = (e) => {
+    const a = ref.current;
+    if (!a || !Number.isFinite(a.duration) || a.duration <= 0) return;
+    const r = e.currentTarget.getBoundingClientRect();
+    a.currentTime = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * a.duration;
+  };
+  const pct = dur > 0 ? Math.max(0, Math.min(100, (cur / dur) * 100)) : 0;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, maxWidth: '100%', marginBottom: spaced ? 6 : 0 }}>
+      {/* preload stays "none": an athlete on mobile data should not fetch
+          every note in the thread just to open the tab. */}
+      <audio
+        ref={ref}
+        preload="none"
+        src={src}
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+        onEnded={() => { setPlaying(false); setCur(0); }}
+        onTimeUpdate={(e) => setCur(e.currentTarget.currentTime)}
+        onDurationChange={(e) => setDur(e.currentTarget.duration)}
+        style={{ display: 'none' }}
+      />
+      <button
+        type="button"
+        onClick={toggle}
+        aria-label={playing ? 'Pause voice note' : 'Play voice note'}
+        style={{
+          width: 30, height: 30, flexShrink: 0, display: 'inline-flex',
+          alignItems: 'center', justifyContent: 'center', lineHeight: 1,
+          background: 'transparent', color: C.ac, border: `1px solid ${C.ac}`,
+          borderRadius: 0, cursor: 'pointer', fontSize: 11, padding: 0,
+        }}
+      >{playing ? '❚❚' : '▶'}</button>
+      <div
+        onClick={seek}
+        style={{ flex: 1, minWidth: 48, height: 4, background: C.cardBd, cursor: dur > 0 ? 'pointer' : 'default' }}
+      >
+        <div style={{ width: pct + '%', height: '100%', background: C.ac }} />
+      </div>
+      <span dir="ltr" style={{
+        fontFamily: FN, fontSize: 10, color: C.tm, flexShrink: 0,
+        fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate',
+      }}>{mmss(cur)}{dur > 0 ? ' / ' + mmss(dur) : ''}</span>
+    </div>
+  );
+}
 function VoiceNote({ url, spaced }) {
   const [src, setSrc] = React.useState(url);
   React.useEffect(() => {
@@ -40,9 +109,10 @@ function VoiceNote({ url, spaced }) {
     resolveStoredUrl(url).then((u) => { if (alive && u) setSrc(u); }).catch(() => {});
     return () => { alive = false; };
   }, [url]);
-  return <audio controls preload="none" src={src}
-    style={{ display: 'block', maxWidth: '100%', marginBottom: spaced ? 6 : 0 }} />;
+  return <AudioPlayer src={src} spaced={spaced} />;
 }
+
+
 
 function useVoiceRecorder() {
   const [recording, setRecording] = useState(false);
@@ -191,7 +261,7 @@ function Composer({ onSend, role, draftKey }) {
         )}
         {rec.blob && !rec.recording && (
           <>
-            <audio controls src={rec.blobUrl} style={{ height: 30, maxWidth: 220 }} />
+            <div style={{ maxWidth: 220 }}><AudioPlayer src={rec.blobUrl} /></div>
             <button onClick={rec.reset}
               style={recBtnStyle('var(--c-tm)')}>↺ RE-RECORD</button>
           </>
