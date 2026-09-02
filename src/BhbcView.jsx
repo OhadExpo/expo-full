@@ -2136,11 +2136,14 @@ function ProgramModal({ athleteName, plans, exercises, currentWeek = 1, onClose 
     };
   });
 
+  // Sessions > Group is white cards with hairline borders and colour used only
+  // as an accent - no filled bars anywhere. Ohad pointed at it twice; this is
+  // that material.
   const chip = (on) => ({
     fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
-    padding: '6px 10px', minHeight: 28, boxSizing: 'border-box', cursor: 'pointer', borderRadius: 0,
-    background: on ? NAVY : 'transparent', color: on ? '#fff' : C.tm,
-    border: '1px solid ' + (on ? NAVY : C.cardBd),
+    padding: '5px 10px', minHeight: 26, boxSizing: 'border-box', cursor: 'pointer', borderRadius: 0,
+    background: 'transparent', color: on ? C.tx : C.tm,
+    border: '1px solid ' + (on ? C.tx : C.cardBd),
   });
 
   return (
@@ -2165,28 +2168,35 @@ function ProgramModal({ athleteName, plans, exercises, currentWeek = 1, onClose 
           {!loading && days.map((d, di) => {
             const list = rowsFor(d);
             return (
-              <div key={di} style={{ border: '1px solid ' + C.cardBd, background: 'var(--c-sf)' }}>
-                <div style={{ background: NAVY_DEEP, color: '#fff', padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-                  <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{d.name || d.n || (tr('Day') + ' ' + (di + 1))}</span>
-                  <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', opacity: 0.85 }}>{list.length} EX</span>
+              <div key={di}>
+                {/* The athlete card in Sessions > Group heads its stack with a
+                    quiet "DAY B · W1" line, not a filled bar. */}
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, margin: '2px 0 6px' }}>
+                  <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tx }}>{d.name || d.n || (tr('Day') + ' ' + (di + 1))}</span>
+                  <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>{'W' + week} · {list.length} EX</span>
                 </div>
                 {list.length === 0
-                  ? <div style={{ padding: '10px 12px', fontFamily: FB, fontSize: 12, color: C.td }}>{'—'}</div>
-                  : list.map((r, ri) => (
-                    <div key={ri} style={{ display: 'grid', gridTemplateColumns: '20px minmax(0,1fr) max-content', columnGap: 10, rowGap: 2, alignItems: 'baseline', padding: '9px 12px', borderTop: ri ? '1px solid ' + C.cardBd : 'none' }}>
-                      <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.td, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{ri + 1}</span>
-                      <span style={{ minWidth: 0, fontFamily: FB, fontSize: 13, fontWeight: 600, color: C.tx, overflowWrap: 'break-word' }}>{r.title}</span>
-                      <span dir="ltr" style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate', whiteSpace: 'nowrap' }}>{r.rx}</span>
-                      {r.note && (
-                        // Two lines, with the whole cue on hover. A block has
-                        // eight of these and every one of them is a paragraph;
-                        // unclamped they buried the exercises.
-                        <span title={r.note} style={{ gridColumn: 2, fontFamily: FB, fontSize: 11.5, lineHeight: 1.45, color: C.tm, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', overflowWrap: 'break-word' }}>
-                          <bdi>{r.note}</bdi>
-                        </span>
-                      )}
+                  ? <div style={{ padding: '10px 12px', fontFamily: FB, fontSize: 12, color: C.td, border: '1px solid ' + C.cardBd, background: 'var(--c-sf)' }}>{'—'}</div>
+                  : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {list.map((r, ri) => (
+                        // One card per exercise: name, then the prescription on
+                        // its own line with the cue beside it - the shape of the
+                        // exercise cards on the floor.
+                        <div key={ri} style={{ border: '1px solid ' + C.cardBd, background: 'var(--c-sf)', padding: '9px 11px' }}>
+                          <div style={{ display: 'flex', gap: 8, minWidth: 0 }}><span style={{ width: 16, flexShrink: 0, fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tm, fontVariantNumeric: 'tabular-nums', lineHeight: 1.35 }}>{ri + 1}</span><span style={{ minWidth: 0, fontFamily: FB, fontSize: 13, fontWeight: 700, color: C.tx, overflowWrap: 'break-word', lineHeight: 1.3 }}>{r.title}</span></div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3, minWidth: 0, paddingInlineStart: 24 }}>
+                            <span dir="ltr" style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate', whiteSpace: 'nowrap', flexShrink: 0 }}>{r.rx || '—'}</span>
+                            {r.note && (
+                              <span title={r.note} style={{ minWidth: 0, fontFamily: FB, fontSize: 11, lineHeight: 1.4, color: C.tm, display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden', overflowWrap: 'anywhere' }}>
+                                <bdi>{r.note}</bdi>
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
               </div>
             );
           })}

@@ -630,7 +630,7 @@ function FloorBar({ session, checkedIn, traineeById, onAdd, onFinish }) {
     <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, overflow: 'hidden' }}>
       <RefinedHeaderStrip padY={14} padX={14} marginBottom={0}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#FFF' }}>
+          <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#FFF', lineHeight: 1, display: 'inline-flex', alignItems: 'center' }}>
             ON THE FLOOR · {checkedIn}/{session.athletes.length} CHECKED IN
           </span>
           <div style={{ display: 'flex', gap: 0 }}>
@@ -699,15 +699,15 @@ function AthleteCard({ a, name, prevMap, exDetail, onToggleIn, onSet, onCurEx, o
             <div onClick={() => onCurEx(open ? -1 : ei)} style={{ padding: 8, cursor: 'pointer' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
                 <span style={{ fontFamily: FB, fontSize: 12.5, color: C.tx, fontWeight: 600, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: 1.3 }}>
-                  <span style={{ display: 'inline-block', width: 14, color: C.gn, flexShrink: 0 }}>{allDone ? '✓' : ''}</span>{ex.title}
+                  <span style={{ display: 'inline-block', width: 18, flexShrink: 0, fontFamily: FN, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: allDone ? C.gn : C.tm }}>{allDone ? '✓' : (ei + 1)}</span>{ex.title}
                 </span>
                 <span style={{ color: 'var(--c-tx)', fontSize: 12, flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>▾</span>
               </div>
               {/* Prescription on its own line — clear, not crammed beside the
                   wrapping title. SETS × REPS + a muted done-count. */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
-                <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.02em', color: C.ac }}>{ex.prescribed}</span>
-                <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: allDone ? C.gn : C.tm }}>{doneCount}/{ex.sets.length} DONE</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, paddingInlineStart: 18 }}>
+                <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.02em', color: C.ac, lineHeight: 1 }}>{ex.prescribed}</span>
+                <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: allDone ? C.gn : C.tm, lineHeight: 1 }}>{doneCount}/{ex.sets.length} DONE</span>
               </div>
             </div>
             {open && (
