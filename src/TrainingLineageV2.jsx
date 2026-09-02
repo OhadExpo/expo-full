@@ -32,7 +32,7 @@ function Section({ title, tag, summary, children, cardStyle = card, defaultOpen 
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div style={cardStyle}>
-      <div style={{ ...hd, cursor: 'pointer' }} onClick={() => setOpen((o) => !o)} role="button" tabIndex={0} aria-expanded={open}
+      <div className="lin-hd" style={{ ...hd, cursor: 'pointer' }} onClick={() => setOpen((o) => !o)} role="button" tabIndex={0} aria-expanded={open}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen((o) => !o); } }}
         title={open ? 'Collapse' : 'Expand for the full report'}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ color: C.ac, fontSize: 10 }}>{open ? '▾' : '▸'}</span>{title}{tag}</span>
@@ -177,16 +177,16 @@ function LiftRow({ s }) {
         <div style={{ fontSize: 11.5, color: C.ac, marginTop: 3, fontWeight: 600, lineHeight: 1.4 }}>→ {r.next}</div>
         <div style={{ fontSize: 10, color: C.td, marginTop: 3 }}>{s.count}× · last {fmt(s.lastDate)}</div>
       </td>
-      <td style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, whiteSpace: 'nowrap', verticalAlign: 'top' }}>
+      <td data-h="Trend" style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, whiteSpace: 'nowrap', verticalAlign: 'top' }}>
         {s.trend?.state === 'ok' ? <><Spark pts={s.trend.pts} dir={s.trend.dir} /> <span style={{ fontVariantNumeric: 'tabular-nums', color: C.tx, fontWeight: 600, marginLeft: 4 }}>e{s.trend.latest}</span></> : <span style={{ color: C.td, fontSize: 11 }}>—</span>}
       </td>
-      <td style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, fontVariantNumeric: 'tabular-nums', color: C.tx, fontWeight: 600, whiteSpace: 'nowrap', verticalAlign: 'top' }}>
+      <td data-h="Best" style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, fontVariantNumeric: 'tabular-nums', color: C.tx, fontWeight: 600, whiteSpace: 'nowrap', verticalAlign: 'top' }}>
         {best}
         {!s.ballistic && s.weeksSincePr != null && s.weeksSincePr >= 2 && (
           <span style={{ fontSize: 10, fontWeight: 400, color: s.weeksSincePr >= 6 ? C.or : C.td, marginLeft: 6 }}>· PR {s.weeksSincePr}w ago</span>
         )}
       </td>
-      <td style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, fontVariantNumeric: 'tabular-nums', color: C.tm, verticalAlign: 'top', whiteSpace: 'nowrap' }}>{loads.join(' · ')}</td>
+      <td data-h="Last loads" style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, fontVariantNumeric: 'tabular-nums', color: C.tm, verticalAlign: 'top', whiteSpace: 'nowrap' }}>{loads.join(' · ')}</td>
       <td style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, textAlign: 'right', verticalAlign: 'top' }}><Tag text={r.tag} color={r.tagColor} /></td>
     </tr>
   );
@@ -415,7 +415,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
   // has plans but NO logged workouts — the honest "flying blind" nudge
   if (a.empty) {
     return shell(<>{Strip}
-      <div style={card}><div style={hd}>Not enough logged training to analyze</div>
+      <div style={card}><div className="lin-hd" style={hd}>Not enough logged training to analyze</div>
         <div style={bd}>
           <div style={{ border: `1px dashed ${C.bd}`, background: C.sf2, padding: 16, color: C.tm, fontSize: 13, lineHeight: 1.55 }}>
             <b style={{ color: C.tx }}>{traineeName} has no logged workouts in {a.blockName || 'the latest block'}.</b><br />
@@ -447,7 +447,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
     </div>
 
     {/* 1. THE GATE */}
-    <div style={card}><div style={hd}>Did he actually train?<span style={hdQ}>the gate — everything below assumes real data</span></div>
+    <div style={card}><div className="lin-hd" style={hd}>Did he actually train?<span style={hdQ}>the gate — everything below assumes real data</span></div>
       <div style={bd}>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           <Kpi v={a.adh.sessionPct != null ? `${a.adh.sessionPct}%` : '—'} l="Sessions" s={`${a.adh.loggedSessions} of ${a.plannedSessionCount || '?'} logged`} color={a.adh.sessionPct >= 80 ? C.gn : C.or} />
@@ -465,7 +465,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
     </div>
 
     {/* 2. AUTOREGULATION — split into what's working vs what to back off (Ohad) */}
-    <div style={card}><div style={hd}>Training response<span style={hdQ}>autoregulation — what's working vs what to back off</span></div>
+    <div style={card}><div className="lin-hd" style={hd}>Training response<span style={hdQ}>autoregulation — what's working vs what to back off</span></div>
       <div style={bd}>
         {(() => {
           const nm = (arr) => arr.map((s) => s.title).slice(0, 3).join(', ');
@@ -513,7 +513,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
 
     {/* 2.4 BLOCK HISTORY — the programming arc across every block */}
     {a.blockHistory && a.blockHistory.length >= 2 && (
-      <div style={card}><div style={hd}>Block history · the programming arc<span style={hdQ}>what each block emphasized — oldest → newest</span></div>
+      <div style={card}><div className="lin-hd" style={hd}>Block history · the programming arc<span style={hdQ}>what each block emphasized — oldest → newest</span></div>
         <div style={bd}>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {a.blockHistory.slice(-14).map((b, idx) => {
@@ -569,7 +569,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
     {/* 2.5 THE ARC — the cross-block journey (the actual "lineage") */}
     {a.staples.filter((s) => !s.ballistic && s.arc && s.arc.length >= 4 && s.arcGainPct != null).length > 0 && (
       <div style={card}>
-        <div style={{ ...hd, cursor: 'pointer' }} onClick={() => setArcOpen((v) => !v)} role="button" tabIndex={0}
+        <div className="lin-hd" style={{ ...hd, cursor: 'pointer' }} onClick={() => setArcOpen((v) => !v)} role="button" tabIndex={0}
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setArcOpen((v) => !v); } }}
           title={arcOpen ? 'Collapse' : 'Expand the main-lift arc'}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ color: C.ac, fontSize: 10 }}>{arcOpen ? '▾' : '▸'}</span>The arc · progression on the main lifts</span>
@@ -604,7 +604,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
     {/* 3. STAPLES */}
     {a.staples.length > 0 && (
       <div style={card}>
-        <div style={{ ...hd, cursor: 'pointer' }} onClick={() => setLiftsOpen((v) => !v)} role="button" tabIndex={0}
+        <div className="lin-hd" style={{ ...hd, cursor: 'pointer' }} onClick={() => setLiftsOpen((v) => !v)} role="button" tabIndex={0}
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setLiftsOpen((v) => !v); } }}
           title={liftsOpen ? 'Collapse' : 'Expand the per-lift breakdown'}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ color: C.ac, fontSize: 10 }}>{liftsOpen ? '▾' : '▸'}</span>Key lifts · what to do next</span>
@@ -612,7 +612,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
         </div>
         {liftsOpen && <div style={bd}>
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <table className="lin-lifts" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead><tr>
                 {['Lift', 'Trend', 'Best', 'Last loads', ''].map((h, i) => (
                   <th key={i} style={{ textAlign: i === 4 ? 'right' : 'left', fontSize: 9, letterSpacing: '0.11em', textTransform: 'uppercase', color: C.tm, fontWeight: 600, padding: '0 8px 7px', borderBottom: `1px solid ${C.bd}` }}>{h}</th>
@@ -637,7 +637,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
                 </button>
                 {showThin && (
                   <div style={{ overflowX: 'auto', marginTop: 4 }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}><tbody>
+                    <table className="lin-lifts" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}><tbody>
                       {thin.map((s) => <LiftRow key={s.title} s={s} />)}
                     </tbody></table>
                   </div>
@@ -710,7 +710,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
       return (
         <Section title="Exercise continuity" summary={`${cont.totalBlocks} blocks · ${cont.staticNow.length} kept ≥4`}>
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <table className="lin-lifts" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead><tr>
                 {['Main lift', 'In a row', 'Longest', 'Blocks'].map((h, i) => (
                   <th key={i} style={{ textAlign: i === 0 ? 'left' : 'center', fontSize: 9, letterSpacing: '0.11em', textTransform: 'uppercase', color: C.tm, fontWeight: 600, padding: '0 8px 7px', borderBottom: `1px solid ${C.bd}` }}>{h}</th>
@@ -720,9 +720,9 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
                 {rows.map((l) => (
                   <tr key={l.title} style={{ borderTop: `1px solid ${C.bd}` }}>
                     <td dir="auto" style={{ padding: '7px 8px', color: C.tx, minWidth: 0, overflowWrap: 'break-word' }}>{l.title}</td>
-                    <td style={{ textAlign: 'center', padding: '7px 8px', color: l.static ? C.or : C.tm, fontWeight: l.static ? 700 : 400, fontVariantNumeric: 'tabular-nums' }}>{l.currentRun || '—'}{l.static ? ' ⚑' : ''}</td>
-                    <td style={{ textAlign: 'center', padding: '7px 8px', color: C.tm, fontVariantNumeric: 'tabular-nums' }}>{l.longestRun}</td>
-                    <td title={`Blocks ${l.blocks.join(', ')}`} style={{ textAlign: 'center', padding: '7px 8px', color: C.td, fontVariantNumeric: 'tabular-nums', cursor: 'help' }}>{l.count}/{cont.totalBlocks}</td>
+                    <td data-h="In a row" style={{ textAlign: 'center', padding: '7px 8px', color: l.static ? C.or : C.tm, fontWeight: l.static ? 700 : 400, fontVariantNumeric: 'tabular-nums' }}>{l.currentRun || '—'}{l.static ? ' ⚑' : ''}</td>
+                    <td data-h="Longest" style={{ textAlign: 'center', padding: '7px 8px', color: C.tm, fontVariantNumeric: 'tabular-nums' }}>{l.longestRun}</td>
+                    <td data-h="Blocks" title={`Blocks ${l.blocks.join(', ')}`} style={{ textAlign: 'center', padding: '7px 8px', color: C.td, fontVariantNumeric: 'tabular-nums', cursor: 'help' }}>{l.count}/{cont.totalBlocks}</td>
                   </tr>
                 ))}
               </tbody>
@@ -1015,7 +1015,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
     </div>
 
     {/* 6. READINESS honest thin */}
-    <div style={card}><div style={hd}>Readiness / effort log</div>
+    <div style={card}><div className="lin-hd" style={hd}>Readiness / effort log</div>
       <div style={bd}>
         <div style={{ border: `1px dashed ${C.bd}`, background: C.sf2, padding: 14, color: C.tm, fontSize: 12.5, lineHeight: 1.5 }}>
           {a.rpeCoverage >= 40
@@ -1026,7 +1026,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
     </div>
 
     {/* 7. NEXT BLOCK */}
-    <div style={card}><div style={hd}>The next block · your call</div>
+    <div style={card}><div className="lin-hd" style={hd}>The next block · your call</div>
       <div style={bd}>
         <div style={{ border: `1px solid ${C.ac}`, background: `color-mix(in srgb, ${C.ac} 7%, ${C.sf})`, padding: 14, fontSize: 14, lineHeight: 1.6, color: C.tx }}>
           {nextBlockText(a)}
@@ -1037,6 +1037,20 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
     <div style={{ fontSize: 11, color: C.td, margin: '18px 2px 4px', lineHeight: 1.6 }}>
       Verdict up top, gated on "did he train" · velocity from your camera is the moat · thin data is labelled, never faked · nothing here changes his program — it analyses + advises, you build.
     </div>
-    <style>{`@media(max-width:720px){.lineage-grid2{grid-template-columns:1fr !important}}`}</style>
+    <style>{`@media(max-width:720px){.lineage-grid2{grid-template-columns:1fr !important}}
+@media(max-width:620px){
+  .lin-lifts, .lin-lifts tbody, .lin-lifts tr, .lin-lifts td{display:block!important;width:auto!important}
+  .lin-lifts thead{display:none!important}
+  .lin-lifts tr{display:flex!important;flex-wrap:wrap;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--c-cardBd)}
+  .lin-lifts td{border-bottom:none!important;padding:0 2px 4px!important;white-space:normal!important;text-align:start!important;flex:1 1 100%;min-width:0}
+  /* The readings share one wrapping line, each labelled by the header the
+     phone had to drop. flex is what gives them a break opportunity - as
+     inline-blocks written with no whitespace between the tags, they had
+     none, and the last cell ran off the screen. */
+  .lin-lifts td[data-h]{flex:0 1 auto;margin-inline-end:16px}
+  .lin-hd{display:block!important}
+  .lin-hd > *:last-child{display:block;margin-top:3px}
+  .lin-lifts td[data-h]::before{content:attr(data-h);display:block;font-size:8px;letter-spacing:0.11em;text-transform:uppercase;color:var(--c-tm);margin-bottom:2px}
+}`}</style>
   </>);
 }
