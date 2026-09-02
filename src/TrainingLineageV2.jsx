@@ -71,7 +71,7 @@ function Kpi({ v, l, s, color }) {
 // the inline lift-row trend reads like the review/analysis line charts.
 function Spark({ pts, dir }) {
   const col = dir === 'up' ? C.gn : dir === 'down' ? C.rd : C.or;
-  const W = 54, H = 20, pad = 2.5;
+  const W = 88, H = 24, pad = 3;
   if (!pts || pts.length < 2) {
     return <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: W, height: H, verticalAlign: 'middle', flexShrink: 0 }}><span style={{ width: 5, height: 5, borderRadius: '50%', background: col }} /></span>;
   }
@@ -86,7 +86,8 @@ function Spark({ pts, dir }) {
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: W, height: H, display: 'block', overflow: 'visible' }} aria-hidden="true">
         <path d={area} fill={col} opacity="0.14" />
         <polyline points={line} fill="none" stroke={col} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        <circle cx={lastX} cy={lastY} r="2" fill={col} />
+        <circle cx={gx(0)} cy={gy(pts[0])} r="1.8" fill={col} opacity="0.45" />
+        <circle cx={lastX} cy={lastY} r="2.4" fill={col} />
       </svg>
     </span>
   );
