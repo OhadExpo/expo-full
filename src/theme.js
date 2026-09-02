@@ -83,6 +83,7 @@ export const EXPO_LOGO_LG = "/logos/expo-logo-lg.png";
 export const EXPO_ICON = EXPO_LOGO;
 export const EXPO_LOGO_NAV = "/logos/expo-logo-nav.png";
 export const EXPO_ICON_LG = "/logos/expo-icon-lg.png";
+export const EXPO_ICON_LG_T = "/logos/expo-icon-lg-t.png";
 
 export const CATEGORIES = ["Chest","Back","Shoulders","Arms","Core","Legs","Glutes","Full Body","Olympic","Cardio","Other"];
 export const RESISTANCE_TYPES = ["Barbell","Dumbbell","Bodyweight","Machine","Cable","Band","Kettlebell","Medicine Ball","Landmine","TRX/Suspension","Other"];

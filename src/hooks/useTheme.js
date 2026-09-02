@@ -21,6 +21,15 @@ import { crossFade } from '../viewTransition';
 const KEY = 'expo-theme';
 const EVT = 'expo-theme-change';
 
+// The remote preference is a LOGIN-time sync, not a running rule. It used to be
+// re-read and re-applied by every component that mounted useTheme, so opening a
+// screen that mounts a new consumer - the coach Dashboard does - snapped the
+// theme back to whatever Supabase held and undid the toggle in front of you.
+// Ohad: "when i click on dashboard on expo it automatically turns it to light
+// mode." Once per page load, and never after the user has chosen for himself.
+let remoteSyncDone = false;
+let userChoseThisSession = false;
+
 function readCurrent() {
   if (typeof document === 'undefined') return 'light';
   return document.documentElement.getAttribute('data-theme') || 'light';
@@ -112,6 +121,9 @@ export function useTheme() {
   }, []);
 
   const setTheme = useCallback((next) => {
+    // An explicit choice outranks the stored preference for the rest of the
+    // session, even if writing it back to Supabase fails.
+    userChoseThisSession = true;
     if (next !== 'light' && next !== 'dark') return;
     applyTheme(next);  // dispatches the event, which updates all consumers including this one
     try { localStorage.setItem(KEY, next); } catch (e) { /* private mode */ }
@@ -131,6 +143,8 @@ export function useTheme() {
     let draftActive = false;
     try { draftActive = !!sessionStorage.getItem('expo-theme-preview'); } catch (e) {}
     if (draftActive) return;
+    if (remoteSyncDone || userChoseThisSession) return;
+    remoteSyncDone = true;
     supabase.auth.getUser().then(({ data }) => {
       if (cancelled || !data || !data.user) return;
       const remote = data.user.user_metadata && data.user.user_metadata.theme_pref;
