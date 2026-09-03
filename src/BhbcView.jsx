@@ -2035,13 +2035,10 @@ function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onLog, onGo })
               <div key={i} onClick={click || undefined} className={click ? 'bhbc-row bhbc-brief-row' : 'bhbc-brief-row'}
                   role={click ? 'button' : undefined} tabIndex={click ? 0 : undefined}
                   onKeyDown={click ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); click(); } }) : undefined}
-                style={{ display: 'flex', alignItems: 'center', gap: 14, rowGap: 6, flexWrap: 'wrap', minHeight: 32, boxSizing: 'border-box', padding: '6px 2px', marginInlineStart: -21, borderBottom: `1px solid ${i < top.length - 1 ? C.cardBd : 'transparent'}`, cursor: click ? 'pointer' : 'default' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 14, rowGap: 6, flexWrap: 'wrap', minHeight: 32, boxSizing: 'border-box', padding: '6px 2px', borderBottom: `1px solid ${i < top.length - 1 ? C.cardBd : 'transparent'}`, cursor: click ? 'pointer' : 'default' }}>
                 {/* Center the dot on the first text line. The +4px offset accounts for
                     Nord's bottom-heavy line box (measured: line-center sits ~4px below
                     the CSS line-box center). Ohad: dot must be vertically centered. */}
-                <span style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>
-                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: sevColor[a.sev] }} />
-                </span>
                 {/* Same left-label column as every other card on this screen.
                     Without it this was the one card built differently, which is
                     most of why it read as a mess next to the report above it -
@@ -2058,7 +2055,8 @@ function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onLog, onGo })
                     96px action button left the INSTRUCTION about 20px, so it came
                     out one word per line. The instruction is the point of the row;
                     the button drops to its own line before the text gives way. */}
-                <div style={{ minWidth: 0, lineHeight: 'normal', fontSize: 13, flex: '1 1 170px' }}>
+                <div style={{ minWidth: 0, lineHeight: 'normal', fontSize: 13, flex: '1 1 170px', position: 'relative' }}>
+                  <span aria-hidden style={{ position: 'absolute', insetInlineStart: -21, top: '50%', transform: 'translateY(-50%)', width: 7, height: 7, borderRadius: '50%', background: sevColor[a.sev] }} />
                   <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.02em', color: C.tx }}>{a.do}</span>
                 </div>
                 <div style={{ fontFamily: FB, fontSize: 13, color: C.tm, lineHeight: 'normal', textAlign: 'start', flex: '0 1 240px', minWidth: 0 }}>{a.why}</div>
