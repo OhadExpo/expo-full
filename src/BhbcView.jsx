@@ -206,6 +206,8 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   const [newAthlete, setNewAthlete] = useState('');
   const [logFor, setLogFor] = useState(null);
   const [detailFor, setDetailFor] = useState(null);
+  // The staff brief's COPY, now that the two reports are one card.
+  const [briefCopied, setBriefCopied] = useState(false);
   const [practiceOpen, setPracticeOpen] = useState(false);
   const [gameEdit, setGameEdit] = useState(false);
   const [programFor, setProgramFor] = useState(null);
@@ -1037,10 +1039,17 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
                 <HeadCoachReport rows={rows} fx={fx} fixtures={bhbcFixtures} medical={medical} today={today} onOpen={setDetailFor}
                   planOf={planOf} onPlan={asCoach ? null : setPlanFor}
                   onMedical={null}   /* see MED on the load board — same closure, one screen */
-                  onReportNew={effCanMedical ? (() => setInjuryFor({ athleteId: (rows[0] && rows[0].t.id) || '' })) : null} />
+                  onReportNew={effCanMedical ? (() => setInjuryFor({ athleteId: (rows[0] && rows[0].t.id) || '' })) : null}
+                  /* The staff brief is this report now: its COPY moved into the
+                     header and its FOCUS became a row. */
+                  copied={briefCopied}
+                  onCopy={() => {
+                    const txt = staffBriefText({ today, fx, rows, medical, planOf, he, tr });
+                    try { navigator.clipboard.writeText(txt); } catch { /* denied - it is all on screen anyway */ }
+                    setBriefCopied(true); setTimeout(() => setBriefCopied(false), 1800);
+                  }} />
                 {/* S&C Brief = the S&C operator's action list — removed for coaches. */}
                 {!asCoach && <CoachBrief rows={rows} fx={fx} fixtures={bhbcFixtures} medical={medical} today={today} onOpen={setDetailFor} onLog={canLog ? () => setPracticeOpen(true) : null} onGo={setView} />}
-                <StaffBrief today={today} fx={fx} rows={rows} medical={medical} planOf={planOf} />
                 <TodayPanel today={today} fixtures={bhbcFixtures} fx={fx} rows={rows} planOf={planOf} onPlan={asCoach ? null : setPlanFor} onSessions={asCoach ? null : () => setView('sessions')} onLog={canLog ? () => setPracticeOpen(true) : null} />
                 {fx.nextGame && <NextGamePanel nextGame={fx.nextGame} today={today} onEdit={asCoach ? null : () => setGameEdit(true)} />}
                 <FixturesAheadPanel fixtures={bhbcFixtures} today={today} />
@@ -2374,6 +2383,20 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
             })()
           : <span style={mut}>No game scheduled.</span>}
       </Section>
+      {/* TODAY'S FOCUS — the one thing the staff brief carried that this report
+          did not. Blank is stated as blank; a focus nobody wrote is not
+          invented. */}
+      {(() => {
+        const { period, focus } = todayFocusOf({ today, fx, planOf });
+        if (!period) return null;
+        return (
+          <Section label={tr('Focus')}>
+            {focus
+              ? <span style={{ fontFamily: FB, fontSize: 13, color: C.tx, overflowWrap: 'break-word' }}><bdi>{focus}</bdi></span>
+              : <span style={mut}>{tr('no focus written')}</span>}
+          </Section>
+        );
+      })()}
       {/* AVAILABILITY */}
       <Section label={tr("Availability")} list>
         <span><span style={{ color: '#37B27C', fontFamily: FN, fontWeight: 800 }}>{available.length}</span> {tr('available')} <span style={mut}>·</span> <span style={{ color: limited.length ? 'var(--bhbc-amber-text, #E0A73A)' : C.tm, fontFamily: FN, fontWeight: 800 }}>{limited.length}</span> {tr('limited')} <span style={mut}>·</span> <span style={{ color: out.length ? '#DE4E3B' : C.tm, fontFamily: FN, fontWeight: 800 }}>{out.length}</span> {tr('out')}</span>
@@ -2472,14 +2495,14 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
 // Built from what the zone already knows — the S&C slot, its focus, and who
 // cannot do it — and copied in one tap. Plain text on purpose: it is going
 // into a message to a basketball coach, not into another app.
-function StaffBrief({ today, fx, rows, medical, planOf }) {
-  const tr = useT();
-  const he = useHe();
-  const [copied, setCopied] = useState(false);
+// The plain-text brief staff paste into WhatsApp. Lifted out of the old
+// StaffBrief card so COPY keeps producing exactly the same string now that the
+// two reports are one.
+function staffBriefText({ today, fx, rows, medical, planOf, he, tr }) {
   const dayGroup = ((fx && fx.byDay) || []).find((d) => d.date === today);
   const slots = (dayGroup && dayGroup.items) || [];
-  // The S&C period sits at the START of a basketball practice, so the
-  // practice slot is the one he briefs. A weights session is not briefed.
+  // The S&C period sits at the START of a basketball practice, so the practice
+  // slot is the one he briefs. A weights session is not briefed.
   const period = slots.find((f) => f.type === 'practice') || null;
   const plan = period && planOf ? planOf(period) : null;
   const limited = [], outList = [];
@@ -2493,11 +2516,8 @@ function StaffBrief({ today, fx, rows, medical, planOf }) {
   const flat = (e) => e.name + ' — ' + e.detail;
   const availCount = (rows || []).length - limited.length - outList.length;
   const L = he
-    ? { when: 'מתי', focus: 'פוקוס', limited: 'מוגבלים', out: 'בחוץ', avail: 'זמינים', none: 'אין', noFocus: 'לא נכתב פוקוס', noSession: 'אין אימון היום', copy: 'העתק', copied: 'הועתק' }
-    : { when: 'When', focus: 'Focus', limited: 'Limited', out: 'Out', avail: 'Available', none: 'none', noFocus: 'no focus written', noSession: 'no practice today', copy: 'Copy', copied: 'Copied' };
-  // One date string that is correct in both languages: dowFor/monDayFor
-  // return the English fallback when the zone is not in Hebrew, so both
-  // arguments are required.
+    ? { when: 'מתי', focus: 'פוקוס', limited: 'מוגבלים', out: 'בחוץ', avail: 'זמינים', none: 'אין', noFocus: 'לא נכתב פוקוס', noSession: 'אין אימון היום' }
+    : { when: 'When', focus: 'Focus', limited: 'Limited', out: 'Out', avail: 'Available', none: 'none', noFocus: 'no focus written', noSession: 'no practice today' };
   const dObj = new Date(today + 'T12:00:00');
   const EN_DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const EN_MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -2505,7 +2525,7 @@ function StaffBrief({ today, fx, rows, medical, planOf }) {
   const whenLine = period
     ? L.when + ': ' + (period.start || '') + ' ' + fxLabelFor(period.type, 'Practice') + (period.minutes ? ' · ' + period.minutes + ' ' + fxLabelFor('__min', 'min') : '')
     : L.when + ': ' + L.noSession;
-  const text = [
+  return [
     'BHBC · ' + briefDate,
     whenLine,
     L.focus + ': ' + ((plan && (plan.focus || plan.plan)) || L.noFocus),
@@ -2514,63 +2534,16 @@ function StaffBrief({ today, fx, rows, medical, planOf }) {
     L.limited + ' (' + limited.length + '): ' + (limited.length ? limited.map(flat).join('; ') : L.none),
     L.out + ' (' + outList.length + '): ' + (outList.length ? outList.map(flat).join('; ') : L.none),
   ].join(String.fromCharCode(10));
-  // WHAT IS SHOWN vs WHAT IS COPIED.
-  //
-  // The card rendered `text` as one pre-wrapped string in one colour, which is
-  // why Ohad called it "all text is gray and boring design". The string still
-  // exists and is still exactly what COPY puts on the clipboard - staff paste
-  // it into WhatsApp and it must stay plain - but the SCREEN gets a structured
-  // version built from the same values, with the availability counts carrying
-  // the same semantic colours they have everywhere else in the zone.
-  const shown = [
-    { k: L.when, v: (period
-      ? (period.start || '') + ' ' + fxLabelFor(period.type, 'Practice') + (period.minutes ? ' · ' + period.minutes + ' ' + fxLabelFor('__min', 'min') : '')
-      : L.noSession), tone: C.tx },
-    { k: L.focus, v: ((plan && (plan.focus || plan.plan)) || L.noFocus), tone: (plan && (plan.focus || plan.plan)) ? C.tx : C.td },
-  ];
-  const counts = [
-    { k: L.avail, n: availCount, list: null, color: '#37B27C' },
-    { k: L.limited, n: limited.length, list: limited, color: '#E0A73A' },
-    { k: L.out, n: outList.length, list: outList, color: '#DE4E3B' },
-  ];
-  const copy = async () => {
-    try { await navigator.clipboard.writeText(text); } catch { /* denied — the text is on screen anyway */ }
-    setCopied(true); setTimeout(() => setCopied(false), 1800);
-  };
-  return (
-    <Card padding={14} leftStripe={ORANGE} header={secTitle('Brief for the staff')}
-      headerRight={
-        <button onClick={copy} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', height: 24, boxSizing: 'border-box', padding: '0 10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, cursor: 'pointer', borderRadius: 0 }}>
-          {copied ? L.copied : L.copy}
-        </button>
-      }>
-      {/* Shown exactly as it will be pasted — what he sends is what he sees. */}
-      <div dir="auto">
-        <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: ORANGE, marginBottom: 10 }}>{'BHBC · ' + briefDate}</div>
-        {shown.map((r) => (
-          <div key={r.k} style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
-            <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm, width: 58, flexShrink: 0 }}>{r.k}</span>
-            <span style={{ fontFamily: FB, fontSize: 13, color: r.tone, minWidth: 0, overflowWrap: 'break-word' }}>{r.v}</span>
-          </div>
-        ))}
-        <div style={{ display: 'flex', gap: 1, background: C.cardBd, border: `1px solid ${C.cardBd}`, marginTop: 12 }}>
-          {counts.map((c) => (
-            <div key={c.k} style={{ flex: 1, background: 'var(--c-sf)', padding: '8px 10px', minWidth: 0 }}>
-              <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{c.k}</div>
-              <div style={{ fontFamily: FN, fontSize: 20, fontWeight: 800, color: c.color, lineHeight: 'normal', fontVariantNumeric: 'tabular-nums' }}>{c.n}</div>
-            </div>
-          ))}
-        </div>
-        {counts.filter((c) => c.list && c.list.length).map((c) => (
-          <div key={c.k} style={{ marginTop: 10 }}>
-            <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: c.color, marginInlineEnd: 8 }}>{c.k}</span>
-            <span style={{ fontFamily: FB, fontSize: 13, color: C.td, overflowWrap: 'break-word' }}>{c.list.map((e, i) => <span key={i}><bdi>{e.name}</bdi>{' — ' + e.detail}{i < c.list.length - 1 ? '; ' : ''}</span>)}</span>
-          </div>
-        ))}
-      </div>
-    </Card>
-  );
 }
+
+// Today's practice focus, for the report row. Same source the brief text uses.
+function todayFocusOf({ today, fx, planOf }) {
+  const dayGroup = ((fx && fx.byDay) || []).find((d) => d.date === today);
+  const period = ((dayGroup && dayGroup.items) || []).find((f) => f.type === 'practice') || null;
+  const plan = period && planOf ? planOf(period) : null;
+  return { period, focus: (plan && (plan.focus || plan.plan)) || '' };
+}
+
 function TodayPanel({ today, fixtures, fx, rows, onSessions, onLog, planOf, onPlan }) {
   const he = useHe();
   const tr = useT();
