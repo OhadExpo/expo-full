@@ -811,7 +811,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
              the label buys the rest. 74 is above the 72px widest date, so no
              date wraps - which is what went wrong when this was tried at 78 in
              an earlier pass and the column read ragged. */
-  .bhbc-med-row{ grid-template-columns: 10px minmax(0,1fr) !important; }
+  .bhbc-med-row{ grid-template-columns: 10px minmax(0,1fr) !important; margin-inline-start: 0 !important; }
           .bhbc-med-row > *:nth-child(3){ grid-column: 2 !important; }
           .bhbc-med-row > *:nth-child(4){ grid-column: 2 !important; justify-self: start !important; }
                   .bhbc-week-row{gap:7px!important}
