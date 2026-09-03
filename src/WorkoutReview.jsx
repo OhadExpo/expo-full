@@ -1102,15 +1102,25 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
     // review (human eye reads 15fps overlay as smooth on slow-mo playback,
     // and rep cycles span 15-45 ticks at 15fps = plenty of resolution).
     let frameTick = 0;
-    // Throttle the React HUD update — angle numbers don't need 60Hz.
-    const hudInterval = setInterval(() => {
+    // THE HUD USED TO RUN ON ITS OWN 200ms TIMER, independent of the frames it
+    // was describing. Ohad: "the metrics and the video have a slight delay/no
+    // sync when i review videos." Two clocks, so the numbers on screen belonged
+    // to a frame up to 200ms behind the picture - and on a slow-mo review that
+    // is the difference between reading the bottom of a squat and reading the
+    // way out of it.
+    //
+    // The HUD is pushed by the DETECTION loop now, from the same frame it just
+    // measured, so the numbers cannot describe a different frame than the one
+    // being shown. That is 15Hz - the rate frames are actually processed at -
+    // which is both cheaper than the old timer's worst case and exactly in step.
+    const pushHud = () => {
       if (!active) return;
       setAngles(pendingAngles);
-      // Always sync reps/tempo from refs — refs hold canonical state, the
-      // detection loop mutates them directly.
+      // Reps/tempo come from refs: those hold canonical state and the detection
+      // loop mutates them directly.
       setReps(repsCountRef.current);
       setTempo(lastTempoRef.current);
-    }, 200);
+    };
 
     const detect = () => {
       if (!active) return;
@@ -1207,6 +1217,8 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
                 if (val != null) next[d.name] = Math.round(val);
               }
               pendingAngles = next;
+              // Same frame, same tick: the readout and the picture agree.
+              pushHud();
 
               // Rep counter: write every frame's raw angles into dense per-
               // channel buffers at index = round(vt * BUCKET_FPS). Scrubbing
@@ -1340,7 +1352,6 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
     return () => {
       active = false;
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      if (hudInterval) clearInterval(hudInterval);
       v.removeEventListener('seeked', detect);
       v.removeEventListener('loadeddata', detect);
       v.removeEventListener('play', onPlay);
