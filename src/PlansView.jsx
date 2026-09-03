@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { fmtNumericDate } from './dates';
 import { C, FN, FB, FH, uid, REQUIRED_PATTERNS, SUPERSET_LABELS, CATEGORIES, RESISTANCE_TYPES, BODY_POSITIONS, MOVEMENT_TYPES, MOVEMENT_PATTERNS, LATERALITY } from './theme';
 
 // Superset group E colour — gold/amber. The four taken hues are A(cyan) /
@@ -580,71 +581,105 @@ const rxOf = (ex) => {
 //   * per-week sets stay as "3·3·4·4": that IS the block's progression, and a
 //     template that flattened it to "3" would be a different block
 function PlanPrintSheet({ plan, athleteName, exercises }) {
+  // THE PRINTED BLOCK IS A DOCUMENT HE HANDS TO AN ATHLETE, not a screen dump.
+  // Ohad: "the pdf export looks awful. become a graphic designer and apply my
+  // branding and full instructions for every exercise."
+  //
+  // Three things that makes concrete:
+  //   BRAND      — the EXPO wordmark, the cyan rule, Nord for every heading.
+  //                Backgrounds survive because print-color-adjust is forced in
+  //                the stylesheet; without it a browser drops them and the
+  //                identity goes with them.
+  //   INSTRUCTIONS — every exercise carries its LIBRARY cues, not just the
+  //                one-line plan note. That is the difference between a list
+  //                of names and something an athlete can train from alone.
+  //   TYPOGRAPHY — one scale, one rhythm, and rules that keep an exercise and
+  //                its instructions on the same page.
   const exById = React.useMemo(() => {
     const m = new Map();
     for (const e of (exercises || [])) m.set(e.id, e);
     return m;
   }, [exercises]);
-  const titleOf = (ex) => ex.title || (exById.get(ex.exerciseId || ex.eid || '') || {}).title || (exById.get(ex.exerciseId || ex.eid || '') || {}).t || '—';
+  const libOf = (ex) => exById.get(ex.exerciseId || ex.eid || '') || {};
+  const titleOf = (ex) => ex.title || libOf(ex).title || libOf(ex).t || '—';
+  // The plan's own note is a SNAPSHOT of the library cue taken when the block
+  // was written, so prefer it — it is what the coach actually prescribed — and
+  // fall back to the library's current text when the row carries none.
+  const cueOf = (ex) => String(ex.notes || ex.n || libOf(ex).cues || '').trim();
   const days = Array.isArray(plan?.days) ? plan.days : [];
   const warm = plan?.warmup || plan?.warmUp || [];
   const weeks = Math.max(1, Number(plan?.weeks) || 4);
-  const printedOn = new Date().toLocaleDateString('en-GB');
+  const printedOn = fmtNumericDate(new Date());
 
-  const th = { textAlign: 'start', fontSize: 8.5, letterSpacing: '0.10em', textTransform: 'uppercase', color: '#555', fontWeight: 700, padding: '0 6px 4px', borderBottom: '1px solid #000' };
-  const td = { fontSize: 11, padding: '5px 6px', borderBottom: '0.5px solid #bbb', verticalAlign: 'top', color: '#000' };
-
-  const Block = ({ label, rows }) => (
+  const Day = ({ label, rows, index }) => (
     rows.length === 0 ? null : (
-      <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 14, breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-        <thead>
-          <tr><th colSpan={4} style={{ textAlign: 'start', fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '10px 6px 5px', borderBottom: '2px solid #000', color: '#000' }}>{label}</th></tr>
-          <tr>
-            <th style={{ ...th, width: 24 }}>#</th>
-            <th style={th}>Exercise</th>
-            <th style={{ ...th, width: 96 }}>Sets × Reps</th>
-            <th style={{ ...th, width: 78 }}>Tempo</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((ex, i) => (
-            <tr key={i}>
-              <td style={{ ...td, color: '#666', fontVariantNumeric: 'tabular-nums' }}>{i + 1}</td>
-              <td style={{ ...td, fontWeight: 600 }}>
-                <bdi>{titleOf(ex)}</bdi>
-                {(ex.notes || ex.n) ? <div style={{ fontSize: 9.5, color: '#444', fontWeight: 400, marginTop: 2 }}><bdi>{ex.notes || ex.n}</bdi></div> : null}
-              </td>
-              <td style={{ ...td, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{rxOf(ex)}</td>
-              <td style={{ ...td, color: '#444' }}>{ex.tempo || ''}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <section className="pp-day">
+        <div className="pp-day-head">
+          <span className="pp-day-n">{index == null ? '' : String(index).padStart(2, '0')}</span>
+          <span className="pp-day-name"><bdi>{label}</bdi></span>
+          <span className="pp-day-count">{rows.length} {rows.length === 1 ? 'exercise' : 'exercises'}</span>
+        </div>
+        {rows.map((ex, i) => {
+          const cue = cueOf(ex);
+          const rx = rxOf(ex);
+          return (
+            <article className="pp-ex" key={i}>
+              <div className="pp-ex-top">
+                <span className="pp-ex-n">{i + 1}</span>
+                <span className="pp-ex-title"><bdi>{titleOf(ex)}</bdi></span>
+                <span className="pp-ex-rx" dir="ltr">{rx || ''}</span>
+              </div>
+              {(ex.tempo || libOf(ex).tempo) ? (
+                <div className="pp-ex-meta">Tempo {ex.tempo || libOf(ex).tempo}</div>
+              ) : null}
+              {/* FULL instructions, kept with the exercise they belong to. A cue
+                  written as several lines stays several lines. */}
+              {cue ? (
+                <div className="pp-ex-cue">
+                  {cue.split(/\n+/).filter(Boolean).map((line, li) => (
+                    <div key={li} className="pp-cue-line"><bdi>{line}</bdi></div>
+                  ))}
+                </div>
+              ) : null}
+            </article>
+          );
+        })}
+      </section>
     )
   );
 
   return (
     <div className="plan-print" aria-hidden="true">
-      <div style={{ borderBottom: '2px solid #000', paddingBottom: 8, marginBottom: 14 }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
-          <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: '0.02em', color: '#000' }}>{plan?.name || 'Block'}</div>
-          <div style={{ fontSize: 10, color: '#555', letterSpacing: '0.08em', textTransform: 'uppercase' }}>EXPO</div>
+      <header className="pp-head">
+        <div className="pp-brand">
+          <img src="/logos/expo-logo-lg-light.png" alt="EXPO" className="pp-logo" />
+          <span className="pp-brandline" />
         </div>
-        <div style={{ fontSize: 11, color: '#333', marginTop: 3 }}>
-          {athleteName ? <span><bdi><strong>{athleteName}</strong></bdi>{' · '}</span> : null}
-          {days.length} {days.length === 1 ? 'day' : 'days'}{' · '}{weeks} {weeks === 1 ? 'week' : 'weeks'}{' · '}printed {printedOn}
+        <h1 className="pp-title"><bdi>{plan?.name || 'Block'}</bdi></h1>
+        <div className="pp-sub">
+          {athleteName ? <span className="pp-athlete"><bdi>{athleteName}</bdi></span> : null}
+          <span>{days.length} {days.length === 1 ? 'day' : 'days'}</span>
+          <span>{weeks} {weeks === 1 ? 'week' : 'weeks'}</span>
+          <span>Printed {printedOn}</span>
         </div>
-      </div>
-      <Block label="Warm-up" rows={(warm || []).filter(Boolean)} />
+      </header>
+
+      <Day label="Warm-up" rows={(warm || []).filter(Boolean)} index={null} />
       {days.map((d, i) => (
-        <Block key={i} label={d.name || d.n || ('Day ' + (i + 1))} rows={((d.exercises || d.ex || []).filter(Boolean))} />
+        <Day key={i} label={d.name || d.n || ('Day ' + (i + 1))} rows={((d.exercises || d.ex || []).filter(Boolean))} index={i + 1} />
       ))}
+
       {plan?.notes ? (
-        <div style={{ breakInside: 'avoid', marginTop: 10, fontSize: 10, color: '#333' }}>
-          <div style={{ fontSize: 8.5, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#555', fontWeight: 700, marginBottom: 3 }}>Notes</div>
-          {plan.notes}
-        </div>
+        <section className="pp-notes">
+          <div className="pp-notes-h">Block notes</div>
+          <div className="pp-notes-b"><bdi>{plan.notes}</bdi></div>
+        </section>
       ) : null}
+
+      <footer className="pp-foot">
+        <span>EXPO · {athleteName ? <bdi>{athleteName}</bdi> : 'Training block'}</span>
+        <span>{plan?.name || ''}</span>
+      </footer>
     </div>
   );
 }

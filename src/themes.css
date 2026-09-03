@@ -875,8 +875,16 @@ html.theme-switching *::after {
    subtree is the one arrangement that survives being nested anywhere. */
 .plan-print { display: none; }
 
+/* ==========================================================================
+   THE PRINTED BLOCK — a document, not a screen dump.
+   Ohad 2026-09-03: "the pdf export looks awful. become a graphic designer and
+   apply my branding and full instructions for every exercise."
+   Browsers drop backgrounds when printing, so every brand surface here forces
+   print-color-adjust; without it the cyan rule, the day bar and the identity
+   all vanish and you are back to the black-on-white list he was looking at.
+   ========================================================================== */
 @media print {
-  @page { size: A4 portrait; margin: 14mm 12mm; }
+  @page { size: A4 portrait; margin: 13mm 12mm 16mm; }
   html, body { background: #fff !important; }
   body * { visibility: hidden !important; }
   .plan-print, .plan-print * { visibility: visible !important; }
@@ -886,13 +894,82 @@ html.theme-switching *::after {
     inset: 0 auto auto 0;
     width: 100%;
     background: #fff !important;
-    color: #000 !important;
-    font-family: system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+    color: #0a0a0b !important;
+    font-family: 'Nord', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
-  /* A day never breaks across pages, and its header repeats if one ever must. */
-  .plan-print table { break-inside: avoid; page-break-inside: avoid; }
-  .plan-print thead { display: table-header-group; }
-  .plan-print tr { break-inside: avoid; page-break-inside: avoid; }
+  .plan-print * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+  /* ---- masthead ---- */
+  .plan-print .pp-head { margin: 0 0 16px; }
+  .plan-print .pp-brand { display: flex; align-items: center; gap: 10px; }
+  .plan-print .pp-logo { height: 26px; width: auto; display: block; }
+  .plan-print .pp-brandline { flex: 1; height: 2px; background: #39BDFF !important; }
+  .plan-print .pp-title {
+    font-size: 23px; font-weight: 800; letter-spacing: 0.01em;
+    margin: 11px 0 4px; color: #0a0a0b; line-height: 1.15;
+  }
+  .plan-print .pp-sub { display: flex; flex-wrap: wrap; gap: 0 14px; font-size: 10px;
+    letter-spacing: 0.08em; text-transform: uppercase; color: #5b6068; }
+  .plan-print .pp-sub .pp-athlete { color: #0a0a0b; font-weight: 700; }
+
+  /* ---- a day ---- */
+  /* A day may run over a page; an EXERCISE and its instructions may not. */
+  .plan-print .pp-day { margin: 0 0 14px; break-inside: auto; }
+  .plan-print .pp-day-head {
+    display: flex; align-items: baseline; gap: 9px;
+    background: #0a0a0b !important; color: #fff !important;
+    padding: 7px 10px; margin-bottom: 0;
+    break-after: avoid; page-break-after: avoid;
+  }
+  .plan-print .pp-day-n { font-size: 10px; font-weight: 700; color: #39BDFF !important; letter-spacing: 0.1em; }
+  .plan-print .pp-day-name { font-size: 12px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; }
+  .plan-print .pp-day-count { margin-inline-start: auto; font-size: 9px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: #b9bec6 !important; }
+
+  /* ---- an exercise ---- */
+  .plan-print .pp-ex {
+    border: 0.5px solid #c9ced6; border-top: none;
+    padding: 7px 10px 8px;
+    break-inside: avoid; page-break-inside: avoid;
+  }
+  .plan-print .pp-ex-top { display: flex; align-items: baseline; gap: 9px; }
+  .plan-print .pp-ex-n {
+    flex: 0 0 auto; min-width: 15px;
+    font-size: 10px; font-weight: 700; color: #8a9099;
+    font-variant-numeric: tabular-nums;
+  }
+  .plan-print .pp-ex-title { flex: 1 1 auto; font-size: 12.5px; font-weight: 700; color: #0a0a0b; }
+  .plan-print .pp-ex-rx {
+    flex: 0 0 auto; font-size: 12.5px; font-weight: 800; color: #0a0a0b;
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+    border-bottom: 2px solid #39BDFF !important; padding-bottom: 1px;
+  }
+  .plan-print .pp-ex-meta {
+    margin: 3px 0 0 24px; font-size: 9px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: #5b6068;
+  }
+  /* The instructions. Indented under the title so the eye reads name, then
+     prescription, then how to do it — and never mistakes a cue for a title. */
+  .plan-print .pp-ex-cue {
+    margin: 5px 0 0 24px; padding-inline-start: 8px;
+    border-inline-start: 2px solid #39BDFF !important;
+  }
+  .plan-print .pp-cue-line { font-size: 10.5px; line-height: 1.45; color: #2b2f36; }
+  .plan-print .pp-cue-line + .pp-cue-line { margin-top: 2px; }
+
+  /* ---- tail ---- */
+  .plan-print .pp-notes { break-inside: avoid; margin-top: 12px; }
+  .plan-print .pp-notes-h { font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: #5b6068; font-weight: 700; margin-bottom: 4px; }
+  .plan-print .pp-notes-b { font-size: 10.5px; line-height: 1.5; color: #2b2f36; }
+  .plan-print .pp-foot {
+    display: flex; justify-content: space-between; gap: 12px;
+    margin-top: 16px; padding-top: 6px; border-top: 1px solid #c9ced6;
+    font-size: 8.5px; letter-spacing: 0.1em; text-transform: uppercase; color: #8a9099;
+  }
+
   /* Nothing interactive belongs on paper. */
   .plan-print button, .plan-print input, .plan-print select { display: none !important; }
 }
