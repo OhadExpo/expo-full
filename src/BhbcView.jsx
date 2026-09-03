@@ -826,8 +826,8 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
              the label buys the rest. 74 is above the 72px widest date, so no
              date wraps - which is what went wrong when this was tried at 78 in
              an earlier pass and the column read ragged. */
-  .bhbc-med-row{ grid-template-columns: 10px minmax(0,1fr) !important; margin-inline-start: 0 !important; }
-          .bhbc-med-row > *:nth-child(3){ grid-column: 2 !important; }
+  .bhbc-med-row{ grid-template-columns: 10px auto minmax(0,1fr) !important; margin-inline-start: 0 !important; }
+          .bhbc-med-row > *:nth-child(3){ grid-column: 3 !important; }
           .bhbc-med-row > *:nth-child(4){ grid-column: 2 !important; justify-self: start !important; }
                   .bhbc-week-row{gap:7px!important}
           .bhbc-week-row > span:nth-child(1){width:74px!important}
@@ -856,7 +856,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
              carries severity and the button names the destination, so the
              label can be narrow. */
           .bhbc-brief-row{gap:8px!important}
-          .bhbc-brief-row > *:nth-child(1){width:48px!important;font-size:8.5px!important;letter-spacing:0.08em!important}
+          .bhbc-brief-row > *:nth-child(1){width:70px!important;font-size:8.5px!important;letter-spacing:0.04em!important}
           .bhbc-brief-row > *:nth-child(4){width:78px!important}
           /* THE DOT NEEDS A GUTTER, and on a phone there is none: the label is
              the row's first column, so a dot hung 21px to the left of the
@@ -864,7 +864,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
              the dot sat at 61. It moves onto the label itself, where the row
              already has room, and takes the severity colour through --sev. */
           .bhbc-brief-dot{display:none!important}
-          .bhbc-brief-row > *:nth-child(1){display:inline-flex!important;align-items:center;gap:5px}
+          .bhbc-brief-row > *:nth-child(1){display:inline-flex!important;align-items:center;gap:5px;align-self:flex-start!important;margin-top:1px}
           .bhbc-brief-row > *:nth-child(1)::before{content:'';flex:0 0 auto;width:7px;height:7px;border-radius:50%;background:var(--sev,currentColor)}
           /* The instruction's 170px flex-basis is larger than the 137px the row
              can give it, so flex-wrap pushed it onto its OWN line and every
