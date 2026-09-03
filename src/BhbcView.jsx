@@ -1343,20 +1343,27 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
                 {leagueSeason && <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: ORANGE, letterSpacing: '0.06em' }}>{leagueSeason}</span>}
               </div>
               {lastG && (
-                <div style={{ padding: '10px 12px', borderBottom: `1px solid ${C.cardBd}`, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                  <div style={{ minWidth: 0 }}>
+                <>
+                  <div style={{ padding: '10px 12px' }}>
                     <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>Last game{agoLabel ? ` · ${agoLabel}` : ''}</div>
-                    <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, marginTop: 3 }}>vs {lastG.opp && !isBH(lastG.opp) ? lastG.opp.replace(/\s*\(.*$/, '') : '—'}</div>
+                    <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, marginTop: 3 }} dir="auto"><bdi>vs {lastG.opp && !isBH(lastG.opp) ? lastG.opp.replace(/\s*\(.*$/, '') : '—'}</bdi></div>
                   </div>
-                  <div style={{ marginInlineStart: 'auto', display: 'flex', gap: 14 }}>
-                    {[['PTS', lastG.pts], ['REB', lastG.reb], ['AST', lastG.ast], ["MIN", lastG.min]].map(([k, v]) => (
-                      <div key={k} style={{ textAlign: 'center' }}>
-                        <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 18, color: k === 'PTS' ? ORANGE_DEEP : C.tx, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{v}</div>
-                        <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', color: C.tm, marginTop: 3 }}>{k}</div>
+                  {/* THE SAME FOUR COLUMNS as the season averages directly below.
+                      They used to be pushed to the right edge on `margin-inline-start:
+                      auto` with a flat 14px gap, so PTS/REB/AST/MIN landed at 933 /
+                      970 / 1007 / 1046 while the grid under them started its columns
+                      at 443 / 604 / 764 / 924 - two stat rows in one card on two
+                      different rhythms. Ohad: "the stats on the right should be
+                      ordered like columns. i keep asking this request." */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', borderTop: `1px solid ${C.cardBd}`, borderBottom: `1px solid ${C.cardBd}` }}>
+                    {[['PTS', lastG.pts], ['REB', lastG.reb], ['AST', lastG.ast], ['MIN', lastG.min]].map(([k, v], i) => (
+                      <div key={k} style={{ padding: '10px 12px', borderRight: i !== 3 ? `1px solid ${C.cardBd}` : 'none' }}>
+                        <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>{k}</div>
+                        <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 16, color: k === 'PTS' ? ORANGE_DEEP : C.tx, marginTop: 3, fontVariantNumeric: 'tabular-nums' }}>{v}</div>
                       </div>
                     ))}
                   </div>
-                </div>
+                </>
               )}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)' }}>
                 {avg.map(([k, v], i) => (
