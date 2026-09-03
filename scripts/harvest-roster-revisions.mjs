@@ -59,6 +59,11 @@ const bcdp = await b.target().createCDPSession();
 await bcdp.send('Browser.setDownloadBehavior', { behavior: 'allow', downloadPath: dir, eventsEnabled: true });
 let waiting = null;
 const pending = new Map();
+// A revision number that does not exist returns an HTML error page, which
+// NAVIGATES instead of downloading. Waiting the full completion timeout on
+// those cost 20s each and, since roughly a third of the numbers in the range
+// are not real revisions, made the whole pass ~10s per file. began() resolves
+// as soon as a download starts, so a miss now costs 3s instead of 20.
 bcdp.on('Browser.downloadProgress', (e) => {
   const w = pending.get(e.guid);
   if (!w) return;
@@ -69,18 +74,22 @@ bcdp.on('Browser.downloadWillBegin', (e) => {
   // The file lands under its SUGGESTED filename, not the guid - every
   // revision arrives as the same "רשימת מתאמנים.xlsx" - so the name has to be
   // captured here and the file renamed the moment it completes.
-  if (waiting) { waiting.file = e.suggestedFilename; pending.set(e.guid, waiting); waiting = null; }
+  if (waiting) { waiting.file = e.suggestedFilename; pending.set(e.guid, waiting); waiting.began(true); waiting = null; }
 });
 let ok = 0, miss = 0, done = 0;
 const t0 = Date.now();
 for (const rev of todo) {
   const w = {};
   const p = new Promise((resolve) => { w.resolve = resolve; });
+  const began = new Promise((resolve) => { w.began = resolve; });
   waiting = w;
   // The navigation always rejects with ERR_ABORTED - it is a download, not a
   // page - so it is fired and never awaited; the completed event is the signal.
   pg.goto(`https://docs.google.com/spreadsheets/d/${ID}/export?format=xlsx&id=${ID}&revision=${rev}`).catch(() => {});
-  const name = await Promise.race([p, new Promise((r) => setTimeout(() => r(undefined), 20000))]);
+  const started = await Promise.race([began, new Promise((r) => setTimeout(() => r(false), 3000))]);
+  const name = started
+    ? await Promise.race([p, new Promise((r) => setTimeout(() => r(undefined), 20000))])
+    : undefined;
   waiting = null;
   let filed = false;
   if (name) {

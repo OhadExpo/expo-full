@@ -121,9 +121,21 @@ def parse_file(path, rev):
 files = sorted(glob.glob(os.path.join(REV_DIR, 'r*.xlsx')),
                key=lambda p: int(re.search(r'r(\d+)\.xlsx', p).group(1)))
 print('revisions on disk:', len(files))
+
+# The twice-daily sync reads the LIVE sheet, not the revision history: a new
+# payment shows up as a new date, and the unique key means only genuinely new
+# dates are added. That is what makes EXPO accumulate the history this sheet
+# destroys every time it is edited. A live read has no revision number, so it
+# is recorded as None rather than given a fake one.
+CURRENT = 'audit-out/sheets/roster.xlsx'
+if os.path.exists(CURRENT):
+    files.append(CURRENT)
+    print('plus the live sheet')
+
 all_recs, bad = [], []
 for p in files:
-    rev = int(re.search(r'r(\d+)\.xlsx', p).group(1))
+    m = re.search(r'r(\d+)\.xlsx', os.path.basename(p))
+    rev = int(m.group(1)) if m else None
     try:
         all_recs.extend(parse_file(p, rev))
     except Exception as e:
@@ -140,8 +152,9 @@ for r in all_recs:
         'price_session': set(), 'price_month': set(), 'sessions_done': set()})
     if r.get('section'):
         p['sections'].add(r['section'])
-    p['first_rev'] = min(p['first_rev'], r['rev'])
-    p['last_rev'] = max(p['last_rev'], r['rev'])
+    if r['rev'] is not None:
+        p['first_rev'] = r['rev'] if p['first_rev'] is None else min(p['first_rev'], r['rev'])
+        p['last_rev'] = r['rev'] if p['last_rev'] is None else max(p['last_rev'], r['rev'])
     for k in ('last_payment', 'card_start', 'start'):
         if r.get(k):
             p[k].setdefault(r[k], r['rev'])

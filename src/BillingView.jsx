@@ -23,6 +23,7 @@ import { isRefined5b, RefinedHeaderStrip, Btn, Input, toast, confirmToast, useEs
 import { parseTraineeId } from './traineeUtils';
 import { normalizePhoneIL } from './whatsappButton';
 import { useT } from './i18n';
+import RevenueSheetCard from './RevenueSheetCard';
 
 const fmtCurrency = (amount, currency = 'ils') => {
   const sym = currency === 'usd' ? '$' : '₪';
@@ -148,6 +149,9 @@ export default function BillingView({ trainees }) {
           </div>
         ))}
       </div>
+      {/* WHAT THE SHEETS RECORD. Owner-only data, so this renders nothing
+          for staff or athletes. The manual ledger below is unaffected. */}
+      <RevenueSheetCard />
       {/* REQUESTS */}
       <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: PAD }}>
         <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={12}>
