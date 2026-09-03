@@ -86,7 +86,13 @@ for (const rev of todo) {
   // The navigation always rejects with ERR_ABORTED - it is a download, not a
   // page - so it is fired and never awaited; the completed event is the signal.
   pg.goto(`https://docs.google.com/spreadsheets/d/${ID}/export?format=xlsx&id=${ID}&revision=${rev}`).catch(() => {});
-  const started = await Promise.race([began, new Promise((r) => setTimeout(() => r(false), 3000))]);
+  // 3s here was WRONG and it biased the sample. Google throttles sustained
+  // exports to ~10s per file, so a slow-but-valid revision never began within
+  // 3s and was recorded as "does not exist" - which is why an every-10th pass
+  // returned only 64 of 244 and left 50-revision holes (~38 days, longer than
+  // a payment date survives) exactly in the years that have client data.
+  // A real miss is an HTML error page and returns fast anyway.
+  const started = await Promise.race([began, new Promise((r) => setTimeout(() => r(false), 12000))]);
   const name = started
     ? await Promise.race([p, new Promise((r) => setTimeout(() => r(undefined), 20000))])
     : undefined;
