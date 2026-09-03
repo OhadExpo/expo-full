@@ -2392,7 +2392,7 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
                   // the injury description was ellipsized to "AN…", which is not
                   // an injury report. It now takes its own line and the UPDATE
                   // button stays whole.
-                  <div key={i} onClick={onOpen ? () => onOpen(t.id) : undefined} role={onOpen ? 'button' : undefined} tabIndex={onOpen ? 0 : undefined} onKeyDown={onOpen ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }) : undefined} className={onOpen ? 'bhbc-row bhbc-med-row' : 'bhbc-med-row'} style={{ display: 'grid', gridTemplateColumns: '10px minmax(0, 96px) minmax(0, 1fr) auto', alignItems: 'center', columnGap: 8, rowGap: 2, cursor: onOpen ? 'pointer' : 'default' }}>
+                  <div key={i} onClick={onOpen ? () => onOpen(t.id) : undefined} role={onOpen ? 'button' : undefined} tabIndex={onOpen ? 0 : undefined} onKeyDown={onOpen ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }) : undefined} className={onOpen ? 'bhbc-row bhbc-med-row' : 'bhbc-med-row'} style={{ display: 'grid', gridTemplateColumns: '10px minmax(0, 96px) minmax(0, 1fr) auto', alignItems: 'center', columnGap: 8, rowGap: 2, marginInlineStart: -18, cursor: onOpen ? 'pointer' : 'default' }}>
                     <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.color, flexShrink: 0 }} />
                     <span style={{ fontFamily: FN, fontWeight: 700, fontSize: 12, minWidth: 0, overflowWrap: 'break-word' }}>{surnameOf(t.name)}</span>
                     {/* WRAP, do not ellipsize. The row already wraps, and on a narrow RTL line
