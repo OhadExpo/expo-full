@@ -454,7 +454,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
           <Kpi v={a.adh.setsPct != null ? `${a.adh.setsPct}%` : '—'} l="Sets done" s={`${a.adh.setsDone} of ${a.adh.setsPrescribed}`} color={a.adh.setsPct >= 80 ? C.gn : C.or} />
           {a.skip
             ? <Kpi v={a.skip.day} l="The skips" s={`${a.skip.logged}/${a.skip.expected} — a pattern`} color={C.rd} />
-            : <Kpi v="—" l="The skips" s="no clear skip pattern" color={C.tm} />}
+            : <Kpi v="SPREAD" l="The skips" s="no day is missed repeatedly" color={C.gn} />}
         </div>
         {a.skip && a.skip.gap >= 2 && (
           <Read tone="bad" why="Either that day is too demanding, or it doesn't fit the athlete's week. Confirm before re-prescribing it.">
