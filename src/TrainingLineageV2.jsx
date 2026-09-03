@@ -35,7 +35,7 @@ function Section({ title, tag, summary, children, cardStyle = card, defaultOpen 
       <div className="lin-hd" style={{ ...hd, cursor: 'pointer' }} onClick={() => setOpen((o) => !o)} role="button" tabIndex={0} aria-expanded={open}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen((o) => !o); } }}
         title={open ? 'Collapse' : 'Expand for the full report'}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ color: C.ac, fontSize: 10 }}>{open ? '▾' : '▸'}</span>{title}{tag}</span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ color: C.ac, fontSize: 10 }}>{<svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle', transition: 'transform 150ms ease', transform: (open) ? 'none' : 'rotate(-90deg)' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>}</span>{title}{tag}</span>
         <span style={hdQ}>{open ? '' : summary}</span>
       </div>
       {open && <div style={bd}>{children}</div>}
@@ -572,7 +572,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
         <div className="lin-hd" style={{ ...hd, cursor: 'pointer' }} onClick={() => setArcOpen((v) => !v)} role="button" tabIndex={0}
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setArcOpen((v) => !v); } }}
           title={arcOpen ? 'Collapse' : 'Expand the main-lift arc'}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ color: C.ac, fontSize: 10 }}>{arcOpen ? '▾' : '▸'}</span>The arc · progression on the main lifts</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ color: C.ac, fontSize: 10 }}>{<svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle', transition: 'transform 150ms ease', transform: (arcOpen) ? 'none' : 'rotate(-90deg)' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>}</span>The arc · progression on the main lifts</span>
           <span style={hdQ}>{arcOpen ? 'e# = estimated 1-rep max (Epley) across every block — starting point vs now' : `${a.staples.filter((s) => !s.ballistic && s.arc && s.arc.length >= 4 && s.arcGainPct != null).length} lifts · click to expand`}</span>
         </div>
         {arcOpen && <div style={bd}>
@@ -607,7 +607,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
         <div className="lin-hd" style={{ ...hd, cursor: 'pointer' }} onClick={() => setLiftsOpen((v) => !v)} role="button" tabIndex={0}
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setLiftsOpen((v) => !v); } }}
           title={liftsOpen ? 'Collapse' : 'Expand the per-lift breakdown'}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ color: C.ac, fontSize: 10 }}>{liftsOpen ? '▾' : '▸'}</span>Key lifts · what to do next</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ color: C.ac, fontSize: 10 }}>{<svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle', transition: 'transform 150ms ease', transform: (liftsOpen) ? 'none' : 'rotate(-90deg)' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>}</span>Key lifts · what to do next</span>
           <span style={hdQ}>{liftsOpen ? 'worst first · each row tells you the move for next block' : `${a.staples.filter((s) => s.count >= 3).length} lifts · click to expand`}</span>
         </div>
         {liftsOpen && <div style={bd}>

@@ -2983,7 +2983,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             NOT clickable (clicking used to jump the value into the LOG box +
             let you re-save it — Ohad: must not). Delete stays via the × only. */}
         <button onClick={() => setBwHistOpen(o => !o)} style={{display:'flex',alignItems:'center',gap:8,background:'transparent',border:'none',padding:0,marginBottom:8,cursor:'pointer'}}>
-          <span style={{fontSize:9,color:C.td,fontFamily:FN}}>{bwHistOpen ? '▾' : '▸'}</span>
+          <span style={{fontSize:9,color:C.td,fontFamily:FN}}>{<svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle', transition: 'transform 150ms ease', transform: (bwHistOpen) ? 'none' : 'rotate(-90deg)' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>}</span>
           <span style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',fontWeight:700}}>HISTORY{bwData.length ? ` · ${bwData.length}` : ''}</span>
         </button>
         {bwHistOpen && bwData.slice().reverse().map((d,i) => {

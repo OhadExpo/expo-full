@@ -159,7 +159,7 @@ function AlertGroupList({ grouped, collapsible, collapsedMap, onToggle, onRowCli
               <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--c-tm)' }}>{g.icon} {g.label}</span>
               <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: 'var(--c-td)' }}>{rows.length}</span>
-                {collapsible && <span aria-hidden style={{ fontSize: 10, color: 'var(--c-td)', transform: collapsed ? 'rotate(-90deg)' : 'rotate(0deg)', transition: 'transform 160ms ease' }}>▾</span>}
+                {collapsible && <span aria-hidden style={{ fontSize: 10, color: 'var(--c-td)', transform: collapsed ? 'rotate(-90deg)' : 'rotate(0deg)', transition: 'transform 160ms ease' }}><svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></span>}
               </span>
             </div>
             {!collapsed && (

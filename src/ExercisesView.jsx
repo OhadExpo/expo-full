@@ -208,7 +208,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
           <span style={{ maxWidth: 220, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{faceLabel}</span>
           {active
             ? <span onClick={e => { e.stopPropagation(); clearFilter(k); }} title="Clear" style={{ fontSize: 13, lineHeight: 1, opacity: 0.85 }}>×</span>
-            : <span style={{ color: (active || isOpen) ? C.ac : C.tm, fontSize: 9 }}>▾</span>}
+            : <span style={{ color: (active || isOpen) ? C.ac : C.tm, fontSize: 9 }}><svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></span>}
         </button>
         {isOpen && (
           <div style={{ position: 'absolute', top: 32, left: 0, minWidth: 'max(100%, 248px)', maxHeight: 366, overflowY: 'auto', background: 'var(--c-sf)', border: `1px solid ${C.ac}`, zIndex: 50, boxShadow: '0 12px 30px rgba(0,0,0,0.55)' }}>

@@ -181,7 +181,7 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
             {exData?.title||ex.title||"Unknown"}
           </span>
           <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color: fullyDone ? C.gn : C.tm, flexShrink: 0, whiteSpace: 'nowrap' }}>
-            {doneCount}/{ex.sets.length} SETS · EXPAND ▾
+            {doneCount}/{ex.sets.length} SETS · EXPAND
           </span>
         </div>
       );
@@ -285,7 +285,7 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
             <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',color:allD?C.gn:sc,textTransform:'uppercase',minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
               {allD && <span style={{marginRight:6}}>✓</span>}Superset {g.ss}{collapsed && <span style={{color:C.tm,fontWeight:600,letterSpacing:'0.04em',textTransform:'none'}}> · {titles}</span>}
             </span>
-            <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',color:allD?C.gn:C.tm,flexShrink:0,whiteSpace:'nowrap'}}>{doneSets}/{totalSets} SETS · {collapsed?'EXPAND ▾':'COLLAPSE ▴'}</span>
+            <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',color:allD?C.gn:C.tm,flexShrink:0,whiteSpace:'nowrap'}}>{doneSets}/{totalSets} SETS · {collapsed?'EXPAND':'COLLAPSE'}</span>
           </button>
           {!collapsed && <div style={{marginTop:4}}>{g.items.map(({ex,i},k) => renderExercise(ex, i, true, k>0, true))}</div>}
         </div>
