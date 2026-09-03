@@ -2221,7 +2221,10 @@ function ProgramModal({ athleteName, plans, exercises, currentWeek = 1, onClose 
                 title={pickOpen ? 'Hide earlier blocks' : 'Show earlier blocks'}
                 style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5, minWidth: 112, height: 24, padding: '0 9px', boxSizing: 'border-box', background: pickOpen ? 'rgba(127,127,138,0.14)' : 'transparent', border: '1px solid ' + C.cardBd, borderRadius: 0, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, fontVariantNumeric: 'tabular-nums' }}>
                 {plans.length - 1} {tr('previous')}
-                <span aria-hidden style={{ display: 'inline-block', transform: pickOpen ? 'rotate(180deg)' : 'none', transition: 'transform .15s', fontSize: 8, lineHeight: 1 }}>▾</span>
+                <svg aria-hidden width="8" height="5" viewBox="0 0 9 6" fill="none"
+                  style={{ flexShrink: 0, transform: pickOpen ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>
+                  <path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
               </button>
             )}
             <span style={{ marginInlineStart: 'auto', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, whiteSpace: 'nowrap' }}>
@@ -3072,7 +3075,10 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, planOf }
                 </span>
                 {d.avgLoad != null && <span title={`${d.avgRpe} RPE x ${f.minutes || '?'} min`} style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tx, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }} dir="ltr">{d.avgLoad} AU</span>}
                 {d.avgRpe != null && <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>RPE {d.avgRpe}</span>}
-                <span style={{ color: C.tm, fontSize: 10, flexShrink: 0, transform: isOpen ? 'rotate(180deg)' : 'none', display: 'inline-block' }}>▾</span>
+                <svg aria-hidden width="9" height="6" viewBox="0 0 9 6" fill="none"
+                  style={{ color: C.tm, flexShrink: 0, transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>
+                  <path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
               </div>
               {isOpen && (
                 <div style={{ padding: '2px 2px 12px 88px', fontFamily: FB, fontSize: 12, color: C.tx, lineHeight: 1.55 }}>

@@ -497,10 +497,12 @@ export function CollapsibleSection({ title, titleNode, count, right, storageKey,
               --c-tx made it near-black on BHBC's deep-navy strip (1.33:1,
               invisible). The plain-surface collapse controls in TasksV8View DO
               use --c-tx; these two cases are genuinely different backgrounds. */}
-          <span aria-hidden style={{
-            color: '#FFFFFF', fontSize: 12, lineHeight: 1, display: 'inline-block',
+          <svg aria-hidden width="11" height="7" viewBox="0 0 9 6" fill="none" style={{
+            color: '#FFFFFF', display: 'inline-block', flexShrink: 0,
             transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease',
-          }}>▾</span>
+          }}>
+            <path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         </div>
       </div>
       <div style={{ display: 'grid', gridTemplateRows: open ? '1fr' : '0fr', transition: 'grid-template-rows 260ms ease' }}>
