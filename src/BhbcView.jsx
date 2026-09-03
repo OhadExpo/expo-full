@@ -2035,7 +2035,7 @@ function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onLog, onGo })
               <div key={i} onClick={click || undefined} className={click ? 'bhbc-row bhbc-brief-row' : 'bhbc-brief-row'}
                   role={click ? 'button' : undefined} tabIndex={click ? 0 : undefined}
                   onKeyDown={click ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); click(); } }) : undefined}
-                style={{ display: 'flex', alignItems: 'center', gap: 11, rowGap: 6, flexWrap: 'wrap', minHeight: 32, boxSizing: 'border-box', padding: '6px 2px', borderBottom: `1px solid ${i < top.length - 1 ? C.cardBd : 'transparent'}`, cursor: click ? 'pointer' : 'default' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 14, rowGap: 6, flexWrap: 'wrap', minHeight: 32, boxSizing: 'border-box', padding: '6px 2px', marginInlineStart: -21, borderBottom: `1px solid ${i < top.length - 1 ? C.cardBd : 'transparent'}`, cursor: click ? 'pointer' : 'default' }}>
                 {/* Center the dot on the first text line. The +4px offset accounts for
                     Nord's bottom-heavy line box (measured: line-center sits ~4px below
                     the CSS line-box center). Ohad: dot must be vertically centered. */}
@@ -2047,7 +2047,7 @@ function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onLog, onGo })
                     most of why it read as a mess next to the report above it -
                     and the reason now sits at the right edge instead of trailing
                     the action, so the row is scannable and the width is used. */}
-                <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, width: 74, flexShrink: 0, lineHeight: 'normal' }}>{a.k ? tr(a.k) : ''}</span>
+                <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, width: 86, flexShrink: 0, lineHeight: 'normal' }}>{a.k ? tr(a.k) : ''}</span>
                 {/* fontSize 13 on the WRAPPER, not just the span inside it. Without
                     it the div inherits 16px and builds a 19.2px line box around
                     15.2px of ink, so the text sat 0.8px below centre while every
@@ -2061,7 +2061,7 @@ function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onLog, onGo })
                 <div style={{ minWidth: 0, lineHeight: 'normal', fontSize: 13, flex: '1 1 170px' }}>
                   <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.02em', color: C.tx }}>{a.do}</span>
                 </div>
-                <div style={{ fontFamily: FB, fontSize: 13, color: C.tm, lineHeight: 'normal', textAlign: 'end', flexShrink: 1, minWidth: 0, marginInlineStart: 16 }}>{a.why}</div>
+                <div style={{ fontFamily: FB, fontSize: 13, color: C.tm, lineHeight: 'normal', textAlign: 'start', flex: '0 1 240px', minWidth: 0 }}>{a.why}</div>
                 {/* A real button, not a bare chevron. Fixed width so the column
                     is one size down the card, which is the rule everywhere else
                     here. Falls back to the athlete card when the line is about one

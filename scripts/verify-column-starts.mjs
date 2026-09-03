@@ -52,6 +52,20 @@ for (const W of RUN) {
     }
     return out;
   });
+  // The S&C brief is a second card on the same screen built as a flex row
+  // rather than a label grid. Its five columns must each be one column, and its
+  // label + first-text must sit on the report's columns above it.
+  const brief = await pg.evaluate(() => [...document.querySelectorAll('.bhbc-brief-row')].map((r) =>
+    [...r.children].map((c) => +c.getBoundingClientRect().left.toFixed(1))));
+  if (brief.length > 1) {
+    const cols = Math.min(...brief.map((r) => r.length));
+    for (let i = 0; i < cols; i++) {
+      const xs = brief.map((r) => r[i]);
+      const sp = +(Math.max(...xs) - Math.min(...xs)).toFixed(1);
+      if (sp > TOL) { bad++; console.log(`FAIL  ${W}px  S&C brief column ${i + 1} is ragged by ${sp}px  ${JSON.stringify(xs)}`); }
+    }
+  }
+
   if (rows.length < 2) { console.log(`${W}px: only ${rows.length} row(s) found`); bad++; continue; }
   const xs = rows.map((r) => r.first.x);
   const spread = +(Math.max(...xs) - Math.min(...xs)).toFixed(1);
