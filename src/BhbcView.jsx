@@ -3558,16 +3558,29 @@ function ResultsList({ games, bhbcOnly }) {
   const todayStr = todayISO();
   const upcoming = games.filter((g) => !g.played && (!g.date || g.date >= todayStr) && (!bhbcOnly || isBH(g.home) || isBH(g.away)));
   const byRound = {};
-  [...played].reverse().forEach((g) => { (byRound[g.round] = byRound[g.round] || []).push(g); });
+  // A playoff game has no "מחזור N" heading, so it used to fall into the
+  // round-less bucket and render with no heading at all. It has a NAME now —
+  // the sync reads every competition board and tags each game with its stage —
+  // so it groups under "Quarter Final" instead of under nothing.
+  const keyOf = (g) => (g.stage ? 'stage:' + g.stage : g.round);
+  [...played].reverse().forEach((g) => { const k = keyOf(g); (byRound[k] = byRound[k] || []).push(g); });
   // A result row that precedes the first "מחזור N" heading in the scrape has
   // round = null, which becomes the key "null" -> Number("null") = NaN. That
   // rendered a literal "Round NaN" header over real results, and made the
   // comparator non-total (every NaN pair returns NaN), so the group order was
   // engine-defined. Keep those games — they are real — but group them under no
   // round rather than a fabricated one, and sort them last.
+  // Stages first (they are the newest games of a season), then rounds newest
+  // to oldest, then the genuinely round-less last.
   const rounds = Object.keys(byRound)
-    .map((k) => (k === 'null' || k === 'undefined' || Number.isNaN(Number(k)) ? null : Number(k)))
-    .sort((a, b) => (a == null ? 1 : b == null ? -1 : b - a));
+    .map((k) => (k.startsWith('stage:') ? k : (k === 'null' || k === 'undefined' || Number.isNaN(Number(k)) ? null : Number(k))))
+    .sort((a, b) => {
+      const aS = typeof a === 'string', bS = typeof b === 'string';
+      if (aS && bS) return 0;
+      if (aS) return -1;
+      if (bS) return 1;
+      return a == null ? 1 : b == null ? -1 : b - a;
+    });
   const Row = ({ g }) => {
     // Every visible row involves BHBC (bhbcOnly). Read it from BHBC's side so the
     // FIRST name is always "Bnei Herzliya" — every row's name column lines up, and
@@ -3610,9 +3623,9 @@ function ResultsList({ games, bhbcOnly }) {
         </div>
       )}
       {rounds.map((r) => (
-        <div key={r == null ? 'no-round' : r} style={{ marginBottom: 10 }}>
+        <div key={r == null ? 'no-round' : String(r)} style={{ marginBottom: 10 }}>
           {/* Only claim a round number when the feed actually gave one. */}
-          {r != null && <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, padding: '4px 10px 6px' }}>{tr('Round')} {r}</div>}
+          {r != null && <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: typeof r === 'string' ? ORANGE_DEEP : C.tm, padding: '4px 10px 6px' }}>{typeof r === 'string' ? tr(r.slice(6)) : `${tr('Round')} ${r}`}</div>}
           {(byRound[r == null ? 'null' : r] || []).map((g, i) => <Row key={i} g={g} />)}
         </div>
       ))}
