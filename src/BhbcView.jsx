@@ -3471,16 +3471,32 @@ function StandingsTable({ standings }) {
 // No departed players — the table IS the roster.
 function PlayerStatsTable({ roster, league, onOpen }) {
   const [sort, setSort] = useState('ppg');
+  // Ohad: "it doesnt re-order the column based on up and down when i click on
+  // the column headers." It sorted, but only ever DESCENDING - clicking the
+  // active column did nothing and the arrow never flipped, so from his seat the
+  // header was half dead. Clicking a new column starts descending (the useful
+  // default for a stat); clicking the active one flips it.
+  const [dir, setDir] = useState('desc');
   const cols = [
     { k: 'gp', h: 'GP' }, { k: 'mpg', h: 'MPG' }, { k: 'ppg', h: 'PPG' },
     { k: 'rpg', h: 'RPG' }, { k: 'apg', h: 'APG' }, { k: 'tpp', h: '3P%' },
     { k: 'ftp', h: 'FT%' }, { k: 'pirpg', h: 'PIR' },
   ];
   const dash = (k, v) => (v == null ? '—' : k === 'tpp' || k === 'ftp' ? `${v}%` : v);
+  // A player with no league stats has nothing to rank, so he sorts LAST in
+  // BOTH directions. Letting him take the -1 would put every dash at the top of
+  // an ascending sort, which answers nobody's question.
   const items = (roster || []).map((t) => ({ t, s: leaguePlayerFor(league, t.name) }))
-    .sort((a, b) => ((b.s ? b.s[sort] : -1)) - ((a.s ? a.s[sort] : -1)) || (a.t.jersey ?? 999) - (b.t.jersey ?? 999));
+    .sort((a, b) => {
+      const av = a.s ? a.s[sort] : null, bv = b.s ? b.s[sort] : null;
+      if (av == null && bv == null) return (a.t.jersey ?? 999) - (b.t.jersey ?? 999);
+      if (av == null) return 1;
+      if (bv == null) return -1;
+      const d = dir === 'asc' ? av - bv : bv - av;
+      return d || (a.t.jersey ?? 999) - (b.t.jersey ?? 999);
+    });
   const th = (k, h, first) => (
-    <th key={k} onClick={() => k !== 'name' && setSort(k)} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: sort === k ? ORANGE_DEEP : C.tm, padding: '8px 9px', textAlign: first ? 'left' : 'center', whiteSpace: 'nowrap', cursor: k === 'name' ? 'default' : 'pointer', userSelect: 'none' }}>{h}{sort === k ? ' ↓' : ''}</th>
+    <th key={k} onClick={() => { if (k === 'name') return; if (k === sort) setDir((d) => (d === 'desc' ? 'asc' : 'desc')); else { setSort(k); setDir('desc'); } }} title={k === 'name' ? undefined : (k === sort ? (dir === 'desc' ? 'Sort ascending' : 'Sort descending') : 'Sort by ' + h)} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: sort === k ? ORANGE_DEEP : C.tm, padding: '8px 9px', textAlign: first ? 'left' : 'center', whiteSpace: 'nowrap', cursor: k === 'name' ? 'default' : 'pointer', userSelect: 'none' }}>{h}{sort === k ? (dir === 'desc' ? ' ↓' : ' ↑') : ''}</th>
   );
   return (
     <div style={{ overflowX: 'auto' }}>
