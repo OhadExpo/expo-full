@@ -1394,12 +1394,6 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
             </div>
           ))}
         </div>
-        {bw && bw.length > 0 && (
-          <div>
-            <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, marginBottom: 6 }}>Bodyweight</div>
-            <BWChart entries={bw} />
-          </div>
-        )}
         {(() => {
           // Foster monotony & strain over the last 7 days (illness/overtraining
           // risk). Monotony ≥2 flags too-samey loading; strain = load × monotony.
@@ -1446,13 +1440,14 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
         </div>
         <div>
           <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, marginBottom: 6 }}>Full history{activity.length ? ` (${activity.length})` : ''}</div>
-          {/* 118px against a 32.4px row always sliced the 4th entry in half, which
-              reads as a broken table rather than a scrollable one. Pin the pitch at
-              33 (font-independent, so Heebo cannot shift it) and cap at exactly four
-              of them PLUS the 2px of border-box border, so the cut lands on a divider
-              and four entries do not summon a scrollbar for 2px. */}
+          {/* The cut must land ON a divider, never through a row: the pitch is
+              pinned at 33 (font-independent, so Heebo cannot shift it) and the cap
+              is a whole number of rows plus the 2px border-box border.
+              Ohad: "full history should be longer or easier to view. takes too
+              little space" - 134 showed FOUR entries of twenty-one. 431 shows
+              thirteen, which is a month of work, and still scrolls. */}
           {activity.length ? (
-            <div style={{ display: 'flex', flexDirection: 'column', maxHeight: 134, overflowY: 'auto',
+            <div style={{ display: 'flex', flexDirection: 'column', maxHeight: 431, overflowY: 'auto',
               border: `1px solid ${C.cardBd}`, borderRadius: 0 }}>
               {activity.map((a, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 9px', minHeight: 33, flexShrink: 0, boxSizing: 'border-box',
@@ -1489,6 +1484,15 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
             </div>
           ) : <div style={{ fontFamily: FB, fontSize: 13, color: C.td, padding: '6px 0' }}>No history logged yet.</div>}
         </div>
+        {/* BODYWEIGHT LAST. Ohad: "put the bw graph at the bottom". It is a
+            trend, not a headline - the stats, load and medical answer "can he
+            train today", and the weight chart is what you scroll to. */}
+        {bw && bw.length > 0 && (
+          <div>
+            <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, marginBottom: 6 }}>Bodyweight</div>
+            <BWChart entries={bw} />
+          </div>
+        )}
         {program && (program.current || program.count > 0) && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 0', borderTop: `1px solid ${C.cardBd}`, fontFamily: FN, fontSize: 11, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>Current block</span>
