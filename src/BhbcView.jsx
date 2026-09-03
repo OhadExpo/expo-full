@@ -15,6 +15,7 @@ import React, { useMemo, useState, useEffect, useCallback, Suspense, lazy } from
 import { C, FN, FB, EXPO_ICON_LG_T } from './theme';
 import { Card, CollapsibleSection, Btn, Input, Modal, EmptyState, toast, usePersistentState } from './ui';
 import { ThemeToggle } from './ThemeToggle';
+import { fmtNumericDate } from './dates';
 import { useTheme } from './hooks/useTheme';
 import { bhbcT, BhbcLangCtx, useT, useHe, setBhbcDateLang, dowFor, monDayFor, fxLabelFor } from './bhbcHe';
 import { acwrFromDaily, sessionLoad, monotonyStrain } from './acwrEngine';
@@ -1248,7 +1249,7 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
         const program = { count: aPlans.length, current: curPlan ? curPlan.name : null };
         return <AthleteModal row={row} rec={bhbcLoads[detailFor]} days28={last28} bw={bwEntries} program={program}
           workouts={(clientWorkouts || []).filter((w) => String(w.clientId || '').split('__')[0] === detailFor)}
-          leaguePlayer={leaguePlayerFor(league, row.t.name)} leagueSeason={league.season}
+          leaguePlayer={leaguePlayerFor(league, row.t.name)} leagueSeason={league.season} leagueUpdatedAt={league.updatedAt}
           injuries={activeInjuries(medical, detailFor)}
           onInjury={effCanMedical ? (() => { const a = activeInjuries(medical, detailFor); setInjuryFor({ athleteId: detailFor, injuryId: a[0] && a[0].id }); setDetailFor(null); }) : null}
           onClose={() => setDetailFor(null)}
@@ -1279,7 +1280,7 @@ function BarChart({ series, w = 460, h = 88 }) {
   );
 }
 
-function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = [], leaguePlayer, leagueSeason, injuries = [], onInjury, onClose, onLog, onOpenExpo, onViewProgram, onCycleAvail, onEditSession, onDeleteSession }) {
+function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = [], leaguePlayer, leagueSeason, leagueUpdatedAt, injuries = [], onInjury, onClose, onLog, onOpenExpo, onViewProgram, onCycleAvail, onEditSession, onDeleteSession }) {
   const tr = useT();   // `t` below is the TRAINEE, hence `tr` for the translator
   const [editSess, setEditSess] = useState(null); // { date, idx, min } — inline minutes edit in the history
   const { t, acwr, avail, readiness } = row;
@@ -1341,6 +1342,21 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', background: NAVY_DEEP }}>
                 <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff' }}>League Stats</span>
                 {leagueSeason && <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: ORANGE, letterSpacing: '0.06em' }}>{leagueSeason}</span>}
+                {/* WHERE THESE NUMBERS COME FROM, and how old they are.
+                    Ohad read "LAST GAME - VS MACCABI TEL AVIV" as the club's
+                    last game and said "that's not even correct we had a playoff
+                    game against holon". The card was right about the FEED and
+                    silent about the feed's limits: re-scraped live, basket.co.il
+                    publishes 194 games for this season and BHBC appears in 26 of
+                    them, the newest being that Maccabi game. A panel that states
+                    its source and its date cannot be mistaken for the club's own
+                    record. */}
+                {leagueUpdatedAt && (
+                  <span style={{ marginInlineStart: 'auto', fontFamily: FN, fontSize: 9, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)' }}
+                    title="Official league feed (basket.co.il). Only games the league has published appear here.">
+                    {'ליגת העל · ' + fmtNumericDate(leagueUpdatedAt)}
+                  </span>
+                )}
               </div>
               {lastG && (
                 <>
