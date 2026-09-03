@@ -2034,7 +2034,7 @@ function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onLog, onGo })
   // 1) Taper into a game ≤3 days out.
   if (fx.nextGame) {
     const d = dayDiff(fx.nextGame.date, today);
-    if (d >= 0 && d <= 3) A.push({ k: 'Game', sev: 'game', do: `Taper into ${fx.nextGame.opponent ? 'vs ' + fx.nextGame.opponent : 'the game'} · ${d === 0 ? 'today' : d + 'd'}`, why: 'hold intensity, cut volume ~40–60%.' });
+    if (d >= 0 && d <= 3) A.push({ k: 'Game', sev: 'game', do: `${tr('Taper into')} ${fx.nextGame.opponent ? tr('vs') + ' ' + fx.nextGame.opponent : tr('the game')} · ${d === 0 ? tr('today') : d + tr('d')}`, why: tr('hold intensity, cut volume ~40–60%.') });
   }
   // 2) ACWR danger (>1.5) then elevated (1.3–1.5) — Gabbett sweet spot 0.8–1.3.
   const danger = rows.filter((r) => r.acwr.band.key === 'high');
@@ -2047,7 +2047,7 @@ function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onLog, onGo })
   const games = (fixtures || []).filter((f) => f.type === 'game' && f.date >= today).sort((a, b) => a.date.localeCompare(b.date));
   for (let i = 0; i < games.length - 1; i++) {
     const gap = dayDiff(games[i + 1].date, games[i].date);
-    if (gap > 0 && gap < 4) { A.push({ k: 'Fixtures', sev: 'amber', do: `Congestion ${monDay(games[i].date)}–${monDay(games[i + 1].date)}`, why: `${gap}-day turnaround between games — rotate minutes and protect MD+1 recovery.` }); break; }
+    if (gap > 0 && gap < 4) { A.push({ k: 'Fixtures', sev: 'amber', do: `${tr('Congestion')} ${monDay(games[i].date)}–${monDay(games[i + 1].date)}`, why: `${gap}${tr('-day turnaround between games - rotate minutes and protect MD+1 recovery.')}` }); break; }
   }
   // 4) Injuries in rehab.
   const injured = rows.filter((r) => activeInjuries(medical, r.t.id).length);

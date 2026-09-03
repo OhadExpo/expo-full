@@ -47,6 +47,25 @@ export const HE = {
   // that reaches the screen without an entry here renders in English inside a
   // Hebrew zone, which is the coverage gap he has called out before.
   Focus: 'פוקוס',
+  // The COPY control moved into the head-coach report header when the two
+  // reports merged; it had been rendering in English inside a Hebrew zone.
+  Copy: 'העתק',
+  Copied: 'הועתק',
+  // S&C brief row kinds. Game / Medical / Sessions already had entries; these
+  // four did not, so a Hebrew brief mixed scripts down its own label column.
+  Setup: 'הקמה',
+  // The two S&C brief lines that were still built from hardcoded English.
+  'Taper into': 'הפחתת עומס לקראת',
+  'the game': 'המשחק',
+  // Lower-case 'today' is a separate key from the capitalised label.
+  today: 'היום',
+  'hold intensity, cut volume ~40–60%.': 'לשמור על העוצמה, להוריד כמחצית מהנפח.',
+  Congestion: 'צפיפות משחקים',
+  '-day turnaround between games - rotate minutes and protect MD+1 recovery.': ' ימים בין המשחקים — לסובב דקות ולשמור על ההתאוששות ביום שאחרי.',
+  d: ' ימים',
+  Load: 'עומס',
+  Readiness: 'מוכנות',
+  Fixtures: 'משחקים',
   'no focus written': 'לא נכתב פוקוס',
   // Competition stages, from the league feed's own board names.
   'Quarter Final': 'רבע גמגר',
