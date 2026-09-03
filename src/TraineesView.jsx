@@ -869,7 +869,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                       identity block, so a couple card's first row (name +
                       WhatsApp) and its section dividers line up with single
                       cards across the grid, always. */}
-                  <div style={{display:'flex',width:'100%',alignSelf:'stretch',height:80,paddingTop:4,boxSizing:'border-box'}}>
+                  <div className="tv-contact-slot" style={{display:'flex',width:'100%',alignSelf:'stretch',height:88,flexShrink:0,paddingTop:4,boxSizing:'border-box'}}>
                     {[m0, m1].map((m, mi) => (
                       <React.Fragment key={mi}>
                         {mi === 1 && <div style={{width:1,background:C.bd,margin:'0 12px',alignSelf:'stretch'}} />}
@@ -910,8 +910,8 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                       const W = 96, H = 22;
                       const memberLabel = (m.name || `Member ${mi+1}`).split(' ')[0].toUpperCase();
                       return (
-                        <div key={mi} style={{flex:1,minWidth:0,display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
-                          <div style={{fontFamily:FN,fontSize:9,color:C.tm,letterSpacing:1,fontWeight:700}}>{memberLabel}</div>
+                        <div key={mi} style={{flex:1,minWidth:0,display:'flex',flexDirection:'row',alignItems:'center',justifyContent:'center',gap:6}}>
+                          <div style={{fontFamily:FN,fontSize:9,color:C.tm,letterSpacing:1,fontWeight:700,flexShrink:0}}>{memberLabel}</div>
                           <div style={{width:'100%',maxWidth:160}}>
                             {hasData ? (
                               <CardBWSparkline entries={memberBw} />
