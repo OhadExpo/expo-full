@@ -1483,8 +1483,21 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
             );
           })}
         </div>
-        <div>
-          <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, marginBottom: 6 }}>Full history{activity.length ? ` (${activity.length})` : ''}</div>
+        {/* FULL HISTORY IS A CARD LIKE THE REST OF THE POPUP. League Stats,
+            the load strip and Medical are each a bordered card with a header
+            row; this one was a bare 9px label with the list hanging off it, so
+            the fourth section read as an afterthought against three cards.
+            Measured at 1500: all four already share x=428.8 and w=630.4, so
+            only the header was out of step. It takes Medical's shape - the
+            neutral card - rather than League Stats' filled navy strip, which
+            belongs to the marquee block. */}
+        <div style={{ border: `1px solid ${C.cardBd}`, borderInlineStart: `3px solid ${C.cardBd}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderBottom: activity.length ? `1px solid ${C.cardBd}` : 'none' }}>
+            <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tx }}>Full history</span>
+            {activity.length ? (
+              <span style={{ marginInlineStart: 'auto', fontFamily: FN, fontSize: 11, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{activity.length}</span>
+            ) : null}
+          </div>
           {/* The cut must land ON a divider, never through a row: the pitch is
               pinned at 33 (font-independent, so Heebo cannot shift it) and the cap
               is a whole number of rows plus the 2px border-box border.
