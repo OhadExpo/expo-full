@@ -829,19 +829,33 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
              rows is the REASON: on 301px the instruction alone needs two lines,
              and the reason adds two more. The instruction and its action are
              what a coach acts on; the reason is on the card he lands on. */
-          .bhbc-brief-row > *:nth-child(4){display:none!important}
+          /* INDICES SHIFTED when the severity dot left the flow (it is
+             absolutely positioned off the instruction now, so the row's
+             children are label / instruction / reason / button). These rules
+             still counted the dot, so :nth-child(4) hid the BUTTON instead of
+             the reason — measured at 390, the action rendered 0x0 and every
+             brief row became a dead end. */
+          .bhbc-brief-row > *:nth-child(3){display:none!important}
           /* ...and the label and button are desktop measures too: 74 + 96 of a
              301px row left the instruction 139px. The dot colour already
              carries severity and the button names the destination, so the
              label can be narrow. */
           .bhbc-brief-row{gap:8px!important}
-          .bhbc-brief-row > *:nth-child(2){width:48px!important;font-size:8.5px!important;letter-spacing:0.08em!important}
-          .bhbc-brief-row > *:nth-child(5){width:78px!important}
+          .bhbc-brief-row > *:nth-child(1){width:48px!important;font-size:8.5px!important;letter-spacing:0.08em!important}
+          .bhbc-brief-row > *:nth-child(4){width:78px!important}
+          /* THE DOT NEEDS A GUTTER, and on a phone there is none: the label is
+             the row's first column, so a dot hung 21px to the left of the
+             instruction lands ON the label - measured, "SETUP" ended at 74 and
+             the dot sat at 61. It moves onto the label itself, where the row
+             already has room, and takes the severity colour through --sev. */
+          .bhbc-brief-dot{display:none!important}
+          .bhbc-brief-row > *:nth-child(1){display:inline-flex!important;align-items:center;gap:5px}
+          .bhbc-brief-row > *:nth-child(1)::before{content:'';flex:0 0 auto;width:7px;height:7px;border-radius:50%;background:var(--sev,currentColor)}
           /* The instruction's 170px flex-basis is larger than the 137px the row
              can give it, so flex-wrap pushed it onto its OWN line and every
              item cost three. A basis it can actually have keeps it beside its
              label. */
-          .bhbc-brief-row > *:nth-child(3){flex:1 1 110px!important}
+          .bhbc-brief-row > *:nth-child(2){flex:1 1 110px!important}
           /* RTP ladder: 30px + 150px + gaps left the description 75.8px, so it
              broke words mid-syllable - PROGRESSI/VELY, ISOMETRIC/S,
              RESTRICTI/ONS - and the grid ran 933px for six one-line sentences.
@@ -2071,7 +2085,7 @@ function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onLog, onGo })
               <div key={i} onClick={click || undefined} className={click ? 'bhbc-row bhbc-brief-row' : 'bhbc-brief-row'}
                   role={click ? 'button' : undefined} tabIndex={click ? 0 : undefined}
                   onKeyDown={click ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); click(); } }) : undefined}
-                style={{ display: 'flex', alignItems: 'center', gap: 14, rowGap: 6, flexWrap: 'wrap', minHeight: 32, boxSizing: 'border-box', padding: '6px 2px', borderBottom: `1px solid ${i < top.length - 1 ? C.cardBd : 'transparent'}`, cursor: click ? 'pointer' : 'default' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 14, rowGap: 6, flexWrap: 'wrap', minHeight: 32, boxSizing: 'border-box', padding: '6px 2px', borderBottom: `1px solid ${i < top.length - 1 ? C.cardBd : 'transparent'}`, cursor: click ? 'pointer' : 'default', '--sev': sevColor[a.sev] }}>
                 {/* Center the dot on the first text line. The +4px offset accounts for
                     Nord's bottom-heavy line box (measured: line-center sits ~4px below
                     the CSS line-box center). Ohad: dot must be vertically centered. */}
@@ -2092,7 +2106,7 @@ function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onLog, onGo })
                     out one word per line. The instruction is the point of the row;
                     the button drops to its own line before the text gives way. */}
                 <div style={{ minWidth: 0, lineHeight: 'normal', fontSize: 13, flex: '1 1 170px', position: 'relative' }}>
-                  <span aria-hidden style={{ position: 'absolute', insetInlineStart: -21, top: '50%', transform: 'translateY(-50%)', width: 7, height: 7, borderRadius: '50%', background: sevColor[a.sev] }} />
+                  <span aria-hidden className="bhbc-brief-dot" style={{ position: 'absolute', insetInlineStart: -21, top: '50%', transform: 'translateY(-50%)', width: 7, height: 7, borderRadius: '50%', background: sevColor[a.sev] }} />
                   <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.02em', color: C.tx }}>{a.do}</span>
                 </div>
                 <div style={{ fontFamily: FB, fontSize: 13, color: C.tm, lineHeight: 'normal', textAlign: 'start', flex: '0 1 240px', minWidth: 0 }}>{a.why}</div>
