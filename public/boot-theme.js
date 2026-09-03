@@ -33,8 +33,21 @@
     // it, so the remote preference can be read HERE, synchronously, before the
     // first paint - no network, and the value useTheme would have applied
     // anyway. Any failure falls through to the local value below.
+    // ONLY WHEN THERE IS NO LOCAL CHOICE.
+    //
+    // The first version of this read the remote preference and applied it on
+    // every load, which overrode a choice made on THIS device — the theme
+    // stability gate caught it flipping 37 routes from light back to dark, and
+    // it is a variant of the exact bug he reported on 09-02 ("when i click on
+    // dashboard it automatically turns it to light mode").
+    //
+    // The flash this was written to kill happens on a FIRST login, where there
+    // is no local value at all — so filling in from the session only in that
+    // case removes the flash and never overrules him. A genuine cross-device
+    // change is still picked up by useTheme's own once-per-load sync, which has
+    // its own guards.
     var remote = null;
-    try {
+    if (!saved) try {
       for (var i = 0; i < localStorage.length; i++) {
         var k = localStorage.key(i);
         if (!k || !/^sb-.*-auth-token$/.test(k)) continue;
