@@ -2280,7 +2280,10 @@ function ProgramModal({ athleteName, plans, exercises, currentWeek = 1, onClose 
                             <div style={{ display: 'flex', gap: 8, minWidth: 0, alignItems: 'flex-start' }}>
                               <span style={{ width: 16, flexShrink: 0, fontFamily: FN, fontSize: 11, fontWeight: 700, color: open ? ORANGE_DEEP : C.tm, fontVariantNumeric: 'tabular-nums', lineHeight: 1.35 }}>{ri + 1}</span>
                               <span style={{ minWidth: 0, flex: 1, fontFamily: FB, fontSize: 13, fontWeight: 700, color: C.tx, overflowWrap: 'break-word', lineHeight: 1.3 }}>{r.title}</span>
-                              <span aria-hidden style={{ flexShrink: 0, fontSize: 11, color: open ? ORANGE_DEEP : C.tm, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s', lineHeight: 1.3 }}>▾</span>
+                              <svg aria-hidden width="9" height="6" viewBox="0 0 9 6" fill="none"
+                                style={{ flexShrink: 0, marginTop: 4, color: open ? ORANGE_DEEP : C.tm, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>
+                                <path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3, minWidth: 0, paddingInlineStart: 24 }}>
                               <span dir="ltr" style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate', whiteSpace: 'nowrap', flexShrink: 0 }}>{r.rx || '—'}</span>
