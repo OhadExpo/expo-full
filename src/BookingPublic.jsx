@@ -254,7 +254,7 @@ export default function BookingPublic() {
         ) : Object.entries(groupedByDay).map(([day, daySlots]) => (
           <div key={day} style={{ marginBottom: 14 }}>
             <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.12em', fontWeight: 700, marginBottom: 6 }}>
-              {new Date(day + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase()}
+              {new Date(day + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }).toUpperCase()}
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {daySlots.map((s, i) => {

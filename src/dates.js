@@ -48,6 +48,21 @@ export function fmtCompactDate(input, fallback = '—') {
   return `${d.getDate()} ${MONTH_ABBR[d.getMonth()]} ${d.getFullYear()}`;
 }
 
+// Numeric variant: "03/09/2026" — DAY / MONTH / YEAR, always, in every locale.
+// Ohad 2026-09-03: "on bhbc and expo make sure dates are displayed as
+// day/month/year" ... "everywhere!!!!!!!". A bare `toLocaleDateString()` follows
+// the MACHINE's locale, which on this Windows box is en-US and renders 3rd
+// September as "9/3/2026" — the same string an Israeli reads as 9th March. This
+// is built from the parts rather than delegating to a locale, so it cannot
+// silently flip on someone else's machine.
+export function fmtNumericDate(input, fallback = '—') {
+  if (input == null || input === '') return fallback;
+  const d = input instanceof Date ? input : new Date(input);
+  if (isNaN(d.getTime())) return String(input);
+  const p = (n) => String(n).padStart(2, '0');
+  return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()}`;
+}
+
 // Age in whole years from a date-of-birth (ISO string / Date). Returns null for
 // missing/unparseable input or an implausible result, so a blank DOB never
 // fabricates an age. Used to prefill the Evaluation's AGE from intake DOB.

@@ -5,6 +5,7 @@
 // → FIX GUIDE (what / why / how). Engine: shotAnalysis.js (pure, tested).
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { C, FN, FB } from './theme';
+import { fmtNumericDate } from './dates';
 import { toast } from './ui';
 import { captureShotFrames } from './shotCapture';
 import { getCamera, stopStream } from './usePose';
@@ -247,18 +248,38 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
 
   return (
     <div className="shot-stage" style={stage} dir={T.dir}>
+      {/* The top bar is the PARENT's, and it is on screen before any clip is
+          analysed - so its rules cannot live in the results stylesheet. */}
+      <style>{`
+        @media (max-width: 620px) {
+          /* The spacer pushes the controls right on one desktop row. Once the
+             bar wraps it just eats the leading space of whatever row it lands
+             on. */
+          .shot-bar-spacer { display: none !important; }
+          /* The label indent separates groups on ONE line; once each group
+             owns a row it is only a ragged left edge. */
+          .shot-ctl-group { margin-inline-start: 0 !important; }
+          .shot-ctl-group > span:first-child { margin-inline-start: 0 !important; }
+          /* Reserving 62px so a confirmation cannot shift the bar is right on
+             one row. Wrapped, that invisible width landed at the head of the
+             HEIGHT row and pushed it 87.6px in while HAND and SHOT sat at 14. */
+          .shot-rescored { min-width: 0 !important; }
+          .shot-rescored[data-on="0"] { display: none !important; }
+        }
+      `}</style>
       {/* top bar */}
       <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.12)', background: 'rgba(0,0,0,0.92)', flexWrap: 'wrap' }}>
         <button onClick={onClose} style={{ ...ghost, ...boxed(CTL_SM), padding: '0 12px', fontSize: 10 }}>{T.back}</button>
         <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', color: CYAN }}>{toolLabel}</div>
         <button onClick={() => setLangPersist(lang === 'he' ? 'en' : 'he')} title={T.langTitle} style={{ ...chip(false), fontSize: 10 }}>{T.langBtn}</button>
-        <div style={{ flex: 1 }} />
+        <div className="shot-bar-spacer" style={{ flex: 1 }} />
         {/* Every option stays on screen (Ohad 08-24: "it was way better with the
             options"). The bug that made this look broken was never the layout —
             it was the SELECTED chip painting itself with the theme accent, which
             is near-black in the light theme on this always-dark stage. chip()
             now pins the literal cyan, so both rows read correctly. AUTO stays a
             badge on the hand the clip itself reported. */}
+        <span className="shot-ctl-group" style={{ display: 'inline-flex', alignItems: 'center', gap: 12, flexWrap: 'nowrap' }}>
         <span style={lbl}>{T.hand}</span>
         <button
           onClick={() => { setHandMode('auto'); try { localStorage.setItem(HAND_KEY, 'auto'); } catch { /* private mode */ } const h = detectedHand || 'R'; rescore(h, stature, shotType); }}
@@ -286,6 +307,8 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
             title={T.handHint}
             style={chip(handMode === k || (handMode === 'auto' && hand === k))}>{label}{handMode === 'auto' && detectedHand === k ? ' · AUTO' : ''}</button>
         ))}
+        </span>
+        <span className="shot-ctl-group" style={{ display: 'inline-flex', alignItems: 'center', gap: 12, flexWrap: 'nowrap' }}>
         <span style={{ ...lbl, marginInlineStart: 10 }}>{T.shot}</span>
         {SHOT_TYPES.map((t) => (
           <button key={t.key}
@@ -293,8 +316,10 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
             title={T.shotHint}
             style={chip(shotType === t.key)}>{(T.shotTypes[t.key] || t.label).toUpperCase()}</button>
         ))}
-        <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: '#37B27C',
+        </span>
+        <span className="shot-rescored" data-on={rescored ? '1' : '0'} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: '#37B27C',
           minWidth: 62, opacity: rescored ? 1 : 0, transition: 'opacity .15s' }}>{T.rescored}</span>
+        <span className="shot-ctl-group" style={{ display: 'inline-flex', alignItems: 'center', gap: 12, flexWrap: 'nowrap' }}>
         <span style={{ ...lbl, marginInlineStart: 10 }}>{T.height}</span>
         <input ref={heightBoxRef} value={stature}
           onChange={(e) => { statureRef.current = e.target.value; setStature(e.target.value); setHeightSaved(false); }}
@@ -305,6 +330,7 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
         {/* Height feeds the cm conversions — say so when it lands (Ohad 08-24). */}
         <span style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', color: heightSaved ? '#37B27C' : 'rgba(255,255,255,0.35)', minWidth: 74 }}>
           {heightSaved ? (phase === 'results' ? T.rescored : T.savedCm) : (String(stature).trim() ? T.cmUnit : '')}
+        </span>
         </span>
       </div>
 
@@ -625,6 +651,8 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
            each scroll on their own, and the video is capped vertically so the
            transport, the read-out and the actions all sit above the fold
            (Ohad 08-24: "i want everything to fit without scrolling"). */
+        /* (top-bar mobile rules live in the PARENT — this block only
+           renders once there are results.) */
         @media (min-width: 980px) {
           .shot-wrap { overflow: hidden !important; }
           .shot-results { flex-wrap: nowrap !important; height: 100%; min-height: 0; align-items: stretch !important; }
@@ -820,7 +848,7 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
             const better = moved.filter((m) => m.better);
             const worse = moved.filter((m) => !m.better);
             const d = new Date(prevSaved.date);
-            const when = Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString();
+            const when = Number.isNaN(d.getTime()) ? '' : fmtNumericDate(d, '');
             const delta = typeof shot.score === 'number' ? shot.score - prevSaved.score : null;
             return (
               <div style={{ border: '1px solid rgba(255,255,255,0.15)', padding: '10px 12px', marginBottom: 14, fontSize: 12.5, lineHeight: 1.6 }}>
@@ -1025,8 +1053,8 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
                 <div key={a.date} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 60px', alignItems: 'center', gap: 8, padding: '3px 0', fontSize: 12.5 }}>
                   <span dir="ltr" style={{ unicodeBidi: 'isolate', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {T.savedRow
-                      ? T.savedRow(new Date(a.date).toLocaleDateString(), a.score, a.shots ?? 1)
-                      : `${new Date(a.date).toLocaleDateString()} - ${a.score}/100`}
+                      ? T.savedRow(fmtNumericDate(a.date), a.score, a.shots ?? 1)
+                      : `${fmtNumericDate(a.date)} - ${a.score}/100`}
                   </span>
                   <button onClick={() => dropSaved(a.date)} style={{ ...chip(false), fontSize: 9 }} title={T.savedDrop || 'Remove'}>{T.savedDrop || 'Remove'}</button>
                 </div>
