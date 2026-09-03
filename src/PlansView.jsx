@@ -581,20 +581,13 @@ const rxOf = (ex) => {
 //   * per-week sets stay as "3·3·4·4": that IS the block's progression, and a
 //     template that flattened it to "3" would be a different block
 function PlanPrintSheet({ plan, athleteName, exercises }) {
-  // THE PRINTED BLOCK IS A DOCUMENT HE HANDS TO AN ATHLETE, not a screen dump.
-  // Ohad: "the pdf export looks awful. become a graphic designer and apply my
-  // branding and full instructions for every exercise."
+  // THE PRINTED BLOCK — EXPO's light theme on paper, and the whole of what the
+  // coach wrote. Ohad: "make sure it's fully expo branded", "one workout day per
+  // one page", "all the info like tempo and everything else (supersets or
+  // whatever i added) will be displayed".
   //
-  // Three things that makes concrete:
-  //   BRAND      — the EXPO wordmark, the cyan rule, Nord for every heading.
-  //                Backgrounds survive because print-color-adjust is forced in
-  //                the stylesheet; without it a browser drops them and the
-  //                identity goes with them.
-  //   INSTRUCTIONS — every exercise carries its LIBRARY cues, not just the
-  //                one-line plan note. That is the difference between a list
-  //                of names and something an athlete can train from alone.
-  //   TYPOGRAPHY — one scale, one rhythm, and rules that keep an exercise and
-  //                its instructions on the same page.
+  // Nothing the editor can set is dropped here. A field he filled in and cannot
+  // find on the page is worse than a page that is a little denser.
   const exById = React.useMemo(() => {
     const m = new Map();
     for (const e of (exercises || [])) m.set(e.id, e);
@@ -602,42 +595,85 @@ function PlanPrintSheet({ plan, athleteName, exercises }) {
   }, [exercises]);
   const libOf = (ex) => exById.get(ex.exerciseId || ex.eid || '') || {};
   const titleOf = (ex) => ex.title || libOf(ex).title || libOf(ex).t || '—';
-  // The plan's own note is a SNAPSHOT of the library cue taken when the block
-  // was written, so prefer it — it is what the coach actually prescribed — and
-  // fall back to the library's current text when the row carries none.
+  // The plan's own note is the snapshot the coach prescribed, so it wins; the
+  // library's current cue fills in where a row carries none.
   const cueOf = (ex) => String(ex.notes || ex.n || libOf(ex).cues || '').trim();
   const days = Array.isArray(plan?.days) ? plan.days : [];
   const warm = plan?.warmup || plan?.warmUp || [];
   const weeks = Math.max(1, Number(plan?.weeks) || 4);
   const printedOn = fmtNumericDate(new Date());
+  const setsOf = (list) => list.reduce((n, ex) => {
+    const v = parseInt(ex?.sets ?? ex?.s, 10);
+    return n + (Number.isFinite(v) ? v : 0);
+  }, 0);
 
-  const Day = ({ label, rows, index }) => (
+  // Everything the editor can attach to a row, in one place, so adding a field
+  // to the editor and forgetting the export cannot happen silently.
+  const metaOf = (ex) => {
+    const lib = libOf(ex);
+    const out = [];
+    const tempo = ex.tempo || lib.tempo;
+    if (tempo) out.push(['Tempo', tempo]);
+    if (ex.rest) out.push(['Rest', ex.rest]);
+    if (ex.rpe) out.push(['RPE', ex.rpe]);
+    if (ex.load) out.push(['Load', ex.load]);
+    if (ex.pct) out.push(['%1RM', ex.pct]);
+    if (ex.unit) out.push(['Unit', ex.unit]);
+    if (ex.side) out.push(['Side', ex.side]);
+    // Per-week progression, when the block actually varies week to week.
+    const wk = Array.isArray(ex.wk) ? ex.wk.map((v) => String(v ?? '').trim()) : [];
+    const wkS = Array.isArray(ex.wkS) ? ex.wkS.map((v) => String(v ?? '').trim()) : [];
+    const n = Math.max(wk.length, wkS.length);
+    const cells = [];
+    for (let i = 0; i < n; i++) {
+      const r = wk[i] || '', st = wkS[i] || '';
+      cells.push(st && r ? st + '\u00d7' + r : (r || st || ''));
+    }
+    const varies = cells.filter(Boolean).length > 1 && new Set(cells.filter(Boolean)).size > 1;
+    return { fields: out, weekly: varies ? cells : null };
+  };
+
+  const Day = ({ label, rows, index, firstPage }) => (
     rows.length === 0 ? null : (
-      <section className="pp-day">
+      <section className={'pp-day' + (firstPage ? '' : ' pp-day-break')}>
         <div className="pp-day-head">
-          <span className="pp-day-n">{index == null ? '' : String(index).padStart(2, '0')}</span>
+          {index != null && <span className="pp-day-n">{String(index).padStart(2, '0')}</span>}
           <span className="pp-day-name"><bdi>{label}</bdi></span>
-          <span className="pp-day-count">{rows.length} {rows.length === 1 ? 'exercise' : 'exercises'}</span>
+          <span className="pp-day-count">{rows.length} {rows.length === 1 ? 'exercise' : 'exercises'}{setsOf(rows) ? ` \u00b7 ${setsOf(rows)} sets` : ''}</span>
         </div>
         {rows.map((ex, i) => {
           const cue = cueOf(ex);
           const rx = rxOf(ex);
+          const { fields, weekly } = metaOf(ex);
+          const ss = ex.superset || '';
           return (
-            <article className="pp-ex" key={i}>
+            <article className={'pp-ex' + (ss ? ' pp-ex-ss' : '')} key={i}>
               <div className="pp-ex-top">
                 <span className="pp-ex-n">{i + 1}</span>
+                {/* A superset letter is a GROUPING, and losing it on paper turns
+                    two paired lifts into two separate ones. */}
+                {ss ? <span className="pp-ss" title={'Superset ' + ss}>{ss}</span> : null}
                 <span className="pp-ex-title"><bdi>{titleOf(ex)}</bdi></span>
-                <span className="pp-ex-rx" dir="ltr">{rx || ''}</span>
+                <span className="pp-ex-rx" dir="ltr">{rx || '—'}</span>
               </div>
-              {(ex.tempo || libOf(ex).tempo) ? (
-                <div className="pp-ex-meta">Tempo {ex.tempo || libOf(ex).tempo}</div>
-              ) : null}
-              {/* FULL instructions, kept with the exercise they belong to. A cue
-                  written as several lines stays several lines. */}
+              {fields.length > 0 && (
+                <div className="pp-ex-meta">
+                  {fields.map(([k, v]) => (
+                    <span className="pp-meta-item" key={k}><span className="pp-meta-k">{k}</span><span className="pp-meta-v" dir="ltr">{String(v)}</span></span>
+                  ))}
+                </div>
+              )}
+              {weekly && (
+                <div className="pp-weeks">
+                  {weekly.map((c, wi) => (
+                    <span className="pp-week" key={wi}><span className="pp-week-n">{'W' + (wi + 1)}</span><span className="pp-week-v" dir="ltr">{c || '—'}</span></span>
+                  ))}
+                </div>
+              )}
               {cue ? (
-                <div className="pp-ex-cue">
+                <div className="pp-ex-cue" dir={/[֐-׿]/.test(cue) ? 'rtl' : 'ltr'}>
                   {cue.split(/\n+/).filter(Boolean).map((line, li) => (
-                    <div key={li} className="pp-cue-line"><bdi>{line}</bdi></div>
+                    <div key={li} className="pp-cue-line" dir="auto">{line}</div>
                   ))}
                 </div>
               ) : null}
@@ -648,6 +684,7 @@ function PlanPrintSheet({ plan, athleteName, exercises }) {
     )
   );
 
+  const warmRows = (warm || []).filter(Boolean);
   return (
     <div className="plan-print" aria-hidden="true">
       <header className="pp-head">
@@ -664,21 +701,22 @@ function PlanPrintSheet({ plan, athleteName, exercises }) {
         </div>
       </header>
 
-      <Day label="Warm-up" rows={(warm || []).filter(Boolean)} index={null} />
+      <Day label="Warm-up" rows={warmRows} index={null} firstPage />
       {days.map((d, i) => (
-        <Day key={i} label={d.name || d.n || ('Day ' + (i + 1))} rows={((d.exercises || d.ex || []).filter(Boolean))} index={i + 1} />
+        <Day key={i} label={d.name || d.n || ('Day ' + (i + 1))} rows={((d.exercises || d.ex || []).filter(Boolean))}
+          index={i + 1} firstPage={i === 0 && warmRows.length === 0} />
       ))}
 
       {plan?.notes ? (
         <section className="pp-notes">
           <div className="pp-notes-h">Block notes</div>
-          <div className="pp-notes-b"><bdi>{plan.notes}</bdi></div>
+          <div className="pp-notes-b" dir="auto"><bdi>{plan.notes}</bdi></div>
         </section>
       ) : null}
 
       <footer className="pp-foot">
-        <span>EXPO · {athleteName ? <bdi>{athleteName}</bdi> : 'Training block'}</span>
-        <span>{plan?.name || ''}</span>
+        <span>EXPO{athleteName ? ' · ' : ''}{athleteName ? <bdi>{athleteName}</bdi> : null}</span>
+        <span><bdi>{plan?.name || ''}</bdi></span>
       </footer>
     </div>
   );
