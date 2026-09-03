@@ -930,11 +930,39 @@ html.theme-switching *::after {
   .plan-print .pp-sub .pp-athlete { color: #0E0F12; font-weight: 700; letter-spacing: 0.1em; }
 
   /* ---- a DAY is a card: cyan strip + white body inside a cyan hairline ---- */
+  /* A DAY FILLS ITS PAGE. It is one day per page, and a five-exercise day used
+     to sit in the top third of an otherwise blank sheet - 71% of page 5 was
+     empty, which reads as a broken export rather than a designed one. The card
+     now spans the printable height (A4 297mm less the 12/15mm page margins) so
+     the sheet is framed on purpose, and its footer is pushed to the foot of
+     the page. 266 not 270, so a hairline of rounding never spills a blank
+     second page. */
   .plan-print .pp-day {
-    margin: 0 0 12px;
+    margin: 0;
     border: 1px solid rgba(57,189,255,0.32);
     break-inside: auto;
+    display: flex; flex-direction: column;
+    min-height: 266mm;
   }
+  /* The first day shares its page with the masthead, so it gets that height
+     back rather than pushing itself onto page two. */
+  .plan-print .pp-day-first { min-height: 232mm; }
+  /* The rows SHARE the page rather than stacking at the top of it. A five-lift
+     day left 65% of the sheet blank under a frame, which reads as a truncated
+     export; spread down the page it reads as a form, and the space beside each
+     lift is where a coach writes. A day whose content already exceeds the page
+     is unaffected - there is nothing left to distribute. */
+  .plan-print .pp-day-body { flex: 1 1 auto; display: flex; flex-direction: column; }
+  .plan-print .pp-day-body > .pp-ex { flex: 1 1 auto; }
+  /* Identification on EVERY sheet: nine loose pages are unusable without it. */
+  .plan-print .pp-day-foot {
+    flex: 0 0 auto;
+    display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+    margin: 10px 11px 9px; padding-top: 7px;
+    border-top: 2px solid #39BDFF !important;
+    font-size: 8px; letter-spacing: 0.14em; text-transform: uppercase; color: #7B8390;
+  }
+  .plan-print .pp-day-foot > *:first-child { color: #0E0F12; font-weight: 700; }
   /* ONE WORKOUT DAY PER PAGE. Ohad: "make sure it's one workout day per one
      page." The first block on the sheet keeps the masthead company; every day
      after it starts its own page. */

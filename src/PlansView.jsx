@@ -573,11 +573,18 @@ const rxOf = (ex) => {
 // picks "Save as PDF" (or a printer) in the dialog he already knows.
 //
 // Rules this layout follows, because a template is read on paper:
-//   * one <table> per day, and days never split across a page (break-inside)
-//   * the header repeats on every page (thead), so page 3 still says whose
-//     block it is
-//   * black on white with hairline rules - the app's dark palette would eat a
-//     cartridge and print grey on grey
+//   * ONE DAY PER PAGE, as a full-height card - the day is the unit a coach
+//     carries to the floor, and a day split across a fold is unusable
+//   * every page identifies itself in its own footer: EXPO, the athlete, the
+//     block and "day N of M". Nine loose sheets are worthless without it, and
+//     this is the one thing the rebuild below lost when it replaced the old
+//     table (whose thead repeated) with sections
+//   * the rows SHARE the page height rather than stacking at the top of it,
+//     so a five-lift day reads as a form with room to write beside each lift
+//     instead of a third of a sheet under a frame
+//   * EXPO's LIGHT theme, not black on white: cyan strip headers on white
+//     inside a cyan hairline, which is the app's own card. Every brand surface
+//     forces print-color-adjust or the browser drops the colour
 //   * per-week sets stay as "3·3·4·4": that IS the block's progression, and a
 //     template that flattened it to "3" would be a different block
 function PlanPrintSheet({ plan, athleteName, exercises }) {
@@ -633,14 +640,15 @@ function PlanPrintSheet({ plan, athleteName, exercises }) {
     return { fields: out, weekly: varies ? cells : null };
   };
 
-  const Day = ({ label, rows, index, firstPage }) => (
+  const Day = ({ label, rows, index, firstPage, total }) => (
     rows.length === 0 ? null : (
-      <section className={'pp-day' + (firstPage ? '' : ' pp-day-break')}>
+      <section className={'pp-day' + (firstPage ? ' pp-day-first' : ' pp-day-break')}>
         <div className="pp-day-head">
           {index != null && <span className="pp-day-n">{String(index).padStart(2, '0')}</span>}
           <span className="pp-day-name"><bdi>{label}</bdi></span>
           <span className="pp-day-count">{rows.length} {rows.length === 1 ? 'exercise' : 'exercises'}{setsOf(rows) ? ` \u00b7 ${setsOf(rows)} sets` : ''}</span>
         </div>
+        <div className="pp-day-body">
         {rows.map((ex, i) => {
           const cue = cueOf(ex);
           const rx = rxOf(ex);
@@ -680,6 +688,16 @@ function PlanPrintSheet({ plan, athleteName, exercises }) {
             </article>
           );
         })}
+        </div>
+        {/* EVERY PAGE SAYS WHOSE BLOCK IT IS. One day per page means nine loose
+            sheets, and page 5 previously carried only "DAY 2" - no athlete, no
+            block, no number. The rebuild is what dropped that; the old table
+            layout repeated its header through thead. */}
+        <div className="pp-day-foot">
+          <span>EXPO{athleteName ? ' · ' : ''}{athleteName ? <bdi>{athleteName}</bdi> : null}</span>
+          <span><bdi>{plan?.name || ''}</bdi></span>
+          <span>{index != null ? `Day ${index} of ${total}` : 'Warm-up'}</span>
+        </div>
       </section>
     )
   );
@@ -701,10 +719,10 @@ function PlanPrintSheet({ plan, athleteName, exercises }) {
         </div>
       </header>
 
-      <Day label="Warm-up" rows={warmRows} index={null} firstPage />
+      <Day label="Warm-up" rows={warmRows} index={null} firstPage total={days.length} />
       {days.map((d, i) => (
         <Day key={i} label={d.name || d.n || ('Day ' + (i + 1))} rows={((d.exercises || d.ex || []).filter(Boolean))}
-          index={i + 1} firstPage={i === 0 && warmRows.length === 0} />
+          index={i + 1} firstPage={i === 0 && warmRows.length === 0} total={days.length} />
       ))}
 
       {plan?.notes ? (
@@ -714,10 +732,6 @@ function PlanPrintSheet({ plan, athleteName, exercises }) {
         </section>
       ) : null}
 
-      <footer className="pp-foot">
-        <span>EXPO{athleteName ? ' · ' : ''}{athleteName ? <bdi>{athleteName}</bdi> : null}</span>
-        <span><bdi>{plan?.name || ''}</bdi></span>
-      </footer>
     </div>
   );
 }
