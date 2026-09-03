@@ -306,6 +306,12 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
            empty, they are what the FILTER BY controls are for, and the GRID
            view shows every field per card - leaving name, media and the two
            actions, which fit. */
+        @media (min-width: 701px) and (max-width: 1200px) {
+          .ex-table .ex-taxo { display: none !important; }
+          .ex-table { table-layout: auto !important; width: 100% !important; }
+          .ex-table col:first-child { width: auto !important; }
+          .ex-table .ex-name { max-width: none !important; }
+        }
         @media (max-width: 700px) {
           .ex-table { display: table !important; width: 100% !important; table-layout: auto !important; white-space: normal !important; overflow-x: visible !important; }
           .ex-table th, .ex-table td { white-space: normal !important; }
@@ -440,14 +446,14 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
                   stay wide enough for their populated values and 2-line headers.
                   All %s still sum to 100 → no horizontal scroll. (Ohad #219.) */}
               <col style={{ width: '30%' }} />
-              <col style={{ width: '8%' }} />
-              <col style={{ width: '8%' }} />
-              <col style={{ width: '9%' }} />
-              <col style={{ width: '9%' }} />
-              <col style={{ width: '10%' }} />
-              <col style={{ width: '9%' }} />
-              <col style={{ width: '9%' }} />
-              <col style={{ width: '48px' }} />
+              <col className="ex-taxo" style={{ width: '8%' }} />
+              <col className="ex-taxo" style={{ width: '8%' }} />
+              <col className="ex-taxo" style={{ width: '9%' }} />
+              <col className="ex-taxo" style={{ width: '9%' }} />
+              <col className="ex-taxo" style={{ width: '10%' }} />
+              <col className="ex-taxo" style={{ width: '9%' }} />
+              <col className="ex-taxo" style={{ width: '9%' }} />
+              <col style={{ width: '58px' }} />
               <col style={{ width: '56px' }} />
             </colgroup>
             <thead>
@@ -468,7 +474,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
               {rows.map(ex => {
                 return (
                   <tr key={ex.id} className="ex-row" style={{ borderBottom: `1px solid ${C.cardBd}` }}>
-                    <td style={{ padding: '9px 12px 9px 14px', maxWidth: 320 }}>
+                    <td className="ex-name" style={{ padding: '9px 12px 9px 14px', maxWidth: 320 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
                         {statusDot(ex)}
                         <span title={ex.title} style={{ fontWeight: 600, fontSize: 13, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word', minWidth: 0 }}>{ex.title}</span>
