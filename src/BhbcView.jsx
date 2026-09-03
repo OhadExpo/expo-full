@@ -784,6 +784,21 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
              tab. Hiding it turns six two-line entries into six one-line ones. */
           .bhbc-mob-hide{display:none!important}
           .bhbc-roster-actions{display:flex!important;flex-wrap:wrap!important}
+          /* A WEEK-PLANNER SESSION COST TWO ROWS FOR NO REASON. Measured at 390:
+             the row's children come to 290px of content in about 300px, so the
+             edit/remove pair wrapped onto a line of its own — eight sessions,
+             eight extra rows, which is a good part of what he means by "way too
+             many rows spreaded out".
+             The FOCUS takes the second line instead: it is the part that
+             genuinely needs the width (a real focus is a sentence), and the
+             actions ride line one, pushed right by the auto margin they already
+             have. Nothing is truncated - a focus note must never be. */
+          .bhbc-chip .bhbc-chip-focus{order:1;flex:0 0 100%;margin-top:2px}
+          /* ...and on a phone a session with NO focus does not spend a line
+             saying so. The placeholder is grey italic filler; the edit control
+             is right there on the same row, and a real focus still gets its own
+             full-width line. Eight sessions, eight lines back. */
+          .bhbc-chip .bhbc-chip-focus-empty{display:none!important}
         .bhbc-labelrow{display:block!important}
           .bhbc-labelrow > div:first-child{float:inline-start;width:auto!important;min-width:0!important;margin-inline-end:8px;line-height:1.55}
           .bhbc-labelrow::after{content:'';display:block;clear:both}
@@ -3237,7 +3252,7 @@ function WeekPlanner({ fixtures = [], today, planOf, onSavePlan, onUpsert, onRem
                       <span className="bhbc-chip-meta" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm }}>{fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')}</span>
                       <span className="bhbc-chip-meta" style={{ fontFamily: FN, fontSize: 11, color: C.td }}>{f.minutes ? `${f.minutes} ${tr('min')}` : ''}</span>
                       {p && p.focus ? <span className="bhbc-chip-focus" style={{ fontFamily: FB, fontSize: 12, color: C.tx, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'normal' }}>{p.focus}</span>
-                        : <span className="bhbc-chip-focus" style={{ fontFamily: FB, fontSize: 12, color: C.td, fontStyle: 'italic' }}>{tr('no focus yet')}</span>}
+                        : <span className="bhbc-chip-focus bhbc-chip-focus-empty" style={{ fontFamily: FB, fontSize: 12, color: C.td, fontStyle: 'italic' }}>{tr('no focus yet')}</span>}
                       {onUpsert && <span style={{ marginInlineStart: 'auto', display: 'inline-flex', gap: 4 }}>
                         <button onClick={() => startEdit(d, f)} className="bhbc-ghost-btn" title="Edit session" style={{ fontFamily: FN, fontSize: 10, color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '2px 8px', cursor: 'pointer' }}>✎</button>
                         <button onClick={() => onRemove(f)} className="bhbc-ghost-btn" title="Remove session" style={{ fontFamily: FN, fontSize: 10, color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '2px 8px', cursor: 'pointer' }}>✕</button>
