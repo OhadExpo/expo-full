@@ -43,6 +43,18 @@ export const HE = {
   'Next game': 'המשחק הבא',
   Availability: 'זמינות',
   'This week': 'השבוע',
+  // Added 2026-09-03 with the merged report and the playoff stages. A string
+  // that reaches the screen without an entry here renders in English inside a
+  // Hebrew zone, which is the coverage gap he has called out before.
+  Focus: 'פוקוס',
+  'no focus written': 'לא נכתב פוקוס',
+  // Competition stages, from the league feed's own board names.
+  'Quarter Final': 'רבע גמגר',
+  'Semi Final': 'חצי גמגר',
+  'Final Series': 'סדרת הגמר',
+  'Winner Cup': 'גביע וינר',
+  'Play-In': 'פליי-אין',
+  Supercup: 'הסופרקאף',
   'Today’s focus': 'הפוקוס להיום',
   "Today's focus": 'הפוקוס להיום',
   Today: 'היום',
