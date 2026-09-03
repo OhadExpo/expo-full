@@ -243,7 +243,7 @@ export default function IntakeView({ trainees }) {
       ) : visible.map(s => (
         <Card key={s.id} style={{ marginBottom: 8, opacity: s.reviewed_at ? 0.55 : 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={() => setOpenSubmission(s)}>
+            <div className="iv-sub-main" style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={() => setOpenSubmission(s)}>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                 <span style={{ display: 'inline-flex', width: 92, flexShrink: 0, alignItems: 'center' }}><Badge color={s.form_type === 'initial' ? C.ac : (s.form_type === 'assessment' ? C.or : C.gn)}>{s.form_type}</Badge></span>
                 <span style={{ display: 'inline-block', width: 28, flexShrink: 0, fontFamily: FN, fontSize: 10, color: C.tm, fontWeight: 700, letterSpacing: '0.18em' }}>{(s.locale || '').toUpperCase()}</span>
@@ -252,7 +252,7 @@ export default function IntakeView({ trainees }) {
                   <span style={{ fontFamily: FB, fontSize: 12, color: C.ac }}>→ {s.traineeName}</span>
                 )}
               </div>
-              <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 4 }}>
+              <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 4, overflowWrap: 'anywhere' }}>
                 {s.email || '—'} · {fmt(s.created_at)} · {ago(s.created_at)} ago
               </div>
             </div>

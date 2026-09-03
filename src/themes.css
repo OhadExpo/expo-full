@@ -620,6 +620,12 @@ html {
      multi-column selects/inputs into clean full-width rows on a phone. */
   .bhbc-form-grid { grid-template-columns: 1fr !important; }
 
+  /* Intake submission row: the DONE/delete buttons sat beside the text, leaving
+     it 204px of a 390px screen - not enough for an email address, which then
+     had to break mid-domain (…GMAIL.C / OM). The buttons take the next line so
+     the address and its date read across the full card. */
+  .iv-sub-main { flex: 1 1 100% !important; }
+
   /* MODALS ON A PHONE. The card is calc(100vw - 24px) with 28px of padding on
      each side, so on a 390px screen 80 of 390 is chrome and the content gets
      310 - which is why the athlete card's metric strip and history rows wrap so
