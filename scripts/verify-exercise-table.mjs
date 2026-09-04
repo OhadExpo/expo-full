@@ -24,7 +24,15 @@ let bad = 0;
 for (const W of [1600, 1400, 1202, 1198, 900, 750, 702, 390]) {
   await setWidth(pg, W, 950);
   await pg.goto(BASE + '/coach/exercises', { waitUntil: 'domcontentloaded' });
-  await new Promise(r => setTimeout(r, 7000));
+  // POLL, do not guess. A fixed 7s wait passed at 750 and 900 and reported
+  // "no table" at 1198 and above - not a regression, just more columns and
+  // 1,476 rows taking longer to paint. A gate that fails on its own impatience
+  // is worse than no gate: it cries wolf and gets ignored.
+  for (let k = 0; k < 60; k++) {
+    await new Promise(r => setTimeout(r, 500));
+    if (await pg.evaluate(() => !!document.querySelector('.ex-table tbody tr'))) break;
+  }
+  await new Promise(r => setTimeout(r, 1200));
   await pg.evaluate(() => { const x = [...document.querySelectorAll('button,a')].find(e => /maybe later|dismiss/i.test(e.textContent || '')); if (x) x.click(); });
   const r = await pg.evaluate(() => {
     const clipped = [];
