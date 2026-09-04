@@ -100,6 +100,23 @@ for (const c of commits) {
   c.routes = routeFor(c.files);
 }
 
+// BEFORE / AFTER pairs. He asked for "more before and after pictures and less
+// words", so these lead the page and the prose moves behind a toggle.
+let pairs = [];
+try {
+  pairs = JSON.parse(fs.readFileSync('audit-out/beforeafter/index.json', 'utf8'))
+    .map((x) => {
+      // Prefer the CROPPED image: a full page scaled into half a column hides
+      // the very thing the pair is meant to show.
+      const enc = (lab) => {
+        const c = `audit-out/beforeafter/${x.id}-${lab}-c.png`;
+        const f = fs.existsSync(c) ? c : `audit-out/beforeafter/${x.id}-${lab}.png`;
+        return 'data:image/png;base64,' + fs.readFileSync(f).toString('base64');
+      };
+      return { ...x, beforeSrc: enc('before'), afterSrc: enc('after') };
+    });
+} catch { /* none built yet */ }
+
 // The gate board, if scripts/gate-board.mjs has been run. Evidence beats
 // reassurance: "nothing is broken" is worth reading only with the output
 // underneath it.
@@ -123,7 +140,7 @@ const card = (c, i) => `
     <div class="meta">${esc(c.date)} &middot; ${c.files.length} file${c.files.length === 1 ? '' : 's'}</div>
     ${c.routes.length ? `<div class="links">${c.routes.map((r) =>
       `<a href="${BASE}${r}" target="_blank" rel="noopener">${esc(r)}</a>`).join('')}</div>` : ''}
-    ${c.body ? `<pre class="why">${esc(c.body.replace(/\nCo-Authored-By:[\s\S]*$/, '').trim())}</pre>` : ''}
+    ${c.body ? `<details class="whyd"><summary>why</summary><pre class="why">${esc(c.body.replace(/\nCo-Authored-By:[\s\S]*$/, '').trim())}</pre></details>` : ''}
     ${c.shots.length ? `<div class="shots">${c.shots.map((s) =>
       `<a href="${s}" target="_blank" rel="noopener"><img src="${s}" alt="" loading="lazy"></a>`).join('')}</div>` : ''}
     <details><summary>${c.files.length} files</summary><ul>${c.files.map((f) => `<li>${esc(f)}</li>`).join('')}</ul></details>
@@ -137,7 +154,8 @@ const html = `<!doctype html>
   :root{--bg:#0a0a0b;--sf:#141417;--bd:rgba(57,189,255,.28);--ac:#39BDFF;--tx:#F2F4F7;--tm:#9AA3B2;--td:#6B7382;--or:#F26A2B}
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
-  .wrap{max-width:960px;margin:0 auto;padding:28px 18px 90px}
+  .wrap{max-width:1240px;margin:0 auto;padding:28px 22px 90px}
+  @media(min-width:1500px){.wrap{max-width:1400px}}
   h1{font-size:26px;letter-spacing:.02em;margin:0 0 4px}
   .sub{color:var(--tm);font-size:13px;margin-bottom:22px}
   .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:26px}
@@ -148,7 +166,11 @@ const html = `<!doctype html>
   .note h3{margin:0 0 8px;font-size:12px;letter-spacing:.13em;text-transform:uppercase;color:var(--or)}
   .note p{margin:0 0 8px;font-size:14px;color:var(--tm)}
   .note code{background:#000;padding:2px 6px;color:var(--ac);font-size:13px}
-  .c{background:var(--sf);border:1px solid var(--bd);margin-bottom:14px}
+  .c{background:var(--sf);border:1px solid var(--bd);margin-bottom:14px;break-inside:avoid}
+  /* On a wide screen a single 960px column left most of the display black.
+     The commit list flows into two columns above 1400px; each card stays
+     whole (break-inside:avoid) so a card is never split down the middle. */
+  @media(min-width:1400px){.commits{column-count:2;column-gap:14px}}
   .c header{display:flex;align-items:baseline;gap:10px;padding:11px 15px;background:rgba(57,189,255,.09);border-bottom:1px solid var(--bd)}
   .c .n{font-size:11px;color:var(--ac);font-variant-numeric:tabular-nums}
   .c h2{font-size:15px;margin:0;flex:1;font-weight:600}
@@ -160,7 +182,7 @@ const html = `<!doctype html>
   .why{margin:11px 15px;padding:12px 14px;background:#0f0f12;border-left:2px solid var(--bd);
        white-space:pre-wrap;font:13px/1.65 ui-sans-serif,system-ui,sans-serif;color:var(--tm);overflow-x:auto}
   .shots{display:flex;flex-wrap:wrap;gap:9px;padding:0 15px 12px}
-  .shots img{max-width:100%;width:420px;border:1px solid var(--bd);display:block;background:#fff}
+  .shots img{max-width:100%;width:520px;border:1px solid var(--bd);display:block;background:#fff}
   details{padding:0 15px 13px;font-size:12px;color:var(--td)}
   details ul{margin:8px 0 0;padding-left:18px}
   .ask{border-left-color:var(--ac)}
@@ -171,6 +193,23 @@ const html = `<!doctype html>
   .ask-item p{margin:5px 0 7px}
   .cmd{display:inline-block;background:#000;color:var(--ac);padding:5px 9px;font:12px ui-monospace,monospace;
        border:1px solid var(--bd);user-select:all}
+  .sec{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--tm);
+       margin:26px 0 12px;font-weight:700}
+  .ba{display:grid;gap:16px;margin-bottom:26px}
+  .pair{margin:0;background:var(--sf);border:1px solid var(--bd)}
+  .pair figcaption{padding:10px 14px;border-bottom:1px solid var(--bd);font-size:14px;
+                   background:rgba(57,189,255,.07)}
+  .pair .w{color:var(--td);font-size:11px;margin-left:6px}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:12px}
+  .two > div{min-width:0}
+  .two img{width:100%;display:block;border:1px solid var(--bd);background:#000}
+  .tag{display:inline-block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+       padding:2px 7px;margin-bottom:6px;font-weight:700}
+  .tag.bad{color:#DE4E3B;border:1px solid #DE4E3B}
+  .tag.good{color:#37B27C;border:1px solid rgba(55,178,124,.5)}
+  .whyd{padding:0 15px 10px}
+  .whyd summary{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--td);cursor:pointer}
+  @media(max-width:760px){.two{grid-template-columns:1fr}}
   .board{border-left-color:#37B27C}
   .board h3{color:#37B27C}
   .gates{display:flex;flex-wrap:wrap;gap:5px;margin:10px 0 4px}
@@ -204,6 +243,16 @@ const html = `<!doctype html>
   <p>Screens touched: ${allRoutes.map((r) => `<a href="${BASE}${r}" target="_blank" rel="noopener" style="color:var(--ac)">${esc(r)}</a>`).join(' &middot; ')}</p>
 </div>
 
+${pairs.length ? `<h2 class="sec">Before &rarr; after &middot; ${pairs.length}</h2>
+<div class="ba">${pairs.map((p) => `
+  <figure class="pair">
+    <figcaption>${esc(p.title)}<span class="w">${p.w}px</span></figcaption>
+    <div class="two">
+      <div><span class="tag bad">before</span><a href="${p.beforeSrc}" target="_blank" rel="noopener"><img src="${p.beforeSrc}" alt="before" loading="lazy"></a></div>
+      <div><span class="tag good">after</span><a href="${p.afterSrc}" target="_blank" rel="noopener"><img src="${p.afterSrc}" alt="after" loading="lazy"></a></div>
+    </div>
+  </figure>`).join('')}</div>` : ''}
+
 ${decisions.length ? `<div class="note ask">
   <h3>Waiting on you &middot; ${decisions.length}</h3>
   ${decisions.map((d) => `<div class="ask-item"><b>${esc(d.title)}</b><p>${esc(d.body)}</p>${
@@ -224,7 +273,7 @@ ${board ? `<div class="note board">
   ${commits.map((c, i) => `<a href="#${c.short}">${String(i + 1).padStart(2, '0')} ${esc(c.subject.split(':')[0])}</a>`).join('')}
 </div>
 
-${commits.map(card).join('')}
+<div class="commits">${commits.map(card).join('')}</div>
 </div><a class="top" href="#">top</a></body></html>`;
 
 fs.writeFileSync(STANDALONE, html);

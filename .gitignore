@@ -145,3 +145,5 @@ audit-out/frames/
 # and the 3MB page landed in the service worker precache.
 audit-out/recap.html
 audit-out/recap-shots/
+
+audit-out/beforeafter/
