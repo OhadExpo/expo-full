@@ -14,7 +14,14 @@ import { EX } from './exerciseData';
 import { supabase, SUPA_URL, SUPA_PUBLISHABLE_KEY } from './supabase';
 import { PasswordChangeModal } from './auth';
 import { traineeIdsFor, memberIndexFromId, sortProgramsChrono, blockNum } from './traineeUtils';
-import { FormVideoPlayer } from './WorkoutReview';
+// LAZY, because this is the athlete's phone. A static import of one component
+// pulled the whole coach review module into the portal's FIRST load - measured
+// against the built output on a cold cache: WorkoutReview 103.5KB plus the
+// MovementLab pose engine it needs, 73.8KB, inside a 1,007KB portal load. The
+// player is only ever rendered behind an expand ("coach's video feedback", a
+// history row), so an athlete who does not open a video should never pay for
+// the analysis engine at all. Same pattern as MealLogger and LiveRepCounter
+// just below.
 import { enqueueBlob, attachWorkout, drainBlobs, newBlobId, removeBlob, subscribe as subscribeBlobs } from './blobQueue';
 import { emitSaveError } from './useSupaStore';
 import ExerciseSubstitution, { libExerciseToEx } from './ExerciseSubstitution';
@@ -27,6 +34,8 @@ import { useT as useAppT } from './i18n';
 import { resolveStoredUrl } from './storageUrl';
 // F-14 — meal photo → macros logger. Lazy-loaded since most athletes
 // won't open it on every page load (and it pulls in the meals query).
+const FormVideoPlayer = React.lazy(() => import('./WorkoutReview')
+  .then((m) => ({ default: m.FormVideoPlayer })));
 const MealLogger = React.lazy(() => import('./MealLogger'));
 const LiveRepCounter = React.lazy(() => import('./LiveRepCounter'));
 
@@ -1947,7 +1956,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
                 </button>
                 {fbOpen && (
                   <div style={{marginTop:8}}>
-                    <FormVideoPlayer url={lastWeekFb.url} exerciseTitle={lastWeekFb.title} role="client" reviewNotes={lastWeekFb.notes} onReviewNotesChange={null} />
+                    <React.Suspense fallback={<div style={{fontFamily:FN,fontSize:11,color:C.td,padding:'10px 0'}}>Loading player…</div>}>
+                      <FormVideoPlayer url={lastWeekFb.url} exerciseTitle={lastWeekFb.title} role="client" reviewNotes={lastWeekFb.notes} onReviewNotesChange={null} />
+                    </React.Suspense>
                   </div>
                 )}
               </div>
@@ -3092,14 +3103,16 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                 </div>
                 {isOpen && hasVideo && (
                   <div style={{marginTop:6,marginBottom:10,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:8}}>
-                    <FormVideoPlayer url={fv.cloudUrl} exerciseTitle={x.title}
-                      role="client"
-                      reviewNotes={fv.reviewNotes || []}
-                      onReviewNotesChange={updateFormVideos ? (nextNotes) => {
-                        const updated = (w.formVideos || []).map((fvi, fi) => fi === i ? { ...fvi, reviewNotes: nextNotes } : fvi);
-                        updateFormVideos(w.id, updated);
-                      } : null}
-                    />
+                    <React.Suspense fallback={<div style={{fontFamily:FN,fontSize:11,color:C.td,padding:'10px 0'}}>Loading player…</div>}>
+                      <FormVideoPlayer url={fv.cloudUrl} exerciseTitle={x.title}
+                        role="client"
+                        reviewNotes={fv.reviewNotes || []}
+                        onReviewNotesChange={updateFormVideos ? (nextNotes) => {
+                          const updated = (w.formVideos || []).map((fvi, fi) => fi === i ? { ...fvi, reviewNotes: nextNotes } : fvi);
+                          updateFormVideos(w.id, updated);
+                        } : null}
+                      />
+                    </React.Suspense>
                   </div>
                 )}
               </div>
