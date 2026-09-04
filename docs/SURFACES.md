@@ -4,7 +4,7 @@ Generated from the routers (`src/App.jsx` AuthGate + AuthedApp `getRoute`/tab sw
 
 RULE: Any audit, sweep, regression check, or "review everything" task MUST enumerate from this file, not from memory. If you add/rename/remove a route, update this file in the same commit. When auditing, tick every row — a surface is "covered" only when it was actually loaded/inspected, not assumed.
 
-Last synced to code: 2026-06-09. (Known gate blind spot: `check-surfaces.mjs` only sees literal `path ===`/`startsWith` checks and tabMap keys — dynamic sub-routes like the programs editor deep link must be added here by hand, and routes deleted from code never fail the gate.)
+Last verified against code: 2026-09-04 — `scripts/check-surfaces.mjs` found all 45 routes/tabs present. (That gate checks PRESENCE only: it cannot tell you a row's notes are still true, and a route deleted from code never fails it.) (Known gate blind spot: `check-surfaces.mjs` only sees literal `path ===`/`startsWith` checks and tabMap keys — dynamic sub-routes like the programs editor deep link must be added here by hand, and routes deleted from code never fail the gate.)
 
 ---
 
