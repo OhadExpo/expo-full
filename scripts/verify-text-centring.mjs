@@ -66,6 +66,24 @@ const MEASURE = (tol) => {
     // So bordered controls FAIL and borderless ones are counted for
     // information only. Changing line-height at 128 call sites to chase a
     // sub-pixel offset nobody can see would risk real layout for no gain.
+    //
+    // MEASURED 2026-09-04, and it changes what this number means. The Range
+    // rect above is the font's CONTENT BOX, not the letters. On the nav's
+    // "Dashboard" at 10px Nord: the range is 12px tall - ascent-override 93.5%
+    // plus descent-override 26.5% - and sits 0.6px high in a 32px control, but
+    // canvas TextMetrics puts the real ink at 8px (cap ascent 7, descent 1),
+    // centred to 0.25px. The LETTERS are fine; this reports the font's own
+    // asymmetric box.
+    //
+    // Two dead ends, so nobody repeats them:
+    //   - Rebalancing the faces to 99.5%/20.5% (which centres the caps on
+    //     paper and keeps the 120% box) changed NOTHING. Tried twice, the
+    //     second time with the browser cache cleared. Reverted.
+    //   - Deriving the ink from canvas metrics inside this gate made it WORSE
+    //     (199 -> 236), because locating the baseline from fontBoundingBox
+    //     fractions does not agree with the overridden metrics. Reverted.
+    // The honest next step is to compare against a screenshot of real glyphs,
+    // not against another computed box.
     const bordered = cs.borderStyle !== 'none' && parseFloat(cs.borderWidth) > 0;
     out.push({ t: txt.slice(0, 20), off: Math.round(off * 100) / 100, bordered,
       h: Math.round(r.height), lh: cs.lineHeight, fs: cs.fontSize, inkH: Math.round(tb.height * 10) / 10 });
