@@ -140,7 +140,8 @@ public/testclips/
 audit-out/dl/
 audit-out/frames/
 
-# The morning recap is GENERATED and describes work that is not deployed;
-# it must never ride along to production.
-public/_recap.html
-public/_recap/
+# The morning recap is GENERATED and describes work that is not deployed. It is
+# kept OUT of public/ entirely, because npm run build copies public/ into dist
+# and the 3MB page landed in the service worker precache.
+audit-out/recap.html
+audit-out/recap-shots/

@@ -5,12 +5,16 @@
 // morning".
 //
 // It is written as ONE self-contained file with the screenshots inlined, so it
-// opens by double-clicking and needs nothing running. That is not a stylistic
-// choice: the app registers a service worker whose navigation fallback returns
-// index.html, so /_recap.html served from public/ came back as the portal
-// chooser in a browser even though curl got the right 107KB. A copy still goes
-// to public/ for convenience, and both are gitignored - a page about
-// undeployed work must never ride along to production.
+// opens by double-clicking and needs nothing running.
+//
+// It is deliberately NOT written into public/. Two reasons, both measured:
+// the app registers a service worker whose navigation fallback returns
+// index.html, so /_recap.html came back as the portal chooser in a browser
+// even though curl fetched the right bytes from the same URL - so the served
+// copy never worked. And `npm run build` copies public/ into dist, where the
+// 3MB page landed in the service worker's precache. Only .gitignore kept it
+// out of production, which is one mistake away from shipping a page about
+// undeployed work to the live site.
 //
 // Every commit ahead of the last deployed SHA, with the reason it exists, the
 // files it touched, and a LINK straight to the screen it changed - so he can
@@ -23,9 +27,8 @@ import path from 'node:path';
 
 const DEPLOYED = process.argv[2] || 'dc80f2d';
 const BASE = process.env.RECAP_BASE || 'http://127.0.0.1:5199';
-const OUT = 'public/_recap.html';
 const STANDALONE = 'audit-out/recap.html';
-const SHOTDIR = 'public/_recap';
+const SHOTDIR = 'audit-out/recap-shots';
 
 const git = (c) => execSync(c, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
 const esc = (s) => String(s == null ? '' : s)
@@ -85,7 +88,8 @@ for (const c of commits) {
       if (!fs.existsSync(src)) continue;
       const name = `${c.short}-${path.basename(src)}`;
       fs.copyFileSync(src, path.join(SHOTDIR, name));
-      // Inlined so the standalone file carries its own images.
+      // Inlined so the standalone file carries its own images; the copy beside
+      // it is only there to be opened on its own.
       c.shots.push('data:image/png;base64,' + fs.readFileSync(src).toString('base64'));
       copied++;
     }
@@ -198,9 +202,8 @@ ${decisions.length ? `<div class="note ask">
 ${commits.map(card).join('')}
 </div><a class="top" href="#">top</a></body></html>`;
 
-fs.writeFileSync(OUT, html);
 fs.writeFileSync(STANDALONE, html);
 const mb = (fs.statSync(STANDALONE).size / 1048576).toFixed(1);
 console.log(`${commits.length} commits, ${totalFiles} files, ${allRoutes.length} screens, ${copied} screenshots`);
 console.log(`OPEN THIS:  ${path.resolve(STANDALONE)}   (${mb} MB, self-contained)`);
-console.log(`also at:    ${BASE}/_recap.html  (only if the service worker is not registered)`);
+console.log('links inside it open ' + BASE);
