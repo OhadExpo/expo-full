@@ -152,6 +152,24 @@ const MEASURE = (slack) => {
         node = wide;
       }
     }
+    // A TABLE'S LAST ROW CARRIES ITS OWN PADDING. When a card ends in a table,
+    // the ink is inside a <td> whose padding-bottom is the space under it.
+    // Measured on the demo's "All Athletes" card: the table ends 1px above the
+    // card, the last cell declares 12px, and that plus line-box slack was the
+    // whole 17px the gate called dead air. Credit the SMALLEST padding in the
+    // last row - the one every cell in it has.
+    {
+      const tbl = el.querySelector('table');
+      if (tbl) {
+        const tr = tbl.getBoundingClientRect();
+        if (r.bottom - tr.bottom <= padBot + 3) {
+          const rows = [...tbl.querySelectorAll('tr')].filter((x) => x.getBoundingClientRect().height > 0);
+          const lastRow = rows[rows.length - 1];
+          const cells = lastRow ? [...lastRow.children].filter((c2) => c2.getBoundingClientRect().height > 0) : [];
+          if (cells.length) padBot += Math.min(...cells.map((c2) => parseFloat(getComputedStyle(c2).paddingBottom) || 0));
+        }
+      }
+    }
     // A ROW OF CELLS CARRIES ITS OWN PADDING TOO. The walk above follows a
     // single full-width body; the landing hero's stat band is instead three
     // flex cells at 1/3 width each, every one declaring 22px bottom padding
