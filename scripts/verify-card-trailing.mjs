@@ -61,17 +61,32 @@ const MEASURE = (slack) => {
     // "empty" space that is actually the athlete/block/week/day pickers.
     // Trimming to that would have squashed real controls against the edge.
     const CONTROL = /^(INPUT|SELECT|TEXTAREA|BUTTON|IMG|SVG|CANVAS|VIDEO|PROGRESS|METER)$/;
+    // A LINK STYLED AS A BUTTON IS A CONTROL. The landing pricing cards end in
+    // an <a class=button> with 11px of its own padding, and because A was not
+    // in the list above the gate measured its GLYPHS and called that padding
+    // dead air - 12 rows across /demo, /demo/he and their aliases, on cards
+    // whose spacing is correct. A plain inline link inside a sentence is still
+    // treated as text: this only applies when the anchor paints itself like a
+    // control, with a border or a background or a block display.
+    const isCtrl = (k) => {
+      if (CONTROL.test(k.tagName)) return true;
+      if (k.tagName !== 'A') return false;
+      const s2 = getComputedStyle(k);
+      return s2.display !== 'inline'
+        || (s2.borderStyle !== 'none' && parseFloat(s2.borderWidth) > 0)
+        || s2.backgroundColor !== 'rgba(0, 0, 0, 0)';
+    };
     const leaves = [...el.querySelectorAll('*')].filter((k) => {
       if (/^(STYLE|SCRIPT|NOSCRIPT|TEMPLATE|TITLE)$/.test(k.tagName)) return false;
       if (k.getBoundingClientRect().height <= 0) return false;
-      if (CONTROL.test(k.tagName)) return true;
+      if (isCtrl(k)) return true;
       return k.children.length === 0 && (k.textContent || '').trim();
     });
     if (leaves.length < 2) return;
     let top = Infinity, bot = -Infinity;
     for (const k of leaves) {
       let b;
-      if (/^(INPUT|SELECT|TEXTAREA|BUTTON|IMG|SVG|CANVAS|VIDEO|PROGRESS|METER)$/.test(k.tagName)) {
+      if (isCtrl(k)) {
         b = k.getBoundingClientRect();     // a control's box IS its ink
       } else {
         const rng = document.createRange();
@@ -116,6 +131,22 @@ const MEASURE = (slack) => {
         node = wide;
       }
     }
+    // A ROW OF CELLS CARRIES ITS OWN PADDING TOO. The walk above follows a
+    // single full-width body; the landing hero's stat band is instead three
+    // flex cells at 1/3 width each, every one declaring 22px bottom padding
+    // while the band itself declares 0. That is the same deliberate spacing,
+    // arranged sideways. Credit the SMALLEST padding in the bottom row - the
+    // one every cell in it actually has.
+    {
+      const kidsAll = [...el.children].filter((k) => k.getBoundingClientRect().height > 0);
+      if (kidsAll.length > 1) {
+        const maxBottom = Math.max(...kidsAll.map((k) => k.getBoundingClientRect().bottom));
+        const lastRow = kidsAll.filter((k) => Math.abs(k.getBoundingClientRect().bottom - maxBottom) <= 2);
+        if (lastRow.length > 1 && r.bottom - maxBottom <= padBot + 3) {
+          padBot += Math.min(...lastRow.map((k) => parseFloat(getComputedStyle(k).paddingBottom) || 0));
+        }
+      }
+    }
     if (gapBot - padBot <= slack) return;
     // ...AND NOT SPACE THE CARD DID NOT CHOOSE. A card in a grid or flex row is
     // stretched to its row's height, so the one with the least text carries the
@@ -142,7 +173,7 @@ const MEASURE = (slack) => {
             if (/^(STYLE|SCRIPT|NOSCRIPT|TEMPLATE|TITLE)$/.test(k.tagName)) continue;
             const kb = k.getBoundingClientRect();
             if (kb.height <= 0) continue;
-            if (CONTROL.test(k.tagName)) { if (kb.bottom > b) b = kb.bottom; continue; }
+            if (isCtrl(k)) { if (kb.bottom > b) b = kb.bottom; continue; }
             if (k.children.length || !(k.textContent || '').trim()) continue;
             const rg = document.createRange();
             rg.selectNodeContents(k);
