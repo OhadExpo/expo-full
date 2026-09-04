@@ -180,7 +180,7 @@ const Jersey = ({ n, size = 30 }) => (
 
 // ---- component ----
 
-export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, setBhbcLoads, bhbcFixtures = [], setBhbcFixtures, league = {}, medical = {}, setMedical, sessionPlans = {}, setSessionPlans, planIndex = [], exercises = [], clientWorkouts = [], setClientWorkouts, workouts = [], setWorkouts, onDecrementSession, portalVis = {}, bwLog = [], weeklyFocus = {}, onOpenTrainee, onExit, coach = false, onSignOut, canMedical = true, canLogLoad = false, currentUser = '', onLocalWrite }) {
+export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, setBhbcLoads, bhbcFixtures = [], setBhbcFixtures, league = {}, medical = {}, setMedical, sessionPlans = {}, setSessionPlans, planIndex = [], exercises = [], clientWorkouts = [], setClientWorkouts, workouts = [], setWorkouts, onDecrementSession, portalVis = {}, bwLog = [], weeklyFocus = {}, onOpenTrainee, onExit, coach = false, onSignOut, canMedical = true, canLogLoad = false, currentUser = '', onLocalWrite, stale = false }) {
   // The club zone OPENS WHITE, always (Ohad). The crest and the navy/orange
   // palette were built on white, and a coach arriving in whatever theme the
   // last session left behind saw a different club. Forced once on mount, not
@@ -1033,6 +1033,17 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
           above texts, all of them". The cards themselves came down from 18 to 14
           of padding and their rows from 11 to 8; this is the last of it. */}
       <main style={{ maxWidth: 1200, margin: '0 auto', padding: '18px 18px 56px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {/* THE ZONE READ FROM CACHE. Measured with every Supabase call cut: the
+            whole club zone still rendered - 10 of 10 players, medical, next
+            game - and said nothing. A physio courtside on dead wifi was reading
+            a confident screen that might be hours old. The data staying on
+            screen is right; saying nothing about it is not. */}
+        {stale && (
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '10px 14px', background: C.sf, border: `1px solid ${C.cardBd}`, borderInlineStart: `3px solid ${ORANGE}`, borderRadius: 6, flexWrap: 'wrap' }}>
+            <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: ORANGE_DEEP, lineHeight: 1.5 }}>{tr('Offline')}</span>
+            <span style={{ fontFamily: FN, fontSize: 12, color: C.tm, flex: 1, minWidth: 200, lineHeight: 1.5 }}>{tr('Showing the last data saved on this device. It may be out of date, and anything you log will be sent when the connection returns.')}</span>
+          </div>
+        )}
         {previewCoach && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: 'rgba(242,106,43,0.10)', border: `1px solid ${ORANGE}`, borderRadius: 6 }}>
             <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: ORANGE_DEEP }}>◉ Coach view</span>

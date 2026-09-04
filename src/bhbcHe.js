@@ -34,6 +34,9 @@ export const HE = {
 
   // ---- header controls --------------------------------------------------
   'Sign out': 'יציאה',              // spoken; התנתקות is bureaucratic
+  Offline: 'אופליין',
+  'Showing the last data saved on this device. It may be out of date, and anything you log will be sent when the connection returns.':
+    'מוצג המידע האחרון שנשמר במכשיר. יכול להיות שהוא לא מעודכן, וכל מה שתרשום יישלח כשהחיבור יחזור.',
   'Preview as coach': 'תצוגת מאמן',
   'Coach view': 'תצוגת מאמן',
   'Back to EXPO coach': 'חזרה ל-EXPO',
