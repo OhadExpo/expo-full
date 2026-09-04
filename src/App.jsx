@@ -12,12 +12,17 @@ import { usePlanIndex, savePlan } from './usePlansStore';
 import { supabase } from './supabase';
 import { Btn, baseBtn, ToastHost, toast } from './ui';
 import BugReportButton from './BugReportButton';
-import SensorLab from './SensorLab';
+// LAZY: SensorLab renders only behind `isOwner`, but a static import puts it
+// and its five signal-processing modules (pulsePPG, acousticReps,
+// goniometer, reflexPVT, balanceSteadiness) in the ENTRY chunk - which
+// every athlete and every BHBC physio downloads before they see anything.
+const SensorLab = lazyReload(() => import('./SensorLab'));
 import { parseTraineeId } from './traineeUtils';
 import { AuthProvider, useAuth, LoginScreen, UnauthorizedScreen, PasswordChangeModal, SaveErrorToast, OfflineStatusPill, RolePickerScreen, PORTAL_CHOICE_KEY, TRAINER_EMAILS, OWNER_EMAILS, isPartnerEmail, isBhbcCoachEmail, isPtEmail, canLogLoad } from './auth';
 import InstallAppPrompt from './InstallAppPrompt';
 import ErrorBoundary from './ErrorBoundary';
-import { autoAnalyzeAthleteVideos } from './autoAnalyzeVideos';
+// Imported at CALL time, below - it pulls poseLab (1,265 lines) and this is
+// owner-only work that does not even run on a phone.
 // Lazy-load every heavy view so the initial bundle stays small.
 // Each tab fetches its own chunk on first navigation; subsequent visits use cache.
 //
@@ -805,7 +810,10 @@ function AuthedApp() {
         // onIdle yields to idle BETWEEN CLIPS too (not just between athletes), so
         // an athlete with many clips can't grind N full-model pose passes back-to-
         // back and jank the coach's UI (review H1).
-        try { await autoAnalyzeAthleteVideos(clientWorkouts, id, { shouldStop: () => cancelled, onIdle: idle }); } catch { /* one athlete's clip blip never stops the sweep */ }
+        try {
+          const { autoAnalyzeAthleteVideos } = await import('./autoAnalyzeVideos');
+          await autoAnalyzeAthleteVideos(clientWorkouts, id, { shouldStop: () => cancelled, onIdle: idle });
+        } catch { /* one athlete's clip blip never stops the sweep */ }
       }
     })();
     // Reset the guard on cleanup so a later owner re-login (App stays mounted in
@@ -1448,7 +1456,7 @@ function AuthedApp() {
     <LangCtx.Provider value={lang}>
     <div className="app-root" dir={lang === 'he' ? 'rtl' : 'ltr'} style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB,maxWidth:"100vw",overflowX:"clip"}}>
       {isPartner && <div style={{background:`color-mix(in srgb, ${C.ac} 22%, ${C.bg})`,borderBottom:`1px solid ${C.ac}`,color:C.tx,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',textAlign:'center',padding:'7px 12px'}}>PARTNER PREVIEW · you're viewing the real EXPO with live data — anything you change isn't saved</div>}
-      {isOwner && <SensorLab />}
+      {isOwner && <Suspense fallback={null}><SensorLab /></Suspense>}
       <header style={{background:C.headerBg,borderBottom:`1px solid ${C.cardBd}`,boxShadow:'0 1px 2px rgba(0,0,0,0.03), 0 4px 12px rgba(0,0,0,0.04)',position:"sticky",top:0,zIndex:100,paddingTop:'env(safe-area-inset-top)'}}>
         <style>{`
           .hdr-scroll::-webkit-scrollbar{display:none}
