@@ -64,7 +64,11 @@ const HDR_BG = '#0E1C38';
 const TOKENS = {
   '--c-ac': NAVY_DEEP,
   '--c-stripBg': NAVY_DEEP,
-  '--c-cardBd': 'color-mix(in srgb, #1E3D74 20%, var(--c-bd))',
+  // A NAVY HAIRLINE, not a mix with the app's. Mixing 20% navy into --c-bd left
+  // EXPO's cyan showing through every card edge in the zone, which is what made
+  // the program popup read as an EXPO dialog wearing a club title.
+  '--c-cardBd': 'rgba(30,61,116,0.26)',
+  '--c-bd': 'rgba(30,61,116,0.22)',
 };
 // EVERY BHBC MODAL CARRIES THE ZONE'S TOKENS.
 //
@@ -74,8 +78,23 @@ const TOKENS = {
 // came out rgb(8,102,143) beside rgb(74,82,99) on every label around it,
 // because one resolved the zone's --c-tm and the other the app's. Re-declaring
 // the tokens on a wrapper inside the card fixes it for all nine at once.
-const BModal = ({ children, ...rest }) => (
-  <Modal themeAttr="light" {...rest}><div style={TOKENS}>{children}</div></Modal>
+// EVERY MODAL IN THE ZONE WEARS THE CLUB'S COLOURS.
+//
+// Ohad, on the program popup on production: "this doesnt look anything like a
+// bhbc branded page". He was right - a white card with a black title and EXPO's
+// cyan hairlines could belong to any product. The zone's own header is navy
+// with the crest and an orange rule, so its modals now open with the same bar:
+// crest, white title on navy, orange underline. One place, so all nine of them
+// change together and none can drift.
+const BModal = ({ children, title, ...rest }) => (
+  <Modal
+    themeAttr="light"
+    title={<><img src="/logos/bhbc-logo.png" alt="" style={{ height: 20, width: 'auto', display: 'block' }} />{title}</>}
+    headerStyle={{ background: NAVY, borderBottom: `3px solid ${ORANGE}`, color: '#fff' }}
+    titleStyle={{ color: '#fff' }}
+    closeStyle={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.35)', color: '#fff' }}
+    {...rest}
+  ><div style={TOKENS}>{children}</div></Modal>
 );
 const BAND = { detrained: '#4F9DE0', low: '#37B27C', elevated: '#E0A73A', high: '#DE4E3B', none: '#7C828B' };
 // ONE section-title treatment everywhere (must match CollapsibleSection's title:
@@ -2193,8 +2212,9 @@ function ProgramModal({ athleteName, plans, exercises, currentWeek = 1, onClose 
   const [pickOpen, setPickOpen] = useState(false);
   // One exercise open at a time, exactly like the group session on the floor.
   const [openEx, setOpenEx] = useState(null);
+  const [dayIdx, setDayIdx] = useState(0);
   useEffect(() => { if (planId) load(planId); }, [planId, load]);
-  useEffect(() => { setOpenEx(null); }, [planId]);
+  useEffect(() => { setOpenEx(null); setDayIdx(0); }, [planId]);
 
   // Titles: prefer what the plan ROW stored. A BHBC coach cannot necessarily
   // read the exercise library (athletes cannot either - the title-resolution
@@ -2212,6 +2232,10 @@ function ProgramModal({ athleteName, plans, exercises, currentWeek = 1, onClose 
   const week = Math.min(Math.max(1, currentWeek || 1), weeks);
   const wi = week - 1;
   const days = (plan && Array.isArray(plan.days)) ? plan.days : [];
+  // Pairs of [day, its real index], so the day label and key stay correct
+  // whether one day is shown or all of them.
+  const safeDay = Math.min(dayIdx, Math.max(0, days.length - 1));
+  const shownDays = days.length > 1 ? [[days[safeDay], safeDay]] : days.map((d, i) => [d, i]);
 
   // Both plan shapes, as everywhere else that reads a plan: d.exercises / d.ex,
   // ex.reps / ex.r, ex.sets / ex.s, with per-week overrides in wk / wkS.
@@ -2297,7 +2321,21 @@ function ProgramModal({ athleteName, plans, exercises, currentWeek = 1, onClose 
           {!loading && days.length === 0 && (
             <div style={{ padding: 20, textAlign: 'center', fontFamily: FB, color: C.tm }}>{tr('This block has no days yet')}</div>
           )}
-          {!loading && days.map((d, di) => {
+          {/* ONE DAY AT A TIME, for the same reason the week resolves to where
+              the athlete is. The days used to stack in one scroll, so reaching
+              Day C of a three-day block meant scrolling past two dozen
+              exercises - on the floor, mid-session, on a tablet. A single day
+              has nothing to pick, so the row does not appear. */}
+          {!loading && days.length > 1 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {days.map((d, di) => (
+                <button key={di} onClick={() => { setDayIdx(di); setOpenEx(null); }} style={chip(di === safeDay)}>
+                  {d.name || d.n || (tr('Day') + ' ' + (di + 1))}
+                </button>
+              ))}
+            </div>
+          )}
+          {!loading && shownDays.map(([d, di]) => {
             const list = rowsFor(d);
             return (
               <div key={di}>

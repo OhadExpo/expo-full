@@ -773,7 +773,12 @@ function pushOverlay() {
 // clicking cancel or save record". A rehab note typed into that form lives in
 // local state until Save, so a stray Escape threw the work away and looked
 // exactly like the app deleting what he had just added.
-export const Modal = ({ open, onClose, title, children, wide, sticky = false, themeAttr }) => {
+// `headerStyle` / `titleStyle` / `closeStyle` are OPT-IN chrome, used by the
+// BHBC club zone so its modals carry the club's navy-and-orange rather than the
+// app's. Ohad, looking at the program popup on production: "this doesnt look
+// anything like a bhbc branded page". Undefined everywhere else, so every other
+// modal in the product is untouched.
+export const Modal = ({ open, onClose, title, children, wide, sticky = false, themeAttr, headerStyle, titleStyle, closeStyle }) => {
   const titleId = React.useId();
   const cardRef = React.useRef(null);
   const lastFocusRef = React.useRef(null);
@@ -876,9 +881,9 @@ export const Modal = ({ open, onClose, title, children, wide, sticky = false, th
         {/* Sticky title row: stays pinned (with the ✕) while the body scrolls —
             top:-28 + negative margins swallow the card's own padding so the row
             docks flush at the card top (Ohad, 2026-08-21). */}
-        <div style={{ position: "sticky", top: -28, zIndex: 5, background: C.sf, margin: "-28px -28px 22px", padding: "28px 28px 14px", borderBottom: `1px solid ${C.bd}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h3 id={titleId} style={{ margin: 0, fontFamily: FN, fontSize: 13, color: C.tx, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>{title}</h3>
-          {!sticky && <button onClick={onClose} aria-label="Close dialog" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tm, cursor: "pointer", padding: "4px 10px", borderRadius: 0, fontSize: 14 }}>✕</button>}
+        <div style={{ position: "sticky", top: -28, zIndex: 5, background: C.sf, margin: "-28px -28px 22px", padding: "28px 28px 14px", borderBottom: `1px solid ${C.bd}`, display: "flex", justifyContent: "space-between", alignItems: "center", ...headerStyle }}>
+          <h3 id={titleId} style={{ margin: 0, fontFamily: FN, fontSize: 13, color: C.tx, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", display: "flex", alignItems: "center", gap: 10, ...titleStyle }}>{title}</h3>
+          {!sticky && <button onClick={onClose} aria-label="Close dialog" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tm, cursor: "pointer", padding: "4px 10px", borderRadius: 0, fontSize: 14, ...closeStyle }}>✕</button>}
         </div>{children}</div></div>);
 };
 export const ConfirmDialog = ({ open, onConfirm, onCancel, title, message }) => {
