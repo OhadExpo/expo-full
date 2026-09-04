@@ -30,7 +30,14 @@ const lines = [];
 const say = (m) => { const s = `${new Date().toISOString()}  ${m}`; console.log(s); lines.push(s); };
 
 function run(cmd, args, label) {
-  const r = spawnSync(cmd, args, { encoding: 'utf8', shell: false });
+  // PYTHONUTF8 is set HERE and not only in the .ps1 wrapper: both sheets are
+  // Hebrew, and a run started any other way - by hand, by a different
+  // scheduler, by a future me - would otherwise parse them through the system
+  // codepage and write mojibake into the ledger.
+  const r = spawnSync(cmd, args, {
+    encoding: 'utf8', shell: false,
+    env: { ...process.env, PYTHONUTF8: '1', PYTHONIOENCODING: 'utf-8' },
+  });
   const out = (r.stdout || '') + (r.stderr || '');
   for (const l of out.split(/\r?\n/)) if (l.trim() && !/deprecat/i.test(l)) say(`  | ${l}`);
   if (r.status !== 0) { say(`FAILED: ${label} (exit ${r.status})`); finish(1); }
