@@ -49,7 +49,7 @@ pg.on('requestfailed', (r) => {
   const why = r.failure()?.errorText || '?';
   if (/analytics|vitals|favicon|sentry/i.test(u)) return;
   // Media cancelled by navigating on is not a failure - see the athlete gate.
-  if (/ERR_ABORTED/.test(why) && /\/storage\/v1\/object\/.*\.(mp4|mov|webm|m4a|jpe?g|png|webp)(\?|$)/i.test(u)) return;
+  if (/ERR_ABORTED|ERR_CACHE_OPERATION_NOT_SUPPORTED/.test(why) && /\/storage\/v1\/object\/.*\.(mp4|mov|webm|m4a|jpe?g|png|webp)(\?|$)/i.test(u)) return;
   found.push(`[${phase}] request failed: ${u.slice(0, 100)} (${why})`);
 });
 pg.on('response', (r) => {

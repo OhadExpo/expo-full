@@ -52,7 +52,7 @@ pg.on('requestfailed', (r) => {
   // sign-in, so a poster or a video mid-download is aborted every time. Only
   // media is excused, and only for that reason: an aborted API call still
   // fails the gate.
-  if (/ERR_ABORTED/.test(why) && /\/storage\/v1\/object\/.*\.(mp4|mov|webm|m4a|jpe?g|png|webp)(\?|$)/i.test(u)) {
+  if (/ERR_ABORTED|ERR_CACHE_OPERATION_NOT_SUPPORTED/.test(why) && /\/storage\/v1\/object\/.*\.(mp4|mov|webm|m4a|jpe?g|png|webp)(\?|$)/i.test(u)) {
     aborted.add(u.split('/object/')[1] || u);
     return;
   }
