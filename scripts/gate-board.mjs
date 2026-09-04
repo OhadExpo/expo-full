@@ -41,7 +41,12 @@ for (const f of chosen) {
   });
   const secs = ((Date.now() - t0) / 1000).toFixed(1);
   const out = ((r.stdout || '') + (r.stderr || '')).split('\n').filter((l) => l.trim() && !/deprecat/i.test(l));
-  const last = out[out.length - 1] || '';
+  // The LAST line is often a hint or a next-step suggestion rather than the
+  // verdict (verify-prod-current ends on "node scripts/verify-lockfile-sync.mjs",
+  // which tells you nothing about what it found). Prefer a line that states a
+  // result, and fall back to the last line only when none does.
+  const verdict = out.find((l) => /PROD IS BEHIND|passed,|violation|^0 -|^ok |ALL PASS|FAIL/i.test(l));
+  const last = verdict || out[out.length - 1] || '';
   const status = r.error && r.error.code === 'ETIMEDOUT' ? 'TIMEOUT'
     : r.status === 0 ? 'pass' : 'FAIL';
   results.push({ gate: f, status, secs: Number(secs), summary: last.slice(0, 110) });

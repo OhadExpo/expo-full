@@ -100,6 +100,12 @@ for (const c of commits) {
   c.routes = routeFor(c.files);
 }
 
+// The gate board, if scripts/gate-board.mjs has been run. Evidence beats
+// reassurance: "nothing is broken" is worth reading only with the output
+// underneath it.
+let board = null;
+try { board = JSON.parse(fs.readFileSync('audit-out/gate-board.json', 'utf8')); } catch { /* not run */ }
+
 // What is waiting on him, kept in its own file so the generator stays generic.
 let decisions = [];
 try { decisions = JSON.parse(fs.readFileSync('audit-out/recap-decisions.json', 'utf8')); } catch { /* none */ }
@@ -165,6 +171,12 @@ const html = `<!doctype html>
   .ask-item p{margin:5px 0 7px}
   .cmd{display:inline-block;background:#000;color:var(--ac);padding:5px 9px;font:12px ui-monospace,monospace;
        border:1px solid var(--bd);user-select:all}
+  .board{border-left-color:#37B27C}
+  .board h3{color:#37B27C}
+  .gates{display:flex;flex-wrap:wrap;gap:5px;margin:10px 0 4px}
+  .g{font-size:10px;padding:3px 7px;border:1px solid;letter-spacing:.04em}
+  .g.p{color:#37B27C;border-color:rgba(55,178,124,.4)}
+  .g.f{color:#DE4E3B;border-color:#DE4E3B;font-weight:700}
   .toc{background:var(--sf);border:1px solid var(--bd);padding:13px 15px;margin-bottom:22px;
        display:flex;flex-wrap:wrap;gap:6px;align-items:center}
   .toc b{width:100%;font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--tm);margin-bottom:4px}
@@ -196,6 +208,16 @@ ${decisions.length ? `<div class="note ask">
   <h3>Waiting on you &middot; ${decisions.length}</h3>
   ${decisions.map((d) => `<div class="ask-item"><b>${esc(d.title)}</b><p>${esc(d.body)}</p>${
     d.action ? `<code class="cmd">${esc(d.action)}</code>` : ''}</div>`).join('')}
+</div>` : ''}
+
+${board ? `<div class="note board">
+  <h3>Gates &middot; ${board.pass} of ${board.results.length} pass</h3>
+  <p>Static gates only — the ones that need a video or a long browser session are not in this run.
+     Ran ${esc(new Date(board.when).toLocaleString('en-GB'))}.</p>
+  <div class="gates">${board.results.map((r) => `<span class="g ${r.status === 'pass' ? 'p' : 'f'}"
+    title="${esc(r.summary)}">${esc(r.gate.replace(/^(verify|check)-/, '').replace(/\.(mjs|py)$/, ''))}</span>`).join('')}</div>
+  ${board.results.filter((r) => r.status !== 'pass').map((r) =>
+    `<div class="ask-item"><b>${esc(r.gate)}</b><p>${esc(r.summary)}</p></div>`).join('')}
 </div>` : ''}
 
 <div class="toc"><b>All ${commits.length} commits</b>
