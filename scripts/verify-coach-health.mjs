@@ -47,7 +47,10 @@ pg.on('console', (m) => {
 pg.on('requestfailed', (r) => {
   const u = r.url();
   const why = r.failure()?.errorText || '?';
-  if (/analytics|vitals|favicon|sentry/i.test(u)) return;
+  // `_vercel/insights/script.js` exists only on Vercel, so every route of a
+  // LOCALLY served build reported a 404 and an ERR_ABORTED - 2 problems on each
+  // of 27 routes, none of them the app's.
+  if (/analytics|vitals|favicon|sentry|_vercel/i.test(u)) return;
   // Media cancelled by navigating on is not a failure - see the athlete gate.
   if (/ERR_ABORTED|ERR_CACHE_OPERATION_NOT_SUPPORTED/.test(why) && /\/storage\/v1\/object\/.*\.(mp4|mov|webm|m4a|jpe?g|png|webp)(\?|$)/i.test(u)) return;
   found.push(`[${phase}] request failed: ${u.slice(0, 100)} (${why})`);
@@ -56,7 +59,7 @@ pg.on('response', (r) => {
   const s = r.status();
   if (s < 400) return;
   const u = r.url();
-  if (/analytics|vitals|favicon/i.test(u)) return;
+  if (/analytics|vitals|favicon|_vercel/i.test(u)) return;
   if (s === 406) return;                                    // empty single() from PostgREST
   // storageUrl asks for a signed URL first and falls back to the public one
   // while the buckets are public; documented in storageUrl.js.

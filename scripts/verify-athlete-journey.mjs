@@ -45,7 +45,7 @@ pg.on('console', (m) => {
 });
 pg.on('requestfailed', (r) => {
   const u = r.url();
-  if (/analytics|vitals|favicon|sentry/i.test(u)) return;
+  if (/analytics|vitals|favicon|sentry|_vercel/i.test(u)) return;
   const why = r.failure()?.errorText || '?';
   // ERR_ABORTED on a MEDIA object is the browser cancelling an in-flight
   // fetch because the page moved on - this walk navigates straight after
@@ -61,7 +61,7 @@ pg.on('requestfailed', (r) => {
 pg.on('response', (r) => {
   if (r.status() < 400) return;
   const u = r.url();
-  if (/analytics|vitals|favicon/i.test(u)) return;
+  if (/analytics|vitals|favicon|_vercel/i.test(u)) return;
   // 406/416 from PostgREST on an empty single() is normal for a fresh athlete.
   if (r.status() === 406) return;
   // A 400 from /object/sign/ is EXPECTED and handled. storageUrl.js asks for a

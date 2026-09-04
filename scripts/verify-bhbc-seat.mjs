@@ -39,7 +39,7 @@ pg.on('console', (m) => {
 });
 pg.on('requestfailed', (r) => {
   const u = r.url(); const why = r.failure()?.errorText || '?';
-  if (/analytics|vitals|favicon|sentry/i.test(u)) return;
+  if (/analytics|vitals|favicon|sentry|_vercel/i.test(u)) return;
   // MEDIA only, and only for two browser-level reasons: ERR_ABORTED is the
   // page navigating on mid-download, and ERR_CACHE_OPERATION_NOT_SUPPORTED is
   // the debug profile's cache refusing a range request on a video. Neither is
@@ -50,7 +50,7 @@ pg.on('requestfailed', (r) => {
 pg.on('response', (r) => {
   const s = r.status(); if (s < 400) return;
   const u = r.url();
-  if (/analytics|vitals|favicon/i.test(u)) return;
+  if (/analytics|vitals|favicon|_vercel/i.test(u)) return;
   if (s === 406) return;
   if (s === 400 && /\/storage\/v1\/object\/sign\//.test(u)) return;
   // A BHBC seat being REFUSED owner-only data is the system working. Those
