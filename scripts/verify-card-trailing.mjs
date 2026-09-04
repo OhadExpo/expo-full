@@ -93,8 +93,67 @@ const MEASURE = (slack) => {
     // 24/24/20 and whose bottom gap is 21. Measuring against the card's own
     // padding-bottom finds what is genuinely unaccounted for: a stray margin, an
     // empty element, a list reserving a row it never fills.
-    const padBot = parseFloat(cs.paddingBottom) || 0;
+    // PADDING DECLARED ONE LEVEL IN IS STILL DECLARED. Many cards here set
+    // padding 0 and let a body wrapper carry it - the demo's "INCOMING · 30D"
+    // card is padding-bottom 0 with a full-width body at 14px, ending flush
+    // with the card - so reading only the card's own padding called 14px of
+    // deliberate spacing "unaccounted". Walk the chain of full-width children
+    // and credit each one's bottom padding, but ONLY while the wrapper actually
+    // reaches the bottom it is meant to explain; otherwise a nested card's
+    // padding would be counted for its parent.
+    let padBot = parseFloat(cs.paddingBottom) || 0;
+    {
+      let node = el;
+      for (let d = 0; d < 3; d++) {
+        const nb = node.getBoundingClientRect();
+        const kids = [...node.children].filter((k) => k.getBoundingClientRect().height > 0);
+        const wides = kids.filter((k) => k.getBoundingClientRect().width >= nb.width * 0.9);
+        const wide = wides[wides.length - 1];
+        if (!wide) break;
+        const wr = wide.getBoundingClientRect();
+        if (r.bottom - wr.bottom > padBot + 3) break;
+        padBot += parseFloat(getComputedStyle(wide).paddingBottom) || 0;
+        node = wide;
+      }
+    }
     if (gapBot - padBot <= slack) return;
+    // ...AND NOT SPACE THE CARD DID NOT CHOOSE. A card in a grid or flex row is
+    // stretched to its row's height, so the one with the least text carries the
+    // slack - and that is correct design: a feature grid with ragged card
+    // heights looks worse than one with a little air. Measured on /demo, the
+    // landing feature cards run [201,201,201,222,222,222] - equal within each
+    // row - and the flagged card's paragraph simply ends 44px up because a
+    // row-mate's does not.
+    //
+    // So: if a same-row sibling of the same height uses the space this card is
+    // being blamed for, the height is the row's decision, not this card's.
+    const par = el.parentElement;
+    if (par) {
+      const pcs = getComputedStyle(par);
+      if (/grid|flex/.test(pcs.display) && /stretch|normal/.test(pcs.alignItems)) {
+        const mates = [...par.children].filter((k) => {
+          if (k === el) return false;
+          const q = k.getBoundingClientRect();
+          return q.height > 0 && Math.abs(q.top - r.top) <= 2 && Math.abs(q.height - r.height) <= 1;
+        });
+        const inkBottomOf = (node) => {
+          let b = -Infinity;
+          for (const k of node.querySelectorAll('*')) {
+            if (/^(STYLE|SCRIPT|NOSCRIPT|TEMPLATE|TITLE)$/.test(k.tagName)) continue;
+            const kb = k.getBoundingClientRect();
+            if (kb.height <= 0) continue;
+            if (CONTROL.test(k.tagName)) { if (kb.bottom > b) b = kb.bottom; continue; }
+            if (k.children.length || !(k.textContent || '').trim()) continue;
+            const rg = document.createRange();
+            rg.selectNodeContents(k);
+            const gb = rg.getBoundingClientRect();
+            if (gb.height && gb.bottom > b) b = gb.bottom;
+          }
+          return b;
+        };
+        if (mates.some((m) => isFinite(inkBottomOf(m)) && inkBottomOf(m) - bot > slack)) return;
+      }
+    }
     // ...AND beyond the card's OWN rhythm. At 390px most cards declare zero
     // padding and let their rows carry the spacing, so a fixed 6px threshold
     // called 148 cards broken when their bottom gap simply equalled the gap
