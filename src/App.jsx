@@ -452,6 +452,47 @@ export default function App() {
   );
 }
 
+// THE ATHLETE'S OWN IDENTITY, CACHED FOR A DEAD NETWORK.
+//
+// Athletes cannot read `expo-trainees` under RLS, so their identity comes from
+// the self-scoped my_trainee() RPC. When that RPC cannot reach the server the
+// app had no trainee row at all, so an athlete who reloaded in a gym basement
+// was shown "Couldn't Verify Account" instead of the programme the service
+// worker had already cached for them. Measured against production with the
+// network cut: 152 characters and no workout.
+//
+// The cache is deliberately narrow:
+//   * it is the caller's OWN record, from their own authenticated session, on
+//     their own device - my_trainee() is SECURITY DEFINER and returns nothing
+//     else, so there is no one else's data to leak here;
+//   * it is keyed by the signed-in EMAIL, so a different account on the same
+//     browser can never read it;
+//   * it is consulted ONLY when the RPC FAILED. A successful RPC that returns
+//     no row still means "not registered" and must keep saying so - otherwise a
+//     removed athlete would keep letting themselves in.
+const SELF_TRAINEE_KEY = 'expo-self-trainee';
+
+function rememberSelfTrainee(email, trainee) {
+  try {
+    if (!email) return;
+    if (trainee) localStorage.setItem(SELF_TRAINEE_KEY, JSON.stringify({ email, trainee }));
+    else localStorage.removeItem(SELF_TRAINEE_KEY);   // no row = nothing to remember
+  } catch { /* private mode, quota - the online path is unaffected */ }
+}
+
+// Returns the cached record for THIS email, or null. Sets the verify-error flag
+// only when there is nothing cached, so the "couldn't verify" screen still
+// appears for someone who has never successfully loaded.
+function cachedSelfTrainee(email, setError) {
+  try {
+    const raw = localStorage.getItem(SELF_TRAINEE_KEY);
+    const hit = raw ? JSON.parse(raw) : null;
+    if (hit && hit.email === email && hit.trainee) { setError(false); return hit.trainee; }
+  } catch { /* an unreadable cache is the same as no cache */ }
+  setError(true);
+  return null;
+}
+
 function BootSplash() {
   const logo = useLogoSrc();
   return (
@@ -862,8 +903,13 @@ function AuthedApp() {
     setSelfTrainee(undefined);
     setSelfTraineeError(false);
     supabase.rpc('my_trainee')
-      .then(({ data, error }) => { if (cancelled) return; if (error) { setSelfTraineeError(true); setSelfTrainee(null); } else { setSelfTrainee(data || null); } })
-      .catch(() => { if (!cancelled) { setSelfTraineeError(true); setSelfTrainee(null); } });
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) { setSelfTrainee(cachedSelfTrainee(email, setSelfTraineeError)); return; }
+        setSelfTrainee(data || null);
+        rememberSelfTrainee(email, data || null);
+      })
+      .catch(() => { if (!cancelled) setSelfTrainee(cachedSelfTrainee(email, setSelfTraineeError)); });
     return () => { cancelled = true; };
   }, [email, storeClientTrainee, isTrainerEmail]);
   const clientTrainee = storeClientTrainee || selfTrainee || null;
