@@ -704,6 +704,14 @@ function AuthedApp() {
     }, 8000);
     return () => clearTimeout(t);
   }, []);
+  // How long the boot splash is allowed to hold the app before it renders with
+  // whatever has arrived. Six seconds is well past a healthy load and well
+  // short of the twenty a dead backend takes to give up.
+  const [bootDeadline, setBootDeadline] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setBootDeadline(true), 6000);
+    return () => clearTimeout(t);
+  }, []);
   // Clear the portal choice on sign-out so the next login (potentially a
   // different account) goes through the picker fresh instead of inheriting
   // the previous user's preference.
@@ -1474,7 +1482,20 @@ function AuthedApp() {
   // (library, pickers) tolerate a late fill. All loaded flags flip true on
   // failure too, so a failed read can't strand this splash.
   const storesReady = tL && wL && pyL && pL && cwL && bwL;
-  if (!storesReady) return (
+  // A DEADLINE ON THE SPLASH.
+  //
+  // Every one of those flags flips true on failure, so this can never strand -
+  // but "on failure" is not "quickly". Measured with the backend unreachable:
+  // the coach app sat on "Loading data..." for TWENTY SECONDS before the reads
+  // gave up, on every coach route. A coach on gym wifi reads that as a dead
+  // app. After the deadline the shell renders with whatever arrived, and says
+  // so rather than presenting half-loaded counts as fact.
+  // PENDING IS ONLY HALF THE SIGNAL. Every loaded flag flips true on FAILURE
+  // too, so twenty seconds in, a coach whose roster read died was shown
+  // "ATHLETES 0" with nothing above it - a failed read presented as the fact
+  // that he has no athletes. The roster's loadError keeps the notice up.
+  const dataIncomplete = !storesReady || !!traineesLoadError;
+  if (!storesReady && !bootDeadline) return (
     <div style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16}}>
       <img src={logo.nav} alt="EXPO" style={{height:50}} />
       <div style={{color:C.td,fontSize:13}}>Loading data...</div>
@@ -1507,6 +1528,13 @@ function AuthedApp() {
     <LangCtx.Provider value={lang}>
     <div className="app-root" dir={lang === 'he' ? 'rtl' : 'ltr'} style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB,maxWidth:"100vw",overflowX:"clip"}}>
       {isPartner && <div style={{background:`color-mix(in srgb, ${C.ac} 22%, ${C.bg})`,borderBottom:`1px solid ${C.ac}`,color:C.tx,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',textAlign:'center',padding:'7px 12px'}}>PARTNER PREVIEW · you're viewing the real EXPO with live data — anything you change isn't saved</div>}
+      {/* Past the deadline with reads still outstanding. The app is usable, but
+          a count drawn from a store that never loaded is not a fact - saying so
+          is the difference between "you have no athletes" and "we could not
+          reach the server". */}
+      {dataIncomplete && <div style={{background:`color-mix(in srgb, ${C.ac} 14%, ${C.bg})`,borderBottom:`1px solid ${C.ac}`,color:C.tx,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',textAlign:'center',padding:'7px 12px'}}>{lang === 'he'
+        ? 'אופליין — חלק מהמידע לא נטען. ייתכן שהמספרים חלקיים עד שהחיבור יחזור.'
+        : 'OFFLINE — some data has not loaded. Numbers may be incomplete until the connection returns.'}</div>}
       {isOwner && <Suspense fallback={null}><SensorLab /></Suspense>}
       <header style={{background:C.headerBg,borderBottom:`1px solid ${C.cardBd}`,boxShadow:'0 1px 2px rgba(0,0,0,0.03), 0 4px 12px rgba(0,0,0,0.04)',position:"sticky",top:0,zIndex:100,paddingTop:'env(safe-area-inset-top)'}}>
         <style>{`
