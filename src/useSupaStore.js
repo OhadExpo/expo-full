@@ -67,8 +67,21 @@ const trimToBudget = (rows, budget) => {
 export const lsSnapshotRecent = (key, rows, budget = CW_BUDGET) =>
   lsSnapshot(key, trimToBudget(rows, budget));
 
+// NOTHING MAY WRITE A SNAPSHOT WHILE SIGNED OUT.
+//
+// The purge in auth.jsx signOut() runs while every store is still mounted, so
+// a read that resolves a moment later happily re-created the file that had just
+// been deleted. Measured on the physio seat: expo-bhbc-fixtures and expo-cw
+// were both back on the phone after pressing Sign out, and both are keys the
+// purge explicitly covers - it deleted them and they came straight back.
+//
+// One latch, at the single choke point every snapshot goes through.
+let snapshotsAllowed = true;
+export const setSnapshotsAllowed = (v) => { snapshotsAllowed = !!v; };
+
 /** Write a snapshot only if it leaves the reserve intact. Returns success. */
 export const lsSnapshot = (key, val) => {
+  if (!snapshotsAllowed) return false;
   try {
     const text = JSON.stringify(val);
     const existing = (localStorage.getItem(key) || '').length;

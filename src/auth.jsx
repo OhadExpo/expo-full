@@ -4,7 +4,26 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from './supabase';
 import { setQueueUser } from './offlineQueue';
-import { onSaveError } from './useSupaStore';
+import { onSaveError, setSnapshotsAllowed } from './useSupaStore';
+
+// Shared-device hygiene (audit 08-22): the next account must not boot into the
+// last one's cached workouts, bodyweight or BHBC data. The offline queue is
+// NOT cleared - its entries are uid-scoped and drain when their owner signs
+// back in.
+//
+// `plans-` and `self-trainee` are the offline fallbacks: an athlete's whole
+// programme and the trainee record their identity resolves to. Both would
+// otherwise sit on a shared phone after sign-out, which is exactly what this
+// exists to prevent.
+const CACHE_KEYS_RX = /^expo-(cw|bw|workouts|weekly-focus|portal-vis|bhbc-|checkins|trainees|exercises|plans-|self-trainee)/;
+function purgeLocalCaches() {
+  try {
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (k && CACHE_KEYS_RX.test(k)) localStorage.removeItem(k);
+    }
+  } catch { /* private mode: there is nothing stored to purge */ }
+}
 import { subscribe as subscribeQueue, drain as drainQueue, getCount as getQueueCount } from './offlineQueue';
 import { subscribe as subscribeBlobs, drainBlobs } from './blobQueue';
 import { C, FN, FB, FH, EXPO_LOGO } from './theme';
@@ -74,6 +93,9 @@ export function AuthProvider({ children, clientList }) {
     const finishBoot = () => { if (!booted) { booted = true; setLoading(false); } };
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s);
+      // A session means snapshots are welcome again; no session means nothing
+      // personal may be written to this device.
+      try { setSnapshotsAllowed(!!s); } catch { /* ignore */ }
       try { setQueueUser(s?.user?.id || null); } catch {}
       if (s?.user?.email) {
         const r = resolveRole(s.user.email);
@@ -87,6 +109,9 @@ export function AuthProvider({ children, clientList }) {
     // Listen for auth changes (magic link callback, sign out, etc.)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s);
+      // A session means snapshots are welcome again; no session means nothing
+      // personal may be written to this device.
+      try { setSnapshotsAllowed(!!s); } catch { /* ignore */ }
       try { setQueueUser(s?.user?.id || null); } catch {}
       if (s?.user?.email) {
         const r = resolveRole(s.user.email);
@@ -125,25 +150,30 @@ export function AuthProvider({ children, clientList }) {
   }, []);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    // Latch snapshots off BEFORE anything else. The stores stay mounted for a
+    // moment after this, and a read resolving mid-sign-out used to write back
+    // the very file the purge below deletes.
+    setSnapshotsAllowed(false);
+    // THE PHONE IS CLEANED FIRST, BEFORE THE NETWORK CALL.
+    //
+    // This used to await supabase.auth.signOut() and purge afterwards, and
+    // measured on the physio seat it left expo-cw and expo-bhbc-fixtures behind
+    // in four runs out of six - never deleted at all, while the UI went to the
+    // sign-in screen as if all was well. supabase-js takes a navigator
+    // LockManager lock, which this file already documents as able to hang
+    // across PWA tabs (see the getSession watchdog above): when that call does
+    // not resolve, every line after it is simply never reached, and one
+    // person's squad and medical data stays on a shared phone.
+    //
+    // Local state and local data must not depend on a server round trip. The
+    // purge runs again after the call for anything a late-resolving read wrote
+    // in between.
     setSession(null);
     setRole(null);
     setClientId(null);
-    // Shared-device hygiene (audit 08-22): the next account must not boot into
-    // this user's cached workouts/bodyweight/BHBC data. The offline queue is
-    // NOT cleared — its entries are uid-scoped and drain when their owner
-    // signs back in.
-    try {
-      // `plans-` and `self-trainee` are the offline fallbacks: the athlete's
-      // whole programme and the trainee record their identity resolves to.
-      // Both are new, and both would otherwise sit on a shared phone after
-      // sign-out - which is precisely what this purge exists to prevent.
-      const CACHE_KEYS_RX = /^expo-(cw|bw|workouts|weekly-focus|portal-vis|bhbc-|checkins|trainees|exercises|plans-|self-trainee)/;
-      for (let i = localStorage.length - 1; i >= 0; i--) {
-        const k = localStorage.key(i);
-        if (k && CACHE_KEYS_RX.test(k)) localStorage.removeItem(k);
-      }
-    } catch {}
+    purgeLocalCaches();
+    try { await supabase.auth.signOut(); } catch { /* the phone is already clean */ }
+    purgeLocalCaches();
     try { setQueueUser(null); } catch {}
   };
 

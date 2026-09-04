@@ -15,13 +15,18 @@
 //
 // Read-only apart from the sign-out it performs on the test fixture's own seat.
 //
+// The physio seat matters more, not less: the club zone caches the squad AND
+// their medical status, which is the most sensitive data on the platform.
+//
 //   node scripts/verify-shared-device.mjs [email]
+//   SEAT_URL=/coach/bhbc node scripts/verify-shared-device.mjs tomerlich11@gmail.com
 import P from 'puppeteer-core';
 import { setWidth } from './lib/viewport.mjs';
 
 const BASE = process.env.BASE || 'http://127.0.0.1:4173';
 const EMAIL = process.argv[2] || 'diego@diegoday.com';
 const PW = process.env.ATHLETE_PW || '1234';
+const SEAT_URL = process.env.SEAT_URL || '/athlete';
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // Anything holding one person's training, body or identity. Language and theme
@@ -55,7 +60,7 @@ try {
   await wait(9000);
 
   await setWidth(pg, 390, 844);
-  await pg.goto(BASE + '/athlete', { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await pg.goto(BASE + SEAT_URL, { waitUntil: 'domcontentloaded', timeout: 60000 });
   await wait(14000);
   await pg.evaluate(() => {
     const x = [...document.querySelectorAll('button,a')].find((e) => /maybe later|dismiss/i.test(e.textContent || ''));
