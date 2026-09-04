@@ -76,21 +76,42 @@ const MEASURE = (slack) => {
         || (s2.borderStyle !== 'none' && parseFloat(s2.borderWidth) > 0)
         || s2.backgroundColor !== 'rgba(0, 0, 0, 0)';
     };
-    const leaves = [...el.querySelectorAll('*')].filter((k) => {
+    // THE CARD ITSELF CAN HOLD INK. querySelectorAll('*') returns descendants
+    // only, so text sitting directly in the card was invisible to this scan.
+    // The chat bubble ends in a bare text node - "— ₪399/mo (limited slots)." -
+    // with the last <strong> 104px higher up, so the bubble read as 98px of
+    // dead air when it is completely full. That was the largest number in the
+    // sweep and it was measurement, not design.
+    const leaves = [el, ...el.querySelectorAll('*')].filter((k) => {
       if (/^(STYLE|SCRIPT|NOSCRIPT|TEMPLATE|TITLE)$/.test(k.tagName)) return false;
       if (k.getBoundingClientRect().height <= 0) return false;
-      if (isCtrl(k)) return true;
-      return k.children.length === 0 && (k.textContent || '').trim();
+      if (k !== el && isCtrl(k)) return true;
+      // TEXT SITTING DIRECTLY IN AN ELEMENT COUNTS, even when that element also
+      // has element children. Requiring children.length === 0 missed every
+      // mixed-content node: a chat bubble is
+      //   <div><span>BOT</span>the reply…</div>
+      // so the only "leaf" was the SPAN at the top, the reply itself was never
+      // measured, and the bubble read as 98px of dead air - the single largest
+      // number in this sweep, and entirely the gate's own doing.
+      return [...k.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim());
     });
     if (leaves.length < 2) return;
     let top = Infinity, bot = -Infinity;
     for (const k of leaves) {
       let b;
-      if (isCtrl(k)) {
+      if (k !== el && isCtrl(k)) {
         b = k.getBoundingClientRect();     // a control's box IS its ink
       } else {
+        // Range over this element's OWN text nodes only. selectNodeContents
+        // would swallow child elements too and re-introduce their boxes.
+        let first = null, last = null;
+        for (const n of k.childNodes) {
+          if (n.nodeType === 3 && n.textContent.trim()) { if (!first) first = n; last = n; }
+        }
+        if (!first) continue;
         const rng = document.createRange();
-        rng.selectNodeContents(k);
+        rng.setStartBefore(first);
+        rng.setEndAfter(last);
         b = rng.getBoundingClientRect();
       }
       if (!b.height) continue;
