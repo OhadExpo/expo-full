@@ -52,6 +52,28 @@ function trackAndOpen(event, payload) {
 // id="…" elements). A bare `#<id>` for these must keep the home view mounted.
 const HOME_SECTIONS = new Set(['programs', 'about', 'why', 'how', 'contact', 'faq', 'discovery-call']);
 
+// A SLASH IS A PLACE A LINE MAY BREAK.
+//
+// Chrome offers no break opportunity after "/" between Hebrew letters, so a
+// slash-joined list is one unbreakable token. Measured at 900px on the program
+// detail page: "ציר/סקוואט/דחיפה/משיכה/נשיאה/סיבוב" ran 27px outside its card.
+//
+// <wbr> marks the break points explicitly. It is used rather than
+// overflow-wrap:anywhere, which would break mid-word - the thing that made the
+// exercises table WORSE when it was tried there - and rather than injecting a
+// zero-width space, which would ride along in anything a visitor copies.
+function SlashBreak({ text }) {
+  const s = String(text == null ? '' : text);
+  if (!s.includes('/')) return s;
+  const parts = s.split('/');
+  return parts.map((part, i) => (
+    <React.Fragment key={i}>
+      {part}
+      {i < parts.length - 1 ? <>/<wbr /></> : null}
+    </React.Fragment>
+  ));
+}
+
 function parseHash(hash) {
   const h = (hash || '').replace(/^#\/?/, '');
   // 2026-05-14 dual-arm split. Empty hash now shows the EntryChooser
@@ -752,7 +774,7 @@ function ProgramCard({ p }) {
             fontFamily: FB, fontSize: 13, color: C.tm, lineHeight: 1.45,
           }}>
             <span style={{ color: C.ac, fontFamily: FN, marginTop: 1 }}>›</span>
-            <span>{h}</span>
+            <span><SlashBreak text={h} /></span>
           </li>
         ))}
       </ul>
@@ -2917,7 +2939,7 @@ function ProgramDetail({ program }) {
               fontFamily: FB, fontSize: 14, color: C.tx, lineHeight: 1.5, textAlign: 'start',
             }}>
               <span style={{ color: C.ac, fontFamily: FN, fontWeight: 700, flexShrink: 0, lineHeight: 1.5 }}>›</span>
-              <span style={{ minWidth: 0 }}>{h}</span>
+              <span style={{ minWidth: 0 }}><SlashBreak text={h} /></span>
             </li>
           ))}
         </ul>
