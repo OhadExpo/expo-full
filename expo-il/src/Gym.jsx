@@ -113,7 +113,16 @@ function Header({ heb, onBookClick }) {
       <div style={{
         maxWidth: 1100, margin: '0 auto',
         padding: '14px 24px',
+        // A GUARANTEED GAP, AND ROOM TO WRAP. At 390 the logo, the language
+        // toggle and BOOK SESSION fill the row exactly: measured, the wordmark
+        // ended at 102 and the EN button began at 103, so the brand mark was
+        // touching a control. space-between alone cannot prevent that - it just
+        // runs out of space. A gap on its own would have pushed the row 11px
+        // wide and produced the sideways scroll being fixed elsewhere today, so
+        // the row may wrap instead: it keeps its 12px minimum and drops the
+        // group to a second line rather than overflowing.
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        gap: 12, flexWrap: 'wrap',
       }}>
         {/* Logo IS the back affordance — clicking returns to the
             EntryChooser at #/. No separate BACK button. */}
