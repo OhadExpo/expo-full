@@ -258,7 +258,8 @@ export const isRefined5b = () => {
 // Card border (and any severity left-stripe) sits OUTSIDE the strip.
 // Pass `padY` and `padX` matching the parent card's padding (defaults
 // match the dashboard alert-card padding of 14/18).
-export function RefinedHeaderStrip({ children, padY = 14, padX = 18, marginBottom = 12, bleed = true }) {
+export function RefinedHeaderStrip({ children, padY = 14, padX = 18, marginBottom = 12, bleed = true,
+  onClick, onKeyDown, role, tabIndex, ariaExpanded }) {
   // --c-stripBg is full BSG cyan in light, black in dark. Strip bleeds
   // to the card's outer edge via negative margins, so the card's own
   // cyan border becomes the strip's top + left + right border. The
@@ -266,7 +267,11 @@ export function RefinedHeaderStrip({ children, padY = 14, padX = 18, marginBotto
   // card border (var(--c-cardBd)) so the strip reads as a fully-
   // boxed title area, "closed" along the bottom.
   return (
-    <div style={{
+    <div
+      onClick={onClick} onKeyDown={onKeyDown} role={role} tabIndex={tabIndex}
+      aria-expanded={ariaExpanded}
+      style={{
+      ...(onClick ? { cursor: 'pointer', userSelect: 'none' } : null),
       // Header strip sits ONE subtle shade brighter/more-cyan than the card box
       // below it — a faint cyan highlight that separates header from content
       // without a hard fill (Ohad's test, 2026-07-30). ~10% brand cyan mixed
@@ -642,7 +647,10 @@ export const SectionLabel = ({ children, color = C.tm, as: Tag = 'div', style: s
 // On hover (clickable cards only), the shadow grows + the card lifts
 // 1px. This is the Linear / Vercel / Notion pattern — strokes are
 // noise, shadows are signal.
-export const Card = ({ children, style, className, onClick, onMouseEnter, onMouseLeave, header, headerRight, leftStripe, padding = 24, draggable, onDragStart, onDragEnd, onDragOver, onDrop, dropActive }) => {
+// `onHeaderClick` is OPT-IN, and turns the strip into a handle: the BHBC zone
+// uses it so every box in the club can be collapsed. Undefined everywhere else,
+// so no other card in the product changes behaviour.
+export const Card = ({ children, style, className, onClick, onMouseEnter, onMouseLeave, header, headerRight, leftStripe, padding = 24, draggable, onDragStart, onDragEnd, onDragOver, onDrop, dropActive, onHeaderClick, headerAriaExpanded }) => {
   // Refined light variant: in refined mode every card flips to a white body.
   // When `header` is also passed, the cyan strip is rendered above the body.
   // In dark / non-refined modes the card stays single-zone cyan.
@@ -704,7 +712,12 @@ export const Card = ({ children, style, className, onClick, onMouseEnter, onMous
         // Header-only card (no body content): let the strip bleed to the BOTTOM
         // edge too (negative margin cancels the card's bottom padding) so there's
         // no dead band under the title. With a body, keep the normal 12px gap.
-        <RefinedHeaderStrip padY={padNum} padX={padNum} marginBottom={children ? 12 : -padNum}>
+        <RefinedHeaderStrip padY={padNum} padX={padNum} marginBottom={children ? 12 : -padNum}
+          onClick={onHeaderClick}
+          role={onHeaderClick ? 'button' : undefined}
+          tabIndex={onHeaderClick ? 0 : undefined}
+          ariaExpanded={onHeaderClick ? headerAriaExpanded : undefined}
+          onKeyDown={onHeaderClick ? ((e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onHeaderClick(e); } }) : undefined}>
           {headerRight ? (
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
               {/* Pure white in BOTH themes so the dark strip's title reads

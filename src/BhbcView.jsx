@@ -13,7 +13,7 @@
 
 import React, { useMemo, useState, useEffect, useCallback, Suspense, lazy } from 'react';
 import { C, FN, FB, EXPO_ICON_LG_T } from './theme';
-import { Card, CollapsibleSection, Btn, Input, Modal, EmptyState, toast, usePersistentState } from './ui';
+import { Card as BaseCard, CollapsibleSection, Btn, Input, Modal, EmptyState, toast, usePersistentState } from './ui';
 import { ThemeToggle } from './ThemeToggle';
 import { fmtNumericDate } from './dates';
 import { useTheme } from './hooks/useTheme';
@@ -96,6 +96,46 @@ const BModal = ({ children, title, ...rest }) => (
     {...rest}
   ><div style={TOKENS}>{children}</div></Modal>
 );
+// EVERY BOX IN THE ZONE COLLAPSES. Ohad: "make sure i can collapse all the
+// boxes in bhbc". Done here rather than at nineteen call sites, so no card can
+// be added later that forgets to: this IS `Card` inside the club zone.
+//
+// The strip is the handle, which is the pattern the rest of the app already
+// uses, and the state is remembered per box so a physio who keeps Medical open
+// and the rest shut finds it that way tomorrow. A card with no header strip has
+// no handle, so it is left alone.
+const cardKey = (header) => {
+  if (typeof header === 'string') return header;
+  const s = header && header.props && header.props.s;
+  return typeof s === 'string' ? s : '';
+};
+function Card({ header, headerRight, children, ...rest }) {
+  const key = cardKey(header);
+  const [open, setOpen] = usePersistentState('bhbc-open-' + (key || 'card'), true);
+  if (!header || !key) return <BaseCard header={header} headerRight={headerRight} {...rest}>{children}</BaseCard>;
+  return (
+    <BaseCard
+      header={header}
+      onHeaderClick={() => setOpen((v) => !v)}
+      headerAriaExpanded={open}
+      headerRight={(
+        <>
+          {headerRight}
+          {/* The chevron STATES the state; the whole strip is the target. An
+              SVG, not a glyph: Nord renders U+25BE as a faint dash, which read
+              as a stray hyphen at the end of the strip rather than a control. */}
+          <svg aria-hidden="true" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"
+            style={{ flexShrink: 0, transform: open ? 'none' : 'rotate(-90deg)', transition: 'transform .12s' }}>
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </>
+      )}
+      {...rest}
+    >{open ? children : null}</BaseCard>
+  );
+}
+
 const BAND = { detrained: '#4F9DE0', low: '#37B27C', elevated: '#E0A73A', high: '#DE4E3B', none: '#7C828B' };
 // ONE section-title treatment everywhere (must match CollapsibleSection's title:
 // FN / 13 / 700 / 0.08em / uppercase / white). Card headers are plain strings by
@@ -970,8 +1010,21 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
           /* The sixth child is the Update action. It was never mapped, so on a
              phone it landed wherever auto-placement put it. */
           .bhbc-inj-row>:nth-child(6){grid-area:4/1/auto/-1!important;justify-self:start!important}
+          /* ...and aligned UNDER THE NAME, not under the jersey number. The
+             name sits 27px in (an 18px right-aligned number plus the 9px gap),
+             so the action lines up with the athlete it belongs to instead of
+             hanging off the left edge. Ohad: "perfectly ocd aligned". */
+          .bhbc-inj-row>:nth-child(6){padding-inline-start:27px!important}
           .bhbc-inj-head{display:none!important}
         }
+        /* THE LAST ROW DOES NOT DRAW A RULE INTO THE CARD'S OWN EDGE. Ohad:
+           "there shouldnt be a cyan border after the last name and adjust the
+           space to the end of the card/box after you remove it." A divider
+           separates two rows; under the last one it is a second border a few
+           pixels inside the card's border. Removing it leaves the row's own
+           11px of padding plus the card's 14 - too much air under a list that
+           just ended - so the last row's bottom padding comes down to 2. */
+        .bhbc-inj-row:last-child{border-bottom:none!important;padding-bottom:2px!important}
       `}</style>
       {/* ---- ZONE TOP BAR — logo + wordmark + inline nav tabs + controls, one
            clean bar (EXPO-style; tabs moved up here from a separate row). ---- */}
