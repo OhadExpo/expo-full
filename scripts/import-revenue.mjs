@@ -90,28 +90,37 @@ if (fs.existsSync(HIST)) {
     if (!p.payment_dates.length && !p.card_starts.length && !p.start_dates.length) continue;
     const r = resolve(p.name);
     nameReport.push({ name: p.name, ...r, dates: p.payment_dates.length + p.card_starts.length });
-    const rateText = (p.prices_session[0] || p.prices_month[0] || '') || null;
     // A single clean number is a rate; a couple's "250/175" is two rates and
     // stays as text rather than being guessed at.
-    const m = rateText && String(rateText).match(/^\s*(\d+(?:\.\d+)?)\s*(?:ש"ח|₪)?\s*$/);
-    const rateAmount = m ? Number(m[1]) : null;
-    const rateUnit = p.prices_month.length ? 'month' : (p.prices_session.length ? 'session' : null);
+    const parseRate = (t) => {
+      const m = t && String(t).match(/^\s*(\d+(?:\.\d+)?)\s*(?:ש"ח|₪)?\s*$/);
+      return m ? Number(m[1]) : null;
+    };
+    // The rate comes from the SAME revision as the date. Using the client's
+    // rates as a set and taking the first stamped every payment with an
+    // arbitrary historical price; a client who moved 175 -> 250 had all of
+    // them labelled 175. Falling back to the client's known rate only when the
+    // revision recorded none.
     const push = (kind, list) => {
       for (const d of list) {
+        const text = d.rate_session || d.rate_month || p.prices_session[0] || p.prices_month[0] || null;
         events.push({
           source: 'roster', sheet_id: SHEET_ID, client_name: p.name, trainee_id: r.id,
           section: p.sections[0] || null, event_kind: kind, event_date: d.date,
-          rate_text: rateText, rate_amount: rateAmount, rate_unit: rateUnit,
-          sessions_text: p.sessions_seen[0] || null, first_seen_rev: d.first_seen_rev,
+          rate_text: text, rate_amount: parseRate(text),
+          rate_unit: d.rate_month ? 'month' : (d.rate_session ? 'session' : (p.prices_month.length ? 'month' : (p.prices_session.length ? 'session' : null))),
+          sessions_text: d.sessions || null, first_seen_rev: d.first_seen_rev,
         });
       }
     };
     push('payment_date', p.payment_dates);
     push('card_start', p.card_starts);
     for (const d of p.start_dates) {
+      const t0 = p.prices_session[0] || p.prices_month[0] || null;
       events.push({ source: 'roster', sheet_id: SHEET_ID, client_name: p.name, trainee_id: r.id,
         section: p.sections[0] || null, event_kind: 'start_date', event_date: d,
-        rate_text: rateText, rate_amount: rateAmount, rate_unit: rateUnit,
+        rate_text: t0, rate_amount: parseRate(t0),
+        rate_unit: p.prices_month.length ? 'month' : (p.prices_session.length ? 'session' : null),
         sessions_text: null, first_seen_rev: p.first_rev });
     }
   }

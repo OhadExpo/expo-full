@@ -155,9 +155,19 @@ for r in all_recs:
     if r['rev'] is not None:
         p['first_rev'] = r['rev'] if p['first_rev'] is None else min(p['first_rev'], r['rev'])
         p['last_rev'] = r['rev'] if p['last_rev'] is None else max(p['last_rev'], r['rev'])
+    # The rate is recorded WITH the date, from the same revision. Taking a
+    # client's rates as a set and using the first one labelled every payment
+    # with an arbitrary historical price - sorted lexicographically, so a
+    # client who moved 175 -> 250 had every payment stamped 175. A rate shown
+    # beside a date has to be the rate that was in force on that date.
     for k in ('last_payment', 'card_start', 'start'):
         if r.get(k):
-            p[k].setdefault(r[k], r['rev'])
+            p[k].setdefault(r[k], {
+                'rev': r['rev'],
+                'price_session': r.get('price_session'),
+                'price_month': r.get('price_month'),
+                'sessions_done': r.get('sessions_done'),
+            })
     for k in ('price_session', 'price_month', 'sessions_done'):
         if r.get(k):
             p[k].add(str(r[k]))
@@ -170,8 +180,12 @@ for name, p in people.items():
         'first_rev': p['first_rev'], 'last_rev': p['last_rev'],
         # rev is kept beside each date so a value can be traced back to the
         # exact revision it was read from.
-        'payment_dates': [{'date': d, 'first_seen_rev': v} for d, v in sorted(p['last_payment'].items())],
-        'card_starts': [{'date': d, 'first_seen_rev': v} for d, v in sorted(p['card_start'].items())],
+        'payment_dates': [dict(date=d, first_seen_rev=v['rev'], rate_session=v['price_session'],
+                               rate_month=v['price_month'], sessions=v['sessions_done'])
+                          for d, v in sorted(p['last_payment'].items())],
+        'card_starts': [dict(date=d, first_seen_rev=v['rev'], rate_session=v['price_session'],
+                             rate_month=v['price_month'], sessions=v['sessions_done'])
+                        for d, v in sorted(p['card_start'].items())],
         'start_dates': sorted(p['start'].keys()),
         'prices_session': sorted(p['price_session']),
         'prices_month': sorted(p['price_month']),
