@@ -2813,8 +2813,14 @@ function SampleWeek({ sampleWeek, accent }) {
                 <li key={i} style={{
                   paddingBottom: 10, borderBottom: i < exercises.length - 1 ? `1px solid ${C.bd}` : 'none',
                 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'baseline' }}>
-                    <span style={{ fontFamily: FB, fontSize: 14, color: C.tx, fontWeight: 600 }}>{ex.title}</span>
+                  {/* The prescription keeps nowrap - "1 × 3 @ 85% · 2 × 5 @ 70%"
+                      must not break mid-value - so the ROW has to be able to
+                      wrap instead, and the title has to be allowed to shrink.
+                      Without both, that 162px prescription beside a long title
+                      pushed the powerbuild page 16px past a 900px viewport,
+                      which is a sideways scroll on the marketing site. */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
+                    <span style={{ fontFamily: FB, fontSize: 14, color: C.tx, fontWeight: 600, minWidth: 0 }}>{ex.title}</span>
                     <span style={{ fontFamily: FN, fontSize: 12, color: C.tm, whiteSpace: 'nowrap' }}>{ex.prescribed}</span>
                   </div>
                   {(ex.tempo || ex.notes) && (

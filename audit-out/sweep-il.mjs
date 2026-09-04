@@ -20,17 +20,24 @@ const pg = await b.newPage();
 await pg.goto(BASE + '/#/online', { waitUntil: 'domcontentloaded', timeout: 45000 });
 await new Promise((r) => setTimeout(r, 6000));
 const progs = await pg.evaluate(() => [...new Set([...document.querySelectorAll('a[href*="#/programs/"]')]
-  .map((a) => (a.getAttribute('href') || '').split('#/programs/')[1]).filter(Boolean))].slice(0, 2));
+  .map((a) => (a.getAttribute('href') || '').split('#/programs/')[1]).filter(Boolean))]);
+// EVERY program, not the first two, and BOTH languages. Hebrew is the default
+// and the one that breaks - it is the longer text and the RTL one - but the
+// English pages are what a foreign prospect sees and had never been measured.
 const ROUTES = ['/#/', '/#/online', '/#/gym', ...progs.map((p) => '/#/programs/' + p)];
-console.log('routes: ' + ROUTES.join(' '));
+const LANGS = (process.env.IL_LANGS || 'he,en').split(',');
+console.log(`routes: ${ROUTES.length} x langs: ${LANGS.join('/')} = ${ROUTES.length * LANGS.length} pages`);
+console.log('programs found: ' + progs.join(', '));
 
 const hits = [];
 const skipped = [];
 let visited = 0;
 for (const W of WIDTHS) {
+ for (const lang of LANGS) {
   for (const r of ROUTES) {
     try {
       await setWidth(pg, W, 950);
+      await pg.evaluateOnNewDocument((l) => { try { localStorage.setItem('expo-il-lang', l); } catch (e) {} }, lang);
       // Hash routes do not reload; go to about:blank first so each is a fresh
       // paint and a stale view cannot be measured as the next one.
       await pg.goto('about:blank');
@@ -53,12 +60,13 @@ for (const W of WIDTHS) {
         return out;
       }, W);
       if (res.clip.length || res.docW > W + 1) {
-        hits.push({ r, W });
-        console.log(`HIT ${String(W).padEnd(5)} ${r}  docW=${res.docW} clipped=${res.clip.length}`);
+        hits.push({ r, W, lang });
+        console.log(`HIT ${String(W).padEnd(5)} ${lang} ${r}  docW=${res.docW} clipped=${res.clip.length}`);
         for (const c of res.clip.slice(0, 3)) console.log(`      +${c.over}px "${c.t}"`);
       }
-    } catch (e) { skipped.push(W + ' ' + r + ' (' + String(e.message || e).slice(0, 40) + ')'); }
+    } catch (e) { skipped.push(W + ' ' + lang + ' ' + r + ' (' + String(e.message || e).slice(0, 40) + ')'); }
   }
+ }
 }
 console.log('');
 if (skipped.length) console.log('NOT VISITED: ' + skipped.join(', '));
