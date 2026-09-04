@@ -380,6 +380,11 @@ export const HE = {
   'No bodyweight entries yet': 'עוד אין רישומי משקל',
   'VIDEO COULD NOT BE EMBEDDED': 'אי אפשר להטמיע את הווידאו',
   "Couldn't load programs": 'לא הצלחנו לטעון את התוכניות',
+  OFFLINE: 'אופליין',
+  "Showing your last saved program. New logs are kept on this phone and sent when you're back online.":
+    'מוצגת התוכנית האחרונה שנשמרה. מה שתרשום נשמר בטלפון ויישלח כשתחזור לרשת.',
+  "We can't reach the server right now. Your program will be here when you're back online.":
+    'אין כרגע חיבור לשרת. התוכנית תחזור ברגע שתהיה שוב ברשת.',
   'Failed to load video': 'הווידאו לא נטען',
   'Upload failed': 'ההעלאה נכשלה',
   'Upload timed out': 'פג הזמן להעלאה',

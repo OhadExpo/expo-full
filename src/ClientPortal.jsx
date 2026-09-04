@@ -23,7 +23,7 @@ import { traineeIdsFor, memberIndexFromId, sortProgramsChrono, blockNum } from '
 // the analysis engine at all. Same pattern as MealLogger and LiveRepCounter
 // just below.
 import { enqueueBlob, attachWorkout, drainBlobs, newBlobId, removeBlob, subscribe as subscribeBlobs } from './blobQueue';
-import { emitSaveError } from './useSupaStore';
+import { emitSaveError, lsSnapshot } from './useSupaStore';
 import ExerciseSubstitution, { libExerciseToEx } from './ExerciseSubstitution';
 import TraineePRsView from './TraineePRsView';
 import ReadinessRow, { hasReadiness } from './ReadinessRow';
@@ -37,6 +37,22 @@ import { resolveStoredUrl } from './storageUrl';
 const FormVideoPlayer = React.lazy(() => import('./WorkoutReview')
   .then((m) => ({ default: m.FormVideoPlayer })));
 const MealLogger = React.lazy(() => import('./MealLogger'));
+
+// THE LAST PROGRAMME WE SAW, KEPT ON THE PHONE.
+//
+// Plans are read straight from the plans table, so unlike the store keys they
+// had no local copy. Measured with the backend unreachable: the portal showed
+// "BLOCK 0 LEFT", a week of dashes and "TypeError: Failed to fetch" - an
+// athlete in a basement reading "you have no programme". One key per trainee,
+// so a dual-role or couples account never reads somebody else's.
+const plansSnapKey = (ci) => `expo-plans-${ci}`;
+const readPlansSnapshot = (ci) => {
+  try {
+    const raw = localStorage.getItem(plansSnapKey(ci));
+    const v = raw ? JSON.parse(raw) : null;
+    return Array.isArray(v) ? v : null;
+  } catch { return null; }   // an unreadable copy is the same as none
+};
 const LiveRepCounter = React.lazy(() => import('./LiveRepCounter'));
 
 // Tempo colour — a LEGIBLE light cool-grey. Secondary spec: must be clearly
@@ -2218,15 +2234,19 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   // Mount guard: rapid login/logout could otherwise race a stale fetch
   // into setClientPlans after the component remounted for a different user.
   const [plansReloadKey, setPlansReloadKey] = useState(0);
+  // True when the programme on screen came from the local snapshot because the
+  // server could not be reached. The athlete is told; the session still shows.
+  const [plansFromSnapshot, setPlansFromSnapshot] = useState(false);
   React.useEffect(() => {
     // Clearing the previous client's load error when ci flips (or goes
     // null) keeps a stale red banner from sticking when switching between
     // trainees on a dual-role account.
-    if (!ci) { setClientPlans([]); setPlansLoadError(null); return; }
+    if (!ci) { setClientPlans([]); setPlansLoadError(null); setPlansFromSnapshot(false); return; }
     // Demo mode: skip Supabase entirely, render the prop-supplied plans.
     if (demoMode) {
       setClientPlans(Array.isArray(demoPlans) ? demoPlans : []);
       setPlansLoadError(null);
+      setPlansFromSnapshot(false);
       return;
     }
     let alive = true;
@@ -2241,7 +2261,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         if (!alive) return;
         if (error) throw error;
         if (data) {
-          setClientPlans(data.map(p => ({
+          const mapped = data.map(p => ({
             id: p.id, name: p.name, traineeId: p.trainee_id, phase: p.phase,
             notes: p.notes, active: p.active, createdAt: p.created_at,
             days: p.data?.days || [], warmup: p.data?.warmup || [],
@@ -2249,12 +2269,35 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             // Plan-level daily-routine flag (legacy 96e5f72 shape) — without it a
             // whole-plan daily routine renders as a normal week-paced block.
             kind: p.data?.kind || undefined,
-          })));
+          }));
+          setClientPlans(mapped);
+          setPlansFromSnapshot(false);
+          // Keep a local copy so a session in a basement still has a session.
+          // lsSnapshot refuses to write if it would crowd the space the
+          // workout itself needs, so a big programme simply is not cached.
+          lsSnapshot(plansSnapKey(ci), mapped);
         }
       } catch (e) {
         if (alive) {
           console.error('ClientPortal plans load:', e);
-          setPlansLoadError(e?.message || 'Could not load your programs.');
+          // The server is unreachable - that is not the same as having no
+          // programme. Fall back to the last one we saw, and say so.
+          const cached = readPlansSnapshot(ci);
+          if (cached && cached.length) {
+            setClientPlans(cached);
+            setPlansFromSnapshot(true);
+            setPlansLoadError(null);
+          } else {
+            setPlansFromSnapshot(false);
+            // "TypeError: Failed to fetch" is what an athlete was shown. A
+            // network failure gets a sentence; anything else keeps the real
+            // message, because that one is worth reporting to the coach.
+            const msg = String(e?.message || '');
+            const networkish = /failed to fetch|network|load failed|timeout|offline/i.test(msg);
+            setPlansLoadError(networkish
+              ? "We can't reach the server right now. Your program will be here when you're back online."
+              : (msg || 'Could not load your programs.'));
+          }
         }
       }
     })();
@@ -3235,9 +3278,19 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         {/* Messages + Meal Log used to render inline here. Both are
             now their own pages (vw='msg' / vw='meal') reached via the
             two-row nav above. Removed 2026-05-16. */}
+        {/* Offline, but with the last programme on screen. Deliberately NOT the
+            red error box: nothing is wrong with their training, the phone just
+            cannot reach the server. */}
+        {plansFromSnapshot && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderLeft:`2px solid ${C.ac}`,borderRadius:0,padding:'10px 14px',marginBottom:14,display:'flex',alignItems:'center',gap:12,flexWrap:'wrap'}}>
+          <div style={{fontSize:10,fontFamily:FN,fontWeight:700,letterSpacing:'0.14em',color:C.ac}}>{tt("OFFLINE")}</div>
+          <div style={{fontSize:11,color:C.tm,flex:1,minWidth:140}}>{tt("Showing your last saved program. New logs are kept on this phone and sent when you're back online.")}</div>
+          <button onClick={()=>{setPlansReloadKey(k=>k+1);}} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,color:C.tm,borderRadius:0,padding:'6px 14px',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',cursor:'pointer'}}>{tt("RETRY")}</button>
+        </div>}
         {plansLoadError && <div style={{background:'var(--c-sf)',border:`1px solid ${C.rd||'#c94444'}`,borderRadius:0,padding:14,marginBottom:14}}>
           <div style={{fontSize:11,color:C.rd||'#ff6b6b',fontWeight:700,fontFamily:FN,letterSpacing:'0.1em',marginBottom:6,textTransform:'uppercase'}}>{tt("Couldn't load programs")}</div>
-          <div style={{fontSize:11,color:C.tm,marginBottom:10}}>{plansLoadError}</div>
+          {/* tt() passes an unknown string through unchanged, so a real server
+              message survives and the network sentence gets its Hebrew. */}
+          <div style={{fontSize:11,color:C.tm,marginBottom:10}}>{tt(plansLoadError)}</div>
           <button onClick={()=>{setPlansLoadError(null);setPlansReloadKey(k=>k+1);}} style={{background:'var(--c-sf)',border:`1px solid ${C.rd||'#c94444'}`,color:C.rd||'#ff6b6b',borderRadius:0,padding:'6px 14px',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',cursor:'pointer'}}>{tt("RETRY")}</button>
         </div>}
         {visPlans.length===0 && !plansLoadError && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'40px 30px',textAlign:'center',color:C.td,marginBottom:14}}><div style={{fontSize:10,fontFamily:FN,fontWeight:700,letterSpacing:'0.18em',color:C.tm,marginBottom:10}}>{tt("NO ACTIVE PROGRAM")}</div><div style={{fontSize:13,color:C.td}}>Contact your coach to start training.</div></div>}
