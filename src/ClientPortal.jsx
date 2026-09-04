@@ -3281,10 +3281,13 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         {/* Offline, but with the last programme on screen. Deliberately NOT the
             red error box: nothing is wrong with their training, the phone just
             cannot reach the server. */}
-        {plansFromSnapshot && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderLeft:`2px solid ${C.ac}`,borderRadius:0,padding:'10px 14px',marginBottom:14,display:'flex',alignItems:'center',gap:12,flexWrap:'wrap'}}>
-          <div style={{fontSize:10,fontFamily:FN,fontWeight:700,letterSpacing:'0.14em',color:C.ac}}>{tt("OFFLINE")}</div>
-          <div style={{fontSize:11,color:C.tm,flex:1,minWidth:140}}>{tt("Showing your last saved program. New logs are kept on this phone and sent when you're back online.")}</div>
-          <button onClick={()=>{setPlansReloadKey(k=>k+1);}} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,color:C.tm,borderRadius:0,padding:'6px 14px',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',cursor:'pointer'}}>{tt("RETRY")}</button>
+        {plansFromSnapshot && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderLeft:`2px solid ${C.ac}`,borderRadius:0,padding:'10px 14px',marginBottom:14,display:'flex',alignItems:'flex-start',gap:12,flexWrap:'wrap'}}>
+          {/* flex-start, not center: beside a paragraph that wraps to five
+              lines on a phone, a centred label floats away from the sentence
+              it labels. lineHeight matches the text so the two tops sit level. */}
+          <div style={{fontSize:10,fontFamily:FN,fontWeight:700,letterSpacing:'0.14em',color:C.ac,lineHeight:1.5}}>{tt("OFFLINE")}</div>
+          <div style={{fontSize:11,color:C.tm,flex:1,minWidth:140,lineHeight:1.5}}>{tt("Showing your last saved program. New logs are kept on this phone and sent when you're back online.")}</div>
+          <button onClick={()=>{setPlansReloadKey(k=>k+1);}} style={{alignSelf:"flex-start",background:"var(--c-sf)",border:`1px solid ${C.cardBd}`,color:C.tm,borderRadius:0,padding:'6px 14px',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',cursor:'pointer'}}>{tt("RETRY")}</button>
         </div>}
         {plansLoadError && <div style={{background:'var(--c-sf)',border:`1px solid ${C.rd||'#c94444'}`,borderRadius:0,padding:14,marginBottom:14}}>
           <div style={{fontSize:11,color:C.rd||'#ff6b6b',fontWeight:700,fontFamily:FN,letterSpacing:'0.1em',marginBottom:6,textTransform:'uppercase'}}>{tt("Couldn't load programs")}</div>

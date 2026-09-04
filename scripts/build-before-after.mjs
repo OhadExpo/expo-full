@@ -65,6 +65,23 @@ const PAIRS = [
     url: APP + '/coach/bhbc', w: 1500, h: 1100, auth: true, bhbcPlayer: true,
     crop: [410, 520, 700, 420],
   },
+  {
+    id: 'athlete-offline',
+    title: 'Athlete · no signal showed "BLOCK 0", not "offline"',
+    file: 'src/ClientPortal.jsx',
+    // Two halves, and the "before" needs both: without the snapshot the
+    // programme is gone, and without the sentence the athlete is shown
+    // "TypeError: Failed to fetch".
+    undo: [
+      ['    return Array.isArray(v) ? v : null;', '    return null;'],
+      [`            setPlansLoadError(networkish
+              ? "We can't reach the server right now. Your program will be here when you're back online."
+              : (msg || 'Could not load your programs.'));`,
+       `            setPlansLoadError(msg || 'Could not load your programs.');`],
+    ],
+    url: APP + '/athlete', w: 390, h: 844, athlete: true, cutBackend: true,
+    crop: [0, 0, 390, 520],
+  },
 ];
 
 const only = process.argv.slice(2);
@@ -89,8 +106,45 @@ async function shoot(job, label) {
       const isCoach = await pg.evaluate(() => /dashboard|athletes|billing/i.test(document.body.innerText.slice(0, 600)));
       if (!isCoach) throw new Error('not on the coach seat after sign-in');
     }
+    if (job.athlete) {
+      // Same trap as the coach seat, the other way round: clear, sign in as the
+      // athlete, and refuse to shoot if this is not their portal.
+      await pg.goto(APP + '/login', { waitUntil: 'domcontentloaded', timeout: 60000 }).catch(() => {});
+      await pg.evaluate(() => { try { localStorage.clear(); sessionStorage.clear(); } catch (e) {} });
+      await pg.goto(APP + '/login', { waitUntil: 'domcontentloaded', timeout: 60000 });
+      await wait(3500);
+      await pg.evaluate(() => {
+        const ins = [...document.querySelectorAll('input')];
+        const e = ins.find((i) => /email/i.test(i.type + i.placeholder + i.name));
+        const p = ins.find((i) => i.type === 'password');
+        const set = (el, v) => {
+          Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set.call(el, v);
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        };
+        if (e) set(e, 'diego@diegoday.com'); if (p) set(p, '1234');
+      });
+      await wait(400);
+      await pg.evaluate(() => {
+        const btn = [...document.querySelectorAll('button')].find((x) => /^\s*sign\s*in\s*$/i.test(x.textContent || ''));
+        if (btn) btn.click();
+      });
+      await wait(9000);
+    }
     await setWidth(pg, job.w, job.h);
     await pg.goto(job.url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    if (job.cutBackend) {
+      // One good load first - that is what fills the snapshot - and only then
+      // cut Supabase off and reload. Shell fine, data layer gone: the state a
+      // phone with no signal is actually in.
+      await wait(12000);
+      await pg.setRequestInterception(true);
+      pg.on('request', (r) => {
+        if (/supabase\.(co|in)/.test(r.url())) { r.abort('failed').catch(() => {}); return; }
+        r.continue().catch(() => {});
+      });
+      await pg.goto(job.url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+      await wait(15000);
+    }
     for (let k = 0; k < 60; k++) {
       await wait(400);
       if (await pg.evaluate(() => document.querySelectorAll('*').length > 300
