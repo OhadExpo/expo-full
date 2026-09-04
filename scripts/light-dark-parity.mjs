@@ -137,12 +137,26 @@ const contrast = () => page.evaluate(() => {
     const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
     return 0.2126 * f(p.r) + 0.7152 * f(p.g) + 0.0722 * f(p.b);
   };
+  // A GRADIENT IS A BACKGROUND TOO. This walked past background-IMAGE and fell
+  // through to document.body, so the BHBC door - which paints its own white
+  // gradient and is deliberately light in both themes - was reported as navy
+  // #14294F on black at ratio 1.46 in dark mode. Measured on the real page:
+  // the text sits on linear-gradient(#FFFFFF, #F3F5F9), about 13:1. The element
+  // was fine; the gate was reading the wrong surface, and a gate that cries
+  // wolf gets ignored.
   const bgOf = (el) => {
     let n = el;
     while (n && n !== document.documentElement) {
-      const c = getComputedStyle(n).backgroundColor;
+      const cs = getComputedStyle(n);
+      const c = cs.backgroundColor;
       const p = parse(c);
       if (p && p.a > 0.5) return c;
+      // Approximate a gradient by its first colour stop - far closer to what
+      // is actually painted than the body colour underneath it.
+      if (cs.backgroundImage && cs.backgroundImage !== 'none') {
+        const stop = cs.backgroundImage.match(/rgba?\([^)]+\)/);
+        if (stop) return stop[0];
+      }
       n = n.parentElement;
     }
     return getComputedStyle(document.body).backgroundColor;
