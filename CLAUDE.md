@@ -23,6 +23,8 @@ Fitness coaching platform for Ohad's personal training business. Replaces a Goog
 - Plans live in a normalized Supabase `plans` table. The old JSON-blob-in-`store`-table structure is gone — do not write code against it.
 - Vercel auto-deploy takes ~8–15 seconds after `git push`. Wait for the new bundle before verifying changes.
 - Shared app state lives in the Supabase `store` table (key/value JSON blobs) accessed via `useSupaStore.js`, with a localStorage snapshot fallback for some keys. There is no `window.storage` API.
+- **Revenue lives in two OWNER-ONLY tables** (added 2026-09-04): `revenue_sheet_event` (one row per dated fact the roster sheet ever held for a client) and `revenue_month_total` (monthly totals by channel from `ניהול פיננסי`). Surfaced by `src/RevenueSheetCard.jsx` on `/coach/billing`. They are deliberately NOT `bit_payment_requests`, which is **athlete-readable** — writing reconstructed history there would put rows in athletes' portals. `scripts/verify-revenue-private.mjs` proves the isolation from five seats. Refreshed by `scripts/sync-revenue.mjs` (idempotent; reads the LIVE sheets through the signed-in debug Chrome, because neither the Drive connector nor the mcp-gsheets service account can reach those two files).
+- **Never derive a per-client amount from the roster sheet.** It stores a rate and the sessions performed SINCE a payment, which is not what was paid; the only real amounts are the monthly channel totals in the finance sheet. `bit_payment_requests.amount` is NOT NULL, which enforces this.
 
 ### Active backlog (verify against `docs/backlog.md` if it exists, otherwise ask)
 
