@@ -26,6 +26,14 @@ export default defineConfig({
       injectManifest: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2,ttf}'],
         maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
+        // The og:image is 1200x630 and exists ONLY for link previews - it is
+        // fetched by crawlers and chat clients, never rendered by the app. Two
+        // copies of it were being precached (og-image.png and og-image-v2.png
+        // are byte-identical; only -v2 is referenced, from the meta tags), so
+        // every athlete downloaded 434KB on first load for something they can
+        // never see. The files stay where they are, because an old shared link
+        // may still point at either URL; they are simply not precached.
+        globIgnores: ['**/og-image*.png'],
       },
       includeAssets: ['favicon.ico', 'favicon-16x16.png', 'favicon-32x32.png', 'favicon-48x48.png', 'icon-180.png', 'icon-192.png', 'icon-512.png', 'icon-maskable-192.png', 'icon-maskable-512.png', 'nord-fonts.css', 'heebo-fonts.css'],
       manifest: {
