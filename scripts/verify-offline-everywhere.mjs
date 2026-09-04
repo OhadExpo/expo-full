@@ -43,7 +43,10 @@ if (!who) { console.log(`unknown seat "${SEAT}" - owner | athlete | pt`); proces
 const coachRoutes = () => {
   try {
     const md = fs.readFileSync('docs/SURFACES.md', 'utf8');
-    return [...new Set([...md.matchAll(/`(\/coach[a-z0-9/-]*)`/gi)].map((m) => m[1]))].filter((r) => !/:|\/$/.test(r));
+    // (?![a-z]) so the MARKETING site's `/coaches/try` and `/coaches/demo` are
+    // not walked as coach-app routes - they are a different app on a different
+    // origin, and they were being reported here as if they were ours.
+    return [...new Set([...md.matchAll(/`(\/coach(?![a-z])[a-z0-9/-]*)`/gi)].map((m) => m[1]))].filter((r) => !/:|\/$/.test(r));
   } catch { return ['/coach', '/coach/athletes']; }
 };
 const DEFAULT_ROUTES = {

@@ -957,8 +957,42 @@ html.theme-switching *::after {
      NOT get to swallow the page. Unbounded, three warm-up lifts took a row
      each of ~85mm on Block #19 and the sheet read as an accident. Capped, a
      short day fills to a sane height and hands the rest to the notes block. */
-  .plan-print .pp-day-body > .pp-ex { flex: 0 1 auto; min-height: 17mm; max-height: 38mm; }
-  .plan-print .pp-notes {
+  /* No max-height: the ballooning came from flex-GROW, and `0 1 auto` already
+     stops it. A ceiling would only risk CLIPPING a lift that carries six cue
+     lines - and silently losing a coach's own words on paper is worse than any
+     amount of white space. */
+  .plan-print .pp-day-body > .pp-ex { flex: 0 1 auto; min-height: 17mm; }
+  /* A LONG DAY MUST NOT PUSH ITSELF ONTO A SECOND PAGE. The 17mm floor is
+     writing room for a short day; at eleven lifts it would be 187mm of floor
+     alone and the card - one day per page, always - would spill. Counting from
+     the end so the notes block (the last child) does not shift the arithmetic:
+     with 11 or more exercises, the floor comes off. */
+  .plan-print .pp-day-body > .pp-ex:nth-last-child(n+12),
+  .plan-print .pp-day-body > .pp-ex:nth-last-child(n+12) ~ .pp-ex { min-height: 0; }
+  /* And with no room left, the notes rule is just a stray line under the last
+     lift, so it goes too. */
+  .plan-print .pp-day-body > .pp-ex:nth-last-child(n+12) ~ .pp-writein { display: none; }
+  /* THE WRITE-IN GRID. Boxes, not lines: a coach fills one number per week
+     under the lift it belongs to, and the sheet stops being read-only. Sized
+     off the cue type so it sits in the row rather than dominating it, and
+     ALWAYS left-to-right - a load is a number, whatever language the cue above
+     it is written in. */
+  .plan-print .pp-load {
+    direction: ltr; display: flex; flex-wrap: wrap; gap: 0 5px;
+    margin: 5px 0 0; padding-inline-start: 23px;
+  }
+  .plan-print .pp-load-cell { display: flex; align-items: center; gap: 4px; }
+  .plan-print .pp-load-n {
+    font-family: 'Nord', system-ui, sans-serif; font-size: 7.5px; font-weight: 700;
+    letter-spacing: 0.12em; color: #7B8390;
+  }
+  .plan-print .pp-load-box {
+    display: block; width: 15mm; height: 5.5mm;
+    border: 1px solid rgba(57,189,255,0.34) !important;
+    background: #fff !important;
+  }
+
+  .plan-print .pp-writein {
     flex: 1 1 auto; min-height: 0;
     margin-top: 6px; padding-top: 5px;
     border-top: 1px solid rgba(57,189,255,0.32) !important;
@@ -969,7 +1003,7 @@ html.theme-switching *::after {
     background-image: repeating-linear-gradient(to bottom,
       transparent 0 10.4mm, rgba(57,189,255,0.20) 10.4mm 10.65mm) !important;
   }
-  .plan-print .pp-notes-l {
+  .plan-print .pp-writein-l {
     font-family: 'Nord', system-ui, sans-serif; font-size: 8px; font-weight: 700;
     letter-spacing: 0.18em; text-transform: uppercase; color: #7B8390;
   }

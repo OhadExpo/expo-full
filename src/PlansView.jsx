@@ -678,6 +678,22 @@ function PlanPrintSheet({ plan, athleteName, exercises }) {
                   ))}
                 </div>
               )}
+              {/* SOMEWHERE TO WRITE THE LOAD. A printed block is a thing a
+                  coach writes ON - and there was nowhere to record what was
+                  actually lifted, so the sheet could only ever be read. One
+                  empty box per week of the block, in the block's own weeks,
+                  under the prescription it belongs to. Only when the block runs
+                  more than a single week (one box is a stray square), and only
+                  on a day with room: each grid adds ~7mm to its row, and at ten
+                  lifts that is 70mm the card does not have - one day per page
+                  is the rule the whole layout is built on. */}
+              {weeks > 1 && rows.length <= 8 && (
+                <div className="pp-load" aria-hidden="true">
+                  {Array.from({ length: Math.min(weeks, 6) }, (_, wi) => (
+                    <span className="pp-load-cell" key={wi}><span className="pp-load-n">{'W' + (wi + 1)}</span><span className="pp-load-box" /></span>
+                  ))}
+                </div>
+              )}
               {cue ? (
                 <div className="pp-ex-cue" dir={/[֐-׿]/.test(cue) ? 'rtl' : 'ltr'}>
                   {cue.split(/\n+/).filter(Boolean).map((line, li) => (
@@ -694,7 +710,7 @@ function PlanPrintSheet({ plan, athleteName, exercises }) {
             measured on Block #19, roughly 60% of the sheet white and none of
             it usable. The rows are capped now, and the space they no longer eat
             is ruled for the notes a coach takes on the floor. */}
-        <div className="pp-notes"><span className="pp-notes-l">Notes</span></div>
+        <div className="pp-writein"><span className="pp-writein-l">Notes</span></div>
         </div>
         {/* EVERY PAGE SAYS WHOSE BLOCK IT IS. One day per page means nine loose
             sheets, and page 5 previously carried only "DAY 2" - no athlete, no

@@ -1,0 +1,63 @@
+[
+  {
+    "title": "Where things stand",
+    "body": "100 commits on bhbc-hebrew, none deployed. Tonight's block was resilience: what every seat does with the backend unreachable, which is the state a phone in a gym basement is in. Three defects found and closed - the athlete's programme vanished and read as \"BLOCK 0\", the coach app sat on \"Loading data...\" for twenty seconds, and sign-out only cleaned the phone if the network answered (measured on the physio seat: 4 runs in 6 left the squad and their medical status on the device). Plus the PDF export and the BHBC program popup, both from your notes."
+  },
+  {
+    "title": "The marketing site has changes too — and it is a SEPARATE deploy",
+    "body": "expo-il is its own Vercel project, so the 'deploy or not' decision above does not cover it. Three commits touch it: a slash-joined Hebrew list that ran 27px outside its card at 900, and the powerbuild sample-week row that pushed the page to 916px inside a 900px viewport - a sideways scroll on the page a prospect meets first; and on the gym booking page the EXPO wordmark was touching the language toggle at 390 - measured, the logo ended at x=102 and the EN button began at 103.\nIt had NO gates at all, while the app has ~100, because it is a separate Vite root with hash routing that every sweep here walked past. scripts/verify-marketing-site.mjs now covers 9 routes x he/en x 1500/900/390 - 54 combinations, all clean. It refuses to run against the wrong server, because running vite with expo-il's config from the repo root serves expo-full and my first 'marketing site clean' was the coach app measured twice.\nBoth sites build. Start it with: cd expo-il && npm run dev -- --port 5174 --host 127.0.0.1",
+    "action": "node scripts/verify-marketing-site.mjs"
+  },
+  {
+    "title": "A coach dashboard on a dead network still shows numbers - should it?",
+    "body": "With the backend unreachable the dashboard now carries an OFFLINE strip, so nothing is presented as live. But the tiles underneath still read 0 and ₪0, because that is what an empty store computes. Your own rule is blank over wrong, which argues for a dash instead of a zero on every tile while the data is incomplete. I did not do it unasked: it touches every number on the dashboard, and you may prefer seeing the cached figure to seeing a row of dashes. Your call."
+  },
+  {
+    "title": "Deploy, or not",
+    "body": "100 commits sit on bhbc-hebrew. Production is still on dc80f2d - which is why what you looked at tonight on expo-app.co.il was the OLD program popup. Nothing ships without your yes. The one red gate, verify-prod-current, is simply reporting this gap and goes green when you deploy.",
+    "action": "git push origin bhbc-hebrew:master"
+  },
+  {
+    "title": "The twice-daily revenue sync needs one command from you",
+    "body": "Everything it runs is built and works by hand. Creating a permanent Windows scheduled task is blocked for me by the permission classifier, so it is one script for you to run once. It registers \"EXPO Revenue Sync\" at 07:30 and 19:30. It needs you logged in, because it reads the sheets through the signed-in debug Chrome — neither the Drive connector nor the mcp-gsheets service account can reach these two files (the roster is owned by ohadexpo@gmail.com and was never shared with the service account, and the connector has no permission scope to grant one). Share that sheet with mcp-gsheets@expo-music-495221.iam.gserviceaccount.com and the job goes headless and stops needing a session at all.",
+    "action": "scripts\\register-revenue-sync-task.ps1"
+  },
+  {
+    "title": "אורית pays and is not in EXPO",
+    "body": "She is on the gym roster at 200 ש\"ח with a last payment of 19/07/2026, and there is no trainee record for her. Her payments are logged under her name with no link. Add her, or tell me the record she should attach to."
+  },
+  {
+    "title": "The revenue history is in — 336 payment events, 2021 to today",
+    "body": "285 of the sheet's 2,605 revisions are harvested and parsed. Coverage is now even across the whole range (median gap 10 revisions, max 20 — about 15 days, well inside the ~30 days a payment date survives in the sheet). 336 dated events across 47 people, earliest 29/05/2021, latest 01/09/2026, zero future-dated and zero absurd. Nothing to do here — it is listed so you know what the number rests on."
+  },
+  {
+    "title": "\"COLLECTED\" reads as \"OOLLEOTED\" on /coach/billing",
+    "body": "Nord's uppercase C at 12px/700 in white on cyan closes its aperture. The DOM text is correct — verified — and it is pre-existing and brand-wide, so I did not change the font on my own at 3am. Tell me if you want it addressed and how far you want it to reach."
+  },
+  {
+    "title": "Shot analyser: I tried the one lever left, and it does not help",
+    "body": "CLAUDE.md recorded coarseRate as the untried lever for the ball track. Measured on your 11-shot clip, two runs per rate: rate 1 gave 11/11 shots and 9 and 9 angles at 330s; rate 0.5 gave 11/11 shots and 10 and 9 angles at 365s. Halving it hit a higher maximum once but was LESS consistent and cost 11% more time, so I changed nothing. The more useful result is the one I was not looking for: the run-to-run instability did not reproduce at all — rate 1 answered 9 both times, against the \"0 / 10 / 10\" recorded on 09-01 where one run in three produced no angle whatsoever. That earlier reading may have been the machine rather than the tracker: my own scripts had left 32 pages open in the debug Chrome, and this analysis is timing-sensitive. n=2 per rate, which is small — say the word and I run more."
+  },
+  {
+    "title": "Dead air under cards: 176 was mostly the gate. It is 35 now, all small.",
+    "body": "Your rule: \"get rid of those type of empty spaces on cards, full-wide-all-platforms\". I went at the 176 top-down this morning and found that 136 of them were the GATE, not the app - five separate blind spots, each measured before changing anything:\n1. Padding declared one level in (a card at 0 with a body wrapper at 14) - 176 to 78.\n2. Space a card did not choose: grid rows stretch, so the card with least text carries the slack, which is correct design - 78 to 61.\n3. A row of cells carrying its own padding sideways - 61 to 57.\n4. A link styled as a button measured as glyphs, so its own padding read as dead air - 57 to 42.\n5. The card's own text was invisible: the scan walked descendants only and skipped mixed content, so a full chat bubble read as 98px of emptiness - 42 to 40.\nWhat is left is 40, none above 18px, and 27 of those are ONE demo page counted under three route aliases. I did not trim anything to make a number go down - the app's spacing was mostly right and the measurement was wrong.",
+    "action": "node scripts/verify-card-trailing.mjs"
+  },
+  {
+    "title": "Every uppercase label sits 0.6px high — one cause, and it is NOT the font metrics",
+    "body": "You have raised this three times (the ACTIVE pill). verify-text-centring finds 199 bordered controls off-centre, and 135 of the 136 it prints in detail are the SAME -0.6px - one cause, not 199 mistakes.\nMy theory was the Nord faces' ascent-override: 93.5% / descent-override: 26.5%. From the -0.12em asymmetry the cap-height works out to ~0.790em, so balanced values would be 99.5% / 20.5% with the box height unchanged. I applied that to both nord-fonts.css files and measured twice - the second time with the browser cache explicitly cleared, because the first run had used a cached font. IDENTICAL result both times: the same 135 controls stayed at exactly -0.6px and four others got worse.\nSo the font metrics are NOT the cause, and I reverted. Recording that as a dead end is the useful part - it is the obvious theory and it costs an hour to disprove. The next place to look is what the gate actually measures: these controls all declare line-height 10px under a 12px ink box, so the -0.6px may be the LINE BOX position rather than the glyphs, which would make it a control-styling question, not a font one.",
+    "action": "node scripts/verify-text-centring.mjs"
+  },
+  {
+    "title": "All four storage buckets are PUBLIC — your call, flagged again",
+    "body": "Re-confirmed while chasing something else: coach-voice, coaching-contracts, form-videos and meal-photos are all public:true, so any read bypasses RLS entirely. Anyone holding a URL can fetch an athlete's training video, meal photo, voice note or signed contract, and coach-voice paths are traineeId/timestamp with no random component, so they are guessable. 235 form videos, 7 meal photos, 1 voice note today.\nThis is not new - the 2026-07-19 audit raised it and src/storageUrl.js was written so the flip is a one-line change: it asks for a signed URL first and falls back to the public one, so the app works either way. scripts/migrations/2026-08-25-storage-private-buckets.sql is the flip.\nIt is outward-facing and would break every already-stored /object/public/ URL the moment it happens, so it stays your call. I am flagging it, not doing it."
+  },
+  {
+    "title": "Two new gates: the journeys actually RUN, not just render",
+    "body": "Everything here measured how pages look. Nothing opened a tab and checked the thing behind it still works - the gap between 'the screens render' and 'the product is usable'.\nverify-athlete-journey.mjs signs in as a real trainee and walks all six portal tabs, failing on page errors, console errors, failed requests, a tab that renders nothing, or sideways scroll. It refuses to run on the coach seat. Read-only by construction - it never logs a set or saves a weight, because nothing may touch what an athlete sees.\nverify-coach-health.mjs does the same across all 27 coach routes. Both clean today.\nBoth proven able to fail. And both taught me something: the athlete gate was skipping the PROGRAM tab because its label carries a leading marker, and I nearly filed 'every coach voice note is unplayable' before checking the bucket flags and finding reads never touch RLS at all."
+  },
+  {
+    "title": "Every athlete downloaded the coach's review tool to open their portal",
+    "body": "You put EXPO at 25%, so I went looking at what an athlete actually pays on a phone. Measured against the BUILT output on a cold cache from a real trainee seat: opening /athlete pulled 1,007KB across 19 files - and two of them were coach tools, WorkoutReview at 103.5KB and the MovementLab pose engine it imports at 73.8KB.\nOne line caused it: ClientPortal statically imported FormVideoPlayer from WorkoutReview, which drags the whole module and its analysis engine into the portal's first load. The player only renders behind an expand, so an athlete who never opens a video was paying for a pose engine they cannot use yet.\nNow 852KB across 18 files - 155KB off every athlete's first load, before they see anything. The athlete journey gate still runs clean."
+  }
+]

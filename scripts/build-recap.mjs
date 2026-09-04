@@ -236,13 +236,6 @@ const html = `<!doctype html>
   <div class="k"><b>${copied}</b><span>screenshots</span></div>
 </div>
 
-<div class="note">
-  <h3>Nothing here is live</h3>
-  <p>Production is still on <code>${esc(DEPLOYED)}</code>. Every commit below is on the branch only,
-     waiting for your yes. The links open your local dev server, not the live site.</p>
-  <p>Screens touched: ${allRoutes.map((r) => `<a href="${BASE}${r}" target="_blank" rel="noopener" style="color:var(--ac)">${esc(r)}</a>`).join(' &middot; ')}</p>
-</div>
-
 ${pairs.length ? `<h2 class="sec">Before &rarr; after &middot; ${pairs.length}</h2>
 <div class="ba">${pairs.map((p) => `
   <figure class="pair">
@@ -252,6 +245,13 @@ ${pairs.length ? `<h2 class="sec">Before &rarr; after &middot; ${pairs.length}</
       <div><span class="tag good">after</span><a href="${p.afterSrc}" target="_blank" rel="noopener"><img src="${p.afterSrc}" alt="after" loading="lazy"></a></div>
     </div>
   </figure>`).join('')}</div>` : ''}
+
+<div class="note">
+  <h3>Nothing here is live</h3>
+  <p>Production is still on <code>${esc(DEPLOYED)}</code>. Every commit below is on the branch only,
+     waiting for your yes. The links open your local dev server, not the live site.</p>
+  <p>Screens touched: ${allRoutes.map((r) => `<a href="${BASE}${r}" target="_blank" rel="noopener" style="color:var(--ac)">${esc(r)}</a>`).join(' &middot; ')}</p>
+</div>
 
 ${decisions.length ? `<div class="note ask">
   <h3>Waiting on you &middot; ${decisions.length}</h3>
