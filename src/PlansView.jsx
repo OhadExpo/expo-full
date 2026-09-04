@@ -688,6 +688,13 @@ function PlanPrintSheet({ plan, athleteName, exercises }) {
             </article>
           );
         })}
+        {/* WHAT IS LEFT OF THE PAGE BECOMES A PLACE TO WRITE.
+            Rows used to share the whole page height, so a three-lift warm-up
+            spread three rows across 266mm with 60mm of nothing between them -
+            measured on Block #19, roughly 60% of the sheet white and none of
+            it usable. The rows are capped now, and the space they no longer eat
+            is ruled for the notes a coach takes on the floor. */}
+        <div className="pp-notes"><span className="pp-notes-l">Notes</span></div>
         </div>
         {/* EVERY PAGE SAYS WHOSE BLOCK IT IS. One day per page means nine loose
             sheets, and page 5 previously carried only "DAY 2" - no athlete, no

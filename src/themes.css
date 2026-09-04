@@ -953,7 +953,29 @@ html.theme-switching *::after {
      lift is where a coach writes. A day whose content already exceeds the page
      is unaffected - there is nothing left to distribute. */
   .plan-print .pp-day-body { flex: 1 1 auto; display: flex; flex-direction: column; }
-  .plan-print .pp-day-body > .pp-ex { flex: 1 1 auto; }
+  /* A row grows to give the coach room to write beside the lift, but it does
+     NOT get to swallow the page. Unbounded, three warm-up lifts took a row
+     each of ~85mm on Block #19 and the sheet read as an accident. Capped, a
+     short day fills to a sane height and hands the rest to the notes block. */
+  .plan-print .pp-day-body > .pp-ex { flex: 0 1 auto; min-height: 17mm; max-height: 38mm; }
+  .plan-print .pp-notes {
+    flex: 1 1 auto; min-height: 0;
+    margin-top: 6px; padding-top: 5px;
+    border-top: 1px solid rgba(57,189,255,0.32) !important;
+    position: relative;
+    /* The ruled lines need a stop with actual HEIGHT: the first version went
+       from 10.5mm to 10.5mm, which is a line of zero thickness, and printed a
+       blank rectangle. */
+    background-image: repeating-linear-gradient(to bottom,
+      transparent 0 10.4mm, rgba(57,189,255,0.20) 10.4mm 10.65mm) !important;
+  }
+  .plan-print .pp-notes-l {
+    font-family: 'Nord', system-ui, sans-serif; font-size: 8px; font-weight: 700;
+    letter-spacing: 0.18em; text-transform: uppercase; color: #7B8390;
+  }
+  /* Nothing to hand over on a full page - the rule and the label would just be
+     a line under the last lift. */
+  .plan-print .pp-notes:not(:only-child) { min-height: 0; }
   /* Identification on EVERY sheet: nine loose pages are unusable without it. */
   .plan-print .pp-day-foot {
     flex: 0 0 auto;
