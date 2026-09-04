@@ -64,7 +64,10 @@ const SHOTS = [
   [/intake/i, ['audit-out/intake390-crop.png']],
   [/pdf/i, ['audit-out/p3-1.png', 'audit-out/p3-5.png']],
   [/player popup/i, ['audit-out/bhbc-hist.png', 'audit-out/bhbc-player-390.png']],
-  [/revenue/i, ['audit-out/billing2-crop.png']],
+  [/revenue card|revenue:/i, ['audit-out/billing2-crop.png', 'audit-out/billing-dark-crop.png']],
+  [/athlete's seat|athlete seat/i, ['audit-out/athlete-top.png']],
+  [/program popup/i, ['audit-out/bhbc-program-390.png']],
+  [/recap/i, ['audit-out/recap3.png']],
 ];
 
 fs.mkdirSync(SHOTDIR, { recursive: true });
