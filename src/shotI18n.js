@@ -25,6 +25,11 @@ export const SHOT_I18N = {
     langTitle: 'Switch the tool to Hebrew',
     back: '← BACK',
     hand: 'Hand', right: 'RIGHT', left: 'LEFT', auto: 'AUTO',
+    // The trace toggle. It shipped reading T.wholeClip / T.thisShot with an
+    // English fallback and no entry in either table, so a Hebrew user saw
+    // "WHOLE CLIP" - caught by verify-shot-i18n.
+    wholeClip: 'WHOLE CLIP',
+    thisShot: 'THIS SHOT',
     handHint: 'Read from the clip — tap to set it yourself',
     autoHint: 'Back to reading it from the clip',
     shot: 'Shot',
@@ -149,6 +154,8 @@ export const SHOT_I18N = {
     langTitle: 'חזרה לאנגלית',
     back: '→ חזרה',
     hand: 'יד', right: 'ימין', left: 'שמאל', auto: 'אוטומטי',
+    wholeClip: 'כל הקליפ',
+    thisShot: 'הזריקה הזאת',
     handHint: 'זוהה מהקליפ — לחץ כדי לקבוע בעצמך',
     autoHint: 'חזרה לזיהוי אוטומטי מהקליפ',
     shot: 'סוג זריקה',
