@@ -93,7 +93,10 @@ export default function RevenueSheetCard() {
       if (!g.latest || e.event_date > g.latest) { g.latest = e.event_date; g.rate = e.rate_text; }
     }
     return [...map.values()]
-      .map((c) => ({ ...c, dates: [...new Set(c.dates)].sort().reverse(), name: [...c.names][c.names.size - 1], alsoKnownAs: [...c.names].slice(0, -1) }))
+      // Events arrive newest-first, so the FIRST spelling inserted is the
+      // current one. Taking the last showed the oldest name as the headline
+      // and listed today's spelling underneath it as an alias - backwards.
+      .map((c) => ({ ...c, dates: [...new Set(c.dates)].sort().reverse(), name: [...c.names][0], alsoKnownAs: [...c.names].slice(1) }))
       .sort((a, b) => (a.dates[0] < b.dates[0] ? 1 : -1));
   }, [events]);
 
