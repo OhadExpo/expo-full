@@ -134,7 +134,11 @@ export function AuthProvider({ children, clientList }) {
     // NOT cleared — its entries are uid-scoped and drain when their owner
     // signs back in.
     try {
-      const CACHE_KEYS_RX = /^expo-(cw|bw|workouts|weekly-focus|portal-vis|bhbc-|checkins|trainees|exercises)/;
+      // `plans-` and `self-trainee` are the offline fallbacks: the athlete's
+      // whole programme and the trainee record their identity resolves to.
+      // Both are new, and both would otherwise sit on a shared phone after
+      // sign-out - which is precisely what this purge exists to prevent.
+      const CACHE_KEYS_RX = /^expo-(cw|bw|workouts|weekly-focus|portal-vis|bhbc-|checkins|trainees|exercises|plans-|self-trainee)/;
       for (let i = localStorage.length - 1; i >= 0; i--) {
         const k = localStorage.key(i);
         if (k && CACHE_KEYS_RX.test(k)) localStorage.removeItem(k);
