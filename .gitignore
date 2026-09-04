@@ -139,3 +139,8 @@ public/testclips/
 # Downloaded test-video corpus and extracted frames (large, reproducible)
 audit-out/dl/
 audit-out/frames/
+
+# The morning recap is GENERATED and describes work that is not deployed;
+# it must never ride along to production.
+public/_recap.html
+public/_recap/
