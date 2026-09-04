@@ -19,14 +19,6 @@ import { supabase } from './supabase';
 // production. Whitespace handling stays on the parent (pre-wrap).
 function renderBold(text) {
   if (!text || typeof text !== 'string') return text;
-  // The bubble is white-space:pre-wrap, so trailing newlines in a stored reply
-  // render as real blank lines INSIDE it. Measured on /coach/chat-audit: 98px
-  // of empty bubble under the last line of one transcript - five blank rows the
-  // model happened to end its answer with. Leading whitespace does the same at
-  // the top. The message itself is untouched; only the padding it was never
-  // meant to draw is trimmed.
-  text = text.replace(/^\s+/, '').replace(/\s+$/, '');
-  if (!text) return text;
   // Split on the bold pattern, keeping the delimiters so the regex
   // produces alternating plain/bold segments.
   const parts = text.split(/(\*\*[^*]+\*\*)/g);
