@@ -928,7 +928,13 @@ function MenuCard({ glyph, title, desc, onClick }) {
 }
 const primaryBtn = { width: '100%', padding: '12px', background: C.ac, border: `1px solid ${C.ac}`, color: '#FFF', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', borderRadius: 0 };
 const stripBtn = { ...stripBtnBase, border: '1px solid rgba(255,255,255,0.55)', color: '#FFF' };
-const miniBtn = { background: 'transparent', padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', cursor: 'pointer', borderRadius: 0, borderColor: C.cardBd };
+// EVERY miniBtn IS THE SAME BOX. It had no height and no display, so a button
+// that added display:inline-flex measured 22px while its neighbour, left on
+// the default inline-block, measured 23 - CHECK IN and ✕ sitting side by side
+// in the same row, one pixel apart. Same material, same height: the display
+// model and the box belong to the shared style, not to whichever call site
+// happened to set one. (verify-row-button-heights)
+const miniBtn = { background: 'transparent', padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', cursor: 'pointer', borderRadius: 0, borderColor: C.cardBd, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: 23, boxSizing: 'border-box' };
 const cell = { width: '100%', background: 'var(--c-bg)', border: `1px solid ${C.cardBd}`, padding: '4px 6px', color: C.tx, fontFamily: FN, fontSize: 12, outline: 'none', borderRadius: 0, textAlign: 'center', fontVariantNumeric: 'tabular-nums' };
 // height 32 + boxSizing border-box so every select in the add-athletes row is
 // one uniform box — and the ✕ button (same height) lines up with them.
