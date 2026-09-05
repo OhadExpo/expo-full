@@ -312,6 +312,23 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   const last14 = useMemo(() => Array.from({ length: 14 }, (_, i) => daysAgoISO(13 - i)), [today]);
   const last28 = useMemo(() => Array.from({ length: 28 }, (_, i) => daysAgoISO(27 - i)), [today]);
 
+// Sessions actually attended in the last 28 days, and the minutes they took.
+// Counts what is RECORDED - a session with no minutes contributes to the count
+// and not to the time, because a duration nobody wrote down is not a zero.
+function attendance28(rec, days) {
+  const within = new Set(days);
+  let n = 0, min = 0, timed = 0;
+  for (const [date, list] of Object.entries((rec && rec.sessions) || {})) {
+    if (!within.has(date)) continue;
+    for (const sess of (list || [])) {
+      if (sess && sess.attended === false) continue;
+      n++;
+      if (Number.isFinite(Number(sess && sess.min))) { min += Number(sess.min); timed++; }
+    }
+  }
+  return { n, min, timed };
+}
+
   const rows = useMemo(() => roster.map((t) => {
     const rec = bhbcLoads[t.id] || emptyRec();
     const acwr = acwrFromDaily(rec.loads || {}, today);
@@ -348,7 +365,15 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
     const ms = monotonyStrain(last14.slice(-7).map((d) => (rec.loads && rec.loads[d]) || 0));
     const checkedToday = !!(rec.readiness && rec.readiness[today]);
     const hasLoad = Object.values(rec.loads || {}).some((v) => v > 0);
-    return { t, acwr, series, readiness, avail, ms, checkedToday, hasLoad };
+    // ATTENDED IS A FACT EVEN WHEN INTENSITY WAS NEVER RECORDED.
+    //
+    // The gym is logged in MINUTES with no RPE - that is the rule, not an
+    // omission - so those sessions carry load 0 and never reach ACWR. With
+    // three weeks of practices logged that way, every card on the roster still
+    // read "no load yet" about an athlete who had trained twenty times. The
+    // minutes are known; the card can say so.
+    const att = attendance28(rec, last28);
+    return { t, acwr, series, readiness, avail, ms, checkedToday, hasLoad, att };
   // medical is a dependency now: an active injury floors todays availability,
   // so resolving or adding one has to recompute the rows.
   }), [roster, bhbcLoads, today, last14, medical]);
@@ -2976,7 +3001,7 @@ function RosterGrid({ rows, medical = {}, league = {}, onOpen }) {
   return (
     <CollapsibleSection title={tr("Roster")} count={rows.length} storageKey="bhbc-roster" defaultOpen leftStripe={NAVY}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(232px, 1fr))', gap: 12 }}>
-        {rows.map(({ t, acwr }) => (
+        {rows.map(({ t, acwr, att }) => (
           <div key={t.id} onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }} className="bhbc-card" style={{ position: 'relative', overflow: 'hidden', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderInlineStart: `3px solid ${acwr.band.color}`, padding: '13px 15px',
             // EVERY ROSTER CARD IS THE SAME BOX.
             // Measured across ten players: four different heights (93, 96, 99,
@@ -3024,7 +3049,16 @@ function RosterGrid({ rows, medical = {}, league = {}, onOpen }) {
                 <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{heightM(t.heightCm)}</span>
                 <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', color: C.tm, lineHeight: 1 }}>{flag(t.nationality)}</span>
                 {(() => { const lp = leaguePlayerFor(league, t.name); return lp ? <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: ORANGE_DEEP, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }} title="League points per game"><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{lp.ppg} PPG</span></span> : null; })()}
-                <span style={{ marginInlineStart: 'auto' }}>{acwr.ratio != null ? <BandPill band={acwr.band} value={acwr.ratio.toFixed(2)} /> : <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, lineHeight: 1 }}>{tr('no load yet')}</span>}</span>
+                <span style={{ marginInlineStart: 'auto' }}>{acwr.ratio != null
+                  ? <BandPill band={acwr.band} value={acwr.ratio.toFixed(2)} />
+                  /* NO ACWR IS NOT THE SAME AS NO TRAINING. Without an RPE there
+                     is no load and no ratio - but the sessions and their minutes
+                     are recorded, and a physio reading "no load yet" about an
+                     athlete who trained twenty times in a month is being told
+                     something false. Say what is known. */
+                  : (att && att.n > 0
+                    ? <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, lineHeight: 1, whiteSpace: 'nowrap' }}>{att.n} {tr(att.n === 1 ? 'session' : 'sessions')}{att.min ? ` · ${Math.round(att.min / 60)}h` : ''}</span>
+                    : <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, lineHeight: 1 }}>{tr('no load yet')}</span>)}</span>
               </div>
             </div>
           </div>

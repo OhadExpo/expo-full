@@ -212,6 +212,9 @@ export const HE = {
   'logged by': 'נרשם על ידי',
   'Brief for the staff': 'תקציר לצוות',
   'no load yet': 'עוד אין עומס',
+  // A card that has attendance but no RPE says what it knows: how many sessions.
+  session: 'אימון',
+  sessions: 'אימונים',
   'view only': 'צפייה בלבד',
   active: 'פעילות',
   'season not started': 'העונה עוד לא נפתחה — נתוני הקבוצה יופיעו כאן אחרי המשחק הראשון.',
