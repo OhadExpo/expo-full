@@ -32,7 +32,12 @@ const SEATS = {
   athlete: { email: 'diego@diegoday.com',         pw: process.env.ATHLETE_PW || '1234' },
   pt:      { email: 'tomerlich11@gmail.com',      pw: process.env.BHBC_PW || '1234' },
 };
-const who = SEATS[SEAT];
+// EMAIL= points a seat at a REAL person. The fixtures are deliberately thin -
+// Diego has no history at all - and thin data hides exactly the defects these
+// gates look for, so they have to be runnable against someone with a real one.
+const who = process.env.EMAIL
+  ? { email: process.env.EMAIL, pw: process.env.PW || '1234' }
+  : SEATS[SEAT];
 if (!who) { console.log(`unknown seat "${SEAT}" - owner | athlete | pt`); process.exit(1); }
 
 const coachRoutes = () => {
