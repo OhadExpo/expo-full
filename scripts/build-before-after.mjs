@@ -142,6 +142,23 @@ const PAIRS = [
     crop: [140, 620, 1220, 180],
   },
   {
+    id: 'bhbc-attendance',
+    title: 'BHBC · "no load yet" about an athlete who trained 27 times',
+    file: 'src/BhbcView.jsx',
+    // Undo = the card falls back to the bare "no load yet" branch again.
+    undo: [["                  : (att && att.n > 0", "                  : (false"]],
+    url: PREVIEW + '/coach/bhbc', w: 1500, h: 1000, auth: true, bhbcTab: 'Roster', built: true,
+    crop: [150, 170, 1200, 200],
+  },
+  {
+    id: 'bhbc-rtp-overdue',
+    title: 'BHBC · an RTP target 11 days past read like a plan',
+    file: 'src/BhbcView.jsx',
+    undo: [["{(() => { const od = rtpOverdueDays(inj, today); return od ?", "{(() => { const od = 0; return od ?"]],
+    url: PREVIEW + '/coach/bhbc', w: 1500, h: 1000, auth: true, bhbcTab: 'Overview', built: true,
+    crop: [150, 230, 1250, 260],
+  },
+  {
     id: 'coach-offline',
     title: 'Coach · 20 seconds of "Loading data..." with no signal',
     file: 'src/App.jsx',

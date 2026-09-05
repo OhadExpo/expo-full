@@ -141,6 +141,9 @@ export const HE = {
   'Ramp up': 'תעלה בהדרגה את',
   'Chase check-ins': 'תרדוף אחרי הצ׳ק-אין',
   'Start tracking the roster': 'תתחיל לעקוב אחרי הסגל',
+  // Once attendance exists, "start tracking" is stale advice; the gap is RPE.
+  'Add an RPE to your sessions': 'תוסיף RPE לאימונים',
+  'attendance is logged, intensity is not': 'הנוכחות נרשמת, העוצמה לא — בלי RPE אין עומס ואין ACWR.',
   'pre-season start': 'טרום עונה — תרשום את האימונים הראשונים וצ׳ק-אין יומי, ואז ACWR ומוכנות מתחילים לעבוד.',
   'Start session': 'התחל אימון',
   'None today · next': 'אין היום · הבא',

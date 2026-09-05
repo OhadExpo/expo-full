@@ -2230,7 +2230,17 @@ function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onLog, onGo })
   // (the "chase check-ins" item went with the rest of the check-in flow)
   // 8) Pre-season / no data — baseline first.
   if (!anyLoad && rows.every((r) => !r.checkedToday)) {
-    A.unshift({ k: 'Setup', sev: 'game', do: tr('Start tracking the roster'), why: tr('pre-season start') });
+    // "START TRACKING" IS THE WRONG ADVICE ONCE TRACKING HAS STARTED.
+    //
+    // anyLoad is about sRPE, and a squad can have weeks of attendance with no
+    // load at all - the gym is minutes-only by rule, and a practice logged
+    // without an RPE carries none either. Measured here: 244 sessions on the
+    // board and the brief still opened with "start tracking the roster".
+    // What is actually missing is the intensity, so say that instead.
+    const attended = rows.reduce((n, r) => n + ((r.att && r.att.n) || 0), 0);
+    A.unshift(attended
+      ? { k: 'Setup', sev: 'game', do: tr('Add an RPE to your sessions'), why: tr('attendance is logged, intensity is not') }
+      : { k: 'Setup', sev: 'game', do: tr('Start tracking the roster'), why: tr('pre-season start') });
   }
   const sevRank = { game: 0, red: 1, amber: 2, info: 3 };
   const top = A.sort((a, b) => sevRank[a.sev] - sevRank[b.sev]).slice(0, 5);
