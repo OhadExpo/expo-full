@@ -1,7 +1,7 @@
 [
   {
     "title": "Where things stand",
-    "body": "106 commits on bhbc-hebrew, none deployed - which is why the program popup you looked at on expo-app.co.il tonight was the old one. The night went on resilience and on your notes: what every seat does with the backend unreachable (athlete, physio, coach, and the public pages), the club zone's branding and collapsible boxes, the medical list's trailing rule, and the PDF export. Every claim below has a gate behind it, and each gate was made to fail on purpose before it was trusted."
+    "body": "108 commits on bhbc-hebrew, none deployed - which is why the program popup you looked at on expo-app.co.il was the old one. The night was your list plus resilience: the BHBC programs display and its branding, every box in the club collapsible, the medical list's trailing rule and the UPDATE alignment, the PDF export, and \"every single page works offline\" measured across all four seats. Two defects found that nobody had reported: Export PDF CRASHED the editor on some blocks, and sign-out only cleaned the phone if the network answered. Every claim has a gate, and each gate was made to fail on purpose before it was trusted."
   },
   {
     "title": "Rules and taste audit — you asked me to check my own work against your rules",
@@ -25,12 +25,16 @@
     "body": "Per the standing rule I checked whether tonight's work needs the marketing site or the demo updated. It does not, and here is the reasoning rather than an assurance: the OFFLINE strips are failure-state UI that a demo cannot show; the club zone is private and appears in expo-il only as your credential in the bio, never as a feature; and the PDF export is not advertised there at all. Also worth knowing - /try now renders the REAL portal in demo mode, not the old hand-coded mock."
   },
   {
+    "title": "The coach demo shows a smaller product than you have",
+    "body": "Measured, not eyeballed: the real coach nav carries Dashboard, Athletes, Sessions, Review, Tasks, Billing, Incoming, Challenges, Portal and the language toggle. /demo/coach carries the first six. A prospect who clicks through the demo never sees Incoming (your intake pipeline), Challenges, or the athlete Portal - three of the things that separate EXPO from a spreadsheet.\nThe font and the card language already match (both Nord). Adding those three means writing mock screens for them, and inventing demo content is a product decision rather than a repair, so I did not do it unasked. Say the word and it is an evening's work.\nAlso measured while there: /demo, /demo/coach and /demo/athlete are all clean at 390 - no overflow, nothing clipped - and all three render identically with the backend cut."
+  },
+  {
     "title": "The printed block shows ›×› on some lifts - what does › mean?",
     "body": "On Block #16 the first four lifts print their prescription as \">×>\" because the stored sets AND reps are literally \">\". The export is printing exactly what the plan holds - blank over wrong - and I am not going to invent a meaning for it. If \">\" means \"same as the line above\" in your sheets, say so and the export can carry the value down; if it is import junk, the rows need fixing at the source. Either way it is your call, not a rendering bug."
   },
   {
     "title": "Deploy, or not",
-    "body": "106 commits sit on bhbc-hebrew. Production is still on dc80f2d. Nothing ships without your yes. The one red gate, verify-prod-current, is simply reporting this gap and goes green when you deploy.",
+    "body": "108 commits sit on bhbc-hebrew. Production is still on dc80f2d. Nothing ships without your yes. The one red gate, verify-prod-current, is simply reporting this gap and goes green when you deploy.",
     "action": "git push origin bhbc-hebrew:master"
   },
   {
