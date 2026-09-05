@@ -2829,9 +2829,16 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           cell, active cell filled cyan-tint — the same boxed language as the
           header stats strip and the WEEK selector, and unmistakably buttons. */}
       {(() => {
+        // THE SIX TAB LABELS WERE HARDCODED ENGLISH.
+        //
+        // i18n.js has carried their Hebrew all along - PROGRAM/BW/MEAL LOG/
+        // HISTORY/PRs/MESSAGES are in it under a heading that literally says
+        // "athlete portal: the six tabs" - and none of it could reach the
+        // screen, because the labels never went through tt(). Same shape of
+        // miss as the portal rendering outside the language provider.
         const NAV = [
-          ['prog','PROGRAM'],['bwt','BW'],['meal','MEAL LOG'],
-          ['hist',`HISTORY (${cw.length})`],['pr','PRs'],['msg','MESSAGES'],
+          ['prog', tt('PROGRAM')], ['bwt', tt('BW')], ['meal', tt('MEAL LOG')],
+          ['hist', `${tt('HISTORY')} (${cw.length})`], ['pr', tt('PRs')], ['msg', tt('MESSAGES')],
         ];
         const unreadDot = (k) => k==='hist' && unreadCoachNotes>0 && <span style={{position:'absolute',top:6,right:8,width:6,height:6,background:C.rd}}/>;
 

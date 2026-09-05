@@ -1457,12 +1457,19 @@ function AuthedApp() {
   // background/minHeight pair — see CoachLanding, TrySandbox, etc.).
   // Removing this attribute later will let the athlete portal follow the
   // user's preference.
-  if (isClient) return (<div data-theme="dark" style={{ background: 'var(--c-bg)', color: 'var(--c-tx)', minHeight: '100vh' }}><Suspense fallback={<ViewFallback />}>
+  // THE PORTAL MUST SIT INSIDE THE LANGUAGE PROVIDER.
+  //
+  // This return is ABOVE <LangCtx.Provider>, so every tt() inside the athlete
+  // portal read the context DEFAULT - 'en' - no matter what language the app
+  // was set to. ClientPortal is full of tt() calls and i18n.js carries their
+  // Hebrew; none of it could ever render. Measured: the coach app switches to
+  // rtl/Hebrew and the portal stayed ltr/English beside it.
+  if (isClient) return (<LangCtx.Provider value={lang}><div data-theme="dark" style={{ background: 'var(--c-bg)', color: 'var(--c-tx)', minHeight: '100vh' }}><Suspense fallback={<ViewFallback />}>
     <ErrorBoundary inline>
     <ClientPortal clientId={clientId} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} bwLog={bwLog} setBwLog={setBwLog} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} portalVis={portalVis} trainerExercises={exercises} trainees={trainees} selfTrainee={clientTrainee} onDecrementSession={handleDecrementSession} signOut={signOut} updateFormVideos={updateFormVideos}
       onReturnToCoach={isBoth ? () => pickPortal('trainer') : null}/>
     </ErrorBoundary>
-  </Suspense></div>);
+  </Suspense></div></LangCtx.Provider>);
 
   // Role not resolved yet — the my_trainee() RPC is still in flight for a
   // possible athlete (selfTrainee===undefined only during that window; it always

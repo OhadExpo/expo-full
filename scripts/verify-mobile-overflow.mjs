@@ -54,6 +54,12 @@ const ROUTES = process.argv.length > 2 ? process.argv.slice(2)
 const problems = [];
 const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
 const pg = await b.newPage();
+// LANG=he walks the app in Hebrew, right-to-left. It has to be set BEFORE the
+// first document: App reads the language at mount and writes it straight back,
+// so a later setItem is overwritten by the 'en' it booted with.
+if (process.env.LANG_APP) {
+  await pg.evaluateOnNewDocument((l) => { try { localStorage.setItem('expo-lang', l); } catch (e) { /* ignore */ } }, process.env.LANG_APP);
+}
 
 const look = () => pg.evaluate(() => {
   const w = document.documentElement.clientWidth;
@@ -103,7 +109,8 @@ try {
   });
   await wait(9000);
   await setWidth(pg, W, 800);
-  console.log(`seat ${SEAT} at ${W}px - ${ROUTES.length} route(s)\n`);
+  console.log(`seat ${SEAT} at ${W}px - ${ROUTES.length} route(s)
+`);
 
   for (const route of ROUTES) {
     await pg.goto(BASE + route, { waitUntil: 'domcontentloaded', timeout: 60000 });
@@ -114,8 +121,16 @@ try {
     }).catch(() => {});
     await wait(800);
     const r = await look();
+    // Which language actually rendered, measured ON THE PAGE. A LANG_APP run
+    // that quietly stayed in English is a clean result about nothing - and the
+    // app carries `dir` on its own root, not on <body>, so reading body's
+    // direction always says ltr.
+    const lang = await pg.evaluate(() => {
+      const root = document.querySelector('.app-root, .bhbc-zone') || document.body;
+      return { dir: getComputedStyle(root).direction, heb: /[֐-׿]/.test(document.body.innerText || '') };
+    });
     const wide = r.scrollW > r.w + 1;
-    console.log(`${(r.bad.length || wide ? 'BAD ' : 'ok  ')} ${route.padEnd(26)} scrollW ${r.scrollW}/${r.w}  ${r.bad.length} past the edge`);
+    console.log(`${(r.bad.length || wide ? 'BAD ' : 'ok  ')} ${route.padEnd(26)} ${lang.dir} ${lang.heb ? 'he' : 'en'}  scrollW ${r.scrollW}/${r.w}  ${r.bad.length} past the edge`);
     for (const x of r.bad) console.log('      ' + x);
     if (wide) problems.push(`${route}: the page itself is ${r.scrollW - r.w}px wider than the phone`);
     for (const x of r.bad) problems.push(`${route}: ${x}`);
