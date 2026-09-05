@@ -37,8 +37,8 @@ const SEATS = {
   athlete: { email: 'diego@diegoday.com',         pw: process.env.ATHLETE_PW || '1234' },
   pt:      { email: 'tomerlich11@gmail.com',      pw: process.env.BHBC_PW || '1234' },
 };
-const who = SEATS[SEAT];
-if (!who) { console.log(`unknown seat "${SEAT}" - owner | athlete | pt`); process.exit(1); }
+const who = SEATS[SEAT] || (SEAT === 'public' ? null : undefined);
+if (who === undefined) { console.log(`unknown seat "${SEAT}" - owner | athlete | pt | public`); process.exit(1); }
 
 const coachRoutes = () => {
   try {
@@ -53,6 +53,10 @@ const DEFAULT_ROUTES = {
   owner: coachRoutes(),
   athlete: ['/athlete'],
   pt: ['/coach/bhbc'],
+  // The pages a stranger meets, and the demo a prospect is sent to. Nobody is
+  // signed in for these, so they are walked without a seat - and they are part
+  // of "every single page on any of our platforms".
+  public: ['/login', '/intake', '/try', '/demo', '/demo/coach', '/demo/athlete'],
 };
 const ROUTES = process.argv.length > 2 ? process.argv.slice(2) : DEFAULT_ROUTES[SEAT];
 
@@ -98,6 +102,12 @@ const visit = async (route) => {
 try {
   await pg.goto(BASE + '/login', { waitUntil: 'domcontentloaded', timeout: 60000 });
   await pg.evaluate(() => { try { localStorage.clear(); sessionStorage.clear(); } catch (e) { /* ignore */ } });
+  // The public seat is walked SIGNED OUT, because that is the state its
+  // visitors are in. Skipping the sign-in is the whole point of it.
+  if (!who) {
+    await setWidth(pg, W, 1000);
+    console.log(`seat public (signed out) - ${ROUTES.length} route(s) at ${W}px\n`);
+  } else {
   await pg.goto(BASE + '/login', { waitUntil: 'domcontentloaded', timeout: 60000 });
   await wait(3500);
   await pg.evaluate(({ email, pw }) => {
@@ -119,17 +129,20 @@ try {
   await setWidth(pg, W, 1000);
 
   console.log(`seat ${SEAT} (${who.email}) - ${ROUTES.length} route(s) at ${W}px\n`);
+  }
   for (const route of ROUTES) {
     cut = false;
     const on = await visit(route);
-    if (on.login) { console.log(`SKIP ${route.padEnd(26)} not reachable from this seat`); continue; }
+    if (who && on.login) { console.log(`SKIP ${route.padEnd(26)} not reachable from this seat`); continue; }
     cut = true;
     const off = await visit(route);
     const kept = on.len ? Math.round((off.len / on.len) * 100) : 0;
 
     let verdict = 'OK';
     if (off.crash || off.err) verdict = 'CRASH';
-    else if (off.login) verdict = 'LOGIN';
+    // A sign-in screen is the CORRECT answer on a public route; it is only a
+    // defect when somebody who WAS signed in gets thrown out to one.
+    else if (off.login && who) verdict = 'LOGIN';
     else if (off.len < 60) verdict = 'BLANK';
     // LOST only counts as a failure when the page says NOTHING. Some data is
     // deliberately not cached - the coach's roster is excluded from the
