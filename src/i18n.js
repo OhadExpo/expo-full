@@ -321,6 +321,12 @@ export const HE = {
   Week: 'שבוע',
   BLOCK: 'בלוק',
   Block: 'בלוק',
+  // ---- athlete portal: chrome the athlete sees on every visit ------------
+  // Wired up 2026-09-06, when the portal could finally render Hebrew at all.
+  'LOG OUT': 'יציאה',
+  LEFT: 'נותרו',              // "9 נותרו" - weeks left in the block
+  RECORDS: 'שיאים',
+
   // ---- athlete portal: the six tabs ------------------------------------
   PROGRAM: 'תוכנית',
   BW: 'משקל',

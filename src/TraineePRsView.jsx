@@ -15,6 +15,7 @@ import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { C, FN, FB } from './theme';
 import { isRefined5b } from './ui';
 import { EX } from './exerciseData';
+import { useT as useAppT } from './i18n';
 
 function topSetOfWorkoutEx(ex) {
   // ex.sets[] from the trainee log — { reps, load, rpe, done }
@@ -206,6 +207,7 @@ function fmtDate(iso) {
 // dropdown only contains exercises this athlete has actually logged with a
 // numeric load — empty list ⇒ empty state, not a stub.
 export default function TraineePRsView({ clientWorkouts, traineeId, header, embedded = false }) {
+  const tt = useAppT();
   const rows = useMemo(() => aggregate(clientWorkouts, traineeId), [clientWorkouts, traineeId]);
   const options = useMemo(() => rows.slice().sort((a, b) => a.title.localeCompare(b.title)), [rows]);
   const [pickedId, setPickedId] = useState(null);
@@ -254,7 +256,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
       {header}
       <div style={innerStyle}>
         {!embedded && (
-          <div style={{ fontSize: 9, fontFamily: FN, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 14 }}>RECORDS</div>
+          <div style={{ fontSize: 9, fontFamily: FN, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 14 }}>{tt('RECORDS')}</div>
         )}
 
         {rows.length === 0 ? (
