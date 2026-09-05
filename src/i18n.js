@@ -345,6 +345,15 @@ export const HE = {
   Add: 'הוספה',
   'EXPO opens full-screen from your home screen.': 'EXPO נפתחת על כל המסך מהמסך הבית.',
 
+  // ---- athlete portal: headings and the bodyweight tab -------------------
+  SESSION: 'אימון',
+  SESSIONS: 'אימונים',
+  // NOT the existing `LOG` key: that one is 'התחלה' (start) for the button that
+  // begins a session. This is a heading over the bodyweight field - a record,
+  // not a start - and one word cannot be both.
+  'Log week': 'רישום שבוע',
+  'Log at least 2 weigh-ins to see your trend': 'תרשום לפחות שתי שקילות כדי לראות מגמה',
+
   // ---- athlete portal: chrome the athlete sees on every visit ------------
   // Wired up 2026-09-06, when the portal could finally render Hebrew at all.
   'LOG OUT': 'יציאה',
