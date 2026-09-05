@@ -69,6 +69,15 @@ const TOKENS = {
   // the program popup read as an EXPO dialog wearing a club title.
   '--c-cardBd': 'rgba(30,61,116,0.26)',
   '--c-bd': 'rgba(30,61,116,0.22)',
+  // THE ZONE IS ALWAYS LIGHT, SO ITS AMBER MUST BE THE LIGHT-BACKGROUND ONE.
+  //
+  // --bhbc-amber-text is declared twice on :root - #8A6410 for a light page and
+  // #E0A73A for a dark one - and the club zone forces white cards regardless of
+  // the app's theme. So with EXPO in dark mode the zone picked up the dark-page
+  // amber and painted it on white: measured 2.15:1, which is not readable, on
+  // every "limited" count and on the overdue flag. Pinned here, where the zone
+  // decides its own colours.
+  '--bhbc-amber-text': '#8A6410',
 };
 // EVERY BHBC MODAL CARRIES THE ZONE'S TOKENS.
 //
