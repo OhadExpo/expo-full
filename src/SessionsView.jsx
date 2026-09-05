@@ -584,7 +584,7 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
       ) : (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12, marginTop: 12 }}>
         {session.athletes.map((a, ai) => (
-          <AthleteCard key={a.rowId} a={a} name={(traineeById[a.traineeId]?.name) || a.traineeId}
+          <AthleteCard key={a.rowId} a={a} name={traineeName(traineeById, a.traineeId, tt('Athlete not on this roster'))}
             prevMap={prevByKey[`${a.traineeId}|${a.planName}|${a.dayName}|${(Number(a.week) || 1) - 1}`]} exDetail={exDetail}
             onToggleIn={() => mutate(d => { const x = d.athletes.find(z => z.rowId === a.rowId); if (x) x.checkedIn = !x.checkedIn; })}
             onSet={(ei, si, patch) => {
@@ -625,7 +625,19 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
 }
 
 // ---- live floor summary bar ----
+// A NAME, OR SOMETHING A HUMAN CAN READ - never the internal id.
+//
+// The club zone passes its FILTERED roster (BHBC players only, by design: the
+// projection exists so coaches never see EXPO clients), so a floor session
+// belonging to an EXPO athlete resolved to nothing and the screen printed
+// `tr_ron`. Resolving it from the full list would put an EXPO client's name
+// inside the club, which is the leak the projection prevents - so the fallback
+// says what is true instead: somebody is on the floor and this screen cannot
+// name them.
+const traineeName = (traineeById, id, fallback) => (traineeById && traineeById[id] && traineeById[id].name) || fallback;
+
 function FloorBar({ session, checkedIn, traineeById, onAdd, onFinish }) {
+  const tt = useAppT();
   return (
     <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, overflow: 'hidden' }}>
       <RefinedHeaderStrip padY={14} padX={14} marginBottom={0} bleed={false}>
@@ -646,7 +658,7 @@ function FloorBar({ session, checkedIn, traineeById, onAdd, onFinish }) {
           return (
             <div key={a.rowId} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '5px 10px', background: a.checkedIn ? 'rgba(57,189,255,0.08)' : 'var(--c-sf)', border: `1px solid ${a.checkedIn ? C.ac : C.cardBd}` }}>
               <span style={{ width: 7, height: 7, borderRadius: '50%', background: a.checkedIn ? C.gn : C.td }} />
-              <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tx }}>{(traineeById[a.traineeId]?.name) || a.traineeId}</span>
+              <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tx }}>{traineeName(traineeById, a.traineeId, tt('Athlete not on this roster'))}</span>
               <span style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.04em' }}>{a.checkedIn ? (cur ? `→ ${cur.title}` : '—') : 'not in'}</span>
             </div>
           );

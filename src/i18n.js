@@ -380,6 +380,9 @@ export const HE = {
   'No bodyweight entries yet': 'עוד אין רישומי משקל',
   'VIDEO COULD NOT BE EMBEDDED': 'אי אפשר להטמיע את הווידאו',
   "Couldn't load programs": 'לא הצלחנו לטעון את התוכניות',
+  // The floor grid, when a session belongs to somebody this screen's roster does
+  // not contain. It never shows the internal id.
+  'Athlete not on this roster': 'מתאמן שלא ברשימה הזו',
   OFFLINE: 'אופליין',
   "Showing your last saved program. New logs are kept on this phone and sent when you're back online.":
     'מוצגת התוכנית האחרונה שנשמרה. מה שתרשום נשמר בטלפון ויישלח כשתחזור לרשת.',
