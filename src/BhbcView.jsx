@@ -136,6 +136,23 @@ function Card({ header, headerRight, children, ...rest }) {
   );
 }
 
+// AN RTP TARGET THAT HAS PASSED IS NOT A PLAN ANY MORE.
+//
+// The board printed "Limited · RTP 26 Aug" in the same ink as a future date,
+// eleven days after that date, for an athlete still limited. A return-to-play
+// target the squad has sailed past is the single thing on a medical board that
+// should catch a physio's eye, and it was the quietest thing on it.
+//
+// Only for someone still limited or out and not resolved: a target in the past
+// for an athlete who is back is simply history.
+const rtpOverdueDays = (inj, today) => {
+  if (!inj || !inj.rtpTarget) return 0;
+  const st = String(inj.status || '').toLowerCase();
+  if (st !== 'limited' && st !== 'out') return 0;
+  if (inj.resolvedDate || inj.closedDate) return 0;
+  return inj.rtpTarget < today ? dayDiff(today, inj.rtpTarget) : 0;
+};
+
 const BAND = { detrained: '#4F9DE0', low: '#37B27C', elevated: '#E0A73A', high: '#DE4E3B', none: '#7C828B' };
 // ONE section-title treatment everywhere (must match CollapsibleSection's title:
 // FN / 13 / 700 / 0.08em / uppercase / white). Card headers are plain strings by
@@ -2631,7 +2648,8 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
                     {/* WRAP, do not ellipsize. The row already wraps, and on a narrow RTL line
     the ellipsis eats the START of the diagnosis — "…T SPRAIN" instead of
     "ANKLE LEFT SPRAIN". A truncated injury is not an injury report. */}
-                    <span style={{ color: C.tm, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{tr((inj.bodyPart || '').split('/')[0].trim())}{inj.side && inj.side !== 'N/A' ? ` ${inj.side[0]}` : ''} · {tr(s.label)}{inj.rtpTarget ? <span className="bhbc-mob-hide">{` · RTP ${monDay(inj.rtpTarget)}`}</span> : null}</span>
+                    <span style={{ color: C.tm, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{tr((inj.bodyPart || '').split('/')[0].trim())}{inj.side && inj.side !== 'N/A' ? ` ${inj.side[0]}` : ''} · {tr(s.label)}{inj.rtpTarget ? <span className="bhbc-mob-hide">{` · RTP ${monDay(inj.rtpTarget)}`}</span> : null}
+                    {(() => { const od = rtpOverdueDays(inj, today); return od ? <span style={{ color: 'var(--bhbc-amber-text, #E0A73A)', fontFamily: FN, fontWeight: 700 }}>{` · ${od}d ${tr('overdue')}`}</span> : null; })()}</span>
                                       {onMedical && (
                       <button onClick={(e) => { e.stopPropagation(); onMedical(t.id); }} title="Update this medical report" className="bhbc-ghost-btn"
                         style={{ marginInlineStart: 'auto', flexShrink: 0, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, height: ROW_BTN_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, padding: '0 9px', cursor: 'pointer' }}>{tr('UPDATE')}</button>

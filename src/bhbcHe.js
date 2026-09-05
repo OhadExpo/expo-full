@@ -213,6 +213,8 @@ export const HE = {
   'Brief for the staff': 'תקציר לצוות',
   'no load yet': 'עוד אין עומס',
   // A card that has attendance but no RPE says what it knows: how many sessions.
+  // An RTP target the squad has already sailed past.
+  overdue: 'באיחור',
   session: 'אימון',
   sessions: 'אימונים',
   'view only': 'צפייה בלבד',
