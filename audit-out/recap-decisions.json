@@ -1,7 +1,7 @@
 [
   {
     "title": "Where things stand",
-    "body": "108 commits on bhbc-hebrew, none deployed - which is why the program popup you looked at on expo-app.co.il was the old one. The night was your list plus resilience: the BHBC programs display and its branding, every box in the club collapsible, the medical list's trailing rule and the UPDATE alignment, the PDF export, and \"every single page works offline\" measured across all four seats. Two defects found that nobody had reported: Export PDF CRASHED the editor on some blocks, and sign-out only cleaned the phone if the network answered. Every claim has a gate, and each gate was made to fail on purpose before it was trusted."
+    "body": "110 commits on bhbc-hebrew, none deployed - which is why the program popup you looked at on expo-app.co.il was the old one. The night was your list plus resilience: the BHBC programs display and its branding, every box in the club collapsible, the medical list's trailing rule and the UPDATE alignment, the PDF export, and \"every single page works offline\" measured across all four seats. Two defects found that nobody had reported: Export PDF CRASHED the editor on some blocks, and sign-out only cleaned the phone if the network answered. Every claim has a gate, and each gate was made to fail on purpose before it was trusted."
   },
   {
     "title": "Rules and taste audit — you asked me to check my own work against your rules",
@@ -34,7 +34,7 @@
   },
   {
     "title": "Deploy, or not",
-    "body": "108 commits sit on bhbc-hebrew. Production is still on dc80f2d. Nothing ships without your yes. The one red gate, verify-prod-current, is simply reporting this gap and goes green when you deploy.",
+    "body": "110 commits sit on bhbc-hebrew. Production is still on dc80f2d. Nothing ships without your yes. The one red gate, verify-prod-current, is simply reporting this gap and goes green when you deploy.",
     "action": "git push origin bhbc-hebrew:master"
   },
   {
