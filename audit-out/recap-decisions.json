@@ -1,7 +1,7 @@
 [
   {
     "title": "Where things stand",
-    "body": "100 commits on bhbc-hebrew, none deployed. Tonight's block was resilience: what every seat does with the backend unreachable, which is the state a phone in a gym basement is in. Three defects found and closed - the athlete's programme vanished and read as \"BLOCK 0\", the coach app sat on \"Loading data...\" for twenty seconds, and sign-out only cleaned the phone if the network answered (measured on the physio seat: 4 runs in 6 left the squad and their medical status on the device). Plus the PDF export and the BHBC program popup, both from your notes."
+    "body": "106 commits on bhbc-hebrew, none deployed - which is why the program popup you looked at on expo-app.co.il tonight was the old one. The night went on resilience and on your notes: what every seat does with the backend unreachable (athlete, physio, coach, and the public pages), the club zone's branding and collapsible boxes, the medical list's trailing rule, and the PDF export. Every claim below has a gate behind it, and each gate was made to fail on purpose before it was trusted."
   },
   {
     "title": "The marketing site has changes too — and it is a SEPARATE deploy",
@@ -13,8 +13,20 @@
     "body": "With the backend unreachable the dashboard now carries an OFFLINE strip, so nothing is presented as live. But the tiles underneath still read 0 and ₪0, because that is what an empty store computes. Your own rule is blank over wrong, which argues for a dash instead of a zero on every tile while the data is incomplete. I did not do it unasked: it touches every number on the dashboard, and you may prefer seeing the cached figure to seeing a row of dashes. Your call."
   },
   {
+    "title": "Offline: where it now stands, and the one thing that is a decision",
+    "body": "Every page on every surface was walked with Supabase cut: 27 coach routes, the athlete portal and all five of its tabs, the club zone, and the six public/demo pages. Nothing crashes and nothing goes blank. Fourteen coach pages come back nearly empty and SAY SO - and that half is a decision, not a bug: the roster and the exercise library are deliberately excluded from the local snapshots because they are full-roster PII that RLS denies. Caching them would make the coach app work offline and would put that data on the device. I have left it as it is; say the word if you want it cached."
+  },
+  {
+    "title": "Marketing and demo parity: checked, nothing to change",
+    "body": "Per the standing rule I checked whether tonight's work needs the marketing site or the demo updated. It does not, and here is the reasoning rather than an assurance: the OFFLINE strips are failure-state UI that a demo cannot show; the club zone is private and appears in expo-il only as your credential in the bio, never as a feature; and the PDF export is not advertised there at all. Also worth knowing - /try now renders the REAL portal in demo mode, not the old hand-coded mock."
+  },
+  {
+    "title": "The printed block shows ›×› on some lifts - what does › mean?",
+    "body": "On Block #16 the first four lifts print their prescription as \">×>\" because the stored sets AND reps are literally \">\". The export is printing exactly what the plan holds - blank over wrong - and I am not going to invent a meaning for it. If \">\" means \"same as the line above\" in your sheets, say so and the export can carry the value down; if it is import junk, the rows need fixing at the source. Either way it is your call, not a rendering bug."
+  },
+  {
     "title": "Deploy, or not",
-    "body": "100 commits sit on bhbc-hebrew. Production is still on dc80f2d - which is why what you looked at tonight on expo-app.co.il was the OLD program popup. Nothing ships without your yes. The one red gate, verify-prod-current, is simply reporting this gap and goes green when you deploy.",
+    "body": "106 commits sit on bhbc-hebrew. Production is still on dc80f2d. Nothing ships without your yes. The one red gate, verify-prod-current, is simply reporting this gap and goes green when you deploy.",
     "action": "git push origin bhbc-hebrew:master"
   },
   {

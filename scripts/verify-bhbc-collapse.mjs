@@ -19,6 +19,8 @@ const BASE = process.env.BASE || 'http://127.0.0.1:4173';
 const EMAIL = process.argv[2] || 'tomerlich11@gmail.com';
 const PW = process.env.BHBC_PW || '1234';
 const TABS = ['Overview', 'Roster', 'Schedule', 'Medical', 'Games'];
+// W=390 to check it where the physios actually are: courtside, on a phone.
+const W = Number(process.env.W || 1500);
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const problems = [];
@@ -87,7 +89,7 @@ try {
     if (btn) btn.click();
   });
   await wait(9000);
-  await setWidth(pg, 1500, 1000);
+  await setWidth(pg, W, W < 500 ? 844 : 1000);
   await pg.goto(BASE + '/coach/bhbc', { waitUntil: 'domcontentloaded', timeout: 60000 });
   await wait(13000);
   await pg.evaluate(() => {

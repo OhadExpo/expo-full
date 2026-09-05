@@ -1533,7 +1533,7 @@ function AuthedApp() {
           is the difference between "you have no athletes" and "we could not
           reach the server". */}
       {dataIncomplete && <div style={{background:`color-mix(in srgb, ${C.ac} 14%, ${C.bg})`,borderBottom:`1px solid ${C.ac}`,color:C.tx,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',textAlign:'center',padding:'7px 12px'}}>{lang === 'he'
-        ? 'אופליין — חלק מהמידע לא נטען. ייתכן שהמספרים חלקיים עד שהחיבור יחזור.'
+        ? 'אופליין — חלק מהמידע לא נטען. יכול להיות שהמספרים חלקיים עד שהחיבור יחזור.'
         : 'OFFLINE — some data has not loaded. Numbers may be incomplete until the connection returns.'}</div>}
       {isOwner && <Suspense fallback={null}><SensorLab /></Suspense>}
       <header style={{background:C.headerBg,borderBottom:`1px solid ${C.cardBd}`,boxShadow:'0 1px 2px rgba(0,0,0,0.03), 0 4px 12px rgba(0,0,0,0.04)',position:"sticky",top:0,zIndex:100,paddingTop:'env(safe-area-inset-top)'}}>
