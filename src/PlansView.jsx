@@ -561,6 +561,12 @@ const rxOf = (ex) => {
   return String(s || r || '');
 };
 
+// Plan collections come back as an array on some blocks and an object keyed by
+// index on others. Everything downstream expects a list.
+const asRows = (v) => (Array.isArray(v) ? v
+  : (v && typeof v === 'object') ? Object.values(v)
+  : []);
+
 // EXPORT A BLOCK AS A PDF.
 //
 // Ohad: "create a export to pdf option that works perfectly and produces a
@@ -606,7 +612,12 @@ function PlanPrintSheet({ plan, athleteName, exercises }) {
   // library's current cue fills in where a row carries none.
   const cueOf = (ex) => String(ex.notes || ex.n || libOf(ex).cues || '').trim();
   const days = Array.isArray(plan?.days) ? plan.days : [];
-  const warm = plan?.warmup || plan?.warmUp || [];
+  // A WARM-UP IS NOT ALWAYS AN ARRAY. Measured on Block #16 (4 days, 33
+  // exercises): pressing Export PDF threw "(warm || []).filter is not a
+  // function" and the whole editor hit its error boundary - the coach loses the
+  // screen, not just the export. Plans carry two shapes (the dual-shape rule),
+  // and this one stores its warm-up as an object. Normalised once, here.
+  const warm = asRows(plan?.warmup ?? plan?.warmUp);
   const weeks = Math.max(1, Number(plan?.weeks) || 4);
   const printedOn = fmtNumericDate(new Date());
   const setsOf = (list) => list.reduce((n, ex) => {
@@ -684,10 +695,12 @@ function PlanPrintSheet({ plan, athleteName, exercises }) {
                   empty box per week of the block, in the block's own weeks,
                   under the prescription it belongs to. Only when the block runs
                   more than a single week (one box is a stray square), and only
-                  on a day with room: each grid adds ~7mm to its row, and at ten
-                  lifts that is 70mm the card does not have - one day per page
-                  is the rule the whole layout is built on. */}
-              {weeks > 1 && rows.length <= 8 && (
+                  on a day with room. MEASURED, not guessed: at eight lifts the
+                  grid pushed Block #16's Day A to 1165px against a 877px first
+                  page and Day B to 1033px against 1020 - one day per page is
+                  the rule the whole layout rests on, and I had broken it. Six
+                  is what fits. */}
+              {weeks > 1 && rows.length <= 6 && (
                 <div className="pp-load" aria-hidden="true">
                   {Array.from({ length: Math.min(weeks, 6) }, (_, wi) => (
                     <span className="pp-load-cell" key={wi}><span className="pp-load-n">{'W' + (wi + 1)}</span><span className="pp-load-box" /></span>
@@ -743,10 +756,20 @@ function PlanPrintSheet({ plan, athleteName, exercises }) {
       </header>
 
       <Day label="Warm-up" rows={warmRows} index={null} firstPage total={days.length} />
-      {days.map((d, i) => (
-        <Day key={i} label={d.name || d.n || ('Day ' + (i + 1))} rows={((d.exercises || d.ex || []).filter(Boolean))}
-          index={i + 1} firstPage={i === 0 && warmRows.length === 0} total={days.length} />
-      ))}
+      {/* THE MASTHEAD PAGE IS SHORTER, so only a day that FITS shares it.
+          Measured on Block #16: its first day is eight lifts and 1003px of
+          content against the 877px a masthead page leaves - it had been
+          overflowing onto a second sheet all along, which is precisely the
+          "one day per page" rule the layout exists to keep. A dense first day
+          starts its own page now; a light one still shares, so a short block
+          does not gain a near-empty sheet. */}
+      {days.map((d, i) => {
+        const rows = asRows(d.exercises || d.ex).filter(Boolean);
+        return (
+          <Day key={i} label={d.name || d.n || ('Day ' + (i + 1))} rows={rows}
+            index={i + 1} firstPage={i === 0 && warmRows.length === 0 && rows.length <= 6} total={days.length} />
+        );
+      })}
 
       {plan?.notes ? (
         <section className="pp-notes">
@@ -766,7 +789,12 @@ function PlanOverview({ plan, exercises, onJumpToDay = null }) {
   // way this screen gets slow with a 1,300-row library.
   const byId = useMemo(() => exById(exercises), [exercises]);
   const nameOf = (ex) => (ex?.title || byId.get(ex?.exerciseId)?.title || '—');
-  const warm = plan?.warmup || plan?.warmUp || [];
+  // A WARM-UP IS NOT ALWAYS AN ARRAY. Measured on Block #16 (4 days, 33
+  // exercises): pressing Export PDF threw "(warm || []).filter is not a
+  // function" and the whole editor hit its error boundary - the coach loses the
+  // screen, not just the export. Plans carry two shapes (the dual-shape rule),
+  // and this one stores its warm-up as an object. Normalised once, here.
+  const warm = asRows(plan?.warmup ?? plan?.warmUp);
 
   // Total prescribed sets for a day — the one number that says how big a
   // session is, next to the exercise count that says how varied it is.

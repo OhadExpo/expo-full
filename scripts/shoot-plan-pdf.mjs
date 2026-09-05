@@ -18,6 +18,8 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
 const pg = await b.newPage();
+pg.on('pageerror', (e) => console.log('  PAGE ERROR:', String(e.message).slice(0, 200)));
+pg.on('console', (m) => { if (m.type() === 'error') console.log('  console:', m.text().slice(0, 200)); });
 try {
   await pg.goto(APP + '/login', { waitUntil: 'domcontentloaded', timeout: 60000 }).catch(() => {});
   await pg.evaluate(() => { try { localStorage.clear(); sessionStorage.clear(); } catch (e) { /* ignore */ } });
@@ -26,35 +28,72 @@ try {
   await pg.goto(APP + '/coach/programs', { waitUntil: 'domcontentloaded', timeout: 60000 });
   await wait(9000);
 
-  // Open the first block in the list.
-  const opened = await pg.evaluate(() => {
-    const row = [...document.querySelectorAll('button,div[role="button"],a')]
-      .find((e) => /block|#\d/i.test((e.textContent || '').trim()) && (e.textContent || '').trim().length < 60);
-    if (!row) return null;
-    row.click();
-    return (row.textContent || '').trim().slice(0, 40);
-  });
+  // Open the DENSEST block by default. The print rules that stop a long day
+  // spilling onto a second page only matter on a long day, and the first block
+  // in the list has three lifts in its warm-up - it would prove nothing.
+  // DENSEST=0 opens the first one instead.
+  const opened = await pg.evaluate((densest) => {
+    const rows = [...document.querySelectorAll('button,div[role="button"],a')]
+      .filter((e) => /block|#\d/i.test((e.textContent || '').trim()) && (e.textContent || '').trim().length < 60);
+    if (!rows.length) return null;
+    let pick = rows[0];
+    if (densest) {
+      let best = -1;
+      for (const r of rows) {
+        const m = (r.textContent || '').match(/(\d+)\s*exercise/i);
+        const n = m ? Number(m[1]) : -1;
+        if (n > best) { best = n; pick = r; }
+      }
+    }
+    // Click the BLOCK NAME inside the row, not the row: the row also carries
+    // the "N previous" expander, and clicking it opened the picker instead of
+    // the editor.
+    const name = [...pick.querySelectorAll('*')].find((e) => /^Block\s*#\d+$/i.test((e.textContent || '').trim()));
+    (name || pick).click();
+    return (pick.textContent || '').trim().slice(0, 46);
+  }, process.env.DENSEST !== '0');
   console.log('opened:', opened || '(nothing)');
   await wait(7000);
 
   // Stub the dialog BEFORE anything can call it.
   await pg.evaluate(() => { window.__printed = 0; window.print = () => { window.__printed++; }; });
 
-  const clicked = await pg.evaluate(() => {
-    const more = [...document.querySelectorAll('button')].find((e) => /^\s*(⋯|more)\s*$/i.test((e.textContent || '').trim()));
-    if (more) more.click();
-    return !!more;
-  });
+  // POLL for the controls. A big block's editor renders its toolbar later, and
+  // a single blind look reported "no Export PDF item" on a plan that has one -
+  // the same class of mistake as photographing a sheet before it mounts.
+  let clicked = false;
+  for (let k = 0; k < 15 && !clicked; k++) {
+    await wait(1000);
+    clicked = await pg.evaluate(() => {
+      const more = [...document.querySelectorAll('button')].find((e) => /^\s*(⋯|more)\s*$/i.test((e.textContent || '').trim()));
+      if (more) more.click();
+      return !!more;
+    });
+  }
   await wait(1200);
-  const hit = await pg.evaluate(() => {
-    const el = [...document.querySelectorAll('button,div,li,a')].find((e) => /^\s*export pdf\s*$/i.test((e.textContent || '').trim()));
-    if (!el) return false;
-    el.click();
-    return true;
-  });
+  let hit = false;
+  for (let k = 0; k < 10 && !hit; k++) {
+    await wait(700);
+    hit = await pg.evaluate(() => {
+      const el = [...document.querySelectorAll('button,div,li,a')].find((e) => /^\s*export pdf\s*$/i.test((e.textContent || '').trim()));
+      if (!el) return false;
+      el.click();
+      return true;
+    });
+  }
   console.log(`more menu: ${clicked}, export pdf: ${hit}`);
   if (!hit) { console.log('FAILED: no Export PDF item found'); process.exit(1); }
-  await wait(4000);
+  // POLL for the sheet. A 4s wait was enough for a 24-exercise block and not
+  // for a 33-exercise one, and the difference showed up as "no sheet" - the
+  // script photographing an app that had not finished mounting it.
+  let mounted = false;
+  for (let k = 0; k < 20; k++) {
+    await wait(1000);
+    mounted = await pg.evaluate(() => !!document.querySelector('.plan-print'));
+    if (mounted) break;
+  }
+  console.log(`sheet mounted: ${mounted}`);
+  await wait(1500);
 
   const printed = await pg.evaluate(() => window.__printed);
   const dom = await pg.evaluate(() => {
@@ -93,6 +132,37 @@ try {
     return (sheet.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 120);
   });
   console.log(`sheet text: "${lifted}"`);
+  // ONE DAY PER PAGE is the rule the whole layout rests on, and the row floor
+  // added for writing room could break it on a dense day. A4 portrait less the
+  // 12/15mm margins is 270mm of printable height; at 96dpi that is 1020px.
+  const days = await pg.evaluate(() => [...document.querySelectorAll('.plan-print .pp-day')]
+    .map((d) => ({
+      label: (d.querySelector('.pp-day-name, .pp-day-head') || d).textContent.trim().replace(/\s+/g, ' ').slice(0, 26),
+      rows: d.querySelectorAll('.pp-ex').length,
+      h: Math.round(d.getBoundingClientRect().height),
+      // The budget follows the CLASS, not the position: a dense first day is
+      // given its own page, and judging it by the masthead budget reported a
+      // fixed layout as still broken.
+      first: d.classList.contains('pp-day-first'),
+    })));
+  // A4 portrait less the 12/15mm margins is 270mm = 1020px at 96dpi. The FIRST
+  // day shares its page with the masthead, so its budget is the 232mm the
+  // layout reserves for it - 877px - not the full page.
+  const PAGE_PX = 1020, FIRST_PX = 877;
+  days.forEach((d) => {
+    const budget = d.first ? FIRST_PX : PAGE_PX;
+    console.log(`  ${d.label.padEnd(28)} ${String(d.rows).padStart(2)} lifts  ${String(d.h).padStart(5)}px / ${budget}${d.h > budget ? '  OVER A PAGE' : ''}`);
+  });
+  const firstInfo = await pg.evaluate(() => {
+    const d = document.querySelector('.plan-print .pp-day');
+    if (!d) return null;
+    const cs = getComputedStyle(d);
+    return { cls: d.className, minH: cs.minHeight, h: Math.round(d.getBoundingClientRect().height) };
+  });
+  console.log('  first day:', JSON.stringify(firstInfo));
+  const over = days.filter((d) => d.h > (d.first ? FIRST_PX : PAGE_PX));
+  if (over.length) console.log(`
+WARNING: ${over.length} day(s) taller than one printable page - one day per page is broken`);
   await wait(1500);
   const sheet = await pg.evaluate(() => {
     const t = (document.body.innerText || '').replace(/\s+/g, ' ').trim();

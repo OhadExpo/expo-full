@@ -1040,7 +1040,10 @@ html.theme-switching *::after {
 
   /* ---- an exercise ---- */
   .plan-print .pp-ex {
-    padding: 8px 11px 9px;
+    /* 8/9 of vertical padding a lift, eight lifts a page: the last 4px a row
+       is what put Block #19's Day C on a second sheet. 6/7 reads the same and
+       keeps the day whole. */
+    padding: 6px 11px 7px;
     border-top: 1px solid rgba(57,189,255,0.22);
     break-inside: avoid; page-break-inside: avoid;
   }
@@ -1095,11 +1098,17 @@ html.theme-switching *::after {
      otherwise the rule sat on the left with the text right-aligned away from
      it, which is what it looked like in the first real export. */
   .plan-print .pp-ex-cue {
-    margin: 5px 0 0 23px; padding: 4px 9px;
+    margin: 4px 0 0 23px; padding: 3px 9px;
     border-inline-start: 2px solid #39BDFF !important;
   }
-  .plan-print .pp-cue-line { font-size: 10px; line-height: 1.5; color: #2B313B; text-align: start; }
-  .plan-print .pp-cue-line + .pp-cue-line { margin-top: 2px; }
+  /* TIGHTER ON PAPER, WITHOUT LOSING A WORD. Measured on Block #19: its days
+     carry five cue lines a lift, and at 1.5 line-height plus 2px between lines
+     Day A came to 1110px and Day C to 1151px against a 1020px page - the days
+     were running onto a second sheet. Dropping to 1.35 and 1px buys ~12px a
+     lift, which is the difference, and nothing the coach wrote is cut: capping
+     the cues would have been the easy fix and the wrong one. */
+  .plan-print .pp-cue-line { font-size: 10px; line-height: 1.35; color: #2B313B; text-align: start; }
+  .plan-print .pp-cue-line + .pp-cue-line { margin-top: 1px; }
 
   /* ---- tail ---- */
   .plan-print .pp-notes { break-inside: avoid; margin-top: 12px; border: 1px solid rgba(57,189,255,0.32); }
