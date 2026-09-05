@@ -1426,6 +1426,16 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
   const av = AVAIL[avail];
   // Unified activity: sRPE practice/quick logs + detailed gym sessions (client_workouts).
   const activity = [];
+  // NO RPE DOES NOT MEAN THE WEIGHT ROOM. This branch labelled every RPE-less
+  // session "Gym", which was true while the only sessions without an RPE were
+  // gym attendance. Three weeks of court practices logged with minutes and no
+  // intensity then read "Gym · 120 min" in the physio's own history - and in
+  // this club גym is the weight room specifically. Label it by what it IS; a
+  // Lift still reads Gym, which is the word they use for it.
+  const kindLabel = (type) => {
+    const k = String(type || '').toLowerCase();
+    return (!k || k === 'lift') ? 'Gym' : String(type);
+  };
   // Attendance-only gym entries (min/rpe unknown — Ohad logs presence, not load)
   // read "Gym · attended" instead of a bogus "Lift 0 min @ RPE 0".
   //
@@ -1434,7 +1444,7 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
   // does. Keyed on load, a Practice whose minutes were edited down to zero
   // silently redrew itself as a gym attendance row, with no way to see it had
   // ever been a Practice.
-  Object.entries((rec && rec.sessions) || {}).forEach(([d, arr]) => (arr || []).forEach((s, idx) => activity.push({ date: d, label: s.rpe == null ? `${s.start ? s.start + ' · ' : ''}Gym · ${s.min ? s.min + ' min' : 'attended'}${s.note ? ' · ' + s.note : ''}` : `${s.start ? s.start + ' · ' : ''}${s.type} ${s.min} min @ RPE ${s.rpe}${s.note ? ' · ' + s.note : ''}`, load: s.load || null, sess: { date: d, idx, min: s.min, sig: sessionSig(s) } })));
+  Object.entries((rec && rec.sessions) || {}).forEach(([d, arr]) => (arr || []).forEach((s, idx) => activity.push({ date: d, label: s.rpe == null ? `${s.start ? s.start + ' · ' : ''}${kindLabel(s.type)} · ${s.min ? s.min + ' min' : 'attended'}${s.note ? ' · ' + s.note : ''}` : `${s.start ? s.start + ' · ' : ''}${s.type} ${s.min} min @ RPE ${s.rpe}${s.note ? ' · ' + s.note : ''}`, load: s.load || null, sess: { date: d, idx, min: s.min, sig: sessionSig(s) } })));
   (workouts || []).forEach((w) => { const d = String(w.date || w.completedAt || '').slice(0, 10); const nEx = (w.exercises || []).length; const nSets = (w.exercises || []).reduce((a, e) => a + (e.sets || []).length, 0); if (d) activity.push({ date: d, label: `Gym · ${nEx} lift${nEx === 1 ? '' : 's'}, ${nSets} set${nSets === 1 ? '' : 's'}`, load: null }); });
   Object.entries((rec && rec.bw) || {}).forEach(([d, kg]) => activity.push({ date: d, label: `Bodyweight ${kg} kg`, load: null }));
   Object.entries((rec && rec.availability) || {}).forEach(([d, code]) => { if (code > 1) activity.push({ date: d, label: `Availability · ${AVAIL[code].label}`, load: null }); });
