@@ -1613,6 +1613,9 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
                 <StatusPill status={inj.status} small />
                 <span style={{ fontFamily: FB, fontSize: 13, color: C.tx }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : '', inj.type].filter(Boolean).map((x) => tr(x)).join(' · ')}</span>
                 <span style={{ fontFamily: FN, fontSize: 11, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{days != null ? `${days}d` : ''}{inj.pain != null && inj.pain !== '' ? ` · ${tr('pain')} ${inj.pain}` : ''}{inj.rtpTarget ? ` · RTP ${inj.rtpTarget.slice(5)}` : ''}</span>
+                {/* Same rule as the head coach report: a target already passed,
+                    on someone still limited, is a flag rather than a plan. */}
+                {(() => { const od = rtpOverdueDays(inj, todayISO()); return od ? <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: 'var(--bhbc-amber-text, #E0A73A)' }}>{` · ${od}d ${tr('overdue')}`}</span> : null; })()}
                 {lastP && <span style={{ fontFamily: FB, fontSize: 11, color: C.tm, width: '100%' }}>Latest ({lastP.date.slice(5)}): {lastP.note}</span>}
               </div>
             );
