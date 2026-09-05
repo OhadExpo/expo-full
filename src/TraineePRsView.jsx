@@ -271,7 +271,13 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
             <div ref={wrapRef} style={{ marginBottom: 14, position: 'relative' }}>
               <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 6 }}>EXERCISE</div>
               <input
-                value={open ? query : (picked ? `${picked.title} (${picked.sessionCount} session${picked.sessionCount === 1 ? '' : 's'})` : '')}
+                // THE NAME GETS THE FIELD. An <input> clips without an
+                // ellipsis, so on a phone "Alternating DB Chest Press (4
+                // sessions)" rendered as "ALTERNATING DB CHEST PRESS (4 SE" -
+                // cut mid-word, and the athlete cannot tell which lift the PR
+                // belongs to. The session count is metadata; it moves below,
+                // where it costs the name nothing.
+                value={open ? query : (picked ? picked.title : '')}
                 onChange={e => { setQuery(e.target.value); setOpen(true); }}
                 onFocus={() => { setOpen(true); setQuery(''); }}
                 // onFocus only fires when focus is GAINED. After choose(),
@@ -294,6 +300,11 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                   outline: 'none', boxSizing: 'border-box', cursor: 'text',
                 }}
               />
+              {!open && picked ? (
+                <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: C.tm, marginTop: 6 }}>
+                  {picked.sessionCount} {picked.sessionCount === 1 ? 'session' : 'sessions'}
+                </div>
+              ) : null}
               {open && (
                 <div style={{
                   position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0,
