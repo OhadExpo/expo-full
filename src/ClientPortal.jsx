@@ -2563,6 +2563,21 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   const pv = (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('pv')) || '';
   const ident = ({'0':'BASE','1':'EDITORIAL','2':'TABLE','3':'CONSOLE','4':'AIR','5':'RAIL'})[pv] || 'RAIL';
   const sl = Math.max(0, (trainee?.sessionsRemaining || 0));
+  // THE SAME NOTICE ON EVERY PAGE OF THE PORTAL.
+  //
+  // Measured with the backend unreachable: only PROGRAM said anything. BW,
+  // Meal log, History, PRs and Messages each rendered a near-empty screen -
+  // 126 to 243 characters - with nothing to say why. To an athlete that reads
+  // as "you have nothing logged", not "your phone cannot reach the server".
+  // It lives in the shared header, which is the one thing every page renders.
+  const offlineNote = plansFromSnapshot ? (
+    <div style={{background:'var(--c-sf)',borderBottom:`1px solid ${C.cardBd}`,borderLeft:`2px solid ${C.ac}`,padding:'10px 20px',display:'flex',alignItems:'flex-start',gap:12,flexWrap:'wrap'}}>
+      <div style={{fontSize:10,fontFamily:FN,fontWeight:700,letterSpacing:'0.14em',color:C.ac,lineHeight:1.5}}>{tt("OFFLINE")}</div>
+      <div style={{fontSize:11,color:C.tm,flex:1,minWidth:140,lineHeight:1.5}}>{tt("Showing your last saved program. New logs are kept on this phone and sent when you're back online.")}</div>
+      <button onClick={()=>{setPlansReloadKey(k=>k+1);}} style={{alignSelf:'flex-start',background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,color:C.tm,borderRadius:0,padding:'6px 14px',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',cursor:'pointer'}}>{tt("RETRY")}</button>
+    </div>
+  ) : null;
+
   const renderTopHeader = () => (
     <>
       {/* Reserve the scrollbar gutter always so switching tabs (short Messages
@@ -2807,6 +2822,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           );
         })()}
       </div>
+      {offlineNote}
       {/* Two-row nav — v2 (Ohad 2026-07-05: "too messy, no borders, nobody
           knows it's clickable"). Same 3+3 grouping as the 05-16 spec, but as
           a SEGMENTED 3×2 GRID: one hairline box, hairlines between every
@@ -3278,17 +3294,6 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         {/* Messages + Meal Log used to render inline here. Both are
             now their own pages (vw='msg' / vw='meal') reached via the
             two-row nav above. Removed 2026-05-16. */}
-        {/* Offline, but with the last programme on screen. Deliberately NOT the
-            red error box: nothing is wrong with their training, the phone just
-            cannot reach the server. */}
-        {plansFromSnapshot && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderLeft:`2px solid ${C.ac}`,borderRadius:0,padding:'10px 14px',marginBottom:14,display:'flex',alignItems:'flex-start',gap:12,flexWrap:'wrap'}}>
-          {/* flex-start, not center: beside a paragraph that wraps to five
-              lines on a phone, a centred label floats away from the sentence
-              it labels. lineHeight matches the text so the two tops sit level. */}
-          <div style={{fontSize:10,fontFamily:FN,fontWeight:700,letterSpacing:'0.14em',color:C.ac,lineHeight:1.5}}>{tt("OFFLINE")}</div>
-          <div style={{fontSize:11,color:C.tm,flex:1,minWidth:140,lineHeight:1.5}}>{tt("Showing your last saved program. New logs are kept on this phone and sent when you're back online.")}</div>
-          <button onClick={()=>{setPlansReloadKey(k=>k+1);}} style={{alignSelf:"flex-start",background:"var(--c-sf)",border:`1px solid ${C.cardBd}`,color:C.tm,borderRadius:0,padding:'6px 14px',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',cursor:'pointer'}}>{tt("RETRY")}</button>
-        </div>}
         {plansLoadError && <div style={{background:'var(--c-sf)',border:`1px solid ${C.rd||'#c94444'}`,borderRadius:0,padding:14,marginBottom:14}}>
           <div style={{fontSize:11,color:C.rd||'#ff6b6b',fontWeight:700,fontFamily:FN,letterSpacing:'0.1em',marginBottom:6,textTransform:'uppercase'}}>{tt("Couldn't load programs")}</div>
           {/* tt() passes an unknown string through unchanged, so a real server
