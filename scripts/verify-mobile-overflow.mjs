@@ -64,6 +64,11 @@ const look = () => pg.evaluate(() => {
       p = p.parentElement;
     }
     if (inScroller) continue;
+    // PARKED OFF-SCREEN IS NOT CLIPPED. A `<video>` at left:-9999px is a
+    // standard way to hide an element, and flagging it teaches everyone to
+    // ignore this gate. Only something with a foot on the screen can be cut:
+    // it must overlap the viewport at all.
+    if (r.right <= 0 || r.left >= w) continue;
     if (r.right > w + 1 || r.left < -1) {
       bad.push(`${el.tagName.toLowerCase()}${el.className && typeof el.className === 'string' ? '.' + el.className.slice(0, 18) : ''} ${Math.round(r.left)}..${Math.round(r.right)} "${(el.textContent || '').trim().slice(0, 30)}"`);
     }
