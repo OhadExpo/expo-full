@@ -18,6 +18,11 @@ import { setWidth } from './lib/viewport.mjs';
 
 const APP = 'http://127.0.0.1:5199';
 const IL = 'http://127.0.0.1:5174';
+// The BUILT app. A pair that has to CLICK through the UI cannot use the dev
+// server: writing the "before" edit triggers an HMR reload, and a reload
+// mid-click throws "Execution context was destroyed". Building each state is
+// slower and completely deterministic.
+const PREVIEW = 'http://127.0.0.1:4173';
 const OUT = 'audit-out/beforeafter';
 fs.mkdirSync(OUT, { recursive: true });
 
@@ -81,6 +86,73 @@ const PAIRS = [
     ],
     url: APP + '/athlete', w: 390, h: 844, athlete: true, cutBackend: true,
     crop: [0, 0, 390, 520],
+  },
+  {
+    id: 'bhbc-brand',
+    title: 'BHBC · the program popup was an EXPO dialog',
+    file: 'src/BhbcView.jsx',
+    // Undo BOTH halves of the branding: the club bar and the navy hairline.
+    // With only one undone the "before" is already half-fixed.
+    // The WHOLE component goes back, not just one prop. Removing only
+    // headerStyle left the crest in place and the title styled white on a white
+    // bar - an invisible title and a blank close button, which is a broken
+    // hybrid that never existed rather than the "before" it claims to be.
+    undo: [
+      [`const BModal = ({ children, title, ...rest }) => (
+  <Modal
+    themeAttr="light"
+    title={<><img src="/logos/bhbc-logo.png" alt="" style={{ height: 20, width: 'auto', display: 'block' }} />{title}</>}
+    headerStyle={{ background: NAVY, borderBottom: \`3px solid \${ORANGE}\`, color: '#fff' }}
+    titleStyle={{ color: '#fff' }}
+    closeStyle={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.35)', color: '#fff' }}
+    {...rest}
+  ><div style={TOKENS}>{children}</div></Modal>
+);`,
+       `const BModal = ({ children, ...rest }) => (
+  <Modal themeAttr="light" {...rest}><div style={TOKENS}>{children}</div></Modal>
+);`],
+      [`  '--c-cardBd': 'rgba(30,61,116,0.26)',`, `  '--c-cardBd': 'color-mix(in srgb, #1E3D74 20%, var(--c-bd))',`],
+    ],
+    url: APP + '/coach/bhbc', w: 1500, h: 1000, auth: true, bhbcProgram: true,
+    crop: [400, 55, 700, 620],
+  },
+  {
+    id: 'bhbc-collapse',
+    title: 'BHBC · the boxes could not be collapsed',
+    file: 'src/BhbcView.jsx',
+    // The undo removes the handle AND the chevron, so the "before" is the card
+    // as it was: no control, and a click on the strip does nothing. The shoot
+    // step clicks the strips either way - which is exactly the point of the
+    // pair.
+    undo: [
+      [`      onHeaderClick={() => setOpen((v) => !v)}
+      headerAriaExpanded={open}
+`, ''],
+      ['>{open ? children : null}</BaseCard>', '>{children}</BaseCard>'],
+    ],
+    url: PREVIEW + '/coach/bhbc', w: 1500, h: 1000, auth: true, bhbcTab: 'Medical', collapseAll: true, built: true,
+    crop: [0, 60, 1500, 460],
+  },
+  {
+    id: 'bhbc-medical-lastrow',
+    title: 'BHBC · a rule under the last name, inside the card border',
+    file: 'src/BhbcView.jsx',
+    undo: [['        .bhbc-inj-row:last-child{border-bottom:none!important;padding-bottom:2px!important}', '']],
+    url: PREVIEW + '/coach/bhbc', w: 1500, h: 1000, auth: true, bhbcTab: 'Medical', built: true,
+    crop: [140, 620, 1220, 180],
+  },
+  {
+    id: 'coach-offline',
+    title: 'Coach · 20 seconds of "Loading data..." with no signal',
+    file: 'src/App.jsx',
+    // Put the splash back on the raw storesReady gate and take the notice away.
+    undo: [
+      ['  if (!storesReady && !bootDeadline) return (', '  if (!storesReady) return ('],
+      ['      {dataIncomplete && <div style={{background:`color-mix(in srgb, ${C.ac} 14%, ${C.bg})`,',
+       '      {false && <div style={{background:`color-mix(in srgb, ${C.ac} 14%, ${C.bg})`,'],
+    ],
+    url: APP + '/coach', w: 1500, h: 1000, auth: true, cutBackend: true,
+    crop: [0, 0, 1500, 420],
   },
 ];
 
@@ -155,6 +227,69 @@ async function shoot(job, label) {
       const x = [...document.querySelectorAll('button,a')].find((e) => /maybe later|dismiss/i.test(e.textContent || ''));
       if (x) x.click();
     });
+    if (job.bhbcTab) {
+      // The builder EDITS A SOURCE FILE to make the "before", and the dev
+      // server reloads the page when it does. A reload mid-evaluate throws
+      // "Execution context was destroyed", which killed both of these pairs on
+      // their first run - so every step here tolerates it and tries again.
+      await wait(4000);
+      for (let k = 0; k < 30; k++) {
+        await wait(1000);
+        const done = await pg.evaluate((want) => {
+          const tabs = [...document.querySelectorAll('.bhbc-tab')];
+          const names = tabs.map((e) => (e.textContent || '').trim().toLowerCase());
+          if (!names.includes(want.toLowerCase())) return true;   // the current tab is renamed out of the list
+          const t = tabs.find((e) => (e.textContent || '').trim().toLowerCase() === want.toLowerCase());
+          if (t) t.click();
+          return false;
+        }, job.bhbcTab).catch(() => false);
+        if (done) break;
+      }
+      await wait(4000);
+    }
+    if (job.collapseAll) {
+      // Click every strip. With the fix in place they shut; without it nothing
+      // happens, which is the before.
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const ok = await pg.evaluate(() => {
+          const strips = [...document.querySelectorAll('[role="button"][aria-expanded]')];
+          for (const s of strips) s.click();
+          return strips.length;
+        }).catch(() => 0);
+        if (ok) break;
+        await wait(2500);
+      }
+      await wait(2000);
+    }
+    if (job.bhbcProgram) {
+      // Roster -> a player -> View program. The tab switch is CONFIRMED by the
+      // strip renaming the current tab out of the list, because a blind click
+      // at a fixed delay lands before the zone has rendered.
+      for (let k = 0; k < 30; k++) {
+        await wait(1000);
+        const onRoster = await pg.evaluate(() => {
+          const tabs = [...document.querySelectorAll('.bhbc-tab')];
+          if (tabs.some((e) => /^overview$/i.test((e.textContent || '').trim()))) return true;
+          const t = tabs.find((e) => /^\s*roster\s*$/i.test((e.textContent || '').trim()));
+          if (t) t.click();
+          return false;
+        });
+        if (onRoster) break;
+      }
+      await wait(2500);
+      await pg.evaluate(() => {
+        // #35 Noah Carter - a MULTI-DAY block, so the day picker is in shot.
+        const cards = [...document.querySelectorAll('.bhbc-card')].filter((e) => /#\d+/.test(e.textContent || ''));
+        const c = cards.find((e) => /#35/.test(e.textContent || '')) || cards[0];
+        if (c) c.click();
+      });
+      await wait(3500);
+      await pg.evaluate(() => {
+        const btn = [...document.querySelectorAll('button,a')].find((e) => /view program/i.test((e.textContent || '').trim()));
+        if (btn) btn.click();
+      });
+      await wait(4000);
+    }
     if (job.bhbcPlayer) {
       await pg.evaluate(() => {
         const t = [...document.querySelectorAll('.bhbc-tab')].find((e) => /^roster$/i.test((e.textContent || '').trim()));
@@ -174,6 +309,21 @@ async function shoot(job, label) {
   } finally { await pg.close().catch(() => {}); }
 }
 
+// A shot can be interrupted by a reload it did not ask for: on the BUILT app the
+// service worker notices the fresh bundle and reloads the page under us, which
+// throws "Execution context was destroyed". That is a one-off per build, so the
+// answer is to let it happen and take the picture again.
+async function shootRetry(job, label) {
+  try {
+    return await shoot(job, label);
+  } catch (e) {
+    if (!/Execution context was destroyed|Target closed/i.test(String(e.message || e))) throw e;
+    console.log(`     ${job.id} ${label}: reloaded under us, retaking`);
+    await wait(6000);
+    return await shoot(job, label);
+  }
+}
+
 for (const job of jobs) {
   const src = fs.readFileSync(job.file, 'utf8');
   const src2 = job.also ? fs.readFileSync(job.also[0], 'utf8') : null;
@@ -186,18 +336,20 @@ for (const job of jobs) {
     }
     if (!broke) continue;
     fs.writeFileSync(job.file, mod);
+    if (job.built) { console.log(`     building "before" for ${job.id}...`); execSync('npm run build', { stdio: 'ignore' }); }
     if (src2) {
       let m2 = src2;
       for (const [from, to] of (job.alsoUndo || [])) m2 = m2.replace(from, to);
       fs.writeFileSync(job.also[0], m2);
     }
     await wait(6000);                       // let the dev server pick it up
-    await shoot(job, 'before');
+    await shootRetry(job, 'before');
     fs.writeFileSync(job.file, src);        // RESTORE before the after-shot
+    if (job.built) { console.log(`     rebuilding "after" for ${job.id}...`); execSync('npm run build', { stdio: 'ignore' }); }
     if (src2) fs.writeFileSync(job.also[0], src2);
     broke = false;
     await wait(6000);
-    await shoot(job, 'after');
+    await shootRetry(job, 'after');
     console.log(`ok   ${job.id}`);
   } catch (e) {
     console.log(`FAIL ${job.id}: ${String(e.message || e).slice(0, 90)}`);
