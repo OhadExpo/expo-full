@@ -321,6 +321,30 @@ export const HE = {
   Week: 'שבוע',
   BLOCK: 'בלוק',
   Block: 'בלוק',
+  // ---- the install prompt: the first modal an athlete meets on a phone ----
+  // Composed, not mapped: a coach telling an athlete to put the app on their
+  // phone. Short, spoken, masculine singular, future-as-imperative.
+  'GET THE EXPO APP': 'תתקין את EXPO',
+  'OPEN THE EXPO APP': 'תפתח את EXPO',
+  'GO TO APP': 'לאפליקציה',
+  'MAYBE LATER': 'אחר כך',
+  'GOT IT': 'הבנתי',
+  "Add EXPO to your home screen — one tap, and it's always there, full-screen and ready.":
+    'תוסיף את EXPO למסך הבית — לחיצה אחת, והיא תמיד שם, על כל המסך.',
+  'You already have EXPO installed — open it from your': 'EXPO כבר מותקנת אצלך — תפתח אותה מהאייקון',
+  'home screen': 'במסך הבית',
+  'icon for the full-screen app.': 'כדי לקבל את האפליקציה על כל המסך.',
+  'To add EXPO to your home screen, open this page in': 'כדי להוסיף את EXPO למסך הבית, תפתח את הדף הזה ב',
+  'first, then Share →': 'ואז שיתוף ←',
+  'Add to Home Screen': 'הוספה למסך הבית',
+  'Add EXPO to your home screen for the full app:': 'תוסיף את EXPO למסך הבית בשביל האפליקציה המלאה:',
+  'Tap the': 'תלחץ על',
+  'button in the browser bar.': 'בסרגל הדפדפן.',
+  Choose: 'תבחר',
+  Tap: 'תלחץ',
+  Add: 'הוספה',
+  'EXPO opens full-screen from your home screen.': 'EXPO נפתחת על כל המסך מהמסך הבית.',
+
   // ---- athlete portal: chrome the athlete sees on every visit ------------
   // Wired up 2026-09-06, when the portal could finally render Hebrew at all.
   'LOG OUT': 'יציאה',

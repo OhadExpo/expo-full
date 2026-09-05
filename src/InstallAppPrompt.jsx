@@ -13,6 +13,11 @@ import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
 import { getInstallEvent, clearInstallEvent, onInstallReady, isIOS, isIOSSafari, isStandalone } from './pwaInstall';
+// THIS MODAL IS MOUNTED OUTSIDE EVERY PROVIDER - it is a sibling of the app in
+// App.jsx - so useT() here would read the context default and always say 'en'.
+// It reads the stored language directly instead. Same structural miss that kept
+// the athlete portal in English; caught by the same measurement.
+import { tr, readLang } from './i18n';
 
 // A DISMISSAL snooze in localStorage (not sessionStorage) so tapping "MAYBE
 // LATER" isn't re-nagged with a blocking modal every browser session
@@ -103,22 +108,25 @@ export default function InstallAppPrompt() {
 
   // Copy per mode.
   const iosNonSafari = mode === 'ios' && !isIOSSafari();
+  const t = (str) => tr(readLang(), str);
+  const he = readLang() === 'he';
+  const strong = { color: C.tx };
   const body = mode === 'installed' ? (
-    <>You already have EXPO installed — open it from your <b style={{ color: C.tx }}>home screen</b> icon for the full-screen app.</>
+    <>{t('You already have EXPO installed — open it from your')} <b style={strong}>{t('home screen')}</b> {t('icon for the full-screen app.')}</>
   ) : mode === 'ios' ? (
     iosNonSafari ? (
-      <>To add EXPO to your home screen, open this page in <b style={{ color: C.tx }}>Safari</b> first, then Share → <b style={{ color: C.tx }}>Add to Home Screen</b>.</>
+      <>{t('To add EXPO to your home screen, open this page in')} <b style={strong}>Safari</b> {t('first, then Share →')} <b style={strong}>{t('Add to Home Screen')}</b>.</>
     ) : (
-      <>Add EXPO to your home screen for the full app:
-        <div style={{ marginTop: 10, color: C.tm, fontSize: 13, lineHeight: 1.7, textAlign: 'left' }}>
-          1. Tap the <b style={{ color: C.tx }}>Share</b> button in the browser bar.<br />
-          2. Choose <b style={{ color: C.tx }}>Add to Home Screen</b>.<br />
-          3. Tap <b style={{ color: C.tx }}>Add</b> — EXPO opens full-screen from your home screen.
+      <>{t('Add EXPO to your home screen for the full app:')}
+        <div style={{ marginTop: 10, color: C.tm, fontSize: 13, lineHeight: 1.7, textAlign: he ? 'right' : 'left', direction: he ? 'rtl' : 'ltr' }}>
+          1. {t('Tap the')} <b style={strong}>{t('Share')}</b> {t('button in the browser bar.')}<br />
+          2. {t('Choose')} <b style={strong}>{t('Add to Home Screen')}</b>.<br />
+          3. {t('Tap')} <b style={strong}>{t('Add')}</b> — {t('EXPO opens full-screen from your home screen.')}
         </div>
       </>
     )
   ) : (
-    <>Add EXPO to your home screen — one tap, and it's always there, full-screen and ready.</>
+    <>{t("Add EXPO to your home screen — one tap, and it's always there, full-screen and ready.")}</>
   );
 
   // Only the Android/Chrome path has a real one-tap action button; iOS/installed
@@ -149,15 +157,15 @@ export default function InstallAppPrompt() {
         boxShadow: `0 24px 70px ${C.shadow || 'rgba(0,0,0,0.6)'}`,
       }}>
         <div style={{ fontFamily: FN, fontSize: 11, color: C.ac, letterSpacing: '0.2em', fontWeight: 700, marginBottom: 12 }}>
-          {mode === 'installed' ? 'OPEN THE EXPO APP' : 'GET THE EXPO APP'}
+          {t(mode === 'installed' ? 'OPEN THE EXPO APP' : 'GET THE EXPO APP')}
         </div>
         <div style={{ fontFamily: FB, fontSize: 14, color: C.tx, lineHeight: 1.5, marginBottom: 22 }}>{body}</div>
         {/* Both buttons identical size (Ohad): a flex row, each flex:1, same pad. */}
         <div style={{ display: 'flex', gap: 10 }}>
-          {hasPrimary && btn('GO TO APP', true, doPrimary)}
+          {hasPrimary && btn(t('GO TO APP'), true, doPrimary)}
           {/* Installed-in-browser has no real "launch the app" web API, so the
               honest CTA is a plain acknowledge, not "MAYBE LATER" (review M3). */}
-          {btn(mode === 'installed' ? 'GOT IT' : 'MAYBE LATER', false, close)}
+          {btn(t(mode === 'installed' ? 'GOT IT' : 'MAYBE LATER'), false, close)}
         </div>
       </div>
     </div>
