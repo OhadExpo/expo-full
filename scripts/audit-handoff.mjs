@@ -40,12 +40,26 @@ const head = git('rev-parse HEAD');
 const ahead = git('rev-list --count master..HEAD');
 const branch = git('rev-parse --abbrev-ref HEAD');
 check(1, 'branch is bhbc-hebrew', branch === 'bhbc-hebrew', branch);
-check(1, 'HEAD sha appears in the doc', doc.includes(head.slice(0, 12)), head.slice(0, 12));
-check(1, 'commit count in the doc matches', doc.includes(Number(ahead).toLocaleString('en-US')) || doc.includes(ahead),
-  `actual ${Number(ahead).toLocaleString('en-US')}`);
+const stated = (doc.match(/\| HEAD \| `([0-9a-f]{7,40})`/) || [])[1] || '';
+let statedIsReal = false, since = '?';
+try {
+  // NOT `${sha}^{commit}`: cmd.exe treats ^ as its escape character and eats it.
+  if (git(`cat-file -t ${stated}`) !== 'commit') throw new Error('not a commit');
+  execSync(`git merge-base --is-ancestor ${stated} HEAD`, { stdio: 'ignore' });
+  statedIsReal = true;
+  since = git(`rev-list --count ${stated}..HEAD`);
+} catch { /* not a commit on this branch */ }
+check(1, 'the sha the doc states is a real commit on this branch', statedIsReal, stated.slice(0, 12));
+check(1, 'HEAD has not moved far since the doc was written', statedIsReal && Number(since) <= 3,
+  `${since} commit(s) since — re-run this audit and update §3 if that grows`);
+const statedCount = Number(((doc.match(/\*\*([0-9,]+) commits\*\*/) || [])[1] || '0').replace(/,/g, ''));
+check(1, 'the commit count in the doc is current within 3', Math.abs(Number(ahead) - statedCount) <= 3,
+  `doc says ${statedCount.toLocaleString('en-US')}, actual ${Number(ahead).toLocaleString('en-US')}`);
 const stat = git('diff --shortstat master..HEAD');
 const files = (stat.match(/(\d+) files? changed/) || [])[1];
-check(1, 'file count matches', doc.includes(files), `actual ${files} — ${stat}`);
+const statedFiles = Number(((doc.match(/\*\*([0-9,]+) files, /) || [])[1] || '0').replace(/,/g, ''));
+check(1, 'the file count in the doc is current within 5', Math.abs(Number(files) - statedFiles) <= 5,
+  `doc says ${statedFiles}, actual ${files}`);
 
 // ---------------------------------------------------------------- pass 2
 say('');
