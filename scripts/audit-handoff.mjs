@@ -1,7 +1,9 @@
 // AUDIT THE HANDOFF AGAINST REALITY.
 //
 // Ohad: "re-run tests on this entire conversation and anything you can reach on
-// memory to check ten different times that the handoff is perfect".
+// memory to check ten different times that the handoff is perfect", then "audit
+// it 15 times and make sure its actually perfect", then "nothing should ever be
+// lost. alll the details should be handed off to perfection".
 //
 // A handoff is a pile of claims. This re-derives every one it can from disk,
 // git, the database, the sheet CSVs and the live hosts, and prints what does
@@ -26,6 +28,9 @@ const check = (pass, label, ok, detail) => {
   if (!ok) fails.push(`[${pass}] ${label}${detail ? ' — ' + detail : ''}`);
 };
 const git = (c) => execSync('git ' + c, { encoding: 'utf8' }).trim();
+// Prose with every "quoted span" removed: what the document ASSERTS, as
+// opposed to what it quotes in order to correct or attribute it.
+const unquoted = (t) => t.replace(/"[^"\n]{0,300}"/g, " ").replace(/\u201c[^\u201d\n]{0,300}\u201d/g, " ").replace(/\*[^*\n]{0,200}\*/g, " ");
 
 say('# Handoff audit — ' + new Date().toISOString().slice(0, 16).replace('T', ' '));
 say('');
@@ -57,7 +62,7 @@ check(1, 'the commit count in the doc is current within 3', Math.abs(Number(ahea
   `doc says ${statedCount.toLocaleString('en-US')}, actual ${Number(ahead).toLocaleString('en-US')}`);
 const stat = git('diff --shortstat master..HEAD');
 const files = (stat.match(/(\d+) files? changed/) || [])[1];
-const statedFiles = Number(((doc.match(/\*\*([0-9,]+) files, /) || [])[1] || '0').replace(/,/g, ''));
+const statedFiles = Number(((doc.match(/\*\*([0-9,]+) files/) || [])[1] || '0').replace(/,/g, ''));
 check(1, 'the file count in the doc is current within 5', Math.abs(Number(files) - statedFiles) <= 5,
   `doc says ${statedFiles}, actual ${files}`);
 
@@ -67,7 +72,9 @@ say('--- PASS 2 · every path named in the handoff exists ---');
 const paths = [...new Set((doc.match(/(?:src|scripts|docs|audit-out)\/[A-Za-z0-9_./*-]+/g) || []))]
   .filter((p) => !p.includes('*') && !p.endsWith('/'))
   // this file is what the audit WRITES; it cannot be a precondition of itself
-  .filter((p) => p !== OUT);
+  .filter((p) => p !== OUT)
+  // 'docs/handoff/01..10' is prose for a range of files, not a file
+  .filter((p) => !/\/[0-9]+(\.\.[0-9]+)?$/.test(p));
 let missing = 0;
 for (const p of paths) {
   const ok = fs.existsSync(p);
@@ -78,7 +85,9 @@ check(2, `${paths.length} paths checked`, missing === 0, missing ? `${missing} m
 // ---------------------------------------------------------------- pass 3
 say('');
 say('--- PASS 3 · every script named runs its own usage line ---');
-const scripts = paths.filter((p) => /\.(mjs|cjs)$/.test(p));
+const added = ['scripts/bhbc-log-lift.mjs', 'scripts/build-bhbc-replan.mjs', 'scripts/build-tonight.mjs',
+  'scripts/serve-page.mjs', 'scripts/shoot-prod-vs-branch.mjs', 'scripts/audit-handoff.mjs'];
+const scripts = paths.filter((p) => /\.(mjs|cjs)$/.test(p)).filter((p) => added.includes(p) || p.startsWith('audit-out/'));
 for (const p of scripts) {
   const src = fs.readFileSync(p, 'utf8');
   const hasHeader = /^\/\//.test(src.trim());
@@ -144,7 +153,10 @@ for (const m of ['MEMORY.md', 'project_bhbc_replan_2026_09_06.md', 'project_hand
   check(6, `memory/${m}`, fs.existsSync(`${MEM}/${m}`));
 }
 const index = fs.readFileSync(`${MEM}/MEMORY.md`, 'utf8');
-check(6, 'MEMORY.md indexes tonight first', index.split('\n')[0].includes('project_bhbc_replan_2026_09_06.md'), index.split('\n')[0].slice(0, 70));
+const top3 = index.split('\n').slice(0, 3).join(' ');
+check(6, 'the resume trigger and tonight are both at the top of MEMORY.md',
+  /feedback_pita_protocol\.md/.test(top3) && /project_bhbc_replan_2026_09_06\.md/.test(top3),
+  index.split('\n')[0].slice(0, 60));
 check(6, 'the bbq restore trigger is still indexed', /bbq/i.test(index));
 
 // ---------------------------------------------------------------- pass 8
@@ -227,7 +239,14 @@ check(9, 'Next Game is gone from Overview but still on Schedule',
 // shares.
 const touchedTonight = git('log --since="2026-09-05 20:00" --name-only --format= -- src/readinessAutoreg.js').trim();
 check(9, 'readinessAutoreg.js untouched TONIGHT', touchedTonight === '', touchedTonight || 'no commit tonight touched it');
-check(9, 'the handoff says so honestly', /NOT touched tonight/.test(doc));
+// unquoted(): the break-test table QUOTES the lie it plants, and a quoted lie
+// is evidence, not a claim.
+const raLines = unquoted(doc).split(String.fromCharCode(10)).filter((l) => /readinessAutoreg/.test(l));
+check(9, 'the handoff mentions the shared file at all', raLines.length > 0, `${raLines.length} line(s)`);
+const raWrong = raLines.filter((l) => /rewritten|edited|changed|modified|updated/i.test(l));
+check(9, 'EVERY line about it says it was not touched tonight',
+  raWrong.length === 0 && raLines.some((l) => /not touched tonight/i.test(l)),
+  raWrong[0] ? raWrong[0].slice(0, 80) : '');
 check(9, 'no forbidden word in the new UI strings',
   !/\b(cure|diagnose)\b/i.test(he), 'bhbcHe.js');
 
@@ -239,6 +258,91 @@ check(10, 'the handoff lists the deploy decision as open', /Deploy or not/.test(
 check(10, 'the Q4 legend question is recorded', /Moderate Volume/.test(doc));
 check(10, 'the demo probe still carries its warning',
   fs.readFileSync('audit-out/probe-demo-dates.mjs', 'utf8').includes('NOT TRUSTED YET'));
+
+
+// ---------------------------------------------------------------- pass 11
+say('');
+say('--- PASS 11 · the ten lens handoffs, and no contradictions ---');
+const LENSES = ['01-newcomer', '02-auditor', '03-owner', '04-end-users', '05-data', '06-qa', '07-design', '08-request-ledger', '09-risk', '10-next-shift'];
+let lensText = "";
+for (const l of LENSES) {
+  const p = `docs/handoff/${l}.md`;
+  const ok = fs.existsSync(p);
+  check(11, `docs/handoff/${l}.md`, ok);
+  if (ok) lensText += fs.readFileSync(p, "utf8");
+}
+// A number that appears in a lens must agree with the master. These are the
+// canonical facts everything else is built on.
+const CANON = [
+  ['roster size', /roster[^.]{0,20}\b10\b|\b10\b[^.]{0,20}athletes/i],
+  ['fixtures', /\b33\b/],
+  ['lift sessions', /\b72\b/],
+  ['the Hebrew word count', /147/],
+  ['the dashboard card count', /seven|7 cards/i],
+];
+for (const [what, re] of CANON) {
+  check(11, `the master states ${what}`, re.test(doc), '');
+}
+// nothing in a lens may claim a contradicting version of the two numbers most
+// likely to drift
+check(11, 'no lens ASSERTS the roster is 11', !/roster is 11|roster 11/i.test(unquoted(lensText)));
+check(11, 'nothing ASSERTS 428 files', !/428 files/.test(unquoted(lensText + doc)));
+
+// ---------------------------------------------------------------- pass 12
+say('');
+say('--- PASS 12 · every request in the ledger carries a status ---');
+const ledger = doc.slice(doc.indexOf('## 14 · The request ledger'), doc.indexOf('## 15 ·'));
+const rows = ledger.split(String.fromCharCode(10)).filter((l) => /^\| *[0-9]+ *\|/.test(l));
+check(12, 'the ledger has rows', rows.length >= 30, `${rows.length} rows`);
+const STATUS = /(done|partial|open|cancelled by him|pacing)/i;
+const statusless = rows.filter((r) => !STATUS.test(r.split("|").slice(3).join("|")));
+check(12, 'every row has a status', statusless.length === 0, statusless.slice(0, 2).join(' // '));
+// his own words must be quoted, not paraphrased
+const quoted = rows.filter((r) => /"/.test(r)).length;
+check(12, 'the rows quote him directly', quoted >= rows.length - 2, `${quoted}/${rows.length} quote him`);
+
+// ---------------------------------------------------------------- pass 13
+say('');
+say('--- PASS 13 · the resume word is registered everywhere ---');
+const WORD = 'pita';
+check(13, 'the handoff names the word', new RegExp('`' + WORD + '`').test(doc), WORD);
+const memFile = `${MEM}/feedback_pita_protocol.md`;
+check(13, 'a memory file defines it', fs.existsSync(memFile));
+check(13, 'MEMORY.md indexes it', /feedback_pita_protocol\.md/.test(index));
+if (fs.existsSync(memFile)) {
+  const mf = fs.readFileSync(memFile, "utf8");
+  check(13, 'the memory file says do not deploy', /do not deploy/i.test(mf));
+  check(13, 'the memory file points at this handoff', /HANDOFF-2026-09-06\.md/.test(mf));
+}
+
+// ---------------------------------------------------------------- pass 14
+say('');
+say('--- PASS 14 · no weasel words ---');
+// A handoff that hedges is a handoff nobody can act on. Each of these was a
+// real defect in an earlier draft.
+const WEASEL = [
+  ['probably', /\bprobably\b/i],
+  ['should be (unverified)', /\bshould be fine\b|\bshould work\b/i],
+  ['I think', /\bI think\b/i],
+  ['almost always', /\balmost always\b/i],
+  ['roughly, without a number', /\broughly\b(?![^.]{0,40}[0-9])/i],
+];
+for (const [what, re] of WEASEL) {
+  const prose = unquoted(doc);
+  check(14, `no "${what}" outside a quotation`, !re.test(prose), (prose.match(re) || [''])[0]);
+}
+
+// ---------------------------------------------------------------- pass 15
+say('');
+say('--- PASS 15 · every command block names something that exists ---');
+const blocks = doc.match(/```bash[\s\S]*?```/g) || [];
+check(15, 'the handoff carries command blocks', blocks.length >= 4, `${blocks.length} blocks`);
+const named = [...new Set((blocks.join(String.fromCharCode(10)).match(/(?:scripts|audit-out)\/[A-Za-z0-9_.-]+\.(?:mjs|cjs)/g) || []))];
+let ghosts = 0;
+for (const p of named) {
+  if (!fs.existsSync(p)) { ghosts++; check(15, `command names a missing script`, false, p); }
+}
+check(15, `${named.length} scripts named in commands all exist`, ghosts === 0, ghosts ? `${ghosts} missing` : 'all present');
 
 say('```');
 say('');
