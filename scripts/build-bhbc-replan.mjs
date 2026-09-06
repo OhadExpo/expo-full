@@ -140,7 +140,8 @@ ${shot('audit-out/overview-now.png', 'The Overview as it stands tonight — seve
 </div>
 </div>
 
-<h2>4 · The new dashboard — three cards, not seven</h2>
+<h2>4 · The new dashboard — built tonight</h2>
+<div class="card"><p class="lead">Everything in sections 4 and 5 marked <b class="add">done</b> is already on the branch and visible at <code>127.0.0.1:4181</code>, before and after. Nothing is deployed.</p></div>
 <div class="card">
 <div class="two">
 <div>
@@ -179,12 +180,12 @@ ${shot('audit-out/overview-now.png', 'The Overview as it stands tonight — seve
 <div class="card">
 <table>
 <tr><th>Tab</th><th>Change</th><th>Why</th></tr>
-<tr><td>Overview</td><td class="kill">7 cards → 3</td><td>every fact once; nothing empty on screen</td></tr>
+<tr><td>Overview</td><td class="add">done · 7 cards → 4</td><td>every fact once; nothing empty on screen</td></tr>
 <tr><td>Roster</td><td class="keep">unchanged</td><td>it is the people list and it works</td></tr>
-<tr><td>Weight Room</td><td class="add">NEW — shipped tonight</td><td>your grid: athletes × days, lift + restriction in one cell, due list under it</td></tr>
-<tr><td>Schedule</td><td class="add">+ contact minutes on every practice</td><td>unlocks density % and the intensity band — the number your sheet is built on</td></tr>
+<tr><td>Weight Room</td><td class="add">done · new tab</td><td>your grid: athletes × days, lift + restriction in one cell, due list under it</td></tr>
+<tr><td>Schedule</td><td class="add">done · contact minutes → density + Q1–Q4</td><td>unlocks density % and the intensity band — the number your sheet is built on</td></tr>
 <tr><td>Medical</td><td class="keep">unchanged</td><td>the RTP ladder and the board are right</td></tr>
-<tr><td>Sessions</td><td class="add">absorbs ACWR / readiness</td><td>the place an RPE would be entered is the place its analytics belong</td></tr>
+<tr><td>Sessions</td><td class="add">done · ACWR/readiness appear only with data</td><td>the place an RPE would be entered is the place its analytics belong</td></tr>
 <tr><td>Games</td><td class="keep">unchanged</td><td>league data is clean</td></tr>
 </table>
 <h3>What the app can do that the sheet cannot</h3>
@@ -200,7 +201,7 @@ ${shot('audit-out/overview-now.png', 'The Overview as it stands tonight — seve
 <h2>6 · What I need from you</h2>
 <div class="card">
 <div class="q"><b>Contact minutes</b><br>Do you want to type contact minutes per practice (one number, once a day)? Density and the intensity band cannot exist without it — it is the only new thing this asks of you.</div>
-<div class="q"><b>Q1–Q4</b><br>Your sheet types the quadrant by hand. I would rather derive it: volume from practice minutes (&gt;90 = high) and intensity from the density band. Say the word if you want it typed instead.</div>
+<div class="q"><b>Q1–Q4 — derived, and it matches you</b><br>Built as derived: volume over 90 minutes, intensity from the 25% band up. Checked against your own hand-typed row for 20/08/2025 — 84 min, 13 contact, 15.5%, and your sheet says Q1. So does the app. One question stands: your legend calls Q4 "Moderate Volume" while Q2 is "High" — which did you mean?</div>
 <div class="q"><b>ACWR and readiness</b><br>Off the dashboard until an RPE exists — agreed? They stay live under Sessions either way.</div>
 <div class="q"><b>The month grid on the dashboard</b><br>Last 14 days, or the whole month? 14 fits without sideways scrolling on a laptop.</div>
 </div>
