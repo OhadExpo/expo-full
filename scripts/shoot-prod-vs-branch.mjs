@@ -32,6 +32,9 @@ const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport
 
 const shoot = async (base, job, tag) => {
   const pg = await b.newPage();
+  // LANG=he walks the app in Hebrew. It has to be set before the FIRST
+  // document: App reads the language at mount and writes it straight back.
+  if (process.env.LANG_APP) await pg.evaluateOnNewDocument((l) => { try { localStorage.setItem('expo-lang', l); } catch (e) { /* ignore */ } }, process.env.LANG_APP);
   const who = SEATS[job.seat];
   try {
     await pg.goto(base + '/login', { waitUntil: 'domcontentloaded', timeout: 90000 });
@@ -54,7 +57,7 @@ const shoot = async (base, job, tag) => {
     await pg.evaluate(() => { const x = [...document.querySelectorAll('button,a')].find((e) => /maybe later|dismiss/i.test(e.textContent || '')); if (x) x.click(); }).catch(() => {});
     await wait(1200);
     const chars = await pg.evaluate(() => (document.body.innerText || '').length);
-    const file = path.join(OUT, `${job.name}-${tag}.png`);
+    const file = path.join(OUT, `${job.name}${process.env.LANG_APP ? '-' + process.env.LANG_APP : ''}-${tag}.png`);
     await pg.screenshot({ path: file, fullPage: true });
     console.log(`${tag.padEnd(6)} ${job.seat.padEnd(7)} ${job.route.padEnd(14)} ${String(chars).padStart(6)} chars -> ${file}`);
     return { file, chars };
@@ -72,6 +75,6 @@ for (const job of JOBS) {
   const after = await shoot(BRANCH, job, 'branch');
   results.push({ ...job, before, after });
 }
-fs.writeFileSync(path.join(OUT, 'pairs.json'), JSON.stringify(results, null, 2));
+fs.writeFileSync(path.join(OUT, process.env.LANG_APP ? 'pairs-' + process.env.LANG_APP + '.json' : 'pairs.json'), JSON.stringify(results, null, 2));
 console.log(`\n${results.filter((r) => r.before && r.after).length}/${results.length} complete pairs`);
 b.disconnect();
