@@ -369,7 +369,12 @@ say('--- PASS 17 · the dangerous procedures are written down ---');
 // appeared zero times. The most dangerous operation in the project had no
 // procedure, and a cold chat told to ship would have improvised it.
 check(17, 'the deploy command is written down', /git push origin bhbc-hebrew:master/.test(doc));
-check(17, 'the rollback target is recorded FIRST', /git rev-parse master/.test(doc));
+// NOT 'git rev-parse master': local master on this machine trails production
+// by over a thousand commits, and an earlier draft told the next session to
+// roll back to it. The target must come from the REMOTE, after a fetch.
+check(17, 'the rollback target is taken from the REMOTE', /git rev-parse origin\/master/.test(doc));
+check(17, 'and it fetches first', /git fetch origin/.test(doc));
+check(17, 'the local-master trap is spelled out', /never.{0,40}rollback target|trails .{0,20}origin\/master/i.test(doc));
 check(17, 'a rollback line exists', /force-with-lease/.test(doc));
 check(17, 'deploy is verified, not assumed', /verify-prod-current/.test(doc));
 check(17, 'the debug Chrome can be started from this file', /--remote-debugging-port=9222/.test(doc));
