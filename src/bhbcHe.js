@@ -447,6 +447,47 @@ Object.assign(HE, {
   // "Head / Concussion" splits at the slash on a squad card.
   Head: 'ראש',
 
+  // ---- the weight-room board -------------------------------------------
+  'Weight Room': 'חדר כוח',
+  'due': 'בפיגור',
+  'everyone is current': 'כולם מעודכנים',
+  'in 7 days': 'ב-7 ימים',
+  'in 28': 'ב-28',
+  'nothing logged yet': 'עוד לא נרשם כלום',
+  'never': 'אף פעם',
+  'yesterday': 'אתמול',
+  'days ago': 'ימים',
+  'lifted today': 'התאמנו היום',
+  'Two weight-room sessions a week is the standard here — amber at 4 days, red at 7.': 'שני אימוני כוח בשבוע זה הסטנדרט כאן — כתום אחרי 4 ימים, אדום אחרי 7.',
+
+  // ---- the weight-room tab --------------------------------------------
+  'Previous month': 'חודש קודם',
+  'Next month': 'חודש הבא',
+  'Orange is a logged lift. The tint is the restriction on the day.': 'כתום זה אימון כוח שנרשם. הגוון זה ההגבלה של אותו יום.',
+  'nobody has lifted today': 'אף אחד לא התאמן היום',
+  'Due for the weight room': 'מחכים לאימון כוח',
+  'Everyone has lifted in the last three days.': 'כולם התאמנו בשלושת הימים האחרונים.',
+  'lift': 'אימון כוח',
+  'lift logged': 'נרשם אימון כוח',
+  'Jan': 'ינואר',
+  'Feb': 'פברואר',
+  'Mar': 'מרץ',
+  'Apr': 'אפריל',
+  'May': 'מאי',
+  'Jun': 'יוני',
+  'Jul': 'יולי',
+  'Aug': 'אוגוסט',
+  'Sep': 'ספטמבר',
+  'Oct': 'אוקטובר',
+  'Nov': 'נובמבר',
+  'Dec': 'דצמבר',
+
+  // ---- the load board ---------------------------------------------------
+  'last lift': 'אימון אחרון',
+  'Athlete': 'שחקן',
+  '7d': '7 ימים',
+  '14-day': '14 יום',
+
   PRE_SEASON: 'טרום עונה',
 });
 

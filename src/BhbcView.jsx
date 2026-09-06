@@ -843,7 +843,7 @@ function attendance28(rec, days) {
   // Coaches (head coach + assistants) are VIEWERS: they read the report, roster,
   // schedule, medical and games — but do NOT operate S&C (no session runner, no
   // logging practices, no check-in entry, no roster management). Ohad 2026-08-18.
-  const NAV_TABS = [['overview', tr('Overview')], ['roster', tr('Roster')], ['schedule', tr('Schedule')], ['medical', tr('Medical')], ...(asCoach ? [] : [['sessions', tr('Sessions')]]), ['games', tr('Games')]];
+  const NAV_TABS = [['overview', tr('Overview')], ['roster', tr('Roster')], ['schedule', tr('Schedule')], ['weightroom', tr('Weight Room')], ['medical', tr('Medical')], ...(asCoach ? [] : [['sessions', tr('Sessions')]]), ['games', tr('Games')]];
 
   // Never sit on a tab that is not in the list. 'Sessions' disappears in the
   // coach view, but `view` was not reset when 'Preview as coach' was switched
@@ -1212,15 +1212,18 @@ function attendance28(rec, days) {
                     try { navigator.clipboard.writeText(txt); } catch { /* denied - it is all on screen anyway */ }
                     setBriefCopied(true); setTimeout(() => setBriefCopied(false), 1800);
                   }} />
-                {/* S&C Brief = the S&C operator's action list — removed for coaches. */}
-                {!asCoach && <CoachBrief rows={rows} fx={fx} fixtures={bhbcFixtures} medical={medical} today={today} onOpen={setDetailFor} onLog={canLog ? () => setPracticeOpen(true) : null} onGo={setView} />}
                 <TodayPanel today={today} fixtures={bhbcFixtures} fx={fx} rows={rows} planOf={planOf} onPlan={asCoach ? null : setPlanFor} onSessions={asCoach ? null : () => setView('sessions')} onLog={canLog ? () => setPracticeOpen(true) : null} />
-                {fx.nextGame && <NextGamePanel nextGame={fx.nextGame} today={today} onEdit={asCoach ? null : () => setGameEdit(true)} />}
                 <FixturesAheadPanel fixtures={bhbcFixtures} today={today} />
-                <TeamSnapshotCard team={team} />
-                <LoadBoard rows={rows} rowGrid={rowGrid} cycleAvail={canLog ? cycleAvail : null} medical={medical} onOpen={setDetailFor}
+                {/* Three of its four numbers need an sRPE per session. Until one is
+                    logged this card is four dashes, printed every morning. */}
+                {(team.avg != null || (team.week || 0) > 0) && <TeamSnapshotCard team={team} />}
+                <LoadBoard rows={rows} rowGrid={rowGrid} cycleAvail={canLog ? cycleAvail : null} medical={medical} loads={bhbcLoads} today={today} onOpen={setDetailFor}
                   onMedical={effCanMedical ? ((aid) => { const a = activeInjuries(medical, aid); setInjuryFor({ athleteId: aid, injuryId: a[0] && a[0].id }); }) : null} />
               </>
+            )}
+
+            {view === 'weightroom' && (
+              <WeightRoomTab rows={rows} loads={bhbcLoads} medical={medical} today={today} onOpen={setDetailFor} />
             )}
 
             {view === 'schedule' && (
@@ -2842,7 +2845,7 @@ function TodayPanel({ today, fixtures, fx, rows, onSessions, onLog, planOf, onPl
   const focus = mdToday != null ? mdPlan(mdToday) : null;
   const focusC = focus ? (focus.game ? ORANGE : focus.load >= 5 ? ORANGE_DEEP : focus.load >= 3 ? NAVY : '#6B7280') : NAVY;
   return (
-    <Card padding={14} leftStripe={ORANGE} header={secTitle(`Today · ${dow(today)} ${monDay(today)}`)} headerRight={gdLabel ? <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff' }}>{gdLabel}</span> : null}>
+    <Card padding={14} leftStripe={ORANGE} header={secTitle(`Today's sessions · ${dow(today)} ${monDay(today)}`)} headerRight={gdLabel ? <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff' }}>{gdLabel}</span> : null}>
       {focus && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, paddingBottom: 14, borderBottom: `1px solid ${C.cardBd}`, flexWrap: 'wrap' }}>
           <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm }}>{tr('Today’s focus')}</span>
@@ -2861,20 +2864,6 @@ function TodayPanel({ today, fixtures, fx, rows, onSessions, onLog, planOf, onPl
               {next.items.slice(0, 3).map((f, i) => chipWrap(f, i, true))}
             </div>
           ) : <span style={{ fontFamily: FB, fontSize: 13, color: C.td }}>{tr('No sessions scheduled.')}</span>}
-        </div>
-        <div style={{ flex: '1 1 150px' }}>
-          <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm, marginBottom: 8 }}>{tr('Availability')}</div>
-          <div style={{ display: 'flex', gap: 16, fontFamily: FN }}>
-            {/* The amber COUNT has to carry itself against the light theme white
-                card, so it uses the text token; the brand amber is unchanged for
-                dots, bands and fills. */}
-            {[['#37B27C', av.full, tr('available')], ['var(--bhbc-amber-text, #E0A73A)', av.mod, tr('limited')], ['#DE4E3B', av.out, tr('out')]].map(([c, n, l]) => (
-              <div key={l} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                <span style={{ fontSize: 22, fontWeight: 800, color: n ? c : C.tx, fontVariantNumeric: 'tabular-nums' }}>{n}</span>
-                <span style={{ fontSize: 9, color: C.td, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{l}</span>
-              </div>
-            ))}
-          </div>
         </div>
         {(onSessions || onLog) && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'stretch' }}>
@@ -2939,23 +2928,184 @@ function TeamSnapshotCard({ team }) {
   );
 }
 
-function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, onOpen, onMedical }) {
+// THE WEIGHT ROOM TAB.
+//
+// Ohad, pointing at his own availability sheet: "that's litterally the main use
+// of this table". His instrument is a MONTH GRID - athletes down, days across,
+// one cell per athlete per day - and the app had no such view at all. It showed
+// today, and a per-athlete history one click deep, which is not the same thing:
+// a month grid is read at a glance, and that glance is the job.
+//
+// So this is his sheet, rebuilt, with the one thing his sheet cannot do: the
+// weight room and availability in the SAME cell. The tint is the restriction
+// code (his index, 1-5, unchanged), the orange bar is a logged lift. A blank
+// column is a day nobody trained.
+//
+// It answers both halves of what he asked for in one picture: who worked out
+// when (read across a row) and who needs to work out soon (the DUE list under
+// it, longest gap first).
+//
+// Nothing here invents data. No lift logged means no bar - not a zero.
+function WeightRoomTab({ rows = [], loads = {}, medical = {}, today, onOpen }) {
   const tr = useT();
+  const he = useHe();
+  const [monthOff, setMonthOff] = useState(0);          // 0 = this month, -1 = last
+
+  const isLift = (r) => {
+    const t = String((r && r.type) || '').toLowerCase();
+    return t === 'lift' || t === 'weights';
+  };
+
+  // The month on screen, as local dates - never toISOString, which rolls back a
+  // day in Israel between midnight and 03:00.
+  const days = useMemo(() => {
+    const base = parseISO(today);
+    const anchor = new Date(base.getFullYear(), base.getMonth() + monthOff, 1);
+    const out = [];
+    const m = anchor.getMonth();
+    for (let d = new Date(anchor); d.getMonth() === m; d.setDate(d.getDate() + 1)) {
+      const iso = localISO(d);
+      if (iso > today) break;                 // a day that has not happened is not a column
+      out.push({ iso, dom: d.getDate(), dow: d.getDay() });
+    }
+    return { list: out, label: `${MON[anchor.getMonth()]} ${anchor.getFullYear()}` };
+  }, [today, monthOff]);
+
+  const per = useMemo(() => (rows || []).map(({ t }) => {
+    const rec = loads[t.id] || {};
+    const injFloor = activeInjuries(medical || {}, t.id).reduce((w, inj) => Math.max(w, MEDICAL_STATUS_AVAIL[inj.status] || 1), 1);
+    const ses = rec.sessions || {};
+    const avail = rec.availability || {};
+    const liftDates = Object.keys(ses).filter((d) => (ses[d] || []).some(isLift)).sort();
+    const last = liftDates.length ? liftDates[liftDates.length - 1] : null;
+    const since = last ? dayDiff(today, last) : null;
+    const cells = days.list.map((d) => {
+      const rowsOfDay = ses[d.iso] || [];
+      const lifts = rowsOfDay.filter(isLift);
+      const mins = lifts.reduce((a, r) => a + (Number(r.min) || 0), 0);
+      // The recorded value IS the history. The medical floor applies to today
+      // only - an injury that exists now says nothing about a day in August.
+      const code = Math.max(Number(avail[d.iso]) || 1, d.iso === today ? injFloor : 1);
+      return { iso: d.iso, lift: lifts.length > 0, mins, code, future: d.iso > today };
+    });
+    const within = (n) => liftDates.filter((d) => dayDiff(today, d) >= 0 && dayDiff(today, d) < n).length;
+    return { t, cells, last, since, d7: within(7), d28: within(28) };
+  }), [rows, loads, medical, days, today]);
+
+  const due = [...per].filter((x) => x.since == null || x.since >= 4)
+    .sort((a, b) => (b.since == null ? 1e9 : b.since) - (a.since == null ? 1e9 : a.since));
+  const liftedToday = per.filter((x) => x.since === 0).length;
+  const TINT = { 1: 'transparent', 2: 'rgba(224,167,58,0.18)', 3: 'rgba(79,157,224,0.18)', 4: 'rgba(222,78,59,0.20)', 5: 'rgba(124,130,139,0.20)' };
+  const ink = (since) => (since == null || since >= 7 ? '#DE4E3B' : since >= 4 ? 'var(--bhbc-amber-text, #E0A73A)' : '#37B27C');
+  const CELL = 22;
+
+  return (
+    <>
+      <Card leftStripe={NAVY} padding={0} header={secTitle('Weight Room')}
+        headerRight={(
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: C.tm }}>
+            <span>{liftedToday ? `${liftedToday} ${tr('lifted today')}` : tr('nobody has lifted today')}</span>
+          </span>
+        )}>
+        {!!due.length && (
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap', padding: '9px 14px', borderBottom: `1px solid ${C.cardBd}`, background: 'rgba(242,106,43,0.06)' }}>
+            <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 800, letterSpacing: '0.10em', textTransform: 'uppercase', color: ORANGE_DEEP, flexShrink: 0 }}>{tr('due')}</span>
+            <span style={{ fontFamily: FB, fontSize: 12, color: C.tx, minWidth: 0 }}>
+              {due.map(({ t, since }, i) => (
+                <span key={t.id} style={{ unicodeBidi: 'isolate' }}>{i ? ' · ' : ''}{t.name}<span style={{ color: ink(since), fontWeight: 700, unicodeBidi: 'isolate' }}>{'\u00A0'}{since == null ? tr('never') : (he ? `${since} ${tr('days')}` : `${since}d`)}</span></span>
+              ))}
+            </span>
+          </div>
+        )}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '8px 14px', borderBottom: `1px solid ${C.cardBd}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <button type="button" onClick={() => setMonthOff((v) => v - 1)} className="bhbc-ghost-btn" aria-label={tr('Previous month')}
+              style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, height: 24, width: 26, cursor: 'pointer' }}>{he ? '›' : '‹'}</button>
+            <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tx, minWidth: 116, textAlign: 'center' }}>{tr(days.label.split(' ')[0])} {days.label.split(' ')[1]}</span>
+            <button type="button" disabled={monthOff >= 0} onClick={() => setMonthOff((v) => Math.min(0, v + 1))} className="bhbc-ghost-btn" aria-label={tr('Next month')}
+              style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: monthOff >= 0 ? C.cardBd : C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, height: 24, width: 26, cursor: monthOff >= 0 ? 'default' : 'pointer' }}>{he ? '‹' : '›'}</button>
+          </div>
+          <span style={{ fontFamily: FB, fontSize: 11, color: C.tm }}>{tr('Orange is a logged lift. The tint is the restriction on the day.')}</span>
+        </div>
+
+        {/* The grid scrolls sideways on a phone by design - a month of days
+            cannot fit 390px, and squeezing it makes it unreadable on both. */}
+        <div style={{ overflowX: 'auto' }}>
+          <div style={{ minWidth: 298 + days.list.length * CELL }}>
+            <div style={{ display: 'grid', gridTemplateColumns: `180px repeat(${days.list.length}, minmax(${CELL}px, 1fr)) 118px`, alignItems: 'center', padding: '6px 14px 4px', gap: 0 }}>
+              <span />
+              {days.list.map((d) => (
+                <span key={d.iso} style={{ fontFamily: FN, fontSize: 9, fontWeight: d.iso === today ? 800 : 600, color: d.iso === today ? ORANGE_DEEP : (d.dow === 6 || d.dow === 5 ? C.cardBd : C.tm), textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{d.dom}</span>
+              ))}
+              <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, textAlign: 'end', paddingInlineStart: 10 }}>{tr('last lift')}</span>
+            </div>
+            <div style={{ display: 'grid', gap: 1, background: C.cardBd }}>
+              {per.map(({ t, cells, since, last }) => (
+                <div key={t.id} role={onOpen ? 'button' : undefined} tabIndex={onOpen ? 0 : undefined}
+                  onClick={onOpen ? () => onOpen(t.id) : undefined}
+                  onKeyDown={onOpen ? ((e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(t.id); } }) : undefined}
+                  style={{ display: 'grid', gridTemplateColumns: `180px repeat(${cells.length}, minmax(${CELL}px, 1fr)) 118px`, alignItems: 'stretch', background: 'var(--c-sf)', padding: '0 14px', cursor: onOpen ? 'pointer' : 'default' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, paddingInlineEnd: 8, height: 26 }}>
+                    <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, minWidth: 20, fontVariantNumeric: 'tabular-nums' }}>{t.jersey != null ? t.jersey : ''}</span>
+                    <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>
+                  </span>
+                  {cells.map((c) => (
+                    <span key={c.iso} title={`${monDay(c.iso)}${c.lift ? ` · ${c.mins || ''}${c.mins ? tr('min') : tr('lift')}` : ''}`}
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 26, background: c.future ? 'transparent' : TINT[c.code] || 'transparent', borderInlineStart: `1px solid ${C.cardBd}` }}>
+                      {c.lift && <span style={{ width: 12, height: 12, background: ORANGE, display: 'block' }} />}
+                    </span>
+                  ))}
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, height: 26, paddingInlineStart: 10 }}>
+                    <span style={{ fontFamily: FB, fontSize: 10.5, color: C.tm, whiteSpace: 'nowrap' }}>{last ? monDay(last) : ''}</span>
+                    <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: ink(since), fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', minWidth: 46, textAlign: 'end' }}>
+                      {since == null ? tr('never') : since === 0 ? tr('today') : since === 1 ? tr('yesterday') : (he ? `${since} ${tr('days')}` : `${since}d`)}
+                    </span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, padding: '9px 14px', borderTop: `1px solid ${C.cardBd}` }}>
+          {[[ORANGE, tr('lift logged')], ['rgba(224,167,58,0.55)', tr(AVAIL[2].label)], ['rgba(79,157,224,0.55)', tr(AVAIL[3].label)], ['rgba(222,78,59,0.6)', tr(AVAIL[4].label)], ['rgba(124,130,139,0.6)', tr(AVAIL[5].label)]].map(([col, lbl]) => (
+            <span key={lbl} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FB, fontSize: 11, color: C.tm }}>
+              <span style={{ width: 10, height: 10, background: col, flexShrink: 0 }} />{lbl}
+            </span>
+          ))}
+        </div>
+      </Card>
+
+    </>
+  );
+}
+
+function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen, onMedical, today }) {
+  const tr = useT();
+  const hasLoad = rows.some(({ acwr, series }) => (acwr && (acwr.ratio != null || (acwr.acute || 0) > 0)) || (series || []).some((v) => v > 0));
+  const hasRead = rows.some(({ readiness }) => readiness && readiness.level && readiness.level !== 'unknown');
+  const grid = ['28px', 'minmax(116px,1.5fr)', hasLoad ? '112px' : null, hasLoad ? '46px' : null, hasLoad ? null : '104px', '130px', hasRead ? 'minmax(104px,1.1fr)' : null, '92px'].filter(Boolean).join(' ');
+  // Days since the last logged weight-room session, per athlete.
+  const lastLift = (id) => {
+    const ses = ((loads[id] || {}).sessions) || {};
+    const d = Object.keys(ses).filter((k) => (ses[k] || []).some((r) => /^(lift|weights)$/i.test(String(r.type || '')))).sort();
+    return d.length ? d[d.length - 1] : null;
+  };
   return (
     <CollapsibleSection title={tr("Load & Injury Risk")} count={rows.length} storageKey="bhbc-load" defaultOpen leftStripe={ORANGE}>
       <div className="bhbc-load-scroll" style={{ overflowX: 'auto' }}>
 
-        <div className="bhbc-load-inner" style={{ minWidth: 660 }}>
+        <div className="bhbc-load-inner" style={{ minWidth: hasLoad ? 660 : 440 }}>
 
-          <div className="bhbc-load-head" style={{ display: 'grid', gridTemplateColumns: rowGrid, gap: 12, padding: '2px 2px 10px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.13em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }}>
-            <div>#</div><div>Athlete</div><div>ACWR</div><div>7d</div><div>{tr('Availability')}</div><div>Readiness</div><div style={{ textAlign: 'right' }}>14-day</div>
+          <div className="bhbc-load-head" style={{ display: 'grid', gridTemplateColumns: grid, gap: 12, padding: '2px 2px 10px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.13em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }}>
+            <div>#</div><div>{tr('Athlete')}</div>{hasLoad && <div>ACWR</div>}{hasLoad && <div>{tr('7d')}</div>}{!hasLoad && <div>{tr('last lift')}</div>}<div>{tr('Availability')}</div>{hasRead && <div>{tr('Readiness')}</div>}<div style={{ textAlign: 'right' }}>{hasLoad ? tr('14-day') : ''}</div>
           </div>
           {rows.map(({ t, acwr, series, readiness, avail }) => {
             const medFloor = activeInjuries(medical || {}, t.id)
               .reduce((worst, inj) => Math.max(worst, MEDICAL_STATUS_AVAIL[inj.status] || 1), 1);
             const rc = readiness.level === 'red' ? BAND.high : readiness.level === 'amber' ? BAND.elevated : readiness.level === 'green' ? BAND.low : BAND.none;
             return (
-              <div key={t.id} onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }} style={{ display: 'grid', gridTemplateColumns: rowGrid, gap: 12, alignItems: 'center', padding: '8px 2px', borderBottom: `1px solid ${C.cardBd}`, borderInlineStart: `2px solid ${acwr.band.color}`, paddingInlineStart: 10, marginInlineStart: -12, cursor: 'pointer', transition: 'border-color 240ms ease-out' }} className="bhbc-row bhbc-load-row">
+              <div key={t.id} onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }} style={{ display: 'grid', gridTemplateColumns: grid, gap: 12, alignItems: 'center', padding: '8px 2px', borderBottom: `1px solid ${C.cardBd}`, borderInlineStart: `2px solid ${acwr.band.color}`, paddingInlineStart: 10, marginInlineStart: -12, cursor: 'pointer', transition: 'border-color 240ms ease-out' }} className="bhbc-row bhbc-load-row">
                 <Jersey n={t.jersey} size={26} />
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontFamily: FN, fontWeight: 700, fontSize: 13, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{t.name}</div>
@@ -2992,8 +3142,21 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, onOpen, onMedical 
                     read "CONCUSSION · FULL". That rule was invisible, so clicking
                     a floored cell looked broken. Ohad: "having an injury can still
                     be limited on practice" - it can, and this points at where. */}
-                <div data-lbl="ACWR">{acwr.ratio != null ? <BandPill band={acwr.band} value={acwr.ratio.toFixed(2)} /> : <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: '0.06em' }}>{'·'} {tr('baseline')}</span>}</div>
-                <div data-lbl="7-day" style={{ fontFamily: FN, fontSize: 13, color: C.tx, fontVariantNumeric: 'tabular-nums' }}>{acwr.acute ? Math.round(acwr.acute) : '—'}</div>
+                {hasLoad && <div data-lbl="ACWR">{acwr.ratio != null ? <BandPill band={acwr.band} value={acwr.ratio.toFixed(2)} /> : <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: '0.06em' }}>{'·'} {tr('baseline')}</span>}</div>}
+                {hasLoad && <div data-lbl="7-day" style={{ fontFamily: FN, fontSize: 13, color: C.tx, fontVariantNumeric: 'tabular-nums' }}>{acwr.acute ? Math.round(acwr.acute) : '—'}</div>}
+                {!hasLoad && (() => {
+                  const ll = lastLift(t.id);
+                  const since = ll && today ? dayDiff(today, ll) : null;
+                  const col = since == null || since >= 7 ? '#DE4E3B' : since >= 4 ? 'var(--bhbc-amber-text, #E0A73A)' : '#37B27C';
+                  return (
+                    <div data-lbl="last lift" style={{ display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0 }}>
+                      <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: col, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                        {since == null ? tr('never') : since === 0 ? tr('today') : since === 1 ? tr('yesterday') : `${since}d`}
+                      </span>
+                      {ll && <span style={{ fontFamily: FB, fontSize: 10.5, color: C.tm, whiteSpace: 'nowrap' }}>{monDay(ll)}</span>}
+                    </div>
+                  );
+                })()}
                 <div data-lbl="Availability">
                   {cycleAvail ? (
                     <button onClick={(e) => { e.stopPropagation(); cycleAvail(t.id); }} title={medFloor > 1 ? `${tr(AVAIL[medFloor].label)} ${tr('comes from the medical record. Open Medical to change it — an injured athlete can still be Limited.')}` : tr('Click to change availability')} className="bhbc-ghost-btn" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, minWidth: 132, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 9px', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'color .12s, border-color .12s' }}>
@@ -3005,13 +3168,13 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, onOpen, onMedical 
                     </span>
                   )}
                 </div>
-                <div data-lbl="Readiness" style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
+                {hasRead && (<div data-lbl="Readiness" style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: rc, flexShrink: 0 }} />
                   {typeof readiness.loadAdjustPct === 'number' && readiness.loadAdjustPct !== 0 && <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 800, color: rc, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{readiness.loadAdjustPct > 0 ? '+' : ''}{readiness.loadAdjustPct}%</span>}
                   <span style={{ fontFamily: FB, fontSize: 11, color: C.td, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{tr(readiness.level === 'unknown' ? 'no check-in' : readiness.headline)}</span>
-                </div>
+                </div>)}
                 <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8 }}>
-                  <Sparkline series={series} />
+                  {hasLoad && <Sparkline series={series} />}
                   {/* Report / update an injury straight from the board — no need
                       to open the athlete first (Ohad: make medical easier to reach). */}
                   {onMedical && (() => {
@@ -3036,12 +3199,16 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, onOpen, onMedical 
           })}
         </div>
       </div>
+      {hasLoad && (
+      // The bands and the formula describe columns that are not on screen
+      // unless an RPE exists.
       <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 14, paddingTop: 12, borderTop: `1px solid ${C.cardBd}`, fontFamily: FN, fontSize: 10, color: C.td }}>
         {[[BAND.low, tr('band sweet spot')], [BAND.elevated, tr('band elevated')], [BAND.high, tr('band danger')], [BAND.detrained, tr('band undertrained')]].map(([c, l]) => (
           <span key={l} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, letterSpacing: '0.04em' }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: c }} />{l}</span>
         ))}
         <span style={{ marginInlineStart: 'auto', color: C.tm }}>ACWR = 7-day ÷ 28-day sRPE</span>
       </div>
+      )}
     </CollapsibleSection>
   );
 }
