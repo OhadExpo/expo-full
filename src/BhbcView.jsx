@@ -219,7 +219,14 @@ const densityOf = (fx) => {
   if (!min || !con) return null;
   const pct = (con / min) * 100;
   const band = DENSITY_BANDS.find((b) => pct < b.max) || DENSITY_BANDS[DENSITY_BANDS.length - 1];
-  return { pct, band, highVolume: min > 90 };
+  const highVolume = min > 90;
+  const highIntensity = pct >= 25;
+  const quadrant = highIntensity ? (highVolume ? 'Q4' : 'Q3') : (highVolume ? 'Q2' : 'Q1');
+  return { pct, band, highVolume, highIntensity, quadrant };
+};
+const QUAD_MEANING = {
+  Q1: 'Low volume & low intensity', Q2: 'High volume & low intensity',
+  Q3: 'Low volume & high intensity', Q4: 'High volume & high intensity',
 };
 const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -2827,6 +2834,7 @@ function DensityBit({ f: fx, size = 11 }) {
       <span style={{ color: d.band.color, fontWeight: 800 }}>{d.pct.toFixed(1)}%</span>{' '}
       {tr(d.band.key)}
       {d.highVolume ? ` \u00B7 ${tr('high volume')}` : ''}
+      {' \u00B7 '}<span title={tr(QUAD_MEANING[d.quadrant])} style={{ fontWeight: 800, color: C.td }}>{d.quadrant}</span>
     </span>
   );
 }

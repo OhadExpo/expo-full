@@ -497,6 +497,12 @@ Object.assign(HE, {
   'Very High Intensity': 'עצימות גבוהה מאוד',
   'high volume': 'נפח גבוה',
 
+  // ---- his S&C quadrant, derived ---------------------------------------
+  'Low volume & low intensity': 'נפח נמוך ועצימות נמוכה',
+  'High volume & low intensity': 'נפח גבוה ועצימות נמוכה',
+  'Low volume & high intensity': 'נפח נמוך ועצימות גבוהה',
+  'High volume & high intensity': 'נפח גבוה ועצימות גבוהה',
+
   PRE_SEASON: 'טרום עונה',
 });
 
