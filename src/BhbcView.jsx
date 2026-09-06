@@ -1500,9 +1500,9 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <span style={{ fontFamily: FB, fontSize: 13, color: C.td }}>{t.position || '—'} · {heightM(t.heightCm)} {flag(t.nationality)}</span>
           {onCycleAvail ? (
-            <button onClick={onCycleAvail} title="Click to change availability" className="bhbc-ghost-btn" style={{ marginInlineStart: 'auto', display: 'inline-flex', alignItems: 'center', gap: 7, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '0 11px', cursor: 'pointer', transition: 'color .12s, border-color .12s' }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: av.color, flexShrink: 0 }} />{av.label}</button>
+            <button onClick={onCycleAvail} title="Click to change availability" className="bhbc-ghost-btn" style={{ marginInlineStart: 'auto', display: 'inline-flex', alignItems: 'center', gap: 7, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '0 11px', cursor: 'pointer', transition: 'color .12s, border-color .12s' }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: av.color, flexShrink: 0 }} />{tr(av.label)}</button>
           ) : (
-            <span style={{ marginInlineStart: 'auto', display: 'inline-flex', alignItems: 'center', gap: 7, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, border: `1px solid ${C.cardBd}`, padding: '0 11px' }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: av.color, flexShrink: 0 }} />{av.label}</span>
+            <span style={{ marginInlineStart: 'auto', display: 'inline-flex', alignItems: 'center', gap: 7, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, border: `1px solid ${C.cardBd}`, padding: '0 11px' }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: av.color, flexShrink: 0 }} />{tr(av.label)}</span>
           )}
         </div>
         {leaguePlayer && (() => {
@@ -1604,7 +1604,7 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
         {readiness.level !== 'unknown' && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ width: 8, height: 8, borderRadius: '50%', background: rc, flexShrink: 0 }} />
-          <span style={{ fontFamily: FB, fontSize: 13, color: C.td }}>{readiness.headline}</span>
+          <span style={{ fontFamily: FB, fontSize: 13, color: C.td }}>{tr(readiness.headline)}</span>
         </div>
         )}
         {/* Medical / injury — shown on the athlete's profile too, not only the Medical tab */}
@@ -1640,7 +1640,7 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
             belongs to the marquee block. */}
         <div style={{ border: `1px solid ${C.cardBd}`, borderInlineStart: `3px solid ${C.cardBd}` }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderBottom: activity.length ? `1px solid ${C.cardBd}` : 'none' }}>
-            <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tx }}>Full history</span>
+            <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tx }}>{tr('Full history')}</span>
             {activity.length ? (
               <span style={{ marginInlineStart: 'auto', fontFamily: FN, fontSize: 11, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{activity.length}</span>
             ) : null}
@@ -1992,7 +1992,7 @@ function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave, sess
                 <div key={t.id} style={{ display: 'grid', gridTemplateColumns: cols, gap: 8, alignItems: 'center', padding: '7px 0', borderBottom: `1px solid ${C.cardBd}` }}>
                   <Jersey n={t.jersey} size={22} />
                   <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{t.name}</div>
-                  <button type="button" onClick={() => set(t.id, 'avail', (e.avail % 5) + 1)} title={tr('Click to change availability')} className="bhbc-ghost-btn" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, width: '100%', height: 32, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '0 6px', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'color .12s, border-color .12s' }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: av.color, flexShrink: 0 }} />{av.label}</button>
+                  <button type="button" onClick={() => set(t.id, 'avail', (e.avail % 5) + 1)} title={tr('Click to change availability')} className="bhbc-ghost-btn" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, width: '100%', height: 32, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '0 6px', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'color .12s, border-color .12s' }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: av.color, flexShrink: 0 }} />{tr(av.label)}</button>
                   {/* Attendance for THIS slot only. An athlete Out for the day is
                       locked out of every slot; anyone else can be marked absent
                       from this session without changing his day. */}
@@ -2992,23 +2992,23 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, onOpen, onMedical 
                     read "CONCUSSION · FULL". That rule was invisible, so clicking
                     a floored cell looked broken. Ohad: "having an injury can still
                     be limited on practice" - it can, and this points at where. */}
-                <div data-lbl="ACWR">{acwr.ratio != null ? <BandPill band={acwr.band} value={acwr.ratio.toFixed(2)} /> : <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: '0.06em' }}>· baseline</span>}</div>
+                <div data-lbl="ACWR">{acwr.ratio != null ? <BandPill band={acwr.band} value={acwr.ratio.toFixed(2)} /> : <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: '0.06em' }}>{'·'} {tr('baseline')}</span>}</div>
                 <div data-lbl="7-day" style={{ fontFamily: FN, fontSize: 13, color: C.tx, fontVariantNumeric: 'tabular-nums' }}>{acwr.acute ? Math.round(acwr.acute) : '—'}</div>
                 <div data-lbl="Availability">
                   {cycleAvail ? (
-                    <button onClick={(e) => { e.stopPropagation(); cycleAvail(t.id); }} title={medFloor > 1 ? `${AVAIL[medFloor].label} comes from the medical record. Open Medical to change it — an injured athlete can still be Limited.` : 'Click to change availability'} className="bhbc-ghost-btn" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, minWidth: 132, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 9px', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'color .12s, border-color .12s' }}>
-                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: AVAIL[avail].color, flexShrink: 0 }} />{AVAIL[avail].label}
+                    <button onClick={(e) => { e.stopPropagation(); cycleAvail(t.id); }} title={medFloor > 1 ? `${tr(AVAIL[medFloor].label)} ${tr('comes from the medical record. Open Medical to change it — an injured athlete can still be Limited.')}` : tr('Click to change availability')} className="bhbc-ghost-btn" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, minWidth: 132, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 9px', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'color .12s, border-color .12s' }}>
+                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: AVAIL[avail].color, flexShrink: 0 }} />{tr(AVAIL[avail].label)}
                     </button>
                   ) : (
                     <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, minWidth: 132, height: 26, boxSizing: 'border-box', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, border: `1px solid ${C.cardBd}`, padding: '0 9px', whiteSpace: 'nowrap' }}>
-                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: AVAIL[avail].color, flexShrink: 0 }} />{AVAIL[avail].label}
+                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: AVAIL[avail].color, flexShrink: 0 }} />{tr(AVAIL[avail].label)}
                     </span>
                   )}
                 </div>
                 <div data-lbl="Readiness" style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: rc, flexShrink: 0 }} />
                   {typeof readiness.loadAdjustPct === 'number' && readiness.loadAdjustPct !== 0 && <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 800, color: rc, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{readiness.loadAdjustPct > 0 ? '+' : ''}{readiness.loadAdjustPct}%</span>}
-                  <span style={{ fontFamily: FB, fontSize: 11, color: C.td, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{readiness.level === 'unknown' ? 'no check-in' : readiness.headline}</span>
+                  <span style={{ fontFamily: FB, fontSize: 11, color: C.td, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{tr(readiness.level === 'unknown' ? 'no check-in' : readiness.headline)}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8 }}>
                   <Sparkline series={series} />
@@ -4393,19 +4393,19 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
           ].map(([n, stage, detail]) => (
             <div key={n} className="bhbc-rtp-row" style={{ display: 'grid', gridTemplateColumns: '30px minmax(0, 150px) minmax(0, 1fr)', gap: 12, alignItems: 'center', background: 'var(--c-sf)', padding: '10px 12px' }}>
               <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums' }}>{n}</span>
-              <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.03em', color: C.tx, overflowWrap: 'break-word' }}>{stage}</span>
-              <span style={{ fontFamily: FB, fontSize: 12, color: C.tm, lineHeight: 1.4, overflowWrap: 'break-word' }}>{detail}</span>
+              <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.03em', color: C.tx, overflowWrap: 'break-word' }}>{tr(stage)}</span>
+              <span style={{ fontFamily: FB, fontSize: 12, color: C.tm, lineHeight: 1.4, overflowWrap: 'break-word' }}>{tr(detail)}</span>
             </div>
           ))}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{ fontFamily: FB, fontSize: 12, color: C.tx, lineHeight: 1.5 }}>
-            <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, marginRight: 8 }}>Pain gate</span>
-            0–3/10 progress · 4–5 hold &amp; modify (regress <span style={{ color: C.tx, fontWeight: 700 }}>ROM → Tempo → Intensity → Volume → Frequency</span>, cut frequency last) · 6+ stop &amp; reassess.
+            <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, marginRight: 8 }}>{tr('Pain gate')}</span>
+            {tr('0–3/10 progress · 4–5 hold & modify (regress ')}<span style={{ color: C.tx, fontWeight: 700 }}>ROM → Tempo → Intensity → Volume → Frequency</span>{tr(', cut frequency last) · 6+ stop & reassess.')}
           </div>
           <div style={{ fontFamily: FB, fontSize: 12, color: C.tx, lineHeight: 1.5 }}>
-            <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#DE4E3B', marginRight: 8 }}>Refer out</span>
-            Saddle anaesthesia · bowel/bladder change · drop foot · unexplained weight loss · night pain unrelated to position — never manage through these.
+            <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#DE4E3B', marginRight: 8 }}>{tr('Refer out')}</span>
+            {tr('Saddle anaesthesia · bowel/bladder change · drop foot · unexplained weight loss · night pain unrelated to position — never manage through these.')}
           </div>
         </div>
       </CollapsibleSection>

@@ -391,6 +391,51 @@ Object.assign(HE, {
   Available: 'זמין',
 
   'No sessions scheduled.': 'אין אימונים מתוכננים.',
+
+  // ---- availability + readiness -----------------------------------------
+  // The physio reads this board in Hebrew; these were the last English words
+  // left on it. The readiness headlines are composed in readinessAutoreg.js,
+  // which the athlete app shares - so they are translated HERE, at the club
+  // zone render, and that file stays untouched.
+  'Full': 'מלא',
+  'Limited': 'מוגבל',
+  'Out · Med': 'בחוץ · רפואי',
+  'Out · Pers': 'בחוץ · אישי',
+  'baseline': 'בסיס',
+  'no check-in': 'אין דיווח',
+  'Click to change availability': 'תלחץ כדי לשנות זמינות',
+  'comes from the medical record. Open Medical to change it — an injured athlete can still be Limited.': 'מגיע מהתיק הרפואי. תיכנס לרפואי כדי לשנות — שחקן פצוע יכול עדיין להיות מוגבל.',
+  'No check-in logged': 'לא נרשם דיווח',
+  'Pain 6+ — don\'t load today': 'כאב 6+ — לא מעמיסים היום',
+  'Pain 4–5 — modify the session': 'כאב 4–5 — משנים את האימון',
+  'Pain not logged — confirm first': 'כאב לא נרשם — תוודא קודם',
+  'Mild pain — train pain-free': 'כאב קל — להתאמן בלי כאב',
+  'Pain clear — train as planned': 'אין כאב — להתאמן לפי התוכנית',
+  'Good markers — confirm pain first': 'מדדים טובים — תוודא כאב קודם',
+  'Recovered — train pain-free': 'התאושש — להתאמן בלי כאב',
+  'Looks good — train as planned': 'נראה טוב — לפי התוכנית',
+  'Recovered — full send': 'התאושש — אפשר ללחוץ',
+  'A bit under — trim, don\'t grind': 'קצת מתחת — לקצר, לא לטחון',
+  'Run down — back off today': 'שחוק — מורידים היום',
+  // ---- return-to-play ladder + the two safety rules under it -----------
+  'Full history': 'היסטוריה מלאה',
+  'Acute · protect': 'חריף · הגנה',
+  'Offload the tissue, manage pain + swelling. Pain-free daily movement only.': 'להוריד עומס מהרקמה, לנהל כאב ונפיחות. רק תנועה יומיומית בלי כאב.',
+  'Pain-free ROM': 'טווח בלי כאב',
+  'Restore full range with no symptoms before adding load.': 'להחזיר טווח מלא בלי סימפטומים לפני שמוסיפים עומס.',
+  'Loaded rehab': 'שיקום בעומס',
+  'Re-load progressively — isometrics → tempo → full-ROM strength.': 'להעמיס בהדרגה — איזומטרי ← טמפו ← כוח בטווח מלא.',
+  'Running, change-of-direction and court work, no contact.': 'ריצה, שינויי כיוון ועבודה על הפרקט, בלי מגע.',
+  'Contact · modified': 'מגע · מותאם',
+  'Full-speed contact drills with minutes capped.': 'תרגילי מגע במהירות מלאה עם תקרת דקות.',
+  'Full training → cleared': 'אימון מלא ← כשיר',
+  'Complete sessions, no restrictions, then clear to play.': 'אימונים מלאים בלי הגבלות, ואז אישור לשחק.',
+  'Pain gate': 'סף כאב',
+  'Refer out': 'הפניה רפואית',
+  '0–3/10 progress · 4–5 hold & modify (regress ': 'ב-0–3/10 ממשיכים · ב-4–5 עוצרים ומתאימים (מורידים ',
+  ', cut frequency last) · 6+ stop & reassess.': ', תדירות אחרונה) · ב-6+ עוצרים ובודקים מחדש.',
+  'Saddle anaesthesia · bowel/bladder change · drop foot · unexplained weight loss · night pain unrelated to position — never manage through these.': 'הרדמת אוכף · שינוי בשליטה על סוגרים · צניחת כף רגל · ירידה לא מוסברת במשקל · כאב לילי שלא תלוי בתנוחה — לעולם לא ממשיכים דרך אלה.',
+
   PRE_SEASON: 'טרום עונה',
 });
 
