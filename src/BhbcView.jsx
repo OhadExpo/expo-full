@@ -3032,6 +3032,13 @@ function WeightRoomTab({ rows = [], loads = {}, medical = {}, today, onOpen }) {
     return { t, cells, last, since, d7: within(7), d28: within(28) };
   }), [rows, loads, medical, days, today]);
 
+  // One number per day: athletes with no restriction on it. Days before the
+  // squad had any record at all read as a dash, not a zero.
+  const availPerDay = days.list.map((d, i) => {
+    const cells = per.map((p) => p.cells[i]).filter(Boolean);
+    const known = cells.filter((c) => c.code != null);
+    return known.length ? known.filter((c) => c.code === 1).length : null;
+  });
   const due = [...per].filter((x) => x.since == null || x.since >= 4)
     .sort((a, b) => (b.since == null ? 1e9 : b.since) - (a.since == null ? 1e9 : a.since));
   const liftedToday = per.filter((x) => x.since === 0).length;
@@ -3078,6 +3085,13 @@ function WeightRoomTab({ rows = [], loads = {}, medical = {}, today, onOpen }) {
                 <span key={d.iso} style={{ fontFamily: FN, fontSize: 9, fontWeight: d.iso === today ? 800 : 600, color: d.iso === today ? ORANGE_DEEP : (d.dow === 6 || d.dow === 5 ? C.cardBd : C.tm), textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{d.dom}</span>
               ))}
               <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, textAlign: 'end', paddingInlineStart: 10 }}>{tr('last lift')}</span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: `180px repeat(${days.list.length}, minmax(${CELL}px, 1fr)) 118px`, alignItems: 'center', padding: '0 14px 6px' }}>
+              <span style={{ fontFamily: FN, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', color: C.tm }}>{tr('available')}</span>
+              {availPerDay.map((n, i) => (
+                <span key={days.list[i].iso} style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, color: n == null ? C.cardBd : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{n == null ? '\u2014' : n}</span>
+              ))}
+              <span />
             </div>
             <div style={{ display: 'grid', gap: 1, background: C.cardBd }}>
               {per.map(({ t, cells, since, last }) => (
