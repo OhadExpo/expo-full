@@ -1,0 +1,32 @@
+cat ~/.claude/projects/C--Users-Administrator-Desktop-expo-full/memory/MEMORY.md
+cat .../memory/project_bhbc_replan_2026_09_06.md
+cat .../memory/project_handoff_2026_09_06.md
+git log --oneline -40
+cat docs/HANDOFF-2026-09-06.md
+--user-data-dir="C:\Users\Administrator\chrome-debug-budget" --no-first-run
+curl -s --noproxy "*" http://127.0.0.1:9222/json/list | grep -c '"type": "page"'
+npm run build      # eslint runs first and FAILS the build on any error
+npx vite preview   # serves dist on 4173 — what every probe hits
+git rev-parse master                      # <- the rollback target
+npm run build                             # eslint gates it
+node scripts/verify-prod-current.mjs      # red until the new bundle is up, green after
+node scripts/shoot-prod-vs-branch.mjs     # the two columns should now match
+node scripts/verify-bhbc-collapse.mjs
+node scripts/verify-pt-no-backend.mjs
+SEAT=pt W=390 node scripts/verify-mobile-overflow.mjs
+SEAT=pt node scripts/verify-no-raw-values.mjs
+LANG_APP=he SEAT=pt node scripts/verify-no-raw-values.mjs
+node scripts/verify-hebrew.mjs
+node scripts/verify-athlete-journey.mjs
+node scripts/verify-athlete-no-backend.mjs
+SEAT=owner node scripts/verify-no-raw-values.mjs
+LANG_APP=he SEAT=owner node scripts/verify-no-raw-values.mjs
+SEAT=owner W=390 node scripts/verify-mobile-overflow.mjs
+node scripts/verify-marketing-site.mjs
+node scripts/shoot-prod-vs-branch.mjs
+LANG_APP=he JOBS="athlete:/athlete:portal,pt:/coach/bhbc:pt-zone" node scripts/shoot-prod-vs-branch.mjs
+node scripts/build-tonight.mjs
+node scripts/build-bhbc-replan.mjs
+node scripts/build-recap.mjs
+node scripts/audit-handoff.mjs
+node scripts/break-test-audit.mjs      # plants one lie per pass, restores everything after
