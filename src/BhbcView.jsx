@@ -1245,7 +1245,7 @@ function attendance28(rec, days) {
             )}
 
             {view === 'weightroom' && (
-              <WeightRoomTab rows={rows} loads={bhbcLoads} medical={medical} today={today} onOpen={setDetailFor} />
+              <WeightRoomTab rows={rows} loads={bhbcLoads} medical={medical} fixtures={bhbcFixtures} planOf={planOf} today={today} onOpen={setDetailFor} />
             )}
 
             {view === 'schedule' && (
@@ -2986,7 +2986,7 @@ function TeamSnapshotCard({ team }) {
 // it, longest gap first).
 //
 // Nothing here invents data. No lift logged means no bar - not a zero.
-function WeightRoomTab({ rows = [], loads = {}, medical = {}, today, onOpen }) {
+function WeightRoomTab({ rows = [], loads = {}, medical = {}, fixtures = [], planOf, today, onOpen }) {
   const tr = useT();
   const he = useHe();
   const [monthOff, setMonthOff] = useState(0);          // 0 = this month, -1 = last
@@ -3045,6 +3045,15 @@ function WeightRoomTab({ rows = [], loads = {}, medical = {}, today, onOpen }) {
   const TINT = { 1: 'transparent', 2: 'rgba(224,167,58,0.18)', 3: 'rgba(79,157,224,0.18)', 4: 'rgba(222,78,59,0.20)', 5: 'rgba(124,130,139,0.20)' };
   const ink = (since) => (since == null || since >= 7 ? '#DE4E3B' : since >= 4 ? 'var(--bhbc-amber-text, #E0A73A)' : '#37B27C');
   const CELL = 22;
+  // The weight-room sessions inside the month on screen, newest first, with
+  // whatever was written for them. `type` is lowercase on a fixture.
+  const roomDays = useMemo(() => days.list.map((d, i) => {
+    const lifters = per.filter((p) => p.cells[i] && p.cells[i].lift);
+    if (!lifters.length) return null;
+    const fx = (fixtures || []).find((x) => x && x.type === 'lift' && x.date === d.iso);
+    const mins = lifters.reduce((a, p) => a + (p.cells[i].mins || 0), 0);
+    return { iso: d.iso, n: lifters.length, mins, plan: fx && planOf ? planOf(fx) : null };
+  }).filter(Boolean).reverse(), [days, per, fixtures, planOf]);
 
   return (
     <>
@@ -3128,6 +3137,22 @@ function WeightRoomTab({ rows = [], loads = {}, medical = {}, today, onOpen }) {
             </span>
           ))}
         </div>
+        {!!roomDays.length && (
+          <div style={{ borderTop: `1px solid ${C.cardBd}` }}>
+            <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm, padding: '10px 14px 4px' }}>{tr('What the room did')}</div>
+            {roomDays.map(({ iso, n, mins, plan }) => (
+              <div key={iso} style={{ display: 'flex', alignItems: 'baseline', gap: 10, padding: '5px 14px', flexWrap: 'wrap' }}>
+                <span style={{ fontFamily: FN, fontSize: 10.5, fontWeight: 700, color: C.tx, minWidth: 74, whiteSpace: 'nowrap' }}>{dow(iso)} {monDay(iso)}</span>
+                <span style={{ fontFamily: FN, fontSize: 10, color: C.tm, whiteSpace: 'nowrap' }}>{n} {tr('lifted')}{mins ? ` \u00B7 ${mins} ${tr('min')}` : ''}</span>
+                <span style={{ fontFamily: FB, fontSize: 12, color: (plan && (plan.focus || plan.plan)) ? C.td : C.cardBd, minWidth: 0 }}>
+                  {plan && plan.focus ? <b style={{ color: C.tx }}>{plan.focus}</b> : null}
+                  {plan && plan.focus && plan.plan ? ' \u2014 ' : ''}
+                  {plan && plan.plan ? plan.plan : (plan && plan.focus ? '' : tr('nothing written'))}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </Card>
 
     </>

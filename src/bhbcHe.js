@@ -503,6 +503,11 @@ Object.assign(HE, {
   'Low volume & high intensity': 'נפח נמוך ועצימות גבוהה',
   'High volume & high intensity': 'נפח גבוה ועצימות גבוהה',
 
+  'What the room did': 'מה עשו בחדר כוח',
+  'nothing written': 'לא נרשם כלום',
+
+  lifted: 'התאמנו',
+
   PRE_SEASON: 'טרום עונה',
 });
 
