@@ -1,16 +1,10 @@
 {
-  "checkedLines": 619,
-  "verified": 170,
-  "attributed": 206,
-  "structure": 238,
-  "judgement": 5,
-  "atoms": 249,
+  "checkedLines": 65,
+  "verified": 19,
+  "attributed": 20,
+  "structure": 26,
+  "judgement": 0,
+  "atoms": 41,
   "fails": [],
-  "judgementLines": [
-    "53: Israeli-direct. Wants deliverables, not menus of options. Push back when the",
-    "180: --force-with-lease`, then re-run step 4. Reverting my own un-approved deploy",
-    "664: `audit-out\\pairs\\portal-he-live.png`. The existing code converts them with",
-    "780: - The weight-room grid stretches its columns; it tightens as the month fills.",
-    "868: order: the athlete-facing section on the local host, then aligning the pairs s"
-  ]
+  "judgementLines": []
 }

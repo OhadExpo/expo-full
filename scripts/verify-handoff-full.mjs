@@ -69,7 +69,8 @@ const SEATS = ['ohadyproductions@gmail.com', 'tomerlich11@gmail.com', 'diego@die
 const LOG = git('log --format=%B master..HEAD');
 const ALL_CSV = ['August', 'September', 'October', 'January', 'February']
   .map((m) => (fs.existsSync(`audit-out/bhbc-sheet/${m}.csv`) ? fs.readFileSync(`audit-out/bhbc-sheet/${m}.csv`, 'utf8') : '')).join('\n');
-const LEDGER = doc.slice(doc.indexOf('## 14 ·'), doc.indexOf('## 15 ·'));
+const MASTER = fs.readFileSync('docs/HANDOFF-2026-09-06.md', 'utf8');
+const LEDGER = MASTER.slice(MASTER.indexOf('## 14 ·'), MASTER.indexOf('## 15 ·'));
 
 // ---------------------------------------------------------------- atom rules
 // Each rule: find atoms on a line, and say whether each one is true.
@@ -153,7 +154,8 @@ const RULES = [
   {
     what: 'section cross-reference',
     find: (l) => [...l.matchAll(/§ ?([0-9]{1,2})\b/g)].map((m) => m[1]),
-    ok: (a) => new RegExp('^## ' + a + ' ·', 'm').test(doc),
+    // §N in a lens file refers to the MASTER's sections, not its own.
+    ok: (a) => new RegExp('^## ' + a + ' ·', 'm').test(doc) || new RegExp('^## ' + a + ' ·', 'm').test(MASTER),
   },
   {
     what: 'seat email',
@@ -230,7 +232,7 @@ const RULES = [
         const dir = a.slice(0, a.lastIndexOf('/'));
         return fs.existsSync(dir) && fs.readdirSync(dir).length >= 2;
       }
-      if (a.endsWith('verify-') || a.includes('*')) {
+      if (a.endsWith('-') || a.endsWith('verify-') || a.includes('*')) {
         const dir = a.slice(0, a.lastIndexOf('/'));
         const stem = a.slice(a.lastIndexOf('/') + 1).replace('*', '');
         return fs.existsSync(dir) && fs.readdirSync(dir).some((x) => x.startsWith(stem));
