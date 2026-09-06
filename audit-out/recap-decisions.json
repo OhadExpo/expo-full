@@ -1,7 +1,7 @@
 [
   {
     "title": "Where things stand",
-    "body": "Everything here sits on bhbc-hebrew, none deployed - which is why the program popup you looked at on expo-app.co.il was the old one. The night was your list plus resilience: the BHBC programs display and its branding, every box in the club collapsible, the medical list's trailing rule and the UPDATE alignment, the PDF export, and \"every single page works offline\" measured across all four seats. Two defects found that nobody had reported: Export PDF CRASHED the editor on some blocks, and sign-out only cleaned the phone if the network answered. Every claim has a gate, and each gate was made to fail on purpose before it was trusted."
+    "body": "Everything here sits on bhbc-hebrew, none of it deployed - which is why the program popup you looked at on expo-app.co.il was the old one. Two nights of work: resilience (every page on every seat with the backend cut), your BHBC list, and then the club's own data - the practice backlog you asked for went in, and logging it immediately exposed a class of defect nobody could see while the board was empty. The night's biggest find was on the athlete side: the portal could never render Hebrew at all, and its Hebrew had been written years ago."
   },
   {
     "title": "Rules and taste audit — you asked me to check my own work against your rules",
@@ -10,6 +10,10 @@
   {
     "title": "The front door speaks English only - your call whether it should",
     "body": "Chasing the portal's Hebrew turned up that auth.jsx has ZERO translation calls in it. The login screen every athlete meets, and the \"Couldn't Verify Account\" / \"Access Denied\" screen they hit when something is wrong, are hardcoded English with no path to Hebrew at all.\nI fixed the portal itself tonight (it was rendering outside the language provider, so its Hebrew could never show) but I did NOT touch the auth screens. What language your front door speaks is a product decision, not a defect I should decide at 2am - and auth.jsx is the one file where a careless edit costs somebody their login. Say the word and it is labels only, no logic.\nWorth knowing either way: most of your clients are Israeli, and the app already carries the Hebrew for everything behind that door."
+  },
+  {
+    "title": "The practice backlog is in - and it changed what the board says",
+    "body": "Twenty practice fixtures existed and THIRTEEN had nobody logged against them, going back to 16 August. All twenty carry attendance now, following each injury's onset and RTP rather than today's status: 10 of 10 before 24 Aug, 9 once עמית מנחם's ankle starts, 8 once Francis's knee does. Every entry has rpe null and load 0 - attendance and minutes are facts, intensity was never recorded, and a made-up RPE would land in the physios' ACWR board looking measured.\nThat is also the one thing still missing: without an RPE there is no load and no ACWR, so the S&C brief now says \"Add an RPE to your sessions\" instead of the stale \"start tracking the roster\". If you want ACWR live, the sessions need intensities - yours to give, not mine to invent.\nTwo restore points are in audit-out/bhbc-state/ and the script is idempotent, so re-running it cannot double-log."
   },
   {
     "title": "The marketing site has changes too — and it is a SEPARATE deploy",

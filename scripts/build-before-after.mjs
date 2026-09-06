@@ -158,6 +158,12 @@ const PAIRS = [
     url: PREVIEW + '/coach/bhbc', w: 1500, h: 1000, auth: true, bhbcTab: 'Overview', built: true,
     crop: [150, 230, 1250, 260],
   },
+  // 'portal-hebrew' was defined here and REMOVED. The pair needs a rebuild per
+  // state, and after a rebuild the service worker reloads the page; on the
+  // ATHLETE path that lands both shots on the boot splash - two identical EXPO
+  // logos - however long the shoot waits. A picture that shows nothing is worse
+  // than no picture, and the fix it would illustrate is proven in the commit by
+  // an A/B of the rendered text instead.
   {
     id: 'coach-offline',
     title: 'Coach · 20 seconds of "Loading data..." with no signal',
@@ -183,6 +189,10 @@ async function shoot(job, label) {
   const pg = await b.newPage();
   try {
     if (job.lang) await pg.evaluateOnNewDocument((l) => { try { localStorage.setItem('expo-il-lang', l); } catch (e) {} }, job.lang);
+    // appLang sets the APP's language, which must be in place BEFORE the first
+    // document: App reads it at mount and writes it straight back, so a later
+    // setItem is overwritten by the 'en' it booted with.
+    if (job.appLang) await pg.evaluateOnNewDocument((l) => { try { localStorage.setItem('expo-lang', l); } catch (e) {} }, job.appLang);
     if (job.auth) {
       // authed-page.signIn RETURNS EARLY when a session already exists, so after
       // any athlete-seat run it silently keeps that seat and a "coach" URL
@@ -240,6 +250,17 @@ async function shoot(job, label) {
         && !/^\s*loading/i.test(document.body.innerText.trim()))) break;
     }
     await wait(2500);
+    // A BUILT job has just had its bundle replaced, so the page it lands on may
+    // still be the boot splash while the service worker reloads and the app
+    // hydrates. Both shots of the portal pair came back as the EXPO logo.
+    if (job.built) {
+      for (let k = 0; k < 30; k++) {
+        await wait(1000);
+        const ready = await pg.evaluate(() => !/^\s*$/.test(document.body.innerText || '') && document.body.innerText.length > 200).catch(() => false);
+        if (ready) break;
+      }
+      await wait(3000);
+    }
     await pg.evaluate(() => {
       const x = [...document.querySelectorAll('button,a')].find((e) => /maybe later|dismiss/i.test(e.textContent || ''));
       if (x) x.click();
