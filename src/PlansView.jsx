@@ -741,10 +741,12 @@ function PlanPrintSheet({ plan, athleteName, exercises }) {
   const warmRows = (warm || []).filter(Boolean);
   return (
     <div className="plan-print" aria-hidden="true">
+      {/* The masthead is a printed BLOCK, not a wordmark and a rule: the sheet
+          leaves the coach's hands, and it should be obvious whose it is from
+          across a gym. White mark on EXPO black, cyan hairline under it. */}
       <header className="pp-head">
         <div className="pp-brand">
           <img src="/logos/expo-logo-lg-light.png" alt="EXPO" className="pp-logo" />
-          <span className="pp-brandline" />
         </div>
         <h1 className="pp-title"><bdi>{plan?.name || 'Block'}</bdi></h1>
         <div className="pp-sub">

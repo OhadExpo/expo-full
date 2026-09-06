@@ -916,18 +916,24 @@ html.theme-switching *::after {
   .plan-print * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 
   /* ---- masthead ---- */
-  .plan-print .pp-head { margin: 0 0 15px; }
-  .plan-print .pp-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
-  .plan-print .pp-logo { height: 30px; width: auto; display: block; }
+  .plan-print .pp-head {
+    margin: 0 0 12px; padding: 13px 14px 12px;
+    background: #0E0F12 !important; border-bottom: 3px solid #39BDFF !important;
+  }
+  .plan-print .pp-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
+  /* The mark sits on a white plate. The white-ink file is invisible on the
+     band and a CSS invert is not something to trust a printer with. */
+  .plan-print .pp-logo { height: 22px; width: auto; display: block;
+    background: #fff !important; padding: 5px 8px; }
   .plan-print .pp-brandline { flex: 1; height: 3px; background: #39BDFF !important; }
   .plan-print .pp-title {
     font-size: 24px; font-weight: 800; letter-spacing: 0.005em;
-    margin: 0 0 6px; color: #0E0F12; line-height: 1.12;
+    margin: 0 0 5px; color: #fff !important; line-height: 1.12;
   }
   .plan-print .pp-sub { display: flex; flex-wrap: wrap; gap: 0 7px; font-size: 9.5px;
-    letter-spacing: 0.12em; text-transform: uppercase; color: #4A5263; align-items: baseline; }
+    letter-spacing: 0.12em; text-transform: uppercase; color: #9AA4B2 !important; align-items: baseline; }
   .plan-print .pp-sub > * + *::before { content: '\00b7'; margin-inline-end: 7px; color: #7B8390; }
-  .plan-print .pp-sub .pp-athlete { color: #0E0F12; font-weight: 700; letter-spacing: 0.1em; }
+  .plan-print .pp-sub .pp-athlete { color: #39BDFF !important; font-weight: 700; letter-spacing: 0.1em; }
 
   /* ---- a DAY is a card: cyan strip + white body inside a cyan hairline ---- */
   /* A DAY FILLS ITS PAGE. It is one day per page, and a five-exercise day used
@@ -942,11 +948,11 @@ html.theme-switching *::after {
     border: 1px solid rgba(57,189,255,0.32);
     break-inside: auto;
     display: flex; flex-direction: column;
-    min-height: 266mm;
+    /* A day is as tall as its content. It used to be held open to 266mm. */
   }
   /* The first day shares its page with the masthead, so it gets that height
      back rather than pushing itself onto page two. */
-  .plan-print .pp-day-first { min-height: 232mm; }
+  /* .pp-day-first no longer needs a floor either - nothing is stretched. */
   /* The rows SHARE the page rather than stacking at the top of it. A five-lift
      day left 65% of the sheet blank under a frame, which reads as a truncated
      export; spread down the page it reads as a form, and the space beside each
@@ -961,7 +967,7 @@ html.theme-switching *::after {
      stops it. A ceiling would only risk CLIPPING a lift that carries six cue
      lines - and silently losing a coach's own words on paper is worse than any
      amount of white space. */
-  .plan-print .pp-day-body > .pp-ex { flex: 0 1 auto; min-height: 17mm; }
+  .plan-print .pp-day-body > .pp-ex { flex: 0 1 auto; }
   /* A LONG DAY MUST NOT PUSH ITSELF ONTO A SECOND PAGE. The 17mm floor is
      writing room for a short day; at eleven lifts it would be 187mm of floor
      alone and the card - one day per page, always - would spill. Counting from
@@ -1022,7 +1028,9 @@ html.theme-switching *::after {
   /* ONE WORKOUT DAY PER PAGE. Ohad: "make sure it's one workout day per one
      page." The first block on the sheet keeps the masthead company; every day
      after it starts its own page. */
-  .plan-print .pp-day-break { break-before: page; page-break-before: always; }
+  /* DAYS FLOW. Forcing a page per day printed four sheets for four short
+     days; break-inside on the day itself is what keeps a day whole. */
+  .plan-print .pp-day-break { break-before: auto; page-break-before: auto; margin-top: 9px; }
   .plan-print .pp-day-head {
     display: flex; align-items: center; gap: 9px;
     background: #39BDFF !important; color: #FFFFFF !important;
@@ -1043,12 +1051,15 @@ html.theme-switching *::after {
     /* 8/9 of vertical padding a lift, eight lifts a page: the last 4px a row
        is what put Block #19's Day C on a second sheet. 6/7 reads the same and
        keeps the day whole. */
-    padding: 6px 11px 7px;
+    padding: 5px 11px 6px;
+    display: grid; grid-template-columns: minmax(0, 0.78fr) minmax(0, 1fr);
+    column-gap: 13px; align-items: start;
     border-top: 1px solid rgba(57,189,255,0.22);
     break-inside: avoid; page-break-inside: avoid;
   }
   .plan-print .pp-day .pp-ex:first-of-type { border-top: none; }
-  .plan-print .pp-ex-top { display: flex; align-items: baseline; gap: 9px; }
+  .plan-print .pp-ex-top { grid-column: 1; display: flex; align-items: baseline; gap: 9px; }
+  .plan-print .pp-ex-meta, .plan-print .pp-weeks, .plan-print .pp-load { grid-column: 1; }
   .plan-print .pp-ex-n {
     flex: 0 0 auto; min-width: 14px;
     font-size: 9.5px; font-weight: 700; color: #7B8390;
@@ -1068,6 +1079,7 @@ html.theme-switching *::after {
   .plan-print .pp-ex-meta {
     margin: 4px 0 0 23px; display: flex; flex-wrap: wrap; gap: 3px 14px;
     font-size: 8.5px; letter-spacing: 0.1em; text-transform: uppercase; color: #4A5263;
+    margin-top: 1px; font-size: 8px;
   }
   .plan-print .pp-meta-item { display: inline-flex; align-items: baseline; gap: 4px; }
   .plan-print .pp-meta-k { color: #7B8390; }
@@ -1098,8 +1110,9 @@ html.theme-switching *::after {
      otherwise the rule sat on the left with the text right-aligned away from
      it, which is what it looked like in the first real export. */
   .plan-print .pp-ex-cue {
-    margin: 4px 0 0 23px; padding: 3px 9px;
-    border-inline-start: 2px solid #39BDFF !important;
+    grid-column: 2; grid-row: 1 / span 5; align-self: start;
+    margin: 1px 0 0; padding: 1px 0 1px 9px;
+    border-left: 2px solid #39BDFF !important; border-inline-start: none !important;
   }
   /* TIGHTER ON PAPER, WITHOUT LOSING A WORD. Measured on Block #19: its days
      carry five cue lines a lift, and at 1.5 line-height plus 2px between lines
