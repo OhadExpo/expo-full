@@ -345,6 +345,19 @@ export const HE = {
   Add: 'הוספה',
   'EXPO opens full-screen from your home screen.': 'EXPO נפתחת על כל המסך מהמסך הבית.',
 
+  // ---- athlete portal: the meal log ---------------------------------------
+  // A whole athlete page that had no translator at all. Composed as a coach
+  // talking to one athlete: short, spoken, future-as-imperative.
+  'SNAP A MEAL': 'תצלם ארוחה',
+  'UPLOADING…': 'מעלה…',
+  'ANALYZING…': 'מנתח…',
+  ANALYZE: 'נתח',
+  NEXT: 'הבא',
+  'No meals yet. Snap a photo above and the AI will estimate macros.':
+    'עוד אין ארוחות. תצלם למעלה והמערכת תעריך את המאקרו.',
+  'No meals on this day.': 'אין ארוחות ביום הזה.',
+  'No meals logged yet today.': 'עוד לא נרשמו ארוחות היום.',
+
   // ---- athlete portal: headings and the bodyweight tab -------------------
   SESSION: 'אימון',
   SESSIONS: 'אימונים',

@@ -15,6 +15,7 @@ import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
 import { DEMO_MEALS } from './demoTraineeData';
 import { resolveStoredUrl } from './storageUrl';
+import { useT as useAppT } from './i18n';
 
 const BUCKET = 'meal-photos';
 
@@ -40,6 +41,8 @@ function dayLabel(iso) {
 }
 
 export default function MealLogger({ clientId, page = false, demoMode = false }) {
+  // The meal log is an ATHLETE page and had no translator at all.
+  const tt = useAppT();
   const [photoUrl, setPhotoUrl] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
@@ -296,7 +299,7 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
                   fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em',
                   textAlign: 'center', boxSizing: 'border-box',
                 }}>
-                  <span>SNAP A MEAL</span>
+                  <span>{tt('SNAP A MEAL')}</span>
                 </span>
               </label>
             )}
@@ -305,7 +308,7 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
                 textAlign: 'center', color: C.tm, fontFamily: FN, fontSize: 10,
                 letterSpacing: '0.18em', fontWeight: 700, padding: 28,
                 border: `1px solid ${C.cardBd}`,
-              }}>UPLOADING…</div>
+              }}>{tt('UPLOADING…')}</div>
             )}
             {photoUrl && !macros && !analyzing && (
               <div>
@@ -318,8 +321,8 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
                     outline: 'none', boxSizing: 'border-box', marginBottom: 10,
                   }} />
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <button onClick={() => { setPhotoUrl(null); setHint(''); }} style={btnGhost}>CANCEL</button>
-                  <button onClick={analyze} style={btnAc}>ANALYZE →</button>
+                  <button onClick={() => { setPhotoUrl(null); setHint(''); }} style={btnGhost}>{tt('CANCEL')}</button>
+                  <button onClick={analyze} style={btnAc}>{tt('ANALYZE')} →</button>
                 </div>
               </div>
             )}
@@ -328,7 +331,7 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
                 textAlign: 'center', color: C.ac, fontFamily: FN, fontSize: 11,
                 letterSpacing: '0.18em', fontWeight: 700, padding: 32,
                 border: `1px solid ${C.ac}`,
-              }}>ANALYZING…</div>
+              }}>{tt('ANALYZING…')}</div>
             )}
             {macros && photoUrl && (
               <MacrosReview macros={macros} setMacros={setMacros} photoUrl={photoUrl} onCancel={() => { setMacros(null); setPhotoUrl(null); setHint(''); }} onSave={save} saving={saving} />
@@ -354,8 +357,8 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
               border: `1px solid ${C.cardBd}`,
             }}>
               {isToday
-                ? 'No meals yet. Snap a photo above and the AI will estimate macros.'
-                : 'No meals on this day.'}
+                ? tt('No meals yet. Snap a photo above and the AI will estimate macros.')
+                : tt('No meals on this day.')}
             </div>
           ) : meals.map(m => <MealRow key={m.id} meal={m} page />)}
         </div>
@@ -381,7 +384,7 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
         </span>
         {!isToday ? (
           <button onClick={() => { const d = new Date(day); d.setDate(d.getDate() + 1); setDay(d.toISOString().slice(0, 10)); }}
-            style={navBtn}>NEXT →</button>
+            style={navBtn}>{tt('NEXT')} →</button>
         ) : <span style={{ width: 60 }} />}
       </div>
 
@@ -432,8 +435,8 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
                   outline: 'none', boxSizing: 'border-box', marginBottom: 8,
                 }} />
               <div style={{ display: 'flex', gap: 6 }}>
-                <button onClick={() => { setPhotoUrl(null); setHint(''); }} style={btnGhost}>CANCEL</button>
-                <button onClick={analyze} style={btnAc}>ANALYZE →</button>
+                <button onClick={() => { setPhotoUrl(null); setHint(''); }} style={btnGhost}>{tt('CANCEL')}</button>
+                <button onClick={analyze} style={btnAc}>{tt('ANALYZE')} →</button>
               </div>
             </div>
           )}
@@ -457,7 +460,7 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
       <div style={{ marginTop: 14 }}>
         {meals.length === 0 ? (
           <div style={{ textAlign: 'center', color: C.td, fontSize: 12, padding: 14 }}>
-            {isToday ? 'No meals logged yet today.' : 'No meals on this day.'}
+            {isToday ? tt('No meals logged yet today.') : tt('No meals on this day.')}
           </div>
         ) : meals.map(m => (
           <MealRow key={m.id} meal={m} />
@@ -468,6 +471,7 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
 }
 
 function MacrosReview({ macros, setMacros, photoUrl, onCancel, onSave, saving }) {
+  const tt = useAppT();
   const setField = (k, v) => setMacros({ ...macros, [k]: v });
   return (
     <div>
@@ -496,7 +500,7 @@ function MacrosReview({ macros, setMacros, photoUrl, onCancel, onSave, saving })
         <MacroInput label="F g" value={macros.fat_g} onChange={v => setField('fat_g', v)} />
       </div>
       <div style={{ display: 'flex', gap: 6 }}>
-        <button onClick={onCancel} style={btnGhost}>CANCEL</button>
+        <button onClick={onCancel} style={btnGhost}>{tt('CANCEL')}</button>
         <button onClick={onSave} disabled={saving} style={{ ...btnAc, opacity: saving ? 0.6 : 1, cursor: saving ? 'wait' : 'pointer' }}>{saving ? 'SAVING…' : 'SAVE MEAL'}</button>
       </div>
     </div>
