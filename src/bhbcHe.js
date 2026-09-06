@@ -436,6 +436,17 @@ Object.assign(HE, {
   ', cut frequency last) · 6+ stop & reassess.': ', תדירות אחרונה) · ב-6+ עוצרים ובודקים מחדש.',
   'Saddle anaesthesia · bowel/bladder change · drop foot · unexplained weight loss · night pain unrelated to position — never manage through these.': 'הרדמת אוכף · שינוי בשליטה על סוגרים · צניחת כף רגל · ירידה לא מוסברת במשקל · כאב לילי שלא תלוי בתנוחה — לעולם לא ממשיכים דרך אלה.',
 
+  // ---- the medical row action ------------------------------------------
+  // The chevron turns with the text: it points the way the reader is going.
+  'Update ›': 'עדכון ‹',
+  'record': 'רשומה',
+  'records': 'רשומות',
+  'Update the medical report': 'עדכון הדוח הרפואי',
+  'Report an injury': 'דיווח על פציעה',
+
+  // "Head / Concussion" splits at the slash on a squad card.
+  Head: 'ראש',
+
   PRE_SEASON: 'טרום עונה',
 });
 
