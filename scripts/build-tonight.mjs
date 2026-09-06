@@ -4,6 +4,10 @@
 // undeployed... perfectly viewable and designed perfect for me to judge", and
 // then "show me before and after for every thing".
 //
+// Images are EAGER on purpose: lazy ones never render in a full-page capture,
+// so a screenshot of this page showed empty panes for half of it. It is served
+// from localhost - the bytes are already there.
+//
 // Every pair here is a real screenshot taken from the running app, before the
 // change and after it - not a mock-up, and not a description of a change.
 import fs from 'node:fs';
@@ -11,10 +15,18 @@ import { execSync } from 'node:child_process';
 
 const OUT = 'audit-out/tonight.html';
 const b64 = (p) => { try { return fs.readFileSync(p).toString('base64'); } catch { return null; } };
-const img = (p) => { const d = b64(p); return d ? `<img loading="lazy" alt="" src="data:image/png;base64,${d}">` : '<div class="missing">not captured</div>'; };
+const img = (p) => { const d = b64(p); return d ? `<img alt="" src="data:image/png;base64,${d}">` : '<div class="missing">not captured</div>'; };
 
 const commits = execSync(String.fromCharCode(103,105,116) + " log --format=\"%h|%s\" a4dd642~6..HEAD", { encoding: 'utf8' })
   .trim().split('\n').map((l) => { const [h, ...r] = l.split('|'); return { h, s: r.join('|') }; });
+
+const LIVE = (() => { try { return JSON.parse(fs.readFileSync('audit-out/pairs/pairs.json', 'utf8')); } catch { return []; } })();
+const LIVE_TITLES = {
+  bhbc: ['The club zone, as the coach sees it', 'Weight Room did not exist; the dashboard printed the same facts three and four times over.'],
+  dashboard: ['The EXPO coach dashboard', 'Unchanged by tonight - shown so the gap is the whole gap, not a selection.'],
+  'pt-zone': ['The club zone, from the physio seat', 'The board he actually works on, and the one that was still speaking English.'],
+  portal: ['The athlete portal', 'Dates read Hebrew now; the rest is unchanged.'],
+};
 
 const PAIRS = [
   {
@@ -122,6 +134,21 @@ ${css}
     <a href="http://127.0.0.1:4180/">The BHBC replan →</a>
     <a href="http://127.0.0.1:4179/">The full undeployed list →</a>
   </div>
+  <section>
+    <h2>Live production, beside this branch</h2>
+    <p class="lead">The left column is expo-app.co.il as it stands right now, on the last deployed commit. The right column is this branch, served locally. Same seat, same route, same width, taken minutes apart.</p>
+  </section>
+  ${LIVE.map((p) => `
+  <section id="live-${p.name}">
+    <h2>${(LIVE_TITLES[p.name] || [p.name])[0]}</h2>
+    <p class="lead">${(LIVE_TITLES[p.name] || ['', ''])[1] || ''} <span style="color:var(--tm)">${p.seat} · ${p.route}</span></p>
+    <div class="pair">
+      <figure><figcaption>Live · expo-app.co.il</figcaption><div class="shot">${p.before ? img(p.before.file.split(String.fromCharCode(92)).join('/')) : '<div class="missing">not captured</div>'}</div></figure>
+      <figure class="after"><figcaption>This branch</figcaption><div class="shot">${p.after ? img(p.after.file.split(String.fromCharCode(92)).join('/')) : '<div class="missing">not captured</div>'}</div></figure>
+    </div>
+  </section>`).join('')}
+
+  <section><h2>The changes, one at a time</h2><p class="lead">Each of these is a single decision, with the screen before it and after it.</p></section>
   ${PAIRS.map(section).join('')}
 
   <section>
