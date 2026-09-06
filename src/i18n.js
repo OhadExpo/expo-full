@@ -345,6 +345,16 @@ export const HE = {
   Add: 'הוספה',
   'EXPO opens full-screen from your home screen.': 'EXPO נפתחת על כל המסך מהמסך הבית.',
 
+  // ---- athlete portal: the workout flow ----------------------------------
+  // What an athlete reads mid-session, phone in hand, between sets.
+  'Warm-Up': 'חימום',
+  // 'Check-In' and 'Complete' already exist above with their own wording
+  // ('בדיקה', 'הושלם') and are used elsewhere. One key, one translation - a
+  // second entry would silently win or lose depending on order, which is
+  // exactly what the no-dupe-keys gate exists to stop.
+  'Start Check-In': 'לצ׳ק-אין',
+  'Next Warm-Up': 'החימום הבא',
+
   // ---- athlete portal: messages -------------------------------------------
   // The athlete's MESSAGES tab. COACH/ATHLETE label the two sides of a thread.
   COACH: 'מאמן',

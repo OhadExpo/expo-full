@@ -1526,9 +1526,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       {groups.map((_,i) => <div key={'g'+i} style={{flex:1,height:3,borderRadius:0,background:stepIndex>wuCount+i?C.gn:stepIndex===wuCount+i?C.ac:C.bd}} />)}
     </div>
     <div style={{fontSize: groups[step]?.superset ? 11 : 10, color: groups[step]?.superset ? C.ac : C.td, fontWeight: groups[step]?.superset ? 700 : 400, letterSpacing: groups[step]?.superset ? '0.06em' : 0, fontFamily:FN, marginTop:4, textAlign:'center'}}>
-      {typeof step==='string'&&step.startsWith('wu') ? `Warm-Up ${parseInt(step.slice(2))+1}/${wuCount}` :
-       step==='checkin' ? 'Check-In' :
-       step==='end' ? 'Complete' :
+      {typeof step==='string'&&step.startsWith('wu') ? `${tt('Warm-Up')} ${parseInt(step.slice(2))+1}/${wuCount}` :
+       step==='checkin' ? tt('Check-In') :
+       step==='end' ? tt('Complete') :
        groups[step]?.superset ? `Superset ${groups[step].superset} · Group ${step+1}/${groupCount}` :
        `Exercise ${step+1}/${groupCount}`}
     </div></div>;
@@ -1593,7 +1593,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         <div style={{display:'flex',gap:8}}>
           {!atFirstStep && <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>← Back</button>}
           <button onClick={goNext} style={{flex:2,padding:14,borderRadius:0,border:`1px solid ${C.or}`,background:'transparent',color:C.or,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>
-            {wi === wuCount - 1 ? 'Start Check-In →' : 'Next Warm-Up →'}</button></div>
+            {wi === wuCount - 1 ? `${tt('Start Check-In')} →` : `${tt('Next Warm-Up')} →`}</button></div>
       </div></div>;
   }
 
