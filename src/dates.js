@@ -8,6 +8,22 @@ const MONTH_NAMES = [
   'July', 'August', 'September', 'October', 'November', 'December',
 ];
 
+
+// The month is the only English word left in a date once the app is in
+// Hebrew - an athlete reading Hebrew was shown "August". The ORDER does not
+// change: day, then month, then year, in both languages, which is the rule
+// he set ("day/month/year ... everywhere!!!!!!!"). Only the word turns.
+//
+// The language is read at CALL time, from the same key the app writes, because
+// these are plain functions with no React context to read from.
+const MONTH_NAMES_HE = [
+  'ינואר', 'פברואר', 'מרץ', 'אפריל',
+  'מאי', 'יוני', 'יולי', 'אוגוסט',
+  'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר',
+];
+function isHe() {
+  try { return localStorage.getItem('expo-lang') === 'he'; } catch { return false; }
+}
 // 1 → 1st, 2 → 2nd, 3 → 3rd, 4 → 4th, 11 → 11th (not 11st), 21 → 21st.
 function ordinalSuffix(n) {
   const v = n % 100;
@@ -33,6 +49,7 @@ export function fmtPrettyDate(input, fallback = '—') {
   if (input == null || input === '') return fallback;
   const d = input instanceof Date ? input : new Date(input);
   if (isNaN(d.getTime())) return String(input);
+  if (isHe()) return `${d.getDate()} ב${MONTH_NAMES_HE[d.getMonth()]} ${d.getFullYear()}`;
   return `${ordinal(d.getDate())} of ${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
 }
 
@@ -45,6 +62,7 @@ export function fmtCompactDate(input, fallback = '—') {
   if (input == null || input === '') return fallback;
   const d = input instanceof Date ? input : new Date(input);
   if (isNaN(d.getTime())) return String(input);
+  if (isHe()) return `${d.getDate()} ${MONTH_NAMES_HE[d.getMonth()]} ${d.getFullYear()}`;
   return `${d.getDate()} ${MONTH_ABBR[d.getMonth()]} ${d.getFullYear()}`;
 }
 

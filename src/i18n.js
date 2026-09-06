@@ -389,6 +389,8 @@ export const HE = {
 
   // ---- athlete portal: chrome the athlete sees on every visit ------------
   // Wired up 2026-09-06, when the portal could finally render Hebrew at all.
+  // The arrow points the way the reader is going.
+  'READINESS GRAPH →': 'גרף מוכנות ←',
   'LOG OUT': 'יציאה',
   LEFT: 'נותרו',              // "9 נותרו" - weeks left in the block
   RECORDS: 'שיאים',

@@ -3124,7 +3124,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             feature is discoverable; the trends view carries its own empty state
             until the athlete has logged check-ins. */}
         {/* Small text CTA (no icon, no box) — matches the HISTORY label scale. */}
-        {cw.length > 0 && <button onClick={() => setVw('chk')} style={{background:'transparent',border:'none',color:C.ac,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.16em',padding:0,cursor:'pointer',whiteSpace:'nowrap'}}>READINESS GRAPH →</button>}
+        {cw.length > 0 && <button onClick={() => setVw('chk')} style={{background:'transparent',border:'none',color:C.ac,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.16em',padding:0,cursor:'pointer',whiteSpace:'nowrap'}}>{tt('READINESS GRAPH →')}</button>}
       </div>
       {cw.length === 0 ? <div style={{textAlign:'center',padding:40,color:C.td}}>No workouts yet.</div> :
         // Sort newest-first by date at render time. The DB query returns date
@@ -3184,7 +3184,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               </div>
             );
           })}
-          {w.notes && <div style={{fontSize:11,color:C.tm,marginTop:4,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,padding:6,borderRadius:0,fontFamily:FN}}><span style={{fontSize:9,fontWeight:700,letterSpacing:'0.12em',color:C.ac,marginInlineEnd:6}}>NOTE</span><bdi>{w.notes}</bdi></div>}
+          {w.notes && <div style={{fontSize:11,color:C.tm,marginTop:4,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,padding:6,borderRadius:0,fontFamily:FN}}><span style={{fontSize:9,fontWeight:700,letterSpacing:'0.12em',color:C.ac,marginInlineEnd:6}}>{tt('NOTE')}</span><bdi>{w.notes}</bdi></div>}
         </div>; })}</div></div>;
 
   // MEAL LOG page — full-screen, lazy-loaded.
