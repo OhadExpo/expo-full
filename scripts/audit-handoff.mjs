@@ -5,6 +5,9 @@
 // it 15 times and make sure its actually perfect", then "nothing should ever be
 // lost. alll the details should be handed off to perfection".
 //
+// Seventeen passes. Fifteen were his ask; 16 and 17 exist because an
+// adversarial read found two things fifteen green passes had missed.
+//
 // A handoff is a pile of claims. This re-derives every one it can from disk,
 // git, the database, the sheet CSVs and the live hosts, and prints what does
 // NOT match. It is meant to FAIL loudly - a document nobody checked is worth
@@ -343,6 +346,34 @@ for (const p of named) {
   if (!fs.existsSync(p)) { ghosts++; check(15, `command names a missing script`, false, p); }
 }
 check(15, `${named.length} scripts named in commands all exist`, ghosts === 0, ghosts ? `${ghosts} missing` : 'all present');
+
+
+// ---------------------------------------------------------------- pass 16
+say('');
+say('--- PASS 16 · the document does not contradict itself ---');
+// An adversarial read caught this after fifteen passes were green: §3 said
+// 1,235 commits while §15 still said 1,234, because pass 1 only ever looked
+// at the table in §3. A number stated twice must be stated the same way.
+const commitMentions = [...new Set((unquoted(doc).match(/([0-9],?[0-9]{3}) commits/g) || []))];
+check(16, 'every commit count in the document agrees', commitMentions.length <= 1, commitMentions.join(' vs ') || 'none stated');
+const fileMentions = [...new Set((unquoted(doc).match(/([0-9]{3}) files/g) || []))];
+check(16, 'every file count agrees', fileMentions.length <= 1, fileMentions.join(' vs ') || 'none stated');
+// the two figures the whole replan rests on
+const wordMentions = [...new Set((unquoted(doc).match(/147 (?:Latin words|→|->)/g) || []))];
+check(16, 'the Hebrew before-count is stated consistently', wordMentions.length <= 2, wordMentions.join(' vs '));
+
+// ---------------------------------------------------------------- pass 17
+say('');
+say('--- PASS 17 · the dangerous procedures are written down ---');
+// "Ask before deploying" appeared four times in this file while HOW to deploy
+// appeared zero times. The most dangerous operation in the project had no
+// procedure, and a cold chat told to ship would have improvised it.
+check(17, 'the deploy command is written down', /git push origin bhbc-hebrew:master/.test(doc));
+check(17, 'the rollback target is recorded FIRST', /git rev-parse master/.test(doc));
+check(17, 'a rollback line exists', /force-with-lease/.test(doc));
+check(17, 'deploy is verified, not assumed', /verify-prod-current/.test(doc));
+check(17, 'the debug Chrome can be started from this file', /--remote-debugging-port=9222/.test(doc));
+check(17, 'the snapshot-before-write rule is stated', /snapshot/i.test(doc) && /bhbc-state/.test(doc));
 
 say('```');
 say('');

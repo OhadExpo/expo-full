@@ -24,7 +24,16 @@ const auditFails = () => {
 };
 
 const LIES = [
-  ['1  git facts', () => { save(DOC); fs.writeFileSync(DOC, fs.readFileSync(DOC, 'utf8').replace(/\*\*520 files\*\*/, '**999 files**')); }],
+  // Derive the lie from what the document actually SAYS. A hardcoded "520"
+  // silently stopped planting anything once the real count moved to 531, and
+  // the test then reported the GATE as blind when nothing had been planted.
+  ['1  git facts', () => {
+    save(DOC);
+    const d = fs.readFileSync(DOC, 'utf8');
+    const m = d.match(/\*\*([0-9,]+) files\*\*/);
+    if (!m) throw new Error('no file count in the document to falsify');
+    fs.writeFileSync(DOC, d.replace(m[0], '**999 files**'));
+  }],
   ['2  a path that does not exist', () => { save(DOC); fs.writeFileSync(DOC, fs.readFileSync(DOC, 'utf8') + '\n\nSee `scripts/this-does-not-exist.mjs`.\n'); }],
   ['5  a database number', () => { save(DOC); fs.writeFileSync(DOC, fs.readFileSync(DOC, 'utf8').replace('roster 10 · fixtures 33', 'roster 11 · fixtures 33')); }],
   ['8  a value quoted from his sheet', () => { save(DOC); fs.writeFileSync(DOC, fs.readFileSync(DOC, 'utf8').replace('| August | 24 | 1 |', '| August | 24 | 6 |')); }],
