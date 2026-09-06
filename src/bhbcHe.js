@@ -488,6 +488,15 @@ Object.assign(HE, {
   '7d': '7 ימים',
   '14-day': '14 יום',
 
+  // ---- practice density, his own bands ---------------------------------
+  'contact': 'מגע',
+  'Contact minutes': 'דקות מגע',
+  'Low Intensity': 'עצימות נמוכה',
+  'Moderate Intensity': 'עצימות בינונית',
+  'High Intensity': 'עצימות גבוהה',
+  'Very High Intensity': 'עצימות גבוהה מאוד',
+  'high volume': 'נפח גבוה',
+
   PRE_SEASON: 'טרום עונה',
 });
 

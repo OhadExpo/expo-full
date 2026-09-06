@@ -206,6 +206,21 @@ const AVAIL = {
   5: { label: 'Out · Pers', color: '#7C828B' },
 };
 
+
+const DENSITY_BANDS = [
+  { max: 20, key: 'Low Intensity', color: '#37B27C' },
+  { max: 25, key: 'Moderate Intensity', color: '#4F9DE0' },
+  { max: 30, key: 'High Intensity', color: 'var(--bhbc-amber-text, #E0A73A)' },
+  { max: Infinity, key: 'Very High Intensity', color: '#DE4E3B' },
+];
+const densityOf = (fx) => {
+  const min = Number(fx && fx.minutes) || 0;
+  const con = Number(fx && fx.contactMin) || 0;
+  if (!min || !con) return null;
+  const pct = (con / min) * 100;
+  const band = DENSITY_BANDS.find((b) => pct < b.max) || DENSITY_BANDS[DENSITY_BANDS.length - 1];
+  return { pct, band, highVolume: min > 90 };
+};
 const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const parseISO = (iso) => new Date(String(iso) + 'T00:00:00');
@@ -777,7 +792,7 @@ function attendance28(rec, days) {
   const sameSlot = (a, b) => a && b && a.date === b.date && String(a.start || '') === String(b.start || '') && a.type === b.type;
   const upsertFixture = useCallback((orig, next) => {
     if (!setBhbcFixtures) return;
-    const clean = { date: next.date, type: next.type, start: next.start, minutes: Number(next.minutes) || 0, end: endOfSession(next.start, next.minutes), manual: true };
+    const clean = { date: next.date, type: next.type, start: next.start, minutes: Number(next.minutes) || 0, end: endOfSession(next.start, next.minutes), manual: true, ...(Number(next.contactMin) > 0 ? { contactMin: Number(next.contactMin) } : null) };
     setBhbcFixtures((prev) => {
       const list = [...(prev || [])];
       const i = orig ? list.findIndex((f) => sameSlot(f, orig)) : -1;
@@ -2799,6 +2814,22 @@ function todayFocusOf({ today, fx, planOf }) {
   return { period, focus: (plan && (plan.focus || plan.plan)) || '' };
 }
 
+// Contact minutes and the density they make, in his own bands. Renders
+// nothing at all unless both numbers were entered - a practice with no
+// contact figure is not a 0% practice.
+function DensityBit({ f: fx, size = 11 }) {
+  const tr = useT();
+  const d = densityOf(fx);
+  if (!d) return null;
+  return (
+    <span style={{ fontFamily: FN, fontSize: size, color: C.tm, whiteSpace: 'nowrap' }}>
+      {fx.contactMin} {tr('contact')}{' \u00B7 '}
+      <span style={{ color: d.band.color, fontWeight: 800 }}>{d.pct.toFixed(1)}%</span>{' '}
+      {tr(d.band.key)}
+      {d.highVolume ? ` \u00B7 ${tr('high volume')}` : ''}
+    </span>
+  );
+}
 function TodayPanel({ today, fixtures, fx, rows, onSessions, onLog, planOf, onPlan }) {
   const he = useHe();
   const tr = useT();
@@ -2823,6 +2854,7 @@ function TodayPanel({ today, fixtures, fx, rows, onSessions, onLog, planOf, onPl
           style={{ cursor: clickable ? 'pointer' : 'default', display: 'inline-flex' }}>
           {chip(f, i, showDate)}
         </span>
+        <DensityBit f={f} />
         {pl && (pl.focus || pl.plan) ? (
           <span onClick={clickable ? () => onPlan(f) : undefined} style={{ cursor: clickable ? 'pointer' : 'default', maxWidth: 260, fontFamily: FB, fontSize: 12, color: C.tm, lineHeight: 1.35, whiteSpace: 'normal', overflowWrap: 'break-word' }}>
             {pl.focus ? <b style={{ color: C.tx }}>{pl.focus}</b> : null}{pl.focus && pl.plan ? ' — ' : ''}{pl.plan}
@@ -3462,6 +3494,7 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, planOf }
                 <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: FX_COLOR[f.type] || NAVY, width: 46, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{f.start}</span>
                 <span style={{ color: C.tm, flexShrink: 1, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word' }}>
                   {fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')}{f.minutes ? ` · ${f.minutes} ${fxLabelFor('__min', 'min')}` : ''}
+                  {densityOf(f) ? <>{' · '}<DensityBit f={f} /></> : null}
                 </span>
                 <div style={{ flex: 1 }} />
                 {/* The two numbers a head coach actually asks for. */}
@@ -3547,6 +3580,7 @@ function WeekPlanner({ fixtures = [], today, planOf, onSavePlan, onUpsert, onRem
   const startEdit = (date, f) => setEditing({
     orig: f || null, date, type: (f && f.type) || 'lift',
     start: (f && f.start) || '', minutes: (f && f.minutes) || (f && f.type === 'game' ? 90 : 60),
+    contactMin: (f && f.contactMin) || '',
     focus: (f && planOf && (planOf(f) || {}).focus) || '',
   });
   const commit = () => {
@@ -3636,6 +3670,12 @@ function WeekPlanner({ fixtures = [], today, planOf, onSavePlan, onUpsert, onRem
                     </div>
                     <input type="time" value={editing.start} onChange={(e) => setEditing((x) => ({ ...x, start: e.target.value }))} style={{ ...inp, width: 108 }} />
                     <input type="number" min="0" step="5" value={editing.minutes} onChange={(e) => setEditing((x) => ({ ...x, minutes: e.target.value }))} style={{ ...inp, width: 74 }} title="Minutes" />
+                    {/* Contact minutes INSIDE those minutes. Optional: the density
+                        appears once both numbers exist and stays quiet otherwise. */}
+                    {editing.type !== 'lift' && (
+                      <input type="number" min="0" step="1" value={editing.contactMin} onChange={(e) => setEditing((x) => ({ ...x, contactMin: e.target.value }))}
+                        style={{ ...inp, width: 74 }} title={tr('Contact minutes')} placeholder={tr('contact')} />
+                    )}
                     <input value={editing.focus} onChange={(e) => setEditing((x) => ({ ...x, focus: e.target.value }))} placeholder="Focus — e.g. Lower INT + landing mechanics" style={{ ...inp, flex: '1 1 220px', minWidth: 140, fontFamily: FB }} />
                     <Btn onClick={commit} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>{editing.orig ? 'Save' : 'Add'}</Btn>
                     <Btn variant="ghost" onClick={() => setEditing(null)}>Cancel</Btn>
