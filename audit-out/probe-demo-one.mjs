@@ -1,0 +1,15 @@
+import P from 'puppeteer-core';
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const b=await P.connect({browserURL:'http://127.0.0.1:9222',defaultViewport:null,protocolTimeout:300000});
+const pg=await b.newPage();
+if(process.env.SETLANG)await pg.evaluateOnNewDocument((l)=>{try{localStorage.setItem('expo-lang',l);}catch(e){}},process.env.SETLANG);
+const errs=[];pg.on('pageerror',e=>errs.push(String(e.message).slice(0,160)));
+pg.on('console',m=>{if(m.type()==='error')errs.push('console: '+m.text().slice(0,160));});
+await pg.goto('http://127.0.0.1:4173/demo/athlete',{waitUntil:'domcontentloaded'});
+await wait(12000);
+const t=await pg.evaluate(()=>({txt:(document.body.innerText||'').slice(0,200),html:document.body.innerHTML.length,root:(document.querySelector('#root')||{}).innerHTML?document.querySelector('#root').innerHTML.slice(0,200):'(no #root content)'}));
+console.log('TEXT:',JSON.stringify(t.txt));
+console.log('body html len:',t.html);
+console.log('root:',JSON.stringify(t.root));
+console.log('errors:');for(const e of [...new Set(errs)].slice(0,6))console.log('  '+e);
+await pg.close();b.disconnect();
