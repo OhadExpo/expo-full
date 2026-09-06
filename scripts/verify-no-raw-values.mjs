@@ -52,6 +52,12 @@ const ROUTES = process.argv.length > 2 ? process.argv.slice(2)
 const problems = [];
 const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
 const pg = await b.newPage();
+// LANG_APP=he walks the app in Hebrew. Set BEFORE the first document: App reads
+// the language at mount and writes it straight back, so a later setItem loses.
+// Worth a separate run - a broken interpolation can be language-specific.
+if (process.env.LANG_APP) {
+  await pg.evaluateOnNewDocument((l) => { try { localStorage.setItem('expo-lang', l); } catch (e) { /* ignore */ } }, process.env.LANG_APP);
+}
 let pageErr = null;
 pg.on('pageerror', (e) => { pageErr = String(e.message).slice(0, 110); });
 
