@@ -345,6 +345,16 @@ export const HE = {
   Add: 'הוספה',
   'EXPO opens full-screen from your home screen.': 'EXPO נפתחת על כל המסך מהמסך הבית.',
 
+  // ---- athlete portal: messages -------------------------------------------
+  // The athlete's MESSAGES tab. COACH/ATHLETE label the two sides of a thread.
+  COACH: 'מאמן',
+  ATHLETE: 'מתאמן',
+  'No messages yet.': 'עוד אין הודעות.',
+  'Your coach will message you here.': 'המאמן ישלח לך הודעות כאן.',
+  'Drop a voice note or a quick check-in below.': 'תשאיר הודעה קולית או שורה למטה.',
+  'Reply to your coach…': 'תענה למאמן…',
+  'Type a note to your athlete…': 'תכתוב למתאמן…',
+
   // ---- athlete portal: the meal log ---------------------------------------
   // A whole athlete page that had no translator at all. Composed as a coach
   // talking to one athlete: short, spoken, future-as-imperative.

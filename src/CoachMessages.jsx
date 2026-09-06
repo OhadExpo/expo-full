@@ -15,6 +15,7 @@ import { supabase, SUPA_URL, SUPA_PUBLISHABLE_KEY } from './supabase';
 import { isRefined5b, RefinedHeaderStrip, toast, usePersistentState } from './ui';
 import { sendPush, isCoachMutedForAthlete } from './push';
 import { DEMO_MESSAGES } from './demoTraineeData';
+import { useT as useAppT } from './i18n';
 import { resolveStoredUrl } from './storageUrl';
 
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
@@ -208,6 +209,7 @@ async function uploadVoiceNote(blob, traineeId) {
 // Compose row — text input + record/stop + send. Pure UI; parent owns
 // the POST to coach_messages.
 function Composer({ onSend, role, draftKey }) {
+  const tt = useAppT();
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const sendingRef = useRef(false); // synchronous guard — `sending` state lags a fast double-tap (adversarial-QA #6: dup message + dup push)
@@ -241,7 +243,7 @@ function Composer({ onSend, role, draftKey }) {
     <div style={{ marginTop: 10, borderTop: `1px solid var(--c-cardBd)`, paddingTop: 10 }}>
       <textarea
         value={text} onChange={e => setText(e.target.value)} dir="auto"
-        placeholder={role === 'coach' ? 'Type a note to your athlete…' : 'Reply to your coach…'}
+        placeholder={role === 'coach' ? tt('Type a note to your athlete…') : tt('Reply to your coach…')}
         rows={2}
         style={{
           width: '100%', background: 'var(--c-sf)', border: `1px solid var(--c-cardBd)`, borderRadius: 0,
@@ -290,6 +292,7 @@ function recBtnStyle(color, active = false) {
 }
 
 function MessageBubble({ msg, viewerRole }) {
+  const tt = useAppT();
   const heb = isHebrew(msg.body_text);
   const self = msg.sender_role === viewerRole;
   const align = self ? 'flex-end' : 'flex-start';
@@ -302,7 +305,7 @@ function MessageBubble({ msg, viewerRole }) {
         padding: '8px 10px',
       }}>
         <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.08em', marginBottom: 4 }}>
-          {msg.sender_role === 'coach' ? 'COACH' : 'ATHLETE'} · {fmt(msg.created_at)}
+          {tt(msg.sender_role === 'coach' ? 'COACH' : 'ATHLETE')} · {fmt(msg.created_at)}
         </div>
         {msg.audio_url && <VoiceNote url={msg.audio_url} spaced={!!msg.body_text} />}
         {msg.body_text && (
@@ -317,6 +320,7 @@ function MessageBubble({ msg, viewerRole }) {
 }
 
 export default function CoachMessages({ traineeId, role = 'coach', recipientEmail, senderLabel, demoMode = false }) {
+  const tt = useAppT();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   // Collapsible — the cyan strip is the toggle. Persisted per trainee+role.
@@ -438,7 +442,7 @@ export default function CoachMessages({ traineeId, role = 'coach', recipientEmai
         <div style={{ padding: 20, textAlign: 'center', color: 'var(--c-td)', fontSize: 13 }}>Loading…</div>
       ) : rows.length === 0 ? (
         <div style={{ padding: 14, textAlign: 'center', color: 'var(--c-td)', fontSize: 13 }}>
-          No messages yet. {role === 'coach' ? 'Drop a voice note or a quick check-in below.' : 'Your coach will message you here.'}
+          {tt('No messages yet.')} {role === 'coach' ? tt('Drop a voice note or a quick check-in below.') : tt('Your coach will message you here.')}
         </div>
       ) : (
         <div style={{ maxHeight: 360, overflowY: 'auto', paddingRight: 4 }}>
