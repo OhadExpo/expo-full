@@ -1228,13 +1228,13 @@ function attendance28(rec, days) {
                   onReportNew={effCanMedical ? (() => setInjuryFor({ athleteId: (rows[0] && rows[0].t.id) || '' })) : null}
                   /* The staff brief is this report now: its COPY moved into the
                      header and its FOCUS became a row. */
+                  onSessions={asCoach ? null : () => setView('sessions')} onLog={canLog ? () => setPracticeOpen(true) : null}
                   copied={briefCopied}
                   onCopy={() => {
                     const txt = staffBriefText({ today, fx, rows, medical, planOf, he, tr });
                     try { navigator.clipboard.writeText(txt); } catch { /* denied - it is all on screen anyway */ }
                     setBriefCopied(true); setTimeout(() => setBriefCopied(false), 1800);
                   }} />
-                <TodayPanel today={today} fixtures={bhbcFixtures} fx={fx} rows={rows} planOf={planOf} onPlan={asCoach ? null : setPlanFor} onSessions={asCoach ? null : () => setView('sessions')} onLog={canLog ? () => setPracticeOpen(true) : null} />
                 <FixturesAheadPanel fixtures={bhbcFixtures} today={today} />
                 {/* Three of its four numbers need an sRPE per session. Until one is
                     logged this card is four dashes, printed every morning. */}
@@ -2572,7 +2572,7 @@ function ProgramModal({ athleteName, plans, exercises, currentWeek = 1, onClose 
   );
 }
 
-function HeadCoachReport({ rows, fx, fixtures, medical, today, onOpen, onMedical, onReportNew, planOf, onPlan, onCopy, copied }) {
+function HeadCoachReport({ rows, fx, fixtures, medical, today, onOpen, onMedical, onReportNew, planOf, onPlan, onCopy, copied, onSessions, onLog }) {
   const he = useHe();
   const tr = useT();
   // SURNAME, not given name (Ohad 09-01): the report read "OUT: DAESHON,
@@ -2629,7 +2629,7 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
     </div>
   );
   return (
-    <Card padding={14} leftStripe={NAVY} header={secTitle('Head Coach Report')} headerRight={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>{onCopy && <button onClick={onCopy} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', height: 24, boxSizing: 'border-box', padding: '0 10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, cursor: 'pointer', borderRadius: 0 }}>{copied ? tr('Copied') : tr('Copy')}</button>}<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>{dow(today)} {monDay(today)}</span></span>}>
+    <Card padding={14} leftStripe={NAVY} header={secTitle(`Today · ${dow(today)} ${monDay(today)}`)} headerRight={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>{onCopy && <button onClick={onCopy} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', height: 24, boxSizing: 'border-box', padding: '0 10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, cursor: 'pointer', borderRadius: 0 }}>{copied ? tr('Copied') : tr('Copy')}</button>}<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>{dow(today)} {monDay(today)}</span></span>}>
       {/* NEXT GAME */}
       <Section label={tr("Next game")} first>
         {nextGame
@@ -2674,6 +2674,13 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
         );
       })()}
       {/* AVAILABILITY */}
+      {/* WHAT IS ON TODAY. It was a card of its own directly below this one,
+          repeating the game and the availability counts that are already
+          here. Rendered bare, it keeps its chips, its focus and Start
+          session, and loses the second copy of everything else. */}
+      <Section label={tr("Today")}>
+        <TodayPanel bare today={today} fixtures={fixtures} fx={fx} rows={rows} planOf={planOf} onPlan={onPlan} onSessions={onSessions} onLog={onLog} />
+      </Section>
       <Section label={tr("Availability")} list>
         <span><span style={{ color: '#37B27C', fontFamily: FN, fontWeight: 800 }}>{available.length}</span> {tr('available')} <span style={mut}>·</span> <span style={{ color: limited.length ? 'var(--bhbc-amber-text, #E0A73A)' : C.tm, fontFamily: FN, fontWeight: 800 }}>{limited.length}</span> {tr('limited')} <span style={mut}>·</span> <span style={{ color: out.length ? '#DE4E3B' : C.tm, fontFamily: FN, fontWeight: 800 }}>{out.length}</span> {tr('out')}</span>
         {(out.length > 0 || limited.length > 0) && <div style={{ marginTop: 3, color: C.tm, fontSize: 12 }}>{out.length ? `${tr('out')}: ${nameList(out)}. ` : ''}{limited.length ? `${tr('limited')}: ${nameList(limited)}.` : ''}</div>}
@@ -2838,7 +2845,7 @@ function DensityBit({ f: fx, size = 11 }) {
     </span>
   );
 }
-function TodayPanel({ today, fixtures, fx, rows, onSessions, onLog, planOf, onPlan }) {
+function TodayPanel({ today, fixtures, fx, rows, onSessions, onLog, planOf, onPlan, bare = false }) {
   const he = useHe();
   const tr = useT();
   const todayFx = (fixtures || []).filter((f) => f.date === today).slice().sort((a, b) => a.start.localeCompare(b.start));
@@ -2884,8 +2891,8 @@ function TodayPanel({ today, fixtures, fx, rows, onSessions, onLog, planOf, onPl
   const mdToday = fx.nextGame ? -dayDiff(fx.nextGame.date, today) : null;
   const focus = mdToday != null ? mdPlan(mdToday) : null;
   const focusC = focus ? (focus.game ? ORANGE : focus.load >= 5 ? ORANGE_DEEP : focus.load >= 3 ? NAVY : '#6B7280') : NAVY;
-  return (
-    <Card padding={14} leftStripe={ORANGE} header={secTitle(`Today's sessions · ${dow(today)} ${monDay(today)}`)} headerRight={gdLabel ? <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff' }}>{gdLabel}</span> : null}>
+  const inner = (
+    <>
       {focus && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, paddingBottom: 14, borderBottom: `1px solid ${C.cardBd}`, flexWrap: 'wrap' }}>
           <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm }}>{tr('Today’s focus')}</span>
@@ -2916,6 +2923,13 @@ function TodayPanel({ today, fixtures, fx, rows, onSessions, onLog, planOf, onPl
           </div>
         )}
       </div>
+    </>
+  );
+  if (bare) return inner;
+  return (
+    <Card padding={14} leftStripe={ORANGE} header={secTitle(`Today's sessions · ${dow(today)} ${monDay(today)}`)}
+      headerRight={gdLabel ? <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: C.tm }}>{gdLabel}</span> : null}>
+      {inner}
     </Card>
   );
 }
