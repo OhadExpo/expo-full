@@ -62,6 +62,12 @@ Last verified against code: 2026-09-04 — `scripts/check-surfaces.mjs` found al
 | `/coach/billing` | billing | `BillingView` | ✅ pass1 |
 | `/coach/bhbc` | bhbc | `BhbcView` (Bnei Herzliya S&C zone) | 🆕 2026-08-15 (Athletes▾→BHBC; staff-gated separate zone, no EXPO nav) |
 
+The zone has its own tab strip inside that one route: **Overview · Roster ·
+Schedule · Weight Room · Medical · Sessions · Games**. Weight Room is new
+(2026-09-06): the month grid of athletes × days, the restriction tint and the
+logged lift in one cell, who is due, and what the room did each day. A sweep of
+this route must click every tab - they are not routes.
+
 Staff (Yuval) coach sees only `STAFF_TABS` — verify gating when touching nav/RLS.
 
 ### Athlete portal (auth, `/athlete/*`) — `ClientPortal`
