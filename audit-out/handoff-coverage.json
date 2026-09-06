@@ -1,10 +1,17 @@
 {
-  "checkedLines": 65,
-  "verified": 19,
-  "attributed": 20,
-  "structure": 26,
-  "judgement": 0,
-  "atoms": 41,
+  "checkedLines": 780,
+  "verified": 221,
+  "attributed": 274,
+  "structure": 279,
+  "judgement": 6,
+  "atoms": 330,
   "fails": [],
-  "judgementLines": []
+  "judgementLines": [
+    "72: Israeli-direct. Wants deliverables, not menus of options. Push back when the",
+    "185: | `origin/bhbc-hebrew` | **does not exist** — this work has no off-machine cop",
+    "406: mid-session words, the warm-up flow, `READINESS GRAPH →` and `NOTE` — the",
+    "799: `audit-out\\pairs\\portal-he-live.png`. The existing code converts them with",
+    "952: - The weight-room grid stretches its columns; it tightens as the month fills.",
+    "1061: order: the athlete-facing section on the local host, then aligning the pairs s"
+  ]
 }

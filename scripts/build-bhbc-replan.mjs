@@ -180,7 +180,7 @@ ${shot('audit-out/overview-now.png', 'The Overview as it stands tonight — seve
 <div class="card">
 <table>
 <tr><th>Tab</th><th>Change</th><th>Why</th></tr>
-<tr><td>Overview</td><td class="add">done · 7 cards → 4</td><td>every fact once; nothing empty on screen</td></tr>
+<tr><td>Overview</td><td class="add">done · 7 cards → 3</td><td>every fact once; nothing empty on screen</td></tr>
 <tr><td>Roster</td><td class="keep">unchanged</td><td>it is the people list and it works</td></tr>
 <tr><td>Weight Room</td><td class="add">done · new tab</td><td>your grid: athletes × days, lift + restriction in one cell, due list under it</td></tr>
 <tr><td>Schedule</td><td class="add">done · contact minutes → density + Q1–Q4</td><td>unlocks density % and the intensity band — the number your sheet is built on</td></tr>

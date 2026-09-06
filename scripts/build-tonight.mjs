@@ -32,10 +32,10 @@ const PAIRS = [
   {
     id: 'dash',
     title: 'The BHBC dashboard',
-    lead: 'Seven cards became four. The next game was printed three times, availability three times, medical four. Four of the seven columns in the main table had never held a value.',
-    facts: [['cards', '7 → 4'], ['height', '~2,150px → ~1,540px'], ['empty columns', '4 → 0']],
+    lead: 'Seven cards became three. The next game was printed three times, availability three times, medical four. Four of the seven columns in the main table had never held a value.',
+    facts: [['cards', '7 → 3'], ['height', '~2,150px → ~1,505px'], ['empty columns', '4 → 0']],
     before: 'audit-out/overview-now.png',
-    after: 'audit-out/overview-after2.png',
+    after: 'audit-out/overview-after3.png',
     note: 'ACWR, the 7-day figure, the 14-day spark and readiness need an sRPE and a wellness check-in this club does not collect. They come back the moment one session carries an RPE. In their place: LAST LIFT, which is never blank.',
   },
   {
