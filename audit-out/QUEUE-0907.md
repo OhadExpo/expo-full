@@ -35,3 +35,6 @@ leftovers, undone things, half-done things, and finish everything." No deploy.
 ## D · Before stopping (§15.5b)
 
 - [ ] gates for what was touched, after a rebuild · update §3/§15 of the handoff · memory file + MEMORY.md line (<24KB) · commit named paths · `git push origin bhbc-hebrew` · `git rev-list --count origin/bhbc-hebrew..HEAD` = 0
+RESTORE POINT (pre-perf-fixes): b1f93ab6f04fa84e842c58049f278312374c8a43
+
+- [x] E3  "make sure you're not interferring with the google pay chrome chats ... another claude is dealing with it" — all my probes moved to a PRIVATE Chrome (port 9223, own profile dir, headless); never kill/restart/resize the shared 9222 Chrome again this session. (Earlier this session I restarted 9222 once at start — it was DOWN at that moment, nothing was running in it.)

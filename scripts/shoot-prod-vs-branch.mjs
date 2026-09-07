@@ -28,7 +28,7 @@ const SEATS = {
 const JOBS = (process.env.JOBS || 'owner:/coach/bhbc:bhbc,owner:/coach:dashboard,pt:/coach/bhbc:pt-zone,athlete:/athlete:portal')
   .split(',').map((x) => { const [seat, route, name] = x.split(':'); return { seat, route, name }; });
 
-const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
+const b = await P.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: null, protocolTimeout: 300000 });
 
 const shoot = async (base, job, tag) => {
   const pg = await b.newPage();

@@ -2,7 +2,7 @@
 //   node audit-out/verify-pair-scroll.mjs [url]
 import P from 'puppeteer-core';
 const URL = process.argv[2] || 'http://127.0.0.1:4181/';
-const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null });
+const b = await P.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: null });
 const pg = await b.newPage();
 await pg.goto(URL, { waitUntil: 'load', timeout: 120000 });
 await new Promise((r) => setTimeout(r, 2500));
