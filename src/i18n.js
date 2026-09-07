@@ -431,6 +431,7 @@ export const HE = {
   // The cue expander under an exercise on the program tab.
   '▼ MORE': '▼ עוד',
   '▲ LESS': '▲ פחות',
+  EX: 'תרגילים',
   "DEMO · ATHLETE PORTAL · CHANGES DON'T PERSIST": 'דמו · פורטל המתאמן · שינויים לא נשמרים',
   "Search…": 'חיפוש…',
   "Add a task…": 'הוסף משימה…',

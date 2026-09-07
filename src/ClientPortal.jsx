@@ -3558,7 +3558,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             accent: C.ac,
             borderColor: doneBorderColor,
             title: day.name,
-            count: `${day.ex.length} EX`,
+            count: `${day.ex.length} ${tt('EX')}`,
             extras: <>
               {done && <span title="Completed this week" style={{display:'inline-flex',alignItems:'center',justifyContent:'center',lineHeight:1,padding:'5px 10px',border:`1px solid ${C.gn}`,color:C.gn,fontFamily:FN,fontSize:12,fontWeight:700,flexShrink:0}}>✓</span>}
               {isDailyRoutine && dailyCount > 0 && <span style={{display:'inline-flex',alignItems:'center',lineHeight:1,padding:'3px 7px',border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:8,fontWeight:700,letterSpacing:'0.18em'}}>{dailyCount} LOGGED</span>}
