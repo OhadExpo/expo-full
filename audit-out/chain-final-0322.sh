@@ -20,7 +20,7 @@ LANG_APP=he W=1400 MANIFEST=pairs-rt.json JOBS="owner:/coach/review-tools:review
 LANG_APP=he W=1400 MANIFEST=pairs-small.json JOBS="owner:/coach:dashboard-he,owner:/coach/sessions:sessions-he,owner:/coach/bugs:bugs-he,owner:/coach/smart-import:smart-import-he,owner:/coach/calendar:calendar-he,owner:/coach/intake:intake-he" run node scripts/shoot-prod-vs-branch.mjs
 LANG_APP=he W=1400 MANIFEST=pairs-small2.json JOBS="owner:/coach/waitlist:waitlist-he,owner:/coach/workouts:workouts-he,owner:/coach/review:review-he" run node scripts/shoot-prod-vs-branch.mjs
 LANG_APP=he W=430 MANIFEST=pairs-demo.json JOBS="athlete:/demo/athlete:demo-athlete-he" run node scripts/shoot-prod-vs-branch.mjs
-LANG_APP=he W=1400 MANIFEST=pairs-editor.json JOBS="owner:/coach/programs:program-he:^Block #19" run node scripts/shoot-prod-vs-branch.mjs
+LANG_APP=he W=1400 MANIFEST=pairs-editor.json JOBS="owner:/coach/programs:program-he:^Block #19,owner:/coach/athletes:athlete-form-he:^(EDIT|עריכה)$,owner:/coach/athletes:athlete-detail-he:^אוהד$" run node scripts/shoot-prod-vs-branch.mjs
 
 echo; echo "=== PAGES"
 run node scripts/build-tonight.mjs

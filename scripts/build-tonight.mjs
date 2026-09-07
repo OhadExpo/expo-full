@@ -45,6 +45,8 @@ const HE_TITLES = {
   'review-he': ['The review page, in Hebrew', 'Compare with…, WORKOUT, SETS DONE, READINESS CHECK-IN and the two empty states.'],
   'demo-athlete-he': ['The public demo of the athlete portal, in Hebrew, on a phone', 'What a prospect from the Hebrew marketing site meets. Production renders the demo above the language provider, so it is English whatever the reader chose; this branch follows the language, and a link can carry it (?lang=he).'],
   'program-he': ['The program editor, in Hebrew', 'The route sweep only ever listed programs; opening one showed the coach’s main tool half in English. Back, more, overview, the three fields, pattern coverage, every column header, the picker, the library buttons: 609 Latin words became 312, and the 312 are exercise and plan names.'],
+  'athlete-form-he': ['The Edit Athlete form, in Hebrew', 'Opened from the roster. Production: an entirely English form under a Hebrew nav — title, every label, add-email, the buttons. This branch: the form in Hebrew; the format and package values stay what they are.'],
+  'athlete-detail-he': ['The athlete detail page, in Hebrew', 'The action buttons, back, the vitals header, the payment tiles, readiness: 195 Latin words became 127, and the coach-log / evaluation cards are the next shift.'],
   'billing-he': ['Billing, in Hebrew', '143 Latin words became 18: names, months and the finance sheet’s channel names.'],
   'review-tools': ['The review tools, in Hebrew', 'The page behind the camera tools was the English page behind a Hebrew tool. Headers, the five tools, the clip picker - all through the dictionary now.'],
   meal: ['The meal log, in Hebrew', 'Error strings, the day label, the totals and the save button were the last English on an athlete page.'],
