@@ -1,0 +1,80 @@
+[
+  {
+    "seat": "owner",
+    "route": "/coach",
+    "name": "dashboard-he",
+    "before": {
+      "file": "audit-out\\pairs\\dashboard-he-he-live.png",
+      "chars": 3494
+    },
+    "after": {
+      "file": "audit-out\\pairs\\dashboard-he-he-branch.png",
+      "chars": 3386
+    }
+  },
+  {
+    "seat": "owner",
+    "route": "/coach/sessions",
+    "name": "sessions-he",
+    "before": {
+      "file": "audit-out\\pairs\\sessions-he-he-live.png",
+      "chars": 481
+    },
+    "after": {
+      "file": "audit-out\\pairs\\sessions-he-he-branch.png",
+      "chars": 461
+    }
+  },
+  {
+    "seat": "owner",
+    "route": "/coach/bugs",
+    "name": "bugs-he",
+    "before": {
+      "file": "audit-out\\pairs\\bugs-he-he-live.png",
+      "chars": 145
+    },
+    "after": {
+      "file": "audit-out\\pairs\\bugs-he-he-branch.png",
+      "chars": 134
+    }
+  },
+  {
+    "seat": "owner",
+    "route": "/coach/smart-import",
+    "name": "smart-import-he",
+    "before": {
+      "file": "audit-out\\pairs\\smart-import-he-he-live.png",
+      "chars": 348
+    },
+    "after": {
+      "file": "audit-out\\pairs\\smart-import-he-he-branch.png",
+      "chars": 327
+    }
+  },
+  {
+    "seat": "owner",
+    "route": "/coach/calendar",
+    "name": "calendar-he",
+    "before": {
+      "file": "audit-out\\pairs\\calendar-he-he-live.png",
+      "chars": 401
+    },
+    "after": {
+      "file": "audit-out\\pairs\\calendar-he-he-branch.png",
+      "chars": 365
+    }
+  },
+  {
+    "seat": "owner",
+    "route": "/coach/intake",
+    "name": "intake-he",
+    "before": {
+      "file": "audit-out\\pairs\\intake-he-he-live.png",
+      "chars": 312
+    },
+    "after": {
+      "file": "audit-out\\pairs\\intake-he-he-branch.png",
+      "chars": 297
+    }
+  }
+]

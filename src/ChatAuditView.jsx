@@ -8,6 +8,7 @@
 // peek even if a misconfigured client tried.
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useT } from './i18n';
 import { C, FN, FB } from './theme';
 import { isRefined5b, CollapsibleSection } from './ui';
 import { supabase } from './supabase';
@@ -48,6 +49,7 @@ function ago(iso) {
 }
 
 export default function ChatAuditView() {
+  const tt = useT();
   const [logs, setLogs] = useState(null); // null = not loaded; [] = empty; [...] = data
   const [siteFilter, setSiteFilter] = useState('all'); // all | expo-app | expo-il
   const [showErrorsOnly, setShowErrorsOnly] = useState(false);
@@ -127,7 +129,7 @@ export default function ChatAuditView() {
   }, [logs, siteFilter, showErrorsOnly, filter]);
 
   if (logs == null) {
-    return <div style={{ textAlign: 'center', padding: 60, color: C.td, fontFamily: FB, fontSize: 13 }}>Loading chat logs…</div>;
+    return <div style={{ textAlign: 'center', padding: 60, color: C.td, fontFamily: FB, fontSize: 13 }}>{tt('Loading chat logs…')}</div>;
   }
 
   const total = logs.length;
@@ -139,7 +141,7 @@ export default function ChatAuditView() {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 18 }}>
         <div>
-          <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.tm, letterSpacing: '0.18em', textTransform: 'uppercase' }}>CHAT AUDIT</div>
+          <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.tm, letterSpacing: '0.18em', textTransform: 'uppercase' }}>{tt('CHAT AUDIT')}</div>
           <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 4 }}>
             {migrationMissing
               ? 'chat_logs table not found — apply scripts/migrations/2026-05-02-chat-logs.sql in Supabase Studio.'
@@ -169,7 +171,7 @@ export default function ChatAuditView() {
             color: showErrorsOnly ? C.rd : C.tm,
             borderRadius: 0, height: 34, boxSizing: 'border-box', padding: '0 12px',
             fontFamily: FN, fontSize: 11, fontWeight: 700, cursor: 'pointer', letterSpacing: '0.18em', display: 'inline-flex', alignItems: 'center',
-          }}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: '-1px', marginRight: 4 }}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>ERRORS ONLY</button>
+          }}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: '-1px', marginRight: 4 }}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>{tt('ERRORS ONLY')}</button>
         <input value={filter} onChange={e => setFilter(e.target.value)} placeholder="Filter by message text…"
           style={{
             background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0,
@@ -213,7 +215,7 @@ export default function ChatAuditView() {
                       fontSize: 13, lineHeight: 1.45, color: C.tx,
                       whiteSpace: 'pre-wrap', wordBreak: 'break-word',
                     }}>
-                      <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginRight: 6 }}>VISITOR</span>
+                      <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginRight: 6 }}>{tt('VISITOR')}</span>
                       {t.visitor_msg || <em style={{ color: C.td }}>(empty)</em>}
                     </div>
                     {t.error ? (
@@ -223,7 +225,7 @@ export default function ChatAuditView() {
                         borderRadius: 0, padding: '7px 11px',
                         fontSize: 12, lineHeight: 1.4, color: C.rd,
                       }}>
-                        <span style={{ fontFamily: FN, fontSize: 9, color: C.rd, letterSpacing: '0.18em', fontWeight: 700, marginRight: 6 }}>ERROR</span>
+                        <span style={{ fontFamily: FN, fontSize: 9, color: C.rd, letterSpacing: '0.18em', fontWeight: 700, marginRight: 6 }}>{tt('ERROR')}</span>
                         {t.error}
                       </div>
                     ) : t.assistant_msg ? (
@@ -234,7 +236,7 @@ export default function ChatAuditView() {
                         fontSize: 13, lineHeight: 1.45, color: C.tx,
                         whiteSpace: 'pre-wrap', wordBreak: 'break-word',
                       }}>
-                        <span style={{ fontFamily: FN, fontSize: 9, color: C.ac, letterSpacing: '0.18em', fontWeight: 700, marginRight: 6 }}>BOT</span>
+                        <span style={{ fontFamily: FN, fontSize: 9, color: C.ac, letterSpacing: '0.18em', fontWeight: 700, marginRight: 6 }}>{tt('BOT')}</span>
                         {renderBold(t.assistant_msg)}
                       </div>
                     ) : (

@@ -28,12 +28,21 @@ const fwd = (p) => p.split(String.fromCharCode(92)).join('/');
 const LIVE = readPairs('audit-out/pairs/pairs.json');
 // pairs.json and pairs-he.json both carry `portal` and `pt-zone`, so the Hebrew
 // sections take an `he-` suffix or the page gets duplicate ids.
-const HE = [...readPairs('audit-out/pairs/pairs-he.json'), ...readPairs('audit-out/pairs/pairs-he-phone.json'), ...readPairs('audit-out/pairs/pairs-rt.json')];
+const HE = [...readPairs('audit-out/pairs/pairs-he.json'), ...readPairs('audit-out/pairs/pairs-he-phone.json'), ...readPairs('audit-out/pairs/pairs-rt.json'), ...readPairs('audit-out/pairs/pairs-small.json'), ...readPairs('audit-out/pairs/pairs-small2.json')];
 const HE_TITLES = {
   portal: ['The athlete portal, in Hebrew', 'An athlete who picks Hebrew on production still gets English: the portal renders outside the language provider, so the Hebrew that was already written never reaches the screen. On this branch it does.'],
   'portal-phone': ['The athlete portal, in Hebrew, on a phone', 'The width an athlete actually holds. Production: English tabs and headings under a Hebrew name. This branch: the portal in Hebrew.'],
   'meal-phone': ['The meal log, in Hebrew, on a phone', 'Error strings, the day label, the totals and the save button were the last English on an athlete page.'],
-  'tasks-he': ['The tasks page, in Hebrew', 'Status and priority option lists, the rail labels and the table headers reached the screen without the translator; 244 Latin words became 54, and the 54 are names, months and the auto-task bodies.'],
+  'tasks-he': ['The tasks page, in Hebrew', 'Status and priority option lists, the rail labels and the table headers reached the screen without the translator; 244 Latin words became 12, and the 12 are names and months; the auto-task bodies are said in Hebrew at render time.'],
+  'dashboard-he': ['The dashboard, in Hebrew', 'Headers, status words, the format and package columns, the All Athletes control and the auto-task bodies: 177 Latin words became 39, and the 39 are athlete and program names.'],
+  'sessions-he': ['The gym floor, in Hebrew', 'ON THE FLOOR, CHECKED IN, ADD, FINISH, the check-in button and the done counter: 43 Latin words became 30, and the 30 are exercise names.'],
+  'bugs-he': ['Bug reports, in Hebrew', 'The header, the status pills, the refresh button and the empty state: 10 Latin words became 0.'],
+  'smart-import-he': ['Smart import, in Hebrew', 'The header, the drop zone, the file buttons and the FILE label: 39 Latin words became 11, and the 11 are file formats.'],
+  'calendar-he': ['The calendar, in Hebrew', '43 Latin words became 10.'],
+  'intake-he': ['Intake, in Hebrew', 'The counts line, the form-type badges and the unused-links section: 17 Latin words became 8.'],
+  'waitlist-he': ['The waitlist, in Hebrew', 'The funnel tiles, the table headers, the note placeholders and the kanban cards: the owner-only prospects page had no translator in two of its three components.'],
+  'workouts-he': ['Workouts, in Hebrew', 'CUE, Completed, Complete Workout, LOG INTO and the two empty states: the logger component had no translator.'],
+  'review-he': ['The review page, in Hebrew', 'Compare with…, WORKOUT, SETS DONE, READINESS CHECK-IN and the two empty states.'],
   'billing-he': ['Billing, in Hebrew', '143 Latin words became 18: names, months and the finance sheet’s channel names.'],
   'review-tools': ['The review tools, in Hebrew', 'The page behind the camera tools was the English page behind a Hebrew tool. Headers, the five tools, the clip picker - all through the dictionary now.'],
   meal: ['The meal log, in Hebrew', 'Error strings, the day label, the totals and the save button were the last English on an athlete page.'],

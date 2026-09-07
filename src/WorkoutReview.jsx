@@ -2118,7 +2118,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
           <div onClick={() => setComparePicker(null)} role="dialog" aria-modal="true" aria-label="Pick a video to compare" className={cmpPickerHold.closing ? 'motion-fade-out' : 'motion-fade-in'} style={{position:'fixed',inset:0,zIndex:1100,background:C.scrim,display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:60,backdropFilter:'blur(4px)'}}>
             <div onClick={e => e.stopPropagation()} className={cmpPickerHold.closing ? 'motion-fall' : 'motion-rise'} style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:0,width:520,maxWidth:'calc(100vw - 24px)',maxHeight:'80vh',overflow:'auto',padding:20}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
-                <h3 style={{margin:0,fontFamily:FN,fontSize:15,color:C.tx}}>Compare with…</h3>
+                <h3 style={{margin:0,fontFamily:FN,fontSize:15,color:C.tx}}>{tt('Compare with…')}</h3>
                 <button onClick={() => setComparePicker(null)} style={{background:'none',border:'none',color:C.tm,cursor:'pointer',fontSize:16}}>✕</button>
               </div>
               <div style={{fontSize:11,color:C.tm,marginBottom:10}}>{cmpPickerHold.value.candidates.length} other video{cmpPickerHold.value.candidates.length===1?'':'s'} from this client:</div>
@@ -2151,7 +2151,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
         {/* Workout header */}
         <div style={{background: 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,marginBottom:16}}>
           <div style={{ background: 'var(--c-stripBg, var(--c-sf))', borderBottom: '1px solid var(--c-cardBd)', padding: '10px 14px' }}>
-            <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>WORKOUT</SectionLabel>
+            <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>{tt('WORKOUT')}</SectionLabel>
           </div>
           <div style={{padding:16}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
@@ -2171,7 +2171,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
             </div>
             <div style={{textAlign:"right"}}>
               <div style={{fontSize:18,fontWeight:700,fontFamily:FN,color:C.gn}}>{completedSets}/{totalSets}</div>
-              <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em'}}>SETS DONE</div>
+              <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em'}}>{tt('SETS DONE')}</div>
             </div>
           </div>
 
@@ -2185,7 +2185,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
               in the portal. Elevated pain is flagged orange for the coach. */}
           {wo.autoregulation && (wo.autoregulation.pain || wo.autoregulation.sleep || wo.autoregulation.energy) && (
             <div style={{marginTop:10,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:10}}>
-              <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',marginBottom:6}}>READINESS CHECK-IN</div>
+              <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',marginBottom:6}}>{tt('READINESS CHECK-IN')}</div>
               <div style={{display:'flex',gap:18,flexWrap:'wrap'}}>
                 {[['PAIN','pain'],['SLEEP','sleep'],['ENERGY','energy']].map(([label,key]) => wo.autoregulation[key] ? (
                   <div key={key} style={{display:'flex',alignItems:'baseline',gap:6}}>
@@ -2562,7 +2562,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
       <div style={{textAlign:"center",padding:60,color:C.td}}>
         <EXPOMark height={22} style={{opacity:0.2,marginBottom:12}} />
         <div style={{fontSize:14}}>{tt("No completed workouts yet")}</div>
-        <div style={{fontSize:12,marginTop:4}}>Workouts logged in the Athlete Portal will appear here</div>
+        <div style={{fontSize:12,marginTop:4}}>{tt('Workouts logged in the Athlete Portal will appear here')}</div>
       </div>
     </div>
   );
@@ -2737,7 +2737,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
           {pending.length === 0 && !showReviewed && (
             <div style={{ textAlign: 'center', padding: 48, color: C.td }}>
               <div style={{ fontFamily: FN, fontSize: 13, letterSpacing: '0.08em' }}>{tt("ALL CAUGHT UP")}</div>
-              <div style={{ fontFamily: FB, fontSize: 12, marginTop: 6 }}>No workouts waiting on your review.</div>
+              <div style={{ fontFamily: FB, fontSize: 12, marginTop: 6 }}>{tt('No workouts waiting on your review.')}</div>
             </div>
           )}
           {pending.map(renderClient)}

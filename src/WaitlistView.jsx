@@ -281,7 +281,7 @@ export default function WaitlistView({ trainees }) {
   };
 
   if (leads == null) {
-    return <div style={{ textAlign: 'center', padding: 60, color: C.td, fontFamily: FB, fontSize: 13 }}>Loading waitlist…</div>;
+    return <div style={{ textAlign: 'center', padding: 60, color: C.td, fontFamily: FB, fontSize: 13 }}>{tt('Loading waitlist…')}</div>;
   }
 
   return (
@@ -296,7 +296,7 @@ export default function WaitlistView({ trainees }) {
         </div>
         <div style={{ background: 'var(--c-sf)', border: `1px solid ${gateColor}`, borderRadius: 0, padding: '12px 18px', minWidth: 220 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
-            <span style={{ fontFamily: FN, fontSize: 9, color: gateColor, letterSpacing: '0.18em', fontWeight: 700 }}>MULTI-TENANT GATE</span>
+            <span style={{ fontFamily: FN, fontSize: 9, color: gateColor, letterSpacing: '0.18em', fontWeight: 700 }}>{tt('MULTI-TENANT GATE')}</span>
             <span style={{ fontFamily: FN, fontSize: 14, color: gateColor, fontWeight: 700 }}>{gateProgress}/{COACH_GATE}</span>
           </div>
           <div style={{ height: 6, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, overflow: 'hidden' }}>
@@ -312,21 +312,21 @@ export default function WaitlistView({ trainees }) {
           time-to-contact, source split, signup conversion, and avg intent.
           Hidden when there are no leads at all. */}
       {stats && (
-        <CollapsibleSection title="Funnel" storageKey="waitlist-funnel" style={{ marginBottom: 14 }}>
+        <CollapsibleSection title={tt("Funnel")} storageKey="waitlist-funnel" style={{ marginBottom: 14 }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 16 }}>
-          <StatTile label="Leads" value={total} sub={`${active} uncontacted`} />
-          <StatTile label="Contact rate" value={`${(stats.contactRate * 100).toFixed(0)}%`} sub={`${stats.contactedCount} / ${total}`} color={stats.contactRate >= 0.8 ? C.gn : (stats.contactRate >= 0.5 ? C.or : C.rd)} />
-          <StatTile label="Median t→contact" value={fmtTtc(stats.ttcMedianMs)} sub={stats.contactedCount === 0 ? 'no contacted yet' : `across ${stats.contactedCount}`} />
-          <StatTile label="Signed up" value={stats.signupCount} sub={stats.contactedCount === 0 ? '—' : `${(stats.signupRate * 100).toFixed(0)}% of contacted`} color={C.ac} />
-          <StatTile label="Source mix" value={`${stats.sourceCount.chat} · ${stats.sourceCount.form} · ${stats.sourceCount.paid}`} sub="chat · form · paid" />
-          <StatTile label="Avg intent" value={`${stats.avgIntent.toFixed(1)} / 4`} color={stats.avgIntent >= 2.5 ? C.ac : C.tm} />
+          <StatTile label={tt("Leads")} value={total} sub={`${active} uncontacted`} />
+          <StatTile label={tt("Contact rate")} value={`${(stats.contactRate * 100).toFixed(0)}%`} sub={`${stats.contactedCount} / ${total}`} color={stats.contactRate >= 0.8 ? C.gn : (stats.contactRate >= 0.5 ? C.or : C.rd)} />
+          <StatTile label={tt("Median t→contact")} value={fmtTtc(stats.ttcMedianMs)} sub={stats.contactedCount === 0 ? 'no contacted yet' : `across ${stats.contactedCount}`} />
+          <StatTile label={tt("Signed up")} value={stats.signupCount} sub={stats.contactedCount === 0 ? '—' : `${(stats.signupRate * 100).toFixed(0)}% of contacted`} color={C.ac} />
+          <StatTile label={tt("Source mix")} value={`${stats.sourceCount.chat} · ${stats.sourceCount.form} · ${stats.sourceCount.paid}`} sub="chat · form · paid" />
+          <StatTile label={tt("Avg intent")} value={`${stats.avgIntent.toFixed(1)} / 4`} color={stats.avgIntent >= 2.5 ? C.ac : C.tm} />
         </div>
         </CollapsibleSection>
       )}
 
       {/* Filter + F-28 view toggle */}
       <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-        <input placeholder="Filter by email, source, or notes…" value={filter} onChange={e => setFilter(e.target.value)}
+        <input placeholder={tt("Filter by email, source, or notes…")} value={filter} onChange={e => setFilter(e.target.value)}
           style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '8px 12px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', minWidth: 280 }} />
         <div style={{ display: 'flex', gap: 4 }}>
           {['list', 'board'].map(mode => (
@@ -364,11 +364,11 @@ export default function WaitlistView({ trainees }) {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
             <thead>
               <tr style={{ background: refined ? 'var(--c-sf)' : 'transparent', borderBottom: `1px solid ${headBorder}` }}>
-                <SH k="email" label="Email" />
+                <SH k="email" label={tt("Email")} />
                 <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: 9, fontFamily: FN, color: refined ? '#FFFFFF' : C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>{tt("Source")}</th>
-                <SH k="intent" label="Intent" />
-                <SH k="date" label="Signed up" />
-                <SH k="status" label="Status" />
+                <SH k="intent" label={tt("Intent")} />
+                <SH k="date" label={tt("Signed up")} />
+                <SH k="status" label={tt("Status")} />
                 <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: 9, fontFamily: FN, color: refined ? '#FFFFFF' : C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700, minWidth: 220 }}>{tt("Notes")}</th>
                 <th style={{ textAlign: 'center', padding: '10px 12px', fontSize: 9, fontFamily: FN, color: refined ? '#FFFFFF' : C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>{tt("Actions")}</th>
               </tr>
@@ -382,7 +382,7 @@ export default function WaitlistView({ trainees }) {
                     <td style={{ padding: '10px 12px' }}>
                       <a href={mailto} style={{ color: C.tx, textDecoration: 'none', fontWeight: 600 }} title={l.email}>{l.email}</a>
                       {l.notes && (
-                        <div title="AI summary of the chat conversation"
+                        <div title={tt("AI summary of the chat conversation")}
                           style={{ fontFamily: FB, fontSize: 11, color: C.tm, fontStyle: 'italic', marginTop: 4, lineHeight: 1.35, maxWidth: 320, whiteSpace: 'normal' }}>
                           {l.notes}
                         </div>
@@ -433,24 +433,24 @@ export default function WaitlistView({ trainees }) {
                       {l.contacted ? (
                         <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.gn, background: 'var(--c-sf)', border: `1px solid ${C.gn}`, borderRadius: 0, padding: '3px 6px', letterSpacing: '0.18em' }} title={`Contacted ${ago(l.consumed_at)} ago`}>{tt("CONTACTED")}</span>
                       ) : (
-                        <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.ac, background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: '3px 6px', letterSpacing: '0.18em' }}>NEW</span>
+                        <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.ac, background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: '3px 6px', letterSpacing: '0.18em' }}>{tt('NEW')}</span>
                       )}
                     </td>
                     <td style={{ padding: '8px 10px' }}>
                       <textarea value={notes[l.id] || ''} onChange={e => setNote(l.id, e.target.value)} rows={2}
-                        placeholder="What did they say in DM?"
+                        placeholder={tt("What did they say in DM?")}
                         style={{ width: '100%', minWidth: 200, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '6px 8px', color: C.tx, fontFamily: FB, fontSize: 12, outline: 'none', resize: 'vertical', boxSizing: 'border-box' }} />
-                      {savingNote === l.id && <div style={{ fontFamily: FN, fontSize: 9, color: C.td, marginTop: 2 }}>saving…</div>}
+                      {savingNote === l.id && <div style={{ fontFamily: FN, fontSize: 9, color: C.td, marginTop: 2 }}>{tt('saving…')}</div>}
                     </td>
                     <td style={{ padding: '8px 10px', whiteSpace: 'nowrap', textAlign: 'center' }}>
                       {l.contacted ? (
-                        <button onClick={() => undoContacted(l.id)} title="Undo contacted"
+                        <button onClick={() => undoContacted(l.id)} title={tt("Undo contacted")}
                           style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tm, borderRadius: 0, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', marginRight: 4 }}>↩ UNDO</button>
                       ) : (
-                        <button onClick={() => markContacted(l.id)} title="Mark contacted"
+                        <button onClick={() => markContacted(l.id)} title={tt("Mark contacted")}
                           style={{ background: 'var(--c-sf)', border: `1px solid ${C.gn}`, color: C.gn, borderRadius: 0, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', marginRight: 4 }}>✓ DONE</button>
                       )}
-                      <button onClick={() => removeLead(l.id)} title="Delete"
+                      <button onClick={() => removeLead(l.id)} title={tt("Delete")}
                         style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, color: C.rd, borderRadius: 0, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>✕</button>
                     </td>
                   </tr>
@@ -471,6 +471,7 @@ export default function WaitlistView({ trainees }) {
 // for the desktop coach surface (mobile board mode is rare; the list
 // view is faster on small screens anyway).
 function KanbanBoard({ leads, moveLead, removeLead, notes, setNote }) {
+  const tt = useAppT();
   const [dragId, setDragId] = useState(null);
   const [overStage, setOverStage] = useState(null);
 
@@ -561,6 +562,7 @@ function KanbanBoard({ leads, moveLead, removeLead, notes, setNote }) {
 }
 
 function LeadCard({ lead, draggable, onDragStart, onDragEnd, isDragging, notes, setNote, moveLead, removeLead }) {
+  const tt = useAppT();
   const l = lead;
   const stars = '★'.repeat(l.intent || 0) + '☆'.repeat(4 - (l.intent || 0));
   const stageIdx = STAGES.findIndex(s => s.id === (l.stage || 'lead'));
@@ -596,7 +598,7 @@ function LeadCard({ lead, draggable, onDragStart, onDragEnd, isDragging, notes, 
         </div>
       )}
       <textarea value={notes[l.id] || ''} onChange={e => setNote(l.id, e.target.value)} rows={2}
-        placeholder="DM notes…"
+        placeholder={tt("DM notes…")}
         onPointerDown={e => e.stopPropagation()}
         onMouseDown={e => e.stopPropagation()}
         draggable={false}
@@ -616,7 +618,7 @@ function LeadCard({ lead, draggable, onDragStart, onDragEnd, isDragging, notes, 
               style={{ background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, padding: '2px 6px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>→</button>
           )}
         </div>
-        <button onClick={() => removeLead(l.id)} title="Delete"
+        <button onClick={() => removeLead(l.id)} title={tt("Delete")}
           style={{ background: 'transparent', border: `1px solid ${C.rd}`, color: C.rd, padding: '2px 6px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>✕</button>
       </div>
     </div>

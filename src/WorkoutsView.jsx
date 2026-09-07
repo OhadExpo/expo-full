@@ -54,6 +54,7 @@ function InlineVideo({ url }) {
 }
 
 function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete, onBack, onBroadcastSet }) {
+  const tt = useT();
   const updateSet = (ei,si,u) => { const exs=[...workout.exercises]; const sets=[...exs[ei].sets]; sets[si]={...sets[si],...u}; exs[ei]={...exs[ei],sets}; onUpdate({exercises:exs}); if (onBroadcastSet) { Object.entries(u).forEach(([k,v]) => onBroadcastSet(ei, si, k, v)); } };
   const updateEx = (ei,u) => { const exs=[...workout.exercises]; exs[ei]={...exs[ei],...u}; onUpdate({exercises:exs}); };
   // Group consecutive exercises that share a superset letter into one block —
@@ -217,7 +218,7 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
             accent-barred block: full-size, not italic, RTL-aware for Hebrew. */}
         {cue && (
           <div style={{display:'flex',gap:10,marginBottom:10,background:'rgba(57,189,255,0.06)',borderInlineStart:`3px solid ${C.ac}`,padding:'9px 12px'}}>
-            <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',color:C.ac,flexShrink:0,paddingTop:2}}>CUE</span>
+            <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',color:C.ac,flexShrink:0,paddingTop:2}}>{tt('CUE')}</span>
             <div style={{minWidth:0,flex:1,fontSize:13,color:C.tx,lineHeight:1.5,direction:isHebrew(cue)?'rtl':'ltr',textAlign:isHebrew(cue)?'right':'left',fontFamily:isHebrew(cue)?FH:FB,wordBreak:'break-word'}}>{cue}</div>
           </div>
         )}
@@ -263,7 +264,7 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
       <div style={{position:'sticky',top:stickyTop,zIndex:40,background:C.bg,paddingTop:8,paddingBottom:10,marginBottom:8,borderBottom:`1px solid ${C.cardBd}`}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
           <button onClick={onBack} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',padding:0}}>← BACK</button>
-          {isCompleted&&<Badge color={C.gn} style={{fontSize:13,padding:"6px 14px"}}>Completed</Badge>}
+          {isCompleted&&<Badge color={C.gn} style={{fontSize:13,padding:"6px 14px"}}>{tt('Completed')}</Badge>}
         </div>
         <div style={{display:"flex",justifyContent:"space-between",fontSize:12,fontFamily:FN,color:C.tm,marginBottom:4}}>
           <span><span style={{color:C.tx,fontWeight:700}}>{workout.dayName}</span> {workout.planName&&<span style={{color:C.td}}>({workout.planName})</span>}</span>
@@ -297,8 +298,8 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
       {/* Primary Complete action at the very bottom — after every set + the
           session notes (Ohad: "complete workout … beneath session observations"). */}
       {!isCompleted
-        ? <div style={{display:'flex',justifyContent:'center',marginTop:16}}><Btn variant="success" onClick={onComplete} style={{padding:'14px 48px',fontSize:14,fontWeight:700}}>Complete Workout</Btn></div>
-        : <div style={{marginTop:16,textAlign:'center'}}><Badge color={C.gn} style={{fontSize:13,padding:"8px 16px"}}>Completed</Badge></div>}
+        ? <div style={{display:'flex',justifyContent:'center',marginTop:16}}><Btn variant="success" onClick={onComplete} style={{padding:'14px 48px',fontSize:14,fontWeight:700}}>{tt('Complete Workout')}</Btn></div>
+        : <div style={{marginTop:16,textAlign:'center'}}><Badge color={C.gn} style={{fontSize:13,padding:"8px 16px"}}>{tt('Completed')}</Badge></div>}
     </div>);
 }
 
@@ -652,7 +653,7 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
           old wall of full-height cards (every athlete's buttons + older-block
           bars on screen at once = too much). */}
       {(planIndex||[]).length===0 ? (
-        <div style={{color:C.td,fontSize:13,marginBottom:20}}>Create a plan first.</div>
+        <div style={{color:C.td,fontSize:13,marginBottom:20}}>{tt('Create a plan first.')}</div>
       ) : (
         <div style={{marginBottom:24}}>
           {/* Search — big, cyan-bordered, matching the Exercise Library search. */}
@@ -671,7 +672,7 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
             </div>
             {(() => {
               const rows = pickerRows;
-              if (!rows.length) return <div style={{color:C.td,fontSize:13,padding:'18px',textAlign:'center'}}>No athletes match.</div>;
+              if (!rows.length) return <div style={{color:C.td,fontSize:13,padding:'18px',textAlign:'center'}}>{tt('No athletes match.')}</div>;
               // Auto-open when the list is down to one (search hit or deep-link).
               const forceOpen = (filterTrainee || (rows.length===1 ? rows[0].tid : null));
               return rows.map(({tid,plans,name},ri)=>{
@@ -703,7 +704,7 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
                             {blocks.length>1 && <div style={{fontFamily:FN,fontSize:10,color:C.td,letterSpacing:'0.08em',marginBottom:6}}>{p.name}</div>}
                             {/* Week to log into — chosen here, before the logger opens. */}
                             {pw>1 && <div style={{display:'flex',gap:4,alignItems:'center',flexWrap:'wrap',marginBottom:8}}>
-                              <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.14em',color:C.tm,marginRight:2}}>LOG INTO</span>
+                              <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.14em',color:C.tm,marginRight:2}}>{tt('LOG INTO')}</span>
                               {Array.from({length:pw},(_,i)=>i+1).map(wn=>(
                                 <button key={wn} onClick={()=>setWeekByPlan(m=>({...m,[p.id]:wn}))}
                                   style={{minWidth:32,height:24,boxSizing:'border-box',padding:'0',borderRadius:0,border:`${selWeek===wn?'2px':'1px'} solid ${selWeek===wn?C.ac:C.cardBd}`,background:selWeek===wn?'rgba(57,189,255,0.1)':'transparent',color:selWeek===wn?C.ac:C.tm,fontFamily:FN,fontSize:10,fontWeight:700,cursor:'pointer'}}>W{wn}</button>

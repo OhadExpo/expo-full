@@ -671,6 +671,7 @@ function FloorBar({ session, checkedIn, traineeById, onAdd, onFinish }) {
 
 // ---- per-athlete logging card ----
 function AthleteCard({ a, name, prevMap, exDetail, onToggleIn, onSet, onCurEx, onRemove }) {
+  const tt = useAppT();
   const COLS = '16px 1fr 1fr 0.8fr 30px';
   return (
     <div style={{ background: 'var(--c-sf)', border: `1px solid ${a.checkedIn ? C.ac : C.cardBd}`, display: 'flex', flexDirection: 'column' }}>
@@ -680,7 +681,7 @@ function AthleteCard({ a, name, prevMap, exDetail, onToggleIn, onSet, onCurEx, o
           <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.04em' }}>{a.dayName}{a.week ? ` · W${a.week}` : ''}</div>
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
-          <button onClick={onToggleIn} style={{ ...miniBtn, minWidth: 72, textAlign: 'center', display: 'inline-flex', justifyContent: 'center', background: a.checkedIn ? C.gn : 'transparent', color: a.checkedIn ? '#FFF' : C.tm, border: `1px solid ${a.checkedIn ? C.gn : C.cardBd}` }}>{a.checkedIn ? '✓ IN' : 'CHECK IN'}</button>
+          <button onClick={onToggleIn} style={{ ...miniBtn, minWidth: 72, textAlign: 'center', display: 'inline-flex', justifyContent: 'center', background: a.checkedIn ? C.gn : 'transparent', color: a.checkedIn ? '#FFF' : C.tm, border: `1px solid ${a.checkedIn ? C.gn : C.cardBd}` }}>{a.checkedIn ? tt('✓ IN') : tt('CHECK IN')}</button>
           <button onClick={async () => {
             // Warn if the coach logged sets on this card — finishSession only
             // writes athletes still on the roster, so removing them discards that
@@ -719,7 +720,7 @@ function AthleteCard({ a, name, prevMap, exDetail, onToggleIn, onSet, onCurEx, o
                   wrapping title. SETS × REPS + a muted done-count. */}
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 4, paddingInlineStart: 18 }}>
                 <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.02em', color: C.ac, lineHeight: 1 }}>{ex.prescribed}</span>
-                <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: allDone ? C.gn : C.tm, lineHeight: 1 }}>{doneCount}/{ex.sets.length} DONE</span>
+                <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: allDone ? C.gn : C.tm, lineHeight: 1 }}>{doneCount}/{ex.sets.length} {tt('DONE')}</span>
               </div>
             </div>
             {open && (

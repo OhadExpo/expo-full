@@ -28,6 +28,7 @@ import { Btn, Input, Select, Badge, SectionLabel, isRefined5b, toast } from './u
 // first file off to the parent. Doesn't try to validate type itself —
 // classifyFile in the parent already does that.
 function DropZone({ parsing, onFile }) {
+  const tt = useT();
   const [hot, setHot] = useState(false);
   const onDragOver = (e) => { e.preventDefault(); e.stopPropagation(); if (!hot) setHot(true); };
   const onDragLeave = (e) => { e.preventDefault(); e.stopPropagation(); setHot(false); };
@@ -47,10 +48,10 @@ function DropZone({ parsing, onFile }) {
         opacity: parsing ? 0.5 : 1, pointerEvents: parsing ? 'none' : 'auto',
       }}>
       <div style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: 'var(--c-tm)', letterSpacing: '0.18em', textTransform: 'uppercase' }}>
-        Drop a file here
+        {tt('Drop a file here')}
       </div>
       <div style={{ fontFamily: FB, fontSize: 12, color: 'var(--c-td)', marginTop: 6 }}>
-        XLSX · CSV · TSV · PDF · PNG · JPG · screenshot · text. AI maps it into the EXPO schema and previews before commit.
+        {tt('XLSX · CSV · TSV · PDF · PNG · JPG · screenshot · text. AI maps it into the EXPO schema and previews before commit.')}
       </div>
     </div>
   );
@@ -503,7 +504,7 @@ export default function SmartImportView() {
         <input ref={inputRef} type="file"
           accept=".xlsx,.xls,.ods,.csv,.tsv,.txt,.md,.pdf,.png,.jpg,.jpeg,.webp,image/*,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
           onChange={onPick} style={{ display: 'none' }} />
-        <Btn onClick={() => inputRef.current?.click()} disabled={parsing} style={{ minWidth: 124, justifyContent: 'center' }}>{parsing ? 'Reading…' : (fileName ? 'Replace File' : 'Pick File')}</Btn>
+        <Btn onClick={() => inputRef.current?.click()} disabled={parsing} style={{ minWidth: 124, justifyContent: 'center' }}>{parsing ? tt('Reading…') : (fileName ? tt('Replace File') : tt('Pick File'))}</Btn>
       </div>
 
       {/* Drop zone — only shown before a file is picked. The header copy
@@ -518,11 +519,11 @@ export default function SmartImportView() {
       {fileName && (
         <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, marginBottom: 12 }}>
           <div style={{ background: 'var(--c-stripBg, var(--c-sf))', borderBottom: '1px solid var(--c-cardBd)', padding: '10px 14px' }}>
-            <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>FILE</SectionLabel>
+            <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>{tt('FILE')}</SectionLabel>
           </div>
           <div style={{ padding: 12, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10, alignItems: 'end' }}>
             <div>
-              <div style={{ fontSize: 9, fontFamily: FN, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>FILE · {fileKind.toUpperCase()}</div>
+              <div style={{ fontSize: 9, fontFamily: FN, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>{tt('FILE')} · {fileKind.toUpperCase()}</div>
               <div style={{ fontFamily: FB, fontSize: 13, color: C.tx, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fileName}</div>
             </div>
             {sheets.length > 1 && (

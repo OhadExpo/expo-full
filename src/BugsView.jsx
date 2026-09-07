@@ -113,7 +113,7 @@ export default function BugsView() {
                 background: active ? 'rgba(57,189,255,0.094)' : 'transparent',
                 color: active ? p.color : C.tm,
                 fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer',
-              }}>{p.label}{n > 0 ? ` · ${n}` : ''}</button>
+              }}>{tt(p.label)}{n > 0 ? ` · ${n}` : ''}</button>
           );
         })}
       </div>
@@ -122,7 +122,7 @@ export default function BugsView() {
         <div style={{ padding: 30, textAlign: 'center', color: C.td, fontFamily: FB, fontSize: 13 }}>Loading…</div>
       ) : rows.length === 0 ? (
         <div style={{ padding: 30, textAlign: 'center', color: C.td, fontSize: 13 }}>
-          No {filter === 'all' ? '' : filter} reports.
+          {tt(filter === 'all' ? 'No reports.' : `No ${filter} reports.`)}
         </div>
       ) : rows.map(r => {
         const expanded = expandedId === r.id;

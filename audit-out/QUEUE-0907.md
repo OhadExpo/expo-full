@@ -52,3 +52,13 @@ RESTORE POINT (pre-perf-fixes): b1f93ab6f04fa84e842c58049f278312374c8a43
 - [x] S2 Shot Analyzer: everything in Hebrew (title, overlay, fps, session-panel names)
 - [x] S3 Shot Analyzer: phase chips two full rows
 - [x] S4 Shot Analyzer: one ▸ per frame
+
+## T · The three hours + the hour after (Ohad: "work for another 3 full hours" · "update the local host chrome" · "no way you stopped working after 12 minutes")
+
+- [x] T1 Hebrew coverage sweep, 22 coach routes measured; dashboard 177→39 · tasks 244→12 · billing 143→18 · review 44→15 · cleanup 209→68 · calendar 43→10 · sessions 43→30 · smart-import 39→11 · intake 17→8 · bugs 10→0
+- [x] T2 auto-task bodies in Hebrew at render (src/autoTaskHe.js), stored rows untouched
+- [x] T3 Shot Analyzer: units + what the tiles measure, numbers on one baseline (0px spread)
+- [x] T4 review-tools page in Hebrew
+- [x] T5 host refresh on the final build: 16 pairs mirrored + 6 small coach routes; :4179/:4180/:4181 opened in the debug Chrome (9222) beside his own Chrome
+- [ ] T6 close: build-tonight on the small pairs, restamp + both verifiers, commit named paths, push branch
+- [ ] A4 before/after for every recap entry — still partial (six more coach routes tonight; the rest is a session of its own)
