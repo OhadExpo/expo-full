@@ -19,6 +19,7 @@ LANG_APP=he W=430 MANIFEST=pairs-he-phone.json JOBS="athlete:/athlete:portal-pho
 LANG_APP=he W=1400 MANIFEST=pairs-rt.json JOBS="owner:/coach/review-tools:review-tools,owner:/coach/tasks:tasks-he,owner:/coach/billing:billing-he" run node scripts/shoot-prod-vs-branch.mjs
 LANG_APP=he W=1400 MANIFEST=pairs-small.json JOBS="owner:/coach:dashboard-he,owner:/coach/sessions:sessions-he,owner:/coach/bugs:bugs-he,owner:/coach/smart-import:smart-import-he,owner:/coach/calendar:calendar-he,owner:/coach/intake:intake-he" run node scripts/shoot-prod-vs-branch.mjs
 LANG_APP=he W=1400 MANIFEST=pairs-small2.json JOBS="owner:/coach/waitlist:waitlist-he,owner:/coach/workouts:workouts-he,owner:/coach/review:review-he" run node scripts/shoot-prod-vs-branch.mjs
+LANG_APP=he W=430 MANIFEST=pairs-demo.json JOBS="athlete:/demo/athlete:demo-athlete-he" run node scripts/shoot-prod-vs-branch.mjs
 
 echo; echo "=== PAGES"
 run node scripts/build-tonight.mjs

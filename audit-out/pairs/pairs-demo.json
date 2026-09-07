@@ -1,0 +1,15 @@
+[
+  {
+    "seat": "athlete",
+    "route": "/demo/athlete",
+    "name": "demo-athlete-he",
+    "before": {
+      "file": "audit-out\\pairs\\demo-athlete-he-he-live.png",
+      "chars": 863
+    },
+    "after": {
+      "file": "audit-out\\pairs\\demo-athlete-he-he-branch.png",
+      "chars": 853
+    }
+  }
+]
