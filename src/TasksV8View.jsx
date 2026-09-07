@@ -536,7 +536,7 @@ function SortBar({ sortBy, sortDir, onSortBy, onToggleDir, rightSlot }) {
       case 'date':     return d ? { a:'↑', t:tt('Latest')  } : { a:'↓', t:tt('Soonest') };
       case 'newest':   return d ? { a:'↓', t:'Newest'  } : { a:'↑', t:'Oldest'  };
       case 'priority': return d ? { a:'↑', t:'Low'     } : { a:'↓', t:'High'    };
-      case 'status':   return d ? { a:'↑', t:'Done'    } : { a:'↓', t:'To-Do'   };
+      case 'status':   return d ? { a:'↑', t:tt('Done') } : { a:'↓', t:tt('To Do') };
       case 'name':     return d ? { t:'Z → A' } : { t:'A → Z' };  // → is horizontal, sits fine inline
       case 'manual':   return { t:'Manual' };
       default:         return { t:mode };
@@ -1683,7 +1683,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
                 {isOverdue ? (
                   // "OVERDUE · YESTERDAY" — OVERDUE solid white, the day faded white
                   // (same opacity as the SHARED tag). Ohad's spec.
-                  <>OVERDUE<span style={{ opacity: 0.4 }}>·</span><span style={{ opacity: 0.55 }}>{dm.label}</span></>
+                  <>{tt('OVERDUE')}<span style={{ opacity: 0.4 }}>·</span><span style={{ opacity: 0.55 }}>{dm.label}</span></>
                 ) : dateStr}
               </span>
             )}

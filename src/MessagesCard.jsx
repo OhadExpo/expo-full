@@ -220,7 +220,7 @@ export default function MessagesCard({ trainees, onSelectTrainee, onOpenMessages
             textTransform: 'uppercase', color: '#FFFFFF',
             display: 'inline-flex', alignItems: 'center', gap: 8,
           }}>
-            Messages
+            {tt('Messages')}
             {threads.length > 0 && (
               <span style={{
                 fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
