@@ -431,6 +431,9 @@ export const HE = {
   // The cue expander under an exercise on the program tab.
   '▼ MORE': '▼ עוד',
   '▲ LESS': '▲ פחות',
+  "● REC": '● הקלט',
+  "SENDING…": 'שולח…',
+  "SEND →": 'שלח ←',
   "No workouts yet.": 'עוד אין אימונים.',
   "NO RECORDS YET": 'עוד אין שיאים',
   "Log a few sessions with weights and your records will show up here.": 'רשום כמה אימונים עם משקלים והשיאים שלך יופיעו כאן.',

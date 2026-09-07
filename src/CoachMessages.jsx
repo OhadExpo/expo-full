@@ -254,7 +254,7 @@ function Composer({ onSend, role, draftKey }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
         {!rec.recording && !rec.blob && (
           <button onClick={rec.start} title="Record a voice note"
-            style={recBtnStyle('var(--c-rd)')}>● REC</button>
+            style={recBtnStyle('var(--c-rd)')}>{tt('● REC')}</button>
         )}
         {rec.recording && (
           <button onClick={rec.stop} style={recBtnStyle('var(--c-rd)', true)}>
@@ -275,7 +275,7 @@ function Composer({ onSend, role, draftKey }) {
             ...recBtnStyle('var(--c-ac)'),
             opacity: (text.trim() || rec.blob) ? 1 : 0.5,
             cursor: (text.trim() || rec.blob) ? 'pointer' : 'default',
-          }}>{sending ? 'SENDING…' : 'SEND →'}</button>
+          }}>{sending ? tt('SENDING…') : tt('SEND →')}</button>
       </div>
     </div>
   );
@@ -430,7 +430,7 @@ export default function CoachMessages({ traineeId, role = 'coach', recipientEmai
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(o => !o); } }}
           style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}>
           <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : 'var(--c-tx)' }}>
-            MESSAGES ({rows.length})
+            {tt('MESSAGES')} ({rows.length})
           </span>
           <span aria-hidden style={{ color: refined ? '#FFFFFF' : 'var(--c-tx)', fontSize: 12, lineHeight: 1, transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease' }}>▾</span>
         </div>
