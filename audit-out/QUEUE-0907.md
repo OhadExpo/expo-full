@@ -60,5 +60,14 @@ RESTORE POINT (pre-perf-fixes): b1f93ab6f04fa84e842c58049f278312374c8a43
 - [x] T3 Shot Analyzer: units + what the tiles measure, numbers on one baseline (0px spread)
 - [x] T4 review-tools page in Hebrew
 - [x] T5 host refresh on the final build: 16 pairs mirrored + 6 small coach routes; :4179/:4180/:4181 opened in the debug Chrome (9222) beside his own Chrome
-- [ ] T6 close: build-tonight on the small pairs, restamp + both verifiers, commit named paths, push branch
+- [x] T6 close: pairs on the host, commits pushed (a6792af … dc299d7); restamp + verifiers move to N6
 - [ ] A4 before/after for every recap entry — still partial (six more coach routes tonight; the rest is a session of its own)
+
+## N · The night block (Ohad 23:50 "reset the timer to 3 hours" · 00:22 "reset the timer again … finish like how i asked with the last 30 minutes")
+
+- [x] N1 today's four lifts (Zack 30, עמית מנחם 30, עמית גרשון 60, Knight 60) — 4/4 verified, weight-room tab shows 4 lifted · 180 min
+- [x] N2 unknown ≠ zero when the server is unreachable (dataIncomplete, not navigator.onLine); revenue tiles dash; one offline notice, not three toasts; athletes empty state says "could not reach the server"
+- [x] N3 four reproducible before/after pairs (tasks-autobody, dashboard-dashes, roster-offline, bw-bidi) — recap carries 13; builder: language after sign-in, install prompt snoozed, Hebrew coach check
+- [x] N4 tasks page last labels (placeholders, Auto-Alerts, Done; hotkeys re-anchored to data-hotkey); BW tab ENTRIES/HISTORY
+- [x] N5 console sweep 35 routes: only /_vercel/insights/script.js 404 (preview-only)
+- [ ] N6 light/dark parity on the touched routes · handoff verifiers · final host refresh (the last 30 minutes, 03:22–03:52)

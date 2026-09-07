@@ -1,0 +1,11 @@
+DRIFT  /coach/dashboard           moved=16 countDelta=-5 noise=0 lowContrast(light)=0 (dark)=0
+        worst: [{"k":"DIV:0/DIV:0/MAIN:1/DIV:0/DIV:6","dark":[132,1896,1176,1647],"light":[132,1900,1176,35],"delta":1612},{"k":"DIV:0/DIV:0/MAIN:1/DIV:0/DIV:5","dark":[132,1847,1176,35],"light":[132,1199,1176,681],"delta":648}]
+ok     /coach/tasks               moved=0 countDelta=0 noise=0 lowContrast(light)=0 (dark)=0
+ok     /coach/sessions            moved=0 countDelta=0 noise=0 lowContrast(light)=0 (dark)=0
+ok     /coach/bugs                moved=0 countDelta=0 noise=0 lowContrast(light)=0 (dark)=0
+ok     /coach/smart-import        moved=0 countDelta=0 noise=0 lowContrast(light)=0 (dark)=0
+ok     /coach/waitlist            moved=0 countDelta=0 noise=0 lowContrast(light)=0 (dark)=0
+ok     /coach/workouts            moved=0 countDelta=0 noise=0 lowContrast(light)=0 (dark)=0
+ok     /coach/review              moved=0 countDelta=0 noise=0 lowContrast(light)=0 (dark)=0
+ok     /coach/athletes            moved=0 countDelta=0 noise=0 lowContrast(light)=0 (dark)=0
+ok     /athlete                   moved=0 countDelta=0 noise=0 lowContrast(light)=0 (dark)=0
