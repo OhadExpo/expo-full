@@ -431,6 +431,10 @@ export const HE = {
   // The cue expander under an exercise on the program tab.
   '▼ MORE': '▼ עוד',
   '▲ LESS': '▲ פחות',
+  Library: 'ספרייה',
+  Matching: 'התאמה',
+  Classify: 'סיווג',
+  Cleanup: 'ניקוי',
   // ---- the library cleanup tool (2026-09-07)
   "Library Cleanup": 'ניקוי הספרייה',
   flagged: 'סומנו',

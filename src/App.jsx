@@ -1739,7 +1739,7 @@ function AuthedApp() {
               <div className="subtab-scroll" style={{display:'flex',gap:2,borderBottom:`1px solid ${C.cardBd}`,marginBottom:16,flexWrap:'wrap'}}>
                 {[['exercises','Library'],['exerciseMatching','Matching'],['exerciseClassify','Classify'],['exerciseCleanup','Cleanup']].map(([r,l])=>{
                   const on=tab===r;
-                  return <button key={r} role="tab" aria-selected={on} onClick={()=>navTo(r)} style={{fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:on?C.tx:C.td,background:'transparent',border:'none',borderBottom:on?`2px solid ${C.ac}`:'2px solid transparent',padding:'10px 16px',marginBottom:-1,cursor:'pointer'}}>{l}</button>;
+                  return <button key={r} role="tab" aria-selected={on} onClick={()=>navTo(r)} style={{fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:on?C.tx:C.td,background:'transparent',border:'none',borderBottom:on?`2px solid ${C.ac}`:'2px solid transparent',padding:'10px 16px',marginBottom:-1,cursor:'pointer'}}>{t(l)}</button>;
                 })}
               </div>
               {tab==="exercises"&&<MemoExercises exercises={exercises} setExercises={setExercises} onOpenClassify={()=>navTo('exerciseClassify')}/>}
