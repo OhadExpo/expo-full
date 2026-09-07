@@ -1,0 +1,28 @@
+=== offline-everywhere
+   /coach/sessions  37% kept
+   /coach/sessions-single  27% kept
+   /coach/chat-audit  13% kept
+   /coach/tasks  7% kept
+   /coach/billing  7% kept
+
+
+0 - all 23 page(s) still render with the backend unreachable
+exit=0
+=== athlete-offline
+
+SKIP  no service worker on this origin, so there is nothing to test offline.
+      A SW needs a secure context. 127.0.0.1 is secure but the app skips
+      registration there on purpose; the LAN IP registers but is plain HTTP,
+      which the browser refuses. Run it against HTTPS to check this for real:
+        BASE=https://expo-app.co.il node scripts/verify-athlete-offline.mjs
+=== pt-no-backend
+recovered  : roster is back
+
+
+0 - the club zone holds up with no backend
+=== athlete-no-backend
+recovered  : portal is back
+
+
+0 - the portal holds up with no backend
+=== DONE

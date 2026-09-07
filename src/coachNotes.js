@@ -10,27 +10,37 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from './supabase';
 import { toast } from './ui';
+import { readLang } from './i18n';
 
 const newId = () => 'note_' + Math.random().toString(36).slice(2, 12) + Date.now().toString(36).slice(-4);
 
 // Friendly error reporter — shows a toast so silent save-failures stop
 // happening. Also keeps the console.warn for debugging.
 // One notice per failure, not one per retry: the same action failing the same
-// way within a minute is already on the screen. A NETWORK failure gets no
-// toast at all - the OFFLINE banner is that notice, and three red
+// way within a minute is already on the screen. A network failure on a LOAD gets no
+// toast - the OFFLINE banner is that notice, and three red
 // "Failed to fetch" boxes over the Messages card said nothing it did not.
 const recentFailures = new Map();
+// The coach reads the toast in the app's language; the action names are the
+// five this file reports.
+const HE_ACTION = { 'Loading tasks': 'טעינת המשימות', 'Saving task': 'שמירת המשימה', 'Updating task': 'עדכון המשימה', 'Deleting task': 'מחיקת המשימה', 'Linking task to plan': 'קישור המשימה לתוכנית' };
 function reportFailure(action, error) {
   const msg = error?.message || String(error || 'unknown error');
   console.warn(action, 'failed:', msg);
-  if (/failed to fetch|networkerror|load failed|network request failed/i.test(msg)) return;
+  const network = /failed to fetch|networkerror|load failed|network request failed/i.test(msg);
+  if (network && /^loading/i.test(action)) return;
   const key = action + '|' + msg;
   const last = recentFailures.get(key) || 0;
   if (Date.now() - last < 60000) return;
   recentFailures.set(key, Date.now());
-  const friendlier = /relation .* does not exist/i.test(msg)
-    ? `${action} failed — migration not applied yet (check scripts/migrations/)`
-    : `${action} failed — ${msg}`;
+  const he = readLang() === 'he';
+  const heAction = HE_ACTION[action] || action;
+  const friendlier = network
+    ? (he ? `${heAction} נכשלה — אין חיבור לשרת. שום דבר לא נשמר; נסה שוב כשהחיבור יחזור.`
+          : `${action} failed — no connection to the server. Nothing was saved; try again when the connection returns.`)
+    : /relation .* does not exist/i.test(msg)
+      ? `${action} failed — migration not applied yet (check scripts/migrations/)`
+      : (he ? `${heAction} נכשלה — ${msg}` : `${action} failed — ${msg}`);
   toast(friendlier, 'error', { ttl: 8000 });
 }
 
