@@ -1,0 +1,154 @@
+=== GATES on ff98d59
+
+### node scripts/verify-bhbc-collapse.mjs  [02:10:56]
+Medical   6 box(es), 5 collapsed on click
+Games     6 box(es), 3 collapsed on click
+
+after reload: 3 box(es) on this tab, 0 open
+29 collapsible box(es) across 5 tabs
+
+
+0 - every box collapses and stays collapsed
+### exit=0
+
+### node scripts/verify-pt-no-backend.mjs  [02:12:15]
+online     : 884 chars, 10 squad numbers
+no backend : 1022 chars | 10 of 10 players (100%) | told: true | login wall: false
+             "BNEI HERZLIYA OVERVIEW ROSTER SCHEDULE WEIGHT ROOM MEDICAL GAMES עב SIGN OUT OFFLINE Showing the las"
+recovered  : roster is back
+
+
+0 - the club zone holds up with no backend
+### exit=0
+
+### node scripts/verify-mobile-overflow.mjs  [02:12:55]
+seat pt at 390px - 1 route(s)
+
+ok   /coach/bhbc                ltr he  scrollW 390/390  0 past the edge
+
+
+0 - nothing is cut off at 390px
+### exit=0
+
+### node scripts/verify-no-raw-values.mjs  [02:13:19]
+seat pt - 1 route(s) at 1500px
+
+ok   /coach/bhbc                  1601 chars
+
+
+0 - nothing internal reaches the screen
+### exit=0
+
+### node scripts/verify-no-raw-values.mjs  [02:13:43]
+seat pt - 1 route(s) at 1500px
+
+ok   /coach/bhbc                  1601 chars
+
+
+0 - nothing internal reaches the screen
+### exit=0
+
+### node scripts/verify-hebrew.mjs  [02:14:07]
+✓ slash-gender                 0  coaching text is masculine singular; slash-gender is form-speak
+✓ term-drift-shot              0  this app calls a shot זריקה everywhere else; קליעה is a second word for one thing
+✓ politeness-periphrasis       0  English "could you…?" politeness; he asks straight
+✓ spelling-drift               0  one word, two spellings - the platform writes תוכנית 44 times to 1
+✓ space-before-punctuation     0  shipped once already — a stray space before a comma read as a dangling comma
+✓ bare-participle-label        0  Ohad on "אימונים נגמרים": "is not even proper hebrew". A plural noun plus a bare plural participle is neither a label nor a sentence - it needs a relative ש or a different construction. The same fault had already shipped a second time as "חבילות נגמרות", which is why this is a RULE and not two string edits.
+
+0 violation(s) across 0 file(s).
+### exit=0
+
+### node scripts/verify-athlete-journey.mjs  [02:14:08]
+  ▸ PROGRAM         1744 chars
+  BW                 243 chars
+  MEAL LOG           239 chars
+  HISTORY (0)        126 chars
+  PRs                179 chars
+  MESSAGES           285 chars
+
+0 - the athlete journey runs clean
+### exit=0
+
+### node scripts/verify-athlete-no-backend.mjs  [02:15:02]
+online     : 1869 chars of session
+no backend : 1982 chars (106% of online) | empty state: false | told: true | login wall: false
+             "LOG OUT → Diego BLOCK #9 0/3 WEEK 12 LEFT OFFLINE Showing your last saved program. New logs are "
+recovered  : portal is back
+
+
+0 - the portal holds up with no backend
+### exit=0
+
+### node scripts/verify-no-raw-values.mjs  [02:15:57]
+ok   /coach/bugs                   152 chars
+ok   /coach/challenges             130 chars
+ok   /coach/calendar               417 chars
+ok   /coach/billing               2637 chars
+ok   /coach/bhbc                  1670 chars
+
+
+0 - nothing internal reaches the screen
+### exit=0
+
+### node scripts/verify-no-raw-values.mjs  [02:19:59]
+ok   /coach/bugs                   134 chars
+ok   /coach/challenges             153 chars
+ok   /coach/calendar               366 chars
+ok   /coach/billing               2431 chars
+ok   /coach/bhbc                  1670 chars
+
+
+0 - nothing internal reaches the screen
+### exit=0
+
+### node scripts/verify-mobile-overflow.mjs  [02:24:01]
+ok   /coach/bugs                ltr he  scrollW 390/390  0 past the edge
+ok   /coach/challenges          ltr he  scrollW 390/390  0 past the edge
+ok   /coach/calendar            ltr he  scrollW 390/390  0 past the edge
+ok   /coach/billing             ltr he  scrollW 390/390  0 past the edge
+ok   /coach/bhbc                ltr he  scrollW 390/390  0 past the edge
+
+
+0 - nothing is cut off at 390px
+### exit=0
+
+### node scripts/verify-mobile-overflow.mjs  [02:28:03]
+ok   /coach/bugs                rtl he  scrollW 390/390  0 past the edge
+ok   /coach/challenges          rtl he  scrollW 390/390  0 past the edge
+ok   /coach/calendar            rtl he  scrollW 390/390  0 past the edge
+ok   /coach/billing             rtl he  scrollW 390/390  0 past the edge
+ok   /coach/bhbc                ltr he  scrollW 390/390  0 past the edge
+
+
+0 - nothing is cut off at 390px
+### exit=0
+
+### node scripts/verify-offline-everywhere.mjs  [02:32:05]
+   /coach/sessions  37% kept
+   /coach/sessions-single  27% kept
+   /coach/chat-audit  13% kept
+   /coach/tasks  8% kept
+   /coach/billing  7% kept
+
+
+0 - all 23 page(s) still render with the backend unreachable
+### exit=0
+
+### node scripts/verify-athlete-offline.mjs  [02:40:33]
+online : 1744 chars, service worker NOT controlling
+
+SKIP  no service worker on this origin, so there is nothing to test offline.
+      A SW needs a secure context. 127.0.0.1 is secure but the app skips
+      registration there on purpose; the LAN IP registers but is plain HTTP,
+      which the browser refuses. Run it against HTTPS to check this for real:
+        BASE=https://expo-app.co.il node scripts/verify-athlete-offline.mjs
+### exit=0
+
+### node scripts/verify-marketing-site.mjs  [02:41:46]
+routes: 9 x langs: he/en = 18 pages
+programs found: foundation-12, hypertrophy-16, powerbuild-12, couples-12, rehab-return, athlete-conditioning-12
+
+0 - marketing site clean, 54 route/width combinations visited
+### exit=0
+=== DONE 02:47:37
