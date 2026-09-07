@@ -34,7 +34,10 @@ const shoot = async (base, job, tag) => {
   const pg = await b.newPage();
   // LANG=he walks the app in Hebrew. It has to be set before the FIRST
   // document: App reads the language at mount and writes it straight back.
-  if (process.env.LANG_APP) await pg.evaluateOnNewDocument((l) => { try { localStorage.setItem('expo-lang', l); } catch (e) { /* ignore */ } }, process.env.LANG_APP);
+  // The club ZONE keeps its own switch under a usePersistentState key; the
+  // app-level key does not move it, and a "Hebrew" zone pair taken without this
+  // came back English on both sides.
+  if (process.env.LANG_APP) await pg.evaluateOnNewDocument((l) => { try { localStorage.setItem('expo-lang', l); localStorage.setItem('expo-collapse:bhbc-lang', JSON.stringify(l)); } catch (e) { /* ignore */ } }, process.env.LANG_APP);
   const who = SEATS[job.seat];
   try {
     await pg.goto(base + '/login', { waitUntil: 'domcontentloaded', timeout: 90000 });
@@ -56,6 +59,12 @@ const shoot = async (base, job, tag) => {
     await wait(15000);
     await pg.evaluate(() => { const x = [...document.querySelectorAll('button,a')].find((e) => /maybe later|dismiss/i.test(e.textContent || '')); if (x) x.click(); }).catch(() => {});
     await wait(1200);
+    if (process.env.LANG_APP === 'he' && /\/coach\/bhbc/.test(job.route)) {
+      // Production may store the switch under an older key: if the zone still
+      // shows its "עב" toggle, the zone is English - click it.
+      const flipped = await pg.evaluate(() => { const t = [...document.querySelectorAll('button')].find((x) => (x.textContent || '').trim() === 'עב'); if (!t) return false; t.click(); return true; }).catch(() => false);
+      if (flipped) { console.log(`${tag} ${job.name}: zone switched to Hebrew by click`); await wait(4000); }
+    }
     const chars = await pg.evaluate(() => (document.body.innerText || '').length);
     const file = path.join(OUT, `${job.name}${process.env.LANG_APP ? '-' + process.env.LANG_APP : ''}-${tag}.png`);
     await pg.screenshot({ path: file, fullPage: true });

@@ -20,7 +20,31 @@ const img = (p) => { const d = b64(p); return d ? `<img alt="" src="data:image/p
 const commits = execSync(String.fromCharCode(103,105,116) + " log --format=\"%h|%s\" a4dd642~6..HEAD", { encoding: 'utf8' })
   .trim().split('\n').map((l) => { const [h, ...r] = l.split('|'); return { h, s: r.join('|') }; });
 
-const LIVE = (() => { try { return JSON.parse(fs.readFileSync('audit-out/pairs/pairs.json', 'utf8')); } catch { return []; } })();
+// The manifests are written by shoot-prod-vs-branch.mjs on Windows, so every
+// path in them carries backslashes; img() needs forward slashes or the image
+// silently fails to load.
+const readPairs = (f) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return []; } };
+const fwd = (p) => p.split(String.fromCharCode(92)).join('/');
+const LIVE = readPairs('audit-out/pairs/pairs.json');
+// pairs.json and pairs-he.json both carry `portal` and `pt-zone`, so the Hebrew
+// sections take an `he-` suffix or the page gets duplicate ids.
+const HE = readPairs('audit-out/pairs/pairs-he.json');
+const HE_TITLES = {
+  portal: ['The athlete portal, in Hebrew', 'An athlete who picks Hebrew on production still gets English: the portal renders outside the language provider, so the Hebrew that was already written never reaches the screen. On this branch it does.'],
+  'pt-zone': ['The club zone, in Hebrew, from the physio seat', 'The Medical tab carried 147 Latin words after the switch — the RTP ladder, the pain gate, the referral line, the availability pill, every readiness headline. Now 45, and every one is a name or shorthand a coach reads as English anyway.'],
+};
+// What an athlete meets on this branch that production does not show them.
+const ATHLETE = [
+  ['The portal in Hebrew at all', 'src/App.jsx', 'the early return rendered outside <LangCtx.Provider>; wrapped', 'The single largest athlete-visible difference in the branch. Everything below depends on it.'],
+  ['Dates', 'src/dates.js', '"27 August 2026" → "27 באוגוסט 2026"', 'The month word turns; the order never does. Numeric dates untouched.'],
+  ['Tabs, headings, mid-session words', 'src/ClientPortal.jsx · src/i18n.js', 'תוכנית · משקל · יומן אוכל · היסטוריה · שיאים · הודעות', 'Warm-up flow, bodyweight and history headings, READINESS GRAPH → and NOTE, the arrow turning with the text.'],
+  ['Opens offline', 'src/ClientPortal.jsx', 'a plan snapshot per client + an OFFLINE notice on all six tabs', 'No network, the last plan still opens.'],
+  ['Install prompt', 'src/InstallAppPrompt.jsx', 'had no translator; spoke English to everyone', 'It mounts outside every provider, so it reads the language itself.'],
+  ['Messages', 'src/CoachMessages.jsx', 'had no translator', 'The athlete’s messages tab speaks Hebrew.'],
+  ['PRs picker', 'src/TraineePRsView.jsx', 'session count moved out of the input', 'It clipped mid-word at phone width.'],
+  ['Floor grid names', 'src/SessionsView.jsx', 'raw id (tr_ron) → the name, or a neutral label', 'Deliberately never resolved from the club roster: an EXPO athlete’s identity must not leak into the club zone.'],
+  ['Meal log', 'src/MealLogger.jsx', 'error strings, day labels and totals', 'Still English on this branch — deferred at handoff, queued for this shift.'],
+];
 const LIVE_TITLES = {
   bhbc: ['The club zone, as the coach sees it', 'Weight Room did not exist; the dashboard printed the same facts three and four times over.'],
   dashboard: ['The EXPO coach dashboard', 'Unchanged by tonight - shown so the gap is the whole gap, not a selection.'],
@@ -86,8 +110,10 @@ h2{font-family:"Nord",sans-serif;font-size:13px;letter-spacing:.14em;text-transf
 figure{margin:0;background:var(--sf);border:1px solid var(--bd)}
 figcaption{font-family:"Nord",sans-serif;font-size:10px;letter-spacing:.14em;text-transform:uppercase;padding:8px 11px;border-bottom:1px solid var(--bd);color:var(--tm)}
 figure.after figcaption{color:var(--cy)}
-.shot{max-height:760px;overflow:auto}
+.shot{height:760px;overflow:auto;scrollbar-width:thin}
 img{width:100%;display:block}
+.pair.rtl figure{direction:rtl}
+.pair.rtl figcaption{text-align:right}
 .missing{padding:40px 14px;text-align:center;color:var(--tm);font-size:12px}
 .note{margin:12px 0 0;color:var(--tm);font-size:12.5px;max-width:80ch}
 table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
@@ -143,10 +169,31 @@ ${css}
     <h2>${(LIVE_TITLES[p.name] || [p.name])[0]}</h2>
     <p class="lead">${(LIVE_TITLES[p.name] || ['', ''])[1] || ''} <span style="color:var(--tm)">${p.seat} · ${p.route}</span></p>
     <div class="pair">
-      <figure><figcaption>Live · expo-app.co.il</figcaption><div class="shot">${p.before ? img(p.before.file.split(String.fromCharCode(92)).join('/')) : '<div class="missing">not captured</div>'}</div></figure>
-      <figure class="after"><figcaption>This branch</figcaption><div class="shot">${p.after ? img(p.after.file.split(String.fromCharCode(92)).join('/')) : '<div class="missing">not captured</div>'}</div></figure>
+      <figure><figcaption>Live · expo-app.co.il</figcaption><div class="shot">${p.before ? img(fwd(p.before.file)) : '<div class="missing">not captured</div>'}</div></figure>
+      <figure class="after"><figcaption>This branch</figcaption><div class="shot">${p.after ? img(fwd(p.after.file)) : '<div class="missing">not captured</div>'}</div></figure>
     </div>
   </section>`).join('')}
+
+  <section>
+    <h2>What the athlete gets — the portal, and the club's physio, in Hebrew</h2>
+    <p class="lead">Same seats, same routes, same width, with the language set to Hebrew before the first document. Left is production as it stands; right is this branch.</p>
+  </section>
+  ${HE.map((p) => `
+  <section id="live-he-${p.name}">
+    <h2>${(HE_TITLES[p.name] || [p.name])[0]}</h2>
+    <p class="lead">${(HE_TITLES[p.name] || ['', ''])[1] || ''} <span style="color:var(--tm)">${p.seat} · ${p.route} · he</span></p>
+    <div class="pair rtl">
+      <figure><figcaption>Live · expo-app.co.il</figcaption><div class="shot">${p.before ? img(fwd(p.before.file)) : '<div class="missing">not captured</div>'}</div></figure>
+      <figure class="after"><figcaption>This branch</figcaption><div class="shot">${p.after ? img(fwd(p.after.file)) : '<div class="missing">not captured</div>'}</div></figure>
+    </div>
+  </section>`).join('')}
+  <section>
+    <h2>Every change an athlete can meet, by file</h2>
+    <table>
+      <tr><th>What</th><th>Where</th><th>Change</th><th>Why it matters</th></tr>
+      ${ATHLETE.map(([a, b, c, d]) => `<tr><td class="k">${a}</td><td>${b}</td><td class="v" style="white-space:normal">${c}</td><td>${d}</td></tr>`).join('')}
+    </table>
+  </section>
 
   <section><h2>The changes, one at a time</h2><p class="lead">Each of these is a single decision, with the screen before it and after it.</p></section>
   ${PAIRS.map(section).join('')}
@@ -165,7 +212,31 @@ ${css}
   </section>
 
   <p class="note" style="margin-top:30px">Built ${new Date().toISOString().slice(0, 16).replace('T', ' ')} · rebuild with <code>node scripts/build-tonight.mjs</code></p>
-</div></body></html>`;
+</div>
+<script>
+// "make sure everything on the localhost is aligned ... for easy choice of
+// before and after": both panes of a pair are the same height, and scrolling
+// one scrolls the other by the same FRACTION, so a screen that grew or shrank
+// still lines up at the point being compared. The flag stops the echo.
+(function () {
+  document.querySelectorAll('.pair').forEach(function (pair) {
+    var shots = Array.prototype.slice.call(pair.querySelectorAll('.shot'));
+    if (shots.length < 2) return;
+    var busy = false;
+    shots.forEach(function (a) {
+      a.addEventListener('scroll', function () {
+        if (busy) return;
+        busy = true;
+        var range = a.scrollHeight - a.clientHeight;
+        var f = range > 0 ? a.scrollTop / range : 0;
+        shots.forEach(function (b) { if (b !== a) b.scrollTop = f * (b.scrollHeight - b.clientHeight); });
+        requestAnimationFrame(function () { busy = false; });
+      }, { passive: true });
+    });
+  });
+})();
+</script>
+</body></html>`;
 
 fs.writeFileSync(OUT, html);
 console.log(`${OUT}  (${(fs.statSync(OUT).size / 1048576).toFixed(1)} MB, ${commits.length} commits)`);
