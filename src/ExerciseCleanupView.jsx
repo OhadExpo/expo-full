@@ -13,6 +13,7 @@ import { C, FN, FB } from './theme';
 import { Card, Btn, EmptyState, ConfirmDialog, toast } from './ui';
 import { normTitle } from './exerciseMatch';
 import { supabase } from './supabase';
+import { useT } from './i18n';
 
 // Returns { level: 'definite'|'suspicious', reason } or null.
 export function trashVerdict(title) {
@@ -45,6 +46,7 @@ export function trashVerdict(title) {
 }
 
 export default function ExerciseCleanupView({ exercises = [], setExercises }) {
+  const tt = useT();
   const [plans, setPlans] = useState(null);
   const [checked, setChecked] = useState(null); // Set of ids; null = not initialized
   const [confirm, setConfirm] = useState(false);
@@ -92,7 +94,7 @@ export default function ExerciseCleanupView({ exercises = [], setExercises }) {
     const killed = rows.filter((r) => sel.has(r.ex.id)).length;
     setExercises((prev) => (prev || []).filter((ex) => !sel.has(ex.id)));
     setChecked(new Set());
-    toast(`${killed} trash entr${killed === 1 ? 'y' : 'ies'} deleted — affected plan rows now appear in Matching`);
+    toast(`${killed} ${tt(killed === 1 ? 'trash entry deleted' : 'trash entries deleted')} — ${tt('affected plan rows now appear in Matching')}`);
   };
 
   const th = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm };
@@ -101,22 +103,22 @@ export default function ExerciseCleanupView({ exercises = [], setExercises }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 1100, margin: '0 auto', padding: '4px 0 60px' }}>
-      <Card leftStripe={C.or} header="Library Cleanup" headerRight={
+      <Card leftStripe={C.or} header={tt('Library Cleanup')} headerRight={
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <span style={{ ...th, color: '#fff' }}>{rows.length} flagged · {sel.size} selected</span>
-          <Btn variant="ghost" onClick={() => setAll(null, true)}>Select all</Btn>
-          <Btn variant="ghost" onClick={() => setAll(null, false)}>Clear</Btn>
-          <Btn disabled={!sel.size} onClick={() => setConfirm(true)} style={{ background: sel.size ? '#DE4E3B' : undefined, borderColor: sel.size ? '#DE4E3B' : undefined, color: sel.size ? '#fff' : undefined }}>Delete {sel.size} selected</Btn>
+          <span style={{ ...th, color: '#fff' }}>{rows.length} {tt('flagged')} · {sel.size} {tt('selected')}</span>
+          <Btn variant="ghost" onClick={() => setAll(null, true)}>{tt('Select all')}</Btn>
+          <Btn variant="ghost" onClick={() => setAll(null, false)}>{tt('Clear')}</Btn>
+          <Btn disabled={!sel.size} onClick={() => setConfirm(true)} style={{ background: sel.size ? '#DE4E3B' : undefined, borderColor: sel.size ? '#DE4E3B' : undefined, color: sel.size ? '#fff' : undefined }}>{tt('Delete')} {sel.size} {tt('selected')}</Btn>
         </div>}>
         <div style={{ fontFamily: FB, fontSize: 12.5, color: C.td }}>
-          Entries that look like set/rep prescriptions, warmup notes or markers — not real exercises. <b style={{ color: C.tx }}>{nDef} definite</b>, <b style={{ color: C.tx }}>{nSus} suspicious</b>. Pre-checked = definite AND unreferenced AND no video/cues; everything else waits for your eye. Deleting sends any plan rows that used them to the Matching screen to be re-pointed at real exercises.
+          {tt('Entries that look like set/rep prescriptions, warmup notes or markers — not real exercises.')} <b style={{ color: C.tx }}>{nDef} {tt('definite')}</b>, <b style={{ color: C.tx }}>{nSus} {tt('suspicious')}</b>. {tt('Pre-checked = definite AND unreferenced AND no video/cues; everything else waits for your eye. Deleting sends any plan rows that used them to the Matching screen to be re-pointed at real exercises.')}
         </div>
       </Card>
 
       {plans === null ? (
-        <div style={{ padding: 40, textAlign: 'center', color: C.tm, fontFamily: FN, letterSpacing: '0.18em' }}>SCANNING…</div>
+        <div style={{ padding: 40, textAlign: 'center', color: C.tm, fontFamily: FN, letterSpacing: '0.18em' }}>{tt('SCANNING…')}</div>
       ) : rows.length === 0 ? (
-        <EmptyState message="Library is clean — no trash-looking entries detected." />
+        <EmptyState message={tt('Library is clean — no trash-looking entries detected.')} />
       ) : (
         <Card>
           {/* Five fixed columns need 388px before the title column gets a pixel;
@@ -128,18 +130,18 @@ export default function ExerciseCleanupView({ exercises = [], setExercises }) {
               itself. 700 leaves the title 312px; the container still scrolls. */}
           <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
           <div style={{ minWidth: 700, display: 'grid', gridTemplateColumns: '28px 1fr 170px 90px 60px', gap: 10, padding: '0 2px 8px', borderBottom: `1px solid ${C.bd}`, ...th }}>
-            <span /><span>Title</span><span>Why flagged</span><span style={{ textAlign: 'center' }}>Plan rows</span><span style={{ textAlign: 'center' }}>Has</span>
+            <span /><span>{tt('Title')}</span><span>{tt('Why flagged')}</span><span style={{ textAlign: 'center' }}>{tt('Plan rows')}</span><span style={{ textAlign: 'center' }}>{tt('Has')}</span>
           </div>
           <div style={{ minWidth: 700, display: 'flex', flexDirection: 'column' }} data-allow-copy>
             {rows.map((r) => (
               <label key={r.ex.id} style={{ display: 'grid', gridTemplateColumns: '28px 1fr 170px 90px 60px', gap: 10, alignItems: 'center', padding: '7px 2px', borderBottom: `1px solid ${C.bd}`, cursor: 'pointer', opacity: sel.has(r.ex.id) ? 1 : 0.72 }}>
                 <input type="checkbox" checked={sel.has(r.ex.id)} onChange={() => toggle(r.ex.id)} style={{ accentColor: '#DE4E3B', width: 15, height: 15 }} />
                 <span style={{ fontFamily: FN, fontSize: 12.5, fontWeight: 600, color: C.tx, minWidth: 0, overflowWrap: 'break-word' }} title={r.ex.title || r.ex.t}>{r.ex.title || r.ex.t}</span>
-                <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: r.level === 'definite' ? '#DE4E3B' : C.or }}>{r.reason}</span>
+                <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: r.level === 'definite' ? '#DE4E3B' : C.or }}>{tt(r.reason)}</span>
                 <span style={{ fontFamily: FN, fontSize: 11, color: (r.idRefs + r.titleRefs) ? C.or : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{Math.max(r.idRefs, r.titleRefs) || '—'}</span>
                 <span style={{ textAlign: 'center', fontFamily: FN, fontSize: 9 }}>
-                  {r.ex.videoLink && <span style={{ color: C.ac }} title="has video">▶ </span>}
-                  {(r.ex.cues || r.ex.notes) && <span style={{ color: C.tm }} title="has cues/notes">✎</span>}
+                  {r.ex.videoLink && <span style={{ color: C.ac }} title={tt('has video')}>▶ </span>}
+                  {(r.ex.cues || r.ex.notes) && <span style={{ color: C.tm }} title={tt('has cues/notes')}>✎</span>}
                 </span>
               </label>
             ))}
@@ -149,8 +151,8 @@ export default function ExerciseCleanupView({ exercises = [], setExercises }) {
       )}
 
       <ConfirmDialog open={confirm} onCancel={() => setConfirm(false)} onConfirm={doDelete}
-        title="Delete trash entries?"
-        message={`Permanently removes ${sel.size} librar${sel.size === 1 ? 'y entry' : 'y entries'}. Plan rows that used them lose their link and will appear in the Matching screen for re-pointing. A dated backup of the library exists from today.`} />
+        title={tt('Delete trash entries?')}
+        message={`${tt('Permanently removes')} ${sel.size} ${tt(sel.size === 1 ? 'library entry' : 'library entries')}. ${tt('Plan rows that used them lose their link and will appear in the Matching screen for re-pointing. A dated backup of the library exists from today.')}`} />
     </div>
   );
 }
