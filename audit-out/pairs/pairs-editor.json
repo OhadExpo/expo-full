@@ -1,0 +1,16 @@
+[
+  {
+    "seat": "owner",
+    "route": "/coach/programs",
+    "name": "program-he",
+    "tab": "^Block #19",
+    "before": {
+      "file": "audit-out\\pairs\\program-he-he-live.png",
+      "chars": 5712
+    },
+    "after": {
+      "file": "audit-out\\pairs\\program-he-he-branch.png",
+      "chars": 5275
+    }
+  }
+]

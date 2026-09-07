@@ -68,7 +68,7 @@ const shoot = async (base, job, tag) => {
       if (flipped) { console.log(`${tag} ${job.name}: zone switched to Hebrew by click`); await wait(4000); }
     }
     if (job.tab) {
-      const hit = await pg.evaluate((rx) => { const re = new RegExp(rx, 'i'); const el = [...document.querySelectorAll('button,[role="tab"]')].find((b) => re.test((b.textContent || '').trim())); if (!el) return null; el.click(); return (el.textContent || '').trim(); }, job.tab).catch(() => null);
+      const hit = await pg.evaluate((rx) => { const re = new RegExp(rx, 'i'); const el = [...document.querySelectorAll('button,[role="tab"],[role="button"],h2,h3,a')].find((b) => re.test((b.textContent || '').trim())); if (!el) return null; el.click(); return (el.textContent || '').trim(); }, job.tab).catch(() => null);
       console.log(tag + ' ' + job.name + ': tab ' + (hit ? 'clicked "' + hit + '"' : 'NOT FOUND (' + job.tab + ')'));
       await wait(5000);
     }
