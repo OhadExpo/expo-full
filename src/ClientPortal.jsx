@@ -89,6 +89,7 @@ const splitPrescription = (str) => {
 // "2x10 e" reps cell stays verbatim (splitting it there would fabricate a sets
 // count and mislabel the trailing tempo token). Renders "—" when both empty.
 function SetsRepsHero({ sets, reps, splitCombined = false }) {
+  const tt = useAppT();
   let sStr = String(sets ?? '').trim();
   let rStr = String(reps ?? '').trim();
   if (splitCombined && !sStr && rStr) {
@@ -121,9 +122,9 @@ function SetsRepsHero({ sets, reps, splitCombined = false }) {
   );
   return (
     <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 14 }}>
-      {col(sStr, 'SETS')}
+      {col(sStr, tt('SETS'))}
       <span style={{ fontSize: 14, color: C.tm, fontWeight: 400, fontFamily: FN, lineHeight: 1 }}>×</span>
-      {col(rStr, 'REPS')}
+      {col(rStr, tt('REPS'))}
     </div>
   );
 }
@@ -1988,7 +1989,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           not an all-time best. */}
       <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:14,marginBottom:14}}>
         <div style={{display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 40px',gap:4,marginBottom:4}}>
-          {['','REPS','KG','RPE','✓'].map(h => <div key={h} style={{fontSize:10.5,fontFamily:FN,fontWeight:700,letterSpacing:'0.08em',color:C.tm,textAlign:'center'}}>{h}</div>)}</div>
+          {['',tt('REPS'),'KG','RPE','✓'].map(h => <div key={h} style={{fontSize:10.5,fontFamily:FN,fontWeight:700,letterSpacing:'0.08em',color:C.tm,textAlign:'center'}}>{h}</div>)}</div>
         {(allSets[ei]||[]).map((set,si) => {
           // Ghost row above each set: REPS/KG/RPE the trainee logged for
           // this same set index last week. Aligned to the input columns
