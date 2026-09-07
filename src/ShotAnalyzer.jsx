@@ -270,7 +270,7 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
       {/* top bar */}
       <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.12)', background: 'rgba(0,0,0,0.92)', flexWrap: 'wrap' }}>
         <button onClick={onClose} style={{ ...ghost, ...boxed(CTL_SM), padding: '0 12px', fontSize: 10 }}>{T.back}</button>
-        <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', color: CYAN }}>{toolLabel}</div>
+        <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', color: CYAN }}>{lang === 'he' && T.toolTitle ? T.toolTitle : toolLabel}</div>
         <button onClick={() => setLangPersist(lang === 'he' ? 'en' : 'he')} title={T.langTitle} style={{ ...chip(false), fontSize: 10 }}>{T.langBtn}</button>
         <div className="shot-bar-spacer" style={{ flex: 1 }} />
         {/* Every option stays on screen (Ohad 08-24: "it was way better with the
@@ -404,6 +404,15 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
   const { series } = result;
   const n = series.n;
   const [cur, setCur] = useState(shot.cycle.release);
+  // MAKES. The analyser scores mechanics; it has never seen the rim, so it
+  // cannot know whether a shot went in - and it must not guess. The coach marks
+  // each detected shot MADE or MISSED and the counter is exactly those marks,
+  // nothing inferred. (Ohad, 2026-09-07: "can you also add a makes/shots
+  // counter".) Keyed by the shot's own index so it survives re-scoring.
+  const [made, setMade] = useState({});
+  const madeCount = Object.values(made).filter((v) => v === true).length;
+  const unmarkedCount = result.shots.filter((x) => made[x.index] === undefined).length;
+  useEffect(() => { setMade({}); }, [result]);
   const [playing, setPlaying] = useState(false);
   // Which MOMENT of the shot the coach is looking at. Switching shots keeps
   // the same moment (follow-through → follow-through), never jumps back to
@@ -569,7 +578,7 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
   const save = () => {
     try {
       const all = JSON.parse(localStorage.getItem(SAVE_KEY) || '[]');
-      all.unshift({ date: new Date().toISOString(), hand, score: shot.score, shots: result.shots.length, checks: shot.checks.map((c) => ({ key: c.key, value: c.value, status: c.status })), info: shot.info });
+      all.unshift({ date: new Date().toISOString(), hand, score: shot.score, shots: result.shots.length, makes: madeCount, marked: result.shots.length - unmarkedCount, checks: shot.checks.map((c) => ({ key: c.key, value: c.value, status: c.status })), info: shot.info });
       localStorage.setItem(SAVE_KEY, JSON.stringify(all.slice(0, 50)));
       setSavedTick((v) => v + 1);
       toast(T.savedToast, 'success');
@@ -680,7 +689,7 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
               : <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.4)', fontFamily: FN, fontSize: 11, letterSpacing: '0.14em' }}>POSE TRACK</div>}
             <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }} />
             {phaseAt && <div style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(0,0,0,0.7)', border: `1px solid ${CYAN}`, color: CYAN, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', padding: '3px 8px' }}>{phaseAt.label}</div>}
-            <div style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(0,0,0,0.7)', fontFamily: FN, fontSize: 10, letterSpacing: '0.08em', padding: '3px 8px', color: 'rgba(255,255,255,0.8)' }}>F{cur + 1}/{n} · {fmt(tMs / 1000, 2)}s</div>
+            <div style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(0,0,0,0.7)', fontFamily: FN, fontSize: 10, letterSpacing: '0.08em', padding: '3px 8px', color: 'rgba(255,255,255,0.8)' }}>{T.frameOf ? T.frameOf(cur + 1, n, fmt(tMs / 1000, 2)) : `F${cur + 1}/${n} · ${fmt(tMs / 1000, 2)}s`}</div>
           </div>
           {/* transport */}
           <div className="shot-noprint" style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
@@ -704,8 +713,14 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
               auto-fit wraps to a second row instead of shrinking past the
               widest label, and the ellipsis is gone so a squeeze can never be
               silent again. Columns stay equal width either way. */}
-          <div className="shot-noprint" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(76px, 1fr))', gap: 4, marginTop: 8 }}>
-            {shot.phases.map((p) => <button key={p.key} onClick={() => { setPhaseKey(p.key); seekTo(p.idx); }} style={{ ...chip(cur === p.idx), padding: '0 4px', minWidth: 0, letterSpacing: '0.06em', whiteSpace: 'nowrap' }} title={T.phaseJump(p.label)}>{p.label}</button>)}
+          {/* TWO FULL ROWS. auto-fit put five chips on the first row and left
+              two orphans on the second (Ohad, 2026-09-07: "the buttons are
+              still a mess ... i need an equal spreading of the buttons across
+              the two rows"). Each chip's basis is a half-row's share, so the
+              first row takes ceil(n/2) chips and the rest grow to fill the
+              second - both rows full, every chip in a row the same width. */}
+          <div className="shot-noprint" style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 8 }}>
+            {shot.phases.map((p) => <button key={p.key} onClick={() => { setPhaseKey(p.key); seekTo(p.idx); }} style={{ ...chip(cur === p.idx), padding: '0 4px', minWidth: 0, flex: `1 1 calc(${100 / Math.ceil(shot.phases.length / 2)}% - 4px)`, letterSpacing: '0.06em', whiteSpace: 'nowrap' }} title={T.phaseJump(p.label)}>{p.label}</button>)}
           </div>
           {/* per-frame readout */}
           {/* Ordered up the body, four to a row: ground → trunk → shoulder on the
@@ -759,6 +774,16 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
               <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12, marginTop: 3, lineHeight: 1.5 }}>
                 {T.summary(fixes.length, watches.length, shot.checks.length - fixes.length - watches.length, T.quality[result.quality] || result.quality, Math.round((result.coverage || 0) * 100), result.fps)}
               </div>
+              <div className="shot-noprint" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+                <span style={{ ...lbl, letterSpacing: '0.06em' }}>{T.markShot}</span>
+                <button onClick={() => setMade((m) => ({ ...m, [shot.index]: true }))}
+                  style={{ ...chip(made[shot.index] === true), ...(made[shot.index] === true ? { borderColor: '#37B27C', color: '#37B27C', background: 'rgba(55,178,124,0.10)' } : null) }}>✓ {T.made}</button>
+                <button onClick={() => setMade((m) => ({ ...m, [shot.index]: false }))}
+                  style={{ ...chip(made[shot.index] === false), ...(made[shot.index] === false ? { borderColor: '#F26A2B', color: '#F26A2B', background: 'rgba(242,106,43,0.10)' } : null) }}>✗ {T.missed}</button>
+                <div style={{ flex: 1 }} />
+                <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', color: CYAN }}>{T.makes(madeCount, result.shots.length)}</span>
+                {unmarkedCount > 0 && <span style={{ ...lbl, letterSpacing: '0.06em' }}>{T.unmarked(unmarkedCount)}</span>}
+              </div>
               {result.shots.length > 1 && (
                 <div className="shot-noprint" style={{ marginTop: 8 }}>
                   {/* WHICH SHOT AM I LOOKING AT — a clip can hold many shots; the
@@ -789,7 +814,7 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
               long ones (chain order, session consistency) get a row each
               instead of stretching one tile taller than its neighbours. */}
           <div className="shot-info" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 6, marginBottom: 14 }}>
-            {[[T.info.dipToRelease, shot.info.dipToReleaseMs != null ? shot.info.dipToReleaseMs + ' ms' : '—'],
+            {[[T.info.dipToRelease, shot.info.dipToReleaseMs != null ? shot.info.dipToReleaseMs + (T.unitMs || ' ms') : '—'],
               // Third slot = an action for the value. Only the height prompt has
               // one; every other tile is a reading, and a reading is not a button.
               [T.info.jumpRise, shot.info.jumpRiseCm != null ? shot.info.jumpRiseCm + ' cm' : T.enterHeight,
@@ -802,7 +827,7 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
               // Scaled off the ball itself — no calibration, nothing to enter.
               [T.info.ballSpeed, shot.info.ballSpeedMs != null ? shot.info.ballSpeedMs + ' m/s' : '—'],
               [T.info.ballRise, shot.info.ballRiseM != null ? shot.info.ballRiseM + ' m' : '—'],
-              [T.info.releaseVsApex, shot.raw.timing == null ? '—' : (shot.raw.timing > 0 ? '+' : '') + Math.round(shot.raw.timing) + ' ms'],
+              [T.info.releaseVsApex, shot.raw.timing == null ? '—' : (shot.raw.timing > 0 ? '+' : '') + Math.round(shot.raw.timing) + (T.unitMs || ' ms')],
               [T.info.tracked, shot.info.coverage != null ? T.ofFrames(Math.round(shot.info.coverage * 100)) : '—']].map(([k, v, act]) => (
               <div key={k} style={{ border: '1px solid rgba(255,255,255,0.12)', padding: '6px 8px', minHeight: 46, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}><div style={lbl}>{k}</div>
                 {act
@@ -942,12 +967,12 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
                        return (
                         <tr key={i} onClick={() => setShotIdx(i)} style={{ cursor: 'pointer', background: i === shotIdx ? 'rgba(57,189,255,0.10)' : 'transparent', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
                           <td style={{ padding: '6px 8px', fontWeight: 700, color: i === shotIdx ? CYAN : '#FFF' }}>{s.index}</td>
-                          <td style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.7)' }}>{fmt(series.tMs[s.cycle.release] / 1000, 1)}s</td>
+                          <td style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.7)' }}>{fmt(series.tMs[s.cycle.release] / 1000, 1)}{T.unitS || 's'}</td>
                           <td style={{ padding: '6px 8px', fontWeight: 700, color: st.color }}>{s.score ?? '—'}</td>
                           <td style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.8)' }}>{fmt(s.raw.dip)}°</td>
                           <td style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.8)' }}>{fmt(s.raw.setElbow)}°</td>
                           <td style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.8)' }}>{fmt(s.raw.releaseArm)}°</td>
-                          <td style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.8)' }}>{s.raw.timing == null ? '—' : (s.raw.timing > 0 ? '+' : '') + Math.round(s.raw.timing) + 'ms'}</td>
+                          <td style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.8)' }}>{s.raw.timing == null ? '—' : (s.raw.timing > 0 ? '+' : '') + Math.round(s.raw.timing) + (T.unitMs || 'ms').trim()}</td>
                           {/* RELEASE HEIGHT, not "fix first". Ohad: "fix first is
                               useless you may remove it and fill it with something more
                               importnant". He was right, and the git history already
@@ -966,6 +991,9 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
                             {s.info.releaseHeightCm != null
                               ? `${s.info.releaseHeightCm} cm`
                               : (s.info.releaseHeightRatio != null ? `${s.info.releaseHeightRatio.toFixed(2)}×` : '—')}
+                          </td>
+                          <td style={{ padding: '6px 8px', fontWeight: 700, color: made[s.index] === true ? '#37B27C' : made[s.index] === false ? '#F26A2B' : 'rgba(255,255,255,0.35)' }}>
+                            {made[s.index] === true ? '✓' : made[s.index] === false ? '✗' : '—'}
                           </td>
                         </tr>
                       );
@@ -1053,7 +1081,7 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
                 <div key={a.date} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 60px', alignItems: 'center', gap: 8, padding: '3px 0', fontSize: 12.5 }}>
                   <span dir="ltr" style={{ unicodeBidi: 'isolate', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {T.savedRow
-                      ? T.savedRow(fmtNumericDate(a.date), a.score, a.shots ?? 1)
+                      ? T.savedRow(fmtNumericDate(a.date), a.score, a.shots ?? 1) + (a.marked > 0 && T.savedRowMakes ? T.savedRowMakes(a.makes || 0, a.marked) : '')
                       : `${fmtNumericDate(a.date)} - ${a.score}/100`}
                   </span>
                   <button onClick={() => dropSaved(a.date)} style={{ ...chip(false), fontSize: 9 }} title={T.savedDrop || 'Remove'}>{T.savedDrop || 'Remove'}</button>
@@ -1066,8 +1094,14 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
             {shot.checks.map((c, i) => {
               const st = ST[c.status];
               const open = openGuide.has(c.key);
-              const phaseKey = { dip: 'dip', setHeight: 'set', setElbow: 'set', elbowAlign: 'set', releaseExt: 'release', releaseArm: 'release', timing: 'release', follow: 'follow', trunk: 'release' }[c.key];
+              const PHASE_OF = { dip: 'dip', setHeight: 'set', setElbow: 'set', elbowAlign: 'set', releaseExt: 'release', releaseArm: 'release', timing: 'release', follow: 'follow', trunk: 'release' };
+              const phaseKey = PHASE_OF[c.key];
               const ph = shot.phases.find((p) => p.key === phaseKey);
+              // One jump per FRAME, not per row. Three set-point checks and four
+              // release checks each carried a ▸ to the same frame (Ohad,
+              // 2026-09-07: "too many play buttons next to the checkpoints that
+              // lead to the same frame"). The first row of a phase keeps it.
+              const showJump = !!ph && (i === 0 || PHASE_OF[shot.checks[i - 1].key] !== phaseKey);
               return (
                 <div key={c.key} className="shot-check-row" style={{ borderTop: i ? '1px solid rgba(255,255,255,0.1)' : 'none' }}>
                   {/* GRID, not flex: fixed trailing columns so every value, gain,
@@ -1084,7 +1118,7 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
                     <span dir="ltr" title={gainOf(c) > 0 ? T.gainPts(gainOf(c)) : undefined} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
                       color: 'rgba(255,255,255,0.5)', unicodeBidi: 'isolate', whiteSpace: 'nowrap', textAlign: 'right' }}>{c.status !== 'ok' && c.status !== 'na' && gainOf(c) > 0 ? `+${gainOf(c)}` : ''}</span>
                     <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: st.color, border: `1px solid ${st.color}`, height: 18, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, padding: '0 4px' }}>{st.label}</span>
-                    {ph ? <button className="shot-noprint" onClick={(e) => { e.stopPropagation(); setPhaseKey(ph.key); seekTo(ph.idx); }} style={{ ...chip(false), width: 26, height: 18, boxSizing: 'border-box', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }} title={T.jumpFrame}>▸</button> : <span />}
+                    {showJump ? <button className="shot-noprint" onClick={(e) => { e.stopPropagation(); setPhaseKey(ph.key); seekTo(ph.idx); }} style={{ ...chip(false), width: 26, height: 18, boxSizing: 'border-box', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }} title={T.jumpFrame}>▸</button> : <span />}
                     <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, transform: open ? 'rotate(180deg)' : 'none', height: 18, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}><svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
                   </div>
                   {open && (
@@ -1123,6 +1157,7 @@ function SessionPanel({ result, T }) {
   const c = useMemo(() => sessionConclusions(result.shots), [result]);
   if (!c || c.reps < 2) return null;
   const pct = (x) => Math.round(x * 100) + '%';
+  const name = (t) => (T && T.checks && T.checks[t.key] && T.checks[t.key].label) || t.label;
   const Row = ({ title, color, items, render }) => {
     if (!items || !items.length) return null;
     return (
@@ -1145,11 +1180,11 @@ function SessionPanel({ result, T }) {
           .replace('{s}', c.band == null ? '—' : c.band)}
       </div>
       <Row title={T.sessionSolid || 'HOLDING UP'} color="#37B27C" items={c.solid}
-        render={(t) => (T.sessionSolidLine ? T.sessionSolidLine(t.label, t.ok, t.n) : `${t.label} — right on ${t.ok} of ${t.n}`)} />
+        render={(t) => (T.sessionSolidLine ? T.sessionSolidLine(name(t), t.ok, t.n) : `${name(t)} — right on ${t.ok} of ${t.n}`)} />
       <Row title={T.sessionBroken || 'WRONG ON MOST REPS'} color="#FF4757" items={c.broken}
-        render={(t) => (T.sessionBrokenLine ? T.sessionBrokenLine(t.label, t.fix, t.n) : `${t.label} — off on ${t.fix} of ${t.n}`)} />
+        render={(t) => (T.sessionBrokenLine ? T.sessionBrokenLine(name(t), t.fix, t.n) : `${name(t)} — off on ${t.fix} of ${t.n}`)} />
       <Row title={T.sessionWander || 'INCONSISTENT (REPEAT, DO NOT CHANGE)'} color="#E0A73A" items={c.wandering}
-        render={(t) => (T.sessionWanderLine ? T.sessionWanderLine(t.label, pct(t.okRate)) : `${t.label} — right ${pct(t.okRate)} of the time`)} />
+        render={(t) => (T.sessionWanderLine ? T.sessionWanderLine(name(t), pct(t.okRate)) : `${name(t)} — right ${pct(t.okRate)} of the time`)} />
       {c.trend && (
         <div style={{ marginTop: 8, fontSize: 12.5, color: trendColor }}>
           {c.trend.dir === 'flat'
@@ -1162,7 +1197,7 @@ function SessionPanel({ result, T }) {
       {c.focus.length > 0 && (
         <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.12)' }}>
           <div style={{ ...lbl, color: CYAN, marginBottom: 3 }}>{T.sessionFocus || 'FOCUS NEXT SESSION'}</div>
-          <div style={{ fontSize: 13, lineHeight: 1.5 }}>{c.focus.map((t) => t.label).join(' · ')}</div>
+          <div style={{ fontSize: 13, lineHeight: 1.5 }}>{c.focus.map((t) => name(t)).join(' · ')}</div>
         </div>
       )}
     </div>
@@ -1198,7 +1233,7 @@ function Timeline({ series, shot, cur, onSeek, T, hand }) {
   // Every angle here is measured on the SHOOTING side - the engine reads
   // side(hand) for all of them. The graph never said so, and neither did the
   // metric boxes, so "which knee?" had no answer on screen (Ohad 08-30).
-  const SIDE = hand === 'L' ? 'L' : 'R';
+  const SIDE = (T && T.sideShort && T.sideShort[hand === 'L' ? 'L' : 'R']) || (hand === 'L' ? 'L' : 'R');
   const TRACES = [
     { id: 'knee', label: T.legend.knee, color: '#39BDFF', data: series.sm.knee, lo: 60, hi: 180, unit: '°', dec: 0 },
     { id: 'hipY', label: T.legend.hipHeight, color: '#2ED573', data: series.sm.hipY, lo: hipLo, hi: hipHi, unit: '', dec: 3 },

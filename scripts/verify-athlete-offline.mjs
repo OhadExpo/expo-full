@@ -65,13 +65,30 @@ try {
   await pg.goto(BASE + '/athlete', { waitUntil: 'domcontentloaded', timeout: 60000 });
   await wait(12000);
   await pg.evaluate(() => {
-    const x = [...document.querySelectorAll('button,a')].find((e) => /maybe later|dismiss/i.test(e.textContent || ''));
+    const x = [...document.querySelectorAll('button,a')].find((e) => /maybe later|dismiss|אחר כך|לא עכשיו/i.test(e.textContent || ''));
     if (x) x.click();
   });
   await wait(1000);
   const onlineText = await pg.evaluate(() => (document.body.innerText || '').replace(/\s+/g, ' ').trim());
   if (!/block|program/i.test(onlineText)) { console.log('FAILED: portal did not load online; nothing to compare against'); process.exit(1); }
-  const swReady = await pg.evaluate(() => !!(navigator.serviceWorker && navigator.serviceWorker.controller));
+  // On a FRESH profile the worker is still installing its 4.4MB precache when
+  // the page has finished loading, and it only takes control after activate
+  // (clients.claim). Reading the controller once, straight away, called a
+  // healthy production "NOT controlling" on 2026-09-07. Wait for it, up to
+  // 45s, and reload once if it activated without claiming this client.
+  let swReady = false;
+  for (let i = 0; i < 45 && !swReady; i++) {
+    swReady = await pg.evaluate(() => !!(navigator.serviceWorker && navigator.serviceWorker.controller)).catch(() => false);
+    if (!swReady) await wait(1000);
+  }
+  if (!swReady) {
+    const registered = await pg.evaluate(async () => { try { const r = await navigator.serviceWorker.getRegistration(); return !!(r && (r.active || r.waiting || r.installing)); } catch { return false; } }).catch(() => false);
+    if (registered) {
+      await pg.reload({ waitUntil: 'domcontentloaded', timeout: 60000 }).catch(() => {});
+      await wait(8000);
+      swReady = await pg.evaluate(() => !!(navigator.serviceWorker && navigator.serviceWorker.controller)).catch(() => false);
+    }
+  }
   console.log(`online : ${onlineText.length} chars, service worker ${swReady ? 'controlling' : 'NOT controlling'}`);
   if (!swReady) {
     // NOT A DEFECT, AND NOT TESTABLE HERE. A service worker needs a secure

@@ -78,7 +78,14 @@ export const SHOT_I18N = {
     // 'Release ht' replaced 'Fix first': that column said the same words on
     // every row of a real session, because the deviation pick behind it needs
     // three shots and most clips are shorter. Release height is on every rep.
-    cols: ['#', 'At', 'Score', 'Dip', 'Set', 'Release', 'Timing', 'Release ht'],
+    cols: ['#', 'At', 'Score', 'Dip', 'Set', 'Release', 'Timing', 'Release ht', 'Make'],
+    toolTitle: 'SHOT ANALYZER',
+    unitMs: ' ms', unitS: 's', sideShort: { R: 'R', L: 'L' },
+    frameOf: (i, n, sec) => `F${i}/${n} · ${sec}s`,
+    // Makes are MARKED by the coach - the analyser has never seen the rim.
+    made: 'MADE', missed: 'MISSED', markShot: 'THIS SHOT',
+    makes: (m, n) => `${m}/${n} MAKES`, unmarked: (u) => `${u} not marked`,
+    savedRowMakes: (m, n) => ` · ${m}/${n} makes`,
     cleanRow: 'clean',
     sessionAvg: 'Session average',
     launchSpread: 'Ball launch',
@@ -190,7 +197,7 @@ export const SHOT_I18N = {
 
     verdictNa: 'הזריקה נקראה', verdictOk: 'מכניקה נקייה', verdictMid: 'בסיס טוב — יש כמה דברים להדק', verdictLow: 'בונים את השרשרת מחדש מהרגליים למעלה',
     quality: { good: 'טוב', fair: 'בינוני', poor: 'חלש' },
-    summary: (f, w, o, q, p, fps) => `${f} לתיקון · ${w} למעקב · ${o} תקין · מעקב ${q} (${p}% מפריימי הזריקה) · ${fps} fps`,
+    summary: (f, w, o, q, p, fps) => `${f} לתיקון · ${w} למעקב · ${o} תקין · מעקב ${q} (${p}% מפריימי הזריקה) · ${fps} פריימים לשנייה`,
     shotOf: (i, n) => `צופה בזריקה ${i} מתוך ${n} שזוהו`,
     atSec: (t) => `בשנייה ${t}`,
     scopeHint: (n) => `כרטיס הניקוד = הזריקה הזאת · האימון = כל ${n}`,
@@ -203,7 +210,15 @@ export const SHOT_I18N = {
     consistencyVal: (r, a, se, t) => `קצב ±${r}% · יד בשחרור ±${a}° · מרפק בסט ±${se}° · תזמון ±${t} מ״ש`,
 
     sessionTitle: (n) => `אימון · זוהו ${n} זריקות`,
-    cols: ['#', 'זמן', 'ניקוד', 'דיפ', 'סט', 'שחרור', 'תזמון', 'גובה שחרור'],
+    cols: ['#', 'זמן', 'ניקוד', 'דיפ', 'סט', 'שחרור', 'תזמון', 'גובה שחרור', 'נכנס?'],
+    // Ohad, 2026-09-07, on this screen: "i want everything in hebrew here".
+    toolTitle: 'ניתוח זריקה',
+    // The last Latin on the Hebrew screen was units: MS, S and the (R) legend.
+    unitMs: ' מ"ש', unitS: ' שנ׳', sideShort: { R: 'ימ׳', L: 'שמ׳' },
+    frameOf: (i, n, sec) => `פריים ${i}/${n} · ${sec} שנ׳`,
+    made: 'נכנס', missed: 'החטאה', markShot: 'הזריקה הזאת',
+    makes: (m, n) => `${m}/${n} קליעות`, unmarked: (u) => `${u} לא סומנו`,
+    savedRowMakes: (m, n) => ` · ${m}/${n} קליעות`,
     cleanRow: 'נקי',
     sessionAvg: 'ממוצע האימון',
     launchSpread: 'זווית שיגור',

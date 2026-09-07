@@ -47,3 +47,8 @@ RESTORE POINT (pre-perf-fixes): b1f93ab6f04fa84e842c58049f278312374c8a43
 - [x] H4 athlete library read: by design (portal resolves plan rows from the library by id) — not tightened
 - [ ] H6 offline for every seat — walks running (owner, athlete, pt, public)
 - [ ] H5 close: gates, pairs (login he), commit, push, handoff, memory
+- [x] H6 offline for every seat — backend-unreachable walks (owner 23, athlete, pt, public 6) AND real-SW on HTTPS (owner 23/23, athlete, pt)
+- [x] S1 Shot Analyzer makes/shots counter (marked, never inferred)
+- [x] S2 Shot Analyzer: everything in Hebrew (title, overlay, fps, session-panel names)
+- [x] S3 Shot Analyzer: phase chips two full rows
+- [x] S4 Shot Analyzer: one ▸ per frame
