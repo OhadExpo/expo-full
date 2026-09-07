@@ -1,0 +1,24 @@
+=== owner he 390
+ok   /coach/bugs                rtl he  scrollW 390/390  0 past the edge
+ok   /coach/challenges          rtl he  scrollW 390/390  0 past the edge
+ok   /coach/calendar            rtl he  scrollW 390/390  0 past the edge
+ok   /coach/billing             rtl he  scrollW 390/390  0 past the edge
+ok   /coach/bhbc                ltr he  scrollW 390/390  0 past the edge
+
+
+0 - nothing is cut off at 390px
+=== pt he 390
+seat pt at 390px - 1 route(s)
+
+ok   /coach/bhbc                ltr he  scrollW 390/390  0 past the edge
+
+
+0 - nothing is cut off at 390px
+=== athlete he 390
+seat athlete at 390px - 1 route(s)
+
+ok   /athlete                   ltr he  scrollW 390/390  0 past the edge
+
+
+0 - nothing is cut off at 390px
+=== DONE
