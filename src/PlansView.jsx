@@ -107,6 +107,7 @@ function useScrollbarInset(active) {
 }
 
 function PatternCoverage({ plan, exercises, cols = 5 }) {
+  const tt = useAppT();
   const pats = useMemo(() => {
     const s = new Set();
     const exMap = exById(exercises);
@@ -129,7 +130,7 @@ function PatternCoverage({ plan, exercises, cols = 5 }) {
   const missing = REQUIRED_PATTERNS.filter(p => !pats.has(p));
   if (exercises.length === 0) return null;
   return (<div style={{ background: 'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius: 0, padding: 12, marginBottom: 16 }}>
-    <div style={{ fontSize: 12, fontFamily: FN, fontWeight: 700, color: C.or, marginBottom: 8, letterSpacing:'0.06em' }}>PATTERN COVERAGE: {REQUIRED_PATTERNS.length - missing.length}/{REQUIRED_PATTERNS.length}</div>
+    <div style={{ fontSize: 12, fontFamily: FN, fontWeight: 700, color: C.or, marginBottom: 8, letterSpacing:'0.06em' }}>{tt('PATTERN COVERAGE:')} {REQUIRED_PATTERNS.length - missing.length}/{REQUIRED_PATTERNS.length}</div>
     {/* minmax(0,1fr): a bare 1fr floors at min-content, so long labels
         (Carry/Loaded Locomotion) widened their column and narrow panes got
         visibly unequal boxes. height:100% makes every badge fill its grid
@@ -372,7 +373,7 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
               <span style={{ color: C.td }}> result{filt.length === 1 ? '' : 's'}</span>
               <span style={{ color: C.td, opacity: 0.6, marginLeft: 10, letterSpacing: '0.04em' }}>↑↓ navigate · Enter select · Esc close</span>
             </span>
-            {(search.trim() || activeFilterCount > 0) && <button onClick={clearAll} style={{ background: 'transparent', border: `1px solid ${C.cardBd}`, color: C.ac, cursor: 'pointer', fontSize: 10, fontFamily: FN, fontWeight: 700, letterSpacing: '0.18em', padding: '4px 10px', borderRadius: 0 }}>× CLEAR ALL</button>}
+            {(search.trim() || activeFilterCount > 0) && <button onClick={clearAll} style={{ background: 'transparent', border: `1px solid ${C.cardBd}`, color: C.ac, cursor: 'pointer', fontSize: 10, fontFamily: FN, fontWeight: 700, letterSpacing: '0.18em', padding: '4px 10px', borderRadius: 0 }}>× {tt('CLEAR ALL')}</button>}
           </div>
         </div>
         {/* RICH COMPARE — pinned ABOVE the scrolling list so its top (names +
@@ -827,7 +828,7 @@ function PlanOverview({ plan, exercises, onJumpToDay = null }) {
           {/* Count and volume as plain coloured text, not badges: badge padding
               breaks tight alignment, and this is a reading surface. */}
           <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.td, flexShrink: 0, letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>
-            {list.length} EX{sets ? ` · ${sets} SETS` : ''}
+            {list.length} {tt('EX')}{sets ? ` · ${sets} ${tt('SETS')}` : ''}
           </span>
         </div>
         <div>
@@ -1053,12 +1054,12 @@ function WarmupLibraryControls({ w, onLink, exercises, setExercises }) {
           title={!libTarget ? 'No matching library exercise to update — use “Save new exercise”.'
             : canUpdateLib ? `Overwrite "${libTarget.title}" in the exercise database with this warm-up's name, video and notes.`
             : 'This warm-up matches the library — nothing to update. Edit the name, video or notes first.'}
-          style={{display:'inline-flex',alignItems:'center',justifyContent:'center',gap:5,background:'transparent',border:`1px solid ${canUpdateLib?C.ac:C.cardBd}`,color:canUpdateLib?C.ac:C.td,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',padding:'6px 12px',cursor:canUpdateLib?'pointer':'not-allowed',opacity:canUpdateLib?1:0.5,borderRadius:0,textTransform:'uppercase'}}><span aria-hidden="true" style={{display:'inline-flex',alignItems:'center',justifyContent:'center',width:9,height:9,fontSize:9,lineHeight:1}}>↑</span><span>Update the exercise database</span></button>
+          style={{display:'inline-flex',alignItems:'center',justifyContent:'center',gap:5,background:'transparent',border:`1px solid ${canUpdateLib?C.ac:C.cardBd}`,color:canUpdateLib?C.ac:C.td,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',padding:'6px 12px',cursor:canUpdateLib?'pointer':'not-allowed',opacity:canUpdateLib?1:0.5,borderRadius:0,textTransform:'uppercase'}}><span aria-hidden="true" style={{display:'inline-flex',alignItems:'center',justifyContent:'center',width:9,height:9,fontSize:9,lineHeight:1}}>↑</span><span>{tt('Update the exercise database')}</span></button>
         <button onClick={()=>setLibConfirm('new')} disabled={!canSaveNew}
           title={canSaveNew
             ? 'Create a brand-new exercise in the database from this warm-up, and link this row to it.'
             : 'This warm-up already matches a library exercise — nothing new to save. Edit the name, video or notes first.'}
-          style={{background:'transparent',border:`1px solid ${canSaveNew?C.gn:C.cardBd}`,color:canSaveNew?C.gn:C.td,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',padding:'6px 12px',cursor:canSaveNew?'pointer':'not-allowed',opacity:canSaveNew?1:0.5,borderRadius:0,textTransform:'uppercase'}}>+ Save new exercise</button>
+          style={{background:'transparent',border:`1px solid ${canSaveNew?C.gn:C.cardBd}`,color:canSaveNew?C.gn:C.td,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',padding:'6px 12px',cursor:canSaveNew?'pointer':'not-allowed',opacity:canSaveNew?1:0.5,borderRadius:0,textTransform:'uppercase'}}>+ {tt('Save new exercise')}</button>
       </div>
       <ConfirmDialog
         open={libConfirm === 'update'}
@@ -1146,7 +1147,7 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExerc
         <button onClick={() => setOpen(o => !o)} title={open ? 'Collapse warm-up' : 'Expand warm-up'}
           style={{ background:'transparent', border:'none', cursor:'pointer', padding:0, display:'flex', alignItems:'center', gap:10 }}>
           <span style={{ color:C.tm, fontSize:13, lineHeight:1, flexShrink:0, display:'inline-block', transform:open?'none':'rotate(-90deg)', transition:'transform 180ms ease', userSelect:'none' }}>▾</span>
-          <span style={{ fontSize: 12, fontFamily: FN, fontWeight: 700, color: C.or, letterSpacing:'0.06em' }}>WARM-UP ({warmup.length})</span>
+          <span style={{ fontSize: 12, fontFamily: FN, fontWeight: 700, color: C.or, letterSpacing:'0.06em' }}>{tt('WARM-UP')} ({warmup.length})</span>
         </button>
         {/* EXPAND ALL — identical control + rules as the day cards: toggles
             every row's inline panel; expanding inside a collapsed card is
@@ -1194,7 +1195,7 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExerc
               (compare mode): minmax(0,…) columns so it compresses to the
               half-width pane with no inner horizontal scrollbar. */}
           <div onDragOver={onGridDragOver} onDrop={onGridDrop} style={{ display: 'grid', position: 'relative', gridTemplateColumns: compact ? '30px minmax(0,3.3fr) minmax(0,60px) minmax(0,80px) minmax(0,80px) 22px' : '36px minmax(180px,3.3fr) 64px 96px 96px 24px', gap: '3px 8px', fontSize: 12, alignItems: 'center', minWidth: compact ? 380 : 480 }}>
-            {['#', 'EXERCISE', 'SETS', 'REPS', 'TEMPO', ''].map((h, hi) =>
+            {['#', tt('EXERCISE'), tt('SETS'), tt('REPS'), tt('TEMPO'), ''].map((h, hi) =>
               hi === 0 ? (
                 <div key={hi} style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
                   <span style={{ fontFamily: FN, fontSize: 12, lineHeight: 1, fontWeight: 400, opacity: 0 }}>⇕</span>
@@ -1247,7 +1248,7 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExerc
                     <span style={{ color: C.tx, fontFamily: FB }}>{w.rx}</span>
                     <button onClick={() => update(i, { rx: '' })}
                       title="Clear the legacy rx string — the athlete will now see the structured sets/reps above (once you fill them in)."
-                      style={{ background: 'transparent', border: `1px solid ${C.cardBd}`, color: C.rd, padding: '2px 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', borderRadius: 0, opacity: 0.7 }}>× CLEAR</button>
+                      style={{ background: 'transparent', border: `1px solid ${C.cardBd}`, color: C.rd, padding: '2px 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', borderRadius: 0, opacity: 0.7 }}>× {tt('CLEAR')}</button>
                   </div>
                 )}
                 {/* Inline expand — IDENTICAL structure to the day-exercise
@@ -1265,7 +1266,7 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExerc
                             where the row is still empty. Free-text stays
                             possible via the modal's add-by-name. */}
                         <div style={{ minWidth: 0 }}>
-                          <ExPicker exercises={exercises} value={w.exerciseId || ''} label="Exercise" fallbackTitle={w.t}
+                          <ExPicker exercises={exercises} value={w.exerciseId || ''} label={tt('Exercise')} fallbackTitle={w.t}
                             onChange={id => { if (id === w.exerciseId) return; const lib = exById(exercises).get(id); update(i, { exerciseId: id, t: lib?.title || '', vid: lib?.videoLink || '', note: lib?.cues || '' }); }}
                             onPickName={name => update(i, { exerciseId: '', t: name })}
                             onCreateLibrary={setExercises ? (name => { const id = addLibExercise(setExercises, name); if (id) update(i, { exerciseId: id, t: name }); }) : undefined} />
@@ -1438,7 +1439,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                   <button onClick={() => setWarmOpen(o => !o)}
                     style={{background:'transparent', border:'none', cursor:'pointer', padding:0, display:'flex', alignItems:'center', gap:10}}>
                     <span style={{color:C.tm, fontSize:13, lineHeight:1, flexShrink:0, display:'inline-block', transform:warmOpen?'none':'rotate(-90deg)', transition:'transform 180ms ease', userSelect:'none'}}>▾</span>
-                    <span style={{fontSize:12, fontFamily:FN, fontWeight:700, color:C.or, letterSpacing:'0.06em'}}>WARM-UP ({cmpPlan.warmup.length})</span>
+                    <span style={{fontSize:12, fontFamily:FN, fontWeight:700, color:C.or, letterSpacing:'0.06em'}}>{tt('WARM-UP')} ({cmpPlan.warmup.length})</span>
                   </button>
                   {warmOpen && <div style={{marginTop:8}}>
                     {cmpPlan.warmup.map((w, i) => {
@@ -1819,8 +1820,8 @@ function ExEditorExtras({ ex, exData, exTitle, update, onResolveVideo = null, sh
               <span style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.td,letterSpacing:'0.18em'}}>{tt("NOTES")}</span>
               <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
                 {isFallback && <span title="Auto-prefilled from the exercise library — start typing to override for this program only" style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.tm,letterSpacing:'0.12em'}}>{tt("FROM LIBRARY")}</span>}
-                {hasNoteOverride && libCues && <button onClick={()=>update({notes:'',notesEdited:false})} title="Discard this program's override and show the library cues again. Doesn't touch the library." style={{background:'transparent',border:`1px solid ${C.cardBd}`,color:C.tm,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.1em',padding:'2px 7px',cursor:'pointer',borderRadius:0}}>↩ LIBRARY</button>}
-                {hasNoteOverride && (ex.notes||'').length>0 && <button onClick={()=>update({notes:'',notesEdited:true})} title="Clear the note for this program only (library is untouched)." style={{background:'transparent',border:`1px solid ${C.cardBd}`,color:C.rd,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.1em',padding:'2px 7px',cursor:'pointer',borderRadius:0,opacity:0.7}}>× CLEAR</button>}
+                {hasNoteOverride && libCues && <button onClick={()=>update({notes:'',notesEdited:false})} title="Discard this program's override and show the library cues again. Doesn't touch the library." style={{background:'transparent',border:`1px solid ${C.cardBd}`,color:C.tm,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.1em',padding:'2px 7px',cursor:'pointer',borderRadius:0}}>↩ {tt('LIBRARY')}</button>}
+                {hasNoteOverride && (ex.notes||'').length>0 && <button onClick={()=>update({notes:'',notesEdited:true})} title="Clear the note for this program only (library is untouched)." style={{background:'transparent',border:`1px solid ${C.cardBd}`,color:C.rd,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.1em',padding:'2px 7px',cursor:'pointer',borderRadius:0,opacity:0.7}}>× {tt('CLEAR')}</button>}
               </div>
             </div>
             <textarea value={noteValue} onChange={e=>update({notes:e.target.value,notesEdited:true})} placeholder={libCues?"Notes / modifications (overrides library cues)":"Notes, modifications..."} style={{...baseInput,textAlign:'center',flex:1,minHeight:120,padding:'10px 12px',lineHeight:1.5,resize:'vertical',fontFamily:FB,fontSize:13}} />
@@ -1846,12 +1847,12 @@ function ExEditorExtras({ ex, exData, exTitle, update, onResolveVideo = null, sh
             title={!libTarget ? 'No matching library exercise to update — use “Save new exercise”.'
               : canUpdateLib ? `Overwrite "${libTarget.title}" in the exercise database with this card's name, video and notes.`
               : 'This card matches the library — nothing to update. Edit the name, video or notes first.'}
-            style={{display:'inline-flex',alignItems:'center',justifyContent:'center',gap:5,background:'transparent',border:`1px solid ${canUpdateLib?C.ac:C.cardBd}`,color:canUpdateLib?C.ac:C.td,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',padding:'6px 12px',cursor:canUpdateLib?'pointer':'not-allowed',opacity:canUpdateLib?1:0.5,borderRadius:0,textTransform:'uppercase'}}><span aria-hidden="true" style={{display:'inline-flex',alignItems:'center',justifyContent:'center',width:9,height:9,fontSize:9,lineHeight:1}}>↑</span><span>Update the exercise database</span></button>
+            style={{display:'inline-flex',alignItems:'center',justifyContent:'center',gap:5,background:'transparent',border:`1px solid ${canUpdateLib?C.ac:C.cardBd}`,color:canUpdateLib?C.ac:C.td,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',padding:'6px 12px',cursor:canUpdateLib?'pointer':'not-allowed',opacity:canUpdateLib?1:0.5,borderRadius:0,textTransform:'uppercase'}}><span aria-hidden="true" style={{display:'inline-flex',alignItems:'center',justifyContent:'center',width:9,height:9,fontSize:9,lineHeight:1}}>↑</span><span>{tt('Update the exercise database')}</span></button>
           <button onClick={()=>setLibConfirm('new')} disabled={!canSaveNew}
             title={canSaveNew
               ? 'Create a brand-new exercise in the database from this card, and link this row to it.'
               : 'This card already matches a library exercise — nothing new to save. Edit the name, video or notes first.'}
-            style={{background:'transparent',border:`1px solid ${canSaveNew?C.gn:C.cardBd}`,color:canSaveNew?C.gn:C.td,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',padding:'6px 12px',cursor:canSaveNew?'pointer':'not-allowed',opacity:canSaveNew?1:0.5,borderRadius:0,textTransform:'uppercase'}}>+ Save new exercise</button>
+            style={{background:'transparent',border:`1px solid ${canSaveNew?C.gn:C.cardBd}`,color:canSaveNew?C.gn:C.td,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',padding:'6px 12px',cursor:canSaveNew?'pointer':'not-allowed',opacity:canSaveNew?1:0.5,borderRadius:0,textTransform:'uppercase'}}>+ {tt('Save new exercise')}</button>
         </div>
       ) : null}
       <ConfirmDialog
@@ -1877,6 +1878,7 @@ function ExEditorExtras({ ex, exData, exTitle, update, onResolveVideo = null, sh
 // button so the toolbar reads as PORTAL · MORE · SHOW ONLY · DELETE instead of
 // a wall of eight buttons (Ohad). Items: {key,label,icon,onClick,active?,badge?}.
 function EditorMoreMenu({ items }) {
+  const tt = useAppT();
   const [open, setOpen] = useState(false);
   const btnRef = useRef(null);
   const [coords, setCoords] = useState({ top: 0, left: 0 });
@@ -1915,7 +1917,7 @@ function EditorMoreMenu({ items }) {
         title="More program actions" aria-label="More program actions" aria-haspopup="menu" aria-expanded={open}
         style={{ background: (open || anyActive) ? `${C.ac}1f` : (isRefined5b() ? 'transparent' : 'var(--c-sf)'), border: `1px solid ${C.ac}`, borderRadius: 0, height: 38, padding: '0 13px', lineHeight: '38px', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>
-        MORE
+        {tt('MORE')}
       </button>
       {open && createPortal((
         <div data-editor-more role="menu" style={{ position: 'fixed', top: coords.top, left: coords.left, background: 'var(--c-bg)', border: `1px solid ${C.cardBd}`, minWidth: 220, zIndex: 100000, boxShadow: '0 12px 32px rgba(0,0,0,0.25)' }}>
@@ -2378,7 +2380,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
             with BACK ↔ SAVE spread on the line above. */}
         <style>{`@media (max-width:760px){ .editor-top-row{ justify-content: space-between !important; } .editor-top-row > .editor-top-mid{ order: 3 !important; flex-basis: 100% !important; justify-content: flex-start !important; } }`}</style>
         <div className="editor-top-row" style={{display:'flex',gap:12,alignItems:'center',minWidth:0,flexWrap:'wrap'}}>
-          <button onClick={handleBack} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',padding:0,whiteSpace:'nowrap',flexShrink:0}}>← BACK</button>
+          <button onClick={handleBack} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',padding:0,whiteSpace:'nowrap',flexShrink:0}}>{tt('← BACK')}</button>
           {/* Undo / redo (Ohad) — coarse per-pause history; also Ctrl+Z / Ctrl+Shift+Z. */}
           <div style={{display:'inline-flex',gap:4,flexShrink:0}}>
             {/* Word labels, not glyphs (Ohad) — right next to BACK. */}
@@ -2492,7 +2494,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
             title={overviewOpen ? 'Back to the full editor' : 'See every day and exercise of this block on one screen'}
             style={{background: overviewOpen ? `${C.ac}1f` : (isRefined5b() ? 'transparent' : 'var(--c-sf)'),border:`1px solid ${C.ac}`,borderRadius:0,height:38,padding:'0 13px',lineHeight:'38px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.09em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6,whiteSpace:'nowrap',minWidth:132,boxSizing:'border-box'}}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-            {overviewOpen ? 'EDITOR' : 'OVERVIEW'}
+            {overviewOpen ? tt('EDITOR') : tt('OVERVIEW')}
           </button>
           {/* Secondary program actions (Compare · History · Share · Duplicate ·
               New Program) collapsed behind one ⋯ MORE popover — the eight-button
@@ -2568,14 +2570,14 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           starts level with the content below the text boxes, not above them. */}
       <div style={{flex:compareActive?1:'unset',minWidth:0,width:compareActive?'50%':'auto',display:compareActive?'flex':'block',flexDirection:'column',minHeight:0}}>
       <div className="plan-fields-grid" style={{display:"grid",gap:12,marginBottom:20,flexShrink:0,paddingRight:compareActive?leftSbInset+6:0}}>
-        <Input label="Program Name" value={plan.name} onChange={e => setPlan({...plan,name:e.target.value})} placeholder="Hypertrophy Block A" />
+        <Input label={tt('Program Name')} value={plan.name} onChange={e => setPlan({...plan,name:e.target.value})} placeholder="Hypertrophy Block A" />
         {/* "Assign to Athlete" moved to the top row next to the block dropdown. */}
-        <Input label="Phase / Block" value={plan.phase||""} onChange={e => setPlan({...plan,phase:e.target.value})} placeholder="Accumulation..." />
+        <Input label={tt('Phase / Block')} value={plan.phase||""} onChange={e => setPlan({...plan,phase:e.target.value})} placeholder="Accumulation..." />
         {/* Weeks selector hidden for daily-routine plans — a daily routine
             has no week structure. Athlete logs it unlimited times during
             whatever timeframe is convenient. */}
         {plan.kind !== 'daily' && (
-          <Select label="Weeks" options={[3,4,5,6,8,12].map(n=>({value:String(n),label:n+' weeks'}))} value={String(plan.weeks||4)} onChange={v => {
+          <Select label={tt('Weeks')} options={[3,4,5,6,8,12].map(n=>({value:String(n),label:n+' '+tt('weeks')}))} value={String(plan.weeks||4)} onChange={v => {
             const n = parseInt(v) || 4;
             const resize = (arr) => Array.from({length:n}, (_,i) => (arr && arr[i] !== undefined ? arr[i] : ""));
             // propagate week count to every per-week array across the program
@@ -2726,7 +2728,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                     unlimited times per block, no DONE lock, no week rotation. */}
                 <button onClick={() => { if (d.kind === 'daily') { const { kind: _k, ...rest } = d; setPlan(p => ({ ...p, days: p.days.map((dd, idx) => idx === dayIdx ? rest : dd) })); } else updateDay(dayIdx, { kind: 'daily' }); }}
                   title={d.kind==='daily' ? 'Daily Routine ON — unlimited logs per block, no DONE lock, no week rotation. Click for a standard week-paced day.' : 'Make this a Daily Routine day (unlimited logs, no DONE lock, no week rotation).'}
-                  style={{background: d.kind==='daily' ? `${C.ac}1f` : 'var(--c-sf)',border:`1px solid ${d.kind==='daily'?C.ac:C.cardBd}`,borderRadius:0,height:24,padding:0,color: d.kind==='daily'?C.ac:C.tm,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.09em',whiteSpace:'nowrap',width:100,flexShrink:0,boxSizing:'border-box',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>{d.kind==='daily'?'DAILY ✓':'DAILY'}</button>
+                  style={{background: d.kind==='daily' ? `${C.ac}1f` : 'var(--c-sf)',border:`1px solid ${d.kind==='daily'?C.ac:C.cardBd}`,borderRadius:0,height:24,padding:0,color: d.kind==='daily'?C.ac:C.tm,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.09em',whiteSpace:'nowrap',width:100,flexShrink:0,boxSizing:'border-box',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>{d.kind==='daily'?tt('DAILY ✓'):tt('DAILY')}</button>
                 {(() => {
                   const dayIds = (dayExs||[]).map(e=>e.id);
                   const anyOpen = dayIds.some(id=>ovExpanded[id]);
@@ -2743,7 +2745,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                     <span aria-hidden style={{display:'inline-block',transform:anyOpen?'rotate(180deg)':'none',transition:'transform 180ms ease',lineHeight:1}}>▾</span>
                     {/* Same trailing letter-space cancellation as the warm-up
                         EXPAND ALL — see that comment. */}
-                    <span style={{marginRight:'-0.14em'}}>{anyOpen?'COLLAPSE ALL':'EXPAND ALL'}</span>
+                    <span style={{marginRight:'-0.14em'}}>{anyOpen?tt('COLLAPSE ALL'):tt('EXPAND ALL')}</span>
                   </button>;
                 })()}
                 {/* ⤴ copy-day + × delete-day = one matched icon pair, the SAME
@@ -2774,7 +2776,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                 </div>
               ) :
                 <div style={{overflowX:"auto",margin:"0 -12px",padding:compareActive?"0 12px 7px":"0 12px"}}><div onDragOver={onGridDragOver} onDrop={onGridDrop} style={{display:"grid",position:"relative",gridTemplateColumns: compareActive ? `30px minmax(0,3.3fr) 44px minmax(0,0.9fr) minmax(0,1.4fr) minmax(0,1.3fr) minmax(0,0.9fr) minmax(0,60px) 22px` : `36px minmax(180px,3.3fr) 56px minmax(${Math.max(56,weeks*22)}px,0.9fr) minmax(${Math.max(64,weeks*26)}px,1.4fr) minmax(80px,1.3fr) minmax(60px,80px) minmax(48px,60px) 24px`,gap:"3px 8px",fontSize:12,alignItems:"center",minWidth: compareActive ? Math.max(590,516+weeks*40) : Math.max(614,540+weeks*40)}}>
-                  {["#","EXERCISE","GRP","SETS","REPS","TEMPO","LOAD","RPE",""].map((h,hi) =>
+                  {["#",tt("EXERCISE"),tt("GRP"),tt("SETS"),tt("REPS"),tt("TEMPO"),tt("LOAD"),"RPE",""].map((h,hi) =>
                     hi === 0 ? (
                       <div key={hi} style={{display:'flex', alignItems:'center', gap:5, minWidth:0}}>
                         <span style={{fontFamily:FN, fontSize:12, lineHeight:1, fontWeight:400, opacity:0}}>⇕</span>
@@ -2922,7 +2924,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                             exercises={exercises} setExercises={setExercises}
                             picker={<ExPicker exercises={exercises} value={ex.exerciseId} onChange={id=>{ if (id === ex.exerciseId) return; const lib = exById(exercises).get(id); update({ exerciseId: id, title: lib?.title || '', videoUrl: lib?.videoLink || undefined, vid: undefined, notes: lib?.cues || '', notesEdited: false, n: lib?.cues || '' }); }} onPickName={name=>update({ exerciseId:'', title:name, videoUrl: '', vid: undefined, notes: '', notesEdited: false, n: '' })}
                               onCreateLibrary={setExercises ? (name => { const id = addLibExercise(setExercises, name); if (id) update({ exerciseId: id, title: name, notes: '', notesEdited: false, n: '' }); }) : undefined}
-                              label="Exercise" fallbackTitle={ex.title} />} />
+                              label={tt('Exercise')} fallbackTitle={ex.title} />} />
                         </div>
                        </div>
                       </div>
