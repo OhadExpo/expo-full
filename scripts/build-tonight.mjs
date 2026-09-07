@@ -28,7 +28,7 @@ const fwd = (p) => p.split(String.fromCharCode(92)).join('/');
 const LIVE = readPairs('audit-out/pairs/pairs.json');
 // pairs.json and pairs-he.json both carry `portal` and `pt-zone`, so the Hebrew
 // sections take an `he-` suffix or the page gets duplicate ids.
-const HE = [...readPairs('audit-out/pairs/pairs-he.json'), ...readPairs('audit-out/pairs/pairs-he-phone.json'), ...readPairs('audit-out/pairs/pairs-rt.json'), ...readPairs('audit-out/pairs/pairs-small.json'), ...readPairs('audit-out/pairs/pairs-small2.json'), ...readPairs('audit-out/pairs/pairs-demo.json')];
+const HE = [...readPairs('audit-out/pairs/pairs-he.json'), ...readPairs('audit-out/pairs/pairs-he-phone.json'), ...readPairs('audit-out/pairs/pairs-rt.json'), ...readPairs('audit-out/pairs/pairs-small.json'), ...readPairs('audit-out/pairs/pairs-small2.json'), ...readPairs('audit-out/pairs/pairs-demo.json'), ...readPairs('audit-out/pairs/pairs-editor.json')];
 const HE_TITLES = {
   portal: ['The athlete portal, in Hebrew', 'An athlete who picks Hebrew on production still gets English: the portal renders outside the language provider, so the Hebrew that was already written never reaches the screen. On this branch it does.'],
   'portal-phone': ['The athlete portal, in Hebrew, on a phone', 'The width an athlete actually holds. Production: English tabs and headings under a Hebrew name. This branch: the portal in Hebrew.'],
@@ -44,6 +44,7 @@ const HE_TITLES = {
   'workouts-he': ['Workouts, in Hebrew', 'CUE, Completed, Complete Workout, LOG INTO and the two empty states: the logger component had no translator.'],
   'review-he': ['The review page, in Hebrew', 'Compare with…, WORKOUT, SETS DONE, READINESS CHECK-IN and the two empty states.'],
   'demo-athlete-he': ['The public demo of the athlete portal, in Hebrew, on a phone', 'What a prospect from the Hebrew marketing site meets. Production renders the demo above the language provider, so it is English whatever the reader chose; this branch follows the language, and a link can carry it (?lang=he).'],
+  'program-he': ['The program editor, in Hebrew', 'The route sweep only ever listed programs; opening one showed the coach’s main tool half in English. Back, more, overview, the three fields, pattern coverage, every column header, the picker, the library buttons: 609 Latin words became 312, and the 312 are exercise and plan names.'],
   'billing-he': ['Billing, in Hebrew', '143 Latin words became 18: names, months and the finance sheet’s channel names.'],
   'review-tools': ['The review tools, in Hebrew', 'The page behind the camera tools was the English page behind a Hebrew tool. Headers, the five tools, the clip picker - all through the dictionary now.'],
   meal: ['The meal log, in Hebrew', 'Error strings, the day label, the totals and the save button were the last English on an athlete page.'],
