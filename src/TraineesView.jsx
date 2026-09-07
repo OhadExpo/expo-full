@@ -1043,7 +1043,7 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <Input label={tt("Name")} value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <label style={{ fontSize: 11, fontWeight: 600, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: FN }}>Email(s)</label>
+            <label style={{ fontSize: 11, fontWeight: 600, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: FN }}>{tt('Email(s)')}</label>
             {(form._emails || emailsToArr(form.email)).map((em, i, arr) => (
               <div key={i} style={{ display: 'flex', gap: 4 }}>
                 <input value={em} onChange={e => {
@@ -1061,7 +1061,7 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
               <button onClick={() => {
                 const next = [...(form._emails || emailsToArr(form.email)), ''];
                 setForm({...form, _emails: next});
-              }} style={{ background: 'var(--c-sf)', border: `0.25px dashed ${C.cardBd}`, borderRadius: 0, padding: '6px 10px', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase' }}>+ Add Email</button>
+              }} style={{ background: 'var(--c-sf)', border: `0.25px dashed ${C.cardBd}`, borderRadius: 0, padding: '6px 10px', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase' }}>+ {tt('Add Email')}</button>
             )}
           </div>
           <Input label={tt("Phone")} value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} placeholder="+972..." autoComplete="off" />

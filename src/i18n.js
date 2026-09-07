@@ -431,6 +431,10 @@ export const HE = {
   // The cue expander under an exercise on the program tab.
   '▼ MORE': '▼ עוד',
   '▲ LESS': '▲ פחות',
+  "Amount (₪)": 'סכום (₪)',
+  Gender: 'מין',
+  "Monthly (₪)": 'חודשי (₪)',
+  "Per Session (₪)": 'לאימון (₪)',
   "Add Email": 'הוסף אימייל',
   "Edit Athlete": 'עריכת מתאמן',
   "New Athlete": 'מתאמן חדש',

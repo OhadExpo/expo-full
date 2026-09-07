@@ -1201,7 +1201,7 @@ const EditTraineeModal = React.memo(function EditTraineeModal({ td, couple, draf
   const handleDismiss = () => { onClose(); };
 
   return (
-    <Modal open={true} onClose={handleDismiss} title={`Edit — ${td.name}`} wide>
+    <Modal open={true} onClose={handleDismiss} title={`${t("Edit")} — ${td.name}`} wide>
       {editForm && <>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 10, minHeight: 18 }}>
           {hasDraft ? (
@@ -1214,22 +1214,22 @@ const EditTraineeModal = React.memo(function EditTraineeModal({ td, couple, draf
         {couple && editForm._members ? <>
           <div style={{ fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>{t("Shared")}</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-            <Input label="Couple Name" value={editForm.name || ""} onChange={e => setEditForm({ ...editForm, name: e.target.value })} />
-            <Select label="Format" options={TRAINING_FORMATS} value={editForm.format || ""} onChange={v => setEditForm({ ...editForm, format: v })} />
+            <Input label={t("Couple Name")} value={editForm.name || ""} onChange={e => setEditForm({ ...editForm, name: e.target.value })} />
+            <Select label={t("Format")} options={TRAINING_FORMATS} value={editForm.format || ""} onChange={v => setEditForm({ ...editForm, format: v })} />
             {/* Status moved out of EDIT — changed via the status pill at the top
                 of the trainee page (Ohad). */}
             {/* Club athletes have no billing — same rule as the athletes-list
                 editor, so the two editors of one record can't disagree (audit 08-22). */}
             {editForm.format !== 'Bnei Herzliya' ? (<>
-              <Select label="Package" options={PACKAGE_TYPES} value={editForm.package || ""} onChange={v => setEditForm({ ...editForm, package: v })} />
-              <Input label="Sessions Remaining" type="number" value={editForm.sessionsRemaining || 0} onChange={e => setEditForm({ ...editForm, sessionsRemaining: parseInt(e.target.value) || 0 })} />
-              <Input label="Monthly (₪)" type="number" value={editForm.monthly || ""} onChange={e => setEditForm({ ...editForm, monthly: parseFloat(e.target.value) || 0 })} />
-              <Input label="Per Session (₪)" type="number" value={editForm.perSession || ""} onChange={e => setEditForm({ ...editForm, perSession: parseFloat(e.target.value) || 0 })} />
+              <Select label={t("Package")} options={PACKAGE_TYPES} value={editForm.package || ""} onChange={v => setEditForm({ ...editForm, package: v })} />
+              <Input label={t("Sessions Remaining")} type="number" value={editForm.sessionsRemaining || 0} onChange={e => setEditForm({ ...editForm, sessionsRemaining: parseInt(e.target.value) || 0 })} />
+              <Input label={t("Monthly (₪)")} type="number" value={editForm.monthly || ""} onChange={e => setEditForm({ ...editForm, monthly: parseFloat(e.target.value) || 0 })} />
+              <Input label={t("Per Session (₪)")} type="number" value={editForm.perSession || ""} onChange={e => setEditForm({ ...editForm, perSession: parseFloat(e.target.value) || 0 })} />
             </>) : (
               <div style={{ display: 'flex', alignItems: 'end', paddingBottom: 8, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>Club athlete — no billing</div>
             )}
-            <Input label="Start Date" type="date" value={editForm.startDate || ""} onChange={e => setEditForm({ ...editForm, startDate: e.target.value })} />
-            <Input label="Last Payment" type="date" value={editForm.lastPayment || ""} onChange={e => setEditForm({ ...editForm, lastPayment: e.target.value })} />
+            <Input label={t("Start Date")} type="date" value={editForm.startDate || ""} onChange={e => setEditForm({ ...editForm, startDate: e.target.value })} />
+            <Input label={t("Last Payment")} type="date" value={editForm.lastPayment || ""} onChange={e => setEditForm({ ...editForm, lastPayment: e.target.value })} />
           </div>
           <div style={{ display: 'flex', gap: 16 }}>
             {editForm._members.map((m, mi) => {
@@ -1242,18 +1242,18 @@ const EditTraineeModal = React.memo(function EditTraineeModal({ td, couple, draf
                 <div key={mi} style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 9, fontFamily: FN, color: C.ac, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>Member {mi + 1}</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    <Input label="Name" value={m.name || ""} onChange={e => upd('name', e.target.value)} />
-                    <EmailsInput label="Email" value={m._emails || emailsToArr(m.email)} onChange={next => upd('_emails', next)} />
-                    <Input label="Phone" value={m.phone || ""} onChange={e => upd('phone', e.target.value)} placeholder="+972..." autoComplete="off" />
-                    <Select label="Gender" placeholder="—" options={GENDER_OPTIONS} value={m.gender || ""} onChange={v => upd('gender', v)} />
+                    <Input label={t("Name")} value={m.name || ""} onChange={e => upd('name', e.target.value)} />
+                    <EmailsInput label={t("Email")} value={m._emails || emailsToArr(m.email)} onChange={next => upd('_emails', next)} />
+                    <Input label={t("Phone")} value={m.phone || ""} onChange={e => upd('phone', e.target.value)} placeholder="+972..." autoComplete="off" />
+                    <Select label={t("Gender")} placeholder="—" options={GENDER_OPTIONS} value={m.gender || ""} onChange={v => upd('gender', v)} />
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-                      <Input label="Age" type="number" value={m.age || ""} onChange={e => upd('age', e.target.value)} />
-                      <Input label="Weight" type="number" value={m.weight || ""} onChange={e => upd('weight', e.target.value)} />
-                      <Input label="Height" type="number" value={m.height || ""} onChange={e => upd('height', e.target.value)} />
+                      <Input label={t("Age")} type="number" value={m.age || ""} onChange={e => upd('age', e.target.value)} />
+                      <Input label={t("Weight")} type="number" value={m.weight || ""} onChange={e => upd('weight', e.target.value)} />
+                      <Input label={t("Height")} type="number" value={m.height || ""} onChange={e => upd('height', e.target.value)} />
                     </div>
-                    <TextArea label="Injuries" value={m.injuries || ""} onChange={e => upd('injuries', e.target.value)} />
-                    <TextArea label="Goals" value={m.goals || ""} onChange={e => upd('goals', e.target.value)} />
-                    <TextArea label="Notes" value={m.notes || ""} onChange={e => upd('notes', e.target.value)} />
+                    <TextArea label={t("Injuries")} value={m.injuries || ""} onChange={e => upd('injuries', e.target.value)} />
+                    <TextArea label={t("Goals")} value={m.goals || ""} onChange={e => upd('goals', e.target.value)} />
+                    <TextArea label={t("Notes")} value={m.notes || ""} onChange={e => upd('notes', e.target.value)} />
                   </div>
                 </div>
               );
@@ -1261,9 +1261,9 @@ const EditTraineeModal = React.memo(function EditTraineeModal({ td, couple, draf
           </div>
         </> : <>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <Input label="Name" value={editForm.name || ""} onChange={e => setEditForm({ ...editForm, name: e.target.value })} />
+            <Input label={t("Name")} value={editForm.name || ""} onChange={e => setEditForm({ ...editForm, name: e.target.value })} />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <label style={{ fontSize: 11, fontWeight: 600, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: FN }}>Email(s)</label>
+              <label style={{ fontSize: 11, fontWeight: 600, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: FN }}>{t('Email(s)')}</label>
               {(editForm._emails || emailsToArr(editForm.email)).map((em, i, arr) => (
                 <div key={i} style={{ display: 'flex', gap: 4 }}>
                   <input value={em} onChange={e => {
@@ -1281,29 +1281,29 @@ const EditTraineeModal = React.memo(function EditTraineeModal({ td, couple, draf
                 <button onClick={() => {
                   const next = [...(editForm._emails || emailsToArr(editForm.email)), ''];
                   setEditForm({ ...editForm, _emails: next });
-                }} style={{ background: 'var(--c-sf)', border: `0.25px dashed ${C.cardBd}`, borderRadius: 0, padding: '6px 10px', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>+ Add Email</button>
+                }} style={{ background: 'var(--c-sf)', border: `0.25px dashed ${C.cardBd}`, borderRadius: 0, padding: '6px 10px', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>+ {t('Add Email')}</button>
               )}
             </div>
-            <Input label="Phone" value={editForm.phone || ""} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} placeholder="+972..." autoComplete="off" />
-            <Select label="Gender" placeholder="—" options={GENDER_OPTIONS} value={editForm.gender || ""} onChange={v => setEditForm({ ...editForm, gender: v })} />
-            <Input label="Age" type="number" value={editForm.age || ""} onChange={e => setEditForm({ ...editForm, age: e.target.value })} />
-            <Input label="Weight (kg)" type="number" value={editForm.weight || ""} onChange={e => setEditForm({ ...editForm, weight: e.target.value })} />
-            <Input label="Height (cm)" type="number" value={editForm.height || ""} onChange={e => setEditForm({ ...editForm, height: e.target.value })} />
-            <Select label="Format" options={TRAINING_FORMATS} value={editForm.format || ""} onChange={v => setEditForm({ ...editForm, format: v })} />
+            <Input label={t("Phone")} value={editForm.phone || ""} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} placeholder="+972..." autoComplete="off" />
+            <Select label={t("Gender")} placeholder="—" options={GENDER_OPTIONS} value={editForm.gender || ""} onChange={v => setEditForm({ ...editForm, gender: v })} />
+            <Input label={t("Age")} type="number" value={editForm.age || ""} onChange={e => setEditForm({ ...editForm, age: e.target.value })} />
+            <Input label={t("Weight (kg)")} type="number" value={editForm.weight || ""} onChange={e => setEditForm({ ...editForm, weight: e.target.value })} />
+            <Input label={t("Height (cm)")} type="number" value={editForm.height || ""} onChange={e => setEditForm({ ...editForm, height: e.target.value })} />
+            <Select label={t("Format")} options={TRAINING_FORMATS} value={editForm.format || ""} onChange={v => setEditForm({ ...editForm, format: v })} />
             {/* Status moved out of EDIT — changed via the status pill at the top
                 of the trainee page (Ohad). */}
             {/* Club athletes: the club pays, so there is no package, no session
                 balance and no price on the record at all. */}
-            {!isClubAthlete && <Select label="Package" options={PACKAGE_TYPES} value={editForm.package || ""} onChange={v => setEditForm({ ...editForm, package: v })} />}
-            {!isClubAthlete && <Input label="Sessions Remaining" type="number" value={editForm.sessionsRemaining || 0} onChange={e => setEditForm({ ...editForm, sessionsRemaining: parseInt(e.target.value) || 0 })} />}
-            {!isClubAthlete && <Input label="Monthly (₪)" type="number" value={editForm.monthly || ""} onChange={e => setEditForm({ ...editForm, monthly: parseFloat(e.target.value) || 0 })} />}
-            {!isClubAthlete && <Input label="Per Session (₪)" type="number" value={editForm.perSession || ""} onChange={e => setEditForm({ ...editForm, perSession: parseFloat(e.target.value) || 0 })} />}
+            {!isClubAthlete && <Select label={t("Package")} options={PACKAGE_TYPES} value={editForm.package || ""} onChange={v => setEditForm({ ...editForm, package: v })} />}
+            {!isClubAthlete && <Input label={t("Sessions Remaining")} type="number" value={editForm.sessionsRemaining || 0} onChange={e => setEditForm({ ...editForm, sessionsRemaining: parseInt(e.target.value) || 0 })} />}
+            {!isClubAthlete && <Input label={t("Monthly (₪)")} type="number" value={editForm.monthly || ""} onChange={e => setEditForm({ ...editForm, monthly: parseFloat(e.target.value) || 0 })} />}
+            {!isClubAthlete && <Input label={t("Per Session (₪)")} type="number" value={editForm.perSession || ""} onChange={e => setEditForm({ ...editForm, perSession: parseFloat(e.target.value) || 0 })} />}
             {isClubAthlete && <div style={{ gridColumn: "1 / -1", fontFamily: FN, fontSize: 10, letterSpacing: '0.12em', color: C.tm, textTransform: 'uppercase' }}>Club athlete — no billing</div>}
-            <Input label="Start Date" type="date" value={editForm.startDate || ""} onChange={e => setEditForm({ ...editForm, startDate: e.target.value })} />
-            <Input label="Last Payment" type="date" value={editForm.lastPayment || ""} onChange={e => setEditForm({ ...editForm, lastPayment: e.target.value })} />
-            <div style={{ gridColumn: "1 / -1" }}><TextArea label="Injuries / Conditions" value={editForm.injuries || ""} onChange={e => setEditForm({ ...editForm, injuries: e.target.value })} placeholder="L4/L5 disc bulge, R shoulder impingement..." /></div>
-            <div style={{ gridColumn: "1 / -1" }}><TextArea label="Goals" value={editForm.goals || ""} onChange={e => setEditForm({ ...editForm, goals: e.target.value })} /></div>
-            <div style={{ gridColumn: "1 / -1" }}><TextArea label="Notes" value={editForm.notes || ""} onChange={e => setEditForm({ ...editForm, notes: e.target.value })} /></div>
+            <Input label={t("Start Date")} type="date" value={editForm.startDate || ""} onChange={e => setEditForm({ ...editForm, startDate: e.target.value })} />
+            <Input label={t("Last Payment")} type="date" value={editForm.lastPayment || ""} onChange={e => setEditForm({ ...editForm, lastPayment: e.target.value })} />
+            <div style={{ gridColumn: "1 / -1" }}><TextArea label={t("Injuries / Conditions")} value={editForm.injuries || ""} onChange={e => setEditForm({ ...editForm, injuries: e.target.value })} placeholder="L4/L5 disc bulge, R shoulder impingement..." /></div>
+            <div style={{ gridColumn: "1 / -1" }}><TextArea label={t("Goals")} value={editForm.goals || ""} onChange={e => setEditForm({ ...editForm, goals: e.target.value })} /></div>
+            <div style={{ gridColumn: "1 / -1" }}><TextArea label={t("Notes")} value={editForm.notes || ""} onChange={e => setEditForm({ ...editForm, notes: e.target.value })} /></div>
           </div>
         </>}
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
