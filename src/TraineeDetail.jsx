@@ -500,7 +500,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             const vk = visKeyOf(cur);
             const isVis = portalVis?.[vk] !== false;
             return <button onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis});}} title={isVis?'On the athlete portal — click to hide':'Hidden from the athlete portal — click to show'} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:8}}>
-              <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',color:isVis?C.gn:C.td}}>PORTAL</span>
+              <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',color:isVis?C.gn:C.td}}>{t('PORTAL')}</span>
               <span style={{width:32,height:18,borderRadius:9,background:isVis?'rgba(46,213,115,0.25)':'rgba(255,255,255,0.06)',border:`1px solid ${isVis?'rgba(46,213,115,0.5)':C.cardBd}`,position:'relative',transition:'background .15s, border-color .15s',flexShrink:0}}>
                 <span style={{width:14,height:14,borderRadius:7,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?15:1,transition:'left .15s'}} />
               </span>
@@ -614,7 +614,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           gap, then the action cluster — all left-aligned so they stack cleanly
           above the left-aligned section tabs instead of splitting to both edges. */}
       <div style={{display:"flex",alignItems:"center",marginBottom:16,gap:12}}>
-        <button onClick={onBack} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',padding:0,height:30,lineHeight:1,display:"inline-flex",alignItems:"center",flexShrink:0}}>← BACK</button>
+        <button onClick={onBack} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',padding:0,height:30,lineHeight:1,display:"inline-flex",alignItems:"center",flexShrink:0}}>{t('← BACK')}</button>
         {/* Action buttons STRETCH to fill the row equally (flex:1 1 0) so this
             row is a full-width segmented control that matches the section-tab row
             directly below it exactly (Ohad: "the two rows must be the same"). All
@@ -626,19 +626,19 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
               Border unified to the same cyan hairline (C.cardBd) as the section-tab
               row below, so the two rows read as ONE consistent segmented system
               (Ohad: "don't like grey borders on top, cyan on the 2nd row"). */}
-          <Btn variant="ghost" onClick={openEdit} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 88px',minWidth:0,whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}}>EDIT</Btn>
-          {onPreviewPortal && <Btn variant="ghost" onClick={onPreviewPortal} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 88px',minWidth:0,whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}} title="Open this athlete's portal in preview mode">PORTAL</Btn>}
-          <Btn variant="ghost" onClick={()=>lineage.open(trainee)} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 88px',minWidth:0,whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}} title="Training Analysis — cross-block progression + what to program next">ANALYSIS</Btn>
-          {onOpenInPersonForTrainee && <Btn variant="ghost" onClick={()=>onOpenInPersonForTrainee(trainee)} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 88px',minWidth:0,whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}} title="Open the in-person workout logger pre-filtered to this athlete">LOG SESSION</Btn>}
+          <Btn variant="ghost" onClick={openEdit} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 88px',minWidth:0,whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}}>{t('EDIT')}</Btn>
+          {onPreviewPortal && <Btn variant="ghost" onClick={onPreviewPortal} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 88px',minWidth:0,whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}} title="Open this athlete's portal in preview mode">{t('PORTAL')}</Btn>}
+          <Btn variant="ghost" onClick={()=>lineage.open(trainee)} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 88px',minWidth:0,whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}} title="Training Analysis — cross-block progression + what to program next">{t('ANALYSIS')}</Btn>
+          {onOpenInPersonForTrainee && <Btn variant="ghost" onClick={()=>onOpenInPersonForTrainee(trainee)} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 88px',minWidth:0,whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}} title="Open the in-person workout logger pre-filtered to this athlete">{t('LOG SESSION')}</Btn>}
           {td.status==="Archived" ? <>
-            <Btn variant="ghost" onClick={()=>{if(setTrainees)setTrainees(prev=>prev.map(t=>t.id===trainee?{...t,status:"Inactive",archivedAt:undefined}:t));onBack()}} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 88px',minWidth:0,whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}}>RESTORE</Btn>
+            <Btn variant="ghost" onClick={()=>{if(setTrainees)setTrainees(prev=>prev.map(t=>t.id===trainee?{...t,status:"Inactive",archivedAt:undefined}:t));onBack()}} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 88px',minWidth:0,whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}}>{t('RESTORE')}</Btn>
             <Btn variant="danger" onClick={()=>setShowDeleteConfirm(true)} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 88px',minWidth:0,whiteSpace:'nowrap'}}>{t("DELETE")}</Btn>
-          </> : <Btn variant="ghost" onClick={()=>setShowArchiveConfirm(true)} title="Archive this athlete" style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",color:'var(--c-tm)',flex:'1 1 88px',minWidth:0,whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}}>ARCHIVE</Btn>}
+          </> : <Btn variant="ghost" onClick={()=>setShowArchiveConfirm(true)} title="Archive this athlete" style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",color:'var(--c-tm)',flex:'1 1 88px',minWidth:0,whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}}>{t('ARCHIVE')}</Btn>}
           <button
             onClick={() => { if (setTrainees) setTrainees(prev => prev.map(t => t.id === trainee ? { ...t, notifOff: !t.notifOff } : t)); }}
             title={td.notifOff ? 'Notifications muted for this athlete — click to unmute' : 'Notifications on — click to mute push + dashboard alerts about this athlete'}
             style={{ background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, cursor: 'pointer', padding: '0 6px', height: 30, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, flex: '1.6 1 0', minWidth: 0 }}>
-            <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: td.notifOff ? C.td : C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>NOTIFICATION</span>
+            <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: td.notifOff ? C.td : C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('NOTIFICATION')}</span>
             <span style={{ width: 34, height: 18, borderRadius: 9, background: td.notifOff ? C.sf3 : 'rgba(57,189,255,0.22)', border: `1px solid ${td.notifOff ? C.bd2 : 'rgba(57,189,255,0.38)'}`, position: 'relative', transition: 'all .15s', flexShrink: 0 }}>
               <span style={{ width: 14, height: 14, borderRadius: 7, background: td.notifOff ? C.td : C.ac, position: 'absolute', top: 1, left: td.notifOff ? 1 : 17, transition: 'all .15s' }} />
             </span>
@@ -743,11 +743,11 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           render this inside the member columns above). */}
       {!couple && (
         <Card style={{marginBottom:16, display: showSec('vitals') ? undefined : 'none'}}
-          header={<span style={{fontWeight:700,fontSize:13,letterSpacing:'0.04em',textTransform:'uppercase'}}>Vitals · Injuries · Goals</span>}>
+          header={<span style={{fontWeight:700,fontSize:13,letterSpacing:'0.04em',textTransform:'uppercase'}}>{t('Vitals · Injuries · Goals')}</span>}>
           {/* Centred fixed tiles (not 3×1fr stretch) so vitals read as a compact
               cluster, matching the header stats; empty values dimmed. */}
           <div className="td-vitals-grid" style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, 132px)",justifyContent:"center",gap:12,maxWidth:558,margin:"0 auto",textAlign:"center"}}>
-            {[["Age",td.age||"—"],["Weight",td.weight?`${td.weight}kg`:"—"],["Height",td.height?`${td.height}cm`:"—"],["Format",td.format||"—"]].map(([l,v])=>{
+            {[[t("Age"),td.age||"—"],[t("Weight"),td.weight?`${td.weight}kg`:"—"],[t("Height"),td.height?`${td.height}cm`:"—"],[t("Format"),td.format||"—"]].map(([l,v])=>{
               const empty = v==="—";
               return <div key={l}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700,textAlign:"center"}}>{l}</div><div style={{fontSize:14,color:empty?C.td:C.tx,marginTop:2,textAlign:"center"}}>{v}</div></div>;
             })}
@@ -772,9 +772,9 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           <div style={{display:'flex',gap:0}}>
           {/* F-27 — open the brand-rich contract composer. */}
           <button onClick={()=>setShowContract(true)}
-            style={{...stripBtnBase,border:'1px solid rgba(255,255,255,0.55)',color:'#FFFFFF'}}>CONTRACT</button>
+            style={{...stripBtnBase,border:'1px solid rgba(255,255,255,0.55)',color:'#FFFFFF'}}>{t('CONTRACT')}</button>
           <button onClick={()=>setShowPayForm(true)}
-            style={{...stripBtnBase,border:'1px solid rgba(255,255,255,0.55)',borderLeft:'none',color:'#FFFFFF'}}>+ ADD PAYMENT</button>
+            style={{...stripBtnBase,border:'1px solid rgba(255,255,255,0.55)',borderLeft:'none',color:'#FFFFFF'}}>{t('+ ADD PAYMENT')}</button>
         </div></div>}>
       {/* Contract terms strip — the billing facts (rate/package/sessions) that
           used to live in the header stat row (Ohad: "payment in billing").
@@ -785,8 +785,8 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             or a record created before that change still prints "8 Sessions Left"
             on the page. Same predicate as the roster and the dashboard. */}
         {(isClubAthleteRow(td)
-          ? [["Last Payment",fmtPrettyDate(lastPaidDate)],["Since",fmtPrettyDate(td.startDate)]]
-          : [["Package",td.package],["Sessions Left",td.sessionsRemaining],["Monthly",td.monthly?`₪${td.monthly}`:"—"],["Per Session",td.perSession?`₪${td.perSession}`:"—"],["Last Payment",fmtPrettyDate(lastPaidDate)],["Since",fmtPrettyDate(td.startDate)]]
+          ? [[t("Last Payment"),fmtPrettyDate(lastPaidDate)],[t("Since"),fmtPrettyDate(td.startDate)]]
+          : [[t("Package"),td.package],[t("Sessions Left"),td.sessionsRemaining],[t("Monthly"),td.monthly?`₪${td.monthly}`:"—"],[t("Per Session"),td.perSession?`₪${td.perSession}`:"—"],[t("Last Payment"),fmtPrettyDate(lastPaidDate)],[t("Since"),fmtPrettyDate(td.startDate)]]
         ).map(([l,v])=>{
           const empty = v===undefined||v===null||v===""||v==="—";
           // Auto-width cells + nowrap values so a long date ("1st of January 2025")
@@ -794,7 +794,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           return <div key={l} style={{whiteSpace:'nowrap'}}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700}}>{l}</div><div style={{fontSize:14,color:empty?C.td:C.tx,marginTop:2}}>{empty?"—":v}</div></div>;
         })}
       </div>
-      {tPay.length===0?<div style={{color:C.td,fontSize:13,textAlign:'center',padding:'10px 0'}}>No payments recorded.</div>:(
+      {tPay.length===0?<div style={{color:C.td,fontSize:13,textAlign:'center',padding:'10px 0'}}>{t('No payments recorded.')}</div>:(
         <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontFamily:FB,fontSize:13}}>
           <thead><tr style={{borderBottom:`1px solid ${C.cardBd}`}}>{["Date","Amount","Status","Notes",""].map(h=><th key={h} style={{textAlign:"center",padding:"6px 10px",fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700}}>{h}</th>)}</tr></thead>
           <tbody>{tPay.slice().reverse().map(p=>(<tr key={p.id} style={{borderBottom:`1px solid ${C.cardBd}`}}>
@@ -983,7 +983,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
                 <Btn key={mi} onClick={()=>assignPlan(pendingAssignPlan, subMemberId(trainee, mi))} style={{fontSize:13,padding:'8px 20px'}}>{m.name || `Member ${mi+1}`}</Btn>
               ))}
             </div>
-            <button onClick={()=>setPendingAssignPlan(null)} style={{background:'none',border:'none',color:C.td,cursor:'pointer',fontSize:11,marginTop:12}}>← Back</button>
+            <button onClick={()=>setPendingAssignPlan(null)} style={{background:'none',border:'none',color:C.td,cursor:'pointer',fontSize:11,marginTop:12}}>{t('← Back')}</button>
           </div>
         ) : pendingBlankCouple && couple ? (
           <div style={{textAlign:'center',padding:12}}>
@@ -1005,7 +1005,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
                 }} style={{fontSize:13,padding:'8px 20px'}}>{m.name || `Member ${mi+1}`}</Btn>
               ))}
             </div>
-            <button onClick={()=>setPendingBlankCouple(false)} style={{background:'none',border:'none',color:C.td,cursor:'pointer',fontSize:11,marginTop:12}}>← Back</button>
+            <button onClick={()=>setPendingBlankCouple(false)} style={{background:'none',border:'none',color:C.td,cursor:'pointer',fontSize:11,marginTop:12}}>{t('← Back')}</button>
           </div>
         ) : (
         (()=>{const unassigned=(planIndex||[]).filter(p=>!p.traineeId);const others=(planIndex||[]).filter(p=>p.traineeId&&!traineeIds.includes(p.traineeId));const assignedNames=new Set(tp.map(p=>p.name));

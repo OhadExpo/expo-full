@@ -31,7 +31,10 @@ async function open(route, clickText, label) {
   await wait(2500);
   const clicked = await pg.evaluate((re) => {
     const rx = new RegExp(re);
-    const el = [...document.querySelectorAll('button,a,[role=button],h3,h2')].find((e) => rx.test((e.textContent || '').trim()) && e.getBoundingClientRect().width > 0);
+    const pool = [...document.querySelectorAll('button,a,[role=button],h3,h2')];
+    let el = pool.find((e) => rx.test((e.textContent || '').trim()) && e.getBoundingClientRect().width > 0);
+    // A card title is often a plain div/span: fall back to the smallest exact match.
+    if (!el) el = [...document.querySelectorAll('div,span,td')].filter((e) => rx.test((e.textContent || '').trim()) && e.getBoundingClientRect().width > 0 && e.getBoundingClientRect().width < 500).sort((a, b) => a.textContent.length - b.textContent.length)[0];
     if (el) { el.click(); return (el.textContent || '').trim().slice(0, 40); } return null;
   }, clickText);
   await wait(4000);
@@ -41,6 +44,10 @@ async function open(route, clickText, label) {
 await open('/coach/programs', '^(Block #\\d+|בלוק #\\d+)', 'program');
 await open('/coach/athletes', '^(EDIT|עריכה|ערוך)$', 'athlete-edit');
 await open('/coach/athletes', '^(PORTAL|פורטל)$', 'athlete-portal-preview');
+if (process.env.DETAIL) {
+  await open('/coach/athletes', '^(אוהד|Ohad)$', 'athlete-detail');
+  await open('/coach/review', '^(OPEN|פתח|REVIEW|בדוק|בדיקה|VIEW|הצג)$', 'review-detail');
+}
 if (process.env.MORE) {
   await open('/coach/review', '^(OPEN|פתח|REVIEW|בדוק|בדיקה|VIEW|הצג)$', 'review-detail');
   await open('/coach/exercises', '^(EDIT|ערוך|עריכה|✎)$', 'exercise-edit');
