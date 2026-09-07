@@ -71,3 +71,6 @@ RESTORE POINT (pre-perf-fixes): b1f93ab6f04fa84e842c58049f278312374c8a43
 - [x] N4 tasks page last labels (placeholders, Auto-Alerts, Done; hotkeys re-anchored to data-hotkey); BW tab ENTRIES/HISTORY
 - [x] N5 console sweep 35 routes: only /_vercel/insights/script.js 404 (preview-only)
 - [ ] N6 light/dark parity on the touched routes · handoff verifiers · final host refresh (the last 30 minutes, 03:22–03:52)
+- [x] N7 demo parity: /demo/athlete follows the app language (was above the provider); ?lang=he|en honoured and kept; demo banner in Hebrew; demo pair on the host. DECISION for him: the Hebrew marketing CTA points at /try (a mock with no translator)
+- [x] N8 intake form: instruction verbs in the masculine register (slash forms gone); status choices left
+- [x] N9 a save that fails offline still toasts (loads stay quiet); Hebrew toast

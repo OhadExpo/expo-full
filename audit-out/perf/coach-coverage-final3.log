@@ -1,0 +1,25 @@
+/coach               dir=rtl  39 latin words
+/coach/athletes      dir=rtl  80 latin words
+/coach/programs      dir=rtl  63 latin words
+/coach/exercises     dir=rtl  735 latin words
+/coach/exercise-matching dir=rtl  3512 latin words
+/coach/exercise-classify dir=rtl  7606 latin words
+/coach/exercise-cleanup dir=rtl  68 latin words
+/coach/review        dir=rtl  15 latin words
+/coach/review-tools  dir=rtl  1 latin words
+/coach/workouts      dir=rtl  43 latin words
+/coach/sessions      dir=rtl  29 latin words
+/coach/sessions-single dir=rtl  43 latin words
+/coach/tasks         dir=rtl  10 latin words
+/coach/billing       dir=rtl  18 latin words
+/coach/calendar      dir=rtl  10 latin words
+/coach/intake        dir=rtl  8 latin words
+/coach/waitlist      dir=rtl  22 latin words
+/coach/bugs          dir=rtl  0 latin words
+/coach/challenges    dir=rtl  0 latin words
+/coach/chat-audit    dir=rtl  171 latin words
+/coach/smart-import  dir=rtl  11 latin words
+/coach/bhbc          dir=ltr  208 latin words
+
+most frequent English words across those coach screens:
+Other(450) Raise(397) VIEW(297) Block(264) Cable(225) Standing(216) Row(206) Squat(193) Day(192) Lateral(190) Seated(190) Jump(184) Curl(178) Lunge(172) Pull(172) Front(170) Pullover(169) Push(169) Half-Kneeling(161) Barbell(159) Machine(158) Slam(158) Throw(156) Prone(156) Kneeling(155) Band(154) Rotation(153) Toss(153) Dumbbell(152) Supine(152) Carry(152) Isometric(151) Ball(151) Landmine(151) CHANGE(150) NEW(150) SKIP(150) Bodyweight(150) Kettlebell(150) Medicine(150) TRX(150) Suspension(150) Quadruped(150) Side-Lying(150) Hanging(150) Extend(150) Hinge(150) Anti-Rotation(150) Olympic(150) Lift(150) SIMILAR(118) ISO(106) Knee(52) Push-Up(47) Press(37) OHP(37) Extension(36) Banded(34) library(33) INT(32)
