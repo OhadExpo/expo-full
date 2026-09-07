@@ -1,18 +1,21 @@
 {
-  "checkedLines": 786,
-  "verified": 221,
-  "attributed": 276,
-  "structure": 282,
-  "judgement": 7,
-  "atoms": 330,
-  "fails": [],
+  "checkedLines": 871,
+  "verified": 258,
+  "attributed": 305,
+  "structure": 299,
+  "judgement": 8,
+  "atoms": 384,
+  "fails": [
+    "line 888: line count of a named file \"scripts/build-tonight.mjs:171\" does not check out  ::  In `scripts/build-tonight.mjs` (171 lines), the `LIVE` const and `LIVE_TITLES`"
+  ],
   "judgementLines": [
-    "72: Israeli-direct. Wants deliverables, not menus of options. Push back when the",
-    "168: `git rev-list --count origin/bhbc-hebrew..HEAD` should read 0 when you",
-    "208: > Check for drift with `git rev-list --count origin/bhbc-hebrew..HEAD` — it sh",
-    "411: mid-session words, the warm-up flow, `READINESS GRAPH →` and `NOTE` — the",
-    "804: `audit-out\\pairs\\portal-he-live.png`. The existing code converts them with",
-    "958: - The weight-room grid stretches its columns; it tightens as the month fills.",
-    "1067: order: the athlete-facing section on the local host, then aligning the pairs s"
+    "73: Israeli-direct. Wants deliverables, not menus of options. Push back when the",
+    "100: \"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe\" --remote-debugging-por",
+    "179: `git rev-list --count origin/bhbc-hebrew..HEAD` should read 0 when you",
+    "219: > Check for drift with `git rev-list --count origin/bhbc-hebrew..HEAD` — it sh",
+    "442: mid-session words, the warm-up flow, `READINESS GRAPH →` and `NOTE` — the",
+    "899: `audit-out\\pairs\\portal-he-live.png`. The existing code converts them with",
+    "1060: - The weight-room grid stretches its columns; it tightens as the month fills.",
+    "1169: order: the athlete-facing section on the local host, then aligning the pairs s"
   ]
 }
