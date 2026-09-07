@@ -1,13 +1,11 @@
 {
   "checkedLines": 871,
-  "verified": 258,
+  "verified": 259,
   "attributed": 305,
   "structure": 299,
   "judgement": 8,
-  "atoms": 384,
-  "fails": [
-    "line 888: line count of a named file \"scripts/build-tonight.mjs:171\" does not check out  ::  In `scripts/build-tonight.mjs` (171 lines), the `LIVE` const and `LIVE_TITLES`"
-  ],
+  "atoms": 383,
+  "fails": [],
   "judgementLines": [
     "73: Israeli-direct. Wants deliverables, not menus of options. Push back when the",
     "100: \"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe\" --remote-debugging-por",
