@@ -728,10 +728,10 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
               second, so the eye reads it in the same order the shot happens. */}
           <div style={{ ...lbl, marginTop: 10, marginBottom: 4 }}>{(T.measuredOnSide ? T.measuredOnSide(hand === 'L' ? T.left : T.right) : 'MEASURED ON THE SHOOTING SIDE · ' + (hand === 'L' ? 'LEFT' : 'RIGHT'))}</div>
           <div className="shot-readout" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(104px, 1fr))', gap: 6 }}>
-            {[[T.metrics.knee, fmt(rd.knee) + '°'], [T.metrics.hip, fmt(rd.hip) + '°'], [T.metrics.trunk, fmt(rd.trunk) + '°'], [T.metrics.armElev, fmt(rd.shoulder) + '°'], [T.metrics.elbow, fmt(rd.elbow) + '°'], [T.metrics.elbowOffset, fmt(rd.wristElbowX, 2)], [T.metrics.forearm, fmt(rd.forearm) + '°'], [T.metrics.wristEye, (rd.wristEye == null ? '—' : (rd.wristEye >= 0 ? '+' : '') + fmt(rd.wristEye, 2))]].map(([k, v]) => (
-              <div key={k} style={{ border: '1px solid rgba(255,255,255,0.12)', padding: '6px 8px', minHeight: 46, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                <div style={lbl}>{k}</div>
-                <div style={{ fontFamily: FN, fontSize: 15, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{v}</div>
+            {[[T.metrics.knee, fmt(rd.knee) + '°'], [T.metrics.hip, fmt(rd.hip) + '°'], [T.metrics.trunk, fmt(rd.trunk) + '°'], [T.metrics.armElev, fmt(rd.shoulder) + '°'], [T.metrics.elbow, fmt(rd.elbow) + '°'], [T.metrics.elbowOffset, fmt(rd.wristElbowX, 2) + (T.unitTorso || ' torso'), T.metricsHelp && T.metricsHelp.elbowOffset], [T.metrics.forearm, fmt(rd.forearm) + '°'], [T.metrics.wristEye, (rd.wristEye == null ? '—' : (rd.wristEye >= 0 ? '+' : '') + fmt(rd.wristEye, 2) + (T.unitTorso || ' torso')), T.metricsHelp && T.metricsHelp.wristEye]].map(([k, v, help]) => (
+              <div key={k} className="shot-metric" title={help || undefined} style={{ border: '1px solid rgba(255,255,255,0.12)', padding: '6px 8px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
+                <div style={{ ...lbl, minHeight: 24, lineHeight: '12px' }}>{k}</div>
+                <div className="shot-metric-v" style={{ fontFamily: FN, fontSize: 15, fontWeight: 700, fontVariantNumeric: 'tabular-nums', lineHeight: '20px' }}>{v}</div>
               </div>
             ))}
           </div>

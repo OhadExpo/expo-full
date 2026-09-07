@@ -57,6 +57,12 @@ for (const lang of (process.env.LANGS || 'he,en').split(',')) {
     const jumps = await pg.evaluate(() => [...document.querySelectorAll('.shot-check-row button')].filter((b) => /▸/.test(b.textContent || '')).length);
     const rows = await pg.evaluate(() => document.querySelectorAll('.shot-check-row').length);
     console.log(`${lang}: ${rows} checkpoint rows, ${jumps} jump buttons`);
+    // The eight metric tiles: every number's top edge, so a wrapped label
+    // cannot push one number below the others' unnoticed.
+    const tops = await pg.evaluate(() => [...document.querySelectorAll('.shot-metric-v')].map((e) => Math.round(e.getBoundingClientRect().top)));
+    const rowsOf = {}; for (const t of tops) { const k = Math.round(t / 40); rowsOf[k] = rowsOf[k] || []; rowsOf[k].push(t); }
+    const spread = Object.values(rowsOf).map((r) => Math.max(...r) - Math.min(...r));
+    console.log(`${lang}: metric numbers tops ${JSON.stringify(tops)} - within-row spread ${JSON.stringify(spread)}px`);
     await pg.screenshot({ path: `audit-out/shot-results-${lang}.png` });
     await pg.screenshot({ path: `audit-out/shot-results-${lang}-full.png`, fullPage: true });
   } catch (e) {

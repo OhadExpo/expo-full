@@ -81,6 +81,14 @@ export const SHOT_I18N = {
     cols: ['#', 'At', 'Score', 'Dip', 'Set', 'Release', 'Timing', 'Release ht', 'Make'],
     toolTitle: 'SHOT ANALYZER',
     unitMs: ' ms', unitS: 's', unitMps: ' m/s', unitM: ' m', sideShort: { R: 'R', L: 'L' },
+    // Ohad, 2026-09-07: "what does elbow offset and wrist vs eye measure? what's
+    // the units? it doesnt say anything". Both are in TORSO lengths (shoulder
+    // to hip), so the reading does not depend on how far the camera stood.
+    unitTorso: ' torso',
+    metricsHelp: {
+      elbowOffset: 'How far the wrist sits sideways from directly above the elbow, in torso lengths. 0 = stacked; the target at the set is 0.25 or less.',
+      wristEye: 'How far the wrist sits above (+) or below (−) the eye line, in torso lengths.',
+    },
     frameOf: (i, n, sec) => `F${i}/${n} · ${sec}s`,
     // Makes are MARKED by the coach - the analyser has never seen the rim.
     made: 'MADE', missed: 'MISSED', markShot: 'THIS SHOT',
@@ -215,6 +223,11 @@ export const SHOT_I18N = {
     toolTitle: 'ניתוח זריקה',
     // The last Latin on the Hebrew screen was units: MS, S and the (R) legend.
     unitMs: ' מ"ש', unitS: ' שנ׳', unitMps: ' מ׳/שנ׳', unitM: ' מ׳', sideShort: { R: 'ימ׳', L: 'שמ׳' },
+    unitTorso: ' גו',
+    metricsHelp: {
+      elbowOffset: 'כמה שורש כף היד זז הצידה מקו ישר מעל המרפק, ביחידות אורך גו (כתף עד ירך). 0 = מיושר; היעד בסט הוא עד 0.25.',
+      wristEye: 'כמה שורש כף היד מעל (+) או מתחת (−) לקו העיניים, ביחידות אורך גו.',
+    },
     frameOf: (i, n, sec) => `פריים ${i}/${n} · ${sec} שנ׳`,
     made: 'נכנס', missed: 'החטאה', markShot: 'הזריקה הזאת',
     makes: (m, n) => `${m}/${n} קליעות`, unmarked: (u) => `${u} לא סומנו`,

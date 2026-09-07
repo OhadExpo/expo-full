@@ -4,6 +4,7 @@
 // pose + 3D code stays out of the main bundle until a coach actually opens one.
 // Owner trial — nothing here writes to the athlete.
 import React, { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react';
+import { useT } from './i18n';
 import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
 import { RefinedHeaderStrip, SectionLabel } from './ui';
@@ -61,6 +62,7 @@ function buildClipTree(workouts, trainees) {
 // Cascading picker — five selects that narrow athlete → block → week → day →
 // exercise; choosing an exercise hands its clip URL + name up to the tools.
 function ReviewedClipPicker({ workouts, trainees, onPick, activeUrl }) {
+  const tt = useT();
   const tree = useMemo(() => buildClipTree(workouts, trainees), [workouts, trainees]);
   const [a, setA] = useState(''); const [b, setB] = useState('');
   const [w, setW] = useState(''); const [d, setD] = useState(''); const [e, setE] = useState('');
@@ -102,36 +104,36 @@ function ReviewedClipPicker({ workouts, trainees, onPick, activeUrl }) {
   if (!tree.length) {
     return (
       <div style={{ marginBottom: 16 }}>
-        <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 6, textTransform: 'uppercase' }}>Load a reviewed clip</label>
-        <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, border: `1px dashed ${C.cardBd}`, padding: '10px 12px' }}>No recorded form videos yet — athletes' uploaded clips will appear here to analyse.</div>
+        <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 6, textTransform: 'uppercase' }}>{tt('Load a reviewed clip')}</label>
+        <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, border: `1px dashed ${C.cardBd}`, padding: '10px 12px' }}>{tt("No recorded form videos yet — athletes' uploaded clips will appear here to analyse.")}</div>
       </div>
     );
   }
   return (
     <div style={{ marginBottom: 16 }}>
-      <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 3, textTransform: 'uppercase' }}>Load a reviewed clip</label>
+      <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 3, textTransform: 'uppercase' }}>{tt('Load a reviewed clip')}</label>
       <div style={{ fontFamily: FB, fontSize: 11, color: C.tm, marginBottom: 9, maxWidth: 480, lineHeight: 1.4 }}>
-        Pick an athlete's already-recorded set — only exercises with a video are listed — and the tools analyse it directly, no re-upload.
+        {tt("Pick an athlete's already-recorded set — only exercises with a video are listed — and the tools analyse it directly, no re-upload.")}
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, maxWidth: 720 }}>
         <select value={a} onChange={ev => { setA(ev.target.value); setB(''); setW(''); setD(''); setE(''); }} style={sel}>
-          <option value="">Athlete…</option>
+          <option value="">{tt('Athlete…')}</option>
           {tree.map((x, i) => <option key={x.cid} value={i}>{x.name}</option>)}
         </select>
         <select value={b} disabled={!athlete} onChange={ev => { setB(ev.target.value); setW(''); setD(''); setE(''); }} style={athlete ? sel : selDim}>
-          <option value="">Block…</option>
+          <option value="">{tt('Block…')}</option>
           {athlete?.blocks.map((x, i) => <option key={i} value={i}>{x.block}</option>)}
         </select>
         <select value={w} disabled={!block} onChange={ev => { setW(ev.target.value); setD(''); setE(''); }} style={block ? sel : selDim}>
-          <option value="">Week…</option>
+          <option value="">{tt('Week…')}</option>
           {block?.weeks.map((x, i) => <option key={i} value={i}>{x.week}</option>)}
         </select>
         <select value={d} disabled={!week} onChange={ev => { setD(ev.target.value); setE(''); }} style={week ? sel : selDim}>
-          <option value="">Day…</option>
+          <option value="">{tt('Day…')}</option>
           {week?.days.map((x, i) => <option key={i} value={i}>{x.day}</option>)}
         </select>
         <select value={e} disabled={!day} onChange={ev => onE(ev.target.value)} style={day ? sel : selDim}>
-          <option value="">Exercise…</option>
+          <option value="">{tt('Exercise…')}</option>
           {day?.exercises.map((x, i) => <option key={i} value={i}>{x.title}</option>)}
         </select>
       </div>
@@ -256,6 +258,7 @@ function ToolLoading({ label }) {
 // the launcher reads calm. Hover paints a soft cyan wash; live tools without a
 // camera are dimmed and marked.
 function ToolRow({ t, blocked, isFirst, onOpen }) {
+  const tt = useT();
   const [hover, setHover] = useState(false);
   const active = hover && !blocked;
   return (
@@ -272,18 +275,19 @@ function ToolRow({ t, blocked, isFirst, onOpen }) {
         transition: 'background .15s', outline: 'none',
       }}>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontFamily: FN, fontSize: 14, fontWeight: 700, letterSpacing: '0.03em', color: C.tx }}>{t.label}</div>
-        <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 3, lineHeight: 1.4 }}>{t.measures}</div>
+        <div style={{ fontFamily: FN, fontSize: 14, fontWeight: 700, letterSpacing: '0.03em', color: C.tx }}>{tt(t.label)}</div>
+        <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 3, lineHeight: 1.4 }}>{tt(t.measures)}</div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: t.live ? C.ac : C.tm, border: `1px solid ${t.live ? 'rgba(57,189,255,0.5)' : C.cardBd}`, padding: '2px 6px', whiteSpace: 'nowrap' }}>{t.live ? 'LIVE' : 'CLIP'}</span>
-        <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', color: blocked ? C.or : C.ac, transform: active ? 'translateX(3px)' : 'none', transition: 'transform .15s', whiteSpace: 'nowrap' }}>{blocked ? 'NEEDS CAMERA' : 'OPEN →'}</span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: t.live ? C.ac : C.tm, border: `1px solid ${t.live ? 'rgba(57,189,255,0.5)' : C.cardBd}`, padding: '2px 6px', whiteSpace: 'nowrap' }}>{tt(t.live ? 'LIVE' : 'CLIP')}</span>
+        <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', color: blocked ? C.or : C.ac, transform: active ? 'translateX(3px)' : 'none', transition: 'transform .15s', whiteSpace: 'nowrap' }}>{tt(blocked ? 'NEEDS CAMERA' : 'OPEN →')}</span>
       </div>
     </div>
   );
 }
 
 export default function ReviewToolsView({ clientWorkouts = [], trainees = [] }) {
+  const tt = useT();
   const [title, setTitle] = useState('Squat');
   const [clipUrl, setClipUrl] = useState(null); // a picked reviewed-clip URL → fed into the tools
   const [clipMeta, setClipMeta] = useState({ clientId: null, date: null, recorded: [], target: null }); // athlete+date+logged+prescribed of the picked clip
@@ -314,12 +318,10 @@ export default function ReviewToolsView({ clientWorkouts = [], trainees = [] }) 
           coach app's card/strip pattern (was a bespoke editorial layout). */}
       <div style={{ marginBottom: 16, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '14px 18px' }}>
         <RefinedHeaderStrip padY={14} padX={18} marginBottom={14}>
-          <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>MEASURE THE LIFT</SectionLabel>
+          <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>{tt('MEASURE THE LIFT')}</SectionLabel>
         </RefinedHeaderStrip>
         <div style={{ color: C.tm, fontSize: 13, fontFamily: FB, lineHeight: 1.5, maxWidth: 620, marginBottom: 16 }}>
-          Camera &amp; pose tools to read a set you're reviewing — bar speed, range
-          of motion, jump power, live coaching. Owner trial; nothing is saved to
-          the athlete.
+          {tt("Camera & pose tools to read a set you're reviewing — bar speed, range of motion, jump power, live coaching. Owner trial; nothing is saved to the athlete.")}
         </div>
 
         {/* Reviewed-clip picker — cascade selects only. Once a clip is picked
@@ -341,8 +343,8 @@ export default function ReviewToolsView({ clientWorkouts = [], trainees = [] }) 
                 Editable ONLY here, after a clip is loaded (Ohad: "must be fully
                 automated. i can only change it after analyzing, not before"). */}
             <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '14px 18px' }}>
-              <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>Lift being analysed <span style={{ color: C.ac }}>· AUTO</span></label>
-              <div style={{ fontFamily: FB, fontSize: 11, color: C.tm, marginBottom: 9, lineHeight: 1.4 }}>Detected from the clip. Change it only if the auto-detect is off.</div>
+              <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>{tt('Lift being analysed')} <span style={{ color: C.ac }}>· AUTO</span></label>
+              <div style={{ fontFamily: FB, fontSize: 11, color: C.tm, marginBottom: 9, lineHeight: 1.4 }}>{tt('Detected from the clip. Change it only if the auto-detect is off.')}</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
                 {QUICK_LIFTS.map(l => {
                   const on = title.trim().toLowerCase() === l.toLowerCase();
@@ -352,13 +354,13 @@ export default function ReviewToolsView({ clientWorkouts = [], trainees = [] }) 
                   );
                 })}
               </div>
-              <input value={title} onChange={e => setTitle(e.target.value)} placeholder="…or type any lift"
+              <input value={title} onChange={e => setTitle(e.target.value)} placeholder={tt('…or type any lift')}
                 style={{ width: '100%', boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 14, padding: '10px 13px', borderRadius: 0, outline: 'none' }} />
             </div>
             {/* Tools */}
             <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '14px 18px' }}>
               <RefinedHeaderStrip padY={14} padX={18} marginBottom={4}>
-                <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>TOOLS</SectionLabel>
+                <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>{tt('TOOLS')}</SectionLabel>
               </RefinedHeaderStrip>
               {REVIEW_TOOLS.map((t, i) => (
                 <ToolRow key={t.key} t={t} blocked={t.live && !camOk.current} isFirst={i === 0} onOpen={() => open(t.key)} />
@@ -373,7 +375,7 @@ export default function ReviewToolsView({ clientWorkouts = [], trainees = [] }) 
               the lift is auto-detected from the picked clip's exercise). */}
           <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '14px 18px' }}>
             <RefinedHeaderStrip padY={14} padX={18} marginBottom={4}>
-              <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>TOOLS</SectionLabel>
+              <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>{tt('TOOLS')}</SectionLabel>
             </RefinedHeaderStrip>
             {REVIEW_TOOLS.map((t, i) => (
               <ToolRow key={t.key} t={t} blocked={t.live && !camOk.current} isFirst={i === 0} onOpen={() => open(t.key)} />
