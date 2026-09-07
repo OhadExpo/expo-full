@@ -1,0 +1,2875 @@
+{
+  "tr_daeshon": {
+    "loads": {},
+    "sessions": {
+      "2026-08-16": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-17": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-18": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-19": [
+        {
+          "min": 40,
+          "rpe": null,
+          "load": 0,
+          "type": "Lift",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-21": [
+        {
+          "min": 40,
+          "rpe": null,
+          "load": 0,
+          "type": "Lift",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "12:00",
+          "attended": true
+        }
+      ],
+      "2026-08-23": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 12,
+          "rpe": null,
+          "load": 0,
+          "note": "Matresses (Mobility & Stability) + Dynamic Warm-Up",
+          "team": true,
+          "type": "Lift",
+          "start": "16:00",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-24": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "10:30",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "18:00",
+          "attended": true
+        }
+      ],
+      "2026-08-25": [
+        {
+          "min": 40,
+          "rpe": null,
+          "load": 0,
+          "type": "Lift",
+          "attended": true
+        }
+      ],
+      "2026-08-27": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 10,
+          "rpe": null,
+          "load": 0,
+          "note": "Dynamic Warm-Up (Quick Feet, Coordination) + Ladders & Low Hurdles (Foot Stability)",
+          "team": true,
+          "type": "Lift",
+          "start": "10:30",
+          "attended": true
+        }
+      ],
+      "2026-09-05": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 30,
+          "rpe": null,
+          "load": 0,
+          "type": "Lift",
+          "attended": true
+        }
+      ]
+    },
+    "readiness": {},
+    "attendance": {
+      "2026-08-23|16:00": "in",
+      "2026-08-27|10:30": "in",
+      "2026-09-01|16:00": "out"
+    },
+    "availability": {
+      "2026-08-19": 1,
+      "2026-08-23": 1,
+      "2026-08-27": 1,
+      "2026-08-28": 2,
+      "2026-08-31": 1,
+      "2026-09-01": 4,
+      "2026-09-02": 2
+    }
+  },
+  "tr_bh_2noztwj1ly3": {
+    "bw": {
+      "2026-08-19": 134.8
+    },
+    "loads": {},
+    "sessions": {
+      "2026-08-16": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-17": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-18": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-19": [
+        {
+          "min": 25,
+          "rpe": null,
+          "load": 0,
+          "type": "Lift",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-21": [
+        {
+          "min": 40,
+          "rpe": null,
+          "load": 0,
+          "type": "Lift",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "12:00",
+          "attended": true
+        }
+      ],
+      "2026-08-23": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 12,
+          "rpe": null,
+          "load": 0,
+          "note": "Matresses (Mobility & Stability) + Dynamic Warm-Up",
+          "team": true,
+          "type": "Lift",
+          "start": "16:00",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-24": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "10:30",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "18:00",
+          "attended": true
+        }
+      ],
+      "2026-08-25": [
+        {
+          "min": 40,
+          "rpe": null,
+          "load": 0,
+          "type": "Lift",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-26": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-27": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 10,
+          "rpe": null,
+          "load": 0,
+          "note": "Dynamic Warm-Up (Quick Feet, Coordination) + Ladders & Low Hurdles (Foot Stability)",
+          "team": true,
+          "type": "Lift",
+          "start": "10:30",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "10:30",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "18:00",
+          "attended": true
+        }
+      ],
+      "2026-08-28": [
+        {
+          "min": 40,
+          "rpe": null,
+          "load": 0,
+          "type": "Lift",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "12:00",
+          "attended": true
+        }
+      ],
+      "2026-08-30": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "10:30",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "18:00",
+          "attended": true
+        }
+      ],
+      "2026-08-31": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-09-01": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 12,
+          "rpe": null,
+          "load": 0,
+          "note": "Dynamic Warm-Up (Quick Feet, Coordination) + Ladders & Hurdles (Hip Mobility)",
+          "team": true,
+          "type": "Lift",
+          "start": "16:00",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-09-02": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-09-03": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "10:30",
+          "attended": true
+        }
+      ],
+      "2026-09-04": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "12:00",
+          "attended": true
+        }
+      ],
+      "2026-09-06": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 30,
+          "rpe": null,
+          "load": 0,
+          "type": "Lift",
+          "attended": true
+        }
+      ]
+    },
+    "readiness": {},
+    "attendance": {
+      "2026-08-23|16:00": "in",
+      "2026-08-27|10:30": "in",
+      "2026-09-01|16:00": "in"
+    },
+    "availability": {
+      "2026-08-19": 1,
+      "2026-08-23": 1,
+      "2026-08-27": 1,
+      "2026-09-01": 1
+    }
+  },
+  "tr_bh_4djtfei1ly3": {
+    "loads": {},
+    "sessions": {
+      "2026-08-16": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-17": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-18": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-19": [
+        {
+          "min": 40,
+          "rpe": null,
+          "load": 0,
+          "type": "Lift",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-21": [
+        {
+          "min": 40,
+          "rpe": null,
+          "load": 0,
+          "type": "Lift",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "12:00",
+          "attended": true
+        }
+      ],
+      "2026-08-23": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 12,
+          "rpe": null,
+          "load": 0,
+          "note": "Matresses (Mobility & Stability) + Dynamic Warm-Up",
+          "team": true,
+          "type": "Lift",
+          "start": "16:00",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-24": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "10:30",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "18:00",
+          "attended": true
+        }
+      ],
+      "2026-08-25": [
+        {
+          "min": 40,
+          "rpe": null,
+          "load": 0,
+          "type": "Lift",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-26": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-27": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 10,
+          "rpe": null,
+          "load": 0,
+          "note": "Dynamic Warm-Up (Quick Feet, Coordination) + Ladders & Low Hurdles (Foot Stability)",
+          "team": true,
+          "type": "Lift",
+          "start": "10:30",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "10:30",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "18:00",
+          "attended": true
+        }
+      ],
+      "2026-08-28": [
+        {
+          "min": 40,
+          "rpe": null,
+          "load": 0,
+          "type": "Lift",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "12:00",
+          "attended": true
+        }
+      ],
+      "2026-08-30": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "10:30",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "18:00",
+          "attended": true
+        }
+      ],
+      "2026-08-31": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-09-01": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 12,
+          "rpe": null,
+          "load": 0,
+          "note": "Dynamic Warm-Up (Quick Feet, Coordination) + Ladders & Hurdles (Hip Mobility)",
+          "team": true,
+          "type": "Lift",
+          "start": "16:00",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-09-02": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-09-03": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "10:30",
+          "attended": true
+        }
+      ],
+      "2026-09-04": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "12:00",
+          "attended": true
+        }
+      ]
+    },
+    "readiness": {},
+    "attendance": {
+      "2026-08-23|16:00": "in",
+      "2026-08-27|10:30": "in",
+      "2026-09-01|16:00": "in"
+    },
+    "availability": {
+      "2026-08-19": 1,
+      "2026-08-21": 1,
+      "2026-08-23": 1,
+      "2026-08-27": 1,
+      "2026-09-01": 1
+    }
+  },
+  "tr_bh_72laxfv1ly3": {
+    "loads": {},
+    "sessions": {
+      "2026-08-16": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-17": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-18": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-19": [
+        {
+          "min": 40,
+          "rpe": null,
+          "load": 0,
+          "type": "Lift",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-21": [
+        {
+          "min": 40,
+          "rpe": null,
+          "load": 0,
+          "type": "Lift",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "12:00",
+          "attended": true
+        }
+      ],
+      "2026-08-23": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 12,
+          "rpe": null,
+          "load": 0,
+          "note": "Matresses (Mobility & Stability) + Dynamic Warm-Up",
+          "team": true,
+          "type": "Lift",
+          "start": "16:00",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-24": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "10:30",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "18:00",
+          "attended": true
+        }
+      ],
+      "2026-08-25": [
+        {
+          "min": 40,
+          "rpe": null,
+          "load": 0,
+          "type": "Lift",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-26": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-27": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 10,
+          "rpe": null,
+          "load": 0,
+          "note": "Dynamic Warm-Up (Quick Feet, Coordination) + Ladders & Low Hurdles (Foot Stability)",
+          "team": true,
+          "type": "Lift",
+          "start": "10:30",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "10:30",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "18:00",
+          "attended": true
+        }
+      ],
+      "2026-08-28": [
+        {
+          "min": 40,
+          "rpe": null,
+          "load": 0,
+          "type": "Lift",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "12:00",
+          "attended": true
+        }
+      ],
+      "2026-08-30": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "10:30",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "18:00",
+          "attended": true
+        }
+      ],
+      "2026-08-31": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-09-01": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 12,
+          "rpe": null,
+          "load": 0,
+          "note": "Dynamic Warm-Up (Quick Feet, Coordination) + Ladders & Hurdles (Hip Mobility)",
+          "team": true,
+          "type": "Lift",
+          "start": "16:00",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-09-02": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-09-03": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "10:30",
+          "attended": true
+        }
+      ],
+      "2026-09-04": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "12:00",
+          "attended": true
+        }
+      ]
+    },
+    "readiness": {},
+    "attendance": {
+      "2026-08-23|16:00": "in",
+      "2026-08-27|10:30": "in",
+      "2026-09-01|16:00": "in"
+    },
+    "availability": {
+      "2026-08-23": 1,
+      "2026-08-27": 1,
+      "2026-08-28": 1,
+      "2026-08-31": 1,
+      "2026-09-01": 1
+    }
+  },
+  "tr_bh_gkkmgfr1ly3": {
+    "sessions": {
+      "2026-08-16": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-17": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-18": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-19": [
+        {
+          "min": 40,
+          "rpe": null,
+          "load": 0,
+          "type": "Lift",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-21": [
+        {
+          "min": 40,
+          "rpe": null,
+          "load": 0,
+          "type": "Lift",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "12:00",
+          "attended": true
+        }
+      ],
+      "2026-08-23": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 12,
+          "rpe": null,
+          "load": 0,
+          "note": "Matresses (Mobility & Stability) + Dynamic Warm-Up",
+          "team": true,
+          "type": "Lift",
+          "start": "16:00",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-24": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "10:30",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "18:00",
+          "attended": true
+        }
+      ],
+      "2026-08-25": [
+        {
+          "min": 40,
+          "rpe": null,
+          "load": 0,
+          "type": "Lift",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-26": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-27": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 10,
+          "rpe": null,
+          "load": 0,
+          "note": "Dynamic Warm-Up (Quick Feet, Coordination) + Ladders & Low Hurdles (Foot Stability)",
+          "team": true,
+          "type": "Lift",
+          "start": "10:30",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "10:30",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "18:00",
+          "attended": true
+        }
+      ],
+      "2026-08-28": [
+        {
+          "min": 40,
+          "rpe": null,
+          "load": 0,
+          "type": "Lift",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "12:00",
+          "attended": true
+        }
+      ],
+      "2026-08-30": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "10:30",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "18:00",
+          "attended": true
+        }
+      ],
+      "2026-08-31": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-09-01": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 12,
+          "rpe": null,
+          "load": 0,
+          "note": "Dynamic Warm-Up (Quick Feet, Coordination) + Ladders & Hurdles (Hip Mobility)",
+          "team": true,
+          "type": "Lift",
+          "start": "16:00",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-09-02": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-09-03": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "10:30",
+          "attended": true
+        }
+      ],
+      "2026-09-04": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "12:00",
+          "attended": true
+        }
+      ],
+      "2026-09-05": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 60,
+          "rpe": null,
+          "load": 0,
+          "type": "Lift",
+          "attended": true
+        }
+      ],
+      "2026-09-06": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 30,
+          "rpe": null,
+          "load": 0,
+          "type": "Lift",
+          "attended": true
+        }
+      ]
+    },
+    "attendance": {
+      "2026-08-23|16:00": "in",
+      "2026-08-27|10:30": "in",
+      "2026-09-01|16:00": "in"
+    },
+    "availability": {
+      "2026-08-23": 1,
+      "2026-08-27": 1,
+      "2026-09-01": 1,
+      "2026-09-03": 1,
+      "2026-09-07": 1
+    }
+  },
+  "tr_bh_knl9bsz1ly3": {
+    "loads": {},
+    "sessions": {
+      "2026-08-16": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-17": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-18": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-19": [
+        {
+          "min": 40,
+          "rpe": null,
+          "load": 0,
+          "type": "Lift",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-21": [
+        {
+          "min": 40,
+          "rpe": null,
+          "load": 0,
+          "type": "Lift",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "12:00",
+          "attended": true
+        }
+      ],
+      "2026-08-23": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 12,
+          "rpe": null,
+          "load": 0,
+          "note": "Matresses (Mobility & Stability) + Dynamic Warm-Up",
+          "team": true,
+          "type": "Lift",
+          "start": "16:00",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-24": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "10:30",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "18:00",
+          "attended": true
+        }
+      ],
+      "2026-08-25": [
+        {
+          "min": 40,
+          "rpe": null,
+          "load": 0,
+          "type": "Lift",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-26": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-27": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 10,
+          "rpe": null,
+          "load": 0,
+          "note": "Dynamic Warm-Up (Quick Feet, Coordination) + Ladders & Low Hurdles (Foot Stability)",
+          "team": true,
+          "type": "Lift",
+          "start": "10:30",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "10:30",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "18:00",
+          "attended": true
+        }
+      ],
+      "2026-08-28": [
+        {
+          "min": 40,
+          "rpe": null,
+          "load": 0,
+          "type": "Lift",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "12:00",
+          "attended": true
+        }
+      ],
+      "2026-08-30": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "10:30",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "18:00",
+          "attended": true
+        }
+      ],
+      "2026-08-31": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-09-01": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 12,
+          "rpe": null,
+          "load": 0,
+          "note": "Dynamic Warm-Up (Quick Feet, Coordination) + Ladders & Hurdles (Hip Mobility)",
+          "team": true,
+          "type": "Lift",
+          "start": "16:00",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-09-02": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-09-03": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "10:30",
+          "attended": true
+        }
+      ],
+      "2026-09-04": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "12:00",
+          "attended": true
+        }
+      ]
+    },
+    "readiness": {},
+    "attendance": {
+      "2026-08-23|16:00": "in",
+      "2026-08-27|10:30": "in",
+      "2026-09-01|16:00": "in"
+    },
+    "availability": {
+      "2026-08-23": 1,
+      "2026-08-27": 1,
+      "2026-08-28": 1,
+      "2026-08-31": 1,
+      "2026-09-01": 1,
+      "2026-09-02": 1,
+      "2026-09-07": 1
+    }
+  },
+  "tr_bh_qub3j221ly2": {
+    "loads": {},
+    "sessions": {
+      "2026-08-16": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-17": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-18": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-19": [
+        {
+          "min": 40,
+          "rpe": null,
+          "load": 0,
+          "type": "Lift",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-21": [
+        {
+          "min": 40,
+          "rpe": null,
+          "load": 0,
+          "type": "Lift",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "12:00",
+          "attended": true
+        }
+      ],
+      "2026-08-23": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 12,
+          "rpe": null,
+          "load": 0,
+          "note": "Matresses (Mobility & Stability) + Dynamic Warm-Up",
+          "team": true,
+          "type": "Lift",
+          "start": "16:00",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-24": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "10:30",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "18:00",
+          "attended": true
+        }
+      ],
+      "2026-08-25": [
+        {
+          "min": 40,
+          "rpe": null,
+          "load": 0,
+          "type": "Lift",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-26": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-27": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 10,
+          "rpe": null,
+          "load": 0,
+          "note": "Dynamic Warm-Up (Quick Feet, Coordination) + Ladders & Low Hurdles (Foot Stability)",
+          "team": true,
+          "type": "Lift",
+          "start": "10:30",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "10:30",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "18:00",
+          "attended": true
+        }
+      ],
+      "2026-08-28": [
+        {
+          "min": 40,
+          "rpe": null,
+          "load": 0,
+          "type": "Lift",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "12:00",
+          "attended": true
+        }
+      ],
+      "2026-08-30": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "10:30",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "18:00",
+          "attended": true
+        }
+      ],
+      "2026-08-31": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-09-01": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 12,
+          "rpe": null,
+          "load": 0,
+          "note": "Dynamic Warm-Up (Quick Feet, Coordination) + Ladders & Hurdles (Hip Mobility)",
+          "team": true,
+          "type": "Lift",
+          "start": "16:00",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-09-02": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-09-03": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "10:30",
+          "attended": true
+        }
+      ],
+      "2026-09-04": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "12:00",
+          "attended": true
+        }
+      ]
+    },
+    "readiness": {},
+    "attendance": {
+      "2026-08-23|16:00": "in",
+      "2026-08-27|10:30": "in",
+      "2026-09-01|16:00": "in"
+    },
+    "availability": {
+      "2026-08-16": 1,
+      "2026-08-18": 1,
+      "2026-08-23": 1,
+      "2026-08-27": 1,
+      "2026-08-31": 1,
+      "2026-09-01": 2,
+      "2026-09-02": 1
+    }
+  },
+  "tr_bh_rabt2z61ly3": {
+    "loads": {},
+    "sessions": {
+      "2026-08-16": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-17": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-18": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-19": [
+        {
+          "min": 40,
+          "rpe": null,
+          "load": 0,
+          "type": "Lift",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-21": [
+        {
+          "min": 40,
+          "rpe": null,
+          "load": 0,
+          "type": "Lift",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "12:00",
+          "attended": true
+        }
+      ],
+      "2026-08-23": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 12,
+          "rpe": null,
+          "load": 0,
+          "note": "Matresses (Mobility & Stability) + Dynamic Warm-Up",
+          "team": true,
+          "type": "Lift",
+          "start": "16:00",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-25": [
+        {
+          "min": 40,
+          "rpe": null,
+          "load": 0,
+          "type": "Lift",
+          "attended": true
+        }
+      ],
+      "2026-08-27": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 10,
+          "rpe": null,
+          "load": 0,
+          "note": "Dynamic Warm-Up (Quick Feet, Coordination) + Ladders & Low Hurdles (Foot Stability)",
+          "team": true,
+          "type": "Lift",
+          "start": "10:30",
+          "attended": true
+        }
+      ],
+      "2026-08-28": [
+        {
+          "min": 40,
+          "rpe": null,
+          "load": 0,
+          "type": "Lift",
+          "attended": true
+        }
+      ],
+      "2026-09-01": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 12,
+          "rpe": null,
+          "load": 0,
+          "note": "Dynamic Warm-Up (Quick Feet, Coordination) + Ladders & Hurdles (Hip Mobility)",
+          "team": true,
+          "type": "Lift",
+          "start": "16:00",
+          "attended": true
+        }
+      ]
+    },
+    "readiness": {},
+    "attendance": {
+      "2026-08-23|16:00": "in",
+      "2026-08-27|10:30": "in",
+      "2026-09-01|16:00": "in"
+    },
+    "availability": {
+      "2026-08-19": 1,
+      "2026-08-21": 1,
+      "2026-08-23": 1,
+      "2026-08-24": 3,
+      "2026-08-27": 1,
+      "2026-08-28": 3,
+      "2026-08-31": 2,
+      "2026-09-01": 1,
+      "2026-09-06": 1,
+      "2026-09-07": 1
+    }
+  },
+  "tr_bh_sovwxh41ly3": {
+    "loads": {},
+    "sessions": {
+      "2026-08-16": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-17": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-18": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-19": [
+        {
+          "min": 40,
+          "rpe": null,
+          "load": 0,
+          "type": "Lift",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-21": [
+        {
+          "min": 40,
+          "rpe": null,
+          "load": 0,
+          "type": "Lift",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "12:00",
+          "attended": true
+        }
+      ],
+      "2026-08-23": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 12,
+          "rpe": null,
+          "load": 0,
+          "note": "Matresses (Mobility & Stability) + Dynamic Warm-Up",
+          "team": true,
+          "type": "Lift",
+          "start": "16:00",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-24": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "10:30",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "18:00",
+          "attended": true
+        }
+      ],
+      "2026-08-25": [
+        {
+          "min": 40,
+          "rpe": null,
+          "load": 0,
+          "type": "Lift",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-26": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-27": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 10,
+          "rpe": null,
+          "load": 0,
+          "note": "Dynamic Warm-Up (Quick Feet, Coordination) + Ladders & Low Hurdles (Foot Stability)",
+          "team": true,
+          "type": "Lift",
+          "start": "10:30",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "10:30",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "18:00",
+          "attended": true
+        }
+      ],
+      "2026-08-28": [
+        {
+          "min": 40,
+          "rpe": null,
+          "load": 0,
+          "type": "Lift",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "12:00",
+          "attended": true
+        }
+      ],
+      "2026-08-30": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "10:30",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "18:00",
+          "attended": true
+        }
+      ],
+      "2026-08-31": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-09-01": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 12,
+          "rpe": null,
+          "load": 0,
+          "note": "Dynamic Warm-Up (Quick Feet, Coordination) + Ladders & Hurdles (Hip Mobility)",
+          "team": true,
+          "type": "Lift",
+          "start": "16:00",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-09-02": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-09-03": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "10:30",
+          "attended": true
+        }
+      ],
+      "2026-09-04": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "12:00",
+          "attended": true
+        }
+      ]
+    },
+    "readiness": {},
+    "attendance": {
+      "2026-08-23|16:00": "in",
+      "2026-08-27|10:30": "in",
+      "2026-09-01|16:00": "in"
+    },
+    "availability": {
+      "2026-08-23": 1,
+      "2026-08-27": 1,
+      "2026-08-28": 1,
+      "2026-08-31": 1,
+      "2026-09-01": 1
+    }
+  },
+  "tr_bh_roysolomon11": {
+    "loads": {},
+    "sessions": {
+      "2026-08-16": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-17": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-18": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-19": [
+        {
+          "min": 40,
+          "rpe": null,
+          "load": 0,
+          "type": "Lift",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-21": [
+        {
+          "min": 40,
+          "rpe": null,
+          "load": 0,
+          "type": "Lift",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "12:00",
+          "attended": true
+        }
+      ],
+      "2026-08-23": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 12,
+          "rpe": null,
+          "load": 0,
+          "note": "Matresses (Mobility & Stability) + Dynamic Warm-Up",
+          "team": true,
+          "type": "Lift",
+          "start": "16:00",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-24": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "10:30",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "18:00",
+          "attended": true
+        }
+      ],
+      "2026-08-25": [
+        {
+          "min": 40,
+          "rpe": null,
+          "load": 0,
+          "type": "Lift",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-26": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-08-27": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 10,
+          "rpe": null,
+          "load": 0,
+          "note": "Dynamic Warm-Up (Quick Feet, Coordination) + Ladders & Low Hurdles (Foot Stability)",
+          "team": true,
+          "type": "Lift",
+          "start": "10:30",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "10:30",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "18:00",
+          "attended": true
+        }
+      ],
+      "2026-08-28": [
+        {
+          "min": 40,
+          "rpe": null,
+          "load": 0,
+          "type": "Lift",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "12:00",
+          "attended": true
+        }
+      ],
+      "2026-08-30": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "10:30",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "18:00",
+          "attended": true
+        }
+      ],
+      "2026-08-31": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-09-01": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 12,
+          "rpe": null,
+          "load": 0,
+          "note": "Dynamic Warm-Up (Quick Feet, Coordination) + Ladders & Hurdles (Hip Mobility)",
+          "team": true,
+          "type": "Lift",
+          "start": "16:00",
+          "attended": true
+        },
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-09-02": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "16:00",
+          "attended": true
+        }
+      ],
+      "2026-09-03": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 90,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "10:30",
+          "attended": true
+        }
+      ],
+      "2026-09-04": [
+        {
+          "by": "ohadyproductions@gmail.com",
+          "min": 120,
+          "rpe": null,
+          "load": 0,
+          "team": true,
+          "type": "Practice",
+          "start": "12:00",
+          "attended": true
+        }
+      ]
+    },
+    "readiness": {},
+    "attendance": {
+      "2026-08-23|16:00": "in",
+      "2026-08-27|10:30": "in",
+      "2026-09-01|16:00": "in"
+    },
+    "availability": {
+      "2026-08-19": 1,
+      "2026-08-21": 1,
+      "2026-08-23": 1,
+      "2026-08-27": 1,
+      "2026-09-01": 1
+    }
+  }
+}

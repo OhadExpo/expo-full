@@ -1,0 +1,41 @@
+[
+  {
+    "seat": "owner",
+    "route": "/coach/waitlist",
+    "name": "waitlist-he",
+    "before": {
+      "file": "audit-out\\pairs\\waitlist-he-he-live.png",
+      "chars": 312
+    },
+    "after": {
+      "file": "audit-out\\pairs\\waitlist-he-he-branch.png",
+      "chars": 300
+    }
+  },
+  {
+    "seat": "owner",
+    "route": "/coach/workouts",
+    "name": "workouts-he",
+    "before": {
+      "file": "audit-out\\pairs\\workouts-he-he-live.png",
+      "chars": 717
+    },
+    "after": {
+      "file": "audit-out\\pairs\\workouts-he-he-branch.png",
+      "chars": 709
+    }
+  },
+  {
+    "seat": "owner",
+    "route": "/coach/review",
+    "name": "review-he",
+    "before": {
+      "file": "audit-out\\pairs\\review-he-he-live.png",
+      "chars": 664
+    },
+    "after": {
+      "file": "audit-out\\pairs\\review-he-he-branch.png",
+      "chars": 608
+    }
+  }
+]

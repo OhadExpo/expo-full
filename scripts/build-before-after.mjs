@@ -165,6 +165,38 @@ const PAIRS = [
   // than no picture, and the fix it would illustrate is proven in the commit by
   // an A/B of the rendered text instead.
   {
+    id: 'tasks-autobody',
+    title: 'Tasks, in Hebrew · the auto-task bodies stayed English',
+    file: 'src/TasksV8View.jsx',
+    undo: [["return readLang() === 'he' ? localiseAutoBody(core) : core;", 'return core;']],
+    url: APP + '/coach/tasks', w: 1400, h: 900, auth: true, appLang: 'he',
+    crop: [0, 60, 1400, 560],
+  },
+  {
+    id: 'dashboard-dashes',
+    title: 'Dashboard, no signal · the KPIs read zero, not "unknown"',
+    file: 'src/DashboardView.jsx',
+    undo: [['const unknown = (rows) => !online && (!Array.isArray(rows) || rows.length === 0);', 'const unknown = () => false;']],
+    url: APP + '/coach', w: 1400, h: 900, auth: true, cutBackend: true,
+    crop: [0, 60, 1400, 360],
+  },
+  {
+    id: 'roster-offline',
+    title: 'Athletes, no signal · the roster was empty',
+    file: 'src/useSupaStore.js',
+    undo: [['rosterOk = !!em && TRAINER_EMAILS.includes(em);', 'rosterOk = false;']],
+    url: APP + '/coach/athletes', w: 1400, h: 900, auth: true, cutBackend: true,
+    crop: [0, 60, 1400, 520],
+  },
+  {
+    id: 'bw-bidi',
+    title: 'Athlete, in Hebrew · the bodyweight unit split from its number',
+    file: 'src/ClientPortal.jsx',
+    undo: [[`<span dir="ltr" style={{unicodeBidi:'isolate'}}>{lb}KG</span>`, '{lb}KG']],
+    url: APP + '/athlete', w: 390, h: 844, athlete: true, appLang: 'he', clickText: 'משקל',
+    crop: [0, 0, 390, 420],
+  },
+  {
     id: 'coach-offline',
     title: 'Coach · 20 seconds of "Loading data..." with no signal',
     file: 'src/App.jsx',
@@ -243,6 +275,14 @@ async function shoot(job, label) {
       });
       await pg.goto(job.url, { waitUntil: 'domcontentloaded', timeout: 60000 });
       await wait(15000);
+    }
+    if (job.clickText) {
+      await wait(4000);
+      await pg.evaluate((t) => {
+        const el = [...document.querySelectorAll('button,a,[role=tab],[role=button]')].find((e) => (e.textContent || '').trim() === t);
+        if (el) el.click();
+      }, job.clickText);
+      await wait(2500);
     }
     for (let k = 0; k < 60; k++) {
       await wait(400);

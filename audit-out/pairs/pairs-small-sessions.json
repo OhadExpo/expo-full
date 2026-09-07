@@ -1,0 +1,15 @@
+[
+  {
+    "seat": "owner",
+    "route": "/coach/sessions",
+    "name": "sessions-he",
+    "before": {
+      "file": "audit-out\\pairs\\sessions-he-he-live.png",
+      "chars": 481
+    },
+    "after": {
+      "file": "audit-out\\pairs\\sessions-he-he-branch.png",
+      "chars": 466
+    }
+  }
+]

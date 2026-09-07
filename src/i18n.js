@@ -431,6 +431,8 @@ export const HE = {
   // The cue expander under an exercise on the program tab.
   '▼ MORE': '▼ עוד',
   '▲ LESS': '▲ פחות',
+  "not in": 'לא נכנס',
+  W: 'שבוע ',
   "Compare with…": 'השווה עם…',
   "SETS DONE": 'סטים שבוצעו',
   "READINESS CHECK-IN": 'צ׳ק-אין מוכנות',
