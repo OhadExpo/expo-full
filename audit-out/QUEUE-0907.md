@@ -74,3 +74,5 @@ RESTORE POINT (pre-perf-fixes): b1f93ab6f04fa84e842c58049f278312374c8a43
 - [x] N7 demo parity: /demo/athlete follows the app language (was above the provider); ?lang=he|en honoured and kept; demo banner in Hebrew; demo pair on the host. DECISION for him: the Hebrew marketing CTA points at /try (a mock with no translator)
 - [x] N8 intake form: instruction verbs in the masculine register (slash forms gone); status choices left
 - [x] N9 a save that fails offline still toasts (loads stay quiet); Hebrew toast
+- [x] N10 drill-downs in Hebrew: program editor 609→312, Edit Athlete form (both copies), athlete detail 195→127, booking settings 18→5, readiness everywhere; the pair shooter can open a card
+- [ ] N11 close: gate battery on the final build (02:13), restamp + verifiers, final host chain (03:1x), memory + MEMORY.md, last push
