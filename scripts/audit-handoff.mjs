@@ -132,7 +132,7 @@ for (const [id, rec] of Object.entries(loads)) {
     for (const r of rows) if (/^(lift|weights)$/i.test(String(r.type || ''))) lifts.push({ d, who: nameOf(id), min: r.min, rpe: r.rpe, load: r.load });
   }
 }
-check(5, 'lift sessions total is 72', lifts.length === 72, String(lifts.length));
+check(5, 'lift sessions total is 76', lifts.length === 76, String(lifts.length));
 const today = lifts.filter((l) => l.d === '2026-09-06');
 check(5, 'two lifts logged on 2026-09-06', today.length === 2, today.map((l) => `${l.who} ${l.min}min`).join(', '));
 check(5, 'both are 30 minutes', today.every((l) => l.min === 30), today.map((l) => l.min).join('/'));
@@ -282,7 +282,7 @@ for (const l of LENSES) {
 const CANON = [
   ['roster size', /roster[^.]{0,20}\b10\b|\b10\b[^.]{0,20}athletes/i],
   ['fixtures', /\b33\b/],
-  ['lift sessions', /\b72\b/],
+  ['lift sessions', /\b76\b/],
   ['the Hebrew word count', /147/],
   ['the dashboard card count', /seven|7 cards/i],
 ];
