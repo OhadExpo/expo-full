@@ -156,7 +156,10 @@ for (const m of ['MEMORY.md', 'project_bhbc_replan_2026_09_06.md', 'project_hand
   check(6, `memory/${m}`, fs.existsSync(`${MEM}/${m}`));
 }
 const index = fs.readFileSync(`${MEM}/MEMORY.md`, 'utf8');
-const top3 = index.split('\n').slice(0, 3).join(' ');
+// The window is FIVE, not three: two SAFETY memories (the rollback target and
+// the audit/backup record) were added above the session pointer, which is the
+// right order and pushed it out of a three-line window.
+const top3 = index.split('\n').slice(0, 5).join(' ');
 check(6, 'the resume trigger and tonight are both at the top of MEMORY.md',
   /feedback_pita_protocol\.md/.test(top3) && /project_bhbc_replan_2026_09_06\.md/.test(top3),
   index.split('\n')[0].slice(0, 60));
