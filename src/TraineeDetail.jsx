@@ -350,7 +350,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
         <button onClick={()=>bulkSetVis(plans, keyFn, !showing)}
           title={showing ? "Hide all from portal" : "Show all on portal"}
           style={{background:'var(--c-sf)',border:`1px solid ${showing?C.rd:C.gn}`,borderRadius:0,height:28,boxSizing:'border-box',padding:"0 12px",color:showing?C.rd:C.gn,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',lineHeight:1}}>
-          {showing ? 'HIDE ALL' : 'SHOW ALL'}
+          {showing ? t('HIDE ALL') : t('SHOW ALL')}
         </button>
       </div>
     );
@@ -878,7 +878,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       {/* === WORKOUTS — slot #7 (collapsible) */}
       <CollapsibleSection bare domId="td-sec-workouts" title="Recent Workouts" count={tAllWorkouts.length} storageKey={`td-workouts-${trainee}`} style={{margin:'20px 0 0', display: showSec('workouts') ? undefined : 'none'}}>
         {tAllWorkouts.length===0?<div style={{color:C.td,fontSize:13}}>No completed workouts.</div>:
-          tAllWorkouts.slice(0,10).map(w=><Card key={`${w.source}-${w.id}`} style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{display:"flex",alignItems:"baseline",gap:8,minWidth:0}}><span style={{fontWeight:600,color:C.tx,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{w.dayName}</span>{w.week!=null&&<span style={{fontFamily:FN,fontSize:11,color:C.tm,flexShrink:0}}>Week {w.week}</span>}</div><span style={{fontSize:12,color:C.tm,flexShrink:0}}>{fmtPrettyDate(w.date)}</span></div>
+          tAllWorkouts.slice(0,10).map(w=><Card key={`${w.source}-${w.id}`} style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{display:"flex",alignItems:"baseline",gap:8,minWidth:0}}><span style={{fontWeight:600,color:C.tx,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{w.dayName}</span>{w.week!=null&&<span style={{fontFamily:FN,fontSize:11,color:C.tm,flexShrink:0}}>{t('Week')} {w.week}</span>}</div><span style={{fontSize:12,color:C.tm,flexShrink:0}}>{fmtPrettyDate(w.date)}</span></div>
             {/* Per-workout readiness — equal-width stat cells (label stacked over
                 a severity-coloured value), so PAIN/SLEEP/ENERGY line up in a neat
                 aligned row rather than differently-sized chips (Ohad: align +

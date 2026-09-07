@@ -431,6 +431,7 @@ export const HE = {
   // The cue expander under an exercise on the program tab.
   '▼ MORE': '▼ עוד',
   '▲ LESS': '▲ פחות',
+  "HIDE ALL": 'הסתר הכל',
   ok: 'סביר',
   "LOG SESSION": 'רישום אימון',
   NOTIFICATION: 'התראה',
