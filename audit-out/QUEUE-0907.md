@@ -38,3 +38,12 @@ leftovers, undone things, half-done things, and finish everything." No deploy.
 RESTORE POINT (pre-perf-fixes): b1f93ab6f04fa84e842c58049f278312374c8a43
 
 - [x] E3  "make sure you're not interferring with the google pay chrome chats ... another claude is dealing with it" — all my probes moved to a PRIVATE Chrome (port 9223, own profile dir, headless); never kill/restart/resize the shared 9222 Chrome again this session. (Earlier this session I restarted 9222 once at start — it was DOWN at that moment, nothing was running in it.)
+
+## H · The extra hour (Ohad: "do everything except deploying yet")
+
+- [x] H1 login screen in Hebrew + EN/עב switch (auth.jsx)
+- [x] H2 dashboard offline zeros → dashes
+- [x] H3 coach roster cached offline (staff seats only)
+- [x] H4 athlete library read: by design (portal resolves plan rows from the library by id) — not tightened
+- [ ] H6 offline for every seat — walks running (owner, athlete, pt, public)
+- [ ] H5 close: gates, pairs (login he), commit, push, handoff, memory

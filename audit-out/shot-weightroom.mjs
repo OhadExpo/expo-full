@@ -20,7 +20,7 @@ await pg.evaluate((email) => {
   if (e) set(e, email); if (p) set(p, '1234');
 }, process.env.EMAIL || 'ohadyproductions@gmail.com');
 await wait(400);
-await pg.evaluate(() => { const x = [...document.querySelectorAll('button')].find((y) => /^\s*sign\s*in\s*$/i.test(y.textContent || '')); if (x) x.click(); });
+await pg.evaluate(() => { const x = [...document.querySelectorAll('button')].find((y) => /^\s*(sign\s*in|כניסה)\s*$/i.test(y.textContent || '')); if (x) x.click(); });
 await wait(9000);
 await setWidth(pg, W, Number(process.env.H || 1000));
 await pg.goto(BASE + '/coach/bhbc', { waitUntil: 'domcontentloaded' });

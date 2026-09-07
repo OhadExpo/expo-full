@@ -54,7 +54,7 @@ const shoot = async (base, job, tag) => {
       if (e) set(e, email); if (p) set(p, pw);
     }, who);
     await wait(500);
-    await pg.evaluate(() => { const x = [...document.querySelectorAll('button')].find((y) => /^\s*sign\s*in\s*$/i.test(y.textContent || '')); if (x) x.click(); });
+    await pg.evaluate(() => { const x = [...document.querySelectorAll('button')].find((y) => /^\s*(sign\s*in|כניסה)\s*$/i.test(y.textContent || '')); if (x) x.click(); });
     await wait(10000);
     await setWidth(pg, W, 1100);
     await pg.goto(base + job.route, { waitUntil: 'domcontentloaded', timeout: 90000 });

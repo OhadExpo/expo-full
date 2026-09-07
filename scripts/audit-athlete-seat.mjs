@@ -33,7 +33,7 @@ await safeEval(p, ({ email, pw }) => {
   if (e) set(e, email); if (w) set(w, pw);
 }, { email: EMAIL, pw: PW });
 await wait(500);
-await safeEval(p, () => { const x = [...document.querySelectorAll('button')].find((e) => /^\s*sign\s*in\s*$/i.test(e.textContent.trim())); if (x) x.click(); });
+await safeEval(p, () => { const x = [...document.querySelectorAll('button')].find((e) => /^\s*(sign\s*in|כניסה)\s*$/i.test(e.textContent.trim())); if (x) x.click(); });
 await wait(8000);
 
 await p.goto(BASE + '/athlete', { waitUntil: 'domcontentloaded' }).catch(() => {});

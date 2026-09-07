@@ -64,7 +64,7 @@ async function signIn(pg, who) {
     if (e) set(e, email); if (p) set(p, pw);
   }, who);
   await wait(400);
-  await pg.evaluate(() => { const x = [...document.querySelectorAll('button')].find((y) => /^\s*sign\s*in\s*$/i.test(y.textContent || '')); if (x) x.click(); });
+  await pg.evaluate(() => { const x = [...document.querySelectorAll('button')].find((y) => /^\s*(sign\s*in|כניסה)\s*$/i.test(y.textContent || '')); if (x) x.click(); });
   await wait(8000);
 }
 

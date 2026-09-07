@@ -224,7 +224,7 @@ async function shoot(job, label) {
       });
       await wait(400);
       await pg.evaluate(() => {
-        const btn = [...document.querySelectorAll('button')].find((x) => /^\s*sign\s*in\s*$/i.test(x.textContent || ''));
+        const btn = [...document.querySelectorAll('button')].find((x) => /^\s*(sign\s*in|כניסה)\s*$/i.test(x.textContent || ''));
         if (btn) btn.click();
       });
       await wait(9000);

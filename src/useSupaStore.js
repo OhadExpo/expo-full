@@ -4,6 +4,7 @@ import { supabase } from './supabase';
 import { enqueue, registerHandler, drain, setOnError } from './offlineQueue';
 import { setOnError as setBlobOnError } from './blobQueue';
 import { checkStoreWrite } from './storeWriteGuard';
+import { TRAINER_EMAILS } from './authRoles';
 
 // The size the shrink rule compares against. An array is its length; an OBJECT
 // store is its key count — the BHBC season stores (expo-bhbc-loads, -medical,
@@ -353,7 +354,12 @@ export function useSupaStore(key, initial) {
           } else {
             setData(val);
             dataRef.current = val;
-            if (key !== 'expo-trainees') {
+            // The roster snapshots too now (Ohad, 2026-09-07: "do everything").
+            // Only staff seats ever receive roster rows (RLS), so a NON-EMPTY
+            // value is by construction a coach's own device; an athlete's
+            // empty [] is never written, and the old exclusion of legacy
+            // full-roster blobs on athlete devices still holds.
+            if (key !== 'expo-trainees' || (Array.isArray(val) && val.length > 0)) {
               try { lsSnapshot(key, val); } catch {}
             }
           }
@@ -364,7 +370,17 @@ export function useSupaStore(key, initial) {
         // a legacy 'expo-trainees' blob holds full-roster PII that RLS now
         // denies — resurrecting it here defeats the exclusion (audit 08-22).
         try {
-          if (key !== 'expo-trainees' && key !== 'expo-exercises') {
+          // A roster snapshot is restored only for a staff session - never
+          // resurrected on an athlete's device, whatever it holds.
+          let rosterOk = false;
+          if (key === 'expo-trainees') {
+            try {
+              const { data: sess } = await supabase.auth.getSession();
+              const em = String(sess?.session?.user?.email || '').toLowerCase();
+              rosterOk = !!em && TRAINER_EMAILS.includes(em);
+            } catch { rosterOk = false; }
+          }
+          if (key !== 'expo-exercises' && (key !== 'expo-trainees' || rosterOk)) {
             const s = localStorage.getItem(key);
             if (s) {
               const parsed = asShape(JSON.parse(s));

@@ -95,6 +95,16 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
   };
 
   // Summary stats
+  // Offline with nothing cached, a KPI is unknown, not zero. "0 active
+  // athletes" on a dead connection reads as a fact; a dash reads as what it
+  // is (Ohad, 2026-09-07 - blank beats wrong).
+  const [online, setOnline] = useState(typeof navigator === 'undefined' ? true : navigator.onLine);
+  useEffect(() => {
+    const up = () => setOnline(true), down = () => setOnline(false);
+    window.addEventListener('online', up); window.addEventListener('offline', down);
+    return () => { window.removeEventListener('online', up); window.removeEventListener('offline', down); };
+  }, []);
+  const unknown = (rows) => !online && (!Array.isArray(rows) || rows.length === 0);
   const active = trainees.filter(t => t.status === 'Active').length;
   const archivedCount = trainees.filter(t => t.status === 'Archived').length;
   const monthlyRate = trainees.filter(t=>t.status==='Active').reduce((a,t) => a + (parseFloat(t.monthly)||0), 0);
@@ -523,16 +533,16 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
       {/* Summary cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 10, marginBottom: 20 }}>
         {[
-          { label: tt('Active Athletes'), value: active, total: trainees.filter(t=>t.status!=='Archived').length, color: C.gn },
-          { label: tt('Low Sessions'), value: lowSessions, color: lowSessions > 0 ? C.or : C.gn },
+          { label: tt('Active Athletes'), value: unknown(trainees) ? '—' : active, total: unknown(trainees) ? undefined : trainees.filter(t=>t.status!=='Archived').length, color: C.gn },
+          { label: tt('Low Sessions'), value: unknown(trainees) ? '—' : lowSessions, color: lowSessions > 0 ? C.or : C.gn },
           // Money KPIs — owner-only.
           ...(isOwner ? [
-            { label: tt('Estimated Monthly'), value: `₪${monthlyRate.toLocaleString()}`, color: C.ac },
+            { label: tt('Estimated Monthly'), value: unknown(trainees) ? '—' : `₪${monthlyRate.toLocaleString()}`, color: C.ac },
             // Label shortened from "Collected This Month" → "Collected MTD"
             // so the cyan title strip matches the height of the other 3
             // KPI tiles (the long form wrapped to two lines on common
             // viewport widths). MTD = month-to-date, finance standard.
-            { label: tt('Collected MTD'), value: `₪${thisMonthPaid.toLocaleString()}`, sub: revDelta !== null ? `${revDelta >= 0 ? '+' : ''}${revDelta}% vs last month` : null, subColor: revDelta >= 0 ? C.gn : C.rd, color: thisMonthPaid>0?C.gn:C.td },
+            { label: tt('Collected MTD'), value: unknown(payments) ? '—' : `₪${thisMonthPaid.toLocaleString()}`, sub: revDelta !== null ? `${revDelta >= 0 ? '+' : ''}${revDelta}% vs last month` : null, subColor: revDelta >= 0 ? C.gn : C.rd, color: thisMonthPaid>0?C.gn:C.td },
           ] : []),
         ].map((s, i) => {
           const refined = isRefined5b();

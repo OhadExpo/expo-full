@@ -24,7 +24,7 @@ await pg.evaluate((email) => {
   if (e) set(e, email); if (p) set(p, '1234');
 }, EMAIL);
 await wait(400);
-await pg.evaluate(() => { const x = [...document.querySelectorAll('button')].find((y) => /^\s*sign\s*in\s*$/i.test(y.textContent || '')); if (x) x.click(); });
+await pg.evaluate(() => { const x = [...document.querySelectorAll('button')].find((y) => /^\s*(sign\s*in|כניסה)\s*$/i.test(y.textContent || '')); if (x) x.click(); });
 await wait(10000);
 await setWidth(pg, 390, 800);
 await pg.goto(BASE + '/athlete', { waitUntil: 'domcontentloaded' });

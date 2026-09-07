@@ -50,6 +50,11 @@ export * from './authRoles';
 // `export *` re-exports without binding locally, and this module uses these
 // two itself, so they are imported as well.
 import { TRAINER_EMAILS, isPtEmail } from './authRoles';
+// The login screen, the unauthorized screen and the password modal all mount
+// OUTSIDE <LangCtx.Provider>, so they read the language themselves - the same
+// shape InstallAppPrompt uses. Until 2026-09-07 this file had zero translation
+// calls: a Hebrew athlete's first screen was English.
+import { tr, readLang, LANG_KEY } from './i18n';
 
 const AuthContext = createContext(null);
 
@@ -224,9 +229,9 @@ const LOGIN_BRANDS = {
 const netMessage = (e) => {
   const raw = String((e && e.message) || e || '').slice(0, 140);
   if (/failed to fetch|networkerror|load failed|network request failed/i.test(raw)) {
-    return 'Could not reach the server. An ad-blocker or privacy extension, a VPN, or a stale offline cache can block it — try an incognito window, or clear this site’s data.';
+    return tr(readLang(), 'Could not reach the server. An ad-blocker or privacy extension, a VPN, or a stale offline cache can block it — try an incognito window, or clear this site’s data.');
   }
-  return raw ? `Connection error: ${raw}` : 'Connection error. Try again.';
+  return raw ? `${tr(readLang(), 'Connection error:')} ${raw}` : tr(readLang(), 'Connection error. Try again.');
 };
 
 export function LoginScreen({ brand = 'expo' } = {}) {
@@ -236,6 +241,12 @@ export function LoginScreen({ brand = 'expo' } = {}) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  // The language switch writes the same key the app reads at mount, so a
+  // choice made here carries into the portal.
+  const [lang, setLang] = useState(readLang);
+  const tt = (x) => tr(lang, x);
+  const he = lang === 'he';
+  const flipLang = () => { const next = he ? 'en' : 'he'; try { localStorage.setItem(LANG_KEY, next); } catch { /* private mode */ } setLang(next); };
 
   // AN OAUTH FAILURE MUST NOT LOOK LIKE NOTHING HAPPENED.
   //
@@ -291,7 +302,7 @@ export function LoginScreen({ brand = 'expo' } = {}) {
         },
       });
       if (authError) { setError(authError.message); setSubmitting(false); return; }
-      if (!data?.url) { setError(`${provider} sign-in is not configured yet.`); setSubmitting(false); return; }
+      if (!data?.url) { setError(`${provider} ${tt('sign-in is not configured yet.')}`); setSubmitting(false); return; }
       // Pre-flight: HEAD the authorize URL to detect "provider not enabled"
       // before redirecting. Supabase returns 400 JSON in that case.
       try {
@@ -342,9 +353,17 @@ export function LoginScreen({ brand = 'expo' } = {}) {
             </a>
           )}
           {bc && <div style={{ color: AC, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 6 }}>{bc.eyebrow}</div>}
-          <div style={{ color: bc?.ink || C.tm, fontSize: 15, fontWeight: bc ? 700 : 400 }}>{bc ? bc.sub : <>Sign<span style={{ color: C.td }}>-</span>in</>}</div>
+          <div style={{ color: bc?.ink || C.tm, fontSize: 15, fontWeight: bc ? 700 : 400 }}>{bc ? bc.sub : (he ? tt('Sign-in') : <>Sign<span style={{ color: C.td }}>-</span>in</>)}</div>
         </div>
-        <div style={cardStyle}>
+        <div style={cardStyle} dir={he ? 'rtl' : 'ltr'}>
+          {!bc && (
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
+              <button type="button" onClick={flipLang} aria-label={he ? 'English' : 'עברית'}
+                style={{ background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '4px 10px', color: C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', minWidth: 44 }}>
+                {he ? 'EN' : 'עב'}
+              </button>
+            </div>
+          )}
           {/* OAuth buttons */}
           <button
             onClick={() => handleOAuth('google')}
@@ -352,7 +371,7 @@ export function LoginScreen({ brand = 'expo' } = {}) {
             style={{ width: '100%', padding: 12, borderRadius: 0, border: `1px solid ${C.cardBd}`, background: '#fff', color: '#1f1f1f', fontFamily: FB, fontSize: 14, fontWeight: 600, cursor: submitting ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 10, opacity: submitting ? 0.6 : 1 }}
           >
             <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 8 3l5.7-5.7C34.3 5.8 29.4 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16 19 12 24 12c3.1 0 5.8 1.2 8 3l5.7-5.7C34.3 5.8 29.4 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 10-2 13.6-5.2l-6.3-5.3c-2 1.4-4.5 2.5-7.3 2.5-5.2 0-9.6-3.3-11.2-8l-6.5 5C9.5 39.7 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.2 4.2-4 5.5l6.3 5.3C41 35.2 44 30 44 24c0-1.3-.1-2.6-.4-3.9z"/></svg>
-            Continue with Google
+            {tt('Continue with Google')}
           </button>
 
           <div style={{ marginBottom: 18 }} />
@@ -360,7 +379,7 @@ export function LoginScreen({ brand = 'expo' } = {}) {
           {/* Divider */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '0 0 14px' }}>
             <div style={{ flex: 1, height: 1, background: `${C.cardBd}` }} />
-            <span style={{ fontSize: 9, color: C.tm, fontFamily: FN, letterSpacing: '0.18em', fontWeight: 700 }}>OR</span>
+            <span style={{ fontSize: 9, color: C.tm, fontFamily: FN, letterSpacing: '0.18em', fontWeight: 700 }}>{tt('OR')}</span>
             <div style={{ flex: 1, height: 1, background: `${C.cardBd}` }} />
           </div>
 
@@ -377,7 +396,7 @@ export function LoginScreen({ brand = 'expo' } = {}) {
             value={password}
             onChange={e => { setPassword(e.target.value); setError(''); }}
             onKeyDown={e => e.key === 'Enter' && canSubmit && handlePassword()}
-            placeholder="password"
+            placeholder={tt('password')}
             type="password"
             autoComplete="current-password"
             style={{ width: '100%', background: 'var(--c-sf)', border: `1px solid ${error ? C.rd : C.cardBd}`, borderRadius: 0, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 10, textAlign: 'center' }}
@@ -388,10 +407,10 @@ export function LoginScreen({ brand = 'expo' } = {}) {
             disabled={!canSubmit}
             style={{ width: '100%', padding: 12, borderRadius: 0, border: `1px solid ${canSubmit ? AC : C.cardBd}`, background: bc && canSubmit ? AC : 'transparent', color: bc && canSubmit ? '#fff' : (canSubmit ? AC : C.tm), fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', cursor: canSubmit ? 'pointer' : 'default', opacity: submitting ? 0.6 : 1 }}
           >
-            {submitting ? '...' : 'Sign in'}
+            {submitting ? '...' : tt('Sign in')}
           </button>
           <div style={{ fontSize: 11, color: C.td, marginTop: 12, textAlign: 'center', lineHeight: 1.4 }}>
-            {bc ? bc.foot : "Don't have an account? Contact your coach."}
+            {bc ? bc.foot : tt("Don't have an account? Contact your coach.")}
           </div>
         </div>
         {/* Install affordance removed from the login screen (adversarial-review
@@ -424,19 +443,20 @@ export function PasswordChangeModal({ onClose, demoMode = false }) {
     // Preview / sandbox (coach viewing-as an athlete): NEVER touch auth. The
     // live session here is the COACH's, so a real updateUser would rotate the
     // COACH's password. Hard no-op with a clear notice.
-    if (demoMode) { setError('Password changes are disabled in preview.'); return; }
-    if (!currentPw) { setError('Enter your current password.'); return; }
-    if (pw.length < 4) { setError('New password must be at least 4 characters.'); return; }
-    if (pw !== confirmPw) { setError("Passwords don't match."); return; }
+    const t = (x) => tr(readLang(), x);
+    if (demoMode) { setError(t('Password changes are disabled in preview.')); return; }
+    if (!currentPw) { setError(t('Enter your current password.')); return; }
+    if (pw.length < 4) { setError(t('New password must be at least 4 characters.')); return; }
+    if (pw !== confirmPw) { setError(t("Passwords don't match.")); return; }
     setSaving(true);
     try {
       // Verify the current password by attempting a sign-in with it. If it
       // fails, we stop — without this check, any logged-in session could
       // silently rotate the password (bad if the user left a device unlocked).
       // Email comes from the live session so nobody can swap identities here.
-      if (!email) { setError('Session lost. Sign out and back in, then retry.'); setSaving(false); return; }
+      if (!email) { setError(t('Session lost. Sign out and back in, then retry.')); setSaving(false); return; }
       const { error: verifyError } = await supabase.auth.signInWithPassword({ email, password: currentPw });
-      if (verifyError) { setError('Current password is incorrect.'); setSaving(false); return; }
+      if (verifyError) { setError(t('Current password is incorrect.')); setSaving(false); return; }
       const { error: authError } = await supabase.auth.updateUser({ password: pw });
       if (authError) { setError(authError.message); setSaving(false); return; }
       setOk(true);
@@ -450,22 +470,22 @@ export function PasswordChangeModal({ onClose, demoMode = false }) {
   return createPortal((
     <div onClick={() => { if (!saving) onClose(); }} role="dialog" aria-modal="true" aria-label="Change password" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 20 }}>
       <div onClick={e => e.stopPropagation()} style={{ background: C.bg, border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 24, maxWidth: 360, width: '100%' }}>
-        <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 12, textAlign: 'center' }}>CHANGE PASSWORD</div>
+        <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 12, textAlign: 'center' }}>{tr(readLang(), 'CHANGE PASSWORD')}</div>
         {ok ? (
-          <div style={{ color: C.gn, fontSize: 14, textAlign: 'center', padding: '20px 0' }}>Password updated ✓</div>
+          <div style={{ color: C.gn, fontSize: 14, textAlign: 'center', padding: '20px 0' }}>{tr(readLang(), 'Password updated ✓')}</div>
         ) : (
           <>
-            <input value={currentPw} onChange={e => { setCurrentPw(e.target.value); setError(''); }} type="password" placeholder="Current password" autoComplete="current-password" autoFocus
+            <input value={currentPw} onChange={e => { setCurrentPw(e.target.value); setError(''); }} type="password" placeholder={tr(readLang(), 'Current password')} autoComplete="current-password" autoFocus
               style={{ width: '100%', background: 'var(--c-sf)', border: `1px solid ${error ? C.rd : C.cardBd}`, borderRadius: 0, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 10, textAlign: 'center' }} />
-            <input value={pw} onChange={e => { setPw(e.target.value); setError(''); }} type="password" placeholder="New password" autoComplete="new-password"
+            <input value={pw} onChange={e => { setPw(e.target.value); setError(''); }} type="password" placeholder={tr(readLang(), 'New password')} autoComplete="new-password"
               style={{ width: '100%', background: 'var(--c-sf)', border: `1px solid ${error ? C.rd : C.cardBd}`, borderRadius: 0, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 10, textAlign: 'center' }} />
-            <input value={confirmPw} onChange={e => { setConfirmPw(e.target.value); setError(''); }} onKeyDown={e => e.key === 'Enter' && handleSave()} type="password" placeholder="Confirm new password" autoComplete="new-password"
+            <input value={confirmPw} onChange={e => { setConfirmPw(e.target.value); setError(''); }} onKeyDown={e => e.key === 'Enter' && handleSave()} type="password" placeholder={tr(readLang(), 'Confirm new password')} autoComplete="new-password"
               style={{ width: '100%', background: 'var(--c-sf)', border: `1px solid ${error ? C.rd : C.cardBd}`, borderRadius: 0, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 10, textAlign: 'center' }} />
             {error && <div style={{ color: C.rd, fontSize: 12, marginBottom: 10, textAlign: 'center' }}>{error}</div>}
             <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={() => { if (!saving) onClose(); }} style={{ flex: 1, padding: '10px 0', borderRadius: 0, border: `1px solid ${C.cardBd}`, background: 'transparent', color: C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={() => { if (!saving) onClose(); }} style={{ flex: 1, padding: '10px 0', borderRadius: 0, border: `1px solid ${C.cardBd}`, background: 'transparent', color: C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', cursor: 'pointer' }}>{tr(readLang(), 'Cancel')}</button>
               {(() => { const canSave = !saving && !demoMode && currentPw && pw && confirmPw; return (
-              <button onClick={handleSave} disabled={!canSave} title={demoMode ? 'Disabled in preview' : undefined} style={{ flex: 1, padding: '10px 0', borderRadius: 0, border: `1px solid ${canSave ? C.ac : C.cardBd}`, background: 'transparent', color: canSave ? C.ac : C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', cursor: canSave ? 'pointer' : 'not-allowed', opacity: demoMode ? 0.5 : 1, minWidth: 72, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{saving ? '...' : 'Save'}</button>
+              <button onClick={handleSave} disabled={!canSave} title={demoMode ? 'Disabled in preview' : undefined} style={{ flex: 1, padding: '10px 0', borderRadius: 0, border: `1px solid ${canSave ? C.ac : C.cardBd}`, background: 'transparent', color: canSave ? C.ac : C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', cursor: canSave ? 'pointer' : 'not-allowed', opacity: demoMode ? 0.5 : 1, minWidth: 72, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{saving ? '...' : tr(readLang(), 'Save')}</button>
               ); })()}
             </div>
           </>
@@ -643,12 +663,12 @@ export function UnauthorizedScreen({ email, onSignOut, verifyError = false, onRe
       </div>
       <div style={cardStyle}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: '0.3em', fontWeight: 700, textTransform: 'uppercase', marginBottom: 14 }}>{verifyError ? "Couldn't Verify Account" : 'Access Denied'}</div>
+          <div style={{ fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: '0.3em', fontWeight: 700, textTransform: 'uppercase', marginBottom: 14 }}>{tr(readLang(), verifyError ? "Couldn't Verify Account" : 'Access Denied')}</div>
           <div style={{ fontSize: 13, color: C.tm, lineHeight: 1.5 }}>
             {verifyError ? (
-              <><strong style={{ color: C.ac }}>{email}</strong> — we couldn't reach the server to verify your account.<br />Check your connection and try again.</>
+              <><strong style={{ color: C.ac }}>{email}</strong> — {tr(readLang(), "we couldn't reach the server to verify your account.")}<br />{tr(readLang(), 'Check your connection and try again.')}</>
             ) : (
-              <><strong style={{ color: C.ac }}>{email}</strong> is not registered.<br />Contact your coach to get access.</>
+              <><strong style={{ color: C.ac }}>{email}</strong> {tr(readLang(), 'is not registered.')}<br />{tr(readLang(), 'Contact your coach to get access.')}</>
             )}
           </div>
           {verifyError && onRetry && (
@@ -656,14 +676,14 @@ export function UnauthorizedScreen({ email, onSignOut, verifyError = false, onRe
               onClick={onRetry}
               style={{ marginTop: 20, marginRight: 8, background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: '10px 20px', color: C.ac, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', cursor: 'pointer' }}
             >
-              Try Again
+              {tr(readLang(), 'Try Again')}
             </button>
           )}
           <button
             onClick={onSignOut}
             style={{ marginTop: 20, background: 'var(--c-sf)', border: `1px solid ${C.rd}`, borderRadius: 0, padding: '10px 20px', color: C.rd, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', cursor: 'pointer' }}
           >
-            Sign Out
+            {tr(readLang(), 'Sign Out')}
           </button>
         </div>
       </div>

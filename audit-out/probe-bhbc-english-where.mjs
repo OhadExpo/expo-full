@@ -17,7 +17,7 @@ await pg.evaluate(() => {
   if (e) set(e, 'tomerlich11@gmail.com'); if (p) set(p, '1234');
 });
 await wait(400);
-await pg.evaluate(() => { const x = [...document.querySelectorAll('button')].find((y) => /^\s*sign\s*in\s*$/i.test(y.textContent || '')); if (x) x.click(); });
+await pg.evaluate(() => { const x = [...document.querySelectorAll('button')].find((y) => /^\s*(sign\s*in|כניסה)\s*$/i.test(y.textContent || '')); if (x) x.click(); });
 await wait(9000);
 await setWidth(pg, 1500, 1000);
 await pg.goto(BASE + '/coach/bhbc', { waitUntil: 'domcontentloaded' });

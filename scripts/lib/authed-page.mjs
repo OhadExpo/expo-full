@@ -69,7 +69,7 @@ export async function signIn(page, base) {
   await wait(400);
   await safeEval(page, () => {
     const btn = [...document.querySelectorAll('button')]
-      .find((b) => /^\s*sign\s*in\s*$/i.test(b.textContent || ''));
+      .find((b) => /^\s*(sign\s*in|כניסה)\s*$/i.test(b.textContent || ''));
     if (btn) btn.click();
   });
   await wait(6000);
