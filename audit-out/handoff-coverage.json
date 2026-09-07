@@ -1,13 +1,11 @@
 {
   "checkedLines": 907,
-  "verified": 266,
-  "attributed": 325,
+  "verified": 268,
+  "attributed": 324,
   "structure": 307,
   "judgement": 8,
-  "atoms": 396,
-  "fails": [
-    "line 194: commit count \"1,255\" does not check out  ::  | Ahead of `master` | **1,255 commits** |"
-  ],
+  "atoms": 397,
+  "fails": [],
   "judgementLines": [
     "73: Israeli-direct. Wants deliverables, not menus of options. Push back when the",
     "100: \"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe\" --remote-debugging-por",
