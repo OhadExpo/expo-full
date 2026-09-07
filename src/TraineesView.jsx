@@ -998,18 +998,18 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
       </div>{/* /two-column flex row */}
 
       {/* Edit/Create Modal */}
-      <Modal open={showForm} onClose={() => setShowForm(false)} title={editId ? "Edit Athlete" : "New Athlete"} wide>
+      <Modal open={showForm} onClose={() => setShowForm(false)} title={editId ? tt("Edit Athlete") : tt("New Athlete")} wide>
         {form._members ? <>
           {/* COUPLE EDIT */}
           <div style={{fontSize:11,fontFamily:FN,color:C.td,textTransform:'uppercase',marginBottom:8}}>Shared</div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16}}>
-            <Input label="Couple Name" value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
-            <Select label="Format" options={TRAINING_FORMATS} value={form.format} onChange={v => setForm({...form, format: v})} />
-            <Select label="Status" options={TRAINEE_STATUSES.filter(s => s !== "Archived")} value={form.status} onChange={v => setForm({...form, status: v})} />
-            <Select label="Package" options={PACKAGE_TYPES} value={form.package} onChange={v => setForm({...form, package: v})} />
-            <Input label="Sessions Remaining" type="number" value={form.sessionsRemaining} onChange={e => setForm({...form, sessionsRemaining: parseInt(e.target.value)||0})} />
-            <Input label="Start Date" type="date" value={form.startDate} onChange={e => setForm({...form, startDate: e.target.value})} />
-            <Input label="Package Price (₪)" type="number" value={form.packagePrice||""} onChange={e => setForm({...form, packagePrice: e.target.value})} />
+            <Input label={tt("Couple Name")} value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
+            <Select label={tt("Format")} options={TRAINING_FORMATS} value={form.format} onChange={v => setForm({...form, format: v})} />
+            <Select label={tt("Status")} options={TRAINEE_STATUSES.filter(s => s !== "Archived")} value={form.status} onChange={v => setForm({...form, status: v})} />
+            <Select label={tt("Package")} options={PACKAGE_TYPES} value={form.package} onChange={v => setForm({...form, package: v})} />
+            <Input label={tt("Sessions Remaining")} type="number" value={form.sessionsRemaining} onChange={e => setForm({...form, sessionsRemaining: parseInt(e.target.value)||0})} />
+            <Input label={tt("Start Date")} type="date" value={form.startDate} onChange={e => setForm({...form, startDate: e.target.value})} />
+            <Input label={tt("Package Price (₪)")} type="number" value={form.packagePrice||""} onChange={e => setForm({...form, packagePrice: e.target.value})} />
           </div>
           <div style={{display:'flex',gap:16}}>
             {form._members.map((m, mi) => {
@@ -1022,17 +1022,17 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
                 <div key={mi} style={{flex:1,minWidth:0}}>
                   <div style={{fontSize:11,fontFamily:FN,color:C.ac,textTransform:'uppercase',marginBottom:8}}>Member {mi+1}</div>
                   <div style={{display:'flex',flexDirection:'column',gap:10}}>
-                    <Input label="Name" value={m.name||""} onChange={e=>upd('name',e.target.value)} />
-                    <EmailsInput label="Email" value={m._emails || emailsToArr(m.email)} onChange={next=>upd('_emails',next)} />
-                    <Input label="Phone" value={m.phone||""} onChange={e=>upd('phone',e.target.value)} placeholder="+972..." autoComplete="off" />
+                    <Input label={tt("Name")} value={m.name||""} onChange={e=>upd('name',e.target.value)} />
+                    <EmailsInput label={tt("Email")} value={m._emails || emailsToArr(m.email)} onChange={next=>upd('_emails',next)} />
+                    <Input label={tt("Phone")} value={m.phone||""} onChange={e=>upd('phone',e.target.value)} placeholder="+972..." autoComplete="off" />
                     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
-                      <Input label="Age" type="number" value={m.age||""} onChange={e=>upd('age',e.target.value)} />
-                      <Input label="Weight" type="number" value={m.weight||""} onChange={e=>upd('weight',e.target.value)} />
-                      <Input label="Height" type="number" value={m.height||""} onChange={e=>upd('height',e.target.value)} />
+                      <Input label={tt("Age")} type="number" value={m.age||""} onChange={e=>upd('age',e.target.value)} />
+                      <Input label={tt("Weight")} type="number" value={m.weight||""} onChange={e=>upd('weight',e.target.value)} />
+                      <Input label={tt("Height")} type="number" value={m.height||""} onChange={e=>upd('height',e.target.value)} />
                     </div>
-                    <TextArea label="Injuries" value={m.injuries||""} onChange={e=>upd('injuries',e.target.value)} />
-                    <TextArea label="Goals" value={m.goals||""} onChange={e=>upd('goals',e.target.value)} />
-                    <TextArea label="Notes" value={m.notes||""} onChange={e=>upd('notes',e.target.value)} />
+                    <TextArea label={tt("Injuries")} value={m.injuries||""} onChange={e=>upd('injuries',e.target.value)} />
+                    <TextArea label={tt("Goals")} value={m.goals||""} onChange={e=>upd('goals',e.target.value)} />
+                    <TextArea label={tt("Notes")} value={m.notes||""} onChange={e=>upd('notes',e.target.value)} />
                   </div>
                 </div>
               );
@@ -1041,7 +1041,7 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
         </> : <>
           {/* SOLO EDIT */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <Input label="Name" value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
+          <Input label={tt("Name")} value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <label style={{ fontSize: 11, fontWeight: 600, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: FN }}>Email(s)</label>
             {(form._emails || emailsToArr(form.email)).map((em, i, arr) => (
@@ -1064,31 +1064,31 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
               }} style={{ background: 'var(--c-sf)', border: `0.25px dashed ${C.cardBd}`, borderRadius: 0, padding: '6px 10px', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase' }}>+ Add Email</button>
             )}
           </div>
-          <Input label="Phone" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} placeholder="+972..." autoComplete="off" />
-          <Input label="Age" type="number" value={form.age} onChange={e => setForm({...form, age: e.target.value})} />
-          <Input label="Weight (kg)" type="number" value={form.weight} onChange={e => setForm({...form, weight: e.target.value})} />
-          <Input label="Height (cm)" type="number" value={form.height} onChange={e => setForm({...form, height: e.target.value})} />
-          <Select label="Format" options={TRAINING_FORMATS} value={form.format} onChange={v => setForm({...form, format: v})} />
-          <Select label="Status" options={TRAINEE_STATUSES.filter(s => s !== "Archived")} value={form.status} onChange={v => setForm({...form, status: v})} />
+          <Input label={tt("Phone")} value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} placeholder="+972..." autoComplete="off" />
+          <Input label={tt("Age")} type="number" value={form.age} onChange={e => setForm({...form, age: e.target.value})} />
+          <Input label={tt("Weight (kg)")} type="number" value={form.weight} onChange={e => setForm({...form, weight: e.target.value})} />
+          <Input label={tt("Height (cm)")} type="number" value={form.height} onChange={e => setForm({...form, height: e.target.value})} />
+          <Select label={tt("Format")} options={TRAINING_FORMATS} value={form.format} onChange={v => setForm({...form, format: v})} />
+          <Select label={tt("Status")} options={TRAINEE_STATUSES.filter(s => s !== "Archived")} value={form.status} onChange={v => setForm({...form, status: v})} />
           {/* Bnei Herzliya players are CLUB athletes — the club pays, so package /
               sessions-remaining / price never apply and must not be fillable. */}
-          {form.format !== 'Bnei Herzliya' && <Select label="Package" options={PACKAGE_TYPES} value={form.package} onChange={v => setForm({...form, package: v})} />}
-          {form.format !== 'Bnei Herzliya' && <Input label="Sessions Remaining" type="number" value={form.sessionsRemaining} onChange={e => setForm({...form, sessionsRemaining: parseInt(e.target.value)||0})} />}
-          <Input label="Start Date" type="date" value={form.startDate} onChange={e => setForm({...form, startDate: e.target.value})} />
+          {form.format !== 'Bnei Herzliya' && <Select label={tt("Package")} options={PACKAGE_TYPES} value={form.package} onChange={v => setForm({...form, package: v})} />}
+          {form.format !== 'Bnei Herzliya' && <Input label={tt("Sessions Remaining")} type="number" value={form.sessionsRemaining} onChange={e => setForm({...form, sessionsRemaining: parseInt(e.target.value)||0})} />}
+          <Input label={tt("Start Date")} type="date" value={form.startDate} onChange={e => setForm({...form, startDate: e.target.value})} />
           {form.format !== 'Bnei Herzliya' ? (
-            <Input label="Package Price (₪)" type="number" value={form.packagePrice||""} onChange={e => setForm({...form, packagePrice: e.target.value})} />
+            <Input label={tt("Package Price (₪)")} type="number" value={form.packagePrice||""} onChange={e => setForm({...form, packagePrice: e.target.value})} />
           ) : (
             <div style={{ display: 'flex', alignItems: 'end', paddingBottom: 8, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>Club athlete — no billing</div>
           )}
-          <div style={{ gridColumn: "1 / -1" }}><TextArea label="Injuries / Conditions" value={form.injuries} onChange={e => setForm({...form, injuries: e.target.value})} placeholder="L4/L5 disc bulge, R shoulder impingement..." /></div>
-          <div style={{ gridColumn: "1 / -1" }}><TextArea label="Goals" value={form.goals} onChange={e => setForm({...form, goals: e.target.value})} /></div>
-          <div style={{ gridColumn: "1 / -1" }}><TextArea label="Notes" value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} /></div>
+          <div style={{ gridColumn: "1 / -1" }}><TextArea label={tt("Injuries / Conditions")} value={form.injuries} onChange={e => setForm({...form, injuries: e.target.value})} placeholder="L4/L5 disc bulge, R shoulder impingement..." /></div>
+          <div style={{ gridColumn: "1 / -1" }}><TextArea label={tt("Goals")} value={form.goals} onChange={e => setForm({...form, goals: e.target.value})} /></div>
+          <div style={{ gridColumn: "1 / -1" }}><TextArea label={tt("Notes")} value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} /></div>
         </div>
         </>}
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
-          {editId && <Btn variant="danger" onClick={() => setArchiveConfirm(editId)} style={{ marginRight: "auto" }}>📦 Archive Athlete</Btn>}
-          <Btn variant="ghost" onClick={() => setShowForm(false)}>Cancel</Btn>
-          <Btn onClick={handleSave}>{editId ? "Update" : "Create"}</Btn>
+          {editId && <Btn variant="danger" onClick={() => setArchiveConfirm(editId)} style={{ marginRight: "auto" }}>{tt('📦 Archive Athlete')}</Btn>}
+          <Btn variant="ghost" onClick={() => setShowForm(false)}>{tt('Cancel')}</Btn>
+          <Btn onClick={handleSave}>{editId ? tt("Update") : tt("Create")}</Btn>
         </div>
       </Modal>
 

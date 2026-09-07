@@ -180,6 +180,7 @@ export const Input = ({ label, style: s, id, ...props }) => {
 // Multi-email editor: value is string[] (UI form shape), onChange(next: string[]).
 // Shows one row per email with a × to remove, plus a "+ Add Email" button up to max.
 export const EmailsInput = ({ label = "Email(s)", value, onChange, max = 3, placeholder = "email@example.com" }) => {
+  const tt = useT();
   const arr = value && value.length ? value : [''];
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -191,7 +192,7 @@ export const EmailsInput = ({ label = "Email(s)", value, onChange, max = 3, plac
         </div>
       ))}
       {arr.length < max && (
-        <button onClick={() => onChange([...arr, ''])} style={{ background: 'var(--c-sf)', border: `0.25px dashed ${C.cardBd}`, borderRadius: 0, padding: '6px 10px', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>+ Add Email</button>
+        <button onClick={() => onChange([...arr, ''])} style={{ background: 'var(--c-sf)', border: `0.25px dashed ${C.cardBd}`, borderRadius: 0, padding: '6px 10px', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>+ {tt('Add Email')}</button>
       )}
     </div>
   );
