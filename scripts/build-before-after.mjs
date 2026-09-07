@@ -176,7 +176,7 @@ const PAIRS = [
     id: 'dashboard-dashes',
     title: 'Dashboard, no signal · the KPIs read zero, not "unknown"',
     file: 'src/DashboardView.jsx',
-    undo: [['const unknown = (rows) => !online && (!Array.isArray(rows) || rows.length === 0);', 'const unknown = () => false;']],
+    undo: [['const unknown = (rows) => (!online || dataIncomplete) && (!Array.isArray(rows) || rows.length === 0);', 'const unknown = () => false;']],
     url: APP + '/coach', w: 1400, h: 900, auth: true, cutBackend: true,
     crop: [0, 60, 1400, 360],
   },
@@ -224,7 +224,6 @@ async function shoot(job, label) {
     // appLang sets the APP's language, which must be in place BEFORE the first
     // document: App reads it at mount and writes it straight back, so a later
     // setItem is overwritten by the 'en' it booted with.
-    if (job.appLang) await pg.evaluateOnNewDocument((l) => { try { localStorage.setItem('expo-lang', l); } catch (e) {} }, job.appLang);
     if (job.auth) {
       // authed-page.signIn RETURNS EARLY when a session already exists, so after
       // any athlete-seat run it silently keeps that seat and a "coach" URL
@@ -234,7 +233,7 @@ async function shoot(job, label) {
       await pg.goto(APP + '/login', { waitUntil: 'domcontentloaded', timeout: 60000 }).catch(() => {});
       await pg.evaluate(() => { try { localStorage.clear(); sessionStorage.clear(); } catch (e) {} });
       await A.signIn(pg, APP);
-      const isCoach = await pg.evaluate(() => /dashboard|athletes|billing/i.test(document.body.innerText.slice(0, 600)));
+      const isCoach = await pg.evaluate(() => /dashboard|athletes|billing|ראשי|מתאמנים|תשלומים/i.test(document.body.innerText.slice(0, 600)));
       if (!isCoach) throw new Error('not on the coach seat after sign-in');
     }
     if (job.athlete) {
@@ -261,6 +260,10 @@ async function shoot(job, label) {
       });
       await wait(9000);
     }
+    // The app's language goes in AFTER the sign-in (the sign-in helpers know the
+    // English login only) and BEFORE the first document of the view: App reads
+    // it at mount and writes it straight back.
+    if (job.appLang) await pg.evaluateOnNewDocument((l) => { try { localStorage.setItem('expo-lang', l); } catch (e) {} }, job.appLang);
     await setWidth(pg, job.w, job.h);
     await pg.goto(job.url, { waitUntil: 'domcontentloaded', timeout: 60000 });
     if (job.cutBackend) {
@@ -276,6 +279,13 @@ async function shoot(job, label) {
       await pg.goto(job.url, { waitUntil: 'domcontentloaded', timeout: 60000 });
       await wait(15000);
     }
+    // The install prompt (Hebrew or English) covers a phone-width portal; both
+    // shots of the bw-bidi pair came back as the prompt. Dismiss it first.
+    await pg.evaluate(() => {
+      const b = [...document.querySelectorAll('button')].find((e) => /^s*(אחר כך|later|not now|maybe later|לא עכשיו)s*$/i.test(e.textContent || ''));
+      if (b) b.click();
+    }).catch(() => {});
+    await wait(600);
     if (job.clickText) {
       await wait(4000);
       await pg.evaluate((t) => {

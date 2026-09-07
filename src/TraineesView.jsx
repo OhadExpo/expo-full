@@ -432,7 +432,7 @@ const saveSortPrefs = (prefs) => {
   try { localStorage.setItem(SORT_KEY, JSON.stringify(prefs)); } catch {}
 };
 
-export default function TraineesView({ trainees, setTrainees, planCounts, payments, workouts, clientWorkouts, bwLog, portalVis, presence, onSelect, onPreview }) {
+export default function TraineesView({ dataIncomplete = false, trainees, setTrainees, planCounts, payments, workouts, clientWorkouts, bwLog, portalVis, presence, onSelect, onPreview }) {
   const tt = useT();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(defaultTrainee());
@@ -814,7 +814,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
 
       {/* Count moved into the rail (under Search) so the first card top-aligns
           with the search box (Ohad OCD). */}
-      {filtered.length === 0 ? <EmptyState icon={showArchived ? "📦" : "👥"} message={showArchived ? "No archived athletes." : "No athletes yet. Add your first one."} /> : (
+      {filtered.length === 0 ? <EmptyState icon={showArchived ? "📦" : "👥"} message={showArchived ? tt("No archived athletes.") : (dataIncomplete && trainees.length === 0 ? tt("Could not reach the server. The roster appears when the connection returns.") : tt("No athletes yet. Add your first one."))} /> : (
         // gridAutoRows:1fr equalises EVERY row to the tallest card so all athlete
         // cards are the same height (the action row's marginTop:auto absorbs the
         // slack consistently, keeping internal dividers aligned across the row).

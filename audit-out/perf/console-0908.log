@@ -1,0 +1,114 @@
+36 routes from docs/SURFACES.md against http://127.0.0.1:4173
+
+ERRORS /                            1
+        console: Failed to load resource: the server responded with a status of 404 (Not Found)
+ERRORS /athlete                     1
+        console: Failed to load resource: the server responded with a status of 404 (Not Found)
+ERRORS /coach/athletes              1
+        console: Failed to load resource: the server responded with a status of 404 (Not Found)
+ERRORS /coach/bhbc                  1
+        console: Failed to load resource: the server responded with a status of 404 (Not Found)
+ERRORS /coach/billing               1
+        console: Failed to load resource: the server responded with a status of 404 (Not Found)
+ERRORS /coach/bugs                  1
+        console: Failed to load resource: the server responded with a status of 404 (Not Found)
+ERRORS /coach/calendar              1
+        console: Failed to load resource: the server responded with a status of 404 (Not Found)
+ERRORS /coach/challenges            1
+        console: Failed to load resource: the server responded with a status of 404 (Not Found)
+ERRORS /coach/chat-audit            1
+        console: Failed to load resource: the server responded with a status of 404 (Not Found)
+ERRORS /coach/dashboard             1
+        console: Failed to load resource: the server responded with a status of 404 (Not Found)
+ERRORS /coach/exercise-classify     1
+        console: Failed to load resource: the server responded with a status of 404 (Not Found)
+ERRORS /coach/exercise-cleanup      1
+        console: Failed to load resource: the server responded with a status of 404 (Not Found)
+ERRORS /coach/exercise-matching     1
+        console: Failed to load resource: the server responded with a status of 404 (Not Found)
+ERRORS /coach/exercises             1
+        console: Failed to load resource: the server responded with a status of 404 (Not Found)
+ERRORS /coach/intake                1
+        console: Failed to load resource: the server responded with a status of 404 (Not Found)
+ERRORS /coach/programs              1
+        console: Failed to load resource: the server responded with a status of 404 (Not Found)
+ERRORS /coach/review                1
+        console: Failed to load resource: the server responded with a status of 404 (Not Found)
+ERRORS /coach/review-tools          1
+        console: Failed to load resource: the server responded with a status of 404 (Not Found)
+ERRORS /coach/sessions              1
+        console: Failed to load resource: the server responded with a status of 404 (Not Found)
+ERRORS /coach/sessions-single       1
+        console: Failed to load resource: the server responded with a status of 404 (Not Found)
+ERRORS /coach/smart-import          1
+        console: Failed to load resource: the server responded with a status of 404 (Not Found)
+ERRORS /coach/tasks                 1
+        console: Failed to load resource: the server responded with a status of 404 (Not Found)
+ERRORS /coach/waitlist              1
+        console: Failed to load resource: the server responded with a status of 404 (Not Found)
+ERRORS /coach/workouts              1
+        console: Failed to load resource: the server responded with a status of 404 (Not Found)
+ERRORS /coaches/demo                1
+        console: Failed to load resource: the server responded with a status of 404 (Not Found)
+ERRORS /coaches/demo/coach          1
+        console: Failed to load resource: the server responded with a status of 404 (Not Found)
+ERRORS /coaches/demo/trainee        1
+        console: Failed to load resource: the server responded with a status of 404 (Not Found)
+ERRORS /coaches/try                 1
+        console: Failed to load resource: the server responded with a status of 404 (Not Found)
+ERRORS /demo                        1
+        console: Failed to load resource: the server responded with a status of 404 (Not Found)
+ERRORS /demo/athlete                1
+        console: Failed to load resource: the server responded with a status of 404 (Not Found)
+ERRORS /demo/coach                  1
+        console: Failed to load resource: the server responded with a status of 404 (Not Found)
+ERRORS /demo/he                     1
+        console: Failed to load resource: the server responded with a status of 404 (Not Found)
+ERRORS /demo/sandbox                1
+        console: Failed to load resource: the server responded with a status of 404 (Not Found)
+ERRORS /intake/he                   1
+        console: Failed to load resource: the server responded with a status of 404 (Not Found)
+ERRORS /login                       1
+        console: Failed to load resource: the server responded with a status of 404 (Not Found)
+ERRORS /try                         1
+        console: Failed to load resource: the server responded with a status of 404 (Not Found)
+
+0/36 routes free of console errors
+
+routes to fix:
+  /  (1)
+  /athlete  (1)
+  /coach/athletes  (1)
+  /coach/bhbc  (1)
+  /coach/billing  (1)
+  /coach/bugs  (1)
+  /coach/calendar  (1)
+  /coach/challenges  (1)
+  /coach/chat-audit  (1)
+  /coach/dashboard  (1)
+  /coach/exercise-classify  (1)
+  /coach/exercise-cleanup  (1)
+  /coach/exercise-matching  (1)
+  /coach/exercises  (1)
+  /coach/intake  (1)
+  /coach/programs  (1)
+  /coach/review  (1)
+  /coach/review-tools  (1)
+  /coach/sessions  (1)
+  /coach/sessions-single  (1)
+  /coach/smart-import  (1)
+  /coach/tasks  (1)
+  /coach/waitlist  (1)
+  /coach/workouts  (1)
+  /coaches/demo  (1)
+  /coaches/demo/coach  (1)
+  /coaches/demo/trainee  (1)
+  /coaches/try  (1)
+  /demo  (1)
+  /demo/athlete  (1)
+  /demo/coach  (1)
+  /demo/he  (1)
+  /demo/sandbox  (1)
+  /intake/he  (1)
+  /login  (1)
+  /try  (1)

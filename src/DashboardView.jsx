@@ -32,7 +32,7 @@ function DormantWhatsAppButton({ trainee, days }) {
   return <WhatsAppCheckInButton name={target.name} phone={target.phone} gender={target.gender} days={days} />;
 }
 
-export default function DashboardView({ isOwner = true, trainees = [], planCounts, workouts = [], clientWorkouts = [], payments = [], presence, onSelectTrainee, onOpenTraineeMessages, onOpenTasksTab, onCreatePlanForTask, onOpenIntakeTab, onOpenWaitlist, onOpenReviewWorkout }) {
+export default function DashboardView({ dataIncomplete = false, isOwner = true, trainees = [], planCounts, workouts = [], clientWorkouts = [], payments = [], presence, onSelectTrainee, onOpenTraineeMessages, onOpenTasksTab, onCreatePlanForTask, onOpenIntakeTab, onOpenWaitlist, onOpenReviewWorkout }) {
   const tt = useT();
   const he = useHe();
   // Staff (non-owner, e.g. Yuval a masseur) share Ohad's clients but not his
@@ -104,7 +104,11 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
     window.addEventListener('online', up); window.addEventListener('offline', down);
     return () => { window.removeEventListener('online', up); window.removeEventListener('offline', down); };
   }, []);
-  const unknown = (rows) => !online && (!Array.isArray(rows) || rows.length === 0);
+  // "Unknown" is not "zero". Wifi can be up with the server unreachable (his
+  // "maybe it's my wifi"), so navigator.onLine alone is not the signal - the
+  // App's dataIncomplete (reads still outstanding, or the roster load failed)
+  // is the same one that puts the OFFLINE banner up.
+  const unknown = (rows) => (!online || dataIncomplete) && (!Array.isArray(rows) || rows.length === 0);
   const active = trainees.filter(t => t.status === 'Active').length;
   const archivedCount = trainees.filter(t => t.status === 'Archived').length;
   const monthlyRate = trainees.filter(t=>t.status==='Active').reduce((a,t) => a + (parseFloat(t.monthly)||0), 0);
