@@ -28,11 +28,12 @@ const fwd = (p) => p.split(String.fromCharCode(92)).join('/');
 const LIVE = readPairs('audit-out/pairs/pairs.json');
 // pairs.json and pairs-he.json both carry `portal` and `pt-zone`, so the Hebrew
 // sections take an `he-` suffix or the page gets duplicate ids.
-const HE = [...readPairs('audit-out/pairs/pairs-he.json'), ...readPairs('audit-out/pairs/pairs-he-phone.json')];
+const HE = [...readPairs('audit-out/pairs/pairs-he.json'), ...readPairs('audit-out/pairs/pairs-he-phone.json'), ...readPairs('audit-out/pairs/pairs-rt.json')];
 const HE_TITLES = {
   portal: ['The athlete portal, in Hebrew', 'An athlete who picks Hebrew on production still gets English: the portal renders outside the language provider, so the Hebrew that was already written never reaches the screen. On this branch it does.'],
   'portal-phone': ['The athlete portal, in Hebrew, on a phone', 'The width an athlete actually holds. Production: English tabs and headings under a Hebrew name. This branch: the portal in Hebrew.'],
   'meal-phone': ['The meal log, in Hebrew, on a phone', 'Error strings, the day label, the totals and the save button were the last English on an athlete page.'],
+  'review-tools': ['The review tools, in Hebrew', 'The page behind the camera tools was the English page behind a Hebrew tool. Headers, the five tools, the clip picker - all through the dictionary now.'],
   meal: ['The meal log, in Hebrew', 'Error strings, the day label, the totals and the save button were the last English on an athlete page.'],
   'pt-zone': ['The club zone, in Hebrew, from the physio seat', 'The Medical tab carried 147 Latin words after the switch — the RTP ladder, the pain gate, the referral line, the availability pill, every readiness headline. Now 45, and every one is a name or shorthand a coach reads as English anyway.'],
 };
@@ -59,6 +60,15 @@ const LIVE_TITLES = {
 };
 
 const PAIRS = [
+  {
+    id: 'shot-he',
+    title: 'The Shot Analyzer, in Hebrew - his four asks on one screenshot',
+    lead: 'Left is the screenshot he sent from production: the title, fps, the frame overlay and the whole session panel in English, seven phase chips wrapping 5 + 2, a play button on every checkpoint row. Right is the branch on a real clip: everything Hebrew, a makes/shots bar he marks himself, two full rows of chips, one play button per frame, and the metric numbers on one line.',
+    facts: [['Latin words', 'the panel -> 0 (units included)'], ['phase chips', '5 + 2 -> 3 + 3 / 4 + 3'], ['jump buttons', '10 -> 5'], ['makes', 'marked, never inferred']],
+    before: 'audit-out/shot-analyzer-prod-his-screenshot.png',
+    after: 'audit-out/shot-results-he-tiles2.png',
+    note: 'Elbow offset and wrist-vs-eye now carry their unit (torso lengths, shoulder to hip) and say what they measure on hover. The analyser has never seen the rim, so a make is a mark you make, and the counter is exactly those marks.',
+  },
   {
     id: 'dash',
     title: 'The BHBC dashboard',
