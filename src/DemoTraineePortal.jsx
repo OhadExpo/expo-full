@@ -4,6 +4,7 @@
 // their athletes would see, without an account or any DB pollution.
 import React, { useState } from 'react';
 import ClientPortal from './ClientPortal';
+import { useT } from './i18n';
 import { C, FN } from './theme';
 import {
   DEMO_CLIENT_ID,
@@ -17,6 +18,7 @@ import {
 } from './demoTraineeData';
 
 export default function DemoTraineePortal({ onFilmSet = null } = {}) {
+  const tt = useT();
   // Local stand-ins for the setters ClientPortal expects. All writes stay
   // in-memory — closing the tab discards them.
   const [clientWorkouts, setClientWorkouts] = useState(DEMO_CLIENT_WORKOUTS);
@@ -46,7 +48,7 @@ export default function DemoTraineePortal({ onFilmSet = null } = {}) {
           fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.18em',
           color: C.ac, textAlign: 'center',
         }}>
-          DEMO · ATHLETE PORTAL · CHANGES DON'T PERSIST
+          {tt("DEMO · ATHLETE PORTAL · CHANGES DON'T PERSIST")}
         </div>
       )}
       <ClientPortal

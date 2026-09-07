@@ -431,6 +431,7 @@ export const HE = {
   // The cue expander under an exercise on the program tab.
   '▼ MORE': '▼ עוד',
   '▲ LESS': '▲ פחות',
+  "DEMO · ATHLETE PORTAL · CHANGES DON'T PERSIST": 'דמו · פורטל המתאמן · שינויים לא נשמרים',
   "Search…": 'חיפוש…',
   "Add a task…": 'הוסף משימה…',
   "Search tasks…": 'חפש משימות…',
@@ -760,7 +761,14 @@ export function useHe() {
   return useContext(LangCtx) === 'he';
 }
 
+// A link may carry the language: expo-il.co.il (another origin, so its own
+// storage is out of reach) sends a Hebrew reader to the demo with ?lang=he.
+// The hint is kept, so the next visit without it stays Hebrew.
 export function readLang() {
+  try {
+    const hint = new URLSearchParams(window.location.search).get('lang');
+    if (hint === 'he' || hint === 'en') { try { localStorage.setItem(LANG_KEY, hint); } catch { /* private mode */ } return hint; }
+  } catch { /* no window */ }
   try { return localStorage.getItem(LANG_KEY) === 'he' ? 'he' : 'en'; } catch { return 'en'; }
 }
 

@@ -621,7 +621,7 @@ function AuthGate() {
       return <Suspense fallback={<BootSplash />}><CoachDemo /></Suspense>;
     }
     if (path === '/demo/athlete' || path === '/demo/trainee' || path === '/coaches/demo/trainee' || path === '/coaches/demo') {
-      return <Suspense fallback={<BootSplash />}><DemoTraineePortal /></Suspense>;
+      return <LangCtx.Provider value={readLang()}><Suspense fallback={<BootSplash />}><DemoTraineePortal /></Suspense></LangCtx.Provider>;
     }
     if (path === '/demo/sandbox') {
       return <Suspense fallback={<BootSplash />}><TrySandbox pov="trainee" /></Suspense>;
