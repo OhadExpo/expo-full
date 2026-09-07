@@ -261,9 +261,9 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
 
         {rows.length === 0 ? (
           <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 30, textAlign: 'center' }}>
-            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>NO RECORDS YET</div>
+            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>{tt('NO RECORDS YET')}</div>
             <div style={{ fontFamily: FB, fontSize: 13, color: C.tm, lineHeight: 1.5 }}>
-              Log a few sessions with weights and your records will show up here.
+              {tt('Log a few sessions with weights and your records will show up here.')}
             </div>
           </div>
         ) : (

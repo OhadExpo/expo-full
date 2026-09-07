@@ -8,6 +8,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { C, FN, FB } from './theme';
+import { useT } from './i18n';
 import {
   isPushSupported, isPwaInstalled, isIOS,
   getPushPermission, getCurrentSubscription,
@@ -15,6 +16,7 @@ import {
 } from './push';
 
 export default function PushToggle({ role = 'athlete', compact = false }) {
+  const tt = useT();
   const [supported, setSupported] = useState(false);
   const [permission, setPermission] = useState('default');
   const [subscribed, setSubscribed] = useState(false);
@@ -67,7 +69,7 @@ export default function PushToggle({ role = 'athlete', compact = false }) {
           <div style={{
             fontFamily: FN, fontSize: 10, color: 'var(--c-tm)',
             letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4,
-          }}>NOTIFICATIONS</div>
+          }}>{tt('NOTIFICATIONS')}</div>
           <div style={{ fontSize: 12, color: 'var(--c-tx)', fontFamily: FB, lineHeight: 1.4 }}>
             {(() => {
               // Copy switches on role so the same component reads naturally
@@ -75,14 +77,14 @@ export default function PushToggle({ role = 'athlete', compact = false }) {
               // coach: athlete messages + workout completions. Pushed for
               // athlete: coach messages + missed-day cron nudges.
               const onCopy = role === 'coach'
-                ? "On. You'll get a push when an athlete messages you or finishes a workout."
-                : "On. You'll get a push when your coach messages you.";
+                ? tt("On. You'll get a push when an athlete messages you or finishes a workout.")
+                : tt("On. You'll get a push when your coach messages you.");
               const offCopy = role === 'coach'
-                ? 'Off. Tap Enable to get a push when an athlete messages you or finishes a workout.'
-                : 'Off. Tap Enable to get a push when your coach messages you.';
+                ? tt('Off. Tap Enable to get a push when an athlete messages you or finishes a workout.')
+                : tt('Off. Tap Enable to get a push when your coach messages you.');
               if (enabled) return onCopy;
-              if (iosNotInstalled) return (<>Add EXPO to your home screen first, then enable from the installed app. <span style={{ color: 'var(--c-tm)' }}>(Apple requires this for push.)</span></>);
-              if (denied) return 'Blocked in browser settings. Re-allow notifications for this site, then refresh.';
+              if (iosNotInstalled) return (<>{tt('Add EXPO to your home screen first, then enable from the installed app.')} <span style={{ color: 'var(--c-tm)' }}>{tt('(Apple requires this for push.)')}</span></>);
+              if (denied) return tt('Blocked in browser settings. Re-allow notifications for this site, then refresh.');
               return offCopy;
             })()}
           </div>
@@ -95,10 +97,10 @@ export default function PushToggle({ role = 'athlete', compact = false }) {
         {!iosNotInstalled && !denied && (
           enabled ? (
             <button onClick={onDisable} disabled={busy}
-              style={{...btnGhost(busy), minWidth:88, textAlign:'center'}}>{busy ? '…' : 'TURN OFF'}</button>
+              style={{...btnGhost(busy), minWidth:88, textAlign:'center'}}>{busy ? '…' : tt('TURN OFF')}</button>
           ) : (
             <button onClick={onEnable} disabled={busy}
-              style={{...btnAccent(busy), minWidth:88, textAlign:'center'}}>{busy ? '…' : 'ENABLE'}</button>
+              style={{...btnAccent(busy), minWidth:88, textAlign:'center'}}>{busy ? '…' : tt('ENABLE')}</button>
           )
         )}
       </div>

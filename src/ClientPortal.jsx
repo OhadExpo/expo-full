@@ -3126,7 +3126,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         {/* Small text CTA (no icon, no box) — matches the HISTORY label scale. */}
         {cw.length > 0 && <button onClick={() => setVw('chk')} style={{background:'transparent',border:'none',color:C.ac,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.16em',padding:0,cursor:'pointer',whiteSpace:'nowrap'}}>{tt('READINESS GRAPH →')}</button>}
       </div>
-      {cw.length === 0 ? <div style={{textAlign:'center',padding:40,color:C.td}}>No workouts yet.</div> :
+      {cw.length === 0 ? <div style={{textAlign:'center',padding:40,color:C.td}}>{tt('No workouts yet.')}</div> :
         // Sort newest-first by date at render time. The DB query returns date
         // DESC, but handleComplete optimistically APPENDS a just-finished
         // session to the end of cw — so relying on array order stranded the
