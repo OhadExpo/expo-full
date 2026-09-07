@@ -324,7 +324,7 @@ const STRINGS = {
   },
   'doc.title.notfound':  { en: 'Program not found · EXPO', he: 'התוכנית לא נמצאה · EXPO' },
   'doc.title.gym':       { en: 'EXPO · Athletic Performance Center', he: 'EXPO · מרכז ביצועים אתלטי' },
-  'doc.title.chooser':   { en: 'EXPO · Choose your path',            he: 'EXPO · בחר/י את הדרך' },
+  'doc.title.chooser':   { en: 'EXPO · Choose your path',            he: 'EXPO · בחר את הדרך' },
 
   // ─── Not found ────────────────────────────────────────────────────
   'notfound.badge':      { en: '404',                he: '404' },
