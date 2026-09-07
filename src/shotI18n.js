@@ -80,7 +80,7 @@ export const SHOT_I18N = {
     // three shots and most clips are shorter. Release height is on every rep.
     cols: ['#', 'At', 'Score', 'Dip', 'Set', 'Release', 'Timing', 'Release ht', 'Make'],
     toolTitle: 'SHOT ANALYZER',
-    unitMs: ' ms', unitS: 's', sideShort: { R: 'R', L: 'L' },
+    unitMs: ' ms', unitS: 's', unitMps: ' m/s', unitM: ' m', sideShort: { R: 'R', L: 'L' },
     frameOf: (i, n, sec) => `F${i}/${n} · ${sec}s`,
     // Makes are MARKED by the coach - the analyser has never seen the rim.
     made: 'MADE', missed: 'MISSED', markShot: 'THIS SHOT',
@@ -214,7 +214,7 @@ export const SHOT_I18N = {
     // Ohad, 2026-09-07, on this screen: "i want everything in hebrew here".
     toolTitle: 'ניתוח זריקה',
     // The last Latin on the Hebrew screen was units: MS, S and the (R) legend.
-    unitMs: ' מ"ש', unitS: ' שנ׳', sideShort: { R: 'ימ׳', L: 'שמ׳' },
+    unitMs: ' מ"ש', unitS: ' שנ׳', unitMps: ' מ׳/שנ׳', unitM: ' מ׳', sideShort: { R: 'ימ׳', L: 'שמ׳' },
     frameOf: (i, n, sec) => `פריים ${i}/${n} · ${sec} שנ׳`,
     made: 'נכנס', missed: 'החטאה', markShot: 'הזריקה הזאת',
     makes: (m, n) => `${m}/${n} קליעות`, unmarked: (u) => `${u} לא סומנו`,

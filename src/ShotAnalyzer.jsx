@@ -825,8 +825,8 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
               // confidently — an empty tile beats a confident wrong angle.
               [T.info.ballLaunch, shot.info.ballLaunchDeg != null ? shot.info.ballLaunchDeg + '°' : '—'],
               // Scaled off the ball itself — no calibration, nothing to enter.
-              [T.info.ballSpeed, shot.info.ballSpeedMs != null ? shot.info.ballSpeedMs + ' m/s' : '—'],
-              [T.info.ballRise, shot.info.ballRiseM != null ? shot.info.ballRiseM + ' m' : '—'],
+              [T.info.ballSpeed, shot.info.ballSpeedMs != null ? shot.info.ballSpeedMs + (T.unitMps || ' m/s') : '—'],
+              [T.info.ballRise, shot.info.ballRiseM != null ? shot.info.ballRiseM + (T.unitM || ' m') : '—'],
               [T.info.releaseVsApex, shot.raw.timing == null ? '—' : (shot.raw.timing > 0 ? '+' : '') + Math.round(shot.raw.timing) + (T.unitMs || ' ms')],
               [T.info.tracked, shot.info.coverage != null ? T.ofFrames(Math.round(shot.info.coverage * 100)) : '—']].map(([k, v, act]) => (
               <div key={k} style={{ border: '1px solid rgba(255,255,255,0.12)', padding: '6px 8px', minHeight: 46, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}><div style={lbl}>{k}</div>
@@ -1042,7 +1042,7 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
                     {verdict && (
                       <div style={{ marginTop: 4 }}>
                         {row(T.launchSpread, spread.angle, '°')}
-                        {row(T.spreadSpeed, spread.speed, ' m/s')}
+                        {row(T.spreadSpeed, spread.speed, T.unitMps || ' m/s')}
                         {row(T.spreadRise, spread.rise, ' m')}
                         <div style={{ marginTop: 2, color: verdict === 'repeatable' ? '#37B27C' : '#E0A73A' }}>
                           {verdict === 'outlier' ? T.verdictOutlier(rest.n)
