@@ -2189,8 +2189,8 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
               <div style={{display:'flex',gap:18,flexWrap:'wrap'}}>
                 {[['PAIN','pain'],['SLEEP','sleep'],['ENERGY','energy']].map(([label,key]) => wo.autoregulation[key] ? (
                   <div key={key} style={{display:'flex',alignItems:'baseline',gap:6}}>
-                    <span style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.1em'}}>{label}</span>
-                    <span style={{fontSize:13,fontFamily:FN,fontWeight:700,textTransform:'uppercase',color:key==='pain'&&/mod|high/i.test(wo.autoregulation[key])?C.or:C.tx}}>{wo.autoregulation[key]}</span>
+                    <span style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.1em'}}>{tt(label)}</span>
+                    <span style={{fontSize:13,fontFamily:FN,fontWeight:700,textTransform:'uppercase',color:key==='pain'&&/mod|high/i.test(wo.autoregulation[key])?C.or:C.tx}}>{tt(String(wo.autoregulation[key]))}</span>
                   </div>
                 ) : null)}
               </div>

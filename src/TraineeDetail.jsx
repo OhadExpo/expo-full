@@ -888,8 +888,8 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
               <div style={{display:'grid',gridTemplateColumns:`repeat(${items.length}, minmax(0,132px))`,gap:8,marginTop:10}}>
                 {items.map(m=>{ const col=readinessColor(m.key,w.autoregulation[m.key])||C.tx; return (
                   <div key={m.key} style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:5,padding:'9px 8px 8px',border:`1px solid ${C.cardBd}`,borderTop:`2px solid ${col}`,background:'var(--c-sf2)',borderRadius:0}}>
-                    <span style={{fontSize:8,fontFamily:FN,color:C.tm,letterSpacing:'0.2em',fontWeight:700}}>{m.label}</span>
-                    <span style={{fontSize:13,fontFamily:FN,fontWeight:700,letterSpacing:'0.04em',lineHeight:1,textTransform:'uppercase',color:col}}>{w.autoregulation[m.key]}</span>
+                    <span style={{fontSize:8,fontFamily:FN,color:C.tm,letterSpacing:'0.2em',fontWeight:700}}>{t(m.label)}</span>
+                    <span style={{fontSize:13,fontFamily:FN,fontWeight:700,letterSpacing:'0.04em',lineHeight:1,textTransform:'uppercase',color:col}}>{t(String(w.autoregulation[m.key]))}</span>
                   </div>
                 );})}
               </div>

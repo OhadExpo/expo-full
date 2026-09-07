@@ -8,6 +8,7 @@
 // page, and the trends graph all read them identically.
 import React from 'react';
 import { C, FN } from './theme';
+import { useT } from './i18n';
 
 // Each scale is ordered WORST → BEST, so the index doubles as a 0..3 quality
 // value (3 = best / most ready) for the graph's Y axis.
@@ -59,11 +60,12 @@ export function hasReadiness(data) {
 // Compact PAIN/SLEEP/ENERGY strip. Each present metric shows its label + the
 // athlete's level, coloured by severity. Renders nothing when empty.
 export default function ReadinessRow({ data, showTitle = false, style }) {
+  const tt = useT();
   if (!hasReadiness(data)) return null;
   const items = CHECKIN_METRICS.filter(m => data[m.key]);
   return (
     <div style={{ ...style }}>
-      {showTitle && <div style={{ fontSize: 9, fontFamily: FN, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 6 }}>READINESS</div>}
+      {showTitle && <div style={{ fontSize: 9, fontFamily: FN, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 6 }}>{tt('READINESS')}</div>}
       {/* PAIN / SLEEP / ENERGY on a single row below the title — no wrapping, so
           the three metrics always line up together (Ohad). Labels white. */}
       {/* label + value are CENTER-aligned (not baseline) and their font sizes
@@ -73,8 +75,8 @@ export default function ReadinessRow({ data, showTitle = false, style }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'nowrap', overflowX: 'auto', maxWidth: '100%' }}>
         {items.map(m => (
           <span key={m.key} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap', lineHeight: 1 }}>
-            <span style={{ fontSize: 10, fontFamily: FN, color: C.tm, letterSpacing: '0.12em', fontWeight: 700, lineHeight: 1 }}>{m.label}</span>
-            <span style={{ fontSize: 11, fontFamily: FN, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', lineHeight: 1, color: readinessColor(m.key, data[m.key]) || C.tx }}>{data[m.key]}</span>
+            <span style={{ fontSize: 10, fontFamily: FN, color: C.tm, letterSpacing: '0.12em', fontWeight: 700, lineHeight: 1 }}>{tt(m.label)}</span>
+            <span style={{ fontSize: 11, fontFamily: FN, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', lineHeight: 1, color: readinessColor(m.key, data[m.key]) || C.tx }}>{tt(String(data[m.key]))}</span>
           </span>
         ))}
       </div>

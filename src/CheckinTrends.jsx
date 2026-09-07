@@ -16,10 +16,12 @@
 import React, { useState } from 'react';
 import { C, FN } from './theme';
 import { CHECKIN_METRICS, checkinQuality, readinessColor, hasReadiness } from './ReadinessRow';
+import { useT } from './i18n';
 
 const AC = '#39BDFF'; // brand cyan literal — C.ac resolves to black in light mode
 
 export default function CheckinTrends({ workouts = [] }) {
+  const tt = useT();
   // Default to a metric that actually has data, so the graph never opens on an
   // empty state when the athlete logged e.g. SLEEP/ENERGY but never PAIN.
   const [chkMetric, setChkMetric] = useState(() => {
@@ -69,7 +71,7 @@ export default function CheckinTrends({ workouts = [] }) {
       <div style={{ display: 'flex', gap: 4, alignItems: 'stretch', marginBottom: 12 }}>
         {CHECKIN_METRICS.map(m => (
           <button key={m.key} onClick={() => setChkMetric(m.key)}
-            style={{ flex: 1, height: 32, boxSizing: 'border-box', padding: 0, borderRadius: 0, border: `1px solid ${chkMetric === m.key ? C.ac : 'var(--c-ghostBd)'}`, boxShadow: chkMetric === m.key ? `inset 0 2px 0 0 ${C.ac}` : 'none', background: chkMetric === m.key ? 'rgba(57,189,255,0.12)' : 'transparent', color: chkMetric === m.key ? C.ac : C.tm, fontFamily: FN, fontSize: 11, fontWeight: chkMetric === m.key ? 700 : 600, letterSpacing: '0.06em', cursor: 'pointer', transition: 'color .15s, background .15s, border-color .15s' }}>{m.label}</button>
+            style={{ flex: 1, height: 32, boxSizing: 'border-box', padding: 0, borderRadius: 0, border: `1px solid ${chkMetric === m.key ? C.ac : 'var(--c-ghostBd)'}`, boxShadow: chkMetric === m.key ? `inset 0 2px 0 0 ${C.ac}` : 'none', background: chkMetric === m.key ? 'rgba(57,189,255,0.12)' : 'transparent', color: chkMetric === m.key ? C.ac : C.tm, fontFamily: FN, fontSize: 11, fontWeight: chkMetric === m.key ? 700 : 600, letterSpacing: '0.06em', cursor: 'pointer', transition: 'color .15s, background .15s, border-color .15s' }}>{tt(m.label)}</button>
         ))}
       </div>
       {valid.length < 2 ? (
@@ -78,7 +80,7 @@ export default function CheckinTrends({ workouts = [] }) {
         </div>
       ) : (
         <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: 14 }}>
-          <div style={{ fontSize: 10, fontFamily: FN, color: C.ac, letterSpacing: '0.15em', fontWeight: 700, marginBottom: 10 }}>{metric.label} TREND</div>
+          <div style={{ fontSize: 10, fontFamily: FN, color: C.ac, letterSpacing: '0.15em', fontWeight: 700, marginBottom: 10 }}>{tt(metric.label)} {tt('TREND')}</div>
           {/* Chart: full-width SVG geometry + HTML overlays for round dots and labels. */}
           <div style={{ position: 'relative', width: '100%', height: H }}>
             {/* Y category labels — a fixed 46px left gutter, right-aligned, so the
@@ -116,11 +118,11 @@ export default function CheckinTrends({ workouts = [] }) {
           {/* Summary tiles. */}
           <div style={{ display: 'flex', gap: 4, marginTop: 12 }}>
             <div style={{ flex: 1, border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '11px 6px', textAlign: 'center' }}>
-              <div style={{ fontSize: 8, fontFamily: FN, color: C.tm, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 6 }}>LATEST</div>
+              <div style={{ fontSize: 8, fontFamily: FN, color: C.tm, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 6 }}>{tt('LATEST')}</div>
               <div style={{ fontSize: 17, fontWeight: 700, fontFamily: FN, lineHeight: 1, textTransform: 'uppercase', color: readinessColor(metric.key, last.raw) || C.tx }}>{last.raw}</div>
             </div>
             <div style={{ flex: 1, border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '11px 6px', textAlign: 'center' }}>
-              <div style={{ fontSize: 8, fontFamily: FN, color: C.tm, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 6 }}>TREND</div>
+              <div style={{ fontSize: 8, fontFamily: FN, color: C.tm, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 6 }}>{tt('TREND')}</div>
               <div style={{ fontSize: 17, fontWeight: 700, fontFamily: FN, lineHeight: 1, color: dir === 'up' ? C.gn : dir === 'down' ? '#E23B3B' : C.tm }}>{dir === 'up' ? 'BETTER' : dir === 'down' ? 'WORSE' : 'SAME'}</div>
             </div>
             <div style={{ flex: 1, border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '11px 6px', textAlign: 'center' }}>
