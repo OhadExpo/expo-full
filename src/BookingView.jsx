@@ -10,6 +10,7 @@
 // Bookings come in via the public /book/<slug> route (BookingPublic.jsx).
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { useT } from './i18n';
 import { fmtPrettyDate } from './dates';
 import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
@@ -32,6 +33,7 @@ function bookingPublicUrl(slug) {
 }
 
 export default function BookingView({ trainees }) {
+  const tt = useT();
   const [settings, setSettings] = useState(null);
   const [rules, setRules] = useState([]);
   const [bookings, setBookings] = useState([]);
@@ -112,21 +114,21 @@ export default function BookingView({ trainees }) {
       {/* SETTINGS */}
       <CollapsibleSection title="Booking Settings" storageKey="cal-settings" style={{ marginBottom: 0 }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10, marginBottom: 10 }}>
-          <Input label="Slug (public URL)" value={draftSettings?.slug || ''} onChange={e => setDraftSettings({ ...draftSettings, slug: e.target.value })} placeholder="ohad" />
-          <Input label="Display name" value={draftSettings?.display_name || ''} onChange={e => setDraftSettings({ ...draftSettings, display_name: e.target.value })} placeholder="Ohad — EXPO" />
-          <Input label="Duration (min)" type="number" value={draftSettings?.duration_min || 60} onChange={e => setDraftSettings({ ...draftSettings, duration_min: parseInt(e.target.value) || 60 })} />
-          <Input label="Buffer (min)" type="number" value={draftSettings?.buffer_min || 0} onChange={e => setDraftSettings({ ...draftSettings, buffer_min: parseInt(e.target.value) || 0 })} />
-          <Input label="Lead time (hrs)" type="number" value={draftSettings?.lead_time_hours || 4} onChange={e => setDraftSettings({ ...draftSettings, lead_time_hours: parseInt(e.target.value) || 4 })} />
-          <Input label="Zoom URL" value={draftSettings?.zoom_url || ''} onChange={e => setDraftSettings({ ...draftSettings, zoom_url: e.target.value })} placeholder="https://zoom.us/j/…" />
+          <Input label={tt('Slug (public URL)')} value={draftSettings?.slug || ''} onChange={e => setDraftSettings({ ...draftSettings, slug: e.target.value })} placeholder="ohad" />
+          <Input label={tt('Display name')} value={draftSettings?.display_name || ''} onChange={e => setDraftSettings({ ...draftSettings, display_name: e.target.value })} placeholder="Ohad — EXPO" />
+          <Input label={tt('Duration (min)')} type="number" value={draftSettings?.duration_min || 60} onChange={e => setDraftSettings({ ...draftSettings, duration_min: parseInt(e.target.value) || 60 })} />
+          <Input label={tt('Buffer (min)')} type="number" value={draftSettings?.buffer_min || 0} onChange={e => setDraftSettings({ ...draftSettings, buffer_min: parseInt(e.target.value) || 0 })} />
+          <Input label={tt('Lead time (hrs)')} type="number" value={draftSettings?.lead_time_hours || 4} onChange={e => setDraftSettings({ ...draftSettings, lead_time_hours: parseInt(e.target.value) || 4 })} />
+          <Input label={tt('Zoom URL')} value={draftSettings?.zoom_url || ''} onChange={e => setDraftSettings({ ...draftSettings, zoom_url: e.target.value })} placeholder="https://zoom.us/j/…" />
         </div>
         <div style={{ marginBottom: 10 }}>
-          <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>CANCELLATION POLICY</label>
+          <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>{tt('CANCELLATION POLICY')}</label>
           <textarea dir="auto" rows={2} value={draftSettings?.cancellation_policy || ''}
             onChange={e => setDraftSettings({ ...draftSettings, cancellation_policy: e.target.value })}
             style={{ width: '100%', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', boxSizing: 'border-box', resize: 'vertical' }} />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.08em' }}>PUBLIC URL:</span>
+          <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.08em' }}>{tt('PUBLIC URL:')}</span>
           <code style={{ fontSize: 12, color: C.ac, background: 'var(--c-sf)', height: 34, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', padding: '0 10px', border: `1px solid ${C.cardBd}`, wordBreak: 'break-all', minWidth: 0 }}>
             {bookingPublicUrl(draftSettings?.slug)}
           </code>
@@ -136,12 +138,12 @@ export default function BookingView({ trainees }) {
       </CollapsibleSection>
 
       {/* AVAILABILITY */}
-      <CollapsibleSection title="Weekly Availability" count={rules.length} storageKey="cal-availability" style={{ marginBottom: 0 }}
+      <CollapsibleSection title={tt('Weekly Availability')} count={rules.length} storageKey="cal-availability" style={{ marginBottom: 0 }}
         right={<button onClick={addRule}
-          style={{ ...stripBtnBase, border: '1px solid #FFFFFF', color: '#FFFFFF' }}>+ ADD RULE</button>}>
+          style={{ ...stripBtnBase, border: '1px solid #FFFFFF', color: '#FFFFFF' }}>{tt('+ ADD RULE')}</button>}>
         {rules.length === 0 ? (
           <div style={{ padding: 14, textAlign: 'center', color: C.td, fontSize: 13 }}>
-            No availability rules. Add one to allow bookings.
+            {tt('No availability rules. Add one to allow bookings.')}
           </div>
         ) : rules.map(r => (
           <div key={r.id} style={{
@@ -167,11 +169,11 @@ export default function BookingView({ trainees }) {
       {/* UPCOMING */}
       <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: PAD }}>
         <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={12}>
-          <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : C.tx }}>UPCOMING ({bookings.filter(b => b.status === 'confirmed').length})</span>
+          <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : C.tx }}>{tt('UPCOMING')} ({bookings.filter(b => b.status === 'confirmed').length})</span>
         </RefinedHeaderStrip>
         {bookings.length === 0 ? (
           <div style={{ padding: 14, textAlign: 'center', color: C.td, fontSize: 13 }}>
-            No bookings yet. Share the public URL above.
+            {tt('No bookings yet. Share the public URL above.')}
           </div>
         ) : bookings.map(b => {
           const trainee = b.trainee_id ? traineesById[b.trainee_id] : null;

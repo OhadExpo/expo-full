@@ -185,7 +185,7 @@ export default function IntakeView({ trainees }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, padding: '14px 18px' }}>
           <div>
             <div style={{ fontFamily: FB, fontSize: 12, color: C.tm }}>
-              <span style={{ color: C.tx, fontWeight: 700 }}>{counts.open} open</span> · {counts.initial} initial · {counts.assessment} assessment · {counts.progress} progress · {counts.total} total
+              <span style={{ color: C.tx, fontWeight: 700 }}>{counts.open} {tt('open')}</span> · {counts.initial} {tt('initial')} · {counts.assessment} {tt('assessment')} · {counts.progress} {tt('progress')} · {counts.total} {tt('total')}
             </div>
           </div>
           <Btn onClick={() => setShowGen(true)} style={{ height: 30, padding: '0 18px' }}>{tt('+ Generate Link')}</Btn>
@@ -204,14 +204,14 @@ export default function IntakeView({ trainees }) {
 
       {/* Recent unused tokens (so Ohad can re-copy a link he just made) */}
       {tokens.filter(t => !t.used_at).length > 0 && (
-        <CollapsibleSection title="Unused Links" count={tokens.filter(t => !t.used_at).length} storageKey="intake-unused" defaultOpen={false} style={{ marginBottom: 18 }}>
+        <CollapsibleSection title={tt('Unused Links')} count={tokens.filter(t => !t.used_at).length} storageKey="intake-unused" defaultOpen={false} style={{ marginBottom: 18 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {tokens.filter(t => !t.used_at).slice(0, 5).map(t => {
               const origin = typeof window !== 'undefined' ? window.location.origin : '';
               const url = `${origin}/intake/${t.locale}?t=${t.token}`;
               return (
                 <div key={t.token} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, fontFamily: FB, flexWrap: 'wrap' }}>
-                  <span style={{ display: 'inline-flex', width: 92, flexShrink: 0, alignItems: 'center' }}><Badge color={t.form_type === 'initial' ? C.ac : (t.form_type === 'assessment' ? C.or : C.gn)}>{t.form_type}</Badge></span>
+                  <span style={{ display: 'inline-flex', width: 92, flexShrink: 0, alignItems: 'center' }}><Badge color={t.form_type === 'initial' ? C.ac : (t.form_type === 'assessment' ? C.or : C.gn)}>{tt(t.form_type)}</Badge></span>
                   <span style={{ display: 'inline-block', width: 28, flexShrink: 0, color: C.tm }}>{(t.locale || '').toUpperCase()}</span>
                   {t.label && <span style={{ color: C.tx }}>· {t.label}</span>}
                   <span style={{ color: C.td }}>· {ago(t.created_at)} ago</span>
@@ -245,7 +245,7 @@ export default function IntakeView({ trainees }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <div className="iv-sub-main" style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={() => setOpenSubmission(s)}>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                <span style={{ display: 'inline-flex', width: 92, flexShrink: 0, alignItems: 'center' }}><Badge color={s.form_type === 'initial' ? C.ac : (s.form_type === 'assessment' ? C.or : C.gn)}>{s.form_type}</Badge></span>
+                <span style={{ display: 'inline-flex', width: 92, flexShrink: 0, alignItems: 'center' }}><Badge color={s.form_type === 'initial' ? C.ac : (s.form_type === 'assessment' ? C.or : C.gn)}>{tt(s.form_type)}</Badge></span>
                 <span style={{ display: 'inline-block', width: 28, flexShrink: 0, fontFamily: FN, fontSize: 10, color: C.tm, fontWeight: 700, letterSpacing: '0.18em' }}>{(s.locale || '').toUpperCase()}</span>
                 <span style={{ fontFamily: FB, fontSize: 14, color: C.tx, fontWeight: 600, direction: RTL.test(s.name || '') ? 'rtl' : 'ltr' }}>{s.name || '(no name)'}</span>
                 {s.traineeName && (

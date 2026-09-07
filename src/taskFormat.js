@@ -9,6 +9,9 @@
 // card, NotesInline) read through so they display the SAME clean title and
 // hide the same machine tags. Keep the two in sync if the wire format changes.
 
+import { readLang } from './i18n';
+import { localiseAutoBody } from './autoTaskHe';
+
 const OWNER_RE = /^(ohad\s*\+\s*yuval|yuval\s*\+\s*ohad|ohad|yuval)\s*:\s*/i;
 const PRIORITY_RE = /\[(URGENT|HIGH|LOW)\]\s+/i;
 const DUE_RE = /\s*·\s*due\s+(\d{4}-\d{2}-\d{2})(?:\s+(\d{1,2}:\d{2}))?\s*$/i;
@@ -28,7 +31,9 @@ export function priorityFromBody(body) {
 
 // Strip owner + priority + due → just the human title the coach typed.
 export function displayBodyOf(body) {
-  return (body || '').replace(OWNER_RE, '').replace(PRIORITY_RE, '').replace(DUE_RE, '').trim();
+  const core = (body || '').replace(OWNER_RE, '').replace(PRIORITY_RE, '').replace(DUE_RE, '').trim();
+  // An auto-task body is stored in English; in Hebrew it is re-said here.
+  return readLang() === 'he' ? localiseAutoBody(core) : core;
 }
 
 // Calendar-sync ids + dual-approval bookkeeping. These are internal plumbing,

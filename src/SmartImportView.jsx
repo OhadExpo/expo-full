@@ -14,6 +14,7 @@
 //   5. Coach previews JSON
 //   6. Commit to Supabase (dedupe on commit)
 import React, { useState, useMemo, useRef } from 'react';
+import { useT } from './i18n';
 import * as XLSX from 'xlsx';
 import { supabase } from './supabase';
 import { C, FN, FB, uid } from './theme';
@@ -160,6 +161,7 @@ function aoaToSheetGrid(aoa, sheetName) {
 }
 
 export default function SmartImportView() {
+  const tt = useT();
   const [fileName, setFileName] = useState('');
   const [fileKind, setFileKind] = useState('');
   const [parsing, setParsing] = useState(false);
@@ -493,9 +495,9 @@ export default function SmartImportView() {
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.tm, letterSpacing: '0.18em', textTransform: 'uppercase' }}>SMART IMPORT</div>
+          <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.tm, letterSpacing: '0.18em', textTransform: 'uppercase' }}>{tt('SMART IMPORT')}</div>
           <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 4 }}>
-            Drop any document — XLSX, CSV, PDF, image, screenshot. AI reads it, maps it to EXPO's schema, previews before commit.
+            {tt("Drop any document — XLSX, CSV, PDF, image, screenshot. AI reads it, maps it to EXPO's schema, previews before commit.")}
           </div>
         </div>
         <input ref={inputRef} type="file"

@@ -8,6 +8,7 @@
 // note + record a "fixed in <commit>" tag.
 
 import React, { useEffect, useState, useCallback } from 'react';
+import { useT } from './i18n';
 import { C, FN, FB } from './theme';
 import { safeUrl } from './VideoEmbed';
 import { supabase } from './supabase';
@@ -25,6 +26,7 @@ function fmtTs(s) {
 }
 
 export default function BugsView() {
+  const tt = useT();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('open');
@@ -92,10 +94,10 @@ export default function BugsView() {
       <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={12}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : C.tx }}>
-            BUG REPORTS ({counts.open || 0} open)
+            {tt('BUG REPORTS')} ({counts.open || 0} {tt('open')})
           </span>
           <button onClick={async () => { setRefreshing(true); try { await reload(); } finally { setTimeout(() => setRefreshing(false), 550); } }} disabled={refreshing}
-            style={{ ...stripBtnBase, border: `1px solid ${refined ? '#FFFFFF' : C.ac}`, color: refined ? '#FFFFFF' : C.ac }}>{refreshing ? '↻ REFRESHING…' : '↻ REFRESH'}</button>
+            style={{ ...stripBtnBase, border: `1px solid ${refined ? '#FFFFFF' : C.ac}`, color: refined ? '#FFFFFF' : C.ac }}>{refreshing ? '↻ ' + tt('REFRESHING…') : '↻ ' + tt('REFRESH')}</button>
         </div>
       </RefinedHeaderStrip>
 

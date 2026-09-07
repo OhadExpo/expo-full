@@ -25,6 +25,8 @@
 //   - Done pool collapsed at the bottom.
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { localiseAutoBody } from './autoTaskHe';
+import { readLang } from './i18n';
 import { useCoachNotes } from './coachNotes';
 import { C, FN, FB, FH } from './theme';
 import { isRefined5b, toast, confirmToast, usePersistentState, asButton } from './ui';
@@ -196,7 +198,9 @@ function calendarOptsFor(row, extra) {
 }
 
 function displayBodyOf(body) {
-  return stripDueSuffix(stripPriorityPrefix(stripOwnerPrefix(body || ''))).trim();
+  const core = stripDueSuffix(stripPriorityPrefix(stripOwnerPrefix(body || ''))).trim();
+  // An auto-task body is stored in English; in Hebrew it is re-said here.
+  return readLang() === 'he' ? localiseAutoBody(core) : core;
 }
 
 // ── Dual-checkmark for shared tasks ────────────────────────────────────

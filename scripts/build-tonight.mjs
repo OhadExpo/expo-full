@@ -33,6 +33,8 @@ const HE_TITLES = {
   portal: ['The athlete portal, in Hebrew', 'An athlete who picks Hebrew on production still gets English: the portal renders outside the language provider, so the Hebrew that was already written never reaches the screen. On this branch it does.'],
   'portal-phone': ['The athlete portal, in Hebrew, on a phone', 'The width an athlete actually holds. Production: English tabs and headings under a Hebrew name. This branch: the portal in Hebrew.'],
   'meal-phone': ['The meal log, in Hebrew, on a phone', 'Error strings, the day label, the totals and the save button were the last English on an athlete page.'],
+  'tasks-he': ['The tasks page, in Hebrew', 'Status and priority option lists, the rail labels and the table headers reached the screen without the translator; 244 Latin words became 54, and the 54 are names, months and the auto-task bodies.'],
+  'billing-he': ['Billing, in Hebrew', '143 Latin words became 18: names, months and the finance sheet’s channel names.'],
   'review-tools': ['The review tools, in Hebrew', 'The page behind the camera tools was the English page behind a Hebrew tool. Headers, the five tools, the clip picker - all through the dictionary now.'],
   meal: ['The meal log, in Hebrew', 'Error strings, the day label, the totals and the save button were the last English on an athlete page.'],
   'pt-zone': ['The club zone, in Hebrew, from the physio seat', 'The Medical tab carried 147 Latin words after the switch — the RTP ladder, the pain gate, the referral line, the availability pill, every readiness headline. Now 45, and every one is a name or shorthand a coach reads as English anyway.'],
@@ -60,6 +62,15 @@ const LIVE_TITLES = {
 };
 
 const PAIRS = [
+  {
+    id: 'login-he',
+    title: 'The login screen, in Hebrew',
+    lead: 'Production shows a Hebrew athlete an English login whatever their language says - the file had no translation calls at all. The branch reads the language, carries an EN/עב switch, and the choice carries into the app.',
+    facts: [['production', 'English, always'], ['branch', '0 Latin words in Hebrew'], ['switch', 'EN / עב']],
+    before: 'audit-out/login-prod-he.png',
+    after: 'audit-out/login-he.png',
+    note: 'Shot at phone width with the language key set to Hebrew on both sides. Production ignores it.',
+  },
   {
     id: 'shot-he',
     title: 'The Shot Analyzer, in Hebrew - his four asks on one screenshot',
