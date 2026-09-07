@@ -923,7 +923,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                                   <line x1="2" y1={H/2} x2={W-2} y2={H/2} stroke={C.tm} strokeWidth="1" strokeDasharray="2 3" />
                                 </svg>
                                 <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:1,color:C.tm,flexShrink:0}}>
-                                  NO LOGS
+                                  {tt('NO LOGS')}
                                 </span>
                               </div>
                             )}

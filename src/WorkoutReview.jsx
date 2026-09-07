@@ -2748,7 +2748,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
             <div style={{ display: 'flex', justifyContent: 'center', margin: '4px 0 20px' }}>
               <button onClick={() => setShowReviewed(v => !v)}
                 style={{ background: showReviewed ? `${C.ac}1f` : 'transparent', border: `1px solid ${showReviewed ? C.ac : C.cardBd}`, color: showReviewed ? C.ac : C.tm, borderRadius: 0, padding: '7px 16px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
-                {showReviewed ? `✕ HIDE REVIEWED (${reviewedCount})` : `SHOW REVIEWED (${reviewedCount})`}
+                {showReviewed ? `✕ ${tt('HIDE REVIEWED')} (${reviewedCount})` : `${tt('SHOW REVIEWED')} (${reviewedCount})`}
               </button>
             </div>
           )}

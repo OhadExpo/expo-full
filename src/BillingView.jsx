@@ -133,8 +133,8 @@ export default function BillingView({ trainees }) {
       {/* AT-A-GLANCE — outstanding · overdue · collected this month. */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
         {[
-          { label: 'Outstanding', value: fmtCurrency(summary.outstanding), sub: `${summary.pendingCount} pending`, dot: summary.outstanding > 0 ? C.or : C.gn },
-          { label: 'Overdue', value: fmtCurrency(summary.overdueAmt), sub: `${summary.overdueCount} · ≥ ${OVERDUE_DAYS}d`, dot: summary.overdueCount > 0 ? C.rd : C.gn },
+          { label: tt('Outstanding'), value: fmtCurrency(summary.outstanding), sub: `${summary.pendingCount} ${tt('pending')}`, dot: summary.outstanding > 0 ? C.or : C.gn },
+          { label: tt('Overdue'), value: fmtCurrency(summary.overdueAmt), sub: `${summary.overdueCount} · ≥ ${OVERDUE_DAYS}d`, dot: summary.overdueCount > 0 ? C.rd : C.gn },
           { label: tt('Collected · This month'), value: fmtCurrency(summary.collectedMonth), sub: tt('received'), dot: C.gn },
         ].map((s, i) => (
           <div key={i} style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '14px 18px', boxShadow: C.cardShadow }}>
@@ -222,7 +222,7 @@ export default function BillingView({ trainees }) {
         {(trainees || []).filter(t => t.status === 'Active').map(t => {
           const r = rosterSummary[t.id];
           const tone = !r ? C.td : r.status === 'paid' ? C.gn : r.status === 'canceled' ? C.tm : C.or;
-          const labelTxt = !r ? 'NO REQUEST' : (r.status || '').toUpperCase();
+          const labelTxt = !r ? tt('NO REQUEST') : tt((r.status || '').toUpperCase());
           return (
             <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 6px', borderBottom: `1px solid ${C.cardBd}`, flexWrap: 'wrap' }}>
               <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 9, color: tone, fontWeight: 700, letterSpacing: '0.12em', border: `1px solid ${tone}`, padding: '2px 8px', minWidth: 90, textAlign: 'center' }}>

@@ -578,7 +578,7 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 12 }}>
               {[
                 { label: 'CHAT SESSIONS', value: funnel.sessions, color: refined ? C.tx : C.tm },
-                { label: 'MESSAGES SENT', value: funnel.messages, color: refined ? C.tx : C.tm },
+                { label: tt('MESSAGES SENT'), value: funnel.messages, color: refined ? C.tx : C.tm },
                 { label: 'EMAIL CAPTURES', value: funnel.captures, color: funnel.captures > 0 ? C.gn : C.td },
                 { label: 'WAITLIST', value: funnel.total, color: funnel.total > 0 ? C.ac : C.td },
               ].map((s, i) => (
@@ -832,7 +832,7 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
           <div onClick={() => setAllAthletesOpen(o => !o)} role="button" tabIndex={0}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setAllAthletesOpen(o => !o); } }}
             style={{ background: 'var(--c-stripBg, var(--c-sf))', borderBottom: allAthletesOpen ? '1px solid var(--c-cardBd)' : 'none', padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }}>
-            <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>All Athletes — {sorted.length}</SectionLabel>
+            <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>{tt('All Athletes')} — {sorted.length}</SectionLabel>
             <span aria-hidden style={{ color: '#FFFFFF', fontSize: 12, lineHeight: 1, transform: allAthletesOpen ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease' }}>▾</span>
           </div>
           <div style={{ display: 'grid', gridTemplateRows: allAthletesOpen ? '1fr' : '0fr', transition: 'grid-template-rows 260ms ease' }}><div style={{ overflow: 'hidden', minHeight: 0 }}>
@@ -840,14 +840,14 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
           <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
             <thead>
               <tr style={{ background: refined ? 'var(--c-sf)' : 'transparent', borderBottom: `1px solid ${refined ? 'rgba(0,0,0,0.10)' : C.cardBd}` }}>
-                <SH k="name" label="Athlete" />
-                <SH k="status" label="Status" />
-                <th style={plainHeadStyle}>Format</th>
-                <th style={plainHeadStyle}>Package</th>
-                <SH k="sessions" label="Sessions" />
-                {isOwner && <SH k="paid" label="Total Paid" />}
-                {isOwner && <SH k="lastPay" label="Last Payment" />}
-                <SH k="workouts" label="Workouts" />
+                <SH k="name" label={tt('Athlete')} />
+                <SH k="status" label={tt('Status')} />
+                <th style={plainHeadStyle}>{tt('Format')}</th>
+                <th style={plainHeadStyle}>{tt('Package')}</th>
+                <SH k="sessions" label={tt('Sessions')} />
+                {isOwner && <SH k="paid" label={tt('Total Paid')} />}
+                {isOwner && <SH k="lastPay" label={tt('Last Payment')} />}
+                <SH k="workouts" label={tt('Workouts')} />
                 <th style={plainHeadStyle}>{tt("Programs")}</th>
               </tr>
             </thead>
@@ -858,9 +858,9 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
                   onMouseEnter={e => e.currentTarget.style.background = refined ? 'rgba(0,0,0,0.04)' : C.sf2}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                   <td style={{ padding: '12px', fontWeight: 600, color: C.tx, textAlign: 'center' }}>{t.name}</td>
-                  <td style={{ padding: '12px', textAlign: 'center' }}><Badge color={statusColor[t.status] || C.td}>{t.status}</Badge></td>
-                  <td style={{ padding: '12px', color: C.tm, fontSize: 12, textAlign: 'center' }}>{t.format}</td>
-                  <td style={{ padding: '12px', color: C.tm, fontSize: 12, textAlign: 'center' }}>{t.package}{isOwner && Number.isFinite(parseInt(t.packagePrice)) ? ` · ₪${parseInt(t.packagePrice).toLocaleString()}` : ''}</td>
+                  <td style={{ padding: '12px', textAlign: 'center' }}><Badge color={statusColor[t.status] || C.td}>{tt(t.status)}</Badge></td>
+                  <td style={{ padding: '12px', color: C.tm, fontSize: 12, textAlign: 'center' }}>{tt(t.format)}</td>
+                  <td style={{ padding: '12px', color: C.tm, fontSize: 12, textAlign: 'center' }}>{tt(t.package)}{isOwner && Number.isFinite(parseInt(t.packagePrice)) ? ` · ₪${parseInt(t.packagePrice).toLocaleString()}` : ''}</td>
                   <td style={{ padding: '12px', textAlign: 'center' }}>
                     {t.sessionsRemaining > 0 ? (
                       <span style={{ fontFamily: FN, fontWeight: 700, fontSize: 14, color: t.sessionsRemaining <= 2 ? C.rd : C.gn }}>{t.sessionsRemaining}</span>

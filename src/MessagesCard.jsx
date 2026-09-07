@@ -294,7 +294,7 @@ export default function MessagesCard({ trainees, onSelectTrainee, onOpenMessages
           {visibleThreads.slice(0, 8).map((r, idx) => {
             const unread = unreadFor(r);
             const heb = isHebrew(r.body_text);
-            const preview = r.body_text || (r.audio_url ? '🎤 Voice note' : '');
+            const preview = r.body_text || (r.audio_url ? '🎤 ' + tt('Voice note') : '');
             const name = nameFor(r.trainee_id);
             const fromAthlete = r.sender_role === 'athlete';
             return (

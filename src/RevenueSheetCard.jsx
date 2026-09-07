@@ -18,6 +18,7 @@
 // Both tables are owner-only, so for staff and athletes the queries return
 // nothing and the card renders nothing at all.
 import React, { useEffect, useState, useMemo } from 'react';
+import { useT } from './i18n';
 import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
 import { RefinedHeaderStrip } from './ui';
@@ -43,6 +44,7 @@ const monthLabel = (iso) => {
 };
 
 export default function RevenueSheetCard() {
+  const tt = useT();
   const PAD = 14;
   const [months, setMonths] = useState(null);
   const [events, setEvents] = useState(null);
@@ -110,9 +112,9 @@ export default function RevenueSheetCard() {
     <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: PAD, boxShadow: C.cardShadow }}>
       <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={12}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <span>From the sheets</span>
+          <span>{tt('From the sheets')}</span>
           <span style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.06em', opacity: 0.85 }}>
-            {byMonth.length} {byMonth.length === 1 ? 'month' : 'months'} · {clients.length} clients
+            {byMonth.length} {byMonth.length === 1 ? tt('month') : tt('months')} · {clients.length} {tt('clients')}
           </span>
         </div>
       </RefinedHeaderStrip>
@@ -186,7 +188,7 @@ export default function RevenueSheetCard() {
                     {/* A client who pays but has no trainee record is a real gap,
                         not a display problem, so it is named rather than blank. */}
                     <td style={{ ...td, color: c.trainee_id ? C.tm : C.or, fontFamily: FN, fontSize: 10, letterSpacing: '0.06em' }}>
-                      {c.trainee_id ? 'linked' : 'no record'}
+                      {c.trainee_id ? tt('linked') : tt('no record')}
                     </td>
                   </tr>
                 ))}
@@ -197,11 +199,7 @@ export default function RevenueSheetCard() {
       )}
 
       <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 12, lineHeight: 1.5 }}>
-        Amounts come from ניהול פיננסי. Dates come from רשימת מתאמנים, which keeps
-        only the latest one per client — the earlier ones were recovered from the
-        sheet&apos;s own revision history. Per-client amounts are deliberately not
-        shown: the sheet records a rate and the sessions performed since a payment,
-        which is not what was paid.
+        {tt("Amounts come from ניהול פיננסי. Dates come from רשימת מתאמנים, which keeps only the latest one per client — the earlier ones were recovered from the sheet's own revision history. Per-client amounts are deliberately not shown: the sheet records a rate and the sessions performed since a payment, which is not what was paid.")}
       </div>
     </div>
   );

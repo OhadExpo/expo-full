@@ -355,6 +355,7 @@ function StatusIconGlyph({ status, theme, size = 16 }) {
 // so a row of tags lines up — no asymmetry (Ohad).
 const TASK_PILL_H = 24;
 function StatusPill({ status, theme, onSetStatus, readOnly = false }) {
+  const tt = useT();
   // Native <select> — bulletproof vs the old custom popover (which jumped, jammed,
   // and sometimes swallowed the click so the status never changed). onChange
   // always fires; the browser handles positioning, so no lag/pop/hover bugs.
@@ -375,7 +376,7 @@ function StatusPill({ status, theme, onSetStatus, readOnly = false }) {
   if (readOnly) {
     return (
       <span title="Read-only" style={{ ...base, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 10px', opacity: 0.65 }}>
-        {opt.label}
+        {tt(opt.label)}
       </span>
     );
   }
@@ -390,7 +391,7 @@ function StatusPill({ status, theme, onSetStatus, readOnly = false }) {
         title="Change status"
         style={{ ...base, cursor: 'pointer' }}>
         {STATUS_OPTIONS.map(o => (
-          <option key={o.id} value={o.id} style={{ background: '#fff', color: '#111' }}>{o.label}</option>
+          <option key={o.id} value={o.id} style={{ background: '#fff', color: '#111' }}>{tt(o.label)}</option>
         ))}
       </select>
     </span>
@@ -430,6 +431,7 @@ const PRIORITY_PICK = [
   { id: 'low',    label: 'Low',    color: 'var(--c-td)' },
 ];
 function PriorityPill({ priority, onSetPriority, readOnly = false }) {
+  const tt = useT();
   // Native <select> — same reliability fix as StatusPill.
   const cur = PRIORITY_PICK.find(p => p.id === priority) || PRIORITY_PICK[2];
   const base = {
@@ -440,13 +442,13 @@ function PriorityPill({ priority, onSetPriority, readOnly = false }) {
     border: `1px solid ${cur.color}`, background: 'transparent', color: cur.color,
     appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none', backgroundImage: 'none',
   };
-  if (readOnly) return <span title={`Priority: ${cur.label}`} style={{ ...base, display: 'inline-flex', alignItems: 'center' }}>{cur.label.toUpperCase()}</span>;
+  if (readOnly) return <span title={`Priority: ${tt(cur.label)}`} style={{ ...base, display: 'inline-flex', alignItems: 'center' }}>{tt(cur.label).toUpperCase()}</span>;
   return (
     <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
       <select className="task-select" value={priority} onChange={(e) => onSetPriority(e.target.value)}
         onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}
         title="Change urgency" style={{ ...base, cursor: 'pointer' }}>
-        {PRIORITY_PICK.map(p => <option key={p.id} value={p.id} style={{ background: '#fff', color: '#111' }}>{p.label}</option>)}
+        {PRIORITY_PICK.map(p => <option key={p.id} value={p.id} style={{ background: '#fff', color: '#111' }}>{tt(p.label)}</option>)}
       </select>
     </span>
   );
@@ -489,6 +491,7 @@ function OwnerTab({ label, count, active, onClick }) {
 
 // View toggle — Notion pattern. Same data, different shape.
 function ViewToggle({ value, onChange }) {
+  const tt = useT();
   const items = [
     { id: 'list',  label: 'List'  },
     { id: 'board', label: 'Board' },
@@ -500,7 +503,7 @@ function ViewToggle({ value, onChange }) {
           ...segBtn(value === it.id), flex: 1, height: 30,
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           fontSize: 10, letterSpacing: '0.12em', padding: '0 14px',
-        }}>{it.label}</button>
+        }}>{tt(it.label)}</button>
       ))}
     </div>
   );
@@ -515,6 +518,7 @@ const SORT_MODES = [
   { id: 'manual',   label: 'Manual' },   // hand-ordered; drag a card onto another to reorder
 ];
 function SortBar({ sortBy, sortDir, onSortBy, onToggleDir, rightSlot }) {
+  const tt = useT();
   const seg = (active) => ({
     ...segBtn(active), height: 30, padding: '0 3px',
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -529,7 +533,7 @@ function SortBar({ sortBy, sortDir, onSortBy, onToggleDir, rightSlot }) {
   const activeDirParts = (mode) => {
     const d = sortDir === 'desc';
     switch (mode) {
-      case 'date':     return d ? { a:'↑', t:'Latest'  } : { a:'↓', t:'Soonest' };
+      case 'date':     return d ? { a:'↑', t:tt('Latest')  } : { a:'↓', t:tt('Soonest') };
       case 'newest':   return d ? { a:'↓', t:'Newest'  } : { a:'↑', t:'Oldest'  };
       case 'priority': return d ? { a:'↑', t:'Low'     } : { a:'↓', t:'High'    };
       case 'status':   return d ? { a:'↑', t:'Done'    } : { a:'↓', t:'To-Do'   };
@@ -559,7 +563,7 @@ function SortBar({ sortBy, sortDir, onSortBy, onToggleDir, rightSlot }) {
                   {a && <span aria-hidden="true" style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:9, height:9, fontSize:9, lineHeight:1, flexShrink:0 }}>{a}</span>}
                   <span style={{ overflow:'hidden', textOverflow:'ellipsis' }}>{t}</span>
                 </span>
-              ); })() : m.label}
+              ); })() : tt(m.label)}
             </button>
           );
         })}
@@ -582,6 +586,7 @@ const QUICK_FILTERS = [
   { id: 'nodate',   label: 'No date' },
 ];
 function QuickFilters({ value, onChange, counts, search, onSearch, resultCount, totalCount }) {
+  const tt = useT();
   const isFiltered = (search || '').trim() !== '';
   return (
     <div style={{ display: 'flex', gap: 6, marginBottom: 12, alignItems: 'center' }}>
@@ -596,7 +601,7 @@ function QuickFilters({ value, onChange, counts, search, onSearch, resultCount, 
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
             fontSize: 10, letterSpacing: '0.10em', padding: '0 10px',
           }}>
-            <span>{f.label}</span>
+            <span>{tt(f.label)}</span>
             <span style={{ opacity: 0.65, fontSize: 9 }}>{c}</span>
           </button>
         );
@@ -668,12 +673,12 @@ function RailOpt({ label, count, active, onClick, title }) {
   );
 }
 // Active-sort label with direction arrow (mirrors SortBar.activeDirParts).
-function sortRailLabel(mode, sortDir) {
+function sortRailLabel(mode, sortDir, tt = (x) => x) {
   const d = sortDir === 'desc';
   switch (mode) {
-    case 'date':     return d ? '↑ Latest' : '↓ Soonest';
-    case 'newest':   return d ? '↓ Newest' : '↑ Oldest';
-    case 'priority': return d ? '↑ Low'    : '↓ High';
+    case 'date':     return d ? '↑ ' + tt('Latest') : '↓ ' + tt('Soonest');
+    case 'newest':   return d ? '↓ ' + tt('Newest') : '↑ ' + tt('Oldest');
+    case 'priority': return d ? '↑ ' + tt('Low')    : '↓ ' + tt('High');
     case 'status':   return d ? '↑ Done'   : '↓ To-Do';
     case 'name':     return d ? 'Z → A'    : 'A → Z';
     default:         return 'Manual';
@@ -1523,6 +1528,7 @@ function ExpandedDetail({ row, displayBody, viewer, onSetCategory, onArchive, on
 }
 
 function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus, onSetPriority, onSetCategory, onDelete, now, search, viewer, readOnly = false, board = false, hideStatus = false, compact = false, narrow = false }) {
+  const tt = useT();
   // On phones, wrap the list row the same way board columns do — title on its
   // own line, meta + status pill below — so nothing gets clipped off-screen.
   const wrapRow = board || narrow;
@@ -1653,12 +1659,12 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
               The date sits to the RIGHT of this column. */}
           <span style={{ flexShrink: 0, width: wrapRow ? 'auto' : 62, display: 'inline-flex', alignItems: 'center' }}>
             {row._owner === 'shared' && (
-              <span title="Shared — Ohad + Yuval" style={{
+              <span title={tt('Shared — Ohad + Yuval')} style={{
                 boxSizing: 'border-box', height: TASK_PILL_H, display: 'inline-flex', alignItems: 'center',
                 fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
                 color: 'var(--c-tm)', opacity: 0.8, whiteSpace: 'nowrap',
                 border: `1px solid var(--c-cardBd)`, padding: '0 8px', textTransform: 'uppercase',
-              }}>Shared</span>
+              }}>{tt('Shared')}</span>
             )}
           </span>
           {/* DATE as a fixed COLUMN — reserved on EVERY row (like SHARED above)
@@ -2598,12 +2604,12 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
           </div>
           <div onClick={narrow ? () => setRailOpen(o => !o) : undefined}
             style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.22em', color: 'var(--c-ac)', textTransform: 'uppercase', padding: (narrow && !railOpen) ? '0 16px' : '0 16px 10px', borderBottom: (narrow && !railOpen) ? 'none' : '1px solid var(--c-cardBd)', cursor: narrow ? 'pointer' : 'default', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-            <span>Filters</span>
+            <span>{tt('Filters')}</span>
             {narrow && <span aria-hidden style={{ fontSize: 11, lineHeight: 1, transform: railOpen ? 'rotate(180deg)' : 'none', transition: 'transform 180ms ease' }}>▾</span>}
           </div>
 
           {(!narrow || railOpen) && (<>
-          <RailGroup label="Whose">
+          <RailGroup label={tt('Whose')}>
             {/* Both partners see all three; tasks owned solely by the other
                 render read-only. Default is the viewer's own (clamped on mount). */}
             <RailOpt label="Ohad"   count={counts.ohad}   active={owner === 'ohad'}   onClick={() => setOwner('ohad')} />
@@ -2611,22 +2617,22 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
             <RailOpt label="Shared" count={counts.shared} active={owner === 'shared'} onClick={() => setOwner('shared')} />
           </RailGroup>
 
-          <RailGroup label="Show">
+          <RailGroup label={tt('Show')}>
             {QUICK_FILTERS.filter(f => f.id === 'all' || (quickCounts[f.id] ?? 0) > 0).map(f => (
-              <RailOpt key={f.id} label={f.label} count={quickCounts[f.id] ?? 0} active={quickFilter === f.id} onClick={() => setQuickFilter(f.id)} />
+              <RailOpt key={f.id} label={tt(f.label)} count={quickCounts[f.id] ?? 0} active={quickFilter === f.id} onClick={() => setQuickFilter(f.id)} />
             ))}
           </RailGroup>
 
-          <RailGroup label="Sort">
+          <RailGroup label={tt('Sort')}>
             {SORT_MODES.map(m => {
               const on = sortBy === m.id;
-              return <RailOpt key={m.id} label={on ? sortRailLabel(m.id, sortDir) : m.label} active={on}
+              return <RailOpt key={m.id} label={on ? sortRailLabel(m.id, sortDir, tt) : tt(m.label)} active={on}
                 onClick={() => on ? setSortDir(d => d === 'asc' ? 'desc' : 'asc') : setSortBy(m.id)}
                 title={on ? 'Click to flip the sort direction' : `Sort by ${m.label}`} />;
             })}
           </RailGroup>
 
-          <RailGroup label="Group">
+          <RailGroup label={tt('Group')}>
             <RailOpt label={tt("By status")}   active={boardGroup === 'status'} onClick={() => setBoardGroup('status')} />
             <RailOpt label={tt("By category")} active={boardGroup === 'list'}   onClick={() => setBoardGroup('list')} />
           </RailGroup>
@@ -2679,7 +2685,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
             return (
               <React.Fragment key={section.key}>
                 <SectionHeader
-                  label={section.statusId ? (STATUS_OPTIONS.find(o => o.id === section.statusId)?.label || section.statusId) : section.key === 'auto' ? 'Auto-Alerts' : sourceLabel(section.key, section.rows[0])}
+                  label={section.statusId ? tt(STATUS_OPTIONS.find(o => o.id === section.statusId)?.label || section.statusId) : section.key === 'auto' ? 'Auto-Alerts' : sourceLabel(section.key, section.rows[0])}
                   count={section.rows.length}
                   color={section.statusId ? ({ open: '#5B6B7A', working: '#2C82C9', waiting: '#C9851E', stuck: '#C0392B', done: '#2E9E5B' }[section.statusId] || 'var(--c-ac)') : sourceColor(section.key)}
                   collapsed={isCollapsed}
@@ -2767,7 +2773,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
             const STATUS_HEAD = { open: '#5B6B7A', working: '#2C82C9', waiting: '#C9851E', stuck: '#C0392B', done: '#2E9E5B' };
             const headBg = isStatus ? (STATUS_HEAD[section.statusId] || '#5B6B7A') : sourceColor(section.key);
             const headLabel = isStatus
-              ? (STATUS_OPTIONS.find(o => o.id === section.statusId)?.label || section.statusId)
+              ? tt(STATUS_OPTIONS.find(o => o.id === section.statusId)?.label || section.statusId)
               : sourceLabel(section.key, section.rows[0]);
             const isDropTarget = dropKey === section.key;
             return (
@@ -2874,7 +2880,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
             }}>
             <span>{doneOpen ? '▾' : '▸'} Done · {done.length}</span>
             <span style={{ opacity: 0.6, fontSize: 9 }}>
-              {doneOpen ? `Showing latest ${Math.min(done.length, 5)}` : 'Click to expand'}
+              {doneOpen ? `${tt('Showing latest')} ${Math.min(done.length, 5)}` : tt('Click to expand')}
             </span>
           </div>
           <div style={{ display: 'grid', gridTemplateRows: doneOpen ? '1fr' : '0fr', transition: 'grid-template-rows 260ms ease' }}><div style={{ overflow: 'hidden', minHeight: 0 }}>
@@ -2925,7 +2931,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
         letterSpacing: '0.12em', color: 'var(--c-td)',
         textTransform: 'uppercase',
       }}>
-        v8 · list-first (Linear/Things 3 pattern) · view toggle to board · auto-tasks collapsed
+        {tt('TASKS')}
       </div>
 
       {selectedIds.size > 0 && (

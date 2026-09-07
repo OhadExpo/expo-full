@@ -971,7 +971,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                   {kanban}
                   <div style={{ marginTop:12 }}>
                     <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
-                      <span style={{ fontFamily:FN, fontSize:9, color:'var(--c-td)', letterSpacing:'0.14em', fontWeight:700 }}>AUTO-ALERTS ({autoRows.length})</span>
+                      <span style={{ fontFamily:FN, fontSize:9, color:'var(--c-td)', letterSpacing:'0.14em', fontWeight:700 }}>{tt('AUTO-ALERTS')} ({autoRows.length})</span>
                       <span style={{ flex:1, height:1, background:'var(--c-cardBd)' }} />
                     </div>
                     {alertsList}
@@ -1041,7 +1041,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
       {visibleDone.length > 0 && (
         <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px dashed var(--c-cardBd)` }}>
           <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>
-            ✓ HISTORY ({doneRows.length}{visibleDone.length < doneRows.length ? ` · showing ${visibleDone.length}` : ''})
+            ✓ {tt('HISTORY')} ({doneRows.length}{visibleDone.length < doneRows.length ? ` · ${tt('showing')} ${visibleDone.length}` : ''})
           </div>
           {visibleDone.map(n => {
             const nameHeb = isHebrew(n.target_label || '');
@@ -1102,7 +1102,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
             width: '100%', marginTop: 10, padding: '8px 0', background: 'transparent',
             border: `1px solid var(--c-ac)`, color: 'var(--c-ac)',
             fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer',
-          }}>OPEN FULL TASKS ({counts.all}) →</button>
+          }}>{tt('OPEN FULL TASKS')} ({counts.all}) →</button>
       )}
       </div>
       </div>

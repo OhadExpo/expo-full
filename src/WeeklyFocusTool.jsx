@@ -9,6 +9,7 @@
 // load the RAW plan row (not useFullPlan, which regenerates ids).
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useT } from './i18n';
 import { C, FN, FB } from './theme';
 import { CollapsibleSection } from './ui';
 import { supabase } from './supabase';
@@ -49,6 +50,7 @@ function resolveDay(d, idx, exById, exByTitle) {
 }
 
 export default function WeeklyFocusTool({ trainees, exercises, weeklyFocus, setWeeklyFocus }) {
+  const tt = useT();
   const [traineeId, setTraineeId] = useState('');
   const [query, setQuery] = useState('');               // type-and-search box text
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -144,7 +146,7 @@ export default function WeeklyFocusTool({ trainees, exercises, weeklyFocus, setW
     >
         <div style={{ border: `1px solid ${C.cardBd}`, borderTop: 'none', background: 'var(--c-sf)', padding: 14 }}>
           <div style={{ fontFamily: FB, fontSize: 11.5, color: C.td, lineHeight: 1.5, marginBottom: 12 }}>
-            Leave a focus for a day the athlete didn't log in-app (e.g. videos came via WhatsApp). It saves to the exact same place the in-app review writes to — the athlete sees it on that exercise.
+            {tt("Leave a focus for a day the athlete didn't log in-app (e.g. videos came via WhatsApp). It saves to the exact same place the in-app review writes to — the athlete sees it on that exercise.")}
           </div>
           {/* ATHLETE on its own row — the typeahead dropdown renders IN-FLOW
               (not absolute), so the card grows to fit it instead of the
