@@ -431,6 +431,11 @@ export const HE = {
   // The cue expander under an exercise on the program tab.
   '▼ MORE': '▼ עוד',
   '▲ LESS': '▲ פחות',
+  "Search…": 'חיפוש…',
+  "Add a task…": 'הוסף משימה…',
+  "Search tasks…": 'חפש משימות…',
+  "Auto-Alerts": 'התראות אוטומטיות',
+  "Task title — Enter to add, Esc to close": 'כותרת משימה — Enter להוספה, Esc לסגירה',
   "Could not reach the server. The roster appears when the connection returns.": 'אין חיבור לשרת. הרשימה תופיע כשהחיבור יחזור.',
   "No archived athletes.": 'אין מתאמנים בארכיון.',
   "No athletes yet. Add your first one.": 'עוד אין מתאמנים. הוסף את הראשון.',

@@ -601,7 +601,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
           coming THROUGH (money) → what NEEDS attention (alerts).
           Six secondary metrics (LTV, avg ticket, 30/90d collected,
           outstanding, MRR) plus a 6-month bar chart. */}
-      {isOwner && <RevenueCard
+      {isOwner && <RevenueCard paymentsUnknown={unknown(payments)}
         monthlyRate={monthlyRate}
         thisMonthPaid={thisMonthPaid}
         delta30={delta30}
@@ -925,7 +925,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
 // F-36 — RevenueCard. Six-metric grid + 6-month bar chart, slotted into
 // the dashboard between KPI tiles and alert cards. Designed to read at
 // a glance without an analytics tab.
-function RevenueCard({ monthlyRate, thisMonthPaid, delta30, collected30, collected90, avgLtv, avgTicket, outstanding, monthBars, maxBar }) {
+function RevenueCard({ paymentsUnknown = false, monthlyRate, thisMonthPaid, delta30, collected30, collected90, avgLtv, avgTicket, outstanding, monthBars, maxBar }) {
   const tt = useT();
   const he = useHe();
   const refined = isRefined5b();
@@ -954,7 +954,7 @@ function RevenueCard({ monthlyRate, thisMonthPaid, delta30, collected30, collect
           </div>
           <div style={metricStyle}>
             <span style={labelStyle}>{tt('30D COLLECTED')}</span>
-            <span style={numStyle}>₪{Math.round(collected30).toLocaleString()}</span>
+            <span style={numStyle}>{paymentsUnknown ? '—' : `₪${Math.round(collected30).toLocaleString()}`}</span>
             {delta30 !== null && (
               <span style={{ ...subStyle, color: delta30 >= 0 ? C.gn : C.rd }}>
                 <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{delta30 >= 0 ? '+' : ''}{delta30}%</span> {tt('vs prev 30d')}
@@ -963,7 +963,7 @@ function RevenueCard({ monthlyRate, thisMonthPaid, delta30, collected30, collect
           </div>
           <div style={metricStyle}>
             <span style={labelStyle}>{tt('90D COLLECTED')}</span>
-            <span style={numStyle}>₪{Math.round(collected90).toLocaleString()}</span>
+            <span style={numStyle}>{paymentsUnknown ? '—' : `₪${Math.round(collected90).toLocaleString()}`}</span>
             <span style={subStyle}>{tt('Trailing 3 months')}</span>
           </div>
           <div style={metricStyle}>
@@ -974,17 +974,17 @@ function RevenueCard({ monthlyRate, thisMonthPaid, delta30, collected30, collect
               {outstanding.amount > 0 && <span title="outstanding balance" style={{ width: 6, height: 6, borderRadius: '50%', background: C.or, flexShrink: 0, boxShadow: `0 0 5px ${C.or}66` }} />}
               {tt('OUTSTANDING')}
             </span>
-            <span style={numStyle}>₪{Math.round(outstanding.amount).toLocaleString()}</span>
+            <span style={numStyle}>{paymentsUnknown ? '—' : `₪${Math.round(outstanding.amount).toLocaleString()}`}</span>
             <span style={subStyle}>{outstanding.count} {tt('Pending requests')}</span>
           </div>
           <div style={metricStyle}>
             <span style={labelStyle}>{tt('AVG LTV')}</span>
-            <span style={numStyle}>₪{avgLtv.toLocaleString()}</span>
+            <span style={numStyle}>{paymentsUnknown ? '—' : `₪${avgLtv.toLocaleString()}`}</span>
             <span style={subStyle}>{tt('Per paying client')}</span>
           </div>
           <div style={metricStyle}>
             <span style={labelStyle}>{tt('AVG TICKET')}</span>
-            <span style={numStyle}>₪{avgTicket.toLocaleString()}</span>
+            <span style={numStyle}>{paymentsUnknown ? '—' : `₪${avgTicket.toLocaleString()}`}</span>
             <span style={subStyle}>{tt('Per payment row')}</span>
           </div>
         </div>

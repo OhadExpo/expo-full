@@ -625,7 +625,7 @@ function QuickFilters({ value, onChange, counts, search, onSearch, resultCount, 
       type="text"
       value={search}
       onChange={(e) => onSearch(e.target.value)}
-      placeholder="Search…"
+      placeholder={tt('Search…')}
       style={{
         height: 30, minHeight: 30, boxSizing: 'border-box', padding: '0 10px',
         borderRadius: 0, cursor: 'text',
@@ -758,7 +758,7 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
           value={body}
           onChange={(e) => setBody(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
-          placeholder="Add a task…"
+          placeholder={tt('Add a task…')} data-hotkey="add"
           style={{
             flex: 1, background: 'transparent', border: 'none', outline: 'none',
             fontFamily: FB, fontSize: 13, color: 'var(--c-tx)', padding: 0,
@@ -2494,10 +2494,10 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
         // Match the ACTUALLY-rendered rail search (placeholder "Search tasks…").
         // The old "Search…" selector pointed at a never-rendered component, so
         // the shortcut silently focused nothing.
-        document.querySelector('input[placeholder="Search tasks…"]')?.focus();
+        document.querySelector('input[data-hotkey="search"]')?.focus();
       } else if (k === 'n' || k === 'c') {            // N / C = new task (focus composer)
         e.preventDefault();
-        document.querySelector('input[placeholder="Add a task…"]')?.focus();
+        document.querySelector('input[data-hotkey="add"]')?.focus();
       } else if (k === 'b') {                          // B = toggle Board / List
         e.preventDefault();
         setView(v => (v === 'board' ? 'list' : 'board'));
@@ -2603,7 +2603,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
         }}>
           {/* Search box at the TOP of the sidebar, above Filters (Ohad). */}
           <div style={{ padding: '0 14px 12px' }}>
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search tasks…"
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder={tt('Search tasks…')} data-hotkey="search"
               style={{ width: '100%', height: 34, boxSizing: 'border-box', padding: '0 11px', borderRadius: 0, background: 'var(--c-sf)', color: 'var(--c-tx)', border: '1px solid var(--c-cardBd)', fontFamily: FN, fontSize: 11, fontWeight: 500, letterSpacing: '0.04em', outline: 'none', textAlign: 'left' }} autoComplete="off" />
           </div>
           <div onClick={narrow ? () => setRailOpen(o => !o) : undefined}
@@ -2689,7 +2689,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
             return (
               <React.Fragment key={section.key}>
                 <SectionHeader
-                  label={section.statusId ? tt(STATUS_OPTIONS.find(o => o.id === section.statusId)?.label || section.statusId) : section.key === 'auto' ? 'Auto-Alerts' : sourceLabel(section.key, section.rows[0])}
+                  label={section.statusId ? tt(STATUS_OPTIONS.find(o => o.id === section.statusId)?.label || section.statusId) : section.key === 'auto' ? tt('Auto-Alerts') : sourceLabel(section.key, section.rows[0])}
                   count={section.rows.length}
                   color={section.statusId ? ({ open: '#5B6B7A', working: '#2C82C9', waiting: '#C9851E', stuck: '#C0392B', done: '#2E9E5B' }[section.statusId] || 'var(--c-ac)') : sourceColor(section.key)}
                   collapsed={isCollapsed}
@@ -2742,7 +2742,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                   fontFamily: FN, fontSize: 10, fontWeight: 600,
                   color: 'var(--c-tm)', letterSpacing: '0.12em',
                   textTransform: 'uppercase',
-                }}>{autoOpen ? '▾' : '▸'} {autoSection.rows.length} auto-alerts</span>
+                }}>{autoOpen ? '▾' : '▸'} {autoSection.rows.length} {tt('auto-alerts')}</span>
               </div>
               <div style={{ display: 'grid', gridTemplateRows: autoOpen ? '1fr' : '0fr', transition: 'grid-template-rows 260ms ease' }}><div style={{ overflow: 'hidden', minHeight: 0 }}>
               {autoSection.rows.map(row => (
@@ -2841,7 +2841,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                         else if (e.key === 'Escape') { setQuickAddKey(null); setQuickAddText(''); }
                       }}
                       onBlur={() => { if (!quickAddText.trim()) setQuickAddKey(null); }}
-                      placeholder="Task title — Enter to add, Esc to close"
+                      placeholder={tt('Task title — Enter to add, Esc to close')}
                       style={{ width: '100%', boxSizing: 'border-box', background: 'var(--c-sf2)', border: `1px solid var(--c-ac)`, color: 'var(--c-tx)', fontFamily: FB, fontSize: 12, padding: '7px 9px', borderRadius: 0, outline: 'none' }} />
                   ) : (
                     <button onClick={() => { setQuickAddKey(section.key); setQuickAddText(''); }}
@@ -2882,7 +2882,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               borderBottom: doneOpen ? `1px solid var(--c-cardBd)` : 'none',
             }}>
-            <span>{doneOpen ? '▾' : '▸'} Done · {done.length}</span>
+            <span>{doneOpen ? '▾' : '▸'} {tt('Done')} · {done.length}</span>
             <span style={{ opacity: 0.6, fontSize: 9 }}>
               {doneOpen ? `${tt('Showing latest')} ${Math.min(done.length, 5)}` : tt('Click to expand')}
             </span>

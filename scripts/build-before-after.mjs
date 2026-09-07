@@ -264,6 +264,9 @@ async function shoot(job, label) {
     // English login only) and BEFORE the first document of the view: App reads
     // it at mount and writes it straight back.
     if (job.appLang) await pg.evaluateOnNewDocument((l) => { try { localStorage.setItem('expo-lang', l); } catch (e) {} }, job.appLang);
+    // The install prompt mounts a few seconds after load and covers a phone-width
+    // view; snoozing it in storage keeps it out of every shot.
+    await pg.evaluateOnNewDocument(() => { try { localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} });
     await setWidth(pg, job.w, job.h);
     await pg.goto(job.url, { waitUntil: 'domcontentloaded', timeout: 60000 });
     if (job.cutBackend) {
