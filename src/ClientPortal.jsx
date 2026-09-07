@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { fmtPrettyDate } from './dates';
-import { safeUrl } from './VideoEmbed';
+import { safeUrl, YouTubeLite } from './VideoEmbed';
 import useAutosave from './hooks/useAutosave';
 import { C, FN, FB, FH, uid, ytId, ytIsShort, EXPO_LOGO, EXPO_ICON, EXPO_LOGO_NAV } from './theme';
 import { EXPOMark } from './expoMark';
@@ -1583,7 +1583,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         {vid ? <div style={vidShort
           ? {marginTop:16,marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'9/16',maxWidth:300,marginLeft:'auto',marginRight:'auto',background:'#000',border:`1px solid ${C.cardBd}`}
           : {marginTop:16,marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'var(--c-sf)',border:`1px solid ${C.cardBd}`}}>
-          <iframe src={`https://www.youtube.com/embed/${vid}`} style={{width:'100%',height:'100%',border:'none'}} allowFullScreen/></div>
+          <YouTubeLite id={vid} short={vidShort} /></div>
           : wu.vid && /\.(mp4|webm|mov|m4v)(\?|$)/i.test(wu.vid) ? <div style={{marginTop:16,marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'#000',border:`1px solid ${C.cardBd}`}}>
           <video src={wu.vid} controls playsInline style={{width:'100%',height:'100%',objectFit:'contain',background:'#000'}}/></div>
           : wu.vid && /(photos\.app\.goo\.gl|photos\.google\.com)/i.test(wu.vid) ? <GooglePhotosEmbed url={wu.vid} />
@@ -1940,7 +1940,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       {vid ? <div style={vidShort
         ? {marginTop:16,marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'9/16',maxWidth:300,marginLeft:'auto',marginRight:'auto',background:'#000',border:`1px solid ${C.cardBd}`}
         : {marginTop:16,marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'var(--c-sf)',border:`1px solid ${C.cardBd}`}}>
-        <iframe src={`https://www.youtube.com/embed/${vid}`} style={{width:'100%',height:'100%',border:'none'}} allowFullScreen/></div>
+        <YouTubeLite id={vid} short={vidShort} /></div>
         : effectiveVid && /\.(mp4|webm|mov|m4v)(\?|$)/i.test(effectiveVid) ? <div style={{marginTop:16,marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'#000',border:`1px solid ${C.cardBd}`}}>
         <video src={effectiveVid} controls playsInline style={{width:'100%',height:'100%',objectFit:'contain',background:'#000'}}/></div>
         : effectiveVid && /(photos\.app\.goo\.gl|photos\.google\.com)/i.test(effectiveVid) ? <GooglePhotosEmbed url={effectiveVid} />
@@ -3276,7 +3276,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                   {Array.from({length:N},(_,w)=>mk(w,{flex:1,padding:0,borderRadius:0,border:`1px solid ${activePlan&&wk===w?C.ac:C.cardBd}`,background:activePlan&&wk===w?'rgba(57,189,255,0.12)':'transparent',color:activePlan&&wk===w?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:activePlan&&wk===w?700:600,letterSpacing:'0.06em',cursor:'pointer',transition:'color .15s, background .15s, border-color .15s'}))}
                 </div>);
             })()}</div>}
-          <div style={{width:120}}><div style={{fontSize:9,fontFamily:FN,marginBottom:6,letterSpacing:'0.14em',fontWeight:700,textAlign:'center'}}><span style={{color:C.tm}}>{tt("BW")}</span>{lb?<span style={{color:C.ac}}>{` · ${lb}KG`}</span>:''}</div>
+          <div style={{width:120}}><div style={{fontSize:9,fontFamily:FN,marginBottom:6,letterSpacing:'0.14em',fontWeight:700,textAlign:'center'}}><span style={{color:C.tm}}>{tt("BW")}</span>{lb?<span style={{color:C.ac}}> · <span dir="ltr" style={{unicodeBidi:'isolate'}}>{lb}KG</span></span>:''}</div>
             <div style={{display:'flex',gap:4}}>
             {/* KG matches the week cells: 32px border-box in every identity;
                 underline material where the identity is underline/bare. */}
@@ -3293,8 +3293,8 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,padding:'12px 14px',marginBottom:14,cursor:'pointer',display:'flex',alignItems:'center',gap:12}}>
           <div style={{width:6,height:6,background:C.ac,flexShrink:0}}/>
           <div style={{flex:1}}>
-            <div style={{fontSize:13,color:C.ac,fontWeight:700,fontFamily:FN,letterSpacing:'0.02em'}}>{unreadCoachNotes} new note{unreadCoachNotes===1?'':'s'} from Ohad</div>
-            <div style={{fontSize:9,color:C.tm,marginTop:3,fontFamily:FN,letterSpacing:'0.12em',textTransform:'uppercase'}}>View in History →</div>
+            <div style={{fontSize:13,color:C.ac,fontWeight:700,fontFamily:FN,letterSpacing:'0.02em'}}>{unreadCoachNotes} {tt(unreadCoachNotes===1?'new note from Ohad':'new notes from Ohad')}</div>
+            <div style={{fontSize:9,color:C.tm,marginTop:3,fontFamily:FN,letterSpacing:'0.12em',textTransform:'uppercase'}}>{tt('View in History →')}</div>
           </div>
         </div>}
         {ci && !demoMode && <AthleteChallengesWidget clientId={ci} clientWorkouts={clientWorkouts} bwLog={bwLog} traineesById={Object.fromEntries((trainees||[]).map(t=>[t.id,t]))} />}
@@ -3486,7 +3486,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             key: 'wu-' + vp.name,
             accent: C.or,
             borderColor: C.cardBd,
-            title: `Warm-Up · ${vp.name}`,
+            title: `${tt('Warm-Up')} · ${vp.name}`,
             count: `(${vp.warmup.length})`,
             countColor: C.or,
             // warm-up owns ORANGE (number + title + rail); its tempo goes muted

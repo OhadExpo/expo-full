@@ -63,6 +63,44 @@ function GooglePhotos({ url }) {
   return <div style={wrap}><video src={state.src} poster={state.poster || undefined} controls playsInline onError={handleBadStream} onLoadedMetadata={handleMeta} style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#000' }} /></div>;
 }
 
+// Tap-to-play YouTube. A bare <iframe src="youtube.com/embed/..."> pulls the
+// whole YouTube player (~1MB of script over ~20 requests) the moment it mounts,
+// before anything is on screen - and the athlete portal mounts one per exercise
+// opened. Ohad, 2026-09-07: "yuvi's videos take a while to load"; Yuval's block
+// is YouTube links end to end. Until tapped this is one poster frame (~20KB);
+// the tap mounts the real player with autoplay. The first pointer over the
+// facade pre-connects to YouTube's hosts so the player's own fetches start on
+// a warm connection.
+let _ytPreconnected = false;
+const preconnectYouTube = () => {
+  if (_ytPreconnected || typeof document === 'undefined') return;
+  _ytPreconnected = true;
+  for (const href of ['https://www.youtube.com', 'https://www.google.com', 'https://i.ytimg.com', 'https://static.doubleclick.net']) {
+    const l = document.createElement('link'); l.rel = 'preconnect'; l.href = href; document.head.appendChild(l);
+  }
+};
+export function YouTubeLite({ id, short = false }) {
+  const [play, setPlay] = useState(false);
+  useEffect(() => { setPlay(false); }, [id]);
+  if (play) {
+    return <iframe title="video" src={`https://www.youtube.com/embed/${id}?autoplay=1&playsinline=1&rel=0`}
+      allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen
+      style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} />;
+  }
+  return (
+    <button type="button" onClick={() => setPlay(true)} onPointerEnter={preconnectYouTube} onTouchStart={preconnectYouTube} aria-label="Play video"
+      style={{ position: 'relative', width: '100%', height: '100%', padding: 0, border: 'none', background: '#000', cursor: 'pointer', display: 'block' }}>
+      <img src={`https://i.ytimg.com/vi/${id}/hqdefault.jpg`} alt="" loading="lazy" decoding="async"
+        style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: short ? 'center 40%' : 'center', display: 'block', opacity: 0.85 }} />
+      <span aria-hidden="true" style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <span style={{ width: 56, height: 56, background: 'rgba(10,10,11,0.78)', border: `1px solid ${C.ac}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill={C.ac}><path d="M8 5v14l11-7z" /></svg>
+        </span>
+      </span>
+    </button>
+  );
+}
+
 export default function VideoEmbed({ url }) {
   if (!safeUrl(url)) return null;   // drop non-http(s) before any href/src render
   const wrap = { borderRadius: 0, overflow: 'hidden', aspectRatio: '16/9', background: '#000', border: `1px solid ${C.cardBd}` };
@@ -73,7 +111,7 @@ export default function VideoEmbed({ url }) {
     const frame = ytIsShort(url)
       ? { aspectRatio: '9/16', maxWidth: 300, marginLeft: 'auto', marginRight: 'auto', borderRadius: 0, overflow: 'hidden', background: '#000', border: `1px solid ${C.cardBd}` }
       : { ...wrap, background: 'transparent' };
-    return <div style={frame}><iframe src={`https://www.youtube.com/embed/${yid}`} style={{ width: '100%', height: '100%', border: 'none' }} allowFullScreen /></div>;
+    return <div style={frame}><YouTubeLite id={yid} short={ytIsShort(url)} /></div>;
   }
   if (/\.(mp4|webm|mov|m4v)(\?|$)/i.test(url)) return <div style={wrap}><video src={url} controls playsInline style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#000' }} /></div>;
   if (/(photos\.app\.goo\.gl|photos\.google\.com)/i.test(url)) return <GooglePhotos url={url} />;

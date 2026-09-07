@@ -63,10 +63,20 @@ function clearCachedTokens() {
   localStorage.removeItem(CONNECTED_KEY);
 }
 
-// Wait for the GIS library to load (script tag in index.html). Resolves
-// when window.google.accounts.oauth2.initTokenClient is available.
+// Load the GIS library on demand and wait for it. It used to be a <script> in
+// index.html: 99KB of third-party script, plus a connection to Google, on every
+// load of every seat - athletes and the club's physio included - for a
+// calendar sync only the owner ever clicks (measured 2026-09-07). Now the tag
+// is injected the first time something here needs it.
+const GIS_SRC = 'https://accounts.google.com/gsi/client';
 function waitForGIS(timeoutMs = 8000) {
   return new Promise((resolve, reject) => {
+    if (window.google?.accounts?.oauth2?.initTokenClient) return resolve();
+    if (!document.querySelector(`script[src="${GIS_SRC}"]`)) {
+      const tag = document.createElement('script');
+      tag.src = GIS_SRC; tag.async = true; tag.defer = true;
+      document.head.appendChild(tag);
+    }
     const start = Date.now();
     (function check() {
       if (window.google?.accounts?.oauth2?.initTokenClient) return resolve();

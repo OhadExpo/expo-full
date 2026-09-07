@@ -853,9 +853,28 @@ function AuthedApp() {
     const ids = [...new Set((clientWorkouts || [])
       .filter((w) => Array.isArray(w.formVideos) && w.formVideos.length)
       .map((w) => base(w.clientId)).filter(Boolean))];
-    const idle = () => new Promise((r) => (typeof window !== 'undefined' && window.requestIdleCallback
-      ? window.requestIdleCallback(() => r(), { timeout: 5000 })
-      : setTimeout(r, 1500)));
+    // Measured on production, 2026-09-07 ("everything is laggy"): this sweep
+    // was the heaviest thing on the coach's first screen - the 3MB WASM and
+    // ~9MB model fetched before the first clip, then a full pose pass per clip
+    // on the main thread (8 long tasks, 1.3s, on one warm dashboard load). It
+    // still runs, but only once the coach has stopped touching the page for
+    // 20s, on a visible tab, on a link reporting at least 3Mbps - and it
+    // re-checks all three before every clip, so touching the page pauses it.
+    let lastInput = Date.now();
+    const touch = () => { lastInput = Date.now(); };
+    const INPUT_EVENTS = ['pointerdown', 'keydown', 'touchstart', 'wheel', 'scroll'];
+    INPUT_EVENTS.forEach((ev) => window.addEventListener(ev, touch, { passive: true, capture: true }));
+    const linkOk = () => { try { const c = navigator.connection; return !c || !(c.downlink > 0) || c.downlink >= 3; } catch { return true; } };
+    const quiet = () => document.visibilityState === 'visible' && (Date.now() - lastInput) > 20000 && linkOk();
+    const idle = () => new Promise((r) => {
+      const tick = () => {
+        if (cancelled) { r(); return; }
+        if (!quiet()) { setTimeout(tick, 2000); return; }
+        if (window.requestIdleCallback) window.requestIdleCallback(() => r(), { timeout: 5000 });
+        else setTimeout(r, 1500);
+      };
+      tick();
+    });
     (async () => {
       for (const id of ids) {
         if (cancelled) break;
@@ -873,7 +892,10 @@ function AuthedApp() {
     // Reset the guard on cleanup so a later owner re-login (App stays mounted in
     // the dual-role portal switch) restarts the warmer instead of leaving it off
     // for the rest of the tab's life (review M2).
-    return () => { cancelled = true; poseWarmRef.current = false; };
+    return () => {
+      cancelled = true; poseWarmRef.current = false;
+      INPUT_EVENTS.forEach((ev) => window.removeEventListener(ev, touch, { capture: true }));
+    };
     // Intentionally keyed on isOwner only (+ the ref guard): re-runs on every
     // clientWorkouts identity change would restart the whole sweep on each
     // realtime tick. The report-open path still catches anything uploaded after
@@ -1408,7 +1430,11 @@ function AuthedApp() {
       ch.subscribe();
       bhbcChanRef.current = ch;
     } catch { /* realtime optional */ }
-    const iv = setInterval(poll, 5000);
+    // 30s, not 5s: the realtime channel above is what makes a change land
+    // instantly; this interval is only the fallback for when realtime is down.
+    // At 5s it re-read five store keys (~180KB raw) twelve times a minute for
+    // every open zone tab, all day (measured 2026-09-07).
+    const iv = setInterval(poll, 30000);
     return () => { stop = true; clearInterval(iv); bhbcChanRef.current = null; if (ch) { try { supabase.removeChannel(ch); } catch { /* noop */ } } };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, isBhbcCoach]);

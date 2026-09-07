@@ -462,10 +462,16 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
       // ever reached it must bite on the oldest plans, not on an arbitrary set.
       // Unordered, a plan count past the cap would silently hide live programs
       // from every rule and spawn (or miss) tasks with no signal at all.
+      // The rules read a plan's weeks, its trainee, its creation date and the
+      // NAME of its last day - nothing inside the days. The plan_index view
+      // already carries exactly that in ~11KB. The full-data read this
+      // replaced was 475KB on every dashboard mount, the second-largest
+      // request on the coach's first screen (measured on production,
+      // 2026-09-07).
       const PLAN_CAP = 2000;
       const { data: plans, error: plansErr } = await supabase
-        .from('plans')
-        .select('id, name, trainee_id, data, created_at')
+        .from('plan_index')
+        .select('id, name, trainee_id, created_at, weeks, day_names')
         .order('created_at', { ascending: false })
         .limit(PLAN_CAP);
       if ((plans || []).length >= PLAN_CAP) console.warn('[autoTasks] plan read hit the row cap — rules are seeing a subset');
@@ -476,8 +482,8 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
         id: p.id,
         name: p.name,
         traineeId: p.trainee_id,
-        weeks: p.data?.weeks || 4,
-        days: p.data?.days || [],
+        weeks: p.weeks || 4,
+        days: (Array.isArray(p.day_names) ? p.day_names : []).map(n => ({ name: n })),
         createdAt: p.created_at,
       }));
       if (cancelled) return;

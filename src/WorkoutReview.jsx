@@ -114,6 +114,31 @@ class FormVideoErrorBoundary extends React.Component {
   }
 }
 
+// Warms the browser cache for the next pending clips - but not while the clip
+// the coach is actually watching is still arriving. Hidden preload="auto" tags
+// mounted with the page pulled two full clips (6MB average, up to 34MB) in
+// parallel with the one on screen, on the same link. Now they mount 8s after
+// the workout opens, never on a link reporting under 3Mbps, never with
+// save-data on. (Ohad, 2026-09-07: "yuvi's videos take a while to load".)
+function PrefetchVideos({ urls }) {
+  const [armed, setArmed] = useState(false);
+  const key = (urls || []).join('|');
+  useEffect(() => {
+    setArmed(false);
+    if (!key) return undefined;
+    const t = setTimeout(() => {
+      try {
+        const c = navigator.connection;
+        if (c && (c.saveData || (c.downlink > 0 && c.downlink < 3))) return;
+      } catch { /* no navigator.connection */ }
+      setArmed(true);
+    }, 8000);
+    return () => clearTimeout(t);
+  }, [key]);
+  if (!armed || !key) return null;
+  return <>{urls.map(u => <video key={u} src={u} preload="auto" muted style={{ display: 'none' }} />)}</>;
+}
+
 export function FormVideoPlayer(props) {
   return (
     <FormVideoErrorBoundary>
@@ -2456,7 +2481,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
             pending workouts' form videos so the trainer doesn't wait on the
             first paint after pressing M / ⌘+Enter. preload="auto" hints to
             the browser to download bytes immediately. */}
-        {prefetchUrls.map(u => <video key={u} src={u} preload="auto" muted style={{display:'none'}} />)}
+        <PrefetchVideos urls={prefetchUrls} />
         {/* One-line hotkey legend so the keyboard flow is discoverable
             without a tour. Sits above the action bar, FN caps, low-contrast
             so it doesn't compete with the primary CTA. */}

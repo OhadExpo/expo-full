@@ -13,6 +13,9 @@
 
 import { precacheAndRoute, cleanupOutdatedCaches, createHandlerBoundToURL } from 'workbox-precaching';
 import { registerRoute, NavigationRoute } from 'workbox-routing';
+import { CacheFirst, StaleWhileRevalidate } from 'workbox-strategies';
+import { ExpirationPlugin } from 'workbox-expiration';
+import { CacheableResponsePlugin } from 'workbox-cacheable-response';
 
 // PROMPT update flow (registerType:'prompt'): a new SW must NOT skip-waiting on
 // install — it has to WAIT so useRegisterSW (SwUpdateBanner) can detect it and
@@ -42,6 +45,34 @@ registerRoute(
     denylist: [/^\/api\//, /^\/auth\//, /\/[^/?]+\.[^/?]+$/],
   })
 );
+
+// Runtime caches for the two things the precache cannot hold because they are
+// cross-origin: the MediaPipe WASM (jsdelivr, ~3MB) and the pose model (Google
+// storage, ~9MB). Both URLs are version-pinned and never change in place.
+// Measured on production 2026-09-07: without this, every coach page view that
+// touched pose (the auto-analyse warmer, the camera tools) downloaded both
+// again - 6.8MB and 7.3MB warm loads of the dashboard and the club zone, on a
+// wifi Ohad already thought was slow. CacheFirst: fetched once per device.
+const isMediaPipe = ({ url }) =>
+  (/(^|\.)cdn\.jsdelivr\.net$/.test(url.hostname) && /@mediapipe\/tasks-vision/.test(url.pathname))
+  || (/(^|\.)storage\.googleapis\.com$/.test(url.hostname) && /\/mediapipe-models\//.test(url.pathname));
+registerRoute(isMediaPipe, new CacheFirst({
+  cacheName: 'mediapipe-v1',
+  plugins: [
+    new CacheableResponsePlugin({ statuses: [0, 200] }),
+    new ExpirationPlugin({ maxEntries: 12, maxAgeSeconds: 180 * 24 * 3600 }),
+  ],
+}));
+
+// YouTube poster frames for the tap-to-play facade (VideoEmbed.YouTubeLite):
+// a demo the athlete opens every session should not re-fetch its poster.
+registerRoute(({ url }) => /(^|\.)ytimg\.com$/.test(url.hostname), new StaleWhileRevalidate({
+  cacheName: 'yt-posters-v1',
+  plugins: [
+    new CacheableResponsePlugin({ statuses: [0, 200] }),
+    new ExpirationPlugin({ maxEntries: 300, maxAgeSeconds: 30 * 24 * 3600 }),
+  ],
+}));
 
 // ---------------------------------------------------------------------
 // Web Push handlers
