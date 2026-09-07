@@ -27,14 +27,24 @@ for (const lang of ['en', 'he']) {
     // 9s was not enough for a cold demo page - it measured 8 characters and
     // called the app broken. A hand check at 12s saw the whole portal.
     await wait(15000);
-    const r = await pg.evaluate(() => {
+    // Measure EVERY frame and keep the largest, and save what was on screen:
+    // the 863-character reading that made this probe distrust itself was the
+    // same number for two different routes, which is a measurement of the
+    // wrong document, not of the app. A picture settles which.
+    const perFrame = [];
+    for (const fr of pg.frames()) {
+      try { perFrame.push(await fr.evaluate(() => {
       const t = document.body.innerText || '';
       return {
         len: t.length,
         bad: [...new Set((t.match(/Invalid Date|NaN|\[object Object\]|undefined/g) || []))],
         dates: [...new Set((t.match(/\d{1,2}(st|nd|rd|th)? (of )?[A-Za-z\u0590-\u05FF]{3,12},? \d{4}/g) || []))].slice(0, 3),
       };
-    });
+      })); } catch (e) { /* detached frame */ }
+    }
+    const r = perFrame.sort((x, y) => y.len - x.len)[0] || { len: 0, bad: [], dates: [] };
+    r.bad = [...new Set(perFrame.flatMap((x) => x.bad))];
+    await pg.screenshot({ path: 'audit-out/demo-' + lang + route.replace(/\W+/g, '-') + '.png' }).catch(() => {});
     const ok = r.len > 400 && !r.bad.length;
     console.log((ok ? 'ok  ' : 'BAD ') + lang + '  ' + route.padEnd(15) + String(r.len).padStart(6) + ' chars  dates: ' + (r.dates.join(' | ') || '(none on this page)') + (r.bad.length ? '   ' + r.bad.join(',') : ''));
     if (!ok) bad.push(lang + ' ' + route + ': ' + (r.bad.join(',') || 'rendered almost nothing'));

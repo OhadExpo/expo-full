@@ -28,9 +28,12 @@ const fwd = (p) => p.split(String.fromCharCode(92)).join('/');
 const LIVE = readPairs('audit-out/pairs/pairs.json');
 // pairs.json and pairs-he.json both carry `portal` and `pt-zone`, so the Hebrew
 // sections take an `he-` suffix or the page gets duplicate ids.
-const HE = readPairs('audit-out/pairs/pairs-he.json');
+const HE = [...readPairs('audit-out/pairs/pairs-he.json'), ...readPairs('audit-out/pairs/pairs-he-phone.json')];
 const HE_TITLES = {
   portal: ['The athlete portal, in Hebrew', 'An athlete who picks Hebrew on production still gets English: the portal renders outside the language provider, so the Hebrew that was already written never reaches the screen. On this branch it does.'],
+  'portal-phone': ['The athlete portal, in Hebrew, on a phone', 'The width an athlete actually holds. Production: English tabs and headings under a Hebrew name. This branch: the portal in Hebrew.'],
+  'meal-phone': ['The meal log, in Hebrew, on a phone', 'Error strings, the day label, the totals and the save button were the last English on an athlete page.'],
+  meal: ['The meal log, in Hebrew', 'Error strings, the day label, the totals and the save button were the last English on an athlete page.'],
   'pt-zone': ['The club zone, in Hebrew, from the physio seat', 'The Medical tab carried 147 Latin words after the switch — the RTP ladder, the pain gate, the referral line, the availability pill, every readiness headline. Now 45, and every one is a name or shorthand a coach reads as English anyway.'],
 };
 // What an athlete meets on this branch that production does not show them.
@@ -43,7 +46,10 @@ const ATHLETE = [
   ['Messages', 'src/CoachMessages.jsx', 'had no translator', 'The athlete’s messages tab speaks Hebrew.'],
   ['PRs picker', 'src/TraineePRsView.jsx', 'session count moved out of the input', 'It clipped mid-word at phone width.'],
   ['Floor grid names', 'src/SessionsView.jsx', 'raw id (tr_ron) → the name, or a neutral label', 'Deliberately never resolved from the club roster: an EXPO athlete’s identity must not leak into the club zone.'],
-  ['Meal log', 'src/MealLogger.jsx', 'error strings, day labels and totals', 'Still English on this branch — deferred at handoff, queued for this shift.'],
+  ['Meal log', 'src/MealLogger.jsx', 'error strings, day labels, totals, the save button — Hebrew', 'Deferred at the 09-06 handoff; done 09-07. The weekday reads he-IL.'],
+  ['Demo videos', 'src/VideoEmbed.jsx · src/ClientPortal.jsx', 'YouTube iframe → poster + tap to play', '"Yuvi’s videos take a while to load": the full YouTube player was fetched before anything showed, per exercise opened. Now one poster frame until the tap.'],
+  ['Unread-notes banner', 'src/ClientPortal.jsx', '"17 new notes from Ohad · View in History →" in Hebrew', 'Was the last English line on the Hebrew program tab; the arrow turns with the text.'],
+  ['Bodyweight line', 'src/ClientPortal.jsx', '"84.2 · משקלKG" → "משקל · 84.2KG"', 'A Hebrew label beside a Latin unit needs the unit isolated, or the bidi algorithm splits it.'],
 ];
 const LIVE_TITLES = {
   bhbc: ['The club zone, as the coach sees it', 'Weight Room did not exist; the dashboard printed the same facts three and four times over.'],
@@ -82,6 +88,19 @@ const PAIRS = [
     note: 'The row is two columns now — what to do on the left, how to do it on the right — so a row is as tall as its cues instead of as tall as the page.',
   },
 ];
+
+// What a page load costs, production beside this branch, from the real seats.
+// Read straight from the probe files so the page cannot drift from the
+// measurement (scripts/perf-probe.mjs writes them).
+const perfRows = (() => {
+  const load = (p) => { try { return JSON.parse(fs.readFileSync(p, 'utf8')).results || []; } catch { return []; } };
+  const prod = load('audit-out/perf/prod.json');
+  const after = load(process.env.PERF_AFTER || 'audit-out/perf/branch-after2.json');
+  const key = (r) => r.seat + ' ' + r.route + ' ' + r.state;
+  const A = new Map(after.map((r) => [key(r), r]));
+  return prod.map((p) => ({ p, a: A.get(key(p)) })).filter((x) => x.a);
+})();
+const PERF_TITLES = { owner: 'Ohad', pt: 'the physio', athlete: 'an athlete' };
 
 const MEASURED = [
   ['The club zone, in Hebrew', 'Medical tab', '147 Latin words → 45', 'What is left is club names, athlete names, countries and the shorthand a coach reads as English anyway.'],
@@ -197,6 +216,16 @@ ${css}
 
   <section><h2>The changes, one at a time</h2><p class="lead">Each of these is a single decision, with the screen before it and after it.</p></section>
   ${PAIRS.map(section).join('')}
+
+  ${perfRows.length ? `<section id="perf">
+    <h2>What one page load costs — production beside this branch</h2>
+    <p class="lead">"Everything has been laggy and slow lately." Measured from the real seats, same routes, same width: bytes and requests are what a slow wifi has to carry; long tasks are what the page does to the main thread once it is there. Cold is a first visit; warm is the next one, with the service worker in place.</p>
+    <table>
+      <tr><th>Seat · route</th><th>State</th><th>Production</th><th>This branch</th><th>Main thread (long tasks)</th></tr>
+      ${perfRows.map(({ p, a }) => `<tr><td class="k">${PERF_TITLES[p.seat] || p.seat} · ${p.route}</td><td>${p.state}</td><td class="v">${p.total.kb.toLocaleString()} KB · ${p.total.n} req</td><td class="v" style="color:var(--green)">${a.total.kb.toLocaleString()} KB · ${a.total.n} req</td><td>${p.longTaskMs}ms → ${a.longTaskMs}ms</td></tr>`).join('')}
+    </table>
+    <p class="note">The 12MB on the coach's routes was MediaPipe — a 3MB WASM and a ~9MB pose model the auto-analyse warmer fetched on every page view because they are cross-origin and the service worker never cached them. They are cached once per device now, and the warmer waits for a coach who has stopped touching the page, on a link that reports at least 3Mbps.</p>
+  </section>` : ''}
 
   <section>
     <h2>Measured, with no picture to show</h2>

@@ -358,7 +358,7 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
             <div style={{
               textAlign: 'center', color: C.td, fontSize: 13, padding: '32px 14px',
               border: `1px solid ${C.cardBd}`,
-            }}>
+            }} dir="auto">
               {isToday
                 ? tt('No meals yet. Snap a photo above and the AI will estimate macros.')
                 : tt('No meals on this day.')}
@@ -462,7 +462,7 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
 
       <div style={{ marginTop: 14 }}>
         {meals.length === 0 ? (
-          <div style={{ textAlign: 'center', color: C.td, fontSize: 12, padding: 14 }}>
+          <div style={{ textAlign: 'center', color: C.td, fontSize: 12, padding: 14 }} dir="auto">
             {isToday ? tt('No meals logged yet today.') : tt('No meals on this day.')}
           </div>
         ) : meals.map(m => (

@@ -384,7 +384,7 @@ function OverviewFocus({ text }) {
       <div ref={ref} style={{fontSize:11,color:C.ac,opacity:0.85,lineHeight:1.4,...(open?null:{display:'-webkit-box',WebkitBoxOrient:'vertical',WebkitLineClamp:2,overflow:'hidden'})}}>
         <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',marginRight:8,opacity:0.7}}>{tt("FOCUS")}</span><bdi>{text}</bdi>
       </div>
-      {(overflows || open) && <span onClick={(e)=>{e.stopPropagation();setOpen(o=>!o);}} style={{display:'inline-block',marginTop:3,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.1em',color:C.ac,cursor:'pointer',opacity:0.85}}>{open?'▲ LESS':'▼ MORE'}</span>}
+      {(overflows || open) && <span onClick={(e)=>{e.stopPropagation();setOpen(o=>!o);}} style={{display:'inline-block',marginTop:3,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.1em',color:C.ac,cursor:'pointer',opacity:0.85}}>{open?tt('▲ LESS'):tt('▼ MORE')}</span>}
     </div>
   );
 }

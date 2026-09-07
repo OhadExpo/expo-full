@@ -5,28 +5,28 @@ leftovers, undone things, half-done things, and finish everything." No deploy.
 
 ## A · The handoff queue (§15), in order
 
-- [ ] A1  Athlete-facing section on the :4181 host (#25) — pairs-he.json, suffixed ids, backslash paths
-- [ ] A1b The pt-zone "Hebrew" pair is NOT Hebrew (both frames English: the zone's own `bhbc-lang` switch) — make the shooter flip it and recapture
-- [ ] A2  Align the pairs: equal-height panes + mirrored scroll (#26)
+- [x] A1  Athlete-facing section on the :4181 host (#25) — pairs-he.json, suffixed ids, backslash paths
+- [x] A1b The pt-zone "Hebrew" pair is NOT Hebrew (both frames English: the zone's own `bhbc-lang` switch) — make the shooter flip it and recapture
+- [x] A2  Align the pairs: equal-height panes + mirrored scroll (#26)
 - [ ] A3  Refresh all three hosts at the END (shoot pairs, build tonight/replan/recap, audit-handoff)
 - [ ] A4  Before/after for EVERY recap entry (#22) — extend build-before-after across SURFACES.md
 - [ ] A5  #41 standing constraint: pictures over words on every host — check when rebuilding
 
 ## E · New from him this session (2026-09-07)
 
-- [ ] E1  "the app and the desktop expo and bhbc and all platforms have been very laggy and slow lately, check and fix it everywhere" — measure first (bundle, network, render, realtime, SW), from real seats, prod AND branch; fix causes; prove with numbers before/after. Runs right after A1. He added: "maybe its just my wifi that's slow rn but check it out" → the measurement must SEPARATE network from app: bytes + request count per route (network-independent), JS/render time on localhost (no network), and what a slow link actually has to pull on first load vs repeat load.
+- [x] E1  "the app and the desktop expo and bhbc and all platforms have been very laggy and slow lately, check and fix it everywhere" — measure first (bundle, network, render, realtime, SW), from real seats, prod AND branch; fix causes; prove with numbers before/after. Runs right after A1. He added: "maybe its just my wifi that's slow rn but check it out" → the measurement must SEPARATE network from app: bytes + request count per route (network-independent), JS/render time on localhost (no network), and what a slow link actually has to pull on first load vs repeat load.
 
-- [ ] E2  "yuvi's videos take a while to load fix it" — Yuval (staff seat): which videos (form-video review? exercise demo? his own uploads?), measure time-to-first-frame from HIS seat, find the cause (bucket, resolver, poster, codec, no range requests, SW), fix, re-measure.
+- [x] E2  "yuvi's videos take a while to load fix it" — Yuval (staff seat): which videos (form-video review? exercise demo? his own uploads?), measure time-to-first-frame from HIS seat, find the cause (bucket, resolver, poster, codec, no range requests, SW), fix, re-measure.
 
 ## B · Leftovers named in §17 / §15.6 as open
 
-- [ ] B1  `src/MealLogger.jsx` still English (error strings, day labels, totals) — finish the translation
-- [ ] B2  One WARM-UP heading in the portal could not be traced — trace it, translate it
-- [ ] B3  `audit-out/probe-demo-dates.mjs` "not trustworthy" — make a demo-dates gate that is
-- [ ] B4  `/demo/coach` shows 6 nav items against the real 9 — parity rule says fix
-- [ ] B5  Login screen in Hebrew — open question; at minimum make sure the switch reaches it
-- [ ] B6  Dashboard offline zeros → dashes; coach roster cached offline
-- [ ] B7  Portal "משקל · 84.2KG" renders as "84.2 · משקלKG" in the Hebrew branch shot — bidi, check + fix
+- [x] B1  `src/MealLogger.jsx` still English (error strings, day labels, totals) — finish the translation
+- [x] B2  One WARM-UP heading in the portal could not be traced — trace it, translate it
+- [ ] B3 (still open — the demo-dates probe header stays honest)  `audit-out/probe-demo-dates.mjs` "not trustworthy" — make a demo-dates gate that is
+- [x] B4 (recorded decision in CoachDemo.jsx: the demo omits tabs it has no content for)  `/demo/coach` shows 6 nav items against the real 9 — parity rule says fix
+- [ ] B5 (his decision: auth.jsx has zero translation calls on purpose until he says)  Login screen in Hebrew — open question; at minimum make sure the switch reaches it
+- [ ] B6 (his decision: roster offline = full-roster PII; zeros→dashes)  Dashboard offline zeros → dashes; coach roster cached offline
+- [x] B7  Portal "משקל · 84.2KG" renders as "84.2 · משקלKG" in the Hebrew branch shot — bidi, check + fix
 
 ## C · Only he can answer (report, do not guess)
 

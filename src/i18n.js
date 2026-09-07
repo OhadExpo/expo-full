@@ -428,6 +428,9 @@ export const HE = {
   'new note from Ohad': 'הערה חדשה מאוהד',
   'new notes from Ohad': 'הערות חדשות מאוהד',
   'View in History →': 'לצפייה בהיסטוריה ←',
+  // The cue expander under an exercise on the program tab.
+  '▼ MORE': '▼ עוד',
+  '▲ LESS': '▲ פחות',
   HISTORY: 'היסטוריה',
   PRs: 'שיאים',
   MESSAGES: 'הודעות',

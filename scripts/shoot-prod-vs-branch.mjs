@@ -26,7 +26,9 @@ const SEATS = {
   athlete: { email: process.env.ATHLETE || 'amit@enoshy.com', pw: '1234' },
 };
 const JOBS = (process.env.JOBS || 'owner:/coach/bhbc:bhbc,owner:/coach:dashboard,pt:/coach/bhbc:pt-zone,athlete:/athlete:portal')
-  .split(',').map((x) => { const [seat, route, name] = x.split(':'); return { seat, route, name }; });
+  // An optional 4th field is a tab label regex (both languages) clicked after
+  // the route loads - the athlete's MEAL LOG, HISTORY etc. are tabs, not routes.
+  .split(',').map((x) => { const [seat, route, name, tab] = x.split(':'); return { seat, route, name, tab }; });
 
 const b = await P.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: null, protocolTimeout: 300000 });
 
@@ -57,13 +59,18 @@ const shoot = async (base, job, tag) => {
     await setWidth(pg, W, 1100);
     await pg.goto(base + job.route, { waitUntil: 'domcontentloaded', timeout: 90000 });
     await wait(15000);
-    await pg.evaluate(() => { const x = [...document.querySelectorAll('button,a')].find((e) => /maybe later|dismiss/i.test(e.textContent || '')); if (x) x.click(); }).catch(() => {});
+    await pg.evaluate(() => { const x = [...document.querySelectorAll('button,a')].find((e) => /maybe later|dismiss|אחר כך|לא עכשיו/i.test(e.textContent || '')); if (x) x.click(); }).catch(() => {});
     await wait(1200);
     if (process.env.LANG_APP === 'he' && /\/coach\/bhbc/.test(job.route)) {
       // Production may store the switch under an older key: if the zone still
       // shows its "עב" toggle, the zone is English - click it.
       const flipped = await pg.evaluate(() => { const t = [...document.querySelectorAll('button')].find((x) => (x.textContent || '').trim() === 'עב'); if (!t) return false; t.click(); return true; }).catch(() => false);
       if (flipped) { console.log(`${tag} ${job.name}: zone switched to Hebrew by click`); await wait(4000); }
+    }
+    if (job.tab) {
+      const hit = await pg.evaluate((rx) => { const re = new RegExp(rx, 'i'); const el = [...document.querySelectorAll('button,[role="tab"]')].find((b) => re.test((b.textContent || '').trim())); if (!el) return null; el.click(); return (el.textContent || '').trim(); }, job.tab).catch(() => null);
+      console.log(tag + ' ' + job.name + ': tab ' + (hit ? 'clicked "' + hit + '"' : 'NOT FOUND (' + job.tab + ')'));
+      await wait(5000);
     }
     const chars = await pg.evaluate(() => (document.body.innerText || '').length);
     const file = path.join(OUT, `${job.name}${process.env.LANG_APP ? '-' + process.env.LANG_APP : ''}-${tag}.png`);
@@ -84,6 +91,7 @@ for (const job of JOBS) {
   const after = await shoot(BRANCH, job, 'branch');
   results.push({ ...job, before, after });
 }
-fs.writeFileSync(path.join(OUT, process.env.LANG_APP ? 'pairs-' + process.env.LANG_APP + '.json' : 'pairs.json'), JSON.stringify(results, null, 2));
+// MANIFEST= names the output so a phone-width run does not overwrite the desktop one.
+fs.writeFileSync(path.join(OUT, process.env.MANIFEST || (process.env.LANG_APP ? 'pairs-' + process.env.LANG_APP + '.json' : 'pairs.json')), JSON.stringify(results, null, 2));
 console.log(`\n${results.filter((r) => r.before && r.after).length}/${results.length} complete pairs`);
 b.disconnect();
