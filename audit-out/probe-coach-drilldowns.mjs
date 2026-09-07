@@ -41,5 +41,11 @@ async function open(route, clickText, label) {
 await open('/coach/programs', '^(Block #\\d+|בלוק #\\d+)', 'program');
 await open('/coach/athletes', '^(EDIT|עריכה|ערוך)$', 'athlete-edit');
 await open('/coach/athletes', '^(PORTAL|פורטל)$', 'athlete-portal-preview');
+if (process.env.MORE) {
+  await open('/coach/review', '^(OPEN|פתח|REVIEW|בדוק|בדיקה|VIEW|הצג)$', 'review-detail');
+  await open('/coach/exercises', '^(EDIT|ערוך|עריכה|✎)$', 'exercise-edit');
+  await open('/coach/bhbc', '^(\\+ LOG PRACTICE|\\+ רישום אימון|\\+ LOG|רישום)', 'bhbc-log-modal');
+  await open('/coach/calendar', '^(\\+ NEW|\\+ חדש|NEW EVENT|אירוע חדש|\\+ ADD|\\+ הוסף)', 'calendar-new');
+}
 await ctx.close();
 b.disconnect();

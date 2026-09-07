@@ -112,7 +112,7 @@ export default function BookingView({ trainees }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {/* SETTINGS */}
-      <CollapsibleSection title="Booking Settings" storageKey="cal-settings" style={{ marginBottom: 0 }}>
+      <CollapsibleSection title={tt('Booking Settings')} storageKey="cal-settings" style={{ marginBottom: 0 }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10, marginBottom: 10 }}>
           <Input label={tt('Slug (public URL)')} value={draftSettings?.slug || ''} onChange={e => setDraftSettings({ ...draftSettings, slug: e.target.value })} placeholder="ohad" />
           <Input label={tt('Display name')} value={draftSettings?.display_name || ''} onChange={e => setDraftSettings({ ...draftSettings, display_name: e.target.value })} placeholder="Ohad — EXPO" />
@@ -133,7 +133,7 @@ export default function BookingView({ trainees }) {
             {bookingPublicUrl(draftSettings?.slug)}
           </code>
           <span style={{ flex: 1 }} />
-          <Btn onClick={saveSettings}>Save settings</Btn>
+          <Btn onClick={saveSettings}>{tt('Save settings')}</Btn>
         </div>
       </CollapsibleSection>
 
@@ -152,7 +152,7 @@ export default function BookingView({ trainees }) {
           }}>
             <select value={r.day_of_week} onChange={e => updateRule(r.id, { day_of_week: parseInt(e.target.value) })}
               style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '4px 8px', color: C.tx, fontFamily: FN, fontSize: 11, outline: 'none' }}>
-              {DAY_LABELS.map((d, i) => <option key={i} value={i}>{d}</option>)}
+              {DAY_LABELS.map((d, i) => <option key={i} value={i}>{tt(d)}</option>)}
             </select>
             <input type="time" value={r.start_time?.slice(0, 5) || '09:00'} onChange={e => updateRule(r.id, { start_time: e.target.value })}
               style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '4px 8px', color: C.tx, fontFamily: FN, fontSize: 11, outline: 'none' }} />
