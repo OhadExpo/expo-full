@@ -193,8 +193,8 @@ const PAIRS = [
     title: 'Athlete, in Hebrew · the bodyweight unit split from its number',
     file: 'src/ClientPortal.jsx',
     undo: [[`<span dir="ltr" style={{unicodeBidi:'isolate'}}>{lb}KG</span>`, '{lb}KG']],
-    url: APP + '/athlete', w: 390, h: 844, athlete: true, appLang: 'he', clickText: 'משקל',
-    crop: [0, 0, 390, 420],
+    url: APP + '/athlete', w: 390, h: 844, athlete: true, appLang: 'he',
+    crop: [0, 470, 390, 160],
   },
   {
     id: 'coach-offline',
@@ -285,7 +285,7 @@ async function shoot(job, label) {
     // The install prompt (Hebrew or English) covers a phone-width portal; both
     // shots of the bw-bidi pair came back as the prompt. Dismiss it first.
     await pg.evaluate(() => {
-      const b = [...document.querySelectorAll('button')].find((e) => /^s*(אחר כך|later|not now|maybe later|לא עכשיו)s*$/i.test(e.textContent || ''));
+      const b = [...document.querySelectorAll('button')].find((e) => /^\s*(אחר כך|later|not now|maybe later|לא עכשיו)\s*$/i.test(e.textContent || ''));
       if (b) b.click();
     }).catch(() => {});
     await wait(600);
