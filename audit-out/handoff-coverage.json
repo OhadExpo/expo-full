@@ -1,17 +1,18 @@
 {
-  "checkedLines": 780,
+  "checkedLines": 786,
   "verified": 221,
-  "attributed": 274,
-  "structure": 279,
-  "judgement": 6,
+  "attributed": 276,
+  "structure": 282,
+  "judgement": 7,
   "atoms": 330,
   "fails": [],
   "judgementLines": [
     "72: Israeli-direct. Wants deliverables, not menus of options. Push back when the",
-    "185: | `origin/bhbc-hebrew` | **does not exist** — this work has no off-machine cop",
-    "406: mid-session words, the warm-up flow, `READINESS GRAPH →` and `NOTE` — the",
-    "799: `audit-out\\pairs\\portal-he-live.png`. The existing code converts them with",
-    "952: - The weight-room grid stretches its columns; it tightens as the month fills.",
-    "1061: order: the athlete-facing section on the local host, then aligning the pairs s"
+    "168: `git rev-list --count origin/bhbc-hebrew..HEAD` should read 0 when you",
+    "208: > Check for drift with `git rev-list --count origin/bhbc-hebrew..HEAD` — it sh",
+    "411: mid-session words, the warm-up flow, `READINESS GRAPH →` and `NOTE` — the",
+    "804: `audit-out\\pairs\\portal-he-live.png`. The existing code converts them with",
+    "958: - The weight-room grid stretches its columns; it tightens as the month fills.",
+    "1067: order: the athlete-facing section on the local host, then aligning the pairs s"
   ]
 }
