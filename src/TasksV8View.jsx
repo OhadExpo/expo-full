@@ -2917,7 +2917,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
               fontFamily: FN, fontSize: 9, fontWeight: 700,
               letterSpacing: '0.12em', color: 'var(--c-tm)',
               textTransform: 'uppercase', textAlign: 'center',
-            }}>{done.length - 5} more done · view all in Phase 1</div>
+            }}>{done.length - 5} {tt('more done · view all in the history')}</div>
           )}
           </div></div>
         </div>

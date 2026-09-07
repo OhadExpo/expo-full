@@ -7,9 +7,17 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const ROUTES = (process.env.ROUTES || '/coach,/coach/athletes,/coach/programs,/coach/review,/coach/tasks,/coach/billing').split(',');
 const b = await P.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: null, protocolTimeout: 300000 });
 const pg = await b.newPage();
-await pg.evaluateOnNewDocument(() => { try { localStorage.setItem('expo-lang', 'he'); } catch (e) {} });
+await pg.goto(BASE + '/login', { waitUntil: 'domcontentloaded' });
+// The helper keeps whatever session the profile holds - after a physio gate
+// every coach route measured the club zone. Start signed OUT, always.
+await pg.evaluate(() => { try { localStorage.clear(); sessionStorage.clear(); } catch (e) { /* ignore */ } });
 await pg.goto(BASE + '/login', { waitUntil: 'domcontentloaded' });
 await A.signIn(pg, BASE);
+// Hebrew AFTER the sign-in: the helper recognises the English login only.
+await pg.evaluate(() => { try { localStorage.setItem('expo-lang', 'he'); } catch (e) {} });
+await pg.evaluateOnNewDocument(() => { try { localStorage.setItem('expo-lang', 'he'); } catch (e) {} });
+await pg.reload({ waitUntil: 'domcontentloaded' });
+await wait(6000);
 // The owner is DUAL-ROLE: without a portal choice the app can land on the
 // athlete side, and six routes then measure the same page six times.
 await pg.evaluate(() => {

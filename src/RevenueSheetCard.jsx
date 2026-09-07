@@ -124,11 +124,11 @@ export default function RevenueSheetCard() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
-                <th style={th}>Month</th>
+                <th style={th}>{tt('Month')}</th>
                 {['online', 'gym_transfer', 'gym_cash', 'via_parents', 'bhbc'].map((c) => (
-                  <th key={c} style={{ ...th, textAlign: 'end' }}>{CHANNEL_LABEL[c]}</th>
+                  <th key={c} style={{ ...th, textAlign: 'end' }}>{tt(CHANNEL_LABEL[c])}</th>
                 ))}
-                <th style={{ ...th, textAlign: 'end', color: C.ac }}>Coaching</th>
+                <th style={{ ...th, textAlign: 'end', color: C.ac }}>{tt('Coaching')}</th>
                 <th style={{ ...th, textAlign: 'end' }}>{CHANNEL_LABEL.national_insurance}</th>
               </tr>
             </thead>
@@ -156,17 +156,17 @@ export default function RevenueSheetCard() {
       {clients.length > 0 && (
         <>
           <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700, marginBottom: 8 }}>
-            Payments recorded per client
+            {tt('Payments recorded per client')}
           </div>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
-                  <th style={th}>Client</th>
-                  <th style={th}>Last payment</th>
-                  <th style={{ ...th, textAlign: 'end' }}>Payments on record</th>
-                  <th style={th}>Rate</th>
-                  <th style={th}>In EXPO</th>
+                  <th style={th}>{tt('Client')}</th>
+                  <th style={th}>{tt('Last payment')}</th>
+                  <th style={{ ...th, textAlign: 'end' }}>{tt('Payments on record')}</th>
+                  <th style={th}>{tt('Rate')}</th>
+                  <th style={th}>{tt('In EXPO')}</th>
                 </tr>
               </thead>
               <tbody>
