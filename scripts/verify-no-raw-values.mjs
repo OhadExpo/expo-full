@@ -50,7 +50,7 @@ const ROUTES = process.argv.length > 2 ? process.argv.slice(2)
   : (SEAT === 'owner' ? coachRoutes() : SEAT === 'pt' ? ['/coach/bhbc'] : ['/athlete']);
 
 const problems = [];
-const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
+const b = await P.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: null, protocolTimeout: 300000 });
 const pg = await b.newPage();
 // LANG_APP=he walks the app in Hebrew. Set BEFORE the first document: App reads
 // the language at mount and writes it straight back, so a later setItem loses.

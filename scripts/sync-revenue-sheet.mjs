@@ -45,7 +45,7 @@ const OUT = path.resolve('audit-out/sheet');
 // end. A scheduled job cannot borrow a logged-in browser.
 async function fetchCsv() {
   fs.mkdirSync(OUT, { recursive: true });
-  const browser = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
+  const browser = await puppeteer.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: null, protocolTimeout: 300000 });
   const page = await browser.newPage();
   try {
     const client = await page.target().createCDPSession();

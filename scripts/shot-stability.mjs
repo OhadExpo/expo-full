@@ -20,7 +20,7 @@ const RUNS = parseInt(process.argv[3] || '3', 10);
 const RATES = process.argv.slice(4).map(Number).filter((n) => n > 0);
 if (!RATES.length) RATES.push(1);
 
-const b = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: { width: 1280, height: 900 }, protocolTimeout: 3_600_000 });
+const b = await puppeteer.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: { width: 1280, height: 900 }, protocolTimeout: 3_600_000 });
 const page = await b.newPage();
 await page.goto('http://127.0.0.1:5199/shot-harness.html', { waitUntil: 'domcontentloaded' });
 await page.waitForFunction('window.__ready === true', { timeout: 30000 });

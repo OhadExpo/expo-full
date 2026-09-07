@@ -21,7 +21,7 @@ if (!url || !out) {
   process.exit(2);
 }
 
-const CDP = 'http://localhost:9222';
+const CDP = (process.env.CDP || 'http://localhost:9222');
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 

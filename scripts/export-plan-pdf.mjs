@@ -15,7 +15,7 @@ import fs from 'node:fs';
 const BASE = process.env.BASE || 'http://127.0.0.1:5199';
 const OUT = process.argv[3] || 'audit-out/plan.pdf';
 
-const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
+const b = await P.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: null, protocolTimeout: 300000 });
 const pg = await b.newPage();
 // A silent failure to mount is almost always a render error or a refused save,
 // and both say so in the console.

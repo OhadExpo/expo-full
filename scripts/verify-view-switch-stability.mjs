@@ -11,7 +11,7 @@ import { setWidth } from './lib/viewport.mjs';
 const TOL = 1;
 const WIDTHS = process.argv.slice(2).map(Number).filter(Boolean);
 const RUN = WIDTHS.length ? WIDTHS : [1500, 1280, 900, 700, 620, 470, 390, 360];
-const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
+const b = await P.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: null, protocolTimeout: 300000 });
 const pg = await b.newPage();
 await A.signIn(pg, 'http://127.0.0.1:5199');
 const click = (label) => pg.evaluate((l) => {

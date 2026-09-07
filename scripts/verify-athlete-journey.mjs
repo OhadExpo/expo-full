@@ -30,7 +30,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const problems = [];
 const signFallbacks = new Set();
 const aborted = new Set();
-const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
+const b = await P.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: null, protocolTimeout: 300000 });
 const pg = await b.newPage();
 
 let phase = 'startup';

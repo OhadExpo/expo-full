@@ -17,7 +17,7 @@ const CLIP = process.argv[2] || '/testclips/clip02.mp4';
 const PORT = process.argv[3] || '5199';
 const RUNS = Number(process.argv[4] || 3);
 
-const b = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 60 * 60 * 1000 });
+const b = await puppeteer.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: null, protocolTimeout: 60 * 60 * 1000 });
 const results = [];
 let bad = 0;
 

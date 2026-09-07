@@ -30,7 +30,7 @@ const CANDIDATES = [
   ['\u25A0', 'black square'], ['\u2934', 'arrow curving up'], ['\u2019', 'right quote'],
 ];
 
-const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
+const b = await P.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: null, protocolTimeout: 300000 });
 const pg = await b.newPage();
 await pg.goto((process.env.BASE || 'http://127.0.0.1:5199') + '/', { waitUntil: 'domcontentloaded' });
 await new Promise((r) => setTimeout(r, 4000));

@@ -6,7 +6,7 @@ import { setWidth } from '../scripts/lib/viewport.mjs';
 const BASE = 'http://127.0.0.1:4173';
 const EMAIL = process.env.EMAIL || 'amit@enoshy.com';
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
+const b = await P.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: null, protocolTimeout: 300000 });
 const pg = await b.newPage();
 await pg.evaluateOnNewDocument(() => { try { localStorage.setItem('expo-lang', 'he'); } catch (e) { /* ignore */ } });
 await pg.goto(BASE + '/login', { waitUntil: 'domcontentloaded' });

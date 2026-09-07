@@ -45,7 +45,7 @@ const todo = want.filter((r) => !fs.existsSync(path.join(dir, `r${r}.xlsx`)));
 console.log(`${want.length} revisions wanted, ${want.length - todo.length} already on disk, ${todo.length} to fetch`);
 if (!todo.length) process.exit(0);
 
-const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
+const b = await P.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: null, protocolTimeout: 300000 });
 
 const pg = await b.newPage();
 await pg.goto(`https://docs.google.com/spreadsheets/d/${ID}/edit`, { waitUntil: 'domcontentloaded', timeout: 60000 });

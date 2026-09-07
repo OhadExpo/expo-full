@@ -13,7 +13,7 @@ const PORT = process.argv[3] || '5199';
 // minutes - a seek on a 60 fps portrait clip costs 100-175 ms and there are
 // hundreds of them. The default protocol timeout kills it mid-run and reports
 // a puppeteer error rather than a result.
-const b = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: { width: 1280, height: 900 }, protocolTimeout: 45 * 60 * 1000 });
+const b = await puppeteer.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: { width: 1280, height: 900 }, protocolTimeout: 45 * 60 * 1000 });
 const page = await b.newPage();
 page.on('console', (m) => { const t = m.text(); if (/shot-capture|error|Error/.test(t)) console.log('  [page]', t.slice(0, 300)); });
 page.on('pageerror', (e) => console.log('  [pageerror]', String(e).slice(0, 300)));

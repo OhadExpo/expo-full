@@ -75,7 +75,7 @@ const MEASURE = () => {
   return out.sort((a, b) => b.by - a.by);
 };
 
-const b = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null });
+const b = await puppeteer.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: null });
 const page = await b.newPage();
 // A phone is not a narrow desktop. `setViewport` alone leaves the desktop UA,
 // DPR 1 and isMobile false, so hover styles apply, mobile-only CSS may not, and

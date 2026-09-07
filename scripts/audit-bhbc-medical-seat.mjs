@@ -15,7 +15,7 @@ const EMAIL = process.argv[3] || 'benshemer4@gmail.com';
 const PW = process.env.BHBC_COACH_PASSWORD || process.env.EXPO_PW || '1234';
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-const b = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: { width: 1400, height: 980 } });
+const b = await puppeteer.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: { width: 1400, height: 980 } });
 const p = await b.newPage();
 
 await p.goto(BASE + '/login', { waitUntil: 'domcontentloaded' }).catch(() => {});

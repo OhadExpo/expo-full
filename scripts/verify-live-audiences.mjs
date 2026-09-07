@@ -33,7 +33,7 @@ let fails = 0;
 const ok = (m) => console.log('  ok    ' + m);
 const bad = (m) => { fails++; console.log('  FAIL  ' + m); };
 
-const browser = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
+const browser = await puppeteer.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: null, protocolTimeout: 300000 });
 
 // ---- 1. THE ATHLETE ------------------------------------------------------
 console.log('=== ATHLETE on a phone (' + ATHLETE + ') ===');

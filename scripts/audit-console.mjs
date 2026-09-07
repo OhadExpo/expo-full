@@ -47,7 +47,7 @@ const IGNORE = [
   /ResizeObserver loop/i,
 ];
 
-const b = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: { width: 1280, height: 900 } });
+const b = await puppeteer.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: { width: 1280, height: 900 } });
 const page = await b.newPage();
 let bad = 0;
 

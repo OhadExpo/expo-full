@@ -25,7 +25,7 @@ const { data: before, error: readErr } = await sb.from('store').select('value').
 if (readErr || !before) { console.log('FAIL cannot read ' + KEY + ': ' + (readErr && readErr.message)); process.exit(1); }
 const original = before.value;
 
-const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
+const b = await P.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: null, protocolTimeout: 300000 });
 const pages = [];
 for (let i = 0; i < 2; i++) {
   const pg = await b.newPage();

@@ -16,7 +16,7 @@
 import puppeteer from 'puppeteer-core';
 const CLIP = process.argv[2] || '/testclips/clip02.mp4';
 const PORT = process.argv[3] || '5202';
-const b = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 60 * 60 * 1000 });
+const b = await puppeteer.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: null, protocolTimeout: 60 * 60 * 1000 });
 const page = await b.newPage();
 await page.goto(`http://127.0.0.1:${PORT}/shot-harness.html`, { waitUntil: 'domcontentloaded' });
 await page.waitForFunction('window.__ready === true', { timeout: 30000 });

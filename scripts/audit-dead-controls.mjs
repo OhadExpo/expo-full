@@ -73,7 +73,7 @@ const SIG = () => {
   return [h, h2, h3, geo, txt.length, document.querySelectorAll('*').length, location.href].join(':');
 };
 
-const browser = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 600000 });
+const browser = await puppeteer.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: null, protocolTimeout: 600000 });
 const page = await browser.newPage();
 await setWidth(page, W, 1100);
 

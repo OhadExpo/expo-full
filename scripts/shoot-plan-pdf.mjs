@@ -16,7 +16,7 @@ const OUT = 'audit-out/pdf';
 fs.mkdirSync(OUT, { recursive: true });
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
+const b = await P.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: null, protocolTimeout: 300000 });
 const pg = await b.newPage();
 pg.on('pageerror', (e) => console.log('  PAGE ERROR:', String(e.message).slice(0, 200)));
 pg.on('console', (m) => { if (m.type() === 'error') console.log('  console:', m.text().slice(0, 200)); });

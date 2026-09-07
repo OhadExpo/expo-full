@@ -32,7 +32,7 @@ const OUT = path.resolve('audit-out/bhbc-sheet');
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 fs.mkdirSync(OUT, { recursive: true });
 
-const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
+const b = await P.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: null, protocolTimeout: 300000 });
 const pg = await b.newPage();
 const cdp = await pg.createCDPSession();
 await cdp.send('Page.setDownloadBehavior', { behavior: 'allow', downloadPath: OUT });

@@ -182,7 +182,7 @@ const PAIRS = [
 const only = process.argv.slice(2);
 const jobs = only.length ? PAIRS.filter((p) => only.includes(p.id)) : PAIRS;
 
-const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
+const b = await P.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: null, protocolTimeout: 300000 });
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function shoot(job, label) {

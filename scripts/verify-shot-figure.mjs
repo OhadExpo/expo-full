@@ -30,7 +30,7 @@ if (!url || !/^https?:\/\//.test(url)) {
 
 let browser;
 try {
-  browser = await puppeteer.connect({ browserURL: 'http://localhost:9222', defaultViewport: null });
+  browser = await puppeteer.connect({ browserURL: (process.env.CDP || 'http://localhost:9222'), defaultViewport: null });
 } catch (e) {
   console.log('SHOT FIGURE: no debug Chrome on :9222 —', String(e.message || e).slice(0, 120));
   console.log('Nothing was tested.');

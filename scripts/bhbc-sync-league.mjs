@@ -23,7 +23,7 @@ const args = process.argv.slice(2);
 const DRY = args.includes('--dry');
 const cYear = Number(args.find((a) => /^\d{4}$/.test(a))) || 2027;
 const seasonLabel = `${cYear - 1}/${String(cYear).slice(2)}`;
-const CDP = 'http://localhost:9222';
+const CDP = (process.env.CDP || 'http://localhost:9222');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const isBHBC = (name) => /הרצליה/.test(name || '');
 // Canonical team name: strip Latin sponsor tokens (Penlink/Rapyd/IBI/Rivulis/…)

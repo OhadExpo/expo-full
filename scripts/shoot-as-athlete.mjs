@@ -20,7 +20,7 @@ const ROUTE = process.argv[4] || '/athlete';
 const PW = process.env.ATHLETE_PW || '1234';
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
+const b = await P.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: null, protocolTimeout: 300000 });
 const pg = await b.newPage();
 pg.on('pageerror', (e) => console.log('[pageerror] ' + String(e.message).slice(0, 160)));
 

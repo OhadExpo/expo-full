@@ -68,7 +68,7 @@ const MEASURE = () => {
   return out.sort((a, b) => Math.abs(b.off) - Math.abs(a.off)).slice(0, 8);
 };
 
-const browser = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 600000 });
+const browser = await puppeteer.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: null, protocolTimeout: 600000 });
 const page = await browser.newPage();
 if (W < 700) {
   await page.emulate({

@@ -113,7 +113,7 @@ const MEASURE = () => {
   return out.filter((o) => (seen.has(o.text) ? false : (seen.add(o.text), true))).slice(0, 12);
 };
 
-const browser = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 600000 });
+const browser = await puppeteer.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: null, protocolTimeout: 600000 });
 const page = await browser.newPage();
 if (W < 700) {
   await page.emulate({

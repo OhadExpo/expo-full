@@ -33,7 +33,7 @@ const routesFromManifest = () => {
 const BASE = process.argv[2] || 'http://127.0.0.1:5199';
 const ROUTES = process.argv.length > 3 ? process.argv.slice(3) : routesFromManifest();
 
-const browser = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 600000 });
+const browser = await puppeteer.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: null, protocolTimeout: 600000 });
 // A clean context: the debug profile carries whatever theme it was last left
 // in, and this test is about what the APP does, not the profile.
 const ctx = await (browser.createBrowserContext ? browser.createBrowserContext() : browser.createIncognitoBrowserContext());

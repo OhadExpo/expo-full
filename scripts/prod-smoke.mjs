@@ -10,7 +10,7 @@ const ROUTES = process.argv.length > 3 ? process.argv.slice(3) : [
   '/coach/tasks', '/coach/bhbc', '/athlete', '/demo', '/demo/coach', '/demo/athlete', '/try',
 ];
 
-const b = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', protocolTimeout: 120000 });
+const b = await puppeteer.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), protocolTimeout: 120000 });
 const page = await b.newPage();
 await setWidth(page, 1440, 950);
 // A stale SW would serve the OLD bundle and every check below would be a lie.

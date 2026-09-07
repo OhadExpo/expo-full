@@ -88,7 +88,7 @@ const MEASURE = () => {
   return bad;
 };
 
-const b = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null });
+const b = await puppeteer.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: null });
 const page = await b.newPage();
 const applyViewport = async (pg, w) => {
   // Real device below 700px - a plain setViewport is a narrow desktop, not a phone.

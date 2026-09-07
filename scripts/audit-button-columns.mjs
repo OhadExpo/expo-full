@@ -5,7 +5,7 @@ import * as A from '../scripts/lib/authed-page.mjs';
 const ARGS = process.argv.slice(2);
 const BASE = ARGS.find((a) => /^https?:\/\//.test(a)) || 'http://127.0.0.1:5199';
 const W = parseInt(ARGS.find((a) => /^\d+$/.test(a)) || '1500', 10);
-const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null });
+const b = await P.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: null });
 const pg = await b.newPage();
 const applyViewport = async (pg, w) => {
   // Real device below 700px - a plain setViewport is a narrow desktop, not a phone.

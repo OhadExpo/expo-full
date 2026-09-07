@@ -16,7 +16,7 @@ const ROUTES = process.argv.length > 4 ? process.argv.slice(4) : [
   '/coach/billing', '/coach/bhbc', '/athlete', '/demo/coach', '/demo/athlete', '/try',
 ];
 
-const b = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', protocolTimeout: 180000 });
+const b = await puppeteer.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), protocolTimeout: 180000 });
 const page = await b.newPage();
 await setWidth(page, 1440, 950);
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));

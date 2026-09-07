@@ -9,7 +9,7 @@ const EMAIL = process.argv[3] || 'diego@diegoday.com';
 const PW = process.env.EXPO_PW || '1234';
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-const b = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: { width: 430, height: 930 } });
+const b = await puppeteer.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: { width: 430, height: 930 } });
 const p = await b.newPage();
 
 await p.goto(BASE + '/login', { waitUntil: 'domcontentloaded' }).catch(() => {});

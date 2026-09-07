@@ -2,7 +2,7 @@
 // clicking something. Used to LOOK at a change instead of asserting it landed.
 import puppeteer from 'puppeteer-core';
 const [url, out, waitMs] = process.argv.slice(2);
-const b = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: { width: 1400, height: 1000 } });
+const b = await puppeteer.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: { width: 1400, height: 1000 } });
 const p = await b.newPage();
 await p.goto(url, { waitUntil: 'networkidle2', timeout: 60000 }).catch(() => {});
 await new Promise((r) => setTimeout(r, Number(waitMs || 2500)));

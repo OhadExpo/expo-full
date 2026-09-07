@@ -12,7 +12,7 @@
 // reading the tracker would have shown that.
 import puppeteer from 'puppeteer-core';
 const [url, outDir, ...times] = process.argv.slice(2);
-const b = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: { width: 1200, height: 900 }, protocolTimeout: 300000 });
+const b = await puppeteer.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: { width: 1200, height: 900 }, protocolTimeout: 300000 });
 const p = await b.newPage();
 await p.goto('http://localhost:5212/shot-harness.html', { waitUntil: 'domcontentloaded' });
 await new Promise((r) => setTimeout(r, 2500));

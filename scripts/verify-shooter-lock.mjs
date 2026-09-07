@@ -37,7 +37,7 @@ const LABEL = process.argv[3] || 'run';
 const DIR = 'public/testclips/_corpus';
 const ONLY = process.argv[4] || '';   // optional substring filter, e.g. c05
 const clips = fs.readdirSync(DIR).filter((f) => f.endsWith('.mp4') && (!ONLY || f.includes(ONLY))).sort();
-const b = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 60 * 60 * 1000 });
+const b = await puppeteer.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: null, protocolTimeout: 60 * 60 * 1000 });
 const rows = [];
 for (const c of clips) {
   const url = `/testclips/_corpus/${c}`;

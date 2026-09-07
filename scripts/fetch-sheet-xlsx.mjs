@@ -14,7 +14,7 @@ const ID = process.argv[2];
 const OUT = process.argv[3];
 if (!ID || !OUT) { console.log('usage: fetch-sheet-xlsx.mjs <fileId> <out.xlsx>'); process.exit(2); }
 
-const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
+const b = await P.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: null, protocolTimeout: 300000 });
 const pg = await b.newPage();
 try {
   await pg.goto(`https://docs.google.com/spreadsheets/d/${ID}/edit`, { waitUntil: 'domcontentloaded', timeout: 60000 });

@@ -17,7 +17,7 @@ import P from 'puppeteer-core';
 import * as A from './lib/authed-page.mjs';
 import { setWidth } from './lib/viewport.mjs';
 const BASE = process.env.BASE || 'http://127.0.0.1:5199';
-const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
+const b = await P.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: null, protocolTimeout: 300000 });
 const pg = await b.newPage();
 await A.signIn(pg, BASE);
 let bad = 0;

@@ -25,7 +25,7 @@ const MODE = (process.argv[3] || 'after').toLowerCase();
 const CLIP = process.cwd() + '/public/testclips/clip02.mp4';
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-const b = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null });
+const b = await puppeteer.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: null });
 const page = await b.newPage();
 await setWidth(page, 1500, 1000);
 let bad = 0;
