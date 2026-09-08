@@ -5,11 +5,11 @@
     "name": "dashboard-he",
     "before": {
       "file": "audit-out\\pairs\\dashboard-he-he-live.png",
-      "chars": 3494
+      "chars": 3476
     },
     "after": {
       "file": "audit-out\\pairs\\dashboard-he-he-branch.png",
-      "chars": 3386
+      "chars": 3365
     }
   },
   {
@@ -57,11 +57,11 @@
     "name": "calendar-he",
     "before": {
       "file": "audit-out\\pairs\\calendar-he-he-live.png",
-      "chars": 401
+      "chars": 415
     },
     "after": {
       "file": "audit-out\\pairs\\calendar-he-he-branch.png",
-      "chars": 365
+      "chars": 366
     }
   },
   {

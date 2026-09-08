@@ -1,0 +1,29 @@
+[
+  {
+    "seat": "athlete",
+    "route": "/athlete",
+    "name": "portal-phone",
+    "before": {
+      "file": "audit-out\\pairs\\portal-phone-he-live.png",
+      "chars": 3176
+    },
+    "after": {
+      "file": "audit-out\\pairs\\portal-phone-he-branch.png",
+      "chars": 3183
+    }
+  },
+  {
+    "seat": "athlete",
+    "route": "/athlete",
+    "name": "meal-phone",
+    "tab": "meal log|יומן אוכל",
+    "before": {
+      "file": "audit-out\\pairs\\meal-phone-he-live.png",
+      "chars": 239
+    },
+    "after": {
+      "file": "audit-out\\pairs\\meal-phone-he-branch.png",
+      "chars": 226
+    }
+  }
+]

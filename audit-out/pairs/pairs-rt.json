@@ -1,0 +1,41 @@
+[
+  {
+    "seat": "owner",
+    "route": "/coach/review-tools",
+    "name": "review-tools",
+    "before": {
+      "file": "audit-out\\pairs\\review-tools-he-live.png",
+      "chars": 928
+    },
+    "after": {
+      "file": "audit-out\\pairs\\review-tools-he-branch.png",
+      "chars": 768
+    }
+  },
+  {
+    "seat": "owner",
+    "route": "/coach/tasks",
+    "name": "tasks-he",
+    "before": {
+      "file": "audit-out\\pairs\\tasks-he-he-live.png",
+      "chars": 2328
+    },
+    "after": {
+      "file": "audit-out\\pairs\\tasks-he-he-branch.png",
+      "chars": 2004
+    }
+  },
+  {
+    "seat": "owner",
+    "route": "/coach/billing",
+    "name": "billing-he",
+    "before": {
+      "file": "audit-out\\pairs\\billing-he-he-live.png",
+      "chars": 822
+    },
+    "after": {
+      "file": "audit-out\\pairs\\billing-he-he-branch.png",
+      "chars": 2431
+    }
+  }
+]

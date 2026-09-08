@@ -12,5 +12,33 @@
       "file": "audit-out\\pairs\\program-he-he-branch.png",
       "chars": 5275
     }
+  },
+  {
+    "seat": "owner",
+    "route": "/coach/athletes",
+    "name": "athlete-form-he",
+    "tab": "^(EDIT|עריכה)$",
+    "before": {
+      "file": "audit-out\\pairs\\athlete-form-he-he-live.png",
+      "chars": 4549
+    },
+    "after": {
+      "file": "audit-out\\pairs\\athlete-form-he-he-branch.png",
+      "chars": 4512
+    }
+  },
+  {
+    "seat": "owner",
+    "route": "/coach/athletes",
+    "name": "athlete-detail-he",
+    "tab": "^אוהד$",
+    "before": {
+      "file": "audit-out\\pairs\\athlete-detail-he-he-live.png",
+      "chars": 3331
+    },
+    "after": {
+      "file": "audit-out\\pairs\\athlete-detail-he-he-branch.png",
+      "chars": 3168
+    }
   }
 ]

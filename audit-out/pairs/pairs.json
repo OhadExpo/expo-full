@@ -1,0 +1,54 @@
+[
+  {
+    "seat": "owner",
+    "route": "/coach/bhbc",
+    "name": "bhbc",
+    "before": {
+      "file": "audit-out\\pairs\\bhbc-live.png",
+      "chars": 2620
+    },
+    "after": {
+      "file": "audit-out\\pairs\\bhbc-branch.png",
+      "chars": 1670
+    }
+  },
+  {
+    "seat": "owner",
+    "route": "/coach",
+    "name": "dashboard",
+    "before": {
+      "file": "audit-out\\pairs\\dashboard-live.png",
+      "chars": 3633
+    },
+    "after": {
+      "file": "audit-out\\pairs\\dashboard-branch.png",
+      "chars": 3598
+    }
+  },
+  {
+    "seat": "pt",
+    "route": "/coach/bhbc",
+    "name": "pt-zone",
+    "before": {
+      "file": "audit-out\\pairs\\pt-zone-live.png",
+      "chars": 2299
+    },
+    "after": {
+      "file": "audit-out\\pairs\\pt-zone-branch.png",
+      "chars": 1601
+    }
+  },
+  {
+    "seat": "athlete",
+    "route": "/athlete",
+    "name": "portal",
+    "before": {
+      "file": "audit-out\\pairs\\portal-live.png",
+      "chars": 3148
+    },
+    "after": {
+      "file": "audit-out\\pairs\\portal-branch.png",
+      "chars": 3148
+    }
+  }
+]

@@ -1,0 +1,151 @@
+=== LOGIN PAIR
+
+### node audit-out/shot-login.mjs https://expo-app.co.il  [02:47:53]
+en: Sign-in Continue with Google OR SIGN IN Don't have an account? Contact your coach.
+en: 10 Latin words - Sign, Continue, with, SIGN, Don, have, account, Contact, your, coach
+he: Sign-in Continue with Google OR SIGN IN Don't have an account? Contact your coach.
+he: 10 Latin words - Sign, Continue, with, SIGN, Don, have, account, Contact, your, coach
+### exit=0
+
+### node audit-out/shot-login.mjs http://127.0.0.1:4173  [02:48:05]
+en: Sign-in עב Continue with Google OR SIGN IN Don't have an account? Contact your coach.
+en: 10 Latin words - Sign, Continue, with, SIGN, Don, have, account, Contact, your, coach
+he: כניסה EN המשך עם Google או כניסה אין לך חשבון? דבר עם המאמן.
+he: 0 Latin words
+### exit=0
+
+=== PAIRS
+
+### node scripts/shoot-prod-vs-branch.mjs  [02:48:17]
+live   owner   /coach           3633 chars -> audit-out\pairs\dashboard-live.png
+branch owner   /coach           3598 chars -> audit-out\pairs\dashboard-branch.png
+live   pt      /coach/bhbc      2299 chars -> audit-out\pairs\pt-zone-live.png
+branch pt      /coach/bhbc      1601 chars -> audit-out\pairs\pt-zone-branch.png
+live   athlete /athlete         3148 chars -> audit-out\pairs\portal-live.png
+branch athlete /athlete         3148 chars -> audit-out\pairs\portal-branch.png
+
+4/4 complete pairs
+### exit=0
+
+### node scripts/shoot-prod-vs-branch.mjs  [02:52:33]
+live   pt      /coach/bhbc      2220 chars -> audit-out\pairs\pt-zone-he-live.png
+branch pt      /coach/bhbc      1526 chars -> audit-out\pairs\pt-zone-he-branch.png
+live   athlete /athlete         3148 chars -> audit-out\pairs\portal-he-live.png
+branch athlete /athlete         3159 chars -> audit-out\pairs\portal-he-branch.png
+
+2/2 complete pairs
+### exit=0
+
+### node scripts/shoot-prod-vs-branch.mjs  [02:54:41]
+live   athlete /athlete         3176 chars -> audit-out\pairs\portal-phone-he-live.png
+branch athlete /athlete         3183 chars -> audit-out\pairs\portal-phone-he-branch.png
+live meal-phone: tab clicked "MEAL LOG"
+live   athlete /athlete          239 chars -> audit-out\pairs\meal-phone-he-live.png
+branch meal-phone: tab clicked "יומן אוכל"
+branch athlete /athlete          226 chars -> audit-out\pairs\meal-phone-he-branch.png
+
+2/2 complete pairs
+### exit=0
+
+### node scripts/shoot-prod-vs-branch.mjs  [02:56:59]
+live   owner   /coach/review-tools    928 chars -> audit-out\pairs\review-tools-he-live.png
+branch owner   /coach/review-tools    768 chars -> audit-out\pairs\review-tools-he-branch.png
+live   owner   /coach/tasks     2328 chars -> audit-out\pairs\tasks-he-he-live.png
+branch owner   /coach/tasks     2004 chars -> audit-out\pairs\tasks-he-he-branch.png
+live   owner   /coach/billing    822 chars -> audit-out\pairs\billing-he-he-live.png
+branch owner   /coach/billing   2431 chars -> audit-out\pairs\billing-he-he-branch.png
+
+3/3 complete pairs
+### exit=0
+
+### node scripts/shoot-prod-vs-branch.mjs  [03:00:11]
+live   owner   /coach/smart-import    348 chars -> audit-out\pairs\smart-import-he-he-live.png
+branch owner   /coach/smart-import    327 chars -> audit-out\pairs\smart-import-he-he-branch.png
+live   owner   /coach/calendar    415 chars -> audit-out\pairs\calendar-he-he-live.png
+branch owner   /coach/calendar    366 chars -> audit-out\pairs\calendar-he-he-branch.png
+live   owner   /coach/intake     312 chars -> audit-out\pairs\intake-he-he-live.png
+branch owner   /coach/intake     297 chars -> audit-out\pairs\intake-he-he-branch.png
+
+6/6 complete pairs
+### exit=0
+
+### node scripts/shoot-prod-vs-branch.mjs  [03:06:34]
+live   owner   /coach/waitlist    312 chars -> audit-out\pairs\waitlist-he-he-live.png
+branch owner   /coach/waitlist    300 chars -> audit-out\pairs\waitlist-he-he-branch.png
+live   owner   /coach/workouts    717 chars -> audit-out\pairs\workouts-he-he-live.png
+branch owner   /coach/workouts    709 chars -> audit-out\pairs\workouts-he-he-branch.png
+live   owner   /coach/review     664 chars -> audit-out\pairs\review-he-he-live.png
+branch owner   /coach/review     608 chars -> audit-out\pairs\review-he-he-branch.png
+
+3/3 complete pairs
+### exit=0
+
+### node scripts/shoot-prod-vs-branch.mjs  [03:09:46]
+live   athlete /demo/athlete     863 chars -> audit-out\pairs\demo-athlete-he-he-live.png
+branch athlete /demo/athlete     868 chars -> audit-out\pairs\demo-athlete-he-he-branch.png
+
+1/1 complete pairs
+### exit=0
+
+### node scripts/shoot-prod-vs-branch.mjs  [03:10:50]
+branch athlete-form-he: tab clicked "עריכה"
+branch owner   /coach/athletes   4512 chars -> audit-out\pairs\athlete-form-he-he-branch.png
+live athlete-detail-he: tab clicked "אוהד"
+live   owner   /coach/athletes   3331 chars -> audit-out\pairs\athlete-detail-he-he-live.png
+branch athlete-detail-he: tab clicked "אוהד"
+branch owner   /coach/athletes   3168 chars -> audit-out\pairs\athlete-detail-he-he-branch.png
+
+3/3 complete pairs
+### exit=0
+
+=== PAGES
+
+### node scripts/build-tonight.mjs  [03:14:35]
+audit-out/tonight.html  (12.3 MB, 86 commits)
+### exit=0
+
+### node scripts/build-bhbc-replan.mjs  [03:14:35]
+audit-out/bhbc-replan.html  (369 KB)
+### exit=0
+
+### node scripts/build-recap.mjs  [03:14:36]
+223 commits, 237 files, 9 screens, 52 screenshots
+OPEN THIS:  C:\Users\Administrator\Desktop\expo-full\audit-out\recap.html   (15.6 MB, self-contained)
+links inside it open http://127.0.0.1:5199
+### exit=0
+
+### node audit-out/verify-pair-scroll.mjs  [03:14:56]
+{"id":"live-he-athlete-form-he","ha":760,"hc":760,"fa":0.5,"fc":0.5,"ok":true}
+{"id":"live-he-athlete-detail-he","ha":760,"hc":760,"fa":0.501,"fc":0.501,"ok":true}
+{"id":"login-he","ha":760,"hc":760,"fa":0.501,"fc":0.501,"ok":true}
+{"id":"shot-he","skipped":"nothing to scroll","ra":0,"rc":0}
+{"id":"dash","skipped":"nothing to scroll","ra":230,"rc":0}
+{"id":"wr","skipped":"nothing to scroll","ra":0,"rc":0}
+{"id":"pdf","ha":760,"hc":760,"fa":0.5,"fc":0.5,"ok":true}
+29/29 pairs mirror
+### exit=0
+
+### node audit-out/reload-tab.mjs 4181  [03:15:01]
+reloaded 1 tab(s) matching 4181
+### exit=0
+
+### node audit-out/reload-tab.mjs 4180  [03:15:02]
+reloaded 1 tab(s) matching 4180
+### exit=0
+
+### node audit-out/reload-tab.mjs 4179  [03:15:03]
+reloaded 1 tab(s) matching 4179
+### exit=0
+
+### node scripts/shoot.mjs http://127.0.0.1:4181/ audit-out/tonight-final.png 1400 1000  [03:15:05]
+OK audit-out/tonight-final.png @ 1400x1000 <- http://127.0.0.1:4181/
+### exit=0
+
+### node scripts/shoot.mjs http://127.0.0.1:4180/ audit-out/replan-final.png 1400 1000  [03:15:10]
+OK audit-out/replan-final.png @ 1400x1000 <- http://127.0.0.1:4180/
+### exit=0
+
+### node scripts/shoot.mjs http://127.0.0.1:4179/ audit-out/recap-final.png 1400 1000  [03:15:15]
+OK audit-out/recap-final.png @ 1400x1000 <- http://127.0.0.1:4179/
+### exit=0
+=== DONE 03:15:21

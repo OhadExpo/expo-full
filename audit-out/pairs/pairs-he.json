@@ -1,0 +1,28 @@
+[
+  {
+    "seat": "pt",
+    "route": "/coach/bhbc",
+    "name": "pt-zone",
+    "before": {
+      "file": "audit-out\\pairs\\pt-zone-he-live.png",
+      "chars": 2220
+    },
+    "after": {
+      "file": "audit-out\\pairs\\pt-zone-he-branch.png",
+      "chars": 1526
+    }
+  },
+  {
+    "seat": "athlete",
+    "route": "/athlete",
+    "name": "portal",
+    "before": {
+      "file": "audit-out\\pairs\\portal-he-live.png",
+      "chars": 3148
+    },
+    "after": {
+      "file": "audit-out\\pairs\\portal-he-branch.png",
+      "chars": 3159
+    }
+  }
+]
