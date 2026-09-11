@@ -83,3 +83,8 @@ RESTORE POINT (pre-perf-fixes): b1f93ab6f04fa84e842c58049f278312374c8a43
 - [ ] D3 buttons: same size + rulings in Hebrew as in English, everywhere — probe audit-out/probe-button-parity.mjs: 414 diffs / 18 routes (heights +4–6px from font metrics; widths from shorter words)
 - [ ] D4 athletes get the update notification on EVERY login — add rules (once per bundle, snooze, idle-only)
 - [ ] D5 after D3/D4: rebuild, pairs, the three hosts, reload his tabs, show him
+- [x] D3 buttons: 414 → 0 differences on the dashboard/programs; heights via font metrics, widths via tbFor()
+- [x] D4 update notice rules (SwUpdateBanner)
+- [ ] D6 DEPLOY at ~18:05 (his order): everything except the athlete portal — branch deploy-0911 = bhbc-hebrew with ClientPortal/MealLogger at production, the athlete tree outside the provider, the login English; restore point origin/master dc80f2d
+- [ ] D7 a local host page listing what is left to review on the UNDEPLOYED athlete portal (pairs + the §8 athlete rows), new tab in his Chrome
+- [ ] D8 compare mode (review tools): "buttons are not centered and too boring and flat"; re-think whether the metrics buttons belong inside compare mode; "play both, pause, sync, etc.. redesign it smarter, nicer, ocd"
