@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { C, FN, FB, uid, ytId, RESISTANCE_TYPES, BODY_POSITIONS, MOVEMENT_TYPES } from './theme';
 import { Btn, Input, Select, TextArea, Modal, ConfirmDialog, EmptyState, baseInput, useIsMobile } from './ui';
 import { classify, isUnclassified } from './exerciseClassify';
-import { useT as useAppT } from './i18n';
+import { useT as useAppT, useTB } from './i18n';
 
 // Grid-card video: a lightweight YouTube FACADE. The grid can show 200 cards, so
 // it must NOT mount 200 iframes — it paints the lazy poster thumbnail and only
@@ -61,6 +61,7 @@ const splitVals = s => String(s || '').split(',').map(x => x.trim()).filter(Bool
 export default function ExercisesView({ exercises, setExercises, onOpenClassify }) {
   const narrowUI = useIsMobile(700);
   const tt = useAppT();
+  const tb = useTB();
   const unclassifiedCount = useMemo(() => (exercises || []).filter(isMissing).length, [exercises]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(defaultExercise());
@@ -511,7 +512,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
       {filtered.length > 0 && !showAll && filtered.length > ROW_CAP && (
         <div style={{ padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
           <span style={{ fontSize: 11, fontFamily: FN, color: C.tm }}>Showing {ROW_CAP} of {filtered.length.toLocaleString()} — refine the search, or</span>
-          <button onClick={() => setShowAll(true)} style={{ background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: '3px 12px', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em' }}>{tt("SHOW ALL")}</button>
+          <button onClick={() => setShowAll(true)} style={{ background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: '3px 12px', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em' }}>{tb("SHOW ALL")}</button>
         </div>
       )}
 

@@ -30,7 +30,7 @@ import ReadinessRow, { hasReadiness } from './ReadinessRow';
 import CheckinTrends from './CheckinTrends';
 import { toast, confirmToast, isRefined5b, useEscClose, useDelayedUnmountValue } from './ui';
 import { isLogOfPlan, duplicatePlanNames } from './planLogMatch';
-import { useT as useAppT } from './i18n';
+import { useT as useAppT, useTB } from './i18n';
 import { resolveStoredUrl } from './storageUrl';
 // F-14 — meal photo → macros logger. Lazy-loaded since most athletes
 // won't open it on every page load (and it pulls in the meals query).
@@ -375,6 +375,9 @@ function GooglePhotosEmbed({ url }) {
 // StepLogger: warmup steps → pre-workout → exercise steps → finish
 function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFocus, trainerExercises, priorWorkouts, allowSubstitution, demoMode = false, branch = '', nameAmbiguous = false, onFilmSet = null}) {
   const tt = useAppT();
+  // A workout in progress: SwUpdateBanner neither shows nor reloads while this
+  // is up (Ohad 2026-09-11 - the update notice must never meet a set).
+  useEffect(() => { window.__expoWorkoutActive = (window.__expoWorkoutActive | 0) + 1; return () => { window.__expoWorkoutActive = Math.max(0, (window.__expoWorkoutActive | 0) - 1); }; }, []);
   // Steps: 'wu0','wu1',... → 0,1,2,... (group indices) → 'end'
   // Daily-routine days skip warm-up steps entirely — Roei's "morning
   // routine" pattern doesn't tie to a warm-up block. Per-day flag set
@@ -2136,6 +2139,7 @@ function deriveWeekIdx(plan, cw, dupNames) {
 // Main client portal
 export default function ClientPortal({ clientId, signOut, clientWorkouts, setClientWorkouts, bwLog, setBwLog, weeklyFocus, setWeeklyFocus, portalVis, trainerPlans, trainerExercises, trainees, selfTrainee = null, onDecrementSession, updateFormVideos, demoMode = false, demoPlans = null, onReturnToCoach = null, embedded = false, onFilmSet = null }) {
   const tt = useAppT();
+  const tb = useTB();
   // clientId comes from the authenticated session (resolved upstream in App.jsx).
   // The old email-lookup login lived inside this component and bypassed auth;
   // it's gone. Trainee is fixed for the session.
@@ -2611,7 +2615,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             {/* Always reads like the real athlete portal ('LOG OUT →') — even in
                 preview, so the coach/prospect sees an authentic portal. The
                 outer preview banner already carries the '← BACK TO COACH' exit. */}
-            <button onClick={logOut} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',padding:0}}>{tt('LOG OUT')} →</button>
+            <button onClick={logOut} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',padding:0}}>{tb('LOG OUT')} →</button>
           </div>
         </div>
         {/* Symmetric vertical rhythm (Ohad): crest→greeting == greeting→divider,

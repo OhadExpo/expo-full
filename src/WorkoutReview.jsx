@@ -25,7 +25,7 @@ import {
 } from './repCounter';
 import { detectLift, channelFromPose, CHANNELS } from './liftDetect';
 import { resolveStoredUrl } from './storageUrl';
-import { useT as useAppT } from './i18n';
+import { useT as useAppT, useTB } from './i18n';
 
 const bi = {background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,padding:"8px 10px",borderRadius:0,
   color:C.tx,fontFamily:FB,fontSize:13,outline:"none",width:"100%",boxSizing:"border-box",textAlign:"center"};
@@ -1860,6 +1860,7 @@ function CompareModal({ leftLabel, leftUrl, leftTitle, rightLabel, rightUrl, rig
 
 export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFocus, planIndex, trainees, exercises, markReviewed, updateFormVideos, deleteWorkout, onOpenTrainee }) {
   const tt = useAppT();
+  const tb = useTB();
   // "Log In-Person Session" used to live as a subtab here. It moved out
   // 2026-05-28 — the in-person logging surface is now reachable directly
   // via `▶ LOG SESSION` on each TraineeDetail and at /coach/workouts.
@@ -2495,7 +2496,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
               style={{padding:"12px 16px",borderRadius:0,border:`1px solid ${C.rd||'#c94444'}`,
                 background:"transparent",color:C.rd||'#ff6b6b',fontFamily:FN,fontSize:12,fontWeight:600,
                 cursor:"pointer"}}>
-              {tt("DELETE")}
+              {tb("DELETE")}
             </button>
           )}
           {/* Order: DELETE · UNMARK (small status toggles, left-aligned)
@@ -2616,7 +2617,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                 textTransform:'uppercase',cursor:'pointer',whiteSpace:'nowrap',lineHeight:1.5}}
               onMouseEnter={e=>e.currentTarget.style.borderColor='#FFFFFF'}
               onMouseLeave={e=>e.currentTarget.style.borderColor='rgba(255,255,255,0.55)'}>
-              {tt('Athlete page')} →
+              {tb('Athlete page')} →
             </button>
           ) : null}>
           {(() => {
@@ -2708,7 +2709,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                       title="Delete this workout"
                       style={{background:'transparent',border:`1px solid ${(C.rd||'#c94444')}40`,color:C.rd||'#ff6b6b',
                         borderRadius:0,padding:'5px 10px',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.08em',cursor:'pointer'}}>
-                      {tt("DELETE")}
+                      {tb("DELETE")}
                     </button>
                   )}
                 </div>
@@ -2748,7 +2749,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
             <div style={{ display: 'flex', justifyContent: 'center', margin: '4px 0 20px' }}>
               <button onClick={() => setShowReviewed(v => !v)}
                 style={{ background: showReviewed ? `${C.ac}1f` : 'transparent', border: `1px solid ${showReviewed ? C.ac : C.cardBd}`, color: showReviewed ? C.ac : C.tm, borderRadius: 0, padding: '7px 16px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
-                {showReviewed ? `✕ ${tt('HIDE REVIEWED')} (${reviewedCount})` : `${tt('SHOW REVIEWED')} (${reviewedCount})`}
+                {showReviewed ? <>✕ {tb('HIDE REVIEWED')} ({reviewedCount})</> : <>{tb('SHOW REVIEWED')} ({reviewedCount})</>}
               </button>
             </div>
           )}

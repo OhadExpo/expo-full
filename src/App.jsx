@@ -2,7 +2,7 @@ import React, { useState, useCallback, useRef, useEffect, useMemo, Suspense, laz
 import { todayLocalISO } from './dates';
 import { C, FN, FB, uid } from './theme';
 import { ThemeToggle } from './ThemeToggle';
-import { LangCtx, LANG_KEY, tr as trFn, readLang } from './i18n';
+import { LangCtx, LANG_KEY, tr as trFn, readLang, tbFor } from './i18n';
 import { useLogoSrc } from './hooks/useTheme';
 import { EXPOMark } from './expoMark';
 import { useStore } from './useStore';
@@ -1177,6 +1177,9 @@ function AuthedApp() {
   // asks for it — nothing moves for anyone who does not click it.
   const [lang, setLang] = useState(readLang);
   const t = useCallback((str) => trFn(lang, str), [lang]);
+  // Button/tab labels keep the English width in Hebrew. App renders the
+  // LangCtx provider itself, so it reads its own lang state, not the context.
+  const tb = useMemo(() => tbFor(lang), [lang]);
   useEffect(() => { try { localStorage.setItem(LANG_KEY, lang); } catch {} }, [lang]);
 
   React.useEffect(() => {
@@ -1292,33 +1295,33 @@ function AuthedApp() {
   // Ohad spec 2026-05-16:
   //   Dashboard › Athletes › Tasks › Review › Billing › Incoming › Challenges › Portal
   const tabs = [
-    { key:'dashboard',  label:t('Dashboard'),  count:null },
-    { key:'trainees',   label:t('Athletes'),   count:activeAthletesCount,
+    { key:'dashboard',  label:tb('Dashboard'),  count:null },
+    { key:'trainees',   label:tb('Athletes'),   count:activeAthletesCount,
       submenu: [
         { route:'trainees',  label:t('Roster'),    count:activeAthletesCount },
         { route:'plans',     label:t('Programs'),  count:null },
         { route:'exercises', label:t('Exercises'), count:null },
         { route:'bhbc',      label:'BHBC',      count:null },
       ] },
-    { key:'sessions',   label:t('Sessions'),   count:null,
+    { key:'sessions',   label:tb('Sessions'),   count:null,
       submenu: [
         { route:'sessions',     label:t('Group'),  count:null },
         { route:'sessionsSolo', label:t('Single'), count:null },
       ] },
-    { key:'review',     label:t('Review'),     count:null,
+    { key:'review',     label:tb('Review'),     count:null,
       submenu: [
         { route:'review',      label:t('Workouts'), count:null },
         { route:'reviewTools', label:t('Tools'),    count:null },
       ] },
-    { key:'tasks',      label:t('Tasks'),      count:null },
-    { key:'billing',    label:t('Billing'),    count:null },
-    { key:'intake',     label:t('Incoming'),   count:null,
+    { key:'tasks',      label:tb('Tasks'),      count:null },
+    { key:'billing',    label:tb('Billing'),    count:null },
+    { key:'intake',     label:tb('Incoming'),   count:null,
       submenu: [
         { route:'intake',    label:t('Intake'),    count:null },
         { route:'waitlist',  label:t('Waitlist'),  count:null },
       ] },
-    { key:'challenges', label:t('Challenges'), count:null },
-    { key:'client',     label:t('Portal'),     count:null },
+    { key:'challenges', label:tb('Challenges'), count:null },
+    { key:'client',     label:tb('Portal'),     count:null },
   ];
   // Staff see only their whitelisted top-level tabs (STAFF_TABS = dashboard +
   // tasks only — they do NOT get Athletes/Programs/Exercises/Billing/etc; the
@@ -1696,7 +1699,7 @@ function AuthedApp() {
             <button onClick={() => setLang(lang === 'he' ? 'en' : 'he')}
               title={lang === 'he' ? 'Switch to English' : 'עברית'}
               style={{...baseBtn, background:'transparent', border:'none', color:C.tm, cursor:'pointer', fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.08em', minWidth:34, height:32, display:'inline-flex', alignItems:'center', justifyContent:'center', lineHeight:1}}>
-              {lang === 'he' ? 'EN' : 'עב'}
+              <span style={{display:'inline-grid',justifyItems:'center'}}><span aria-hidden="true" style={{gridArea:'1 / 1',visibility:'hidden'}}>{lang === 'he' ? 'עב' : 'EN'}</span><span style={{gridArea:'1 / 1'}}>{lang === 'he' ? 'EN' : 'עב'}</span></span>
             </button>
             <span style={{width:1,height:22,background:C.ac,opacity:0.15,alignSelf:'center',marginLeft:6,marginRight:6}} aria-hidden="true" />
             <ThemeToggle size={32} style={{ border: 'none' }} />
@@ -1739,7 +1742,7 @@ function AuthedApp() {
               <div className="subtab-scroll" style={{display:'flex',gap:2,borderBottom:`1px solid ${C.cardBd}`,marginBottom:16,flexWrap:'wrap'}}>
                 {[['exercises','Library'],['exerciseMatching','Matching'],['exerciseClassify','Classify'],['exerciseCleanup','Cleanup']].map(([r,l])=>{
                   const on=tab===r;
-                  return <button key={r} role="tab" aria-selected={on} onClick={()=>navTo(r)} style={{fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:on?C.tx:C.td,background:'transparent',border:'none',borderBottom:on?`2px solid ${C.ac}`:'2px solid transparent',padding:'10px 16px',marginBottom:-1,cursor:'pointer'}}>{t(l)}</button>;
+                  return <button key={r} role="tab" aria-selected={on} onClick={()=>navTo(r)} style={{fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:on?C.tx:C.td,background:'transparent',border:'none',borderBottom:on?`2px solid ${C.ac}`:'2px solid transparent',padding:'10px 16px',marginBottom:-1,cursor:'pointer'}}>{tb(l)}</button>;
                 })}
               </div>
               {tab==="exercises"&&<MemoExercises exercises={exercises} setExercises={setExercises} onOpenClassify={()=>navTo('exerciseClassify')}/>}

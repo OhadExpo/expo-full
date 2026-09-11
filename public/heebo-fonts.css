@@ -20,6 +20,14 @@
      lifts Hebrew to match. Box heights were already equal via line-height:1;
      this fixes the visible INK size. Applied only to the Hebrew bucket. */
   size-adjust: 109%;
+  /* Line-box parity with Nord (Ohad 2026-09-11: "all the buttons the same size
+     as in the english versions"). Measured at 100px: Nord ascent 94 / descent
+     26 / line box 120; Heebo 114 / 46 / 160, so every Hebrew label made its
+     button 4-6px taller than the English one. The overrides pin Heebo's line
+     box to Nord's; the glyphs themselves are untouched. */
+  ascent-override: 86.2%;   /* 94 / 1.09 - the overrides scale with size-adjust */
+  descent-override: 23.9%;  /* 26 / 1.09 */
+  line-gap-override: 0%;
   unicode-range: U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F;
 }
 

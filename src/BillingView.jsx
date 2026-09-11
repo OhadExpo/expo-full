@@ -22,7 +22,7 @@ import { supabase } from './supabase';
 import { isRefined5b, RefinedHeaderStrip, Btn, Input, toast, confirmToast, useEscClose, stripBtnBase } from './ui';
 import { parseTraineeId } from './traineeUtils';
 import { normalizePhoneIL } from './whatsappButton';
-import { useT } from './i18n';
+import { useT, useTB } from './i18n';
 import RevenueSheetCard from './RevenueSheetCard';
 
 const fmtCurrency = (amount, currency = 'ils') => {
@@ -32,6 +32,7 @@ const fmtCurrency = (amount, currency = 'ils') => {
 
 export default function BillingView({ trainees }) {
   const tt = useT();
+  const tb = useTB();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showRequest, setShowRequest] = useState(false);
@@ -160,7 +161,7 @@ export default function BillingView({ trainees }) {
               {tt('PAYMENT REQUESTS')} ({requests.filter(r => r.status === 'pending').length} {tt('Waiting')})
             </span>
             <button onClick={() => setShowRequest(true)}
-              style={{ ...stripBtnBase, border: `1px solid ${refined ? '#FFFFFF' : C.ac}`, color: refined ? '#FFFFFF' : C.ac }}>{tt('+ NEW REQUEST')}</button>
+              style={{ ...stripBtnBase, border: `1px solid ${refined ? '#FFFFFF' : C.ac}`, color: refined ? '#FFFFFF' : C.ac }}>{tb('+ NEW REQUEST')}</button>
           </div>
         </RefinedHeaderStrip>
         {loadError ? (

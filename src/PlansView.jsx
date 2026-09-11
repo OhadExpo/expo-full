@@ -55,7 +55,7 @@ import { sortProgramsRecent, sortProgramsByBlockDesc } from './traineeUtils';
 import { SideRail } from './SideRail';
 import { fmtPrettyDate } from './dates';
 import { cloneDayForCopy } from './planCopy.js';
-import { useT as useAppT, useHe, daysAgoHe, countIn } from './i18n';
+import { useT as useAppT, useHe, daysAgoHe, countIn, useTB } from './i18n';
 
 // "1 DAYS" read wrong on every single-day block. One helper, used by every
 // place that prints a count next to a noun.
@@ -3941,6 +3941,7 @@ function BhbcBadge({ tid, trainees }) {
 
 export default function PlansView({ planIndex, reloadIndex, trainees, exercises, setExercises, clientWorkouts, weeklyFocus, setWeeklyFocus, openPlanId, onPlanOpened, onEditorOpen, onEditorClose, onPreviewPlan, portalVis, setPortalVis, onCloseEditor }) {
   const tt = useAppT();
+  const tb = useTB();
   const he = useHe();
   const { plan: editPlanData, loading: editLoading, load: loadFullPlan, clear: clearPlan, setPlan: setEditPlan } = useFullPlan();
   const [linkedTaskId, setLinkedTaskId] = useState(null);
@@ -4588,7 +4589,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
             style={{ margin:'0 18px', width:'calc(100% - 36px)', boxSizing:'border-box', padding:'9px 12px', background:'transparent', color:C.tx, border:`1px solid ${C.cardBd}`, borderRadius:0, fontFamily:FN, fontSize:13, outline:'none' }} />
           <div style={{ display:'flex', justifyContent:'flex-end', gap:8, padding:'14px 18px' }}>
             <button onClick={close} style={{ background:'transparent', border:`1px solid ${C.cardBd}`, color:C.tm, borderRadius:0, padding:'8px 16px', fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.09em', cursor:'pointer', textTransform:'uppercase' }}>{tt("Cancel")}</button>
-            <button onClick={doDelete} disabled={!ok} style={{ background: ok ? C.rd : 'transparent', border:`1px solid ${C.rd}`, color: ok ? '#FFFFFF' : C.rd, opacity: ok ? 1 : 0.5, borderRadius:0, padding:'8px 16px', fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.09em', cursor: ok ? 'pointer' : 'not-allowed', textTransform:'uppercase' }}>{tt("Delete")}</button>
+            <button onClick={doDelete} disabled={!ok} style={{ background: ok ? C.rd : 'transparent', border:`1px solid ${C.rd}`, color: ok ? '#FFFFFF' : C.rd, opacity: ok ? 1 : 0.5, borderRadius:0, padding:'8px 16px', fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.09em', cursor: ok ? 'pointer' : 'not-allowed', textTransform:'uppercase' }}>{tb("Delete")}</button>
           </div>
         </div>
       </div>
@@ -4794,7 +4795,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                     ? row.coupleMembers.map(m => (
                       <button key={m.id} onClick={()=>handleNewPlan(m.id)} style={{background:'var(--c-sf)',border:`1px solid ${C.or}`,borderRadius:0,color:C.or,cursor:'pointer',padding:'3px 10px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',whiteSpace:'nowrap',marginInlineEnd:6}}>+ {String(m.name).toUpperCase()}</button>
                     ))
-                    : <button onClick={()=>handleNewPlan(row.tid)} style={{background:'var(--c-sf)',border:`1px solid ${C.or}`,borderRadius:0,color:C.or,cursor:'pointer',padding:'3px 10px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',whiteSpace:'nowrap'}}>{tt('+ ASSIGN PROGRAM')}</button>}
+                    : <button onClick={()=>handleNewPlan(row.tid)} style={{background:'var(--c-sf)',border:`1px solid ${C.or}`,borderRadius:0,color:C.or,cursor:'pointer',padding:'3px 10px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',whiteSpace:'nowrap'}}>{tb('+ ASSIGN PROGRAM')}</button>}
                 </div>
               );
             }
@@ -4813,7 +4814,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                   </span>
                   <span style={{display:'inline-flex',alignItems:'center',gap:10,flexShrink:0}}>
                     <button onClick={e=>{e.stopPropagation();setLineageTraineeId(row.tid);}} title="Training Analysis — this athlete's movement-pattern volume across every block"
-                      style={{display:'inline-flex',alignItems:'center',gap:5,height:24,padding:'0 8px',background:'rgba(255,255,255,0.12)',border:'1px solid rgba(255,255,255,0.3)',borderRadius:0,color:'#fff',cursor:'pointer',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.08em',whiteSpace:'nowrap'}}>◫ {tt('ANALYSIS')}</button>
+                      style={{display:'inline-flex',alignItems:'center',gap:5,height:24,padding:'0 8px',background:'rgba(255,255,255,0.12)',border:'1px solid rgba(255,255,255,0.3)',borderRadius:0,color:'#fff',cursor:'pointer',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.08em',whiteSpace:'nowrap'}}>◫ {tb('ANALYSIS')}</button>
                     {/* Recency: the DOT carries the colour signal, the text is muted
                         (Ohad #195 "colored but less colorful") and the pill has a
                         fixed min-width so '18D AGO' and 'TRAINED TODAY' are the same
@@ -4844,7 +4845,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                         title={expanded?`Hide ${row.earlier.length} previous block${row.earlier.length===1?'':'s'}`:`Show ${row.earlier.length} previous block${row.earlier.length===1?'':'s'}`}
                         className="prog-plusn"
                         style={{display:'inline-flex',alignItems:'center',justifyContent:'center',minWidth:112,gap:5,height:24,padding:'0 9px',background: expanded ? 'rgba(127,127,138,0.14)' : 'transparent',border:`1px solid ${C.cardBd}`,borderRadius:0,color: C.tm,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.05em',whiteSpace:'nowrap',flexShrink:0,fontVariantNumeric:'tabular-nums'}}>
-                        {row.earlier.length} {tt('previous')}
+                        {row.earlier.length} {tb('previous')}
                         <span aria-hidden style={{display:'inline-block',transform: expanded?'rotate(180deg)':'none',transition:'transform .15s',fontSize:8,lineHeight:1}}><svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
                       </button>
                     )}
@@ -4866,10 +4867,10 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                     </button>;
                   })()}
                   <div className="prog-spacer" style={{flex:1,minWidth:8}} />
-                  {onPreviewPlan && <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();onPreviewPlan(cur.id);}} title="Preview as trainee" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{tt("Preview")}</button>}
-                  <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();handleDuplicate(cur.id);}} title="Duplicate program" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{tt("Duplicate")}</button>
-                  <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setShareTarget(cur.id);}} title="Share to an athlete — duplicates this program for them" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{tt("Share")}</button>
-                  <button className="prog-txtbtn" onClick={e=>{e.stopPropagation(); setPendingDelete({ id: cur.id, name: cur.name, fromEditor: false }); setDeleteTyped('');}} title="Delete program" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.rd}}>{tt("Delete")}</button>
+                  {onPreviewPlan && <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();onPreviewPlan(cur.id);}} title="Preview as trainee" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{tb("Preview")}</button>}
+                  <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();handleDuplicate(cur.id);}} title="Duplicate program" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{tb("Duplicate")}</button>
+                  <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setShareTarget(cur.id);}} title="Share to an athlete — duplicates this program for them" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{tb("Share")}</button>
+                  <button className="prog-txtbtn" onClick={e=>{e.stopPropagation(); setPendingDelete({ id: cur.id, name: cur.name, fromEditor: false }); setDeleteTyped('');}} title="Delete program" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.rd}}>{tb("Delete")}</button>
                 </div>
                 {/* Expanded earlier blocks — same hover preview, slightly compressed
                     visual treatment so the eye stays on the current block. */}
@@ -4899,10 +4900,10 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                           const isVis = portalVis?.[vk] !== false;
                           return <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} title={isVis?'On the athlete portal — click to hide':'Hidden from the athlete portal — click to show'} style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.04em',color:isVis?C.gn:C.td,display:'inline-flex',alignItems:'center',gap:5}}><span style={{width:5,height:5,borderRadius:'50%',background:isVis?C.gn:C.td}} />{isVis?'On portal':'Hidden'}</button>;
                         })()}
-                        {onPreviewPlan && <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();onPreviewPlan(p.id);}} title="Preview as trainee" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{tt("Preview")}</button>}
-                        <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();handleDuplicate(p.id);}} title="Duplicate program" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{tt("Duplicate")}</button>
-                        <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setShareTarget(p.id);}} title="Share to an athlete — duplicates this program for them" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{tt("Share")}</button>
-                        <button className="prog-txtbtn" onClick={e=>{e.stopPropagation(); setPendingDelete({ id: p.id, name: p.name, fromEditor: false }); setDeleteTyped('');}} title="Delete program" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.04em',color:C.rd}}>{tt("Delete")}</button>
+                        {onPreviewPlan && <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();onPreviewPlan(p.id);}} title="Preview as trainee" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{tb("Preview")}</button>}
+                        <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();handleDuplicate(p.id);}} title="Duplicate program" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{tb("Duplicate")}</button>
+                        <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setShareTarget(p.id);}} title="Share to an athlete — duplicates this program for them" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{tb("Share")}</button>
+                        <button className="prog-txtbtn" onClick={e=>{e.stopPropagation(); setPendingDelete({ id: p.id, name: p.name, fromEditor: false }); setDeleteTyped('');}} title="Delete program" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.04em',color:C.rd}}>{tb("Delete")}</button>
                         </div>
                       </div>
                     ))}
@@ -4939,7 +4940,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                     ? <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>{row.coupleMembers.map(m => (
                         <button key={m.id} onClick={()=>handleNewPlan(m.id)} style={{background:'var(--c-sf)',border:`1px solid ${C.or}`,borderRadius:0,color:C.or,cursor:'pointer',padding:'5px 12px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',whiteSpace:'nowrap'}}>+ {String(m.name).toUpperCase()}</button>
                       ))}</div>
-                    : <button onClick={()=>handleNewPlan(row.tid)} style={{alignSelf:'flex-start',background:'var(--c-sf)',border:`1px solid ${C.or}`,borderRadius:0,color:C.or,cursor:'pointer',padding:'5px 12px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',whiteSpace:'nowrap'}}>{tt('+ ASSIGN PROGRAM')}</button>}
+                    : <button onClick={()=>handleNewPlan(row.tid)} style={{alignSelf:'flex-start',background:'var(--c-sf)',border:`1px solid ${C.or}`,borderRadius:0,color:C.or,cursor:'pointer',padding:'5px 12px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',whiteSpace:'nowrap'}}>{tb('+ ASSIGN PROGRAM')}</button>}
                 </div>
               );
             }
@@ -4972,10 +4973,10 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               </button>;
             };
             const txtActs = (id, delFn) => <>
-              {onPreviewPlan && <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();onPreviewPlan(id);}} title="Preview as trainee" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{tt("Preview")}</button>}
-              <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();handleDuplicate(id);}} title="Duplicate program" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{tt("Duplicate")}</button>
-              <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setShareTarget(id);}} title="Share to an athlete — duplicates this program for them" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{tt("Share")}</button>
-              <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();delFn();}} title="Delete program" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.rd}}>{tt("Delete")}</button>
+              {onPreviewPlan && <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();onPreviewPlan(id);}} title="Preview as trainee" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{tb("Preview")}</button>}
+              <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();handleDuplicate(id);}} title="Duplicate program" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{tb("Duplicate")}</button>
+              <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setShareTarget(id);}} title="Share to an athlete — duplicates this program for them" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{tb("Share")}</button>
+              <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();delFn();}} title="Delete program" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.rd}}>{tb("Delete")}</button>
             </>;
             const plusBtn = row.earlier.length > 0 && (
               <button onClick={e=>{e.stopPropagation();toggleAthlete(row.tid);}}
@@ -4994,7 +4995,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                 </span>
                 <span style={{display:'inline-flex',alignItems:'center',gap:10,flexShrink:0}}>
                   <button onClick={e=>{e.stopPropagation();setLineageTraineeId(row.tid);}} title="Training Analysis — this athlete's movement-pattern volume across every block"
-                    style={{display:'inline-flex',alignItems:'center',gap:5,height:24,padding:'0 8px',background:'rgba(255,255,255,0.12)',border:'1px solid rgba(255,255,255,0.3)',borderRadius:0,color:'#fff',cursor:'pointer',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.08em',whiteSpace:'nowrap'}}>◫ {tt('ANALYSIS')}</button>
+                    style={{display:'inline-flex',alignItems:'center',gap:5,height:24,padding:'0 8px',background:'rgba(255,255,255,0.12)',border:'1px solid rgba(255,255,255,0.3)',borderRadius:0,color:'#fff',cursor:'pointer',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.08em',whiteSpace:'nowrap'}}>◫ {tb('ANALYSIS')}</button>
                   <span title={`Last session: ${tagText}`} style={{display:'inline-flex',alignItems:'center',justifyContent:'flex-end',gap:6,minWidth:96,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',color:'var(--c-tm)',whiteSpace:'nowrap'}}>
                     <span style={{width:6,height:6,borderRadius:'50%',background:tagColor,flexShrink:0}} />{tagText}
                   </span>
@@ -5112,10 +5113,10 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                 </button>;
               })()}
               <div className="prog-spacer" style={{flex:1,minWidth:8}} />
-              {onPreviewPlan && <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();onPreviewPlan(p.id)}} title="Preview as trainee" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{tt("Preview")}</button>}
-              <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();handleDuplicate(p.id)}} title="Duplicate program" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{tt("Duplicate")}</button>
-              <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setShareTarget(p.id)}} title="Share to an athlete — duplicates this program for them" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{tt("Share")}</button>
-              <button className="prog-txtbtn" onClick={e=>{e.stopPropagation(); setPendingDelete({ id: p.id, name: p.name, fromEditor: false }); setDeleteTyped('');}} title="Delete program" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.rd}}>{tt("Delete")}</button>
+              {onPreviewPlan && <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();onPreviewPlan(p.id)}} title="Preview as trainee" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{tb("Preview")}</button>}
+              <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();handleDuplicate(p.id)}} title="Duplicate program" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{tb("Duplicate")}</button>
+              <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setShareTarget(p.id)}} title="Share to an athlete — duplicates this program for them" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{tb("Share")}</button>
+              <button className="prog-txtbtn" onClick={e=>{e.stopPropagation(); setPendingDelete({ id: p.id, name: p.name, fromEditor: false }); setDeleteTyped('');}} title="Delete program" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.rd}}>{tb("Delete")}</button>
             </div>
           </div>})}
           {hasMore && <Btn variant="ghost" onClick={()=>setVisibleCount(c=>c+PAGE_SIZE)} style={{width:"100%",justifyContent:"center",marginTop:8}}>Load more ({filtered.length - visibleCount} remaining)</Btn>}

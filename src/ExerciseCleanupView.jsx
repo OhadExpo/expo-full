@@ -13,7 +13,7 @@ import { C, FN, FB } from './theme';
 import { Card, Btn, EmptyState, ConfirmDialog, toast } from './ui';
 import { normTitle } from './exerciseMatch';
 import { supabase } from './supabase';
-import { useT } from './i18n';
+import { useT, useTB } from './i18n';
 
 // Returns { level: 'definite'|'suspicious', reason } or null.
 export function trashVerdict(title) {
@@ -47,6 +47,7 @@ export function trashVerdict(title) {
 
 export default function ExerciseCleanupView({ exercises = [], setExercises }) {
   const tt = useT();
+  const tb = useTB();
   const [plans, setPlans] = useState(null);
   const [checked, setChecked] = useState(null); // Set of ids; null = not initialized
   const [confirm, setConfirm] = useState(false);
@@ -106,9 +107,9 @@ export default function ExerciseCleanupView({ exercises = [], setExercises }) {
       <Card leftStripe={C.or} header={tt('Library Cleanup')} headerRight={
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <span style={{ ...th, color: '#fff' }}>{rows.length} {tt('flagged')} · {sel.size} {tt('selected')}</span>
-          <Btn variant="ghost" onClick={() => setAll(null, true)}>{tt('Select all')}</Btn>
-          <Btn variant="ghost" onClick={() => setAll(null, false)}>{tt('Clear')}</Btn>
-          <Btn disabled={!sel.size} onClick={() => setConfirm(true)} style={{ background: sel.size ? '#DE4E3B' : undefined, borderColor: sel.size ? '#DE4E3B' : undefined, color: sel.size ? '#fff' : undefined }}>{tt('Delete')} {sel.size} {tt('selected')}</Btn>
+          <Btn variant="ghost" onClick={() => setAll(null, true)}>{tb('Select all')}</Btn>
+          <Btn variant="ghost" onClick={() => setAll(null, false)}>{tb('Clear')}</Btn>
+          <Btn disabled={!sel.size} onClick={() => setConfirm(true)} style={{ background: sel.size ? '#DE4E3B' : undefined, borderColor: sel.size ? '#DE4E3B' : undefined, color: sel.size ? '#fff' : undefined }}>{tb('Delete')} {sel.size} {tb('selected')}</Btn>
         </div>}>
         <div style={{ fontFamily: FB, fontSize: 12.5, color: C.td }}>
           {tt('Entries that look like set/rep prescriptions, warmup notes or markers — not real exercises.')} <b style={{ color: C.tx }}>{nDef} {tt('definite')}</b>, <b style={{ color: C.tx }}>{nSus} {tt('suspicious')}</b>. {tt('Pre-checked = definite AND unreferenced AND no video/cues; everything else waits for your eye. Deleting sends any plan rows that used them to the Matching screen to be re-pointed at real exercises.')}

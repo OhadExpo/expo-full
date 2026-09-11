@@ -19,7 +19,7 @@ import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
 import { isRefined5b, RefinedHeaderStrip, Modal, Btn, Input, Select, confirmToast, toast, stripBtnBase } from './ui';
 import { GOAL_TYPES, computeProgress, TEMPLATES } from './challengePredicates';
-import { useT as useAppT } from './i18n';
+import { useT as useAppT, useTB } from './i18n';
 
 const fmtDate = (d) => {
   try { return fmtPrettyDate(d); } catch { return ''; }
@@ -77,6 +77,7 @@ function Leaderboard({ challenge, participants, traineesById, workouts, bwLog, m
 
 export default function ChallengesView({ trainees, clientWorkouts, bwLog }) {
   const tt = useAppT();
+  const tb = useTB();
   const [challenges, setChallenges] = useState([]);
   const [participantsByChallenge, setParticipantsByChallenge] = useState({});
   const [loading, setLoading] = useState(true);
@@ -205,7 +206,7 @@ export default function ChallengesView({ trainees, clientWorkouts, bwLog }) {
             {tt('Challenges')} ({challenges.length})
           </span>
           <button onClick={() => { setEditChallenge(null); setShowCreate(true); }}
-            style={{ ...stripBtnBase, border: `1px solid ${refined ? '#FFFFFF' : C.ac}`, color: refined ? '#FFFFFF' : C.ac }}>{tt('+ NEW CHALLENGE')}</button>
+            style={{ ...stripBtnBase, border: `1px solid ${refined ? '#FFFFFF' : C.ac}`, color: refined ? '#FFFFFF' : C.ac }}>{tb('+ NEW CHALLENGE')}</button>
         </div>
       </RefinedHeaderStrip>
 

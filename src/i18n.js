@@ -19,7 +19,7 @@
 //   - coaching cues / notes — his to author, and already Hebrew where he wrote
 //     them
 //   - athlete names, block names, and anything an athlete or coach typed
-import { createContext, useContext } from 'react';
+import { createContext, useContext, createElement } from 'react';
 
 export const LangCtx = createContext('en');
 export const LANG_KEY = 'expo-lang';
@@ -431,6 +431,12 @@ export const HE = {
   // The cue expander under an exercise on the program tab.
   '▼ MORE': '▼ עוד',
   '▲ LESS': '▲ פחות',
+  "NEW VERSION AVAILABLE": 'גרסה חדשה זמינה',
+  "UPDATING…": 'מעדכן…',
+  "Loading the latest version…": 'טוען את הגרסה האחרונה…',
+  "A new version of EXPO is ready. Update now to continue.": 'גרסה חדשה של EXPO מוכנה. עדכן עכשיו כדי להמשיך.',
+  "UPDATE NOW": 'עדכן עכשיו',
+  LATER: 'אחר כך',
   "FROM YOUR COACH": 'מהמאמן שלך',
   "HIDE ALL": 'הסתר הכל',
   ok: 'סביר',
@@ -824,6 +830,26 @@ export function tr(lang, s) {
 export function useT() {
   const lang = useContext(LangCtx);
   return (s) => tr(lang, s);
+}
+
+/** A label for a BUTTON or TAB. Ohad's rule (2026-09-11): every button is the
+ *  same size in Hebrew as in English. A Hebrew word is usually shorter, so a
+ *  text-sized button shrinks. This stacks the English label, invisible, under
+ *  the Hebrew one in an inline grid: the box keeps the English width, the eye
+ *  sees Hebrew. In English it is just the string. */
+export function tbFor(lang) {
+  return (s) => {
+    const he = tr('he', s);
+    if (he === s) return s;                       // no Hebrew for it: plain text
+    const shown = lang === 'he' ? he : s;
+    const other = lang === 'he' ? s : he;
+    return createElement('span', { style: { display: 'inline-grid', justifyItems: 'center', verticalAlign: 'top' } },
+      createElement('span', { 'aria-hidden': 'true', style: { gridArea: '1 / 1', visibility: 'hidden', whiteSpace: 'nowrap' } }, other),
+      createElement('span', { style: { gridArea: '1 / 1', whiteSpace: 'nowrap' } }, shown));
+  };
+}
+export function useTB() {
+  return tbFor(useContext(LangCtx));
 }
 
 /** True when the app is in Hebrew — for the few places that compose a

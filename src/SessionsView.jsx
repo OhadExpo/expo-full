@@ -20,7 +20,7 @@ import { supabase } from './supabase';
 import { RefinedHeaderStrip, toast, confirmToast, stripBtnBase } from './ui';
 import { traineeIdsFor } from './traineeUtils';
 import { mergeIncomingSession } from './sessionMerge';
-import { useT as useAppT } from './i18n';
+import { useT as useAppT, useTB } from './i18n';
 
 
 
@@ -672,6 +672,7 @@ function FloorBar({ session, checkedIn, traineeById, onAdd, onFinish }) {
 // ---- per-athlete logging card ----
 function AthleteCard({ a, name, prevMap, exDetail, onToggleIn, onSet, onCurEx, onRemove }) {
   const tt = useAppT();
+  const tb = useTB();
   const COLS = '16px 1fr 1fr 0.8fr 30px';
   return (
     <div style={{ background: 'var(--c-sf)', border: `1px solid ${a.checkedIn ? C.ac : C.cardBd}`, display: 'flex', flexDirection: 'column' }}>
@@ -681,7 +682,7 @@ function AthleteCard({ a, name, prevMap, exDetail, onToggleIn, onSet, onCurEx, o
           <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.04em' }}>{a.dayName}{a.week ? ` · ${tt('W')}${a.week}` : ''}</div>
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
-          <button onClick={onToggleIn} style={{ ...miniBtn, minWidth: 72, textAlign: 'center', display: 'inline-flex', justifyContent: 'center', background: a.checkedIn ? C.gn : 'transparent', color: a.checkedIn ? '#FFF' : C.tm, border: `1px solid ${a.checkedIn ? C.gn : C.cardBd}` }}>{a.checkedIn ? tt('✓ IN') : tt('CHECK IN')}</button>
+          <button onClick={onToggleIn} style={{ ...miniBtn, minWidth: 72, textAlign: 'center', display: 'inline-flex', justifyContent: 'center', background: a.checkedIn ? C.gn : 'transparent', color: a.checkedIn ? '#FFF' : C.tm, border: `1px solid ${a.checkedIn ? C.gn : C.cardBd}` }}>{a.checkedIn ? tb('✓ IN') : tb('CHECK IN')}</button>
           <button onClick={async () => {
             // Warn if the coach logged sets on this card — finishSession only
             // writes athletes still on the roster, so removing them discards that

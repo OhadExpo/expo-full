@@ -13,7 +13,7 @@ import { Btn, Modal, Card, Badge, isRefined5b, toast, SectionLabel, CollapsibleS
 import { supabase } from './supabase';
 import { generateIntakeToken, getForm } from './intakeFormSchemas';
 import PayloadDetail from './IntakePayloadDetail';
-import { useT } from './i18n';
+import { useT, useTB } from './i18n';
 
 function fmt(iso) {
   if (!iso) return '—';
@@ -37,6 +37,7 @@ const RTL = /[֐-׿]/;
 
 export default function IntakeView({ trainees }) {
   const tt = useT();
+  const tb = useTB();
   const [submissions, setSubmissions] = useState(null);
   const [tokens, setTokens] = useState([]);
   const [filter, setFilter] = useState(''); // text filter
@@ -188,7 +189,7 @@ export default function IntakeView({ trainees }) {
               <span style={{ color: C.tx, fontWeight: 700 }}>{counts.open} {tt('open')}</span> · {counts.initial} {tt('initial')} · {counts.assessment} {tt('assessment')} · {counts.progress} {tt('progress')} · {counts.total} {tt('total')}
             </div>
           </div>
-          <Btn onClick={() => setShowGen(true)} style={{ height: 30, padding: '0 18px' }}>{tt('+ Generate Link')}</Btn>
+          <Btn onClick={() => setShowGen(true)} style={{ height: 30, padding: '0 18px' }}>{tb('+ Generate Link')}</Btn>
         </div>
       </div>
 
@@ -218,7 +219,7 @@ export default function IntakeView({ trainees }) {
                   <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 6 }}>
                     <button onClick={async () => { try { await navigator.clipboard.writeText(url); } catch {} }}
                       style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.ac, padding: '3px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', borderRadius: 0 }}>
-                      {tt('Copy URL')}
+                      {tb('Copy URL')}
                     </button>
                     <button onClick={() => setPendingDelete({ kind: 'token', key: t.token })} title="Delete this unused link" aria-label="Delete link"
                       style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, color: C.rd, padding: '3px 9px', fontFamily: FN, fontSize: 11, fontWeight: 700, lineHeight: 1, cursor: 'pointer', borderRadius: 0 }}>

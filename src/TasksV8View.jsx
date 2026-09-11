@@ -33,7 +33,7 @@ import { isRefined5b, toast, confirmToast, usePersistentState, asButton } from '
 import { useTheme } from './hooks/useTheme';
 import { useCoachNoteComments, useCoachNoteEvents, recordNoteEvent } from './coachNoteComments';
 import { supabase } from './supabase';
-import { useT } from './i18n';
+import { useT, useTB } from './i18n';
 import {
   isCalendarConnected,
   connectGoogleCalendar,
@@ -360,6 +360,7 @@ function StatusIconGlyph({ status, theme, size = 16 }) {
 const TASK_PILL_H = 24;
 function StatusPill({ status, theme, onSetStatus, readOnly = false }) {
   const tt = useT();
+  const tb = useTB();
   // Native <select> — bulletproof vs the old custom popover (which jumped, jammed,
   // and sometimes swallowed the click so the status never changed). onChange
   // always fires; the browser handles positioning, so no lag/pop/hover bugs.
@@ -380,7 +381,7 @@ function StatusPill({ status, theme, onSetStatus, readOnly = false }) {
   if (readOnly) {
     return (
       <span title="Read-only" style={{ ...base, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 10px', opacity: 0.65 }}>
-        {tt(opt.label)}
+        {tb(opt.label)}
       </span>
     );
   }
@@ -436,6 +437,7 @@ const PRIORITY_PICK = [
 ];
 function PriorityPill({ priority, onSetPriority, readOnly = false }) {
   const tt = useT();
+  const tb = useTB();
   // Native <select> — same reliability fix as StatusPill.
   const cur = PRIORITY_PICK.find(p => p.id === priority) || PRIORITY_PICK[2];
   const base = {

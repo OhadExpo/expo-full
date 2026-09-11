@@ -10,7 +10,7 @@
 // Bookings come in via the public /book/<slug> route (BookingPublic.jsx).
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { useT } from './i18n';
+import { useT, useTB } from './i18n';
 import { fmtPrettyDate } from './dates';
 import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
@@ -34,6 +34,7 @@ function bookingPublicUrl(slug) {
 
 export default function BookingView({ trainees }) {
   const tt = useT();
+  const tb = useTB();
   const [settings, setSettings] = useState(null);
   const [rules, setRules] = useState([]);
   const [bookings, setBookings] = useState([]);
@@ -133,14 +134,14 @@ export default function BookingView({ trainees }) {
             {bookingPublicUrl(draftSettings?.slug)}
           </code>
           <span style={{ flex: 1 }} />
-          <Btn onClick={saveSettings}>{tt('Save settings')}</Btn>
+          <Btn onClick={saveSettings}>{tb('Save settings')}</Btn>
         </div>
       </CollapsibleSection>
 
       {/* AVAILABILITY */}
       <CollapsibleSection title={tt('Weekly Availability')} count={rules.length} storageKey="cal-availability" style={{ marginBottom: 0 }}
         right={<button onClick={addRule}
-          style={{ ...stripBtnBase, border: '1px solid #FFFFFF', color: '#FFFFFF' }}>{tt('+ ADD RULE')}</button>}>
+          style={{ ...stripBtnBase, border: '1px solid #FFFFFF', color: '#FFFFFF' }}>{tb('+ ADD RULE')}</button>}>
         {rules.length === 0 ? (
           <div style={{ padding: 14, textAlign: 'center', color: C.td, fontSize: 13 }}>
             {tt('No availability rules. Add one to allow bookings.')}

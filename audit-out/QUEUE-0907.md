@@ -76,3 +76,10 @@ RESTORE POINT (pre-perf-fixes): b1f93ab6f04fa84e842c58049f278312374c8a43
 - [x] N9 a save that fails offline still toasts (loads stay quiet); Hebrew toast
 - [x] N10 drill-downs in Hebrew: program editor 609→312, Edit Athlete form (both copies), athlete detail 195→127, booking settings 18→5, readiness everywhere; the pair shooter can open a card
 - [x] N11 close: 15-step battery green (02:47), restamped + both verifiers green, final host chain done 03:15 (29 pairs mirrored, 3 tabs reloaded), last push
+
+## D · 2026-09-11 (day)
+- [x] D1 lifts 09-11: עמית גרשון 60, Nathan Knight 60 — 2/2 verified, restore point kept
+- [x] D2 no FOCUS anywhere in the athlete portal (per-exercise line, logger label, sandbox mock) — built, portal shot clean
+- [ ] D3 buttons: same size + rulings in Hebrew as in English, everywhere — probe audit-out/probe-button-parity.mjs: 414 diffs / 18 routes (heights +4–6px from font metrics; widths from shorter words)
+- [ ] D4 athletes get the update notification on EVERY login — add rules (once per bundle, snooze, idle-only)
+- [ ] D5 after D3/D4: rebuild, pairs, the three hosts, reload his tabs, show him
