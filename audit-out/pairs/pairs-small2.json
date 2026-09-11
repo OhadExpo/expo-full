@@ -5,11 +5,11 @@
     "name": "waitlist-he",
     "before": {
       "file": "audit-out\\pairs\\waitlist-he-he-live.png",
-      "chars": 3148
+      "chars": 300
     },
     "after": {
       "file": "audit-out\\pairs\\waitlist-he-he-branch.png",
-      "chars": 199
+      "chars": 293
     }
   },
   {
@@ -35,7 +35,7 @@
     },
     "after": {
       "file": "audit-out\\pairs\\review-he-he-branch.png",
-      "chars": 476
+      "chars": 475
     }
   }
 ]

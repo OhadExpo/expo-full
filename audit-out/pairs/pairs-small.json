@@ -9,7 +9,7 @@
     },
     "after": {
       "file": "audit-out\\pairs\\dashboard-he-he-branch.png",
-      "chars": 3385
+      "chars": 3406
     }
   },
   {
@@ -22,7 +22,7 @@
     },
     "after": {
       "file": "audit-out\\pairs\\sessions-he-he-branch.png",
-      "chars": 466
+      "chars": 470
     }
   },
   {
@@ -44,11 +44,11 @@
     "name": "smart-import-he",
     "before": {
       "file": "audit-out\\pairs\\smart-import-he-he-live.png",
-      "chars": 3148
+      "chars": 329
     },
     "after": {
       "file": "audit-out\\pairs\\smart-import-he-he-branch.png",
-      "chars": 1182
+      "chars": 329
     }
   },
   {
@@ -57,11 +57,11 @@
     "name": "calendar-he",
     "before": {
       "file": "audit-out\\pairs\\calendar-he-he-live.png",
-      "chars": 3148
+      "chars": 368
     },
     "after": {
       "file": "audit-out\\pairs\\calendar-he-he-branch.png",
-      "chars": 1182
+      "chars": 367
     }
   },
   {
@@ -70,11 +70,11 @@
     "name": "intake-he",
     "before": {
       "file": "audit-out\\pairs\\intake-he-he-live.png",
-      "chars": 3148
+      "chars": 297
     },
     "after": {
       "file": "audit-out\\pairs\\intake-he-he-branch.png",
-      "chars": 1182
+      "chars": 297
     }
   }
 ]

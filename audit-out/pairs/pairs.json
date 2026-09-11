@@ -5,11 +5,11 @@
     "name": "bhbc",
     "before": {
       "file": "audit-out\\pairs\\bhbc-live.png",
-      "chars": 1637
+      "chars": 1648
     },
     "after": {
       "file": "audit-out\\pairs\\bhbc-branch.png",
-      "chars": 1637
+      "chars": 1648
     }
   },
   {
@@ -18,11 +18,11 @@
     "name": "dashboard",
     "before": {
       "file": "audit-out\\pairs\\dashboard-live.png",
-      "chars": 3647
+      "chars": 3620
     },
     "after": {
       "file": "audit-out\\pairs\\dashboard-branch.png",
-      "chars": 3647
+      "chars": 3620
     }
   },
   {
@@ -31,11 +31,11 @@
     "name": "pt-zone",
     "before": {
       "file": "audit-out\\pairs\\pt-zone-live.png",
-      "chars": 1568
+      "chars": 1579
     },
     "after": {
       "file": "audit-out\\pairs\\pt-zone-branch.png",
-      "chars": 1568
+      "chars": 1579
     }
   },
   {

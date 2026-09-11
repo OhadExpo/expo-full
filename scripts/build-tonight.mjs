@@ -206,7 +206,7 @@ ${css}
 </style></head><body>
 <header class="top"><div class="wrap">
   <h1>Tonight <span class="cy">· before and after</span></h1>
-  <p>${commits.length} commits. Deployed 11 Sep 19:45 (master cf884fb) — everything but the athlete portal, so most "Live" panes now match "This branch". Every image below is a real screenshot of the running app.</p>
+  <p>${commits.length} commits. Deployed 11 Sep 19:45 (master cf884fb) — everything but the athlete portal. Since then, on this branch and NOT deployed: the Hebrew top bar made an exact mirror (logical margins, natural tab widths, heavier labels), physical → logical styles across the coach app (359 in 49 files, measured by a mirror probe), a second and third Hebrew pass on every coach screen as it is seen, and the ⋮ menu, review detail, athlete detail, exercises, waitlist and intake losing their last English. Where "Live" and "This branch" differ below, that is what waits for your yes. Every image is a real screenshot of the running app.</p>
 </div></header>
 <div class="wrap">
   <div class="bar">

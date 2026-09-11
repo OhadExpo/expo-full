@@ -22,7 +22,7 @@
     },
     "after": {
       "file": "audit-out\\pairs\\tasks-he-he-branch.png",
-      "chars": 2340
+      "chars": 2334
     }
   },
   {
@@ -35,7 +35,7 @@
     },
     "after": {
       "file": "audit-out\\pairs\\billing-he-he-branch.png",
-      "chars": 2431
+      "chars": 2436
     }
   }
 ]

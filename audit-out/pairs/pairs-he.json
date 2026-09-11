@@ -5,11 +5,11 @@
     "name": "pt-zone",
     "before": {
       "file": "audit-out\\pairs\\pt-zone-he-live.png",
-      "chars": 1507
+      "chars": 1504
     },
     "after": {
       "file": "audit-out\\pairs\\pt-zone-he-branch.png",
-      "chars": 1507
+      "chars": 1504
     }
   },
   {
