@@ -217,7 +217,7 @@ function SubmenuTab({ id, label, count, items, tab, navTo, activeStyle, isChosen
                   color: isItemActive ? C.ac : C.tx,
                   border: 'none', borderBottom: `1px solid ${C.cardBd}`,
                   fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em',
-                  textTransform: 'uppercase', textAlign: 'left', cursor: 'pointer',
+                  textTransform: 'uppercase', textAlign: 'start', cursor: 'pointer',
                 }}>
                 <span>{it.label}</span>
                 {it.count != null && <span style={{ fontSize: 10, color: isItemActive ? C.ac : C.td, fontFamily: FN }}>{it.count}</span>}
@@ -368,7 +368,7 @@ function MoreMenu({ tab, navTo, onExport, onChangePassword, isOwner = true }) {
                   color: isItemActive ? C.ac : C.tx,
                   border: 'none', borderBottom: `1px solid ${C.cardBd}`,
                   fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em',
-                  textTransform: 'uppercase', textAlign: 'left', cursor: 'pointer',
+                  textTransform: 'uppercase', textAlign: 'start', cursor: 'pointer',
                 }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', color: isItemActive ? C.ac : C.tm, flexShrink: 0 }}>{it.icon}</span>
                 <span>{it.label}</span>
@@ -427,7 +427,7 @@ function MoreMenu({ tab, navTo, onExport, onChangePassword, isOwner = true }) {
                   color: isItemActive ? C.ac : C.tx,
                   border: 'none', borderBottom: `1px solid ${C.cardBd}`,
                   fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em',
-                  textTransform: 'uppercase', textAlign: 'left', cursor: 'pointer',
+                  textTransform: 'uppercase', textAlign: 'start', cursor: 'pointer',
                 }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', color: isItemActive ? C.ac : C.tm, flexShrink: 0 }}>{it.icon}</span>
                 <span>{it.label}</span>
@@ -1693,7 +1693,7 @@ function AuthedApp() {
               dividers now. */}
           <div className="hdr-right" style={{flex:"0 0 auto",display:"flex",alignItems:"center",gap:2,marginInlineStart:12}}>
             <MoreMenu tab={tab} navTo={navTo} onExport={handleExport} onChangePassword={()=>setShowPwModal(true)} isOwner={isOwner} />
-            <span style={{width:1,height:22,background:C.ac,opacity:0.15,alignSelf:'center',marginLeft:6,marginRight:6}} aria-hidden="true" />
+            <span style={{width:1,height:22,background:C.ac,opacity:0.15,alignSelf:'center',marginInlineStart:6,marginInlineEnd:6}} aria-hidden="true" />
             {/* HE / EN. Shows the language it switches TO, which is how a
                 two-state language control is read. Fixed width so the row does
                 not reflow when the label changes. */}
@@ -1702,11 +1702,11 @@ function AuthedApp() {
               style={{...baseBtn, background:'transparent', border:'none', color:C.tm, cursor:'pointer', fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.08em', minWidth:34, height:32, display:'inline-flex', alignItems:'center', justifyContent:'center', lineHeight:1}}>
               <span style={{display:'inline-grid',justifyItems:'center'}}><span aria-hidden="true" style={{gridArea:'1 / 1',visibility:'hidden'}}>{lang === 'he' ? 'עב' : 'EN'}</span><span style={{gridArea:'1 / 1'}}>{lang === 'he' ? 'EN' : 'עב'}</span></span>
             </button>
-            <span style={{width:1,height:22,background:C.ac,opacity:0.15,alignSelf:'center',marginLeft:6,marginRight:6}} aria-hidden="true" />
+            <span style={{width:1,height:22,background:C.ac,opacity:0.15,alignSelf:'center',marginInlineStart:6,marginInlineEnd:6}} aria-hidden="true" />
             <ThemeToggle size={32} style={{ border: 'none' }} />
-            <span style={{width:1,height:22,background:C.ac,opacity:0.15,alignSelf:'center',marginLeft:6,marginRight:6}} aria-hidden="true" />
+            <span style={{width:1,height:22,background:C.ac,opacity:0.15,alignSelf:'center',marginInlineStart:6,marginInlineEnd:6}} aria-hidden="true" />
             <BugReportButton role="coach" reporterEmail={email} variant="coach" />
-            <span style={{width:1,height:22,background:C.ac,opacity:0.15,alignSelf:'center',marginLeft:6,marginRight:6}} aria-hidden="true" />
+            <span style={{width:1,height:22,background:C.ac,opacity:0.15,alignSelf:'center',marginInlineStart:6,marginInlineEnd:6}} aria-hidden="true" />
             <button className="hdr-icon-btn" onClick={signOut} title="Sign out" aria-label="Sign out" style={{...baseBtn,height:HDR_ICON_H,boxSizing:"border-box",display:"inline-flex",alignItems:"center",justifyContent:"center",lineHeight:1,background:"transparent",color:C.tx,padding:"6px 8px",fontSize:14,borderRadius:0}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
             </div></div></header>
       {showPwModal && <PasswordChangeModal onClose={()=>setShowPwModal(false)}/>}

@@ -373,7 +373,7 @@ export default function SensorLab() {
       <div style={{ width: '100%', maxWidth: 460, background: C.bg, border: `1px solid ${C.cardBd}`, boxShadow: `0 0 0 1px ${C.ac}22` }}>
         <div style={{ background: `linear-gradient(90deg, ${C.ac}22, transparent)`, borderBottom: `2px solid ${C.ac}`, padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <div style={{ fontFamily: FN, fontWeight: 700, fontSize: 14, letterSpacing: '0.1em', color: C.tx }}>SENSOR LAB <span style={{ fontSize: 9, color: C.ac, border: `1px solid ${C.ac}`, padding: '1px 5px', marginLeft: 6 }}>BETA</span></div>
+            <div style={{ fontFamily: FN, fontWeight: 700, fontSize: 14, letterSpacing: '0.1em', color: C.tx }}>SENSOR LAB <span style={{ fontSize: 9, color: C.ac, border: `1px solid ${C.ac}`, padding: '1px 5px', marginInlineStart: 6 }}>BETA</span></div>
             <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.06em', marginTop: 2 }}>the phone as a sensor rig · on-device</div>
           </div>
           <button onClick={() => setOpen(false)} aria-label="Close" style={{ background: 'transparent', border: 'none', color: C.tm, fontSize: 22, cursor: 'pointer', lineHeight: 1 }}>×</button>

@@ -86,7 +86,7 @@ function SingleEvalRow({ index, test, evaluation }) {
     }}>
       <div style={{ ...cellBase, justifyContent: 'center', fontFamily: FN, fontSize: 10, color: 'var(--c-td)', fontWeight: 700 }}>{index}</div>
       <div style={{ ...cellBase, fontSize: 12, color: 'var(--c-tx)', fontWeight: 600, lineHeight: 1.3 }}>{test.label}</div>
-      <div style={{ ...cellBase, justifyContent: 'flex-end', fontFamily: FN, fontSize: 10, color: 'var(--c-tm)', letterSpacing: '0.04em', textAlign: 'right' }}>{test.goal || '—'}</div>
+      <div style={{ ...cellBase, justifyContent: 'flex-end', fontFamily: FN, fontSize: 10, color: 'var(--c-tm)', letterSpacing: '0.04em', textAlign: 'end' }}>{test.goal || '—'}</div>
       <div style={{
         ...cellBase,
         fontFamily: FN, fontSize: 12,
@@ -108,8 +108,8 @@ function SingleRomRow({ joint, axis, evaluation }) {
       borderBottom: `1px solid var(--c-cardBd)`,
     }}>
       <div style={{ ...cellBase }} />
-      <div style={{ ...cellBase, fontSize: 11, color: 'var(--c-tm)', paddingLeft: 18 }}>{axis}</div>
-      <div style={{ ...cellBase, justifyContent: 'flex-end', fontFamily: FN, fontSize: 10, color: 'var(--c-td)', letterSpacing: '0.04em', textAlign: 'right' }}>degrees</div>
+      <div style={{ ...cellBase, fontSize: 11, color: 'var(--c-tm)', paddingInlineStart: 18 }}>{axis}</div>
+      <div style={{ ...cellBase, justifyContent: 'flex-end', fontFamily: FN, fontSize: 10, color: 'var(--c-td)', letterSpacing: '0.04em', textAlign: 'end' }}>degrees</div>
       <div style={{
         ...cellBase,
         fontFamily: FN, fontSize: 12,
@@ -170,7 +170,7 @@ function EvalListRow({ evaluation, onOpenEditor }) {
     <div style={{
       background: 'var(--c-sf)',
       border: `1px solid ${open ? 'var(--c-ac)' : 'var(--c-cardBd)'}`,
-      borderLeft: open ? `3px solid var(--c-ac)` : `1px solid var(--c-cardBd)`,
+      borderInlineStart: open ? `3px solid var(--c-ac)` : `1px solid var(--c-cardBd)`,
       marginBottom: 6,
     }}>
       {/* Summary row — clickable */}
@@ -197,7 +197,7 @@ function EvalListRow({ evaluation, onOpenEditor }) {
             padding: '3px 10px', borderRadius: 0, fontFamily: FN, fontSize: 9,
             fontWeight: 700, letterSpacing: '0.08em', cursor: 'pointer',
           }}>EDIT</button>
-        <span style={{ color: 'var(--c-tm)', fontSize: 11, marginLeft: 4 }}>{open ? '▲' : '▼'}</span>
+        <span style={{ color: 'var(--c-tm)', fontSize: 11, marginInlineStart: 4 }}>{open ? '▲' : '▼'}</span>
       </div>
 
       {/* Expanded full eval — single-column layout, every section + ROM */}
@@ -212,7 +212,7 @@ function EvalListRow({ evaluation, onOpenEditor }) {
           }}>
             <div style={{ ...cellBase, justifyContent: 'center', fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.18em', fontWeight: 700 }}>#</div>
             <div style={{ ...cellBase, fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.18em', fontWeight: 700 }}>TEST</div>
-            <div style={{ ...cellBase, justifyContent: 'flex-end', fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.18em', fontWeight: 700, textAlign: 'right' }}>GOAL</div>
+            <div style={{ ...cellBase, justifyContent: 'flex-end', fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.18em', fontWeight: 700, textAlign: 'end' }}>GOAL</div>
             <div style={{ ...cellBase, fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.18em', fontWeight: 700 }}>SCORE</div>
           </div>
 
@@ -464,7 +464,7 @@ export default function TraineeEvaluation({ trainee, bwLog = [] }) {
             <button onClick={() => setEditing('new')}
               style={{
                 background: 'transparent',
-                border: `1px solid ${refined ? '#FFFFFF' : 'var(--c-ac)'}`, borderLeft: 'none',
+                border: `1px solid ${refined ? '#FFFFFF' : 'var(--c-ac)'}`, borderInlineStart: 'none',
                 color: refined ? '#FFFFFF' : 'var(--c-ac)',
                 padding: '3px 10px', borderRadius: 0, fontFamily: 'inherit', fontSize: 10,
                 fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer',

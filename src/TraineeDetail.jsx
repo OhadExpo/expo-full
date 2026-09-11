@@ -58,13 +58,13 @@ function StatusMenu({ status, onChange }) {
     <span ref={ref} style={{ position: 'relative', display: 'inline-block' }}>
       <button onClick={() => setOpen(o => !o)} title="Change status"
         style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 100, height: 24, boxSizing: 'border-box', gap: 6, background: 'transparent', border: `1px solid ${color}`, color, borderRadius: 0, padding: '0 10px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>
-        <span style={{ marginRight: '-0.12em' }}>{status}</span><span style={{ fontSize: 9, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}><svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
+        <span style={{ marginInlineEnd: '-0.12em' }}>{status}</span><span style={{ fontSize: 9, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}><svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
       </button>
       {open && (
         <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 60, background: 'var(--c-bg)', border: `1px solid ${C.cardBd}`, minWidth: 130 }}>
           {STATUS_CHOICES.map(s => (
             <button key={s} onClick={() => { onChange(s); setOpen(false); }}
-              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 12px', background: s === status ? 'var(--c-sf)' : 'transparent', border: 'none', borderLeft: `3px solid ${s === status ? (STATUS_COLOR[s] || C.ac) : 'transparent'}`, color: STATUS_COLOR[s] || C.tx, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer' }}>
+              style={{ display: 'block', width: '100%', textAlign: 'start', padding: '9px 12px', background: s === status ? 'var(--c-sf)' : 'transparent', border: 'none', borderInlineStart: `3px solid ${s === status ? (STATUS_COLOR[s] || C.ac) : 'transparent'}`, color: STATUS_COLOR[s] || C.tx, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer' }}>
               {s}
             </button>
           ))}
@@ -95,7 +95,7 @@ function ProgramCard({ plan: p, isVis, onOpen, onUnassign, onOnly, onToggleVis }
           <button onClick={e=>{ e.stopPropagation(); onOnly(); }} title="Show only this program on the athlete portal — hide all others" style={{ ...btn, background:'transparent', border:`1px solid ${C.ac}`, color:C.ac, fontSize:9, letterSpacing:'0.1em', padding:'0 8px', textTransform:'uppercase' }}>Only</button>
           <button onClick={e=>{ e.stopPropagation(); onToggleVis(); }} title={isVis?'Visible on the portal — click to hide':'Hidden from the portal — click to show'} style={{ ...btn, background:'none', border:'none', padding:0, gap:4, justifyContent:'flex-start' }}>
             <span style={{ width:36, height:20, borderRadius:10, background:isVis?'rgba(46,213,115,0.251)':C.sf3, border:`1px solid ${isVis?'rgba(46,213,115,0.376)':C.bd2}`, position:'relative', transition:'all .15s', display:'inline-block', flexShrink:0 }}><span style={{ width:16, height:16, borderRadius:8, background:isVis?C.gn:C.td, position:'absolute', top:1, left:isVis?18:1, transition:'all .15s' }}/></span>
-            <span style={{ fontSize:10, fontFamily:FN, fontWeight:700, color:isVis?C.gn:C.td, minWidth:26, textAlign:'left' }}>{isVis?'ON':'OFF'}</span>
+            <span style={{ fontSize:10, fontFamily:FN, fontWeight:700, color:isVis?C.gn:C.td, minWidth:26, textAlign: 'start' }}>{isVis?'ON':'OFF'}</span>
           </button>
           <button onClick={e=>{ e.stopPropagation(); onOpen(); }} title="Open this program in the editor" style={{ ...btn, background:'transparent', border:`1px solid ${C.ac}`, color:C.ac, fontSize:9, letterSpacing:'0.1em', padding:'0 10px', textTransform:'uppercase', gap:4 }}>Open →</button>
         </div>
@@ -491,7 +491,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
               </button>
             )}
           </div>
-          <div style={{fontSize:12,color:C.tm,fontFamily:FN,letterSpacing:'0.04em',marginTop:5}}>{cur.dayCount||0} days · {cur.exerciseCount||0} exercises</div>
+          <div style={{fontSize:12,color:C.tm,fontFamily:FN,letterSpacing:'0.04em',marginTop:5}}>{cur.dayCount||0} {t('days')} · {cur.exerciseCount||0} {t('exercises')}</div>
         </div>
 
         {/* Light text actions — PORTAL toggle (green, kept) + spacer + Only / Remove. */}
@@ -768,13 +768,13 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           empty state. */}
       <CollapsibleSection domId="td-sec-billing" title="Billing" count={tPay.length} storageKey={`td-billing-${trainee}`} style={{marginBottom:16, display: showSec('billing') ? undefined : 'none'}}
         right={<div style={{display:'flex',flexWrap:'wrap',gap:6,justifyContent:'flex-end',alignItems:'center'}}>
-          {totalPaid>0&&<span style={{color:'#FFFFFF',opacity:0.85,fontWeight:400,fontFamily:FB,fontSize:12,marginRight:6,whiteSpace:'nowrap'}}>₪{totalPaid.toLocaleString()} paid</span>}
+          {totalPaid>0&&<span style={{color:'#FFFFFF',opacity:0.85,fontWeight:400,fontFamily:FB,fontSize:12,marginInlineEnd:6,whiteSpace:'nowrap'}}>₪{totalPaid.toLocaleString()} paid</span>}
           <div style={{display:'flex',gap:0}}>
           {/* F-27 — open the brand-rich contract composer. */}
           <button onClick={()=>setShowContract(true)}
             style={{...stripBtnBase,border:'1px solid rgba(255,255,255,0.55)',color:'#FFFFFF'}}>{t('CONTRACT')}</button>
           <button onClick={()=>setShowPayForm(true)}
-            style={{...stripBtnBase,border:'1px solid rgba(255,255,255,0.55)',borderLeft:'none',color:'#FFFFFF'}}>{t('+ ADD PAYMENT')}</button>
+            style={{...stripBtnBase,border:'1px solid rgba(255,255,255,0.55)',borderInlineStart:'none',color:'#FFFFFF'}}>{t('+ ADD PAYMENT')}</button>
         </div></div>}>
       {/* Contract terms strip — the billing facts (rate/package/sessions) that
           used to live in the header stat row (Ohad: "payment in billing").
@@ -808,12 +808,12 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
                   via the useBitPayments realtime channel. */}
               {p.status==='Pending' && (<>
                   <button onClick={()=>handleMarkReqPaid(p.id)} title="Mark this request as paid"
-                    style={{display:'inline-flex',alignItems:'center',justifyContent:'center',lineHeight:1,background:'transparent',border:`1px solid ${C.gn}`,color:C.gn,padding:'2px 8px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',cursor:'pointer',marginRight:6}}>✓ PAID</button>
+                    style={{display:'inline-flex',alignItems:'center',justifyContent:'center',lineHeight:1,background:'transparent',border:`1px solid ${C.gn}`,color:C.gn,padding:'2px 8px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',cursor:'pointer',marginInlineEnd:6}}>✓ PAID</button>
                   <button onClick={()=>handleCancelReq(p.id)} title="Cancel this payment request"
-                    style={{display:'inline-flex',alignItems:'center',justifyContent:'center',lineHeight:1,background:'transparent',border:`1px solid ${C.rd}`,color:C.rd,padding:'2px 8px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',cursor:'pointer',marginRight:6}}>× CANCEL</button>
+                    style={{display:'inline-flex',alignItems:'center',justifyContent:'center',lineHeight:1,background:'transparent',border:`1px solid ${C.rd}`,color:C.rd,padding:'2px 8px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',cursor:'pointer',marginInlineEnd:6}}>× CANCEL</button>
                 </>)}
               <button onClick={()=>handleEditPay(p)} aria-label="Edit payment" style={{background:"none",border:"none",color:C.ac,cursor:"pointer",padding:2,fontSize:11,fontFamily:FN}}>✏</button>
-              <button onClick={()=>handleDeletePay(p.id)} aria-label="Delete payment" style={{background:"none",border:"none",color:C.rd,cursor:"pointer",padding:2,fontSize:11,fontFamily:FN,marginLeft:6,opacity:0.6}}>✕</button>
+              <button onClick={()=>handleDeletePay(p.id)} aria-label="Delete payment" style={{background:"none",border:"none",color:C.rd,cursor:"pointer",padding:2,fontSize:11,fontFamily:FN,marginInlineStart:6,opacity:0.6}}>✕</button>
             </td></tr>))}</tbody></table></div>)}
       </CollapsibleSection>
       {showContract && (

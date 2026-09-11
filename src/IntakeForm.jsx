@@ -37,7 +37,7 @@ function Field({ q, value, onChange, dir }) {
     textTransform: 'uppercase', display: 'block', marginBottom: 6, direction: dir,
   };
 
-  const required = q.required ? <span style={{ color: C.rd, marginLeft: 4 }}>*</span> : null;
+  const required = q.required ? <span style={{ color: C.rd, marginInlineStart: 4 }}>*</span> : null;
 
   if (q.type === 'paragraph') {
     return (

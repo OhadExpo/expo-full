@@ -85,7 +85,7 @@ export default function ExerciseClassifyView({ exercises = [], setExercises }) {
           <div style={{ overflowX: 'auto' }}>
             <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 760 }}>
               <thead><tr style={{ borderBottom: `1px solid ${C.cardBd}` }}>
-                <th style={{ ...th, padding: '8px 8px', textAlign: 'left' }}>Exercise</th>
+                <th style={{ ...th, padding: '8px 8px', textAlign: 'start' }}>Exercise</th>
                 <th style={{ ...th, padding: '8px 8px' }}>Resistance</th>
                 <th style={{ ...th, padding: '8px 8px' }}>Position</th>
                 <th style={{ ...th, padding: '8px 8px' }}>Movement</th>
@@ -118,7 +118,7 @@ export default function ExerciseClassifyView({ exercises = [], setExercises }) {
           {!showAll && filtered.length > CAP && (
             <div style={{ textAlign: 'center', marginTop: 12 }}>
               <Btn variant="ghost" onClick={() => setShowAll(true)}>Show all {filtered.length}</Btn>
-              <span style={{ fontFamily: FB, fontSize: 11.5, color: C.td, marginLeft: 10 }}>showing {CAP} — most-complete guesses first</span>
+              <span style={{ fontFamily: FB, fontSize: 11.5, color: C.td, marginInlineStart: 10 }}>showing {CAP} — most-complete guesses first</span>
             </div>
           )}
         </Card>

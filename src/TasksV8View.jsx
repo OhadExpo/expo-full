@@ -620,7 +620,7 @@ function QuickFilters({ value, onChange, counts, search, onSearch, resultCount, 
       <span style={{
         fontFamily: FN, fontSize: 10, fontWeight: 700,
         color: 'var(--c-ac)', letterSpacing: '0.06em',
-        marginRight: 4, whiteSpace: 'nowrap',
+        marginInlineEnd: 4, whiteSpace: 'nowrap',
       }}>{resultCount} of {totalCount}</span>
     )}
     <input
@@ -650,7 +650,7 @@ const fmtDMY = (iso) => { if (!iso) return ''; const [y, m, d] = iso.split('-');
 // Composer control grouping — a small uppercase label + its controls, so the
 // expanded "add task" row reads as labelled sections instead of a button soup.
 const cmpGroup = { display: 'inline-flex', alignItems: 'center', gap: 6 };
-const cmpLabel = { fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--c-td)', textTransform: 'uppercase', marginRight: 2 };
+const cmpLabel = { fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--c-td)', textTransform: 'uppercase', marginInlineEnd: 2 };
 // ---- vertical filter rail (Ohad's chosen Tasks toolbar, design 7) ----
 function RailGroup({ label, children }) {
   return (
@@ -673,8 +673,8 @@ function RailOpt({ label, count, active, onClick, title }) {
         transition: 'background .12s, color .12s',
       }}>
       <span style={{ width: 3, alignSelf: 'stretch', background: 'var(--c-ac)', opacity: active ? 1 : 0, flexShrink: 0 }} />
-      <span style={{ flex: 1, textAlign: 'left', padding: '0 8px 0 14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
-      {count != null && <span style={{ paddingRight: 14, fontSize: 9, fontWeight: 700, opacity: active ? 0.9 : 0.55, flexShrink: 0 }}>{count}</span>}
+      <span style={{ flex: 1, textAlign: 'start', padding: '0 8px 0 14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
+      {count != null && <span style={{ paddingInlineEnd: 14, fontSize: 9, fontWeight: 700, opacity: active ? 0.9 : 0.55, flexShrink: 0 }}>{count}</span>}
     </button>
   );
 }
@@ -827,7 +827,7 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
                   onClick={(e) => { e.stopPropagation(); try { e.currentTarget.showPicker(); } catch { /* noop */ } }}
                   style={{ background: 'transparent', color: 'transparent', border: `1px solid var(--c-cardBd)`, fontFamily: FN, fontSize: 10, fontWeight: 600, padding: '3px 6px', height: 24, width: 120, borderRadius: 0, outline: 'none', cursor: 'pointer' }} />
                 {/* dd/mm/yyyy overlay (native text is transparent; calendar icon stays) */}
-                <span style={{ position: 'absolute', left: 7, fontFamily: FN, fontSize: 10, fontWeight: 600, color: due ? 'var(--c-tm)' : 'var(--c-td)', pointerEvents: 'none', letterSpacing: '0.02em' }}>{due ? fmtDMY(due) : 'DD/MM/YYYY'}</span>
+                <span style={{ position: 'absolute', insetInlineStart: 7, fontFamily: FN, fontSize: 10, fontWeight: 600, color: due ? 'var(--c-tm)' : 'var(--c-td)', pointerEvents: 'none', letterSpacing: '0.02em' }}>{due ? fmtDMY(due) : 'DD/MM/YYYY'}</span>
               </span>
               <input
                 type="time" value={time}
@@ -917,7 +917,7 @@ function CalendarEmbedCard() {
         style={{
           display: 'flex', alignItems: 'center', gap: 10, width: '100%',
           background: 'transparent', border: 'none', cursor: 'pointer',
-          padding: '10px 14px', textAlign: 'left',
+          padding: '10px 14px', textAlign: 'start',
         }}>
         <span style={{
           fontFamily: FN, fontSize: 11, fontWeight: 700,
@@ -1313,7 +1313,7 @@ export function CommentsThread({ noteId, viewer }) {
               <div style={{ marginTop: 4, direction: 'ltr' }}>
                 {c.mentions.map(m => (
                   <span key={m} style={{
-                    display: 'inline-block', marginRight: 6,
+                    display: 'inline-block', marginInlineEnd: 6,
                     fontFamily: FN, fontSize: 9, fontWeight: 700,
                     color: m === 'yuval' ? YUVAL_COLOR : 'var(--c-ac)',
                     letterSpacing: '0.04em',
@@ -1369,7 +1369,7 @@ export function CommentsThread({ noteId, viewer }) {
             {mentionMatches.map((p, i) => (
               <button key={p.key} type="button"
                 onMouseDown={(e) => { e.preventDefault(); applyMention(p); }}
-                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', padding: '7px 10px', background: i === (mention.index % mentionMatches.length) ? 'var(--c-sf2)' : 'transparent', border: 'none', cursor: 'pointer', fontFamily: FB, fontSize: 12, color: 'var(--c-tx)' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'start', padding: '7px 10px', background: i === (mention.index % mentionMatches.length) ? 'var(--c-sf2)' : 'transparent', border: 'none', cursor: 'pointer', fontFamily: FB, fontSize: 12, color: 'var(--c-tx)' }}>
                 <span style={{ width: 20, height: 20, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 0, background: p.key === 'yuval' ? YUVAL_COLOR : 'var(--c-ac)', color: '#FFFFFF', fontFamily: FN, fontSize: 10, fontWeight: 700 }}>{p.key === 'yuval' ? 'Y' : 'O'}</span>
                 <span>@{p.key} <span style={{ color: 'var(--c-td)', fontSize: 11 }}>· {p.label}</span></span>
               </button>
@@ -1439,7 +1439,7 @@ export function EventTimeline({ noteId }) {
                 }}>{change}</span>
               )}
               <span style={{
-                marginLeft: 'auto',
+                marginInlineStart: 'auto',
                 fontFamily: FN, fontSize: 9, fontWeight: 600,
                 color: 'var(--c-td)', letterSpacing: '0.04em',
               }}>{relativeTime(ev.created_at, now)}</span>
@@ -1617,7 +1617,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
           // rows keep their tight padding.
           padding: board ? '5px 8px 5px 26px' : compact ? '4px 8px' : '7px 12px 7px 9px', cursor: 'pointer', minHeight: compact ? 26 : 32,
           borderBottom: `1px solid var(--c-cardBd)`,
-          borderLeft: `3px solid ${edgeColor}`,
+          borderInlineStart: `3px solid ${edgeColor}`,
           background: expanded ? 'var(--c-sf2, transparent)'
                      : hover     ? 'var(--c-sf2, rgba(57,189,255,0.04))'
                                  : 'transparent',
@@ -1750,7 +1750,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
             (Yuval: make the board status more readable). Status there is
             changed by dragging between columns / from the expanded detail. */}
         {!hideStatus && (
-          <span style={{ display: 'inline-flex', flexShrink: 0, marginLeft: wrapRow ? 'auto' : undefined, ...(phone ? { order: 2 } : null) }}>
+          <span style={{ display: 'inline-flex', flexShrink: 0, marginInlineStart: wrapRow ? 'auto' : undefined, ...(phone ? { order: 2 } : null) }}>
             <StatusPill status={row.status} theme={theme} onSetStatus={(s) => onSetStatus(row, s)} readOnly={readOnly} />
           </span>
         )}
@@ -2606,7 +2606,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
           {/* Search box at the TOP of the sidebar, above Filters (Ohad). */}
           <div style={{ padding: '0 14px 12px' }}>
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder={tt('Search tasks…')} data-hotkey="search"
-              style={{ width: '100%', height: 34, boxSizing: 'border-box', padding: '0 11px', borderRadius: 0, background: 'var(--c-sf)', color: 'var(--c-tx)', border: '1px solid var(--c-cardBd)', fontFamily: FN, fontSize: 11, fontWeight: 500, letterSpacing: '0.04em', outline: 'none', textAlign: 'left' }} autoComplete="off" />
+              style={{ width: '100%', height: 34, boxSizing: 'border-box', padding: '0 11px', borderRadius: 0, background: 'var(--c-sf)', color: 'var(--c-tx)', border: '1px solid var(--c-cardBd)', fontFamily: FN, fontSize: 11, fontWeight: 500, letterSpacing: '0.04em', outline: 'none', textAlign: 'start' }} autoComplete="off" />
           </div>
           <div onClick={narrow ? () => setRailOpen(o => !o) : undefined}
             style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.22em', color: 'var(--c-ac)', textTransform: 'uppercase', padding: (narrow && !railOpen) ? '0 16px' : '0 16px 10px', borderBottom: (narrow && !railOpen) ? 'none' : '1px solid var(--c-cardBd)', cursor: narrow ? 'pointer' : 'default', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
@@ -2847,7 +2847,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                       style={{ width: '100%', boxSizing: 'border-box', background: 'var(--c-sf2)', border: `1px solid var(--c-ac)`, color: 'var(--c-tx)', fontFamily: FB, fontSize: 12, padding: '7px 9px', borderRadius: 0, outline: 'none' }} />
                   ) : (
                     <button onClick={() => { setQuickAddKey(section.key); setQuickAddText(''); }}
-                      style={{ width: '100%', background: 'transparent', border: 'none', color: 'var(--c-tm)', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', padding: '7px 6px', cursor: 'pointer', textAlign: 'left', textTransform: 'uppercase' }}>+ Add a task</button>
+                      style={{ width: '100%', background: 'transparent', border: 'none', color: 'var(--c-tm)', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', padding: '7px 6px', cursor: 'pointer', textAlign: 'start', textTransform: 'uppercase' }}>+ Add a task</button>
                   )}
                 </div>
               )}

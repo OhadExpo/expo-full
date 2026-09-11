@@ -131,7 +131,7 @@ export default function BugsView() {
         return (
           <div key={r.id} style={{
             border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)',
-            borderLeft: `3px solid ${sevColor}`,
+            borderInlineStart: `3px solid ${sevColor}`,
             marginBottom: 8, padding: '10px 12px',
           }}>
             <div onClick={() => setExpandedId(expanded ? null : r.id)}
@@ -144,7 +144,7 @@ export default function BugsView() {
                 {r.role?.toUpperCase() || 'ANON'} · {fmtTs(r.created_at)}
                 {r.reporter_email && <> · {r.reporter_email}</>}
               </span>
-              <span style={{ marginLeft: 'auto', color: C.td, fontSize: 12 }}>{expanded ? '▲' : '▼'}</span>
+              <span style={{ marginInlineStart: 'auto', color: C.td, fontSize: 12 }}>{expanded ? '▲' : '▼'}</span>
             </div>
             <div style={{ marginTop: 6, fontSize: 13, color: C.tx, whiteSpace: 'pre-wrap', lineHeight: 1.4 }}>
               {r.description}
@@ -224,7 +224,7 @@ export default function BugsView() {
                     )
                   )}
                   {r.fixed_in_commit && (
-                    <span style={{ fontFamily: 'monospace', fontSize: 11, color: C.gn, marginLeft: 4 }}>
+                    <span style={{ fontFamily: 'monospace', fontSize: 11, color: C.gn, marginInlineStart: 4 }}>
                       ✓ {r.fixed_in_commit}
                     </span>
                   )}

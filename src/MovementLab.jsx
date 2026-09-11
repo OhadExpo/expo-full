@@ -706,7 +706,7 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
     <div style={{ maxWidth: 1040, margin: '0 auto' }}>
       {tabs.length > 1 && <div style={{ display: 'flex', gap: 0, marginBottom: 14 }}>
         {tabs.map(t => {
-          // Longhand borders (not `border` shorthand + `borderLeft`) — mixing the
+          // Longhand borders (not `border` shorthand + `borderInlineStart`) — mixing the
           // two makes React re-apply them in a non-deterministic order on rerender
           // (a styling bug + a console warning). Same visual: edge on 3 sides, the
           // shared seam open on the left so adjacent tabs merge.
@@ -715,7 +715,7 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
           <button key={t.k} disabled={!t.on} onClick={() => setTab(t.k)} style={{
             flex: 1, padding: '9px 6px', background: tab === t.k ? C.ac : 'transparent',
             color: t.on ? '#FFF' : 'rgba(255,255,255,0.35)',
-            borderTop: bc, borderRight: bc, borderBottom: bc, borderLeft: 'none',
+            borderTop: bc, borderInlineEnd: bc, borderBottom: bc, borderInlineStart: 'none',
             fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', cursor: t.on ? 'pointer' : 'default',
           }}>{t.label}</button>
           );
@@ -800,7 +800,7 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <label style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.5)' }}>LOAD
               <input type="number" min={0} step={0.5} value={load} onChange={(e) => setLoad(e.target.value)} placeholder="kg"
-                style={{ width: 56, marginLeft: 6, textAlign: 'center', background: 'transparent', border: `1px solid ${C.bd}`, color: '#FFF', fontFamily: FN, fontSize: 11, padding: '4px 4px' }}
+                style={{ width: 56, marginInlineStart: 6, textAlign: 'center', background: 'transparent', border: `1px solid ${C.bd}`, color: '#FFF', fontFamily: FN, fontSize: 11, padding: '4px 4px' }}
                 title="Weight on the bar for this set (kg). Enter it to unlock same-load readiness + a load-aware trend." />
             </label>
             {result?.captureQuality?.grade === 'poor' ? (
@@ -1079,7 +1079,7 @@ function FormCheck({ result, exerciseTitle, recordedReps = [], targetReps = null
         return (
           <div key={r.joint} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderTop: `1px solid ${C.bd}`, fontFamily: FN }}>
             <div style={{ width: 74, fontSize: 13, color: '#fff' }}>{r.joint}</div>
-            <span style={{ width: 34, textAlign: 'right', fontSize: 11, color: 'rgba(255,255,255,0.6)', fontVariantNumeric: 'tabular-nums' }}>{r.left}°</span>
+            <span style={{ width: 34, textAlign: 'end', fontSize: 11, color: 'rgba(255,255,255,0.6)', fontVariantNumeric: 'tabular-nums' }}>{r.left}°</span>
             <div style={{ flex: 1, display: 'flex', height: 10, alignItems: 'stretch' }}>
               <div style={{ width: '50%', display: 'flex', justifyContent: 'flex-end' }}>
                 <div style={{ width: `${(r.left / mx) * 100}%`, background: lCol, opacity: r.weaker === 'Left' ? 1 : 0.55, borderRadius: '2px 0 0 2px' }} />
@@ -1090,7 +1090,7 @@ function FormCheck({ result, exerciseTitle, recordedReps = [], targetReps = null
               </div>
             </div>
             <span style={{ width: 34, fontSize: 11, color: 'rgba(255,255,255,0.6)', fontVariantNumeric: 'tabular-nums' }}>{r.right}°</span>
-            <div style={{ width: 96, textAlign: 'right', fontSize: 11, color: sev[r.severity], fontWeight: r.severity === 'ok' ? 400 : 700 }}>
+            <div style={{ width: 96, textAlign: 'end', fontSize: 11, color: sev[r.severity], fontWeight: r.severity === 'ok' ? 400 : 700 }}>
               {r.severity === 'ok' ? 'balanced' : `${r.asymPct}% ${r.weaker.toLowerCase()}↓`}
             </div>
           </div>
@@ -1156,7 +1156,7 @@ function VelocityTable({ v, barSpeed, frames, playheadT = null, onScrub = null, 
     <button key={k} type="button" onClick={on}
       style={{
         fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', padding: '4px 2px',
-        marginRight: 16, border: 'none', background: 'transparent', borderRadius: 0,
+        marginInlineEnd: 16, border: 'none', background: 'transparent', borderRadius: 0,
         borderBottom: `2px solid ${sel ? C.ac : 'transparent'}`,
         color: sel ? C.ac : 'rgba(255,255,255,0.5)',
         cursor: 'pointer', textTransform: 'uppercase', marginBottom: -1,
@@ -1298,7 +1298,7 @@ const zoomResetPillStyle = {
   display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
   fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', padding: '2px 8px',
   border: '1px solid rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.08)',
-  color: 'rgba(255,255,255,0.75)', cursor: 'pointer', borderRadius: 0, marginLeft: 8,
+  color: 'rgba(255,255,255,0.75)', cursor: 'pointer', borderRadius: 0, marginInlineStart: 8,
 };
 
 // Continuous VERTICAL bar/body speed over the whole set. Each rep is a peak pair
@@ -1629,7 +1629,7 @@ function RomDiverging({ rows }) {
       {rows.map(r => (
         <div key={r.key} style={{ marginBottom: 13 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: C.ac, width: 34, textAlign: 'right', flexShrink: 0 }}>{r.lr != null ? `${r.lr}°` : '—'}</span>
+            <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: C.ac, width: 34, textAlign: 'end', flexShrink: 0 }}>{r.lr != null ? `${r.lr}°` : '—'}</span>
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', minWidth: 0 }}>
               <div style={{ flex: 1, height: 14, position: 'relative', background: 'rgba(255,255,255,0.05)' }}>
                 <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: `${(r.lr || 0) / maxRom * 100}%`, background: C.ac }} />
@@ -1650,17 +1650,17 @@ function RomDiverging({ rows }) {
   );
 }
 function RomTableView({ rows }) {
-  const th = { fontFamily: FN, fontSize: 8, letterSpacing: '0.12em', color: 'rgba(255,255,255,0.35)', padding: '6px 4px', borderBottom: '1px solid rgba(255,255,255,0.14)', textAlign: 'right', fontWeight: 700 };
-  const td = { fontFamily: FN, fontSize: 12, fontWeight: 700, padding: '9px 4px', borderBottom: '1px solid rgba(255,255,255,0.06)', textAlign: 'right' };
+  const th = { fontFamily: FN, fontSize: 8, letterSpacing: '0.12em', color: 'rgba(255,255,255,0.35)', padding: '6px 4px', borderBottom: '1px solid rgba(255,255,255,0.14)', textAlign: 'end', fontWeight: 700 };
+  const td = { fontFamily: FN, fontSize: 12, fontWeight: 700, padding: '9px 4px', borderBottom: '1px solid rgba(255,255,255,0.06)', textAlign: 'end' };
   return (
     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
       <thead><tr>
-        <th style={{ ...th, textAlign: 'left' }}>JOINT</th><th style={th}>L</th><th style={th}>R</th><th style={th}>Δ</th>
+        <th style={{ ...th, textAlign: 'start' }}>JOINT</th><th style={th}>L</th><th style={th}>R</th><th style={th}>Δ</th>
       </tr></thead>
       <tbody>
         {rows.map(r => (
           <tr key={r.key}>
-            <td style={{ ...td, textAlign: 'left', color: C.tx }}>{r.label}</td>
+            <td style={{ ...td, textAlign: 'start', color: C.tx }}>{r.label}</td>
             <td style={{ ...td, color: C.ac }}>{r.lr != null ? `${r.lr}°` : '—'}</td>
             <td style={{ ...td, color: ROM_R }}>{r.rr != null ? `${r.rr}°` : '—'}</td>
             <td style={{ ...td, color: r.delta != null && r.delta > 10 ? ROM_FLAG : 'rgba(255,255,255,0.4)' }}>{r.delta != null ? `${r.delta}%` : '—'}</td>
@@ -1714,7 +1714,7 @@ function TempoBars({ perRep }) {
           <div style={{ flex: 1, display: 'flex', height: 12, background: 'rgba(255,255,255,0.06)' }}>
             {seg(x.ecc, C.ac, 'ecc')}{seg(x.pause, 'rgba(255,255,255,0.28)', 'pause')}{seg(x.con, C.gn, 'con')}
           </div>
-          <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.5)', width: 42, textAlign: 'right' }}>{(x.ecc + x.pause + x.con).toFixed(1)}s</div>
+          <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.5)', width: 42, textAlign: 'end' }}>{(x.ecc + x.pause + x.con).toFixed(1)}s</div>
         </div>
       ))}
       <div style={{ display: 'flex', gap: 14, marginTop: 6 }}>
@@ -1751,7 +1751,7 @@ function BroadJumpResult({ jump, onSave, onClose }) {
           APPROXIMATE SCALE — enter the athlete&apos;s real height below for an accurate distance.
         </div>
       )}
-      <div style={{ marginTop: 20, padding: 14, border: '1px solid rgba(255,255,255,0.14)', textAlign: 'left' }}>
+      <div style={{ marginTop: 20, padding: 14, border: '1px solid rgba(255,255,255,0.14)', textAlign: 'start' }}>
         <label style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.16em', fontWeight: 700 }}>ATHLETE HEIGHT (CM) — SCALE REFERENCE</label>
         <input type="number" inputMode="decimal" value={h} onChange={e => setH(e.target.value)} placeholder="e.g. 178"
           style={{ width: '100%', marginTop: 6, padding: '10px 12px', background: '#000', border: `1px solid ${C.ac}`, color: '#FFF', fontFamily: FN, fontSize: 16, letterSpacing: '0.04em', boxSizing: 'border-box' }} />
@@ -1890,7 +1890,7 @@ function JumpResult({ jump, result, onSave, onClose, defaultBodyweightKg }) {
 
       {/* Bodyweight → peak power (Sayers). Height from flight time is mass-
           independent, but power is the athletic number — so we ask the weight. */}
-      <div style={{ marginTop: 20, padding: 14, border: '1px solid rgba(255,255,255,0.14)', textAlign: 'left' }}>
+      <div style={{ marginTop: 20, padding: 14, border: '1px solid rgba(255,255,255,0.14)', textAlign: 'start' }}>
         <label style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.16em', fontWeight: 700 }}>BODYWEIGHT (KG)</label>
         <input type="number" inputMode="decimal" value={bw} onChange={e => setBw(e.target.value)} placeholder="e.g. 75"
           style={{ width: '100%', marginTop: 6, padding: '10px 12px', background: '#000', border: `1px solid ${C.ac}`, color: '#FFF', fontFamily: FN, fontSize: 16, letterSpacing: '0.04em', boxSizing: 'border-box' }} />

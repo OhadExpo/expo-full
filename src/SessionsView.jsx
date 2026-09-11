@@ -54,7 +54,7 @@ function InlineVideo({ url }) {
   if (yt) {
     const short = /youtube\.com\/shorts\//i.test(String(url || ''));  // vertical → portrait frame
     return (
-      <div style={{ marginTop: 8, aspectRatio: short ? '9/16' : '16/9', background: '#000', border: `1px solid ${C.cardBd}`, ...(short ? { maxWidth: 260, marginLeft: 'auto', marginRight: 'auto' } : {}) }}>
+      <div style={{ marginTop: 8, aspectRatio: short ? '9/16' : '16/9', background: '#000', border: `1px solid ${C.cardBd}`, ...(short ? { maxWidth: 260, marginInlineStart: 'auto', marginInlineEnd: 'auto' } : {}) }}>
         <iframe
           src={`https://www.youtube.com/embed/${yt}?rel=0&modestbranding=1&controls=1&fs=0&disablekb=1&playsinline=1`}
           sandbox="allow-scripts allow-same-origin allow-presentation"
@@ -647,7 +647,7 @@ function FloorBar({ session, checkedIn, traineeById, onAdd, onFinish }) {
           </span>
           <div style={{ display: 'grid', gridAutoFlow: 'column', gridAutoColumns: '1fr', gap: 0 }}>
             <button onClick={onAdd} style={{ ...stripBtn, minWidth: 88 }}>+ {tt('ADD')}</button>
-            <button onClick={onFinish} style={{ ...stripBtn, borderLeft: 'none', minWidth: 88 }}>■ {tt('FINISH')}</button>
+            <button onClick={onFinish} style={{ ...stripBtn, borderInlineStart: 'none', minWidth: 88 }}>■ {tt('FINISH')}</button>
           </div>
         </div>
       </RefinedHeaderStrip>
@@ -707,7 +707,7 @@ function AthleteCard({ a, name, prevMap, exDetail, onToggleIn, onSet, onCurEx, o
           const doneCount = ex.sets.filter(s => s.done).length;
           const allDone = doneCount === ex.sets.length && ex.sets.length > 0;
           return (
-          <div key={ei} style={{ border: `1px solid ${open ? C.ac : C.cardBd}`, borderLeft: `3px solid ${allDone ? C.gn : open ? C.ac : C.cardBd}`, background: open ? 'rgba(57,189,255,0.04)' : 'transparent' }}>
+          <div key={ei} style={{ border: `1px solid ${open ? C.ac : C.cardBd}`, borderInlineStart: `3px solid ${allDone ? C.gn : open ? C.ac : C.cardBd}`, background: open ? 'rgba(57,189,255,0.04)' : 'transparent' }}>
             {/* Collapsed header — tap to expand (accordion: one open at a time).
                 Title WRAPS on whole words instead of truncating. */}
             <div onClick={() => onCurEx(open ? -1 : ei)} style={{ padding: 8, cursor: 'pointer' }}>
@@ -932,7 +932,7 @@ function MenuCard({ glyph, title, desc, onClick }) {
     <button onClick={onClick}
       onMouseEnter={e => { e.currentTarget.style.borderColor = C.ac; e.currentTarget.style.background = 'rgba(57,189,255,0.06)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
       onMouseLeave={e => { e.currentTarget.style.borderColor = C.cardBd; e.currentTarget.style.background = 'var(--c-sf)'; e.currentTarget.style.transform = 'none'; }}
-      style={{ textAlign: 'left', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '20px 18px', cursor: 'pointer', transition: 'border-color 140ms, background 140ms, transform 140ms', display: 'flex', flexDirection: 'column', gap: 8, minHeight: 168 }}>
+      style={{ textAlign: 'start', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '20px 18px', cursor: 'pointer', transition: 'border-color 140ms, background 140ms, transform 140ms', display: 'flex', flexDirection: 'column', gap: 8, minHeight: 168 }}>
       <span style={{ fontSize: 30, lineHeight: 1 }}>{glyph}</span>
       <span style={{ fontFamily: FN, fontSize: 14, fontWeight: 700, letterSpacing: '0.06em', color: C.tx, marginTop: 4 }}>{title}</span>
       <span style={{ fontFamily: FB, fontSize: 12.5, color: C.tm, lineHeight: 1.5, flex: 1 }}>{desc}</span>

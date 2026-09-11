@@ -549,14 +549,14 @@ export function NextBlockReport({ model, plans, exercises, traineeName, onClose 
           {section('Main movements', (
             <div>
               <div style={{ display: 'grid', gridTemplateColumns: 'minmax(140px,1fr) 80px 80px 1fr', gap: 0, fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, padding: '0 4px 6px', borderBottom: `1px solid ${C.cardBd}` }}>
-                <div>Bucket</div><div style={{ textAlign: 'right' }}>Current</div><div style={{ textAlign: 'right' }}>Target</div><div style={{ paddingLeft: 10 }}>Note</div>
+                <div>Bucket</div><div style={{ textAlign: 'end' }}>Current</div><div style={{ textAlign: 'end' }}>Target</div><div style={{ paddingInlineStart: 10 }}>Note</div>
               </div>
               {calc.buckets.map((b, i) => (
                 <div key={b.key} style={{ display: 'grid', gridTemplateColumns: 'minmax(140px,1fr) 80px 80px 1fr', gap: 0, alignItems: 'center', padding: '7px 4px', background: i % 2 ? 'transparent' : 'var(--c-sf2)' }}>
                   <div style={{ fontFamily: FB, fontSize: 12.5, color: C.tx }}>{b.label}</div>
-                  <div style={{ fontFamily: FN, fontSize: 13, fontVariantNumeric: 'tabular-nums', color: C.tm, textAlign: 'right' }}>{b.current}</div>
-                  <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: '#39BDFF', textAlign: 'right' }}>{b.target}</div>
-                  <div style={{ paddingLeft: 10, fontFamily: FB, fontSize: 11, color: b.gap ? C.rd : C.td }}>{b.gap ? 'empty this block — floor target applied' : ''}</div>
+                  <div style={{ fontFamily: FN, fontSize: 13, fontVariantNumeric: 'tabular-nums', color: C.tm, textAlign: 'end' }}>{b.current}</div>
+                  <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: '#39BDFF', textAlign: 'end' }}>{b.target}</div>
+                  <div style={{ paddingInlineStart: 10, fontFamily: FB, fontSize: 11, color: b.gap ? C.rd : C.td }}>{b.gap ? 'empty this block — floor target applied' : ''}</div>
                 </div>
               ))}
             </div>

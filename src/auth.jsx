@@ -674,7 +674,7 @@ export function UnauthorizedScreen({ email, onSignOut, verifyError = false, onRe
           {verifyError && onRetry && (
             <button
               onClick={onRetry}
-              style={{ marginTop: 20, marginRight: 8, background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: '10px 20px', color: C.ac, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', cursor: 'pointer' }}
+              style={{ marginTop: 20, marginInlineEnd: 8, background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: '10px 20px', color: C.ac, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', cursor: 'pointer' }}
             >
               {tr(readLang(), 'Try Again')}
             </button>

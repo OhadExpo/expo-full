@@ -545,7 +545,7 @@ export default function SmartImportView() {
           <div style={{ overflowX: 'auto', maxHeight: 200, overflowY: 'auto', border: `1px solid ${C.cardBd}`, borderRadius: 0 }}>
             <table style={{ borderCollapse: 'collapse', fontSize: 11, fontFamily: FB, color: C.tx }}>
               <thead><tr style={{ background: 'transparent' }}>{sheetGrid.headers.map((h, i) => (
-                <th key={i} style={{ padding: '6px 10px', textAlign: 'left', fontFamily: FN, fontSize: 10, color: C.tm, borderBottom: `1px solid ${C.cardBd}`, whiteSpace: 'nowrap' }}>{h || `(col ${i + 1})`}</th>
+                <th key={i} style={{ padding: '6px 10px', textAlign: 'start', fontFamily: FN, fontSize: 10, color: C.tm, borderBottom: `1px solid ${C.cardBd}`, whiteSpace: 'nowrap' }}>{h || `(col ${i + 1})`}</th>
               ))}</tr></thead>
               <tbody>{sheetGrid.sample.map((r, ri) => (
                 <tr key={ri}>{sheetGrid.headers.map((_, ci) => (
@@ -610,7 +610,7 @@ export default function SmartImportView() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
             <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, textTransform: 'uppercase' }}>
               <Badge color={C.gn}>{transform.items.length} item{transform.items.length === 1 ? '' : 's'}</Badge>
-              {transform.errors.length > 0 && <Badge color={C.rd} style={{ marginLeft: 6 }}>{transform.errors.length} error{transform.errors.length === 1 ? '' : 's'}</Badge>}
+              {transform.errors.length > 0 && <Badge color={C.rd} style={{ marginInlineStart: 6 }}>{transform.errors.length} error{transform.errors.length === 1 ? '' : 's'}</Badge>}
             </div>
             <Btn onClick={commit} disabled={committing || transform.items.length === 0} style={{ minWidth: 168, justifyContent: 'center' }}>{committing ? 'Writing…' : 'Commit to Database'}</Btn>
           </div>

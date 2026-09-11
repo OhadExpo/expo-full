@@ -41,8 +41,8 @@ export function RailOpt({ label, count, active, onClick, title, accent }) {
         transition: 'background .12s, color .12s',
       }}>
       <span style={{ width: 3, alignSelf: 'stretch', background: ac, opacity: active ? 1 : 0, flexShrink: 0 }} />
-      <span style={{ flex: 1, textAlign: 'left', padding: '0 8px 0 14px', minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: 1.25 }}>{label}</span>
-      {count != null && <span style={{ paddingRight: 14, fontSize: 9, fontWeight: 700, opacity: active ? 0.9 : 0.55, flexShrink: 0 }}>{count}</span>}
+      <span style={{ flex: 1, textAlign: 'start', padding: '0 8px 0 14px', minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: 1.25 }}>{label}</span>
+      {count != null && <span style={{ paddingInlineEnd: 14, fontSize: 9, fontWeight: 700, opacity: active ? 0.9 : 0.55, flexShrink: 0 }}>{count}</span>}
     </button>
   );
 }
@@ -83,7 +83,7 @@ export function SideRail({
       {/* Search box at the TOP of the sidebar, above Filters (Ohad). */}
       <div style={{ padding: '0 14px 12px' }}>
         <input value={search} onChange={e => onSearch?.(e.target.value)} placeholder={searchPlaceholder} title={searchTitle}
-          style={{ width: '100%', height: 38, boxSizing: 'border-box', padding: '0 11px', borderRadius: 0, background: 'var(--c-sf)', color: 'var(--c-tx)', border: '1px solid var(--c-cardBd)', fontFamily: FN, fontSize: 11, fontWeight: 500, letterSpacing: '0.04em', outline: 'none', textAlign: 'left' }} autoComplete="off" />
+          style={{ width: '100%', height: 38, boxSizing: 'border-box', padding: '0 11px', borderRadius: 0, background: 'var(--c-sf)', color: 'var(--c-tx)', border: '1px solid var(--c-cardBd)', fontFamily: FN, fontSize: 11, fontWeight: 500, letterSpacing: '0.04em', outline: 'none', textAlign: 'start' }} autoComplete="off" />
       </div>
       {/* Filters header — static label + underline on desktop; tap-to-collapse
           toggle with chevron on narrow. */}

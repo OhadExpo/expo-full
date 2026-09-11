@@ -7,6 +7,7 @@
 // prospect intakes that carried no trainee_id). Read-only.
 import React, { useEffect, useState } from 'react';
 import { C, FN, FB } from './theme';
+import { tr, readLang } from './i18n';
 import { CollapsibleSection, Badge } from './ui';
 import { supabase } from './supabase';
 import { getForm } from './intakeFormSchemas';
@@ -73,7 +74,7 @@ export default function TraineeIntake({ trainee }) {
               <Badge color={FORM_TINT[s.form_type] || C.ac}>{s.form_type}</Badge>
               <span style={{ color: C.tm, fontFamily: FN, fontSize: 10, letterSpacing: '0.06em' }}>{(s.locale || '').toUpperCase()}</span>
               <span style={{ color: C.td, fontFamily: FB, fontSize: 12 }}>· {fmt(s.created_at)}</span>
-              {!s.reviewed_at && <span style={{ color: C.ac, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em' }}>· NEW</span>}
+              {!s.reviewed_at && <span style={{ color: C.ac, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em' }}>· {tr(readLang(), 'NEW')}</span>}
             </div>
             <PayloadDetail form={getForm(s.form_type, s.locale)} payload={s.payload} center />
           </div>

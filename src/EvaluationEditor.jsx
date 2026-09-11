@@ -221,7 +221,7 @@ function MovementRow({ index, test, value, note, onScore, onNote }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
           {(hasSides ? test.sides : [null]).map((s, i) => (
             <div key={s || i} style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
-              <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: 'var(--c-ac)', width: 12, textAlign: 'right' }}>{s || ''}</span>
+              <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: 'var(--c-ac)', width: 12, textAlign: 'end' }}>{s || ''}</span>
               <ScoreButtons
                 value={s ? (typeof value === 'object' && value ? value[s] : undefined) : value}
                 onChange={v => (s ? setSide(s, v) : onScore(v))} />

@@ -162,7 +162,7 @@ export default function ExerciseSubstitution({ currentTitle, currentEx, library,
             cursor: 'pointer',
             minWidth: 120, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           }}>{traveling ? '✓ TRAVELING' : '✈ TRAVELING'}</button>
-          <span style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.12em', fontWeight: 700, marginLeft: 4 }}>HAVE:</span>
+          <span style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.12em', fontWeight: 700, marginInlineStart: 4 }}>HAVE:</span>
           {EQUIP_CHIPS.map(chip => {
             const active = activeEquip.has(chip.id);
             return (
@@ -197,7 +197,7 @@ export default function ExerciseSubstitution({ currentTitle, currentEx, library,
             const eqDifferent = eq && targetEquip && eq !== targetEquip;
             return (
               <button key={exercise.id} onClick={() => { onPick(exercise); onClose(); }} style={{
-                textAlign: 'left', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`,
+                textAlign: 'start', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`,
                 borderRadius: 0, padding: '12px 14px', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', gap: 10,
                 transition: 'border-color 120ms, background 120ms, transform 120ms',

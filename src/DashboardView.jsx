@@ -561,7 +561,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                   <SectionLabel style={{ color: '#FFFFFF', fontSize: 13, letterSpacing: '0.08em', fontWeight: 700 }}>{s.label}</SectionLabel>
                 </span>
               </RefinedHeaderStrip>
-              <div style={{ fontSize: C.kpiNumberSize, fontWeight: 800, fontFamily: FN, color: C.tx, lineHeight: 1.05, letterSpacing: '-0.015em', direction: 'ltr', unicodeBidi: 'isolate', textAlign: 'left' }}>{s.value}
+              <div style={{ fontSize: C.kpiNumberSize, fontWeight: 800, fontFamily: FN, color: C.tx, lineHeight: 1.05, letterSpacing: '-0.015em', direction: 'ltr', unicodeBidi: 'isolate', textAlign: he ? 'right' : 'left' }}>{s.value}
                 {s.total !== undefined && <span style={{ fontSize: 13, color: refined ? 'rgba(0,0,0,0.55)' : C.td, fontWeight: 400, letterSpacing: 0 }}> / {s.total}</span>}</div>
               {s.sub && <div style={{ fontSize: 10, fontFamily: FN, color: s.subColor, marginTop: 6, letterSpacing: '0.04em' }}>{s.sub}</div>}
             </div>
@@ -680,7 +680,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
           a phone. Messages stays its own full-width row below it, never inside
           the alerts grid. */}
           {onlineNow.length > 0 && (
-        <div className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.gn}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
+        <div className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderInlineStart: `3px solid ${C.gn}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
           <RefinedHeaderStrip>
             <SectionLabel style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="dot" color="#FFFFFF"/>{tt('Online Now')} ({onlineNow.length})</SectionLabel>
           </RefinedHeaderStrip>
@@ -718,7 +718,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
             // alertHeaderDragProps drive the visuals + gesture).
             const cardsByKey = {
               expiring: expiring.length > 0 && (
-                <div key="expiring" data-alert-key="expiring" className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.or}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow, ...alertCardWrapStyle('expiring') }}>
+                <div key="expiring" data-alert-key="expiring" className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderInlineStart: `3px solid ${C.or}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow, ...alertCardWrapStyle('expiring') }}>
                   <div {...alertHeaderDragProps('expiring')}>
                     <RefinedHeaderStrip>
                       <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="alert" color="#FFFFFF"/>{tt('Expiring Packages')} ({expiring.length})</SectionLabel>
@@ -733,7 +733,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                 </div>
               ),
               overdue: isOwner && overduePayment.length > 0 && (
-                <div key="overdue" data-alert-key="overdue" className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.rd}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow, ...alertCardWrapStyle('overdue') }}>
+                <div key="overdue" data-alert-key="overdue" className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderInlineStart: `3px solid ${C.rd}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow, ...alertCardWrapStyle('overdue') }}>
                   <div {...alertHeaderDragProps('overdue')}>
                     <RefinedHeaderStrip>
                       <SectionLabel style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="dollar" color="#FFFFFF"/>{tt('Overdue Payment')} ({overduePayment.length})</SectionLabel>
@@ -748,7 +748,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                 </div>
               ),
               dormant: dropoutRisk.length > 0 && (
-                <div key="dormant" data-alert-key="dormant" className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.or}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow, ...alertCardWrapStyle('dormant') }}>
+                <div key="dormant" data-alert-key="dormant" className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderInlineStart: `3px solid ${C.or}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow, ...alertCardWrapStyle('dormant') }}>
                   <div {...alertHeaderDragProps('dormant')}>
                     <RefinedHeaderStrip>
                       <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="moon" color="#FFFFFF"/>{tt('Dormant')} ({dropoutRisk.length})</SectionLabel>
@@ -759,10 +759,10 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                     return (
                       <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', fontSize: 13 }}>
                         <span {...asButton(() => onSelectTrainee(t.id))} aria-label={`Open ${t.name}`} style={{ color: C.tx, cursor: 'pointer', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</span>
-                        <span style={{ fontFamily: FN, color: C.or, fontSize: 11, flexShrink: 0, textAlign: 'right' }}>{days == null ? tt('Never trained') : (he ? daysAgoHe(days) : `${days}d ago`)}</span>
+                        <span style={{ fontFamily: FN, color: C.or, fontSize: 11, flexShrink: 0, textAlign: 'end' }}>{days == null ? tt('Never trained') : (he ? daysAgoHe(days) : `${days}d ago`)}</span>
                         {/* Reserved slot so the status right-edge aligns whether or not the
                             athlete has a phone (WhatsApp button renders null without one). */}
-                        <span style={{ width: 26, display: 'inline-flex', justifyContent: 'flex-end', flexShrink: 0, marginLeft: 8 }}><DormantWhatsAppButton trainee={t} days={days} /></span>
+                        <span style={{ width: 26, display: 'inline-flex', justifyContent: 'flex-end', flexShrink: 0, marginInlineStart: 8 }}><DormantWhatsAppButton trainee={t} days={days} /></span>
                       </div>
                     );
                   })}
@@ -820,7 +820,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
       {/* Search */}
       <div style={{ marginBottom: 14, display: 'flex', justifyContent: 'center' }}>
         <input placeholder="Filter athletes..." value={filter} onChange={e => setFilter(e.target.value)}
-          style={{ ...baseInput, maxWidth: 300, paddingLeft: 12, textAlign: 'center', border: `1px solid ${C.tx}` }} />
+          style={{ ...baseInput, maxWidth: 300, paddingInlineStart: 12, textAlign: 'center', border: `1px solid ${C.tx}` }} />
       </div>
 
       {/* Client table */}

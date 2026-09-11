@@ -109,7 +109,7 @@ export default function VideoEmbed({ url }) {
     // Shorts are vertical — give them a portrait 9:16 frame (capped width, centered)
     // so they fill it instead of sitting pillarboxed inside a 16:9 box.
     const frame = ytIsShort(url)
-      ? { aspectRatio: '9/16', maxWidth: 300, marginLeft: 'auto', marginRight: 'auto', borderRadius: 0, overflow: 'hidden', background: '#000', border: `1px solid ${C.cardBd}` }
+      ? { aspectRatio: '9/16', maxWidth: 300, marginInlineStart: 'auto', marginInlineEnd: 'auto', borderRadius: 0, overflow: 'hidden', background: '#000', border: `1px solid ${C.cardBd}` }
       : { ...wrap, background: 'transparent' };
     return <div style={frame}><YouTubeLite id={yid} short={ytIsShort(url)} /></div>;
   }

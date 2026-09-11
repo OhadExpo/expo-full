@@ -86,7 +86,7 @@ export default function CheckinTrends({ workouts = [] }) {
             {/* Y category labels — a fixed 46px left gutter, right-aligned, so the
                 graph geometry sits to their RIGHT and never covers the words (Ohad). */}
             {[3, 2, 1, 0].map(L => (
-              <div key={L} style={{ position: 'absolute', left: 0, top: yOf(L) - 4, width: 46, fontSize: 8, fontFamily: FN, color: C.tm, letterSpacing: '0.02em', lineHeight: 1, pointerEvents: 'none', textAlign: 'right' }}>{metric.scale[L].toUpperCase()}</div>
+              <div key={L} style={{ position: 'absolute', left: 0, top: yOf(L) - 4, width: 46, fontSize: 8, fontFamily: FN, color: C.tm, letterSpacing: '0.02em', lineHeight: 1, pointerEvents: 'none', textAlign: 'end' }}>{metric.scale[L].toUpperCase()}</div>
             ))}
             {/* Chart content, offset right of the gutter; svg + dots + x-labels
                 all share this box so they stay aligned with each other. */}
