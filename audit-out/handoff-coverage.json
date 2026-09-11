@@ -1,19 +1,19 @@
 {
-  "checkedLines": 922,
-  "verified": 269,
-  "attributed": 335,
-  "structure": 310,
+  "checkedLines": 986,
+  "verified": 301,
+  "attributed": 349,
+  "structure": 328,
   "judgement": 8,
-  "atoms": 398,
+  "atoms": 487,
   "fails": [],
   "judgementLines": [
     "73: Israeli-direct. Wants deliverables, not menus of options. Push back when the",
     "100: \"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe\" --remote-debugging-por",
     "179: `git rev-list --count origin/bhbc-hebrew..HEAD` should read 0 when you",
     "219: > Check for drift with `git rev-list --count origin/bhbc-hebrew..HEAD` — it sh",
-    "442: mid-session words, the warm-up flow, `READINESS GRAPH →` and `NOTE` — the",
-    "937: `audit-out\\pairs\\portal-he-live.png`. The existing code converts them with",
-    "1119: - The weight-room grid stretches its columns; it tightens as the month fills.",
-    "1228: order: the athlete-facing section on the local host, then aligning the pairs s"
+    "456: mid-session words, the warm-up flow, `READINESS GRAPH →` and `NOTE` — the",
+    "1008: `audit-out\\pairs\\portal-he-live.png`. The existing code converts them with",
+    "1196: - The weight-room grid stretches its columns; it tightens as the month fills.",
+    "1305: order: the athlete-facing section on the local host, then aligning the pairs s"
   ]
 }
