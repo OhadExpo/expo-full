@@ -43,17 +43,17 @@ const STRINGS = {
   'hero.h1.line2':       { en: 'actually work',  he: 'שעובדות' },
   'hero.subhead': {
     en: 'Block-periodised templates for hypertrophy, strength, rehab, and time-poor schedules. Same engine I use with the athletes I coach — now available as standalone purchases you can run yourself.',
-    he: 'תבניות מחולקות לבלוקים. היפרטרופיה, כוח, שיקום, ולמי שאין זמן. אותה שיטה שאני עובד איתה עם הספורטאים שאני מאמן — עכשיו אתה מקבל אותה לבד.',
+    he: 'תבניות מחולקות לבלוקים. היפרטרופיה, כוח, שיקום, ולמי שאין זמן. אותה שיטה שאני עובד איתה עם הספורטאים שאני מאמן — עכשיו אתה יכול לקנות אותה ולהריץ בעצמך.',
   },
   'hero.cta.browse':     { en: 'BROWSE PROGRAMS ↓', he: 'תוכניות ↓' },
   'hero.cta.how':        { en: 'HOW IT WORKS',      he: 'איך זה עובד' },
   'hero.cta.quiz':       { en: 'FIND MY PROGRAM',   he: 'מצא לי תוכנית' },
-  'hero.cta.try':        { en: 'TRY THE PLATFORM',  he: 'נסה את המנוע' },
+  'hero.cta.try':        { en: 'TRY THE PLATFORM',  he: 'תנסה את המערכת' },
 
   // Hero social-proof strip — three quick credibility numbers under the subhead.
   // Numbers seeded from the coach app (CLAUDE.md). Update when reality moves.
   'hero.stat1.n':        { en: '20+',                he: '20+' },
-  'hero.stat1.l':        { en: 'Athletes coached', he: 'ספורטאים מאומנים' },
+  'hero.stat1.l':        { en: 'Athletes coached', he: 'ספורטאים שאימנתי' },
   'hero.stat2.n':        { en: '90+',                he: '90+' },
   'hero.stat2.l':        { en: 'programs delivered', he: 'תוכניות שכתבתי' },
   'hero.stat3.n':        { en: '500+',               he: '500+' },
@@ -64,7 +64,7 @@ const STRINGS = {
   'catalog.h2':          { en: 'Pick the block that matches where you are.', he: 'תבחר את הבלוק שמתאים לך עכשיו.' },
   'catalog.body': {
     en: 'Every program ships as a 4-week block (or longer) inside the EXPO portal — log sets on your phone, watch your bodyweight trend, and follow the same auto-regulation rules I use with the athletes I coach.',
-    he: 'כל תוכנית היא בלוק של 4 שבועות ומעלה. בתוך פורטל EXPO. מתעד סטים בטלפון, רואה את משקל הגוף לאורך זמן, ועובד לפי אותה אוטו-רגולציה שאני עובד איתה עם הספורטאים שאני מאמן.',
+    he: 'כל תוכנית היא בלוק של 4 שבועות ומעלה, בתוך פורטל EXPO. אתה רושם סטים בטלפון, רואה את משקל הגוף לאורך זמן, ועובד לפי אותה אוטו-רגולציה שאני עובד איתה עם הספורטאים שאני מאמן.',
   },
   'catalog.chip.all':    { en: 'ALL',            he: 'הכל' },
   'catalog.empty':       { en: 'NO PROGRAMS IN THIS CATEGORY', he: 'אין תוכניות בקטגוריה הזאת' },
@@ -91,7 +91,7 @@ const STRINGS = {
   'how.01.t':            { en: 'Pick a program',     he: 'תבחר תוכנית' },
   'how.01.d': {
     en: "Browse the catalog above. Each card shows the duration, who it's for, and what's inside. Tap VIEW to see a full sample week before you commit.",
-    he: 'תעבור על הקטלוג למעלה. בכל כרטיס יש משך, למי זה מיועד, ומה בפנים. לחץ על "הצצה" לראות שבוע מלא לפני שאתה קונה.',
+    he: 'תעבור על הקטלוג למעלה. בכל כרטיס יש משך, למי זה מיועד, ומה בפנים. תלחץ על "הצצה" כדי לראות שבוע מלא לפני שאתה קונה.',
   },
   'how.02.t':            { en: 'Pay via Bit',         he: 'תשלם בביט' },
   'how.02.d.tmpl': {
@@ -138,7 +138,7 @@ const STRINGS = {
   'inside.shot.h':       { en: 'Jump-shot analyzer', he: 'ניתוח זריקה' },
   'inside.shot.d': {
     en: 'Film a jump shot and get it back split into dip, set point, release and follow-through — ten checkpoints scored against coaching bands, each one with the fix. Film a set and it says whether the release repeats — and you mark each shot made or missed, so the session carries a makes-over-shots count.',
-    he: 'תצלם זריקה ותקבל אותה מפורקת לדיפ, נקודת סט, שחרור וליווי — עשר נקודות בדיקה מול טווחי אימון, וכל אחת עם התיקון שלה. תצלם סדרה והוא יגיד אם השחרור חוזר על עצמו — ואתה מסמן כל זריקה נכנסה או החטאה, כדי שהאימון יישא ספירת קליעות מתוך זריקות.',
+    he: 'תצלם זריקה ותקבל אותה מפורקת לדיפ, נקודת סט, שחרור וליווי — עשר נקודות בדיקה מול טווחי אימון, וכל אחת עם התיקון שלה. תצלם סדרה והוא יגיד אם השחרור חוזר על עצמו — ואתה מסמן כל זריקה, נכנסה או לא, וככה לאימון יש ספירה של כמה נכנסו מתוך כמה זריקות.',
   },
   'inside.shot.foot':    { en: '10 CHECKPOINTS · PHASE BY PHASE', he: '10 נקודות בדיקה · שלב אחר שלב' },
 
@@ -178,7 +178,7 @@ const STRINGS = {
   // own clip — without account, login, or any backend touch.
   'inside.tryCta': {
     en: 'See your own set analysed live →',
-    he: 'תראה את הסט שלך נבדק חי ←',
+    he: 'תראה ניתוח של הסט שלך בזמן אמת ←',
   },
 
   // ─── About the coach ──────────────────────────────────────────────
@@ -233,7 +233,7 @@ const STRINGS = {
   'why.h2':              { en: 'Programmed, without a weekly show-up.', he: 'אימון לפי תוכנית, בלי להגיע שבוע-שבוע.' },
   'why.body': {
     en: "Most lifters end up in one of three buckets. Templates are the middle option — almost everything a private athlete gets, at a fraction of the price, with you as the operator.",
-    he: 'רוב המתאמנים נופלים באחת משלוש קטגוריות. תבניות הן האמצע — אתה מקבל כמעט הכל שספורטאי אישי מקבל, בשבריר מהמחיר, רק שאתה מפעיל את התוכנית בעצמך.',
+    he: 'רוב המתאמנים נופלים באחת משלוש קטגוריות. תבניות הן האמצע — כמעט כל מה שמקבל ספורטאי בליווי אישי, בשבריר מהמחיר, רק שאתה מפעיל את התוכנית בעצמך.',
   },
 
   // Column headers
@@ -257,7 +257,7 @@ const STRINGS = {
   'why.row.autoreg':     { en: 'AUTO-REGULATION',      he: 'אוטו-רגולציה' },
   'why.col1.autoreg':    { en: 'No',                   he: 'לא' },
   'why.col2.autoreg':    { en: 'Built-in (RPE-driven)', he: 'מובנה — לפי RPE' },
-  'why.col3.autoreg':    { en: 'Coach-driven',         he: 'מאמן מסדר ידנית' },
+  'why.col3.autoreg':    { en: 'Coach-driven',         he: 'לפי המאמן' },
 
   // Form review row
   'why.row.form':        { en: 'FORM REVIEW',          he: 'בדיקת ביצוע' },
@@ -307,7 +307,7 @@ const STRINGS = {
   'detail.section.sample':    { en: 'SAMPLE WEEK',      he: 'שבוע לדוגמה' },
   'detail.sample.body.tmpl': {
     en: 'A look at one full microcycle. The full block escalates and varies these patterns across {weeks} weeks.',
-    he: 'ככה נראה מיקרו-מחזור שלם. הבלוק המלא מטפס ומגוון את התבניות האלה לאורך {weeks} שבועות.',
+    he: 'ככה נראה מיקרו-מחזור שלם. הבלוק המלא מעלה ומשנה את התבניות האלה לאורך {weeks} שבועות.',
   },
   'detail.sample.empty':      { en: 'SAMPLE WEEK COMING SOON', he: 'שבוע לדוגמה בקרוב' },
   'detail.day.label.tmpl':    { en: 'DAY {x}',          he: 'יום {x}' },
@@ -383,17 +383,17 @@ const STRINGS = {
   'faq.q2':           { en: 'Do I need a gym, or can I run this at home?', he: 'צריך חדר כושר או שאפשר בבית?' },
   'faq.a2': {
     en: 'Depends on the program — every card lists the equipment (HOME, FULL GYM, MINIMAL). Filter the catalog by tag or use the quiz to see only what fits your setup.',
-    he: 'תלוי בתוכנית. בכל כרטיס יש את הציוד המדויק. תסנן בקטלוג לפי תגית או תעבור על הקווויז ותראה רק מה שמתאים לסטאפ שלך.',
+    he: 'תלוי בתוכנית. בכל כרטיס יש את הציוד המדויק. תסנן בקטלוג לפי תגית או תעבור על הקוויז ותראה רק מה שמתאים לסטאפ שלך.',
   },
   'faq.q3':           { en: "I'm a complete beginner. Will this be over my head?", he: 'אני מתחיל לגמרי. זה יהיה גבוה מדי בשבילי?' },
   'faq.a3': {
     en: 'Foundation Block is built exactly for that. Three days a week, dumbbells + barbell, no machines required. Tempo and ROM cues come before any heavy load — you learn the seven primary patterns first, weight comes after.',
-    he: 'בלוק היסודות מיועד בדיוק לזה. שלושה ימים בשבוע, מוט ומשקלות, בלי מכונות. דגש על טמפו ועל טווח תנועה לפני העומס — לומדים את שבעת תבניות התנועה קודם, המשקל בא אחרי.',
+    he: 'בלוק היסודות מיועד בדיוק לזה. שלושה ימים בשבוע, מוט ומשקלות, בלי מכונות. דגש על טמפו ועל טווח תנועה לפני העומס — לומדים את שבע תבניות התנועה קודם, המשקל בא אחרי.',
   },
   'faq.q4':           { en: 'I am rehabbing an injury. Is the Rehab block right for me?', he: 'אני בשיקום אחרי פציעה. הבלוק שיקום מתאים לי?' },
   'faq.a4': {
     en: 'Only if your physiotherapist or doctor cleared you to load. The block uses a per-exercise pain gate (0–3 OK, 4–5 modify, 6+ stop) and load-management hierarchy: ROM → Tempo → Intensity → Volume → Frequency. If you are still in active rehab without clearance, do not buy — message me first.',
-    he: 'רק אם הפיזיותרפיסט או הרופא אישרו לך לעמוס. הבלוק עובד עם שער כאב לכל תרגיל (0–3 בסדר, 4–5 התאם, 6 ומעלה עצור) והיררכיית עומס: טווח ← טמפו ← עוצמה ← נפח ← תדירות. אם אתה עוד בשיקום פעיל בלי אישור — אל תקנה, תכתוב לי קודם.',
+    he: 'רק אם הפיזיותרפיסט או הרופא אישרו לך להעמיס. הבלוק עובד עם שער כאב לכל תרגיל (0–3 בסדר, 4–5 התאם, 6 ומעלה עצור) והיררכיית עומס: טווח ← טמפו ← עוצמה ← נפח ← תדירות. אם אתה עוד בשיקום פעיל בלי אישור — אל תקנה, תכתוב לי קודם.',
   },
   'faq.q5':           { en: 'Can I customise the block once I get it?', he: 'אפשר להתאים את הבלוק אחרי שאני מקבל?' },
   'faq.a5': {
@@ -403,7 +403,7 @@ const STRINGS = {
   'faq.q6':           { en: 'How do I get the program after I pay?', he: 'איך אני מקבל את התוכנית אחרי התשלום?' },
   'faq.a6': {
     en: "Within a few hours of receiving your Bit confirmation you get an email with a sign-in link to expo-app.co.il. Your purchased program is already loaded onto a private account. No app to install, no subscription — runs in any browser, on phone or laptop.",
-    he: 'תוך כמה שעות מקבלת אישור הביט מגיע אימייל עם קישור התחברות ל-expo-app.co.il. התוכנית כבר טעונה לחשבון פרטי שלך. בלי אפליקציה להתקין, בלי מנוי — רץ בכל דפדפן, בטלפון או במחשב.',
+    he: 'תוך כמה שעות מהאישור בביט מגיע אימייל עם קישור התחברות ל-expo-app.co.il. התוכנית כבר טעונה לחשבון פרטי שלך. בלי אפליקציה להתקין, בלי מנוי — רץ בכל דפדפן, בטלפון או במחשב.',
   },
   'faq.q7':           { en: 'How is this different from a free workout app?', he: 'מה ההבדל בין זה לבין אפליקציה חינמית?' },
   'faq.a7': {
@@ -421,15 +421,15 @@ const STRINGS = {
   'quiz.h2':          { en: 'Six questions. Get matched.', he: 'שש שאלות. תקבל התאמה.' },
   'quiz.body': {
     en: "I built this from the same intake form I use with the athletes I coach — just shorter. Takes about a minute. The full assessment lives behind it for when you are ready.",
-    he: 'בניתי את זה מאותו טופס היכרות שאני עובד איתו עם הספורטאים שאני מאמן — רק קצר יותר. דקה. ההערכה המלאה מחכה מאחורה לכשתרצה.',
+    he: 'בניתי את זה מאותו טופס היכרות שאני עובד איתו עם הספורטאים שאני מאמן — רק קצר יותר. דקה. ההערכה המלאה מחכה שם, כשתהיה מוכן.',
   },
   'quiz.cta':         { en: 'START QUIZ →',          he: 'תתחיל קוויז ←' },
-  'quiz.modal.title': { en: 'Find your program',     he: 'תמצא לך תוכנית' },
+  'quiz.modal.title': { en: 'Find your program',     he: 'תמצא את התוכנית שלך' },
   'quiz.modal.close': { en: 'Close',                 he: 'סגירה' },
   'quiz.step.tmpl':   { en: 'STEP {n} OF {total}',   he: 'שלב {n} מתוך {total}' },
   'quiz.next':        { en: 'NEXT →',                he: 'הבא ←' },
   'quiz.back':        { en: '← BACK',                he: 'חזרה →' },
-  'quiz.see':         { en: 'SEE MY MATCHES →',      he: 'תראה התאמות ←' },
+  'quiz.see':         { en: 'SEE MY MATCHES →',      he: 'מה מתאים לי ←' },
   'quiz.restart':     { en: '↺ RESTART',             he: '↺ התחלה מחדש' },
 
   // Q1 — couple
@@ -501,8 +501,8 @@ const STRINGS = {
   'exit.close':       { en: 'Close',                he: 'סגירה' },
 
   // ─── Interactive demo modals (clickable PhoneFrame) ───────────────
-  'demo.tap':         { en: '↗ TAP TO TRY',         he: '↗ לחיצה לניסוי' },
-  'demo.close':       { en: 'Close demo',           he: 'סגירת הדגמה' },
+  'demo.tap':         { en: '↗ TAP TO TRY',         he: '↗ תלחץ לנסות' },
+  'demo.close':       { en: 'Close demo',           he: 'סגור את הדמו' },
   'demo.pose.h':      { en: 'Pose detection · interactive', he: 'זיהוי תנוחה · אינטראקטיבי' },
   'demo.pose.body': {
     en: 'Drag the slider to scrub through the squat — knee + hip angles update in real time, same as the portal does on a real clip.',
@@ -524,7 +524,7 @@ const STRINGS = {
   'demo.cmp.h':       { en: 'Side-by-side · interactive', he: 'השוואה צד-לצד · אינטראקטיבי' },
   'demo.cmp.body': {
     en: 'Tap a tile to focus it — same UI as the portal when you compare today against your last attempt at the same load.',
-    he: 'לחץ על אריח כדי להתמקד בו — אותה ממשק כמו בפורטל כשמשווים את היום מול הסט הקודם באותו עומס.',
+    he: 'תלחץ על סרטון כדי להתמקד בו — אותו ממשק כמו בפורטל כשמשווים את היום מול הסט הקודם באותו עומס.',
   },
 };
 
