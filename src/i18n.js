@@ -520,6 +520,7 @@ export const HE = {
   "not in": 'לא נכנס',
   W: 'שבוע ',
   "Compare with…": 'השווה עם…',
+  "Filter athletes...": 'חיפוש מתאמן…',
   "WORKOUT": 'אימון',
   "Export": 'ייצוא',
   "Bugs": 'באגים',
