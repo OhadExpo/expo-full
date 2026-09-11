@@ -801,7 +801,7 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
                     setForm(f); setEditId(null); setShowForm(true); setAddMenuOpen(false);
                   }} style={{display:'block',width:'100%',padding:'10px 16px',background:'transparent',border:'none',borderBottom:`1px solid ${C.bd}`,color:C.tx,fontFamily:FB,fontSize:13,fontWeight:500,cursor:'pointer',textAlign: 'start'}}
                     onMouseEnter={e=>e.currentTarget.style.background=C.sf2} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-                    {label}
+                    {tt(label)}
                   </button>
                 ))}
               </div>}
