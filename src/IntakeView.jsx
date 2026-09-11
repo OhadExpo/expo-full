@@ -261,7 +261,7 @@ export default function IntakeView({ trainees }) {
               {s.reviewed_at ? (
                 <button onClick={() => undoReviewed(s.id)} style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tm, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', borderRadius: 0 }}>↩ UNDO</button>
               ) : (
-                <button onClick={() => markReviewed(s.id)} style={{ background: 'var(--c-sf)', border: `1px solid ${C.gn}`, color: C.gn, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', borderRadius: 0 }}>✓ DONE</button>
+                <button onClick={() => markReviewed(s.id)} style={{ background: 'var(--c-sf)', border: `1px solid ${C.gn}`, color: C.gn, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', borderRadius: 0 }}>{tt('✓ DONE')}</button>
               )}
               <button onClick={() => setPendingDelete({ kind: 'submission', key: s.id })} style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, color: C.rd, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer', borderRadius: 0 }}>✕</button>
             </div>

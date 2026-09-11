@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { C, FN, FB, uid, ytId, RESISTANCE_TYPES, BODY_POSITIONS, MOVEMENT_TYPES } from './theme';
 import { Btn, Input, Select, TextArea, Modal, ConfirmDialog, EmptyState, baseInput, useIsMobile } from './ui';
 import { classify, isUnclassified } from './exerciseClassify';
-import { useT as useAppT, useTB } from './i18n';
+import { useT as useAppT, useTB, tr, readLang } from './i18n';
 
 // Grid-card video: a lightweight YouTube FACADE. The grid can show 200 cards, so
 // it must NOT mount 200 iframes — it paints the lazy poster thumbnail and only
@@ -37,7 +37,7 @@ function GridVideo({ url }) {
   return (
     <div style={{ ...box, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <span style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: embeddable ? C.ac : C.td, opacity: embeddable ? 0.9 : 0.5 }}>
-        {embeddable ? '▶ Video' : 'No video'}
+        {embeddable ? `▶ ${tr(readLang(), 'Video')}` : tr(readLang(), 'No video')}
       </span>
     </div>
   );
@@ -359,8 +359,8 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
       {onOpenClassify && unclassifiedCount > 0 && (
         <button onClick={onOpenClassify} style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10, width: '100%', textAlign: 'left', marginBottom: 16, padding: '10px 14px', background: `color-mix(in srgb, ${C.ac} 8%, var(--c-sf))`, border: `1px solid color-mix(in srgb, ${C.ac} 35%, transparent)`, borderLeft: `3px solid ${C.ac}`, borderRadius: 0, cursor: 'pointer' }}>
           <span style={{ fontFamily: FN, fontSize: 12.5, fontWeight: 700, color: C.tx }}><span style={{ color: C.ac, fontVariantNumeric: 'tabular-nums' }}>{unclassifiedCount.toLocaleString()}</span> exercises are unclassified</span>
-          <span style={{ fontFamily: FB, fontSize: 12, color: C.td }}>— resolution/movement/position blank</span>
-          <span style={{ marginLeft: 'auto', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.ac }}>Classify at scale →</span>
+          <span style={{ fontFamily: FB, fontSize: 12, color: C.td }}>{tt('— resolution/movement/position blank')}</span>
+          <span style={{ marginInlineStart: 'auto', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.ac }}>{tt('Classify at scale →')}</span>
         </button>
       )}
 
@@ -374,9 +374,9 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
       <div style={{ marginBottom: 16, borderBottom: `1px solid ${C.cardBd}` }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 14px', padding: '0 1px 10px' }}>
           <span style={rowLabel}>{tt("Show")}</span>
-          {flagChip('video', `▶ Video (${counts.vid})`)}
-          {flagChip('notes', `☰ Notes (${counts.note})`, C.or)}
-          {flagChip('missing', `∅ Unclassified (${counts.miss})`, C.or)}
+          {flagChip('video', `▶ ${tt('Video')} (${counts.vid})`)}
+          {flagChip('notes', `☰ ${tt('Notes')} (${counts.note})`, C.or)}
+          {flagChip('missing', `∅ ${tt('Unclassified')} (${counts.miss})`, C.or)}
           {anyFilter && <button className="filt" onClick={clearAll} title="Clear all filters" style={{ ...railBase, color: C.rd, marginLeft: 'auto', letterSpacing: '0.1em' }}>× Clear all</button>}
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 14px', padding: '0 1px 12px', borderTop: `1px solid ${C.cardBd}`, paddingTop: 10 }}>
@@ -511,7 +511,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
       {/* Shared row-cap notice — applies to both table and grid. */}
       {filtered.length > 0 && !showAll && filtered.length > ROW_CAP && (
         <div style={{ padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-          <span style={{ fontSize: 11, fontFamily: FN, color: C.tm }}>Showing {ROW_CAP} of {filtered.length.toLocaleString()} — refine the search, or</span>
+          <span style={{ fontSize: 11, fontFamily: FN, color: C.tm }}>{tt('Showing')} {ROW_CAP} {tt('of')} {filtered.length.toLocaleString()} {tt('— refine the search, or')}</span>
           <button onClick={() => setShowAll(true)} style={{ background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: '3px 12px', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em' }}>{tb("SHOW ALL")}</button>
         </div>
       )}
