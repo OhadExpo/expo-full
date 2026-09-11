@@ -1295,33 +1295,33 @@ function AuthedApp() {
   // Ohad spec 2026-05-16:
   //   Dashboard › Athletes › Tasks › Review › Billing › Incoming › Challenges › Portal
   const tabs = [
-    { key:'dashboard',  label:tb('Dashboard'),  count:null },
-    { key:'trainees',   label:tb('Athletes'),   count:activeAthletesCount,
+    { key:'dashboard',  label:trFn(lang,'Dashboard'),  count:null },
+    { key:'trainees',   label:trFn(lang,'Athletes'),   count:activeAthletesCount,
       submenu: [
         { route:'trainees',  label:t('Roster'),    count:activeAthletesCount },
         { route:'plans',     label:t('Programs'),  count:null },
         { route:'exercises', label:t('Exercises'), count:null },
         { route:'bhbc',      label:'BHBC',      count:null },
       ] },
-    { key:'sessions',   label:tb('Sessions'),   count:null,
+    { key:'sessions',   label:trFn(lang,'Sessions'),   count:null,
       submenu: [
         { route:'sessions',     label:t('Group'),  count:null },
         { route:'sessionsSolo', label:t('Single'), count:null },
       ] },
-    { key:'review',     label:tb('Review'),     count:null,
+    { key:'review',     label:trFn(lang,'Review'),     count:null,
       submenu: [
         { route:'review',      label:t('Workouts'), count:null },
         { route:'reviewTools', label:t('Tools'),    count:null },
       ] },
-    { key:'tasks',      label:tb('Tasks'),      count:null },
-    { key:'billing',    label:tb('Billing'),    count:null },
-    { key:'intake',     label:tb('Incoming'),   count:null,
+    { key:'tasks',      label:trFn(lang,'Tasks'),      count:null },
+    { key:'billing',    label:trFn(lang,'Billing'),    count:null },
+    { key:'intake',     label:trFn(lang,'Incoming'),   count:null,
       submenu: [
         { route:'intake',    label:t('Intake'),    count:null },
         { route:'waitlist',  label:t('Waitlist'),  count:null },
       ] },
-    { key:'challenges', label:tb('Challenges'), count:null },
-    { key:'client',     label:tb('Portal'),     count:null },
+    { key:'challenges', label:trFn(lang,'Challenges'), count:null },
+    { key:'client',     label:trFn(lang,'Portal'),     count:null },
   ];
   // Staff see only their whitelisted top-level tabs (STAFF_TABS = dashboard +
   // tasks only — they do NOT get Athletes/Programs/Exercises/Billing/etc; the
@@ -1604,7 +1604,7 @@ function AuthedApp() {
             nav.hdr-scroll { flex-wrap: nowrap; overflow-x: auto !important; justify-content: flex-start !important; }
             .hdr-scroll { height: 56px; }
             .hdr-right { position: static !important; right: auto !important;
-              margin-left: 8px !important; background: transparent !important;
+              margin-inline-start: 8px !important; background: transparent !important;
               box-shadow: none !important; z-index: auto !important; }
           }
           /* ...and at phone width that single sliding row collapses to NOTHING.
@@ -1621,17 +1621,18 @@ function AuthedApp() {
                the nav onto its own row fixed the 12px-wide nav but broke the
                rule, so the header became two rows on every phone. The bar
                itself is the scroller now and the logo is sticky at its left. */
-            div.hdr-scroll { flex-wrap: nowrap !important; height: 56px !important; overflow-x: auto !important; overflow-y: hidden !important; padding-left: 16px !important; padding-right: 0 !important; }
+            div.hdr-scroll { flex-wrap: nowrap !important; height: 56px !important; overflow-x: auto !important; overflow-y: hidden !important; padding-inline-start: 16px !important; padding-inline-end: 0 !important; }
             /* Opaque, with an edge - otherwise the nav scrolls UNDER the logo and
                shows through it. The header's own background is the only correct
                fill here, and it differs per theme. */
-            div.hdr-scroll > :first-child { position: sticky; left: 0; z-index: 3; background: inherit;
-              align-self: stretch; display: flex; align-items: center; padding-right: 12px;
+            div.hdr-scroll > :first-child { position: sticky; inset-inline-start: 0; z-index: 3; background: inherit;
+              align-self: stretch; display: flex; align-items: center; padding-inline-end: 12px;
               border-inline-end: 1px solid var(--c-cardBd); box-shadow: 6px 0 10px -6px rgba(0,0,0,0.35); }
             div.hdr-scroll { background: inherit; }
             nav.hdr-scroll { flex: 0 0 auto !important; overflow: visible !important; min-width: 0 !important; }
-            .hdr-right { flex: 0 0 auto !important; margin-left: 8px !important; padding-right: 16px !important; }
+            .hdr-right { flex: 0 0 auto !important; margin-inline-start: 8px !important; padding-inline-end: 16px !important; }
           }
+          [dir="rtl"] nav.hdr-scroll button span{font-weight:800;letter-spacing:0}
           .nav-item-inactive{transition:color 120ms, background 120ms}
           .nav-item-inactive:hover{color:var(--c-acText) !important;background:rgba(57,189,255,0.035) !important}
           .hdr-icon-btn{transition:color 120ms, background 120ms}
@@ -1644,7 +1645,7 @@ function AuthedApp() {
              is untouched. */
           @media (max-width: 760px) {
             .hdr-right { position: static !important; right: auto !important;
-              margin-left: 8px !important; background: transparent !important;
+              margin-inline-start: 8px !important; background: transparent !important;
               box-shadow: none !important; z-index: auto !important; }
           }
           [data-theme="5b"] .alert-card,[data-theme="light"] .alert-card{transition:box-shadow 200ms, transform 200ms}
@@ -1653,7 +1654,7 @@ function AuthedApp() {
           [data-theme="5b"] .alert-row:hover,[data-theme="light"] .alert-row:hover{background:rgba(255,255,255,0.10)}
         `}</style>
         <div className="hdr-scroll" style={{maxWidth:1360,margin:"0 auto",padding:"0 16px",display:"flex",alignItems:"center",height:56,overflowX:"visible",WebkitOverflowScrolling:"touch",msOverflowStyle:"none",scrollbarWidth:"none"}}>
-          <EXPOMark height={36} onClick={()=>navTo('dashboard')} title="Back to dashboard" style={{flex:"0 0 auto",marginRight:12,cursor:'pointer'}} />
+          <EXPOMark height={36} onClick={()=>navTo('dashboard')} title="Back to dashboard" style={{flex:"0 0 auto",marginInlineEnd:12,cursor:'pointer'}} />
           <nav ref={coachNavRef} className="hdr-scroll" style={{display:"flex",gap:6,alignItems:"center",flex:"1 1 auto",justifyContent:"center",minWidth:0,overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
             {/* alignItems:'baseline' overrides baseBtn's 'center' so the
                 count digit (fontSize:10) baseline-aligns with the label
@@ -1690,7 +1691,7 @@ function AuthedApp() {
               border that previously fenced this whole group from the
               nav; the cyan separators between items are the only
               dividers now. */}
-          <div className="hdr-right" style={{flex:"0 0 auto",display:"flex",alignItems:"center",gap:2,marginLeft:12}}>
+          <div className="hdr-right" style={{flex:"0 0 auto",display:"flex",alignItems:"center",gap:2,marginInlineStart:12}}>
             <MoreMenu tab={tab} navTo={navTo} onExport={handleExport} onChangePassword={()=>setShowPwModal(true)} isOwner={isOwner} />
             <span style={{width:1,height:22,background:C.ac,opacity:0.15,alignSelf:'center',marginLeft:6,marginRight:6}} aria-hidden="true" />
             {/* HE / EN. Shows the language it switches TO, which is how a
