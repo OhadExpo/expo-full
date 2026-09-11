@@ -5,11 +5,11 @@
     "name": "pt-zone",
     "before": {
       "file": "audit-out\\pairs\\pt-zone-he-live.png",
-      "chars": 2220
+      "chars": 1507
     },
     "after": {
       "file": "audit-out\\pairs\\pt-zone-he-branch.png",
-      "chars": 1526
+      "chars": 1507
     }
   },
   {
@@ -22,7 +22,7 @@
     },
     "after": {
       "file": "audit-out\\pairs\\portal-he-branch.png",
-      "chars": 3159
+      "chars": 1182
     }
   }
 ]

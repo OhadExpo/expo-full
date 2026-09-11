@@ -5,11 +5,11 @@
     "name": "review-tools",
     "before": {
       "file": "audit-out\\pairs\\review-tools-he-live.png",
-      "chars": 928
+      "chars": 771
     },
     "after": {
       "file": "audit-out\\pairs\\review-tools-he-branch.png",
-      "chars": 768
+      "chars": 771
     }
   },
   {
@@ -18,11 +18,11 @@
     "name": "tasks-he",
     "before": {
       "file": "audit-out\\pairs\\tasks-he-he-live.png",
-      "chars": 2328
+      "chars": 2340
     },
     "after": {
       "file": "audit-out\\pairs\\tasks-he-he-branch.png",
-      "chars": 2004
+      "chars": 2340
     }
   },
   {
@@ -31,7 +31,7 @@
     "name": "billing-he",
     "before": {
       "file": "audit-out\\pairs\\billing-he-he-live.png",
-      "chars": 822
+      "chars": 2431
     },
     "after": {
       "file": "audit-out\\pairs\\billing-he-he-branch.png",

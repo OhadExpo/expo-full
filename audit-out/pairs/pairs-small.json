@@ -5,11 +5,11 @@
     "name": "dashboard-he",
     "before": {
       "file": "audit-out\\pairs\\dashboard-he-he-live.png",
-      "chars": 3476
+      "chars": 3385
     },
     "after": {
       "file": "audit-out\\pairs\\dashboard-he-he-branch.png",
-      "chars": 3365
+      "chars": 3385
     }
   },
   {
@@ -18,7 +18,7 @@
     "name": "sessions-he",
     "before": {
       "file": "audit-out\\pairs\\sessions-he-he-live.png",
-      "chars": 481
+      "chars": 466
     },
     "after": {
       "file": "audit-out\\pairs\\sessions-he-he-branch.png",
@@ -31,7 +31,7 @@
     "name": "bugs-he",
     "before": {
       "file": "audit-out\\pairs\\bugs-he-he-live.png",
-      "chars": 145
+      "chars": 134
     },
     "after": {
       "file": "audit-out\\pairs\\bugs-he-he-branch.png",
@@ -44,11 +44,11 @@
     "name": "smart-import-he",
     "before": {
       "file": "audit-out\\pairs\\smart-import-he-he-live.png",
-      "chars": 348
+      "chars": 3148
     },
     "after": {
       "file": "audit-out\\pairs\\smart-import-he-he-branch.png",
-      "chars": 327
+      "chars": 1182
     }
   },
   {
@@ -57,11 +57,11 @@
     "name": "calendar-he",
     "before": {
       "file": "audit-out\\pairs\\calendar-he-he-live.png",
-      "chars": 415
+      "chars": 3148
     },
     "after": {
       "file": "audit-out\\pairs\\calendar-he-he-branch.png",
-      "chars": 366
+      "chars": 1182
     }
   },
   {
@@ -70,11 +70,11 @@
     "name": "intake-he",
     "before": {
       "file": "audit-out\\pairs\\intake-he-he-live.png",
-      "chars": 312
+      "chars": 3148
     },
     "after": {
       "file": "audit-out\\pairs\\intake-he-he-branch.png",
-      "chars": 297
+      "chars": 1182
     }
   }
 ]

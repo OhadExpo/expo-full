@@ -1,0 +1,58 @@
+[
+  {
+    "seat": "athlete",
+    "route": "/athlete",
+    "name": "history-phone",
+    "tab": "history|היסטוריה",
+    "before": {
+      "file": "audit-out\\pairs\\history-phone-he-live.png",
+      "chars": 1080
+    },
+    "after": {
+      "file": "audit-out\\pairs\\history-phone-he-branch.png",
+      "chars": 1080
+    }
+  },
+  {
+    "seat": "athlete",
+    "route": "/athlete",
+    "name": "prs-phone",
+    "tab": "^(prs|שיאים)$",
+    "before": {
+      "file": "audit-out\\pairs\\prs-phone-he-live.png",
+      "chars": 382
+    },
+    "after": {
+      "file": "audit-out\\pairs\\prs-phone-he-branch.png",
+      "chars": 382
+    }
+  },
+  {
+    "seat": "athlete",
+    "route": "/athlete",
+    "name": "messages-phone",
+    "tab": "messages|הודעות",
+    "before": {
+      "file": "audit-out\\pairs\\messages-phone-he-live.png",
+      "chars": 136
+    },
+    "after": {
+      "file": "audit-out\\pairs\\messages-phone-he-branch.png",
+      "chars": 136
+    }
+  },
+  {
+    "seat": "athlete",
+    "route": "/athlete",
+    "name": "bw-phone",
+    "tab": "^(bw|משקל)$",
+    "before": {
+      "file": "audit-out\\pairs\\bw-phone-he-live.png",
+      "chars": 136
+    },
+    "after": {
+      "file": "audit-out\\pairs\\bw-phone-he-branch.png",
+      "chars": 236
+    }
+  }
+]

@@ -5,11 +5,11 @@
     "name": "waitlist-he",
     "before": {
       "file": "audit-out\\pairs\\waitlist-he-he-live.png",
-      "chars": 312
+      "chars": 3148
     },
     "after": {
       "file": "audit-out\\pairs\\waitlist-he-he-branch.png",
-      "chars": 300
+      "chars": 199
     }
   },
   {
@@ -18,7 +18,7 @@
     "name": "workouts-he",
     "before": {
       "file": "audit-out\\pairs\\workouts-he-he-live.png",
-      "chars": 717
+      "chars": 709
     },
     "after": {
       "file": "audit-out\\pairs\\workouts-he-he-branch.png",
@@ -31,11 +31,11 @@
     "name": "review-he",
     "before": {
       "file": "audit-out\\pairs\\review-he-he-live.png",
-      "chars": 664
+      "chars": 476
     },
     "after": {
       "file": "audit-out\\pairs\\review-he-he-branch.png",
-      "chars": 608
+      "chars": 476
     }
   }
 ]

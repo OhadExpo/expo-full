@@ -6,7 +6,7 @@
     "tab": "^Block #19",
     "before": {
       "file": "audit-out\\pairs\\program-he-he-live.png",
-      "chars": 5712
+      "chars": 136
     },
     "after": {
       "file": "audit-out\\pairs\\program-he-he-branch.png",
@@ -20,11 +20,11 @@
     "tab": "^(EDIT|עריכה)$",
     "before": {
       "file": "audit-out\\pairs\\athlete-form-he-he-live.png",
-      "chars": 4549
+      "chars": 4534
     },
     "after": {
       "file": "audit-out\\pairs\\athlete-form-he-he-branch.png",
-      "chars": 4512
+      "chars": 4534
     }
   },
   {
@@ -34,11 +34,11 @@
     "tab": "^אוהד$",
     "before": {
       "file": "audit-out\\pairs\\athlete-detail-he-he-live.png",
-      "chars": 3331
+      "chars": 3152
     },
     "after": {
       "file": "audit-out\\pairs\\athlete-detail-he-he-branch.png",
-      "chars": 3168
+      "chars": 3152
     }
   }
 ]
