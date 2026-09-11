@@ -1573,7 +1573,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
             style={{padding:'3px 8px',borderRadius:0,border:'2px solid transparent',display:'inline-flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',whiteSpace:'nowrap',
               background:'transparent',color:C.tm,
               fontFamily:FN,fontSize:10,cursor:poseLoading?'wait':'pointer',opacity:poseLoading?0.6:1}}>
-            {poseLoading ? 'LOADING…' : poseOn ? 'SKELETON ON' : 'SKELETON'}
+            {poseLoading ? tt('LOADING…') : poseOn ? tt('SKELETON ON') : tt('SKELETON')}
           </button>
           {/* REPS + its joint-picker live in their own small column, not
               inline siblings of SKELETON/LIFT METRICS — the dropdown only
@@ -1589,7 +1589,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
               style={{padding:'3px 8px',borderRadius:0,border:`2px solid ${repsOn?C.gn:'transparent'}`,display:'inline-flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',whiteSpace:'nowrap',
                 background:repsOn?C.gnD:'transparent',color:repsOn?C.gn:C.tm,
                 fontFamily:FN,fontSize:10,cursor:poseLoading?'wait':'pointer',opacity:poseLoading?0.6:1}}>
-              {repsOn ? `REPS ${reps}` : 'REPS'}
+              {repsOn ? `${tt('REPS')} ${reps}` : tt('REPS')}
             </button>
             {repsOn && (
               <select value={trackOverride} onChange={e => setTrackOverride(e.target.value)}
@@ -1658,7 +1658,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
         <div style={{flex:'0 1 auto',display:'flex',gap:4,alignItems:'center'}}>
           <button onClick={fullscreen}
             style={{padding:'3px 10px',height:22,boxSizing:'border-box',borderRadius:0,border:`1px solid ${C.bd}`,
-              background:'transparent',color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>⛶ FULL</button>
+              background:'transparent',color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>⛶ {tt('FULL')}</button>
         </div>
       </div>
       {/* Bottom row: speeds → frame-step → LOOP, all centered as one
