@@ -45,7 +45,7 @@ say('```');
 // ---------------------------------------------------------------- pass 1
 say('--- PASS 1 · git facts ---');
 const head = git('rev-parse HEAD');
-const ahead = git('rev-list --count master..HEAD');
+const ahead = git('rev-list --count origin/master..HEAD'); // origin/master: local master is stale by ~1,000 commits (memory: rollback target)
 const branch = git('rev-parse --abbrev-ref HEAD');
 check(1, 'branch is bhbc-hebrew', branch === 'bhbc-hebrew', branch);
 const stated = (doc.match(/\| HEAD \| `([0-9a-f]{7,40})`/) || [])[1] || '';
@@ -63,7 +63,7 @@ check(1, 'HEAD has not moved far since the doc was written', statedIsReal && Num
 const statedCount = Number(((doc.match(/\*\*([0-9,]+) commits\*\*/) || [])[1] || '0').replace(/,/g, ''));
 check(1, 'the commit count in the doc is current within 3', Math.abs(Number(ahead) - statedCount) <= 3,
   `doc says ${statedCount.toLocaleString('en-US')}, actual ${Number(ahead).toLocaleString('en-US')}`);
-const stat = git('diff --shortstat master..HEAD');
+const stat = git('diff --shortstat origin/master..HEAD');
 const files = (stat.match(/(\d+) files? changed/) || [])[1];
 const statedFiles = Number(((doc.match(/\*\*([0-9,]+) files/) || [])[1] || '0').replace(/,/g, ''));
 check(1, 'the file count in the doc is current within 5', Math.abs(Number(files) - statedFiles) <= 5,
@@ -132,7 +132,7 @@ for (const [id, rec] of Object.entries(loads)) {
     for (const r of rows) if (/^(lift|weights)$/i.test(String(r.type || ''))) lifts.push({ d, who: nameOf(id), min: r.min, rpe: r.rpe, load: r.load });
   }
 }
-check(5, 'lift sessions total is 76', lifts.length === 76, String(lifts.length));
+check(5, 'lift sessions total is 78', lifts.length === 78, String(lifts.length)); // 72 + 4 (09-07) + 2 (09-11)
 const today = lifts.filter((l) => l.d === '2026-09-06');
 check(5, 'two lifts logged on 2026-09-06', today.length === 2, today.map((l) => `${l.who} ${l.min}min`).join(', '));
 check(5, 'both are 30 minutes', today.every((l) => l.min === 30), today.map((l) => l.min).join('/'));
@@ -259,7 +259,7 @@ check(9, 'no forbidden word in the new UI strings',
 // ---------------------------------------------------------------- pass 10
 say('');
 say('--- PASS 10 · the open questions are still open ---');
-check(10, 'nothing from this branch is on master', git('branch --contains HEAD --list master') === '', 'master does not contain HEAD');
+check(10, 'HEAD itself is not on origin/master (what is undeployed is still undeployed)', git('branch -r --contains HEAD --list origin/master') === '', 'origin/master does not contain HEAD');
 check(10, 'the handoff lists the deploy decision as open', /Deploy or not/.test(doc));
 check(10, 'the Q4 legend question is recorded', /Moderate Volume/.test(doc));
 check(10, 'the demo probe still carries its warning',
@@ -282,7 +282,7 @@ for (const l of LENSES) {
 const CANON = [
   ['roster size', /roster[^.]{0,20}\b10\b|\b10\b[^.]{0,20}athletes/i],
   ['fixtures', /\b33\b/],
-  ['lift sessions', /\b76\b/],
+  ['lift sessions', /\b78\b/],
   ['the Hebrew word count', /147/],
   ['the dashboard card count', /seven|7 cards/i],
 ];
