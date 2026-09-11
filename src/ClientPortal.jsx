@@ -371,24 +371,6 @@ function GooglePhotosEmbed({ url }) {
   return <div style={wrap}><video src={state.src} poster={state.poster||undefined} controls playsInline onError={handleBadStream} onLoadedMetadata={handleMeta} style={{width:'100%',height:'100%',objectFit:'contain',background:'#000'}}/></div>;
 }
 
-// Overview focus note — clamps to 2 lines so the card stays compact, with a
-// MORE/LESS toggle that reveals the full text on tap (Ohad: don't balloon the
-// cards, don't let any length of text size them).
-function OverviewFocus({ text }) {
-  const tt = useAppT();
-  const [open, setOpen] = useState(false);
-  const [overflows, setOverflows] = useState(false);
-  const ref = useRef(null);
-  useEffect(() => { const el = ref.current; if (el) setOverflows(el.scrollHeight > el.clientHeight + 1); }, [text, open]);
-  return (
-    <div style={{marginInlineStart:30,marginTop:4}}>
-      <div ref={ref} style={{fontSize:11,color:C.ac,opacity:0.85,lineHeight:1.4,...(open?null:{display:'-webkit-box',WebkitBoxOrient:'vertical',WebkitLineClamp:2,overflow:'hidden'})}}>
-        <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',marginRight:8,opacity:0.7}}>{tt("FOCUS")}</span><bdi>{text}</bdi>
-      </div>
-      {(overflows || open) && <span onClick={(e)=>{e.stopPropagation();setOpen(o=>!o);}} style={{display:'inline-block',marginTop:3,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.1em',color:C.ac,cursor:'pointer',opacity:0.85}}>{open?tt('▲ LESS'):tt('▼ MORE')}</span>}
-    </div>
-  );
-}
 
 // StepLogger: warmup steps → pre-workout → exercise steps → finish
 function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFocus, trainerExercises, priorWorkouts, allowSubstitution, demoMode = false, branch = '', nameAmbiguous = false, onFilmSet = null}) {
@@ -1952,7 +1934,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           stripe (3px) is the cyan-when-set indicator. Reads as a calm card
           with a focused stripe rather than a wholly cyan box. */}
       {(() => {
-        const hasText = !!(wf && wf.trim());
+        const hasText = false; // no FOCUS in the portal (Ohad, 2026-09-11)
         const hasFb = !!lastWeekFb;
         const showNote = !hasText && !hasFb && !!staticNote;
         if (!hasText && !hasFb && !showNote) return null;
@@ -1961,7 +1943,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         const fbOpen = fbOpenForEid === ex.eid;
         return (
           <div style={{background:'transparent',border:`1px solid ${C.cardBd}`,borderLeft:`3px solid ${accent?C.ac:C.cardBd}`,borderRadius:0,padding:12,marginBottom:12}}>
-            <div style={{fontSize:10,fontFamily:FN,color:accent?C.ac:C.td,marginBottom:6,fontWeight:700,letterSpacing:'0.18em'}}>{accent ? "COACH'S FOCUS" : 'EXERCISE NOTE'}</div>
+            <div style={{fontSize:10,fontFamily:FN,color:accent?C.ac:C.td,marginBottom:6,fontWeight:700,letterSpacing:'0.18em'}}>{accent ? tt('FROM YOUR COACH') : tt('EXERCISE NOTE')}</div>
             {(hasText || showNote) && (
               <div dir="auto" style={{fontSize:13,color:C.tx,lineHeight:1.5,whiteSpace:'pre-wrap',wordBreak:'break-word',direction:/[֐-׿]/.test(body||'')?'rtl':'ltr',fontFamily:/[֐-׿]/.test(body||'')?FH:undefined}}>{body}</div>
             )}
@@ -3383,7 +3365,6 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                       <div style={{marginTop:4,fontWeight:600,fontSize:12,lineHeight:1.35,wordBreak:'break-word'}}>{r.title}</div>
                     </div>
                   </div>
-                  {r.focus && <OverviewFocus text={r.focus} />}
                 </div>
               );
             };

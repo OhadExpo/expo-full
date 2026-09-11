@@ -340,9 +340,7 @@ function ClientPortalMock({ onPick }) {
                 {exIdx + 1}. {ex.t}
                 <span style={{ fontWeight: 400, color: C.tm, fontSize: 12, marginLeft: 8 }}>{ex.s}×{ex.r}{ex.load ? ` · ${ex.load}` : ''}</span>
               </div>
-              {ex.focus && (
-                <div style={{ fontSize: 11, color: C.ac, marginBottom: 8, opacity: 0.85 }}>💡 {ex.focus}</div>
-              )}
+              
               <div style={{ display: 'grid', gridTemplateColumns: '40px 1fr 1fr 1fr 50px', gap: 6, alignItems: 'center', marginBottom: 4 }}>
                 {['SET', 'REPS', 'LOAD', 'RPE', 'DONE'].map(h => (
                   <div key={h} style={{ fontSize: 9, fontFamily: FN, color: C.td, textAlign: 'center', letterSpacing: 1, fontWeight: 700 }}>{h}</div>
@@ -763,9 +761,7 @@ function ClientPortalMock({ onPick }) {
                     <div style={{ fontWeight: 600, fontSize: 12 }}>{ex.t}</div>
                     <span style={{ fontSize: 11, fontWeight: 700, color: C.ac, fontFamily: FN }}>{ex.s}x{ex.r}{ex.load ? ` · ${ex.load}` : ''}</span>
                     {ex.tempo && <span style={{ fontSize: 9, color: C.or, marginLeft: 4 }}>{ex.tempo}</span>}
-                    {ex.focus && (
-                      <div style={{ fontSize: 11, color: C.ac, marginTop: 3, opacity: 0.85, lineHeight: 1.4, display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: 2, overflow: 'hidden' }}>💡 {ex.focus}</div>
-                    )}
+                    
                   </div>
                   {safeUrl(ex.vid) && (
                     <a href={safeUrl(ex.vid)} target="_blank" rel="noopener" onClick={e => e.stopPropagation()} style={{
@@ -1226,23 +1222,7 @@ function TraineeHomeMock({ onPick }) {
         </div>
       </div>
 
-      {/* Weekly focus from coach — non-functional in demo, mirrors the
-          real ClientPortal weekly_focus card pattern. */}
-      <div style={{
-        background: `linear-gradient(135deg, ${C.acD} 0%, ${C.sf} 100%)`,
-        border: `1px solid ${C.cardBd}`, borderRadius: 0,
-        padding: '14px 18px', marginBottom: 8,
-      }}>
-        <div style={{
-          fontFamily: FN, color: C.ac, fontSize: 10, letterSpacing: 2, fontWeight: 700,
-          marginBottom: 6,
-        }}>THIS WEEK'S FOCUS · FROM YOUR COACH</div>
-        <div style={{ fontFamily: FB, fontSize: 14, color: C.tx, lineHeight: 1.5 }}>
-          Push volume is up this week — pace your bench work, hit the lateral-raise back-off
-          sets even when they feel light. Film at least one bench set so I can call out the
-          touch point.
-        </div>
-      </div>
+      
     </section>
   );
 }
