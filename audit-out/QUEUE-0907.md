@@ -85,6 +85,7 @@ RESTORE POINT (pre-perf-fixes): b1f93ab6f04fa84e842c58049f278312374c8a43
 - [ ] D5 after D3/D4: rebuild, pairs, the three hosts, reload his tabs, show him
 - [x] D3 buttons: 414 → 0 differences on the dashboard/programs; heights via font metrics, widths via tbFor()
 - [x] D4 update notice rules (SwUpdateBanner)
-- [ ] D6 DEPLOY at ~18:05 (his order): everything except the athlete portal — branch deploy-0911 = bhbc-hebrew with ClientPortal/MealLogger at production, the athlete tree outside the provider, the login English; restore point origin/master dc80f2d
-- [ ] D7 a local host page listing what is left to review on the UNDEPLOYED athlete portal (pairs + the §8 athlete rows), new tab in his Chrome
-- [ ] D8 compare mode (review tools): "buttons are not centered and too boring and flat"; re-think whether the metrics buttons belong inside compare mode; "play both, pause, sync, etc.. redesign it smarter, nicer, ocd"
+- [x] D9 Hebrew audit everywhere before the deploy: 1,335 strings judged, 57 repaired by hand, gate green, judged again
+- [x] D6 (19:45, cf884fb, restore dc80f2d; prod current, smoke clean, physio + athlete seats photographed) DEPLOY at ~18:05 (his order): everything except the athlete portal — branch deploy-0911 = bhbc-hebrew with ClientPortal/MealLogger at production, the athlete tree outside the provider, the login English; restore point origin/master dc80f2d
+- [x] D7 (scripts/build-athlete-left.mjs → :4182) a local host page listing what is left to review on the UNDEPLOYED athlete portal (pairs + the §8 athlete rows), new tab in his Chrome
+- [x] D8 (deployed; photographed en+he; Hebrew labels + bidi date on bhbc-hebrew) compare mode (review tools): "buttons are not centered and too boring and flat"; re-think whether the metrics buttons belong inside compare mode; "play both, pause, sync, etc.. redesign it smarter, nicer, ocd"
