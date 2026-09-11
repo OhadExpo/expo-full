@@ -291,7 +291,7 @@ export default function WaitlistView({ trainees }) {
         <div>
           <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.tm, letterSpacing: '0.18em', textTransform: 'uppercase' }}>{tt("COACH WAITLIST")}</div>
           <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 4 }}>
-            {total} total · {active} uncontacted · gate at {COACH_GATE}+ serious signups
+            {total} {tt('total')} · {active} {tt('uncontacted')} · {tt('gate at')} {COACH_GATE}+ {tt('serious signups')}
           </div>
         </div>
         <div style={{ background: 'var(--c-sf)', border: `1px solid ${gateColor}`, borderRadius: 0, padding: '12px 18px', minWidth: 220 }}>
@@ -314,7 +314,7 @@ export default function WaitlistView({ trainees }) {
       {stats && (
         <CollapsibleSection title={tt("Funnel")} storageKey="waitlist-funnel" style={{ marginBottom: 14 }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 16 }}>
-          <StatTile label={tt("Leads")} value={total} sub={`${active} uncontacted`} />
+          <StatTile label={tt("Leads")} value={total} sub={`${active} ${tt('uncontacted')}`} />
           <StatTile label={tt("Contact rate")} value={`${(stats.contactRate * 100).toFixed(0)}%`} sub={`${stats.contactedCount} / ${total}`} color={stats.contactRate >= 0.8 ? C.gn : (stats.contactRate >= 0.5 ? C.or : C.rd)} />
           <StatTile label={tt("Median t→contact")} value={fmtTtc(stats.ttcMedianMs)} sub={stats.contactedCount === 0 ? 'no contacted yet' : `across ${stats.contactedCount}`} />
           <StatTile label={tt("Signed up")} value={stats.signupCount} sub={stats.contactedCount === 0 ? '—' : `${(stats.signupRate * 100).toFixed(0)}% of contacted`} color={C.ac} />
