@@ -2219,7 +2219,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                 )}
               </h2>
               <div style={{fontSize:12,color:C.tm,marginTop:4}}>
-                Week {wo.week} · {wo.dayName} · {fmtPrettyDate(wo.date)}
+                {tt('Week')} {wo.week} · {wo.dayName} · {fmtPrettyDate(wo.date)}
               </div>
             </div>
             <div style={{textAlign:"right"}}>
@@ -2700,7 +2700,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
               <React.Fragment key={wo.id}>
               {_showWk && (
                 <div style={{display:'flex',alignItems:'center',gap:8,margin:_wi===0?'2px 0 8px':'16px 0 8px',fontFamily:FN,fontSize:9.5,fontWeight:700,letterSpacing:'0.14em',textTransform:'uppercase',color:C.tm}}>
-                  <span>{wo.planName} · Week {wo.week}{_pw?`/${_pw}`:''}</span>
+                  <span>{wo.planName} · {tt('Week')} {wo.week}{_pw?`/${_pw}`:''}</span>
                   <span style={{flex:1,height:1,background:C.cardBd}} />
                 </div>
               )}
@@ -2755,7 +2755,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                     title={reviewed?'View this workout':'Review this workout'}
                     style={{background:'transparent',border:`1px solid ${reviewed?C.cardBd:C.ac}`,color:reviewed?C.tm:C.ac,
                       borderRadius:0,padding:'5px 12px',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.08em',
-                      cursor:'pointer',whiteSpace:'nowrap'}}>{reviewed?'VIEW →':'REVIEW →'}</button>
+                      cursor:'pointer',whiteSpace:'nowrap'}}>{reviewed?tt('VIEW →'):tt('REVIEW →')}</button>
                   {deleteWorkout && (
                     <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmFor(wo.id); setDeleteConfirmText(''); }}
                       title="Delete this workout"

@@ -4,7 +4,7 @@
 // pose + 3D code stays out of the main bundle until a coach actually opens one.
 // Owner trial — nothing here writes to the athlete.
 import React, { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react';
-import { useT } from './i18n';
+import { useT, tr, readLang } from './i18n';
 import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
 import { RefinedHeaderStrip, SectionLabel } from './ui';
@@ -35,7 +35,7 @@ function buildClipTree(workouts, trainees) {
       const title = (ex && (ex.title || ex.name)) || `Exercise ${i + 1}`;
       const cid = w.clientId || '—';
       const block = w.planName || 'Program';
-      const week = (w.week != null && w.week !== '') ? `Week ${w.week}` : 'Week —';
+      const week = (w.week != null && w.week !== '') ? `${tr(readLang(), 'Week')} ${w.week}` : `${tr(readLang(), 'Week')} —`;
       const day = w.dayName || 'Day';
       if (!A.has(cid)) A.set(cid, new Map());
       const B = A.get(cid);
