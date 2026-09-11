@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { fmtPrettyDate } from './dates';
-import { safeUrl, YouTubeLite } from './VideoEmbed';
+import { safeUrl } from './VideoEmbed';
 import useAutosave from './hooks/useAutosave';
 import { C, FN, FB, FH, uid, ytId, ytIsShort, EXPO_LOGO, EXPO_ICON, EXPO_LOGO_NAV } from './theme';
 import { EXPOMark } from './expoMark';
@@ -14,45 +14,20 @@ import { EX } from './exerciseData';
 import { supabase, SUPA_URL, SUPA_PUBLISHABLE_KEY } from './supabase';
 import { PasswordChangeModal } from './auth';
 import { traineeIdsFor, memberIndexFromId, sortProgramsChrono, blockNum } from './traineeUtils';
-// LAZY, because this is the athlete's phone. A static import of one component
-// pulled the whole coach review module into the portal's FIRST load - measured
-// against the built output on a cold cache: WorkoutReview 103.5KB plus the
-// MovementLab pose engine it needs, 73.8KB, inside a 1,007KB portal load. The
-// player is only ever rendered behind an expand ("coach's video feedback", a
-// history row), so an athlete who does not open a video should never pay for
-// the analysis engine at all. Same pattern as MealLogger and LiveRepCounter
-// just below.
+import { FormVideoPlayer } from './WorkoutReview';
 import { enqueueBlob, attachWorkout, drainBlobs, newBlobId, removeBlob, subscribe as subscribeBlobs } from './blobQueue';
-import { emitSaveError, lsSnapshot } from './useSupaStore';
+import { emitSaveError } from './useSupaStore';
 import ExerciseSubstitution, { libExerciseToEx } from './ExerciseSubstitution';
 import TraineePRsView from './TraineePRsView';
 import ReadinessRow, { hasReadiness } from './ReadinessRow';
 import CheckinTrends from './CheckinTrends';
 import { toast, confirmToast, isRefined5b, useEscClose, useDelayedUnmountValue } from './ui';
 import { isLogOfPlan, duplicatePlanNames } from './planLogMatch';
-import { useT as useAppT, useTB } from './i18n';
+import { useT as useAppT } from './i18n';
 import { resolveStoredUrl } from './storageUrl';
 // F-14 — meal photo → macros logger. Lazy-loaded since most athletes
 // won't open it on every page load (and it pulls in the meals query).
-const FormVideoPlayer = React.lazy(() => import('./WorkoutReview')
-  .then((m) => ({ default: m.FormVideoPlayer })));
 const MealLogger = React.lazy(() => import('./MealLogger'));
-
-// THE LAST PROGRAMME WE SAW, KEPT ON THE PHONE.
-//
-// Plans are read straight from the plans table, so unlike the store keys they
-// had no local copy. Measured with the backend unreachable: the portal showed
-// "BLOCK 0 LEFT", a week of dashes and "TypeError: Failed to fetch" - an
-// athlete in a basement reading "you have no programme". One key per trainee,
-// so a dual-role or couples account never reads somebody else's.
-const plansSnapKey = (ci) => `expo-plans-${ci}`;
-const readPlansSnapshot = (ci) => {
-  try {
-    const raw = localStorage.getItem(plansSnapKey(ci));
-    const v = raw ? JSON.parse(raw) : null;
-    return Array.isArray(v) ? v : null;
-  } catch { return null; }   // an unreadable copy is the same as none
-};
 const LiveRepCounter = React.lazy(() => import('./LiveRepCounter'));
 
 // Tempo colour — a LEGIBLE light cool-grey. Secondary spec: must be clearly
@@ -89,7 +64,6 @@ const splitPrescription = (str) => {
 // "2x10 e" reps cell stays verbatim (splitting it there would fabricate a sets
 // count and mislabel the trailing tempo token). Renders "—" when both empty.
 function SetsRepsHero({ sets, reps, splitCombined = false }) {
-  const tt = useAppT();
   let sStr = String(sets ?? '').trim();
   let rStr = String(reps ?? '').trim();
   if (splitCombined && !sStr && rStr) {
@@ -122,9 +96,9 @@ function SetsRepsHero({ sets, reps, splitCombined = false }) {
   );
   return (
     <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 14 }}>
-      {col(sStr, tt('SETS'))}
+      {col(sStr, 'SETS')}
       <span style={{ fontSize: 14, color: C.tm, fontWeight: 400, fontFamily: FN, lineHeight: 1 }}>×</span>
-      {col(rStr, tt('REPS'))}
+      {col(rStr, 'REPS')}
     </div>
   );
 }
@@ -371,13 +345,28 @@ function GooglePhotosEmbed({ url }) {
   return <div style={wrap}><video src={state.src} poster={state.poster||undefined} controls playsInline onError={handleBadStream} onLoadedMetadata={handleMeta} style={{width:'100%',height:'100%',objectFit:'contain',background:'#000'}}/></div>;
 }
 
+// Overview focus note — clamps to 2 lines so the card stays compact, with a
+// MORE/LESS toggle that reveals the full text on tap (Ohad: don't balloon the
+// cards, don't let any length of text size them).
+function OverviewFocus({ text }) {
+  const tt = useAppT();
+  const [open, setOpen] = useState(false);
+  const [overflows, setOverflows] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => { const el = ref.current; if (el) setOverflows(el.scrollHeight > el.clientHeight + 1); }, [text, open]);
+  return (
+    <div style={{marginInlineStart:30,marginTop:4}}>
+      <div ref={ref} style={{fontSize:11,color:C.ac,opacity:0.85,lineHeight:1.4,...(open?null:{display:'-webkit-box',WebkitBoxOrient:'vertical',WebkitLineClamp:2,overflow:'hidden'})}}>
+        <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',marginRight:8,opacity:0.7}}>{tt("FOCUS")}</span><bdi>{text}</bdi>
+      </div>
+      {(overflows || open) && <span onClick={(e)=>{e.stopPropagation();setOpen(o=>!o);}} style={{display:'inline-block',marginTop:3,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.1em',color:C.ac,cursor:'pointer',opacity:0.85}}>{open?'▲ LESS':'▼ MORE'}</span>}
+    </div>
+  );
+}
 
 // StepLogger: warmup steps → pre-workout → exercise steps → finish
 function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFocus, trainerExercises, priorWorkouts, allowSubstitution, demoMode = false, branch = '', nameAmbiguous = false, onFilmSet = null}) {
   const tt = useAppT();
-  // A workout in progress: SwUpdateBanner neither shows nor reloads while this
-  // is up (Ohad 2026-09-11 - the update notice must never meet a set).
-  useEffect(() => { window.__expoWorkoutActive = (window.__expoWorkoutActive | 0) + 1; return () => { window.__expoWorkoutActive = Math.max(0, (window.__expoWorkoutActive | 0) - 1); }; }, []);
   // Steps: 'wu0','wu1',... → 0,1,2,... (group indices) → 'end'
   // Daily-routine days skip warm-up steps entirely — Roei's "morning
   // routine" pattern doesn't tie to a warm-up block. Per-day flag set
@@ -1512,9 +1501,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       {groups.map((_,i) => <div key={'g'+i} style={{flex:1,height:3,borderRadius:0,background:stepIndex>wuCount+i?C.gn:stepIndex===wuCount+i?C.ac:C.bd}} />)}
     </div>
     <div style={{fontSize: groups[step]?.superset ? 11 : 10, color: groups[step]?.superset ? C.ac : C.td, fontWeight: groups[step]?.superset ? 700 : 400, letterSpacing: groups[step]?.superset ? '0.06em' : 0, fontFamily:FN, marginTop:4, textAlign:'center'}}>
-      {typeof step==='string'&&step.startsWith('wu') ? `${tt('Warm-Up')} ${parseInt(step.slice(2))+1}/${wuCount}` :
-       step==='checkin' ? tt('Check-In') :
-       step==='end' ? tt('Complete') :
+      {typeof step==='string'&&step.startsWith('wu') ? `Warm-Up ${parseInt(step.slice(2))+1}/${wuCount}` :
+       step==='checkin' ? 'Check-In' :
+       step==='end' ? 'Complete' :
        groups[step]?.superset ? `Superset ${groups[step].superset} · Group ${step+1}/${groupCount}` :
        `Exercise ${step+1}/${groupCount}`}
     </div></div>;
@@ -1569,7 +1558,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         {vid ? <div style={vidShort
           ? {marginTop:16,marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'9/16',maxWidth:300,marginLeft:'auto',marginRight:'auto',background:'#000',border:`1px solid ${C.cardBd}`}
           : {marginTop:16,marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'var(--c-sf)',border:`1px solid ${C.cardBd}`}}>
-          <YouTubeLite id={vid} short={vidShort} /></div>
+          <iframe src={`https://www.youtube.com/embed/${vid}`} style={{width:'100%',height:'100%',border:'none'}} allowFullScreen/></div>
           : wu.vid && /\.(mp4|webm|mov|m4v)(\?|$)/i.test(wu.vid) ? <div style={{marginTop:16,marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'#000',border:`1px solid ${C.cardBd}`}}>
           <video src={wu.vid} controls playsInline style={{width:'100%',height:'100%',objectFit:'contain',background:'#000'}}/></div>
           : wu.vid && /(photos\.app\.goo\.gl|photos\.google\.com)/i.test(wu.vid) ? <GooglePhotosEmbed url={wu.vid} />
@@ -1579,7 +1568,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         <div style={{display:'flex',gap:8}}>
           {!atFirstStep && <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>← Back</button>}
           <button onClick={goNext} style={{flex:2,padding:14,borderRadius:0,border:`1px solid ${C.or}`,background:'transparent',color:C.or,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>
-            {wi === wuCount - 1 ? `${tt('Start Check-In')} →` : `${tt('Next Warm-Up')} →`}</button></div>
+            {wi === wuCount - 1 ? 'Start Check-In →' : 'Next Warm-Up →'}</button></div>
       </div></div>;
   }
 
@@ -1926,7 +1915,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       {vid ? <div style={vidShort
         ? {marginTop:16,marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'9/16',maxWidth:300,marginLeft:'auto',marginRight:'auto',background:'#000',border:`1px solid ${C.cardBd}`}
         : {marginTop:16,marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'var(--c-sf)',border:`1px solid ${C.cardBd}`}}>
-        <YouTubeLite id={vid} short={vidShort} /></div>
+        <iframe src={`https://www.youtube.com/embed/${vid}`} style={{width:'100%',height:'100%',border:'none'}} allowFullScreen/></div>
         : effectiveVid && /\.(mp4|webm|mov|m4v)(\?|$)/i.test(effectiveVid) ? <div style={{marginTop:16,marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'#000',border:`1px solid ${C.cardBd}`}}>
         <video src={effectiveVid} controls playsInline style={{width:'100%',height:'100%',objectFit:'contain',background:'#000'}}/></div>
         : effectiveVid && /(photos\.app\.goo\.gl|photos\.google\.com)/i.test(effectiveVid) ? <GooglePhotosEmbed url={effectiveVid} />
@@ -1937,7 +1926,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           stripe (3px) is the cyan-when-set indicator. Reads as a calm card
           with a focused stripe rather than a wholly cyan box. */}
       {(() => {
-        const hasText = false; // no FOCUS in the portal (Ohad, 2026-09-11)
+        const hasText = !!(wf && wf.trim());
         const hasFb = !!lastWeekFb;
         const showNote = !hasText && !hasFb && !!staticNote;
         if (!hasText && !hasFb && !showNote) return null;
@@ -1946,7 +1935,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         const fbOpen = fbOpenForEid === ex.eid;
         return (
           <div style={{background:'transparent',border:`1px solid ${C.cardBd}`,borderLeft:`3px solid ${accent?C.ac:C.cardBd}`,borderRadius:0,padding:12,marginBottom:12}}>
-            <div style={{fontSize:10,fontFamily:FN,color:accent?C.ac:C.td,marginBottom:6,fontWeight:700,letterSpacing:'0.18em'}}>{accent ? tt('FROM YOUR COACH') : tt('EXERCISE NOTE')}</div>
+            <div style={{fontSize:10,fontFamily:FN,color:accent?C.ac:C.td,marginBottom:6,fontWeight:700,letterSpacing:'0.18em'}}>{accent ? "COACH'S FOCUS" : 'EXERCISE NOTE'}</div>
             {(hasText || showNote) && (
               <div dir="auto" style={{fontSize:13,color:C.tx,lineHeight:1.5,whiteSpace:'pre-wrap',wordBreak:'break-word',direction:/[֐-׿]/.test(body||'')?'rtl':'ltr',fontFamily:/[֐-׿]/.test(body||'')?FH:undefined}}>{body}</div>
             )}
@@ -1958,9 +1947,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
                 </button>
                 {fbOpen && (
                   <div style={{marginTop:8}}>
-                    <React.Suspense fallback={<div style={{fontFamily:FN,fontSize:11,color:C.td,padding:'10px 0'}}>Loading player…</div>}>
-                      <FormVideoPlayer url={lastWeekFb.url} exerciseTitle={lastWeekFb.title} role="client" reviewNotes={lastWeekFb.notes} onReviewNotesChange={null} />
-                    </React.Suspense>
+                    <FormVideoPlayer url={lastWeekFb.url} exerciseTitle={lastWeekFb.title} role="client" reviewNotes={lastWeekFb.notes} onReviewNotesChange={null} />
                   </div>
                 )}
               </div>
@@ -1974,7 +1961,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           not an all-time best. */}
       <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:14,marginBottom:14}}>
         <div style={{display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 40px',gap:4,marginBottom:4}}>
-          {['',tt('REPS'),'KG','RPE','✓'].map(h => <div key={h} style={{fontSize:10.5,fontFamily:FN,fontWeight:700,letterSpacing:'0.08em',color:C.tm,textAlign:'center'}}>{h}</div>)}</div>
+          {['','REPS','KG','RPE','✓'].map(h => <div key={h} style={{fontSize:10.5,fontFamily:FN,fontWeight:700,letterSpacing:'0.08em',color:C.tm,textAlign:'center'}}>{h}</div>)}</div>
         {(allSets[ei]||[]).map((set,si) => {
           // Ghost row above each set: REPS/KG/RPE the trainee logged for
           // this same set index last week. Aligned to the input columns
@@ -2139,7 +2126,6 @@ function deriveWeekIdx(plan, cw, dupNames) {
 // Main client portal
 export default function ClientPortal({ clientId, signOut, clientWorkouts, setClientWorkouts, bwLog, setBwLog, weeklyFocus, setWeeklyFocus, portalVis, trainerPlans, trainerExercises, trainees, selfTrainee = null, onDecrementSession, updateFormVideos, demoMode = false, demoPlans = null, onReturnToCoach = null, embedded = false, onFilmSet = null }) {
   const tt = useAppT();
-  const tb = useTB();
   // clientId comes from the authenticated session (resolved upstream in App.jsx).
   // The old email-lookup login lived inside this component and bypassed auth;
   // it's gone. Trainee is fixed for the session.
@@ -2221,19 +2207,15 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   // Mount guard: rapid login/logout could otherwise race a stale fetch
   // into setClientPlans after the component remounted for a different user.
   const [plansReloadKey, setPlansReloadKey] = useState(0);
-  // True when the programme on screen came from the local snapshot because the
-  // server could not be reached. The athlete is told; the session still shows.
-  const [plansFromSnapshot, setPlansFromSnapshot] = useState(false);
   React.useEffect(() => {
     // Clearing the previous client's load error when ci flips (or goes
     // null) keeps a stale red banner from sticking when switching between
     // trainees on a dual-role account.
-    if (!ci) { setClientPlans([]); setPlansLoadError(null); setPlansFromSnapshot(false); return; }
+    if (!ci) { setClientPlans([]); setPlansLoadError(null); return; }
     // Demo mode: skip Supabase entirely, render the prop-supplied plans.
     if (demoMode) {
       setClientPlans(Array.isArray(demoPlans) ? demoPlans : []);
       setPlansLoadError(null);
-      setPlansFromSnapshot(false);
       return;
     }
     let alive = true;
@@ -2248,7 +2230,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         if (!alive) return;
         if (error) throw error;
         if (data) {
-          const mapped = data.map(p => ({
+          setClientPlans(data.map(p => ({
             id: p.id, name: p.name, traineeId: p.trainee_id, phase: p.phase,
             notes: p.notes, active: p.active, createdAt: p.created_at,
             days: p.data?.days || [], warmup: p.data?.warmup || [],
@@ -2256,35 +2238,12 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             // Plan-level daily-routine flag (legacy 96e5f72 shape) — without it a
             // whole-plan daily routine renders as a normal week-paced block.
             kind: p.data?.kind || undefined,
-          }));
-          setClientPlans(mapped);
-          setPlansFromSnapshot(false);
-          // Keep a local copy so a session in a basement still has a session.
-          // lsSnapshot refuses to write if it would crowd the space the
-          // workout itself needs, so a big programme simply is not cached.
-          lsSnapshot(plansSnapKey(ci), mapped);
+          })));
         }
       } catch (e) {
         if (alive) {
           console.error('ClientPortal plans load:', e);
-          // The server is unreachable - that is not the same as having no
-          // programme. Fall back to the last one we saw, and say so.
-          const cached = readPlansSnapshot(ci);
-          if (cached && cached.length) {
-            setClientPlans(cached);
-            setPlansFromSnapshot(true);
-            setPlansLoadError(null);
-          } else {
-            setPlansFromSnapshot(false);
-            // "TypeError: Failed to fetch" is what an athlete was shown. A
-            // network failure gets a sentence; anything else keeps the real
-            // message, because that one is worth reporting to the coach.
-            const msg = String(e?.message || '');
-            const networkish = /failed to fetch|network|load failed|timeout|offline/i.test(msg);
-            setPlansLoadError(networkish
-              ? "We can't reach the server right now. Your program will be here when you're back online."
-              : (msg || 'Could not load your programs.'));
-          }
+          setPlansLoadError(e?.message || 'Could not load your programs.');
         }
       }
     })();
@@ -2550,21 +2509,6 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   const pv = (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('pv')) || '';
   const ident = ({'0':'BASE','1':'EDITORIAL','2':'TABLE','3':'CONSOLE','4':'AIR','5':'RAIL'})[pv] || 'RAIL';
   const sl = Math.max(0, (trainee?.sessionsRemaining || 0));
-  // THE SAME NOTICE ON EVERY PAGE OF THE PORTAL.
-  //
-  // Measured with the backend unreachable: only PROGRAM said anything. BW,
-  // Meal log, History, PRs and Messages each rendered a near-empty screen -
-  // 126 to 243 characters - with nothing to say why. To an athlete that reads
-  // as "you have nothing logged", not "your phone cannot reach the server".
-  // It lives in the shared header, which is the one thing every page renders.
-  const offlineNote = plansFromSnapshot ? (
-    <div style={{background:'var(--c-sf)',borderBottom:`1px solid ${C.cardBd}`,borderLeft:`2px solid ${C.ac}`,padding:'10px 20px',display:'flex',alignItems:'flex-start',gap:12,flexWrap:'wrap'}}>
-      <div style={{fontSize:10,fontFamily:FN,fontWeight:700,letterSpacing:'0.14em',color:C.ac,lineHeight:1.5}}>{tt("OFFLINE")}</div>
-      <div style={{fontSize:11,color:C.tm,flex:1,minWidth:140,lineHeight:1.5}}>{tt("Showing your last saved program. New logs are kept on this phone and sent when you're back online.")}</div>
-      <button onClick={()=>{setPlansReloadKey(k=>k+1);}} style={{alignSelf:'flex-start',background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,color:C.tm,borderRadius:0,padding:'6px 14px',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',cursor:'pointer'}}>{tt("RETRY")}</button>
-    </div>
-  ) : null;
-
   const renderTopHeader = () => (
     <>
       {/* Reserve the scrollbar gutter always so switching tabs (short Messages
@@ -2615,7 +2559,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             {/* Always reads like the real athlete portal ('LOG OUT →') — even in
                 preview, so the coach/prospect sees an authentic portal. The
                 outer preview banner already carries the '← BACK TO COACH' exit. */}
-            <button onClick={logOut} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',padding:0}}>{tb('LOG OUT')} →</button>
+            <button onClick={logOut} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',padding:0}}>LOG OUT →</button>
           </div>
         </div>
         {/* Symmetric vertical rhythm (Ohad): crest→greeting == greeting→divider,
@@ -2766,7 +2710,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                 </span>
                 <span style={{fontSize:9,color:C.tm,letterSpacing:'0.14em',fontWeight:700,lineHeight:1}}>{tt("WEEK")}</span>
               </span>}
-              <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',color:C.tm,lineHeight:1,flexShrink:0}}><span style={{color:C.ac,fontVariantNumeric:'tabular-nums'}}>{blockLeft}</span> {tt('LEFT')}</span>
+              <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',color:C.tm,lineHeight:1,flexShrink:0}}><span style={{color:C.ac,fontVariantNumeric:'tabular-nums'}}>{blockLeft}</span> LEFT</span>
             </div>
           );
 
@@ -2809,23 +2753,15 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           );
         })()}
       </div>
-      {offlineNote}
       {/* Two-row nav — v2 (Ohad 2026-07-05: "too messy, no borders, nobody
           knows it's clickable"). Same 3+3 grouping as the 05-16 spec, but as
           a SEGMENTED 3×2 GRID: one hairline box, hairlines between every
           cell, active cell filled cyan-tint — the same boxed language as the
           header stats strip and the WEEK selector, and unmistakably buttons. */}
       {(() => {
-        // THE SIX TAB LABELS WERE HARDCODED ENGLISH.
-        //
-        // i18n.js has carried their Hebrew all along - PROGRAM/BW/MEAL LOG/
-        // HISTORY/PRs/MESSAGES are in it under a heading that literally says
-        // "athlete portal: the six tabs" - and none of it could reach the
-        // screen, because the labels never went through tt(). Same shape of
-        // miss as the portal rendering outside the language provider.
         const NAV = [
-          ['prog', tt('PROGRAM')], ['bwt', tt('BW')], ['meal', tt('MEAL LOG')],
-          ['hist', `${tt('HISTORY')} (${cw.length})`], ['pr', tt('PRs')], ['msg', tt('MESSAGES')],
+          ['prog','PROGRAM'],['bwt','BW'],['meal','MEAL LOG'],
+          ['hist',`HISTORY (${cw.length})`],['pr','PRs'],['msg','MESSAGES'],
         ];
         const unreadDot = (k) => k==='hist' && unreadCoachNotes>0 && <span style={{position:'absolute',top:6,right:8,width:6,height:6,background:C.rd}}/>;
 
@@ -2946,7 +2882,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
       <div style={{padding:'14px 20px 20px'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}>
           <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',fontWeight:700}}>{tt("BODYWEIGHT")}</div>
-          <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}><bdi>{clientName}</bdi> · {bwData.length} {tt("ENTRIES")}</div>
+          <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}><bdi>{clientName}</bdi> · {bwData.length} ENTRIES</div>
         </div>
 
         {/* Quick log */}
@@ -2958,9 +2894,9 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           {visPlans.length > 1 && <div style={{display:'flex',gap:4,marginBottom:10,flexWrap:'wrap'}}>
             {Array.from({length: activePlan?.weeks || 4}, (_, w) => <button key={w} onClick={() => setWk(w)} style={{flex:'1 1 40px',padding:'6px 0',borderRadius:0,border:`${wk===w?'2px':'0.25px'} solid ${C.ac}${wk===w?'':'4D'}`,background:'transparent',color:wk===w?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:600,cursor:'pointer'}}>W{w+1}</button>)}
           </div>}
-          <div style={{fontSize:9,fontFamily:FN,color:C.tm,marginBottom:8,textAlign:'center',letterSpacing:'0.18em',fontWeight:700}}>{tt('Log week')} {wk+1} · {activePlan?.name || tt('NO ACTIVE BLOCK')}</div>
+          <div style={{fontSize:9,fontFamily:FN,color:C.tm,marginBottom:8,textAlign:'center',letterSpacing:'0.18em',fontWeight:700}}>LOG W{wk+1} · {activePlan?.name || 'NO ACTIVE BLOCK'}</div>
           <div style={{display:'flex',gap:8}}>
-            <input value={bwDisplay} onChange={e => setBw(e.target.value)} placeholder="Weight in kg" type="number" disabled={!activePlan} style={{flex:1,minWidth:0,background: 'var(--c-sf2)',border:`1px solid ${existingBw?'rgba(46,213,115,0.376)':C.ac}`,borderRadius:0,padding:'10px 12px',color:C.tx,fontFamily:FN,fontSize:14,outline:'none',boxSizing:'border-box',opacity:activePlan?1:0.5,textAlign:'center'}}/>
+            <input value={bwDisplay} onChange={e => setBw(e.target.value)} placeholder="Weight in kg" type="number" disabled={!activePlan} style={{flex:1,background: 'var(--c-sf2)',border:`1px solid ${existingBw?'rgba(46,213,115,0.376)':C.ac}`,borderRadius:0,padding:'10px 12px',color:C.tx,fontFamily:FN,fontSize:14,outline:'none',boxSizing:'border-box',opacity:activePlan?1:0.5,textAlign:'center'}}/>
             <button disabled={!activePlan||demoMode} onClick={()=>{if(demoMode)return;const val=bw||bwDisplay;if(val&&Number.isFinite(parseFloat(val))&&activePlan){setBwLog(prev=>{const filtered=prev.filter(b=>!(b.clientId===ci&&b.blockName===activePlan.name&&b.week===wk+1));return[...filtered,{date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(val),blockName:activePlan.name,planId:activePlan.id||null}]});setBw('')}}}
               style={{padding:'10px 20px',borderRadius:0,border:`1px solid ${(bw&&activePlan)?C.ac:C.cardBd}`,background:'transparent',color:(bw&&activePlan)?C.ac:C.td,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',cursor:(bw&&activePlan)?'pointer':'default'}}>{tt("SAVE")}</button>
           </div>
@@ -2971,7 +2907,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         {bwData.length < 2 ? (
           <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:40,textAlign:'center',color:C.td,marginBottom:16}}>
             <div style={{fontSize:24,marginBottom:8}}>📊</div>
-            <div style={{fontSize:13}}>{tt('Log at least 2 weigh-ins to see your trend')}</div>
+            <div style={{fontSize:13}}>Log at least 2 weigh-ins to see your trend</div>
           </div>
         ) : (
           <div style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,padding:14,marginBottom:16}}>
@@ -3047,8 +2983,8 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             NOT clickable (clicking used to jump the value into the LOG box +
             let you re-save it — Ohad: must not). Delete stays via the × only. */}
         <button onClick={() => setBwHistOpen(o => !o)} style={{display:'flex',alignItems:'center',gap:8,background:'transparent',border:'none',padding:0,marginBottom:8,cursor:'pointer'}}>
-          <span style={{fontSize:9,color:C.td,fontFamily:FN}}>{<svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle', transition: 'transform 150ms ease', transform: (bwHistOpen) ? 'none' : 'rotate(-90deg)' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>}</span>
-          <span style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',fontWeight:700}}>{tt("HISTORY")}{bwData.length ? ` · ${bwData.length}` : ''}</span>
+          <span style={{fontSize:9,color:C.td,fontFamily:FN}}>{bwHistOpen ? '▾' : '▸'}</span>
+          <span style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',fontWeight:700}}>HISTORY{bwData.length ? ` · ${bwData.length}` : ''}</span>
         </button>
         {bwHistOpen && bwData.slice().reverse().map((d,i) => {
           const onDelete = (e) => { e.stopPropagation(); setBwDeleteConfirm(d); };
@@ -3105,15 +3041,15 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     {renderTopHeader()}
     <div style={{padding:'14px 20px 20px'}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,marginBottom:14}}>
-        <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',fontWeight:700}}>{tt('HISTORY')} · {cw.length} {tt(cw.length === 1 ? 'SESSION' : 'SESSIONS')}</div>
+        <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',fontWeight:700}}>HISTORY · {cw.length} SESSION{cw.length===1?'':'S'}</div>
         {/* Graph button — same shape as the coach dashboard buttons; opens the
             check-in trends view. Always shown once there's any history so the
             feature is discoverable; the trends view carries its own empty state
             until the athlete has logged check-ins. */}
         {/* Small text CTA (no icon, no box) — matches the HISTORY label scale. */}
-        {cw.length > 0 && <button onClick={() => setVw('chk')} style={{background:'transparent',border:'none',color:C.ac,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.16em',padding:0,cursor:'pointer',whiteSpace:'nowrap'}}>{tt('READINESS GRAPH →')}</button>}
+        {cw.length > 0 && <button onClick={() => setVw('chk')} style={{background:'transparent',border:'none',color:C.ac,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.16em',padding:0,cursor:'pointer',whiteSpace:'nowrap'}}>READINESS GRAPH →</button>}
       </div>
-      {cw.length === 0 ? <div style={{textAlign:'center',padding:40,color:C.td}}>{tt('No workouts yet.')}</div> :
+      {cw.length === 0 ? <div style={{textAlign:'center',padding:40,color:C.td}}>No workouts yet.</div> :
         // Sort newest-first by date at render time. The DB query returns date
         // DESC, but handleComplete optimistically APPENDS a just-finished
         // session to the end of cw — so relying on array order stranded the
@@ -3156,22 +3092,20 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                 </div>
                 {isOpen && hasVideo && (
                   <div style={{marginTop:6,marginBottom:10,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:8}}>
-                    <React.Suspense fallback={<div style={{fontFamily:FN,fontSize:11,color:C.td,padding:'10px 0'}}>Loading player…</div>}>
-                      <FormVideoPlayer url={fv.cloudUrl} exerciseTitle={x.title}
-                        role="client"
-                        reviewNotes={fv.reviewNotes || []}
-                        onReviewNotesChange={updateFormVideos ? (nextNotes) => {
-                          const updated = (w.formVideos || []).map((fvi, fi) => fi === i ? { ...fvi, reviewNotes: nextNotes } : fvi);
-                          updateFormVideos(w.id, updated);
-                        } : null}
-                      />
-                    </React.Suspense>
+                    <FormVideoPlayer url={fv.cloudUrl} exerciseTitle={x.title}
+                      role="client"
+                      reviewNotes={fv.reviewNotes || []}
+                      onReviewNotesChange={updateFormVideos ? (nextNotes) => {
+                        const updated = (w.formVideos || []).map((fvi, fi) => fi === i ? { ...fvi, reviewNotes: nextNotes } : fvi);
+                        updateFormVideos(w.id, updated);
+                      } : null}
+                    />
                   </div>
                 )}
               </div>
             );
           })}
-          {w.notes && <div style={{fontSize:11,color:C.tm,marginTop:4,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,padding:6,borderRadius:0,fontFamily:FN}}><span style={{fontSize:9,fontWeight:700,letterSpacing:'0.12em',color:C.ac,marginInlineEnd:6}}>{tt('NOTE')}</span><bdi>{w.notes}</bdi></div>}
+          {w.notes && <div style={{fontSize:11,color:C.tm,marginTop:4,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,padding:6,borderRadius:0,fontFamily:FN}}><span style={{fontSize:9,fontWeight:700,letterSpacing:'0.12em',color:C.ac,marginInlineEnd:6}}>NOTE</span><bdi>{w.notes}</bdi></div>}
         </div>; })}</div></div>;
 
   // MEAL LOG page — full-screen, lazy-loaded.
@@ -3263,7 +3197,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                   {Array.from({length:N},(_,w)=>mk(w,{flex:1,padding:0,borderRadius:0,border:`1px solid ${activePlan&&wk===w?C.ac:C.cardBd}`,background:activePlan&&wk===w?'rgba(57,189,255,0.12)':'transparent',color:activePlan&&wk===w?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:activePlan&&wk===w?700:600,letterSpacing:'0.06em',cursor:'pointer',transition:'color .15s, background .15s, border-color .15s'}))}
                 </div>);
             })()}</div>}
-          <div style={{width:120}}><div style={{fontSize:9,fontFamily:FN,marginBottom:6,letterSpacing:'0.14em',fontWeight:700,textAlign:'center'}}><span style={{color:C.tm}}>{tt("BW")}</span>{lb?<span style={{color:C.ac}}> · <span dir="ltr" style={{unicodeBidi:'isolate'}}>{lb}KG</span></span>:''}</div>
+          <div style={{width:120}}><div style={{fontSize:9,fontFamily:FN,marginBottom:6,letterSpacing:'0.14em',fontWeight:700,textAlign:'center'}}><span style={{color:C.tm}}>{tt("BW")}</span>{lb?<span style={{color:C.ac}}>{` · ${lb}KG`}</span>:''}</div>
             <div style={{display:'flex',gap:4}}>
             {/* KG matches the week cells: 32px border-box in every identity;
                 underline material where the identity is underline/bare. */}
@@ -3280,8 +3214,8 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,padding:'12px 14px',marginBottom:14,cursor:'pointer',display:'flex',alignItems:'center',gap:12}}>
           <div style={{width:6,height:6,background:C.ac,flexShrink:0}}/>
           <div style={{flex:1}}>
-            <div style={{fontSize:13,color:C.ac,fontWeight:700,fontFamily:FN,letterSpacing:'0.02em'}}>{unreadCoachNotes} {tt(unreadCoachNotes===1?'new note from Ohad':'new notes from Ohad')}</div>
-            <div style={{fontSize:9,color:C.tm,marginTop:3,fontFamily:FN,letterSpacing:'0.12em',textTransform:'uppercase'}}>{tt('View in History →')}</div>
+            <div style={{fontSize:13,color:C.ac,fontWeight:700,fontFamily:FN,letterSpacing:'0.02em'}}>{unreadCoachNotes} new note{unreadCoachNotes===1?'':'s'} from Ohad</div>
+            <div style={{fontSize:9,color:C.tm,marginTop:3,fontFamily:FN,letterSpacing:'0.12em',textTransform:'uppercase'}}>View in History →</div>
           </div>
         </div>}
         {ci && !demoMode && <AthleteChallengesWidget clientId={ci} clientWorkouts={clientWorkouts} bwLog={bwLog} traineesById={Object.fromEntries((trainees||[]).map(t=>[t.id,t]))} />}
@@ -3290,9 +3224,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             two-row nav above. Removed 2026-05-16. */}
         {plansLoadError && <div style={{background:'var(--c-sf)',border:`1px solid ${C.rd||'#c94444'}`,borderRadius:0,padding:14,marginBottom:14}}>
           <div style={{fontSize:11,color:C.rd||'#ff6b6b',fontWeight:700,fontFamily:FN,letterSpacing:'0.1em',marginBottom:6,textTransform:'uppercase'}}>{tt("Couldn't load programs")}</div>
-          {/* tt() passes an unknown string through unchanged, so a real server
-              message survives and the network sentence gets its Hebrew. */}
-          <div style={{fontSize:11,color:C.tm,marginBottom:10}}>{tt(plansLoadError)}</div>
+          <div style={{fontSize:11,color:C.tm,marginBottom:10}}>{plansLoadError}</div>
           <button onClick={()=>{setPlansLoadError(null);setPlansReloadKey(k=>k+1);}} style={{background:'var(--c-sf)',border:`1px solid ${C.rd||'#c94444'}`,color:C.rd||'#ff6b6b',borderRadius:0,padding:'6px 14px',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',cursor:'pointer'}}>{tt("RETRY")}</button>
         </div>}
         {visPlans.length===0 && !plansLoadError && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'40px 30px',textAlign:'center',color:C.td,marginBottom:14}}><div style={{fontSize:10,fontFamily:FN,fontWeight:700,letterSpacing:'0.18em',color:C.tm,marginBottom:10}}>{tt("NO ACTIVE PROGRAM")}</div><div style={{fontSize:13,color:C.td}}>Contact your coach to start training.</div></div>}
@@ -3369,6 +3301,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                       <div style={{marginTop:4,fontWeight:600,fontSize:12,lineHeight:1.35,wordBreak:'break-word'}}>{r.title}</div>
                     </div>
                   </div>
+                  {r.focus && <OverviewFocus text={r.focus} />}
                 </div>
               );
             };
@@ -3472,7 +3405,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             key: 'wu-' + vp.name,
             accent: C.or,
             borderColor: C.cardBd,
-            title: `${tt('Warm-Up')} · ${vp.name}`,
+            title: `Warm-Up · ${vp.name}`,
             count: `(${vp.warmup.length})`,
             countColor: C.or,
             // warm-up owns ORANGE (number + title + rail); its tempo goes muted
@@ -3544,12 +3477,12 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             accent: C.ac,
             borderColor: doneBorderColor,
             title: day.name,
-            count: `${day.ex.length} ${tt('EX')}`,
+            count: `${day.ex.length} EX`,
             extras: <>
               {done && <span title="Completed this week" style={{display:'inline-flex',alignItems:'center',justifyContent:'center',lineHeight:1,padding:'5px 10px',border:`1px solid ${C.gn}`,color:C.gn,fontFamily:FN,fontSize:12,fontWeight:700,flexShrink:0}}>✓</span>}
               {isDailyRoutine && dailyCount > 0 && <span style={{display:'inline-flex',alignItems:'center',lineHeight:1,padding:'3px 7px',border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:8,fontWeight:700,letterSpacing:'0.18em'}}>{dailyCount} LOGGED</span>}
             </>,
-            action: { label: tt(done ? 'AGAIN' : 'START'), onClick: () => setLg(dayIdx) },
+            action: { label: done ? 'AGAIN' : 'START', onClick: () => setLg(dayIdx) },
             rows: day.ex.map((ex,i) => {
               const d = EX[ex.eid] || { t: `Exercise ${i+1}`, vid: '', q: '' };
               return {

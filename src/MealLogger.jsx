@@ -15,7 +15,6 @@ import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
 import { DEMO_MEALS } from './demoTraineeData';
 import { resolveStoredUrl } from './storageUrl';
-import { useT as useAppT, useHe } from './i18n';
 
 const BUCKET = 'meal-photos';
 
@@ -34,18 +33,13 @@ function addDaysISO(iso, n) {
   const dt = new Date(y, m - 1, d + n);
   return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
 }
-// The day label speaks the app's language: the Hebrew athlete read "Today" and
-// an English weekday above a Hebrew page (2026-09-07).
-function dayLabel(iso, tt, he) {
-  if (iso === todayISO()) return tt ? tt('Today') : 'Today';
+function dayLabel(iso) {
+  if (iso === todayISO()) return 'Today';
   const d = new Date(iso);
-  return d.toLocaleDateString(he ? 'he-IL' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
 export default function MealLogger({ clientId, page = false, demoMode = false }) {
-  // The meal log is an ATHLETE page and had no translator at all.
-  const tt = useAppT();
-  const he = useHe();
   const [photoUrl, setPhotoUrl] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
@@ -101,9 +95,9 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
-    if (demoMode) { setError(tt('Preview only — meal logging is disabled here.')); return; }
+    if (demoMode) { setError('Preview only — meal logging is disabled here.'); return; }
     if (file.size > 8 * 1024 * 1024) {
-      setError(tt('Photo is too large (max 8 MB).'));
+      setError('Photo is too large (max 8 MB).');
       return;
     }
     setUploading(true);
@@ -118,10 +112,10 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
       if (upErr) throw upErr;
       const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(path);
       const url = urlData?.publicUrl;
-      if (!url) throw new Error(tt('Could not get public URL for the photo.'));
+      if (!url) throw new Error('Could not get public URL for the photo.');
       setPhotoUrl(url);
     } catch (e) {
-      setError(e.message || tt('Upload failed.'));
+      setError(e.message || 'Upload failed.');
     } finally {
       setUploading(false);
     }
@@ -151,12 +145,12 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
       try { j = JSON.parse(raw); }
       catch {
         const snippet = raw.replace(/\s+/g, ' ').slice(0, 140);
-        throw new Error(`${tt('Server error')} (${r.status})${snippet ? ` — ${snippet}` : ''}`);
+        throw new Error(`Server error (${r.status})${snippet ? ` — ${snippet}` : ''}`);
       }
-      if (!r.ok || !j.ok) throw new Error(j.error || `${tt('AI call failed')} (${r.status}).`);
+      if (!r.ok || !j.ok) throw new Error(j.error || `AI call failed (${r.status}).`);
       setMacros(j.macros);
     } catch (e) {
-      setError(e.message || tt('Could not analyze the photo.'));
+      setError(e.message || 'Could not analyze the photo.');
     } finally {
       setAnalyzing(false);
     }
@@ -196,7 +190,7 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
       // duplicate. The next open of this screen reloads the list correctly.
       try { await loadDay(day); } catch { /* saved; list refreshes on next open */ }
     } catch (e) {
-      setError(e.message || tt('Save failed.'));
+      setError(e.message || 'Save failed.');
     } finally {
       savingRef.current = false;
       setSaving(false);
@@ -226,7 +220,7 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
           alignItems: 'center', marginBottom: 14, gap: 8, minHeight: 42, boxSizing: 'border-box',
         }}>
           <button onClick={() => setDay(addDaysISO(day, -1))}
-            aria-label={tt('Previous day')}
+            aria-label="Previous day"
             style={{
               background: 'transparent', border: `1px solid ${C.cardBd}`, color: C.tm,
               padding: '8px 0', fontFamily: FN, fontSize: 11, fontWeight: 700,
@@ -234,15 +228,15 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
             }}>←</button>
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700 }}>
-              {tt('MEAL LOG')}
+              MEAL LOG
             </div>
             <div style={{ fontFamily: FN, fontSize: 15, color: C.tx, fontWeight: 700, letterSpacing: '0.02em', marginTop: 3 }}>
-              {dayLabel(day, tt, he)}
+              {dayLabel(day)}
             </div>
           </div>
           {!isToday ? (
             <button onClick={() => setDay(addDaysISO(day, 1))}
-              aria-label={tt('Next day')}
+              aria-label="Next day"
               style={{
                 background: 'transparent', border: `1px solid ${C.cardBd}`, color: C.tm,
                 padding: '8px 0', fontFamily: FN, fontSize: 11, fontWeight: 700,
@@ -260,26 +254,26 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
             <div style={{
               fontFamily: FN, fontSize: 9, color: C.tm,
               letterSpacing: '0.24em', fontWeight: 700,
-            }}>{isToday ? tt('TODAY · TOTAL') : tt('DAY TOTAL')}</div>
+            }}>{isToday ? 'TODAY · TOTAL' : 'DAY TOTAL'}</div>
             <div style={{
               fontFamily: FN, fontSize: 36, color: meals.length ? C.ac : C.td,
               fontWeight: 700, letterSpacing: '-0.02em', marginTop: 4,
               fontVariantNumeric: 'tabular-nums',
-            }}>{totals.kcal}<span style={{ fontSize: 13, color: C.tm, fontWeight: 600, marginLeft: 6, letterSpacing: '0.12em' }}>{tt('KCAL')}</span></div>
+            }}>{totals.kcal}<span style={{ fontSize: 13, color: C.tm, fontWeight: 600, marginLeft: 6, letterSpacing: '0.12em' }}>KCAL</span></div>
           </div>
           <div style={{
             display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6,
             marginTop: 14, paddingTop: 12, borderTop: `1px solid ${C.cardBd}`,
           }}>
             {[
-              { l: tt('PROTEIN'), v: totals.p, c: C.gn },
-              { l: tt('CARB'),    v: totals.c, c: C.or },
-              { l: tt('FAT'),     v: totals.f, c: C.ac },
+              { l: 'PROTEIN', v: totals.p, c: C.gn },
+              { l: 'CARB',    v: totals.c, c: C.or },
+              { l: 'FAT',     v: totals.f, c: C.ac },
             ].map(t => (
               <div key={t.l} style={{ textAlign: 'center' }}>
                 <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700 }}>{t.l}</div>
                 <div style={{ fontFamily: FN, fontSize: 18, color: t.c, fontWeight: 700, marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>
-                  {t.v}<span style={{ fontSize: 10, color: C.tm, marginLeft: 2, fontWeight: 600 }}>{tt('g')}</span>
+                  {t.v}<span style={{ fontSize: 10, color: C.tm, marginLeft: 2, fontWeight: 600 }}>g</span>
                 </div>
               </div>
             ))}
@@ -302,7 +296,7 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
                   fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em',
                   textAlign: 'center', boxSizing: 'border-box',
                 }}>
-                  <span>{tt('SNAP A MEAL')}</span>
+                  <span>SNAP A MEAL</span>
                 </span>
               </label>
             )}
@@ -311,21 +305,21 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
                 textAlign: 'center', color: C.tm, fontFamily: FN, fontSize: 10,
                 letterSpacing: '0.18em', fontWeight: 700, padding: 28,
                 border: `1px solid ${C.cardBd}`,
-              }}>{tt('UPLOADING…')}</div>
+              }}>UPLOADING…</div>
             )}
             {photoUrl && !macros && !analyzing && (
               <div>
                 <img src={photoUrl} alt="meal" style={{ width: '100%', maxHeight: 320, objectFit: 'cover', display: 'block', marginBottom: 10 }} />
                 <input type="text" value={hint} onChange={e => setHint(e.target.value)} dir="auto"
-                  placeholder={tt('Optional hint (e.g. "1 tbsp olive oil")')}
+                  placeholder='Optional hint (e.g. "1 tbsp olive oil")'
                   style={{
                     width: '100%', background: 'var(--c-bg)', border: `1px solid ${C.cardBd}`,
                     padding: '10px 12px', color: C.tx, fontFamily: FB, fontSize: 13,
                     outline: 'none', boxSizing: 'border-box', marginBottom: 10,
                   }} />
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <button onClick={() => { setPhotoUrl(null); setHint(''); }} style={btnGhost}>{tt('CANCEL')}</button>
-                  <button onClick={analyze} style={btnAc}>{tt('ANALYZE')} →</button>
+                  <button onClick={() => { setPhotoUrl(null); setHint(''); }} style={btnGhost}>CANCEL</button>
+                  <button onClick={analyze} style={btnAc}>ANALYZE →</button>
                 </div>
               </div>
             )}
@@ -334,7 +328,7 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
                 textAlign: 'center', color: C.ac, fontFamily: FN, fontSize: 11,
                 letterSpacing: '0.18em', fontWeight: 700, padding: 32,
                 border: `1px solid ${C.ac}`,
-              }}>{tt('ANALYZING…')}</div>
+              }}>ANALYZING…</div>
             )}
             {macros && photoUrl && (
               <MacrosReview macros={macros} setMacros={setMacros} photoUrl={photoUrl} onCancel={() => { setMacros(null); setPhotoUrl(null); setHint(''); }} onSave={save} saving={saving} />
@@ -353,15 +347,15 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
           <div style={{
             fontFamily: FN, fontSize: 9, color: C.tm,
             letterSpacing: '0.24em', fontWeight: 700, marginBottom: 10,
-          }}>{isToday ? tt('TODAY') : tt('MEALS')} · {meals.length}</div>
+          }}>{isToday ? 'TODAY' : 'MEALS'} · {meals.length}</div>
           {meals.length === 0 ? (
             <div style={{
               textAlign: 'center', color: C.td, fontSize: 13, padding: '32px 14px',
               border: `1px solid ${C.cardBd}`,
-            }} dir="auto">
+            }}>
               {isToday
-                ? tt('No meals yet. Snap a photo above and the AI will estimate macros.')
-                : tt('No meals on this day.')}
+                ? 'No meals yet. Snap a photo above and the AI will estimate macros.'
+                : 'No meals on this day.'}
             </div>
           ) : meals.map(m => <MealRow key={m.id} meal={m} page />)}
         </div>
@@ -383,11 +377,11 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
         <button onClick={() => { const d = new Date(day); d.setDate(d.getDate() - 1); setDay(d.toISOString().slice(0, 10)); }}
           style={navBtn}>← PREV</button>
         <span style={{ fontFamily: FN, fontSize: 12, color: C.tx, fontWeight: 700, letterSpacing: '0.04em' }}>
-          {dayLabel(day, tt, he)}
+          {dayLabel(day)}
         </span>
         {!isToday ? (
           <button onClick={() => { const d = new Date(day); d.setDate(d.getDate() + 1); setDay(d.toISOString().slice(0, 10)); }}
-            style={navBtn}>{tt('NEXT')} →</button>
+            style={navBtn}>NEXT →</button>
         ) : <span style={{ width: 60 }} />}
       </div>
 
@@ -431,15 +425,15 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
             <div>
               <img src={photoUrl} alt="meal" style={{ width: '100%', maxHeight: 280, objectFit: 'cover', display: 'block', marginBottom: 8 }} />
               <input type="text" value={hint} onChange={e => setHint(e.target.value)} dir="auto"
-                placeholder={tt('Optional hint (e.g. "1 tbsp olive oil")')}
+                placeholder='Optional hint (e.g. "1 tbsp olive oil")'
                 style={{
                   width: '100%', background: 'var(--c-bg)', border: `1px solid ${C.cardBd}`,
                   padding: '8px 10px', color: C.tx, fontFamily: FB, fontSize: 13,
                   outline: 'none', boxSizing: 'border-box', marginBottom: 8,
                 }} />
               <div style={{ display: 'flex', gap: 6 }}>
-                <button onClick={() => { setPhotoUrl(null); setHint(''); }} style={btnGhost}>{tt('CANCEL')}</button>
-                <button onClick={analyze} style={btnAc}>{tt('ANALYZE')} →</button>
+                <button onClick={() => { setPhotoUrl(null); setHint(''); }} style={btnGhost}>CANCEL</button>
+                <button onClick={analyze} style={btnAc}>ANALYZE →</button>
               </div>
             </div>
           )}
@@ -462,8 +456,8 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
 
       <div style={{ marginTop: 14 }}>
         {meals.length === 0 ? (
-          <div style={{ textAlign: 'center', color: C.td, fontSize: 12, padding: 14 }} dir="auto">
-            {isToday ? tt('No meals logged yet today.') : tt('No meals on this day.')}
+          <div style={{ textAlign: 'center', color: C.td, fontSize: 12, padding: 14 }}>
+            {isToday ? 'No meals logged yet today.' : 'No meals on this day.'}
           </div>
         ) : meals.map(m => (
           <MealRow key={m.id} meal={m} />
@@ -474,7 +468,6 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
 }
 
 function MacrosReview({ macros, setMacros, photoUrl, onCancel, onSave, saving }) {
-  const tt = useAppT();
   const setField = (k, v) => setMacros({ ...macros, [k]: v });
   return (
     <div>
@@ -503,8 +496,8 @@ function MacrosReview({ macros, setMacros, photoUrl, onCancel, onSave, saving })
         <MacroInput label="F g" value={macros.fat_g} onChange={v => setField('fat_g', v)} />
       </div>
       <div style={{ display: 'flex', gap: 6 }}>
-        <button onClick={onCancel} style={btnGhost}>{tt('CANCEL')}</button>
-        <button onClick={onSave} disabled={saving} style={{ ...btnAc, opacity: saving ? 0.6 : 1, cursor: saving ? 'wait' : 'pointer' }}>{saving ? tt('SAVING…') : tt('SAVE MEAL')}</button>
+        <button onClick={onCancel} style={btnGhost}>CANCEL</button>
+        <button onClick={onSave} disabled={saving} style={{ ...btnAc, opacity: saving ? 0.6 : 1, cursor: saving ? 'wait' : 'pointer' }}>{saving ? 'SAVING…' : 'SAVE MEAL'}</button>
       </div>
     </div>
   );
@@ -529,7 +522,6 @@ function MacroInput({ label, value, onChange }) {
 // but the demo fixture and any legacy/photo-less row must not render a broken
 // <img>. Fall back to a neutral placeholder tile.
 function MealThumb({ url, size }) {
-  const tt = useAppT();
   // Resolved through storageUrl so meal photos keep loading once the buckets
   // stop being world-readable — a no-op while they are still public, with a
   // fallback to the stored URL so a thumbnail never silently breaks.
@@ -543,12 +535,11 @@ function MealThumb({ url, size }) {
   }, [url]);
   if (url) return <img src={src} alt="" style={{ width: size, height: size, objectFit: 'cover', flexShrink: 0 }} />;
   return (
-    <div style={{ width: size, height: size, flexShrink: 0, background: 'var(--c-sf2)', border: `1px solid ${C.cardBd}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: Math.max(7, Math.round(size / 9)), fontWeight: 700, color: C.td, letterSpacing: '0.12em' }}>{tt('MEAL')}</div>
+    <div style={{ width: size, height: size, flexShrink: 0, background: 'var(--c-sf2)', border: `1px solid ${C.cardBd}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: Math.max(7, Math.round(size / 9)), fontWeight: 700, color: C.td, letterSpacing: '0.12em' }}>MEAL</div>
   );
 }
 
 function MealRow({ meal, page = false }) {
-  const tt = useAppT();
   if (page) {
     return (
       <div style={{
@@ -567,7 +558,7 @@ function MealRow({ meal, page = false }) {
               <span style={{
                 fontFamily: FN, fontSize: 14, color: C.ac, fontWeight: 700, letterSpacing: '0.02em',
                 fontVariantNumeric: 'tabular-nums',
-              }}>{meal.kcal} <span style={{ fontSize: 9, color: C.tm, fontWeight: 600, letterSpacing: '0.12em' }}>{tt('KCAL')}</span></span>
+              }}>{meal.kcal} <span style={{ fontSize: 9, color: C.tm, fontWeight: 600, letterSpacing: '0.12em' }}>KCAL</span></span>
             </div>
             {Array.isArray(meal.items) && meal.items.length > 0 && (
               <div style={{

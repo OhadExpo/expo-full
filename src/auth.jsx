@@ -243,7 +243,7 @@ export function LoginScreen({ brand = 'expo' } = {}) {
   const [submitting, setSubmitting] = useState(false);
   // The language switch writes the same key the app reads at mount, so a
   // choice made here carries into the portal.
-  const [lang, setLang] = useState(readLang);
+  const [lang, setLang] = useState('en'); // DEPLOY 09-11: the login stays English, as production (the athlete portal is not shipping)
   const tt = (x) => tr(lang, x);
   const he = lang === 'he';
   const flipLang = () => { const next = he ? 'en' : 'he'; try { localStorage.setItem(LANG_KEY, next); } catch { /* private mode */ } setLang(next); };
@@ -358,7 +358,7 @@ export function LoginScreen({ brand = 'expo' } = {}) {
         <div style={cardStyle} dir={he ? 'rtl' : 'ltr'}>
           {!bc && (
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
-              <button type="button" onClick={flipLang} aria-label={he ? 'English' : 'עברית'}
+              <button type="button" hidden onClick={flipLang} aria-label={he ? 'English' : 'עברית'}
                 style={{ background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '4px 10px', color: C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', minWidth: 44 }}>
                 {he ? 'EN' : 'עב'}
               </button>
