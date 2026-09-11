@@ -2,7 +2,7 @@ import React, { useState, useCallback, useRef, useEffect, useMemo, Suspense, laz
 import { todayLocalISO } from './dates';
 import { C, FN, FB, uid } from './theme';
 import { ThemeToggle } from './ThemeToggle';
-import { LangCtx, LANG_KEY, tr as trFn, readLang, tbFor } from './i18n';
+import { LangCtx, LANG_KEY, tr as trFn, readLang, tbFor, useT } from './i18n';
 import { useLogoSrc } from './hooks/useTheme';
 import { EXPOMark } from './expoMark';
 import { useStore } from './useStore';
@@ -231,6 +231,7 @@ function SubmenuTab({ id, label, count, items, tab, navTo, activeStyle, isChosen
 }
 
 function MoreMenu({ tab, navTo, onExport, onChangePassword, isOwner = true }) {
+  const tt = useT(); // the menu renders inside the language provider
   const [open, setOpen] = useState(false);
   // Push-notification state for the in-menu toggle (placed above Change
   // Password per Ohad 2026-05-23). Lazy-imports ./push to avoid bloating
@@ -371,7 +372,7 @@ function MoreMenu({ tab, navTo, onExport, onChangePassword, isOwner = true }) {
                   textTransform: 'uppercase', textAlign: 'start', cursor: 'pointer',
                 }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', color: isItemActive ? C.ac : C.tm, flexShrink: 0 }}>{it.icon}</span>
-                <span>{it.label}</span>
+                <span>{tt(it.label)}</span>
               </button>
             );
           })}
@@ -389,7 +390,7 @@ function MoreMenu({ tab, navTo, onExport, onChangePassword, isOwner = true }) {
                   <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                 </svg>
               </span>
-              <span style={{ flex: 1 }}>Push Notifications</span>
+              <span style={{ flex: 1 }}>{tt('Push Notifications')}</span>
               {/* Toggle switch — the ONLY clickable region. */}
               <button onClick={e => { e.stopPropagation(); togglePush(); }}
                 disabled={pushBusy}
@@ -430,7 +431,7 @@ function MoreMenu({ tab, navTo, onExport, onChangePassword, isOwner = true }) {
                   textTransform: 'uppercase', textAlign: 'start', cursor: 'pointer',
                 }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', color: isItemActive ? C.ac : C.tm, flexShrink: 0 }}>{it.icon}</span>
-                <span>{it.label}</span>
+                <span>{tt(it.label)}</span>
               </button>
             );
           })}

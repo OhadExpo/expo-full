@@ -22,7 +22,7 @@ for (const route of ROUTES) {
   await wait(2500);
   // CLICK=<regex>: a real mouse click on the smallest visible element whose text matches, then settle (drill-down screens).
   for (const rx of (process.env.CLICK || '').split('||').filter(Boolean)) {
-    const hit = await pg.evaluate((r) => { const re = new RegExp(r); const el = [...document.querySelectorAll('button,a,div,span,td,h2,h3')].filter((e) => re.test((e.textContent || '').trim()) && e.getBoundingClientRect().width > 0 && e.getBoundingClientRect().width < 700).sort((x, y) => x.textContent.length - y.textContent.length)[0]; if (!el) return null; el.scrollIntoView({ block: 'center' }); const b = el.getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2, t: el.textContent.trim().slice(0, 30) }; }, rx);
+    const hit = await pg.evaluate((r) => { const aria = r.startsWith('aria:') ? r.slice(5) : null; const re = new RegExp(aria || r); const el = aria ? document.querySelector(`[aria-label="${aria}"],[title="${aria}"]`) : [...document.querySelectorAll('button,a,div,span,td,h2,h3')].filter((e) => re.test((e.textContent || '').trim()) && e.getBoundingClientRect().width > 0 && e.getBoundingClientRect().width < 700).sort((x, y) => x.textContent.length - y.textContent.length)[0]; if (!el) return null; el.scrollIntoView({ block: 'center' }); const b = el.getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2, t: el.textContent.trim().slice(0, 30) }; }, rx);
     if (hit) { await pg.mouse.click(hit.x, hit.y); await wait(2500); console.log('  clicked', JSON.stringify(hit.t)); } else console.log('  no match for', rx);
   }
   // Visible text nodes only, deduplicated, Hebrew-bearing lines first-class;
