@@ -35,6 +35,9 @@ function DormantWhatsAppButton({ trainee, days }) {
 export default function DashboardView({ dataIncomplete = false, isOwner = true, trainees = [], planCounts, workouts = [], clientWorkouts = [], payments = [], presence, onSelectTrainee, onOpenTraineeMessages, onOpenTasksTab, onCreatePlanForTask, onOpenIntakeTab, onOpenWaitlist, onOpenReviewWorkout }) {
   const tt = useT();
   const he = useHe();
+  // Package values like 'Sessions 8' carry the count inside the string, so
+  // tt() misses them; in Hebrew the count comes first ('8 אימונים').
+  const pkgLabel = (p) => { const m = /^(?:(\d+)\s*Sessions|Sessions\s*(\d+))$/i.exec(p || ''); const n = m && (m[1] || m[2]); return m ? (he ? `${n} אימונים` : p) : tt(p); };
   // Staff (non-owner, e.g. Yuval a masseur) share Ohad's clients but not his
   // money: every revenue / pricing / leads surface below is gated on isOwner.
   // What stays: client-engagement signals (active count, low sessions, online,
@@ -864,7 +867,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                   <td style={{ padding: '12px', fontWeight: 600, color: C.tx, textAlign: 'center' }}>{t.name}</td>
                   <td style={{ padding: '12px', textAlign: 'center' }}><Badge color={statusColor[t.status] || C.td}>{tt(t.status)}</Badge></td>
                   <td style={{ padding: '12px', color: C.tm, fontSize: 12, textAlign: 'center' }}>{tt(t.format)}</td>
-                  <td style={{ padding: '12px', color: C.tm, fontSize: 12, textAlign: 'center' }}>{tt(t.package)}{isOwner && Number.isFinite(parseInt(t.packagePrice)) ? ` · ₪${parseInt(t.packagePrice).toLocaleString()}` : ''}</td>
+                  <td style={{ padding: '12px', color: C.tm, fontSize: 12, textAlign: 'center' }}>{pkgLabel(t.package)}{isOwner && Number.isFinite(parseInt(t.packagePrice)) ? ` · ₪${parseInt(t.packagePrice).toLocaleString()}` : ''}</td>
                   <td style={{ padding: '12px', textAlign: 'center' }}>
                     {t.sessionsRemaining > 0 ? (
                       <span style={{ fontFamily: FN, fontWeight: 700, fontSize: 14, color: t.sessionsRemaining <= 2 ? C.rd : C.gn }}>{t.sessionsRemaining}</span>
