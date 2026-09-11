@@ -147,7 +147,7 @@ export function FormVideoPlayer(props) {
   );
 }
 
-function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNotes, onReviewNotesChange, role = 'trainer', recordedReps = [], targetReps = null }) {
+function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNotes, onReviewNotesChange, role = 'trainer', recordedReps = [], targetReps = null, compare = false }) {
   const tt = useAppT();
   // Athlete form videos are the most private thing the platform stores. The URL
   // is resolved through storageUrl so it keeps playing when the buckets stop
@@ -1629,7 +1629,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
           {role === 'trainer' && (
             <button onClick={runMetrics} disabled={metricsState==='busy'}
               title="Bar velocity (VBT), ROM, tempo & collapse flags from this clip"
-              style={{padding:'3px 8px',borderRadius:0,border:`2px solid ${metricsState==='done'?C.pu:'transparent'}`,display:'inline-flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',whiteSpace:'nowrap',
+              style={{padding:'3px 8px',borderRadius:0,border:`2px solid ${metricsState==='done'?C.pu:'transparent'}`,display:compare?'none':'inline-flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',whiteSpace:'nowrap',
                 background:metricsState==='done'?(C.puD||C.acD):'transparent',color:metricsState==='done'?(C.pu||C.ac):C.tm,
                 fontFamily:FN,fontSize:10,cursor:metricsState==='busy'?'wait':'pointer',opacity:metricsState==='busy'?0.6:1}}>
               {metricsState==='busy' ? `${metricsPct}%` : metricsState==='done' ? 'METRICS ✓' : 'METRICS'}
@@ -1664,7 +1664,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
       {/* Bottom row: speeds → frame-step → LOOP, all centered as one
           horizontal group (justifyContent:'center'). Order per Ohad:
           0.125x .. 2x, ◀ ▶, then ↻ LOOP. */}
-      <div style={{display:'flex',gap:4,alignItems:'center',justifyContent:'center',flexWrap:'wrap'}}>
+      <div style={{display:compare?'none':'flex',gap:4,alignItems:'center',justifyContent:'center',flexWrap:'wrap'}}>
         {speeds.map(s => (
           <button key={s} onClick={() => setSpeed(s)} title={`Playback speed ${s}x`}
             style={{padding:'3px 6px',borderRadius:0,border:`2px solid ${speed===s?C.ac:'transparent'}`,boxSizing:'border-box',
@@ -1810,49 +1810,101 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
 // athlete's own rep next to the model movement. A demo embed exposes no <video>
 // ref, so the timestamp SYNC controls are hidden in demo mode (each player has
 // its own controls); the left form clip keeps the full FormVideoPlayer chrome.
+const bidiParts = (label) => String(label || '').split(' · ').map((p, i) => (
+  <span key={i}>{i > 0 && ' · '}<span style={{ unicodeBidi: 'plaintext' }}>{p}</span></span>
+));
+
 function CompareModal({ leftLabel, leftUrl, leftTitle, rightLabel, rightUrl, rightTitle, rightMode, onClose, closing }) {
+  // Ohad 2026-09-11: "buttons are not centered and too boring and flat …
+  // play both, pause, sync, etc.. redesign it smarter, nicer, ocd". One
+  // transport for BOTH videos, centred under them: step · play/pause · step,
+  // the speed as one segmented control, loop, and the two sync directions as
+  // a pair. Each side keeps only its own overlay toggles (SKELETON / REPS)
+  // and FULL; METRICS is not a compare-mode question, so it is not there.
+  // Titles sit centred above their video. Space plays/pauses, ←/→ step both.
   const [leftVid, setLeftVid] = useState(null);
   const [rightVid, setRightVid] = useState(null);
+  const [playing, setPlaying] = useState(false);
+  const [speed, setSpeedState] = useState(1);
+  const [loop, setLoopState] = useState(false);
   const demo = rightMode === 'demo';
+  const tt = useAppT();
   useEscClose(true, onClose); // Escape closes the compare modal
+  const vids = () => [leftVid, rightVid].filter(Boolean);
   const sync = (target) => {
     if (!leftVid || !rightVid) return;
     if (target === 'right') rightVid.currentTime = leftVid.currentTime;
     else leftVid.currentTime = rightVid.currentTime;
   };
-  const playBoth = () => { leftVid?.play(); rightVid?.play(); };
-  const pauseBoth = () => { leftVid?.pause(); rightVid?.pause(); };
+  const playBoth = () => { vids().forEach(v => { v.playbackRate = speed; v.loop = loop; v.play().catch(() => {}); }); };
+  const pauseBoth = () => { vids().forEach(v => v.pause()); };
+  const toggle = () => (playing ? pauseBoth() : playBoth());
+  const stepBoth = (dir) => { vids().forEach(v => { v.pause(); v.currentTime = Math.max(0, v.currentTime + dir / 30); }); };
+  const setSpeed = (x) => { setSpeedState(x); vids().forEach(v => { v.playbackRate = x; }); };
+  const setLoop = () => { const next = !loop; setLoopState(next); vids().forEach(v => { v.loop = next; }); };
+  // "playing" follows the videos themselves, so the button is right whichever
+  // side the coach clicked.
+  useEffect(() => {
+    const list = vids(); if (!list.length) return undefined;
+    const upd = () => setPlaying(list.some(v => !v.paused && !v.ended));
+    list.forEach(v => { v.addEventListener('play', upd); v.addEventListener('pause', upd); v.addEventListener('ended', upd); });
+    upd();
+    return () => list.forEach(v => { v.removeEventListener('play', upd); v.removeEventListener('pause', upd); v.removeEventListener('ended', upd); });
+  }, [leftVid, rightVid]);
+  useEffect(() => {
+    if (demo) return undefined;
+    const onKey = (e) => {
+      if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName || '')) return;
+      if (e.code === 'Space') { e.preventDefault(); toggle(); }
+      else if (e.key === 'ArrowLeft') { e.preventDefault(); stepBoth(-1); }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); stepBoth(1); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
+  // One button vocabulary for the whole bar: 30px tall, quiet border, cyan
+  // when active, no fills anywhere else. Segments touch.
+  const bar = { display:'inline-flex', alignItems:'center', border:`1px solid ${C.cardBd}`, borderRadius:0, background:'var(--c-sf)' };
+  const btn = (active, extra = {}) => ({ height:30, padding:'0 12px', boxSizing:'border-box', border:'none', borderRadius:0, background: active ? C.acD : 'transparent', color: active ? C.ac : C.tm, fontFamily:FN, fontSize:10, fontWeight:700, letterSpacing:'0.12em', cursor:'pointer', display:'inline-flex', alignItems:'center', justifyContent:'center', whiteSpace:'nowrap', ...extra });
+  const divider = { width:1, alignSelf:'stretch', background:C.cardBd };
+  const titleStyle = { fontSize:10, fontFamily:FN, fontWeight:700, letterSpacing:'0.14em', color:C.tm, marginBottom:8, textAlign:'center' };
   return createPortal((
     <div onClick={onClose} role="dialog" aria-modal="true" aria-label="Compare videos" className={closing ? 'motion-fade-out' : 'motion-fade-in'} style={{position:'fixed',inset:0,zIndex:1200,background:C.scrim,display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:32,overflow:'auto'}}>
       <div onClick={e => e.stopPropagation()} className={closing ? 'motion-fall' : 'motion-rise'} style={{background:C.bg,border:`1px solid ${C.cardBd}`,borderRadius:0,width:'min(1400px, 96vw)',padding:20}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
-          <h3 style={{margin:0,fontFamily:FN,fontSize:16,color:C.tx}}>{demo ? 'Form vs Demo' : 'Compare'}</h3>
-          <div style={{display:'flex',gap:6,alignItems:'center'}}>
-            {!demo && <button onClick={playBoth} style={{background:C.acD,border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:11,padding:'6px 12px',borderRadius:0,cursor:'pointer'}}>▶ PLAY BOTH</button>}
-            {!demo && <button onClick={pauseBoth} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,color:C.tm,fontFamily:FN,fontSize:11,padding:'6px 12px',borderRadius:0,cursor:'pointer'}}>❚❚ PAUSE</button>}
-            <button onClick={onClose} style={{background:'none',border:'none',color:C.tm,cursor:'pointer',fontSize:18,padding:'0 8px'}}>✕</button>
-          </div>
+          <h3 style={{margin:0,fontFamily:FN,fontSize:16,color:C.tx,letterSpacing:'0.08em'}}>{demo ? tt('FORM VS DEMO') : tt('COMPARE')}</h3>
+          <button onClick={onClose} aria-label="Close" style={{background:'none',border:'none',color:C.tm,cursor:'pointer',fontSize:18,padding:'0 8px'}}>✕</button>
         </div>
-        <div className="cmp-grid" style={{display:'grid',gridTemplateColumns:demo?'1fr 1fr':'1fr auto 1fr',gap:12,alignItems:'start'}}>
+        <div className="cmp-grid" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,alignItems:'start'}}>
           <div>
-            <div style={{fontSize:11,fontFamily:FN,color:C.tm,marginBottom:6}}>{leftLabel}</div>
-            <FormVideoPlayer url={leftUrl} exerciseTitle={leftTitle} onVideoRef={setLeftVid} />
+            <div style={titleStyle}>{bidiParts(leftLabel)}</div>
+            <FormVideoPlayer url={leftUrl} exerciseTitle={leftTitle} onVideoRef={setLeftVid} compare={!demo} />
           </div>
-          {!demo && (
-            <div className="cmp-sync" style={{display:'flex',flexDirection:'column',gap:6,paddingTop:24}}>
-              <button onClick={() => sync('right')} title="Copy left timestamp to right"
-                style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,color:C.tm,fontFamily:FN,fontSize:10,padding:'6px 8px',borderRadius:0,cursor:'pointer',whiteSpace:'nowrap'}}>SYNC →</button>
-              <button onClick={() => sync('left')} title="Copy right timestamp to left"
-                style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,color:C.tm,fontFamily:FN,fontSize:10,padding:'6px 8px',borderRadius:0,cursor:'pointer',whiteSpace:'nowrap'}}>← SYNC</button>
-            </div>
-          )}
           <div>
-            <div style={{fontSize:11,fontFamily:FN,color:C.tm,marginBottom:6}}>{rightLabel}</div>
+            <div style={titleStyle}>{bidiParts(rightLabel)}</div>
             {demo
               ? <VideoEmbed url={rightUrl} />
-              : <FormVideoPlayer url={rightUrl} exerciseTitle={rightTitle} onVideoRef={setRightVid} />}
+              : <FormVideoPlayer url={rightUrl} exerciseTitle={rightTitle} onVideoRef={setRightVid} compare />}
           </div>
         </div>
+        {!demo && (
+          <div style={{display:'flex',justifyContent:'center',marginTop:16}}>
+            <div style={bar} role="toolbar" aria-label="Both videos">
+              <button onClick={() => stepBoth(-1)} title="Both back one frame (←)" style={btn(false)}>◀</button>
+              <button onClick={toggle} title={playing ? 'Pause both (Space)' : 'Play both (Space)'} style={btn(playing, { minWidth: 118 })}>{playing ? '❚❚  ' + tt('PAUSE') : '▶  ' + tt('PLAY BOTH')}</button>
+              <button onClick={() => stepBoth(1)} title="Both forward one frame (→)" style={btn(false)}>▶</button>
+              <span style={divider} />
+              {[0.125, 0.25, 0.5, 1, 2].map(x => (
+                <button key={x} onClick={() => setSpeed(x)} title={`Both at ${x}x`} style={btn(speed === x, { padding:'0 10px' })}>{x}x</button>
+              ))}
+              <span style={divider} />
+              <button onClick={setLoop} title="Loop both" style={btn(loop)}>↻ {tt('LOOP')}</button>
+              <span style={divider} />
+              <button onClick={() => sync('right')} title="Right jumps to the left's frame" style={btn(false)}>{tt('SYNC')} →</button>
+              <button onClick={() => sync('left')} title="Left jumps to the right's frame" style={btn(false)}>← {tt('SYNC')}</button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   ), document.body);
@@ -2122,13 +2174,13 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                 <h3 style={{margin:0,fontFamily:FN,fontSize:15,color:C.tx}}>{tt('Compare with…')}</h3>
                 <button onClick={() => setComparePicker(null)} style={{background:'none',border:'none',color:C.tm,cursor:'pointer',fontSize:16}}>✕</button>
               </div>
-              <div style={{fontSize:11,color:C.tm,marginBottom:10}}>{cmpPickerHold.value.candidates.length} other video{cmpPickerHold.value.candidates.length===1?'':'s'} from this client:</div>
+              <div style={{fontSize:11,color:C.tm,marginBottom:10}}>{cmpPickerHold.value.candidates.length} {tt(cmpPickerHold.value.candidates.length === 1 ? 'other video from this client:' : 'other videos from this client:')}</div>
               {cmpPickerHold.value.candidates.map((c, i) => (
                 <div key={i} onClick={() => { setCompareActive({ left: cmpPickerHold.value.left, right: { url: c.cloudUrl, label: c.label, title: c.title } }); setComparePicker(null); }}
                   style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'10px 14px',marginBottom:6,cursor:'pointer',transition:'border-color .15s'}}
                   onMouseEnter={e => e.currentTarget.style.borderColor = C.ac}
                   onMouseLeave={e => e.currentTarget.style.borderColor = C.bd}>
-                  <div style={{fontSize:12,color:C.tx}}>{c.label}</div>
+                  <div style={{fontSize:12,color:C.tx}}>{bidiParts(c.label)}</div>
                 </div>
               ))}
             </div>
@@ -2329,11 +2381,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                         {/* Body-Match: play the athlete's own rep next to the
                             branded library reference demo (owner-only, read-only,
                             no CV) — the honest "a demo that looks like them". */}
-                        {formVideo.cloudUrl && canEmbed(fromLib?.videoLink) && (
-                          <button onClick={() => setCompareActive({ left: { url: formVideo.cloudUrl, label: `${wo.planName} · W${wo.week} · ${wo.dayName} — ${ex.title || exName} · ${fmtPrettyDate(wo.date)}`, title: ex.title || exName }, right: { url: fromLib.videoLink, label: 'Reference demo · library', title: ex.title || exName }, rightMode: 'demo' })}
-                            title="Play the athlete's rep next to the branded reference demo"
-                            style={{background:C.acD,border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:9,padding:'3px 8px',borderRadius:0,cursor:'pointer',letterSpacing:0.5}}>◫ vs DEMO</button>
-                        )}
+                        
                         {formVideo.cloudUrl && (() => {
                           // Compare candidates: only the SAME exercise from
                           // OTHER weeks of the SAME block (same client). Apples
@@ -2353,7 +2401,11 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                               };
                             }))
                             .filter(v => v && v.cloudUrl !== formVideo.cloudUrl);
-                          if (candidates.length === 0) return null;
+                          if (candidates.length === 0) return canEmbed(fromLib?.videoLink) ? (
+                            <button onClick={() => setCompareActive({ left: { url: formVideo.cloudUrl, label: `${wo.planName} · W${wo.week} · ${wo.dayName} — ${ex.title || exName} · ${fmtPrettyDate(wo.date)}`, title: ex.title || exName }, right: { url: fromLib.videoLink, label: 'Reference demo · library', title: ex.title || exName }, rightMode: 'demo' })}
+                            title="Play the athlete's rep next to the branded reference demo"
+                            style={{background:C.acD,border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:9,padding:'3px 8px',borderRadius:0,cursor:'pointer',letterSpacing:0.5}}>◫ vs DEMO</button>
+                          ) : null;
                           const leftLabel = `${wo.planName} · W${wo.week} · ${wo.dayName} — ${ex.title || exName} · ${fmtPrettyDate(wo.date)}`;
                           return (
                             <button onClick={() => setComparePicker({ left: { url: formVideo.cloudUrl, label: leftLabel, title: ex.title || exName }, candidates })}
