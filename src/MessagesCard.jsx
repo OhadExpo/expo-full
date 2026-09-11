@@ -17,7 +17,7 @@ import { isRefined5b, RefinedHeaderStrip, SectionLabel, usePersistentState, stri
 import { useTheme } from './hooks/useTheme';
 import { supabase } from './supabase';
 import { enqueue } from './offlineQueue';
-import { useT } from './i18n';
+import { useT, useTB } from './i18n';
 
 const SEEN_KEY = 'expo-msgs-seen-at';
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
@@ -41,6 +41,7 @@ const ago = (iso) => {
 
 export default function MessagesCard({ trainees, onSelectTrainee, onOpenMessages }) {
   const tt = useT();
+  const tb = useTB();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [seenAt, setSeenAt] = useState(() => {
@@ -233,7 +234,7 @@ export default function MessagesCard({ trainees, onSelectTrainee, onOpenMessages
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             {unreadCount > 0 && (
               <button onClick={(e) => { e.stopPropagation(); markRead(); }}
-                style={{ ...stripBtnBase, border: '1px solid rgba(255,255,255,0.55)', color: '#FFFFFF' }}>{tt("MARK ALL READ")}</button>
+                style={{ ...stripBtnBase, border: '1px solid rgba(255,255,255,0.55)', color: '#FFFFFF' }}>{tb("MARK ALL READ")}</button>
             )}
             <span aria-hidden style={{ color: '#FFFFFF', fontSize: 12, lineHeight: 1, transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease' }}>▾</span>
           </div>

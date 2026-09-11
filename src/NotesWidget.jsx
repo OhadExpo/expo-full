@@ -20,7 +20,7 @@ import { AutoTaskExplainModal } from './components/AutoTaskExplain';
 import { normalizePhoneIL } from './whatsappButton';
 import { displayBodyOf, ownerFromBody, priorityFromBody, visibleTags, PRIORITY_TONE } from './taskFormat';
 import { CommentsThread, EventTimeline } from './TasksV8View';
-import { useT } from './i18n';
+import { useT, useTB } from './i18n';
 
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
 
@@ -446,6 +446,7 @@ function TaskActionButton({ note, trainee, onCreatePlan, onOpenReview, onOpenInt
 
 export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanForTask, onOpenIntakeTab, onOpenWaitlist, compact = false, trainees = [], viewerOwner = 'ohad' }) {
   const tt = useT();
+  const tb = useTB();
   const { rows, create, update, togglePin, toggleDone, remove } = useCoachNotes({ limit: 60 });
   // Phone-narrow: the compact dashboard mini-board (a 4-col status kanban) is
   // cramped side-by-side at ~140px/col and scrolls sideways with clipped text.
@@ -703,7 +704,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                   border: `1px solid ${refined ? '#FFFFFF' : 'var(--c-ac)'}`,
                   color: refined ? '#FFFFFF' : 'var(--c-ac)',
                   minWidth: 72,
-                }}>{adding ? tt('Close') : tt('+ Task')}</button>
+                }}>{adding ? tb('Close') : tb('+ Task')}</button>
               <span aria-hidden style={{ color: refined ? '#FFFFFF' : 'var(--c-tx)', fontSize: 12, lineHeight: 1, transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease' }}>▾</span>
             </div>
           </div>
@@ -714,7 +715,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
             {tt('Tasks')} ({counts.all})
           </div>
           <button onClick={() => setAdding(!adding)}
-            style={{ ...stripBtnBase, border: `1px solid var(--c-ac)`, color: 'var(--c-ac)', minWidth: 58 }}>{adding ? tt('Close') : tt('+ Task')}</button>
+            style={{ ...stripBtnBase, border: `1px solid var(--c-ac)`, color: 'var(--c-ac)', minWidth: 58 }}>{adding ? tb('Close') : tb('+ Task')}</button>
         </div>
       )}
 
@@ -931,9 +932,9 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
 
           const btnBase = { borderRadius:0, fontFamily:FN, fontWeight:700, cursor:'pointer' };
           const SEGS = [
-            { id:'all',    label:tt('All'),         n:openRows.length },
-            { id:'mine',   label:tt('General'),     n:manualRows.length },
-            { id:'alerts', label:tt('Auto-alerts'), n:autoRows.length },
+            { id:'all',    label:tb('All'),         n:openRows.length },
+            { id:'mine',   label:tb('General'),     n:manualRows.length },
+            { id:'alerts', label:tb('Auto-alerts'), n:autoRows.length },
           ];
           return (
             <div>

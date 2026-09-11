@@ -1937,6 +1937,7 @@ function EditorMoreMenu({ items }) {
 
 function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, exercises, setExercises, planIndex, onPreviewPlan, onDelete, onNewProgramFor, onShare, onDuplicate, onCopyDays, onCopyWarmup, clientWorkouts, portalVis, setPortalVis, editorApiRef }) {
   const tt = useAppT();
+  const tb = useTB();
   const [plan, setPlan] = useState(init);
   // Always-latest plan (setPlan makes new objects on every edit), so handleSave
   // can tell whether an edit landed DURING its await before declaring clean.
@@ -2484,7 +2485,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           {onPreviewPlan && plan?.id && <button onClick={async () => { if (await flushAutosave()) onPreviewPlan(plan.id); else toast('Save failed — preview may be stale. Retry once your edits save.', 'error'); }}
             title="Open this program in the athlete portal view" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:38,padding:'0 13px',lineHeight:'38px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.09em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-            {tt("PORTAL")}
+            {tb("PORTAL")}
           </button>}
           {/* OVERVIEW — placed immediately after PORTAL (Ohad: "it should be
               displayed as a button, after portal"). Fixed width regardless of
@@ -2550,7 +2551,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
             return <button onClick={toggleVis}
               title={vis ? 'On the athlete portal — click to hide' : 'Hidden from the athlete portal — click to show'}
               style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)', border:`1px solid ${vis ? 'rgba(46,213,115,0.5)' : C.cardBd}`, borderRadius:0, height:38, padding:'0 13px', display:'inline-flex', alignItems:'center', gap:8, cursor:'pointer'}}>
-              <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',color:vis?C.gn:C.td}}>{tt('PORTAL')}</span>
+              <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',color:vis?C.gn:C.td}}>{tb('PORTAL')}</span>
               <span style={{width:32,height:18,borderRadius:9,background:vis?'rgba(46,213,115,0.25)':'rgba(255,255,255,0.06)',border:`1px solid ${vis?'rgba(46,213,115,0.5)':C.cardBd}`,position:'relative',flexShrink:0}}>
                 <span style={{width:14,height:14,borderRadius:7,background:vis?C.gn:C.td,position:'absolute',top:1,left:1,transform:vis?'translateX(14px)':'none',transition:'transform .15s cubic-bezier(.22,.61,.36,1)'}} />
               </span>
@@ -4413,7 +4414,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
     <button onClick={onClick}
       title={title || (on ? 'On the athlete portal — click to hide' : 'Hidden from the athlete portal — click to show')}
       style={{ display:'inline-flex', alignItems:'center', justifyContent: block ? 'center' : 'flex-start', gap:8, width: block ? '100%' : 'auto', height:28, padding:0, background:'none', border:'none', cursor:'pointer', flexShrink:0 }}>
-      <span style={{ fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.06em', color: on ? C.gn : C.td }}>{tt("PORTAL")}</span>
+      <span style={{ fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.06em', color: on ? C.gn : C.td }}>{tb("PORTAL")}</span>
       <span style={{ width:32, height:18, borderRadius:9, background: on ? 'rgba(46,213,115,0.25)' : 'rgba(255,255,255,0.06)', border:`1px solid ${on ? 'rgba(46,213,115,0.5)' : C.cardBd}`, position:'relative', flexShrink:0, transition:'background .15s, border-color .15s' }}>
         <span style={{ width:14, height:14, borderRadius:7, background: on ? C.gn : C.td, position:'absolute', top:1, left: on ? 15 : 1, transition:'left .15s' }} />
       </span>
@@ -4860,7 +4861,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                     if (!vk) return null;
                     const isVis = portalVis?.[vk] !== false;
                     return <button onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} title={isVis?'On the athlete portal — click to hide':'Hidden from the athlete portal — click to show'} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:8}}>
-                      <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',color:isVis?C.gn:C.td}}>{tt("PORTAL")}</span>
+                      <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',color:isVis?C.gn:C.td}}>{tb("PORTAL")}</span>
                       <span style={{width:32,height:18,borderRadius:9,background:isVis?'rgba(46,213,115,0.25)':'rgba(255,255,255,0.06)',border:`1px solid ${isVis?'rgba(46,213,115,0.5)':C.cardBd}`,position:'relative',transition:'background .15s, border-color .15s',flexShrink:0}}>
                         <span style={{width:14,height:14,borderRadius:7,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?15:1,transition:'left .15s'}} />
                       </span>
@@ -4966,7 +4967,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               if (!vk) return null;
               const isVis = portalVis?.[vk] !== false;
               return <button onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} title={isVis?'On the athlete portal — click to hide':'Hidden from the athlete portal — click to show'} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:8}}>
-                <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',color:isVis?C.gn:C.td}}>{tt("PORTAL")}</span>
+                <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',color:isVis?C.gn:C.td}}>{tb("PORTAL")}</span>
                 <span style={{width:32,height:18,borderRadius:9,background:isVis?'rgba(46,213,115,0.25)':'rgba(255,255,255,0.06)',border:`1px solid ${isVis?'rgba(46,213,115,0.5)':C.cardBd}`,position:'relative',flexShrink:0}}>
                   <span style={{width:14,height:14,borderRadius:7,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?15:1,transition:'left .15s'}} />
                 </span>
@@ -5106,7 +5107,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                 if (!vk) return null;
                 const isVis = portalVis?.[vk] !== false;
                 return <button onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} title={isVis?'On the athlete portal — click to hide':'Hidden from the athlete portal — click to show'} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:8}}>
-                  <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',color:isVis?C.gn:C.td}}>{tt("PORTAL")}</span>
+                  <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',color:isVis?C.gn:C.td}}>{tb("PORTAL")}</span>
                   <span style={{width:32,height:18,borderRadius:9,background:isVis?'rgba(46,213,115,0.25)':'rgba(255,255,255,0.06)',border:`1px solid ${isVis?'rgba(46,213,115,0.5)':C.cardBd}`,position:'relative',flexShrink:0}}>
                     <span style={{width:14,height:14,borderRadius:7,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?15:1,transition:'left .15s'}} />
                   </span>
