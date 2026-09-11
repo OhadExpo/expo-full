@@ -123,7 +123,7 @@ function MiniTaskRow({ n, stackBoard, onClick, stripe }) {
         itself behind an ellipsis at 390px. minHeight 32 still holds the row at
         one line whenever the text fits, so desktop is unchanged. */
     <div onClick={onClick} title={body} className="mini-task-row"
-      style={{ border: `1px solid var(--c-cardBd)`, borderLeft: `3px solid ${tone}`, padding: '0 8px', minHeight: 32, boxSizing: 'border-box', fontSize: stackBoard ? 12 : 11, lineHeight: 1.3, color: 'var(--c-tx)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, whiteSpace: 'normal', overflow: 'hidden', transition: 'border-color 120ms ease, background 120ms ease' }}>
+      style={{ border: `1px solid var(--c-cardBd)`, borderInlineStart: `3px solid ${tone}`, padding: '0 8px', minHeight: 32, boxSizing: 'border-box', fontSize: stackBoard ? 12 : 11, lineHeight: 1.3, color: 'var(--c-tx)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, whiteSpace: 'normal', overflow: 'hidden', transition: 'border-color 120ms ease, background 120ms ease' }}>
       {/* Order (Ohad): NAME first, then the action info, then the kind TAG all
           the way to the right. Body is flex:1 so the tag is pushed to the edge. */}
       {/* Name sizing MIRRORS the ALL ATHLETES table (Ohad #185): Nord (FN) at 13px
@@ -209,7 +209,7 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
     <div style={{
       background: 'var(--c-sf)',
       border: `1px solid var(--c-cardBd)`,
-      borderLeft: `3px solid ${stripeColor}`,
+      borderInlineStart: `3px solid ${stripeColor}`,
       borderRadius: 0,
       // Compact-pass per Ohad — every inner spacing trimmed so
       // multiple cards fit in a viewport without losing legibility.
@@ -951,7 +951,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                     return (
                       <button key={s.id} onClick={()=>setV2Sub(s.id)}
                         style={{ ...btnBase, height:30, boxSizing:'border-box', fontSize:10, letterSpacing:'0.1em', padding:'0 12px',
-                          border:'none', borderLeft: i ? `1px solid var(--c-cardBd)` : 'none',
+                          border:'none', borderInlineStart: i ? `1px solid var(--c-cardBd)` : 'none',
                           background: active?'rgba(57,189,255,0.094)':'transparent',
                           color: active?'var(--c-ac)':'var(--c-tm)',
                           display:'inline-flex', alignItems:'center', gap:5 }}>
@@ -1082,7 +1082,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                     {n.status === 'cancelled'
                       ? <span style={{ color: 'var(--c-or)', fontWeight: 700 }}>CANCELLED</span>
                       : n.completed_at && <span>done {fmtPrettyDate(n.completed_at)}</span>}
-                    {n.linked_plan_id && <span style={{ color: 'var(--c-ac)', marginLeft: 6, fontWeight: 700 }}>· ✓ PLAN</span>}
+                    {n.linked_plan_id && <span style={{ color: 'var(--c-ac)', marginInlineStart: 6, fontWeight: 700 }}>· ✓ PLAN</span>}
                   </span>
                 </div>
                 <button onClick={async () => {

@@ -68,7 +68,7 @@ function SeriesChart({ pts, color, symmetric, fmtY, header }) {
     <div style={{ margin: '4px 0 14px' }}>
       <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700, marginBottom: 8 }}>{header}</div>
       <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
-        <div style={{ position: 'relative', width: 34, flexShrink: 0, fontSize: 9, fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>
+        <div style={{ position: 'relative', width: 34, flexShrink: 0, fontSize: 9, fontVariantNumeric: 'tabular-nums', textAlign: 'end' }}>
           {ticks.map((L, i) => (
             <span key={i} style={{ position: 'absolute', top: pctY(L), right: 0, transform: 'translateY(-50%)', color: C.tx, fontWeight: 700 }}>{fmtY(L)}</span>
           ))}
@@ -189,7 +189,7 @@ function JointRomBars({ jointRom }) {
       {rows.map((r) => (
         <div key={r.key} style={{ marginBottom: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: CY, width: 34, textAlign: 'right', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{r.lr != null ? `${r.lr}°` : '—'}</span>
+            <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: CY, width: 34, textAlign: 'end', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{r.lr != null ? `${r.lr}°` : '—'}</span>
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', minWidth: 0 }}>
               <div style={{ flex: 1, height: 14, position: 'relative', background: C.sf2 }}>
                 <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: `${(r.lr || 0) / maxRom * 100}%`, background: CY }} />
@@ -231,7 +231,7 @@ function TempoBars({ perRep }) {
           <div style={{ flex: 1, display: 'flex', height: 12, background: C.sf2 }}>
             {seg(x.ecc, CY, 'ecc')}{seg(x.pause, C.tm, 'pause')}{seg(x.con, C.gn, 'con')}
           </div>
-          <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, width: 42, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{((x.ecc || 0) + (x.pause || 0) + (x.con || 0)).toFixed(1)}s</div>
+          <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, width: 42, textAlign: 'end', fontVariantNumeric: 'tabular-nums' }}>{((x.ecc || 0) + (x.pause || 0) + (x.con || 0)).toFixed(1)}s</div>
         </div>
       ))}
       <div style={{ display: 'flex', gap: 14, marginTop: 6 }}>

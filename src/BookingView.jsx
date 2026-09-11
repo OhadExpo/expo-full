@@ -182,7 +182,7 @@ export default function BookingView({ trainees }) {
           const sevColor = b.status === 'canceled' ? C.rd : b.status === 'completed' ? C.gn : (past ? C.or : C.ac);
           return (
             <div key={b.id} style={{
-              border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${sevColor}`,
+              border: `1px solid ${C.cardBd}`, borderInlineStart: `3px solid ${sevColor}`,
               padding: '10px 12px', marginBottom: 8, background: 'var(--c-sf)',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>

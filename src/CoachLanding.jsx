@@ -668,7 +668,7 @@ export default function CoachLanding({ lang = 'en' }) {
             {[1, 2, 3].map((n, i) => (
               <div key={n} style={{
                 flex: 1, padding: '22px 12px',
-                borderLeft: i === 0 ? 'none' : `1px solid ${C.bd2}`,
+                borderInlineStart: i === 0 ? 'none' : `1px solid ${C.bd2}`,
               }}>
                 <div style={{
                   fontFamily: FN, color: C.ac, fontSize: 'clamp(26px, 4vw, 34px)',

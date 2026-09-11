@@ -154,7 +154,7 @@ function ActivityFeed({ trainee, activity, clientWorkouts, payments, planIndex, 
                   <span style={{ flexShrink: 0, fontSize: 9, fontFamily: FN, letterSpacing: '0.06em', fontWeight: 700, whiteSpace: 'nowrap' }}>
                     <span style={{ color: KIND_COLOR[ev.kind] || C.tm }}>{KIND_LABEL[ev.kind] || (ev.kind || '').toUpperCase()}</span>
                     <span style={{ color: C.td }}> · {new Date(ev.ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
-                    {!isManual && <span style={{ marginLeft: 6, color: C.tm }}>· AUTO</span>}
+                    {!isManual && <span style={{ marginInlineStart: 6, color: C.tm }}>· AUTO</span>}
                   </span>
                 </div>
               )}
@@ -356,7 +356,7 @@ function CoachHistoryCard({ trainee, activity, clientWorkouts, payments, planInd
   const TabBtn = ({ id, label }) => (
     <button onClick={() => setTab(id)}
       style={{
-        padding: '6px 2px', marginRight: 22, border: 'none', background: 'transparent',
+        padding: '6px 2px', marginInlineEnd: 22, border: 'none', background: 'transparent',
         borderBottom: `2px solid ${tab === id ? C.ac : 'transparent'}`,
         color: tab === id ? C.ac : C.tm,
         fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.14em',

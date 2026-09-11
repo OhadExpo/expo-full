@@ -91,7 +91,7 @@ export default function AthleteChallengesWidget({ clientId, clientWorkouts, bwLo
         return (
           <div key={c.id} style={{
             background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`,
-            borderLeft: `3px solid ${C.ac}`, padding: '10px 12px', marginBottom: 8,
+            borderInlineStart: `3px solid ${C.ac}`, padding: '10px 12px', marginBottom: 8,
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
               <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 9, color: C.ac, fontWeight: 700, letterSpacing: '0.12em', border: `1px solid ${C.ac}`, padding: '2px 8px' }}>🏆 CHALLENGE</span>

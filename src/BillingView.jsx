@@ -182,7 +182,7 @@ export default function BillingView({ trainees }) {
           const tone = r.status === 'paid' ? C.gn : r.status === 'canceled' ? C.tm : (overdue ? C.rd : C.or);
           return (
             <div key={r.id} style={{
-              border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${tone}`,
+              border: `1px solid ${C.cardBd}`, borderInlineStart: `3px solid ${tone}`,
               padding: '10px 12px', marginBottom: 8, background: 'var(--c-sf)',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>

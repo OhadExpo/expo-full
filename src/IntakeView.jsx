@@ -216,7 +216,7 @@ export default function IntakeView({ trainees }) {
                   <span style={{ display: 'inline-block', width: 28, flexShrink: 0, color: C.tm }}>{(t.locale || '').toUpperCase()}</span>
                   {t.label && <span style={{ color: C.tx }}>· {t.label}</span>}
                   <span style={{ color: C.td }}>· {ago(t.created_at)} ago</span>
-                  <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 6 }}>
+                  <span style={{ marginInlineStart: 'auto', display: 'inline-flex', gap: 6 }}>
                     <button onClick={async () => { try { await navigator.clipboard.writeText(url); } catch {} }}
                       style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.ac, padding: '3px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', borderRadius: 0 }}>
                       {tb('Copy URL')}

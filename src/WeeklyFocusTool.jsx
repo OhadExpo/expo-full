@@ -151,7 +151,7 @@ export default function WeeklyFocusTool({ trainees, exercises, weeklyFocus, setW
           {/* ATHLETE on its own row — the typeahead dropdown renders IN-FLOW
               (not absolute), so the card grows to fit it instead of the
               collapsible's overflow:hidden clipping it. */}
-          <div style={{ marginBottom: 12, maxWidth: 360, marginLeft: 'auto', marginRight: 'auto', textAlign: 'center' }}>
+          <div style={{ marginBottom: 12, maxWidth: 360, marginInlineStart: 'auto', marginInlineEnd: 'auto', textAlign: 'center' }}>
             <label style={{ ...lbl, textAlign: 'center' }}>ATHLETE</label>
             <input dir="auto" value={query} placeholder="Type a name…"
               onChange={e => { setQuery(e.target.value); setPickerOpen(true); if (traineeId) setTraineeId(''); }}
@@ -207,7 +207,7 @@ export default function WeeklyFocusTool({ trainees, exercises, weeklyFocus, setW
                     </div>
                     <textarea dir="auto" value={val} onChange={e => setF(d.nameRaw, ex.eid, e.target.value)}
                       placeholder={`Focus to carry into week ${week + 1}…`}
-                      style={{ width: '100%', boxSizing: 'border-box', background: 'transparent', border: `1px solid ${val ? C.ac : C.cardBd}`, borderLeft: `3px solid ${val ? C.ac : C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 13, padding: 8, borderRadius: 0, resize: 'vertical', minHeight: 38 }} />
+                      style={{ width: '100%', boxSizing: 'border-box', background: 'transparent', border: `1px solid ${val ? C.ac : C.cardBd}`, borderInlineStart: `3px solid ${val ? C.ac : C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 13, padding: 8, borderRadius: 0, resize: 'vertical', minHeight: 38 }} />
                   </div>
                 );
               })}

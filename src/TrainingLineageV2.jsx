@@ -178,16 +178,16 @@ function LiftRow({ s }) {
         <div style={{ fontSize: 10, color: C.td, marginTop: 3 }}>{s.count}× · last {fmt(s.lastDate)}</div>
       </td>
       <td data-h="Trend" style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, whiteSpace: 'nowrap', verticalAlign: 'top' }}>
-        {s.trend?.state === 'ok' ? <><Spark pts={s.trend.pts} dir={s.trend.dir} /> <span style={{ fontVariantNumeric: 'tabular-nums', color: C.tx, fontWeight: 600, marginLeft: 4 }}>e{s.trend.latest}</span></> : <span style={{ color: C.td, fontSize: 11 }}>—</span>}
+        {s.trend?.state === 'ok' ? <><Spark pts={s.trend.pts} dir={s.trend.dir} /> <span style={{ fontVariantNumeric: 'tabular-nums', color: C.tx, fontWeight: 600, marginInlineStart: 4 }}>e{s.trend.latest}</span></> : <span style={{ color: C.td, fontSize: 11 }}>—</span>}
       </td>
       <td data-h="Best" style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, fontVariantNumeric: 'tabular-nums', color: C.tx, fontWeight: 600, whiteSpace: 'nowrap', verticalAlign: 'top' }}>
         {best}
         {!s.ballistic && s.weeksSincePr != null && s.weeksSincePr >= 2 && (
-          <span style={{ fontSize: 10, fontWeight: 400, color: s.weeksSincePr >= 6 ? C.or : C.td, marginLeft: 6 }}>· PR {s.weeksSincePr}w ago</span>
+          <span style={{ fontSize: 10, fontWeight: 400, color: s.weeksSincePr >= 6 ? C.or : C.td, marginInlineStart: 6 }}>· PR {s.weeksSincePr}w ago</span>
         )}
       </td>
       <td data-h="Last loads" style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, fontVariantNumeric: 'tabular-nums', color: C.tm, verticalAlign: 'top', whiteSpace: 'nowrap' }}>{loads.join(' · ')}</td>
-      <td style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, textAlign: 'right', verticalAlign: 'top' }}><Tag text={r.tag} color={r.tagColor} /></td>
+      <td style={{ padding: '9px 8px', borderBottom: `1px solid ${C.bd}`, textAlign: 'end', verticalAlign: 'top' }}><Tag text={r.tag} color={r.tagColor} /></td>
     </tr>
   );
 }
@@ -293,7 +293,7 @@ function RomLiftCard({ lift }) {
       </div>
       {pts.length >= 2 ? (
         <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
-          <div style={{ position: 'relative', width: 30, flexShrink: 0, fontSize: 9, fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>
+          <div style={{ position: 'relative', width: 30, flexShrink: 0, fontSize: 9, fontVariantNumeric: 'tabular-nums', textAlign: 'end' }}>
             {ticks.map((L) => (
               <span key={L} style={{ position: 'absolute', top: pctY(L), right: 0, transform: 'translateY(-50%)', color: C.tx, fontWeight: 700 }}>{L}°</span>
             ))}
@@ -318,7 +318,7 @@ function RomLiftCard({ lift }) {
           </div>
         </div>
       ) : (
-        <div style={{ fontSize: 11, color: C.td, paddingLeft: 2 }}>One filmed set · {Math.round(last.maxRom)}° — film another to trend the range.</div>
+        <div style={{ fontSize: 11, color: C.td, paddingInlineStart: 2 }}>One filmed set · {Math.round(last.maxRom)}° — film another to trend the range.</div>
       )}
       <ReportToggle open={open} onToggle={() => setOpen((o) => !o)} />
       {open && (report ? <div style={{ marginTop: 10 }}><RomReport report={report} /></div> : <NoReportNote />)}
@@ -435,10 +435,10 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
     {Strip}
 
     {/* VERDICT FIRST */}
-    <div style={{ border: `1px solid ${vColor}`, borderLeft: `3px solid ${vColor}`, background: `color-mix(in srgb, ${vColor} 8%, ${C.sf})`, padding: '16px 18px', marginTop: 12 }}>
+    <div style={{ border: `1px solid ${vColor}`, borderInlineStart: `3px solid ${vColor}`, background: `color-mix(in srgb, ${vColor} 8%, ${C.sf})`, padding: '16px 18px', marginTop: 12 }}>
       <div style={{ fontSize: 9, letterSpacing: '0.16em', textTransform: 'uppercase', color: vColor, marginBottom: 7 }}>
         If you read one thing
-        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: v.confidence === 'high' ? C.gn : v.confidence === 'low' ? C.td : C.or, border: `1px solid ${v.confidence === 'high' ? C.gn : v.confidence === 'low' ? C.td : C.or}`, padding: '2px 6px', marginLeft: 8 }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: v.confidence === 'high' ? C.gn : v.confidence === 'low' ? C.td : C.or, border: `1px solid ${v.confidence === 'high' ? C.gn : v.confidence === 'low' ? C.td : C.or}`, padding: '2px 6px', marginInlineStart: 8 }}>
           {v.confidence} confidence{v.logs ? ' · he logs' : ''}
         </span>
       </div>
@@ -592,7 +592,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
                     style={{ flex: '1 1 auto', minWidth: 0, fontSize: 13, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: 1.3 }}>{s.title}</span>
                   <Spark pts={s.arc} dir={noisy ? 'flat' : s.arcGainPct >= 3 ? 'up' : s.arcGainPct <= -3 ? 'down' : 'flat'} />
                   <span style={{ flexShrink: 0, fontSize: 12.5, color: C.tx, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }} title="estimated 1-rep max (Epley), first → now">e{s.firstE1} → e{lastE}{s.prE1 > lastE ? <span style={{ color: C.td, fontSize: 10 }}> · pk e{s.prE1}</span> : null}</span>
-                  <span style={{ flexShrink: 0, minWidth: 46, textAlign: 'right', fontSize: 12, fontWeight: 700, color: gc, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{s.arcGainPct >= 0 ? '+' : ''}{s.arcGainPct}%{noisy ? <span style={{ fontSize: 9, fontWeight: 400, color: C.td }}> · reps varied</span> : null}</span>
+                  <span style={{ flexShrink: 0, minWidth: 46, textAlign: 'end', fontSize: 12, fontWeight: 700, color: gc, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{s.arcGainPct >= 0 ? '+' : ''}{s.arcGainPct}%{noisy ? <span style={{ fontSize: 9, fontWeight: 400, color: C.td }}> · reps varied</span> : null}</span>
                 </div>
               );
             })}
@@ -797,7 +797,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
                   <div style={{ fontSize: 10, color: C.tm, letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 700, marginBottom: 8 }}>Strength vs power · e1RM indexed to each lift&apos;s start (100%)</div>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
                     {/* Y-axis: bright tabular % ticks aligned to their gridlines. */}
-                    <div style={{ position: 'relative', width: 38, flexShrink: 0, fontSize: 9, fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>
+                    <div style={{ position: 'relative', width: 38, flexShrink: 0, fontSize: 9, fontVariantNumeric: 'tabular-nums', textAlign: 'end' }}>
                       {ticks.map((L) => (
                         <span key={L} style={{ position: 'absolute', top: gpctY(L), right: 0, transform: 'translateY(-50%)', color: C.tx, fontWeight: 700 }}>{L}%</span>
                       ))}
@@ -831,10 +831,10 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
                     </div>
                   </div>
                   {/* Legend: bright, with each side's NOW value in its colour. */}
-                  <div style={{ display: 'flex', gap: 16, marginTop: 8, fontSize: 10, color: C.tm, paddingLeft: 46, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: 16, marginTop: 8, fontSize: 10, color: C.tm, paddingInlineStart: 46, flexWrap: 'wrap', alignItems: 'center' }}>
                     {sCurve && <span style={{ fontWeight: 600 }}><span style={{ color: BRAND }}>●</span> Strength ({sCurve.length}) · now <b style={{ color: BRAND }}>{Math.round(sCurve[sCurve.length - 1])}%</b></span>}
                     {pCurve && <span style={{ fontWeight: 600 }}><span style={{ color: orange }}>●</span> Power ({pCurve.length}) · now <b style={{ color: orange }}>{Math.round(pCurve[pCurve.length - 1])}%</b></span>}
-                    <span style={{ marginLeft: 'auto', color: C.td }}>○ = high · dashed = 100% start</span>
+                    <span style={{ marginInlineStart: 'auto', color: C.td }}>○ = high · dashed = 100% start</span>
                   </div>
                 </div>
               );
@@ -886,7 +886,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   {/* Y-axis: bright peak / mid / 0 ticks give the bars a real scale. */}
-                  <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', textAlign: 'right', fontSize: 9, color: C.tx, fontWeight: 700, height: BH, fontVariantNumeric: 'tabular-nums', minWidth: 32 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', textAlign: 'end', fontSize: 9, color: C.tx, fontWeight: 700, height: BH, fontVariantNumeric: 'tabular-nums', minWidth: 32 }}>
                     <span>{k(mx)}</span><span style={{ color: C.tm }}>{k(Math.round(mx / 2))}</span><span>0</span>
                   </div>
                   <div style={{ position: 'relative', flex: 1, height: BH }}>
@@ -925,7 +925,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
           )}
       </Section>
 
-      <Section title="Bar speed" cardStyle={{ ...card, marginTop: 0 }} tag={<span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '2px 6px', border: `1px solid ${C.pu}`, color: C.pu, marginLeft: 8 }}>camera only</span>} summary={vault && vault.length > 0 ? `${vault.length} lift${vault.length === 1 ? '' : 's'} tracked` : 'no stored velocity'}>
+      <Section title="Bar speed" cardStyle={{ ...card, marginTop: 0 }} tag={<span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '2px 6px', border: `1px solid ${C.pu}`, color: C.pu, marginInlineStart: 8 }}>camera only</span>} summary={vault && vault.length > 0 ? `${vault.length} lift${vault.length === 1 ? '' : 's'} tracked` : 'no stored velocity'}>
           {vault && vault.length > 0 ? (
             <>
               {vault.slice(0, barSpeedAll ? vault.length : 3).map((lift) => (
@@ -951,7 +951,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
       {/* Range of motion — per-lift peak joint ROM from filmed sets, same
           top-3 → full-report expansion as bar speed (Ohad #203). ROM is real
           camera data (romTempo.maxRom), refused on poor-capture clips. */}
-      <Section title="Range of motion" cardStyle={{ ...card, marginTop: 0 }} tag={<span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '2px 6px', border: `1px solid ${C.pu}`, color: C.pu, marginLeft: 8 }}>camera only</span>} summary={romLifts.length > 0 ? `${romLifts.length} lift${romLifts.length === 1 ? '' : 's'} tracked` : 'no stored ROM'}>
+      <Section title="Range of motion" cardStyle={{ ...card, marginTop: 0 }} tag={<span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '2px 6px', border: `1px solid ${C.pu}`, color: C.pu, marginInlineStart: 8 }}>camera only</span>} summary={romLifts.length > 0 ? `${romLifts.length} lift${romLifts.length === 1 ? '' : 's'} tracked` : 'no stored ROM'}>
           {romLifts.length > 0 ? (
             <>
               {romLifts.slice(0, romAll ? romLifts.length : 3).map((lift) => (
@@ -972,7 +972,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
           )}
       </Section>
 
-      <Section title="Symmetry · injury watch" cardStyle={{ ...card, marginTop: 0 }} tag={<span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '2px 6px', border: `1px solid ${C.pu}`, color: C.pu, marginLeft: 8 }}>camera only</span>} summary={asymTrend.joints.length > 0 ? (asymTrend.anyFlag ? `watch ${asymTrend.worst.joint.toLowerCase()}` : `holding · ${asymTrend.films} film${asymTrend.films === 1 ? '' : 's'}`) : 'no history'}>
+      <Section title="Symmetry · injury watch" cardStyle={{ ...card, marginTop: 0 }} tag={<span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '2px 6px', border: `1px solid ${C.pu}`, color: C.pu, marginInlineStart: 8 }}>camera only</span>} summary={asymTrend.joints.length > 0 ? (asymTrend.anyFlag ? `watch ${asymTrend.worst.joint.toLowerCase()}` : `holding · ${asymTrend.films} film${asymTrend.films === 1 ? '' : 's'}`) : 'no history'}>
           {asymTrend.joints.length > 0 ? (
             <>
               <div style={{ fontSize: 12.5, color: asymTrend.anyFlag ? C.rd : asymTrend.films < 2 ? C.tm : C.gn, marginBottom: 4, fontWeight: 600 }}>

@@ -27,7 +27,7 @@ function GridVideo({ url }) {
         <img src={`https://img.youtube.com/vi/${yid}/hqdefault.jpg`} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.92, display: 'block' }} />
         <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <span style={{ width: 34, height: 34, borderRadius: '50%', background: 'rgba(0,0,0,0.55)', border: '1px solid rgba(255,255,255,0.85)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span style={{ width: 0, height: 0, borderTop: '6px solid transparent', borderBottom: '6px solid transparent', borderLeft: '10px solid #fff', marginLeft: 2 }} />
+            <span style={{ width: 0, height: 0, borderTop: '6px solid transparent', borderBottom: '6px solid transparent', borderInlineStart: '10px solid #fff', marginInlineStart: 2 }} />
           </span>
         </span>
       </div>
@@ -351,13 +351,13 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
       <div style={{ display: 'flex', gap: 12, marginBottom: 18, alignItems: 'stretch', flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: 200, display: 'flex' }}>
           <input placeholder={narrowUI ? "Search exercises…" : "Search exercises (title, muscle, joint, position…)"} value={search} onChange={e => { setSearch(e.target.value); setShowAll(false); }}
-            style={{ ...baseInput, height: 30, padding: '0 14px', fontSize: 13, lineHeight: '30px', textAlign: 'left', border: `1px solid ${C.ac}`, width: '100%' }} />
+            style={{ ...baseInput, height: 30, padding: '0 14px', fontSize: 13, lineHeight: '30px', textAlign: 'start', border: `1px solid ${C.ac}`, width: '100%' }} />
         </div>
         <Btn onClick={openNew} style={{ height: 30, width: RIGHT_CTL_W, flexShrink: 0, padding: '0 18px', fontSize: 13, lineHeight: '30px', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ Add Exercise</Btn>
       </div>
 
       {onOpenClassify && unclassifiedCount > 0 && (
-        <button onClick={onOpenClassify} style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10, width: '100%', textAlign: 'left', marginBottom: 16, padding: '10px 14px', background: `color-mix(in srgb, ${C.ac} 8%, var(--c-sf))`, border: `1px solid color-mix(in srgb, ${C.ac} 35%, transparent)`, borderLeft: `3px solid ${C.ac}`, borderRadius: 0, cursor: 'pointer' }}>
+        <button onClick={onOpenClassify} style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10, width: '100%', textAlign: 'start', marginBottom: 16, padding: '10px 14px', background: `color-mix(in srgb, ${C.ac} 8%, var(--c-sf))`, border: `1px solid color-mix(in srgb, ${C.ac} 35%, transparent)`, borderInlineStart: `3px solid ${C.ac}`, borderRadius: 0, cursor: 'pointer' }}>
           <span style={{ fontFamily: FN, fontSize: 12.5, fontWeight: 700, color: C.tx }}><span style={{ color: C.ac, fontVariantNumeric: 'tabular-nums' }}>{unclassifiedCount.toLocaleString()}</span> exercises are unclassified</span>
           <span style={{ fontFamily: FB, fontSize: 12, color: C.td }}>{tt('— resolution/movement/position blank')}</span>
           <span style={{ marginInlineStart: 'auto', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.ac }}>{tt('Classify at scale →')}</span>
@@ -377,7 +377,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
           {flagChip('video', `▶ ${tt('Video')} (${counts.vid})`)}
           {flagChip('notes', `☰ ${tt('Notes')} (${counts.note})`, C.or)}
           {flagChip('missing', `∅ ${tt('Unclassified')} (${counts.miss})`, C.or)}
-          {anyFilter && <button className="filt" onClick={clearAll} title="Clear all filters" style={{ ...railBase, color: C.rd, marginLeft: 'auto', letterSpacing: '0.1em' }}>× Clear all</button>}
+          {anyFilter && <button className="filt" onClick={clearAll} title="Clear all filters" style={{ ...railBase, color: C.rd, marginInlineStart: 'auto', letterSpacing: '0.1em' }}>× Clear all</button>}
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 14px', padding: '0 1px 12px', borderTop: `1px solid ${C.cardBd}`, paddingTop: 10 }}>
           <span style={rowLabel}>Filter&nbsp;by</span>
@@ -462,8 +462,8 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
                 {[['title', 'Exercise'], ['resistanceType', 'Resistance'], ['bodyPosition', 'Position'], ['movementType', 'Movement'], ['primaryJoints', 'Joints'], ['jointMovements', 'Joint Movements'], ['primaryMuscles', 'Primary Muscles'], ['secondaryMuscles', 'Secondary Muscles']].map(([k, l]) => {
                   const active = sortKey === k;
                   return (
-                    <th key={k} className={k === 'title' ? undefined : 'ex-taxo'} onClick={() => onSort(k)} style={{ textAlign: 'left', padding: '9px 12px', fontSize: 9, fontFamily: FN, color: active ? C.ac : C.tm, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700, cursor: 'pointer', whiteSpace: 'normal', lineHeight: 1.25, borderBottom: `1px solid ${C.cardBd}`, userSelect: 'none', position: 'sticky', top: 0, background: 'var(--c-sf)', zIndex: 1 }}>
-                      {l}{active && <span style={{ fontSize: 8, marginLeft: 4 }}>{sortDir === 'asc' ? '↑' : '↓'}</span>}
+                    <th key={k} className={k === 'title' ? undefined : 'ex-taxo'} onClick={() => onSort(k)} style={{ textAlign: 'start', padding: '9px 12px', fontSize: 9, fontFamily: FN, color: active ? C.ac : C.tm, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700, cursor: 'pointer', whiteSpace: 'normal', lineHeight: 1.25, borderBottom: `1px solid ${C.cardBd}`, userSelect: 'none', position: 'sticky', top: 0, background: 'var(--c-sf)', zIndex: 1 }}>
+                      {l}{active && <span style={{ fontSize: 8, marginInlineStart: 4 }}>{sortDir === 'asc' ? '↑' : '↓'}</span>}
                     </th>
                   );
                 })}
@@ -489,11 +489,11 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
                     {chipCell(ex.primaryMuscles, 230)}
                     {chipCell(ex.secondaryMuscles, 210)}
                     <td style={{ padding: '9px 12px', textAlign: 'center', whiteSpace: 'nowrap' }}>
-                      {hasVideo(ex) && <span title="Has a demo video" style={{ color: C.ac, marginRight: hasNotes(ex) ? 8 : 0, fontSize: 12 }}>▶</span>}
+                      {hasVideo(ex) && <span title="Has a demo video" style={{ color: C.ac, marginInlineEnd: hasNotes(ex) ? 8 : 0, fontSize: 12 }}>▶</span>}
                       {hasNotes(ex) && <span title="Has coaching cues" style={{ color: C.or, fontSize: 12 }}>☰</span>}
                       {!hasVideo(ex) && !hasNotes(ex) && emptyDot}
                     </td>
-                    <td style={{ padding: '9px 8px', whiteSpace: 'nowrap', textAlign: 'right' }}>
+                    <td style={{ padding: '9px 8px', whiteSpace: 'nowrap', textAlign: 'end' }}>
                       <button onClick={() => { setForm({ ...ex }); setEditId(ex.id); setShowForm(true); }} title="Edit exercise" style={{ background: 'none', border: 'none', color: C.tm, cursor: 'pointer', padding: 4 }}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                       </button>

@@ -347,9 +347,9 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                 }}>
                   <div style={{ fontFamily: FN, fontSize: 9, color: C.ac, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>ALL-TIME PR</div>
                   <div style={{ fontFamily: FB, fontWeight: 700, fontSize: 36, color: C.ac, letterSpacing: -0.5, lineHeight: 1 }}>
-                    {picked.allTimePR}<span style={{ fontSize: 18, color: C.tm, fontWeight: 400, marginLeft: 8 }}>kg</span>
+                    {picked.allTimePR}<span style={{ fontSize: 18, color: C.tm, fontWeight: 400, marginInlineStart: 8 }}>kg</span>
                     {picked.allTimePRReps > 0 && (
-                      <span style={{ fontSize: 18, color: C.tm, fontWeight: 400, marginLeft: 8 }}>× {picked.allTimePRReps}</span>
+                      <span style={{ fontSize: 18, color: C.tm, fontWeight: 400, marginInlineStart: 8 }}>× {picked.allTimePRReps}</span>
                     )}
                   </div>
                   <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, fontWeight: 700, marginTop: 10 }}>
@@ -450,7 +450,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                         return (
                           <div style={{ display: 'flex', marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.cardBd}` }}>
                             {cells.map(([label, val, color], i) => (
-                              <div key={i} style={{ flex: 1, textAlign: 'center', borderLeft: i > 0 ? `1px solid ${C.cardBd}` : 'none' }}>
+                              <div key={i} style={{ flex: 1, textAlign: 'center', borderInlineStart: i > 0 ? `1px solid ${C.cardBd}` : 'none' }}>
                                 <div style={{ fontSize: 9, fontFamily: FN, color: C.tm, letterSpacing: '0.12em', fontWeight: 700 }}>{label}</div>
                                 <div style={{ fontSize: 16, fontWeight: 700, fontFamily: FN, color, marginTop: 3 }}>{val}</div>
                               </div>
@@ -478,13 +478,13 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                       }}>
                         <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, minWidth: 70 }}>
                           {fmtDate(s.date)}
-                          {s.week ? <span style={{ color: C.td, marginLeft: 4 }}>W{s.week}</span> : null}
+                          {s.week ? <span style={{ color: C.td, marginInlineStart: 4 }}>W{s.week}</span> : null}
                         </div>
-                        <div style={{ fontFamily: FN, fontSize: 14, color: isPR ? C.ac : C.tx, fontWeight: 700, textAlign: 'right' }}>
-                          {s.load}<span style={{ fontSize: 10, color: C.tm, marginLeft: 6, fontWeight: 400 }}>kg</span>
-                          {s.reps > 0 && <span style={{ fontSize: 11, color: C.tm, marginLeft: 8, fontWeight: 400 }}>× {s.reps}</span>}
-                          {s.rpe != null && <span style={{ fontSize: 10, color: C.td, marginLeft: 8, fontWeight: 400 }}>RPE {s.rpe}</span>}
-                          {isPR && <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontSize: 9, color: C.ac, marginLeft: 8, letterSpacing: '0.1em', fontWeight: 700, border: `1px solid ${C.ac}`, padding: '2px 5px' }}>PR</span>}
+                        <div style={{ fontFamily: FN, fontSize: 14, color: isPR ? C.ac : C.tx, fontWeight: 700, textAlign: 'end' }}>
+                          {s.load}<span style={{ fontSize: 10, color: C.tm, marginInlineStart: 6, fontWeight: 400 }}>kg</span>
+                          {s.reps > 0 && <span style={{ fontSize: 11, color: C.tm, marginInlineStart: 8, fontWeight: 400 }}>× {s.reps}</span>}
+                          {s.rpe != null && <span style={{ fontSize: 10, color: C.td, marginInlineStart: 8, fontWeight: 400 }}>RPE {s.rpe}</span>}
+                          {isPR && <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontSize: 9, color: C.ac, marginInlineStart: 8, letterSpacing: '0.1em', fontWeight: 700, border: `1px solid ${C.ac}`, padding: '2px 5px' }}>PR</span>}
                         </div>
                       </div>
                     );

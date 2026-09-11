@@ -6,6 +6,7 @@
 
 import React, { useState } from 'react';
 import { C, FN, FB, FH } from './theme';
+import { tr, readLang } from './i18n';
 import { fmtPrettyDate } from './dates';
 import { isRefined5b, RefinedHeaderStrip, confirmToast } from './ui';
 import { useCoachNotes, setPendingTaskPlanLink } from './coachNotes';
@@ -288,7 +289,7 @@ export default function NotesInline({
           <div key={n.id} style={{
             background: 'var(--c-sf)',
             border: `1px solid var(--c-cardBd)`,
-            borderLeft: `3px solid ${stripeColor}`,
+            borderInlineStart: `3px solid ${stripeColor}`,
             borderRadius: 0,
             padding: '10px 12px',
             marginBottom: 8,
@@ -402,7 +403,7 @@ export default function NotesInline({
               dropped here — this list is already scoped to one trainee, so
               repeating "TRAINEE · <name>" on every row would be redundant. */}
           <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>
-            ✓ HISTORY ({doneRows.length}{done.length < doneRows.length ? ` · showing ${done.length}` : ''})
+            ✓ {tr(readLang(), 'HISTORY')} ({doneRows.length}{done.length < doneRows.length ? ` · ${tr(readLang(), 'showing')} ${done.length}` : ''})
           </div>
           {done.map(n => {
             return (
@@ -434,8 +435,8 @@ export default function NotesInline({
                   <span style={{ flexShrink: 0, fontFamily: FN, fontSize: 9, color: n.status === 'cancelled' ? 'var(--c-or)' : 'var(--c-td)', letterSpacing: '0.08em', fontWeight: n.status === 'cancelled' ? 700 : 400, whiteSpace: 'nowrap' }}>
                     {n.status === 'cancelled'
                       ? 'CANCELLED'
-                      : n.completed_at && <span>done {fmtPrettyDate(n.completed_at)}</span>}
-                    {n.linked_plan_id && <span style={{ color: 'var(--c-ac)', marginLeft: 6, fontWeight: 700 }}>· ✓ PLAN</span>}
+                      : n.completed_at && <span>{tr(readLang(), 'done')} {fmtPrettyDate(n.completed_at)}</span>}
+                    {n.linked_plan_id && <span style={{ color: 'var(--c-ac)', marginInlineStart: 6, fontWeight: 700 }}>· ✓ PLAN</span>}
                   </span>
                 </div>
                 <button onClick={async () => {

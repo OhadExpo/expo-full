@@ -1635,7 +1635,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
               {metricsState==='busy' ? `${metricsPct}%` : metricsState==='done' ? 'METRICS ✓' : 'METRICS'}
             </button>
           )}
-          {poseError && <span style={{fontSize:9,color:C.rd,marginLeft:4}}>{poseError}</span>}
+          {poseError && <span style={{fontSize:9,color:C.rd,marginInlineStart:4}}>{poseError}</span>}
         </div>
         <div style={{flex:'0 0 auto',display:'flex',gap:4,alignItems:'center',flexWrap:'wrap',justifyContent:'center'}}>
           {/* Auto-pause-at-comment toggle. Trainee-only: the trainer always
@@ -1695,7 +1695,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
           Clear manage the current comment's stroke list. */}
       {canDraw && commentsEnabled && (
         <div style={{display:'flex',gap:6,alignItems:'center',marginTop:6,flexWrap:'wrap'}}>
-          <span style={{fontSize:9,fontFamily:FN,color:C.td,letterSpacing:0.5,marginRight:2}}>{tt("DRAW")}</span>
+          <span style={{fontSize:9,fontFamily:FN,color:C.td,letterSpacing:0.5,marginInlineEnd:2}}>{tt("DRAW")}</span>
           {DRAW_COLORS.map(c => {
             const active = activeDrawColor === c.hex;
             return (
@@ -1756,31 +1756,31 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
         return (
           <div style={{marginTop:10,display:'flex',flexDirection:'column',gap:8}}>
             {visible.map(n => (
-              <div key={n.id} className="motion-rise" style={{background:pausedAtCommentId===n.id?(n.author==='trainer'?C.acD:C.gnD):C.sf2,borderLeft:`3px solid ${n.author==='trainer'?C.ac:C.gn}`,borderRadius:0,padding:pausedAtCommentId===n.id?14:10,boxShadow:pausedAtCommentId===n.id?`0 0 0 2px ${n.author==='trainer'?C.ac:C.gn}40`:'none',transition:'padding .15s ease, box-shadow .15s ease'}}>
+              <div key={n.id} className="motion-rise" style={{background:pausedAtCommentId===n.id?(n.author==='trainer'?C.acD:C.gnD):C.sf2,borderInlineStart:`3px solid ${n.author==='trainer'?C.ac:C.gn}`,borderRadius:0,padding:pausedAtCommentId===n.id?14:10,boxShadow:pausedAtCommentId===n.id?`0 0 0 2px ${n.author==='trainer'?C.ac:C.gn}40`:'none',transition:'padding .15s ease, box-shadow .15s ease'}}>
                 <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4}}>
                   <button onClick={() => seekTo(n.ts, n.id)} style={{background:C.acD,border:`1px solid rgba(57,189,255,0.251)`,color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:0,cursor:'pointer'}}>▶ {fmtTs(n.ts)}</button>
                   <span style={{fontSize:10,fontFamily:FN,color:n.author==='trainer'?C.ac:C.gn,fontWeight:700,letterSpacing:0.5}}>{n.author === 'trainer' ? 'COACH' : 'ATHLETE'}</span>
-                  <span style={{fontSize:10,color:C.td,marginLeft:'auto'}}>{n.createdAt ? fmtPrettyDate(n.createdAt) : ''}</span>
+                  <span style={{fontSize:10,color:C.td,marginInlineStart:'auto'}}>{n.createdAt ? fmtPrettyDate(n.createdAt) : ''}</span>
                   {(n.author === role) && onReviewNotesChange && (
-                    <button onClick={() => startEdit(n, false, null)} title="Edit" style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:11,padding:0,marginLeft:4}}>✏️</button>
+                    <button onClick={() => startEdit(n, false, null)} title="Edit" style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:11,padding:0,marginInlineStart:4}}>✏️</button>
                   )}
                   {(n.author === role) && (
-                    <button onClick={() => deleteNote(n.id)} title="Delete" style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:12,padding:0,marginLeft:4}}>✕</button>
+                    <button onClick={() => deleteNote(n.id)} title="Delete" style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:12,padding:0,marginInlineStart:4}}>✕</button>
                   )}
                 </div>
                 <div style={{fontSize:pausedAtCommentId===n.id?14:13,color:C.tx,whiteSpace:'pre-wrap',textAlign:'center'}}>{n.text}</div>
                 {(n.replies || []).length > 0 && (
-                  <div style={{marginTop:8,marginLeft:12,display:'flex',flexDirection:'column',gap:6,borderLeft:`2px solid ${C.bd}`,paddingLeft:10}}>
+                  <div style={{marginTop:8,marginInlineStart:12,display:'flex',flexDirection:'column',gap:6,borderInlineStart:`2px solid ${C.bd}`,paddingInlineStart:10}}>
                     {n.replies.map(r => (
                       <div key={r.id}>
                         <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:2}}>
                           <span style={{fontSize:10,fontFamily:FN,color:r.author==='trainer'?C.ac:C.gn,fontWeight:700,letterSpacing:0.5}}>{r.author === 'trainer' ? 'COACH' : 'ATHLETE'}</span>
                           <span style={{fontSize:10,color:C.td}}>{r.createdAt ? fmtPrettyDate(r.createdAt) : ''}</span>
                           {(r.author === role) && onReviewNotesChange && (
-                            <button onClick={() => startEdit(r, true, n.id)} title="Edit" style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:10,padding:0,marginLeft:'auto'}}>✏️</button>
+                            <button onClick={() => startEdit(r, true, n.id)} title="Edit" style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:10,padding:0,marginInlineStart:'auto'}}>✏️</button>
                           )}
                           {(r.author === role) && (
-                            <button onClick={() => deleteNote(r.id)} title="Delete" style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:11,padding:0,marginLeft:r.author===role&&onReviewNotesChange?4:'auto'}}>✕</button>
+                            <button onClick={() => deleteNote(r.id)} title="Delete" style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:11,padding:0,marginInlineStart:r.author===role&&onReviewNotesChange?4:'auto'}}>✕</button>
                           )}
                         </div>
                         <div style={{fontSize:12,color:C.tx,whiteSpace:'pre-wrap',textAlign:'center'}}>{r.text}</div>
@@ -2193,7 +2193,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
         )}
         <button onClick={() => { setSelectedWo(null); setExpandedEx(null); }}
           style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',padding:0,marginBottom:12}}>
-          ← BACK
+          {tt('← BACK')}
         </button>
 
         {/* Workout header */}
@@ -2217,7 +2217,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                 {tt('Week')} {wo.week} · {wo.dayName} · {fmtPrettyDate(wo.date)}
               </div>
             </div>
-            <div style={{textAlign:"right"}}>
+            <div style={{textAlign: "end"}}>
               <div style={{fontSize:18,fontWeight:700,fontFamily:FN,color:C.gn}}>{completedSets}/{totalSets}</div>
               <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em'}}>{tt('SETS DONE')}</div>
             </div>
@@ -2309,18 +2309,18 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                   <div style={{fontWeight:600,fontSize:13}}>{exName}</div>
                   <div style={{fontSize:11,color:C.tm,marginTop:2}}>
                     {ex.prescribed} · {doneSets}/{setsArr.length} sets
-                    {(formVideo?.has || formVideo?.cloudUrl) && <span title="Form video submitted" style={{color:C.gn,marginLeft:6,display:'inline-flex',alignItems:'center',verticalAlign:'-2px'}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></span>}
+                    {(formVideo?.has || formVideo?.cloudUrl) && <span title="Form video submitted" style={{color:C.gn,marginInlineStart:6,display:'inline-flex',alignItems:'center',verticalAlign:'-2px'}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></span>}
                     {(formVideo?.reviewNotes?.length > 0) && (
-                      <span title={`${formVideo.reviewNotes.length} comment${formVideo.reviewNotes.length===1?'':'s'} on this exercise`} style={{color:C.ac,marginLeft:6}}>
+                      <span title={`${formVideo.reviewNotes.length} comment${formVideo.reviewNotes.length===1?'':'s'} on this exercise`} style={{color:C.ac,marginInlineStart:6}}>
                         💬{formVideo.reviewNotes.length > 1 ? <sup style={{fontSize:8}}>{formVideo.reviewNotes.length}</sup> : null}
                       </span>
                     )}
                     {(currentFocus || nextFocus) && (
-                      <span title={nextFocus ? `Focus written for next week: ${nextFocus}` : `Focus from previous week: ${currentFocus}`} style={{color:C.or,marginLeft:6}}>
+                      <span title={nextFocus ? `Focus written for next week: ${nextFocus}` : `Focus from previous week: ${currentFocus}`} style={{color:C.or,marginInlineStart:6}}>
                         🎯
                       </span>
                     )}
-                    {ex.substitution && <span style={{color:C.or,marginLeft:6,fontFamily:FN,fontWeight:700,fontSize:10,letterSpacing:0.5}} title={`Swapped from "${ex.substitution.from}"`}>⇄ SWAP</span>}
+                    {ex.substitution && <span style={{color:C.or,marginInlineStart:6,fontFamily:FN,fontWeight:700,fontSize:10,letterSpacing:0.5}} title={`Swapped from "${ex.substitution.from}"`}>⇄ SWAP</span>}
                   </div>
                   {ex.substitution && (
                     <div style={{fontSize:10,color:C.or,marginTop:3,fontFamily:FN,letterSpacing:0.5}}>
@@ -2534,7 +2534,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
             without a tour. Sits above the action bar, FN caps, low-contrast
             so it doesn't compete with the primary CTA. */}
         <div style={{fontFamily:FN,fontSize:9,color:C.tm,letterSpacing:'0.18em',fontWeight:700,textAlign:'center',marginTop:14,marginBottom:-6}}>
-          M · MARK REVIEWED · &nbsp; J · SKIP · &nbsp; C · COMMENT AT PLAYHEAD
+          M · {tt('MARK REVIEWED')} · &nbsp; J · {tt('SKIP')} · &nbsp; C · {tt('COMMENT AT PLAYHEAD')}
         </div>
         <div style={{display:"flex",gap:8,marginTop:20,marginBottom:8}}>
           {deleteWorkout && (
@@ -2563,7 +2563,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
             style={{flex:1,padding:"12px 0",borderRadius:0,border:`1px solid ${C.cardBd}`,
               background:"transparent",color:C.tx,fontFamily:FN,fontSize:13,fontWeight:700,
               letterSpacing:0.5,cursor:"pointer"}}>
-            ← BACK
+            {tt('← BACK')}
           </button>}
           {wo.reviewedAt ? (
             findNextUnreviewed() ? (
@@ -2588,7 +2588,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
               style={{flex:1,padding:"12px 0",borderRadius:0,border:`1px solid ${C.ac}`,
                 background:C.ac,color:C.acOnSurface,fontFamily:FN,fontSize:13,fontWeight:700,
                 letterSpacing:0.5,cursor:"pointer"}}>
-              ✓ MARK REVIEWED — BACK
+              ✓ {tt('MARK REVIEWED')} — {tt('BACK')}
             </button>
           )}
         </div>
@@ -2731,7 +2731,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                       <span className="wr-dot">·</span>
                       <span>{fmtPrettyDate(wo.date)}</span>
                       <span className="wr-dot">·</span>
-                      <span>{doneSets}/{totalSets} sets</span>
+                      <span>{doneSets}/{totalSets} {tt('sets')}</span>
                       {hasFormVids && <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={C.tx} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}} aria-label="has form video"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>}
                     </span>
                     {reviewed && (
@@ -2745,7 +2745,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                   );
                 })()}
                 {/* Action group — Review/View + Delete together, off to the right */}
-                <div style={{display:'flex',alignItems:'center',gap:8,marginLeft:12,flexShrink:0}}>
+                <div style={{display:'flex',alignItems:'center',gap:8,marginInlineStart:12,flexShrink:0}}>
                   <button onClick={(e)=>{e.stopPropagation();setSelectedWo(wo.id);}}
                     title={reviewed?'View this workout':'Review this workout'}
                     style={{background:'transparent',border:`1px solid ${reviewed?C.cardBd:C.ac}`,color:reviewed?C.tm:C.ac,
@@ -2775,7 +2775,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
               tidy row below) + tight padding. Desktop keeps 12/16 side-by-side. */}
           <style>{`@media (max-width: 760px){
             .wr-day-card{ padding: 8px 12px !important; position: relative !important; align-items: flex-start !important; }
-            .wr-day-card > div:last-child{ position: absolute !important; top: 8px !important; right: 12px !important; margin-left: 0 !important; }
+            .wr-day-card > div:last-child{ position: absolute !important; top: 8px !important; inset-inline-end: 12px !important; margin-inline-start: 0 !important; }
             /* Mobile: the meta takes its own full-width line and its items (week /
                date / sets / video icon) spread edge-to-edge with even spacing;
                the dot separators hide (the spacing is the separator now). */

@@ -445,7 +445,7 @@ export default function CoachMessages({ traineeId, role = 'coach', recipientEmai
           {tt('No messages yet.')} {role === 'coach' ? tt('Drop a voice note or a quick check-in below.') : tt('Your coach will message you here.')}
         </div>
       ) : (
-        <div style={{ maxHeight: 360, overflowY: 'auto', paddingRight: 4 }}>
+        <div style={{ maxHeight: 360, overflowY: 'auto', paddingInlineEnd: 4 }}>
           {rows.map(m => <MessageBubble key={m.id} msg={m} viewerRole={role} />)}
         </div>
       )}

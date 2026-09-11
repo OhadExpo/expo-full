@@ -222,7 +222,7 @@ function StatCard({ label, value, sub, subColor, accent = C.ac, total }) {
           <span style={{ fontFamily: FN, fontSize: 13, letterSpacing: '0.08em', fontWeight: 700, color: '#FFFFFF', textTransform: 'uppercase' }}>{label}</span>
         </span>
       </div>
-      <div style={{ fontSize: C.kpiNumberSize || 30, fontWeight: 800, fontFamily: FN, color: C.tx, lineHeight: 1.05, letterSpacing: '-0.015em', direction: 'ltr', unicodeBidi: 'isolate', textAlign: 'left' }}>
+      <div style={{ fontSize: C.kpiNumberSize || 30, fontWeight: 800, fontFamily: FN, color: C.tx, lineHeight: 1.05, letterSpacing: '-0.015em', direction: 'ltr', unicodeBidi: 'isolate', textAlign: 'start' }}>
         {value}
         {total !== undefined && <span style={{ fontSize: 13, color: C.td, fontWeight: 400, letterSpacing: 0 }}> / {total}</span>}
       </div>
@@ -355,7 +355,7 @@ function DemoDashboard({ onJumpToTrainee }) {
                   {rows.map(t => {
                     const meta = TASK_SRC[t.src];
                     return (
-                      <div key={t.id} style={{ border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${meta.color}`, padding: '5px 7px', fontFamily: FB, fontSize: 11, lineHeight: 1.3, color: C.tx }}>{t.title}</div>
+                      <div key={t.id} style={{ border: `1px solid ${C.cardBd}`, borderInlineStart: `3px solid ${meta.color}`, padding: '5px 7px', fontFamily: FB, fontSize: 11, lineHeight: 1.3, color: C.tx }}>{t.title}</div>
                     );
                   })}
                   {rows.length === 0 && <div style={{ padding: '6px 4px', textAlign: 'center', color: C.td, fontSize: 9, fontFamily: FN }}>—</div>}
@@ -433,7 +433,7 @@ function DemoDashboard({ onJumpToTrainee }) {
           {dormant.map(t => (
             <Row key={t.id} onClick={() => onJumpToTrainee(t.id, 'dashboard')}>
               <span style={{ color: C.tx, flex: 1 }}>{t.name}</span>
-              <span style={{ fontFamily: FN, color: C.or, fontSize: 11, marginRight: 8 }}>{t.dormantDays == null ? 'Never trained' : `${t.dormantDays}d ago`}</span>
+              <span style={{ fontFamily: FN, color: C.or, fontSize: 11, marginInlineEnd: 8 }}>{t.dormantDays == null ? 'Never trained' : `${t.dormantDays}d ago`}</span>
               <FakeWaButton />
             </Row>
           ))}
@@ -456,9 +456,9 @@ function DemoDashboard({ onJumpToTrainee }) {
                 </div>
                 <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, letterSpacing: 1 }}>{l.source.toUpperCase()} · {l.context.toUpperCase()}</div>
               </div>
-              <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1, marginRight: 8 }}>{l.when}</span>
+              <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1, marginInlineEnd: 8 }}>{l.when}</span>
               <button onClick={e => { e.stopPropagation(); setContacted((c) => ({ ...c, [l.id]: !c[l.id] })); }} aria-pressed={!!contacted[l.id]} title={contacted[l.id] ? 'Mark not contacted (demo)' : 'Mark contacted (demo)'} style={{ background: 'var(--c-sf)', border: `1px solid ${C.gn}`, color: C.gn, borderRadius: 0, padding: '2px 7px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>✓</button>
-              <button onClick={e => { e.stopPropagation(); setLeads((ls) => ls.filter((x) => x.id !== l.id)); }} title="Delete lead (demo)" style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, color: C.rd, borderRadius: 0, padding: '2px 7px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer', marginLeft: 4, flexShrink: 0 }}>✕</button>
+              <button onClick={e => { e.stopPropagation(); setLeads((ls) => ls.filter((x) => x.id !== l.id)); }} title="Delete lead (demo)" style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, color: C.rd, borderRadius: 0, padding: '2px 7px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer', marginInlineStart: 4, flexShrink: 0 }}>✕</button>
             </Row>
           ))}
         </Panel>
@@ -478,7 +478,7 @@ function DemoDashboard({ onJumpToTrainee }) {
               <tr style={{ borderBottom: `1px solid ${C.bd}` }}>
                 {['Athlete', 'Status', 'Format', 'Package', 'Sessions', 'Total Paid', 'Last Payment', 'Workouts', 'Programs'].map(h => (
                   <th key={h} style={{
-                    textAlign: 'left', padding: '10px 12px',
+                    textAlign: 'start', padding: '10px 12px',
                     fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700,
                   }}>{h === 'Athlete' ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{h} <span style={{ fontSize: 8 }}>↑</span></span> : h}</th>
                 ))}
@@ -520,7 +520,7 @@ function DemoDashboard({ onJumpToTrainee }) {
 // White-stroke 14px icons mirroring ui.jsx SectionIcon kinds, so the demo
 // alert strips carry the same iconography as the real DashboardView.
 function DemoSectionIcon({ kind }) {
-  const common = { width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', stroke: '#FFFFFF', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', style: { marginRight: 6, verticalAlign: -2, flexShrink: 0 }, 'aria-hidden': true };
+  const common = { width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', stroke: '#FFFFFF', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', style: { marginInlineEnd: 6, verticalAlign: -2, flexShrink: 0 }, 'aria-hidden': true };
   const paths = {
     dot: <circle cx="12" cy="12" r="5" fill="#FFFFFF" stroke="none" />,
     alert: <><path d="M12 3 2 21h20L12 3z" /><path d="M12 10v5" /><circle cx="12" cy="18" r="0.6" fill="#FFFFFF" stroke="#FFFFFF" /></>,
@@ -538,7 +538,7 @@ function Panel({ title, tint, icon, children, cyanBorder }) {
     <div style={{
       background: C.sf,
       border: cyanBorder ? `1px solid ${C.ac}` : `1px solid ${C.cardBd}`,
-      borderLeft: cyanBorder ? `1px solid ${C.ac}` : `3px solid ${tint}`,
+      borderInlineStart: cyanBorder ? `1px solid ${C.ac}` : `3px solid ${tint}`,
       borderRadius: 0, padding: '14px 18px',
       boxShadow: cyanBorder ? undefined : C.cardShadow,
       flex: '0 0 auto', width: 300, boxSizing: 'border-box',
@@ -933,7 +933,7 @@ function BWSparkline({ weight }) {
         display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 6,
       }}>
         <span style={{ fontFamily: FB, fontSize: 22, fontWeight: 700, color: C.tx, letterSpacing: -0.3 }}>
-          {last.toFixed(1)}<span style={{ fontSize: 13, color: C.tm, marginLeft: 2 }}>kg</span>
+          {last.toFixed(1)}<span style={{ fontSize: 13, color: C.tm, marginInlineStart: 2 }}>kg</span>
         </span>
         <span style={{
           fontFamily: FN, fontSize: 11, color: parseFloat(delta) <= 0 ? C.gn : C.or, letterSpacing: 1, fontWeight: 700,
@@ -1026,7 +1026,7 @@ function DemoStatusMenu({ initial = 'Active' } = {}) {
       {open && (
         <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 60, background: C.bg, border: `1px solid ${C.cardBd}`, minWidth: 124 }}>
           {['Active', 'On Hold', 'Inactive', 'Trial'].map(s => (
-            <button key={s} onClick={() => { setStatus(s); setOpen(false); }} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 12px', background: s === status ? C.acD : 'transparent', border: 'none', borderLeft: `3px solid ${s === status ? (COLORS[s] || C.ac) : 'transparent'}`, color: COLORS[s] || C.tx, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer' }}>{s}</button>
+            <button key={s} onClick={() => { setStatus(s); setOpen(false); }} style={{ display: 'block', width: '100%', textAlign: 'start', padding: '9px 12px', background: s === status ? C.acD : 'transparent', border: 'none', borderInlineStart: `3px solid ${s === status ? (COLORS[s] || C.ac) : 'transparent'}`, color: COLORS[s] || C.tx, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer' }}>{s}</button>
           ))}
         </div>
       )}
@@ -1246,7 +1246,7 @@ function DemoEvalIntake() {
   const [open, setOpen] = useState(true);
   return (
     <div>
-      <div style={{ border: `1px solid ${open ? C.ac : C.cardBd}`, borderLeft: `3px solid ${C.ac}`, marginBottom: 8 }}>
+      <div style={{ border: `1px solid ${open ? C.ac : C.cardBd}`, borderInlineStart: `3px solid ${C.ac}`, marginBottom: 8 }}>
         <div onClick={() => setOpen(o => !o)} style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', padding: '10px 14px', cursor: 'pointer' }}>
           <span style={{ fontFamily: FN, fontSize: 13, color: C.ac, fontWeight: 700 }}>{DEMO_EVAL.eval_date}</span>
           <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, flex: 1 }}><span style={{ color: C.td }}>AGE </span>{DEMO_EVAL.age} · <span style={{ color: C.td }}>HT </span>{DEMO_EVAL.height}cm · <span style={{ color: C.td }}>WT </span>{DEMO_EVAL.weight}kg · <span style={{ color: C.td }}>FIELDS </span>{DEMO_EVAL.fields}</span>
@@ -1260,8 +1260,8 @@ function DemoEvalIntake() {
                 {s.rows.map(([test, unit, score], ri) => (
                   <div key={ri} style={{ display: 'grid', gridTemplateColumns: '1fr 60px 70px', gap: 8, padding: '5px 0', fontSize: 12 }}>
                     <span style={{ color: C.tx }}>{test}</span>
-                    <span style={{ color: C.td, textAlign: 'right' }}>{unit}</span>
-                    <span style={{ color: score === '—' ? C.td : C.tx, fontWeight: 700, textAlign: 'right' }}>{score}</span>
+                    <span style={{ color: C.td, textAlign: 'end' }}>{unit}</span>
+                    <span style={{ color: score === '—' ? C.td : C.tx, fontWeight: 700, textAlign: 'end' }}>{score}</span>
                   </div>
                 ))}
               </div>
@@ -1272,12 +1272,12 @@ function DemoEvalIntake() {
       <div style={{ border: `1px solid ${C.cardBd}`, padding: '12px 14px' }}>
         <div style={{ textAlign: 'center', marginBottom: 10 }}>
           <Badge color={C.ac}>INITIAL</Badge>
-          <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, marginLeft: 8 }}>· 20 Apr 2026</span>
+          <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, marginInlineStart: 8 }}>· 20 Apr 2026</span>
         </div>
         {[['Primary goal', 'Rebuild strength after knee scope'], ['Training age', '6 years'], ['Injuries', 'Right ACL reconstruction (2024)'], ['Days/week available', '4'], ['Equipment', 'Full commercial gym']].map(([k, v]) => (
           <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '5px 0', borderBottom: `1px solid ${C.cardBd}`, fontSize: 12 }}>
             <span style={{ color: C.tm }}>{k}</span>
-            <span style={{ color: C.tx, textAlign: 'right' }}>{v}</span>
+            <span style={{ color: C.tx, textAlign: 'end' }}>{v}</span>
           </div>
         ))}
       </div>
@@ -1515,7 +1515,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
             ))}
           </Panel>
 
-          <Panel title={<span>SHARED · PAYMENTS (3) <span style={{ color: C.gn, marginLeft: 8 }}>₪{(trainee.monthly * 3).toLocaleString()} TOTAL</span></span>} tint={C.ac}>
+          <Panel title={<span>SHARED · PAYMENTS (3) <span style={{ color: C.gn, marginInlineStart: 8 }}>₪{(trainee.monthly * 3).toLocaleString()} TOTAL</span></span>} tint={C.ac}>
             {[
               { date: '2026-04-01', method: 'Bank Transfer' },
               { date: '2026-03-01', method: 'Bank Transfer' },
@@ -2418,7 +2418,7 @@ function DemoPrograms({ resetToken = 0 }) {
             const mockLoad = e.wk?.[1] || ['60kg', '50%', '20kg', 'BW', '15kg', 'BW'][ei % 6];
             const mockRpe = ['7', '8', '7-8', 'RIR 2', '8-9', 'RIR 1'][ei % 6];
             return (
-              <div key={ei} style={{ background: 'var(--c-sf)', border: `1px solid ${cardBorderColor}`, borderLeft: `3px solid ${cardBorderColor}`, borderRadius: 0, padding: 12, marginBottom: 8 }}>
+              <div key={ei} style={{ background: 'var(--c-sf)', border: `1px solid ${cardBorderColor}`, borderInlineStart: `3px solid ${cardBorderColor}`, borderRadius: 0, padding: 12, marginBottom: 8 }}>
                 {/* Outer grid mirrors PlansView line 707 exactly: 54px drag,
                     1fr content, 54px right gutter. Without the right gutter
                     the inner inputs visually shift left (off-center inside
@@ -2518,7 +2518,7 @@ function DemoPrograms({ resetToken = 0 }) {
                   <span style={{ color: C.td, fontSize: 12, whiteSpace: 'nowrap' }}>({d.exercises.length} ex)</span>
                   <button onClick={() => { setSelectedDayIdx(dayIdx); setOverview(false); }}
                     title="Open this day in the detail editor"
-                    style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '3px 10px', height: 30, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', marginLeft: 'auto' }}>DETAIL ▸</button>
+                    style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '3px 10px', height: 30, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', marginInlineStart: 'auto' }}>DETAIL ▸</button>
                 </div>
                 <div style={{ overflowX: 'auto', margin: '0 -12px', padding: '0 12px' }}>
                   <div style={{ display: 'grid', gridTemplateColumns: '36px minmax(180px,3.3fr) 56px minmax(50px,0.8fr) minmax(60px,1fr) minmax(80px,1.3fr) minmax(56px,72px) 24px', gap: '6px 8px', fontSize: 12, alignItems: 'center', minWidth: 560 }}>
@@ -2529,7 +2529,7 @@ function DemoPrograms({ resetToken = 0 }) {
                           <span style={{ fontSize: 9, fontFamily: FN, color: C.td }}>{h}</span>
                         </div>
                       ) : hi === 1 ? (
-                        <div key={hi} style={{ fontSize: 9, fontFamily: FN, color: C.td, minWidth: 0, borderLeft: '3px solid transparent', paddingLeft: 6 }}>{h}</div>
+                        <div key={hi} style={{ fontSize: 9, fontFamily: FN, color: C.td, minWidth: 0, borderInlineStart: '3px solid transparent', paddingInlineStart: 6 }}>{h}</div>
                       ) : (
                         <div key={hi} style={{ fontSize: 9, fontFamily: FN, color: C.td, minWidth: 0 }}>{h}</div>
                       )
@@ -2543,7 +2543,7 @@ function DemoPrograms({ resetToken = 0 }) {
                           <span style={{ color: C.tm, fontFamily: FN, fontWeight: 700, fontSize: 12 }}>{ei + 1}</span>
                         </div>
                         <div title={ex.name}
-                          style={{ color: C.tx, fontFamily: FB, fontSize: 12, minWidth: 0, overflowWrap: 'break-word', wordBreak: 'break-word', borderLeft: `3px solid ${ex.superset ? sc : 'transparent'}`, paddingLeft: 6 }}>{ex.name}</div>
+                          style={{ color: C.tx, fontFamily: FB, fontSize: 12, minWidth: 0, overflowWrap: 'break-word', wordBreak: 'break-word', borderInlineStart: `3px solid ${ex.superset ? sc : 'transparent'}`, paddingInlineStart: 6 }}>{ex.name}</div>
                         <input value={ex.superset || ''} readOnly tabIndex={-1} style={{ ...tinyRO, color: ex.superset ? sc : C.td, fontFamily: FN, fontWeight: 600 }} />
                         <input value={ex.sets ?? ''} readOnly tabIndex={-1} style={tinyRO} />
                         <input value={ex.reps || ''} readOnly tabIndex={-1} style={tinyRO} />
@@ -2672,7 +2672,7 @@ function DemoPrograms({ resetToken = 0 }) {
                             <span style={{ fontSize: 9, fontFamily: FN, color: C.td }}>{h}</span>
                           </div>
                         ) : hi === 1 ? (
-                          <div key={hi} style={{ fontSize: 9, fontFamily: FN, color: C.td, minWidth: 0, borderLeft: '3px solid transparent', paddingLeft: 6 }}>{h}</div>
+                          <div key={hi} style={{ fontSize: 9, fontFamily: FN, color: C.td, minWidth: 0, borderInlineStart: '3px solid transparent', paddingInlineStart: 6 }}>{h}</div>
                         ) : (
                           <div key={hi} style={{ fontSize: 9, fontFamily: FN, color: C.td, minWidth: 0 }}>{h}</div>
                         )
@@ -2686,7 +2686,7 @@ function DemoPrograms({ resetToken = 0 }) {
                             <span style={{ color: C.tm, fontFamily: FN, fontWeight: 700, fontSize: 12 }}>{ei + 1}</span>
                           </div>
                           <div title={ex.name}
-                            style={{ color: C.tx, fontFamily: FB, fontSize: 12, minWidth: 0, overflowWrap: 'break-word', wordBreak: 'break-word', borderLeft: `3px solid ${ex.superset ? sc : 'transparent'}`, paddingLeft: 6 }}>{ex.name}</div>
+                            style={{ color: C.tx, fontFamily: FB, fontSize: 12, minWidth: 0, overflowWrap: 'break-word', wordBreak: 'break-word', borderInlineStart: `3px solid ${ex.superset ? sc : 'transparent'}`, paddingInlineStart: 6 }}>{ex.name}</div>
                           <input value={ex.superset || ''} readOnly tabIndex={-1} style={{ ...tinyRO, background: ex.superset ? `color-mix(in srgb, ${sc} 20%, var(--c-sf))` : undefined, border: ex.superset ? `1px solid ${sc}` : tinyRO.border, color: ex.superset ? C.tx : C.td, fontFamily: FN, fontWeight: ex.superset ? 800 : 600, textAlign: 'center' }} />
                           <input value={ex.sets ?? ''} readOnly tabIndex={-1} style={tinyRO} />
                           <input value={ex.reps || ''} readOnly tabIndex={-1} style={tinyRO} />
@@ -2740,7 +2740,7 @@ function ExerciseAction({ icon, label, sub }) {
   return (
     <button onClick={e => e.stopPropagation()} style={{
       background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 0,
-      padding: '8px 12px', textAlign: 'left',
+      padding: '8px 12px', textAlign: 'start',
       cursor: 'pointer', display: 'flex', flexDirection: 'column',
       gap: 3, minWidth: 180, transition: 'border-color 0.15s',
     }}
@@ -2903,7 +2903,7 @@ function DemoExercises() {
         <FilterPill label="Movement" k="movementType" />
         <FilterPill label="Pattern" k="movementPattern" />
         <FilterPill label="Laterality" k="laterality" />
-        {activeFilterCount > 0 && <button onClick={clearFilters} style={{ ...railBase, marginLeft: 'auto', color: C.rd, letterSpacing: '0.1em', borderBottomColor: 'transparent' }}>× Clear all</button>}
+        {activeFilterCount > 0 && <button onClick={clearFilters} style={{ ...railBase, marginInlineStart: 'auto', color: C.rd, letterSpacing: '0.1em', borderBottomColor: 'transparent' }}>× Clear all</button>}
       </div>
       {/* Click-catcher backdrop: an outside click closes the open menu. */}
       {openKey && <div onClick={() => setOpenKey(null)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />}
@@ -2951,7 +2951,7 @@ function DemoExercises() {
             <thead>
               <tr>
                 {['Exercise', 'Resistance', 'Position', 'Movement', 'Joints', 'Joint Movements', 'Primary Muscles', 'Secondary Muscles'].map(h => (
-                  <th key={h} style={{ textAlign: 'left', padding: '9px 12px', fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.13em', fontWeight: 700, whiteSpace: 'nowrap', borderBottom: `1px solid ${C.cardBd}`, background: 'var(--c-sf2)' }}>{h}</th>
+                  <th key={h} style={{ textAlign: 'start', padding: '9px 12px', fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.13em', fontWeight: 700, whiteSpace: 'nowrap', borderBottom: `1px solid ${C.cardBd}`, background: 'var(--c-sf2)' }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -3168,14 +3168,14 @@ function DemoReview() {
               <div style={{ fontFamily: FB, fontWeight: 600, fontSize: 13, color: C.tx }}>{ex.name}</div>
               <div style={{ fontSize: 11, color: C.tm, marginTop: 2 }}>
                 {ex.prescribed} · {ex.done}/{ex.sets} sets
-                {ex.hasVideo && <span title="Form video submitted" style={{ color: C.gn, marginLeft: 6, display: 'inline-flex', alignItems: 'center', verticalAlign: '-2px' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></span>}
+                {ex.hasVideo && <span title="Form video submitted" style={{ color: C.gn, marginInlineStart: 6, display: 'inline-flex', alignItems: 'center', verticalAlign: '-2px' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></span>}
                 {ex.comments > 0 && (
-                  <span title={`${ex.comments} comment${ex.comments === 1 ? '' : 's'} on this exercise`} style={{ color: C.ac, marginLeft: 6 }}>
+                  <span title={`${ex.comments} comment${ex.comments === 1 ? '' : 's'} on this exercise`} style={{ color: C.ac, marginInlineStart: 6 }}>
                     💬{ex.comments > 1 ? <sup style={{ fontSize: 8 }}>{ex.comments}</sup> : null}
                   </span>
                 )}
                 {ex.focus && (
-                  <span title="Weekly focus written" style={{ color: C.or, marginLeft: 6 }}>🎯</span>
+                  <span title="Weekly focus written" style={{ color: C.or, marginInlineStart: 6 }}>🎯</span>
                 )}
               </div>
             </div>
@@ -3248,10 +3248,10 @@ function DemoReview() {
                   </div>
                   <div style={{ fontSize: 11, color: C.tm, marginTop: 2 }}>
                     W{wo.week} · {wo.date} · {wo.doneSets}/{wo.totalSets} sets
-                    {hasFormVids && <span style={{ color: C.gn, marginLeft: 4, display: 'inline-flex', alignItems: 'center', verticalAlign: '-2px' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></span>}
+                    {hasFormVids && <span style={{ color: C.gn, marginInlineStart: 4, display: 'inline-flex', alignItems: 'center', verticalAlign: '-2px' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></span>}
                   </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 12, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginInlineStart: 12, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
                   <button onClick={() => setSelectedId(wo.id)} title="Review this workout" style={{ background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, borderRadius: 0, padding: '5px 12px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', cursor: 'pointer', whiteSpace: 'nowrap' }}>REVIEW →</button>
                   <button onClick={e => e.stopPropagation()} title="Delete this workout (demo only)" style={{ background: 'transparent', border: `1px solid color-mix(in srgb, ${C.rd} 40%, transparent)`, color: C.rd, borderRadius: 0, padding: '5px 10px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', cursor: 'pointer' }}>DELETE</button>
                 </div>
@@ -3457,7 +3457,7 @@ function DemoInlineVideo({ title }) {
   // the "plays in place, no click-through" behaviour.
   return (
     <div style={{ marginTop: 8, marginBottom: 8, aspectRatio: '16/9', background: '#000', border: `1px solid ${C.cardBd}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-      <div style={{ width: 44, height: 44, borderRadius: '50%', border: `2px solid ${C.ac}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.ac, fontSize: 16, paddingLeft: 3 }}>▶</div>
+      <div style={{ width: 44, height: 44, borderRadius: '50%', border: `2px solid ${C.ac}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.ac, fontSize: 16, paddingInlineStart: 3 }}>▶</div>
       <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.14em', color: C.tm }}>{title} · FORM VIDEO</div>
       <div style={{ fontFamily: FN, fontSize: 8, letterSpacing: '0.1em', color: C.td }}>PLAYS INLINE — NO CLICK-THROUGH</div>
     </div>
@@ -3469,11 +3469,11 @@ function DemoSessionExercise({ ex, open, onToggle }) {
   const allDone = doneCount === ex.sets.length && ex.sets.length > 0;
   const COLS = '16px 1fr 1fr 0.8fr 30px';
   return (
-    <div style={{ border: `1px solid ${open ? C.ac : C.cardBd}`, borderLeft: `3px solid ${allDone ? C.gn : open ? C.ac : C.cardBd}`, background: open ? 'rgba(57,189,255,0.04)' : 'transparent', marginBottom: 6 }}>
+    <div style={{ border: `1px solid ${open ? C.ac : C.cardBd}`, borderInlineStart: `3px solid ${allDone ? C.gn : open ? C.ac : C.cardBd}`, background: open ? 'rgba(57,189,255,0.04)' : 'transparent', marginBottom: 6 }}>
       <div onClick={onToggle} style={{ padding: 8, cursor: 'pointer' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
           <span style={{ fontFamily: FB, fontSize: 12.5, color: C.tx, fontWeight: 600, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: 1.3 }}>
-            {allDone && <span style={{ color: C.gn, marginRight: 4 }}>✓</span>}{ex.title}
+            {allDone && <span style={{ color: C.gn, marginInlineEnd: 4 }}>✓</span>}{ex.title}
           </span>
           <span style={{ color: 'var(--c-tx)', fontSize: 12, flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>▾</span>
         </div>
@@ -3575,7 +3575,7 @@ function DemoSingle() {
         {/* (Camera/movement tools live under Review › Tools in the real app, not
             inside the 1-on-1 logger — removed here to match.) */}
         {DEMO_SESSION_DAY.map(ex => (
-          <div key={ex.id} style={{ background: C.sf, border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${ex.sets.every(s => s.done) && ex.sets.length ? C.gn : C.cardBd}`, marginBottom: 10, padding: 4 }}>
+          <div key={ex.id} style={{ background: C.sf, border: `1px solid ${C.cardBd}`, borderInlineStart: `3px solid ${ex.sets.every(s => s.done) && ex.sets.length ? C.gn : C.cardBd}`, marginBottom: 10, padding: 4 }}>
             <DemoSessionExercise ex={ex} open={!!openEx[ex.id]} onToggle={() => setOpenEx(p => ({ ...p, [ex.id]: !p[ex.id] }))} />
           </div>
         ))}
@@ -3594,7 +3594,7 @@ function DemoSingle() {
           const dayNames = (MOCK_PLAN_INDEX.find(p => p.traineeId === t.id)?.dayNames) || ['Day A', 'Day B', 'Day C'];
           return (
             <div key={t.id} style={{ borderTop: i === 0 ? 'none' : `1px solid ${C.cardBd}` }}>
-              <button onClick={() => setOpenAthlete(isOpen ? null : t.id)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, background: isOpen ? C.sf : 'transparent', border: 'none', cursor: 'pointer', padding: '12px 14px', textAlign: 'left' }}>
+              <button onClick={() => setOpenAthlete(isOpen ? null : t.id)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, background: isOpen ? C.sf : 'transparent', border: 'none', cursor: 'pointer', padding: '12px 14px', textAlign: 'start' }}>
                 <span style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
                   <span style={{ fontFamily: isHeb(t.name) ? FH : FB, fontSize: 14, fontWeight: 600, color: C.tx }}>{t.name}</span>
                   <span style={{ fontFamily: FN, fontSize: 11, color: C.tm }}>BLOCK #4</span>
@@ -3604,7 +3604,7 @@ function DemoSingle() {
               {isOpen && (
                 <div style={{ padding: '0 14px 14px' }}>
                   <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
-                    <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: C.tm, marginRight: 2 }}>LOG INTO</span>
+                    <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: C.tm, marginInlineEnd: 2 }}>LOG INTO</span>
                     {[1, 2, 3, 4].map(wn => <span key={wn} style={{ minWidth: 32, textAlign: 'center', padding: '3px 0', border: `${wn === 4 ? '2px' : '1px'} solid ${wn === 4 ? C.ac : C.bd}`, background: wn === 4 ? 'rgba(57,189,255,0.1)' : 'transparent', color: wn === 4 ? C.ac : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700 }}>W{wn}</span>)}
                   </div>
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -3682,7 +3682,7 @@ function DemoReviewTools() {
         })}
       </div>
       {note && (
-        <div style={{ marginTop: 16, background: C.acD, border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.ac}`, padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+        <div style={{ marginTop: 16, background: C.acD, border: `1px solid ${C.cardBd}`, borderInlineStart: `3px solid ${C.ac}`, padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
           <span style={{ fontFamily: FB, fontSize: 13, color: C.tx }}>The camera + pose tools run live in the full app — disabled in this demo. Join the waitlist to use them on your own clips.</span>
           <button onClick={() => setNote(false)} style={{ ...baseBtn, background: 'transparent', color: C.tm, border: `1px solid ${C.bd}`, padding: '5px 12px', fontSize: 10, flexShrink: 0 }}>DISMISS</button>
         </div>
@@ -3763,7 +3763,7 @@ function DemoTasks() {
                     const meta = TASK_SRC[t.src];
                     const overdue = /OVERDUE/i.test(t.due);
                     return (
-                      <div key={t.id} style={demoCardStyle({ borderLeft: `3px solid ${meta.color}`, padding: 9, display: 'flex', flexDirection: 'column', gap: 5 })}>
+                      <div key={t.id} style={demoCardStyle({ borderInlineStart: `3px solid ${meta.color}`, padding: 9, display: 'flex', flexDirection: 'column', gap: 5 })}>
                         <span style={{ fontFamily: FB, fontSize: 12, color: C.tx, lineHeight: 1.3 }}>{t.title}</span>
                         <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', color: overdue ? C.tx : C.tm, border: overdue ? `1px solid ${C.bd}` : 'none', padding: overdue ? '2px 6px' : 0, alignSelf: 'flex-start' }}>{t.due}</span>
                       </div>
@@ -3789,7 +3789,7 @@ function DemoTasks() {
                 const col = STATUS_COLS.find(c => c.id === t.status) || STATUS_COLS[0];
                 const overdue = /OVERDUE/i.test(t.due);
                 return (
-                  <div key={t.id} style={demoCardStyle({ marginBottom: 6, borderLeft: `3px solid ${meta.color}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: 12 })}>
+                  <div key={t.id} style={demoCardStyle({ marginBottom: 6, borderInlineStart: `3px solid ${meta.color}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: 12 })}>
                     <span style={{ fontFamily: FB, fontSize: 13, color: C.tx, textDecoration: t.status === 'done' ? 'line-through' : 'none', opacity: t.status === 'done' ? 0.6 : 1 }}>{t.title}</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
                       <span style={{ fontFamily: FN, fontSize: 10, color: overdue ? C.tx : C.tm }}>{t.due}</span>
@@ -3860,7 +3860,7 @@ function DemoBilling() {
           {DEMO_PAYMENTS.map(p => {
             const st = PAY_STATUS[p.status];
             return (
-              <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '12px 14px', borderTop: `1px solid ${C.cardBd}`, borderLeft: p.status === 'pending' ? `3px solid ${C.rd}` : '3px solid transparent' }}>
+              <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '12px 14px', borderTop: `1px solid ${C.cardBd}`, borderInlineStart: p.status === 'pending' ? `3px solid ${C.rd}` : '3px solid transparent' }}>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontFamily: FB, fontSize: 13, fontWeight: 600, color: p.status === 'pending' ? C.rd : C.tx }}>{p.name} · {fmtIls(p.amount)}</div>
                   <div style={{ fontFamily: FB, fontSize: 11, color: C.tm, marginTop: 2 }}>{p.ref} · {fmtPrettyDate(p.date)}</div>

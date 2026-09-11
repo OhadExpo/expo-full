@@ -136,8 +136,8 @@ function LiftDetail({ row }) {
           <span style={{ fontFamily: FN, fontSize: 8, color: C.ac, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 2 }}>ALL-TIME PR</span>
           <span style={{ fontFamily: FB, fontSize: 22, fontWeight: 800, color: C.ac, lineHeight: 1 }}>
             {row.allTimePR}
-            <span style={{ fontSize: 12, color: C.tm, fontWeight: 400, marginLeft: 4 }}>kg{row.allTimePRReps ? ` × ${row.allTimePRReps}` : ''}</span>
-            <span style={{ fontSize: 11, color: C.tm, fontWeight: 400, marginLeft: 10, fontFamily: FN }}>{fmtDate(row.allTimePRDate)}</span>
+            <span style={{ fontSize: 12, color: C.tm, fontWeight: 400, marginInlineStart: 4 }}>kg{row.allTimePRReps ? ` × ${row.allTimePRReps}` : ''}</span>
+            <span style={{ fontSize: 11, color: C.tm, fontWeight: 400, marginInlineStart: 10, fontFamily: FN }}>{fmtDate(row.allTimePRDate)}</span>
           </span>
         </span>
         <span style={{ flex: 1 }} />
@@ -160,9 +160,9 @@ function LiftDetail({ row }) {
               <span style={{ color: C.td }}>{fmtDate(s.date)}</span>
               <span style={{ color: C.tm, fontSize: 10 }}>{s.planName ? `${blockAbbrev(s.planName)}${s.week ? `·W${s.week}` : ''}` : ''}</span>
               <span style={{ color: C.tx, fontWeight: 700 }}>{s.topLoad}kg <span style={{ color: C.tm, fontWeight: 400 }}>× {s.topReps || '—'}</span></span>
-              <span style={{ textAlign: 'right', color: C.td, whiteSpace: 'nowrap' }}>
+              <span style={{ textAlign: 'end', color: C.td, whiteSpace: 'nowrap' }}>
                 {s.avgRpe != null ? `RPE ${s.avgRpe.toFixed(1)}` : ''}
-                {isPR && <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, marginLeft: 8, fontSize: 9, color: C.ac, border: `1px solid ${C.ac}`, padding: '2px 5px', fontWeight: 700, letterSpacing: '0.08em' }}>PR</span>}
+                {isPR && <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, marginInlineStart: 8, fontSize: 9, color: C.ac, border: `1px solid ${C.ac}`, padding: '2px 5px', fontWeight: 700, letterSpacing: '0.08em' }}>PR</span>}
               </span>
             </div>
           );
@@ -296,14 +296,14 @@ export default function OverloadChart({ workouts, exercises }) {
                   <tr onClick={() => setExpanded(open ? null : row.exId)}
                     style={{ cursor: 'pointer', borderBottom: `1px solid ${C.cardBd}`, background: open ? 'var(--c-rowHover, transparent)' : 'transparent' }}>
                     <td style={{ padding: '9px 10px', fontSize: 13, color: C.tx, fontWeight: 600, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      <span style={{ color: open ? C.ac : C.td, marginRight: 6, fontSize: 10 }}>{<svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle', transition: 'transform 150ms ease', transform: (open) ? 'none' : 'rotate(-90deg)' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>}</span>{row.title}
+                      <span style={{ color: open ? C.ac : C.td, marginInlineEnd: 6, fontSize: 10 }}>{<svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle', transition: 'transform 150ms ease', transform: (open) ? 'none' : 'rotate(-90deg)' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>}</span>{row.title}
                     </td>
-                    <td style={{ padding: '9px 10px', textAlign: 'right', fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx }}>{row.lastLoad}kg</td>
-                    <td style={{ padding: '9px 10px', textAlign: 'right', fontFamily: FN, fontSize: 12, fontWeight: 700, color: tc, whiteSpace: 'nowrap' }}>
+                    <td style={{ padding: '9px 10px', textAlign: 'end', fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx }}>{row.lastLoad}kg</td>
+                    <td style={{ padding: '9px 10px', textAlign: 'end', fontFamily: FN, fontSize: 12, fontWeight: 700, color: tc, whiteSpace: 'nowrap' }}>
                       {TREND_ARROW[row.trend]} {row.trend === 'new' ? 'new' : `${row.deltaPct > 0 ? '+' : ''}${row.deltaPct}%`}
                     </td>
-                    <td style={{ padding: '9px 10px', textAlign: 'right', fontFamily: FN, fontSize: 12, color: C.tm }}>{row.sessionCount}</td>
-                    <td style={{ padding: '9px 10px', textAlign: 'right', fontFamily: FN, fontSize: 11, color: C.tm, whiteSpace: 'nowrap' }}>{fmtDate(row.lastDate)}</td>
+                    <td style={{ padding: '9px 10px', textAlign: 'end', fontFamily: FN, fontSize: 12, color: C.tm }}>{row.sessionCount}</td>
+                    <td style={{ padding: '9px 10px', textAlign: 'end', fontFamily: FN, fontSize: 11, color: C.tm, whiteSpace: 'nowrap' }}>{fmtDate(row.lastDate)}</td>
                   </tr>
                   {open && (
                     <tr>

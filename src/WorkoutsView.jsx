@@ -34,7 +34,7 @@ function InlineVideo({ url }) {
   if (yt) {
     const short = /youtube\.com\/shorts\//i.test(String(url || ''));  // vertical → portrait frame
     return (
-      <div style={{ marginTop: 8, marginBottom: 10, aspectRatio: short ? '9/16' : '16/9', background: '#000', border: `1px solid ${C.cardBd}`, maxWidth: short ? 260 : 400, marginLeft: 'auto', marginRight: 'auto' }}>
+      <div style={{ marginTop: 8, marginBottom: 10, aspectRatio: short ? '9/16' : '16/9', background: '#000', border: `1px solid ${C.cardBd}`, maxWidth: short ? 260 : 400, marginInlineStart: 'auto', marginInlineEnd: 'auto' }}>
         <iframe
           src={`https://www.youtube.com/embed/${yt}?rel=0&modestbranding=1&controls=1&fs=0&disablekb=1&playsinline=1`}
           sandbox="allow-scripts allow-same-origin allow-presentation"
@@ -47,7 +47,7 @@ function InlineVideo({ url }) {
   if (/\.(mp4|webm|mov|m4v)(\?|$)/i.test(url || '')) {
     return (
       <video src={url} controls playsInline controlsList="nofullscreen nodownload" disablePictureInPicture
-        style={{ width: '100%', maxWidth: 400, display: 'block', marginLeft: 'auto', marginRight: 'auto', marginTop: 8, marginBottom: 10, aspectRatio: '16/9', background: '#000', border: `1px solid ${C.cardBd}`, objectFit: 'contain' }} />
+        style={{ width: '100%', maxWidth: 400, display: 'block', marginInlineStart: 'auto', marginInlineEnd: 'auto', marginTop: 8, marginBottom: 10, aspectRatio: '16/9', background: '#000', border: `1px solid ${C.cardBd}`, objectFit: 'contain' }} />
     );
   }
   return null;
@@ -171,14 +171,14 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
             background: inGroup ? 'transparent' : 'var(--c-sf)',
             border: inGroup ? 'none' : `1px solid ${C.cardBd}`,
             borderTop: withDivider ? `1px solid ${C.cardBd}` : undefined,
-            borderLeft: `3px solid ${fullyDone ? C.gn : C.cardBd}`,
+            borderInlineStart: `3px solid ${fullyDone ? C.gn : C.cardBd}`,
             borderRadius: 0, padding: inGroup ? '12px' : '14px',
             marginBottom: inGroup ? 0 : 10, cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
           }}>
           <span style={{ fontWeight: 700, color: C.tx, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             <span style={{ display: 'inline-block', width: 14, color: C.gn, flexShrink: 0 }}>{fullyDone ? '✓' : ''}</span>
-            <span style={{ display: 'inline-block', width: 22, textAlign: 'right', marginRight: 5, flexShrink: 0 }}>{exIdx+1}.</span>
+            <span style={{ display: 'inline-block', width: 22, textAlign: 'end', marginInlineEnd: 5, flexShrink: 0 }}>{exIdx+1}.</span>
             {exData?.title||ex.title||"Unknown"}
           </span>
           <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color: fullyDone ? C.gn : C.tm, flexShrink: 0, whiteSpace: 'nowrap' }}>
@@ -189,7 +189,7 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
     }
     const fullyDoneOpen = allDone(ex);
     return (
-      <div key={ex.id} style={{background: inGroup ? 'transparent' : 'var(--c-sf)', border: inGroup ? 'none' : `1px solid ${C.cardBd}`, borderLeft: inGroup ? undefined : `3px solid ${fullyDoneOpen ? C.gn : C.cardBd}`, borderTop: withDivider ? `1px solid ${C.cardBd}` : undefined, borderRadius:0, padding: inGroup ? '10px 0 4px' : 14, marginBottom: inGroup ? 0 : 10}}>
+      <div key={ex.id} style={{background: inGroup ? 'transparent' : 'var(--c-sf)', border: inGroup ? 'none' : `1px solid ${C.cardBd}`, borderInlineStart: inGroup ? undefined : `3px solid ${fullyDoneOpen ? C.gn : C.cardBd}`, borderTop: withDivider ? `1px solid ${C.cardBd}` : undefined, borderRadius:0, padding: inGroup ? '10px 0 4px' : 14, marginBottom: inGroup ? 0 : 10}}>
         {/* Header: title row + a readable prescription stat row (only fields
             that actually have a value — no "RPE — · Rest undefineds" noise).
             COLLAPSE control fixed top-right. Video plays INLINE below the cue
@@ -198,7 +198,7 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
         <div style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:10}}>
           <div style={{flex:1,minWidth:0}}>
             <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',marginBottom:8}}>
-              <span style={{fontWeight:700,fontSize:15,color:C.tx,whiteSpace:'normal',overflowWrap:'break-word',lineHeight:1.3}}><span style={{display:'inline-block',width:26,textAlign:'right',marginRight:5}}>{exIdx+1}.</span>{exData?.title||ex.title||"Unknown"}</span>
+              <span style={{fontWeight:700,fontSize:15,color:C.tx,whiteSpace:'normal',overflowWrap:'break-word',lineHeight:1.3}}><span style={{display:'inline-block',width:26,textAlign: 'end',marginInlineEnd:5}}>{exIdx+1}.</span>{exData?.title||ex.title||"Unknown"}</span>
             </div>
             <div style={{display:'flex',gap:18,flexWrap:'wrap'}}>
               {[['SETS',(ex.sets||[]).length],['REPS',ex.reps],['TEMPO',(ex.tempo && String(ex.tempo)!==String(ex.reps))?ex.tempo:''],['RPE',ex.rpe],['REST',ex.rest?`${ex.rest}s`:'']]
@@ -280,11 +280,11 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
         const titles = g.items.map(({ex})=>(exById.get(ex.exerciseId)?.title)||ex.title||'?').join(' + ');
         const sc = ssColor(g.ss);
         return (
-        <div key={gi} style={{border:`1px solid ${sc}`, borderLeft:`3px solid ${allD?C.gn:sc}`, borderRadius:0, padding:'8px 12px', marginBottom:10, background: 'var(--c-sf)'}}>
+        <div key={gi} style={{border:`1px solid ${sc}`, borderInlineStart:`3px solid ${allD?C.gn:sc}`, borderRadius:0, padding:'8px 12px', marginBottom:10, background: 'var(--c-sf)'}}>
           <button onClick={()=>toggleGroup(gi,g.items)} title={collapsed?'Expand superset':'Collapse superset'}
-            style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,background:'transparent',border:'none',cursor:'pointer',padding:0,textAlign:'left'}}>
+            style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,background:'transparent',border:'none',cursor:'pointer',padding:0,textAlign: 'start'}}>
             <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',color:allD?C.gn:sc,textTransform:'uppercase',minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
-              {allD && <span style={{marginRight:6}}>✓</span>}Superset {g.ss}{collapsed && <span style={{color:C.tm,fontWeight:600,letterSpacing:'0.04em',textTransform:'none'}}> · {titles}</span>}
+              {allD && <span style={{marginInlineEnd:6}}>✓</span>}Superset {g.ss}{collapsed && <span style={{color:C.tm,fontWeight:600,letterSpacing:'0.04em',textTransform:'none'}}> · {titles}</span>}
             </span>
             <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',color:allD?C.gn:C.tm,flexShrink:0,whiteSpace:'nowrap'}}>{doneSets}/{totalSets} SETS · {collapsed?'EXPAND':'COLLAPSE'}</span>
           </button>
@@ -687,7 +687,7 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
                       onMouseEnter={e=>{if(!open)e.currentTarget.style.background='rgba(57,189,255,0.04)';}}
                       onMouseLeave={e=>{if(!open)e.currentTarget.style.background='transparent';}}
                       style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,
-                        background: open?'var(--c-sf)':'transparent',border:'none',cursor:'pointer',padding:'12px 14px',textAlign:'left',transition:'background .12s'}}>
+                        background: open?'var(--c-sf)':'transparent',border:'none',cursor:'pointer',padding:'12px 14px',textAlign: 'start',transition:'background .12s'}}>
                       <span style={{display:'flex',alignItems:'baseline',gap:10,minWidth:0}}>
                         <span style={{fontFamily:heb?FH:FB,fontSize:heb?16:14,fontWeight:600,color:C.tx,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{name}</span>
                         <span style={{fontFamily:FN,fontSize:11,color:C.tm,whiteSpace:'nowrap'}}>{latest.name}</span>
@@ -704,7 +704,7 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
                             {blocks.length>1 && <div style={{fontFamily:FN,fontSize:10,color:C.td,letterSpacing:'0.08em',marginBottom:6}}>{p.name}</div>}
                             {/* Week to log into — chosen here, before the logger opens. */}
                             {pw>1 && <div style={{display:'flex',gap:4,alignItems:'center',flexWrap:'wrap',marginBottom:8}}>
-                              <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.14em',color:C.tm,marginRight:2}}>{tt('LOG INTO')}</span>
+                              <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.14em',color:C.tm,marginInlineEnd:2}}>{tt('LOG INTO')}</span>
                               {Array.from({length:pw},(_,i)=>i+1).map(wn=>(
                                 <button key={wn} onClick={()=>setWeekByPlan(m=>({...m,[p.id]:wn}))}
                                   style={{minWidth:32,height:24,boxSizing:'border-box',padding:'0',borderRadius:0,border:`${selWeek===wn?'2px':'1px'} solid ${selWeek===wn?C.ac:C.cardBd}`,background:selWeek===wn?'rgba(57,189,255,0.1)':'transparent',color:selWeek===wn?C.ac:C.tm,fontFamily:FN,fontSize:10,fontWeight:700,cursor:'pointer'}}>W{wn}</button>

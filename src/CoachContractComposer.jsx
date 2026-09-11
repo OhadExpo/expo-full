@@ -62,7 +62,7 @@ export default function CoachContractComposer({ trainee, coachEmail, onClose, on
     }}>
       <div onClick={e => e.stopPropagation()} style={{
         background: 'var(--c-bg)', border: `1px solid ${C.cardBd}`,
-        borderLeft: `3px solid ${C.ac}`,
+        borderInlineStart: `3px solid ${C.ac}`,
         maxWidth: 480, width: '100%', maxHeight: '85vh', overflow: 'auto',
       }}>
         <div style={{ background: C.ac, color: '#FFFFFF', padding: '14px 20px' }}>

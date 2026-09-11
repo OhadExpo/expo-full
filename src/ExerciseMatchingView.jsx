@@ -63,7 +63,7 @@ function ExercisePeek({ ex, onAccept, onClose }) {
                 <img src={`https://img.youtube.com/vi/${yid}/hqdefault.jpg`} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.92, display: 'block' }} />
                 <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <span style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(0,0,0,0.55)', border: '1px solid rgba(255,255,255,0.85)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <span style={{ width: 0, height: 0, borderTop: '7px solid transparent', borderBottom: '7px solid transparent', borderLeft: '12px solid #fff', marginLeft: 3 }} />
+                    <span style={{ width: 0, height: 0, borderTop: '7px solid transparent', borderBottom: '7px solid transparent', borderInlineStart: '12px solid #fff', marginInlineStart: 3 }} />
                   </span>
                 </span>
               </div>
@@ -117,7 +117,7 @@ function LibraryPicker({ exercises, initial, onPick, onPeek, onClose }) {
           style={{ fontFamily: FB, fontSize: 14, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.bd}`, borderRadius: 0, padding: '10px 12px' }} />
         <div style={{ maxHeight: 420, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
           {results.map((ex) => (
-            <button key={ex.id} onClick={() => onPick(ex)} style={{ display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left', padding: '9px 10px', border: 'none', borderBottom: `1px solid ${C.bd}`, background: 'transparent', cursor: 'pointer', fontFamily: FB, fontSize: 13, color: C.tx }}>
+            <button key={ex.id} onClick={() => onPick(ex)} style={{ display: 'flex', alignItems: 'center', gap: 10, textAlign: 'start', padding: '9px 10px', border: 'none', borderBottom: `1px solid ${C.bd}`, background: 'transparent', cursor: 'pointer', fontFamily: FB, fontSize: 13, color: C.tx }}>
               <span style={{ flex: 1, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word' }} title={ex.title || ex.t}>{ex.title || ex.t}</span>
               {ex.videoLink && <span style={{ fontFamily: FN, fontSize: 9, color: C.ac }}>▶</span>}
               {(ex.cues || ex.notes) && <span style={{ fontFamily: FN, fontSize: 9, color: C.tm }}>✎</span>}
@@ -255,7 +255,7 @@ export default function ExerciseMatchingView({ exercises = [], setExercises }) {
                       const conf = confidenceLabel(s.score);
                       const on = chosen && chosen.id === s.ex.id;
                       return (
-                        <button key={s.ex.id} onClick={() => setDecision(g.key, 'accept', s.ex)} style={{ display: 'flex', alignItems: 'center', gap: 8, textAlign: 'left', padding: '7px 10px', border: `1px solid ${on ? '#2E9E6B' : C.bd}`, background: on ? 'color-mix(in srgb, #2E9E6B 10%, transparent)' : 'var(--c-sf)', cursor: 'pointer', borderRadius: 0 }}>
+                        <button key={s.ex.id} onClick={() => setDecision(g.key, 'accept', s.ex)} style={{ display: 'flex', alignItems: 'center', gap: 8, textAlign: 'start', padding: '7px 10px', border: `1px solid ${on ? '#2E9E6B' : C.bd}`, background: on ? 'color-mix(in srgb, #2E9E6B 10%, transparent)' : 'var(--c-sf)', cursor: 'pointer', borderRadius: 0 }}>
                           <span style={{ width: 8, height: 8, borderRadius: '50%', background: CONF_COLOR[conf], flexShrink: 0 }} />
                           <span style={{ flex: 1, minWidth: 0, fontFamily: FB, fontSize: 12.5, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word' }} title={s.ex.title || s.ex.t}>{s.ex.title || s.ex.t}</span>
                           {s.ex.videoLink && <span style={{ fontFamily: FN, fontSize: 9, color: C.ac, flexShrink: 0 }} title="has video">▶</span>}

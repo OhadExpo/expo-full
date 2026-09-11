@@ -82,7 +82,7 @@ async function maybeResolveGooglePhotos(url) {
 
 // In compare mode each half is a fixed header row above its own scroller.
 // The scroller's content is narrower than the pane by (scrollbar + 6px
-// paddingRight), so a full-width header row visually overhangs the boxes
+// paddingInlineEnd), so a full-width header row visually overhangs the boxes
 // below it (Ohad: "the text boxes should end before the scroller, level
 // with Pattern Coverage"). Measures the pane's scrollbar width so the
 // header can pad-right to the exact same content edge.
@@ -272,7 +272,7 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
     if (!open) return;
     const w = Math.min(620, Math.round(window.innerWidth * 0.94));
     document.body.style.transition = 'padding-right 220ms cubic-bezier(0.22,0.61,0.36,1)';
-    document.body.style.paddingRight = w + 'px';
+    document.body.style.paddingInlineEnd = w + 'px';
     // Padding alone was not "push" — it was "shove off the edge". <main> is
     // maxWidth:1200 + margin:0 auto, so shrinking the body just RE-CENTRES it:
     // measured at 1920, main slid from left:354 to left:44 without shrinking at
@@ -285,7 +285,7 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
     // and anything that still cannot fit stays scrollable rather than lost.
     document.body.classList.add('ex-drawer-open');
     return () => {
-      document.body.style.paddingRight = '';
+      document.body.style.paddingInlineEnd = '';
       document.body.classList.remove('ex-drawer-open');
     };
   }, [open]);
@@ -311,7 +311,7 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
         /* Safety net: anything that still cannot fit stays reachable rather
            than being silently clipped away. */
         body.ex-drawer-open .app-root{overflow-x:auto !important;}`}</style>
-      <div onClick={e => e.stopPropagation()} style={{ pointerEvents: 'auto', background: C.sf, borderLeft:`1px solid ${C.ac}`, borderRadius: 0, width: DRAWER_W, height: '100vh', maxHeight: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: `-16px 0 50px ${C.shadow}`, animation: closing ? 'none' : 'exDrawerIn 220ms cubic-bezier(0.22,0.61,0.36,1)', transform: closing ? 'translateX(100%)' : 'translateX(0)', transition: closing ? 'transform 200ms cubic-bezier(0.22,0.61,0.36,1)' : 'none' }}>
+      <div onClick={e => e.stopPropagation()} style={{ pointerEvents: 'auto', background: C.sf, borderInlineStart:`1px solid ${C.ac}`, borderRadius: 0, width: DRAWER_W, height: '100vh', maxHeight: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: `-16px 0 50px ${C.shadow}`, animation: closing ? 'none' : 'exDrawerIn 220ms cubic-bezier(0.22,0.61,0.36,1)', transform: closing ? 'translateX(100%)' : 'translateX(0)', transition: closing ? 'transform 200ms cubic-bezier(0.22,0.61,0.36,1)' : 'none' }}>
         {/* Header hero — eyebrow tag (action), big exercise name, metadata.
             Lifts the current exercise out of the page header and into a
             scannable hierarchy: WHAT you're replacing, in big type, with
@@ -371,7 +371,7 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
               <span style={{ color: C.ac, fontWeight: 700 }}>{filt.length}</span>
               {(search.trim() || activeFilterCount > 0) && exercises.length > filt.length ? <span style={{ color: C.td }}> of {exercises.length}</span> : null}
               <span style={{ color: C.td }}> result{filt.length === 1 ? '' : 's'}</span>
-              <span style={{ color: C.td, opacity: 0.6, marginLeft: 10, letterSpacing: '0.04em' }}>↑↓ navigate · Enter select · Esc close</span>
+              <span style={{ color: C.td, opacity: 0.6, marginInlineStart: 10, letterSpacing: '0.04em' }}>↑↓ navigate · Enter select · Esc close</span>
             </span>
             {(search.trim() || activeFilterCount > 0) && <button onClick={clearAll} style={{ background: 'transparent', border: `1px solid ${C.cardBd}`, color: C.ac, cursor: 'pointer', fontSize: 10, fontFamily: FN, fontWeight: 700, letterSpacing: '0.18em', padding: '4px 10px', borderRadius: 0 }}>× {tt('CLEAR ALL')}</button>}
           </div>
@@ -486,13 +486,13 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
                     onClick={() => pick(ex)}
                     onMouseEnter={() => setActiveIdx(idx)}
                     style={{
-                      textAlign: 'left', padding: '7px 11px',
+                      textAlign: 'start', padding: '7px 11px',
                       background: isSelected ? 'rgba(59,160,255,0.06)' : 'var(--c-sf)',
                       // Constant 1px border — only the COLOR changes on
                       // hover/active. A width swap re-flowed every row under
                       // the cursor and cascaded mouseenters (the glitch).
                       border: `1px solid ${isActive ? C.ac : C.cardBd}`,
-                      borderLeft: isSelected ? `3px solid ${C.ac}` : `1px solid ${isActive ? C.ac : C.cardBd}`,
+                      borderInlineStart: isSelected ? `3px solid ${C.ac}` : `1px solid ${isActive ? C.ac : C.cardBd}`,
                       borderRadius: 0, cursor: 'pointer', fontFamily: FB, color: C.tx,
                       transition: 'all 0.1s', position: 'relative'
                     }}
@@ -869,11 +869,11 @@ function PlanOverview({ plan, exercises, onJumpToDay = null }) {
         <span aria-hidden style={{
           width: 2, alignSelf: 'stretch', flexShrink: 0,
           background: inGroup ? sc : 'transparent',
-          marginLeft: 6,
+          marginInlineStart: 6,
           borderTopLeftRadius: groupStart ? 2 : 0, borderTopRightRadius: groupStart ? 2 : 0,
           borderBottomLeftRadius: groupEnd ? 2 : 0, borderBottomRightRadius: groupEnd ? 2 : 0,
         }} />
-        <span style={{ fontFamily: FN, fontSize: 10, color: C.td, width: 16, flexShrink: 0, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+        <span style={{ fontFamily: FN, fontSize: 10, color: C.td, width: 16, flexShrink: 0, textAlign: 'end', fontVariantNumeric: 'tabular-nums' }}>
           {inGroup && !groupStart ? '' : i + 1}
         </span>
         <span style={{
@@ -882,12 +882,12 @@ function PlanOverview({ plan, exercises, onJumpToDay = null }) {
           // "MACHIN / E" mid-word, which is what made this look cheap.
           overflowWrap: 'break-word',
         }}>
-          {groupStart && <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: sc, marginRight: 5, letterSpacing: '0.08em' }}>{ss}</span>}
+          {groupStart && <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: sc, marginInlineEnd: 5, letterSpacing: '0.08em' }}>{ss}</span>}
           {name}
         </span>
         {/* Fixed-width, tabular rx column so the numbers form a clean right
             edge instead of a ragged one. */}
-        <span style={{ fontFamily: FN, fontSize: 10, color: C.tm, flexShrink: 0, minWidth: 52, textAlign: 'right', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{rx}</span>
+        <span style={{ fontFamily: FN, fontSize: 10, color: C.tm, flexShrink: 0, minWidth: 52, textAlign: 'end', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{rx}</span>
       </div>
     );
   };
@@ -917,9 +917,9 @@ function PlanOverview({ plan, exercises, onJumpToDay = null }) {
               const rx = rxOf(w);
               return (
                 <div key={w.id || i} style={{ display: 'flex', alignItems: 'baseline', gap: 7, padding: '6px 14px', minWidth: 0, boxShadow: 'inset 0 -1px 0 var(--c-cardBd)' }}>
-                  <span style={{ fontFamily: FN, fontSize: 10, color: C.td, width: 16, flexShrink: 0, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{i + 1}</span>
+                  <span style={{ fontFamily: FN, fontSize: 10, color: C.td, width: 16, flexShrink: 0, textAlign: 'end', fontVariantNumeric: 'tabular-nums' }}>{i + 1}</span>
                   <span style={{ fontSize: isHebrew(name) ? 15 : 12, color: C.tx, lineHeight: 1.35, flex: 1, minWidth: 0, overflowWrap: 'break-word' }}>{name}</span>
-                  <span style={{ fontFamily: FN, fontSize: 10, color: C.tm, flexShrink: 0, minWidth: 52, textAlign: 'right', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{rx}</span>
+                  <span style={{ fontFamily: FN, fontSize: 10, color: C.tm, flexShrink: 0, minWidth: 52, textAlign: 'end', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{rx}</span>
                 </div>
               );
             })}
@@ -967,13 +967,13 @@ function ExPicker({ exercises, value, onChange, onPickName, onCreateLibrary, lab
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: '100%', minWidth: 0 }}>
       {label && <label style={{ fontSize: 11, fontWeight: 600, color: C.tm, textTransform: 'uppercase', fontFamily: FN }}>{label}</label>}
-      <button onClick={() => setModalOpen(true)} style={{ ...baseInput, width: '100%', textAlign: 'center', cursor: 'pointer', position: 'relative', borderColor: unlinked ? 'rgba(255,165,2,0.376)' : undefined, paddingRight: 24 }}>
+      <button onClick={() => setModalOpen(true)} style={{ ...baseInput, width: '100%', textAlign: 'center', cursor: 'pointer', position: 'relative', borderColor: unlinked ? 'rgba(255,165,2,0.376)' : undefined, paddingInlineEnd: 24 }}>
         {/* Text takes the full button width with text-align:center, so the
             displayed exercise name lands at the true column center —
             matching where the EXERCISE label above is centered. The ▼
             sits absolutely on the right so it doesn't shift the text. */}
         <span style={{ color: hasDisplay ? C.tx : C.td, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {unlinked && <span style={{ color: C.or, marginRight: 6, fontSize: 10 }}>📝</span>}
+          {unlinked && <span style={{ color: C.or, marginInlineEnd: 6, fontSize: 10 }}>📝</span>}
           {hasDisplay ? displayTitle : 'Select exercise...'}
         </span>
         <span style={{ color: C.td, fontSize: 10, position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)' }}>▼</span>
@@ -1049,7 +1049,7 @@ function WarmupLibraryControls({ w, onLink, exercises, setExercises }) {
   return (
     <>
       <div style={{display:'flex',gap:8,flexWrap:'wrap',justifyContent:'flex-end',alignItems:'center',paddingTop:12,marginTop:2,borderTop:`1px solid ${C.cardBd}`}}>
-        <span style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.td,letterSpacing:'0.09em',marginRight:'auto'}}>{tt("EXERCISE DATABASE")}</span>
+        <span style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.td,letterSpacing:'0.09em',marginInlineEnd:'auto'}}>{tt("EXERCISE DATABASE")}</span>
         <button onClick={()=>setLibConfirm('update')} disabled={!canUpdateLib}
           title={!libTarget ? 'No matching library exercise to update — use “Save new exercise”.'
             : canUpdateLib ? `Overwrite "${libTarget.title}" in the exercise database with this warm-up's name, video and notes.`
@@ -1156,7 +1156,7 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExerc
           const anyOpen = warmup.some((_, i) => wuExpanded[i]);
           // Mirror the DAY card header cluster EXACTLY (Ohad: "the buttons
           // should be the same as in the day a card"): EXPAND ALL first
-          // (marginLeft:auto pushes the cluster right — warm-ups have no DAILY
+          // (marginInlineStart:auto pushes the cluster right — warm-ups have no DAILY
           // toggle to hold that slot), then the ⤴ copy + invisible × spacer as
           // one icon pair, same 28×24 boxes and same height:24/padding:0 as the
           // day card. Previously ⤴ sat BEFORE EXPAND ALL and EXPAND ALL used
@@ -1167,12 +1167,12 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExerc
             setWuExpanded(prev => { const next = { ...prev }; warmup.forEach((_, i) => { if (anyOpen) delete next[i]; else next[i] = true; }); return next; });
           }}
             title={anyOpen ? 'Collapse all warm-ups' : 'Expand all warm-ups to edit fully'}
-            style={{ marginLeft:'auto', background:'var(--c-sf)', border:`1px solid ${C.ac}`, borderRadius:0, height:24, padding:0, color:C.ac, cursor:'pointer', fontFamily:FN, fontSize:10, fontWeight:700, letterSpacing:'0.09em', whiteSpace:'nowrap', width:142, flexShrink:0, boxSizing:'border-box', display:'inline-flex', alignItems:'center', justifyContent:'center', gap:5 }}>
+            style={{ marginInlineStart:'auto', background:'var(--c-sf)', border:`1px solid ${C.ac}`, borderRadius:0, height:24, padding:0, color:C.ac, cursor:'pointer', fontFamily:FN, fontSize:10, fontWeight:700, letterSpacing:'0.09em', whiteSpace:'nowrap', width:142, flexShrink:0, boxSizing:'border-box', display:'inline-flex', alignItems:'center', justifyContent:'center', gap:5 }}>
             <span aria-hidden style={{ display:'inline-block', transform:anyOpen?'rotate(180deg)':'none', transition:'transform 180ms ease', lineHeight:1 }}>▾</span>
-            {/* marginRight cancels the trailing letter-space (letterSpacing
+            {/* marginInlineEnd cancels the trailing letter-space (letterSpacing
                 adds 0.14em AFTER the last glyph too), so the arrow+text group
                 optically centres in the box instead of sitting ~1.4px left. */}
-            <span style={{ marginRight:'-0.14em' }}>{anyOpen ? tt('COLLAPSE ALL') : tt('EXPAND ALL')}</span>
+            <span style={{ marginInlineEnd:'-0.14em' }}>{anyOpen ? tt('COLLAPSE ALL') : tt('EXPAND ALL')}</span>
           </button>
           {/* ⤴ copy + hidden × spacer = the same icon-pair cluster the day
               cards use, so the warm-up right edge lines up column-for-column.
@@ -1202,7 +1202,7 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExerc
                   <span style={{ fontSize: 9, fontFamily: FN, color: C.td }}>{h}</span>
                 </div>
               ) : hi === 1 ? (
-                <div key={hi} style={{ fontSize: 9, fontFamily: FN, color: C.td, minWidth: 0, borderLeft: '3px solid transparent', paddingLeft: 6 }}>{h}</div>
+                <div key={hi} style={{ fontSize: 9, fontFamily: FN, color: C.td, minWidth: 0, borderInlineStart: '3px solid transparent', paddingInlineStart: 6 }}>{h}</div>
               ) : (
                 <div key={hi} style={{ fontSize: 9, fontFamily: FN, color: C.td, minWidth: 0, textAlign: 'center' }}>{h}</div>
               )
@@ -1225,12 +1225,12 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExerc
                 {/* Name as TEXT, exactly like a day-exercise row — chevron +
                     title, whole cell expands. Editing the name happens inside
                     the expanded panel (where day rows put their picker).
-                    Transparent 3px borderLeft mirrors the day rows' superset
+                    Transparent 3px borderInlineStart mirrors the day rows' superset
                     bar slot so the text x-position matches the day grid. */}
                 <div onClick={() => toggleWuExpand(i)} title="Click to expand — edit name, video & note"
                   role="button" tabIndex={0} aria-expanded={wuOpen}
                   onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleWuExpand(i); } }}
-                  style={{ color: C.tx, minWidth: 0, borderLeft: '3px solid transparent', paddingLeft: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  style={{ color: C.tx, minWidth: 0, borderInlineStart: '3px solid transparent', paddingInlineStart: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ color: C.ac, fontSize: 11, fontWeight: 700, lineHeight: 1, flexShrink: 0, transform: wuOpen ? 'none' : 'rotate(-90deg)', transition: 'transform 150ms ease' }}>▾</span>
                   <span style={{ overflowWrap: 'break-word', wordBreak: 'break-word', color: w.t ? C.tx : C.td }}>{w.t || 'New warm-up — click to name'}</span>
                 </div>
@@ -1258,7 +1258,7 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExerc
                     Orange accent keeps the warm-up identity. */}
                 <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateRows: wuOpen ? '1fr' : '0fr', transition: 'grid-template-rows 260ms ease' }}>
                   <div style={{ overflow: 'hidden', minHeight: 0 }}>
-                    <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.or}`, padding: 14, margin: '2px 0 12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderInlineStart: `3px solid ${C.or}`, padding: 14, margin: '2px 0 12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
                       <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 16, alignItems: 'end' }}>
                         {/* Real library picker, same as day exercises. A
                             library pick links the row (w.exerciseId), takes
@@ -1386,7 +1386,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
           back). It sits ABOVE the scroller (fixed) so the blue scrollbar
           starts level with the content below the filter boxes — and the
           dropdowns stay reachable however far the pane is scrolled. */}
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr auto',gap:12,marginBottom:20,position:'relative',flexShrink:0,paddingRight:cmpSbInset+6,alignItems:'stretch'}}>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr auto',gap:12,marginBottom:20,position:'relative',flexShrink:0,paddingInlineEnd:cmpSbInset+6,alignItems:'stretch'}}>
         <div style={{minWidth:0}}>
           <Select label="Athlete Filter" options={athleteOptions} value={selectedAthleteId} onChange={v => { setSelectedAthleteId(v); setPickedId(''); }} placeholder="Select athlete" />
         </div>
@@ -1408,7 +1408,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
             style={{flex:1, width:36, boxSizing:'border-box', background:'var(--c-sf)', border:`1px solid ${C.cardBd}`, color:C.tm, cursor:'pointer', padding:0, borderRadius:0, fontSize:13, lineHeight:1, display:'inline-flex', alignItems:'center', justifyContent:'center', flexShrink:0}}>✕</button>
         </div>
       </div>
-      <div data-compare-pane ref={cmpPaneRef} style={{position:'relative', overflowY:'auto', minHeight:0, flex:1, paddingRight:6}}>
+      <div data-compare-pane ref={cmpPaneRef} style={{position:'relative', overflowY:'auto', minHeight:0, flex:1, paddingInlineEnd:6}}>
       {!selectedAthleteId ? (
         <div style={{padding:'24px 16px', color:C.td, fontSize:12, textAlign:'center', fontFamily:FB}}>Pick an athlete from the filter above to compare.</div>
       ) : candidates.length === 0 ? (
@@ -1459,7 +1459,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                             <div style={{fontSize:12, color:C.tm, fontFamily:FN}}>{wuRx(w) || '—'}</div>
                           </div>
                           {wuOpen && (
-                            <div style={{background:'var(--c-sf2)', border:`1px solid ${C.cardBd}`, borderLeft:`3px solid ${C.or}`, padding:'12px 14px', margin:'2px 0 8px'}}>
+                            <div style={{background:'var(--c-sf2)', border:`1px solid ${C.cardBd}`, borderInlineStart:`3px solid ${C.or}`, padding:'12px 14px', margin:'2px 0 8px'}}>
                               <div style={{marginBottom:10}}>
                                 <div style={{fontSize:9, fontFamily:FN, fontWeight:700, color:C.td, letterSpacing:'0.18em', marginBottom:6}}>{tt("VIDEO URL")}</div>
                                 {w.vid ? (
@@ -1534,11 +1534,11 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                             ) : hi === 1 ? (
                               // EXERCISE header — identical box-model
                               // structure to the exercise-name cells below
-                              // (3px transparent borderLeft + 6px paddingLeft)
+                              // (3px transparent borderInlineStart + 6px paddingInlineStart)
                               // so the text x-position is computed by the
                               // browser the exact same way. No reliance on
                               // adding pixel values manually.
-                              <div key={hi} style={{fontSize:9,fontFamily:FN,color:C.td,minWidth:0, borderLeft:'3px solid transparent', paddingLeft:6}}>{h}</div>
+                              <div key={hi} style={{fontSize:9,fontFamily:FN,color:C.td,minWidth:0, borderInlineStart:'3px solid transparent', paddingInlineStart:6}}>{h}</div>
                             ) : (
                               // Box-column headers center over their inputs.
                               <div key={hi} style={{fontSize:9,fontFamily:FN,color:C.td,minWidth:0,textAlign:'center'}}>{h}</div>
@@ -1570,7 +1570,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                               <div title={title} onClick={()=>toggleCmpEx(exKey)}
                                 role="button" tabIndex={0} aria-expanded={exOpen}
                                 onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggleCmpEx(exKey); } }}
-                                style={{color:C.tx, minWidth:0, overflowWrap:'break-word', wordBreak:'normal', borderLeft:`3px solid ${pe.superset?sc:'transparent'}`, paddingLeft:6, cursor:'pointer', display:'flex', alignItems:'center', gap:6}}>
+                                style={{color:C.tx, minWidth:0, overflowWrap:'break-word', wordBreak:'normal', borderInlineStart:`3px solid ${pe.superset?sc:'transparent'}`, paddingInlineStart:6, cursor:'pointer', display:'flex', alignItems:'center', gap:6}}>
                                 <span style={{color:C.ac, fontSize:11, fontWeight:700, lineHeight:1, flexShrink:0, transform:exOpen?'none':'rotate(-90deg)', transition:'transform 150ms ease'}}>▾</span>
                                 <span style={{overflowWrap:'break-word', wordBreak:'normal'}}>{title}</span>
                               </div>
@@ -1594,7 +1594,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                               <input value={pe.load || ''} readOnly tabIndex={-1} style={tinyInputRO} />
                               <input value={pe.rpe || ''} readOnly tabIndex={-1} style={tinyInputRO} />
                               {exOpen && (
-                                <div style={{gridColumn:'1 / -1', background:'var(--c-sf2)', border:`1px solid ${C.cardBd}`, borderLeft:`3px solid ${C.ac}`, padding:'12px 14px', margin:'2px 0 6px'}}>
+                                <div style={{gridColumn:'1 / -1', background:'var(--c-sf2)', border:`1px solid ${C.cardBd}`, borderInlineStart:`3px solid ${C.ac}`, padding:'12px 14px', margin:'2px 0 6px'}}>
                                   {(exData && (exData.movementPattern || exData.laterality || exData.primaryMuscles)) && (
                                     <div style={{display:'flex',gap:6,marginBottom:10,flexWrap:'wrap',alignItems:'center'}}>
                                       {exData.movementPattern && <Badge color={C.gn}>{exData.movementPattern}</Badge>}
@@ -1609,7 +1609,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                                         {cmpNoteFromLib && <span style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.tm,letterSpacing:'0.12em'}}>{tt("FROM LIBRARY")}</span>}
                                       </div>
                                       <div dir="auto" style={{fontSize:13,color:cmpNote?C.tx:C.td,lineHeight:1.55,whiteSpace:'pre-wrap',fontFamily:isHebrew(cmpNote)?FH:FB}}>{cmpNote || 'No notes.'}</div>
-                                      {pe.rest && <div style={{marginTop:10,fontSize:11,color:C.tm,fontFamily:FN}}><span style={{color:C.td,fontSize:9,fontWeight:700,letterSpacing:'0.15em',marginRight:8}}>{tt("REST")}</span>{pe.rest}</div>}
+                                      {pe.rest && <div style={{marginTop:10,fontSize:11,color:C.tm,fontFamily:FN}}><span style={{color:C.td,fontSize:9,fontWeight:700,letterSpacing:'0.15em',marginInlineEnd:8}}>{tt("REST")}</span>{pe.rest}</div>}
                                     </div>
                                     {cmpVid && (
                                       <div style={{minWidth:0}}>
@@ -1842,7 +1842,7 @@ function ExEditorExtras({ ex, exData, exTitle, update, onResolveVideo = null, sh
           edit made for one program can't silently rewrite the shared library. */}
       {libEnabled && (exTitle || vidValue || noteValue) ? (
         <div style={{display:'flex',gap:8,flexWrap:'wrap',justifyContent:'flex-end',alignItems:'center',paddingTop:12,marginTop:2,borderTop:`1px solid ${C.cardBd}`}}>
-          <span style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.td,letterSpacing:'0.09em',marginRight:'auto'}}>{tt("EXERCISE DATABASE")}</span>
+          <span style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.td,letterSpacing:'0.09em',marginInlineEnd:'auto'}}>{tt("EXERCISE DATABASE")}</span>
           <button onClick={()=>setLibConfirm('update')} disabled={!canUpdateLib}
             title={!libTarget ? 'No matching library exercise to update — use “Save new exercise”.'
               : canUpdateLib ? `Overwrite "${libTarget.title}" in the exercise database with this card's name, video and notes.`
@@ -1923,7 +1923,7 @@ function EditorMoreMenu({ items }) {
         <div data-editor-more role="menu" style={{ position: 'fixed', top: coords.top, left: coords.left, background: 'var(--c-bg)', border: `1px solid ${C.cardBd}`, minWidth: 220, zIndex: 100000, boxShadow: '0 12px 32px rgba(0,0,0,0.25)' }}>
           {items.map((it, idx) => (
             <button key={it.key} role="menuitem" className={!it.active ? 'nav-item-inactive' : undefined} onClick={() => { setOpen(false); it.onClick(); }}
-              style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 14px', background: it.active ? `${C.ac}1f` : 'transparent', color: it.active ? C.ac : C.tx, border: 'none', borderBottom: idx < items.length - 1 ? `1px solid ${C.cardBd}` : 'none', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', textAlign: 'left', cursor: 'pointer' }}>
+              style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 14px', background: it.active ? `${C.ac}1f` : 'transparent', color: it.active ? C.ac : C.tx, border: 'none', borderBottom: idx < items.length - 1 ? `1px solid ${C.cardBd}` : 'none', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', textAlign: 'start', cursor: 'pointer' }}>
               <span style={{ display: 'inline-flex', alignItems: 'center', color: it.active ? C.ac : C.tm, flexShrink: 0 }}>{it.icon}</span>
               <span style={{ flex: 1 }}>{it.label}</span>
               {it.badge ? <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.ac, opacity: 0.7 }}>{it.badge}</span> : null}
@@ -2330,7 +2330,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
     // containing block for position:fixed, which would anchor every modal
     // (exercise browser, confirm dialog) to this wrapper instead of the viewport.
     // Compare mode breaks OUT of <main>'s 1200px to use the full window. The
-    // trick is `marginLeft: 50% - 48vw`, where 50% is half of MAIN and 48vw is
+    // trick is `marginInlineStart: 50% - 48vw`, where 50% is half of MAIN and 48vw is
     // half the VIEWPORT — which only lands correctly while main is centred in
     // the viewport.
     // The exercise drawer pads the body, main stops being centred, and the
@@ -2341,7 +2341,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
     // `editor-bleed` lets the drawer switch the breakout off while it is open
     // (see the rule in the drawer's <style>), so Compare simply uses the normal
     // column width instead of a miscalculated one.
-    <div data-allow-copy className={compareActive ? 'editor-bleed' : undefined} style={compareActive ? { width: 'min(96vw, 2400px)', marginLeft: 'calc(50% - min(48vw, 1200px))' } : undefined}>
+    <div data-allow-copy className={compareActive ? 'editor-bleed' : undefined} style={compareActive ? { width: 'min(96vw, 2400px)', marginInlineStart: 'calc(50% - min(48vw, 1200px))' } : undefined}>
        {/* The printable block. Mounted only while the print dialog is open, and
            invisible on screen - the print stylesheet is what reveals it. */}
        {printOpen && (
@@ -2462,7 +2462,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
         {/* Autosave status on its OWN right-aligned line with a RESERVED height,
             so it appearing / disappearing / changing width ("Saving…" ⇄
             "✓ Saved") never re-centers and shifts the button row below (Ohad). */}
-        <div style={{display:'flex',justifyContent:'flex-end',alignItems:'center',minHeight:15,marginTop:4,paddingRight:2}}>
+        <div style={{display:'flex',justifyContent:'flex-end',alignItems:'center',minHeight:15,marginTop:4,paddingInlineEnd:2}}>
           {statusLabel && <span key={statusLabel.text} className="motion-rise" aria-live="polite" style={{fontFamily:FN,fontSize:10,fontWeight:700,color:statusLabel.color,letterSpacing:'0.1em',textTransform:'uppercase'}}>{statusLabel.text}</span>}
           {remoteEdit && (
             <span style={{display:'inline-flex',alignItems:'center',gap:8,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:'#E0A73A',background:'color-mix(in srgb, #E0A73A 12%, transparent)',border:'1px solid color-mix(in srgb, #E0A73A 45%, transparent)',padding:'3px 9px'}}>
@@ -2570,7 +2570,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           athlete filters) above its own scroller, so the blue scrollbar
           starts level with the content below the text boxes, not above them. */}
       <div style={{flex:compareActive?1:'unset',minWidth:0,width:compareActive?'50%':'auto',display:compareActive?'flex':'block',flexDirection:'column',minHeight:0}}>
-      <div className="plan-fields-grid" style={{display:"grid",gap:12,marginBottom:20,flexShrink:0,paddingRight:compareActive?leftSbInset+6:0}}>
+      <div className="plan-fields-grid" style={{display:"grid",gap:12,marginBottom:20,flexShrink:0,paddingInlineEnd:compareActive?leftSbInset+6:0}}>
         <Input label={tt('Program Name')} value={plan.name} onChange={e => setPlan({...plan,name:e.target.value})} placeholder="Hypertrophy Block A" />
         {/* "Assign to Athlete" moved to the top row next to the block dropdown. */}
         <Input label={tt('Phase / Block')} value={plan.phase||""} onChange={e => setPlan({...plan,phase:e.target.value})} placeholder="Accumulation..." />
@@ -2591,9 +2591,9 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           }} />
         )}
       </div>
-      {/* paddingRight in compare keeps the day cards / + ADD DAY box from
+      {/* paddingInlineEnd in compare keeps the day cards / + ADD DAY box from
           touching the pane's cyan scrollbar. */}
-      <div data-compare-pane ref={leftPaneRef} style={{overflowY:compareActive?'auto':'visible',minHeight:0,flex:compareActive?1:'unset',paddingRight:compareActive?6:0}}>
+      <div data-compare-pane ref={leftPaneRef} style={{overflowY:compareActive?'auto':'visible',minHeight:0,flex:compareActive?1:'unset',paddingInlineEnd:compareActive?6:0}}>
       <PatternCoverage plan={plan} exercises={exercises} cols={compareActive ? 3 : 5} />
       {/* The overview carries its own warm-up card, so the full editor version
           would be the same content twice and cost the screen space the overview
@@ -2746,7 +2746,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                     <span aria-hidden style={{display:'inline-block',transform:anyOpen?'rotate(180deg)':'none',transition:'transform 180ms ease',lineHeight:1}}>▾</span>
                     {/* Same trailing letter-space cancellation as the warm-up
                         EXPAND ALL — see that comment. */}
-                    <span style={{marginRight:'-0.14em'}}>{anyOpen?tt('COLLAPSE ALL'):tt('EXPAND ALL')}</span>
+                    <span style={{marginInlineEnd:'-0.14em'}}>{anyOpen?tt('COLLAPSE ALL'):tt('EXPAND ALL')}</span>
                   </button>;
                 })()}
                 {/* ⤴ copy-day + × delete-day = one matched icon pair, the SAME
@@ -2785,10 +2785,10 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                       </div>
                     ) : hi === 1 ? (
                       // Same structure as the exercise-name cells below — 3px
-                      // transparent borderLeft + 6px paddingLeft — so the
+                      // transparent borderInlineStart + 6px paddingInlineStart — so the
                       // browser computes header text x-position identically
                       // to content text x-position. Pixel-perfect by design.
-                      <div key={hi} style={{fontSize:9,fontFamily:FN,color:C.td,minWidth:0, borderLeft:'3px solid transparent', paddingLeft:6}}>{h}</div>
+                      <div key={hi} style={{fontSize:9,fontFamily:FN,color:C.td,minWidth:0, borderInlineStart:'3px solid transparent', paddingInlineStart:6}}>{h}</div>
                     ) : (
                       // Box-column headers center over their inputs.
                       <div key={hi} style={{fontSize:9,fontFamily:FN,color:C.td,minWidth:0,textAlign:'center'}}>{h}</div>
@@ -2860,7 +2860,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                       <div onClick={()=>toggleOvExpand(ex.id)} title="Click to expand — swap exercise, edit notes & video inline"
                         role="button" tabIndex={0} aria-expanded={exOpen}
                         onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggleOvExpand(ex.id); } }}
-                        style={{color:C.tx, minWidth:0, borderLeft:`3px solid ${ex.superset?sc:'transparent'}`, paddingLeft:6, cursor:"pointer", display:"flex", alignItems:"center", gap:6}}>
+                        style={{color:C.tx, minWidth:0, borderInlineStart:`3px solid ${ex.superset?sc:'transparent'}`, paddingInlineStart:6, cursor:"pointer", display:"flex", alignItems:"center", gap:6}}>
                         <span style={{color:C.ac, fontSize:11, fontWeight:700, lineHeight:1, flexShrink:0, transform:exOpen?'none':'rotate(-90deg)', transition:'transform 150ms ease'}}>▾</span>
                         <span style={{overflowWrap: compareActive ? 'break-word' : 'anywhere', wordBreak: compareActive ? 'normal' : 'break-word'}}>{title}</span>
                       </div>
@@ -2915,7 +2915,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                       {/* Inline full detail — the combined overview+detail panel. */}
                       <div style={{gridColumn:'1 / -1', display:'grid', gridTemplateRows: exOpen?'1fr':'0fr', transition:'grid-template-rows 260ms ease'}}>
                        <div style={{overflow:'hidden', minHeight:0}}>
-                        <div style={{background:'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderLeft:`3px solid ${ex.superset?sc:C.ac}`, padding:14, margin:'2px 0 12px', display:'flex', flexDirection:'column', gap:12}}>
+                        <div style={{background:'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderInlineStart:`3px solid ${ex.superset?sc:C.ac}`, padding:14, margin:'2px 0 12px', display:'flex', flexDirection:'column', gap:12}}>
                           {/* Only the bits NOT already in the table row — no duplicate
                               sets/reps/load/etc. Swap the exercise + per-week toggle
                               + the polished notes/video block (ExEditorExtras). The
@@ -3032,7 +3032,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                     const exs = w.exercises || [];
                     return (
                       <div key={w.id} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}4D`,borderRadius:0,padding:12,marginBottom:8}}>
-                        <div style={{background:'var(--c-sf2)',borderLeft:`3px solid ${C.ac}`,borderBottom:`1px solid ${C.cardBd}`,margin:'-12px -12px 10px',padding:'8px 12px',display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:10}}>
+                        <div style={{background:'var(--c-sf2)',borderInlineStart:`3px solid ${C.ac}`,borderBottom:`1px solid ${C.cardBd}`,margin:'-12px -12px 10px',padding:'8px 12px',display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:10}}>
                           <div style={{fontFamily:FN,fontWeight:700,fontSize:13,letterSpacing:'0.02em',color:C.tx,minWidth:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{w.dayName || 'Workout'}{w.week!=null && <span style={{color:C.ac,fontWeight:700,fontSize:11,letterSpacing:'0.04em'}}> · W{w.week}</span>}</div>
                           <div style={{fontSize:10,fontFamily:FN,color:C.tm,letterSpacing:'0.08em',whiteSpace:'nowrap',flexShrink:0}}>{fmtPrettyDate(w.date || w.createdAt)}</div>
                         </div>
@@ -3042,7 +3042,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                           const notesCount = (fv?.reviewNotes || []).reduce((a, n) => a + 1 + (n.replies?.length || 0), 0);
                           return (
                             <div key={i} style={{fontSize:11,fontFamily:FN,color:C.tm,display:'flex',alignItems:'center',gap:6,padding:'3px 0'}}>
-                              <span style={{flex:1,minWidth:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',color:C.tx}}><span style={{display:'inline-block',width:22,textAlign:'right',flexShrink:0,color:C.td,marginRight:6}}>{i+1}.</span>{x.title} <span style={{color:C.td}}>{x.prescribed ? x.prescribed + ' · ' : ''}{(x.sets||[]).filter(s=>s.done).length}/{(x.sets||[]).length}</span></span>
+                              <span style={{flex:1,minWidth:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',color:C.tx}}><span style={{display:'inline-block',width:22,textAlign: 'end',flexShrink:0,color:C.td,marginInlineEnd:6}}>{i+1}.</span>{x.title} <span style={{color:C.td}}>{x.prescribed ? x.prescribed + ' · ' : ''}{(x.sets||[]).filter(s=>s.done).length}/{(x.sets||[]).length}</span></span>
                               {hasVideo && <span style={{display:'inline-flex',alignItems:'center',gap:4,color:C.gn,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',lineHeight:1,flexShrink:0}}><span style={{width:5,height:5,background:C.gn,borderRadius:'50%'}}/>{tt("VIDEO")}</span>}
                               {notesCount > 0 && <span style={{display:'inline-flex',alignItems:'center',gap:4,color:C.ac,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',lineHeight:1,flexShrink:0}}><span style={{width:5,height:5,background:C.ac,borderRadius:'50%'}}/>{notesCount} {notesCount===1?'NOTE':'NOTES'}</span>}
                             </div>
@@ -3145,7 +3145,7 @@ function CopyDaysModal({ days, currentPlanId, preselected, planIndex, sourceWeek
                 const on = picked.has(i);
                 const n = (d.exercises || d.ex || []).length;
                 return (
-                  <button key={d.id||i} onClick={()=>toggle(i)} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', background: on ? `${C.ac}1f` : 'transparent', border:`1px solid ${on?C.ac:C.cardBd}`, borderRadius:0, cursor:'pointer', textAlign:'left' }}>
+                  <button key={d.id||i} onClick={()=>toggle(i)} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', background: on ? `${C.ac}1f` : 'transparent', border:`1px solid ${on?C.ac:C.cardBd}`, borderRadius:0, cursor:'pointer', textAlign: 'start' }}>
                     <span aria-hidden="true" style={{ width:15, height:15, flexShrink:0, border:`1px solid ${on?C.ac:C.tm}`, background: on?C.ac:'transparent', color:'#000', fontSize:11, fontWeight:800, lineHeight:'14px', textAlign:'center' }}>{on?'✓':''}</span>
                     <span style={{ flex:1, minWidth:0, color:C.tx, fontFamily:FB, fontSize:13, fontWeight:600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{d.name || `Day ${i+1}`}</span>
                     <span style={{ color:C.td, fontFamily:FN, fontSize:10, flexShrink:0 }}>{n} ex</span>
@@ -3158,7 +3158,7 @@ function CopyDaysModal({ days, currentPlanId, preselected, planIndex, sourceWeek
           {/* target mode toggle */}
           <div style={{ display:'flex', gap:0, border:`1px solid ${C.cardBd}` }}>
             {[['existing','EXISTING PROGRAM'],['new','NEW PROGRAM']].map(([m,l],mi) => (
-              <button key={m} onClick={()=>setMode(m)} style={{ flex:1, padding:'9px 4px', border:'none', borderLeft: mi?`1px solid ${C.cardBd}`:'none', background: mode===m?C.ac:'transparent', color: mode===m?'#000':C.tm, fontFamily:FN, fontSize:10, fontWeight:700, letterSpacing:'0.1em', cursor:'pointer' }}>{l}</button>
+              <button key={m} onClick={()=>setMode(m)} style={{ flex:1, padding:'9px 4px', border:'none', borderInlineStart: mi?`1px solid ${C.cardBd}`:'none', background: mode===m?C.ac:'transparent', color: mode===m?'#000':C.tm, fontFamily:FN, fontSize:10, fontWeight:700, letterSpacing:'0.1em', cursor:'pointer' }}>{l}</button>
             ))}
           </div>
           {mode === 'existing' ? (
@@ -3787,7 +3787,7 @@ export function TrainingLineage({ traineeId, traineeName, exercises, plans, load
             <div style={{ position: 'sticky', left: 0, zIndex: 2, background: 'var(--c-sf)', borderBottom: `2px solid ${C.cardBd}`, padding: '6px 8px', fontFamily: FN, fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 6 }}><span>Pattern</span><span style={{ color: '#39BDFF' }}>→ next</span></div>
             {blocks.map((b, i) => (
               <button key={b.id} onClick={() => onOpenPlan && onOpenPlan(b.id)} title={`Open ${b.name}`}
-                style={{ textAlign: 'center', border: 'none', borderBottom: `2px solid ${i === blocks.length - 1 ? '#39BDFF' : C.cardBd}`, borderLeft: `1px solid ${C.cardBd}`, background: i === blocks.length - 1 ? 'color-mix(in srgb, var(--c-ac) 8%, transparent)' : 'transparent', padding: '6px 4px', cursor: 'pointer', overflow: 'hidden' }}>
+                style={{ textAlign: 'center', border: 'none', borderBottom: `2px solid ${i === blocks.length - 1 ? '#39BDFF' : C.cardBd}`, borderInlineStart: `1px solid ${C.cardBd}`, background: i === blocks.length - 1 ? 'color-mix(in srgb, var(--c-ac) 8%, transparent)' : 'transparent', padding: '6px 4px', cursor: 'pointer', overflow: 'hidden' }}>
                 <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: i === blocks.length - 1 ? '#39BDFF' : C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={b.name}>{b.num != null ? `#${b.num}` : (b.name || '')}</div>
                 {!allSameDate && b.createdAt && <div style={{ fontFamily: FB, fontSize: 8, color: C.tm, marginTop: 2 }}>{fmtPrettyDate(b.createdAt)}</div>}
               </button>
@@ -3805,7 +3805,7 @@ export function TrainingLineage({ traineeId, traineeName, exercises, plans, load
                 </div>
                 {/* Line 2 — MEV→MRV band + accommodation flag + next-block target chip. */}
                 {r.pattern !== 'Other' && (r.mrv > 0 || r.accommodation || (r.next && r.next.target > 0)) && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginLeft: 27, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginInlineStart: 27, minWidth: 0 }}>
                     {r.mrv > 0 ? (() => {
                       const latest = r.cells[blocks[blocks.length - 1].id]?.sets || 0;
                       const fillPct = Math.min(100, Math.round((latest / r.mrv) * 100));
@@ -3835,7 +3835,7 @@ export function TrainingLineage({ traineeId, traineeName, exercises, plans, load
                 }
                 const num = c ? val(c) : null;
                 return (
-                  <div key={b.id} style={{ borderBottom: `1px solid ${C.cardBd}`, borderLeft: `1px solid ${C.cardBd}`, background: tint, padding: '8px 4px', display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
+                  <div key={b.id} style={{ borderBottom: `1px solid ${C.cardBd}`, borderInlineStart: `1px solid ${C.cardBd}`, background: tint, padding: '8px 4px', display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
                     <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: num ? C.tx : C.td, fontVariantNumeric: 'tabular-nums' }} title={c ? `${r.pattern} · ${b.name} — ${c.sets} sets, ${c.vol} volume` : ''}>{num || '·'}</span>
                   </div>
                 );
@@ -5237,9 +5237,9 @@ function ShareAthleteModal({ trainees, shareSearch, setShareSearch, onPick, onCl
         <input value={shareSearch} onChange={e=>setShareSearch(e.target.value)} placeholder="Search athletes…" autoFocus style={{ width:'100%', boxSizing:'border-box', padding:'10px 18px', background:'transparent', color:C.tx, border:'none', borderBottom:`1px solid ${C.cardBd}`, fontFamily:FN, fontSize:13, outline:'none' }} />
         <div style={{ overflowY:'auto' }}>
           {list.map(t => (
-            <button key={t.id} onClick={()=>onPick(t)} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', width:'100%', padding:'11px 18px', background:'transparent', border:'none', borderBottom:`1px solid ${C.cardBd}`, color:C.tx, fontFamily:FN, fontSize:13, cursor:'pointer', textAlign:'left' }}>
+            <button key={t.id} onClick={()=>onPick(t)} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', width:'100%', padding:'11px 18px', background:'transparent', border:'none', borderBottom:`1px solid ${C.cardBd}`, color:C.tx, fontFamily:FN, fontSize:13, cursor:'pointer', textAlign: 'start' }}>
               <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{t.name}</span>
-              <span style={{ color:C.ac, fontSize:10, fontWeight:700, letterSpacing:'0.1em', flexShrink:0, marginLeft:10 }}>DUPLICATE →</span>
+              <span style={{ color:C.ac, fontSize:10, fontWeight:700, letterSpacing:'0.1em', flexShrink:0, marginInlineStart:10 }}>DUPLICATE →</span>
             </button>
           ))}
           {list.length === 0 && <div style={{ padding:'18px', textAlign:'center', color:C.tm, fontFamily:FN, fontSize:12 }}>No athletes match.</div>}
