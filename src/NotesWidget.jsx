@@ -1081,7 +1081,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                   <span style={{ flexShrink: 0, fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>
                     {n.status === 'cancelled'
                       ? <span style={{ color: 'var(--c-or)', fontWeight: 700 }}>CANCELLED</span>
-                      : n.completed_at && <span>done {fmtPrettyDate(n.completed_at)}</span>}
+                      : n.completed_at && <span>{tt('done')} {fmtPrettyDate(n.completed_at)}</span>}
                     {n.linked_plan_id && <span style={{ color: 'var(--c-ac)', marginInlineStart: 6, fontWeight: 700 }}>· ✓ PLAN</span>}
                   </span>
                 </div>
