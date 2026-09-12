@@ -34,7 +34,7 @@ import { useTheme } from './hooks/useTheme';
 import { useCoachNoteComments, useCoachNoteEvents, recordNoteEvent } from './coachNoteComments';
 import { supabase } from './supabase';
 import { useT, useTB } from './i18n';
-import { monthAbbr } from './dates';
+import { dayMonthShort } from './dates';
 import {
   isCalendarConnected,
   connectGoogleCalendar,
@@ -109,14 +109,10 @@ function dateMeta(iso, now) {
   if (diffDays === 1)  return { label: 'TMRW',  color: 'var(--c-tm)', isOverdue: false };
   if (diffDays === -1) return { label: 'YESTERDAY', color: 'var(--c-tm)', isOverdue: true };
   if (diffDays < -1) {
-    const day = d.getDate();
-    const mon = monthAbbr(d.getMonth()).toUpperCase();
-    return { label: `${day} ${mon}`, color: 'var(--c-tm)', isOverdue: true };
+    return { label: dayMonthShort(d).toUpperCase(), color: 'var(--c-tm)', isOverdue: true };
   }
   if (diffDays > 1 && diffDays <= 6) return { label: ['SUN','MON','TUE','WED','THU','FRI','SAT'][d.getDay()], color: 'var(--c-tm)', isOverdue: false };
-  const day = d.getDate();
-  const mon = monthAbbr(d.getMonth()).toUpperCase();
-  return { label: `${day} ${mon}`, color: 'var(--c-tm)', isOverdue: false };
+  return { label: dayMonthShort(d).toUpperCase(), color: 'var(--c-tm)', isOverdue: false };
 }
 
 function ownerFromBody(body) {
@@ -1586,7 +1582,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
   if (hasDue) {
     const dd = new Date(row._dueAt);
     if (!isNaN(dd.getTime())) {
-      const real = `${dd.getDate()} ${monthAbbr(dd.getMonth())}`;
+      const real = dayMonthShort(dd);
       dateStr = RELATIVE_WORDS.has(dm.label) ? `${tt(dm.label)} · ${real}` : real;
       if (row._dueTime) dateStr += ` ${row._dueTime}`;
     }

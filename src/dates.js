@@ -113,3 +113,9 @@ const MONTH_ABBR_HE = ['ינו׳', 'פבר׳', 'מרץ', 'אפר׳', 'מאי', '
 export function monthAbbr(monthIndex) {
   return (isHe() ? MONTH_ABBR_HE : MONTH_ABBR)[monthIndex] || '';
 }
+
+// "7 Sep" on a chip. In Hebrew the ב prefix is not optional - "7 אוג׳" reads
+// broken, "7 באוג׳" is how a coach writes it.
+export function dayMonthShort(d) {
+  return isHe() ? `${d.getDate()} ב${MONTH_ABBR_HE[d.getMonth()]}` : `${d.getDate()} ${MONTH_ABBR[d.getMonth()]}`;
+}
