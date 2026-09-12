@@ -96,3 +96,4 @@ RESTORE POINT (pre-perf-fixes): b1f93ab6f04fa84e842c58049f278312374c8a43
 - [x] E3 GRP select on day rows: the box is too small for its text — text cannot be seen
 - [x] E4 the ⤴ share/copy button beside EXPAND ALL: glyph not centred vertically/horizontally in its box — full platform audit of single-glyph buttons (INK vs box), fix everywhere
 - [x] E5 (it is the EXPO revenue sync; Task Scheduler denied → Startup daemon at 09:00/21:00) the BHBC dashboard must pull an update from his sheet (18TdfofxAOd… gid=1803423381) autonomously twice a day — find what exists (sync scripts, SA access, what the tab holds), build the scheduled sync, prove a run
+- [ ] E6 "nothing was updated": the dashboard REVENUE card reads only app-marked payments (bit_payment_requests) — the sheet sync writes revenue_month_total / revenue_sheet_event, shown on /coach/billing only. Feed the dashboard card from the sheet totals so the twice-daily sync is visible where he looks

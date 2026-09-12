@@ -133,6 +133,35 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
   // (pending Bit payment requests) + average client LTV + 6-month bar
   // sparkline. Keeps every metric pulled from the same payments array
   // the rest of the dashboard already loads, so no extra query cost.
+  const [sheetMonths, setSheetMonths] = useState(null);
+  useEffect(() => {
+    if (!isOwner) return undefined;
+    let live = true;
+    supabase.from('revenue_month_total').select('month,channel,amount')
+      .then(({ data, error }) => { if (live && !error) setSheetMonths(data || []); })
+      .catch(() => {});
+    return () => { live = false; };
+  }, [isOwner]);
+  const sheet = useMemo(() => {
+    if (!sheetMonths || !sheetMonths.length) return null;
+    const NOT_COACHING = new Set(['national_insurance']);
+    const byMonth = new Map();
+    for (const r of sheetMonths) {
+      if (NOT_COACHING.has(r.channel)) continue;
+      const k = String(r.month).slice(0, 7);
+      byMonth.set(k, (byMonth.get(k) || 0) + (Number(r.amount) || 0));
+    }
+    const key = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const bars = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      bars.push({ label: d.toLocaleString('en-US', { month: 'short' }), value: byMonth.get(key(d)) || 0 });
+    }
+    const latest = [...byMonth.keys()].sort().pop();
+    return { thisMonth: byMonth.get(key(now)) || 0, last3: bars.slice(3).reduce((a, b) => a + b.value, 0), bars, latest, months: byMonth.size };
+  // `now` is a per-render Date; the sheet rows are the only real dependency.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sheetMonths]);
   const ms30 = 30 * 86400000;
   const ms90 = 90 * 86400000;
   const paidPayments = payments.filter(p => p.status === 'Paid');
@@ -615,6 +644,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
         outstanding={outstanding}
         monthBars={monthBars}
         maxBar={maxBar}
+        sheet={sheet}
       />}
 
       {/* STORAGE — slim ops indicator, placed directly under Revenue/billing
@@ -928,7 +958,9 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
 // F-36 — RevenueCard. Six-metric grid + 6-month bar chart, slotted into
 // the dashboard between KPI tiles and alert cards. Designed to read at
 // a glance without an analytics tab.
-function RevenueCard({ paymentsUnknown = false, monthlyRate, thisMonthPaid, delta30, collected30, collected90, avgLtv, avgTicket, outstanding, monthBars, maxBar }) {
+function RevenueCard({ paymentsUnknown = false, monthlyRate, thisMonthPaid, delta30, collected30, collected90, avgLtv, avgTicket, outstanding, monthBars, maxBar, sheet = null }) {
+  const bars = sheet ? sheet.bars : monthBars;
+  const barMax = sheet ? Math.max(1, ...sheet.bars.map(b => b.value)) : maxBar;
   const tt = useT();
   const he = useHe();
   const refined = isRefined5b();
@@ -956,18 +988,19 @@ function RevenueCard({ paymentsUnknown = false, monthlyRate, thisMonthPaid, delt
             <span style={subStyle}>{tt('Recurring committed')}</span>
           </div>
           <div style={metricStyle}>
-            <span style={labelStyle}>{tt('30D COLLECTED')}</span>
-            <span style={numStyle}>{paymentsUnknown ? '—' : `₪${Math.round(collected30).toLocaleString()}`}</span>
-            {delta30 !== null && (
+            <span style={labelStyle}>{tt(sheet ? 'THIS MONTH · SHEET' : '30D COLLECTED')}</span>
+            <span style={numStyle}>{sheet ? `₪${Math.round(sheet.thisMonth).toLocaleString()}` : paymentsUnknown ? '—' : `₪${Math.round(collected30).toLocaleString()}`}</span>
+            {sheet && <span style={subStyle}>{tt('Synced from the sheet twice a day')}</span>}
+            {!sheet && delta30 !== null && (
               <span style={{ ...subStyle, color: delta30 >= 0 ? C.gn : C.rd }}>
                 <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{delta30 >= 0 ? '+' : ''}{delta30}%</span> {tt('vs prev 30d')}
               </span>
             )}
           </div>
           <div style={metricStyle}>
-            <span style={labelStyle}>{tt('90D COLLECTED')}</span>
-            <span style={numStyle}>{paymentsUnknown ? '—' : `₪${Math.round(collected90).toLocaleString()}`}</span>
-            <span style={subStyle}>{tt('Trailing 3 months')}</span>
+            <span style={labelStyle}>{tt(sheet ? 'LAST 3 MONTHS · SHEET' : '90D COLLECTED')}</span>
+            <span style={numStyle}>{sheet ? `₪${Math.round(sheet.last3).toLocaleString()}` : paymentsUnknown ? '—' : `₪${Math.round(collected90).toLocaleString()}`}</span>
+            <span style={subStyle}>{sheet ? tt('From the sheets') : tt('Trailing 3 months')}</span>
           </div>
           <div style={metricStyle}>
             {/* OUTSTANDING carries a real status (overdue money) — per the
@@ -996,12 +1029,12 @@ function RevenueCard({ paymentsUnknown = false, monthlyRate, thisMonthPaid, delt
             free implementation (just divs) so it stays under 2kb of
             DOM and inherits theme colors. */}
         <div>
-          <div style={{ ...labelStyle, marginBottom: 8 }}>{tt("LAST 6 MONTHS · COLLECTED")}</div>
+          <div style={{ ...labelStyle, marginBottom: 8 }}>{tt(sheet ? 'LAST 6 MONTHS · COLLECTED · SHEET' : 'LAST 6 MONTHS · COLLECTED')}</div>
           {/* With nothing collected in any of the six months every bar renders at
               its 2% floor in the hairline colour, so the chart reads as an empty
               axis — i.e. as BROKEN rather than as "nothing came in yet". Say it
               instead. (Ohad: make it honest; empty is empty.) */}
-          {monthBars.every((b) => !(b.value > 0)) ? (
+          {bars.every((b) => !(b.value > 0)) ? (
             <div style={{
               height: 90, display: 'flex', alignItems: 'center', justifyContent: 'center',
               border: `1px dashed var(--c-cardBd)`,
@@ -1012,14 +1045,14 @@ function RevenueCard({ paymentsUnknown = false, monthlyRate, thisMonthPaid, delt
             </div>
           ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8, alignItems: 'end', height: 90 }}>
-            {monthBars.map((b, i) => (
+            {bars.map((b, i) => (
               <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 4, height: '100%' }}>
                 <div style={{
                   flex: 1, display: 'flex', alignItems: 'flex-end',
                 }}>
                   <div style={{
                     width: '100%',
-                    height: `${Math.max(2, Math.round((b.value / maxBar) * 100))}%`,
+                    height: `${Math.max(2, Math.round((b.value / barMax) * 100))}%`,
                     background: b.value > 0 ? C.ac : 'var(--c-cardBd)',
                     transition: 'height 200ms',
                   }} title={`${b.label} · ₪${Math.round(b.value).toLocaleString()}`} />
