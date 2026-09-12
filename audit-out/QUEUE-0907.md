@@ -91,8 +91,8 @@ RESTORE POINT (pre-perf-fixes): b1f93ab6f04fa84e842c58049f278312374c8a43
 - [x] D8 (deployed; photographed en+he; Hebrew labels + bidi date on bhbc-hebrew) compare mode (review tools): "buttons are not centered and too boring and flat"; re-think whether the metrics buttons belong inside compare mode; "play both, pause, sync, etc.. redesign it smarter, nicer, ocd"
 
 ## E-block — 2026-09-12 evening (his screenshots on the live editor)
-- [ ] E1 editor toolbar: PORTAL / OVERVIEW / MORE / PORTAL toggle / DELETE / SAVE PROGRAM / athlete + block selects / UNDO / REDO — ONE vertical height (measured: 42 / 38 / 24 mix)
-- [ ] E2 CHANGE EXERCISE side panel: no horizontal scroll — everything fits the panel width (results rows overflow to the left)
-- [ ] E3 GRP select on day rows: the box is too small for its text — text cannot be seen
-- [ ] E4 the ⤴ share/copy button beside EXPAND ALL: glyph not centred vertically/horizontally in its box — full platform audit of single-glyph buttons (INK vs box), fix everywhere
-- [ ] E5 the BHBC dashboard must pull an update from his sheet (18TdfofxAOd… gid=1803423381) autonomously twice a day — find what exists (sync scripts, SA access, what the tab holds), build the scheduled sync, prove a run
+- [x] E1 editor toolbar: PORTAL / OVERVIEW / MORE / PORTAL toggle / DELETE / SAVE PROGRAM / athlete + block selects / UNDO / REDO — ONE vertical height (measured: 42 / 38 / 24 mix)
+- [x] E2 CHANGE EXERCISE side panel: no horizontal scroll — everything fits the panel width (results rows overflow to the left)
+- [x] E3 GRP select on day rows: the box is too small for its text — text cannot be seen
+- [x] E4 the ⤴ share/copy button beside EXPAND ALL: glyph not centred vertically/horizontally in its box — full platform audit of single-glyph buttons (INK vs box), fix everywhere
+- [x] E5 (it is the EXPO revenue sync; Task Scheduler denied → Startup daemon at 09:00/21:00) the BHBC dashboard must pull an update from his sheet (18TdfofxAOd… gid=1803423381) autonomously twice a day — find what exists (sync scripts, SA access, what the tab holds), build the scheduled sync, prove a run
