@@ -7,6 +7,7 @@ import { WhatsAppCheckInButton, normalizePhoneIL } from './whatsappButton';
 import NotesWidget from './NotesWidget';
 import MessagesCard from './MessagesCard';
 import { useT, useHe, daysAgoHe, daysOverdueHe } from './i18n';
+import { monthAbbr } from './dates';
 import { syncAutoTasks } from './autoTasks';
 
 // A Bnei Herzliya athlete is a CLUB athlete: the club pays, so there is no
@@ -155,7 +156,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
     const bars = [];
     for (let i = 5; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      bars.push({ label: d.toLocaleString('en-US', { month: 'short' }), value: byMonth.get(key(d)) || 0 });
+      bars.push({ label: monthAbbr(d.getMonth()), value: byMonth.get(key(d)) || 0 });
     }
     const latest = [...byMonth.keys()].sort().pop();
     return { thisMonth: byMonth.get(key(now)) || 0, last3: bars.slice(3).reduce((a, b) => a + b.value, 0), bars, latest, months: byMonth.size };
@@ -185,7 +186,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
       const total = paidPayments
         .filter(p => { const pd = new Date(p.date); return pd.getMonth() === d.getMonth() && pd.getFullYear() === d.getFullYear(); })
         .reduce((a, p) => a + (parseFloat(p.amount) || 0), 0);
-      out.push({ label: d.toLocaleString('en-US', { month: 'short' }), value: total });
+      out.push({ label: monthAbbr(d.getMonth()), value: total });
     }
     return out;
   // Depend on `payments` itself — keying on .length kept the chart stale
