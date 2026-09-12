@@ -7,6 +7,7 @@
 import React, { useState } from 'react';
 import { C, FN, FB, FH } from './theme';
 import { tr, readLang } from './i18n';
+import { localiseAutoBody } from './autoTaskHe';
 import { fmtPrettyDate } from './dates';
 import { isRefined5b, RefinedHeaderStrip, confirmToast } from './ui';
 import { useCoachNotes, setPendingTaskPlanLink } from './coachNotes';
@@ -357,7 +358,7 @@ export default function NotesInline({
                 fontSize: 13, color: 'var(--c-tx)', lineHeight: 1.5, whiteSpace: 'pre-wrap',
                 marginBottom: actionBtn || !editingThis ? 10 : 0,
                 fontFamily: FB,
-              }}>{n.body}</div>
+              }}>{readLang() === 'he' ? localiseAutoBody(n.body) : n.body}</div>
             )}
 
             {/* F-35 — tag chips */}
@@ -431,7 +432,7 @@ export default function NotesInline({
                   <span dir="auto" style={{
                     flex: 1, minWidth: 0, fontSize: 12, color: 'var(--c-tm)', lineHeight: 1.4, textDecoration: 'line-through',
                     textAlign: 'center', overflowWrap: 'break-word', fontFamily: FB,
-                  }}>{n.body}</span>
+                  }}>{readLang() === 'he' ? localiseAutoBody(n.body) : n.body}</span>
                   <span style={{ flexShrink: 0, fontFamily: FN, fontSize: 9, color: n.status === 'cancelled' ? 'var(--c-or)' : 'var(--c-td)', letterSpacing: '0.08em', fontWeight: n.status === 'cancelled' ? 700 : 400, whiteSpace: 'nowrap' }}>
                     {n.status === 'cancelled'
                       ? 'CANCELLED'
