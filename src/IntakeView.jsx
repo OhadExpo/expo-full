@@ -195,7 +195,7 @@ export default function IntakeView({ trainees }) {
 
       {/* Filter bar */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 14, alignItems: 'center', flexWrap: 'wrap' }}>
-        <input placeholder="Filter by name / email / form type…" value={filter} onChange={e => setFilter(e.target.value)}
+        <input placeholder={tt('Filter by name / email / form type…')} value={filter} onChange={e => setFilter(e.target.value)}
           style={{ height: 30, boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 12px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', minWidth: 280, flex: 1 }} />
         <button onClick={() => setShowReviewed(s => !s)}
           style={{ height: 30, boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${showReviewed ? C.ac : C.cardBd}`, color: showReviewed ? C.ac : C.tm, padding: '0 12px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', borderRadius: 0, minWidth: 152, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -236,7 +236,7 @@ export default function IntakeView({ trainees }) {
       {/* List */}
       {visible.length === 0 ? (
         <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: 40, textAlign: 'center' }}>
-          <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>NO INTAKE YET</div>
+          <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>{tt('NO INTAKE YET')}</div>
           <div style={{ fontFamily: FB, fontSize: 13, color: C.tm }}>
             Generate a link from the button above and send it to a prospect or trainee.
           </div>
@@ -289,7 +289,7 @@ export default function IntakeView({ trainees }) {
           <div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
               <div>
-                <div style={{ fontSize: 10, fontFamily: FN, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>FORM TYPE</div>
+                <div style={{ fontSize: 10, fontFamily: FN, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>{tt('FORM TYPE')}</div>
                 <div style={{ position: 'relative', display: 'flex' }}>
                   <select value={genForm.formType} onChange={e => setGenForm(f => ({ ...f, formType: e.target.value, locale: getForm(e.target.value, f.locale) ? f.locale : 'he', traineeId: e.target.value === 'initial' ? '' : f.traineeId }))}
                     style={{ flex: 1, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '8px 32px 8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', appearance: 'none', WebkitAppearance: 'none' }}>
@@ -301,7 +301,7 @@ export default function IntakeView({ trainees }) {
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: 10, fontFamily: FN, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>LOCALE</div>
+                <div style={{ fontSize: 10, fontFamily: FN, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>{tt('LOCALE')}</div>
                 <div style={{ position: 'relative', display: 'flex' }}>
                   <select value={genForm.locale} onChange={e => setGenForm(f => ({ ...f, locale: e.target.value }))}
                     style={{ flex: 1, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '8px 32px 8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', appearance: 'none', WebkitAppearance: 'none' }}>

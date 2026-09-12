@@ -126,7 +126,7 @@ export default function CheckinTrends({ workouts = [] }) {
               <div style={{ fontSize: 17, fontWeight: 700, fontFamily: FN, lineHeight: 1, color: dir === 'up' ? C.gn : dir === 'down' ? '#E23B3B' : C.tm }}>{dir === 'up' ? 'BETTER' : dir === 'down' ? 'WORSE' : 'SAME'}</div>
             </div>
             <div style={{ flex: 1, border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '11px 6px', textAlign: 'center' }}>
-              <div style={{ fontSize: 8, fontFamily: FN, color: C.tm, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 6 }}>CHECK-INS</div>
+              <div style={{ fontSize: 8, fontFamily: FN, color: C.tm, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 6 }}>{tt('CHECK-INS')}</div>
               <div style={{ fontSize: 17, fontWeight: 700, fontFamily: FN, lineHeight: 1, color: C.tx }}>{valid.length}</div>
             </div>
           </div>

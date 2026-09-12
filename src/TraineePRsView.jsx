@@ -271,7 +271,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
             {/* Exercise picker — search-as-you-type combobox over only the
                 exercises this athlete has logged a top set for. */}
             <div ref={wrapRef} style={{ marginBottom: 14, position: 'relative' }}>
-              <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 6 }}>EXERCISE</div>
+              <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 6 }}>{tt('EXERCISE')}</div>
               <input
                 // THE NAME GETS THE FIELD. An <input> clips without an
                 // ellipsis, so on a phone "Alternating DB Chest Press (4
@@ -293,7 +293,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                   else if (e.key === 'Enter') { e.preventDefault(); if (filtered[highlight]) choose(filtered[highlight].id); }
                   else if (e.key === 'Escape') { setOpen(false); setQuery(''); e.target.blur(); }
                 }}
-                placeholder="Search an exercise…"
+                placeholder={tt('Search an exercise…')}
                 style={{
                   width: '100%', background: 'var(--c-sf)',
                   border: `1px solid ${open ? C.ac : `${C.cardBd}`}`,
@@ -345,7 +345,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                   background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0,
                   padding: '20px 18px', textAlign: 'center', marginBottom: 14,
                 }}>
-                  <div style={{ fontFamily: FN, fontSize: 9, color: C.ac, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>ALL-TIME PR</div>
+                  <div style={{ fontFamily: FN, fontSize: 9, color: C.ac, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>{tt('ALL-TIME PR')}</div>
                   <div style={{ fontFamily: FB, fontWeight: 700, fontSize: 36, color: C.ac, letterSpacing: -0.5, lineHeight: 1 }}>
                     {picked.allTimePR}<span style={{ fontSize: 18, color: C.tm, fontWeight: 400, marginInlineStart: 8 }}>kg</span>
                     {picked.allTimePRReps > 0 && (
@@ -387,7 +387,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                   const W = Math.max(kgData.length * 60, 300);
                   return (
                     <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: 14, marginBottom: 14 }}>
-                      <div style={{ fontSize: 10, fontFamily: FN, color: C.ac, letterSpacing: '0.15em', fontWeight: 700, marginBottom: 10 }}>TREND · KG / WEEK</div>
+                      <div style={{ fontSize: 10, fontFamily: FN, color: C.ac, letterSpacing: '0.15em', fontWeight: 700, marginBottom: 10 }}>{tt('TREND · KG / WEEK')}</div>
                       <svg viewBox={`0 -10 ${W} 185`} style={{ width: '100%', height: 185 }}>
                         {[0, 0.25, 0.5, 0.75, 1].map((p, i) => {
                           const y = 10 + p * 130;

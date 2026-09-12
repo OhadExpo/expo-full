@@ -696,7 +696,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             const heb = isHebrew(td.name);
             return <span style={{display:'inline-flex',alignItems:'center',gap:8,fontWeight:700,fontSize:heb?16:13,fontFamily:heb?FH:undefined,letterSpacing:heb?0:'0.04em',textTransform:heb?'none':'uppercase'}}>{td.name} · {td.format}</span>;
           })()}
-          headerRight={<span style={{display:'inline-flex',alignItems:'center',gap:8}}>{td.branch === 'Bnei Herzliya' && <span title="Bnei Herzliya team" style={{display:'inline-flex',alignItems:'center',height:24,boxSizing:'border-box',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',color:C.ac,border:`1px solid ${C.ac}`,padding:'0 10px',whiteSpace:'nowrap'}}>BNEI HERZLIYA</span>}<StatusMenu status={td.status} onChange={s => { if (setTrainees) setTrainees(prev => prev.map(t => t.id === trainee ? { ...t, status: s } : t)); }} /></span>}>
+          headerRight={<span style={{display:'inline-flex',alignItems:'center',gap:8}}>{td.branch === 'Bnei Herzliya' && <span title="Bnei Herzliya team" style={{display:'inline-flex',alignItems:'center',height:24,boxSizing:'border-box',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',color:C.ac,border:`1px solid ${C.ac}`,padding:'0 10px',whiteSpace:'nowrap'}}>{t('BNEI HERZLIYA')}</span>}<StatusMenu status={td.status} onChange={s => { if (setTrainees) setTrainees(prev => prev.map(t => t.id === trainee ? { ...t, status: s } : t)); }} /></span>}>
           {/* Duplicate status Badge removed — the strip header's StatusMenu is the
               single status control (Ohad: no mirrored status in the back). */}
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, 118px)',justifyContent:'center',gap:'12px 10px'}}>
@@ -1035,16 +1035,16 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
               <div style={{fontSize:11,color:C.tm,marginTop:2}}>Empty editor for {td.name} — pick name, days, exercises.</div>
             </div>
             {(unassigned.length>0 || others.length>0) && (
-              <div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700,marginBottom:8}}>OR ASSIGN EXISTING</div>
+              <div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700,marginBottom:8}}>{t('OR ASSIGN EXISTING')}</div>
             )}
             {unassigned.length>0 && <>
-              <div style={{fontSize:9,fontFamily:FN,color:C.td,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700,marginBottom:6}}>FROM LIBRARY (UNASSIGNED)</div>
+              <div style={{fontSize:9,fontFamily:FN,color:C.td,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700,marginBottom:6}}>{t('FROM LIBRARY (UNASSIGNED)')}</div>
               {unassigned.map(p=><div key={p.id} onClick={()=>handleAssignClick(p.id)} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'10px 14px',marginBottom:6,cursor:'pointer',transition:'border-color .15s'}} onMouseEnter={e=>e.currentTarget.style.borderColor=C.ac} onMouseLeave={e=>e.currentTarget.style.borderColor=C.cardBd}>
                 <div style={{fontWeight:600,color:C.tx,fontSize:13}}>{p.name}</div>
                 <div style={{fontSize:11,color:C.tm}}>{plur(p.dayCount||0, 'day', 'days')} · {plur(p.exerciseCount||0, 'exercise', 'exercises')}</div></div>)}
             </>}
             {others.length>0 && <>
-              <div style={{fontSize:9,fontFamily:FN,color:C.td,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700,marginBottom:6,marginTop:12}}>DUPLICATE FROM ANOTHER ATHLETE</div>
+              <div style={{fontSize:9,fontFamily:FN,color:C.td,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700,marginBottom:6,marginTop:12}}>{t('DUPLICATE FROM ANOTHER ATHLETE')}</div>
               {others.filter(p=>!assignedNames.has(p.name)).map(p=>{const owner=trainees.find(t=>t.id===p.traineeId);return <div key={p.id} onClick={()=>handleAssignClick(p.id)} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'10px 14px',marginBottom:6,cursor:'pointer',transition:'border-color .15s'}} onMouseEnter={e=>e.currentTarget.style.borderColor=C.ac} onMouseLeave={e=>e.currentTarget.style.borderColor=C.cardBd}>
                 <div style={{fontWeight:600,color:C.tx,fontSize:13}}>{p.name} <span style={{fontWeight:400,color:C.tm}}>— {owner?.name||'?'}</span></div>
                 <div style={{fontSize:11,color:C.tm}}>{plur(p.dayCount||0, 'day', 'days')} · {plur(p.exerciseCount||0, 'exercise', 'exercises')}</div></div>})}
@@ -1301,7 +1301,7 @@ const EditTraineeModal = React.memo(function EditTraineeModal({ td, couple, draf
             {isClubAthlete && <div style={{ gridColumn: "1 / -1", fontFamily: FN, fontSize: 10, letterSpacing: '0.12em', color: C.tm, textTransform: 'uppercase' }}>Club athlete — no billing</div>}
             <Input label={t("Start Date")} type="date" value={editForm.startDate || ""} onChange={e => setEditForm({ ...editForm, startDate: e.target.value })} />
             <Input label={t("Last Payment")} type="date" value={editForm.lastPayment || ""} onChange={e => setEditForm({ ...editForm, lastPayment: e.target.value })} />
-            <div style={{ gridColumn: "1 / -1" }}><TextArea label={t("Injuries / Conditions")} value={editForm.injuries || ""} onChange={e => setEditForm({ ...editForm, injuries: e.target.value })} placeholder="L4/L5 disc bulge, R shoulder impingement..." /></div>
+            <div style={{ gridColumn: "1 / -1" }}><TextArea label={t("Injuries / Conditions")} value={editForm.injuries || ""} onChange={e => setEditForm({ ...editForm, injuries: e.target.value })} placeholder={t('L4/L5 disc bulge, R shoulder impingement...')} /></div>
             <div style={{ gridColumn: "1 / -1" }}><TextArea label={t("Goals")} value={editForm.goals || ""} onChange={e => setEditForm({ ...editForm, goals: e.target.value })} /></div>
             <div style={{ gridColumn: "1 / -1" }}><TextArea label={t("Notes")} value={editForm.notes || ""} onChange={e => setEditForm({ ...editForm, notes: e.target.value })} /></div>
           </div>

@@ -901,7 +901,7 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
                   <CardSection label={bwShared.length >= 2 ? 'Bodyweight · couple' : 'Bodyweight'} center>
                     {bwShared.length >= 2 ? (
                       <div style={{flex:1,minWidth:0,display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
-                        <div style={{fontFamily:FN,fontSize:9,color:C.tm,letterSpacing:1,fontWeight:700}}>SHARED LOG</div>
+                        <div style={{fontFamily:FN,fontSize:9,color:C.tm,letterSpacing:1,fontWeight:700}}>{tt('SHARED LOG')}</div>
                         <div style={{width:'100%',maxWidth:160}}><CardBWSparkline entries={bwShared} /></div>
                       </div>
                     ) : [m0, m1].map((m, mi) => {
@@ -1080,7 +1080,7 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
           ) : (
             <div style={{ display: 'flex', alignItems: 'end', paddingBottom: 8, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>Club athlete — no billing</div>
           )}
-          <div style={{ gridColumn: "1 / -1" }}><TextArea label={tt("Injuries / Conditions")} value={form.injuries} onChange={e => setForm({...form, injuries: e.target.value})} placeholder="L4/L5 disc bulge, R shoulder impingement..." /></div>
+          <div style={{ gridColumn: "1 / -1" }}><TextArea label={tt("Injuries / Conditions")} value={form.injuries} onChange={e => setForm({...form, injuries: e.target.value})} placeholder={tt('L4/L5 disc bulge, R shoulder impingement...')} /></div>
           <div style={{ gridColumn: "1 / -1" }}><TextArea label={tt("Goals")} value={form.goals} onChange={e => setForm({...form, goals: e.target.value})} /></div>
           <div style={{ gridColumn: "1 / -1" }}><TextArea label={tt("Notes")} value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} /></div>
         </div>

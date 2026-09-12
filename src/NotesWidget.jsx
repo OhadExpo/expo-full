@@ -20,7 +20,7 @@ import { AutoTaskExplainModal } from './components/AutoTaskExplain';
 import { normalizePhoneIL } from './whatsappButton';
 import { displayBodyOf, ownerFromBody, priorityFromBody, visibleTags, PRIORITY_TONE } from './taskFormat';
 import { CommentsThread, EventTimeline } from './TasksV8View';
-import { useT, useTB } from './i18n';
+import { tr, readLang, useT, useTB } from './i18n';
 
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
 
@@ -291,7 +291,7 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
           <span title="Shared task — needs both Ohad & Yuval" style={{
             fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
             color: 'var(--c-ac)', border: '1px solid var(--c-ac)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '2px 6px', lineHeight: 1,
-          }}>SHARED</span>
+          }}>{tr(readLang(), 'SHARED')}</span>
         )}
         {isAuto && (
           <button onClick={() => setShowExplain(true)} title="Why is this task here?"
@@ -363,7 +363,7 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
                 cursor: 'pointer', fontSize: 10, padding: '2px 8px', borderRadius: 0,
                 fontFamily: FN, fontWeight: 700, letterSpacing: '0.1em', height: 22,
                 display: 'inline-flex', alignItems: 'center',
-              }}>EDIT</button>
+              }}>{tr(readLang(), 'EDIT')}</button>
           ) : <span />}
           {actionButton || <span />}
         </div>
@@ -729,7 +729,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
       {!compact && (
         <div style={{ display: 'flex', gap: 6, alignItems: 'stretch', marginBottom: 8 }}>
           <input type="search" value={search} onChange={e => setSearch(e.target.value)}
-            placeholder='Search notes / tags  (try "#rehab" or "shoulder")'
+            placeholder={tt('Search notes / tags  (try "#rehab" or "shoulder")')}
             style={{
               flex: 1, background: 'var(--c-sf)', border: `1px solid var(--c-cardBd)`,
               borderRadius: 0, padding: '6px 10px', color: 'var(--c-tx)', fontFamily: FN, fontSize: 11,
@@ -742,7 +742,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                 border: `1px solid var(--c-cardBd)`, color: 'var(--c-tm)',
                 fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
                 cursor: 'pointer', borderRadius: 0,
-              }}>CLEAR</button>
+              }}>{tt('CLEAR')}</button>
           )}
         </div>
       )}
@@ -797,7 +797,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
           <textarea value={body} onChange={e => setBody(e.target.value)} dir="auto"
             onBlur={draft.onBlur}
             onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) onAdd(); }}
-            placeholder="Quick thought… (⌘/Ctrl + Enter to save · auto-saves on blur)"
+            placeholder={tt('Quick thought… (⌘/Ctrl + Enter to save · auto-saves on blur)')}
             rows={2}
             style={{
               width: '100%', background: 'var(--c-sf)', border: `1px solid var(--c-cardBd)`,
@@ -1080,7 +1080,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                   }}>{displayBodyOf(n.body)}</span>
                   <span style={{ flexShrink: 0, fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>
                     {n.status === 'cancelled'
-                      ? <span style={{ color: 'var(--c-or)', fontWeight: 700 }}>CANCELLED</span>
+                      ? <span style={{ color: 'var(--c-or)', fontWeight: 700 }}>{tt('CANCELLED')}</span>
                       : n.completed_at && <span>{tt('done')} {fmtPrettyDate(n.completed_at)}</span>}
                     {n.linked_plan_id && <span style={{ color: 'var(--c-ac)', marginInlineStart: 6, fontWeight: 700 }}>· ✓ PLAN</span>}
                   </span>

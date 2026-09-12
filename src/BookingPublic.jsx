@@ -8,6 +8,7 @@
 // DEFINER (no PII).
 
 import React, { useEffect, useState, useMemo } from 'react';
+import { tr, readLang } from './i18n';
 import { C, FN, FB } from './theme';
 import { safeUrl } from './VideoEmbed';
 import { supabase } from './supabase';
@@ -121,7 +122,7 @@ export default function BookingPublic() {
       const { data: s, error: se } = await supabase.from('coach_booking_settings').select('*').eq('slug', slug).maybeSingle();
       if (!alive) return;
       if (se) { setError(se.message); setLoading(false); return; }
-      if (!s) { setError('That booking page doesn’t exist.'); setLoading(false); return; }
+      if (!s) { setError(tr(readLang(), 'That booking page doesn’t exist.')); setLoading(false); return; }
       setSettings(s);
       const { data: r } = await supabase.from('availability_rules').select('*').eq('coach_email', s.coach_email);
       if (!alive) return;
@@ -221,7 +222,7 @@ export default function BookingPublic() {
           {safeUrl(confirmation.zoom) && (
             <a href={safeUrl(confirmation.zoom)} target="_blank" rel="noopener noreferrer"
               style={{ display: 'inline-block', padding: '10px 18px', background: C.ac, color: C.acOnSurface, textDecoration: 'none', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.12em' }}>
-              JOIN ZOOM →
+              {tr(readLang(), 'JOIN ZOOM →')}
             </a>
           )}
           {settings.cancellation_policy && (
@@ -244,7 +245,7 @@ export default function BookingPublic() {
             style={{ padding: '4px 10px', background: 'transparent', border: `1px solid ${weekOffset === 0 ? C.cardBd : C.ac}`, color: weekOffset === 0 ? C.td : C.ac, cursor: weekOffset === 0 ? 'default' : 'pointer' }}>← PREV</button>
           <span style={{ flex: 1, textAlign: 'center' }}>WEEK OF {ymd(startOfWeek(new Date(Date.now() + weekOffset * 7 * 86400000)))}</span>
           <button onClick={() => setWeekOffset(o => o + 1)}
-            style={{ padding: '4px 10px', background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, cursor: 'pointer' }}>NEXT →</button>
+            style={{ padding: '4px 10px', background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, cursor: 'pointer' }}>{tr(readLang(), 'NEXT →')}</button>
         </div>
 
         {Object.keys(groupedByDay).length === 0 ? (
@@ -280,13 +281,13 @@ export default function BookingPublic() {
               CONFIRM · {selectedSlot.toLocaleDateString('en-GB')} at {pad(selectedSlot.getHours())}:{pad(selectedSlot.getMinutes())}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
-              <input placeholder="Your name *" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
+              <input placeholder={tr(readLang(), 'Your name *')} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
                 style={inputStyle} />
-              <input placeholder="Email" type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })}
+              <input placeholder={tr(readLang(), 'Email')} type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })}
                 style={inputStyle} />
-              <input placeholder="Phone (WhatsApp)" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })}
+              <input placeholder={tr(readLang(), 'Phone (WhatsApp)')} value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })}
                 style={inputStyle} autoComplete="off" />
-              <input placeholder="Notes (optional)" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })}
+              <input placeholder={tr(readLang(), 'Notes (optional)')} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })}
                 style={inputStyle} />
             </div>
             <button onClick={submit} disabled={submitting || !form.name.trim()}
@@ -317,7 +318,7 @@ function Wrapper({ children }) {
     <div style={{ background: 'var(--c-bg)', color: C.tx, minHeight: '100vh', fontFamily: FB }}>
       <header style={{ borderBottom: `1px solid ${C.cardBd}`, padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <EXPOMark height={28} />
-        <a href="/" style={{ color: C.tm, textDecoration: 'none', fontFamily: FN, fontSize: 10, letterSpacing: '0.12em' }}>EXPO-APP.CO.IL</a>
+        <a href="/" style={{ color: C.tm, textDecoration: 'none', fontFamily: FN, fontSize: 10, letterSpacing: '0.12em' }}>{tr(readLang(), 'EXPO-APP.CO.IL')}</a>
       </header>
       <main style={{ maxWidth: 720, margin: '0 auto' }}>
         {children}

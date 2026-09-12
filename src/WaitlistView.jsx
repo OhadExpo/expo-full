@@ -550,7 +550,7 @@ function KanbanBoard({ leads, moveLead, removeLead, notes, setNote }) {
               ))}
               {cards.length === 0 && (
                 <div style={{ padding: 16, textAlign: 'center', color: C.td, fontFamily: FN, fontSize: 10, letterSpacing: '0.12em', fontWeight: 700, border: `1px dashed ${C.cardBd}` }}>
-                  DROP HERE
+                  {tt('DROP HERE')}
                 </div>
               )}
             </div>

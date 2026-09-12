@@ -631,7 +631,7 @@ export function RolePickerScreen({ name, onPick, onSignOut }) {
               font-size bump is not, because it has to be repeated and kept in
               step everywhere the two scripts meet. */}
           <div style={{ display: 'inline-flex', alignItems: 'baseline', justifyContent: 'center', gap: 9, color: C.tx, fontWeight: 600, lineHeight: 1 }}>
-            <span style={{ fontFamily: FB, fontSize: 15, letterSpacing: '0.06em' }}>HEY</span>
+            <span style={{ fontFamily: FB, fontSize: 15, letterSpacing: '0.06em' }}>{tr(readLang(), 'HEY')}</span>
             <span style={{ fontFamily: FH, fontSize: 15 }}>{name || 'there'}</span>
           </div>
         </div>

@@ -2314,7 +2314,7 @@ function DemoPrograms({ resetToken = 0 }) {
         {/* PATTERN COVERAGE chart (mock) — mirrors the real PlanEditor's
             PatternCoverage component. */}
         <div style={{ border: `1px solid rgba(255,165,2,0.4)`, padding: 12, marginBottom: 16 }}>
-          <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.or, letterSpacing: '0.06em', marginBottom: 8 }}>PATTERN COVERAGE: 5/8</div>
+          <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.or, letterSpacing: '0.06em', marginBottom: 8 }}>{T('PATTERN COVERAGE: 5/8')}</div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {[
               { label: 'Horizontal Push', hit: true },
@@ -2491,11 +2491,11 @@ function DemoPrograms({ resetToken = 0 }) {
                     )}
                     {/* Notes textarea + video URL row, matching the real card. */}
                     <textarea value={['Pause 1s on chest, drive heels.', 'Glutes locked, ribs down.', '', 'Lead with elbows, soft thumb.', '', 'Squeeze cuff at top, no swing.'][ei % 6]} readOnly tabIndex={-1}
-                      placeholder="Notes / modifications..."
+                      placeholder={T('Notes / modifications...')}
                       style={{ ...inputStyleRO, marginTop: 8, minHeight: 64, padding: '10px 12px', lineHeight: 1.5, resize: 'none', fontSize: 13 }} />
                     <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: '1fr auto', gap: 6, alignItems: 'stretch' }}>
                       <input value="https://youtu.be/demo" readOnly tabIndex={-1}
-                        placeholder="Insert video URL"
+                        placeholder={T('Insert video URL')}
                         style={inputStyleRO} />
                       {/* alignItems:'stretch' on the parent + display:'inline-flex'
                           here makes the LIB pill match the URL input's exact
@@ -2623,7 +2623,7 @@ function DemoPrograms({ resetToken = 0 }) {
               {/* PATTERN COVERAGE chart on the compare side too — matches the
                   left half so the WARM-UP + DAY A boxes line up vertically. */}
               <div style={{ border: `1px solid rgba(255,165,2,0.4)`, padding: 12, marginBottom: 16 }}>
-                <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.or, letterSpacing: '0.06em', marginBottom: 8 }}>PATTERN COVERAGE: 4/8</div>
+                <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.or, letterSpacing: '0.06em', marginBottom: 8 }}>{T('PATTERN COVERAGE: 4/8')}</div>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   {[
                     { label: 'Horizontal Push', hit: false },
@@ -2892,7 +2892,7 @@ function DemoExercises() {
             type="search"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search exercises (title, muscle, pattern...)"
+            placeholder={T('Search exercises (title, muscle, pattern...)')}
             style={{
               width: '100%', boxSizing: 'border-box', background: C.sf, border: `1px solid ${C.ac}`, borderRadius: 0,
               height: 30, padding: '0 14px', color: C.tx, fontFamily: FB, fontSize: 13, lineHeight: '30px', outline: 'none',
@@ -3151,7 +3151,7 @@ function DemoReview() {
                     </div>
                   ))}
                   <div style={{ marginTop: 'auto', display: 'flex', gap: 8, alignItems: 'center', borderTop: `1px solid ${C.cardBd}`, paddingTop: 8 }}>
-                    <input placeholder="Comment at 0:04…" readOnly style={{ flex: 1, minWidth: 0, background: 'var(--c-sf2)', border: `1px solid ${C.cardBd}`, color: C.tm, fontFamily: FB, fontSize: 12, padding: '7px 10px', borderRadius: 0, outline: 'none' }} />
+                    <input placeholder={T('Comment at 0:04…')} readOnly style={{ flex: 1, minWidth: 0, background: 'var(--c-sf2)', border: `1px solid ${C.cardBd}`, color: C.tm, fontFamily: FB, fontSize: 12, padding: '7px 10px', borderRadius: 0, outline: 'none' }} />
                     <button onClick={e => e.stopPropagation()} style={{ ...baseBtn, background: '#39BDFF', color: '#06131b', border: '1px solid #39BDFF', padding: '7px 14px', fontSize: 11 }}>Send</button>
                   </div>
                 </div>
@@ -3468,7 +3468,7 @@ function DemoInlineVideo({ title }) {
     <div style={{ marginTop: 8, marginBottom: 8, aspectRatio: '16/9', background: '#000', border: `1px solid ${C.cardBd}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
       <div style={{ width: 44, height: 44, borderRadius: '50%', border: `2px solid ${C.ac}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.ac, fontSize: 16, paddingInlineStart: 3 }}>▶</div>
       <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.14em', color: C.tm }}>{title} · FORM VIDEO</div>
-      <div style={{ fontFamily: FN, fontSize: 8, letterSpacing: '0.1em', color: C.td }}>PLAYS INLINE — NO CLICK-THROUGH</div>
+      <div style={{ fontFamily: FN, fontSize: 8, letterSpacing: '0.1em', color: C.td }}>{T('PLAYS INLINE — NO CLICK-THROUGH')}</div>
     </div>
   );
 }
@@ -3907,7 +3907,7 @@ function DemoBilling() {
               {MOCK_TRAINEES.map(t => <option key={t.id}>{t.name}</option>)}
             </select>
             <div style={{ marginBottom: 14 }}>
-              <input value={amount} onChange={e => setAmount(e.target.value)} type="number" placeholder="Amount (₪)" style={{ width: '100%', boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 14, padding: '11px 13px', outline: 'none' }} />
+              <input value={amount} onChange={e => setAmount(e.target.value)} type="number" placeholder={T('Amount (₪)')} style={{ width: '100%', boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 14, padding: '11px 13px', outline: 'none' }} />
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={() => setShowReq(false)} style={{ ...baseBtn, flex: 1, background: 'transparent', color: C.tm, border: `1px solid ${C.cardBd}`, padding: '10px 0', fontSize: 11 }}>{T('CANCEL')}</button>

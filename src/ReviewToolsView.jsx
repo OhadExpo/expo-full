@@ -218,7 +218,7 @@ class ToolBoundary extends React.Component {
       return (
         <div style={stage}>
           <div style={{ maxWidth: 420, textAlign: 'center' }}>
-            <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: 'var(--c-rd, #FF4757)', letterSpacing: '0.18em', marginBottom: 12 }}>TOOL FAILED TO LOAD</div>
+            <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: 'var(--c-rd, #FF4757)', letterSpacing: '0.18em', marginBottom: 12 }}>{tr(readLang(), 'TOOL FAILED TO LOAD')}</div>
             <div style={{ color: '#FFF', fontFamily: FB, fontSize: 14, lineHeight: 1.55, marginBottom: 20 }}>
               This tool needs WebGL and (for live tools) a camera. If you're
               offline or the browser blocked access, that's the cause. Close and

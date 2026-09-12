@@ -26,7 +26,7 @@
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { localiseAutoBody } from './autoTaskHe';
-import { readLang } from './i18n';
+import { tr, readLang } from './i18n';
 import { useCoachNotes } from './coachNotes';
 import { C, FN, FB, FH } from './theme';
 import { isRefined5b, toast, confirmToast, usePersistentState, asButton } from './ui';
@@ -1355,7 +1355,7 @@ export function CommentsThread({ noteId, viewer }) {
             }
             if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); submit(e); }
           }}
-          placeholder="Add comment…"
+          placeholder={tr(readLang(), 'Add comment…')}
           title="Enter = new line · ⌘/Ctrl+Enter to send · type @ to mention"
           style={{
             flex: 1, background: 'transparent',
@@ -2944,7 +2944,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
         <div style={{ position: 'fixed', left: '50%', bottom: 20, transform: 'translateX(-50%)', zIndex: 1400, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', justifyContent: 'center', maxWidth: 'calc(100vw - 24px)', background: 'var(--c-sf2)', border: `1px solid var(--c-ac)`, borderRadius: 0, padding: '10px 14px', boxShadow: '0 8px 30px rgba(0,0,0,0.5)' }}>
           <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-tx)' }}>{selectedIds.size} SELECTED</span>
           <span style={{ width: 1, height: 18, background: 'var(--c-cardBd)' }} />
-          <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--c-tm)' }}>SET</span>
+          <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--c-tm)' }}>{tt('SET')}</span>
           {STATUS_OPTIONS.filter(o => o.id !== 'cancelled').map(o => (
             <button key={o.id} onClick={() => bulkStatus(o.id)} title={`Set ${o.label}`}
               style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '5px 8px', cursor: 'pointer', background: 'transparent', border: `1px solid var(--c-cardBd)`, color: 'var(--c-tx)', borderRadius: 0 }}>{o.label}</button>

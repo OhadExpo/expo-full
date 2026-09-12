@@ -24,8 +24,8 @@ leftovers, undone things, half-done things, and finish everything." No deploy.
 - [x] B2  One WARM-UP heading in the portal could not be traced — trace it, translate it
 - [ ] B3 (still open — the demo-dates probe header stays honest)  `audit-out/probe-demo-dates.mjs` "not trustworthy" — make a demo-dates gate that is
 - [x] B4 (recorded decision in CoachDemo.jsx: the demo omits tabs it has no content for)  `/demo/coach` shows 6 nav items against the real 9 — parity rule says fix
-- [ ] B5 (his decision: auth.jsx has zero translation calls on purpose until he says)  Login screen in Hebrew — open question; at minimum make sure the switch reaches it
-- [ ] B6 (his decision: roster offline = full-roster PII; zeros→dashes)  Dashboard offline zeros → dashes; coach roster cached offline
+- [x] (built 09-07: auth.jsx EN/עב switch on bhbc-hebrew; production login stays English by the 09-11 carve-out) B5 (his decision: auth.jsx has zero translation calls on purpose until he says)  Login screen in Hebrew — open question; at minimum make sure the switch reaches it
+- [x] (done 09-07 H2/H3) B6 (his decision: roster offline = full-roster PII; zeros→dashes)  Dashboard offline zeros → dashes; coach roster cached offline
 - [x] B7  Portal "משקל · 84.2KG" renders as "84.2 · משקלKG" in the Hebrew branch shot — bidi, check + fix
 
 ## C · Only he can answer (report, do not guess)
@@ -45,7 +45,7 @@ RESTORE POINT (pre-perf-fixes): b1f93ab6f04fa84e842c58049f278312374c8a43
 - [x] H2 dashboard offline zeros → dashes
 - [x] H3 coach roster cached offline (staff seats only)
 - [x] H4 athlete library read: by design (portal resolves plan rows from the library by id) — not tightened
-- [ ] H6 offline for every seat — walks running (owner, athlete, pt, public)
+- [x] (done: see the second H6 line) H6 offline for every seat — walks running (owner, athlete, pt, public)
 - [ ] H5 close: gates, pairs (login he), commit, push, handoff, memory
 - [x] H6 offline for every seat — backend-unreachable walks (owner 23, athlete, pt, public 6) AND real-SW on HTTPS (owner 23/23, athlete, pt)
 - [x] S1 Shot Analyzer makes/shots counter (marked, never inferred)
@@ -80,8 +80,8 @@ RESTORE POINT (pre-perf-fixes): b1f93ab6f04fa84e842c58049f278312374c8a43
 ## D · 2026-09-11 (day)
 - [x] D1 lifts 09-11: עמית גרשון 60, Nathan Knight 60 — 2/2 verified, restore point kept
 - [x] D2 no FOCUS anywhere in the athlete portal (per-exercise line, logger label, sandbox mock) — built, portal shot clean
-- [ ] D3 buttons: same size + rulings in Hebrew as in English, everywhere — probe audit-out/probe-button-parity.mjs: 414 diffs / 18 routes (heights +4–6px from font metrics; widths from shorter words)
-- [ ] D4 athletes get the update notification on EVERY login — add rules (once per bundle, snooze, idle-only)
+- [x] (done 09-11: heights via font metrics, nav natural widths 09-12) D3 buttons: same size + rulings in Hebrew as in English, everywhere — probe audit-out/probe-button-parity.mjs: 414 diffs / 18 routes (heights +4–6px from font metrics; widths from shorter words)
+- [x] (done 09-11: SwUpdateBanner rules, deployed) D4 athletes get the update notification on EVERY login — add rules (once per bundle, snooze, idle-only)
 - [ ] D5 after D3/D4: rebuild, pairs, the three hosts, reload his tabs, show him
 - [x] D3 buttons: 414 → 0 differences on the dashboard/programs; heights via font metrics, widths via tbFor()
 - [x] D4 update notice rules (SwUpdateBanner)
@@ -96,5 +96,9 @@ RESTORE POINT (pre-perf-fixes): b1f93ab6f04fa84e842c58049f278312374c8a43
 - [x] E3 GRP select on day rows: the box is too small for its text — text cannot be seen
 - [x] E4 the ⤴ share/copy button beside EXPAND ALL: glyph not centred vertically/horizontally in its box — full platform audit of single-glyph buttons (INK vs box), fix everywhere
 - [x] E5 (it is the EXPO revenue sync; Task Scheduler denied → Startup daemon at 09:00/21:00) the BHBC dashboard must pull an update from his sheet (18TdfofxAOd… gid=1803423381) autonomously twice a day — find what exists (sync scripts, SA access, what the tab holds), build the scheduled sync, prove a run
-- [ ] E6 "nothing was updated": the dashboard REVENUE card reads only app-marked payments (bit_payment_requests) — the sheet sync writes revenue_month_total / revenue_sheet_event, shown on /coach/billing only. Feed the dashboard card from the sheet totals so the twice-daily sync is visible where he looks
+- [x] (dashboard REVENUE card reads the sheet since 09-12) E6 "nothing was updated": the dashboard REVENUE card reads only app-marked payments (bit_payment_requests) — the sheet sync writes revenue_month_total / revenue_sheet_event, shown on /coach/billing only. Feed the dashboard card from the sheet totals so the twice-daily sync is visible where he looks
 - [ ] E7 "keep it updated forever twice a day" (daemon ✓ — verify survives reboot/logoff; heartbeat) + "log ALL previous billings on EXPO: Bit, the roster sheet's revision history (already harvested: 336 events), every other source" — inventory sources reachable from here (Gmail Bit notifications, bank feed exports, Green Invoice), build ingestion per source into owner-only revenue tables, reconcile, show on billing
+- [x] E8 gate: scripts/verify-english-literals.mjs in the build (English >LABEL< / placeholders in translated views); 113 → 0 by codemod + 70 keys; break-tested
+- [ ] E9 dictionary hygiene report (same English under different casings mapped to different Hebrew; untranslated values) — unify
+- [ ] E10 the club zone (/coach/bhbc) speaks Hebrew via its own switch: run the literal gate's idea on BhbcView (it imports its own translator?) — dump each zone tab in Hebrew as the physio sees it and fix leftovers
+- [ ] E11 host refresh with tonight's work (pairs, tonight page banner, tabs) + handoff rows 79/80 + memory
