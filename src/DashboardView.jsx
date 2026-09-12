@@ -138,7 +138,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
   useEffect(() => {
     if (!isOwner) return undefined;
     let live = true;
-    supabase.from('revenue_month_total').select('month,channel,amount')
+    supabase.from('revenue_month_total').select('month,channel,amount,imported_at')
       .then(({ data, error }) => { if (live && !error) setSheetMonths(data || []); })
       .catch(() => {});
     return () => { live = false; };
@@ -159,7 +159,11 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
       bars.push({ label: monthAbbr(d.getMonth()), value: byMonth.get(key(d)) || 0 });
     }
     const latest = [...byMonth.keys()].sort().pop();
-    return { thisMonth: byMonth.get(key(now)) || 0, last3: bars.slice(3).reduce((a, b) => a + b.value, 0), bars, latest, months: byMonth.size };
+    // The newest imported_at is the clock's last successful run - the sync
+    // re-stamps every month row, so one stale row cannot hide a dead clock.
+    const syncedAt = sheetMonths.reduce((m, r) => (r.imported_at && (!m || r.imported_at > m) ? r.imported_at : m), null);
+    const syncAgeH = syncedAt ? (now - new Date(syncedAt)) / 3600000 : null;
+    return { thisMonth: byMonth.get(key(now)) || 0, last3: bars.slice(3).reduce((a, b) => a + b.value, 0), bars, latest, months: byMonth.size, syncedAt, syncAgeH };
   // `now` is a per-render Date; the sheet rows are the only real dependency.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sheetMonths]);
@@ -991,7 +995,7 @@ function RevenueCard({ paymentsUnknown = false, monthlyRate, thisMonthPaid, delt
           <div style={metricStyle}>
             <span style={labelStyle}>{tt(sheet ? 'THIS MONTH · SHEET' : '30D COLLECTED')}</span>
             <span style={numStyle}>{sheet ? `₪${Math.round(sheet.thisMonth).toLocaleString()}` : paymentsUnknown ? '—' : `₪${Math.round(collected30).toLocaleString()}`}</span>
-            {sheet && <span style={subStyle}>{tt('Synced from the sheet twice a day')}</span>}
+            {sheet && <span style={{ ...subStyle, color: sheet.syncAgeH != null && sheet.syncAgeH > 30 ? C.rd : subStyle.color }}>{sheet.syncAgeH == null ? tt('Synced from the sheet twice a day') : sheet.syncAgeH > 30 ? `${tt('Sheet sync overdue')} · ${Math.round(sheet.syncAgeH / 24)} ${tt('days')}` : sheet.syncAgeH < 1 ? tt('Synced from the sheet just now') : tt('Synced from the sheet {n}h ago').replace('{n}', Math.round(sheet.syncAgeH))}</span>}
             {!sheet && delta30 !== null && (
               <span style={{ ...subStyle, color: delta30 >= 0 ? C.gn : C.rd }}>
                 <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{delta30 >= 0 ? '+' : ''}{delta30}%</span> {tt('vs prev 30d')}
