@@ -368,7 +368,7 @@ function ChallengeForm({ initial, trainees, existingParticipants, onClose, onSav
     return (
       <Modal open={true} onClose={onClose} title="+ New Challenge — pick a template" wide>
         <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 10 }}>
-          SMART TEMPLATES
+          {tt('SMART TEMPLATES')}
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 8, marginBottom: 14 }}>
           {TEMPLATES.map(tpl => (
@@ -398,7 +398,7 @@ function ChallengeForm({ initial, trainees, existingParticipants, onClose, onSav
             background: 'transparent', border: `1px solid ${C.cardBd}`, color: C.tm,
             fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
             padding: '6px 12px', cursor: 'pointer', borderRadius: 0,
-          }}>BLANK CHALLENGE →</button>
+          }}>{tt('BLANK CHALLENGE →')}</button>
           <Btn variant="ghost" onClick={onClose}>{tt("Cancel")}</Btn>
         </div>
       </Modal>
@@ -426,7 +426,7 @@ function ChallengeForm({ initial, trainees, existingParticipants, onClose, onSav
         <Input label="End"   type="date" value={endAt}   onChange={e => setEndAt(e.target.value)} />
       </div>
       <div style={{ marginBottom: 12 }}>
-        <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>DESCRIPTION (OPTIONAL)</label>
+        <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>{tt('DESCRIPTION (OPTIONAL)')}</label>
         <textarea value={description} onChange={e => setDescription(e.target.value)} dir="auto" rows={2}
           style={{ width: '100%', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', boxSizing: 'border-box', resize: 'vertical' }} />
       </div>

@@ -55,7 +55,7 @@ import { sortProgramsRecent, sortProgramsByBlockDesc } from './traineeUtils';
 import { SideRail } from './SideRail';
 import { fmtPrettyDate } from './dates';
 import { cloneDayForCopy } from './planCopy.js';
-import { useT as useAppT, useHe, daysAgoHe, countIn, useTB } from './i18n';
+import { tr, readLang, useT as useAppT, useHe, daysAgoHe, countIn, useTB } from './i18n';
 
 // "1 DAYS" read wrong on every single-day block. One helper, used by every
 // place that prints a count next to a noun.
@@ -336,7 +336,7 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
         <div style={{ padding: '0 22px' }}>
           <input
             ref={inputRef}
-            placeholder="Search by title, muscle, pattern, position..."
+            placeholder={tt('Search by title, muscle, pattern, position...')}
             value={search}
             onChange={e => setSearch(e.target.value)}
             onKeyDown={onKeyDown}
@@ -505,7 +505,7 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
                             cues (orange), so the coach picks an informed one (Ohad). */}
                         {ex.videoLink && <span title="Has a demo video" style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 8, fontFamily: FN, fontWeight: 700, color: C.ac, letterSpacing: '0.08em' }}><svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>{tt("VIDEO")}</span>}
                         {ex.cues && <span title="Has coaching notes / cues" style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 8, fontFamily: FN, fontWeight: 700, color: C.or, letterSpacing: '0.08em' }}><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 6h14M5 12h14M5 18h9"/></svg>{tt("NOTE")}</span>}
-                        {isSelected && <span title="Currently linked exercise" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontSize: 8, fontFamily: FN, fontWeight: 700, color: C.ac, letterSpacing: '0.18em', whiteSpace: 'nowrap', border: `1px solid ${C.ac}`, padding: '2px 5px' }}>CURRENT</span>}
+                        {isSelected && <span title="Currently linked exercise" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontSize: 8, fontFamily: FN, fontWeight: 700, color: C.ac, letterSpacing: '0.18em', whiteSpace: 'nowrap', border: `1px solid ${C.ac}`, padding: '2px 5px' }}>{tt('CURRENT')}</span>}
                       </div>
                     </div>
                     {/* Compact single meta line — category · resistance · position ·
@@ -833,7 +833,7 @@ function PlanOverview({ plan, exercises, onJumpToDay = null }) {
         </div>
         <div>
           {rows.length === 0
-            ? <div style={{ padding: '10px 14px', fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.06em' }}>EMPTY</div>
+            ? <div style={{ padding: '10px 14px', fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.06em' }}>{tt('EMPTY')}</div>
             : rows}
         </div>
       </div>
@@ -1244,7 +1244,7 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExerc
                     currently being shown, then dismiss it once they've migrated. */}
                 {w.rx && (!w.sets || w.sets === '') && !w.reps && (
                   <div style={{ gridColumn: '2 / -1', display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: C.tm, fontFamily: FN, padding: '2px 0' }}>
-                    <span style={{ fontWeight: 700, letterSpacing: '0.12em', color: C.td }}>LEGACY RX:</span>
+                    <span style={{ fontWeight: 700, letterSpacing: '0.12em', color: C.td }}>{tt('LEGACY RX:')}</span>
                     <span style={{ color: C.tx, fontFamily: FB }}>{w.rx}</span>
                     <button onClick={() => update(i, { rx: '' })}
                       title="Clear the legacy rx string — the athlete will now see the structured sets/reps above (once you fill them in)."
@@ -1275,7 +1275,7 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExerc
                           <label style={{ fontSize: 11, fontWeight: 600, color: C.tm, textTransform: 'uppercase', fontFamily: FN }}>{tt("Video")}</label>
                           <Input value={w.vid || ''} onChange={e => update(i, { vid: e.target.value })}
                             onBlur={async e => { const original = e.target.value; const resolved = await maybeResolveGooglePhotos(original); if (resolved !== original) setPlan(p => { const cur = (p.warmup || [])[i]; if (!cur || (cur.vid ?? '') !== original) return p; return { ...p, warmup: p.warmup.map((w2, j) => j === i ? { ...w2, vid: resolved } : w2) }; }); }}
-                            placeholder="Video URL" />
+                            placeholder={tt('Video URL')} />
                         </div>
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 16, alignItems: 'stretch' }}>
@@ -1283,7 +1283,7 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExerc
                           <div style={{ display: 'flex', alignItems: 'center', minHeight: 16 }}>
                             <span style={{ fontSize: 9, fontFamily: FN, fontWeight: 700, color: C.td, letterSpacing: '0.18em' }}>{tt("NOTES")}</span>
                           </div>
-                          <textarea value={w.note || ''} onChange={e => update(i, { note: e.target.value })} placeholder="Notes, cues... (shown to the athlete on this warm-up step)"
+                          <textarea value={w.note || ''} onChange={e => update(i, { note: e.target.value })} placeholder={tt('Notes, cues... (shown to the athlete on this warm-up step)')}
                             style={{ ...baseInput, textAlign: 'center', flex: 1, minHeight: 120, padding: '10px 12px', lineHeight: 1.5, resize: 'vertical', fontFamily: FB, fontSize: 13 }} />
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, gap: 6 }}>
@@ -1388,7 +1388,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
           dropdowns stay reachable however far the pane is scrolled. */}
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr auto',gap:12,marginBottom:20,position:'relative',flexShrink:0,paddingInlineEnd:cmpSbInset+6,alignItems:'stretch'}}>
         <div style={{minWidth:0}}>
-          <Select label="Athlete Filter" options={athleteOptions} value={selectedAthleteId} onChange={v => { setSelectedAthleteId(v); setPickedId(''); }} placeholder="Select athlete" />
+          <Select label="Athlete Filter" options={athleteOptions} value={selectedAthleteId} onChange={v => { setSelectedAthleteId(v); setPickedId(''); }} placeholder={tt('Select athlete')} />
         </div>
         <div style={{minWidth:0}}>
           <Select label="Program Filter"
@@ -1468,7 +1468,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                                       style={{...baseInput, padding:'6px 10px', fontSize:11, color:C.tm, cursor:'text', minWidth:0, width:'100%', boxSizing:'border-box'}} />
                                     <button onClick={() => { const p = navigator.clipboard?.writeText(w.vid); if (p) p.then(() => toast('Video URL copied')).catch(() => toast('Copy blocked — click the URL and Ctrl+C', 'warn')); else toast('Copy blocked — click the URL and Ctrl+C', 'warn'); }}
                                       title="Copy video URL"
-                                      style={{background:'transparent', border:`1px solid ${C.ac}`, color:C.ac, cursor:'pointer', fontFamily:FN, fontSize:10, fontWeight:700, letterSpacing:'0.1em', padding:'0 10px', borderRadius:0, whiteSpace:'nowrap'}}>COPY</button>
+                                      style={{background:'transparent', border:`1px solid ${C.ac}`, color:C.ac, cursor:'pointer', fontFamily:FN, fontSize:10, fontWeight:700, letterSpacing:'0.1em', padding:'0 10px', borderRadius:0, whiteSpace:'nowrap'}}>{tt('COPY')}</button>
                                   </div>
                                 ) : <div style={{fontSize:12, color:C.td}}>No video.</div>}
                               </div>
@@ -1810,7 +1810,7 @@ function ExEditorExtras({ ex, exData, exTitle, update, onResolveVideo = null, sh
             <label style={{fontSize:11,fontWeight:600,color:C.tm,textTransform:'uppercase',fontFamily:FN}}>{tt("Video")}</label>
             <Input value={vidValue} onChange={e=>update({videoUrl:e.target.value})}
               onBlur={async e => { const original = e.target.value; const resolved = await maybeResolveGooglePhotos(original); if (resolved !== original) { if (onResolveVideo) onResolveVideo(original, resolved); else update({ videoUrl: resolved }); } }}
-              placeholder="Video URL" />
+              placeholder={tt('Video URL')} />
           </div>
         </div>
         <div style={{display:'grid',gridTemplateColumns:'1.2fr 1fr',gap:16,alignItems:'stretch'}}>
@@ -2571,9 +2571,9 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           starts level with the content below the text boxes, not above them. */}
       <div style={{flex:compareActive?1:'unset',minWidth:0,width:compareActive?'50%':'auto',display:compareActive?'flex':'block',flexDirection:'column',minHeight:0}}>
       <div className="plan-fields-grid" style={{display:"grid",gap:12,marginBottom:20,flexShrink:0,paddingInlineEnd:compareActive?leftSbInset+6:0}}>
-        <Input label={tt('Program Name')} value={plan.name} onChange={e => setPlan({...plan,name:e.target.value})} placeholder="Hypertrophy Block A" />
+        <Input label={tt('Program Name')} value={plan.name} onChange={e => setPlan({...plan,name:e.target.value})} placeholder={tt('Hypertrophy Block A')} />
         {/* "Assign to Athlete" moved to the top row next to the block dropdown. */}
-        <Input label={tt('Phase / Block')} value={plan.phase||""} onChange={e => setPlan({...plan,phase:e.target.value})} placeholder="Accumulation..." />
+        <Input label={tt('Phase / Block')} value={plan.phase||""} onChange={e => setPlan({...plan,phase:e.target.value})} placeholder={tt('Accumulation...')} />
         {/* Weeks selector hidden for daily-routine plans — a daily routine
             has no week structure. Athlete logs it unlimited times during
             whatever timeframe is convenient. */}
@@ -3048,7 +3048,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                             </div>
                           );
                         })}
-                        {w.notes && <div style={{fontSize:11,color:C.tm,marginTop:6,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,padding:6,borderRadius:0,fontFamily:FN}}><span style={{fontSize:9,fontWeight:700,letterSpacing:'0.12em',color:C.ac,marginInlineEnd:6}}>NOTE</span><bdi>{w.notes}</bdi></div>}
+                        {w.notes && <div style={{fontSize:11,color:C.tm,marginTop:6,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,padding:6,borderRadius:0,fontFamily:FN}}><span style={{fontSize:9,fontWeight:700,letterSpacing:'0.12em',color:C.ac,marginInlineEnd:6}}>{tt('NOTE')}</span><bdi>{w.notes}</bdi></div>}
                       </div>
                     );
                   })}
@@ -3198,7 +3198,7 @@ function CopyDaysModal({ days, currentPlanId, preselected, planIndex, sourceWeek
           )}
         </div>
         <div style={{ padding:'12px 18px', borderTop:`1px solid ${C.cardBd}`, display:'flex', justifyContent:'flex-end', gap:8 }}>
-          <button onClick={onClose} style={{ padding:'8px 16px', background:'transparent', border:`1px solid ${C.cardBd}`, borderRadius:0, color:C.tm, fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.09em', cursor:'pointer' }}>CANCEL</button>
+          <button onClick={onClose} style={{ padding:'8px 16px', background:'transparent', border:`1px solid ${C.cardBd}`, borderRadius:0, color:C.tm, fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.09em', cursor:'pointer' }}>{tt('CANCEL')}</button>
           <button onClick={doCopy} disabled={!canCopy} style={{ padding:'8px 18px', background: canCopy?C.ac:'transparent', border:`1px solid ${canCopy?C.ac:C.cardBd}`, borderRadius:0, color: canCopy?'#000':C.td, fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.09em', cursor: canCopy?'pointer':'default' }}>{busy?'COPYING…':(warmupMode ? 'COPY WARM-UP →' : `COPY ${count||''} DAY${count===1?'':'S'} →`)}</button>
         </div>
       </div>
@@ -3744,7 +3744,7 @@ export function TrainingLineage({ traineeId, traineeName, exercises, plans, load
           <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>Periodization wave</div>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', fontFamily: FN, fontSize: 9, letterSpacing: '0.06em', color: C.tm }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 9, height: 9, background: 'color-mix(in srgb, #39BDFF 40%, transparent)' }} />{tt("VOLUME")}</span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 12, height: 2, background: '#f0b429' }} />INTENSITY %1RM</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 12, height: 2, background: '#f0b429' }} />{tt('INTENSITY %1RM')}</span>
           </div>
         </div>
         <div style={{ overflowX: 'auto', paddingBottom: 2 }}>
@@ -5199,7 +5199,7 @@ function AthleteCombo({ value, options, onPick, title }) {
               else if (e.key === 'Enter') { e.preventDefault(); pick(filtered[idx]); }
               else if (e.key === 'Escape') { e.preventDefault(); setOpen(false); }
             }}
-            placeholder="Search athletes…"
+            placeholder={tr(readLang(), 'Search athletes…')}
             style={{width:'100%',boxSizing:'border-box',padding:'10px 14px',background:'transparent',color:C.tx,border:'none',borderBottom:`1px solid ${C.cardBd}`,fontFamily:FN,fontSize:13,outline:'none'}} />
           <div style={{overflowY:'auto'}}>
             {filtered.map((o, i) => (
@@ -5234,12 +5234,12 @@ function ShareAthleteModal({ trainees, shareSearch, setShareSearch, onPick, onCl
           <span style={{ fontFamily:FN, fontSize:13, fontWeight:700, letterSpacing:'0.12em', color:C.tx, textTransform:'uppercase' }}>Share program to…</span>
           <button onClick={onClose} style={{ background:'transparent', border:'none', color:C.tm, fontSize:20, lineHeight:1, cursor:'pointer' }}>×</button>
         </div>
-        <input value={shareSearch} onChange={e=>setShareSearch(e.target.value)} placeholder="Search athletes…" autoFocus style={{ width:'100%', boxSizing:'border-box', padding:'10px 18px', background:'transparent', color:C.tx, border:'none', borderBottom:`1px solid ${C.cardBd}`, fontFamily:FN, fontSize:13, outline:'none' }} />
+        <input value={shareSearch} onChange={e=>setShareSearch(e.target.value)} placeholder={tr(readLang(), 'Search athletes…')} autoFocus style={{ width:'100%', boxSizing:'border-box', padding:'10px 18px', background:'transparent', color:C.tx, border:'none', borderBottom:`1px solid ${C.cardBd}`, fontFamily:FN, fontSize:13, outline:'none' }} />
         <div style={{ overflowY:'auto' }}>
           {list.map(t => (
             <button key={t.id} onClick={()=>onPick(t)} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', width:'100%', padding:'11px 18px', background:'transparent', border:'none', borderBottom:`1px solid ${C.cardBd}`, color:C.tx, fontFamily:FN, fontSize:13, cursor:'pointer', textAlign: 'start' }}>
               <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{t.name}</span>
-              <span style={{ color:C.ac, fontSize:10, fontWeight:700, letterSpacing:'0.1em', flexShrink:0, marginInlineStart:10 }}>DUPLICATE →</span>
+              <span style={{ color:C.ac, fontSize:10, fontWeight:700, letterSpacing:'0.1em', flexShrink:0, marginInlineStart:10 }}>{tr(readLang(), 'DUPLICATE →')}</span>
             </button>
           ))}
           {list.length === 0 && <div style={{ padding:'18px', textAlign:'center', color:C.tm, fontFamily:FN, fontSize:12 }}>No athletes match.</div>}

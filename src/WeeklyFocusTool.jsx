@@ -152,8 +152,8 @@ export default function WeeklyFocusTool({ trainees, exercises, weeklyFocus, setW
               (not absolute), so the card grows to fit it instead of the
               collapsible's overflow:hidden clipping it. */}
           <div style={{ marginBottom: 12, maxWidth: 360, marginInlineStart: 'auto', marginInlineEnd: 'auto', textAlign: 'center' }}>
-            <label style={{ ...lbl, textAlign: 'center' }}>ATHLETE</label>
-            <input dir="auto" value={query} placeholder="Type a name…"
+            <label style={{ ...lbl, textAlign: 'center' }}>{tt('ATHLETE')}</label>
+            <input dir="auto" value={query} placeholder={tt('Type a name…')}
               onChange={e => { setQuery(e.target.value); setPickerOpen(true); if (traineeId) setTraineeId(''); }}
               onFocus={() => setPickerOpen(true)}
               onBlur={() => setTimeout(() => setPickerOpen(false), 150)}
@@ -174,7 +174,7 @@ export default function WeeklyFocusTool({ trainees, exercises, weeklyFocus, setW
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 14 }}>
             {plans && plans.length > 1 && (
               <div style={{ flex: '1 1 180px', minWidth: 150 }}>
-                <label style={lbl}>BLOCK</label>
+                <label style={lbl}>{tt('BLOCK')}</label>
                 <select value={planId} onChange={e => setPlanId(e.target.value)} style={{ ...sel, width: '100%' }}>
                   {plans.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
@@ -182,7 +182,7 @@ export default function WeeklyFocusTool({ trainees, exercises, weeklyFocus, setW
             )}
             {plan && (
               <div style={{ flex: '0 0 130px' }}>
-                <label style={lbl}>FOCUS FOR</label>
+                <label style={lbl}>{tt('FOCUS FOR')}</label>
                 <select value={week} onChange={e => setWeek(Number(e.target.value))} style={{ ...sel, width: '100%' }}>
                   {Array.from({ length: focusSlots }, (_, i) => i + 1).map(w => <option key={w} value={w}>W{w} → W{w + 1}</option>)}
                 </select>

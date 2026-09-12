@@ -13,7 +13,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 await pg.setViewport({ width: 1500, height: 1000 });
 await pg.goto(BASE + '/login', { waitUntil: 'domcontentloaded', timeout: 60000 }).catch(() => {});
 await pg.evaluate(() => { try { localStorage.clear(); sessionStorage.clear(); } catch (e) {} });
-await A.signIn(pg, BASE);
+if (!process.env.NOAUTH) await A.signIn(pg, BASE); // NOAUTH=1 for public pages (login, intake, booking, share)
 await pg.evaluate(() => { try { localStorage.setItem('expo-lang', 'he'); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} });
 fs.mkdirSync('audit-out/he-screens', { recursive: true });
 for (const route of ROUTES) {

@@ -249,7 +249,7 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
           </React.Fragment>;})}
         {/* Coach's session note — separate from the prescribed cue above, so
             this field starts blank instead of echoing the plan's note. */}
-        <input value={ex.coachNote||""} onChange={e=>updateEx(exIdx,{coachNote:e.target.value})} placeholder="Notes for this exercise…" style={{...baseInput,marginTop:6,padding:"6px 8px",fontSize:12,width:"100%",boxSizing:"border-box"}} />
+        <input value={ex.coachNote||""} onChange={e=>updateEx(exIdx,{coachNote:e.target.value})} placeholder={tt('Notes for this exercise…')} style={{...baseInput,marginTop:6,padding:"6px 8px",fontSize:12,width:"100%",boxSizing:"border-box"}} />
       </div>);
   };
   const totalSets = workout.exercises.reduce((a,ex)=>a+ex.sets.length,0);
@@ -294,7 +294,7 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
       })() : (
         g.items.map(({ex,i}) => renderExercise(ex, i, false))
       ))}
-      <TextArea label="Workout Notes" value={workout.notes||""} onChange={e=>onUpdate({notes:e.target.value})} placeholder="Session observations..." />
+      <TextArea label="Workout Notes" value={workout.notes||""} onChange={e=>onUpdate({notes:e.target.value})} placeholder={tt('Session observations...')} />
       {/* Primary Complete action at the very bottom — after every set + the
           session notes (Ohad: "complete workout … beneath session observations"). */}
       {!isCompleted
@@ -660,7 +660,7 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
           {filterTrainee ? (
             <button onClick={()=>setFilterTrainee("")} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.08em',padding:'0 0 12px'}}>← all athletes</button>
           ) : (
-            <input value={pickSearch} onChange={e=>setPickSearch(e.target.value)} placeholder="Search athlete…"
+            <input value={pickSearch} onChange={e=>setPickSearch(e.target.value)} placeholder={tt('Search athlete…')}
               style={{...baseInput,width:'100%',boxSizing:'border-box',height:42,padding:'0 14px',fontSize:13,lineHeight:'42px',border:`1px solid ${C.ac}`,marginBottom:12}} />
           )}
           {/* Card: cyan strip header ("Start a Session" + count) over the athlete

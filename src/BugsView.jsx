@@ -163,7 +163,7 @@ export default function BugsView() {
               <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px dashed ${C.cardBd}` }}>
                 {r.context && (
                   <div style={{ fontFamily: 'monospace', fontSize: 11, color: C.td, lineHeight: 1.5, marginBottom: 10 }}>
-                    <div><b style={{ color: C.tm }}>UA:</b> {r.context.ua || '—'}</div>
+                    <div><b style={{ color: C.tm }}>{tt('UA:')}</b> {r.context.ua || '—'}</div>
                     <div>
                       <b style={{ color: C.tm }}>Viewport:</b> {r.context.viewport?.w}×{r.context.viewport?.h} ·{' '}
                       <b style={{ color: C.tm }}>Theme:</b> {r.context.theme || '—'} ·{' '}
@@ -194,10 +194,10 @@ export default function BugsView() {
                 )}
 
                 <div style={{ marginBottom: 8 }}>
-                  <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.12em', fontWeight: 700, marginBottom: 4 }}>TRIAGE NOTES</label>
+                  <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.12em', fontWeight: 700, marginBottom: 4 }}>{tt('TRIAGE NOTES')}</label>
                   <textarea defaultValue={r.notes || ''} dir="auto" rows={2}
                     onBlur={e => { if (e.target.value !== (r.notes || '')) setNotes(r.id, e.target.value); }}
-                    placeholder="Repro steps, hypothesis, blocker…"
+                    placeholder={tt('Repro steps, hypothesis, blocker…')}
                     style={{ width: '100%', background: 'var(--c-bg)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '6px 8px', color: C.tx, fontFamily: FB, fontSize: 12, outline: 'none', boxSizing: 'border-box', resize: 'vertical' }} />
                 </div>
 
@@ -215,7 +215,7 @@ export default function BugsView() {
                       <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
                         <input autoFocus value={shaVal} onChange={e => setShaVal(e.target.value)}
                           onKeyDown={e => { if (e.key === 'Enter') markFixed(r.id); if (e.key === 'Escape') { setShaFor(null); setShaVal(''); } }}
-                          placeholder="commit SHA — blank to skip"
+                          placeholder={tt('commit SHA — blank to skip')}
                           style={{ background: 'var(--c-sf2)', border: `1px solid ${C.cardBd}`, color: C.tx, fontFamily: FN, fontSize: 11, padding: '4px 8px', width: 190 }} />
                         <button onClick={() => markFixed(r.id)} style={btn(C.gn)}>✓ FIXED</button>
                       </span>
@@ -229,7 +229,7 @@ export default function BugsView() {
                     </span>
                   )}
                   <span style={{ flex: 1 }} />
-                  <button onClick={() => remove(r.id)} style={btn(C.td)}>DELETE</button>
+                  <button onClick={() => remove(r.id)} style={btn(C.td)}>{tt('DELETE')}</button>
                 </div>
               </div>
             )}

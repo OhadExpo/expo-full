@@ -22,7 +22,7 @@ import { supabase } from './supabase';
 import { isRefined5b, RefinedHeaderStrip, Btn, Input, toast, confirmToast, useEscClose, stripBtnBase } from './ui';
 import { parseTraineeId } from './traineeUtils';
 import { normalizePhoneIL } from './whatsappButton';
-import { useT, useTB } from './i18n';
+import { tr, readLang, useT, useTB } from './i18n';
 import RevenueSheetCard from './RevenueSheetCard';
 
 const fmtCurrency = (amount, currency = 'ils') => {
@@ -283,7 +283,7 @@ function RequestModal({ trainees, onClose, onCreated }) {
       <div onClick={e => e.stopPropagation()} style={{ background: 'var(--c-bg)', border: `1px solid ${C.cardBd}`, maxWidth: 480, width: '100%', padding: 22, maxHeight: '80vh', overflow: 'auto' }}>
         <h3 style={{ margin: '0 0 16px', fontFamily: FN, fontSize: 14, color: C.ac, letterSpacing: '0.12em', fontWeight: 700 }}>+ NEW PAYMENT REQUEST</h3>
         <div style={{ marginBottom: 10 }}>
-          <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>TRAINEE</label>
+          <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>{tr(readLang(), 'TRAINEE')}</label>
           <select value={traineeId} onChange={e => setTraineeId(e.target.value)}
             style={{ width: '100%', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '8px 10px', color: C.tx, fontFamily: FN, fontSize: 12, outline: 'none' }}>
             <option value="">— Choose —</option>

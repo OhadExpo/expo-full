@@ -20,7 +20,7 @@ import { supabase } from './supabase';
 import { RefinedHeaderStrip, toast, confirmToast, stripBtnBase } from './ui';
 import { traineeIdsFor } from './traineeUtils';
 import { mergeIncomingSession } from './sessionMerge';
-import { useT as useAppT, useTB } from './i18n';
+import { tr, readLang, useT as useAppT, useTB } from './i18n';
 
 
 
@@ -863,7 +863,7 @@ function AthletePicker({ trainees, planIndex, existing = [], clientWorkouts = []
             .sess-add-row > *:nth-child(4) { grid-area: 3 / 2 / 4 / 4; }
           }
         `}</style>
-        <h3 style={{ margin: '0 0 14px', fontFamily: FN, fontSize: 14, color: C.ac, letterSpacing: '0.12em', fontWeight: 700 }}>ADD ATHLETES</h3>
+        <h3 style={{ margin: '0 0 14px', fontFamily: FN, fontSize: 14, color: C.ac, letterSpacing: '0.12em', fontWeight: 700 }}>{tt('ADD ATHLETES')}</h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: '54vh', overflow: 'auto' }}>
           {rows.map((r, i) => {
             const plans = r.traineeId ? plansFor(r.traineeId) : [];
@@ -936,7 +936,7 @@ function MenuCard({ glyph, title, desc, onClick }) {
       <span style={{ fontSize: 30, lineHeight: 1 }}>{glyph}</span>
       <span style={{ fontFamily: FN, fontSize: 14, fontWeight: 700, letterSpacing: '0.06em', color: C.tx, marginTop: 4 }}>{title}</span>
       <span style={{ fontFamily: FB, fontSize: 12.5, color: C.tm, lineHeight: 1.5, flex: 1 }}>{desc}</span>
-      <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', color: C.ac, marginTop: 4 }}>ENTER →</span>
+      <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', color: C.ac, marginTop: 4 }}>{tr(readLang(), 'ENTER →')}</span>
     </button>
   );
 }

@@ -386,7 +386,7 @@ export default function NotesInline({
                       cursor: 'pointer', fontSize: 11, padding: '3px 8px', borderRadius: 0,
                       fontFamily: FN, fontWeight: 700, letterSpacing: '0.12em', height: 26,
                       display: 'inline-flex', alignItems: 'center',
-                    }}>EDIT</button>
+                    }}>{tr(readLang(), 'EDIT')}</button>
                 ) : <span />}
                 {actionBtn || <span />}
               </div>
@@ -456,7 +456,7 @@ export default function NotesInline({
         <textarea className="notes-inline-input" value={body} onChange={e => setBody(e.target.value)} dir="auto"
           onBlur={draft.onBlur}
           onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) onAdd(); }}
-          placeholder="Add a note…"
+          placeholder={tr(readLang(), 'Add a note…')}
           rows={2}
           style={{
             width: '100%', background: 'var(--c-sf)', border: `1px solid var(--c-cardBd)`, borderRadius: 0,

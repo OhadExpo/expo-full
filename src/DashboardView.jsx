@@ -834,7 +834,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                 return (
                   <div key={l.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '6px 0', fontSize: 13 }}>
                     {isCoach && (
-                      <span title="Coach waitlist signup" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.ac, background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: '2px 5px', flexShrink: 0 }}>COACH</span>
+                      <span title="Coach waitlist signup" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.ac, background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: '2px 5px', flexShrink: 0 }}>{tt('COACH')}</span>
                     )}
                     <a href={mailto} style={{ color: C.tx, textDecoration: 'none', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }} title={`${l.context} · ${l.source}`}>{l.email}</a>
                     <span style={{ fontFamily: FN, color: C.td, fontSize: 10 }}>{ago}</span>

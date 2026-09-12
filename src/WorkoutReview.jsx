@@ -1604,11 +1604,11 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
                   AUTO ({autoPick.source === 'unknown' ? '?' : (autoPick.kind || 'none').toUpperCase()}
                   {autoPick.source === 'motion' ? ' · MOTION' : autoPick.source === 'library' ? ' · LIB' : ''})
                 </option>
-                <option value="hip">HIP</option>
+                <option value="hip">{tt('HIP')}</option>
                 <option value="knee">{tt("KNEE")}</option>
                 <option value="elbow">{tt("ELBOW")}</option>
-                <option value="sho">SHOULDER</option>
-                <option value="none">SKIP</option>
+                <option value="sho">{tt('SHOULDER')}</option>
+                <option value="none">{tt('SKIP')}</option>
               </select>
             )}
             {/* Motion disagrees with the title. Never switched silently — a
@@ -2560,7 +2560,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
               style={{padding:"12px 16px",borderRadius:0,border:`1px solid ${C.cardBd}`,
                 background:"transparent",color:C.tm,fontFamily:FN,fontSize:12,fontWeight:600,
                 cursor:"pointer"}}>
-              UNMARK
+              {tt('UNMARK')}
             </button>
           )}
           {!(wo.reviewedAt && !findNextUnreviewed()) && <button onClick={() => { setSelectedWo(null); setExpandedEx(null); window.scrollTo(0,0); }}

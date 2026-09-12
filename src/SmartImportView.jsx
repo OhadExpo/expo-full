@@ -538,7 +538,7 @@ export default function SmartImportView() {
       {sheetGrid && (
         <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, marginBottom: 12 }}>
           <div style={{ background: 'var(--c-stripBg, var(--c-sf))', borderBottom: '1px solid var(--c-cardBd)', padding: '10px 14px' }}>
-            <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>SHEET PREVIEW</SectionLabel>
+            <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>{tt('SHEET PREVIEW')}</SectionLabel>
           </div>
           <div style={{ padding: 12 }}>
           <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, marginBottom: 6, letterSpacing: '0.18em', fontWeight: 700 }}>{sheetGrid.headers.length} cols · {sheetGrid.rows.length} rows</div>
@@ -563,7 +563,7 @@ export default function SmartImportView() {
       {mapping && (
         <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, marginBottom: 12 }}>
           <div style={{ background: 'var(--c-stripBg, var(--c-sf))', borderBottom: '1px solid var(--c-cardBd)', padding: '10px 14px' }}>
-            <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>AI MAPPING</SectionLabel>
+            <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>{tt('AI MAPPING')}</SectionLabel>
           </div>
           <div style={{ padding: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
@@ -577,9 +577,9 @@ export default function SmartImportView() {
             </ul>
           )}
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(140px,1fr) minmax(160px,2fr) auto', gap: '6px 10px', alignItems: 'center', fontSize: 12 }}>
-            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700 }}>TARGET</div>
-            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700 }}>SOURCE COLUMN</div>
-            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700 }}>CONF</div>
+            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700 }}>{tt('TARGET')}</div>
+            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700 }}>{tt('SOURCE COLUMN')}</div>
+            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700 }}>{tt('CONF')}</div>
             {targetFields.map(field => {
               const m = mapping.mapping?.[field] || { source: null };
               const conf = m.confidence ?? 0;
@@ -604,7 +604,7 @@ export default function SmartImportView() {
       {transform && (
         <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, marginBottom: 12 }}>
           <div style={{ background: 'var(--c-stripBg, var(--c-sf))', borderBottom: '1px solid var(--c-cardBd)', padding: '10px 14px' }}>
-            <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>PREVIEW</SectionLabel>
+            <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>{tt('PREVIEW')}</SectionLabel>
           </div>
           <div style={{ padding: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
