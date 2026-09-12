@@ -471,7 +471,7 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
               No exercises found. Try relaxing filters or the search term.
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 4 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 4 }}>
               {filt.map((ex, idx) => {
                 const isActive = idx === activeIdx;
                 const isSelected = ex.id === currentId;
@@ -486,7 +486,7 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
                     onClick={() => pick(ex)}
                     onMouseEnter={() => setActiveIdx(idx)}
                     style={{
-                      textAlign: 'start', padding: '7px 11px',
+                      textAlign: 'start', padding: '7px 11px', minWidth: 0, width: '100%', boxSizing: 'border-box',
                       background: isSelected ? 'rgba(59,160,255,0.06)' : 'var(--c-sf)',
                       // Constant 1px border — only the COLOR changes on
                       // hover/active. A width swap re-flowed every row under
@@ -498,7 +498,7 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-                      <div style={{ fontWeight: 600, fontSize: 13, color: C.tx, lineHeight: 1.25, flex: 1, overflowWrap: 'break-word' }}>{ex.title}</div>
+                      <div style={{ fontWeight: 600, fontSize: 13, color: C.tx, lineHeight: 1.25, flex: 1, minWidth: 0, overflowWrap: 'break-word' }}>{ex.title}</div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0 }}>
                         {/* Media / notes indicators — show at a glance which library
                             exercises already have a demo video (cyan) and coaching
@@ -1180,7 +1180,7 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExerc
               text spacer) — identical geometry to the day card's × button. */}
           <div style={{ display:'inline-flex', gap:4, flexShrink:0, alignItems:'center' }}>
             {onCopyWarmup && <button onClick={(e)=>{ e.stopPropagation(); onCopyWarmup(); }} title="Copy this warm-up to another program" aria-label="Copy warm-up to another program"
-              style={{ width:28, height:24, boxSizing:'border-box', background:'var(--c-sf)', border:`1px solid ${C.ac}`, borderRadius:0, color:C.ac, cursor:'pointer', fontSize:12, lineHeight:1, display:'inline-flex', alignItems:'center', justifyContent:'center', padding:0 }}>⤴</button>}
+              style={{ width:28, height:24, boxSizing:'border-box', background:'var(--c-sf)', border:`1px solid ${C.ac}`, borderRadius:0, color:C.ac, cursor:'pointer', fontSize:12, lineHeight:1, display:'inline-flex', alignItems:'center', justifyContent:'center', padding:0 }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M7 17L17 7"/><path d="M9 7h8v8"/></svg></button>}
             <span aria-hidden style={{ width:28, height:24, boxSizing:'border-box', visibility:'hidden', flexShrink:0 }}>×</span>
           </div>
           </>;
@@ -1915,7 +1915,7 @@ function EditorMoreMenu({ items }) {
     <div data-editor-more style={{ display: 'inline-flex' }}>
       <button ref={btnRef} onClick={() => setOpen(o => !o)}
         title="More program actions" aria-label="More program actions" aria-haspopup="menu" aria-expanded={open}
-        style={{ background: (open || anyActive) ? `${C.ac}1f` : (isRefined5b() ? 'transparent' : 'var(--c-sf)'), border: `1px solid ${C.ac}`, borderRadius: 0, height: 38, padding: '0 13px', lineHeight: '38px', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
+        style={{ background: (open || anyActive) ? `${C.ac}1f` : (isRefined5b() ? 'transparent' : 'var(--c-sf)'), border: `1px solid ${C.ac}`, borderRadius: 0, height: 42, padding: '0 13px', lineHeight: '42px', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>
         {tt('MORE')}
       </button>
@@ -2385,8 +2385,8 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           {/* Undo / redo (Ohad) — coarse per-pause history; also Ctrl+Z / Ctrl+Shift+Z. */}
           <div style={{display:'inline-flex',gap:4,flexShrink:0}}>
             {/* Word labels, not glyphs (Ohad) — right next to BACK. */}
-            <button onClick={doUndo} disabled={!canUndo} title="Undo (Ctrl+Z)" style={{background:'transparent',border:`1px solid ${C.cardBd}`,color:canUndo?C.tm:C.td,cursor:canUndo?'pointer':'not-allowed',opacity:canUndo?1:0.4,padding:'0 10px',height:24,borderRadius:0,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',lineHeight:1,display:'inline-flex',alignItems:'center',justifyContent:'center',whiteSpace:'nowrap'}}>{tt("UNDO")}</button>
-            <button onClick={doRedo} disabled={!canRedo} title="Redo (Ctrl+Shift+Z)" style={{background:'transparent',border:`1px solid ${C.cardBd}`,color:canRedo?C.tm:C.td,cursor:canRedo?'pointer':'not-allowed',opacity:canRedo?1:0.4,padding:'0 10px',height:24,borderRadius:0,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',lineHeight:1,display:'inline-flex',alignItems:'center',justifyContent:'center',whiteSpace:'nowrap'}}>{tt("REDO")}</button>
+            <button onClick={doUndo} disabled={!canUndo} title="Undo (Ctrl+Z)" style={{background:'transparent',border:`1px solid ${C.cardBd}`,color:canUndo?C.tm:C.td,cursor:canUndo?'pointer':'not-allowed',opacity:canUndo?1:0.4,padding:'0 12px',height:42,borderRadius:0,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',lineHeight:1,display:'inline-flex',alignItems:'center',justifyContent:'center',whiteSpace:'nowrap'}}>{tt("UNDO")}</button>
+            <button onClick={doRedo} disabled={!canRedo} title="Redo (Ctrl+Shift+Z)" style={{background:'transparent',border:`1px solid ${C.cardBd}`,color:canRedo?C.tm:C.td,cursor:canRedo?'pointer':'not-allowed',opacity:canRedo?1:0.4,padding:'0 12px',height:42,borderRadius:0,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',lineHeight:1,display:'inline-flex',alignItems:'center',justifyContent:'center',whiteSpace:'nowrap'}}>{tt("REDO")}</button>
           </div>
           <div className="editor-top-mid" style={{flex:1,display:'flex',gap:12,alignItems:'center',justifyContent:'center',minWidth:0}}>
           {/* Athlete assignment — editable, to the LEFT of the block dropdown
@@ -2483,7 +2483,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           <div style={{display:'flex',gap:8,alignItems:'stretch',flexWrap:'wrap'}}>
           {/* PORTAL first (Ohad). */}
           {onPreviewPlan && plan?.id && <button onClick={async () => { if (await flushAutosave()) onPreviewPlan(plan.id); else toast('Save failed — preview may be stale. Retry once your edits save.', 'error'); }}
-            title="Open this program in the athlete portal view" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:38,padding:'0 13px',lineHeight:'38px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.09em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>
+            title="Open this program in the athlete portal view" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:42,padding:'0 13px',lineHeight:'42px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.09em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
             {tb("PORTAL")}
           </button>}
@@ -2493,7 +2493,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
               changes size on click reads as a flash bug. */}
           <button onClick={() => setOverviewOpen(v => !v)}
             title={overviewOpen ? 'Back to the full editor' : 'See every day and exercise of this block on one screen'}
-            style={{background: overviewOpen ? `${C.ac}1f` : (isRefined5b() ? 'transparent' : 'var(--c-sf)'),border:`1px solid ${C.ac}`,borderRadius:0,height:38,padding:'0 13px',lineHeight:'38px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.09em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6,whiteSpace:'nowrap',minWidth:132,boxSizing:'border-box'}}>
+            style={{background: overviewOpen ? `${C.ac}1f` : (isRefined5b() ? 'transparent' : 'var(--c-sf)'),border:`1px solid ${C.ac}`,borderRadius:0,height:42,padding:'0 13px',lineHeight:'42px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.09em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6,whiteSpace:'nowrap',minWidth:132,boxSizing:'border-box'}}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
             {overviewOpen ? tt('EDITOR') : tt('OVERVIEW')}
           </button>
@@ -2550,7 +2550,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
             const toggleVis = () => { if (!myVk) return; setPortalVis({ ...(portalVis || {}), [myVk]: !vis }); };
             return <button onClick={toggleVis}
               title={vis ? 'On the athlete portal — click to hide' : 'Hidden from the athlete portal — click to show'}
-              style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)', border:`1px solid ${vis ? 'rgba(46,213,115,0.5)' : C.cardBd}`, borderRadius:0, height:38, padding:'0 13px', display:'inline-flex', alignItems:'center', gap:8, cursor:'pointer'}}>
+              style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)', border:`1px solid ${vis ? 'rgba(46,213,115,0.5)' : C.cardBd}`, borderRadius:0, height:42, padding:'0 13px', display:'inline-flex', alignItems:'center', gap:8, cursor:'pointer'}}>
               <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',color:vis?C.gn:C.td}}>{tb('PORTAL')}</span>
               <span style={{width:32,height:18,borderRadius:9,background:vis?'rgba(46,213,115,0.25)':'rgba(255,255,255,0.06)',border:`1px solid ${vis?'rgba(46,213,115,0.5)':C.cardBd}`,position:'relative',flexShrink:0}}>
                 <span style={{width:14,height:14,borderRadius:7,background:vis?C.gn:C.td,position:'absolute',top:1,left:1,transform:vis?'translateX(14px)':'none',transition:'transform .15s cubic-bezier(.22,.61,.36,1)'}} />
@@ -2558,7 +2558,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
             </button>;
           })()}
           {onDelete && plan?.id && <button onClick={onDelete}
-            title="Delete this program" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.rd}`,borderRadius:0,height:38,padding:'0 13px',lineHeight:'38px',color:C.rd,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.09em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>
+            title="Delete this program" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.rd}`,borderRadius:0,height:42,padding:'0 13px',lineHeight:'42px',color:C.rd,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.09em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
             {tt("DELETE")}
           </button>}
@@ -2757,7 +2757,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                 {(onCopyDays || plan.days.length > 1) && (
                   <div style={{display:'inline-flex',gap:4,flexShrink:0,alignItems:'center'}}>
                     {onCopyDays && <button onClick={()=>setCopyDaysModal({ dayIdxs: new Set([dayIdx]) })} title="Copy this day to another program" aria-label="Copy day to another program"
-                      style={{width:28,height:24,boxSizing:'border-box',background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,color:C.ac,cursor:'pointer',fontSize:12,lineHeight:1,display:'inline-flex',alignItems:'center',justifyContent:'center',padding:0}}>⤴</button>}
+                      style={{width:28,height:24,boxSizing:'border-box',background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,color:C.ac,cursor:'pointer',fontSize:12,lineHeight:1,display:'inline-flex',alignItems:'center',justifyContent:'center',padding:0}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M7 17L17 7"/><path d="M9 7h8v8"/></svg></button>}
                     {plan.days.length > 1 && <button onClick={()=>setConfirmDeleteDay(dayIdx)} title="Delete this day" aria-label="Delete day"
                       className="daydel-btn"
                       style={{width:28,height:24,boxSizing:'border-box',background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,color:C.rd,cursor:'pointer',fontSize:15,lineHeight:1,display:'inline-flex',alignItems:'center',justifyContent:'center',padding:0,transition:'border-color .12s'}}>×</button>}
@@ -2866,7 +2866,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                       </div>
                       <select value={ex.superset||""} onChange={e=>update({superset:e.target.value})}
                         title={ex.superset ? `Superset group ${ex.superset}` : 'Not in a superset'}
-                        style={{...tinyInput, background: ex.superset ? `color-mix(in srgb, ${sc} 20%, var(--c-sf))` : tinyInput.background, color: ex.superset ? C.tx : C.td, border: ex.superset ? `1px solid ${sc}` : tinyInput.border, fontFamily:FN, fontWeight: ex.superset ? 800 : 600, height:24, minHeight:24, padding:'0 6px', boxSizing:'border-box', appearance:'none', WebkitAppearance:'none', textAlignLast:'center'}}>
+                        style={{...tinyInput, background: ex.superset ? `color-mix(in srgb, ${sc} 20%, var(--c-sf))` : tinyInput.background, color: ex.superset ? C.tx : C.td, border: ex.superset ? `1px solid ${sc}` : tinyInput.border, fontFamily:FN, fontWeight: ex.superset ? 800 : 600, height:24, minHeight:24, width:64, minWidth:64, padding:'0 22px 0 8px', boxSizing:'border-box', appearance:'none', WebkitAppearance:'none', textAlignLast:'center'}}>
                         {SUPERSET_LABELS.map(s => <option key={s} value={s} style={{color: supersetColor(s), fontWeight: 700}}>{s||"—"}</option>)}
                       </select>
                       {ex.wkS && Array.isArray(ex.wkS) && ex.wkS.length > 0 ? (() => {
