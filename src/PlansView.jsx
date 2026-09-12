@@ -1416,7 +1416,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
       ) : !pickedId ? (
         <div style={{padding:'24px 16px', color:C.td, fontSize:12, textAlign:'center', fontFamily:FB}}>Pick a program from the filter above to compare.</div>
       ) : loading || !cmpPlan ? (
-        <div style={{padding:'30px 12px', color:C.td, fontSize:12, textAlign:'center', fontFamily:FN, letterSpacing:'0.18em'}}>LOADING…</div>
+        <div style={{padding:'30px 12px', color:C.td, fontSize:12, textAlign:'center', fontFamily:FN, letterSpacing:'0.18em'}}>{tr(readLang(), 'LOADING…')}</div>
       ) : overview ? (
         // Overview applies to BOTH halves (Ohad: "when i use overview, i can
         // also use compare — overview mode in both"). Comparing two blocks is
@@ -3641,7 +3641,7 @@ export function TrainingLineage({ traineeId, traineeName, exercises, plans, load
     );
   }
   if (loading) {
-    return <div style={{ border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>{stripHead(`Training Analysis · ${traineeName || ''}`)}<div style={{ padding: '48px 24px', textAlign: 'center', color: C.tm, fontFamily: FN, fontSize: 11, letterSpacing: '0.1em' }}>LOADING BLOCKS…</div></div>;
+    return <div style={{ border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>{stripHead(`${tr(readLang(), 'Training Analysis')} · ${traineeName || ''}`)}<div style={{ padding: '48px 24px', textAlign: 'center', color: C.tm, fontFamily: FN, fontSize: 11, letterSpacing: '0.1em' }}>{tr(readLang(), 'LOADING BLOCKS…')}</div></div>;
   }
   if (!model) {
     return <div style={{ border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>{stripHead(`Training Analysis · ${traineeName || ''}`)}<div style={{ padding: '48px 24px', textAlign: 'center', color: C.tm, fontFamily: FB, fontSize: 13 }}>No block content to trace yet for this athlete.</div></div>;
