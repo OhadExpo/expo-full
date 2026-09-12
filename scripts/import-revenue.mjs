@@ -150,7 +150,8 @@ async function upsert(table, rows, conflict) {
   return n;
 }
 if (events.length) console.log(`wrote ${await upsert('revenue_sheet_event', events, 'source,client_name,event_kind,event_date')} roster events`);
-if (months.length) console.log(`wrote ${await upsert('revenue_month_total', months, 'month,channel')} month totals`);
+// imported_at is re-stamped on every sync so the dashboard can show WHEN the sheet was last read (the column default only fires on insert).
+if (months.length) console.log(`wrote ${await upsert('revenue_month_total', months.map((m) => ({ ...m, imported_at: new Date().toISOString() })), 'month,channel')} month totals`);
 
 // ------------------------------------------------------------ verify -------
 // Read back rather than trusting the write.
