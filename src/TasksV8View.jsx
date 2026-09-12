@@ -34,6 +34,7 @@ import { useTheme } from './hooks/useTheme';
 import { useCoachNoteComments, useCoachNoteEvents, recordNoteEvent } from './coachNoteComments';
 import { supabase } from './supabase';
 import { useT, useTB } from './i18n';
+import { monthAbbr } from './dates';
 import {
   isCalendarConnected,
   connectGoogleCalendar,
@@ -109,12 +110,12 @@ function dateMeta(iso, now) {
   if (diffDays === -1) return { label: 'YESTERDAY', color: 'var(--c-tm)', isOverdue: true };
   if (diffDays < -1) {
     const day = d.getDate();
-    const mon = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'][d.getMonth()];
+    const mon = monthAbbr(d.getMonth()).toUpperCase();
     return { label: `${day} ${mon}`, color: 'var(--c-tm)', isOverdue: true };
   }
   if (diffDays > 1 && diffDays <= 6) return { label: ['SUN','MON','TUE','WED','THU','FRI','SAT'][d.getDay()], color: 'var(--c-tm)', isOverdue: false };
   const day = d.getDate();
-  const mon = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'][d.getMonth()];
+  const mon = monthAbbr(d.getMonth()).toUpperCase();
   return { label: `${day} ${mon}`, color: 'var(--c-tm)', isOverdue: false };
 }
 
@@ -1419,7 +1420,7 @@ export function EventTimeline({ noteId }) {
           // if two people created it. Label it as an assignment instead.
           const ASSIGN_LABEL = { shared: 'Shared', yuval: 'Yuval', ohad: 'Ohad' };
           const change = ev.kind === 'created'
-            ? (ev.to_value ? `for ${ASSIGN_LABEL[ev.to_value] || ev.to_value}` : '')
+            ? (ev.to_value ? `${tr(readLang(), 'for')} ${tr(readLang(), ASSIGN_LABEL[ev.to_value] || ev.to_value)}` : '')
             : (ev.from_value && ev.to_value)
               ? `${ev.from_value} → ${ev.to_value}`
               : (ev.to_value || ev.detail || '');
@@ -1580,14 +1581,13 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
 
   // Due shown as relative word + real date + time on ONE row (his spec:
   // "relative + date + time"), e.g. "TMRW · 7 Jun 09:00".
-  const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const RELATIVE_WORDS = new Set(['TODAY','TMRW','YESTERDAY','SUN','MON','TUE','WED','THU','FRI','SAT']);
   let dateStr = null;
   if (hasDue) {
     const dd = new Date(row._dueAt);
     if (!isNaN(dd.getTime())) {
-      const real = `${dd.getDate()} ${MON[dd.getMonth()]}`;
-      dateStr = RELATIVE_WORDS.has(dm.label) ? `${dm.label} · ${real}` : real;
+      const real = `${dd.getDate()} ${monthAbbr(dd.getMonth())}`;
+      dateStr = RELATIVE_WORDS.has(dm.label) ? `${tt(dm.label)} · ${real}` : real;
       if (row._dueTime) dateStr += ` ${row._dueTime}`;
     }
   }
@@ -1689,7 +1689,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
                 {isOverdue ? (
                   // "OVERDUE · YESTERDAY" — OVERDUE solid white, the day faded white
                   // (same opacity as the SHARED tag). Ohad's spec.
-                  <>{tt('OVERDUE')}<span style={{ opacity: 0.4 }}>·</span><span style={{ opacity: 0.55 }}>{dm.label}</span></>
+                  <>{tt('OVERDUE')}<span style={{ opacity: 0.4 }}>·</span><span style={{ opacity: 0.55 }}>{RELATIVE_WORDS.has(dm.label) ? tt(dm.label) : dm.label}</span></>
                 ) : dateStr}
               </span>
             )}
@@ -2618,9 +2618,9 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
           <RailGroup label={tt('Whose')}>
             {/* Both partners see all three; tasks owned solely by the other
                 render read-only. Default is the viewer's own (clamped on mount). */}
-            <RailOpt label="Ohad"   count={counts.ohad}   active={owner === 'ohad'}   onClick={() => setOwner('ohad')} />
-            <RailOpt label="Yuval"  count={counts.yuval}  active={owner === 'yuval'}  onClick={() => setOwner('yuval')} />
-            <RailOpt label="Shared" count={counts.shared} active={owner === 'shared'} onClick={() => setOwner('shared')} />
+            <RailOpt label={tr(readLang(), 'Ohad')}   count={counts.ohad}   active={owner === 'ohad'}   onClick={() => setOwner('ohad')} />
+            <RailOpt label={tr(readLang(), 'Yuval')}  count={counts.yuval}  active={owner === 'yuval'}  onClick={() => setOwner('yuval')} />
+            <RailOpt label={tr(readLang(), 'Shared')} count={counts.shared} active={owner === 'shared'} onClick={() => setOwner('shared')} />
           </RailGroup>
 
           <RailGroup label={tt('Show')}>

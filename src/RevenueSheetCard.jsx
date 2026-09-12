@@ -22,7 +22,7 @@ import { useT } from './i18n';
 import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
 import { RefinedHeaderStrip } from './ui';
-import { fmtNumericDate } from './dates';
+import { fmtNumericDate, monthAbbr } from './dates';
 
 const ILS = (n) => '₪' + Number(n || 0).toLocaleString();
 
@@ -40,7 +40,7 @@ const CHANNEL_LABEL = {
 
 const monthLabel = (iso) => {
   const [y, m] = String(iso).split('-');
-  return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][Number(m) - 1] + ' ' + y;
+  return monthAbbr(Number(m) - 1) + ' ' + y;
 };
 
 export default function RevenueSheetCard() {
@@ -129,7 +129,7 @@ export default function RevenueSheetCard() {
                   <th key={c} style={{ ...th, textAlign: 'end' }}>{tt(CHANNEL_LABEL[c])}</th>
                 ))}
                 <th style={{ ...th, textAlign: 'end', color: C.ac }}>{tt('Coaching')}</th>
-                <th style={{ ...th, textAlign: 'end' }}>{CHANNEL_LABEL.national_insurance}</th>
+                <th style={{ ...th, textAlign: 'end' }}>{tt(CHANNEL_LABEL.national_insurance)}</th>
               </tr>
             </thead>
             <tbody>

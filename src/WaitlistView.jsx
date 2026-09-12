@@ -303,7 +303,7 @@ export default function WaitlistView({ trainees }) {
             <div style={{ height: '100%', width: `${(gateProgress / COACH_GATE) * 100}%`, background: gateColor, transition: 'width 0.3s' }} />
           </div>
           <div style={{ fontFamily: FB, fontSize: 10, color: C.tm, marginTop: 6 }}>
-            {gateOpen ? 'Gate open — apply scripts/migrations/2026-05-01-multi-tenant-DRAFT.sql.' : 'Migration applies once threshold hits.'}
+            {gateOpen ? 'Gate open — apply scripts/migrations/2026-05-01-multi-tenant-DRAFT.sql.' : tt('Migration applies once threshold hits.')}
           </div>
         </div>
       </div>
@@ -338,7 +338,7 @@ export default function WaitlistView({ trainees }) {
                 color: viewMode === mode ? C.ac : C.tm,
                 fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
                 cursor: 'pointer', textTransform: 'uppercase',
-              }}>{mode}</button>
+              }}>{tt(mode)}</button>
           ))}
         </div>
       </div>
@@ -347,7 +347,7 @@ export default function WaitlistView({ trainees }) {
         <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 40, textAlign: 'center' }}>
           <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>{tt("NO COACH SIGNUPS YET")}</div>
           <div style={{ fontFamily: FB, fontSize: 13, color: C.tm }}>
-            When a coach submits the form on /coaches#waitlist, they'll appear here.
+            {tt("When a coach submits the form on /coaches#waitlist, they'll appear here.")}
           </div>
         </div>
       ) : viewMode === 'board' ? (
