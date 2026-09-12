@@ -5,11 +5,11 @@
     "name": "waitlist-he",
     "before": {
       "file": "audit-out\\pairs\\waitlist-he-he-live.png",
-      "chars": 312
+      "chars": 300
     },
     "after": {
       "file": "audit-out\\pairs\\waitlist-he-he-branch.png",
-      "chars": 300
+      "chars": 261
     }
   },
   {
@@ -18,7 +18,7 @@
     "name": "workouts-he",
     "before": {
       "file": "audit-out\\pairs\\workouts-he-he-live.png",
-      "chars": 717
+      "chars": 709
     },
     "after": {
       "file": "audit-out\\pairs\\workouts-he-he-branch.png",
@@ -31,11 +31,24 @@
     "name": "review-he",
     "before": {
       "file": "audit-out\\pairs\\review-he-he-live.png",
-      "chars": 664
+      "chars": 543
     },
     "after": {
       "file": "audit-out\\pairs\\review-he-he-branch.png",
-      "chars": 608
+      "chars": 539
+    }
+  },
+  {
+    "seat": "owner",
+    "route": "/demo/coach",
+    "name": "demo-coach-he",
+    "before": {
+      "file": "audit-out\\pairs\\demo-coach-he-he-live.png",
+      "chars": 2467
+    },
+    "after": {
+      "file": "audit-out\\pairs\\demo-coach-he-he-branch.png",
+      "chars": 2374
     }
   }
 ]
