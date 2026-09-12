@@ -245,7 +245,7 @@ export default function MessagesCard({ trainees, onSelectTrainee, onOpenMessages
       <div style={{ overflow: 'hidden', minHeight: 0 }}>
       {loading ? (
         <div style={{ padding: '20px 6px', textAlign: 'center', color: 'var(--c-td)', fontSize: 12, fontFamily: FN, letterSpacing: '0.12em' }}>
-          LOADING…
+          {tt('LOADING…')}
         </div>
       ) : threads.length === 0 && loadError ? (
         <div style={{

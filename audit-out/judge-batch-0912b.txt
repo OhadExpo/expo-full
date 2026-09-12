@@ -1,0 +1,96 @@
+1. THIS MONTH · SHEET ⇒ החודש · מהגיליון
+2. LAST 3 MONTHS · SHEET ⇒ 3 חודשים אחרונים · מהגיליון
+3. LAST 6 MONTHS · COLLECTED · SHEET ⇒ נכנס · 6 חודשים · מהגיליון
+4. Synced from the sheet twice a day ⇒ מסונכרן מהגיליון פעמיים ביום
+5. {n}d overdue ⇒ באיחור {n} ימים
+6. Your ⇒ הצד
+7. side of the platform. Click through the tabs above. Mock data — nothing here writes to your account. ⇒ שלך בפלטפורמה. תעבור בין הטאבים למעלה. נתוני דמו — שום דבר כאן לא נכתב לחשבון שלך.
+8. COACHES ⇒ מאמנים
+9. PRICING CTA ⇒ כפתור מחיר
+10. EXIT-INTENT ⇒ יציאה מהדף
+11. HEY ⇒ היי
+12. TRAINEE ⇒ מתאמן
+13. That booking page doesn’t exist. ⇒ עמוד ההזמנה הזה לא קיים.
+14. UA: ⇒ דפדפן:
+15. TRIAGE NOTES ⇒ הערות טיפול
+16. Repro steps, hypothesis, blocker… ⇒ איך משחזרים, השערה, מה חוסם…
+17. commit SHA — blank to skip ⇒ SHA של הקומיט — ריק אם אין
+18. SMART TEMPLATES ⇒ תבניות מוכנות
+19. BLANK CHALLENGE → ⇒ אתגר ריק ←
+20. DESCRIPTION (OPTIONAL) ⇒ תיאור (לא חובה)
+21. Filter by message text… ⇒ סינון לפי טקסט ההודעה…
+22. PATTERN COVERAGE: 5/8 ⇒ כיסוי תבניות: 5/8
+23. PATTERN COVERAGE: 4/8 ⇒ כיסוי תבניות: 4/8
+24. Notes / modifications... ⇒ הערות / שינויים…
+25. Insert video URL ⇒ קישור לווידאו
+26. Search exercises (title, muscle, pattern...) ⇒ חיפוש תרגיל (שם, שריר, תבנית…)
+27. Comment at 0:04… ⇒ תגובה ב-0:04…
+28. PLAYS INLINE — NO CLICK-THROUGH ⇒ מתנגן כאן — בלי מעבר לאתר
+29. Select... ⇒ בחר…
+30. Shoulder, Elbow ⇒ כתף, מרפק
+31. Shoulder Flexion ⇒ כפיפת כתף
+32. Quads, Glutes ⇒ ארבע ראשי, ישבן
+33. Brace core, drive through heels... ⇒ תנעל את הבטן, תדחוף מהעקבים…
+34. Filter by name / email / form type… ⇒ סינון לפי שם / אימייל / סוג טופס…
+35. NO INTAKE YET ⇒ עוד אין טפסים
+36. FORM TYPE ⇒ סוג טופס
+37. LOCALE ⇒ שפה
+38. Add a note… ⇒ תוסיף הערה…
+39. Search notes / tags  (try "#rehab" or "shoulder") ⇒ חיפוש בהערות / תגיות (נסה "#שיקום" או "כתף")
+40. Quick thought… (⌘/Ctrl + Enter to save · auto-saves on blur) ⇒ מחשבה מהירה… (Ctrl + Enter לשמירה · נשמר לבד כשיוצאים)
+41. Search by title, muscle, pattern, position... ⇒ חיפוש לפי שם, שריר, תבנית, מנח…
+42. CURRENT ⇒ נוכחי
+43. LEGACY RX: ⇒ מרשם ישן:
+44. Notes, cues... (shown to the athlete on this warm-up step) ⇒ הערות, דגשים… (המתאמן רואה את זה בשלב החימום הזה)
+45. Select athlete ⇒ בחר מתאמן
+46. COPY ⇒ העתקה
+47. Hypertrophy Block A ⇒ בלוק היפרטרופיה A
+48. Accumulation... ⇒ צבירה…
+49. INTENSITY %1RM ⇒ עצימות %1RM
+50. DUPLICATE → ⇒ שכפול ←
+51. AI MAPPING ⇒ מיפוי AI
+52. TARGET ⇒ יעד
+53. SOURCE COLUMN ⇒ עמודת מקור
+54. CONF ⇒ ביטחון
+55. Add comment… ⇒ תוסיף תגובה…
+56. SET ⇒ סט
+57. OR ASSIGN EXISTING ⇒ או תקצה תוכנית קיימת
+58. FROM LIBRARY (UNASSIGNED) ⇒ מהספרייה (לא משויכת)
+59. DUPLICATE FROM ANOTHER ATHLETE ⇒ שכפול ממתאמן אחר
+60. L4/L5 disc bulge, R shoulder impingement... ⇒ בלט דיסק L4/L5, צביטה בכתף ימין…
+61. Search an exercise… ⇒ חיפוש תרגיל…
+62. TREND · KG / WEEK ⇒ מגמה · ק״ג / שבוע
+63. SHARED LOG ⇒ יומן משותף
+64. DROP HERE ⇒ שחרר כאן
+65. Type a name… ⇒ תכתוב שם…
+66. FOCUS FOR ⇒ פוקוס ל
+67. HIP ⇒ ירך
+68. SHOULDER ⇒ כתף
+69. Notes for this exercise… ⇒ הערות לתרגיל הזה…
+70. Session observations... ⇒ תצפיות מהאימון…
+71. Search athlete… ⇒ חיפוש מתאמן…
+72. SHEET PREVIEW ⇒ תצוגת הגיליון
+73. PREVIEW ⇒ תצוגה מקדימה
+74. TOOL FAILED TO LOAD ⇒ הכלי לא נטען
+75. ENTER → ⇒ כניסה ←
+76. BNEI HERZLIYA ⇒ בני הרצליה
+77. ATHLETE ⇒ מתאמן
+78. BLOCK ⇒ בלוק
+79. UNMARK ⇒ בטל סימון
+80. SKIP ⇒ דלג
+81. JOIN ZOOM → ⇒ לזום ←
+82. NEXT → ⇒ הבא ←
+83. EXPO-APP.CO.IL ⇒ EXPO-APP.CO.IL
+84. Your name * ⇒ השם שלך *
+85. Email ⇒ אימייל
+86. Phone (WhatsApp) ⇒ טלפון (וואטסאפ)
+87. Notes (optional) ⇒ הערות (לא חובה)
+88. National Insurance ⇒ ביטוח לאומי
+89. Migration applies once threshold hits. ⇒ המעבר יופעל כשנגיע לסף.
+90. When a coach submits the form on /coaches#waitlist, they'll appear here. ⇒ כשמאמן ישלח את הטופס ב-/coaches#waitlist, הוא יופיע כאן.
+91. list ⇒ רשימה
+92. Yuval ⇒ יובל
+93. Ohad ⇒ אוהד
+94. for ⇒ עבור
+95. board ⇒ לוח
+96. TMRW ⇒ מחר

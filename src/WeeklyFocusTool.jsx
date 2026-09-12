@@ -190,9 +190,9 @@ export default function WeeklyFocusTool({ trainees, exercises, weeklyFocus, setW
             )}
           </div>
 
-          {loadErr && <div style={{ color: C.rd, fontFamily: FB, fontSize: 12 }}>Couldn't load plans: {loadErr}</div>}
-          {traineeId && plans === null && !loadErr && <div style={{ color: C.tm, fontFamily: FN, fontSize: 11, letterSpacing: '0.12em' }}>LOADING PLAN…</div>}
-          {traineeId && plans && plans.length === 0 && <div style={{ color: C.tm, fontFamily: FB, fontSize: 12 }}>No active block for this athlete.</div>}
+          {loadErr && <div style={{ color: C.rd, fontFamily: FB, fontSize: 12 }}>{tt("Couldn't load plans:")} {loadErr}</div>}
+          {traineeId && plans === null && !loadErr && <div style={{ color: C.tm, fontFamily: FN, fontSize: 11, letterSpacing: '0.12em' }}>{tt('LOADING PLAN…')}</div>}
+          {traineeId && plans && plans.length === 0 && <div style={{ color: C.tm, fontFamily: FB, fontSize: 12 }}>{tt('No active block for this athlete.')}</div>}
 
           {plan && days.map((d, di) => (
             <div key={di} style={{ marginBottom: 14 }}>

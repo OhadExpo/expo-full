@@ -114,7 +114,7 @@ const MemoWorkouts = React.memo(WorkoutsView);
 const MemoReview = React.memo(WorkoutReview);
 
 const ViewFallback = () => (
-  <div className="expo-loading" style={{textAlign:'center',padding:40,color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.2em'}}>LOADING…</div>
+  <div className="expo-loading" style={{textAlign:'center',padding:40,color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.2em'}}>{trFn(readLang(), 'LOADING…')}</div>
 );
 
 const KEYS = { trainees:"expo-trainees", exercises:"expo-exercises", workouts:"expo-workouts", cw:"expo-cw", bw:"expo-bw" };
