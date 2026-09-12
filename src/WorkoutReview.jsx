@@ -1573,7 +1573,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
             style={{padding:'3px 8px',borderRadius:0,border:'2px solid transparent',display:'inline-flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',whiteSpace:'nowrap',
               background:'transparent',color:C.tm,
               fontFamily:FN,fontSize:10,cursor:poseLoading?'wait':'pointer',opacity:poseLoading?0.6:1}}>
-            {poseLoading ? 'LOADING…' : poseOn ? 'SKELETON ON' : 'SKELETON'}
+            {poseLoading ? tt('LOADING…') : poseOn ? tt('SKELETON ON') : tt('SKELETON')}
           </button>
           {/* REPS + its joint-picker live in their own small column, not
               inline siblings of SKELETON/LIFT METRICS — the dropdown only
@@ -1589,7 +1589,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
               style={{padding:'3px 8px',borderRadius:0,border:`2px solid ${repsOn?C.gn:'transparent'}`,display:'inline-flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',whiteSpace:'nowrap',
                 background:repsOn?C.gnD:'transparent',color:repsOn?C.gn:C.tm,
                 fontFamily:FN,fontSize:10,cursor:poseLoading?'wait':'pointer',opacity:poseLoading?0.6:1}}>
-              {repsOn ? `REPS ${reps}` : 'REPS'}
+              {repsOn ? `${tt('REPS')} ${reps}` : tt('REPS')}
             </button>
             {repsOn && (
               <select value={trackOverride} onChange={e => setTrackOverride(e.target.value)}
@@ -1658,7 +1658,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
         <div style={{flex:'0 1 auto',display:'flex',gap:4,alignItems:'center'}}>
           <button onClick={fullscreen}
             style={{padding:'3px 10px',height:22,boxSizing:'border-box',borderRadius:0,border:`1px solid ${C.bd}`,
-              background:'transparent',color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>⛶ FULL</button>
+              background:'transparent',color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>⛶ {tt('FULL')}</button>
         </div>
       </div>
       {/* Bottom row: speeds → frame-step → LOOP, all centered as one
@@ -1810,6 +1810,10 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
 // athlete's own rep next to the model movement. A demo embed exposes no <video>
 // ref, so the timestamp SYNC controls are hidden in demo mode (each player has
 // its own controls); the left form clip keeps the full FormVideoPlayer chrome.
+const bidiParts = (label) => String(label || '').split(' · ').map((p, i) => (
+  <span key={i}>{i > 0 && ' · '}<span style={{ unicodeBidi: 'plaintext' }}>{p}</span></span>
+));
+
 function CompareModal({ leftLabel, leftUrl, leftTitle, rightLabel, rightUrl, rightTitle, rightMode, onClose, closing }) {
   // Ohad 2026-09-11: "buttons are not centered and too boring and flat …
   // play both, pause, sync, etc.. redesign it smarter, nicer, ocd". One
@@ -1824,6 +1828,7 @@ function CompareModal({ leftLabel, leftUrl, leftTitle, rightLabel, rightUrl, rig
   const [speed, setSpeedState] = useState(1);
   const [loop, setLoopState] = useState(false);
   const demo = rightMode === 'demo';
+  const tt = useAppT();
   useEscClose(true, onClose); // Escape closes the compare modal
   const vids = () => [leftVid, rightVid].filter(Boolean);
   const sync = (target) => {
@@ -1867,16 +1872,16 @@ function CompareModal({ leftLabel, leftUrl, leftTitle, rightLabel, rightUrl, rig
     <div onClick={onClose} role="dialog" aria-modal="true" aria-label="Compare videos" className={closing ? 'motion-fade-out' : 'motion-fade-in'} style={{position:'fixed',inset:0,zIndex:1200,background:C.scrim,display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:32,overflow:'auto'}}>
       <div onClick={e => e.stopPropagation()} className={closing ? 'motion-fall' : 'motion-rise'} style={{background:C.bg,border:`1px solid ${C.cardBd}`,borderRadius:0,width:'min(1400px, 96vw)',padding:20}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
-          <h3 style={{margin:0,fontFamily:FN,fontSize:16,color:C.tx,letterSpacing:'0.08em'}}>{demo ? 'FORM VS DEMO' : 'COMPARE'}</h3>
+          <h3 style={{margin:0,fontFamily:FN,fontSize:16,color:C.tx,letterSpacing:'0.08em'}}>{demo ? tt('FORM VS DEMO') : tt('COMPARE')}</h3>
           <button onClick={onClose} aria-label="Close" style={{background:'none',border:'none',color:C.tm,cursor:'pointer',fontSize:18,padding:'0 8px'}}>✕</button>
         </div>
         <div className="cmp-grid" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,alignItems:'start'}}>
           <div>
-            <div style={titleStyle}>{leftLabel}</div>
+            <div style={titleStyle}>{bidiParts(leftLabel)}</div>
             <FormVideoPlayer url={leftUrl} exerciseTitle={leftTitle} onVideoRef={setLeftVid} compare={!demo} />
           </div>
           <div>
-            <div style={titleStyle}>{rightLabel}</div>
+            <div style={titleStyle}>{bidiParts(rightLabel)}</div>
             {demo
               ? <VideoEmbed url={rightUrl} />
               : <FormVideoPlayer url={rightUrl} exerciseTitle={rightTitle} onVideoRef={setRightVid} compare />}
@@ -1886,17 +1891,17 @@ function CompareModal({ leftLabel, leftUrl, leftTitle, rightLabel, rightUrl, rig
           <div style={{display:'flex',justifyContent:'center',marginTop:16}}>
             <div style={bar} role="toolbar" aria-label="Both videos">
               <button onClick={() => stepBoth(-1)} title="Both back one frame (←)" style={btn(false)}>◀</button>
-              <button onClick={toggle} title={playing ? 'Pause both (Space)' : 'Play both (Space)'} style={btn(playing, { minWidth: 118 })}>{playing ? '❚❚  PAUSE' : '▶  PLAY BOTH'}</button>
+              <button onClick={toggle} title={playing ? 'Pause both (Space)' : 'Play both (Space)'} style={btn(playing, { minWidth: 118 })}>{playing ? '❚❚  ' + tt('PAUSE') : '▶  ' + tt('PLAY BOTH')}</button>
               <button onClick={() => stepBoth(1)} title="Both forward one frame (→)" style={btn(false)}>▶</button>
               <span style={divider} />
               {[0.125, 0.25, 0.5, 1, 2].map(x => (
                 <button key={x} onClick={() => setSpeed(x)} title={`Both at ${x}x`} style={btn(speed === x, { padding:'0 10px' })}>{x}x</button>
               ))}
               <span style={divider} />
-              <button onClick={setLoop} title="Loop both" style={btn(loop)}>↻ LOOP</button>
+              <button onClick={setLoop} title="Loop both" style={btn(loop)}>↻ {tt('LOOP')}</button>
               <span style={divider} />
-              <button onClick={() => sync('right')} title="Right jumps to the left's frame" style={btn(false)}>SYNC →</button>
-              <button onClick={() => sync('left')} title="Left jumps to the right's frame" style={btn(false)}>← SYNC</button>
+              <button onClick={() => sync('right')} title="Right jumps to the left's frame" style={btn(false)}>{tt('SYNC')} →</button>
+              <button onClick={() => sync('left')} title="Left jumps to the right's frame" style={btn(false)}>← {tt('SYNC')}</button>
             </div>
           </div>
         )}
@@ -2169,13 +2174,13 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                 <h3 style={{margin:0,fontFamily:FN,fontSize:15,color:C.tx}}>{tt('Compare with…')}</h3>
                 <button onClick={() => setComparePicker(null)} style={{background:'none',border:'none',color:C.tm,cursor:'pointer',fontSize:16}}>✕</button>
               </div>
-              <div style={{fontSize:11,color:C.tm,marginBottom:10}}>{cmpPickerHold.value.candidates.length} other video{cmpPickerHold.value.candidates.length===1?'':'s'} from this client:</div>
+              <div style={{fontSize:11,color:C.tm,marginBottom:10}}>{cmpPickerHold.value.candidates.length} {tt(cmpPickerHold.value.candidates.length === 1 ? 'other video from this client:' : 'other videos from this client:')}</div>
               {cmpPickerHold.value.candidates.map((c, i) => (
                 <div key={i} onClick={() => { setCompareActive({ left: cmpPickerHold.value.left, right: { url: c.cloudUrl, label: c.label, title: c.title } }); setComparePicker(null); }}
                   style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'10px 14px',marginBottom:6,cursor:'pointer',transition:'border-color .15s'}}
                   onMouseEnter={e => e.currentTarget.style.borderColor = C.ac}
                   onMouseLeave={e => e.currentTarget.style.borderColor = C.bd}>
-                  <div style={{fontSize:12,color:C.tx}}>{c.label}</div>
+                  <div style={{fontSize:12,color:C.tx}}>{bidiParts(c.label)}</div>
                 </div>
               ))}
             </div>
