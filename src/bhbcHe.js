@@ -24,6 +24,39 @@ import { createContext, useContext } from 'react';
 // names by Hebrew speakers and look wrong transliterated.
 
 export const HE = {
+  'Show {n} more': 'עוד {n}',
+  'GAME': 'משחק',
+  'Lift': 'כוח',
+  'Shootaround': 'שוטאראונד',
+  'Conditioning': 'קונדישן',
+  'Recovery': 'התאוששות',
+  'The {season} season has not started yet.': 'עונת {season} עוד לא נפתחה — נתוני הקבוצה יופיעו כאן אחרי המשחק הראשון.',
+  'TODAY': 'היום',
+  'Month': 'חודש',
+  'Week': 'שבוע',
+  'List': 'רשימה',
+  'Player': 'שחקן',
+  'Margin': 'הפרש',
+  'Live': 'חי',
+  'Champions League': 'ליגת האלופות',
+  'Injury': 'פציעה',
+  'Status': 'סטטוס',
+  'Since · pain': 'מאז · כאב',
+  'Reported by': 'דיווח',
+  'Point Guard': 'פוינט גארד',
+  'Shooting Guard': 'שוטינג גארד',
+  'Guard': 'גארד',
+  'Small Forward': 'סמול פורוורד',
+  'Power Forward': 'פאוור פורוורד',
+  'Forward': 'פורוורד',
+  'Center': 'סנטר',
+  'Guard-Forward': 'גארד-פורוורד',
+  'Forward-Center': 'פורוורד-סנטר',
+  'No team sessions scheduled this week.': 'אין אימוני קבוצה השבוע.',
+  'Load anchored to the game: heaviest far out (MD-4/-3), taper MD-1 (hold intensity, cut volume), regenerate MD+1.': 'העומס מעוגן למשחק: הכי כבד רחוק ממנו (MD-4/-3), הורדה ב-MD-1 (שומרים עצימות, חותכים נפח), התאוששות ב-MD+1.',
+  'No games played yet this season — team stats fill in automatically after tip-off.': 'עוד לא שוחקו משחקים העונה — נתוני הקבוצה יתמלאו לבד אחרי המשחק הראשון.',
+  'No {season} games played yet — per-player league numbers appear here after tip-off.': 'עוד לא שוחקו משחקים ב-{season} — מספרי הליגה של כל שחקן יופיעו כאן אחרי המשחק הראשון.',
+  'ROM → Tempo → Intensity → Volume → Frequency': 'טווח תנועה ← טמפו ← עצימות ← נפח ← תדירות',
   // ---- navigation -------------------------------------------------------
   Overview: 'סקירה',
   Roster: 'סגל',
@@ -350,7 +383,12 @@ const DOW_HE = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
 const MON_HE = ['ינו׳', 'פבר׳', 'מרץ', 'אפר׳', 'מאי', 'יוני', 'יולי', 'אוג׳', 'ספט׳', 'אוק׳', 'נוב׳', 'דצמ׳'];
 
 export const dowFor = (d, en) => (_dateLang === 'he' ? DOW_HE[d.getDay()] : en);
+// The same by weekday index, for a header row that is not a date.
+export const dowIdxFor = (i, en) => (_dateLang === 'he' ? DOW_HE[i] : en);
 export const monDayFor = (d, en) => (_dateLang === 'he' ? `${d.getDate()} ב${MON_HE[d.getMonth()]}` : en);
+
+// Month heading on the calendar ("Sep 2026"); index 0 = January.
+export const monFor = (monthIndex, en) => (_dateLang === 'he' ? MON_HE[monthIndex] : en);
 
 /** Fixture kind → what a coach calls it. */
 export const fxLabelFor = (kind, en) => {
