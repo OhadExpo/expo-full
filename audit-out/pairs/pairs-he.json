@@ -5,11 +5,37 @@
     "name": "pt-zone",
     "before": {
       "file": "audit-out\\pairs\\pt-zone-he-live.png",
-      "chars": 1504
+      "chars": 1528
     },
     "after": {
       "file": "audit-out\\pairs\\pt-zone-he-branch.png",
-      "chars": 1504
+      "chars": 1496
+    }
+  },
+  {
+    "seat": "owner",
+    "route": "/coach/bhbc",
+    "name": "bhbc",
+    "before": {
+      "file": "audit-out\\pairs\\bhbc-he-live.png",
+      "chars": 1584
+    },
+    "after": {
+      "file": "audit-out\\pairs\\bhbc-he-branch.png",
+      "chars": 1552
+    }
+  },
+  {
+    "seat": "owner",
+    "route": "/coach",
+    "name": "dashboard",
+    "before": {
+      "file": "audit-out\\pairs\\dashboard-he-live.png",
+      "chars": 3355
+    },
+    "after": {
+      "file": "audit-out\\pairs\\dashboard-he-branch.png",
+      "chars": 3435
     }
   },
   {
@@ -18,7 +44,7 @@
     "name": "portal",
     "before": {
       "file": "audit-out\\pairs\\portal-he-live.png",
-      "chars": 3148
+      "chars": 3150
     },
     "after": {
       "file": "audit-out\\pairs\\portal-he-branch.png",

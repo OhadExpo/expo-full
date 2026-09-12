@@ -10,7 +10,7 @@
     },
     "after": {
       "file": "audit-out\\pairs\\program-he-he-branch.png",
-      "chars": 5265
+      "chars": 5257
     }
   },
   {
@@ -20,11 +20,11 @@
     "tab": "^(EDIT|עריכה)$",
     "before": {
       "file": "audit-out\\pairs\\athlete-form-he-he-live.png",
-      "chars": 4534
+      "chars": 4533
     },
     "after": {
       "file": "audit-out\\pairs\\athlete-form-he-he-branch.png",
-      "chars": 4593
+      "chars": 4592
     }
   },
   {
@@ -38,7 +38,7 @@
     },
     "after": {
       "file": "audit-out\\pairs\\athlete-detail-he-he-branch.png",
-      "chars": 3148
+      "chars": 3155
     }
   }
 ]

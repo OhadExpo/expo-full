@@ -101,4 +101,4 @@ RESTORE POINT (pre-perf-fixes): b1f93ab6f04fa84e842c58049f278312374c8a43
 - [x] E8 gate: scripts/verify-english-literals.mjs in the build (English >LABEL< / placeholders in translated views); 113 → 0 by codemod + 70 keys; break-tested
 - [x] E9 dictionary hygiene report — `audit-out/dict-hygiene.mjs` (report in `dict-hygiene-0912.txt`): 10 casing pairs, every one a deliberate singular/plural or noun/imperative split (Answered/ANSWERED, Save/SAVE, Record/record = W-L מאזן vs רשומה); 11 Latin-in-value lines are file types, demo data, ACL, VPN; nothing to unify — the trap is only a THIRD casing at a call site, which the report would show
 - [x] E10 the club zone (/coach/bhbc) speaks Hebrew via its own switch: run the literal gate's idea on BhbcView (it imports its own translator?) — dump each zone tab in Hebrew as the physio sees it and fix leftovers
-- [ ] E11 host refresh with tonight's work (pairs, tonight page banner, tabs) + handoff rows 79/80 + memory
+- [x] E11 host refresh with tonight's work (pairs, tonight page banner, tabs) + handoff rows 79/80 + memory

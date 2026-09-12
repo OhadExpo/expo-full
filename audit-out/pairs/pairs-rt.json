@@ -18,11 +18,11 @@
     "name": "tasks-he",
     "before": {
       "file": "audit-out\\pairs\\tasks-he-he-live.png",
-      "chars": 2340
+      "chars": 2453
     },
     "after": {
       "file": "audit-out\\pairs\\tasks-he-he-branch.png",
-      "chars": 2334
+      "chars": 2449
     }
   },
   {
@@ -31,11 +31,11 @@
     "name": "billing-he",
     "before": {
       "file": "audit-out\\pairs\\billing-he-he-live.png",
-      "chars": 2431
+      "chars": 2509
     },
     "after": {
       "file": "audit-out\\pairs\\billing-he-he-branch.png",
-      "chars": 2436
+      "chars": 2511
     }
   }
 ]

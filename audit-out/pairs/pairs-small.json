@@ -5,11 +5,11 @@
     "name": "dashboard-he",
     "before": {
       "file": "audit-out\\pairs\\dashboard-he-he-live.png",
-      "chars": 3385
+      "chars": 3355
     },
     "after": {
       "file": "audit-out\\pairs\\dashboard-he-he-branch.png",
-      "chars": 3406
+      "chars": 3440
     }
   },
   {
