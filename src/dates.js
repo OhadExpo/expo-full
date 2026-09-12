@@ -105,3 +105,11 @@ export function todayLocalISO(d = new Date()) {
   const p = (n) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
+
+// Short month name for chips and table rows ("7 Sep", "Sep 2026"). The
+// Hebrew forms are the ones his sheet writes (ספט׳, אוג׳), so the app and the
+// sheet read the same. Index 0 = January.
+const MONTH_ABBR_HE = ['ינו׳', 'פבר׳', 'מרץ', 'אפר׳', 'מאי', 'יוני', 'יולי', 'אוג׳', 'ספט׳', 'אוק׳', 'נוב׳', 'דצמ׳'];
+export function monthAbbr(monthIndex) {
+  return (isHe() ? MONTH_ABBR_HE : MONTH_ABBR)[monthIndex] || '';
+}
