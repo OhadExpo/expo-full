@@ -194,6 +194,8 @@ for (const c of T) {
     }
   }
   out.spans.push({ sections: c.sections, from_rev: c.first_rev, to_rev: c.last_rev, from: dateOf(c.first_iso), to: dateOf(c.last_iso) });
+  // ---- start dates: every distinct value the start cell ever held ----
+  out.starts = (f.start || []).filter((r) => /^\d{4}-\d{2}-\d{2}$/.test(r.value)).map((r) => ({ date: r.value, first_seen_rev: r.first_rev, seen_until_rev: r.last_rev }));
   clients.push(out);
 }
 

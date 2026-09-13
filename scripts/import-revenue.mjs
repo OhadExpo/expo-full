@@ -149,6 +149,10 @@ async function upsert(table, rows, conflict) {
   }
   return n;
 }
+// Since 2026-09-13 the roster events come from import-revenue-timeline.mjs
+// (every revision, every field); the sync passes ROSTER_EVENTS=0 so this writes
+// only the finance months. Run by hand without it, it still writes both.
+if (process.env.ROSTER_EVENTS === '0') events.length = 0;
 if (events.length) console.log(`wrote ${await upsert('revenue_sheet_event', events, 'source,client_name,event_kind,event_date')} roster events`);
 // imported_at is re-stamped on every sync so the dashboard can show WHEN the sheet was last read (the column default only fires on insert).
 if (months.length) console.log(`wrote ${await upsert('revenue_month_total', months.map((m) => ({ ...m, imported_at: new Date().toISOString() })), 'month,channel')} month totals`);

@@ -115,6 +115,11 @@ for (const c of D.clients) {
       recorded_from: sess.between[0], recorded_to: sess.between[1], amount_method: 'attendance', confidence: sess.between[0] === sess.between[1] ? 'high' : 'medium',
       basis: `counter ${sess.from} → ${sess.to}` });
   }
+  for (const st of (c.starts || [])) {
+    const rs = c.rates.find((r) => r.field === 'price_session' && r.from_rev <= st.first_seen_rev) || null;
+    put({ ...base, event_kind: 'start_date', event_date: st.date, first_seen_rev: st.first_seen_rev, rev_lo: st.first_seen_rev, rev_hi: st.seen_until_rev,
+      rate_text: rs ? rs.value : null, rate_amount: parseRateAmount(rs && rs.value), rate_unit: rs ? 'session' : null, amount_method: 'start', confidence: 'high', basis: 'start cell' });
+  }
   for (const r of c.rates) {
     if (!r.from) continue;
     const d = r.from_iso ? r.from_iso.slice(0, 10) : null;
@@ -127,4 +132,8 @@ const list = [...events.values()];
 const kinds = {}; for (const e of list) kinds[e.event_kind] = (kinds[e.event_kind] || 0) + 1;
 console.log(`clients ${D.clients.length} · linked to EXPO ${linked} · unmatched ${unmatched.length}: ${unmatched.slice(0, 12).join(', ')}`);
 console.log('events:', JSON.stringify(kinds));
+if (!DRY) {
+  const { error: delErr } = await s.from('revenue_sheet_event').delete().eq('source', 'roster').in('event_kind', ['session', 'rate_change']);
+  if (delErr) { console.log('could not clear derived rows:', delErr.message); process.exit(1); }
+}
 console.log(`events → ${await upsert('revenue_sheet_event', list, 'source,client_name,event_kind,event_date')} written${DRY ? ' (dry)' : ''}`);

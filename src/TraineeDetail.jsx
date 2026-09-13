@@ -787,7 +787,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             on the page. Same predicate as the roster and the dashboard. */}
         {(isClubAthleteRow(td)
           ? [[t("Last Payment"),fmtPrettyDate(lastPaidDate)],[t("Since"),fmtPrettyDate(td.startDate)]]
-          : [[t("Package"),td.package],[t("Sessions Left"),td.sessionsRemaining],[t("Monthly"),td.monthly?`₪${td.monthly}`:"—"],[t("Per Session"),td.perSession?`₪${td.perSession}`:"—"],[t("Last Payment"),fmtPrettyDate(lastPaidDate)],[t("Since"),fmtPrettyDate(td.startDate)]]
+          : [[t("Package"),t(td.package)],[t("Sessions Left"),td.sessionsRemaining],[t("Monthly"),td.monthly?`₪${td.monthly}`:"—"],[t("Per Session"),td.perSession?`₪${td.perSession}`:"—"],[t("Last Payment"),fmtPrettyDate(lastPaidDate)],[t("Since"),fmtPrettyDate(td.startDate)]]
         ).map(([l,v])=>{
           const empty = v===undefined||v===null||v===""||v==="—";
           // Auto-width cells + nowrap values so a long date ("1st of January 2025")
