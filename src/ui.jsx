@@ -713,7 +713,11 @@ export const Card = ({ children, style, className, onClick, onMouseEnter, onMous
         // Header-only card (no body content): let the strip bleed to the BOTTOM
         // edge too (negative margin cancels the card's bottom padding) so there's
         // no dead band under the title. With a body, keep the normal 12px gap.
-        <RefinedHeaderStrip padY={padNum} padX={padNum} marginBottom={children ? 12 : -padNum}
+        // A card with NO padding (the club zone tables) still needs its title inset
+        // from the edge, and a strip that must not bleed past a box that has no
+        // padding to cancel: pad 14, no bleed. Ohad 13.9: "the hebrew titles are
+        // not aligned right" - the title sat flush on the card edge.
+        <RefinedHeaderStrip padY={padNum} padX={Math.max(padNum, 14)} bleed={padNum > 0} marginBottom={children ? 12 : -padNum}
           onClick={onHeaderClick}
           role={onHeaderClick ? 'button' : undefined}
           tabIndex={onHeaderClick ? 0 : undefined}

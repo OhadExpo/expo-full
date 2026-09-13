@@ -3089,9 +3089,9 @@ function WeightRoomTab({ rows = [], loads = {}, medical = {}, fixtures = [], pla
         {!!due.length && (
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap', padding: '9px 14px', borderBottom: `1px solid ${C.cardBd}`, background: 'rgba(242,106,43,0.06)' }}>
             <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 800, letterSpacing: '0.10em', textTransform: 'uppercase', color: ORANGE_DEEP, flexShrink: 0 }}>{tr('due')}</span>
-            <span style={{ fontFamily: FB, fontSize: 12, color: C.tx, minWidth: 0 }}>
-              {due.map(({ t, since }, i) => (
-                <span key={t.id} style={{ unicodeBidi: 'isolate' }}>{i ? ' · ' : ''}{t.name}<span style={{ color: ink(since), fontWeight: 700, unicodeBidi: 'isolate' }}>{'\u00A0'}{since == null ? tr('never') : (he ? `${since} ${tr('days')}` : `${since}d`)}</span></span>
+            <span style={{ display: 'flex', flexWrap: 'wrap', gap: 6, minWidth: 0 }}>
+              {due.map(({ t, since }) => (
+                <span key={t.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 24, padding: '0 8px', border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)', fontFamily: FN, fontSize: 10.5, fontWeight: 700, color: C.tx, whiteSpace: 'nowrap' }}><span style={{ unicodeBidi: 'isolate' }}>{t.name}</span><span style={{ color: ink(since), fontWeight: 800, unicodeBidi: 'isolate', fontVariantNumeric: 'tabular-nums' }}>{since == null ? tr('never') : (he ? `${since} ${tr('days')}` : `${since}d`)}</span></span>
               ))}
             </span>
           </div>
@@ -3114,7 +3114,7 @@ function WeightRoomTab({ rows = [], loads = {}, medical = {}, fixtures = [], pla
             <div style={{ display: 'grid', gridTemplateColumns: `180px repeat(${days.list.length}, minmax(${CELL}px, 1fr)) 118px`, alignItems: 'center', padding: '6px 14px 4px', gap: 0 }}>
               <span />
               {days.list.map((d) => (
-                <span key={d.iso} style={{ fontFamily: FN, fontSize: 9, fontWeight: d.iso === today ? 800 : 600, color: d.iso === today ? ORANGE_DEEP : (d.dow === 6 || d.dow === 5 ? C.cardBd : C.tm), textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{d.dom}</span>
+                <span key={d.iso} title={monDay(d.iso)} style={{ fontFamily: FN, fontSize: 9, fontWeight: d.iso === today ? 800 : 600, color: d.iso === today ? ORANGE_DEEP : (d.dow === 6 || d.dow === 5 ? C.cardBd : C.tm), textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{d.dom}</span>
               ))}
               <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, textAlign: 'end', paddingInlineStart: 10 }}>{tr('last lift')}</span>
             </div>
@@ -3138,7 +3138,11 @@ function WeightRoomTab({ rows = [], loads = {}, medical = {}, fixtures = [], pla
                   {cells.map((c) => (
                     <span key={c.iso} title={`${monDay(c.iso)}${c.lift ? ` · ${c.mins || ''}${c.mins ? tr('min') : tr('lift')}` : ''}`}
                       style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 26, background: c.future ? 'transparent' : TINT[c.code] || 'transparent', borderInlineStart: `1px solid ${C.cardBd}` }}>
-                      {c.lift && <span style={{ width: 12, height: 12, background: ORANGE, display: 'block' }} />}
+                      {c.lift && (
+                        <span style={{ minWidth: 18, height: 16, padding: '0 3px', background: ORANGE, color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 8.5, fontWeight: 800, fontVariantNumeric: 'tabular-nums', letterSpacing: 0 }}>
+                          {c.mins || ''}
+                        </span>
+                      )}
                     </span>
                   ))}
                   <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, height: 26, paddingInlineStart: 10 }}>
@@ -4427,23 +4431,33 @@ function GameMinutesModal({ game, roster, bhbcLoads, onClose, onSave }) {
   const played = Object.values(mins).filter((m) => Number(m) > 0).length;
   return (
     <BModal open onClose={onClose} wide title={`${tr('Minutes played')} \u00B7 ${game.opponent ? tr('vs') + ' ' + game.opponent : tr('Game')}`}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
-        <span style={{ fontFamily: FN, fontSize: 11, color: C.td }}>{tr('Game RPE')}</span>
-        <input type="number" min="1" max="10" value={rpe} onChange={(e) => setRpe(e.target.value)}
-          style={{ width: 64, height: 30, boxSizing: 'border-box', background: 'var(--c-sf)', border: '1px solid ' + C.ln, color: C.tx, fontFamily: FN, padding: '0 8px' }} />
-        <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, color: C.td, unicodeBidi: 'isolate' }}>
-          {played} {tr('played')} \u00B7 {total} {tr('min total')}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', marginBottom: 12, padding: '10px 12px', border: '1px solid ' + C.ln, background: 'var(--c-sf)' }}>
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm }}>
+          {tr('Game RPE')}
+          <input type="number" min="1" max="10" value={rpe} onChange={(e) => setRpe(e.target.value)}
+            style={{ width: 56, height: 30, boxSizing: 'border-box', background: 'var(--c-bg)', border: '1px solid ' + C.ln, color: C.tx, fontFamily: FN, fontSize: 13, fontWeight: 800, textAlign: 'center', padding: 0 }} />
+        </label>
+        <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 6, fontFamily: FN, fontSize: 11, color: C.td, marginInlineStart: 'auto' }}>
+          <b style={{ color: C.tx, fontSize: 14, fontVariantNumeric: 'tabular-nums' }}>{played}</b><span>{tr('played')}</span>
+          <span style={{ opacity: 0.5 }}>·</span>
+          <b style={{ color: C.tx, fontSize: 14, fontVariantNumeric: 'tabular-nums' }}>{total}</b><span>{tr('min total')}</span>
         </span>
       </div>
-      <div style={{ maxHeight: '46vh', overflowY: 'auto' }}>
-        {(roster || []).map((t) => (
-          <div key={t.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 86px', alignItems: 'center', gap: 10, padding: '6px 0', borderTop: '1px solid ' + C.ln }}>
-            <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name || t.id}</span>
-            <input type="number" min="0" max="60" inputMode="numeric" placeholder={tr('DNP')}
-              value={mins[t.id] ?? ''} onChange={(e) => setMins((p) => ({ ...p, [t.id]: e.target.value }))}
-              style={{ width: '100%', height: 30, boxSizing: 'border-box', background: 'var(--c-sf)', border: '1px solid ' + C.ln, color: C.tx, fontFamily: FN, padding: '0 8px' }} />
-          </div>
-        ))}
+      <div style={{ maxHeight: '46vh', overflowY: 'auto', border: '1px solid ' + C.ln }}>
+        {(roster || []).map((t, i) => {
+          const v = mins[t.id] ?? '';
+          const on = Number(v) > 0;
+          return (
+            <div key={t.id} style={{ display: 'grid', gridTemplateColumns: '34px minmax(0, 1fr) 84px 60px', alignItems: 'center', gap: 10, padding: '0 12px', height: 40, borderTop: i ? '1px solid ' + C.ln : 'none', background: on ? 'transparent' : 'color-mix(in srgb, var(--c-sf) 60%, transparent)' }}>
+              <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, fontVariantNumeric: 'tabular-nums' }}>{t.jersey != null ? t.jersey : ''}</span>
+              <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: FN, fontSize: 12, fontWeight: 700, color: on ? C.tx : C.td }}>{t.name || t.id}</span>
+              <input type="number" min="0" max="60" inputMode="numeric" placeholder="—" aria-label={tr('Minutes played')}
+                value={v} onChange={(e) => setMins((p) => ({ ...p, [t.id]: e.target.value }))}
+                style={{ width: '100%', height: 30, boxSizing: 'border-box', background: 'var(--c-bg)', border: '1px solid ' + (on ? ORANGE : C.ln), color: C.tx, fontFamily: FN, fontSize: 13, fontWeight: 800, textAlign: 'center', padding: 0 }} />
+              <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: on ? ORANGE_DEEP : C.tm }}>{on ? tr('min') : tr('DNP')}</span>
+            </div>
+          );
+        })}
       </div>
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 14 }}>
         <Btn variant="ghost" onClick={onClose}>{tr('Cancel')}</Btn>
