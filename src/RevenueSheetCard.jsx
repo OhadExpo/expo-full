@@ -132,6 +132,10 @@ export function SheetBillingHistory({ traineeId }) {
   const sessions = rows.filter((r) => r.event_kind === 'session').reduce((a, r) => a + Number(r.sessions_count || 0), 0);
   const est = payments.reduce((a, r) => a + Number(r.amount_est || 0), 0);
   const unknown = payments.filter((r) => r.amount_est == null).length;
+  // Attendance by month, newest first, the last eight months that have any.
+  const byMonth = new Map();
+  for (const r of rows) if (r.event_kind === 'session') { const k = String(r.event_date).slice(0, 7); byMonth.set(k, (byMonth.get(k) || 0) + Number(r.sessions_count || 0)); }
+  const attendance = [...byMonth.entries()].sort((a, b) => (a[0] < b[0] ? 1 : -1)).slice(0, 8);
   const th = { textAlign: 'start', fontFamily: FN, fontSize: 9, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700, padding: '6px 10px', borderBottom: `1px solid ${C.cardBd}` };
   const td = { fontFamily: FB, fontSize: 13, color: C.tx, padding: '6px 10px', borderBottom: `1px solid ${C.divider || C.cardBd}` };
   return (
@@ -142,6 +146,11 @@ export function SheetBillingHistory({ traineeId }) {
           {tt('Estimated total')} <b style={{ color: C.tx }}>{ILS(est)}</b>{unknown ? ` (${unknown} ${tt('without an amount')})` : ''} · {sessions} {tt('sessions counted')}
         </span>
       </div>
+      {attendance.length > 0 && (
+        <div style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.04em', marginBottom: 8 }}>
+          {tt('Sessions by month')}: {attendance.map(([m, n]) => `${monthAbbr(Number(m.slice(5, 7)) - 1)} ${n}`).join(' · ')}
+        </div>
+      )}
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead><tr>
