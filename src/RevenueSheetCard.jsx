@@ -205,6 +205,13 @@ export default function RevenueSheetCard() {
         </div>
       </RefinedHeaderStrip>
 
+      {clients.some((c) => c.payments[0] && c.payments[0].unpaid) && (
+        <div style={{ fontFamily: FB, fontSize: 12, color: C.rd, marginBottom: 12, lineHeight: 1.5 }}>
+          <span style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 700, marginInlineEnd: 8 }}>{tt('Marked unpaid on the sheet')}</span>
+          {clients.filter((c) => c.payments[0] && c.payments[0].unpaid).map((c) => <bdi key={c.key} style={{ marginInlineEnd: 10 }}>{c.name} · {fmtNumericDate(c.payments[0].event_date)}</bdi>)}
+        </div>
+      )}
+
       {byMonth.length > 0 && (
         <div style={{ overflowX: 'auto', marginBottom: 18 }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
