@@ -5,11 +5,11 @@
     "name": "pt-zone",
     "before": {
       "file": "audit-out\\pairs\\pt-zone-he-live.png",
-      "chars": 1528
+      "chars": 1692
     },
     "after": {
       "file": "audit-out\\pairs\\pt-zone-he-branch.png",
-      "chars": 1496
+      "chars": 1676
     }
   },
   {
@@ -18,11 +18,11 @@
     "name": "bhbc",
     "before": {
       "file": "audit-out\\pairs\\bhbc-he-live.png",
-      "chars": 1584
+      "chars": 1796
     },
     "after": {
       "file": "audit-out\\pairs\\bhbc-he-branch.png",
-      "chars": 1552
+      "chars": 1780
     }
   },
   {
@@ -35,7 +35,7 @@
     },
     "after": {
       "file": "audit-out\\pairs\\dashboard-he-branch.png",
-      "chars": 3435
+      "chars": 3439
     }
   },
   {
@@ -44,7 +44,7 @@
     "name": "portal",
     "before": {
       "file": "audit-out\\pairs\\portal-he-live.png",
-      "chars": 3150
+      "chars": 1166
     },
     "after": {
       "file": "audit-out\\pairs\\portal-he-branch.png",

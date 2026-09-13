@@ -119,16 +119,16 @@ RESTORE POINT (pre-perf-fixes): b1f93ab6f04fa84e842c58049f278312374c8a43
 - [x] G2 (proven 10:33: the run survives the starved export — soft fetch, r2626 stands in, 2 new revisions r2627–r2631 harvested, 785 events, gate green; the daemon runs this same code on its next hourly catch-up) the sync daemon's hourly catch-up passes with the 240s download wait (09:00 slot failed under the harvest's pacing)
 - [x] G3 (May–Sep 2026 estimates = ~94% of the finance sheet's coaching totals; couple rate priced per session (A) beats per person (B) every month; swings are payment-date vs bank-month timing; 29 payments stay unpriced — 2021 punch cards with no price ever, "עד בלוק" prepay, first dates with no counter) reconciliation on the FULL history: couple-rate convention re-checked against the finance months; unpriced payments reviewed once more
 - [x] G4 month rows on the sheet card expand to the payments behind them (who paid that month); a history health line (revisions covered, newest, last harvested)
-- [ ] G5 host refresh: billing + athlete-detail pairs re-shot, tonight page rebuilt, tabs reloaded
+- [x] G5 (Hebrew pairs re-shot incl. the physio zone with the calendar sessions; tonight page rebuilt, 146 commits; tabs re-opened in the background of his Chrome) host refresh: billing + athlete-detail pairs re-shot, tonight page rebuilt, tabs reloaded
 - [ ] G6 handoff row 82 stamped FINAL + §3 restamp; memory; deploy-0911 aligned, built, pushed
 
 ## H — 2026-09-13 ~17:00 (his messages mid-run)
-- [ ] H1 "the google calendar is not synced with bhbc.. make sure all the practices and scrimmages are logged in" — every practice/scrimmage on his Google Calendar appears in the club zone
-- [ ] H2 "yesterday amit gershon worked out" — log Amit Gershon's session for 2026-09-12 in the zone
-- [ ] H3 screenshot 16:58 "game vs who and where at?" — the game shown has no opponent / venue; fix the data and the display
-- [ ] H4 "also where are all the shootarounds? i need bhbc better updated and always synced" — shootarounds from the calendar into the zone; a standing calendar→zone sync (twice a day like the sheet)
-- [ ] H5 screenshot 17:00 "this can be better displayed" — redesign what the screenshot shows
-- [ ] H6 screenshots 17:01/17:02 "if there was a LATER report for pain… update it here since the pain is 9" — the injury row must show the latest pain report (9), not the first
-- [ ] H7 "dusty worked out for 30 minutes on september 7th" — log Dusty Hannahs' lift, 2026-09-07, 30 min
-- [ ] H8 screenshot 17:04 "all the hebrew titles everywhere are not aligned right (text is not where it should be)" — Hebrew titles sit off their intended edge; find the rule and fix it platform-wide
-- [ ] H9 screenshot 17:07 "find it and fill it it looks bad. the design is awful and it's not synced or updated" — the section in the screenshot: fill its data, redesign it, keep it synced
+- [x] H1 (sync-bhbc-calendar.mjs; 33 → 53 fixtures from the club calendar Aug 20 – Oct 12; standing sync needs the calendar's secret iCal address or the calendar shared with the service account — a reader cannot grant either; until then a session pulls the calendar through the connector) "the google calendar is not synced with bhbc.. make sure all the practices and scrimmages are logged in" — every practice/scrimmage on his Google Calendar appears in the club zone
+- [x] H2 (logged 12.9, 60 min — his usual; note says minutes not given) "yesterday amit gershon worked out" — log Amit Gershon's session for 2026-09-12 in the zone
+- [x] H3 (every chip: vs whom · where; 3.9 is the calendar's scrimmage vs Maccabi at Hadar Yosef 17:00) screenshot 16:58 "game vs who and where at?" — the game shown has no opponent / venue; fix the data and the display
+- [x] H4 (4 shootarounds + 2 scrimmages on the schedule; zone knows both kinds) "also where are all the shootarounds? i need bhbc better updated and always synced" — shootarounds from the calendar into the zone; a standing calendar→zone sync (twice a day like the sheet)
+- [x] H5 (minutes inside each lift tile, DUE as chips, dated day headers) screenshot 17:00 "this can be better displayed" — redesign what the screenshot shows
+- [x] H6 (board shows the latest progress pain — 9) screenshots 17:01/17:02 "if there was a LATER report for pain… update it here since the pain is 9" — the injury row must show the latest pain report (9), not the first
+- [x] H7 (logged 7.9, 30 min) "dusty worked out for 30 minutes on september 7th" — log Dusty Hannahs' lift, 2026-09-07, 30 min
+- [x] H8 (shared Card: zero-padding cards inset the title 14px and stop the strip bleeding — every such card, both apps) screenshot 17:04 "all the hebrew titles everywhere are not aligned right (text is not where it should be)" — Hebrew titles sit off their intended edge; find the rule and fix it platform-wide
+- [x] H9 (modal redesigned: jersey · name · minutes · DNP, summary that cannot scramble; minutes NOT filled — the league publishes no box score for the Winner Cup game, so they still come from the coach) screenshot 17:07 "find it and fill it it looks bad. the design is awful and it's not synced or updated" — the section in the screenshot: fill its data, redesign it, keep it synced

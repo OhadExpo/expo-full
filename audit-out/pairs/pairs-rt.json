@@ -31,11 +31,11 @@
     "name": "billing-he",
     "before": {
       "file": "audit-out\\pairs\\billing-he-he-live.png",
-      "chars": 2509
+      "chars": 1385
     },
     "after": {
       "file": "audit-out\\pairs\\billing-he-he-branch.png",
-      "chars": 2511
+      "chars": 4467
     }
   }
 ]
