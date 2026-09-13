@@ -129,9 +129,12 @@ for (const c of T) {
     for (const run of (f[df] || [])) {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(run.value)) continue;
       const rev = run.first_rev;
-      const before = valueAt(f.sessions_done, rev, { before: true });
+      // The counter as it stood the revision BEFORE the date changed - the same run
+      // when he changed the date first and reset the counter later, the previous
+      // run when both happened in one edit.
+      const before = valueAt(f.sessions_done, rev - 1);
       const at = valueAt(f.sessions_done, rev);
-      let counterBefore = parseCounter(before && before.last_rev < rev ? before.value : null);
+      let counterBefore = parseCounter(before ? before.value : null);
       // He sometimes zeroes the counter first and writes the date a revision or
       // two later; the cycle is then the last POSITIVE counter before the zero.
       let walkedBack = false;
