@@ -520,6 +520,7 @@ export const HE = {
   "not in": 'לא נכנס',
   W: 'שבוע ',
   "Compare with…": 'השווה עם…',
+  "Sessions by month": 'אימונים לפי חודש',
   "Coaching income": 'הכנסות מאימונים',
   "cells": 'תאים',
   "newest revision": 'גרסה אחרונה',
