@@ -120,7 +120,7 @@ RESTORE POINT (pre-perf-fixes): b1f93ab6f04fa84e842c58049f278312374c8a43
 - [x] G3 (May–Sep 2026 estimates = ~94% of the finance sheet's coaching totals; couple rate priced per session (A) beats per person (B) every month; swings are payment-date vs bank-month timing; 29 payments stay unpriced — 2021 punch cards with no price ever, "עד בלוק" prepay, first dates with no counter) reconciliation on the FULL history: couple-rate convention re-checked against the finance months; unpriced payments reviewed once more
 - [x] G4 month rows on the sheet card expand to the payments behind them (who paid that month); a history health line (revisions covered, newest, last harvested)
 - [x] G5 (Hebrew pairs re-shot incl. the physio zone with the calendar sessions; tonight page rebuilt, 146 commits; tabs re-opened in the background of his Chrome) host refresh: billing + athlete-detail pairs re-shot, tonight page rebuilt, tabs reloaded
-- [ ] G6 handoff row 82 stamped FINAL + §3 restamp; memory; deploy-0911 aligned, built, pushed
+- [x] G6 handoff row 82 stamped FINAL + §3 restamp; memory; deploy-0911 aligned, built, pushed
 
 ## H — 2026-09-13 ~17:00 (his messages mid-run)
 - [x] H1 (sync-bhbc-calendar.mjs; 33 → 53 fixtures from the club calendar Aug 20 – Oct 12; standing sync needs the calendar's secret iCal address or the calendar shared with the service account — a reader cannot grant either; until then a session pulls the calendar through the connector) "the google calendar is not synced with bhbc.. make sure all the practices and scrimmages are logged in" — every practice/scrimmage on his Google Calendar appears in the club zone
