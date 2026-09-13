@@ -232,7 +232,7 @@ export default function RevenueSheetCard() {
                 {['online', 'gym_transfer', 'gym_cash', 'via_parents', 'bhbc'].map((c) => (
                   <th key={c} style={{ ...th, textAlign: 'end' }}>{tt(CHANNEL_LABEL[c])}</th>
                 ))}
-                <th style={{ ...th, textAlign: 'end', color: C.ac }}>{tt('Coaching')}</th>
+                <th style={{ ...th, textAlign: 'end', color: C.ac }}>{tt('Coaching income')}</th>
                 <th style={{ ...th, textAlign: 'end' }}>{tt('Roster estimate')}</th>
                 <th style={{ ...th, textAlign: 'end' }}>{tt('Gap')}</th>
                 <th style={{ ...th, textAlign: 'end' }}>{tt(CHANNEL_LABEL.national_insurance)}</th>
