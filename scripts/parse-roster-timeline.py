@@ -40,6 +40,7 @@ FIELDS = {
     'אימונים שבוצעו': 'sessions_done',
     'כניסות (לא כולל כניסה ראשונה חינמית)': 'entries', 'כניסות': 'entries',
     'סוג כרטיסייה - כניסות לחודש': 'card_type',
+    'תצ': 'expected_payment',  # the online section's date beside the monthly price
     'phone': 'phone', 'email': 'email', 'position': 'position', 'notes': 'notes', 'role': 'role',
     "מס'": 'row_no',
 }

@@ -131,7 +131,19 @@ for (const c of T) {
       const rev = run.first_rev;
       const before = valueAt(f.sessions_done, rev, { before: true });
       const at = valueAt(f.sessions_done, rev);
-      const counterBefore = parseCounter(before && before.last_rev < rev ? before.value : null);
+      let counterBefore = parseCounter(before && before.last_rev < rev ? before.value : null);
+      // He sometimes zeroes the counter first and writes the date a revision or
+      // two later; the cycle is then the last POSITIVE counter before the zero.
+      let walkedBack = false;
+      if (counterBefore && (counterBefore.total === 0 || counterBefore.paidWord) && f.sessions_done) {
+        const runs = f.sessions_done;
+        let i = runs.indexOf(before);
+        for (let k = 0; k < 3 && i > 0; k++) {
+          i--;
+          const c2 = parseCounter(runs[i].value);
+          if (c2 && c2.total > 0) { counterBefore = c2; walkedBack = true; break; }
+        }
+      }
       const counterAt = parseCounter(at ? at.value : null);
       const rs = valueAt(f.price_session, rev), rm = valueAt(f.price_month, rev);
       const entries = valueAt(f.entries, rev, { before: true });
@@ -153,6 +165,10 @@ for (const c of T) {
       }
       const owes = /חייב/.test((rm && rm.value) || '') || /חייב/.test((counterBefore && counterBefore.text) || '');
       if (df === 'card_start' && cardType && !est.amount) est = { amount: null, method: 'unknown', confidence: 'low', basis: `card ${cardType.value}` };
+      // "(פחות 60 ש"ח)" - a discount written into the counter cell.
+      const less = counterBefore ? counterBefore.notes.map((n) => n.match(/פחות\s*(\d+)/)).find(Boolean) : null;
+      if (less && est.amount != null) { est = { ...est, amount: est.amount - Number(less[1]), basis: est.basis + ' − ' + less[1] }; }
+      if (walkedBack && est.confidence === 'high') est = { ...est, confidence: 'medium', basis: est.basis + ' · counter read before the reset' };
       const isFirst = run === (f[df] || [])[0];
       out.payments.push({
         kind: df === 'card_start' ? 'card_start' : 'payment', date: run.value, first_seen_rev: rev, seen_until_rev: run.last_rev,
