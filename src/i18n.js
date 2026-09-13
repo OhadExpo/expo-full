@@ -520,6 +520,7 @@ export const HE = {
   "not in": 'לא נכנס',
   W: 'שבוע ',
   "Compare with…": 'השווה עם…',
+  "Marked unpaid on the sheet": 'מסומנים בגיליון כלא שולם',
   "From the sheet": 'מהגיליון',
   "payments": 'תשלומים',
   "sessions counted": 'אימונים שנספרו',
