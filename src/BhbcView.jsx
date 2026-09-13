@@ -234,8 +234,17 @@ const parseISO = (iso) => new Date(String(iso) + 'T00:00:00');
 const dow = (iso) => { const d = parseISO(iso); return dowFor(d, DOW[d.getDay()]); };
 const monDay = (iso) => { const d = parseISO(iso); return monDayFor(d, `${d.getDate()} ${MON[d.getMonth()]}`); };
 const dayDiff = (a, b) => Math.round((parseISO(a) - parseISO(b)) / 86400000);
-const FX_COLOR = { game: ORANGE, practice: '#4E7FCB', lift: '#6C7A93' };
-const FX_LABEL = { game: 'Game', practice: 'Practice', lift: 'Weights' };
+const FX_COLOR = { game: ORANGE, practice: '#4E7FCB', lift: '#6C7A93', scrimmage: '#C7692A', shootaround: '#5E9BD6' };
+const FX_LABEL = { game: 'Game', practice: 'Practice', lift: 'Weights', scrimmage: 'Scrimmage', shootaround: 'Shootaround' };
+// "vs Rishon LeZion · HaYovel" / "vs Hapoel Eilat · Begin Arena, Eilat" - the
+// line under a game or scrimmage chip. Empty for a session with no opponent.
+const fxWhere = (f) => {
+  if (!f || (f.type !== 'game' && f.type !== 'scrimmage')) return f && f.location ? f.location : '';
+  const parts = [];
+  if (f.opponent) parts.push('vs ' + f.opponent);
+  if (f.venue) parts.push(f.venue); else if (f.home === true) parts.push('HaYovel, Herzliya');
+  return parts.join(' · ');
+};
 
 // ---- primitives ----
 
@@ -1646,7 +1655,7 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
               <div key={inj.id} style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                 <StatusPill status={inj.status} small />
                 <span style={{ fontFamily: FB, fontSize: 13, color: C.tx }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : '', inj.type].filter(Boolean).map((x) => tr(x)).join(' · ')}</span>
-                <span style={{ fontFamily: FN, fontSize: 11, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{days != null ? `${days}d` : ''}{inj.pain != null && inj.pain !== '' ? ` · ${tr('pain')} ${inj.pain}` : ''}{inj.rtpTarget ? ` · RTP ${inj.rtpTarget.slice(5)}` : ''}</span>
+                <span style={{ fontFamily: FN, fontSize: 11, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{days != null ? `${days}d` : ''}{latestPain(inj) != null ? ` · ${tr('pain')} ${latestPain(inj)}` : ''}{inj.rtpTarget ? ` · RTP ${inj.rtpTarget.slice(5)}` : ''}</span>
                 {/* Same rule as the head coach report: a target already passed,
                     on someone still limited, is a flag rather than a plan. */}
                 {(() => { const od = rtpOverdueDays(inj, todayISO()); return od ? <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: 'var(--bhbc-amber-text, #E0A73A)' }}>{` · ${od}d ${tr('overdue')}`}</span> : null; })()}
@@ -3824,7 +3833,7 @@ function ScheduleList({ fx, today }) {
                   <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: FX_COLOR[f.type] || NAVY }}>{fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')}</span>
                   <span style={{ fontFamily: FN, fontSize: 10, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{f.minutes} {tr('min')}</span>
                   {f.optional && <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, border: `1px solid ${C.cardBd}`, padding: '1px 5px' }}>optional</span>}
-                  {f.location && <span style={{ fontFamily: FB, fontSize: 10, color: C.tm }}>· {f.location}</span>}
+                  {fxWhere(f) && <span style={{ fontFamily: FB, fontSize: 10, color: C.tm }} dir="ltr">· {fxWhere(f)}</span>}
                 </span>
               ))}
             </div>
@@ -3855,7 +3864,7 @@ function ScheduleWeek({ fixtures, today }) {
           return (
             <div key={di} style={{ border: `1px solid ${C.cardBd}`, background: isToday ? `color-mix(in srgb, ${ORANGE} 8%, var(--c-sf))` : 'var(--c-sf)', minHeight: 168, display: 'flex', flexDirection: 'column' }}>
               <div style={{ padding: '8px 6px', borderBottom: `1px solid ${C.cardBd}`, textAlign: 'center', position: 'relative' }}>
-                {hasGame && <div style={{ position: 'absolute', top: 5, right: 5, fontFamily: FN, fontSize: 9, fontWeight: 800, letterSpacing: '0.06em', color: '#fff', background: ORANGE, padding: '1px 4px' }}>{tr('GAME')}</div>}
+                {hasGame && <div style={{ position: 'absolute', top: 5, insetInlineEnd: 5, fontFamily: FN, fontSize: 9, fontWeight: 800, letterSpacing: '0.06em', color: '#fff', background: ORANGE, padding: '1px 4px' }}>{tr('GAME')}</div>}
                 <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: isToday ? ORANGE_DEEP : C.tm }}>{dowFor(d, DOW[d.getDay()])}</div>
                 <div style={{ fontFamily: FN, fontSize: 16, fontWeight: 800, color: isToday ? ORANGE_DEEP : C.tx, fontVariantNumeric: 'tabular-nums' }}>{d.getDate()}</div>
               </div>
@@ -3864,7 +3873,7 @@ function ScheduleWeek({ fixtures, today }) {
                   <div key={i} style={{ border: `1px solid ${C.cardBd}`, borderInlineStart: `3px solid ${FX_COLOR[f.type] || NAVY}`, padding: '5px 7px', background: 'var(--c-bg)' }}>
                     <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: FX_COLOR[f.type] || NAVY, textTransform: 'uppercase' }}>{fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')}</div>
                     <div style={{ fontFamily: FN, fontSize: 10, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{f.start} · {f.minutes} min</div>
-                    {f.location && <div style={{ fontFamily: FB, fontSize: 9, color: C.tm }}>{f.location}</div>}
+                    {fxWhere(f) && <div style={{ fontFamily: FB, fontSize: 9, color: C.tm }} dir="ltr">{fxWhere(f)}</div>}
                   </div>
                 ))}
               </div>
@@ -3901,7 +3910,7 @@ function ScheduleMonth({ fixtures, today }) {
         {items.slice(0, 3).map((f, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 5, fontFamily: FN, fontSize: 10, background: `color-mix(in srgb, ${FX_COLOR[f.type] || NAVY} 13%, transparent)`, borderInlineStart: `2px solid ${FX_COLOR[f.type] || NAVY}`, padding: '2px 5px', minWidth: 0 }}>
             <span style={{ color: FX_COLOR[f.type] || NAVY, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{f.start}</span>
-            <span style={{ color: FX_COLOR[f.type] || NAVY, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')}</span>
+            <span style={{ color: FX_COLOR[f.type] || NAVY, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')}{fxWhere(f) && (f.type === 'game' || f.type === 'scrimmage') ? <span style={{ display: 'block', color: C.td, fontWeight: 400, fontSize: 9 }} dir="ltr">{fxWhere(f)}</span> : null}</span>
           </div>
         ))}
         {items.length > 3 && <div style={{ fontFamily: FN, fontSize: 9, color: C.td, paddingInlineStart: 2 }}>+{items.length - 3} more</div>}
@@ -4265,6 +4274,15 @@ function LeagueView({ league, roster, fixtures, onOpen, bhbcLoads = {}, today, o
 }
 
 // ============================ MEDICAL / INJURY ============================
+// The pain the board shows is the LATEST report: the newest rehab-progress
+// entry that carries a pain score (progress is newest-first), else the score
+// written on the injury itself. Ohad 13.9: the injury said 1, the 12.9
+// progress line said 9, and the board still printed 1.
+function latestPain(inj) {
+  const p = (inj && inj.progress || []).find((x) => x && x.pain != null && x.pain !== '');
+  if (p) return p.pain;
+  return inj && inj.pain != null && inj.pain !== '' ? inj.pain : null;
+}
 // A shared record for Ohad + the physical therapist: injuries, current status,
 // pain, return-to-play target and a dated rehab-progress log per athlete.
 const MED_STATUS = {
@@ -4568,7 +4586,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                   </div>
                   <div style={{ fontFamily: FB, fontSize: 13, color: C.tx, minWidth: 0 }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : '', inj.type].filter(Boolean).map((x) => tr(x)).join(' · ')}</div>
                   <StatusPill status={inj.status} />
-                  <div style={{ fontFamily: FN, fontSize: 11, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{days != null ? `${days}d` : '—'}{inj.pain != null && inj.pain !== '' ? ` · ${tr('pain')} ${inj.pain}` : ''}</div>
+                  <div style={{ fontFamily: FN, fontSize: 11, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{days != null ? `${days}d` : '—'}{latestPain(inj) != null ? ` · ${tr('pain')} ${latestPain(inj)}` : ''}</div>
                   {/* WHO assessed this. With two PTs sharing the board, an
                       unsigned record cannot be questioned or followed up. */}
                   <div style={{ fontFamily: FN, fontSize: 10, color: C.td }}>{(inj.updatedBy || inj.by) ? byName(inj.updatedBy || inj.by) : ''}</div>

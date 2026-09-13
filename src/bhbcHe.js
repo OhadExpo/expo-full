@@ -395,7 +395,7 @@ export const fxLabelFor = (kind, en) => {
   if (_dateLang !== 'he') return en;
   // __min is the minutes unit, routed through the same helper so the one
   // language switch covers labels and units together.
-  return { game: 'משחק', practice: 'אימון', lift: 'כוח', __min: 'דק׳' }[kind] ?? en;
+  return { game: 'משחק', practice: 'אימון', lift: 'כוח', scrimmage: 'משחק אימון', shootaround: 'שוטאראונד', __min: 'דק׳' }[kind] ?? en;
 };
 
 /** Availability state → the word for one player. */
