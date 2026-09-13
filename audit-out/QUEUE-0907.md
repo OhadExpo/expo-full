@@ -116,7 +116,7 @@ RESTORE POINT (pre-perf-fixes): b1f93ab6f04fa84e842c58049f278312374c8a43
 
 ## G — 2026-09-13 09:45 "keep working. 2 hours of autonomous work"
 - [ ] G1 harvest to completion → full refresh (parse · derive · import) → gate green (closes F2)
-- [ ] G2 the sync daemon's hourly catch-up passes with the 240s download wait (09:00 slot failed under the harvest's pacing)
+- [x] G2 (proven 10:33: the run survives the starved export — soft fetch, r2626 stands in, 2 new revisions r2627–r2631 harvested, 785 events, gate green; the daemon runs this same code on its next hourly catch-up) the sync daemon's hourly catch-up passes with the 240s download wait (09:00 slot failed under the harvest's pacing)
 - [ ] G3 reconciliation on the FULL history: couple-rate convention re-checked against the finance months; unpriced payments reviewed once more
 - [ ] G4 month rows on the sheet card expand to the payments behind them (who paid that month); a history health line (revisions covered, newest, last harvested)
 - [ ] G5 host refresh: billing + athlete-detail pairs re-shot, tonight page rebuilt, tabs reloaded
