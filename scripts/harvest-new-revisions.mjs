@@ -6,10 +6,12 @@
 // Chrome the sync already uses, so the per-client timeline never falls behind
 // the sheet again.
 //
-// Two steps: learn the newest revision id (the version-history panel's own
-// /revisions/tiles call, captured once), then export every id above the
-// highest file on disk. Nothing is re-downloaded; a run with nothing new costs
-// one page load. The harvester is resumable, so an interrupted run continues.
+// Two steps: try to learn the newest revision id and timestamps from the
+// version-history panel's own /revisions/tiles call (best effort - in a
+// background tab the panel may not open), then export every id above the
+// highest file on disk, probing upward in batches of 25 until a batch yields
+// nothing. Nothing is re-downloaded; a run with nothing new costs one page
+// load and one batch of misses (~75s). The harvester is resumable.
 //
 //   node scripts/harvest-new-revisions.mjs        (CDP defaults to 9222)
 import P from 'puppeteer-core';
@@ -21,14 +23,19 @@ const ID = process.env.SHEET_ID || '18TdfofxAOd1d_EkOjbhYOBjWflqlfkAzY8sI52xJnOc
 const DIR = path.resolve(process.env.REV_DIR || 'audit-out/sheets/rev');
 const CDP = process.env.CDP || 'http://127.0.0.1:9222';
 const REVS = path.resolve('audit-out/sheets/revisions.json');
-const CAP = Number(process.env.MAX_NEW || 60); // per run; the next run takes the rest
+const CAP = Number(process.env.MAX_NEW || 120); // per run; the next run takes the rest
 
-const onDisk = fs.readdirSync(DIR).map((f) => f.match(/^r(\d+)\.xlsx$/)).filter(Boolean).map((m) => Number(m[1]));
-const maxOnDisk = onDisk.length ? Math.max(...onDisk) : 0;
+const onDiskIds = () => fs.readdirSync(DIR).map((f) => f.match(/^r(\d+)\.xlsx$/)).filter(Boolean).map((m) => Number(m[1]));
+const maxOnDisk = Math.max(0, ...onDiskIds());
 
-// ---- newest revision id + timestamps for the new ones ----
+// ---- newest revision id + timestamps (best effort) ----
 const b = await P.connect({ browserURL: CDP, defaultViewport: null, protocolTimeout: 180000 });
-const pg = await b.newPage();
+// A BACKGROUND tab: this runs inside his own Chrome twice a day and must not
+// steal the window from whatever he is doing there.
+const cdpB = await b.target().createCDPSession();
+await cdpB.send('Target.createTarget', { url: 'about:blank#expo-sync', background: true });
+const target = await b.waitForTarget((t) => t.type() === 'page' && t.url().endsWith('#expo-sync'), { timeout: 15000 });
+const pg = await target.page();
 let tilesUrl = null;
 pg.on('request', (req) => { const u = req.url(); if (/\/revisions\/tiles\?/.test(u) && !tilesUrl) tilesUrl = u; });
 await pg.goto(`https://docs.google.com/spreadsheets/d/${ID}/edit`, { waitUntil: 'domcontentloaded', timeout: 60000 });
@@ -48,7 +55,6 @@ if (tilesUrl) {
     const r = await fetch(`https://docs.google.com/spreadsheets/d/${id}/revisions/tiles?${q}`, { credentials: 'include' });
     return { status: r.status, text: (await r.text()).slice(0, 2_000_000) };
   }, ID, start, end, token, ouid);
-  // Walk forward from the last known id in windows; shrink at the edge.
   let start = Math.max(1, (known.length ? known[known.length - 1].rev : maxOnDisk) - 50);
   for (let guard = 0; guard < 20; guard++) {
     let w = 300, res = await fetchTiles(start, start + w - 1);
@@ -67,13 +73,19 @@ await pg.close();
 b.disconnect();
 console.log(`newest revision listed: ${newest ?? 'unknown'} · highest on disk: r${maxOnDisk}`);
 
-// The tiles list lags the newest edits by a few days (the panel groups them
-// later), so also probe a short run past whichever is higher; a missing id
-// costs three seconds and nothing else.
-const top = Math.max(newest || 0, maxOnDisk) + 25;
-const want = [];
-for (let r = maxOnDisk + 1; r <= top && want.length < CAP; r++) want.push(r);
-if (!want.length) { console.log('nothing new to fetch'); process.exit(0); }
-console.log(`fetching r${want[0]}..r${want[want.length - 1]} (${want.length})`);
-const res = spawnSync(process.execPath, ['scripts/harvest-roster-revisions.mjs', '1', want.join(',')], { stdio: 'inherit', env: { ...process.env, CDP, REV_DIR: DIR, SHEET_ID: ID, MAX_REV: String(top) } });
-process.exit(res.status || 0);
+// ---- the exports: probe upward until a batch finds nothing ----
+let fetchedTotal = 0;
+for (let round = 0; round < 8 && fetchedTotal < CAP; round++) {
+  const hi = Math.max(0, ...onDiskIds());
+  const want = [];
+  for (let r = hi + 1; r <= hi + 25; r++) want.push(r);
+  console.log(`probing r${want[0]}..r${want[want.length - 1]}`);
+  const res = spawnSync(process.execPath, ['scripts/harvest-roster-revisions.mjs', '1', want.join(',')], { encoding: 'utf8', env: { ...process.env, CDP, REV_DIR: DIR, SHEET_ID: ID, MAX_REV: String(hi + 25) } });
+  const out = res.stdout || '';
+  const m = out.match(/done: (\d+) fetched/);
+  const got = m ? Number(m[1]) : 0;
+  for (const l of out.split(/\r?\n/)) if (/done:|wanted|not reachable/.test(l)) console.log('  ' + l);
+  fetchedTotal += got;
+  if (!got) break;
+}
+console.log(`new revisions fetched this run: ${fetchedTotal}`);
