@@ -105,7 +105,7 @@ RESTORE POINT (pre-perf-fixes): b1f93ab6f04fa84e842c58049f278312374c8a43
 
 ## F — 2026-09-13 00:xx "the billing is not even close to 10% ready. re-run every history field on רשימת מתאמנים and everything you can possibly think of to make it 100%" (5h autonomous)
 - [x] F1 (measured: the 09-04 harvest was every 4th revision, 285 of ~2,600; the sheet had 12 header variants over five years; the importer read three date columns) inventory: what the roster sheet holds per client (every column), how many revisions Drive exposes vs how many were harvested, which fields the importer currently reads (only payment_date/start_date/rate) — measured, not assumed
-- [ ] F2 re-harvest EVERY revision of רשימת מתאמנים (all tabs/sections), store every cell value per revision (raw, immutable copies)
+- [x] F2 (1,136 files; ~36% of revision numbers exist as exports) re-harvest EVERY revision of רשימת מתאמנים (all tabs/sections), store every cell value per revision (raw, immutable copies)
 - [x] F3 (parse-roster-timeline.py → cells.jsonl + timeline.json) build the per-client TIMELINE from all fields: rate changes, sessions-since-payment counter (its resets = payments), payment dates, start/stop, section moves, notes — one event table keyed (client, field, revision-time, old→new)
 - [x] F4 (derive-payments.mjs; methods monthly/card/per_session/count/unknown with confidence; June 2026 reconciles within ₪570 of the finance sheet on 20% of revisions) derive payment events with confidence: a payment = payment-date cell change OR counter reset; attach the rate in force and the sessions counted since the previous payment; label derived amounts as ESTIMATED and reconcile month by month against ניהול פיננסי totals (the only real amounts)
 - [x] F5 (revenue_sheet_event + 14 estimate columns, revenue_cell_history; five-seat verifier 0 leaks) write it all to EXPO (owner-only tables): extend revenue_sheet_event with the new event kinds + a revenue_client_timeline view; verify RLS from five seats (verify-revenue-private.mjs)
@@ -115,9 +115,20 @@ RESTORE POINT (pre-perf-fixes): b1f93ab6f04fa84e842c58049f278312374c8a43
 - [x] F9 (32 lines judged, 3 fixed; billing is coach-only — demo and marketing untouched on purpose; handoff row 82 + memory written) judge every new Hebrew line; marketing/demo parity check (billing surfaces are coach-only; demo untouched on purpose); handoff row 82 + memory
 
 ## G — 2026-09-13 09:45 "keep working. 2 hours of autonomous work"
-- [ ] G1 harvest to completion → full refresh (parse · derive · import) → gate green (closes F2)
+- [x] G1 (done 11:00: 1,136 revision files = every export that exists for r1–r2632, both harvesters printed done; refresh: 58 clients, 337 payments, 646 sessions counted, 818 events, gate green) harvest to completion → full refresh (parse · derive · import) → gate green (closes F2)
 - [x] G2 (proven 10:33: the run survives the starved export — soft fetch, r2626 stands in, 2 new revisions r2627–r2631 harvested, 785 events, gate green; the daemon runs this same code on its next hourly catch-up) the sync daemon's hourly catch-up passes with the 240s download wait (09:00 slot failed under the harvest's pacing)
-- [ ] G3 reconciliation on the FULL history: couple-rate convention re-checked against the finance months; unpriced payments reviewed once more
-- [ ] G4 month rows on the sheet card expand to the payments behind them (who paid that month); a history health line (revisions covered, newest, last harvested)
+- [x] G3 (May–Sep 2026 estimates = ~94% of the finance sheet's coaching totals; couple rate priced per session (A) beats per person (B) every month; swings are payment-date vs bank-month timing; 29 payments stay unpriced — 2021 punch cards with no price ever, "עד בלוק" prepay, first dates with no counter) reconciliation on the FULL history: couple-rate convention re-checked against the finance months; unpriced payments reviewed once more
+- [x] G4 month rows on the sheet card expand to the payments behind them (who paid that month); a history health line (revisions covered, newest, last harvested)
 - [ ] G5 host refresh: billing + athlete-detail pairs re-shot, tonight page rebuilt, tabs reloaded
 - [ ] G6 handoff row 82 stamped FINAL + §3 restamp; memory; deploy-0911 aligned, built, pushed
+
+## H — 2026-09-13 ~17:00 (his messages mid-run)
+- [ ] H1 "the google calendar is not synced with bhbc.. make sure all the practices and scrimmages are logged in" — every practice/scrimmage on his Google Calendar appears in the club zone
+- [ ] H2 "yesterday amit gershon worked out" — log Amit Gershon's session for 2026-09-12 in the zone
+- [ ] H3 screenshot 16:58 "game vs who and where at?" — the game shown has no opponent / venue; fix the data and the display
+- [ ] H4 "also where are all the shootarounds? i need bhbc better updated and always synced" — shootarounds from the calendar into the zone; a standing calendar→zone sync (twice a day like the sheet)
+- [ ] H5 screenshot 17:00 "this can be better displayed" — redesign what the screenshot shows
+- [ ] H6 screenshots 17:01/17:02 "if there was a LATER report for pain… update it here since the pain is 9" — the injury row must show the latest pain report (9), not the first
+- [ ] H7 "dusty worked out for 30 minutes on september 7th" — log Dusty Hannahs' lift, 2026-09-07, 30 min
+- [ ] H8 screenshot 17:04 "all the hebrew titles everywhere are not aligned right (text is not where it should be)" — Hebrew titles sit off their intended edge; find the rule and fix it platform-wide
+- [ ] H9 screenshot 17:07 "find it and fill it it looks bad. the design is awful and it's not synced or updated" — the section in the screenshot: fill its data, redesign it, keep it synced
