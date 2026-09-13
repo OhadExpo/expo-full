@@ -99,5 +99,6 @@ run('python', ['scripts/parse-roster-timeline.py'], 'parse timeline');
 run('node', ['scripts/derive-payments.mjs'], 'derive payments');
 const maxBefore = Math.max(0, ...fs.readdirSync('audit-out/sheets/rev').map((x) => Number((x.match(/^r(d+).xlsx$/) || [])[1] || 0)));
 run('node', ['scripts/import-revenue-timeline.mjs'], 'import timeline', { CELLS_MIN_REV: String(after > before ? 0 : maxBefore + 1) });
+run('node', ['scripts/verify-billing-history.mjs'], 'verify billing history');
 say('done');
 finish(0);
