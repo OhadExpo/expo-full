@@ -113,3 +113,11 @@ RESTORE POINT (pre-perf-fixes): b1f93ab6f04fa84e842c58049f278312374c8a43
 - [x] F7 (finance revision history → Apr–May 2026 recovered, the sheet only exists since 2026-03; bit_payment_requests already shown on the athlete page and /coach/billing; client_workouts set beside the roster counts in attendance-vs-sheet.mjs — gym clients log nothing in the portal; Bit / Green Invoice / bank still need an export from him) other sources: ניהול פיננסי's own revision history (monthly totals as they were edited), any other tabs in either sheet, the old EXPO bit_payment_requests, client_workouts as attendance evidence (sessions performed per month per client vs the sheet's counter)
 - [x] F8 (sync-revenue.mjs: harvest-new-revisions → parse → derive → import, background tab in his Chrome, probes upward until a batch finds nothing; verified r2626 = the sheet as of 12.09) the twice-daily sync harvests NEW revisions incrementally (not a one-off), and the heartbeat reports revision count
 - [x] F9 (32 lines judged, 3 fixed; billing is coach-only — demo and marketing untouched on purpose; handoff row 82 + memory written) judge every new Hebrew line; marketing/demo parity check (billing surfaces are coach-only; demo untouched on purpose); handoff row 82 + memory
+
+## G — 2026-09-13 09:45 "keep working. 2 hours of autonomous work"
+- [ ] G1 harvest to completion → full refresh (parse · derive · import) → gate green (closes F2)
+- [ ] G2 the sync daemon's hourly catch-up passes with the 240s download wait (09:00 slot failed under the harvest's pacing)
+- [ ] G3 reconciliation on the FULL history: couple-rate convention re-checked against the finance months; unpriced payments reviewed once more
+- [ ] G4 month rows on the sheet card expand to the payments behind them (who paid that month); a history health line (revisions covered, newest, last harvested)
+- [ ] G5 host refresh: billing + athlete-detail pairs re-shot, tonight page rebuilt, tabs reloaded
+- [ ] G6 handoff row 82 stamped FINAL + §3 restamp; memory; deploy-0911 aligned, built, pushed

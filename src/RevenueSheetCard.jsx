@@ -52,23 +52,28 @@ const monthLabel = (iso) => {
 export function useSheetRevenue() {
   const [months, setMonths] = useState(null);
   const [events, setEvents] = useState(null);
+  const [health, setHealth] = useState(null);
   useEffect(() => {
     let alive = true;
     (async () => {
-      const [m, e] = await Promise.all([
+      const [m, e, newest, count] = await Promise.all([
         supabase.from('revenue_month_total').select('*').order('month', { ascending: false }),
         supabase.from('revenue_sheet_event').select('*').in('event_kind', ['payment', 'card_start', 'session', 'rate_change'])
           .order('event_date', { ascending: false }).limit(5000),
+        supabase.from('revenue_cell_history').select('rev,rev_time,imported_at').order('rev', { ascending: false }).limit(1),
+        supabase.from('revenue_cell_history').select('rev', { count: 'exact', head: true }),
       ]);
       if (!alive) return;
       // An RLS refusal and an empty table look the same here, and both mean
       // "show nothing" rather than an error the coach can act on.
       setMonths(m.data || []);
       setEvents(e.data || []);
+      const top = newest.data && newest.data[0];
+      setHealth(top ? { newestRev: top.rev, newestTime: top.rev_time, harvestedAt: top.imported_at, cells: count.count || 0 } : null);
     })();
     return () => { alive = false; };
   }, []);
-  return { months, events };
+  return { months, events, health };
 }
 
 // One client's rows, grouped by TRAINEE when linked, else by the sheet's name.
@@ -156,8 +161,9 @@ export function SheetBillingHistory({ traineeId }) {
 export default function RevenueSheetCard() {
   const tt = useT();
   const PAD = 14;
-  const { months, events } = useSheetRevenue();
+  const { months, events, health } = useSheetRevenue();
   const [open, setOpen] = useState(null);
+  const [openMonth, setOpenMonth] = useState(null);
 
   const byMonth = useMemo(() => {
     const map = new Map();
@@ -204,6 +210,11 @@ export default function RevenueSheetCard() {
           </span>
         </div>
       </RefinedHeaderStrip>
+      {health && (
+        <div style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.04em', marginBottom: 12 }}>
+          {tt('History')}: {health.cells.toLocaleString()} {tt('cells')} · {tt('newest revision')} r{health.newestRev}{health.newestTime ? ' · ' + fmtNumericDate(health.newestTime) : ''} · {tt('last harvested')} {fmtNumericDate(health.harvestedAt)}
+        </div>
+      )}
 
       {clients.some((c) => c.payments[0] && c.payments[0].unpaid) && (
         <div style={{ fontFamily: FB, fontSize: 12, color: C.rd, marginBottom: 12, lineHeight: 1.5 }}>
@@ -235,9 +246,12 @@ export default function RevenueSheetCard() {
                 const bhbc = Number(g.rows.find((x) => x.channel === 'bhbc')?.amount || 0);
                 const base = g.coaching - bhbc;
                 const gap = est ? est.est - base : null;
+                const isOpenM = openMonth === g.month;
+                const monthPays = (events || []).filter((e) => e.event_kind === 'payment' && String(e.event_date).slice(0, 7) === g.month.slice(0, 7)).sort((a, b) => (a.event_date < b.event_date ? 1 : -1));
                 return (
-                  <tr key={g.month}>
-                    <td style={{ ...td, fontFamily: FN, fontSize: 12, letterSpacing: '0.04em' }}>{monthLabel(g.month)}</td>
+                  <React.Fragment key={g.month}>
+                  <tr onClick={() => setOpenMonth(isOpenM ? null : g.month)} style={{ cursor: 'pointer', background: isOpenM ? 'rgba(57,189,255,0.06)' : 'transparent' }}>
+                    <td style={{ ...td, fontFamily: FN, fontSize: 12, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}><span style={{ display: 'inline-block', width: 14, color: C.ac, fontSize: 10 }}>{isOpenM ? '▾' : '▸'}</span>{monthLabel(g.month)}</td>
                     {['online', 'gym_transfer', 'gym_cash', 'via_parents', 'bhbc'].map((c) => {
                       const r = g.rows.find((x) => x.channel === c);
                       return (
@@ -253,6 +267,38 @@ export default function RevenueSheetCard() {
                     <td style={{ ...td, textAlign: 'end', color: gap == null ? C.td : Math.abs(gap) <= Math.max(300, base * 0.1) ? C.gn : C.or }} dir="ltr">{gap == null ? '—' : (gap > 0 ? '+' : '') + ILS(gap).replace('₪', '') + ' ₪'}</td>
                     <td style={{ ...td, textAlign: 'end', color: C.tm }} dir="ltr">{g.other ? ILS(g.other) : '—'}</td>
                   </tr>
+                  {isOpenM && (
+                    <tr>
+                      <td colSpan={10} style={{ padding: '4px 10px 12px 24px', borderBottom: `1px solid ${C.divider || C.cardBd}` }}>
+                        {monthPays.length === 0 ? (
+                          <div style={{ fontFamily: FB, fontSize: 12, color: C.td }}>{tt('The roster recorded no payment dated this month.')}</div>
+                        ) : (
+                          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                            <thead><tr>
+                              <th style={th}>{tt('Client')}</th><th style={th}>{tt('Paid on')}</th><th style={th}>{tt('Rate')}</th><th style={th}>{tt('Cycle')}</th>
+                              <th style={{ ...th, textAlign: 'end' }}>{tt('Estimated')}</th><th style={th}>{tt('Method')}</th>
+                            </tr></thead>
+                            <tbody>
+                              {monthPays.map((p) => (
+                                <tr key={p.id}>
+                                  <td style={{ ...td, fontSize: 12, padding: '5px 10px', fontWeight: 600 }}><bdi>{p.client_name}</bdi></td>
+                                  <td style={{ ...td, fontSize: 12, padding: '5px 10px' }} dir="ltr">{fmtNumericDate(p.event_date)}</td>
+                                  <td style={{ ...td, fontSize: 12, padding: '5px 10px', color: C.tm }}><bdi>{p.rate_text || '—'}</bdi></td>
+                                  <td style={{ ...td, fontSize: 12, padding: '5px 10px', color: C.tm }}><bdi>{p.counter_before || '—'}</bdi></td>
+                                  <td style={{ ...td, fontSize: 12, padding: '5px 10px', textAlign: 'end', fontWeight: 700, color: p.amount_est == null ? C.td : C.tx }} dir="ltr">{p.amount_est == null ? '—' : ILS(p.amount_est)}</td>
+                                  <td style={{ ...td, padding: '5px 10px', fontFamily: FN, fontSize: 10, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
+                                    <span style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: CONF_COLOR[p.confidence] || C.td, marginInlineEnd: 6, verticalAlign: 'middle' }} />
+                                    {tt(METHOD_LABEL[p.amount_method] || p.amount_method || 'no amount')}{p.unpaid ? <span style={{ color: C.rd }}> · {tt('marked unpaid')}</span> : null}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        )}
+                      </td>
+                    </tr>
+                  )}
+                  </React.Fragment>
                 );
               })}
             </tbody>
