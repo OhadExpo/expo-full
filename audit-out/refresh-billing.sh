@@ -6,3 +6,4 @@ ls audit-out/sheets/rev | wc -l
 PYTHONUTF8=1 python scripts/parse-roster-timeline.py 2>&1 | head -3
 node scripts/derive-payments.mjs 2>&1 | head -2
 node scripts/import-revenue-timeline.mjs 2>&1 | tail -2
+node scripts/verify-billing-history.mjs 2>&1 | tail -3
