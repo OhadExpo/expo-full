@@ -112,7 +112,7 @@ for (const c of D.clients) {
     if (!d) continue;
     put({ ...base, event_kind: 'session', event_date: d, sessions_count: sess.count, sessions_by: sess.by, sessions_text: `${sess.count}`,
       counter_before: sess.from, counter_after: sess.to, first_seen_rev: sess.at_rev, rev_lo: sess.at_rev, rev_hi: sess.at_rev,
-      recorded_from: sess.between[0], recorded_to: sess.between[1], amount_method: 'attendance', confidence: sess.between[0] === sess.between[1] ? 'high' : 'medium',
+      recorded_from: sess.between[0], recorded_to: sess.between[1], amount_method: 'attendance', confidence: sess.approx ? 'low' : (sess.between[0] === sess.between[1] ? 'high' : 'medium'),
       basis: `counter ${sess.from} → ${sess.to}` });
   }
   for (const st of (c.starts || [])) {

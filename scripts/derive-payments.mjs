@@ -198,7 +198,7 @@ for (const c of T) {
     if (prev && cur && cur.total > prev.total && !(cur.card && prev.card && cur.card.size !== prev.card.size)) {
       const delta = {};
       for (const k of new Set([...Object.keys(cur.by), ...Object.keys(prev.by)])) { const d = (cur.by[k] || 0) - (prev.by[k] || 0); if (d > 0) delta[k] = d; }
-      out.sessions.push({ count: cur.total - prev.total, by: delta, between: [dateOf(prev.last_iso), dateOf(run.first_iso)], at_rev: run.first_rev, from: prev.text, to: cur.text });
+      out.sessions.push({ count: cur.total - prev.total, by: delta, between: [dateOf(prev.last_iso), dateOf(run.first_iso)], at_rev: run.first_rev, from: prev.text, to: cur.text, approx: !REVS[run.first_rev] });
       nSess += cur.total - prev.total;
     }
     if (cur) { cur.last_iso = run.last_iso; prev = cur; }

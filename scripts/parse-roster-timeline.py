@@ -177,9 +177,24 @@ def main():
             m['sections'].add(r['section'])
         m['first_rev'] = min(m['first_rev'], r['rev']); m['last_rev'] = max(m['last_rev'], r['rev'])
 
+    # Revisions above the newest listed one get an EXTRAPOLATED time: the
+    # average spacing of the last 200 listed revisions, capped at now. Marked
+    # approximate downstream (derive checks whether revisions.json has the id).
+    known = sorted(revs)
+    step_ms = None
+    if len(known) > 200:
+        a, b = revs[known[-200]], revs[known[-1]]
+        step_ms = (b['endMillis'] - a['endMillis']) / 200.0
+    now_ms = datetime.datetime.now(datetime.timezone.utc).timestamp() * 1000
+
     def iso(rev):
         x = revs.get(rev)
-        return x['iso'] if x else None
+        if x:
+            return x['iso']
+        if rev is None or not known or rev < known[-1] or step_ms is None:
+            return None
+        ms = min(now_ms, revs[known[-1]]['endMillis'] + (rev - known[-1]) * step_ms)
+        return datetime.datetime.fromtimestamp(ms / 1000, datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.000Z')
 
     out = []
     n_changes = 0
