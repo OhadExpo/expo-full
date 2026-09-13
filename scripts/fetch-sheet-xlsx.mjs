@@ -30,11 +30,12 @@ try {
   await cdp.send('Page.setDownloadBehavior', { behavior: 'allow', downloadPath: dir });
   pg.goto(`https://docs.google.com/spreadsheets/d/${ID}/export?format=xlsx&id=${ID}`).catch(() => {});
   let got = null;
-  for (let i = 0; i < 60 && !got; i++) {
+  // 240s, not 60: while a revision harvest runs, Google paces this account's exports and a plain download can queue for minutes.
+  for (let i = 0; i < 240 && !got; i++) {
     await new Promise(r => setTimeout(r, 1000));
     got = fs.readdirSync(dir).find((f) => !before.has(f) && f.endsWith('.xlsx'));
   }
-  if (!got) throw new Error('no .xlsx appeared in ' + dir + ' within 60s');
+  if (!got) throw new Error('no .xlsx appeared in ' + dir + ' within 240s');
   fs.renameSync(path.join(dir, got), OUT);
   const head = fs.readFileSync(OUT).subarray(0, 2).toString('latin1');
   if (head !== 'PK') throw new Error('not an xlsx (starts with "' + head + '")');
