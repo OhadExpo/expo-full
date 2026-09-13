@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { fmtPrettyDate, todayLocalISO } from './dates';
+import { SheetBillingHistory } from './RevenueSheetCard';
 import BWChart from './BwChart';
 import { C, FN, FB, FH, uid, PAYMENT_STATUSES, TRAINING_FORMATS, TRAINEE_STATUSES, PACKAGE_TYPES, GENDER_OPTIONS } from './theme';
 
@@ -815,6 +816,8 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
               <button onClick={()=>handleEditPay(p)} aria-label="Edit payment" style={{background:"none",border:"none",color:C.ac,cursor:"pointer",padding:2,fontSize:11,fontFamily:FN}}>✏</button>
               <button onClick={()=>handleDeletePay(p.id)} aria-label="Delete payment" style={{background:"none",border:"none",color:C.rd,cursor:"pointer",padding:2,fontSize:11,fontFamily:FN,marginInlineStart:6,opacity:0.6}}>✕</button>
             </td></tr>))}</tbody></table></div>)}
+      {/* The roster sheet's history for this client (owner-only; empty for staff). */}
+      <SheetBillingHistory traineeId={trainee} />
       </CollapsibleSection>
       {showContract && (
         <CoachContractComposer

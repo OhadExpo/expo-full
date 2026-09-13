@@ -29,14 +29,14 @@ const started = new Date();
 const lines = [];
 const say = (m) => { const s = `${new Date().toISOString()}  ${m}`; console.log(s); lines.push(s); };
 
-function run(cmd, args, label) {
+function run(cmd, args, label, extraEnv = {}) {
   // PYTHONUTF8 is set HERE and not only in the .ps1 wrapper: both sheets are
   // Hebrew, and a run started any other way - by hand, by a different
   // scheduler, by a future me - would otherwise parse them through the system
   // codepage and write mojibake into the ledger.
   const r = spawnSync(cmd, args, {
     encoding: 'utf8', shell: false,
-    env: { ...process.env, PYTHONUTF8: '1', PYTHONIOENCODING: 'utf-8' },
+    env: { ...process.env, PYTHONUTF8: '1', PYTHONIOENCODING: 'utf-8', ...extraEnv },
   });
   const out = (r.stdout || '') + (r.stderr || '');
   for (const l of out.split(/\r?\n/)) if (l.trim() && !/deprecat/i.test(l)) say(`  | ${l}`);
@@ -87,5 +87,17 @@ run('node', ['scripts/fetch-sheet-xlsx.mjs', FINANCE, 'audit-out/sheets/finance.
 run('python', ['scripts/parse-roster-revisions.py'], 'parse roster');
 run('python', ['scripts/parse-finance-sheet.py'], 'parse finance');
 run('node', ['scripts/import-revenue.mjs'], 'import');
+// 2026-09-13 — the full history, kept current: new revisions of the roster are
+// harvested (only what is above the highest file on disk), every field is
+// re-parsed into the per-client timeline, payments/attendance/rates re-derived
+// and upserted. Idempotent end to end; a run with nothing new changes nothing.
+const before = fs.readdirSync('audit-out/sheets/rev').filter((x) => /^rd+.xlsx$/.test(x)).length;
+run('node', ['scripts/harvest-new-revisions.mjs'], 'harvest new revisions');
+const after = fs.readdirSync('audit-out/sheets/rev').filter((x) => /^rd+.xlsx$/.test(x)).length;
+say(`revisions on disk: ${before} → ${after}`);
+run('python', ['scripts/parse-roster-timeline.py'], 'parse timeline');
+run('node', ['scripts/derive-payments.mjs'], 'derive payments');
+const maxBefore = Math.max(0, ...fs.readdirSync('audit-out/sheets/rev').map((x) => Number((x.match(/^r(d+).xlsx$/) || [])[1] || 0)));
+run('node', ['scripts/import-revenue-timeline.mjs'], 'import timeline', { CELLS_MIN_REV: String(after > before ? 0 : maxBefore + 1) });
 say('done');
 finish(0);
