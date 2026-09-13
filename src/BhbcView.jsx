@@ -4431,7 +4431,7 @@ function GameMinutesModal({ game, roster, bhbcLoads, onClose, onSave }) {
   const played = Object.values(mins).filter((m) => Number(m) > 0).length;
   return (
     <BModal open onClose={onClose} wide title={`${tr('Minutes played')} \u00B7 ${game.opponent ? tr('vs') + ' ' + game.opponent : tr('Game')}`}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', marginBottom: 12, padding: '10px 12px', border: '1px solid ' + C.ln, background: 'var(--c-sf)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', marginBottom: 12, padding: '10px 12px', border: '1px solid ' + C.cardBd, background: 'var(--c-sf)' }}>
         <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm }}>
           {tr('Game RPE')}
           <input type="number" min="1" max="10" value={rpe} onChange={(e) => setRpe(e.target.value)}
@@ -4443,12 +4443,12 @@ function GameMinutesModal({ game, roster, bhbcLoads, onClose, onSave }) {
           <b style={{ color: C.tx, fontSize: 14, fontVariantNumeric: 'tabular-nums' }}>{total}</b><span>{tr('min total')}</span>
         </span>
       </div>
-      <div style={{ maxHeight: '46vh', overflowY: 'auto', border: '1px solid ' + C.ln }}>
+      <div style={{ maxHeight: '46vh', overflowY: 'auto', border: '1px solid ' + C.cardBd }}>
         {(roster || []).map((t, i) => {
           const v = mins[t.id] ?? '';
           const on = Number(v) > 0;
           return (
-            <div key={t.id} style={{ display: 'grid', gridTemplateColumns: '34px minmax(0, 1fr) 84px 60px', alignItems: 'center', gap: 10, padding: '0 12px', height: 40, borderTop: i ? '1px solid ' + C.ln : 'none', background: on ? 'transparent' : 'color-mix(in srgb, var(--c-sf) 60%, transparent)' }}>
+            <div key={t.id} style={{ display: 'grid', gridTemplateColumns: '34px minmax(120px, 260px) 84px 60px', justifyContent: 'start', alignItems: 'center', gap: 10, padding: '0 12px', height: 40, borderTop: i ? '1px solid ' + C.cardBd : 'none', background: on ? 'transparent' : 'color-mix(in srgb, var(--c-sf) 60%, transparent)' }}>
               <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, fontVariantNumeric: 'tabular-nums' }}>{t.jersey != null ? t.jersey : ''}</span>
               <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: FN, fontSize: 12, fontWeight: 700, color: on ? C.tx : C.td }}>{t.name || t.id}</span>
               <input type="number" min="0" max="60" inputMode="numeric" placeholder="—" aria-label={tr('Minutes played')}
