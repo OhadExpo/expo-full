@@ -28,6 +28,34 @@ const CAP = Number(process.env.MAX_NEW || 120); // per run; the next run takes t
 const onDiskIds = () => fs.readdirSync(DIR).map((f) => f.match(/^r(\d+)\.xlsx$/)).filter(Boolean).map((m) => Number(m[1]));
 const maxOnDisk = Math.max(0, ...onDiskIds());
 
+// ---- fast path: the Drive API, if the sheet is shared with the service account ----
+try {
+  const { saToken, listRevisions } = await import('./drive-sa.mjs');
+  const token = await saToken();
+  const revs = await listRevisions(ID, token);
+  const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  const known = fs.existsSync(REVS) ? JSON.parse(fs.readFileSync(REVS, 'utf8')) : [];
+  const byRev = new Map(known.map((r) => [r.rev, r]));
+  for (const r of revs) byRev.set(Number(r.id), { rev: Number(r.id), endMillis: Date.parse(r.modifiedDate), iso: r.modifiedDate, users: [r.lastModifyingUserName || ''], grouped: false, exact: true });
+  fs.writeFileSync(REVS, JSON.stringify([...byRev.values()].sort((a, c) => a.rev - c.rev)));
+  let got = 0;
+  for (const r of revs) {
+    const id = Number(r.id);
+    if (id <= maxOnDisk || got >= CAP) continue;
+    const link = r.exportLinks && r.exportLinks[XLSX];
+    if (!link) continue;
+    const res = await fetch(link, { headers: { authorization: `Bearer ${token}` } });
+    if (!res.ok) { console.log(`r${id}: ${res.status}`); continue; }
+    const buf = Buffer.from(await res.arrayBuffer());
+    if (buf.subarray(0, 2).toString('latin1') !== 'PK') continue;
+    fs.writeFileSync(path.join(DIR, `r${id}.xlsx`), buf); got++;
+  }
+  console.log(`drive api: ${revs.length} revisions listed (newest r${revs[revs.length - 1]?.id}), ${got} new fetched`);
+  process.exit(0);
+} catch (e) {
+  console.log('drive api not available (' + String(e.message || e).slice(0, 80) + ') - using the browser');
+}
+
 // ---- newest revision id + timestamps (best effort) ----
 const b = await P.connect({ browserURL: CDP, defaultViewport: null, protocolTimeout: 180000 });
 // A BACKGROUND tab: this runs inside his own Chrome twice a day and must not
