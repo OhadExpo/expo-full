@@ -46,7 +46,7 @@ function parseRate(t) {
   const one = s.match(/^\s*(\d+(?:\.\d+)?)\s*(?:ש"ח|₪|שח)?\s*$/);
   if (one) return { text: s, single: Number(one[1]) };
   // "300 ש" - the ח fell off the cell; the number is still a price.
-  const inText = s.match(/(\d{2,5})\s*(?:ש"ח|₪|שח|ש(?![א-ת]))/);
+  const inText = s.match(/(\d{2,5})\s*(?:ש"ח|₪|שח|שייח|ש(?![א-ת]))/);
   if (inText) return { text: s, single: Number(inText[1]), loose: true };
   return { text: s };
 }
