@@ -86,7 +86,7 @@ run('node', ['scripts/fetch-sheet-xlsx.mjs', ROSTER, 'audit-out/sheets/roster.xl
 run('node', ['scripts/fetch-sheet-xlsx.mjs', FINANCE, 'audit-out/sheets/finance.xlsx'], 'fetch finance');
 run('python', ['scripts/parse-roster-revisions.py'], 'parse roster');
 run('python', ['scripts/parse-finance-sheet.py'], 'parse finance');
-run('node', ['scripts/import-revenue.mjs'], 'import');
+run('node', ['scripts/import-revenue.mjs'], 'import', { ROSTER_EVENTS: '0' });
 // 2026-09-13 — the full history, kept current: new revisions of the roster are
 // harvested (only what is above the highest file on disk), every field is
 // re-parsed into the per-client timeline, payments/attendance/rates re-derived
