@@ -102,3 +102,14 @@ RESTORE POINT (pre-perf-fixes): b1f93ab6f04fa84e842c58049f278312374c8a43
 - [x] E9 dictionary hygiene report — `audit-out/dict-hygiene.mjs` (report in `dict-hygiene-0912.txt`): 10 casing pairs, every one a deliberate singular/plural or noun/imperative split (Answered/ANSWERED, Save/SAVE, Record/record = W-L מאזן vs רשומה); 11 Latin-in-value lines are file types, demo data, ACL, VPN; nothing to unify — the trap is only a THIRD casing at a call site, which the report would show
 - [x] E10 the club zone (/coach/bhbc) speaks Hebrew via its own switch: run the literal gate's idea on BhbcView (it imports its own translator?) — dump each zone tab in Hebrew as the physio sees it and fix leftovers
 - [x] E11 host refresh with tonight's work (pairs, tonight page banner, tabs) + handoff rows 79/80 + memory
+
+## F — 2026-09-13 00:xx "the billing is not even close to 10% ready. re-run every history field on רשימת מתאמנים and everything you can possibly think of to make it 100%" (5h autonomous)
+- [ ] F1 inventory: what the roster sheet holds per client (every column), how many revisions Drive exposes vs how many were harvested, which fields the importer currently reads (only payment_date/start_date/rate) — measured, not assumed
+- [ ] F2 re-harvest EVERY revision of רשימת מתאמנים (all tabs/sections), store every cell value per revision (raw, immutable copies)
+- [ ] F3 build the per-client TIMELINE from all fields: rate changes, sessions-since-payment counter (its resets = payments), payment dates, start/stop, section moves, notes — one event table keyed (client, field, revision-time, old→new)
+- [ ] F4 derive payment events with confidence: a payment = payment-date cell change OR counter reset; attach the rate in force and the sessions counted since the previous payment; label derived amounts as ESTIMATED and reconcile month by month against ניהול פיננסי totals (the only real amounts)
+- [ ] F5 write it all to EXPO (owner-only tables): extend revenue_sheet_event with the new event kinds + a revenue_client_timeline view; verify RLS from five seats (verify-revenue-private.mjs)
+- [ ] F6 surface it: /coach/billing sheet card → per-client history (every payment with date, rate, sessions, estimated amount, source), month reconciliation row (estimated vs sheet total, gap), and the trainee detail billing tab reads the same
+- [ ] F7 other sources: ניהול פיננסי's own revision history (monthly totals as they were edited), any other tabs in either sheet, the old EXPO bit_payment_requests, client_workouts as attendance evidence (sessions performed per month per client vs the sheet's counter)
+- [ ] F8 the twice-daily sync harvests NEW revisions incrementally (not a one-off), and the heartbeat reports revision count
+- [ ] F9 judge every new Hebrew line; marketing/demo parity check (billing surfaces are coach-only; demo untouched on purpose); handoff row 82 + memory

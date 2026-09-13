@@ -15,7 +15,7 @@ import { createClient } from '@supabase/supabase-js';
 
 const URL = 'https://gtcbfglttoiyfsnfbhdy.supabase.co';
 const KEY = 'sb_publishable_i_ifflCFMUF7rX2ABAY3vA_5JKTmFlv';
-const TABLES = ['revenue_sheet_event', 'revenue_month_total'];
+const TABLES = ['revenue_sheet_event', 'revenue_month_total', 'revenue_cell_history'];
 
 const SEATS = [
   { who: 'OWNER   ohadyproductions', email: 'ohadyproductions@gmail.com', pw: '1234', expect: 'rows' },

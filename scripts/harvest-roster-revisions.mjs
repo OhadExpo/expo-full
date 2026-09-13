@@ -32,7 +32,7 @@ const ID = process.env.SHEET_ID || '18TdfofxAOd1d_EkOjbhYOBjWflqlfkAzY8sI52xJnOc
 const MAX = Number(process.env.MAX_REV || 2605);
 const STEP = Number(process.argv[2] || 4);
 const ONLY = process.argv[3] ? process.argv[3].split(',').map(Number) : null;
-const dir = path.resolve('audit-out/sheets/rev');
+const dir = path.resolve(process.env.REV_DIR || 'audit-out/sheets/rev');
 fs.mkdirSync(dir, { recursive: true });
 
 const want = ONLY || (() => {
