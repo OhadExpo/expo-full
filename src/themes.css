@@ -1150,3 +1150,23 @@ html.theme-switching *::after {
 [data-fade="both"]   { -webkit-mask-image: linear-gradient(to right, transparent 0, #000 22px, #000 calc(100% - 22px), transparent 100%); mask-image: linear-gradient(to right, transparent 0, #000 22px, #000 calc(100% - 22px), transparent 100%); }
 /* The active tab must never sit under its own fade. */
 [data-fade] { scroll-padding-inline: 24px; }
+
+/* MANAGE ROSTER row: one line on a desktop, two on a phone - and the second
+   line starts on the NAME column, not under the checkbox. */
+.bhbc-manage-row{display:grid;grid-template-columns:16px 24px minmax(0,1fr) auto;align-items:center;column-gap:10px;row-gap:7px}
+.bhbc-manage-meta{display:flex;align-items:center;gap:12px;justify-content:flex-end;min-width:0}
+@media (max-width:620px){
+  .bhbc-manage-row{grid-template-columns:16px 24px minmax(0,1fr)}
+  .bhbc-manage-meta{grid-column:3;justify-content:space-between;gap:8px}
+}
+
+/* The roster card reserves two lines for the name and two for the status so a
+   GRID of cards lines up. At phone width the grid is one column wide - there is
+   nothing to line up with and the reserve is just dead air. */
+@media (max-width:620px){
+  .bhbc-roster-grid{--rc-h:auto;--rc-name:0px;--rc-stat:0px}
+  /* The big ghost jersey is a flourish for a tall card. On the short phone card
+     it sits behind the last letter of the name, and the #number is printed
+     above it anyway. */
+  .bhbc-roster-grid [data-ghost]{display:none}
+}

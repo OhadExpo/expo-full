@@ -1384,31 +1384,31 @@ function attendance28(rec, days) {
       {/* ---- MANAGE ROSTER MODAL ---- */}
       <BModal open={manageOpen} onClose={() => setManageOpen(false)} wide title="Manage roster">
         <div style={{ fontFamily: FB, fontSize: 13, color: C.td, marginBottom: 12 }}>
-          Tag athletes into Bnei Herzliya. They keep their normal athlete portal — this scopes who appears in the <span style={{ fontFamily: FN, color: NAVY, fontWeight: 700 }}>BHBC</span> zone.
+          {tr('Tag athletes into Bnei Herzliya. They keep their normal athlete portal — this scopes who appears in the BHBC zone.')}
         </div>
         <div style={{ display: 'flex', gap: 6, marginBottom: 14, alignItems: 'stretch' }}>
           <input value={newAthlete} onChange={(e) => setNewAthlete(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && newAthlete.trim()) { setTrainees((prev) => [...prev, { id: 'tr_bh_' + Math.random().toString(36).slice(2, 9), name: newAthlete.trim(), team: 'BHBC', format: 'Bnei Herzliya', status: 'Active', createdAt: new Date().toISOString() }]); setNewAthlete(''); toast('Added'); } }}
-            placeholder="Add a new athlete — full name" style={{ flex: 1, height: 38, boxSizing: 'border-box', fontFamily: FB, fontSize: 13, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 10px' }} />
+            placeholder={tr('Add a new athlete — full name')} style={{ flex: 1, height: 38, boxSizing: 'border-box', fontFamily: FB, fontSize: 13, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 10px' }} />
           <Btn disabled={!newAthlete.trim()} onClick={() => { setTrainees((prev) => [...prev, { id: 'tr_bh_' + Math.random().toString(36).slice(2, 9), name: newAthlete.trim(), team: 'BHBC', format: 'Bnei Herzliya', status: 'Active', createdAt: new Date().toISOString() }]); setNewAthlete(''); toast('Added'); }}
-            style={{ height: 38, boxSizing: 'border-box', background: newAthlete.trim() ? ORANGE : undefined, borderColor: newAthlete.trim() ? ORANGE : undefined, color: newAthlete.trim() ? '#fff' : undefined }}>+ Add</Btn>
+            style={{ height: 38, boxSizing: 'border-box', background: newAthlete.trim() ? ORANGE : undefined, borderColor: newAthlete.trim() ? ORANGE : undefined, color: newAthlete.trim() ? '#fff' : undefined }}>{tr('+ Add')}</Btn>
         </div>
         <div style={{ maxHeight: 360, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2 }}>
           {trainees.filter((t) => t.status !== 'Archived').sort((a, b) => (b.team === 'BHBC' ? 1 : 0) - (a.team === 'BHBC' ? 1 : 0)).map((t) => {
             const on = t.team === 'BHBC';
             return (
-              <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', border: `1px solid ${C.cardBd}`, borderInlineStart: on ? `3px solid ${ORANGE}` : '3px solid transparent', background: on ? `color-mix(in srgb, ${NAVY} 6%, transparent)` : 'transparent' }}>
+              <div key={t.id} className="bhbc-manage-row" style={{ padding: '9px 12px', border: `1px solid ${C.cardBd}`, borderInlineStart: on ? `3px solid ${ORANGE}` : '3px solid transparent', background: on ? `color-mix(in srgb, ${NAVY} 6%, transparent)` : 'transparent' }}>
                 <input type="checkbox" checked={on} onChange={(e) => setTeam(t.id, e.target.checked)} style={{ accentColor: NAVY, width: 16, height: 16, cursor: 'pointer', flexShrink: 0 }} />
                 <span style={{ width: 24, display: 'inline-flex', justifyContent: 'center', flexShrink: 0 }}>{on && t.jersey != null && <Jersey n={t.jersey} size={22} />}</span>
-                <span style={{ flex: '1 1 auto', minWidth: 0, fontFamily: FN, fontSize: 13, fontWeight: on ? 700 : 500, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{t.name}</span>
+                <span style={{ minWidth: 0, fontFamily: FN, fontSize: 13, fontWeight: on ? 700 : 500, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{t.name}</span>
                 {on && (
-                  <>
-                    <span style={{ flexShrink: 0, width: 108, textAlign: 'right', fontFamily: FB, fontSize: 11, color: C.td, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{t.position || ''}</span>
-                    <span style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6 }} title="Landing / arrival date">
-                      <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm }}>Lands</span>
+                  <span className="bhbc-manage-meta">
+                    <span style={{ minWidth: 0, fontFamily: FB, fontSize: 11, color: C.td, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tr(t.position) || ''}</span>
+                    <span style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6 }} title={tr('Landing / arrival date')}>
+                      <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm }}>{tr('Lands')}</span>
                       <input type="date" value={t.arrival || ''} onChange={(e) => setArrival(t.id, e.target.value)} style={{ fontFamily: FN, fontSize: 11, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '4px 6px' }} />
                     </span>
-                  </>
+                  </span>
                 )}
               </div>
             );
@@ -2707,7 +2707,7 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
                     {/* WRAP, do not ellipsize. The row already wraps, and on a narrow RTL line
     the ellipsis eats the START of the diagnosis — "…T SPRAIN" instead of
     "ANKLE LEFT SPRAIN". A truncated injury is not an injury report. */}
-                    <span style={{ color: C.tm, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{tr((inj.bodyPart || '').split('/')[0].trim())}{inj.side && inj.side !== 'N/A' ? ` ${inj.side[0]}` : ''} · {tr(s.label)}{inj.rtpTarget ? <span className="bhbc-mob-hide">{` · RTP ${monDay(inj.rtpTarget)}`}</span> : null}
+                    <span style={{ color: C.tm, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{tr((inj.bodyPart || '').split('/')[0].trim())}{sideTag(inj.side, tr)} · {tr(s.label)}{inj.rtpTarget ? <span className="bhbc-mob-hide">{` · RTP ${monDay(inj.rtpTarget)}`}</span> : null}
                     {(() => { const od = rtpOverdueDays(inj, today); return od ? <span style={{ color: 'var(--bhbc-amber-text, #E0A73A)', fontFamily: FN, fontWeight: 700 }}>{` · ${od}d ${tr('overdue')}`}</span> : null; })()}</span>
                                       {onMedical && (
                       <button onClick={(e) => { e.stopPropagation(); onMedical(t.id); }} title={tr('Update this medical report')} className="bhbc-ghost-btn"
@@ -3222,7 +3222,7 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
                     // the TYPE instead was worse: Zack's record is typed Contusion,
                     // so the cell read "Contusion" for a concussion.
                     const injShort = !inj ? null
-                      : `${tr((inj.bodyPart || '').split('/')[0].trim())}${inj.side && inj.side !== 'N/A' ? ` ${inj.side[0]}` : ''}`;
+                      : `${tr((inj.bodyPart || '').split('/')[0].trim())}${sideTag(inj.side, tr)}`;
                     return (
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0, whiteSpace: 'nowrap' }}>
                         <span style={{ fontFamily: FB, fontSize: 11, color: C.td }}>{t.position || '—'}{injShort ? ' ·' : ''}</span>
@@ -3315,7 +3315,7 @@ function RosterGrid({ rows, medical = {}, league = {}, onOpen }) {
   const tr = useT();
   return (
     <CollapsibleSection title={tr("Roster")} count={rows.length} storageKey="bhbc-roster" defaultOpen leftStripe={NAVY}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(232px, 1fr))', gap: 12 }}>
+      <div className="bhbc-roster-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(232px, 1fr))', gap: 12 }}>
         {rows.map(({ t, acwr, att }) => (
           <div key={t.id} onClick={() => onOpen(t.id)} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }} className="bhbc-card" style={{ position: 'relative', overflow: 'hidden', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderInlineStart: `3px solid ${acwr.band.color}`, padding: '13px 15px',
             // EVERY ROSTER CARD IS THE SAME BOX.
@@ -3335,15 +3335,15 @@ function RosterGrid({ rows, medical = {}, league = {}, onOpen }) {
             // borders don't align from card to card".
             // The footer is now PINNED to the bottom of the card, so the
             // hairline lands on the same y in every card whatever is above it.
-            height: 162, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', cursor: 'pointer', transition: 'transform 160ms, box-shadow 160ms, border-color 240ms ease-out' }}>
-            <div aria-hidden="true" style={{ position: 'absolute', right: 10, top: 8, fontFamily: FN, fontWeight: 800, fontSize: 42, lineHeight: 1, color: NAVY, opacity: 0.08, fontVariantNumeric: 'tabular-nums' }}>{t.jersey ?? ''}</div>
+            height: 'var(--rc-h, 162px)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', cursor: 'pointer', transition: 'transform 160ms, box-shadow 160ms, border-color 240ms ease-out' }}>
+            <div aria-hidden="true" data-ghost style={{ position: 'absolute', right: 10, top: 8, fontFamily: FN, fontWeight: 800, fontSize: 42, lineHeight: 1, color: NAVY, opacity: 0.08, fontVariantNumeric: 'tabular-nums' }}>{t.jersey ?? ''}</div>
             <div style={{ position: 'relative', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
               <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums' }}>#{t.jersey ?? '—'}</div>
               {/* Two lines are reserved whether or not the name needs them, so a
                   short Latin name and a long Hebrew one leave the rows below at
                   the same y. lineHeight is fixed for the same reason - Heebo and
                   Nord disagree about 'normal'. */}
-              <div style={{ fontFamily: FN, fontWeight: 700, fontSize: 15, lineHeight: 1.2, color: C.tx, marginTop: 3, minHeight: 36, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{t.name}</div>
+              <div style={{ fontFamily: FN, fontWeight: 700, fontSize: 15, lineHeight: 1.2, color: C.tx, marginTop: 3, minHeight: 'var(--rc-name, 36px)', whiteSpace: 'normal', overflowWrap: 'break-word' }}>{t.name}</div>
               {/* Position ALWAYS, injury appended - the same line every card in
                   the zone uses. This was injury-OR-position too, so on the roster
                   an injured athlete lost his position entirely while a fit one
@@ -3351,15 +3351,15 @@ function RosterGrid({ rows, medical = {}, league = {}, onOpen }) {
               {(() => {
                 const inj = activeInjuries(medical, t.id)[0];
                 const injShort = !inj ? null
-                  : `${tr((inj.bodyPart || '').split('/')[0].trim())}${inj.side && inj.side !== 'N/A' ? ` ${inj.side[0]}` : ''}`;
+                  : `${tr((inj.bodyPart || '').split('/')[0].trim())}${sideTag(inj.side, tr)}`;
                 return (
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 4, minWidth: 0, flexWrap: 'wrap', minHeight: 30, alignContent: 'flex-start' }}>
-                    <span style={{ fontFamily: FB, fontSize: 11, color: C.td }}>{t.position || '—'}{injShort ? ' ·' : ''}</span>
-                    {injShort && <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: medText(inj.status) }}>{injShort} · {tr(inj.status)}</span>}
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 4, minWidth: 0, flexWrap: 'wrap', minHeight: 'var(--rc-stat, 30px)', alignContent: 'flex-start' }}>
+                    <span style={{ fontFamily: FB, fontSize: 11, color: C.td }}>{tr(t.position) || '—'}{injShort ? ' ·' : ''}</span>
+                    {injShort && <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: medText(inj.status) }}>{injShort} · {tr((MED_STATUS[inj.status] || {}).label || inj.status)}</span>}
                   </div>
                 );
               })()}
-              {t.arrival && t.arrival > todayISO() && <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 6, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: ORANGE_DEEP, background: `color-mix(in srgb, ${ORANGE} 12%, transparent)`, padding: '2px 6px' }}><span aria-hidden="true">✈</span> Lands {dow(t.arrival)} {monDay(t.arrival)}</div>}
+              {t.arrival && t.arrival > todayISO() && <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 6, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: ORANGE_DEEP, background: `color-mix(in srgb, ${ORANGE} 12%, transparent)`, padding: '2px 6px' }}><span aria-hidden="true">✈</span> {tr('Lands')} {dow(t.arrival)} {monDay(t.arrival)}</div>}
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 'auto', paddingTop: 10, borderTop: `1px solid ${C.cardBd}`, flexShrink: 0 }}>
                 <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{heightM(t.heightCm)}</span>
                 <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', color: C.tm, lineHeight: 1 }}>{flag(t.nationality)}</span>
@@ -4270,6 +4270,14 @@ function LeagueView({ league, roster, fixtures, onOpen, bhbcLoads = {}, today, o
 // ============================ MEDICAL / INJURY ============================
 // A shared record for Ohad + the physical therapist: injuries, current status,
 // pain, return-to-play target and a dated rehab-progress log per athlete.
+// An injury's side is Left / Right / Bilateral. In English the first letter
+// is enough ("KNEE R"); in Hebrew a lone Latin letter is noise, so the word
+// itself is used - ברך ימין.
+function sideTag(side, tr) {
+  if (!side || side === 'N/A') return '';
+  const w = tr(side);
+  return ' ' + (/[֐-׿]/.test(w) ? w : side[0]);
+}
 const MED_STATUS = {
   available: { label: 'Available', color: '#37B27C' },
   // color paints DOTS, text paints WORDS. Raw amber measures 2.15:1 on
