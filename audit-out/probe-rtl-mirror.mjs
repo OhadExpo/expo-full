@@ -42,7 +42,8 @@ const report = {};
 for (const route of ROUTES) {
   const snaps = {};
   for (const lang of ['en', 'he']) {
-    await pg.evaluate((l) => { try { localStorage.setItem('expo-lang', l); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} }, lang);
+    // The club zone keeps its own language key (bhbc-lang); set both so /coach/bhbc mirrors too.
+    await pg.evaluate((l) => { try { localStorage.setItem('expo-lang', l); localStorage.setItem('bhbc-lang', l); localStorage.setItem('expo-bhbc-lang', l); localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} }, lang);
     await pg.goto(BASE + route + '?lang=' + lang, { waitUntil: 'domcontentloaded', timeout: 60000 });
     for (let k = 0; k < 40; k++) { await wait(500); if (await pg.evaluate(() => document.body.innerText.length > 300)) break; }
     await wait(2500);
