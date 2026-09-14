@@ -274,7 +274,8 @@ function DemoDashboard({ onJumpToTrainee }) {
   const outstandingAmt = overdue.reduce((s, t) => s + (t.monthly || 0), 0);
   const avgTicket = paying.length ? collected30 / paying.length : 0;
   const avgLtv = avgTicket * 10; // ~10-month mean tenure, plenty for a demo
-  const months6 = [['Jan', 2900], ['Feb', 3200], ['Mar', 2700], ['Apr', 3600], ['May', 3400], ['Jun', collected30]];
+  // The axis is six months, named in the reader's language.
+  const months6 = [['Jan', 2900], ['Feb', 3200], ['Mar', 2700], ['Apr', 3600], ['May', 3400], ['Jun', collected30]].map(([m, v]) => [T(m), v]);
   const barMax = Math.max(...months6.map(m => m[1]));
   const collected90 = months6.slice(-3).reduce((s, m) => s + m[1], 0);
   return (
@@ -364,7 +365,7 @@ function DemoDashboard({ onJumpToTrainee }) {
                   {rows.map(t => {
                     const meta = TASK_SRC[t.src];
                     return (
-                      <div key={t.id} style={{ border: `1px solid ${C.cardBd}`, borderInlineStart: `3px solid ${meta.color}`, padding: '5px 7px', fontFamily: FB, fontSize: 11, lineHeight: 1.3, color: C.tx }}>{t.title}</div>
+                      <div key={t.id} style={{ border: `1px solid ${C.cardBd}`, borderInlineStart: `3px solid ${meta.color}`, padding: '5px 7px', fontFamily: FB, fontSize: 11, lineHeight: 1.3, color: C.tx }}>{T(t.title)}</div>
                     );
                   })}
                   {rows.length === 0 && <div style={{ padding: '6px 4px', textAlign: 'center', color: C.td, fontSize: 9, fontFamily: FN }}>—</div>}
@@ -2096,9 +2097,9 @@ function DemoPrograms({ resetToken = 0 }) {
                     : row.daysSince <= 7 ? C.tm
                     : row.daysSince <= 14 ? C.or
                     : C.rd;
-                  const tagText = row.daysSince == null ? 'NEVER LOGGED'
-                    : row.daysSince === 0 ? 'TRAINED TODAY'
-                    : `${row.daysSince}D AGO`;
+                  const tagText = row.daysSince == null ? T('NEVER LOGGED')
+                    : row.daysSince === 0 ? T('TRAINED TODAY')
+                    : TN('{n}D AGO', row.daysSince);
                   const portalKey = (id) => 'pv_' + id;
                   const isVis = (id) => portalVis[portalKey(id)] !== false;
                   const togglePortal = (id) => setPortalVis(v => ({ ...v, [portalKey(id)]: !isVis(id) }));
@@ -3767,8 +3768,8 @@ function DemoTasks() {
                     const overdue = /OVERDUE/i.test(t.due);
                     return (
                       <div key={t.id} style={demoCardStyle({ borderInlineStart: `3px solid ${meta.color}`, padding: 9, display: 'flex', flexDirection: 'column', gap: 5 })}>
-                        <span style={{ fontFamily: FB, fontSize: 12, color: C.tx, lineHeight: 1.3 }}>{t.title}</span>
-                        <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', color: overdue ? C.tx : C.tm, border: overdue ? `1px solid ${C.bd}` : 'none', padding: overdue ? '2px 6px' : 0, alignSelf: 'flex-start' }}>{t.due}</span>
+                        <span style={{ fontFamily: FB, fontSize: 12, color: C.tx, lineHeight: 1.3 }}>{T(t.title)}</span>
+                        <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', color: overdue ? C.tx : C.tm, border: overdue ? `1px solid ${C.bd}` : 'none', padding: overdue ? '2px 6px' : 0, alignSelf: 'flex-start' }}>{T(t.due)}</span>
                       </div>
                     );
                   })}
@@ -3793,9 +3794,9 @@ function DemoTasks() {
                 const overdue = /OVERDUE/i.test(t.due);
                 return (
                   <div key={t.id} style={demoCardStyle({ marginBottom: 6, borderInlineStart: `3px solid ${meta.color}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: 12 })}>
-                    <span style={{ fontFamily: FB, fontSize: 13, color: C.tx, textDecoration: t.status === 'done' ? 'line-through' : 'none', opacity: t.status === 'done' ? 0.6 : 1 }}>{t.title}</span>
+                    <span style={{ fontFamily: FB, fontSize: 13, color: C.tx, textDecoration: t.status === 'done' ? 'line-through' : 'none', opacity: t.status === 'done' ? 0.6 : 1 }}>{T(t.title)}</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-                      <span style={{ fontFamily: FN, fontSize: 10, color: overdue ? C.tx : C.tm }}>{t.due}</span>
+                      <span style={{ fontFamily: FN, fontSize: 10, color: overdue ? C.tx : C.tm }}>{T(t.due)}</span>
                       <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: '#FFFFFF', background: col.color, padding: '3px 7px' }}>{col.label}</span>
                     </div>
                   </div>
@@ -4222,10 +4223,10 @@ export default function CoachDemo() {
           fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1,
         }}>
           <EXPOMark theme="dark" height={14} style={{ opacity: 0.55 }} />
-          <span>· COACH DEMO · MOCK DATA · NOTHING WRITES BACK</span>
+          <span>· {T('COACH DEMO · MOCK DATA · NOTHING WRITES BACK')}</span>
         </span>
         <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1 }}>
-          <a href="/demo" style={{ color: C.td, textDecoration: 'none' }}>← BACK</a>
+          <a href="/demo" style={{ color: C.td, textDecoration: 'none' }}>{T('← BACK')}</a>
         </span>
       </footer>
     </div>
