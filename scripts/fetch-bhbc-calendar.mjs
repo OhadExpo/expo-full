@@ -27,6 +27,7 @@
 //   node scripts/fetch-bhbc-calendar.mjs [fromISO] [toISO]
 import P from 'puppeteer-core';
 import fs from 'node:fs';
+import { ensureDebugChrome } from './lib/ensure-debug-chrome.mjs';
 
 const CAL = process.env.CAL || 'c_96a2ea9f1242d53540e3ae9d3c10d78dc274a394cc03d0c012e12019573433b4@group.calendar.google.com';
 const OUT = process.env.OUT || 'audit-out/sheets/bhbc-calendar.json';
@@ -42,6 +43,9 @@ const localISO = (ms) => {
   return `${p.year}-${p.month}-${p.day}T${p.hour === '24' ? '00' : p.hour}:${p.minute}`;
 };
 
+// His Chrome closing mid-run killed this step once (ECONNREFUSED at 00:30,
+// after everything else in the sync had succeeded).
+console.log('chrome:', await ensureDebugChrome({ port: Number(new URL(CDP).port || 9222), log: (m) => console.log('  ' + m) }));
 const b = await P.connect({ browserURL: CDP, defaultViewport: null, protocolTimeout: 300000 });
 // A BACKGROUND tab: this runs twice a day inside his own Chrome.
 const cdpB = await b.target().createCDPSession();
