@@ -82,6 +82,19 @@ if (!(await chromeUp())) {
     await new Promise((r) => setTimeout(r, 1000));
     if (await chromeUp()) break;
   }
+  if (!(await chromeUp())) {
+    // A normal Chrome already owns that profile: the launch above only handed
+    // its arguments to the running instance, which has no debug port. The
+    // CLONE of the same signed-in profile is free, so use it.
+    const clone = 'C:\\Users\\Administrator\\chrome-debug-harvest';
+    if (fs.existsSync(clone)) {
+      say('profile busy (a Chrome without a debug port owns it) - starting the signed-in clone');
+      for (const lock of ['SingletonLock', 'lockfile', 'DevToolsActivePort']) { try { fs.rmSync(`${clone}\\${lock}`, { force: true }); } catch { /* noop */ } }
+      spawn(exe, ['--remote-debugging-port=9222', `--user-data-dir=${clone}`, '--no-first-run',
+                  '--no-default-browser-check', '--window-position=-32000,-32000', 'about:blank'], { detached: true, stdio: 'ignore' }).unref();
+      for (let i = 0; i < 25; i++) { await new Promise((r) => setTimeout(r, 1000)); if (await chromeUp()) break; }
+    }
+  }
   if (!(await chromeUp())) { say('FAILED: Chrome did not open a debug port'); finish(1); }
 }
 say('debug Chrome is up');
@@ -110,5 +123,12 @@ run('node', ['scripts/derive-payments.mjs'], 'derive payments');
 const maxBefore = Math.max(0, ...fs.readdirSync('audit-out/sheets/rev').map((x) => Number((x.match(/^r(d+).xlsx$/) || [])[1] || 0)));
 run('node', ['scripts/import-revenue-timeline.mjs'], 'import timeline', { CELLS_MIN_REV: String(after > before ? 0 : maxBefore + 1) });
 run('node', ['scripts/verify-billing-history.mjs'], 'verify billing history');
+
+// ---- the club zone, from the club's Google Calendar ----
+// Soft: a calendar hiccup must never cost him the revenue refresh.
+run('node', ['scripts/fetch-bhbc-calendar.mjs'], 'fetch club calendar', {}, { soft: true });
+if (fs.existsSync('audit-out/sheets/bhbc-calendar.json')) {
+  run('node', ['scripts/sync-bhbc-calendar.mjs', 'audit-out/sheets/bhbc-calendar.json'], 'sync club calendar', {}, { soft: true });
+}
 say(softFailures ? `done with ${softFailures} soft failure(s) - the live export was starved; history and totals still refreshed` : 'done');
 finish(0);

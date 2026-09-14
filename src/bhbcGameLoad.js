@@ -53,6 +53,13 @@ export function applyGameMinutes(prev, { date, rpe, minutes = {}, emptyRec = () 
     if (load > 0) {
       rec.loads[date] = base + load;
       rec.sessions[date] = [...kept, { type: GAME, min: mins, rpe: Number(rpe) || 0, load }];
+    } else if (mins > 0) {
+      // Minutes, no RPE: the official box score says how long he played, and
+      // nobody has said how hard it was. Recorded like a gym session - zero
+      // load, attended - so it shows in the history and stays out of ACWR.
+      // Setting an RPE later recomputes the load through the branch above.
+      if (base > 0) rec.loads[date] = base; else delete rec.loads[date];
+      rec.sessions[date] = [...kept, { type: GAME, min: mins, rpe: null, load: 0, attended: true }];
     } else {
       if (base > 0) rec.loads[date] = base; else delete rec.loads[date];
       if (kept.length) rec.sessions[date] = kept; else delete rec.sessions[date];

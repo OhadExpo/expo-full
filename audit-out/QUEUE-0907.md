@@ -132,3 +132,18 @@ RESTORE POINT (pre-perf-fixes): b1f93ab6f04fa84e842c58049f278312374c8a43
 - [x] H7 (logged 7.9, 30 min) "dusty worked out for 30 minutes on september 7th" — log Dusty Hannahs' lift, 2026-09-07, 30 min
 - [x] H8 (shared Card: zero-padding cards inset the title 14px and stop the strip bleeding — every such card, both apps) screenshot 17:04 "all the hebrew titles everywhere are not aligned right (text is not where it should be)" — Hebrew titles sit off their intended edge; find the rule and fix it platform-wide
 - [x] H9 (modal redesigned: jersey · name · minutes · DNP, summary that cannot scramble; minutes NOT filled — the league publishes no box score for the Winner Cup game, so they still come from the coach) screenshot 17:07 "find it and fill it it looks bad. the design is awful and it's not synced or updated" — the section in the screenshot: fill its data, redesign it, keep it synced
+
+## I — 2026-09-14 "you can keep going"
+- [ ] I1 the sync daemon since 13.9 21:00: every slot passed (soft fetch or live), gate green, harvest current
+- [ ] I2 the club calendar pulled again through the connector (Oct 12 → Dec 31) and merged; anything new on the zone
+- [ ] I3 mobile 390: /coach/billing (sheet card, month + client expansion) and the club zone tabs in Hebrew — measured, fixed where they overflow
+- [ ] I4 deploy candidate rebuilt + smoked after I2/I3; handoff row 84
+- [ ] I5 (his 14.9 image) the 3.9 box score: Maccabi TA 84 – 86 Bnei Herzliya, full game minutes per player → into the zone
+- [ ] I6 "for 3 figure it out… find a way on your own" — a STANDING calendar sync with no permission from anyone: the signed-in Chrome exports the calendars itself
+- [ ] I7 the 10:45 sync failed: Chrome was running WITHOUT the debug port, so launching the same profile never bound 9222 — fall back to the cloned signed-in profile
+
+## J — 2026-09-15 "a: logged is spilling… one row, inside the borders. b: resume for another 4 hours nonstop"
+- [ ] J1 athlete portal, DAILY ROUTINE header: the "1 LOGGED" chip wraps to two lines and overflows its box — one row, inside its border, same height as START
+- [ ] J2 4 hours nonstop: J1, then the open I-items (calendar standing sync, 3.9 box score minutes, sync Chrome fallback), then the queue
+- [ ] J3 deploy the chip fix to production immediately (his explicit yes, this fix only, on top of cf884fb)
+- [ ] J4 FULL SWEEP: every chip/pill/button in both apps at phone widths — nothing may wrap inside its border or overflow it; it reached a real athlete screen
