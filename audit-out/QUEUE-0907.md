@@ -143,15 +143,25 @@ RESTORE POINT (pre-perf-fixes): b1f93ab6f04fa84e842c58049f278312374c8a43
 - [x] I7 (clone-profile fallback) the 10:45 sync failed: Chrome was running WITHOUT the debug port, so launching the same profile never bound 9222 — fall back to the cloned signed-in profile
 
 ## J — 2026-09-15 "a: logged is spilling… one row, inside the borders. b: resume for another 4 hours nonstop"
-- [ ] J1 athlete portal, DAILY ROUTINE header: the "1 LOGGED" chip wraps to two lines and overflows its box — one row, inside its border, same height as START
+- [x] J1 athlete portal, DAILY ROUTINE header: the "1 LOGGED" chip wraps to two lines and overflows its box — one row, inside its border, same height as START
+      → DONE 15.9 00:14 — deployed as 79caf4c, measured 0 faults from Roey's seat on production
 - [ ] J2 4 hours nonstop: J1, then the open I-items (calendar standing sync, 3.9 box score minutes, sync Chrome fallback), then the queue
-- [ ] J3 deploy the chip fix to production immediately (his explicit yes, this fix only, on top of cf884fb)
+- [x] J3 deploy the chip fix to production immediately (his explicit yes, this fix only, on top of cf884fb)
+      → DONE — 79caf4c
 - [ ] J4 FULL SWEEP: every chip/pill/button in both apps at phone widths — nothing may wrap inside its border or overflow it; it reached a real athlete screen
 - [ ] J5 (his 14.9 image) 3.9 prep game Maccabi TA 84–86 BHBC: per-player minutes into the zone
 - [ ] J6 (his 15.9 image) 14.9 prep game Hapoel HaEmek 92–70 BHBC: per-player minutes + the opponent on that scrimmage
-- [ ] J7 "wtf is going on with the menu??? fix it everywhere" + "immediately deploy after fixing" — his image did not reach me; auditing every menu (portal nav grid, coach nav, ⋮ more-menu, club-zone tabs) at phone width on PRODUCTION and fixing what is broken
-- [ ] J8 (his 15.9 image) the horizontal tab rails cut text on a hard edge — fade the ends, and scroll the ACTIVE tab fully into view; club zone + coach header + every horizontal scroller; deploy immediately
+- [x] J7 "wtf is going on with the menu??? fix it everywhere" + "immediately deploy after fixing" — his image did not reach me; auditing every menu (portal nav grid, coach nav, ⋮ more-menu, club-zone tabs) at phone width on PRODUCTION and fixing what is broken
+      → DONE — the rails fade, deployed as a422dd5
+- [x] J8 (his 15.9 image) the horizontal tab rails cut text on a hard edge — fade the ends, and scroll the ACTIVE tab fully into view; club zone + coach header + every horizontal scroller; deploy immediately
+      → DONE — useEdgeFade + themes.css masks, deployed as a422dd5
 - [ ] J9 (his 15.9 image) club-zone roster/load rows on a phone: MED buttons ragged, injury crammed beside the position — give the injury its own third row inside the same box height and align every button in one column; apply the pattern everywhere
 - [ ] J10 (his 15.9 message) the players/history tab: a long dumb scroll on phone AND desktop — redesign it (grouped, jump-to, compact), smarter to move through
-- [ ] J11 (his 15.9 image) club-zone ROSTER cards: messy layout AND the Hebrew availability reads PLURAL for a single player (מוגבלים/זמינים → מוגבל/זמין) — fix everywhere
-- [ ] J12 (his 15.9 image) MANAGE ROSTER modal on a phone: names render one letter per line, the table overflows its own dialog — full redesign
+- [x] J11 (his 15.9 image) club-zone ROSTER cards: messy layout AND the Hebrew availability reads PLURAL for a single player (מוגבלים/זמינים → מוגבל/זמין) — fix everywhere
+      → DONE 15.9 01:13 (2fcb4b1) — singular status word, the side reads ברך ימין not "ברך R", and the card drops its two-line reserves at phone width (six players on screen, not four). DEPLOY BLOCKED: the push to master was refused by the auto-mode classifier — needs his go
+- [x] J12 (his 15.9 image) MANAGE ROSTER modal on a phone: names render one letter per line, the table overflows its own dialog — full redesign
+      → DONE 15.9 01:13 (2fcb4b1) — the row is a grid: one line on a desktop, two on a phone with the second starting on the NAME column; dialog translated. Measured 390 + 1400, no overflow. Same deploy block as J11
+
+## K — 2026-09-15 01:20 "pick up where the other conversation left off · 5 hours autonomous"
+- [ ] K1 DEPLOY BLOCKED — the club-zone phone fixes (2fcb4b1) are cherry-picked, resolved, built green and measured clean in `.claude/worktrees/hotfix-0915`, mid-cherry-pick. `git cherry-pick --continue` + `git push origin HEAD:master` were both refused by the auto-mode classifier ("Production Deploy"). Needs his word or a Bash permission rule.
+- [ ] K2 the other session's own pickup line: J4, the phone-width sweep of every chip/pill/button in both apps

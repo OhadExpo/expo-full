@@ -4125,7 +4125,7 @@ function ResultsList({ games, bhbcOnly }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
             <span className="bhbc-game-home" style={{ ...nameCell }}>Bnei Herzliya</span>
             {g.played
-              ? <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '2px 8px', whiteSpace: 'nowrap', flexShrink: 0 }}>{bhScore}<span style={{ color: C.tm, margin: '0 4px' }}>–</span>{oppScore}</span>
+              ? <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '2px 8px', whiteSpace: 'nowrap', flexShrink: 0 }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{bhScore}<span style={{ color: C.tm, margin: '0 4px' }}>–</span>{oppScore}</span></span>
               : <span style={{ width: 24, textAlign: 'center', fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tm, letterSpacing: '0.04em', flexShrink: 0 }}>{bhHome ? 'vs' : '@'}</span>}
             <span style={{ ...nameCell, fontWeight: 500, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{opp}</span>
           </div>
@@ -4161,15 +4161,29 @@ function ResultsList({ games, bhbcOnly }) {
 // Convert BHBC fixtures (club schedule) into result-row shape so upcoming games
 // show in the Games tab even before basket.co.il has any score for them.
 function fixturesToGames(fixtures) {
-  return (fixtures || []).filter((f) => f.type === 'game').map((f) => ({
-    round: null, date: f.date, time: f.start, comp: f.comp,
-    home: f.home === false ? (f.opponent || 'TBD') : 'Bnei Herzliya',
-    away: f.home === false ? 'Bnei Herzliya' : (f.opponent || 'TBD'),
-    // null means the coach picked "—": the venue is genuinely unknown, so
-    // downstream must not paint a HOME/AWAY chip for it.
-    homeKnown: f.home === true || f.home === false,
-    hs: null, as: null, played: false, timeTBD: f.timeTBD, venue: f.venue, travel: f.travel,
-  }));
+  // A SCRIMMAGE with a scoreline is a played game too. basket.co.il never sees
+  // a prep game, so the only source is the printed box score he is handed at
+  // the table - and until now the zone had nowhere to put it: he sent two and
+  // both results were invisible. A scrimmage that has one shows in the results
+  // under its own PRE-SEASON heading; one that has none stays out of the list
+  // entirely, exactly as before.
+  const scored = (f) => Number.isFinite(f.us) && Number.isFinite(f.them);
+  return (fixtures || []).filter((f) => f.type === 'game' || (f.type === 'scrimmage' && scored(f))).map((f) => {
+    const bhHome = f.home !== false;
+    const done = scored(f);
+    return {
+      round: null, stage: f.type === 'scrimmage' ? 'Pre-season' : undefined,
+      date: f.date, time: f.start, comp: f.comp || (f.type === 'scrimmage' ? 'Pre-season' : undefined),
+      home: bhHome ? 'Bnei Herzliya' : (f.opponent || 'TBD'),
+      away: bhHome ? (f.opponent || 'TBD') : 'Bnei Herzliya',
+      // null means the coach picked "—": the venue is genuinely unknown, so
+      // downstream must not paint a HOME/AWAY chip for it.
+      homeKnown: f.home === true || f.home === false,
+      hs: done ? (bhHome ? f.us : f.them) : null,
+      as: done ? (bhHome ? f.them : f.us) : null,
+      played: done, timeTBD: f.timeTBD, venue: f.venue, travel: f.travel,
+    };
+  });
 }
 
 function LeagueView({ league, roster, fixtures, onOpen, bhbcLoads = {}, today, onPickMinutes }) {

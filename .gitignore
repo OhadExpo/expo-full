@@ -147,3 +147,5 @@ audit-out/recap.html
 audit-out/recap-shots/
 
 audit-out/beforeafter/
+
+.env.owner.local
