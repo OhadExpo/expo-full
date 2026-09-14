@@ -1460,7 +1460,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
               <span style={{ color: C.ac, textShadow: '0 0 12px rgba(57,189,255,0.45)' }}>{trainee.name}</span>
               <span style={{ fontSize: 11, opacity: 0.78, letterSpacing: '0.02em', textTransform: 'none', fontWeight: 500 }}>{trainee.format}{trainee.phone ? ` · ${trainee.phone}` : ''}</span>
             </span>}>
-            <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.14em', textTransform: 'uppercase', paddingTop: 8, fontWeight: 700 }}>Shared household · {coupleSplit.length} members</div>
+            <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.14em', textTransform: 'uppercase', paddingTop: 8, fontWeight: 700 }}>{T('Shared household ·')}{coupleSplit.length} members</div>
           </DemoDetailCard>
         ); })()}
 
@@ -1508,7 +1508,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
           <Panel title="SHARED · HOUSEHOLD TERMS" tint={C.tm}>
             <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('FORMAT')}</span><span style={{ color: C.tx, fontWeight: 600 }}>{trainee.format}</span></Row>
             <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('PACKAGE')}</span><span style={{ color: C.tx, fontWeight: 600 }}>12 Sessions</span></Row>
-            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('SESSIONS')}</span><span style={{ color: trainee.sessionsLeft <= 2 ? C.rd : C.tx, fontWeight: 700 }}>{trainee.sessionsLeft} LEFT</span></Row>
+            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('SESSIONS')}</span><span style={{ color: trainee.sessionsLeft <= 2 ? C.rd : C.tx, fontWeight: 700 }}>{trainee.sessionsLeft}{T('LEFT')}</span></Row>
             <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('MONTHLY')}</span><span style={{ color: C.tx, fontWeight: 600 }}>₪{trainee.monthly}</span></Row>
             <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('PER SESSION')}</span><span style={{ color: C.tx, fontWeight: 600 }}>₪{Math.round(trainee.monthly / 12)}</span></Row>
             <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('LAST PAYMENT')}</span><span style={{ color: C.tx, fontWeight: 600 }}>2026-04-01</span></Row>
@@ -1524,7 +1524,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
             ))}
           </Panel>
 
-          <Panel title={<span>{T('SHARED · PAYMENTS (3)')} <span style={{ color: C.gn, marginInlineStart: 8 }}>₪{(trainee.monthly * 3).toLocaleString()} TOTAL</span></span>} tint={C.ac}>
+          <Panel title={<span>{T('SHARED · PAYMENTS (3)')} <span style={{ color: C.gn, marginInlineStart: 8 }}>₪{(trainee.monthly * 3).toLocaleString()}{T('TOTAL')}</span></span>} tint={C.ac}>
             {[
               { date: '2026-04-01', method: 'Bank Transfer' },
               { date: '2026-03-01', method: 'Bank Transfer' },
@@ -2342,7 +2342,7 @@ function DemoPrograms({ resetToken = 0 }) {
               <button onClick={() => setWarmOpen(o => !o)}
                 style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
                 <span style={{ fontSize: 10, color: C.or, fontFamily: FN, fontWeight: 700, width: 10, textAlign: 'center' }}>{<svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle', transition: 'transform 150ms ease', transform: (warmOpen) ? 'none' : 'rotate(-90deg)' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>}</span>
-                <span style={{ fontSize: 11, fontFamily: FN, fontWeight: 700, color: C.or, letterSpacing: '0.06em' }}>WARM-UP ({block.warmup.length})</span>
+                <span style={{ fontSize: 11, fontFamily: FN, fontWeight: 700, color: C.or, letterSpacing: '0.06em' }}>{T('WARM-UP (')}{block.warmup.length})</span>
               </button>
               <button onClick={e => e.stopPropagation()} title="Demo only"
                 style={{ background: 'var(--c-sf)', border: `1px solid rgba(255,165,2,0.4)`, borderRadius: 0, height: 26, boxSizing: 'border-box', padding: '0 10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: C.or, cursor: 'pointer', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.18em' }}>+ ADD WARM-UP</button>
@@ -2387,9 +2387,9 @@ function DemoPrograms({ resetToken = 0 }) {
           const estMin = Math.round(estSec / 60);
           return (
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
-              <DayChip>{exCount} EXERCISES</DayChip>
-              <DayChip>{ssCount} SUPERSET{ssCount === 1 ? '' : 'S'}</DayChip>
-              <DayChip>~{estMin} MIN</DayChip>
+              <DayChip>{exCount}{T('EXERCISES')}</DayChip>
+              <DayChip>{ssCount}{T('SUPERSET')}{ssCount === 1 ? '' : 'S'}</DayChip>
+              <DayChip>~{estMin}{T('MIN')}</DayChip>
               <DayChip muted>{T('EST · BASED ON 90s REST')}</DayChip>
             </div>
           );
@@ -2648,7 +2648,7 @@ function DemoPrograms({ resetToken = 0 }) {
                   <button onClick={() => setCmpWarmOpen(o => !o)}
                     style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ fontSize: 10, color: C.or, fontFamily: FN, fontWeight: 700, width: 10, textAlign: 'center' }}>{<svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle', transition: 'transform 150ms ease', transform: (cmpWarmOpen) ? 'none' : 'rotate(-90deg)' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>}</span>
-                    <span style={{ fontSize: 11, fontFamily: FN, fontWeight: 700, color: C.or, letterSpacing: '0.06em' }}>WARM-UP ({cmpBlock.warmup.length})</span>
+                    <span style={{ fontSize: 11, fontFamily: FN, fontWeight: 700, color: C.or, letterSpacing: '0.06em' }}>{T('WARM-UP (')}{cmpBlock.warmup.length})</span>
                   </button>
                   {cmpWarmOpen && (
                     <div style={{ marginTop: 8 }}>
@@ -2843,7 +2843,7 @@ function DemoExercises() {
             <div style={{ position: 'sticky', top: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, height: 28, padding: '0 11px', background: 'color-mix(in srgb, var(--c-ac) 15%, var(--c-sf))', borderBottom: `1px solid ${C.ac}`, zIndex: 1 }}>
               <span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.16em', color: C.ac, textTransform: 'uppercase' }}>{label}</span>
               {sel.length > 0
-                ? <span onClick={e => { e.stopPropagation(); clearFilter(k); }} title="Clear selection" style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color: C.tm, cursor: 'pointer' }}>CLEAR · {sel.length}</span>
+                ? <span onClick={e => { e.stopPropagation(); clearFilter(k); }} title="Clear selection" style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color: C.tm, cursor: 'pointer' }}>{T('CLEAR ·')}{sel.length}</span>
                 : <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: C.td, fontVariantNumeric: 'tabular-nums' }}>{options.length}</span>}
             </div>
             {options.length === 0 && <div style={{ padding: '10px 12px', color: C.td, fontFamily: FN, fontSize: 10, letterSpacing: '0.04em' }}>{T('No values')}</div>}
@@ -2925,8 +2925,7 @@ function DemoExercises() {
           padding: 40, textAlign: 'center',
         }}>
           <div style={{ fontFamily: FN, fontSize: 11, color: C.td, letterSpacing: 2, fontWeight: 700, marginBottom: 8 }}>{T('NO MATCHES')}</div>
-          <div style={{ fontFamily: FB, fontSize: 13, color: C.tm }}>
-            Nothing matches {q ? <>"<span style={{ color: C.tx, fontWeight: 700 }}>{search}</span>"</> : 'this filter'}. Clear search or pick another category.
+          <div style={{ fontFamily: FB, fontSize: 13, color: C.tm }}>{T('Nothing matches')}{q ? <>"<span style={{ color: C.tx, fontWeight: 700 }}>{search}</span>"</> : 'this filter'}. Clear search or pick another category.
           </div>
         </div>
       ) : view === 'grid' ? (
@@ -3083,8 +3082,7 @@ function DemoReview() {
               </div>
             </div>
             <div style={{ fontFamily: FN, fontSize: 11, color: C.gn, letterSpacing: 1, fontWeight: 700 }}>
-              {selected.doneSets}/{selected.totalSets} SETS DONE
-            </div>
+              {selected.doneSets}/{selected.totalSets}{T('SETS DONE')}</div>
           </div>
         </div>
 
@@ -3111,7 +3109,7 @@ function DemoReview() {
           return (
             <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0, marginBottom: 12, overflow: 'hidden' }}>
               <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '8px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', color: '#FFFFFF', textTransform: 'uppercase' }}>Form Video · {vidEx.name}</span>
+                <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', color: '#FFFFFF', textTransform: 'uppercase' }}>{T('Form Video ·')}{vidEx.name}</span>
                 <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                   <button onClick={e => { e.stopPropagation(); setVsDemo(v => !v); }} title="Play the athlete's rep next to the branded reference demo"
                     style={{ background: vsDemo ? '#39BDFF' : 'transparent', border: `1px solid ${vsDemo ? '#39BDFF' : 'rgba(255,255,255,0.35)'}`, color: vsDemo ? '#06131b' : '#fff', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', padding: '3px 9px', borderRadius: 0, cursor: 'pointer', textTransform: 'uppercase' }}>◫ vs Demo</button>
@@ -3393,7 +3391,7 @@ function DemoWorkouts() {
       {/* 2. In Progress */}
       {MOCK_IN_PROGRESS.length > 0 && (
         <>
-          <h3 style={{ ...sectionH, color: C.or, marginBottom: 12 }}>In Progress ({MOCK_IN_PROGRESS.length})</h3>
+          <h3 style={{ ...sectionH, color: C.or, marginBottom: 12 }}>{T('In Progress (')}{MOCK_IN_PROGRESS.length})</h3>
           {MOCK_IN_PROGRESS.map(w => (
             <div key={w.id} style={{ ...demoCardStyle({ marginBottom: 8, borderColor: 'rgba(255,165,2,0.251)', cursor: 'pointer' }) }}>
               <div style={{ fontFamily: FB, fontWeight: 600, fontSize: 14, color: C.tx }}>{w.dayName}</div>
@@ -3486,7 +3484,7 @@ function DemoSessionExercise({ ex, open, onToggle }) {
         </div>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 4 }}>
           <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.02em', color: C.ac }}>{ex.prescribed}</span>
-          <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: allDone ? C.gn : C.tm }}>{doneCount}/{ex.sets.length} DONE</span>
+          <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: allDone ? C.gn : C.tm }}>{doneCount}/{ex.sets.length}{T('DONE')}</span>
         </div>
       </div>
       {open && (
@@ -3525,9 +3523,7 @@ function DemoGroupFloor() {
       {/* Floor bar */}
       <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, marginBottom: 12 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '12px 14px', borderBottom: `1px solid ${C.cardBd}` }}>
-          <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.ac, fontFamily: FN }}>
-            ON THE FLOOR · {Object.values(checkedIn).filter(Boolean).length}/{roster.length} CHECKED IN
-          </span>
+          <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.ac, fontFamily: FN }}>{T('ON THE FLOOR ·')}{Object.values(checkedIn).filter(Boolean).length}/{roster.length}{T('CHECKED IN')}</span>
           <div style={{ display: 'flex', gap: 8 }}>
             <button style={{ ...baseBtn, background: 'transparent', color: C.tm, border: `1px solid ${C.bd}`, padding: '4px 12px', fontSize: 11 }}>+ ADD</button>
             <button style={{ ...baseBtn, background: 'transparent', color: C.tm, border: `1px solid ${C.bd}`, padding: '4px 12px', fontSize: 11 }}>■ FINISH</button>
@@ -3860,7 +3856,7 @@ function DemoBilling() {
       </div>
       {panel(<>
         <div style={stripH}>
-          <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.04em', color: C.ac }}>PAYMENT REQUESTS {pending.length > 0 && <span style={{ color: C.or }}>· {pending.length} PENDING</span>}</span>
+          <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.04em', color: C.ac }}>{T('PAYMENT REQUESTS')}{pending.length > 0 && <span style={{ color: C.or }}>· {pending.length}{T('PENDING')}</span>}</span>
           <button onClick={() => setShowReq(true)} style={{ ...baseBtn, background: 'transparent', color: C.ac, border: `1px solid ${C.ac}`, height: 26, boxSizing: 'border-box', padding: '0 12px', fontSize: 10 }}>+ NEW REQUEST</button>
         </div>
         <div>

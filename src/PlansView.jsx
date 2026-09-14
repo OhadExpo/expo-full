@@ -755,7 +755,7 @@ function PlanPrintSheet({ plan, athleteName, exercises }) {
           {athleteName ? <span className="pp-athlete"><bdi>{athleteName}</bdi></span> : null}
           <span>{days.length} {days.length === 1 ? 'day' : 'days'}</span>
           <span>{weeks} {weeks === 1 ? 'week' : 'weeks'}</span>
-          <span>Printed {printedOn}</span>
+          <span>{tt('Printed')}{printedOn}</span>
         </div>
       </header>
 
@@ -2466,9 +2466,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
         <div style={{display:'flex',justifyContent:'flex-end',alignItems:'center',minHeight:15,marginTop:4,paddingInlineEnd:2}}>
           {statusLabel && <span key={statusLabel.text} className="motion-rise" aria-live="polite" style={{fontFamily:FN,fontSize:10,fontWeight:700,color:statusLabel.color,letterSpacing:'0.1em',textTransform:'uppercase'}}>{statusLabel.text}</span>}
           {remoteEdit && (
-            <span style={{display:'inline-flex',alignItems:'center',gap:8,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:'#E0A73A',background:'color-mix(in srgb, #E0A73A 12%, transparent)',border:'1px solid color-mix(in srgb, #E0A73A 45%, transparent)',padding:'3px 9px'}}>
-              Saved on another device
-              {onSwitchProgram && <button onClick={()=>{ try{markClean();}catch{} setRemoteEdit(false); onSwitchProgram(planRef.current.id); }} style={{fontFamily:FN,fontSize:9.5,fontWeight:700,color:C.ac,background:'transparent',border:`1px solid ${C.ac}`,padding:'2px 7px',cursor:'pointer'}}>Reload</button>}
+            <span style={{display:'inline-flex',alignItems:'center',gap:8,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:'#E0A73A',background:'color-mix(in srgb, #E0A73A 12%, transparent)',border:'1px solid color-mix(in srgb, #E0A73A 45%, transparent)',padding:'3px 9px'}}>{tt('Saved on another device')}{onSwitchProgram && <button onClick={()=>{ try{markClean();}catch{} setRemoteEdit(false); onSwitchProgram(planRef.current.id); }} style={{fontFamily:FN,fontSize:9.5,fontWeight:700,color:C.ac,background:'transparent',border:`1px solid ${C.ac}`,padding:'2px 7px',cursor:'pointer'}}>Reload</button>}
               <button onClick={()=>setRemoteEdit(false)} title="Dismiss" style={{fontFamily:FN,fontSize:11,color:C.tm,background:'transparent',border:'none',cursor:'pointer'}}>✕</button>
             </span>
           )}
@@ -3016,7 +3014,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
         <div onClick={()=>setHistoryOpen(false)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.72)',zIndex:10000,display:'flex',alignItems:'flex-start',justifyContent:'center',padding:'6vh 16px',overflowY:'auto'}}>
           <div onClick={e=>e.stopPropagation()} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,width:'min(560px,100%)',maxHeight:'88vh',display:'flex',flexDirection:'column'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,padding:'14px 18px',borderBottom:`1px solid ${C.cardBd}`,flexShrink:0}}>
-              <div style={{fontFamily:FN,fontWeight:700,fontSize:14,letterSpacing:'0.04em',color:C.tx,minWidth:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>HISTORY · {plan.name} <span style={{color:C.tm,fontWeight:400,fontSize:12}}>· {blockWorkouts.length} logged</span></div>
+              <div style={{fontFamily:FN,fontWeight:700,fontSize:14,letterSpacing:'0.04em',color:C.tx,minWidth:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{tt('HISTORY ·')}{plan.name} <span style={{color:C.tm,fontWeight:400,fontSize:12}}>· {blockWorkouts.length} logged</span></div>
               <button onClick={()=>setHistoryOpen(false)} aria-label="Close history" style={{background:'transparent',border:'none',color:C.tm,cursor:'pointer',fontSize:20,lineHeight:1,flexShrink:0,padding:0}}>×</button>
             </div>
             <div style={{overflowY:'auto',padding:'12px 18px 18px'}}>
@@ -3778,8 +3776,7 @@ export function TrainingLineage({ traineeId, traineeName, exercises, plans, load
 
       {/* Movement-pattern matrix — ~10 lanes, not 300 lifts. Each cell = working
           sets for that pattern that block; the periodization at a glance. */}
-      <div style={{ padding: '12px 12px 0', fontFamily: FN, fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>
-        Movement patterns · {metric === 'volume' ? 'volume' : 'sets'} per block
+      <div style={{ padding: '12px 12px 0', fontFamily: FN, fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{tt('Movement patterns ·')}{metric === 'volume' ? 'volume' : 'sets'} per block
       </div>
       <div style={{ overflowX: 'auto', padding: '6px 12px 12px' }}>
         <div style={{ minWidth: NAME_W + blocks.length * COL_W }}>
@@ -3864,7 +3861,7 @@ export function TrainingLineage({ traineeId, traineeName, exercises, plans, load
           a deload when fatigue is due), the rep/%1RM band, and coverage/balance. */}
       <div style={{ margin: '4px 12px 12px', border: `1px solid ${C.cardBd}`, background: 'var(--c-sf2)' }}>
         <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 88%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '7px 12px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-          <span>Build the next block{nextPlan.nextNum != null ? ` · #${nextPlan.nextNum}` : ''}</span>
+          <span>{tt('Build the next block')}{nextPlan.nextNum != null ? ` · #${nextPlan.nextNum}` : ''}</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
             <button onClick={() => setReportOpen(true)} title="Open the full next-block report — goals, parameters, weekly progression, per-movement targets" style={{ height:24, padding: '0 10px', border: '1px solid #39BDFF', background: '#39BDFF', color: '#06131b', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>⤢ Full report →</button>
             <button onClick={copyBrief} title="Copy this analysis as a next-block brief — a periodization starting point (you choose the exercises & loads)" style={{ height:24, padding: '0 10px', border: `1px solid ${briefCopied ? C.gn : 'rgba(255,255,255,0.35)'}`, background: 'transparent', color: briefCopied ? C.gn : '#fff', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>{briefCopied ? 'Copied ✓' : '⧉ Copy brief'}</button>
@@ -5121,7 +5118,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               <button className="prog-txtbtn" onClick={e=>{e.stopPropagation(); setPendingDelete({ id: p.id, name: p.name, fromEditor: false }); setDeleteTyped('');}} title="Delete program" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.rd}}>{tb("Delete")}</button>
             </div>
           </div>})}
-          {hasMore && <Btn variant="ghost" onClick={()=>setVisibleCount(c=>c+PAGE_SIZE)} style={{width:"100%",justifyContent:"center",marginTop:8}}>Load more ({filtered.length - visibleCount} remaining)</Btn>}
+          {hasMore && <Btn variant="ghost" onClick={()=>setVisibleCount(c=>c+PAGE_SIZE)} style={{width:"100%",justifyContent:"center",marginTop:8}}>{tt('Load more (')}{filtered.length - visibleCount} remaining)</Btn>}
         </div>))}
         </div>{/* /RIGHT main column */}
       </div>{/* /two-column layout */}
@@ -5136,7 +5133,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
         return (
           <div style={{position:'fixed',zIndex:900,top:top,left:leftAnchored?Math.max(8,left):undefined,right:leftAnchored?undefined:Math.max(8,right),width:'min(440px,90vw)',background: isRefined5b() ? '#F0FAFF' : C.sf,border:`2px solid ${C.ac}`,borderRadius:0,padding:16,pointerEvents:'none',boxShadow: isRefined5b() ? '0 6px 16px rgba(0,0,0,0.10), 0 16px 40px rgba(0,0,0,0.18)' : `0 8px 32px ${C.shadow}`}}>
             <div style={{fontFamily:FN,fontSize:13,fontWeight:700,color:C.ac,letterSpacing:'0.04em',marginBottom:2}}>{previewPlan.name||"Untitled"}</div>
-            <div style={{fontFamily:FN,fontSize:10,color:C.tm,letterSpacing:'0.1em',textTransform:'uppercase',marginBottom:12}}>{(previewPlan.days||[]).length} DAYS · {(previewPlan.days||[]).reduce((n,d)=>n+((d?.exercises||[]).length),0)} EX{previewPlan.phase?` · ${previewPlan.phase}`:''}</div>
+            <div style={{fontFamily:FN,fontSize:10,color:C.tm,letterSpacing:'0.1em',textTransform:'uppercase',marginBottom:12}}>{(previewPlan.days||[]).length}{tt('DAYS ·')}{(previewPlan.days||[]).reduce((n,d)=>n+((d?.exercises||[]).length),0)} EX{previewPlan.phase?` · ${previewPlan.phase}`:''}</div>
             {(previewPlan.days||[]).map((d,di) => (
               <div key={d?.id||di} style={{marginBottom:10}}>
                 <div style={{fontFamily:FN,fontSize:10,fontWeight:700,color:C.tx,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:4}}>{d?.name}</div>

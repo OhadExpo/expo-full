@@ -376,7 +376,7 @@ export default function MessagesCard({ trainees, onSelectTrainee, onOpenMessages
             <div style={{
               padding: '8px 4px 0', fontFamily: FN, fontSize: 10, letterSpacing: '0.12em',
               color: 'var(--c-tm)', textAlign: 'center',
-            }}>+ {visibleThreads.length - 8} OLDER THREADS</div>
+            }}>+ {visibleThreads.length - 8}{tt('OLDER THREADS')}</div>
           )}
           {/* Handled-thread expander. Shown only when there's at least one
               unhandled thread visible AND at least one handled thread

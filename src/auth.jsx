@@ -515,7 +515,7 @@ export function SaveErrorToast() {
     <div style={{ position: 'fixed', bottom: 20, right: 20, display: 'flex', flexDirection: 'column', gap: 8, zIndex: 2000, maxWidth: 360 }}>
       {errors.map(e => (
         <div key={e.id} style={{ background: C.bg, border: `1px solid ${C.rd || '#c94444'}`, color: C.rd || '#ff6b6b', borderRadius: 0, padding: '12px 14px', fontFamily: FB, fontSize: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
-          <div style={{ fontFamily: FN, fontWeight: 700, fontSize: 9, letterSpacing: '0.18em', marginBottom: 4 }}>SAVE FAILED — {e.key} · {e.op}</div>
+          <div style={{ fontFamily: FN, fontWeight: 700, fontSize: 9, letterSpacing: '0.18em', marginBottom: 4 }}>{tr(readLang(), 'SAVE FAILED —')} {e.key} · {e.op}</div>
           <div style={{ color: C.tx, fontSize: 12 }}>{e.msg}</div>
           {/* A dropped/unstorable VIDEO is gone — don't claim it's "still in
               local memory" (it isn't). Text writes that failed ARE retained in

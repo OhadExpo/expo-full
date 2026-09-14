@@ -237,6 +237,7 @@ class ToolBoundary extends React.Component {
 // clicking a tool gives instant feedback instead of 1–2s of dead air while the
 // MediaPipe / three.js chunk downloads and the pose engine warms up.
 function ToolLoading({ label }) {
+  const tt = useT();
   return (
     <div style={stage}>
       <style>{'@keyframes rtspin{to{transform:rotate(360deg)}}'}</style>
@@ -246,7 +247,7 @@ function ToolLoading({ label }) {
           border: '2px solid rgba(255,255,255,0.16)', borderTopColor: C.ac,
           animation: 'rtspin .7s linear infinite',
         }} />
-        <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: '#FFF', letterSpacing: '0.18em' }}>LOADING {label}…</div>
+        <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: '#FFF', letterSpacing: '0.18em' }}>{tt('LOADING')} {label}…</div>
         <div style={{ fontFamily: FB, fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 6 }}>warming up pose engine</div>
       </div>
     </div>

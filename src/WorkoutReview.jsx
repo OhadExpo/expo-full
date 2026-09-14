@@ -1409,8 +1409,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
   const metricsPanelJsx = (
     <>
       {metricsState === 'busy' && (
-        <div style={{marginTop:sideBySide?0:8,padding:'12px 14px',background:C.sf2,border:`1px solid ${C.cardBd}`,borderRadius:0,fontFamily:FN,fontSize:11,color:C.tm,letterSpacing:'0.06em'}}>
-          READING THE MOVEMENT… {metricsPct}%
+        <div style={{marginTop:sideBySide?0:8,padding:'12px 14px',background:C.sf2,border:`1px solid ${C.cardBd}`,borderRadius:0,fontFamily:FN,fontSize:11,color:C.tm,letterSpacing:'0.06em'}}>{tt('READING THE MOVEMENT…')}{metricsPct}%
           <div style={{height:3,background:'rgba(255,255,255,0.12)',marginTop:8}}><div style={{width:`${metricsPct}%`,height:'100%',background:C.ac,transition:'width 120ms'}}/></div>
         </div>
       )}
@@ -1600,8 +1599,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
                     diagnosable rather than mysterious. '?' = the title matched
                     nothing and no motion read yet — previously this silently
                     became KNEE (24% of the library). */}
-                <option value="auto">
-                  AUTO ({autoPick.source === 'unknown' ? '?' : (autoPick.kind || 'none').toUpperCase()}
+                <option value="auto">{tt('AUTO (')}{autoPick.source === 'unknown' ? '?' : (autoPick.kind || 'none').toUpperCase()}
                   {autoPick.source === 'motion' ? ' · MOTION' : autoPick.source === 'library' ? ' · LIB' : ''})
                 </option>
                 <option value="hip">{tt('HIP')}</option>
@@ -1618,8 +1616,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
               <button onClick={() => setTrackOverride(motionSuggestion.kind)}
                 title={motionSuggestion.why}
                 style={{height:20,padding:'0 6px',borderRadius:0,border:`1px solid ${C.ac}`,background:'transparent',
-                  color:C.ac,fontFamily:FN,fontSize:9,letterSpacing:'0.06em',cursor:'pointer',whiteSpace:'nowrap'}}>
-                MOTION SEES {motionSuggestion.kind.toUpperCase()} →
+                  color:C.ac,fontFamily:FN,fontSize:9,letterSpacing:'0.06em',cursor:'pointer',whiteSpace:'nowrap'}}>{tt('MOTION SEES')}{motionSuggestion.kind.toUpperCase()} →
               </button>
             )}
           </div>
@@ -2428,9 +2425,9 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                           } : null}
                         />
                       ) : formVideo.fileName ? (
-                        <div style={{fontSize:11,color:C.tm,marginBottom:4}}>File: {formVideo.fileName} (upload pending)</div>
+                        <div style={{fontSize:11,color:C.tm,marginBottom:4}}>{tt('File:')}{formVideo.fileName} (upload pending)</div>
                       ) : null}
-                      {formVideo.note && <div style={{fontSize:12,color:C.tx,marginTop:6}}>Client note: {formVideo.note}</div>}
+                      {formVideo.note && <div style={{fontSize:12,color:C.tx,marginTop:6}}>{tt('Client note:')}{formVideo.note}</div>}
                     </div>
                   ) : (
                     <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:10,marginBottom:10,textAlign:"center"}}>

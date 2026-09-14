@@ -765,7 +765,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                   {expiring.map(t => (
                     <div key={t.id} {...asButton(() => onSelectTrainee(t.id))} aria-label={`Open ${t.name}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', cursor: 'pointer', fontSize: 13 }}>
                       <span style={{ color: C.tx }}>{t.name}</span>
-                      <span style={{ fontFamily: FN, fontWeight: 700, color: C.rd, fontSize: 12 }}>{t.sessionsRemaining} LEFT</span>
+                      <span style={{ fontFamily: FN, fontWeight: 700, color: C.rd, fontSize: 12 }}>{t.sessionsRemaining}{tt('LEFT')}</span>
                     </div>
                   ))}
                 </div>

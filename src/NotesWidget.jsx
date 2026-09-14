@@ -913,7 +913,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                       {rows.slice(0, cap).map(n => (
                         <MiniTaskRow key={n.id} n={n} stackBoard={stackBoard} stripe={col.color} onClick={()=>handleClick(n)} />
                       ))}
-                      {rows.length > cap && <div onClick={()=>{ if(onOpenFullTasks) onOpenFullTasks(); }} style={{ padding:'4px', textAlign:'center', color:'var(--c-ac)', fontSize:9, fontFamily:FN, fontWeight:700, letterSpacing:'0.08em', cursor:'pointer' }}>+{rows.length-cap} MORE →</div>}
+                      {rows.length > cap && <div onClick={()=>{ if(onOpenFullTasks) onOpenFullTasks(); }} style={{ padding:'4px', textAlign:'center', color:'var(--c-ac)', fontSize:9, fontFamily:FN, fontWeight:700, letterSpacing:'0.08em', cursor:'pointer' }}>+{rows.length-cap}{tt('MORE →')}</div>}
                     </div>
                   </div>
                 );

@@ -76,7 +76,7 @@ export default function CheckinTrends({ workouts = [] }) {
       </div>
       {valid.length < 2 ? (
         <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 32, textAlign: 'center', color: C.td }}>
-          <div style={{ fontSize: 13 }}>At least 2 check-ins needed to see the {metric.label.toLowerCase()} trend</div>
+          <div style={{ fontSize: 13 }}>{tt('Two check-ins are needed to see a {metric} trend').replace('{metric}', tt(metric.label))}</div>
         </div>
       ) : (
         <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: 14 }}>

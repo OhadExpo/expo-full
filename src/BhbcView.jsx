@@ -1590,7 +1590,7 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
               {lastG && (
                 <>
                   <div style={{ padding: '10px 12px' }}>
-                    <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>Last game{agoLabel ? ` · ${agoLabel}` : ''}</div>
+                    <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>{tr('Last game')}{agoLabel ? ` · ${agoLabel}` : ''}</div>
                     <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, marginTop: 3 }} dir="auto"><bdi>vs {lastG.opp && !isBH(lastG.opp) ? lastG.opp.replace(/\s*\(.*$/, '') : '—'}</bdi></div>
                   </div>
                   {/* THE SAME FOUR COLUMNS as the season averages directly below.
@@ -5023,7 +5023,7 @@ function LogModal({ open, initialAthlete, roster, fixtures = [], availableCount 
             </select>
           </div>
         ) : (
-          <div style={{ fontFamily: FB, fontSize: 13, color: C.td, textAlign: 'center', padding: '4px 0' }}>{tr('Logs this session for')}<b style={{ color: C.tx }}>{availableCount}</b> available athlete{availableCount === 1 ? '' : 's'} — skips anyone Out.</div>
+          <div style={{ fontFamily: FB, fontSize: 13, color: C.td, textAlign: 'center', padding: '4px 0' }}>{tr('Logs this session for')} <b style={{ color: C.tx }}>{availableCount}</b> {tr(availableCount === 1 ? 'available athlete' : 'available athletes')} — {tr('skips anyone Out.')}</div>
         )}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <Input label={tr('Date')} type="date" value={date} onChange={(e) => setDate(e.target.value)} />

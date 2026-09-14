@@ -24,6 +24,7 @@ import { createContext, useContext } from 'react';
 // names by Hebrew speakers and look wrong transliterated.
 
 export const HE = {
+  "Last game": "המשחק האחרון",
   "Logs this session for": "רושם את האימון ל",
   "available athlete": "מתאמן זמין",
   "available athletes": "מתאמנים זמינים",

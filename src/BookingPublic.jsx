@@ -243,7 +243,7 @@ export default function BookingPublic() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.12em' }}>
           <button onClick={() => setWeekOffset(o => Math.max(0, o - 1))} disabled={weekOffset === 0}
             style={{ padding: '4px 10px', background: 'transparent', border: `1px solid ${weekOffset === 0 ? C.cardBd : C.ac}`, color: weekOffset === 0 ? C.td : C.ac, cursor: weekOffset === 0 ? 'default' : 'pointer' }}>← PREV</button>
-          <span style={{ flex: 1, textAlign: 'center' }}>WEEK OF {ymd(startOfWeek(new Date(Date.now() + weekOffset * 7 * 86400000)))}</span>
+          <span style={{ flex: 1, textAlign: 'center' }}>{tr(readLang(), 'WEEK OF')}{ymd(startOfWeek(new Date(Date.now() + weekOffset * 7 * 86400000)))}</span>
           <button onClick={() => setWeekOffset(o => o + 1)}
             style={{ padding: '4px 10px', background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, cursor: 'pointer' }}>{tr(readLang(), 'NEXT →')}</button>
         </div>
@@ -275,8 +275,7 @@ export default function BookingPublic() {
 
         {selectedSlot && (
           <div style={{ marginTop: 20, padding: 14, background: 'var(--c-sf)', border: `1px solid ${C.ac}` }}>
-            <div style={{ fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: '0.12em', fontWeight: 700, marginBottom: 8 }}>
-              CONFIRM · {selectedSlot.toLocaleDateString('en-GB')} at {pad(selectedSlot.getHours())}:{pad(selectedSlot.getMinutes())}
+            <div style={{ fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: '0.12em', fontWeight: 700, marginBottom: 8 }}>{tr(readLang(), 'CONFIRM ·')}{selectedSlot.toLocaleDateString('en-GB')} at {pad(selectedSlot.getHours())}:{pad(selectedSlot.getMinutes())}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
               <input placeholder={tr(readLang(), 'Your name *')} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}

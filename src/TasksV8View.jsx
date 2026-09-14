@@ -2941,7 +2941,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
 
       {selectedIds.size > 0 && (
         <div style={{ position: 'fixed', left: '50%', bottom: 20, transform: 'translateX(-50%)', zIndex: 1400, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', justifyContent: 'center', maxWidth: 'calc(100vw - 24px)', background: 'var(--c-sf2)', border: `1px solid var(--c-ac)`, borderRadius: 0, padding: '10px 14px', boxShadow: '0 8px 30px rgba(0,0,0,0.5)' }}>
-          <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-tx)' }}>{selectedIds.size} SELECTED</span>
+          <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-tx)' }}>{selectedIds.size}{tt('SELECTED')}</span>
           <span style={{ width: 1, height: 18, background: 'var(--c-cardBd)' }} />
           <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--c-tm)' }}>{tt('SET')}</span>
           {STATUS_OPTIONS.filter(o => o.id !== 'cancelled').map(o => (

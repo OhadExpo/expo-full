@@ -1037,7 +1037,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
               onMouseEnter={e=>e.currentTarget.style.background='rgba(57,189,255,0.094)'}
               onMouseLeave={e=>e.currentTarget.style.background='var(--c-sf)'}>
               <div style={{fontWeight:700,color:C.ac,fontSize:13,fontFamily:FN,letterSpacing:'0.04em'}}>+ START BLANK PROGRAM</div>
-              <div style={{fontSize:11,color:C.tm,marginTop:2}}>Empty editor for {td.name} — pick name, days, exercises.</div>
+              <div style={{fontSize:11,color:C.tm,marginTop:2}}>{t('Empty editor for')}{td.name} — pick name, days, exercises.</div>
             </div>
             {(unassigned.length>0 || others.length>0) && (
               <div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700,marginBottom:8}}>{t('OR ASSIGN EXISTING')}</div>

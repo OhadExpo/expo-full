@@ -43,7 +43,7 @@ export default function BWChart({ entries }) {
           <div><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700}}>{tr(readLang(), 'Δ from first')}</div><div style={{fontSize:18,fontWeight:700,color:deltaColor,fontFamily:FN}}>{delta > 0 ? '+' : ''}{delta.toFixed(1)}kg</div></div>
           <div><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700}}>Range</div><div style={{fontSize:18,fontWeight:700,color:C.tx,fontFamily:FN}}>{fmt(min)} – {fmt(max)}</div></div>
         </div>
-        <div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700}}>{entries.length} ENTR{entries.length === 1 ? 'Y' : 'IES'}</div>
+        <div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700}}>{entries.length} {tr(readLang(), entries.length === 1 ? 'ENTRY' : 'ENTRIES')}</div>
       </div>
       <div style={{position:'relative',width:'100%',height:H}}>
         <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%',height:H,display:'block'}} aria-label="Bodyweight chart" preserveAspectRatio="none">

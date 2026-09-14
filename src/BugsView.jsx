@@ -172,7 +172,7 @@ export default function BugsView() {
                     </div>
                     {Array.isArray(r.context.consoleErrors) && r.context.consoleErrors.length > 0 && (
                       <div style={{ marginTop: 6 }}>
-                        <b style={{ color: C.tm }}>Console errors ({r.context.consoleErrors.length}):</b>
+                        <b style={{ color: C.tm }}>{tt('Console errors (')}{r.context.consoleErrors.length}):</b>
                         <div style={{ marginTop: 4, maxHeight: 220, overflow: 'auto', background: 'var(--c-bg)', border: `1px solid ${C.cardBd}`, padding: 8 }}>
                           {r.context.consoleErrors.map((e, i) => (
                             <div key={i} style={{ marginTop: i ? 8 : 0, paddingTop: i ? 8 : 0, borderTop: i ? `1px dashed ${C.cardBd}` : 'none' }}>

@@ -247,8 +247,7 @@ export default function ChallengesView({ trainees, clientWorkouts, bwLog }) {
             {c.description && (
               <div style={{ fontSize: 12, color: C.tm, marginBottom: 8, lineHeight: 1.4 }}>{c.description}</div>
             )}
-            <div style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.08em', marginBottom: 4 }}>
-              GOAL · {goalLabel.toUpperCase()}{c.goal_value ? ` · target ${c.goal_value}` : ''}
+            <div style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.08em', marginBottom: 4 }}>{tt('GOAL ·')}{goalLabel.toUpperCase()}{c.goal_value ? ` · target ${c.goal_value}` : ''}
             </div>
             <Leaderboard
               challenge={c}
@@ -432,8 +431,7 @@ function ChallengeForm({ initial, trainees, existingParticipants, onClose, onSav
           style={{ width: '100%', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', boxSizing: 'border-box', resize: 'vertical' }} />
       </div>
       <div style={{ marginBottom: 14 }}>
-        <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 6 }}>
-          PARTICIPANTS ({participantIds.size})
+        <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 6 }}>{tt('PARTICIPANTS (')}{participantIds.size})
         </label>
         <div style={{ maxHeight: 220, overflowY: 'auto', border: `1px solid ${C.cardBd}`, padding: 8 }}>
           {trainees.filter(t => t.status !== 'Archived').map(t => {
