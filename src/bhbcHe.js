@@ -24,6 +24,12 @@ import { createContext, useContext } from 'react';
 // names by Hebrew speakers and look wrong transliterated.
 
 export const HE = {
+  'Bilateral': 'דו-צדדי',
+  'Tag athletes into Bnei Herzliya. They keep their normal athlete portal — this scopes who appears in the BHBC zone.': 'סמן מתאמנים כשייכים לבני הרצליה. הפורטל האישי שלהם לא משתנה — זה רק קובע מי מופיע באזור המועדון.',
+  'Add a new athlete — full name': 'הוספת מתאמן — שם מלא',
+  '+ Add': '+ הוספה',
+  'Lands': 'נוחת',
+  'Landing / arrival date': 'תאריך נחיתה / הגעה',
   'Scrimmage': 'משחק אימון',
   'Shootaround': 'שוטאראונד',
   'TBD': 'טרם נקבע',
