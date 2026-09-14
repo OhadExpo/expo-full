@@ -24,6 +24,23 @@ import { createContext, useContext } from 'react';
 // names by Hebrew speakers and look wrong transliterated.
 
 export const HE = {
+  'Gym': 'חדר כוח',
+  'View program': 'תוכנית האימון',
+  'All': "הכול",
+  'Practices': "אימונים",
+  'Weight room': "חדר כוח",
+  'attended': "נכח",
+  'lift': "תרגיל",
+  'lifts': "תרגילים",
+  'set': "סט",
+  'sets': "סטים",
+  'Bodyweight': "משקל גוף",
+  'kg': "ק\"ג",
+  'Nothing of this kind yet.': 'אין עדיין כלום מהסוג הזה.',
+  'No history logged yet.': 'עוד לא נרשמה היסטוריה.',
+  'Notes': 'הערות',
+  'games': 'משחקים',
+  'game': 'משחק',
   'Bilateral': 'דו-צדדי',
   'Tag athletes into Bnei Herzliya. They keep their normal athlete portal — this scopes who appears in the BHBC zone.': 'סמן מתאמנים כשייכים לבני הרצליה. הפורטל האישי שלהם לא משתנה — זה רק קובע מי מופיע באזור המועדון.',
   'Add a new athlete — full name': 'הוספת מתאמן — שם מלא',

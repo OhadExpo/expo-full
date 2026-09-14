@@ -1485,6 +1485,8 @@ function BarChart({ series, w = 460, h = 88 }) {
 function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = [], leaguePlayer, leagueSeason, leagueUpdatedAt, injuries = [], onInjury, onClose, onLog, onOpenExpo, onViewProgram, onCycleAvail, onEditSession, onDeleteSession }) {
   const tr = useT();   // `t` below is the TRAINEE, hence `tr` for the translator
   const [editSess, setEditSess] = useState(null); // { date, idx, min } — inline minutes edit in the history
+  const [histKind, setHistKind] = useState('all');  // which chip is picked
+  const [monthOpen, setMonthOpen] = useState({});   // month → open; unset = newest open, rest shut
   const { t, acwr, avail, readiness } = row;
   const loads = (rec && rec.loads) || {};
   const rc = readiness.level === 'red' ? '#DE4E3B' : readiness.level === 'amber' ? '#E0A73A' : readiness.level === 'green' ? '#37B27C' : '#7C828B';
@@ -1509,10 +1511,10 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
   // does. Keyed on load, a Practice whose minutes were edited down to zero
   // silently redrew itself as a gym attendance row, with no way to see it had
   // ever been a Practice.
-  Object.entries((rec && rec.sessions) || {}).forEach(([d, arr]) => (arr || []).forEach((s, idx) => activity.push({ date: d, label: s.rpe == null ? `${s.start ? s.start + ' · ' : ''}${kindLabel(s.type)} · ${s.min ? s.min + ' min' : 'attended'}${s.note ? ' · ' + s.note : ''}` : `${s.start ? s.start + ' · ' : ''}${s.type} ${s.min} min @ RPE ${s.rpe}${s.note ? ' · ' + s.note : ''}`, load: s.load || null, sess: { date: d, idx, min: s.min, sig: sessionSig(s) } })));
-  (workouts || []).forEach((w) => { const d = String(w.date || w.completedAt || '').slice(0, 10); const nEx = (w.exercises || []).length; const nSets = (w.exercises || []).reduce((a, e) => a + (e.sets || []).length, 0); if (d) activity.push({ date: d, label: `Gym · ${nEx} lift${nEx === 1 ? '' : 's'}, ${nSets} set${nSets === 1 ? '' : 's'}`, load: null }); });
-  Object.entries((rec && rec.bw) || {}).forEach(([d, kg]) => activity.push({ date: d, label: `Bodyweight ${kg} kg`, load: null }));
-  Object.entries((rec && rec.availability) || {}).forEach(([d, code]) => { if (code > 1) activity.push({ date: d, label: `Availability · ${AVAIL[code].label}`, load: null }); });
+  Object.entries((rec && rec.sessions) || {}).forEach(([d, arr]) => (arr || []).forEach((s, idx) => activity.push({ kind: /^(lift|weights|gym)$/i.test(String(s.type || '')) || !s.type ? 'gym' : /game|scrimmage/i.test(String(s.type || '')) ? 'game' : 'practice', date: d, label: s.rpe == null ? `${s.start ? s.start + ' · ' : ''}${tr(kindLabel(s.type))} · ${s.min ? s.min + ' ' + tr('min') : tr('attended')}${s.note ? ' · ' + s.note : ''}` : `${s.start ? s.start + ' · ' : ''}${tr(s.type)} ${s.min} ${tr('min')} @ RPE ${s.rpe}${s.note ? ' · ' + s.note : ''}`, load: s.load || null, sess: { date: d, idx, min: s.min, sig: sessionSig(s) } })));
+  (workouts || []).forEach((w) => { const d = String(w.date || w.completedAt || '').slice(0, 10); const nEx = (w.exercises || []).length; const nSets = (w.exercises || []).reduce((a, e) => a + (e.sets || []).length, 0); if (d) activity.push({ kind: 'gym', date: d, label: `${tr('Gym')} · ${nEx} ${tr(nEx === 1 ? 'lift' : 'lifts')}, ${nSets} ${tr(nSets === 1 ? 'set' : 'sets')}`, load: null }); });
+  Object.entries((rec && rec.bw) || {}).forEach(([d, kg]) => activity.push({ kind: 'other', date: d, label: `${tr('Bodyweight')} ${kg} ${tr('kg')}`, load: null }));
+  Object.entries((rec && rec.availability) || {}).forEach(([d, code]) => { if (code > 1) activity.push({ kind: 'other', date: d, label: `${tr('Availability')} · ${tr(AVAIL[code].label)}`, load: null }); });
   // NOTES ARE STORED UNDER TWO KEYS. savePractice writes each note as both
   // `date` and `date|start` — the slot-keyed copy so a morning and an evening
   // note can coexist, the day-level one so older readers still find it. This
@@ -1528,11 +1530,26 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
   Object.entries(noteEntries).forEach(([k, n]) => {
     if (!n) return;
     if (!k.includes('|') && daysWithSlotNote.has(k)) return;   // the duplicate
-    activity.push({ date: k.split('|')[0], label: `Note — ${n}`, load: null });
+    activity.push({ kind: 'note', date: k.split('|')[0], label: `${tr('Note')} — ${n}`, load: null });
   });
   // League games fold into the same timeline, so the full history covers court + gym.
-  (leaguePlayer && leaguePlayer.log ? leaguePlayer.log : []).forEach((g) => { if (g.date) activity.push({ date: g.date, game: { opp: g.opp && !isBH(g.opp) ? g.opp.replace(/\s*\(.*$/, '') : '—', pts: g.pts, reb: g.reb, ast: g.ast, min: g.min }, load: null }); });
+  (leaguePlayer && leaguePlayer.log ? leaguePlayer.log : []).forEach((g) => { if (g.date) activity.push({ kind: 'game', date: g.date, game: { opp: g.opp && !isBH(g.opp) ? g.opp.replace(/\s*\(.*$/, '') : '—', pts: g.pts, reb: g.reb, ast: g.ast, min: g.min }, load: null }); });
   activity.sort((a, b) => b.date.localeCompare(a.date));
+  // Counts per kind for the chips, then the visible rows grouped by month.
+  const KIND_LABEL = { game: 'Games', practice: 'Practices', gym: 'Weight room', note: 'Notes', other: 'Other' };
+  const kindCount = {};
+  activity.forEach((a) => { kindCount[a.kind || 'other'] = (kindCount[a.kind || 'other'] || 0) + 1; });
+  const kindChips = ['game', 'practice', 'gym', 'note', 'other'].filter((k) => kindCount[k]);
+  const shownActivity = histKind === 'all' ? activity : activity.filter((a) => (a.kind || 'other') === histKind);
+  const monthKeys = [];
+  const byMonth = {};
+  shownActivity.forEach((a) => { const m = String(a.date).slice(0, 7); if (!byMonth[m]) { byMonth[m] = []; monthKeys.push(m); } byMonth[m].push(a); });
+  const monthOpenAt = (m, i) => (m in monthOpen ? monthOpen[m] : i === 0);
+  const monthSummary = (list) => {
+    const games = list.filter((a) => a.kind === 'game').length;
+    const mins = list.reduce((n, a) => n + (a.sess && Number(a.sess.min) ? Number(a.sess.min) : (a.game && Number(a.game.min) ? Number(a.game.min) : 0)), 0);
+    return [`${list.length}`, mins ? `${mins} ${tr('min')}` : null, games ? `${games} ${tr(games === 1 ? 'game' : 'games')}` : null].filter(Boolean).join(' · ');
+  };
   return (
     <BModal open onClose={onClose} wide title={`#${t.jersey ?? '—'} · ${t.name}`}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -1690,12 +1707,40 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
               Ohad: "full history should be longer or easier to view. takes too
               little space" - 134 showed FOUR entries of twenty-one. 431 shows
               thirteen, which is a month of work, and still scrolls. */}
+          {activity.length > 4 && kindChips.length > 1 && (
+            <div className="bhbc-hist-chips" style={{ display: 'flex', gap: 6, padding: '8px 9px', borderBottom: `1px solid ${C.cardBd}`, overflowX: 'auto' }}>
+              {['all', ...kindChips].map((k) => {
+                const on = histKind === k;
+                return (
+                  <button key={k} onClick={() => setHistKind(k)} className="bhbc-ghost-btn"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 5, height: 24, boxSizing: 'border-box', flexShrink: 0, padding: '0 9px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', whiteSpace: 'nowrap', cursor: 'pointer', borderRadius: 0, background: on ? NAVY : 'transparent', color: on ? '#fff' : C.tm, border: `1px solid ${on ? NAVY : C.cardBd}` }}>
+                    {tr(k === 'all' ? 'All' : KIND_LABEL[k])}
+                    <span style={{ fontVariantNumeric: 'tabular-nums', opacity: 0.75 }}>{k === 'all' ? activity.length : kindCount[k]}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
           {activity.length ? (
             <div style={{ display: 'flex', flexDirection: 'column', maxHeight: 431, overflowY: 'auto',
               border: `1px solid ${C.cardBd}`, borderRadius: 0 }}>
-              {activity.map((a, i) => (
+              {monthKeys.map((m, mi) => {
+                const group = byMonth[m];
+                const open = monthOpenAt(m, mi);
+                const d0 = parseISO(m + '-01');
+                return (
+                  <React.Fragment key={m}>
+                    {/* The month header stays put while its own rows scroll under
+                        it, so you always know where you are in a long season. */}
+                    <button onClick={() => setMonthOpen((p) => ({ ...p, [m]: !open }))}
+                      style={{ position: 'sticky', top: 0, zIndex: 1, display: 'flex', alignItems: 'center', gap: 8, width: '100%', boxSizing: 'border-box', padding: '7px 9px', minHeight: 33, flexShrink: 0, cursor: 'pointer', borderRadius: 0, textAlign: 'start', background: NAVY_DEEP, color: '#fff', border: 'none', borderBottom: `1px solid ${C.cardBd}` }}>
+                      <span aria-hidden="true" style={{ fontFamily: FN, fontSize: 9, opacity: 0.8, width: 10, flexShrink: 0 }}>{open ? '▾' : '▸'}</span>
+                      <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{monFor(d0.getMonth(), MON[d0.getMonth()])} {d0.getFullYear()}</span>
+                      <span style={{ marginInlineStart: 'auto', fontFamily: FN, fontSize: 10, color: ORANGE, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{monthSummary(group)}</span>
+                    </button>
+                    {open && group.map((a, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 9px', minHeight: 33, flexShrink: 0, boxSizing: 'border-box',
-                  borderBottom: i < activity.length - 1 ? `1px solid ${C.cardBd}` : 'none', fontFamily: FN, fontSize: 12 }}>
+                  borderBottom: i < group.length - 1 ? `1px solid ${C.cardBd}` : 'none', fontFamily: FN, fontSize: 12 }}>
                   <span style={{ color: a.game ? ORANGE_DEEP : C.td, width: 62, fontVariantNumeric: 'tabular-nums', flexShrink: 0, fontWeight: a.game ? 700 : 400 }}>{a.date.slice(5)}</span>
                   {a.game ? (
                     <span style={{ color: C.tx, minWidth: 0, flex: 1, display: 'flex', gap: 8, alignItems: 'baseline' }} dir="ltr">
@@ -1724,9 +1769,13 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
                   )}
                   {a.load != null && <span style={{ marginInlineStart: a.sess && onEditSession ? 8 : 'auto', color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums', fontWeight: 700, flexShrink: 0 }}>{Math.round(a.load)}</span>}
                 </div>
-              ))}
+                    ))}
+                  </React.Fragment>
+                );
+              })}
+              {!shownActivity.length && <div style={{ fontFamily: FB, fontSize: 13, color: C.td, padding: '10px 9px' }}>{tr('Nothing of this kind yet.')}</div>}
             </div>
-          ) : <div style={{ fontFamily: FB, fontSize: 13, color: C.td, padding: '6px 0' }}>No history logged yet.</div>}
+          ) : <div style={{ fontFamily: FB, fontSize: 13, color: C.td, padding: '6px 0' }}>{tr('No history logged yet.')}</div>}
         </div>
         {/* BODYWEIGHT LAST. Ohad: "put the bw graph at the bottom". It is a
             trend, not a headline - the stats, load and medical answer "can he
@@ -1756,11 +1805,11 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
             whether the owner sees four or a coach sees three, and wraps rather
             than squeezing below the widest label. */}
         <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(168px, 1fr))`, gap: 8 }}>
-          {onLog && <Btn variant="ghost" onClick={onLog}>Log session</Btn>}
+          {onLog && <Btn variant="ghost" onClick={onLog}>{tr('Log session')}</Btn>}
           {/* No footer 'Medical report': it fired the SAME onInjury as UPDATE on the
               medical strip above, and the fourth button is what squeezed the row to
               155px and wrapped its own label onto two lines. Three buttons fit. */}
-          {onViewProgram && <Btn onClick={onViewProgram} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>View program</Btn>}
+          {onViewProgram && <Btn onClick={onViewProgram} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>{tr('View program')}</Btn>}
         </div>
       </div>
     </BModal>
