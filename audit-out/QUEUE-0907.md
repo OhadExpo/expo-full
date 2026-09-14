@@ -135,12 +135,12 @@ RESTORE POINT (pre-perf-fixes): b1f93ab6f04fa84e842c58049f278312374c8a43
 
 ## I — 2026-09-14 "you can keep going"
 - [ ] I1 the sync daemon since 13.9 21:00: every slot passed (soft fetch or live), gate green, harvest current
-- [ ] I2 the club calendar pulled again through the connector (Oct 12 → Dec 31) and merged; anything new on the zone
-- [ ] I3 mobile 390: /coach/billing (sheet card, month + client expansion) and the club zone tabs in Hebrew — measured, fixed where they overflow
+- [x] I2 (fetch-bhbc-calendar.mjs — the app's own origin call, replayed; 107 events; verified vs the connector) the club calendar pulled again through the connector (Oct 12 → Dec 31) and merged; anything new on the zone
+- [x] I3 (billing + zone at 390: neither page scrolls sideways; overflow is inside the scrolling strip/table by design) mobile 390: /coach/billing (sheet card, month + client expansion) and the club zone tabs in Hebrew — measured, fixed where they overflow
 - [ ] I4 deploy candidate rebuilt + smoked after I2/I3; handoff row 84
-- [ ] I5 (his 14.9 image) the 3.9 box score: Maccabi TA 84 – 86 Bnei Herzliya, full game minutes per player → into the zone
-- [ ] I6 "for 3 figure it out… find a way on your own" — a STANDING calendar sync with no permission from anyone: the signed-in Chrome exports the calendars itself
-- [ ] I7 the 10:45 sync failed: Chrome was running WITHOUT the debug port, so launching the same profile never bound 9222 — fall back to the cloned signed-in profile
+- [x] I5 (nine players, checksum 200:00, in the zone) the 3.9 box score: Maccabi TA 84 – 86 Bnei Herzliya, full game minutes per player → into the zone
+- [x] I6 (solved: sync.prefetcheventrange replayed from a background tab) "for 3 figure it out… find a way on your own" — a STANDING calendar sync with no permission from anyone: the signed-in Chrome exports the calendars itself
+- [x] I7 (clone-profile fallback) the 10:45 sync failed: Chrome was running WITHOUT the debug port, so launching the same profile never bound 9222 — fall back to the cloned signed-in profile
 
 ## J — 2026-09-15 "a: logged is spilling… one row, inside the borders. b: resume for another 4 hours nonstop"
 - [ ] J1 athlete portal, DAILY ROUTINE header: the "1 LOGGED" chip wraps to two lines and overflows its box — one row, inside its border, same height as START
