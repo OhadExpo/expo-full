@@ -105,7 +105,7 @@ for (const f of existing) {
     if (f.type === 'game') { merged.opponent = f.opponent || cal.opponent; merged.venue = f.venue || cal.venue; merged.comp = f.comp || cal.comp; if (cal.start) delete merged.timeTBD; }
     else { merged.location = cal.location || f.location; }
     out.push(merged); updated++;
-  } else if (inWindow && f.type !== 'game') { dropped++; }
+  } else if (inWindow && (f.type !== 'game' || f.source === 'calendar')) { dropped++; }
   else { out.push(f); kept++; }
 }
 for (const c of sessions) if (!used.has(key(c))) { out.push(c); added++; }
