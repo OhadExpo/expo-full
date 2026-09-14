@@ -24,10 +24,12 @@ import { createContext, useContext } from 'react';
 // names by Hebrew speakers and look wrong transliterated.
 
 export const HE = {
+  'Scrimmage': 'משחק אימון',
+  'Shootaround': 'שוטאראונד',
+  'TBD': 'טרם נקבע',
   'Show {n} more': 'עוד {n}',
   'GAME': 'משחק',
   'Lift': 'כוח',
-  'Shootaround': 'שוטאראונד',
   'Conditioning': 'קונדישן',
   'Recovery': 'התאוששות',
   'The {season} season has not started yet.': 'עונת {season} עוד לא נפתחה.',

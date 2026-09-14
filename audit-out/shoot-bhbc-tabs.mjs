@@ -21,6 +21,10 @@ await pg.evaluate((email) => {
 await wait(400);
 await pg.evaluate(() => { const x = [...document.querySelectorAll('button')].find((y) => /^\s*(sign\s*in|כניסה)\s*$/i.test(y.textContent || '')); if (x) x.click(); });
 await wait(9000);
+// A dual-role seat lands on the ATHLETE portal unless the coach side is picked
+// - a run that skipped this photographed רועי's programme instead of the zone.
+await pg.evaluate(() => { const b2 = [...document.querySelectorAll('button,a')].find((x) => /coach|מאמן|צוות/i.test((x.textContent || '').trim())); if (b2) b2.click(); });
+await wait(4000);
 await pg.goto(BASE + '/coach/bhbc', { waitUntil: 'domcontentloaded' });
 await wait(12000);
 await pg.evaluate(() => { const x = [...document.querySelectorAll('button,a')].find((e) => /maybe later|dismiss/i.test(e.textContent || '')); if (x) x.click(); });
