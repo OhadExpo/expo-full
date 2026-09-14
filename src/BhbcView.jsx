@@ -3237,8 +3237,8 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
                     const injShort = !inj ? null
                       : `${tr((inj.bodyPart || '').split('/')[0].trim())}${sideTag(inj.side, tr)}`;
                     return (
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0, whiteSpace: 'nowrap' }}>
-                        <span style={{ fontFamily: FB, fontSize: 11, color: C.td }}>{tr(t.position) || '—'}{injShort ? ' ·' : ''}</span>
+                      <div className="bhbc-pos-inj" style={{ display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0, whiteSpace: 'nowrap' }}>
+                        <span data-pos style={{ fontFamily: FB, fontSize: 11, color: C.td }}>{tr(t.position) || '—'}{injShort ? <span data-sep> ·</span> : ''}</span>
                         {/* No warning glyph. Ohad: "no emojies or icons, just
                             colors" - medText already carries the severity, and a
                             triangle in front of every injured athlete was noise. */}
@@ -3284,7 +3284,7 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
                   {typeof readiness.loadAdjustPct === 'number' && readiness.loadAdjustPct !== 0 && <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 800, color: rc, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{readiness.loadAdjustPct > 0 ? '+' : ''}{readiness.loadAdjustPct}%</span>}
                   <span style={{ fontFamily: FB, fontSize: 11, color: C.td, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{tr(readiness.level === 'unknown' ? 'no check-in' : readiness.headline)}</span>
                 </div>)}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8 }}>
+                <div data-lbl="actions" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8 }}>
                   {hasLoad && <Sparkline series={series} />}
                   {/* Report / update an injury straight from the board — no need
                       to open the athlete first (Ohad: make medical easier to reach). */}

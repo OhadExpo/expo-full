@@ -663,19 +663,39 @@ html {
   }
   .bhbc-load-row > *:nth-child(1) { grid-area: jersey; }
   .bhbc-load-row > *:nth-child(2) { grid-area: name; min-width: 0; overflow-wrap: anywhere; }
-  .bhbc-load-row > *:nth-child(3) { grid-area: acwr; }
+  /* BY NAME, not by position: ACWR and 7-day only exist when the squad has load
+     data, and when they do not every later child shifts one place and the
+     position rules hide the wrong cell. */
+  /* stretch, not end: in RTL `end` pins the chip's LEFT edge, so every row's
+     text STARTED at a different x. Filling the track lets each chip begin on
+     the track's own start edge — one reading edge down the board. */
+  .bhbc-load-row > [data-lbl="ACWR"],
+  .bhbc-load-row > [data-lbl="last lift"] { grid-area: acwr; justify-self: stretch; }
   /* 7d and readiness are READING data — they stay on the athlete's own card
      rather than crushing the row down to nothing. */
-  .bhbc-load-row > *:nth-child(4),
-  .bhbc-load-row > *:nth-child(6) { display: none !important; }
-  .bhbc-load-row > *:nth-child(5) { grid-area: avail; }
+  .bhbc-load-row > [data-lbl="7-day"],
+  .bhbc-load-row > [data-lbl="Readiness"] { display: none !important; }
+  .bhbc-load-row > [data-lbl="Availability"] { grid-area: avail; }
+  /* One line per fact: the position, then the injury under it. The name block
+     already wraps to two lines, so this costs no height — the row gap and the
+     bottom padding below pay for it. */
+  /* Two lines are RESERVED whether or not there is an injury, so an injured
+     athlete's row is not 16px taller than a fit one's. Ohad's rule for the
+     roster cards is the rule here: every row is the same box. */
+  .bhbc-pos-inj { display: block !important; min-height: 30px; }
+  /* the "·" only separates two things that sit on ONE line */
+  .bhbc-pos-inj [data-sep] { display: none !important; }
+  .bhbc-pos-inj > * { display: block; }
   /* The MED button was sizing the third TRACK, not sitting in it: `auto` takes
      the widest item in the column, the button stretched to fill, and at a 470px
      window that made column three 170px while the NAME got 149.8 - so
      "Daeshon Francis" broke mid-word as DAESHO/N. The name is the row's
      identity; it gets the room, and the button is the size of its own label. */
-  .bhbc-load-row { grid-template-columns: 28px minmax(0, 1fr) max-content !important; }
-  .bhbc-load-row > *:nth-child(7) { grid-area: med; justify-self: end; width: max-content; max-width: 96px; }
+  /* A FIXED last track. It was max-content, and every row is its own grid, so
+     the track was as wide as that row's own text and the MED button underneath
+     it moved a few pixels every line. Fixed = one column edge down the board. */
+  .bhbc-load-row { grid-template-columns: 28px minmax(0, 1fr) 96px !important; row-gap: 6px !important; padding-bottom: 8px !important; }
+  .bhbc-load-row > [data-lbl="actions"] { grid-area: med; justify-self: end; width: max-content; max-width: 96px; }
   .bhbc-load-row > *:nth-child(2) { min-width: 0; }
   .bhbc-load-row > *:nth-child(2) * { overflow-wrap: normal !important; word-break: keep-all !important; }
   /* Review compare: two videos side-by-side become full-width stacked so each
