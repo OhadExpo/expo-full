@@ -134,10 +134,10 @@ RESTORE POINT (pre-perf-fixes): b1f93ab6f04fa84e842c58049f278312374c8a43
 - [x] H9 (modal redesigned: jersey · name · minutes · DNP, summary that cannot scramble; minutes NOT filled — the league publishes no box score for the Winner Cup game, so they still come from the coach) screenshot 17:07 "find it and fill it it looks bad. the design is awful and it's not synced or updated" — the section in the screenshot: fill its data, redesign it, keep it synced
 
 ## I — 2026-09-14 "you can keep going"
-- [ ] I1 the sync daemon since 13.9 21:00: every slot passed (soft fetch or live), gate green, harvest current
+- [x] I1 (00:38 run: no soft failures, gate green, calendar fetched and merged; the 21:00 daemon slot also OK) the sync daemon since 13.9 21:00: every slot passed (soft fetch or live), gate green, harvest current
 - [x] I2 (fetch-bhbc-calendar.mjs — the app's own origin call, replayed; 107 events; verified vs the connector) the club calendar pulled again through the connector (Oct 12 → Dec 31) and merged; anything new on the zone
 - [x] I3 (billing + zone at 390: neither page scrolls sideways; overflow is inside the scrolling strip/table by design) mobile 390: /coach/billing (sheet card, month + client expansion) and the club zone tabs in Hebrew — measured, fixed where they overflow
-- [ ] I4 deploy candidate rebuilt + smoked after I2/I3; handoff row 84
+- [x] I4 deploy candidate rebuilt + smoked after I2/I3; handoff row 84
 - [x] I5 (nine players, checksum 200:00, in the zone) the 3.9 box score: Maccabi TA 84 – 86 Bnei Herzliya, full game minutes per player → into the zone
 - [x] I6 (solved: sync.prefetcheventrange replayed from a background tab) "for 3 figure it out… find a way on your own" — a STANDING calendar sync with no permission from anyone: the signed-in Chrome exports the calendars itself
 - [x] I7 (clone-profile fallback) the 10:45 sync failed: Chrome was running WITHOUT the debug port, so launching the same profile never bound 9222 — fall back to the cloned signed-in profile
@@ -147,3 +147,9 @@ RESTORE POINT (pre-perf-fixes): b1f93ab6f04fa84e842c58049f278312374c8a43
 - [ ] J2 4 hours nonstop: J1, then the open I-items (calendar standing sync, 3.9 box score minutes, sync Chrome fallback), then the queue
 - [ ] J3 deploy the chip fix to production immediately (his explicit yes, this fix only, on top of cf884fb)
 - [ ] J4 FULL SWEEP: every chip/pill/button in both apps at phone widths — nothing may wrap inside its border or overflow it; it reached a real athlete screen
+- [ ] J5 (his 14.9 image) 3.9 prep game Maccabi TA 84–86 BHBC: per-player minutes into the zone
+- [ ] J6 (his 15.9 image) 14.9 prep game Hapoel HaEmek 92–70 BHBC: per-player minutes + the opponent on that scrimmage
+- [ ] J7 "wtf is going on with the menu??? fix it everywhere" + "immediately deploy after fixing" — his image did not reach me; auditing every menu (portal nav grid, coach nav, ⋮ more-menu, club-zone tabs) at phone width on PRODUCTION and fixing what is broken
+- [ ] J8 (his 15.9 image) the horizontal tab rails cut text on a hard edge — fade the ends, and scroll the ACTIVE tab fully into view; club zone + coach header + every horizontal scroller; deploy immediately
+- [ ] J9 (his 15.9 image) club-zone roster/load rows on a phone: MED buttons ragged, injury crammed beside the position — give the injury its own third row inside the same box height and align every button in one column; apply the pattern everywhere
+- [ ] J10 (his 15.9 message) the players/history tab: a long dumb scroll on phone AND desktop — redesign it (grouped, jump-to, compact), smarter to move through
