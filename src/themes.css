@@ -1137,3 +1137,16 @@ html.theme-switching *::after {
   /* Nothing interactive belongs on paper. */
   .plan-print button, .plan-print input, .plan-print select { display: none !important; }
 }
+
+
+/* ── Edge fades on horizontal rails ──────────────────────────────────────
+   A scrolling strip of tabs used to be cut dead flat by the viewport edge
+   (Ohad, 15.9: "it gets cut in a solid line … make it a little less rough").
+   useEdgeFade() writes data-fade on the scroller; the mask softens only the
+   side that actually hides something. Physical left/right on purpose: the
+   hook measures real rectangles, so this works in RTL unchanged. */
+[data-fade="left"]   { -webkit-mask-image: linear-gradient(to right, transparent 0, #000 22px, #000 100%); mask-image: linear-gradient(to right, transparent 0, #000 22px, #000 100%); }
+[data-fade="right"]  { -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 22px), transparent 100%); mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 22px), transparent 100%); }
+[data-fade="both"]   { -webkit-mask-image: linear-gradient(to right, transparent 0, #000 22px, #000 calc(100% - 22px), transparent 100%); mask-image: linear-gradient(to right, transparent 0, #000 22px, #000 calc(100% - 22px), transparent 100%); }
+/* The active tab must never sit under its own fade. */
+[data-fade] { scroll-padding-inline: 24px; }

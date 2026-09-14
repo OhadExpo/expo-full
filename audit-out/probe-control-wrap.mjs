@@ -61,17 +61,28 @@ await wait(2500);
 
 const MEASURE = () => {
   const out = [];
+  const scanned = [];
   const seen = new Set();
   const lineTops = (el) => {
-    const tops = new Set();
     const rects = [];
-    for (const n of el.childNodes) {
-      if (n.nodeType !== 3 || !n.textContent.trim()) continue;
+    const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    for (let n = w.nextNode(); n; n = w.nextNode()) {
+      if (!n.textContent.trim()) continue;
       const r = document.createRange();
       r.selectNodeContents(n);
-      for (const rc of r.getClientRects()) { if (rc.width < 0.5) continue; tops.add(Math.round(rc.top)); rects.push(rc); }
+      for (const rc of r.getClientRects()) { if (rc.width < 0.5 || rc.height < 0.5) continue; rects.push(rc); }
     }
-    return { lines: tops.size, rects };
+    // Same line = vertical overlap of at least half the shorter run.
+    const bands = [];
+    for (const rc of [...rects].sort((x, y) => x.top - y.top)) {
+      const band = bands.find((bd) => {
+        const ov = Math.min(bd.bottom, rc.bottom) - Math.max(bd.top, rc.top);
+        return ov >= Math.min(bd.bottom - bd.top, rc.height) * 0.5;
+      });
+      if (band) { band.top = Math.min(band.top, rc.top); band.bottom = Math.max(band.bottom, rc.bottom); }
+      else bands.push({ top: rc.top, bottom: rc.bottom });
+    }
+    return { lines: bands.length, rects };
   };
   for (const el of document.querySelectorAll('button, a, span, div')) {
     const cs = getComputedStyle(el);
@@ -84,12 +95,12 @@ const MEASURE = () => {
     if (!bordered && !isBtn) continue;
     const txt = (el.textContent || '').replace(/\s+/g, ' ').trim();
     if (!txt || txt.length > 42) continue;
-    // Only leaf-ish controls: an element whose own text nodes carry the label.
-    const own = [...el.childNodes].filter((n) => n.nodeType === 3 && n.textContent.trim()).length;
-    if (!own) continue;
+    // A bordered box this small carrying this little text IS a control, whether
+    // the label sits in its own text node or in a span inside it.
     const key = txt + '|' + Math.round(box.x) + '|' + Math.round(box.y);
     if (seen.has(key)) continue;
     seen.add(key);
+    scanned.push(key);
     const { lines, rects } = lineTops(el);
     const clip = el.scrollWidth - el.clientWidth;
     const inkOut = rects.some((r) => r.right > box.right - bw[1] + 0.6 || r.left < box.left + bw[3] - 0.6
@@ -101,7 +112,22 @@ const MEASURE = () => {
     if (!faults.length) continue;
     out.push({ text: txt.slice(0, 40), tag: el.tagName, cls: String(el.className || '').slice(0, 26), x: Math.round(box.x), y: Math.round(box.y), w: Math.round(box.width), h: Math.round(box.height), lines, faults: faults.join(',') });
   }
-  return out;
+  return { items: out, scanned: scanned.length };
+};
+
+// A measure that cannot fail is not a measure. Inject a chip built exactly like
+// the one that reached his screen - bordered, short label, no nowrap, squeezed -
+// and require the measure to flag it.
+const SELFTEST = () => {
+  const host = document.createElement('div');
+  host.style.cssText = 'position:fixed;left:0;top:0;width:54px;z-index:2147483647;opacity:0.01;pointer-events:none';
+  const chip = document.createElement('span');
+  chip.setAttribute('data-selftest', '1');
+  chip.style.cssText = 'display:inline-flex;align-items:center;height:24px;box-sizing:border-box;padding:3px 7px;border:1px solid #39BDFF;font-size:8px;letter-spacing:0.18em';
+  chip.textContent = '1 LOGGED';
+  host.appendChild(chip);
+  document.body.appendChild(host);
+  return () => host.remove();
 };
 
 const all = [];
@@ -114,9 +140,15 @@ for (const route of ROUTES) {
   await pg.evaluate(async () => { for (let y = 0; y < document.body.scrollHeight; y += 600) { window.scrollTo(0, y); await new Promise((r) => setTimeout(r, 120)); } window.scrollTo(0, 0); });
   await wait(1200);
   if (process.env.SHOT) { await pg.screenshot({ path: process.env.SHOT.replace('{route}', route.replace(/W+/g, '-')) }); console.log('   shot', process.env.SHOT.replace('{route}', route.replace(/W+/g, '-'))); }
-  const found = await pg.evaluate(MEASURE);
+  await pg.evaluate(SELFTEST);
+  const probe = await pg.evaluate(MEASURE);
+  const caught = probe.items.some((x) => x.text === '1 LOGGED' && /WRAP/.test(x.faults));
+  await pg.evaluate(() => { const h = document.querySelector('[data-selftest]'); if (h && h.parentElement) h.parentElement.remove(); });
+  if (!caught) { console.log('SELF-TEST FAILED on ' + route + ': the injected broken chip was not flagged - the measure is not measuring'); process.exitCode = 1; }
+  const res = await pg.evaluate(MEASURE);
+  const found = res.items;
   for (const f of found) all.push({ route, w: W, seat: SEAT, ...f });
-  console.log(`${route.padEnd(22)} ${String(found.length).padStart(3)} faulty control(s)`);
+  console.log(`${route.padEnd(22)} ${String(res.scanned).padStart(4)} scanned · ${String(found.length).padStart(3)} faulty`);
   for (const f of found) console.log(`    ${f.faults.padEnd(14)} "${f.text}" ${f.tag} ${f.w}x${f.h} lines=${f.lines} @${f.x},${f.y}`);
 }
 const OUT = process.env.OUT || 'audit-out/control-wrap.json';

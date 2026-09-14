@@ -1141,3 +1141,44 @@ export function ToastHost() {
     </>
   );
 }
+
+
+// A horizontal scroller should tell you there is more, not amputate it.
+// Sets data-fade="left|right|both|none" on the element; themes.css masks the
+// side that hides content. Measured from the children's rectangles so it is
+// direction-agnostic (scrollLeft is signed differently in RTL).
+export function useEdgeFade(ref) {
+  React.useEffect(() => {
+    let el = null, ro = null, raf = 0, tries = 0;
+    const update = () => {
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      let minL = Infinity, maxR = -Infinity;
+      for (const kid of el.children) {
+        const b = kid.getBoundingClientRect();
+        if (b.width < 0.5) continue;
+        minL = Math.min(minL, b.left); maxR = Math.max(maxR, b.right);
+      }
+      if (minL === Infinity) { el.dataset.fade = 'none'; return; }
+      const left = minL < r.left - 1, right = maxR > r.right + 1;
+      el.dataset.fade = left && right ? 'both' : left ? 'left' : right ? 'right' : 'none';
+    };
+    // The element can mount a few frames after this effect first runs.
+    const attach = () => {
+      el = ref && ref.current;
+      if (!el) { if (tries++ < 180) raf = requestAnimationFrame(attach); return; }
+      update();
+      el.addEventListener('scroll', update, { passive: true });
+      if (typeof ResizeObserver !== 'undefined') { ro = new ResizeObserver(update); ro.observe(el); for (const kid of el.children) ro.observe(kid); }
+    };
+    attach();
+    window.addEventListener('resize', update);
+    const t = setTimeout(update, 600);   // fonts land after first paint
+    return () => {
+      clearTimeout(t); cancelAnimationFrame(raf);
+      window.removeEventListener('resize', update);
+      if (el) el.removeEventListener('scroll', update);
+      if (ro) ro.disconnect();
+    };
+  }, [ref]);
+}

@@ -13,7 +13,7 @@
 
 import React, { useMemo, useState, useEffect, useCallback, Suspense, lazy } from 'react';
 import { C, FN, FB, EXPO_ICON_LG_T } from './theme';
-import { Card as BaseCard, CollapsibleSection, Btn, Input, Modal, EmptyState, toast, usePersistentState } from './ui';
+import { Card as BaseCard, CollapsibleSection, Btn, Input, Modal, EmptyState, toast, usePersistentState, useEdgeFade } from './ui';
 import { ThemeToggle } from './ThemeToggle';
 import { fmtNumericDate } from './dates';
 import { useTheme } from './hooks/useTheme';
@@ -338,9 +338,14 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   // phone the ACTIVE tab could sit entirely off-screen: measured on MEDICAL,
   // the current tab was 166px past the right edge with nothing to indicate it.
   const navRef = React.useRef(null);
+  const headRef = React.useRef(null);
+  useEdgeFade(navRef);
+  useEdgeFade(headRef);
   React.useEffect(() => {
     const el = navRef.current && navRef.current.querySelector('[aria-selected="true"]');
-    if (el && el.scrollIntoView) el.scrollIntoView({ inline: 'center', block: 'nearest' });
+    // 'nearest' first: a tab already fully on screen must not be yanked to the
+    // middle on every render. Only a tab that is clipped gets centred.
+    if (el && el.scrollIntoView) el.scrollIntoView({ inline: 'nearest', block: 'nearest' });
   }, [view]);
   const [schedMode, setSchedMode] = useState('calendar'); // calendar | list
   const [sessionMode, setSessionMode] = useState('group'); // group | single
@@ -1111,7 +1116,7 @@ function attendance28(rec, days) {
       {/* ---- ZONE TOP BAR — logo + wordmark + inline nav tabs + controls, one
            clean bar (EXPO-style; tabs moved up here from a separate row). ---- */}
       <header style={{ position: 'sticky', top: 0, zIndex: 50, background: HDR_BG, borderBottom: '1px solid rgba(255,255,255,0.07)', boxShadow: '0 2px 10px rgba(0,0,0,0.30)' }}>
-        <div className="bhbc-header-inner" style={{ maxWidth: 1280, margin: '0 auto', padding: '0 18px', minHeight: 54, display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div ref={headRef} className="bhbc-header-inner" style={{ maxWidth: 1280, margin: '0 auto', padding: '0 18px', minHeight: 54, display: 'flex', alignItems: 'center', gap: 14 }}>
           <div className="bhbc-header-id" style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, marginInlineEnd: 6 }}>
             {/* The crest goes HOME, like the EXPO logo does. */}
             <img src="/bnei-herzliya-logo-w.png" alt="Bnei Herzliya BC" onClick={() => setView('overview')}

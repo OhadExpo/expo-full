@@ -10,7 +10,7 @@ import { useSupaStore, useSupaClientWorkouts, useSupaBwLog, useSupaWeeklyFocus }
 import useBitPayments from './useBitPayments';
 import { usePlanIndex, savePlan } from './usePlansStore';
 import { supabase } from './supabase';
-import { Btn, baseBtn, ToastHost, toast } from './ui';
+import { Btn, baseBtn, ToastHost, toast, useEdgeFade } from './ui';
 import BugReportButton from './BugReportButton';
 // LAZY: SensorLab renders only behind `isOwner`, but a static import puts it
 // and its five signal-processing modules (pulsePPG, acousticReps,
@@ -687,6 +687,12 @@ function AuthedApp() {
   // with a pinned logo and a hidden scrollbar, so on a phone the tab you are on
   // could sit entirely off-screen - measured: 7 of 9 destinations past x=390.
   const coachNavRef = React.useRef(null);
+  // At 390 the element that scrolls is the OUTER bar (390 visible, 1260 of
+  // content), not the <nav> inside it - so both get the fade and whichever one
+  // actually scrolls shows it.
+  const coachBarRef = React.useRef(null);
+  useEdgeFade(coachNavRef);
+  useEdgeFade(coachBarRef);
   const { session, signOut: rawSignOut } = useAuth();
   const email = (session?.user?.email || '').toLowerCase();
   // BHBC basketball coach: their whole app is the /bhbc zone. Defined up here so
@@ -1654,7 +1660,7 @@ function AuthedApp() {
           [data-theme="5b"] .alert-row,[data-theme="light"] .alert-row{transition:background 120ms}
           [data-theme="5b"] .alert-row:hover,[data-theme="light"] .alert-row:hover{background:rgba(255,255,255,0.10)}
         `}</style>
-        <div className="hdr-scroll" style={{maxWidth:1360,margin:"0 auto",padding:"0 16px",display:"flex",alignItems:"center",height:56,overflowX:"visible",WebkitOverflowScrolling:"touch",msOverflowStyle:"none",scrollbarWidth:"none"}}>
+        <div ref={coachBarRef} className="hdr-scroll" style={{maxWidth:1360,margin:"0 auto",padding:"0 16px",display:"flex",alignItems:"center",height:56,overflowX:"visible",WebkitOverflowScrolling:"touch",msOverflowStyle:"none",scrollbarWidth:"none"}}>
           <EXPOMark height={36} onClick={()=>navTo('dashboard')} title="Back to dashboard" style={{flex:"0 0 auto",marginInlineEnd:12,cursor:'pointer'}} />
           <nav ref={coachNavRef} className="hdr-scroll" style={{display:"flex",gap:6,alignItems:"center",flex:"1 1 auto",justifyContent:"center",minWidth:0,overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
             {/* alignItems:'baseline' overrides baseBtn's 'center' so the
