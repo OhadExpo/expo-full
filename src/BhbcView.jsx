@@ -4158,8 +4158,8 @@ function ResultsList({ games, bhbcOnly }) {
 function fixturesToGames(fixtures) {
   return (fixtures || []).filter((f) => f.type === 'game').map((f) => ({
     round: null, date: f.date, time: f.start, comp: f.comp,
-    home: f.home === false ? (f.opponent || 'Opponent') : 'Bnei Herzliya',
-    away: f.home === false ? 'Bnei Herzliya' : (f.opponent || 'Opponent'),
+    home: f.home === false ? (f.opponent || 'TBD') : 'Bnei Herzliya',
+    away: f.home === false ? 'Bnei Herzliya' : (f.opponent || 'TBD'),
     // null means the coach picked "—": the venue is genuinely unknown, so
     // downstream must not paint a HOME/AWAY chip for it.
     homeKnown: f.home === true || f.home === false,
@@ -4380,7 +4380,7 @@ function ReturnLoadAlert({ roster, loads, medical, today, onOpen }) {
 function GameMinutesList({ fixtures, today, bhbcLoads, onPick }) {
   const tr = useT();
   const games = React.useMemo(() => (fixtures || [])
-    .filter((f) => f && f.type === 'game' && f.date && f.date <= today)
+    .filter((f) => f && (f.type === 'game' || f.type === 'scrimmage') && f.date && f.date <= today)
     .sort((a, b) => String(b.date).localeCompare(String(a.date)))
     .slice(0, 8), [fixtures, today]);
   if (!games.length) return null;
@@ -4399,7 +4399,8 @@ function GameMinutesList({ fixtures, today, bhbcLoads, onPick }) {
               padding: '8px 0', cursor: 'pointer', color: C.tx }}>
             <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, color: C.td, unicodeBidi: 'isolate' }}>{g.date}</span>
-              {'  '}{g.opponent ? tr('vs') + ' ' + g.opponent : tr('Game')}
+              {'  '}{g.opponent ? tr('vs') + ' ' + g.opponent : tr(FX_LABEL[g.type] || 'Game')}
+              {g.type === 'scrimmage' && <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, marginInlineStart: 8 }}>{tr('Scrimmage')}</span>}
             </span>
             <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
               color: n ? C.gn : C.td, border: '1px solid ' + (n ? C.gn : C.ln),
