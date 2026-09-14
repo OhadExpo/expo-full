@@ -583,6 +583,7 @@ export const PORTAL_CHOICE_KEY = 'expo-portal-choice'; // 'trainer' | 'client'
 // ENTER CTA. Two centered cards (not the full-bleed split-screen sign-in
 // chooser). No emojis anywhere.
 export function RolePickerScreen({ name, onPick, onSignOut }) {
+  const tt = (x) => tr(readLang(), x);
   const Card = ({ kicker, title, sub, side }) => (
     <button onClick={() => onPick(side)} className="rp-card"
       style={{
@@ -617,7 +618,7 @@ export function RolePickerScreen({ name, onPick, onSignOut }) {
       <div style={{ width: '100%', maxWidth: 620, animation: 'rp-in 480ms ease both' }}>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <img src={EXPO_LOGO} alt="EXPO" style={{ display: 'block', height: 44, width: 'auto', margin: '0 auto 22px', objectFit: 'contain' }} />
-          <div style={{ fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: '0.3em', fontWeight: 700, textTransform: 'uppercase', marginBottom: 10 }}>Choose your portal</div>
+          <div style={{ fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: '0.3em', fontWeight: 700, textTransform: 'uppercase', marginBottom: 10 }}>{tt('Choose your portal')}</div>
           {/* "HEY" in Nord (FB), the Hebrew name in Heebo (FH). Both sit on the
               shared text baseline so the two words read as one line — centering
               line-boxes of different fonts/sizes staggers them visually.
@@ -643,7 +644,7 @@ export function RolePickerScreen({ name, onPick, onSignOut }) {
           <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.14em' }}>
             {name || 'Signed in'}
             <span style={{ margin: '0 9px', opacity: 0.5 }}>·</span>
-            <button onClick={onSignOut} style={{ background: 'none', border: 'none', color: C.td, cursor: 'pointer', fontFamily: FN, fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', padding: 0 }}>Sign out</button>
+            <button onClick={onSignOut} style={{ background: 'none', border: 'none', color: C.td, cursor: 'pointer', fontFamily: FN, fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', padding: 0 }}>{tt('Sign out')}</button>
           </span>
         </div>
       </div>

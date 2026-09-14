@@ -615,7 +615,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
         const refined = isRefined5b();
         return (
           <CollapsibleSection title="Incoming · 30D" storageKey="dash-incoming" style={{ marginBottom: 14 }}
-            right={<span style={{ fontSize: 10, fontFamily: FN, color: 'rgba(255,255,255,0.78)', letterSpacing: '0.06em' }}>VISITS in Vercel Analytics</span>}>
+            right={<span style={{ fontSize: 10, fontFamily: FN, color: 'rgba(255,255,255,0.78)', letterSpacing: '0.06em' }}>{tt('VISITS in Vercel Analytics')}</span>}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 12 }}>
               {[
                 { label: 'CHAT SESSIONS', value: funnel.sessions, color: refined ? C.tx : C.tm },
@@ -863,7 +863,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
 
       {/* Client table */}
       {sorted.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: 40, color: C.td }}>No clients yet. Import your trainee list.</div>
+        <div style={{ textAlign: 'center', padding: 40, color: C.td }}>{tt('No clients yet. Import your trainee list.')}</div>
       ) : (() => {
         const refined = isRefined5b();
         const plainHeadStyle = { textAlign: 'center', padding: '10px 12px', fontSize: 9, fontFamily: FN, color: refined ? '#FFFFFF' : C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 };
@@ -950,7 +950,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
         <div style={{marginTop:24,display:'flex',justifyContent:'center'}}>
           <div style={{background:'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius:0, padding:'14px 20px', maxWidth:300, textAlign:'center', overflow:'hidden'}}>
             <RefinedHeaderStrip padY={14} padX={20} marginBottom={12}>
-              <div style={{fontSize:10, fontFamily:FN, color:'#FFFFFF', textTransform:'uppercase', letterSpacing:'0.10em', fontWeight:700}}>Total Collected · All Time</div>
+              <div style={{fontSize:10, fontFamily:FN, color:'#FFFFFF', textTransform:'uppercase', letterSpacing:'0.10em', fontWeight:700}}>{tt('Total Collected · All Time')}</div>
             </RefinedHeaderStrip>
             <div style={{fontSize:22, fontWeight:800, fontFamily:FN, color:C.tx, letterSpacing:'-0.01em'}}><span style={{color:C.ac}}>₪</span>{totalAllPaid.toLocaleString()}</div>
           </div>

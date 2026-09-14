@@ -882,7 +882,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
           // MINE view and the top half of ALL.
           const cap = stackBoard ? 6 : 12;
           const kanban = manualRows.length === 0 ? (
-            <div style={{ padding:'18px 8px', textAlign:'center', color:'var(--c-td)', fontFamily:FN, fontSize:10, letterSpacing:'0.06em' }}>No open tasks — you're all clear.</div>
+            <div style={{ padding:'18px 8px', textAlign:'center', color:'var(--c-td)', fontFamily:FN, fontSize:10, letterSpacing:'0.06em' }}>{tt("No open tasks — you're all clear.")}</div>
           ) : (
             /* Stacked (phone): alignItems MUST be 'stretch' — in a column
                flex, 'flex-start' is the CROSS axis, so each status column
@@ -925,7 +925,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
           // 📋 Intake, each group collapsible with a count. Reused by ALERTS
           // (the comfortable view) and by the bottom of ALL.
           const alertsList = autoRows.length === 0 ? (
-            <div style={{ fontFamily:FN, fontSize:9, color:'var(--c-td)', letterSpacing:'0.04em', padding:'4px 0' }}>No coaching alerts — all clear.</div>
+            <div style={{ fontFamily:FN, fontSize:9, color:'var(--c-td)', letterSpacing:'0.04em', padding:'4px 0' }}>{tt('No coaching alerts — all clear.')}</div>
           ) : (
             <AlertGroupList grouped={grouped} collapsible collapsedMap={alertCollapsed} onToggle={toggleAlertGroup} onRowClick={handleClick} stackBoard={stackBoard} />
           );

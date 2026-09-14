@@ -16,21 +16,31 @@ import path from 'node:path';
 const REPORT = process.argv.includes('--report');
 const SKIP_FILES = new Set(['ClientPortal.jsx', 'MealLogger.jsx', 'DemoTraineePortal.jsx', 'TrySandbox.jsx']);
 const ALLOW = new Set(['EXPO', 'RPE', 'ROM', 'VBT', 'BW', 'KG', 'PR', 'PRS', 'MRR', 'LTV', 'VAT', 'AI', 'OK', 'ID', 'URL', 'MP4', 'MOV', 'WEBM', 'CSV', 'PDF', 'PNG', 'JPG', 'XLSX', 'TSV', 'GB', 'MB', 'KB', 'FPS', 'HD', 'RDL', 'SLDL', 'OHP', 'DB', 'BB', 'KB', 'TRX', 'BHBC', 'ACWR', 'HRV', 'RTP', 'MD', 'PPG', 'EN', 'HE', 'LIVE', 'REC', 'A', 'B', 'C', 'D', 'E', 'W', 'L', 'R', 'X', 'N', 'Y', 'M', 'J', 'S', 'Δ', 'ATH', 'POS', 'ISO', 'SA', 'SL', 'BP', 'ECC', 'CON', 'AMRAP', 'EMOM', 'TUT', 'RIR', '1RM', 'E1RM', 'NCAA', 'CMU', 'OUI', 'TAU', 'NIS', 'ILS', 'USD', 'YT', 'GPS', 'API', 'RLS', 'SW', 'PWA', 'IOS', 'MEDIAPIPE', 'LITE', 'LOG', 'W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7', 'W8', 'W9', 'W10', 'W11', 'W12']);
+const BRAND = /^(?:Google Calendar|Vercel|Supabase|WhatsApp|YouTube|Green Invoice)$/;
 const EXERCISE_SHAPE = /\b(?:DB|BB|SA|KB|TRX|RDL|SLDL|OHP|ISO|POS|ATH)\b|\d+\s*[x×]\s*\d+/i;
-const LITERAL = />\s*([A-Z][A-Z0-9 ·+→←✓%&/()'’.…\-–—:]{2,48}?)\s*</g;
+// Mixed case counts too. The first version only matched SHOUTING labels, so
+// `>Log session<` and `>League Stats<` sat in the Hebrew club zone untouched
+// for weeks - the two words a coach reads first on an athlete's card.
+const LITERAL = />\s*([A-Z][A-Za-z0-9 ·+→←✓%&/()'’.…\-–—:]{2,48}?)\s*</g;
 const PLACEHOLDER = /placeholder=(?:"([A-Za-z][^"]{2,80})"|'([A-Za-z][^']{2,80})')/g;
 const stripComments = (s) => s.replace(/\{\/\*[\s\S]*?\*\/\}/g, (m) => ' '.repeat(m.length)).replace(/\/\*[\s\S]*?\*\//g, (m) => ' '.repeat(m.length)).replace(/^\s*\/\/.*$/gm, (m) => ' '.repeat(m.length));
 const isAllowed = (t) => {
   const s = t.trim();
-  if (!/[A-Z]{2,}/.test(s)) return true;                       // no real word
+  // A real word, not "OK" or "→". This used to demand TWO CAPITALS in a row,
+  // which quietly allowed every Title Case label in the app - "Log session",
+  // "View program", "League Stats" - the exact strings a coach reads first.
+  if (!/[A-Za-z]{3,}/.test(s)) return true;                    // no real word
   if (s.split(/[\s·]+/).every((w) => ALLOW.has(w.replace(/[^A-Z0-9Δ]/g, '')) || /^[\d.,%₪+-]+$/.test(w) || w === '' || /^[·+→←✓%&/()'’.\-–—:]+$/.test(w))) return true;
+  if (BRAND.test(s)) return true;                              // a product name is not translated
   if (EXERCISE_SHAPE.test(s)) return true;
   return false;
 };
 const findings = [];
 for (const f of fs.readdirSync('src').filter((x) => x.endsWith('.jsx') && !SKIP_FILES.has(x))) {
   const raw = fs.readFileSync(path.join('src', f), 'utf8');
-  if (!/from '\.\/i18n'/.test(raw)) continue;                 // no translator = out of scope (for now)
+  // ...and the club zone, which has its OWN dictionary (bhbcHe) and was
+  // therefore out of scope of a gate that only looked for ./i18n.
+  if (!/from '\.\/i18n'/.test(raw) && !/from '\.\/bhbcHe'/.test(raw)) continue;
   const src = stripComments(raw);
   const lineOf = (i) => src.slice(0, i).split('\n').length;
   for (const m of src.matchAll(LITERAL)) { if (!isAllowed(m[1])) findings.push({ f, line: lineOf(m.index), text: m[1].trim(), kind: 'jsx' }); }

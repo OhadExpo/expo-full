@@ -249,9 +249,7 @@ export default function BookingPublic() {
         </div>
 
         {Object.keys(groupedByDay).length === 0 ? (
-          <div style={{ padding: 30, textAlign: 'center', color: C.td, fontSize: 13 }}>
-            No available slots this week. Try next week →
-          </div>
+          <div style={{ padding: 30, textAlign: 'center', color: C.td, fontSize: 13 }}>{tr(readLang(), 'No available slots this week. Try next week →')}</div>
         ) : Object.entries(groupedByDay).map(([day, daySlots]) => (
           <div key={day} style={{ marginBottom: 14 }}>
             <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.12em', fontWeight: 700, marginBottom: 6 }}>

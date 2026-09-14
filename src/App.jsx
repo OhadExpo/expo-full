@@ -683,6 +683,7 @@ function AuthGate() {
 }
 
 function AuthedApp() {
+  const tt = useT();
   // Keep the ACTIVE destination in view. The header is a horizontal scroller
   // with a pinned logo and a hidden scrollbar, so on a phone the tab you are on
   // could sit entirely off-screen - measured: 7 of 9 destinations past x=390.
@@ -1541,7 +1542,7 @@ function AuthedApp() {
   if (!storesReady && !bootDeadline) return (
     <div style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16}}>
       <img src={logo.nav} alt="EXPO" style={{height:50}} />
-      <div style={{color:C.td,fontSize:13}}>Loading data...</div>
+      <div style={{color:C.td,fontSize:13}}>{tt('Loading data...')}</div>
     </div>);
 
   // BHBC = a fully separate ZONE — no EXPO coach nav at all (Ohad: "completely

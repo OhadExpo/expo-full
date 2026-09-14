@@ -25,7 +25,7 @@ import {
 } from './repCounter';
 import { detectLift, channelFromPose, CHANNELS } from './liftDetect';
 import { resolveStoredUrl } from './storageUrl';
-import { useT as useAppT, useTB } from './i18n';
+import { useT as useAppT, useTB, tr, readLang } from './i18n';
 
 const bi = {background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,padding:"8px 10px",borderRadius:0,
   color:C.tx,fontFamily:FB,fontSize:13,outline:"none",width:"100%",boxSizing:"border-box",textAlign:"center"};
@@ -104,9 +104,9 @@ class FormVideoErrorBoundary extends React.Component {
     if (this.state.err) {
       return (
         <div style={{background:C.rdD,border:`1px solid ${C.rd}`,borderRadius:0,padding:12,color:C.rd,fontSize:12,fontFamily:FB}}>
-          <div style={{fontWeight:700,marginBottom:4}}>Video player crashed — reload to retry</div>
+          <div style={{fontWeight:700,marginBottom:4}}>{tr(readLang(), 'Video player crashed — reload to retry')}</div>
           <div style={{fontSize:11,opacity:0.8,whiteSpace:'pre-wrap',fontFamily:'monospace'}}>{String(this.state.err?.message || this.state.err)}</div>
-          <button onClick={() => this.setState({ err: null })} style={{marginTop:8,background:C.sf,border:`1px solid ${C.rd}`,color:C.rd,borderRadius:0,padding:'4px 10px',fontSize:11,fontWeight:600,cursor:'pointer'}}>Retry</button>
+          <button onClick={() => this.setState({ err: null })} style={{marginTop:8,background:C.sf,border:`1px solid ${C.rd}`,color:C.rd,borderRadius:0,padding:'4px 10px',fontSize:11,fontWeight:600,cursor:'pointer'}}>{tr(readLang(), 'Retry')}</button>
         </div>
       );
     }

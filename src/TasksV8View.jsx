@@ -842,7 +842,7 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
           {/* Row 2 — Urgency */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
             <span style={cmpGroup}>
-              <span style={cmpLabel}>Urgency</span>
+              <span style={cmpLabel}>{tt('Urgency')}</span>
               {[['low','LOW','var(--c-td)'],['normal','NORMAL','var(--c-tm)'],['high','HIGH','var(--c-tx)'],['urgent','URGENT',C.rd]].map(([id, label, color]) => (
                 <button key={id}
                   onMouseDown={(e) => { e.preventDefault(); setPriority(id); }}
@@ -874,7 +874,7 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
               </span>
             )}
             <span style={{ flex: 1 }} />
-            <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 600, color: 'var(--c-td)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Enter to add</span>
+            <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 600, color: 'var(--c-td)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>{tt('Enter to add')}</span>
           </div>
         </div>
       )}
@@ -1126,6 +1126,7 @@ GRANT USAGE ON SEQUENCE public.coach_note_events_id_seq TO authenticated;
 // click copies the SQL → Ohad opens Studio (link below) → pastes →
 // runs. Two clicks total to unlock comments + audit log + Phase 1 cols.
 function MigrationPendingHint() {
+  const tt = useT();
   const [copied, setCopied] = useState(false);
   const onCopy = async () => {
     try {
@@ -1148,7 +1149,7 @@ function MigrationPendingHint() {
         fontFamily: FN, fontSize: 10, fontWeight: 700,
         color: 'var(--c-tm)', letterSpacing: '0.12em',
         textTransform: 'uppercase', marginBottom: 6,
-      }}>Comments + audit log pending</div>
+      }}>{tt('Comments + audit log pending')}</div>
       <div style={{
         fontFamily: FB, fontSize: 12, color: 'var(--c-tx)',
         marginBottom: 8, lineHeight: 1.5,
@@ -1452,6 +1453,7 @@ export function EventTimeline({ noteId }) {
 }
 
 function ExpandedDetail({ row, displayBody, viewer, onSetCategory, onArchive, onDelete, readOnly = false }) {
+  const tt = useT();
   const heb = isHebrew(displayBody || '');
   // Filter internal-use tags (gevent/getag/glink/approved) out of the
   // visible tag list. (Dual-approval removed 2026-06-06 — any legacy
@@ -1491,7 +1493,7 @@ function ExpandedDetail({ row, displayBody, viewer, onSetCategory, onArchive, on
       )}
       {readOnly && (
         <div style={{ marginTop: 10, direction: 'ltr' }}>
-          <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 600, color: 'var(--c-td)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Read-only — belongs to the other coach</span>
+          <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 600, color: 'var(--c-td)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>{tt('Read-only — belongs to the other coach')}</span>
         </div>
       )}
       {/* Move the task between General and Performance Center (Ohad). */}
@@ -1502,8 +1504,8 @@ function ExpandedDetail({ row, displayBody, viewer, onSetCategory, onArchive, on
             onChange={(e) => { e.stopPropagation(); if (e.target.value !== cat) onSetCategory(row, e.target.value); }}
             title="Move this task to another list"
             style={{ width: 175, boxSizing: 'border-box', background: 'var(--c-sf)', color: 'var(--c-tx)', border: `1px solid var(--c-cardBd)`, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', padding: '4px 22px 4px 8px', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>
-            <option value="manual">General</option>
-            <option value="center">Performance Center</option>
+            <option value="manual">{tt('General')}</option>
+            <option value="center">{tt('Performance Center')}</option>
           </select>
         </div>
       )}
@@ -2577,9 +2579,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
               fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
               color: 'var(--c-or)', textTransform: 'uppercase',
             }}>
-              <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--c-or)' }} />
-              Sync lost — reconnecting
-            </span>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--c-or)' }} />{tt('Sync lost — reconnecting')}</span>
           )}
         </div>
         <div style={{ width: 168 }}><ViewToggle value={view} onChange={setView} /></div>
@@ -2829,7 +2829,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                   </div>
                 ))}
                 {(isStatus || boardGroup === 'list') && section.rows.length === 0 && (
-                  <div style={{ padding: '16px 12px', textAlign: 'center', fontFamily: FN, fontSize: 9, letterSpacing: '0.12em', color: 'var(--c-td)', textTransform: 'uppercase' }}>Drop here</div>
+                  <div style={{ padding: '16px 12px', textAlign: 'center', fontFamily: FN, fontSize: 9, letterSpacing: '0.12em', color: 'var(--c-td)', textTransform: 'uppercase' }}>{tt('Drop here')}</div>
                 )}
               </div>
               {(isStatus || section.key === 'center' || section.key === 'manual') && (

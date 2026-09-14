@@ -315,9 +315,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                   boxShadow: '0 8px 24px rgba(0,0,0,0.7)',
                 }}>
                   {filtered.length === 0 ? (
-                    <div style={{ padding: '12px 14px', color: C.td, fontSize: 13, textAlign: 'center' }}>
-                      No matches — try a different word.
-                    </div>
+                    <div style={{ padding: '12px 14px', color: C.td, fontSize: 13, textAlign: 'center' }}>{tt('No matches — try a different word.')}</div>
                   ) : filtered.map((o, i) => (
                     <div key={o.id}
                       onMouseDown={e => { e.preventDefault(); choose(o.id); }}
@@ -356,9 +354,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                     {fmtDate(picked.allTimePRDate)}
                   </div>
                   {picked.swappedAny && (
-                    <div style={{ marginTop: 10, fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: 0.8 }}>
-                      Includes sessions from mid-session swaps.
-                    </div>
+                    <div style={{ marginTop: 10, fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: 0.8 }}>{tt('Includes sessions from mid-session swaps.')}</div>
                   )}
                 </div>
 

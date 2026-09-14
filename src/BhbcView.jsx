@@ -1207,7 +1207,7 @@ function attendance28(rec, days) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: 'rgba(242,106,43,0.10)', border: `1px solid ${ORANGE}`, borderRadius: 6 }}>
             <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: ORANGE_DEEP }}>◉ Coach view</span>
             <span style={{ fontFamily: FN, fontSize: 12, color: C.tm }}>This is exactly what your BHBC coaches see — no roster management, medical is view-only.</span>
-            <button onClick={() => setPreviewCoach(false)} style={{ marginInlineStart: 'auto', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 4, padding: '5px 10px', cursor: 'pointer' }}>Exit preview</button>
+            <button onClick={() => setPreviewCoach(false)} style={{ marginInlineStart: 'auto', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 4, padding: '5px 10px', cursor: 'pointer' }}>{tr('Exit preview')}</button>
           </div>
         )}
         {/* ---- TOOLBAR ---- */}
@@ -1301,7 +1301,7 @@ function attendance28(rec, days) {
                   </div>
                   <span style={{ fontFamily: FB, fontSize: 12, color: C.td }}>Logs each athlete's work to their history &amp; portal — synced with EXPO.</span>
                 </div>
-                <Suspense fallback={<div style={{ padding: 24, textAlign: 'center', color: C.td, fontFamily: FB }}>Loading session logger…</div>}>
+                <Suspense fallback={<div style={{ padding: 24, textAlign: 'center', color: C.td, fontFamily: FB }}>{tr('Loading session logger…')}</div>}>
                   <SessionsView mode={sessionMode} trainees={roster} planIndex={planIndex} exercises={exercises} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} workouts={workouts} setWorkouts={setWorkouts} onDecrementSession={onDecrementSession} />
                 </Suspense>
               </>
@@ -1788,7 +1788,7 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
         )}
         {program && (program.current || program.count > 0) && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 0', borderTop: `1px solid ${C.cardBd}`, fontFamily: FN, fontSize: 11, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>Current block</span>
+            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{tr('Current block')}</span>
             <span style={{ color: C.tx, fontWeight: 700 }}>{program.current || 'None assigned'}</span>
             {program.count > 1 && <span style={{ color: C.tm }}>· {program.count} total</span>}
             {onOpenExpo && (
@@ -1848,6 +1848,7 @@ const WellnessSeg = ({ value, opts, onPick }) => (
 // Squad wellness check-in — sleep / energy / pain per athlete → feeds the
 // readinessAutoreg engine (session nudge on the load board + athlete profile).
 function WellnessModal({ roster, bhbcLoads, onClose, onSave }) {
+  const tr = useT();
   const [date, setDate] = useState(todayISO());
   const [entries, setEntries] = useState({});
   useEffect(() => {
@@ -1870,12 +1871,12 @@ function WellnessModal({ roster, bhbcLoads, onClose, onSave }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'end', gap: 12, flexWrap: 'wrap' }}>
           <Input label="Date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-          <Btn variant="ghost" onClick={fillAll} style={{ marginBottom: 1 }}>Baseline all OK</Btn>
+          <Btn variant="ghost" onClick={fillAll} style={{ marginBottom: 1 }}>{tr('Baseline all OK')}</Btn>
         </div>
         {/* Helper as its own clean full-width line (was crammed into the top-right). */}
         <div style={{ fontFamily: FB, fontSize: 12, color: C.td, lineHeight: 1.5 }}>Sleep · energy · pain (0–10) · BW kg (optional). Pain gates the session; sleep + energy set the effort. Tap a value again to clear.</div>
         <div style={{ display: 'grid', gridTemplateColumns: cols, gap: 10, padding: '0 2px 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }}>
-          <div>#</div><div>Athlete</div><div style={{ textAlign: 'center' }}>Sleep</div><div style={{ textAlign: 'center' }}>Energy</div><div style={{ textAlign: 'center' }}>Pain</div><div style={{ textAlign: 'center' }}>BW kg</div>
+          <div>#</div><div>Athlete</div><div style={{ textAlign: 'center' }}>Sleep</div><div style={{ textAlign: 'center' }}>Energy</div><div style={{ textAlign: 'center' }}>{tr('Pain')}</div><div style={{ textAlign: 'center' }}>BW kg</div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', maxHeight: 380, overflowY: 'auto' }}>
           {roster.map((t) => (
@@ -1892,7 +1893,7 @@ function WellnessModal({ roster, bhbcLoads, onClose, onSave }) {
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{ fontFamily: FN, fontSize: 11, color: C.td, marginInlineEnd: 'auto' }}>{count} of {roster.length} filled</span>
           <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
-          <Btn disabled={!count} onClick={() => onSave({ date, entries })} style={{ background: count ? ORANGE : undefined, borderColor: count ? ORANGE : undefined, color: count ? '#fff' : undefined }}>Save check-in</Btn>
+          <Btn disabled={!count} onClick={() => onSave({ date, entries })} style={{ background: count ? ORANGE : undefined, borderColor: count ? ORANGE : undefined, color: count ? '#fff' : undefined }}>{tr('Save check-in')}</Btn>
         </div>
       </div>
     </BModal>
@@ -1903,6 +1904,7 @@ function WellnessModal({ roster, bhbcLoads, onClose, onSave }) {
 // each slot is its own plan, so authoring the evening no longer overwrites the
 // morning (and there is finally somewhere to author it at all).
 function SessionPlanModal({ slot, fixtures, plan, onClose, onSave, onPick, rows = [], medical = {} }) {
+  const tr = useT();
   const [focus, setFocus] = useState(plan?.focus || '');
   const [text, setText] = useState(plan?.plan || '');
   useEffect(() => { setFocus(plan?.focus || ''); setText(plan?.plan || ''); }, [plan, slot?.date, slot?.start]);
@@ -1914,7 +1916,7 @@ function SessionPlanModal({ slot, fixtures, plan, onClose, onSave, onPick, rows 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         {daySlots.length > 1 && (
           <div>
-            <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm, marginBottom: 6 }}>Which session</div>
+            <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm, marginBottom: 6 }}>{tr('Which session')}</div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {daySlots.map((f, i) => {
                 const on = (f.start || '') === (slot.start || '') && f.type === slot.type;
@@ -1931,11 +1933,11 @@ function SessionPlanModal({ slot, fixtures, plan, onClose, onSave, onPick, rows 
         )}
         <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: C.tm, textTransform: 'uppercase' }}>{title}</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <label style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: FN }}>Focus</label>
+          <label style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: FN }}>{tr('Focus')}</label>
           <input value={focus} onChange={(e) => setFocus(e.target.value)} placeholder="e.g. Transition D · half-court sets" style={inp} />
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <label style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: FN }}>Plan</label>
+          <label style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: FN }}>{tr('Plan')}</label>
           <textarea value={text} onChange={(e) => setText(e.target.value)} rows={8} dir="auto"
             placeholder={'The S&C period at the start of practice — blocks, timings, limits.\n\n15\u2032 warm-up + activation\n20\u2032 shooting\n30\u2032 5v5 (Amit: non-contact, shooting only)'}
             style={{ ...inp, resize: 'vertical', lineHeight: 1.5, fontFamily: FB }} />
@@ -1943,7 +1945,7 @@ function SessionPlanModal({ slot, fixtures, plan, onClose, onSave, onPick, rows 
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center' }}>
           <span style={{ fontFamily: FN, fontSize: 11, color: C.td, marginInlineEnd: 'auto' }}>{plan?.updatedAt ? `Last edited ${monDay(plan.updatedAt.slice(0, 10))}` : 'Not planned yet'}</span>
           <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
-          <Btn onClick={() => onSave({ focus: focus.trim(), plan: text.trim() })} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>Save plan</Btn>
+          <Btn onClick={() => onSave({ focus: focus.trim(), plan: text.trim() })} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>{tr('Save plan')}</Btn>
         </div>
       </div>
     </BModal>
@@ -2128,6 +2130,7 @@ function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave, sess
 }
 
 function GameEditModal({ game, onClose, onSave }) {
+  const tr = useT();
   const [opponent, setOpponent] = useState(game.opponent || '');
   const [venue, setVenue] = useState(game.venue || '');
   const [home, setHome] = useState(game.home == null ? '' : game.home ? 'home' : 'away');
@@ -2138,7 +2141,7 @@ function GameEditModal({ game, onClose, onSave }) {
         <Input label="Opponent" value={opponent} onChange={(e) => setOpponent(e.target.value)} placeholder="e.g. Maccabi Tel Aviv" />
         <Input label="Venue" value={venue} onChange={(e) => setVenue(e.target.value)} placeholder="e.g. Hayovel Arena" />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <label style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: FN, textAlign: 'center' }}>Home / Away</label>
+          <label style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: FN, textAlign: 'center' }}>{tr('Home / Away')}</label>
           <div style={{ display: 'inline-flex', border: `1px solid ${C.cardBd}`, alignSelf: 'center' }}>
             {[['home', 'Home'], ['away', 'Away'], ['', '—']].map(([k, l]) => (
               <button key={k} type="button" onClick={() => setHome(k)} style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: home === k ? '#fff' : C.td, background: home === k ? NAVY : 'transparent', border: 'none', padding: '7px 16px', cursor: 'pointer' }}>{l}</button>
@@ -2720,7 +2723,7 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
                 </span>
               );
             })()
-          : <span style={mut}>No game scheduled.</span>}
+          : <span style={mut}>{tr('No game scheduled.')}</span>}
       </Section>
       {/* TODAY'S FOCUS — the one thing the staff brief carried that this report
           did not. Blank is stated as blank; a focus nobody wrote is not
@@ -2776,7 +2779,7 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
               })}
             </div>
           : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-              <span><span style={{ color: '#37B27C', fontFamily: FN, fontWeight: 700 }}>All clear</span> <span style={mut}>— no active injuries.</span></span>
+              <span><span style={{ color: '#37B27C', fontFamily: FN, fontWeight: 700 }}>{tr('All clear')}</span> <span style={mut}>— no active injuries.</span></span>
               {onReportNew && <button onClick={onReportNew} className="bhbc-ghost-btn" style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: ORANGE, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, height: ROW_BTN_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, padding: '0 9px', cursor: 'pointer' }}>+ REPORT</button>}
             </span>}
       </Section>
@@ -3640,20 +3643,20 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, planOf }
                 <div style={{ padding: '2px 2px 12px 88px', fontFamily: FB, fontSize: 12, color: C.tx, lineHeight: 1.55 }}>
                   {/* What was PLANNED for this exact slot. */}
                   <div style={{ marginBottom: 6 }}>
-                    <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>Plan </span>
+                    <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{tr('Plan')}</span>
                     {pl && (pl.focus || pl.plan)
                       ? <span dir="auto">{pl.focus || ''}{pl.focus && pl.plan ? ' — ' : ''}{pl.plan || ''}</span>
                       : <span style={{ color: C.td }}>nothing was written for this slot</span>}
                   </div>
                   <div style={{ marginBottom: 6 }}>
-                    <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>Trained </span>
+                    <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{tr('Trained')}</span>
                     {d.trained.length ? <span dir="auto">{names(d.trained)}</span> : <span style={{ color: C.td }}>nobody logged</span>}
                     {d.avgLoad != null && <span style={{ color: C.tm }}> · {tr('avg load')} <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{d.avgLoad} AU</span></span>}
                     {d.loggers && d.loggers.length > 0 && <span style={{ color: C.td }}> · {tr('logged by')} {d.loggers.map(byName).join(', ')}</span>}
                   </div>
                   {d.out.length > 0 && (
                     <div style={{ marginBottom: 6 }}>
-                      <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#DE4E3B' }}>Out </span>
+                      <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#DE4E3B' }}>{tr('Out')}</span>
                       <span dir="auto">{names(d.out)}</span>
                     </div>
                   )}
@@ -3804,7 +3807,7 @@ function WeekPlanner({ fixtures = [], today, planOf, onSavePlan, onUpsert, onRem
                       <input type="number" min="0" step="1" value={editing.contactMin} onChange={(e) => setEditing((x) => ({ ...x, contactMin: e.target.value }))}
                         style={{ ...inp, width: 74 }} title={tr('Contact minutes')} placeholder={tr('contact')} />
                     )}
-                    <input value={editing.focus} onChange={(e) => setEditing((x) => ({ ...x, focus: e.target.value }))} placeholder="Focus — e.g. Lower INT + landing mechanics" style={{ ...inp, flex: '1 1 220px', minWidth: 140, fontFamily: FB }} />
+                    <input value={editing.focus} onChange={(e) => setEditing((x) => ({ ...x, focus: e.target.value }))} placeholder={tr('Focus — e.g. Lower INT + landing mechanics')} style={{ ...inp, flex: '1 1 220px', minWidth: 140, fontFamily: FB }} />
                     <Btn onClick={commit} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>{editing.orig ? 'Save' : 'Add'}</Btn>
                     <Btn variant="ghost" onClick={() => setEditing(null)}>Cancel</Btn>
                   </div>
@@ -3870,7 +3873,7 @@ function ScheduleTool({ fx, fixtures, today, mode, setMode, onLog }) {
 
 function ScheduleList({ fx, today }) {
   const tr = useT();
-  if (!fx.byDay.length) return <div style={{ fontFamily: FB, fontSize: 13, color: C.td, padding: '20px 0', textAlign: 'center' }}>No upcoming sessions.</div>;
+  if (!fx.byDay.length) return <div style={{ fontFamily: FB, fontSize: 13, color: C.td, padding: '20px 0', textAlign: 'center' }}>{tr('No upcoming sessions.')}</div>;
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
       {fx.byDay.map((d) => {
@@ -4026,6 +4029,7 @@ function FormDots({ form }) {
 }
 
 function StandingsTable({ standings }) {
+  const tr = useT();
   const cols = [
     { k: 'gp', h: 'GP' }, { k: 'w', h: 'W' }, { k: 'l', h: 'L' },
     { k: 'pf', h: 'PF' }, { k: 'pa', h: 'PA' }, { k: 'diff', h: '+/–' },
@@ -4037,9 +4041,9 @@ function StandingsTable({ standings }) {
         <thead>
           <tr style={{ borderBottom: `1px solid ${C.cardBd}` }}>
             <th style={{ ...th, textAlign: 'center', width: 34 }}>#</th>
-            <th style={{ ...th, textAlign: 'start' }}>Team</th>
+            <th style={{ ...th, textAlign: 'start' }}>{tr('Team')}</th>
             {cols.map((c) => <th key={c.k} style={{ ...th, textAlign: 'center' }}>{c.h}</th>)}
-            <th style={{ ...th, textAlign: 'center' }}>Form</th>
+            <th style={{ ...th, textAlign: 'center' }}>{tr('Form')}</th>
           </tr>
         </thead>
         <tbody>
@@ -4172,7 +4176,7 @@ function ResultsList({ games, bhbcOnly }) {
           {/* Bnei Herzliya (constant) · vs/@/score · opponent — constant first token
               means vs/@ and the opponent line up on every row. */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-            <span className="bhbc-game-home" style={{ ...nameCell }}>Bnei Herzliya</span>
+            <span className="bhbc-game-home" style={{ ...nameCell }}>{tr('Bnei Herzliya')}</span>
             {g.played
               ? <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '2px 8px', whiteSpace: 'nowrap', flexShrink: 0 }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{bhScore}<span style={{ color: C.tm, margin: '0 4px' }}>–</span>{oppScore}</span></span>
               : <span style={{ width: 24, textAlign: 'center', fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tm, letterSpacing: '0.04em', flexShrink: 0 }}>{bhHome ? 'vs' : '@'}</span>}
@@ -4187,7 +4191,7 @@ function ResultsList({ games, bhbcOnly }) {
       </div>
     );
   };
-  if (!played.length && !upcoming.length) return <div style={{ fontFamily: FB, fontSize: 13, color: C.td, padding: '16px 0', textAlign: 'center' }}>No games yet.</div>;
+  if (!played.length && !upcoming.length) return <div style={{ fontFamily: FB, fontSize: 13, color: C.td, padding: '16px 0', textAlign: 'center' }}>{tr('No games yet.')}</div>;
   return (
     <div>
       {upcoming.length > 0 && (
@@ -4328,7 +4332,7 @@ function LeagueView({ league, roster, fixtures, onOpen, bhbcLoads = {}, today, o
         <GameMinutesList fixtures={fixtures} today={today} bhbcLoads={bhbcLoads} onPick={onPickMinutes} />
         {pastData ? (
           <>
-            {upcomingFx.length ? <ResultsList games={upcomingFx} bhbcOnly /> : <div style={{ fontFamily: FB, fontSize: 13, color: C.td, padding: '14px 0', textAlign: 'center' }}>Fixtures load as the league publishes them.</div>}
+            {upcomingFx.length ? <ResultsList games={upcomingFx} bhbcOnly /> : <div style={{ fontFamily: FB, fontSize: 13, color: C.td, padding: '14px 0', textAlign: 'center' }}>{tr('Fixtures load as the league publishes them.')}</div>}
             {playedGames.length > 0 && (
               <div style={{ marginTop: 14 }}>
                 <CollapsibleSection domId="bhbc-lastseason-games" storageKey="bhbc-lastseason-games" defaultOpen={false} title={`${league.season} · ${tr('Last season results')}`} bare padX={0}>
@@ -4338,7 +4342,7 @@ function LeagueView({ league, roster, fixtures, onOpen, bhbcLoads = {}, today, o
             )}
           </>
         ) : (
-          allGames.length ? <ResultsList games={allGames} bhbcOnly /> : <div style={{ fontFamily: FB, fontSize: 13, color: C.td, padding: '14px 0', textAlign: 'center' }}>Fixtures load as the league publishes them.</div>
+          allGames.length ? <ResultsList games={allGames} bhbcOnly /> : <div style={{ fontFamily: FB, fontSize: 13, color: C.td, padding: '14px 0', textAlign: 'center' }}>{tr('Fixtures load as the league publishes them.')}</div>
         )}
       </Card>
     </>
@@ -4967,9 +4971,7 @@ function InjuryModal({ athlete, injury, onClose, onSave, currentUser = '' }) {
         </div>
 
         <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontFamily: FB, fontSize: 13, color: C.tx }}>
-          <input type="checkbox" checked={resolved} onChange={(e) => setResolved(e.target.checked)} style={{ accentColor: '#37B27C', width: 16, height: 16 }} />
-          Mark resolved / cleared to play
-        </label>
+          <input type="checkbox" checked={resolved} onChange={(e) => setResolved(e.target.checked)} style={{ accentColor: '#37B27C', width: 16, height: 16 }} />{tr('Mark resolved / cleared to play')}</label>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           <Btn variant="ghost" onClick={onClose}>{tr('Cancel')}</Btn>
           <Btn onClick={save} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>{tr('Save record')}</Btn>
@@ -5021,7 +5023,7 @@ function LogModal({ open, initialAthlete, roster, fixtures = [], availableCount 
             </select>
           </div>
         ) : (
-          <div style={{ fontFamily: FB, fontSize: 13, color: C.td, textAlign: 'center', padding: '4px 0' }}>Logs this session for <b style={{ color: C.tx }}>{availableCount}</b> available athlete{availableCount === 1 ? '' : 's'} — skips anyone Out.</div>
+          <div style={{ fontFamily: FB, fontSize: 13, color: C.td, textAlign: 'center', padding: '4px 0' }}>{tr('Logs this session for')}<b style={{ color: C.tx }}>{availableCount}</b> available athlete{availableCount === 1 ? '' : 's'} — skips anyone Out.</div>
         )}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <Input label={tr('Date')} type="date" value={date} onChange={(e) => setDate(e.target.value)} />

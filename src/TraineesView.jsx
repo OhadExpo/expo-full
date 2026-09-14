@@ -941,7 +941,7 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
                   )}
                   {showArchived && <div style={{display:'flex',gap:6,marginTop:'auto',paddingTop:10}}>
                     <Btn variant="ghost" onClick={e => {e.stopPropagation(); handleRestore(t.id)}} style={{fontSize:11,padding:"4px 10px"}}>↩ Restore</Btn>
-                    <Btn variant="danger" onClick={e => {e.stopPropagation(); setDeleteConfirm(t)}} style={{fontSize:11,padding:"4px 10px"}}>Permanently Delete</Btn>
+                    <Btn variant="danger" onClick={e => {e.stopPropagation(); setDeleteConfirm(t)}} style={{fontSize:11,padding:"4px 10px"}}>{tt('Permanently Delete')}</Btn>
                   </div>}
                 </Card>
               );
@@ -985,7 +985,7 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
 
               {showArchived && <div style={{ display: "flex", gap: 6, marginTop: 'auto', paddingTop: 10 }}>
                 <Btn variant="ghost" onClick={(e) => {e.stopPropagation(); handleRestore(t.id)}} style={{fontSize:11,padding:"4px 10px"}}>↩ Restore</Btn>
-                <Btn variant="danger" onClick={(e) => {e.stopPropagation(); setDeleteConfirm(t)}} style={{fontSize:11,padding:"4px 10px"}}>Permanently Delete</Btn>
+                <Btn variant="danger" onClick={(e) => {e.stopPropagation(); setDeleteConfirm(t)}} style={{fontSize:11,padding:"4px 10px"}}>{tt('Permanently Delete')}</Btn>
               </div>}
               {!showArchived && <div style={{display:'grid',gridTemplateColumns:'repeat(2, minmax(0, 132px))',justifyContent:'center',marginTop:'auto',paddingTop:8,gap:8}}>
                 {onPreview ? <button onClick={(e) => {e.stopPropagation(); onPreview(t.id)}} title="Preview this athlete's portal" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${isRefined5b() ? C.ac : C.cardBd}`,color: isRefined5b() ? C.ac : C.tm,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'0 14px',height:28,boxSizing:'border-box',borderRadius:0,display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6}}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>{tt('Portal')}</button> : <span/>}
@@ -1078,7 +1078,7 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
           {form.format !== 'Bnei Herzliya' ? (
             <Input label={tt("Package Price (₪)")} type="number" value={form.packagePrice||""} onChange={e => setForm({...form, packagePrice: e.target.value})} />
           ) : (
-            <div style={{ display: 'flex', alignItems: 'end', paddingBottom: 8, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>Club athlete — no billing</div>
+            <div style={{ display: 'flex', alignItems: 'end', paddingBottom: 8, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>{tt('Club athlete — no billing')}</div>
           )}
           <div style={{ gridColumn: "1 / -1" }}><TextArea label={tt("Injuries / Conditions")} value={form.injuries} onChange={e => setForm({...form, injuries: e.target.value})} placeholder={tt('L4/L5 disc bulge, R shoulder impingement...')} /></div>
           <div style={{ gridColumn: "1 / -1" }}><TextArea label={tt("Goals")} value={form.goals} onChange={e => setForm({...form, goals: e.target.value})} /></div>
@@ -1102,8 +1102,8 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
       {deleteConfirm && createPortal(<div role="dialog" aria-modal="true" aria-label="Permanent deletion" style={{ position: "fixed", inset: 0, zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center", background: C.scrim }} onClick={() => {setDeleteConfirm(null);setDeleteTyped("");setPurgeHistory(false)}}>
         <div onClick={e => e.stopPropagation()} style={{ background: C.bg, border: `1px solid ${C.rd}`, borderRadius: 0, width: 440, maxWidth: 'calc(100vw - 24px)', padding: 24 }}>
           <h3 style={{ margin: "0 0 8px", fontFamily: FN, fontSize: 15, color: C.rd, textAlign: "center" }}>⚠ Permanent Deletion</h3>
-          <p style={{ margin: "0 0 6px", fontSize: 13, color: C.tm, textAlign: "center" }}>This will permanently remove <strong style={{color:C.tx}}>{deleteConfirm.name}</strong> from the roster. By default their programs, workout history and payment records are kept (just no longer reachable).</p>
-          <p style={{ margin: "0 0 14px", fontSize: 13, color: C.rd, fontWeight: 600, textAlign: "center" }}>This cannot be undone.</p>
+          <p style={{ margin: "0 0 6px", fontSize: 13, color: C.tm, textAlign: "center" }}>{tt('This will permanently remove')}<strong style={{color:C.tx}}>{deleteConfirm.name}</strong> from the roster. By default their programs, workout history and payment records are kept (just no longer reachable).</p>
+          <p style={{ margin: "0 0 14px", fontSize: 13, color: C.rd, fontWeight: 600, textAlign: "center" }}>{tt('This cannot be undone.')}</p>
           {/* Opt-in hard purge — separate, deliberate choice. Erases revenue
               history too, so it's never the default. */}
           <label style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 16, padding: "10px 12px", border: `1px solid ${purgeHistory ? C.rd : C.cardBd}`, background: purgeHistory ? C.rdD : 'transparent', cursor: "pointer" }}>

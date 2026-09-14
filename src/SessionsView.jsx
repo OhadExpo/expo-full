@@ -577,7 +577,7 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
           <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke={C.ac} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.9 }}>
             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
           </svg>
-          <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', color: C.tx, textTransform: 'uppercase' }}>No one on the floor yet</div>
+          <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', color: C.tx, textTransform: 'uppercase' }}>{tt('No one on the floor yet')}</div>
           <div style={{ fontFamily: FB, fontSize: 13, color: C.tm, maxWidth: 380, lineHeight: 1.55 }}>Add the athletes training now — check them in as they arrive and log every set from this one screen.</div>
           <button onClick={() => setPicking(true)} style={{ ...primaryBtn, width: 'auto', padding: '12px 26px', marginTop: 4 }}>+ Add athletes</button>
         </div>
@@ -696,7 +696,7 @@ function AthleteCard({ a, name, prevMap, exDetail, onToggleIn, onSet, onCurEx, o
         </div>
       </div>
       <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
-        {a.exercises.length === 0 && <div style={{ color: C.td, fontSize: 12, padding: 8, textAlign: 'center' }}>No exercises on this day.</div>}
+        {a.exercises.length === 0 && <div style={{ color: C.td, fontSize: 12, padding: 8, textAlign: 'center' }}>{tt('No exercises on this day.')}</div>}
         {a.exercises.map((ex, ei) => {
           const prevSets = prevMap?.get(ex.eid) || prevMap?.get(prevTitleKey(ex.title));
           const det = exDetail?.[`${a.planId}|${ex.eid}`] || {};
@@ -896,7 +896,7 @@ function AthletePicker({ trainees, planIndex, existing = [], clientWorkouts = []
         <button onClick={addRow} style={{ ...miniBtn, marginTop: 10, padding: '8px 12px', border: `1px solid ${C.cardBd}`, color: C.ac }}>+ ANOTHER</button>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
           <button onClick={onCancel} style={{ ...miniBtn, padding: '9px 16px', border: `1px solid ${C.cardBd}`, color: C.tm }}>{tt("Cancel")}</button>
-          <button onClick={confirm} style={{ ...primaryBtn, width: 'auto', padding: '9px 18px' }}>Add to session</button>
+          <button onClick={confirm} style={{ ...primaryBtn, width: 'auto', padding: '9px 18px' }}>{tt('Add to session')}</button>
         </div>
       </div>
     </div>

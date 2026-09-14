@@ -595,6 +595,7 @@ const asRows = (v) => (Array.isArray(v) ? v
 //   * per-week sets stay as "3·3·4·4": that IS the block's progression, and a
 //     template that flattened it to "3" would be a different block
 function PlanPrintSheet({ plan, athleteName, exercises }) {
+  const tt = useAppT();
   // THE PRINTED BLOCK — EXPO's light theme on paper, and the whole of what the
   // coach wrote. Ohad: "make sure it's fully expo branded", "one workout day per
   // one page", "all the info like tempo and everything else (supersets or
@@ -776,7 +777,7 @@ function PlanPrintSheet({ plan, athleteName, exercises }) {
 
       {plan?.notes ? (
         <section className="pp-notes">
-          <div className="pp-notes-h">Block notes</div>
+          <div className="pp-notes-h">{tt('Block notes')}</div>
           <div className="pp-notes-b" dir="auto"><bdi>{plan.notes}</bdi></div>
         </section>
       ) : null}
@@ -1187,7 +1188,7 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExerc
         })()}
       </div>
       <div style={{ display:'grid', gridTemplateRows: open ? '1fr' : '0fr', transition:'grid-template-rows 260ms ease' }}><div style={{ overflow:'hidden', minHeight:0 }}>
-        {warmup.length === 0 ? <div style={{ fontSize: 11, color: C.td, fontStyle: 'italic' }}>No warm-ups.</div> :
+        {warmup.length === 0 ? <div style={{ fontSize: 11, color: C.td, fontStyle: 'italic' }}>{tt('No warm-ups.')}</div> :
           <div style={{ overflowX: 'auto', margin: '0 -12px', padding: compact ? '0 12px 7px' : '0 12px' }}>
           {/* Same table structure as the day-exercise grid, just the
               warm-up's parameters (no GRP/LOAD/RPE, no URL column — the
@@ -1410,11 +1411,11 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
       </div>
       <div data-compare-pane ref={cmpPaneRef} style={{position:'relative', overflowY:'auto', minHeight:0, flex:1, paddingInlineEnd:6}}>
       {!selectedAthleteId ? (
-        <div style={{padding:'24px 16px', color:C.td, fontSize:12, textAlign:'center', fontFamily:FB}}>Pick an athlete from the filter above to compare.</div>
+        <div style={{padding:'24px 16px', color:C.td, fontSize:12, textAlign:'center', fontFamily:FB}}>{tt('Pick an athlete from the filter above to compare.')}</div>
       ) : candidates.length === 0 ? (
-        <div style={{padding:'24px 16px', color:C.td, fontSize:12, textAlign:'center', fontFamily:FB}}>No programs for this athlete yet.</div>
+        <div style={{padding:'24px 16px', color:C.td, fontSize:12, textAlign:'center', fontFamily:FB}}>{tt('No programs for this athlete yet.')}</div>
       ) : !pickedId ? (
-        <div style={{padding:'24px 16px', color:C.td, fontSize:12, textAlign:'center', fontFamily:FB}}>Pick a program from the filter above to compare.</div>
+        <div style={{padding:'24px 16px', color:C.td, fontSize:12, textAlign:'center', fontFamily:FB}}>{tt('Pick a program from the filter above to compare.')}</div>
       ) : loading || !cmpPlan ? (
         <div style={{padding:'30px 12px', color:C.td, fontSize:12, textAlign:'center', fontFamily:FN, letterSpacing:'0.18em'}}>{tr(readLang(), 'LOADING…')}</div>
       ) : overview ? (
@@ -1470,7 +1471,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                                       title="Copy video URL"
                                       style={{background:'transparent', border:`1px solid ${C.ac}`, color:C.ac, cursor:'pointer', fontFamily:FN, fontSize:10, fontWeight:700, letterSpacing:'0.1em', padding:'0 10px', borderRadius:0, whiteSpace:'nowrap'}}>{tt('COPY')}</button>
                                   </div>
-                                ) : <div style={{fontSize:12, color:C.td}}>No video.</div>}
+                                ) : <div style={{fontSize:12, color:C.td}}>{tt('No video.')}</div>}
                               </div>
                               <div style={{display:'grid', gridTemplateColumns:w.vid?'1fr 1fr':'1fr', gap:16, alignItems:'start'}}>
                                 <div style={{minWidth:0}}>
@@ -1513,7 +1514,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                     </div>
                     {!cmpCollapsed && (<>
                     {dayExs.length === 0 ? (
-                      <div style={{color:C.td,fontSize:12,fontStyle:'italic'}}>No exercises.</div>
+                      <div style={{color:C.td,fontSize:12,fontStyle:'italic'}}>{tt('No exercises.')}</div>
                     ) : (
                       <div style={{overflowX:'auto',margin:'0 -12px',padding:'0 12px 7px'}}>
                         {/* LOAD column intentionally omitted on the read-only
@@ -2770,7 +2771,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                 // same grid drop handlers (with no rows, the gap resolves to 0)
                 // so an exercise can be moved INTO an otherwise-empty day.
                 <div onDragOver={onGridDragOver} onDrop={onGridDrop} style={{position:'relative',color:C.td,fontSize:12,fontStyle:"italic",padding:'4px 0',minHeight:26,display:'flex',alignItems:'center'}}>
-                  {anyExDragging && dragSrc.dayIdx !== dayIdx ? <span style={{color:C.ac,fontStyle:'normal'}}>Drop here to move into this day</span> : 'No exercises.'}
+                  {anyExDragging && dragSrc.dayIdx !== dayIdx ? <span style={{color:C.ac,fontStyle:'normal'}}>{tt('Drop here to move into this day')}</span> : 'No exercises.'}
                   {anyExDragging && dragOver && dragOver.dayIdx === dayIdx && dragOver.y != null && (
                     <div style={{ position: 'absolute', left: 0, right: 0, top: dragOver.y - 1, height: 2, background: C.ac, boxShadow: `0 0 5px ${C.ac}88`, pointerEvents: 'none', zIndex: 2 }} />
                   )}
@@ -3020,7 +3021,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
             </div>
             <div style={{overflowY:'auto',padding:'12px 18px 18px'}}>
               {blockWorkouts.length === 0
-                ? <div style={{color:C.td,textAlign:'center',padding:'34px 10px',fontSize:13}}>No logged workouts for this block yet.</div>
+                ? <div style={{color:C.td,textAlign:'center',padding:'34px 10px',fontSize:13}}>{tt('No logged workouts for this block yet.')}</div>
                 : blockWorkouts.map(w => {
                     // Card design ported verbatim from the athlete-portal HISTORY
                     // card (ClientPortal `vw==='hist'`) so the two read identically
@@ -3191,7 +3192,7 @@ function CopyDaysModal({ days, currentPlanId, preselected, planIndex, sourceWeek
                 </select>
               </div>
               <div>
-                <div style={fieldLbl}>Block name</div>
+                <div style={fieldLbl}>{tt('Block name')}</div>
                 <input value={newName} onChange={e=>setNewName(e.target.value)} placeholder='e.g. "Block #10"' style={{ ...sel, cursor:'text' }} />
               </div>
             </div>
@@ -3644,7 +3645,7 @@ export function TrainingLineage({ traineeId, traineeName, exercises, plans, load
     return <div style={{ border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>{stripHead(`${tr(readLang(), 'Training Analysis')} · ${traineeName || ''}`)}<div style={{ padding: '48px 24px', textAlign: 'center', color: C.tm, fontFamily: FN, fontSize: 11, letterSpacing: '0.1em' }}>{tr(readLang(), 'LOADING BLOCKS…')}</div></div>;
   }
   if (!model) {
-    return <div style={{ border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>{stripHead(`Training Analysis · ${traineeName || ''}`)}<div style={{ padding: '48px 24px', textAlign: 'center', color: C.tm, fontFamily: FB, fontSize: 13 }}>No block content to trace yet for this athlete.</div></div>;
+    return <div style={{ border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>{stripHead(`Training Analysis · ${traineeName || ''}`)}<div style={{ padding: '48px 24px', textAlign: 'center', color: C.tm, fontFamily: FB, fontSize: 13 }}>{tt('No block content to trace yet for this athlete.')}</div></div>;
   }
 
   const { blocks, rows, stats, nextPlan, acwr } = model;
@@ -3711,7 +3712,7 @@ export function TrainingLineage({ traineeId, traineeName, exercises, plans, load
   return (
     <div style={{ border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>
       {stripHead(<>
-        <span>Training Analysis · <span style={{ color: '#fff', fontFamily: heb ? FH : FN }}>{traineeName}</span></span>
+        <span>{tt('Training Analysis ·')}<span style={{ color: '#fff', fontFamily: heb ? FH : FN }}>{traineeName}</span></span>
         <div style={{ display: 'flex', gap: 6 }}>
           {[['sets', 'Sets'], ['volume', 'Volume']].map(([v, l]) => {
             const on = metric === v;
@@ -3731,7 +3732,7 @@ export function TrainingLineage({ traineeId, traineeName, exercises, plans, load
             <span style={{ width: 11, height: 11, background: curPhase.color, flexShrink: 0 }} />
             <span style={{ fontFamily: FN, fontSize: 16, fontWeight: 700, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{curPhase.label}</span>
           </div>
-          <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, marginTop: 6 }}>Current phase</div>
+          <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, marginTop: 6 }}>{tt('Current phase')}</div>
           <div style={{ fontFamily: FB, fontSize: 10, color: C.td, marginTop: 2 }}>{curPhase.hint}</div>
         </div>
       </div>
@@ -3741,7 +3742,7 @@ export function TrainingLineage({ traineeId, traineeName, exercises, plans, load
           climb across blocks, where do the deloads fall. Click a block to open it. */}
       <div style={{ padding: '10px 12px 4px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
-          <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>Periodization wave</div>
+          <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{tt('Periodization wave')}</div>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', fontFamily: FN, fontSize: 9, letterSpacing: '0.06em', color: C.tm }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 9, height: 9, background: 'color-mix(in srgb, #39BDFF 40%, transparent)' }} />{tt("VOLUME")}</span>
             <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 12, height: 2, background: '#f0b429' }} />{tt('INTENSITY %1RM')}</span>
@@ -3784,7 +3785,7 @@ export function TrainingLineage({ traineeId, traineeName, exercises, plans, load
         <div style={{ minWidth: NAME_W + blocks.length * COL_W }}>
           {/* header row */}
           <div style={{ display: 'grid', gridTemplateColumns: `${NAME_W}px repeat(${blocks.length}, ${COL_W}px)`, gap: 0, alignItems: 'stretch' }}>
-            <div style={{ position: 'sticky', left: 0, zIndex: 2, background: 'var(--c-sf)', borderBottom: `2px solid ${C.cardBd}`, padding: '6px 8px', fontFamily: FN, fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 6 }}><span>Pattern</span><span style={{ color: '#39BDFF' }}>→ next</span></div>
+            <div style={{ position: 'sticky', left: 0, zIndex: 2, background: 'var(--c-sf)', borderBottom: `2px solid ${C.cardBd}`, padding: '6px 8px', fontFamily: FN, fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 6 }}><span>{tt('Pattern')}</span><span style={{ color: '#39BDFF' }}>→ next</span></div>
             {blocks.map((b, i) => (
               <button key={b.id} onClick={() => onOpenPlan && onOpenPlan(b.id)} title={`Open ${b.name}`}
                 style={{ textAlign: 'center', border: 'none', borderBottom: `2px solid ${i === blocks.length - 1 ? '#39BDFF' : C.cardBd}`, borderInlineStart: `1px solid ${C.cardBd}`, background: i === blocks.length - 1 ? 'color-mix(in srgb, var(--c-ac) 8%, transparent)' : 'transparent', padding: '6px 4px', cursor: 'pointer', overflow: 'hidden' }}>
@@ -3849,7 +3850,7 @@ export function TrainingLineage({ traineeId, traineeName, exercises, plans, load
           and how much of the block is fresh vs recycled from earlier blocks. */}
       {stats.variety && (
         <>
-          <div style={{ padding: '4px 12px 0', fontFamily: FN, fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>Block composition · latest</div>
+          <div style={{ padding: '4px 12px 0', fontFamily: FN, fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{tt('Block composition · latest')}</div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', padding: '6px 12px 4px' }}>
             {kpi('Variety score', stats.variety.score, `${stats.variety.exCount} lifts`, stats.variety.score >= 66 ? C.gn : stats.variety.score >= 40 ? C.tx : C.or)}
             {kpi('Primary patterns', `${stats.variety.primaryCovered}/${stats.variety.primaryTotal}`, stats.variety.primaryCovered >= stats.variety.primaryTotal - 1 ? 'well covered' : 'gaps to fill', stats.variety.primaryCovered >= stats.variety.primaryTotal - 1 ? C.gn : C.or)}
@@ -3881,7 +3882,7 @@ export function TrainingLineage({ traineeId, traineeName, exercises, plans, load
               <span style={{ width: 11, height: 11, background: phaseMeta(nextPlan.suggestedPhase).color, flexShrink: 0 }} />
               <span style={{ fontFamily: FN, fontSize: 18, fontWeight: 700, color: C.tx, lineHeight: 1 }}>{phaseMeta(nextPlan.suggestedPhase).label}</span>
             </div>
-            <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, marginTop: 6 }}>Suggested phase</div>
+            <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, marginTop: 6 }}>{tt('Suggested phase')}</div>
             <div style={{ fontFamily: FB, fontSize: 11, color: '#39BDFF', marginTop: 2 }}>{nextPlan.repBand}</div>
           </div>
           <div style={{ minWidth: 104 }}>
@@ -3892,19 +3893,19 @@ export function TrainingLineage({ traineeId, traineeName, exercises, plans, load
           {nextPlan.acwr != null && (
             <div style={{ minWidth: 84 }}>
               <div style={{ fontFamily: FN, fontSize: 22, fontWeight: 700, color: acwrTone, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{nextPlan.acwr.toFixed(2)}</div>
-              <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, marginTop: 6 }}>Load ratio</div>
+              <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, marginTop: 6 }}>{tt('Load ratio')}</div>
               <div style={{ fontFamily: FB, fontSize: 10, color: C.td, marginTop: 2 }}>{acwrWord} · aim 0.8–1.3</div>
             </div>
           )}
           {nextPlan.pushPull != null && (
             <div style={{ minWidth: 84 }}>
               <div style={{ fontFamily: FN, fontSize: 22, fontWeight: 700, color: (nextPlan.pushPull > 1.3 || nextPlan.pushPull < 0.77) ? C.or : C.tx, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{nextPlan.pushPull}</div>
-              <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, marginTop: 6 }}>Push : Pull</div>
+              <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, marginTop: 6 }}>{tt('Push : Pull')}</div>
               <div style={{ fontFamily: FB, fontSize: 10, color: C.td, marginTop: 2 }}>{nextPlan.pushPull > 1.3 ? 'add pulling' : nextPlan.pushPull < 0.77 ? 'add pushing' : 'balanced'}</div>
             </div>
           )}
           <div style={{ flex: 1, minWidth: 180 }}>
-            <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, marginBottom: 7 }}>Primary-pattern coverage · latest block</div>
+            <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, marginBottom: 7 }}>{tt('Primary-pattern coverage · latest block')}</div>
             {nextPlan.coverageGaps.length === 0 ? (
               <div style={{ fontFamily: FB, fontSize: 12.5, color: C.gn }}>✓ Every primary pattern is covered.</div>
             ) : (
@@ -3918,7 +3919,7 @@ export function TrainingLineage({ traineeId, traineeName, exercises, plans, load
       {reportOpen && <NextBlockReport model={model} plans={plans} exercises={exercises} traineeName={traineeName} onClose={() => setReportOpen(false)} />}
       <div style={{ padding: '2px 12px 14px', display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center', fontFamily: FN, fontSize: 10, letterSpacing: '0.04em', color: C.tm }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 10, height: 10, background: 'color-mix(in srgb, #39BDFF 40%, transparent)' }} />{tt("Volume (sets)")}</span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 13, height: 2, background: '#f0b429' }} />Intensity (%1RM from reps)</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 13, height: 2, background: '#f0b429' }} />{tt('Intensity (%1RM from reps)')}</span>
         <span style={{ color: C.or }}>⚠ accommodation</span>
         <span>bar under each pattern = your MEV→MRV band</span>
         <span style={{ color: C.td }}>· click a block to open it</span>
@@ -4614,7 +4615,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
     return (
       <div onClick={close} style={{ position:'fixed', inset:0, zIndex:10001, background:'rgba(0,0,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
         <div onClick={e=>e.stopPropagation()} style={{ background:'var(--c-sf)', border:`1px solid ${C.ac}`, borderRadius:0, width:'min(420px, 94vw)', boxShadow:C.cardShadow }}>
-          <div style={{ padding:'16px 18px 6px', fontFamily:FN, fontSize:13, fontWeight:700, letterSpacing:'0.08em', color:C.tx, textTransform:'uppercase' }}>No programs yet</div>
+          <div style={{ padding:'16px 18px 6px', fontFamily:FN, fontSize:13, fontWeight:700, letterSpacing:'0.08em', color:C.tx, textTransform:'uppercase' }}>{tt('No programs yet')}</div>
           <div style={{ padding:'0 18px 14px', fontFamily:FN, fontSize:12, color:C.tm, lineHeight:1.6 }}>
             {newProgramPrompt.name} has no programs. Start a new one for them?
           </div>
@@ -4628,7 +4629,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
   })() : null;
 
   if (editMode) {
-    if (editLoading || !editPlanData) return <div style={{textAlign:"center",padding:60,color:C.td}}><div style={{fontSize:14}}>Loading program...</div></div>;
+    if (editLoading || !editPlanData) return <div style={{textAlign:"center",padding:60,color:C.td}}><div style={{fontSize:14}}>{tt('Loading program...')}</div></div>;
     // key={editPlanData.id} forces a remount when the visitor switches
     // programs via the new in-editor dropdown — PlanEditor's internal `plan`
     // state is initialized from `init` only once, so a remount is the
@@ -4646,7 +4647,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
   // the render fell through to the LIST — which read as the programs page
   // flashing up for a moment before the program opened (Ohad). While an open is
   // pending, show the same loading state the editor uses instead of the list.
-  if (openPlanId && !editMode) return <div style={{textAlign:"center",padding:60,color:C.td}}><div style={{fontSize:14}}>Loading program...</div></div>;
+  if (openPlanId && !editMode) return <div style={{textAlign:"center",padding:60,color:C.td}}><div style={{fontSize:14}}>{tt('Loading program...')}</div></div>;
 
   return (
     <div>
@@ -4935,7 +4936,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               return (
                 <div key={row.tid} data-prog-card={row.tid} style={{background:'var(--c-sf)',border:'0.25px dashed rgba(255,165,2,0.502)',borderRadius:0,padding:'14px',display:'flex',flexDirection:'column',gap:12,boxSizing:'border-box'}}>
                   <div style={{display:'flex',alignItems:'center',gap:9,minWidth:0}}><BhbcBadge tid={row.tid} trainees={trainees} /><div style={{fontWeight:700,fontSize:16,color:C.tx,letterSpacing:'0.01em'}}><bdi>{row.name}</bdi></div></div>
-                  <div style={{fontSize:11,color:C.or,fontFamily:FN,letterSpacing:'0.18em',textTransform:'uppercase',fontWeight:700}}>No program assigned</div>
+                  <div style={{fontSize:11,color:C.or,fontFamily:FN,letterSpacing:'0.18em',textTransform:'uppercase',fontWeight:700}}>{tt('No program assigned')}</div>
                   <div style={{flex:1}} />
                   {row.coupleMembers
                     ? <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>{row.coupleMembers.map(m => (
@@ -5171,6 +5172,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
 // anchored panel with a filter input + option list. Search state lives inside
 // so typing only re-renders the combo (input focus-loss rule).
 function AthleteCombo({ value, options, onPick, title }) {
+  const tt = useAppT();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
   const [idx, setIdx] = useState(0);
@@ -5208,7 +5210,7 @@ function AthleteCombo({ value, options, onPick, title }) {
                 <bdi>{o.label}</bdi>
               </button>
             ))}
-            {filtered.length === 0 && <div style={{padding:'14px',textAlign:'center',color:C.tm,fontFamily:FN,fontSize:12}}>No athletes match.</div>}
+            {filtered.length === 0 && <div style={{padding:'14px',textAlign:'center',color:C.tm,fontFamily:FN,fontSize:12}}>{tt('No athletes match.')}</div>}
           </div>
         </div>
       </>}
@@ -5217,6 +5219,7 @@ function AthleteCombo({ value, options, onPick, title }) {
 }
 
 function ShareAthleteModal({ trainees, shareSearch, setShareSearch, onPick, onClose }) {
+  const tt = useAppT();
   // Build the athlete list EXACTLY like the editor's assignment dropdown so
   // the trainee_id matches: couples expand to per-member ids (t.id__0/__1),
   // singles use t.id. Assigning to the parent couple id would be wrong.
@@ -5231,7 +5234,7 @@ function ShareAthleteModal({ trainees, shareSearch, setShareSearch, onPick, onCl
     <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:10000, background:'rgba(0,0,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
       <div onClick={e=>e.stopPropagation()} style={{ background:'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius:0, width:'min(440px, 94vw)', maxHeight:'80vh', display:'flex', flexDirection:'column', boxShadow:C.cardShadow }}>
         <div style={{ padding:'14px 18px', borderBottom:`1px solid ${C.cardBd}`, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-          <span style={{ fontFamily:FN, fontSize:13, fontWeight:700, letterSpacing:'0.12em', color:C.tx, textTransform:'uppercase' }}>Share program to…</span>
+          <span style={{ fontFamily:FN, fontSize:13, fontWeight:700, letterSpacing:'0.12em', color:C.tx, textTransform:'uppercase' }}>{tt('Share program to…')}</span>
           <button onClick={onClose} style={{ background:'transparent', border:'none', color:C.tm, fontSize:20, lineHeight:1, cursor:'pointer' }}>×</button>
         </div>
         <input value={shareSearch} onChange={e=>setShareSearch(e.target.value)} placeholder={tr(readLang(), 'Search athletes…')} autoFocus style={{ width:'100%', boxSizing:'border-box', padding:'10px 18px', background:'transparent', color:C.tx, border:'none', borderBottom:`1px solid ${C.cardBd}`, fontFamily:FN, fontSize:13, outline:'none' }} />
@@ -5242,7 +5245,7 @@ function ShareAthleteModal({ trainees, shareSearch, setShareSearch, onPick, onCl
               <span style={{ color:C.ac, fontSize:10, fontWeight:700, letterSpacing:'0.1em', flexShrink:0, marginInlineStart:10 }}>{tr(readLang(), 'DUPLICATE →')}</span>
             </button>
           ))}
-          {list.length === 0 && <div style={{ padding:'18px', textAlign:'center', color:C.tm, fontFamily:FN, fontSize:12 }}>No athletes match.</div>}
+          {list.length === 0 && <div style={{ padding:'18px', textAlign:'center', color:C.tm, fontFamily:FN, fontSize:12 }}>{tt('No athletes match.')}</div>}
         </div>
       </div>
     </div>

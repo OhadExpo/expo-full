@@ -171,7 +171,7 @@ export default function IntakeView({ trainees }) {
   };
 
   if (submissions == null) {
-    return <div style={{ textAlign: 'center', padding: 60, color: C.td, fontFamily: FB, fontSize: 13 }}>Loading intake…</div>;
+    return <div style={{ textAlign: 'center', padding: 60, color: C.td, fontFamily: FB, fontSize: 13 }}>{tt('Loading intake…')}</div>;
   }
 
   const detailForm = openSubmission ? getForm(openSubmission.form_type, openSubmission.locale) : null;
@@ -278,10 +278,10 @@ export default function IntakeView({ trainees }) {
       <Modal open={showGen} onClose={closeGen} title="Generate Intake Link">
         {genResult ? (
           <div>
-            <div style={{ fontSize: 13, color: C.tx, marginBottom: 10 }}>Link generated and copied to clipboard.</div>
+            <div style={{ fontSize: 13, color: C.tx, marginBottom: 10 }}>{tt('Link generated and copied to clipboard.')}</div>
             <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: 10, fontFamily: FN, fontSize: 12, color: C.tm, wordBreak: 'break-all' }}>{genResult.url}</div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
-              <Btn variant="ghost" onClick={() => { setGenResult(null); }}>Generate another</Btn>
+              <Btn variant="ghost" onClick={() => { setGenResult(null); }}>{tt('Generate another')}</Btn>
               <Btn onClick={closeGen}>Done</Btn>
             </div>
           </div>
@@ -293,9 +293,9 @@ export default function IntakeView({ trainees }) {
                 <div style={{ position: 'relative', display: 'flex' }}>
                   <select value={genForm.formType} onChange={e => setGenForm(f => ({ ...f, formType: e.target.value, locale: getForm(e.target.value, f.locale) ? f.locale : 'he', traineeId: e.target.value === 'initial' ? '' : f.traineeId }))}
                     style={{ flex: 1, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '8px 32px 8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', appearance: 'none', WebkitAppearance: 'none' }}>
-                    <option value="initial">Initial intake</option>
-                    <option value="assessment">Physical assessment</option>
-                    <option value="progress">Progress check-in</option>
+                    <option value="initial">{tt('Initial intake')}</option>
+                    <option value="assessment">{tt('Physical assessment')}</option>
+                    <option value="progress">{tt('Progress check-in')}</option>
                   </select>
                   <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: C.tm, fontSize: 14, lineHeight: 1 }}>▾</span>
                 </div>
@@ -305,7 +305,7 @@ export default function IntakeView({ trainees }) {
                 <div style={{ position: 'relative', display: 'flex' }}>
                   <select value={genForm.locale} onChange={e => setGenForm(f => ({ ...f, locale: e.target.value }))}
                     style={{ flex: 1, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '8px 32px 8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', appearance: 'none', WebkitAppearance: 'none' }}>
-                    <option value="he">Hebrew (HE)</option>
+                    <option value="he">{tt('Hebrew (HE)')}</option>
                     {/* Only offer a locale that actually has a form for this type
                         (no progress:en schema) — else the client gets a blank,
                         unsubmittable link. */}
@@ -317,7 +317,7 @@ export default function IntakeView({ trainees }) {
             </div>
             {(genForm.formType === 'progress' || genForm.formType === 'assessment') && (
               <div style={{ marginBottom: 12 }}>
-                <div style={{ fontSize: 10, fontFamily: FN, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>TRAINEE (optional)</div>
+                <div style={{ fontSize: 10, fontFamily: FN, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>{tt('TRAINEE (optional)')}</div>
                 <div style={{ position: 'relative', display: 'flex' }}>
                   <select value={genForm.traineeId} onChange={e => setGenForm(f => ({ ...f, traineeId: e.target.value }))}
                     style={{ flex: 1, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '8px 32px 8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', appearance: 'none', WebkitAppearance: 'none' }}>
@@ -331,7 +331,7 @@ export default function IntakeView({ trainees }) {
               </div>
             )}
             <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 10, fontFamily: FN, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>LABEL (optional)</div>
+              <div style={{ fontSize: 10, fontFamily: FN, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>{tt('LABEL (optional)')}</div>
               <input value={genForm.label} onChange={e => setGenForm(f => ({ ...f, label: e.target.value }))}
                 placeholder='e.g. "for Yossi"'
                 style={{ width: '100%', boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none' }} />
@@ -339,7 +339,7 @@ export default function IntakeView({ trainees }) {
             {genError && <div style={{ color: C.rd, fontFamily: FN, fontSize: 12, marginBottom: 8 }}>{genError}</div>}
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
               <Btn variant="ghost" onClick={closeGen}>Cancel</Btn>
-              <Btn onClick={generateLink}>Generate</Btn>
+              <Btn onClick={generateLink}>{tt('Generate')}</Btn>
             </div>
           </div>
         )}

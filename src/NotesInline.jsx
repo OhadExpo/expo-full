@@ -202,9 +202,7 @@ export default function NotesInline({
       )}
 
       {visibleOpen.length === 0 && done.length === 0 && (
-        <div style={{ fontSize: 12, color: 'var(--c-td)', marginBottom: 8 }}>
-          Nothing queued. Add one below.
-        </div>
+        <div style={{ fontSize: 12, color: 'var(--c-td)', marginBottom: 8 }}>{tr(readLang(), 'Nothing queued. Add one below.')}</div>
       )}
 
       {visibleOpen.map(n => {

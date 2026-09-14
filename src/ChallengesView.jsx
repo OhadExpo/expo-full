@@ -26,6 +26,7 @@ const fmtDate = (d) => {
 };
 
 function Leaderboard({ challenge, participants, traineesById, workouts, bwLog, meals, onPersistProgress }) {
+  const tt = useAppT();
   const goalDef = GOAL_TYPES.find(g => g.id === challenge.goal_type);
   const sortDir = goalDef?.sortDir || 'desc';
   const rows = useMemo(() => {
@@ -42,7 +43,7 @@ function Leaderboard({ challenge, participants, traineesById, workouts, bwLog, m
   return (
     <div style={{ marginTop: 8 }}>
       {rows.length === 0 ? (
-        <div style={{ fontSize: 12, color: C.td, padding: '12px 0' }}>No participants yet.</div>
+        <div style={{ fontSize: 12, color: C.td, padding: '12px 0' }}>{tt('No participants yet.')}</div>
       ) : rows.map((r, i) => (
         <div key={r.trainee_id} style={{
           display: 'flex', alignItems: 'center', gap: 10,

@@ -83,6 +83,7 @@ function StatusMenu({ status, onChange }) {
 // This unifies all of it: a clickable name that opens the editor PLUS an
 // explicit "Open →" button, and consistent ✕ / Only / visibility controls.
 function ProgramCard({ plan: p, isVis, onOpen, onUnassign, onOnly, onToggleVis }) {
+  const t = useT();
   const btn = { height:24, boxSizing:'border-box', borderRadius:0, cursor:'pointer', fontFamily:FN, fontWeight:700, display:'inline-flex', alignItems:'center', justifyContent:'center' };
   return (
     <Card style={{ marginBottom:8, padding:10 }}>
@@ -93,12 +94,12 @@ function ProgramCard({ plan: p, isVis, onOpen, onUnassign, onOnly, onToggleVis }
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0, flexWrap:'wrap' }}>
           <button onClick={e=>{ e.stopPropagation(); onUnassign(); }} aria-label="Remove program from athlete" title="Remove program from athlete" style={{ ...btn, background:'none', border:'none', color:C.rd, fontSize:11, fontWeight:400, opacity:0.6, padding:'0 4px' }}>✕</button>
-          <button onClick={e=>{ e.stopPropagation(); onOnly(); }} title="Show only this program on the athlete portal — hide all others" style={{ ...btn, background:'transparent', border:`1px solid ${C.ac}`, color:C.ac, fontSize:9, letterSpacing:'0.1em', padding:'0 8px', textTransform:'uppercase' }}>Only</button>
+          <button onClick={e=>{ e.stopPropagation(); onOnly(); }} title="Show only this program on the athlete portal — hide all others" style={{ ...btn, background:'transparent', border:`1px solid ${C.ac}`, color:C.ac, fontSize:9, letterSpacing:'0.1em', padding:'0 8px', textTransform:'uppercase' }}>{t('Only')}</button>
           <button onClick={e=>{ e.stopPropagation(); onToggleVis(); }} title={isVis?'Visible on the portal — click to hide':'Hidden from the portal — click to show'} style={{ ...btn, background:'none', border:'none', padding:0, gap:4, justifyContent:'flex-start' }}>
             <span style={{ width:36, height:20, borderRadius:10, background:isVis?'rgba(46,213,115,0.251)':C.sf3, border:`1px solid ${isVis?'rgba(46,213,115,0.376)':C.bd2}`, position:'relative', transition:'all .15s', display:'inline-block', flexShrink:0 }}><span style={{ width:16, height:16, borderRadius:8, background:isVis?C.gn:C.td, position:'absolute', top:1, left:isVis?18:1, transition:'all .15s' }}/></span>
             <span style={{ fontSize:10, fontFamily:FN, fontWeight:700, color:isVis?C.gn:C.td, minWidth:26, textAlign: 'start' }}>{isVis?'ON':'OFF'}</span>
           </button>
-          <button onClick={e=>{ e.stopPropagation(); onOpen(); }} title="Open this program in the editor" style={{ ...btn, background:'transparent', border:`1px solid ${C.ac}`, color:C.ac, fontSize:9, letterSpacing:'0.1em', padding:'0 10px', textTransform:'uppercase', gap:4 }}>Open →</button>
+          <button onClick={e=>{ e.stopPropagation(); onOpen(); }} title="Open this program in the editor" style={{ ...btn, background:'transparent', border:`1px solid ${C.ac}`, color:C.ac, fontSize:9, letterSpacing:'0.1em', padding:'0 10px', textTransform:'uppercase', gap:4 }}>{t('Open →')}</button>
         </div>
       </div>
     </Card>
@@ -110,6 +111,7 @@ function ProgramCard({ plan: p, isVis, onOpen, onUnassign, onOnly, onToggleVis }
 // bodyweight graph (bwLog is realtime-synced across coach + portal).
 // Own state → typing here never re-renders the heavy TraineeDetail tree.
 function BwAddRow({ onAdd }) {
+  const t = useT();
   const [kg, setKg] = React.useState('');
   const [date, setDate] = React.useState(() => todayLocalISO());
   const val = parseFloat(kg);
@@ -124,7 +126,7 @@ function BwAddRow({ onAdd }) {
   return (
     <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, flexWrap: 'wrap', marginTop: 10, padding: '12px 14px', border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <label style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm }}>Weight (kg)</label>
+        <label style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm }}>{t('Weight (kg)')}</label>
         <input type="number" inputMode="decimal" step="0.1" value={kg} onChange={e => setKg(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') submit(); }} placeholder="e.g. 83.5"
           style={{ ...baseInput, width: 110, fontFamily: FN, fontVariantNumeric: 'tabular-nums' }} />
@@ -134,7 +136,7 @@ function BwAddRow({ onAdd }) {
         <input type="date" value={date} max={todayLocalISO()} onChange={e => setDate(e.target.value)}
           style={{ ...baseInput, width: 150, fontFamily: FN }} />
       </div>
-      <Btn onClick={submit} disabled={!ok} style={{ opacity: ok ? 1 : 0.5 }}>Add weigh-in</Btn>
+      <Btn onClick={submit} disabled={!ok} style={{ opacity: ok ? 1 : 0.5 }}>{t('Add weigh-in')}</Btn>
     </div>
   );
 }
@@ -398,8 +400,8 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             {[['Age',m.age||'—'],['Weight',m.weight?`${m.weight}kg`:'—'],['Height',m.height?`${m.height}cm`:'—']].map(([l,v])=>
               <div key={l}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700}}>{l}</div><div style={{fontSize:14,color:C.tx,marginTop:2}}>{v}</div></div>)}
           </div>
-          {m.injuries&&<div style={{marginTop:10,padding:8,background:'var(--c-sf)',border:`1px solid ${C.or}`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.or,textTransform:'uppercase',marginBottom:4,textAlign:'center'}}>Injuries</div><div style={{fontSize:13,color:C.tx,direction:/[\u0590-\u05FF]/.test(m.injuries)?'rtl':'ltr',textAlign:'center',fontFamily:/[\u0590-\u05FF]/.test(m.injuries)?FH:undefined}}>{m.injuries}</div></div>}
-          {m.goals&&<div style={{marginTop:6,padding:8,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.ac,textTransform:'uppercase',marginBottom:4,textAlign:'center'}}>Goals</div><div style={{fontSize:13,color:C.tx,direction:/[\u0590-\u05FF]/.test(m.goals)?'rtl':'ltr',textAlign:'center',fontFamily:/[\u0590-\u05FF]/.test(m.goals)?FH:undefined}}>{m.goals}</div></div>}
+          {m.injuries&&<div style={{marginTop:10,padding:8,background:'var(--c-sf)',border:`1px solid ${C.or}`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.or,textTransform:'uppercase',marginBottom:4,textAlign:'center'}}>{t('Injuries')}</div><div style={{fontSize:13,color:C.tx,direction:/[\u0590-\u05FF]/.test(m.injuries)?'rtl':'ltr',textAlign:'center',fontFamily:/[\u0590-\u05FF]/.test(m.injuries)?FH:undefined}}>{m.injuries}</div></div>}
+          {m.goals&&<div style={{marginTop:6,padding:8,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.ac,textTransform:'uppercase',marginBottom:4,textAlign:'center'}}>{t('Goals')}</div><div style={{fontSize:13,color:C.tx,direction:/[\u0590-\u05FF]/.test(m.goals)?'rtl':'ltr',textAlign:'center',fontFamily:/[\u0590-\u05FF]/.test(m.goals)?FH:undefined}}>{m.goals}</div></div>}
           {m.notes&&<div style={{marginTop:6,padding:8,background:'var(--c-sf)',border:`1px solid ${C.bd}`,borderRadius:0}}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700,marginBottom:4,textAlign:'center'}}>Notes</div><div style={{fontSize:13,color:C.tm,direction:/[\u0590-\u05FF]/.test(m.notes)?'rtl':'ltr',textAlign:'center',fontFamily:/[\u0590-\u05FF]/.test(m.notes)?FH:undefined}}>{m.notes}</div></div>}
         </Card>
         {showPrograms && <>
@@ -407,7 +409,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           <div style={{fontSize:12,fontFamily:FN,color:C.tm,fontWeight:600}}>{m.name} — PROGRAMS ({sorted.length})</div>
           {bulkToggleBtn(sorted, memberVisKey)}
         </div>
-        {sorted.length===0?<div style={{color:C.td,fontSize:12}}>No programs assigned.</div>:
+        {sorted.length===0?<div style={{color:C.td,fontSize:12}}>{t('No programs assigned.')}</div>:
           sorted.map(p=>{const visKey=memberVisKey(p);const isVis=portalVis?.[visKey]!==false;return(
             <ProgramCard key={p.id} plan={p} isVis={isVis} onOpen={()=>onOpenPlan&&onOpenPlan(p.id)} onUnassign={()=>{setConfirmUnassign(p.id);setUnassignTyped("")}} onOnly={()=>onlyThisMember(visKey)} onToggleVis={()=>{const nv={...portalVis,[visKey]:!isVis};setPortalVis(nv)}} />)})}
         </>}
@@ -454,7 +456,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
     // Shared text-action builders so the current block and the earlier rows
     // stay pixel-consistent (only the font size differs, exactly as PlansView).
     const onlyBtn = (p, fs) => (
-      <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();onlyThis(visKeyOf(p),sorted);}} title="Show only this program on the athlete portal — hide all others" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:fs,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>Only</button>
+      <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();onlyThis(visKeyOf(p),sorted);}} title="Show only this program on the athlete portal — hide all others" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:fs,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{t('Only')}</button>
     );
     const removeBtn = (p, fs) => (
       <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setConfirmUnassign(p.id);setUnassignTyped("");}} title="Remove this program from the athlete" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:fs,fontWeight:700,letterSpacing:'0.04em',color:C.rd}}>Remove</button>
@@ -757,8 +759,8 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
               hairline) so the borders read as a uniform set — the semantic
               cue lives in the LABEL color (injuries=orange, goals=cyan,
               notes=muted), not the border. Was: orange / cyan / grey borders. */}
-          {td.injuries&&<div style={{marginTop:12,padding:10,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.or,textTransform:"uppercase",marginBottom:4,textAlign:"center"}}>Injuries / Conditions</div><div style={{fontSize:13,color:C.tx,direction:/[\u0590-\u05FF]/.test(td.injuries)?'rtl':'ltr',textAlign:'center',fontFamily:/[\u0590-\u05FF]/.test(td.injuries)?FH:undefined}}>{td.injuries}</div></div>}
-          {td.goals&&<div style={{marginTop:8,padding:10,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.ac,textTransform:"uppercase",marginBottom:4,textAlign:"center"}}>Goals</div><div style={{fontSize:13,color:C.tx,direction:/[\u0590-\u05FF]/.test(td.goals)?'rtl':'ltr',textAlign:'center',fontFamily:/[\u0590-\u05FF]/.test(td.goals)?FH:undefined}}>{td.goals}</div></div>}
+          {td.injuries&&<div style={{marginTop:12,padding:10,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.or,textTransform:"uppercase",marginBottom:4,textAlign:"center"}}>{t('Injuries / Conditions')}</div><div style={{fontSize:13,color:C.tx,direction:/[\u0590-\u05FF]/.test(td.injuries)?'rtl':'ltr',textAlign:'center',fontFamily:/[\u0590-\u05FF]/.test(td.injuries)?FH:undefined}}>{td.injuries}</div></div>}
+          {td.goals&&<div style={{marginTop:8,padding:10,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.ac,textTransform:"uppercase",marginBottom:4,textAlign:"center"}}>{t('Goals')}</div><div style={{fontSize:13,color:C.tx,direction:/[\u0590-\u05FF]/.test(td.goals)?'rtl':'ltr',textAlign:'center',fontFamily:/[\u0590-\u05FF]/.test(td.goals)?FH:undefined}}>{td.goals}</div></div>}
           {td.notes&&<div style={{marginTop:8,padding:10,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0}}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700,marginBottom:4,textAlign:"center"}}>Notes</div><div style={{fontSize:13,color:C.tm,direction:/[\u0590-\u05FF]/.test(td.notes)?'rtl':'ltr',textAlign:'center',fontFamily:/[\u0590-\u05FF]/.test(td.notes)?FH:undefined}}>{td.notes}</div></div>}
         </Card>
       )}
@@ -880,7 +882,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
 
       {/* === WORKOUTS — slot #7 (collapsible) */}
       <CollapsibleSection bare domId="td-sec-workouts" title="Recent Workouts" count={tAllWorkouts.length} storageKey={`td-workouts-${trainee}`} style={{margin:'20px 0 0', display: showSec('workouts') ? undefined : 'none'}}>
-        {tAllWorkouts.length===0?<div style={{color:C.td,fontSize:13}}>No completed workouts.</div>:
+        {tAllWorkouts.length===0?<div style={{color:C.td,fontSize:13}}>{t('No completed workouts.')}</div>:
           tAllWorkouts.slice(0,10).map(w=><Card key={`${w.source}-${w.id}`} style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{display:"flex",alignItems:"baseline",gap:8,minWidth:0}}><span style={{fontWeight:600,color:C.tx,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{w.dayName}</span>{w.week!=null&&<span style={{fontFamily:FN,fontSize:11,color:C.tm,flexShrink:0}}>{t('Week')} {w.week}</span>}</div><span style={{fontSize:12,color:C.tm,flexShrink:0}}>{fmtPrettyDate(w.date)}</span></div>
             {/* Per-workout readiness — equal-width stat cells (label stacked over
                 a severity-coloured value), so PAIN/SLEEP/ENERGY line up in a neat
@@ -934,7 +936,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
                     <div style={{fontSize:12,fontFamily:FN,color:C.tm,fontWeight:600}}>{m.name} — {sorted.length}</div>
                     {bulkToggleBtn(sorted, memberVisKey)}
                   </div>
-                  {sorted.length===0?<div style={{color:C.td,fontSize:12}}>No programs assigned.</div>:
+                  {sorted.length===0?<div style={{color:C.td,fontSize:12}}>{t('No programs assigned.')}</div>:
                     sorted.map(p=>{const visKey=memberVisKey(p);const isVis=portalVis?.[visKey]!==false;return(
                       <ProgramCard key={p.id} plan={p} isVis={isVis} onOpen={()=>onOpenPlan&&onOpenPlan(p.id)} onUnassign={()=>{setConfirmUnassign(p.id);setUnassignTyped("")}} onOnly={()=>onlyThisCouple(visKey)} onToggleVis={()=>{const nv={...portalVis,[visKey]:!isVis};setPortalVis(nv)}} />)})}
                 </div>
@@ -953,7 +955,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             {bulkToggleBtn(tp, (p)=>`${td.name}:${p.name}`)}
             <button onClick={()=>setShowAssign(true)} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:28,boxSizing:'border-box',padding:"0 14px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',whiteSpace:'nowrap',textTransform:'uppercase'}}>+ New Program</button>
           </>}>
-        {tp.length===0?<div style={{color:C.td,fontSize:13}}>No programs assigned.</div>:renderProgramsList()}
+        {tp.length===0?<div style={{color:C.td,fontSize:13}}>{t('No programs assigned.')}</div>:renderProgramsList()}
         </CollapsibleSection>
       </>}
 
@@ -1059,7 +1061,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       {confirmUnassign && createPortal(<div role="dialog" aria-modal="true" aria-label="Remove program" style={{position:"fixed",inset:0,zIndex:1100,display:"flex",alignItems:"center",justifyContent:"center",background:C.scrim}} onClick={()=>{setConfirmUnassign(null);setUnassignTyped("")}}>
         <div onClick={e=>e.stopPropagation()} style={{background:C.bg,border:`1px solid ${C.rd}`,borderRadius:0,width:380,maxWidth:'calc(100vw - 24px)',padding:24}}>
           <h3 style={{margin:"0 0 8px",fontFamily:FN,fontSize:15,color:C.rd,textAlign:"center"}}>Remove Program?</h3>
-          <p style={{margin:"0 0 6px",fontSize:13,color:C.tm,textAlign:"center"}}>This will unassign <strong style={{color:C.tx}}>{(planIndex||[]).find(p=>p.id===confirmUnassign)?.name}</strong> from {td.name}.</p>
+          <p style={{margin:"0 0 6px",fontSize:13,color:C.tm,textAlign:"center"}}>{t('This will unassign')}<strong style={{color:C.tx}}>{(planIndex||[]).find(p=>p.id===confirmUnassign)?.name}</strong> from {td.name}.</p>
           <div style={{marginBottom:16}}>
             <label style={{fontSize:11,fontWeight:600,color:C.tm,textTransform:"uppercase",fontFamily:FN,display:"block",marginBottom:4,textAlign:"center"}}>Type "remove" to confirm</label>
             <input value={unassignTyped} onChange={e=>setUnassignTyped(e.target.value)} style={{background: 'var(--c-sf2)',border:`1px solid ${C.rd}`,borderRadius:0,padding:"8px 12px",color:C.tx,fontFamily:FN,fontSize:14,outline:"none",width:"100%",boxSizing:"border-box",textAlign:"center"}} placeholder="remove" autoComplete="off" autoFocus/></div>
@@ -1093,8 +1095,8 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       {showDeleteConfirm && createPortal(<div role="dialog" aria-modal="true" aria-label="Permanent deletion" style={{position:"fixed",inset:0,zIndex:1100,display:"flex",alignItems:"center",justifyContent:"center",background:C.scrim}} onClick={()=>{setShowDeleteConfirm(false);setDeleteTyped("");setPurgeHistory(false)}}>
         <div onClick={e=>e.stopPropagation()} style={{background:C.bg,border:`1px solid ${C.rd}`,borderRadius:0,width:440,maxWidth:'calc(100vw - 24px)',padding:24}}>
           <h3 style={{margin:"0 0 8px",fontFamily:FN,fontSize:15,color:C.rd,textAlign:"center"}}>⚠ Permanent Deletion</h3>
-          <p style={{margin:"0 0 6px",fontSize:13,color:C.tm,textAlign:"center"}}>This will permanently remove <strong style={{color:C.tx}}>{td.name}</strong> from the roster. By default their programs, workout history and payment records are kept (just no longer reachable).</p>
-          <p style={{margin:"0 0 14px",fontSize:13,color:C.rd,fontWeight:600,textAlign:"center"}}>This cannot be undone.</p>
+          <p style={{margin:"0 0 6px",fontSize:13,color:C.tm,textAlign:"center"}}>{t('This will permanently remove')}<strong style={{color:C.tx}}>{td.name}</strong> from the roster. By default their programs, workout history and payment records are kept (just no longer reachable).</p>
+          <p style={{margin:"0 0 14px",fontSize:13,color:C.rd,fontWeight:600,textAlign:"center"}}>{t('This cannot be undone.')}</p>
           {/* Opt-in hard purge — separate, deliberate choice. */}
           <label style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:16,padding:"10px 12px",border:`1px solid ${purgeHistory?C.rd:C.cardBd}`,background:purgeHistory?C.rdD:'transparent',cursor:"pointer"}}>
             <input type="checkbox" checked={purgeHistory} onChange={e=>setPurgeHistory(e.target.checked)} style={{marginTop:2,accentColor:C.rd,cursor:"pointer"}}/>
@@ -1229,7 +1231,7 @@ const EditTraineeModal = React.memo(function EditTraineeModal({ td, couple, draf
               <Input label={t("Monthly (₪)")} type="number" value={editForm.monthly || ""} onChange={e => setEditForm({ ...editForm, monthly: parseFloat(e.target.value) || 0 })} />
               <Input label={t("Per Session (₪)")} type="number" value={editForm.perSession || ""} onChange={e => setEditForm({ ...editForm, perSession: parseFloat(e.target.value) || 0 })} />
             </>) : (
-              <div style={{ display: 'flex', alignItems: 'end', paddingBottom: 8, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>Club athlete — no billing</div>
+              <div style={{ display: 'flex', alignItems: 'end', paddingBottom: 8, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>{t('Club athlete — no billing')}</div>
             )}
             <Input label={t("Start Date")} type="date" value={editForm.startDate || ""} onChange={e => setEditForm({ ...editForm, startDate: e.target.value })} />
             <Input label={t("Last Payment")} type="date" value={editForm.lastPayment || ""} onChange={e => setEditForm({ ...editForm, lastPayment: e.target.value })} />
@@ -1301,7 +1303,7 @@ const EditTraineeModal = React.memo(function EditTraineeModal({ td, couple, draf
             {!isClubAthlete && <Input label={t("Sessions Remaining")} type="number" value={editForm.sessionsRemaining || 0} onChange={e => setEditForm({ ...editForm, sessionsRemaining: parseInt(e.target.value) || 0 })} />}
             {!isClubAthlete && <Input label={t("Monthly (₪)")} type="number" value={editForm.monthly || ""} onChange={e => setEditForm({ ...editForm, monthly: parseFloat(e.target.value) || 0 })} />}
             {!isClubAthlete && <Input label={t("Per Session (₪)")} type="number" value={editForm.perSession || ""} onChange={e => setEditForm({ ...editForm, perSession: parseFloat(e.target.value) || 0 })} />}
-            {isClubAthlete && <div style={{ gridColumn: "1 / -1", fontFamily: FN, fontSize: 10, letterSpacing: '0.12em', color: C.tm, textTransform: 'uppercase' }}>Club athlete — no billing</div>}
+            {isClubAthlete && <div style={{ gridColumn: "1 / -1", fontFamily: FN, fontSize: 10, letterSpacing: '0.12em', color: C.tm, textTransform: 'uppercase' }}>{t('Club athlete — no billing')}</div>}
             <Input label={t("Start Date")} type="date" value={editForm.startDate || ""} onChange={e => setEditForm({ ...editForm, startDate: e.target.value })} />
             <Input label={t("Last Payment")} type="date" value={editForm.lastPayment || ""} onChange={e => setEditForm({ ...editForm, lastPayment: e.target.value })} />
             <div style={{ gridColumn: "1 / -1" }}><TextArea label={t("Injuries / Conditions")} value={editForm.injuries || ""} onChange={e => setEditForm({ ...editForm, injuries: e.target.value })} placeholder={t('L4/L5 disc bulge, R shoulder impingement...')} /></div>

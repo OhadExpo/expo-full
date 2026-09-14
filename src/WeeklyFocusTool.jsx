@@ -197,7 +197,7 @@ export default function WeeklyFocusTool({ trainees, exercises, weeklyFocus, setW
           {plan && days.map((d, di) => (
             <div key={di} style={{ marginBottom: 14 }}>
               <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.ac, letterSpacing: '0.14em', marginBottom: 6, textTransform: 'uppercase' }}>{d.label}</div>
-              {d.ex.length === 0 ? <div style={{ color: C.td, fontFamily: FB, fontSize: 12 }}>No exercises.</div> : d.ex.map((ex, xi) => {
+              {d.ex.length === 0 ? <div style={{ color: C.td, fontFamily: FB, fontSize: 12 }}>{tt('No exercises.')}</div> : d.ex.map((ex, xi) => {
                 const val = getF(d.nameRaw, ex.eid);
                 return (
                   <div key={xi} style={{ marginBottom: 8 }}>

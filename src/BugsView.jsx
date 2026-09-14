@@ -165,8 +165,8 @@ export default function BugsView() {
                   <div style={{ fontFamily: 'monospace', fontSize: 11, color: C.td, lineHeight: 1.5, marginBottom: 10 }}>
                     <div><b style={{ color: C.tm }}>{tt('UA:')}</b> {r.context.ua || '—'}</div>
                     <div>
-                      <b style={{ color: C.tm }}>Viewport:</b> {r.context.viewport?.w}×{r.context.viewport?.h} ·{' '}
-                      <b style={{ color: C.tm }}>Theme:</b> {r.context.theme || '—'} ·{' '}
+                      <b style={{ color: C.tm }}>{tt('Viewport:')}</b> {r.context.viewport?.w}×{r.context.viewport?.h} ·{' '}
+                      <b style={{ color: C.tm }}>{tt('Theme:')}</b> {r.context.theme || '—'} ·{' '}
                       <b style={{ color: C.tm }}>Locale:</b> {r.context.locale || '—'} ·{' '}
                       <b style={{ color: C.tm }}>Bundle:</b> {r.context.bundle || '—'}
                     </div>
