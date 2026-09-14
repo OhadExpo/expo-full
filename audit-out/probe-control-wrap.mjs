@@ -103,10 +103,33 @@ const MEASURE = () => {
     scanned.push(key);
     const { lines, rects } = lineTops(el);
     const clip = el.scrollWidth - el.clientWidth;
-    const inkOut = rects.some((r) => r.right > box.right - bw[1] + 0.6 || r.left < box.left + bw[3] - 0.6
-      || r.bottom > box.bottom - bw[2] + 0.6 || r.top < box.top + bw[0] - 0.6);
+    // Ink can only cross a border that EXISTS. A section heading with a single
+    // bottom rule is not spilling because a Hebrew glyph's line box reaches one
+    // pixel above the div's top - there is no top edge there to cross. Test a
+    // side only when that side is drawn, and allow a pixel for the line box.
+    const inkOut = rects.some((r) => (bw[1] > 0 && r.right > box.right - bw[1] + 1)
+      || (bw[3] > 0 && r.left < box.left + bw[3] - 1)
+      || (bw[2] > 0 && r.bottom > box.bottom - bw[2] + 1)
+      || (bw[0] > 0 && r.top < box.top + bw[0] - 1));
+    // A WRAP is a line the LAYOUT broke, not one the design asked for. A row
+    // that stacks a name over its sets, or a card that stacks a countdown over
+    // a date, is two lines on purpose - it is a grid, a block, a column or a
+    // wrapping flex, and its children were always going to sit on separate
+    // lines. Only an element whose content is one inline run can wrap by
+    // accident, and that is the fault that reached his screen.
+    const dsp = cs.display;
+    const inlineCtx = dsp === 'inline' || dsp === 'inline-block' || dsp === 'inline-flex'
+      || ((dsp === 'flex' || dsp === 'inline-flex') && cs.flexDirection.startsWith('row') && cs.flexWrap === 'nowrap');
+    // ...and a BLOCK-LEVEL descendant makes new lines by definition: the
+    // sessions header is a nowrap flex row whose right half is a name stacked
+    // over "DAY B · WEEK 1". Two lines, both intended, neither a wrap.
+    const hasBlockChild = [...el.querySelectorAll('*')].some((c) => {
+      const d = getComputedStyle(c);
+      return d.display === 'block' || d.display === 'grid' || d.display === 'flow-root'
+        || (d.display === 'flex' && d.flexDirection.startsWith('column'));
+    });
     const faults = [];
-    if (lines > 1) faults.push('WRAP');
+    if (lines > 1 && inlineCtx && !hasBlockChild) faults.push('WRAP');
     if (clip > 1) faults.push('CLIP+' + clip);
     if (inkOut) faults.push('INK-OUT');
     if (!faults.length) continue;

@@ -759,7 +759,10 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
           onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
           placeholder={tt('Add a task…')} data-hotkey="add"
           style={{
-            flex: 1, background: 'transparent', border: 'none', outline: 'none',
+            // minWidth 0 or the input refuses to shrink past its intrinsic
+            // size: measured at 360 the composer row overflowed by 15px and the
+            // "ENTER TO SAVE" hint crossed the row's own edge.
+            flex: 1, minWidth: 0, background: 'transparent', border: 'none', outline: 'none',
             fontFamily: FB, fontSize: 13, color: 'var(--c-tx)', padding: 0,
           }}
           autoComplete="off"
