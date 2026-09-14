@@ -253,7 +253,7 @@ function Composer({ onSend, role, draftKey }) {
         }} />
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
         {!rec.recording && !rec.blob && (
-          <button onClick={rec.start} title="Record a voice note"
+          <button onClick={rec.start} title={tt('Record a voice note')}
             style={recBtnStyle('var(--c-rd)')}>{tt('● REC')}</button>
         )}
         {rec.recording && (

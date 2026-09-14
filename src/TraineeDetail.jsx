@@ -44,6 +44,7 @@ const isClubAthleteRow = (t) => !!t && (t.format === 'Bnei Herzliya' || t.branch
 const STATUS_COLOR = { Active: C.ac, 'On Hold': C.or, Inactive: C.td, Trial: C.ac, Archived: C.rd };
 const STATUS_CHOICES = ['Active', 'On Hold', 'Inactive', 'Trial'];
 function StatusMenu({ status, onChange }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   useEffect(() => {
@@ -57,7 +58,7 @@ function StatusMenu({ status, onChange }) {
   const color = STATUS_COLOR[status] || C.tm;
   return (
     <span ref={ref} style={{ position: 'relative', display: 'inline-block' }}>
-      <button onClick={() => setOpen(o => !o)} title="Change status"
+      <button onClick={() => setOpen(o => !o)} title={t('Change status')}
         style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 100, height: 24, boxSizing: 'border-box', gap: 6, background: 'transparent', border: `1px solid ${color}`, color, borderRadius: 0, padding: '0 10px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>
         <span style={{ marginInlineEnd: '-0.12em' }}>{status}</span><span style={{ fontSize: 9, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}><svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
       </button>
@@ -93,13 +94,13 @@ function ProgramCard({ plan: p, isVis, onOpen, onUnassign, onOnly, onToggleVis }
           <div style={{ fontSize:12, color:C.tm, marginTop:2 }}>{plur(p.dayCount||0,'day','days')} · {p.exerciseCount||0} ex</div>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0, flexWrap:'wrap' }}>
-          <button onClick={e=>{ e.stopPropagation(); onUnassign(); }} aria-label="Remove program from athlete" title="Remove program from athlete" style={{ ...btn, background:'none', border:'none', color:C.rd, fontSize:11, fontWeight:400, opacity:0.6, padding:'0 4px' }}>✕</button>
-          <button onClick={e=>{ e.stopPropagation(); onOnly(); }} title="Show only this program on the athlete portal — hide all others" style={{ ...btn, background:'transparent', border:`1px solid ${C.ac}`, color:C.ac, fontSize:9, letterSpacing:'0.1em', padding:'0 8px', textTransform:'uppercase' }}>{t('Only')}</button>
+          <button onClick={e=>{ e.stopPropagation(); onUnassign(); }} aria-label="Remove program from athlete" title={t('Remove program from athlete')} style={{ ...btn, background:'none', border:'none', color:C.rd, fontSize:11, fontWeight:400, opacity:0.6, padding:'0 4px' }}>✕</button>
+          <button onClick={e=>{ e.stopPropagation(); onOnly(); }} title={t('Show only this program on the athlete portal — hide all others')} style={{ ...btn, background:'transparent', border:`1px solid ${C.ac}`, color:C.ac, fontSize:9, letterSpacing:'0.1em', padding:'0 8px', textTransform:'uppercase' }}>{t('Only')}</button>
           <button onClick={e=>{ e.stopPropagation(); onToggleVis(); }} title={isVis?'Visible on the portal — click to hide':'Hidden from the portal — click to show'} style={{ ...btn, background:'none', border:'none', padding:0, gap:4, justifyContent:'flex-start' }}>
             <span style={{ width:36, height:20, borderRadius:10, background:isVis?'rgba(46,213,115,0.251)':C.sf3, border:`1px solid ${isVis?'rgba(46,213,115,0.376)':C.bd2}`, position:'relative', transition:'all .15s', display:'inline-block', flexShrink:0 }}><span style={{ width:16, height:16, borderRadius:8, background:isVis?C.gn:C.td, position:'absolute', top:1, left:isVis?18:1, transition:'all .15s' }}/></span>
             <span style={{ fontSize:10, fontFamily:FN, fontWeight:700, color:isVis?C.gn:C.td, minWidth:26, textAlign: 'start' }}>{isVis?'ON':'OFF'}</span>
           </button>
-          <button onClick={e=>{ e.stopPropagation(); onOpen(); }} title="Open this program in the editor" style={{ ...btn, background:'transparent', border:`1px solid ${C.ac}`, color:C.ac, fontSize:9, letterSpacing:'0.1em', padding:'0 10px', textTransform:'uppercase', gap:4 }}>{t('Open →')}</button>
+          <button onClick={e=>{ e.stopPropagation(); onOpen(); }} title={t('Open this program in the editor')} style={{ ...btn, background:'transparent', border:`1px solid ${C.ac}`, color:C.ac, fontSize:9, letterSpacing:'0.1em', padding:'0 10px', textTransform:'uppercase', gap:4 }}>{t('Open →')}</button>
         </div>
       </div>
     </Card>
@@ -456,10 +457,10 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
     // Shared text-action builders so the current block and the earlier rows
     // stay pixel-consistent (only the font size differs, exactly as PlansView).
     const onlyBtn = (p, fs) => (
-      <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();onlyThis(visKeyOf(p),sorted);}} title="Show only this program on the athlete portal — hide all others" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:fs,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{t('Only')}</button>
+      <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();onlyThis(visKeyOf(p),sorted);}} title={t('Show only this program on the athlete portal — hide all others')} style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:fs,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{t('Only')}</button>
     );
     const removeBtn = (p, fs) => (
-      <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setConfirmUnassign(p.id);setUnassignTyped("");}} title="Remove this program from the athlete" style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:fs,fontWeight:700,letterSpacing:'0.04em',color:C.rd}}>Remove</button>
+      <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setConfirmUnassign(p.id);setUnassignTyped("");}} title={t('Remove this program from the athlete')} style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:fs,fontWeight:700,letterSpacing:'0.04em',color:C.rd}}>Remove</button>
     );
 
     return (
@@ -630,13 +631,13 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
               row below, so the two rows read as ONE consistent segmented system
               (Ohad: "don't like grey borders on top, cyan on the 2nd row"). */}
           <Btn variant="ghost" onClick={openEdit} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 88px',minWidth:0,whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}}>{t('EDIT')}</Btn>
-          {onPreviewPortal && <Btn variant="ghost" onClick={onPreviewPortal} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 88px',minWidth:0,whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}} title="Open this athlete's portal in preview mode">{t('PORTAL')}</Btn>}
-          <Btn variant="ghost" onClick={()=>lineage.open(trainee)} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 88px',minWidth:0,whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}} title="Training Analysis — cross-block progression + what to program next">{t('ANALYSIS')}</Btn>
-          {onOpenInPersonForTrainee && <Btn variant="ghost" onClick={()=>onOpenInPersonForTrainee(trainee)} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 88px',minWidth:0,whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}} title="Open the in-person workout logger pre-filtered to this athlete">{t('LOG SESSION')}</Btn>}
+          {onPreviewPortal && <Btn variant="ghost" onClick={onPreviewPortal} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 88px',minWidth:0,whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}} title={t("Open this athlete's portal in preview mode")}>{t('PORTAL')}</Btn>}
+          <Btn variant="ghost" onClick={()=>lineage.open(trainee)} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 88px',minWidth:0,whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}} title={t('Training Analysis — cross-block progression + what to program next')}>{t('ANALYSIS')}</Btn>
+          {onOpenInPersonForTrainee && <Btn variant="ghost" onClick={()=>onOpenInPersonForTrainee(trainee)} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 88px',minWidth:0,whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}} title={t('Open the in-person workout logger pre-filtered to this athlete')}>{t('LOG SESSION')}</Btn>}
           {td.status==="Archived" ? <>
             <Btn variant="ghost" onClick={()=>{if(setTrainees)setTrainees(prev=>prev.map(t=>t.id===trainee?{...t,status:"Inactive",archivedAt:undefined}:t));onBack()}} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 88px',minWidth:0,whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}}>{t('RESTORE')}</Btn>
             <Btn variant="danger" onClick={()=>setShowDeleteConfirm(true)} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 88px',minWidth:0,whiteSpace:'nowrap'}}>{t("DELETE")}</Btn>
-          </> : <Btn variant="ghost" onClick={()=>setShowArchiveConfirm(true)} title="Archive this athlete" style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",color:'var(--c-tm)',flex:'1 1 88px',minWidth:0,whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}}>{t('ARCHIVE')}</Btn>}
+          </> : <Btn variant="ghost" onClick={()=>setShowArchiveConfirm(true)} title={t('Archive this athlete')} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",color:'var(--c-tm)',flex:'1 1 88px',minWidth:0,whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}}>{t('ARCHIVE')}</Btn>}
           <button
             onClick={() => { if (setTrainees) setTrainees(prev => prev.map(t => t.id === trainee ? { ...t, notifOff: !t.notifOff } : t)); }}
             title={td.notifOff ? 'Notifications muted for this athlete — click to unmute' : 'Notifications on — click to mute push + dashboard alerts about this athlete'}
@@ -699,7 +700,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             const heb = isHebrew(td.name);
             return <span style={{display:'inline-flex',alignItems:'center',gap:8,fontWeight:700,fontSize:heb?16:13,fontFamily:heb?FH:undefined,letterSpacing:heb?0:'0.04em',textTransform:heb?'none':'uppercase'}}>{td.name} · {td.format}</span>;
           })()}
-          headerRight={<span style={{display:'inline-flex',alignItems:'center',gap:8}}>{td.branch === 'Bnei Herzliya' && <span title="Bnei Herzliya team" style={{display:'inline-flex',alignItems:'center',height:24,boxSizing:'border-box',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',color:C.ac,border:`1px solid ${C.ac}`,padding:'0 10px',whiteSpace:'nowrap'}}>{t('BNEI HERZLIYA')}</span>}<StatusMenu status={td.status} onChange={s => { if (setTrainees) setTrainees(prev => prev.map(t => t.id === trainee ? { ...t, status: s } : t)); }} /></span>}>
+          headerRight={<span style={{display:'inline-flex',alignItems:'center',gap:8}}>{td.branch === 'Bnei Herzliya' && <span title={t('Bnei Herzliya team')} style={{display:'inline-flex',alignItems:'center',height:24,boxSizing:'border-box',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',color:C.ac,border:`1px solid ${C.ac}`,padding:'0 10px',whiteSpace:'nowrap'}}>{t('BNEI HERZLIYA')}</span>}<StatusMenu status={td.status} onChange={s => { if (setTrainees) setTrainees(prev => prev.map(t => t.id === trainee ? { ...t, status: s } : t)); }} /></span>}>
           {/* Duplicate status Badge removed — the strip header's StatusMenu is the
               single status control (Ohad: no mirrored status in the back). */}
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, 118px)',justifyContent:'center',gap:'12px 10px'}}>
@@ -810,9 +811,9 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
                   have to bounce to /coach/billing; mutations propagate back
                   via the useBitPayments realtime channel. */}
               {p.status==='Pending' && (<>
-                  <button onClick={()=>handleMarkReqPaid(p.id)} title="Mark this request as paid"
+                  <button onClick={()=>handleMarkReqPaid(p.id)} title={t('Mark this request as paid')}
                     style={{display:'inline-flex',alignItems:'center',justifyContent:'center',lineHeight:1,background:'transparent',border:`1px solid ${C.gn}`,color:C.gn,padding:'2px 8px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',cursor:'pointer',marginInlineEnd:6}}>✓ PAID</button>
-                  <button onClick={()=>handleCancelReq(p.id)} title="Cancel this payment request"
+                  <button onClick={()=>handleCancelReq(p.id)} title={t('Cancel this payment request')}
                     style={{display:'inline-flex',alignItems:'center',justifyContent:'center',lineHeight:1,background:'transparent',border:`1px solid ${C.rd}`,color:C.rd,padding:'2px 8px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',cursor:'pointer',marginInlineEnd:6}}>× CANCEL</button>
                 </>)}
               <button onClick={()=>handleEditPay(p)} aria-label="Edit payment" style={{background:"none",border:"none",color:C.ac,cursor:"pointer",padding:2,fontSize:11,fontFamily:FN}}>✏</button>
@@ -904,7 +905,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
 
       {/* === ASSIGNED PROGRAMS — slot #8 */}
       {couple ? <>
-        <CollapsibleSection bare domId="td-sec-programs" title="Assigned Programs" count={tp.length} storageKey={`td-programs-${trainee}`} style={{margin:"28px 0 0", display: showSec('programs') ? undefined : 'none'}} right={<>
+        <CollapsibleSection bare domId="td-sec-programs" title={t('Assigned Programs')} count={tp.length} storageKey={`td-programs-${trainee}`} style={{margin:"28px 0 0", display: showSec('programs') ? undefined : 'none'}} right={<>
             <button onClick={()=>setProgramSort(s=>s==='chrono'?'alpha':'chrono')} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,height:28,padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',justifyContent:'center',minWidth:78}}>{programSort==='chrono'?'↕ DATE':'↕ A→Z'}</button>
             <button onClick={()=>setShowAssign(true)} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:28,padding:"0 14px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',whiteSpace:'nowrap',textTransform:'uppercase'}}>+ New Program</button>
           </>}>
@@ -950,7 +951,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             Program / sort / visibility stay reachable even when the program list
             is collapsed. Clean order: sort → portal-visibility → + New Program
             (primary, last); wraps under the title on narrow widths. */}
-        <CollapsibleSection bare domId="td-sec-programs" title="Assigned Programs" count={tp.length} storageKey={`td-programs-${trainee}`} style={{margin:"28px 0 0", display: showSec('programs') ? undefined : 'none'}} right={<>
+        <CollapsibleSection bare domId="td-sec-programs" title={t('Assigned Programs')} count={tp.length} storageKey={`td-programs-${trainee}`} style={{margin:"28px 0 0", display: showSec('programs') ? undefined : 'none'}} right={<>
             <button onClick={()=>setProgramSort(s=>s==='chrono'?'alpha':'chrono')} style={{background:'var(--c-sf)',border:`1px solid var(--c-ghostBd)`,borderRadius:0,height:28,boxSizing:'border-box',padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',justifyContent:'center',minWidth:78}}>{programSort==='chrono'?'↕ DATE':'↕ A→Z'}</button>
             {bulkToggleBtn(tp, (p)=>`${td.name}:${p.name}`)}
             <button onClick={()=>setShowAssign(true)} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:28,boxSizing:'border-box',padding:"0 14px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',whiteSpace:'nowrap',textTransform:'uppercase'}}>+ New Program</button>
@@ -974,7 +975,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           hub: the table is the overview, each row expands into the lift's
           full record (all-time PR · trend chart · session history). The old
           standalone "Records" section was merged in here to kill the overlap. */}
-      <CollapsibleSection bare domId="td-sec-overload" title="Progressive Overload" storageKey={`td-overload-${trainee}`} style={{margin:'20px 0 0', display: showSec('overload') ? undefined : 'none'}}>
+      <CollapsibleSection bare domId="td-sec-overload" title={t('Progressive Overload')} storageKey={`td-overload-${trainee}`} style={{margin:'20px 0 0', display: showSec('overload') ? undefined : 'none'}}>
         <OverloadChart workouts={[...tw, ...tcw]} exercises={exercises} />
       </CollapsibleSection>
 

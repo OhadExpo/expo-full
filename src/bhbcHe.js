@@ -24,6 +24,12 @@ import { createContext, useContext } from 'react';
 // names by Hebrew speakers and look wrong transliterated.
 
 export const HE = {
+  "Log a practice for this athlete": "רישום אימון לשחקן הזה",
+  "League points per game": "נקודות לליגה למשחק",
+  "Bodyweight (kg) — optional, shows in the athlete's history + BW trend": "משקל גוף (ק\"ג) — לא חובה, מופיע בהיסטוריה ובגרף המשקל",
+  "Wellness check-in": "דיווח תחושה",
+  "Open this athlete in EXPO": "פתיחת השחקן ב-EXPO",
+  "See exactly what your BHBC coaches see": "לראות בדיוק מה שהמאמנים של המועדון רואים",
   "Team load trend appears here once sessions are logged.": "מגמת העומס של הקבוצה תופיע כאן אחרי שיירשמו אימונים.",
   "No game scheduled — running a general prep block. Add a fixture to anchor the training week.": "אין משחק מתוכנן — רץ בלוק הכנה כללי. תוסיף משחק כדי לעגן את שבוע האימונים.",
   "Last game": "המשחק האחרון",

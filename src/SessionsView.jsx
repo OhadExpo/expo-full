@@ -692,7 +692,7 @@ function AthleteCard({ a, name, prevMap, exDetail, onToggleIn, onSet, onCurEx, o
               ? `Remove ${name || 'this athlete'} from the floor? The sets you logged for them here are NOT saved yet and will be discarded.`
               : `Remove ${name || 'this athlete'} from the floor?`;
             if (await confirmToast(msg, { okLabel: 'Remove', cancelLabel: 'Keep' })) onRemove();
-          }} title="Remove from session" style={{ ...miniBtn, color: C.rd, border: `1px solid ${C.cardBd}` }}>✕</button>
+          }} title={tt('Remove from session')} style={{ ...miniBtn, color: C.rd, border: `1px solid ${C.cardBd}` }}>✕</button>
         </div>
       </div>
       <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -738,7 +738,7 @@ function AthleteCard({ a, name, prevMap, exDetail, onToggleIn, onSet, onCurEx, o
                   return (
                   <React.Fragment key={si}>
                     {prior && (parseFloat(prior.load) > 0 || prior.reps) && (
-                      <div style={{ display: 'grid', gridTemplateColumns: COLS, gap: 4, alignItems: 'center', opacity: 0.6, marginTop: si === 0 ? 0 : 4 }} title="Previous week">
+                      <div style={{ display: 'grid', gridTemplateColumns: COLS, gap: 4, alignItems: 'center', opacity: 0.6, marginTop: si === 0 ? 0 : 4 }} title={tt('Previous week')}>
                         <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.ac, textAlign: 'center' }}>‹</span>
                         <span style={{ fontFamily: FB, fontSize: 11, color: C.tx, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{prior.reps || '—'}</span>
                         <span style={{ fontFamily: FB, fontSize: 11, color: C.tx, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{parseFloat(prior.load) || '—'}</span>
@@ -882,7 +882,7 @@ function AthletePicker({ trainees, planIndex, existing = [], clientWorkouts = []
                   {plans.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
                 {/* Week before day — pick the week, then the day within it. */}
-                <select value={wkVal} onChange={e => setRow(i, { week: Number(e.target.value) })} style={sel} disabled={!r.planId} title="Week to log into">
+                <select value={wkVal} onChange={e => setRow(i, { week: Number(e.target.value) })} style={sel} disabled={!r.planId} title={tt('Week to log into')}>
                   {Array.from({ length: weeks }, (_, wi) => wi + 1).map(wn => <option key={wn} value={wn}>W{wn}</option>)}
                 </select>
                 <select value={r.dayIdx} onChange={e => setRow(i, { dayIdx: Number(e.target.value) })} style={sel} disabled={!r.planId}>

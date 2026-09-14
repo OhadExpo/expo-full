@@ -210,7 +210,7 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
                 ))}
             </div>
           </div>
-          {!groupControlled && <button onClick={() => toggleCollapse(ex, exIdx)} title="Collapse this exercise"
+          {!groupControlled && <button onClick={() => toggleCollapse(ex, exIdx)} title={tt('Collapse this exercise')}
             style={{flexShrink:0,display:'inline-flex',alignItems:'center',gap:5,height:24,background:'transparent',border:`1px solid ${C.cardBd}`,color:C.tm,cursor:'pointer',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',padding:'0 9px',borderRadius:0}}>COLLAPSE ▴</button>}
         </div>
         {/* Coach cue — was tiny faded italic (unreadable). Now a readable

@@ -181,6 +181,7 @@ function AlertGroupList({ grouped, collapsible, collapsedMap, onToggle, onRowCli
 // rhythm is identical across compact (dashboard) and full views so
 // nothing visually drifts between surfaces.
 function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBody, onSaveEdit, onCancelEdit, onStartEdit, onToggleDone, onTogglePin, onRemove, actionButton }) {
+  const tt = useT();
   const n = note;
   // Every card now renders a colored meta-strip badge — auto-tasks
   // get their kind-specific tone (cyan/orange/red); manual tasks
@@ -227,7 +228,7 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
           no trainee is linked (general / intake / review tasks). */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5, flexWrap: 'wrap' }}>
         <input type="checkbox" checked={false} onChange={onToggleDone}
-          title="Mark done"
+          title={tt('Mark done')}
           style={{ width: 14, height: 14, accentColor: 'var(--c-gn)', cursor: 'pointer', flexShrink: 0 }} />
         <button onClick={onTogglePin} title={n.pinned ? 'Unpin' : 'Pin'}
           style={{
@@ -288,13 +289,13 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
           }}>{priority}</span>
         )}
         {owner === 'shared' && (
-          <span title="Shared task — needs both Ohad & Yuval" style={{
+          <span title={tt('Shared task — needs both Ohad & Yuval')} style={{
             fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
             color: 'var(--c-ac)', border: '1px solid var(--c-ac)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '2px 6px', lineHeight: 1,
           }}>{tr(readLang(), 'SHARED')}</span>
         )}
         {isAuto && (
-          <button onClick={() => setShowExplain(true)} title="Why is this task here?"
+          <button onClick={() => setShowExplain(true)} title={tt('Why is this task here?')}
             style={{
               background: 'transparent', border: 'none', cursor: 'pointer',
               color: stripeColor, fontSize: 12, padding: '0 2px',
@@ -357,7 +358,7 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
       {(actionButton || (allowEdit && !isEditing)) && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 'auto', paddingTop: 6 }}>
           {allowEdit && !isEditing ? (
-            <button onClick={onStartEdit} title="Edit task"
+            <button onClick={onStartEdit} title={tt('Edit task')}
               style={{
                 background: 'transparent', border: `1px solid var(--c-cardBd)`, color: 'var(--c-tm)',
                 cursor: 'pointer', fontSize: 10, padding: '2px 8px', borderRadius: 0,
@@ -403,25 +404,26 @@ function ActionPill({ label, onClick, color, title, disabled }) {
 // REVIEW family. Returns null when the task has no actionable handler
 // (manual general task, or trainee data missing for WhatsApp).
 function TaskActionButton({ note, trainee, onCreatePlan, onOpenReview, onOpenIntake, onOpenAthlete, onOpenWaitlist }) {
+  const tt = useT();
   const kind = note?.auto_kind;
   const action = kind ? AUTO_KIND_ACTION[kind] : null;
   // Manual task with a trainee target — same NEW PROGRAM affordance.
   if (!kind && note?.target_kind === 'trainee' && note?.target_id && onCreatePlan) {
-    return <ActionPill label="→ NEW PROGRAM" title="Build a program from this task" onClick={() => onCreatePlan(note)} />;
+    return <ActionPill label="→ NEW PROGRAM" title={tt('Build a program from this task')} onClick={() => onCreatePlan(note)} />;
   }
   switch (action) {
     case 'NEW_PROGRAM':
       if (!onCreatePlan) return null;
-      return <ActionPill label="→ NEW PROGRAM" title="Open the plan editor pre-bound to this trainee" onClick={() => onCreatePlan(note)} />;
+      return <ActionPill label="→ NEW PROGRAM" title={tt('Open the plan editor pre-bound to this trainee')} onClick={() => onCreatePlan(note)} />;
     case 'REVIEW': {
       if (!onOpenReview) return null;
       const woId = String(note.auto_ref || '').split('|')[0];
       if (!woId) return null;
-      return <ActionPill label="→ REVIEW" title="Open this workout's review session" onClick={() => onOpenReview(woId)} />;
+      return <ActionPill label="→ REVIEW" title={tt("Open this workout's review session")} onClick={() => onOpenReview(woId)} />;
     }
     case 'WHATSAPP': {
       const phone = normalizePhoneIL(trainee?.phone);
-      if (!phone) return <ActionPill color="var(--c-td)" label="→ WHATSAPP" title="No phone on file" disabled />;
+      if (!phone) return <ActionPill color="var(--c-td)" label="→ WHATSAPP" title={tt('No phone on file')} disabled />;
       const msg = whatsappMessageForTask(note, trainee);
       return <ActionPill color="#128C7E"
         label="→ WHATSAPP"
@@ -432,13 +434,13 @@ function TaskActionButton({ note, trainee, onCreatePlan, onOpenReview, onOpenInt
     }
     case 'OPEN_INTAKE':
       if (!onOpenIntake) return null;
-      return <ActionPill label="→ INTAKE" title="Open the intake review surface" onClick={onOpenIntake} />;
+      return <ActionPill label="→ INTAKE" title={tt('Open the intake review surface')} onClick={onOpenIntake} />;
     case 'OPEN_ATHLETE':
       if (!onOpenAthlete || !note.target_id) return null;
-      return <ActionPill label="→ ATHLETE" title="Open the trainee card" onClick={() => onOpenAthlete(note.target_id)} />;
+      return <ActionPill label="→ ATHLETE" title={tt('Open the trainee card')} onClick={() => onOpenAthlete(note.target_id)} />;
     case 'OPEN_WAITLIST':
       if (!onOpenWaitlist) return null;
-      return <ActionPill label="→ WAITLIST" title="Open the /coach/waitlist surface to consume this lead" onClick={onOpenWaitlist} />;
+      return <ActionPill label="→ WAITLIST" title={tt('Open the /coach/waitlist surface to consume this lead')} onClick={onOpenWaitlist} />;
     default:
       return null;
   }
@@ -674,7 +676,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
               <div style={{ flex: 1, minWidth: 0, fontFamily: /[֐-׿]/.test(displayBodyOf(popupNote.body)) ? FH : FB, fontSize: 15, fontWeight: 700, color: 'var(--c-tx)', lineHeight: 1.4, direction: /[֐-׿]/.test(displayBodyOf(popupNote.body)) ? 'rtl' : 'ltr' }}>{displayBodyOf(popupNote.body)}</div>
               <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                 {onOpenFullTasks && (
-                  <button onClick={() => openInTasks(popupNote)} title="Open in the full Tasks page"
+                  <button onClick={() => openInTasks(popupNote)} title={tt('Open in the full Tasks page')}
                     style={{ background: 'transparent', border: `1px solid var(--c-ac)`, color: 'var(--c-ac)', width: 28, height: 28, boxSizing: 'border-box', borderRadius: 0, cursor: 'pointer', fontSize: 14, lineHeight: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>⤢</button>
                 )}
                 <button onClick={() => setPopupNote(null)} title="Close"
@@ -736,7 +738,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
               outline: 'none', boxSizing: 'border-box', letterSpacing: '0.04em',
             }} />
           {search && (
-            <button onClick={() => setSearch('')} title="Clear search"
+            <button onClick={() => setSearch('')} title={tt('Clear search')}
               style={{
                 padding: '6px 10px', background: 'transparent',
                 border: `1px solid var(--c-cardBd)`, color: 'var(--c-tm)',

@@ -65,7 +65,7 @@ export default function TraineeIntake({ trainee }) {
   return (
     // Grouped tight beneath the Athletic Evaluation (no top gap) — the two read
     // as one "who is this athlete" block, separate from Assigned Programs (Ohad).
-    <CollapsibleSection bare title="Intake" count={subs.length} storageKey={`td-intake-${trainee.id}`} defaultOpen={false} style={{ margin: 0 }}>
+    <CollapsibleSection bare title={tr(readLang(), 'Intake')} count={subs.length} storageKey={`td-intake-${trainee.id}`} defaultOpen={false} style={{ margin: 0 }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {subs.map(s => (
           <div key={s.id} style={{ border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)', padding: '12px 14px' }}>

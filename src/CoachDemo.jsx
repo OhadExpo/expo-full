@@ -1429,20 +1429,20 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
           border: `1px solid ${C.bd}`,
         }}>{backLabel}</button>
         {isCouple && <DemoStatusMenu />}
-        <button title="Demo only" style={{
+        <button title={T('Demo only')} style={{
           ...baseBtn, background: 'transparent', color: C.tx,
           border: `1px solid ${C.bd}`, padding: '8px 14px', fontSize: 11,
         }}>{T('LOG SESSION')}</button>
-        <button title="Demo only" style={{
+        <button title={T('Demo only')} style={{
           ...baseBtn, background: 'transparent', color: C.tx,
           border: `1px solid ${C.bd}`, padding: '8px 14px', fontSize: 11,
         }}>{T('PORTAL')}</button>
-        <button title="Demo only" style={{
+        <button title={T('Demo only')} style={{
           ...baseBtn, background: 'transparent', color: C.tx,
           border: `1px solid ${C.bd}`, padding: '8px 14px', fontSize: 11,
         }}>{T('EDIT')}</button>
         <DemoNotifToggle />
-        <button title="Demo only" style={{
+        <button title={T('Demo only')} style={{
           ...baseBtn, background: 'transparent', color: C.rd,
           border: `1px solid rgba(255,71,87,0.251)`, padding: '8px 14px', fontSize: 11,
         }}>{T('ARCHIVE')}</button>
@@ -1506,7 +1506,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
 
         {/* SHARED panels — one row, full width */}
         <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))' }}>
-          <Panel title="SHARED · HOUSEHOLD TERMS" tint={C.tm}>
+          <Panel title={T('SHARED · HOUSEHOLD TERMS')} tint={C.tm}>
             <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('FORMAT')}</span><span style={{ color: C.tx, fontWeight: 600 }}>{trainee.format}</span></Row>
             <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('PACKAGE')}</span><span style={{ color: C.tx, fontWeight: 600 }}>12 Sessions</span></Row>
             <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('SESSIONS')}</span><span style={{ color: trainee.sessionsLeft <= 2 ? C.rd : C.tx, fontWeight: 700 }}>{trainee.sessionsLeft}{T('LEFT')}</span></Row>
@@ -1516,7 +1516,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
             <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>{T('SINCE')}</span><span style={{ color: C.tx, fontWeight: 600 }}>{trainee.startDate}</span></Row>
           </Panel>
 
-          <Panel title="SHARED · PROGRAMS" tint={C.ac}>
+          <Panel title={T('SHARED · PROGRAMS')} tint={C.ac}>
             {trainee.plans.map((name, i) => (
               <Row key={i}>
                 <span style={{ flex: 1, color: C.tx, fontWeight: 600 }}>{name}</span>
@@ -1540,7 +1540,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
             ))}
           </Panel>
 
-          <Panel title="SHARED · RECENT WORKOUTS" tint={C.ac}>
+          <Panel title={T('SHARED · RECENT WORKOUTS')} tint={C.ac}>
             {[
               { day: 'Day A · Push', date: trainee.lastWorkout || '2 days ago', vol: '4,820 kg' },
               { day: 'Day C · Legs', date: '5 days ago', vol: '6,210 kg' },
@@ -1646,7 +1646,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
           {showSec('messages') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle(`Messages (${DEMO_MESSAGES.length})`)}><DemoMessages /></DemoDetailCard>}
 
           {/* CRM · COACH HISTORY */}
-          {showSec('crm') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle('Coach History')} headerRight={<button title="Demo only" style={{ ...baseBtn, background: 'transparent', color: C.ac, border: `1px solid ${C.ac}`, height: 26, boxSizing: 'border-box', padding: '0 12px', fontSize: 10 }}>+ LOG</button>}><DemoCRM /></DemoDetailCard>}
+          {showSec('crm') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle('Coach History')} headerRight={<button title={T('Demo only')} style={{ ...baseBtn, background: 'transparent', color: C.ac, border: `1px solid ${C.ac}`, height: 26, boxSizing: 'border-box', padding: '0 12px', fontSize: 10 }}>+ LOG</button>}><DemoCRM /></DemoDetailCard>}
 
           {/* BODYWEIGHT */}
           {showSec('bw') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle('Bodyweight · 8W')}>
@@ -2152,10 +2152,10 @@ function DemoPrograms({ resetToken = 0 }) {
                               </span>
                             </button>
                             <div className="cd-spacer" style={{ flex: 1, minWidth: 8 }} />
-                            <button className="cd-crud cd-txtbtn" onClick={e => e.stopPropagation()} title="Preview as trainee (demo only)" style={txt(C.ac)}>{T('Preview')}</button>
-                            <button className="cd-crud cd-txtbtn" onClick={e => e.stopPropagation()} title="Duplicate program (demo only)" style={txt(C.ac)}>Duplicate</button>
-                            <button className="cd-crud cd-txtbtn" onClick={e => e.stopPropagation()} title="Share to another athlete (demo only)" style={txt(C.ac)}>Share</button>
-                            <button className="cd-crud cd-txtbtn" onClick={e => e.stopPropagation()} title="Delete program (demo only)" style={txt(C.rd)}>Delete</button>
+                            <button className="cd-crud cd-txtbtn" onClick={e => e.stopPropagation()} title={T('Preview as trainee (demo only)')} style={txt(C.ac)}>{T('Preview')}</button>
+                            <button className="cd-crud cd-txtbtn" onClick={e => e.stopPropagation()} title={T('Duplicate program (demo only)')} style={txt(C.ac)}>Duplicate</button>
+                            <button className="cd-crud cd-txtbtn" onClick={e => e.stopPropagation()} title={T('Share to another athlete (demo only)')} style={txt(C.ac)}>Share</button>
+                            <button className="cd-crud cd-txtbtn" onClick={e => e.stopPropagation()} title={T('Delete program (demo only)')} style={txt(C.rd)}>Delete</button>
                           </div>
                         );
                       })()}
@@ -2174,10 +2174,10 @@ function DemoPrograms({ resetToken = 0 }) {
                                   <button className="cd-txtbtn" onClick={e => { e.stopPropagation(); togglePortal(p.id); }}
                                     title={on ? 'On the athlete portal — click to hide' : 'Hidden — click to show'}
                                     style={{ ...txt(on ? C.gn : C.td), display: 'inline-flex', alignItems: 'center', gap: 5 }}><span style={{ width: 5, height: 5, borderRadius: '50%', background: on ? C.gn : C.td }} />{on ? 'On portal' : 'Hidden'}</button>
-                                  <button className="cd-txtbtn" onClick={e => e.stopPropagation()} title="Preview as trainee (demo only)" style={txt(C.ac)}>{T('Preview')}</button>
-                                  <button className="cd-txtbtn" onClick={e => e.stopPropagation()} title="Duplicate program (demo only)" style={txt(C.ac)}>Duplicate</button>
-                                  <button className="cd-txtbtn" onClick={e => e.stopPropagation()} title="Share to another athlete (demo only)" style={txt(C.ac)}>Share</button>
-                                  <button className="cd-txtbtn" onClick={e => e.stopPropagation()} title="Delete program (demo only)" style={txt(C.rd)}>Delete</button>
+                                  <button className="cd-txtbtn" onClick={e => e.stopPropagation()} title={T('Preview as trainee (demo only)')} style={txt(C.ac)}>{T('Preview')}</button>
+                                  <button className="cd-txtbtn" onClick={e => e.stopPropagation()} title={T('Duplicate program (demo only)')} style={txt(C.ac)}>Duplicate</button>
+                                  <button className="cd-txtbtn" onClick={e => e.stopPropagation()} title={T('Share to another athlete (demo only)')} style={txt(C.ac)}>Share</button>
+                                  <button className="cd-txtbtn" onClick={e => e.stopPropagation()} title={T('Delete program (demo only)')} style={txt(C.rd)}>Delete</button>
                                 </div>;
                               })()}
                             </div>
@@ -2259,7 +2259,7 @@ function DemoPrograms({ resetToken = 0 }) {
                 const nextId = e.target.value;
                 if (nextId && nextId !== selectedProgramId) setSelectedProgramId(nextId);
               }}
-                title="Switch to another program for this athlete"
+                title={T('Switch to another program for this athlete')}
                 style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, height: 42, padding: '0 36px 0 18px', lineHeight: '42px', color: C.tm, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', outline: 'none', appearance: 'none', WebkitAppearance: 'none', flex: 1, minWidth: 0, boxSizing: 'border-box', cursor: 'pointer', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {athletePrograms.map(p => <option key={p.id} value={p.id}>{p.name || 'Untitled'}</option>)}
               </select>
@@ -2271,16 +2271,16 @@ function DemoPrograms({ resetToken = 0 }) {
           {(() => {
             const tbBtn = (color = C.ac) => ({ background: 'var(--c-sf)', border: `1px solid ${color}`, borderRadius: 0, height: 42, padding: '0 16px', color, cursor: 'pointer', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box', whiteSpace: 'nowrap' });
             return <>
-              <button onClick={() => setCompareOpen(v => !v)} title="Compare with a previous program (read-only)"
+              <button onClick={() => setCompareOpen(v => !v)} title={T('Compare with a previous program (read-only)')}
                 style={{ ...tbBtn(), background: compareActive ? `${C.ac}1f` : 'var(--c-sf)' }}>{compareActive ? '✓ COMPARE' : '↔ COMPARE'}</button>
-              <button onClick={e => e.stopPropagation()} title="Open in the athlete portal view (demo only)" style={tbBtn()}>◉ PORTAL</button>
-              <button onClick={e => e.stopPropagation()} title="Share to another athlete (demo only)" style={tbBtn()}>⤴ SHARE</button>
-              <button onClick={e => e.stopPropagation()} title="Duplicate program (demo only)" style={tbBtn()}>⎘ DUPLICATE</button>
-              <button onClick={e => e.stopPropagation()} title="Show only this program on the athlete portal (demo only)" style={tbBtn()}>{T('SHOW ONLY')}</button>
-              <button onClick={e => e.stopPropagation()} title="Delete program (demo only)" style={tbBtn(C.rd)}>🗑 DELETE</button>
+              <button onClick={e => e.stopPropagation()} title={T('Open in the athlete portal view (demo only)')} style={tbBtn()}>◉ PORTAL</button>
+              <button onClick={e => e.stopPropagation()} title={T('Share to another athlete (demo only)')} style={tbBtn()}>⤴ SHARE</button>
+              <button onClick={e => e.stopPropagation()} title={T('Duplicate program (demo only)')} style={tbBtn()}>⎘ DUPLICATE</button>
+              <button onClick={e => e.stopPropagation()} title={T('Show only this program on the athlete portal (demo only)')} style={tbBtn()}>{T('SHOW ONLY')}</button>
+              <button onClick={e => e.stopPropagation()} title={T('Delete program (demo only)')} style={tbBtn(C.rd)}>🗑 DELETE</button>
             </>;
           })()}
-          <button onClick={e => e.stopPropagation()} title="Demo only"
+          <button onClick={e => e.stopPropagation()} title={T('Demo only')}
             style={{ ...baseBtn, background: C.ac, color: '#0a0a0b', height: 42, padding: '0 18px', lineHeight: '42px', fontSize: 13, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{T('Save Program')}</button>
         </div>
       </div>
@@ -2345,7 +2345,7 @@ function DemoPrograms({ resetToken = 0 }) {
                 <span style={{ fontSize: 10, color: C.or, fontFamily: FN, fontWeight: 700, width: 10, textAlign: 'center' }}>{<svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle', transition: 'transform 150ms ease', transform: (warmOpen) ? 'none' : 'rotate(-90deg)' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>}</span>
                 <span style={{ fontSize: 11, fontFamily: FN, fontWeight: 700, color: C.or, letterSpacing: '0.06em' }}>{T('WARM-UP (')}{block.warmup.length})</span>
               </button>
-              <button onClick={e => e.stopPropagation()} title="Demo only"
+              <button onClick={e => e.stopPropagation()} title={T('Demo only')}
                 style={{ background: 'var(--c-sf)', border: `1px solid rgba(255,165,2,0.4)`, borderRadius: 0, height: 26, boxSizing: 'border-box', padding: '0 10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: C.or, cursor: 'pointer', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.18em' }}>+ ADD WARM-UP</button>
             </div>
             {warmOpen && (
@@ -2500,7 +2500,7 @@ function DemoPrograms({ resetToken = 0 }) {
                           here makes the LIB pill match the URL input's exact
                           height instead of being a hair shorter (6px padding +
                           10px font vs 8px padding + 13px font). */}
-                      <a href="#" onClick={ev => ev.preventDefault()} title="Demo only"
+                      <a href="#" onClick={ev => ev.preventDefault()} title={T('Demo only')}
                         style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontFamily: FN, fontWeight: 700, letterSpacing: '0.18em', color: C.tm, textDecoration: 'none', padding: '0 10px', border: `1px solid ${C.cardBd}`, borderRadius: 0, whiteSpace: 'nowrap', boxSizing: 'border-box' }}>
                         LIB ▸
                       </a>
@@ -2525,7 +2525,7 @@ function DemoPrograms({ resetToken = 0 }) {
                     style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '4px 8px', color: C.tx, fontFamily: FB, fontWeight: 700, fontSize: 14, outline: 'none', maxWidth: 260, height: 30, boxSizing: 'border-box', textAlign: 'center', cursor: 'default' }} />
                   <span style={{ color: C.td, fontSize: 12, whiteSpace: 'nowrap' }}>({d.exercises.length} ex)</span>
                   <button onClick={() => { setSelectedDayIdx(dayIdx); setOverview(false); }}
-                    title="Open this day in the detail editor"
+                    title={T('Open this day in the detail editor')}
                     style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '3px 10px', height: 30, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', marginInlineStart: 'auto' }}>DETAIL ▸</button>
                 </div>
                 <div style={{ overflowX: 'auto', margin: '0 -12px', padding: '0 12px' }}>
@@ -2589,7 +2589,7 @@ function DemoPrograms({ resetToken = 0 }) {
                   CompareSidebar (no header text row above the filters; that
                   was pushing the right side's content down by ~30px and
                   misaligning the days vs the editor's left half). */}
-              <button onClick={() => setCompareOpen(false)} title="Close compare panel"
+              <button onClick={() => setCompareOpen(false)} title={T('Close compare panel')}
                 style={{ position: 'absolute', top: -2, right: -2, background: C.bg, border: `1px solid ${C.cardBd}`, color: C.tm, cursor: 'pointer', padding: '1px 6px', borderRadius: 0, fontSize: 11, lineHeight: 1, zIndex: 2 }}>✕</button>
               {/* Dual picker: Athlete + Program. STACKED single-column to
                   mirror the real PlansView CompareSidebar layout (each
@@ -2716,7 +2716,7 @@ function DemoPrograms({ resetToken = 0 }) {
           XLSX / EXPORT were phantom (no such buttons in PlansView) — removed so
           the demo doesn't advertise features the product lacks. */}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        <button title="Demo only" style={{ ...baseBtn, background: C.ac, color: '#000' }}>+ ADD EXERCISE</button>
+        <button title={T('Demo only')} style={{ ...baseBtn, background: C.ac, color: '#000' }}>+ ADD EXERCISE</button>
       </div>
     </section>
   );
@@ -2844,7 +2844,7 @@ function DemoExercises() {
             <div style={{ position: 'sticky', top: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, height: 28, padding: '0 11px', background: 'color-mix(in srgb, var(--c-ac) 15%, var(--c-sf))', borderBottom: `1px solid ${C.ac}`, zIndex: 1 }}>
               <span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.16em', color: C.ac, textTransform: 'uppercase' }}>{label}</span>
               {sel.length > 0
-                ? <span onClick={e => { e.stopPropagation(); clearFilter(k); }} title="Clear selection" style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color: C.tm, cursor: 'pointer' }}>{T('CLEAR ·')}{sel.length}</span>
+                ? <span onClick={e => { e.stopPropagation(); clearFilter(k); }} title={T('Clear selection')} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color: C.tm, cursor: 'pointer' }}>{T('CLEAR ·')}{sel.length}</span>
                 : <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: C.td, fontVariantNumeric: 'tabular-nums' }}>{options.length}</span>}
             </div>
             {options.length === 0 && <div style={{ padding: '10px 12px', color: C.td, fontFamily: FN, fontSize: 10, letterSpacing: '0.04em' }}>{T('No values')}</div>}
@@ -3112,7 +3112,7 @@ function DemoReview() {
               <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '8px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                 <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', color: '#FFFFFF', textTransform: 'uppercase' }}>{T('Form Video ·')}{vidEx.name}</span>
                 <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                  <button onClick={e => { e.stopPropagation(); setVsDemo(v => !v); }} title="Play the athlete's rep next to the branded reference demo"
+                  <button onClick={e => { e.stopPropagation(); setVsDemo(v => !v); }} title={T("Play the athlete's rep next to the branded reference demo")}
                     style={{ background: vsDemo ? '#39BDFF' : 'transparent', border: `1px solid ${vsDemo ? '#39BDFF' : 'rgba(255,255,255,0.35)'}`, color: vsDemo ? '#06131b' : '#fff', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', padding: '3px 9px', borderRadius: 0, cursor: 'pointer', textTransform: 'uppercase' }}>◫ vs Demo</button>
                   <span style={{ fontFamily: FN, fontSize: 9, color: '#fff', opacity: 0.7, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{T('Draw · comment at any timestamp')}</span>
                 </div>
@@ -3174,14 +3174,14 @@ function DemoReview() {
               <div style={{ fontFamily: FB, fontWeight: 600, fontSize: 13, color: C.tx }}>{ex.name}</div>
               <div style={{ fontSize: 11, color: C.tm, marginTop: 2 }}>
                 {ex.prescribed} · {ex.done}/{ex.sets} sets
-                {ex.hasVideo && <span title="Form video submitted" style={{ color: C.gn, marginInlineStart: 6, display: 'inline-flex', alignItems: 'center', verticalAlign: '-2px' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></span>}
+                {ex.hasVideo && <span title={T('Form video submitted')} style={{ color: C.gn, marginInlineStart: 6, display: 'inline-flex', alignItems: 'center', verticalAlign: '-2px' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></span>}
                 {ex.comments > 0 && (
                   <span title={`${ex.comments} comment${ex.comments === 1 ? '' : 's'} on this exercise`} style={{ color: C.ac, marginInlineStart: 6 }}>
                     💬{ex.comments > 1 ? <sup style={{ fontSize: 8 }}>{ex.comments}</sup> : null}
                   </span>
                 )}
                 {ex.focus && (
-                  <span title="Weekly focus written" style={{ color: C.or, marginInlineStart: 6 }}>🎯</span>
+                  <span title={T('Weekly focus written')} style={{ color: C.or, marginInlineStart: 6 }}>🎯</span>
                 )}
               </div>
             </div>
@@ -3200,12 +3200,12 @@ function DemoReview() {
             background: 'transparent', color: C.tm,
             fontFamily: FN, fontSize: 12, fontWeight: 600, cursor: 'pointer',
           }}>{T('UNMARK')}</button>
-          <button onClick={() => setSelectedId(null)} title="Return to the review queue" style={{
+          <button onClick={() => setSelectedId(null)} title={T('Return to the review queue')} style={{
             flex: 1, padding: '12px 0', borderRadius: 0, border: `1px solid ${C.bd2}`,
             background: 'transparent', color: C.tx,
             fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: 0.5, cursor: 'pointer',
           }}>← BACK</button>
-          <button onClick={() => setSelectedId(null)} title="Mark reviewed and return to the queue (demo only)" style={{
+          <button onClick={() => setSelectedId(null)} title={T('Mark reviewed and return to the queue (demo only)')} style={{
             flex: 1, padding: '12px 0', borderRadius: 0, border: `1px solid ${C.ac}`,
             background: C.ac, color: '#0a0a0b',
             fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: 0.5, cursor: 'pointer',
@@ -3234,7 +3234,7 @@ function DemoReview() {
                 </span>
               </span>
             </span>
-            <button onClick={e => e.stopPropagation()} title="Open this athlete's page (demo only)" style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.55)', color: '#FFFFFF', borderRadius: 0, padding: '3px 10px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap', lineHeight: 1.5 }}>{T('Athlete page →')}</button>
+            <button onClick={e => e.stopPropagation()} title={T("Open this athlete's page (demo only)")} style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.55)', color: '#FFFFFF', borderRadius: 0, padding: '3px 10px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap', lineHeight: 1.5 }}>{T('Athlete page →')}</button>
           </div>
           {data.workouts.map(wo => {
             const hasFormVids = wo.exercises.some(e => e.hasVideo);
@@ -3258,8 +3258,8 @@ function DemoReview() {
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginInlineStart: 12, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
-                  <button onClick={() => setSelectedId(wo.id)} title="Review this workout" style={{ background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, borderRadius: 0, padding: '5px 12px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', cursor: 'pointer', whiteSpace: 'nowrap' }}>{T('REVIEW →')}</button>
-                  <button onClick={e => e.stopPropagation()} title="Delete this workout (demo only)" style={{ background: 'transparent', border: `1px solid color-mix(in srgb, ${C.rd} 40%, transparent)`, color: C.rd, borderRadius: 0, padding: '5px 10px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', cursor: 'pointer' }}>{T('DELETE')}</button>
+                  <button onClick={() => setSelectedId(wo.id)} title={T('Review this workout')} style={{ background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, borderRadius: 0, padding: '5px 12px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', cursor: 'pointer', whiteSpace: 'nowrap' }}>{T('REVIEW →')}</button>
+                  <button onClick={e => e.stopPropagation()} title={T('Delete this workout (demo only)')} style={{ background: 'transparent', border: `1px solid color-mix(in srgb, ${C.rd} 40%, transparent)`, color: C.rd, borderRadius: 0, padding: '5px 10px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', cursor: 'pointer' }}>{T('DELETE')}</button>
                 </div>
               </div>
             );
@@ -3435,8 +3435,8 @@ function DemoWorkouts() {
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Badge color={C.gn}>Completed</Badge>
-                <button onClick={e => e.stopPropagation()} title="Demo only" style={{ background: 'none', border: 'none', color: C.tm, cursor: 'pointer', padding: 4 }}>✏️</button>
-                <button onClick={e => e.stopPropagation()} title="Demo only" style={{ background: 'none', border: 'none', color: C.rd, cursor: 'pointer', padding: 4, opacity: 0.6 }}>🗑</button>
+                <button onClick={e => e.stopPropagation()} title={T('Demo only')} style={{ background: 'none', border: 'none', color: C.tm, cursor: 'pointer', padding: 4 }}>✏️</button>
+                <button onClick={e => e.stopPropagation()} title={T('Demo only')} style={{ background: 'none', border: 'none', color: C.rd, cursor: 'pointer', padding: 4, opacity: 0.6 }}>🗑</button>
               </div>
             </div>
           </div>
@@ -3872,7 +3872,7 @@ function DemoBilling() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                   {p.status === 'pending' && <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.08em', color: C.rd }}>21D OVERDUE</span>}
                   <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: st.color, border: `1px solid ${st.color}55`, padding: '2px 6px' }}>{st.label}</span>
-                  {p.status === 'pending' && <button title="WhatsApp payment reminder (demo)" style={{ ...baseBtn, background: 'transparent', color: '#25D366', border: '1px solid #25D36655', padding: '3px 8px', fontSize: 9 }}>◔ CHASE</button>}
+                  {p.status === 'pending' && <button title={T('WhatsApp payment reminder (demo)')} style={{ ...baseBtn, background: 'transparent', color: '#25D366', border: '1px solid #25D36655', padding: '3px 8px', fontSize: 9 }}>◔ CHASE</button>}
                   {p.status === 'pending' && <button style={{ ...baseBtn, background: 'transparent', color: C.gn, border: `1px solid ${C.gn}55`, padding: '3px 8px', fontSize: 9 }}>{T('MARK PAID')}</button>}
                 </div>
               </div>

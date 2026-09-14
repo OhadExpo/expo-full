@@ -29,6 +29,9 @@ const EXERCISE_SHAPE = /\b(?:DB|BB|SA|KB|TRX|RDL|SLDL|OHP|ISO|POS|ATH)\b|\d+\s*[
 // available athletes` - where only the first third was ever translated. Scan
 // every run bounded by > or } on the left and < or { on the right.
 const LITERAL = /[>}]\s*([A-Z][A-Za-z0-9 ·+→←✓%&/()'’.…\-–—:]{2,140}?)\s*[<{]/g;
+// A tooltip is the one place the app EXPLAINS itself - the last place that
+// should be in another language. 214 of them were English.
+const TITLE_ATTR = /(?<![\w$])title=(?:"([A-Z][^"]{3,120})"|'([A-Z][^']{3,120})')/g;
 const PLACEHOLDER = /placeholder=(?:"([A-Za-z][^"]{2,80})"|'([A-Za-z][^']{2,80})')/g;
 const stripComments = (s) => s.replace(/\{\/\*[\s\S]*?\*\/\}/g, (m) => ' '.repeat(m.length)).replace(/\/\*[\s\S]*?\*\//g, (m) => ' '.repeat(m.length)).replace(/^\s*\/\/.*$/gm, (m) => ' '.repeat(m.length));
 const isAllowed = (t) => {
@@ -56,6 +59,11 @@ for (const f of fs.readdirSync('src').filter((x) => x.endsWith('.jsx') && !SKIP_
   // on purpose: an email shape, a URL, "kg/%", "reps", "e.g. 83.5", and the
   // word the coach must type to confirm a delete (the check compares to it).
   const dataShape = (t) => /@|https?:|^e\.g\.|^\d|kg\/%|^reps$|delete|remove|^ohad\b|zoom\.us|\d{4}/i.test(t);
+  for (const m of src.matchAll(TITLE_ATTR)) {
+    const t = m[1] || m[2];
+    if (/[֐-׿]/.test(t) || /\{/.test(t) || isAllowed(t)) continue;
+    findings.push({ f, line: lineOf(m.index), text: t, kind: 'title' });
+  }
   for (const m of src.matchAll(PLACEHOLDER)) { const t = m[1] || m[2]; if (!/[֐-׿]/.test(t) && !/\{/.test(t) && !dataShape(t)) findings.push({ f, line: lineOf(m.index), text: t, kind: 'placeholder' }); }
 }
 console.log(`ENGLISH LITERALS IN TRANSLATED VIEWS — ${findings.length} finding(s)`);

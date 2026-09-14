@@ -1424,7 +1424,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
               area. A proper header row keeps it clear of the tabs entirely. */}
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'7px 10px',borderBottom:`1px solid ${C.cardBd}`}}>
             <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.16em',color:C.tm}}>{tt("LIFT METRICS")}</span>
-            <button onClick={() => { setMetricsState('idle'); setMetrics(null); }} title="Hide metrics"
+            <button onClick={() => { setMetricsState('idle'); setMetrics(null); }} title={tt('Hide metrics')}
               style={{background:'transparent',border:`1px solid ${C.bd}`,color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer',padding:'2px 7px'}}>× CLOSE</button>
           </div>
           <div style={{padding:'10px 10px 4px'}}>
@@ -1511,7 +1511,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
             keeps its own count readout here, unaffected. */}
         {repsOn && (
           <div onPointerDown={onHudPointerDown}
-            title="Long-press (mobile) or click and drag (desktop) to move"
+            title={tt('Long-press (mobile) or click and drag (desktop) to move')}
             style={{position:'absolute',top:6,right:6,
               transform:`translate(${hudPos.x}px, ${hudPos.y}px)`,
               background:'rgba(10,10,11,0.78)',
@@ -1625,7 +1625,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
               on-video skeleton. No 3D box, no fullscreen. */}
           {role === 'trainer' && (
             <button onClick={runMetrics} disabled={metricsState==='busy'}
-              title="Bar velocity (VBT), ROM, tempo & collapse flags from this clip"
+              title={tt('Bar velocity (VBT), ROM, tempo & collapse flags from this clip')}
               style={{padding:'3px 8px',borderRadius:0,border:`2px solid ${metricsState==='done'?C.pu:'transparent'}`,display:compare?'none':'inline-flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',whiteSpace:'nowrap',
                 background:metricsState==='done'?(C.puD||C.acD):'transparent',color:metricsState==='done'?(C.pu||C.ac):C.tm,
                 fontFamily:FN,fontSize:10,cursor:metricsState==='busy'?'wait':'pointer',opacity:metricsState==='busy'?0.6:1}}>
@@ -1647,7 +1647,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
             </button>
           )}
           {onReviewNotesChange && role === 'trainer' && (
-            <button onClick={addComment} title="Comment & draw at this timestamp — color swatches appear once a comment is open"
+            <button onClick={addComment} title={tt('Comment & draw at this timestamp — color swatches appear once a comment is open')}
               style={{padding:'3px 10px',height:22,boxSizing:'border-box',borderRadius:0,border:`1px solid rgba(57,189,255,0.251)`,
                 background:C.acD,color:C.ac,fontFamily:FN,fontSize:10,cursor:'pointer'}}>{tt("COMMENT")}</button>
           )}
@@ -1668,13 +1668,13 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
               background:speed===s?C.acD:'transparent',color:speed===s?C.ac:C.tm,
               fontFamily:FN,fontSize:10,cursor:'pointer'}}>{s}x</button>
         ))}
-        <button onClick={() => stepFrame(-1)} title="Previous frame"
+        <button onClick={() => stepFrame(-1)} title={tt('Previous frame')}
           style={{padding:'3px 6px',height:22,boxSizing:'border-box',borderRadius:0,border:`1px solid ${C.bd}`,
             background:'transparent',color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>◀</button>
-        <button onClick={() => stepFrame(1)} title="Next frame"
+        <button onClick={() => stepFrame(1)} title={tt('Next frame')}
           style={{padding:'3px 6px',height:22,boxSizing:'border-box',borderRadius:0,border:`1px solid ${C.bd}`,
             background:'transparent',color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>▶</button>
-        <button onClick={() => setLoop(v => !v)} title="Loop the video"
+        <button onClick={() => setLoop(v => !v)} title={tt('Loop the video')}
           style={{padding:'3px 10px',height:22,boxSizing:'border-box',borderRadius:0,border:`1px solid ${loop?C.ac:C.bd}`,
             background:loop?C.acD:'transparent',color:loop?C.ac:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>↻ LOOP</button>
       </div>
@@ -1709,10 +1709,10 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
               background:rulerMode?C.acD:'transparent',color:rulerMode?C.ac:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>
             📏 {rulerMode ? 'LINE' : 'FREE'}
           </button>
-          <button onClick={undoLastStroke} disabled={currentStrokes.length === 0} title="Undo last stroke"
+          <button onClick={undoLastStroke} disabled={currentStrokes.length === 0} title={tt('Undo last stroke')}
             style={{padding:'3px 8px',height:22,boxSizing:'border-box',borderRadius:0,border:`1px solid ${C.bd}`,
               background:'transparent',color:currentStrokes.length?C.tm:C.td,fontFamily:FN,fontSize:10,cursor:currentStrokes.length?'pointer':'default',opacity:currentStrokes.length?1:0.5}}>↶ UNDO</button>
-          <button onClick={clearDrawings} disabled={currentStrokes.length === 0} title="Clear all drawings on this comment"
+          <button onClick={clearDrawings} disabled={currentStrokes.length === 0} title={tt('Clear all drawings on this comment')}
             style={{padding:'3px 8px',height:22,boxSizing:'border-box',borderRadius:0,border:`1px solid ${C.bd}`,
               background:'transparent',color:currentStrokes.length?C.tm:C.td,fontFamily:FN,fontSize:10,cursor:currentStrokes.length?'pointer':'default',opacity:currentStrokes.length?1:0.5}}>✕ CLEAR</button>
         </div>
@@ -1887,18 +1887,18 @@ function CompareModal({ leftLabel, leftUrl, leftTitle, rightLabel, rightUrl, rig
         {!demo && (
           <div style={{display:'flex',justifyContent:'center',marginTop:16}}>
             <div style={bar} role="toolbar" aria-label="Both videos">
-              <button onClick={() => stepBoth(-1)} title="Both back one frame (←)" style={btn(false)}>◀</button>
+              <button onClick={() => stepBoth(-1)} title={tt('Both back one frame (←)')} style={btn(false)}>◀</button>
               <button onClick={toggle} title={playing ? 'Pause both (Space)' : 'Play both (Space)'} style={btn(playing, { minWidth: 118 })}>{playing ? '❚❚  ' + tt('PAUSE') : '▶  ' + tt('PLAY BOTH')}</button>
-              <button onClick={() => stepBoth(1)} title="Both forward one frame (→)" style={btn(false)}>▶</button>
+              <button onClick={() => stepBoth(1)} title={tt('Both forward one frame (→)')} style={btn(false)}>▶</button>
               <span style={divider} />
               {[0.125, 0.25, 0.5, 1, 2].map(x => (
                 <button key={x} onClick={() => setSpeed(x)} title={`Both at ${x}x`} style={btn(speed === x, { padding:'0 10px' })}>{x}x</button>
               ))}
               <span style={divider} />
-              <button onClick={setLoop} title="Loop both" style={btn(loop)}>↻ {tt('LOOP')}</button>
+              <button onClick={setLoop} title={tt('Loop both')} style={btn(loop)}>↻ {tt('LOOP')}</button>
               <span style={divider} />
-              <button onClick={() => sync('right')} title="Right jumps to the left's frame" style={btn(false)}>{tt('SYNC')} →</button>
-              <button onClick={() => sync('left')} title="Left jumps to the right's frame" style={btn(false)}>← {tt('SYNC')}</button>
+              <button onClick={() => sync('right')} title={tt("Right jumps to the left's frame")} style={btn(false)}>{tt('SYNC')} →</button>
+              <button onClick={() => sync('left')} title={tt("Left jumps to the right's frame")} style={btn(false)}>← {tt('SYNC')}</button>
             </div>
           </div>
         )}
@@ -2311,7 +2311,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                   <div style={{fontWeight:600,fontSize:13}}>{exName}</div>
                   <div style={{fontSize:11,color:C.tm,marginTop:2}}>
                     {ex.prescribed} · {doneSets}/{setsArr.length} sets
-                    {(formVideo?.has || formVideo?.cloudUrl) && <span title="Form video submitted" style={{color:C.gn,marginInlineStart:6,display:'inline-flex',alignItems:'center',verticalAlign:'-2px'}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></span>}
+                    {(formVideo?.has || formVideo?.cloudUrl) && <span title={tt('Form video submitted')} style={{color:C.gn,marginInlineStart:6,display:'inline-flex',alignItems:'center',verticalAlign:'-2px'}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></span>}
                     {(formVideo?.reviewNotes?.length > 0) && (
                       <span title={`${formVideo.reviewNotes.length} comment${formVideo.reviewNotes.length===1?'':'s'} on this exercise`} style={{color:C.ac,marginInlineStart:6}}>
                         💬{formVideo.reviewNotes.length > 1 ? <sup style={{fontSize:8}}>{formVideo.reviewNotes.length}</sup> : null}
@@ -2400,7 +2400,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                             .filter(v => v && v.cloudUrl !== formVideo.cloudUrl);
                           if (candidates.length === 0) return canEmbed(fromLib?.videoLink) ? (
                             <button onClick={() => setCompareActive({ left: { url: formVideo.cloudUrl, label: `${wo.planName} · W${wo.week} · ${wo.dayName} — ${ex.title || exName} · ${fmtPrettyDate(wo.date)}`, title: ex.title || exName }, right: { url: fromLib.videoLink, label: 'Reference demo · library', title: ex.title || exName }, rightMode: 'demo' })}
-                            title="Play the athlete's rep next to the branded reference demo"
+                            title={tt("Play the athlete's rep next to the branded reference demo")}
                             style={{background:C.acD,border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:9,padding:'3px 8px',borderRadius:0,cursor:'pointer',letterSpacing:0.5}}>◫ vs DEMO</button>
                           ) : null;
                           const leftLabel = `${wo.planName} · W${wo.week} · ${wo.dayName} — ${ex.title || exName} · ${fmtPrettyDate(wo.date)}`;
@@ -2541,7 +2541,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
         <div style={{display:"flex",gap:8,marginTop:20,marginBottom:8}}>
           {deleteWorkout && (
             <button onClick={() => { setDeleteConfirmFor(wo.id); setDeleteConfirmText(''); }}
-              title="Delete this workout"
+              title={tt('Delete this workout')}
               style={{padding:"12px 16px",borderRadius:0,border:`1px solid ${C.rd||'#c94444'}`,
                 background:"transparent",color:C.rd||'#ff6b6b',fontFamily:FN,fontSize:12,fontWeight:600,
                 cursor:"pointer"}}>
@@ -2561,7 +2561,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
             </button>
           )}
           {!(wo.reviewedAt && !findNextUnreviewed()) && <button onClick={() => { setSelectedWo(null); setExpandedEx(null); window.scrollTo(0,0); }}
-            title="Return to the review queue"
+            title={tt('Return to the review queue')}
             style={{flex:1,padding:"12px 0",borderRadius:0,border:`1px solid ${C.cardBd}`,
               background:"transparent",color:C.tx,fontFamily:FN,fontSize:13,fontWeight:700,
               letterSpacing:0.5,cursor:"pointer"}}>
@@ -2570,7 +2570,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
           {wo.reviewedAt ? (
             findNextUnreviewed() ? (
               <button onClick={() => { const nextId = findNextUnreviewed(); if (nextId) { setSelectedWo(nextId); setExpandedEx(null); window.scrollTo(0,0); } }}
-                title="Jump to next pending workout"
+                title={tt('Jump to next pending workout')}
                 style={{flex:1,padding:"12px 0",borderRadius:0,border:`1px solid ${C.ac}`,
                   background:C.ac,color:C.acOnSurface,fontFamily:FN,fontSize:13,fontWeight:700,
                   letterSpacing:0.5,cursor:"pointer"}}>
@@ -2586,7 +2586,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
             )
           ) : (
             <button onClick={saveAndNext}
-              title="Mark reviewed and return to the list (⌘/Ctrl + Enter)"
+              title={tt('Mark reviewed and return to the list (⌘/Ctrl + Enter)')}
               style={{flex:1,padding:"12px 0",borderRadius:0,border:`1px solid ${C.ac}`,
                 background:C.ac,color:C.acOnSurface,fontFamily:FN,fontSize:13,fontWeight:700,
                 letterSpacing:0.5,cursor:"pointer"}}>
@@ -2660,7 +2660,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
           })()}
           right={onOpenTrainee && trainees.some(t => t.id === cid) ? (
             <button onClick={() => onOpenTrainee(cid)}
-              title="Open this athlete's page"
+              title={tt("Open this athlete's page")}
               style={{background:'transparent',border:'1px solid rgba(255,255,255,0.55)',color:'#FFFFFF',borderRadius:0,
                 padding:'3px 10px',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',
                 textTransform:'uppercase',cursor:'pointer',whiteSpace:'nowrap',lineHeight:1.5}}
@@ -2755,7 +2755,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                       cursor:'pointer',whiteSpace:'nowrap'}}>{reviewed?tt('VIEW →'):tt('REVIEW →')}</button>
                   {deleteWorkout && (
                     <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmFor(wo.id); setDeleteConfirmText(''); }}
-                      title="Delete this workout"
+                      title={tt('Delete this workout')}
                       style={{background:'transparent',border:`1px solid ${(C.rd||'#c94444')}40`,color:C.rd||'#ff6b6b',
                         borderRadius:0,padding:'5px 10px',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.08em',cursor:'pointer'}}>
                       {tb("DELETE")}

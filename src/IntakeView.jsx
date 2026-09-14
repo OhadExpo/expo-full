@@ -221,7 +221,7 @@ export default function IntakeView({ trainees }) {
                       style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.ac, padding: '3px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', borderRadius: 0 }}>
                       {tb('Copy URL')}
                     </button>
-                    <button onClick={() => setPendingDelete({ kind: 'token', key: t.token })} title="Delete this unused link" aria-label="Delete link"
+                    <button onClick={() => setPendingDelete({ kind: 'token', key: t.token })} title={tt('Delete this unused link')} aria-label="Delete link"
                       style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, color: C.rd, padding: '3px 9px', fontFamily: FN, fontSize: 11, fontWeight: 700, lineHeight: 1, cursor: 'pointer', borderRadius: 0 }}>
                       ✕
                     </button>
@@ -273,7 +273,7 @@ export default function IntakeView({ trainees }) {
       </Modal>
 
       {/* Generate-link modal */}
-      <Modal open={showGen} onClose={closeGen} title="Generate Intake Link">
+      <Modal open={showGen} onClose={closeGen} title={tt('Generate Intake Link')}>
         {genResult ? (
           <div>
             <div style={{ fontSize: 13, color: C.tx, marginBottom: 10 }}>{tt('Link generated and copied to clipboard.')}</div>

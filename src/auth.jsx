@@ -633,16 +633,16 @@ export function RolePickerScreen({ name, onPick, onSignOut }) {
               step everywhere the two scripts meet. */}
           <div style={{ display: 'inline-flex', alignItems: 'baseline', justifyContent: 'center', gap: 9, color: C.tx, fontWeight: 600, lineHeight: 1 }}>
             <span style={{ fontFamily: FB, fontSize: 15, letterSpacing: '0.06em' }}>{tr(readLang(), 'HEY')}</span>
-            <span style={{ fontFamily: FH, fontSize: 15 }}>{name || 'there'}</span>
+            <span style={{ fontFamily: FH, fontSize: 15 }}>{name || tt('there')}</span>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-          <Card kicker="Manage" title="Coach" sub="Tasks, athletes & plans" side="trainer" />
-          <Card kicker="Workout" title="Train" sub="Your own program & workouts" side="client" />
+          <Card kicker={tt('Manage')} title={tt('Coach')} sub={tt('Tasks, athletes & plans')} side="trainer" />
+          <Card kicker={tt('Workout')} title={tt('Train')} sub={tt('Your own program & workouts')} side="client" />
         </div>
         <div style={{ textAlign: 'center', marginTop: 28 }}>
           <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.14em' }}>
-            {name || 'Signed in'}
+            {name || tt('Signed in')}
             <span style={{ margin: '0 9px', opacity: 0.5 }}>·</span>
             <button onClick={onSignOut} style={{ background: 'none', border: 'none', color: C.td, cursor: 'pointer', fontFamily: FN, fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', padding: 0 }}>{tt('Sign out')}</button>
           </span>

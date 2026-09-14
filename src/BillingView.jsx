@@ -200,7 +200,7 @@ export default function BillingView({ trainees }) {
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                 {r.status === 'pending' && (
                   <>
-                    <button onClick={() => chase(t, r)} title="Send a WhatsApp payment reminder" style={btnStyle('#25D366')}>◔ CHASE</button>
+                    <button onClick={() => chase(t, r)} title={tt('Send a WhatsApp payment reminder')} style={btnStyle('#25D366')}>◔ CHASE</button>
                     <button onClick={() => markPaid(r.id)} style={btnStyle(C.gn)}>✓ MARK PAID</button>
                     <button onClick={() => cancelRequest(r.id)} style={btnStyle(C.rd)}>× CANCEL</button>
                   </>

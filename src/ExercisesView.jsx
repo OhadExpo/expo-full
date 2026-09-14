@@ -11,6 +11,7 @@ import { useT as useAppT, useTB, tr, readLang } from './i18n';
 // double-click can take it fullscreen (Ohad). Non-YouTube / no video get a quiet
 // tile so every card keeps the same half-video / half-notes shape.
 function GridVideo({ url }) {
+  const tt = useAppT();
   const [play, setPlay] = useState(false);
   const yid = ytId(url);
   const box = { position: 'relative', width: '100%', aspectRatio: '16 / 9', background: '#000', overflow: 'hidden', borderBottom: `1px solid ${C.cardBd}`, flexShrink: 0 };
@@ -22,7 +23,7 @@ function GridVideo({ url }) {
       </div>
     );
     return (
-      <div style={{ ...box, cursor: 'pointer' }} onClick={() => setPlay(true)} title="Play inline (no fullscreen)" role="button" tabIndex={0}
+      <div style={{ ...box, cursor: 'pointer' }} onClick={() => setPlay(true)} title={tt('Play inline (no fullscreen)')} role="button" tabIndex={0}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setPlay(true); } }}>
         <img src={`https://img.youtube.com/vi/${yid}/hqdefault.jpg`} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.92, display: 'block' }} />
         <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -218,7 +219,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
             <div style={{ position: 'sticky', top: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, height: 28, padding: '0 11px', background: 'color-mix(in srgb, var(--c-ac) 15%, var(--c-sf))', borderBottom: `1px solid ${C.ac}`, zIndex: 1 }}>
               <span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.16em', color: C.ac, textTransform: 'uppercase' }}>{label}</span>
               {sel.length > 0
-                ? <span onClick={e => { e.stopPropagation(); clearFilter(k); }} title="Clear selection" style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color: C.tm, cursor: 'pointer' }}>{tt('CLEAR ·')}{sel.length}</span>
+                ? <span onClick={e => { e.stopPropagation(); clearFilter(k); }} title={tt('Clear selection')} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color: C.tm, cursor: 'pointer' }}>{tt('CLEAR ·')}{sel.length}</span>
                 : <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: C.td, fontVariantNumeric: 'tabular-nums' }}>{options.length}</span>}
             </div>
             {options.length === 0 && <div style={{ padding: '10px 12px', color: C.td, fontFamily: FN, fontSize: 10, letterSpacing: '0.04em' }}>{tt("No values in library")}</div>}
@@ -377,7 +378,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
           {flagChip('video', `▶ ${tt('Video')} (${counts.vid})`)}
           {flagChip('notes', `☰ ${tt('Notes')} (${counts.note})`, C.or)}
           {flagChip('missing', `∅ ${tt('Unclassified')} (${counts.miss})`, C.or)}
-          {anyFilter && <button className="filt" onClick={clearAll} title="Clear all filters" style={{ ...railBase, color: C.rd, marginInlineStart: 'auto', letterSpacing: '0.1em' }}>× Clear all</button>}
+          {anyFilter && <button className="filt" onClick={clearAll} title={tt('Clear all filters')} style={{ ...railBase, color: C.rd, marginInlineStart: 'auto', letterSpacing: '0.1em' }}>× Clear all</button>}
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 14px', padding: '0 1px 12px', borderTop: `1px solid ${C.cardBd}`, paddingTop: 10 }}>
           <span style={rowLabel}>Filter&nbsp;by</span>
@@ -425,9 +426,9 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
                 </div>
                 {/* actions — light text buttons, like the program card */}
                 <div style={{ padding: '8px 14px 12px', display: 'flex', gap: 16, alignItems: 'center', borderTop: `1px solid ${C.cardBd}` }}>
-                  <button onClick={() => { setForm({ ...ex }); setEditId(ex.id); setShowForm(true); }} title="Edit exercise" style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', color: C.ac, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 0 }}>{tt("Edit")}</button>
+                  <button onClick={() => { setForm({ ...ex }); setEditId(ex.id); setShowForm(true); }} title={tt('Edit exercise')} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', color: C.ac, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 0 }}>{tt("Edit")}</button>
                   <div style={{ flex: 1 }} />
-                  <button onClick={() => setConfirmDelete(ex.id)} title="Delete exercise" style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', color: C.rd, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 0 }}>{tt("Delete")}</button>
+                  <button onClick={() => setConfirmDelete(ex.id)} title={tt('Delete exercise')} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', color: C.rd, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 0 }}>{tt("Delete")}</button>
                 </div>
               </div>
             );
@@ -489,15 +490,15 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
                     {chipCell(ex.primaryMuscles, 230)}
                     {chipCell(ex.secondaryMuscles, 210)}
                     <td style={{ padding: '9px 12px', textAlign: 'center', whiteSpace: 'nowrap' }}>
-                      {hasVideo(ex) && <span title="Has a demo video" style={{ color: C.ac, marginInlineEnd: hasNotes(ex) ? 8 : 0, fontSize: 12 }}>▶</span>}
-                      {hasNotes(ex) && <span title="Has coaching cues" style={{ color: C.or, fontSize: 12 }}>☰</span>}
+                      {hasVideo(ex) && <span title={tt('Has a demo video')} style={{ color: C.ac, marginInlineEnd: hasNotes(ex) ? 8 : 0, fontSize: 12 }}>▶</span>}
+                      {hasNotes(ex) && <span title={tt('Has coaching cues')} style={{ color: C.or, fontSize: 12 }}>☰</span>}
                       {!hasVideo(ex) && !hasNotes(ex) && emptyDot}
                     </td>
                     <td style={{ padding: '9px 8px', whiteSpace: 'nowrap', textAlign: 'end' }}>
-                      <button onClick={() => { setForm({ ...ex }); setEditId(ex.id); setShowForm(true); }} title="Edit exercise" style={{ background: 'none', border: 'none', color: C.tm, cursor: 'pointer', padding: 4, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 0 }}>
+                      <button onClick={() => { setForm({ ...ex }); setEditId(ex.id); setShowForm(true); }} title={tt('Edit exercise')} style={{ background: 'none', border: 'none', color: C.tm, cursor: 'pointer', padding: 4, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 0 }}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                       </button>
-                      <button onClick={() => setConfirmDelete(ex.id)} title="Delete exercise" style={{ background: 'none', border: 'none', color: C.rd, cursor: 'pointer', padding: 4, opacity: 0.7, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 0 }}>
+                      <button onClick={() => setConfirmDelete(ex.id)} title={tt('Delete exercise')} style={{ background: 'none', border: 'none', color: C.rd, cursor: 'pointer', padding: 4, opacity: 0.7, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 0 }}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
                       </button>
                     </td>

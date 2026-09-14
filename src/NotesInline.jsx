@@ -225,7 +225,7 @@ export default function NotesInline({
           if (!n.auto_kind && showCreatePlanBtn) {
             return (
               <button onClick={() => startCreatePlan(n)}
-                title="Create a program from this task — auto-marks done on save"
+                title={tr(readLang(), 'Create a program from this task — auto-marks done on save')}
                 style={pillBtn('var(--c-ac)')}>→ NEW PROGRAM</button>
             );
           }
@@ -246,7 +246,7 @@ export default function NotesInline({
           if (kindAction === 'WHATSAPP') {
             const phone = normalizePhoneIL(trainee?.phone);
             if (!phone) {
-              return <button disabled style={pillBtn('var(--c-td)')} title="No phone on file">→ WHATSAPP</button>;
+              return <button disabled style={pillBtn('var(--c-td)')} title={tr(readLang(), 'No phone on file')}>→ WHATSAPP</button>;
             }
             const msg = whatsappMessageForTask(n, trainee);
             return (
@@ -277,7 +277,7 @@ export default function NotesInline({
             // the lead consumed.
             return (
               <button onClick={() => { try { window.location.hash = '#/coach/waitlist'; } catch {} }}
-                title="Open the /coach/waitlist surface to consume this lead"
+                title={tr(readLang(), 'Open the /coach/waitlist surface to consume this lead')}
                 style={pillBtn('var(--c-ac)')}>→ WAITLIST</button>
             );
           }
@@ -296,7 +296,7 @@ export default function NotesInline({
             {/* Header row — controls + auto-kind pill + timestamp + × */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
               <input type="checkbox" checked={false} onChange={() => toggleDone(n.id)}
-                title="Mark done"
+                title={tr(readLang(), 'Mark done')}
                 style={{ width: 14, height: 14, accentColor: 'var(--c-gn)', cursor: 'pointer', flexShrink: 0 }} />
               <button onClick={() => togglePin(n.id)} title={n.pinned ? 'Unpin' : 'Pin'}
                 style={{
@@ -332,7 +332,7 @@ export default function NotesInline({
                   if (await confirmToast('Cancel this task? It moves to history (not deleted).', { okLabel: 'Cancel task', cancelLabel: 'Keep' })) {
                     update(n.id, { status: 'cancelled', completed_at: new Date().toISOString() });
                   }
-                }} title="Cancel (archive to history)"
+                }} title={tr(readLang(), 'Cancel (archive to history)')}
                 style={{ background: 'none', border: 'none', color: 'var(--c-td)', cursor: 'pointer', fontSize: 14, padding: '0 4px', flexShrink: 0 }} aria-label="Cancel task">×</button>
             </div>
 
@@ -378,7 +378,7 @@ export default function NotesInline({
             {(actionBtn || !editingThis) && (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                 {!editingThis ? (
-                  <button onClick={() => startEdit(n)} title="Edit task"
+                  <button onClick={() => startEdit(n)} title={tr(readLang(), 'Edit task')}
                     style={{
                       background: 'transparent', border: `1px solid var(--c-cardBd)`, color: 'var(--c-tm)',
                       cursor: 'pointer', fontSize: 11, padding: '3px 8px', borderRadius: 0,

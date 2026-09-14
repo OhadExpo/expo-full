@@ -390,7 +390,7 @@ function StatusPill({ status, theme, onSetStatus, readOnly = false }) {
         onChange={(e) => onSetStatus(e.target.value)}
         onClick={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}
-        title="Change status"
+        title={tt('Change status')}
         style={{ ...base, cursor: 'pointer' }}>
         {STATUS_OPTIONS.map(o => (
           <option key={o.id} value={o.id} style={{ background: '#fff', color: '#111' }}>{tt(o.label)}</option>
@@ -450,7 +450,7 @@ function PriorityPill({ priority, onSetPriority, readOnly = false }) {
     <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
       <select className="task-select" value={priority} onChange={(e) => onSetPriority(e.target.value)}
         onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}
-        title="Change urgency" style={{ ...base, cursor: 'pointer' }}>
+        title={tt('Change urgency')} style={{ ...base, cursor: 'pointer' }}>
         {PRIORITY_PICK.map(p => <option key={p.id} value={p.id} style={{ background: '#fff', color: '#111' }}>{tt(p.label)}</option>)}
       </select>
     </span>
@@ -864,7 +864,7 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
             {(trainees || []).length > 0 && (
               <span style={cmpGroup}>
                 <span style={cmpLabel}>Athlete</span>
-                <select value={traineeId} onChange={(e) => setTraineeId(e.target.value)} onMouseDown={(e) => e.stopPropagation()} title="Link this task to an athlete"
+                <select value={traineeId} onChange={(e) => setTraineeId(e.target.value)} onMouseDown={(e) => e.stopPropagation()} title={tt('Link this task to an athlete')}
                   style={{ background: 'transparent', color: traineeId ? C.ac : 'var(--c-tm)', border: `1px solid ${traineeId ? C.ac : 'var(--c-cardBd)'}`, fontFamily: FN, fontSize: 10, fontWeight: 600, padding: '3px 6px', height: 24, borderRadius: 0, outline: 'none', maxWidth: 160, textOverflow: 'ellipsis' }}>
                   <option value="">— no athlete —</option>
                   {[...trainees].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(t => (
@@ -888,6 +888,7 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
 // the same browser for the calendar to render (which they will be, since
 // the GIS connect flow above primed that session).
 function CalendarEmbedCard() {
+  const tt = useT();
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState(null);
   useEffect(() => {
@@ -927,7 +928,7 @@ function CalendarEmbedCard() {
         <span style={{ flex: 1 }} />
         <a href={fullCalendarHref} target="_blank" rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}
-          title="Open full Google Calendar (with Tasks layer + multi-calendar) in a new tab"
+          title={tt('Open full Google Calendar (with Tasks layer + multi-calendar) in a new tab')}
           style={{
             fontFamily: FN, fontSize: 9, fontWeight: 700,
             color: 'var(--c-ac)', letterSpacing: '0.12em',
@@ -1184,6 +1185,7 @@ const cmtActionBtn = {
   padding: '2px 7px', cursor: 'pointer', borderRadius: 0,
 };
 export function CommentsThread({ noteId, viewer }) {
+  const tt = useT();
   const { rows, loading, available, add, update, remove } = useCoachNoteComments(noteId);
   const [draft, setDraft] = useState('');
   const [editingId, setEditingId] = useState(null);
@@ -1357,7 +1359,7 @@ export function CommentsThread({ noteId, viewer }) {
             if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); submit(e); }
           }}
           placeholder={tr(readLang(), 'Add comment…')}
-          title="Enter = new line · ⌘/Ctrl+Enter to send · type @ to mention"
+          title={tt('Enter = new line · ⌘/Ctrl+Enter to send · type @ to mention')}
           style={{
             flex: 1, background: 'transparent',
             border: `1px solid var(--c-cardBd)`,
@@ -1502,7 +1504,7 @@ function ExpandedDetail({ row, displayBody, viewer, onSetCategory, onArchive, on
           {/* Compact picker — was a "List" label + two buttons, too wide (Ohad). */}
           <select value={cat} onClick={(e) => e.stopPropagation()}
             onChange={(e) => { e.stopPropagation(); if (e.target.value !== cat) onSetCategory(row, e.target.value); }}
-            title="Move this task to another list"
+            title={tt('Move this task to another list')}
             style={{ width: 175, boxSizing: 'border-box', background: 'var(--c-sf)', color: 'var(--c-tx)', border: `1px solid var(--c-cardBd)`, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', padding: '4px 22px 4px 8px', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>
             <option value="manual">{tt('General')}</option>
             <option value="center">{tt('Performance Center')}</option>
@@ -1516,12 +1518,12 @@ function ExpandedDetail({ row, displayBody, viewer, onSetCategory, onArchive, on
         <div style={{ marginTop: 10, direction: 'ltr', display: 'flex', alignItems: 'center', gap: 8 }}>
           {onArchive && row.status !== 'cancelled' && (
             <button onClick={(e) => { e.stopPropagation(); onArchive(row); }}
-              title="Archive — moves this task to the Done/Cancelled pool (recoverable)"
+              title={tt('Archive — moves this task to the Done/Cancelled pool (recoverable)')}
               style={{ background: 'transparent', border: `1px solid var(--c-cardBd)`, color: 'var(--c-tm)', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', padding: '5px 10px', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>⊘ Archive</button>
           )}
           {onDelete && (
             <button onClick={async (e) => { e.stopPropagation(); if (await confirmToast('Delete this task permanently? This cannot be undone.', { okLabel: 'Delete', cancelLabel: 'Keep' })) onDelete(row); }}
-              title="Delete this task permanently"
+              title={tt('Delete this task permanently')}
               style={{ background: 'transparent', border: `1px solid var(--c-rd)`, color: 'var(--c-rd)', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', padding: '5px 10px', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>🗑 Delete</button>
           )}
         </div>
@@ -2574,7 +2576,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
               drops — that's information. The 90s poll still refreshes data, so
               this means "live updates paused", not "data stale". */}
           {!connected && (
-            <span title="Realtime sync dropped — changes may take up to 90s to appear until it reconnects" style={{
+            <span title={tt('Realtime sync dropped — changes may take up to 90s to appear until it reconnects')} style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
               fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
               color: 'var(--c-or)', textTransform: 'uppercase',
