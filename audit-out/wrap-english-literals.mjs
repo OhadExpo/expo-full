@@ -18,9 +18,10 @@ const CALL = {
 };
 const SKIP_FILES = new Set(['ClientPortal.jsx', 'MealLogger.jsx', 'DemoTraineePortal.jsx', 'TrySandbox.jsx', 'auth.jsx']);
 const ALLOW = new Set(['EXPO', 'RPE', 'ROM', 'VBT', 'BW', 'KG', 'PR', 'PRS', 'MRR', 'LTV', 'VAT', 'AI', 'OK', 'ID', 'URL', 'MP4', 'MOV', 'WEBM', 'CSV', 'PDF', 'PNG', 'JPG', 'XLSX', 'TSV', 'GB', 'MB', 'KB', 'FPS', 'HD', 'RDL', 'SLDL', 'OHP', 'DB', 'BB', 'TRX', 'BHBC', 'ACWR', 'HRV', 'RTP', 'MD', 'PPG', 'EN', 'HE', 'LIVE', 'REC', 'A', 'B', 'C', 'D', 'E', 'W', 'L', 'R', 'X', 'N', 'Y', 'M', 'J', 'S', 'Δ', 'ATH', 'POS', 'ISO', 'SA', 'SL', 'BP', 'ECC', 'CON', 'AMRAP', 'EMOM', 'TUT', 'RIR', '1RM', 'E1RM', 'NCAA', 'CMU', 'OUI', 'TAU', 'NIS', 'ILS', 'USD', 'YT', 'GPS', 'API', 'RLS', 'SW', 'PWA', 'IOS', 'MEDIAPIPE', 'LITE', 'LOG', 'W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7', 'W8', 'W9', 'W10', 'W11', 'W12']);
+const BRAND = /^(?:Google Calendar|Vercel|Supabase|WhatsApp|YouTube|Green Invoice)$/;
 const CODE_SHAPE = /\w\(|\)\.|=>|replace|const/;
 const EXERCISE_SHAPE = /\b(?:DB|BB|SA|KB|TRX|RDL|SLDL|OHP|ISO|POS|ATH)\b|\d+\s*[x×]\s*\d+/i;
-const LITERAL = /([>}])(\s*)([A-Z][A-Za-z0-9 ·+→←✓%&/()'’.…\-–—:]{2,48}?)(\s*)([<{])/g;
+const LITERAL = /([>}])(\s*)([A-Z][A-Za-z0-9 ·+→←✓%&/()'’.…\-–—:]{2,140}?)(\s*)([<{])/g;
 const PLACEHOLDER = /placeholder=(?:"([A-Za-z][^"]{2,80})"|'([A-Za-z][^']{2,80})')/g;
 const RE_ESC = /[.*+?^${}()|[\]\\]/g;
 const stripComments = (s) => s
@@ -31,6 +32,7 @@ const isAllowed = (t) => {
   const s = t.trim();
   if (!/[A-Za-z]{3,}/.test(s)) return true;
   if (s.split(/[\s·]+/).every((w) => ALLOW.has(w.replace(/[^A-Z0-9Δ]/g, '')) || /^[\d.,%₪+-]+$/.test(w) || w === '' || /^[·+→←✓%&/()'’.\-–—:]+$/.test(w))) return true;
+  if (BRAND.test(s)) return true;
   if (CODE_SHAPE.test(s)) return true;
   if (EXERCISE_SHAPE.test(s)) return true;
   return false;

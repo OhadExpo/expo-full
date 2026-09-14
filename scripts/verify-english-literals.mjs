@@ -28,7 +28,7 @@ const EXERCISE_SHAPE = /\b(?:DB|BB|SA|KB|TRX|RDL|SLDL|OHP|ISO|POS|ATH)\b|\d+\s*[
 // in the app sits next to an expression - `{tr('Logs this session for')}<b>{n}</b>
 // available athletes` - where only the first third was ever translated. Scan
 // every run bounded by > or } on the left and < or { on the right.
-const LITERAL = /[>}]\s*([A-Z][A-Za-z0-9 ·+→←✓%&/()'’.…\-–—:]{2,48}?)\s*[<{]/g;
+const LITERAL = /[>}]\s*([A-Z][A-Za-z0-9 ·+→←✓%&/()'’.…\-–—:]{2,140}?)\s*[<{]/g;
 const PLACEHOLDER = /placeholder=(?:"([A-Za-z][^"]{2,80})"|'([A-Za-z][^']{2,80})')/g;
 const stripComments = (s) => s.replace(/\{\/\*[\s\S]*?\*\/\}/g, (m) => ' '.repeat(m.length)).replace(/\/\*[\s\S]*?\*\//g, (m) => ' '.repeat(m.length)).replace(/^\s*\/\/.*$/gm, (m) => ' '.repeat(m.length));
 const isAllowed = (t) => {

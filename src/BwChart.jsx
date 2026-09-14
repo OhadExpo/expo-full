@@ -11,7 +11,7 @@ import { fmtPrettyDate } from './dates';
 
 export default function BWChart({ entries }) {
   if (!entries || entries.length === 0) {
-    return <Card style={{textAlign:'center',padding:'18px 16px',color:C.td,fontSize:13}}>No bodyweight logged yet — appears once the trainee logs weight from their portal.</Card>;
+    return <Card style={{textAlign:'center',padding:'18px 16px',color:C.td,fontSize:13}}>{tr(readLang(), 'No bodyweight logged yet — appears once the trainee logs weight from their portal.')}</Card>;
   }
   // Bottom padding shrunk from 24 → 12 because date labels moved OUT
   // of the SVG and into HTML below (preserveAspectRatio="none" was

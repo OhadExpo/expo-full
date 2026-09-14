@@ -25,6 +25,15 @@ export const LangCtx = createContext('en');
 export const LANG_KEY = 'expo-lang';
 
 export const HE = {
+  "PARTNER PREVIEW · you're viewing the real EXPO with live data — anything you change isn't saved": "תצוגת שותף · אתה רואה את EXPO האמיתי עם נתונים חיים — שום שינוי שתעשה לא נשמר",
+  "No bodyweight logged yet — appears once the trainee logs weight from their portal.": "עוד לא נרשם משקל — יופיע ברגע שהמתאמן ישקול את עצמו מהפורטל שלו.",
+  "Run your roster on this stack. Locked-in pricing for the first wave.": "תנהל את כל המתאמנים שלך על המערכת הזאת. מחיר נעול לגל הראשון.",
+  "The camera + pose tools run live in the full app — disabled in this demo. Join the waitlist to use them on your own clips.": "כלי המצלמה וניתוח התנועה עובדים באפליקציה המלאה — בדמו הם כבויים. תירשם לרשימת ההמתנה כדי להריץ אותם על הסרטונים שלך.",
+  "Generate a link from the button above and send it to a prospect or trainee.": "תייצר קישור מהכפתור למעלה ותשלח אותו למתעניין או למתאמן.",
+  "No messages yet. Athlete replies and your sent messages will appear here.": "עוד אין הודעות. התשובות של המתאמנים וההודעות ששלחת יופיעו כאן.",
+  "Pick an athlete from the rail to trace every lift's load & volume": "תבחר מתאמן מהרשימה כדי לעקוב אחרי העומס והנפח של כל תרגיל",
+  "No exercises found. Try relaxing filters or the search term.": "לא נמצאו תרגילים. תשחרר קצת את הסינון או תשנה את מילת החיפוש.",
+  "Add the athletes training now — check them in as they arrive and log every set from this one screen.": "תוסיף את מי שמתאמן עכשיו — תסמן כל אחד כשהוא מגיע ותרשום כל סט מהמסך הזה.",
   "SAVE FAILED —": "השמירה נכשלה —",
   "Couldn’t load billing data:": "לא הצלחתי לטעון את נתוני החיוב:",
   "CONFIRM ·": "אישור ·",

@@ -262,9 +262,7 @@ export default function MessagesCard({ trainees, onSelectTrainee, onOpenMessages
             }}>{tt("RETRY")}</button>
         </div>
       ) : threads.length === 0 ? (
-        <div style={{ padding: '24px 6px', textAlign: 'center', color: 'var(--c-td)', fontSize: 13 }}>
-          No messages yet. Athlete replies and your sent messages will appear here.
-        </div>
+        <div style={{ padding: '24px 6px', textAlign: 'center', color: 'var(--c-td)', fontSize: 13 }}>{tt('No messages yet. Athlete replies and your sent messages will appear here.')}</div>
       ) : visibleThreads.length === 0 ? (
         // Inbox-clear pill — single tight uppercase line so the empty
         // state doesn't occupy more height than a single inbox row.

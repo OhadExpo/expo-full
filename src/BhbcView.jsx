@@ -3001,6 +3001,7 @@ function TodayPanel({ today, fixtures, fx, rows, onSessions, onLog, planOf, onPl
 }
 
 function TeamSnapshotCard({ team }) {
+  const tr = useT();
   const cells = [
     { k: 'Roster', v: team.n, sub: 'athletes', c: C.tx },
     { k: 'Avg ACWR', v: team.avg != null ? team.avg.toFixed(2) : '—', sub: team.avg != null ? acwrLabel(team.avg) : 'no load logged', c: team.avg != null ? BAND[bandKey(team.avg)] : C.tx },
@@ -3023,7 +3024,7 @@ function TeamSnapshotCard({ team }) {
       </div>
       {(() => {
         const vals = (team.series28 || []).map((d) => d.load);
-        if (!vals.some((v) => v > 0)) return <div style={{ padding: '8px 14px 2px', borderTop: `1px solid ${C.cardBd}`, fontFamily: FB, fontSize: 11.5, color: C.td }}>Team load trend appears here once sessions are logged.</div>;
+        if (!vals.some((v) => v > 0)) return <div style={{ padding: '8px 14px 2px', borderTop: `1px solid ${C.cardBd}`, fontFamily: FB, fontSize: 11.5, color: C.td }}>{tr('Team load trend appears here once sessions are logged.')}</div>;
         const max = Math.max(...vals, 1), n = vals.length, W = 800, H = 76, padB = 6, padT = 8;
         const gx = (i) => (n <= 1 ? W / 2 : (i / (n - 1)) * W);
         const gy = (v) => padT + (1 - v / max) * (H - padT - padB);
@@ -3474,7 +3475,7 @@ function MicrocycleView({ fx, today }) {
   const g = fx.nextGame;
   if (!g) return (
     <Card padding={14} leftStripe={ORANGE} header={secTitle('Microcycle')}>
-      <div style={{ fontFamily: FB, fontSize: 13, color: C.td }}>No game scheduled — running a general prep block. Add a fixture to anchor the training week.</div>
+      <div style={{ fontFamily: FB, fontSize: 13, color: C.td }}>{tr('No game scheduled — running a general prep block. Add a fixture to anchor the training week.')}</div>
     </Card>
   );
   const until = dayDiff(g.date, today); // days from today to the game

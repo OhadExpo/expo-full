@@ -237,9 +237,7 @@ export default function IntakeView({ trainees }) {
       {visible.length === 0 ? (
         <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: 40, textAlign: 'center' }}>
           <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>{tt('NO INTAKE YET')}</div>
-          <div style={{ fontFamily: FB, fontSize: 13, color: C.tm }}>
-            Generate a link from the button above and send it to a prospect or trainee.
-          </div>
+          <div style={{ fontFamily: FB, fontSize: 13, color: C.tm }}>{tt('Generate a link from the button above and send it to a prospect or trainee.')}</div>
         </div>
       ) : visible.map(s => (
         <Card key={s.id} style={{ marginBottom: 8, opacity: s.reviewed_at ? 0.55 : 1 }}>

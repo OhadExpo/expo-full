@@ -3686,7 +3686,7 @@ function DemoReviewTools() {
       </div>
       {note && (
         <div style={{ marginTop: 16, background: C.acD, border: `1px solid ${C.cardBd}`, borderInlineStart: `3px solid ${C.ac}`, padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-          <span style={{ fontFamily: FB, fontSize: 13, color: C.tx }}>The camera + pose tools run live in the full app — disabled in this demo. Join the waitlist to use them on your own clips.</span>
+          <span style={{ fontFamily: FB, fontSize: 13, color: C.tx }}>{T('The camera + pose tools run live in the full app — disabled in this demo. Join the waitlist to use them on your own clips.')}</span>
           <button onClick={() => setNote(false)} style={{ ...baseBtn, background: 'transparent', color: C.tm, border: `1px solid ${C.bd}`, padding: '5px 12px', fontSize: 10, flexShrink: 0 }}>{T('DISMISS')}</button>
         </div>
       )}
@@ -4199,7 +4199,7 @@ export default function CoachDemo() {
           <h3 style={{
             fontFamily: FB, fontSize: 'clamp(20px, 2.6vw, 24px)', fontWeight: 700,
             margin: '0 0 10px', letterSpacing: -0.2,
-          }}>Run your roster on this stack. Locked-in pricing for the first wave.</h3>
+          }}>{T('Run your roster on this stack. Locked-in pricing for the first wave.')}</h3>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
             <a href="/demo#waitlist" style={{
               ...baseBtn, background: C.ac, color: C.acOnSurface, padding: '11px 22px', fontSize: 12,

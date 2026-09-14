@@ -24,6 +24,8 @@ import { createContext, useContext } from 'react';
 // names by Hebrew speakers and look wrong transliterated.
 
 export const HE = {
+  "Team load trend appears here once sessions are logged.": "מגמת העומס של הקבוצה תופיע כאן אחרי שיירשמו אימונים.",
+  "No game scheduled — running a general prep block. Add a fixture to anchor the training week.": "אין משחק מתוכנן — רץ בלוק הכנה כללי. תוסיף משחק כדי לעגן את שבוע האימונים.",
   "Last game": "המשחק האחרון",
   "Logs this session for": "רושם את האימון ל",
   "available athlete": "מתאמן זמין",

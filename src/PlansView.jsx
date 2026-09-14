@@ -467,9 +467,7 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
             </div>
           )}
           {filt.length === 0 ? (
-            <div style={{ padding: 40, fontSize: 13, color: C.td, textAlign: 'center' }}>
-              No exercises found. Try relaxing filters or the search term.
-            </div>
+            <div style={{ padding: 40, fontSize: 13, color: C.td, textAlign: 'center' }}>{tt('No exercises found. Try relaxing filters or the search term.')}</div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 4 }}>
               {filt.map((ex, idx) => {
@@ -3632,9 +3630,7 @@ export function TrainingLineage({ traineeId, traineeName, exercises, plans, load
     return (
       <div style={{ border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>
         {stripHead('Training Analysis')}
-        <div style={{ padding: '48px 24px', textAlign: 'center', color: C.tm, fontFamily: FB, fontSize: 13, lineHeight: 1.6 }}>
-          Pick an athlete from the rail to trace every lift's load & volume
-          <br />across all their blocks — plateaus, progressions and dropped patterns at a glance.
+        <div style={{ padding: '48px 24px', textAlign: 'center', color: C.tm, fontFamily: FB, fontSize: 13, lineHeight: 1.6 }}>{tt("Pick an athlete from the rail to trace every lift's load & volume")}<br />across all their blocks — plateaus, progressions and dropped patterns at a glance.
         </div>
       </div>
     );
