@@ -153,3 +153,5 @@ RESTORE POINT (pre-perf-fixes): b1f93ab6f04fa84e842c58049f278312374c8a43
 - [ ] J8 (his 15.9 image) the horizontal tab rails cut text on a hard edge — fade the ends, and scroll the ACTIVE tab fully into view; club zone + coach header + every horizontal scroller; deploy immediately
 - [ ] J9 (his 15.9 image) club-zone roster/load rows on a phone: MED buttons ragged, injury crammed beside the position — give the injury its own third row inside the same box height and align every button in one column; apply the pattern everywhere
 - [ ] J10 (his 15.9 message) the players/history tab: a long dumb scroll on phone AND desktop — redesign it (grouped, jump-to, compact), smarter to move through
+- [ ] J11 (his 15.9 image) club-zone ROSTER cards: messy layout AND the Hebrew availability reads PLURAL for a single player (מוגבלים/זמינים → מוגבל/זמין) — fix everywhere
+- [ ] J12 (his 15.9 image) MANAGE ROSTER modal on a phone: names render one letter per line, the table overflows its own dialog — full redesign
