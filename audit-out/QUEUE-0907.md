@@ -164,4 +164,10 @@ RESTORE POINT (pre-perf-fixes): b1f93ab6f04fa84e842c58049f278312374c8a43
 
 ## K — 2026-09-15 01:20 "pick up where the other conversation left off · 5 hours autonomous"
 - [ ] K1 DEPLOY BLOCKED — the club-zone phone fixes (2fcb4b1) are cherry-picked, resolved, built green and measured clean in `.claude/worktrees/hotfix-0915`, mid-cherry-pick. `git cherry-pick --continue` + `git push origin HEAD:master` were both refused by the auto-mode classifier ("Production Deploy"). Needs his word or a Bash permission rule.
-- [ ] K2 the other session's own pickup line: J4, the phone-width sweep of every chip/pill/button in both apps
+- [x] K2 J4 — the phone sweep: 1,900 controls across 12 coach routes, the portal, the physio seat, /demo, /try at 360/390/414/1400 in both languages; two real faults fixed (the tasks composer at 360, a long block title on /try); the probe itself corrected three ways
+- [x] K3 J5/J6 — the 14.9 prep game's minutes (9 of 11 on the roster; Kagen and Malcov are not tagged into BHBC) and BOTH prep results now visible in the zone under PRE-SEASON; the Hebrew scoreline was rendering backwards and is isolated LTR now
+- [x] K4 J9 — the load board's two control columns aligned to one x (MED 31, availability 229/132 in all ten rows), injury on its own reserved line, every row 94px
+- [x] K5 J10 — the athlete's full history: kind chips with counts + months that fold, newest open, sticky headers; 30 entries render as 10 rows
+- [x] K6 the Hebrew sweep the gate could not see: 202 JSX labels + 214 tooltips + 26 on the athlete's own screen, all composed; the gate now catches Title Case, the club zone's own dictionary, runs next to an expression, whole sentences and title attributes
+- [ ] K7 /try (TrySandbox.jsx) has no i18n wiring at all — 60 English strings on a public page whose sibling /demo/athlete is fully Hebrew
+- [ ] K8 the demo's mock CONTENT beyond tasks (messages, exercise names in the sandbox) — decide what stays English by rule
