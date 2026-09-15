@@ -169,5 +169,10 @@ RESTORE POINT (pre-perf-fixes): b1f93ab6f04fa84e842c58049f278312374c8a43
 - [x] K4 J9 — the load board's two control columns aligned to one x (MED 31, availability 229/132 in all ten rows), injury on its own reserved line, every row 94px
 - [x] K5 J10 — the athlete's full history: kind chips with counts + months that fold, newest open, sticky headers; 30 entries render as 10 rows
 - [x] K6 the Hebrew sweep the gate could not see: 202 JSX labels + 214 tooltips + 26 on the athlete's own screen, all composed; the gate now catches Title Case, the club zone's own dictionary, runs next to an expression, whole sentences and title attributes
-- [ ] K7 /try (TrySandbox.jsx) has no i18n wiring at all — 60 English strings on a public page whose sibling /demo/athlete is fully Hebrew
-- [ ] K8 the demo's mock CONTENT beyond tasks (messages, exercise names in the sandbox) — decide what stays English by rule
+- [x] K7 /try wired to the dictionary (55 strings) AND given the LangCtx its embedded portal needs — it was falling back to English inside a Hebrew page
+- [x] K8 the demo's mock content: the nine tasks, their due dates, the revenue axis months and the dormant tags are Hebrew; exercise and plan names stay English by rule
+- [x] K9 the tooltip layer (214 `title` attributes) and the accessibility layer (59 `aria-label`/`alt`) — composed, and the gate scans both from here on
+- [x] K10 the marketing site: the logical-CSS codemod that was sitting uncommitted since 11.9, verified and committed, plus its last five English strings
+- [x] K11 `audit-out/probe-cramped.mjs` — the probe that would have caught MANAGE ROSTER; proved by breaking the fix; three real faults found and fixed (the tasks filter rail at 360, the mini-tasks segmented control, and a false-positive rule for deliberate strip bleeds)
+- [x] K12 the handoff audit back to 0 failures — four of its own checks were wrong (frozen counts, a pinned memory filename, "built, NOT deployed" not recognised as a status, a file-count regex reading §0's own sentence)
+- [ ] K13 the RTL mirror probe flags 66 elements on /coach/tasks whose start offset depends on a SIBLING's text width — not a physical-CSS fault, but the probe cannot tell the difference yet
