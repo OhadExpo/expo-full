@@ -362,10 +362,10 @@ function GooglePhotosEmbed({ url }) {
     return () => { alive = false; };
   }, [url]);
   const wrap = {marginTop:16,marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'#000',border:`1px solid ${C.cardBd}`};
-  if (state.phase === 'loading') return <div style={{...wrap,display:'flex',alignItems:'center',justifyContent:'center',color:C.tm,fontFamily:FN,fontSize:11,letterSpacing:'0.18em'}}>LOADING VIDEO…</div>;
+  if (state.phase === 'loading') return <div style={{...wrap,display:'flex',alignItems:'center',justifyContent:'center',color:C.tm,fontFamily:FN,fontSize:11,letterSpacing:'0.18em'}}>{tt('LOADING VIDEO…')}</div>;
   if (state.phase === 'err' || streamFailed) return <div style={{...wrap,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:8,color:C.tm,fontFamily:FN,fontSize:11,padding:16,textAlign:'center'}}>
     <div>{tt("VIDEO COULD NOT BE EMBEDDED")}</div>
-    {safeUrl(url) && <a href={safeUrl(url)} target="_blank" rel="noopener noreferrer" style={{color:C.ac,textDecoration:'none',letterSpacing:'0.18em'}}>OPEN IN GOOGLE PHOTOS →</a>}</div>;
+    {safeUrl(url) && <a href={safeUrl(url)} target="_blank" rel="noopener noreferrer" style={{color:C.ac,textDecoration:'none',letterSpacing:'0.18em'}}>{tt('OPEN IN GOOGLE PHOTOS →')}</a>}</div>;
   const handleBadStream = () => setStreamFailed(true);
   const handleMeta = (e) => { if (!(e.currentTarget.duration > 0)) setStreamFailed(true); };
   return <div style={wrap}><video src={state.src} poster={state.poster||undefined} controls playsInline onError={handleBadStream} onLoadedMetadata={handleMeta} style={{width:'100%',height:'100%',objectFit:'contain',background:'#000'}}/></div>;
@@ -1495,14 +1495,14 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
             {pendingBlobs > 0 && <span style={{opacity:0.85}}>· ↑{pendingBlobs}</span>}
           </span>
         )}
-        {showResumedPill && <span title="Restored from your last session" style={{color:C.or,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.1em',whiteSpace:'nowrap',display:'inline-flex',alignItems:'center',gap:5,lineHeight:1}}><span style={{lineHeight:1}}>↻</span><span style={{lineHeight:1}}>{tt("RESUMED")}</span></span>}
+        {showResumedPill && <span title={tt('Restored from your last session')} style={{color:C.or,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.1em',whiteSpace:'nowrap',display:'inline-flex',alignItems:'center',gap:5,lineHeight:1}}><span style={{lineHeight:1}}>↻</span><span style={{lineHeight:1}}>{tt("RESUMED")}</span></span>}
         {/* Bnei Herzliya team crest — readable size, vertically centered. */}
         {branch === 'Bnei Herzliya' && <img src="/bnei-herzliya-logo-w.png" alt="Bnei Herzliya" style={{height:40,width:'auto',objectFit:'contain',flexShrink:0}} />}
         <button onClick={onBack} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',padding:0,display:'inline-flex',alignItems:'center',gap:5,lineHeight:1,whiteSpace:'nowrap'}}><span style={{lineHeight:1}}>←</span><span style={{lineHeight:1}}>{tt("EXIT")}</span></button>
       </div></div>
     {sessionAutosave.status === 'error' && (
       <div role="status" style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,margin:'0 0 8px',padding:'6px 10px',background:'rgba(224,87,74,0.12)',border:'1px solid rgba(224,87,74,0.55)',color:'#E0574A',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.08em'}}>
-        <span>SAVE FAILED — YOUR LAST EDITS ARE NOT SAVED YET</span>
+        <span>{tt('SAVE FAILED — YOUR LAST EDITS ARE NOT SAVED YET')}</span>
       </div>
     )}
     <div style={{display:'flex',gap:2}}>
@@ -1697,7 +1697,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         </div>
       )}
 
-      <textarea dir="auto" value={notes} onChange={e => setNotes(e.target.value)} placeholder="How did it feel? Pain? Modifications?" style={{...bi,minHeight:120,resize:'vertical',marginBottom:16,textAlign:'center'}}/>
+      <textarea dir="auto" value={notes} onChange={e => setNotes(e.target.value)} placeholder={tt('How did it feel? Pain? Modifications?')} style={{...bi,minHeight:120,resize:'vertical',marginBottom:16,textAlign:'center'}}/>
       {fv.some(f => f.uploading) ? (
         <button style={{width:'100%',padding:16,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'wait',opacity:0.6}}>⏳ Video uploading...</button>
       ) : (
@@ -1713,7 +1713,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   const group = groups[step];
   if (!group) return (
     <div style={{ padding: '40px 20px', textAlign: 'center', minHeight: '60vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: 18 }}>
-      <div style={{ fontFamily: FN, fontSize: 12, color: C.tm, letterSpacing: '0.08em', lineHeight: 1.6 }}>This day has no exercises yet.<br />Check back once your coach adds them.</div>
+      <div style={{ fontFamily: FN, fontSize: 12, color: C.tm, letterSpacing: '0.08em', lineHeight: 1.6 }}>{tt('This day has no exercises yet.')}<br />{tt('Check back once your coach adds them.')}</div>
       <button onClick={onBack} style={{ background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', padding: '10px 22px', borderRadius: 0 }}>← EXIT</button>
     </div>
   );
@@ -1865,7 +1865,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           fontFamily:FN,fontSize:10,letterSpacing:1.2,fontWeight:600,
         }}>
           {!sub ? (
-            <button onClick={() => setSwapOpenForEid(ex.eid)} title="Find an alternate exercise"
+            <button onClick={() => setSwapOpenForEid(ex.eid)} title={tt('Find an alternate exercise')}
               style={{background:'transparent',border:'none',color:C.tm,fontFamily:FN,fontSize:10,letterSpacing:1.2,fontWeight:600,cursor:'pointer',padding:0}}
               onMouseEnter={e=>e.currentTarget.style.color=C.ac}
               onMouseLeave={e=>e.currentTarget.style.color=C.tm}>
@@ -1874,12 +1874,11 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
             </button>
           ) : (
             <span style={{color:C.ac}}>
-              <span style={{marginRight:4}}>⇄</span>
-              SWAPPED FROM {' '}
+              <span style={{marginRight:4}}>⇄</span>{tt('SWAPPED FROM')}{' '}
               <span style={{color:C.tm,fontWeight:500}} title={dPrescribed.t}>{dPrescribed.t.toUpperCase()}</span>
               {' · '}
               <button onClick={() => setSubstitutions(s => { const n={...s}; delete n[ex.eid]; return n; })}
-                title="Undo swap"
+                title={tt('Undo swap')}
                 style={{background:'transparent',border:'none',color:C.ac,fontFamily:FN,fontSize:10,letterSpacing:1.2,fontWeight:700,cursor:'pointer',padding:0,textDecoration:'underline'}}>
                 {tt("UNDO")}
               </button>
@@ -1954,11 +1953,11 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
               <div style={{marginTop:(hasText||showNote)?10:0}}>
                 <button onClick={() => setFbOpenForEid(fbOpen ? null : ex.eid)}
                   style={{width:'100%',padding:'10px 8px',borderRadius:0,border:`1px solid ${C.ac}`,background:'transparent',color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',textTransform:'uppercase',cursor:'pointer'}}>
-                  {fbOpen ? '▾ ' : '▸ '}Coach's video feedback · {lastWeekFb.count} note{lastWeekFb.count===1?'':'s'}
+                  {fbOpen ? '▾ ' : '▸ '}{tt("Coach's video feedback ·")}{lastWeekFb.count} note{lastWeekFb.count===1?'':'s'}
                 </button>
                 {fbOpen && (
                   <div style={{marginTop:8}}>
-                    <React.Suspense fallback={<div style={{fontFamily:FN,fontSize:11,color:C.td,padding:'10px 0'}}>Loading player…</div>}>
+                    <React.Suspense fallback={<div style={{fontFamily:FN,fontSize:11,color:C.td,padding:'10px 0'}}>{tt('Loading player…')}</div>}>
                       <FormVideoPlayer url={lastWeekFb.url} exerciseTitle={lastWeekFb.title} role="client" reviewNotes={lastWeekFb.notes} onReviewNotesChange={null} />
                     </React.Suspense>
                   </div>
@@ -2036,8 +2035,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
               onError={() => setFv(prev => { const n=[...prev]; n[ei]={...n[ei], videoError:true}; return n; })}
               style={{width:'100%',borderRadius:0,maxHeight:200,background:'transparent'}} />
             {f.videoError && (
-              <div style={{marginTop:6,padding:8,background:'var(--c-sf)',border:`1px solid ${C.or||'#c97a00'}`,fontSize:11,color:C.or||'#c97a00',fontFamily:FN}}>
-                Video failed to load. {safeUrl(f.cloudUrl) ? <a href={safeUrl(f.cloudUrl)} target="_blank" rel="noopener noreferrer" style={{color:C.ac}}>Open in new tab ↗</a> : 'Try Re-recording.'}
+              <div style={{marginTop:6,padding:8,background:'var(--c-sf)',border:`1px solid ${C.or||'#c97a00'}`,fontSize:11,color:C.or||'#c97a00',fontFamily:FN}}>{tt('Video failed to load.')}{safeUrl(f.cloudUrl) ? <a href={safeUrl(f.cloudUrl)} target="_blank" rel="noopener noreferrer" style={{color:C.ac}}>Open in new tab ↗</a> : 'Try Re-recording.'}
               </div>
             )}
             <div style={{display:'flex',gap:8,marginTop:6}}>
@@ -2960,11 +2958,11 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           </div>}
           <div style={{fontSize:9,fontFamily:FN,color:C.tm,marginBottom:8,textAlign:'center',letterSpacing:'0.18em',fontWeight:700}}>{tt('Log week')} {wk+1} · {activePlan?.name || tt('NO ACTIVE BLOCK')}</div>
           <div style={{display:'flex',gap:8}}>
-            <input value={bwDisplay} onChange={e => setBw(e.target.value)} placeholder="Weight in kg" type="number" disabled={!activePlan} style={{flex:1,minWidth:0,background: 'var(--c-sf2)',border:`1px solid ${existingBw?'rgba(46,213,115,0.376)':C.ac}`,borderRadius:0,padding:'10px 12px',color:C.tx,fontFamily:FN,fontSize:14,outline:'none',boxSizing:'border-box',opacity:activePlan?1:0.5,textAlign:'center'}}/>
+            <input value={bwDisplay} onChange={e => setBw(e.target.value)} placeholder={tt('Weight in kg')} type="number" disabled={!activePlan} style={{flex:1,minWidth:0,background: 'var(--c-sf2)',border:`1px solid ${existingBw?'rgba(46,213,115,0.376)':C.ac}`,borderRadius:0,padding:'10px 12px',color:C.tx,fontFamily:FN,fontSize:14,outline:'none',boxSizing:'border-box',opacity:activePlan?1:0.5,textAlign:'center'}}/>
             <button disabled={!activePlan||demoMode} onClick={()=>{if(demoMode)return;const val=bw||bwDisplay;if(val&&Number.isFinite(parseFloat(val))&&activePlan){setBwLog(prev=>{const filtered=prev.filter(b=>!(b.clientId===ci&&b.blockName===activePlan.name&&b.week===wk+1));return[...filtered,{date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(val),blockName:activePlan.name,planId:activePlan.id||null}]});setBw('')}}}
               style={{padding:'10px 20px',borderRadius:0,border:`1px solid ${(bw&&activePlan)?C.ac:C.cardBd}`,background:'transparent',color:(bw&&activePlan)?C.ac:C.td,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',cursor:(bw&&activePlan)?'pointer':'default'}}>{tt("SAVE")}</button>
           </div>
-          {!activePlan && <div style={{fontSize:10,color:C.td,marginTop:6}}>Assign an active program to log bodyweight.</div>}
+          {!activePlan && <div style={{fontSize:10,color:C.td,marginTop:6}}>{tt('Assign an active program to log bodyweight.')}</div>}
         </div>
 
         {/* Graph */}
@@ -3059,7 +3057,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             </div>
             <div style={{display:'flex',alignItems:'center',gap:8}}>
               <span style={{fontSize:10,color:C.td,fontFamily:FN}}>{fmtPrettyDate(d.date)}</span>
-              <button onClick={onDelete} title="Delete entry" style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,color:C.td,cursor:'pointer',fontSize:14,padding:'2px 6px',borderRadius:0,lineHeight:1}}>×</button>
+              <button onClick={onDelete} title={tt('Delete entry')} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,color:C.td,cursor:'pointer',fontSize:14,padding:'2px 6px',borderRadius:0,lineHeight:1}}>×</button>
             </div>
           </div>;
         })}
@@ -3093,7 +3091,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
       <div style={{padding:'14px 20px 20px'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}>
           <button onClick={() => setVw('hist')} style={{background:'transparent',border:'none',color:C.ac,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',cursor:'pointer',padding:0}}>← HISTORY</button>
-          <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}><bdi>{clientName}</bdi> · {checkinCount} CHECK-IN{checkinCount===1?'':'S'}</div>
+          <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}><bdi>{clientName}</bdi> · {checkinCount}{tt('CHECK-IN')}{checkinCount===1?'':'S'}</div>
         </div>
         <CheckinTrends workouts={cw} />
       </div>
@@ -3156,7 +3154,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                 </div>
                 {isOpen && hasVideo && (
                   <div style={{marginTop:6,marginBottom:10,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:8}}>
-                    <React.Suspense fallback={<div style={{fontFamily:FN,fontSize:11,color:C.td,padding:'10px 0'}}>Loading player…</div>}>
+                    <React.Suspense fallback={<div style={{fontFamily:FN,fontSize:11,color:C.td,padding:'10px 0'}}>{tt('Loading player…')}</div>}>
                       <FormVideoPlayer url={fv.cloudUrl} exerciseTitle={x.title}
                         role="client"
                         reviewNotes={fv.reviewNotes || []}
@@ -3179,7 +3177,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     {renderTopHeader()}
     <div style={{padding:'14px 20px 28px'}}>
       {ci ? (
-        <React.Suspense fallback={<div style={{textAlign:'center',color:C.td,padding:40,fontFamily:FN,fontSize:11,letterSpacing:'0.18em',fontWeight:700}}>LOADING…</div>}>
+        <React.Suspense fallback={<div style={{textAlign:'center',color:C.td,padding:40,fontFamily:FN,fontSize:11,letterSpacing:'0.18em',fontWeight:700}}>{tt('LOADING…')}</div>}>
           <MealLogger clientId={ci} page demoMode={demoMode} />
         </React.Suspense>
       ) : null}
@@ -3295,7 +3293,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           <div style={{fontSize:11,color:C.tm,marginBottom:10}}>{tt(plansLoadError)}</div>
           <button onClick={()=>{setPlansLoadError(null);setPlansReloadKey(k=>k+1);}} style={{background:'var(--c-sf)',border:`1px solid ${C.rd||'#c94444'}`,color:C.rd||'#ff6b6b',borderRadius:0,padding:'6px 14px',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',cursor:'pointer'}}>{tt("RETRY")}</button>
         </div>}
-        {visPlans.length===0 && !plansLoadError && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'40px 30px',textAlign:'center',color:C.td,marginBottom:14}}><div style={{fontSize:10,fontFamily:FN,fontWeight:700,letterSpacing:'0.18em',color:C.tm,marginBottom:10}}>{tt("NO ACTIVE PROGRAM")}</div><div style={{fontSize:13,color:C.td}}>Contact your coach to start training.</div></div>}
+        {visPlans.length===0 && !plansLoadError && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'40px 30px',textAlign:'center',color:C.td,marginBottom:14}}><div style={{fontSize:10,fontFamily:FN,fontWeight:700,letterSpacing:'0.18em',color:C.tm,marginBottom:10}}>{tt("NO ACTIVE PROGRAM")}</div><div style={{fontSize:13,color:C.td}}>{tt('Contact your coach to start training.')}</div></div>}
         {/* Per-plan block: divider → warm-up → rest → training days */}
         {(()=>{ let globalDayIdx = 0;
           // ── buildCard: ONE card renderer, six identities ────────────────
@@ -3389,8 +3387,8 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                     #4 — Hypertrophy") ran 18px past the card's edge and was cut
                     mid-word - measured on /try at 390. It truncates now, and the
                     count never gets pushed out with it. */}
-                <span style={{display:'inline-flex',alignItems:'baseline',gap:7,whiteSpace:'nowrap',minWidth:0,maxWidth:'100%',overflow:'hidden',lineHeight:1}}>
-                  <span title={title} style={{fontWeight:700,fontSize:size,fontFamily:FN,letterSpacing:tracking,textTransform:'uppercase',lineHeight:1,color:ident==='EDITORIAL'&&accent===C.or?C.or:(accent===C.or?C.or:C.tx),minWidth:0,overflow:'hidden',textOverflow:'ellipsis'}}>{title}</span>
+                <span style={{display:'inline-flex',alignItems:'baseline',gap:7,whiteSpace:'normal',minWidth:0,maxWidth:'100%',lineHeight:1}}>
+                  <span title={title} style={{fontWeight:700,fontSize:size,fontFamily:FN,letterSpacing:tracking,textTransform:'uppercase',lineHeight:1,color:ident==='EDITORIAL'&&accent===C.or?C.or:(accent===C.or?C.or:C.tx),minWidth:0,whiteSpace:'normal',overflowWrap:'anywhere'}}>{title}</span>
                   <span style={{fontSize:10,color:countColor || C.tm,fontFamily:FN,letterSpacing:'0.08em',textTransform:'uppercase',lineHeight:1,flexShrink:0,transform:`translateY(${(3.28 - 0.333 * size).toFixed(2)}px)`,...(countColor?{opacity:0.65}:{})}}>{count}</span>
                 </span>
                 {extras}
@@ -3550,8 +3548,8 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             title: day.name,
             count: `${day.ex.length} ${tt('EX')}`,
             extras: <>
-              {done && <span title="Completed this week" style={{display:'inline-flex',alignItems:'center',justifyContent:'center',height:24,minWidth:28,boxSizing:'border-box',lineHeight:1,padding:'0 9px',border:`1px solid ${C.gn}`,color:C.gn,fontFamily:FN,fontSize:12,fontWeight:700,flexShrink:0,whiteSpace:'nowrap'}}>✓</span>}
-              {isDailyRoutine && dailyCount > 0 && <span style={{display:'inline-flex',alignItems:'center',justifyContent:'center',height:24,boxSizing:'border-box',lineHeight:1,paddingInlineStart:8,paddingInlineEnd:6.5,border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:8,fontWeight:700,letterSpacing:'0.18em',whiteSpace:'nowrap',flexShrink:0}}>{dailyCount} LOGGED</span>}
+              {done && <span title={tt('Completed this week')} style={{display:'inline-flex',alignItems:'center',justifyContent:'center',height:24,minWidth:28,boxSizing:'border-box',lineHeight:1,padding:'0 9px',border:`1px solid ${C.gn}`,color:C.gn,fontFamily:FN,fontSize:12,fontWeight:700,flexShrink:0,whiteSpace:'nowrap'}}>✓</span>}
+              {isDailyRoutine && dailyCount > 0 && <span style={{display:'inline-flex',alignItems:'center',justifyContent:'center',height:24,boxSizing:'border-box',lineHeight:1,paddingInlineStart:8,paddingInlineEnd:6.5,border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:8,fontWeight:700,letterSpacing:'0.18em',whiteSpace:'nowrap',flexShrink:0}}>{dailyCount}{tt('LOGGED')}</span>}
             </>,
             action: { label: tt(done ? 'AGAIN' : 'START'), onClick: () => setLg(dayIdx) },
             rows: day.ex.map((ex,i) => {
@@ -3584,6 +3582,6 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   // Auth is handled upstream in App.jsx — no login form here.
   return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:20,gap:16}}>
     <img src={EXPO_LOGO_NAV} alt="EXPO" style={{height:50}} />
-    <div style={{color:C.td,fontSize:13}}>Loading your program…</div>
+    <div style={{color:C.td,fontSize:13}}>{tt('Loading your program…')}</div>
   </div>;
 }

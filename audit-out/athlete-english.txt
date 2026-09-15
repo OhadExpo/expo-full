@@ -1,0 +1,93 @@
+ClientPortal.jsx
+  jsx    Assign an active program to log bodyweight.
+  jsx    CHECK-IN
+  jsx    Check back once your coach adds them.
+  jsx    Coach's video feedback ·
+  jsx    Contact your coach to start training.
+  jsx    LOADING VIDEO…
+  jsx    LOADING…
+  jsx    LOGGED
+  jsx    Loading player…
+  jsx    Loading your program…
+  jsx    OPEN IN GOOGLE PHOTOS →
+  jsx    Remove
+  jsx    Replace
+  jsx    SAVE FAILED — YOUR LAST EDITS ARE NOT SAVED YET
+  jsx    SWAPPED FROM
+  jsx    Start Workout →
+  jsx    This day has no exercises yet.
+  jsx    Video failed to load.
+  ph     How did it feel? Pain? Modifications?
+  ph     Weight in kg
+  title  Completed this week
+  title  Delete entry
+  title  Find an alternate exercise
+  title  Restored from your last session
+  title  Undo swap
+MealLogger.jsx
+  jsx    AI ESTIMATE · CONFIDENCE:
+  jsx    ANALYZING…
+  jsx    UPLOADING…
+DemoTraineePortal.jsx
+
+TrySandbox.jsx
+  jsx    ATHLETE
+  jsx    AUTO
+  jsx    BODYWEIGHT
+  jsx    Bodyweight Tracking
+  jsx    COACH
+  jsx    COACH NOTE
+  jsx    CONTINUE → UPLOAD
+  jsx    Complete Workout
+  jsx    DEMO
+  jsx    Drop in a clip of your
+  jsx    Drop in your client's
+  jsx    EXERCISES
+  jsx    EXERCISES LOGGED ·
+  jsx    FILM SET
+  jsx    FORM VIDEO
+  jsx    FROM PATTERN:
+  jsx    Hey
+  jsx    History (
+  jsx    JOINT TRACKING
+  jsx    LOADING POSE MODEL…
+  jsx    LOG
+  jsx    LOG W
+  jsx    Log Out →
+  jsx    MANUAL OVERRIDE — pick the lift instead
+  jsx    MEDIAPIPE LITE · 33 LANDMARKS
+  jsx    MP4 · MOV · WEBM · stays on this device
+  jsx    Meal log
+  jsx    Messages
+  jsx    No workouts yet.
+  jsx    Ohad left
+  jsx    PHOTO OR TEXT · THE COACH SEES IT WITH THE TRAINING
+  jsx    PRE-WORKOUT CHECK
+  jsx    Personal Records (
+  jsx    RECENT WORKOUTS
+  jsx    REP
+  jsx    REP CHANNEL ·
+  jsx    SESSIONS
+  jsx    SETS ·
+  jsx    SPEED
+  jsx    STEP 1 ·
+  jsx    STEP 2 ·
+  jsx    Save
+  jsx    TREND
+  jsx    Tap to browse · or drop here
+  jsx    Tap to view in History →
+  jsx    The review tool
+  jsx    VIDEO STAYS ON YOUR DEVICE
+  jsx    WEEK
+  jsx    WEEK 2 OF 4 · EXERCISE 1 OF 8
+  jsx    We already know — it's your
+  jsx    Week
+  jsx    What
+  jsx    YOUR PORTAL · MOCK DATA
+  jsx    You're reviewing
+  ph     Today's weight (kg)
+  ph     Weight in kg
+  title  Back to EXPO
+  title  Change password (demo)
+  title  Film a set
+  title  Start over

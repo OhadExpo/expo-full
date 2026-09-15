@@ -12,11 +12,11 @@ const CALL = {
   'CoachDemo.jsx': 'T', 'DashboardView.jsx': 'tt', 'IntakeView.jsx': 'tt', 'NotesWidget.jsx': 'tt',
   'PlansView.jsx': 'tt', 'SessionsView.jsx': 'tt', 'TasksV8View.jsx': 'tt', 'TraineeDetail.jsx': 't',
   'TraineePRsView.jsx': 'tt', 'TraineesView.jsx': 'tt', 'WeeklyFocusTool.jsx': 'tt', 'WorkoutReview.jsx': 'tt',
-  'BookingPublic.jsx': 'RL', 'NotesInline.jsx': 'RL',
+  'BookingPublic.jsx': 'RL', 'NotesInline.jsx': 'RL', 'ClientPortal.jsx': 'tt', 'MealLogger.jsx': 'tt',
   'WorkoutsView.jsx': 'tt', 'ReviewToolsView.jsx': 'tt', 'MessagesCard.jsx': 'tt',
   'ExercisesView.jsx': 'tt', 'CheckinTrends.jsx': 'tt', 'BillingView.jsx': 'tt', 'BwChart.jsx': 'RL',
 };
-const SKIP_FILES = new Set(['ClientPortal.jsx', 'MealLogger.jsx', 'DemoTraineePortal.jsx', 'TrySandbox.jsx', 'auth.jsx']);
+const SKIP_FILES = new Set((process.env.ONLY ? [] : ['ClientPortal.jsx', 'MealLogger.jsx', 'DemoTraineePortal.jsx', 'TrySandbox.jsx']).concat(['auth.jsx']));
 const ALLOW = new Set(['EXPO', 'RPE', 'ROM', 'VBT', 'BW', 'KG', 'PR', 'PRS', 'MRR', 'LTV', 'VAT', 'AI', 'OK', 'ID', 'URL', 'MP4', 'MOV', 'WEBM', 'CSV', 'PDF', 'PNG', 'JPG', 'XLSX', 'TSV', 'GB', 'MB', 'KB', 'FPS', 'HD', 'RDL', 'SLDL', 'OHP', 'DB', 'BB', 'TRX', 'BHBC', 'ACWR', 'HRV', 'RTP', 'MD', 'PPG', 'EN', 'HE', 'LIVE', 'REC', 'A', 'B', 'C', 'D', 'E', 'W', 'L', 'R', 'X', 'N', 'Y', 'M', 'J', 'S', 'Δ', 'ATH', 'POS', 'ISO', 'SA', 'SL', 'BP', 'ECC', 'CON', 'AMRAP', 'EMOM', 'TUT', 'RIR', '1RM', 'E1RM', 'NCAA', 'CMU', 'OUI', 'TAU', 'NIS', 'ILS', 'USD', 'YT', 'GPS', 'API', 'RLS', 'SW', 'PWA', 'IOS', 'MEDIAPIPE', 'LITE', 'LOG', 'W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7', 'W8', 'W9', 'W10', 'W11', 'W12']);
 const BRAND = /^(?:Google Calendar|Vercel|Supabase|WhatsApp|YouTube|Green Invoice)$/;
 const CODE_SHAPE = /\w\(|\)\.|=>|replace|const/;
@@ -46,6 +46,7 @@ let total = 0;
 for (const f of fs.readdirSync('src').filter((x) => x.endsWith('.jsx') && !SKIP_FILES.has(x))) {
   const raw = fs.readFileSync(path.join('src', f), 'utf8');
   if (!/from '\.\/i18n'/.test(raw) && !/from '\.\/bhbcHe'/.test(raw)) continue;
+  if (process.env.ONLY && !process.env.ONLY.split(',').includes(f)) continue;
   if (!CALL[f]) continue;
   const src = stripComments(raw);
   const edits = [];

@@ -423,9 +423,7 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
             </label>
           )}
           {uploading && (
-            <div style={{ textAlign: 'center', color: C.tm, fontFamily: FN, fontSize: 10, letterSpacing: '0.18em', fontWeight: 700, padding: 14 }}>
-              UPLOADING…
-            </div>
+            <div style={{ textAlign: 'center', color: C.tm, fontFamily: FN, fontSize: 10, letterSpacing: '0.18em', fontWeight: 700, padding: 14 }}>{tt('UPLOADING…')}</div>
           )}
           {photoUrl && !macros && !analyzing && (
             <div>
@@ -444,9 +442,7 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
             </div>
           )}
           {analyzing && (
-            <div style={{ textAlign: 'center', color: C.ac, fontFamily: FN, fontSize: 10, letterSpacing: '0.18em', fontWeight: 700, padding: 20 }}>
-              ANALYZING…
-            </div>
+            <div style={{ textAlign: 'center', color: C.ac, fontFamily: FN, fontSize: 10, letterSpacing: '0.18em', fontWeight: 700, padding: 20 }}>{tt('ANALYZING…')}</div>
           )}
           {macros && photoUrl && (
             <MacrosReview macros={macros} setMacros={setMacros} photoUrl={photoUrl} onCancel={() => { setMacros(null); setPhotoUrl(null); setHint(''); }} onSave={save} saving={saving} />
@@ -479,8 +475,7 @@ function MacrosReview({ macros, setMacros, photoUrl, onCancel, onSave, saving })
   return (
     <div>
       <img src={photoUrl} alt="meal" style={{ width: '100%', maxHeight: 200, objectFit: 'cover', display: 'block', marginBottom: 10 }} />
-      <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>
-        AI ESTIMATE · CONFIDENCE: <span style={{ color: macros.confidence === 'high' ? C.gn : macros.confidence === 'medium' ? C.or : C.rd }}>{macros.confidence?.toUpperCase()}</span>
+      <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>{tt('AI ESTIMATE · CONFIDENCE:')}<span style={{ color: macros.confidence === 'high' ? C.gn : macros.confidence === 'medium' ? C.or : C.rd }}>{macros.confidence?.toUpperCase()}</span>
       </div>
       {macros.items?.length > 0 && (
         <div style={{ marginBottom: 10, fontSize: 11, color: C.tm }}>
