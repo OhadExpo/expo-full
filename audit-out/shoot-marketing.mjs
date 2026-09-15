@@ -10,7 +10,7 @@ const cdp = await pg.createCDPSession();
 await cdp.send('Network.setBypassServiceWorker', { bypass: true }).catch(() => {});
 await cdp.send('Network.setCacheDisabled', { cacheDisabled: true }).catch(() => {});
 await pg.setViewport({ width: W, height: 1000, deviceScaleFactor: 2, isMobile: W < 500, hasTouch: W < 500 });
-await pg.goto(BASE + (process.env.PATHNAME || '/'), { waitUntil: 'networkidle2' });
+await pg.goto(BASE + (process.env.PATHNAME || '/'), { waitUntil: process.env.WAIT || 'networkidle2' });
 await wait(4000);
 const over = await pg.evaluate(() => {
   const vw = innerWidth; const out = [];
