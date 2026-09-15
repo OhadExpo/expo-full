@@ -613,7 +613,11 @@ function AuthGate() {
   if (!inPwa) {
     // /try short-circuits BEFORE the auth check so the route stays public.
     if (path === '/try' || path.startsWith('/try/')) {
-      return <Suspense fallback={<BootSplash />}><TrySandbox /></Suspense>;
+      // The sandbox embeds the demo portal, whose every label goes through
+      // useT() - and /try mounted it with no LangCtx above it, so a Hebrew
+      // visitor got an English portal inside a Hebrew page. Same provider the
+      // /demo/athlete route already uses.
+      return <LangCtx.Provider value={readLang()}><Suspense fallback={<BootSplash />}><TrySandbox /></Suspense></LangCtx.Provider>;
     }
     if (path === '/demo/coach' || path.startsWith('/demo/coach/') || path === '/coaches/demo/coach' || path === '/coaches/try') {
       // '/coaches/try' included: its replaceState rewrite runs after render, so
@@ -625,7 +629,7 @@ function AuthGate() {
       return <LangCtx.Provider value={readLang()}><Suspense fallback={<BootSplash />}><DemoTraineePortal /></Suspense></LangCtx.Provider>;
     }
     if (path === '/demo/sandbox') {
-      return <Suspense fallback={<BootSplash />}><TrySandbox pov="trainee" /></Suspense>;
+      return <LangCtx.Provider value={readLang()}><Suspense fallback={<BootSplash />}><TrySandbox pov="trainee" /></Suspense></LangCtx.Provider>;
     }
     // The coaches' demo LANDING (/demo, /demo/he) is public too — render it
     // BEFORE the auth gate so a signed-in coach can still open the demo to show

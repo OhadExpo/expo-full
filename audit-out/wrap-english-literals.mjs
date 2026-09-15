@@ -12,7 +12,7 @@ const CALL = {
   'CoachDemo.jsx': 'T', 'DashboardView.jsx': 'tt', 'IntakeView.jsx': 'tt', 'NotesWidget.jsx': 'tt',
   'PlansView.jsx': 'tt', 'SessionsView.jsx': 'tt', 'TasksV8View.jsx': 'tt', 'TraineeDetail.jsx': 't',
   'TraineePRsView.jsx': 'tt', 'TraineesView.jsx': 'tt', 'WeeklyFocusTool.jsx': 'tt', 'WorkoutReview.jsx': 'tt',
-  'BookingPublic.jsx': 'RL', 'NotesInline.jsx': 'RL', 'ClientPortal.jsx': 'tt', 'MealLogger.jsx': 'tt',
+  'BookingPublic.jsx': 'RL', 'NotesInline.jsx': 'RL', 'ClientPortal.jsx': 'tt', 'MealLogger.jsx': 'tt', 'TrySandbox.jsx': 'T',
   'WorkoutsView.jsx': 'tt', 'ReviewToolsView.jsx': 'tt', 'MessagesCard.jsx': 'tt',
   'ExercisesView.jsx': 'tt', 'CheckinTrends.jsx': 'tt', 'BillingView.jsx': 'tt', 'BwChart.jsx': 'RL',
 };

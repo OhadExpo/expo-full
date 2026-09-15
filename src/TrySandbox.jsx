@@ -14,9 +14,15 @@ import { safeUrl } from './VideoEmbed';
 import { EXPOMark } from './expoMark';
 import { todayLocalISO } from './dates';
 import DemoTraineePortal from './DemoTraineePortal';
+import { tr, readLang } from './i18n';
 import {
   ANGLE_DEFS, angleAt, detectChannels, medianFilter, findPeaks, SMOOTH_N,
 } from './repCounter';
+
+// The sandbox is a PUBLIC page and its embedded portal is already Hebrew, so
+// its own chrome has to be too. Module-level, like the coach demo: there is no
+// provider above this route.
+const T = (x) => tr(readLang(), x);
 
 // MediaPipe Pose-Landmarker landmark pairs we draw skeleton edges between.
 // Same set the production WorkoutReview overlay uses. Anything outside this
@@ -307,13 +313,13 @@ function ClientPortalMock({ onPick }) {
           <div style={{ background: C.sf2, borderRadius: 0, height: 6, overflow: 'hidden' }}>
             <div style={{ background: pct === 100 ? C.gn : C.ac, height: '100%', width: `${pct}%`, transition: 'width 0.3s', borderRadius: 0 }} />
           </div>
-          <div style={{ fontSize: 10, fontFamily: FN, color: C.td, letterSpacing: 1, marginTop: 4, textAlign: 'right' }}>{doneSets} / {totalSets} SETS · {pct}%</div>
+          <div style={{ fontSize: 10, fontFamily: FN, color: C.td, letterSpacing: 1, marginTop: 4, textAlign: 'right' }}>{doneSets} / {totalSets}{T('SETS ·')}{pct}%</div>
         </div>
 
         <div style={{ padding: '14px 20px 24px' }}>
           {/* Pre-workout check (pain / energy / sleep) — same fields as real */}
           <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 14, marginBottom: 14 }}>
-            <div style={{ fontSize: 11, fontFamily: FN, color: C.td, letterSpacing: 1.5, fontWeight: 700, marginBottom: 10 }}>PRE-WORKOUT CHECK</div>
+            <div style={{ fontSize: 11, fontFamily: FN, color: C.td, letterSpacing: 1.5, fontWeight: 700, marginBottom: 10 }}>{T('PRE-WORKOUT CHECK')}</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
               {[['pain', 'PAIN', '0-10'], ['energy', 'ENERGY', '1-5'], ['sleep', 'SLEEP', '1-5']].map(([k, l, ph]) => (
                 <div key={k}>
@@ -374,10 +380,10 @@ function ClientPortalMock({ onPick }) {
                 );
               })}
               <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-                <button onClick={() => onPick({ key: ex.eid, label: ex.t, sample: ex.t })} title="Film a set" style={{
+                <button onClick={() => onPick({ key: ex.eid, label: ex.t, sample: ex.t })} title={T('Film a set')} style={{
                   ...baseBtn, background: 'transparent', color: C.rd,
                   border: `1px solid rgba(255,71,87,0.251)`, padding: '6px 12px', fontSize: 11,
-                }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'-2px',marginRight:6}}><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>FILM SET</button>
+                }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'-2px',marginRight:6}}><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>{T('FILM SET')}</button>
                 <button onClick={() => {
                   // Mark all sets done
                   const next = { ...logSets };
@@ -412,13 +418,13 @@ function ClientPortalMock({ onPick }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
           <EXPOMark theme="dark" height={36} style={{ marginLeft: 3 }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <button title="Change password (demo)" style={{ background: 'none', border: 'none', color: C.tm, cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}>
+            <button title={T('Change password (demo)')} style={{ background: 'none', border: 'none', color: C.tm, cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
             </button>
-            <a href="/demo" style={{ background: 'none', border: 'none', color: C.ac, cursor: 'pointer', fontFamily: FB, fontSize: 13, padding: 0, textDecoration: 'none' }}>Log Out →</a>
+            <a href="/demo" style={{ background: 'none', border: 'none', color: C.ac, cursor: 'pointer', fontFamily: FB, fontSize: 13, padding: 0, textDecoration: 'none' }}>{T('Log Out →')}</a>
           </div>
         </div>
-        <h1 style={{ margin: '0 0 6px', fontFamily: FN, fontSize: 20, color: C.tx, textAlign: 'center' }}>Hey {TRAINEE.firstName} 💪</h1>
+        <h1 style={{ margin: '0 0 6px', fontFamily: FN, fontSize: 20, color: C.tx, textAlign: 'center' }}>{T('Hey')}{TRAINEE.firstName} 💪</h1>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 14 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -429,7 +435,7 @@ function ClientPortalMock({ onPick }) {
           </div>
           <div style={{ textAlign: 'right', flexShrink: 0 }}>
             <div style={{ fontSize: 22, fontWeight: 700, fontFamily: FN, color: TRAINEE.sessionsLeft <= 2 ? C.rd : C.gn }}>{TRAINEE.sessionsLeft}</div>
-            <div style={{ fontSize: 9, color: C.tm, fontFamily: FN }}>SESSIONS</div>
+            <div style={{ fontSize: 9, color: C.tm, fontFamily: FN }}>{T('SESSIONS')}</div>
           </div>
         </div>
       </div>
@@ -464,7 +470,7 @@ function ClientPortalMock({ onPick }) {
       <div style={{ background: C.bg, color: C.tx, minHeight: '100vh', fontFamily: FB, maxWidth: 500, margin: '0 auto' }}>
         {renderTopHeader()}
         <div style={{ padding: '14px 20px 20px' }}>
-          <h2 style={{ margin: '0 0 4px', fontFamily: FN, fontSize: 18 }}>Bodyweight Tracking</h2>
+          <h2 style={{ margin: '0 0 4px', fontFamily: FN, fontSize: 18 }}>{T('Bodyweight Tracking')}</h2>
           <div style={{ color: C.tm, fontSize: 12, marginBottom: 16 }}>{TRAINEE.name} · {bwData.length} entries</div>
           <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 14, marginBottom: 16 }}>
             <div style={{ display: 'flex', gap: 4, marginBottom: 10, flexWrap: 'wrap' }}>
@@ -480,7 +486,7 @@ function ClientPortalMock({ onPick }) {
             </div>
             <div style={{ fontSize: 11, fontFamily: FN, color: C.td, marginBottom: 8, textAlign: 'center' }}>LOG W{wk + 1} · {PLAN.name}</div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <input value={bwInput} onChange={e => setBwInput(e.target.value)} placeholder="Weight in kg" type="number" style={{
+              <input value={bwInput} onChange={e => setBwInput(e.target.value)} placeholder={T('Weight in kg')} type="number" style={{
                 flex: 1, background: C.sf2, border: `1px solid ${C.ac}`, borderRadius: 0,
                 padding: '10px 12px', color: C.tx, fontFamily: FN, fontSize: 14, outline: 'none',
                 boxSizing: 'border-box', textAlign: 'center',
@@ -498,7 +504,7 @@ function ClientPortalMock({ onPick }) {
             </div>
           </div>
           <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 14, marginBottom: 16 }}>
-            <div style={{ fontSize: 11, fontFamily: FN, color: C.td, marginBottom: 10 }}>TREND</div>
+            <div style={{ fontSize: 11, fontFamily: FN, color: C.td, marginBottom: 10 }}>{T('TREND')}</div>
             <svg viewBox={`0 -10 ${Math.max(bwData.length * 60, 300)} 185`} style={{ width: '100%', height: 185 }}>
               {[0, 0.25, 0.5, 0.75, 1].map((p, i) => {
                 const y = 10 + p * 130;
@@ -529,7 +535,7 @@ function ClientPortalMock({ onPick }) {
       <div style={{ background: C.bg, color: C.tx, minHeight: '100vh', fontFamily: FB, maxWidth: 500, margin: '0 auto' }}>
         {renderTopHeader()}
         <div style={{ padding: '14px 20px 20px' }}>
-          <h2 style={{ margin: '0 0 12px', fontFamily: FN, fontSize: 18 }}>Meal log</h2>
+          <h2 style={{ margin: '0 0 12px', fontFamily: FN, fontSize: 18 }}>{T('Meal log')}</h2>
           {MEALS.map((m, i) => (
             <div key={i} style={{ background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '12px 14px', marginBottom: 8 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
@@ -539,7 +545,7 @@ function ClientPortalMock({ onPick }) {
               <div style={{ fontFamily: FB, fontSize: 14, color: C.tx, marginTop: 4 }}>{m.what}</div>
             </div>
           ))}
-          <div style={{ fontFamily: FN, fontSize: 10, letterSpacing: 1, color: C.td, marginTop: 10 }}>PHOTO OR TEXT · THE COACH SEES IT WITH THE TRAINING</div>
+          <div style={{ fontFamily: FN, fontSize: 10, letterSpacing: 1, color: C.td, marginTop: 10 }}>{T('PHOTO OR TEXT · THE COACH SEES IT WITH THE TRAINING')}</div>
         </div>
       </div>
     );
@@ -570,7 +576,7 @@ function ClientPortalMock({ onPick }) {
       <div style={{ background: C.bg, color: C.tx, minHeight: '100vh', fontFamily: FB, maxWidth: 500, margin: '0 auto' }}>
         {renderTopHeader()}
         <div style={{ padding: '14px 20px 20px' }}>
-          <h2 style={{ margin: '0 0 12px', fontFamily: FN, fontSize: 18 }}>Personal Records ({PRS.length})</h2>
+          <h2 style={{ margin: '0 0 12px', fontFamily: FN, fontSize: 18 }}>{T('Personal Records (')}{PRS.length})</h2>
           {PRS.map((pr, i) => (
             <div key={i} style={{ background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '12px 14px', marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
@@ -600,9 +606,9 @@ function ClientPortalMock({ onPick }) {
       <div style={{ background: C.bg, color: C.tx, minHeight: '100vh', fontFamily: FB, maxWidth: 500, margin: '0 auto' }}>
         {renderTopHeader()}
         <div style={{ padding: '14px 20px 20px' }}>
-          <h2 style={{ margin: '0 0 12px', fontFamily: FN, fontSize: 18 }}>History ({HISTORY.length})</h2>
+          <h2 style={{ margin: '0 0 12px', fontFamily: FN, fontSize: 18 }}>{T('History (')}{HISTORY.length})</h2>
           {HISTORY.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: 40, color: C.td }}>No workouts yet.</div>
+            <div style={{ textAlign: 'center', padding: 40, color: C.td }}>{T('No workouts yet.')}</div>
           ) : (
             HISTORY.map(w => {
               const wActive = expandedHistEx && expandedHistEx.startsWith(w.id + ':');
@@ -647,10 +653,10 @@ function ClientPortalMock({ onPick }) {
                               background: '#000', borderRadius: 0, aspectRatio: '16/9',
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
                               color: C.tm, fontFamily: FN, fontSize: 11, letterSpacing: 1.5, fontWeight: 700,
-                            }}>FORM VIDEO</div>
+                            }}>{T('FORM VIDEO')}</div>
                             {x.notes > 0 && (
                               <div style={{ marginTop: 8, fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: 1, fontWeight: 700 }}>
-                                💬 {x.notes} COACH NOTE{x.notes === 1 ? '' : 'S'}
+                                💬 {x.notes}{T('COACH NOTE')}{x.notes === 1 ? '' : 'S'}
                               </div>
                             )}
                           </div>
@@ -724,8 +730,8 @@ function ClientPortalMock({ onPick }) {
           }}>
             <span style={{ fontSize: 20 }}>📬</span>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, color: C.ac, fontWeight: 700 }}>Ohad left {unreadCoachNotes} new note{unreadCoachNotes === 1 ? '' : 's'} on your workouts</div>
-              <div style={{ fontSize: 11, color: C.tm, marginTop: 2 }}>Tap to view in History →</div>
+              <div style={{ fontSize: 13, color: C.ac, fontWeight: 700 }}>{T('Ohad left')}{unreadCoachNotes} new note{unreadCoachNotes === 1 ? '' : 's'} on your workouts</div>
+              <div style={{ fontSize: 11, color: C.tm, marginTop: 2 }}>{T('Tap to view in History →')}</div>
             </div>
           </div>
         )}
@@ -808,7 +814,7 @@ function Header({ step, exercise, hasVideo, onRestart, onStep }) {
         maxWidth: 1180, margin:'0 auto', padding:'0 16px',
         display:'flex', alignItems:'center', height: 60, gap: 14,
       }}>
-        <a href="/" title="Back to EXPO" style={{ display:'flex', alignItems:'center', gap:10, textDecoration:'none', flex:'0 0 auto' }}>
+        <a href="/" title={T('Back to EXPO')} style={{ display:'flex', alignItems:'center', gap:10, textDecoration:'none', flex:'0 0 auto' }}>
           <EXPOMark theme="dark" height={36} style={{ marginBottom: 0 }} />
         </a>
         {/* DEMO badge — hidden on narrow screens via the .try-sandbox-badge
@@ -817,7 +823,7 @@ function Header({ step, exercise, hasVideo, onRestart, onStep }) {
           fontFamily:FN, fontSize:10, color: C.ac, letterSpacing:2, fontWeight:700,
           padding:'4px 8px', background: C.acD, borderRadius:0,
           border:`1px solid ${C.cardBd}`, whiteSpace:'nowrap',
-        }}>DEMO</span>
+        }}>{T('DEMO')}</span>
         <nav style={{
           display:'flex', gap:4, flex:1, justifyContent:'center',
           overflowX:'auto', minWidth:0,
@@ -844,7 +850,7 @@ function Header({ step, exercise, hasVideo, onRestart, onStep }) {
             );
           })}
         </nav>
-        <button onClick={onRestart} title="Start over" style={{
+        <button onClick={onRestart} title={T('Start over')} style={{
           ...baseBtn,
           background:'transparent', color: C.tm,
           border: `1px solid ${C.bd}`, padding: '6px 12px',
@@ -896,7 +902,7 @@ function TraineeContextStrip({ exercise }) {
         }}>BLOCK #4 · DAY A</span>
         <span style={{
           fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 1.5, fontWeight: 700,
-        }}>WEEK 2 OF 4 · EXERCISE 1 OF 8</span>
+        }}>{T('WEEK 2 OF 4 · EXERCISE 1 OF 8')}</span>
         <span style={{ flex: '1 1 auto' }} />
         <span style={{
           fontFamily: FB, fontSize: 13, color: exercise ? C.tx : C.tm, fontWeight: 700,
@@ -945,7 +951,7 @@ function POVBanner({ pov }) {
           flex: '1 1 auto', minWidth: 200,
         }}>
           {isCoach
-            ? <>The review tool <b style={{ opacity: 1 }}>you</b> sit down to. Pose, rep count, draw on form, timestamped notes, reply video.</>
+            ? <>{T('The review tool')}<b style={{ opacity: 1 }}>you</b> sit down to. Pose, rep count, draw on form, timestamped notes, reply video.</>
             : <>What <b style={{ opacity: 1 }}>your client</b> uses. Film a set, see the analysis, one-tap send to the coach.</>}
         </div>
         <div style={{
@@ -958,13 +964,13 @@ function POVBanner({ pov }) {
             color: isCoach ? '#000' : C.tm,
             padding:'5px 12px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1.5,
             textDecoration: 'none',
-          }}>COACH</a>
+          }}>{T('COACH')}</a>
           <a href="/demo/athlete" style={{
             background: !isCoach ? C.ac : 'transparent',
             color: !isCoach ? '#000' : C.tm,
             padding:'5px 12px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1.5,
             textDecoration: 'none',
-          }}>ATHLETE</a>
+          }}>{T('ATHLETE')}</a>
         </div>
       </div>
     </div>
@@ -1033,7 +1039,7 @@ function TraineeHomeMock({ onPick }) {
       <div style={{
         fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3,
         marginBottom: 8, fontWeight: 700,
-      }}>YOUR PORTAL · MOCK DATA</div>
+      }}>{T('YOUR PORTAL · MOCK DATA')}</div>
       <h1 style={{
         fontFamily: FB, fontSize: 'clamp(22px, 3.4vw, 28px)', fontWeight: 700,
         margin: 0, letterSpacing: -0.3,
@@ -1054,7 +1060,7 @@ function TraineeHomeMock({ onPick }) {
       }}>
         <div style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: 12, marginBottom: 12 }}>
           <h2 style={{ fontFamily: FB, fontSize: 16, fontWeight: 700, margin: 0, letterSpacing: -0.2 }}>{TRAINEE.block}</h2>
-          <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, fontWeight: 700 }}>WEEK {TRAINEE.week} OF {TRAINEE.totalWeeks}</span>
+          <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, fontWeight: 700 }}>{T('WEEK')}{TRAINEE.week} OF {TRAINEE.totalWeeks}</span>
           <span style={{ flex: 1 }} />
           <span style={{ fontFamily: FN, fontSize: 10, color: C.gn, letterSpacing: 1.5, fontWeight: 700 }}>● ON TRACK</span>
         </div>
@@ -1081,7 +1087,7 @@ function TraineeHomeMock({ onPick }) {
         <div style={{
           fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1.5, fontWeight: 700,
           marginTop: 6,
-        }}>{completedCount} OF {day.exercises.length} EXERCISES LOGGED · {progressPct}%</div>
+        }}>{completedCount} OF {day.exercises.length}{T('EXERCISES LOGGED ·')}{progressPct}%</div>
       </div>
 
       {/* Exercise rows — sets × reps × load + coach note + Film CTA */}
@@ -1112,14 +1118,14 @@ function TraineeHomeMock({ onPick }) {
                 background: C.sf2, border: `1px solid ${C.bd}`, borderRadius: 0,
                 padding: '8px 10px', display: 'flex', alignItems: 'center', gap: 8,
               }}>
-                <span style={{ fontFamily: FN, fontSize: 9, color: C.ac, letterSpacing: 1.5, fontWeight: 700, flexShrink: 0 }}>COACH</span>
+                <span style={{ fontFamily: FN, fontSize: 9, color: C.ac, letterSpacing: 1.5, fontWeight: 700, flexShrink: 0 }}>{T('COACH')}</span>
                 <span>{ex.note}</span>
               </div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <button onClick={() => onPick(ex)} style={{
                   ...baseBtn, background: C.ac, color: '#000',
                   padding: '8px 14px', fontSize: 12,
-                }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'-2px',marginRight:6}}><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>FILM SET</button>
+                }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'-2px',marginRight:6}}><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>{T('FILM SET')}</button>
                 <button onClick={() => setLogged(L => ({ ...L, [key]: !L[key] }))} style={{
                   ...baseBtn, background: 'transparent', color: isLogged ? C.gn : C.tm,
                   border: `1px solid ${isLogged ? C.gn : C.bd}`,
@@ -1149,7 +1155,7 @@ function TraineeHomeMock({ onPick }) {
           <div style={{
             fontFamily: FN, color: C.tm, fontSize: 10, letterSpacing: 1.5, fontWeight: 700,
             marginBottom: 8,
-          }}>BODYWEIGHT</div>
+          }}>{T('BODYWEIGHT')}</div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 10 }}>
             <span style={{ fontFamily: FB, fontSize: 26, fontWeight: 700, color: C.tx, letterSpacing: -0.4 }}>
               {lastBw?.toFixed(1)}<span style={{ fontSize: 13, color: C.tm, marginLeft: 2 }}>kg</span>
@@ -1159,7 +1165,7 @@ function TraineeHomeMock({ onPick }) {
             }}>{bwDelta > 0 ? '+' : ''}{bwDelta.toFixed(1)} kg / {bwLog.length}W</span>
           </div>
           <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
-            <input type="number" step="0.1" placeholder="Today's weight (kg)"
+            <input type="number" step="0.1" placeholder={T("Today's weight (kg)")}
               value={bwInput} onChange={e => setBwInput(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') submitBw(); }}
               style={{
@@ -1197,7 +1203,7 @@ function TraineeHomeMock({ onPick }) {
           <div style={{
             fontFamily: FN, color: C.tm, fontSize: 10, letterSpacing: 1.5, fontWeight: 700,
             marginBottom: 8,
-          }}>RECENT WORKOUTS</div>
+          }}>{T('RECENT WORKOUTS')}</div>
           {RECENT.map((w, i) => {
             const fullyDone = w.completed === w.total;
             return (
@@ -1209,8 +1215,7 @@ function TraineeHomeMock({ onPick }) {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontFamily: FB, fontSize: 13, color: C.tx, fontWeight: 600 }}>{w.dayName}</div>
                   <div style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1, marginTop: 2 }}>
-                    {fmtPrettyDate(w.date)} · {w.completed}/{w.total} EXERCISES
-                  </div>
+                    {fmtPrettyDate(w.date)} · {w.completed}/{w.total}{T('EXERCISES')}</div>
                 </div>
                 <span style={{
                   fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1,
@@ -1272,13 +1277,13 @@ function ExercisePicker({ pov, onPick }) {
       <div style={{
         fontFamily: FN, color: C.gn, fontSize: 11, letterSpacing: 3,
         marginBottom: 8, fontWeight: 700,
-      }}>STEP 1 · {isCoach ? 'AUTO-MATCHED FROM THE PLAN' : 'AUTO-DETECTED FROM YOUR PLAN'}</div>
+      }}>{T('STEP 1 ·')}{isCoach ? 'AUTO-MATCHED FROM THE PLAN' : 'AUTO-DETECTED FROM YOUR PLAN'}</div>
       <h1 style={{
         fontFamily: FB, fontSize: 'clamp(24px, 3.5vw, 30px)', fontWeight: 700,
         marginBottom: 10, letterSpacing: -0.3,
       }}>{isCoach
-        ? <>You're reviewing <span style={{ color: C.ac }}>{auto.label}</span>.</>
-        : <>We already know — it's your <span style={{ color: C.ac }}>{auto.label}</span>.</>}</h1>
+        ? <>{T("You're reviewing")}<span style={{ color: C.ac }}>{auto.label}</span>.</>
+        : <>{T("We already know — it's your")}<span style={{ color: C.ac }}>{auto.label}</span>.</>}</h1>
       <p style={{
         fontFamily: FB, color: C.tx, fontSize: 15, lineHeight: 1.6, maxWidth: 640, opacity: 0.85,
         marginBottom: 24,
@@ -1304,15 +1309,14 @@ function ExercisePicker({ pov, onPick }) {
             </div>
           </div>
           <div style={{ minWidth: 180, display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
-            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: 2, fontWeight: 700 }}>JOINT TRACKING</div>
+            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: 2, fontWeight: 700 }}>{T('JOINT TRACKING')}</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{ fontFamily: FB, fontSize: 16, color: C.ac, fontWeight: 700 }}>{resolvedJoint}</span>
               {joint === 'AUTO' && (
-                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 9, color: C.gn, letterSpacing: 1.5, fontWeight: 700, padding: '2px 6px', background: 'rgba(46,213,115,0.125)', borderRadius: 0 }}>AUTO</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 9, color: C.gn, letterSpacing: 1.5, fontWeight: 700, padding: '2px 6px', background: 'rgba(46,213,115,0.125)', borderRadius: 0 }}>{T('AUTO')}</span>
               )}
             </div>
-            <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 1, fontWeight: 600 }}>
-              FROM PATTERN: {meta.pattern.toUpperCase()}
+            <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 1, fontWeight: 600 }}>{T('FROM PATTERN:')}{meta.pattern.toUpperCase()}
             </div>
           </div>
         </div>
@@ -1322,7 +1326,7 @@ function ExercisePicker({ pov, onPick }) {
             ...baseBtn,
             background: C.ac, color: '#0a0a0b',
             padding: '12px 22px', fontSize: 14, fontWeight: 700, letterSpacing: 0.5,
-          }}>CONTINUE → UPLOAD</button>
+          }}>{T('CONTINUE → UPLOAD')}</button>
           <select value={joint} onChange={e => setJoint(e.target.value)} style={{
             background: C.sf2, border: `1px solid ${C.bd2}`, borderRadius: 0,
             padding: '10px 12px', color: C.tx, fontFamily: FN, fontSize: 12,
@@ -1345,9 +1349,7 @@ function ExercisePicker({ pov, onPick }) {
 
       {overrideOpen && (
         <>
-          <div style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 2, fontWeight: 700, marginBottom: 8 }}>
-            MANUAL OVERRIDE — pick the lift instead
-          </div>
+          <div style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 2, fontWeight: 700, marginBottom: 8 }}>{T('MANUAL OVERRIDE — pick the lift instead')}</div>
           <div style={{
             display: 'grid', gap: 10,
             gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',
@@ -1393,13 +1395,13 @@ function UploadStep({ pov, exercise, onUpload, onChangeExercise }) {
       <div style={{
         fontFamily:FN, color: C.ac, fontSize: 11, letterSpacing: 3,
         marginBottom: 8, fontWeight: 700,
-      }}>STEP 2 · {isCoach ? 'LOAD THE ATHLETE CLIP' : 'UPLOAD A SET'}</div>
+      }}>{T('STEP 2 ·')}{isCoach ? 'LOAD THE ATHLETE CLIP' : 'UPLOAD A SET'}</div>
       <h1 style={{
         fontFamily:FB, fontSize:'clamp(24px, 3.5vw, 30px)', fontWeight:700,
         marginBottom: 10, letterSpacing:-0.3,
       }}>{isCoach
-        ? <>Drop in your client's <span style={{ color: C.ac }}>{exercise?.label || 'set'}</span>.</>
-        : <>Drop in a clip of your <span style={{ color: C.ac }}>{exercise?.label || 'set'}</span>.</>}</h1>
+        ? <>{T("Drop in your client's")}<span style={{ color: C.ac }}>{exercise?.label || 'set'}</span>.</>
+        : <>{T('Drop in a clip of your')}<span style={{ color: C.ac }}>{exercise?.label || 'set'}</span>.</>}</h1>
       <p style={{
         fontFamily:FB, color: C.tx, fontSize: 15, lineHeight:1.6, maxWidth: 640, opacity: 0.85,
         marginBottom: 24,
@@ -1428,12 +1430,10 @@ function UploadStep({ pov, exercise, onUpload, onChangeExercise }) {
         <div style={{
           fontFamily:FB, fontSize: 18, fontWeight: 700, color: C.tx,
           marginBottom: 10,
-        }}>Tap to browse · or drop here</div>
+        }}>{T('Tap to browse · or drop here')}</div>
         <div style={{
           fontFamily:FN, fontSize: 11, color: C.tm, letterSpacing: 1,
-        }}>
-          MP4 · MOV · WEBM · stays on this device
-        </div>
+        }}>{T('MP4 · MOV · WEBM · stays on this device')}</div>
         <input type="file" accept="video/*" ref={inputRef} onChange={onFile}
           style={{ display:'none' }} />
       </div>
@@ -2020,7 +2020,7 @@ function SandboxPlayer({ url, exerciseTitle, compact = false, onVideoRef, compar
         <Toggle on={repsOn} loading={poseLoading} onClick={toggleReps} label="REPS" />
         <div style={{ flex:1 }} />
         <div style={{ display: compare ? 'none' : 'flex', gap:4, alignItems:'center' }}>
-          <span style={{ fontFamily:FN, fontSize:10, color:C.td, letterSpacing:1.5, fontWeight:700 }}>SPEED</span>
+          <span style={{ fontFamily:FN, fontSize:10, color:C.td, letterSpacing:1.5, fontWeight:700 }}>{T('SPEED')}</span>
           {speeds.map(s => (
             <button key={s} onClick={() => setSpeed(s)} style={{
               ...baseBtn, padding:'4px 8px', fontSize: 11, fontWeight: 700,
@@ -2050,7 +2050,7 @@ function SandboxPlayer({ url, exerciseTitle, compact = false, onVideoRef, compar
             border: `1px solid ${C.cardBd}`, borderRadius: 0,
             padding:'4px 12px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1.5,
             zIndex: 5, pointerEvents:'none',
-          }}>LOADING POSE MODEL…</div>
+          }}>{T('LOADING POSE MODEL…')}</div>
         )}
         <video ref={videoRef} src={url} controls preload="metadata" playsInline
           style={{
@@ -2084,7 +2084,7 @@ function SandboxPlayer({ url, exerciseTitle, compact = false, onVideoRef, compar
             border: `1px solid ${C.cardBd}`, borderRadius: 0,
             padding:'4px 10px', fontFamily: FN, fontSize: 14, fontWeight: 700, letterSpacing: 1,
           }}>
-            {reps} REP{reps === 1 ? '' : 'S'}
+            {reps}{T('REP')}{reps === 1 ? '' : 'S'}
           </span>
           {tempo && (
             <span style={{
@@ -2101,14 +2101,11 @@ function SandboxPlayer({ url, exerciseTitle, compact = false, onVideoRef, compar
       <div style={{
         marginTop: 10, display:'flex', justifyContent:'space-between', alignItems:'center', gap: 10, flexWrap:'wrap',
       }}>
-        <span style={{ fontFamily:FN, fontSize: 10, color: C.td, letterSpacing: 1.5, fontWeight: 700 }}>
-          REP CHANNEL · {channelKind.toUpperCase()}
+        <span style={{ fontFamily:FN, fontSize: 10, color: C.td, letterSpacing: 1.5, fontWeight: 700 }}>{T('REP CHANNEL ·')}{channelKind.toUpperCase()}
           {activeChannels.length > 0 && ' · ' + activeChannels.join(' / ')}
           {channelKind === 'none' && ' · ISOMETRIC — NO REP COUNT'}
         </span>
-        <span style={{ fontFamily:FN, fontSize: 10, color: C.td, letterSpacing: 1.5, fontWeight: 700 }}>
-          MEDIAPIPE LITE · 33 LANDMARKS
-        </span>
+        <span style={{ fontFamily:FN, fontSize: 10, color: C.td, letterSpacing: 1.5, fontWeight: 700 }}>{T('MEDIAPIPE LITE · 33 LANDMARKS')}</span>
       </div>
     </div>
   );
@@ -2206,9 +2203,7 @@ function Footer() {
         <EXPOMark theme="dark" height={14} style={{ opacity: 0.55 }} />
         <span>· TRY THE PLATFORM · NO ACCOUNT REQUIRED</span>
       </span>
-      <span style={{ fontFamily:FN, fontSize:10, color: C.td, letterSpacing: 1 }}>
-        VIDEO STAYS ON YOUR DEVICE
-      </span>
+      <span style={{ fontFamily:FN, fontSize:10, color: C.td, letterSpacing: 1 }}>{T('VIDEO STAYS ON YOUR DEVICE')}</span>
     </footer>
   );
 }
