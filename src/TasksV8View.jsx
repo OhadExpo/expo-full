@@ -2590,13 +2590,16 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
       {/* Two-column layout: left filter RAIL + content (Ohad's design 7).
           Filters live in a slim labelled left rail beside the list. Rail stacks
           on top when narrow. */}
-      <div style={{ display: 'flex', flexDirection: narrow ? 'column' : 'row', gap: narrow ? 10 : 16, alignItems: 'flex-start' }}>
+      <div style={{ display: 'flex', flexDirection: narrow ? 'column' : 'row', gap: narrow ? 10 : 16, alignItems: narrow ? 'stretch' : 'flex-start', minWidth: 0 }}>
 
         {/* LEFT: filter rail — sticky below the sticky header so the filters
             stay pinned as the (long) list scrolls; scrolls internally if it
             ever outgrows the viewport. Static + full-width when narrow. */}
         <div className="side-rail" style={{
-          width: narrow ? 'auto' : 204, flexShrink: 0,
+          // 'auto' let the rail size to its own widest child, so at 360 it was
+          // 316px inside a 308px column and the whole board scrolled sideways.
+          // Full width of the column when narrow, and it may shrink.
+          width: narrow ? '100%' : 204, minWidth: 0, boxSizing: 'border-box', flexShrink: narrow ? 1 : 0,
           background: 'var(--c-sf2)', border: '1px solid var(--c-cardBd)',
           // Collapsed on mobile → just the toggle bar, no trailing empty box.
           padding: (narrow && !railOpen) ? '12px 0' : '14px 0 16px', display: 'flex', flexDirection: 'column', gap: 12,

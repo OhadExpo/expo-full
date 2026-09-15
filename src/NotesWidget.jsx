@@ -12,7 +12,7 @@ import React, { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { fmtPrettyDate } from './dates';
 import { C, FN, FB, FH } from './theme';
-import { isRefined5b, RefinedHeaderStrip, confirmToast, usePersistentState, useIsMobile, stripBtnBase } from './ui';
+import { isRefined5b, RefinedHeaderStrip, confirmToast, usePersistentState, useIsMobile, stripBtnBase, useEdgeFade } from './ui';
 import { useCoachNotes, setPendingTaskPlanLink } from './coachNotes';
 import useDraftAutosave from './hooks/useDraftAutosave';
 import { AUTO_KIND_LABEL, AUTO_KIND_ACTION, whatsappMessageForTask, throttleWhatsAppTasks } from './autoTasks';
@@ -447,6 +447,8 @@ function TaskActionButton({ note, trainee, onCreatePlan, onOpenReview, onOpenInt
 }
 
 export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanForTask, onOpenIntakeTab, onOpenWaitlist, compact = false, trainees = [], viewerOwner = 'ohad' }) {
+  const segRef = React.useRef(null);
+  useEdgeFade(segRef);
   const tt = useT();
   const tb = useTB();
   const { rows, create, update, togglePin, toggleDone, remove } = useCoachNotes({ limit: 60 });
@@ -946,8 +948,11 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                   (GENERAL · AUTO-TASKS · ALL — the tasks-page's own vocabulary).
                   Counts ride beside each label; the active segment gets the cyan
                   fill + cyan text. Left-aligned to sit under the section title. */}
-              <div style={{ display:'flex', justifyContent:'flex-start', marginBottom:6 }}>
-                <div style={{ display:'inline-flex', border:`1px solid var(--c-cardBd)` }}>
+              {/* Four segments with Hebrew labels overflow a 360px card by
+                  33px. The rail scrolls instead of being cut, with the same
+                  edge fade the coach header uses. */}
+              <div ref={segRef} className="rail-scroll" style={{ display:'flex', justifyContent:'flex-start', marginBottom:6 }}>
+                <div style={{ display:'inline-flex', flexShrink:0, border:`1px solid var(--c-cardBd)` }}>
                   {SEGS.map((s, i) => {
                     const active = v2Sub === s.id;
                     return (

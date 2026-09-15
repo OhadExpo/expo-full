@@ -1190,3 +1190,8 @@ html.theme-switching *::after {
      above it anyway. */
   .bhbc-roster-grid [data-ghost]{display:none}
 }
+
+/* A generic horizontal rail: scrolls sideways with no visible scrollbar, and
+   takes the same edge fade the header and the zone tabs use. */
+.rail-scroll{overflow-x:auto;overflow-y:hidden;-ms-overflow-style:none;scrollbar-width:none}
+.rail-scroll::-webkit-scrollbar{display:none}
