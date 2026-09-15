@@ -460,7 +460,7 @@ function Nav() {
         </nav>
         <div style={{
           flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 6,
-          marginLeft: 'auto',
+          marginInlineStart: 'auto',
         }}>
           <LangToggle />
           <a href="https://expo-app.co.il" target="_blank" rel="noopener noreferrer"
@@ -1973,7 +1973,7 @@ function WhyTemplates() {
       </div>
       <p style={{
         fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1,
-        marginTop: 18, textAlign: 'center', maxWidth: 720, marginLeft: 'auto', marginRight: 'auto',
+        marginTop: 18, textAlign: 'center', maxWidth: 720, marginInlineStart: 'auto', marginInlineEnd: 'auto',
         lineHeight: 1.6,
       }}>
         {t('why.note')}
@@ -2165,9 +2165,9 @@ function Testimonials() {
                   flex: 1, fontFamily: FB, fontSize: 14, color: C.tx,
                   lineHeight: 1.55,
                 }}>
-                  <span style={{ color: C.ac, fontFamily: FN, fontSize: 18, marginRight: 4, verticalAlign: '-2px' }}>“</span>
+                  <span style={{ color: C.ac, fontFamily: FN, fontSize: 18, marginInlineEnd: 4, verticalAlign: '-2px' }}>“</span>
                   {q.quote}
-                  <span style={{ color: C.ac, fontFamily: FN, fontSize: 18, marginLeft: 4, verticalAlign: '-2px' }}>”</span>
+                  <span style={{ color: C.ac, fontFamily: FN, fontSize: 18, marginInlineStart: 4, verticalAlign: '-2px' }}>”</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <img src={q.photoSrc} alt={q.who} loading="lazy" decoding="async"
@@ -2917,7 +2917,7 @@ function ProgramDetail({ program }) {
         <div style={{ fontFamily: FB, fontSize: 15, color: C.tm, marginBottom: 16 }}>{pAudience}</div>
         <p style={{
           fontFamily: FB, fontSize: 15, color: C.tx, lineHeight: 1.6,
-          maxWidth: 760, marginBottom: 18, marginLeft: 'auto', marginRight: 'auto',
+          maxWidth: 760, marginBottom: 18, marginInlineStart: 'auto', marginInlineEnd: 'auto',
         }}>
           {pSummary}
         </p>
