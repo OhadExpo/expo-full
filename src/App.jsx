@@ -331,7 +331,7 @@ function MoreMenu({ tab, navTo, onExport, onChangePassword, isOwner = true }) {
       <button ref={btnRef} onClick={() => setOpen(o => !o)}
         className="hdr-icon-btn"
         title="More"
-        aria-label="More options"
+        aria-label={tt('More options')}
         aria-expanded={open}
         style={{
           background: isActiveTab ? C.acD : 'transparent',
@@ -1719,7 +1719,7 @@ function AuthedApp() {
             <span style={{width:1,height:22,background:C.ac,opacity:0.15,alignSelf:'center',marginInlineStart:6,marginInlineEnd:6}} aria-hidden="true" />
             <BugReportButton role="coach" reporterEmail={email} variant="coach" />
             <span style={{width:1,height:22,background:C.ac,opacity:0.15,alignSelf:'center',marginInlineStart:6,marginInlineEnd:6}} aria-hidden="true" />
-            <button className="hdr-icon-btn" onClick={signOut} title={tt('Sign out')} aria-label="Sign out" style={{...baseBtn,height:HDR_ICON_H,boxSizing:"border-box",display:"inline-flex",alignItems:"center",justifyContent:"center",lineHeight:1,background:"transparent",color:C.tx,padding:"6px 8px",fontSize:14,borderRadius:0}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
+            <button className="hdr-icon-btn" onClick={signOut} title={tt('Sign out')} aria-label={tt('Sign out')} style={{...baseBtn,height:HDR_ICON_H,boxSizing:"border-box",display:"inline-flex",alignItems:"center",justifyContent:"center",lineHeight:1,background:"transparent",color:C.tx,padding:"6px 8px",fontSize:14,borderRadius:0}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
             </div></div></header>
       {showPwModal && <PasswordChangeModal onClose={()=>setShowPwModal(false)}/>}
       <main style={{maxWidth:1200,margin:"0 auto",padding:"12px"}}>

@@ -32,6 +32,9 @@ const LITERAL = /[>}]\s*([A-Z][A-Za-z0-9 ·+→←✓%&/()'’.…\-–—:]{2,1
 // A tooltip is the one place the app EXPLAINS itself - the last place that
 // should be in another language. 214 of them were English.
 const TITLE_ATTR = /(?<![\w$])title=(?:"([A-Z][^"]{3,120})"|'([A-Z][^']{3,120})')/g;
+// A screen reader gets nothing BUT these strings, so an English aria-label
+// on a Hebrew screen is the whole control, not a detail.
+const A11Y_ATTR = /(?<![\w$])(aria-label|alt)=(?:"([A-Z][^"]{3,120})"|'([A-Z][^']{3,120})')/g;
 const PLACEHOLDER = /placeholder=(?:"([A-Za-z][^"]{2,80})"|'([A-Za-z][^']{2,80})')/g;
 const stripComments = (s) => s.replace(/\{\/\*[\s\S]*?\*\/\}/g, (m) => ' '.repeat(m.length)).replace(/\/\*[\s\S]*?\*\//g, (m) => ' '.repeat(m.length)).replace(/^\s*\/\/.*$/gm, (m) => ' '.repeat(m.length));
 const isAllowed = (t) => {
@@ -63,6 +66,11 @@ for (const f of fs.readdirSync('src').filter((x) => x.endsWith('.jsx') && !SKIP_
     const t = m[1] || m[2];
     if (/[֐-׿]/.test(t) || /\{/.test(t) || isAllowed(t)) continue;
     findings.push({ f, line: lineOf(m.index), text: t, kind: 'title' });
+  }
+  for (const m of src.matchAll(A11Y_ATTR)) {
+    const t = m[2] || m[3];
+    if (/[֐-׿]/.test(t) || /\{/.test(t) || isAllowed(t)) continue;
+    findings.push({ f, line: lineOf(m.index), text: t, kind: m[1] });
   }
   for (const m of src.matchAll(PLACEHOLDER)) { const t = m[1] || m[2]; if (!/[֐-׿]/.test(t) && !/\{/.test(t) && !dataShape(t)) findings.push({ f, line: lineOf(m.index), text: t, kind: 'placeholder' }); }
 }

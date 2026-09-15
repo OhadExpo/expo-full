@@ -24,6 +24,7 @@ import { createContext, useContext } from 'react';
 // names by Hebrew speakers and look wrong transliterated.
 
 export const HE = {
+  "Bnei Herzliya BC": "מועדון הכדורסל בני הרצליה",
   "Log a practice for this athlete": "רישום אימון לשחקן הזה",
   "League points per game": "נקודות לליגה למשחק",
   "Bodyweight (kg) — optional, shows in the athlete's history + BW trend": "משקל גוף (ק\"ג) — לא חובה, מופיע בהיסטוריה ובגרף המשקל",

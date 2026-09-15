@@ -23,6 +23,7 @@ const CODE_SHAPE = /\w\(|\)\.|=>|replace|const/;
 const EXERCISE_SHAPE = /\b(?:DB|BB|SA|KB|TRX|RDL|SLDL|OHP|ISO|POS|ATH)\b|\d+\s*[x×]\s*\d+/i;
 const LITERAL = /([>}])(\s*)([A-Z][A-Za-z0-9 ·+→←✓%&/()'’.…\-–—:]{2,140}?)(\s*)([<{])/g;
 const TITLE_ATTR = /(?<![\w$])title=(?:"([A-Z][^"]{3,120})"|'([A-Z][^']{3,120})')/g;
+const A11Y_ATTR = /(?<![\w$])(aria-label|alt)=(?:"([A-Z][^"]{3,120})"|'([A-Z][^']{3,120})')/g;
 const PLACEHOLDER = /placeholder=(?:"([A-Za-z][^"]{2,80})"|'([A-Za-z][^']{2,80})')/g;
 const RE_ESC = /[.*+?^${}()|[\]\\]/g;
 const stripComments = (s) => s
@@ -58,6 +59,11 @@ for (const f of fs.readdirSync('src').filter((x) => x.endsWith('.jsx') && !SKIP_
     const t = m[1] || m[2];
     if (/[֐-׿]/.test(t) || /\{/.test(t) || isAllowed(t)) continue;
     edits.push({ i: m.index, len: m[0].length, text: t, out: 'title={' + call(f, t) + '}' });
+  }
+  if (process.env.A11Y) for (const m of src.matchAll(A11Y_ATTR)) {
+    const t = m[2] || m[3];
+    if (/[֐-׿]/.test(t) || /\{/.test(t) || isAllowed(t)) continue;
+    edits.push({ i: m.index, len: m[0].length, text: t, out: m[1] + '={' + call(f, t) + '}' });
   }
   for (const m of src.matchAll(PLACEHOLDER)) {
     const t = m[1] || m[2];

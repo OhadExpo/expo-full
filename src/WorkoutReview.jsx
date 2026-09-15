@@ -1866,7 +1866,7 @@ function CompareModal({ leftLabel, leftUrl, leftTitle, rightLabel, rightUrl, rig
   const divider = { width:1, alignSelf:'stretch', background:C.cardBd };
   const titleStyle = { fontSize:10, fontFamily:FN, fontWeight:700, letterSpacing:'0.14em', color:C.tm, marginBottom:8, textAlign:'center' };
   return createPortal((
-    <div onClick={onClose} role="dialog" aria-modal="true" aria-label="Compare videos" className={closing ? 'motion-fade-out' : 'motion-fade-in'} style={{position:'fixed',inset:0,zIndex:1200,background:C.scrim,display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:32,overflow:'auto'}}>
+    <div onClick={onClose} role="dialog" aria-modal="true" aria-label={tt('Compare videos')} className={closing ? 'motion-fade-out' : 'motion-fade-in'} style={{position:'fixed',inset:0,zIndex:1200,background:C.scrim,display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:32,overflow:'auto'}}>
       <div onClick={e => e.stopPropagation()} className={closing ? 'motion-fall' : 'motion-rise'} style={{background:C.bg,border:`1px solid ${C.cardBd}`,borderRadius:0,width:'min(1400px, 96vw)',padding:20}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
           <h3 style={{margin:0,fontFamily:FN,fontSize:16,color:C.tx,letterSpacing:'0.08em'}}>{demo ? tt('FORM VS DEMO') : tt('COMPARE')}</h3>
@@ -1886,7 +1886,7 @@ function CompareModal({ leftLabel, leftUrl, leftTitle, rightLabel, rightUrl, rig
         </div>
         {!demo && (
           <div style={{display:'flex',justifyContent:'center',marginTop:16}}>
-            <div style={bar} role="toolbar" aria-label="Both videos">
+            <div style={bar} role="toolbar" aria-label={tt('Both videos')}>
               <button onClick={() => stepBoth(-1)} title={tt('Both back one frame (←)')} style={btn(false)}>◀</button>
               <button onClick={toggle} title={playing ? 'Pause both (Space)' : 'Play both (Space)'} style={btn(playing, { minWidth: 118 })}>{playing ? '❚❚  ' + tt('PAUSE') : '▶  ' + tt('PLAY BOTH')}</button>
               <button onClick={() => stepBoth(1)} title={tt('Both forward one frame (→)')} style={btn(false)}>▶</button>
@@ -2046,7 +2046,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
   const confirmOk = deleteConfirmText.trim().toLowerCase() === 'delete';
   const deleteModal = delHold.value ? createPortal((
     <div onClick={() => { setDeleteConfirmFor(null); setDeleteConfirmText(''); }}
-      role="dialog" aria-modal="true" aria-label="Delete workout" className={delHold.closing ? 'motion-fade-out' : 'motion-fade-in'}
+      role="dialog" aria-modal="true" aria-label={tt('Delete workout')} className={delHold.closing ? 'motion-fade-out' : 'motion-fade-in'}
       style={{position:'fixed',inset:0,background:C.scrim,display:'flex',alignItems:'center',justifyContent:'center',zIndex:1200,padding:20}}>
       <div onClick={e => e.stopPropagation()} className={delHold.closing ? 'motion-fall' : 'motion-rise'}
         style={{background:C.bg,border:`1px solid ${C.rd||'#c94444'}`,borderRadius:0,padding:20,maxWidth:380,width:'100%'}}>
@@ -2165,7 +2165,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
       <div>
         {/* Compare picker: pick second video from the same client */}
         {cmpPickerHold.value && createPortal((
-          <div onClick={() => setComparePicker(null)} role="dialog" aria-modal="true" aria-label="Pick a video to compare" className={cmpPickerHold.closing ? 'motion-fade-out' : 'motion-fade-in'} style={{position:'fixed',inset:0,zIndex:1100,background:C.scrim,display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:60,backdropFilter:'blur(4px)'}}>
+          <div onClick={() => setComparePicker(null)} role="dialog" aria-modal="true" aria-label={tt('Pick a video to compare')} className={cmpPickerHold.closing ? 'motion-fade-out' : 'motion-fade-in'} style={{position:'fixed',inset:0,zIndex:1100,background:C.scrim,display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:60,backdropFilter:'blur(4px)'}}>
             <div onClick={e => e.stopPropagation()} className={cmpPickerHold.closing ? 'motion-fall' : 'motion-rise'} style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:0,width:520,maxWidth:'calc(100vw - 24px)',maxHeight:'80vh',overflow:'auto',padding:20}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
                 <h3 style={{margin:0,fontFamily:FN,fontSize:15,color:C.tx}}>{tt('Compare with…')}</h3>

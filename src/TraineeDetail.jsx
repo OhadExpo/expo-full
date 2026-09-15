@@ -94,7 +94,7 @@ function ProgramCard({ plan: p, isVis, onOpen, onUnassign, onOnly, onToggleVis }
           <div style={{ fontSize:12, color:C.tm, marginTop:2 }}>{plur(p.dayCount||0,'day','days')} · {p.exerciseCount||0} ex</div>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0, flexWrap:'wrap' }}>
-          <button onClick={e=>{ e.stopPropagation(); onUnassign(); }} aria-label="Remove program from athlete" title={t('Remove program from athlete')} style={{ ...btn, background:'none', border:'none', color:C.rd, fontSize:11, fontWeight:400, opacity:0.6, padding:'0 4px' }}>✕</button>
+          <button onClick={e=>{ e.stopPropagation(); onUnassign(); }} aria-label={t('Remove program from athlete')} title={t('Remove program from athlete')} style={{ ...btn, background:'none', border:'none', color:C.rd, fontSize:11, fontWeight:400, opacity:0.6, padding:'0 4px' }}>✕</button>
           <button onClick={e=>{ e.stopPropagation(); onOnly(); }} title={t('Show only this program on the athlete portal — hide all others')} style={{ ...btn, background:'transparent', border:`1px solid ${C.ac}`, color:C.ac, fontSize:9, letterSpacing:'0.1em', padding:'0 8px', textTransform:'uppercase' }}>{t('Only')}</button>
           <button onClick={e=>{ e.stopPropagation(); onToggleVis(); }} title={isVis?'Visible on the portal — click to hide':'Hidden from the portal — click to show'} style={{ ...btn, background:'none', border:'none', padding:0, gap:4, justifyContent:'flex-start' }}>
             <span style={{ width:36, height:20, borderRadius:10, background:isVis?'rgba(46,213,115,0.251)':C.sf3, border:`1px solid ${isVis?'rgba(46,213,115,0.376)':C.bd2}`, position:'relative', transition:'all .15s', display:'inline-block', flexShrink:0 }}><span style={{ width:16, height:16, borderRadius:8, background:isVis?C.gn:C.td, position:'absolute', top:1, left:isVis?18:1, transition:'all .15s' }}/></span>
@@ -660,7 +660,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             "Coach History" → "ach Histo" — unreadable). Natural width + wrap keeps
             every label fully legible, still with NO horizontal scroll: on a wide
             screen they sit on one row, on a narrow one they wrap. */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, width: '100%' }} role="group" aria-label="Filter sections">
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, width: '100%' }} role="group" aria-label={t('Filter sections')}>
           {SEC_TABS.map(t => {
             const active = t.id === 'all' ? activeSecs.size === 0 : activeSecs.has(t.id);
             return (
@@ -816,8 +816,8 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
                   <button onClick={()=>handleCancelReq(p.id)} title={t('Cancel this payment request')}
                     style={{display:'inline-flex',alignItems:'center',justifyContent:'center',lineHeight:1,background:'transparent',border:`1px solid ${C.rd}`,color:C.rd,padding:'2px 8px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',cursor:'pointer',marginInlineEnd:6}}>× CANCEL</button>
                 </>)}
-              <button onClick={()=>handleEditPay(p)} aria-label="Edit payment" style={{background:"none",border:"none",color:C.ac,cursor:"pointer",padding:2,fontSize:11,fontFamily:FN}}>✏</button>
-              <button onClick={()=>handleDeletePay(p.id)} aria-label="Delete payment" style={{background:"none",border:"none",color:C.rd,cursor:"pointer",padding:2,fontSize:11,fontFamily:FN,marginInlineStart:6,opacity:0.6}}>✕</button>
+              <button onClick={()=>handleEditPay(p)} aria-label={t('Edit payment')} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",padding:2,fontSize:11,fontFamily:FN}}>✏</button>
+              <button onClick={()=>handleDeletePay(p.id)} aria-label={t('Delete payment')} style={{background:"none",border:"none",color:C.rd,cursor:"pointer",padding:2,fontSize:11,fontFamily:FN,marginInlineStart:6,opacity:0.6}}>✕</button>
             </td></tr>))}</tbody></table></div>)}
       {/* The roster sheet's history for this client (owner-only; empty for staff). */}
       <SheetBillingHistory traineeId={trainee} />
@@ -1059,7 +1059,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           })())}
       </Modal>
       {/* Unassign confirm */}
-      {confirmUnassign && createPortal(<div role="dialog" aria-modal="true" aria-label="Remove program" style={{position:"fixed",inset:0,zIndex:1100,display:"flex",alignItems:"center",justifyContent:"center",background:C.scrim}} onClick={()=>{setConfirmUnassign(null);setUnassignTyped("")}}>
+      {confirmUnassign && createPortal(<div role="dialog" aria-modal="true" aria-label={t('Remove program')} style={{position:"fixed",inset:0,zIndex:1100,display:"flex",alignItems:"center",justifyContent:"center",background:C.scrim}} onClick={()=>{setConfirmUnassign(null);setUnassignTyped("")}}>
         <div onClick={e=>e.stopPropagation()} style={{background:C.bg,border:`1px solid ${C.rd}`,borderRadius:0,width:380,maxWidth:'calc(100vw - 24px)',padding:24}}>
           <h3 style={{margin:"0 0 8px",fontFamily:FN,fontSize:15,color:C.rd,textAlign:"center"}}>Remove Program?</h3>
           <p style={{margin:"0 0 6px",fontSize:13,color:C.tm,textAlign:"center"}}>{t('This will unassign')}<strong style={{color:C.tx}}>{(planIndex||[]).find(p=>p.id===confirmUnassign)?.name}</strong> from {td.name}.</p>
@@ -1085,7 +1085,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
         />
       )}
       {/* Archive confirm */}
-      {showArchiveConfirm && createPortal(<div role="dialog" aria-modal="true" aria-label="Archive athlete" style={{position:"fixed",inset:0,zIndex:1100,display:"flex",alignItems:"center",justifyContent:"center",background:C.scrim}} onClick={()=>setShowArchiveConfirm(false)}>
+      {showArchiveConfirm && createPortal(<div role="dialog" aria-modal="true" aria-label={t('Archive athlete')} style={{position:"fixed",inset:0,zIndex:1100,display:"flex",alignItems:"center",justifyContent:"center",background:C.scrim}} onClick={()=>setShowArchiveConfirm(false)}>
         <div onClick={e=>e.stopPropagation()} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,width:380,maxWidth:'calc(100vw - 24px)',padding:24}}>
           <h3 style={{margin:"0 0 8px",fontFamily:FN,fontSize:15,color:C.tx}}>Archive {td.name}?</h3>
           <p style={{margin:"0 0 20px",fontSize:13,color:C.tm}}>Client will be moved to archive. Plans, workouts, and payments are preserved. You can restore anytime.</p>
@@ -1093,7 +1093,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             <Btn variant="ghost" onClick={()=>setShowArchiveConfirm(false)}>{t("Cancel")}</Btn>
             <Btn variant="danger" onClick={handleArchive}>Archive</Btn></div></div></div>, document.body)}
       {/* Permanent delete confirm */}
-      {showDeleteConfirm && createPortal(<div role="dialog" aria-modal="true" aria-label="Permanent deletion" style={{position:"fixed",inset:0,zIndex:1100,display:"flex",alignItems:"center",justifyContent:"center",background:C.scrim}} onClick={()=>{setShowDeleteConfirm(false);setDeleteTyped("");setPurgeHistory(false)}}>
+      {showDeleteConfirm && createPortal(<div role="dialog" aria-modal="true" aria-label={t('Permanent deletion')} style={{position:"fixed",inset:0,zIndex:1100,display:"flex",alignItems:"center",justifyContent:"center",background:C.scrim}} onClick={()=>{setShowDeleteConfirm(false);setDeleteTyped("");setPurgeHistory(false)}}>
         <div onClick={e=>e.stopPropagation()} style={{background:C.bg,border:`1px solid ${C.rd}`,borderRadius:0,width:440,maxWidth:'calc(100vw - 24px)',padding:24}}>
           <h3 style={{margin:"0 0 8px",fontFamily:FN,fontSize:15,color:C.rd,textAlign:"center"}}>⚠ Permanent Deletion</h3>
           <p style={{margin:"0 0 6px",fontSize:13,color:C.tm,textAlign:"center"}}>{t('This will permanently remove')}<strong style={{color:C.tx}}>{td.name}</strong> from the roster. By default their programs, workout history and payment records are kept (just no longer reachable).</p>

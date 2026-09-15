@@ -164,6 +164,7 @@ const getLastWorkoutDays = (t, workouts, clientWorkouts) => {
 // entries oldest→newest. Returns null when fewer than 2 points exist
 // (a single dot has no shape).
 function CardBWSparkline({ entries }) {
+  const tt = useT();
   if (!entries || entries.length < 2) return null;
   const W = 96, H = 22, PAD = 2;
   const values = entries.map(e => e.bw);
@@ -191,7 +192,7 @@ function CardBWSparkline({ entries }) {
     <div dir="ltr" style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none"
         style={{ display: 'block', height: H, width: '100%', maxWidth: W, minWidth: 32, flexShrink: 1 }}
-        aria-label="Bodyweight trend">
+        aria-label={tt('Bodyweight trend')}>
         <polyline points={polyline} fill="none" stroke={C.ac} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
       <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1, color: C.tx, flexShrink: 0 }}>
@@ -368,7 +369,7 @@ function BodyweightBlock({ entries, center = false, label = null }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, opacity: 0.55 }}>
               <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none"
                 style={{ display: 'block', height: H, width: '100%', maxWidth: W, minWidth: 32, flexShrink: 1 }}
-                aria-label="Bodyweight trend (no data)">
+                aria-label={tt('Bodyweight trend (no data)')}>
                 <line x1="2" y1={H/2} x2={W-2} y2={H/2} stroke={C.tm} strokeWidth="1" strokeDasharray="2 3" />
               </svg>
               <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: 1, color: C.tm, flexShrink: 0 }}>
@@ -919,7 +920,7 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
                               <div style={{display:'flex',alignItems:'center',gap:6,minWidth:0,opacity:0.55}}>
                                 <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none"
                                   style={{display:'block',height:H,width:'100%',maxWidth:W,minWidth:32,flexShrink:1}}
-                                  aria-label="Bodyweight trend (no data)">
+                                  aria-label={tt('Bodyweight trend (no data)')}>
                                   <line x1="2" y1={H/2} x2={W-2} y2={H/2} stroke={C.tm} strokeWidth="1" strokeDasharray="2 3" />
                                 </svg>
                                 <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:1,color:C.tm,flexShrink:0}}>
@@ -1099,7 +1100,7 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
         onCancel={() => setArchiveConfirm(null)} />
 
       {/* Permanent delete — type DELETE to confirm */}
-      {deleteConfirm && createPortal(<div role="dialog" aria-modal="true" aria-label="Permanent deletion" style={{ position: "fixed", inset: 0, zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center", background: C.scrim }} onClick={() => {setDeleteConfirm(null);setDeleteTyped("");setPurgeHistory(false)}}>
+      {deleteConfirm && createPortal(<div role="dialog" aria-modal="true" aria-label={tt('Permanent deletion')} style={{ position: "fixed", inset: 0, zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center", background: C.scrim }} onClick={() => {setDeleteConfirm(null);setDeleteTyped("");setPurgeHistory(false)}}>
         <div onClick={e => e.stopPropagation()} style={{ background: C.bg, border: `1px solid ${C.rd}`, borderRadius: 0, width: 440, maxWidth: 'calc(100vw - 24px)', padding: 24 }}>
           <h3 style={{ margin: "0 0 8px", fontFamily: FN, fontSize: 15, color: C.rd, textAlign: "center" }}>⚠ Permanent Deletion</h3>
           <p style={{ margin: "0 0 6px", fontSize: 13, color: C.tm, textAlign: "center" }}>{tt('This will permanently remove')}<strong style={{color:C.tx}}>{deleteConfirm.name}</strong> from the roster. By default their programs, workout history and payment records are kept (just no longer reachable).</p>

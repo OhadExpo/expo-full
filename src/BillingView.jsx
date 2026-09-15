@@ -248,6 +248,7 @@ export default function BillingView({ trainees }) {
 }
 
 function RequestModal({ trainees, onClose, onCreated }) {
+  const tt = useT();
   const [traineeId, setTraineeId] = useState('');
   const [amount, setAmount] = useState(800);
   const [reference, setReference] = useState('');
@@ -278,7 +279,7 @@ function RequestModal({ trainees, onClose, onCreated }) {
   };
 
   return createPortal((
-    <div onClick={onClose} role="dialog" aria-modal="true" aria-label="New payment request" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1200, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 20, paddingTop: 60, backdropFilter: 'blur(4px)' }}>
+    <div onClick={onClose} role="dialog" aria-modal="true" aria-label={tt('New payment request')} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1200, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 20, paddingTop: 60, backdropFilter: 'blur(4px)' }}>
       <div onClick={e => e.stopPropagation()} style={{ background: 'var(--c-bg)', border: `1px solid ${C.cardBd}`, maxWidth: 480, width: '100%', padding: 22, maxHeight: '80vh', overflow: 'auto' }}>
         <h3 style={{ margin: '0 0 16px', fontFamily: FN, fontSize: 14, color: C.ac, letterSpacing: '0.12em', fontWeight: 700 }}>+ NEW PAYMENT REQUEST</h3>
         <div style={{ marginBottom: 10 }}>

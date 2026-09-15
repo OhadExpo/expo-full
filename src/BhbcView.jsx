@@ -1119,7 +1119,7 @@ function attendance28(rec, days) {
         <div ref={headRef} className="bhbc-header-inner" style={{ maxWidth: 1280, margin: '0 auto', padding: '0 18px', minHeight: 54, display: 'flex', alignItems: 'center', gap: 14 }}>
           <div className="bhbc-header-id" style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, marginInlineEnd: 6 }}>
             {/* The crest goes HOME, like the EXPO logo does. */}
-            <img src="/bnei-herzliya-logo-w.png" alt="Bnei Herzliya BC" onClick={() => setView('overview')}
+            <img src="/bnei-herzliya-logo-w.png" alt={tr('Bnei Herzliya BC')} onClick={() => setView('overview')}
               style={{ height: 30, width: 'auto', display: 'block', cursor: 'pointer' }} title={tr('Overview')} />
             {/* Wordmark on ONE line (Ohad: no stacked text in the top menu). */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 11, whiteSpace: 'nowrap' }}>
@@ -1170,7 +1170,7 @@ function attendance28(rec, days) {
                 transparent expo icon"). Colourless on purpose - the club's
                 header is its own brand, and EXPO blue inside it reads as a
                 second logo. */}
-            {onExit && !previewCoach && <button onClick={onExit} className="bhbc-tab" title={tr('Back to EXPO coach')} aria-label="Back to EXPO coach" style={{ background: 'transparent', border: `1px solid ${HDR_BD}`, borderRadius: 0, height: HDR_BTN_H, width: HDR_BTN_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, padding: 0, cursor: 'pointer' }}>
+            {onExit && !previewCoach && <button onClick={onExit} className="bhbc-tab" title={tr('Back to EXPO coach')} aria-label={tr('Back to EXPO coach')} style={{ background: 'transparent', border: `1px solid ${HDR_BD}`, borderRadius: 0, height: HDR_BTN_H, width: HDR_BTN_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, padding: 0, cursor: 'pointer' }}>
               {/* The REAL EXPO mark. Ohad: "the bhbc is lacking expo icon which i
                   asked" - and he was right: I had drawn a bare chevron here,
                   which reads as a collapse caret, not as EXPO. expo-icon-lg.png

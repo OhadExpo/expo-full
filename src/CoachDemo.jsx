@@ -4064,7 +4064,7 @@ export default function CoachDemo() {
             padding: '4px 8px', background: C.acD, borderRadius: 0,
             border: `1px solid ${C.cardBd}`, whiteSpace: 'nowrap',
           }}>{T('COACH DEMO')}</span>
-          <nav role="tablist" aria-label="Coach demo tabs" style={{
+          <nav role="tablist" aria-label={T('Coach demo tabs')} style={{
             display: 'flex', gap: 2, flex: '1 1 auto', justifyContent: 'center',
             minWidth: 'max-content',
           }}>

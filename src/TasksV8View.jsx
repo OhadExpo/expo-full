@@ -787,7 +787,7 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
         {expanded && (
           <button
             onMouseDown={(e) => { e.preventDefault(); setBody(''); setDue(''); setTime(''); setPriority('normal'); setTraineeId(''); setSource('manual'); setAssignee(defaultAssignee); setFocused(false); inputRef.current?.blur(); }}
-            title="Discard" aria-label="Discard task draft"
+            title="Discard" aria-label={tt('Discard task draft')}
             style={{ background: 'transparent', border: '1px solid var(--c-cardBd)', color: 'var(--c-tm)', width: 24, height: 24, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', borderRadius: 0, fontSize: 15, lineHeight: 1, flexShrink: 0 }}>×</button>
         )}
       </div>
@@ -1605,7 +1605,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
       <div
         {...asButton(onToggleExpand)}
         data-taskid={row.id}
-        aria-label="Expand task for comments + detail"
+        aria-label={tt('Expand task for comments + detail')}
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => setHover(false)}
         style={{
@@ -2736,7 +2736,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
               <div
                 {...asButton(() => setAutoOpen(o => !o))}
                 aria-expanded={autoOpen}
-                aria-label="Toggle auto-alerts"
+                aria-label={tt('Toggle auto-alerts')}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 8,
                   padding: '8px 12px',
@@ -2879,7 +2879,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
           <div
             {...asButton(() => setDoneOpen(o => !o))}
             aria-expanded={doneOpen}
-            aria-label="Toggle done history"
+            aria-label={tt('Toggle done history')}
             style={{
               padding: '10px 14px',
               fontFamily: FN, fontSize: 10, fontWeight: 700,

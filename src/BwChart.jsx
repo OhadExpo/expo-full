@@ -46,7 +46,7 @@ export default function BWChart({ entries }) {
         <div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700}}>{entries.length} {tr(readLang(), entries.length === 1 ? 'ENTRY' : 'ENTRIES')}</div>
       </div>
       <div style={{position:'relative',width:'100%',height:H}}>
-        <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%',height:H,display:'block'}} aria-label="Bodyweight chart" preserveAspectRatio="none">
+        <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%',height:H,display:'block'}} aria-label={tr(readLang(), 'Bodyweight chart')} preserveAspectRatio="none">
           <defs>
             <linearGradient id="bwAreaGrad" x1="0" x2="0" y1="0" y2="1">
               <stop offset="0%" stopColor="#39BDFF" stopOpacity="0.35"/>

@@ -1178,7 +1178,7 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExerc
               Warm-up has no delete, so the × slot is a hidden 28×24 box (not a
               text spacer) — identical geometry to the day card's × button. */}
           <div style={{ display:'inline-flex', gap:4, flexShrink:0, alignItems:'center' }}>
-            {onCopyWarmup && <button onClick={(e)=>{ e.stopPropagation(); onCopyWarmup(); }} title={tt('Copy this warm-up to another program')} aria-label="Copy warm-up to another program"
+            {onCopyWarmup && <button onClick={(e)=>{ e.stopPropagation(); onCopyWarmup(); }} title={tt('Copy this warm-up to another program')} aria-label={tt('Copy warm-up to another program')}
               style={{ width:28, height:24, boxSizing:'border-box', background:'var(--c-sf)', border:`1px solid ${C.ac}`, borderRadius:0, color:C.ac, cursor:'pointer', fontSize:12, lineHeight:1, display:'inline-flex', alignItems:'center', justifyContent:'center', padding:0 }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M7 17L17 7"/><path d="M9 7h8v8"/></svg></button>}
             <span aria-hidden style={{ width:28, height:24, boxSizing:'border-box', visibility:'hidden', flexShrink:0 }}>×</span>
           </div>
@@ -1236,7 +1236,7 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExerc
                 <input type="number" value={w.sets ?? ''} onChange={e => update(i, { sets: e.target.value === '' ? '' : (parseInt(e.target.value) || 0) })} placeholder="1" style={tinyInput} />
                 <input value={w.reps ?? ''} onChange={e => update(i, { reps: e.target.value })} placeholder="10 / 30s" style={tinyInput} />
                 <input value={w.tempo ?? ''} onChange={e => update(i, { tempo: e.target.value })} placeholder="3010" style={tinyInput} />
-                <button onClick={() => remove(i)} title={tt('Remove warm-up')} aria-label="Remove warm-up"
+                <button onClick={() => remove(i)} title={tt('Remove warm-up')} aria-label={tt('Remove warm-up')}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, height: 24, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><TrashIcon size={15} /></button>
                 {/* Legacy free-text rx, only when the new fields are empty AND a
                     pre-split rx exists. Lets the coach see what the athlete is
@@ -1403,7 +1403,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
           {/* Spacer label = same type as Select's label so the button's top
               lines up with the select BOXES, its bottom with their bottoms. */}
           <span aria-hidden style={{fontSize:9, fontWeight:700, letterSpacing:'0.18em', fontFamily:FN, textTransform:'uppercase'}}>&nbsp;</span>
-          <button onClick={onClose} title={tt('Close compare panel')} aria-label="Close compare panel"
+          <button onClick={onClose} title={tt('Close compare panel')} aria-label={tt('Close compare panel')}
             style={{flex:1, width:36, boxSizing:'border-box', background:'var(--c-sf)', border:`1px solid ${C.cardBd}`, color:C.tm, cursor:'pointer', padding:0, borderRadius:0, fontSize:13, lineHeight:1, display:'inline-flex', alignItems:'center', justifyContent:'center', flexShrink:0}}>✕</button>
         </div>
       </div>
@@ -1913,7 +1913,7 @@ function EditorMoreMenu({ items }) {
   return (
     <div data-editor-more style={{ display: 'inline-flex' }}>
       <button ref={btnRef} onClick={() => setOpen(o => !o)}
-        title={tt('More program actions')} aria-label="More program actions" aria-haspopup="menu" aria-expanded={open}
+        title={tt('More program actions')} aria-label={tt('More program actions')} aria-haspopup="menu" aria-expanded={open}
         style={{ background: (open || anyActive) ? `${C.ac}1f` : (isRefined5b() ? 'transparent' : 'var(--c-sf)'), border: `1px solid ${C.ac}`, borderRadius: 0, height: 42, padding: '0 13px', lineHeight: '42px', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>
         {tt('MORE')}
@@ -2701,7 +2701,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                 {/* Day drag handle — a dedicated ⇕ (not the whole header: the
                     header holds the name input, and `draggable` on a parent
                     makes text-selection inside inputs start drags instead). */}
-                {plan.days.length > 1 && <span draggable title={tt('Drag to reorder days')} aria-label="Drag to reorder days"
+                {plan.days.length > 1 && <span draggable title={tt('Drag to reorder days')} aria-label={tt('Drag to reorder days')}
                   onDragStart={e => {
                     e.dataTransfer.effectAllowed = 'move';
                     e.dataTransfer.setData('text/plain', 'day:' + dayIdx);
@@ -2753,9 +2753,9 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                     point, so 12 vs 15 balances). Delete only shows when >1 day. */}
                 {(onCopyDays || plan.days.length > 1) && (
                   <div style={{display:'inline-flex',gap:4,flexShrink:0,alignItems:'center'}}>
-                    {onCopyDays && <button onClick={()=>setCopyDaysModal({ dayIdxs: new Set([dayIdx]) })} title={tt('Copy this day to another program')} aria-label="Copy day to another program"
+                    {onCopyDays && <button onClick={()=>setCopyDaysModal({ dayIdxs: new Set([dayIdx]) })} title={tt('Copy this day to another program')} aria-label={tt('Copy day to another program')}
                       style={{width:28,height:24,boxSizing:'border-box',background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,color:C.ac,cursor:'pointer',fontSize:12,lineHeight:1,display:'inline-flex',alignItems:'center',justifyContent:'center',padding:0}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M7 17L17 7"/><path d="M9 7h8v8"/></svg></button>}
-                    {plan.days.length > 1 && <button onClick={()=>setConfirmDeleteDay(dayIdx)} title={tt('Delete this day')} aria-label="Delete day"
+                    {plan.days.length > 1 && <button onClick={()=>setConfirmDeleteDay(dayIdx)} title={tt('Delete this day')} aria-label={tt('Delete day')}
                       className="daydel-btn"
                       style={{width:28,height:24,boxSizing:'border-box',background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,color:C.rd,cursor:'pointer',fontSize:15,lineHeight:1,display:'inline-flex',alignItems:'center',justifyContent:'center',padding:0,transition:'border-color .12s'}}>×</button>}
                   </div>
@@ -2899,7 +2899,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                       <input value={ex.tempo||""} onChange={e=>update({tempo:e.target.value})} placeholder="3010" style={tinyInput} />
                       <input value={ex.load||""} onChange={e=>update({load:e.target.value})} placeholder="kg/%" style={tinyInput} />
                       <input value={ex.rpe||""} onChange={e=>update({rpe:e.target.value})} placeholder="7-8" style={tinyInput} />
-                      <button onClick={()=>setConfirmDeleteEx({ dayIdx, exIdx, title })} title={tt('Remove exercise from this day')} aria-label="Remove exercise"
+                      <button onClick={()=>setConfirmDeleteEx({ dayIdx, exIdx, title })} title={tt('Remove exercise from this day')} aria-label={tt('Remove exercise')}
                         style={{background:"none",border:"none",cursor:"pointer",padding:0,height:24,boxSizing:"border-box",display:"inline-flex",alignItems:"center",justifyContent:"center"}}><TrashIcon size={15} /></button>
                       {/* Per-week toggles, column-aligned under SETS (col 4) and
                           REPS (col 5), shown only when the row is expanded. */}
@@ -3013,7 +3013,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           <div onClick={e=>e.stopPropagation()} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,width:'min(560px,100%)',maxHeight:'88vh',display:'flex',flexDirection:'column'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,padding:'14px 18px',borderBottom:`1px solid ${C.cardBd}`,flexShrink:0}}>
               <div style={{fontFamily:FN,fontWeight:700,fontSize:14,letterSpacing:'0.04em',color:C.tx,minWidth:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{tt('HISTORY ·')}{plan.name} <span style={{color:C.tm,fontWeight:400,fontSize:12}}>· {blockWorkouts.length} logged</span></div>
-              <button onClick={()=>setHistoryOpen(false)} aria-label="Close history" style={{background:'transparent',border:'none',color:C.tm,cursor:'pointer',fontSize:20,lineHeight:1,flexShrink:0,padding:0}}>×</button>
+              <button onClick={()=>setHistoryOpen(false)} aria-label={tt('Close history')} style={{background:'transparent',border:'none',color:C.tm,cursor:'pointer',fontSize:20,lineHeight:1,flexShrink:0,padding:0}}>×</button>
             </div>
             <div style={{overflowY:'auto',padding:'12px 18px 18px'}}>
               {blockWorkouts.length === 0
@@ -5048,7 +5048,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
           disturb the list. */}
       {lineageTraineeId && createPortal(
         // Full PAGE, not a pop-up (Ohad): opaque full-viewport surface + sticky Back bar.
-        <div role="dialog" aria-modal="true" aria-label="Training Analysis"
+        <div role="dialog" aria-modal="true" aria-label={tt('Training Analysis')}
           style={{ position: 'fixed', inset: 0, zIndex: 1200, background: 'var(--c-bg, #0a0a0b)', overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
           <div style={{ position: 'sticky', top: 0, zIndex: 3, background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}`, padding: '10px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
             <button onClick={() => setLineageTraineeId(null)} title="Back (Esc)"

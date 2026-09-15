@@ -146,7 +146,7 @@ export default function InstallAppPrompt() {
   // Rendered via portal to document.body (app-wide rule: every fixed overlay is
   // a portal, so no transformed ancestor can break position:fixed — review L1).
   return createPortal((
-    <div role="dialog" aria-modal="true" aria-label="Get the EXPO app" onClick={close} style={{
+    <div role="dialog" aria-modal="true" aria-label={t('Get the EXPO app')} onClick={close} style={{
       position: 'fixed', inset: 0, zIndex: 99999,
       background: C.scrim || 'rgba(0,0,0,0.72)', backdropFilter: 'blur(6px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,

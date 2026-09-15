@@ -1096,7 +1096,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                     if (await confirmToast('Delete this completed task? This cannot be undone.', { okLabel: 'Delete', cancelLabel: 'Cancel' })) {
                       remove(n.id);
                     }
-                  }} title="Remove" aria-label="Delete task"
+                  }} title="Remove" aria-label={tt('Delete task')}
                   style={{ background: 'none', border: 'none', color: 'var(--c-td)', cursor: 'pointer', fontSize: 14, padding: '0 4px', flexShrink: 0 }}>×</button>
               </div>
             );

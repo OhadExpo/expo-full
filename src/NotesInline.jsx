@@ -333,7 +333,7 @@ export default function NotesInline({
                     update(n.id, { status: 'cancelled', completed_at: new Date().toISOString() });
                   }
                 }} title={tr(readLang(), 'Cancel (archive to history)')}
-                style={{ background: 'none', border: 'none', color: 'var(--c-td)', cursor: 'pointer', fontSize: 14, padding: '0 4px', flexShrink: 0 }} aria-label="Cancel task">×</button>
+                style={{ background: 'none', border: 'none', color: 'var(--c-td)', cursor: 'pointer', fontSize: 14, padding: '0 4px', flexShrink: 0 }} aria-label={tr(readLang(), 'Cancel task')}>×</button>
             </div>
 
             {/* Body */}
@@ -442,7 +442,7 @@ export default function NotesInline({
                     if (await confirmToast('Delete this completed task? This cannot be undone.', { okLabel: 'Delete', cancelLabel: 'Cancel' })) {
                       remove(n.id);
                     }
-                  }} title="Remove" aria-label="Delete task"
+                  }} title="Remove" aria-label={tr(readLang(), 'Delete task')}
                   style={{ background: 'none', border: 'none', color: 'var(--c-td)', cursor: 'pointer', fontSize: 14, padding: '0 4px', flexShrink: 0 }}>×</button>
               </div>
             );

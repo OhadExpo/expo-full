@@ -427,6 +427,7 @@ export function LoginScreen({ brand = 'expo' } = {}) {
 // hashes and rotates the password in auth.users under the current session.
 // Closes on success; surfaces Supabase errors inline.
 export function PasswordChangeModal({ onClose, demoMode = false }) {
+  const tt = (x) => tr(readLang(), x);
   const auth = useAuth();
   const email = auth?.session?.user?.email || '';
   const [currentPw, setCurrentPw] = useState('');
@@ -468,7 +469,7 @@ export function PasswordChangeModal({ onClose, demoMode = false }) {
   };
 
   return createPortal((
-    <div onClick={() => { if (!saving) onClose(); }} role="dialog" aria-modal="true" aria-label="Change password" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 20 }}>
+    <div onClick={() => { if (!saving) onClose(); }} role="dialog" aria-modal="true" aria-label={tt('Change password')} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 20 }}>
       <div onClick={e => e.stopPropagation()} style={{ background: C.bg, border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 24, maxWidth: 360, width: '100%' }}>
         <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 12, textAlign: 'center' }}>{tr(readLang(), 'CHANGE PASSWORD')}</div>
         {ok ? (
