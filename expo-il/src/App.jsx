@@ -2146,7 +2146,7 @@ function Testimonials() {
                   fontWeight: 700, textAlign: 'center', minHeight: 90,
                   border: `1px dashed ${C.bd}`, borderRadius: 0,
                 }}>
-                  QUOTE · COMING SOON
+                  {t('testimonial.placeholder')}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div style={{
@@ -2154,8 +2154,8 @@ function Testimonials() {
                     background: C.sf2, border: `1px solid ${C.bd}`,
                   }} />
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontFamily: FN, fontSize: 11, color: C.td, letterSpacing: 1, fontWeight: 700 }}>NAME</div>
-                    <div style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 0.6, marginTop: 2 }}>PROGRAM</div>
+                    <div style={{ fontFamily: FN, fontSize: 11, color: C.td, letterSpacing: 1, fontWeight: 700 }}>{t('testimonial.name')}</div>
+                    <div style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 0.6, marginTop: 2 }}>{t('testimonial.program')}</div>
                   </div>
                 </div>
               </>
@@ -3313,7 +3313,7 @@ export default function App() {
     }
   } else if (route.view === 'gym') {
     body = (
-      <Suspense fallback={<div style={{ padding: 40, textAlign: 'center', color: C.tm }}>Loading calendar…</div>}>
+      <Suspense fallback={<div style={{ padding: 40, textAlign: 'center', color: C.tm }}>{t('gym.loading')}</div>}>
         <Gym />
       </Suspense>
     );
@@ -3418,7 +3418,7 @@ export default function App() {
           screen-reader user pressing Tab — this is the first focusable element
           — and activating it was thrown off the page they were on and onto the
           catalog (audit #60). */}
-      {!isStandalone && <a className="fv-skip" href="#programs">Skip to content</a>}
+      {!isStandalone && <a className="fv-skip" href="#programs">{t('a11y.skip')}</a>}
       {!isStandalone && <Nav />}
       <main id="main" className={isHome ? 'fv-home-root' : undefined}>
         {body}

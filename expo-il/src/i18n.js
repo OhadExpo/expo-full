@@ -282,6 +282,13 @@ const STRINGS = {
   'cta.sticky.label':    { en: 'Not sure which program?', he: 'לא בטוח איזו תוכנית?' },
   'cta.sticky.btn':      { en: 'WHATSAPP →',              he: 'וואטסאפ ←' },
 
+  // ─── Testimonials placeholder + lazy gym ──────────────────────────
+  'testimonial.placeholder': { en: 'QUOTE · COMING SOON', he: 'ציטוט · בקרוב' },
+  'testimonial.name':        { en: 'NAME',               he: 'שם' },
+  'testimonial.program':     { en: 'PROGRAM',            he: 'תוכנית' },
+  'gym.loading':             { en: 'Loading calendar…',  he: 'טוען את היומן…' },
+  'a11y.skip':               { en: 'Skip to content',    he: 'דילוג לתוכן' },
+
   // ─── Contact ──────────────────────────────────────────────────────
   'contact.badge':       { en: 'CONTACT',        he: 'דבר איתי' },
   'contact.h2':          { en: 'Questions before you buy?', he: 'שאלות לפני שאתה קונה?' },
