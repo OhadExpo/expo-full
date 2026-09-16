@@ -325,7 +325,7 @@ function DemoEmbed({ t }) {
             hard-blocks uploads in demoMode — the page's central live-proof
             claim had no upload surface anywhere in it (audit 08-22 #32).
             /try?embed=1 IS the own-clip engine and hides its own chrome. */}
-        <iframe src="/try?embed=1" title="EXPO live engine"
+        <iframe src="/try?embed=1" title={typeof document !== 'undefined' && document.documentElement.dir === 'rtl' ? 'המנוע של EXPO בזמן אמת' : 'EXPO live engine'}
           onLoad={() => setLoaded(true)}
           style={{
             display: 'block', width: '100%', border: 'none', position: 'relative', zIndex: 1,
