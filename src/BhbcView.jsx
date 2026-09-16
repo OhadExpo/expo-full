@@ -2513,9 +2513,9 @@ function ProgramModal({ athleteName, plans, exercises, currentWeek = 1, onClose 
             </span>
             {plans.length > 1 && (
               <button type="button" aria-expanded={pickOpen} onClick={() => setPickOpen((v) => !v)}
-                title={pickOpen ? 'Hide earlier blocks' : 'Show earlier blocks'}
+                title={pickOpen ? tr('Hide earlier blocks') : tr('Show earlier blocks')}
                 style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5, minWidth: 112, height: 24, padding: '0 9px', boxSizing: 'border-box', background: pickOpen ? 'rgba(127,127,138,0.14)' : 'transparent', border: '1px solid ' + C.cardBd, borderRadius: 0, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, fontVariantNumeric: 'tabular-nums' }}>
-                {plans.length - 1} {tr('previous')}
+                {plans.length - 1 === 1 ? tr('1 previous') : `${plans.length - 1} ${tr('previous')}`}
                 <svg aria-hidden width="8" height="5" viewBox="0 0 9 6" fill="none"
                   style={{ flexShrink: 0, transform: pickOpen ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>
                   <path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
