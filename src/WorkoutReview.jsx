@@ -1425,7 +1425,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'7px 10px',borderBottom:`1px solid ${C.cardBd}`}}>
             <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.16em',color:C.tm}}>{tt("LIFT METRICS")}</span>
             <button onClick={() => { setMetricsState('idle'); setMetrics(null); }} title={tt('Hide metrics')}
-              style={{background:'transparent',border:`1px solid ${C.bd}`,color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer',padding:'2px 7px'}}>× CLOSE</button>
+              style={{background:'transparent',border:`1px solid ${C.bd}`,color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer',padding:'2px 7px'}}>× {tr(readLang(), 'CLOSE')}</button>
           </div>
           <div style={{padding:'10px 10px 4px'}}>
             <Suspense fallback={<div style={{color:C.tm,fontFamily:FN,fontSize:11,padding:12}}>Loading…</div>}>
@@ -1676,7 +1676,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
             background:'transparent',color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>▶</button>
         <button onClick={() => setLoop(v => !v)} title={tt('Loop the video')}
           style={{padding:'3px 10px',height:22,boxSizing:'border-box',borderRadius:0,border:`1px solid ${loop?C.ac:C.bd}`,
-            background:loop?C.acD:'transparent',color:loop?C.ac:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>↻ LOOP</button>
+            background:loop?C.acD:'transparent',color:loop?C.ac:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>↻ {tr(readLang(), 'LOOP')}</button>
       </div>
       </div>
       {/* Metrics panel sits BESIDE the video (this column) only for portrait
@@ -1711,10 +1711,10 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
           </button>
           <button onClick={undoLastStroke} disabled={currentStrokes.length === 0} title={tt('Undo last stroke')}
             style={{padding:'3px 8px',height:22,boxSizing:'border-box',borderRadius:0,border:`1px solid ${C.bd}`,
-              background:'transparent',color:currentStrokes.length?C.tm:C.td,fontFamily:FN,fontSize:10,cursor:currentStrokes.length?'pointer':'default',opacity:currentStrokes.length?1:0.5}}>↶ UNDO</button>
+              background:'transparent',color:currentStrokes.length?C.tm:C.td,fontFamily:FN,fontSize:10,cursor:currentStrokes.length?'pointer':'default',opacity:currentStrokes.length?1:0.5}}>↶ {tr(readLang(), 'UNDO')}</button>
           <button onClick={clearDrawings} disabled={currentStrokes.length === 0} title={tt('Clear all drawings on this comment')}
             style={{padding:'3px 8px',height:22,boxSizing:'border-box',borderRadius:0,border:`1px solid ${C.bd}`,
-              background:'transparent',color:currentStrokes.length?C.tm:C.td,fontFamily:FN,fontSize:10,cursor:currentStrokes.length?'pointer':'default',opacity:currentStrokes.length?1:0.5}}>✕ CLEAR</button>
+              background:'transparent',color:currentStrokes.length?C.tm:C.td,fontFamily:FN,fontSize:10,cursor:currentStrokes.length?'pointer':'default',opacity:currentStrokes.length?1:0.5}}>✕ {tr(readLang(), 'CLEAR')}</button>
         </div>
       )}
       {/* Compose input (new comment or reply). Appears inline when composing is active. */}
@@ -1787,7 +1787,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
                 )}
                 {onReviewNotesChange && (
                   <button onClick={() => addReply(n.id)}
-                    style={{marginTop:8,background:'transparent',border:'none',color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,padding:0,cursor:'pointer'}}>↳ Reply</button>
+                    style={{marginTop:8,background:'transparent',border:'none',color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,padding:0,cursor:'pointer'}}>↳ {tr(readLang(), 'Reply')}</button>
                 )}
               </div>
             ))}
@@ -2211,7 +2211,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                 {wo.reviewedAt && (
                   <span style={{fontSize:9,fontFamily:FN,color:C.gn,fontWeight:700,letterSpacing:0.5,
                     padding:"2px 6px",borderRadius:0,border:`1px solid rgba(46,213,115,0.251)`,background:C.gnD}}>
-                    ✓ REVIEWED
+                    ✓ {tr(readLang(), 'REVIEWED')}
                   </span>
                 )}
               </h2>
@@ -2322,7 +2322,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                         🎯
                       </span>
                     )}
-                    {ex.substitution && <span style={{color:C.or,marginInlineStart:6,fontFamily:FN,fontWeight:700,fontSize:10,letterSpacing:0.5}} title={`Swapped from "${ex.substitution.from}"`}>⇄ SWAP</span>}
+                    {ex.substitution && <span style={{color:C.or,marginInlineStart:6,fontFamily:FN,fontWeight:700,fontSize:10,letterSpacing:0.5}} title={`Swapped from "${ex.substitution.from}"`}>⇄ {tr(readLang(), 'SWAP')}</span>}
                   </div>
                   {ex.substitution && (
                     <div style={{fontSize:10,color:C.or,marginTop:3,fontFamily:FN,letterSpacing:0.5}}>
@@ -2407,7 +2407,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                           return (
                             <button onClick={() => setComparePicker({ left: { url: formVideo.cloudUrl, label: leftLabel, title: ex.title || exName }, candidates })}
                               style={{background:'var(--c-sf)',border:`1px solid rgba(46,213,115,0.376)`,color:C.gn,fontFamily:FN,fontSize:9,padding:'3px 8px',borderRadius:0,cursor:'pointer',letterSpacing:0.5}}>
-                              ⇄ COMPARE
+                              ⇄ {tr(readLang(), 'COMPARE')}
                             </button>
                           );
                         })()}
@@ -2574,14 +2574,14 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                 style={{flex:1,padding:"12px 0",borderRadius:0,border:`1px solid ${C.ac}`,
                   background:C.ac,color:C.acOnSurface,fontFamily:FN,fontSize:13,fontWeight:700,
                   letterSpacing:0.5,cursor:"pointer"}}>
-                → NEXT PENDING ({remainingAfter})
+                → {tr(readLang(), 'NEXT PENDING')} ({remainingAfter})
               </button>
             ) : (
               <button onClick={() => { setSelectedWo(null); setExpandedEx(null); window.scrollTo(0,0); }}
                 style={{flex:1,padding:"12px 0",borderRadius:0,border:`1px solid ${C.gn}`,
                   background:C.gn,color:"#FFFFFF",fontFamily:FN,fontSize:13,fontWeight:700,
                   letterSpacing:0.5,cursor:"pointer"}}>
-                ✓ REVIEWED — BACK
+                ✓ {tr(readLang(), 'REVIEWED — BACK')}
               </button>
             )
           ) : (
@@ -2739,7 +2739,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                     {reviewed && (
                       <span style={{fontSize:8,fontFamily:FN,color:C.gn,fontWeight:700,letterSpacing:0.5,
                         padding:"1px 5px",borderRadius:0,border:`1px solid rgba(46,213,115,0.251)`,background:C.gnD}}>
-                        ✓ REVIEWED
+                        ✓ {tr(readLang(), 'REVIEWED')}
                       </span>
                     )}
                   </div>

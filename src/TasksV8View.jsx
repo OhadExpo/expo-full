@@ -934,7 +934,7 @@ function CalendarEmbedCard() {
             color: 'var(--c-ac)', letterSpacing: '0.12em',
             textTransform: 'uppercase', textDecoration: 'none',
             border: '1px solid var(--c-ac)', padding: '3px 8px',
-          }}>↗ Full View</a>
+          }}>↗ {tr(readLang(), 'Full View')}</a>
         {/* canonical collapse affordance: chevron on the RIGHT (billing style).
             Uses --c-tx, NOT a literal white: on the light theme a white chevron
             sat on a white surface and the control was invisible. */}
@@ -1519,12 +1519,12 @@ function ExpandedDetail({ row, displayBody, viewer, onSetCategory, onArchive, on
           {onArchive && row.status !== 'cancelled' && (
             <button onClick={(e) => { e.stopPropagation(); onArchive(row); }}
               title={tt('Archive — moves this task to the Done/Cancelled pool (recoverable)')}
-              style={{ background: 'transparent', border: `1px solid var(--c-cardBd)`, color: 'var(--c-tm)', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', padding: '5px 10px', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>⊘ Archive</button>
+              style={{ background: 'transparent', border: `1px solid var(--c-cardBd)`, color: 'var(--c-tm)', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', padding: '5px 10px', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>⊘ {tr(readLang(), 'Archive')}</button>
           )}
           {onDelete && (
             <button onClick={async (e) => { e.stopPropagation(); if (await confirmToast('Delete this task permanently? This cannot be undone.', { okLabel: 'Delete', cancelLabel: 'Keep' })) onDelete(row); }}
               title={tt('Delete this task permanently')}
-              style={{ background: 'transparent', border: `1px solid var(--c-rd)`, color: 'var(--c-rd)', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', padding: '5px 10px', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>🗑 Delete</button>
+              style={{ background: 'transparent', border: `1px solid var(--c-rd)`, color: 'var(--c-rd)', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', padding: '5px 10px', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>🗑 {tr(readLang(), 'Delete')}</button>
           )}
         </div>
       )}
@@ -2851,7 +2851,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                       style={{ width: '100%', boxSizing: 'border-box', background: 'var(--c-sf2)', border: `1px solid var(--c-ac)`, color: 'var(--c-tx)', fontFamily: FB, fontSize: 12, padding: '7px 9px', borderRadius: 0, outline: 'none' }} />
                   ) : (
                     <button onClick={() => { setQuickAddKey(section.key); setQuickAddText(''); }}
-                      style={{ width: '100%', background: 'transparent', border: 'none', color: 'var(--c-tm)', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', padding: '7px 6px', cursor: 'pointer', textAlign: 'start', textTransform: 'uppercase' }}>+ Add a task</button>
+                      style={{ width: '100%', background: 'transparent', border: 'none', color: 'var(--c-tm)', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', padding: '7px 6px', cursor: 'pointer', textAlign: 'start', textTransform: 'uppercase' }}>+ {tr(readLang(), 'Add a task')}</button>
                   )}
                 </div>
               )}

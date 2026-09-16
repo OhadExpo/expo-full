@@ -54,7 +54,7 @@ function CardStatusMenu({ status, onChange }) {
   );
 }
 import { supabase } from './supabase';
-import { useT, useHe, daysAgoHe, daysOverdueHe } from './i18n';
+import { useT, useHe, daysAgoHe, daysOverdueHe, tr, readLang } from './i18n';
 
 const isCouple = (t) => t.members && t.members.length === 2;
 
@@ -946,7 +946,7 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
                     </div>
                   )}
                   {showArchived && <div style={{display:'flex',gap:6,marginTop:'auto',paddingTop:10}}>
-                    <Btn variant="ghost" onClick={e => {e.stopPropagation(); handleRestore(t.id)}} style={{fontSize:11,padding:"4px 10px"}}>↩ Restore</Btn>
+                    <Btn variant="ghost" onClick={e => {e.stopPropagation(); handleRestore(t.id)}} style={{fontSize:11,padding:"4px 10px"}}>↩ {tr(readLang(), 'Restore')}</Btn>
                     <Btn variant="danger" onClick={e => {e.stopPropagation(); setDeleteConfirm(t)}} style={{fontSize:11,padding:"4px 10px"}}>{tt('Permanently Delete')}</Btn>
                   </div>}
                 </Card>
@@ -990,7 +990,7 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
               <BodyweightBlock entries={bwEntries} center />
 
               {showArchived && <div style={{ display: "flex", gap: 6, marginTop: 'auto', paddingTop: 10 }}>
-                <Btn variant="ghost" onClick={(e) => {e.stopPropagation(); handleRestore(t.id)}} style={{fontSize:11,padding:"4px 10px"}}>↩ Restore</Btn>
+                <Btn variant="ghost" onClick={(e) => {e.stopPropagation(); handleRestore(t.id)}} style={{fontSize:11,padding:"4px 10px"}}>↩ {tr(readLang(), 'Restore')}</Btn>
                 <Btn variant="danger" onClick={(e) => {e.stopPropagation(); setDeleteConfirm(t)}} style={{fontSize:11,padding:"4px 10px"}}>{tt('Permanently Delete')}</Btn>
               </div>}
               {!showArchived && <div style={{display:'grid',gridTemplateColumns:'repeat(2, minmax(0, 132px))',justifyContent:'center',marginTop:'auto',paddingTop:8,gap:8}}>
@@ -1107,7 +1107,7 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
       {/* Permanent delete — type DELETE to confirm */}
       {deleteConfirm && createPortal(<div role="dialog" aria-modal="true" aria-label={tt('Permanent deletion')} style={{ position: "fixed", inset: 0, zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center", background: C.scrim }} onClick={() => {setDeleteConfirm(null);setDeleteTyped("");setPurgeHistory(false)}}>
         <div onClick={e => e.stopPropagation()} style={{ background: C.bg, border: `1px solid ${C.rd}`, borderRadius: 0, width: 440, maxWidth: 'calc(100vw - 24px)', padding: 24 }}>
-          <h3 style={{ margin: "0 0 8px", fontFamily: FN, fontSize: 15, color: C.rd, textAlign: "center" }}>⚠ Permanent Deletion</h3>
+          <h3 style={{ margin: "0 0 8px", fontFamily: FN, fontSize: 15, color: C.rd, textAlign: "center" }}>⚠ {tr(readLang(), 'Permanent Deletion')}</h3>
           <p style={{ margin: "0 0 6px", fontSize: 13, color: C.tm, textAlign: "center" }}>{tt('This will permanently remove')}<strong style={{color:C.tx}}>{deleteConfirm.name}</strong> from the roster. By default their programs, workout history and payment records are kept (just no longer reachable).</p>
           <p style={{ margin: "0 0 14px", fontSize: 13, color: C.rd, fontWeight: 600, textAlign: "center" }}>{tt('This cannot be undone.')}</p>
           {/* Opt-in hard purge — separate, deliberate choice. Erases revenue

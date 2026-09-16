@@ -9,7 +9,7 @@
 // load the RAW plan row (not useFullPlan, which regenerates ids).
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useT } from './i18n';
+import { useT, tr, readLang } from './i18n';
 import { C, FN, FB } from './theme';
 import { CollapsibleSection } from './ui';
 import { supabase } from './supabase';
@@ -203,7 +203,7 @@ export default function WeeklyFocusTool({ trainees, exercises, weeklyFocus, setW
                   <div key={xi} style={{ marginBottom: 8 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
                       <span style={{ fontFamily: FB, fontSize: 13, color: C.tx, direction: isHeb(ex.title) ? 'rtl' : 'ltr', fontWeight: 600 }}>{ex.title}</span>
-                      {val && <span style={{ color: C.gn, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em' }}>✓ SAVED</span>}
+                      {val && <span style={{ color: C.gn, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em' }}>✓ {tr(readLang(), 'SAVED')}</span>}
                     </div>
                     <textarea dir="auto" value={val} onChange={e => setF(d.nameRaw, ex.eid, e.target.value)}
                       placeholder={`Focus to carry into week ${week + 1}…`}

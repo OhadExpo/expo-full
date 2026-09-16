@@ -19,7 +19,7 @@ import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
 import { isRefined5b, RefinedHeaderStrip, Modal, Btn, Input, Select, confirmToast, toast, stripBtnBase } from './ui';
 import { GOAL_TYPES, computeProgress, TEMPLATES } from './challengePredicates';
-import { useT as useAppT, useTB } from './i18n';
+import { useT as useAppT, useTB, tr, readLang } from './i18n';
 
 const fmtDate = (d) => {
   try { return fmtPrettyDate(d); } catch { return ''; }
@@ -412,7 +412,7 @@ function ChallengeForm({ initial, trainees, existingParticipants, onClose, onSav
           background: 'transparent', border: 'none', color: C.tm,
           fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
           padding: 0, cursor: 'pointer', marginBottom: 10,
-        }}>← BACK</button>
+        }}>← {tr(readLang(), 'BACK')}</button>
       )}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
         <Input label="Name" value={name} onChange={e => setName(e.target.value)} />

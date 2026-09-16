@@ -13,7 +13,7 @@ import { Btn, Modal, Card, Badge, isRefined5b, toast, SectionLabel, CollapsibleS
 import { supabase } from './supabase';
 import { generateIntakeToken, getForm } from './intakeFormSchemas';
 import PayloadDetail from './IntakePayloadDetail';
-import { useT, useTB } from './i18n';
+import { useT, useTB, tr, readLang } from './i18n';
 
 function fmt(iso) {
   if (!iso) return '—';
@@ -257,7 +257,7 @@ export default function IntakeView({ trainees }) {
             </div>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               {s.reviewed_at ? (
-                <button onClick={() => undoReviewed(s.id)} style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tm, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', borderRadius: 0 }}>↩ UNDO</button>
+                <button onClick={() => undoReviewed(s.id)} style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tm, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', borderRadius: 0 }}>↩ {tr(readLang(), 'UNDO')}</button>
               ) : (
                 <button onClick={() => markReviewed(s.id)} style={{ background: 'var(--c-sf)', border: `1px solid ${C.gn}`, color: C.gn, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', borderRadius: 0 }}>{tt('✓ DONE')}</button>
               )}

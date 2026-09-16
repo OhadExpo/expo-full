@@ -10,7 +10,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { C, FN, FB } from './theme';
 import { isRefined5b, confirmToast, toast, SectionLabel, CollapsibleSection } from './ui';
 import { supabase } from './supabase';
-import { useT as useAppT } from './i18n';
+import { useT as useAppT, tr, readLang } from './i18n';
 
 const COACH_GATE = 5;
 const NOTES_KEY = 'expo-lead-notes';
@@ -445,10 +445,10 @@ export default function WaitlistView({ trainees }) {
                     <td style={{ padding: '8px 10px', whiteSpace: 'nowrap', textAlign: 'center' }}>
                       {l.contacted ? (
                         <button onClick={() => undoContacted(l.id)} title={tt("Undo contacted")}
-                          style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tm, borderRadius: 0, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', marginInlineEnd: 4 }}>↩ UNDO</button>
+                          style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tm, borderRadius: 0, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', marginInlineEnd: 4 }}>↩ {tr(readLang(), 'UNDO')}</button>
                       ) : (
                         <button onClick={() => markContacted(l.id)} title={tt("Mark contacted")}
-                          style={{ background: 'var(--c-sf)', border: `1px solid ${C.gn}`, color: C.gn, borderRadius: 0, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', marginInlineEnd: 4 }}>✓ DONE</button>
+                          style={{ background: 'var(--c-sf)', border: `1px solid ${C.gn}`, color: C.gn, borderRadius: 0, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', marginInlineEnd: 4 }}>✓ {tr(readLang(), 'DONE')}</button>
                       )}
                       <button onClick={() => removeLead(l.id)} title={tt("Delete")}
                         style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, color: C.rd, borderRadius: 0, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>✕</button>

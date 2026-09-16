@@ -828,7 +828,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                   borderRadius: 0, padding: '0 8px', color: 'var(--c-tx)',
                   fontFamily: FN, fontSize: 11, outline: 'none',
                 }}>
-                <option value="">— Link to trainee (optional) —</option>
+                <option value="">— {tr(readLang(), 'Link to trainee (optional) —')}</option>
                 {trainees.filter(t => t.status !== 'Archived').map(t => (
                   <option key={t.id} value={t.id}>{t.name}</option>
                 ))}

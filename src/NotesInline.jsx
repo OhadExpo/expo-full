@@ -226,12 +226,12 @@ export default function NotesInline({
             return (
               <button onClick={() => startCreatePlan(n)}
                 title={tr(readLang(), 'Create a program from this task — auto-marks done on save')}
-                style={pillBtn('var(--c-ac)')}>→ NEW PROGRAM</button>
+                style={pillBtn('var(--c-ac)')}>→ {tr(readLang(), 'NEW PROGRAM')}</button>
             );
           }
           if (kindAction === 'NEW_PROGRAM' && showCreatePlanBtn) {
             return (
-              <button onClick={() => startCreatePlan(n)} style={pillBtn('var(--c-ac)')}>→ NEW PROGRAM</button>
+              <button onClick={() => startCreatePlan(n)} style={pillBtn('var(--c-ac)')}>→ {tr(readLang(), 'NEW PROGRAM')}</button>
             );
           }
           if (kindAction === 'REVIEW' && n.auto_ref) {
@@ -240,24 +240,24 @@ export default function NotesInline({
               <button onClick={() => {
                 try { sessionStorage.setItem('expo-pendingReviewWorkout', woId); } catch {}
                 window.location.href = '/coach/review';
-              }} style={pillBtn('var(--c-ac)')}>→ REVIEW</button>
+              }} style={pillBtn('var(--c-ac)')}>→ {tr(readLang(), 'REVIEW')}</button>
             );
           }
           if (kindAction === 'WHATSAPP') {
             const phone = normalizePhoneIL(trainee?.phone);
             if (!phone) {
-              return <button disabled style={pillBtn('var(--c-td)')} title={tr(readLang(), 'No phone on file')}>→ WHATSAPP</button>;
+              return <button disabled style={pillBtn('var(--c-td)')} title={tr(readLang(), 'No phone on file')}>→ {tr(readLang(), 'WHATSAPP')}</button>;
             }
             const msg = whatsappMessageForTask(n, trainee);
             return (
               <button onClick={() => {
                 try { window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener'); } catch {}
               }} title={`Open WhatsApp to ${trainee?.name || ''}`}
-                style={pillBtn('#128C7E')}>→ WHATSAPP</button>
+                style={pillBtn('#128C7E')}>→ {tr(readLang(), 'WHATSAPP')}</button>
             );
           }
           if (kindAction === 'OPEN_INTAKE' && onOpenIntakeTab) {
-            return <button onClick={onOpenIntakeTab} style={pillBtn('var(--c-ac)')}>→ INTAKE</button>;
+            return <button onClick={onOpenIntakeTab} style={pillBtn('var(--c-ac)')}>→ {tr(readLang(), 'INTAKE')}</button>;
           }
           if (kindAction === 'OPEN_ATHLETE') {
             // We're already on the athlete card. Scroll to the eval
@@ -268,7 +268,7 @@ export default function NotesInline({
                   const el = document.querySelector('[data-eval-anchor]');
                   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 } catch {}
-              }} style={pillBtn('var(--c-ac)')}>→ RUN EVALUATION</button>
+              }} style={pillBtn('var(--c-ac)')}>→ {tr(readLang(), 'RUN EVALUATION')}</button>
             );
           }
           if (kindAction === 'OPEN_WAITLIST' && typeof window !== 'undefined') {
@@ -278,7 +278,7 @@ export default function NotesInline({
             return (
               <button onClick={() => { try { window.location.hash = '#/coach/waitlist'; } catch {} }}
                 title={tr(readLang(), 'Open the /coach/waitlist surface to consume this lead')}
-                style={pillBtn('var(--c-ac)')}>→ WAITLIST</button>
+                style={pillBtn('var(--c-ac)')}>→ {tr(readLang(), 'WAITLIST')}</button>
             );
           }
           return null;
@@ -321,7 +321,7 @@ export default function NotesInline({
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
                     fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
                     color: 'var(--c-or)', border: `1px solid var(--c-or)`, padding: '2px 8px',
-                  }}>⚠ FOLLOW UP {staleDays}d</span>
+                  }}>⚠ {readLang() === 'he' ? `לחזור לזה · ${staleDays === 1 ? 'יום אחד' : `${staleDays} ימים`}` : `FOLLOW UP ${staleDays}d`}</span>
               )}
               <span style={{ flex: 1 }} />
               <span style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.04em' }}>

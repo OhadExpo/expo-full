@@ -224,7 +224,7 @@ class ToolBoundary extends React.Component {
               offline or the browser blocked access, that's the cause. Close and
               try again, or pick another tool.
             </div>
-            <button onClick={this.props.onClose} style={ghostBtn}>← BACK</button>
+            <button onClick={this.props.onClose} style={ghostBtn}>← {tr(readLang(), 'BACK')}</button>
           </div>
         </div>
       );
@@ -344,7 +344,7 @@ export default function ReviewToolsView({ clientWorkouts = [], trainees = [] }) 
                 Editable ONLY here, after a clip is loaded (Ohad: "must be fully
                 automated. i can only change it after analyzing, not before"). */}
             <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '14px 18px' }}>
-              <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>{tt('Lift being analysed')} <span style={{ color: C.ac }}>· AUTO</span></label>
+              <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>{tt('Lift being analysed')} <span style={{ color: C.ac }}>· {tr(readLang(), 'AUTO')}</span></label>
               <div style={{ fontFamily: FB, fontSize: 11, color: C.tm, marginBottom: 9, lineHeight: 1.4 }}>{tt('Detected from the clip. Change it only if the auto-detect is off.')}</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
                 {QUICK_LIFTS.map(l => {

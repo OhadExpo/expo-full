@@ -200,9 +200,9 @@ export default function BillingView({ trainees }) {
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                 {r.status === 'pending' && (
                   <>
-                    <button onClick={() => chase(t, r)} title={tt('Send a WhatsApp payment reminder')} style={btnStyle('#25D366')}>◔ CHASE</button>
-                    <button onClick={() => markPaid(r.id)} style={btnStyle(C.gn)}>✓ MARK PAID</button>
-                    <button onClick={() => cancelRequest(r.id)} style={btnStyle(C.rd)}>× CANCEL</button>
+                    <button onClick={() => chase(t, r)} title={tt('Send a WhatsApp payment reminder')} style={btnStyle('#25D366')}>◔ {tr(readLang(), 'CHASE')}</button>
+                    <button onClick={() => markPaid(r.id)} style={btnStyle(C.gn)}>✓ {tr(readLang(), 'MARK PAID')}</button>
+                    <button onClick={() => cancelRequest(r.id)} style={btnStyle(C.rd)}>× {tr(readLang(), 'CANCEL')}</button>
                   </>
                 )}
                 <button onClick={() => remove(r.id)} style={btnStyle(C.td)}>{tt("DELETE")}</button>
@@ -281,7 +281,7 @@ function RequestModal({ trainees, onClose, onCreated }) {
   return createPortal((
     <div onClick={onClose} role="dialog" aria-modal="true" aria-label={tt('New payment request')} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1200, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 20, paddingTop: 60, backdropFilter: 'blur(4px)' }}>
       <div onClick={e => e.stopPropagation()} style={{ background: 'var(--c-bg)', border: `1px solid ${C.cardBd}`, maxWidth: 480, width: '100%', padding: 22, maxHeight: '80vh', overflow: 'auto' }}>
-        <h3 style={{ margin: '0 0 16px', fontFamily: FN, fontSize: 14, color: C.ac, letterSpacing: '0.12em', fontWeight: 700 }}>+ NEW PAYMENT REQUEST</h3>
+        <h3 style={{ margin: '0 0 16px', fontFamily: FN, fontSize: 14, color: C.ac, letterSpacing: '0.12em', fontWeight: 700 }}>+ {tr(readLang(), 'NEW PAYMENT REQUEST')}</h3>
         <div style={{ marginBottom: 10 }}>
           <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>{tr(readLang(), 'TRAINEE')}</label>
           <select value={traineeId} onChange={e => setTraineeId(e.target.value)}

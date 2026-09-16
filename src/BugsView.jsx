@@ -8,7 +8,7 @@
 // note + record a "fixed in <commit>" tag.
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { useT, useTB } from './i18n';
+import { useT, useTB, tr, readLang } from './i18n';
 import { C, FN, FB } from './theme';
 import { safeUrl } from './VideoEmbed';
 import { supabase } from './supabase';
@@ -204,11 +204,11 @@ export default function BugsView() {
                 <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
                   {r.status !== 'open' && (
                     <button onClick={() => setStatus(r.id, 'open')}
-                      style={btn(C.rd)}>→ OPEN</button>
+                      style={btn(C.rd)}>→ {tr(readLang(), 'OPEN')}</button>
                   )}
                   {r.status !== 'triaged' && (
                     <button onClick={() => setStatus(r.id, 'triaged')}
-                      style={btn(C.or)}>→ TRIAGED</button>
+                      style={btn(C.or)}>→ {tr(readLang(), 'TRIAGED')}</button>
                   )}
                   {r.status !== 'fixed' && (
                     shaFor === r.id ? (
@@ -217,10 +217,10 @@ export default function BugsView() {
                           onKeyDown={e => { if (e.key === 'Enter') markFixed(r.id); if (e.key === 'Escape') { setShaFor(null); setShaVal(''); } }}
                           placeholder={tt('commit SHA — blank to skip')}
                           style={{ background: 'var(--c-sf2)', border: `1px solid ${C.cardBd}`, color: C.tx, fontFamily: FN, fontSize: 11, padding: '4px 8px', width: 190 }} />
-                        <button onClick={() => markFixed(r.id)} style={btn(C.gn)}>✓ FIXED</button>
+                        <button onClick={() => markFixed(r.id)} style={btn(C.gn)}>✓ {tr(readLang(), 'FIXED')}</button>
                       </span>
                     ) : (
-                      <button onClick={() => { setShaFor(r.id); setShaVal(''); }} style={btn(C.gn)}>✓ MARK FIXED</button>
+                      <button onClick={() => { setShaFor(r.id); setShaVal(''); }} style={btn(C.gn)}>✓ {tr(readLang(), 'MARK FIXED')}</button>
                     )
                   )}
                   {r.fixed_in_commit && (

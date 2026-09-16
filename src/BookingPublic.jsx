@@ -212,7 +212,7 @@ export default function BookingPublic() {
     return (
       <Wrapper>
         <div style={{ padding: 30, textAlign: 'center' }}>
-          <div style={{ fontFamily: FN, fontSize: 10, color: C.gn, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 16 }}>✓ BOOKED</div>
+          <div style={{ fontFamily: FN, fontSize: 10, color: C.gn, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 16 }}>✓ {tr(readLang(), 'BOOKED')}</div>
           <div style={{ fontSize: 16, color: C.tx, marginBottom: 8 }}>
             {confirmation.when.toLocaleDateString('en-GB')} · {pad(confirmation.when.getHours())}:{pad(confirmation.when.getMinutes())}
           </div>
@@ -242,7 +242,7 @@ export default function BookingPublic() {
         {settings.bio && <p style={{ margin: '0 0 14px', color: C.tm, fontSize: 13, lineHeight: 1.5 }}>{settings.bio}</p>}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.12em' }}>
           <button onClick={() => setWeekOffset(o => Math.max(0, o - 1))} disabled={weekOffset === 0}
-            style={{ padding: '4px 10px', background: 'transparent', border: `1px solid ${weekOffset === 0 ? C.cardBd : C.ac}`, color: weekOffset === 0 ? C.td : C.ac, cursor: weekOffset === 0 ? 'default' : 'pointer' }}>← PREV</button>
+            style={{ padding: '4px 10px', background: 'transparent', border: `1px solid ${weekOffset === 0 ? C.cardBd : C.ac}`, color: weekOffset === 0 ? C.td : C.ac, cursor: weekOffset === 0 ? 'default' : 'pointer' }}>← {tr(readLang(), 'PREV')}</button>
           <span style={{ flex: 1, textAlign: 'center' }}>{tr(readLang(), 'WEEK OF')}{ymd(startOfWeek(new Date(Date.now() + weekOffset * 7 * 86400000)))}</span>
           <button onClick={() => setWeekOffset(o => o + 1)}
             style={{ padding: '4px 10px', background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, cursor: 'pointer' }}>{tr(readLang(), 'NEXT →')}</button>

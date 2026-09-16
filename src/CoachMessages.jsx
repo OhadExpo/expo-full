@@ -15,7 +15,7 @@ import { supabase, SUPA_URL, SUPA_PUBLISHABLE_KEY } from './supabase';
 import { isRefined5b, RefinedHeaderStrip, toast, usePersistentState } from './ui';
 import { sendPush, isCoachMutedForAthlete } from './push';
 import { DEMO_MESSAGES } from './demoTraineeData';
-import { useT as useAppT } from './i18n';
+import { useT as useAppT, tr, readLang } from './i18n';
 import { resolveStoredUrl } from './storageUrl';
 
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
@@ -258,14 +258,14 @@ function Composer({ onSend, role, draftKey }) {
         )}
         {rec.recording && (
           <button onClick={rec.stop} style={recBtnStyle('var(--c-rd)', true)}>
-            ■ STOP · {String(Math.floor(rec.elapsed / 60)).padStart(2,'0')}:{String(rec.elapsed % 60).padStart(2,'0')}
+            ■ {tr(readLang(), 'STOP')} · {String(Math.floor(rec.elapsed / 60)).padStart(2,'0')}:{String(rec.elapsed % 60).padStart(2,'0')}
           </button>
         )}
         {rec.blob && !rec.recording && (
           <>
             <div style={{ maxWidth: 220 }}><AudioPlayer src={rec.blobUrl} /></div>
             <button onClick={rec.reset}
-              style={recBtnStyle('var(--c-tm)')}>↺ RE-RECORD</button>
+              style={recBtnStyle('var(--c-tm)')}>↺ {tr(readLang(), 'RE-RECORD')}</button>
           </>
         )}
         {rec.error && <span style={{ fontSize: 11, color: 'var(--c-rd)' }}>{rec.error}</span>}

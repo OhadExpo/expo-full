@@ -28,7 +28,12 @@ const EXERCISE_SHAPE = /\b(?:DB|BB|SA|KB|TRX|RDL|SLDL|OHP|ISO|POS|ATH)\b|\d+\s*[
 // in the app sits next to an expression - `{tr('Logs this session for')}<b>{n}</b>
 // available athletes` - where only the first third was ever translated. Scan
 // every run bounded by > or } on the left and < or { on the right.
-const LITERAL = /[>}]\s*([A-Z][A-Za-z0-9 ·+→←✓%&/()'’.…\-–—:]{2,140}?)\s*[<{]/g;
+// Hole #6 (2026-09-16): the run had to START with a capital, so a label led by
+// a glyph - `← BACK`, `✓ MARK PAID`, `+ New Program`, `◔ CHASE` - was never
+// seen; 50 of them sat in translated views. An optional 1-2 symbol lead is
+// allowed now (anything but a letter, digit, quote, bracket, Hebrew, or the
+// code punctuation , ; : = that would straddle a line of JS).
+const LITERAL = /[>}]\s*((?:[^\sA-Za-z0-9<>{}()[\]'"`$,;:=֐-׿]{1,2}\s*)?[A-Z][A-Za-z0-9 ·+→←✓%&/()'’.…\-–—:]{2,140}?)\s*[<{]/g;
 // A tooltip is the one place the app EXPLAINS itself - the last place that
 // should be in another language. 214 of them were English.
 const TITLE_ATTR = /(?<![\w$])title=(?:"([A-Z][^"]{3,120})"|'([A-Z][^']{3,120})')/g;

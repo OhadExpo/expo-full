@@ -450,7 +450,7 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
               {onCreateLibrary ? (
                 <button onClick={() => { onCreateLibrary(search.trim()); onClose(); }} title={tt('Create a reusable library exercise (edit details later in Exercises)')}
                   style={{ background: '#39BDFF', border: '1px solid #39BDFF', color: '#FFFFFF', cursor: 'pointer', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.09em', padding: '9px 20px', borderRadius: 0 }}>
-                  + ADD “{search.trim()}” TO LIBRARY
+                  + {tt('ADD')} “{search.trim()}” {tt('TO LIBRARY')}
                 </button>
               ) : onPickName && (
                 <button onClick={pickName} title={tt('Add by name only — no library link, notes, or video')}
@@ -3859,7 +3859,7 @@ export function TrainingLineage({ traineeId, traineeName, exercises, plans, load
         <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 88%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '7px 12px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
           <span>{tt('Build the next block')}{nextPlan.nextNum != null ? ` · #${nextPlan.nextNum}` : ''}</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-            <button onClick={() => setReportOpen(true)} title={tt('Open the full next-block report — goals, parameters, weekly progression, per-movement targets')} style={{ height:24, padding: '0 10px', border: '1px solid #39BDFF', background: '#39BDFF', color: '#06131b', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>⤢ Full report →</button>
+            <button onClick={() => setReportOpen(true)} title={tt('Open the full next-block report — goals, parameters, weekly progression, per-movement targets')} style={{ height:24, padding: '0 10px', border: '1px solid #39BDFF', background: '#39BDFF', color: '#06131b', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>⤢ {tr(readLang(), 'Full report →')}</button>
             <button onClick={copyBrief} title={tt('Copy this analysis as a next-block brief — a periodization starting point (you choose the exercises & loads)')} style={{ height:24, padding: '0 10px', border: `1px solid ${briefCopied ? C.gn : 'rgba(255,255,255,0.35)'}`, background: 'transparent', color: briefCopied ? C.gn : '#fff', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>{briefCopied ? 'Copied ✓' : '⧉ Copy brief'}</button>
           </div>
         </div>

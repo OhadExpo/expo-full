@@ -579,7 +579,7 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
           </svg>
           <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', color: C.tx, textTransform: 'uppercase' }}>{tt('No one on the floor yet')}</div>
           <div style={{ fontFamily: FB, fontSize: 13, color: C.tm, maxWidth: 380, lineHeight: 1.55 }}>{tt('Add the athletes training now — check them in as they arrive and log every set from this one screen.')}</div>
-          <button onClick={() => setPicking(true)} style={{ ...primaryBtn, width: 'auto', padding: '12px 26px', marginTop: 4 }}>+ Add athletes</button>
+          <button onClick={() => setPicking(true)} style={{ ...primaryBtn, width: 'auto', padding: '12px 26px', marginTop: 4 }}>+ {tr(readLang(), 'Add athletes')}</button>
         </div>
       ) : (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12, marginTop: 12 }}>
@@ -893,7 +893,7 @@ function AthletePicker({ trainees, planIndex, existing = [], clientWorkouts = []
             );
           })}
         </div>
-        <button onClick={addRow} style={{ ...miniBtn, marginTop: 10, padding: '8px 12px', border: `1px solid ${C.cardBd}`, color: C.ac }}>+ ANOTHER</button>
+        <button onClick={addRow} style={{ ...miniBtn, marginTop: 10, padding: '8px 12px', border: `1px solid ${C.cardBd}`, color: C.ac }}>+ {tr(readLang(), 'ANOTHER')}</button>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
           <button onClick={onCancel} style={{ ...miniBtn, padding: '9px 16px', border: `1px solid ${C.cardBd}`, color: C.tm }}>{tt("Cancel")}</button>
           <button onClick={confirm} style={{ ...primaryBtn, width: 'auto', padding: '9px 18px' }}>{tt('Add to session')}</button>

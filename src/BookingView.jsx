@@ -10,7 +10,7 @@
 // Bookings come in via the public /book/<slug> route (BookingPublic.jsx).
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { useT, useTB } from './i18n';
+import { useT, useTB, tr, readLang } from './i18n';
 import { fmtPrettyDate } from './dates';
 import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
@@ -202,9 +202,9 @@ export default function BookingView({ trainees }) {
               {b.status === 'confirmed' && (
                 <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
                   <button onClick={() => markCompleted(b.id)}
-                    style={{ background: 'transparent', border: `1px solid ${C.gn}`, color: C.gn, padding: '4px 10px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer' }}>✓ COMPLETED</button>
+                    style={{ background: 'transparent', border: `1px solid ${C.gn}`, color: C.gn, padding: '4px 10px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer' }}>✓ {tr(readLang(), 'COMPLETED')}</button>
                   <button onClick={() => cancelBooking(b.id)}
-                    style={{ background: 'transparent', border: `1px solid ${C.rd}`, color: C.rd, padding: '4px 10px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer' }}>× CANCEL</button>
+                    style={{ background: 'transparent', border: `1px solid ${C.rd}`, color: C.rd, padding: '4px 10px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer' }}>× {tr(readLang(), 'CANCEL')}</button>
                 </div>
               )}
             </div>

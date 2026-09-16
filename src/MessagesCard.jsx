@@ -17,7 +17,7 @@ import { isRefined5b, RefinedHeaderStrip, SectionLabel, usePersistentState, stri
 import { useTheme } from './hooks/useTheme';
 import { supabase } from './supabase';
 import { enqueue } from './offlineQueue';
-import { useT, useTB } from './i18n';
+import { useT, useTB, tr, readLang } from './i18n';
 
 const SEEN_KEY = 'expo-msgs-seen-at';
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
@@ -274,7 +274,7 @@ export default function MessagesCard({ trainees, onSelectTrainee, onOpenMessages
           fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em',
           color: 'var(--c-td)', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8,
         }}>
-          <span>✓ INBOX CLEAR</span>
+          <span>✓ {tr(readLang(), 'INBOX CLEAR')}</span>
           {handledThreads.length > 0 && (
             <>
               <span style={{ opacity: 0.5 }}>·</span>

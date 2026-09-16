@@ -2017,7 +2017,7 @@ function DemoPrograms({ resetToken = 0 }) {
               }),
             },
           ]}
-          footer={<button onClick={e => e.stopPropagation()} style={{ ...baseBtn, background: '#39BDFF', color: '#06131b', border: '1px solid #39BDFF', width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 38, marginTop: 'auto', fontSize: 13, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ New Program</button>}
+          footer={<button onClick={e => e.stopPropagation()} style={{ ...baseBtn, background: '#39BDFF', color: '#06131b', border: '1px solid #39BDFF', width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 38, marginTop: 'auto', fontSize: 13, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ {tr(readLang(), 'New Program')}</button>}
         />
         {/* RIGHT: the program list. */}
         <div style={{ flex: 1, minWidth: 0, boxSizing: 'border-box' }}>
@@ -2273,11 +2273,11 @@ function DemoPrograms({ resetToken = 0 }) {
             return <>
               <button onClick={() => setCompareOpen(v => !v)} title={T('Compare with a previous program (read-only)')}
                 style={{ ...tbBtn(), background: compareActive ? `${C.ac}1f` : 'var(--c-sf)' }}>{compareActive ? '✓ COMPARE' : '↔ COMPARE'}</button>
-              <button onClick={e => e.stopPropagation()} title={T('Open in the athlete portal view (demo only)')} style={tbBtn()}>◉ PORTAL</button>
-              <button onClick={e => e.stopPropagation()} title={T('Share to another athlete (demo only)')} style={tbBtn()}>⤴ SHARE</button>
-              <button onClick={e => e.stopPropagation()} title={T('Duplicate program (demo only)')} style={tbBtn()}>⎘ DUPLICATE</button>
+              <button onClick={e => e.stopPropagation()} title={T('Open in the athlete portal view (demo only)')} style={tbBtn()}>◉ {tr(readLang(), 'PORTAL')}</button>
+              <button onClick={e => e.stopPropagation()} title={T('Share to another athlete (demo only)')} style={tbBtn()}>⤴ {tr(readLang(), 'SHARE')}</button>
+              <button onClick={e => e.stopPropagation()} title={T('Duplicate program (demo only)')} style={tbBtn()}>⎘ {tr(readLang(), 'DUPLICATE')}</button>
               <button onClick={e => e.stopPropagation()} title={T('Show only this program on the athlete portal (demo only)')} style={tbBtn()}>{T('SHOW ONLY')}</button>
-              <button onClick={e => e.stopPropagation()} title={T('Delete program (demo only)')} style={tbBtn(C.rd)}>🗑 DELETE</button>
+              <button onClick={e => e.stopPropagation()} title={T('Delete program (demo only)')} style={tbBtn(C.rd)}>🗑 {tr(readLang(), 'DELETE')}</button>
             </>;
           })()}
           <button onClick={e => e.stopPropagation()} title={T('Demo only')}
@@ -2346,7 +2346,7 @@ function DemoPrograms({ resetToken = 0 }) {
                 <span style={{ fontSize: 11, fontFamily: FN, fontWeight: 700, color: C.or, letterSpacing: '0.06em' }}>{T('WARM-UP (')}{block.warmup.length})</span>
               </button>
               <button onClick={e => e.stopPropagation()} title={T('Demo only')}
-                style={{ background: 'var(--c-sf)', border: `1px solid rgba(255,165,2,0.4)`, borderRadius: 0, height: 26, boxSizing: 'border-box', padding: '0 10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: C.or, cursor: 'pointer', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.18em' }}>+ ADD WARM-UP</button>
+                style={{ background: 'var(--c-sf)', border: `1px solid rgba(255,165,2,0.4)`, borderRadius: 0, height: 26, boxSizing: 'border-box', padding: '0 10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: C.or, cursor: 'pointer', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.18em' }}>+ {tr(readLang(), 'ADD WARM-UP')}</button>
             </div>
             {warmOpen && (
               <div style={{ marginTop: 8 }}>
@@ -2716,7 +2716,7 @@ function DemoPrograms({ resetToken = 0 }) {
           XLSX / EXPORT were phantom (no such buttons in PlansView) — removed so
           the demo doesn't advertise features the product lacks. */}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        <button title={T('Demo only')} style={{ ...baseBtn, background: C.ac, color: '#000' }}>+ ADD EXERCISE</button>
+        <button title={T('Demo only')} style={{ ...baseBtn, background: C.ac, color: '#000' }}>+ {tr(readLang(), 'ADD EXERCISE')}</button>
       </div>
     </section>
   );
@@ -2911,7 +2911,7 @@ function DemoExercises() {
         <FilterPill label="Movement" k="movementType" />
         <FilterPill label="Pattern" k="movementPattern" />
         <FilterPill label="Laterality" k="laterality" />
-        {activeFilterCount > 0 && <button onClick={clearFilters} style={{ ...railBase, marginInlineStart: 'auto', color: C.rd, letterSpacing: '0.1em', borderBottomColor: 'transparent' }}>× Clear all</button>}
+        {activeFilterCount > 0 && <button onClick={clearFilters} style={{ ...railBase, marginInlineStart: 'auto', color: C.rd, letterSpacing: '0.1em', borderBottomColor: 'transparent' }}>× {tr(readLang(), 'Clear all')}</button>}
       </div>
       {/* Click-catcher backdrop: an outside click closes the open menu. */}
       {openKey && <div onClick={() => setOpenKey(null)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />}
@@ -2926,7 +2926,7 @@ function DemoExercises() {
           padding: 40, textAlign: 'center',
         }}>
           <div style={{ fontFamily: FN, fontSize: 11, color: C.td, letterSpacing: 2, fontWeight: 700, marginBottom: 8 }}>{T('NO MATCHES')}</div>
-          <div style={{ fontFamily: FB, fontSize: 13, color: C.tm }}>{T('Nothing matches')}{q ? <>"<span style={{ color: C.tx, fontWeight: 700 }}>{search}</span>"</> : 'this filter'}. Clear search or pick another category.
+          <div style={{ fontFamily: FB, fontSize: 13, color: C.tm }}>{T('Nothing matches')}{q ? <>{readLang() === 'he' ? ' ל־' : ' '}"<span style={{ color: C.tx, fontWeight: 700 }}>{search}</span>"</> : (readLang() === 'he' ? ' לסינון הזה' : ' this filter')}{readLang() === 'he' ? '. תנקה את החיפוש או תבחר קטגוריה אחרת.' : '. Clear search or pick another category.'}
           </div>
         </div>
       ) : view === 'grid' ? (
@@ -3204,12 +3204,12 @@ function DemoReview() {
             flex: 1, padding: '12px 0', borderRadius: 0, border: `1px solid ${C.bd2}`,
             background: 'transparent', color: C.tx,
             fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: 0.5, cursor: 'pointer',
-          }}>← BACK</button>
+          }}>← {tr(readLang(), 'BACK')}</button>
           <button onClick={() => setSelectedId(null)} title={T('Mark reviewed and return to the queue (demo only)')} style={{
             flex: 1, padding: '12px 0', borderRadius: 0, border: `1px solid ${C.ac}`,
             background: C.ac, color: '#0a0a0b',
             fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: 0.5, cursor: 'pointer',
-          }}>✓ MARK REVIEWED — BACK</button>
+          }}>✓ {tr(readLang(), 'MARK REVIEWED — BACK')}</button>
         </div>
       </section>
     );
@@ -3420,7 +3420,7 @@ function DemoWorkouts() {
         <div style={{
           background: C.sf, border: `1px dashed ${C.bd2}`, borderRadius: 0,
           padding: 36, textAlign: 'center', color: C.tm, fontFamily: FB, fontSize: 13,
-        }}>📊 No completed workouts yet.</div>
+        }}>📊 {tr(readLang(), 'No completed workouts yet.')}</div>
       ) : (
         completed.map((w, i) => (
           <div key={i} style={demoCardStyle({ marginBottom: 8 })}>
@@ -3464,7 +3464,7 @@ function DemoInlineVideo({ title }) {
   return (
     <div style={{ marginTop: 8, marginBottom: 8, aspectRatio: '16/9', background: '#000', border: `1px solid ${C.cardBd}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
       <div style={{ width: 44, height: 44, borderRadius: '50%', border: `2px solid ${C.ac}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.ac, fontSize: 16, paddingInlineStart: 3 }}>▶</div>
-      <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.14em', color: C.tm }}>{title} · FORM VIDEO</div>
+      <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.14em', color: C.tm }}>{title} · {tr(readLang(), 'FORM VIDEO')}</div>
       <div style={{ fontFamily: FN, fontSize: 8, letterSpacing: '0.1em', color: C.td }}>{T('PLAYS INLINE — NO CLICK-THROUGH')}</div>
     </div>
   );
@@ -3526,8 +3526,8 @@ function DemoGroupFloor() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '12px 14px', borderBottom: `1px solid ${C.cardBd}` }}>
           <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.ac, fontFamily: FN }}>{T('ON THE FLOOR ·')}{Object.values(checkedIn).filter(Boolean).length}/{roster.length}{T('CHECKED IN')}</span>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button style={{ ...baseBtn, background: 'transparent', color: C.tm, border: `1px solid ${C.bd}`, padding: '4px 12px', fontSize: 11 }}>+ ADD</button>
-            <button style={{ ...baseBtn, background: 'transparent', color: C.tm, border: `1px solid ${C.bd}`, padding: '4px 12px', fontSize: 11 }}>■ FINISH</button>
+            <button style={{ ...baseBtn, background: 'transparent', color: C.tm, border: `1px solid ${C.bd}`, padding: '4px 12px', fontSize: 11 }}>+ {tr(readLang(), 'ADD')}</button>
+            <button style={{ ...baseBtn, background: 'transparent', color: C.tm, border: `1px solid ${C.bd}`, padding: '4px 12px', fontSize: 11 }}>■ {tr(readLang(), 'FINISH')}</button>
           </div>
         </div>
       </div>
@@ -3569,7 +3569,7 @@ function DemoSingle() {
     return (
       <div>
         <div style={{ position: 'sticky', top: 60, zIndex: 20, background: C.bg, paddingBottom: 10, marginBottom: 8, borderBottom: `1px solid ${C.cardBd}` }}>
-          <button onClick={() => setActive(null)} style={{ background: 'none', border: 'none', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', padding: 0, marginBottom: 8 }}>← BACK</button>
+          <button onClick={() => setActive(null)} style={{ background: 'none', border: 'none', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', padding: 0, marginBottom: 8 }}>← {tr(readLang(), 'BACK')}</button>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontFamily: FN, color: C.tm, marginBottom: 4 }}>
             <span>{active.day} · {active.name}</span>
             <span style={{ color: C.tx, fontWeight: 700 }}>W4 · {doneSets}/{totalSets} · {pct}%</span>
@@ -3858,7 +3858,7 @@ function DemoBilling() {
       {panel(<>
         <div style={stripH}>
           <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.04em', color: C.ac }}>{T('PAYMENT REQUESTS')}{pending.length > 0 && <span style={{ color: C.or }}>· {pending.length}{T('PENDING')}</span>}</span>
-          <button onClick={() => setShowReq(true)} style={{ ...baseBtn, background: 'transparent', color: C.ac, border: `1px solid ${C.ac}`, height: 26, boxSizing: 'border-box', padding: '0 12px', fontSize: 10 }}>+ NEW REQUEST</button>
+          <button onClick={() => setShowReq(true)} style={{ ...baseBtn, background: 'transparent', color: C.ac, border: `1px solid ${C.ac}`, height: 26, boxSizing: 'border-box', padding: '0 12px', fontSize: 10 }}>+ {tr(readLang(), 'NEW REQUEST')}</button>
         </div>
         <div>
           {DEMO_PAYMENTS.map(p => {
@@ -3872,7 +3872,7 @@ function DemoBilling() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                   {p.status === 'pending' && <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.08em', color: C.rd }}>21D OVERDUE</span>}
                   <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: st.color, border: `1px solid ${st.color}55`, padding: '2px 6px' }}>{st.label}</span>
-                  {p.status === 'pending' && <button title={T('WhatsApp payment reminder (demo)')} style={{ ...baseBtn, background: 'transparent', color: '#25D366', border: '1px solid #25D36655', padding: '3px 8px', fontSize: 9 }}>◔ CHASE</button>}
+                  {p.status === 'pending' && <button title={T('WhatsApp payment reminder (demo)')} style={{ ...baseBtn, background: 'transparent', color: '#25D366', border: '1px solid #25D36655', padding: '3px 8px', fontSize: 9 }}>◔ {tr(readLang(), 'CHASE')}</button>}
                   {p.status === 'pending' && <button style={{ ...baseBtn, background: 'transparent', color: C.gn, border: `1px solid ${C.gn}55`, padding: '3px 8px', fontSize: 9 }}>{T('MARK PAID')}</button>}
                 </div>
               </div>
