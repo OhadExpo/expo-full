@@ -1663,7 +1663,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
           0.125x .. 2x, ◀ ▶, then ↻ LOOP. */}
       <div style={{display:compare?'none':'flex',gap:4,alignItems:'center',justifyContent:'center',flexWrap:'wrap'}}>
         {speeds.map(s => (
-          <button key={s} onClick={() => setSpeed(s)} title={tr(readLang(), 'Playback speed {n}x').replace('{n}', s)}
+          <button key={s} onClick={() => setSpeed(s)} title={tt('Playback speed {n}x').replace('{n}', s)}
             style={{padding:'3px 6px',borderRadius:0,border:`2px solid ${speed===s?C.ac:'transparent'}`,boxSizing:'border-box',
               background:speed===s?C.acD:'transparent',color:speed===s?C.ac:C.tm,
               fontFamily:FN,fontSize:10,cursor:'pointer'}}>{s}x</button>

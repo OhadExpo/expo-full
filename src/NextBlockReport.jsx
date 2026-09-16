@@ -498,7 +498,7 @@ export function NextBlockReport({ model, plans, exercises, traineeName, onClose 
               {kpi(tt('Model'), calc.modelOverridden ? tt('Deload override') : tt(calc.modelDef?.label || periModel))}
               {kpi(tt('Phase'), tt(phaseM.label), tt(phaseM.hint), phaseM.color)}
               {kpi(tt('Next block'), nextPlan.nextNum != null ? `#${nextPlan.nextNum}` : '—')}
-              {kpi(tt('Length'), tt('{n}wk').replace('{n}', blockLen), tt('{n}d/wk').replace('{n}', daysPerWeek))}
+              {kpi(tt('Length'), tt('{n}wk').replace('{n}', blockLen), (daysPerWeek === 1 ? tt('1d/wk') : tt('{n}d/wk').replace('{n}', daysPerWeek)))}
             </div>
           ))}
 
