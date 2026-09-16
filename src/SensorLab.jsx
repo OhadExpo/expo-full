@@ -14,6 +14,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
+import { useT } from './i18n';
 import { analyzePPG } from './pulsePPG';
 import { analyzeAcousticSet } from './acousticReps';
 import { romFromSweep, inclination, ROM_NORMS } from './goniometer';
@@ -39,6 +40,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 // ---------------- PULSE ----------------
 function PulsePanel() {
+  const tt = useT();
   const [state, setState] = useState('idle'); // idle | reading | done | error
   const [progress, setProgress] = useState(0);
   const [res, setRes] = useState(null);
@@ -85,17 +87,17 @@ function PulsePanel() {
 
   return (
     <div>
-      <Note>Cover the <b>rear camera + flash</b> with a fingertip and hold dead still for 60s. Reads heart rate always; HRV (recovery) when the signal is clean. On-device — nothing is recorded or uploaded.</Note>
+      <Note>{tt('Cover the')} <b>{tt('rear camera + flash')}</b> {tt('with a fingertip and hold dead still for 60s. Reads heart rate always; HRV (recovery) when the signal is clean. On-device — nothing is recorded or uploaded.')}</Note>
       <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-        <Btn primary onClick={run} disabled={state === 'reading'}>{state === 'reading' ? `Reading… ${Math.round(progress)}%` : 'Start (finger on camera)'}</Btn>
-        {state === 'reading' ? <Btn onClick={() => { stopRef.current = true; }}>Stop</Btn> : <Btn onClick={simulate}>Simulate</Btn>}
+        <Btn primary onClick={run} disabled={state === 'reading'}>{state === 'reading' ? tt('Reading… {n}%').replace('{n}', Math.round(progress)) : tt('Start (finger on camera)')}</Btn>
+        {state === 'reading' ? <Btn onClick={() => { stopRef.current = true; }}>{tt('Stop')}</Btn> : <Btn onClick={simulate}>{tt('Simulate')}</Btn>}
       </div>
-      {err && <Note><span style={{ color: C.rd }}>{err}</span></Note>}
+      {err && <Note><span style={{ color: C.rd }}>{tt(err)}</span></Note>}
       {res?.ok && (
         <div style={{ marginTop: 14 }}>
-          <Row label="Heart rate" value={`${res.hr} bpm`} color={C.ac} />
+          <Row label={tt('Heart rate')} value={`${res.hr} bpm`} color={C.ac} />
           {res.hrv
-            ? <><Row label="HRV (RMSSD)" value={`${res.hrv.rmssd} ms`} /><Row label="Confidence" value={res.hrv.confidence} color={res.hrv.confidence === 'high' ? C.gn : C.or} /></>
+            ? <><Row label="HRV (RMSSD)" value={`${res.hrv.rmssd} ms`} /><Row label={tt('Confidence')} value={res.hrv.confidence} color={res.hrv.confidence === 'high' ? C.gn : C.or} /></>
             : <Note>{res.hrvReason}</Note>}
           {res.readiness && <Note><b style={{ color: res.readiness.band === 'suppressed' ? C.rd : res.readiness.band === 'primed' ? C.gn : C.tx }}>{res.readiness.band.toUpperCase()}</b> — {res.readiness.note}</Note>}
         </div>
@@ -106,6 +108,7 @@ function PulsePanel() {
 
 // ---------------- ECHO ----------------
 function EchoPanel() {
+  const tt = useT();
   const [state, setState] = useState('idle');
   const [progress, setProgress] = useState(0);
   const [res, setRes] = useState(null);
@@ -154,18 +157,18 @@ function EchoPanel() {
 
   return (
     <div>
-      <Note>Set the phone near the bar and hit start before your set. Listens for the rhythm of the reps + the grunt/clank to count reps and read <b>grind</b> (effort climbing = near failure). Works in a pocket / in the dark. On-device audio, never uploaded.</Note>
+      <Note>{tt('Set the phone near the bar and hit start before your set. Listens for the rhythm of the reps + the grunt/clank to count reps and read')} <b>{tt('Grind')}</b> {tt('(effort climbing = near failure). Works in a pocket / in the dark. On-device audio, never uploaded.')}</Note>
       <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-        <Btn primary onClick={run} disabled={state === 'reading'}>{state === 'reading' ? `Listening… ${Math.round(progress)}%` : 'Start (before your set)'}</Btn>
-        {state === 'reading' ? <Btn onClick={() => { stopRef.current = true; }}>End set</Btn> : <Btn onClick={simulate}>Simulate</Btn>}
+        <Btn primary onClick={run} disabled={state === 'reading'}>{state === 'reading' ? tt('Listening… {n}%').replace('{n}', Math.round(progress)) : tt('Start (before your set)')}</Btn>
+        {state === 'reading' ? <Btn onClick={() => { stopRef.current = true; }}>{tt('End set')}</Btn> : <Btn onClick={simulate}>{tt('Simulate')}</Btn>}
       </div>
-      {err && <Note><span style={{ color: C.rd }}>{err}</span></Note>}
+      {err && <Note><span style={{ color: C.rd }}>{tt(err)}</span></Note>}
       {res?.ok && (
         <div style={{ marginTop: 14 }}>
-          <Row label="Reps" value={res.reps} color={C.ac} />
-          {res.cadence && <Row label="Cadence" value={res.cadence} />}
-          <Row label="Grind" value={res.grind.rising ? `rising ×${res.grind.index}` : 'steady'} color={res.grind.rising ? C.or : C.gn} />
-          {res.grind.rirEstimate != null && <Row label="Reps in reserve (est.)" value={String(res.grind.rirEstimate)} />}
+          <Row label={tt('Reps')} value={res.reps} color={C.ac} />
+          {res.cadence && <Row label={tt('Cadence')} value={res.cadence} />}
+          <Row label={tt('Grind')} value={res.grind.rising ? tt('rising ×{n}').replace('{n}', res.grind.index) : tt('steady')} color={res.grind.rising ? C.or : C.gn} />
+          {res.grind.rirEstimate != null && <Row label={tt('Reps in reserve (est.)')} value={String(res.grind.rirEstimate)} />}
           <Note>{res.grind.note}</Note>
         </div>
       )}
@@ -175,6 +178,7 @@ function EchoPanel() {
 
 // ---------------- PIVOT ----------------
 function PivotPanel() {
+  const tt = useT();
   const [state, setState] = useState('idle');
   const [res, setRes] = useState(null);
   const [err, setErr] = useState('');
@@ -211,23 +215,23 @@ function PivotPanel() {
 
   return (
     <div>
-      <Note>Lay the phone flat against the limb and move the joint through its full range. Reads active <b>range of motion</b> vs a clinical norm — a hard mobility number for the Evaluation. (Placement in the movement plane matters.)</Note>
+      <Note>{tt('Lay the phone flat against the limb and move the joint through its full range. Reads active')} <b>{tt('Range of motion')}</b> {tt('vs a clinical norm — a hard mobility number for the Evaluation. (Placement in the movement plane matters.)')}</Note>
       <div style={{ marginTop: 10 }}>
         <select value={joint} onChange={e => setJoint(e.target.value)} style={{ background: C.sf2 || 'transparent', color: C.tx, border: `1px solid ${C.cardBd}`, padding: '8px 10px', fontFamily: FN, fontSize: 12, borderRadius: 0, width: '100%' }}>
-          {Object.keys(ROM_NORMS).map(k => <option key={k} value={k}>{k.replace(/-/g, ' ')}</option>)}
+          {Object.keys(ROM_NORMS).map(k => <option key={k} value={k}>{tt(k.replace(/-/g, ' '))}</option>)}
         </select>
       </div>
       <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-        <Btn primary onClick={run} disabled={state === 'reading'}>{state === 'reading' ? 'Move the joint…' : 'Start sweep'}</Btn>
-        {state === 'reading' ? <Btn onClick={() => { stopRef.current = true; }}>Done</Btn> : <Btn onClick={simulate}>Simulate</Btn>}
+        <Btn primary onClick={run} disabled={state === 'reading'}>{state === 'reading' ? tt('Move the joint…') : tt('Start sweep')}</Btn>
+        {state === 'reading' ? <Btn onClick={() => { stopRef.current = true; }}>{tt('Done')}</Btn> : <Btn onClick={simulate}>{tt('Simulate')}</Btn>}
       </div>
-      {err && <Note><span style={{ color: C.rd }}>{err}</span></Note>}
+      {err && <Note><span style={{ color: C.rd }}>{tt(err)}</span></Note>}
       {res?.ok && (
         <div style={{ marginTop: 14 }}>
-          <Row label="Range of motion" value={`${res.rom}°`} color={C.ac} />
-          <Row label="Peak / min" value={`${res.peak}° / ${res.min}°`} />
-          {res.pctOfNorm != null && <Row label="% of typical" value={`${res.pctOfNorm}%`} color={res.limited ? C.rd : C.gn} />}
-          <Row label="Peak speed" value={`${res.peakVelDegS}°/s`} />
+          <Row label={tt('Range of motion')} value={`${res.rom}°`} color={C.ac} />
+          <Row label={tt('Peak / min')} value={`${res.peak}° / ${res.min}°`} />
+          {res.pctOfNorm != null && <Row label={tt('% of typical')} value={`${res.pctOfNorm}%`} color={res.limited ? C.rd : C.gn} />}
+          <Row label={tt('Peak speed')} value={`${res.peakVelDegS}°/s`} />
           {res.note && <Note>{res.note}</Note>}
         </div>
       )}
@@ -237,6 +241,7 @@ function PivotPanel() {
 
 // ---------------- REFLEX ----------------
 function ReflexPanel() {
+  const tt = useT();
   const [phase, setPhase] = useState('idle'); // idle | armed | go | done
   const [count, setCount] = useState(0);
   const [res, setRes] = useState(null);
@@ -268,23 +273,23 @@ function ReflexPanel() {
   const armed = phase === 'armed', go = phase === 'go';
   return (
     <div>
-      <Note>Tap the moment the box flashes cyan — {TRIALS} times. Measures your <b>reaction time + attention lapses</b> (a PVT), the gold-standard read of how sharp the nervous system is TODAY. A slow, lapsy CNS = a day to back off heavy neural work.</Note>
+      <Note>{tt('Tap the moment the box flashes cyan — {n} times. Measures your').replace('{n}', TRIALS)} <b>{tt('reaction time + attention lapses')}</b> {tt('(a PVT), the gold-standard read of how sharp the nervous system is TODAY. A slow, lapsy CNS = a day to back off heavy neural work.')}</Note>
       {(armed || go) && (
         <div onPointerDown={tap} style={{ marginTop: 12, height: 150, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', userSelect: 'none',
           background: go ? C.ac : C.sf2 || '#111', border: `1px solid ${go ? C.ac : C.cardBd}`, transition: 'background 60ms' }}>
-          <span style={{ fontFamily: FN, fontWeight: 700, fontSize: 18, letterSpacing: '0.1em', color: go ? '#04121a' : C.tm }}>{go ? 'TAP!' : 'wait…'}</span>
+          <span style={{ fontFamily: FN, fontWeight: 700, fontSize: 18, letterSpacing: '0.1em', color: go ? '#04121a' : C.tm }}>{go ? tt('TAP!') : tt('wait…')}</span>
         </div>
       )}
       <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-        <Btn primary onClick={start} disabled={armed || go}>{(armed || go) ? `Trial ${count + 1}/${TRIALS}` : 'Start test'}</Btn>
-        {!(armed || go) && <Btn onClick={simulate}>Simulate</Btn>}
+        <Btn primary onClick={start} disabled={armed || go}>{(armed || go) ? tt('Trial {n}/{total}').replace('{n}', count + 1).replace('{total}', TRIALS) : tt('Start test')}</Btn>
+        {!(armed || go) && <Btn onClick={simulate}>{tt('Simulate')}</Btn>}
       </div>
       {res?.ok && (
         <div style={{ marginTop: 14 }}>
-          <Row label="Mean reaction" value={`${res.meanRT} ms`} color={C.ac} />
-          <Row label="Fastest 10%" value={`${res.fastest10} ms`} />
-          <Row label="Lapses" value={String(res.lapses)} color={res.lapses ? C.or : C.gn} />
-          {res.falseStarts > 0 && <Row label="False starts" value={String(res.falseStarts)} color={C.or} />}
+          <Row label={tt('Mean reaction')} value={`${res.meanRT} ms`} color={C.ac} />
+          <Row label={tt('Fastest 10%')} value={`${res.fastest10} ms`} />
+          <Row label={tt('Lapses')} value={String(res.lapses)} color={res.lapses ? C.or : C.gn} />
+          {res.falseStarts > 0 && <Row label={tt('False starts')} value={String(res.falseStarts)} color={C.or} />}
           {res.readiness && <Note><b style={{ color: res.readiness.band === 'suppressed' ? C.rd : res.readiness.band === 'primed' ? C.gn : C.tx }}>{res.readiness.band.toUpperCase()}</b> — {res.readiness.note}</Note>}
         </div>
       )}
@@ -295,6 +300,7 @@ function ReflexPanel() {
 
 // ---------------- SWAY (balance) ----------------
 function BalancePanel() {
+  const tt = useT();
   const [state, setState] = useState('idle');
   const [progress, setProgress] = useState(0);
   const [res, setRes] = useState(null);
@@ -328,18 +334,18 @@ function BalancePanel() {
 
   return (
     <div>
-      <Note>Hold the phone to your chest, stand on one leg, and stay as still as you can for 15s. Measures <b>postural sway</b> — a real balance / proprioception read that also rises with fatigue and flags an ankle/knee not trusting load. Do both legs and compare.</Note>
+      <Note>{tt('Hold the phone to your chest, stand on one leg, and stay as still as you can for 15s. Measures')} <b>{tt('postural sway')}</b> {tt('— a real balance / proprioception read that also rises with fatigue and flags an ankle/knee not trusting load. Do both legs and compare.')}</Note>
       <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-        <Btn primary onClick={run} disabled={state === 'reading'}>{state === 'reading' ? `Hold still… ${Math.round(progress)}%` : 'Start (stand on one leg)'}</Btn>
-        {state === 'reading' ? <Btn onClick={() => { stopRef.current = true; }}>Stop</Btn> : <Btn onClick={simulate}>Simulate</Btn>}
+        <Btn primary onClick={run} disabled={state === 'reading'}>{state === 'reading' ? tt('Hold still… {n}%').replace('{n}', Math.round(progress)) : tt('Start (stand on one leg)')}</Btn>
+        {state === 'reading' ? <Btn onClick={() => { stopRef.current = true; }}>{tt('Stop')}</Btn> : <Btn onClick={simulate}>{tt('Simulate')}</Btn>}
       </div>
-      {err && <Note><span style={{ color: C.rd }}>{err}</span></Note>}
+      {err && <Note><span style={{ color: C.rd }}>{tt(err)}</span></Note>}
       {res?.ok && (
         <div style={{ marginTop: 14 }}>
-          <Row label="Stability" value={`${res.stability}/100`} color={res.band === 'poor' ? C.rd : res.band === 'excellent' ? C.gn : C.ac} />
-          <Row label="Rating" value={res.band} color={res.band === 'poor' ? C.rd : res.band === 'excellent' ? C.gn : C.tx} />
-          <Row label="Sway velocity" value={`${res.swayVelDegS}°/s`} />
-          <Row label="Peak lean" value={`${res.swayMax}°`} />
+          <Row label={tt('Stability')} value={`${res.stability}/100`} color={res.band === 'poor' ? C.rd : res.band === 'excellent' ? C.gn : C.ac} />
+          <Row label={tt('Rating')} value={res.band} color={res.band === 'poor' ? C.rd : res.band === 'excellent' ? C.gn : C.tx} />
+          <Row label={tt('Sway velocity')} value={`${res.swayVelDegS}°/s`} />
+          <Row label={tt('Peak lean')} value={`${res.swayMax}°`} />
           {res.note && <Note>{res.note}</Note>}
         </div>
       )}
@@ -356,6 +362,7 @@ const TOOLS = [
 ];
 
 export default function SensorLab() {
+  const tt = useT();
   const [open, setOpen] = useState(false);
   const [tool, setTool] = useState('pulse');
   useEffect(() => {
@@ -373,22 +380,22 @@ export default function SensorLab() {
       <div style={{ width: '100%', maxWidth: 460, background: C.bg, border: `1px solid ${C.cardBd}`, boxShadow: `0 0 0 1px ${C.ac}22` }}>
         <div style={{ background: `linear-gradient(90deg, ${C.ac}22, transparent)`, borderBottom: `2px solid ${C.ac}`, padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <div style={{ fontFamily: FN, fontWeight: 700, fontSize: 14, letterSpacing: '0.1em', color: C.tx }}>SENSOR LAB <span style={{ fontSize: 9, color: C.ac, border: `1px solid ${C.ac}`, padding: '1px 5px', marginInlineStart: 6 }}>BETA</span></div>
-            <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.06em', marginTop: 2 }}>the phone as a sensor rig · on-device</div>
+            <div style={{ fontFamily: FN, fontWeight: 700, fontSize: 14, letterSpacing: '0.1em', color: C.tx }}>{tt('SENSOR LAB')} <span style={{ fontSize: 9, color: C.ac, border: `1px solid ${C.ac}`, padding: '1px 5px', marginInlineStart: 6 }}>{tt('BETA')}</span></div>
+            <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.06em', marginTop: 2 }}>{tt('the phone as a sensor rig · on-device')}</div>
           </div>
-          <button onClick={() => setOpen(false)} aria-label="Close" style={{ background: 'transparent', border: 'none', color: C.tm, fontSize: 22, cursor: 'pointer', lineHeight: 1 }}>×</button>
+          <button onClick={() => setOpen(false)} aria-label={tt('Close')} style={{ background: 'transparent', border: 'none', color: C.tm, fontSize: 22, cursor: 'pointer', lineHeight: 1 }}>×</button>
         </div>
         <div style={{ display: 'flex', borderBottom: `1px solid ${C.cardBd}` }}>
           {TOOLS.map(t => (
             <button key={t.key} onClick={() => setTool(t.key)} style={{ flex: 1, padding: '10px 6px', background: tool === t.key ? C.acD || 'transparent' : 'transparent', border: 'none', borderBottom: tool === t.key ? `2px solid ${C.ac}` : '2px solid transparent', cursor: 'pointer' }}>
               <div style={{ fontFamily: FN, fontWeight: 700, fontSize: 12, color: tool === t.key ? C.ac : C.tx, letterSpacing: '0.08em' }}>{t.name}</div>
-              <div style={{ fontFamily: FN, fontSize: 8.5, color: C.tm, marginTop: 2, letterSpacing: '0.02em' }}>{t.sub}</div>
+              <div style={{ fontFamily: FN, fontSize: 8.5, color: C.tm, marginTop: 2, letterSpacing: '0.02em' }}>{tt(t.sub)}</div>
             </button>
           ))}
         </div>
         <div style={{ padding: 16 }}>
           <Active />
-          <Note><span style={{ color: C.td }}>BETA · engine-verified (70 fixtures) · not a medical device — informs, never diagnoses. HR/ROM are solid; HRV/RIR/CNS/balance reads are gated + labelled.</span></Note>
+          <Note><span style={{ color: C.td }}>{tt('BETA · engine-verified (70 fixtures) · not a medical device — informs, never diagnoses. HR/ROM are solid; HRV/RIR/CNS/balance reads are gated + labelled.')}</span></Note>
         </div>
       </div>
     </div>,

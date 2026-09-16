@@ -94,7 +94,7 @@ function scanFile(f, raw) {
   const src = stripComments(raw).replace(/&nbsp;/g, '      ');
   const lineOf = (i) => src.slice(0, i).split('\n').length;
   for (const m of src.matchAll(LITERAL)) { if (!isAllowed(m[1])) findings.push({ f, line: lineOf(m.index), text: m[1].trim(), kind: 'jsx' }); }
-  for (const m of src.matchAll(LITERAL_LC)) { const t = m[1].trim(); if (!JS_WORD.test(t.replace(/^[^a-z]+/, '')) && !LC_CODE.test(t) && t !== 'delete' && !isAllowed(t)) findings.push({ f, line: lineOf(m.index), text: t, kind: 'jsx' }); }
+  for (const m of src.matchAll(LITERAL_LC)) { const t = m[1].trim(); if (!JS_WORD.test(t.replace(/^[^a-z]+/, '')) && !LC_CODE.test(t) && !t.startsWith('//') && t !== 'delete' && !isAllowed(t)) findings.push({ f, line: lineOf(m.index), text: t, kind: 'jsx' }); }
   // Placeholders that are DATA examples or typed confirmations stay English
   // on purpose: an email shape, a URL, "kg/%", "reps", "e.g. 83.5", and the
   // word the coach must type to confirm a delete (the check compares to it).

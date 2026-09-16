@@ -1,5 +1,4 @@
 {
-  "ARFormOverlay.jsx": 13,
   "AnatomyModelViewer.jsx": 3,
   "AnatomyViewer.jsx": 5,
   "AthleteChallengesWidget.jsx": 1,
@@ -16,12 +15,10 @@
   "HoldTimer.jsx": 7,
   "IntakeForm.jsx": 1,
   "IntakePayloadDetail.jsx": 1,
-  "LiveRepCounter.jsx": 9,
   "MovementLab.jsx": 94,
   "NextBlockReport.jsx": 13,
   "OverloadChart.jsx": 5,
   "ProgramShare.jsx": 10,
-  "SensorLab.jsx": 27,
   "ShotAnalyzer.jsx": 1,
   "TraineeCRM.jsx": 14,
   "TraineeEvaluation.jsx": 18,
