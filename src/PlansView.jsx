@@ -3629,8 +3629,8 @@ export function TrainingLineage({ traineeId, traineeName, exercises, plans, load
   if (!traineeId) {
     return (
       <div style={{ border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>
-        {stripHead('Training Analysis')}
-        <div style={{ padding: '48px 24px', textAlign: 'center', color: C.tm, fontFamily: FB, fontSize: 13, lineHeight: 1.6 }}>{tt("Pick an athlete from the rail to trace every lift's load & volume")}<br />across all their blocks — plateaus, progressions and dropped patterns at a glance.
+        {stripHead(tt('Training Analysis'))}
+        <div style={{ padding: '48px 24px', textAlign: 'center', color: C.tm, fontFamily: FB, fontSize: 13, lineHeight: 1.6 }}>{tt("Pick an athlete from the rail to trace every lift's load & volume")}<br />{tt('across all their blocks — plateaus, progressions and dropped patterns at a glance.')}
         </div>
       </div>
     );
@@ -3639,7 +3639,7 @@ export function TrainingLineage({ traineeId, traineeName, exercises, plans, load
     return <div style={{ border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>{stripHead(`${tr(readLang(), 'Training Analysis')} · ${traineeName || ''}`)}<div style={{ padding: '48px 24px', textAlign: 'center', color: C.tm, fontFamily: FN, fontSize: 11, letterSpacing: '0.1em' }}>{tr(readLang(), 'LOADING BLOCKS…')}</div></div>;
   }
   if (!model) {
-    return <div style={{ border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>{stripHead(`Training Analysis · ${traineeName || ''}`)}<div style={{ padding: '48px 24px', textAlign: 'center', color: C.tm, fontFamily: FB, fontSize: 13 }}>{tt('No block content to trace yet for this athlete.')}</div></div>;
+    return <div style={{ border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>{stripHead(`${tt('Training Analysis')} · ${traineeName || ''}`)}<div style={{ padding: '48px 24px', textAlign: 'center', color: C.tm, fontFamily: FB, fontSize: 13 }}>{tt('No block content to trace yet for this athlete.')}</div></div>;
   }
 
   const { blocks, rows, stats, nextPlan, acwr } = model;
@@ -3894,13 +3894,13 @@ export function TrainingLineage({ traineeId, traineeName, exercises, plans, load
             <div style={{ minWidth: 84 }}>
               <div style={{ fontFamily: FN, fontSize: 22, fontWeight: 700, color: (nextPlan.pushPull > 1.3 || nextPlan.pushPull < 0.77) ? C.or : C.tx, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{nextPlan.pushPull}</div>
               <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, marginTop: 6 }}>{tt('Push : Pull')}</div>
-              <div style={{ fontFamily: FB, fontSize: 10, color: C.td, marginTop: 2 }}>{nextPlan.pushPull > 1.3 ? 'add pulling' : nextPlan.pushPull < 0.77 ? 'add pushing' : 'balanced'}</div>
+              <div style={{ fontFamily: FB, fontSize: 10, color: C.td, marginTop: 2 }}>{tt(nextPlan.pushPull > 1.3 ? 'add pulling' : nextPlan.pushPull < 0.77 ? 'add pushing' : 'balanced')}</div>
             </div>
           )}
           <div style={{ flex: 1, minWidth: 180 }}>
             <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, marginBottom: 7 }}>{tt('Primary-pattern coverage · latest block')}</div>
             {nextPlan.coverageGaps.length === 0 ? (
-              <div style={{ fontFamily: FB, fontSize: 12.5, color: C.gn }}>✓ Every primary pattern is covered.</div>
+              <div style={{ fontFamily: FB, fontSize: 12.5, color: C.gn }}>✓ {tt('Every primary pattern is covered.')}</div>
             ) : (
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {nextPlan.coverageGaps.map(p => <span key={p} title={tt('Not trained in the latest block — add it to the next one')} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', color: C.rd, border: `1px solid ${C.rd}`, padding: '2px 7px', whiteSpace: 'nowrap' }}>+ {p}</span>)}
