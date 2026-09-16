@@ -1530,6 +1530,17 @@ export const HE = {
   'Upload timed out': 'פג הזמן להעלאה',
   'Upload network error': 'תקלת רשת בהעלאה',
   'Session saved locally': 'האימון נשמר במכשיר',
+  // 17.9 exercise library labels rendered raw from arrays (rendered sweep)
+  'Filter by': 'סינון לפי',
+  'Resistance': 'התנגדות',
+  'Position': 'מנח',
+  'Movement': 'תנועה',
+  'Joints': 'מפרקים',
+  'Joint Movements': 'תנועות מפרק',
+  'Primary Muscles': 'שרירים עיקריים',
+  'Secondary Muscles': 'שרירים משניים',
+  'Dense table — every parameter a sortable column': 'טבלה צפופה — כל פרמטר הוא עמודה למיון',
+  'Card grid — one card per exercise': 'רשת כרטיסים — כרטיס לכל תרגיל',
   // 17.9 O11: runs the literal gate could not see (a comma, or a lowercase start)
   'members': 'מתאמנים',
   '◫ vs Demo': '◫ מול הדגמה',

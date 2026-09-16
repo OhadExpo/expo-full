@@ -197,7 +197,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
     const sel = f[k] || [];
     const active = sel.length > 0;
     const isOpen = openKey === k;
-    const faceLabel = sel.length === 1 ? sel[0] : (sel.length > 1 ? `${label} · ${sel.length}` : label);
+    const faceLabel = sel.length === 1 ? sel[0] : (sel.length > 1 ? `${tt(label)} · ${sel.length}` : tt(label));
     return (
       <div style={{ position: 'relative' }}>
         {/* Inactive filters carry NO underline (transparent) — cyan only when
@@ -205,7 +205,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
             cyan-30% underline on every one, so the row read as a busy wall of
             look-alike underlined labels (Ohad #230). Now it's calm plain text
             with a caret; the active filter is the only lit one. */}
-        <button className={`filt${active || isOpen ? ' filt-on' : ''}`} onClick={() => setOpenKey(isOpen ? null : k)} title={label}
+        <button className={`filt${active || isOpen ? ' filt-on' : ''}`} onClick={() => setOpenKey(isOpen ? null : k)} title={tt(label)}
           style={{ ...railBase, borderBottomColor: (active || isOpen) ? C.ac : 'transparent', color: active ? C.ac : C.tx }}>
           <span style={{ maxWidth: 220, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{faceLabel}</span>
           {active
@@ -341,8 +341,8 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
           {[['table', 'Table'], ['grid', 'Grid']].map(([v, label]) => {
             const on = view === v;
             return (
-              <button key={v} onClick={() => setView(v)} aria-pressed={on} title={v === 'table' ? 'Dense table — every parameter a sortable column' : 'Card grid — one card per exercise'}
-                style={{ flex: 1, height: 30, boxSizing: 'border-box', borderRadius: 0, cursor: 'pointer', border: `1px solid ${on ? '#39BDFF' : C.cardBd}`, background: on ? '#39BDFF' : 'var(--c-sf)', color: on ? '#FFFFFF' : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{label}</button>
+              <button key={v} onClick={() => setView(v)} aria-pressed={on} title={tt(v === 'table' ? 'Dense table — every parameter a sortable column' : 'Card grid — one card per exercise')}
+                style={{ flex: 1, height: 30, boxSizing: 'border-box', borderRadius: 0, cursor: 'pointer', border: `1px solid ${on ? '#39BDFF' : C.cardBd}`, background: on ? '#39BDFF' : 'var(--c-sf)', color: on ? '#FFFFFF' : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{tt(label)}</button>
             );
           })}
         </div>
@@ -381,7 +381,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
           {anyFilter && <button className="filt" onClick={clearAll} title={tt('Clear all filters')} style={{ ...railBase, color: C.rd, marginInlineStart: 'auto', letterSpacing: '0.1em' }}>× {tr(readLang(), 'Clear all')}</button>}
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 14px', padding: '0 1px 12px', borderTop: `1px solid ${C.cardBd}`, paddingTop: 10 }}>
-          <span style={rowLabel}>Filter&nbsp;by</span>
+          <span style={rowLabel}>{tt('Filter by').replace(' ', '\u00a0')}</span>
           <FilterPill label="Resistance" k="resistanceType" options={dynOpts(counts.rt, f.resistanceType)} />
           <FilterPill label="Position" k="bodyPosition" options={dynOpts(counts.bp, f.bodyPosition)} />
           <FilterPill label="Movement" k="movementType" options={dynOpts(counts.mt, f.movementType)} />
@@ -464,7 +464,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
                   const active = sortKey === k;
                   return (
                     <th key={k} className={k === 'title' ? undefined : 'ex-taxo'} onClick={() => onSort(k)} style={{ textAlign: 'start', padding: '9px 12px', fontSize: 9, fontFamily: FN, color: active ? C.ac : C.tm, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700, cursor: 'pointer', whiteSpace: 'normal', lineHeight: 1.25, borderBottom: `1px solid ${C.cardBd}`, userSelect: 'none', position: 'sticky', top: 0, background: 'var(--c-sf)', zIndex: 1 }}>
-                      {l}{active && <span style={{ fontSize: 8, marginInlineStart: 4 }}>{sortDir === 'asc' ? '↑' : '↓'}</span>}
+                      {tt(l)}{active && <span style={{ fontSize: 8, marginInlineStart: 4 }}>{sortDir === 'asc' ? '↑' : '↓'}</span>}
                     </th>
                   );
                 })}

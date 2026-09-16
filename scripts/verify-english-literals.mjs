@@ -90,7 +90,8 @@ for (const f of fs.readdirSync('src').filter((x) => x.endsWith('.jsx') && !SKIP_
   if (!wired) { unwired[f] = findings.length - before; for (const x of findings.slice(before)) x.unwired = true; }
 }
 function scanFile(f, raw) {
-  const src = stripComments(raw);
+  // `>Filter&nbsp;by<` was invisible: the entity's ';' ends a run. Same-length spaces keep offsets.
+  const src = stripComments(raw).replace(/&nbsp;/g, '      ');
   const lineOf = (i) => src.slice(0, i).split('\n').length;
   for (const m of src.matchAll(LITERAL)) { if (!isAllowed(m[1])) findings.push({ f, line: lineOf(m.index), text: m[1].trim(), kind: 'jsx' }); }
   for (const m of src.matchAll(LITERAL_LC)) { const t = m[1].trim(); if (!JS_WORD.test(t.replace(/^[^a-z]+/, '')) && !LC_CODE.test(t) && t !== 'delete' && !isAllowed(t)) findings.push({ f, line: lineOf(m.index), text: t, kind: 'jsx' }); }

@@ -2934,7 +2934,7 @@ function DemoExercises() {
       {/* Filter rail — carded multi-select FilterPill menus (matches the
           redesigned real ExercisesView #212), led by a muted "Filter by". */}
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 14px', padding: '0 1px 12px', marginBottom: 16, borderBottom: `1px solid ${C.cardBd}` }}>
-        <span style={{ flexShrink: 0, width: 58, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: C.td, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Filter&nbsp;by</span>
+        <span style={{ flexShrink: 0, width: 58, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: C.td, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{T('Filter by')}</span>
         <FilterPill label="Category" k="category" />
         <FilterPill label="Resistance" k="resistanceType" />
         <FilterPill label="Body Position" k="bodyPosition" />
