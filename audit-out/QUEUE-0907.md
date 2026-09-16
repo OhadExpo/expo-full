@@ -218,5 +218,5 @@ PRIVATE DETAILS (athlete name, health notes, library-video evidence) are in loca
 - [x] O17 rendered attribute sweep (`audit-out/_he-attrs.mjs`, signed in, Hebrew): every /coach route 0 English title / aria-label / placeholder except data (1a3fe81); tooltips from templates + the theme toggle + the roster sort chip (919dd65)
 - [x] O18 AuthedApp rendered the LangCtx provider AND called useT() — its own labels (logo tooltip, Sign out, Loading data, partner banner) were always English (fe017e9)
 - [ ] O19 NOT RENDERED YET (need data/state): the Tasks bulk bar (`שינוי סטטוס:` / `3 נבחרו`), the club zone's program modal, the Training Analysis page on a real athlete (O9), the public booking page's Hebrew day columns (slug missing locally)
-- [ ] O20 the club zone has its OWN EN/HE switch — none of today's rendered sweeps ran it in Hebrew; run `scripts/_he-coverage.mjs`-style on /coach/bhbc with the zone switched to עב
+- [x] O20 (bad8962: zone swept in Hebrew tab by tab — only data left; the embedded session logger read NO switch because App returns the zone above its provider; MED buttons 64/64 both languages) the club zone has its OWN EN/HE switch — none of today's rendered sweeps ran it in Hebrew; run `scripts/_he-coverage.mjs`-style on /coach/bhbc with the zone switched to עב
 
