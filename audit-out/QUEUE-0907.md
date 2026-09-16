@@ -200,7 +200,7 @@ PRIVATE DETAILS (athlete name, health notes, library-video evidence) are in loca
 
 ## O — 2026-09-16 "pita" (resume) · L6 led to gate hole #5
 - [x] O1 L6 done (6ff8ebf): coverage line, push:pull hint, empty-state line, two strip headers → dictionary; native judge NONE. The component (PlansView `TrainingLineage`, V1) is mounted NOWHERE — the live page is `TrainingLineageV2`
-- [ ] O2 GATE HOLE #5: verify-english-literals only scans files that ALREADY import ./i18n or ./bhbcHe. A screen with no wiring at all is invisible: ~318 English runs in 33 files (TrainingLineageV2 66, MovementLab 60, ExerciseMatchingView 13, ContractSign 13, TraineeEvaluation 12, …). Close it with a per-file ratchet (count may only fall), prove it by breaking
+- [x] O2 GATE HOLE #5 (ratchet shipped, break-tested both ways): verify-english-literals only scans files that ALREADY import ./i18n or ./bhbcHe. A screen with no wiring at all is invisible: ~318 English runs in 33 files (TrainingLineageV2 66, MovementLab 60, ExerciseMatchingView 13, ContractSign 13, TraineeEvaluation 12, …). Close it with a per-file ratchet (count may only fall), prove it by breaking
 - [ ] O3 TrainingLineageV2 → Hebrew (the coach's Training Analysis page AND /demo/coach) — compose, verify-hebrew, native judge, LOOK in HE at 390 + 1400
 - [ ] O4 athlete-facing un-wired files next: ContractSign, ProgramShare, HoldTimer, VideoEmbed, IntakeForm, ErrorBoundary — check each against the held-at-production rule before editing
 - [ ] O5 the English clipboard "next-block brief" (PlansView buildBrief, V1 — dead) — decide with V1: V1 removal is his call, not done
