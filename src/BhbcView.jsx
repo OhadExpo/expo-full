@@ -17,7 +17,7 @@ import { Card as BaseCard, CollapsibleSection, Btn, Input, Modal, EmptyState, to
 import { ThemeToggle } from './ThemeToggle';
 import { fmtNumericDate } from './dates';
 import { useTheme } from './hooks/useTheme';
-import { bhbcT, BhbcLangCtx, useT, useHe, setBhbcDateLang, dowFor, dowIdxFor, monDayFor, monFor, fxLabelFor } from './bhbcHe';
+import { bhbcT, BhbcLangCtx, useT, useHe, setBhbcDateLang, zoneT, dowFor, dowIdxFor, monDayFor, monFor, fxLabelFor } from './bhbcHe';
 import { acwrFromDaily, sessionLoad, monotonyStrain } from './acwrEngine';
 import { returnToLoadFlags } from './bhbcReturnLoad';
 import { applyGameMinutes, gameMinutesOf, gameRpeOf } from './bhbcGameLoad';
@@ -242,8 +242,8 @@ const FX_LABEL = { game: 'Game', practice: 'Practice', lift: 'Weights', scrimmag
 const fxWhere = (f) => {
   if (!f || (f.type !== 'game' && f.type !== 'scrimmage')) return f && f.location ? f.location : '';
   const parts = [];
-  if (f.opponent) parts.push('vs ' + f.opponent);
-  if (f.venue) parts.push(f.venue); else if (f.home === true) parts.push('HaYovel, Herzliya');
+  if (f.opponent) parts.push(zoneT('vs') + ' ' + f.opponent);
+  if (f.venue) parts.push(f.venue); else if (f.home === true) parts.push(zoneT('HaYovel, Herzliya'));
   return parts.join(' · ');
 };
 
@@ -1301,7 +1301,7 @@ function attendance28(rec, days) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                   <div style={{ display: 'inline-flex', border: `1px solid ${C.cardBd}` }}>
                     {[['group', 'Group'], ['single', 'Single']].map(([k, l]) => (
-                      <button key={k} onClick={() => setSessionMode(k)} style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: sessionMode === k ? '#fff' : C.td, background: sessionMode === k ? NAVY_DEEP : 'transparent', border: 'none', padding: '7px 16px', cursor: 'pointer' }}>{l}</button>
+                      <button key={k} onClick={() => setSessionMode(k)} style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: sessionMode === k ? '#fff' : C.td, background: sessionMode === k ? NAVY_DEEP : 'transparent', border: 'none', padding: '7px 16px', cursor: 'pointer' }}>{tr(l)}</button>
                     ))}
                   </div>
                   <span style={{ fontFamily: FB, fontSize: 12, color: C.td }}>{tr('Logs each athlete’s work to their history & portal — synced with EXPO.')}</span>
@@ -1597,7 +1597,7 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
                 <>
                   <div style={{ padding: '10px 12px' }}>
                     <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>{tr('Last game')}{agoLabel ? ` · ${agoLabel}` : ''}</div>
-                    <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, marginTop: 3 }} dir="auto"><bdi>vs {lastG.opp && !isBH(lastG.opp) ? lastG.opp.replace(/\s*\(.*$/, '') : '—'}</bdi></div>
+                    <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, marginTop: 3 }} dir="auto"><bdi>{tr('vs')} {lastG.opp && !isBH(lastG.opp) ? lastG.opp.replace(/\s*\(.*$/, '') : '—'}</bdi></div>
                   </div>
                   {/* THE SAME FOUR COLUMNS as the season averages directly below.
                       They used to be pushed to the right edge on `margin-inline-start:
@@ -2187,7 +2187,7 @@ function TravelStrip({ travel }) {
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FN, fontSize: 11, color: C.td }}>
         <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm }}>{dir}</span>
         <span style={{ color: C.tx, fontVariantNumeric: 'tabular-nums' }}>{d}</span>
-        <span>{l.tbd ? 'TBD' : `${l.label} · ${l.flight} ${l.dep}`}</span>
+        <span>{l.tbd ? zoneT('TBD') : `${l.label} · ${l.flight} ${l.dep}`}</span>
       </span>
     );
   };
@@ -3494,7 +3494,7 @@ function MicrocycleView({ fx, today }) {
   });
   const loadColor = (n, game) => game ? ORANGE : n >= 5 ? ORANGE_DEEP : n >= 3 ? NAVY : '#6B7280';
   return (
-    <Card padding={14} leftStripe={ORANGE} header={secTitle('Microcycle')} headerRight={<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>→ {g.opponent ? 'vs ' + g.opponent : 'game'} · {until}d</span>}>
+    <Card padding={14} leftStripe={ORANGE} header={secTitle('Microcycle')} headerRight={<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>{tr('→')} {g.opponent ? `${tr('vs')} ${g.opponent}` : tr('Game')} · {until}{tr('d')}</span>}>
       <div style={{ overflowX: 'auto' }}>
         <div className="bhbc-micro-grid" style={{ display: 'grid', gridTemplateColumns: `repeat(${days.length}, minmax(120px, 1fr))`, gap: 8, minWidth: days.length * 120 }}>
           {days.map((d) => (
@@ -4187,7 +4187,7 @@ function ResultsList({ games, bhbcOnly }) {
             <span className="bhbc-game-home" style={{ ...nameCell }}>{tr('Bnei Herzliya')}</span>
             {g.played
               ? <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '2px 8px', whiteSpace: 'nowrap', flexShrink: 0 }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{bhScore}<span style={{ color: C.tm, margin: '0 4px' }}>–</span>{oppScore}</span></span>
-              : <span style={{ width: 24, textAlign: 'center', fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tm, letterSpacing: '0.04em', flexShrink: 0 }}>{bhHome ? 'vs' : '@'}</span>}
+              : <span style={{ width: 24, textAlign: 'center', fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tm, letterSpacing: '0.04em', flexShrink: 0 }}>{bhHome ? tr('vs') : '@'}</span>}
             <span style={{ ...nameCell, fontWeight: 500, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{opp}</span>
           </div>
           <div className="bhbc-game-detail" style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.03em', textAlign: 'end', whiteSpace: 'normal', overflowWrap: 'break-word', minWidth: 0, textTransform: 'uppercase' }}>{detail}</div>
@@ -4235,8 +4235,8 @@ function fixturesToGames(fixtures) {
     return {
       round: null, stage: f.type === 'scrimmage' ? 'Pre-season' : undefined,
       date: f.date, time: f.start, comp: f.comp || (f.type === 'scrimmage' ? 'Pre-season' : undefined),
-      home: bhHome ? 'Bnei Herzliya' : (f.opponent || 'TBD'),
-      away: bhHome ? (f.opponent || 'TBD') : 'Bnei Herzliya',
+      home: bhHome ? 'Bnei Herzliya' : (f.opponent || zoneT('TBD')),
+      away: bhHome ? (f.opponent || zoneT('TBD')) : 'Bnei Herzliya',
       // null means the coach picked "—": the venue is genuinely unknown, so
       // downstream must not paint a HOME/AWAY chip for it.
       homeKnown: f.home === true || f.home === false,

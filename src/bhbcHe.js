@@ -118,6 +118,10 @@ export const HE = {
   'Scrimmage': 'משחק אימון',
   'Shootaround': 'שוטאראונד',
   'TBD': 'עוד לא נקבע',
+  Group: 'קבוצתי',
+  Single: 'יחיד',
+  '→': '←',
+  'HaYovel, Herzliya': 'היובל, הרצליה',
   'Show {n} more': 'עוד {n}',
   'GAME': 'משחק',
   'Lift': 'כוח',
@@ -496,6 +500,8 @@ export function useT() {
 // where a missed one silently ships English.
 let _dateLang = 'en';
 export function setBhbcDateLang(l) { _dateLang = l === 'he' ? 'he' : 'en'; }
+// For module-level helpers that build text outside a component (no hook to call).
+export const zoneT = (s) => bhbcT(_dateLang, s);
 
 // א׳-ש׳ with a geresh, which is how an Israeli coach writes a weekday short.
 const DOW_HE = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
