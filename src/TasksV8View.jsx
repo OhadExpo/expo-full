@@ -559,7 +559,7 @@ function SortBar({ sortBy, sortDir, onSortBy, onToggleDir, rightSlot }) {
           const active = sortBy === m.id;
           return (
             <button key={m.id} onClick={() => active ? onToggleDir() : onSortBy(m.id)} className="tfbtn" data-active={active ? '' : undefined}
-              title={active ? (m.id === 'manual' ? 'Manual order — drag tasks to arrange' : 'Click to flip the sort direction') : `Sort by ${m.label}`}
+              title={active ? tt(m.id === 'manual' ? 'Manual order — drag tasks to arrange' : 'Click to flip the sort direction') : `${tt('Sort by')} ${tt(m.label)}`}
               style={{ ...seg(active), flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {active ? (() => { const { a, t } = activeDirParts(m.id); return (
                 <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', gap:4, minWidth:0 }}>
@@ -2638,7 +2638,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
               const on = sortBy === m.id;
               return <RailOpt key={m.id} label={on ? sortRailLabel(m.id, sortDir, tt) : tt(m.label)} active={on}
                 onClick={() => on ? setSortDir(d => d === 'asc' ? 'desc' : 'asc') : setSortBy(m.id)}
-                title={on ? 'Click to flip the sort direction' : `Sort by ${m.label}`} />;
+                title={on ? tt('Click to flip the sort direction') : `${tt('Sort by')} ${tt(m.label)}`} />;
             })}
           </RailGroup>
 

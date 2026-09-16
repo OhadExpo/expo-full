@@ -782,12 +782,15 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
               ].map(o => {
                 const on = sortKeys.includes(o.id);
                 const desc = sortDirs[o.id] === 'desc';
-                const dirLbl = o.id === 'name' ? (desc ? 'ת→א' : 'א→ת')
-                  : o.id === 'status' ? (desc ? '↑ Inactive' : '↓ Active')
-                  : o.id === 'lastTrained' ? (desc ? '↓ Newest' : '↑ Oldest')
-                  : (desc ? '↑ Overdue' : '↓ Paid');
+                // Name order shows its own alphabet: א→ת in Hebrew, A→Z in English
+                // (English used to show Hebrew letters).
+                const heL = readLang() === 'he';
+                const dirLbl = o.id === 'name' ? (heL ? (desc ? 'ת→א' : 'א→ת') : (desc ? 'Z→A' : 'A→Z'))
+                  : o.id === 'status' ? (desc ? `↑ ${tt('Inactive')}` : `↓ ${tt('Active')}`)
+                  : o.id === 'lastTrained' ? (desc ? `↓ ${tt('Newest')}` : `↑ ${tt('Oldest')}`)
+                  : (desc ? `↑ ${tt('Overdue')}` : `↓ ${tt('Paid')}`);
                 const oLabel = tt(o.label);
-                return { key: o.id, title: on ? `Flip ${oLabel} direction` : `Sort by ${oLabel}`, active: on, label: on ? `${dirLbl} · ${oLabel}` : oLabel,
+                return { key: o.id, title: on ? (heL ? `היפוך כיוון המיון (${oLabel})` : `Flip ${oLabel} direction`) : `${tt('Sort by')} ${oLabel}`, active: on, label: on ? `${dirLbl} · ${oLabel}` : oLabel,
                   onClick: () => { setManualSort(false); if (on) setSortDirs(m => ({ ...m, [o.id]: desc ? 'asc' : 'desc' })); else { setSortDirs(m => (m[o.id] ? m : { ...m, [o.id]: 'asc' })); setSortKeys([o.id]); } } };
               }),
             },
