@@ -1005,7 +1005,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
           )}
       </Section>
 
-      <Section title={L(he, 'Bar speed', 'מהירות מוט')} cardStyle={{ ...card, marginTop: 0 }} tag={<span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '2px 6px', border: `1px solid ${C.pu}`, color: C.pu, marginInlineStart: 8 }}>{L(he, 'camera only', 'מצלמה בלבד')}</span>} summary={vault && vault.length > 0 ? (he ? `${cnt(vault.length, 'תרגיל אחד', 'תרגילים')} במעקב` : `${vault.length} lift${vault.length === 1 ? '' : 's'} tracked`) : L(he, 'no stored velocity', 'אין מדידות מהירות')}>
+      <Section title={L(he, 'Bar speed', 'מהירות מוט')} cardStyle={{ ...card, marginTop: 0 }} tag={<span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '2px 6px', border: `1px solid ${C.pu}`, color: C.pu, marginInlineStart: 8 }}>{L(he, 'camera only', 'רק מצלמה')}</span>} summary={vault && vault.length > 0 ? (he ? `${cnt(vault.length, 'תרגיל אחד', 'תרגילים')} במעקב` : `${vault.length} lift${vault.length === 1 ? '' : 's'} tracked`) : L(he, 'no stored velocity', 'אין מדידות מהירות')}>
           {vault && vault.length > 0 ? (
             <>
               {vault.slice(0, barSpeedAll ? vault.length : 3).map((lift) => (
@@ -1033,7 +1033,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
       {/* Range of motion — per-lift peak joint ROM from filmed sets, same
           top-3 → full-report expansion as bar speed (Ohad #203). ROM is real
           camera data (romTempo.maxRom), refused on poor-capture clips. */}
-      <Section title={L(he, 'Range of motion', 'טווח תנועה')} cardStyle={{ ...card, marginTop: 0 }} tag={<span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '2px 6px', border: `1px solid ${C.pu}`, color: C.pu, marginInlineStart: 8 }}>{L(he, 'camera only', 'מצלמה בלבד')}</span>} summary={romLifts.length > 0 ? (he ? `${cnt(romLifts.length, 'תרגיל אחד', 'תרגילים')} במעקב` : `${romLifts.length} lift${romLifts.length === 1 ? '' : 's'} tracked`) : L(he, 'no stored ROM', 'אין מדידות טווח')}>
+      <Section title={L(he, 'Range of motion', 'טווח תנועה')} cardStyle={{ ...card, marginTop: 0 }} tag={<span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '2px 6px', border: `1px solid ${C.pu}`, color: C.pu, marginInlineStart: 8 }}>{L(he, 'camera only', 'רק מצלמה')}</span>} summary={romLifts.length > 0 ? (he ? `${cnt(romLifts.length, 'תרגיל אחד', 'תרגילים')} במעקב` : `${romLifts.length} lift${romLifts.length === 1 ? '' : 's'} tracked`) : L(he, 'no stored ROM', 'אין מדידות טווח')}>
           {romLifts.length > 0 ? (
             <>
               {romLifts.slice(0, romAll ? romLifts.length : 3).map((lift) => (
@@ -1054,7 +1054,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
           )}
       </Section>
 
-      <Section title={L(he, 'Symmetry · injury watch', 'סימטריה · מעקב פציעות')} cardStyle={{ ...card, marginTop: 0 }} tag={<span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '2px 6px', border: `1px solid ${C.pu}`, color: C.pu, marginInlineStart: 8 }}>{L(he, 'camera only', 'מצלמה בלבד')}</span>} summary={asymTrend.joints.length > 0 ? (asymTrend.anyFlag ? (he ? `מעקב: ${JOINT_HE[asymTrend.worst.joint] || asymTrend.worst.joint}` : `watch ${asymTrend.worst.joint.toLowerCase()}`) : (he ? `יציב · ${cnt(asymTrend.films, 'צילום אחד', 'צילומים')}` : `holding · ${asymTrend.films} film${asymTrend.films === 1 ? '' : 's'}`)) : L(he, 'no history', 'אין היסטוריה')}>
+      <Section title={L(he, 'Symmetry · injury watch', 'סימטריה · מעקב פציעות')} cardStyle={{ ...card, marginTop: 0 }} tag={<span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '2px 6px', border: `1px solid ${C.pu}`, color: C.pu, marginInlineStart: 8 }}>{L(he, 'camera only', 'רק מצלמה')}</span>} summary={asymTrend.joints.length > 0 ? (asymTrend.anyFlag ? (he ? `מעקב: ${JOINT_HE[asymTrend.worst.joint] || asymTrend.worst.joint}` : `watch ${asymTrend.worst.joint.toLowerCase()}`) : (he ? `יציב · ${cnt(asymTrend.films, 'צילום אחד', 'צילומים')}` : `holding · ${asymTrend.films} film${asymTrend.films === 1 ? '' : 's'}`)) : L(he, 'no history', 'אין היסטוריה')}>
           {asymTrend.joints.length > 0 ? (
             <>
               <div style={{ fontSize: 12.5, color: asymTrend.anyFlag ? C.rd : asymTrend.films < 2 ? C.tm : C.gn, marginBottom: 4, fontWeight: 600 }}>
