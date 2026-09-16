@@ -115,7 +115,7 @@ const STRINGS = {
 
   // ─── What's inside the portal ─────────────────────────────────────
   'inside.badge':        { en: 'INSIDE THE PORTAL', he: 'בתוך הפורטל' },
-  'inside.h2':           { en: 'Your phone counts the reps. You focus on the lift.', he: 'הטלפון סופר חזרות. אתה מתרכז במשקל.' },
+  'inside.h2':           { en: 'Your phone counts the reps. You focus on the lift.', he: 'הטלפון סופר חזרות. אתה מתרכז בהרמה.' },
   'inside.body': {
     en: 'Film any set with your phone. The portal runs pose detection on the clip, counts the reps automatically, and lets you compare the new attempt with your last set at the same weight — same engine I use with the athletes I coach, no manual stopwatch.',
     he: 'צלם כל סט בטלפון. הפורטל מריץ Pose Detection על הקליפ, סופר חזרות אוטומטית, ונותן להשוות בין הסט החדש לסט הקודם באותו משקל. אותה שיטה שאני עובד איתה עם הספורטאים שאני מאמן. בלי לספור עם סטופר.',
@@ -128,7 +128,7 @@ const STRINGS = {
     en: 'MediaPipe Pose Landmarker tracks 33 joints in real time on any phone. Knee angle, hip depth, bar path — visible the moment you finish the set.',
     he: 'MediaPipe Pose Landmarker עוקב אחרי 33 מפרקים בזמן אמת. בכל טלפון. זווית ברך, עומק ירך, מסלול מוט — הכל מופיע ברגע שסיימת את הסט.',
   },
-  'inside.pose.angle':   { en: 'KNEE 87°',          he: 'ברך 87°' },
+  'inside.pose.angle':   { en: 'KNEE 87°',          he: 'ברך: 87 מעלות' },
   'inside.pose.depth':   { en: 'DEPTH 92%',         he: 'עומק 92%' },
   'inside.pose.foot':    { en: '33 LANDMARKS · LITE MODEL', he: '33 נקודות · מודל LITE' },
 
@@ -151,7 +151,7 @@ const STRINGS = {
   },
   'inside.rep.big':      { en: '8 / 8',             he: '8 / 8' },
   'inside.rep.label':    { en: 'REPS',              he: 'חזרות' },
-  'inside.rep.foot':     { en: 'AUTO · TROUGHS DETECTED', he: 'אוטומטי · ירידות זוהו' },
+  'inside.rep.foot':     { en: 'AUTO · TROUGHS DETECTED', he: 'אוטומטי · זוהו נקודות תחתית' },
 
   // Phone 3 — side-by-side compare
   'inside.cmp.tag':      { en: 'COMPARE',           he: 'השוואה' },
@@ -164,7 +164,7 @@ const STRINGS = {
   'inside.cmp.last.s':   { en: '4 reps · grindy #4',he: '4 חזרות · #4 כבדה' },
   'inside.cmp.now.t':    { en: 'TODAY · 95 KG',     he: 'היום · 95 ק״ג' },
   'inside.cmp.now.s':    { en: '5 reps · all clean',he: '5 חזרות · כולן נקיות' },
-  'inside.cmp.foot':     { en: 'ROM +6° · TEMPO MATCH', he: 'ROM +6° · טמפו תואם' },
+  'inside.cmp.foot':     { en: 'ROM +6° · TEMPO MATCH', he: 'ROM עלה ב-6 מעלות · טמפו תואם' },
 
   // Footer line
   // Counts the cards in WhatsInside — keep it in step when a card is added.
@@ -186,7 +186,7 @@ const STRINGS = {
   'about.h2':            { en: "I'm Ohad. I've been programming this exact engine for years.", he: 'אני אוהד. שנים שאני בונה את השיטה הזאת.' },
   'about.p1': {
     en: "Athletic Performance Coach at Bnei Herzliya. Spent four years playing American football in the NCAA — CMU, then a couple of college teams in Israel (OUI, TAU). Trained as an athlete first, then started programming for athletes who needed someone who'd done the work.",
-    he: 'מאמן יכולות אתלטיות בבני הרצליה. שיחקתי פוטבול ב-NCAA ב-CMU, ואחרי זה עוד כמה עונות בקבוצות קולג׳ בארץ — OUI, TAU. הייתי ספורטאי לפני שהייתי מאמן. אחרי זה התחלתי לכתוב תוכניות לאתלטים שצריכים מישהו שעבר את הדרך בעצמו.',
+    he: 'מאמן יכולות אתלטיות בבני הרצליה. ארבע שנים שיחקתי פוטבול אמריקאי — ב-NCAA ב-CMU, ואחרי זה בכמה קבוצות קולג׳ בארץ (OUI, TAU). הייתי ספורטאי לפני שהייתי מאמן. אחרי זה התחלתי לכתוב תוכניות לאתלטים שצריכים מישהו שעבר את הדרך בעצמו.',
   },
   'about.p2': {
     en: 'Today I work with the athletes I coach out of Herzliya — block-periodised training, progress logged on the phone, video reviewed every week. The portal you see here is the same one they use. I built it myself so I could stop juggling spreadsheets.',
@@ -207,7 +207,7 @@ const STRINGS = {
 
   // Three deeper credibility tiles below the credentials strip
   'about.values.h':      { en: 'WHAT I VALUE',                he: 'מה חשוב לי' },
-  'about.values.t1':     { en: 'Auto-regulation over heroics', he: 'אוטו-רגולציה לפני גבורה' },
+  'about.values.t1':     { en: 'Auto-regulation over heroics', he: 'אוטו-רגולציה לפני אגו' },
   'about.values.d1': {
     en: 'Loads adjust to the RPE you log, not the number on a spreadsheet. The block respects what your body actually has on the day.',
     he: 'העומס מתאים את עצמו ל-RPE שאתה מתעד, לא למספר בגיליון. הבלוק מכבד את מה שיש לך באמת באותו יום.',
@@ -233,7 +233,7 @@ const STRINGS = {
   'why.h2':              { en: 'Programmed, without a weekly show-up.', he: 'אימון לפי תוכנית, בלי להגיע שבוע-שבוע.' },
   'why.body': {
     en: "Most lifters end up in one of three buckets. Templates are the middle option — almost everything a private athlete gets, at a fraction of the price, with you as the operator.",
-    he: 'רוב המתאמנים נופלים באחת משלוש קטגוריות. תבניות הן האמצע — כמעט כל מה שמקבל ספורטאי בליווי אישי, בשבריר מהמחיר, רק שאתה מפעיל את התוכנית בעצמך.',
+    he: 'רוב המתאמנים נמצאים באחת משלוש קטגוריות. תבניות הן האמצע — כמעט כל מה שמקבל ספורטאי בליווי אישי, בשבריר מהמחיר, רק שאתה מפעיל את התוכנית בעצמך.',
   },
 
   // Column headers
@@ -314,7 +314,7 @@ const STRINGS = {
   'detail.section.sample':    { en: 'SAMPLE WEEK',      he: 'שבוע לדוגמה' },
   'detail.sample.body.tmpl': {
     en: 'A look at one full microcycle. The full block escalates and varies these patterns across {weeks} weeks.',
-    he: 'ככה נראה מיקרו-מחזור שלם. הבלוק המלא מעלה ומשנה את התבניות האלה לאורך {weeks} שבועות.',
+    he: 'ככה נראה מיקרו-מחזור שלם. הבלוק המלא מקשה ומגוון את דפוסי התנועה האלה לאורך {weeks} שבועות.',
   },
   'detail.sample.empty':      { en: 'SAMPLE WEEK COMING SOON', he: 'שבוע לדוגמה בקרוב' },
   'detail.day.label.tmpl':    { en: 'DAY {x}',          he: 'יום {x}' },
@@ -525,7 +525,7 @@ const STRINGS = {
   'demo.rep.h':       { en: 'Rep counter · interactive', he: 'ספירת חזרות · אינטראקטיבי' },
   'demo.rep.body': {
     en: "Tap the bar to add a rep. The path lights a trough at each tap — that's exactly how the portal counts off your real video.",
-    he: 'תלחץ על הסרגל להוסיף חזרה. המסלול מאיר ירידה בכל לחיצה — בדיוק ככה הפורטל סופר על הסרטון האמיתי שלך.',
+    he: 'תלחץ על הגרף כדי להוסיף חזרה. המסלול מאיר נקודת תחתית בכל לחיצה — בדיוק ככה הפורטל סופר על הסרטון האמיתי שלך.',
   },
   'demo.rep.reset':   { en: '↺ RESET',              he: '↺ אפס' },
   'demo.cmp.h':       { en: 'Side-by-side · interactive', he: 'השוואה צד-לצד · אינטראקטיבי' },
