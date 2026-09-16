@@ -65,7 +65,7 @@ const STRINGS = {
   'demo.h2':             { en: 'Upload a clip. Watch the engine work.', he: 'תעלה קליפ. תראה את המנוע עובד.' },
   'demo.body': {
     en: 'The full engine, running below — same code your clients film with. For the deeper tour (dashboard, plan editor, review tool), open the full coach demo in a new tab.',
-    he: 'המנוע המלא רץ למטה — אותו קוד שהמתאמנים שלך מצלמים בו. לסיור המלא (דשבורד, עורך תוכניות, כלי בקרה) — תפתח את הדגמת המאמן.',
+    he: 'המנוע המלא רץ למטה — אותו קוד שהמתאמנים שלך מצלמים בו. לסיור המלא (דשבורד, עורך תוכניות, כלי בקרה) — פתח את הדגמת המאמן.',
   },
   'demo.embed.loading':  { en: 'LOADING ENGINE…',      he: 'טוען מנוע…' },
   'demo.embed.modelfoot':{ en: 'POSE MODEL · ~6MB · FIRST LOAD ONLY', he: 'מודל תנוחה · ~6MB · רק בטעינה ראשונה' },
@@ -164,11 +164,11 @@ const STRINGS = {
   'wl.placeholder':      { en: 'your@email.com',       he: 'your@email.com' },
   'wl.cta':              { en: 'JOIN WAITLIST',        he: 'הצטרפות' },
   'wl.err.email':        { en: 'Enter a valid email',  he: 'תכניס מייל תקין' },
-  'wl.err.network':      { en: 'Something went wrong. Try again in a minute.', he: 'משהו השתבש. תנסה שוב עוד רגע.' },
+  'wl.err.network':      { en: 'Something went wrong. Try again in a minute.', he: 'משהו השתבש. נסה שוב עוד רגע.' },
   'wl.done':             { en: "✓ YOU'RE ON THE LIST. I'LL EMAIL YOU AS COACH SLOTS OPEN.", he: '✓ את/ה ברשימה. אני אשלח לך מייל ברגע שייפתח מקום מאמן/ת.' },
 
   // Sticky mobile + footer
-  'sticky.engine':       { en: 'TRY THE ENGINE',       he: 'תנסה את המנוע' },
+  'sticky.engine':       { en: 'TRY THE ENGINE',       he: 'נסה את המנוע' },
   'sticky.waitlist':     { en: 'WAITLIST →',           he: 'לרשימה ←' },
   'footer.line':         { en: '· COACHING PLATFORM · BUILT IN TEL AVIV · © {year} ALL RIGHTS RESERVED', he: '· פלטפורמת אימון · נבנה בתל אביב · © {year} כל הזכויות שמורות' },
   'footer.demo':         { en: 'DEMO',                 he: 'הדגמה' },

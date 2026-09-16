@@ -63,8 +63,8 @@ export const HE = {
   "SPEED": "מהירות",
   "MP4 · MOV · WEBM · stays on this device": "MP4 · MOV · WEBM · נשאר במכשיר הזה",
   "Tap to browse · or drop here": "לחיצה בוחרת קובץ · או גרירה לכאן",
-  "Drop in a clip of your": "תזרוק לכאן קליפ של",
-  "Drop in your client's": "תזרוק לכאן קליפ של המתאמן שלך",
+  "Drop in a clip of your": "זרוק לכאן קליפ של",
+  "Drop in your client's": "זרוק לכאן קליפ של המתאמן שלך",
   "STEP 2 ·": "שלב 2 ·",
   "MANUAL OVERRIDE — pick the lift instead": "בחירה ידנית — תבחר את התרגיל בעצמך",
   "CONTINUE → UPLOAD": "המשך ← העלאה",
@@ -337,7 +337,7 @@ export const HE = {
   "Sign out": "יציאה",
   "Retry": "לנסות שוב",
   "Loading data...": "טוען נתונים…",
-  "No available slots this week. Try next week →": "אין זמנים פנויים השבוע. תנסה בשבוע הבא ←",
+  "No available slots this week. Try next week →": "אין זמנים פנויים השבוע. נסה בשבוע הבא ←",
   "Theme:": "ערכת נושא:",
   "Viewport:": "גודל מסך:",
   "No participants yet.": "עוד אין משתתפים.",
@@ -506,7 +506,7 @@ export const HE = {
   "Add weigh-in": "הוספת שקילה",
   "Open →": "פתיחה ←",
   "Includes sessions from mid-session swaps.": "כולל אימונים מהחלפות באמצע.",
-  "No matches — try a different word.": "אין תוצאות — תנסה מילה אחרת.",
+  "No matches — try a different word.": "אין תוצאות — נסה מילה אחרת.",
   "Video player crashed — reload to retry": "נגן הווידאו קרס — תרענן כדי לנסות שוב",
 
 
@@ -578,7 +578,7 @@ export const HE = {
   Flags: 'סימונים',
   'Showing reviewed': 'מציג שנבדקו',
   '+ NEW CHALLENGE': '+ אתגר חדש',
-  'No challenges yet': 'עוד אין אתגרים. תנסה "רצף סקוואט ל-30 יום" או "נפח קבוצתי כולל".',
+  'No challenges yet': 'עוד אין אתגרים. נסה "רצף סקוואט ל-30 יום" או "נפח קבוצתי כולל".',
   SUPERSET: 'סופרסט',
   'alternate each round': 'מתחלפים בכל סבב',
   Filters: 'סינון',
@@ -808,16 +808,16 @@ export const HE = {
   // Composed, not mapped: a coach telling an athlete to put the app on their
   // phone. Short, spoken, masculine singular, future-as-imperative.
   'GET THE EXPO APP': 'תתקין את EXPO',
-  'OPEN THE EXPO APP': 'תפתח את EXPO',
+  'OPEN THE EXPO APP': 'פתח את EXPO',
   'GO TO APP': 'לאפליקציה',
   'MAYBE LATER': 'אחר כך',
   'GOT IT': 'הבנתי',
   "Add EXPO to your home screen — one tap, and it's always there, full-screen and ready.":
     'תוסיף את EXPO למסך הבית — לחיצה אחת, והיא תמיד שם, על כל המסך.',
-  'You already have EXPO installed — open it from your': 'EXPO כבר מותקנת אצלך — תפתח אותה מהאייקון',
+  'You already have EXPO installed — open it from your': 'EXPO כבר מותקנת אצלך — פתח אותה מהאייקון',
   'home screen': 'במסך הבית',
   'icon for the full-screen app.': 'כדי לקבל את האפליקציה על כל המסך.',
-  'To add EXPO to your home screen, open this page in': 'כדי להוסיף את EXPO למסך הבית, תפתח את הדף הזה ב',
+  'To add EXPO to your home screen, open this page in': 'כדי להוסיף את EXPO למסך הבית, פתח את הדף הזה ב',
   'first, then Share →': 'ואז שיתוף ←',
   'Add to Home Screen': 'הוספה למסך הבית',
   'Add EXPO to your home screen for the full app:': 'תוסיף את EXPO למסך הבית בשביל האפליקציה המלאה:',
@@ -851,13 +851,13 @@ export const HE = {
   // ---- athlete portal: the meal log ---------------------------------------
   // A whole athlete page that had no translator at all. Composed as a coach
   // talking to one athlete: short, spoken, future-as-imperative.
-  'SNAP A MEAL': 'תצלם ארוחה',
+  'SNAP A MEAL': 'צלם ארוחה',
   'UPLOADING…': 'מעלה…',
   'ANALYZING…': 'מנתח…',
   ANALYZE: 'נתח',
   NEXT: 'הבא',
   'No meals yet. Snap a photo above and the AI will estimate macros.':
-    'עוד אין ארוחות. תצלם למעלה והמערכת תעריך את המאקרו.',
+    'עוד אין ארוחות. צלם למעלה והמערכת תעריך את המאקרו.',
   'No meals on this day.': 'אין ארוחות ביום הזה.',
   'No meals logged yet today.': 'עוד לא נרשמו ארוחות היום.',
 
@@ -1441,7 +1441,7 @@ export const HE = {
   'sign-in is not configured yet.': '- הכניסה עוד לא מוגדרת.',
   'Could not reach the server. An ad-blocker or privacy extension, a VPN, or a stale offline cache can block it — try an incognito window, or clear this site’s data.': 'אין חיבור לשרת. חוסם פרסומות, VPN או מטמון ישן יכול לחסום — תנסה חלון גלישה בסתר, או תנקה את נתוני האתר.',
   'Connection error:': 'שגיאת חיבור:',
-  'Connection error. Try again.': 'שגיאת חיבור. תנסה שוב.',
+  'Connection error. Try again.': 'שגיאת חיבור. נסה שוב.',
   "Couldn't Verify Account": 'לא הצלחנו לאמת את החשבון',
   'Access Denied': 'אין גישה',
   "we couldn't reach the server to verify your account.": 'לא הצלחנו להגיע לשרת כדי לאמת את החשבון.',

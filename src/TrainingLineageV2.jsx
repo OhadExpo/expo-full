@@ -37,7 +37,7 @@ const SIDE_HE = { Left: 'שמאל', Right: 'ימין' };
 const TRANSFER_HE = {
   'strength-ahead': { read: 'הכוח שלו עולה, אבל העבודה המתפרצת לא עולה איתו', move: 'הכוח לא הופך לתפוקה — תטה את הבלוק הבא למהירות, פליאומטריקה וכוח־מהירות (משקלים קלים יותר, מהר), פחות עבודה כבדה ואיטית' },
   'power-ahead': { read: 'הקפיצות והזריקות מתקדמות, אבל בסיס הכוח נתקע', move: 'העוצמה הקדימה את בסיס הכוח — תוסיף עבודת כוח מקסימלי (סקוואט, הינג׳ ולחיצה כבדים) כדי להרים את התקרה שהעוצמה יכולה להגיע אליה' },
-  balanced: { read: 'הכוח והעוצמה עולים יחד', move: 'ההעברה עובדת — תשמור על האיזון, אל תטה יותר מדי לצד אחד' },
+  balanced: { read: 'הכוח והעוצמה עולים יחד', move: 'ההעברה עובדת — שמור על האיזון, אל תטה יותר מדי לצד אחד' },
   stalled: { read: 'לא הכוח ולא העוצמה זזים כרגע', move: 'שניהם תקועים — זה בלוק של שינוי גירוי או של הורדה, לא בלוק של "לדחוף חזק יותר"' },
 };
 const BUCKET_HE = { 'upper-bilateral': 'עליון · דו־צדדי', 'upper-unilateral': 'עליון · חד־צדדי', 'upper-plyo': 'עליון · פליאומטרי', 'lower-bilateral': 'תחתון · דו־צדדי', 'lower-unilateral': 'תחתון · חד־צדדי', 'lower-plyo': 'תחתון · פליאומטרי' };
@@ -137,7 +137,7 @@ function readStaple(s, he) {
     // contradict the "don't chase kg here" cue on the same row.
     return { tag: L(he, 'EXPLOSIVE', 'מתפרץ'), tagColor: C.pu,
       why: s.trend?.dir === 'up' ? L(he, 'load creeping up — but a jump progresses on speed + height, not kg', 'המשקל עולה לאט — אבל קפיצה מתקדמת במהירות ובגובה, לא בקילו') : L(he, 'jumps progress on speed + height, not load', 'קפיצות מתקדמות במהירות ובגובה, לא במשקל'),
-      next: L(he, 'film a set for velocity — don\'t chase kg here', 'תצלם סט למדידת מהירות — פה לא רודפים אחרי קילו') };
+      next: L(he, 'film a set for velocity — don\'t chase kg here', 'צלם סט למדידת מהירות — פה לא רודפים אחרי קילו') };
   }
   if (s.stale?.state === 'ok' && s.stale.stale) {
     if (s.stale.mode === 'hard') return { tag: L(he, 'STALLED · HARD', 'תקוע · קשה'), tagColor: C.or, why: L(he, 'flat weight + effort rising = hidden fatigue, not a real ceiling', 'משקל קבוע ומאמץ עולה = עייפות סמויה, לא תקרה אמיתית'), next: L(he, 'one lighter week (~50% volume) then re-test, or swap the variation — not more kg', 'שבוע קל אחד (כ־50% מהנפח) ואז בדיקה חוזרת, או החלפת וריאציה — לא עוד קילו') };
@@ -373,7 +373,7 @@ function RomLiftCard({ lift }) {
           </div>
         </div>
       ) : (
-        <div style={{ fontSize: 11, color: C.td, paddingInlineStart: 2 }}>{L(he, 'One filmed set · ', 'סט מצולם אחד · ')}<Ltr>{Math.round(last.maxRom)}°</Ltr>{L(he, ' — film another to trend the range.', ' — תצלם עוד אחד כדי לראות מגמה בטווח.')}</div>
+        <div style={{ fontSize: 11, color: C.td, paddingInlineStart: 2 }}>{L(he, 'One filmed set · ', 'סט מצולם אחד · ')}<Ltr>{Math.round(last.maxRom)}°</Ltr>{L(he, ' — film another to trend the range.', ' — צלם עוד אחד כדי לראות מגמה בטווח.')}</div>
       )}
       <ReportToggle open={open} onToggle={() => setOpen((o) => !o)} />
       {open && (report ? <div style={{ marginTop: 10 }}><RomReport report={report} /></div> : <NoReportNote />)}
@@ -546,7 +546,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
           const pos = [];
           if (climbing.length) pos.push({ t: `${L(he, 'Progressing', 'מתקדם')} — ${nm(climbing)}`, d: L(he, 'e1RM trending up. Keep progressing: +2–3% load or +1 rep at the same effort.', 'ה־e1RM עולה. תמשיך להתקדם: עוד 2–3% משקל או עוד חזרה באותו מאמץ.') });
           if (upperOk && !climbingCoversUpper) pos.push({ t: L(he, 'Upper body progressing', 'פלג גוף עליון מתקדם'), d: he ? `מפספס רק ${a.region.upper.pct}% מהחזרות — יש מקום להעלות משקל.` : `hitting reps at ${a.region.upper.pct}% miss — room to push the load.` });
-          if (ballisticUp.length) pos.push({ t: `${L(he, 'Power progressing', 'העוצמה מתקדמת')} — ${nm(ballisticUp)}`, d: L(he, 'load is up; film a set to confirm it’s bar speed, not just heavier kg.', 'המשקל עלה. תצלם סט כדי לוודא שזו מהירות מוט ולא רק יותר קילו.') });
+          if (ballisticUp.length) pos.push({ t: `${L(he, 'Power progressing', 'העוצמה מתקדמת')} — ${nm(ballisticUp)}`, d: L(he, 'load is up; film a set to confirm it’s bar speed, not just heavier kg.', 'המשקל עלה. צלם סט כדי לוודא שזו מהירות מוט ולא רק יותר קילו.') });
           const neg = [];
           if (regressing.length) neg.push({ t: `${L(he, 'Regressing', 'יורד')} — ${nm(regressing)}`, d: thin
             ? (he ? `ה־e1RM יורד, אבל ${(a.adh?.loggedSessions || 0) === 1 ? 'נרשם רק אימון אחד' : `נרשמו רק ${a.adh?.loggedSessions || 0} אימונים`} — סימן לעקוב אחריו, עוד לא סיבה לשבוע הורדה.` : `e1RM sliding, but only ${a.adh?.loggedSessions || 0} session${(a.adh?.loggedSessions || 0) === 1 ? '' : 's'} logged — a flag to watch, not a deload trigger yet.`)
@@ -931,7 +931,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
             </div>
             <div style={{ fontSize: 14, color: C.tx, lineHeight: 1.5 }}><b style={{ color: tone }}>{(he && TRANSFER_HE[t.side]?.read) || t.read}.</b></div>
             <div style={{ fontSize: 13, color: C.ac, fontWeight: 600, marginTop: 5, lineHeight: 1.5 }}>{he ? '← ' : '→ '}{(he && TRANSFER_HE[t.side]?.move) || t.move}</div>
-            <div style={{ fontSize: 10, color: C.td, marginTop: 8, lineHeight: 1.5 }}>{L(he, 'Trend = avg e1RM slope per side. A relationship to watch, not a law — strength↔power carry-over is individual. Film jumps to swap the load-proxy for real height + bar-speed.', 'מגמה = השיפוע הממוצע של e1RM בכל צד. קשר שכדאי לעקוב אחריו, לא חוק — המעבר בין כוח לעוצמה משתנה מספורטאי לספורטאי. תצלם קפיצות כדי לקבל גובה ומהירות מוט אמיתיים במקום הערכה לפי משקל.')}</div>
+            <div style={{ fontSize: 10, color: C.td, marginTop: 8, lineHeight: 1.5 }}>{L(he, 'Trend = avg e1RM slope per side. A relationship to watch, not a law — strength↔power carry-over is individual. Film jumps to swap the load-proxy for real height + bar-speed.', 'מגמה = השיפוע הממוצע של e1RM בכל צד. קשר שכדאי לעקוב אחריו, לא חוק — המעבר בין כוח לעוצמה משתנה מספורטאי לספורטאי. צלם קפיצות כדי לקבל גובה ומהירות מוט אמיתיים במקום הערכה לפי משקל.')}</div>
         </Section>
       );
     })()}
@@ -1049,7 +1049,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
             </>
           ) : (
             <div style={{ border: `1px dashed ${C.bd}`, background: C.sf2, padding: 14, color: C.tm, fontSize: 12.5, lineHeight: 1.5 }}>
-              <b style={{ color: C.tx, display: 'block', marginBottom: 5 }}>{L(he, 'No ROM read yet.', 'עוד אין מדידת טווח.')}</b><span>{L(he, 'Working range is read from filmed sets automatically — film a few clean sets and each lift\'s range trends here, no logging needed.', 'טווח העבודה נקרא אוטומטית מסטים מצולמים — תצלם כמה סטים נקיים והמגמה של כל תרגיל תופיע כאן, בלי רישום.')}</span>
+              <b style={{ color: C.tx, display: 'block', marginBottom: 5 }}>{L(he, 'No ROM read yet.', 'עוד אין מדידת טווח.')}</b><span>{L(he, 'Working range is read from filmed sets automatically — film a few clean sets and each lift\'s range trends here, no logging needed.', 'טווח העבודה נקרא אוטומטית מסטים מצולמים — צלם כמה סטים נקיים והמגמה של כל תרגיל תופיע כאן, בלי רישום.')}</span>
             </div>
           )}
       </Section>
