@@ -190,7 +190,9 @@ export const HE = {
   today: 'היום',
   'hold intensity, cut volume ~40–60%.': 'לשמור על העוצמה, להוריד כמחצית מהנפח.',
   Congestion: 'צפיפות משחקים',
-  '-day turnaround between games - rotate minutes and protect MD+1 recovery.': ' ימים בין המשחקים — לסובב דקות ולשמור על ההתאוששות ביום שאחרי.',
+  '-day turnaround between games - rotate minutes and protect MD+1 recovery.': ' ימים בין המשחקים — סובב דקות ושמור על ההתאוששות ביום שאחרי.',
+  '1-day turnaround between games - rotate minutes and protect MD+1 recovery.': 'יום אחד בין המשחקים — סובב דקות ושמור על ההתאוששות ביום שאחרי.',
+  '2-day turnaround between games - rotate minutes and protect MD+1 recovery.': 'יומיים בין המשחקים — סובב דקות ושמור על ההתאוששות ביום שאחרי.',
   d: ' ימים',
   Load: 'עומס',
   Readiness: 'מוכנות',
@@ -553,7 +555,7 @@ Object.assign(HE, {
   'Acute · protect': 'חריף · הגנה',
   'Offload the tissue, manage pain + swelling. Pain-free daily movement only.': 'להוריד עומס מהרקמה, לנהל כאב ונפיחות. רק תנועה יומיומית בלי כאב.',
   'Pain-free ROM': 'טווח בלי כאב',
-  'Restore full range with no symptoms before adding load.': 'להחזיר טווח מלא בלי סימפטומים לפני שמוסיפים עומס.',
+  'Restore full range with no symptoms before adding load.': 'להחזיר טווח מלא בלי תסמינים לפני שמוסיפים עומס.',
   'Loaded rehab': 'שיקום בעומס',
   'Re-load progressively — isometrics → tempo → full-ROM strength.': 'להעמיס בהדרגה — איזומטרי ← טמפו ← כוח בטווח מלא.',
   'Running, change-of-direction and court work, no contact.': 'ריצה, שינויי כיוון ועבודה על הפרקט, בלי מגע.',
@@ -564,7 +566,7 @@ Object.assign(HE, {
   'Pain gate': 'סף כאב',
   'Refer out': 'הפניה רפואית',
   '0–3/10 progress · 4–5 hold & modify (regress ': 'ב-0–3/10 ממשיכים · ב-4–5 עוצרים ומתאימים (מורידים ',
-  ', cut frequency last) · 6+ stop & reassess.': ', תדירות אחרונה) · ב-6+ עוצרים ובודקים מחדש.',
+  ', cut frequency last) · 6+ stop & reassess.': ', תדירות אחרונה) · מ-6 ומעלה עוצרים ובודקים מחדש.',
   'Saddle anaesthesia · bowel/bladder change · drop foot · unexplained weight loss · night pain unrelated to position — never manage through these.': 'הרדמת אוכף · שינוי בשליטה על סוגרים · צניחת כף רגל · ירידה לא מוסברת במשקל · כאב לילי שלא תלוי בתנוחה — לעולם לא ממשיכים דרך אלה.',
 
   // ---- the medical row action ------------------------------------------

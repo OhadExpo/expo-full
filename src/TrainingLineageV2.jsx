@@ -145,11 +145,11 @@ function readStaple(s, he) {
     return { tag: L(he, 'STALLED', 'תקוע'), tagColor: C.or, why: L(he, 'weight hasn\'t moved in 3 sessions', 'המשקל לא זז 3 אימונים'), next: noPr ? L(he, `no PR in ${wks} weeks — rotate the variation`, `אין שיא כבר ${wks} שבועות — תחליף וריאציה`) : L(he, 'push the load or change the stimulus', 'תעלה משקל או תשנה גירוי') };
   }
   if (s.trend?.state === 'ok') {
-    if (s.trend.repNoisy) return { tag: L(he, 'REPS VARIED', 'חזרות השתנו'), tagColor: C.tm, why: L(he, 'rep scheme shifted across the block — e1RM can\'t tell a strength change from the rep change', 'טווח החזרות השתנה לאורך הבלוק — ה־e1RM לא מבדיל בין שינוי בכוח לשינוי בחזרות'), next: L(he, 'read it off load-at-a-fixed-rep, or hold a rep target for 3 sessions for a clean trend', 'תקרא לפי המשקל במספר חזרות קבוע, או תשמור על יעד חזרות 3 אימונים כדי לקבל מגמה נקייה') };
+    if (s.trend.repNoisy) return { tag: L(he, 'REPS VARIED', 'חזרות השתנו'), tagColor: C.tm, why: L(he, 'rep scheme shifted across the block — e1RM can\'t tell a strength change from the rep change', 'טווח החזרות השתנה לאורך הבלוק — ה־e1RM לא מבדיל בין שינוי בכוח לשינוי בחזרות'), next: L(he, 'read it off load-at-a-fixed-rep, or hold a rep target for 3 sessions for a clean trend', 'תקרא את המשקל במספר חזרות קבוע — או שמור על אותו יעד חזרות 3 אימונים, למגמה נקייה') };
     if (s.trend.dir === 'up') return { tag: L(he, 'PROGRESS', 'מתקדם'), tagColor: C.gn, why: L(he, 'progressing', 'מתקדם'), next: L(he, '+2–3% load or +1 rep at the same effort', 'עוד 2–3% משקל או עוד חזרה באותו מאמץ') };
-    if (s.trend.dir === 'down') return { tag: L(he, 'REGRESS', 'יורד'), tagColor: C.rd, why: L(he, 'going backwards', 'הולך אחורה'), next: L(he, 'back off ~5–10% intensity, hold volume, check recovery', 'תוריד כ־5–10% מהעצימות, תשמור על הנפח ותבדוק התאוששות') };
+    if (s.trend.dir === 'down') return { tag: L(he, 'REGRESS', 'יורד'), tagColor: C.rd, why: L(he, 'going backwards', 'הולך אחורה'), next: L(he, 'back off ~5–10% intensity, hold volume, check recovery', 'תוריד כ־5–10% מהעצימות, שמור על הנפח ובדוק התאוששות') };
   }
-  return { tag: L(he, 'HOLDING', 'יציב'), tagColor: C.tm, why: L(he, 'holding steady', 'נשאר יציב'), next: noPr ? L(he, `no PR in ${wks} weeks — time to change it up`, `אין שיא כבר ${wks} שבועות — הגיע הזמן לשנות`) : L(he, 'maintain, or nudge the load', 'תשמור, או תעלה קצת משקל') };
+  return { tag: L(he, 'HOLDING', 'יציב'), tagColor: C.tm, why: L(he, 'holding steady', 'נשאר יציב'), next: noPr ? L(he, `no PR in ${wks} weeks — time to change it up`, `אין שיא כבר ${wks} שבועות — הגיע הזמן לשנות`) : L(he, 'maintain, or nudge the load', 'שמור, או תעלה קצת משקל') };
 }
 
 function nextBlockText(a, he) {
@@ -550,7 +550,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
           const neg = [];
           if (regressing.length) neg.push({ t: `${L(he, 'Regressing', 'יורד')} — ${nm(regressing)}`, d: thin
             ? (he ? `ה־e1RM יורד, אבל ${(a.adh?.loggedSessions || 0) === 1 ? 'נרשם רק אימון אחד' : `נרשמו רק ${a.adh?.loggedSessions || 0} אימונים`} — סימן לעקוב אחריו, עוד לא סיבה לשבוע הורדה.` : `e1RM sliding, but only ${a.adh?.loggedSessions || 0} session${(a.adh?.loggedSessions || 0) === 1 ? '' : 's'} logged — a flag to watch, not a deload trigger yet.`)
-            : L(he, 'e1RM down across the block. Back off ~5–10% intensity, hold volume, check recovery.', 'ה־e1RM ירד לאורך הבלוק. תוריד כ־5–10% מהעצימות, תשמור על הנפח ותבדוק התאוששות.') });
+            : L(he, 'e1RM down across the block. Back off ~5–10% intensity, hold volume, check recovery.', 'ה־e1RM ירד לאורך הבלוק. תוריד כ־5–10% מהעצימות, שמור על הנפח ובדוק התאוששות.') });
           if (stuck.length) neg.push({ t: `${L(he, 'Not progressing', 'לא מתקדם')} — ${nm(stuck)}`, d: L(he, 'flat 3+ sessions. Change the stimulus (variation/tempo) or a light week — not more kg.', 'תקוע 3 אימונים ומעלה. תשנה גירוי (וריאציה או טמפו) או תיתן שבוע קל — לא עוד קילו.') });
           if (lowerGrind && !negNamesLower) neg.push({ t: L(he, 'Lower body regressing', 'פלג גוף תחתון יורד'), d: he ? `${a.region.lower.pct}% מהסטים לא מגיעים ליעד — המשקל כבד מדי כרגע, וזה מצטבר.` : `${a.region.lower.pct}% of sets short of target — the load’s too heavy right now and it compounds.` });
           const Col = ({ title, color, items, empty }) => (

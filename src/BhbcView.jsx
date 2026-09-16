@@ -2319,7 +2319,7 @@ function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onLog, onGo })
   const games = (fixtures || []).filter((f) => f.type === 'game' && f.date >= today).sort((a, b) => a.date.localeCompare(b.date));
   for (let i = 0; i < games.length - 1; i++) {
     const gap = dayDiff(games[i + 1].date, games[i].date);
-    if (gap > 0 && gap < 4) { A.push({ k: 'Fixtures', sev: 'amber', do: `${tr('Congestion')} ${monDay(games[i].date)}–${monDay(games[i + 1].date)}`, why: `${gap}${tr('-day turnaround between games - rotate minutes and protect MD+1 recovery.')}` }); break; }
+    if (gap > 0 && gap < 4) { A.push({ k: 'Fixtures', sev: 'amber', do: `${tr('Congestion')} ${monDay(games[i].date)}–${monDay(games[i + 1].date)}`, why: gap === 1 ? tr('1-day turnaround between games - rotate minutes and protect MD+1 recovery.') : gap === 2 ? tr('2-day turnaround between games - rotate minutes and protect MD+1 recovery.') : `${gap}${tr('-day turnaround between games - rotate minutes and protect MD+1 recovery.')}` }); break; }
   }
   // 4) Injuries in rehab.
   const injured = rows.filter((r) => activeInjuries(medical, r.t.id).length);
