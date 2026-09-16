@@ -1045,7 +1045,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
                   {romAll ? L(he, 'Show less', 'פחות') : (he ? `כל ${romLifts.length} התרגילים` : `Show all ${romLifts.length} lifts`)}
                 </button>
               )}
-              <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>{L(he, 'Peak working range per filmed lift, measured from the skeleton. A quietly shrinking range = depth or mobility slipping, or fatigue compensation — visible before it shows in the loads.', 'טווח העבודה המקסימלי לכל תרגיל מצולם, נמדד מהשלד. טווח שמתכווץ בשקט = עומק או מוביליטי שנשחקים, או פיצוי של עייפות — רואים את זה לפני שזה מופיע במשקלים.')}</div>
+              <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>{L(he, 'Peak working range per filmed lift, measured from the skeleton. A quietly shrinking range = depth or mobility slipping, or fatigue compensation — visible before it shows in the loads.', 'טווח העבודה הכי גדול לכל תרגיל מצולם, נמדד מהשלד. טווח שמתכווץ בשקט = עומק או מוביליטי שנשחקים, או פיצוי של עייפות — רואים את זה לפני שזה מופיע במשקלים.')}</div>
             </>
           ) : (
             <div style={{ border: `1px dashed ${C.bd}`, background: C.sf2, padding: 14, color: C.tm, fontSize: 12.5, lineHeight: 1.5 }}>

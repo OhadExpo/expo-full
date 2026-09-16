@@ -749,7 +749,7 @@ function Location({ heb }) {
           }}>
             <div>
               <div style={{ fontSize: 32, color: C.ac, marginBottom: 8 }}>◉</div>
-              {heb ? 'מפה מדויקת לאחר תיאום' : 'EXACT LOCATION SHARED ON BOOKING'}
+              {heb ? 'מפה מדויקת אחרי תיאום' : 'EXACT LOCATION SHARED ON BOOKING'}
             </div>
           </div>
           {/* Decorative grid pattern — subtle, brand-consistent */}
