@@ -28,12 +28,12 @@ function CardStatusMenu({ status, onChange }) {
   return (
     <span ref={ref} style={{ position: 'relative', display: 'inline-block' }} onClick={e => e.stopPropagation()}>
       <button onClick={e => { e.stopPropagation(); setOpen(o => !o); }} title="Change status"
-        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5, minWidth: 92, height: 28, boxSizing: 'border-box', background: isRefined5b() ? '#FFFFFF' : 'transparent', border: `1px solid ${color}`, color, borderRadius: 0, padding: '1.5px 8px 0', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap', lineHeight: 1 }}>
+        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5, minWidth: 92, height: 28, boxSizing: 'border-box', background: isRefined5b() ? '#FFFFFF' : 'transparent', border: `1px solid ${color}`, color, borderRadius: 0, padding: '0 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap', lineHeight: 1 }}>
         {/* center the label+caret as a unit; cancel the trailing letter-space
             after the last glyph so the group is optically centred, not shifted
             left by ~1px (space-between used to pin the label left / caret right,
             which read as mis-aligned in the box). */}
-        <span style={{ marginRight: '-0.12em' }}>{tt(status)}</span><span style={{ fontSize: 8, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}><svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
+        <span style={{ marginRight: '-0.12em', display: 'block', textBox: 'trim-both cap alphabetic' }}>{tt(status)}</span><span style={{ fontSize: 8, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}><svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
       </button>
       {open && (
         <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 200, background: 'var(--c-bg)', border: `1px solid ${C.cardBd}`, minWidth: 124, boxShadow: '0 8px 24px rgba(0,0,0,0.35)' }}>

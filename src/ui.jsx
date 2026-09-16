@@ -224,8 +224,23 @@ export const TextArea = ({ label, id, ...props }) => {
     </div>
   );
 };
+// CENTRE THE INK, NOT THE LINE BOX. Badge labels are uppercase Nord, and an
+// uppercase word has no descenders - but its line box still reserves room for
+// them, so flex "centring" left the capitals riding high. Measured in the
+// program editor's PATTERN COVERAGE grid (16.9, Ohad: "massive gap"): 4.9px of
+// air above the ink and 7.8px below, in a 23.5px box, on every badge.
+// text-box trims a line box to the cap height and the alphabetic baseline, so
+// once the label's box is trimmed, centring the box IS centring the capitals.
+// It only applies to a BLOCK container and is not inherited, which is why the
+// label gets its own block span: set on the flex container it never reached
+// the anonymous box that holds the text (measured: no change at all). Every
+// Badge in the app has text-only children, so one block span changes nothing
+// else. Trimming alone also shrank every badge by its leading (23.5px -> 18.5px
+// measured), so the leading comes back as EQUAL padding - (1lh - 1cap) / 2 on
+// each side, in the label's own font - and the box keeps its size exactly.
+// A browser without text-box keeps today's layout.
 export const Badge = ({ children, color = C.ac, style: s }) =>
-  <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "3px 10px", borderRadius: 0, fontSize: 10, fontWeight: 700, fontFamily: FN, background: C.badgeBg, border: `1px solid ${color}`, color, letterSpacing: "0.1em", textTransform: "uppercase", ...s }}>{children}</span>;
+  <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "3px 10px", borderRadius: 0, fontSize: 10, fontWeight: 700, fontFamily: FN, background: C.badgeBg, border: `1px solid ${color}`, color, letterSpacing: "0.1em", textTransform: "uppercase", ...s }}><span style={{ display: "block", minWidth: 0, textBox: "trim-both cap alphabetic", paddingBlock: "calc((1lh - 1cap) / 2)" }}>{children}</span></span>;
 
 // ============================================================
 // Refined light-mode primitives
