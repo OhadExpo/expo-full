@@ -14,7 +14,8 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { C, FN } from './theme';
-import { frameToPoints3D, verticalTranslations } from './poseLab';
+import { frameToPoints3D, verticalTranslations } from './poseLab';
+import { useT } from './i18n';
 
 const DRACO_PATH = 'https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/libs/draco/';
 const ZERO = new THREE.Vector3(0, 0, 0);
@@ -99,6 +100,7 @@ function ends(geo) {
 const mid = (a, b) => a.clone().add(b).multiplyScalar(0.5);
 
 export default function AnatomyModelViewer({ frames }) {
+  const tt = useT();
   const mountRef = useRef(null);
   const poseFrames = useRef(frames.filter(f => f.worldLandmarks)).current;
   const [status, setStatus] = useState('loading');   // loading | ready | error
@@ -494,12 +496,12 @@ export default function AnatomyModelViewer({ frames }) {
     };
   }, [poseFrames]);
 
-  if (!poseFrames.length) return <div style={{ color: 'rgba(255,255,255,0.6)', textAlign: 'center', padding: 20 }}>No 3D pose captured in that clip.</div>;
+  if (!poseFrames.length) return <div style={{ color: 'rgba(255,255,255,0.6)', textAlign: 'center', padding: 20 }}>{tt('No 3D pose captured in that clip.')}</div>;
   const f = Math.min(frameIdx, poseFrames.length - 1);
   return (
     <div>
       <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
-        <Pill active={true} onClick={() => {}}>SKELETON</Pill>
+        <Pill active={true} onClick={() => {}}>{tt('SKELETON')}</Pill>
         <Pill active={playing} onClick={() => setPlaying(p => !p)}>{playing ? 'PAUSE' : 'PLAY'}</Pill>
         {/* One rig: V2 = swing + axial twist where the data supports it (falls back
             to swing otherwise), i.e. the best of both — so the old V1/V2 A/B that
@@ -515,7 +517,7 @@ export default function AnatomyModelViewer({ frames }) {
       <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', textAlign: 'center', marginTop: 6 }}>DRAG ORBIT · WHEEL / PINCH ZOOM · Z-ANATOMY (CC BY-SA)</div>
       <input type="range" min={0} max={poseFrames.length - 1} value={f} onChange={e => { setPlaying(false); setFrameIdx(Number(e.target.value)); }}
         style={{ width: '100%', maxWidth: 340, display: 'block', margin: '10px auto 0', accentColor: C.ac }} />
-      <div style={{ textAlign: 'center', fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 6 }}>FRAME {f + 1} / {poseFrames.length}</div>
+      <div style={{ textAlign: 'center', fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 6 }}>{tt('FRAME')} {f + 1} / {poseFrames.length}</div>
     </div>
   );
 }

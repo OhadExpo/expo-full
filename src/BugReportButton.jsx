@@ -12,7 +12,8 @@ import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
 import { toast, useEscClose } from './ui';
-import { snapshotConsoleBuffer, onError, hasSeenError } from './consoleBuffer.js';
+import { snapshotConsoleBuffer, onError, hasSeenError } from './consoleBuffer.js';
+import { useT } from './i18n';
 
 function bundleHash() {
   try {
@@ -56,6 +57,7 @@ function gatherContext() {
 }
 
 export default function BugReportButton({ role = 'anon', reporterEmail = '', variant = 'coach' }) {
+  const tt = useT();
   const [open, setOpen] = useState(false);
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -139,7 +141,7 @@ export default function BugReportButton({ role = 'anon', reporterEmail = '', var
       <style>{'@keyframes bug-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.18)} }'}</style>
       <button onClick={() => setOpen(true)}
         title={justErrored ? 'Something just broke — tap to send a bug report' : 'Report a bug'}
-        aria-label="Report a bug"
+        aria-label={tt('Report a bug')}
         className={isAthlete ? undefined : 'hdr-icon-btn'} style={btnStyle}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M12 2.5a4 4 0 0 0-4 4v1h8v-1a4 4 0 0 0-4-4Z"/>
@@ -149,7 +151,7 @@ export default function BugReportButton({ role = 'anon', reporterEmail = '', var
       </button>
 
       {open && createPortal((
-        <div onClick={() => !submitting && setOpen(false)} role="dialog" aria-modal="true" aria-label="Report a bug" style={{
+        <div onClick={() => !submitting && setOpen(false)} role="dialog" aria-modal="true" aria-label={tt('Report a bug')} style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1200,
           display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 20, paddingTop: 60,
           backdropFilter: 'blur(4px)',
@@ -160,7 +162,7 @@ export default function BugReportButton({ role = 'anon', reporterEmail = '', var
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
               <h3 style={{ margin: 0, fontFamily: FN, fontSize: 14, color: C.ac, letterSpacing: '0.12em', fontWeight: 700 }}>
-                🐞 REPORT A BUG
+                🐞 {tt('REPORT A BUG')}
               </h3>
               <button onClick={() => !submitting && setOpen(false)}
                 style={{ background: 'none', border: 'none', color: C.tm, cursor: 'pointer', fontSize: 18 }}>✕</button>
@@ -171,7 +173,7 @@ export default function BugReportButton({ role = 'anon', reporterEmail = '', var
             </p>
             <textarea value={description} onChange={e => setDescription(e.target.value)} dir="auto"
               autoFocus rows={6}
-              placeholder="Steps to reproduce + what went wrong…"
+              placeholder={tt('Steps to reproduce + what went wrong…')}
               style={{
                 width: '100%', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`,
                 borderRadius: 0, padding: '10px 12px', color: C.tx, fontSize: 13, fontFamily: FB,
@@ -180,12 +182,12 @@ export default function BugReportButton({ role = 'anon', reporterEmail = '', var
             {previewCtx && (
               <details style={{ marginBottom: 14, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '8px 10px' }}>
                 <summary style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.12em', fontWeight: 700, cursor: 'pointer' }}>
-                  WHAT GETS SENT ({previewCtx.consoleErrors.length} console error{previewCtx.consoleErrors.length === 1 ? '' : 's'})
+                  {tt(previewCtx.consoleErrors.length === 1 ? 'WHAT GETS SENT (1 console error)' : 'WHAT GETS SENT ({n} console errors)').replace('{n}', previewCtx.consoleErrors.length)}
                 </summary>
                 <div style={{ fontSize: 11, color: C.td, fontFamily: 'monospace', marginTop: 8, lineHeight: 1.5 }}>
                   <div><b>URL:</b> {typeof window !== 'undefined' ? window.location.href : '—'}</div>
-                  <div><b>Role:</b> {role} · <b>Bundle:</b> {previewCtx.bundle || '—'}</div>
-                  <div><b>Viewport:</b> {previewCtx.viewport?.w}×{previewCtx.viewport?.h} · <b>Theme:</b> {previewCtx.theme || '—'} · <b>Locale:</b> {previewCtx.locale || '—'}</div>
+                  <div><b>{tt('Role:')}</b> {role} · <b>{tt('Bundle:')}</b> {previewCtx.bundle || '—'}</div>
+                  <div><b>{tt('Viewport:')}</b> {previewCtx.viewport?.w}×{previewCtx.viewport?.h} · <b>{tt('Theme:')}</b> {previewCtx.theme || '—'} · <b>{tt('Locale:')}</b> {previewCtx.locale || '—'}</div>
                   {previewCtx.consoleErrors.length > 0 && (
                     <div style={{ marginTop: 6, maxHeight: 140, overflow: 'auto' }}>
                       {previewCtx.consoleErrors.slice(-5).map((e, i) => (
@@ -206,7 +208,7 @@ export default function BugReportButton({ role = 'anon', reporterEmail = '', var
                   background: 'transparent', color: C.tm, fontFamily: FN, fontSize: 11,
                   fontWeight: 700, letterSpacing: '0.12em', cursor: submitting ? 'wait' : 'pointer',
                   opacity: submitting ? 0.5 : 1,
-                }}>CANCEL</button>
+                }}>{tt('CANCEL')}</button>
               <button onClick={submit} disabled={submitting || !description.trim()}
                 style={{
                   padding: '8px 18px', borderRadius: 0,

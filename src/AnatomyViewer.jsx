@@ -13,7 +13,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { C, FN } from './theme';
-import { frameToPoints3D } from './poseLab';
+import { frameToPoints3D } from './poseLab';
+import { useT } from './i18n';
 
 // Limb segments [jointA, jointB, kind].
 const SEGMENTS = [
@@ -44,6 +45,7 @@ function sphereGeometry() { return new THREE.SphereGeometry(1, 20, 16); }
 const UP = new THREE.Vector3(0, 1, 0);
 
 export default function AnatomyViewer({ frames }) {
+  const tt = useT();
   const mountRef = useRef(null);
   const poseFrames = useRef(frames.filter(f => f.worldLandmarks)).current;
   const [peel, setPeel] = useState(0);          // 0 superficial · 1 deep · 2 bone
@@ -162,7 +164,7 @@ export default function AnatomyViewer({ frames }) {
     };
   }, [poseFrames]);
 
-  if (!poseFrames.length) return <div style={{ color: 'rgba(255,255,255,0.6)', textAlign: 'center', padding: 20, fontFamily: 'inherit' }}>No 3D pose captured in that clip.</div>;
+  if (!poseFrames.length) return <div style={{ color: 'rgba(255,255,255,0.6)', textAlign: 'center', padding: 20, fontFamily: 'inherit' }}>{tt('No 3D pose captured in that clip.')}</div>;
   const f = Math.min(frameIdx, poseFrames.length - 1);
   return (
     <div>
@@ -174,13 +176,13 @@ export default function AnatomyViewer({ frames }) {
       <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 8 }}>
         <Pill active={playing} onClick={() => setPlaying(p => !p)}>{playing ? '❚❚ PAUSE' : '▶ PLAY'}</Pill>
         <Pill onClick={() => setPeel(p => Math.min(LAYERS.length - 1, p + 1))}>PEEL ↓</Pill>
-        <Pill onClick={() => setPeel(p => Math.max(0, p - 1))}>↑ ADD</Pill>
+        <Pill onClick={() => setPeel(p => Math.max(0, p - 1))}>{tt('↑ ADD')}</Pill>
       </div>
       <div ref={mountRef} style={{ width: '100%', maxWidth: 340, height: 420, margin: '0 auto', background: '#0b0b0d', border: '1px solid rgba(255,255,255,0.12)', touchAction: 'none' }} />
-      <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', textAlign: 'center', marginTop: 6 }}>DRAG ORBIT · WHEEL / PINCH ZOOM · {LAYERS[peel].label} LAYER</div>
+      <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', textAlign: 'center', marginTop: 6 }}>{tt('DRAG ORBIT · WHEEL / PINCH ZOOM ·')} {tt('{x} LAYER').replace('{x}', LAYERS[peel].label)}</div>
       <input type="range" min={0} max={poseFrames.length - 1} value={f} onChange={e => { setPlaying(false); setFrameIdx(Number(e.target.value)); }}
         style={{ width: '100%', maxWidth: 340, display: 'block', margin: '10px auto 0', accentColor: C.ac }} />
-      <div style={{ textAlign: 'center', fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 6 }}>FRAME {f + 1} / {poseFrames.length}</div>
+      <div style={{ textAlign: 'center', fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 6 }}>{tt('FRAME')} {f + 1} / {poseFrames.length}</div>
     </div>
   );
 }

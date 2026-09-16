@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
 import { isSafeTraineeId } from './traineeUtils';
-import ClientPortal from './ClientPortal';
+import ClientPortal from './ClientPortal';
+import { useT } from './i18n';
 
 // Coach-side preview. Two modes:
 //   • traineeId → load all of that athlete's active plans, view their portal.
@@ -14,6 +15,7 @@ import ClientPortal from './ClientPortal';
 // Mounted by App.jsx for /coach/athletes/<id>/preview or /coach/programs/<id>/preview.
 // /coach/trainees/<id>/preview still resolves to the same render for legacy links.
 export default function CoachPreviewPortal({ traineeId, planId, trainees, exercises, portalVis, clientWorkouts, bwLog, weeklyFocus, onBack, showAllBlocks = false }) {
+  const tt = useT();
   const [plans, setPlans] = useState(null);
   const [resolvedTraineeId, setResolvedTraineeId] = useState(traineeId || null);
   const [error, setError] = useState(null);
@@ -88,12 +90,12 @@ export default function CoachPreviewPortal({ traineeId, planId, trainees, exerci
 
   const trainee = (trainees||[]).find(t => t.id === resolvedTraineeId);
 
-  if (error) return <div style={{padding:40,textAlign:'center',color:C.rd}}>Failed to load: {error}</div>;
-  if (plans === null) return <div style={{padding:40,textAlign:'center',color:C.tm,fontFamily:FN,letterSpacing:'0.18em'}}>LOADING PREVIEW…</div>;
+  if (error) return <div style={{padding:40,textAlign:'center',color:C.rd}}>{tt('Failed to load:')} {error}</div>;
+  if (plans === null) return <div style={{padding:40,textAlign:'center',color:C.tm,fontFamily:FN,letterSpacing:'0.18em'}}>{tt('LOADING PREVIEW…')}</div>;
 
   const headerLabel = planId
-    ? <>Previewing <span style={{color:C.ac,fontWeight:700}}>{plans[0]?.name || 'Program'}</span>{trainee && <> · {trainee.name}</>}</>
-    : <>Viewing as <span style={{color:C.ac,fontWeight:700}}>{trainee?.name || 'Trainee'}</span></>;
+    ? <>{tt('Previewing')} <span style={{color:C.ac,fontWeight:700}}>{plans[0]?.name || tt('Program')}</span>{trainee && <> · {trainee.name}</>}</>
+    : <>{tt('Viewing as')} <span style={{color:C.ac,fontWeight:700}}>{trainee?.name || tt('Trainee')}</span></>;
 
   return (
     <div style={{position:'relative'}}>
@@ -102,10 +104,10 @@ export default function CoachPreviewPortal({ traineeId, planId, trainees, exerci
             pieces sit on a single level baseline (Ohad: "not leveled" — was
             10/13/10px in two fonts, the Hebrew name floated off the Latin). */}
         <div style={{display:'flex',alignItems:'center',gap:10,minWidth:0,fontFamily:FN,fontSize:11,lineHeight:1,letterSpacing:'0.1em',textTransform:'uppercase'}}>
-          <div style={{color:C.ac,fontWeight:700,whiteSpace:'nowrap'}}>👁 PREVIEW</div>
+          <div style={{color:C.ac,fontWeight:700,whiteSpace:'nowrap'}}>👁 {tt('PREVIEW')}</div>
           <div style={{color:C.tx,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{headerLabel}</div>
         </div>
-        <button onClick={onBack} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,color:C.ac,padding:'6px 14px',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',cursor:'pointer',borderRadius:0,whiteSpace:'nowrap',flexShrink:0,display:'inline-flex',alignItems:'center',gap:5}}>← BACK</button>
+        <button onClick={onBack} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,color:C.ac,padding:'6px 14px',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',cursor:'pointer',borderRadius:0,whiteSpace:'nowrap',flexShrink:0,display:'inline-flex',alignItems:'center',gap:5}}>{tt('← BACK')}</button>
       </div>
       <ClientPortal
         clientId={resolvedTraineeId || 'preview'}

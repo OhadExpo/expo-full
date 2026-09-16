@@ -34,6 +34,9 @@ function makeSessionId() {
 }
 
 export default function CoachChat() {
+  // The coach landing sets <html dir> from its own language switch (no i18n provider here).
+  const he = typeof document !== 'undefined' && document.documentElement.dir === 'rtl';
+  const L = (en, heText) => (he ? heText : en);
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([]); // [{role:'user'|'assistant'|'system-capture', content:string}]
   const [draft, setDraft] = useState('');
@@ -211,7 +214,7 @@ export default function CoachChat() {
     <>
       {/* Floating bubble — always visible bottom-right when closed */}
       {!open && (
-        <button onClick={() => { setOpen(true); trackFunnel('coach_chat_open', {}); }} aria-label="Open chat"
+        <button onClick={() => { setOpen(true); trackFunnel('coach_chat_open', {}); }} aria-label={L('Open chat', 'פתיחת צ׳אט')}
           style={{
             position: 'fixed', bottom: 20, right: 20, zIndex: 80,
             width: 56, height: 56, borderRadius: '50%',
@@ -228,7 +231,7 @@ export default function CoachChat() {
       )}
 
       {open && (
-        <div role="dialog" aria-label="EXPO chat"
+        <div role="dialog" aria-label={L('EXPO chat', 'צ׳אט EXPO')}
           style={{
             position: 'fixed', zIndex: 90,
             bottom: 20, right: 20,
@@ -255,16 +258,16 @@ export default function CoachChat() {
               position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, calc(-50% + 2px))',
               fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.18em', color: C.tm,
               lineHeight: 1, whiteSpace: 'nowrap', pointerEvents: 'none',
-            }}>ASK ANYTHING.</span>
+            }}>{L('ASK ANYTHING.', 'שאל מה שבא לך.')}</span>
             <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
               {messages.length > 0 && (
                 <button onClick={() => { setMessages([]); setErr(''); setCapturePrompted(false); setCaptureEmail(''); setCaptureState('idle'); setCaptureErr(''); }}
-                  aria-label="Start a new conversation" title="Start a new conversation"
+                  aria-label={L('Start a new conversation', 'שיחה חדשה')} title={L('Start a new conversation', 'שיחה חדשה')}
                   style={{ background: 'transparent', border: 'none', color: C.tm, cursor: 'pointer', lineHeight: 0, padding: 0, borderRadius: 0, height: 28, width: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>
                 </button>
               )}
-              <button onClick={() => setOpen(false)} aria-label="Close chat"
+              <button onClick={() => setOpen(false)} aria-label={L('Close chat', 'סגירת הצ׳אט')}
                 style={{ background: 'transparent', border: 'none', color: C.tm, cursor: 'pointer', lineHeight: 0, padding: 0, height: 28, width: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
@@ -282,7 +285,7 @@ export default function CoachChat() {
                 background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0,
                 padding: '12px 14px',
               }}>
-                Hey — I can answer basic questions about EXPO (pricing, features, who it's for, how to try it). For anything specific, email Ohad and he'll reply himself.
+                {L("Hey — I can answer basic questions about EXPO (pricing, features, who it's for, how to try it). For anything specific, email Ohad and he'll reply himself.", 'היי — אני עונה על שאלות בסיסיות על EXPO: מחירים, פיצ׳רים, למי זה מתאים ואיך לנסות. לכל דבר ספציפי, שלח מייל לאוהד והוא יחזור אליך בעצמו.')}
               </div>
             )}
             {messages.map((m, i) => {
@@ -340,7 +343,7 @@ export default function CoachChat() {
                 alignSelf: 'flex-start',
                 color: C.tm, fontSize: 13, fontStyle: 'italic',
                 padding: '4px 12px',
-              }}>typing…</div>
+              }}>{L('typing…', 'מקליד…')}</div>
             )}
             {err && (
               <div style={{
@@ -379,7 +382,7 @@ export default function CoachChat() {
               padding: '12px 14px', borderTop: `1px solid ${C.cardBd}`,
               background: 'transparent', fontSize: 12, color: C.tm, lineHeight: 1.5, textAlign: 'center',
             }}>
-              Chat is offline right now. Drop your email in the waitlist form below and Ohad will reply directly.
+              {L('Chat is offline right now. Drop your email in the waitlist form below and Ohad will reply directly.', 'הצ׳אט לא זמין כרגע. תשאיר מייל בטופס רשימת ההמתנה למטה ואוהד יחזור אליך ישירות.')}
             </div>
           ) : (
             <div style={{
@@ -388,7 +391,7 @@ export default function CoachChat() {
               background: 'transparent',
             }}>
               <textarea ref={inputRef} value={draft} onChange={e => setDraft(e.target.value)} onKeyDown={onKey}
-                placeholder="Type a question…" rows={1}
+                placeholder={L('Type a question…', 'כתוב שאלה…')} rows={1}
                 style={{
                   flex: 1, resize: 'none',
                   background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0,
@@ -403,7 +406,7 @@ export default function CoachChat() {
                   border: `1px solid ${draft.trim() && !sending ? C.ac : C.cardBd}`, borderRadius: 0,
                   padding: '8px 14px', fontFamily: FN, fontSize: 12, fontWeight: 700,
                   letterSpacing: '0.18em', cursor: draft.trim() && !sending ? 'pointer' : 'default',
-                }}>SEND</button>
+                }}>{L('SEND', 'שליחה')}</button>
             </div>
           )}
         </div>

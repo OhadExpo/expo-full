@@ -334,7 +334,7 @@ export default function IntakeForm() {
     return (
       <div data-theme="dark" style={wrapper}><div style={card}>
         <div style={{ textAlign: 'center', color: C.or, fontFamily: FN, fontSize: 11, marginBottom: 16 }}>
-          PREVIEW · NO TOKEN · {dir === 'rtl' ? 'הקישור החי כולל את t= בכתובת' : 'Live link must include ?t=...'}
+          {dir === 'rtl' ? 'תצוגה מקדימה · בלי טוקן ·' : 'PREVIEW · NO TOKEN ·'} {dir === 'rtl' ? 'הקישור החי כולל את t= בכתובת' : 'Live link must include ?t=...'}
         </div>
         <h2 style={{ fontFamily: FN, fontSize: 22, color: C.tx, margin: '0 0 8px' }}>{form?.title}</h2>
         <p style={{ fontSize: 13, color: C.tm, marginTop: 0, marginBottom: 24, lineHeight: 1.5 }}>{form?.intro}</p>
