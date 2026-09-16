@@ -445,7 +445,7 @@ function PriorityPill({ priority, onSetPriority, readOnly = false }) {
     border: `1px solid ${cur.color}`, background: 'transparent', color: cur.color,
     appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none', backgroundImage: 'none',
   };
-  if (readOnly) return <span title={`Priority: ${tt(cur.label)}`} style={{ ...base, display: 'inline-flex', alignItems: 'center' }}>{tt(cur.label).toUpperCase()}</span>;
+  if (readOnly) return <span title={`${tr(readLang(), 'Priority:')} ${tt(cur.label)}`} style={{ ...base, display: 'inline-flex', alignItems: 'center' }}>{tt(cur.label).toUpperCase()}</span>;
   return (
     <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
       <select className="task-select" value={priority} onChange={(e) => onSetPriority(e.target.value)}
@@ -846,7 +846,7 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
               {[['low','LOW','var(--c-td)'],['normal','NORMAL','var(--c-tm)'],['high','HIGH','var(--c-tx)'],['urgent','URGENT',C.rd]].map(([id, label, color]) => (
                 <button key={id}
                   onMouseDown={(e) => { e.preventDefault(); setPriority(id); }}
-                  title={`Priority: ${label}`}
+                  title={`${tr(readLang(), 'Priority:')} ${tr(readLang(), label)}`}
                   style={{ background: priority === id ? color : 'transparent', color: priority === id ? '#FFFFFF' : color, border: `1px solid ${priority === id ? color : 'var(--c-cardBd)'}`, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', padding: '3px 8px', height: 24, cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>{label}</button>
               ))}
             </span>
@@ -972,7 +972,7 @@ function SectionHeader({ label, count, color, collapsed, onToggleCollapse }) {
     <div
       {...asButton(onToggleCollapse)}
       aria-expanded={!collapsed}
-      aria-label={`Toggle ${label} section`}
+      aria-label={tr(readLang(), 'Toggle the {x} section').replace('{x}', tr(readLang(), label))}
       style={{
         display: 'flex', alignItems: 'center', gap: 8,
         padding: '8px 12px', cursor: 'pointer',
@@ -1333,7 +1333,7 @@ export function CommentsThread({ noteId, viewer }) {
       }}>
         {/* Author is fixed to the viewer — a non-interactive identity chip
             stands in for the old toggle so it's clear who you're posting as. */}
-        <span title={`Posting as ${author === 'yuval' ? 'Yuval' : 'Ohad'}`}
+        <span title={tr(readLang(), author === 'yuval' ? 'Posting as Yuval' : 'Posting as Ohad')}
           style={{
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             flexShrink: 0, width: 32, height: 32, boxSizing: 'border-box', borderRadius: 0,
@@ -1654,7 +1654,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
               chips line up vertically and titles keep an identical edge (Ohad #207). */}
           <span style={{ flexShrink: 0, width: wrapRow ? 'auto' : 104, display: 'inline-flex', alignItems: 'center' }}>
             {showAthlete && (
-              <span title={`Athlete: ${athleteName}`} style={{
+              <span title={`${tr(readLang(), 'Athlete:')} ${athleteName}`} style={{
                 boxSizing: 'border-box', height: TASK_PILL_H, display: 'inline-flex', alignItems: 'center',
                 fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em',
                 color: 'var(--c-tm)', whiteSpace: 'nowrap', width: wrapRow ? 'auto' : '100%', maxWidth: wrapRow ? 132 : undefined, justifyContent: 'center',

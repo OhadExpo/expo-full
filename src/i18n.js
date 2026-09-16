@@ -1530,6 +1530,25 @@ export const HE = {
   'Upload timed out': 'פג הזמן להעלאה',
   'Upload network error': 'תקלת רשת בהעלאה',
   'Session saved locally': 'האימון נשמר במכשיר',
+  // 17.9 template tooltips (Last session, Priority, Open WhatsApp…)
+  'Last session: {x}': 'אימון אחרון: {x}',
+  'Open WhatsApp to {x}': 'פתיחת וואטסאפ עם {x}',
+  'Open {n} days — follow up': 'פתוח {n} ימים — צריך מעקב',
+  'Priority:': 'עדיפות:',
+  'Latest {n} sets · your productive band ≈ {a}–{b} (MEV–MRV)': 'אחרון: {n} סטים · הטווח האפקטיבי שלך בערך {a}–{b} (MEV–MRV)',
+  'Next block — {x}: about {n} sets': 'הבלוק הבא — {x}: בערך {n} סטים',
+  'Posting as Yuval': 'כותב בתור יובל',
+  'Posting as Ohad': 'כותב בתור אוהד',
+  'Athlete:': 'מתאמן:',
+  'Intent {n}/4': 'כוונה {n}/4',
+  'Playback speed {n}x': 'מהירות ניגון {n}x',
+  'Both at {n}x': 'שניהם ב־{n}x',
+  'Swapped from “{x}”': 'הוחלף במקום “{x}”',
+  // 17.9 block tooltip
+  'Open {x}': 'פתיחת {x}',
+  // 17.9 template aria/placeholder
+  'Toggle the {x} section': 'פתיחה או סגירה של {x}',
+  'Focus to carry into week {n}…': 'פוקוס להעביר לשבוע {n}…',
   // 17.9 the two owner library tools (Classify, Matching) wired
   match: 'התאמה',
   matches: 'התאמות',

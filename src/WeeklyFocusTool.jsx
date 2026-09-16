@@ -206,7 +206,7 @@ export default function WeeklyFocusTool({ trainees, exercises, weeklyFocus, setW
                       {val && <span style={{ color: C.gn, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em' }}>✓ {tr(readLang(), 'SAVED')}</span>}
                     </div>
                     <textarea dir="auto" value={val} onChange={e => setF(d.nameRaw, ex.eid, e.target.value)}
-                      placeholder={`Focus to carry into week ${week + 1}…`}
+                      placeholder={tr(readLang(), 'Focus to carry into week {n}…').replace('{n}', week + 1)}
                       style={{ width: '100%', boxSizing: 'border-box', background: 'transparent', border: `1px solid ${val ? C.ac : C.cardBd}`, borderInlineStart: `3px solid ${val ? C.ac : C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 13, padding: 8, borderRadius: 0, resize: 'vertical', minHeight: 38 }} />
                   </div>
                 );

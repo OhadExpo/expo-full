@@ -282,7 +282,7 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '2px 6px', lineHeight: 1,
           }}>{kindIcon} {kindLabel}</span>
         {priority !== 'normal' && (
-          <span title={`Priority: ${priority}`} style={{
+          <span title={`${tr(readLang(), 'Priority:')} ${tr(readLang(), priority)}`} style={{
             fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
             color: PRIORITY_TONE[priority] || 'var(--c-tm)', border: `1px solid ${PRIORITY_TONE[priority] || 'var(--c-cardBd)'}`,
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '2px 6px', lineHeight: 1, textTransform: 'uppercase',
@@ -427,7 +427,7 @@ function TaskActionButton({ note, trainee, onCreatePlan, onOpenReview, onOpenInt
       const msg = whatsappMessageForTask(note, trainee);
       return <ActionPill color="#128C7E"
         label="→ WHATSAPP"
-        title={`Open WhatsApp to ${trainee?.name || 'trainee'}`}
+        title={tr(readLang(), 'Open WhatsApp to {x}').replace('{x}', trainee?.name || tr(readLang(), 'trainee'))}
         onClick={() => {
           try { window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener'); } catch {}
         }} />;

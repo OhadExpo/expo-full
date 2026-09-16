@@ -423,7 +423,7 @@ export default function WaitlistView({ trainees }) {
                         );
                       })()}
                     </td>
-                    <td style={{ padding: '10px 12px', fontFamily: FN, color: l.intent >= 3 ? C.ac : (l.intent >= 1 ? C.tm : C.td), fontSize: 13 }} title={`Intent ${l.intent}/4`}>
+                    <td style={{ padding: '10px 12px', fontFamily: FN, color: l.intent >= 3 ? C.ac : (l.intent >= 1 ? C.tm : C.td), fontSize: 13 }} title={tr(readLang(), 'Intent {n}/4').replace('{n}', l.intent)}>
                       {stars}
                     </td>
                     <td style={{ padding: '10px 12px', color: C.tm, fontSize: 12 }} title={fmtDate(l.created_at)}>
@@ -431,7 +431,7 @@ export default function WaitlistView({ trainees }) {
                     </td>
                     <td style={{ padding: '10px 12px' }}>
                       {l.contacted ? (
-                        <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.gn, background: 'var(--c-sf)', border: `1px solid ${C.gn}`, borderRadius: 0, padding: '3px 6px', letterSpacing: '0.18em' }} title={`Contacted ${ago(l.consumed_at)} ago`}>{tt("CONTACTED")}</span>
+                        <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.gn, background: 'var(--c-sf)', border: `1px solid ${C.gn}`, borderRadius: 0, padding: '3px 6px', letterSpacing: '0.18em' }} title={`${tr(readLang(), 'Contacted')} ${agoLabel(l.consumed_at, readLang())}`}>{tt("CONTACTED")}</span>
                       ) : (
                         <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.ac, background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: '3px 6px', letterSpacing: '0.18em' }}>{tt('NEW')}</span>
                       )}
@@ -580,7 +580,7 @@ function LeadCard({ lead, draggable, onDragStart, onDragEnd, isDragging, notes, 
           fontSize: 12, color: C.tx, fontWeight: 700,
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0,
         }}>{l.email}</span>
-        <span style={{ fontFamily: FN, color: l.intent >= 3 ? C.ac : C.tm, fontSize: 11 }} title={`Intent ${l.intent}/4`}>{stars}</span>
+        <span style={{ fontFamily: FN, color: l.intent >= 3 ? C.ac : C.tm, fontSize: 11 }} title={tr(readLang(), 'Intent {n}/4').replace('{n}', l.intent)}>{stars}</span>
       </div>
       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 6 }}>
         <span style={{

@@ -252,7 +252,7 @@ export default function NotesInline({
             return (
               <button onClick={() => {
                 try { window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener'); } catch {}
-              }} title={`Open WhatsApp to ${trainee?.name || ''}`}
+              }} title={tr(readLang(), 'Open WhatsApp to {x}').replace('{x}', trainee?.name || '')}
                 style={pillBtn('#128C7E')}>→ {tr(readLang(), 'WHATSAPP')}</button>
             );
           }
@@ -316,7 +316,7 @@ export default function NotesInline({
                 </>
               )}
               {isStale && (
-                <span title={`Open ${staleDays} days — follow up`}
+                <span title={tr(readLang(), 'Open {n} days — follow up').replace('{n}', staleDays)}
                   style={{
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
                     fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',

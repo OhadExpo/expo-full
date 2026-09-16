@@ -1663,7 +1663,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
           0.125x .. 2x, ◀ ▶, then ↻ LOOP. */}
       <div style={{display:compare?'none':'flex',gap:4,alignItems:'center',justifyContent:'center',flexWrap:'wrap'}}>
         {speeds.map(s => (
-          <button key={s} onClick={() => setSpeed(s)} title={`Playback speed ${s}x`}
+          <button key={s} onClick={() => setSpeed(s)} title={tr(readLang(), 'Playback speed {n}x').replace('{n}', s)}
             style={{padding:'3px 6px',borderRadius:0,border:`2px solid ${speed===s?C.ac:'transparent'}`,boxSizing:'border-box',
               background:speed===s?C.acD:'transparent',color:speed===s?C.ac:C.tm,
               fontFamily:FN,fontSize:10,cursor:'pointer'}}>{s}x</button>
@@ -1892,7 +1892,7 @@ function CompareModal({ leftLabel, leftUrl, leftTitle, rightLabel, rightUrl, rig
               <button onClick={() => stepBoth(1)} title={tt('Both forward one frame (→)')} style={btn(false)}>▶</button>
               <span style={divider} />
               {[0.125, 0.25, 0.5, 1, 2].map(x => (
-                <button key={x} onClick={() => setSpeed(x)} title={`Both at ${x}x`} style={btn(speed === x, { padding:'0 10px' })}>{x}x</button>
+                <button key={x} onClick={() => setSpeed(x)} title={tr(readLang(), 'Both at {n}x').replace('{n}', x)} style={btn(speed === x, { padding:'0 10px' })}>{x}x</button>
               ))}
               <span style={divider} />
               <button onClick={setLoop} title={tt('Loop both')} style={btn(loop)}>↻ {tt('LOOP')}</button>
@@ -2322,7 +2322,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                         🎯
                       </span>
                     )}
-                    {ex.substitution && <span style={{color:C.or,marginInlineStart:6,fontFamily:FN,fontWeight:700,fontSize:10,letterSpacing:0.5}} title={`Swapped from "${ex.substitution.from}"`}>⇄ {tr(readLang(), 'SWAP')}</span>}
+                    {ex.substitution && <span style={{color:C.or,marginInlineStart:6,fontFamily:FN,fontWeight:700,fontSize:10,letterSpacing:0.5}} title={tr(readLang(), 'Swapped from “{x}”').replace('{x}', ex.substitution.from)}>⇄ {tr(readLang(), 'SWAP')}</span>}
                   </div>
                   {ex.substitution && (
                     <div style={{fontSize:10,color:C.or,marginTop:3,fontFamily:FN,letterSpacing:0.5}}>

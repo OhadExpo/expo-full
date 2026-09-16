@@ -99,6 +99,13 @@ function scanFile(f, raw) {
   // on purpose: an email shape, a URL, "kg/%", "reps", "e.g. 83.5", and the
   // word the coach must type to confirm a delete (the check compares to it).
   const dataShape = (t) => /@|https?:|^e\.g\.|^\d|kg\/%|^reps$|delete|remove|^ohad\b|zoom\.us|\d{4}/i.test(t);
+  // 17.9: a tooltip built as a template literal - title={`Last session: ${x}`} - was never
+  // scanned; 20 were English on Hebrew screens.
+  for (const m of src.matchAll(/(?<![\w$])(?:title|aria-label|placeholder)=\{`([A-Z][^`$]{3,120})/g)) {
+    const t = m[1].trim();
+    if (/[֐-׿]/.test(t) || isAllowed(t)) continue;
+    findings.push({ f, line: lineOf(m.index), text: t, kind: 'title-tpl' });
+  }
   for (const m of src.matchAll(TITLE_ATTR)) {
     const t = m[1] || m[2];
     if (/[֐-׿]/.test(t) || /\{/.test(t) || isAllowed(t)) continue;
