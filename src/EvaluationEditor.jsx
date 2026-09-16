@@ -10,6 +10,7 @@
 import React, { useState, useMemo, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
+import { useT } from './i18n';
 import { isRefined5b, useEscClose, useIsMobile, toast, ConfirmDialog } from './ui';
 import { EVAL_SCHEMA, romKey } from './evaluationSchema';
 import { todayLocalISO } from './dates';
@@ -35,6 +36,7 @@ const inputBase = {
 // not-yet-built tools show a disabled "soon" chip so the eval reveals the
 // intended camera coverage without pretending it works.
 function TestButtons({ test, onTest }) {
+  const tt = useT();
   const map = toolForTest(test.id);
   if (!map) return null;
   const soon = map.status === 'soon';
@@ -45,13 +47,13 @@ function TestButtons({ test, onTest }) {
     background: 'transparent', color: soon ? 'var(--c-td)' : 'var(--c-ac)',
     opacity: soon ? 0.6 : 1,
   };
-  if (soon) return <div style={{ marginTop: 5 }}><span style={base}>◉ TEST · soon</span></div>;
+  if (soon) return <div style={{ marginTop: 5 }}><span style={base}>{tt('◉ TEST · soon')}</span></div>;
   const sides = map.side ? ['L', 'R'] : [null];
   return (
     <div style={{ marginTop: 5, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
       {sides.map(s => (
         <button key={s || 'x'} type="button" onClick={() => onTest(test, map, s)} style={base}>
-          ◉ TEST{s ? ` · ${s}` : ''}
+          {tt('◉ TEST')}{s ? ` · ${s}` : ''}
         </button>
       ))}
     </div>
@@ -159,6 +161,7 @@ const isScore = (v) => v === 1 || v === 2 || v === 3;
 // as faint outlines so an unscored row reads calm. Tapping the active number
 // clears it. Legacy free-text (e.g. "4", "R-4") shows as a faint `was:` hint.
 function ScoreButtons({ value, onChange }) {
+  const tt = useT();
   const sel = isScore(value) ? value : null;
   const legacy = (value != null && value !== '' && !isScore(value)) ? String(value) : null;
   return (
@@ -180,7 +183,7 @@ function ScoreButtons({ value, onChange }) {
         })}
       </div>
       {legacy && (
-        <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', marginTop: 3 }}>was: {legacy}</div>
+        <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', marginTop: 3 }}>{tt('was:')} {legacy}</div>
       )}
     </div>
   );
@@ -190,6 +193,7 @@ function ScoreButtons({ value, onChange }) {
 // parameters to observe, from the ATH EVAL sheet) · SCORE (1-3 tap, per side
 // for sided moves) + a collapsible per-exercise note.
 function MovementRow({ index, test, value, note, onScore, onNote }) {
+  const tt = useT();
   const hasSides = Array.isArray(test.sides);
   const isMobile = useIsMobile();
   const [noteOpen, setNoteOpen] = useState(!!note);
@@ -228,18 +232,18 @@ function MovementRow({ index, test, value, note, onScore, onNote }) {
             </div>
           ))}
           <button type="button" onClick={() => setNoteOpen(o => !o)}
-            title={note ? 'Edit note' : 'Add note'}
+            title={note ? tt('Edit note') : tt('Add note')}
             style={{
               background: 'transparent', border: 'none', cursor: 'pointer', padding: '2px 0',
               fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em',
               color: note ? 'var(--c-ac)' : 'var(--c-td)',
-            }}>{note ? 'NOTE' : 'NOTE +'}</button>
+            }}>{note ? tt('NOTE') : tt('NOTE +')}</button>
         </div>
       </div>
       {noteOpen && (
         <div style={{ padding: '0 0 12px 36px' }}>
           <input value={note || ''} onChange={e => onNote(e.target.value)} dir="auto"
-            placeholder={`Note · ${test.label}`}
+            placeholder={`${tt('Note')} · ${test.label}`}
             style={{ ...inputBase, width: '100%', maxWidth: 520 }} />
         </div>
       )}
@@ -248,6 +252,7 @@ function MovementRow({ index, test, value, note, onScore, onNote }) {
 }
 
 function SectionBlock({ section, scores, setScore, notes, setNote, onTest }) {
+  const tt = useT();
   const isMovements = section.id === 'movements';
   const isMobile = useIsMobile();
   return (
@@ -275,7 +280,7 @@ function SectionBlock({ section, scores, setScore, notes, setNote, onTest }) {
         gap: isMovements ? (isMobile ? 6 : 12) : (isMobile ? 6 : 10), padding: '4px 0 6px',
         borderBottom: `1px solid var(--c-cardBd)`,
       }}>
-        {['#', 'TEST', isMovements ? 'WATCH' : 'GOAL', 'SCORE'].map((h, i) => (
+        {['#', tt('TEST'), isMovements ? tt('WATCH') : tt('GOAL'), tt('SCORE')].map((h, i) => (
           <div key={i} style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.1em', fontWeight: 700 }}>{h}</div>
         ))}
       </div>
@@ -293,6 +298,7 @@ function SectionBlock({ section, scores, setScore, notes, setNote, onTest }) {
 }
 
 function RomBlock({ rom, setRom, onRomTest }) {
+  const tt = useT();
   const set = (key, v) => setRom({ ...rom, [key]: v });
   return (
     <div style={{ marginBottom: 22, background: 'var(--c-sf)', padding: '14px 16px' }}>
@@ -305,7 +311,7 @@ function RomBlock({ rom, setRom, onRomTest }) {
         {EVAL_SCHEMA.rom.hint}
       </div>
       <div style={{ fontFamily: FB, fontSize: 10.5, color: 'var(--c-ac)', marginBottom: 14 }}>
-        ◉ CAM reads active range from one clip, coach-confirmed — shoulder/hip/knee flexion, knee over-extension, neck flex/ext + lateral, and ankle dorsi/plantar (each with its own framing). Rotations, scapula and foot inversion stay manual — 2D pose can&apos;t see them honestly.
+        {tt("◉ CAM reads active range from one clip, coach-confirmed — shoulder/hip/knee flexion, knee over-extension, neck flex/ext + lateral, and ankle dorsi/plantar (each with its own framing). Rotations, scapula and foot inversion stay manual — 2D pose can't see them honestly.")}
       </div>
       {EVAL_SCHEMA.rom.joints.map((j, ji) => (
         <div key={j.id} style={{
@@ -333,8 +339,8 @@ function RomBlock({ rom, setRom, onRomTest }) {
                       (sagittal flexion). Everything else stays manual — no fake
                       TEST button on a rotation axis the camera can't see. */}
                   {camSpec && onRomTest && (
-                    <button type="button" onClick={() => onRomTest(camSpec, k)} title={`Measure ${ax} with the camera`}
-                      style={{ background: 'transparent', border: `1px solid var(--c-ac)`, color: 'var(--c-ac)', fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.08em', padding: '4px 5px', cursor: 'pointer', whiteSpace: 'nowrap' }}>◉ CAM</button>
+                    <button type="button" onClick={() => onRomTest(camSpec, k)} title={tt('Measure {axis} with the camera').replace('{axis}', ax)}
+                      style={{ background: 'transparent', border: `1px solid var(--c-ac)`, color: 'var(--c-ac)', fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.08em', padding: '4px 5px', cursor: 'pointer', whiteSpace: 'nowrap' }}>{tt('◉ CAM')}</button>
                   )}
                   <input value={rom[k] || ''} onChange={e => set(k, e.target.value)}
                     placeholder="°" style={{ ...inputBase, width: 56, padding: '6px 8px', textAlign: 'center' }} />
@@ -352,6 +358,7 @@ function RomBlock({ rom, setRom, onRomTest }) {
 const nowHHMM = () => { const d = new Date(); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
 
 export default function EvaluationEditor({ trainee, existing, metaDefaults = null, onSave, onClose }) {
+  const tt = useT();
   const isMobile = useIsMobile();
   const [evalDate, setEvalDate] = useState(existing?.eval_date || todayLocalISO());
   // A NEW eval defaults TIME to now; editing keeps whatever was saved (even blank).
@@ -433,7 +440,7 @@ export default function EvaluationEditor({ trainee, existing, metaDefaults = nul
     setScores(prev => applyTestResult(prev, test, map, side, raw));
     const v = map.toValue(raw);
     const shown = typeof v === 'object' ? Object.entries(v).map(([k, val]) => `${k}:${val}`).join(' · ') : v;
-    toast(`Logged ${shown} to ${test.label}${side ? ` · ${side}` : ''}`, 'success', { ttl: 3500 });
+    toast(tt('Logged {v} to {target}').replace('{v}', shown).replace('{target}', `${test.label}${side ? ` · ${side}` : ''}`), 'success', { ttl: 3500 });
     setActiveTest(null);
   };
 
@@ -454,14 +461,14 @@ export default function EvaluationEditor({ trainee, existing, metaDefaults = nul
       age, height_cm: heightCm, weight_kg: weightKg,
       scores: scoresOut, rom, notes: notes || null,
     });
-    if (!ok) { toast('Could not save the evaluation — check your connection and try again.', 'error', { ttl: 5000 }); return; }
+    if (!ok) { toast(tt('Could not save the evaluation — check your connection and try again.'), 'error', { ttl: 5000 }); return; }
     onClose();
     } finally { setSaving(false); }
   };
 
   return (
     <>
-    {createPortal((<div onClick={onClose} role="dialog" aria-modal="true" aria-label="Evaluation" style={{
+    {createPortal((<div onClick={onClose} role="dialog" aria-modal="true" aria-label={tt('Evaluation')} style={{
       position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 300,
       display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: isMobile ? '16px 8px' : '40px 16px',
       overflowY: 'auto',
@@ -473,7 +480,7 @@ export default function EvaluationEditor({ trainee, existing, metaDefaults = nul
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16 }}>
           <h2 style={{ margin: 0, fontFamily: FN, fontSize: 18, color: 'var(--c-tx)', letterSpacing: '0.04em' }}>
-            EVALUATION · {trainee?.name || ''}
+            {tt('EVALUATION')} · {trainee?.name || ''}
           </h2>
           <button onClick={onClose}
             style={{ background: 'transparent', border: 'none', color: 'var(--c-tm)', cursor: 'pointer', fontSize: 18 }}>✕</button>
@@ -490,7 +497,7 @@ export default function EvaluationEditor({ trainee, existing, metaDefaults = nul
           return (
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(5, minmax(0, 1fr))', gap: 8, marginBottom: 18 }}>
               <div style={{ minWidth: 0 }}>
-                <div style={metaLabel}>DATE</div>
+                <div style={metaLabel}>{tt('DATE')}</div>
                 {/* dd/mm/yyyy overlay (native date renders the browser locale = MM/DD/YYYY
                     on Ohad's en-US machine). Transparent native input + centered span. */}
                 <div style={{ position: 'relative', display: 'flex', height: META_H }}>
@@ -501,19 +508,19 @@ export default function EvaluationEditor({ trainee, existing, metaDefaults = nul
                 </div>
               </div>
               <div style={{ minWidth: 0 }}>
-                <div style={metaLabel}>TIME</div>
+                <div style={metaLabel}>{tt('TIME')}</div>
                 <input type="time" value={evalTime} onChange={e => setEvalTime(e.target.value)} style={metaInput} />
               </div>
               <div style={{ minWidth: 0 }}>
-                <div style={metaLabel}>AGE</div>
+                <div style={metaLabel}>{tt('AGE')}</div>
                 <input type="number" value={age} onChange={e => setAge(e.target.value)} style={metaInput} />
               </div>
               <div style={{ minWidth: 0 }}>
-                <div style={metaLabel}>HEIGHT (cm)</div>
+                <div style={metaLabel}>{tt('HEIGHT (cm)')}</div>
                 <input type="number" value={heightCm} onChange={e => setHeightCm(e.target.value)} style={metaInput} />
               </div>
               <div style={{ minWidth: 0 }}>
-                <div style={metaLabel}>WEIGHT (kg)</div>
+                <div style={metaLabel}>{tt('WEIGHT (kg)')}</div>
                 <input type="number" step="0.1" value={weightKg} onChange={e => setWeightKg(e.target.value)} style={metaInput} />
               </div>
             </div>
@@ -529,20 +536,20 @@ export default function EvaluationEditor({ trainee, existing, metaDefaults = nul
 
         {/* Free notes */}
         <div style={{ marginBottom: 16 }}>
-          <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>NOTES</div>
+          <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>{tt('NOTES')}</div>
           <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} dir="auto"
-            placeholder="Coach observations · red flags · session-context"
+            placeholder={tt('Coach observations · red flags · session-context')}
             style={{ ...inputBase, width: '100%', resize: 'vertical' }} />
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
           <button onClick={onClose}
             style={{ padding: '10px 18px', borderRadius: 0, border: `1px solid var(--c-cardBd)`,
-              background: 'transparent', color: 'var(--c-tm)', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', cursor: 'pointer' }}>CANCEL</button>
+              background: 'transparent', color: 'var(--c-tm)', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', cursor: 'pointer' }}>{tt('CANCEL')}</button>
           <button onClick={save} disabled={saving}
             style={{ padding: '10px 18px', borderRadius: 0, border: `1px solid var(--c-ac)`,
               background: 'transparent', color: 'var(--c-ac)', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.6 : 1 }}>
-            {saving ? 'SAVING…' : (existing ? 'SAVE CHANGES' : 'SAVE EVALUATION')}
+            {saving ? tt('SAVING…') : (existing ? tt('SAVE CHANGES') : tt('SAVE EVALUATION'))}
           </button>
         </div>
       </div>
@@ -573,10 +580,10 @@ export default function EvaluationEditor({ trainee, existing, metaDefaults = nul
           initialMode="analyze"
           initialView="metrics"
           exerciseTitle={`${activeRom.spec.jointId} ${activeRom.spec.axis}`}
-          toolLabel={`CAMERA ROM · ${activeRom.spec.jointId.toUpperCase()} ${activeRom.spec.axis.toUpperCase()}`}
+          toolLabel={`${tt('CAMERA ROM')} · ${activeRom.spec.jointId.toUpperCase()} ${activeRom.spec.axis.toUpperCase()}`}
           captureCue={activeRom.spec.cue || null}
           romSpec={activeRom.spec}
-          onSaveRom={(deg) => { setRom(prev => applyRomResult(prev, activeRom.spec, deg)); toast(`Logged ${deg}° to ${activeRom.spec.jointId} ${activeRom.spec.axis}`, 'success', { ttl: 3500 }); }}
+          onSaveRom={(deg) => { setRom(prev => applyRomResult(prev, activeRom.spec, deg)); toast(tt('Logged {deg}° to {target}').replace('{deg}', deg).replace('{target}', `${activeRom.spec.jointId} ${activeRom.spec.axis}`), 'success', { ttl: 3500 }); }}
           onClose={() => setActiveRom(null)}
         />
       </Suspense>
@@ -585,8 +592,8 @@ export default function EvaluationEditor({ trainee, existing, metaDefaults = nul
         field already holds a value in this evaluation. */}
     <ConfirmDialog
       open={!!retake}
-      title="Retake — overwrite result?"
-      message={retake ? `${retake.label} already has ${retake.current} in this evaluation. Re-running the camera test will RE-CAPTURE and REPLACE that value. Continue?` : ''}
+      title={tt('Retake — overwrite result?')}
+      message={retake ? tt('{label} already has {current} in this evaluation. Re-running the camera test will RE-CAPTURE and REPLACE that value. Continue?').replace('{label}', retake.label).replace('{current}', retake.current) : ''}
       onConfirm={() => { const r = retake; setRetake(null); r?.run(); }}
       onCancel={() => setRetake(null)}
     />
