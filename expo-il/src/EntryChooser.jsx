@@ -74,9 +74,9 @@ export default function EntryChooser() {
           onEnter={() => setHover('left')}
           onLeave={() => setHover(null)}
           headline={heb ? 'בית הספורטאי' : 'PERFORMANCE CENTER'}
-          subhead={heb ? 'אימון בנוכחות · קבוצות קטנות' : 'In-Person · Small Groups'}
+          subhead={heb ? 'אימון במרכז · קבוצות קטנות' : 'In-Person · Small Groups'}
           body={heb
-            ? 'מרכז ביצועים שבנוי על כוח מתוכנת, ניידות, וריקאברי משולב. אימון בקבוצות קטנות עם תוכנית אישית, וטיפול חודשי כחלק מהמנוי.'
+            ? 'מרכז ביצועים שבנוי על אימון כוח לפי תוכנית, ניידות וריקאברי שמשולב באימון. אימון בקבוצות קטנות עם תוכנית אישית, וטיפול חודשי שכלול במנוי.'
             : 'A performance center built around programmed strength, mobility, and integrated recovery. Small-group coaching with your own program and a monthly massage in the membership.'}
           benefits={heb
             ? ['קבוצות של 4-7', 'ריקאברי בתוך המחיר', 'תוכנית מתעדכנת שבועית']

@@ -490,7 +490,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
                 title={programsExpanded?`Hide ${earlier.length} previous block${earlier.length===1?'':'s'}`:`Show ${earlier.length} previous block${earlier.length===1?'':'s'}`}
                 className="prog-plusn"
                 style={{display:'inline-flex',alignItems:'center',gap:5,height:24,padding:'0 9px',background: programsExpanded ? 'rgba(127,127,138,0.14)' : 'transparent',border:`1px solid ${C.cardBd}`,borderRadius:0,color: C.tm,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.05em',whiteSpace:'nowrap',flexShrink:0,fontVariantNumeric:'tabular-nums'}}>
-                {earlier.length} previous
+                {t('{n} previous').replace('{n}', earlier.length)}
                 <span aria-hidden style={{display:'inline-block',transform: programsExpanded?'rotate(180deg)':'none',transition:'transform .15s',fontSize:8,lineHeight:1}}><svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
               </button>
             )}
@@ -772,7 +772,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           empty state. */}
       <CollapsibleSection domId="td-sec-billing" title={tr(readLang(), 'Billing')} count={tPay.length} storageKey={`td-billing-${trainee}`} style={{marginBottom:16, display: showSec('billing') ? undefined : 'none'}}
         right={<div style={{display:'flex',flexWrap:'wrap',gap:6,justifyContent:'flex-end',alignItems:'center'}}>
-          {totalPaid>0&&<span style={{color:'#FFFFFF',opacity:0.85,fontWeight:400,fontFamily:FB,fontSize:12,marginInlineEnd:6,whiteSpace:'nowrap'}}>₪{totalPaid.toLocaleString()} paid</span>}
+          {totalPaid>0&&<span style={{color:'#FFFFFF',opacity:0.85,fontWeight:400,fontFamily:FB,fontSize:12,marginInlineEnd:6,whiteSpace:'nowrap'}}>₪{totalPaid.toLocaleString()} {t('paid')}</span>}
           <div style={{display:'flex',gap:0}}>
           {/* F-27 — open the brand-rich contract composer. */}
           <button onClick={()=>setShowContract(true)}
@@ -1038,7 +1038,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
               onMouseEnter={e=>e.currentTarget.style.background='rgba(57,189,255,0.094)'}
               onMouseLeave={e=>e.currentTarget.style.background='var(--c-sf)'}>
               <div style={{fontWeight:700,color:C.ac,fontSize:13,fontFamily:FN,letterSpacing:'0.04em'}}>+ {tr(readLang(), 'START BLANK PROGRAM')}</div>
-              <div style={{fontSize:11,color:C.tm,marginTop:2}}>{t('Empty editor for')}{td.name} — pick name, days, exercises.</div>
+              <div style={{fontSize:11,color:C.tm,marginTop:2}}>{t('Empty editor for')}{td.name} — {t('pick name, days, exercises.')}</div>
             </div>
             {(unassigned.length>0 || others.length>0) && (
               <div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700,marginBottom:8}}>{t('OR ASSIGN EXISTING')}</div>
@@ -1088,7 +1088,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       {showArchiveConfirm && createPortal(<div role="dialog" aria-modal="true" aria-label={t('Archive athlete')} style={{position:"fixed",inset:0,zIndex:1100,display:"flex",alignItems:"center",justifyContent:"center",background:C.scrim}} onClick={()=>setShowArchiveConfirm(false)}>
         <div onClick={e=>e.stopPropagation()} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,width:380,maxWidth:'calc(100vw - 24px)',padding:24}}>
           <h3 style={{margin:"0 0 8px",fontFamily:FN,fontSize:15,color:C.tx}}>{tr(readLang(), 'Archive')} {td.name}?</h3>
-          <p style={{margin:"0 0 20px",fontSize:13,color:C.tm}}>Client will be moved to archive. Plans, workouts, and payments are preserved. You can restore anytime.</p>
+          <p style={{margin:"0 0 20px",fontSize:13,color:C.tm}}>{t('Client will be moved to archive. Plans, workouts, and payments are preserved. You can restore anytime.')}</p>
           <div style={{display:"flex",justifyContent:"flex-end",gap:8}}>
             <Btn variant="ghost" onClick={()=>setShowArchiveConfirm(false)}>{t("Cancel")}</Btn>
             <Btn variant="danger" onClick={handleArchive}>{tr(readLang(), 'Archive')}</Btn></div></div></div>, document.body)}
@@ -1212,7 +1212,7 @@ const EditTraineeModal = React.memo(function EditTraineeModal({ td, couple, draf
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 10, minHeight: 18 }}>
           {hasDraft ? (
             <span style={{ fontSize: 11, fontFamily: FN, color: C.or, fontWeight: 600 }}>
-              ↻ Restored auto-saved draft — click Save to commit, Cancel to discard
+              {t('↻ Restored auto-saved draft — click Save to commit, Cancel to discard')}
             </span>
           ) : <span />}
           {editStatus && <span aria-live="polite" style={{ fontSize: 11, fontFamily: FN, color: editStatus.color, fontWeight: 600, letterSpacing: '0.04em' }}>{editStatus.text}</span>}

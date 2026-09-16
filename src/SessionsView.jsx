@@ -874,11 +874,11 @@ function AthletePicker({ trainees, planIndex, existing = [], clientWorkouts = []
             return (
               <div key={i} className="sess-add-row" style={{ display: 'grid', gridTemplateColumns: '1.1fr 1.1fr 0.7fr 1fr 28px', gap: 6, alignItems: 'center' }}>
                 <select value={r.traineeId} onChange={e => { const tid = e.target.value; const nx = tid ? nextWorkout(tid) : null; setRow(i, nx ? { traineeId: tid, planId: nx.planId, dayIdx: nx.dayIdx, week: nx.week } : { traineeId: tid, planId: '', dayIdx: 0, week: 0 }); }} style={sel}>
-                  <option value="">— athlete —</option>
+                  <option value="">{tt('— athlete —')}</option>
                   {active.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                 </select>
                 <select value={r.planId} onChange={e => setRow(i, { planId: e.target.value, dayIdx: 0, week: 0 })} style={sel} disabled={!r.traineeId}>
-                  <option value="">— program —</option>
+                  <option value="">{tt('— program —')}</option>
                   {plans.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
                 {/* Week before day — pick the week, then the day within it. */}

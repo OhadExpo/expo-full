@@ -13,7 +13,7 @@ import { Btn, Modal, Card, Badge, isRefined5b, toast, SectionLabel, CollapsibleS
 import { supabase } from './supabase';
 import { generateIntakeToken, getForm } from './intakeFormSchemas';
 import PayloadDetail from './IntakePayloadDetail';
-import { useT, useTB, tr, readLang } from './i18n';
+import { useT, useTB, tr, readLang, agoLabel } from './i18n';
 
 function fmt(iso) {
   if (!iso) return '—';
@@ -215,7 +215,7 @@ export default function IntakeView({ trainees }) {
                   <span style={{ display: 'inline-flex', width: 92, flexShrink: 0, alignItems: 'center' }}><Badge color={t.form_type === 'initial' ? C.ac : (t.form_type === 'assessment' ? C.or : C.gn)}>{tt(t.form_type)}</Badge></span>
                   <span style={{ display: 'inline-block', width: 28, flexShrink: 0, color: C.tm }}>{(t.locale || '').toUpperCase()}</span>
                   {t.label && <span style={{ color: C.tx }}>· {t.label}</span>}
-                  <span style={{ color: C.td }}>· {ago(t.created_at)} ago</span>
+                  <span style={{ color: C.td }}>· {agoLabel(t.created_at, readLang())}</span>
                   <span style={{ marginInlineStart: 'auto', display: 'inline-flex', gap: 6 }}>
                     <button onClick={async () => { try { await navigator.clipboard.writeText(url); } catch {} }}
                       style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.ac, padding: '3px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', borderRadius: 0 }}>
@@ -252,7 +252,7 @@ export default function IntakeView({ trainees }) {
                 )}
               </div>
               <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 4, overflowWrap: 'anywhere' }}>
-                {s.email || '—'} · {fmt(s.created_at)} · {ago(s.created_at)} ago
+                {s.email || '—'} · {fmt(s.created_at)} · {agoLabel(s.created_at, readLang())}
               </div>
             </div>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
@@ -319,7 +319,7 @@ export default function IntakeView({ trainees }) {
                 <div style={{ position: 'relative', display: 'flex' }}>
                   <select value={genForm.traineeId} onChange={e => setGenForm(f => ({ ...f, traineeId: e.target.value }))}
                     style={{ flex: 1, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '8px 32px 8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', appearance: 'none', WebkitAppearance: 'none' }}>
-                    <option value="">— none —</option>
+                    <option value="">{tt('— none —')}</option>
                     {(trainees || []).filter(t => t.status !== 'Archived').map(t => (
                       <option key={t.id} value={t.id}>{t.name}</option>
                     ))}

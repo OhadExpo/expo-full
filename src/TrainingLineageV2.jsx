@@ -35,9 +35,9 @@ const SIDE_HE = { Left: 'שמאל', Right: 'ימין' };
 // lineageAnalysis keys the strength→power read by `side`; the English prose
 // stays in the engine, the Hebrew is composed here.
 const TRANSFER_HE = {
-  'strength-ahead': { read: 'הכוח שלו עולה, אבל העבודה המתפרצת לא עולה איתו', move: 'הכוח לא הופך לתפוקה — תטה את הבלוק הבא למהירות, פליאומטריקה וכוח־מהירות (משקלים קלים יותר, מהר), פחות עבודה כבדה ואיטית' },
-  'power-ahead': { read: 'הקפיצות והזריקות מתקדמות, אבל בסיס הכוח נתקע', move: 'העוצמה הקדימה את בסיס הכוח — תוסיף עבודת כוח מקסימלי (סקוואט, הינג׳ ולחיצה כבדים) כדי להרים את התקרה שהעוצמה יכולה להגיע אליה' },
-  balanced: { read: 'הכוח והעוצמה עולים יחד', move: 'ההעברה עובדת — שמור על האיזון, אל תטה יותר מדי לצד אחד' },
+  'strength-ahead': { read: 'הכוח שלו עולה, אבל העבודה המתפרצת לא עולה איתו', move: 'הכוח לא עובר לעוצמה — תטה את הבלוק הבא למהירות, פליאומטריקה וכוח־מהירות (משקלים קלים יותר, מהר), פחות עבודה כבדה ואיטית' },
+  'power-ahead': { read: 'הקפיצות והזריקות מתקדמות, אבל בסיס הכוח נתקע', move: 'העוצמה עקפה את בסיס הכוח — תוסיף עבודת כוח מקסימלי (סקוואט, הינג׳ ולחיצה כבדים) כדי להרים את התקרה של העוצמה' },
+  balanced: { read: 'הכוח והעוצמה עולים יחד', move: 'הכוח עובר לעוצמה — שמור על האיזון, אל תטה יותר מדי לצד אחד' },
   stalled: { read: 'לא הכוח ולא העוצמה זזים כרגע', move: 'שניהם תקועים — זה בלוק של שינוי גירוי או של הורדה, לא בלוק של "לדחוף חזק יותר"' },
 };
 const BUCKET_HE = { 'upper-bilateral': 'עליון · דו־צדדי', 'upper-unilateral': 'עליון · חד־צדדי', 'upper-plyo': 'עליון · פליאומטרי', 'lower-bilateral': 'תחתון · דו־צדדי', 'lower-unilateral': 'תחתון · חד־צדדי', 'lower-plyo': 'תחתון · פליאומטרי' };
@@ -129,7 +129,7 @@ function Tag({ text, color }) {
 function readStaple(s, he) {
   const wks = s.weeksSincePr;
   const noPr = wks != null && wks >= 5;   // hasn't beaten its best in 5+ weeks → rotation trigger
-  if (s.count < 3) return { tag: L(he, `${s.count}× ONLY`, `רק ${s.count}×`), tagColor: C.td, why: L(he, 'too few logs to read a trend', 'מעט מדי רישומים כדי לקרוא מגמה'), next: L(he, 'log 3+ before judging it', 'תרשום 3 פעמים ומעלה לפני שאתה שופט') };
+  if (s.count < 3) return { tag: L(he, `${s.count}× ONLY`, `רק ${s.count}×`), tagColor: C.td, why: L(he, 'too few logs to read a trend', 'מעט מדי רישומים כדי לקרוא מגמה'), next: L(he, 'log 3+ before judging it', 'צריך 3 רישומים ומעלה לפני שאפשר לשפוט') };
   if (s.ballistic) {
     // A ballistic lift is ALWAYS "EXPLOSIVE" — never a green "GOING UP" off load,
     // because a jump/throw progresses on speed + height, not kg (Ohad). Load
@@ -137,15 +137,15 @@ function readStaple(s, he) {
     // contradict the "don't chase kg here" cue on the same row.
     return { tag: L(he, 'EXPLOSIVE', 'מתפרץ'), tagColor: C.pu,
       why: s.trend?.dir === 'up' ? L(he, 'load creeping up — but a jump progresses on speed + height, not kg', 'המשקל עולה לאט — אבל קפיצה מתקדמת במהירות ובגובה, לא בקילו') : L(he, 'jumps progress on speed + height, not load', 'קפיצות מתקדמות במהירות ובגובה, לא במשקל'),
-      next: L(he, 'film a set for velocity — don\'t chase kg here', 'צלם סט למדידת מהירות — פה לא רודפים אחרי קילו') };
+      next: L(he, 'film a set for velocity — don\'t chase kg here', 'צלם סט כדי למדוד מהירות — פה לא רודפים אחרי קילו') };
   }
   if (s.stale?.state === 'ok' && s.stale.stale) {
     if (s.stale.mode === 'hard') return { tag: L(he, 'STALLED · HARD', 'תקוע · קשה'), tagColor: C.or, why: L(he, 'flat weight + effort rising = hidden fatigue, not a real ceiling', 'משקל קבוע ומאמץ עולה = עייפות סמויה, לא תקרה אמיתית'), next: L(he, 'one lighter week (~50% volume) then re-test, or swap the variation — not more kg', 'שבוע קל אחד (כ־50% מהנפח) ואז בדיקה חוזרת, או החלפת וריאציה — לא עוד קילו') };
     if (s.stale.mode === 'easy') return { tag: L(he, 'STALLED · EASY', 'תקוע · קל'), tagColor: C.ac, why: L(he, 'flat but moving easy — he\'s under-stimulated', 'קבוע אבל זז בקלות — הגירוי לא מספיק לו'), next: L(he, '+2.5–5kg or add a set', 'עוד 2.5–5 קילו או עוד סט') };
-    return { tag: L(he, 'STALLED', 'תקוע'), tagColor: C.or, why: L(he, 'weight hasn\'t moved in 3 sessions', 'המשקל לא זז 3 אימונים'), next: noPr ? L(he, `no PR in ${wks} weeks — rotate the variation`, `אין שיא כבר ${wks} שבועות — תחליף וריאציה`) : L(he, 'push the load or change the stimulus', 'תעלה משקל או תשנה גירוי') };
+    return { tag: L(he, 'STALLED', 'תקוע'), tagColor: C.or, why: L(he, 'weight hasn\'t moved in 3 sessions', 'המשקל לא זז כבר 3 אימונים'), next: noPr ? L(he, `no PR in ${wks} weeks — rotate the variation`, `אין שיא כבר ${wks} שבועות — תחליף וריאציה`) : L(he, 'push the load or change the stimulus', 'תעלה משקל או תשנה גירוי') };
   }
   if (s.trend?.state === 'ok') {
-    if (s.trend.repNoisy) return { tag: L(he, 'REPS VARIED', 'חזרות השתנו'), tagColor: C.tm, why: L(he, 'rep scheme shifted across the block — e1RM can\'t tell a strength change from the rep change', 'טווח החזרות השתנה לאורך הבלוק — ה־e1RM לא מבדיל בין שינוי בכוח לשינוי בחזרות'), next: L(he, 'read it off load-at-a-fixed-rep, or hold a rep target for 3 sessions for a clean trend', 'תקרא את המשקל במספר חזרות קבוע — או שמור על אותו יעד חזרות 3 אימונים, למגמה נקייה') };
+    if (s.trend.repNoisy) return { tag: L(he, 'REPS VARIED', 'חזרות השתנו'), tagColor: C.tm, why: L(he, 'rep scheme shifted across the block — e1RM can\'t tell a strength change from the rep change', 'טווח החזרות השתנה לאורך הבלוק — ה־e1RM לא מבדיל בין שינוי בכוח לשינוי בחזרות'), next: L(he, 'read it off load-at-a-fixed-rep, or hold a rep target for 3 sessions for a clean trend', 'תשווה משקלים באותו מספר חזרות — או תשאיר את אותו יעד חזרות ל־3 אימונים, כדי לקבל מגמה נקייה') };
     if (s.trend.dir === 'up') return { tag: L(he, 'PROGRESS', 'מתקדם'), tagColor: C.gn, why: L(he, 'progressing', 'מתקדם'), next: L(he, '+2–3% load or +1 rep at the same effort', 'עוד 2–3% משקל או עוד חזרה באותו מאמץ') };
     if (s.trend.dir === 'down') return { tag: L(he, 'REGRESS', 'יורד'), tagColor: C.rd, why: L(he, 'going backwards', 'הולך אחורה'), next: L(he, 'back off ~5–10% intensity, hold volume, check recovery', 'תוריד כ־5–10% מהעצימות, שמור על הנפח ובדוק התאוששות') };
   }
@@ -164,8 +164,8 @@ function nextBlockText(a, he) {
     if (he) {
       return (
         <>
-          <b>שבוע הורדה{nextNum}: תחתוך כ־50% מהנפח ב{region === 'lower' ? 'פלג גוף תחתון' : 'פלג גוף עליון'}, תשמור על העצימות.</b> העייפות מצטברת מהר יותר ממה שהיא מתפוגגת.
-          {hardStale && <> כשאתה בונה מחדש: <b>{hardStale.title} תקוע במאמץ גבוה</b> — תשנה גירוי (טמפו, עצירה, וריאציה), לא רק את המספר.</>}
+          <b>שבוע הורדה{nextNum}: חתוך כ־50% מהנפח ב{region === 'lower' ? 'פלג גוף תחתון' : 'פלג גוף עליון'}, שמור על העצימות.</b> העייפות מצטברת מהר יותר ממה שהיא מתפוגגת.
+          {hardStale && <> אחרי שבוע ההורדה: <b>{hardStale.title} תקוע במאמץ גבוה</b> — תשנה גירוי (טמפו, עצירה, וריאציה), לא רק את המספר.</>}
           {climbing.length > 0 && <> תמשיך לדחוף ב־<b>{climbing.slice(0, 2).join(' ו־')}</b> — יש עוד מקום.</>}
           {a.skip && <> ותטפל בדילוג על <b>{a.skip.day}</b> ({a.skip.logged}/{a.skip.expected} נרשמו) — לתכנן אותו שוב כמו שהוא לא יעזור.</>}
         </>
@@ -296,7 +296,7 @@ function BarSpeedLiftCard({ lift }) {
       </div>
       {prof.state === 'ok' && prof.confidence !== 'low' && (
         <div title={he
-          ? `פרופיל עומס־מהירות: קו ישר של מהירות המוט מהמצלמה מול המשקל, על ${prof.loads} משקלים, בהמשכה עד סף המהירות המינימלית של התרגיל (${prof.mvt} m/s). R²=${prof.r2}. המהירות לא מכוילת (תנוחה דו־ממדית), אז תקרא את המגמה לאורך התאריכים — לא את הקילו המדויק — ותאמת עם סט עליון אמיתי לפני שאתה נותן משקלים לפיה. זה לא מקסימום שנבדק.`
+          ? `פרופיל עומס־מהירות: קו ישר של מהירות המוט מהמצלמה מול המשקל, על ${prof.loads} משקלים, שממשיך עד סף המהירות המינימלית של התרגיל (${prof.mvt} m/s). R²=${prof.r2}. המהירות לא מכוילת (זיהוי תנוחה דו־ממדי), אז תסתכל על המגמה לאורך התאריכים — לא על הקילו המדויק — ותאמת עם סט עליון אמיתי לפני שאתה נותן משקלים לפיה. זה לא מקסימום שנבדק.`
           : `Load-velocity profile: linear fit of phone-camera bar speed vs load across ${prof.loads} loads, extrapolated to this lift's minimal-velocity threshold (${prof.mvt} m/s). R²=${prof.r2}. The speed is uncalibrated 2D-pose m/s, so read the TREND across dates — not the exact kg — and confirm with a real top set before you prescribe loads off it. Not a tested max.`}
           style={{ marginTop: 6, fontSize: 10.5, color: C.ac, letterSpacing: '0.02em' }}>
           {he ? `1RM משוער כ־${prof.oneRM} קילו ` : `Est. 1RM ~${prof.oneRM}kg `}<span style={{ color: C.td }}>{he ? `· ${prof.loads} משקלים · ודאות ${CONF_HE[prof.confidence] || prof.confidence} · בלי מבחן מקסימום` : `· ${prof.loads} loads · ${prof.confidence} confidence · no max test`}</span>
@@ -614,7 +614,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
               return (
                 <div style={{ fontSize: 12.5, color: C.tm, marginTop: 10, lineHeight: 1.5, fontFamily: FN }}>
                   {he
-                    ? <>{run} הבלוקים האחרונים נראים דומים לפי <b>מספר החזרות בלבד</b> — אבל לא תכננת %1RM או RPE, אז השלב הוא ניחוש ולא עובדה. תרשום עצימות בתרגילים המרכזיים, והרצף יהיה אמין לפני שאתה מחליט לשנות שלב.</>
+                    ? <>{run} הבלוקים האחרונים נראים דומים <b>רק לפי מספר החזרות</b> — אבל לא תכננת %1RM או RPE, אז השלב הוא ניחוש ולא עובדה. תרשום עצימות בתרגילים המרכזיים, כדי שהרצף יהיה אמין לפני שאתה מחליט לשנות שלב.</>
                     : <>{`The last ${run} blocks read similar on `}<b>{'rep count alone'}</b>{' — but you didn\'t program %1RM or RPE, so the phase is a guess, not a fact. Log intensity on the main lifts and the arc becomes reliable before you decide to change phase.'}</>}
                 </div>
               );
@@ -666,7 +666,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
                 </div>
               );
             })}
-          <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>{L(he, 'Long-term arc, not just this block — e1RM = est-1RM (Epley). Rep-scheme shifts move e1RM too; read it with the per-lift trend below.', 'מגמה לטווח ארוך, לא רק הבלוק הזה — e1RM = 1RM משוער (Epley). שינוי בטווח החזרות מזיז גם את ה־e1RM, אז תקרא את זה יחד עם המגמה של כל תרגיל למטה.')}</div>
+          <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>{L(he, 'Long-term arc, not just this block — e1RM = est-1RM (Epley). Rep-scheme shifts move e1RM too; read it with the per-lift trend below.', 'מגמה לטווח ארוך, לא רק הבלוק הזה — e1RM = 1RM משוער (Epley). שינוי בטווח החזרות מזיז גם את ה־e1RM, אז תסתכל על זה יחד עם המגמה של כל תרגיל למטה.')}</div>
         </div>}
       </div>
     )}
@@ -719,7 +719,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
           })()}
           <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>
             {he
-              ? `תרגילים שנרשמו 3 פעמים ומעלה (מספיק כדי לקרוא)${a.bodyweightLifts > 0 ? ` · ${a.bodyweightLifts === 1 ? 'עוד תרגיל משקל גוף או עזר אחד' : `עוד ${a.bodyweightLifts} תרגילי משקל גוף ועזר`} (אין משקל למגמה)` : ''} · שיא = המשקל הכבד ביותר שנרשם · e = 1RM משוער (Epley), מוסתר מעל 12 חזרות.`
+              ? `תרגילים שנרשמו 3 פעמים ומעלה (מספיק כדי לקרוא מגמה)${a.bodyweightLifts > 0 ? ` · ${a.bodyweightLifts === 1 ? 'עוד תרגיל משקל גוף או עזר אחד' : `עוד ${a.bodyweightLifts} תרגילי משקל גוף ועזר`} (אין משקל למגמה)` : ''} · שיא = המשקל הכי כבד שנרשם · e = 1RM משוער (Epley), מוסתר מעל 12 חזרות.`
               : `Lifts logged 3+ times (enough to read)${a.bodyweightLifts > 0 ? ` · ${a.bodyweightLifts} more bodyweight/accessory lift${a.bodyweightLifts === 1 ? '' : 's'} (no load to trend)` : ''} · best = heaviest logged · e = est-1RM (Epley), hidden past 12 reps.`}
           </div>
         </div>}
@@ -762,7 +762,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
           </div>
           {grouped.other.length > 0 && (
             <div style={{ fontSize: 10.5, color: C.td, marginTop: 9, lineHeight: 1.5 }}>
-              <div style={{ color: C.tm, fontWeight: 600, marginBottom: 3 }}>{`${L(he, 'Other', 'אחר')} (${grouped.other.length}) `}<span style={{ opacity: 0.7, fontWeight: 400 }}>{L(he, '— core / carry / full-body (outside the six patterns)', '— ליבה / נשיאה / גוף מלא (מחוץ לשישה הדפוסים)')}</span></div>
+              <div style={{ color: C.tm, fontWeight: 600, marginBottom: 3 }}>{`${L(he, 'Other', 'אחר')} (${grouped.other.length}) `}<span style={{ opacity: 0.7, fontWeight: 400 }}>{L(he, '— core / carry / full-body (outside the six patterns)', '— בטן / נשיאה / גוף מלא (מחוץ לשישה הדפוסים)')}</span></div>
               {grouped.other.map((l) => (
                 <div key={l.title} dir="auto" title={l.title} style={{ overflowWrap: 'break-word', lineHeight: 1.6 }}>– {l.title}</div>
               ))}
@@ -999,7 +999,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
           ) : (
             <div style={{ border: `1px dashed ${C.bd}`, background: C.sf2, padding: 14, color: C.tm, fontSize: 12.5, lineHeight: 1.5 }}>
               <b style={{ color: C.tx }}>{L(he, 'Building the load baseline.', 'בונה את בסיס העומס.')}</b>{he
-                ? ` צריך כ־4 שבועות של רישום ליחס אקוטי:כרוני אמיתי — ${(a.acwr.haveDays || 0) === 1 ? 'יש יום אחד' : `יש ${a.acwr.haveDays || 0} ימים`}.`
+                ? ` צריך כ־4 שבועות של רישום כדי לקבל יחס אקוטי:כרוני אמיתי — ${(a.acwr.haveDays || 0) === 1 ? 'יש יום אחד' : `יש ${a.acwr.haveDays || 0} ימים`}.`
                 : ` Need ~4 weeks of logging for a real acute:chronic ratio — have ${a.acwr.haveDays || 0} days.`}
             </div>
           )}
@@ -1017,14 +1017,14 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
                   {barSpeedAll ? L(he, 'Show less', 'פחות') : (he ? `כל ${vault.length} התרגילים` : `Show all ${vault.length} lifts`)}
                 </button>
               )}
-              <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>{L(he, 'Per-lift velocity-loss from filmed sets — rising bars = fatigue building on the bar, days before load or RPE would show it. Film a lift across a load range and it also extrapolates a max-less 1RM (load-velocity profiling — the elite-VBT read no phone tool offers).', 'ירידת מהירות לכל תרגיל מסטים מצולמים — עמודות שעולות = עייפות שמצטברת על המוט, ימים לפני שהמשקל או ה־RPE יראו את זה. תצלם תרגיל על כמה משקלים ותקבל גם 1RM משוער בלי מבחן מקסימום (פרופיל עומס־מהירות — קריאת VBT של ספורט עילית שאף כלי בטלפון לא נותן).')}</div>
+              <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>{L(he, 'Per-lift velocity-loss from filmed sets — rising bars = fatigue building on the bar, days before load or RPE would show it. Film a lift across a load range and it also extrapolates a max-less 1RM (load-velocity profiling — the elite-VBT read no phone tool offers).', 'ירידת מהירות לכל תרגיל מסטים מצולמים — עמודות שעולות = עייפות שמצטברת על המוט, ימים לפני שהמשקל או ה־RPE יראו את זה. צלם תרגיל על כמה משקלים ותקבל גם 1RM משוער בלי מבחן מקסימום (פרופיל עומס־מהירות — ניתוח VBT ברמת ספורט עילית שאף כלי בטלפון לא נותן).')}</div>
             </>
           ) : (
             <div style={{ border: `1px dashed ${C.bd}`, background: C.sf2, padding: 14, color: C.tm, fontSize: 12.5, lineHeight: 1.5 }}>
               {autoPose.running
-                ? <><b style={{ color: C.ac, display: 'block', marginBottom: 5 }}>{`${L(he, 'Auto-analysing clips…', 'מנתח קליפים…')} ${autoPose.done}/${autoPose.total}`}</b><span>{L(he, 'Bar speed is read from every uploaded video automatically — no logging needed. This fills in as it goes.', 'מהירות המוט נקראת אוטומטית מכל וידאו שעולה — בלי רישום. זה מתמלא תוך כדי.')}</span></>
+                ? <><b style={{ color: C.ac, display: 'block', marginBottom: 5 }}>{`${L(he, 'Auto-analysing clips…', 'מנתח קליפים…')} ${autoPose.done}/${autoPose.total}`}</b><span>{L(he, 'Bar speed is read from every uploaded video automatically — no logging needed. This fills in as it goes.', 'מהירות המוט נמדדת אוטומטית מכל וידאו שעולה — בלי רישום. זה מתמלא תוך כדי.')}</span></>
                 : <><b style={{ color: C.tx, display: 'block', marginBottom: 5 }}>{L(he, 'No clean bar-speed read yet.', 'עוד אין מדידת מהירות מוט נקייה.')}</b><span>{he
-                  ? <>כל קליפ שעולה מנותח אוטומטית למהירות — אף אחד עוד לא צולם מהצד מספיק נקי בשביל מגמה. מהירות המוט יורדת <i>לפני</i> המשקל או ה־RPE; זו קריאת עייפות שאף מתחרה במחיר הזה לא נותן.</>
+                  ? <>כל קליפ שעולה מנותח אוטומטית למהירות — אף אחד עוד לא צולם מהצד מספיק נקי בשביל מגמה. מהירות המוט יורדת <i>לפני</i> המשקל או ה־RPE; זה מדד עייפות שאף מתחרה במחיר הזה לא נותן.</>
                   : <>{'Every uploaded clip is auto-analysed for velocity — none is filmed side-on cleanly enough to trend yet. Bar speed drops '}<i>{'before'}</i>{' load or RPE; it\'s the fatigue read no competitor at this price offers.'}</>}</span></>}
             </div>
           )}
@@ -1049,7 +1049,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
             </>
           ) : (
             <div style={{ border: `1px dashed ${C.bd}`, background: C.sf2, padding: 14, color: C.tm, fontSize: 12.5, lineHeight: 1.5 }}>
-              <b style={{ color: C.tx, display: 'block', marginBottom: 5 }}>{L(he, 'No ROM read yet.', 'עוד אין מדידת טווח.')}</b><span>{L(he, 'Working range is read from filmed sets automatically — film a few clean sets and each lift\'s range trends here, no logging needed.', 'טווח העבודה נקרא אוטומטית מסטים מצולמים — צלם כמה סטים נקיים והמגמה של כל תרגיל תופיע כאן, בלי רישום.')}</span>
+              <b style={{ color: C.tx, display: 'block', marginBottom: 5 }}>{L(he, 'No ROM read yet.', 'עוד אין מדידת טווח.')}</b><span>{L(he, 'Working range is read from filmed sets automatically — film a few clean sets and each lift\'s range trends here, no logging needed.', 'טווח העבודה נמדד אוטומטית מסטים מצולמים — צלם כמה סטים נקיים והמגמה של כל תרגיל תופיע כאן, בלי רישום.')}</span>
             </div>
           )}
       </Section>
@@ -1062,7 +1062,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
                   ? (asymTrend.anyFlag
                     ? `תעקוב אחרי ה${JOINT_HE[asymTrend.worst.joint] || asymTrend.worst.joint} — צד ${SIDE_HE[asymTrend.worst.weaker] || asymTrend.worst.weaker} מפגר ב־${asymTrend.worst.current}%${asymTrend.worst.drift === 'widening' ? ' והפער גדל' : ''}.`
                     : asymTrend.films < 2
-                      ? 'סט מצולם אחד — שום דבר מדאיג, אבל תצלם עוד כמה כדי לראות מגמה בסימטריה.'
+                      ? 'סט מצולם אחד — אין שום דבר מדאיג, אבל צלם עוד כמה כדי לראות מגמה בסימטריה.'
                       : `הסימטריה יציבה לאורך ${asymTrend.films} סטים מצולמים.`)
                   : (asymTrend.anyFlag
                     ? `Watch the ${asymTrend.worst.joint.toLowerCase()} — ${asymTrend.worst.weaker.toLowerCase()} side ${asymTrend.worst.current}% behind${asymTrend.worst.drift === 'widening' ? ' and widening' : ''}.`
@@ -1092,14 +1092,14 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
                   </div>
                 );
               })}
-              <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>{L(he, 'Per-joint L/R travel across filmed sets — a bar climbing = one limb pulling away. 2D pose is approximate; a widening flag is worth screening in person, not a diagnosis.', 'תנועת ימין/שמאל לכל מפרק לאורך סטים מצולמים — עמודה שעולה = גפה אחת שמתרחקת. תנוחה דו־ממדית היא הערכה; פער שגדל שווה בדיקה פנים מול פנים, הוא לא קביעה רפואית.')}</div>
+              <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>{L(he, 'Per-joint L/R travel across filmed sets — a bar climbing = one limb pulling away. 2D pose is approximate; a widening flag is worth screening in person, not a diagnosis.', 'תנועת ימין/שמאל לכל מפרק לאורך סטים מצולמים — עמודה שעולה = פער בין הצדדים שהולך וגדל. זיהוי תנוחה דו־ממדי הוא רק הערכה; פער שגדל שווה לבדוק פנים מול פנים — זו לא קביעה רפואית.')}</div>
             </>
           ) : (
             <div style={{ border: `1px dashed ${C.bd}`, background: C.sf2, padding: 14, color: C.tm, fontSize: 12.5, lineHeight: 1.5 }}>
               {autoPose.running
-                ? <><b style={{ color: C.ac, display: 'block', marginBottom: 5 }}>{`${L(he, 'Auto-analysing clips…', 'מנתח קליפים…')} ${autoPose.done}/${autoPose.total}`}</b><span>{L(he, 'Left-vs-right joint travel is read from every uploaded video automatically — no logging needed.', 'תנועת המפרקים ימין מול שמאל נקראת אוטומטית מכל וידאו שעולה — בלי רישום.')}</span></>
+                ? <><b style={{ color: C.ac, display: 'block', marginBottom: 5 }}>{`${L(he, 'Auto-analysing clips…', 'מנתח קליפים…')} ${autoPose.done}/${autoPose.total}`}</b><span>{L(he, 'Left-vs-right joint travel is read from every uploaded video automatically — no logging needed.', 'תנועת המפרקים ימין מול שמאל נמדדת אוטומטית מכל וידאו שעולה — בלי רישום.')}</span></>
                 : <><b style={{ color: C.tx, display: 'block', marginBottom: 5 }}>{L(he, 'No symmetry read yet.', 'עוד אין מדידת סימטריה.')}</b><span>{he
-                  ? <>כל קליפ שעולה מנותח אוטומטית לתנועת ימין/שמאל — אף אחד עוד לא נקי מספיק בשביל מגמה. גפה שמתרחקת תופיע כאן <i>לפני</i> שזה נהיה מתיחה; אף אחד במחיר הזה לא עוקב אחרי זה.</>
+                  ? <>כל קליפ שעולה מנותח אוטומטית לתנועת ימין/שמאל — אף אחד עוד לא נקי מספיק בשביל מגמה. פער בין הצדדים יופיע כאן <i>לפני</i> שזה נהיה מתיחה; אף אחד במחיר הזה לא עוקב אחרי זה.</>
                   : <>{'Every uploaded clip is auto-analysed for L/R joint travel — none clean enough to trend yet. A limb pulling away shows here '}<i>{'before'}</i>{' it\'s a tweak; nobody at this price trends it.'}</>}</span></>}
             </div>
           )}
@@ -1111,8 +1111,8 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
       <div style={bd}>
         <div style={{ border: `1px dashed ${C.bd}`, background: C.sf2, padding: 14, color: C.tm, fontSize: 12.5, lineHeight: 1.5 }}>
           {a.rpeCoverage >= 40
-            ? <><b style={{ color: C.tx }}>{he ? `RPE נרשם ב־${a.rpeCoverage}% מהסטים.` : `RPE logged on ${a.rpeCoverage}% of sets.`}</b>{L(he, ' Enough to trust the effort reads above — the autoregulation signal is reliable.', ' מספיק כדי לסמוך על קריאות המאמץ למעלה — סימן ויסות העומס אמין.')}</>
-            : <><b style={{ color: C.tx }}>{L(he, 'Not enough effort data to model fatigue.', 'אין מספיק נתוני מאמץ כדי להעריך עייפות.')}</b>{he ? ` RPE ב־${a.rpeCoverage}% מהסטים — צריך בערך 10 נקודות בשביל מגמה. כרגע זה שיקול דעת ביחד עם סימני העומס למעלה. ` : ` RPE on ${a.rpeCoverage}% of sets — need ~10 points for a trend. Right now this is judgment + the load signals above. `}<span style={{ color: C.td }}>{L(he, 'Nudge him to log effort and this unlocks a real fitness-fatigue readout.', 'תדחוף אותו לרשום מאמץ, וזה יפתח קריאת כושר־עייפות אמיתית.')}</span></>}
+            ? <><b style={{ color: C.tx }}>{he ? `RPE נרשם ב־${a.rpeCoverage}% מהסטים.` : `RPE logged on ${a.rpeCoverage}% of sets.`}</b>{L(he, ' Enough to trust the effort reads above — the autoregulation signal is reliable.', ' מספיק כדי לסמוך על נתוני המאמץ למעלה — סימני ויסות העומס אמינים.')}</>
+            : <><b style={{ color: C.tx }}>{L(he, 'Not enough effort data to model fatigue.', 'אין מספיק נתוני מאמץ כדי להעריך עייפות.')}</b>{he ? ` RPE ב־${a.rpeCoverage}% מהסטים — צריך בערך 10 מדידות בשביל מגמה. כרגע זה שיקול דעת ביחד עם סימני העומס למעלה. ` : ` RPE on ${a.rpeCoverage}% of sets — need ~10 points for a trend. Right now this is judgment + the load signals above. `}<span style={{ color: C.td }}>{L(he, 'Nudge him to log effort and this unlocks a real fitness-fatigue readout.', 'תגיד לו לרשום מאמץ, וככה תקבל מעקב כושר־עייפות אמיתי.')}</span></>}
         </div>
       </div>
     </div>

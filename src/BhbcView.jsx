@@ -1231,7 +1231,7 @@ function attendance28(rec, days) {
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '28px 16px' }}>
               <img src="/logos/bhbc-logo.png" alt="" style={{ height: 68, opacity: 0.9, marginBottom: 8 }} />
               <div style={{ fontFamily: FN, fontWeight: 700, fontSize: 13, color: C.tx }}>{tr('No athletes on the roster yet')}</div>
-              <div style={{ fontFamily: FB, fontSize: 13, color: C.td, marginBottom: 14, textAlign: 'center', maxWidth: 320 }}>Add the roster to start tracking load, availability and readiness.</div>
+              <div style={{ fontFamily: FB, fontSize: 13, color: C.td, marginBottom: 14, textAlign: 'center', maxWidth: 320 }}>{tr('Add the roster to start tracking load, availability and readiness.')}</div>
               {!asCoach && <Btn onClick={() => setManageOpen(true)} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>{tr('Add athletes')}</Btn>}
             </div>
           </Card>
@@ -1760,7 +1760,7 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
                         onChange={(e) => setEditSess({ ...editSess, min: e.target.value })}
                         onKeyDown={(e) => { if (e.key === 'Enter') { onEditSession(editSess.date, editSess.idx, editSess.min, editSess.sig); setEditSess(null); } if (e.key === 'Escape') setEditSess(null); }}
                         style={{ width: 64, fontFamily: FN, fontSize: 12, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '2px 6px' }} />
-                      <span style={{ color: C.td }}>min</span>
+                      <span style={{ color: C.td }}>{tr('min')}</span>
                       <button onClick={() => { onEditSession(editSess.date, editSess.idx, editSess.min, editSess.sig); setEditSess(null); }} title={tr('Save')} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: '#37B27C', background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '2px 8px', cursor: 'pointer' }}>✓</button>
                       <button onClick={() => setEditSess(null)} title={tr('Cancel')} style={{ fontFamily: FN, fontSize: 10, color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '2px 8px', cursor: 'pointer' }}>✕</button>
                     </span>
@@ -1796,7 +1796,7 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 0', borderTop: `1px solid ${C.cardBd}`, fontFamily: FN, fontSize: 11, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{tr('Current block')}</span>
             <span style={{ color: C.tx, fontWeight: 700 }}>{program.current || 'None assigned'}</span>
-            {program.count > 1 && <span style={{ color: C.tm }}>· {program.count} total</span>}
+            {program.count > 1 && <span style={{ color: C.tm }}>· {program.count} {tr('total')}</span>}
             {onOpenExpo && (
               <button type="button" onClick={onOpenExpo} title={tr('Open this athlete in EXPO')}
                 style={{ marginInlineStart: 'auto', flexShrink: 0, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }}>
@@ -1897,7 +1897,7 @@ function WellnessModal({ roster, bhbcLoads, onClose, onSave }) {
           ))}
         </div>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'wrap' }}>
-          <span style={{ fontFamily: FN, fontSize: 11, color: C.td, marginInlineEnd: 'auto' }}>{count} of {roster.length} filled</span>
+          <span style={{ fontFamily: FN, fontSize: 11, color: C.td, marginInlineEnd: 'auto' }}>{tr('{n} of {m} filled').replace('{n}', count).replace('{m}', roster.length)}</span>
           <Btn variant="ghost" onClick={onClose}>{tr('Cancel')}</Btn>
           <Btn disabled={!count} onClick={() => onSave({ date, entries })} style={{ background: count ? ORANGE : undefined, borderColor: count ? ORANGE : undefined, color: count ? '#fff' : undefined }}>{tr('Save check-in')}</Btn>
         </div>
@@ -2074,7 +2074,7 @@ function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave, sess
           if (!g) return null;
           const plan = mdPlan(-dayDiff(g.date, date));
           const sug = plan.game ? null : plan.load >= 5 ? 'High' : plan.load >= 3 ? 'Moderate' : 'Low';
-          return <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: FN, fontSize: 11, color: C.tm, flexWrap: 'wrap' }}><span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{tr('Microcycle')}</span><span style={{ fontWeight: 800, color: '#fff', background: plan.game ? ORANGE : plan.load >= 5 ? ORANGE_DEEP : plan.load >= 3 ? NAVY : '#6B7280', padding: '2px 7px' }}>{plan.label}</span><span style={{ color: C.tx }}>{plan.emphasis}</span>{sug && <span style={{ color: C.td }}>· suggest {sug} intensity</span>}</div>;
+          return <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: FN, fontSize: 11, color: C.tm, flexWrap: 'wrap' }}><span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{tr('Microcycle')}</span><span style={{ fontWeight: 800, color: '#fff', background: plan.game ? ORANGE : plan.load >= 5 ? ORANGE_DEEP : plan.load >= 3 ? NAVY : '#6B7280', padding: '2px 7px' }}>{tr(plan.label)}</span><span style={{ color: C.tx }}>{tr(plan.emphasis)}</span>{sug && <span style={{ color: C.td }}>· {tr(`suggest ${sug.toLowerCase()} intensity`)}</span>}</div>;
         })()}
         <div style={{ overflowX: 'auto' }}>
           <div style={{ minWidth: 560 }}>
@@ -2228,7 +2228,7 @@ function FixturesAheadPanel({ fixtures, today }) {
                   <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx }}>{g.opponent ? `${tr('vs')} ${g.opponent}` : tr('Opponent TBD')}</span>
                   <HAChip home={g.home} />
                   {g.travel && <span style={{ fontFamily: FN, fontSize: 11, color: ORANGE_DEEP }} title={tr('Travel')}>✈</span>}
-                  {tight && <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#fff', background: '#E0A73A', padding: '1px 6px' }} title={`${gap} days after the previous game`}>{gap}d turnaround</span>}
+                  {tight && <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#fff', background: '#E0A73A', padding: '1px 6px' }} title={tr(gap === 1 ? '1 day after the previous game' : gap === 2 ? '2 days after the previous game' : '{n} days after the previous game').replace('{n}', gap)}>{tr(gap === 1 ? '1d turnaround' : gap === 2 ? '2d turnaround' : '{n}d turnaround').replace('{n}', gap)}</span>}
                 </div>
                 <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 3 }}>{[tr(g.comp), `${dow(g.date)} ${monDay(g.date)}`, g.venue].filter(Boolean).join(' · ')}</div>
               </div>
@@ -2355,7 +2355,7 @@ function CoachBrief({ rows, fx, fixtures, medical, today, onOpen, onLog, onGo })
     <Card padding={14} leftStripe={ORANGE} header={secTitle('S&C Brief')} headerRight={<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>{dow(today)} {monDay(today)}</span>}>
       {top.length === 0 ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 9, fontFamily: FB, fontSize: 13, color: C.td, padding: '4px 0' }}>
-          <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#37B27C', flexShrink: 0 }} />All clear — no load, readiness or medical flags today.
+          <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#37B27C', flexShrink: 0 }} />{tr('All clear — no load, readiness or medical flags today.')}
         </div>
       ) : (
         <div>
@@ -2968,7 +2968,7 @@ function TodayPanel({ today, fixtures, fx, rows, onSessions, onLog, planOf, onPl
       {focus && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, paddingBottom: 14, borderBottom: `1px solid ${C.cardBd}`, flexWrap: 'wrap' }}>
           <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm }}>{tr('Today’s focus')}</span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 22, boxSizing: 'border-box', padding: '0 9px', fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.06em', color: focusC, background: `color-mix(in srgb, ${focusC} 13%, transparent)`, border: `1px solid color-mix(in srgb, ${focusC} 38%, transparent)`, whiteSpace: 'nowrap' }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: focusC, flexShrink: 0 }} />{focus.label}</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 22, boxSizing: 'border-box', padding: '0 9px', fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.06em', color: focusC, background: `color-mix(in srgb, ${focusC} 13%, transparent)`, border: `1px solid color-mix(in srgb, ${focusC} 38%, transparent)`, whiteSpace: 'nowrap' }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: focusC, flexShrink: 0 }} />{tr(focus.label)}</span>
           <span style={{ fontFamily: FB, fontSize: 13, color: C.tx }}>{tr(focus.emphasis)}</span>
         </div>
       )}
@@ -3047,7 +3047,7 @@ function TeamSnapshotCard({ team }) {
               <path d={area} fill="url(#bhbcTeamLoad)" />
               <polyline points={line} fill="none" stroke={ORANGE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 2, fontFamily: FN, fontSize: 9, color: C.td }}><span>28d ago</span><span>today</span></div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 2, fontFamily: FN, fontSize: 9, color: C.td }}><span>{tr('28d ago')}</span><span>{tr('today')}</span></div>
           </div>
         );
       })()}
@@ -3653,11 +3653,11 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, planOf }
                     <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{tr('Plan')}</span>
                     {pl && (pl.focus || pl.plan)
                       ? <span dir="auto">{pl.focus || ''}{pl.focus && pl.plan ? ' — ' : ''}{pl.plan || ''}</span>
-                      : <span style={{ color: C.td }}>nothing was written for this slot</span>}
+                      : <span style={{ color: C.td }}>{tr('nothing was written for this slot')}</span>}
                   </div>
                   <div style={{ marginBottom: 6 }}>
                     <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{tr('Trained')}</span>
-                    {d.trained.length ? <span dir="auto">{names(d.trained)}</span> : <span style={{ color: C.td }}>nobody logged</span>}
+                    {d.trained.length ? <span dir="auto">{names(d.trained)}</span> : <span style={{ color: C.td }}>{tr('nobody logged')}</span>}
                     {d.avgLoad != null && <span style={{ color: C.tm }}> · {tr('avg load')} <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{d.avgLoad} AU</span></span>}
                     {d.loggers && d.loggers.length > 0 && <span style={{ color: C.td }}> · {tr('logged by')} {d.loggers.map(byName).join(', ')}</span>}
                   </div>
@@ -3900,7 +3900,7 @@ function ScheduleList({ fx, today }) {
                   <span style={{ fontFamily: FN, fontSize: 12, color: C.tx, fontVariantNumeric: 'tabular-nums' }}>{f.start}</span>
                   <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: FX_COLOR[f.type] || NAVY }}>{fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')}</span>
                   <span style={{ fontFamily: FN, fontSize: 10, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{f.minutes} {tr('min')}</span>
-                  {f.optional && <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, border: `1px solid ${C.cardBd}`, padding: '1px 5px' }}>optional</span>}
+                  {f.optional && <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, border: `1px solid ${C.cardBd}`, padding: '1px 5px' }}>{tr('optional')}</span>}
                   {fxWhere(f) && <span style={{ fontFamily: FB, fontSize: 10, color: C.tm }} dir="ltr">· {fxWhere(f)}</span>}
                 </span>
               ))}
@@ -3940,7 +3940,7 @@ function ScheduleWeek({ fixtures, today }) {
                 {items.map((f, i) => (
                   <div key={i} style={{ border: `1px solid ${C.cardBd}`, borderInlineStart: `3px solid ${FX_COLOR[f.type] || NAVY}`, padding: '5px 7px', background: 'var(--c-bg)' }}>
                     <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: FX_COLOR[f.type] || NAVY, textTransform: 'uppercase' }}>{fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')}</div>
-                    <div style={{ fontFamily: FN, fontSize: 10, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{f.start} · {f.minutes} min</div>
+                    <div style={{ fontFamily: FN, fontSize: 10, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{f.start} · {f.minutes} {tr('min')}</div>
                     {fxWhere(f) && <div style={{ fontFamily: FB, fontSize: 9, color: C.tm }} dir="ltr">{fxWhere(f)}</div>}
                   </div>
                 ))}
@@ -3954,6 +3954,7 @@ function ScheduleWeek({ fixtures, today }) {
 }
 
 function ScheduleMonth({ fixtures, today }) {
+  const tr = useT();
   const anchor = parseISO(today);
   const y = anchor.getFullYear(), m = anchor.getMonth();
   const first = new Date(y, m, 1);
@@ -3981,7 +3982,7 @@ function ScheduleMonth({ fixtures, today }) {
             <span style={{ color: FX_COLOR[f.type] || NAVY, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')}{fxWhere(f) && (f.type === 'game' || f.type === 'scrimmage') ? <span style={{ display: 'block', color: C.td, fontWeight: 400, fontSize: 9 }} dir="ltr">{fxWhere(f)}</span> : null}</span>
           </div>
         ))}
-        {items.length > 3 && <div style={{ fontFamily: FN, fontSize: 9, color: C.td, paddingInlineStart: 2 }}>+{items.length - 3} more</div>}
+        {items.length > 3 && <div style={{ fontFamily: FN, fontSize: 9, color: C.td, paddingInlineStart: 2 }}>{tr('+{n} more').replace('{n}', items.length - 3)}</div>}
       </div>
     );
   };
@@ -4314,7 +4315,7 @@ function LeagueView({ league, roster, fixtures, onOpen, bhbcLoads = {}, today, o
       </Card>
 
       {/* Player stats — the roster, with official league numbers */}
-      <Card padding={14} leftStripe={NAVY} header={secTitle('Player Stats')} headerRight={pastData ? null : <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>tap a column to sort</span>}>
+      <Card padding={14} leftStripe={NAVY} header={secTitle('Player Stats')} headerRight={pastData ? null : <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>{tr('tap a column to sort')}</span>}>
         {pastData ? (
           <>
             <div style={{ fontFamily: FB, fontSize: 13, color: C.td, padding: '2px 2px 14px' }}>{tr('No {season} games played yet — per-player league numbers appear here after tip-off.').replace('{season}', currentSeason)}</div>
@@ -4899,7 +4900,7 @@ function InjuryModal({ athlete, injury, onClose, onSave, currentUser = '' }) {
     <BModal open sticky onClose={onClose} wide title={`${injury ? 'Update' : 'Report'} injury · #${athlete.jersey ?? '—'} ${athlete.name}`}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div className="bhbc-form-grid" style={{ display: 'grid', gridTemplateColumns: '1.3fr 0.9fr 1.1fr', gap: 10 }}>
-          <div><label style={lbl}>{tr('Body part')}</label><select value={bodyPart} onChange={(e) => setBodyPart(e.target.value)} style={sel}><option value="">— select —</option>{BODY_PARTS.map((b) => <option key={b} value={b}>{tr(b)}</option>)}</select></div>
+          <div><label style={lbl}>{tr('Body part')}</label><select value={bodyPart} onChange={(e) => setBodyPart(e.target.value)} style={sel}><option value="">{tr('— select —')}</option>{BODY_PARTS.map((b) => <option key={b} value={b}>{tr(b)}</option>)}</select></div>
           <div><label style={lbl}>{tr('Side')}</label><select value={headInjury ? 'N/A' : side} disabled={headInjury} title={headInjury ? tr('A head injury has no side.') : undefined} onChange={(e) => setSide(e.target.value)} style={{ ...sel, ...(headInjury ? { opacity: 0.5 } : null) }}>{['N/A', 'Left', 'Right', 'Bilateral'].map((s) => <option key={s} value={s}>{s}</option>)}</select></div>
           <div><label style={lbl}>{tr('Type')}</label><select value={type} onChange={(e) => setType(e.target.value)} style={sel}><option value="">—</option>{INJURY_TYPES.map((tp) => <option key={tp} value={tp}>{tp}</option>)}</select></div>
         </div>
@@ -4929,7 +4930,7 @@ function InjuryModal({ athlete, injury, onClose, onSave, currentUser = '' }) {
           </div>
         </div>
         <div><label style={lbl}>{tr('Mechanism / how it happened')}</label><input value={mechanism} onChange={(e) => setMechanism(e.target.value)} placeholder={tr('e.g. landed awkwardly on a rebound')} style={sel} /></div>
-        <div><label style={lbl}>Notes (diagnosis, plan, PT observations)</label><textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} style={{ ...sel, height: 'auto', padding: '8px', resize: 'vertical' }} /></div>
+        <div><label style={lbl}>{tr('Notes (assessment, plan, PT observations)')}</label><textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} style={{ ...sel, height: 'auto', padding: '8px', resize: 'vertical' }} /></div>
 
         {/* Rehab progress log */}
         <div style={{ border: `1px solid ${C.cardBd}` }}>
@@ -5025,7 +5026,7 @@ function LogModal({ open, initialAthlete, roster, fixtures = [], availableCount 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <label style={lab}>{tr('Athlete')}</label>
             <select value={athleteId} onChange={(e) => setAthleteId(e.target.value)} style={selStyle}>
-              {roster.length === 0 && <option value="">— add roster first —</option>}
+              {roster.length === 0 && <option value="">{tr('— add roster first —')}</option>}
               {roster.map((t) => <option key={t.id} value={t.id}>{t.jersey != null ? `#${t.jersey} ` : ''}{t.name}</option>)}
             </select>
           </div>
@@ -5046,7 +5047,7 @@ function LogModal({ open, initialAthlete, roster, fixtures = [], availableCount 
           {!isLift && <Input label={tr('Session RPE (0–10)')} type="number" inputMode="decimal" min="0" max="10" step="0.5" value={rpe} onChange={(e) => setRpe(e.target.value)} placeholder="7" />}
         </div>
         <div style={{ fontFamily: FN, fontSize: 11, color: C.td, textAlign: 'center', letterSpacing: '0.04em' }}>
-          {isLift ? 'Gym session — minutes only, no RPE' : <>sRPE load = <span style={{ color: ORANGE_DEEP, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{preview || 0}</span> units</>}
+          {isLift ? tr('Gym session — minutes only, no RPE') : <>{tr('sRPE load =')} <span style={{ color: ORANGE_DEEP, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{preview || 0}</span> {tr('units')}</>}
         </div>
         {(() => {
           const day = fixtures.filter((f) => f.date === date);
@@ -5057,7 +5058,7 @@ function LogModal({ open, initialAthlete, roster, fixtures = [], availableCount 
               {day.map((f, i) => (
                 <button key={i} type="button" onClick={() => { setMinutes(String(f.minutes)); setType(f.type === 'lift' ? 'Lift' : f.type === 'game' ? 'Game' : 'Practice'); }}
                   style={{ fontFamily: FN, fontSize: 10, color: FX_COLOR[f.type] || NAVY, background: 'transparent', border: `1px solid ${C.cardBd}`, borderInlineStart: `3px solid ${FX_COLOR[f.type] || NAVY}`, padding: '4px 8px', cursor: 'pointer' }}>
-                  {f.start} {fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')} {f.minutes} min
+                  {f.start} {fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')} {f.minutes} {tr('min')}
                 </button>
               ))}
             </div>

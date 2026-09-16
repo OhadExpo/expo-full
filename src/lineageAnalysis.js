@@ -450,11 +450,11 @@ export function synthesizeVerdict({ adh, region, staples, acwr, velocity, he = f
     tone = 'info';
     const n = adh?.loggedSessions || 0;
     headline = he
-      ? `קודם שירשום, ואז שבוע הורדה — ${n === 1 ? 'יש רק אימון אחד' : `יש רק ${n} אימונים`}, וקריאת העייפות עוד לא אמינה.`
+      ? `קודם שירשום, ואז שבוע הורדה — ${n === 1 ? 'יש רק אימון אחד' : `יש רק ${n} אימונים`}, ועוד אי אפשר לסמוך על סימני העייפות.`
       : `Get him logging before you deload — only ${n} session${n === 1 ? '' : 's'} in, the fatigue read isn't trustworthy yet.`;
     const bits = fatigueBits();
     sub = he
-      ? `${bits.length ? `${bits.join(', ')} — אבל ` : ''}על כל כך מעט נתונים זה יכול להיות רעש או יום חלש אחד. תאמת עם עוד כמה רישומים לפני שאתה מוריד משקל.`
+      ? `${bits.length ? `${bits.join(', ')} — אבל ` : ''}עם כל כך מעט נתונים זה יכול להיות רעש או יום חלש אחד. תאמת עם עוד כמה רישומים לפני שאתה מוריד משקל.`
       : `${bits.length ? `${bits.join(', ')} — but ` : ''}off this little data that could be noise or one light day. Confirm with a few more logs before backing load off.`;
   } else if (lowAdh) {
     tone = 'info';
@@ -468,12 +468,12 @@ export function synthesizeVerdict({ adh, region, staples, acwr, velocity, he = f
     // stale-but-up lift isn't climbing, and kg isn't the read on a ballistic lift.
     const progressing = staples.filter((s) => !s.ballistic && s.isMain && !s.stale?.stale && s.trend?.dir === 'up').map((s) => s.title);
     headline = he
-      ? (progressing.length ? 'הוא מגיב — תמשיך להתקדם.' : 'בלוק יציב — שום דבר לא מהבהב באדום.')
+      ? (progressing.length ? 'הוא מגיב — תמשיך להתקדם.' : 'בלוק יציב — אין נורות אדומות.')
       : (progressing.length ? `He's responding — keep progressing.` : `Steady block — nothing's flashing red.`);
     sub = he
       ? (progressing.length
         ? `${progressing.slice(0, 3).join(', ')} ${progressing.length === 1 ? 'עולה' : 'עולים'} במאמץ המתוכנן. תמשיך להעלות משקל בבלוק הבא.`
-        : 'המשקלים והמאמץ יציבים. תתקדם איפה שיש לו מקום, תשמור איפה שאין.')
+        : 'המשקלים והמאמץ יציבים. תעלה איפה שיש לו מקום, ותשאיר איפה שאין.')
       : (progressing.length
         ? `${progressing.slice(0, 3).join(', ')} climbing at an on-target effort. Keep adding load next block.`
         : 'Loads and effort are holding. Progress where he has room, hold where he doesn\'t.');

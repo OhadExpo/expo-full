@@ -43,7 +43,7 @@ const STRINGS = {
   'hero.h1.line2':       { en: 'actually work',  he: 'שעובדות' },
   'hero.subhead': {
     en: 'Block-periodised templates for hypertrophy, strength, rehab, and time-poor schedules. Same engine I use with the athletes I coach — now available as standalone purchases you can run yourself.',
-    he: 'תבניות מחולקות לבלוקים. היפרטרופיה, כוח, שיקום, ולמי שאין זמן. אותה שיטה שאני עובד איתה עם הספורטאים שאני מאמן — עכשיו אתה יכול לקנות אותה ולהריץ בעצמך.',
+    he: 'תבניות מחולקות לבלוקים. היפרטרופיה, כוח, שיקום, ולמי שאין זמן. אותה שיטה שאני עובד איתה עם הספורטאים שאני מאמן — עכשיו אתה יכול לקנות אותה ולעבוד איתה לבד.',
   },
   'hero.cta.browse':     { en: 'BROWSE PROGRAMS ↓', he: 'תוכניות ↓' },
   'hero.cta.how':        { en: 'HOW IT WORKS',      he: 'איך זה עובד' },
@@ -97,17 +97,17 @@ const STRINGS = {
   'how.02.d.tmpl': {
     // {bit} placeholder is replaced at render time.
     en: 'Tap BUY on the program — opens WhatsApp with everything pre-filled. Pay through Bit ({bit}) and send a screenshot of the confirmation. One-time payment, full receipt issued.',
-    he: 'לחץ "קנייה" — נפתח וואטסאפ עם הכל מוכן. תשלם בביט ({bit}), תשלח צילום מסך. תשלום חד-פעמי. חשבונית מלאה.',
+    he: 'לחץ "קנייה" — נפתח וואטסאפ עם הכל מוכן. שלם בביט ({bit}) ושלח צילום מסך של האישור. תשלום חד-פעמי, עם חשבונית.',
   },
   'how.03.t':            { en: 'Get your account',    he: 'תקבל את החשבון' },
   'how.03.d': {
     en: 'Within a few hours you receive an email with a sign-in link to expo-app.co.il. Your purchased program is already loaded onto a private account — no install needed, runs in any browser.',
-    he: 'תוך כמה שעות מגיע אימייל עם קישור התחברות ל-expo-app.co.il. התוכנית כבר טעונה לחשבון פרטי שלך. בלי התקנה. רץ בכל דפדפן.',
+    he: 'תוך כמה שעות מגיע אימייל עם קישור התחברות ל-expo-app.co.il. התוכנית כבר מחכה בחשבון הפרטי שלך. בלי התקנה. עובד בכל דפדפן.',
   },
   'how.04.t':            { en: 'Train',               he: 'תתאמן' },
   'how.04.d': {
     en: 'Log every set on your phone. The program tracks your bodyweight trend, session RPE, and pain check-ins, and surfaces a weekly focus — same engine I run with the athletes I coach, no coach DMs in the way.',
-    he: 'תרשום כל סט בטלפון. התוכנית עוקבת אחרי משקל הגוף, RPE של כל אימון, ודיווחי כאב — ומציגה פוקוס שבועי. אותה שיטה שאני עובד איתה עם הספורטאים שאני מאמן. בלי לחכות לתשובה ממאמן.',
+    he: 'תרשום כל סט בטלפון. התוכנית עוקבת אחרי משקל הגוף, RPE של כל אימון, ודיווחי כאב — ומראה לך על מה להתמקד השבוע. אותה שיטה שאני עובד איתה עם הספורטאים שאני מאמן. בלי לחכות לתשובה ממאמן.',
   },
 
   // (Old in-line how.faq.* keys removed — FAQ now lives in its own section,
@@ -138,7 +138,7 @@ const STRINGS = {
   'inside.shot.h':       { en: 'Jump-shot analyzer', he: 'ניתוח זריקה' },
   'inside.shot.d': {
     en: 'Film a jump shot and get it back split into dip, set point, release and follow-through — ten checkpoints scored against coaching bands, each one with the fix. Film a set and it says whether the release repeats — and you mark each shot made or missed, so the session carries a makes-over-shots count.',
-    he: 'תצלם זריקה ותקבל אותה מפורקת לדיפ, נקודת סט, שחרור וליווי — עשר נקודות בדיקה מול טווחי אימון, וכל אחת עם התיקון שלה. תצלם סדרה והוא יגיד אם השחרור חוזר על עצמו — ואתה מסמן כל זריקה, נכנסה או לא, וככה לאימון יש ספירה של כמה נכנסו מתוך כמה זריקות.',
+    he: 'צלם זריקה ותקבל אותה מפורקת לדיפ, נקודת סט, שחרור וליווי — עשר נקודות בדיקה מול טווחי אימון, וכל אחת עם התיקון שלה. צלם סדרה והניתוח יגיד לך אם השחרור חוזר על עצמו. אתה מסמן כל זריקה, נכנסה או לא, וככה בסוף האימון אתה יודע כמה נכנסו מתוך כמה זריקות.',
   },
   'inside.shot.foot':    { en: '10 CHECKPOINTS · PHASE BY PHASE', he: '10 נקודות בדיקה · שלב אחר שלב' },
 
@@ -147,7 +147,7 @@ const STRINGS = {
   'inside.rep.h':        { en: 'Auto rep counter',  he: 'ספירת חזרות אוטומטית' },
   'inside.rep.d': {
     en: 'Detects troughs in the bar path, not peaks — so a paused or grindy rep still counts. Runs at 1× playback the moment the upload finishes.',
-    he: 'מזהה את הירידות במסלול המוט, לא את העליות. ככה גם חזרה כבדה או עם עצירה נספרת. רץ ב-1x ברגע שהקליפ עלה.',
+    he: 'מזהה את נקודות התחתית במסלול המוט, לא את נקודות השיא. ככה גם חזרה כבדה או חזרה עם עצירה נספרת. רץ במהירות 1x ברגע שהקליפ עלה.',
   },
   'inside.rep.big':      { en: '8 / 8',             he: '8 / 8' },
   'inside.rep.label':    { en: 'REPS',              he: 'חזרות' },
@@ -158,7 +158,7 @@ const STRINGS = {
   'inside.cmp.h':        { en: 'Side-by-side check',he: 'השוואה צד לצד' },
   'inside.cmp.d': {
     en: 'Every clip slots into your library by exercise + weight. Two taps to see today against your last attempt at the same load — ROM, tempo, depth, all visible.',
-    he: 'כל קליפ נכנס לספרייה לפי תרגיל ומשקל. שתי לחיצות וזה מראה לך את היום מול הסט הקודם באותו עומס. ROM, טמפו, עומק — הכל גלוי.',
+    he: 'כל קליפ נכנס לספרייה לפי תרגיל ומשקל. שתי לחיצות ואתה רואה את הסט של היום מול הסט הקודם באותו משקל. ROM, טמפו, עומק — הכל גלוי.',
   },
   'inside.cmp.last.t':   { en: 'LAST · 90 KG',      he: 'קודם · 90 ק״ג' },
   'inside.cmp.last.s':   { en: '4 reps · grindy #4',he: '4 חזרות · #4 כבדה' },
@@ -170,7 +170,7 @@ const STRINGS = {
   // Counts the cards in WhatsInside — keep it in step when a card is added.
   'inside.note': {
     en: 'All four are included in every program — no separate add-on, no extra charge.',
-    he: 'כולם נכללים בכל תוכנית. בלי תוסף, בלי תשלום נוסף.',
+    he: 'כל הארבעה כלולים בכל תוכנית. בלי תוספת, בלי תשלום נוסף.',
   },
 
   // CTA from WhatsInside section to the public sandbox at expo-app.co.il/demo/trainee.
@@ -194,7 +194,7 @@ const STRINGS = {
   },
   'about.p3': {
     en: "EXPO templates exist because I can't take more 1:1 athletes than my schedule allows, but the programming is good enough to deliver as standalone product. Same blocks, same auto-regulation, no waitlist.",
-    he: 'תבניות EXPO קיימות כי היום שלי כבר לא נותן לי לקחת עוד ספורטאים לליווי צמוד. אבל התוכניות עצמן טובות מספיק כדי לעמוד כמוצר עצמאי. אותם בלוקים. אותה אוטו-רגולציה. בלי רשימת המתנה.',
+    he: 'התבניות של EXPO קיימות כי הלו״ז שלי כבר לא מאפשר לי לקחת עוד ספורטאים לליווי צמוד. אבל התוכניות עצמן מספיק טובות כדי למכור אותן כמוצר בפני עצמו. אותם בלוקים. אותה אוטו-רגולציה. בלי רשימת המתנה.',
   },
 
   // Existing 3-credential strip
@@ -220,7 +220,7 @@ const STRINGS = {
   'about.values.t3':     { en: 'Build for the long run',      he: 'בונים לטווח הארוך' },
   'about.values.d3': {
     en: 'Pain check-ins, deload weeks, and reassess windows are baked into every block. You don\'t get strong by training through dysfunction.',
-    he: 'דיווחי כאב, שבועות דלואד והערכה מחדש מובנים בכל בלוק. לא מתחזקים מאימון דרך כאב או תפקוד לקוי.',
+    he: 'דיווחי כאב, שבועות דלואד והערכה מחדש מובנים בכל בלוק. מי שמתאמן על כאב או על תנועה לא תקינה לא מתחזק.',
   },
 
   'about.photo.note': {
@@ -275,7 +275,7 @@ const STRINGS = {
   'why.cta':             { en: 'BROWSE PROGRAMS ↓',    he: 'תוכניות ↓' },
   'why.note': {
     en: "Templates aren't a private coach — when your case is rehab-after-injury or sport-specific, the right answer is still 1:1. For everything else, programmed is enough.",
-    he: 'תבניות הן לא תחליף למאמן אישי. אם אתה בשיקום אחרי פציעה, או צריך משהו ספציפי לענף — אתה רוצה 1:1. לכל השאר, אימון לפי תוכנית מספיק.',
+    he: 'תבניות הן לא תחליף למאמן אישי. אם אתה בשיקום אחרי פציעה, או צריך משהו ספציפי לענף — אתה צריך ליווי אישי 1:1. לכל השאר, אימון לפי תוכנית מספיק.',
   },
 
   // ─── Sticky bottom CTA (mobile) ───────────────────────────────────
@@ -338,7 +338,7 @@ const STRINGS = {
   'notfound.h2':         { en: "That program doesn't exist (yet).", he: 'התוכנית הזאת לא קיימת. עדיין.' },
   'notfound.body': {
     en: "The link you followed points at a program that was renamed or hasn't been published yet. Head back to the catalog to see what's available right now.",
-    he: 'הקישור שלחצת מוביל לתוכנית ששינתה שם או שעוד לא פורסמה. תחזור לקטלוג ותראה מה זמין עכשיו.',
+    he: 'הקישור שלחצת עליו מוביל לתוכנית שהשם שלה השתנה או שעוד לא פורסמה. תחזור לקטלוג ותראה מה יש עכשיו.',
   },
   'notfound.cta':        { en: '← BACK',  he: 'חזרה →' },
 
@@ -395,14 +395,14 @@ const STRINGS = {
   'faq.q3':           { en: "I'm a complete beginner. Will this be over my head?", he: 'אני מתחיל לגמרי. זה יהיה גבוה מדי בשבילי?' },
   'faq.a3': {
     en: 'Foundation Block is built exactly for that. Three days a week, dumbbells + barbell, no machines required. Tempo and ROM cues come before any heavy load — you learn the seven primary patterns first, weight comes after.',
-    he: 'בלוק היסודות מיועד בדיוק לזה. שלושה ימים בשבוע, מוט ומשקלות, בלי מכונות. דגש על טמפו ועל טווח תנועה לפני העומס — לומדים את שבע תבניות התנועה קודם, המשקל בא אחרי.',
+    he: 'בלוק היסודות מיועד בדיוק לזה. שלושה ימים בשבוע, מוט ומשקולות, בלי מכונות. דגש על טמפו ועל טווח תנועה לפני העומס — לומדים את שבע תבניות התנועה קודם, המשקל בא אחרי.',
   },
-  'faq.q4':           { en: 'I am rehabbing an injury. Is the Rehab block right for me?', he: 'אני בשיקום אחרי פציעה. הבלוק שיקום מתאים לי?' },
+  'faq.q4':           { en: 'I am rehabbing an injury. Is the Rehab block right for me?', he: 'אני בשיקום אחרי פציעה. בלוק השיקום מתאים לי?' },
   'faq.a4': {
     en: 'Only if your physiotherapist or doctor cleared you to load. The block uses a per-exercise pain gate (0–3 OK, 4–5 modify, 6+ stop) and load-management hierarchy: ROM → Tempo → Intensity → Volume → Frequency. If you are still in active rehab without clearance, do not buy — message me first.',
-    he: 'רק אם הפיזיותרפיסט או הרופא אישרו לך להעמיס. הבלוק עובד עם שער כאב לכל תרגיל (0–3 בסדר, 4–5 התאם, 6 ומעלה עצור) והיררכיית עומס: טווח ← טמפו ← עוצמה ← נפח ← תדירות. אם אתה עוד בשיקום פעיל בלי אישור — אל תקנה, תכתוב לי קודם.',
+    he: 'רק אם הפיזיותרפיסט או הרופא אישרו לך להעמיס. הבלוק עובד עם סף כאב לכל תרגיל (0–3 בסדר, 4–5 משנים, 6 ומעלה עוצרים) והיררכיית עומס: טווח תנועה ← טמפו ← עצימות ← נפח ← תדירות. אם אתה עוד בשיקום פעיל בלי אישור — אל תקנה, תכתוב לי קודם.',
   },
-  'faq.q5':           { en: 'Can I customise the block once I get it?', he: 'אפשר להתאים את הבלוק אחרי שאני מקבל?' },
+  'faq.q5':           { en: 'Can I customise the block once I get it?', he: 'אפשר להתאים את הבלוק אחרי שאני מקבל אותו?' },
   'faq.a5': {
     en: "Inside the portal you swap any exercise for an alternative from the EXPO library (500+ exercises with the same movement pattern). For deeper changes — different days per week, different priorities — message me on WhatsApp and I will adjust manually. That is included in the one-time price.",
     he: 'בתוך הפורטל אתה מחליף כל תרגיל באלטרנטיבה מספריית EXPO (יותר מ-500 תרגילים עם אותה תבנית תנועה). לשינויים יותר עמוקים — מספר ימים בשבוע, סדר עדיפויות — תכתוב לי בוואטסאפ ואני אסדר ידנית. זה כלול במחיר החד-פעמי.',
@@ -410,7 +410,7 @@ const STRINGS = {
   'faq.q6':           { en: 'How do I get the program after I pay?', he: 'איך אני מקבל את התוכנית אחרי התשלום?' },
   'faq.a6': {
     en: "Within a few hours of receiving your Bit confirmation you get an email with a sign-in link to expo-app.co.il. Your purchased program is already loaded onto a private account. No app to install, no subscription — runs in any browser, on phone or laptop.",
-    he: 'תוך כמה שעות מהאישור בביט מגיע אימייל עם קישור התחברות ל-expo-app.co.il. התוכנית כבר טעונה לחשבון פרטי שלך. בלי אפליקציה להתקין, בלי מנוי — רץ בכל דפדפן, בטלפון או במחשב.',
+    he: 'תוך כמה שעות מהאישור בביט מגיע אימייל עם קישור התחברות ל-expo-app.co.il. התוכנית כבר מחכה בחשבון הפרטי שלך. בלי אפליקציה להתקין, בלי מנוי — עובד בכל דפדפן, בטלפון או במחשב.',
   },
   'faq.q7':           { en: 'How is this different from a free workout app?', he: 'מה ההבדל בין זה לבין אפליקציה חינמית?' },
   'faq.a7': {
@@ -482,11 +482,11 @@ const STRINGS = {
   'quiz.r.h':         { en: 'Your match',            he: 'ההתאמה שלך' },
   'quiz.r.body': {
     en: "Based on your answers — closest fit first. Each is a real product you can buy now. If none reads right, hit RESTART or message me on WhatsApp and I'll point you manually.",
-    he: 'על פי התשובות שלך — ההתאמה הכי קרובה קודם. כל אחת היא מוצר אמיתי שאפשר לקנות עכשיו. אם אף אחת לא נשמעת לך — תלחץ "התחל מחדש" או תכתוב לי בוואטסאפ ואני אכוון אותך ידנית.',
+    he: 'לפי התשובות שלך — ההתאמה הכי קרובה ראשונה. כל אחת היא מוצר אמיתי שאפשר לקנות עכשיו. אם אף אחת לא מתאימה לך — תלחץ "התחלה מחדש" או תכתוב לי בוואטסאפ ואני אכוון אותך ידנית.',
   },
   'quiz.r.empty': {
     en: "Nothing matches your filters cleanly — your case looks specific. Message me on WhatsApp and I'll match you to the right block manually (or build a custom one).",
-    he: 'אין התאמה נקייה לפי הסינון שלך — נראה שהמקרה שלך ספציפי. תכתוב לי בוואטסאפ ואני אכוון אותך ידנית לבלוק הנכון (או אבנה מותאם).',
+    he: 'אין התאמה מדויקת לפי התשובות שלך — נראה שהמקרה שלך ספציפי. תכתוב לי בוואטסאפ ואני אכוון אותך ידנית לבלוק הנכון (או אבנה לך בלוק מותאם).',
   },
   'quiz.r.fit.high':   { en: 'BEST MATCH',           he: 'ההתאמה הכי טובה' },
   'quiz.r.fit.med':    { en: 'ALSO WORKS',           he: 'גם מתאים' },
@@ -502,7 +502,7 @@ const STRINGS = {
   'exit.title':       { en: 'Before you go —',      he: 'לפני שאתה הולך —' },
   'exit.body': {
     en: "Leave your email and I will send you one free sample week from the Foundation Block. No spam, no sales sequence — one email, one workout, see if the format works for you.",
-    he: 'תשאיר אימייל ואני אשלח לך שבוע אחד חינם מתוך בלוק היסודות. בלי ספאם, בלי משפך מכירות — מייל אחד, אימון אחד, תראה אם הפורמט עובד לך.',
+    he: 'תשאיר אימייל ואני אשלח לך שבוע אחד חינם מתוך בלוק היסודות. בלי ספאם, בלי סדרת מיילים שיווקיים — מייל אחד, אימון אחד, ותראה אם הפורמט מתאים לך.',
   },
   'exit.dismiss':     { en: 'NO THANKS',            he: 'לא, תודה' },
   'exit.close':       { en: 'Close',                he: 'סגירה' },

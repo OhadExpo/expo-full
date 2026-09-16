@@ -371,7 +371,7 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
               <span style={{ color: C.ac, fontWeight: 700 }}>{filt.length}</span>
               {(search.trim() || activeFilterCount > 0) && exercises.length > filt.length ? <span style={{ color: C.td }}> of {exercises.length}</span> : null}
               <span style={{ color: C.td }}> result{filt.length === 1 ? '' : 's'}</span>
-              <span style={{ color: C.td, opacity: 0.6, marginInlineStart: 10, letterSpacing: '0.04em' }}>↑↓ navigate · Enter select · Esc close</span>
+              <span style={{ color: C.td, opacity: 0.6, marginInlineStart: 10, letterSpacing: '0.04em' }}>{tt('↑↓ navigate · Enter select · Esc close')}</span>
             </span>
             {(search.trim() || activeFilterCount > 0) && <button onClick={clearAll} style={{ background: 'transparent', border: `1px solid ${C.cardBd}`, color: C.ac, cursor: 'pointer', fontSize: 10, fontFamily: FN, fontWeight: 700, letterSpacing: '0.18em', padding: '4px 10px', borderRadius: 0 }}>× {tt('CLEAR ALL')}</button>}
           </div>
@@ -461,7 +461,7 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
               {onCreateLibrary && onPickName && (
                 <button onClick={pickName} title={tt("Add by name only — no library link, notes, or video; won't be reusable")}
                   style={{ background: 'transparent', border: 'none', color: C.tm, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 600, letterSpacing: '0.05em', textDecoration: 'underline', textUnderlineOffset: 2, padding: 2 }}>
-                  use once in this program only
+                  {tt('use once in this program only')}
                 </button>
               )}
             </div>
@@ -2904,10 +2904,10 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                       {/* Per-week toggles, column-aligned under SETS (col 4) and
                           REPS (col 5), shown only when the row is expanded. */}
                       {exOpen && <label style={{gridColumn:4,display:'flex',alignItems:'center',justifyContent:'center',gap:5,cursor:'pointer',fontFamily:FN,fontSize:9,color:C.tm,letterSpacing:'0.02em',padding:'5px 0',whiteSpace:'nowrap'}}>
-                        <input type="checkbox" checked={!!(ex.wkS&&ex.wkS.length)} onChange={()=> (ex.wkS&&ex.wkS.length) ? update({wkS:null,sets:parseInt(ex.wkS[0])||ex.sets||3}) : update({wkS:Array.from({length:weeks},()=>String(ex.sets||3))})} style={{accentColor:C.ac,width:13,height:13,cursor:'pointer',flexShrink:0}} /> per week
+                        <input type="checkbox" checked={!!(ex.wkS&&ex.wkS.length)} onChange={()=> (ex.wkS&&ex.wkS.length) ? update({wkS:null,sets:parseInt(ex.wkS[0])||ex.sets||3}) : update({wkS:Array.from({length:weeks},()=>String(ex.sets||3))})} style={{accentColor:C.ac,width:13,height:13,cursor:'pointer',flexShrink:0}} /> {tt('per week')}
                       </label>}
                       {exOpen && <label style={{gridColumn:5,display:'flex',alignItems:'center',justifyContent:'center',gap:5,cursor:'pointer',fontFamily:FN,fontSize:9,color:C.tm,letterSpacing:'0.02em',padding:'5px 0',whiteSpace:'nowrap'}}>
-                        <input type="checkbox" checked={!!(ex.wk&&ex.wk.length)} onChange={()=> (ex.wk&&ex.wk.length) ? update({wk:null,reps:ex.wk[0]||"8-12"}) : update({wk:Array.from({length:weeks},()=>ex.reps||""),reps:">"})} style={{accentColor:C.ac,width:13,height:13,cursor:'pointer',flexShrink:0}} /> per week
+                        <input type="checkbox" checked={!!(ex.wk&&ex.wk.length)} onChange={()=> (ex.wk&&ex.wk.length) ? update({wk:null,reps:ex.wk[0]||"8-12"}) : update({wk:Array.from({length:weeks},()=>ex.reps||""),reps:">"})} style={{accentColor:C.ac,width:13,height:13,cursor:'pointer',flexShrink:0}} /> {tt('per week')}
                       </label>}
                       {/* Inline full detail — the combined overview+detail panel. */}
                       <div style={{gridColumn:'1 / -1', display:'grid', gridTemplateRows: exOpen?'1fr':'0fr', transition:'grid-template-rows 260ms ease'}}>
@@ -3012,7 +3012,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
         <div onClick={()=>setHistoryOpen(false)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.72)',zIndex:10000,display:'flex',alignItems:'flex-start',justifyContent:'center',padding:'6vh 16px',overflowY:'auto'}}>
           <div onClick={e=>e.stopPropagation()} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,width:'min(560px,100%)',maxHeight:'88vh',display:'flex',flexDirection:'column'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,padding:'14px 18px',borderBottom:`1px solid ${C.cardBd}`,flexShrink:0}}>
-              <div style={{fontFamily:FN,fontWeight:700,fontSize:14,letterSpacing:'0.04em',color:C.tx,minWidth:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{tt('HISTORY ·')}{plan.name} <span style={{color:C.tm,fontWeight:400,fontSize:12}}>· {blockWorkouts.length} logged</span></div>
+              <div style={{fontFamily:FN,fontWeight:700,fontSize:14,letterSpacing:'0.04em',color:C.tx,minWidth:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{tt('HISTORY ·')}{plan.name} <span style={{color:C.tm,fontWeight:400,fontSize:12}}>· {tt('{n} logged').replace('{n}', blockWorkouts.length)}</span></div>
               <button onClick={()=>setHistoryOpen(false)} aria-label={tt('Close history')} style={{background:'transparent',border:'none',color:C.tm,cursor:'pointer',fontSize:20,lineHeight:1,flexShrink:0,padding:0}}>×</button>
             </div>
             <div style={{overflowY:'auto',padding:'12px 18px 18px'}}>
@@ -3165,7 +3165,7 @@ function CopyDaysModal({ days, currentPlanId, preselected, planIndex, sourceWeek
               <div>
                 <div style={fieldLbl}>{tt("Athlete")}</div>
                 <select value={existAthlete} onChange={e=>{ setExistAthlete(e.target.value); setTargetId(''); }} style={sel}>
-                  <option value="">— athlete —</option>
+                  <option value="">{tt('— athlete —')}</option>
                   {athletesWithTargets.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
@@ -3772,13 +3772,13 @@ export function TrainingLineage({ traineeId, traineeName, exercises, plans, load
 
       {/* Movement-pattern matrix — ~10 lanes, not 300 lifts. Each cell = working
           sets for that pattern that block; the periodization at a glance. */}
-      <div style={{ padding: '12px 12px 0', fontFamily: FN, fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{tt('Movement patterns ·')}{metric === 'volume' ? 'volume' : 'sets'} per block
+      <div style={{ padding: '12px 12px 0', fontFamily: FN, fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{tt('Movement patterns ·')}{tt(metric === 'volume' ? 'volume per block' : 'sets per block')}
       </div>
       <div style={{ overflowX: 'auto', padding: '6px 12px 12px' }}>
         <div style={{ minWidth: NAME_W + blocks.length * COL_W }}>
           {/* header row */}
           <div style={{ display: 'grid', gridTemplateColumns: `${NAME_W}px repeat(${blocks.length}, ${COL_W}px)`, gap: 0, alignItems: 'stretch' }}>
-            <div style={{ position: 'sticky', left: 0, zIndex: 2, background: 'var(--c-sf)', borderBottom: `2px solid ${C.cardBd}`, padding: '6px 8px', fontFamily: FN, fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 6 }}><span>{tt('Pattern')}</span><span style={{ color: '#39BDFF' }}>→ next</span></div>
+            <div style={{ position: 'sticky', left: 0, zIndex: 2, background: 'var(--c-sf)', borderBottom: `2px solid ${C.cardBd}`, padding: '6px 8px', fontFamily: FN, fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 6 }}><span>{tt('Pattern')}</span><span style={{ color: '#39BDFF' }}>{tt('→ next')}</span></div>
             {blocks.map((b, i) => (
               <button key={b.id} onClick={() => onOpenPlan && onOpenPlan(b.id)} title={`Open ${b.name}`}
                 style={{ textAlign: 'center', border: 'none', borderBottom: `2px solid ${i === blocks.length - 1 ? '#39BDFF' : C.cardBd}`, borderInlineStart: `1px solid ${C.cardBd}`, background: i === blocks.length - 1 ? 'color-mix(in srgb, var(--c-ac) 8%, transparent)' : 'transparent', padding: '6px 4px', cursor: 'pointer', overflow: 'hidden' }}>
@@ -3913,9 +3913,9 @@ export function TrainingLineage({ traineeId, traineeName, exercises, plans, load
       <div style={{ padding: '2px 12px 14px', display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center', fontFamily: FN, fontSize: 10, letterSpacing: '0.04em', color: C.tm }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 10, height: 10, background: 'color-mix(in srgb, #39BDFF 40%, transparent)' }} />{tt("Volume (sets)")}</span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 13, height: 2, background: '#f0b429' }} />{tt('Intensity (%1RM from reps)')}</span>
-        <span style={{ color: C.or }}>⚠ accommodation</span>
-        <span>bar under each pattern = your MEV→MRV band</span>
-        <span style={{ color: C.td }}>· click a block to open it</span>
+        <span style={{ color: C.or }}>{tt('⚠ accommodation')}</span>
+        <span>{tt('bar under each pattern = your MEV→MRV band')}</span>
+        <span style={{ color: C.td }}>· {tt('click a block to open it')}</span>
       </div>
     </div>
   );
@@ -4578,7 +4578,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
         <div onClick={e=>e.stopPropagation()} style={{ background:'var(--c-sf)', border:`1px solid ${C.rd}`, borderRadius:0, width:'min(420px, 94vw)', boxShadow:C.cardShadow }}>
           <div style={{ padding:'16px 18px 6px', fontFamily:FN, fontSize:13, fontWeight:700, letterSpacing:'0.08em', color:C.tx, textTransform:'uppercase' }}>Delete program?</div>
           <div style={{ padding:'0 18px 12px', fontFamily:FN, fontSize:12, color:C.tm, lineHeight:1.6 }}>
-            “{pendingDelete.name || 'this program'}” — logged workouts stay; this can’t be undone. Type <b style={{color:C.tx}}>delete</b> to confirm.
+            “{pendingDelete.name || tt('this program')}” — {tt('logged workouts stay; this can’t be undone.')} {tt('Type the word')} <b style={{color:C.tx}}>delete</b> {tt('to confirm.')}
           </div>
           <input value={deleteTyped} onChange={e=>setDeleteTyped(e.target.value)} autoFocus placeholder="type delete"
             onKeyDown={e=>{ if (e.key==='Enter' && ok) doDelete(); if (e.key==='Escape') close(); }}
@@ -4978,7 +4978,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               <button onClick={e=>{e.stopPropagation();toggleAthlete(row.tid);}}
                 title={expanded?(readLang() === 'he' ? 'הסתרת הבלוקים הקודמים' : `Hide ${row.earlier.length} previous block${row.earlier.length===1?'':'s'}`):(readLang() === 'he' ? `${row.earlier.length===1 ? 'הצגת הבלוק הקודם' : `הצגת ${row.earlier.length} הבלוקים הקודמים`} (או לחיצה כפולה על הכרטיס)` : `Show ${row.earlier.length} previous block${row.earlier.length===1?'':'s'} (or double-click the card)`)}
                 style={{display:'inline-flex',alignItems:'center',gap:5,height:24,padding:'0 9px',background:expanded?'rgba(127,127,138,0.14)':'transparent',border:`1px solid ${C.cardBd}`,borderRadius:0,color:C.tm,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.05em',whiteSpace:'nowrap',flexShrink:0,fontVariantNumeric:'tabular-nums'}}>
-                {row.earlier.length} previous
+                {tt('{n} previous').replace('{n}', row.earlier.length)}
                 <span aria-hidden style={{display:'inline-block',transform:expanded?'rotate(180deg)':'none',transition:'transform .15s',fontSize:8,lineHeight:1}}><svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
               </button>
             );
@@ -5115,7 +5115,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               <button className="prog-txtbtn" onClick={e=>{e.stopPropagation(); setPendingDelete({ id: p.id, name: p.name, fromEditor: false }); setDeleteTyped('');}} title={tt('Delete program')} style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:C.rd}}>{tb("Delete")}</button>
             </div>
           </div>})}
-          {hasMore && <Btn variant="ghost" onClick={()=>setVisibleCount(c=>c+PAGE_SIZE)} style={{width:"100%",justifyContent:"center",marginTop:8}}>{tt('Load more (')}{filtered.length - visibleCount} remaining)</Btn>}
+          {hasMore && <Btn variant="ghost" onClick={()=>setVisibleCount(c=>c+PAGE_SIZE)} style={{width:"100%",justifyContent:"center",marginTop:8}}>{tt('Load more (')}{filtered.length - visibleCount} {tt('remaining)')}</Btn>}
         </div>))}
         </div>{/* /RIGHT main column */}
       </div>{/* /two-column layout */}
@@ -5144,7 +5144,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                     </div>
                   );
                 })}
-                {(d?.exercises||[]).length > 8 && <div style={{fontSize:10,color:C.td,fontFamily:FN,marginTop:3}}>+{(d?.exercises||[]).length-8} more</div>}
+                {(d?.exercises||[]).length > 8 && <div style={{fontSize:10,color:C.td,fontFamily:FN,marginTop:3}}>{tt('+{n} more').replace('{n}', (d?.exercises||[]).length-8)}</div>}
               </div>
             ))}
           </div>

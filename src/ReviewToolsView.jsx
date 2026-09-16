@@ -248,7 +248,7 @@ function ToolLoading({ label }) {
           animation: 'rtspin .7s linear infinite',
         }} />
         <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: '#FFF', letterSpacing: '0.18em' }}>{tt('LOADING')} {label}…</div>
-        <div style={{ fontFamily: FB, fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 6 }}>warming up pose engine</div>
+        <div style={{ fontFamily: FB, fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 6 }}>{tt('warming up pose engine')}</div>
       </div>
     </div>
   );

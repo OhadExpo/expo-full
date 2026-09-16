@@ -19,7 +19,7 @@ const ALLOW = new Set(['EXPO', 'RPE', 'ROM', 'VBT', 'BW', 'KG', 'PR', 'PRS', 'MR
 const BRAND = /^(?:Google Calendar|Vercel|Supabase|WhatsApp|YouTube|Green Invoice|Safari)$/;
 // A run that is really CODE: the widened bounds (} … {) can straddle a plain
 // JS expression, e.g. the T() helper's own body.
-const CODE_SHAPE = /\w\(|\)\.|=>|replace|const/;
+const CODE_SHAPE = /\w\(|\)\.|=>|\breplace\b|\bconst\b/;
 const EXERCISE_SHAPE = /\b(?:DB|BB|SA|KB|TRX|RDL|SLDL|OHP|ISO|POS|ATH)\b|\d+\s*[x×]\s*\d+/i;
 // Mixed case counts too. The first version only matched SHOUTING labels, so
 // `>Log session<` and `>League Stats<` sat in the Hebrew club zone untouched
@@ -33,7 +33,15 @@ const EXERCISE_SHAPE = /\b(?:DB|BB|SA|KB|TRX|RDL|SLDL|OHP|ISO|POS|ATH)\b|\d+\s*[
 // seen; 50 of them sat in translated views. An optional 1-2 symbol lead is
 // allowed now (anything but a letter, digit, quote, bracket, Hebrew, or the
 // code punctuation , ; : = that would straddle a line of JS).
-const LITERAL = /[>}]\s*((?:[^\sA-Za-z0-9<>{}()[\]'"`$,;:=֐-׿]{1,2}\s*)?[A-Z][A-Za-z0-9 ·+→←✓%&/()'’.…\-–—:]{2,140}?)\s*[<{]/g;
+const LITERAL = /[>}]\s*((?:[^\sA-Za-z0-9<>{}()[\]'"`$,;:=֐-׿]{1,2}\s*)?[A-Z][A-Za-z0-9 ·+→←✓%&/()'’.,…\-–—:]{2,140}?)\s*[<{]/g;
+// Hole #7/#8 (17.9): a run with a COMMA was invisible - the class had none - and so
+// was one starting lowercase (`— no active injuries.`, `pending`). A lowercase
+// run must end at a TAG, not an expression: `} else {` is code, `} athletes<` is not.
+const LITERAL_LC = /(?<!=)[>}]\s*((?:[^\sA-Za-z0-9<>{}()[\]'"`$,;:=֐-׿]{1,2}\s*)?[a-z][A-Za-z0-9 ·+→←✓%&/()'’.,…\-–—:]{2,140}?)\s*</g;
+// `x > limit && (`, `padX + (n`, `s.count` - an expression, not a sentence.
+const LC_CODE = /&&|\|\||\w\.\w|\+ \(|^[a-z]+[A-Z]\w*\b/;
+// `delete` is the word the coach TYPES to confirm a delete - the check compares to it.
+const JS_WORD = /^(?:else|catch|finally|while|return|if|from|of|in|as|const|let|var|typeof|new|await|async|case|default)\b/;
 // A tooltip is the one place the app EXPLAINS itself - the last place that
 // should be in another language. 214 of them were English.
 const TITLE_ATTR = /(?<![\w$])title=(?:"([A-Z][^"]{3,120})"|'([A-Z][^']{3,120})')/g;
@@ -85,6 +93,7 @@ function scanFile(f, raw) {
   const src = stripComments(raw);
   const lineOf = (i) => src.slice(0, i).split('\n').length;
   for (const m of src.matchAll(LITERAL)) { if (!isAllowed(m[1])) findings.push({ f, line: lineOf(m.index), text: m[1].trim(), kind: 'jsx' }); }
+  for (const m of src.matchAll(LITERAL_LC)) { const t = m[1].trim(); if (!JS_WORD.test(t.replace(/^[^a-z]+/, '')) && !LC_CODE.test(t) && t !== 'delete' && !isAllowed(t)) findings.push({ f, line: lineOf(m.index), text: t, kind: 'jsx' }); }
   // Placeholders that are DATA examples or typed confirmations stay English
   // on purpose: an email shape, a URL, "kg/%", "reps", "e.g. 83.5", and the
   // word the coach must type to confirm a delete (the check compares to it).

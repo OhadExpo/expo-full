@@ -775,7 +775,7 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
               border: 'none', fontFamily: FN, fontSize: 9, fontWeight: 700,
               letterSpacing: '0.12em', padding: '5px 12px', height: 24,
               cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase',
-            }}>add</button>
+            }}>{tt('add')}</button>
         ) : (
           <span style={{
             fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
@@ -866,7 +866,7 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
                 <span style={cmpLabel}>{tr(readLang(), 'Athlete')}</span>
                 <select value={traineeId} onChange={(e) => setTraineeId(e.target.value)} onMouseDown={(e) => e.stopPropagation()} title={tt('Link this task to an athlete')}
                   style={{ background: 'transparent', color: traineeId ? C.ac : 'var(--c-tm)', border: `1px solid ${traineeId ? C.ac : 'var(--c-cardBd)'}`, fontFamily: FN, fontSize: 10, fontWeight: 600, padding: '3px 6px', height: 24, borderRadius: 0, outline: 'none', maxWidth: 160, textOverflow: 'ellipsis' }}>
-                  <option value="">— no athlete —</option>
+                  <option value="">{tt('— no athlete —')}</option>
                   {[...trainees].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(t => (
                     <option key={t.id} value={t.id}>{t.name || t.id}</option>
                   ))}

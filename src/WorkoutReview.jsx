@@ -2055,7 +2055,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
           {delHold.value.dayName} · {delHold.value.planName} · W{delHold.value.week}
         </div>
         <div style={{fontSize:12,color:C.tm,marginBottom:14,textAlign:'center'}}>
-          This permanently removes the workout, its sets, form videos, and review notes. Type <span style={{color:C.rd||'#ff6b6b',fontWeight:700}}>delete</span> to confirm.
+          {tt('This permanently removes the workout, its sets, form videos, and review notes. Type the word')} <span style={{color:C.rd||'#ff6b6b',fontWeight:700}}>delete</span> {tt('to confirm.')}
         </div>
         <input autoFocus value={deleteConfirmText} onChange={e => setDeleteConfirmText(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && confirmOk) onDeleteConfirm(); }}
@@ -2401,7 +2401,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                           if (candidates.length === 0) return canEmbed(fromLib?.videoLink) ? (
                             <button onClick={() => setCompareActive({ left: { url: formVideo.cloudUrl, label: `${wo.planName} · W${wo.week} · ${wo.dayName} — ${ex.title || exName} · ${fmtPrettyDate(wo.date)}`, title: ex.title || exName }, right: { url: fromLib.videoLink, label: 'Reference demo · library', title: ex.title || exName }, rightMode: 'demo' })}
                             title={tt("Play the athlete's rep next to the branded reference demo")}
-                            style={{background:C.acD,border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:9,padding:'3px 8px',borderRadius:0,cursor:'pointer',letterSpacing:0.5}}>◫ vs DEMO</button>
+                            style={{background:C.acD,border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:9,padding:'3px 8px',borderRadius:0,cursor:'pointer',letterSpacing:0.5}}>{tt('◫ vs DEMO')}</button>
                           ) : null;
                           const leftLabel = `${wo.planName} · W${wo.week} · ${wo.dayName} — ${ex.title || exName} · ${fmtPrettyDate(wo.date)}`;
                           return (

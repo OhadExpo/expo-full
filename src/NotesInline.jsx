@@ -194,7 +194,7 @@ export default function NotesInline({
             </span>
             {rows.some(r => r.pinned) && (
               <span style={{ fontFamily: FN, fontSize: 10, color: refined ? '#FFFFFF' : 'var(--c-or)', letterSpacing: '0.08em', fontWeight: 700 }}>
-                📌 {rows.filter(r => r.pinned).length} pinned
+                📌 {rows.filter(r => r.pinned).length} {tr(readLang(), 'pinned')}
               </span>
             )}
           </div>

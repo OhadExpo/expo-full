@@ -541,7 +541,7 @@ export default function SmartImportView() {
             <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>{tt('SHEET PREVIEW')}</SectionLabel>
           </div>
           <div style={{ padding: 12 }}>
-          <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, marginBottom: 6, letterSpacing: '0.18em', fontWeight: 700 }}>{sheetGrid.headers.length} cols · {sheetGrid.rows.length} rows</div>
+          <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, marginBottom: 6, letterSpacing: '0.18em', fontWeight: 700 }}>{sheetGrid.headers.length} {tt('cols')} · {sheetGrid.rows.length} {tt('rows')}</div>
           <div style={{ overflowX: 'auto', maxHeight: 200, overflowY: 'auto', border: `1px solid ${C.cardBd}`, borderRadius: 0 }}>
             <table style={{ borderCollapse: 'collapse', fontSize: 11, fontFamily: FB, color: C.tx }}>
               <thead><tr style={{ background: 'transparent' }}>{sheetGrid.headers.map((h, i) => (
@@ -567,7 +567,7 @@ export default function SmartImportView() {
           </div>
           <div style={{ padding: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
-            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, textTransform: 'uppercase' }}><Badge color={lowConf ? C.or : C.gn}>{Math.round((mapping.confidence ?? 0) * 100)}% confident</Badge></div>
+            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, textTransform: 'uppercase' }}><Badge color={lowConf ? C.or : C.gn}>{Math.round((mapping.confidence ?? 0) * 100)}% {tt('confident')}</Badge></div>
             <Btn onClick={runTransform} disabled={transforming} style={{ minWidth: 160, justifyContent: 'center' }}>{transforming ? 'Transforming…' : 'Preview Transform'}</Btn>
           </div>
           {mapping.notes && <div style={{ fontSize: 12, color: C.tm, lineHeight: 1.5, marginBottom: 8 }}>💡 {mapping.notes}</div>}
@@ -588,7 +588,7 @@ export default function SmartImportView() {
                   <div style={{ color: C.tx, fontFamily: FB }}>{field}</div>
                   <select value={m.source || ''} onChange={e => updateMappingSource(field, e.target.value)}
                     style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '6px 8px', color: C.tx, fontFamily: FB, fontSize: 12 }}>
-                    <option value="">— none —</option>
+                    <option value="">{tt('— none —')}</option>
                     {sheetGrid?.headers.filter(Boolean).map((h, i) => <option key={i} value={h}>{h}</option>)}
                   </select>
                   <div style={{ fontFamily: FN, fontSize: 11, color: conf >= 0.8 ? C.gn : conf >= 0.5 ? C.or : C.td }}>{m.source ? Math.round(conf * 100) + '%' : '—'}</div>

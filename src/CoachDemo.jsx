@@ -1490,7 +1490,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
               <span style={{ color: C.ac, textShadow: '0 0 12px rgba(57,189,255,0.45)' }}>{trainee.name}</span>
               <span style={{ fontSize: 11, opacity: 0.78, letterSpacing: '0.02em', textTransform: 'none', fontWeight: 500 }}>{trainee.format}{trainee.phone ? ` · ${trainee.phone}` : ''}</span>
             </span>}>
-            <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.14em', textTransform: 'uppercase', paddingTop: 8, fontWeight: 700 }}>{T('Shared household ·')}{coupleSplit.length} members</div>
+            <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.14em', textTransform: 'uppercase', paddingTop: 8, fontWeight: 700 }}>{T('Shared household ·')}{coupleSplit.length} {T('members')}</div>
           </DemoDetailCard>
         ); })()}
 
@@ -1650,7 +1650,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
 
           {/* BILLING — Date / Amount / Status / Notes (matches real; no "Method"). */}
           {showSec('billing') && <DemoDetailCard style={{ marginBottom: 16 }} header={secTitle(`Billing (${payments.length})`)}
-            headerRight={<span style={{ fontFamily: FB, fontSize: 12, color: '#FFFFFF', opacity: 0.85, whiteSpace: 'nowrap' }}>₪{totalPaid.toLocaleString()} paid</span>}>
+            headerRight={<span style={{ fontFamily: FB, fontSize: 12, color: '#FFFFFF', opacity: 0.85, whiteSpace: 'nowrap' }}>₪{totalPaid.toLocaleString()} {T('paid')}</span>}>
             {/* Contract terms strip (moved from the removed header cluster, #139 parity). */}
             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '12px 32px', margin: '0 auto 16px', textAlign: 'center' }}>
               {billingTerms.map(([l, v]) => {
@@ -3143,7 +3143,7 @@ function DemoReview() {
                 <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', color: '#FFFFFF', textTransform: 'uppercase' }}>{T('Form Video ·')}{vidEx.name}</span>
                 <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                   <button onClick={e => { e.stopPropagation(); setVsDemo(v => !v); }} title={T("Play the athlete's rep next to the branded reference demo")}
-                    style={{ background: vsDemo ? '#39BDFF' : 'transparent', border: `1px solid ${vsDemo ? '#39BDFF' : 'rgba(255,255,255,0.35)'}`, color: vsDemo ? '#06131b' : '#fff', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', padding: '3px 9px', borderRadius: 0, cursor: 'pointer', textTransform: 'uppercase' }}>◫ vs Demo</button>
+                    style={{ background: vsDemo ? '#39BDFF' : 'transparent', border: `1px solid ${vsDemo ? '#39BDFF' : 'rgba(255,255,255,0.35)'}`, color: vsDemo ? '#06131b' : '#fff', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', padding: '3px 9px', borderRadius: 0, cursor: 'pointer', textTransform: 'uppercase' }}>{T('◫ vs Demo')}</button>
                   <span style={{ fontFamily: FN, fontSize: 9, color: '#fff', opacity: 0.7, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{T('Draw · comment at any timestamp')}</span>
                 </div>
               </div>

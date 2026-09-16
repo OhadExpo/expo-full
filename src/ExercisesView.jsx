@@ -359,7 +359,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
 
       {onOpenClassify && unclassifiedCount > 0 && (
         <button onClick={onOpenClassify} style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10, width: '100%', textAlign: 'start', marginBottom: 16, padding: '10px 14px', background: `color-mix(in srgb, ${C.ac} 8%, var(--c-sf))`, border: `1px solid color-mix(in srgb, ${C.ac} 35%, transparent)`, borderInlineStart: `3px solid ${C.ac}`, borderRadius: 0, cursor: 'pointer' }}>
-          <span style={{ fontFamily: FN, fontSize: 12.5, fontWeight: 700, color: C.tx }}><span style={{ color: C.ac, fontVariantNumeric: 'tabular-nums' }}>{unclassifiedCount.toLocaleString()}</span> exercises are unclassified</span>
+          <span style={{ fontFamily: FN, fontSize: 12.5, fontWeight: 700, color: C.tx }}><span style={{ color: C.ac, fontVariantNumeric: 'tabular-nums' }}>{unclassifiedCount.toLocaleString()}</span> {tt('exercises are unclassified')}</span>
           <span style={{ fontFamily: FB, fontSize: 12, color: C.td }}>{tt('— resolution/movement/position blank')}</span>
           <span style={{ marginInlineStart: 'auto', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.ac }}>{tt('Classify at scale →')}</span>
         </button>
@@ -525,7 +525,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
               <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                 <button type="button" onClick={() => setForm(f => ({ ...f, resistanceType: f.resistanceType || g.resistanceType, bodyPosition: f.bodyPosition || g.bodyPosition, movementType: f.movementType || g.movementType }))}
                   style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.ac, background: `color-mix(in srgb, ${C.ac} 12%, transparent)`, border: `1px solid ${C.ac}`, borderRadius: 0, padding: '6px 12px', cursor: 'pointer' }}>✨ {tr(readLang(), 'Suggest from title')}</button>
-                <span style={{ fontFamily: FB, fontSize: 11.5, color: C.tm }}>{[g.resistanceType, g.bodyPosition, g.movementType].filter(Boolean).join(' · ')} — fills blank fields only</span>
+                <span style={{ fontFamily: FB, fontSize: 11.5, color: C.tm }}>{[g.resistanceType, g.bodyPosition, g.movementType].filter(Boolean).join(' · ')} — {tt('fills blank fields only')}</span>
               </div>
             ) : null; })()}
             <Select label="Resistance Type" options={RESISTANCE_TYPES} value={form.resistanceType} onChange={v => setForm({ ...form, resistanceType: v })} placeholder={tt('Select...')} />

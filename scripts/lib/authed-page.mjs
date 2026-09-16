@@ -22,10 +22,16 @@ const PW = process.env.EXPO_PW || '1234';
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// 17.9: once the profile's language is Hebrew the login screen renders in
+// Hebrew, and every marker here was English - so signIn() reported "already
+// signed in" ON the login page and a club-zone sweep measured it (3 strings).
 const LOGIN_MARKERS = [
   /Don't have an account/i,
   /Continue with Google/i,
   /^\s*Sign-?in\s*$/im,
+  /Coach sign-in/i,
+  /המשך עם Google/,
+  /^\s*כניסה\s*$/m,
 ];
 
 export function looksLikeLogin(text) {

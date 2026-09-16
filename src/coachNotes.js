@@ -36,7 +36,7 @@ function reportFailure(action, error) {
   const he = readLang() === 'he';
   const heAction = HE_ACTION[action] || action;
   const friendlier = network
-    ? (he ? `${heAction} נכשלה — אין חיבור לשרת. שום דבר לא נשמר; נסה שוב כשהחיבור יחזור.`
+    ? (he ? `${heAction} נכשלה — אין חיבור לשרת. שום דבר לא נשמר. נסה שוב כשהחיבור יחזור.`
           : `${action} failed — no connection to the server. Nothing was saved; try again when the connection returns.`)
     : /relation .* does not exist/i.test(msg)
       ? `${action} failed — migration not applied yet (check scripts/migrations/)`

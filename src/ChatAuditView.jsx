@@ -8,7 +8,7 @@
 // peek even if a misconfigured client tried.
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useT } from './i18n';
+import { useT, agoLabel, readLang } from './i18n';
 import { C, FN, FB } from './theme';
 import { isRefined5b, CollapsibleSection } from './ui';
 import { supabase } from './supabase';
@@ -203,7 +203,7 @@ export default function ChatAuditView() {
                 <span style={{ fontFamily: FB, color: 'rgba(255,255,255,0.85)', fontSize: 11 }}>{g.turns.length} turn{g.turns.length === 1 ? '' : 's'}</span>
                 {g.errorCount > 0 && <span style={{ fontFamily: FN, color: '#FFFFFF', fontSize: 10, fontWeight: 700 }}>⚠ {g.errorCount}</span>}
               </span>}
-              right={<span style={{ fontFamily: FN, color: 'rgba(255,255,255,0.72)', fontSize: 10 }} title={fmtDate(g.lastAt)}>{ago(g.lastAt)} ago</span>}>
+              right={<span style={{ fontFamily: FN, color: 'rgba(255,255,255,0.72)', fontSize: 10 }} title={fmtDate(g.lastAt)}>{agoLabel(g.lastAt, readLang())}</span>}>
               {/* Turns */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {g.turns.map(t => (
@@ -242,7 +242,7 @@ export default function ChatAuditView() {
                     ) : (
                       <div style={{ alignSelf: 'flex-end', fontFamily: FN, fontSize: 10, color: C.td, fontStyle: 'italic' }}>(no reply recorded)</div>
                     )}
-                    <div style={{ alignSelf: 'flex-end', fontFamily: FN, fontSize: 9, color: C.td }} title={fmtDate(t.created_at)}>{ago(t.created_at)} ago</div>
+                    <div style={{ alignSelf: 'flex-end', fontFamily: FN, fontSize: 9, color: C.td }} title={fmtDate(t.created_at)}>{agoLabel(t.created_at, readLang())}</div>
                   </div>
                 ))}
               </div>

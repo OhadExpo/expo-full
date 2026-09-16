@@ -10,7 +10,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { C, FN, FB } from './theme';
 import { isRefined5b, confirmToast, toast, SectionLabel, CollapsibleSection } from './ui';
 import { supabase } from './supabase';
-import { useT as useAppT, tr, readLang } from './i18n';
+import { useT as useAppT, tr, readLang, agoLabel } from './i18n';
 
 const COACH_GATE = 5;
 const NOTES_KEY = 'expo-lead-notes';
@@ -427,7 +427,7 @@ export default function WaitlistView({ trainees }) {
                       {stars}
                     </td>
                     <td style={{ padding: '10px 12px', color: C.tm, fontSize: 12 }} title={fmtDate(l.created_at)}>
-                      {ago(l.created_at)} ago
+                      {agoLabel(l.created_at, readLang())}
                     </td>
                     <td style={{ padding: '10px 12px' }}>
                       {l.contacted ? (
@@ -589,7 +589,7 @@ function LeadCard({ lead, draggable, onDragStart, onDragEnd, isDragging, notes, 
           border: `1px solid ${C.cardBd}`, padding: '2px 6px', fontWeight: 700,
         }}>{(l.source || '—').toUpperCase().slice(0, 16)}</span>
         <span style={{ fontFamily: FN, fontSize: 9, color: C.td }}>
-          {ago(l.created_at)} ago
+          {agoLabel(l.created_at, readLang())}
         </span>
       </div>
       {l.notes && (
