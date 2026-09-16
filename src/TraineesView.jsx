@@ -203,7 +203,7 @@ function CardBWSparkline({ entries }) {
       <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1, color: C.tx, flexShrink: 0 }}>
         {last.toFixed(1)}<span style={{ color: C.tm }}>kg</span>
       </span>
-      <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: 1, color: deltaColor, flexShrink: 0 }}>
+      <span dir="ltr" style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: 1, color: deltaColor, flexShrink: 0, unicodeBidi: 'isolate' }}>
         {delta > 0 ? '+' : ''}{delta.toFixed(1)}
       </span>
     </div>

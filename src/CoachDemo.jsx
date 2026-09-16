@@ -27,6 +27,19 @@ const T = (s) => tr(readLang(), s);
 // A counted phrase whose word ORDER differs by language ("18d ago" is
 // "לפני 18 ימים"): the key carries a {n} slot, the number is dropped in after.
 const TN = (key, n) => T(key).replace('{n}', n);
+// Phones: the real app collapses every filter rail into a FILTERS toggle at
+// <= 760px and stacks it above the content (TraineesView). The demo's rails
+// were a fixed 204px side column, which crushed the cards off a phone screen.
+function useNarrowRail() {
+  const [narrow, setNarrow] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 760);
+  const [railOpen, setRailOpen] = useState(false);
+  useEffect(() => {
+    const onResize = () => setNarrow(window.innerWidth <= 760);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+  return { narrow, railOpen, setRailOpen };
+}
 // Mock times are English phrases ("32 min ago", "Today 09:14", "25 Jul · 08:00").
 // In Hebrew they are composed, not looked up: the number moves and 1/2 get
 // their own words (daysAgoHe: 1 = אתמול, 2 = שלשום).
@@ -608,6 +621,7 @@ function FakeWaButton() {
 
 // ─── Tab: Trainees ────────────────────────────────────────────────────────
 function DemoTrainees({ selected, onSelect, onClear, returnTab }) {
+  const rail = useNarrowRail();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [formatFilter, setFormatFilter] = useState('All');
@@ -661,7 +675,7 @@ function DemoTrainees({ selected, onSelect, onClear, returnTab }) {
       </div>
       {/* Two-column: shared SideRail (identical to the real TraineesView rail) + card grid. */}
       <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-        <SideRail width={204} top={64} maxHeight="calc(100vh - 76px)"
+        <SideRail className="cd-rail" narrow={rail.narrow} railOpen={rail.railOpen} setRailOpen={rail.setRailOpen} width={204} top={64} maxHeight="calc(100vh - 76px)"
           search={search} onSearch={setSearch}
           searchPlaceholder={T('Search athletes…')}
           groups={[
@@ -769,7 +783,7 @@ function MiniBWSparkline({ weight }) {
       <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1, color: C.tx, flexShrink: 0 }}>
         {last.toFixed(1)}<span style={{ color: C.tm }}>kg</span>
       </span>
-      <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: 1, color: deltaColor, flexShrink: 0 }}>
+      <span dir="ltr" style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: 1, color: deltaColor, flexShrink: 0, unicodeBidi: 'isolate' }}>
         {delta > 0 ? '+' : ''}{delta.toFixed(1)}
       </span>
     </div>
@@ -908,7 +922,7 @@ function TraineeCard({ t, onClick }) {
       {/* 80px contact slot — WhatsApp / phone / email, centered. */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, height: 80, justifyContent: 'flex-start', paddingTop: 4, overflow: 'hidden' }}>
         <FakeWaButton />
-        {t.phone && <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 0.5, textAlign: 'center' }}>{t.phone}</div>}
+        {t.phone && <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 0.5, textAlign: 'center' }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{t.phone}</span></div>}
         <div style={{ fontSize: 12, color: C.tm, textAlign: 'center', whiteSpace: 'normal', overflowWrap: 'break-word', maxWidth: '100%' }}>{t.email}</div>
       </div>
       <FinancialsBlock t={t} center />
@@ -962,7 +976,7 @@ function BWSparkline({ weight }) {
         </span>
         <span style={{
           fontFamily: FN, fontSize: 11, color: parseFloat(delta) <= 0 ? C.gn : C.or, letterSpacing: 1, fontWeight: 700,
-        }}>{parseFloat(delta) > 0 ? '+' : ''}{delta} {T('kg / 8W')}</span>
+        }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{parseFloat(delta) > 0 ? '+' : ''}{delta}</span> {T('kg / 8W')}</span>
       </div>
       <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', height: 80, display: 'block' }} aria-label={T('Bodyweight 8-week sparkline')}>
         <polyline fill="none" stroke={C.ac} strokeWidth="2" points={polyline} strokeLinecap="round" strokeLinejoin="round" />
@@ -1494,7 +1508,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
                   <div style={{ fontFamily: FB, fontWeight: 700, fontSize: 16, color: C.tx }}>{m.first} {m.surname}</div>
                   <FakeWaButton />
                 </div>
-                <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, marginBottom: 12 }}>{m.email} · {m.phone}</div>
+                <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, marginBottom: 12 }}>{m.email} · <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{m.phone}</span></div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, textAlign: 'center', marginBottom: 12 }}>
                   {[['AGE', `${m.age}y`], ['WEIGHT', `${m.weight}kg`], ['HEIGHT', `${m.height}cm`]].map(([l, v]) => (
                     <div key={l}>
@@ -1836,6 +1850,7 @@ function DemoLineage({ athleteName }) {
 }
 
 function DemoPrograms({ resetToken = 0 }) {
+  const rail = useNarrowRail();
   // List view first (mirrors PlansView root) — clicking a card opens the
   // existing block-detail panel as the editor view, with a back-link to
   // return. The block editor below is unchanged from before; it just lives
@@ -2010,7 +2025,7 @@ function DemoPrograms({ resetToken = 0 }) {
         </div>
         {/* Two-column: shared SideRail (identical to the real PlansView rail) + list. */}
         <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-        <SideRail width={204} top={64} maxHeight="calc(100vh - 76px)"
+        <SideRail className="cd-rail" narrow={rail.narrow} railOpen={rail.railOpen} setRailOpen={rail.setRailOpen} width={204} top={64} maxHeight="calc(100vh - 76px)"
           search={search} onSearch={setSearch}
           searchPlaceholder="Search programs…"
           groups={[
@@ -3733,6 +3748,7 @@ const STATUS_COLS = [
   { id: 'done',    label: 'DONE',        color: '#2E9E5B' },
 ];
 function DemoTasks() {
+  const rail = useNarrowRail();
   const [owner, setOwner] = useState('OHAD');
   const [view, setView] = useState('board');
   const [quickFilter, setQuickFilter] = useState('all');
@@ -3752,7 +3768,7 @@ function DemoTasks() {
       </div>
       {/* Two-column: the shared SideRail (identical to the real Tasks rail) + content. */}
       <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-        <SideRail width={204} top={64} maxHeight="calc(100vh - 76px)"
+        <SideRail className="cd-rail" narrow={rail.narrow} railOpen={rail.railOpen} setRailOpen={rail.setRailOpen} width={204} top={64} maxHeight="calc(100vh - 76px)"
           search="" onSearch={() => {}} searchPlaceholder={T('Search tasks…')}
           groups={[
             { label: T('Whose'), opts: ['OHAD', 'YUVAL', 'SHARED'].map(o => ({ key: o, label: T(o.charAt(0) + o.slice(1).toLowerCase()), count: counts[o], active: owner === o, onClick: () => setOwner(o) })) },
@@ -4025,12 +4041,17 @@ export default function CoachDemo() {
 
   return (
     // /demo/coach — public marketing demo of the coach app. Force dark
-    // while the live coach app's light-mode rollout is gated.
-    <div data-theme="dark" style={{
+    // while the live coach app's light-mode rollout is gated. dir follows the
+    // language like the real app's .app-root - Hebrew text in a left-to-right
+    // layout was the demo's state until 17.9.
+    <div data-theme="dark" dir={readLang() === 'he' ? 'rtl' : 'ltr'} style={{
       background: C.bg, color: C.tx, minHeight: '100vh', fontFamily: FB,
       display: 'flex', flexDirection: 'column',
     }}>
       <style>{`
+        @media (max-width: 760px) {
+          .cd-rail { width: 100% !important; position: static !important; top: auto !important; max-height: none !important; overflow: visible !important; }
+        }
         a:focus-visible, button:focus-visible {
           outline: 2px solid ${C.ac}; outline-offset: 2px; border-radius: 4px;
         }

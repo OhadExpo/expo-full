@@ -227,4 +227,7 @@ Clock: started 2026-09-17 00:14 JDT. **Deploy NOT before 05:14** (his order: 5 h
 - [ ] P3 gates on the deploy build: build, verify-athlete-journey, verify-athlete-no-backend (expected FAIL as on 11.9 — prod portal has no offline notice), prod-smoke after push, the Hebrew gates; marketing (expo-il) parity check
 - [ ] P4 push to master (the harness blocked Claude's push on 16.9 — if blocked again, hand him the one command at once); verify the new bundle on expo-app.co.il, coach screens in Hebrew, the athlete portal unchanged
 - [ ] P5 local host page: what shipped + what's left, opened in his Chrome
+- [ ] P6 (his 17.9 message) "use my what'sapp (the app on my laptop not the whatsapp web) to also fill the missing phone numbers on expo" — back up the trainees data FIRST; match by exact contact name only (blank > wrong); list every fill for him; never message anyone
+- [x] P1a O6 tool parity 26/26 (5639c60)
+- [x] P1b O7 the Hebrew coach demo is RTL; its three filter rails collapse on phones like the real app; signed deltas and phone numbers isolated (demo + the real roster's delta) — measured +972… / -1.9
 
