@@ -230,7 +230,7 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
         <input type="checkbox" checked={false} onChange={onToggleDone}
           title={tt('Mark done')}
           style={{ width: 14, height: 14, accentColor: 'var(--c-gn)', cursor: 'pointer', flexShrink: 0 }} />
-        <button onClick={onTogglePin} title={n.pinned ? 'Unpin' : 'Pin'}
+        <button onClick={onTogglePin} title={tr(readLang(), n.pinned ? 'Unpin' : 'Pin')}
           style={{
             background: 'transparent', border: 'none', cursor: 'pointer',
             color: n.pinned ? 'var(--c-or)' : 'var(--c-td)', fontSize: 11,
@@ -275,7 +275,7 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
           so the dashboard reads as a uniform stack rather than a row
           of variable-height fragments. */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4, flexWrap: 'wrap' }}>
-        <span title={isAuto ? `Auto-generated: ${kindLabel}` : 'Manual task'}
+        <span title={isAuto ? `${tr(readLang(), 'Auto-generated:')} ${kindLabel}` : tr(readLang(), 'Manual task')}
           style={{
             fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
             color: stripeColor, border: `1px solid ${stripeColor}`,
@@ -1064,7 +1064,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                 borderBottom: `1px solid var(--c-cardBd)`,
               }}>
                 <input type="checkbox" checked={true}
-                  title={n.status === 'cancelled' ? 'Reopen (un-cancel)' : 'Reopen'}
+                  title={tr(readLang(), n.status === 'cancelled' ? 'Reopen (un-cancel)' : 'Reopen')}
                   onChange={() => n.status === 'cancelled'
                     ? update(n.id, { status: 'open', completed_at: null })
                     : toggleDone(n.id)}

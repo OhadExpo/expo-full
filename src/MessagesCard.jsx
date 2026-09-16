@@ -336,7 +336,7 @@ export default function MessagesCard({ trainees, onSelectTrainee, onOpenMessages
                       color: 'var(--c-tx)', letterSpacing: '0.02em',
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     }}>{name}</span>
-                    <span title={fromAthlete ? 'Athlete sent the last message' : 'You sent the last message'}
+                    <span title={tr(readLang(), fromAthlete ? 'Athlete sent the last message' : 'You sent the last message')}
                       style={{
                         display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
                         fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.12em',

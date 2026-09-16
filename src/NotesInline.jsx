@@ -298,7 +298,7 @@ export default function NotesInline({
               <input type="checkbox" checked={false} onChange={() => toggleDone(n.id)}
                 title={tr(readLang(), 'Mark done')}
                 style={{ width: 14, height: 14, accentColor: 'var(--c-gn)', cursor: 'pointer', flexShrink: 0 }} />
-              <button onClick={() => togglePin(n.id)} title={n.pinned ? 'Unpin' : 'Pin'}
+              <button onClick={() => togglePin(n.id)} title={tr(readLang(), n.pinned ? 'Unpin' : 'Pin')}
                 style={{
                   background: 'transparent', border: 'none', cursor: 'pointer',
                   color: n.pinned ? 'var(--c-or)' : 'var(--c-td)', fontSize: 12, padding: 0, flexShrink: 0,
@@ -306,7 +306,7 @@ export default function NotesInline({
                 }}>{n.pinned ? '📌' : '○'}</button>
               {kindLabel && (
                 <>
-                  <span title={`Auto-generated: ${kindLabel}`}
+                  <span title={`${tr(readLang(), 'Auto-generated:')} ${kindLabel}`}
                     style={{
                       display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
                       fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
@@ -415,7 +415,7 @@ export default function NotesInline({
                 borderBottom: `1px solid var(--c-cardBd)`,
               }}>
                 <input type="checkbox" checked={true}
-                  title={n.status === 'cancelled' ? 'Reopen (un-cancel)' : 'Reopen'}
+                  title={tr(readLang(), n.status === 'cancelled' ? 'Reopen (un-cancel)' : 'Reopen')}
                   onChange={() => n.status === 'cancelled'
                     ? update(n.id, { status: 'open', completed_at: null })
                     : toggleDone(n.id)}

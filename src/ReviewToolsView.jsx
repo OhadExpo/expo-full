@@ -265,7 +265,7 @@ function ToolRow({ t, blocked, isFirst, onOpen }) {
   return (
     <div
       role="button" tabIndex={blocked ? -1 : 0} aria-disabled={blocked || undefined}
-      aria-label={`${t.label} — ${t.measures}`}
+      aria-label={`${tr(readLang(), t.label)} — ${tr(readLang(), t.measures)}`}
       onClick={blocked ? undefined : onOpen}
       onKeyDown={blocked ? undefined : (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }}
       onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}

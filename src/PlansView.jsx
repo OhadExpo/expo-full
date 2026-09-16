@@ -2546,7 +2546,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
             const vis = !!myVk && portalVis?.[myVk] !== false;
             const toggleVis = () => { if (!myVk) return; setPortalVis({ ...(portalVis || {}), [myVk]: !vis }); };
             return <button onClick={toggleVis}
-              title={vis ? 'On the athlete portal — click to hide' : 'Hidden from the athlete portal — click to show'}
+              title={vis ? tr(readLang(), 'On the athlete portal — click to hide') : tr(readLang(), 'Hidden from the athlete portal — click to show')}
               style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)', border:`1px solid ${vis ? 'rgba(46,213,115,0.5)' : C.cardBd}`, borderRadius:0, height:42, padding:'0 13px', display:'inline-flex', alignItems:'center', gap:8, cursor:'pointer'}}>
               <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',color:vis?C.gn:C.td}}>{tb('PORTAL')}</span>
               <span style={{width:32,height:18,borderRadius:9,background:vis?'rgba(46,213,115,0.25)':'rgba(255,255,255,0.06)',border:`1px solid ${vis?'rgba(46,213,115,0.5)':C.cardBd}`,position:'relative',flexShrink:0}}>
@@ -4407,7 +4407,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
   // HIDDEN". Was a bordered ON PORTAL / HIDDEN text pill.
   const PortalPill = ({ on, onClick, title, block }) => (
     <button onClick={onClick}
-      title={title || (on ? 'On the athlete portal — click to hide' : 'Hidden from the athlete portal — click to show')}
+      title={title || (on ? tr(readLang(), 'On the athlete portal — click to hide') : tr(readLang(), 'Hidden from the athlete portal — click to show'))}
       style={{ display:'inline-flex', alignItems:'center', justifyContent: block ? 'center' : 'flex-start', gap:8, width: block ? '100%' : 'auto', height:28, padding:0, background:'none', border:'none', cursor:'pointer', flexShrink:0 }}>
       <span style={{ fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.06em', color: on ? C.gn : C.td }}>{tb("PORTAL")}</span>
       <span style={{ width:32, height:18, borderRadius:9, background: on ? 'rgba(46,213,115,0.25)' : 'rgba(255,255,255,0.06)', border:`1px solid ${on ? 'rgba(46,213,115,0.5)' : C.cardBd}`, position:'relative', flexShrink:0, transition:'background .15s, border-color .15s' }}>
@@ -4700,7 +4700,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 12, flexWrap: 'wrap' }}>
         <h2 style={{ margin: 0, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: C.tx }}>{tt("Programs")}</h2>
         <div style={{ display: 'flex', gap: 6, width: 168 }}>
-          {[['table',tt('Table'),'Dense list — one row per athlete'],['grid',tt('Grid'),'Card grid — double-click a card to expand earlier blocks']].map(([v,label,tip]) => {
+          {[['table',tt('Table'),tr(readLang(), 'Dense list — one row per athlete')],['grid',tt('Grid'),tr(readLang(), 'Card grid — double-click a card to expand earlier blocks')]].map(([v,label,tip]) => {
             const on = progView === v;
             return (
               <button key={v} onClick={()=>setProgView(v)} title={tip}
@@ -4725,7 +4725,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
           narrow={narrow} railOpen={railOpen} setRailOpen={setRailOpen}
           search={search} onSearch={(v) => { setSearch(v); setVisibleCount(PAGE_SIZE); }}
           searchPlaceholder={tt('Search programs…')}
-          searchTitle="Search programs by name or block (e.g. “Block #5”, “GPP”)"
+          searchTitle={tr(readLang(), 'Search programs by name or block (e.g. “Block #5”, “GPP”)')}
           groups={[
             {
               label: 'Athlete',
@@ -4737,16 +4737,16 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
             {
               label: 'Flags',
               opts: [
-                { key: 'unassigned', label: tt('Unassigned'), count: flagCounts.unassigned, title: 'Programs with no athlete assigned', accent: C.or, active: flags.unassigned, onClick: () => { setFlags(m => ({ ...m, unassigned: !m.unassigned })); setVisibleCount(PAGE_SIZE); } },
-                { key: 'empty', label: `∅ ${tt('Empty')}`, count: flagCounts.empty, title: 'Programs with no exercises or no days', accent: C.or, active: flags.empty, onClick: () => { setFlags(m => ({ ...m, empty: !m.empty })); setVisibleCount(PAGE_SIZE); } },
+                { key: 'unassigned', label: tt('Unassigned'), count: flagCounts.unassigned, title: tr(readLang(), 'Programs with no athlete assigned'), accent: C.or, active: flags.unassigned, onClick: () => { setFlags(m => ({ ...m, unassigned: !m.unassigned })); setVisibleCount(PAGE_SIZE); } },
+                { key: 'empty', label: `∅ ${tt('Empty')}`, count: flagCounts.empty, title: tr(readLang(), 'Programs with no exercises or no days'), accent: C.or, active: flags.empty, onClick: () => { setFlags(m => ({ ...m, empty: !m.empty })); setVisibleCount(PAGE_SIZE); } },
               ],
             },
             {
               label: 'Sort',
               opts: [
-                ['created', tt('Uploaded'), 'Sort by when the program was created/imported. Click again to flip newest/oldest.'],
-                ['name', tt('Name'), 'Sort by program name. Click again to flip A–Z / Z–A.'],
-                ['updated', tt('Last edited'), 'Sort by when the program was last edited. Click again to flip newest/oldest.'],
+                ['created', tt('Uploaded'), tr(readLang(), 'Sort by when the program was created/imported. Click again to flip newest/oldest.')],
+                ['name', tt('Name'), tr(readLang(), 'Sort by program name. Click again to flip A–Z / Z–A.')],
+                ['updated', tt('Last edited'), tr(readLang(), 'Sort by when the program was last edited. Click again to flip newest/oldest.')],
               ].map(([field, label, tip]) => {
                 const active = sortField === field;
                 return { key: field, title: tip, active, label: active ? `${sortDir === 'asc' ? '↑' : '↓'} ${label}` : label, onClick: () => { if (active) setSortDir(d => d === 'asc' ? 'desc' : 'asc'); else setSortField(field); } };
@@ -4838,7 +4838,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                           control that resizes with its own content reads as a flash
                           bug, so reserve the widest and use tabular digits. */
                       <button onClick={e=>{e.stopPropagation();toggleAthlete(row.tid);}}
-                        title={expanded?`Hide ${row.earlier.length} previous block${row.earlier.length===1?'':'s'}`:`Show ${row.earlier.length} previous block${row.earlier.length===1?'':'s'}`}
+                        title={expanded?(readLang() === 'he' ? 'הסתרת הבלוקים הקודמים' : `Hide ${row.earlier.length} previous block${row.earlier.length===1?'':'s'}`):(readLang() === 'he' ? (row.earlier.length===1 ? 'הצגת הבלוק הקודם' : `הצגת ${row.earlier.length} הבלוקים הקודמים`) : `Show ${row.earlier.length} previous block${row.earlier.length===1?'':'s'}`)}
                         className="prog-plusn"
                         style={{display:'inline-flex',alignItems:'center',justifyContent:'center',minWidth:112,gap:5,height:24,padding:'0 9px',background: expanded ? 'rgba(127,127,138,0.14)' : 'transparent',border:`1px solid ${C.cardBd}`,borderRadius:0,color: C.tm,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.05em',whiteSpace:'nowrap',flexShrink:0,fontVariantNumeric:'tabular-nums'}}>
                         {row.earlier.length} {tb('previous')}
@@ -4855,7 +4855,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                     const vk = visKeyForPlan(cur, trainees);
                     if (!vk) return null;
                     const isVis = portalVis?.[vk] !== false;
-                    return <button onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} title={isVis?'On the athlete portal — click to hide':'Hidden from the athlete portal — click to show'} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:8}}>
+                    return <button onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} title={tr(readLang(), isVis?'On the athlete portal — click to hide':'Hidden from the athlete portal — click to show')} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:8}}>
                       <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',color:isVis?C.gn:C.td}}>{tb("PORTAL")}</span>
                       <span style={{width:32,height:18,borderRadius:9,background:isVis?'rgba(46,213,115,0.25)':'rgba(255,255,255,0.06)',border:`1px solid ${isVis?'rgba(46,213,115,0.5)':C.cardBd}`,position:'relative',transition:'background .15s, border-color .15s',flexShrink:0}}>
                         <span style={{width:14,height:14,borderRadius:7,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?15:1,transition:'left .15s'}} />
@@ -4894,7 +4894,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                           const vk = visKeyForPlan(p, trainees);
                           if (!vk) return null;
                           const isVis = portalVis?.[vk] !== false;
-                          return <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} title={isVis?'On the athlete portal — click to hide':'Hidden from the athlete portal — click to show'} style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.04em',color:isVis?C.gn:C.td,display:'inline-flex',alignItems:'center',gap:5}}><span style={{width:5,height:5,borderRadius:'50%',background:isVis?C.gn:C.td}} />{isVis?'On portal':'Hidden'}</button>;
+                          return <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} title={tr(readLang(), isVis?'On the athlete portal — click to hide':'Hidden from the athlete portal — click to show')} style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.04em',color:isVis?C.gn:C.td,display:'inline-flex',alignItems:'center',gap:5}}><span style={{width:5,height:5,borderRadius:'50%',background:isVis?C.gn:C.td}} />{isVis?'On portal':'Hidden'}</button>;
                         })()}
                         {onPreviewPlan && <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();onPreviewPlan(p.id);}} title={tt('Preview as trainee')} style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{tb("Preview")}</button>}
                         <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();handleDuplicate(p.id);}} title={tt('Duplicate program')} style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{tb("Duplicate")}</button>
@@ -4961,7 +4961,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               const vk = visKeyForPlan(p, trainees);
               if (!vk) return null;
               const isVis = portalVis?.[vk] !== false;
-              return <button onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} title={isVis?'On the athlete portal — click to hide':'Hidden from the athlete portal — click to show'} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:8}}>
+              return <button onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} title={tr(readLang(), isVis?'On the athlete portal — click to hide':'Hidden from the athlete portal — click to show')} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:8}}>
                 <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',color:isVis?C.gn:C.td}}>{tb("PORTAL")}</span>
                 <span style={{width:32,height:18,borderRadius:9,background:isVis?'rgba(46,213,115,0.25)':'rgba(255,255,255,0.06)',border:`1px solid ${isVis?'rgba(46,213,115,0.5)':C.cardBd}`,position:'relative',flexShrink:0}}>
                   <span style={{width:14,height:14,borderRadius:7,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?15:1,transition:'left .15s'}} />
@@ -4976,7 +4976,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
             </>;
             const plusBtn = row.earlier.length > 0 && (
               <button onClick={e=>{e.stopPropagation();toggleAthlete(row.tid);}}
-                title={expanded?`Hide ${row.earlier.length} previous block${row.earlier.length===1?'':'s'}`:`Show ${row.earlier.length} previous block${row.earlier.length===1?'':'s'} (or double-click the card)`}
+                title={expanded?(readLang() === 'he' ? 'הסתרת הבלוקים הקודמים' : `Hide ${row.earlier.length} previous block${row.earlier.length===1?'':'s'}`):(readLang() === 'he' ? `${row.earlier.length===1 ? 'הצגת הבלוק הקודם' : `הצגת ${row.earlier.length} הבלוקים הקודמים`} (או לחיצה כפולה על הכרטיס)` : `Show ${row.earlier.length} previous block${row.earlier.length===1?'':'s'} (or double-click the card)`)}
                 style={{display:'inline-flex',alignItems:'center',gap:5,height:24,padding:'0 9px',background:expanded?'rgba(127,127,138,0.14)':'transparent',border:`1px solid ${C.cardBd}`,borderRadius:0,color:C.tm,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.05em',whiteSpace:'nowrap',flexShrink:0,fontVariantNumeric:'tabular-nums'}}>
                 {row.earlier.length} previous
                 <span aria-hidden style={{display:'inline-block',transform:expanded?'rotate(180deg)':'none',transition:'transform .15s',fontSize:8,lineHeight:1}}><svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
@@ -5101,7 +5101,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                 const vk = visKeyForPlan(p, trainees);
                 if (!vk) return null;
                 const isVis = portalVis?.[vk] !== false;
-                return <button onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} title={isVis?'On the athlete portal — click to hide':'Hidden from the athlete portal — click to show'} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:8}}>
+                return <button onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} title={tr(readLang(), isVis?'On the athlete portal — click to hide':'Hidden from the athlete portal — click to show')} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:8}}>
                   <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',color:isVis?C.gn:C.td}}>{tb("PORTAL")}</span>
                   <span style={{width:32,height:18,borderRadius:9,background:isVis?'rgba(46,213,115,0.25)':'rgba(255,255,255,0.06)',border:`1px solid ${isVis?'rgba(46,213,115,0.5)':C.cardBd}`,position:'relative',flexShrink:0}}>
                     <span style={{width:14,height:14,borderRadius:7,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?15:1,transition:'left .15s'}} />

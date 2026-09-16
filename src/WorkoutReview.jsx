@@ -2734,7 +2734,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                       <span>{fmtPrettyDate(wo.date)}</span>
                       <span className="wr-dot">·</span>
                       <span>{doneSets}/{totalSets} {tt('sets')}</span>
-                      {hasFormVids && <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={C.tx} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}} aria-label="has form video"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>}
+                      {hasFormVids && <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={C.tx} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}} aria-label={tr(readLang(), 'has form video')}><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>}
                     </span>
                     {reviewed && (
                       <span style={{fontSize:8,fontFamily:FN,color:C.gn,fontWeight:700,letterSpacing:0.5,
@@ -2749,7 +2749,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                 {/* Action group — Review/View + Delete together, off to the right */}
                 <div style={{display:'flex',alignItems:'center',gap:8,marginInlineStart:12,flexShrink:0}}>
                   <button onClick={(e)=>{e.stopPropagation();setSelectedWo(wo.id);}}
-                    title={reviewed?'View this workout':'Review this workout'}
+                    title={tr(readLang(), reviewed?'View this workout':'Review this workout')}
                     style={{background:'transparent',border:`1px solid ${reviewed?C.cardBd:C.ac}`,color:reviewed?C.tm:C.ac,
                       borderRadius:0,padding:'5px 12px',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.08em',
                       cursor:'pointer',whiteSpace:'nowrap'}}>{reviewed?tt('VIEW →'):tt('REVIEW →')}</button>
