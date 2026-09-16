@@ -282,7 +282,7 @@ export default function IntakeForm() {
       <div data-theme="dark" style={wrapper}><div style={card}>
         <div style={{ textAlign: 'center' }}>
           <h2 style={{ fontFamily: FN, fontSize: 18, color: C.rd, margin: 0 }}>
-            {dir === 'rtl' ? 'הקישור אינו תקף' : 'Link not valid'}
+            {dir === 'rtl' ? 'הקישור לא תקף' : 'Link not valid'}
           </h2>
           <p style={{ fontSize: 14, color: C.tm, marginTop: 12 }}>
             {dir === 'rtl' ? 'בקש/י קישור חדש מהמאמן.' : 'Ask the coach for a new link.'}

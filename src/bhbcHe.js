@@ -117,7 +117,7 @@ export const HE = {
   'Landing / arrival date': 'תאריך נחיתה / הגעה',
   'Scrimmage': 'משחק אימון',
   'Shootaround': 'שוטאראונד',
-  'TBD': 'טרם נקבע',
+  'TBD': 'עוד לא נקבע',
   'Show {n} more': 'עוד {n}',
   'GAME': 'משחק',
   'Lift': 'כוח',
@@ -502,11 +502,11 @@ export const availFor = (key, en) => {
 Object.assign(HE, {
   'GAME DAY': 'יום משחק',
   'in progress': 'מתקיים עכשיו',
-  'Venue TBD': 'אולם טרם נקבע',
+  'Venue TBD': 'האולם עוד לא נקבע',
   UPDATE: 'עדכון',
-  'Opponent TBD': 'יריבה טרם נקבעה',
+  'Opponent TBD': 'היריבה עוד לא נקבעה',
   Tomorrow: 'מחר',
-  'Time TBD': 'שעה טרם נקבעה',
+  'Time TBD': 'השעה עוד לא נקבעה',
   // 'מול' is what a coach says before an opponent — 'נגד' is combative.
   vs: 'מול',
   'Pre-season': 'טרום עונה',
