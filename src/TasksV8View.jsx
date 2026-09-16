@@ -537,11 +537,11 @@ function SortBar({ sortBy, sortDir, onSortBy, onToggleDir, rightSlot }) {
     const d = sortDir === 'desc';
     switch (mode) {
       case 'date':     return d ? { a:'↑', t:tt('Latest')  } : { a:'↓', t:tt('Soonest') };
-      case 'newest':   return d ? { a:'↓', t:'Newest'  } : { a:'↑', t:'Oldest'  };
-      case 'priority': return d ? { a:'↑', t:'Low'     } : { a:'↓', t:'High'    };
+      case 'newest':   return d ? { a:'↓', t:tt('Newest') } : { a:'↑', t:tt('Oldest') };
+      case 'priority': return d ? { a:'↑', t:tt('Low') } : { a:'↓', t:tt('High') };
       case 'status':   return d ? { a:'↑', t:tt('Done') } : { a:'↓', t:tt('To Do') };
       case 'name':     return d ? { t:'Z → A' } : { t:'A → Z' };  // → is horizontal, sits fine inline
-      case 'manual':   return { t:'Manual' };
+      case 'manual':   return { t:tt('Manual') };
       default:         return { t:mode };
     }
   };
@@ -682,9 +682,9 @@ function sortRailLabel(mode, sortDir, tt = (x) => x) {
     case 'date':     return d ? '↑ ' + tt('Latest') : '↓ ' + tt('Soonest');
     case 'newest':   return d ? '↓ ' + tt('Newest') : '↑ ' + tt('Oldest');
     case 'priority': return d ? '↑ ' + tt('Low')    : '↓ ' + tt('High');
-    case 'status':   return d ? '↑ Done'   : '↓ To-Do';
+    case 'status':   return d ? '↑ ' + tt('Done') : '↓ ' + tt('To Do');
     case 'name':     return d ? 'Z → A'    : 'A → Z';
-    default:         return 'Manual';
+    default:         return tt('Manual');
   }
 }
 
@@ -2642,7 +2642,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
             })}
           </RailGroup>
 
-          <RailGroup label={tt('Group')}>
+          <RailGroup label={tt('Group by')}>
             <RailOpt label={tt("By status")}   active={boardGroup === 'status'} onClick={() => setBoardGroup('status')} />
             <RailOpt label={tt("By category")} active={boardGroup === 'list'}   onClick={() => setBoardGroup('list')} />
           </RailGroup>

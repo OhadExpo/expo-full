@@ -18,7 +18,7 @@ import { C, FN, FB, FH } from './theme';
 import { EXPOMark } from './expoMark';
 import { SideRail } from './SideRail';
 import TrainingLineageV2 from './TrainingLineageV2';
-import { tr, readLang } from './i18n';
+import { tr, readLang, daysAgoHe } from './i18n';
 
 // The demo is many small function components and a few module-level label
 // tables; one module-level helper (no hook) serves them all. Reads the
@@ -27,6 +27,21 @@ const T = (s) => tr(readLang(), s);
 // A counted phrase whose word ORDER differs by language ("18d ago" is
 // "לפני 18 ימים"): the key carries a {n} slot, the number is dropped in after.
 const TN = (key, n) => T(key).replace('{n}', n);
+// Mock times are English phrases ("32 min ago", "Today 09:14", "25 Jul · 08:00").
+// In Hebrew they are composed, not looked up: the number moves and 1/2 get
+// their own words (daysAgoHe: 1 = אתמול, 2 = שלשום).
+const MON_HE = { Jan: 'בינו׳', Feb: 'בפבר׳', Mar: 'במרץ', Apr: 'באפר׳', May: 'במאי', Jun: 'ביוני', Jul: 'ביולי', Aug: 'באוג׳', Sep: 'בספט׳', Oct: 'באוק׳', Nov: 'בנוב׳', Dec: 'בדצמ׳' };
+const RT = (s) => {
+  if (typeof s !== 'string' || readLang() !== 'he') return s;
+  let m;
+  if ((m = s.match(/^(\d+) min ago$/))) return `לפני ${m[1]} דק׳`;
+  if ((m = s.match(/^(\d+) hr ago$/))) return m[1] === '1' ? 'לפני שעה' : m[1] === '2' ? 'לפני שעתיים' : `לפני ${m[1]} שעות`;
+  if ((m = s.match(/^(\d+) days? ago$/))) return daysAgoHe(Number(m[1]));
+  if ((m = s.match(/^(\d+) weeks? ago$/))) return m[1] === '1' ? 'לפני שבוע' : m[1] === '2' ? 'לפני שבועיים' : `לפני ${m[1]} שבועות`;
+  if ((m = s.match(/^Today ([0-9]{2}:[0-9]{2})$/))) return `היום ${m[1]}`;
+  if ((m = s.match(/^(\d+) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) · ([0-9]{2}:[0-9]{2})$/))) return `${m[1]} ${MON_HE[m[2]]} · ${m[3]}`;
+  return T(s);
+};
 
 // Uniform dashboard title-strip height — mirrors the real app's RefinedHeaderStrip
 // (minHeight 46, content vertically centred) so EVERY demo section header
@@ -393,7 +408,7 @@ function DemoDashboard({ onJumpToTrainee }) {
               <span style={{ width: 7, height: 7, borderRadius: '50%', background: m.unread ? C.ac : 'transparent', border: m.unread ? 'none' : `1px solid ${C.td}`, flexShrink: 0 }} />
               <span style={{ fontFamily: FB, fontWeight: 600, fontSize: 13, color: C.tx, flexShrink: 0, minWidth: 0, maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
               <span style={{ fontFamily: FB, fontSize: 12, color: m.unread ? C.tx : C.tm, flex: 1, minWidth: 0, overflowWrap: 'break-word' }}>{m.msg}</span>
-              <span style={{ fontFamily: FN, fontSize: 10, color: C.td, flexShrink: 0 }}>{m.when}</span>
+              <span style={{ fontFamily: FN, fontSize: 10, color: C.td, flexShrink: 0 }}>{RT(m.when)}</span>
             </div>
           ))}
         </div>
@@ -466,7 +481,7 @@ function DemoDashboard({ onJumpToTrainee }) {
                 </div>
                 <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, letterSpacing: 1 }}>{l.source.toUpperCase()} · {l.context.toUpperCase()}</div>
               </div>
-              <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1, marginInlineEnd: 8 }}>{T(l.when)}</span>
+              <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1, marginInlineEnd: 8 }}>{RT(l.when)}</span>
               <button onClick={e => { e.stopPropagation(); setContacted((c) => ({ ...c, [l.id]: !c[l.id] })); }} aria-pressed={!!contacted[l.id]} title={contacted[l.id] ? T('Mark not contacted (demo)') : T('Mark contacted (demo)')} style={{ background: 'var(--c-sf)', border: `1px solid ${C.gn}`, color: C.gn, borderRadius: 0, padding: '2px 7px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>✓</button>
               <button onClick={e => { e.stopPropagation(); setLeads((ls) => ls.filter((x) => x.id !== l.id)); }} title={T('Delete lead (demo)')} style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, color: C.rd, borderRadius: 0, padding: '2px 7px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer', marginInlineStart: 4, flexShrink: 0 }}>✕</button>
             </Row>
@@ -811,14 +826,14 @@ function TrainingBlock({ t, center = false }) {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 10px', alignItems: 'center', justifyContent: justify }}>
           <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, fontWeight: 700, textTransform: 'uppercase' }}>{T(t.format)}</span>
           <MidDot />
-          <span style={{ fontFamily: FN, fontSize: 11, color: t.sessionsLeft <= 2 ? C.rd : C.gn, fontWeight: 700 }}>{t.sessionsLeft} {T('SESSIONS LEFT')}</span>
+          <span style={{ fontFamily: FN, fontSize: 11, color: t.sessionsLeft <= 2 ? C.rd : C.gn, fontWeight: 700 }}>{readLang() === 'he' && t.sessionsLeft === 1 ? 'נותר אימון אחד' : `${t.sessionsLeft} ${T('SESSIONS LEFT')}`}</span>
         </div>
         <div style={{ display: 'flex', justifyContent: justify }}>
-          <span style={{ fontFamily: FN, fontSize: 11, color: C.tx, fontWeight: 700 }}>{t.programs} {T('PROGRAMS')}</span>
+          <span style={{ fontFamily: FN, fontSize: 11, color: C.tx, fontWeight: 700 }}>{readLang() === 'he' && t.programs === 1 ? 'תוכנית אחת' : `${t.programs} ${T('PROGRAMS')}`}</span>
         </div>
         {t.lastWorkout && (
-          <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 1, fontWeight: 600, textAlign: center ? 'center' : 'left' }}>
-            {T('LAST WORKOUT')} · {T(t.lastWorkout).toUpperCase()}
+          <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 1, fontWeight: 600, textAlign: center ? 'center' : 'start' }}>
+            {T('LAST WORKOUT')} · {RT(t.lastWorkout).toUpperCase()}
           </div>
         )}
       </div>
@@ -1189,7 +1204,7 @@ function DemoCRM() {
             <span style={{ width: 15, display: 'inline-flex', justifyContent: 'center', flexShrink: 0 }}><span style={{ width: 7, height: 7, borderRadius: 4, background: a.color }} /></span>
             {/* summary + when on ONE row (parity with the real app) */}
             <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: C.tx }}>{a.text}</span>
-            <span style={{ flexShrink: 0, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}><span style={{ color: a.color }}>{a.kind}</span><span style={{ color: C.td }}> · {a.when}{a.auto ? ` · ${T('AUTO')}` : ''}</span></span>
+            <span style={{ flexShrink: 0, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}><span style={{ color: a.color }}>{a.kind}</span><span style={{ color: C.td }}> · {RT(a.when)}{a.auto ? ` · ${T('AUTO')}` : ''}</span></span>
           </div>
         ))}</div>
       )}
@@ -1548,7 +1563,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
             ].map((w, i) => (
               <Row key={i}>
                 <span style={{ flex: 1, color: C.tx, fontWeight: 600 }}>{w.day}</span>
-                <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1 }}>{w.date}</span>
+                <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1 }}>{RT(w.date)}</span>
                 <span style={{ fontFamily: FN, fontSize: 11, color: C.ac, fontWeight: 700, letterSpacing: 1 }}>{w.vol}</span>
               </Row>
             ))}
@@ -1602,7 +1617,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {[['all', 'View All'], ['vitals', 'Vitals'], ['billing', 'Billing'], ['bw', 'Bodyweight'], ['readiness', 'Readiness'], ['workouts', 'Workouts'], ['programs', 'Programs'], ['messages', 'Messages'], ['crm', 'Coach History'], ['eval', 'Evaluation'], ['overload', 'Overload']].map(([id, l]) => {
                 const active = id === 'all' ? activeSecs.size === 0 : activeSecs.has(id);
-                return <button key={id} onClick={() => id === 'all' ? setActiveSecs(new Set()) : toggleSec(id)} style={{ height: 30, padding: '0 14px', borderRadius: 0, cursor: 'pointer', fontFamily: FN, fontSize: 11, fontWeight: active ? 800 : 700, letterSpacing: '0.09em', textTransform: 'uppercase', whiteSpace: 'nowrap', background: active ? 'color-mix(in srgb, var(--c-ac) 16%, transparent)' : 'transparent', border: `1px solid ${active ? C.ac : C.cardBd}`, color: active ? 'var(--c-ac)' : C.tm }}>{l}</button>;
+                return <button key={id} onClick={() => id === 'all' ? setActiveSecs(new Set()) : toggleSec(id)} style={{ height: 30, padding: '0 14px', borderRadius: 0, cursor: 'pointer', fontFamily: FN, fontSize: 11, fontWeight: active ? 800 : 700, letterSpacing: '0.09em', textTransform: 'uppercase', whiteSpace: 'nowrap', background: active ? 'color-mix(in srgb, var(--c-ac) 16%, transparent)' : 'transparent', border: `1px solid ${active ? C.ac : C.cardBd}`, color: active ? 'var(--c-ac)' : C.tm }}>{T(l)}</button>;
               })}
             </div>
           </div>
@@ -1665,7 +1680,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
             ].map((w, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '8px 0', borderBottom: i < 2 ? `1px solid ${C.cardBd}` : 'none' }}>
                 <span style={{ color: C.tx, fontWeight: 600, fontSize: 13, flex: 1, minWidth: 0 }}>{w.day}</span>
-                <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, whiteSpace: 'nowrap' }}>{w.date}</span>
+                <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, whiteSpace: 'nowrap' }}>{RT(w.date)}</span>
                 <span style={{ fontFamily: FN, fontSize: 11, color: C.ac, fontWeight: 700, letterSpacing: 1, whiteSpace: 'nowrap' }}>{w.vol}</span>
               </div>
             ))}
@@ -1989,7 +2004,7 @@ function DemoPrograms({ resetToken = 0 }) {
           <div style={{ display: 'flex', gap: 6, width: 252 }}>
             {[['table', 'Table'], ['grid', 'Grid'], ['lineage', 'Analysis']].map(([v, label]) => {
               const on = progView === v;
-              return <button key={v} onClick={() => setProgView(v)} style={{ flex: 1, height: 30, boxSizing: 'border-box', borderRadius: 0, cursor: 'pointer', border: `1px solid ${on ? '#39BDFF' : C.cardBd}`, background: on ? '#39BDFF' : C.sf, color: on ? '#FFFFFF' : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{label}</button>;
+              return <button key={v} onClick={() => setProgView(v)} style={{ flex: 1, height: 30, boxSizing: 'border-box', borderRadius: 0, cursor: 'pointer', border: `1px solid ${on ? '#39BDFF' : C.cardBd}`, background: on ? '#39BDFF' : C.sf, color: on ? '#FFFFFF' : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{T(label)}</button>;
             })}
           </div>
         </div>
@@ -2002,7 +2017,7 @@ function DemoPrograms({ resetToken = 0 }) {
             {
               label: 'Athlete',
               opts: [
-                { key: 'all', label: 'All', count: MOCK_PROGRAM_INDEX.length, active: !filterTrainee, onClick: () => setFilterTrainee('') },
+                { key: 'all', label: T('All'), count: MOCK_PROGRAM_INDEX.length, active: !filterTrainee, onClick: () => setFilterTrainee('') },
                 ...[...new Set(MOCK_PROGRAM_INDEX.map(p => p.traineeId).filter(Boolean))]
                   .map(id => ({ id, name: MOCK_TRAINEES.find(t => t.id === id)?.name || id, count: MOCK_PROGRAM_INDEX.filter(p => p.traineeId === id).length }))
                   .sort((a, b) => a.name.localeCompare(b.name))
@@ -2013,7 +2028,7 @@ function DemoPrograms({ resetToken = 0 }) {
               label: 'Sort',
               opts: [['created', 'Uploaded'], ['name', 'Name'], ['updated', 'Last edited']].map(([field, label]) => {
                 const active = sortField === field;
-                return { key: field, active, label: active ? `${sortDir === 'asc' ? '↑' : '↓'} ${label}` : label, onClick: () => { if (active) setSortDir(d => d === 'asc' ? 'desc' : 'asc'); else setSortField(field); } };
+                return { key: field, active, label: active ? `${sortDir === 'asc' ? '↑' : '↓'} ${T(label)}` : T(label), onClick: () => { if (active) setSortDir(d => d === 'asc' ? 'desc' : 'asc'); else setSortField(field); } };
               }),
             },
           ]}
@@ -2129,14 +2144,14 @@ function DemoPrograms({ resetToken = 0 }) {
                           <span style={{ fontWeight: 700, fontSize: 15, color: C.ac, fontFamily: FN, letterSpacing: '0.04em', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cur.name || 'Untitled'}</span>
                           {row.earlier.length > 0 && (
                             <button onClick={e => { e.stopPropagation(); toggleAthlete(row.tid); }}
-                              title={expanded ? `Hide ${row.earlier.length} previous` : `Show ${row.earlier.length} previous block${row.earlier.length === 1 ? '' : 's'}`}
+                              title={readLang() === 'he' ? (expanded ? 'הסתרת הבלוקים הקודמים' : (row.earlier.length === 1 ? 'הצגת הבלוק הקודם' : `הצגת ${row.earlier.length} הבלוקים הקודמים`)) : (expanded ? `Hide ${row.earlier.length} previous` : `Show ${row.earlier.length} previous block${row.earlier.length === 1 ? '' : 's'}`)}
                               style={{ display: 'inline-flex', alignItems: 'center', gap: 5, height: 22, padding: '0 9px', background: expanded ? 'rgba(57,189,255,0.10)' : 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', whiteSpace: 'nowrap', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
-                              {row.earlier.length} previous
+                              {readLang() === 'he' ? (row.earlier.length === 1 ? 'בלוק קודם אחד' : `${row.earlier.length} קודמים`) : `${row.earlier.length} previous`}
                               <span aria-hidden style={{ display: 'inline-block', transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform .15s', fontSize: 8, lineHeight: 1 }}><svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
                             </button>
                           )}
                         </div>
-                        <div style={{ fontSize: 12, color: C.tm, fontFamily: FN, letterSpacing: '0.04em', marginTop: 5 }}>{cur.dayCount} days · {cur.exerciseCount} exercises</div>
+                        <div style={{ fontSize: 12, color: C.tm, fontFamily: FN, letterSpacing: '0.04em', marginTop: 5 }}>{readLang() === 'he' ? `${cur.dayCount === 1 ? 'יום אחד' : `${cur.dayCount} ימים`} · ${cur.exerciseCount === 1 ? 'תרגיל אחד' : `${cur.exerciseCount} תרגילים`}` : `${cur.dayCount} days · ${cur.exerciseCount} exercises`}</div>
                       </div>
                       {(() => {
                         const txt = (color) => ({ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', color });
@@ -2878,7 +2893,7 @@ function DemoExercises() {
         <div style={{ display: 'flex', gap: 6, width: 200 }}>
           {[['table', 'Table'], ['grid', 'Grid']].map(([v, label]) => {
             const on = view === v;
-            return <button key={v} onClick={() => setView(v)} style={{ flex: 1, height: 30, boxSizing: 'border-box', borderRadius: 0, cursor: 'pointer', border: `1px solid ${on ? '#39BDFF' : C.cardBd}`, background: on ? '#39BDFF' : C.sf, color: on ? '#FFFFFF' : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{label}</button>;
+            return <button key={v} onClick={() => setView(v)} style={{ flex: 1, height: 30, boxSizing: 'border-box', borderRadius: 0, cursor: 'pointer', border: `1px solid ${on ? '#39BDFF' : C.cardBd}`, background: on ? '#39BDFF' : C.sf, color: on ? '#FFFFFF' : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{T(label)}</button>;
           })}
         </div>
       </div>
@@ -3173,7 +3188,7 @@ function DemoReview() {
             <div style={{ flex: 1 }}>
               <div style={{ fontFamily: FB, fontWeight: 600, fontSize: 13, color: C.tx }}>{ex.name}</div>
               <div style={{ fontSize: 11, color: C.tm, marginTop: 2 }}>
-                {ex.prescribed} · {ex.done}/{ex.sets} sets
+                {ex.prescribed} · {ex.done}/{ex.sets} {T('sets')}
                 {ex.hasVideo && <span title={T('Form video submitted')} style={{ color: C.gn, marginInlineStart: 6, display: 'inline-flex', alignItems: 'center', verticalAlign: '-2px' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></span>}
                 {ex.comments > 0 && (
                   <span title={`${ex.comments} comment${ex.comments === 1 ? '' : 's'} on this exercise`} style={{ color: C.ac, marginInlineStart: 6 }}>
@@ -3253,7 +3268,7 @@ function DemoReview() {
                     <span style={{ fontWeight: 400, color: C.tm, fontSize: 12 }}>{wo.planName}</span>
                   </div>
                   <div style={{ fontSize: 11, color: C.tm, marginTop: 2 }}>
-                    W{wo.week} · {wo.date} · {wo.doneSets}/{wo.totalSets} sets
+                    W{wo.week} · {RT(wo.date)} · {wo.doneSets}/{wo.totalSets} {T('sets')}
                     {hasFormVids && <span style={{ color: C.gn, marginInlineStart: 4, display: 'inline-flex', alignItems: 'center', verticalAlign: '-2px' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></span>}
                   </div>
                 </div>
@@ -3430,7 +3445,7 @@ function DemoWorkouts() {
                   {w.day} <span style={{ fontWeight: 400, color: C.td, fontSize: 12 }}>({w.who})</span>
                 </div>
                 <div style={{ fontFamily: FB, fontSize: 12, color: C.tm }}>
-                  {w.who} · {w.when}
+                  {w.who} · {RT(w.when)}
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -3542,7 +3557,7 @@ function DemoGroupFloor() {
                   <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</div>
                   <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.04em' }}>{tr(readLang(), 'Day A · W4')}</div>
                 </div>
-                <button onClick={() => setCheckedIn(p => ({ ...p, [ai]: !p[ai] }))} style={{ ...baseBtn, background: inFloor ? C.gn : 'transparent', color: inFloor ? '#FFF' : C.tm, border: `1px solid ${inFloor ? C.gn : C.bd}`, padding: '4px 10px', fontSize: 10 }}>{inFloor ? '✓ IN' : 'CHECK IN'}</button>
+                <button onClick={() => setCheckedIn(p => ({ ...p, [ai]: !p[ai] }))} style={{ ...baseBtn, background: inFloor ? C.gn : 'transparent', color: inFloor ? '#FFF' : C.tm, border: `1px solid ${inFloor ? C.gn : C.bd}`, padding: '4px 10px', fontSize: 10 }}>{T(inFloor ? '✓ IN' : 'CHECK IN')}</button>
               </div>
               <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {DEMO_SESSION_DAY.map(ex => {
@@ -3633,7 +3648,7 @@ function DemoSessions() {
     <section>
       <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
         <button onClick={() => setMode('group')} style={pill(mode === 'group')}>{T('GROUP FLOOR')}</button>
-        <button onClick={() => setMode('single')} style={pill(mode === 'single')}>1-ON-1</button>
+        <button onClick={() => setMode('single')} style={pill(mode === 'single')}>{T('1-ON-1')}</button>
       </div>
       {mode === 'group' ? <DemoGroupFloor /> : <DemoSingle />}
     </section>
@@ -3732,18 +3747,18 @@ function DemoTasks() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, gap: 12, flexWrap: 'wrap' }}>
         <h2 style={{ margin: 0, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', color: C.tx, textTransform: 'uppercase' }}>{T('Tasks')}</h2>
         <div style={{ display: 'inline-flex', border: `1px solid ${C.bd}` }}>
-          {['list', 'board'].map(v => <button key={v} onClick={() => setView(v)} style={{ ...baseBtn, background: view === v ? C.ac : 'transparent', color: view === v ? '#0E0F12' : C.tm, border: 'none', padding: '7px 20px', fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>{v}</button>)}
+          {['list', 'board'].map(v => <button key={v} onClick={() => setView(v)} style={{ ...baseBtn, background: view === v ? C.ac : 'transparent', color: view === v ? '#0E0F12' : C.tm, border: 'none', padding: '7px 20px', fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>{T(v === 'list' ? 'List' : 'Board')}</button>)}
         </div>
       </div>
       {/* Two-column: the shared SideRail (identical to the real Tasks rail) + content. */}
       <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
         <SideRail width={204} top={64} maxHeight="calc(100vh - 76px)"
-          search="" onSearch={() => {}} searchPlaceholder="Search tasks…"
+          search="" onSearch={() => {}} searchPlaceholder={T('Search tasks…')}
           groups={[
-            { label: 'Whose', opts: ['OHAD', 'YUVAL', 'SHARED'].map(o => ({ key: o, label: o.charAt(0) + o.slice(1).toLowerCase(), count: counts[o], active: owner === o, onClick: () => setOwner(o) })) },
-            { label: 'Show', opts: [['all', 'All'], ['today', 'Today'], ['overdue', 'Overdue'], ['stuck', 'Stuck'], ['nodate', 'No date']].map(([k, l]) => ({ key: k, label: l, active: quickFilter === k, onClick: () => setQuickFilter(k) })) },
-            { label: 'Sort', opts: [['soonest', '↓ Soonest'], ['newest', 'Newest'], ['urgency', 'Urgency'], ['status', 'Status'], ['az', 'A→Z'], ['manual', 'Manual']].map(([k, l]) => ({ key: k, label: l, active: sortBy === k, onClick: () => setSortBy(k) })) },
-            { label: 'Group', opts: [['status', 'By status'], ['category', 'By category']].map(([k, l]) => ({ key: k, label: l, active: boardGroup === k, onClick: () => setBoardGroup(k) })) },
+            { label: T('Whose'), opts: ['OHAD', 'YUVAL', 'SHARED'].map(o => ({ key: o, label: T(o.charAt(0) + o.slice(1).toLowerCase()), count: counts[o], active: owner === o, onClick: () => setOwner(o) })) },
+            { label: T('Show'), opts: [['all', 'All'], ['today', 'Today'], ['overdue', 'Overdue'], ['stuck', 'Stuck'], ['nodate', 'No date']].map(([k, l]) => ({ key: k, label: T(l), active: quickFilter === k, onClick: () => setQuickFilter(k) })) },
+            { label: T('Sort'), opts: [['soonest', '↓ Soonest'], ['newest', 'Newest'], ['urgency', 'Urgency'], ['status', 'Status'], ['az', 'A→Z'], ['manual', 'Manual']].map(([k, l]) => ({ key: k, label: l.startsWith('↓ ') ? `↓ ${T(l.slice(2))}` : T(l), active: sortBy === k, onClick: () => setSortBy(k) })) },
+            { label: T('Group by'), opts: [['status', 'By status'], ['category', 'By category']].map(([k, l]) => ({ key: k, label: T(l), active: boardGroup === k, onClick: () => setBoardGroup(k) })) },
           ]}
         />
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -3760,7 +3775,7 @@ function DemoTasks() {
             return (
               <div key={col.id} style={{ flex: '1 1 175px', minWidth: 175, border: `1px solid ${C.bd}`, display: 'flex', flexDirection: 'column' }}>
                 <div style={{ background: 'var(--c-sf2)', color: C.tx, padding: '7px 10px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${C.cardBd}`, boxShadow: `inset 3px 0 0 ${col.color}` }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span aria-hidden style={{ width: 7, height: 7, borderRadius: '50%', background: col.color, flexShrink: 0 }} />{col.label}</span><span style={{ color: C.tm }}>{rows.length}</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span aria-hidden style={{ width: 7, height: 7, borderRadius: '50%', background: col.color, flexShrink: 0 }} />{T(col.label)}</span><span style={{ color: C.tm }}>{rows.length}</span>
                 </div>
                 <div style={{ padding: 6, display: 'flex', flexDirection: 'column', gap: 6, minHeight: 46 }}>
                   {rows.map(t => {
@@ -3787,7 +3802,7 @@ function DemoTasks() {
           return (
             <div key={s} style={{ marginBottom: 18 }}>
               <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: meta.color, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ width: 8, height: 8, background: meta.color, display: 'inline-block' }} />{meta.label} <span style={{ color: C.td }}>{rows.length}</span>
+                <span style={{ width: 8, height: 8, background: meta.color, display: 'inline-block' }} />{T(meta.label)} <span style={{ color: C.td }}>{rows.length}</span>
               </div>
               {rows.map(t => {
                 const col = STATUS_COLS.find(c => c.id === t.status) || STATUS_COLS[0];
@@ -3797,7 +3812,7 @@ function DemoTasks() {
                     <span style={{ fontFamily: FB, fontSize: 13, color: C.tx, textDecoration: t.status === 'done' ? 'line-through' : 'none', opacity: t.status === 'done' ? 0.6 : 1 }}>{T(t.title)}</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
                       <span style={{ fontFamily: FN, fontSize: 10, color: overdue ? C.tx : C.tm }}>{T(t.due)}</span>
-                      <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: '#FFFFFF', background: col.color, padding: '3px 7px' }}>{col.label}</span>
+                      <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: '#FFFFFF', background: col.color, padding: '3px 7px' }}>{T(col.label)}</span>
                     </div>
                   </div>
                 );
@@ -3838,7 +3853,7 @@ function DemoBilling() {
     <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0 }}>
       <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 7 }}>
         <span style={{ width: 6, height: 6, borderRadius: '50%', background: accent, boxShadow: `0 0 5px ${accent}66`, flexShrink: 0 }} />
-        <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', color: '#FFFFFF', textTransform: 'uppercase' }}>{label}</span>
+        <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', color: '#FFFFFF', textTransform: 'uppercase' }}>{T(label)}</span>
       </div>
       <div style={{ padding: 14 }}>
         <div style={{ fontFamily: FN, fontSize: 26, fontWeight: 800, color: C.tx, letterSpacing: '-0.015em', direction: 'ltr' }}>{value}</div>
@@ -3851,9 +3866,9 @@ function DemoBilling() {
       {/* At-a-glance summary tiles — mirrors the real BillingView redesign
           (Outstanding / Overdue / Collected this month). */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginBottom: 16 }}>
-        {sumTile('Outstanding', fmtIls(outstanding), `${pending.length} pending`, C.or)}
+        {sumTile('Outstanding', fmtIls(outstanding), `${pending.length} ${T('pending')}`, C.or)}
         {sumTile('Overdue', fmtIls(outstanding), `${pending.length} · ≥ 14d`, C.rd)}
-        {sumTile('Collected · This month', fmtIls(collected), 'received', C.gn)}
+        {sumTile('Collected · This month', fmtIls(collected), T('received'), C.gn)}
       </div>
       {panel(<>
         <div style={stripH}>
@@ -3867,11 +3882,11 @@ function DemoBilling() {
               <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '12px 14px', borderTop: `1px solid ${C.cardBd}`, borderInlineStart: p.status === 'pending' ? `3px solid ${C.rd}` : '3px solid transparent' }}>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontFamily: FB, fontSize: 13, fontWeight: 600, color: p.status === 'pending' ? C.rd : C.tx }}>{p.name} · {fmtIls(p.amount)}</div>
-                  <div style={{ fontFamily: FB, fontSize: 11, color: C.tm, marginTop: 2 }}>{p.ref} · {fmtPrettyDate(p.date)}</div>
+                  <div style={{ fontFamily: FB, fontSize: 11, color: C.tm, marginTop: 2 }}>{T(p.ref)} · {fmtPrettyDate(p.date)}</div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                  {p.status === 'pending' && <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.08em', color: C.rd }}>21D OVERDUE</span>}
-                  <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: st.color, border: `1px solid ${st.color}55`, padding: '2px 6px' }}>{st.label}</span>
+                  {p.status === 'pending' && <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.08em', color: C.rd }}>{readLang() === 'he' ? 'באיחור של 21 יום' : '21D OVERDUE'}</span>}
+                  <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: st.color, border: `1px solid ${st.color}55`, padding: '2px 6px' }}>{T(st.label)}</span>
                   {p.status === 'pending' && <button title={T('WhatsApp payment reminder (demo)')} style={{ ...baseBtn, background: 'transparent', color: '#25D366', border: '1px solid #25D36655', padding: '3px 8px', fontSize: 9 }}>◔ {tr(readLang(), 'CHASE')}</button>}
                   {p.status === 'pending' && <button style={{ ...baseBtn, background: 'transparent', color: C.gn, border: `1px solid ${C.gn}55`, padding: '3px 8px', fontSize: 9 }}>{T('MARK PAID')}</button>}
                 </div>
@@ -3888,7 +3903,7 @@ function DemoBilling() {
             return (
               <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderTop: `1px solid ${C.cardBd}` }}>
                 <span style={{ fontFamily: FB, fontSize: 13, color: C.tx }}>{t.name}</span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: st.color, border: `1px solid ${st.color}55`, padding: '2px 6px' }}>{st.label}</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: st.color, border: `1px solid ${st.color}55`, padding: '2px 6px' }}>{T(st.label)}</span>
               </div>
             );
           })}
@@ -4166,7 +4181,7 @@ export default function CoachDemo() {
         {ATHLETE_GROUP.includes(tab) && (
           <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
             {ATHLETE_SUBTABS.map(([k, l]) => (
-              <button key={k} onClick={() => navigateToTab(k)} style={{ ...baseBtn, background: tab === k ? C.acD : 'transparent', color: tab === k ? C.ac : C.tm, border: `1px solid ${tab === k ? C.ac : C.bd}`, padding: '6px 18px', fontSize: 12, letterSpacing: 1.5 }}>{l}</button>
+              <button key={k} onClick={() => navigateToTab(k)} style={{ ...baseBtn, background: tab === k ? C.acD : 'transparent', color: tab === k ? C.ac : C.tm, border: `1px solid ${tab === k ? C.ac : C.bd}`, padding: '6px 18px', fontSize: 12, letterSpacing: 1.5 }}>{T(l)}</button>
             ))}
           </div>
         )}
@@ -4174,7 +4189,7 @@ export default function CoachDemo() {
         {tab === 'review' && (
           <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
             {[['workouts', 'WORKOUTS'], ['tools', 'TOOLS']].map(([k, l]) => (
-              <button key={k} onClick={() => setReviewSub(k)} style={{ ...baseBtn, background: reviewSub === k ? C.acD : 'transparent', color: reviewSub === k ? C.ac : C.tm, border: `1px solid ${reviewSub === k ? C.ac : C.bd}`, padding: '6px 18px', fontSize: 12, letterSpacing: 1.5 }}>{l}</button>
+              <button key={k} onClick={() => setReviewSub(k)} style={{ ...baseBtn, background: reviewSub === k ? C.acD : 'transparent', color: reviewSub === k ? C.ac : C.tm, border: `1px solid ${reviewSub === k ? C.ac : C.bd}`, padding: '6px 18px', fontSize: 12, letterSpacing: 1.5 }}>{T(l)}</button>
             ))}
           </div>
         )}

@@ -410,6 +410,14 @@ export const HE = {
   "Link to trainee (optional) —": "שיוך למתאמן (לא חובה) —",
   "TO LIBRARY": "לספרייה",
   "NEXT PENDING": "הבא בתור",
+  // O12 (16.9): labels the coach demo keeps in arrays.
+  "Group by": "קיבוץ",
+  "ATHLETE FLAGS": "התראות מתאמנים",
+  "CANCELED": "בוטל",
+  "1-ON-1": "אישי",
+  "June coaching": "אימונים ביוני",
+  "June + plan": "יוני + תוכנית",
+  "June coaching (couple)": "אימונים ביוני (זוגי)",
   // Gate hole #9 (16.9): Title-case labels the gate reduced to allowlisted capitals.
   "Choose —": "בחירה —",
   "Locale:": "שפה:",
