@@ -145,11 +145,11 @@ export default function ChatAuditView() {
           <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 4 }}>
             {migrationMissing
               ? 'chat_logs table not found — apply scripts/migrations/2026-05-02-chat-logs.sql in Supabase Studio.'
-              : `${sessions} session${sessions === 1 ? '' : 's'} · ${total} turn${total === 1 ? '' : 's'} · ${errors} error${errors === 1 ? '' : 's'}`}
+              : `${tt(sessions === 1 ? '1 session' : '{n} sessions').replace('{n}', sessions)} · ${tt(total === 1 ? '1 turn' : '{n} turns').replace('{n}', total)} · ${tt(errors === 1 ? '1 error' : '{n} errors').replace('{n}', errors)}`}
           </div>
         </div>
         <button onClick={async () => { setRefreshing(true); try { await reload(); } finally { setTimeout(() => setRefreshing(false), 550); } }} disabled={refreshing}
-          style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tm, borderRadius: 0, padding: '8px 14px', fontFamily: FN, fontSize: 11, fontWeight: 700, cursor: 'pointer', letterSpacing: '0.18em' }}>{refreshing ? '↻ REFRESHING…' : '↻ REFRESH'}</button>
+          style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tm, borderRadius: 0, padding: '8px 14px', fontFamily: FN, fontSize: 11, fontWeight: 700, cursor: 'pointer', letterSpacing: '0.18em' }}>{refreshing ? tt('↻ REFRESHING…') : tt('↻ REFRESH')}</button>
       </div>
 
       {/* Filter row */}
@@ -162,7 +162,7 @@ export default function ChatAuditView() {
               color: siteFilter === s ? C.ac : C.tm,
               borderRadius: 0, height: 34, boxSizing: 'border-box', padding: '0 12px',
               fontFamily: FN, fontSize: 11, fontWeight: 700, cursor: 'pointer', letterSpacing: '0.18em',
-            }}>{s === 'all' ? 'ALL SITES' : s.toUpperCase()}</button>
+            }}>{s === 'all' ? tt('ALL SITES') : s.toUpperCase()}</button>
         ))}
         <button onClick={() => setShowErrorsOnly(v => !v)}
           style={{
@@ -200,7 +200,7 @@ export default function ChatAuditView() {
               style={{ marginBottom: 0 }}
               titleNode={<span style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 9, fontWeight: 700, color: '#FFFFFF', border: '1px solid rgba(255,255,255,0.6)', borderRadius: 0, padding: '2px 6px', letterSpacing: '0.18em' }}>{(g.site || '').toUpperCase()}</span>
-                <span style={{ fontFamily: FB, color: 'rgba(255,255,255,0.85)', fontSize: 11 }}>{g.turns.length} turn{g.turns.length === 1 ? '' : 's'}</span>
+                <span style={{ fontFamily: FB, color: 'rgba(255,255,255,0.85)', fontSize: 11 }}>{tt(g.turns.length === 1 ? '1 turn' : '{n} turns').replace('{n}', g.turns.length)}</span>
                 {g.errorCount > 0 && <span style={{ fontFamily: FN, color: '#FFFFFF', fontSize: 10, fontWeight: 700 }}>⚠ {g.errorCount}</span>}
               </span>}
               right={<span style={{ fontFamily: FN, color: 'rgba(255,255,255,0.72)', fontSize: 10 }} title={fmtDate(g.lastAt)}>{agoLabel(g.lastAt, readLang())}</span>}>
@@ -240,7 +240,7 @@ export default function ChatAuditView() {
                         {renderBold(t.assistant_msg)}
                       </div>
                     ) : (
-                      <div style={{ alignSelf: 'flex-end', fontFamily: FN, fontSize: 10, color: C.td, fontStyle: 'italic' }}>(no reply recorded)</div>
+                      <div style={{ alignSelf: 'flex-end', fontFamily: FN, fontSize: 10, color: C.td, fontStyle: 'italic' }}>{tt('(no reply recorded)')}</div>
                     )}
                     <div style={{ alignSelf: 'flex-end', fontFamily: FN, fontSize: 9, color: C.td }} title={fmtDate(t.created_at)}>{agoLabel(t.created_at, readLang())}</div>
                   </div>

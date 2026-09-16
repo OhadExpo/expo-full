@@ -2058,6 +2058,17 @@ export const HE = {
   'DRAG ORBIT · WHEEL / PINCH ZOOM ·': 'גרירה לסיבוב · גלגלת או צביטה לזום ·',
   '{x} LAYER': 'שכבת {x}',
   'Form schema unknown.': 'מבנה הטופס לא ידוע.',
+  // 17.9 chat audit toolbar
+  '↻ REFRESHING…': '↻ מרענן…',
+  '↻ REFRESH': '↻ רענון',
+  'ALL SITES': 'כל האתרים',
+  '(no reply recorded)': '(לא נרשמה תשובה)',
+  '1 session': 'שיחה אחת',
+  '{n} sessions': '{n} שיחות',
+  '1 turn': 'תור אחד',
+  '{n} turns': '{n} תורות',
+  '1 error': 'שגיאה אחת',
+  '{n} errors': '{n} שגיאות',
   // 17.9 the two owner library tools (Classify, Matching) wired
   match: 'התאמה',
   matches: 'התאמות',
