@@ -417,7 +417,7 @@ function Approach({ heb }) {
             <div style={{
               fontFamily: FN, fontSize: 11, color: C.ac, letterSpacing: '0.22em',
               fontWeight: 800, marginBottom: 14,
-            }}>{heb ? 'עמוד' : 'PILLAR'} {p.n}</div>
+            }}>{heb ? 'עמוד תווך' : 'PILLAR'} {p.n}</div>
             <h3 style={{
               margin: '0 0 10px', fontFamily: FN, fontSize: 17, fontWeight: 700,
               letterSpacing: '-0.01em', color: C.tx, lineHeight: 1.25,
