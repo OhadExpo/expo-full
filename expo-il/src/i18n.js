@@ -220,7 +220,7 @@ const STRINGS = {
   'about.values.t3':     { en: 'Build for the long run',      he: 'בונים לטווח הארוך' },
   'about.values.d3': {
     en: 'Pain check-ins, deload weeks, and reassess windows are baked into every block. You don\'t get strong by training through dysfunction.',
-    he: 'דיווחי כאב, שבועות דלואד והערכה מחדש מובנים בכל בלוק. מי שמתאמן על כאב או על תנועה לא תקינה לא מתחזק.',
+    he: 'דיווחי כאב, שבועות דלואד והערכה מחדש מובנים בכל בלוק. מי שמתאמן על תנועה לא תקינה לא מתחזק.',
   },
 
   'about.photo.note': {
@@ -420,7 +420,7 @@ const STRINGS = {
   'faq.q8':           { en: 'Can I message you for support after I buy?', he: 'אפשר לדבר איתך לתמיכה אחרי הקנייה?' },
   'faq.a8': {
     en: 'Yes — WhatsApp is open. I am not a 24/7 hotline, but I read everything and reply same-day Sun–Thu, slower on Fri/Sat. The portal answers most things on its own (load progressions, exercise swaps, pain gating), so messaging is for the harder cases — and that is included in the one-time price.',
-    he: 'כן. וואטסאפ פתוח. אני לא קו חם 24/7, אבל אני קורא הכל ועונה באותו יום א׳–ה׳, איטי יותר בשישי-שבת. הפורטל פותר את רוב הדברים לבד (עליות עומס, החלפת תרגילים, ניטור כאב), אז הודעות זה למקרים יותר מורכבים — וזה כלול במחיר החד-פעמי.',
+    he: 'כן. וואטסאפ פתוח. אני לא קו חם 24/7, אבל אני קורא הכל ועונה באותו יום א׳–ה׳, איטי יותר בשישי-שבת. הפורטל פותר את רוב הדברים לבד (עליות עומס, החלפת תרגילים, סף כאב), אז הודעות זה למקרים יותר מורכבים — וזה כלול במחיר החד-פעמי.',
   },
 
   // ─── Quiz (routing questionnaire) ─────────────────────────────────
@@ -461,7 +461,7 @@ const STRINGS = {
   'quiz.q4.fine':     { en: 'I feel great',          he: 'מרגיש מצוין' },
   'quiz.q4.minor':    { en: 'A few minor pains',     he: 'כאבים נקודתיים קלים' },
   'quiz.q4.rom':      { en: 'Limited range of motion', he: 'טווח תנועה מוגבל' },
-  'quiz.q4.rehab':    { en: 'Returning from injury (cleared by physio)', he: 'חוזר מפציעה (אישור פיזיותרפיסט)' },
+  'quiz.q4.rehab':    { en: 'Returning from injury (cleared by physio)', he: 'חוזר מפציעה (עם אישור פיזיותרפיסט)' },
 
   // Q5 — primary goal
   'quiz.q5':          { en: 'Primary goal for the next block?', he: 'מטרה ראשית לבלוק הקרוב?' },

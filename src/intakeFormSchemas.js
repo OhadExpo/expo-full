@@ -197,7 +197,7 @@ export const ASSESSMENT_HE = {
     { id: 'prior_injuries',  type: 'paragraph', label: 'פציעות קודמות — מקום, שנה, האם טופלו בפיזיותרפיה', required: true },
     { id: 'surgeries',       type: 'paragraph', label: 'ניתוחים — סוג, שנה, אזורים' },
     { id: 'medications',     type: 'paragraph', label: 'תרופות שמשפיעות על אימון (מדללי דם, סטרואידים, חוסמי-β וכו\')' },
-    { id: 'red_flags',       type: 'choice',    label: 'היה לך לאחרונה משהו מאלה: ירידה דרסטית במשקל בלי סיבה / כאבי לילה שלא קשורים לתנוחה / חוסר תחושה במפשעה / חולשה פתאומית באחת הרגליים', required: true, choices: ['לא', 'כן'] },
+    { id: 'red_flags',       type: 'choice',    label: 'היה לך לאחרונה משהו מאלה: ירידה במשקל בלי סיבה ברורה / כאבי לילה שלא קשורים לתנוחה / חוסר תחושה באזור המפשעה, איברי המין או פנים הירכיים / שינוי בשליטה על השתן או היציאות (כולל קושי להטיל שתן) / חולשה ברגל או כף רגל שנגררת', required: true, choices: ['לא', 'כן'] },
     { id: 'red_flag_detail', type: 'paragraph', label: 'אם "כן" — פרט' },
     // --- Goals for block 1
     { id: 'goals_block1',    type: 'paragraph', label: 'מטרות לבלוק הראשון (4 שבועות): מה היית רוצה לראות בסוף החודש הראשון?', required: true },
@@ -230,7 +230,7 @@ export const ASSESSMENT_EN = {
     { id: 'prior_injuries',  type: 'paragraph', label: 'Prior injuries — location, year, whether you saw a physio', required: true },
     { id: 'surgeries',       type: 'paragraph', label: 'Surgeries — type, year, location' },
     { id: 'medications',     type: 'paragraph', label: 'Medications that affect training (blood thinners, steroids, β-blockers, etc.)' },
-    { id: 'red_flags',       type: 'choice',    label: 'Recently experienced: unexplained drastic weight loss / night pain unrelated to position / saddle anesthesia / sudden weakness in one leg', required: true, choices: ['No', 'Yes'] },
+    { id: 'red_flags',       type: 'choice',    label: 'Recently experienced any of these: unexplained weight loss / night pain unrelated to position / numbness in the groin, genitals or inner thighs (saddle area) / a change in bladder or bowel control (including trouble starting to urinate) / weakness in a leg or a foot that drags', required: true, choices: ['No', 'Yes'] },
     { id: 'red_flag_detail', type: 'paragraph', label: 'If yes — describe' },
     { id: 'goals_block1',    type: 'paragraph', label: 'Goals for block #1 (4 weeks): what would you like to see at the end of the first month?', required: true },
     { id: 'comments',        type: 'paragraph', label: 'Additional thoughts' },

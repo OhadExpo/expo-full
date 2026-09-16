@@ -38,7 +38,7 @@ export const HE = {
   "available athlete": "מתאמן זמין",
   "available athletes": "מתאמנים זמינים",
   "skips anyone Out.": "מדלג על מי שבחוץ.",
-  "Mark resolved / cleared to play": "סימון: החלים / חוזר לשחק",
+  "Mark resolved / cleared to play": "סימון: החלים / כשיר לשחק",
   "Fixtures load as the league publishes them.": "המשחקים ייטענו כשהליגה תפרסם אותם.",
   "No games yet.": "עוד אין משחקים.",
   "Bnei Herzliya": "בני הרצליה",
@@ -256,7 +256,7 @@ export const HE = {
   'Normal game play.': 'משחק רגיל.',
   'Pacing': 'קצב',
   'At least 24 hours per step. If symptoms come back, go back one step and try again after 24 hours symptom-free.': 'לפחות 24 שעות בכל שלב. אם התסמינים חוזרים, חזור שלב אחד אחורה ונסה שוב אחרי 24 שעות בלי תסמינים.',
-  'Deteriorating consciousness · repeated vomiting · seizure · worsening headache · neck pain · weakness or tingling · out-of-character behaviour — emergency assessment, same day.': 'ירידה במצב ההכרה · הקאות חוזרות · פרכוס · כאב ראש שמחמיר · כאב צוואר · חולשה או נימול · התנהגות לא אופיינית — בדיקה דחופה, באותו יום.',
+  'Deteriorating consciousness · repeated vomiting · seizure · worsening headache · neck pain · weakness or tingling · out-of-character behaviour — emergency assessment, same day.': 'ירידה במצב ההכרה · הקאות חוזרות · פרכוס · כאב ראש שמחמיר · כאב צוואר · חולשה או נימול · התנהגות לא אופיינית — פנייה מיידית למיון.',
   'Steps 5 and 6 need medical clearance. This screen tracks the plan; it does not clear anyone to play.': 'שלבים 5 ו-6 דורשים אישור רפואי. המסך הזה עוקב אחרי התוכנית — הוא לא מאשר לאף אחד לשחק.',
   'A head injury has no side.': 'לחבלת ראש אין צד.',
   'ACWR danger zone': 'ACWR מעל 1.5 — תוריד עומס היום, הסיכון לפציעה עולה כאן.',
@@ -606,7 +606,7 @@ Object.assign(HE, {
   'Refer out': 'הפניה רפואית',
   '0–3/10 progress · 4–5 hold & modify (regress ': 'ב-0–3/10 מתקדמים · ב-4–5 נשארים בשלב ומתאימים (מורידים ',
   ', cut frequency last) · 6+ stop & reassess.': ', תדירות אחרונה) · מ-6 ומעלה עוצרים ובודקים מחדש.',
-  'Saddle anaesthesia · bowel/bladder change · drop foot · unexplained weight loss · night pain unrelated to position — never manage through these.': 'חוסר תחושה באזור האוכף · שינוי בשליטה על סוגרים · צניחת כף רגל · ירידה לא מוסברת במשקל · כאב לילי שלא תלוי בתנוחה — אם יש אחד מאלה, לא ממשיכים לאמן.',
+  'Saddle anaesthesia · bowel/bladder change · drop foot · unexplained weight loss · night pain unrelated to position — never manage through these.': 'חוסר תחושה באזור האוכף · שינוי בתפקוד השתן או היציאות · צניחת כף רגל · ירידה לא מוסברת במשקל · כאב לילי שלא תלוי בתנוחה — אם יש אחד מאלה, לא ממשיכים לאמן.',
 
   // ---- the medical row action ------------------------------------------
   // The chevron turns with the text: it points the way the reader is going.
