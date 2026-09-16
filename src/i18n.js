@@ -603,7 +603,7 @@ export const HE = {
   // tab, and two screens must not answer to the same word.
   Financials: 'תשלומים',
   Training: 'אימונים',
-  'Not billable': 'ללא חיוב',
+  'Not billable': 'בלי חיוב',
   'No logs yet': 'אין שקילות עדיין',
   Restore: 'שחזור',
   'Permanently Delete': 'מחיקה סופית',
