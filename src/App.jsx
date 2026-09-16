@@ -690,7 +690,8 @@ function AuthGate() {
 }
 
 function AuthedApp() {
-  const tt = useT();
+  // (no useT() here: AuthedApp RENDERS the LangCtx provider, so a hook would read
+  //  the context from above it - always English. Use `t`, declared with `lang` below.)
   // Keep the ACTIVE destination in view. The header is a horizontal scroller
   // with a pinned logo and a hidden scrollbar, so on a phone the tab you are on
   // could sit entirely off-screen - measured: 7 of 9 destinations past x=390.
@@ -1553,7 +1554,7 @@ function AuthedApp() {
   if (!storesReady && !bootDeadline) return (
     <div style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16}}>
       <img src={logo.nav} alt="EXPO" style={{height:50}} />
-      <div style={{color:C.td,fontSize:13}}>{tt('Loading data...')}</div>
+      <div style={{color:C.td,fontSize:13}}>{t('Loading data...')}</div>
     </div>);
 
   // BHBC = a fully separate ZONE — no EXPO coach nav at all (Ohad: "completely
@@ -1582,7 +1583,7 @@ function AuthedApp() {
     // Hebrew/English lines resolve through the browser's own bidi algorithm.
     <LangCtx.Provider value={lang}>
     <div className="app-root" dir={lang === 'he' ? 'rtl' : 'ltr'} style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB,maxWidth:"100vw",overflowX:"clip"}}>
-      {isPartner && <div style={{background:`color-mix(in srgb, ${C.ac} 22%, ${C.bg})`,borderBottom:`1px solid ${C.ac}`,color:C.tx,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',textAlign:'center',padding:'7px 12px'}}>{tt("PARTNER PREVIEW · you're viewing the real EXPO with live data — anything you change isn't saved")}</div>}
+      {isPartner && <div style={{background:`color-mix(in srgb, ${C.ac} 22%, ${C.bg})`,borderBottom:`1px solid ${C.ac}`,color:C.tx,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',textAlign:'center',padding:'7px 12px'}}>{t("PARTNER PREVIEW · you're viewing the real EXPO with live data — anything you change isn't saved")}</div>}
       {/* Past the deadline with reads still outstanding. The app is usable, but
           a count drawn from a store that never loaded is not a fact - saying so
           is the difference between "you have no athletes" and "we could not
@@ -1686,7 +1687,7 @@ function AuthedApp() {
           [data-theme="5b"] .alert-row:hover,[data-theme="light"] .alert-row:hover{background:rgba(255,255,255,0.10)}
         `}</style>
         <div ref={coachBarRef} className="hdr-scroll" style={{maxWidth:1360,margin:"0 auto",padding:"0 16px",display:"flex",alignItems:"center",height:56,overflowX:"visible",WebkitOverflowScrolling:"touch",msOverflowStyle:"none",scrollbarWidth:"none"}}>
-          <EXPOMark height={36} onClick={()=>navTo('dashboard')} title={tt('Back to dashboard')} style={{flex:"0 0 auto",marginInlineEnd:12,cursor:'pointer'}} />
+          <EXPOMark height={36} onClick={()=>navTo('dashboard')} title={t('Back to dashboard')} style={{flex:"0 0 auto",marginInlineEnd:12,cursor:'pointer'}} />
           <div ref={coachRailRef} className="hdr-rail">
           <nav ref={coachNavRef} className="hdr-scroll" style={{display:"flex",gap:6,alignItems:"center",flex:"1 1 auto",justifyContent:"center",minWidth:0,overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
             {/* alignItems:'baseline' overrides baseBtn's 'center' so the
@@ -1740,7 +1741,7 @@ function AuthedApp() {
             <span style={{width:1,height:22,background:C.ac,opacity:0.15,alignSelf:'center',marginInlineStart:6,marginInlineEnd:6}} aria-hidden="true" />
             <BugReportButton role="coach" reporterEmail={email} variant="coach" />
             <span style={{width:1,height:22,background:C.ac,opacity:0.15,alignSelf:'center',marginInlineStart:6,marginInlineEnd:6}} aria-hidden="true" />
-            <button className="hdr-icon-btn" onClick={signOut} title={tt('Sign out')} aria-label={tt('Sign out')} style={{...baseBtn,height:HDR_ICON_H,boxSizing:"border-box",display:"inline-flex",alignItems:"center",justifyContent:"center",lineHeight:1,background:"transparent",color:C.tx,padding:"6px 8px",fontSize:14,borderRadius:0}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
+            <button className="hdr-icon-btn" onClick={signOut} title={t('Sign out')} aria-label={t('Sign out')} style={{...baseBtn,height:HDR_ICON_H,boxSizing:"border-box",display:"inline-flex",alignItems:"center",justifyContent:"center",lineHeight:1,background:"transparent",color:C.tx,padding:"6px 8px",fontSize:14,borderRadius:0}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
             </div></div></div></header>
       {showPwModal && <PasswordChangeModal onClose={()=>setShowPwModal(false)}/>}
       <main style={{maxWidth:1200,margin:"0 auto",padding:"12px"}}>
