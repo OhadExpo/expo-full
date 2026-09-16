@@ -36,7 +36,10 @@ const TITLE_ATTR = /(?<![\w$])title=(?:"([A-Z][^"]{3,120})"|'([A-Z][^']{3,120})'
 // on a Hebrew screen is the whole control, not a detail.
 const A11Y_ATTR = /(?<![\w$])(aria-label|alt)=(?:"([A-Z][^"]{3,120})"|'([A-Z][^']{3,120})')/g;
 const PLACEHOLDER = /placeholder=(?:"([A-Za-z][^"]{2,80})"|'([A-Za-z][^']{2,80})')/g;
-const stripComments = (s) => s.replace(/\{\/\*[\s\S]*?\*\/\}/g, (m) => ' '.repeat(m.length)).replace(/\/\*[\s\S]*?\*\//g, (m) => ' '.repeat(m.length)).replace(/^\s*\/\/.*$/gm, (m) => ' '.repeat(m.length));
+// Blank comments out but KEEP their newlines, or every reported line number
+// after a multi-line comment drifts (an injection at 3904 reported as 3622).
+const blank = (m) => m.replace(/[^\n]/g, ' ');
+const stripComments = (s) => s.replace(/\{\/\*[\s\S]*?\*\/\}/g, blank).replace(/\/\*[\s\S]*?\*\//g, blank).replace(/^\s*\/\/.*$/gm, blank);
 const isAllowed = (t) => {
   const s = t.trim();
   // A real word, not "OK" or "→". This used to demand TWO CAPITALS in a row,
@@ -50,11 +53,26 @@ const isAllowed = (t) => {
   return false;
 };
 const findings = [];
+// Hole #5 (2026-09-16): the scan used to SKIP every file that does not import
+// a dictionary - so a screen with no Hebrew wiring at all, the worst case, was
+// invisible. The coach's live Training Analysis page (TrainingLineageV2) sat
+// fully English behind a green gate; 33 files, ~318 runs. Every file is
+// scanned now. A wired file must read zero. An un-wired file may only go DOWN
+// from its recorded count in english-literals-baseline.json - lower the
+// number in that file when you translate one; never raise it.
+const BASELINE_FILE = path.join('scripts', 'english-literals-baseline.json');
+const BASELINE = fs.existsSync(BASELINE_FILE) ? JSON.parse(fs.readFileSync(BASELINE_FILE, 'utf8')) : {};
+const unwired = {};
 for (const f of fs.readdirSync('src').filter((x) => x.endsWith('.jsx') && !SKIP_FILES.has(x))) {
   const raw = fs.readFileSync(path.join('src', f), 'utf8');
   // ...and the club zone, which has its OWN dictionary (bhbcHe) and was
   // therefore out of scope of a gate that only looked for ./i18n.
-  if (!/from '\.\/i18n'/.test(raw) && !/from '\.\/bhbcHe'/.test(raw)) continue;
+  const wired = /from '\.\/i18n'/.test(raw) || /from '\.\/bhbcHe'/.test(raw);
+  const before = findings.length;
+  scanFile(f, raw);
+  if (!wired) { unwired[f] = findings.length - before; for (const x of findings.slice(before)) x.unwired = true; }
+}
+function scanFile(f, raw) {
   const src = stripComments(raw);
   const lineOf = (i) => src.slice(0, i).split('\n').length;
   for (const m of src.matchAll(LITERAL)) { if (!isAllowed(m[1])) findings.push({ f, line: lineOf(m.index), text: m[1].trim(), kind: 'jsx' }); }
@@ -74,6 +92,22 @@ for (const f of fs.readdirSync('src').filter((x) => x.endsWith('.jsx') && !SKIP_
   }
   for (const m of src.matchAll(PLACEHOLDER)) { const t = m[1] || m[2]; if (!/[֐-׿]/.test(t) && !/\{/.test(t) && !dataShape(t)) findings.push({ f, line: lineOf(m.index), text: t, kind: 'placeholder' }); }
 }
-console.log(`ENGLISH LITERALS IN TRANSLATED VIEWS — ${findings.length} finding(s)`);
-for (const x of findings) console.log(`  ${x.f}:${x.line}  ${x.kind.padEnd(11)} «${x.text}»`);
-if (!REPORT && findings.length) process.exit(1);
+if (process.argv.includes('--write-baseline')) {
+  const out = Object.fromEntries(Object.entries(unwired).filter(([, n]) => n > 0).sort());
+  fs.writeFileSync(BASELINE_FILE, JSON.stringify(out, null, 2) + '\n');
+  console.log(`baseline written: ${Object.keys(out).length} files, ${Object.values(out).reduce((a, b) => a + b, 0)} runs`);
+  process.exit(0);
+}
+const wiredFindings = findings.filter((x) => !x.unwired);
+const grew = Object.entries(unwired).filter(([f, n]) => n > (BASELINE[f] || 0));
+const shrank = Object.entries(BASELINE).filter(([f, n]) => (unwired[f] || 0) < n);
+const unwiredTotal = Object.values(unwired).reduce((a, b) => a + b, 0);
+console.log(`ENGLISH LITERALS IN TRANSLATED VIEWS — ${wiredFindings.length} finding(s)`);
+for (const x of (REPORT ? findings : wiredFindings)) console.log(`  ${x.f}:${x.line}  ${x.kind.padEnd(11)} «${x.text}»${x.unwired ? '  [un-wired]' : ''}`);
+console.log(`UN-WIRED FILES (no dictionary import) — ${unwiredTotal} run(s) in ${Object.values(unwired).filter((n) => n).length} file(s), ratchet: may only fall`);
+for (const [f, n] of grew) {
+  console.log(`  ✗ ${f}: ${n} English run(s), baseline ${BASELINE[f] || 0}`);
+  for (const x of findings.filter((y) => y.f === f)) console.log(`      ${x.line}  ${x.kind.padEnd(11)} «${x.text}»`);
+}
+for (const [f, n] of shrank) console.log(`  ↓ ${f}: ${unwired[f] || 0} (baseline ${n}) - lower it in ${BASELINE_FILE}`);
+if (!REPORT && (wiredFindings.length || grew.length)) process.exit(1);
