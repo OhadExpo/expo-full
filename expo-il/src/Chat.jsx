@@ -125,7 +125,7 @@ export default function Chat() {
       setCaptureState('done');
     } catch {
       setCaptureState('error');
-      setCaptureErr(isHe ? 'משהו השתבש. תנסה שוב.' : 'Something went wrong. Try again.');
+      setCaptureErr(isHe ? 'משהו השתבש. נסה שוב.' : 'Something went wrong. Try again.');
     }
   };
 
@@ -146,7 +146,7 @@ export default function Chat() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setErr(data?.error || (isHe ? 'משהו השתבש. תנסה שוב.' : 'Something went wrong. Try again.'));
+        setErr(data?.error || (isHe ? 'משהו השתבש. נסה שוב.' : 'Something went wrong. Try again.'));
         setSending(false); return;
       }
       const ct = res.headers.get('content-type') || '';
@@ -188,7 +188,7 @@ export default function Chat() {
         }
       }
     } catch {
-      setErr(isHe ? 'אין חיבור. תנסה שוב.' : 'No connection. Try again.');
+      setErr(isHe ? 'אין חיבור. נסה שוב.' : 'No connection. Try again.');
     } finally {
       setSending(false);
     }

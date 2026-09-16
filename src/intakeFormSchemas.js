@@ -102,7 +102,7 @@ export const PROGRESS_HE = {
   intro: 'הערכת ביניים. המטרה: לעדכן אותי איך שגרת האימונים עובדת לך עכשיו.',
   submitLabel: 'שליחה',
   thanksTitle: 'תודה!',
-  thanksBody: 'העדכון נקלט. אם משהו דחוף — תשלח לי הודעה.',
+  thanksBody: 'העדכון נקלט. אם משהו דחוף — שלח לי הודעה.',
   questions: [
     { id: 'email',           type: 'email',     label: 'אימייל', required: true },
     { id: 'name',            type: 'short',     label: 'שם מלא', required: true },

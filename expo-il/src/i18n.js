@@ -48,7 +48,7 @@ const STRINGS = {
   'hero.cta.browse':     { en: 'BROWSE PROGRAMS ↓', he: 'תוכניות ↓' },
   'hero.cta.how':        { en: 'HOW IT WORKS',      he: 'איך זה עובד' },
   'hero.cta.quiz':       { en: 'FIND MY PROGRAM',   he: 'מצא לי תוכנית' },
-  'hero.cta.try':        { en: 'TRY THE PLATFORM',  he: 'תנסה את המערכת' },
+  'hero.cta.try':        { en: 'TRY THE PLATFORM',  he: 'נסה את המערכת' },
 
   // Hero social-proof strip — three quick credibility numbers under the subhead.
   // Numbers seeded from the coach app (CLAUDE.md). Update when reality moves.
@@ -118,7 +118,7 @@ const STRINGS = {
   'inside.h2':           { en: 'Your phone counts the reps. You focus on the lift.', he: 'הטלפון סופר חזרות. אתה מתרכז במשקל.' },
   'inside.body': {
     en: 'Film any set with your phone. The portal runs pose detection on the clip, counts the reps automatically, and lets you compare the new attempt with your last set at the same weight — same engine I use with the athletes I coach, no manual stopwatch.',
-    he: 'תצלם כל סט בטלפון. הפורטל מריץ Pose Detection על הקליפ, סופר חזרות אוטומטית, ונותן להשוות בין הסט החדש לסט הקודם באותו משקל. אותה שיטה שאני עובד איתה עם הספורטאים שאני מאמן. בלי לספור עם סטופר.',
+    he: 'צלם כל סט בטלפון. הפורטל מריץ Pose Detection על הקליפ, סופר חזרות אוטומטית, ונותן להשוות בין הסט החדש לסט הקודם באותו משקל. אותה שיטה שאני עובד איתה עם הספורטאים שאני מאמן. בלי לספור עם סטופר.',
   },
 
   // Phone 1 — pose landmarker
@@ -354,8 +354,8 @@ const STRINGS = {
   'lead.cta':         { en: 'NOTIFY ME', he: 'עדכן אותי' },
   'lead.sending':     { en: 'SENDING…', he: 'שולח…' },
   'lead.thanks':      { en: '✓ THANKS — I\'LL BE IN TOUCH.', he: '✓ קיבלתי. אדבר איתך בקרוב.' },
-  'lead.err.invalid': { en: 'That email looks off — try again.', he: 'האימייל לא נראה תקין. תנסה שוב.' },
-  'lead.err.generic': { en: 'Save failed. Try again or DM me on WhatsApp.', he: 'לא נשמר. תנסה שוב או שלח וואטסאפ.' },
+  'lead.err.invalid': { en: 'That email looks off — try again.', he: 'האימייל לא נראה תקין. נסה שוב.' },
+  'lead.err.generic': { en: 'Save failed. Try again or DM me on WhatsApp.', he: 'לא נשמר. נסה שוב או שלח וואטסאפ.' },
 
   // ─── Testimonials ─────────────────────────────────────────────────
   'testi.badge':      { en: 'ATHLETE VOICES',  he: 'מהספורטאים' },
@@ -495,7 +495,7 @@ const STRINGS = {
     en: 'The full intake form is the same one I use with the athletes I coach — body history, sleep, stress, training history, goals. Fills in 6 minutes. After you submit it I will reply with a personalised recommendation.',
     he: 'טופס ההיכרות המלא הוא אותו אחד שאני עובד איתו עם הספורטאים שאני מאמן — היסטוריה גופנית, שינה, לחץ, ניסיון אימוני, מטרות. ממלאים תוך 6 דקות. אחרי שאתה שולח אני חוזר עם המלצה אישית.',
   },
-  'quiz.r.full.cta':   { en: 'OPEN FULL ASSESSMENT →', he: 'תפתח את הטופס המלא ←' },
+  'quiz.r.full.cta':   { en: 'OPEN FULL ASSESSMENT →', he: 'פתח את הטופס המלא ←' },
   'quiz.r.wa.cta':     { en: 'OR ASK ON WHATSAPP →', he: 'או תכתוב בוואטסאפ ←' },
 
   // ─── Exit-intent / scroll-50% modal ───────────────────────────────
