@@ -2,7 +2,7 @@ import React, { useState, useCallback, useRef, useEffect, useMemo, Suspense, laz
 import { todayLocalISO } from './dates';
 import { C, FN, FB, uid } from './theme';
 import { ThemeToggle } from './ThemeToggle';
-import { LangCtx, LANG_KEY, tr as trFn, readLang, tbFor, useT } from './i18n';
+import { LangCtx, LANG_KEY, tr as trFn, readLang, tbFor, useT, BodyLang } from './i18n';
 import { useLogoSrc } from './hooks/useTheme';
 import { EXPOMark } from './expoMark';
 import { useStore } from './useStore';
@@ -626,7 +626,7 @@ function AuthGate() {
       // LangCtx: the demo embeds REAL components (the Training Analysis page)
       // that read the language from context; without a provider they rendered
       // English on a Hebrew demo, the same miss /try had.
-      return <LangCtx.Provider value={readLang()}><Suspense fallback={<BootSplash />}><CoachDemo /></Suspense></LangCtx.Provider>;
+      return <LangCtx.Provider value={readLang()}><BodyLang lang={readLang()} /><Suspense fallback={<BootSplash />}><CoachDemo /></Suspense></LangCtx.Provider>;
     }
     if (path === '/demo/athlete' || path === '/demo/trainee' || path === '/coaches/demo/trainee' || path === '/coaches/demo') {
       return <LangCtx.Provider value={readLang()}><Suspense fallback={<BootSplash />}><DemoTraineePortal /></Suspense></LangCtx.Provider>;
@@ -1582,6 +1582,7 @@ function AuthedApp() {
     // reads right-to-left, labels sit on the correct side, and mixed
     // Hebrew/English lines resolve through the browser's own bidi algorithm.
     <LangCtx.Provider value={lang}>
+    <BodyLang lang={lang} />
     <div className="app-root" dir={lang === 'he' ? 'rtl' : 'ltr'} style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB,maxWidth:"100vw",overflowX:"clip"}}>
       {isPartner && <div style={{background:`color-mix(in srgb, ${C.ac} 22%, ${C.bg})`,borderBottom:`1px solid ${C.ac}`,color:C.tx,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',textAlign:'center',padding:'7px 12px'}}>{t("PARTNER PREVIEW · you're viewing the real EXPO with live data — anything you change isn't saved")}</div>}
       {/* Past the deadline with reads still outstanding. The app is usable, but

@@ -19,7 +19,7 @@
 //   - coaching cues / notes — his to author, and already Hebrew where he wrote
 //     them
 //   - athlete names, block names, and anything an athlete or coach typed
-import { createContext, useContext, createElement } from 'react';
+import { createContext, useContext, createElement, useEffect } from 'react';
 
 export const LangCtx = createContext('en');
 export const LANG_KEY = 'expo-lang';
@@ -536,7 +536,8 @@ export const HE = {
   'Last edited': 'עודכן לאחרונה',
   '+ New Program': '+ תוכנית חדשה',
   ANALYSIS: 'ניתוח',
-  previous: 'קודם',
+  previous: 'קודמים',
+  '1 previous': 'קודם אחד',
   'NEVER LOGGED': 'לא רשם אף אימון',
   exercises: 'תרגילים',
   'WORKOUT REVIEW': 'בדיקת אימונים',
@@ -1607,6 +1608,20 @@ export function tbFor(lang) {
       createElement('span', { 'aria-hidden': 'true', style: { gridArea: '1 / 1', visibility: 'hidden', whiteSpace: 'nowrap' } }, other),
       createElement('span', { style: { gridArea: '1 / 1', whiteSpace: 'nowrap' } }, shown));
   };
+}
+// Every modal, drawer and overlay goes through createPortal(..., document.body),
+// which puts it OUTSIDE .app-root and its dir attribute - so in Hebrew all 34 of
+// them laid out left-to-right (seen 17.9 on Training Analysis for a real athlete:
+// title on the left, 'ב־' torn off the block name). This marks <body> with the
+// coach app's language while the coach tree is mounted; themes.css turns that
+// into direction for body-level portals. A data attribute, not dir, so the page
+// scrollbar and the athlete portal (which never mounts this) are untouched.
+export function BodyLang({ lang }) {
+  useEffect(() => {
+    document.body.dataset.lang = lang === 'he' ? 'he' : 'en';
+    return () => { delete document.body.dataset.lang; };
+  }, [lang]);
+  return null;
 }
 export function useTB() {
   return tbFor(useContext(LangCtx));

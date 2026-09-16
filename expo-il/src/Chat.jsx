@@ -261,7 +261,7 @@ export default function Chat() {
               position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, calc(-50% + 2px))',
               fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.18em', color: C.tm,
               lineHeight: 1, whiteSpace: 'nowrap', pointerEvents: 'none',
-            }}>{isHe ? 'שאל כל שאלה.' : 'ASK ANYTHING.'}</span>
+            }}>{isHe ? 'שאל מה שבא לך.' : 'ASK ANYTHING.'}</span>
             <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
               {messages.length > 0 && (
                 <button onClick={() => { setMessages([]); setErr(''); setCapturePrompted(false); setCaptureEmail(''); setCaptureState('idle'); setCaptureErr(''); }}
@@ -288,7 +288,7 @@ export default function Chat() {
                 padding: '12px 14px',
               }}>
                 {isHe
-                  ? 'היי — אני עונה על שאלות בסיסיות על התוכניות, המחירים וההצעות. לפרטים אישיים — תמלא את הטופס ואוהד יחזור אליך.'
+                  ? 'היי — אני עונה על שאלות בסיסיות: התוכניות, המחירים ומה כלול. לשאלות אישיות — תשאיר אימייל למטה ואוהד יחזור אליך.'
                   : "Hey — I can answer basic questions about Ohad's programs, pricing, and what's included. For anything personal, drop your email below."}
               </div>
             )}
@@ -387,7 +387,7 @@ export default function Chat() {
               background: 'transparent', fontSize: 12, color: C.tm, lineHeight: 1.5, textAlign: 'center',
             }}>
               {isHe
-                ? 'הצ׳אט לא זמין כרגע. השאר אימייל בטופס למטה ואוהד יחזור אליך.'
+                ? 'הצ׳אט לא זמין כרגע. תשאיר אימייל בטופס למטה ואוהד יחזור אליך.'
                 : "Chat is offline right now. Drop your email in the form below and Ohad will reply directly."}
             </div>
           ) : (

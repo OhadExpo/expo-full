@@ -1195,3 +1195,7 @@ html.theme-switching *::after {
    takes the same edge fade the header and the zone tabs use. */
 .rail-scroll{overflow-x:auto;overflow-y:hidden;-ms-overflow-style:none;scrollbar-width:none}
 .rail-scroll::-webkit-scrollbar{display:none}
+
+/* Portals (modals, drawers, the Training Analysis overlay) mount on <body>, outside
+   .app-root[dir]. BodyLang marks the body with the coach app's language. */
+body[data-lang="he"] > :not(#root) { direction: rtl; }

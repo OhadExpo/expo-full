@@ -3034,11 +3034,11 @@ function DiscoveryCallSection() {
         <h2 style={{
           margin: 0, fontFamily: FN, fontSize: 'clamp(24px, 3.6vw, 36px)',
           fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.15, color: C.tx,
-        }}>{heb ? 'לא בטוח איזו תוכנית מתאימה?' : 'Not sure which program fits?'}</h2>
+        }}>{heb ? 'לא בטוח איזו תוכנית מתאימה לך?' : 'Not sure which program fits?'}</h2>
         <p style={{
           margin: '14px auto 0', fontSize: 14, color: C.tm, lineHeight: 1.65, maxWidth: 560,
         }}>{heb
-          ? 'תאם שיחה קצרה איתי. נדבר על המטרות, הזמן שיש לך, וההיסטוריה — ואני אגיד לך איזה בלוק מתאים (או אם בכלל אונליין מתאים לך).'
+          ? 'קבע איתי שיחה קצרה. נדבר על המטרות שלך, כמה זמן יש לך והרקע שלך באימונים — ואגיד לך איזה בלוק מתאים (ואם אונליין בכלל מתאים לך).'
           : "Book a quick call with me. We'll talk goals, schedule, and history — and I'll tell you which block fits (or whether online is even right for you)."}</p>
       </div>
       <div style={{
@@ -3066,7 +3066,7 @@ function DiscoveryCallSection() {
         fontSize: 11, color: C.tm, letterSpacing: '0.16em', fontWeight: 700,
       }}>
         {heb
-          ? 'מופעל על ידי Google Calendar · אישור באימייל אוטומטי'
+          ? 'דרך Google Calendar · אישור אוטומטי באימייל'
           : 'Powered by Google Calendar · Automatic email confirmation'}
       </div>
       {/* WhatsApp fallback — for visitors who don't see a slot that
@@ -3076,7 +3076,7 @@ function DiscoveryCallSection() {
         marginTop: 18, textAlign: 'center', fontFamily: FB,
         fontSize: 13, color: C.tm, lineHeight: 1.6,
       }}>
-        {heb ? 'אף שעה לא מתאימה? ' : "No slot fits? "}
+        {heb ? 'לא מצאת שעה שמתאימה? ' : "No slot fits? "}
         <a href={`https://wa.me/${CONTACT.whatsapp}?text=${encodeURIComponent(heb ? 'היי אוהד, לא מצאתי שעה ביומן שמתאימה לי. אפשר לתאם משהו אחר?' : "Hi Ohad — no slot on the calendar works for me. Can we coordinate something else?")}`}
            target="_blank" rel="noopener"
            onClick={() => trackAndOpen('discovery_whatsapp_fallback', {})}
