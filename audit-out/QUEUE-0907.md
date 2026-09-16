@@ -220,3 +220,11 @@ PRIVATE DETAILS (athlete name, health notes, library-video evidence) are in loca
 - [ ] O19 NOT RENDERED YET (need data/state): the Tasks bulk bar (`שינוי סטטוס:` / `3 נבחרו`), the club zone's program modal, the Training Analysis page on a real athlete (O9), the public booking page's Hebrew day columns (slug missing locally)
 - [x] O20 (bad8962: zone swept in Hebrew tab by tab — only data left; the embedded session logger read NO switch because App returns the zone above its provider; MED buttons 64/64 both languages) the club zone has its OWN EN/HE switch — none of today's rendered sweeps ran it in Hebrew; run `scripts/_he-coverage.mjs`-style on /coach/bhbc with the zone switched to עב
 
+## P — 2026-09-17 "keep working. 5 hours autonomously. update and deploy everything anywhere except athlete portal, and show me on a local host whats left" · "make sure you're deploying after finishing the 5 hour work" · "not right now"
+Clock: started 2026-09-17 00:14 JDT. **Deploy NOT before 05:14** (his order: 5 hours of work FIRST, then deploy, then the local page).
+- [ ] P1 five hours of work on the open O-block and older items (O11 commas/lowercase, O7 demo RTL, O15 athlete-facing un-wired files — do NOT change what the athlete portal ships, O6 tool parity, O9/O19 real-seat checks, K13)
+- [ ] P2 AFTER the 5 hours: restore point = production SHA at that moment (was a422dd5 on 17.9 start); cut `deploy-0917` from bhbc-hebrew with the athlete portal held at production exactly as e7611db did: `src/ClientPortal.jsx`, `src/MealLogger.jsx`, `src/TrySandbox.jsx` from origin/master; App.jsx — the `isClient` return stays OUTSIDE `<LangCtx.Provider>`; auth.jsx — LoginScreen `useState('en')` + the language button `hidden`. The candidate's diff vs the branch must be exactly those files
+- [ ] P3 gates on the deploy build: build, verify-athlete-journey, verify-athlete-no-backend (expected FAIL as on 11.9 — prod portal has no offline notice), prod-smoke after push, the Hebrew gates; marketing (expo-il) parity check
+- [ ] P4 push to master (the harness blocked Claude's push on 16.9 — if blocked again, hand him the one command at once); verify the new bundle on expo-app.co.il, coach screens in Hebrew, the athlete portal unchanged
+- [ ] P5 local host page: what shipped + what's left, opened in his Chrome
+
