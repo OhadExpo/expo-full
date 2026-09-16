@@ -3353,7 +3353,7 @@ function pctFromReps(reps) {
 // from the numbers (relative volume + rep emphasis + power share).
 function detectPhase(name, { avgReps, totalSets, avgSets, peakSets, powerShare }) {
   const n = (name || '').toLowerCase();
-  if (/deload|de-load|taper|recover|back[\s-]*off|unload|rest\s*week|פריקה|דילоуд/.test(n)) return 'Deload';
+  if (/deload|de-load|taper|recover|back[\s-]*off|unload|rest\s*week|פריקה|שבוע הורדה|דילואוד|דילוד/.test(n)) return 'Deload';
   if (/peak|realiz|test\s*week|compet|max\s*out/.test(n)) return 'Peak';
   if (/power|\bpwr\b|plyo|speed|explos|dynamic|convert|conversion|\brfd\b|ballistic/.test(n)) return 'Power';
   if (/strength|\bstr\b|\bint\b|\bmxs\b|intensif|max\s*str|\bheavy\b|כוח/.test(n)) return 'Strength';

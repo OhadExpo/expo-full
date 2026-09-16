@@ -36,39 +36,39 @@ import { SUPA_URL, SUPA_PUBLISHABLE_KEY } from './supabase';
 const STRINGS = {
   // Header
   'header.badge':        { en: 'FOR COACHES',          he: 'למאמנים' },
-  'header.demo':         { en: 'SEE THE DEMO',         he: 'תראה הדגמה' },
+  'header.demo':         { en: 'SEE THE DEMO',         he: 'צפה בהדגמה' },
   'header.signin':       { en: 'SIGN IN →',            he: 'התחברות ←' },
 
   // Hero
   'hero.badge':          { en: 'COACHING PLATFORM',    he: 'פלטפורמת אימון' },
-  'hero.h1':             { en: 'Run your roster on the same engine your clients film with.', he: 'תריץ את כל הרוסטר שלך על אותו מנוע שהמתאמנים מצלמים בו.' },
+  'hero.h1':             { en: 'Run your roster on the same engine your clients film with.', he: 'תנהל את כל המתאמנים שלך על אותו מנוע שהם מצלמים איתו.' },
   'hero.body': {
     en: 'Pose detection, auto rep counter, side-by-side video review, plan authoring, client portals, and a dormant-client WhatsApp nudge — built by a working coach, running live on real clients.',
-    he: 'זיהוי תנוחה, ספירת חזרות אוטומטית, השוואת וידאו צד-לצד, בניית תוכניות, פורטל אישי לכל מתאמן, ותזכורת וואטסאפ למתאמנים ששקטו — מאמן פעיל בונה את זה, רץ חי על מתאמנים אמיתיים.',
+    he: 'זיהוי תנוחה, ספירת חזרות אוטומטית, השוואה בין שני סרטונים, בניית תוכניות, פורטל אישי לכל מתאמן ותזכורת וואטסאפ למתאמנים ששקטו — מאמן פעיל בונה את זה, וזה כבר עובד עם מתאמנים אמיתיים.',
   },
   'hero.cta.coach':      { en: 'SEE COACH VIEW →',     he: 'הצד של המאמן ←' },
   'hero.cta.athlete':    { en: 'SEE ATHLETE VIEW →',   he: 'הצד של המתאמן ←' },
   'hero.cta.waitlist':   { en: 'JOIN WAITLIST →',      he: 'הצטרף לרשימה ←' },
-  'hero.smallprint':     { en: 'NO CARD · NO SIGNUP · DEMO RUNS ON YOUR OWN CLIP', he: 'בלי כרטיס · בלי הרשמה · ההדגמה רצה על הקליפ שלך' },
+  'hero.smallprint':     { en: 'NO CARD · NO SIGNUP · DEMO RUNS ON YOUR OWN CLIP', he: 'בלי כרטיס אשראי · בלי הרשמה · ההדגמה עובדת על סרטון שלך' },
   // Hero stat band — mirrors the expo-il online/performance-center heroes.
   // Numbers are the real, already-public EXPO figures (same ones on
   // expo-il.co.il), framed as proof the platform runs live, not theory.
   'hero.stat1.num':      { en: '20+',  he: '+20' },
-  'hero.stat1.label':    { en: 'ATHLETES RUNNING LIVE', he: 'מתאמנים חיים' },
+  'hero.stat1.label':    { en: 'ATHLETES RUNNING LIVE', he: 'מתאמנים פעילים' },
   'hero.stat2.num':      { en: '90+',  he: '+90' },
   'hero.stat2.label':    { en: 'PROGRAMS BUILT', he: 'תוכניות שנבנו' },
   'hero.stat3.num':      { en: '500+', he: '+500' },
   'hero.stat3.label':    { en: 'EXERCISES IN LIBRARY', he: 'תרגילים בספרייה' },
 
   // Live demo
-  'demo.badge':          { en: 'LIVE · NOT A SCREENSHOT', he: 'חי · לא צילום מסך' },
-  'demo.h2':             { en: 'Upload a clip. Watch the engine work.', he: 'תעלה קליפ. תראה את המנוע עובד.' },
+  'demo.badge':          { en: 'LIVE · NOT A SCREENSHOT', he: 'עובד באמת · לא צילום מסך' },
+  'demo.h2':             { en: 'Upload a clip. Watch the engine work.', he: 'תעלה סרטון. תראה את המנוע עובד.' },
   'demo.body': {
     en: 'The full engine, running below — same code your clients film with. For the deeper tour (dashboard, plan editor, review tool), open the full coach demo in a new tab.',
-    he: 'המנוע המלא רץ למטה — אותו קוד שהמתאמנים שלך מצלמים בו. לסיור המלא (דשבורד, עורך תוכניות, כלי בקרה) — פתח את הדגמת המאמן.',
+    he: 'המנוע המלא עובד כאן למטה — אותו קוד שרץ כשהמתאמנים שלך מצלמים. לסיור המלא (דשבורד, עורך תוכניות, כלי בקרה) — פתח את הדגמת המאמן.',
   },
   'demo.embed.loading':  { en: 'LOADING ENGINE…',      he: 'טוען מנוע…' },
-  'demo.embed.modelfoot':{ en: 'POSE MODEL · ~6MB · FIRST LOAD ONLY', he: 'מודל תנוחה · ~6MB · רק בטעינה ראשונה' },
+  'demo.embed.modelfoot':{ en: 'POSE MODEL · ~6MB · FIRST LOAD ONLY', he: 'מודל תנוחה · בערך 6MB · רק בטעינה הראשונה' },
   'demo.embed.openCoach':{ en: 'OPEN THE FULL COACH DEMO →', he: 'הדגמת מאמן מלאה ←' },
   'demo.embed.openAthlete':{ en: 'OPEN THE ATHLETE VIEW →', he: 'הצד של המתאמן ←' },
 
@@ -79,19 +79,19 @@ const STRINGS = {
   'feat.video.title':    { en: 'Pose + auto rep counter', he: 'זיהוי תנוחה + ספירת חזרות' },
   'feat.video.body': {
     en: 'MediaPipe pose landmarks render live. Reps count from joint-angle troughs — squat / hinge / press / pull are auto-routed to the right channel. Compare two clips side-by-side.',
-    he: 'MediaPipe מזהה נקודות תנוחה בזמן אמת. חזרות נספרות לפי ירידות בזווית המפרק — סקוואט / הינג׳ / פרס / פול מנותבים אוטומטית לערוץ הנכון. אפשר להשוות שני קליפים צד-לצד.',
+    he: 'MediaPipe מזהה נקודות תנוחה בזמן אמת. כל חזרה נספרת לפי נקודת השפל בזווית המפרק — סקוואט / הינג׳ / פרס / פול, המערכת בוחרת לבד את הערוץ הנכון. אפשר להשוות שני סרטונים אחד ליד השני.',
   },
   'feat.prog.tag':       { en: 'PROGRAMMING',          he: 'תכנון אימונים' },
   'feat.prog.title':     { en: 'Block-based plan authoring', he: 'בניית תוכניות בבלוקים' },
   'feat.prog.body': {
     en: 'Build phases of training as named blocks. Day-by-day exercise lists with sets, reps, tempo, video links, supersets, week-by-week wave logs. Bulk import from xlsx.',
-    he: 'בונה שלבי אימון כבלוקים. רשימת תרגילים לכל יום עם סטים, חזרות, טמפו, וידאו, סופרסטים, ומעקב גלים שבועי. מייבא הכל מ-xlsx בלחיצה.',
+    he: 'כל שלב אימון נבנה כבלוק. רשימת תרגילים לכל יום עם סטים, חזרות, טמפו, קישור לסרטון, סופרסטים ומעקב גלים שבועי. ייבוא של הכל מ-xlsx בלחיצה.',
   },
   'feat.portal.tag':     { en: 'ATHLETE PORTAL',       he: 'פורטל מתאמנים' },
   'feat.portal.title':   { en: 'Branded portal per athlete', he: 'פורטל אישי לכל מתאמן' },
   'feat.portal.body': {
     en: 'Each client logs in to a workout view with their plan, video reviews, and feedback. Couples share a couple-card. Bodyweight + session logging built in.',
-    he: 'כל מתאמן מתחבר לתצוגה אישית עם התוכנית שלו, בקרות וידאו, ופידבק. זוגות חולקים כרטיס משותף. מעקב משקל גוף ואימונים מובנה במערכת.',
+    he: 'כל מתאמן נכנס לתצוגה אישית עם התוכנית שלו, בקרות הווידאו והפידבק. לזוגות יש כרטיס משותף. מעקב משקל גוף ואימונים כבר בפנים.',
   },
   'feat.ops.tag':        { en: 'OPS',                  he: 'תפעול' },
   'feat.ops.title':      { en: 'Dormant nudges via WhatsApp', he: 'תזכורות וואטסאפ למתאמנים ששקטו' },
@@ -103,13 +103,13 @@ const STRINGS = {
   'feat.review.title':   { en: 'Per-rep video review', he: 'בקרת וידאו לכל חזרה' },
   'feat.review.body': {
     en: 'Pause on any frame, draw on the video, leave timestamped voice + text comments. The athlete sees the review from the same portal — no email back-and-forth.',
-    he: 'עצירה בכל פריים, ציור על הווידאו, הערות קוליות וטקסט עם תזמון. המתאמן רואה את הבקרה מאותו פורטל — בלי תכתובת מיילים.',
+    he: 'עצירה על כל פריים, ציור על הסרטון, הערות קוליות וכתובות בנקודת הזמן המדויקת. המתאמן רואה את הבקרה באותו פורטל — בלי הלוך ושוב במיילים.',
   },
   'feat.export.tag':     { en: 'NO LOCK-IN',           he: 'בלי נעילה' },
   'feat.export.title':   { en: 'Your data, your rules', he: 'הנתונים שלך — אתה מחליט' },
   'feat.export.body': {
     en: 'Export every plan, exercise, and workout log to xlsx anytime. Bring your existing exercise library — xlsx, sheets, or whatever export your previous app gave you, bulk import is part of onboarding.',
-    he: 'אפשר לייצא כל תוכנית, תרגיל, ולוג אימון ל-xlsx בכל רגע. תביא איתך את ספריית התרגילים הקיימת — xlsx, גוגל שיטס, או כל פורמט שהאפליקציה הקודמת ייצאה — אנחנו מייבאים את הכל בהצטרפות.',
+    he: 'אפשר לייצא כל תוכנית, תרגיל ולוג אימון ל-xlsx בכל רגע. תביא איתך את ספריית התרגילים שכבר יש לך — xlsx, גוגל שיטס או כל קובץ שהאפליקציה הקודמת נתנה לך לייצא — ואנחנו מייבאים הכל כשאתה מצטרף.',
   },
 
   // About
@@ -117,17 +117,17 @@ const STRINGS = {
   'about.h2':            { en: 'Built by a working coach for working coaches.', he: 'מאמן פעיל בונה את זה למאמנים פעילים.' },
   'about.body': {
     en: "I'm Ohad. I run my own roster on this exact platform — every line of it exists because I needed it on a Tuesday morning between sessions. Nothing in here is theoretical. If a feature doesn't survive contact with real clients, it gets cut.",
-    he: 'אני אוהד. אני מנהל את הרוסטר שלי על אותה פלטפורמה בדיוק — כל שורת קוד כאן קיימת כי הייתי צריך אותה ביום שלישי בבוקר בין אימונים. שום דבר פה לא תיאורטי. פיצ׳ר שלא עובד מול מתאמנים אמיתיים — יוצא.',
+    he: 'אני אוהד. אני מנהל את כל המתאמנים שלי בדיוק על הפלטפורמה הזאת — כל שורת קוד כאן קיימת כי הייתי צריך אותה ביום שלישי בבוקר בין אימונים. שום דבר פה לא תיאורטי. פיצ׳ר שלא עובד מול מתאמנים אמיתיים — יוצא.',
   },
 
   // Pricing
   'pricing.badge':       { en: 'FOUNDING-COACH PRICING', he: 'מחיר מאמן מייסד' },
-  'pricing.h2':          { en: 'Pick the slot count that fits your roster.', he: 'תבחר את הכמות שמתאימה לרוסטר שלך.' },
+  'pricing.h2':          { en: 'Pick the slot count that fits your roster.', he: 'תבחר את החבילה שמתאימה לכמות המתאמנים שלך.' },
   'pricing.body': {
     en: 'Per-coach, flat monthly — no per-client fees, no transaction cuts. Numbers below are indicative; founding-coach pricing gets locked one tier lower on a 20-minute intake call before your account opens.',
-    he: 'מחיר חודשי לכל מאמן — בלי עמלה על מתאמן, בלי אחוזים מעסקאות. המספרים למטה אינדיקטיביים; מחיר מאמן מייסד נסגר רמה אחת נמוכה יותר בשיחת היכרות של 20 דקות, לפני שפותחים לך חשבון.',
+    he: 'מחיר חודשי קבוע לכל מאמן — בלי עמלה על מתאמן, בלי אחוזים מעסקאות. המחירים למטה הם הערכה. למאמן מייסד המחיר נסגר מדרגה אחת מתחת, בשיחת היכרות של 20 דקות לפני שפותחים לך חשבון.',
   },
-  'pricing.note':        { en: "NO CARD NOW · WAITLIST ONLY · I'LL REACH OUT TO LOCK PRICING", he: 'בלי כרטיס עכשיו · רק רשימת המתנה · אני אחזור אליך לסגור מחיר' },
+  'pricing.note':        { en: "NO CARD NOW · WAITLIST ONLY · I'LL REACH OUT TO LOCK PRICING", he: 'בלי כרטיס אשראי עכשיו · רק רשימת המתנה · אני אחזור אליך לסגור מחיר' },
   'pricing.popular':     { en: 'MOST POPULAR',         he: 'הכי פופולרי' },
 
   'tier.starter.name':   { en: 'STARTER',              he: 'מתחיל' },
@@ -139,17 +139,17 @@ const STRINGS = {
 
   'tier.growth.name':    { en: 'GROWTH',               he: 'צמיחה' },
   'tier.growth.slots':   { en: 'Up to 30 active clients', he: 'עד 30 מתאמנים פעילים' },
-  'tier.growth.f1':      { en: 'Everything in Starter', he: 'כל מה שיש במתחיל' },
+  'tier.growth.f1':      { en: 'Everything in Starter', he: 'כל מה שיש בחבילת מתחיל' },
   'tier.growth.f2':      { en: 'Bulk plan duplication across clients', he: 'שכפול תוכניות בין מתאמנים בלחיצה' },
   'tier.growth.f3':      { en: 'Bodyweight + session payment tracking', he: 'מעקב משקל גוף + תשלומי אימונים' },
-  'tier.growth.f4':      { en: 'Priority email support', he: 'תמיכת מייל עם עדיפות' },
+  'tier.growth.f4':      { en: 'Priority email support', he: 'תמיכה במייל בעדיפות' },
 
   'tier.founding.name':  { en: 'FOUNDING PARTNER',     he: 'שותף מייסד' },
-  'tier.founding.slots': { en: 'Unlimited clients · roadmap influence', he: 'מתאמנים בלי הגבלה · השפעה על מפת הדרכים' },
-  'tier.founding.f1':    { en: 'Everything in Growth', he: 'כל מה שיש בצמיחה' },
-  'tier.founding.f2':    { en: 'Direct line for product requests + roadmap input', he: 'קו ישיר לבקשות מוצר + השפעה על מפת הדרכים' },
+  'tier.founding.slots': { en: 'Unlimited clients · roadmap influence', he: 'מתאמנים בלי הגבלה · השפעה על מה שנבנה הלאה' },
+  'tier.founding.f1':    { en: 'Everything in Growth', he: 'כל מה שיש בחבילת צמיחה' },
+  'tier.founding.f2':    { en: 'Direct line for product requests + roadmap input', he: 'קו ישיר לבקשות פיצ׳רים + השפעה על מה שנבנה הלאה' },
   'tier.founding.f3':    { en: 'Quarterly product strategy call', he: 'שיחת אסטרטגיה רבעונית' },
-  'tier.founding.f4':    { en: 'First access to features as they ship', he: 'גישה ראשונה לפיצ׳רים ברגע שעולים' },
+  'tier.founding.f4':    { en: 'First access to features as they ship', he: 'ראשון לקבל פיצ׳רים חדשים, ברגע שהם עולים' },
 
   'tier.cta.waitlist':   { en: 'JOIN WAITLIST',        he: 'הצטרפות לרשימה' },
   'tier.priceSub':       { en: '/ MONTH',              he: '/ חודש' },
@@ -159,13 +159,13 @@ const STRINGS = {
   'wl.h2':               { en: 'Get early access at founding-coach pricing.', he: 'גישה מוקדמת במחיר מאמן מייסד.' },
   'wl.body': {
     en: "Multi-coach access opens slot-by-slot. Drop your email — I'll reach out personally when it's your turn. No card. No commitment.",
-    he: 'הגישה למאמנים נפתחת מקום אחר מקום. השאר אימייל — אני אחזור אליך אישית כשיגיע התור שלך. בלי כרטיס. בלי מחויבות.',
+    he: 'אני פותח מקומות למאמנים אחד אחד. תשאיר מייל — אני אחזור אליך אישית כשיגיע התור שלך. בלי כרטיס אשראי. בלי התחייבות.',
   },
   'wl.placeholder':      { en: 'your@email.com',       he: 'your@email.com' },
   'wl.cta':              { en: 'JOIN WAITLIST',        he: 'הצטרפות' },
   'wl.err.email':        { en: 'Enter a valid email',  he: 'תכניס מייל תקין' },
   'wl.err.network':      { en: 'Something went wrong. Try again in a minute.', he: 'משהו השתבש. נסה שוב עוד רגע.' },
-  'wl.done':             { en: "✓ YOU'RE ON THE LIST. I'LL EMAIL YOU AS COACH SLOTS OPEN.", he: '✓ את/ה ברשימה. אני אשלח לך מייל ברגע שייפתח מקום מאמן/ת.' },
+  'wl.done':             { en: "✓ YOU'RE ON THE LIST. I'LL EMAIL YOU AS COACH SLOTS OPEN.", he: '✓ את/ה ברשימה. אני אשלח לך מייל ברגע שייפתח מקום למאמנים.' },
 
   // Sticky mobile + footer
   'sticky.engine':       { en: 'TRY THE ENGINE',       he: 'נסה את המנוע' },
@@ -442,7 +442,7 @@ function ComparisonSection({ isHe }) {
       ['ספירת חזרות בעין', 'ספירה אוטומטית — זיהוי תנוחה'],
       ['אין פורטל — שולחים צילומי מסך', 'פורטל ממותג לכל מתאמן'],
       ['העתק-הדבק בין טאבים', 'בלוקים + ייבוא מ-xlsx'],
-      ['זוכרים מי שקט (או לא)', 'תזכורות וואטסאפ אוטומטיות'],
+      ['מנסים לזכור מי שקט (ולא תמיד מצליחים)', 'תזכורות וואטסאפ אוטומטיות'],
       ['נתונים מפוזרים בין קבצים', 'מנוע אחד · ייצוא בכל רגע'],
     ],
   } : {
