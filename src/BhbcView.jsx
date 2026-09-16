@@ -25,6 +25,7 @@ import { readinessAutoreg } from './readinessAutoreg';
 import BWChart from './BwChart';
 import { sessionSig } from './bhbcSession.js';
 import { useFullPlan } from './usePlansStore';
+import { LangCtx } from './i18n';
 
 // EXPO's own group/single session logger — reused INSIDE the BHBC portal, scoped
 // to the BHBC roster. It writes to client_workouts (athlete-visible), so a BHBC
@@ -899,6 +900,10 @@ function attendance28(rec, days) {
     // instead of being forced. Numbers, times and club names stay LTR on their
     // own because they are strongly-typed LTR runs.
     <BhbcLangCtx.Provider value={bhbcLang}>
+    {/* App returns the zone ABOVE its own LangCtx.Provider, so the app components
+        the zone embeds (the session logger) read the default English whatever
+        either switch says. They follow the ZONE's switch. */}
+    <LangCtx.Provider value={bhbcLang}>
     <div className="bhbc-zone" data-theme="light" dir={he ? 'rtl' : 'ltr'} style={{ ...TOKENS, minHeight: '100vh', background: 'var(--c-bg)', color: C.tx, fontFamily: FB }}>
       <style>{`
         .bhbc-hdr-tabs::-webkit-scrollbar{display:none} .bhbc-hdr-tabs{scrollbar-width:none;-ms-overflow-style:none}
@@ -1299,7 +1304,7 @@ function attendance28(rec, days) {
                       <button key={k} onClick={() => setSessionMode(k)} style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: sessionMode === k ? '#fff' : C.td, background: sessionMode === k ? NAVY_DEEP : 'transparent', border: 'none', padding: '7px 16px', cursor: 'pointer' }}>{l}</button>
                     ))}
                   </div>
-                  <span style={{ fontFamily: FB, fontSize: 12, color: C.td }}>Logs each athlete's work to their history &amp; portal — synced with EXPO.</span>
+                  <span style={{ fontFamily: FB, fontSize: 12, color: C.td }}>{tr('Logs each athlete’s work to their history & portal — synced with EXPO.')}</span>
                 </div>
                 <Suspense fallback={<div style={{ padding: 24, textAlign: 'center', color: C.td, fontFamily: FB }}>{tr('Loading session logger…')}</div>}>
                   <SessionsView mode={sessionMode} trainees={roster} planIndex={planIndex} exercises={exercises} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} workouts={workouts} setWorkouts={setWorkouts} onDecrementSession={onDecrementSession} />
@@ -1463,6 +1468,7 @@ function attendance28(rec, days) {
           onDeleteSession={asCoach ? null : (date, idx, sig) => deleteSession(detailFor, date, idx, sig)} />;
       })()}
     </div>
+    </LangCtx.Provider>
     </BhbcLangCtx.Provider>
   );
 }
@@ -2219,7 +2225,7 @@ function FixturesAheadPanel({ fixtures, today }) {
               </div>
               <div style={{ minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx }}>{g.opponent ? `vs ${g.opponent}` : 'Opponent TBD'}</span>
+                  <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx }}>{g.opponent ? `${tr('vs')} ${g.opponent}` : tr('Opponent TBD')}</span>
                   <HAChip home={g.home} />
                   {g.travel && <span style={{ fontFamily: FN, fontSize: 11, color: ORANGE_DEEP }} title={tr('Travel')}>✈</span>}
                   {tight && <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#fff', background: '#E0A73A', padding: '1px 6px' }} title={`${gap} days after the previous game`}>{gap}d turnaround</span>}
@@ -2250,7 +2256,7 @@ function NextGamePanel({ nextGame, today, onEdit }) {
         <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
           {nextGame.comp && <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: ORANGE_DEEP }}>{tr(nextGame.comp)}</div>}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <span style={{ fontFamily: FN, fontWeight: 800, fontSize: 17, color: C.tx }}>{nextGame.opponent ? `vs ${nextGame.opponent}` : 'Opponent TBD'}</span>
+            <span style={{ fontFamily: FN, fontWeight: 800, fontSize: 17, color: C.tx }}>{nextGame.opponent ? `${tr('vs')} ${nextGame.opponent}` : tr('Opponent TBD')}</span>
             <HAChip home={nextGame.home} />
           </div>
           <div style={{ fontFamily: FB, fontSize: 13, color: C.td }}>
@@ -2795,7 +2801,7 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
                 <div key={i} onClick={clickable ? () => onPlan(s) : undefined}
               role={clickable ? 'button' : undefined} tabIndex={clickable ? 0 : undefined}
               onKeyDown={clickable ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onPlan(s); } }) : undefined}
-                  title={clickable ? (pl ? 'Edit this session’s plan' : 'Add a plan for this session') : undefined}
+                  title={clickable ? tr(pl ? 'Edit this session’s plan' : 'Add a plan for this session') : undefined}
                   // flexWrap so a squeezed label moves to its own LINE instead of
                   // being crushed to "PR…". The action still never breaks: it
                   // wraps whole rather than sliding off the viewport, which was
@@ -2931,7 +2937,7 @@ function TodayPanel({ today, fixtures, fx, rows, onSessions, onLog, planOf, onPl
     return (
       <span key={i} style={{ display: 'inline-flex', flexDirection: 'column', gap: 3, alignItems: 'flex-start' }}>
         <span onClick={clickable ? () => onPlan(f) : undefined}
-          title={clickable ? (pl ? 'Edit this session’s plan' : 'Add a plan for this session') : undefined}
+          title={clickable ? tr(pl ? 'Edit this session’s plan' : 'Add a plan for this session') : undefined}
           style={{ cursor: clickable ? 'pointer' : 'default', display: 'inline-flex' }}>
           {chip(f, i, showDate)}
         </span>
@@ -3348,12 +3354,12 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
                         title={inj ? tr('Update the medical report') : tr('Report an injury')} className="bhbc-ghost-btn"
                         // minWidth so the two states are the same box. Ohad: "make sure
                         // all buttons no matter the tag (for each column) are the same
-                        // horizontal size". Measured: "+ MED" 55px, "MED ✎" 58px - a
+                        // horizontal size". Measured: "+ MED" 55px, "MED ✎" 58px (Hebrew "רפואי ✎" 62.5px, so the floor is 64) - a
                         // column that shifts by 3px per row depending on the athlete's
                         // medical state. lineHeight normal so the label sits on its own
                         // centre, like every other control.
-                        style={{ flexShrink: 0, minWidth: 62, height: ROW_BTN_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: inj ? medText(inj.status) : C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '4px 8px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                        {inj ? 'MED ✎' : '+ MED'}
+                        style={{ flexShrink: 0, minWidth: 64, height: ROW_BTN_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: inj ? medText(inj.status) : C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '4px 8px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                        {tr(inj ? 'MED ✎' : '+ MED')}
                       </button>
                     );
                   })()}
@@ -3745,7 +3751,7 @@ function WeekPlanner({ fixtures = [], today, planOf, onSavePlan, onUpsert, onRem
             is fixed-width so the control never resizes as it toggles. */}
         <button onClick={() => setWpLayout(wpLayout === 'columns' ? 'rows' : 'columns')}
           className="bhbc-ghost-btn"
-          title={wpLayout === 'columns' ? 'Switch to a vertical list of days' : 'Switch to seven day columns'}
+          title={tr(wpLayout === 'columns' ? 'Switch to a vertical list of days' : 'Switch to seven day columns')}
           style={{ ...inp, cursor: 'pointer', fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', minWidth: 104, textAlign: 'center' }}>
           {wpLayout === 'columns' ? `▤ ${tr('Rows')}` : `▥ ${tr('Columns')}`}
         </button>
@@ -4102,7 +4108,7 @@ function PlayerStatsTable({ roster, league, onOpen }) {
       return d || (a.t.jersey ?? 999) - (b.t.jersey ?? 999);
     });
   const th = (k, h, first) => (
-    <th key={k} onClick={() => { if (k === 'name') return; if (k === sort) setDir((d) => (d === 'desc' ? 'asc' : 'desc')); else { setSort(k); setDir('desc'); } }} title={k === 'name' ? undefined : (k === sort ? (dir === 'desc' ? 'Sort ascending' : 'Sort descending') : 'Sort by ' + h)} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: sort === k ? ORANGE_DEEP : C.tm, padding: '8px 9px', textAlign: first ? 'left' : 'center', whiteSpace: 'nowrap', cursor: k === 'name' ? 'default' : 'pointer', userSelect: 'none' }}>{h}{sort === k ? (dir === 'desc' ? ' ↓' : ' ↑') : ''}</th>
+    <th key={k} onClick={() => { if (k === 'name') return; if (k === sort) setDir((d) => (d === 'desc' ? 'asc' : 'desc')); else { setSort(k); setDir('desc'); } }} title={k === 'name' ? undefined : (k === sort ? tr(dir === 'desc' ? 'Sort ascending' : 'Sort descending') : `${tr('Sort by')} ${h}`)} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: sort === k ? ORANGE_DEEP : C.tm, padding: '8px 9px', textAlign: first ? 'left' : 'center', whiteSpace: 'nowrap', cursor: k === 'name' ? 'default' : 'pointer', userSelect: 'none' }}>{h}{sort === k ? (dir === 'desc' ? ' ↓' : ' ↑') : ''}</th>
   );
   return (
     <div style={{ overflowX: 'auto' }}>
