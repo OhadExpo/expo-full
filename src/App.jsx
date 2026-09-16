@@ -690,8 +690,12 @@ function AuthedApp() {
   // content), not the <nav> inside it - so both get the fade and whichever one
   // actually scrolls shows it.
   const coachBarRef = React.useRef(null);
+  // The rail is the scroller now (the bar stopped being one when the logo came
+  // out of it), so the edge fade has to measure the rail.
+  const coachRailRef = React.useRef(null);
   useEdgeFade(coachNavRef);
   useEdgeFade(coachBarRef);
+  useEdgeFade(coachRailRef);
   const { session, signOut: rawSignOut } = useAuth();
   const email = (session?.user?.email || '').toLowerCase();
   // BHBC basketball coach: their whole app is the /bhbc zone. Defined up here so
@@ -1622,19 +1626,32 @@ function AuthedApp() {
              below 700px the nav takes its OWN full-width row underneath and the
              right cluster stays on row one, which is what the earlier wrap
              attempt got wrong by letting it float into the second row. */
+          /* Above 700px the rail is not a box at all - display:contents leaves
+             the nav and the right cluster as direct flex children of the bar,
+             so the desktop header is byte-for-byte what it was. */
+          .hdr-rail { display: contents; }
           @media (max-width: 700px) {
-            /* ONE ROW, logo pinned, everything else scrolls past it. Wrapping
-               the nav onto its own row fixed the 12px-wide nav but broke the
-               rule, so the header became two rows on every phone. The bar
-               itself is the scroller now and the logo is sticky at its left. */
-            div.hdr-scroll { flex-wrap: nowrap !important; height: 56px !important; overflow-x: auto !important; overflow-y: hidden !important; padding-left: 16px !important; padding-right: 0 !important; }
-            /* Opaque, with an edge - otherwise the nav scrolls UNDER the logo and
-               shows through it. The header's own background is the only correct
-               fill here, and it differs per theme. */
-            div.hdr-scroll > :first-child { position: sticky; left: 0; z-index: 3; background: inherit;
-              align-self: stretch; display: flex; align-items: center; padding-right: 12px;
-              border-inline-end: 1px solid var(--c-cardBd); box-shadow: 6px 0 10px -6px rgba(0,0,0,0.35); }
-            div.hdr-scroll { background: inherit; }
+            /* ONE ROW, and the logo is OUT of the scroller.
+               It used to be sticky INSIDE it: every tab scrolled underneath and
+               the opaque background hid whatever was there. Measured on his own
+               width, the active DASHBOARD tab sat at 52..153 with the logo over
+               16..130 - 78px of it behind the logo, which is the screenshot he
+               sent five times. Now the bar is a plain two-column flex: a static
+               logo, and a rail beside it that scrolls. A tab cannot reach the
+               logo's x, so it cannot be covered, and one swipe still carries you
+               from the first tab to sign-out. */
+            div.hdr-scroll { flex-wrap: nowrap !important; height: 56px !important; overflow-x: visible !important; overflow-y: visible !important; padding-inline-start: 16px !important; padding-inline-end: 0 !important; background: inherit; }
+            div.hdr-scroll > :first-child { position: static; z-index: auto; flex: 0 0 auto;
+              align-self: stretch; display: flex; align-items: center; padding-inline-end: 12px;
+              border-inline-end: 1px solid var(--c-cardBd); }
+            .hdr-rail { display: flex !important; align-items: center; flex: 1 1 auto; min-width: 0;
+              height: 56px; overflow-x: auto; overflow-y: hidden;
+              -ms-overflow-style: none; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+              padding-inline-start: 12px;
+              /* so scrollIntoView never parks the active tab half-cut on the
+                 rail's own edge */
+              scroll-padding-inline: 12px; }
+            .hdr-rail::-webkit-scrollbar { display: none; }
             nav.hdr-scroll { flex: 0 0 auto !important; overflow: visible !important; min-width: 0 !important; }
             .hdr-right { flex: 0 0 auto !important; margin-left: 8px !important; padding-right: 16px !important; }
           }
@@ -1660,6 +1677,7 @@ function AuthedApp() {
         `}</style>
         <div ref={coachBarRef} className="hdr-scroll" style={{maxWidth:1360,margin:"0 auto",padding:"0 16px",display:"flex",alignItems:"center",height:56,overflowX:"visible",WebkitOverflowScrolling:"touch",msOverflowStyle:"none",scrollbarWidth:"none"}}>
           <EXPOMark height={36} onClick={()=>navTo('dashboard')} title="Back to dashboard" style={{flex:"0 0 auto",marginRight:12,cursor:'pointer'}} />
+          <div ref={coachRailRef} className="hdr-rail">
           <nav ref={coachNavRef} className="hdr-scroll" style={{display:"flex",gap:6,alignItems:"center",flex:"1 1 auto",justifyContent:"center",minWidth:0,overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
             {/* alignItems:'baseline' overrides baseBtn's 'center' so the
                 count digit (fontSize:10) baseline-aligns with the label
@@ -1713,7 +1731,7 @@ function AuthedApp() {
             <BugReportButton role="coach" reporterEmail={email} variant="coach" />
             <span style={{width:1,height:22,background:C.ac,opacity:0.15,alignSelf:'center',marginLeft:6,marginRight:6}} aria-hidden="true" />
             <button className="hdr-icon-btn" onClick={signOut} title="Sign out" aria-label="Sign out" style={{...baseBtn,height:HDR_ICON_H,boxSizing:"border-box",display:"inline-flex",alignItems:"center",justifyContent:"center",lineHeight:1,background:"transparent",color:C.tx,padding:"6px 8px",fontSize:14,borderRadius:0}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
-            </div></div></header>
+            </div></div></div></header>
       {showPwModal && <PasswordChangeModal onClose={()=>setShowPwModal(false)}/>}
       <main style={{maxWidth:1200,margin:"0 auto",padding:"12px"}}>
         <Suspense fallback={<ViewFallback />}>
