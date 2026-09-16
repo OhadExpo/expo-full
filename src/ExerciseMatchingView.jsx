@@ -11,6 +11,7 @@ import { C, FN, FB, ytId } from './theme';
 import { Card, Btn, Modal, EmptyState, toast } from './ui';
 import { scanUnmatched, groupUnmatched, suggestMatches, confidenceLabel, applyMatch, normTitle } from './exerciseMatch';
 import { supabase } from './supabase';
+import { useT } from './i18n';
 
 // Confidence tint for the word-diff label ("+single +arm", "machine↔cable",
 // "similar"). These are small UPPERCASE labels printed directly on the card, so
@@ -33,6 +34,7 @@ const CONF_THEME_CSS = `
 // accepting it — video (click-to-play, no fullscreen), classification, cues.
 // Without this the suggestion is just a truncated name (Ohad, 2026-08-21).
 function ExercisePeek({ ex, onAccept, onClose }) {
+  const tt = useT();
   const [play, setPlay] = useState(false);
   const yid = ytId(ex.videoLink);
   const fileVid = !yid && typeof ex.videoLink === 'string' && /\.(mp4|webm|mov|m4v)(\?|$)/i.test(ex.videoLink);
@@ -70,7 +72,7 @@ function ExercisePeek({ ex, onAccept, onClose }) {
             )) : fileVid ? (
               <video src={ex.videoLink} controls playsInline style={{ ...box, display: 'block' }} />
             ) : (
-              <div style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: C.td, padding: '14px 0', textAlign: 'center', border: `1px solid ${C.bd}` }}>No video in the library for this exercise</div>
+              <div style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: C.td, padding: '14px 0', textAlign: 'center', border: `1px solid ${C.bd}` }}>{tt('No video in the library for this exercise')}</div>
             )}
             {meta.length > 0 && (
               <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '5px 14px', marginTop: 12 }}>
@@ -85,7 +87,7 @@ function ExercisePeek({ ex, onAccept, onClose }) {
           </div>
           {cueLines.length > 0 && cueLines[0] !== '' && (
             <div style={{ flex: '1 1 240px', minWidth: 0 }}>
-              <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: C.ac, marginBottom: 8 }}>Cues</div>
+              <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: C.ac, marginBottom: 8 }}>{tt('Cues')}</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 340, overflowY: 'auto' }}>
                 {cueLines.map((line, i) => (line.trim()
                   ? <div key={i} dir="auto" style={{ fontFamily: FB, fontSize: 13.5, color: C.tx, lineHeight: 1.55, textAlign: 'start' }}>{line}</div>
@@ -95,8 +97,8 @@ function ExercisePeek({ ex, onAccept, onClose }) {
           )}
         </div>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', borderTop: `1px solid ${C.bd}`, paddingTop: 12 }}>
-          <Btn variant="ghost" onClick={onClose}>Close</Btn>
-          {onAccept && <Btn onClick={onAccept} style={{ background: '#2E9E6B', borderColor: '#2E9E6B', color: '#04121f' }}>Use this match</Btn>}
+          <Btn variant="ghost" onClick={onClose}>{tt('Close')}</Btn>
+          {onAccept && <Btn onClick={onAccept} style={{ background: '#2E9E6B', borderColor: '#2E9E6B', color: '#04121f' }}>{tt('Use this match')}</Btn>}
         </div>
       </div>
     </Modal>
@@ -104,6 +106,7 @@ function ExercisePeek({ ex, onAccept, onClose }) {
 }
 
 function LibraryPicker({ exercises, initial, onPick, onPeek, onClose }) {
+  const tt = useT();
   const [q, setQ] = useState(initial || '');
   const results = useMemo(() => {
     const n = q.trim().toLowerCase();
@@ -111,9 +114,9 @@ function LibraryPicker({ exercises, initial, onPick, onPeek, onClose }) {
     return (exercises || []).filter((e) => (e.title || e.t || '').toLowerCase().includes(n)).slice(0, 60);
   }, [q, exercises]);
   return (
-    <Modal open onClose={onClose} wide title="Pick library exercise">
+    <Modal open onClose={onClose} wide title={tt('Pick library exercise')}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search the library…"
+        <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder={tt('Search the library…')}
           style={{ fontFamily: FB, fontSize: 14, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.bd}`, borderRadius: 0, padding: '10px 12px' }} />
         <div style={{ maxHeight: 420, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
           {results.map((ex) => (
@@ -121,9 +124,9 @@ function LibraryPicker({ exercises, initial, onPick, onPeek, onClose }) {
               <span style={{ flex: 1, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word' }} title={ex.title || ex.t}>{ex.title || ex.t}</span>
               {ex.videoLink && <span style={{ fontFamily: FN, fontSize: 9, color: C.ac }}>▶</span>}
               {(ex.cues || ex.notes) && <span style={{ fontFamily: FN, fontSize: 9, color: C.tm }}>✎</span>}
-              {onPeek && <span role="button" tabIndex={0} title="Preview this exercise" onClick={(e) => { e.stopPropagation(); onPeek(ex); }}
+              {onPeek && <span role="button" tabIndex={0} title={tt('Preview this exercise')} onClick={(e) => { e.stopPropagation(); onPeek(ex); }}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onPeek(ex); } }}
-                style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: C.tm, border: `1px solid ${C.bd}`, padding: '3px 7px', flexShrink: 0 }}>VIEW</span>}
+                style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: C.tm, border: `1px solid ${C.bd}`, padding: '3px 7px', flexShrink: 0 }}>{tt('VIEW')}</span>}
             </button>
           ))}
           {!results.length && <div style={{ fontFamily: FB, fontSize: 13, color: C.td, padding: 16, textAlign: 'center' }}>No library exercise matches “{q}”.</div>}
@@ -134,6 +137,7 @@ function LibraryPicker({ exercises, initial, onPick, onPeek, onClose }) {
 }
 
 export default function ExerciseMatchingView({ exercises = [], setExercises }) {
+  const tt = useT();
   const [plans, setPlans] = useState(null);
   const [err, setErr] = useState(null);
   const [decisions, setDecisions] = useState({}); // titleKey -> { action:'accept'|'skip', ex }
@@ -208,23 +212,23 @@ export default function ExerciseMatchingView({ exercises = [], setExercises }) {
     setApplying(false);
   };
 
-  if (err) return <Card header="Exercise Matching"><div style={{ fontFamily: FB, color: '#DE4E3B', padding: 16 }}>Couldn’t load plans: {err}</div></Card>;
-  if (!plans) return <div style={{ padding: 40, textAlign: 'center', color: C.tm, fontFamily: FN, letterSpacing: '0.18em' }}>SCANNING PLANS…</div>;
+  if (err) return <Card header={tt('Exercise Matching')}><div style={{ fontFamily: FB, color: '#DE4E3B', padding: 16 }}>{tt('Couldn’t load plans:')} {err}</div></Card>;
+  if (!plans) return <div style={{ padding: 40, textAlign: 'center', color: C.tm, fontFamily: FN, letterSpacing: '0.18em' }}>{tt('SCANNING PLANS…')}</div>;
 
   const th = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm };
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 1100, margin: '0 auto', padding: '4px 0 60px' }}>
       <style>{CONF_THEME_CSS}</style>
-      <Card leftStripe={C.ac} header="Exercise Matching" headerRight={
+      <Card leftStripe={C.ac} header={tt('Exercise Matching')} headerRight={
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <span style={{ ...th, color: '#fff' }}>{groups.length} titles · {totalEntries} rows</span>
-          <Btn variant="ghost" onClick={acceptAllHighConfidence}>Accept all high-confidence</Btn>
+          <span style={{ ...th, color: '#fff' }}>{groups.length} {tt('titles')} · {totalEntries} {tt('rows')}</span>
+          <Btn variant="ghost" onClick={acceptAllHighConfidence}>{tt('Accept all high-confidence')}</Btn>
           <Btn disabled={!affectedRows || applying} onClick={() => setConfirm(true)} style={{ background: affectedRows ? '#39BDFF' : undefined, borderColor: affectedRows ? '#39BDFF' : undefined, color: affectedRows ? '#06131b' : undefined }} /* literal cyan — C.ac resolves near-black in the light theme (audit 08-22) */>
-            {applying ? 'Applying…' : `Apply ${accepted.length} match${accepted.length === 1 ? '' : 'es'} (${affectedRows} rows)`}
+            {applying ? tt('Applying…') : `${tt('Apply')} ${accepted.length} ${tt(accepted.length === 1 ? 'match' : 'matches')} (${affectedRows} ${tt('rows')})`}
           </Btn>
         </div>}>
         <div style={{ fontFamily: FB, fontSize: 12.5, color: C.td }}>
-          Every plan row whose exercise doesn’t resolve to the library, grouped by title. Accept a suggestion, Change it, or Skip. Applying writes the library link to all rows sharing that title.
+          {tt('Every plan row whose exercise doesn’t resolve to the library, grouped by title. Accept a suggestion, Change it, or Skip. Applying writes the library link to all rows sharing that title.')}
         </div>
       </Card>
 
@@ -261,19 +265,19 @@ export default function ExerciseMatchingView({ exercises = [], setExercises }) {
                           {s.ex.videoLink && <span style={{ fontFamily: FN, fontSize: 9, color: C.ac, flexShrink: 0 }} title="has video">▶</span>}
                           {(s.ex.cues || s.ex.notes) && <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, flexShrink: 0 }} title="has cues">✎</span>}
                           <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: CONF_COLOR[conf] }}>{s.why}</span>
-                          <span role="button" tabIndex={0} title="Preview this library exercise — video, cues, classification" onClick={(e) => { e.stopPropagation(); setPeek({ ex: s.ex, key: g.key }); }}
+                          <span role="button" tabIndex={0} title={tt('Preview this library exercise — video, cues, classification')} onClick={(e) => { e.stopPropagation(); setPeek({ ex: s.ex, key: g.key }); }}
                             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); setPeek({ ex: s.ex, key: g.key }); } }}
-                            style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: C.tm, border: `1px solid ${C.bd}`, padding: '3px 7px', flexShrink: 0 }}>VIEW</span>
+                            style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: C.tm, border: `1px solid ${C.bd}`, padding: '3px 7px', flexShrink: 0 }}>{tt('VIEW')}</span>
                         </button>
                       );
                     })}
                   </div>
-                ) : <div style={{ fontFamily: FB, fontSize: 12, color: C.td, padding: '8px 0' }}>No close library match — Change to search, or leave to create later.</div>}
+                ) : <div style={{ fontFamily: FB, fontSize: 12, color: C.td, padding: '8px 0' }}>{tt('No close library match — Change to search, or leave to create later.')}</div>}
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
-                <Btn variant="ghost" onClick={() => setPickerFor({ key: g.key, title: g.title })}>Change…</Btn>
-                {setExercises && <Btn variant="ghost" onClick={() => createInLibrary(g)}>+ New</Btn>}
-                <Btn variant="ghost" onClick={() => setDecision(g.key, 'skip')}>Skip</Btn>
+                <Btn variant="ghost" onClick={() => setPickerFor({ key: g.key, title: g.title })}>{tt('Change…')}</Btn>
+                {setExercises && <Btn variant="ghost" onClick={() => createInLibrary(g)}>{tt('+ New')}</Btn>}
+                <Btn variant="ghost" onClick={() => setDecision(g.key, 'skip')}>{tt('Skip')}</Btn>
               </div>
             </div>
           </Card>
@@ -294,14 +298,14 @@ export default function ExerciseMatchingView({ exercises = [], setExercises }) {
       )}
 
       {confirm && (
-        <Modal open onClose={() => setConfirm(false)} title="Apply matches?">
+        <Modal open onClose={() => setConfirm(false)} title={tt('Apply matches?')}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ fontFamily: FB, fontSize: 13.5, color: C.tx }}>
-              This links {accepted.length} exercise{accepted.length === 1 ? '' : 'es'} to the library and updates <strong>{affectedRows}</strong> plan row{affectedRows === 1 ? '' : 's'} across your athletes’ programs. Titles athletes see stay the same; the rows just resolve to real library exercises.
+              {tt('This links')} {accepted.length} {tt(accepted.length === 1 ? 'exercise to the library and updates' : 'exercises to the library and updates')} <strong>{affectedRows}</strong> {tt(affectedRows === 1 ? 'plan row across your athletes’ programs.' : 'plan rows across your athletes’ programs.')} {tt('Titles athletes see stay the same; the rows just resolve to real library exercises.')}
             </div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <Btn variant="ghost" onClick={() => setConfirm(false)}>Cancel</Btn>
-              <Btn onClick={apply} style={{ background: '#39BDFF', borderColor: '#39BDFF', color: '#06131b' }}>Apply {affectedRows} rows</Btn>
+              <Btn variant="ghost" onClick={() => setConfirm(false)}>{tt('Cancel')}</Btn>
+              <Btn onClick={apply} style={{ background: '#39BDFF', borderColor: '#39BDFF', color: '#06131b' }}>{tt('Apply')} {affectedRows} {tt('rows')}</Btn>
             </div>
           </div>
         </Modal>

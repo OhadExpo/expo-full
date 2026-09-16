@@ -19,7 +19,7 @@ const ALLOW = new Set(['EXPO', 'RPE', 'ROM', 'VBT', 'BW', 'KG', 'PR', 'PRS', 'MR
 const BRAND = /^(?:Google Calendar|Vercel|Supabase|WhatsApp|YouTube|Green Invoice|Safari)$/;
 // A run that is really CODE: the widened bounds (} … {) can straddle a plain
 // JS expression, e.g. the T() helper's own body.
-const CODE_SHAPE = /\w\(|\)\.|=>|\breplace\b|\bconst\b/;
+const CODE_SHAPE = /\w\(|\)\.|=>|&&|\breplace\b|\bconst\b/;
 const EXERCISE_SHAPE = /\b(?:DB|BB|SA|KB|TRX|RDL|SLDL|OHP|ISO|POS|ATH)\b|\d+\s*[x×]\s*\d+/i;
 // Mixed case counts too. The first version only matched SHOUTING labels, so
 // `>Log session<` and `>League Stats<` sat in the Hebrew club zone untouched
