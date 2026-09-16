@@ -6,9 +6,9 @@ not remembered.
 ```
 --- PASS 1 · git facts ---
 ok   [1] branch is bhbc-hebrew  — bhbc-hebrew
-ok   [1] the sha the doc states is a real commit on this branch  — f9fe7f8
-FAIL [1] HEAD has not moved far since the doc was written  — 5 commit(s) since — re-run this audit and update §3 if that grows
-ok   [1] the commit count in the doc is current within 3  — doc says 103, actual 103
+ok   [1] the sha the doc states is a real commit on this branch  — c821fb5
+ok   [1] HEAD has not moved far since the doc was written  — 1 commit(s) since — re-run this audit and update §3 if that grows
+ok   [1] the commit count in the doc is current within 3  — doc says 105, actual 105
 ok   [1] the file count in the doc is current within 5  — doc says 267, actual 267
 
 --- PASS 2 · every path named in the handoff exists ---
@@ -194,8 +194,7 @@ ok   [17] the debug Chrome can be started from this file
 ok   [17] the snapshot-before-write rule is stated
 ```
 
-## 4 thing(s) the audit did not confirm
-- [1] HEAD has not moved far since the doc was written — 5 commit(s) since — re-run this audit and update §3 if that grows
+## 3 thing(s) the audit did not confirm
 - [4] :4179 (recap) responds — down
 - [4] :4180 (replan) responds — down
 - [4] :4181 (tonight) responds — down
