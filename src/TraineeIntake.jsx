@@ -20,7 +20,7 @@ function emailsOf(trainee) {
 }
 function fmt(iso) {
   if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  return new Date(iso).toLocaleDateString(readLang() === 'he' ? 'he-IL' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 const FORM_TINT = { initial: C.ac, assessment: C.or, progress: C.gn };
 

@@ -18,7 +18,7 @@ import { useT, useTB, tr, readLang } from './i18n';
 function fmt(iso) {
   if (!iso) return '—';
   const d = new Date(iso);
-  return d.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleString(readLang() === 'he' ? 'he-IL' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
 function ago(iso) {
