@@ -2950,8 +2950,8 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
           <span style={{ width: 1, height: 18, background: 'var(--c-cardBd)' }} />
           <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--c-tm)' }}>{tt('SET')}</span>
           {STATUS_OPTIONS.filter(o => o.id !== 'cancelled').map(o => (
-            <button key={o.id} onClick={() => bulkStatus(o.id)} title={`Set ${o.label}`}
-              style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '5px 8px', cursor: 'pointer', background: 'transparent', border: `1px solid var(--c-cardBd)`, color: 'var(--c-tx)', borderRadius: 0 }}>{o.label}</button>
+            <button key={o.id} onClick={() => bulkStatus(o.id)} title={`${tt('SET')} ${tt(o.label)}`}
+              style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '5px 8px', cursor: 'pointer', background: 'transparent', border: `1px solid var(--c-cardBd)`, color: 'var(--c-tx)', borderRadius: 0 }}>{tt(o.label)}</button>
           ))}
           <span style={{ width: 1, height: 18, background: 'var(--c-cardBd)' }} />
           <button onClick={bulkDelete} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '5px 10px', cursor: 'pointer', background: 'transparent', border: `1px solid var(--c-rd)`, color: 'var(--c-rd)', borderRadius: 0 }}>{tr(readLang(), 'Delete')}</button>

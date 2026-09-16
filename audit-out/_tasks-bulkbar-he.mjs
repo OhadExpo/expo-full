@@ -10,11 +10,9 @@ await pg.goto(BASE, { waitUntil: 'domcontentloaded' }); await wait(1500);
 await signIn(pg, BASE);
 await pg.evaluate(() => localStorage.setItem('expo-lang', 'he'));
 await pg.goto(`${BASE}/coach/tasks?lang=he`, { waitUntil: 'domcontentloaded' }); await wait(9000);
-const picked = await pg.evaluate(() => {
-  const btn = [...document.querySelectorAll('button[title]')].find((e) => /^(Select|בחירה|בחר)$/.test(e.getAttribute('title')));
-  if (!btn) return [...new Set([...document.querySelectorAll('button[title]')].map((e) => e.getAttribute('title')))].slice(0, 40);
-  btn.click(); return 'clicked';
-});
+await pg.evaluate(() => { const b = [...document.querySelectorAll('button')].find((e) => (e.innerText || '').trim() === 'לוח'); if (b) b.click(); });
+await wait(2500);
+const picked = await pg.evaluate(() => { const b = document.querySelector('.tv8-board-select'); if (!b) return 'no board select'; b.click(); return 'clicked (title: ' + b.getAttribute('title') + ')'; });
 console.log('select:', JSON.stringify(picked)); await pg.screenshot({ path: 'audit-out/shots-0917/_tasks-he.png' });
 await wait(1200);
 const bar = await pg.evaluate(() => {
