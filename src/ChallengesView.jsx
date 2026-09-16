@@ -212,7 +212,7 @@ export default function ChallengesView({ trainees, clientWorkouts, bwLog }) {
       </RefinedHeaderStrip>
 
       {loading ? (
-        <div style={{ padding: 30, textAlign: 'center', color: C.td, fontSize: 13 }}>Loading…</div>
+        <div style={{ padding: 30, textAlign: 'center', color: C.td, fontSize: 13 }}>{tr(readLang(), 'Loading…')}</div>
       ) : challenges.length === 0 ? (
         <div style={{ padding: 30, textAlign: 'center', color: C.td, fontSize: 13 }}>
           {tt('No challenges yet')}

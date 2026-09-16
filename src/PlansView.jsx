@@ -383,7 +383,7 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
           {/* Collapse toggle — reclaim the compare's height for the list (Ohad:
               "the bottom part doesn't have enough vertical space"). */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: compareOpen ? 8 : 2 }}>
-            <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', color: C.tm, textTransform: 'uppercase' }}>Compare</span>
+            <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', color: C.tm, textTransform: 'uppercase' }}>{tr(readLang(), 'Compare')}</span>
             <button onClick={() => setCompareOpen(o => !o)} title={compareOpen ? 'Collapse the compare for more list room' : 'Show the compare'} style={{ background: 'transparent', border: 'none', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', display: 'inline-flex', alignItems: 'center', gap: 5, padding: 0 }}>{compareOpen ? 'Collapse' : 'Expand'} <span aria-hidden style={{ fontSize: 8, transform: compareOpen ? 'none' : 'rotate(180deg)' }}><svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></span></button>
           </div>
           {compareOpen && (() => {
@@ -415,7 +415,7 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
                     {/* Coaching Notes — the 8th sheet column; video shown as a small badge. */}
                     <div style={{ borderTop: `1px solid ${C.cardBd}`, paddingTop: 5, display: 'flex', flexDirection: 'column', gap: 3 }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.td }}>Coaching Notes</span>
+                        <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.td }}>{tr(readLang(), 'Coaching Notes')}</span>
                         {ex?.videoLink && <span title={tt('Has a demo video')} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontFamily: FN, fontSize: 8, fontWeight: 700, color: C.ac, letterSpacing: '0.08em' }}><svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>{tt("VIDEO")}</span>}
                       </div>
                       <div style={{ fontFamily: FB, fontSize: 10, color: ex?.cues ? C.tm : C.td, whiteSpace: 'pre-wrap', lineHeight: 1.35, height: 38, overflowY: 'auto' }}>{ex?.cues || '—'}</div>
@@ -723,7 +723,7 @@ function PlanPrintSheet({ plan, athleteName, exercises }) {
             measured on Block #19, roughly 60% of the sheet white and none of
             it usable. The rows are capped now, and the space they no longer eat
             is ruled for the notes a coach takes on the floor. */}
-        <div className="pp-writein"><span className="pp-writein-l">Notes</span></div>
+        <div className="pp-writein"><span className="pp-writein-l">{tr(readLang(), 'Notes')}</span></div>
         </div>
         {/* EVERY PAGE SAYS WHOSE BLOCK IT IS. One day per page means nine loose
             sheets, and page 5 previously carried only "DAY 2" - no athlete, no
@@ -2464,8 +2464,8 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
         <div style={{display:'flex',justifyContent:'flex-end',alignItems:'center',minHeight:15,marginTop:4,paddingInlineEnd:2}}>
           {statusLabel && <span key={statusLabel.text} className="motion-rise" aria-live="polite" style={{fontFamily:FN,fontSize:10,fontWeight:700,color:statusLabel.color,letterSpacing:'0.1em',textTransform:'uppercase'}}>{statusLabel.text}</span>}
           {remoteEdit && (
-            <span style={{display:'inline-flex',alignItems:'center',gap:8,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:'#E0A73A',background:'color-mix(in srgb, #E0A73A 12%, transparent)',border:'1px solid color-mix(in srgb, #E0A73A 45%, transparent)',padding:'3px 9px'}}>{tt('Saved on another device')}{onSwitchProgram && <button onClick={()=>{ try{markClean();}catch{} setRemoteEdit(false); onSwitchProgram(planRef.current.id); }} style={{fontFamily:FN,fontSize:9.5,fontWeight:700,color:C.ac,background:'transparent',border:`1px solid ${C.ac}`,padding:'2px 7px',cursor:'pointer'}}>Reload</button>}
-              <button onClick={()=>setRemoteEdit(false)} title="Dismiss" style={{fontFamily:FN,fontSize:11,color:C.tm,background:'transparent',border:'none',cursor:'pointer'}}>✕</button>
+            <span style={{display:'inline-flex',alignItems:'center',gap:8,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:'#E0A73A',background:'color-mix(in srgb, #E0A73A 12%, transparent)',border:'1px solid color-mix(in srgb, #E0A73A 45%, transparent)',padding:'3px 9px'}}>{tt('Saved on another device')}{onSwitchProgram && <button onClick={()=>{ try{markClean();}catch{} setRemoteEdit(false); onSwitchProgram(planRef.current.id); }} style={{fontFamily:FN,fontSize:9.5,fontWeight:700,color:C.ac,background:'transparent',border:`1px solid ${C.ac}`,padding:'2px 7px',cursor:'pointer'}}>{tr(readLang(), 'Reload')}</button>}
+              <button onClick={()=>setRemoteEdit(false)} title={tr(readLang(), 'Dismiss')} style={{fontFamily:FN,fontSize:11,color:C.tm,background:'transparent',border:'none',cursor:'pointer'}}>✕</button>
             </span>
           )}
         </div>
@@ -3170,7 +3170,7 @@ function CopyDaysModal({ days, currentPlanId, preselected, planIndex, sourceWeek
                 </select>
               </div>
               <div>
-                <div style={fieldLbl}>Block</div>
+                <div style={fieldLbl}>{tr(readLang(), 'Block')}</div>
                 <select value={targetId} onChange={e=>setTargetId(e.target.value)} style={{ ...sel, opacity: existAthlete ? 1 : 0.5 }} disabled={!existAthlete}>
                   <option value="">{existAthlete ? '— block —' : '— pick athlete —'}</option>
                   {programsForAthlete.map(p => <option key={p.id} value={p.id}>{p.name || 'Untitled'}</option>)}
@@ -5051,8 +5051,8 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
         <div role="dialog" aria-modal="true" aria-label={tt('Training Analysis')}
           style={{ position: 'fixed', inset: 0, zIndex: 1200, background: 'var(--c-bg, #0a0a0b)', overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
           <div style={{ position: 'sticky', top: 0, zIndex: 3, background: 'var(--c-sf2)', borderBottom: `1px solid ${C.cardBd}`, padding: '10px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
-            <button onClick={() => setLineageTraineeId(null)} title="Back (Esc)"
-              style={{ background: 'none', border: 'none', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 6 }}>← Back</button>
+            <button onClick={() => setLineageTraineeId(null)} title={tr(readLang(), 'Back (Esc)')}
+              style={{ background: 'none', border: 'none', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 6 }}>← {tr(readLang(), 'Back')}</button>
           </div>
           <div style={{ flex: 1, padding: '18px 16px 60px' }}>
             <div style={{ width: 'min(1180px, 96vw)', margin: '0 auto' }}>

@@ -209,7 +209,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
           style={{ ...railBase, borderBottomColor: (active || isOpen) ? C.ac : 'transparent', color: active ? C.ac : C.tx }}>
           <span style={{ maxWidth: 220, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{faceLabel}</span>
           {active
-            ? <span onClick={e => { e.stopPropagation(); clearFilter(k); }} title="Clear" style={{ fontSize: 13, lineHeight: 1, opacity: 0.85 }}>×</span>
+            ? <span onClick={e => { e.stopPropagation(); clearFilter(k); }} title={tr(readLang(), 'Clear')} style={{ fontSize: 13, lineHeight: 1, opacity: 0.85 }}>×</span>
             : <span style={{ color: (active || isOpen) ? C.ac : C.tm, fontSize: 9 }}><svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></span>}
         </button>
         {isOpen && (
@@ -354,7 +354,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
           <input placeholder={narrowUI ? "Search exercises…" : "Search exercises (title, muscle, joint, position…)"} value={search} onChange={e => { setSearch(e.target.value); setShowAll(false); }}
             style={{ ...baseInput, height: 30, padding: '0 14px', fontSize: 13, lineHeight: '30px', textAlign: 'start', border: `1px solid ${C.ac}`, width: '100%' }} />
         </div>
-        <Btn onClick={openNew} style={{ height: 30, width: RIGHT_CTL_W, flexShrink: 0, padding: '0 18px', fontSize: 13, lineHeight: '30px', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ Add Exercise</Btn>
+        <Btn onClick={openNew} style={{ height: 30, width: RIGHT_CTL_W, flexShrink: 0, padding: '0 18px', fontSize: 13, lineHeight: '30px', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ {tr(readLang(), 'Add Exercise')}</Btn>
       </div>
 
       {onOpenClassify && unclassifiedCount > 0 && (
@@ -549,7 +549,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
         </div>
       </Modal>
 
-      <ConfirmDialog open={!!confirmDelete} title="Delete Exercise?" message="Plans referencing it will show 'Unknown Exercise'."
+      <ConfirmDialog open={!!confirmDelete} title={tr(readLang(), 'Delete Exercise?')} message={tr(readLang(), "Plans referencing it will show 'Unknown Exercise'.")}
         onConfirm={() => { setExercises(p => p.filter(e => e.id !== confirmDelete)); setConfirmDelete(null); }}
         onCancel={() => setConfirmDelete(null)} />
     </div>

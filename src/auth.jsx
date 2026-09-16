@@ -353,7 +353,7 @@ export function LoginScreen({ brand = 'expo' } = {}) {
             </a>
           )}
           {bc && <div style={{ color: AC, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 6 }}>{bc.eyebrow}</div>}
-          <div style={{ color: bc?.ink || C.tm, fontSize: 15, fontWeight: bc ? 700 : 400 }}>{bc ? bc.sub : (he ? tt('Sign-in') : <>Sign<span style={{ color: C.td }}>-</span>in</>)}</div>
+          <div style={{ color: bc?.ink || C.tm, fontSize: 15, fontWeight: bc ? 700 : 400 }}>{bc ? bc.sub : (he ? tt('Sign-in') : <>{'Sign'}<span style={{ color: C.td }}>-</span>{'in'}</>)}</div>
         </div>
         <div style={cardStyle} dir={he ? 'rtl' : 'ltr'}>
           {!bc && (
@@ -599,7 +599,7 @@ export function RolePickerScreen({ name, onPick, onSignOut }) {
       <span style={{ fontFamily: FN, fontSize: 20, fontWeight: 800, letterSpacing: '0.01em', lineHeight: 1.1, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{title}</span>
       <span style={{ fontSize: 13, color: C.tm, lineHeight: 1.5 }}>{sub}</span>
       <span style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '11px 18px', background: C.ac, color: '#0E0F12', fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase' }}>
-        Enter <span className="rp-arrow" aria-hidden="true">{'→'}</span>
+        {readLang() === 'he' ? 'כניסה' : 'Enter'} <span className="rp-arrow" aria-hidden="true">{readLang() === 'he' ? '←' : '→'}</span>
       </span>
     </button>
   );

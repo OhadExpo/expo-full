@@ -263,7 +263,7 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
             {targetIcon} {targetLabel}
           </span>
         )}
-        <button onClick={onRemove} title="Remove"
+        <button onClick={onRemove} title={tr(readLang(), 'Remove')}
           style={{
             background: 'none', border: 'none', color: 'var(--c-td)', cursor: 'pointer',
             fontSize: 13, padding: '0 4px', flexShrink: 0, lineHeight: 1,
@@ -681,7 +681,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                   <button onClick={() => openInTasks(popupNote)} title={tt('Open in the full Tasks page')}
                     style={{ background: 'transparent', border: `1px solid var(--c-ac)`, color: 'var(--c-ac)', width: 28, height: 28, boxSizing: 'border-box', borderRadius: 0, cursor: 'pointer', fontSize: 14, lineHeight: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>⤢</button>
                 )}
-                <button onClick={() => setPopupNote(null)} title="Close"
+                <button onClick={() => setPopupNote(null)} title={tr(readLang(), 'Close')}
                   style={{ background: 'transparent', border: `1px solid var(--c-cardBd)`, color: 'var(--c-tm)', width: 28, height: 28, boxSizing: 'border-box', borderRadius: 0, cursor: 'pointer', fontSize: 14, lineHeight: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
               </div>
             </div>
@@ -1096,7 +1096,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                     if (await confirmToast('Delete this completed task? This cannot be undone.', { okLabel: 'Delete', cancelLabel: 'Cancel' })) {
                       remove(n.id);
                     }
-                  }} title="Remove" aria-label={tt('Delete task')}
+                  }} title={tr(readLang(), 'Remove')} aria-label={tt('Delete task')}
                   style={{ background: 'none', border: 'none', color: 'var(--c-td)', cursor: 'pointer', fontSize: 14, padding: '0 4px', flexShrink: 0 }}>×</button>
               </div>
             );

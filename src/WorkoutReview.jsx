@@ -1428,7 +1428,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
               style={{background:'transparent',border:`1px solid ${C.bd}`,color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer',padding:'2px 7px'}}>× {tr(readLang(), 'CLOSE')}</button>
           </div>
           <div style={{padding:'10px 10px 4px'}}>
-            <Suspense fallback={<div style={{color:C.tm,fontFamily:FN,fontSize:11,padding:12}}>Loading…</div>}>
+            <Suspense fallback={<div style={{color:C.tm,fontFamily:FN,fontSize:11,padding:12}}>{tr(readLang(), 'Loading…')}</div>}>
               <AnalyzeResult result={metrics.result} frames={metrics.frames} exerciseTitle={exerciseTitle || 'Squat'} tab={metricsTab} setTab={setMetricsTab} view="metrics"
                 recordedReps={recordedReps} targetReps={targetReps}
                 playheadT={videoTime * 1000}
@@ -1759,10 +1759,10 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
                   <span style={{fontSize:10,fontFamily:FN,color:n.author==='trainer'?C.ac:C.gn,fontWeight:700,letterSpacing:0.5}}>{n.author === 'trainer' ? 'COACH' : 'ATHLETE'}</span>
                   <span style={{fontSize:10,color:C.td,marginInlineStart:'auto'}}>{n.createdAt ? fmtPrettyDate(n.createdAt) : ''}</span>
                   {(n.author === role) && onReviewNotesChange && (
-                    <button onClick={() => startEdit(n, false, null)} title="Edit" style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:11,padding:0,marginInlineStart:4}}>✏️</button>
+                    <button onClick={() => startEdit(n, false, null)} title={tr(readLang(), 'Edit')} style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:11,padding:0,marginInlineStart:4}}>✏️</button>
                   )}
                   {(n.author === role) && (
-                    <button onClick={() => deleteNote(n.id)} title="Delete" style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:12,padding:0,marginInlineStart:4}}>✕</button>
+                    <button onClick={() => deleteNote(n.id)} title={tr(readLang(), 'Delete')} style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:12,padding:0,marginInlineStart:4}}>✕</button>
                   )}
                 </div>
                 <div style={{fontSize:pausedAtCommentId===n.id?14:13,color:C.tx,whiteSpace:'pre-wrap',textAlign:'center'}}>{n.text}</div>
@@ -1774,10 +1774,10 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
                           <span style={{fontSize:10,fontFamily:FN,color:r.author==='trainer'?C.ac:C.gn,fontWeight:700,letterSpacing:0.5}}>{r.author === 'trainer' ? 'COACH' : 'ATHLETE'}</span>
                           <span style={{fontSize:10,color:C.td}}>{r.createdAt ? fmtPrettyDate(r.createdAt) : ''}</span>
                           {(r.author === role) && onReviewNotesChange && (
-                            <button onClick={() => startEdit(r, true, n.id)} title="Edit" style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:10,padding:0,marginInlineStart:'auto'}}>✏️</button>
+                            <button onClick={() => startEdit(r, true, n.id)} title={tr(readLang(), 'Edit')} style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:10,padding:0,marginInlineStart:'auto'}}>✏️</button>
                           )}
                           {(r.author === role) && (
-                            <button onClick={() => deleteNote(r.id)} title="Delete" style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:11,padding:0,marginInlineStart:r.author===role&&onReviewNotesChange?4:'auto'}}>✕</button>
+                            <button onClick={() => deleteNote(r.id)} title={tr(readLang(), 'Delete')} style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:11,padding:0,marginInlineStart:r.author===role&&onReviewNotesChange?4:'auto'}}>✕</button>
                           )}
                         </div>
                         <div style={{fontSize:12,color:C.tx,whiteSpace:'pre-wrap',textAlign:'center'}}>{r.text}</div>
@@ -1870,7 +1870,7 @@ function CompareModal({ leftLabel, leftUrl, leftTitle, rightLabel, rightUrl, rig
       <div onClick={e => e.stopPropagation()} className={closing ? 'motion-fall' : 'motion-rise'} style={{background:C.bg,border:`1px solid ${C.cardBd}`,borderRadius:0,width:'min(1400px, 96vw)',padding:20}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
           <h3 style={{margin:0,fontFamily:FN,fontSize:16,color:C.tx,letterSpacing:'0.08em'}}>{demo ? tt('FORM VS DEMO') : tt('COMPARE')}</h3>
-          <button onClick={onClose} aria-label="Close" style={{background:'none',border:'none',color:C.tm,cursor:'pointer',fontSize:18,padding:'0 8px'}}>✕</button>
+          <button onClick={onClose} aria-label={tr(readLang(), 'Close')} style={{background:'none',border:'none',color:C.tm,cursor:'pointer',fontSize:18,padding:'0 8px'}}>✕</button>
         </div>
         <div className="cmp-grid" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,alignItems:'start'}}>
           <div>

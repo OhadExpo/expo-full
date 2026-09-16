@@ -6,7 +6,7 @@ import { supabase } from './supabase';
 import { WhatsAppCheckInButton, normalizePhoneIL } from './whatsappButton';
 import NotesWidget from './NotesWidget';
 import MessagesCard from './MessagesCard';
-import { useT, useHe, daysAgoHe, daysOverdueHe } from './i18n';
+import { useT, useHe, daysAgoHe, daysOverdueHe, tr, readLang } from './i18n';
 import { monthAbbr } from './dates';
 import { syncAutoTasks } from './autoTasks';
 
@@ -844,7 +844,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                     <a href={mailto} style={{ color: C.tx, textDecoration: 'none', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }} title={`${l.context} · ${l.source}`}>{l.email}</a>
                     <span style={{ fontFamily: FN, color: C.td, fontSize: 10 }}>{ago}</span>
                     <button onClick={() => markLeadContacted(l.id)} title={tt('Mark contacted')} style={{ background: 'var(--c-sf)', border: `1px solid ${C.gn}`, color: C.gn, borderRadius: 0, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>✓</button>
-                    <button onClick={() => deleteLead(l.id)} title="Delete" style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, color: C.rd, borderRadius: 0, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>✕</button>
+                    <button onClick={() => deleteLead(l.id)} title={tr(readLang(), 'Delete')} style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, color: C.rd, borderRadius: 0, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>✕</button>
                   </div>
                 );
               })}
@@ -981,7 +981,7 @@ function RevenueCard({ paymentsUnknown = false, monthlyRate, thisMonthPaid, delt
   const subStyle = { fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.04em', marginTop: 2 };
 
   return (
-    <CollapsibleSection title="Revenue" storageKey="dash-revenue" style={{ marginBottom: 20 }}
+    <CollapsibleSection title={tr(readLang(), 'Revenue')} storageKey="dash-revenue" style={{ marginBottom: 20 }}
       right={<span style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.75)', letterSpacing: '0.12em', fontWeight: 700 }}>{tt("INCL. VAT · 6 MO TREND")}</span>}>
       <div>
         {/* Top row — 6 metric tiles. responsive auto-fit so it collapses

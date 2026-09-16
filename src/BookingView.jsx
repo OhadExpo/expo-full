@@ -108,7 +108,7 @@ export default function BookingView({ trainees }) {
     setBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'completed' } : b));
   };
 
-  if (loading) return <div style={{ padding: 30, textAlign: 'center', color: C.td }}>Loading…</div>;
+  if (loading) return <div style={{ padding: 30, textAlign: 'center', color: C.td }}>{tr(readLang(), 'Loading…')}</div>;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>

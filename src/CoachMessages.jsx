@@ -439,7 +439,7 @@ export default function CoachMessages({ traineeId, role = 'coach', recipientEmai
       <div style={{ display: 'grid', gridTemplateRows: open ? '1fr' : '0fr', transition: 'grid-template-rows 260ms ease' }}>
       <div style={{ overflow: 'hidden', minHeight: 0 }}>
       {loading ? (
-        <div style={{ padding: 20, textAlign: 'center', color: 'var(--c-td)', fontSize: 13 }}>Loading…</div>
+        <div style={{ padding: 20, textAlign: 'center', color: 'var(--c-td)', fontSize: 13 }}>{tr(readLang(), 'Loading…')}</div>
       ) : rows.length === 0 ? (
         <div style={{ padding: 14, textAlign: 'center', color: 'var(--c-td)', fontSize: 13 }}>
           {tt('No messages yet.')} {role === 'coach' ? tt('Drop a voice note or a quick check-in below.') : tt('Your coach will message you here.')}

@@ -80,7 +80,7 @@ export default function SessionsView({ mode = 'group', ...props }) {
   if (mode === 'single') {
     return (
       <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-        <Suspense fallback={<div style={{ padding: 30, textAlign: 'center', color: C.td }}>Loading…</div>}>
+        <Suspense fallback={<div style={{ padding: 30, textAlign: 'center', color: C.td }}>{tr(readLang(), 'Loading…')}</div>}>
           <WorkoutsView workouts={props.workouts} setWorkouts={props.setWorkouts} planIndex={props.planIndex}
             trainees={props.trainees} exercises={props.exercises} onDecrementSession={props.onDecrementSession}
             clientWorkouts={props.clientWorkouts} setClientWorkouts={props.setClientWorkouts} />
@@ -547,7 +547,7 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
   // navigating away could otherwise revive a cleared session). (audit)
   useEffect(() => () => { if (saveTimer.current) clearTimeout(saveTimer.current); }, []);
 
-  if (!loaded) return <div style={{ padding: 30, textAlign: 'center', color: C.td }}>Loading…</div>;
+  if (!loaded) return <div style={{ padding: 30, textAlign: 'center', color: C.td }}>{tr(readLang(), 'Loading…')}</div>;
 
   // ---- no active session ----
   if (!session) {
@@ -886,7 +886,7 @@ function AthletePicker({ trainees, planIndex, existing = [], clientWorkouts = []
                   {Array.from({ length: weeks }, (_, wi) => wi + 1).map(wn => <option key={wn} value={wn}>W{wn}</option>)}
                 </select>
                 <select value={r.dayIdx} onChange={e => setRow(i, { dayIdx: Number(e.target.value) })} style={sel} disabled={!r.planId}>
-                  {dayNames.length ? dayNames.map((d, di) => <option key={di} value={di}>{d || `Day ${di + 1}`}</option>) : <option value={0}>Day 1</option>}
+                  {dayNames.length ? dayNames.map((d, di) => <option key={di} value={di}>{d || (readLang() === 'he' ? `יום ${di + 1}` : `Day ${di + 1}`)}</option>) : <option value={0}>{tr(readLang(), 'Day 1')}</option>}
                 </select>
                 <button onClick={() => delRow(i)} style={{ ...miniBtn, height: 32, boxSizing: 'border-box', padding: '0 8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.rd, border: `1px solid ${C.cardBd}` }}>✕</button>
               </div>

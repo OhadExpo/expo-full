@@ -280,7 +280,7 @@ export default function IntakeView({ trainees }) {
             <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: 10, fontFamily: FN, fontSize: 12, color: C.tm, wordBreak: 'break-all' }}>{genResult.url}</div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
               <Btn variant="ghost" onClick={() => { setGenResult(null); }}>{tt('Generate another')}</Btn>
-              <Btn onClick={closeGen}>Done</Btn>
+              <Btn onClick={closeGen}>{tr(readLang(), 'Done')}</Btn>
             </div>
           </div>
         ) : (
@@ -307,7 +307,7 @@ export default function IntakeView({ trainees }) {
                     {/* Only offer a locale that actually has a form for this type
                         (no progress:en schema) — else the client gets a blank,
                         unsubmittable link. */}
-                    <option value="en" disabled={!getForm(genForm.formType, 'en')}>English (EN){getForm(genForm.formType, 'en') ? '' : ' — n/a'}</option>
+                    <option value="en" disabled={!getForm(genForm.formType, 'en')}>{'English (EN)'}{getForm(genForm.formType, 'en') ? '' : ' — n/a'}</option>
                   </select>
                   <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: C.tm, fontSize: 14, lineHeight: 1 }}>▾</span>
                 </div>
@@ -336,7 +336,7 @@ export default function IntakeView({ trainees }) {
             </div>
             {genError && <div style={{ color: C.rd, fontFamily: FN, fontSize: 12, marginBottom: 8 }}>{genError}</div>}
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-              <Btn variant="ghost" onClick={closeGen}>Cancel</Btn>
+              <Btn variant="ghost" onClick={closeGen}>{tr(readLang(), 'Cancel')}</Btn>
               <Btn onClick={generateLink}>{tt('Generate')}</Btn>
             </div>
           </div>

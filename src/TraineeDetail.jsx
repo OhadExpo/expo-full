@@ -133,7 +133,7 @@ function BwAddRow({ onAdd }) {
           style={{ ...baseInput, width: 110, fontFamily: FN, fontVariantNumeric: 'tabular-nums' }} />
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <label style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm }}>Date</label>
+        <label style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm }}>{tr(readLang(), 'Date')}</label>
         <input type="date" value={date} max={todayLocalISO()} onChange={e => setDate(e.target.value)}
           style={{ ...baseInput, width: 150, fontFamily: FN }} />
       </div>
@@ -403,7 +403,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           </div>
           {m.injuries&&<div style={{marginTop:10,padding:8,background:'var(--c-sf)',border:`1px solid ${C.or}`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.or,textTransform:'uppercase',marginBottom:4,textAlign:'center'}}>{t('Injuries')}</div><div style={{fontSize:13,color:C.tx,direction:/[\u0590-\u05FF]/.test(m.injuries)?'rtl':'ltr',textAlign:'center',fontFamily:/[\u0590-\u05FF]/.test(m.injuries)?FH:undefined}}>{m.injuries}</div></div>}
           {m.goals&&<div style={{marginTop:6,padding:8,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.ac,textTransform:'uppercase',marginBottom:4,textAlign:'center'}}>{t('Goals')}</div><div style={{fontSize:13,color:C.tx,direction:/[\u0590-\u05FF]/.test(m.goals)?'rtl':'ltr',textAlign:'center',fontFamily:/[\u0590-\u05FF]/.test(m.goals)?FH:undefined}}>{m.goals}</div></div>}
-          {m.notes&&<div style={{marginTop:6,padding:8,background:'var(--c-sf)',border:`1px solid ${C.bd}`,borderRadius:0}}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700,marginBottom:4,textAlign:'center'}}>Notes</div><div style={{fontSize:13,color:C.tm,direction:/[\u0590-\u05FF]/.test(m.notes)?'rtl':'ltr',textAlign:'center',fontFamily:/[\u0590-\u05FF]/.test(m.notes)?FH:undefined}}>{m.notes}</div></div>}
+          {m.notes&&<div style={{marginTop:6,padding:8,background:'var(--c-sf)',border:`1px solid ${C.bd}`,borderRadius:0}}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700,marginBottom:4,textAlign:'center'}}>{tr(readLang(), 'Notes')}</div><div style={{fontSize:13,color:C.tm,direction:/[\u0590-\u05FF]/.test(m.notes)?'rtl':'ltr',textAlign:'center',fontFamily:/[\u0590-\u05FF]/.test(m.notes)?FH:undefined}}>{m.notes}</div></div>}
         </Card>
         {showPrograms && <>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',margin:'12px 0 6px',gap:8}}>
@@ -460,7 +460,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();onlyThis(visKeyOf(p),sorted);}} title={t('Show only this program on the athlete portal — hide all others')} style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:fs,fontWeight:700,letterSpacing:'0.04em',color:C.ac}}>{t('Only')}</button>
     );
     const removeBtn = (p, fs) => (
-      <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setConfirmUnassign(p.id);setUnassignTyped("");}} title={t('Remove this program from the athlete')} style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:fs,fontWeight:700,letterSpacing:'0.04em',color:C.rd}}>Remove</button>
+      <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setConfirmUnassign(p.id);setUnassignTyped("");}} title={t('Remove this program from the athlete')} style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:fs,fontWeight:700,letterSpacing:'0.04em',color:C.rd}}>{tr(readLang(), 'Remove')}</button>
     );
 
     return (
@@ -762,7 +762,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
               notes=muted), not the border. Was: orange / cyan / grey borders. */}
           {td.injuries&&<div style={{marginTop:12,padding:10,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.or,textTransform:"uppercase",marginBottom:4,textAlign:"center"}}>{t('Injuries / Conditions')}</div><div style={{fontSize:13,color:C.tx,direction:/[\u0590-\u05FF]/.test(td.injuries)?'rtl':'ltr',textAlign:'center',fontFamily:/[\u0590-\u05FF]/.test(td.injuries)?FH:undefined}}>{td.injuries}</div></div>}
           {td.goals&&<div style={{marginTop:8,padding:10,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.ac,textTransform:"uppercase",marginBottom:4,textAlign:"center"}}>{t('Goals')}</div><div style={{fontSize:13,color:C.tx,direction:/[\u0590-\u05FF]/.test(td.goals)?'rtl':'ltr',textAlign:'center',fontFamily:/[\u0590-\u05FF]/.test(td.goals)?FH:undefined}}>{td.goals}</div></div>}
-          {td.notes&&<div style={{marginTop:8,padding:10,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0}}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700,marginBottom:4,textAlign:"center"}}>Notes</div><div style={{fontSize:13,color:C.tm,direction:/[\u0590-\u05FF]/.test(td.notes)?'rtl':'ltr',textAlign:'center',fontFamily:/[\u0590-\u05FF]/.test(td.notes)?FH:undefined}}>{td.notes}</div></div>}
+          {td.notes&&<div style={{marginTop:8,padding:10,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0}}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700,marginBottom:4,textAlign:"center"}}>{tr(readLang(), 'Notes')}</div><div style={{fontSize:13,color:C.tm,direction:/[\u0590-\u05FF]/.test(td.notes)?'rtl':'ltr',textAlign:'center',fontFamily:/[\u0590-\u05FF]/.test(td.notes)?FH:undefined}}>{td.notes}</div></div>}
         </Card>
       )}
 
@@ -770,7 +770,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           for visual parity. Header = "Billing (N)" + total-paid badge;
           headerRight = the 3 action buttons. Body = payments table or
           empty state. */}
-      <CollapsibleSection domId="td-sec-billing" title="Billing" count={tPay.length} storageKey={`td-billing-${trainee}`} style={{marginBottom:16, display: showSec('billing') ? undefined : 'none'}}
+      <CollapsibleSection domId="td-sec-billing" title={tr(readLang(), 'Billing')} count={tPay.length} storageKey={`td-billing-${trainee}`} style={{marginBottom:16, display: showSec('billing') ? undefined : 'none'}}
         right={<div style={{display:'flex',flexWrap:'wrap',gap:6,justifyContent:'flex-end',alignItems:'center'}}>
           {totalPaid>0&&<span style={{color:'#FFFFFF',opacity:0.85,fontWeight:400,fontFamily:FB,fontSize:12,marginInlineEnd:6,whiteSpace:'nowrap'}}>₪{totalPaid.toLocaleString()} paid</span>}
           <div style={{display:'flex',gap:0}}>
@@ -867,7 +867,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       )}
 
       {/* === BODYWEIGHT — slot #6 (collapsible; chart is self-carded → bare) */}
-      <CollapsibleSection bare domId="td-sec-bw" title="Bodyweight" count={tBw.length} storageKey={`td-bw-${trainee}`} style={{margin:'20px 0 0', display: showSec('bw') ? undefined : 'none'}}>
+      <CollapsibleSection bare domId="td-sec-bw" title={tr(readLang(), 'Bodyweight')} count={tBw.length} storageKey={`td-bw-${trainee}`} style={{margin:'20px 0 0', display: showSec('bw') ? undefined : 'none'}}>
         <BWChart entries={tBw} />
         <BwAddRow onAdd={(kg, dateISO) => setBwLog && setBwLog(prev => [...prev, { clientId: trainee, date: dateISO, bw: kg, blockName: null, week: null, source: 'coach' }])} />
       </CollapsibleSection>
@@ -876,13 +876,13 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           the SAME graph the athlete sees in their portal (Ohad). Only shown
           once the athlete has logged at least one readiness check-in. */}
       {tAllWorkouts.some(w=>hasReadiness(w.autoregulation)) && (
-        <CollapsibleSection bare domId="td-sec-readiness" title="Readiness" count={tAllWorkouts.filter(w=>hasReadiness(w.autoregulation)).length} storageKey={`td-readiness-${trainee}`} style={{margin:'20px 0 0', display: showSec('readiness') ? undefined : 'none'}}>
+        <CollapsibleSection bare domId="td-sec-readiness" title={tr(readLang(), 'Readiness')} count={tAllWorkouts.filter(w=>hasReadiness(w.autoregulation)).length} storageKey={`td-readiness-${trainee}`} style={{margin:'20px 0 0', display: showSec('readiness') ? undefined : 'none'}}>
           <CheckinTrends workouts={tAllWorkouts} />
         </CollapsibleSection>
       )}
 
       {/* === WORKOUTS — slot #7 (collapsible) */}
-      <CollapsibleSection bare domId="td-sec-workouts" title="Recent Workouts" count={tAllWorkouts.length} storageKey={`td-workouts-${trainee}`} style={{margin:'20px 0 0', display: showSec('workouts') ? undefined : 'none'}}>
+      <CollapsibleSection bare domId="td-sec-workouts" title={tr(readLang(), 'Recent Workouts')} count={tAllWorkouts.length} storageKey={`td-workouts-${trainee}`} style={{margin:'20px 0 0', display: showSec('workouts') ? undefined : 'none'}}>
         {tAllWorkouts.length===0?<div style={{color:C.td,fontSize:13}}>{t('No completed workouts.')}</div>:
           tAllWorkouts.slice(0,10).map(w=><Card key={`${w.source}-${w.id}`} style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{display:"flex",alignItems:"baseline",gap:8,minWidth:0}}><span style={{fontWeight:600,color:C.tx,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{w.dayName}</span>{w.week!=null&&<span style={{fontFamily:FN,fontSize:11,color:C.tm,flexShrink:0}}>{t('Week')} {w.week}</span>}</div><span style={{fontSize:12,color:C.tm,flexShrink:0}}>{fmtPrettyDate(w.date)}</span></div>
             {/* Per-workout readiness — equal-width stat cells (label stacked over
@@ -1068,7 +1068,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             <input value={unassignTyped} onChange={e=>setUnassignTyped(e.target.value)} style={{background: 'var(--c-sf2)',border:`1px solid ${C.rd}`,borderRadius:0,padding:"8px 12px",color:C.tx,fontFamily:FN,fontSize:14,outline:"none",width:"100%",boxSizing:"border-box",textAlign:"center"}} placeholder="remove" autoComplete="off" autoFocus/></div>
           <div style={{display:"flex",justifyContent:"flex-end",gap:8}}>
             <Btn variant="ghost" onClick={()=>{setConfirmUnassign(null);setUnassignTyped("")}}>{t("Cancel")}</Btn>
-            <Btn variant="danger" onClick={()=>{if(unassignTyped.trim().toLowerCase()==="remove"){unassignPlan(confirmUnassign);setConfirmUnassign(null);setUnassignTyped("")}}} style={{opacity:unassignTyped.trim().toLowerCase()==="remove"?1:0.3,pointerEvents:unassignTyped.trim().toLowerCase()==="remove"?"auto":"none"}}>Remove</Btn></div></div></div>, document.body)}
+            <Btn variant="danger" onClick={()=>{if(unassignTyped.trim().toLowerCase()==="remove"){unassignPlan(confirmUnassign);setConfirmUnassign(null);setUnassignTyped("")}}} style={{opacity:unassignTyped.trim().toLowerCase()==="remove"?1:0.3,pointerEvents:unassignTyped.trim().toLowerCase()==="remove"?"auto":"none"}}>{tr(readLang(), 'Remove')}</Btn></div></div></div>, document.body)}
 
       {/* Edit trainee modal — extracted to a memoized child so per-keystroke
           setEditForm only re-renders the modal subtree, not the whole
@@ -1087,11 +1087,11 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       {/* Archive confirm */}
       {showArchiveConfirm && createPortal(<div role="dialog" aria-modal="true" aria-label={t('Archive athlete')} style={{position:"fixed",inset:0,zIndex:1100,display:"flex",alignItems:"center",justifyContent:"center",background:C.scrim}} onClick={()=>setShowArchiveConfirm(false)}>
         <div onClick={e=>e.stopPropagation()} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,width:380,maxWidth:'calc(100vw - 24px)',padding:24}}>
-          <h3 style={{margin:"0 0 8px",fontFamily:FN,fontSize:15,color:C.tx}}>Archive {td.name}?</h3>
+          <h3 style={{margin:"0 0 8px",fontFamily:FN,fontSize:15,color:C.tx}}>{tr(readLang(), 'Archive')} {td.name}?</h3>
           <p style={{margin:"0 0 20px",fontSize:13,color:C.tm}}>Client will be moved to archive. Plans, workouts, and payments are preserved. You can restore anytime.</p>
           <div style={{display:"flex",justifyContent:"flex-end",gap:8}}>
             <Btn variant="ghost" onClick={()=>setShowArchiveConfirm(false)}>{t("Cancel")}</Btn>
-            <Btn variant="danger" onClick={handleArchive}>Archive</Btn></div></div></div>, document.body)}
+            <Btn variant="danger" onClick={handleArchive}>{tr(readLang(), 'Archive')}</Btn></div></div></div>, document.body)}
       {/* Permanent delete confirm */}
       {showDeleteConfirm && createPortal(<div role="dialog" aria-modal="true" aria-label={t('Permanent deletion')} style={{position:"fixed",inset:0,zIndex:1100,display:"flex",alignItems:"center",justifyContent:"center",background:C.scrim}} onClick={()=>{setShowDeleteConfirm(false);setDeleteTyped("");setPurgeHistory(false)}}>
         <div onClick={e=>e.stopPropagation()} style={{background:C.bg,border:`1px solid ${C.rd}`,borderRadius:0,width:440,maxWidth:'calc(100vw - 24px)',padding:24}}>
@@ -1101,7 +1101,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           {/* Opt-in hard purge — separate, deliberate choice. */}
           <label style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:16,padding:"10px 12px",border:`1px solid ${purgeHistory?C.rd:C.cardBd}`,background:purgeHistory?C.rdD:'transparent',cursor:"pointer"}}>
             <input type="checkbox" checked={purgeHistory} onChange={e=>setPurgeHistory(e.target.checked)} style={{marginTop:2,accentColor:C.rd,cursor:"pointer"}}/>
-            <span style={{fontSize:12,color:purgeHistory?C.rd:C.tm,lineHeight:1.45}}>Also <strong>erase all their history</strong> — programs, workouts, payments, messages, evaluations. This wipes their revenue from your reports and is not recoverable.</span>
+            <span style={{fontSize:12,color:purgeHistory?C.rd:C.tm,lineHeight:1.45}}>{readLang() === 'he' ? <>למחוק גם <strong>את כל ההיסטוריה שלו</strong> — תוכניות, אימונים, תשלומים, הודעות, הערכות. זה מוחק את ההכנסות שלו מהדוחות שלך, ואי אפשר לשחזר את זה.</> : <>{'Also '}<strong>{'erase all their history'}</strong>{' — programs, workouts, payments, messages, evaluations. This wipes their revenue from your reports and is not recoverable.'}</>}</span>
           </label>
           <div style={{marginBottom:16}}>
             <label style={{fontSize:11,fontWeight:600,color:C.tm,textTransform:"uppercase",fontFamily:FN,display:"block",marginBottom:4,textAlign:"center"}}>Type "DELETE" to confirm</label>
@@ -1246,7 +1246,7 @@ const EditTraineeModal = React.memo(function EditTraineeModal({ td, couple, draf
               };
               return (
                 <div key={mi} style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 9, fontFamily: FN, color: C.ac, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>Member {mi + 1}</div>
+                  <div style={{ fontSize: 9, fontFamily: FN, color: C.ac, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>{tr(readLang(), 'Member')} {mi + 1}</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     <Input label={t("Name")} value={m.name || ""} onChange={e => upd('name', e.target.value)} />
                     <EmailsInput label={t("Email")} value={m._emails || emailsToArr(m.email)} onChange={next => upd('_emails', next)} />

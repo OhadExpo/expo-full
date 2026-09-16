@@ -377,7 +377,7 @@ function StatusPill({ status, theme, onSetStatus, readOnly = false }) {
   };
   if (readOnly) {
     return (
-      <span title="Read-only" style={{ ...base, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 10px', opacity: 0.65 }}>
+      <span title={tr(readLang(), 'Read-only')} style={{ ...base, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 10px', opacity: 0.65 }}>
         {tb(opt.label)}
       </span>
     );
@@ -787,7 +787,7 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
         {expanded && (
           <button
             onMouseDown={(e) => { e.preventDefault(); setBody(''); setDue(''); setTime(''); setPriority('normal'); setTraineeId(''); setSource('manual'); setAssignee(defaultAssignee); setFocused(false); inputRef.current?.blur(); }}
-            title="Discard" aria-label={tt('Discard task draft')}
+            title={tr(readLang(), 'Discard')} aria-label={tt('Discard task draft')}
             style={{ background: 'transparent', border: '1px solid var(--c-cardBd)', color: 'var(--c-tm)', width: 24, height: 24, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', borderRadius: 0, fontSize: 15, lineHeight: 1, flexShrink: 0 }}>×</button>
         )}
       </div>
@@ -800,7 +800,7 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
           {/* Row 1 — Assign + Due (grouped + labelled so it's not a button soup) */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
             <span style={cmpGroup}>
-              <span style={cmpLabel}>Assign</span>
+              <span style={cmpLabel}>{tr(readLang(), 'Assign')}</span>
               {[['ohad','O',C.ac],['yuval','Y',YUVAL_COLOR],['shared','·','linear-gradient(135deg,'+C.ac+' 0% 50%,'+YUVAL_COLOR+' 50% 100%)']].map(([id,initial,color]) => (
                 <button key={id}
                   onMouseDown={(e) => { e.preventDefault(); setAssignee(id); }}
@@ -816,7 +816,7 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
               ))}
             </span>
             <span style={cmpGroup}>
-              <span style={cmpLabel}>Due</span>
+              <span style={cmpLabel}>{tr(readLang(), 'Due')}</span>
               {/* lang=en-GB → dd/mm/yyyy display; onClick showPicker → the WHOLE
                   field opens the picker, not just the calendar glyph. */}
               <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
@@ -854,7 +854,7 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
           {/* Row 3 — List + Athlete */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
             <span style={cmpGroup}>
-              <span style={cmpLabel}>List</span>
+              <span style={cmpLabel}>{tr(readLang(), 'List')}</span>
               {[['manual', 'General'], ['center', 'Performance Center']].map(([id, label]) => (
                 <button key={id}
                   onMouseDown={(e) => { e.preventDefault(); setSource(id); }}
@@ -863,7 +863,7 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
             </span>
             {(trainees || []).length > 0 && (
               <span style={cmpGroup}>
-                <span style={cmpLabel}>Athlete</span>
+                <span style={cmpLabel}>{tr(readLang(), 'Athlete')}</span>
                 <select value={traineeId} onChange={(e) => setTraineeId(e.target.value)} onMouseDown={(e) => e.stopPropagation()} title={tt('Link this task to an athlete')}
                   style={{ background: 'transparent', color: traineeId ? C.ac : 'var(--c-tm)', border: `1px solid ${traineeId ? C.ac : 'var(--c-cardBd)'}`, fontFamily: FN, fontSize: 10, fontWeight: 600, padding: '3px 6px', height: 24, borderRadius: 0, outline: 'none', maxWidth: 160, textOverflow: 'ellipsis' }}>
                   <option value="">— no athlete —</option>
@@ -1260,7 +1260,7 @@ export function CommentsThread({ noteId, viewer }) {
         fontFamily: FN, fontSize: 9, fontWeight: 700,
         letterSpacing: '0.12em', color: 'var(--c-tm)',
         textTransform: 'uppercase', marginBottom: 6,
-      }}>Comments {rows.length > 0 ? `· ${rows.length}` : ''}</div>
+      }}>{tr(readLang(), 'Comments')} {rows.length > 0 ? `· ${rows.length}` : ''}</div>
       {rows.map(c => {
         const heb = isHebrew(c.body || '');
         const mine = c.author === author;          // only your own comments are editable
@@ -1280,8 +1280,8 @@ export function CommentsThread({ noteId, viewer }) {
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                 {mine && !editing && (
                   <>
-                    <button onClick={(e) => { e.stopPropagation(); setEditingId(c.id); setEditDraft(c.body || ''); }} style={cmtActionBtn}>Edit</button>
-                    <button onClick={async (e) => { e.stopPropagation(); if (await confirmToast('Delete this comment?', { okLabel: 'Delete', cancelLabel: 'Keep' })) remove(c.id); }} style={{ ...cmtActionBtn, color: 'var(--c-rd)', borderColor: 'var(--c-rd)' }}>Delete</button>
+                    <button onClick={(e) => { e.stopPropagation(); setEditingId(c.id); setEditDraft(c.body || ''); }} style={cmtActionBtn}>{tr(readLang(), 'Edit')}</button>
+                    <button onClick={async (e) => { e.stopPropagation(); if (await confirmToast('Delete this comment?', { okLabel: 'Delete', cancelLabel: 'Keep' })) remove(c.id); }} style={{ ...cmtActionBtn, color: 'var(--c-rd)', borderColor: 'var(--c-rd)' }}>{tr(readLang(), 'Delete')}</button>
                   </>
                 )}
                 <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 600, color: 'var(--c-td)', letterSpacing: '0.04em' }}>{relativeTime(c.created_at, now)}</span>
@@ -1297,8 +1297,8 @@ export function CommentsThread({ noteId, viewer }) {
                   onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); saveEdit(); } if (e.key === 'Escape') setEditingId(null); }}
                   ref={(el) => { if (el && el.style.height === '') { el.style.height = Math.min(el.scrollHeight, 160) + 'px'; } }}
                   style={{ flex: 1, background: 'transparent', border: `1px solid var(--c-cardBd)`, fontFamily: FB, fontSize: 12, color: 'var(--c-tx)', padding: '6px 10px', borderRadius: 0, outline: 'none', resize: 'vertical', minHeight: 30, lineHeight: 1.4, boxSizing: 'border-box' }} />
-                <button onClick={(e) => { e.stopPropagation(); saveEdit(); }} style={{ ...cmtActionBtn, background: 'var(--c-ac)', color: '#fff', border: 'none' }}>Save</button>
-                <button onClick={(e) => { e.stopPropagation(); setEditingId(null); }} style={cmtActionBtn}>Cancel</button>
+                <button onClick={(e) => { e.stopPropagation(); saveEdit(); }} style={{ ...cmtActionBtn, background: 'var(--c-ac)', color: '#fff', border: 'none' }}>{tr(readLang(), 'Save')}</button>
+                <button onClick={(e) => { e.stopPropagation(); setEditingId(null); }} style={cmtActionBtn}>{tr(readLang(), 'Cancel')}</button>
               </div>
             ) : (
               <div style={{
@@ -1388,14 +1388,14 @@ export function CommentsThread({ noteId, viewer }) {
             fontFamily: FN, fontSize: 10, fontWeight: 700,
             letterSpacing: '0.12em', textTransform: 'uppercase',
             cursor: draft.trim() && !busy ? 'pointer' : 'default',
-          }}>Send</button>
+          }}>{tr(readLang(), 'Send')}</button>
       </form>
       {loading && rows.length === 0 && (
         <div style={{
           fontFamily: FN, fontSize: 9, fontWeight: 600,
           color: 'var(--c-td)', letterSpacing: '0.04em',
           textTransform: 'uppercase', marginTop: 6,
-        }}>Loading…</div>
+        }}>{tr(readLang(), 'Loading…')}</div>
       )}
     </div>
   );
@@ -1413,7 +1413,7 @@ export function EventTimeline({ noteId }) {
         fontFamily: FN, fontSize: 9, fontWeight: 700,
         letterSpacing: '0.12em', color: 'var(--c-tm)',
         textTransform: 'uppercase', marginBottom: 6,
-      }}>Activity</div>
+      }}>{tr(readLang(), 'Activity')}</div>
       <div style={{ direction: 'ltr' }}>
         {rows.map(ev => {
           const verb = EVENT_VERB[ev.kind] || ev.kind;
@@ -2516,7 +2516,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [search, expandedRows, quickAddKey]);
 
-  if (loading) return <div style={{ padding: 24, color: 'var(--c-tm)' }}>Loading…</div>;
+  if (loading) return <div style={{ padding: 24, color: 'var(--c-tm)' }}>{tr(readLang(), 'Loading…')}</div>;
 
   // For non-auto sections, render directly. Auto section collapses by default
   // because it's the engine noise (88+ rows) that drowns out real delegation.
@@ -2821,7 +2821,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                     onDragLeave={e => { e.stopPropagation(); if (dropOnId === row.id) setDropOnId(null); }}
                     onDrop={e => { e.preventDefault(); e.stopPropagation(); reorderOnto(row, section); }}
                     style={{ position: 'relative', cursor: isReadOnly(row) ? 'default' : 'grab', outline: selectedIds.has(row.id) ? '2px solid var(--c-ac)' : 'none', outlineOffset: -2, boxShadow: dropOnId === row.id ? 'inset 0 3px 0 -1px var(--c-ac)' : 'none' }}>
-                    <button onClick={e => { e.stopPropagation(); toggleSelect(row.id); }} draggable={false} title="Select"
+                    <button onClick={e => { e.stopPropagation(); toggleSelect(row.id); }} draggable={false} title={tr(readLang(), 'Select')}
                       className={`tv8-board-select${selectedIds.has(row.id) ? ' is-sel' : ''}`}
                       style={{ position: 'absolute', top: 6, left: 6, zIndex: 3, width: 15, height: 15, borderRadius: 0, border: `1px solid ${selectedIds.has(row.id) ? 'var(--c-ac)' : 'var(--c-cardBd)'}`, background: selectedIds.has(row.id) ? 'var(--c-ac)' : 'rgba(0,0,0,0.4)', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#061016', fontSize: 10, fontWeight: 900, lineHeight: 1 }}>{selectedIds.has(row.id) ? '✓' : ''}</button>
                     <TaskRow row={row} readOnly={isReadOnly(row)} compact narrow={narrow}
@@ -2954,8 +2954,8 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
               style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '5px 8px', cursor: 'pointer', background: 'transparent', border: `1px solid var(--c-cardBd)`, color: 'var(--c-tx)', borderRadius: 0 }}>{o.label}</button>
           ))}
           <span style={{ width: 1, height: 18, background: 'var(--c-cardBd)' }} />
-          <button onClick={bulkDelete} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '5px 10px', cursor: 'pointer', background: 'transparent', border: `1px solid var(--c-rd)`, color: 'var(--c-rd)', borderRadius: 0 }}>Delete</button>
-          <button onClick={clearSelect} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '5px 10px', cursor: 'pointer', background: 'transparent', border: 'none', color: 'var(--c-tm)', borderRadius: 0 }}>Clear</button>
+          <button onClick={bulkDelete} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '5px 10px', cursor: 'pointer', background: 'transparent', border: `1px solid var(--c-rd)`, color: 'var(--c-rd)', borderRadius: 0 }}>{tr(readLang(), 'Delete')}</button>
+          <button onClick={clearSelect} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '5px 10px', cursor: 'pointer', background: 'transparent', border: 'none', color: 'var(--c-tm)', borderRadius: 0 }}>{tr(readLang(), 'Clear')}</button>
         </div>
       )}
     </div>

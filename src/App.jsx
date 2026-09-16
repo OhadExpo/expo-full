@@ -330,7 +330,7 @@ function MoreMenu({ tab, navTo, onExport, onChangePassword, isOwner = true }) {
     <div data-more-menu style={{ display: 'inline-flex' }}>
       <button ref={btnRef} onClick={() => setOpen(o => !o)}
         className="hdr-icon-btn"
-        title="More"
+        title={trFn(readLang(), 'More')}
         aria-label={tt('More options')}
         aria-expanded={open}
         style={{
@@ -499,7 +499,7 @@ function BootSplash() {
   return (
     <div style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16}}>
       <img src={logo.nav} alt="EXPO" style={{height:50}} />
-      <div style={{color:C.td,fontSize:13}}>Loading…</div>
+      <div style={{color:C.td,fontSize:13}}>{trFn(readLang(), 'Loading…')}</div>
     </div>
   );
 }
@@ -1527,7 +1527,7 @@ function AuthedApp() {
   if (selfTrainee === undefined && !isTrainer) return (
     <div style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16}}>
       <img src={logo.nav} alt="EXPO" style={{height:50}} />
-      <div style={{color:C.td,fontSize:13}}>Loading…</div>
+      <div style={{color:C.td,fontSize:13}}>{trFn(readLang(), 'Loading…')}</div>
     </div>);
 
   // Wait for small stores + plan index + workout/bodyweight tables so

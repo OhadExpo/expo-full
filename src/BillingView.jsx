@@ -127,7 +127,7 @@ export default function BillingView({ trainees }) {
     window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
   };
 
-  if (loading) return <div style={{ padding: 30, textAlign: 'center', color: C.td }}>Loading…</div>;
+  if (loading) return <div style={{ padding: 30, textAlign: 'center', color: C.td }}>{tr(readLang(), 'Loading…')}</div>;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -194,7 +194,7 @@ export default function BillingView({ trainees }) {
               </div>
               {r.reference && <div style={{ fontSize: 12, color: C.tm, marginBottom: 6 }}>{r.reference}</div>}
               <div style={{ fontFamily: FN, fontSize: 10, color: C.td, marginBottom: 6 }}>
-                Created {fmtPrettyDate(r.created_at)}{r.paid_at ? ` · paid ${fmtPrettyDate(r.paid_at)}` : ''}
+                {readLang() === 'he' ? 'נוצרה' : 'Created'} {fmtPrettyDate(r.created_at)}{r.paid_at ? ` · ${readLang() === 'he' ? 'שולמה' : 'paid'} ${fmtPrettyDate(r.paid_at)}` : ''}
                 {days != null && <span style={{ color: overdue ? C.rd : C.tm, fontWeight: 700 }}> · {days}d{overdue ? ' overdue' : ''}</span>}
               </div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
@@ -286,7 +286,7 @@ function RequestModal({ trainees, onClose, onCreated }) {
           <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>{tr(readLang(), 'TRAINEE')}</label>
           <select value={traineeId} onChange={e => setTraineeId(e.target.value)}
             style={{ width: '100%', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '8px 10px', color: C.tx, fontFamily: FN, fontSize: 12, outline: 'none' }}>
-            <option value="">— Choose —</option>
+            <option value="">— {tr(readLang(), 'Choose —')}</option>
             {active.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
         </div>
@@ -297,7 +297,7 @@ function RequestModal({ trainees, onClose, onCreated }) {
           <Input label="Reference" value={reference} onChange={e => setReference(e.target.value)} placeholder="May 2026 — 8 sessions" />
         </div>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-          <Btn variant="ghost" onClick={onClose} disabled={saving}>Cancel</Btn>
+          <Btn variant="ghost" onClick={onClose} disabled={saving}>{tr(readLang(), 'Cancel')}</Btn>
           <Btn onClick={create} disabled={saving} style={{ minWidth: 132, justifyContent: 'center' }}>{saving ? 'Creating…' : 'Create request'}</Btn>
         </div>
       </div>

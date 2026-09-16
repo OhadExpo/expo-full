@@ -120,7 +120,7 @@ export default function BugsView() {
       </div>
 
       {loading ? (
-        <div style={{ padding: 30, textAlign: 'center', color: C.td, fontFamily: FB, fontSize: 13 }}>Loading…</div>
+        <div style={{ padding: 30, textAlign: 'center', color: C.td, fontFamily: FB, fontSize: 13 }}>{tr(readLang(), 'Loading…')}</div>
       ) : rows.length === 0 ? (
         <div style={{ padding: 30, textAlign: 'center', color: C.td, fontSize: 13 }}>
           {tt(filter === 'all' ? 'No reports.' : `No ${filter} reports.`)}
@@ -167,8 +167,8 @@ export default function BugsView() {
                     <div>
                       <b style={{ color: C.tm }}>{tt('Viewport:')}</b> {r.context.viewport?.w}×{r.context.viewport?.h} ·{' '}
                       <b style={{ color: C.tm }}>{tt('Theme:')}</b> {r.context.theme || '—'} ·{' '}
-                      <b style={{ color: C.tm }}>Locale:</b> {r.context.locale || '—'} ·{' '}
-                      <b style={{ color: C.tm }}>Bundle:</b> {r.context.bundle || '—'}
+                      <b style={{ color: C.tm }}>{tr(readLang(), 'Locale:')}</b> {r.context.locale || '—'} ·{' '}
+                      <b style={{ color: C.tm }}>{tr(readLang(), 'Bundle:')}</b> {r.context.bundle || '—'}
                     </div>
                     {Array.isArray(r.context.consoleErrors) && r.context.consoleErrors.length > 0 && (
                       <div style={{ marginTop: 6 }}>

@@ -1007,7 +1007,7 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
       <Modal open={showForm} onClose={() => setShowForm(false)} title={editId ? tt("Edit Athlete") : tt("New Athlete")} wide>
         {form._members ? <>
           {/* COUPLE EDIT */}
-          <div style={{fontSize:11,fontFamily:FN,color:C.td,textTransform:'uppercase',marginBottom:8}}>Shared</div>
+          <div style={{fontSize:11,fontFamily:FN,color:C.td,textTransform:'uppercase',marginBottom:8}}>{tr(readLang(), 'Shared')}</div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16}}>
             <Input label={tt("Couple Name")} value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
             <Select label={tt("Format")} options={TRAINING_FORMATS} value={form.format} onChange={v => setForm({...form, format: v})} />
@@ -1026,7 +1026,7 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
               };
               return (
                 <div key={mi} style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:11,fontFamily:FN,color:C.ac,textTransform:'uppercase',marginBottom:8}}>Member {mi+1}</div>
+                  <div style={{fontSize:11,fontFamily:FN,color:C.ac,textTransform:'uppercase',marginBottom:8}}>{tr(readLang(), 'Member')} {mi+1}</div>
                   <div style={{display:'flex',flexDirection:'column',gap:10}}>
                     <Input label={tt("Name")} value={m.name||""} onChange={e=>upd('name',e.target.value)} />
                     <EmailsInput label={tt("Email")} value={m._emails || emailsToArr(m.email)} onChange={next=>upd('_emails',next)} />
@@ -1115,7 +1115,7 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
           <label style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 16, padding: "10px 12px", border: `1px solid ${purgeHistory ? C.rd : C.cardBd}`, background: purgeHistory ? C.rdD : 'transparent', cursor: "pointer" }}>
             <input type="checkbox" checked={purgeHistory} onChange={e => setPurgeHistory(e.target.checked)} style={{ marginTop: 2, accentColor: C.rd, cursor: "pointer" }} />
             <span style={{ fontSize: 12, color: purgeHistory ? C.rd : C.tm, lineHeight: 1.45 }}>
-              Also <strong>erase all their history</strong> — programs, workouts, payments, messages, evaluations. This wipes their revenue from your reports and is not recoverable.
+              {readLang() === 'he' ? <>למחוק גם <strong>את כל ההיסטוריה שלו</strong> — תוכניות, אימונים, תשלומים, הודעות, הערכות. זה מוחק את ההכנסות שלו מהדוחות שלך, ואי אפשר לשחזר את זה.</> : <>{'Also '}<strong>{'erase all their history'}</strong>{' — programs, workouts, payments, messages, evaluations. This wipes their revenue from your reports and is not recoverable.'}</>}
             </span>
           </label>
           <div style={{ marginBottom: 16 }}>
@@ -1123,7 +1123,7 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
             <input value={deleteTyped} onChange={e => setDeleteTyped(e.target.value)} style={{ background: 'var(--c-sf2)', border: `1px solid ${C.rd}`, borderRadius: 0, padding: "8px 12px", color: C.tx, fontFamily: FN, fontSize: 14, outline: "none", width: "100%", boxSizing: "border-box", letterSpacing: "0.1em", textAlign: "center" }} placeholder="DELETE" autoComplete="off" />
           </div>
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-            <Btn variant="ghost" onClick={() => {setDeleteConfirm(null);setDeleteTyped("");setPurgeHistory(false)}}>Cancel</Btn>
+            <Btn variant="ghost" onClick={() => {setDeleteConfirm(null);setDeleteTyped("");setPurgeHistory(false)}}>{tr(readLang(), 'Cancel')}</Btn>
             <Btn variant="danger" disabled={purging} onClick={() => { if (deleteTyped.trim().toUpperCase() === "DELETE") handlePermanentDelete(deleteConfirm.id); }}
               style={{ opacity: (deleteTyped.trim().toUpperCase() === "DELETE" && !purging) ? 1 : 0.3, pointerEvents: (deleteTyped.trim().toUpperCase() === "DELETE" && !purging) ? "auto" : "none" }}>
               {purging ? 'Purging…' : (purgeHistory ? 'Delete + Erase History' : 'Delete Permanently')}</Btn>

@@ -6,7 +6,7 @@ import { lockBodyScroll } from './scrollLock';
 // HERE covers the whole app at once. tr() falls back to the input string when
 // there is no key, so a title that is DATA (an athlete's name in a modal)
 // passes through untouched.
-import { useT } from './i18n';
+import { useT, tr, readLang } from './i18n';
 
 // Canonical height for header/strip ACTION buttons (+ TASK, MARK ALL READ,
 // + LOG, CONTRACT, + ADD PAYMENT, …) so this whole button family is ONE uniform
@@ -974,8 +974,8 @@ export const ConfirmDialog = ({ open, onConfirm, onCancel, title, message }) => 
         <h3 id={titleId} style={{ margin: "0 0 10px", fontFamily: FN, fontSize: 13, color: C.tx, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>{title}</h3>
         <p id={msgId} style={{ margin: "0 0 22px", fontSize: 13, color: C.tm, fontFamily: FB, lineHeight: 1.5 }}>{message}</p>
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-          <Btn variant="ghost" onClick={onCancel}>Cancel</Btn>
-          <Btn variant="danger" onClick={onConfirm}>Confirm</Btn>
+          <Btn variant="ghost" onClick={onCancel}>{tr(readLang(), 'Cancel')}</Btn>
+          <Btn variant="danger" onClick={onConfirm}>{tr(readLang(), 'Confirm')}</Btn>
         </div></div></div>);
 };
 // Keyboard a11y for hand-rolled dialog overlays that don't use <Modal> /

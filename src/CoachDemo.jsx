@@ -2153,9 +2153,9 @@ function DemoPrograms({ resetToken = 0 }) {
                             </button>
                             <div className="cd-spacer" style={{ flex: 1, minWidth: 8 }} />
                             <button className="cd-crud cd-txtbtn" onClick={e => e.stopPropagation()} title={T('Preview as trainee (demo only)')} style={txt(C.ac)}>{T('Preview')}</button>
-                            <button className="cd-crud cd-txtbtn" onClick={e => e.stopPropagation()} title={T('Duplicate program (demo only)')} style={txt(C.ac)}>Duplicate</button>
-                            <button className="cd-crud cd-txtbtn" onClick={e => e.stopPropagation()} title={T('Share to another athlete (demo only)')} style={txt(C.ac)}>Share</button>
-                            <button className="cd-crud cd-txtbtn" onClick={e => e.stopPropagation()} title={T('Delete program (demo only)')} style={txt(C.rd)}>Delete</button>
+                            <button className="cd-crud cd-txtbtn" onClick={e => e.stopPropagation()} title={T('Duplicate program (demo only)')} style={txt(C.ac)}>{tr(readLang(), 'Duplicate')}</button>
+                            <button className="cd-crud cd-txtbtn" onClick={e => e.stopPropagation()} title={T('Share to another athlete (demo only)')} style={txt(C.ac)}>{tr(readLang(), 'Share')}</button>
+                            <button className="cd-crud cd-txtbtn" onClick={e => e.stopPropagation()} title={T('Delete program (demo only)')} style={txt(C.rd)}>{tr(readLang(), 'Delete')}</button>
                           </div>
                         );
                       })()}
@@ -2175,9 +2175,9 @@ function DemoPrograms({ resetToken = 0 }) {
                                     title={on ? 'On the athlete portal — click to hide' : 'Hidden — click to show'}
                                     style={{ ...txt(on ? C.gn : C.td), display: 'inline-flex', alignItems: 'center', gap: 5 }}><span style={{ width: 5, height: 5, borderRadius: '50%', background: on ? C.gn : C.td }} />{on ? 'On portal' : 'Hidden'}</button>
                                   <button className="cd-txtbtn" onClick={e => e.stopPropagation()} title={T('Preview as trainee (demo only)')} style={txt(C.ac)}>{T('Preview')}</button>
-                                  <button className="cd-txtbtn" onClick={e => e.stopPropagation()} title={T('Duplicate program (demo only)')} style={txt(C.ac)}>Duplicate</button>
-                                  <button className="cd-txtbtn" onClick={e => e.stopPropagation()} title={T('Share to another athlete (demo only)')} style={txt(C.ac)}>Share</button>
-                                  <button className="cd-txtbtn" onClick={e => e.stopPropagation()} title={T('Delete program (demo only)')} style={txt(C.rd)}>Delete</button>
+                                  <button className="cd-txtbtn" onClick={e => e.stopPropagation()} title={T('Duplicate program (demo only)')} style={txt(C.ac)}>{tr(readLang(), 'Duplicate')}</button>
+                                  <button className="cd-txtbtn" onClick={e => e.stopPropagation()} title={T('Share to another athlete (demo only)')} style={txt(C.ac)}>{tr(readLang(), 'Share')}</button>
+                                  <button className="cd-txtbtn" onClick={e => e.stopPropagation()} title={T('Delete program (demo only)')} style={txt(C.rd)}>{tr(readLang(), 'Delete')}</button>
                                 </div>;
                               })()}
                             </div>
@@ -2252,7 +2252,7 @@ function DemoPrograms({ resetToken = 0 }) {
           <button onClick={() => setSelectedProgramId(null)} style={{
             background: 'none', border: 'none', color: C.ac,
             cursor: 'pointer', fontFamily: FB, fontSize: 13, padding: 0, whiteSpace: 'nowrap',
-          }}>← Back</button>
+          }}>← {tr(readLang(), 'Back')}</button>
           {athletePrograms.length >= 2 && (
             <div style={{ position: 'relative', display: 'flex', minWidth: 0, flex: '1 1 240px', maxWidth: 360 }}>
               <select value={selectedProgramId || ''} onChange={e => {
@@ -2399,7 +2399,7 @@ function DemoPrograms({ resetToken = 0 }) {
         {/* Per-day-name input — mirrors the real PlanEditor `Day N Name`
             field that sits above the per-exercise cards in detail mode. */}
         <div style={{ marginBottom: 12 }}>
-          <label style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.td, letterSpacing: '0.08em', textTransform: 'uppercase', display: 'block', marginBottom: 4, textAlign: 'center' }}>Day {dayIdx + 1} Name</label>
+          <label style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.td, letterSpacing: '0.08em', textTransform: 'uppercase', display: 'block', marginBottom: 4, textAlign: 'center' }}>{readLang() === 'he' ? `שם יום ${dayIdx + 1}` : `Day ${dayIdx + 1} Name`}</label>
           <input value={day.name} readOnly tabIndex={-1}
             style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, height: 42, padding: '0 14px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', textAlign: 'center', cursor: 'default', width: '100%', boxSizing: 'border-box' }} />
         </div>
@@ -2442,23 +2442,23 @@ function DemoPrograms({ resetToken = 0 }) {
                         EXERCISE / SUPERSET / SETS / REPS / LOAD / RPE / TEMPO / trash. */}
                     <div style={{ display: 'grid', gridTemplateColumns: '4.4fr 1fr 1fr 1.5fr 1fr 1fr 1.6fr auto', minWidth: 780, gap: 12, alignItems: 'end' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
-                        <label style={labelStyle}>Exercise</label>
+                        <label style={labelStyle}>{tr(readLang(), 'Exercise')}</label>
                         <input value={e.name || ''} readOnly tabIndex={-1} style={inputStyleRO} />
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
-                        <label style={labelStyle}>Superset</label>
+                        <label style={labelStyle}>{tr(readLang(), 'Superset')}</label>
                         <input value={e.superset || '—'} readOnly tabIndex={-1} style={{ ...inputStyleRO, background: e.superset ? `color-mix(in srgb, ${sc} 20%, var(--c-sf))` : undefined, border: e.superset ? `1px solid ${sc}` : inputStyleRO.border, color: e.superset ? C.tx : C.td, fontWeight: e.superset ? 800 : 700, fontFamily: FN, textAlign: 'center' }} />
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
-                        <label style={labelStyle}>Sets</label>
+                        <label style={labelStyle}>{tr(readLang(), 'Sets')}</label>
                         <input value={e.sets ?? ''} readOnly tabIndex={-1} style={inputStyleRO} />
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
-                        <label style={labelStyle}>Reps</label>
+                        <label style={labelStyle}>{tr(readLang(), 'Reps')}</label>
                         <input value={e.reps || ''} readOnly tabIndex={-1} style={inputStyleRO} />
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
-                        <label style={labelStyle}>Load</label>
+                        <label style={labelStyle}>{tr(readLang(), 'Load')}</label>
                         <input value={mockLoad} readOnly tabIndex={-1} placeholder="kg/%" style={inputStyleRO} />
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
@@ -2478,7 +2478,7 @@ function DemoPrograms({ resetToken = 0 }) {
                         like the real PlanEditor's per-week reps grid. */}
                     {Array.isArray(e.wk) && e.wk.length > 0 && (
                       <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                        <label style={labelStyle}>Load / Wk</label>
+                        <label style={labelStyle}>{tr(readLang(), 'Load / Wk')}</label>
                         <div style={{ display: 'grid', gridTemplateColumns: `repeat(${e.wk.length}, minmax(40px, 1fr))`, gap: 3 }}>
                           {e.wk.map((load, wi) => (
                             <input key={wi} value={load} readOnly tabIndex={-1}
@@ -2836,7 +2836,7 @@ function DemoExercises() {
           style={{ ...railBase, borderBottomColor: (active || isOpen) ? C.ac : 'transparent', color: active ? C.ac : C.tx }}>
           <span style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis' }}>{faceLabel}</span>
           {active
-            ? <span onClick={e => { e.stopPropagation(); clearFilter(k); }} title="Clear" style={{ fontSize: 13, lineHeight: 1, opacity: 0.85 }}>×</span>
+            ? <span onClick={e => { e.stopPropagation(); clearFilter(k); }} title={tr(readLang(), 'Clear')} style={{ fontSize: 13, lineHeight: 1, opacity: 0.85 }}>×</span>
             : <span style={{ color: (active || isOpen) ? C.ac : C.tm, fontSize: 9 }}><svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></span>}
         </button>
         {isOpen && (
@@ -2873,7 +2873,7 @@ function DemoExercises() {
           the redesigned real ExercisesView. */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
         <h2 style={{ margin: 0, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', color: C.tx, textTransform: 'uppercase' }}>
-          Exercises <span style={{ color: C.tm, fontWeight: 700 }}>· {filtered.length}</span>
+          {tr(readLang(), 'Exercises')} <span style={{ color: C.tm, fontWeight: 700 }}>· {filtered.length}</span>
         </h2>
         <div style={{ display: 'flex', gap: 6, width: 200 }}>
           {[['table', 'Table'], ['grid', 'Grid']].map(([v, label]) => {
@@ -2898,7 +2898,7 @@ function DemoExercises() {
             }}
           />
         </div>
-        <button style={{ height: 30, width: 200, flexShrink: 0, padding: '0 18px', background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.06em', cursor: 'pointer', borderRadius: 0, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ Add Exercise</button>
+        <button style={{ height: 30, width: 200, flexShrink: 0, padding: '0 18px', background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.06em', cursor: 'pointer', borderRadius: 0, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ {tr(readLang(), 'Add Exercise')}</button>
       </div>
 
       {/* Filter rail — carded multi-select FilterPill menus (matches the
@@ -3063,7 +3063,7 @@ function DemoReview() {
         <button onClick={() => setSelectedId(null)} style={{
           background: 'none', border: 'none', color: C.ac,
           cursor: 'pointer', fontFamily: FB, fontSize: 13, padding: 0, marginBottom: 12,
-        }}>← Back</button>
+        }}>← {tr(readLang(), 'Back')}</button>
 
         <div style={{
           background: C.sf, border: `1px solid rgba(57,189,255,0.251)`, borderRadius: 0,
@@ -3149,7 +3149,7 @@ function DemoReview() {
                   ))}
                   <div style={{ marginTop: 'auto', display: 'flex', gap: 8, alignItems: 'center', borderTop: `1px solid ${C.cardBd}`, paddingTop: 8 }}>
                     <input placeholder={T('Comment at 0:04…')} readOnly style={{ flex: 1, minWidth: 0, background: 'var(--c-sf2)', border: `1px solid ${C.cardBd}`, color: C.tm, fontFamily: FB, fontSize: 12, padding: '7px 10px', borderRadius: 0, outline: 'none' }} />
-                    <button onClick={e => e.stopPropagation()} style={{ ...baseBtn, background: '#39BDFF', color: '#06131b', border: '1px solid #39BDFF', padding: '7px 14px', fontSize: 11 }}>Send</button>
+                    <button onClick={e => e.stopPropagation()} style={{ ...baseBtn, background: '#39BDFF', color: '#06131b', border: '1px solid #39BDFF', padding: '7px 14px', fontSize: 11 }}>{tr(readLang(), 'Send')}</button>
                   </div>
                 </div>
               </div>
@@ -3406,13 +3406,13 @@ function DemoWorkouts() {
 
       {/* 3. Completed */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 20, marginBottom: 12 }}>
-        <h3 style={sectionH}>Completed ({completed.length})</h3>
+        <h3 style={sectionH}>{readLang() === 'he' ? 'הושלמו' : 'Completed'} ({completed.length})</h3>
         <select value={filterTrainee} onChange={e => setFilterTrainee(e.target.value)} style={{
           background: C.sf, border: `1px solid ${C.bd2}`, borderRadius: 0,
           padding: '4px 8px', color: C.tx, fontFamily: FB, fontSize: 12, outline: 'none',
           width: 180,
         }}>
-          <option value="">All Athletes</option>
+          <option value="">{tr(readLang(), 'All Athletes')}</option>
           {MOCK_TRAINEES.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
         </select>
       </div>
@@ -3434,7 +3434,7 @@ function DemoWorkouts() {
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Badge color={C.gn}>Completed</Badge>
+                <Badge color={C.gn}>{tr(readLang(), 'Completed')}</Badge>
                 <button onClick={e => e.stopPropagation()} title={T('Demo only')} style={{ background: 'none', border: 'none', color: C.tm, cursor: 'pointer', padding: 4 }}>✏️</button>
                 <button onClick={e => e.stopPropagation()} title={T('Demo only')} style={{ background: 'none', border: 'none', color: C.rd, cursor: 'pointer', padding: 4, opacity: 0.6 }}>🗑</button>
               </div>
@@ -3540,7 +3540,7 @@ function DemoGroupFloor() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', borderBottom: `1px solid ${C.cardBd}` }}>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</div>
-                  <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.04em' }}>Day A · W4</div>
+                  <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.04em' }}>{tr(readLang(), 'Day A · W4')}</div>
                 </div>
                 <button onClick={() => setCheckedIn(p => ({ ...p, [ai]: !p[ai] }))} style={{ ...baseBtn, background: inFloor ? C.gn : 'transparent', color: inFloor ? '#FFF' : C.tm, border: `1px solid ${inFloor ? C.gn : C.bd}`, padding: '4px 10px', fontSize: 10 }}>{inFloor ? '✓ IN' : 'CHECK IN'}</button>
               </div>
@@ -3584,7 +3584,7 @@ function DemoSingle() {
           </div>
         ))}
         <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
-          <button style={{ ...baseBtn, background: C.gn, color: '#06251a', padding: '14px 48px', fontSize: 14, fontWeight: 700 }}>Complete Workout</button>
+          <button style={{ ...baseBtn, background: C.gn, color: '#06251a', padding: '14px 48px', fontSize: 14, fontWeight: 700 }}>{tr(readLang(), 'Complete Workout')}</button>
         </div>
       </div>
     );

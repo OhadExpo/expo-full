@@ -203,7 +203,7 @@ export default function BookingPublic() {
   };
 
   if (loading) {
-    return <Wrapper><div style={{ padding: 30, textAlign: 'center', color: C.td }}>Loading…</div></Wrapper>;
+    return <Wrapper><div style={{ padding: 30, textAlign: 'center', color: C.td }}>{tr(readLang(), 'Loading…')}</div></Wrapper>;
   }
   if (error || !settings) {
     return <Wrapper><div style={{ padding: 30, textAlign: 'center', color: C.rd, fontSize: 14 }}>{error || 'Not found.'}</div></Wrapper>;
