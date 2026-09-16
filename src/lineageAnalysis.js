@@ -398,7 +398,8 @@ export function patternCoverage(sessions) {
 
 // ---- Verdict synthesis ---------------------------------------------------
 // Turn the reads into the one-line "if you read one thing" call + confidence.
-export function synthesizeVerdict({ adh, region, staples, acwr, velocity }) {
+// `he` composes the same verdict in Hebrew (optional; English when absent).
+export function synthesizeVerdict({ adh, region, staples, acwr, velocity, he = false }) {
   const flags = [];
   const lowerGrind = region?.lower?.pct != null && region.lower.pct >= 25;
   const anyHardStale = staples.some((s) => !s.ballistic && s.isMain && s.stale?.stale && s.stale.mode === 'hard');
@@ -425,33 +426,40 @@ export function synthesizeVerdict({ adh, region, staples, acwr, velocity }) {
 
   const fatigueBits = () => {
     const bits = [];
-    if (lowerGrind) bits.push(`missing ${region.lower.pct}% of lower-body top sets`);
-    if (anyDropping) bits.push(`${staples.find((s) => !s.ballistic && s.isMain && s.trend?.dir === 'down')?.title} e1RM slipping`);
-    if (velHigh) bits.push(`bar speed down ${velocity.lossPct}% on the last filmed set`);
-    if (highAcwr) bits.push(`load ratio spiked to ${acwr.acwr}`);
+    const dropTitle = anyDropping ? staples.find((s) => !s.ballistic && s.isMain && s.trend?.dir === 'down')?.title : null;
+    if (lowerGrind) bits.push(he ? `מפספס ${region.lower.pct}% מהסטים העליונים בפלג גוף תחתון` : `missing ${region.lower.pct}% of lower-body top sets`);
+    if (anyDropping) bits.push(he ? `ה־e1RM ב־${dropTitle} יורד` : `${dropTitle} e1RM slipping`);
+    if (velHigh) bits.push(he ? `מהירות המוט ירדה ב־${velocity.lossPct}% בסט המצולם האחרון` : `bar speed down ${velocity.lossPct}% on the last filmed set`);
+    if (highAcwr) bits.push(he ? `יחס העומס קפץ ל־${acwr.acwr}` : `load ratio spiked to ${acwr.acwr}`);
     return bits;
   };
 
   let headline, sub, tone = 'warn';
   if (flags.includes('fatigue') && !tooThinToDeload) {
     const hardStaleLift = staples.find((s) => !s.ballistic && s.isMain && s.stale?.stale && s.stale.mode === 'hard');
-    headline = hardStaleLift
-      ? `Deload — then change the ${hardStaleLift.title}, don't just add weight.`
-      : `Deload him — he's accumulating more fatigue than he's recovering from.`;
+    headline = he
+      ? (hardStaleLift ? `שבוע הורדה — ואז תחליף את ה־${hardStaleLift.title}. אל תוסיף רק משקל.` : 'שבוע הורדה — הוא צובר יותר עייפות ממה שהוא מתאושש ממנה.')
+      : (hardStaleLift ? `Deload — then change the ${hardStaleLift.title}, don't just add weight.` : `Deload him — he's accumulating more fatigue than he's recovering from.`);
     const bits = fatigueBits();
-    sub = bits.length ? `${bits.join(', ')} — that's fatigue, not laziness.` : 'Multiple fatigue signals are stacking up.';
+    sub = bits.length
+      ? (he ? `${bits.join(', ')} — זו עייפות, לא עצלות.` : `${bits.join(', ')} — that's fatigue, not laziness.`)
+      : (he ? 'כמה סימני עייפות מצטברים.' : 'Multiple fatigue signals are stacking up.');
   } else if (flags.includes('fatigue') && tooThinToDeload) {
     // Fatigue signals exist but on too little data to act on — surface them, but
     // point the coach at logging, not a deload.
     tone = 'info';
     const n = adh?.loggedSessions || 0;
-    headline = `Get him logging before you deload — only ${n} session${n === 1 ? '' : 's'} in, the fatigue read isn't trustworthy yet.`;
+    headline = he
+      ? `קודם שירשום, ואז שבוע הורדה — ${n === 1 ? 'יש רק אימון אחד' : `יש רק ${n} אימונים`}, וקריאת העייפות עוד לא אמינה.`
+      : `Get him logging before you deload — only ${n} session${n === 1 ? '' : 's'} in, the fatigue read isn't trustworthy yet.`;
     const bits = fatigueBits();
-    sub = `${bits.length ? `${bits.join(', ')} — but ` : ''}off this little data that could be noise or one light day. Confirm with a few more logs before backing load off.`;
+    sub = he
+      ? `${bits.length ? `${bits.join(', ')} — אבל ` : ''}על כל כך מעט נתונים זה יכול להיות רעש או יום חלש אחד. תאמת עם עוד כמה רישומים לפני שאתה מוריד משקל.`
+      : `${bits.length ? `${bits.join(', ')} — but ` : ''}off this little data that could be noise or one light day. Confirm with a few more logs before backing load off.`;
   } else if (lowAdh) {
     tone = 'info';
-    headline = `Before programming — get him training. He logged ${adh.sessionPct}% of sessions.`;
-    sub = 'Low adherence makes every load signal below unreliable. This is a check-in conversation first, a programming decision second.';
+    headline = he ? `לפני התוכנית — שיתחיל להתאמן. הוא רשם ${adh.sessionPct}% מהאימונים.` : `Before programming — get him training. He logged ${adh.sessionPct}% of sessions.`;
+    sub = he ? 'כשההתמדה נמוכה, כל סימן עומס למטה לא אמין. קודם שיחת בירור, אחר כך החלטה על התוכנית.' : 'Low adherence makes every load signal below unreliable. This is a check-in conversation first, a programming decision second.';
   } else {
     tone = 'ok';
     // "Progressing" must match the responding-split's ✓Working exactly (main,
@@ -459,10 +467,16 @@ export function synthesizeVerdict({ adh, region, staples, acwr, velocity }) {
     // load on X" while the responding section lists the same X as "stuck". A
     // stale-but-up lift isn't climbing, and kg isn't the read on a ballistic lift.
     const progressing = staples.filter((s) => !s.ballistic && s.isMain && !s.stale?.stale && s.trend?.dir === 'up').map((s) => s.title);
-    headline = progressing.length ? `He's responding — keep progressing.` : `Steady block — nothing's flashing red.`;
-    sub = progressing.length
-      ? `${progressing.slice(0, 3).join(', ')} climbing at an on-target effort. Keep adding load next block.`
-      : 'Loads and effort are holding. Progress where he has room, hold where he doesn\'t.';
+    headline = he
+      ? (progressing.length ? 'הוא מגיב — תמשיך להתקדם.' : 'בלוק יציב — שום דבר לא מהבהב באדום.')
+      : (progressing.length ? `He's responding — keep progressing.` : `Steady block — nothing's flashing red.`);
+    sub = he
+      ? (progressing.length
+        ? `${progressing.slice(0, 3).join(', ')} ${progressing.length === 1 ? 'עולה' : 'עולים'} במאמץ המתוכנן. תמשיך להעלות משקל בבלוק הבא.`
+        : 'המשקלים והמאמץ יציבים. תתקדם איפה שיש לו מקום, תשמור איפה שאין.')
+      : (progressing.length
+        ? `${progressing.slice(0, 3).join(', ')} climbing at an on-target effort. Keep adding load next block.`
+        : 'Loads and effort are holding. Progress where he has room, hold where he doesn\'t.');
   }
   // confidence from data density
   const conf = (adh?.sessionPct >= 70 && adh?.setsPct >= 60) ? 'high' : (adh?.loggedSessions >= 3 ? 'medium' : 'low');
@@ -884,7 +898,7 @@ export function analyzeAthlete(clientWorkouts, traineeId, plans, deps) {
     transfer = { side, read, move, sT: Math.round(sT * 10) / 10, pT: Math.round(pT * 10) / 10, strengthN: strengthLifts.length, powerN: powerLifts.length };
   }
   const skip = skipPattern(sessions, built.plannedDays, built.weeks);
-  const verdict = synthesizeVerdict({ adh, region, staples, acwr, velocity: { state: 'thin' } });
+  const verdict = synthesizeVerdict({ adh, region, staples, acwr, velocity: { state: 'thin' }, he: !!deps.he });
   // readiness density (rpe on sets, autoreg on sessions) for the honest thin card
   let setsWithRpe = 0, totalSets = 0;
   for (const s of sessions) for (const ex of s.exercises) for (const st of ex.sets) { totalSets++; if (st.rpe != null) setsWithRpe++; }

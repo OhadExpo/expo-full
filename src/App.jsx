@@ -623,7 +623,10 @@ function AuthGate() {
       // '/coaches/try' included: its replaceState rewrite runs after render, so
       // without this branch the legacy link painted the marketing landing
       // instead of the coach demo it redirects to (audit 08-22).
-      return <Suspense fallback={<BootSplash />}><CoachDemo /></Suspense>;
+      // LangCtx: the demo embeds REAL components (the Training Analysis page)
+      // that read the language from context; without a provider they rendered
+      // English on a Hebrew demo, the same miss /try had.
+      return <LangCtx.Provider value={readLang()}><Suspense fallback={<BootSplash />}><CoachDemo /></Suspense></LangCtx.Provider>;
     }
     if (path === '/demo/athlete' || path === '/demo/trainee' || path === '/coaches/demo/trainee' || path === '/coaches/demo') {
       return <LangCtx.Provider value={readLang()}><Suspense fallback={<BootSplash />}><DemoTraineePortal /></Suspense></LangCtx.Provider>;
