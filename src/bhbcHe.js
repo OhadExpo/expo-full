@@ -26,7 +26,7 @@ import { createContext, useContext } from 'react';
 export const HE = {
   "Bnei Herzliya BC": "מועדון הכדורסל בני הרצליה",
   "Log a practice for this athlete": "רישום אימון לשחקן הזה",
-  "League points per game": "נקודות לליגה למשחק",
+  "League points per game": "נקודות למשחק בליגה",
   "Bodyweight (kg) — optional, shows in the athlete's history + BW trend": "משקל גוף (ק\"ג) — לא חובה, מופיע בהיסטוריה ובגרף המשקל",
   "Wellness check-in": "דיווח תחושה",
   "Open this athlete in EXPO": "פתיחת השחקן ב-EXPO",
@@ -267,7 +267,7 @@ export const HE = {
   Watch: 'עקוב אחרי',
   'Vary the stimulus for': 'תגוון את הגירוי אצל',
   'Ramp up': 'תעלה עומס בהדרגה אצל',
-  'Chase check-ins': 'תרדוף אחרי הצ׳ק-אין',
+  'Chase check-ins': 'תזכיר לשחקנים לדווח',
   'Start tracking the roster': 'תתחיל לעקוב אחרי הסגל',
   // Once attendance exists, "start tracking" is stale advice; the gap is RPE.
   'Add an RPE to your sessions': 'תוסיף RPE לאימונים',
@@ -291,7 +291,7 @@ export const HE = {
   'Head / Concussion': 'ראש / זעזוע מוח',
   Ankle: 'קרסול',
   Knee: 'ברך',
-  Hip: 'ירך',
+  Hip: 'מפרק הירך',
   Hamstring: 'המסטרינג',
   Groin: 'מפשעה',
   Quad: 'ארבע ראשי',
@@ -319,7 +319,7 @@ export const HE = {
   'Energy 0–10': 'אנרגיה 0–10',
   'Pain 0–10': 'כאב 0–10',
   'Sleep 0–10': 'שינה 0–10',
-  'Body part': 'איזור',
+  'Body part': 'אזור בגוף',
   Side: 'צד',
   'Current status': 'סטטוס נוכחי',
   'Mechanism / how it happened': 'מנגנון · איך זה קרה',
@@ -338,7 +338,6 @@ export const HE = {
   'This slot': 'המשבצת הזו',
   'Which session': 'איזה אימון',
   note: 'הערה',
-  'Click to change availability': 'לחיצה משנה זמינות',
   Round: 'מחזור',
   'logged by': 'נרשם על ידי',
   'Brief for the staff': 'תקציר לצוות',
@@ -372,7 +371,7 @@ export const HE = {
   'this week': 'השבוע',
   'of his own pre-injury week': 'מהשבוע שלו לפני הפציעה',
   'guide': 'המלצה',
-  'CUT TODAY': 'לחתוך היום',
+  'CUT TODAY': 'להוריד עומס היום',
   'WATCH': 'לעקוב',
   'Minutes played': 'דקות משחק',
   'ADD MINUTES': 'הוספת דקות',
@@ -539,7 +538,6 @@ Object.assign(HE, {
   vs: 'מול',
   'Pre-season': 'טרום עונה',
   'no focus yet': 'עוד אין פוקוס',
-  logged: 'נרשמו',
   // ---- medical board ----------------------------------------------------
   'Medical · Injury Board': 'רפואי · לוח פציעות',
   'Active Injuries': 'פציעות פעילות',
@@ -557,7 +555,6 @@ Object.assign(HE, {
   // which the athlete app shares - so they are translated HERE, at the club
   // zone render, and that file stays untouched.
   'Full': 'מלא',
-  'Limited': 'מוגבל',
   'Out · Med': 'בחוץ · רפואי',
   'Out · Pers': 'בחוץ · אישי',
   'baseline': 'בסיס',
@@ -575,7 +572,7 @@ Object.assign(HE, {
   'Looks good — train as planned': 'נראה טוב — לפי התוכנית',
   'Recovered — full send': 'התאושש — אפשר ללחוץ',
   'A bit under — trim, don\'t grind': 'קצת מתחת — מקצרים, לא טוחנים',
-  'Run down — back off today': 'שחוק — מורידים היום',
+  'Run down — back off today': 'שחוק — מורידים עומס היום',
   // ---- return-to-play ladder + the two safety rules under it -----------
   'Full history': 'היסטוריה מלאה',
   'Acute · protect': 'חריף · הגנה',
@@ -620,13 +617,13 @@ Object.assign(HE, {
   'Two weight-room sessions a week is the standard here — amber at 4 days, red at 7.': 'שני אימוני כוח בשבוע זה הסטנדרט כאן — כתום אחרי 4 ימים, אדום אחרי 7.',
 
   // ---- the weight-room tab --------------------------------------------
-  'Previous month': 'חודש קודם',
-  'Next month': 'חודש הבא',
+  'Previous month': 'החודש הקודם',
+  'Next month': 'החודש הבא',
   'Orange is a logged lift. The tint is the restriction on the day.': 'כתום זה אימון כוח שנרשם. הגוון זה ההגבלה של אותו יום.',
   'nobody has lifted today': 'אף אחד לא התאמן היום',
   'Due for the weight room': 'מחכים לאימון כוח',
   'Everyone has lifted in the last three days.': 'כולם התאמנו בשלושת הימים האחרונים.',
-  'lift': 'אימון כוח',
+  'lift session': 'אימון כוח',
   'lift logged': 'נרשם אימון כוח',
   'Jan': 'ינואר',
   'Feb': 'פברואר',
@@ -662,7 +659,7 @@ Object.assign(HE, {
   'Low volume & high intensity': 'נפח נמוך ועצימות גבוהה',
   'High volume & high intensity': 'נפח גבוה ועצימות גבוהה',
 
-  'What the room did': 'מה עשו בחדר כוח',
+  'What the room did': 'מה עשו בחדר הכוח',
   'nothing written': 'לא נרשם כלום',
 
   lifted: 'התאמנו',

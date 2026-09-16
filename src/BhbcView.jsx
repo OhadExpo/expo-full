@@ -3200,7 +3200,7 @@ function WeightRoomTab({ rows = [], loads = {}, medical = {}, fixtures = [], pla
                     <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>
                   </span>
                   {cells.map((c) => (
-                    <span key={c.iso} title={`${monDay(c.iso)}${c.lift ? ` · ${c.mins || ''}${c.mins ? tr('min') : tr('lift')}` : ''}`}
+                    <span key={c.iso} title={`${monDay(c.iso)}${c.lift ? ` · ${c.mins || ''}${c.mins ? tr('min') : tr('lift session')}` : ''}`}
                       style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 26, background: c.future ? 'transparent' : TINT[c.code] || 'transparent', borderInlineStart: `1px solid ${C.cardBd}` }}>
                       {c.lift && (
                         <span style={{ minWidth: 18, height: 16, padding: '0 3px', background: ORANGE, color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 8.5, fontWeight: 800, fontVariantNumeric: 'tabular-nums', letterSpacing: 0 }}>
