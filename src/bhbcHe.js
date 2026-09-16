@@ -120,6 +120,11 @@ export const HE = {
   'TBD': 'עוד לא נקבע',
   Group: 'קבוצתי',
   Single: 'יחיד',
+  'available#1': 'זמין',
+  h: ' ש׳',
+  'limited#1': 'מוגבל',
+  'lifted today#1': 'התאמן היום',
+  'lifted#1': 'התאמן',
   '→': '←',
   'HaYovel, Herzliya': 'היובל, הרצליה',
   'Show {n} more': 'עוד {n}',
@@ -358,7 +363,7 @@ export const HE = {
   Points: 'נקודות',
   Allowed: 'ספגה',
   'per game': 'למשחק',
-  'Last season': 'עונה שעברה',
+  'Last season': 'העונה שעברה',
   'Last season results': 'תוצאות מהעונה שעברה',
   'avg load': 'עומס ממוצע',
   '+ PLAN': '+ תכנון',
@@ -502,6 +507,11 @@ let _dateLang = 'en';
 export function setBhbcDateLang(l) { _dateLang = l === 'he' ? 'he' : 'en'; }
 // For module-level helpers that build text outside a component (no hook to call).
 export const zoneT = (s) => bhbcT(_dateLang, s);
+// Counts composed at the call site ('1 מוגבלים', '22d באיחור' on the Hebrew screen, 17.9).
+// A key may carry a singular form as HE['key#1'].
+export const countWord = (n, key) => (_dateLang === 'he' && n === 1 && HE[key + '#1']) ? HE[key + '#1'] : bhbcT(_dateLang, key);
+export const daysFor = (n) => (_dateLang === 'he' ? (n === 1 ? 'יום אחד' : `${n} ימים`) : `${n}d`);
+export const overdueFor = (n) => (_dateLang === 'he' ? (n === 1 ? 'באיחור יום' : `באיחור ${n} ימים`) : `${n}d overdue`);
 
 // א׳-ש׳ with a geresh, which is how an Israeli coach writes a weekday short.
 const DOW_HE = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
@@ -596,7 +606,7 @@ Object.assign(HE, {
   'Refer out': 'הפניה רפואית',
   '0–3/10 progress · 4–5 hold & modify (regress ': 'ב-0–3/10 מתקדמים · ב-4–5 נשארים בשלב ומתאימים (מורידים ',
   ', cut frequency last) · 6+ stop & reassess.': ', תדירות אחרונה) · מ-6 ומעלה עוצרים ובודקים מחדש.',
-  'Saddle anaesthesia · bowel/bladder change · drop foot · unexplained weight loss · night pain unrelated to position — never manage through these.': 'חוסר תחושה באזור האוכף · שינוי בשליטה על סוגרים · צניחת כף רגל · ירידה לא מוסברת במשקל · כאב לילי שלא תלוי בתנוחה — עם אף אחד מאלה לא ממשיכים לאמן.',
+  'Saddle anaesthesia · bowel/bladder change · drop foot · unexplained weight loss · night pain unrelated to position — never manage through these.': 'חוסר תחושה באזור האוכף · שינוי בשליטה על סוגרים · צניחת כף רגל · ירידה לא מוסברת במשקל · כאב לילי שלא תלוי בתנוחה — אם יש אחד מאלה, לא ממשיכים לאמן.',
 
   // ---- the medical row action ------------------------------------------
   // The chevron turns with the text: it points the way the reader is going.

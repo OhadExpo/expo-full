@@ -158,7 +158,7 @@ export default function BillingView({ trainees }) {
         <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={12}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : C.tx }}>
-              {tt('PAYMENT REQUESTS')} ({requests.filter(r => r.status === 'pending').length} {tt('Waiting')})
+              {tt('PAYMENT REQUESTS')} ({(() => { const n = requests.filter(r => r.status === 'pending').length; return readLang() === 'he' ? (n === 1 ? '1 ממתינה' : `${n} ממתינות`) : `${n} ${tt('Waiting')}`; })()})
             </span>
             <button onClick={() => setShowRequest(true)}
               style={{ ...stripBtnBase, border: `1px solid ${refined ? '#FFFFFF' : C.ac}`, color: refined ? '#FFFFFF' : C.ac }}>{tb('+ NEW REQUEST')}</button>

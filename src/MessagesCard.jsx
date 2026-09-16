@@ -18,6 +18,8 @@ import { useTheme } from './hooks/useTheme';
 import { supabase } from './supabase';
 import { enqueue } from './offlineQueue';
 import { useT, useTB, tr, readLang } from './i18n';
+// '+ 1 נענו' on the dashboard: threads are feminine and the count decides the form.
+const answeredWord = (n) => (readLang() === 'he' ? (n === 1 ? 'שנענתה' : 'שנענו') : tr('en', 'Answered'));
 
 const SEEN_KEY = 'expo-msgs-seen-at';
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
@@ -283,7 +285,7 @@ export default function MessagesCard({ trainees, onSelectTrainee, onOpenMessages
                   background:'transparent', border:'none', color:'var(--c-ac)', cursor:'pointer',
                   fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', padding: 0,
                 }}>
-                {tt('Show')} {handledThreads.length} {tt('Answered')} →
+                {tt('Show')} {handledThreads.length} {answeredWord(handledThreads.length)} →
               </button>
             </>
           )}
@@ -389,7 +391,7 @@ export default function MessagesCard({ trainees, onSelectTrainee, onOpenMessages
                 fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
                 cursor: 'pointer',
               }}>
-              + {handledThreads.length} {tt('Answered')}
+              + {handledThreads.length} {answeredWord(handledThreads.length)}
             </button>
           )}
           {showHandled && (

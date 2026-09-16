@@ -17,7 +17,7 @@ import { Card as BaseCard, CollapsibleSection, Btn, Input, Modal, EmptyState, to
 import { ThemeToggle } from './ThemeToggle';
 import { fmtNumericDate } from './dates';
 import { useTheme } from './hooks/useTheme';
-import { bhbcT, BhbcLangCtx, useT, useHe, setBhbcDateLang, zoneT, dowFor, dowIdxFor, monDayFor, monFor, fxLabelFor } from './bhbcHe';
+import { bhbcT, BhbcLangCtx, useT, useHe, setBhbcDateLang, zoneT, countWord, daysFor, overdueFor, dowFor, dowIdxFor, monDayFor, monFor, fxLabelFor } from './bhbcHe';
 import { acwrFromDaily, sessionLoad, monotonyStrain } from './acwrEngine';
 import { returnToLoadFlags } from './bhbcReturnLoad';
 import { applyGameMinutes, gameMinutesOf, gameRpeOf } from './bhbcGameLoad';
@@ -1683,10 +1683,10 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
               <div key={inj.id} style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                 <StatusPill status={inj.status} small />
                 <span style={{ fontFamily: FB, fontSize: 13, color: C.tx }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : '', inj.type].filter(Boolean).map((x) => tr(x)).join(' · ')}</span>
-                <span style={{ fontFamily: FN, fontSize: 11, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{days != null ? `${days}d` : ''}{latestPain(inj) != null ? ` · ${tr('pain')} ${latestPain(inj)}` : ''}{inj.rtpTarget ? ` · RTP ${inj.rtpTarget.slice(5)}` : ''}</span>
+                <span style={{ fontFamily: FN, fontSize: 11, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{days != null ? daysFor(days) : ''}{latestPain(inj) != null ? ` · ${tr('pain')} ${latestPain(inj)}` : ''}{inj.rtpTarget ? ` · RTP ${inj.rtpTarget.slice(5)}` : ''}</span>
                 {/* Same rule as the head coach report: a target already passed,
                     on someone still limited, is a flag rather than a plan. */}
-                {(() => { const od = rtpOverdueDays(inj, todayISO()); return od ? <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: 'var(--bhbc-amber-text, #E0A73A)' }}>{` · ${od}d ${tr('overdue')}`}</span> : null; })()}
+                {(() => { const od = rtpOverdueDays(inj, todayISO()); return od ? <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: 'var(--bhbc-amber-text, #E0A73A)' }}>{` · ${overdueFor(od)}`}</span> : null; })()}
                 {lastP && <span style={{ fontFamily: FB, fontSize: 11, color: C.tm, width: '100%' }}>{tr('Latest')} ({lastP.date.slice(5)}): {lastP.note}</span>}
               </div>
             );
@@ -2754,8 +2754,8 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
         <TodayPanel bare today={today} fixtures={fixtures} fx={fx} rows={rows} planOf={planOf} onPlan={onPlan} onSessions={onSessions} onLog={onLog} />
       </Section>
       <Section label={tr("Availability")} list>
-        <span><span style={{ color: '#37B27C', fontFamily: FN, fontWeight: 800 }}>{available.length}</span> {tr('available')} <span style={mut}>·</span> <span style={{ color: limited.length ? 'var(--bhbc-amber-text, #E0A73A)' : C.tm, fontFamily: FN, fontWeight: 800 }}>{limited.length}</span> {tr('limited')} <span style={mut}>·</span> <span style={{ color: out.length ? '#DE4E3B' : C.tm, fontFamily: FN, fontWeight: 800 }}>{out.length}</span> {tr('out')}</span>
-        {(out.length > 0 || limited.length > 0) && <div style={{ marginTop: 3, color: C.tm, fontSize: 12 }}>{out.length ? `${tr('out')}: ${nameList(out)}. ` : ''}{limited.length ? `${tr('limited')}: ${nameList(limited)}.` : ''}</div>}
+        <span><span style={{ color: '#37B27C', fontFamily: FN, fontWeight: 800 }}>{available.length}</span> {countWord(available.length, 'available')} <span style={mut}>·</span> <span style={{ color: limited.length ? 'var(--bhbc-amber-text, #E0A73A)' : C.tm, fontFamily: FN, fontWeight: 800 }}>{limited.length}</span> {countWord(limited.length, 'limited')} <span style={mut}>·</span> <span style={{ color: out.length ? '#DE4E3B' : C.tm, fontFamily: FN, fontWeight: 800 }}>{out.length}</span> {tr('out')}</span>
+        {(out.length > 0 || limited.length > 0) && <div style={{ marginTop: 3, color: C.tm, fontSize: 12 }}>{out.length ? `${tr('out')}: ${nameList(out)}. ` : ''}{limited.length ? `${countWord(limited.length, 'limited')}: ${nameList(limited)}.` : ''}</div>}
       </Section>
       {/* MEDICAL */}
       <Section label={tr("Medical")} list>
@@ -2775,7 +2775,7 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
     the ellipsis eats the START of the diagnosis — "…T SPRAIN" instead of
     "ANKLE LEFT SPRAIN". A truncated injury is not an injury report. */}
                     <span style={{ color: C.tm, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{tr((inj.bodyPart || '').split('/')[0].trim())}{sideTag(inj.side, tr)} · {tr(s.label)}{inj.rtpTarget ? <span className="bhbc-mob-hide">{` · RTP ${monDay(inj.rtpTarget)}`}</span> : null}
-                    {(() => { const od = rtpOverdueDays(inj, today); return od ? <span style={{ color: 'var(--bhbc-amber-text, #E0A73A)', fontFamily: FN, fontWeight: 700 }}>{` · ${od}d ${tr('overdue')}`}</span> : null; })()}</span>
+                    {(() => { const od = rtpOverdueDays(inj, today); return od ? <span style={{ color: 'var(--bhbc-amber-text, #E0A73A)', fontFamily: FN, fontWeight: 700 }}>{` · ${overdueFor(od)}`}</span> : null; })()}</span>
                                       {onMedical && (
                       <button onClick={(e) => { e.stopPropagation(); onMedical(t.id); }} title={tr('Update this medical report')} className="bhbc-ghost-btn"
                         style={{ marginInlineStart: 'auto', flexShrink: 0, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, height: ROW_BTN_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, padding: '0 9px', cursor: 'pointer' }}>{tr('UPDATE')}</button>
@@ -3147,7 +3147,7 @@ function WeightRoomTab({ rows = [], loads = {}, medical = {}, fixtures = [], pla
       <Card leftStripe={NAVY} padding={0} header={secTitle('Weight Room')}
         headerRight={(
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: C.tm }}>
-            <span>{liftedToday ? `${liftedToday} ${tr('lifted today')}` : tr('nobody has lifted today')}</span>
+            <span>{liftedToday ? `${liftedToday} ${countWord(liftedToday, 'lifted today')}` : tr('nobody has lifted today')}</span>
           </span>
         )}>
         {!!due.length && (
@@ -3234,7 +3234,7 @@ function WeightRoomTab({ rows = [], loads = {}, medical = {}, fixtures = [], pla
             {roomDays.map(({ iso, n, mins, plan }) => (
               <div key={iso} style={{ display: 'flex', alignItems: 'baseline', gap: 10, padding: '5px 14px', flexWrap: 'wrap' }}>
                 <span style={{ fontFamily: FN, fontSize: 10.5, fontWeight: 700, color: C.tx, minWidth: 74, whiteSpace: 'nowrap' }}>{dow(iso)} {monDay(iso)}</span>
-                <span style={{ fontFamily: FN, fontSize: 10, color: C.tm, whiteSpace: 'nowrap' }}>{n} {tr('lifted')}{mins ? ` \u00B7 ${mins} ${tr('min')}` : ''}</span>
+                <span style={{ fontFamily: FN, fontSize: 10, color: C.tm, whiteSpace: 'nowrap' }}>{n} {countWord(n, 'lifted')}{mins ? ` \u00B7 ${mins} ${tr('min')}` : ''}</span>
                 <span style={{ fontFamily: FB, fontSize: 12, color: (plan && (plan.focus || plan.plan)) ? C.td : C.cardBd, minWidth: 0 }}>
                   {plan && plan.focus ? <b style={{ color: C.tx }}>{plan.focus}</b> : null}
                   {plan && plan.focus && plan.plan ? ' \u2014 ' : ''}
@@ -3321,7 +3321,7 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
                   return (
                     <div data-lbl="last lift" style={{ display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0 }}>
                       <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: col, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-                        {since == null ? tr('never') : since === 0 ? tr('today') : since === 1 ? tr('yesterday') : `${since}d`}
+                        {since == null ? tr('never') : since === 0 ? tr('today') : since === 1 ? tr('yesterday') : daysFor(since)}
                       </span>
                       {ll && <span style={{ fontFamily: FB, fontSize: 10.5, color: C.tm, whiteSpace: 'nowrap' }}>{monDay(ll)}</span>}
                     </div>
@@ -3444,7 +3444,7 @@ function RosterGrid({ rows, medical = {}, league = {}, onOpen }) {
                      athlete who trained twenty times in a month is being told
                      something false. Say what is known. */
                   : (att && att.n > 0
-                    ? <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, lineHeight: 1, whiteSpace: 'nowrap' }}>{att.n} {tr(att.n === 1 ? 'session' : 'sessions')}{att.min ? ` · ${Math.round(att.min / 60)}h` : ''}</span>
+                    ? <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, lineHeight: 1, whiteSpace: 'nowrap' }}>{att.n} {tr(att.n === 1 ? 'session' : 'sessions')}{att.min ? ` · ${Math.round(att.min / 60)}${zoneT('h')}` : ''}</span>
                     : <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, lineHeight: 1 }}>{tr('no load yet')}</span>)}</span>
               </div>
             </div>
@@ -3494,7 +3494,7 @@ function MicrocycleView({ fx, today }) {
   });
   const loadColor = (n, game) => game ? ORANGE : n >= 5 ? ORANGE_DEEP : n >= 3 ? NAVY : '#6B7280';
   return (
-    <Card padding={14} leftStripe={ORANGE} header={secTitle('Microcycle')} headerRight={<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>{tr('→')} {g.opponent ? `${tr('vs')} ${g.opponent}` : tr('Game')} · {until}{tr('d')}</span>}>
+    <Card padding={14} leftStripe={ORANGE} header={secTitle('Microcycle')} headerRight={<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>{tr('→')} {g.opponent ? `${tr('vs')} ${g.opponent}` : tr('Game')} · {until === 0 ? tr('today') : daysFor(until)}</span>}>
       <div style={{ overflowX: 'auto' }}>
         <div className="bhbc-micro-grid" style={{ display: 'grid', gridTemplateColumns: `repeat(${days.length}, minmax(120px, 1fr))`, gap: 8, minWidth: days.length * 120 }}>
           {days.map((d) => (
@@ -4689,7 +4689,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                   </div>
                   <div style={{ fontFamily: FB, fontSize: 13, color: C.tx, minWidth: 0 }}>{[inj.bodyPart, inj.side && inj.side !== 'N/A' ? inj.side : '', inj.type].filter(Boolean).map((x) => tr(x)).join(' · ')}</div>
                   <StatusPill status={inj.status} />
-                  <div style={{ fontFamily: FN, fontSize: 11, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{days != null ? `${days}d` : '—'}{latestPain(inj) != null ? ` · ${tr('pain')} ${latestPain(inj)}` : ''}</div>
+                  <div style={{ fontFamily: FN, fontSize: 11, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{days != null ? daysFor(days) : '—'}{latestPain(inj) != null ? ` · ${tr('pain')} ${latestPain(inj)}` : ''}</div>
                   {/* WHO assessed this. With two PTs sharing the board, an
                       unsigned record cannot be questioned or followed up. */}
                   <div style={{ fontFamily: FN, fontSize: 10, color: C.td }}>{(inj.updatedBy || inj.by) ? byName(inj.updatedBy || inj.by) : ''}</div>

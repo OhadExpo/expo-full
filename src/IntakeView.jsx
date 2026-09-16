@@ -186,7 +186,7 @@ export default function IntakeView({ trainees }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, padding: '14px 18px' }}>
           <div>
             <div style={{ fontFamily: FB, fontSize: 12, color: C.tm }}>
-              <span style={{ color: C.tx, fontWeight: 700 }}>{counts.open} {tt('open')}</span> · {counts.initial} {tt('initial')} · {counts.assessment} {tt('assessment')} · {counts.progress} {tt('progress')} · {counts.total} {tt('total')}
+              <span style={{ color: C.tx, fontWeight: 700 }}>{counts.open} {tt('open')}</span> · {counts.initial} {tt('initial')} · {counts.assessment} {tt('assessment')} · {counts.progress} {tt('progress')} · {readLang() === 'he' ? `סה״כ ${counts.total}` : `${counts.total} ${tt('total')}`}
             </div>
           </div>
           <Btn onClick={() => setShowGen(true)} style={{ height: 30, padding: '0 18px' }}>{tb('+ Generate Link')}</Btn>
