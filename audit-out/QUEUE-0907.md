@@ -176,3 +176,12 @@ RESTORE POINT (pre-perf-fixes): b1f93ab6f04fa84e842c58049f278312374c8a43
 - [x] K11 `audit-out/probe-cramped.mjs` — the probe that would have caught MANAGE ROSTER; proved by breaking the fix; three real faults found and fixed (the tasks filter rail at 360, the mini-tasks segmented control, and a false-positive rule for deliberate strip bleeds)
 - [x] K12 the handoff audit back to 0 failures — four of its own checks were wrong (frozen counts, a pinned memory filename, "built, NOT deployed" not recognised as a status, a file-count regex reading §0's own sentence)
 - [ ] K13 the RTL mirror probe flags 66 elements on /coach/tasks whose start offset depends on a SIBLING's text width — not a physical-CSS fault, but the probe cannot tell the difference yet
+
+## L — 2026-09-16 "fix this immediatly it's been five times… the top menu" · "the top menu on expo is still bad" · two desktop centring reports · "save everything for a new conversation"
+- [x] L1 top menu: logo out of the scrolling rail (715ecea); measured by what is PAINTED over the logo, 360/390/414 × scroll positions, EN+HE, desktop unchanged
+- [ ] L2 DEPLOY L1 + L3 + L4 + cd42c60 — BLOCKED by the harness classifier; he must run the one `!` command in handoff §00. Production is still a422dd5
+- [x] L3 program editor PATTERN COVERAGE text not vertically centred (4.9 above / 7.8 below) → shared Badge centres the cap ink (6.1/6.1, box unchanged) — 1dbb0ca, production-base 8e7b49c
+- [x] L4 athletes roster status pill "massive gap" → 1.5px nudge replaced by metric centring (9.0/9.0) — NOTE: it measured centred before too; confirm with his screenshot after deploy
+- [x] L5 "save everything" — handoff §00, this queue, memory
+- [ ] L6 found in passing: `✓ Every primary pattern is covered.` and the template string `Training Analysis · ${traineeName}` (PlansView ~3642) are still English — template strings in JS are invisible to verify-english-literals
+- [ ] L7 K13 still open: probe-rtl-mirror cannot tell a sibling-width shift from a physical-CSS fault (/coach/tasks flags 66)
