@@ -27,6 +27,14 @@
 import React, { useState, useMemo } from 'react';
 import { C, FN } from './theme';
 import { isVelocityLossLift } from './poseMetricsStore';
+import { useHe } from './i18n';
+
+// Hebrew composed inline (labels carry joint names and numbers). Charts and the
+// L/R bars stay dir=ltr: time and the body's left/right are physical.
+const L = (he, en, hb) => (he ? hb : en);
+const JOINT_HE = { Shoulder: 'כתף', Elbow: 'מרפק', Hip: 'ירך', Knee: 'ברך' };
+const SIDE_HE = { L: 'שמאל', R: 'ימין' };
+const SEG_HE = { ecc: 'אקסצנטרי', pause: 'עצירה', con: 'קונצנטרי' };
 
 const CY = '#39BDFF';       // brand cyan literal (C.ac -> black in light mode)
 const ROM_R = '#7ad0ff';    // lighter cyan for the RIGHT side (matches AnalyzeResult)
@@ -41,8 +49,9 @@ const ROM_FLAG = '#ffb454'; // amber L/R asymmetry flag
 let _gidSeq = 0;
 function SeriesChart({ pts, color, symmetric, fmtY, header }) {
   const gid = useMemo(() => `llrGrad-${(_gidSeq += 1)}`, []);
+  const he = useHe();
   if (!pts || pts.length < 3) {
-    return <div style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.06em', margin: '4px 0 12px' }}>No clean trace in this clip.</div>;
+    return <div style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.06em', margin: '4px 0 12px' }}>{L(he, 'No clean trace in this clip.', 'אין מסלול נקי בקליפ הזה.')}</div>;
   }
   const W = 320, GH = 118, padT = 14, padB = 8, padX = 6, plotH = GH - padT - padB;
   const xs = pts.map((p) => p.x), ys = pts.map((p) => p.y);
@@ -67,7 +76,7 @@ function SeriesChart({ pts, color, symmetric, fmtY, header }) {
   return (
     <div style={{ margin: '4px 0 14px' }}>
       <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700, marginBottom: 8 }}>{header}</div>
-      <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
+      <div dir="ltr" style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
         <div style={{ position: 'relative', width: 34, flexShrink: 0, fontSize: 9, fontVariantNumeric: 'tabular-nums', textAlign: 'end' }}>
           {ticks.map((L, i) => (
             <span key={i} style={{ position: 'absolute', top: pctY(L), right: 0, transform: 'translateY(-50%)', color: C.tx, fontWeight: 700 }}>{fmtY(L)}</span>
@@ -83,8 +92,8 @@ function SeriesChart({ pts, color, symmetric, fmtY, header }) {
             <path d={area} fill={`url(#${gid})`} />
             <polyline points={line} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          <div style={{ position: 'absolute', left: 2, bottom: 2, fontSize: 8, fontWeight: 700, color: C.tm, letterSpacing: '0.08em', pointerEvents: 'none' }}>0.0s</div>
-          <div style={{ position: 'absolute', right: 2, bottom: 2, fontSize: 8, fontWeight: 700, color: C.tm, letterSpacing: '0.08em', pointerEvents: 'none', fontVariantNumeric: 'tabular-nums' }}>{durSec.toFixed(1)}s</div>
+          <div style={{ position: 'absolute', left: 2, bottom: 2, fontSize: 8, fontWeight: 700, color: C.tm, letterSpacing: '0.08em', pointerEvents: 'none' }}>{L(he, '0.0s', '0.0 שנ׳')}</div>
+          <div style={{ position: 'absolute', right: 2, bottom: 2, fontSize: 8, fontWeight: 700, color: C.tm, letterSpacing: '0.08em', pointerEvents: 'none', fontVariantNumeric: 'tabular-nums' }}>{`${durSec.toFixed(1)}${L(he, 's', ' שנ׳')}`}</div>
         </div>
       </div>
     </div>
@@ -107,15 +116,16 @@ const pillStyle = (sel, col) => ({
   color: sel ? col : C.tm,
 });
 function Th({ children, right }) {
-  return <th style={{ fontFamily: FN, fontSize: 8, letterSpacing: '0.12em', color: C.tm, padding: '6px 4px', borderBottom: `1px solid ${C.bd}`, textAlign: right ? 'right' : 'left', fontWeight: 700 }}>{children}</th>;
+  return <th style={{ fontFamily: FN, fontSize: 8, letterSpacing: '0.12em', color: C.tm, padding: '6px 4px', borderBottom: `1px solid ${C.bd}`, textAlign: right ? 'end' : 'start', fontWeight: 700 }}>{children}</th>;
 }
 function Td({ children, right, tone }) {
-  return <td style={{ fontFamily: FN, fontSize: 12, fontWeight: 600, padding: '8px 4px', borderBottom: `1px solid ${C.bd}`, textAlign: right ? 'right' : 'left', color: tone || C.tx, fontVariantNumeric: 'tabular-nums' }}>{children}</td>;
+  return <td style={{ fontFamily: FN, fontSize: 12, fontWeight: 600, padding: '8px 4px', borderBottom: `1px solid ${C.bd}`, textAlign: right ? 'end' : 'start', color: tone || C.tx, fontVariantNumeric: 'tabular-nums' }}>{children}</td>;
 }
 
 // ===================== BAR SPEED / velocity report ==========================
 export function VelocityReport({ report, title }) {
   const [graph, setGraph] = useState('speed'); // speed | accel
+  const he = useHe();
   if (!report) return null;
   const velLoss = isVelocityLossLift(title);
   const speedPts = report.speed && report.speed.series ? report.speed.series.map((p) => ({ x: p.t, y: p.speed })) : null;
@@ -125,34 +135,38 @@ export function VelocityReport({ report, title }) {
   return (
     <div>
       <div style={{ display: 'flex', gap: 6, margin: '2px 0 8px', flexWrap: 'wrap' }}>
-        <button type="button" onClick={() => setGraph('speed')} style={pillStyle(graph === 'speed', CY)}>Speed</button>
-        <button type="button" onClick={() => setGraph('accel')} style={pillStyle(graph === 'accel', C.pu)}>Acceleration</button>
+        <button type="button" onClick={() => setGraph('speed')} style={pillStyle(graph === 'speed', CY)}>{L(he, 'Speed', 'מהירות')}</button>
+        <button type="button" onClick={() => setGraph('accel')} style={pillStyle(graph === 'accel', C.pu)}>{L(he, 'Acceleration', 'תאוצה')}</button>
       </div>
       {graph === 'speed' && (
         <SeriesChart pts={speedPts} color={CY} symmetric fmtY={(v) => v.toFixed(1)}
-          header={`Vertical bar (wrist) speed · m/s · +up / -down${report.speed ? ` · peak ${report.speed.peak.toFixed(2)}` : ''}`} />
+          header={he
+            ? `מהירות אנכית של המוט (שורש כף היד) · m/s · + למעלה / - למטה${report.speed ? ` · שיא ${report.speed.peak.toFixed(2)}` : ''}`
+            : `Vertical bar (wrist) speed · m/s · +up / -down${report.speed ? ` · peak ${report.speed.peak.toFixed(2)}` : ''}`} />
       )}
       {graph === 'accel' && (
         <SeriesChart pts={accelPts} color={C.pu} symmetric fmtY={(v) => v.toFixed(1)}
-          header={`Vertical bar (wrist) acceleration · m/s²${report.accel ? ` · peak ${report.accel.peak.toFixed(2)}` : ''}`} />
+          header={he
+            ? `תאוצה אנכית של המוט (שורש כף היד) · m/s²${report.accel ? ` · שיא ${report.accel.peak.toFixed(2)}` : ''}`
+            : `Vertical bar (wrist) acceleration · m/s²${report.accel ? ` · peak ${report.accel.peak.toFixed(2)}` : ''}`} />
       )}
       <div style={{ display: 'flex', gap: 8, marginBottom: hasTable ? 10 : 0 }}>
-        {report.bestMean != null && <MiniKpi label="Best mean velocity" value={`${report.bestMean.toFixed(2)} m/s`} />}
+        {report.bestMean != null && <MiniKpi label={L(he, 'Best mean velocity', 'מהירות ממוצעת הכי גבוהה')} value={`${report.bestMean.toFixed(2)} m/s`} />}
         {velLoss && report.lossPct != null && (
-          <MiniKpi label="Velocity loss (last rep)" value={report.lossPct >= 90 ? '90%+' : `${Math.round(report.lossPct)}%`}
+          <MiniKpi label={L(he, 'Velocity loss (last rep)', 'ירידת מהירות (חזרה אחרונה)')} value={report.lossPct >= 90 ? L(he, '90%+', '90% ומעלה') : `${Math.round(report.lossPct)}%`}
             tone={report.lossPct >= 20 ? C.rd : report.lossPct >= 10 ? C.or : C.gn} />
         )}
       </div>
       {hasTable && (
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead><tr><Th>Rep</Th><Th right>Mean m/s</Th><Th right>Peak m/s</Th>{velLoss && <Th right>Loss</Th>}</tr></thead>
+          <thead><tr><Th>{L(he, 'Rep', 'חזרה')}</Th><Th right>{L(he, 'Mean m/s', 'ממוצע m/s')}</Th><Th right>{L(he, 'Peak m/s', 'שיא m/s')}</Th>{velLoss && <Th right>{L(he, 'Loss', 'ירידה')}</Th>}</tr></thead>
           <tbody>
             {perRep.map((r, i) => r && (
               <tr key={i}>
                 <Td>{i + 1}</Td>
                 <Td right>{r.mean != null ? r.mean.toFixed(2) : '—'}</Td>
                 <Td right>{r.peak != null ? r.peak.toFixed(2) : '—'}</Td>
-                {velLoss && <Td right tone={r.loss != null && r.loss >= 20 ? C.rd : undefined}>{r.loss == null ? '—' : r.loss >= 90 ? '90%+' : `${Math.round(r.loss)}%`}</Td>}
+                {velLoss && <Td right tone={r.loss != null && r.loss >= 20 ? C.rd : undefined}>{r.loss == null ? '—' : r.loss >= 90 ? L(he, '90%+', '90% ומעלה') : `${Math.round(r.loss)}%`}</Td>}
               </tr>
             ))}
           </tbody>
@@ -177,18 +191,19 @@ function romRows(jointRom) {
   }).filter(Boolean);
 }
 function JointRomBars({ jointRom }) {
+  const he = useHe();
   const rows = romRows(jointRom);
   if (!rows.length) return null;
   const maxRom = Math.max(1, ...rows.flatMap((r) => [r.lr || 0, r.rr || 0]));
   return (
     <div style={{ margin: '4px 0 16px' }}>
-      <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700, marginBottom: 12 }}>Joint ROM · in-plane °</div>
-      <div style={{ display: 'flex', justifyContent: 'center', gap: 8, fontFamily: FN, fontSize: 8, color: C.tm, letterSpacing: '0.12em', marginBottom: 10 }}>
-        <span>◄ LEFT</span><span style={{ opacity: 0.4 }}>·</span><span>RIGHT ►</span>
+      <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700, marginBottom: 12 }}>{L(he, 'Joint ROM · in-plane °', 'טווח תנועה במפרקים · במישור הצילום (°)')}</div>
+      <div dir="ltr" style={{ display: 'flex', justifyContent: 'center', gap: 8, fontFamily: FN, fontSize: 8, color: C.tm, letterSpacing: '0.12em', marginBottom: 10 }}>
+        <span>{L(he, '◄ LEFT', '◄ שמאל')}</span><span style={{ opacity: 0.4 }}>·</span><span>{L(he, 'RIGHT ►', 'ימין ►')}</span>
       </div>
       {rows.map((r) => (
         <div key={r.key} style={{ marginBottom: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div dir="ltr" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: CY, width: 34, textAlign: 'end', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{r.lr != null ? `${r.lr}°` : '—'}</span>
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', minWidth: 0 }}>
               <div style={{ flex: 1, height: 14, position: 'relative', background: C.sf2 }}>
@@ -202,7 +217,7 @@ function JointRomBars({ jointRom }) {
             <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: ROM_R, width: 34, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{r.rr != null ? `${r.rr}°` : '—'}</span>
           </div>
           <div style={{ textAlign: 'center', fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', color: C.tm, marginTop: 4, textTransform: 'uppercase' }}>
-            {r.label}{r.delta != null && r.delta > 10 ? <span style={{ color: ROM_FLAG }}> · Δ{r.delta}%</span> : ''}
+            {he ? (JOINT_HE[r.label] || r.label) : r.label}{r.delta != null && r.delta > 10 ? <span style={{ color: ROM_FLAG }}> · Δ{r.delta}%</span> : ''}
           </div>
         </div>
       ))}
@@ -211,11 +226,12 @@ function JointRomBars({ jointRom }) {
 }
 
 function TempoBars({ perRep }) {
+  const he = useHe();
   const reps = (perRep || []).filter(Boolean);
   if (!reps.length) return null;
   const maxT = Math.max(...reps.map((r) => (r.ecc || 0) + (r.pause || 0) + (r.con || 0))) || 1;
   const seg = (val, color, key) => (val > 0
-    ? <div key={key} title={`${key} ${val.toFixed(1)}s`} style={{ width: `${(val / maxT) * 100}%`, background: color }} />
+    ? <div key={key} title={he ? `${SEG_HE[key] || key} ${val.toFixed(1)} שנ׳` : `${key} ${val.toFixed(1)}s`} style={{ width: `${(val / maxT) * 100}%`, background: color }} />
     : null);
   const Legend = ({ color, label }) => (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: FN, fontSize: 8, color: C.tm, letterSpacing: '0.1em' }}>
@@ -224,18 +240,18 @@ function TempoBars({ perRep }) {
   );
   return (
     <div style={{ margin: '6px 0 16px' }}>
-      <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700, marginBottom: 8 }}>Tempo · ecc / pause / con per rep</div>
+      <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700, marginBottom: 8 }}>{L(he, 'Tempo · ecc / pause / con per rep', 'טמפו · אקסצנטרי / עצירה / קונצנטרי לכל חזרה')}</div>
       {reps.map((x, i) => (
-        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
+        <div key={i} dir="ltr" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
           <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, width: 16 }}>{i + 1}</div>
           <div style={{ flex: 1, display: 'flex', height: 12, background: C.sf2 }}>
             {seg(x.ecc, CY, 'ecc')}{seg(x.pause, C.tm, 'pause')}{seg(x.con, C.gn, 'con')}
           </div>
-          <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, width: 42, textAlign: 'end', fontVariantNumeric: 'tabular-nums' }}>{((x.ecc || 0) + (x.pause || 0) + (x.con || 0)).toFixed(1)}s</div>
+          <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, width: 42, textAlign: 'end', fontVariantNumeric: 'tabular-nums' }}>{`${((x.ecc || 0) + (x.pause || 0) + (x.con || 0)).toFixed(1)}${L(he, 's', ' שנ׳')}`}</div>
         </div>
       ))}
       <div style={{ display: 'flex', gap: 14, marginTop: 6 }}>
-        <Legend color={CY} label="ECC" /><Legend color={C.tm} label="PAUSE" /><Legend color={C.gn} label="CON" />
+        <Legend color={CY} label={L(he, 'ECC', 'אקסצנטרי')} /><Legend color={C.tm} label={L(he, 'PAUSE', 'עצירה')} /><Legend color={C.gn} label={L(he, 'CON', 'קונצנטרי')} />
       </div>
     </div>
   );
@@ -250,6 +266,7 @@ export function RomReport({ report }) {
   const primary = (report && report.primaryJoint) || (availJoints[0] && availJoints[0].abbr) || 'KNE';
   const [jointAbbr, setJointAbbr] = useState(primary);
   const [side, setSide] = useState('L');
+  const he = useHe();
   if (!report) return null;
   const chan = angles ? (angles[`${side} ${jointAbbr}`] || angles[`${side === 'L' ? 'R' : 'L'} ${jointAbbr}`]) : null;
   const anglePts = chan && chan.series ? chan.series.map((p) => ({ x: p.t, y: p.angle })) : null;
@@ -259,32 +276,34 @@ export function RomReport({ report }) {
   return (
     <div>
       <SeriesChart pts={anglePts} color={C.gn} fmtY={(v) => `${Math.round(v)}°`}
-        header={`${side} ${jointLabel} angle · degrees over time · reps = the dips${chan ? ` · peak ${Math.round(chan.peak)}°` : ''}`} />
+        header={he
+          ? `זווית ${JOINT_HE[jointLabel] || jointLabel} ${SIDE_HE[side]} · מעלות לאורך זמן · כל שקע = חזרה${chan ? ` · שיא ${Math.round(chan.peak)}°` : ''}`
+          : `${side} ${jointLabel} angle · degrees over time · reps = the dips${chan ? ` · peak ${Math.round(chan.peak)}°` : ''}`} />
       {availJoints.length > 0 && (
         <div style={{ display: 'flex', gap: 4, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
           {availJoints.map((j) => (
-            <button key={j.abbr} type="button" onClick={() => setJointAbbr(j.abbr)} style={pillStyle(jointAbbr === j.abbr, C.gn)}>{j.label}</button>
+            <button key={j.abbr} type="button" onClick={() => setJointAbbr(j.abbr)} style={pillStyle(jointAbbr === j.abbr, C.gn)}>{he ? (JOINT_HE[j.label] || j.label) : j.label}</button>
           ))}
           <span style={{ width: 1, height: 16, background: C.bd, margin: '0 4px' }} />
           {['L', 'R'].map((s) => (
-            <button key={s} type="button" onClick={() => setSide(s)} style={pillStyle(side === s, C.gn)}>{s}</button>
+            <button key={s} type="button" onClick={() => setSide(s)} style={pillStyle(side === s, C.gn)}>{he ? SIDE_HE[s] : s}</button>
           ))}
         </div>
       )}
       {report.jointRom && report.jointRom.length > 0 && <JointRomBars jointRom={report.jointRom} />}
       <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-        {report.maxRom != null && <MiniKpi label={`Largest ${jointLabel} ROM`} value={`${Math.round(report.maxRom)}°`} />}
-        {report.collapsedCount > 0 && <MiniKpi label="ROM-collapsed reps" value={String(report.collapsedCount)} tone={C.or} />}
+        {report.maxRom != null && <MiniKpi label={he ? `טווח ה${JOINT_HE[jointLabel] || jointLabel} הכי גדול` : `Largest ${jointLabel} ROM`} value={<span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{`${Math.round(report.maxRom)}°`}</span>} />}
+        {report.collapsedCount > 0 && <MiniKpi label={L(he, 'ROM-collapsed reps', 'חזרות עם טווח מקוצר')} value={String(report.collapsedCount)} tone={C.or} />}
       </div>
       <TempoBars perRep={perRep} />
       {hasTable && (
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead><tr><Th>Rep</Th><Th right>ROM</Th><Th right>Ecc s</Th><Th right>Pause</Th><Th right>Con s</Th></tr></thead>
+          <thead><tr><Th>{L(he, 'Rep', 'חזרה')}</Th><Th right>{L(he, 'ROM', 'טווח')}</Th><Th right>{L(he, 'Ecc s', 'אקס׳ (שנ׳)')}</Th><Th right>{L(he, 'Pause', 'עצירה')}</Th><Th right>{L(he, 'Con s', 'קונ׳ (שנ׳)')}</Th></tr></thead>
           <tbody>
             {perRep.map((x, i) => x && (
               <tr key={i}>
                 <Td>{i + 1}</Td>
-                <Td right tone={x.collapsed ? C.or : undefined}>{x.rom != null ? `${Math.round(x.rom)}° (${x.romPct}%)` : '—'}</Td>
+                <Td right tone={x.collapsed ? C.or : undefined}>{x.rom != null ? <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{`${Math.round(x.rom)}° (${x.romPct}%)`}</span> : '—'}</Td>
                 <Td right>{x.ecc != null ? x.ecc.toFixed(1) : '—'}</Td>
                 <Td right>{x.pause != null ? x.pause.toFixed(1) : '—'}</Td>
                 <Td right>{x.con != null ? x.con.toFixed(1) : '—'}</Td>
