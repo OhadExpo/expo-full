@@ -2205,7 +2205,7 @@ function DemoPrograms({ resetToken = 0 }) {
                                 return <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexShrink: 0 }}>
                                   <button className="cd-txtbtn" onClick={e => { e.stopPropagation(); togglePortal(p.id); }}
                                     title={tr(readLang(), on ? 'On the athlete portal — click to hide' : 'Hidden — click to show')}
-                                    style={{ ...txt(on ? C.gn : C.td), display: 'inline-flex', alignItems: 'center', gap: 5 }}><span style={{ width: 5, height: 5, borderRadius: '50%', background: on ? C.gn : C.td }} />{on ? 'On portal' : 'Hidden'}</button>
+                                    style={{ ...txt(on ? C.gn : C.td), display: 'inline-flex', alignItems: 'center', gap: 5 }}><span style={{ width: 5, height: 5, borderRadius: '50%', background: on ? C.gn : C.td }} />{tr(readLang(), on ? 'On portal' : 'Hidden')}</button>
                                   <button className="cd-txtbtn" onClick={e => e.stopPropagation()} title={T('Preview as trainee (demo only)')} style={txt(C.ac)}>{T('Preview')}</button>
                                   <button className="cd-txtbtn" onClick={e => e.stopPropagation()} title={T('Duplicate program (demo only)')} style={txt(C.ac)}>{tr(readLang(), 'Duplicate')}</button>
                                   <button className="cd-txtbtn" onClick={e => e.stopPropagation()} title={T('Share to another athlete (demo only)')} style={txt(C.ac)}>{tr(readLang(), 'Share')}</button>

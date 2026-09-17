@@ -544,7 +544,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
             <Btn variant="ghost" onClick={() => setShowForm(false)}>{tt("Cancel")}</Btn>
-            <Btn onClick={handleSave}>{editId ? 'Update' : 'Create'}</Btn>
+            <Btn onClick={handleSave}>{tr(readLang(), editId ? 'Update' : 'Create')}</Btn>
           </div>
         </div>
       </Modal>

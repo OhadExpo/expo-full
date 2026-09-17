@@ -294,7 +294,7 @@ export default function BookingPublic() {
                 border: 'none', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.12em',
                 cursor: submitting ? 'wait' : (form.name.trim() ? 'pointer' : 'default'),
                 minWidth: 168, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              }}>{submitting ? 'BOOKING…' : 'CONFIRM BOOKING'}</button>
+              }}>{tr(readLang(), submitting ? 'BOOKING…' : 'CONFIRM BOOKING')}</button>
             {settings.cancellation_policy && (
               <div style={{ marginTop: 10, fontSize: 11, color: C.td, lineHeight: 1.5 }}>{settings.cancellation_policy}</div>
             )}

@@ -139,6 +139,11 @@ function scanFile(f, raw) {
     if (isAllowed(m[1]) && isAllowed(m[2])) continue;
     findings.push({ f, line: lineOf(m.index), text: m[0].replace(/^[>}]\s*/, ''), kind: 'ternary-lbl' });
   }
+  // ...and the mixed-case button form, >{saving ? 'Creating…' : 'Create request'}< (14 on 17.9).
+  if (!PORTAL_HELD.has(f)) for (const m of src.matchAll(/[>}]\s*\{\s*[^{}?'"`]{1,60}\?\s*(['"])([A-Z][a-z][^'"`$<>]{1,80})\1\s*:\s*(['"])([A-Z][a-z][^'"`$<>]{1,80})\3\s*\}\s*</g)) {
+    if (isAllowed(m[2]) && isAllowed(m[4])) continue;
+    findings.push({ f, line: lineOf(m.index), text: m[0].replace(/^[>}]\s*|\s*<$/g, ''), kind: 'ternary-lbl' });
+  }
 }
 if (process.argv.includes('--write-baseline')) {
   const out = Object.fromEntries(Object.entries(unwired).filter(([, n]) => n > 0).sort());

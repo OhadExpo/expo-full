@@ -14,7 +14,7 @@
 //   5. Coach previews JSON
 //   6. Commit to Supabase (dedupe on commit)
 import React, { useState, useMemo, useRef } from 'react';
-import { useT, readLang } from './i18n';
+import { useT, tr, readLang } from './i18n';
 import * as XLSX from 'xlsx';
 import { supabase } from './supabase';
 import { C, FN, FB, uid } from './theme';
@@ -530,7 +530,7 @@ export default function SmartImportView() {
               <Select label="Sheet/Page" options={sheets.map((s, i) => ({ value: String(i), label: s.sheetName + (s.guessedTarget ? ` · ${s.guessedTarget}` : '') }))} value={String(activeSheetIdx)} onChange={onSheetChange} />
             )}
             <Select label="Target" options={TARGETS.map(t => ({ value: t.value, label: t.label }))} value={target} onChange={onTargetChange} />
-            <Btn onClick={analyze} disabled={analyzing || !sheetGrid?.headers?.length} style={{ minWidth: 140, justifyContent: 'center' }}>{analyzing ? 'Analyzing…' : 'Analyze with AI'}</Btn>
+            <Btn onClick={analyze} disabled={analyzing || !sheetGrid?.headers?.length} style={{ minWidth: 140, justifyContent: 'center' }}>{tr(readLang(), analyzing ? 'Analyzing…' : 'Analyze with AI')}</Btn>
           </div>
         </div>
       )}
@@ -568,7 +568,7 @@ export default function SmartImportView() {
           <div style={{ padding: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
             <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, textTransform: 'uppercase' }}><Badge color={lowConf ? C.or : C.gn}>{Math.round((mapping.confidence ?? 0) * 100)}% {tt('confident')}</Badge></div>
-            <Btn onClick={runTransform} disabled={transforming} style={{ minWidth: 160, justifyContent: 'center' }}>{transforming ? 'Transforming…' : 'Preview Transform'}</Btn>
+            <Btn onClick={runTransform} disabled={transforming} style={{ minWidth: 160, justifyContent: 'center' }}>{tr(readLang(), transforming ? 'Transforming…' : 'Preview Transform')}</Btn>
           </div>
           {mapping.notes && <div style={{ fontSize: 12, color: C.tm, lineHeight: 1.5, marginBottom: 8 }}>💡 {mapping.notes}</div>}
           {Array.isArray(mapping.warnings) && mapping.warnings.length > 0 && (
@@ -612,7 +612,7 @@ export default function SmartImportView() {
               <Badge color={C.gn}>{readLang() === 'he' ? (transform.items.length === 1 ? 'פריט אחד' : `${transform.items.length} פריטים`) : `${transform.items.length} item${transform.items.length === 1 ? '' : 's'}`}</Badge>
               {transform.errors.length > 0 && <Badge color={C.rd} style={{ marginInlineStart: 6 }}>{readLang() === 'he' ? (transform.errors.length === 1 ? 'שגיאה אחת' : `${transform.errors.length} שגיאות`) : `${transform.errors.length} error${transform.errors.length === 1 ? '' : 's'}`}</Badge>}
             </div>
-            <Btn onClick={commit} disabled={committing || transform.items.length === 0} style={{ minWidth: 168, justifyContent: 'center' }}>{committing ? 'Writing…' : 'Commit to Database'}</Btn>
+            <Btn onClick={commit} disabled={committing || transform.items.length === 0} style={{ minWidth: 168, justifyContent: 'center' }}>{tr(readLang(), committing ? 'Writing…' : 'Commit to Database')}</Btn>
           </div>
           {Array.isArray(transform.warnings) && transform.warnings.length > 0 && (
             <ul style={{ margin: '4px 0 10px 16px', padding: 0, color: C.or, fontSize: 12 }}>

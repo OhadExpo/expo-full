@@ -218,7 +218,7 @@ export default function BugReportButton({ role = 'anon', reporterEmail = '', var
                   fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em',
                   cursor: submitting ? 'wait' : (description.trim() ? 'pointer' : 'default'),
                   minWidth: 150, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                }}>{submitting ? 'SENDING…' : 'SEND REPORT →'}</button>
+                }}>{tt(submitting ? 'SENDING…' : 'SEND REPORT →')}</button>
             </div>
           </div>
         </div>

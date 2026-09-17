@@ -532,7 +532,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
                     <div style={{fontSize:11,color:C.td,fontFamily:FN,letterSpacing:'0.04em',fontWeight:500,flexShrink:0,whiteSpace:'nowrap'}}>{p.dayCount||0}d · {p.exerciseCount||0}ex</div>
                   </div>
                   <div style={{display:'flex',alignItems:'center',gap:14,flexShrink:0}}>
-                    <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis});}} title={tr(readLang(), isVis?'On the athlete portal — click to hide':'Hidden from the athlete portal — click to show')} style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.04em',color:isVis?C.gn:C.td,display:'inline-flex',alignItems:'center',gap:5}}><span style={{width:5,height:5,borderRadius:'50%',background:isVis?C.gn:C.td}} />{isVis?'On portal':'Hidden'}</button>
+                    <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis});}} title={tr(readLang(), isVis?'On the athlete portal — click to hide':'Hidden from the athlete portal — click to show')} style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.04em',color:isVis?C.gn:C.td,display:'inline-flex',alignItems:'center',gap:5}}><span style={{width:5,height:5,borderRadius:'50%',background:isVis?C.gn:C.td}} />{tr(readLang(), isVis ? 'On portal' : 'Hidden')}</button>
                     {onlyBtn(p, 10)}
                     {removeBtn(p, 10)}
                   </div>
@@ -836,7 +836,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           <Select label="Status" options={PAYMENT_STATUSES} value={payForm.status} onChange={v=>setPayForm({...payForm,status:v})} />
           <div style={{gridColumn:"1 / -1"}}><Input label="Notes" value={payForm.notes} onChange={e=>setPayForm({...payForm,notes:e.target.value})} /></div></div>
         <div style={{display:"flex",justifyContent:"flex-end",gap:8,marginTop:16}}>
-          <Btn variant="ghost" onClick={()=>{setShowPayForm(false);setEditPayId(null);setPayForm({amount:"",date:todayLocalISO(),notes:"",status:"Paid"})}}>{t("Cancel")}</Btn><Btn onClick={handleAddPayment}>{editPayId?"Update":"Save"}</Btn></div></Modal>
+          <Btn variant="ghost" onClick={()=>{setShowPayForm(false);setEditPayId(null);setPayForm({amount:"",date:todayLocalISO(),notes:"",status:"Paid"})}}>{t("Cancel")}</Btn><Btn onClick={handleAddPayment}>{tr(readLang(), editPayId ? "Update" : "Save")}</Btn></div></Modal>
 
       {/* === MESSAGES — slot #4: athlete↔coach thread, lifted from
           inside TraineeCRM to its own top-level slot. */}

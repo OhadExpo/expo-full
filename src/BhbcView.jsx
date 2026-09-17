@@ -3816,7 +3816,7 @@ function WeekPlanner({ fixtures = [], today, planOf, onSavePlan, onUpsert, onRem
                         style={{ ...inp, width: 74 }} title={tr('Contact minutes')} placeholder={tr('contact')} />
                     )}
                     <input value={editing.focus} onChange={(e) => setEditing((x) => ({ ...x, focus: e.target.value }))} placeholder={tr('Focus — e.g. Lower INT + landing mechanics')} style={{ ...inp, flex: '1 1 220px', minWidth: 140, fontFamily: FB }} />
-                    <Btn onClick={commit} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>{editing.orig ? 'Save' : 'Add'}</Btn>
+                    <Btn onClick={commit} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>{zoneT(editing.orig ? 'Save' : 'Add')}</Btn>
                     <Btn variant="ghost" onClick={() => setEditing(null)}>{tr('Cancel')}</Btn>
                   </div>
                 )}
