@@ -16,11 +16,11 @@ await wait(2500);
 await pg.evaluate((l) => localStorage.setItem('expo-collapse:bhbc-lang', JSON.stringify(l)), LANG);
 await pg.goto(`${BASE}/coach/bhbc?lang=${LANG}`, { waitUntil: 'domcontentloaded' }); await wait(8000);
 await pg.evaluate(() => { const x = [...document.querySelectorAll('button')].find((e) => /אחר כך|Later/.test(e.innerText || '')); if (x) x.click(); });
-await pg.evaluate(() => { const el = [...document.querySelectorAll('.bhbc-tab, [role="tab"]')].find((e) => /^(רפואי|Medical)$/i.test((e.innerText || '').trim())); if (el) el.click(); });
+await pg.evaluate(() => { const el = [...document.querySelectorAll('.bhbc-hdr-tabs button')].find((e) => /רפואי|Medical/i.test((e.innerText || '').trim())); if (el) el.click(); });
 await wait(2500);
 // the first row whose medical button opens an EXISTING record (label update)
 const opened = await pg.evaluate(() => {
-  const btn = [...document.querySelectorAll('.bhbc-row button')].find((e) => /עדכון|UPDATE/i.test((e.innerText || '').trim()));
+  const btn = [...document.querySelectorAll('button')].find((e) => /^(‹ צפייה|עדכון|UPDATE|VIEW)/i.test((e.innerText || '').trim()));
   if (btn) { btn.click(); return btn.innerText.trim(); } return null;
 });
 await wait(1500);
