@@ -16,10 +16,19 @@ const N = '(⁨[^⁩]*⁩|[^·—]+?)'; // a bidi-wrapped name, or a bare one
 
 const days = (d) => (Number(d) === 1 ? 'יום אחד' : `${d} ימים`);
 
+// The merged outreach card lists its reasons by AUTO_KIND_LABEL; those codes were showing
+// in Hebrew on the dashboard ('2 reasons: • WEEK SKIPPED • PAYMENT OVERDUE', 17.9).
+const KIND_HE = { 'WEEK SKIPPED': 'שבוע שדולג', 'PAYMENT OVERDUE': 'תשלום באיחור', 'AT RISK': 'בסיכון',
+  'NEEDS OUTREACH': 'צריך ליצור קשר', 'BLOCK ENDING': 'בלוק נגמר', 'VIDEO PENDING': 'סרטון לבדיקה',
+  'NEW INTAKE': 'שאלון חדש', 'EVAL DUE': 'הערכה ממתינה', 'NEW LEAD': 'ליד חדש', 'PLAN DUE': 'צריך תוכנית' };
+const reasonsHe = (block) => block.split(String.fromCharCode(10)).map((l) => l.replace(/^\s*•\s*/, '')).filter(Boolean)
+  .map((r) => '• ' + (KIND_HE[r.trim()] || r.trim())).join(String.fromCharCode(10));
 const RULES = [
   [new RegExp(`^Build ${N} for ${N}$`), (m) => `לבנות ${m[1]} ל${m[2]}`],
   [new RegExp(`^Call ${N} — skipped W(\\d+) of ${N}$`), (m) => `להתקשר ל${m[1]} — דילג על שבוע ${m[2]} ב-${m[3]}`],
   [new RegExp(`^Reach out to ${N} — (.+?), (.+)$`), (m) => `ליצור קשר עם ${m[1]} — ${quiet(m[2])}, ${quiet(m[3])}`],
+  [new RegExp(`^Reach out to ${N} · (\\d+) reasons:\\n([\\s\\S]+)$`),
+    (m) => `ליצור קשר עם ${m[1]} · ${m[2] === '2' ? 'שתי סיבות' : `${m[2]} סיבות`}:` + String.fromCharCode(10) + reasonsHe(m[3])],
   [/^Review (\d+) form videos? from (.+)$/, (m) => `לבדוק ${Number(m[1]) === 1 ? 'סרטון טכניקה אחד' : `${m[1]} סרטוני טכניקה`} של ${m[2]}`],
   [/^Onboard (.+)$/, (m) => `קליטה: ${m[1]}`],
   [new RegExp(`^Chase payment from ${N} · never paid(?: · (\\d+)d since signup)?(?: · ₪(\\d+)\\/mo)?$`),
