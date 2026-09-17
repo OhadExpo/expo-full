@@ -26,7 +26,7 @@
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { localiseAutoBody } from './autoTaskHe';
-import { tr, readLang } from './i18n';
+import { tr, readLang, agoLabel } from './i18n';
 import { useCoachNotes } from './coachNotes';
 import { C, FN, FB, FH } from './theme';
 import { isRefined5b, toast, confirmToast, usePersistentState, asButton } from './ui';
@@ -55,6 +55,9 @@ import {
 } from './googleCalendarSync';
 
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
+// The task detail's control rows were forced LTR so a Hebrew task BODY would not
+// flip them on the English screen. On the Hebrew screen they mirror with the page.
+const uiDir = () => (readLang() === 'he' ? 'rtl' : 'ltr');
 const YUVAL_COLOR = '#FFA02E';
 
 // Inject the slide-in keyframes for expanded row detail panels once.
@@ -1019,7 +1022,7 @@ function AuthorChip({ author }) {
         background: isYuval ? YUVAL_COLOR : 'var(--c-ac)',
         color: '#FFFFFF', fontSize: 8,
       }}>{isYuval ? 'Y' : 'O'}</span>
-      {isYuval ? 'Yuval' : 'Ohad'}
+      {tr(readLang(), isYuval ? 'Yuval' : 'Ohad')}
     </span>
   );
 }
@@ -1034,9 +1037,21 @@ const EVENT_VERB = {
   linked:            'linked',
   reopened:          'reopened',
 };
+const EVENT_VERB_HE = {
+  created:           'יצר את המשימה',
+  status_changed:    'שינה סטטוס',
+  assigned:          'העביר',
+  due_changed:       'שינה תאריך',
+  body_edited:       'ערך את הטקסט',
+  priority_changed:  'שינה דחיפות',
+  linked:            'קישר',
+  reopened:          'פתח מחדש',
+};
+const EVENT_VALUE_HE = { urgent: 'דחוף', high: 'גבוה', normal: 'רגיל', low: 'נמוך', open: 'לביצוע', working: 'בתהליך', waiting: 'ממתין', stuck: 'תקוע', done: 'בוצע', cancelled: 'בוטל' };
 
 function relativeTime(iso, now) {
   if (!iso) return '';
+  if (readLang() === 'he') return agoLabel(iso, 'he');
   const then = new Date(iso).getTime();
   if (isNaN(then)) return '';
   const diff = (now - then) / 1000;
@@ -1274,7 +1289,7 @@ export function CommentsThread({ noteId, viewer }) {
           }}>
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              marginBottom: 4, direction: 'ltr', gap: 8,
+              marginBottom: 4, direction: uiDir(), gap: 8,
             }}>
               <AuthorChip author={c.author} />
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
@@ -1288,7 +1303,7 @@ export function CommentsThread({ noteId, viewer }) {
               </span>
             </div>
             {editing ? (
-              <div style={{ display: 'flex', gap: 6, marginTop: 4, direction: 'ltr', alignItems: 'flex-start' }}>
+              <div style={{ display: 'flex', gap: 6, marginTop: 4, direction: uiDir(), alignItems: 'flex-start' }}>
                 {/* Multi-line edit (matches the composer): Enter = newline,
                     ⌘/Ctrl+Enter = save, Escape = cancel. */}
                 <textarea value={editDraft} autoFocus rows={1}
@@ -1313,7 +1328,7 @@ export function CommentsThread({ noteId, viewer }) {
               }}>{c.body}</div>
             )}
             {Array.isArray(c.mentions) && c.mentions.length > 0 && !editing && (
-              <div style={{ marginTop: 4, direction: 'ltr' }}>
+              <div style={{ marginTop: 4, direction: uiDir() }}>
                 {c.mentions.map(m => (
                   <span key={m} style={{
                     display: 'inline-block', marginInlineEnd: 6,
@@ -1414,17 +1429,19 @@ export function EventTimeline({ noteId }) {
         letterSpacing: '0.12em', color: 'var(--c-tm)',
         textTransform: 'uppercase', marginBottom: 6,
       }}>{tr(readLang(), 'Activity')}</div>
-      <div style={{ direction: 'ltr' }}>
+      <div style={{ direction: uiDir() }}>
         {rows.map(ev => {
-          const verb = EVENT_VERB[ev.kind] || ev.kind;
+          const he = readLang() === 'he';
+          const verb = (he ? EVENT_VERB_HE : EVENT_VERB)[ev.kind] || ev.kind;
+          const val = (v) => (he ? EVENT_VALUE_HE[v] || v : v);
           // For the "created" event, to_value is the ASSIGNEE, not a second
           // actor. Rendering it bare ("Ohad created the task · yuval") read as
           // if two people created it. Label it as an assignment instead.
           const ASSIGN_LABEL = { shared: 'Shared', yuval: 'Yuval', ohad: 'Ohad' };
           const change = ev.kind === 'created'
-            ? (ev.to_value ? `${tr(readLang(), 'for')} ${tr(readLang(), ASSIGN_LABEL[ev.to_value] || ev.to_value)}` : '')
+            ? (ev.to_value ? (he && ev.to_value === 'shared' ? 'משימה משותפת' : `${tr(readLang(), 'for')} ${tr(readLang(), ASSIGN_LABEL[ev.to_value] || ev.to_value)}`) : '')
             : (ev.from_value && ev.to_value)
-              ? `${ev.from_value} → ${ev.to_value}`
+              ? (he ? `${val(ev.from_value)} ← ${val(ev.to_value)}` : `${ev.from_value} → ${ev.to_value}`)
               : (ev.to_value || ev.detail || '');
           return (
             <div key={ev.id} style={{
@@ -1483,7 +1500,7 @@ function ExpandedDetail({ row, displayBody, viewer, onSetCategory, onArchive, on
       {/* Title is NOT repeated here — the row above shows it in full once
           expanded. Detail starts at tags / approval / calendar / comments. */}
       {tags.length > 0 && (
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6, direction: 'ltr' }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6, direction: uiDir() }}>
           {tags.map(t => (
             <span key={t} style={{
               fontFamily: FN, fontSize: 9, fontWeight: 700,
@@ -1494,13 +1511,13 @@ function ExpandedDetail({ row, displayBody, viewer, onSetCategory, onArchive, on
         </div>
       )}
       {readOnly && (
-        <div style={{ marginTop: 10, direction: 'ltr' }}>
+        <div style={{ marginTop: 10, direction: uiDir() }}>
           <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 600, color: 'var(--c-td)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>{tt('Read-only — belongs to the other coach')}</span>
         </div>
       )}
       {/* Move the task between General and Performance Center (Ohad). */}
       {!readOnly && onSetCategory && (cat === 'manual' || cat === 'center') && (
-        <div style={{ marginTop: 10, direction: 'ltr', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ marginTop: 10, direction: uiDir(), display: 'flex', alignItems: 'center', gap: 8 }}>
           {/* Compact picker — was a "List" label + two buttons, too wide (Ohad). */}
           <select value={cat} onClick={(e) => e.stopPropagation()}
             onChange={(e) => { e.stopPropagation(); if (e.target.value !== cat) onSetCategory(row, e.target.value); }}
@@ -1515,7 +1532,7 @@ function ExpandedDetail({ row, displayBody, viewer, onSetCategory, onArchive, on
           pool at the bottom (recoverable); Delete removes it for good with a
           typed-free confirm. Both hidden on the other coach's read-only tasks. */}
       {!readOnly && (onArchive || onDelete) && (
-        <div style={{ marginTop: 10, direction: 'ltr', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ marginTop: 10, direction: uiDir(), display: 'flex', alignItems: 'center', gap: 8 }}>
           {onArchive && row.status !== 'cancelled' && (
             <button onClick={(e) => { e.stopPropagation(); onArchive(row); }}
               title={tt('Archive — moves this task to the Done/Cancelled pool (recoverable)')}
