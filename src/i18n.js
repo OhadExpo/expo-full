@@ -2079,6 +2079,9 @@ export const HE = {
   'Next block — {x}: about 1 set': 'הבלוק הבא — {x}: בערך סט אחד',
   '~1 rep': 'בערך חזרה אחת',
   '1 FIELD': 'שדה אחד',
+  // 17.9 singular degree where a typed value can be 1
+  'Logged 1° to {target}': 'נרשמה מעלה אחת ב־{target}',
+  'USE 1° →': 'שימוש במעלה אחת ←',
   // 17.9 the two owner library tools (Classify, Matching) wired
   match: 'התאמה',
   matches: 'התאמות',

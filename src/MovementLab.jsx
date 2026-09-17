@@ -1854,7 +1854,7 @@ function RomConfirm({ spec, jointRom, onSave, onClose }) {
       </div>
       <button disabled={saved || !degValid} onClick={() => { onSave(degNum); setSaved(true); }}
         style={{ marginTop: 14, padding: '12px 20px', width: '100%', background: saved ? '#2a2a2a' : C.ac, border: `1px solid ${saved ? '#2a2a2a' : C.ac}`, color: '#FFF', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', cursor: saved || !degValid ? 'default' : 'pointer' }}>
-        {saved ? tt('✓ LOGGED TO EVALUATION') : tt('USE {n}° →').replace('{n}', degValid ? degNum : '—')}
+        {saved ? tt('✓ LOGGED TO EVALUATION') : (degValid && degNum === 1 ? tt('USE 1° →') : tt('USE {n}° →').replace('{n}', degValid ? degNum : '—'))}
       </button>
       {saved && <button onClick={onClose} style={{ marginTop: 8, padding: '10px 20px', width: '100%', background: 'transparent', border: '1px solid rgba(255,255,255,0.3)', color: '#FFF', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', cursor: 'pointer' }}>{tt('DONE — BACK TO EVALUATION')}</button>}
     </div>

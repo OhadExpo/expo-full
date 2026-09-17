@@ -417,7 +417,7 @@ export default function TraineeEvaluation({ trainee, bwLog = [] }) {
     const ok = await persistDraft(d.scores, nextRom, null);
     setActiveTool(null);
     setDraftVersion(x => x + 1);
-    if (ok) toast(tt('Logged {deg}° to {target}').replace('{deg}', deg).replace('{target}', `${spec.jointId} ${spec.axis}`), 'success', { ttl: 3500 });
+    if (ok) toast(tt(Number(deg) === 1 ? 'Logged 1° to {target}' : 'Logged {deg}° to {target}').replace('{deg}', deg).replace('{target}', `${spec.jointId} ${spec.axis}`), 'success', { ttl: 3500 });
     else toast(tt('Could not save — check your connection and try again.'), 'error', { ttl: 5000 });
   }, [activeTool, persistDraft]);
 

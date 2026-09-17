@@ -583,7 +583,7 @@ export default function EvaluationEditor({ trainee, existing, metaDefaults = nul
           toolLabel={`${tt('CAMERA ROM')} · ${activeRom.spec.jointId.toUpperCase()} ${activeRom.spec.axis.toUpperCase()}`}
           captureCue={activeRom.spec.cue || null}
           romSpec={activeRom.spec}
-          onSaveRom={(deg) => { setRom(prev => applyRomResult(prev, activeRom.spec, deg)); toast(tt('Logged {deg}° to {target}').replace('{deg}', deg).replace('{target}', `${activeRom.spec.jointId} ${activeRom.spec.axis}`), 'success', { ttl: 3500 }); }}
+          onSaveRom={(deg) => { setRom(prev => applyRomResult(prev, activeRom.spec, deg)); toast(tt(Number(deg) === 1 ? 'Logged 1° to {target}' : 'Logged {deg}° to {target}').replace('{deg}', deg).replace('{target}', `${activeRom.spec.jointId} ${activeRom.spec.axis}`), 'success', { ttl: 3500 }); }}
           onClose={() => setActiveRom(null)}
         />
       </Suspense>
