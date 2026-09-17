@@ -3041,7 +3041,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                             <div key={i} style={{fontSize:11,fontFamily:FN,color:C.tm,display:'flex',alignItems:'center',gap:6,padding:'3px 0'}}>
                               <span style={{flex:1,minWidth:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',color:C.tx}}><span style={{display:'inline-block',width:22,textAlign: 'end',flexShrink:0,color:C.td,marginInlineEnd:6}}>{i+1}.</span>{x.title} <span style={{color:C.td}}>{x.prescribed ? x.prescribed + ' · ' : ''}{(x.sets||[]).filter(s=>s.done).length}/{(x.sets||[]).length}</span></span>
                               {hasVideo && <span style={{display:'inline-flex',alignItems:'center',gap:4,color:C.gn,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',lineHeight:1,flexShrink:0}}><span style={{width:5,height:5,background:C.gn,borderRadius:'50%'}}/>{tt("VIDEO")}</span>}
-                              {notesCount > 0 && <span style={{display:'inline-flex',alignItems:'center',gap:4,color:C.ac,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',lineHeight:1,flexShrink:0}}><span style={{width:5,height:5,background:C.ac,borderRadius:'50%'}}/>{notesCount} {notesCount===1?'NOTE':'NOTES'}</span>}
+                              {notesCount > 0 && <span style={{display:'inline-flex',alignItems:'center',gap:4,color:C.ac,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',lineHeight:1,flexShrink:0}}><span style={{width:5,height:5,background:C.ac,borderRadius:'50%'}}/>{notesCount} {tr(readLang(), notesCount===1?'NOTE':'NOTES')}</span>}
                             </div>
                           );
                         })}

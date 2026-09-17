@@ -14,7 +14,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 const REPORT = process.argv.includes('--report');
-const PORTAL_HELD = new Set(['TraineePRsView.jsx', 'auth.jsx']);
+const PORTAL_HELD = new Set(['TraineePRsView.jsx', 'auth.jsx', 'ExerciseSubstitution.jsx']);
 const SKIP_FILES = new Set(['ClientPortal.jsx', 'MealLogger.jsx', 'DemoTraineePortal.jsx', 'TrySandbox.jsx']);
 const ALLOW = new Set(['EXPO', 'RPE', 'ROM', 'VBT', 'BW', 'KG', 'PR', 'PRS', 'MRR', 'LTV', 'VAT', 'AI', 'OK', 'ID', 'URL', 'MP4', 'MOV', 'WEBM', 'CSV', 'PDF', 'PNG', 'JPG', 'XLSX', 'TSV', 'GB', 'MB', 'KB', 'FPS', 'HD', 'RDL', 'SLDL', 'OHP', 'DB', 'BB', 'KB', 'TRX', 'BHBC', 'ACWR', 'HRV', 'RTP', 'MD', 'PPG', 'EN', 'HE', 'LIVE', 'REC', 'A', 'B', 'C', 'D', 'E', 'W', 'L', 'R', 'X', 'N', 'Y', 'M', 'J', 'S', 'Δ', 'ATH', 'POS', 'ISO', 'SA', 'SL', 'BP', 'ECC', 'CON', 'AMRAP', 'EMOM', 'TUT', 'RIR', '1RM', 'E1RM', 'NCAA', 'CMU', 'OUI', 'TAU', 'NIS', 'ILS', 'USD', 'YT', 'GPS', 'API', 'RLS', 'SW', 'PWA', 'IOS', 'MEDIAPIPE', 'LITE', 'LOG', 'W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7', 'W8', 'W9', 'W10', 'W11', 'W12', 'RSI']);
 const BRAND = /^(?:Google Calendar|Vercel|Supabase|WhatsApp|YouTube|Green Invoice|Safari)$/;
@@ -128,6 +128,11 @@ function scanFile(f, raw) {
     const near = lines.slice(Math.max(0, ln - 3), ln).join('\n');
     if (/[֐-׿]/.test(near) || /\bhe\b\s*\?|readLang\(\)\s*===\s*'he'/.test(near)) continue;
     findings.push({ f, line: ln, text: m[0], kind: 'plural-tpl' });
+  }
+  // 17.9: a status chip picked by a ternary - >{live ? 'LIVE' : 'CLIP'}< - has no run either.
+  if (!PORTAL_HELD.has(f)) for (const m of src.matchAll(/[>}]\s*\{\s*[^{}?'`]{1,60}\?\s*'([A-Z][A-Z0-9 ·/&-]{2,})'\s*:\s*'([A-Z][A-Z0-9 ·/&-]{2,})'\s*\}/g)) {
+    if (isAllowed(m[1]) && isAllowed(m[2])) continue;
+    findings.push({ f, line: lineOf(m.index), text: m[0].replace(/^[>}]\s*/, ''), kind: 'ternary-lbl' });
   }
 }
 if (process.argv.includes('--write-baseline')) {

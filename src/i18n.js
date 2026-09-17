@@ -2090,6 +2090,15 @@ export const HE = {
   'LINE': 'קו',
   'FREE': 'חופשי',
   'GATE': 'סף',
+  // 17.9 labels picked by a ternary
+  'MIGRATION NOT APPLIED': 'המיגרציה עוד לא רצה',
+  'NO CHAT TURNS YET': 'עוד אין שיחות',
+  'CURRENT BLOCK': 'הבלוק הנוכחי',
+  'ASSIGNED PROGRAM': 'התוכנית הנוכחית',
+  'COMMENTS ON': 'הערות פעילות',
+  'COMMENTS OFF': 'הערות כבויות',
+  'EXPAND': 'פתיחה',
+  'COLLAPSE': 'סגירה',
   // 17.9 the two owner library tools (Classify, Matching) wired
   match: 'התאמה',
   matches: 'התאמות',

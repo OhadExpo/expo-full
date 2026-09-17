@@ -1643,7 +1643,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
               title={commentsEnabled ? 'Auto-pause at comments ON — click to disable' : 'Comments hidden — click to enable auto-pause'}
               style={{padding:'3px 10px',borderRadius:0,border:`2px solid ${commentsEnabled?C.ac:'transparent'}`,minWidth:116,display:'inline-flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',
                 background:commentsEnabled?C.acD:'transparent',color:commentsEnabled?C.ac:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>
-              {commentsEnabled ? 'COMMENTS ON' : 'COMMENTS OFF'}
+              {tr(readLang(), commentsEnabled ? 'COMMENTS ON' : 'COMMENTS OFF')}
             </button>
           )}
           {onReviewNotesChange && role === 'trainer' && (
