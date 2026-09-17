@@ -86,6 +86,12 @@ const RULES = [
     fix: 'תוכנית / תוכניות',
   },
   {
+    id: 'sign-beside-number',
+    why: 'a + / ± / ° beside a number inside a Hebrew string is bidi-neutral and jumps sides in RTL (skill: "say it in words"); shipped as +5 נקודות, ±6°, 87°, 6+ until 17.9',
+    test: /(?<![A-Za-z])[+±](?:\$\{|\d)|(?:\d|\})°|(?:\d|\})\+(?![\d$])/g,
+    fix: 'words: עוד 5 · סטייה של 6 · 87 מעלות · 6 ומעלה',
+  },
+  {
     id: 'space-before-punctuation',
     why: 'shipped once already — a stray space before a comma read as a dangling comma',
     test: /[\u0590-\u05FF]\s+[,.;](?:\s|$)/g,

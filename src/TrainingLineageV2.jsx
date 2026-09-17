@@ -363,7 +363,7 @@ function RomLiftCard({ lift }) {
               <polyline points={line} fill="none" stroke={BRAND} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
             {pts.map((e, i) => (
-              <div key={i} title={he ? `${(e.date || '').slice(0, 10)} · טווח עבודה ${Math.round(e.maxRom)}°` : `${(e.date || '').slice(0, 10)} · ${Math.round(e.maxRom)}° working range`} style={{ position: 'absolute', left: pctX(i, pts.length), top: pctY(e.maxRom), width: 7, height: 7, borderRadius: '50%', background: BRAND, transform: 'translate(-50%,-50%)', boxShadow: '0 0 0 2px var(--c-sf2)', pointerEvents: 'none' }} />
+              <div key={i} title={he ? `${(e.date || '').slice(0, 10)} · טווח עבודה ${Math.round(e.maxRom)} מעלות` : `${(e.date || '').slice(0, 10)} · ${Math.round(e.maxRom)}° working range`} style={{ position: 'absolute', left: pctX(i, pts.length), top: pctY(e.maxRom), width: 7, height: 7, borderRadius: '50%', background: BRAND, transform: 'translate(-50%,-50%)', boxShadow: '0 0 0 2px var(--c-sf2)', pointerEvents: 'none' }} />
             ))}
             <div style={{ position: 'absolute', left: pctX(pkI, pts.length), top: pctY(pts[pkI].maxRom), transform: 'translate(-50%,-50%)', pointerEvents: 'none' }}>
               <div style={{ width: 11, height: 11, borderRadius: '50%', background: 'transparent', border: `2px solid ${BRAND}`, boxShadow: '0 0 0 2px var(--c-sf2)' }} />
