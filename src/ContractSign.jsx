@@ -161,7 +161,7 @@ function MetaBlock({ contract }) {
     }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
         {rows.map((r, i) => (
-          <div key={i} style={{ borderLeft: i === 0 ? 'none' : `1px solid ${C.cardBd}`, paddingLeft: i === 0 ? 0 : 12 }}>
+          <div key={i} style={{ borderInlineStart: i === 0 ? 'none' : `1px solid ${C.cardBd}`, paddingInlineStart: i === 0 ? 0 : 12 }}>
             <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700 }}>{r.l}</div>
             <div style={{ fontFamily: FN, fontSize: 18, color: C.tx, fontWeight: 700, marginTop: 4 }}>{r.v}</div>
           </div>
@@ -203,7 +203,7 @@ function TermsBlock({ contract }) {
             </span>
           </div>
           <div dir="auto" style={{
-            fontSize: 13, color: C.tx, lineHeight: 1.5, paddingLeft: 24,
+            fontSize: 13, color: C.tx, lineHeight: 1.5, paddingInlineStart: 24,
             fontFamily: isHebrew(t.b) ? FH : FB,
           }}>{t.b}</div>
         </div>
@@ -215,7 +215,7 @@ function TermsBlock({ contract }) {
 function CustomClausesBlock({ text }) {
   return (
     <div style={{
-      background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.ac}`,
+      background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderInlineStart: `3px solid ${C.ac}`,
       padding: 18, marginBottom: 14,
     }}>
       <div style={{

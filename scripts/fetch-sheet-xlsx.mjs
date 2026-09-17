@@ -26,15 +26,22 @@ try {
   const dir = path.resolve(path.dirname(OUT));
   fs.mkdirSync(dir, { recursive: true });
   const before = new Set(fs.readdirSync(dir));
+  const t0 = Date.now() - 2000;
   const cdp = await pg.createCDPSession();
   await cdp.send('Page.setDownloadBehavior', { behavior: 'allow', downloadPath: dir });
   pg.goto(`https://docs.google.com/spreadsheets/d/${ID}/export?format=xlsx&id=${ID}`).catch(() => {});
   let got = null;
-  for (let i = 0; i < 60 && !got; i++) {
+  // 420s, not 60: Google paces this account's exports, and measured on 15.9 a
+  // roster export landed 6s AFTER a 240s window closed - the run then failed
+  // with the file sitting on disk. The check is also by MTIME, not by name:
+  // the export arrives under the sheet's own Hebrew title, and a file left
+  // behind by an earlier attempt must not be mistaken for this one.
+  const fresh = () => fs.readdirSync(dir).find((x) => x.endsWith('.xlsx') && !x.endsWith('.crdownload') && fs.statSync(path.join(dir, x)).mtimeMs >= t0);
+  for (let i = 0; i < 420 && !got; i++) {
     await new Promise(r => setTimeout(r, 1000));
-    got = fs.readdirSync(dir).find((f) => !before.has(f) && f.endsWith('.xlsx'));
+    got = fresh();
   }
-  if (!got) throw new Error('no .xlsx appeared in ' + dir + ' within 60s');
+  if (!got) throw new Error('no .xlsx appeared in ' + dir + ' within 420s');
   fs.renameSync(path.join(dir, got), OUT);
   const head = fs.readFileSync(OUT).subarray(0, 2).toString('latin1');
   if (head !== 'PK') throw new Error('not an xlsx (starts with "' + head + '")');

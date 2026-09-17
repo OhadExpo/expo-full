@@ -12,7 +12,7 @@ import React, { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { fmtPrettyDate } from './dates';
 import { C, FN, FB, FH } from './theme';
-import { isRefined5b, RefinedHeaderStrip, confirmToast, usePersistentState, useIsMobile, stripBtnBase } from './ui';
+import { isRefined5b, RefinedHeaderStrip, confirmToast, usePersistentState, useIsMobile, stripBtnBase, useEdgeFade } from './ui';
 import { useCoachNotes, setPendingTaskPlanLink } from './coachNotes';
 import useDraftAutosave from './hooks/useDraftAutosave';
 import { AUTO_KIND_LABEL, AUTO_KIND_ACTION, whatsappMessageForTask, throttleWhatsAppTasks } from './autoTasks';
@@ -20,7 +20,7 @@ import { AutoTaskExplainModal } from './components/AutoTaskExplain';
 import { normalizePhoneIL } from './whatsappButton';
 import { displayBodyOf, ownerFromBody, priorityFromBody, visibleTags, PRIORITY_TONE } from './taskFormat';
 import { CommentsThread, EventTimeline } from './TasksV8View';
-import { useT, useTB } from './i18n';
+import { tr, readLang, useT, useTB } from './i18n';
 
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
 
@@ -123,7 +123,7 @@ function MiniTaskRow({ n, stackBoard, onClick, stripe }) {
         itself behind an ellipsis at 390px. minHeight 32 still holds the row at
         one line whenever the text fits, so desktop is unchanged. */
     <div onClick={onClick} title={body} className="mini-task-row"
-      style={{ border: `1px solid var(--c-cardBd)`, borderLeft: `3px solid ${tone}`, padding: '0 8px', minHeight: 32, boxSizing: 'border-box', fontSize: stackBoard ? 12 : 11, lineHeight: 1.3, color: 'var(--c-tx)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, whiteSpace: 'normal', overflow: 'hidden', transition: 'border-color 120ms ease, background 120ms ease' }}>
+      style={{ border: `1px solid var(--c-cardBd)`, borderInlineStart: `3px solid ${tone}`, padding: '0 8px', minHeight: 32, boxSizing: 'border-box', fontSize: stackBoard ? 12 : 11, lineHeight: 1.3, color: 'var(--c-tx)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, whiteSpace: 'normal', overflow: 'hidden', transition: 'border-color 120ms ease, background 120ms ease' }}>
       {/* Order (Ohad): NAME first, then the action info, then the kind TAG all
           the way to the right. Body is flex:1 so the tag is pushed to the edge. */}
       {/* Name sizing MIRRORS the ALL ATHLETES table (Ohad #185): Nord (FN) at 13px
@@ -181,6 +181,7 @@ function AlertGroupList({ grouped, collapsible, collapsedMap, onToggle, onRowCli
 // rhythm is identical across compact (dashboard) and full views so
 // nothing visually drifts between surfaces.
 function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBody, onSaveEdit, onCancelEdit, onStartEdit, onToggleDone, onTogglePin, onRemove, actionButton }) {
+  const tt = useT();
   const n = note;
   // Every card now renders a colored meta-strip badge — auto-tasks
   // get their kind-specific tone (cyan/orange/red); manual tasks
@@ -209,7 +210,7 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
     <div style={{
       background: 'var(--c-sf)',
       border: `1px solid var(--c-cardBd)`,
-      borderLeft: `3px solid ${stripeColor}`,
+      borderInlineStart: `3px solid ${stripeColor}`,
       borderRadius: 0,
       // Compact-pass per Ohad — every inner spacing trimmed so
       // multiple cards fit in a viewport without losing legibility.
@@ -227,9 +228,9 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
           no trainee is linked (general / intake / review tasks). */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5, flexWrap: 'wrap' }}>
         <input type="checkbox" checked={false} onChange={onToggleDone}
-          title="Mark done"
+          title={tt('Mark done')}
           style={{ width: 14, height: 14, accentColor: 'var(--c-gn)', cursor: 'pointer', flexShrink: 0 }} />
-        <button onClick={onTogglePin} title={n.pinned ? 'Unpin' : 'Pin'}
+        <button onClick={onTogglePin} title={tr(readLang(), n.pinned ? 'Unpin' : 'Pin')}
           style={{
             background: 'transparent', border: 'none', cursor: 'pointer',
             color: n.pinned ? 'var(--c-or)' : 'var(--c-td)', fontSize: 11,
@@ -262,7 +263,7 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
             {targetIcon} {targetLabel}
           </span>
         )}
-        <button onClick={onRemove} title="Remove"
+        <button onClick={onRemove} title={tr(readLang(), 'Remove')}
           style={{
             background: 'none', border: 'none', color: 'var(--c-td)', cursor: 'pointer',
             fontSize: 13, padding: '0 4px', flexShrink: 0, lineHeight: 1,
@@ -274,27 +275,27 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
           so the dashboard reads as a uniform stack rather than a row
           of variable-height fragments. */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4, flexWrap: 'wrap' }}>
-        <span title={isAuto ? `Auto-generated: ${kindLabel}` : 'Manual task'}
+        <span title={isAuto ? `${tr(readLang(), 'Auto-generated:')} ${tr(readLang(), kindLabel)}` : tr(readLang(), 'Manual task')}
           style={{
             fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
             color: stripeColor, border: `1px solid ${stripeColor}`,
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '2px 6px', lineHeight: 1,
           }}>{kindIcon} {kindLabel}</span>
         {priority !== 'normal' && (
-          <span title={`Priority: ${priority}`} style={{
+          <span title={`${tr(readLang(), 'Priority:')} ${tr(readLang(), priority)}`} style={{
             fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
             color: PRIORITY_TONE[priority] || 'var(--c-tm)', border: `1px solid ${PRIORITY_TONE[priority] || 'var(--c-cardBd)'}`,
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '2px 6px', lineHeight: 1, textTransform: 'uppercase',
           }}>{priority}</span>
         )}
         {owner === 'shared' && (
-          <span title="Shared task — needs both Ohad & Yuval" style={{
+          <span title={tt('Shared task — needs both Ohad & Yuval')} style={{
             fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
             color: 'var(--c-ac)', border: '1px solid var(--c-ac)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '2px 6px', lineHeight: 1,
-          }}>SHARED</span>
+          }}>{tr(readLang(), 'SHARED')}</span>
         )}
         {isAuto && (
-          <button onClick={() => setShowExplain(true)} title="Why is this task here?"
+          <button onClick={() => setShowExplain(true)} title={tt('Why is this task here?')}
             style={{
               background: 'transparent', border: 'none', cursor: 'pointer',
               color: stripeColor, fontSize: 12, padding: '0 2px',
@@ -357,13 +358,13 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
       {(actionButton || (allowEdit && !isEditing)) && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 'auto', paddingTop: 6 }}>
           {allowEdit && !isEditing ? (
-            <button onClick={onStartEdit} title="Edit task"
+            <button onClick={onStartEdit} title={tt('Edit task')}
               style={{
                 background: 'transparent', border: `1px solid var(--c-cardBd)`, color: 'var(--c-tm)',
                 cursor: 'pointer', fontSize: 10, padding: '2px 8px', borderRadius: 0,
                 fontFamily: FN, fontWeight: 700, letterSpacing: '0.1em', height: 22,
                 display: 'inline-flex', alignItems: 'center',
-              }}>EDIT</button>
+              }}>{tr(readLang(), 'EDIT')}</button>
           ) : <span />}
           {actionButton || <span />}
         </div>
@@ -403,48 +404,51 @@ function ActionPill({ label, onClick, color, title, disabled }) {
 // REVIEW family. Returns null when the task has no actionable handler
 // (manual general task, or trainee data missing for WhatsApp).
 function TaskActionButton({ note, trainee, onCreatePlan, onOpenReview, onOpenIntake, onOpenAthlete, onOpenWaitlist }) {
+  const tt = useT();
   const kind = note?.auto_kind;
   const action = kind ? AUTO_KIND_ACTION[kind] : null;
   // Manual task with a trainee target — same NEW PROGRAM affordance.
   if (!kind && note?.target_kind === 'trainee' && note?.target_id && onCreatePlan) {
-    return <ActionPill label="→ NEW PROGRAM" title="Build a program from this task" onClick={() => onCreatePlan(note)} />;
+    return <ActionPill label="→ NEW PROGRAM" title={tt('Build a program from this task')} onClick={() => onCreatePlan(note)} />;
   }
   switch (action) {
     case 'NEW_PROGRAM':
       if (!onCreatePlan) return null;
-      return <ActionPill label="→ NEW PROGRAM" title="Open the plan editor pre-bound to this trainee" onClick={() => onCreatePlan(note)} />;
+      return <ActionPill label="→ NEW PROGRAM" title={tt('Open the plan editor pre-bound to this trainee')} onClick={() => onCreatePlan(note)} />;
     case 'REVIEW': {
       if (!onOpenReview) return null;
       const woId = String(note.auto_ref || '').split('|')[0];
       if (!woId) return null;
-      return <ActionPill label="→ REVIEW" title="Open this workout's review session" onClick={() => onOpenReview(woId)} />;
+      return <ActionPill label="→ REVIEW" title={tt("Open this workout's review session")} onClick={() => onOpenReview(woId)} />;
     }
     case 'WHATSAPP': {
       const phone = normalizePhoneIL(trainee?.phone);
-      if (!phone) return <ActionPill color="var(--c-td)" label="→ WHATSAPP" title="No phone on file" disabled />;
+      if (!phone) return <ActionPill color="var(--c-td)" label="→ WHATSAPP" title={tt('No phone on file')} disabled />;
       const msg = whatsappMessageForTask(note, trainee);
       return <ActionPill color="#128C7E"
         label="→ WHATSAPP"
-        title={`Open WhatsApp to ${trainee?.name || 'trainee'}`}
+        title={tr(readLang(), 'Open WhatsApp to {x}').replace('{x}', trainee?.name || tr(readLang(), 'trainee'))}
         onClick={() => {
           try { window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener'); } catch {}
         }} />;
     }
     case 'OPEN_INTAKE':
       if (!onOpenIntake) return null;
-      return <ActionPill label="→ INTAKE" title="Open the intake review surface" onClick={onOpenIntake} />;
+      return <ActionPill label="→ INTAKE" title={tt('Open the intake review surface')} onClick={onOpenIntake} />;
     case 'OPEN_ATHLETE':
       if (!onOpenAthlete || !note.target_id) return null;
-      return <ActionPill label="→ ATHLETE" title="Open the trainee card" onClick={() => onOpenAthlete(note.target_id)} />;
+      return <ActionPill label="→ ATHLETE" title={tt('Open the trainee card')} onClick={() => onOpenAthlete(note.target_id)} />;
     case 'OPEN_WAITLIST':
       if (!onOpenWaitlist) return null;
-      return <ActionPill label="→ WAITLIST" title="Open the /coach/waitlist surface to consume this lead" onClick={onOpenWaitlist} />;
+      return <ActionPill label="→ WAITLIST" title={tt('Open the /coach/waitlist surface to consume this lead')} onClick={onOpenWaitlist} />;
     default:
       return null;
   }
 }
 
 export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanForTask, onOpenIntakeTab, onOpenWaitlist, compact = false, trainees = [], viewerOwner = 'ohad' }) {
+  const segRef = React.useRef(null);
+  useEdgeFade(segRef);
   const tt = useT();
   const tb = useTB();
   const { rows, create, update, togglePin, toggleDone, remove } = useCoachNotes({ limit: 60 });
@@ -674,10 +678,10 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
               <div style={{ flex: 1, minWidth: 0, fontFamily: /[֐-׿]/.test(displayBodyOf(popupNote.body)) ? FH : FB, fontSize: 15, fontWeight: 700, color: 'var(--c-tx)', lineHeight: 1.4, direction: /[֐-׿]/.test(displayBodyOf(popupNote.body)) ? 'rtl' : 'ltr' }}>{displayBodyOf(popupNote.body)}</div>
               <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                 {onOpenFullTasks && (
-                  <button onClick={() => openInTasks(popupNote)} title="Open in the full Tasks page"
+                  <button onClick={() => openInTasks(popupNote)} title={tt('Open in the full Tasks page')}
                     style={{ background: 'transparent', border: `1px solid var(--c-ac)`, color: 'var(--c-ac)', width: 28, height: 28, boxSizing: 'border-box', borderRadius: 0, cursor: 'pointer', fontSize: 14, lineHeight: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>⤢</button>
                 )}
-                <button onClick={() => setPopupNote(null)} title="Close"
+                <button onClick={() => setPopupNote(null)} title={tr(readLang(), 'Close')}
                   style={{ background: 'transparent', border: `1px solid var(--c-cardBd)`, color: 'var(--c-tm)', width: 28, height: 28, boxSizing: 'border-box', borderRadius: 0, cursor: 'pointer', fontSize: 14, lineHeight: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
               </div>
             </div>
@@ -729,20 +733,20 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
       {!compact && (
         <div style={{ display: 'flex', gap: 6, alignItems: 'stretch', marginBottom: 8 }}>
           <input type="search" value={search} onChange={e => setSearch(e.target.value)}
-            placeholder='Search notes / tags  (try "#rehab" or "shoulder")'
+            placeholder={tt('Search notes / tags  (try "#rehab" or "shoulder")')}
             style={{
               flex: 1, background: 'var(--c-sf)', border: `1px solid var(--c-cardBd)`,
               borderRadius: 0, padding: '6px 10px', color: 'var(--c-tx)', fontFamily: FN, fontSize: 11,
               outline: 'none', boxSizing: 'border-box', letterSpacing: '0.04em',
             }} />
           {search && (
-            <button onClick={() => setSearch('')} title="Clear search"
+            <button onClick={() => setSearch('')} title={tt('Clear search')}
               style={{
                 padding: '6px 10px', background: 'transparent',
                 border: `1px solid var(--c-cardBd)`, color: 'var(--c-tm)',
                 fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
                 cursor: 'pointer', borderRadius: 0,
-              }}>CLEAR</button>
+              }}>{tt('CLEAR')}</button>
           )}
         </div>
       )}
@@ -797,7 +801,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
           <textarea value={body} onChange={e => setBody(e.target.value)} dir="auto"
             onBlur={draft.onBlur}
             onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) onAdd(); }}
-            placeholder="Quick thought… (⌘/Ctrl + Enter to save · auto-saves on blur)"
+            placeholder={tt('Quick thought… (⌘/Ctrl + Enter to save · auto-saves on blur)')}
             rows={2}
             style={{
               width: '100%', background: 'var(--c-sf)', border: `1px solid var(--c-cardBd)`,
@@ -824,7 +828,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                   borderRadius: 0, padding: '0 8px', color: 'var(--c-tx)',
                   fontFamily: FN, fontSize: 11, outline: 'none',
                 }}>
-                <option value="">— Link to trainee (optional) —</option>
+                <option value="">— {tr(readLang(), 'Link to trainee (optional) —')}</option>
                 {trainees.filter(t => t.status !== 'Archived').map(t => (
                   <option key={t.id} value={t.id}>{t.name}</option>
                 ))}
@@ -882,7 +886,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
           // MINE view and the top half of ALL.
           const cap = stackBoard ? 6 : 12;
           const kanban = manualRows.length === 0 ? (
-            <div style={{ padding:'18px 8px', textAlign:'center', color:'var(--c-td)', fontFamily:FN, fontSize:10, letterSpacing:'0.06em' }}>No open tasks — you're all clear.</div>
+            <div style={{ padding:'18px 8px', textAlign:'center', color:'var(--c-td)', fontFamily:FN, fontSize:10, letterSpacing:'0.06em' }}>{tt("No open tasks — you're all clear.")}</div>
           ) : (
             /* Stacked (phone): alignItems MUST be 'stretch' — in a column
                flex, 'flex-start' is the CROSS axis, so each status column
@@ -913,7 +917,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                       {rows.slice(0, cap).map(n => (
                         <MiniTaskRow key={n.id} n={n} stackBoard={stackBoard} stripe={col.color} onClick={()=>handleClick(n)} />
                       ))}
-                      {rows.length > cap && <div onClick={()=>{ if(onOpenFullTasks) onOpenFullTasks(); }} style={{ padding:'4px', textAlign:'center', color:'var(--c-ac)', fontSize:9, fontFamily:FN, fontWeight:700, letterSpacing:'0.08em', cursor:'pointer' }}>+{rows.length-cap} MORE →</div>}
+                      {rows.length > cap && <div onClick={()=>{ if(onOpenFullTasks) onOpenFullTasks(); }} style={{ padding:'4px', textAlign:'center', color:'var(--c-ac)', fontSize:9, fontFamily:FN, fontWeight:700, letterSpacing:'0.08em', cursor:'pointer' }}>+{rows.length-cap}{tt('MORE →')}</div>}
                     </div>
                   </div>
                 );
@@ -925,7 +929,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
           // 📋 Intake, each group collapsible with a count. Reused by ALERTS
           // (the comfortable view) and by the bottom of ALL.
           const alertsList = autoRows.length === 0 ? (
-            <div style={{ fontFamily:FN, fontSize:9, color:'var(--c-td)', letterSpacing:'0.04em', padding:'4px 0' }}>No coaching alerts — all clear.</div>
+            <div style={{ fontFamily:FN, fontSize:9, color:'var(--c-td)', letterSpacing:'0.04em', padding:'4px 0' }}>{tt('No coaching alerts — all clear.')}</div>
           ) : (
             <AlertGroupList grouped={grouped} collapsible collapsedMap={alertCollapsed} onToggle={toggleAlertGroup} onRowClick={handleClick} stackBoard={stackBoard} />
           );
@@ -944,14 +948,17 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                   (GENERAL · AUTO-TASKS · ALL — the tasks-page's own vocabulary).
                   Counts ride beside each label; the active segment gets the cyan
                   fill + cyan text. Left-aligned to sit under the section title. */}
-              <div style={{ display:'flex', justifyContent:'flex-start', marginBottom:6 }}>
-                <div style={{ display:'inline-flex', border:`1px solid var(--c-cardBd)` }}>
+              {/* Four segments with Hebrew labels overflow a 360px card by
+                  33px. The rail scrolls instead of being cut, with the same
+                  edge fade the coach header uses. */}
+              <div ref={segRef} className="rail-scroll" style={{ display:'flex', justifyContent:'flex-start', marginBottom:6 }}>
+                <div style={{ display:'inline-flex', flexShrink:0, border:`1px solid var(--c-cardBd)` }}>
                   {SEGS.map((s, i) => {
                     const active = v2Sub === s.id;
                     return (
                       <button key={s.id} onClick={()=>setV2Sub(s.id)}
                         style={{ ...btnBase, height:30, boxSizing:'border-box', fontSize:10, letterSpacing:'0.1em', padding:'0 12px',
-                          border:'none', borderLeft: i ? `1px solid var(--c-cardBd)` : 'none',
+                          border:'none', borderInlineStart: i ? `1px solid var(--c-cardBd)` : 'none',
                           background: active?'rgba(57,189,255,0.094)':'transparent',
                           color: active?'var(--c-ac)':'var(--c-tm)',
                           display:'inline-flex', alignItems:'center', gap:5 }}>
@@ -1042,7 +1049,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
       {visibleDone.length > 0 && (
         <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px dashed var(--c-cardBd)` }}>
           <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>
-            ✓ {tt('HISTORY')} ({doneRows.length}{visibleDone.length < doneRows.length ? ` · ${tt('showing')} ${visibleDone.length}` : ''})
+            ✓ {tt('HISTORY')} ({readLang() === 'he' && visibleDone.length < doneRows.length ? `${visibleDone.length} מתוך ${doneRows.length}` : <>{doneRows.length}{visibleDone.length < doneRows.length ? ` · ${tt('showing')} ${visibleDone.length}` : ''}</>})
           </div>
           {visibleDone.map(n => {
             const nameHeb = isHebrew(n.target_label || '');
@@ -1057,7 +1064,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                 borderBottom: `1px solid var(--c-cardBd)`,
               }}>
                 <input type="checkbox" checked={true}
-                  title={n.status === 'cancelled' ? 'Reopen (un-cancel)' : 'Reopen'}
+                  title={tr(readLang(), n.status === 'cancelled' ? 'Reopen (un-cancel)' : 'Reopen')}
                   onChange={() => n.status === 'cancelled'
                     ? update(n.id, { status: 'open', completed_at: null })
                     : toggleDone(n.id)}
@@ -1080,16 +1087,16 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                   }}>{displayBodyOf(n.body)}</span>
                   <span style={{ flexShrink: 0, fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>
                     {n.status === 'cancelled'
-                      ? <span style={{ color: 'var(--c-or)', fontWeight: 700 }}>CANCELLED</span>
-                      : n.completed_at && <span>done {fmtPrettyDate(n.completed_at)}</span>}
-                    {n.linked_plan_id && <span style={{ color: 'var(--c-ac)', marginLeft: 6, fontWeight: 700 }}>· ✓ PLAN</span>}
+                      ? <span style={{ color: 'var(--c-or)', fontWeight: 700 }}>{tt('CANCELLED')}</span>
+                      : n.completed_at && <span>{tt('done')} {fmtPrettyDate(n.completed_at)}</span>}
+                    {n.linked_plan_id && <span style={{ color: 'var(--c-ac)', marginInlineStart: 6, fontWeight: 700 }}>· ✓ PLAN</span>}
                   </span>
                 </div>
                 <button onClick={async () => {
                     if (await confirmToast('Delete this completed task? This cannot be undone.', { okLabel: 'Delete', cancelLabel: 'Cancel' })) {
                       remove(n.id);
                     }
-                  }} title="Remove" aria-label="Delete task"
+                  }} title={tr(readLang(), 'Remove')} aria-label={tt('Delete task')}
                   style={{ background: 'none', border: 'none', color: 'var(--c-td)', cursor: 'pointer', fontSize: 14, padding: '0 4px', flexShrink: 0 }}>×</button>
               </div>
             );
@@ -1103,7 +1110,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
             width: '100%', marginTop: 10, padding: '8px 0', background: 'transparent',
             border: `1px solid var(--c-ac)`, color: 'var(--c-ac)',
             fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer',
-          }}>{tt('OPEN FULL TASKS')} ({counts.all}) →</button>
+          }}>{tt('OPEN FULL TASKS')} ({counts.all}) {readLang() === 'he' ? '←' : '→'}</button>
       )}
       </div>
       </div>

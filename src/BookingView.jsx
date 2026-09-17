@@ -10,7 +10,7 @@
 // Bookings come in via the public /book/<slug> route (BookingPublic.jsx).
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { useT, useTB } from './i18n';
+import { useT, useTB, tr, readLang } from './i18n';
 import { fmtPrettyDate } from './dates';
 import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
@@ -108,7 +108,7 @@ export default function BookingView({ trainees }) {
     setBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'completed' } : b));
   };
 
-  if (loading) return <div style={{ padding: 30, textAlign: 'center', color: C.td }}>Loading…</div>;
+  if (loading) return <div style={{ padding: 30, textAlign: 'center', color: C.td }}>{tr(readLang(), 'Loading…')}</div>;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -182,7 +182,7 @@ export default function BookingView({ trainees }) {
           const sevColor = b.status === 'canceled' ? C.rd : b.status === 'completed' ? C.gn : (past ? C.or : C.ac);
           return (
             <div key={b.id} style={{
-              border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${sevColor}`,
+              border: `1px solid ${C.cardBd}`, borderInlineStart: `3px solid ${sevColor}`,
               padding: '10px 12px', marginBottom: 8, background: 'var(--c-sf)',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
@@ -202,9 +202,9 @@ export default function BookingView({ trainees }) {
               {b.status === 'confirmed' && (
                 <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
                   <button onClick={() => markCompleted(b.id)}
-                    style={{ background: 'transparent', border: `1px solid ${C.gn}`, color: C.gn, padding: '4px 10px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer' }}>✓ COMPLETED</button>
+                    style={{ background: 'transparent', border: `1px solid ${C.gn}`, color: C.gn, padding: '4px 10px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer' }}>✓ {tr(readLang(), 'COMPLETED')}</button>
                   <button onClick={() => cancelBooking(b.id)}
-                    style={{ background: 'transparent', border: `1px solid ${C.rd}`, color: C.rd, padding: '4px 10px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer' }}>× CANCEL</button>
+                    style={{ background: 'transparent', border: `1px solid ${C.rd}`, color: C.rd, padding: '4px 10px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer' }}>× {tr(readLang(), 'CANCEL')}</button>
                 </div>
               )}
             </div>

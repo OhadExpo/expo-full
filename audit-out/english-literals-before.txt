@@ -1,0 +1,114 @@
+ENGLISH LITERALS IN TRANSLATED VIEWS — 113 finding(s)
+  auth.jsx:453  jsx         «HEY»
+  auth.jsx:258  placeholder «your@email.com»
+  BillingView.jsx:252  jsx         «TRAINEE»
+  BillingView.jsx:263  placeholder «May 2026 — 8 sessions»
+  BookingView.jsx:118  placeholder «ohad»
+  BookingView.jsx:119  placeholder «Ohad — EXPO»
+  BookingView.jsx:123  placeholder «https://zoom.us/j/…»
+  BugsView.jsx:154  jsx         «UA:»
+  BugsView.jsx:185  jsx         «TRIAGE NOTES»
+  BugsView.jsx:220  jsx         «DELETE»
+  BugsView.jsx:188  placeholder «Repro steps, hypothesis, blocker…»
+  BugsView.jsx:206  placeholder «commit SHA — blank to skip»
+  ChallengesView.jsx:330  jsx         «SMART TEMPLATES»
+  ChallengesView.jsx:361  jsx         «BLANK CHALLENGE →»
+  ChallengesView.jsx:389  jsx         «DESCRIPTION (OPTIONAL)»
+  ChatAuditView.jsx:147  placeholder «Filter by message text…»
+  CheckinTrends.jsx:98  jsx         «CHECK-INS»
+  CoachDemo.jsx:2217  jsx         «PATTERN COVERAGE: 5/8»
+  CoachDemo.jsx:2499  jsx         «PATTERN COVERAGE: 4/8»
+  CoachDemo.jsx:3318  jsx         «PLAYS INLINE — NO CLICK-THROUGH»
+  CoachDemo.jsx:2352  placeholder «kg/%»
+  CoachDemo.jsx:2380  placeholder «Notes / modifications...»
+  CoachDemo.jsx:2384  placeholder «Insert video URL»
+  CoachDemo.jsx:2758  placeholder «Search exercises (title, muscle, pattern...)»
+  CoachDemo.jsx:3010  placeholder «Comment at 0:04…»
+  CoachDemo.jsx:3353  placeholder «reps»
+  CoachDemo.jsx:3518  placeholder «e.g. Back Squat»
+  CoachDemo.jsx:3752  placeholder «Amount (₪)»
+  DashboardView.jsx:622  jsx         «COACH»
+  ExercisesView.jsx:472  placeholder «e.g., Barbell Back Squat»
+  ExercisesView.jsx:480  placeholder «Select...»
+  ExercisesView.jsx:481  placeholder «Select...»
+  ExercisesView.jsx:482  placeholder «Select...»
+  ExercisesView.jsx:483  placeholder «Shoulder, Elbow»
+  ExercisesView.jsx:484  placeholder «Shoulder Flexion»
+  ExercisesView.jsx:485  placeholder «Quads, Glutes»
+  ExercisesView.jsx:487  placeholder «https://...»
+  ExercisesView.jsx:489  placeholder «Brace core, drive through heels...»
+  IntakeView.jsx:216  jsx         «NO INTAKE YET»
+  IntakeView.jsx:269  jsx         «FORM TYPE»
+  IntakeView.jsx:281  jsx         «LOCALE»
+  IntakeView.jsx:175  placeholder «Filter by name / email / form type…»
+  IntakeView.jsx:311  placeholder «e.g. "for Yossi"»
+  NotesInline.jsx:319  jsx         «EDIT»
+  NotesInline.jsx:375  placeholder «Add a note…»
+  NotesWidget.jsx:212  jsx         «SHARED»
+  NotesWidget.jsx:273  jsx         «EDIT»
+  NotesWidget.jsx:577  jsx         «CLEAR»
+  NotesWidget.jsx:858  jsx         «CANCELLED»
+  NotesWidget.jsx:564  placeholder «Search notes / tags  (try "#rehab" or "shoulder")»
+  NotesWidget.jsx:628  placeholder «Quick thought… (⌘/Ctrl + Enter to save · auto-saves on blur)»
+  PlansView.jsx:458  jsx         «CURRENT»
+  PlansView.jsx:747  jsx         «EMPTY»
+  PlansView.jsx:1127  jsx         «LEGACY RX:»
+  PlansView.jsx:1328  jsx         «COPY»
+  PlansView.jsx:2795  jsx         «NOTE»
+  PlansView.jsx:2943  jsx         «CANCEL»
+  PlansView.jsx:3472  jsx         «INTENSITY %1RM»
+  PlansView.jsx:4889  jsx         «DUPLICATE →»
+  PlansView.jsx:312  placeholder «Search by title, muscle, pattern, position...»
+  PlansView.jsx:1150  placeholder «Video URL»
+  PlansView.jsx:1158  placeholder «Notes, cues... (shown to the athlete on this warm-up step)»
+  PlansView.jsx:1255  placeholder «Select athlete»
+  PlansView.jsx:1643  placeholder «Video URL»
+  PlansView.jsx:2365  placeholder «Hypertrophy Block A»
+  PlansView.jsx:2367  placeholder «Accumulation...»
+  PlansView.jsx:2661  placeholder «kg/%»
+  PlansView.jsx:2937  placeholder «e.g. "Block #10"»
+  PlansView.jsx:4291  placeholder «type delete»
+  PlansView.jsx:4849  placeholder «Search athletes…»
+  PlansView.jsx:4884  placeholder «Search athletes…»
+  ReviewToolsView.jsx:177  jsx         «TOOL FAILED TO LOAD»
+  SessionsView.jsx:842  jsx         «ADD ATHLETES»
+  SessionsView.jsx:914  jsx         «ENTER →»
+  SessionsView.jsx:732  placeholder «reps»
+  SmartImportView.jsx:530  jsx         «SHEET PREVIEW»
+  SmartImportView.jsx:555  jsx         «AI MAPPING»
+  SmartImportView.jsx:569  jsx         «TARGET»
+  SmartImportView.jsx:570  jsx         «SOURCE COLUMN»
+  SmartImportView.jsx:571  jsx         «CONF»
+  SmartImportView.jsx:596  jsx         «PREVIEW»
+  TasksV8View.jsx:2850  jsx         «SET»
+  TasksV8View.jsx:1327  placeholder «Add comment…»
+  TraineeDetail.jsx:509  jsx         «BNEI HERZLIYA»
+  TraineeDetail.jsx:780  jsx         «OR ASSIGN EXISTING»
+  TraineeDetail.jsx:783  jsx         «FROM LIBRARY (UNASSIGNED)»
+  TraineeDetail.jsx:789  jsx         «DUPLICATE FROM ANOTHER ATHLETE»
+  TraineeDetail.jsx:96  placeholder «e.g. 83.5»
+  TraineeDetail.jsx:804  placeholder «remove»
+  TraineeDetail.jsx:840  placeholder «DELETE»
+  TraineeDetail.jsx:975  placeholder «email@example.com»
+  TraineeDetail.jsx:1004  placeholder «L4/L5 disc bulge, R shoulder impingement...»
+  TraineePRsView.jsx:271  jsx         «EXERCISE»
+  TraineePRsView.jsx:345  jsx         «ALL-TIME PR»
+  TraineePRsView.jsx:384  jsx         «TREND · KG / WEEK»
+  TraineePRsView.jsx:293  placeholder «Search an exercise…»
+  TraineesView.jsx:870  jsx         «SHARED LOG»
+  TraineesView.jsx:1011  placeholder «email@example.com»
+  TraineesView.jsx:1040  placeholder «L4/L5 disc bulge, R shoulder impingement...»
+  TraineesView.jsx:1073  placeholder «DELETE»
+  WaitlistView.jsx:539  jsx         «DROP HERE»
+  WeeklyFocusTool.jsx:120  jsx         «ATHLETE»
+  WeeklyFocusTool.jsx:142  jsx         «BLOCK»
+  WeeklyFocusTool.jsx:150  jsx         «FOCUS FOR»
+  WeeklyFocusTool.jsx:121  placeholder «Type a name…»
+  WorkoutReview.jsx:1117  jsx         «HIP»
+  WorkoutReview.jsx:1120  jsx         «SHOULDER»
+  WorkoutReview.jsx:1121  jsx         «SKIP»
+  WorkoutReview.jsx:1894  jsx         «UNMARK»
+  WorkoutReview.jsx:1477  placeholder «type "delete"»
+  WorkoutsView.jsx:196  placeholder «Notes for this exercise…»
+  WorkoutsView.jsx:238  placeholder «Session observations...»
+  WorkoutsView.jsx:486  placeholder «Search athlete…»

@@ -6,7 +6,8 @@ import { supabase } from './supabase';
 import { WhatsAppCheckInButton, normalizePhoneIL } from './whatsappButton';
 import NotesWidget from './NotesWidget';
 import MessagesCard from './MessagesCard';
-import { useT, useHe, daysAgoHe, daysOverdueHe } from './i18n';
+import { useT, useHe, daysAgoHe, daysOverdueHe, tr, readLang } from './i18n';
+import { monthAbbr } from './dates';
 import { syncAutoTasks } from './autoTasks';
 
 // A Bnei Herzliya athlete is a CLUB athlete: the club pays, so there is no
@@ -35,6 +36,9 @@ function DormantWhatsAppButton({ trainee, days }) {
 export default function DashboardView({ dataIncomplete = false, isOwner = true, trainees = [], planCounts, workouts = [], clientWorkouts = [], payments = [], presence, onSelectTrainee, onOpenTraineeMessages, onOpenTasksTab, onCreatePlanForTask, onOpenIntakeTab, onOpenWaitlist, onOpenReviewWorkout }) {
   const tt = useT();
   const he = useHe();
+  // Package values like 'Sessions 8' carry the count inside the string, so
+  // tt() misses them; in Hebrew the count comes first ('8 אימונים').
+  const pkgLabel = (p) => { const m = /^(?:(\d+)\s*Sessions|Sessions\s*(\d+))$/i.exec(p || ''); const n = m && (m[1] || m[2]); return m ? (he ? `${n} אימונים` : p) : tt(p); };
   // Staff (non-owner, e.g. Yuval a masseur) share Ohad's clients but not his
   // money: every revenue / pricing / leads surface below is gated on isOwner.
   // What stays: client-engagement signals (active count, low sessions, online,
@@ -130,6 +134,39 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
   // (pending Bit payment requests) + average client LTV + 6-month bar
   // sparkline. Keeps every metric pulled from the same payments array
   // the rest of the dashboard already loads, so no extra query cost.
+  const [sheetMonths, setSheetMonths] = useState(null);
+  useEffect(() => {
+    if (!isOwner) return undefined;
+    let live = true;
+    supabase.from('revenue_month_total').select('month,channel,amount,imported_at')
+      .then(({ data, error }) => { if (live && !error) setSheetMonths(data || []); })
+      .catch(() => {});
+    return () => { live = false; };
+  }, [isOwner]);
+  const sheet = useMemo(() => {
+    if (!sheetMonths || !sheetMonths.length) return null;
+    const NOT_COACHING = new Set(['national_insurance']);
+    const byMonth = new Map();
+    for (const r of sheetMonths) {
+      if (NOT_COACHING.has(r.channel)) continue;
+      const k = String(r.month).slice(0, 7);
+      byMonth.set(k, (byMonth.get(k) || 0) + (Number(r.amount) || 0));
+    }
+    const key = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const bars = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      bars.push({ label: monthAbbr(d.getMonth()), value: byMonth.get(key(d)) || 0 });
+    }
+    const latest = [...byMonth.keys()].sort().pop();
+    // The newest imported_at is the clock's last successful run - the sync
+    // re-stamps every month row, so one stale row cannot hide a dead clock.
+    const syncedAt = sheetMonths.reduce((m, r) => (r.imported_at && (!m || r.imported_at > m) ? r.imported_at : m), null);
+    const syncAgeH = syncedAt ? (now - new Date(syncedAt)) / 3600000 : null;
+    return { thisMonth: byMonth.get(key(now)) || 0, last3: bars.slice(3).reduce((a, b) => a + b.value, 0), bars, latest, months: byMonth.size, syncedAt, syncAgeH };
+  // `now` is a per-render Date; the sheet rows are the only real dependency.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sheetMonths]);
   const ms30 = 30 * 86400000;
   const ms90 = 90 * 86400000;
   const paidPayments = payments.filter(p => p.status === 'Paid');
@@ -153,7 +190,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
       const total = paidPayments
         .filter(p => { const pd = new Date(p.date); return pd.getMonth() === d.getMonth() && pd.getFullYear() === d.getFullYear(); })
         .reduce((a, p) => a + (parseFloat(p.amount) || 0), 0);
-      out.push({ label: d.toLocaleString('en-US', { month: 'short' }), value: total });
+      out.push({ label: monthAbbr(d.getMonth()), value: total });
     }
     return out;
   // Depend on `payments` itself — keying on .length kept the chart stale
@@ -557,11 +594,11 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                   with cyan-30% bottom hairline; light mode is brand cyan. */}
               <RefinedHeaderStrip padY={16} padX={20}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, minHeight: 30 }}>
-                  <span title="status" style={{ width: 6, height: 6, borderRadius: '50%', background: s.color, flexShrink: 0, boxShadow: `0 0 5px ${s.color}66` }} />
+                  <span title={tr(readLang(), 'status')} style={{ width: 6, height: 6, borderRadius: '50%', background: s.color, flexShrink: 0, boxShadow: `0 0 5px ${s.color}66` }} />
                   <SectionLabel style={{ color: '#FFFFFF', fontSize: 13, letterSpacing: '0.08em', fontWeight: 700 }}>{s.label}</SectionLabel>
                 </span>
               </RefinedHeaderStrip>
-              <div style={{ fontSize: C.kpiNumberSize, fontWeight: 800, fontFamily: FN, color: C.tx, lineHeight: 1.05, letterSpacing: '-0.015em', direction: 'ltr', unicodeBidi: 'isolate', textAlign: 'left' }}>{s.value}
+              <div style={{ fontSize: C.kpiNumberSize, fontWeight: 800, fontFamily: FN, color: C.tx, lineHeight: 1.05, letterSpacing: '-0.015em', direction: 'ltr', unicodeBidi: 'isolate', textAlign: he ? 'right' : 'left' }}>{s.value}
                 {s.total !== undefined && <span style={{ fontSize: 13, color: refined ? 'rgba(0,0,0,0.55)' : C.td, fontWeight: 400, letterSpacing: 0 }}> / {s.total}</span>}</div>
               {s.sub && <div style={{ fontSize: 10, fontFamily: FN, color: s.subColor, marginTop: 6, letterSpacing: '0.04em' }}>{s.sub}</div>}
             </div>
@@ -577,8 +614,8 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
       {isOwner && funnel && (funnel.sessions || funnel.messages || funnel.total) ? (() => {
         const refined = isRefined5b();
         return (
-          <CollapsibleSection title="Incoming · 30D" storageKey="dash-incoming" style={{ marginBottom: 14 }}
-            right={<span style={{ fontSize: 10, fontFamily: FN, color: 'rgba(255,255,255,0.78)', letterSpacing: '0.06em' }}>VISITS in Vercel Analytics</span>}>
+          <CollapsibleSection title={tt('Incoming · 30D')} storageKey="dash-incoming" style={{ marginBottom: 14 }}
+            right={<span style={{ fontSize: 10, fontFamily: FN, color: 'rgba(255,255,255,0.78)', letterSpacing: '0.06em' }}>{tt('VISITS in Vercel Analytics')}</span>}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 12 }}>
               {[
                 { label: 'CHAT SESSIONS', value: funnel.sessions, color: refined ? C.tx : C.tm },
@@ -612,6 +649,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
         outstanding={outstanding}
         monthBars={monthBars}
         maxBar={maxBar}
+        sheet={sheet}
       />}
 
       {/* STORAGE — slim ops indicator, placed directly under Revenue/billing
@@ -680,12 +718,12 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
           a phone. Messages stays its own full-width row below it, never inside
           the alerts grid. */}
           {onlineNow.length > 0 && (
-        <div className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.gn}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
+        <div className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderInlineStart: `3px solid ${C.gn}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
           <RefinedHeaderStrip>
             <SectionLabel style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="dot" color="#FFFFFF"/>{tt('Online Now')} ({onlineNow.length})</SectionLabel>
           </RefinedHeaderStrip>
           {onlineNow.map(t => (
-            <div key={t.id} {...asButton(() => onSelectTrainee(t.id))} aria-label={`Open ${t.name}`} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', cursor: 'pointer', color: C.tx, fontSize: 13 }}>
+            <div key={t.id} {...asButton(() => onSelectTrainee(t.id))} aria-label={readLang() === 'he' ? `פתיחת ${t.name}` : `Open ${t.name}`} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', cursor: 'pointer', color: C.tx, fontSize: 13 }}>
               <span style={{display:'inline-block',width:6,height:6,borderRadius:'50%',background:C.gn,boxShadow:`0 0 4px ${C.gn}`}} />
               {t.name}
             </div>
@@ -718,29 +756,29 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
             // alertHeaderDragProps drive the visuals + gesture).
             const cardsByKey = {
               expiring: expiring.length > 0 && (
-                <div key="expiring" data-alert-key="expiring" className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.or}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow, ...alertCardWrapStyle('expiring') }}>
+                <div key="expiring" data-alert-key="expiring" className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderInlineStart: `3px solid ${C.or}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow, ...alertCardWrapStyle('expiring') }}>
                   <div {...alertHeaderDragProps('expiring')}>
                     <RefinedHeaderStrip>
                       <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="alert" color="#FFFFFF"/>{tt('Expiring Packages')} ({expiring.length})</SectionLabel>
                     </RefinedHeaderStrip>
                   </div>
                   {expiring.map(t => (
-                    <div key={t.id} {...asButton(() => onSelectTrainee(t.id))} aria-label={`Open ${t.name}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', cursor: 'pointer', fontSize: 13 }}>
+                    <div key={t.id} {...asButton(() => onSelectTrainee(t.id))} aria-label={readLang() === 'he' ? `פתיחת ${t.name}` : `Open ${t.name}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', cursor: 'pointer', fontSize: 13 }}>
                       <span style={{ color: C.tx }}>{t.name}</span>
-                      <span style={{ fontFamily: FN, fontWeight: 700, color: C.rd, fontSize: 12 }}>{t.sessionsRemaining} LEFT</span>
+                      <span style={{ fontFamily: FN, fontWeight: 700, color: C.rd, fontSize: 12 }}>{t.sessionsRemaining}{tt('LEFT')}</span>
                     </div>
                   ))}
                 </div>
               ),
               overdue: isOwner && overduePayment.length > 0 && (
-                <div key="overdue" data-alert-key="overdue" className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.rd}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow, ...alertCardWrapStyle('overdue') }}>
+                <div key="overdue" data-alert-key="overdue" className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderInlineStart: `3px solid ${C.rd}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow, ...alertCardWrapStyle('overdue') }}>
                   <div {...alertHeaderDragProps('overdue')}>
                     <RefinedHeaderStrip>
                       <SectionLabel style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="dollar" color="#FFFFFF"/>{tt('Overdue Payment')} ({overduePayment.length})</SectionLabel>
                     </RefinedHeaderStrip>
                   </div>
                   {overduePayment.map(t => (
-                    <div key={t.id} {...asButton(() => onSelectTrainee(t.id))} aria-label={`Open ${t.name}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', cursor: 'pointer', fontSize: 13 }}>
+                    <div key={t.id} {...asButton(() => onSelectTrainee(t.id))} aria-label={readLang() === 'he' ? `פתיחת ${t.name}` : `Open ${t.name}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', cursor: 'pointer', fontSize: 13 }}>
                       <span style={{ color: C.tx, flex: 1 }}>{t.name}</span>
                       <span style={{ fontFamily: FN, color: C.rd, fontSize: 11 }}>{t.neverPaid ? tt('Never paid') : (he ? daysOverdueHe(t.daysOverdue) : `${t.daysOverdue}d overdue`)}</span>
                     </div>
@@ -748,7 +786,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                 </div>
               ),
               dormant: dropoutRisk.length > 0 && (
-                <div key="dormant" data-alert-key="dormant" className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.or}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow, ...alertCardWrapStyle('dormant') }}>
+                <div key="dormant" data-alert-key="dormant" className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderInlineStart: `3px solid ${C.or}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow, ...alertCardWrapStyle('dormant') }}>
                   <div {...alertHeaderDragProps('dormant')}>
                     <RefinedHeaderStrip>
                       <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="moon" color="#FFFFFF"/>{tt('Dormant')} ({dropoutRisk.length})</SectionLabel>
@@ -758,11 +796,11 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                     const days = t.lastWorkout ? Math.floor((now - new Date(t.lastWorkout.date)) / 86400000) : null;
                     return (
                       <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', fontSize: 13 }}>
-                        <span {...asButton(() => onSelectTrainee(t.id))} aria-label={`Open ${t.name}`} style={{ color: C.tx, cursor: 'pointer', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</span>
-                        <span style={{ fontFamily: FN, color: C.or, fontSize: 11, flexShrink: 0, textAlign: 'right' }}>{days == null ? tt('Never trained') : (he ? daysAgoHe(days) : `${days}d ago`)}</span>
+                        <span {...asButton(() => onSelectTrainee(t.id))} aria-label={readLang() === 'he' ? `פתיחת ${t.name}` : `Open ${t.name}`} style={{ color: C.tx, cursor: 'pointer', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</span>
+                        <span style={{ fontFamily: FN, color: C.or, fontSize: 11, flexShrink: 0, textAlign: 'end' }}>{days == null ? tt('Never trained') : (he ? daysAgoHe(days) : `${days}d ago`)}</span>
                         {/* Reserved slot so the status right-edge aligns whether or not the
                             athlete has a phone (WhatsApp button renders null without one). */}
-                        <span style={{ width: 26, display: 'inline-flex', justifyContent: 'flex-end', flexShrink: 0, marginLeft: 8 }}><DormantWhatsAppButton trainee={t} days={days} /></span>
+                        <span style={{ width: 26, display: 'inline-flex', justifyContent: 'flex-end', flexShrink: 0, marginInlineStart: 8 }}><DormantWhatsAppButton trainee={t} days={days} /></span>
                       </div>
                     );
                   })}
@@ -785,9 +823,9 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
               <RefinedHeaderStrip>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <SectionLabel as="span" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="mail" color="#FFFFFF"/>{tt('New Leads')} ({leads.length})</SectionLabel>
-                  <span title={gateOpen ? 'Gate open — apply multi-tenant migration' : `Multi-tenant migration applies once ${COACH_GATE} serious coach signups arrive`}
+                  <span title={readLang() === 'he' ? (gateOpen ? 'הסף עבר — זה הזמן להריץ את המיגרציה לכמה מאמנים' : `המיגרציה לכמה מאמנים רצה אחרי ${COACH_GATE} הרשמות רציניות של מאמנים`) : (gateOpen ? 'Gate open — apply multi-tenant migration' : `Multi-tenant migration applies once ${COACH_GATE} serious coach signups arrive`)}
                     style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 9, color: '#FFFFFF', border: '1px solid rgba(255,255,255,0.55)', background: 'transparent', borderRadius: 0, padding: '2px 6px', letterSpacing: '0.04em' }}>
-                    🎯 {coachLeads}/{COACH_GATE} {gateOpen ? 'OPEN' : 'GATE'}
+                    🎯 {coachLeads}/{COACH_GATE} {tt(gateOpen ? 'OPEN' : 'GATE')}
                   </span>
                 </div>
               </RefinedHeaderStrip>
@@ -801,12 +839,12 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                 return (
                   <div key={l.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '6px 0', fontSize: 13 }}>
                     {isCoach && (
-                      <span title="Coach waitlist signup" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.ac, background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: '2px 5px', flexShrink: 0 }}>COACH</span>
+                      <span title={tt('Coach waitlist signup')} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.ac, background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: '2px 5px', flexShrink: 0 }}>{tt('COACH')}</span>
                     )}
                     <a href={mailto} style={{ color: C.tx, textDecoration: 'none', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }} title={`${l.context} · ${l.source}`}>{l.email}</a>
                     <span style={{ fontFamily: FN, color: C.td, fontSize: 10 }}>{ago}</span>
-                    <button onClick={() => markLeadContacted(l.id)} title="Mark contacted" style={{ background: 'var(--c-sf)', border: `1px solid ${C.gn}`, color: C.gn, borderRadius: 0, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>✓</button>
-                    <button onClick={() => deleteLead(l.id)} title="Delete" style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, color: C.rd, borderRadius: 0, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>✕</button>
+                    <button onClick={() => markLeadContacted(l.id)} title={tt('Mark contacted')} style={{ background: 'var(--c-sf)', border: `1px solid ${C.gn}`, color: C.gn, borderRadius: 0, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>✓</button>
+                    <button onClick={() => deleteLead(l.id)} title={tr(readLang(), 'Delete')} style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, color: C.rd, borderRadius: 0, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>✕</button>
                   </div>
                 );
               })}
@@ -819,13 +857,13 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
 
       {/* Search */}
       <div style={{ marginBottom: 14, display: 'flex', justifyContent: 'center' }}>
-        <input placeholder="Filter athletes..." value={filter} onChange={e => setFilter(e.target.value)}
-          style={{ ...baseInput, maxWidth: 300, paddingLeft: 12, textAlign: 'center', border: `1px solid ${C.tx}` }} />
+        <input placeholder={tt('Filter athletes...')} value={filter} onChange={e => setFilter(e.target.value)}
+          style={{ ...baseInput, maxWidth: 300, paddingInlineStart: 12, textAlign: 'center', border: `1px solid ${C.tx}` }} />
       </div>
 
       {/* Client table */}
       {sorted.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: 40, color: C.td }}>No clients yet. Import your trainee list.</div>
+        <div style={{ textAlign: 'center', padding: 40, color: C.td }}>{tt('No clients yet. Import your trainee list.')}</div>
       ) : (() => {
         const refined = isRefined5b();
         const plainHeadStyle = { textAlign: 'center', padding: '10px 12px', fontSize: 9, fontFamily: FN, color: refined ? '#FFFFFF' : C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 };
@@ -848,7 +886,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                 <SH k="status" label={tt('Status')} />
                 <th style={plainHeadStyle}>{tt('Format')}</th>
                 <th style={plainHeadStyle}>{tt('Package')}</th>
-                <SH k="sessions" label={tt('Sessions')} />
+                <SH k="sessions" label={readLang() === 'he' ? 'נותרו' : tt('Sessions')} />
                 {isOwner && <SH k="paid" label={tt('Total Paid')} />}
                 {isOwner && <SH k="lastPay" label={tt('Last Payment')} />}
                 <SH k="workouts" label={tt('Workouts')} />
@@ -857,14 +895,14 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
             </thead>
             <tbody>
               {sorted.map(t => (
-                <tr key={t.id} {...asButton(() => onSelectTrainee(t.id))} aria-label={`Open ${t.name}`}
+                <tr key={t.id} {...asButton(() => onSelectTrainee(t.id))} aria-label={readLang() === 'he' ? `פתיחת ${t.name}` : `Open ${t.name}`}
                   style={{ borderBottom: `1px solid ${C.cardBd}`, cursor: 'pointer', transition: 'background 0.1s' }}
                   onMouseEnter={e => e.currentTarget.style.background = refined ? 'rgba(0,0,0,0.04)' : C.sf2}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                   <td style={{ padding: '12px', fontWeight: 600, color: C.tx, textAlign: 'center' }}>{t.name}</td>
                   <td style={{ padding: '12px', textAlign: 'center' }}><Badge color={statusColor[t.status] || C.td}>{tt(t.status)}</Badge></td>
                   <td style={{ padding: '12px', color: C.tm, fontSize: 12, textAlign: 'center' }}>{tt(t.format)}</td>
-                  <td style={{ padding: '12px', color: C.tm, fontSize: 12, textAlign: 'center' }}>{tt(t.package)}{isOwner && Number.isFinite(parseInt(t.packagePrice)) ? ` · ₪${parseInt(t.packagePrice).toLocaleString()}` : ''}</td>
+                  <td style={{ padding: '12px', color: C.tm, fontSize: 12, textAlign: 'center' }}>{pkgLabel(t.package)}{isOwner && Number.isFinite(parseInt(t.packagePrice)) ? ` · ₪${parseInt(t.packagePrice).toLocaleString()}` : ''}</td>
                   <td style={{ padding: '12px', textAlign: 'center' }}>
                     {t.sessionsRemaining > 0 ? (
                       <span style={{ fontFamily: FN, fontWeight: 700, fontSize: 14, color: t.sessionsRemaining <= 2 ? C.rd : C.gn }}>{t.sessionsRemaining}</span>
@@ -912,7 +950,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
         <div style={{marginTop:24,display:'flex',justifyContent:'center'}}>
           <div style={{background:'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius:0, padding:'14px 20px', maxWidth:300, textAlign:'center', overflow:'hidden'}}>
             <RefinedHeaderStrip padY={14} padX={20} marginBottom={12}>
-              <div style={{fontSize:10, fontFamily:FN, color:'#FFFFFF', textTransform:'uppercase', letterSpacing:'0.10em', fontWeight:700}}>Total Collected · All Time</div>
+              <div style={{fontSize:10, fontFamily:FN, color:'#FFFFFF', textTransform:'uppercase', letterSpacing:'0.10em', fontWeight:700}}>{tt('Total Collected · All Time')}</div>
             </RefinedHeaderStrip>
             <div style={{fontSize:22, fontWeight:800, fontFamily:FN, color:C.tx, letterSpacing:'-0.01em'}}><span style={{color:C.ac}}>₪</span>{totalAllPaid.toLocaleString()}</div>
           </div>
@@ -925,7 +963,9 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
 // F-36 — RevenueCard. Six-metric grid + 6-month bar chart, slotted into
 // the dashboard between KPI tiles and alert cards. Designed to read at
 // a glance without an analytics tab.
-function RevenueCard({ paymentsUnknown = false, monthlyRate, thisMonthPaid, delta30, collected30, collected90, avgLtv, avgTicket, outstanding, monthBars, maxBar }) {
+function RevenueCard({ paymentsUnknown = false, monthlyRate, thisMonthPaid, delta30, collected30, collected90, avgLtv, avgTicket, outstanding, monthBars, maxBar, sheet = null }) {
+  const bars = sheet ? sheet.bars : monthBars;
+  const barMax = sheet ? Math.max(1, ...sheet.bars.map(b => b.value)) : maxBar;
   const tt = useT();
   const he = useHe();
   const refined = isRefined5b();
@@ -941,7 +981,7 @@ function RevenueCard({ paymentsUnknown = false, monthlyRate, thisMonthPaid, delt
   const subStyle = { fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.04em', marginTop: 2 };
 
   return (
-    <CollapsibleSection title="Revenue" storageKey="dash-revenue" style={{ marginBottom: 20 }}
+    <CollapsibleSection title={tr(readLang(), 'Revenue')} storageKey="dash-revenue" style={{ marginBottom: 20 }}
       right={<span style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.75)', letterSpacing: '0.12em', fontWeight: 700 }}>{tt("INCL. VAT · 6 MO TREND")}</span>}>
       <div>
         {/* Top row — 6 metric tiles. responsive auto-fit so it collapses
@@ -953,18 +993,19 @@ function RevenueCard({ paymentsUnknown = false, monthlyRate, thisMonthPaid, delt
             <span style={subStyle}>{tt('Recurring committed')}</span>
           </div>
           <div style={metricStyle}>
-            <span style={labelStyle}>{tt('30D COLLECTED')}</span>
-            <span style={numStyle}>{paymentsUnknown ? '—' : `₪${Math.round(collected30).toLocaleString()}`}</span>
-            {delta30 !== null && (
+            <span style={labelStyle}>{tt(sheet ? 'THIS MONTH · SHEET' : '30D COLLECTED')}</span>
+            <span style={numStyle}>{sheet ? `₪${Math.round(sheet.thisMonth).toLocaleString()}` : paymentsUnknown ? '—' : `₪${Math.round(collected30).toLocaleString()}`}</span>
+            {sheet && <span style={{ ...subStyle, color: sheet.syncAgeH != null && sheet.syncAgeH > 30 ? C.rd : subStyle.color }}>{sheet.syncAgeH == null ? tt('Synced from the sheet twice a day') : sheet.syncAgeH > 30 ? `${tt('Sheet sync overdue')} · ${Math.round(sheet.syncAgeH / 24)} ${tt('days')}` : sheet.syncAgeH < 1 ? tt('Synced from the sheet just now') : tt('Synced from the sheet {n}h ago').replace('{n}', Math.round(sheet.syncAgeH))}</span>}
+            {!sheet && delta30 !== null && (
               <span style={{ ...subStyle, color: delta30 >= 0 ? C.gn : C.rd }}>
                 <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{delta30 >= 0 ? '+' : ''}{delta30}%</span> {tt('vs prev 30d')}
               </span>
             )}
           </div>
           <div style={metricStyle}>
-            <span style={labelStyle}>{tt('90D COLLECTED')}</span>
-            <span style={numStyle}>{paymentsUnknown ? '—' : `₪${Math.round(collected90).toLocaleString()}`}</span>
-            <span style={subStyle}>{tt('Trailing 3 months')}</span>
+            <span style={labelStyle}>{tt(sheet ? 'LAST 3 MONTHS · SHEET' : '90D COLLECTED')}</span>
+            <span style={numStyle}>{sheet ? `₪${Math.round(sheet.last3).toLocaleString()}` : paymentsUnknown ? '—' : `₪${Math.round(collected90).toLocaleString()}`}</span>
+            <span style={subStyle}>{sheet ? tt('From the sheets') : tt('Trailing 3 months')}</span>
           </div>
           <div style={metricStyle}>
             {/* OUTSTANDING carries a real status (overdue money) — per the
@@ -975,7 +1016,7 @@ function RevenueCard({ paymentsUnknown = false, monthlyRate, thisMonthPaid, delt
               {tt('OUTSTANDING')}
             </span>
             <span style={numStyle}>{paymentsUnknown ? '—' : `₪${Math.round(outstanding.amount).toLocaleString()}`}</span>
-            <span style={subStyle}>{outstanding.count} {tt('Pending requests')}</span>
+            <span style={subStyle}>{readLang() === 'he' ? (outstanding.count === 0 ? 'אין בקשות תשלום פתוחות' : outstanding.count === 1 ? 'בקשת תשלום פתוחה אחת' : `${outstanding.count} בקשות תשלום פתוחות`) : `${outstanding.count} ${tt('Pending requests')}`}</span>
           </div>
           <div style={metricStyle}>
             <span style={labelStyle}>{tt('AVG LTV')}</span>
@@ -993,12 +1034,12 @@ function RevenueCard({ paymentsUnknown = false, monthlyRate, thisMonthPaid, delt
             free implementation (just divs) so it stays under 2kb of
             DOM and inherits theme colors. */}
         <div>
-          <div style={{ ...labelStyle, marginBottom: 8 }}>{tt("LAST 6 MONTHS · COLLECTED")}</div>
+          <div style={{ ...labelStyle, marginBottom: 8 }}>{tt(sheet ? 'LAST 6 MONTHS · COLLECTED · SHEET' : 'LAST 6 MONTHS · COLLECTED')}</div>
           {/* With nothing collected in any of the six months every bar renders at
               its 2% floor in the hairline colour, so the chart reads as an empty
               axis — i.e. as BROKEN rather than as "nothing came in yet". Say it
               instead. (Ohad: make it honest; empty is empty.) */}
-          {monthBars.every((b) => !(b.value > 0)) ? (
+          {bars.every((b) => !(b.value > 0)) ? (
             <div style={{
               height: 90, display: 'flex', alignItems: 'center', justifyContent: 'center',
               border: `1px dashed var(--c-cardBd)`,
@@ -1009,14 +1050,14 @@ function RevenueCard({ paymentsUnknown = false, monthlyRate, thisMonthPaid, delt
             </div>
           ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8, alignItems: 'end', height: 90 }}>
-            {monthBars.map((b, i) => (
+            {bars.map((b, i) => (
               <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 4, height: '100%' }}>
                 <div style={{
                   flex: 1, display: 'flex', alignItems: 'flex-end',
                 }}>
                   <div style={{
                     width: '100%',
-                    height: `${Math.max(2, Math.round((b.value / maxBar) * 100))}%`,
+                    height: `${Math.max(2, Math.round((b.value / barMax) * 100))}%`,
                     background: b.value > 0 ? C.ac : 'var(--c-cardBd)',
                     transition: 'height 200ms',
                   }} title={`${b.label} · ₪${Math.round(b.value).toLocaleString()}`} />

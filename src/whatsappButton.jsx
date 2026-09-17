@@ -1,5 +1,6 @@
 import React from 'react';
 import { FN } from './theme';
+import { readLang } from './i18n';
 
 // Strip non-digits and prepend Israeli country code if the user typed a local
 // 0XX-XXX-XXXX style number. WhatsApp's wa.me deeplink wants raw E.164
@@ -55,7 +56,7 @@ export function WhatsAppCheckInButton({ name, phone, days, gender, size = 16, pa
   };
   return (
     <button onClick={handleClick}
-      title={`Send WhatsApp check-in to ${name || ''}`}
+      title={readLang() === 'he' ? `שליחת צ׳ק-אין בוואטסאפ ${/^[\u0590-\u05FF]/.test(name || '') ? 'ל' : 'ל-'}${name || ''}` : `Send WhatsApp check-in to ${name || ''}`}
       style={{
         background: 'var(--c-badgeBg, var(--c-sf))', border: `1px solid ${WA_GREEN}`, color: WA_GREEN,
         borderRadius: 0, padding, fontFamily: FN, fontSize: 10,

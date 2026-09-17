@@ -20,7 +20,7 @@ import { supabase } from './supabase';
 import { RefinedHeaderStrip, toast, confirmToast, stripBtnBase } from './ui';
 import { traineeIdsFor } from './traineeUtils';
 import { mergeIncomingSession } from './sessionMerge';
-import { useT as useAppT, useTB } from './i18n';
+import { tr, readLang, useT as useAppT, useTB } from './i18n';
 
 
 
@@ -54,7 +54,7 @@ function InlineVideo({ url }) {
   if (yt) {
     const short = /youtube\.com\/shorts\//i.test(String(url || ''));  // vertical → portrait frame
     return (
-      <div style={{ marginTop: 8, aspectRatio: short ? '9/16' : '16/9', background: '#000', border: `1px solid ${C.cardBd}`, ...(short ? { maxWidth: 260, marginLeft: 'auto', marginRight: 'auto' } : {}) }}>
+      <div style={{ marginTop: 8, aspectRatio: short ? '9/16' : '16/9', background: '#000', border: `1px solid ${C.cardBd}`, ...(short ? { maxWidth: 260, marginInlineStart: 'auto', marginInlineEnd: 'auto' } : {}) }}>
         <iframe
           src={`https://www.youtube.com/embed/${yt}?rel=0&modestbranding=1&controls=1&fs=0&disablekb=1&playsinline=1`}
           sandbox="allow-scripts allow-same-origin allow-presentation"
@@ -80,7 +80,7 @@ export default function SessionsView({ mode = 'group', ...props }) {
   if (mode === 'single') {
     return (
       <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-        <Suspense fallback={<div style={{ padding: 30, textAlign: 'center', color: C.td }}>Loading…</div>}>
+        <Suspense fallback={<div style={{ padding: 30, textAlign: 'center', color: C.td }}>{tr(readLang(), 'Loading…')}</div>}>
           <WorkoutsView workouts={props.workouts} setWorkouts={props.setWorkouts} planIndex={props.planIndex}
             trainees={props.trainees} exercises={props.exercises} onDecrementSession={props.onDecrementSession}
             clientWorkouts={props.clientWorkouts} setClientWorkouts={props.setClientWorkouts} />
@@ -537,7 +537,7 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
     try { chanRef.current?.send({ type: 'broadcast', event: 'session', payload: { value: null } }); } catch { /* noop */ }
     try { await supabase.from('store').delete().eq('key', SKEY); } catch {}
     setSession(null);
-    if (completed.length) toast(`${completed.length} athlete${completed.length === 1 ? '' : 's'} logged to their history`, 'success', { ttl: 4000 });
+    if (completed.length) toast(readLang() === 'he' ? (completed.length === 1 ? 'מתאמן אחד נרשם להיסטוריה שלו' : `${completed.length} מתאמנים נרשמו להיסטוריה שלהם`) : `${completed.length} athlete${completed.length === 1 ? '' : 's'} logged to their history`, 'success', { ttl: 4000 });
     } finally {
       finishingRef.current = false;
     }
@@ -547,7 +547,7 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
   // navigating away could otherwise revive a cleared session). (audit)
   useEffect(() => () => { if (saveTimer.current) clearTimeout(saveTimer.current); }, []);
 
-  if (!loaded) return <div style={{ padding: 30, textAlign: 'center', color: C.td }}>Loading…</div>;
+  if (!loaded) return <div style={{ padding: 30, textAlign: 'center', color: C.td }}>{tr(readLang(), 'Loading…')}</div>;
 
   // ---- no active session ----
   if (!session) {
@@ -577,9 +577,9 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
           <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke={C.ac} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.9 }}>
             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
           </svg>
-          <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', color: C.tx, textTransform: 'uppercase' }}>No one on the floor yet</div>
-          <div style={{ fontFamily: FB, fontSize: 13, color: C.tm, maxWidth: 380, lineHeight: 1.55 }}>Add the athletes training now — check them in as they arrive and log every set from this one screen.</div>
-          <button onClick={() => setPicking(true)} style={{ ...primaryBtn, width: 'auto', padding: '12px 26px', marginTop: 4 }}>+ Add athletes</button>
+          <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', color: C.tx, textTransform: 'uppercase' }}>{tt('No one on the floor yet')}</div>
+          <div style={{ fontFamily: FB, fontSize: 13, color: C.tm, maxWidth: 380, lineHeight: 1.55 }}>{tt('Add the athletes training now — check them in as they arrive and log every set from this one screen.')}</div>
+          <button onClick={() => setPicking(true)} style={{ ...primaryBtn, width: 'auto', padding: '12px 26px', marginTop: 4 }}>+ {tr(readLang(), 'Add athletes')}</button>
         </div>
       ) : (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12, marginTop: 12 }}>
@@ -647,7 +647,7 @@ function FloorBar({ session, checkedIn, traineeById, onAdd, onFinish }) {
           </span>
           <div style={{ display: 'grid', gridAutoFlow: 'column', gridAutoColumns: '1fr', gap: 0 }}>
             <button onClick={onAdd} style={{ ...stripBtn, minWidth: 88 }}>+ {tt('ADD')}</button>
-            <button onClick={onFinish} style={{ ...stripBtn, borderLeft: 'none', minWidth: 88 }}>■ {tt('FINISH')}</button>
+            <button onClick={onFinish} style={{ ...stripBtn, borderInlineStart: 'none', minWidth: 88 }}>■ {tt('FINISH')}</button>
           </div>
         </div>
       </RefinedHeaderStrip>
@@ -692,11 +692,11 @@ function AthleteCard({ a, name, prevMap, exDetail, onToggleIn, onSet, onCurEx, o
               ? `Remove ${name || 'this athlete'} from the floor? The sets you logged for them here are NOT saved yet and will be discarded.`
               : `Remove ${name || 'this athlete'} from the floor?`;
             if (await confirmToast(msg, { okLabel: 'Remove', cancelLabel: 'Keep' })) onRemove();
-          }} title="Remove from session" style={{ ...miniBtn, color: C.rd, border: `1px solid ${C.cardBd}` }}>✕</button>
+          }} title={tt('Remove from session')} style={{ ...miniBtn, color: C.rd, border: `1px solid ${C.cardBd}` }}>✕</button>
         </div>
       </div>
       <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
-        {a.exercises.length === 0 && <div style={{ color: C.td, fontSize: 12, padding: 8, textAlign: 'center' }}>No exercises on this day.</div>}
+        {a.exercises.length === 0 && <div style={{ color: C.td, fontSize: 12, padding: 8, textAlign: 'center' }}>{tt('No exercises on this day.')}</div>}
         {a.exercises.map((ex, ei) => {
           const prevSets = prevMap?.get(ex.eid) || prevMap?.get(prevTitleKey(ex.title));
           const det = exDetail?.[`${a.planId}|${ex.eid}`] || {};
@@ -707,7 +707,7 @@ function AthleteCard({ a, name, prevMap, exDetail, onToggleIn, onSet, onCurEx, o
           const doneCount = ex.sets.filter(s => s.done).length;
           const allDone = doneCount === ex.sets.length && ex.sets.length > 0;
           return (
-          <div key={ei} style={{ border: `1px solid ${open ? C.ac : C.cardBd}`, borderLeft: `3px solid ${allDone ? C.gn : open ? C.ac : C.cardBd}`, background: open ? 'rgba(57,189,255,0.04)' : 'transparent' }}>
+          <div key={ei} style={{ border: `1px solid ${open ? C.ac : C.cardBd}`, borderInlineStart: `3px solid ${allDone ? C.gn : open ? C.ac : C.cardBd}`, background: open ? 'rgba(57,189,255,0.04)' : 'transparent' }}>
             {/* Collapsed header — tap to expand (accordion: one open at a time).
                 Title WRAPS on whole words instead of truncating. */}
             <div onClick={() => onCurEx(open ? -1 : ei)} style={{ padding: 8, cursor: 'pointer' }}>
@@ -738,7 +738,7 @@ function AthleteCard({ a, name, prevMap, exDetail, onToggleIn, onSet, onCurEx, o
                   return (
                   <React.Fragment key={si}>
                     {prior && (parseFloat(prior.load) > 0 || prior.reps) && (
-                      <div style={{ display: 'grid', gridTemplateColumns: COLS, gap: 4, alignItems: 'center', opacity: 0.6, marginTop: si === 0 ? 0 : 4 }} title="Previous week">
+                      <div style={{ display: 'grid', gridTemplateColumns: COLS, gap: 4, alignItems: 'center', opacity: 0.6, marginTop: si === 0 ? 0 : 4 }} title={tt('Previous week')}>
                         <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.ac, textAlign: 'center' }}>‹</span>
                         <span style={{ fontFamily: FB, fontSize: 11, color: C.tx, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{prior.reps || '—'}</span>
                         <span style={{ fontFamily: FB, fontSize: 11, color: C.tx, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{parseFloat(prior.load) || '—'}</span>
@@ -838,7 +838,7 @@ function AthletePicker({ trainees, planIndex, existing = [], clientWorkouts = []
       seen.add(k); return true;
     });
     const dropped = picks.length - unique.length;
-    if (dropped) toast(`Skipped ${dropped} duplicate ${dropped === 1 ? 'athlete' : 'athletes'}.`, 'warn');
+    if (dropped) toast(readLang() === 'he' ? (dropped === 1 ? 'דולג מתאמן אחד שהופיע פעמיים.' : `דולגו ${dropped} מתאמנים שהופיעו פעמיים.`) : `Skipped ${dropped} duplicate ${dropped === 1 ? 'athlete' : 'athletes'}.`, 'warn');
     onConfirm(unique);
   };
 
@@ -863,7 +863,7 @@ function AthletePicker({ trainees, planIndex, existing = [], clientWorkouts = []
             .sess-add-row > *:nth-child(4) { grid-area: 3 / 2 / 4 / 4; }
           }
         `}</style>
-        <h3 style={{ margin: '0 0 14px', fontFamily: FN, fontSize: 14, color: C.ac, letterSpacing: '0.12em', fontWeight: 700 }}>ADD ATHLETES</h3>
+        <h3 style={{ margin: '0 0 14px', fontFamily: FN, fontSize: 14, color: C.ac, letterSpacing: '0.12em', fontWeight: 700 }}>{tt('ADD ATHLETES')}</h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: '54vh', overflow: 'auto' }}>
           {rows.map((r, i) => {
             const plans = r.traineeId ? plansFor(r.traineeId) : [];
@@ -874,29 +874,29 @@ function AthletePicker({ trainees, planIndex, existing = [], clientWorkouts = []
             return (
               <div key={i} className="sess-add-row" style={{ display: 'grid', gridTemplateColumns: '1.1fr 1.1fr 0.7fr 1fr 28px', gap: 6, alignItems: 'center' }}>
                 <select value={r.traineeId} onChange={e => { const tid = e.target.value; const nx = tid ? nextWorkout(tid) : null; setRow(i, nx ? { traineeId: tid, planId: nx.planId, dayIdx: nx.dayIdx, week: nx.week } : { traineeId: tid, planId: '', dayIdx: 0, week: 0 }); }} style={sel}>
-                  <option value="">— athlete —</option>
+                  <option value="">{tt('— athlete —')}</option>
                   {active.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                 </select>
                 <select value={r.planId} onChange={e => setRow(i, { planId: e.target.value, dayIdx: 0, week: 0 })} style={sel} disabled={!r.traineeId}>
-                  <option value="">— program —</option>
+                  <option value="">{tt('— program —')}</option>
                   {plans.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
                 {/* Week before day — pick the week, then the day within it. */}
-                <select value={wkVal} onChange={e => setRow(i, { week: Number(e.target.value) })} style={sel} disabled={!r.planId} title="Week to log into">
+                <select value={wkVal} onChange={e => setRow(i, { week: Number(e.target.value) })} style={sel} disabled={!r.planId} title={tt('Week to log into')}>
                   {Array.from({ length: weeks }, (_, wi) => wi + 1).map(wn => <option key={wn} value={wn}>W{wn}</option>)}
                 </select>
                 <select value={r.dayIdx} onChange={e => setRow(i, { dayIdx: Number(e.target.value) })} style={sel} disabled={!r.planId}>
-                  {dayNames.length ? dayNames.map((d, di) => <option key={di} value={di}>{d || `Day ${di + 1}`}</option>) : <option value={0}>Day 1</option>}
+                  {dayNames.length ? dayNames.map((d, di) => <option key={di} value={di}>{d || (readLang() === 'he' ? `יום ${di + 1}` : `Day ${di + 1}`)}</option>) : <option value={0}>{tr(readLang(), 'Day 1')}</option>}
                 </select>
                 <button onClick={() => delRow(i)} style={{ ...miniBtn, height: 32, boxSizing: 'border-box', padding: '0 8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.rd, border: `1px solid ${C.cardBd}` }}>✕</button>
               </div>
             );
           })}
         </div>
-        <button onClick={addRow} style={{ ...miniBtn, marginTop: 10, padding: '8px 12px', border: `1px solid ${C.cardBd}`, color: C.ac }}>+ ANOTHER</button>
+        <button onClick={addRow} style={{ ...miniBtn, marginTop: 10, padding: '8px 12px', border: `1px solid ${C.cardBd}`, color: C.ac }}>+ {tr(readLang(), 'ANOTHER')}</button>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
           <button onClick={onCancel} style={{ ...miniBtn, padding: '9px 16px', border: `1px solid ${C.cardBd}`, color: C.tm }}>{tt("Cancel")}</button>
-          <button onClick={confirm} style={{ ...primaryBtn, width: 'auto', padding: '9px 18px' }}>Add to session</button>
+          <button onClick={confirm} style={{ ...primaryBtn, width: 'auto', padding: '9px 18px' }}>{tt('Add to session')}</button>
         </div>
       </div>
     </div>
@@ -932,11 +932,11 @@ function MenuCard({ glyph, title, desc, onClick }) {
     <button onClick={onClick}
       onMouseEnter={e => { e.currentTarget.style.borderColor = C.ac; e.currentTarget.style.background = 'rgba(57,189,255,0.06)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
       onMouseLeave={e => { e.currentTarget.style.borderColor = C.cardBd; e.currentTarget.style.background = 'var(--c-sf)'; e.currentTarget.style.transform = 'none'; }}
-      style={{ textAlign: 'left', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '20px 18px', cursor: 'pointer', transition: 'border-color 140ms, background 140ms, transform 140ms', display: 'flex', flexDirection: 'column', gap: 8, minHeight: 168 }}>
+      style={{ textAlign: 'start', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '20px 18px', cursor: 'pointer', transition: 'border-color 140ms, background 140ms, transform 140ms', display: 'flex', flexDirection: 'column', gap: 8, minHeight: 168 }}>
       <span style={{ fontSize: 30, lineHeight: 1 }}>{glyph}</span>
       <span style={{ fontFamily: FN, fontSize: 14, fontWeight: 700, letterSpacing: '0.06em', color: C.tx, marginTop: 4 }}>{title}</span>
       <span style={{ fontFamily: FB, fontSize: 12.5, color: C.tm, lineHeight: 1.5, flex: 1 }}>{desc}</span>
-      <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', color: C.ac, marginTop: 4 }}>ENTER →</span>
+      <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', color: C.ac, marginTop: 4 }}>{tr(readLang(), 'ENTER →')}</span>
     </button>
   );
 }

@@ -67,7 +67,7 @@ export const PROGRAMS = [
     summary:
       'Learn the seven primary movement patterns. The base every other program assumes.',
     summaryHe:
-      'ללמוד את שבעת תבניות התנועה העיקריות. הבסיס שכל תוכנית אחרת מניחה.',
+      'לומדים את שבע תבניות התנועה העיקריות. הבסיס שכל תוכנית אחרת בנויה עליו.',
     highlights: [
       'Hinge / squat / push / pull / carry / rotation in every microcycle',
       'Tempo + ROM emphasis before load',
@@ -122,7 +122,7 @@ export const PROGRAMS = [
     title: 'Hypertrophy 16',
     titleHe: 'היפרטרופיה 16',
     tagHe: 'היפרטרופיה',
-    audienceHe: 'שנה ומעלה של ניסיון, מטרה היא מסה',
+    audienceHe: 'שנה ומעלה של ניסיון, המטרה: מסה',
     durationHe: '16 שבועות · 4 ימים בשבוע',
     duration: '16 weeks · 4 days/week',
     audience: '1+ year base, goal is size',
@@ -136,9 +136,9 @@ export const PROGRAMS = [
       'Optional BFR finishers',
     ],
     highlightsHe: [
-      'עליית נפח 60→90% משבוע לשבוע',
+      'עליית נפח הדרגתית מ-60% ל-90% לאורך הבלוק',
       'פיצול משולב — דחיפה/משיכה/רגליים + עליון/תחתון',
-      'סיומות BFR אופציונליות',
+      'פינישרים של BFR אופציונליים',
     ],
     price: 390,
     currency: 'NIS',
@@ -201,16 +201,16 @@ export const PROGRAMS = [
     summary:
       "Heavy compound work followed by hypertrophy assistance. Hybrid template that doesn't force you to pick a lane.",
     summaryHe:
-      'תרגילים מורכבים כבדים ואחריהם עזר היפרטרופי. תבנית היברידית שלא מאלצת אותך לבחור מסלול.',
+      'תרגילים רב-מפרקיים כבדים, ואחריהם תרגילי עזר להיפרטרופיה. תבנית היברידית שלא מאלצת אותך לבחור מסלול.',
     highlights: [
       'Top sets 80–90% 1RM on the main lifts',
       'Backoff sets for size',
       'Built-in deload week',
     ],
     highlightsHe: [
-      'סטים מובילים 80-90% מ-1RM בתרגילים המרכזיים',
-      'סטי המשך להגדלת מסה',
-      'שבוע דילוד מובנה',
+      'טופ סטים ב-80–90% מ-1RM בתרגילים המרכזיים',
+      'סטי בק-אוף להגדלת מסה',
+      'שבוע דילואד מובנה',
     ],
     price: 350,
     currency: 'NIS',
@@ -269,15 +269,15 @@ export const PROGRAMS = [
     summary:
       'Two coordinated copies of the same block. Synchronised so you can warm up together and use each other as spotters.',
     summaryHe:
-      'שני עותקים מתואמים של אותו בלוק. מסונכרן כדי שתוכלו להתחמם יחד ולעזור זה לזה.',
+      'שני עותקים מתואמים של אותו בלוק, מסונכרנים כדי שתוכלו להתחמם יחד ולעזור זה לזה.',
     highlights: [
       'Synchronised supersets where possible',
       'Different absolute loads, same %RM',
       'One purchase = two accounts',
     ],
     highlightsHe: [
-      'סופרסטים מסונכרנים היכן שאפשר',
-      'עומסים שונים, אותו אחוז 1RM',
+      'סופרסטים מסונכרנים איפה שאפשר',
+      'עומסים שונים, אותו אחוז מ-1RM',
       'רכישה אחת = שני חשבונות',
     ],
     price: 540,
@@ -325,14 +325,14 @@ export const PROGRAMS = [
     title: 'Return to Training',
     titleHe: 'חזרה לאימונים',
     tagHe: 'שיקום',
-    audienceHe: 'חזרה מפציעה, אישור לעמיסה',
+    audienceHe: 'חזרה מפציעה, עם אישור להעמיס',
     durationHe: '8 שבועות · ימים משתנים',
     duration: '8 weeks · variable days/week',
     audience: 'Coming back from injury, cleared to load',
     summary:
       'Load-management hierarchy: ROM → Tempo → Intensity → Volume → Frequency. You log pain (0–10), the program adapts the load.',
     summaryHe:
-      'ניהול עומס בהיררכיה: טווח תנועה ← טמפו ← עצימות ← נפח ← תדירות. את/ה רושמ/ת רמת כאב (0-10), התוכנית מתאימה את העומס.',
+      'ניהול עומס בהיררכיה: טווח תנועה ← טמפו ← עצימות ← נפח ← תדירות. אתה רושם רמת כאב (0–10), והתוכנית מתאימה את העומס.',
     highlights: [
       'Per-exercise pain gate (0–3 OK, 4–5 modify, 6+ stop)',
       'Two-week reassess windows',
@@ -340,8 +340,8 @@ export const PROGRAMS = [
     ],
     highlightsHe: [
       'סף כאב לכל תרגיל (0-3 בסדר, 4-5 שינוי, 6 ומעלה עצירה)',
-      'חלונות הערכה כל שבועיים',
-      'רמזי מאמן מובנים בכל סט',
+      'הערכה מחדש כל שבועיים',
+      'דגשי מאמן מובנים בכל סט',
     ],
     price: 320,
     currency: 'NIS',
@@ -384,23 +384,23 @@ export const PROGRAMS = [
     id: 'athlete-conditioning-12',
     tag: 'Athletic',
     title: 'Athlete · Strength + Conditioning',
-    titleHe: 'ספורטאי · כוח + מאמץ',
+    titleHe: 'ספורטאי · כוח + כושר',
     tagHe: 'ספורטאי',
-    audienceHe: 'ענפי שדה/קלעים, עונה או חוץ-עונה',
+    audienceHe: 'ענפי מגרש ואולם, בעונה או מחוץ לעונה',
     durationHe: '12 שבועות · 4 ימים בשבוע',
     duration: '12 weeks · 4 days/week',
     audience: 'Field/court sport, in-season or off-season',
     summary:
       'Concurrent strength and conditioning template. Lift-day pairings keep aerobic and alactic work from cannibalising the strength block.',
     summaryHe:
-      'תבנית כוח ומאמץ במקביל. שילוב חכם של ימי הרמה כדי שהעבודה האירובית והאלאקטית לא תגרע מבלוק הכוח.',
+      'תבנית כוח וכושר במקביל. שילוב חכם של ימי הרמה כדי שהעבודה האירובית והאלאקטית לא תגרע מבלוק הכוח.',
     highlights: [
       'Two strength + two conditioning days',
       'Sport-day RPE caps for in-season',
       'Sprint and change-of-direction blocks',
     ],
     highlightsHe: [
-      'שני ימי כוח + שני ימי מאמץ',
+      'שני ימי כוח + שני ימי כושר',
       'תקרת RPE בימי משחק בעונה',
       'בלוקי ספרינט ושינוי כיוון',
     ],

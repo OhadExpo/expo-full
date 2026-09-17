@@ -2,7 +2,7 @@ import React, { useState, useCallback, useRef, useEffect, useMemo, Suspense, laz
 import { todayLocalISO } from './dates';
 import { C, FN, FB, uid } from './theme';
 import { ThemeToggle } from './ThemeToggle';
-import { LangCtx, LANG_KEY, tr as trFn, readLang, tbFor } from './i18n';
+import { LangCtx, LANG_KEY, tr as trFn, readLang, tbFor, useT, BodyLang } from './i18n';
 import { useLogoSrc } from './hooks/useTheme';
 import { EXPOMark } from './expoMark';
 import { useStore } from './useStore';
@@ -114,7 +114,7 @@ const MemoWorkouts = React.memo(WorkoutsView);
 const MemoReview = React.memo(WorkoutReview);
 
 const ViewFallback = () => (
-  <div className="expo-loading" style={{textAlign:'center',padding:40,color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.2em'}}>LOADING…</div>
+  <div className="expo-loading" style={{textAlign:'center',padding:40,color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.2em'}}>{trFn(readLang(), 'LOADING…')}</div>
 );
 
 const KEYS = { trainees:"expo-trainees", exercises:"expo-exercises", workouts:"expo-workouts", cw:"expo-cw", bw:"expo-bw" };
@@ -217,7 +217,7 @@ function SubmenuTab({ id, label, count, items, tab, navTo, activeStyle, isChosen
                   color: isItemActive ? C.ac : C.tx,
                   border: 'none', borderBottom: `1px solid ${C.cardBd}`,
                   fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em',
-                  textTransform: 'uppercase', textAlign: 'left', cursor: 'pointer',
+                  textTransform: 'uppercase', textAlign: 'start', cursor: 'pointer',
                 }}>
                 <span>{it.label}</span>
                 {it.count != null && <span style={{ fontSize: 10, color: isItemActive ? C.ac : C.td, fontFamily: FN }}>{it.count}</span>}
@@ -231,6 +231,7 @@ function SubmenuTab({ id, label, count, items, tab, navTo, activeStyle, isChosen
 }
 
 function MoreMenu({ tab, navTo, onExport, onChangePassword, isOwner = true }) {
+  const tt = useT(); // the menu renders inside the language provider
   const [open, setOpen] = useState(false);
   // Push-notification state for the in-menu toggle (placed above Change
   // Password per Ohad 2026-05-23). Lazy-imports ./push to avoid bloating
@@ -329,8 +330,8 @@ function MoreMenu({ tab, navTo, onExport, onChangePassword, isOwner = true }) {
     <div data-more-menu style={{ display: 'inline-flex' }}>
       <button ref={btnRef} onClick={() => setOpen(o => !o)}
         className="hdr-icon-btn"
-        title="More"
-        aria-label="More options"
+        title={trFn(readLang(), 'More')}
+        aria-label={tt('More options')}
         aria-expanded={open}
         style={{
           background: isActiveTab ? C.acD : 'transparent',
@@ -368,10 +369,10 @@ function MoreMenu({ tab, navTo, onExport, onChangePassword, isOwner = true }) {
                   color: isItemActive ? C.ac : C.tx,
                   border: 'none', borderBottom: `1px solid ${C.cardBd}`,
                   fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em',
-                  textTransform: 'uppercase', textAlign: 'left', cursor: 'pointer',
+                  textTransform: 'uppercase', textAlign: 'start', cursor: 'pointer',
                 }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', color: isItemActive ? C.ac : C.tm, flexShrink: 0 }}>{it.icon}</span>
-                <span>{it.label}</span>
+                <span>{tt(it.label)}</span>
               </button>
             );
           })}
@@ -389,12 +390,12 @@ function MoreMenu({ tab, navTo, onExport, onChangePassword, isOwner = true }) {
                   <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                 </svg>
               </span>
-              <span style={{ flex: 1 }}>Push Notifications</span>
+              <span style={{ flex: 1 }}>{tt('Push Notifications')}</span>
               {/* Toggle switch — the ONLY clickable region. */}
               <button onClick={e => { e.stopPropagation(); togglePush(); }}
                 disabled={pushBusy}
-                aria-label={pushOn ? 'Turn off push notifications' : 'Turn on push notifications'}
-                title={pushOn ? 'Click to disable push notifications' : 'Click to enable push notifications'}
+                aria-label={tt(pushOn ? 'Turn off push notifications' : 'Turn on push notifications')}
+                title={tt(pushOn ? 'Click to disable push notifications' : 'Click to enable push notifications')}
                 style={{
                   flexShrink: 0, width: 36, height: 20, borderRadius: 10,
                   background: pushOn ? '#39BDFF' : 'var(--c-sf3)',
@@ -427,10 +428,10 @@ function MoreMenu({ tab, navTo, onExport, onChangePassword, isOwner = true }) {
                   color: isItemActive ? C.ac : C.tx,
                   border: 'none', borderBottom: `1px solid ${C.cardBd}`,
                   fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em',
-                  textTransform: 'uppercase', textAlign: 'left', cursor: 'pointer',
+                  textTransform: 'uppercase', textAlign: 'start', cursor: 'pointer',
                 }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', color: isItemActive ? C.ac : C.tm, flexShrink: 0 }}>{it.icon}</span>
-                <span>{it.label}</span>
+                <span>{tt(it.label)}</span>
               </button>
             );
           })}
@@ -498,7 +499,7 @@ function BootSplash() {
   return (
     <div style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16}}>
       <img src={logo.nav} alt="EXPO" style={{height:50}} />
-      <div style={{color:C.td,fontSize:13}}>Loading…</div>
+      <div style={{color:C.td,fontSize:13}}>{trFn(readLang(), 'Loading…')}</div>
     </div>
   );
 }
@@ -612,19 +613,26 @@ function AuthGate() {
   if (!inPwa) {
     // /try short-circuits BEFORE the auth check so the route stays public.
     if (path === '/try' || path.startsWith('/try/')) {
-      return <Suspense fallback={<BootSplash />}><TrySandbox /></Suspense>;
+      // The sandbox embeds the demo portal, whose every label goes through
+      // useT() - and /try mounted it with no LangCtx above it, so a Hebrew
+      // visitor got an English portal inside a Hebrew page. Same provider the
+      // /demo/athlete route already uses.
+      return <LangCtx.Provider value={readLang()}><Suspense fallback={<BootSplash />}><TrySandbox /></Suspense></LangCtx.Provider>;
     }
     if (path === '/demo/coach' || path.startsWith('/demo/coach/') || path === '/coaches/demo/coach' || path === '/coaches/try') {
       // '/coaches/try' included: its replaceState rewrite runs after render, so
       // without this branch the legacy link painted the marketing landing
       // instead of the coach demo it redirects to (audit 08-22).
-      return <Suspense fallback={<BootSplash />}><CoachDemo /></Suspense>;
+      // LangCtx: the demo embeds REAL components (the Training Analysis page)
+      // that read the language from context; without a provider they rendered
+      // English on a Hebrew demo, the same miss /try had.
+      return <LangCtx.Provider value={readLang()}><BodyLang lang={readLang()} /><Suspense fallback={<BootSplash />}><CoachDemo /></Suspense></LangCtx.Provider>;
     }
     if (path === '/demo/athlete' || path === '/demo/trainee' || path === '/coaches/demo/trainee' || path === '/coaches/demo') {
       return <LangCtx.Provider value={readLang()}><Suspense fallback={<BootSplash />}><DemoTraineePortal /></Suspense></LangCtx.Provider>;
     }
     if (path === '/demo/sandbox') {
-      return <Suspense fallback={<BootSplash />}><TrySandbox pov="trainee" /></Suspense>;
+      return <LangCtx.Provider value={readLang()}><Suspense fallback={<BootSplash />}><TrySandbox pov="trainee" /></Suspense></LangCtx.Provider>;
     }
     // The coaches' demo LANDING (/demo, /demo/he) is public too — render it
     // BEFORE the auth gate so a signed-in coach can still open the demo to show
@@ -682,6 +690,8 @@ function AuthGate() {
 }
 
 function AuthedApp() {
+  // (no useT() here: AuthedApp RENDERS the LangCtx provider, so a hook would read
+  //  the context from above it - always English. Use `t`, declared with `lang` below.)
   // Keep the ACTIVE destination in view. The header is a horizontal scroller
   // with a pinned logo and a hidden scrollbar, so on a phone the tab you are on
   // could sit entirely off-screen - measured: 7 of 9 destinations past x=390.
@@ -690,8 +700,12 @@ function AuthedApp() {
   // content), not the <nav> inside it - so both get the fade and whichever one
   // actually scrolls shows it.
   const coachBarRef = React.useRef(null);
+  // The rail is the scroller now (the bar stopped being one when the logo came
+  // out of it), so the edge fade has to measure the rail.
+  const coachRailRef = React.useRef(null);
   useEdgeFade(coachNavRef);
   useEdgeFade(coachBarRef);
+  useEdgeFade(coachRailRef);
   const { session, signOut: rawSignOut } = useAuth();
   const email = (session?.user?.email || '').toLowerCase();
   // BHBC basketball coach: their whole app is the /bhbc zone. Defined up here so
@@ -1301,33 +1315,33 @@ function AuthedApp() {
   // Ohad spec 2026-05-16:
   //   Dashboard › Athletes › Tasks › Review › Billing › Incoming › Challenges › Portal
   const tabs = [
-    { key:'dashboard',  label:tb('Dashboard'),  count:null },
-    { key:'trainees',   label:tb('Athletes'),   count:activeAthletesCount,
+    { key:'dashboard',  label:trFn(lang,'Dashboard'),  count:null },
+    { key:'trainees',   label:trFn(lang,'Athletes'),   count:activeAthletesCount,
       submenu: [
         { route:'trainees',  label:t('Roster'),    count:activeAthletesCount },
         { route:'plans',     label:t('Programs'),  count:null },
         { route:'exercises', label:t('Exercises'), count:null },
         { route:'bhbc',      label:'BHBC',      count:null },
       ] },
-    { key:'sessions',   label:tb('Sessions'),   count:null,
+    { key:'sessions',   label:trFn(lang,'Sessions'),   count:null,
       submenu: [
         { route:'sessions',     label:t('Group'),  count:null },
         { route:'sessionsSolo', label:t('Single'), count:null },
       ] },
-    { key:'review',     label:tb('Review'),     count:null,
+    { key:'review',     label:trFn(lang,'Review'),     count:null,
       submenu: [
         { route:'review',      label:t('Workouts'), count:null },
         { route:'reviewTools', label:t('Tools'),    count:null },
       ] },
-    { key:'tasks',      label:tb('Tasks'),      count:null },
-    { key:'billing',    label:tb('Billing'),    count:null },
-    { key:'intake',     label:tb('Incoming'),   count:null,
+    { key:'tasks',      label:trFn(lang,'Tasks'),      count:null },
+    { key:'billing',    label:trFn(lang,'Billing'),    count:null },
+    { key:'intake',     label:trFn(lang,'Incoming'),   count:null,
       submenu: [
         { route:'intake',    label:t('Intake'),    count:null },
         { route:'waitlist',  label:t('Waitlist'),  count:null },
       ] },
-    { key:'challenges', label:tb('Challenges'), count:null },
-    { key:'client',     label:tb('Portal'),     count:null },
+    { key:'challenges', label:trFn(lang,'Challenges'), count:null },
+    { key:'client',     label:trFn(lang,'Portal'),     count:null },
   ];
   // Staff see only their whitelisted top-level tabs (STAFF_TABS = dashboard +
   // tasks only — they do NOT get Athletes/Programs/Exercises/Billing/etc; the
@@ -1514,7 +1528,7 @@ function AuthedApp() {
   if (selfTrainee === undefined && !isTrainer) return (
     <div style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16}}>
       <img src={logo.nav} alt="EXPO" style={{height:50}} />
-      <div style={{color:C.td,fontSize:13}}>Loading…</div>
+      <div style={{color:C.td,fontSize:13}}>{trFn(readLang(), 'Loading…')}</div>
     </div>);
 
   // Wait for small stores + plan index + workout/bodyweight tables so
@@ -1540,7 +1554,7 @@ function AuthedApp() {
   if (!storesReady && !bootDeadline) return (
     <div style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16}}>
       <img src={logo.nav} alt="EXPO" style={{height:50}} />
-      <div style={{color:C.td,fontSize:13}}>Loading data...</div>
+      <div style={{color:C.td,fontSize:13}}>{t('Loading data...')}</div>
     </div>);
 
   // BHBC = a fully separate ZONE — no EXPO coach nav at all (Ohad: "completely
@@ -1568,8 +1582,9 @@ function AuthedApp() {
     // reads right-to-left, labels sit on the correct side, and mixed
     // Hebrew/English lines resolve through the browser's own bidi algorithm.
     <LangCtx.Provider value={lang}>
+    <BodyLang lang={lang} />
     <div className="app-root" dir={lang === 'he' ? 'rtl' : 'ltr'} style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB,maxWidth:"100vw",overflowX:"clip"}}>
-      {isPartner && <div style={{background:`color-mix(in srgb, ${C.ac} 22%, ${C.bg})`,borderBottom:`1px solid ${C.ac}`,color:C.tx,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',textAlign:'center',padding:'7px 12px'}}>PARTNER PREVIEW · you're viewing the real EXPO with live data — anything you change isn't saved</div>}
+      {isPartner && <div style={{background:`color-mix(in srgb, ${C.ac} 22%, ${C.bg})`,borderBottom:`1px solid ${C.ac}`,color:C.tx,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',textAlign:'center',padding:'7px 12px'}}>{t("PARTNER PREVIEW · you're viewing the real EXPO with live data — anything you change isn't saved")}</div>}
       {/* Past the deadline with reads still outstanding. The app is usable, but
           a count drawn from a store that never loaded is not a fact - saying so
           is the difference between "you have no athletes" and "we could not
@@ -1610,7 +1625,7 @@ function AuthedApp() {
             nav.hdr-scroll { flex-wrap: nowrap; overflow-x: auto !important; justify-content: flex-start !important; }
             .hdr-scroll { height: 56px; }
             .hdr-right { position: static !important; right: auto !important;
-              margin-left: 8px !important; background: transparent !important;
+              margin-inline-start: 8px !important; background: transparent !important;
               box-shadow: none !important; z-index: auto !important; }
           }
           /* ...and at phone width that single sliding row collapses to NOTHING.
@@ -1622,22 +1637,36 @@ function AuthedApp() {
              below 700px the nav takes its OWN full-width row underneath and the
              right cluster stays on row one, which is what the earlier wrap
              attempt got wrong by letting it float into the second row. */
+          /* Above 700px the rail is not a box at all - display:contents leaves
+             the nav and the right cluster as direct flex children of the bar,
+             so the desktop header is byte-for-byte what it was. */
+          .hdr-rail { display: contents; }
           @media (max-width: 700px) {
-            /* ONE ROW, logo pinned, everything else scrolls past it. Wrapping
-               the nav onto its own row fixed the 12px-wide nav but broke the
-               rule, so the header became two rows on every phone. The bar
-               itself is the scroller now and the logo is sticky at its left. */
-            div.hdr-scroll { flex-wrap: nowrap !important; height: 56px !important; overflow-x: auto !important; overflow-y: hidden !important; padding-left: 16px !important; padding-right: 0 !important; }
-            /* Opaque, with an edge - otherwise the nav scrolls UNDER the logo and
-               shows through it. The header's own background is the only correct
-               fill here, and it differs per theme. */
-            div.hdr-scroll > :first-child { position: sticky; left: 0; z-index: 3; background: inherit;
-              align-self: stretch; display: flex; align-items: center; padding-right: 12px;
-              border-inline-end: 1px solid var(--c-cardBd); box-shadow: 6px 0 10px -6px rgba(0,0,0,0.35); }
-            div.hdr-scroll { background: inherit; }
+            /* ONE ROW, and the logo is OUT of the scroller.
+               It used to be sticky INSIDE it: every tab scrolled underneath and
+               the opaque background hid whatever was there. Measured on his own
+               width, the active DASHBOARD tab sat at 52..153 with the logo over
+               16..130 - 78px of it behind the logo, which is the screenshot he
+               sent five times. Now the bar is a plain two-column flex: a static
+               logo, and a rail beside it that scrolls. A tab cannot reach the
+               logo's x, so it cannot be covered, and one swipe still carries you
+               from the first tab to sign-out. */
+            div.hdr-scroll { flex-wrap: nowrap !important; height: 56px !important; overflow-x: visible !important; overflow-y: visible !important; padding-inline-start: 16px !important; padding-inline-end: 0 !important; background: inherit; }
+            div.hdr-scroll > :first-child { position: static; z-index: auto; flex: 0 0 auto;
+              align-self: stretch; display: flex; align-items: center; padding-inline-end: 12px;
+              border-inline-end: 1px solid var(--c-cardBd); }
+            .hdr-rail { display: flex !important; align-items: center; flex: 1 1 auto; min-width: 0;
+              height: 56px; overflow-x: auto; overflow-y: hidden;
+              -ms-overflow-style: none; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+              padding-inline-start: 12px;
+              /* so scrollIntoView never parks the active tab half-cut on the
+                 rail's own edge */
+              scroll-padding-inline: 12px; }
+            .hdr-rail::-webkit-scrollbar { display: none; }
             nav.hdr-scroll { flex: 0 0 auto !important; overflow: visible !important; min-width: 0 !important; }
-            .hdr-right { flex: 0 0 auto !important; margin-left: 8px !important; padding-right: 16px !important; }
+            .hdr-right { flex: 0 0 auto !important; margin-inline-start: 8px !important; padding-inline-end: 16px !important; }
           }
+          [dir="rtl"] nav.hdr-scroll button span{font-weight:800;letter-spacing:0}
           .nav-item-inactive{transition:color 120ms, background 120ms}
           .nav-item-inactive:hover{color:var(--c-acText) !important;background:rgba(57,189,255,0.035) !important}
           .hdr-icon-btn{transition:color 120ms, background 120ms}
@@ -1650,7 +1679,7 @@ function AuthedApp() {
              is untouched. */
           @media (max-width: 760px) {
             .hdr-right { position: static !important; right: auto !important;
-              margin-left: 8px !important; background: transparent !important;
+              margin-inline-start: 8px !important; background: transparent !important;
               box-shadow: none !important; z-index: auto !important; }
           }
           [data-theme="5b"] .alert-card,[data-theme="light"] .alert-card{transition:box-shadow 200ms, transform 200ms}
@@ -1659,7 +1688,8 @@ function AuthedApp() {
           [data-theme="5b"] .alert-row:hover,[data-theme="light"] .alert-row:hover{background:rgba(255,255,255,0.10)}
         `}</style>
         <div ref={coachBarRef} className="hdr-scroll" style={{maxWidth:1360,margin:"0 auto",padding:"0 16px",display:"flex",alignItems:"center",height:56,overflowX:"visible",WebkitOverflowScrolling:"touch",msOverflowStyle:"none",scrollbarWidth:"none"}}>
-          <EXPOMark height={36} onClick={()=>navTo('dashboard')} title="Back to dashboard" style={{flex:"0 0 auto",marginRight:12,cursor:'pointer'}} />
+          <EXPOMark height={36} onClick={()=>navTo('dashboard')} title={t('Back to dashboard')} style={{flex:"0 0 auto",marginInlineEnd:12,cursor:'pointer'}} />
+          <div ref={coachRailRef} className="hdr-rail">
           <nav ref={coachNavRef} className="hdr-scroll" style={{display:"flex",gap:6,alignItems:"center",flex:"1 1 auto",justifyContent:"center",minWidth:0,overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
             {/* alignItems:'baseline' overrides baseBtn's 'center' so the
                 count digit (fontSize:10) baseline-aligns with the label
@@ -1696,9 +1726,9 @@ function AuthedApp() {
               border that previously fenced this whole group from the
               nav; the cyan separators between items are the only
               dividers now. */}
-          <div className="hdr-right" style={{flex:"0 0 auto",display:"flex",alignItems:"center",gap:2,marginLeft:12}}>
+          <div className="hdr-right" style={{flex:"0 0 auto",display:"flex",alignItems:"center",gap:2,marginInlineStart:12}}>
             <MoreMenu tab={tab} navTo={navTo} onExport={handleExport} onChangePassword={()=>setShowPwModal(true)} isOwner={isOwner} />
-            <span style={{width:1,height:22,background:C.ac,opacity:0.15,alignSelf:'center',marginLeft:6,marginRight:6}} aria-hidden="true" />
+            <span style={{width:1,height:22,background:C.ac,opacity:0.15,alignSelf:'center',marginInlineStart:6,marginInlineEnd:6}} aria-hidden="true" />
             {/* HE / EN. Shows the language it switches TO, which is how a
                 two-state language control is read. Fixed width so the row does
                 not reflow when the label changes. */}
@@ -1707,13 +1737,13 @@ function AuthedApp() {
               style={{...baseBtn, background:'transparent', border:'none', color:C.tm, cursor:'pointer', fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.08em', minWidth:34, height:32, display:'inline-flex', alignItems:'center', justifyContent:'center', lineHeight:1}}>
               <span style={{display:'inline-grid',justifyItems:'center'}}><span aria-hidden="true" style={{gridArea:'1 / 1',visibility:'hidden'}}>{lang === 'he' ? 'עב' : 'EN'}</span><span style={{gridArea:'1 / 1'}}>{lang === 'he' ? 'EN' : 'עב'}</span></span>
             </button>
-            <span style={{width:1,height:22,background:C.ac,opacity:0.15,alignSelf:'center',marginLeft:6,marginRight:6}} aria-hidden="true" />
+            <span style={{width:1,height:22,background:C.ac,opacity:0.15,alignSelf:'center',marginInlineStart:6,marginInlineEnd:6}} aria-hidden="true" />
             <ThemeToggle size={32} style={{ border: 'none' }} />
-            <span style={{width:1,height:22,background:C.ac,opacity:0.15,alignSelf:'center',marginLeft:6,marginRight:6}} aria-hidden="true" />
+            <span style={{width:1,height:22,background:C.ac,opacity:0.15,alignSelf:'center',marginInlineStart:6,marginInlineEnd:6}} aria-hidden="true" />
             <BugReportButton role="coach" reporterEmail={email} variant="coach" />
-            <span style={{width:1,height:22,background:C.ac,opacity:0.15,alignSelf:'center',marginLeft:6,marginRight:6}} aria-hidden="true" />
-            <button className="hdr-icon-btn" onClick={signOut} title="Sign out" aria-label="Sign out" style={{...baseBtn,height:HDR_ICON_H,boxSizing:"border-box",display:"inline-flex",alignItems:"center",justifyContent:"center",lineHeight:1,background:"transparent",color:C.tx,padding:"6px 8px",fontSize:14,borderRadius:0}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
-            </div></div></header>
+            <span style={{width:1,height:22,background:C.ac,opacity:0.15,alignSelf:'center',marginInlineStart:6,marginInlineEnd:6}} aria-hidden="true" />
+            <button className="hdr-icon-btn" onClick={signOut} title={t('Sign out')} aria-label={t('Sign out')} style={{...baseBtn,height:HDR_ICON_H,boxSizing:"border-box",display:"inline-flex",alignItems:"center",justifyContent:"center",lineHeight:1,background:"transparent",color:C.tx,padding:"6px 8px",fontSize:14,borderRadius:0}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
+            </div></div></div></header>
       {showPwModal && <PasswordChangeModal onClose={()=>setShowPwModal(false)}/>}
       <main style={{maxWidth:1200,margin:"0 auto",padding:"12px"}}>
         <Suspense fallback={<ViewFallback />}>

@@ -27,19 +27,24 @@ function CardStatusMenu({ status, onChange }) {
   const color = SM_COLOR[status] || C.tm;
   return (
     <span ref={ref} style={{ position: 'relative', display: 'inline-block' }} onClick={e => e.stopPropagation()}>
-      <button onClick={e => { e.stopPropagation(); setOpen(o => !o); }} title="Change status"
-        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5, minWidth: 92, height: 28, boxSizing: 'border-box', background: isRefined5b() ? '#FFFFFF' : 'transparent', border: `1px solid ${color}`, color, borderRadius: 0, padding: '1.5px 8px 0', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap', lineHeight: 1 }}>
+      <button onClick={e => { e.stopPropagation(); setOpen(o => !o); }} title={tt('Change status')}
+        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5, minWidth: 92, height: 28, boxSizing: 'border-box', background: isRefined5b() ? '#FFFFFF' : 'transparent', border: `1px solid ${color}`, color, borderRadius: 0, padding: '0 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap', lineHeight: 1 }}>
         {/* center the label+caret as a unit; cancel the trailing letter-space
             after the last glyph so the group is optically centred, not shifted
             left by ~1px (space-between used to pin the label left / caret right,
             which read as mis-aligned in the box). */}
-        <span style={{ marginRight: '-0.12em' }}>{tt(status)}</span><span style={{ fontSize: 8, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}><svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
+        {/* The capitals are centred by their OWN metrics, not by a hand-tuned
+            1.5px top nudge: a nudge is right on one rasteriser and off on the
+            next (Ohad, 16.9: "not vertically center aligned... massive gap").
+            text-box trims the label to cap height and baseline, so flex
+            centring centres the ink itself. */}
+        <span style={{ marginInlineEnd: '-0.12em', display: 'block', textBox: 'trim-both cap alphabetic' }}>{tt(status)}</span><span style={{ fontSize: 8, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}><svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
       </button>
       {open && (
-        <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 200, background: 'var(--c-bg)', border: `1px solid ${C.cardBd}`, minWidth: 124, boxShadow: '0 8px 24px rgba(0,0,0,0.35)' }}>
+        <div style={{ position: 'absolute', insetInlineEnd: 0, top: 'calc(100% + 4px)', zIndex: 200, background: 'var(--c-bg)', border: `1px solid ${C.cardBd}`, minWidth: 124, boxShadow: '0 8px 24px rgba(0,0,0,0.35)' }}>
           {SM_CHOICES.map(s => (
             <button key={s} onClick={e => { e.stopPropagation(); onChange(s); setOpen(false); }}
-              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 11px', background: s === status ? 'var(--c-sf)' : 'transparent', border: 'none', borderLeft: `3px solid ${s === status ? (SM_COLOR[s] || C.ac) : 'transparent'}`, color: SM_COLOR[s] || C.tx, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer' }}>
+              style={{ display: 'block', width: '100%', textAlign: 'start', padding: '8px 11px', background: s === status ? 'var(--c-sf)' : 'transparent', border: 'none', borderInlineStart: `3px solid ${s === status ? (SM_COLOR[s] || C.ac) : 'transparent'}`, color: SM_COLOR[s] || C.tx, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer' }}>
               {tt(s)}
             </button>
           ))}
@@ -49,7 +54,7 @@ function CardStatusMenu({ status, onChange }) {
   );
 }
 import { supabase } from './supabase';
-import { useT, useHe, daysAgoHe, daysOverdueHe } from './i18n';
+import { useT, useHe, daysAgoHe, daysOverdueHe, tr, readLang } from './i18n';
 
 const isCouple = (t) => t.members && t.members.length === 2;
 
@@ -164,6 +169,7 @@ const getLastWorkoutDays = (t, workouts, clientWorkouts) => {
 // entries oldest→newest. Returns null when fewer than 2 points exist
 // (a single dot has no shape).
 function CardBWSparkline({ entries }) {
+  const tt = useT();
   if (!entries || entries.length < 2) return null;
   const W = 96, H = 22, PAD = 2;
   const values = entries.map(e => e.bw);
@@ -191,13 +197,13 @@ function CardBWSparkline({ entries }) {
     <div dir="ltr" style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none"
         style={{ display: 'block', height: H, width: '100%', maxWidth: W, minWidth: 32, flexShrink: 1 }}
-        aria-label="Bodyweight trend">
+        aria-label={tt('Bodyweight trend')}>
         <polyline points={polyline} fill="none" stroke={C.ac} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
       <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1, color: C.tx, flexShrink: 0 }}>
         {last.toFixed(1)}<span style={{ color: C.tm }}>kg</span>
       </span>
-      <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: 1, color: deltaColor, flexShrink: 0 }}>
+      <span dir="ltr" style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: 1, color: deltaColor, flexShrink: 0, unicodeBidi: 'isolate' }}>
         {delta > 0 ? '+' : ''}{delta.toFixed(1)}
       </span>
     </div>
@@ -293,11 +299,11 @@ function TrainingBlock({ format, sessionsRemaining, programs, lastWk, center = f
         {(hasSessions || programs > 0) && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 10px', alignItems: 'center', justifyContent: justify }}>
             {hasSessions && (
-              <span style={{ fontFamily: FN, fontSize: 11, color: sessionsRemaining <= 2 ? C.rd : C.gn, fontWeight: 700 }}>{sessionsRemaining} {tt('Sessions left')}</span>
+              <span style={{ fontFamily: FN, fontSize: 11, color: sessionsRemaining <= 2 ? C.rd : C.gn, fontWeight: 700 }}>{readLang() === 'he' ? (sessionsRemaining === 1 ? 'נותר אימון אחד' : sessionsRemaining === 0 ? 'לא נותרו אימונים' : `נותרו ${sessionsRemaining} אימונים`) : `${sessionsRemaining} ${tt('Sessions left')}`}</span>
             )}
             {hasSessions && programs > 0 && <MidDot />}
             {programs > 0 && (
-              <span style={{ fontFamily: FN, fontSize: 11, color: C.tx, fontWeight: 700 }}>{programs} {tt('Programs')}</span>
+              <span style={{ fontFamily: FN, fontSize: 11, color: C.tx, fontWeight: 700 }}>{readLang() === 'he' ? (programs === 1 ? 'תוכנית אחת' : `${programs} תוכניות`) : `${programs} ${tt('Programs')}`}</span>
             )}
           </div>
         )}
@@ -368,7 +374,7 @@ function BodyweightBlock({ entries, center = false, label = null }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, opacity: 0.55 }}>
               <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none"
                 style={{ display: 'block', height: H, width: '100%', maxWidth: W, minWidth: 32, flexShrink: 1 }}
-                aria-label="Bodyweight trend (no data)">
+                aria-label={tt('Bodyweight trend (no data)')}>
                 <line x1="2" y1={H/2} x2={W-2} y2={H/2} stroke={C.tm} strokeWidth="1" strokeDasharray="2 3" />
               </svg>
               <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: 1, color: C.tm, flexShrink: 0 }}>
@@ -776,12 +782,15 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
               ].map(o => {
                 const on = sortKeys.includes(o.id);
                 const desc = sortDirs[o.id] === 'desc';
-                const dirLbl = o.id === 'name' ? (desc ? 'ת→א' : 'א→ת')
-                  : o.id === 'status' ? (desc ? '↑ Inactive' : '↓ Active')
-                  : o.id === 'lastTrained' ? (desc ? '↓ Newest' : '↑ Oldest')
-                  : (desc ? '↑ Overdue' : '↓ Paid');
+                // Name order shows its own alphabet: א→ת in Hebrew, A→Z in English
+                // (English used to show Hebrew letters).
+                const heL = readLang() === 'he';
+                const dirLbl = o.id === 'name' ? (heL ? (desc ? 'ת←א' : 'א←ת') : (desc ? 'Z→A' : 'A→Z'))
+                  : o.id === 'status' ? (desc ? `↑ ${tt('Inactive')}` : `↓ ${tt('Active')}`)
+                  : o.id === 'lastTrained' ? (desc ? `↓ ${tt('Newest')}` : `↑ ${tt('Oldest')}`)
+                  : (desc ? `↑ ${tt('Overdue')}` : `↓ ${tt('Paid')}`);
                 const oLabel = tt(o.label);
-                return { key: o.id, title: on ? `Flip ${oLabel} direction` : `Sort by ${oLabel}`, active: on, label: on ? `${dirLbl} · ${oLabel}` : oLabel,
+                return { key: o.id, title: on ? (heL ? `היפוך כיוון המיון (${oLabel})` : `Flip ${oLabel} direction`) : `${tt('Sort by')} ${oLabel}`, active: on, label: on ? `${dirLbl} · ${oLabel}` : oLabel,
                   onClick: () => { setManualSort(false); if (on) setSortDirs(m => ({ ...m, [o.id]: desc ? 'asc' : 'desc' })); else { setSortDirs(m => (m[o.id] ? m : { ...m, [o.id]: 'asc' })); setSortKeys([o.id]); } } };
               }),
             },
@@ -799,9 +808,9 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
                     if (format === 'Bnei Herzliya') f.team = 'BHBC';
                     if(format==='Gym, Couple') f._members=[{name:'',email:'',phone:'',age:'',weight:'',height:'',injuries:'',goals:'',notes:'',_emails:['']},{name:'',email:'',phone:'',age:'',weight:'',height:'',injuries:'',goals:'',notes:'',_emails:['']}];
                     setForm(f); setEditId(null); setShowForm(true); setAddMenuOpen(false);
-                  }} style={{display:'block',width:'100%',padding:'10px 16px',background:'transparent',border:'none',borderBottom:`1px solid ${C.bd}`,color:C.tx,fontFamily:FB,fontSize:13,fontWeight:500,cursor:'pointer',textAlign:'left'}}
+                  }} style={{display:'block',width:'100%',padding:'10px 16px',background:'transparent',border:'none',borderBottom:`1px solid ${C.bd}`,color:C.tx,fontFamily:FB,fontSize:13,fontWeight:500,cursor:'pointer',textAlign: 'start'}}
                     onMouseEnter={e=>e.currentTarget.style.background=C.sf2} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-                    {label}
+                    {tt(label)}
                   </button>
                 ))}
               </div>}
@@ -859,9 +868,9 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
               const sharedProgramsCount = Math.max(mpc[0] || 0, mpc[1] || 0);
               return (
                 <Card key={t.id} {...dragProps(t)} onClick={() => showArchived ? null : onSelect(t.id)}
-                  header={<span style={{display:'inline-flex',alignItems:'center',gap:6,fontWeight:700,fontSize: hasHebrew(t.name) ? hebSize(14) : 14,letterSpacing:'0.04em',textTransform:'uppercase'}}>{t.name}{online && <OnlineDot />}{(t.format === 'Bnei Herzliya' || t.branch === 'Bnei Herzliya') && <span title="Bnei Herzliya" style={{display:'inline-flex',alignItems:'center',justifyContent:'center',width:22,height:22,borderRadius:'50%',background:'#0E1A2B',flexShrink:0}}><img src="/bnei-herzliya-logo-w.png" alt="" style={{height:18,width:'auto',objectFit:'contain'}}/></span>}</span>}
+                  header={<span style={{display:'inline-flex',alignItems:'center',gap:6,fontWeight:700,fontSize: hasHebrew(t.name) ? hebSize(14) : 14,letterSpacing:'0.04em',textTransform:'uppercase'}}>{t.name}{online && <OnlineDot />}{(t.format === 'Bnei Herzliya' || t.branch === 'Bnei Herzliya') && <span title={tt('Bnei Herzliya')} style={{display:'inline-flex',alignItems:'center',justifyContent:'center',width:22,height:22,borderRadius:'50%',background:'#0E1A2B',flexShrink:0}}><img src="/bnei-herzliya-logo-w.png" alt="" style={{height:18,width:'auto',objectFit:'contain'}}/></span>}</span>}
                   headerRight={showArchived ? <Badge color={statusColor[t.status] || C.tm} style={isRefined5b()?{background:'#FFFFFF'}:undefined}>{t.status}</Badge> : <CardStatusMenu status={t.status} onChange={s => setTrainees(prev => prev.map(x => x.id === t.id ? {...x, status: s} : x))} />}
-                  className="tv-athlete-card" style={{height:CARD_H,display:'flex',flexDirection:'column',boxSizing:'border-box',border:`1px solid ${C.divider}`,borderLeft:`1px solid ${C.divider}`,...(showArchived ? {opacity: 0.7, borderStyle: "dashed"} : {})}}>
+                  className="tv-athlete-card" style={{height:CARD_H,display:'flex',flexDirection:'column',boxSizing:'border-box',border:`1px solid ${C.divider}`,borderInlineStart:`1px solid ${C.divider}`,...(showArchived ? {opacity: 0.7, borderStyle: "dashed"} : {})}}>
                   {/* IDENTITY: name + status badge live in the card header
                       (Card's header + headerRight props). No duplicate body
                       banner — Ohad called the inner repeat useless 2026-05-12. */}
@@ -901,7 +910,7 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
                   <CardSection label={bwShared.length >= 2 ? 'Bodyweight · couple' : 'Bodyweight'} center>
                     {bwShared.length >= 2 ? (
                       <div style={{flex:1,minWidth:0,display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
-                        <div style={{fontFamily:FN,fontSize:9,color:C.tm,letterSpacing:1,fontWeight:700}}>SHARED LOG</div>
+                        <div style={{fontFamily:FN,fontSize:9,color:C.tm,letterSpacing:1,fontWeight:700}}>{tt('SHARED LOG')}</div>
                         <div style={{width:'100%',maxWidth:160}}><CardBWSparkline entries={bwShared} /></div>
                       </div>
                     ) : [m0, m1].map((m, mi) => {
@@ -919,7 +928,7 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
                               <div style={{display:'flex',alignItems:'center',gap:6,minWidth:0,opacity:0.55}}>
                                 <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none"
                                   style={{display:'block',height:H,width:'100%',maxWidth:W,minWidth:32,flexShrink:1}}
-                                  aria-label="Bodyweight trend (no data)">
+                                  aria-label={tt('Bodyweight trend (no data)')}>
                                   <line x1="2" y1={H/2} x2={W-2} y2={H/2} stroke={C.tm} strokeWidth="1" strokeDasharray="2 3" />
                                 </svg>
                                 <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:1,color:C.tm,flexShrink:0}}>
@@ -935,13 +944,13 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
 
                   {!showArchived && (
                     <div style={{display:'grid',gridTemplateColumns:'repeat(2, minmax(0, 132px))',justifyContent:'center',marginTop:'auto',paddingTop:8,gap:8}}>
-                      {onPreview ? <button onClick={e => {e.stopPropagation(); onPreview(t.id)}} title="Preview this athlete's portal" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${isRefined5b() ? C.ac : C.cardBd}`,color: isRefined5b() ? C.ac : C.tm,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'0 14px',height:28,boxSizing:'border-box',borderRadius:0,display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6}}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>{tt('Portal')}</button> : <span/>}
+                      {onPreview ? <button onClick={e => {e.stopPropagation(); onPreview(t.id)}} title={tt("Preview this athlete's portal")} style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${isRefined5b() ? C.ac : C.cardBd}`,color: isRefined5b() ? C.ac : C.tm,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'0 14px',height:28,boxSizing:'border-box',borderRadius:0,display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6}}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>{tt('Portal')}</button> : <span/>}
                       <button onClick={e => {e.stopPropagation(); const f = {...t, _emails: emailsToArr(t.email)}; editBaseRef.current = t; if(t.members) f._members = t.members.map(m=>({...m, _emails: emailsToArr(m.email)})); setForm(f); setEditId(t.id); setShowForm(true)}} style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'0 14px',height:28,boxSizing:'border-box',display:'inline-flex',alignItems:'center',justifyContent:'center',borderRadius:0}}>{tt('Edit')}</button>
                     </div>
                   )}
                   {showArchived && <div style={{display:'flex',gap:6,marginTop:'auto',paddingTop:10}}>
-                    <Btn variant="ghost" onClick={e => {e.stopPropagation(); handleRestore(t.id)}} style={{fontSize:11,padding:"4px 10px"}}>↩ Restore</Btn>
-                    <Btn variant="danger" onClick={e => {e.stopPropagation(); setDeleteConfirm(t)}} style={{fontSize:11,padding:"4px 10px"}}>Permanently Delete</Btn>
+                    <Btn variant="ghost" onClick={e => {e.stopPropagation(); handleRestore(t.id)}} style={{fontSize:11,padding:"4px 10px"}}>↩ {tr(readLang(), 'Restore')}</Btn>
+                    <Btn variant="danger" onClick={e => {e.stopPropagation(); setDeleteConfirm(t)}} style={{fontSize:11,padding:"4px 10px"}}>{tt('Permanently Delete')}</Btn>
                   </div>}
                 </Card>
               );
@@ -957,9 +966,9 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
             const programs = planCounts?.[t.id] || 0;
             return (
             <Card key={t.id} {...dragProps(t)} onClick={() => showArchived ? null : onSelect(t.id)}
-              header={<span style={{display:'inline-flex',alignItems:'center',gap:6,fontWeight:700,fontSize: hasHebrew(t.name) ? hebSize(14) : 14,letterSpacing:'0.04em',textTransform:'uppercase'}}>{t.name}{online && <OnlineDot />}{(t.format === 'Bnei Herzliya' || t.branch === 'Bnei Herzliya') && <span title="Bnei Herzliya" style={{display:'inline-flex',alignItems:'center',justifyContent:'center',width:22,height:22,borderRadius:'50%',background:'#0E1A2B',flexShrink:0}}><img src="/bnei-herzliya-logo-w.png" alt="" style={{height:18,width:'auto',objectFit:'contain'}}/></span>}</span>}
+              header={<span style={{display:'inline-flex',alignItems:'center',gap:6,fontWeight:700,fontSize: hasHebrew(t.name) ? hebSize(14) : 14,letterSpacing:'0.04em',textTransform:'uppercase'}}>{t.name}{online && <OnlineDot />}{(t.format === 'Bnei Herzliya' || t.branch === 'Bnei Herzliya') && <span title={tt('Bnei Herzliya')} style={{display:'inline-flex',alignItems:'center',justifyContent:'center',width:22,height:22,borderRadius:'50%',background:'#0E1A2B',flexShrink:0}}><img src="/bnei-herzliya-logo-w.png" alt="" style={{height:18,width:'auto',objectFit:'contain'}}/></span>}</span>}
               headerRight={showArchived ? <Badge color={statusColor[t.status] || C.tm} style={isRefined5b()?{background:'#FFFFFF'}:undefined}>{t.status}</Badge> : <CardStatusMenu status={t.status} onChange={s => setTrainees(prev => prev.map(x => x.id === t.id ? {...x, status: s} : x))} />}
-              className="tv-athlete-card" style={{height:CARD_H,display:'flex',flexDirection:'column',boxSizing:'border-box',border:`1px solid ${C.divider}`,borderLeft:`1px solid ${C.divider}`,...(showArchived ? {opacity: 0.7, borderStyle: "dashed"} : {})}}>
+              className="tv-athlete-card" style={{height:CARD_H,display:'flex',flexDirection:'column',boxSizing:'border-box',border:`1px solid ${C.divider}`,borderInlineStart:`1px solid ${C.divider}`,...(showArchived ? {opacity: 0.7, borderStyle: "dashed"} : {})}}>
               {/* IDENTITY: name + status badge live in the card header — no
                   body duplicate. Same shape in both themes; OnlineDot moves
                   into the header span via the {online && <OnlineDot />} above. */}
@@ -984,11 +993,11 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
               <BodyweightBlock entries={bwEntries} center />
 
               {showArchived && <div style={{ display: "flex", gap: 6, marginTop: 'auto', paddingTop: 10 }}>
-                <Btn variant="ghost" onClick={(e) => {e.stopPropagation(); handleRestore(t.id)}} style={{fontSize:11,padding:"4px 10px"}}>↩ Restore</Btn>
-                <Btn variant="danger" onClick={(e) => {e.stopPropagation(); setDeleteConfirm(t)}} style={{fontSize:11,padding:"4px 10px"}}>Permanently Delete</Btn>
+                <Btn variant="ghost" onClick={(e) => {e.stopPropagation(); handleRestore(t.id)}} style={{fontSize:11,padding:"4px 10px"}}>↩ {tr(readLang(), 'Restore')}</Btn>
+                <Btn variant="danger" onClick={(e) => {e.stopPropagation(); setDeleteConfirm(t)}} style={{fontSize:11,padding:"4px 10px"}}>{tt('Permanently Delete')}</Btn>
               </div>}
               {!showArchived && <div style={{display:'grid',gridTemplateColumns:'repeat(2, minmax(0, 132px))',justifyContent:'center',marginTop:'auto',paddingTop:8,gap:8}}>
-                {onPreview ? <button onClick={(e) => {e.stopPropagation(); onPreview(t.id)}} title="Preview this athlete's portal" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${isRefined5b() ? C.ac : C.cardBd}`,color: isRefined5b() ? C.ac : C.tm,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'0 14px',height:28,boxSizing:'border-box',borderRadius:0,display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6}}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>{tt('Portal')}</button> : <span/>}
+                {onPreview ? <button onClick={(e) => {e.stopPropagation(); onPreview(t.id)}} title={tt("Preview this athlete's portal")} style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${isRefined5b() ? C.ac : C.cardBd}`,color: isRefined5b() ? C.ac : C.tm,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'0 14px',height:28,boxSizing:'border-box',borderRadius:0,display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6}}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>{tt('Portal')}</button> : <span/>}
                 <button onClick={(e) => {e.stopPropagation(); setForm({...t, _emails: emailsToArr(t.email)}); editBaseRef.current = t; setEditId(t.id); setShowForm(true)}} style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'0 14px',height:28,boxSizing:'border-box',display:'inline-flex',alignItems:'center',justifyContent:'center',borderRadius:0}}>{tt('Edit')}</button>
               </div>}
             </Card>);
@@ -1001,7 +1010,7 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
       <Modal open={showForm} onClose={() => setShowForm(false)} title={editId ? tt("Edit Athlete") : tt("New Athlete")} wide>
         {form._members ? <>
           {/* COUPLE EDIT */}
-          <div style={{fontSize:11,fontFamily:FN,color:C.td,textTransform:'uppercase',marginBottom:8}}>Shared</div>
+          <div style={{fontSize:11,fontFamily:FN,color:C.td,textTransform:'uppercase',marginBottom:8}}>{tr(readLang(), 'Shared')}</div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16}}>
             <Input label={tt("Couple Name")} value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
             <Select label={tt("Format")} options={TRAINING_FORMATS} value={form.format} onChange={v => setForm({...form, format: v})} />
@@ -1020,7 +1029,7 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
               };
               return (
                 <div key={mi} style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:11,fontFamily:FN,color:C.ac,textTransform:'uppercase',marginBottom:8}}>Member {mi+1}</div>
+                  <div style={{fontSize:11,fontFamily:FN,color:C.ac,textTransform:'uppercase',marginBottom:8}}>{tr(readLang(), 'Member')} {mi+1}</div>
                   <div style={{display:'flex',flexDirection:'column',gap:10}}>
                     <Input label={tt("Name")} value={m.name||""} onChange={e=>upd('name',e.target.value)} />
                     <EmailsInput label={tt("Email")} value={m._emails || emailsToArr(m.email)} onChange={next=>upd('_emails',next)} />
@@ -1078,38 +1087,38 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
           {form.format !== 'Bnei Herzliya' ? (
             <Input label={tt("Package Price (₪)")} type="number" value={form.packagePrice||""} onChange={e => setForm({...form, packagePrice: e.target.value})} />
           ) : (
-            <div style={{ display: 'flex', alignItems: 'end', paddingBottom: 8, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>Club athlete — no billing</div>
+            <div style={{ display: 'flex', alignItems: 'end', paddingBottom: 8, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>{tt('Club athlete — no billing')}</div>
           )}
-          <div style={{ gridColumn: "1 / -1" }}><TextArea label={tt("Injuries / Conditions")} value={form.injuries} onChange={e => setForm({...form, injuries: e.target.value})} placeholder="L4/L5 disc bulge, R shoulder impingement..." /></div>
+          <div style={{ gridColumn: "1 / -1" }}><TextArea label={tt("Injuries / Conditions")} value={form.injuries} onChange={e => setForm({...form, injuries: e.target.value})} placeholder={tt('L4/L5 disc bulge, R shoulder impingement...')} /></div>
           <div style={{ gridColumn: "1 / -1" }}><TextArea label={tt("Goals")} value={form.goals} onChange={e => setForm({...form, goals: e.target.value})} /></div>
           <div style={{ gridColumn: "1 / -1" }}><TextArea label={tt("Notes")} value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} /></div>
         </div>
         </>}
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
-          {editId && <Btn variant="danger" onClick={() => setArchiveConfirm(editId)} style={{ marginRight: "auto" }}>{tt('📦 Archive Athlete')}</Btn>}
+          {editId && <Btn variant="danger" onClick={() => setArchiveConfirm(editId)} style={{ marginInlineEnd: "auto" }}>{tt('📦 Archive Athlete')}</Btn>}
           <Btn variant="ghost" onClick={() => setShowForm(false)}>{tt('Cancel')}</Btn>
           <Btn onClick={handleSave}>{editId ? tt("Update") : tt("Create")}</Btn>
         </div>
       </Modal>
 
       {/* Archive confirmation */}
-      <ConfirmDialog open={!!archiveConfirm} title="Archive This Athlete?"
+      <ConfirmDialog open={!!archiveConfirm} title={tt('Archive This Athlete?')}
         message="Athlete will be moved to the archive. You can restore them anytime. Their plans, workouts, and payments will be preserved."
         onConfirm={() => handleArchive(archiveConfirm)}
         onCancel={() => setArchiveConfirm(null)} />
 
       {/* Permanent delete — type DELETE to confirm */}
-      {deleteConfirm && createPortal(<div role="dialog" aria-modal="true" aria-label="Permanent deletion" style={{ position: "fixed", inset: 0, zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center", background: C.scrim }} onClick={() => {setDeleteConfirm(null);setDeleteTyped("");setPurgeHistory(false)}}>
+      {deleteConfirm && createPortal(<div role="dialog" aria-modal="true" aria-label={tt('Permanent deletion')} style={{ position: "fixed", inset: 0, zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center", background: C.scrim }} onClick={() => {setDeleteConfirm(null);setDeleteTyped("");setPurgeHistory(false)}}>
         <div onClick={e => e.stopPropagation()} style={{ background: C.bg, border: `1px solid ${C.rd}`, borderRadius: 0, width: 440, maxWidth: 'calc(100vw - 24px)', padding: 24 }}>
-          <h3 style={{ margin: "0 0 8px", fontFamily: FN, fontSize: 15, color: C.rd, textAlign: "center" }}>⚠ Permanent Deletion</h3>
-          <p style={{ margin: "0 0 6px", fontSize: 13, color: C.tm, textAlign: "center" }}>This will permanently remove <strong style={{color:C.tx}}>{deleteConfirm.name}</strong> from the roster. By default their programs, workout history and payment records are kept (just no longer reachable).</p>
-          <p style={{ margin: "0 0 14px", fontSize: 13, color: C.rd, fontWeight: 600, textAlign: "center" }}>This cannot be undone.</p>
+          <h3 style={{ margin: "0 0 8px", fontFamily: FN, fontSize: 15, color: C.rd, textAlign: "center" }}>⚠ {tr(readLang(), 'Permanent Deletion')}</h3>
+          <p style={{ margin: "0 0 6px", fontSize: 13, color: C.tm, textAlign: "center" }}>{tt('This will permanently remove')}<strong style={{color:C.tx}}>{deleteConfirm.name}</strong> from the roster. By default their programs, workout history and payment records are kept (just no longer reachable).</p>
+          <p style={{ margin: "0 0 14px", fontSize: 13, color: C.rd, fontWeight: 600, textAlign: "center" }}>{tt('This cannot be undone.')}</p>
           {/* Opt-in hard purge — separate, deliberate choice. Erases revenue
               history too, so it's never the default. */}
           <label style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 16, padding: "10px 12px", border: `1px solid ${purgeHistory ? C.rd : C.cardBd}`, background: purgeHistory ? C.rdD : 'transparent', cursor: "pointer" }}>
             <input type="checkbox" checked={purgeHistory} onChange={e => setPurgeHistory(e.target.checked)} style={{ marginTop: 2, accentColor: C.rd, cursor: "pointer" }} />
             <span style={{ fontSize: 12, color: purgeHistory ? C.rd : C.tm, lineHeight: 1.45 }}>
-              Also <strong>erase all their history</strong> — programs, workouts, payments, messages, evaluations. This wipes their revenue from your reports and is not recoverable.
+              {readLang() === 'he' ? <>למחוק גם <strong>את כל ההיסטוריה שלו</strong> — תוכניות, אימונים, תשלומים, הודעות, הערכות. זה מוחק את ההכנסות שלו מהדוחות שלך, ואי אפשר לשחזר את זה.</> : <>{'Also '}<strong>{'erase all their history'}</strong>{' — programs, workouts, payments, messages, evaluations. This wipes their revenue from your reports and is not recoverable.'}</>}
             </span>
           </label>
           <div style={{ marginBottom: 16 }}>
@@ -1117,7 +1126,7 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
             <input value={deleteTyped} onChange={e => setDeleteTyped(e.target.value)} style={{ background: 'var(--c-sf2)', border: `1px solid ${C.rd}`, borderRadius: 0, padding: "8px 12px", color: C.tx, fontFamily: FN, fontSize: 14, outline: "none", width: "100%", boxSizing: "border-box", letterSpacing: "0.1em", textAlign: "center" }} placeholder="DELETE" autoComplete="off" />
           </div>
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-            <Btn variant="ghost" onClick={() => {setDeleteConfirm(null);setDeleteTyped("");setPurgeHistory(false)}}>Cancel</Btn>
+            <Btn variant="ghost" onClick={() => {setDeleteConfirm(null);setDeleteTyped("");setPurgeHistory(false)}}>{tr(readLang(), 'Cancel')}</Btn>
             <Btn variant="danger" disabled={purging} onClick={() => { if (deleteTyped.trim().toUpperCase() === "DELETE") handlePermanentDelete(deleteConfirm.id); }}
               style={{ opacity: (deleteTyped.trim().toUpperCase() === "DELETE" && !purging) ? 1 : 0.3, pointerEvents: (deleteTyped.trim().toUpperCase() === "DELETE" && !purging) ? "auto" : "none" }}>
               {purging ? 'Purging…' : (purgeHistory ? 'Delete + Erase History' : 'Delete Permanently')}</Btn>

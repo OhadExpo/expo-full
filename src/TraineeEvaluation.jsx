@@ -19,6 +19,7 @@ import { EVAL_SCHEMA, romKey, countFilled } from './evaluationSchema';
 import { toolForTest, romAxisSpec, applyTestResult, applyRomResult, testValueDisplay } from './evalTestMap';
 import { useTraineeEvaluations } from './evaluationsData';
 import EvaluationEditor from './EvaluationEditor';
+import { useT, readLang } from './i18n';
 import { todayLocalISO } from './dates';
 
 // MovementLab pulls MediaPipe — lazy so the trainee card doesn't carry the
@@ -86,7 +87,7 @@ function SingleEvalRow({ index, test, evaluation }) {
     }}>
       <div style={{ ...cellBase, justifyContent: 'center', fontFamily: FN, fontSize: 10, color: 'var(--c-td)', fontWeight: 700 }}>{index}</div>
       <div style={{ ...cellBase, fontSize: 12, color: 'var(--c-tx)', fontWeight: 600, lineHeight: 1.3 }}>{test.label}</div>
-      <div style={{ ...cellBase, justifyContent: 'flex-end', fontFamily: FN, fontSize: 10, color: 'var(--c-tm)', letterSpacing: '0.04em', textAlign: 'right' }}>{test.goal || '—'}</div>
+      <div style={{ ...cellBase, justifyContent: 'flex-end', fontFamily: FN, fontSize: 10, color: 'var(--c-tm)', letterSpacing: '0.04em', textAlign: 'end' }}>{test.goal || '—'}</div>
       <div style={{
         ...cellBase,
         fontFamily: FN, fontSize: 12,
@@ -99,6 +100,7 @@ function SingleEvalRow({ index, test, evaluation }) {
 }
 
 function SingleRomRow({ joint, axis, evaluation }) {
+  const tt = useT();
   const k = romKey(joint.id, axis);
   const val = evaluation.rom?.[k];
   return (
@@ -108,8 +110,8 @@ function SingleRomRow({ joint, axis, evaluation }) {
       borderBottom: `1px solid var(--c-cardBd)`,
     }}>
       <div style={{ ...cellBase }} />
-      <div style={{ ...cellBase, fontSize: 11, color: 'var(--c-tm)', paddingLeft: 18 }}>{axis}</div>
-      <div style={{ ...cellBase, justifyContent: 'flex-end', fontFamily: FN, fontSize: 10, color: 'var(--c-td)', letterSpacing: '0.04em', textAlign: 'right' }}>degrees</div>
+      <div style={{ ...cellBase, fontSize: 11, color: 'var(--c-tm)', paddingInlineStart: 18 }}>{axis}</div>
+      <div style={{ ...cellBase, justifyContent: 'flex-end', fontFamily: FN, fontSize: 10, color: 'var(--c-td)', letterSpacing: '0.04em', textAlign: 'end' }}>{tt('degrees')}</div>
       <div style={{
         ...cellBase,
         fontFamily: FN, fontSize: 12,
@@ -163,6 +165,7 @@ function JointHeader({ label }) {
 // full per-section + ROM data underneath. EDIT button opens the editor.
 // ──────────────────────────────────────────────────────────────────────
 function EvalListRow({ evaluation, onOpenEditor }) {
+  const tt = useT();
   const [open, setOpen] = useState(false);
   const filled = useMemo(() => countFilled(evaluation.scores, evaluation.rom), [evaluation]);
   const refined = isRefined5b();
@@ -170,7 +173,7 @@ function EvalListRow({ evaluation, onOpenEditor }) {
     <div style={{
       background: 'var(--c-sf)',
       border: `1px solid ${open ? 'var(--c-ac)' : 'var(--c-cardBd)'}`,
-      borderLeft: open ? `3px solid var(--c-ac)` : `1px solid var(--c-cardBd)`,
+      borderInlineStart: open ? `3px solid var(--c-ac)` : `1px solid var(--c-cardBd)`,
       marginBottom: 6,
     }}>
       {/* Summary row — clickable */}
@@ -186,18 +189,18 @@ function EvalListRow({ evaluation, onOpenEditor }) {
           minWidth: 90,
         }}>{fmtDate(evaluation.eval_date)}</div>
         <div style={{ display: 'flex', gap: 14, fontFamily: FN, fontSize: 11, color: 'var(--c-tm)', flex: 1, flexWrap: 'wrap' }}>
-          {evaluation.age != null && <span><span style={{ color: 'var(--c-td)' }}>AGE</span> {evaluation.age}</span>}
-          {evaluation.height_cm != null && <span><span style={{ color: 'var(--c-td)' }}>HT</span> {evaluation.height_cm}cm</span>}
-          {evaluation.weight_kg != null && <span><span style={{ color: 'var(--c-td)' }}>WT</span> {evaluation.weight_kg}kg</span>}
-          <span><span style={{ color: 'var(--c-td)' }}>FIELDS</span> {filled}</span>
+          {evaluation.age != null && <span><span style={{ color: 'var(--c-td)' }}>{tt('AGE')}</span> {evaluation.age}</span>}
+          {evaluation.height_cm != null && <span><span style={{ color: 'var(--c-td)' }}>{tt('HT')}</span> {evaluation.height_cm}{tt('cm')}</span>}
+          {evaluation.weight_kg != null && <span><span style={{ color: 'var(--c-td)' }}>{tt('WT')}</span> {evaluation.weight_kg}{readLang() === 'he' ? ' קילו' : 'kg'}</span>}
+          <span>{filled === 1 ? tt('1 FIELD') : tt('{n} FIELDS').replace('{n}', filled)}</span>
         </div>
         <button onClick={e => { e.stopPropagation(); onOpenEditor(evaluation); }}
           style={{
             background: 'transparent', border: `1px solid var(--c-cardBd)`, color: 'var(--c-tm)',
             padding: '3px 10px', borderRadius: 0, fontFamily: FN, fontSize: 9,
             fontWeight: 700, letterSpacing: '0.08em', cursor: 'pointer',
-          }}>EDIT</button>
-        <span style={{ color: 'var(--c-tm)', fontSize: 11, marginLeft: 4 }}>{open ? '▲' : '▼'}</span>
+          }}>{tt('EDIT')}</button>
+        <span style={{ color: 'var(--c-tm)', fontSize: 11, marginInlineStart: 4 }}>{open ? '▲' : '▼'}</span>
       </div>
 
       {/* Expanded full eval — single-column layout, every section + ROM */}
@@ -211,9 +214,9 @@ function EvalListRow({ evaluation, onOpenEditor }) {
             padding: '8px 0 6px', borderBottom: `2px solid var(--c-ac)`, marginBottom: 4,
           }}>
             <div style={{ ...cellBase, justifyContent: 'center', fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.18em', fontWeight: 700 }}>#</div>
-            <div style={{ ...cellBase, fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.18em', fontWeight: 700 }}>TEST</div>
-            <div style={{ ...cellBase, justifyContent: 'flex-end', fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.18em', fontWeight: 700, textAlign: 'right' }}>GOAL</div>
-            <div style={{ ...cellBase, fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.18em', fontWeight: 700 }}>SCORE</div>
+            <div style={{ ...cellBase, fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.18em', fontWeight: 700 }}>{tt('TEST')}</div>
+            <div style={{ ...cellBase, justifyContent: 'flex-end', fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.18em', fontWeight: 700, textAlign: 'end' }}>{tt('GOAL')}</div>
+            <div style={{ ...cellBase, fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.18em', fontWeight: 700 }}>{tt('SCORE')}</div>
           </div>
 
           {EVAL_SCHEMA.sections.map(s => (
@@ -239,7 +242,7 @@ function EvalListRow({ evaluation, onOpenEditor }) {
 
           {evaluation.notes && (
             <div style={{ padding: '10px 0', borderTop: `1px solid var(--c-cardBd)` }}>
-              <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>NOTES</div>
+              <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>{tt('NOTES')}</div>
               <div style={{ fontSize: 12, color: 'var(--c-tx)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
                 {evaluation.notes}
               </div>
@@ -267,6 +270,7 @@ const emailsOf = (t) => {
 const num = (x) => (x != null && x !== '' && Number.isFinite(parseFloat(x)) ? parseFloat(x) : null);
 
 export default function TraineeEvaluation({ trainee, bwLog = [] }) {
+  const tt = useT();
   const { rows, create, update, loading } = useTraineeEvaluations(trainee?.id);
   const [editing, setEditing] = useState(null);
 
@@ -399,8 +403,8 @@ export default function TraineeEvaluation({ trainee, bwLog = [] }) {
     setActiveTool(null);
     setDraftVersion(x => x + 1);
     const shown = typeof v === 'object' ? Object.entries(v).map(([k, val]) => `${k}:${val}`).join(' · ') : v;
-    if (ok) toast(`Logged ${shown} to ${test.label}${side ? ` · ${side}` : ''}`, 'success', { ttl: 3500 });
-    else toast('Could not save — check your connection and try again.', 'error', { ttl: 5000 });
+    if (ok) toast(tt('Logged {v} to {target}').replace('{v}', shown).replace('{target}', `${test.label}${side ? ` · ${side}` : ''}`), 'success', { ttl: 3500 });
+    else toast(tt('Could not save — check your connection and try again.'), 'error', { ttl: 5000 });
   }, [activeTool, persistDraft]);
 
   // Coach-confirmed camera ROM degree → rom[romKey(joint,axis)].
@@ -413,8 +417,8 @@ export default function TraineeEvaluation({ trainee, bwLog = [] }) {
     const ok = await persistDraft(d.scores, nextRom, null);
     setActiveTool(null);
     setDraftVersion(x => x + 1);
-    if (ok) toast(`Logged ${deg}° to ${spec.jointId} ${spec.axis}`, 'success', { ttl: 3500 });
-    else toast('Could not save — check your connection and try again.', 'error', { ttl: 5000 });
+    if (ok) toast(tt(Number(deg) === 1 ? 'Logged 1° to {target}' : 'Logged {deg}° to {target}').replace('{deg}', deg).replace('{target}', `${spec.jointId} ${spec.axis}`), 'success', { ttl: 3500 });
+    else toast(tt('Could not save — check your connection and try again.'), 'error', { ttl: 5000 });
   }, [activeTool, persistDraft]);
 
   // Prefill the jump-power bodyweight from the most recent evaluation that has one.
@@ -450,7 +454,7 @@ export default function TraineeEvaluation({ trainee, bwLog = [] }) {
       <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={10}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : 'var(--c-tx)' }}>
-            Evaluation ({rows.length})
+            {tt('Evaluation')} ({rows.length})
           </span>
           <div style={{ display: 'flex', gap: 0 }}>
             <button onClick={openPicker}
@@ -460,15 +464,15 @@ export default function TraineeEvaluation({ trainee, bwLog = [] }) {
                 color: refined ? '#FFFFFF' : 'var(--c-ac)',
                 padding: '3px 10px', borderRadius: 0, fontFamily: 'inherit', fontSize: 10,
                 fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer',
-              }}>CAMERA TEST</button>
+              }}>{tt('CAMERA TEST')}</button>
             <button onClick={() => setEditing('new')}
               style={{
                 background: 'transparent',
-                border: `1px solid ${refined ? '#FFFFFF' : 'var(--c-ac)'}`, borderLeft: 'none',
+                border: `1px solid ${refined ? '#FFFFFF' : 'var(--c-ac)'}`, borderInlineStart: 'none',
                 color: refined ? '#FFFFFF' : 'var(--c-ac)',
                 padding: '3px 10px', borderRadius: 0, fontFamily: 'inherit', fontSize: 10,
                 fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer',
-              }}>+ NEW EVALUATION</button>
+              }}>{tt('+ NEW EVALUATION')}</button>
           </div>
         </div>
       </RefinedHeaderStrip>
@@ -491,8 +495,8 @@ export default function TraineeEvaluation({ trainee, bwLog = [] }) {
           administration; portal + backdrop-blocking (ConfirmDialog). */}
       <ConfirmDialog
         open={!!retake}
-        title="Retake — overwrite result?"
-        message={retake ? `${retake.label} already has ${retake.current} in this evaluation. Re-running the camera test will RE-CAPTURE and REPLACE that value. Continue?` : ''}
+        title={tt('Retake — overwrite result?')}
+        message={retake ? tt('{label} already has {current} in this evaluation. Re-running the camera test will RE-CAPTURE and REPLACE that value. Continue?').replace('{label}', retake.label).replace('{current}', retake.current) : ''}
         onConfirm={() => { const r = retake; setRetake(null); r?.run(); }}
         onCancel={() => setRetake(null)}
       />
@@ -534,7 +538,7 @@ export default function TraineeEvaluation({ trainee, bwLog = [] }) {
             initialMode="analyze"
             initialView="metrics"
             exerciseTitle={`${activeTool.spec.jointId} ${activeTool.spec.axis}`}
-            toolLabel={`CAMERA ROM · ${activeTool.spec.jointId.toUpperCase()} ${activeTool.spec.axis.toUpperCase()}`}
+            toolLabel={`${tt('CAMERA ROM')} · ${activeTool.spec.jointId.toUpperCase()} ${activeTool.spec.axis.toUpperCase()}`}
             captureCue={activeTool.spec.cue || null}
             romSpec={activeTool.spec}
             onSaveRom={writeRomResult}
@@ -545,7 +549,7 @@ export default function TraineeEvaluation({ trainee, bwLog = [] }) {
 
       {rows.length === 0 && (
         <div style={{ fontSize: 12, color: 'var(--c-td)', padding: '6px 0 10px' }}>
-          No evaluations yet. Run the protocol from ATH EVAL.xlsx in-person and log the scores here.
+          {tt('No evaluations yet. Run the protocol from ATH EVAL.xlsx in-person and log the scores here.')}
         </div>
       )}
 
@@ -576,6 +580,7 @@ export default function TraineeEvaluation({ trainee, bwLog = [] }) {
 // (transform-safe fixed overlay), Esc/scrim-click closes.
 // ──────────────────────────────────────────────────────────────────────
 function CameraTestPicker({ onPickTest, onPickRom, onClose, capturedScores = {}, capturedRom = {} }) {
+  const tt = useT();
   useEscClose(true, onClose);
 
   // ✓ + measured value on anything already captured in THIS administration, so
@@ -606,13 +611,13 @@ function CameraTestPicker({ onPickTest, onPickRom, onClose, capturedScores = {},
 
   // Test chips: a live TEST button (per-side for sided tests), or a "soon" chip.
   const renderTestChips = (test, map) => {
-    if (map.status === 'soon') return <span style={soonChip}>◉ TEST · soon</span>;
+    if (map.status === 'soon') return <span style={soonChip}>{tt('◉ TEST · soon')}</span>;
     const sides = map.side ? ['L', 'R'] : [null];
     return (
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
         {sides.map(s => (
           <button key={s || 'x'} type="button" onClick={() => onPickTest(test, map, s)} style={liveBtn}>
-            ◉ TEST{s ? ` · ${s}` : ''}
+            {tt('◉ TEST')}{s ? ` · ${s}` : ''}
           </button>
         ))}
       </div>
@@ -625,7 +630,7 @@ function CameraTestPicker({ onPickTest, onPickRom, onClose, capturedScores = {},
     .filter(g => g.tests.length);
 
   return createPortal((
-    <div onClick={onClose} role="dialog" aria-modal="true" aria-label="Camera test picker" style={{
+    <div onClick={onClose} role="dialog" aria-modal="true" aria-label={tt('Camera test picker')} style={{
       position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 320,
       display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 16px',
       overflowY: 'auto',
@@ -637,14 +642,14 @@ function CameraTestPicker({ onPickTest, onPickRom, onClose, capturedScores = {},
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
           <h2 style={{ margin: 0, fontFamily: FN, fontSize: 16, color: 'var(--c-tx)', letterSpacing: '0.08em' }}>
-            CAMERA TEST
+            {tt('CAMERA TEST')}
           </h2>
           <button onClick={onClose}
             style={{ background: 'transparent', border: 'none', color: 'var(--c-tm)', cursor: 'pointer', fontSize: 18 }}>✕</button>
         </div>
         <div style={{ fontFamily: FB, fontSize: 12, color: 'var(--c-tm)', lineHeight: 1.5, marginBottom: 4 }}>
-          Pick a test to measure with the camera. Each measured value logs into one evaluation for this athlete —
-          run several in a row, then tap DONE. Only the axes the camera reads honestly are live; the rest stay manual.
+          {tt('Pick a test to measure with the camera. Each measured value logs into one evaluation for this athlete — run several in a row, then tap DONE. Only the axes the camera reads honestly are live; the rest stay manual.')}
+
         </div>
 
         {toolSections.map(({ s, tests }) => (
@@ -671,8 +676,8 @@ function CameraTestPicker({ onPickTest, onPickRom, onClose, capturedScores = {},
             axes a single 2D camera reads honestly; the rest show "soon". */}
         <div style={sectionTitle}>{EVAL_SCHEMA.rom.title.toUpperCase()}</div>
         <div style={{ fontFamily: FB, fontSize: 10.5, color: 'var(--c-ac)', marginBottom: 8, lineHeight: 1.5 }}>
-          ◉ CAM reads active range from one clip (both sides), coach-confirmed. Rotations, neck, scapula, ankle and
-          hyperextension stay manual — 2D pose can&apos;t see them honestly.
+          {tt("◉ CAM reads active range from one clip (both sides), coach-confirmed. Rotations, neck, scapula, ankle and hyperextension stay manual — 2D pose can't see them honestly.")}
+
         </div>
         {EVAL_SCHEMA.rom.joints.map(j => (
           <div key={j.id} style={{ ...rowStyle, alignItems: 'flex-start' }}>
@@ -682,7 +687,7 @@ function CameraTestPicker({ onPickTest, onPickRom, onClose, capturedScores = {},
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end', flex: 1 }}>
               {j.axes.map(ax => {
                 const spec = romAxisSpec(j.id, ax);
-                if (!spec) return <span key={ax} style={soonChip}>{ax} · soon</span>;
+                if (!spec) return <span key={ax} style={soonChip}>{ax} · {tt('soon')}</span>;
                 const captured = capturedRom?.[romKey(j.id, ax)];
                 return (
                   <button key={ax} type="button" onClick={() => onPickRom(spec)}
@@ -699,7 +704,7 @@ function CameraTestPicker({ onPickTest, onPickRom, onClose, capturedScores = {},
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 18 }}>
           <button onClick={onClose}
             style={{ padding: '10px 22px', borderRadius: 0, border: `1px solid var(--c-ac)`,
-              background: 'transparent', color: 'var(--c-ac)', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', cursor: 'pointer' }}>DONE</button>
+              background: 'transparent', color: 'var(--c-ac)', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', cursor: 'pointer' }}>{tt('DONE')}</button>
         </div>
       </div>
     </div>

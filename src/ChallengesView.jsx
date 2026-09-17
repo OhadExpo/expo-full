@@ -19,13 +19,14 @@ import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
 import { isRefined5b, RefinedHeaderStrip, Modal, Btn, Input, Select, confirmToast, toast, stripBtnBase } from './ui';
 import { GOAL_TYPES, computeProgress, TEMPLATES } from './challengePredicates';
-import { useT as useAppT, useTB } from './i18n';
+import { useT as useAppT, useTB, tr, readLang } from './i18n';
 
 const fmtDate = (d) => {
   try { return fmtPrettyDate(d); } catch { return ''; }
 };
 
 function Leaderboard({ challenge, participants, traineesById, workouts, bwLog, meals, onPersistProgress }) {
+  const tt = useAppT();
   const goalDef = GOAL_TYPES.find(g => g.id === challenge.goal_type);
   const sortDir = goalDef?.sortDir || 'desc';
   const rows = useMemo(() => {
@@ -42,7 +43,7 @@ function Leaderboard({ challenge, participants, traineesById, workouts, bwLog, m
   return (
     <div style={{ marginTop: 8 }}>
       {rows.length === 0 ? (
-        <div style={{ fontSize: 12, color: C.td, padding: '12px 0' }}>No participants yet.</div>
+        <div style={{ fontSize: 12, color: C.td, padding: '12px 0' }}>{tt('No participants yet.')}</div>
       ) : rows.map((r, i) => (
         <div key={r.trainee_id} style={{
           display: 'flex', alignItems: 'center', gap: 10,
@@ -183,7 +184,7 @@ export default function ChallengesView({ trainees, clientWorkouts, bwLog }) {
     );
     const results = await Promise.all(updates);
     const failed = results.filter(r => r?.error).length;
-    if (failed) { toast(`Snapshot partly failed — ${failed} row(s) not saved.`, 'error', { ttl: 6000 }); }
+    if (failed) { toast(readLang() === 'he' ? `תמונת המצב נשמרה חלקית — ${failed === 1 ? 'שורה אחת לא נשמרה' : `${failed} שורות לא נשמרו`}.` : `Snapshot partly failed — ${failed} row(s) not saved.`, 'error', { ttl: 6000 }); }
     else { toast('Leaderboard snapshot saved.', 'success', { ttl: 3000 }); }
     reload();
   };
@@ -211,7 +212,7 @@ export default function ChallengesView({ trainees, clientWorkouts, bwLog }) {
       </RefinedHeaderStrip>
 
       {loading ? (
-        <div style={{ padding: 30, textAlign: 'center', color: C.td, fontSize: 13 }}>Loading…</div>
+        <div style={{ padding: 30, textAlign: 'center', color: C.td, fontSize: 13 }}>{tr(readLang(), 'Loading…')}</div>
       ) : challenges.length === 0 ? (
         <div style={{ padding: 30, textAlign: 'center', color: C.td, fontSize: 13 }}>
           {tt('No challenges yet')}
@@ -223,7 +224,7 @@ export default function ChallengesView({ trainees, clientWorkouts, bwLog }) {
         const active = now >= new Date(c.start_at).getTime() && now <= new Date(c.end_at).getTime();
         return (
           <div key={c.id} style={{
-            border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${active ? C.gn : C.tm}`,
+            border: `1px solid ${C.cardBd}`, borderInlineStart: `3px solid ${active ? C.gn : C.tm}`,
             background: 'var(--c-sf)', padding: '12px 14px', marginBottom: 10,
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
@@ -232,7 +233,7 @@ export default function ChallengesView({ trainees, clientWorkouts, bwLog }) {
                 fontFamily: FN, fontSize: 9, color: active ? C.gn : C.tm, fontWeight: 700,
                 letterSpacing: '0.12em', border: `1px solid ${active ? C.gn : C.tm}`, padding: '3px 8px',
                 width: 82, boxSizing: 'border-box', flexShrink: 0,
-              }}>{active ? 'LIVE' : (now < new Date(c.start_at).getTime() ? 'UPCOMING' : 'ENDED')}</span>
+              }}>{readLang() === 'he' ? (active ? 'פעיל' : (now < new Date(c.start_at).getTime() ? 'בקרוב' : 'הסתיים')) : (active ? 'LIVE' : (now < new Date(c.start_at).getTime() ? 'UPCOMING' : 'ENDED'))}</span>
               <span style={{ fontWeight: 700, fontSize: 14, color: C.tx, fontFamily: FB }}>{c.name}</span>
               <span style={{ flex: 1 }} />
               <span style={{ fontFamily: FN, fontSize: 10, color: C.td }}>
@@ -246,8 +247,7 @@ export default function ChallengesView({ trainees, clientWorkouts, bwLog }) {
             {c.description && (
               <div style={{ fontSize: 12, color: C.tm, marginBottom: 8, lineHeight: 1.4 }}>{c.description}</div>
             )}
-            <div style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.08em', marginBottom: 4 }}>
-              GOAL · {goalLabel.toUpperCase()}{c.goal_value ? ` · target ${c.goal_value}` : ''}
+            <div style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.08em', marginBottom: 4 }}>{tt('GOAL ·')}{goalLabel.toUpperCase()}{c.goal_value ? ` · target ${c.goal_value}` : ''}
             </div>
             <Leaderboard
               challenge={c}
@@ -368,13 +368,13 @@ function ChallengeForm({ initial, trainees, existingParticipants, onClose, onSav
     return (
       <Modal open={true} onClose={onClose} title="+ New Challenge — pick a template" wide>
         <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 10 }}>
-          SMART TEMPLATES
+          {tt('SMART TEMPLATES')}
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 8, marginBottom: 14 }}>
           {TEMPLATES.map(tpl => (
             <button key={tpl.id} onClick={() => pickTemplate(tpl)}
               style={{
-                textAlign: 'left',
+                textAlign: 'start',
                 background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`,
                 borderRadius: 0, padding: '12px 14px', cursor: 'pointer',
                 display: 'flex', flexDirection: 'column', gap: 4,
@@ -398,7 +398,7 @@ function ChallengeForm({ initial, trainees, existingParticipants, onClose, onSav
             background: 'transparent', border: `1px solid ${C.cardBd}`, color: C.tm,
             fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
             padding: '6px 12px', cursor: 'pointer', borderRadius: 0,
-          }}>BLANK CHALLENGE →</button>
+          }}>{tt('BLANK CHALLENGE →')}</button>
           <Btn variant="ghost" onClick={onClose}>{tt("Cancel")}</Btn>
         </div>
       </Modal>
@@ -412,7 +412,7 @@ function ChallengeForm({ initial, trainees, existingParticipants, onClose, onSav
           background: 'transparent', border: 'none', color: C.tm,
           fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
           padding: 0, cursor: 'pointer', marginBottom: 10,
-        }}>← BACK</button>
+        }}>← {tr(readLang(), 'BACK')}</button>
       )}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
         <Input label="Name" value={name} onChange={e => setName(e.target.value)} />
@@ -426,13 +426,12 @@ function ChallengeForm({ initial, trainees, existingParticipants, onClose, onSav
         <Input label="End"   type="date" value={endAt}   onChange={e => setEndAt(e.target.value)} />
       </div>
       <div style={{ marginBottom: 12 }}>
-        <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>DESCRIPTION (OPTIONAL)</label>
+        <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>{tt('DESCRIPTION (OPTIONAL)')}</label>
         <textarea value={description} onChange={e => setDescription(e.target.value)} dir="auto" rows={2}
           style={{ width: '100%', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', boxSizing: 'border-box', resize: 'vertical' }} />
       </div>
       <div style={{ marginBottom: 14 }}>
-        <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 6 }}>
-          PARTICIPANTS ({participantIds.size})
+        <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 6 }}>{tt('PARTICIPANTS (')}{participantIds.size})
         </label>
         <div style={{ maxHeight: 220, overflowY: 'auto', border: `1px solid ${C.cardBd}`, padding: 8 }}>
           {trainees.filter(t => t.status !== 'Archived').map(t => {
@@ -450,7 +449,7 @@ function ChallengeForm({ initial, trainees, existingParticipants, onClose, onSav
       </div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
         <Btn variant="ghost" onClick={onClose} disabled={saving}>{tt("Cancel")}</Btn>
-        <Btn onClick={save} disabled={saving} style={{minWidth:104,justifyContent:'center'}}>{saving ? 'Saving…' : 'Save'}</Btn>
+        <Btn onClick={save} disabled={saving} style={{minWidth:104,justifyContent:'center'}}>{tr(readLang(), saving ? 'Saving…' : 'Save')}</Btn>
       </div>
     </Modal>
   );

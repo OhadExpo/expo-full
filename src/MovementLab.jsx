@@ -22,6 +22,7 @@ import { detectFaults, detectAsymmetry, velocityAutoreg, warmupReadiness } from 
 import { savePoseMetric, getLoadVelocityRef, isVelocityLossLift } from './poseMetricsStore';
 import { romReadingFor } from './romGoniometer';
 import { demoSquatFrames, demoJumpFrames } from './demoMotion';
+import { useT, tr, readLang } from './i18n';
 
 // Among several detected poses (multi-pose upload analysis), pick the SUBJECT —
 // the central, tallest figure in frame (closest to the camera, framed in the
@@ -264,6 +265,7 @@ export default function MovementLab({
   recordedReps = [],            // the filmed exercise's LOGGED set reps → cross-check the camera count
   targetReps = null,            // the exercise's PRESCRIBED reps (e.g. "8-10") from the plan
 }) {
+  const tt = useT();
   const videoRef = useRef(null);
   const liveCanvasRef = useRef(null);
   const streamRef = useRef(null);
@@ -529,10 +531,10 @@ export default function MovementLab({
       <div style={{ position: 'absolute', top: 14, left: 14, right: 14, zIndex: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <div style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.18em', fontWeight: 700 }}>
-            {(toolLabel || (mode === 'jump' ? 'JUMP TEST' : 'MOVEMENT LAB'))} · {String(exerciseTitle).toUpperCase()}
+            {tt(toolLabel || (mode === 'jump' ? 'JUMP TEST' : 'MOVEMENT LAB'))} · {String(exerciseTitle).toUpperCase()}
           </div>
         </div>
-        <button onClick={onClose} style={btn('rgba(255,255,255,0.3)', 'transparent')}>← BACK</button>
+        <button onClick={onClose} style={btn('rgba(255,255,255,0.3)', 'transparent')}>{tt('← BACK')}</button>
       </div>
 
       {/* camera + live skeleton (capture phases) */}
@@ -543,39 +545,39 @@ export default function MovementLab({
           {phase === 'idle' && !error && (
             <Centre>
               <div style={{ fontSize: 14, letterSpacing: '0.18em', fontWeight: 700, marginTop: 12 }}>
-                {mode === 'jump' ? 'FILM A JUMP' : 'FILM THE SET'}
+                {tt(mode === 'jump' ? 'FILM A JUMP' : 'FILM THE SET')}
               </div>
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', maxWidth: 380, lineHeight: 1.55, marginTop: 8 }}>
                 {captureCue
                   ? captureCue
                   : (mode === 'jump'
-                    ? 'Side-on, full body in frame, ~2–3m back. Record, or upload a clip from your gallery — stand still for a second, then jump.'
-                    : 'Side-on, full body in frame, ~2–3m back. Record a work set, or upload a clip from your gallery — keep the whole lift in shot.')}
+                    ? tt('Side-on, full body in frame, ~2–3m back. Record, or upload a clip from your gallery — stand still for a second, then jump.')
+                    : tt('Side-on, full body in frame, ~2–3m back. Record a work set, or upload a clip from your gallery — keep the whole lift in shot.'))}
               </div>
             </Centre>
           )}
-          {phase === 'loading' && <Centre><div style={{ fontSize: 13, letterSpacing: '0.18em', fontWeight: 700 }}>STARTING CAMERA + POSE…</div></Centre>}
+          {phase === 'loading' && <Centre><div style={{ fontSize: 13, letterSpacing: '0.18em', fontWeight: 700 }}>{tt('STARTING CAMERA + POSE…')}</div></Centre>}
           {phase === 'countdown' && (
             <Centre>
               <div style={{ fontFamily: FN, fontSize: 120, fontWeight: 800, color: C.ac, lineHeight: 1 }}>{countdown}</div>
               <div style={{ fontSize: 13, letterSpacing: '0.18em', fontWeight: 700, marginTop: 8 }}>
-                {mode === 'jump' ? 'STAND STILL — JUMP AFTER “REC”' : 'GET SET'}
+                {tt(mode === 'jump' ? 'STAND STILL — JUMP AFTER “REC”' : 'GET SET')}
               </div>
             </Centre>
           )}
           {recording && (
             <div style={{ position: 'absolute', top: 56, left: 0, right: 0, textAlign: 'center', color: '#FFFFFF', fontFamily: FN, fontSize: 13, letterSpacing: '0.18em', fontWeight: 700 }}>
-              <span style={{ color: C.rd }}>● REC</span> · {elapsed.toFixed(1)}s · {framesRef.current.length} frames
+              <span style={{ color: C.rd }}>● REC</span> · {elapsed.toFixed(1)}s · {framesRef.current.length} {tt('frames')}
             </div>
           )}
-          {error && <Centre><div style={{ fontSize: 32 }}>⚠</div><div style={{ fontSize: 13, color: C.rd, marginTop: 10 }}>{error}</div></Centre>}
+          {error && <Centre><div style={{ fontSize: 32 }}>⚠</div><div style={{ fontSize: 13, color: C.rd, marginTop: 10 }}>{tt(error)}</div></Centre>}
         </div>
       )}
 
       {/* analyzing */}
       {phase === 'analyzing' && (
         <Centre>
-          <div style={{ fontSize: 13, letterSpacing: '0.18em', fontWeight: 700 }}>READING THE MOVEMENT…</div>
+          <div style={{ fontSize: 13, letterSpacing: '0.18em', fontWeight: 700 }}>{tt('READING THE MOVEMENT…')}</div>
           {progress > 0 && (
             <>
               <div style={{ width: 220, height: 4, background: 'rgba(255,255,255,0.15)', marginTop: 16, borderRadius: 0 }}>
@@ -626,16 +628,16 @@ export default function MovementLab({
           very bottom edge (where a taskbar / browser infobar can clip them). */}
       <div style={{ flexShrink: 0, background: 'rgba(0,0,0,0.9)', borderTop: '1px solid rgba(255,255,255,0.1)', padding: 14, paddingBottom: 'calc(14px + env(safe-area-inset-bottom, 0px))', display: 'flex', gap: 10 }}>
         {phase === 'idle' && <>
-          <BigBtn color={C.ac} onClick={startRecording}>{mode === 'jump' ? 'RECORD' : 'RECORD'} →</BigBtn>
-          <button onClick={pickFile} style={{ flex: 1, padding: 14, background: 'transparent', border: '1px solid rgba(255,255,255,0.4)', color: '#FFF', fontFamily: FN, fontSize: 14, fontWeight: 700, letterSpacing: '0.14em', cursor: 'pointer' }}>⬆ UPLOAD CLIP</button>
+          <BigBtn color={C.ac} onClick={startRecording}>{tt(mode === 'jump' ? 'RECORD →' : 'RECORD →')}</BigBtn>
+          <button onClick={pickFile} style={{ flex: 1, padding: 14, background: 'transparent', border: '1px solid rgba(255,255,255,0.4)', color: '#FFF', fontFamily: FN, fontSize: 14, fontWeight: 700, letterSpacing: '0.14em', cursor: 'pointer' }}>⬆ {tt('UPLOAD CLIP')}</button>
         </>}
-        {phase === 'loading' && <BigBtn color="#555" disabled>STARTING…</BigBtn>}
-        {phase === 'countdown' && <BigBtn color="#555" disabled>GET READY… {countdown}</BigBtn>}
-        {recording && <BigBtn color={C.rd} onClick={stopAndAnalyze}>STOP &amp; ANALYZE</BigBtn>}
+        {phase === 'loading' && <BigBtn color="#555" disabled>{tt('STARTING…')}</BigBtn>}
+        {phase === 'countdown' && <BigBtn color="#555" disabled>{tt('GET READY…')} {countdown}</BigBtn>}
+        {recording && <BigBtn color={C.rd} onClick={stopAndAnalyze}>{tt('STOP & ANALYZE')}</BigBtn>}
         {/* Only in RESULTS — during 'analyzing' this solid-cyan bar rode up under the
             header (no camera div to push it down) and read as an ugly cyan slab on the
             "READING THE MOVEMENT…" loading screen (Ohad #202). BACK still aborts. */}
-        {phase === 'results' && <BigBtn color={C.ac} onClick={reset}>↺ RECORD AGAIN</BigBtn>}
+        {phase === 'results' && <BigBtn color={C.ac} onClick={reset}>↺ {tt('RECORD AGAIN')}</BigBtn>}
       </div>
     </div>,
     document.body
@@ -651,6 +653,7 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
   // from the trimmed rep slice; the continuous graphs (speed/accel/angle
   // traces) intentionally keep showing the whole clip so the coach can still
   // SEE the excluded reps, just not have them pollute the numbers.
+  const tt = useT();
   const [repFrom, setRepFrom] = useState(1);
   const [repTo, setRepTo] = useState(null); // null = "to the end", tracks repCount live
   const [vaultSaved, setVaultSaved] = useState(false); // Bar-Speed Vault: this clip logged to the athlete's trend
@@ -683,7 +686,7 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
     const { angle } = channelSignal(frames, exerciseTitle);
     return romTempoMetrics(frames, angle, slice);
   }, [result, trimmed, effFrom, effTo, frames, exerciseTitle]);
-  if (!result?.ok) return <Empty msg="Couldn't read a clean pose from that clip. Re-film side-on with the full body in frame." />;
+  if (!result?.ok) return <Empty msg={tt("Couldn't read a clean pose from that clip. Re-film side-on with the full body in frame.")} />;
   // The Movement-Lab/Lift-Metrics split: '3d' shows only the skeleton, 'metrics'
   // shows only velocity + ROM, 'all' keeps everything (Ohad 2026-06-15 —
   // velocity/ROM no longer live under Movement Lab).
@@ -706,7 +709,7 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
     <div style={{ maxWidth: 1040, margin: '0 auto' }}>
       {tabs.length > 1 && <div style={{ display: 'flex', gap: 0, marginBottom: 14 }}>
         {tabs.map(t => {
-          // Longhand borders (not `border` shorthand + `borderLeft`) — mixing the
+          // Longhand borders (not `border` shorthand + `borderInlineStart`) — mixing the
           // two makes React re-apply them in a non-deterministic order on rerender
           // (a styling bug + a console warning). Same visual: edge on 3 sides, the
           // shared seam open on the left so adjacent tabs merge.
@@ -715,9 +718,9 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
           <button key={t.k} disabled={!t.on} onClick={() => setTab(t.k)} style={{
             flex: 1, padding: '9px 6px', background: tab === t.k ? C.ac : 'transparent',
             color: t.on ? '#FFF' : 'rgba(255,255,255,0.35)',
-            borderTop: bc, borderRight: bc, borderBottom: bc, borderLeft: 'none',
+            borderTop: bc, borderInlineEnd: bc, borderBottom: bc, borderInlineStart: 'none',
             fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', cursor: t.on ? 'pointer' : 'default',
-          }}>{t.label}</button>
+          }}>{tt(t.label)}</button>
           );
         })}
       </div>}
@@ -728,20 +731,20 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
           border: `1px solid ${result.captureQuality.grade === 'poor' ? (C.warn || '#f0b429') : 'rgba(255,255,255,0.18)'}`,
           background: result.captureQuality.grade === 'poor' ? 'rgba(240,180,41,0.08)' : 'rgba(255,255,255,0.03)',
           color: result.captureQuality.grade === 'poor' ? (C.warn || '#f0b429') : 'rgba(255,255,255,0.6)',
-        }} title={`Body detected in ${Math.round(result.captureQuality.coverage * 100)}% of frames${result.captureQuality.meanVis != null ? ` · mean landmark visibility ${result.captureQuality.meanVis}` : ''}. Markerless 2D pose degrades with cropping, side-angle, motion blur or low light.`}>
-          <b style={{ letterSpacing: '0.06em' }}>{result.captureQuality.grade === 'poor' ? 'LOW CAPTURE QUALITY' : 'CAPTURE OK'}</b> · {result.captureQuality.note}
+        }} title={`${tt('Body detected in {n}% of frames').replace('{n}', Math.round(result.captureQuality.coverage * 100))}${result.captureQuality.meanVis != null ? ` · ${tt('mean landmark visibility')} ${result.captureQuality.meanVis}` : ''}. ${tt('Markerless 2D pose degrades with cropping, side-angle, motion blur or low light.')}`}>
+          <b style={{ letterSpacing: '0.06em' }}>{tt(result.captureQuality.grade === 'poor' ? 'LOW CAPTURE QUALITY' : 'CAPTURE OK')}</b> · {result.captureQuality.note}
         </div>
       )}
       <div style={{ fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.12em', marginBottom: 12 }}>
-        {result.repCount} REP{result.repCount === 1 ? '' : 'S'} · {result.fps}fps · {result.frameCount} frames
+        {result.repCount === 1 ? tt('1 REP') : tt('{n} REPS').replace('{n}', result.repCount)} · {result.fps}fps · {result.frameCount} {tt('frames')}
         {result.countMethod === 'flight' && (
-          <span style={{ color: C.pu || '#8b7cf0' }} title={`Counted from the flight phase (jumps/hops) — the tracked joint barely moves on ballistic work, so the joint counter saw only ${result.jointRepCount}. Per-rep bar-speed/ROM below still track the joint.`}>
-            {' · '}from flight
+          <span style={{ color: C.pu || '#8b7cf0' }} title={tt('Counted from the flight phase (jumps/hops) — the tracked joint barely moves on ballistic work, so the joint counter saw only {n}. Per-rep bar-speed/ROM below still track the joint.').replace('{n}', result.jointRepCount)}>
+            {' · '}{tt('from flight')}
           </span>
         )}
         {result.rejectedReps?.length > 0 && (
-          <span style={{ color: C.warn || '#f0b429' }} title="Shallow dips, walkouts or re-racks — too small to be full reps, so they're excluded from the count and the metrics.">
-            {' · '}{result.rejectedReps.length} not counted
+          <span style={{ color: C.warn || '#f0b429' }} title={tt("Shallow dips, walkouts or re-racks — too small to be full reps, so they're excluded from the count and the metrics.")}>
+            {' · '}{result.rejectedReps.length === 1 ? tt('1 not counted') : tt('{n} not counted').replace('{n}', result.rejectedReps.length)}
           </span>
         )}
         {(() => {
@@ -751,15 +754,15 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
           // silently inflate the count (velocity already excludes it; #87).
           const drops = (result.velocity?.perRep || []).filter((r) => r && typeof r.meanConcentric === 'number' && r.meanConcentric < -0.2).length;
           return drops > 0 ? (
-            <span style={{ color: C.warn || '#f0b429' }} title="The bar net-descended on this rep (negative mean concentric velocity) — a bar drop / re-rack the joint counter picked up, not a working rep. Excluded from the bar-speed reads.">
-              {' · '}{drops} {drops === 1 ? 'looks' : 'look'} like a bar drop
+            <span style={{ color: C.warn || '#f0b429' }} title={tt('The bar net-descended on this rep (negative mean concentric velocity) — a bar drop / re-rack the joint counter picked up, not a working rep. Excluded from the bar-speed reads.')}>
+              {' · '}{drops === 1 ? tt('1 looks like a bar drop') : tt('{n} look like a bar drop').replace('{n}', drops)}
             </span>
           ) : null;
         })()}
       </div>
       {!(result.repCount > 0) && (
         <div style={{ fontFamily: FN, fontSize: 12.5, color: 'rgba(255,255,255,0.62)', letterSpacing: '0.02em', marginBottom: 14, lineHeight: 1.6, padding: '9px 12px', border: `1px solid ${C.bd}`, background: C.sf2 }}>
-          <b style={{ color: '#fff', letterSpacing: '0.04em' }}>No distinct reps detected.</b> Likely an isometric hold (nothing to count), or the movement was too small / too off-angle for the camera to segment — a prone push-up or a lateral drill can read flat to a front camera. Bar-speed, tempo and set-quality all need counted reps, so those tabs stay empty; the rotatable skeleton in MOVEMENT LAB still works.
+          <b style={{ color: '#fff', letterSpacing: '0.04em' }}>{tt('No distinct reps detected.')}</b> {tt('Likely an isometric hold (nothing to count), or the movement was too small / too off-angle for the camera to segment — a prone push-up or a lateral drill can read flat to a front camera. Bar-speed, tempo and set-quality all need counted reps, so those tabs stay empty; the rotatable skeleton in MOVEMENT LAB still works.')}
         </div>
       )}
       {/* Count cross-check — the camera count vs what the athlete actually
@@ -779,15 +782,15 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
         const sumMatch = rec.length > 1 && Math.abs(N - sum) <= 1;
         const low = rec.length && N < Math.min(...rec) - 1;
         let verdict, col;
-        if (!rec.length) { verdict = `camera counted ${N}`; col = C.tm; }
-        else if (perSet) { verdict = '✓ camera matches his log'; col = C.gn; }
-        else if (sumMatch) { verdict = `≈ all sets (${sum} logged in total)`; col = C.tm; }
-        else if (low) { verdict = `⚠ camera counted ${N} — likely missed reps, trust his log`; col = (C.warn || '#f0b429'); }
-        else { verdict = `⚠ camera counted ${N} — check the clip`; col = (C.warn || '#f0b429'); }
+        if (!rec.length) { verdict = tt('camera counted {n}').replace('{n}', N); col = C.tm; }
+        else if (perSet) { verdict = tt('✓ camera matches his log'); col = C.gn; }
+        else if (sumMatch) { verdict = tt('≈ all sets ({n} logged in total)').replace('{n}', sum); col = C.tm; }
+        else if (low) { verdict = tt('⚠ camera counted {n} — likely missed reps, trust his log').replace('{n}', N); col = (C.warn || '#f0b429'); }
+        else { verdict = tt('⚠ camera counted {n} — check the clip').replace('{n}', N); col = (C.warn || '#f0b429'); }
         return (
           <div style={{ fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.04em', marginBottom: 12, marginTop: -6 }}>
-            {tgt && <>target <b style={{ color: '#fff' }}>{tgt}</b>{rec.length ? ' · ' : ' '}</>}
-            {rec.length > 0 && <>logged <b style={{ color: '#fff' }}>{rec.join('·')}</b> · </>}
+            {tgt && <>{tt('target')} <b style={{ color: '#fff' }}>{tgt}</b>{rec.length ? ' · ' : ' '}</>}
+            {rec.length > 0 && <>{tt('logged')} <b style={{ color: '#fff' }}>{rec.join('·')}</b> · </>}
             <span style={{ color: col, fontWeight: 700 }}>{verdict}</span>
           </div>
         );
@@ -798,44 +801,44 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
       {vaultClientId && result.velocity && typeof result.velocity.bestMean === 'number' && (
         <div style={{ marginBottom: 14 }}>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-            <label style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.5)' }}>LOAD
+            <label style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.5)' }}>{tt('LOAD')}
               <input type="number" min={0} step={0.5} value={load} onChange={(e) => setLoad(e.target.value)} placeholder="kg"
-                style={{ width: 56, marginLeft: 6, textAlign: 'center', background: 'transparent', border: `1px solid ${C.bd}`, color: '#FFF', fontFamily: FN, fontSize: 11, padding: '4px 4px' }}
-                title="Weight on the bar for this set (kg). Enter it to unlock same-load readiness + a load-aware trend." />
+                style={{ width: 56, marginInlineStart: 6, textAlign: 'center', background: 'transparent', border: `1px solid ${C.bd}`, color: '#FFF', fontFamily: FN, fontSize: 11, padding: '4px 4px' }}
+                title={tt('Weight on the bar for this set (kg). Enter it to unlock same-load readiness + a load-aware trend.')} />
             </label>
             {result?.captureQuality?.grade === 'poor' ? (
-              <span style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.06em', color: C.or || '#f0b429', border: `1px solid ${C.or || '#f0b429'}`, padding: '6px 12px', display: 'inline-block', lineHeight: 1.4 }} title="This clip tracked poorly — the numbers aren't reliable enough to become a trend point. Refilm cleaner to log it.">CLIP TOO ROUGH TO TREND · REFILM TO LOG</span>
+              <span style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.06em', color: C.or || '#f0b429', border: `1px solid ${C.or || '#f0b429'}`, padding: '6px 12px', display: 'inline-block', lineHeight: 1.4 }} title={tt("This clip tracked poorly — the numbers aren't reliable enough to become a trend point. Refilm cleaner to log it.")}>{tt('CLIP TOO ROUGH TO TREND · REFILM TO LOG')}</span>
             ) : vaultSaved ? (
-              <span style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.1em', color: C.gn, border: `1px solid ${C.gn}`, padding: '6px 12px', display: 'inline-block' }}>✓ SAVED TO {exerciseTitle.toUpperCase()} TREND{loadNum ? ` @ ${loadNum}KG` : ''}</span>
+              <span style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.1em', color: C.gn, border: `1px solid ${C.gn}`, padding: '6px 12px', display: 'inline-block' }}>✓ {tt('SAVED TO {ex} TREND').replace('{ex}', exerciseTitle.toUpperCase())}{loadNum ? ` ${tt('@ {n}KG').replace('{n}', loadNum)}` : ''}</span>
             ) : (
               <button type="button"
                 onClick={() => { const e = savePoseMetric({ clientId: vaultClientId, exercise: exerciseTitle, date: vaultDate, analysis: result, load: loadNum, report: buildPoseReport(frames, exerciseTitle, result) }); if (e) setVaultSaved(true); }}
                 style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: C.ac, background: 'transparent', border: `1px solid ${C.ac}`, padding: '6px 12px', cursor: 'pointer', borderRadius: 0 }}
-                title="Log this set's bar speed, ROM + left/right symmetry (and load, if entered) to the athlete's Analysis trends — feeds the velocity-fatigue line, the injury-drift timeline, and same-load readiness (owner trial, this device).">
-                ↑ SAVE TO TREND
+                title={tt("Log this set's bar speed, ROM + left/right symmetry (and load, if entered) to the athlete's Analysis trends — feeds the velocity-fatigue line, the injury-drift timeline, and same-load readiness (owner trial, this device).")}>
+                ↑ {tt('SAVE TO TREND')}
               </button>
             )}
           </div>
           {readiness && (
             <div style={{ marginTop: 10, padding: '9px 12px', border: `1px solid ${readiness.tone === 'bad' ? C.rd : readiness.tone === 'warn' ? (C.or || '#f0b429') : C.gn}`, background: readiness.tone === 'bad' ? 'rgba(255,90,90,0.06)' : readiness.tone === 'warn' ? 'rgba(240,180,41,0.06)' : 'rgba(80,220,140,0.06)' }}>
               <div style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.12em', color: readiness.tone === 'bad' ? C.rd : readiness.tone === 'warn' ? (C.or || '#f0b429') : C.gn, marginBottom: 4 }}>
-                READINESS CUE · <b>{readiness.deltaPct >= 0 ? '+' : ''}{readiness.deltaPct}%</b> vs his {readiness.load}kg norm
+                {tt('READINESS CUE')} · <b>{readiness.deltaPct >= 0 ? '+' : ''}{readiness.deltaPct}%</b> {tt('vs his {n}kg norm').replace('{n}', readiness.load)}
               </div>
               <div style={{ fontFamily: FN, fontSize: 12.5, color: 'rgba(255,255,255,0.85)', lineHeight: 1.5 }}>{readiness.verdict}</div>
               <div style={{ fontFamily: FN, fontSize: 10, color: C.td, marginTop: 4, lineHeight: 1.5 }}>
-                Today {readiness.todayVel} m/s vs his median {readiness.refVel} m/s at {readiness.load}kg{readiness.refReps ? ` · ~${readiness.refReps} reps` : ''} ({readiness.n} prior {readiness.n === 1 ? 'set' : 'sets'}, last {readiness.lastDate}).
-                {readiness.lowConf ? ' Only 1–2 prior films — treat lightly.' : ''} Phone bar-speed shifts ~5–10% with camera angle/distance, so this only means something if you film from the same spot — it's a soft cue to sense-check by feel/RPE, never a set-cutting rule.
+                {tt('Today {a} m/s vs his median {b} m/s at {n}kg').replace('{a}', readiness.todayVel).replace('{b}', readiness.refVel).replace('{n}', readiness.load)}{readiness.refReps ? ` · ${readiness.refReps === 1 ? tt('~1 rep') : tt('~{n} reps').replace('{n}', readiness.refReps)}` : ''} ({readiness.n === 1 ? tt('1 prior set') : tt('{n} prior sets').replace('{n}', readiness.n)}, {tt('last {d}').replace('{d}', readiness.lastDate)}).
+                {readiness.lowConf ? ` ${tt('Only 1–2 prior films — treat lightly.')}` : ''} {tt("Phone bar-speed shifts ~5–10% with camera angle/distance, so this only means something if you film from the same spot — it's a soft cue to sense-check by feel/RPE, never a set-cutting rule.")}
               </div>
             </div>
           )}
           {loadNum && !readiness && !vaultSaved && result?.captureQuality?.grade !== 'poor' && (
-            <div style={{ fontFamily: FN, fontSize: 10, color: C.td, marginTop: 8, lineHeight: 1.5 }}>No prior {loadNum}kg set on {exerciseTitle} yet — save this one, and next time you film {loadNum}kg you'll get a readiness read vs today.</div>
+            <div style={{ fontFamily: FN, fontSize: 10, color: C.td, marginTop: 8, lineHeight: 1.5 }}>{tt("No prior {n}kg set on {ex} yet — save this one, and next time you film {m}kg you'll get a readiness read vs today.").replace('{n}', loadNum).replace('{ex}', exerciseTitle).replace('{m}', loadNum)}</div>
           )}
         </div>
       )}
       {(tab === 'velocity' || tab === 'rom') && repCount > 1 && (
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12, fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.1em', flexWrap: 'wrap' }}>
-          <span>ANALYZE REPS</span>
+          <span>{tt('ANALYZE REPS')}</span>
           <input type="number" min={1} max={effTo} value={effFrom}
             onChange={e => setRepFrom(Math.max(1, Math.min(effTo, Number(e.target.value) || 1)))}
             style={{ width: 36, textAlign: 'center', background: 'transparent', border: `1px solid ${C.bd}`, color: '#FFF', fontFamily: FN, fontSize: 10, padding: '3px 2px' }} />
@@ -843,11 +846,11 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
           <input type="number" min={effFrom} max={repCount} value={effTo}
             onChange={e => setRepTo(Math.max(effFrom, Math.min(repCount, Number(e.target.value) || repCount)))}
             style={{ width: 36, textAlign: 'center', background: 'transparent', border: `1px solid ${C.bd}`, color: '#FFF', fontFamily: FN, fontSize: 10, padding: '3px 2px' }} />
-          <span>OF {repCount}</span>
+          <span>{tt('OF {n}').replace('{n}', repCount)}</span>
           {trimmed && (
             <button type="button" onClick={() => { setRepFrom(1); setRepTo(null); }}
               style={{ fontFamily: FN, fontSize: 9, color: C.ac, background: 'transparent', border: 'none', cursor: 'pointer', letterSpacing: '0.1em', textDecoration: 'underline' }}>
-              RESET
+              {tt('RESET')}
             </button>
           )}
         </div>
@@ -856,7 +859,7 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
       {tab === 'rom' && <RomTable r={trimmedRomTempo} jointRom={result.jointRom} kind={result.kind} frames={frames} exerciseTitle={exerciseTitle} playheadT={playheadT} onScrub={onScrub} />}
       {tab === 'form' && <FormCheck result={result} exerciseTitle={exerciseTitle} recordedReps={recordedReps} targetReps={targetReps} />}
       {tab === 'threeD' && (
-        <Suspense fallback={<div style={{ color: 'rgba(255,255,255,0.6)', textAlign: 'center', padding: 30, fontFamily: FN, fontSize: 12, letterSpacing: '0.12em' }}>LOADING 3D…</div>}>
+        <Suspense fallback={<div style={{ color: 'rgba(255,255,255,0.6)', textAlign: 'center', padding: 30, fontFamily: FN, fontSize: 12, letterSpacing: '0.12em' }}>{tt('LOADING 3D…')}</div>}>
           <AnatomyViewer frames={frames} />
         </Suspense>
       )}
@@ -867,6 +870,7 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
 // FORM CHECK — auto form-fault coach + left/right symmetry screen, both read
 // straight off the pose the camera already produced (src/poseInsights.js).
 function FormCheck({ result, exerciseTitle, recordedReps = [], targetReps = null }) {
+  const tt = useT();
   const faults = useMemo(() => detectFaults(result, exerciseTitle), [result, exerciseTitle]);
   // Is this clip likely MORE THAN ONE set? The set-breakdown + auto-coach reads
   // below all assume a single set (each rep compared to the set's best); across
@@ -980,20 +984,20 @@ function FormCheck({ result, exerciseTitle, recordedReps = [], targetReps = null
     <div style={{ fontFamily: FN }}>
       {lowCap && (
         <div style={{ fontFamily: FN, fontSize: 11, color: C.or || '#f0b429', letterSpacing: '0.02em', marginBottom: 16, lineHeight: 1.5, padding: '8px 12px', border: `1px solid ${C.or || '#f0b429'}`, background: 'rgba(240,180,41,0.08)' }}>
-          <b style={{ letterSpacing: '0.06em' }}>LOW CAPTURE QUALITY</b> — everything in this tab is a rough read off an imperfect clip, not a verdict. Refilm cleaner (whole body, straight-on or clean side, steady) to trust it.
+          <b style={{ letterSpacing: '0.06em' }}>{tt('LOW CAPTURE QUALITY')}</b> — {tt('everything in this tab is a rough read off an imperfect clip, not a verdict. Refilm cleaner (whole body, straight-on or clean side, steady) to trust it.')}
         </div>
       )}
       {repQuality && repQuality.length >= 2 && (
         <div style={{ marginBottom: 20 }}>
-          <div style={secLabel}>SET BREAKDOWN <span style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: 0 }}>· where it held, where it broke</span></div>
+          <div style={secLabel}>{tt('SET BREAKDOWN')} <span style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: 0 }}>· {tt('where it held, where it broke')}</span></div>
           {multiSet && (
             <div style={{ fontFamily: FN, fontSize: 11, color: C.or || '#f0b429', lineHeight: 1.5, marginBottom: 8, padding: '6px 10px', border: `1px solid ${C.or || '#f0b429'}`, background: 'rgba(240,180,41,0.07)' }}>
-              This clip looks like <b>more than one set</b> — the read below compares every rep to the single best one, so across sets (or both sides of a unilateral lift) it overstates the fatigue drop. For a clean within-set read, load one set.
+              {tt('This clip looks like')} <b>{tt('more than one set')}</b> — {tt('the read below compares every rep to the single best one, so across sets (or both sides of a unilateral lift) it overstates the fatigue drop. For a clean within-set read, load one set.')}
             </div>
           )}
           <div style={{ display: 'flex', gap: 3, alignItems: 'flex-end' }}>
             {repQuality.map((r) => (
-              <div key={r.rep} title={`Rep ${r.rep}: ${r.romPct}% range${r.hasVel ? `, ${r.velRet}% speed retained` : ', speed not readable'}`} style={{ flex: 1, textAlign: 'center' }}>
+              <div key={r.rep} title={`${tt('Rep {n}: {p}% range').replace('{n}', r.rep).replace('{p}', r.romPct)}${r.hasVel ? `, ${tt('{p}% speed retained').replace('{p}', r.velRet)}` : `, ${tt('speed not readable')}`}`} style={{ flex: 1, textAlign: 'center' }}>
                 <div style={{ height: 26, display: 'flex', alignItems: 'flex-end' }}>
                   <div style={{ width: '100%', height: `${Math.max(18, r.q)}%`, background: qColor(r.q), borderRadius: '2px 2px 0 0' }} />
                 </div>
@@ -1002,17 +1006,17 @@ function FormCheck({ result, exerciseTitle, recordedReps = [], targetReps = null
             ))}
           </div>
           {breakdown && breakdown.held && (
-            <div style={{ fontSize: 12.5, color: C.gn, marginTop: 8, lineHeight: 1.5 }}>No rep-to-rep drop-off — range and speed held across the set.</div>
+            <div style={{ fontSize: 12.5, color: C.gn, marginTop: 8, lineHeight: 1.5 }}>{tt('No rep-to-rep drop-off — range and speed held across the set.')}</div>
           )}
           {breakdown && !breakdown.held && (
-            <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.8)', marginTop: 8, lineHeight: 1.5 }}>Clean through rep <b style={{ color: '#fff' }}>{breakdown.brkRep - 1}</b>, then {breakdown.lead ? <><b style={{ color: '#fff' }}>{breakdown.lead}</b> started to fade</> : 'his reps started to fade'} — that's where it turned into grinding. {breakdown.lead === 'depth' ? 'Cut the set a rep or two earlier to keep range honest.' : breakdown.lead === 'bar speed' ? 'Past here the reps are fatigue, not power — stop earlier if speed is the goal.' : 'Stop the set around there if clean reps were the goal.'}</div>
+            <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.8)', marginTop: 8, lineHeight: 1.5 }}>{tt('Clean through rep')} <b style={{ color: '#fff' }}>{breakdown.brkRep - 1}</b>, {tt('then')} {breakdown.lead ? <><b style={{ color: '#fff' }}>{tt(breakdown.lead)}</b> {tt('started to fade')}</> : tt('his reps started to fade')} — {tt("that's where it turned into grinding.")} {tt(breakdown.lead === 'depth' ? 'Cut the set a rep or two earlier to keep range honest.' : breakdown.lead === 'bar speed' ? 'Past here the reps are fatigue, not power — stop earlier if speed is the goal.' : 'Stop the set around there if clean reps were the goal.')}</div>
           )}
-          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginTop: 6 }}>Bar height = rep quality (the weaker of range kept + speed kept). Green held · amber softened · red broke down.</div>
+          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginTop: 6 }}>{tt('Bar height = rep quality (the weaker of range kept + speed kept). Green held · amber softened · red broke down.')}</div>
         </div>
       )}
-      <div style={secLabel}>AUTO FORM COACH</div>
+      <div style={secLabel}>{tt('AUTO FORM COACH')}</div>
       {coachFaults && coachFaults.faults.length === 0 && coachFaults.good.length === 0 && (
-        <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>Not enough clean reps to read technique on this clip.</div>
+        <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>{tt('Not enough clean reps to read technique on this clip.')}</div>
       )}
       {coachFaults && coachFaults.faults.map((f, i) => (
         <div key={'f' + i} style={rowBase}>
@@ -1029,20 +1033,20 @@ function FormCheck({ result, exerciseTitle, recordedReps = [], targetReps = null
 
       {tempo && (
         <>
-          <div style={{ ...secLabel, marginTop: 22 }}>TEMPO <span style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: 0 }}>· what he actually did ({tempo.reps >= 2 ? 'median rep' : 'single rep'})</span></div>
+          <div style={{ ...secLabel, marginTop: 22 }}>{tt('TEMPO')} <span style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: 0 }}>· {tt('what he actually did')} ({tt(tempo.reps >= 2 ? 'median rep' : 'single rep')})</span></div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {[['eccentric', tempo.ecc, 'lowering'], ['pause', tempo.pause, 'bottom'], ['concentric', tempo.con, 'lifting']].map(([lab, v, sub]) => (
               <div key={lab} style={{ flex: '1 1 0', minWidth: 90, border: `1px solid ${C.bd}`, background: C.sf2, padding: '8px 10px' }}>
-                <div style={{ fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.ac, fontWeight: 700 }}>{lab}</div>
+                <div style={{ fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.ac, fontWeight: 700 }}>{tt(lab)}</div>
                 <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginTop: 3 }}>{v != null ? `${v.toFixed(1)}s` : '—'}</div>
-                <div style={{ fontSize: 10, color: C.td, marginTop: 2 }}>{sub}</div>
+                <div style={{ fontSize: 10, color: C.td, marginTop: 2 }}>{tt(sub)}</div>
               </div>
             ))}
           </div>
           {tempo.tut != null && tempo.reps >= 2 && (
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', marginTop: 8, fontFamily: FN }}>Time under tension · <b style={{ color: '#fff' }}>{tempo.tut}s</b> <span style={{ color: C.td }}>across {tempo.reps} reps {(capGood && tempo.tutClean) ? (tempo.tut >= 40 ? '· deep hypertrophy range' : tempo.tut >= 20 ? '· solid TUT' : '· short — more of a strength/speed set') : '· rough read (clip quality)'}</span></div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', marginTop: 8, fontFamily: FN }}>{tt('Time under tension')} · <b style={{ color: '#fff' }}>{tempo.tut}s</b> <span style={{ color: C.td }}>{tt('across {n} reps').replace('{n}', tempo.reps)} · {tt((capGood && tempo.tutClean) ? (tempo.tut >= 40 ? 'deep hypertrophy range' : tempo.tut >= 20 ? 'solid TUT' : 'short — more of a strength/speed set') : 'rough read (clip quality)')}</span></div>
           )}
-          <div style={{ fontSize: 10, color: C.td, marginTop: 8, lineHeight: 1.5 }}>Measured off the camera, not prescribed — compare it to the tempo you wrote. A fast eccentric ({'<'}1s) is the usual leak.</div>
+          <div style={{ fontSize: 10, color: C.td, marginTop: 8, lineHeight: 1.5 }}>{tt('Measured off the camera, not prescribed — compare it to the tempo you wrote. A fast eccentric (<1s) is the usual leak.')}</div>
         </>
       )}
 
@@ -1052,34 +1056,34 @@ function FormCheck({ result, exerciseTitle, recordedReps = [], targetReps = null
           there is nonsense. Raw velocity + ROM + technique above still show. (#172) */}
       {vbt && isVelocityLossLift(exerciseTitle) && (
         <>
-          <div style={{ ...secLabel, marginTop: 22 }}>STOP-SET · BAR SPEED <span style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: 0 }}>· where the set stopped being what it was for</span></div>
+          <div style={{ ...secLabel, marginTop: 22 }}>{tt('STOP-SET · BAR SPEED')} <span style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: 0 }}>· {tt('where the set stopped being what it was for')}</span></div>
           <div style={{ fontFamily: FN, fontSize: 13, color: 'rgba(255,255,255,0.85)', lineHeight: 1.6 }}>
-            He did <b style={{ color: '#fff' }}>{vbt.total} reps</b>{vbt.finalLoss != null ? <> · bar speed dropped <b style={{ color: vbt.finalLoss >= 30 ? C.rd : vbt.finalLoss >= 20 ? (C.or || '#f0b429') : C.gn }}>{vbt.finalLoss >= 90 ? '90%+' : `${Math.round(vbt.finalLoss)}%`}</b> by the last one</> : null}.
+            {tt('He did')} <b style={{ color: '#fff' }}>{tt('{n} reps').replace('{n}', vbt.total)}</b>{vbt.finalLoss != null ? <> · {tt('bar speed dropped')} <b style={{ color: vbt.finalLoss >= 30 ? C.rd : vbt.finalLoss >= 20 ? (C.or || '#f0b429') : C.gn }}>{vbt.finalLoss >= 90 ? '90%+' : `${Math.round(vbt.finalLoss)}%`}</b> {tt('by the last one')}</> : null}.
             <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {[['power', vbt.powerRep, C.pu || '#8b7cf0', 'keep it fast'], ['strength', vbt.generalRep, C.ac, 'general'], ['size', vbt.hyperRep, C.gn, 'hypertrophy']].map(([goal, rep, col, sub]) => (
                 <div key={goal} style={{ flex: '1 1 0', minWidth: 96, border: `1px solid ${C.bd}`, background: C.sf2, padding: '8px 10px' }}>
-                  <div style={{ fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: col, fontWeight: 700 }}>{goal}</div>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginTop: 3 }}>{rep ? `stop @ rep ${rep}` : `all ${vbt.total} fine`}</div>
-                  <div style={{ fontSize: 10, color: C.td, marginTop: 2 }}>{goal === 'power' ? '20% speed lost' : goal === 'strength' ? '30% lost' : '40% lost'}</div>
+                  <div style={{ fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: col, fontWeight: 700 }}>{tt(goal)}</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginTop: 3 }}>{rep ? tt('stop @ rep {n}').replace('{n}', rep) : tt('all {n} fine').replace('{n}', vbt.total)}</div>
+                  <div style={{ fontSize: 10, color: C.td, marginTop: 2 }}>{tt(goal === 'power' ? '20% speed lost' : goal === 'strength' ? '30% lost' : '40% lost')}</div>
                 </div>
               ))}
             </div>
-            <div style={{ fontSize: 10, color: C.td, marginTop: 8, lineHeight: 1.5 }}>≤20% velocity-loss keeps a set explosive (protects power + jump carry-over); past ~40% it's only hypertrophy. Camera velocity — use it for the trend + cutoff, not an exact 1RM.</div>
+            <div style={{ fontSize: 10, color: C.td, marginTop: 8, lineHeight: 1.5 }}>{tt("≤20% velocity-loss keeps a set explosive (protects power + jump carry-over); past ~40% it's only hypertrophy. Camera velocity — use it for the trend + cutoff, not an exact 1RM.")}</div>
           </div>
         </>
       )}
 
-      <div style={{ ...secLabel, marginTop: 22 }}>LEFT / RIGHT SYMMETRY</div>
+      <div style={{ ...secLabel, marginTop: 22 }}>{tt('LEFT / RIGHT SYMMETRY')}</div>
       {asym && asym.unilateral &&<div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12.5, lineHeight: 1.5, fontFamily: FN }}>{asym.note}</div>}
-      {!asym && <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>No paired joints tracked cleanly on this clip.</div>}
+      {!asym && <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>{tt('No paired joints tracked cleanly on this clip.')}</div>}
       {asym && !asym.unilateral && asym.rows.map((r) => {
         const mx = Math.max(r.left, r.right) || 1;
         const lCol = r.weaker === 'Left' ? sev[r.severity] : C.ac;
         const rCol = r.weaker === 'Right' ? sev[r.severity] : C.ac;
         return (
           <div key={r.joint} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderTop: `1px solid ${C.bd}`, fontFamily: FN }}>
-            <div style={{ width: 74, fontSize: 13, color: '#fff' }}>{r.joint}</div>
-            <span style={{ width: 34, textAlign: 'right', fontSize: 11, color: 'rgba(255,255,255,0.6)', fontVariantNumeric: 'tabular-nums' }}>{r.left}°</span>
+            <div style={{ width: 74, fontSize: 13, color: '#fff' }}>{tt(r.joint)}</div>
+            <span style={{ width: 34, textAlign: 'end', fontSize: 11, color: 'rgba(255,255,255,0.6)', fontVariantNumeric: 'tabular-nums' }}>{r.left}°</span>
             <div style={{ flex: 1, display: 'flex', height: 10, alignItems: 'stretch' }}>
               <div style={{ width: '50%', display: 'flex', justifyContent: 'flex-end' }}>
                 <div style={{ width: `${(r.left / mx) * 100}%`, background: lCol, opacity: r.weaker === 'Left' ? 1 : 0.55, borderRadius: '2px 0 0 2px' }} />
@@ -1090,15 +1094,15 @@ function FormCheck({ result, exerciseTitle, recordedReps = [], targetReps = null
               </div>
             </div>
             <span style={{ width: 34, fontSize: 11, color: 'rgba(255,255,255,0.6)', fontVariantNumeric: 'tabular-nums' }}>{r.right}°</span>
-            <div style={{ width: 96, textAlign: 'right', fontSize: 11, color: sev[r.severity], fontWeight: r.severity === 'ok' ? 400 : 700 }}>
-              {r.severity === 'ok' ? 'balanced' : `${r.asymPct}% ${r.weaker.toLowerCase()}↓`}
+            <div style={{ width: 96, textAlign: 'end', fontSize: 11, color: sev[r.severity], fontWeight: r.severity === 'ok' ? 400 : 700 }}>
+              {r.severity === 'ok' ? tt('balanced') : tt(r.weaker === 'Left' ? '{p}% left↓' : '{p}% right↓').replace('{p}', r.asymPct)}
             </div>
           </div>
         );
       })}
       {asym && asym.flagged.length > 0 && (
         <div style={{ marginTop: 10, fontSize: 12, color: C.or, lineHeight: 1.5, fontFamily: FN }}>
-          {asym.worst.joint} travel {asym.worst.asymPct}% less on the {asym.worst.weaker.toLowerCase()} — worth screening in person before loading it heavier.
+          {tt(asym.worst.weaker === 'Left' ? '{j} travel {p}% less on the left — worth screening in person before loading it heavier.' : '{j} travel {p}% less on the right — worth screening in person before loading it heavier.').replace('{j}', tt(asym.worst.joint)).replace('{p}', asym.worst.asymPct)}
         </div>
       )}
       <div style={{ marginTop: 16, fontSize: 10, color: 'rgba(255,255,255,0.35)', lineHeight: 1.5, fontFamily: FN }}>{faults?.note || asym?.note}</div>
@@ -1114,6 +1118,7 @@ function VelocityTable({ v, barSpeed, frames, playheadT = null, onScrub = null, 
   //   ACCELERATION  — its time-derivative (signed — shows deceleration too).
   //   MEAN VELOCITY — one number per rep (the VBT fatigue bars), a genuinely
   //                   different metric (a per-rep summary, not a continuous trace).
+  const tt = useT();
   const [graph, setGraph] = useState('speed');
   // Pinch-zoom window on the time axis, SHARED between SPEED and ACCELERATION
   // (they're the same timeline) so flipping tabs doesn't lose your zoom. null =
@@ -1132,7 +1137,7 @@ function VelocityTable({ v, barSpeed, frames, playheadT = null, onScrub = null, 
     () => frames && barAccelSeries(frames, point),
     [point, frames]
   );
-  if (!v) return <Empty msg="No reps detected to measure velocity." />;
+  if (!v) return <Empty msg={tt('No reps detected to measure velocity.')} />;
   const pill = (k, label, sel, on) => (
     <button key={k} type="button" onClick={on}
       style={{
@@ -1141,7 +1146,7 @@ function VelocityTable({ v, barSpeed, frames, playheadT = null, onScrub = null, 
         border: `1px solid ${sel ? C.ac : 'rgba(255,255,255,0.2)'}`,
         background: sel ? `${C.ac}22` : 'transparent',
         color: sel ? C.ac : 'rgba(255,255,255,0.5)',
-      }}>{label}</button>
+      }}>{tt(label)}</button>
   );
   // TRACK (BAR·WRISTS / BODY·HIPS) is a SUB-level pick nested under the
   // primary SPEED/ACCEL/MEAN-VELOCITY tabs above — same box-pill for both
@@ -1156,11 +1161,11 @@ function VelocityTable({ v, barSpeed, frames, playheadT = null, onScrub = null, 
     <button key={k} type="button" onClick={on}
       style={{
         fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', padding: '4px 2px',
-        marginRight: 16, border: 'none', background: 'transparent', borderRadius: 0,
+        marginInlineEnd: 16, border: 'none', background: 'transparent', borderRadius: 0,
         borderBottom: `2px solid ${sel ? C.ac : 'transparent'}`,
         color: sel ? C.ac : 'rgba(255,255,255,0.5)',
         cursor: 'pointer', textTransform: 'uppercase', marginBottom: -1,
-      }}>{label}</button>
+      }}>{tt(label)}</button>
   );
   return (
     <div>
@@ -1196,10 +1201,10 @@ function VelocityTable({ v, barSpeed, frames, playheadT = null, onScrub = null, 
           set fatigue read that's meaningless there, so drop the LOSS KPI + column
           and keep raw mean/peak velocity (which is fine on any lift). (#172) */}
       <div style={{ display: 'flex', gap: 8 }}>
-        <MiniKpi label="BEST MEAN VELOCITY" value={`${v.bestMean.toFixed(2)} m/s`} />
-        {velLoss && <MiniKpi label="VELOCITY LOSS (LAST REP)" value={v.finalLossPct >= 90 ? '90%+' : `${Math.round(v.finalLossPct)}%`} tone={v.finalLossPct >= 20 ? C.rd : v.finalLossPct >= 10 ? C.or : C.gn} />}
+        <MiniKpi label={tt('BEST MEAN VELOCITY')} value={`${v.bestMean.toFixed(2)} m/s`} />
+        {velLoss && <MiniKpi label={tt('VELOCITY LOSS (LAST REP)')} value={v.finalLossPct >= 90 ? '90%+' : `${Math.round(v.finalLossPct)}%`} tone={v.finalLossPct >= 20 ? C.rd : v.finalLossPct >= 10 ? C.or : C.gn} />}
       </div>
-      <Row head cells={velLoss ? ['REP', 'MEAN m/s', 'PEAK m/s', 'LOSS'] : ['REP', 'MEAN m/s', 'PEAK m/s']} />
+      <Row head cells={velLoss ? [tt('REP'), tt('MEAN m/s'), tt('PEAK m/s'), tt('LOSS')] : [tt('REP'), tt('MEAN m/s'), tt('PEAK m/s')]} />
       {v.perRep.map((r, i) => r && <Row key={i} cells={velLoss
         ? [i + 1, r.meanConcentric.toFixed(2), r.peak.toFixed(2), r.lossPct == null ? '—' : r.lossPct >= 90 ? '90%+' : `${Math.round(r.lossPct)}%`]
         : [i + 1, r.meanConcentric.toFixed(2), r.peak.toFixed(2)]} tone={velLoss && r.lossPct != null && r.lossPct >= 20 ? C.rd : undefined}
@@ -1298,7 +1303,7 @@ const zoomResetPillStyle = {
   display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
   fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', padding: '2px 8px',
   border: '1px solid rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.08)',
-  color: 'rgba(255,255,255,0.75)', cursor: 'pointer', borderRadius: 0, marginLeft: 8,
+  color: 'rgba(255,255,255,0.75)', cursor: 'pointer', borderRadius: 0, marginInlineStart: 8,
 };
 
 // Continuous VERTICAL bar/body speed over the whole set. Each rep is a peak pair
@@ -1307,6 +1312,7 @@ const zoomResetPillStyle = {
 // see useTraceZoomPan). playheadT (ms) draws a video-synced marker; onScrub(tMs)
 // seeks the video when the coach clicks/drags on the trace — two-way sync.
 function SpeedTrace({ barSpeed, point, playheadT = null, onScrub = null, zoom = null, setZoom = null }) {
+  const tt = useT();
   const noun = point === 'hip' ? 'BODY (HIP)' : 'BAR (WRIST)';
   const svgRef = useRef(null);
   const hasSeries = !!(barSpeed && barSpeed.series && barSpeed.series.length >= 3);
@@ -1319,7 +1325,7 @@ function SpeedTrace({ barSpeed, point, playheadT = null, onScrub = null, zoom = 
   // it's a no-op there since the component returns before using its result.
   const { t0, t1, span, zoomed, resetZoom, handlers } = useTraceZoomPan({ svgRef, fullT0, fullT1, zoom, setZoom, onScrub, W, padL, padR });
   if (!hasSeries) {
-    return <div style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', margin: '6px 0 16px' }}>No clean {noun.toLowerCase()} speed trace in this clip.</div>;
+    return <div style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', margin: '6px 0 16px' }}>{tt('No clean {noun} speed trace in this clip.').replace('{noun}', tt(noun).toLowerCase())}</div>;
   }
   const visible = zoomed ? series.filter(p => p.t >= t0 && p.t <= t1) : series;
   // y-axis rescales to the VISIBLE window's peak — zooming in reveals more
@@ -1340,8 +1346,8 @@ function SpeedTrace({ barSpeed, point, playheadT = null, onScrub = null, zoom = 
   return (
     <div style={{ margin: '6px 0 16px' }}>
       <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.14em', marginBottom: 8, display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
-        <span>VERTICAL {noun} SPEED · m/s{zoomed ? '' : ' OVER TIME'} · +up / -down · peak {peak.toFixed(2)}{onScrub ? ' · scrub to seek, pinch to zoom' : ''}</span>
-        {zoomed && <button type="button" onClick={resetZoom} style={zoomResetPillStyle}>↺ RESET ZOOM</button>}
+        <span>{tt('VERTICAL {noun} SPEED · m/s').replace('{noun}', tt(noun))}{zoomed ? '' : ` ${tt('OVER TIME')}`} · {tt('+up / -down')} · {tt('peak {n}').replace('{n}', peak.toFixed(2))}{onScrub ? ` · ${tt('scrub to seek, pinch to zoom')}` : ''}</span>
+        {zoomed && <button type="button" onClick={resetZoom} style={zoomResetPillStyle}>↺ {tt('RESET ZOOM')}</button>}
       </div>
       <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block', cursor: onScrub ? 'col-resize' : 'default', touchAction: 'none' }} {...handlers}>
         {gridY.map((g, i) => (
@@ -1389,6 +1395,7 @@ function PlayheadMarker({ x, y, value, chartW, padL, padR }) {
 // with an emphasized zero line, and a distinct stroke color so the two traces
 // are never confused at a glance.
 function AccelTrace({ accel, point, playheadT = null, onScrub = null, zoom = null, setZoom = null }) {
+  const tt = useT();
   const noun = point === 'hip' ? 'BODY (HIP)' : 'BAR (WRIST)';
   const svgRef = useRef(null);
   const hasSeries = !!(accel && accel.series && accel.series.length >= 3);
@@ -1399,7 +1406,7 @@ function AccelTrace({ accel, point, playheadT = null, onScrub = null, zoom = nul
   const fullT1 = hasSeries ? (series[series.length - 1].t || 1) : 1;
   const { t0, t1, span, zoomed, resetZoom, handlers } = useTraceZoomPan({ svgRef, fullT0, fullT1, zoom, setZoom, onScrub, W, padL, padR });
   if (!hasSeries) {
-    return <div style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', margin: '6px 0 16px' }}>No clean {noun.toLowerCase()} acceleration trace in this clip.</div>;
+    return <div style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', margin: '6px 0 16px' }}>{tt('No clean {noun} acceleration trace in this clip.').replace('{noun}', tt(noun).toLowerCase())}</div>;
   }
   const visible = zoomed ? series.filter(p => p.t >= t0 && p.t <= t1) : series;
   const peak = visible.length ? Math.max(...visible.map(p => Math.abs(p.accel))) : fullPeak;
@@ -1415,8 +1422,8 @@ function AccelTrace({ accel, point, playheadT = null, onScrub = null, zoom = nul
   return (
     <div style={{ margin: '6px 0 16px' }}>
       <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.14em', marginBottom: 8, display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
-        <span>VERTICAL {noun} ACCELERATION · m/s²{zoomed ? '' : ' OVER TIME'} · peak {peak.toFixed(2)}{onScrub ? ' · scrub to seek, pinch to zoom' : ''}</span>
-        {zoomed && <button type="button" onClick={resetZoom} style={zoomResetPillStyle}>↺ RESET ZOOM</button>}
+        <span>{tt('VERTICAL {noun} ACCELERATION · m/s²').replace('{noun}', tt(noun))}{zoomed ? '' : ` ${tt('OVER TIME')}`} · {tt('peak {n}').replace('{n}', peak.toFixed(2))}{onScrub ? ` · ${tt('scrub to seek, pinch to zoom')}` : ''}</span>
+        {zoomed && <button type="button" onClick={resetZoom} style={zoomResetPillStyle}>↺ {tt('RESET ZOOM')}</button>}
       </div>
       <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block', cursor: onScrub ? 'col-resize' : 'default', touchAction: 'none' }} {...handlers}>
         {gridVals.map((g, i) => (
@@ -1444,12 +1451,13 @@ function AccelTrace({ accel, point, playheadT = null, onScrub = null, zoom = nul
 // velocity-loss (green <10% · orange 10–20% · red ≥20%). The whole reason to
 // measure velocity is to SEE the drop-off; a number column hides it.
 function VelocityBars({ perRep, bestMean }) {
+  const tt = useT();
   const reps = (perRep || []).filter(Boolean);
   if (reps.length < 2) return null;
   const max = Math.max(bestMean || 0, ...reps.map(r => r.meanConcentric)) || 1;
   return (
     <div style={{ margin: '6px 0 16px' }}>
-      <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.14em', marginBottom: 8 }}>VELOCITY PROFILE · m/s PER REP</div>
+      <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.14em', marginBottom: 8 }}>{tt('VELOCITY PROFILE · m/s PER REP')}</div>
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 96 }}>
         {reps.map((r, i) => {
           const h = Math.max(4, Math.round((r.meanConcentric / max) * 78));
@@ -1457,7 +1465,7 @@ function VelocityBars({ perRep, bestMean }) {
           return (
             <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', minWidth: 0 }}>
               <div style={{ fontFamily: FN, fontSize: 8, color: 'rgba(255,255,255,0.55)', marginBottom: 3 }}>{r.meanConcentric.toFixed(2)}</div>
-              <div title={`Rep ${i + 1} · ${r.meanConcentric.toFixed(2)} m/s · ${r.lossPct}% loss`} style={{ width: '100%', maxWidth: 32, height: h, background: tone }} />
+              <div title={`${tt('Rep {n}').replace('{n}', i + 1)} · ${r.meanConcentric.toFixed(2)} m/s · ${tt('{p}% loss').replace('{p}', r.lossPct)}`} style={{ width: '100%', maxWidth: 32, height: h, background: tone }} />
               <div style={{ fontFamily: FN, fontSize: 8, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>{i + 1}</div>
             </div>
           );
@@ -1481,7 +1489,8 @@ const JOINT_PICKS = [{ abbr: 'SHO', label: 'Shoulder' }, { abbr: 'ELB', label: '
 // useTraceZoomPan + PlayheadMarker), plotting degrees instead of m/s or m/s².
 // Green stroke keeps it visually distinct from speed (cyan) and accel (purple).
 function AngleTrace({ angle, kind, jointLabel = null, playheadT = null, onScrub = null, zoom = null, setZoom = null }) {
-  const noun = (jointLabel || KIND_JOINT[kind] || 'JOINT').toUpperCase();
+  const tt = useT();
+  const noun = (jointLabel || tt(KIND_JOINT[kind] || 'JOINT')).toUpperCase();
   const svgRef = useRef(null);
   const hasSeries = !!(angle && angle.series && angle.series.length >= 3);
   const series = hasSeries ? angle.series : null;
@@ -1491,7 +1500,7 @@ function AngleTrace({ angle, kind, jointLabel = null, playheadT = null, onScrub 
   const fullT1 = hasSeries ? (series[series.length - 1].t || 1) : 1;
   const { t0, t1, span, zoomed, resetZoom, handlers } = useTraceZoomPan({ svgRef, fullT0, fullT1, zoom, setZoom, onScrub, W, padL, padR });
   if (!hasSeries) {
-    return <div style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', margin: '6px 0 16px' }}>No clean joint-angle trace in this clip.</div>;
+    return <div style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', margin: '6px 0 16px' }}>{tt('No clean joint-angle trace in this clip.')}</div>;
   }
   const visible = zoomed ? series.filter(p => p.t >= t0 && p.t <= t1) : series;
   const peak = visible.length ? Math.max(...visible.map(p => p.angle)) : fullPeak;
@@ -1506,8 +1515,8 @@ function AngleTrace({ angle, kind, jointLabel = null, playheadT = null, onScrub 
   return (
     <div style={{ margin: '6px 0 16px' }}>
       <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.14em', marginBottom: 8, display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
-        <span>{noun} ANGLE · degrees{zoomed ? '' : ' OVER TIME'} · peak {peak.toFixed(0)}°{onScrub ? ' · scrub to seek, pinch to zoom' : ''}</span>
-        {zoomed && <button type="button" onClick={resetZoom} style={zoomResetPillStyle}>↺ RESET ZOOM</button>}
+        <span>{tt('{noun} ANGLE · degrees').replace('{noun}', noun)}{zoomed ? '' : ` ${tt('OVER TIME')}`} · {tt('peak {n}°').replace('{n}', peak.toFixed(0))}{onScrub ? ` · ${tt('scrub to seek, pinch to zoom')}` : ''}</span>
+        {zoomed && <button type="button" onClick={resetZoom} style={zoomResetPillStyle}>↺ {tt('RESET ZOOM')}</button>}
       </div>
       <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block', cursor: onScrub ? 'col-resize' : 'default', touchAction: 'none' }} {...handlers}>
         {gridY.map((g, i) => (
@@ -1539,12 +1548,13 @@ function RomTable({ r, jointRom, kind, frames = null, exerciseTitle, playheadT =
   // Manual joint + L/R picker (Ohad: "I need to be able to choose a joint,
   // and to choose r/l then the graph adjusts") — defaults to whatever the
   // exercise title auto-detected, coach can override either independently.
+  const tt = useT();
   const [jointAbbr, setJointAbbr] = useState(() => KIND_TO_ABBR[kind] || 'KNE');
   const [side, setSide] = useState('L');
   useEffect(() => { setJointAbbr(KIND_TO_ABBR[kind] || 'KNE'); }, [kind]);
   const angleTrace = useMemo(() => frames && namedAngleSeries(frames, `${side} ${jointAbbr}`), [frames, side, jointAbbr]);
-  if (!r && !jointRom) return <Empty msg="No movement detected to measure range of motion." />;
-  const primaryJoint = (KIND_JOINT[kind] || 'Primary Joint').toUpperCase();
+  if (!r && !jointRom) return <Empty msg={tt('No movement detected to measure range of motion.')} />;
+  const primaryJoint = tt(KIND_JOINT[kind] || 'Primary Joint').toUpperCase();
   return (
     <div>
       {/* Synced/scrubbable/pinch-zoomable graph — same treatment as SPEED &
@@ -1552,7 +1562,7 @@ function RomTable({ r, jointRom, kind, frames = null, exerciseTitle, playheadT =
           video timeline on this... like we have on speed/acceleration").
           Plots the manually-picked joint+side channel, not the exercise-
           title-averaged auto pick. */}
-      <AngleTrace angle={angleTrace} jointLabel={`${side} ${JOINT_PICKS.find(j => j.abbr === jointAbbr)?.label || jointAbbr}`} playheadT={playheadT} onScrub={onScrub} zoom={zoom} setZoom={setZoom} />
+      <AngleTrace angle={angleTrace} jointLabel={tt(side === 'L' ? 'L {joint}' : 'R {joint}').replace('{joint}', tt(JOINT_PICKS.find(j => j.abbr === jointAbbr)?.label || jointAbbr))} playheadT={playheadT} onScrub={onScrub} zoom={zoom} setZoom={setZoom} />
       <div style={{ display: 'flex', gap: 4, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
         {JOINT_PICKS.map(j => (
           <button key={j.abbr} type="button" onClick={() => setJointAbbr(j.abbr)}
@@ -1562,7 +1572,7 @@ function RomTable({ r, jointRom, kind, frames = null, exerciseTitle, playheadT =
               border: `1px solid ${jointAbbr === j.abbr ? C.gn : 'rgba(255,255,255,0.2)'}`,
               background: jointAbbr === j.abbr ? `${C.gn}22` : 'transparent',
               color: jointAbbr === j.abbr ? C.gn : 'rgba(255,255,255,0.5)',
-            }}>{j.label}</button>
+            }}>{tt(j.label)}</button>
         ))}
         <span style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.15)', margin: '0 4px' }} />
         {['L', 'R'].map(s => (
@@ -1579,16 +1589,16 @@ function RomTable({ r, jointRom, kind, frames = null, exerciseTitle, playheadT =
       {jointRom && <JointRomPanel joints={jointRom} />}
       {r ? (
         <>
-          <Kpi label={`LARGEST ${primaryJoint} ROM`} value={`${r.maxRom.toFixed(0)}°`} />
-          {r.collapsedCount > 0 && <Kpi label="ROM-COLLAPSED REPS" value={String(r.collapsedCount)} tone={C.or} />}
+          <Kpi label={tt('LARGEST {joint} ROM').replace('{joint}', primaryJoint)} value={`${r.maxRom.toFixed(0)}°`} />
+          {r.collapsedCount > 0 && <Kpi label={tt('ROM-COLLAPSED REPS')} value={String(r.collapsedCount)} tone={C.or} />}
           <TempoBars perRep={r.perRep} />
-          <Row head cells={['REP', 'ROM', 'ECC s', 'PAUSE', 'CON s']} />
+          <Row head cells={[tt('REP'), 'ROM', 'ECC s', tt('pause').toUpperCase(), 'CON s']} />
           {r.perRep.map((x, i) => x && <Row key={i} cells={[i + 1, `${x.rom.toFixed(0)}° (${x.romPct}%)`, x.ecc.toFixed(1), x.pause.toFixed(1), x.con.toFixed(1)]} tone={x.collapsed ? C.or : undefined}
             onClick={onScrub && x.startT != null ? () => onScrub(x.startT) : undefined} />)}
         </>
       ) : (
         <div style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', marginTop: 10 }}>
-          Per-rep tempo (ecc / pause / con) needs a detected set — film a full rep cycle to add it.
+          {tt('Per-rep tempo (ecc / pause / con) needs a detected set — film a full rep cycle to add it.')}
         </div>
       )}
     </div>
@@ -1620,16 +1630,17 @@ function romRows(joints) {
   }).filter(Boolean);
 }
 function RomDiverging({ rows }) {
+  const tt = useT();
   const maxRom = Math.max(1, ...rows.flatMap(r => [r.lr || 0, r.rr || 0]));
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'center', gap: 8, fontFamily: FN, fontSize: 8, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.12em', marginBottom: 10 }}>
-        <span>◄ LEFT</span><span style={{ opacity: 0.4 }}>·</span><span>RIGHT ►</span>
+        <span>{tt('◄ LEFT')}</span><span style={{ opacity: 0.4 }}>·</span><span>{tt('RIGHT ►')}</span>
       </div>
       {rows.map(r => (
         <div key={r.key} style={{ marginBottom: 13 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: C.ac, width: 34, textAlign: 'right', flexShrink: 0 }}>{r.lr != null ? `${r.lr}°` : '—'}</span>
+            <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: C.ac, width: 34, textAlign: 'end', flexShrink: 0 }}>{r.lr != null ? `${r.lr}°` : '—'}</span>
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', minWidth: 0 }}>
               <div style={{ flex: 1, height: 14, position: 'relative', background: 'rgba(255,255,255,0.05)' }}>
                 <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: `${(r.lr || 0) / maxRom * 100}%`, background: C.ac }} />
@@ -1642,7 +1653,7 @@ function RomDiverging({ rows }) {
             <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: ROM_R, width: 34, flexShrink: 0 }}>{r.rr != null ? `${r.rr}°` : '—'}</span>
           </div>
           <div style={{ textAlign: 'center', fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.55)', marginTop: 4, textTransform: 'uppercase' }}>
-            {r.label}{r.delta != null && r.delta > 10 ? <span style={{ color: ROM_FLAG }}> · Δ{r.delta}%</span> : ''}
+            {tt(r.label)}{r.delta != null && r.delta > 10 ? <span style={{ color: ROM_FLAG }}> · Δ{r.delta}%</span> : ''}
           </div>
         </div>
       ))}
@@ -1650,17 +1661,18 @@ function RomDiverging({ rows }) {
   );
 }
 function RomTableView({ rows }) {
-  const th = { fontFamily: FN, fontSize: 8, letterSpacing: '0.12em', color: 'rgba(255,255,255,0.35)', padding: '6px 4px', borderBottom: '1px solid rgba(255,255,255,0.14)', textAlign: 'right', fontWeight: 700 };
-  const td = { fontFamily: FN, fontSize: 12, fontWeight: 700, padding: '9px 4px', borderBottom: '1px solid rgba(255,255,255,0.06)', textAlign: 'right' };
+  const tt = useT();
+  const th = { fontFamily: FN, fontSize: 8, letterSpacing: '0.12em', color: 'rgba(255,255,255,0.35)', padding: '6px 4px', borderBottom: '1px solid rgba(255,255,255,0.14)', textAlign: 'end', fontWeight: 700 };
+  const td = { fontFamily: FN, fontSize: 12, fontWeight: 700, padding: '9px 4px', borderBottom: '1px solid rgba(255,255,255,0.06)', textAlign: 'end' };
   return (
     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
       <thead><tr>
-        <th style={{ ...th, textAlign: 'left' }}>JOINT</th><th style={th}>L</th><th style={th}>R</th><th style={th}>Δ</th>
+        <th style={{ ...th, textAlign: 'start' }}>{tt('JOINT')}</th><th style={th}>L</th><th style={th}>R</th><th style={th}>Δ</th>
       </tr></thead>
       <tbody>
         {rows.map(r => (
           <tr key={r.key}>
-            <td style={{ ...td, textAlign: 'left', color: C.tx }}>{r.label}</td>
+            <td style={{ ...td, textAlign: 'start', color: C.tx }}>{tt(r.label)}</td>
             <td style={{ ...td, color: C.ac }}>{r.lr != null ? `${r.lr}°` : '—'}</td>
             <td style={{ ...td, color: ROM_R }}>{r.rr != null ? `${r.rr}°` : '—'}</td>
             <td style={{ ...td, color: r.delta != null && r.delta > 10 ? ROM_FLAG : 'rgba(255,255,255,0.4)' }}>{r.delta != null ? `${r.delta}%` : '—'}</td>
@@ -1671,6 +1683,7 @@ function RomTableView({ rows }) {
   );
 }
 function JointRomPanel({ joints }) {
+  const tt = useT();
   const [mode, setMode] = useState('diverging'); // 'diverging' (B) | 'table' (C)
   if (!joints || !joints.length) return null;
   const rows = romRows(joints);
@@ -1682,12 +1695,12 @@ function JointRomPanel({ joints }) {
       border: `1px solid ${mode === k ? C.ac : 'rgba(255,255,255,0.18)'}`,
       background: mode === k ? `${C.ac}22` : 'transparent',
       color: mode === k ? C.ac : 'rgba(255,255,255,0.5)',
-    }}>{label}</button>
+    }}>{tt(label)}</button>
   );
   return (
     <div style={{ margin: '4px 0 18px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
-        <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.14em' }}>JOINT ROM · IN-PLANE °</div>
+        <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.14em' }}>{tt('JOINT ROM · IN-PLANE °')}</div>
         <div style={{ display: 'flex', gap: 6 }}>{tBtn('diverging', 'L ↔ R')}{tBtn('table', 'Table')}</div>
       </div>
       {mode === 'diverging' ? <RomDiverging rows={rows} /> : <RomTableView rows={rows} />}
@@ -1699,26 +1712,27 @@ function JointRomPanel({ joints }) {
 // proportional stacked bar. Surfaces rushed eccentrics and skipped pauses at a
 // glance (tempo-prescription compliance), which the seconds columns bury.
 function TempoBars({ perRep }) {
+  const tt = useT();
   const reps = (perRep || []).filter(Boolean);
   if (!reps.length) return null;
   const maxT = Math.max(...reps.map(r => r.ecc + r.pause + r.con)) || 1;
   const seg = (val, color, key) => val > 0
-    ? <div key={key} title={`${key} ${val.toFixed(1)}s`} style={{ width: `${(val / maxT) * 100}%`, background: color }} />
+    ? <div key={key} title={`${tt(key)} ${val.toFixed(1)}s`} style={{ width: `${(val / maxT) * 100}%`, background: color }} />
     : null;
   return (
     <div style={{ margin: '6px 0 16px' }}>
-      <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.14em', marginBottom: 8 }}>TEMPO · ECC / PAUSE / CON PER REP</div>
+      <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.14em', marginBottom: 8 }}>{tt('TEMPO · ECC / PAUSE / CON PER REP')}</div>
       {reps.map((x, i) => (
         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
           <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.4)', width: 16 }}>{i + 1}</div>
           <div style={{ flex: 1, display: 'flex', height: 12, background: 'rgba(255,255,255,0.06)' }}>
             {seg(x.ecc, C.ac, 'ecc')}{seg(x.pause, 'rgba(255,255,255,0.28)', 'pause')}{seg(x.con, C.gn, 'con')}
           </div>
-          <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.5)', width: 42, textAlign: 'right' }}>{(x.ecc + x.pause + x.con).toFixed(1)}s</div>
+          <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.5)', width: 42, textAlign: 'end' }}>{(x.ecc + x.pause + x.con).toFixed(1)}s</div>
         </div>
       ))}
       <div style={{ display: 'flex', gap: 14, marginTop: 6 }}>
-        <Legend color={C.ac} label="ECC" /><Legend color="rgba(255,255,255,0.28)" label="PAUSE" /><Legend color={C.gn} label="CON" />
+        <Legend color={C.ac} label="ECC" /><Legend color="rgba(255,255,255,0.28)" label={tt('pause').toUpperCase()} /><Legend color={C.gn} label="CON" />
       </div>
     </div>
   );
@@ -1737,8 +1751,9 @@ const JUMP_TITLE = { cmj: 'COUNTERMOVEMENT JUMP', svj: 'STANDING VERTICAL JUMP',
 // linearly with stature). Saves distanceCm into the eval via the map's toValue.
 function BroadJumpResult({ jump, onSave, onClose }) {
   const [saved, setSaved] = useState(false);
+  const tt = useT();
   const [h, setH] = useState(jump && jump.statureCm ? String(jump.statureCm) : '');
-  if (!jump) return <Empty msg="Couldn't read a clean broad jump. Film side-on with the full body + a couple of metres of runway in frame — stand still, jump forward once, land and hold still." />;
+  if (!jump) return <Empty msg={tt("Couldn't read a clean broad jump. Film side-on with the full body + a couple of metres of runway in frame — stand still, jump forward once, land and hold still.")} />;
   const hNum = parseFloat(h);
   const rescaled = (hNum > 0 && jump.statureCm > 0) ? Math.round(jump.distanceCm * (hNum / jump.statureCm)) : jump.distanceCm;
   const saveBtn = (s) => ({ marginTop: 18, padding: '13px 20px', width: '100%', background: s ? '#2a2a2a' : C.ac, border: `1px solid ${s ? '#2a2a2a' : C.ac}`, color: '#FFF', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', cursor: s ? 'default' : 'pointer' });
@@ -1748,19 +1763,19 @@ function BroadJumpResult({ jump, onSave, onClose }) {
       <div style={{ fontFamily: FN, fontSize: 88, fontWeight: 800, color: C.ac, lineHeight: 1 }}>{rescaled}<span style={{ fontSize: 28 }}>cm</span></div>
       {jump.approxScale && (
         <div style={{ fontFamily: FN, fontSize: 10, color: C.or, marginTop: 8, letterSpacing: '0.04em', lineHeight: 1.5 }}>
-          APPROXIMATE SCALE — enter the athlete&apos;s real height below for an accurate distance.
+          {tt("APPROXIMATE SCALE — enter the athlete's real height below for an accurate distance.")}
         </div>
       )}
-      <div style={{ marginTop: 20, padding: 14, border: '1px solid rgba(255,255,255,0.14)', textAlign: 'left' }}>
-        <label style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.16em', fontWeight: 700 }}>ATHLETE HEIGHT (CM) — SCALE REFERENCE</label>
-        <input type="number" inputMode="decimal" value={h} onChange={e => setH(e.target.value)} placeholder="e.g. 178"
+      <div style={{ marginTop: 20, padding: 14, border: '1px solid rgba(255,255,255,0.14)', textAlign: 'start' }}>
+        <label style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.16em', fontWeight: 700 }}>{tt('ATHLETE HEIGHT (CM) — SCALE REFERENCE')}</label>
+        <input type="number" inputMode="decimal" value={h} onChange={e => setH(e.target.value)} placeholder={tt('e.g. 178')}
           style={{ width: '100%', marginTop: 6, padding: '10px 12px', background: '#000', border: `1px solid ${C.ac}`, color: '#FFF', fontFamily: FN, fontSize: 16, letterSpacing: '0.04em', boxSizing: 'border-box' }} />
         <div style={{ fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 10, letterSpacing: '0.04em', lineHeight: 1.5 }}>
-          Distance scales with stature — a correct height gives a correct distance. Confirm before saving.
+          {tt('Distance scales with stature — a correct height gives a correct distance. Confirm before saving.')}
         </div>
       </div>
-      {onSave && <button disabled={saved} onClick={() => { onSave({ ...jump, distanceCm: rescaled, statureCm: hNum > 0 ? Math.round(hNum) : jump.statureCm }); setSaved(true); }} style={saveBtn(saved)}>{saved ? 'SAVED TO EVALUATION' : 'SAVE TO EVALUATION →'}</button>}
-      {saved && <button onClick={onClose} style={{ ...btn('rgba(255,255,255,0.3)', 'transparent'), marginTop: 12, width: '100%', padding: '11px' }}>DONE</button>}
+      {onSave && <button disabled={saved} onClick={() => { onSave({ ...jump, distanceCm: rescaled, statureCm: hNum > 0 ? Math.round(hNum) : jump.statureCm }); setSaved(true); }} style={saveBtn(saved)}>{saved ? tt('SAVED TO EVALUATION') : tt('SAVE TO EVALUATION →')}</button>}
+      {saved && <button onClick={onClose} style={{ ...btn('rgba(255,255,255,0.3)', 'transparent'), marginTop: 12, width: '100%', padding: '11px' }}>{tt('DONE')}</button>}
     </div>
   );
 }
@@ -1768,10 +1783,11 @@ function BroadJumpResult({ jump, onSave, onClose }) {
 // Honest accuracy badge from captured fps (per research: flight-time height
 // error ≈ ±1cm@240 · ±2cm@120 · ±5cm@60 · ±9cm@30). Green only at slow-mo.
 function FpsBadge({ fps }) {
+  const tt = useT();
   const f = Math.round(fps || 0);
-  const cfg = f >= 120 ? { txt: `${f}fps slow-mo · ≈±1–2cm (lab-grade)`, tone: C.gn }
-    : f >= 50 ? { txt: `${f}fps · trend only ≈±3–5cm — film in slow-mo for precision`, tone: C.or }
-      : { txt: `${f || '?'}fps · low ≈±9cm — record in slow-mo (120–240fps)`, tone: C.rd };
+  const cfg = f >= 120 ? { txt: `${f}fps ${tt('slow-mo · ≈±1–2cm (lab-grade)')}`, tone: C.gn }
+    : f >= 50 ? { txt: `${f}fps · ${tt('trend only ≈±3–5cm — film in slow-mo for precision')}`, tone: C.or }
+      : { txt: `${f || '?'}fps · ${tt('low ≈±9cm — record in slow-mo (120–240fps)')}`, tone: C.rd };
   return <div style={{ marginTop: 12, fontFamily: FN, fontSize: 10, color: cfg.tone, letterSpacing: '0.03em' }}>◷ {cfg.txt}</div>;
 }
 
@@ -1782,6 +1798,7 @@ function FpsBadge({ fps }) {
 // under true passive end-range — said plainly so it's never mistaken for a
 // goniometer measurement.
 function RomConfirm({ spec, jointRom, onSave, onClose }) {
+  const tt = useT();
   const reading = useMemo(() => romReadingFor(spec, jointRom), [spec, jointRom]);
   // Default the logged value to the WORSE (restricted) side, not the better one:
   // in a single per-axis clinical field the deficit is the point, and pre-filling
@@ -1792,9 +1809,9 @@ function RomConfirm({ spec, jointRom, onSave, onClose }) {
   const degValid = deg !== '' && Number.isFinite(degNum);
   if (!reading) return (
     <div style={{ border: `1px solid ${C.rd}`, background: `${C.rd}14`, padding: 16, marginBottom: 16 }}>
-      <div style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.rd, letterSpacing: '0.1em' }}>NO CLEAN {spec.axis.toUpperCase()} READ</div>
+      <div style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.rd, letterSpacing: '0.1em' }}>{tt('NO CLEAN {axis} READ').replace('{axis}', spec.axis.toUpperCase())}</div>
       <div style={{ fontFamily: FB, fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 8, lineHeight: 1.5 }}>
-        Couldn't recover the {spec.jointId} through a clean range. {spec.cue} Full body in frame, good light — or enter the degree by hand in the evaluation.
+        {tt("Couldn't recover the {joint} through a clean range.").replace('{joint}', spec.jointId)} {spec.cue} {tt('Full body in frame, good light — or enter the degree by hand in the evaluation.')}
       </div>
     </div>
   );
@@ -1807,47 +1824,48 @@ function RomConfirm({ spec, jointRom, onSave, onClose }) {
   return (
     <div style={{ border: `1px solid ${C.ac}`, background: `${C.ac}12`, padding: 16, marginBottom: 16 }}>
       <div style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.ac, letterSpacing: '0.1em' }}>
-        CAMERA ROM · {spec.jointId.toUpperCase()} {spec.axis.toUpperCase()}
+        {tt('CAMERA ROM')} · {spec.jointId.toUpperCase()} {spec.axis.toUpperCase()}
       </div>
       <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
         {reading.single
           ? side(spec.axis.toUpperCase(), reading.C)
-          : <>{side('LEFT', reading.L)}{side('RIGHT', reading.R)}</>}
+          : <>{side(tt('◄ LEFT').replace('◄ ', ''), reading.L)}{side(tt('RIGHT ►').replace(' ►', ''), reading.R)}</>}
       </div>
       {reading.asymDeg != null && reading.asymDeg >= 8 && (
         <div style={{ fontFamily: FB, fontSize: 11, color: C.or, marginTop: 8 }}>
-          {reading.asymDeg}° left/right gap — worth an eyes-on check.
+          {tt('{n}° left/right gap — worth an eyes-on check.').replace('{n}', reading.asymDeg)}
         </div>
       )}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 14 }}>
-        <div style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.14em', color: 'rgba(255,255,255,0.6)' }}>LOG</div>
+        <div style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.14em', color: 'rgba(255,255,255,0.6)' }}>{tt('LOG')}</div>
         <input type="number" value={deg} onChange={e => { setDeg(e.target.value); setSaved(false); }}
           style={{ width: 84, padding: '8px 10px', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.25)', color: '#FFF', fontFamily: FN, fontSize: 16, textAlign: 'center' }} />
         <div style={{ fontFamily: FB, fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>
-          {reading.single ? 'degrees · camera-measured' : `degrees · defaulted to ${reading.minSide === 'L' ? 'left' : 'right'} (the restricted side)`}
+          {tt(reading.single ? 'degrees · camera-measured' : reading.minSide === 'L' ? 'degrees · defaulted to left (the restricted side)' : 'degrees · defaulted to right (the restricted side)')}
         </div>
       </div>
       <div style={{ fontFamily: FB, fontSize: 10.5, color: C.or, marginTop: 10, lineHeight: 1.5 }}>
         {spec.plane === 'frontal'
-          ? 'Only valid if the limb moved in the FRONTAL plane (out to the side, filmed front-on). If it drifted forward/back, the camera reads that as range too — re-film or enter by hand.'
-          : 'Only valid if the limb moved in the SAGITTAL plane (straight forward/back, filmed side-on). If it swung out to the side, the camera reads that as range too — re-film or enter by hand.'}
+          ? tt('Only valid if the limb moved in the FRONTAL plane (out to the side, filmed front-on). If it drifted forward/back, the camera reads that as range too — re-film or enter by hand.')
+          : tt('Only valid if the limb moved in the SAGITTAL plane (straight forward/back, filmed side-on). If it swung out to the side, the camera reads that as range too — re-film or enter by hand.')}
       </div>
       <div style={{ fontFamily: FB, fontSize: 10.5, color: 'rgba(255,255,255,0.5)', marginTop: 8, lineHeight: 1.5 }}>
-        Active range — reads a few degrees under a hands-on passive goniometer. Confirm or edit before saving.
+        {tt('Active range — reads a few degrees under a hands-on passive goniometer. Confirm or edit before saving.')}
       </div>
       <button disabled={saved || !degValid} onClick={() => { onSave(degNum); setSaved(true); }}
         style={{ marginTop: 14, padding: '12px 20px', width: '100%', background: saved ? '#2a2a2a' : C.ac, border: `1px solid ${saved ? '#2a2a2a' : C.ac}`, color: '#FFF', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', cursor: saved || !degValid ? 'default' : 'pointer' }}>
-        {saved ? '✓ LOGGED TO EVALUATION' : `USE ${degValid ? degNum : '—'}° →`}
+        {saved ? tt('✓ LOGGED TO EVALUATION') : (degValid && degNum === 1 ? tt('USE 1° →') : tt('USE {n}° →').replace('{n}', degValid ? degNum : '—'))}
       </button>
-      {saved && <button onClick={onClose} style={{ marginTop: 8, padding: '10px 20px', width: '100%', background: 'transparent', border: '1px solid rgba(255,255,255,0.3)', color: '#FFF', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', cursor: 'pointer' }}>DONE — BACK TO EVALUATION</button>}
+      {saved && <button onClick={onClose} style={{ marginTop: 8, padding: '10px 20px', width: '100%', background: 'transparent', border: '1px solid rgba(255,255,255,0.3)', color: '#FFF', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', cursor: 'pointer' }}>{tt('DONE — BACK TO EVALUATION')}</button>}
     </div>
   );
 }
 
 function JumpResult({ jump, result, onSave, onClose, defaultBodyweightKg }) {
   const [saved, setSaved] = useState(false);
+  const tt = useT();
   const [bw, setBw] = useState(defaultBodyweightKg != null ? String(defaultBodyweightKg) : '');
-  if (!jump) return <Empty msg="Couldn't read a clean jump. Film side-on, full body in frame — stand still, then jump. For a drop jump / POGO, land and rebound immediately (minimise ground contact)." />;
+  if (!jump) return <Empty msg={tt("Couldn't read a clean jump. Film side-on, full body in frame — stand still, then jump. For a drop jump / POGO, land and rebound immediately (minimise ground contact).")} />;
   const title = JUMP_TITLE[jump.jumpType] || 'VERTICAL JUMP';
   const saveBtn = (s) => ({ marginTop: 18, padding: '13px 20px', width: '100%', background: s ? '#2a2a2a' : C.ac, border: `1px solid ${s ? '#2a2a2a' : C.ac}`, color: '#FFF', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', cursor: s ? 'default' : 'pointer' });
 
@@ -1857,21 +1875,21 @@ function JumpResult({ jump, result, onSave, onClose, defaultBodyweightKg }) {
       <div style={{ maxWidth: 640, margin: '0 auto', textAlign: 'center' }}>
         <div style={{ fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.18em', marginBottom: 8 }}>{title}</div>
         <div style={{ fontFamily: FN, fontSize: 80, fontWeight: 800, color: C.ac, lineHeight: 1 }}>{jump.rsi}<span style={{ fontSize: 22 }}> RSI</span></div>
-        <div style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 6 }}>jump height ÷ ground-contact time (m/s)</div>
+        <div style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 6 }}>{tt('jump height ÷ ground-contact time (m/s)')}</div>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 18, flexWrap: 'wrap' }}>
-          <MiniKpi label="HEIGHT" value={`${jump.heightCm} cm`} />
-          <MiniKpi label="CONTACT" value={`${jump.contactMs} ms`} />
-          <MiniKpi label="FLIGHT" value={`${jump.flightMs} ms`} />
+          <MiniKpi label={tt('HEIGHT')} value={`${jump.heightCm} cm`} />
+          <MiniKpi label={tt('CONTACT')} value={`${jump.contactMs} ms`} />
+          <MiniKpi label={tt('FLIGHT')} value={`${jump.flightMs} ms`} />
         </div>
         {jump.count > 1 && (
           <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 10, flexWrap: 'wrap' }}>
-            <MiniKpi label={`AVG RSI · ${jump.count} HOPS`} value={String(jump.avgRsi)} />
-            <MiniKpi label="AVG CONTACT" value={`${jump.avgContactMs} ms`} />
+            <MiniKpi label={tt('AVG RSI · {n} HOPS').replace('{n}', jump.count)} value={String(jump.avgRsi)} />
+            <MiniKpi label={tt('AVG CONTACT')} value={`${jump.avgContactMs} ms`} />
           </div>
         )}
         <FpsBadge fps={result?.fps} />
-        {onSave && <button disabled={saved} onClick={() => { onSave({ ...jump }); setSaved(true); }} style={saveBtn(saved)}>{saved ? 'SAVED TO EVALUATION' : 'SAVE TO EVALUATION →'}</button>}
-        {saved && <button onClick={onClose} style={{ ...btn('rgba(255,255,255,0.3)', 'transparent'), marginTop: 12, width: '100%', padding: '11px' }}>DONE</button>}
+        {onSave && <button disabled={saved} onClick={() => { onSave({ ...jump }); setSaved(true); }} style={saveBtn(saved)}>{saved ? tt('SAVED TO EVALUATION') : tt('SAVE TO EVALUATION →')}</button>}
+        {saved && <button onClick={onClose} style={{ ...btn('rgba(255,255,255,0.3)', 'transparent'), marginTop: 12, width: '100%', padding: '11px' }}>{tt('DONE')}</button>}
       </div>
     );
   }
@@ -1883,32 +1901,32 @@ function JumpResult({ jump, result, onSave, onClose, defaultBodyweightKg }) {
       <div style={{ fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.18em', marginBottom: 8 }}>{title}</div>
       <div style={{ fontFamily: FN, fontSize: 88, fontWeight: 800, color: C.ac, lineHeight: 1 }}>{jump.heightCm}<span style={{ fontSize: 28 }}>cm</span></div>
       <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 18 }}>
-        <MiniKpi label="FLIGHT TIME" value={`${jump.flightMs} ms`} />
-        <MiniKpi label="PEAK RISE" value={`${jump.peakRiseCm} cm`} />
+        <MiniKpi label={tt('FLIGHT TIME')} value={`${jump.flightMs} ms`} />
+        <MiniKpi label={tt('PEAK RISE')} value={`${jump.peakRiseCm} cm`} />
       </div>
       <FpsBadge fps={result?.fps} />
 
       {/* Bodyweight → peak power (Sayers). Height from flight time is mass-
           independent, but power is the athletic number — so we ask the weight. */}
-      <div style={{ marginTop: 20, padding: 14, border: '1px solid rgba(255,255,255,0.14)', textAlign: 'left' }}>
-        <label style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.16em', fontWeight: 700 }}>BODYWEIGHT (KG)</label>
-        <input type="number" inputMode="decimal" value={bw} onChange={e => setBw(e.target.value)} placeholder="e.g. 75"
+      <div style={{ marginTop: 20, padding: 14, border: '1px solid rgba(255,255,255,0.14)', textAlign: 'start' }}>
+        <label style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.16em', fontWeight: 700 }}>{tt('BODYWEIGHT (KG)')}</label>
+        <input type="number" inputMode="decimal" value={bw} onChange={e => setBw(e.target.value)} placeholder={tt('e.g. 75')}
           style={{ width: '100%', marginTop: 6, padding: '10px 12px', background: '#000', border: `1px solid ${C.ac}`, color: '#FFF', fontFamily: FN, fontSize: 16, letterSpacing: '0.04em', boxSizing: 'border-box' }} />
         {power
           ? <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
-              <MiniKpi label="PEAK POWER" value={`${power.watts} W`} />
-              <MiniKpi label="RELATIVE" value={`${power.perKg} W/kg`} />
+              <MiniKpi label={tt('PEAK POWER')} value={`${power.watts} W`} />
+              <MiniKpi label={tt('RELATIVE')} value={`${power.perKg} W/kg`} />
             </div>
-          : <div style={{ fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 10, letterSpacing: '0.04em' }}>Enter bodyweight to estimate peak power.</div>}
+          : <div style={{ fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 10, letterSpacing: '0.04em' }}>{tt('Enter bodyweight to estimate peak power.')}</div>}
       </div>
 
       {onSave && (
         <button disabled={saved} onClick={() => { onSave({ ...jump, bodyweightKg: power ? massKg : null, powerW: power?.watts ?? null, powerWkg: power?.perKg ?? null }); setSaved(true); }} style={{
           marginTop: 18, padding: '13px 20px', width: '100%', background: saved ? '#2a2a2a' : C.ac,
           border: `1px solid ${saved ? '#2a2a2a' : C.ac}`, color: '#FFF', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', cursor: saved ? 'default' : 'pointer',
-        }}>{saved ? 'SAVED TO EVALUATION' : 'SAVE TO EVALUATION →'}</button>
+        }}>{saved ? tt('SAVED TO EVALUATION') : tt('SAVE TO EVALUATION →')}</button>
       )}
-      {saved && <button onClick={onClose} style={{ ...btn('rgba(255,255,255,0.3)', 'transparent'), marginTop: 12, width: '100%', padding: '11px' }}>DONE</button>}
+      {saved && <button onClick={onClose} style={{ ...btn('rgba(255,255,255,0.3)', 'transparent'), marginTop: 12, width: '100%', padding: '11px' }}>{tt('DONE')}</button>}
     </div>
   );
 }
@@ -1991,18 +2009,18 @@ function Viewer3D({ frames }) {
     <div>
       <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 10, flexWrap: 'wrap' }}>
         <Pill onClick={() => setPlaying(p => !p)} active={playing}>{playing ? '❚❚ PAUSE' : '▶ PLAY'}</Pill>
-        <Pill onClick={() => preset(0, -0.05)}>FRONT</Pill>
-        <Pill onClick={() => preset(Math.PI / 2, -0.05)}>SIDE</Pill>
-        <Pill onClick={() => preset(0.5, -0.05)}>RESET</Pill>
+        <Pill onClick={() => preset(0, -0.05)}>{tr(readLang(), 'FRONT')}</Pill>
+        <Pill onClick={() => preset(Math.PI / 2, -0.05)}>{tr(readLang(), 'SIDE')}</Pill>
+        <Pill onClick={() => preset(0.5, -0.05)}>{tr(readLang(), 'RESET')}</Pill>
       </div>
       <canvas ref={canvasRef} width={560} height={620}
         onMouseDown={onDown} onMouseMove={onMove} onMouseUp={onUp} onMouseLeave={onUp}
         onTouchStart={onDown} onTouchMove={onMove} onTouchEnd={onUp} onWheel={onWheel}
         style={{ width: '100%', maxWidth: 340, height: 'auto', display: 'block', margin: '0 auto', background: '#0b0b0d', border: '1px solid rgba(255,255,255,0.12)', touchAction: 'none', cursor: 'grab' }} />
-      <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.12em', textAlign: 'center', marginTop: 6 }}>DRAG ORBIT · PINCH / WHEEL ZOOM</div>
+      <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.12em', textAlign: 'center', marginTop: 6 }}>{tr(readLang(), 'DRAG ORBIT · PINCH / WHEEL ZOOM')}</div>
       <input type="range" min={0} max={poseFrames.length - 1} value={f} onChange={e => { setPlaying(false); setIdx(Number(e.target.value)); }}
         style={{ width: '100%', maxWidth: 340, display: 'block', margin: '10px auto 0', accentColor: C.ac }} />
-      <div style={{ textAlign: 'center', fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 6 }}>FRAME {f + 1} / {poseFrames.length}</div>
+      <div style={{ textAlign: 'center', fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 6 }}>{tr(readLang(), 'FRAME')} {f + 1} / {poseFrames.length}</div>
     </div>
   );
 }
@@ -2101,8 +2119,8 @@ const MiniKpi = ({ label, value, tone }) => (
 // onClick (optional) — e.g. the Review player wires this to seek the video to
 // this rep's start, so clicking a rep row jumps the clip there (preserving
 // play/pause — it's a plain currentTime set, not a pause/play call).
-const Row = ({ cells, head, tone, onClick }) => (
-  <div onClick={onClick} title={onClick ? 'Jump the video to this rep' : undefined}
+const Row = ({ cells, head, tone, onClick }) => { const tt = useT(); return (
+  <div onClick={onClick} title={onClick ? tt('Jump the video to this rep') : undefined}
     style={{ display: 'grid', gridTemplateColumns: `repeat(${cells.length}, 1fr)`, gap: 4, padding: '7px 10px', borderBottom: '1px solid rgba(255,255,255,0.07)', cursor: onClick ? 'pointer' : 'default' }}
     onMouseEnter={onClick ? (e) => { e.currentTarget.style.background = 'rgba(57,189,255,0.08)'; } : undefined}
     onMouseLeave={onClick ? (e) => { e.currentTarget.style.background = 'transparent'; } : undefined}>
@@ -2111,6 +2129,7 @@ const Row = ({ cells, head, tone, onClick }) => (
     ))}
   </div>
 );
+};
 const btn = (bd, bg) => ({ background: bg, border: `1px solid ${bd}`, color: '#FFF', padding: '6px 12px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', cursor: 'pointer' });
 const BigBtn = ({ color, onClick, disabled, children }) => (
   <button onClick={onClick} disabled={disabled} style={{ flex: 1, padding: 14, background: color, border: `1px solid ${color}`, color: '#FFF', fontFamily: FN, fontSize: 14, fontWeight: 700, letterSpacing: '0.16em', cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.6 : 1 }}>{children}</button>

@@ -106,7 +106,8 @@ let total = 0;
 
 try {
   await signIn(page, BASE);
-  await assertAuthed(page, '/coach/dashboard');
+  if (!(await assertAuthed(page, BASE, '/coach/dashboard'))) { process.exitCode = 2; throw new Error('not signed in - see above'); }
+  if (process.env.HE === '1') await page.evaluate(() => { localStorage.setItem('expo-lang', 'he'); localStorage.setItem('expo-collapse:bhbc-lang', JSON.stringify('he')); });
 
   for (const route of ROUTES) {
     await page.goto(BASE + route, { waitUntil: 'domcontentloaded', timeout: 45000 });

@@ -8,6 +8,7 @@
 // DEFINER (no PII).
 
 import React, { useEffect, useState, useMemo } from 'react';
+import { tr, readLang } from './i18n';
 import { C, FN, FB } from './theme';
 import { safeUrl } from './VideoEmbed';
 import { supabase } from './supabase';
@@ -121,7 +122,7 @@ export default function BookingPublic() {
       const { data: s, error: se } = await supabase.from('coach_booking_settings').select('*').eq('slug', slug).maybeSingle();
       if (!alive) return;
       if (se) { setError(se.message); setLoading(false); return; }
-      if (!s) { setError('That booking page doesn’t exist.'); setLoading(false); return; }
+      if (!s) { setError(tr(readLang(), 'That booking page doesn’t exist.')); setLoading(false); return; }
       setSettings(s);
       const { data: r } = await supabase.from('availability_rules').select('*').eq('coach_email', s.coach_email);
       if (!alive) return;
@@ -202,7 +203,7 @@ export default function BookingPublic() {
   };
 
   if (loading) {
-    return <Wrapper><div style={{ padding: 30, textAlign: 'center', color: C.td }}>Loading…</div></Wrapper>;
+    return <Wrapper><div style={{ padding: 30, textAlign: 'center', color: C.td }}>{tr(readLang(), 'Loading…')}</div></Wrapper>;
   }
   if (error || !settings) {
     return <Wrapper><div style={{ padding: 30, textAlign: 'center', color: C.rd, fontSize: 14 }}>{error || 'Not found.'}</div></Wrapper>;
@@ -211,7 +212,7 @@ export default function BookingPublic() {
     return (
       <Wrapper>
         <div style={{ padding: 30, textAlign: 'center' }}>
-          <div style={{ fontFamily: FN, fontSize: 10, color: C.gn, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 16 }}>✓ BOOKED</div>
+          <div style={{ fontFamily: FN, fontSize: 10, color: C.gn, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 16 }}>✓ {tr(readLang(), 'BOOKED')}</div>
           <div style={{ fontSize: 16, color: C.tx, marginBottom: 8 }}>
             {confirmation.when.toLocaleDateString('en-GB')} · {pad(confirmation.when.getHours())}:{pad(confirmation.when.getMinutes())}
           </div>
@@ -221,7 +222,7 @@ export default function BookingPublic() {
           {safeUrl(confirmation.zoom) && (
             <a href={safeUrl(confirmation.zoom)} target="_blank" rel="noopener noreferrer"
               style={{ display: 'inline-block', padding: '10px 18px', background: C.ac, color: C.acOnSurface, textDecoration: 'none', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.12em' }}>
-              JOIN ZOOM →
+              {tr(readLang(), 'JOIN ZOOM →')}
             </a>
           )}
           {settings.cancellation_policy && (
@@ -241,20 +242,18 @@ export default function BookingPublic() {
         {settings.bio && <p style={{ margin: '0 0 14px', color: C.tm, fontSize: 13, lineHeight: 1.5 }}>{settings.bio}</p>}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.12em' }}>
           <button onClick={() => setWeekOffset(o => Math.max(0, o - 1))} disabled={weekOffset === 0}
-            style={{ padding: '4px 10px', background: 'transparent', border: `1px solid ${weekOffset === 0 ? C.cardBd : C.ac}`, color: weekOffset === 0 ? C.td : C.ac, cursor: weekOffset === 0 ? 'default' : 'pointer' }}>← PREV</button>
-          <span style={{ flex: 1, textAlign: 'center' }}>WEEK OF {ymd(startOfWeek(new Date(Date.now() + weekOffset * 7 * 86400000)))}</span>
+            style={{ padding: '4px 10px', background: 'transparent', border: `1px solid ${weekOffset === 0 ? C.cardBd : C.ac}`, color: weekOffset === 0 ? C.td : C.ac, cursor: weekOffset === 0 ? 'default' : 'pointer' }}>← {tr(readLang(), 'PREV')}</button>
+          <span style={{ flex: 1, textAlign: 'center' }}>{tr(readLang(), 'WEEK OF')}{ymd(startOfWeek(new Date(Date.now() + weekOffset * 7 * 86400000)))}</span>
           <button onClick={() => setWeekOffset(o => o + 1)}
-            style={{ padding: '4px 10px', background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, cursor: 'pointer' }}>NEXT →</button>
+            style={{ padding: '4px 10px', background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, cursor: 'pointer' }}>{tr(readLang(), 'NEXT →')}</button>
         </div>
 
         {Object.keys(groupedByDay).length === 0 ? (
-          <div style={{ padding: 30, textAlign: 'center', color: C.td, fontSize: 13 }}>
-            No available slots this week. Try next week →
-          </div>
+          <div style={{ padding: 30, textAlign: 'center', color: C.td, fontSize: 13 }}>{tr(readLang(), 'No available slots this week. Try next week →')}</div>
         ) : Object.entries(groupedByDay).map(([day, daySlots]) => (
           <div key={day} style={{ marginBottom: 14 }}>
             <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.12em', fontWeight: 700, marginBottom: 6 }}>
-              {new Date(day + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }).toUpperCase()}
+              {new Date(day + 'T12:00:00').toLocaleDateString(readLang() === 'he' ? 'he-IL' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'short' }).toUpperCase()}
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {daySlots.map((s, i) => {
@@ -276,17 +275,16 @@ export default function BookingPublic() {
 
         {selectedSlot && (
           <div style={{ marginTop: 20, padding: 14, background: 'var(--c-sf)', border: `1px solid ${C.ac}` }}>
-            <div style={{ fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: '0.12em', fontWeight: 700, marginBottom: 8 }}>
-              CONFIRM · {selectedSlot.toLocaleDateString('en-GB')} at {pad(selectedSlot.getHours())}:{pad(selectedSlot.getMinutes())}
+            <div style={{ fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: '0.12em', fontWeight: 700, marginBottom: 8 }}>{tr(readLang(), 'CONFIRM ·')}{selectedSlot.toLocaleDateString('en-GB')} at {pad(selectedSlot.getHours())}:{pad(selectedSlot.getMinutes())}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
-              <input placeholder="Your name *" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
+              <input placeholder={tr(readLang(), 'Your name *')} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
                 style={inputStyle} />
-              <input placeholder="Email" type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })}
+              <input placeholder={tr(readLang(), 'Email')} type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })}
                 style={inputStyle} />
-              <input placeholder="Phone (WhatsApp)" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })}
+              <input placeholder={tr(readLang(), 'Phone (WhatsApp)')} value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })}
                 style={inputStyle} autoComplete="off" />
-              <input placeholder="Notes (optional)" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })}
+              <input placeholder={tr(readLang(), 'Notes (optional)')} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })}
                 style={inputStyle} />
             </div>
             <button onClick={submit} disabled={submitting || !form.name.trim()}
@@ -296,7 +294,7 @@ export default function BookingPublic() {
                 border: 'none', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.12em',
                 cursor: submitting ? 'wait' : (form.name.trim() ? 'pointer' : 'default'),
                 minWidth: 168, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              }}>{submitting ? 'BOOKING…' : 'CONFIRM BOOKING'}</button>
+              }}>{tr(readLang(), submitting ? 'BOOKING…' : 'CONFIRM BOOKING')}</button>
             {settings.cancellation_policy && (
               <div style={{ marginTop: 10, fontSize: 11, color: C.td, lineHeight: 1.5 }}>{settings.cancellation_policy}</div>
             )}
@@ -314,10 +312,10 @@ const inputStyle = {
 
 function Wrapper({ children }) {
   return (
-    <div style={{ background: 'var(--c-bg)', color: C.tx, minHeight: '100vh', fontFamily: FB }}>
+    <div dir={readLang() === 'he' ? 'rtl' : 'ltr'} style={{ background: 'var(--c-bg)', color: C.tx, minHeight: '100vh', fontFamily: FB }}>
       <header style={{ borderBottom: `1px solid ${C.cardBd}`, padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <EXPOMark height={28} />
-        <a href="/" style={{ color: C.tm, textDecoration: 'none', fontFamily: FN, fontSize: 10, letterSpacing: '0.12em' }}>EXPO-APP.CO.IL</a>
+        <a href="/" style={{ color: C.tm, textDecoration: 'none', fontFamily: FN, fontSize: 10, letterSpacing: '0.12em' }}>{tr(readLang(), 'EXPO-APP.CO.IL')}</a>
       </header>
       <main style={{ maxWidth: 720, margin: '0 auto' }}>
         {children}

@@ -106,7 +106,9 @@ function buildSvg(p, lang = 'bilingual') {
     const audienceHe = p.audienceHe || p.audience;
     const durationHe = p.durationHe || p.duration;
     // Right-anchored layout. Hebrew strings are rendered with direction="rtl"
-    // + text-anchor="end" so harfbuzz/fribidi shape the glyphs correctly.
+    // + text-anchor="START": librsvg flips the anchor under rtl, so "end" put
+    // the right edge of the line at x and every Hebrew card ran off the canvas
+    // (seen 17.9 on rehab-return_he.png). Rendered side by side before changing.
     const heBlockStartY = titleHeLines.length === 1 ? 280 : 240;
     return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
@@ -127,20 +129,20 @@ function buildSvg(p, lang = 'bilingual') {
 
   <!-- Top-right Hebrew tag chip -->
   <rect x="${W - 80 - (tagHe.length * 18 + 40)}" y="100" width="${tagHe.length * 18 + 40}" height="44" fill="#39BDFF" fill-opacity="0.12" stroke="#39BDFF" stroke-opacity="0.4" stroke-width="1" rx="22"/>
-  <text x="${W - 100}" y="131" text-anchor="end" direction="rtl" font-family="sans-serif" font-size="20" font-weight="700" letter-spacing="2" fill="#39BDFF">${escapeXml(tagHe)}</text>
+  <text x="${W - 100}" y="131" text-anchor="start" direction="rtl" font-family="sans-serif" font-size="20" font-weight="700" letter-spacing="2" fill="#39BDFF">${escapeXml(tagHe)}</text>
 
   <!-- Hebrew title (1-2 lines, right-anchored) -->
   ${titleHeLines.map((line, i) => `
-  <text x="${W - 80}" y="${heBlockStartY + i * 88}" text-anchor="end" direction="rtl" font-family="sans-serif" font-size="76" font-weight="800" fill="#f0f0f4" letter-spacing="-1">${escapeXml(line)}</text>`).join('')}
+  <text x="${W - 80}" y="${heBlockStartY + i * 88}" text-anchor="start" direction="rtl" font-family="sans-serif" font-size="76" font-weight="800" fill="#f0f0f4" letter-spacing="-1">${escapeXml(line)}</text>`).join('')}
 
   <!-- Hebrew audience line -->
-  <text x="${W - 80}" y="${heBlockStartY + titleHeLines.length * 88 + 20}" text-anchor="end" direction="rtl" font-family="sans-serif" font-size="28" font-weight="400" fill="#9a9aa8">${escapeXml(audienceHe)}</text>
+  <text x="${W - 80}" y="${heBlockStartY + titleHeLines.length * 88 + 20}" text-anchor="start" direction="rtl" font-family="sans-serif" font-size="28" font-weight="400" fill="#9a9aa8">${escapeXml(audienceHe)}</text>
 
   <!-- English title smaller below for searchability + LTR audiences -->
   <text x="${W - 80}" y="${heBlockStartY + titleHeLines.length * 88 + 70}" text-anchor="end" font-family="sans-serif" font-size="22" font-weight="600" letter-spacing="1" fill="#666674">${escapeXml(p.title)}</text>
 
   <!-- Bottom-right: duration in Hebrew -->
-  <text x="${W - 80}" y="${H - 80}" text-anchor="end" direction="rtl" font-family="sans-serif" font-size="22" font-weight="600" letter-spacing="1" fill="#666674">${escapeXml(durationHe)}</text>
+  <text x="${W - 80}" y="${H - 80}" text-anchor="start" direction="rtl" font-family="sans-serif" font-size="22" font-weight="600" letter-spacing="1" fill="#666674">${escapeXml(durationHe)}</text>
 
   <!-- Bottom-left: price -->
   <text x="80" y="${H - 95}" font-family="sans-serif" font-size="14" font-weight="700" letter-spacing="3" fill="#444450">מחיר · PRICE</text>

@@ -76,7 +76,7 @@ export default function CheckinTrends({ workouts = [] }) {
       </div>
       {valid.length < 2 ? (
         <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 32, textAlign: 'center', color: C.td }}>
-          <div style={{ fontSize: 13 }}>At least 2 check-ins needed to see the {metric.label.toLowerCase()} trend</div>
+          <div style={{ fontSize: 13 }}>{tt('Two check-ins are needed to see a {metric} trend').replace('{metric}', tt(metric.label))}</div>
         </div>
       ) : (
         <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: 14 }}>
@@ -86,7 +86,7 @@ export default function CheckinTrends({ workouts = [] }) {
             {/* Y category labels — a fixed 46px left gutter, right-aligned, so the
                 graph geometry sits to their RIGHT and never covers the words (Ohad). */}
             {[3, 2, 1, 0].map(L => (
-              <div key={L} style={{ position: 'absolute', left: 0, top: yOf(L) - 4, width: 46, fontSize: 8, fontFamily: FN, color: C.tm, letterSpacing: '0.02em', lineHeight: 1, pointerEvents: 'none', textAlign: 'right' }}>{metric.scale[L].toUpperCase()}</div>
+              <div key={L} style={{ position: 'absolute', left: 0, top: yOf(L) - 4, width: 46, fontSize: 8, fontFamily: FN, color: C.tm, letterSpacing: '0.02em', lineHeight: 1, pointerEvents: 'none', textAlign: 'end' }}>{metric.scale[L].toUpperCase()}</div>
             ))}
             {/* Chart content, offset right of the gutter; svg + dots + x-labels
                 all share this box so they stay aligned with each other. */}
@@ -123,10 +123,10 @@ export default function CheckinTrends({ workouts = [] }) {
             </div>
             <div style={{ flex: 1, border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '11px 6px', textAlign: 'center' }}>
               <div style={{ fontSize: 8, fontFamily: FN, color: C.tm, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 6 }}>{tt('TREND')}</div>
-              <div style={{ fontSize: 17, fontWeight: 700, fontFamily: FN, lineHeight: 1, color: dir === 'up' ? C.gn : dir === 'down' ? '#E23B3B' : C.tm }}>{dir === 'up' ? 'BETTER' : dir === 'down' ? 'WORSE' : 'SAME'}</div>
+              <div style={{ fontSize: 17, fontWeight: 700, fontFamily: FN, lineHeight: 1, color: dir === 'up' ? C.gn : dir === 'down' ? '#E23B3B' : C.tm }}>{tt(dir === 'up' ? 'BETTER' : dir === 'down' ? 'WORSE' : 'SAME')}</div>
             </div>
             <div style={{ flex: 1, border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '11px 6px', textAlign: 'center' }}>
-              <div style={{ fontSize: 8, fontFamily: FN, color: C.tm, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 6 }}>CHECK-INS</div>
+              <div style={{ fontSize: 8, fontFamily: FN, color: C.tm, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 6 }}>{tt('CHECK-INS')}</div>
               <div style={{ fontSize: 17, fontWeight: 700, fontFamily: FN, lineHeight: 1, color: C.tx }}>{valid.length}</div>
             </div>
           </div>

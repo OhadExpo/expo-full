@@ -7,6 +7,7 @@
 // prospect intakes that carried no trainee_id). Read-only.
 import React, { useEffect, useState } from 'react';
 import { C, FN, FB } from './theme';
+import { tr, readLang } from './i18n';
 import { CollapsibleSection, Badge } from './ui';
 import { supabase } from './supabase';
 import { getForm } from './intakeFormSchemas';
@@ -19,7 +20,7 @@ function emailsOf(trainee) {
 }
 function fmt(iso) {
   if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  return new Date(iso).toLocaleDateString(readLang() === 'he' ? 'he-IL' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 const FORM_TINT = { initial: C.ac, assessment: C.or, progress: C.gn };
 
@@ -64,7 +65,7 @@ export default function TraineeIntake({ trainee }) {
   return (
     // Grouped tight beneath the Athletic Evaluation (no top gap) — the two read
     // as one "who is this athlete" block, separate from Assigned Programs (Ohad).
-    <CollapsibleSection bare title="Intake" count={subs.length} storageKey={`td-intake-${trainee.id}`} defaultOpen={false} style={{ margin: 0 }}>
+    <CollapsibleSection bare title={tr(readLang(), 'Intake')} count={subs.length} storageKey={`td-intake-${trainee.id}`} defaultOpen={false} style={{ margin: 0 }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {subs.map(s => (
           <div key={s.id} style={{ border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)', padding: '12px 14px' }}>
@@ -73,7 +74,7 @@ export default function TraineeIntake({ trainee }) {
               <Badge color={FORM_TINT[s.form_type] || C.ac}>{s.form_type}</Badge>
               <span style={{ color: C.tm, fontFamily: FN, fontSize: 10, letterSpacing: '0.06em' }}>{(s.locale || '').toUpperCase()}</span>
               <span style={{ color: C.td, fontFamily: FB, fontSize: 12 }}>· {fmt(s.created_at)}</span>
-              {!s.reviewed_at && <span style={{ color: C.ac, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em' }}>· NEW</span>}
+              {!s.reviewed_at && <span style={{ color: C.ac, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em' }}>· {tr(readLang(), 'NEW')}</span>}
             </div>
             <PayloadDetail form={getForm(s.form_type, s.locale)} payload={s.payload} center />
           </div>

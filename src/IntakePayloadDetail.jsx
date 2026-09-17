@@ -2,11 +2,12 @@
 // Used by the coach inbox (IntakeView detail modal) AND the athlete page
 // (TraineeIntake). One source of truth so both read submissions identically.
 import React from 'react';
-import { C, FN, FB, FH } from './theme';
+import { C, FN, FB, FH } from './theme';
+import { tr, readLang } from './i18n';
 
 // `center` centres every label + answer (used on the athlete page, Ohad).
 export default function PayloadDetail({ form, payload, center = false }) {
-  if (!form) return <div style={{ color: C.tm, fontSize: 13 }}>Form schema unknown.</div>;
+  if (!form) return <div style={{ color: C.tm, fontSize: 13 }}>{tr(readLang(), 'Form schema unknown.')}</div>;
   const align = center ? 'center' : undefined;
   return (
     <div style={{ direction: form.locale === 'he' ? 'rtl' : 'ltr', fontFamily: form.locale === 'he' ? FH : FB }}>

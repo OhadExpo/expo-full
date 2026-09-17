@@ -9,7 +9,7 @@
     },
     "after": {
       "file": "audit-out\\pairs\\portal-phone-he-branch.png",
-      "chars": 3183
+      "chars": 1182
     }
   },
   {
@@ -23,7 +23,7 @@
     },
     "after": {
       "file": "audit-out\\pairs\\meal-phone-he-branch.png",
-      "chars": 226
+      "chars": 227
     }
   }
 ]

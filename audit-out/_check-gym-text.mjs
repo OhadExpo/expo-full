@@ -1,0 +1,10 @@
+import P from 'puppeteer-core';
+const b = await P.connect({ browserURL: 'http://127.0.0.1:9223', defaultViewport: null, protocolTimeout: 300000 });
+const pg = await b.newPage();
+await pg.setViewport({ width: 1200, height: 900, deviceScaleFactor: 1 });
+await pg.goto('http://localhost:4181' + String.fromCharCode(47) + 'gym', { waitUntil: 'domcontentloaded' });
+await new Promise((r) => setTimeout(r, 6000));
+const t = await pg.evaluate(() => document.body.innerText.replace(/\s+/g, ' '));
+console.log('PILLAR present:', /PILLAR/.test(t), '| עמוד present:', /עמוד\s*\d/.test(t), '| len', t.length);
+console.log(t.slice(0, 260));
+await pg.close(); b.disconnect();

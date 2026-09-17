@@ -6,7 +6,7 @@ import { lockBodyScroll } from './scrollLock';
 // HERE covers the whole app at once. tr() falls back to the input string when
 // there is no key, so a title that is DATA (an athlete's name in a modal)
 // passes through untouched.
-import { useT } from './i18n';
+import { useT, tr, readLang } from './i18n';
 
 // Canonical height for header/strip ACTION buttons (+ TASK, MARK ALL READ,
 // + LOG, CONTRACT, + ADD PAYMENT, …) so this whole button family is ONE uniform
@@ -157,7 +157,7 @@ export const Input = ({ label, style: s, id, ...props }) => {
   const inputId = id || autoId;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-      {label && <label htmlFor={inputId} style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: "uppercase", letterSpacing: "0.18em", fontFamily: FN, textAlign: "start" }}>{label}</label>}
+      {label && <label htmlFor={inputId} style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: "uppercase", letterSpacing: "0.18em", fontFamily: FN, textAlign: "start" }}>{typeof label === "string" ? tr(readLang(), label) : label}</label>}
       {props.type === 'date' ? (
         // Native <input type=date> renders the BROWSER-LOCALE format (MM/DD/YYYY on
         // en-US machines, which is what Ohad's browser is). Overlay a dd/mm/yyyy span
@@ -202,8 +202,8 @@ export const Select = ({ label, options, value, onChange, placeholder }) => {
   const selectId = React.useId();
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-      {label && <label htmlFor={selectId} style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: "uppercase", letterSpacing: "0.18em", fontFamily: FN, textAlign: "start" }}>{label}</label>}
-      <select id={selectId} value={value || ""} onChange={e => onChange(e.target.value)} style={{ ...baseInput, appearance: "none", paddingRight: 30 }}>
+      {label && <label htmlFor={selectId} style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: "uppercase", letterSpacing: "0.18em", fontFamily: FN, textAlign: "start" }}>{typeof label === "string" ? tr(readLang(), label) : label}</label>}
+      <select id={selectId} value={value || ""} onChange={e => onChange(e.target.value)} style={{ ...baseInput, appearance: "none", paddingInlineEnd: 30 }}>
         {/* disabled+hidden: the placeholder is display-only when nothing is
             selected — it never appears as a pickable item in the dropdown
             (clicking it used to clear the selection, which read as a page
@@ -219,13 +219,28 @@ export const TextArea = ({ label, id, ...props }) => {
   const taId = id || autoId;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-      {label && <label htmlFor={taId} style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: "uppercase", letterSpacing: "0.18em", fontFamily: FN, textAlign: "start" }}>{label}</label>}
+      {label && <label htmlFor={taId} style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: "uppercase", letterSpacing: "0.18em", fontFamily: FN, textAlign: "start" }}>{typeof label === "string" ? tr(readLang(), label) : label}</label>}
       <textarea id={taId} style={{ ...baseInput, minHeight: 60, resize: "vertical" }} {...props} />
     </div>
   );
 };
+// CENTRE THE INK, NOT THE LINE BOX. Badge labels are uppercase Nord, and an
+// uppercase word has no descenders - but its line box still reserves room for
+// them, so flex "centring" left the capitals riding high. Measured in the
+// program editor's PATTERN COVERAGE grid (16.9, Ohad: "massive gap"): 4.9px of
+// air above the ink and 7.8px below, in a 23.5px box, on every badge.
+// text-box trims a line box to the cap height and the alphabetic baseline, so
+// once the label's box is trimmed, centring the box IS centring the capitals.
+// It only applies to a BLOCK container and is not inherited, which is why the
+// label gets its own block span: set on the flex container it never reached
+// the anonymous box that holds the text (measured: no change at all). Every
+// Badge in the app has text-only children, so one block span changes nothing
+// else. Trimming alone also shrank every badge by its leading (23.5px -> 18.5px
+// measured), so the leading comes back as EQUAL padding - (1lh - 1cap) / 2 on
+// each side, in the label's own font - and the box keeps its size exactly.
+// A browser without text-box keeps today's layout.
 export const Badge = ({ children, color = C.ac, style: s }) =>
-  <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "3px 10px", borderRadius: 0, fontSize: 10, fontWeight: 700, fontFamily: FN, background: C.badgeBg, border: `1px solid ${color}`, color, letterSpacing: "0.1em", textTransform: "uppercase", ...s }}>{children}</span>;
+  <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "3px 10px", borderRadius: 0, fontSize: 10, fontWeight: 700, fontFamily: FN, background: C.badgeBg, border: `1px solid ${color}`, color, letterSpacing: "0.1em", textTransform: "uppercase", ...s }}><span style={{ display: "block", minWidth: 0, textBox: "trim-both cap alphabetic", paddingBlock: "calc((1lh - 1cap) / 2)" }}>{children}</span></span>;
 
 // ============================================================
 // Refined light-mode primitives
@@ -311,7 +326,7 @@ export function RefinedHeaderStrip({ children, padY = 14, padX = 18, marginBotto
 // and applicable anywhere a severity-colored label needs a leading icon.
 // On the refined cyan strip, pass `color="#FFFFFF"` so the icon reads white.
 export function SectionIcon({ kind, color, size = 14 }) {
-  const common = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', style: { verticalAlign: '-2px', marginRight: 6, flexShrink: 0 } };
+  const common = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', style: { verticalAlign: '-2px', marginInlineEnd: 6, flexShrink: 0 } };
   switch (kind) {
     case 'alert': return <svg {...common}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>;
     case 'dollar': return <svg {...common}><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>;
@@ -713,7 +728,11 @@ export const Card = ({ children, style, className, onClick, onMouseEnter, onMous
         // Header-only card (no body content): let the strip bleed to the BOTTOM
         // edge too (negative margin cancels the card's bottom padding) so there's
         // no dead band under the title. With a body, keep the normal 12px gap.
-        <RefinedHeaderStrip padY={padNum} padX={padNum} marginBottom={children ? 12 : -padNum}
+        // A card with NO padding (the club zone tables) still needs its title inset
+        // from the edge, and a strip that must not bleed past a box that has no
+        // padding to cancel: pad 14, no bleed. Ohad 13.9: "the hebrew titles are
+        // not aligned right" - the title sat flush on the card edge.
+        <RefinedHeaderStrip padY={padNum} padX={Math.max(padNum, 14)} bleed={padNum > 0} marginBottom={children ? 12 : -padNum}
           onClick={onHeaderClick}
           role={onHeaderClick ? 'button' : undefined}
           tabIndex={onHeaderClick ? 0 : undefined}
@@ -793,6 +812,7 @@ function pushOverlay() {
 // anything like a bhbc branded page". Undefined everywhere else, so every other
 // modal in the product is untouched.
 export const Modal = ({ open, onClose, title, children, wide, sticky = false, themeAttr, headerStyle, titleStyle, closeStyle }) => {
+  const tt = useT();
   const titleId = React.useId();
   const cardRef = React.useRef(null);
   const lastFocusRef = React.useRef(null);
@@ -897,7 +917,7 @@ export const Modal = ({ open, onClose, title, children, wide, sticky = false, th
             docks flush at the card top (Ohad, 2026-08-21). */}
         <div style={{ position: "sticky", top: -28, zIndex: 5, background: C.sf, margin: "-28px -28px 22px", padding: "28px 28px 14px", borderBottom: `1px solid ${C.bd}`, display: "flex", justifyContent: "space-between", alignItems: "center", ...headerStyle }}>
           <h3 id={titleId} style={{ margin: 0, fontFamily: FN, fontSize: 13, color: C.tx, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", display: "flex", alignItems: "center", gap: 10, ...titleStyle }}>{title}</h3>
-          {!sticky && <button onClick={onClose} aria-label="Close dialog" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tm, cursor: "pointer", padding: "4px 10px", borderRadius: 0, fontSize: 14, ...closeStyle }}>✕</button>}
+          {!sticky && <button onClick={onClose} aria-label={tt('Close dialog')} style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tm, cursor: "pointer", padding: "4px 10px", borderRadius: 0, fontSize: 14, ...closeStyle }}>✕</button>}
         </div>{children}</div></div>);
 };
 export const ConfirmDialog = ({ open, onConfirm, onCancel, title, message }) => {
@@ -954,8 +974,8 @@ export const ConfirmDialog = ({ open, onConfirm, onCancel, title, message }) => 
         <h3 id={titleId} style={{ margin: "0 0 10px", fontFamily: FN, fontSize: 13, color: C.tx, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>{title}</h3>
         <p id={msgId} style={{ margin: "0 0 22px", fontSize: 13, color: C.tm, fontFamily: FB, lineHeight: 1.5 }}>{message}</p>
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-          <Btn variant="ghost" onClick={onCancel}>Cancel</Btn>
-          <Btn variant="danger" onClick={onConfirm}>Confirm</Btn>
+          <Btn variant="ghost" onClick={onCancel}>{tr(readLang(), 'Cancel')}</Btn>
+          <Btn variant="danger" onClick={onConfirm}>{tr(readLang(), 'Confirm')}</Btn>
         </div></div></div>);
 };
 // Keyboard a11y for hand-rolled dialog overlays that don't use <Modal> /
@@ -1060,6 +1080,18 @@ export function confirmToast(message, { okLabel = 'OK', cancelLabel = 'Cancel' }
   });
 }
 
+// 17.9: toasts were passed as English strings from ~90 call sites and rendered raw on the
+// Hebrew screen. The host looks each one up in the dictionary; a message that is a known
+// head plus a server error ('Assign failed: <msg>') translates the head. Unknown text is
+// left as it is. readLang() defaults to English, so the athlete portal is unchanged.
+function toastText(m) {
+  if (typeof m !== 'string' || readLang() !== 'he') return m;
+  const full = tr('he', m);
+  if (full !== m) return full;
+  const i = m.indexOf(': ');
+  if (i > 0) { const head = m.slice(0, i + 1); const th = tr('he', head); if (th !== head) return `${th} ${m.slice(i + 2)}`; }
+  return m;
+}
 export function ToastHost() {
   const [items, setItems] = React.useState([]);
   // Track whether THIS host is currently showing a confirm, so its unmount
@@ -1102,14 +1134,14 @@ export function ToastHost() {
           onClick={e => { if (e.target === e.currentTarget && confirm.onAction) confirm.onAction(false); }}
           style={{ position: 'fixed', inset: 0, zIndex: 1310, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
           <div style={{ background: C.sf, color: p.fg, border: `1px solid ${p.bd}`, borderRadius: 0, padding: '18px 20px', fontFamily: FB, fontSize: 13, fontWeight: 500, boxShadow: `0 16px 48px ${C.shadow}`, minWidth: 280, maxWidth: 460, display: 'flex', flexDirection: 'column', gap: 14, textAlign: 'center' }}>
-            <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.45 }}>{confirm.message}</div>
+            <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.45 }}>{toastText(confirm.message)}</div>
             {confirm.actions && (
               <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>
                 {/* Focus the FIRST action (Cancel) — confirmToast always builds
                     [cancel, ok], so an accidental Enter cancels instead of
                     confirming a possibly-destructive action (matches ConfirmDialog). */}
                 {confirm.actions.map((a, i) => (
-                  <Btn key={i} variant={a.variant || 'ghost'} autoFocus={i === 0} onClick={() => { if (confirm.onAction) confirm.onAction(a.value); }}>{a.label}</Btn>
+                  <Btn key={i} variant={a.variant || 'ghost'} autoFocus={i === 0} onClick={() => { if (confirm.onAction) confirm.onAction(a.value); }}>{toastText(a.label)}</Btn>
                 ))}
               </div>
             )}
@@ -1122,11 +1154,11 @@ export function ToastHost() {
           return (
             <div key={it.id} className="motion-rise"
               style={{ pointerEvents: 'auto', background: C.sf, color: tp.fg, border: `1px solid ${tp.bd}`, borderRadius: 0, padding: '12px 16px', fontFamily: FB, fontSize: 13, fontWeight: 500, boxShadow: `0 8px 24px ${C.shadow}`, minWidth: 240, maxWidth: 480, display: 'flex', flexDirection: 'column', gap: 10, textAlign: 'center' }}>
-              <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.45 }}>{it.message}</div>
+              <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.45 }}>{toastText(it.message)}</div>
               {it.actions && (
                 <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>
                   {it.actions.map((a, i) => (
-                    <Btn key={i} variant={a.variant || 'ghost'} onClick={() => { if (it.onAction) it.onAction(a.value); dismissToast(it.id); }}>{a.label}</Btn>
+                    <Btn key={i} variant={a.variant || 'ghost'} onClick={() => { if (it.onAction) it.onAction(a.value); dismissToast(it.id); }}>{toastText(a.label)}</Btn>
                   ))}
                 </div>
               )}

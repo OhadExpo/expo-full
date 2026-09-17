@@ -6,6 +6,8 @@
 
 import React, { useState } from 'react';
 import { C, FN, FB, FH } from './theme';
+import { tr, readLang } from './i18n';
+import { localiseAutoBody } from './autoTaskHe';
 import { fmtPrettyDate } from './dates';
 import { isRefined5b, RefinedHeaderStrip, confirmToast } from './ui';
 import { useCoachNotes, setPendingTaskPlanLink } from './coachNotes';
@@ -192,7 +194,7 @@ export default function NotesInline({
             </span>
             {rows.some(r => r.pinned) && (
               <span style={{ fontFamily: FN, fontSize: 10, color: refined ? '#FFFFFF' : 'var(--c-or)', letterSpacing: '0.08em', fontWeight: 700 }}>
-                📌 {rows.filter(r => r.pinned).length} pinned
+                📌 {rows.filter(r => r.pinned).length} {tr(readLang(), 'pinned')}
               </span>
             )}
           </div>
@@ -200,9 +202,7 @@ export default function NotesInline({
       )}
 
       {visibleOpen.length === 0 && done.length === 0 && (
-        <div style={{ fontSize: 12, color: 'var(--c-td)', marginBottom: 8 }}>
-          Nothing queued. Add one below.
-        </div>
+        <div style={{ fontSize: 12, color: 'var(--c-td)', marginBottom: 8 }}>{tr(readLang(), 'Nothing queued. Add one below.')}</div>
       )}
 
       {visibleOpen.map(n => {
@@ -225,13 +225,13 @@ export default function NotesInline({
           if (!n.auto_kind && showCreatePlanBtn) {
             return (
               <button onClick={() => startCreatePlan(n)}
-                title="Create a program from this task — auto-marks done on save"
-                style={pillBtn('var(--c-ac)')}>→ NEW PROGRAM</button>
+                title={tr(readLang(), 'Create a program from this task — auto-marks done on save')}
+                style={pillBtn('var(--c-ac)')}>→ {tr(readLang(), 'NEW PROGRAM')}</button>
             );
           }
           if (kindAction === 'NEW_PROGRAM' && showCreatePlanBtn) {
             return (
-              <button onClick={() => startCreatePlan(n)} style={pillBtn('var(--c-ac)')}>→ NEW PROGRAM</button>
+              <button onClick={() => startCreatePlan(n)} style={pillBtn('var(--c-ac)')}>→ {tr(readLang(), 'NEW PROGRAM')}</button>
             );
           }
           if (kindAction === 'REVIEW' && n.auto_ref) {
@@ -240,24 +240,24 @@ export default function NotesInline({
               <button onClick={() => {
                 try { sessionStorage.setItem('expo-pendingReviewWorkout', woId); } catch {}
                 window.location.href = '/coach/review';
-              }} style={pillBtn('var(--c-ac)')}>→ REVIEW</button>
+              }} style={pillBtn('var(--c-ac)')}>→ {tr(readLang(), 'REVIEW')}</button>
             );
           }
           if (kindAction === 'WHATSAPP') {
             const phone = normalizePhoneIL(trainee?.phone);
             if (!phone) {
-              return <button disabled style={pillBtn('var(--c-td)')} title="No phone on file">→ WHATSAPP</button>;
+              return <button disabled style={pillBtn('var(--c-td)')} title={tr(readLang(), 'No phone on file')}>→ {tr(readLang(), 'WHATSAPP')}</button>;
             }
             const msg = whatsappMessageForTask(n, trainee);
             return (
               <button onClick={() => {
                 try { window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener'); } catch {}
-              }} title={`Open WhatsApp to ${trainee?.name || ''}`}
-                style={pillBtn('#128C7E')}>→ WHATSAPP</button>
+              }} title={tr(readLang(), 'Open WhatsApp to {x}').replace('{x}', trainee?.name || '')}
+                style={pillBtn('#128C7E')}>→ {tr(readLang(), 'WHATSAPP')}</button>
             );
           }
           if (kindAction === 'OPEN_INTAKE' && onOpenIntakeTab) {
-            return <button onClick={onOpenIntakeTab} style={pillBtn('var(--c-ac)')}>→ INTAKE</button>;
+            return <button onClick={onOpenIntakeTab} style={pillBtn('var(--c-ac)')}>→ {tr(readLang(), 'INTAKE')}</button>;
           }
           if (kindAction === 'OPEN_ATHLETE') {
             // We're already on the athlete card. Scroll to the eval
@@ -268,7 +268,7 @@ export default function NotesInline({
                   const el = document.querySelector('[data-eval-anchor]');
                   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 } catch {}
-              }} style={pillBtn('var(--c-ac)')}>→ RUN EVALUATION</button>
+              }} style={pillBtn('var(--c-ac)')}>→ {tr(readLang(), 'RUN EVALUATION')}</button>
             );
           }
           if (kindAction === 'OPEN_WAITLIST' && typeof window !== 'undefined') {
@@ -277,8 +277,8 @@ export default function NotesInline({
             // the lead consumed.
             return (
               <button onClick={() => { try { window.location.hash = '#/coach/waitlist'; } catch {} }}
-                title="Open the /coach/waitlist surface to consume this lead"
-                style={pillBtn('var(--c-ac)')}>→ WAITLIST</button>
+                title={tr(readLang(), 'Open the /coach/waitlist surface to consume this lead')}
+                style={pillBtn('var(--c-ac)')}>→ {tr(readLang(), 'WAITLIST')}</button>
             );
           }
           return null;
@@ -288,7 +288,7 @@ export default function NotesInline({
           <div key={n.id} style={{
             background: 'var(--c-sf)',
             border: `1px solid var(--c-cardBd)`,
-            borderLeft: `3px solid ${stripeColor}`,
+            borderInlineStart: `3px solid ${stripeColor}`,
             borderRadius: 0,
             padding: '10px 12px',
             marginBottom: 8,
@@ -296,9 +296,9 @@ export default function NotesInline({
             {/* Header row — controls + auto-kind pill + timestamp + × */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
               <input type="checkbox" checked={false} onChange={() => toggleDone(n.id)}
-                title="Mark done"
+                title={tr(readLang(), 'Mark done')}
                 style={{ width: 14, height: 14, accentColor: 'var(--c-gn)', cursor: 'pointer', flexShrink: 0 }} />
-              <button onClick={() => togglePin(n.id)} title={n.pinned ? 'Unpin' : 'Pin'}
+              <button onClick={() => togglePin(n.id)} title={tr(readLang(), n.pinned ? 'Unpin' : 'Pin')}
                 style={{
                   background: 'transparent', border: 'none', cursor: 'pointer',
                   color: n.pinned ? 'var(--c-or)' : 'var(--c-td)', fontSize: 12, padding: 0, flexShrink: 0,
@@ -306,7 +306,7 @@ export default function NotesInline({
                 }}>{n.pinned ? '📌' : '○'}</button>
               {kindLabel && (
                 <>
-                  <span title={`Auto-generated: ${kindLabel}`}
+                  <span title={`${tr(readLang(), 'Auto-generated:')} ${kindLabel}`}
                     style={{
                       display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
                       fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
@@ -316,12 +316,12 @@ export default function NotesInline({
                 </>
               )}
               {isStale && (
-                <span title={`Open ${staleDays} days — follow up`}
+                <span title={tr(readLang(), 'Open {n} days — follow up').replace('{n}', staleDays)}
                   style={{
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
                     fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
                     color: 'var(--c-or)', border: `1px solid var(--c-or)`, padding: '2px 8px',
-                  }}>⚠ FOLLOW UP {staleDays}d</span>
+                  }}>⚠ {readLang() === 'he' ? `לחזור לזה · ${staleDays === 1 ? 'יום אחד' : `${staleDays} ימים`}` : `FOLLOW UP ${staleDays}d`}</span>
               )}
               <span style={{ flex: 1 }} />
               <span style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.04em' }}>
@@ -332,8 +332,8 @@ export default function NotesInline({
                   if (await confirmToast('Cancel this task? It moves to history (not deleted).', { okLabel: 'Cancel task', cancelLabel: 'Keep' })) {
                     update(n.id, { status: 'cancelled', completed_at: new Date().toISOString() });
                   }
-                }} title="Cancel (archive to history)"
-                style={{ background: 'none', border: 'none', color: 'var(--c-td)', cursor: 'pointer', fontSize: 14, padding: '0 4px', flexShrink: 0 }} aria-label="Cancel task">×</button>
+                }} title={tr(readLang(), 'Cancel (archive to history)')}
+                style={{ background: 'none', border: 'none', color: 'var(--c-td)', cursor: 'pointer', fontSize: 14, padding: '0 4px', flexShrink: 0 }} aria-label={tr(readLang(), 'Cancel task')}>×</button>
             </div>
 
             {/* Body */}
@@ -356,7 +356,7 @@ export default function NotesInline({
                 fontSize: 13, color: 'var(--c-tx)', lineHeight: 1.5, whiteSpace: 'pre-wrap',
                 marginBottom: actionBtn || !editingThis ? 10 : 0,
                 fontFamily: FB,
-              }}>{n.body}</div>
+              }}>{readLang() === 'he' ? localiseAutoBody(n.body) : n.body}</div>
             )}
 
             {/* F-35 — tag chips */}
@@ -378,13 +378,13 @@ export default function NotesInline({
             {(actionBtn || !editingThis) && (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                 {!editingThis ? (
-                  <button onClick={() => startEdit(n)} title="Edit task"
+                  <button onClick={() => startEdit(n)} title={tr(readLang(), 'Edit task')}
                     style={{
                       background: 'transparent', border: `1px solid var(--c-cardBd)`, color: 'var(--c-tm)',
                       cursor: 'pointer', fontSize: 11, padding: '3px 8px', borderRadius: 0,
                       fontFamily: FN, fontWeight: 700, letterSpacing: '0.12em', height: 26,
                       display: 'inline-flex', alignItems: 'center',
-                    }}>EDIT</button>
+                    }}>{tr(readLang(), 'EDIT')}</button>
                 ) : <span />}
                 {actionBtn || <span />}
               </div>
@@ -402,7 +402,7 @@ export default function NotesInline({
               dropped here — this list is already scoped to one trainee, so
               repeating "TRAINEE · <name>" on every row would be redundant. */}
           <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>
-            ✓ HISTORY ({doneRows.length}{done.length < doneRows.length ? ` · showing ${done.length}` : ''})
+            ✓ {tr(readLang(), 'HISTORY')} ({doneRows.length}{done.length < doneRows.length ? ` · ${tr(readLang(), 'showing')} ${done.length}` : ''})
           </div>
           {done.map(n => {
             return (
@@ -415,7 +415,7 @@ export default function NotesInline({
                 borderBottom: `1px solid var(--c-cardBd)`,
               }}>
                 <input type="checkbox" checked={true}
-                  title={n.status === 'cancelled' ? 'Reopen (un-cancel)' : 'Reopen'}
+                  title={tr(readLang(), n.status === 'cancelled' ? 'Reopen (un-cancel)' : 'Reopen')}
                   onChange={() => n.status === 'cancelled'
                     ? update(n.id, { status: 'open', completed_at: null })
                     : toggleDone(n.id)}
@@ -430,19 +430,19 @@ export default function NotesInline({
                   <span dir="auto" style={{
                     flex: 1, minWidth: 0, fontSize: 12, color: 'var(--c-tm)', lineHeight: 1.4, textDecoration: 'line-through',
                     textAlign: 'center', overflowWrap: 'break-word', fontFamily: FB,
-                  }}>{n.body}</span>
+                  }}>{readLang() === 'he' ? localiseAutoBody(n.body) : n.body}</span>
                   <span style={{ flexShrink: 0, fontFamily: FN, fontSize: 9, color: n.status === 'cancelled' ? 'var(--c-or)' : 'var(--c-td)', letterSpacing: '0.08em', fontWeight: n.status === 'cancelled' ? 700 : 400, whiteSpace: 'nowrap' }}>
                     {n.status === 'cancelled'
                       ? 'CANCELLED'
-                      : n.completed_at && <span>done {fmtPrettyDate(n.completed_at)}</span>}
-                    {n.linked_plan_id && <span style={{ color: 'var(--c-ac)', marginLeft: 6, fontWeight: 700 }}>· ✓ PLAN</span>}
+                      : n.completed_at && <span>{tr(readLang(), 'done')} {fmtPrettyDate(n.completed_at)}</span>}
+                    {n.linked_plan_id && <span style={{ color: 'var(--c-ac)', marginInlineStart: 6, fontWeight: 700 }}>· ✓ PLAN</span>}
                   </span>
                 </div>
                 <button onClick={async () => {
                     if (await confirmToast('Delete this completed task? This cannot be undone.', { okLabel: 'Delete', cancelLabel: 'Cancel' })) {
                       remove(n.id);
                     }
-                  }} title="Remove" aria-label="Delete task"
+                  }} title={tr(readLang(), 'Remove')} aria-label={tr(readLang(), 'Delete task')}
                   style={{ background: 'none', border: 'none', color: 'var(--c-td)', cursor: 'pointer', fontSize: 14, padding: '0 4px', flexShrink: 0 }}>×</button>
               </div>
             );
@@ -454,7 +454,7 @@ export default function NotesInline({
         <textarea className="notes-inline-input" value={body} onChange={e => setBody(e.target.value)} dir="auto"
           onBlur={draft.onBlur}
           onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) onAdd(); }}
-          placeholder="Add a note…"
+          placeholder={tr(readLang(), 'Add a note…')}
           rows={2}
           style={{
             width: '100%', background: 'var(--c-sf)', border: `1px solid var(--c-cardBd)`, borderRadius: 0,

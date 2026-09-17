@@ -4,7 +4,7 @@
 // pose + 3D code stays out of the main bundle until a coach actually opens one.
 // Owner trial — nothing here writes to the athlete.
 import React, { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react';
-import { useT } from './i18n';
+import { useT, tr, readLang } from './i18n';
 import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
 import { RefinedHeaderStrip, SectionLabel } from './ui';
@@ -35,7 +35,7 @@ function buildClipTree(workouts, trainees) {
       const title = (ex && (ex.title || ex.name)) || `Exercise ${i + 1}`;
       const cid = w.clientId || '—';
       const block = w.planName || 'Program';
-      const week = (w.week != null && w.week !== '') ? `Week ${w.week}` : 'Week —';
+      const week = (w.week != null && w.week !== '') ? `${tr(readLang(), 'Week')} ${w.week}` : `${tr(readLang(), 'Week')} —`;
       const day = w.dayName || 'Day';
       if (!A.has(cid)) A.set(cid, new Map());
       const B = A.get(cid);
@@ -218,13 +218,13 @@ class ToolBoundary extends React.Component {
       return (
         <div style={stage}>
           <div style={{ maxWidth: 420, textAlign: 'center' }}>
-            <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: 'var(--c-rd, #FF4757)', letterSpacing: '0.18em', marginBottom: 12 }}>TOOL FAILED TO LOAD</div>
+            <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: 'var(--c-rd, #FF4757)', letterSpacing: '0.18em', marginBottom: 12 }}>{tr(readLang(), 'TOOL FAILED TO LOAD')}</div>
             <div style={{ color: '#FFF', fontFamily: FB, fontSize: 14, lineHeight: 1.55, marginBottom: 20 }}>
               This tool needs WebGL and (for live tools) a camera. If you're
               offline or the browser blocked access, that's the cause. Close and
               try again, or pick another tool.
             </div>
-            <button onClick={this.props.onClose} style={ghostBtn}>← BACK</button>
+            <button onClick={this.props.onClose} style={ghostBtn}>← {tr(readLang(), 'BACK')}</button>
           </div>
         </div>
       );
@@ -237,6 +237,7 @@ class ToolBoundary extends React.Component {
 // clicking a tool gives instant feedback instead of 1–2s of dead air while the
 // MediaPipe / three.js chunk downloads and the pose engine warms up.
 function ToolLoading({ label }) {
+  const tt = useT();
   return (
     <div style={stage}>
       <style>{'@keyframes rtspin{to{transform:rotate(360deg)}}'}</style>
@@ -246,8 +247,8 @@ function ToolLoading({ label }) {
           border: '2px solid rgba(255,255,255,0.16)', borderTopColor: C.ac,
           animation: 'rtspin .7s linear infinite',
         }} />
-        <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: '#FFF', letterSpacing: '0.18em' }}>LOADING {label}…</div>
-        <div style={{ fontFamily: FB, fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 6 }}>warming up pose engine</div>
+        <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: '#FFF', letterSpacing: '0.18em' }}>{tt('LOADING')} {label}…</div>
+        <div style={{ fontFamily: FB, fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 6 }}>{tt('warming up pose engine')}</div>
       </div>
     </div>
   );
@@ -264,7 +265,7 @@ function ToolRow({ t, blocked, isFirst, onOpen }) {
   return (
     <div
       role="button" tabIndex={blocked ? -1 : 0} aria-disabled={blocked || undefined}
-      aria-label={`${t.label} — ${t.measures}`}
+      aria-label={`${tr(readLang(), t.label)} — ${tr(readLang(), t.measures)}`}
       onClick={blocked ? undefined : onOpen}
       onKeyDown={blocked ? undefined : (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }}
       onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
@@ -343,7 +344,7 @@ export default function ReviewToolsView({ clientWorkouts = [], trainees = [] }) 
                 Editable ONLY here, after a clip is loaded (Ohad: "must be fully
                 automated. i can only change it after analyzing, not before"). */}
             <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '14px 18px' }}>
-              <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>{tt('Lift being analysed')} <span style={{ color: C.ac }}>· AUTO</span></label>
+              <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>{tt('Lift being analysed')} <span style={{ color: C.ac }}>· {tr(readLang(), 'AUTO')}</span></label>
               <div style={{ fontFamily: FB, fontSize: 11, color: C.tm, marginBottom: 9, lineHeight: 1.4 }}>{tt('Detected from the clip. Change it only if the auto-detect is off.')}</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
                 {QUICK_LIFTS.map(l => {

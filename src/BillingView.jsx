@@ -22,7 +22,7 @@ import { supabase } from './supabase';
 import { isRefined5b, RefinedHeaderStrip, Btn, Input, toast, confirmToast, useEscClose, stripBtnBase } from './ui';
 import { parseTraineeId } from './traineeUtils';
 import { normalizePhoneIL } from './whatsappButton';
-import { useT, useTB } from './i18n';
+import { tr, readLang, useT, useTB } from './i18n';
 import RevenueSheetCard from './RevenueSheetCard';
 
 const fmtCurrency = (amount, currency = 'ils') => {
@@ -127,7 +127,7 @@ export default function BillingView({ trainees }) {
     window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
   };
 
-  if (loading) return <div style={{ padding: 30, textAlign: 'center', color: C.td }}>Loading…</div>;
+  if (loading) return <div style={{ padding: 30, textAlign: 'center', color: C.td }}>{tr(readLang(), 'Loading…')}</div>;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -135,7 +135,7 @@ export default function BillingView({ trainees }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
         {[
           { label: tt('Outstanding'), value: fmtCurrency(summary.outstanding), sub: `${summary.pendingCount} ${tt('pending')}`, dot: summary.outstanding > 0 ? C.or : C.gn },
-          { label: tt('Overdue'), value: fmtCurrency(summary.overdueAmt), sub: `${summary.overdueCount} · ≥ ${OVERDUE_DAYS}d`, dot: summary.overdueCount > 0 ? C.rd : C.gn },
+          { label: tt('Overdue'), value: fmtCurrency(summary.overdueAmt), sub: `${summary.overdueCount} · ${OVERDUE_DAYS}+ ${tt('days')}`, dot: summary.overdueCount > 0 ? C.rd : C.gn },
           { label: tt('Collected · This month'), value: fmtCurrency(summary.collectedMonth), sub: tt('received'), dot: C.gn },
         ].map((s, i) => (
           <div key={i} style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '14px 18px', boxShadow: C.cardShadow }}>
@@ -158,15 +158,14 @@ export default function BillingView({ trainees }) {
         <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={12}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : C.tx }}>
-              {tt('PAYMENT REQUESTS')} ({requests.filter(r => r.status === 'pending').length} {tt('Waiting')})
+              {tt('PAYMENT REQUESTS')} ({(() => { const n = requests.filter(r => r.status === 'pending').length; return readLang() === 'he' ? (n === 1 ? '1 ממתינה' : `${n} ממתינות`) : `${n} ${tt('Waiting')}`; })()})
             </span>
             <button onClick={() => setShowRequest(true)}
               style={{ ...stripBtnBase, border: `1px solid ${refined ? '#FFFFFF' : C.ac}`, color: refined ? '#FFFFFF' : C.ac }}>{tb('+ NEW REQUEST')}</button>
           </div>
         </RefinedHeaderStrip>
         {loadError ? (
-          <div style={{ padding: 14, textAlign: 'center', color: C.rd, fontSize: 13 }}>
-            Couldn’t load billing data: {loadError}. <button onClick={reload} style={{ background: 'transparent', border: 'none', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textDecoration: 'underline' }}>{tt("RETRY")}</button>
+          <div style={{ padding: 14, textAlign: 'center', color: C.rd, fontSize: 13 }}>{tt('Couldn’t load billing data:')}{loadError}. <button onClick={reload} style={{ background: 'transparent', border: 'none', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textDecoration: 'underline' }}>{tt("RETRY")}</button>
           </div>
         ) : requests.length === 0 ? (
           <div style={{ padding: 14, textAlign: 'center', color: C.td, fontSize: 13 }}>
@@ -182,7 +181,7 @@ export default function BillingView({ trainees }) {
           const tone = r.status === 'paid' ? C.gn : r.status === 'canceled' ? C.tm : (overdue ? C.rd : C.or);
           return (
             <div key={r.id} style={{
-              border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${tone}`,
+              border: `1px solid ${C.cardBd}`, borderInlineStart: `3px solid ${tone}`,
               padding: '10px 12px', marginBottom: 8, background: 'var(--c-sf)',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
@@ -195,15 +194,15 @@ export default function BillingView({ trainees }) {
               </div>
               {r.reference && <div style={{ fontSize: 12, color: C.tm, marginBottom: 6 }}>{r.reference}</div>}
               <div style={{ fontFamily: FN, fontSize: 10, color: C.td, marginBottom: 6 }}>
-                Created {fmtPrettyDate(r.created_at)}{r.paid_at ? ` · paid ${fmtPrettyDate(r.paid_at)}` : ''}
+                {readLang() === 'he' ? 'נוצרה' : 'Created'} {fmtPrettyDate(r.created_at)}{r.paid_at ? ` · ${readLang() === 'he' ? 'שולמה' : 'paid'} ${fmtPrettyDate(r.paid_at)}` : ''}
                 {days != null && <span style={{ color: overdue ? C.rd : C.tm, fontWeight: 700 }}> · {days}d{overdue ? ' overdue' : ''}</span>}
               </div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                 {r.status === 'pending' && (
                   <>
-                    <button onClick={() => chase(t, r)} title="Send a WhatsApp payment reminder" style={btnStyle('#25D366')}>◔ CHASE</button>
-                    <button onClick={() => markPaid(r.id)} style={btnStyle(C.gn)}>✓ MARK PAID</button>
-                    <button onClick={() => cancelRequest(r.id)} style={btnStyle(C.rd)}>× CANCEL</button>
+                    <button onClick={() => chase(t, r)} title={tt('Send a WhatsApp payment reminder')} style={btnStyle('#25D366')}>◔ {tr(readLang(), 'CHASE')}</button>
+                    <button onClick={() => markPaid(r.id)} style={btnStyle(C.gn)}>✓ {tr(readLang(), 'MARK PAID')}</button>
+                    <button onClick={() => cancelRequest(r.id)} style={btnStyle(C.rd)}>× {tr(readLang(), 'CANCEL')}</button>
                   </>
                 )}
                 <button onClick={() => remove(r.id)} style={btnStyle(C.td)}>{tt("DELETE")}</button>
@@ -249,6 +248,7 @@ export default function BillingView({ trainees }) {
 }
 
 function RequestModal({ trainees, onClose, onCreated }) {
+  const tt = useT();
   const [traineeId, setTraineeId] = useState('');
   const [amount, setAmount] = useState(800);
   const [reference, setReference] = useState('');
@@ -279,14 +279,14 @@ function RequestModal({ trainees, onClose, onCreated }) {
   };
 
   return createPortal((
-    <div onClick={onClose} role="dialog" aria-modal="true" aria-label="New payment request" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1200, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 20, paddingTop: 60, backdropFilter: 'blur(4px)' }}>
+    <div onClick={onClose} role="dialog" aria-modal="true" aria-label={tt('New payment request')} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1200, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 20, paddingTop: 60, backdropFilter: 'blur(4px)' }}>
       <div onClick={e => e.stopPropagation()} style={{ background: 'var(--c-bg)', border: `1px solid ${C.cardBd}`, maxWidth: 480, width: '100%', padding: 22, maxHeight: '80vh', overflow: 'auto' }}>
-        <h3 style={{ margin: '0 0 16px', fontFamily: FN, fontSize: 14, color: C.ac, letterSpacing: '0.12em', fontWeight: 700 }}>+ NEW PAYMENT REQUEST</h3>
+        <h3 style={{ margin: '0 0 16px', fontFamily: FN, fontSize: 14, color: C.ac, letterSpacing: '0.12em', fontWeight: 700 }}>+ {tr(readLang(), 'NEW PAYMENT REQUEST')}</h3>
         <div style={{ marginBottom: 10 }}>
-          <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>TRAINEE</label>
+          <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>{tr(readLang(), 'TRAINEE')}</label>
           <select value={traineeId} onChange={e => setTraineeId(e.target.value)}
             style={{ width: '100%', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '8px 10px', color: C.tx, fontFamily: FN, fontSize: 12, outline: 'none' }}>
-            <option value="">— Choose —</option>
+            <option value="">— {tr(readLang(), 'Choose —')}</option>
             {active.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
         </div>
@@ -297,8 +297,8 @@ function RequestModal({ trainees, onClose, onCreated }) {
           <Input label="Reference" value={reference} onChange={e => setReference(e.target.value)} placeholder="May 2026 — 8 sessions" />
         </div>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-          <Btn variant="ghost" onClick={onClose} disabled={saving}>Cancel</Btn>
-          <Btn onClick={create} disabled={saving} style={{ minWidth: 132, justifyContent: 'center' }}>{saving ? 'Creating…' : 'Create request'}</Btn>
+          <Btn variant="ghost" onClick={onClose} disabled={saving}>{tr(readLang(), 'Cancel')}</Btn>
+          <Btn onClick={create} disabled={saving} style={{ minWidth: 132, justifyContent: 'center' }}>{tr(readLang(), saving ? 'Creating…' : 'Create request')}</Btn>
         </div>
       </div>
     </div>

@@ -10,7 +10,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { C, FN, FB } from './theme';
 import { isRefined5b, confirmToast, toast, SectionLabel, CollapsibleSection } from './ui';
 import { supabase } from './supabase';
-import { useT as useAppT } from './i18n';
+import { useT as useAppT, tr, readLang, agoLabel } from './i18n';
 
 const COACH_GATE = 5;
 const NOTES_KEY = 'expo-lead-notes';
@@ -30,7 +30,7 @@ const STAGES = [
 function fmtDate(iso) {
   if (!iso) return '';
   const d = new Date(iso);
-  return d.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleString(readLang() === 'he' ? 'he-IL' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 function ago(iso) {
   if (!iso) return '';
@@ -274,7 +274,7 @@ export default function WaitlistView({ trainees }) {
     const refined = isRefined5b();
     const color = refined ? '#FFFFFF' : (sort === k ? C.ac : C.tm);
     return (
-      <th onClick={() => toggleSort(k)} style={{ textAlign: 'left', padding: '10px 12px', fontSize: 9, fontFamily: FN, color, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', opacity: refined && sort !== k ? 0.78 : 1 }}>
+      <th onClick={() => toggleSort(k)} style={{ textAlign: 'start', padding: '10px 12px', fontSize: 9, fontFamily: FN, color, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', opacity: refined && sort !== k ? 0.78 : 1 }}>
         {label} {sort === k ? (dir === 1 ? '↑' : '↓') : ''}
       </th>
     );
@@ -291,7 +291,7 @@ export default function WaitlistView({ trainees }) {
         <div>
           <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.tm, letterSpacing: '0.18em', textTransform: 'uppercase' }}>{tt("COACH WAITLIST")}</div>
           <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 4 }}>
-            {total} total · {active} uncontacted · gate at {COACH_GATE}+ serious signups
+            {total} {tt('total')} · {active} {tt('uncontacted')} · {tt('gate at')} {COACH_GATE}+ {tt('serious signups')}
           </div>
         </div>
         <div style={{ background: 'var(--c-sf)', border: `1px solid ${gateColor}`, borderRadius: 0, padding: '12px 18px', minWidth: 220 }}>
@@ -303,7 +303,7 @@ export default function WaitlistView({ trainees }) {
             <div style={{ height: '100%', width: `${(gateProgress / COACH_GATE) * 100}%`, background: gateColor, transition: 'width 0.3s' }} />
           </div>
           <div style={{ fontFamily: FB, fontSize: 10, color: C.tm, marginTop: 6 }}>
-            {gateOpen ? 'Gate open — apply scripts/migrations/2026-05-01-multi-tenant-DRAFT.sql.' : 'Migration applies once threshold hits.'}
+            {gateOpen ? 'Gate open — apply scripts/migrations/2026-05-01-multi-tenant-DRAFT.sql.' : tt('Migration applies once threshold hits.')}
           </div>
         </div>
       </div>
@@ -314,7 +314,7 @@ export default function WaitlistView({ trainees }) {
       {stats && (
         <CollapsibleSection title={tt("Funnel")} storageKey="waitlist-funnel" style={{ marginBottom: 14 }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 16 }}>
-          <StatTile label={tt("Leads")} value={total} sub={`${active} uncontacted`} />
+          <StatTile label={tt("Leads")} value={total} sub={`${active} ${tt('uncontacted')}`} />
           <StatTile label={tt("Contact rate")} value={`${(stats.contactRate * 100).toFixed(0)}%`} sub={`${stats.contactedCount} / ${total}`} color={stats.contactRate >= 0.8 ? C.gn : (stats.contactRate >= 0.5 ? C.or : C.rd)} />
           <StatTile label={tt("Median t→contact")} value={fmtTtc(stats.ttcMedianMs)} sub={stats.contactedCount === 0 ? 'no contacted yet' : `across ${stats.contactedCount}`} />
           <StatTile label={tt("Signed up")} value={stats.signupCount} sub={stats.contactedCount === 0 ? '—' : `${(stats.signupRate * 100).toFixed(0)}% of contacted`} color={C.ac} />
@@ -338,7 +338,7 @@ export default function WaitlistView({ trainees }) {
                 color: viewMode === mode ? C.ac : C.tm,
                 fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
                 cursor: 'pointer', textTransform: 'uppercase',
-              }}>{mode}</button>
+              }}>{tt(mode)}</button>
           ))}
         </div>
       </div>
@@ -347,7 +347,7 @@ export default function WaitlistView({ trainees }) {
         <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 40, textAlign: 'center' }}>
           <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>{tt("NO COACH SIGNUPS YET")}</div>
           <div style={{ fontFamily: FB, fontSize: 13, color: C.tm }}>
-            When a coach submits the form on /coaches#waitlist, they'll appear here.
+            {tt("When a coach submits the form on /coaches#waitlist, they'll appear here.")}
           </div>
         </div>
       ) : viewMode === 'board' ? (
@@ -358,18 +358,18 @@ export default function WaitlistView({ trainees }) {
         return (
         <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0 }}>
           <div style={{ background: 'var(--c-stripBg, var(--c-sf))', borderBottom: '1px solid var(--c-cardBd)', padding: '10px 14px' }}>
-            <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>Leads — {sorted.length}</SectionLabel>
+            <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>{tr(readLang(), 'Leads —')} {sorted.length}</SectionLabel>
           </div>
           <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
             <thead>
               <tr style={{ background: refined ? 'var(--c-sf)' : 'transparent', borderBottom: `1px solid ${headBorder}` }}>
                 <SH k="email" label={tt("Email")} />
-                <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: 9, fontFamily: FN, color: refined ? '#FFFFFF' : C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>{tt("Source")}</th>
+                <th style={{ textAlign: 'start', padding: '10px 12px', fontSize: 9, fontFamily: FN, color: refined ? '#FFFFFF' : C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>{tt("Source")}</th>
                 <SH k="intent" label={tt("Intent")} />
                 <SH k="date" label={tt("Signed up")} />
                 <SH k="status" label={tt("Status")} />
-                <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: 9, fontFamily: FN, color: refined ? '#FFFFFF' : C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700, minWidth: 220 }}>{tt("Notes")}</th>
+                <th style={{ textAlign: 'start', padding: '10px 12px', fontSize: 9, fontFamily: FN, color: refined ? '#FFFFFF' : C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700, minWidth: 220 }}>{tt("Notes")}</th>
                 <th style={{ textAlign: 'center', padding: '10px 12px', fontSize: 9, fontFamily: FN, color: refined ? '#FFFFFF' : C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>{tt("Actions")}</th>
               </tr>
             </thead>
@@ -423,15 +423,15 @@ export default function WaitlistView({ trainees }) {
                         );
                       })()}
                     </td>
-                    <td style={{ padding: '10px 12px', fontFamily: FN, color: l.intent >= 3 ? C.ac : (l.intent >= 1 ? C.tm : C.td), fontSize: 13 }} title={`Intent ${l.intent}/4`}>
+                    <td style={{ padding: '10px 12px', fontFamily: FN, color: l.intent >= 3 ? C.ac : (l.intent >= 1 ? C.tm : C.td), fontSize: 13 }} title={tr(readLang(), 'Intent {n}/4').replace('{n}', l.intent)}>
                       {stars}
                     </td>
                     <td style={{ padding: '10px 12px', color: C.tm, fontSize: 12 }} title={fmtDate(l.created_at)}>
-                      {ago(l.created_at)} ago
+                      {agoLabel(l.created_at, readLang())}
                     </td>
                     <td style={{ padding: '10px 12px' }}>
                       {l.contacted ? (
-                        <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.gn, background: 'var(--c-sf)', border: `1px solid ${C.gn}`, borderRadius: 0, padding: '3px 6px', letterSpacing: '0.18em' }} title={`Contacted ${ago(l.consumed_at)} ago`}>{tt("CONTACTED")}</span>
+                        <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.gn, background: 'var(--c-sf)', border: `1px solid ${C.gn}`, borderRadius: 0, padding: '3px 6px', letterSpacing: '0.18em' }} title={`${tr(readLang(), 'Contacted')} ${agoLabel(l.consumed_at, readLang())}`}>{tt("CONTACTED")}</span>
                       ) : (
                         <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.ac, background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: '3px 6px', letterSpacing: '0.18em' }}>{tt('NEW')}</span>
                       )}
@@ -445,10 +445,10 @@ export default function WaitlistView({ trainees }) {
                     <td style={{ padding: '8px 10px', whiteSpace: 'nowrap', textAlign: 'center' }}>
                       {l.contacted ? (
                         <button onClick={() => undoContacted(l.id)} title={tt("Undo contacted")}
-                          style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tm, borderRadius: 0, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', marginRight: 4 }}>↩ UNDO</button>
+                          style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tm, borderRadius: 0, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', marginInlineEnd: 4 }}>↩ {tr(readLang(), 'UNDO')}</button>
                       ) : (
                         <button onClick={() => markContacted(l.id)} title={tt("Mark contacted")}
-                          style={{ background: 'var(--c-sf)', border: `1px solid ${C.gn}`, color: C.gn, borderRadius: 0, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', marginRight: 4 }}>✓ DONE</button>
+                          style={{ background: 'var(--c-sf)', border: `1px solid ${C.gn}`, color: C.gn, borderRadius: 0, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', marginInlineEnd: 4 }}>✓ {tr(readLang(), 'DONE')}</button>
                       )}
                       <button onClick={() => removeLead(l.id)} title={tt("Delete")}
                         style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, color: C.rd, borderRadius: 0, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>✕</button>
@@ -550,7 +550,7 @@ function KanbanBoard({ leads, moveLead, removeLead, notes, setNote }) {
               ))}
               {cards.length === 0 && (
                 <div style={{ padding: 16, textAlign: 'center', color: C.td, fontFamily: FN, fontSize: 10, letterSpacing: '0.12em', fontWeight: 700, border: `1px dashed ${C.cardBd}` }}>
-                  DROP HERE
+                  {tt('DROP HERE')}
                 </div>
               )}
             </div>
@@ -580,7 +580,7 @@ function LeadCard({ lead, draggable, onDragStart, onDragEnd, isDragging, notes, 
           fontSize: 12, color: C.tx, fontWeight: 700,
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0,
         }}>{l.email}</span>
-        <span style={{ fontFamily: FN, color: l.intent >= 3 ? C.ac : C.tm, fontSize: 11 }} title={`Intent ${l.intent}/4`}>{stars}</span>
+        <span style={{ fontFamily: FN, color: l.intent >= 3 ? C.ac : C.tm, fontSize: 11 }} title={tr(readLang(), 'Intent {n}/4').replace('{n}', l.intent)}>{stars}</span>
       </div>
       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 6 }}>
         <span style={{
@@ -589,7 +589,7 @@ function LeadCard({ lead, draggable, onDragStart, onDragEnd, isDragging, notes, 
           border: `1px solid ${C.cardBd}`, padding: '2px 6px', fontWeight: 700,
         }}>{(l.source || '—').toUpperCase().slice(0, 16)}</span>
         <span style={{ fontFamily: FN, fontSize: 9, color: C.td }}>
-          {ago(l.created_at)} ago
+          {agoLabel(l.created_at, readLang())}
         </span>
       </div>
       {l.notes && (

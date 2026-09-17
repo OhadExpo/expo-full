@@ -739,20 +739,20 @@ export function whatsappMessageForTask(note, trainee) {
   switch (note?.auto_kind) {
     case 'week_missed': {
       const m = body.match(/W(\d+)/);
-      const wk = m ? `שבוע ${m[1]} ` : '';
+      const wk = m ? `שבוע ${m[1]} ` : 'שבוע ';
       return `היי ${first}. ראיתי שדילגנו על ${wk}בבלוק הנוכחי. הכל בסדר? בוא נתאם משהו לפני שזה מצטבר.`;
     }
     case 'at_risk_silent': {
       const m = body.match(/(\d+)d no workout/);
-      const ago = m ? `${m[1]} ימים מאז האימון האחרון. ` : '';
+      const ago = m ? `עברו ${m[1]} ימים מאז האימון האחרון. ` : '';
       return `היי ${first}. ${ago}הכל בסדר אצלך? בוא נתאם אימון או שיחה השבוע.`;
     }
     case 'payment_overdue': {
       const never = /never paid/i.test(body);
-      if (never) return `היי ${first}. רק תזכורת — עוד לא נסגר תשלום מאז ההרשמה. תסגור את זה השבוע?`;
+      if (never) return `היי ${first}. רק תזכורת — עוד לא סגרנו תשלום מאז שנרשמת. תסגור את זה השבוע?`;
       const m = body.match(/(\d+)d ago/);
-      const ago = m ? `${m[1]} ימים מאז התשלום האחרון. ` : '';
-      return `היי ${first}. ${ago}תסגור את התשלום הנוכחי השבוע?`;
+      const ago = m ? `עברו ${m[1]} ימים מאז התשלום האחרון. ` : '';
+      return `היי ${first}. ${ago}תסגור את התשלום השבוע?`;
     }
     case 'whatsapp_combined': {
       // The throttled card stacks several reasons. Open ONE conversation

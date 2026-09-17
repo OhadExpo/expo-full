@@ -460,7 +460,7 @@ function Nav() {
         </nav>
         <div style={{
           flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 6,
-          marginLeft: 'auto',
+          marginInlineStart: 'auto',
         }}>
           <LangToggle />
           <a href="https://expo-app.co.il" target="_blank" rel="noopener noreferrer"
@@ -1973,7 +1973,7 @@ function WhyTemplates() {
       </div>
       <p style={{
         fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1,
-        marginTop: 18, textAlign: 'center', maxWidth: 720, marginLeft: 'auto', marginRight: 'auto',
+        marginTop: 18, textAlign: 'center', maxWidth: 720, marginInlineStart: 'auto', marginInlineEnd: 'auto',
         lineHeight: 1.6,
       }}>
         {t('why.note')}
@@ -2146,7 +2146,7 @@ function Testimonials() {
                   fontWeight: 700, textAlign: 'center', minHeight: 90,
                   border: `1px dashed ${C.bd}`, borderRadius: 0,
                 }}>
-                  QUOTE · COMING SOON
+                  {t('testimonial.placeholder')}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div style={{
@@ -2154,8 +2154,8 @@ function Testimonials() {
                     background: C.sf2, border: `1px solid ${C.bd}`,
                   }} />
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontFamily: FN, fontSize: 11, color: C.td, letterSpacing: 1, fontWeight: 700 }}>NAME</div>
-                    <div style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 0.6, marginTop: 2 }}>PROGRAM</div>
+                    <div style={{ fontFamily: FN, fontSize: 11, color: C.td, letterSpacing: 1, fontWeight: 700 }}>{t('testimonial.name')}</div>
+                    <div style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 0.6, marginTop: 2 }}>{t('testimonial.program')}</div>
                   </div>
                 </div>
               </>
@@ -2165,9 +2165,9 @@ function Testimonials() {
                   flex: 1, fontFamily: FB, fontSize: 14, color: C.tx,
                   lineHeight: 1.55,
                 }}>
-                  <span style={{ color: C.ac, fontFamily: FN, fontSize: 18, marginRight: 4, verticalAlign: '-2px' }}>“</span>
+                  <span style={{ color: C.ac, fontFamily: FN, fontSize: 18, marginInlineEnd: 4, verticalAlign: '-2px' }}>“</span>
                   {q.quote}
-                  <span style={{ color: C.ac, fontFamily: FN, fontSize: 18, marginLeft: 4, verticalAlign: '-2px' }}>”</span>
+                  <span style={{ color: C.ac, fontFamily: FN, fontSize: 18, marginInlineStart: 4, verticalAlign: '-2px' }}>”</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <img src={q.photoSrc} alt={q.who} loading="lazy" decoding="async"
@@ -2917,7 +2917,7 @@ function ProgramDetail({ program }) {
         <div style={{ fontFamily: FB, fontSize: 15, color: C.tm, marginBottom: 16 }}>{pAudience}</div>
         <p style={{
           fontFamily: FB, fontSize: 15, color: C.tx, lineHeight: 1.6,
-          maxWidth: 760, marginBottom: 18, marginLeft: 'auto', marginRight: 'auto',
+          maxWidth: 760, marginBottom: 18, marginInlineStart: 'auto', marginInlineEnd: 'auto',
         }}>
           {pSummary}
         </p>
@@ -3034,11 +3034,11 @@ function DiscoveryCallSection() {
         <h2 style={{
           margin: 0, fontFamily: FN, fontSize: 'clamp(24px, 3.6vw, 36px)',
           fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.15, color: C.tx,
-        }}>{heb ? 'לא בטוח איזו תוכנית מתאימה?' : 'Not sure which program fits?'}</h2>
+        }}>{heb ? 'לא בטוח איזו תוכנית מתאימה לך?' : 'Not sure which program fits?'}</h2>
         <p style={{
           margin: '14px auto 0', fontSize: 14, color: C.tm, lineHeight: 1.65, maxWidth: 560,
         }}>{heb
-          ? 'תאם שיחה קצרה איתי. נדבר על המטרות, הזמן שיש לך, וההיסטוריה — ואני אגיד לך איזה בלוק מתאים (או אם בכלל אונליין מתאים לך).'
+          ? 'קבע איתי שיחה קצרה. נדבר על המטרות שלך, כמה זמן יש לך והרקע שלך באימונים — ואגיד לך איזה בלוק מתאים (ואם אונליין בכלל מתאים לך).'
           : "Book a quick call with me. We'll talk goals, schedule, and history — and I'll tell you which block fits (or whether online is even right for you)."}</p>
       </div>
       <div style={{
@@ -3066,7 +3066,7 @@ function DiscoveryCallSection() {
         fontSize: 11, color: C.tm, letterSpacing: '0.16em', fontWeight: 700,
       }}>
         {heb
-          ? 'מופעל על ידי Google Calendar · אישור באימייל אוטומטי'
+          ? 'דרך Google Calendar · אישור אוטומטי באימייל'
           : 'Powered by Google Calendar · Automatic email confirmation'}
       </div>
       {/* WhatsApp fallback — for visitors who don't see a slot that
@@ -3076,7 +3076,7 @@ function DiscoveryCallSection() {
         marginTop: 18, textAlign: 'center', fontFamily: FB,
         fontSize: 13, color: C.tm, lineHeight: 1.6,
       }}>
-        {heb ? 'אף שעה לא מתאימה? ' : "No slot fits? "}
+        {heb ? 'לא מצאת שעה שמתאימה? ' : "No slot fits? "}
         <a href={`https://wa.me/${CONTACT.whatsapp}?text=${encodeURIComponent(heb ? 'היי אוהד, לא מצאתי שעה ביומן שמתאימה לי. אפשר לתאם משהו אחר?' : "Hi Ohad — no slot on the calendar works for me. Can we coordinate something else?")}`}
            target="_blank" rel="noopener"
            onClick={() => trackAndOpen('discovery_whatsapp_fallback', {})}
@@ -3313,7 +3313,7 @@ export default function App() {
     }
   } else if (route.view === 'gym') {
     body = (
-      <Suspense fallback={<div style={{ padding: 40, textAlign: 'center', color: C.tm }}>Loading calendar…</div>}>
+      <Suspense fallback={<div style={{ padding: 40, textAlign: 'center', color: C.tm }}>{t('gym.loading')}</div>}>
         <Gym />
       </Suspense>
     );
@@ -3418,7 +3418,7 @@ export default function App() {
           screen-reader user pressing Tab — this is the first focusable element
           — and activating it was thrown off the page they were on and onto the
           catalog (audit #60). */}
-      {!isStandalone && <a className="fv-skip" href="#programs">Skip to content</a>}
+      {!isStandalone && <a className="fv-skip" href="#programs">{t('a11y.skip')}</a>}
       {!isStandalone && <Nav />}
       <main id="main" className={isHome ? 'fv-home-root' : undefined}>
         {body}

@@ -29,18 +29,22 @@ const started = new Date();
 const lines = [];
 const say = (m) => { const s = `${new Date().toISOString()}  ${m}`; console.log(s); lines.push(s); };
 
-function run(cmd, args, label) {
+let softFailures = 0;
+function run(cmd, args, label, extraEnv = {}, { soft = false } = {}) {
   // PYTHONUTF8 is set HERE and not only in the .ps1 wrapper: both sheets are
   // Hebrew, and a run started any other way - by hand, by a different
   // scheduler, by a future me - would otherwise parse them through the system
   // codepage and write mojibake into the ledger.
   const r = spawnSync(cmd, args, {
     encoding: 'utf8', shell: false,
-    env: { ...process.env, PYTHONUTF8: '1', PYTHONIOENCODING: 'utf-8' },
+    env: { ...process.env, PYTHONUTF8: '1', PYTHONIOENCODING: 'utf-8', ...extraEnv },
   });
   const out = (r.stdout || '') + (r.stderr || '');
   for (const l of out.split(/\r?\n/)) if (l.trim() && !/deprecat/i.test(l)) say(`  | ${l}`);
-  if (r.status !== 0) { say(`FAILED: ${label} (exit ${r.status})`); finish(1); }
+  if (r.status !== 0) {
+    if (soft) { softFailures++; say(`SOFT FAIL: ${label} (exit ${r.status}) - continuing with what is on disk`); return out; }
+    say(`FAILED: ${label} (exit ${r.status})`); finish(1);
+  }
   return out;
 }
 
@@ -78,14 +82,53 @@ if (!(await chromeUp())) {
     await new Promise((r) => setTimeout(r, 1000));
     if (await chromeUp()) break;
   }
+  if (!(await chromeUp())) {
+    // A normal Chrome already owns that profile: the launch above only handed
+    // its arguments to the running instance, which has no debug port. The
+    // CLONE of the same signed-in profile is free, so use it.
+    const clone = 'C:\\Users\\Administrator\\chrome-debug-harvest';
+    if (fs.existsSync(clone)) {
+      say('profile busy (a Chrome without a debug port owns it) - starting the signed-in clone');
+      for (const lock of ['SingletonLock', 'lockfile', 'DevToolsActivePort']) { try { fs.rmSync(`${clone}\\${lock}`, { force: true }); } catch { /* noop */ } }
+      spawn(exe, ['--remote-debugging-port=9222', `--user-data-dir=${clone}`, '--no-first-run',
+                  '--no-default-browser-check', '--window-position=-32000,-32000', 'about:blank'], { detached: true, stdio: 'ignore' }).unref();
+      for (let i = 0; i < 25; i++) { await new Promise((r) => setTimeout(r, 1000)); if (await chromeUp()) break; }
+    }
+  }
   if (!(await chromeUp())) { say('FAILED: Chrome did not open a debug port'); finish(1); }
 }
 say('debug Chrome is up');
 
-run('node', ['scripts/fetch-sheet-xlsx.mjs', ROSTER, 'audit-out/sheets/roster.xlsx'], 'fetch roster');
-run('node', ['scripts/fetch-sheet-xlsx.mjs', FINANCE, 'audit-out/sheets/finance.xlsx'], 'fetch finance');
+run('node', ['scripts/fetch-sheet-xlsx.mjs', ROSTER, 'audit-out/sheets/roster.xlsx'], 'fetch roster', {}, { soft: true });
+run('node', ['scripts/fetch-sheet-xlsx.mjs', FINANCE, 'audit-out/sheets/finance.xlsx'], 'fetch finance', {}, { soft: true });
+// If the live export was starved, the newest harvested revision IS the sheet
+// as of its last edit - use it so the parsers still see today's roster.
+if (softFailures) {
+  const revs = fs.readdirSync('audit-out/sheets/rev').map((x) => Number((x.match(/^r(\d+)\.xlsx$/) || [])[1] || 0)).filter(Boolean);
+  if (revs.length) { const top = Math.max(...revs); fs.copyFileSync(`audit-out/sheets/rev/r${top}.xlsx`, 'audit-out/sheets/roster.xlsx'); say(`roster.xlsx <- r${top} (live export starved)`); }
+}
 run('python', ['scripts/parse-roster-revisions.py'], 'parse roster');
 run('python', ['scripts/parse-finance-sheet.py'], 'parse finance');
-run('node', ['scripts/import-revenue.mjs'], 'import');
-say('done');
+run('node', ['scripts/import-revenue.mjs'], 'import', { ROSTER_EVENTS: '0' });
+// 2026-09-13 — the full history, kept current: new revisions of the roster are
+// harvested (only what is above the highest file on disk), every field is
+// re-parsed into the per-client timeline, payments/attendance/rates re-derived
+// and upserted. Idempotent end to end; a run with nothing new changes nothing.
+const before = fs.readdirSync('audit-out/sheets/rev').filter((x) => /^rd+.xlsx$/.test(x)).length;
+run('node', ['scripts/harvest-new-revisions.mjs'], 'harvest new revisions');
+const after = fs.readdirSync('audit-out/sheets/rev').filter((x) => /^rd+.xlsx$/.test(x)).length;
+say(`revisions on disk: ${before} → ${after}`);
+run('python', ['scripts/parse-roster-timeline.py'], 'parse timeline');
+run('node', ['scripts/derive-payments.mjs'], 'derive payments');
+const maxBefore = Math.max(0, ...fs.readdirSync('audit-out/sheets/rev').map((x) => Number((x.match(/^r(d+).xlsx$/) || [])[1] || 0)));
+run('node', ['scripts/import-revenue-timeline.mjs'], 'import timeline', { CELLS_MIN_REV: String(after > before ? 0 : maxBefore + 1) });
+run('node', ['scripts/verify-billing-history.mjs'], 'verify billing history');
+
+// ---- the club zone, from the club's Google Calendar ----
+// Soft: a calendar hiccup must never cost him the revenue refresh.
+run('node', ['scripts/fetch-bhbc-calendar.mjs'], 'fetch club calendar', {}, { soft: true });
+if (fs.existsSync('audit-out/sheets/bhbc-calendar.json')) {
+  run('node', ['scripts/sync-bhbc-calendar.mjs', 'audit-out/sheets/bhbc-calendar.json'], 'sync club calendar', {}, { soft: true });
+}
+say(softFailures ? `done with ${softFailures} soft failure(s) - the live export was starved; history and totals still refreshed` : 'done');
 finish(0);

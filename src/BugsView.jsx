@@ -8,7 +8,7 @@
 // note + record a "fixed in <commit>" tag.
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { useT, useTB } from './i18n';
+import { useT, useTB, tr, readLang } from './i18n';
 import { C, FN, FB } from './theme';
 import { safeUrl } from './VideoEmbed';
 import { supabase } from './supabase';
@@ -120,7 +120,7 @@ export default function BugsView() {
       </div>
 
       {loading ? (
-        <div style={{ padding: 30, textAlign: 'center', color: C.td, fontFamily: FB, fontSize: 13 }}>Loading…</div>
+        <div style={{ padding: 30, textAlign: 'center', color: C.td, fontFamily: FB, fontSize: 13 }}>{tr(readLang(), 'Loading…')}</div>
       ) : rows.length === 0 ? (
         <div style={{ padding: 30, textAlign: 'center', color: C.td, fontSize: 13 }}>
           {tt(filter === 'all' ? 'No reports.' : `No ${filter} reports.`)}
@@ -131,7 +131,7 @@ export default function BugsView() {
         return (
           <div key={r.id} style={{
             border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)',
-            borderLeft: `3px solid ${sevColor}`,
+            borderInlineStart: `3px solid ${sevColor}`,
             marginBottom: 8, padding: '10px 12px',
           }}>
             <div onClick={() => setExpandedId(expanded ? null : r.id)}
@@ -144,7 +144,7 @@ export default function BugsView() {
                 {r.role?.toUpperCase() || 'ANON'} · {fmtTs(r.created_at)}
                 {r.reporter_email && <> · {r.reporter_email}</>}
               </span>
-              <span style={{ marginLeft: 'auto', color: C.td, fontSize: 12 }}>{expanded ? '▲' : '▼'}</span>
+              <span style={{ marginInlineStart: 'auto', color: C.td, fontSize: 12 }}>{expanded ? '▲' : '▼'}</span>
             </div>
             <div style={{ marginTop: 6, fontSize: 13, color: C.tx, whiteSpace: 'pre-wrap', lineHeight: 1.4 }}>
               {r.description}
@@ -163,16 +163,16 @@ export default function BugsView() {
               <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px dashed ${C.cardBd}` }}>
                 {r.context && (
                   <div style={{ fontFamily: 'monospace', fontSize: 11, color: C.td, lineHeight: 1.5, marginBottom: 10 }}>
-                    <div><b style={{ color: C.tm }}>UA:</b> {r.context.ua || '—'}</div>
+                    <div><b style={{ color: C.tm }}>{tt('UA:')}</b> {r.context.ua || '—'}</div>
                     <div>
-                      <b style={{ color: C.tm }}>Viewport:</b> {r.context.viewport?.w}×{r.context.viewport?.h} ·{' '}
-                      <b style={{ color: C.tm }}>Theme:</b> {r.context.theme || '—'} ·{' '}
-                      <b style={{ color: C.tm }}>Locale:</b> {r.context.locale || '—'} ·{' '}
-                      <b style={{ color: C.tm }}>Bundle:</b> {r.context.bundle || '—'}
+                      <b style={{ color: C.tm }}>{tt('Viewport:')}</b> {r.context.viewport?.w}×{r.context.viewport?.h} ·{' '}
+                      <b style={{ color: C.tm }}>{tt('Theme:')}</b> {r.context.theme || '—'} ·{' '}
+                      <b style={{ color: C.tm }}>{tr(readLang(), 'Locale:')}</b> {r.context.locale || '—'} ·{' '}
+                      <b style={{ color: C.tm }}>{tr(readLang(), 'Bundle:')}</b> {r.context.bundle || '—'}
                     </div>
                     {Array.isArray(r.context.consoleErrors) && r.context.consoleErrors.length > 0 && (
                       <div style={{ marginTop: 6 }}>
-                        <b style={{ color: C.tm }}>Console errors ({r.context.consoleErrors.length}):</b>
+                        <b style={{ color: C.tm }}>{tt('Console errors (')}{r.context.consoleErrors.length}):</b>
                         <div style={{ marginTop: 4, maxHeight: 220, overflow: 'auto', background: 'var(--c-bg)', border: `1px solid ${C.cardBd}`, padding: 8 }}>
                           {r.context.consoleErrors.map((e, i) => (
                             <div key={i} style={{ marginTop: i ? 8 : 0, paddingTop: i ? 8 : 0, borderTop: i ? `1px dashed ${C.cardBd}` : 'none' }}>
@@ -194,42 +194,42 @@ export default function BugsView() {
                 )}
 
                 <div style={{ marginBottom: 8 }}>
-                  <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.12em', fontWeight: 700, marginBottom: 4 }}>TRIAGE NOTES</label>
+                  <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.12em', fontWeight: 700, marginBottom: 4 }}>{tt('TRIAGE NOTES')}</label>
                   <textarea defaultValue={r.notes || ''} dir="auto" rows={2}
                     onBlur={e => { if (e.target.value !== (r.notes || '')) setNotes(r.id, e.target.value); }}
-                    placeholder="Repro steps, hypothesis, blocker…"
+                    placeholder={tt('Repro steps, hypothesis, blocker…')}
                     style={{ width: '100%', background: 'var(--c-bg)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '6px 8px', color: C.tx, fontFamily: FB, fontSize: 12, outline: 'none', boxSizing: 'border-box', resize: 'vertical' }} />
                 </div>
 
                 <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
                   {r.status !== 'open' && (
                     <button onClick={() => setStatus(r.id, 'open')}
-                      style={btn(C.rd)}>→ OPEN</button>
+                      style={btn(C.rd)}>→ {tr(readLang(), 'OPEN')}</button>
                   )}
                   {r.status !== 'triaged' && (
                     <button onClick={() => setStatus(r.id, 'triaged')}
-                      style={btn(C.or)}>→ TRIAGED</button>
+                      style={btn(C.or)}>→ {tr(readLang(), 'TRIAGED')}</button>
                   )}
                   {r.status !== 'fixed' && (
                     shaFor === r.id ? (
                       <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
                         <input autoFocus value={shaVal} onChange={e => setShaVal(e.target.value)}
                           onKeyDown={e => { if (e.key === 'Enter') markFixed(r.id); if (e.key === 'Escape') { setShaFor(null); setShaVal(''); } }}
-                          placeholder="commit SHA — blank to skip"
+                          placeholder={tt('commit SHA — blank to skip')}
                           style={{ background: 'var(--c-sf2)', border: `1px solid ${C.cardBd}`, color: C.tx, fontFamily: FN, fontSize: 11, padding: '4px 8px', width: 190 }} />
-                        <button onClick={() => markFixed(r.id)} style={btn(C.gn)}>✓ FIXED</button>
+                        <button onClick={() => markFixed(r.id)} style={btn(C.gn)}>✓ {tr(readLang(), 'FIXED')}</button>
                       </span>
                     ) : (
-                      <button onClick={() => { setShaFor(r.id); setShaVal(''); }} style={btn(C.gn)}>✓ MARK FIXED</button>
+                      <button onClick={() => { setShaFor(r.id); setShaVal(''); }} style={btn(C.gn)}>✓ {tr(readLang(), 'MARK FIXED')}</button>
                     )
                   )}
                   {r.fixed_in_commit && (
-                    <span style={{ fontFamily: 'monospace', fontSize: 11, color: C.gn, marginLeft: 4 }}>
+                    <span style={{ fontFamily: 'monospace', fontSize: 11, color: C.gn, marginInlineStart: 4 }}>
                       ✓ {r.fixed_in_commit}
                     </span>
                   )}
                   <span style={{ flex: 1 }} />
-                  <button onClick={() => remove(r.id)} style={btn(C.td)}>DELETE</button>
+                  <button onClick={() => remove(r.id)} style={btn(C.td)}>{tt('DELETE')}</button>
                 </div>
               </div>
             )}

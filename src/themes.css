@@ -663,19 +663,39 @@ html {
   }
   .bhbc-load-row > *:nth-child(1) { grid-area: jersey; }
   .bhbc-load-row > *:nth-child(2) { grid-area: name; min-width: 0; overflow-wrap: anywhere; }
-  .bhbc-load-row > *:nth-child(3) { grid-area: acwr; }
+  /* BY NAME, not by position: ACWR and 7-day only exist when the squad has load
+     data, and when they do not every later child shifts one place and the
+     position rules hide the wrong cell. */
+  /* stretch, not end: in RTL `end` pins the chip's LEFT edge, so every row's
+     text STARTED at a different x. Filling the track lets each chip begin on
+     the track's own start edge — one reading edge down the board. */
+  .bhbc-load-row > [data-lbl="ACWR"],
+  .bhbc-load-row > [data-lbl="last lift"] { grid-area: acwr; justify-self: stretch; }
   /* 7d and readiness are READING data — they stay on the athlete's own card
      rather than crushing the row down to nothing. */
-  .bhbc-load-row > *:nth-child(4),
-  .bhbc-load-row > *:nth-child(6) { display: none !important; }
-  .bhbc-load-row > *:nth-child(5) { grid-area: avail; }
+  .bhbc-load-row > [data-lbl="7-day"],
+  .bhbc-load-row > [data-lbl="Readiness"] { display: none !important; }
+  .bhbc-load-row > [data-lbl="Availability"] { grid-area: avail; }
+  /* One line per fact: the position, then the injury under it. The name block
+     already wraps to two lines, so this costs no height — the row gap and the
+     bottom padding below pay for it. */
+  /* Two lines are RESERVED whether or not there is an injury, so an injured
+     athlete's row is not 16px taller than a fit one's. Ohad's rule for the
+     roster cards is the rule here: every row is the same box. */
+  .bhbc-pos-inj { display: block !important; min-height: 30px; }
+  /* the "·" only separates two things that sit on ONE line */
+  .bhbc-pos-inj [data-sep] { display: none !important; }
+  .bhbc-pos-inj > * { display: block; }
   /* The MED button was sizing the third TRACK, not sitting in it: `auto` takes
      the widest item in the column, the button stretched to fill, and at a 470px
      window that made column three 170px while the NAME got 149.8 - so
      "Daeshon Francis" broke mid-word as DAESHO/N. The name is the row's
      identity; it gets the room, and the button is the size of its own label. */
-  .bhbc-load-row { grid-template-columns: 28px minmax(0, 1fr) max-content !important; }
-  .bhbc-load-row > *:nth-child(7) { grid-area: med; justify-self: end; width: max-content; max-width: 96px; }
+  /* A FIXED last track. It was max-content, and every row is its own grid, so
+     the track was as wide as that row's own text and the MED button underneath
+     it moved a few pixels every line. Fixed = one column edge down the board. */
+  .bhbc-load-row { grid-template-columns: 28px minmax(0, 1fr) 96px !important; row-gap: 6px !important; padding-bottom: 8px !important; }
+  .bhbc-load-row > [data-lbl="actions"] { grid-area: med; justify-self: end; width: max-content; max-width: 96px; }
   .bhbc-load-row > *:nth-child(2) { min-width: 0; }
   .bhbc-load-row > *:nth-child(2) * { overflow-wrap: normal !important; word-break: keep-all !important; }
   /* Review compare: two videos side-by-side become full-width stacked so each
@@ -1150,3 +1170,32 @@ html.theme-switching *::after {
 [data-fade="both"]   { -webkit-mask-image: linear-gradient(to right, transparent 0, #000 22px, #000 calc(100% - 22px), transparent 100%); mask-image: linear-gradient(to right, transparent 0, #000 22px, #000 calc(100% - 22px), transparent 100%); }
 /* The active tab must never sit under its own fade. */
 [data-fade] { scroll-padding-inline: 24px; }
+
+/* MANAGE ROSTER row: one line on a desktop, two on a phone - and the second
+   line starts on the NAME column, not under the checkbox. */
+.bhbc-manage-row{display:grid;grid-template-columns:16px 24px minmax(0,1fr) auto;align-items:center;column-gap:10px;row-gap:7px}
+.bhbc-manage-meta{display:flex;align-items:center;gap:12px;justify-content:flex-end;min-width:0}
+@media (max-width:620px){
+  .bhbc-manage-row{grid-template-columns:16px 24px minmax(0,1fr)}
+  .bhbc-manage-meta{grid-column:3;justify-content:space-between;gap:8px}
+}
+
+/* The roster card reserves two lines for the name and two for the status so a
+   GRID of cards lines up. At phone width the grid is one column wide - there is
+   nothing to line up with and the reserve is just dead air. */
+@media (max-width:620px){
+  .bhbc-roster-grid{--rc-h:auto;--rc-name:0px;--rc-stat:0px}
+  /* The big ghost jersey is a flourish for a tall card. On the short phone card
+     it sits behind the last letter of the name, and the #number is printed
+     above it anyway. */
+  .bhbc-roster-grid [data-ghost]{display:none}
+}
+
+/* A generic horizontal rail: scrolls sideways with no visible scrollbar, and
+   takes the same edge fade the header and the zone tabs use. */
+.rail-scroll{overflow-x:auto;overflow-y:hidden;-ms-overflow-style:none;scrollbar-width:none}
+.rail-scroll::-webkit-scrollbar{display:none}
+
+/* Portals (modals, drawers, the Training Analysis overlay) mount on <body>, outside
+   .app-root[dir]. BodyLang marks the body with the coach app's language. */
+body[data-lang="he"] > :not(#root) { direction: rtl; }

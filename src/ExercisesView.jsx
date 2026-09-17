@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { C, FN, FB, uid, ytId, RESISTANCE_TYPES, BODY_POSITIONS, MOVEMENT_TYPES } from './theme';
 import { Btn, Input, Select, TextArea, Modal, ConfirmDialog, EmptyState, baseInput, useIsMobile } from './ui';
 import { classify, isUnclassified } from './exerciseClassify';
-import { useT as useAppT, useTB } from './i18n';
+import { useT as useAppT, useTB, tr, readLang } from './i18n';
 
 // Grid-card video: a lightweight YouTube FACADE. The grid can show 200 cards, so
 // it must NOT mount 200 iframes — it paints the lazy poster thumbnail and only
@@ -11,6 +11,7 @@ import { useT as useAppT, useTB } from './i18n';
 // double-click can take it fullscreen (Ohad). Non-YouTube / no video get a quiet
 // tile so every card keeps the same half-video / half-notes shape.
 function GridVideo({ url }) {
+  const tt = useAppT();
   const [play, setPlay] = useState(false);
   const yid = ytId(url);
   const box = { position: 'relative', width: '100%', aspectRatio: '16 / 9', background: '#000', overflow: 'hidden', borderBottom: `1px solid ${C.cardBd}`, flexShrink: 0 };
@@ -22,12 +23,12 @@ function GridVideo({ url }) {
       </div>
     );
     return (
-      <div style={{ ...box, cursor: 'pointer' }} onClick={() => setPlay(true)} title="Play inline (no fullscreen)" role="button" tabIndex={0}
+      <div style={{ ...box, cursor: 'pointer' }} onClick={() => setPlay(true)} title={tt('Play inline (no fullscreen)')} role="button" tabIndex={0}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setPlay(true); } }}>
         <img src={`https://img.youtube.com/vi/${yid}/hqdefault.jpg`} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.92, display: 'block' }} />
         <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <span style={{ width: 34, height: 34, borderRadius: '50%', background: 'rgba(0,0,0,0.55)', border: '1px solid rgba(255,255,255,0.85)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span style={{ width: 0, height: 0, borderTop: '6px solid transparent', borderBottom: '6px solid transparent', borderLeft: '10px solid #fff', marginLeft: 2 }} />
+            <span style={{ width: 0, height: 0, borderTop: '6px solid transparent', borderBottom: '6px solid transparent', borderInlineStart: '10px solid #fff', marginInlineStart: 2 }} />
           </span>
         </span>
       </div>
@@ -37,7 +38,7 @@ function GridVideo({ url }) {
   return (
     <div style={{ ...box, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <span style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: embeddable ? C.ac : C.td, opacity: embeddable ? 0.9 : 0.5 }}>
-        {embeddable ? '▶ Video' : 'No video'}
+        {embeddable ? `▶ ${tr(readLang(), 'Video')}` : tr(readLang(), 'No video')}
       </span>
     </div>
   );
@@ -196,7 +197,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
     const sel = f[k] || [];
     const active = sel.length > 0;
     const isOpen = openKey === k;
-    const faceLabel = sel.length === 1 ? sel[0] : (sel.length > 1 ? `${label} · ${sel.length}` : label);
+    const faceLabel = sel.length === 1 ? sel[0] : (sel.length > 1 ? `${tt(label)} · ${sel.length}` : tt(label));
     return (
       <div style={{ position: 'relative' }}>
         {/* Inactive filters carry NO underline (transparent) — cyan only when
@@ -204,11 +205,11 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
             cyan-30% underline on every one, so the row read as a busy wall of
             look-alike underlined labels (Ohad #230). Now it's calm plain text
             with a caret; the active filter is the only lit one. */}
-        <button className={`filt${active || isOpen ? ' filt-on' : ''}`} onClick={() => setOpenKey(isOpen ? null : k)} title={label}
+        <button className={`filt${active || isOpen ? ' filt-on' : ''}`} onClick={() => setOpenKey(isOpen ? null : k)} title={tt(label)}
           style={{ ...railBase, borderBottomColor: (active || isOpen) ? C.ac : 'transparent', color: active ? C.ac : C.tx }}>
           <span style={{ maxWidth: 220, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{faceLabel}</span>
           {active
-            ? <span onClick={e => { e.stopPropagation(); clearFilter(k); }} title="Clear" style={{ fontSize: 13, lineHeight: 1, opacity: 0.85 }}>×</span>
+            ? <span onClick={e => { e.stopPropagation(); clearFilter(k); }} title={tr(readLang(), 'Clear')} style={{ fontSize: 13, lineHeight: 1, opacity: 0.85 }}>×</span>
             : <span style={{ color: (active || isOpen) ? C.ac : C.tm, fontSize: 9 }}><svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></span>}
         </button>
         {isOpen && (
@@ -218,7 +219,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
             <div style={{ position: 'sticky', top: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, height: 28, padding: '0 11px', background: 'color-mix(in srgb, var(--c-ac) 15%, var(--c-sf))', borderBottom: `1px solid ${C.ac}`, zIndex: 1 }}>
               <span style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.16em', color: C.ac, textTransform: 'uppercase' }}>{label}</span>
               {sel.length > 0
-                ? <span onClick={e => { e.stopPropagation(); clearFilter(k); }} title="Clear selection" style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color: C.tm, cursor: 'pointer' }}>CLEAR · {sel.length}</span>
+                ? <span onClick={e => { e.stopPropagation(); clearFilter(k); }} title={tt('Clear selection')} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color: C.tm, cursor: 'pointer' }}>{tt('CLEAR ·')}{sel.length}</span>
                 : <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: C.td, fontVariantNumeric: 'tabular-nums' }}>{options.length}</span>}
             </div>
             {options.length === 0 && <div style={{ padding: '10px 12px', color: C.td, fontFamily: FN, fontSize: 10, letterSpacing: '0.04em' }}>{tt("No values in library")}</div>}
@@ -340,8 +341,8 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
           {[['table', 'Table'], ['grid', 'Grid']].map(([v, label]) => {
             const on = view === v;
             return (
-              <button key={v} onClick={() => setView(v)} aria-pressed={on} title={v === 'table' ? 'Dense table — every parameter a sortable column' : 'Card grid — one card per exercise'}
-                style={{ flex: 1, height: 30, boxSizing: 'border-box', borderRadius: 0, cursor: 'pointer', border: `1px solid ${on ? '#39BDFF' : C.cardBd}`, background: on ? '#39BDFF' : 'var(--c-sf)', color: on ? '#FFFFFF' : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{label}</button>
+              <button key={v} onClick={() => setView(v)} aria-pressed={on} title={tt(v === 'table' ? 'Dense table — every parameter a sortable column' : 'Card grid — one card per exercise')}
+                style={{ flex: 1, height: 30, boxSizing: 'border-box', borderRadius: 0, cursor: 'pointer', border: `1px solid ${on ? '#39BDFF' : C.cardBd}`, background: on ? '#39BDFF' : 'var(--c-sf)', color: on ? '#FFFFFF' : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{tt(label)}</button>
             );
           })}
         </div>
@@ -350,17 +351,17 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
       {/* Search + Add — prominent, full width. */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 18, alignItems: 'stretch', flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: 200, display: 'flex' }}>
-          <input placeholder={narrowUI ? "Search exercises…" : "Search exercises (title, muscle, joint, position…)"} value={search} onChange={e => { setSearch(e.target.value); setShowAll(false); }}
-            style={{ ...baseInput, height: 30, padding: '0 14px', fontSize: 13, lineHeight: '30px', textAlign: 'left', border: `1px solid ${C.ac}`, width: '100%' }} />
+          <input placeholder={tr(readLang(), narrowUI ? "Search exercises…" : "Search exercises (title, muscle, joint, position…)")} value={search} onChange={e => { setSearch(e.target.value); setShowAll(false); }}
+            style={{ ...baseInput, height: 30, padding: '0 14px', fontSize: 13, lineHeight: '30px', textAlign: 'start', border: `1px solid ${C.ac}`, width: '100%' }} />
         </div>
-        <Btn onClick={openNew} style={{ height: 30, width: RIGHT_CTL_W, flexShrink: 0, padding: '0 18px', fontSize: 13, lineHeight: '30px', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ Add Exercise</Btn>
+        <Btn onClick={openNew} style={{ height: 30, width: RIGHT_CTL_W, flexShrink: 0, padding: '0 18px', fontSize: 13, lineHeight: '30px', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ {tr(readLang(), 'Add Exercise')}</Btn>
       </div>
 
       {onOpenClassify && unclassifiedCount > 0 && (
-        <button onClick={onOpenClassify} style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10, width: '100%', textAlign: 'left', marginBottom: 16, padding: '10px 14px', background: `color-mix(in srgb, ${C.ac} 8%, var(--c-sf))`, border: `1px solid color-mix(in srgb, ${C.ac} 35%, transparent)`, borderLeft: `3px solid ${C.ac}`, borderRadius: 0, cursor: 'pointer' }}>
-          <span style={{ fontFamily: FN, fontSize: 12.5, fontWeight: 700, color: C.tx }}><span style={{ color: C.ac, fontVariantNumeric: 'tabular-nums' }}>{unclassifiedCount.toLocaleString()}</span> exercises are unclassified</span>
-          <span style={{ fontFamily: FB, fontSize: 12, color: C.td }}>— resolution/movement/position blank</span>
-          <span style={{ marginLeft: 'auto', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.ac }}>Classify at scale →</span>
+        <button onClick={onOpenClassify} style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10, width: '100%', textAlign: 'start', marginBottom: 16, padding: '10px 14px', background: `color-mix(in srgb, ${C.ac} 8%, var(--c-sf))`, border: `1px solid color-mix(in srgb, ${C.ac} 35%, transparent)`, borderInlineStart: `3px solid ${C.ac}`, borderRadius: 0, cursor: 'pointer' }}>
+          <span style={{ fontFamily: FN, fontSize: 12.5, fontWeight: 700, color: C.tx }}><span style={{ color: C.ac, fontVariantNumeric: 'tabular-nums' }}>{unclassifiedCount.toLocaleString()}</span> {tt('exercises are unclassified')}</span>
+          <span style={{ fontFamily: FB, fontSize: 12, color: C.td }}>{tt('— resolution/movement/position blank')}</span>
+          <span style={{ marginInlineStart: 'auto', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.ac }}>{tt('Classify at scale →')}</span>
         </button>
       )}
 
@@ -374,13 +375,13 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
       <div style={{ marginBottom: 16, borderBottom: `1px solid ${C.cardBd}` }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 14px', padding: '0 1px 10px' }}>
           <span style={rowLabel}>{tt("Show")}</span>
-          {flagChip('video', `▶ Video (${counts.vid})`)}
-          {flagChip('notes', `☰ Notes (${counts.note})`, C.or)}
-          {flagChip('missing', `∅ Unclassified (${counts.miss})`, C.or)}
-          {anyFilter && <button className="filt" onClick={clearAll} title="Clear all filters" style={{ ...railBase, color: C.rd, marginLeft: 'auto', letterSpacing: '0.1em' }}>× Clear all</button>}
+          {flagChip('video', `▶ ${tt('Video')} (${counts.vid})`)}
+          {flagChip('notes', `☰ ${tt('Notes')} (${counts.note})`, C.or)}
+          {flagChip('missing', `∅ ${tt('Unclassified')} (${counts.miss})`, C.or)}
+          {anyFilter && <button className="filt" onClick={clearAll} title={tt('Clear all filters')} style={{ ...railBase, color: C.rd, marginInlineStart: 'auto', letterSpacing: '0.1em' }}>× {tr(readLang(), 'Clear all')}</button>}
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 14px', padding: '0 1px 12px', borderTop: `1px solid ${C.cardBd}`, paddingTop: 10 }}>
-          <span style={rowLabel}>Filter&nbsp;by</span>
+          <span style={rowLabel}>{tt('Filter by').replace(' ', '\u00a0')}</span>
           <FilterPill label="Resistance" k="resistanceType" options={dynOpts(counts.rt, f.resistanceType)} />
           <FilterPill label="Position" k="bodyPosition" options={dynOpts(counts.bp, f.bodyPosition)} />
           <FilterPill label="Movement" k="movementType" options={dynOpts(counts.mt, f.movementType)} />
@@ -425,9 +426,9 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
                 </div>
                 {/* actions — light text buttons, like the program card */}
                 <div style={{ padding: '8px 14px 12px', display: 'flex', gap: 16, alignItems: 'center', borderTop: `1px solid ${C.cardBd}` }}>
-                  <button onClick={() => { setForm({ ...ex }); setEditId(ex.id); setShowForm(true); }} title="Edit exercise" style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', color: C.ac }}>{tt("Edit")}</button>
+                  <button onClick={() => { setForm({ ...ex }); setEditId(ex.id); setShowForm(true); }} title={tt('Edit exercise')} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', color: C.ac, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 0 }}>{tt("Edit")}</button>
                   <div style={{ flex: 1 }} />
-                  <button onClick={() => setConfirmDelete(ex.id)} title="Delete exercise" style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', color: C.rd }}>{tt("Delete")}</button>
+                  <button onClick={() => setConfirmDelete(ex.id)} title={tt('Delete exercise')} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', color: C.rd, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 0 }}>{tt("Delete")}</button>
                 </div>
               </div>
             );
@@ -462,8 +463,8 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
                 {[['title', 'Exercise'], ['resistanceType', 'Resistance'], ['bodyPosition', 'Position'], ['movementType', 'Movement'], ['primaryJoints', 'Joints'], ['jointMovements', 'Joint Movements'], ['primaryMuscles', 'Primary Muscles'], ['secondaryMuscles', 'Secondary Muscles']].map(([k, l]) => {
                   const active = sortKey === k;
                   return (
-                    <th key={k} className={k === 'title' ? undefined : 'ex-taxo'} onClick={() => onSort(k)} style={{ textAlign: 'left', padding: '9px 12px', fontSize: 9, fontFamily: FN, color: active ? C.ac : C.tm, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700, cursor: 'pointer', whiteSpace: 'normal', lineHeight: 1.25, borderBottom: `1px solid ${C.cardBd}`, userSelect: 'none', position: 'sticky', top: 0, background: 'var(--c-sf)', zIndex: 1 }}>
-                      {l}{active && <span style={{ fontSize: 8, marginLeft: 4 }}>{sortDir === 'asc' ? '↑' : '↓'}</span>}
+                    <th key={k} className={k === 'title' ? undefined : 'ex-taxo'} onClick={() => onSort(k)} style={{ textAlign: 'start', padding: '9px 12px', fontSize: 9, fontFamily: FN, color: active ? C.ac : C.tm, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700, cursor: 'pointer', whiteSpace: 'normal', lineHeight: 1.25, borderBottom: `1px solid ${C.cardBd}`, userSelect: 'none', position: 'sticky', top: 0, background: 'var(--c-sf)', zIndex: 1 }}>
+                      {tt(l)}{active && <span style={{ fontSize: 8, marginInlineStart: 4 }}>{sortDir === 'asc' ? '↑' : '↓'}</span>}
                     </th>
                   );
                 })}
@@ -489,15 +490,15 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
                     {chipCell(ex.primaryMuscles, 230)}
                     {chipCell(ex.secondaryMuscles, 210)}
                     <td style={{ padding: '9px 12px', textAlign: 'center', whiteSpace: 'nowrap' }}>
-                      {hasVideo(ex) && <span title="Has a demo video" style={{ color: C.ac, marginRight: hasNotes(ex) ? 8 : 0, fontSize: 12 }}>▶</span>}
-                      {hasNotes(ex) && <span title="Has coaching cues" style={{ color: C.or, fontSize: 12 }}>☰</span>}
+                      {hasVideo(ex) && <span title={tt('Has a demo video')} style={{ color: C.ac, marginInlineEnd: hasNotes(ex) ? 8 : 0, fontSize: 12 }}>▶</span>}
+                      {hasNotes(ex) && <span title={tt('Has coaching cues')} style={{ color: C.or, fontSize: 12 }}>☰</span>}
                       {!hasVideo(ex) && !hasNotes(ex) && emptyDot}
                     </td>
-                    <td style={{ padding: '9px 8px', whiteSpace: 'nowrap', textAlign: 'right' }}>
-                      <button onClick={() => { setForm({ ...ex }); setEditId(ex.id); setShowForm(true); }} title="Edit exercise" style={{ background: 'none', border: 'none', color: C.tm, cursor: 'pointer', padding: 4 }}>
+                    <td style={{ padding: '9px 8px', whiteSpace: 'nowrap', textAlign: 'end' }}>
+                      <button onClick={() => { setForm({ ...ex }); setEditId(ex.id); setShowForm(true); }} title={tt('Edit exercise')} style={{ background: 'none', border: 'none', color: C.tm, cursor: 'pointer', padding: 4, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 0 }}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                       </button>
-                      <button onClick={() => setConfirmDelete(ex.id)} title="Delete exercise" style={{ background: 'none', border: 'none', color: C.rd, cursor: 'pointer', padding: 4, opacity: 0.7 }}>
+                      <button onClick={() => setConfirmDelete(ex.id)} title={tt('Delete exercise')} style={{ background: 'none', border: 'none', color: C.rd, cursor: 'pointer', padding: 4, opacity: 0.7, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 0 }}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
                       </button>
                     </td>
@@ -511,44 +512,44 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
       {/* Shared row-cap notice — applies to both table and grid. */}
       {filtered.length > 0 && !showAll && filtered.length > ROW_CAP && (
         <div style={{ padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-          <span style={{ fontSize: 11, fontFamily: FN, color: C.tm }}>Showing {ROW_CAP} of {filtered.length.toLocaleString()} — refine the search, or</span>
+          <span style={{ fontSize: 11, fontFamily: FN, color: C.tm }}>{tt('Showing')} {ROW_CAP} {tt('of')} {filtered.length.toLocaleString()} {tt('— refine the search, or')}</span>
           <button onClick={() => setShowAll(true)} style={{ background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: '3px 12px', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em' }}>{tb("SHOW ALL")}</button>
         </div>
       )}
 
-      <Modal open={showForm} onClose={() => setShowForm(false)} title={editId ? 'Edit Exercise' : 'New Exercise'} wide>
+      <Modal open={showForm} onClose={() => setShowForm(false)} title={tr(readLang(), editId ? 'Edit Exercise' : 'New Exercise')} wide>
         <div data-allow-copy>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(200px, 100%), 1fr))', gap: 12 }}>
             <div style={{ gridColumn: '1 / -1' }}><Input label="Title" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="e.g., Barbell Back Squat" /></div>
             {(() => { const g = classify(form.title); return (!form.resistanceType || !form.bodyPosition || !form.movementType) && g.filled > 0 ? (
               <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                 <button type="button" onClick={() => setForm(f => ({ ...f, resistanceType: f.resistanceType || g.resistanceType, bodyPosition: f.bodyPosition || g.bodyPosition, movementType: f.movementType || g.movementType }))}
-                  style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.ac, background: `color-mix(in srgb, ${C.ac} 12%, transparent)`, border: `1px solid ${C.ac}`, borderRadius: 0, padding: '6px 12px', cursor: 'pointer' }}>✨ Suggest from title</button>
-                <span style={{ fontFamily: FB, fontSize: 11.5, color: C.tm }}>{[g.resistanceType, g.bodyPosition, g.movementType].filter(Boolean).join(' · ')} — fills blank fields only</span>
+                  style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.ac, background: `color-mix(in srgb, ${C.ac} 12%, transparent)`, border: `1px solid ${C.ac}`, borderRadius: 0, padding: '6px 12px', cursor: 'pointer' }}>✨ {tr(readLang(), 'Suggest from title')}</button>
+                <span style={{ fontFamily: FB, fontSize: 11.5, color: C.tm }}>{[g.resistanceType, g.bodyPosition, g.movementType].filter(Boolean).join(' · ')} — {tt('fills blank fields only')}</span>
               </div>
             ) : null; })()}
-            <Select label="Resistance Type" options={RESISTANCE_TYPES} value={form.resistanceType} onChange={v => setForm({ ...form, resistanceType: v })} placeholder="Select..." />
-            <Select label="Body Position" options={BODY_POSITIONS} value={form.bodyPosition} onChange={v => setForm({ ...form, bodyPosition: v })} placeholder="Select..." />
-            <Select label="Movement Type" options={MOVEMENT_TYPES} value={form.movementType} onChange={v => setForm({ ...form, movementType: v })} placeholder="Select..." />
-            <Input label="Primary Joints" value={form.primaryJoints} onChange={e => setForm({ ...form, primaryJoints: e.target.value })} placeholder="Shoulder, Elbow" />
-            <Input label="Joint Movements" value={form.jointMovements} onChange={e => setForm({ ...form, jointMovements: e.target.value })} placeholder="Shoulder Flexion" />
-            <Input label="Primary Muscle Groups" value={form.primaryMuscles} onChange={e => setForm({ ...form, primaryMuscles: e.target.value })} placeholder="Quads, Glutes" />
+            <Select label="Resistance Type" options={RESISTANCE_TYPES} value={form.resistanceType} onChange={v => setForm({ ...form, resistanceType: v })} placeholder={tt('Select...')} />
+            <Select label="Body Position" options={BODY_POSITIONS} value={form.bodyPosition} onChange={v => setForm({ ...form, bodyPosition: v })} placeholder={tt('Select...')} />
+            <Select label="Movement Type" options={MOVEMENT_TYPES} value={form.movementType} onChange={v => setForm({ ...form, movementType: v })} placeholder={tt('Select...')} />
+            <Input label="Primary Joints" value={form.primaryJoints} onChange={e => setForm({ ...form, primaryJoints: e.target.value })} placeholder={tt('Shoulder, Elbow')} />
+            <Input label="Joint Movements" value={form.jointMovements} onChange={e => setForm({ ...form, jointMovements: e.target.value })} placeholder={tt('Shoulder Flexion')} />
+            <Input label="Primary Muscle Groups" value={form.primaryMuscles} onChange={e => setForm({ ...form, primaryMuscles: e.target.value })} placeholder={tt('Quads, Glutes')} />
             <Input label="Secondary Muscle Groups" value={form.secondaryMuscles} onChange={e => setForm({ ...form, secondaryMuscles: e.target.value })} />
             <div style={{ gridColumn: '1 / -1' }}><Input label="Video Link" value={form.videoLink} onChange={e => setForm({ ...form, videoLink: e.target.value })} placeholder="https://..." /></div>
             {/* One note field only. "Coaching Cues" IS the note — hasNotes(), the
                 cards, and the athlete portal all read `cues`. The separate "Notes"
                 field was a vestigial duplicate that showed the same role twice
                 (Ohad: "coaching cues and notes are the same"). */}
-            <div style={{ gridColumn: '1 / -1' }}><TextArea label="Coaching Cues" value={form.cues} onChange={e => setForm({ ...form, cues: e.target.value })} placeholder="Brace core, drive through heels..." /></div>
+            <div style={{ gridColumn: '1 / -1' }}><TextArea label="Coaching Cues" value={form.cues} onChange={e => setForm({ ...form, cues: e.target.value })} placeholder={tt('Brace core, drive through heels...')} /></div>
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
             <Btn variant="ghost" onClick={() => setShowForm(false)}>{tt("Cancel")}</Btn>
-            <Btn onClick={handleSave}>{editId ? 'Update' : 'Create'}</Btn>
+            <Btn onClick={handleSave}>{tr(readLang(), editId ? 'Update' : 'Create')}</Btn>
           </div>
         </div>
       </Modal>
 
-      <ConfirmDialog open={!!confirmDelete} title="Delete Exercise?" message="Plans referencing it will show 'Unknown Exercise'."
+      <ConfirmDialog open={!!confirmDelete} title={tr(readLang(), 'Delete Exercise?')} message={tr(readLang(), "Plans referencing it will show 'Unknown Exercise'.")}
         onConfirm={() => { setExercises(p => p.filter(e => e.id !== confirmDelete)); setConfirmDelete(null); }}
         onCancel={() => setConfirmDelete(null)} />
     </div>

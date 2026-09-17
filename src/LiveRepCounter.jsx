@@ -17,6 +17,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
+import { useT, readLang } from './i18n';
 import { ANGLE_DEFS, angleAt, detectChannels, isReal } from './repCounter';
 
 const VOICE_START_PHRASES = ['start', 'go', 'count', 'begin', 'התחל', 'התחילי', 'סופר', 'תספור'];
@@ -35,6 +36,7 @@ const KIND_THRESHOLDS = {
 };
 
 export default function LiveRepCounter({ exerciseTitle = 'Squat', onClose, targetReps = null }) {
+  const tt = useT();
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
@@ -111,7 +113,7 @@ export default function LiveRepCounter({ exerciseTitle = 'Squat', onClose, targe
   const startVoice = useCallback(() => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) {
-      setError('Voice trigger needs the Web Speech API — open in Chrome or Edge.');
+      setError(readLang() === 'he' ? 'הפעלה בקול צריכה את Web Speech API — פתח ב-Chrome או ב-Edge.' : 'Voice trigger needs the Web Speech API — open in Chrome or Edge.');
       return;
     }
     const rec = new SR();
@@ -259,11 +261,11 @@ export default function LiveRepCounter({ exerciseTitle = 'Squat', onClose, targe
       }}>
         <div>
           <div style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.18em', fontWeight: 700 }}>
-            LIVE COUNT · {exerciseTitle.toUpperCase()}
+            {tt('LIVE COUNT')} · {exerciseTitle.toUpperCase()}
           </div>
           {targetReps && (
             <div style={{ fontFamily: FN, fontSize: 11, color: '#FFFFFF', letterSpacing: '0.12em', fontWeight: 700, marginTop: 4 }}>
-              TARGET: {targetReps}
+              {tt('TARGET: {n}').replace('{n}', targetReps)}
             </div>
           )}
         </div>
@@ -271,7 +273,7 @@ export default function LiveRepCounter({ exerciseTitle = 'Squat', onClose, targe
           background: 'rgba(0,0,0,0.5)', border: `1px solid rgba(255,255,255,0.3)`,
           color: '#FFFFFF', padding: '6px 12px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em',
           cursor: 'pointer',
-        }}>← BACK</button>
+        }}>{tt('← BACK')}</button>
       </div>
 
       {/* Camera + skeleton overlay */}
@@ -299,14 +301,14 @@ export default function LiveRepCounter({ exerciseTitle = 'Squat', onClose, targe
             position: 'absolute', bottom: 90, left: 0, right: 0, textAlign: 'center',
             color: 'rgba(255,255,255,0.7)', fontFamily: FN, fontSize: 12, letterSpacing: '0.18em', fontWeight: 700,
           }}>
-            PHASE: {phase.toUpperCase()} · {isReal(lastAngle) ? `${Math.round(lastAngle)}°` : '—'}
+            {tt('PHASE:')} {tt(phase.toUpperCase())} · {isReal(lastAngle) ? `${Math.round(lastAngle)}°` : '—'}
           </div>
         )}
         {status === 'loading' && (
           <div style={{
             position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
             color: '#FFFFFF', fontFamily: FN, fontSize: 14, letterSpacing: '0.18em', fontWeight: 700,
-          }}>STARTING CAMERA + POSE…</div>
+          }}>{tt('STARTING CAMERA + POSE…')}</div>
         )}
         {status === 'idle' && !error && (
           <div style={{
@@ -315,10 +317,10 @@ export default function LiveRepCounter({ exerciseTitle = 'Squat', onClose, targe
           }}>
             <div style={{ fontSize: 64 }}>🎯</div>
             <div style={{ fontSize: 14, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>
-              READY TO COUNT
+              {tt('READY TO COUNT')}
             </div>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', maxWidth: 340, lineHeight: 1.5 }}>
-              Stand 2m from the camera with your full body in frame. Tap START or say "start" / "התחל" once set up.
+              {tt('Stand 2m from the camera with your full body in frame. Tap START or say "start" / "התחל" once set up.')}
             </div>
           </div>
         )}
@@ -328,7 +330,7 @@ export default function LiveRepCounter({ exerciseTitle = 'Squat', onClose, targe
             color: '#FFFFFF', fontFamily: FN, padding: 20, textAlign: 'center',
           }}>
             <div style={{ fontSize: 36 }}>⚠</div>
-            <div style={{ fontSize: 13, color: C.rd, letterSpacing: '0.04em' }}>{error}</div>
+            <div style={{ fontSize: 13, color: C.rd, letterSpacing: '0.04em' }}>{tt(error)}</div>
           </div>
         )}
       </div>
@@ -347,7 +349,7 @@ export default function LiveRepCounter({ exerciseTitle = 'Squat', onClose, targe
             fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em',
             cursor: 'pointer',
             minWidth: 130, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          }}>{voiceOn ? '🎤 LISTENING' : '🎤 VOICE OFF'}</button>
+          }}>{voiceOn ? `🎤 ${tt('LISTENING')}` : `🎤 ${tt('VOICE OFF')}`}</button>
         {status !== 'counting' ? (
           <button onClick={beginCounting}
             style={{
@@ -355,7 +357,7 @@ export default function LiveRepCounter({ exerciseTitle = 'Squat', onClose, targe
               border: `1px solid ${C.ac}`, color: '#FFFFFF',
               fontFamily: FN, fontSize: 14, fontWeight: 700, letterSpacing: '0.18em',
               cursor: 'pointer',
-            }}>START COUNTING →</button>
+            }}>{tt('START COUNTING →')}</button>
         ) : (
           <button onClick={stopCounting}
             style={{
@@ -363,7 +365,7 @@ export default function LiveRepCounter({ exerciseTitle = 'Squat', onClose, targe
               border: `1px solid ${C.rd}`, color: '#FFFFFF',
               fontFamily: FN, fontSize: 14, fontWeight: 700, letterSpacing: '0.18em',
               cursor: 'pointer',
-            }}>■ STOP · {reps} REPS</button>
+            }}>■ {reps === 1 ? tt('STOP · 1 REPS') : tt('STOP · {n} REPS').replace('{n}', reps)}</button>
         )}
       </div>
     </div>

@@ -6,11 +6,12 @@
 import React from 'react';
 import { useTheme } from './hooks/useTheme';
 import { C } from './theme';
+import { tr, readLang } from './i18n';
 
 export function ThemeToggle({ size = 36, style = {} }) {
   const { theme, toggleTheme } = useTheme();
   const isLight = theme === 'light';
-  const label = isLight ? 'Switch to dark mode' : 'Switch to light mode';
+  const label = tr(readLang(), isLight ? 'Switch to dark mode' : 'Switch to light mode');
   return (
     <button
       onClick={toggleTheme}

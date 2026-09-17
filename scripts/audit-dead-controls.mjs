@@ -95,7 +95,7 @@ page.on('request', (req) => {
 let total = 0;
 try {
   await signIn(page, BASE);
-  await assertAuthed(page, '/coach/dashboard');
+  if (!(await assertAuthed(page, BASE, '/coach/dashboard'))) { process.exitCode = 2; throw new Error('not signed in - see above'); }
 
   for (const route of ROUTES) {
     await page.goto(BASE + route, { waitUntil: 'domcontentloaded', timeout: 45000 });

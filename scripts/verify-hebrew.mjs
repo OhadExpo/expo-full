@@ -86,6 +86,12 @@ const RULES = [
     fix: 'תוכנית / תוכניות',
   },
   {
+    id: 'sign-beside-number',
+    why: 'a + / ± / ° beside a number inside a Hebrew string is bidi-neutral and jumps sides in RTL (skill: "say it in words"); shipped as +5 נקודות, ±6°, 87°, 6+ until 17.9',
+    test: /(?<![A-Za-z])[+±](?:\$\{|\d)|(?:\d|\})°|(?:\d|\})\+(?![\d$])/g,
+    fix: 'words: עוד 5 · סטייה של 6 · 87 מעלות · 6 ומעלה',
+  },
+  {
     id: 'space-before-punctuation',
     why: 'shipped once already — a stray space before a comma read as a dangling comma',
     test: /[\u0590-\u05FF]\s+[,.;](?:\s|$)/g,
@@ -101,6 +107,35 @@ const RULES = [
     fix: 'add the relative ש (חבילות שנגמרות) or say it differently (מעט אימונים שנותרו)',
   },
 ];
+
+// Measured 2026-09-17 on 6,699 lines of HIS writing (tracking + program sheets,
+// the Godly Cues doc, 233 plan blocks' notes, the library cues). His imperative
+// follows the VERB: pa'al bare 479 : future 125, pi'el 200 : 45, hif'il 19 : 199.
+// These verbs he writes bare, with direct evidence (n >= 5, bare >= 3x future):
+const HIS_BARE = { תשמור: 'שמור', תנסה: 'נסה', תצלם: 'צלם', תשלח: 'שלח', תסיים: 'סיים', תסובב: 'סובב', תדחוף: 'דחוף', תרד: 'רד', תשים: 'שים', תשב: 'שב', תשכב: 'שכב', תחזור: 'חזור', תפתח: 'פתח', תקפוץ: 'קפוץ', תזרוק: 'זרוק', תכווץ: 'כווץ' };
+// A sentence that also holds one of these stays future: converting only part of
+// it would mix forms (תבדוק את החיבור ונסה שוב reads wrong).
+const NO_EVIDENCE_FUTURE = /(?<![֐-׿])ו?(?:תבדוק|תכתוב|תגרור|תרשום|תמחק|תסגור|תסמן|תעדכן|תבטל|תנקה|תרענן|תחפש|תאשר|תשתף|תשכפל|תדלג|תקרא|תבנה|תקבע|תתכנן|תבחר|תלחץ|תנעל|תעצור|תעלה|תוודא|תישאר|תעבור|תראה|תיכנס|תצא|תייצר|תאפשר|תיתן|תמשוך|תכופף|תשנה|תזכיר|תקבל)(?![֐-׿])/;
+RULES.push(
+  {
+    id: 'verb-form-his',
+    why: "his form of THIS verb is bare (שמור, נסה, צלם…) - measured on his writing, not taste",
+    test: new RegExp('(?:^|[.!?:—·]\\s*)(' + Object.keys(HIS_BARE).join('|') + ')(?![\\u0590-\\u05FF])', 'g'),
+    when: (s) => {
+      if (NO_EVIDENCE_FUTURE.test(s)) return false;
+      // 'תדחוף אותו לרשום' is "nudge him"; his דחוף is always a physical push
+      if (/תדחוף אותו/.test(s)) return false;
+      return true;
+    },
+    fix: Object.entries(HIS_BARE).map(([f, b]) => `${f} → ${b}`).join(' · ') + '  (negatives keep אל + future)',
+  },
+  {
+    id: 'written-register',
+    why: 'written Hebrew he never writes: טרם 0 (עוד לא), אינו 2 : לא 568, על מנת 3 : כדי 178',
+    test: NB('טרם|אינו|אינה|אינם|על מנת|באמצעות|במידה ו|כעת'),
+    fix: 'עוד לא · לא · כדי · עם · אם · עכשיו',
+  },
+);
 
 const files = [];
 function walk(d) {

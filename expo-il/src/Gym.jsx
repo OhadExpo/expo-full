@@ -175,7 +175,7 @@ function LangSwitch({ heb }) {
               fontWeight: 700, letterSpacing: '0.12em',
               cursor: 'pointer', textTransform: 'uppercase',
               display: 'inline-flex', alignItems: 'center',
-            }}>{code === 'he' ? 'עבר' : 'EN'}</button>
+            }}>{code === 'he' ? 'עב' : 'EN'}</button>
         );
       })}
     </div>
@@ -208,7 +208,7 @@ function Hero({ heb, onBookClick }) {
           margin: '0 auto 36px', maxWidth: 580, fontSize: 16, color: C.tm,
           lineHeight: 1.7,
         }}>{heb
-          ? 'מרכז ביצועים שבנוי סביב כוח מתוכנת, ניידות וריקאברי. אימון בקבוצות קטנות עם תוכנית אישית — ועיסוי ספורט חודשי שמובנה במנוי, לא תוספת בתשלום.'
+          ? 'מרכז ביצועים שבנוי סביב אימון כוח לפי תוכנית, ניידות וריקאברי. אימון בקבוצות קטנות עם תוכנית אישית — ועיסוי ספורט חודשי שכלול במנוי, לא תוספת בתשלום.'
           : 'A performance center built around programmed strength, mobility, and recovery. Small-group coaching with your own program — and a monthly sports massage built into the membership, not a paid add-on.'}</p>
 
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -226,7 +226,7 @@ function Hero({ heb, onBookClick }) {
               border: `1px solid ${C.bd2}`, borderRadius: 0, textDecoration: 'none',
               fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.2em',
               textTransform: 'uppercase',
-            }}>{heb ? 'שאלה לפני' : 'ASK FIRST'}</a>
+            }}>{heb ? 'יש לי שאלה' : 'ASK FIRST'}</a>
         </div>
       </div>
     </section>
@@ -281,19 +281,19 @@ function StatsStrip({ heb }) {
 // right-fit lead "yes, this is for you."
 function WhoItsFor({ heb }) {
   const yes = heb
-    ? ['ספורטאים חצי-מקצועיים ומקצועיים', 'מתאמנים רציניים שרוצים תוכנית — לא שיעור', 'מי שחוזר מפציעה ורוצה חזרה נקייה', 'מי שמחפש כוח, יציבות, וניידות שיחזיקו לעשור']
+    ? ['ספורטאים חצי-מקצועיים ומקצועיים', 'מתאמנים רציניים שרוצים תוכנית — לא שיעור', 'מי שחוזר מפציעה ורוצה לחזור נכון', 'מי שמחפש כוח, יציבות, וניידות שיחזיקו לעשור']
     : ['Semi-pro and competitive athletes', 'Serious trainees who want a program — not a class', 'Coming back from an injury and need a clean return', 'Building strength, stability, and mobility that last a decade'];
   const no = heb
-    ? ['חיפוש Open Gym לאימון חופשי', 'אימון קבוצתי בסטייל "סטודיו"', 'תוצאות של "שבועיים, בלי תוכנית"']
+    ? ['מי שמחפש Open Gym לאימון חופשי', 'מי שמחפש אימון קבוצתי בסטייל "סטודיו"', 'מי שמחפש הבטחות ל"תוצאות תוך שבועיים" בלי תוכנית']
     : ['Open-gym walk-in training', 'Studio-style group fitness', '"Quick fix" promises with no programming'];
 
   return (
     <section data-fade className="gym-section">
       <SectionHeader heb={heb}
         kicker={heb ? 'למי זה' : 'WHO IT IS FOR'}
-        title={heb ? 'מי המתאמן שלנו' : 'Who trains here'}
+        title={heb ? 'למי זה מתאים' : 'Who trains here'}
         subtitle={heb
-          ? 'מרכז ביצועים. לא חדר כושר חופשי, לא שיעור קבוצתי. זה משנה את ההתאמה.'
+          ? 'מרכז ביצועים. לא חדר כושר חופשי, לא שיעור קבוצתי. ולכן זה לא לכל אחד.'
           : 'A performance center. Not an open gym, not a group class. That changes who fits.'} />
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 1,
@@ -303,7 +303,7 @@ function WhoItsFor({ heb }) {
           <div style={{
             fontFamily: FN, fontSize: 11, color: C.ac, letterSpacing: '0.22em',
             fontWeight: 800, marginBottom: 16,
-          }}>{heb ? 'כן — אם' : 'YES — IF'}</div>
+          }}>{heb ? 'למי זה מתאים' : 'YES — IF'}</div>
           <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10 }}>
             {yes.map((t, i) => (
               <li key={i} style={{ display: 'flex', gap: 10, fontSize: 14, color: C.tx, lineHeight: 1.55 }}>
@@ -317,7 +317,7 @@ function WhoItsFor({ heb }) {
           <div style={{
             fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: '0.22em',
             fontWeight: 800, marginBottom: 16,
-          }}>{heb ? 'לא — אם' : 'NOT — IF'}</div>
+          }}>{heb ? 'למי זה לא מתאים' : 'NOT — IF'}</div>
           <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10 }}>
             {no.map((t, i) => (
               <li key={i} style={{ display: 'flex', gap: 10, fontSize: 14, color: C.tm, lineHeight: 1.55 }}>
@@ -336,9 +336,9 @@ function WhoItsFor({ heb }) {
 function WhyInPerson({ heb }) {
   const items = heb
     ? [
-        { h: 'עיניים על כל סט', b: 'קבוצה של 4–7 בלבד. אנחנו רואים כל חזרה ומתקנים באוויר — לא שיעור שבו אתה מספר.' },
+        { h: 'עיניים על כל סט', b: 'רק 4–7 בקבוצה. אנחנו רואים כל חזרה ומתקנים תוך כדי הסט — לא שיעור שבו אתה סתם עוד מספר.' },
         { h: 'תוכנית, לא אימון', b: 'בלוקים של 4–8 שבועות שנבנים סביב המספרים שלך. השינוי בין שבוע לשבוע מתוכנן, לא אקראי.' },
-        { h: 'עיסוי, לא בונוס', b: 'עיסוי ספורט של 45–60 דקות בכל חודש עם מטפל ייעודי, מובנה במנוי. פחות כאבי שריר, טווחי תנועה פתוחים, וגוף שמחזיק את העומס לאורך זמן.' },
+        { h: 'עיסוי, לא בונוס', b: 'עיסוי ספורט של 45–60 דקות בכל חודש עם מטפל ייעודי, כלול במנוי. פחות כאבי שריר, טווחי תנועה פתוחים, וגוף שמחזיק את העומס לאורך זמן.' },
       ]
     : [
         { h: 'Coached eyes, every set', b: 'Groups of 4–7 only. We see every rep and correct it mid-set — not a class where you are a number.' },
@@ -349,7 +349,7 @@ function WhyInPerson({ heb }) {
     <section data-fade className="gym-section">
       <SectionHeader heb={heb}
         kicker={heb ? 'למה כאן' : 'WHY HERE'}
-        title={heb ? 'מה שהמרכז נותן' : 'What the center gives you'} />
+        title={heb ? 'מה המרכז נותן' : 'What the center gives you'} />
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14, marginTop: 32,
       }}>
@@ -384,8 +384,8 @@ function WhyInPerson({ heb }) {
 function Approach({ heb }) {
   const pillars = heb
     ? [
-        { n: '01', h: 'תוכנית כוח מתוכננת', b: 'בלוקים של 4–8 שבועות. מחזורים שמתעדכנים לפי הביצועים, לא לפי תחושה. כל סט נכתב מראש.' },
-        { n: '02', h: 'ניידות וטווחי תנועה', b: 'עבודה ממוקדת על הצוואר, הכתפיים, הירך, והקרסול. לא Stretching אחרי. חלק מהאימון.' },
+        { n: '01', h: 'תוכנית כוח מובנית', b: 'בלוקים של 4–8 שבועות. מחזורים שמתעדכנים לפי הביצועים, לא לפי תחושה. כל סט נכתב מראש.' },
+        { n: '02', h: 'ניידות וטווחי תנועה', b: 'עבודה ממוקדת על הצוואר, הכתפיים, הירך, והקרסול. לא מתיחות בסוף — חלק מהאימון עצמו.' },
         { n: '03', h: 'עיסוי ספורט מובנה', b: 'עיסוי חודשי של 45–60 דקות עם מטפל ייעודי, ועיסוי קצר של 15–20 דקות לפני/אחרי אימון לפי הצורך. פחות כאב, פחות פציעות, יותר רציפות.' },
       ]
     : [
@@ -397,7 +397,7 @@ function Approach({ heb }) {
     <section data-fade className="gym-section">
       <SectionHeader heb={heb}
         kicker={heb ? 'איך' : 'HOW WE TRAIN'}
-        title={heb ? 'שלושה עמודים' : 'Three pillars'}
+        title={heb ? 'שלושה עמודי תווך' : 'Three pillars'}
         subtitle={heb
           ? 'הגישה לא מסתכמת ב"להרים יותר". כוח, ניידות, והתאוששות עובדים יחד — או שאף אחד מהם לא עובד.'
           : 'The approach is not "lift more." Strength, mobility, and recovery work together — or none of them work.'} />
@@ -417,7 +417,7 @@ function Approach({ heb }) {
             <div style={{
               fontFamily: FN, fontSize: 11, color: C.ac, letterSpacing: '0.22em',
               fontWeight: 800, marginBottom: 14,
-            }}>PILLAR {p.n}</div>
+            }}>{heb ? 'עמוד תווך' : 'PILLAR'} {p.n}</div>
             <h3 style={{
               margin: '0 0 10px', fontFamily: FN, fontSize: 17, fontWeight: 700,
               letterSpacing: '-0.01em', color: C.tx, lineHeight: 1.25,
@@ -499,8 +499,8 @@ function WhyNotJust({ heb }) {
     ? [
         { alt: 'חדר כושר', their: 'ציוד ושעות פתוחות — אתה מול המכונות לבד, בלי לדעת אם אתה מתקדם.', ours: 'אבחון, תוכנית אישית, ועיניים על כל סט. יודעים בדיוק מה עובד.' },
         { alt: 'מאמן אישי', their: 'יחס צמוד, אבל יקר — ובלי מעטפת ריקאברי.', ours: 'אותו ליווי מדויק בקבוצה קטנה, עם עיסוי חודשי מובנה, בעלות נמוכה יותר.' },
-        { alt: 'פיזיותרפיה', their: 'מטפלת בכאב, ונעצרת כשהוא נעלם.', ours: 'גשר מ"כבר לא כואב" ל"מוכן לבצע". מודדים התקדמות אתלטית, לא רק כאב.' },
-        { alt: 'מעסה ספורט', their: 'עיסוי נעים, מנותק מהאימון.', ours: 'עיסוי שהוא חלק מתוכנית כוח וממדידה — לא טיפול שעומד בפני עצמו.' },
+        { alt: 'פיזיותרפיה', their: 'מטפלת בכאב, ונעצרת כשהוא נעלם.', ours: 'הגשר מ"כבר לא כואב" ל"מוכן לחזור במלוא הכוח". מודדים התקדמות אתלטית, לא רק כאב.' },
+        { alt: 'מעסה ספורט', their: 'עיסוי נעים, מנותק מהאימון.', ours: 'עיסוי שהוא חלק מתוכנית כוח ומהתקדמות שמודדים — לא טיפול נפרד.' },
       ]
     : [
         { alt: 'a gym', their: 'Equipment and open hours — you face the machines alone, with no idea if you are progressing.', ours: 'Assessment, your own program, and eyes on every set. We know exactly what is working.' },
@@ -554,7 +554,7 @@ function WhyNotJust({ heb }) {
 function Team({ heb }) {
   const people = heb
     ? [
-        { initials: 'א', name: 'אוהד', role: 'אימון · כוח ואתלטיקה', bio: 'מאמן כוח ואתלטיקה, ובין השאר מאמן הכושר של קבוצת בני הרצליה בכדורסל. בונה את התוכניות, מנהל את רצפת האימון, ומאמן כל קבוצה בעצמו — כל סט נכתב מראש ומתעדכן לפי המספרים שלך.' },
+        { initials: 'א', name: 'אוהד', role: 'אימון · כוח ואתלטיקה', bio: 'מאמן כוח ואתלטיקה, ובין השאר מאמן הכושר של קבוצת בני הרצליה בכדורסל. בונה את התוכניות, מנהל את האימונים במרכז, ומאמן כל קבוצה בעצמו — כל סט נכתב מראש ומתעדכן לפי המספרים שלך.' },
         { initials: 'י', name: 'יובל ברקוביץ׳', role: 'ריקאברי · עיסוי ספורט ורפואי', bio: 'מטפל בעיסוי ספורט ורפואי, מוסמך מכון וינגייט, עם התמחות בשחרור ובפתיחת טווחי תנועה. אחראי על כל הריקאברי במרכז — העיסוי החודשי, העבודה לפני ואחרי אימון, וניהול העומסים.' },
       ]
     : [
@@ -630,7 +630,7 @@ function TrialCallout({ heb, onBookClick }) {
             : 'Movement assessment + intro session'}</h3>
           <p style={{ margin: 0, fontSize: 14, color: C.tm, lineHeight: 1.65, maxWidth: 540 }}>
             {heb
-              ? 'מפגש חד-פעמי בלי התחייבות: 60 דקות של אבחון תנועה ועבודה משותפת. אם הכימיה והכיוון נכונים — ממשיכים. אם לא — קיבלת מפה ברורה של איפה הגוף שלך עומד.'
+              ? 'מפגש חד-פעמי בלי התחייבות: 60 דקות של אבחון תנועה ועבודה משותפת. אם יש כימיה והכיוון נכון — ממשיכים. אם לא — יצאת עם תמונה ברורה של איפה הגוף שלך עומד.'
               : 'A single, no-commitment session: 60 minutes of movement assessment and hands-on work. If the chemistry and direction are right — we keep going. If not — you walk out with a clear map of where your body actually stands.'}
           </p>
         </div>
@@ -651,7 +651,7 @@ function TrialCallout({ heb, onBookClick }) {
 function WhatsIncluded({ heb }) {
   const items = heb
     ? [
-        { i: '◯', h: 'אבחון תנועה ראשוני', b: 'מיפוי טווחי תנועה, חוזק וחולשות.' },
+        { i: '◯', h: 'אבחון תנועה ראשוני', b: 'מיפוי טווחי תנועה, חוזקות וחולשות.' },
         { i: '◇', h: 'תוכנית מותאמת', b: 'בלוק של 4–8 שבועות שמתעדכן לפי ההתקדמות.' },
         { i: '◬', h: 'עבודת ניידות', b: 'מובנית בתוך האימון — כתפיים, ירך, קרסול.' },
         { i: '◉', h: 'עיסוי ספורט', b: 'עיסוי חודשי של 45–60 דקות עם מטפל ייעודי, ותוספות קצרות לפני/אחרי אימון לפי הצורך.' },
@@ -749,7 +749,7 @@ function Location({ heb }) {
           }}>
             <div>
               <div style={{ fontSize: 32, color: C.ac, marginBottom: 8 }}>◉</div>
-              {heb ? 'מפה מדויקת לאחר תיאום' : 'EXACT LOCATION SHARED ON BOOKING'}
+              {heb ? 'המיקום המדויק נשלח אחרי שקובעים' : 'EXACT LOCATION SHARED ON BOOKING'}
             </div>
           </div>
           {/* Decorative grid pattern — subtle, brand-consistent */}
@@ -778,7 +778,7 @@ function CalendarSection({ heb }) {
     <section data-fade className="gym-section">
       <SectionHeader heb={heb}
         kicker={heb ? 'יומן חי' : 'LIVE CALENDAR'}
-        title={heb ? 'בחר מועד פנוי' : 'Pick an open slot'}
+        title={heb ? 'בחר/י מועד פנוי' : 'Pick an open slot'}
         subtitle={heb
           ? 'מועדים בזמן אמת. בחר/י, מלא/י פרטים, וקבל/י אישור באימייל מיד.'
           : "Real-time availability. Pick a slot, fill the form, get an email confirmation instantly."} />
@@ -830,7 +830,7 @@ function Testimonials({ heb }) {
     ? [
         { q: 'תוך 8 שבועות עברתי מ-70 ק"ג סקוואט ל-110. תוכנית מסודרת, מעקב צמוד.', n: 'אמיר ש.' },
         { q: 'הגוף שלי לא היה ככה גם בצבא. אוהד יודע למה הוא מכוון.', n: 'דניאל ל.' },
-        { q: 'חזרתי מפציעה בכתף שגררה אותי שנה. אוהד בנה את החזרה בזהירות, והעיסוי החודשי של יובל החזיק את הכתף לאורך הדרך.', n: 'נטע ר.' },
+        { q: 'חזרתי מפציעה בכתף שנגררה שנה. אוהד בנה את החזרה בזהירות, והעיסוי החודשי של יובל החזיק את הכתף לאורך הדרך.', n: 'נטע ר.' },
       ]
     : [
         { q: 'Went from a 70kg squat to 110kg in 8 weeks. Structured programming, tight coaching.', n: 'Amir S.' },
@@ -868,11 +868,11 @@ function FAQ({ heb }) {
   const items = heb
     ? [
         { q: 'אני חדש לחלוטין באימוני כוח. זה מתאים לי?', a: 'בהחלט. רוב המתאמנים מתחילים אצלנו בלי רקע קודם. אבחון התנועה הראשון בודק מאיפה להתחיל.' },
-        { q: 'יש פציעה ישנה. אפשר להתאמן?', a: 'תלוי בפציעה — אחרי השיחה הראשונה נדע אם זה הכיוון, ואם צריך נפנה אותך למישהו מתאים יותר. אנחנו לא מבטיחים דברים שאנחנו לא יכולים לעמוד בהם.' },
+        { q: 'יש לי פציעה ישנה. אפשר להתאמן?', a: 'תלוי בפציעה — אחרי השיחה הראשונה נדע אם זה הכיוון, ואם צריך נפנה אותך למישהו מתאים יותר. אנחנו לא מבטיחים דברים שאנחנו לא יכולים לעמוד בהם.' },
         { q: 'מי נותן את העיסוי?', a: 'יובל, המטפל בעיסוי ספורט ורפואי של המרכז, מוסמך מכון וינגייט. אוהד מאמן, יובל מטפל — שניהם מלווים אותך לאורך התהליך.' },
         { q: 'העיסוי באמת כלול, או שזו תוספת בתשלום?', a: 'כלול. כל מנוי כולל עיסוי ספורט חודשי של 45–60 דקות עם מטפל ייעודי — לא בונוס שמופיע פעם בכמה חודשים. אפשר להוסיף עיסוי קצר לפני או אחרי אימון לפי הצורך.' },
-        { q: 'מה עולה חודש?', a: 'תלוי בקצב (פעם, פעמיים, או שלוש בשבוע). שולחים מחירון מסודר אחרי הפנייה הראשונה.' },
-        { q: 'איך מבטלים אימון?', a: 'עד 4 שעות לפני. אחרי זה האימון נכנס לחשבון. הכל בוואטסאפ.' },
+        { q: 'כמה עולה חודש?', a: 'תלוי בקצב (פעם, פעמיים, או שלוש בשבוע). שולחים מחירון מסודר אחרי הפנייה הראשונה.' },
+        { q: 'איך מבטלים אימון?', a: 'עד 4 שעות לפני. אחרי זה האימון נספר. הכל בוואטסאפ.' },
       ]
     : [
         { q: 'I am totally new to strength training. Is this for me?', a: 'Yes. Most of our clients start with no prior background. The first assessment session figures out where to start.' },
@@ -968,14 +968,14 @@ function Footer({ heb }) {
           <div style={{
             height: 28, display: 'flex', alignItems: 'center',
             fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.22em', fontWeight: 700, marginBottom: 14,
-          }}>{heb ? 'גם בעולם' : 'ALSO ON EXPO'}</div>
+          }}>{heb ? 'עוד ב-EXPO' : 'ALSO ON EXPO'}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <a href="#/online" style={{ color: C.tx, fontSize: 13, textDecoration: 'none' }}>
-              {heb ? 'תוכניות אונליין' : 'Online programs'} →
+              {heb ? 'תוכניות אונליין ←' : 'Online programs →'}
             </a>
             <a href="https://expo-app.co.il" target="_blank" rel="noopener"
               style={{ color: C.tx, fontSize: 13, textDecoration: 'none' }}>
-              {heb ? 'אפליקציית EXPO' : 'EXPO athlete app'} →
+              {heb ? 'אפליקציית EXPO ←' : 'EXPO athlete app →'}
             </a>
           </div>
         </div>

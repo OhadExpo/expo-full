@@ -200,7 +200,7 @@ function ExerciseLine({ idx, ex }) {
       display: 'flex', gap: 12, alignItems: 'flex-start',
       padding: '8px 0', borderBottom: `1px solid var(--c-cardBd)`,
     }}>
-      <div style={{ flexShrink: 0, width: 22, color: 'var(--c-td)', fontFamily: FN, fontSize: 11, fontWeight: 700, textAlign: 'right' }}>
+      <div style={{ flexShrink: 0, width: 22, color: 'var(--c-td)', fontFamily: FN, fontSize: 11, fontWeight: 700, textAlign: 'end' }}>
         {idx + 1}.
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>

@@ -34,6 +34,16 @@ const seen = new Map();
 // Click tabs BY INDEX. The first version matched English labels, so in Hebrew
 // nothing matched and it measured ONE tab five times - identical word counts
 // on every line, which is what gave it away.
+{
+  const out = await pg.evaluate(() => {
+    const active = document.querySelector('[role="tab"][aria-selected="true"]');
+    const words = (document.body.innerText || "").match(/[A-Za-z][A-Za-z-]{2,}/g) || [];
+    return { name: (active && active.textContent || "(active)").trim(), heb: /[֐-׿]/.test(document.body.innerText || ""), words, len: (document.body.innerText||"").length };
+  });
+  console.log(out.name.padEnd(10) + " he=" + out.heb + "  " + out.len + " chars  " + out.words.length + " latin words  (the tab the page opened on)");
+  if (process.env.VERBOSE) { const c = new Map(); for (const w of out.words) c.set(w, (c.get(w) || 0) + 1); console.log("    " + [...c.entries()].sort((x, y) => y[1] - x[1]).map(([w, n]) => w + "(" + n + ")").join(" ")); }
+  for (const w of out.words) seen.set(w, (seen.get(w) || 0) + 1);
+}
 const nTabs = await pg.evaluate(() => document.querySelectorAll(".bhbc-tab").length);
 console.log("tabs found:", nTabs);
 for (let i = 0; i < nTabs; i++) {
@@ -49,6 +59,7 @@ for (let i = 0; i < nTabs; i++) {
     return { heb: /[֐-׿]/.test(document.body.innerText || ""), words, len: (document.body.innerText||"").length };
   });
   console.log(name.padEnd(10) + " he=" + out.heb + "  " + out.len + " chars  " + out.words.length + " latin words");
+  if (process.env.VERBOSE) { const c = new Map(); for (const w of out.words) c.set(w, (c.get(w) || 0) + 1); console.log("    " + [...c.entries()].sort((x, y) => y[1] - x[1]).map(([w, n]) => w + "(" + n + ")").join(" ")); }
   for (const w of out.words) seen.set(w, (seen.get(w) || 0) + 1);
 }
 const GONE = ["baseline", "check-in", "Full", "Limited", "Non-contact", "Recovered", "logged"];

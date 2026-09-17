@@ -243,7 +243,7 @@ export function LoginScreen({ brand = 'expo' } = {}) {
   const [submitting, setSubmitting] = useState(false);
   // The language switch writes the same key the app reads at mount, so a
   // choice made here carries into the portal.
-  const [lang, setLang] = useState('en'); // DEPLOY 09-11: the login stays English, as production (the athlete portal is not shipping)
+  const [lang, setLang] = useState('en'); // DEPLOY 09-17: the login stays English, as production (the athlete portal is not shipping)
   const tt = (x) => tr(lang, x);
   const he = lang === 'he';
   const flipLang = () => { const next = he ? 'en' : 'he'; try { localStorage.setItem(LANG_KEY, next); } catch { /* private mode */ } setLang(next); };
@@ -353,7 +353,7 @@ export function LoginScreen({ brand = 'expo' } = {}) {
             </a>
           )}
           {bc && <div style={{ color: AC, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 6 }}>{bc.eyebrow}</div>}
-          <div style={{ color: bc?.ink || C.tm, fontSize: 15, fontWeight: bc ? 700 : 400 }}>{bc ? bc.sub : (he ? tt('Sign-in') : <>Sign<span style={{ color: C.td }}>-</span>in</>)}</div>
+          <div style={{ color: bc?.ink || C.tm, fontSize: 15, fontWeight: bc ? 700 : 400 }}>{bc ? bc.sub : (he ? tt('Sign-in') : <>{'Sign'}<span style={{ color: C.td }}>-</span>{'in'}</>)}</div>
         </div>
         <div style={cardStyle} dir={he ? 'rtl' : 'ltr'}>
           {!bc && (
@@ -427,6 +427,7 @@ export function LoginScreen({ brand = 'expo' } = {}) {
 // hashes and rotates the password in auth.users under the current session.
 // Closes on success; surfaces Supabase errors inline.
 export function PasswordChangeModal({ onClose, demoMode = false }) {
+  const tt = (x) => tr(readLang(), x);
   const auth = useAuth();
   const email = auth?.session?.user?.email || '';
   const [currentPw, setCurrentPw] = useState('');
@@ -468,7 +469,7 @@ export function PasswordChangeModal({ onClose, demoMode = false }) {
   };
 
   return createPortal((
-    <div onClick={() => { if (!saving) onClose(); }} role="dialog" aria-modal="true" aria-label="Change password" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 20 }}>
+    <div onClick={() => { if (!saving) onClose(); }} role="dialog" aria-modal="true" aria-label={tt('Change password')} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 20 }}>
       <div onClick={e => e.stopPropagation()} style={{ background: C.bg, border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 24, maxWidth: 360, width: '100%' }}>
         <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 12, textAlign: 'center' }}>{tr(readLang(), 'CHANGE PASSWORD')}</div>
         {ok ? (
@@ -515,7 +516,7 @@ export function SaveErrorToast() {
     <div style={{ position: 'fixed', bottom: 20, right: 20, display: 'flex', flexDirection: 'column', gap: 8, zIndex: 2000, maxWidth: 360 }}>
       {errors.map(e => (
         <div key={e.id} style={{ background: C.bg, border: `1px solid ${C.rd || '#c94444'}`, color: C.rd || '#ff6b6b', borderRadius: 0, padding: '12px 14px', fontFamily: FB, fontSize: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
-          <div style={{ fontFamily: FN, fontWeight: 700, fontSize: 9, letterSpacing: '0.18em', marginBottom: 4 }}>SAVE FAILED — {e.key} · {e.op}</div>
+          <div style={{ fontFamily: FN, fontWeight: 700, fontSize: 9, letterSpacing: '0.18em', marginBottom: 4 }}>{tr(readLang(), 'SAVE FAILED —')} {e.key} · {e.op}</div>
           <div style={{ color: C.tx, fontSize: 12 }}>{e.msg}</div>
           {/* A dropped/unstorable VIDEO is gone — don't claim it's "still in
               local memory" (it isn't). Text writes that failed ARE retained in
@@ -583,6 +584,7 @@ export const PORTAL_CHOICE_KEY = 'expo-portal-choice'; // 'trainer' | 'client'
 // ENTER CTA. Two centered cards (not the full-bleed split-screen sign-in
 // chooser). No emojis anywhere.
 export function RolePickerScreen({ name, onPick, onSignOut }) {
+  const tt = (x) => tr(readLang(), x);
   const Card = ({ kicker, title, sub, side }) => (
     <button onClick={() => onPick(side)} className="rp-card"
       style={{
@@ -597,7 +599,7 @@ export function RolePickerScreen({ name, onPick, onSignOut }) {
       <span style={{ fontFamily: FN, fontSize: 20, fontWeight: 800, letterSpacing: '0.01em', lineHeight: 1.1, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{title}</span>
       <span style={{ fontSize: 13, color: C.tm, lineHeight: 1.5 }}>{sub}</span>
       <span style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '11px 18px', background: C.ac, color: '#0E0F12', fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase' }}>
-        Enter <span className="rp-arrow" aria-hidden="true">{'→'}</span>
+        {readLang() === 'he' ? 'כניסה' : 'Enter'} <span className="rp-arrow" aria-hidden="true">{readLang() === 'he' ? '←' : '→'}</span>
       </span>
     </button>
   );
@@ -617,7 +619,7 @@ export function RolePickerScreen({ name, onPick, onSignOut }) {
       <div style={{ width: '100%', maxWidth: 620, animation: 'rp-in 480ms ease both' }}>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <img src={EXPO_LOGO} alt="EXPO" style={{ display: 'block', height: 44, width: 'auto', margin: '0 auto 22px', objectFit: 'contain' }} />
-          <div style={{ fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: '0.3em', fontWeight: 700, textTransform: 'uppercase', marginBottom: 10 }}>Choose your portal</div>
+          <div style={{ fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: '0.3em', fontWeight: 700, textTransform: 'uppercase', marginBottom: 10 }}>{tt('Choose your portal')}</div>
           {/* "HEY" in Nord (FB), the Hebrew name in Heebo (FH). Both sit on the
               shared text baseline so the two words read as one line — centering
               line-boxes of different fonts/sizes staggers them visually.
@@ -631,19 +633,19 @@ export function RolePickerScreen({ name, onPick, onSignOut }) {
               font-size bump is not, because it has to be repeated and kept in
               step everywhere the two scripts meet. */}
           <div style={{ display: 'inline-flex', alignItems: 'baseline', justifyContent: 'center', gap: 9, color: C.tx, fontWeight: 600, lineHeight: 1 }}>
-            <span style={{ fontFamily: FB, fontSize: 15, letterSpacing: '0.06em' }}>HEY</span>
-            <span style={{ fontFamily: FH, fontSize: 15 }}>{name || 'there'}</span>
+            <span style={{ fontFamily: FB, fontSize: 15, letterSpacing: '0.06em' }}>{tr(readLang(), 'HEY')}</span>
+            <span style={{ fontFamily: FH, fontSize: 15 }}>{name || tt('there')}</span>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-          <Card kicker="Manage" title="Coach" sub="Tasks, athletes & plans" side="trainer" />
-          <Card kicker="Workout" title="Train" sub="Your own program & workouts" side="client" />
+          <Card kicker={tt('Manage')} title={tt('Coach')} sub={tt('Tasks, athletes & plans')} side="trainer" />
+          <Card kicker={tt('Workout')} title={tt('Train')} sub={tt('Your own program & workouts')} side="client" />
         </div>
         <div style={{ textAlign: 'center', marginTop: 28 }}>
           <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.14em' }}>
-            {name || 'Signed in'}
+            {name || tt('Signed in')}
             <span style={{ margin: '0 9px', opacity: 0.5 }}>·</span>
-            <button onClick={onSignOut} style={{ background: 'none', border: 'none', color: C.td, cursor: 'pointer', fontFamily: FN, fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', padding: 0 }}>Sign out</button>
+            <button onClick={onSignOut} style={{ background: 'none', border: 'none', color: C.td, cursor: 'pointer', fontFamily: FN, fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', padding: 0 }}>{tt('Sign out')}</button>
           </span>
         </div>
       </div>
@@ -674,7 +676,7 @@ export function UnauthorizedScreen({ email, onSignOut, verifyError = false, onRe
           {verifyError && onRetry && (
             <button
               onClick={onRetry}
-              style={{ marginTop: 20, marginRight: 8, background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: '10px 20px', color: C.ac, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', cursor: 'pointer' }}
+              style={{ marginTop: 20, marginInlineEnd: 8, background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: '10px 20px', color: C.ac, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', cursor: 'pointer' }}
             >
               {tr(readLang(), 'Try Again')}
             </button>

@@ -13,12 +13,12 @@ import { Btn, Modal, Card, Badge, isRefined5b, toast, SectionLabel, CollapsibleS
 import { supabase } from './supabase';
 import { generateIntakeToken, getForm } from './intakeFormSchemas';
 import PayloadDetail from './IntakePayloadDetail';
-import { useT, useTB } from './i18n';
+import { useT, useTB, tr, readLang, agoLabel } from './i18n';
 
 function fmt(iso) {
   if (!iso) return '—';
   const d = new Date(iso);
-  return d.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleString(readLang() === 'he' ? 'he-IL' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
 function ago(iso) {
@@ -171,7 +171,7 @@ export default function IntakeView({ trainees }) {
   };
 
   if (submissions == null) {
-    return <div style={{ textAlign: 'center', padding: 60, color: C.td, fontFamily: FB, fontSize: 13 }}>Loading intake…</div>;
+    return <div style={{ textAlign: 'center', padding: 60, color: C.td, fontFamily: FB, fontSize: 13 }}>{tt('Loading intake…')}</div>;
   }
 
   const detailForm = openSubmission ? getForm(openSubmission.form_type, openSubmission.locale) : null;
@@ -186,7 +186,7 @@ export default function IntakeView({ trainees }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, padding: '14px 18px' }}>
           <div>
             <div style={{ fontFamily: FB, fontSize: 12, color: C.tm }}>
-              <span style={{ color: C.tx, fontWeight: 700 }}>{counts.open} {tt('open')}</span> · {counts.initial} {tt('initial')} · {counts.assessment} {tt('assessment')} · {counts.progress} {tt('progress')} · {counts.total} {tt('total')}
+              <span style={{ color: C.tx, fontWeight: 700 }}>{counts.open} {tt('open')}</span> · {counts.initial} {tt('initial')} · {counts.assessment} {tt('assessment')} · {counts.progress} {tt('progress')} · {readLang() === 'he' ? `סה״כ ${counts.total}` : `${counts.total} ${tt('total')}`}
             </div>
           </div>
           <Btn onClick={() => setShowGen(true)} style={{ height: 30, padding: '0 18px' }}>{tb('+ Generate Link')}</Btn>
@@ -195,7 +195,7 @@ export default function IntakeView({ trainees }) {
 
       {/* Filter bar */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 14, alignItems: 'center', flexWrap: 'wrap' }}>
-        <input placeholder="Filter by name / email / form type…" value={filter} onChange={e => setFilter(e.target.value)}
+        <input placeholder={tt('Filter by name / email / form type…')} value={filter} onChange={e => setFilter(e.target.value)}
           style={{ height: 30, boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 12px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', minWidth: 280, flex: 1 }} />
         <button onClick={() => setShowReviewed(s => !s)}
           style={{ height: 30, boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${showReviewed ? C.ac : C.cardBd}`, color: showReviewed ? C.ac : C.tm, padding: '0 12px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', borderRadius: 0, minWidth: 152, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -215,13 +215,13 @@ export default function IntakeView({ trainees }) {
                   <span style={{ display: 'inline-flex', width: 92, flexShrink: 0, alignItems: 'center' }}><Badge color={t.form_type === 'initial' ? C.ac : (t.form_type === 'assessment' ? C.or : C.gn)}>{tt(t.form_type)}</Badge></span>
                   <span style={{ display: 'inline-block', width: 28, flexShrink: 0, color: C.tm }}>{(t.locale || '').toUpperCase()}</span>
                   {t.label && <span style={{ color: C.tx }}>· {t.label}</span>}
-                  <span style={{ color: C.td }}>· {ago(t.created_at)} ago</span>
-                  <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 6 }}>
+                  <span style={{ color: C.td }}>· {agoLabel(t.created_at, readLang())}</span>
+                  <span style={{ marginInlineStart: 'auto', display: 'inline-flex', gap: 6 }}>
                     <button onClick={async () => { try { await navigator.clipboard.writeText(url); } catch {} }}
                       style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.ac, padding: '3px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', borderRadius: 0 }}>
                       {tb('Copy URL')}
                     </button>
-                    <button onClick={() => setPendingDelete({ kind: 'token', key: t.token })} title="Delete this unused link" aria-label="Delete link"
+                    <button onClick={() => setPendingDelete({ kind: 'token', key: t.token })} title={tt('Delete this unused link')} aria-label={tt('Delete link')}
                       style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, color: C.rd, padding: '3px 9px', fontFamily: FN, fontSize: 11, fontWeight: 700, lineHeight: 1, cursor: 'pointer', borderRadius: 0 }}>
                       ✕
                     </button>
@@ -236,10 +236,8 @@ export default function IntakeView({ trainees }) {
       {/* List */}
       {visible.length === 0 ? (
         <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: 40, textAlign: 'center' }}>
-          <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>NO INTAKE YET</div>
-          <div style={{ fontFamily: FB, fontSize: 13, color: C.tm }}>
-            Generate a link from the button above and send it to a prospect or trainee.
-          </div>
+          <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>{tt('NO INTAKE YET')}</div>
+          <div style={{ fontFamily: FB, fontSize: 13, color: C.tm }}>{tt('Generate a link from the button above and send it to a prospect or trainee.')}</div>
         </div>
       ) : visible.map(s => (
         <Card key={s.id} style={{ marginBottom: 8, opacity: s.reviewed_at ? 0.55 : 1 }}>
@@ -254,14 +252,14 @@ export default function IntakeView({ trainees }) {
                 )}
               </div>
               <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 4, overflowWrap: 'anywhere' }}>
-                {s.email || '—'} · {fmt(s.created_at)} · {ago(s.created_at)} ago
+                {s.email || '—'} · {fmt(s.created_at)} · {agoLabel(s.created_at, readLang())}
               </div>
             </div>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               {s.reviewed_at ? (
-                <button onClick={() => undoReviewed(s.id)} style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tm, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', borderRadius: 0 }}>↩ UNDO</button>
+                <button onClick={() => undoReviewed(s.id)} style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tm, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', borderRadius: 0 }}>↩ {tr(readLang(), 'UNDO')}</button>
               ) : (
-                <button onClick={() => markReviewed(s.id)} style={{ background: 'var(--c-sf)', border: `1px solid ${C.gn}`, color: C.gn, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', borderRadius: 0 }}>✓ DONE</button>
+                <button onClick={() => markReviewed(s.id)} style={{ background: 'var(--c-sf)', border: `1px solid ${C.gn}`, color: C.gn, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', borderRadius: 0 }}>{tt('✓ DONE')}</button>
               )}
               <button onClick={() => setPendingDelete({ kind: 'submission', key: s.id })} style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, color: C.rd, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer', borderRadius: 0 }}>✕</button>
             </div>
@@ -275,41 +273,41 @@ export default function IntakeView({ trainees }) {
       </Modal>
 
       {/* Generate-link modal */}
-      <Modal open={showGen} onClose={closeGen} title="Generate Intake Link">
+      <Modal open={showGen} onClose={closeGen} title={tt('Generate Intake Link')}>
         {genResult ? (
           <div>
-            <div style={{ fontSize: 13, color: C.tx, marginBottom: 10 }}>Link generated and copied to clipboard.</div>
+            <div style={{ fontSize: 13, color: C.tx, marginBottom: 10 }}>{tt('Link generated and copied to clipboard.')}</div>
             <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: 10, fontFamily: FN, fontSize: 12, color: C.tm, wordBreak: 'break-all' }}>{genResult.url}</div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
-              <Btn variant="ghost" onClick={() => { setGenResult(null); }}>Generate another</Btn>
-              <Btn onClick={closeGen}>Done</Btn>
+              <Btn variant="ghost" onClick={() => { setGenResult(null); }}>{tt('Generate another')}</Btn>
+              <Btn onClick={closeGen}>{tr(readLang(), 'Done')}</Btn>
             </div>
           </div>
         ) : (
           <div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
               <div>
-                <div style={{ fontSize: 10, fontFamily: FN, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>FORM TYPE</div>
+                <div style={{ fontSize: 10, fontFamily: FN, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>{tt('FORM TYPE')}</div>
                 <div style={{ position: 'relative', display: 'flex' }}>
                   <select value={genForm.formType} onChange={e => setGenForm(f => ({ ...f, formType: e.target.value, locale: getForm(e.target.value, f.locale) ? f.locale : 'he', traineeId: e.target.value === 'initial' ? '' : f.traineeId }))}
                     style={{ flex: 1, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '8px 32px 8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', appearance: 'none', WebkitAppearance: 'none' }}>
-                    <option value="initial">Initial intake</option>
-                    <option value="assessment">Physical assessment</option>
-                    <option value="progress">Progress check-in</option>
+                    <option value="initial">{tt('Initial intake')}</option>
+                    <option value="assessment">{tt('Physical assessment')}</option>
+                    <option value="progress">{tt('Progress check-in')}</option>
                   </select>
                   <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: C.tm, fontSize: 14, lineHeight: 1 }}>▾</span>
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: 10, fontFamily: FN, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>LOCALE</div>
+                <div style={{ fontSize: 10, fontFamily: FN, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>{tt('LOCALE')}</div>
                 <div style={{ position: 'relative', display: 'flex' }}>
                   <select value={genForm.locale} onChange={e => setGenForm(f => ({ ...f, locale: e.target.value }))}
                     style={{ flex: 1, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '8px 32px 8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', appearance: 'none', WebkitAppearance: 'none' }}>
-                    <option value="he">Hebrew (HE)</option>
+                    <option value="he">{tt('Hebrew (HE)')}</option>
                     {/* Only offer a locale that actually has a form for this type
                         (no progress:en schema) — else the client gets a blank,
                         unsubmittable link. */}
-                    <option value="en" disabled={!getForm(genForm.formType, 'en')}>English (EN){getForm(genForm.formType, 'en') ? '' : ' — n/a'}</option>
+                    <option value="en" disabled={!getForm(genForm.formType, 'en')}>{'English (EN)'}{getForm(genForm.formType, 'en') ? '' : ' — n/a'}</option>
                   </select>
                   <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: C.tm, fontSize: 14, lineHeight: 1 }}>▾</span>
                 </div>
@@ -317,11 +315,11 @@ export default function IntakeView({ trainees }) {
             </div>
             {(genForm.formType === 'progress' || genForm.formType === 'assessment') && (
               <div style={{ marginBottom: 12 }}>
-                <div style={{ fontSize: 10, fontFamily: FN, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>TRAINEE (optional)</div>
+                <div style={{ fontSize: 10, fontFamily: FN, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>{tt('TRAINEE (optional)')}</div>
                 <div style={{ position: 'relative', display: 'flex' }}>
                   <select value={genForm.traineeId} onChange={e => setGenForm(f => ({ ...f, traineeId: e.target.value }))}
                     style={{ flex: 1, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '8px 32px 8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', appearance: 'none', WebkitAppearance: 'none' }}>
-                    <option value="">— none —</option>
+                    <option value="">{tt('— none —')}</option>
                     {(trainees || []).filter(t => t.status !== 'Archived').map(t => (
                       <option key={t.id} value={t.id}>{t.name}</option>
                     ))}
@@ -331,15 +329,15 @@ export default function IntakeView({ trainees }) {
               </div>
             )}
             <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 10, fontFamily: FN, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>LABEL (optional)</div>
+              <div style={{ fontSize: 10, fontFamily: FN, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>{tt('LABEL (optional)')}</div>
               <input value={genForm.label} onChange={e => setGenForm(f => ({ ...f, label: e.target.value }))}
                 placeholder='e.g. "for Yossi"'
                 style={{ width: '100%', boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none' }} />
             </div>
             {genError && <div style={{ color: C.rd, fontFamily: FN, fontSize: 12, marginBottom: 8 }}>{genError}</div>}
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-              <Btn variant="ghost" onClick={closeGen}>Cancel</Btn>
-              <Btn onClick={generateLink}>Generate</Btn>
+              <Btn variant="ghost" onClick={closeGen}>{tr(readLang(), 'Cancel')}</Btn>
+              <Btn onClick={generateLink}>{tt('Generate')}</Btn>
             </div>
           </div>
         )}

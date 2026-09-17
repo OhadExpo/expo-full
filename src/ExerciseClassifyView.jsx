@@ -6,10 +6,12 @@ import React, { useState, useMemo } from 'react';
 import { C, FN, FB, RESISTANCE_TYPES, BODY_POSITIONS, MOVEMENT_TYPES } from './theme';
 import { Card, Btn, Select, Modal, EmptyState, toast } from './ui';
 import { classify, isUnclassified } from './exerciseClassify';
+import { useT, readLang } from './i18n';
 
 const CAP = 150;
 
 export default function ExerciseClassifyView({ exercises = [], setExercises }) {
+  const tt = useT();
   const [edits, setEdits] = useState({}); // exId -> { resistanceType, bodyPosition, movementType, skip }
   const [q, setQ] = useState('');
   const [showAll, setShowAll] = useState(false);
@@ -54,26 +56,26 @@ export default function ExerciseClassifyView({ exercises = [], setExercises }) {
     const patch = {};
     pending.forEach(({ e }) => { patch[e.id] = { resistanceType: editVal(e, 'resistanceType'), bodyPosition: editVal(e, 'bodyPosition'), movementType: editVal(e, 'movementType') }; });
     setExercises((prev) => (prev || []).map((ex) => patch[ex.id] ? { ...ex, ...patch[ex.id] } : ex));
-    toast(`Classified ${pending.length} exercise${pending.length === 1 ? '' : 's'}`);
+    toast(readLang() === 'he' ? (pending.length === 1 ? 'סווג תרגיל אחד' : `סווגו ${pending.length} תרגילים`) : `Classified ${pending.length} exercise${pending.length === 1 ? '' : 's'}`);
     setEdits({}); setApplying(false);
   };
 
   const th = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm };
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 1150, margin: '0 auto', padding: '4px 0 60px' }}>
-      <Card leftStripe={C.ac} header="Classify Library" headerRight={
+      <Card leftStripe={C.ac} header={tt('Classify Library')} headerRight={
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <span style={{ ...th, color: '#fff' }}>{items.length} unclassified</span>
-          <Btn variant="ghost" onClick={acceptAllComplete}>Fill all fully-guessed</Btn>
+          <span style={{ ...th, color: '#fff' }}>{items.length} {tt('unclassified')}</span>
+          <Btn variant="ghost" onClick={acceptAllComplete}>{tt('Fill all fully-guessed')}</Btn>
           <Btn disabled={!pending.length || applying} onClick={() => setConfirm(true)} style={{ background: pending.length ? C.ac : undefined, borderColor: pending.length ? C.ac : undefined, color: pending.length ? '#04121f' : undefined }}>
-            {applying ? 'Applying…' : `Apply ${pending.length}`}
+            {applying ? tt('Applying…') : `${tt('Apply')} ${pending.length}`}
           </Btn>
         </div>}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ fontFamily: FB, fontSize: 12.5, color: C.td }}>
-            Taxonomy guessed from each title (CLAUDE.md set). Review, edit any dropdown, or skip. Applying writes only the library — never programs.
+            {tt('Taxonomy guessed from each title (CLAUDE.md set). Review, edit any dropdown, or skip. Applying writes only the library — never programs.')}
           </div>
-          <input value={q} onChange={(e) => { setQ(e.target.value); setShowAll(false); }} placeholder="Filter by title (e.g. push-up, DB, squat) to classify in focused batches…"
+          <input value={q} onChange={(e) => { setQ(e.target.value); setShowAll(false); }} placeholder={tt('Filter by title (e.g. push-up, DB, squat) to classify in focused batches…')}
             style={{ fontFamily: FB, fontSize: 13, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.bd}`, borderRadius: 0, padding: '9px 11px', maxWidth: 480 }} />
         </div>
       </Card>
@@ -85,10 +87,10 @@ export default function ExerciseClassifyView({ exercises = [], setExercises }) {
           <div style={{ overflowX: 'auto' }}>
             <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 760 }}>
               <thead><tr style={{ borderBottom: `1px solid ${C.cardBd}` }}>
-                <th style={{ ...th, padding: '8px 8px', textAlign: 'left' }}>Exercise</th>
-                <th style={{ ...th, padding: '8px 8px' }}>Resistance</th>
-                <th style={{ ...th, padding: '8px 8px' }}>Position</th>
-                <th style={{ ...th, padding: '8px 8px' }}>Movement</th>
+                <th style={{ ...th, padding: '8px 8px', textAlign: 'start' }}>{tt('Exercise')}</th>
+                <th style={{ ...th, padding: '8px 8px' }}>{tt('Resistance')}</th>
+                <th style={{ ...th, padding: '8px 8px' }}>{tt('Position')}</th>
+                <th style={{ ...th, padding: '8px 8px' }}>{tt('Movement')}</th>
                 <th style={{ ...th, padding: '8px 8px', width: 40 }} />
               </tr></thead>
               <tbody>
@@ -107,7 +109,7 @@ export default function ExerciseClassifyView({ exercises = [], setExercises }) {
                       <td style={cell}><Select options={BODY_POSITIONS} value={val(e, g, 'bodyPosition')} onChange={(v) => setVal(e.id, 'bodyPosition', v)} placeholder="—" /></td>
                       <td style={cell}><Select options={MOVEMENT_TYPES} value={val(e, g, 'movementType')} onChange={(v) => setVal(e.id, 'movementType', v)} placeholder="—" /></td>
                       <td style={{ ...cell, textAlign: 'center' }}>
-                        <button onClick={() => toggleSkip(e.id)} title={skip ? 'Un-skip' : 'Skip'} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: skip ? C.ac : C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '4px 8px', cursor: 'pointer' }}>{skip ? '↺' : '✕'}</button>
+                        <button onClick={() => toggleSkip(e.id)} title={skip ? tt('Un-skip') : tt('Skip')} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: skip ? C.ac : C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '4px 8px', cursor: 'pointer' }}>{skip ? '↺' : '✕'}</button>
                       </td>
                     </tr>
                   );
@@ -117,20 +119,20 @@ export default function ExerciseClassifyView({ exercises = [], setExercises }) {
           </div>
           {!showAll && filtered.length > CAP && (
             <div style={{ textAlign: 'center', marginTop: 12 }}>
-              <Btn variant="ghost" onClick={() => setShowAll(true)}>Show all {filtered.length}</Btn>
-              <span style={{ fontFamily: FB, fontSize: 11.5, color: C.td, marginLeft: 10 }}>showing {CAP} — most-complete guesses first</span>
+              <Btn variant="ghost" onClick={() => setShowAll(true)}>{tt('Show all')} {filtered.length}</Btn>
+              <span style={{ fontFamily: FB, fontSize: 11.5, color: C.td, marginInlineStart: 10 }}>{tt('showing {n} — most-complete guesses first').replace('{n}', CAP)}</span>
             </div>
           )}
         </Card>
       )}
 
       {confirm && (
-        <Modal open onClose={() => setConfirm(false)} title="Apply classifications?">
+        <Modal open onClose={() => setConfirm(false)} title={tt('Apply classifications?')}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ fontFamily: FB, fontSize: 13.5, color: C.tx }}>Write taxonomy to <strong>{pending.length}</strong> library exercise{pending.length === 1 ? '' : 's'}. This updates the library only — no athlete programs change.</div>
+            <div style={{ fontFamily: FB, fontSize: 13.5, color: C.tx }}>{tt('Write taxonomy to')} <strong>{pending.length}</strong> {tt(pending.length === 1 ? 'library exercise.' : 'library exercises.')} {tt('This updates the library only — no athlete programs change.')}</div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <Btn variant="ghost" onClick={() => setConfirm(false)}>Cancel</Btn>
-              <Btn onClick={apply} style={{ background: C.ac, borderColor: C.ac, color: '#04121f' }}>Apply {pending.length}</Btn>
+              <Btn variant="ghost" onClick={() => setConfirm(false)}>{tt('Cancel')}</Btn>
+              <Btn onClick={apply} style={{ background: C.ac, borderColor: C.ac, color: '#04121f' }}>{tt('Apply')} {pending.length}</Btn>
             </div>
           </div>
         </Modal>

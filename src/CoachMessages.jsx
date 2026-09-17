@@ -15,7 +15,7 @@ import { supabase, SUPA_URL, SUPA_PUBLISHABLE_KEY } from './supabase';
 import { isRefined5b, RefinedHeaderStrip, toast, usePersistentState } from './ui';
 import { sendPush, isCoachMutedForAthlete } from './push';
 import { DEMO_MESSAGES } from './demoTraineeData';
-import { useT as useAppT } from './i18n';
+import { useT as useAppT, tr, readLang } from './i18n';
 import { resolveStoredUrl } from './storageUrl';
 
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
@@ -80,7 +80,7 @@ function AudioPlayer({ src, spaced }) {
       <button
         type="button"
         onClick={toggle}
-        aria-label={playing ? 'Pause voice note' : 'Play voice note'}
+        aria-label={tr(readLang(), playing ? 'Pause voice note' : 'Play voice note')}
         style={{
           width: 30, height: 30, flexShrink: 0, display: 'inline-flex',
           alignItems: 'center', justifyContent: 'center', lineHeight: 1,
@@ -253,19 +253,19 @@ function Composer({ onSend, role, draftKey }) {
         }} />
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
         {!rec.recording && !rec.blob && (
-          <button onClick={rec.start} title="Record a voice note"
+          <button onClick={rec.start} title={tt('Record a voice note')}
             style={recBtnStyle('var(--c-rd)')}>{tt('● REC')}</button>
         )}
         {rec.recording && (
           <button onClick={rec.stop} style={recBtnStyle('var(--c-rd)', true)}>
-            ■ STOP · {String(Math.floor(rec.elapsed / 60)).padStart(2,'0')}:{String(rec.elapsed % 60).padStart(2,'0')}
+            ■ {tr(readLang(), 'STOP')} · {String(Math.floor(rec.elapsed / 60)).padStart(2,'0')}:{String(rec.elapsed % 60).padStart(2,'0')}
           </button>
         )}
         {rec.blob && !rec.recording && (
           <>
             <div style={{ maxWidth: 220 }}><AudioPlayer src={rec.blobUrl} /></div>
             <button onClick={rec.reset}
-              style={recBtnStyle('var(--c-tm)')}>↺ RE-RECORD</button>
+              style={recBtnStyle('var(--c-tm)')}>↺ {tr(readLang(), 'RE-RECORD')}</button>
           </>
         )}
         {rec.error && <span style={{ fontSize: 11, color: 'var(--c-rd)' }}>{rec.error}</span>}
@@ -439,13 +439,13 @@ export default function CoachMessages({ traineeId, role = 'coach', recipientEmai
       <div style={{ display: 'grid', gridTemplateRows: open ? '1fr' : '0fr', transition: 'grid-template-rows 260ms ease' }}>
       <div style={{ overflow: 'hidden', minHeight: 0 }}>
       {loading ? (
-        <div style={{ padding: 20, textAlign: 'center', color: 'var(--c-td)', fontSize: 13 }}>Loading…</div>
+        <div style={{ padding: 20, textAlign: 'center', color: 'var(--c-td)', fontSize: 13 }}>{tr(readLang(), 'Loading…')}</div>
       ) : rows.length === 0 ? (
         <div style={{ padding: 14, textAlign: 'center', color: 'var(--c-td)', fontSize: 13 }}>
           {tt('No messages yet.')} {role === 'coach' ? tt('Drop a voice note or a quick check-in below.') : tt('Your coach will message you here.')}
         </div>
       ) : (
-        <div style={{ maxHeight: 360, overflowY: 'auto', paddingRight: 4 }}>
+        <div style={{ maxHeight: 360, overflowY: 'auto', paddingInlineEnd: 4 }}>
           {rows.map(m => <MessageBubble key={m.id} msg={m} viewerRole={role} />)}
         </div>
       )}

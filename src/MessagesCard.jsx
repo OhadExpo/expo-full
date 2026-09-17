@@ -17,7 +17,9 @@ import { isRefined5b, RefinedHeaderStrip, SectionLabel, usePersistentState, stri
 import { useTheme } from './hooks/useTheme';
 import { supabase } from './supabase';
 import { enqueue } from './offlineQueue';
-import { useT, useTB } from './i18n';
+import { useT, useTB, tr, readLang } from './i18n';
+// '+ 1 נענו' on the dashboard: threads are feminine and the count decides the form.
+const answeredWord = (n) => (readLang() === 'he' ? (n === 1 ? 'שנענתה' : 'שנענו') : tr('en', 'Answered'));
 
 const SEEN_KEY = 'expo-msgs-seen-at';
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
@@ -245,7 +247,7 @@ export default function MessagesCard({ trainees, onSelectTrainee, onOpenMessages
       <div style={{ overflow: 'hidden', minHeight: 0 }}>
       {loading ? (
         <div style={{ padding: '20px 6px', textAlign: 'center', color: 'var(--c-td)', fontSize: 12, fontFamily: FN, letterSpacing: '0.12em' }}>
-          LOADING…
+          {tt('LOADING…')}
         </div>
       ) : threads.length === 0 && loadError ? (
         <div style={{
@@ -262,9 +264,7 @@ export default function MessagesCard({ trainees, onSelectTrainee, onOpenMessages
             }}>{tt("RETRY")}</button>
         </div>
       ) : threads.length === 0 ? (
-        <div style={{ padding: '24px 6px', textAlign: 'center', color: 'var(--c-td)', fontSize: 13 }}>
-          No messages yet. Athlete replies and your sent messages will appear here.
-        </div>
+        <div style={{ padding: '24px 6px', textAlign: 'center', color: 'var(--c-td)', fontSize: 13 }}>{tt('No messages yet. Athlete replies and your sent messages will appear here.')}</div>
       ) : visibleThreads.length === 0 ? (
         // Inbox-clear pill — single tight uppercase line so the empty
         // state doesn't occupy more height than a single inbox row.
@@ -276,7 +276,7 @@ export default function MessagesCard({ trainees, onSelectTrainee, onOpenMessages
           fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em',
           color: 'var(--c-td)', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8,
         }}>
-          <span>✓ INBOX CLEAR</span>
+          <span>✓ {tr(readLang(), 'INBOX CLEAR')}</span>
           {handledThreads.length > 0 && (
             <>
               <span style={{ opacity: 0.5 }}>·</span>
@@ -285,7 +285,7 @@ export default function MessagesCard({ trainees, onSelectTrainee, onOpenMessages
                   background:'transparent', border:'none', color:'var(--c-ac)', cursor:'pointer',
                   fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', padding: 0,
                 }}>
-                {tt('Show')} {handledThreads.length} {tt('Answered')} →
+                {tt('Show')} {handledThreads.length} {answeredWord(handledThreads.length)} →
               </button>
             </>
           )}
@@ -338,7 +338,7 @@ export default function MessagesCard({ trainees, onSelectTrainee, onOpenMessages
                       color: 'var(--c-tx)', letterSpacing: '0.02em',
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     }}>{name}</span>
-                    <span title={fromAthlete ? 'Athlete sent the last message' : 'You sent the last message'}
+                    <span title={tr(readLang(), fromAthlete ? 'Athlete sent the last message' : 'You sent the last message')}
                       style={{
                         display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
                         fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.12em',
@@ -376,7 +376,7 @@ export default function MessagesCard({ trainees, onSelectTrainee, onOpenMessages
             <div style={{
               padding: '8px 4px 0', fontFamily: FN, fontSize: 10, letterSpacing: '0.12em',
               color: 'var(--c-tm)', textAlign: 'center',
-            }}>+ {visibleThreads.length - 8} OLDER THREADS</div>
+            }}>+ {visibleThreads.length - 8}{tt('OLDER THREADS')}</div>
           )}
           {/* Handled-thread expander. Shown only when there's at least one
               unhandled thread visible AND at least one handled thread
@@ -391,7 +391,7 @@ export default function MessagesCard({ trainees, onSelectTrainee, onOpenMessages
                 fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
                 cursor: 'pointer',
               }}>
-              + {handledThreads.length} {tt('Answered')}
+              {readLang() === 'he' ? (handledThreads.length === 1 ? '+ עוד הודעה אחת שנענתה' : `+ עוד ${handledThreads.length} שנענו`) : `+ ${handledThreads.length} ${answeredWord(handledThreads.length)}`}
             </button>
           )}
           {showHandled && (

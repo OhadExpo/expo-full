@@ -25,7 +25,7 @@ import {
 } from './repCounter';
 import { detectLift, channelFromPose, CHANNELS } from './liftDetect';
 import { resolveStoredUrl } from './storageUrl';
-import { useT as useAppT, useTB } from './i18n';
+import { useT as useAppT, useTB, tr, readLang } from './i18n';
 
 const bi = {background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,padding:"8px 10px",borderRadius:0,
   color:C.tx,fontFamily:FB,fontSize:13,outline:"none",width:"100%",boxSizing:"border-box",textAlign:"center"};
@@ -104,9 +104,9 @@ class FormVideoErrorBoundary extends React.Component {
     if (this.state.err) {
       return (
         <div style={{background:C.rdD,border:`1px solid ${C.rd}`,borderRadius:0,padding:12,color:C.rd,fontSize:12,fontFamily:FB}}>
-          <div style={{fontWeight:700,marginBottom:4}}>Video player crashed — reload to retry</div>
+          <div style={{fontWeight:700,marginBottom:4}}>{tr(readLang(), 'Video player crashed — reload to retry')}</div>
           <div style={{fontSize:11,opacity:0.8,whiteSpace:'pre-wrap',fontFamily:'monospace'}}>{String(this.state.err?.message || this.state.err)}</div>
-          <button onClick={() => this.setState({ err: null })} style={{marginTop:8,background:C.sf,border:`1px solid ${C.rd}`,color:C.rd,borderRadius:0,padding:'4px 10px',fontSize:11,fontWeight:600,cursor:'pointer'}}>Retry</button>
+          <button onClick={() => this.setState({ err: null })} style={{marginTop:8,background:C.sf,border:`1px solid ${C.rd}`,color:C.rd,borderRadius:0,padding:'4px 10px',fontSize:11,fontWeight:600,cursor:'pointer'}}>{tr(readLang(), 'Retry')}</button>
         </div>
       );
     }
@@ -1409,8 +1409,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
   const metricsPanelJsx = (
     <>
       {metricsState === 'busy' && (
-        <div style={{marginTop:sideBySide?0:8,padding:'12px 14px',background:C.sf2,border:`1px solid ${C.cardBd}`,borderRadius:0,fontFamily:FN,fontSize:11,color:C.tm,letterSpacing:'0.06em'}}>
-          READING THE MOVEMENT… {metricsPct}%
+        <div style={{marginTop:sideBySide?0:8,padding:'12px 14px',background:C.sf2,border:`1px solid ${C.cardBd}`,borderRadius:0,fontFamily:FN,fontSize:11,color:C.tm,letterSpacing:'0.06em'}}>{tt('READING THE MOVEMENT…')}{metricsPct}%
           <div style={{height:3,background:'rgba(255,255,255,0.12)',marginTop:8}}><div style={{width:`${metricsPct}%`,height:'100%',background:C.ac,transition:'width 120ms'}}/></div>
         </div>
       )}
@@ -1425,11 +1424,11 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
               area. A proper header row keeps it clear of the tabs entirely. */}
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'7px 10px',borderBottom:`1px solid ${C.cardBd}`}}>
             <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.16em',color:C.tm}}>{tt("LIFT METRICS")}</span>
-            <button onClick={() => { setMetricsState('idle'); setMetrics(null); }} title="Hide metrics"
-              style={{background:'transparent',border:`1px solid ${C.bd}`,color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer',padding:'2px 7px'}}>× CLOSE</button>
+            <button onClick={() => { setMetricsState('idle'); setMetrics(null); }} title={tt('Hide metrics')}
+              style={{background:'transparent',border:`1px solid ${C.bd}`,color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer',padding:'2px 7px'}}>× {tr(readLang(), 'CLOSE')}</button>
           </div>
           <div style={{padding:'10px 10px 4px'}}>
-            <Suspense fallback={<div style={{color:C.tm,fontFamily:FN,fontSize:11,padding:12}}>Loading…</div>}>
+            <Suspense fallback={<div style={{color:C.tm,fontFamily:FN,fontSize:11,padding:12}}>{tr(readLang(), 'Loading…')}</div>}>
               <AnalyzeResult result={metrics.result} frames={metrics.frames} exerciseTitle={exerciseTitle || 'Squat'} tab={metricsTab} setTab={setMetricsTab} view="metrics"
                 recordedReps={recordedReps} targetReps={targetReps}
                 playheadT={videoTime * 1000}
@@ -1512,7 +1511,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
             keeps its own count readout here, unaffected. */}
         {repsOn && (
           <div onPointerDown={onHudPointerDown}
-            title="Long-press (mobile) or click and drag (desktop) to move"
+            title={tt('Long-press (mobile) or click and drag (desktop) to move')}
             style={{position:'absolute',top:6,right:6,
               transform:`translate(${hudPos.x}px, ${hudPos.y}px)`,
               background:'rgba(10,10,11,0.78)',
@@ -1573,7 +1572,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
             style={{padding:'3px 8px',borderRadius:0,border:'2px solid transparent',display:'inline-flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',whiteSpace:'nowrap',
               background:'transparent',color:C.tm,
               fontFamily:FN,fontSize:10,cursor:poseLoading?'wait':'pointer',opacity:poseLoading?0.6:1}}>
-            {poseLoading ? 'LOADING…' : poseOn ? 'SKELETON ON' : 'SKELETON'}
+            {poseLoading ? tt('LOADING…') : poseOn ? tt('SKELETON ON') : tt('SKELETON')}
           </button>
           {/* REPS + its joint-picker live in their own small column, not
               inline siblings of SKELETON/LIFT METRICS — the dropdown only
@@ -1589,7 +1588,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
               style={{padding:'3px 8px',borderRadius:0,border:`2px solid ${repsOn?C.gn:'transparent'}`,display:'inline-flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',whiteSpace:'nowrap',
                 background:repsOn?C.gnD:'transparent',color:repsOn?C.gn:C.tm,
                 fontFamily:FN,fontSize:10,cursor:poseLoading?'wait':'pointer',opacity:poseLoading?0.6:1}}>
-              {repsOn ? `REPS ${reps}` : 'REPS'}
+              {repsOn ? `${tt('REPS')} ${reps}` : tt('REPS')}
             </button>
             {repsOn && (
               <select value={trackOverride} onChange={e => setTrackOverride(e.target.value)}
@@ -1600,15 +1599,14 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
                     diagnosable rather than mysterious. '?' = the title matched
                     nothing and no motion read yet — previously this silently
                     became KNEE (24% of the library). */}
-                <option value="auto">
-                  AUTO ({autoPick.source === 'unknown' ? '?' : (autoPick.kind || 'none').toUpperCase()}
+                <option value="auto">{tt('AUTO (')}{autoPick.source === 'unknown' ? '?' : (autoPick.kind || 'none').toUpperCase()}
                   {autoPick.source === 'motion' ? ' · MOTION' : autoPick.source === 'library' ? ' · LIB' : ''})
                 </option>
-                <option value="hip">HIP</option>
+                <option value="hip">{tt('HIP')}</option>
                 <option value="knee">{tt("KNEE")}</option>
                 <option value="elbow">{tt("ELBOW")}</option>
-                <option value="sho">SHOULDER</option>
-                <option value="none">SKIP</option>
+                <option value="sho">{tt('SHOULDER')}</option>
+                <option value="none">{tt('SKIP')}</option>
               </select>
             )}
             {/* Motion disagrees with the title. Never switched silently — a
@@ -1618,8 +1616,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
               <button onClick={() => setTrackOverride(motionSuggestion.kind)}
                 title={motionSuggestion.why}
                 style={{height:20,padding:'0 6px',borderRadius:0,border:`1px solid ${C.ac}`,background:'transparent',
-                  color:C.ac,fontFamily:FN,fontSize:9,letterSpacing:'0.06em',cursor:'pointer',whiteSpace:'nowrap'}}>
-                MOTION SEES {motionSuggestion.kind.toUpperCase()} →
+                  color:C.ac,fontFamily:FN,fontSize:9,letterSpacing:'0.06em',cursor:'pointer',whiteSpace:'nowrap'}}>{tt('MOTION SEES')}{motionSuggestion.kind.toUpperCase()} →
               </button>
             )}
           </div>
@@ -1628,14 +1625,14 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
               on-video skeleton. No 3D box, no fullscreen. */}
           {role === 'trainer' && (
             <button onClick={runMetrics} disabled={metricsState==='busy'}
-              title="Bar velocity (VBT), ROM, tempo & collapse flags from this clip"
+              title={tt('Bar velocity (VBT), ROM, tempo & collapse flags from this clip')}
               style={{padding:'3px 8px',borderRadius:0,border:`2px solid ${metricsState==='done'?C.pu:'transparent'}`,display:compare?'none':'inline-flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',whiteSpace:'nowrap',
                 background:metricsState==='done'?(C.puD||C.acD):'transparent',color:metricsState==='done'?(C.pu||C.ac):C.tm,
                 fontFamily:FN,fontSize:10,cursor:metricsState==='busy'?'wait':'pointer',opacity:metricsState==='busy'?0.6:1}}>
               {metricsState==='busy' ? `${metricsPct}%` : metricsState==='done' ? 'METRICS ✓' : 'METRICS'}
             </button>
           )}
-          {poseError && <span style={{fontSize:9,color:C.rd,marginLeft:4}}>{poseError}</span>}
+          {poseError && <span style={{fontSize:9,color:C.rd,marginInlineStart:4}}>{poseError}</span>}
         </div>
         <div style={{flex:'0 0 auto',display:'flex',gap:4,alignItems:'center',flexWrap:'wrap',justifyContent:'center'}}>
           {/* Auto-pause-at-comment toggle. Trainee-only: the trainer always
@@ -1643,14 +1640,14 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
               coach side), so hiding the toggle removes a useless control. */}
           {notes.length > 0 && role !== 'trainer' && (
             <button onClick={toggleComments}
-              title={commentsEnabled ? 'Auto-pause at comments ON — click to disable' : 'Comments hidden — click to enable auto-pause'}
+              title={tr(readLang(), commentsEnabled ? 'Auto-pause at comments ON — click to disable' : 'Comments hidden — click to enable auto-pause')}
               style={{padding:'3px 10px',borderRadius:0,border:`2px solid ${commentsEnabled?C.ac:'transparent'}`,minWidth:116,display:'inline-flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',
                 background:commentsEnabled?C.acD:'transparent',color:commentsEnabled?C.ac:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>
-              {commentsEnabled ? 'COMMENTS ON' : 'COMMENTS OFF'}
+              {tr(readLang(), commentsEnabled ? 'COMMENTS ON' : 'COMMENTS OFF')}
             </button>
           )}
           {onReviewNotesChange && role === 'trainer' && (
-            <button onClick={addComment} title="Comment & draw at this timestamp — color swatches appear once a comment is open"
+            <button onClick={addComment} title={tt('Comment & draw at this timestamp — color swatches appear once a comment is open')}
               style={{padding:'3px 10px',height:22,boxSizing:'border-box',borderRadius:0,border:`1px solid rgba(57,189,255,0.251)`,
                 background:C.acD,color:C.ac,fontFamily:FN,fontSize:10,cursor:'pointer'}}>{tt("COMMENT")}</button>
           )}
@@ -1658,7 +1655,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
         <div style={{flex:'0 1 auto',display:'flex',gap:4,alignItems:'center'}}>
           <button onClick={fullscreen}
             style={{padding:'3px 10px',height:22,boxSizing:'border-box',borderRadius:0,border:`1px solid ${C.bd}`,
-              background:'transparent',color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>⛶ FULL</button>
+              background:'transparent',color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>⛶ {tt('FULL')}</button>
         </div>
       </div>
       {/* Bottom row: speeds → frame-step → LOOP, all centered as one
@@ -1666,20 +1663,20 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
           0.125x .. 2x, ◀ ▶, then ↻ LOOP. */}
       <div style={{display:compare?'none':'flex',gap:4,alignItems:'center',justifyContent:'center',flexWrap:'wrap'}}>
         {speeds.map(s => (
-          <button key={s} onClick={() => setSpeed(s)} title={`Playback speed ${s}x`}
+          <button key={s} onClick={() => setSpeed(s)} title={tt('Playback speed {n}x').replace('{n}', s)}
             style={{padding:'3px 6px',borderRadius:0,border:`2px solid ${speed===s?C.ac:'transparent'}`,boxSizing:'border-box',
               background:speed===s?C.acD:'transparent',color:speed===s?C.ac:C.tm,
               fontFamily:FN,fontSize:10,cursor:'pointer'}}>{s}x</button>
         ))}
-        <button onClick={() => stepFrame(-1)} title="Previous frame"
+        <button onClick={() => stepFrame(-1)} title={tt('Previous frame')}
           style={{padding:'3px 6px',height:22,boxSizing:'border-box',borderRadius:0,border:`1px solid ${C.bd}`,
             background:'transparent',color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>◀</button>
-        <button onClick={() => stepFrame(1)} title="Next frame"
+        <button onClick={() => stepFrame(1)} title={tt('Next frame')}
           style={{padding:'3px 6px',height:22,boxSizing:'border-box',borderRadius:0,border:`1px solid ${C.bd}`,
             background:'transparent',color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>▶</button>
-        <button onClick={() => setLoop(v => !v)} title="Loop the video"
+        <button onClick={() => setLoop(v => !v)} title={tt('Loop the video')}
           style={{padding:'3px 10px',height:22,boxSizing:'border-box',borderRadius:0,border:`1px solid ${loop?C.ac:C.bd}`,
-            background:loop?C.acD:'transparent',color:loop?C.ac:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>↻ LOOP</button>
+            background:loop?C.acD:'transparent',color:loop?C.ac:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>↻ {tr(readLang(), 'LOOP')}</button>
       </div>
       </div>
       {/* Metrics panel sits BESIDE the video (this column) only for portrait
@@ -1695,7 +1692,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
           Clear manage the current comment's stroke list. */}
       {canDraw && commentsEnabled && (
         <div style={{display:'flex',gap:6,alignItems:'center',marginTop:6,flexWrap:'wrap'}}>
-          <span style={{fontSize:9,fontFamily:FN,color:C.td,letterSpacing:0.5,marginRight:2}}>{tt("DRAW")}</span>
+          <span style={{fontSize:9,fontFamily:FN,color:C.td,letterSpacing:0.5,marginInlineEnd:2}}>{tt("DRAW")}</span>
           {DRAW_COLORS.map(c => {
             const active = activeDrawColor === c.hex;
             return (
@@ -1707,17 +1704,17 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
                   cursor:'pointer',padding:0}} />
             );
           })}
-          <button onClick={() => setRulerMode(v => !v)} title={rulerMode ? 'Straight-line mode ON' : 'Freehand mode — click for straight-line'}
+          <button onClick={() => setRulerMode(v => !v)} title={tr(readLang(), rulerMode ? 'Straight-line mode ON' : 'Freehand mode — click for straight-line')}
             style={{padding:'3px 8px',height:22,boxSizing:'border-box',borderRadius:0,border:`1px solid ${rulerMode?C.ac:C.bd}`,
               background:rulerMode?C.acD:'transparent',color:rulerMode?C.ac:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>
-            📏 {rulerMode ? 'LINE' : 'FREE'}
+            📏 {tr(readLang(), rulerMode ? 'LINE' : 'FREE')}
           </button>
-          <button onClick={undoLastStroke} disabled={currentStrokes.length === 0} title="Undo last stroke"
+          <button onClick={undoLastStroke} disabled={currentStrokes.length === 0} title={tt('Undo last stroke')}
             style={{padding:'3px 8px',height:22,boxSizing:'border-box',borderRadius:0,border:`1px solid ${C.bd}`,
-              background:'transparent',color:currentStrokes.length?C.tm:C.td,fontFamily:FN,fontSize:10,cursor:currentStrokes.length?'pointer':'default',opacity:currentStrokes.length?1:0.5}}>↶ UNDO</button>
-          <button onClick={clearDrawings} disabled={currentStrokes.length === 0} title="Clear all drawings on this comment"
+              background:'transparent',color:currentStrokes.length?C.tm:C.td,fontFamily:FN,fontSize:10,cursor:currentStrokes.length?'pointer':'default',opacity:currentStrokes.length?1:0.5}}>↶ {tr(readLang(), 'UNDO')}</button>
+          <button onClick={clearDrawings} disabled={currentStrokes.length === 0} title={tt('Clear all drawings on this comment')}
             style={{padding:'3px 8px',height:22,boxSizing:'border-box',borderRadius:0,border:`1px solid ${C.bd}`,
-              background:'transparent',color:currentStrokes.length?C.tm:C.td,fontFamily:FN,fontSize:10,cursor:currentStrokes.length?'pointer':'default',opacity:currentStrokes.length?1:0.5}}>✕ CLEAR</button>
+              background:'transparent',color:currentStrokes.length?C.tm:C.td,fontFamily:FN,fontSize:10,cursor:currentStrokes.length?'pointer':'default',opacity:currentStrokes.length?1:0.5}}>✕ {tr(readLang(), 'CLEAR')}</button>
         </div>
       )}
       {/* Compose input (new comment or reply). Appears inline when composing is active. */}
@@ -1731,7 +1728,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
           <textarea value={composeText} autoFocus dir="auto"
             onChange={e => setComposeText(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); submitCompose(); } }}
-            placeholder={composing.replyToId ? 'Type your reply…' : 'What should the athlete focus on at this moment?'}
+            placeholder={tr(readLang(), composing.replyToId ? 'Type your reply…' : 'What should the athlete focus on at this moment?')}
             style={{width:'100%',minHeight:60,background:C.sf,border:`1px solid ${C.bd}`,borderRadius:0,padding:8,color:C.tx,fontFamily:FB,fontSize:13,boxSizing:'border-box',resize:'vertical',textAlign:'center'}}/>
           <div style={{display:'flex',gap:6,justifyContent:'flex-end',marginTop:6}}>
             <button onClick={cancelCompose} style={{padding:'4px 10px',borderRadius:0,border:`1px solid ${C.bd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,cursor:'pointer'}}>{tt("Cancel")}</button>
@@ -1756,31 +1753,31 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
         return (
           <div style={{marginTop:10,display:'flex',flexDirection:'column',gap:8}}>
             {visible.map(n => (
-              <div key={n.id} className="motion-rise" style={{background:pausedAtCommentId===n.id?(n.author==='trainer'?C.acD:C.gnD):C.sf2,borderLeft:`3px solid ${n.author==='trainer'?C.ac:C.gn}`,borderRadius:0,padding:pausedAtCommentId===n.id?14:10,boxShadow:pausedAtCommentId===n.id?`0 0 0 2px ${n.author==='trainer'?C.ac:C.gn}40`:'none',transition:'padding .15s ease, box-shadow .15s ease'}}>
+              <div key={n.id} className="motion-rise" style={{background:pausedAtCommentId===n.id?(n.author==='trainer'?C.acD:C.gnD):C.sf2,borderInlineStart:`3px solid ${n.author==='trainer'?C.ac:C.gn}`,borderRadius:0,padding:pausedAtCommentId===n.id?14:10,boxShadow:pausedAtCommentId===n.id?`0 0 0 2px ${n.author==='trainer'?C.ac:C.gn}40`:'none',transition:'padding .15s ease, box-shadow .15s ease'}}>
                 <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4}}>
                   <button onClick={() => seekTo(n.ts, n.id)} style={{background:C.acD,border:`1px solid rgba(57,189,255,0.251)`,color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:0,cursor:'pointer'}}>▶ {fmtTs(n.ts)}</button>
-                  <span style={{fontSize:10,fontFamily:FN,color:n.author==='trainer'?C.ac:C.gn,fontWeight:700,letterSpacing:0.5}}>{n.author === 'trainer' ? 'COACH' : 'ATHLETE'}</span>
-                  <span style={{fontSize:10,color:C.td,marginLeft:'auto'}}>{n.createdAt ? fmtPrettyDate(n.createdAt) : ''}</span>
+                  <span style={{fontSize:10,fontFamily:FN,color:n.author==='trainer'?C.ac:C.gn,fontWeight:700,letterSpacing:0.5}}>{tr(readLang(), n.author === 'trainer' ? 'COACH' : 'ATHLETE')}</span>
+                  <span style={{fontSize:10,color:C.td,marginInlineStart:'auto'}}>{n.createdAt ? fmtPrettyDate(n.createdAt) : ''}</span>
                   {(n.author === role) && onReviewNotesChange && (
-                    <button onClick={() => startEdit(n, false, null)} title="Edit" style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:11,padding:0,marginLeft:4}}>✏️</button>
+                    <button onClick={() => startEdit(n, false, null)} title={tr(readLang(), 'Edit')} style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:11,padding:0,marginInlineStart:4}}>✏️</button>
                   )}
                   {(n.author === role) && (
-                    <button onClick={() => deleteNote(n.id)} title="Delete" style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:12,padding:0,marginLeft:4}}>✕</button>
+                    <button onClick={() => deleteNote(n.id)} title={tr(readLang(), 'Delete')} style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:12,padding:0,marginInlineStart:4}}>✕</button>
                   )}
                 </div>
                 <div style={{fontSize:pausedAtCommentId===n.id?14:13,color:C.tx,whiteSpace:'pre-wrap',textAlign:'center'}}>{n.text}</div>
                 {(n.replies || []).length > 0 && (
-                  <div style={{marginTop:8,marginLeft:12,display:'flex',flexDirection:'column',gap:6,borderLeft:`2px solid ${C.bd}`,paddingLeft:10}}>
+                  <div style={{marginTop:8,marginInlineStart:12,display:'flex',flexDirection:'column',gap:6,borderInlineStart:`2px solid ${C.bd}`,paddingInlineStart:10}}>
                     {n.replies.map(r => (
                       <div key={r.id}>
                         <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:2}}>
-                          <span style={{fontSize:10,fontFamily:FN,color:r.author==='trainer'?C.ac:C.gn,fontWeight:700,letterSpacing:0.5}}>{r.author === 'trainer' ? 'COACH' : 'ATHLETE'}</span>
+                          <span style={{fontSize:10,fontFamily:FN,color:r.author==='trainer'?C.ac:C.gn,fontWeight:700,letterSpacing:0.5}}>{tr(readLang(), r.author === 'trainer' ? 'COACH' : 'ATHLETE')}</span>
                           <span style={{fontSize:10,color:C.td}}>{r.createdAt ? fmtPrettyDate(r.createdAt) : ''}</span>
                           {(r.author === role) && onReviewNotesChange && (
-                            <button onClick={() => startEdit(r, true, n.id)} title="Edit" style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:10,padding:0,marginLeft:'auto'}}>✏️</button>
+                            <button onClick={() => startEdit(r, true, n.id)} title={tr(readLang(), 'Edit')} style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:10,padding:0,marginInlineStart:'auto'}}>✏️</button>
                           )}
                           {(r.author === role) && (
-                            <button onClick={() => deleteNote(r.id)} title="Delete" style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:11,padding:0,marginLeft:r.author===role&&onReviewNotesChange?4:'auto'}}>✕</button>
+                            <button onClick={() => deleteNote(r.id)} title={tr(readLang(), 'Delete')} style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:11,padding:0,marginInlineStart:r.author===role&&onReviewNotesChange?4:'auto'}}>✕</button>
                           )}
                         </div>
                         <div style={{fontSize:12,color:C.tx,whiteSpace:'pre-wrap',textAlign:'center'}}>{r.text}</div>
@@ -1790,7 +1787,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
                 )}
                 {onReviewNotesChange && (
                   <button onClick={() => addReply(n.id)}
-                    style={{marginTop:8,background:'transparent',border:'none',color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,padding:0,cursor:'pointer'}}>↳ Reply</button>
+                    style={{marginTop:8,background:'transparent',border:'none',color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,padding:0,cursor:'pointer'}}>↳ {tr(readLang(), 'Reply')}</button>
                 )}
               </div>
             ))}
@@ -1810,6 +1807,10 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
 // athlete's own rep next to the model movement. A demo embed exposes no <video>
 // ref, so the timestamp SYNC controls are hidden in demo mode (each player has
 // its own controls); the left form clip keeps the full FormVideoPlayer chrome.
+const bidiParts = (label) => String(label || '').split(' · ').map((p, i) => (
+  <span key={i}>{i > 0 && ' · '}<span style={{ unicodeBidi: 'plaintext' }}>{p}</span></span>
+));
+
 function CompareModal({ leftLabel, leftUrl, leftTitle, rightLabel, rightUrl, rightTitle, rightMode, onClose, closing }) {
   // Ohad 2026-09-11: "buttons are not centered and too boring and flat …
   // play both, pause, sync, etc.. redesign it smarter, nicer, ocd". One
@@ -1824,6 +1825,7 @@ function CompareModal({ leftLabel, leftUrl, leftTitle, rightLabel, rightUrl, rig
   const [speed, setSpeedState] = useState(1);
   const [loop, setLoopState] = useState(false);
   const demo = rightMode === 'demo';
+  const tt = useAppT();
   useEscClose(true, onClose); // Escape closes the compare modal
   const vids = () => [leftVid, rightVid].filter(Boolean);
   const sync = (target) => {
@@ -1864,19 +1866,19 @@ function CompareModal({ leftLabel, leftUrl, leftTitle, rightLabel, rightUrl, rig
   const divider = { width:1, alignSelf:'stretch', background:C.cardBd };
   const titleStyle = { fontSize:10, fontFamily:FN, fontWeight:700, letterSpacing:'0.14em', color:C.tm, marginBottom:8, textAlign:'center' };
   return createPortal((
-    <div onClick={onClose} role="dialog" aria-modal="true" aria-label="Compare videos" className={closing ? 'motion-fade-out' : 'motion-fade-in'} style={{position:'fixed',inset:0,zIndex:1200,background:C.scrim,display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:32,overflow:'auto'}}>
+    <div onClick={onClose} role="dialog" aria-modal="true" aria-label={tt('Compare videos')} className={closing ? 'motion-fade-out' : 'motion-fade-in'} style={{position:'fixed',inset:0,zIndex:1200,background:C.scrim,display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:32,overflow:'auto'}}>
       <div onClick={e => e.stopPropagation()} className={closing ? 'motion-fall' : 'motion-rise'} style={{background:C.bg,border:`1px solid ${C.cardBd}`,borderRadius:0,width:'min(1400px, 96vw)',padding:20}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
-          <h3 style={{margin:0,fontFamily:FN,fontSize:16,color:C.tx,letterSpacing:'0.08em'}}>{demo ? 'FORM VS DEMO' : 'COMPARE'}</h3>
-          <button onClick={onClose} aria-label="Close" style={{background:'none',border:'none',color:C.tm,cursor:'pointer',fontSize:18,padding:'0 8px'}}>✕</button>
+          <h3 style={{margin:0,fontFamily:FN,fontSize:16,color:C.tx,letterSpacing:'0.08em'}}>{demo ? tt('FORM VS DEMO') : tt('COMPARE')}</h3>
+          <button onClick={onClose} aria-label={tr(readLang(), 'Close')} style={{background:'none',border:'none',color:C.tm,cursor:'pointer',fontSize:18,padding:'0 8px'}}>✕</button>
         </div>
         <div className="cmp-grid" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,alignItems:'start'}}>
           <div>
-            <div style={titleStyle}>{leftLabel}</div>
+            <div style={titleStyle}>{bidiParts(leftLabel)}</div>
             <FormVideoPlayer url={leftUrl} exerciseTitle={leftTitle} onVideoRef={setLeftVid} compare={!demo} />
           </div>
           <div>
-            <div style={titleStyle}>{rightLabel}</div>
+            <div style={titleStyle}>{bidiParts(rightLabel)}</div>
             {demo
               ? <VideoEmbed url={rightUrl} />
               : <FormVideoPlayer url={rightUrl} exerciseTitle={rightTitle} onVideoRef={setRightVid} compare />}
@@ -1884,19 +1886,19 @@ function CompareModal({ leftLabel, leftUrl, leftTitle, rightLabel, rightUrl, rig
         </div>
         {!demo && (
           <div style={{display:'flex',justifyContent:'center',marginTop:16}}>
-            <div style={bar} role="toolbar" aria-label="Both videos">
-              <button onClick={() => stepBoth(-1)} title="Both back one frame (←)" style={btn(false)}>◀</button>
-              <button onClick={toggle} title={playing ? 'Pause both (Space)' : 'Play both (Space)'} style={btn(playing, { minWidth: 118 })}>{playing ? '❚❚  PAUSE' : '▶  PLAY BOTH'}</button>
-              <button onClick={() => stepBoth(1)} title="Both forward one frame (→)" style={btn(false)}>▶</button>
+            <div style={bar} role="toolbar" aria-label={tt('Both videos')}>
+              <button onClick={() => stepBoth(-1)} title={tt('Both back one frame (←)')} style={btn(false)}>◀</button>
+              <button onClick={toggle} title={tr(readLang(), playing ? 'Pause both (Space)' : 'Play both (Space)')} style={btn(playing, { minWidth: 118 })}>{playing ? '❚❚  ' + tt('PAUSE') : '▶  ' + tt('PLAY BOTH')}</button>
+              <button onClick={() => stepBoth(1)} title={tt('Both forward one frame (→)')} style={btn(false)}>▶</button>
               <span style={divider} />
               {[0.125, 0.25, 0.5, 1, 2].map(x => (
-                <button key={x} onClick={() => setSpeed(x)} title={`Both at ${x}x`} style={btn(speed === x, { padding:'0 10px' })}>{x}x</button>
+                <button key={x} onClick={() => setSpeed(x)} title={tr(readLang(), 'Both at {n}x').replace('{n}', x)} style={btn(speed === x, { padding:'0 10px' })}>{x}x</button>
               ))}
               <span style={divider} />
-              <button onClick={setLoop} title="Loop both" style={btn(loop)}>↻ LOOP</button>
+              <button onClick={setLoop} title={tt('Loop both')} style={btn(loop)}>↻ {tt('LOOP')}</button>
               <span style={divider} />
-              <button onClick={() => sync('right')} title="Right jumps to the left's frame" style={btn(false)}>SYNC →</button>
-              <button onClick={() => sync('left')} title="Left jumps to the right's frame" style={btn(false)}>← SYNC</button>
+              <button onClick={() => sync('right')} title={tt("Right jumps to the left's frame")} style={btn(false)}>{tt('SYNC')} →</button>
+              <button onClick={() => sync('left')} title={tt("Left jumps to the right's frame")} style={btn(false)}>← {tt('SYNC')}</button>
             </div>
           </div>
         )}
@@ -2044,7 +2046,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
   const confirmOk = deleteConfirmText.trim().toLowerCase() === 'delete';
   const deleteModal = delHold.value ? createPortal((
     <div onClick={() => { setDeleteConfirmFor(null); setDeleteConfirmText(''); }}
-      role="dialog" aria-modal="true" aria-label="Delete workout" className={delHold.closing ? 'motion-fade-out' : 'motion-fade-in'}
+      role="dialog" aria-modal="true" aria-label={tt('Delete workout')} className={delHold.closing ? 'motion-fade-out' : 'motion-fade-in'}
       style={{position:'fixed',inset:0,background:C.scrim,display:'flex',alignItems:'center',justifyContent:'center',zIndex:1200,padding:20}}>
       <div onClick={e => e.stopPropagation()} className={delHold.closing ? 'motion-fall' : 'motion-rise'}
         style={{background:C.bg,border:`1px solid ${C.rd||'#c94444'}`,borderRadius:0,padding:20,maxWidth:380,width:'100%'}}>
@@ -2053,7 +2055,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
           {delHold.value.dayName} · {delHold.value.planName} · W{delHold.value.week}
         </div>
         <div style={{fontSize:12,color:C.tm,marginBottom:14,textAlign:'center'}}>
-          This permanently removes the workout, its sets, form videos, and review notes. Type <span style={{color:C.rd||'#ff6b6b',fontWeight:700}}>delete</span> to confirm.
+          {tt('This permanently removes the workout, its sets, form videos, and review notes. Type the word')} <span style={{color:C.rd||'#ff6b6b',fontWeight:700}}>delete</span> {tt('to confirm.')}
         </div>
         <input autoFocus value={deleteConfirmText} onChange={e => setDeleteConfirmText(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && confirmOk) onDeleteConfirm(); }}
@@ -2163,19 +2165,19 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
       <div>
         {/* Compare picker: pick second video from the same client */}
         {cmpPickerHold.value && createPortal((
-          <div onClick={() => setComparePicker(null)} role="dialog" aria-modal="true" aria-label="Pick a video to compare" className={cmpPickerHold.closing ? 'motion-fade-out' : 'motion-fade-in'} style={{position:'fixed',inset:0,zIndex:1100,background:C.scrim,display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:60,backdropFilter:'blur(4px)'}}>
+          <div onClick={() => setComparePicker(null)} role="dialog" aria-modal="true" aria-label={tt('Pick a video to compare')} className={cmpPickerHold.closing ? 'motion-fade-out' : 'motion-fade-in'} style={{position:'fixed',inset:0,zIndex:1100,background:C.scrim,display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:60,backdropFilter:'blur(4px)'}}>
             <div onClick={e => e.stopPropagation()} className={cmpPickerHold.closing ? 'motion-fall' : 'motion-rise'} style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:0,width:520,maxWidth:'calc(100vw - 24px)',maxHeight:'80vh',overflow:'auto',padding:20}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
                 <h3 style={{margin:0,fontFamily:FN,fontSize:15,color:C.tx}}>{tt('Compare with…')}</h3>
                 <button onClick={() => setComparePicker(null)} style={{background:'none',border:'none',color:C.tm,cursor:'pointer',fontSize:16}}>✕</button>
               </div>
-              <div style={{fontSize:11,color:C.tm,marginBottom:10}}>{cmpPickerHold.value.candidates.length} other video{cmpPickerHold.value.candidates.length===1?'':'s'} from this client:</div>
+              <div style={{fontSize:11,color:C.tm,marginBottom:10}}>{cmpPickerHold.value.candidates.length} {tt(cmpPickerHold.value.candidates.length === 1 ? 'other video from this client:' : 'other videos from this client:')}</div>
               {cmpPickerHold.value.candidates.map((c, i) => (
                 <div key={i} onClick={() => { setCompareActive({ left: cmpPickerHold.value.left, right: { url: c.cloudUrl, label: c.label, title: c.title } }); setComparePicker(null); }}
                   style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'10px 14px',marginBottom:6,cursor:'pointer',transition:'border-color .15s'}}
                   onMouseEnter={e => e.currentTarget.style.borderColor = C.ac}
                   onMouseLeave={e => e.currentTarget.style.borderColor = C.bd}>
-                  <div style={{fontSize:12,color:C.tx}}>{c.label}</div>
+                  <div style={{fontSize:12,color:C.tx}}>{bidiParts(c.label)}</div>
                 </div>
               ))}
             </div>
@@ -2193,7 +2195,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
         )}
         <button onClick={() => { setSelectedWo(null); setExpandedEx(null); }}
           style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',padding:0,marginBottom:12}}>
-          ← BACK
+          {tt('← BACK')}
         </button>
 
         {/* Workout header */}
@@ -2209,15 +2211,15 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                 {wo.reviewedAt && (
                   <span style={{fontSize:9,fontFamily:FN,color:C.gn,fontWeight:700,letterSpacing:0.5,
                     padding:"2px 6px",borderRadius:0,border:`1px solid rgba(46,213,115,0.251)`,background:C.gnD}}>
-                    ✓ REVIEWED
+                    ✓ {tr(readLang(), 'REVIEWED')}
                   </span>
                 )}
               </h2>
               <div style={{fontSize:12,color:C.tm,marginTop:4}}>
-                Week {wo.week} · {wo.dayName} · {fmtPrettyDate(wo.date)}
+                {tt('Week')} {wo.week} · {wo.dayName} · {fmtPrettyDate(wo.date)}
               </div>
             </div>
-            <div style={{textAlign:"right"}}>
+            <div style={{textAlign: "end"}}>
               <div style={{fontSize:18,fontWeight:700,fontFamily:FN,color:C.gn}}>{completedSets}/{totalSets}</div>
               <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em'}}>{tt('SETS DONE')}</div>
             </div>
@@ -2309,18 +2311,18 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                   <div style={{fontWeight:600,fontSize:13}}>{exName}</div>
                   <div style={{fontSize:11,color:C.tm,marginTop:2}}>
                     {ex.prescribed} · {doneSets}/{setsArr.length} sets
-                    {(formVideo?.has || formVideo?.cloudUrl) && <span title="Form video submitted" style={{color:C.gn,marginLeft:6,display:'inline-flex',alignItems:'center',verticalAlign:'-2px'}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></span>}
+                    {(formVideo?.has || formVideo?.cloudUrl) && <span title={tt('Form video submitted')} style={{color:C.gn,marginInlineStart:6,display:'inline-flex',alignItems:'center',verticalAlign:'-2px'}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></span>}
                     {(formVideo?.reviewNotes?.length > 0) && (
-                      <span title={`${formVideo.reviewNotes.length} comment${formVideo.reviewNotes.length===1?'':'s'} on this exercise`} style={{color:C.ac,marginLeft:6}}>
+                      <span title={readLang() === 'he' ? (formVideo.reviewNotes.length === 1 ? 'הערה אחת על התרגיל' : `${formVideo.reviewNotes.length} הערות על התרגיל`) : `${formVideo.reviewNotes.length} comment${formVideo.reviewNotes.length===1?'':'s'} on this exercise`} style={{color:C.ac,marginInlineStart:6}}>
                         💬{formVideo.reviewNotes.length > 1 ? <sup style={{fontSize:8}}>{formVideo.reviewNotes.length}</sup> : null}
                       </span>
                     )}
                     {(currentFocus || nextFocus) && (
-                      <span title={nextFocus ? `Focus written for next week: ${nextFocus}` : `Focus from previous week: ${currentFocus}`} style={{color:C.or,marginLeft:6}}>
+                      <span title={nextFocus ? `Focus written for next week: ${nextFocus}` : `Focus from previous week: ${currentFocus}`} style={{color:C.or,marginInlineStart:6}}>
                         🎯
                       </span>
                     )}
-                    {ex.substitution && <span style={{color:C.or,marginLeft:6,fontFamily:FN,fontWeight:700,fontSize:10,letterSpacing:0.5}} title={`Swapped from "${ex.substitution.from}"`}>⇄ SWAP</span>}
+                    {ex.substitution && <span style={{color:C.or,marginInlineStart:6,fontFamily:FN,fontWeight:700,fontSize:10,letterSpacing:0.5}} title={tr(readLang(), 'Swapped from “{x}”').replace('{x}', ex.substitution.from)}>⇄ {tr(readLang(), 'SWAP')}</span>}
                   </div>
                   {ex.substitution && (
                     <div style={{fontSize:10,color:C.or,marginTop:3,fontFamily:FN,letterSpacing:0.5}}>
@@ -2398,14 +2400,14 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                             .filter(v => v && v.cloudUrl !== formVideo.cloudUrl);
                           if (candidates.length === 0) return canEmbed(fromLib?.videoLink) ? (
                             <button onClick={() => setCompareActive({ left: { url: formVideo.cloudUrl, label: `${wo.planName} · W${wo.week} · ${wo.dayName} — ${ex.title || exName} · ${fmtPrettyDate(wo.date)}`, title: ex.title || exName }, right: { url: fromLib.videoLink, label: 'Reference demo · library', title: ex.title || exName }, rightMode: 'demo' })}
-                            title="Play the athlete's rep next to the branded reference demo"
-                            style={{background:C.acD,border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:9,padding:'3px 8px',borderRadius:0,cursor:'pointer',letterSpacing:0.5}}>◫ vs DEMO</button>
+                            title={tt("Play the athlete's rep next to the branded reference demo")}
+                            style={{background:C.acD,border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:9,padding:'3px 8px',borderRadius:0,cursor:'pointer',letterSpacing:0.5}}>{tt('◫ vs DEMO')}</button>
                           ) : null;
                           const leftLabel = `${wo.planName} · W${wo.week} · ${wo.dayName} — ${ex.title || exName} · ${fmtPrettyDate(wo.date)}`;
                           return (
                             <button onClick={() => setComparePicker({ left: { url: formVideo.cloudUrl, label: leftLabel, title: ex.title || exName }, candidates })}
                               style={{background:'var(--c-sf)',border:`1px solid rgba(46,213,115,0.376)`,color:C.gn,fontFamily:FN,fontSize:9,padding:'3px 8px',borderRadius:0,cursor:'pointer',letterSpacing:0.5}}>
-                              ⇄ COMPARE
+                              ⇄ {tr(readLang(), 'COMPARE')}
                             </button>
                           );
                         })()}
@@ -2423,9 +2425,9 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                           } : null}
                         />
                       ) : formVideo.fileName ? (
-                        <div style={{fontSize:11,color:C.tm,marginBottom:4}}>File: {formVideo.fileName} (upload pending)</div>
+                        <div style={{fontSize:11,color:C.tm,marginBottom:4}}>{tt('File:')}{formVideo.fileName} (upload pending)</div>
                       ) : null}
-                      {formVideo.note && <div style={{fontSize:12,color:C.tx,marginTop:6}}>Client note: {formVideo.note}</div>}
+                      {formVideo.note && <div style={{fontSize:12,color:C.tx,marginTop:6}}>{tt('Client note:')}{formVideo.note}</div>}
                     </div>
                   ) : (
                     <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:10,marginBottom:10,textAlign:"center"}}>
@@ -2534,12 +2536,12 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
             without a tour. Sits above the action bar, FN caps, low-contrast
             so it doesn't compete with the primary CTA. */}
         <div style={{fontFamily:FN,fontSize:9,color:C.tm,letterSpacing:'0.18em',fontWeight:700,textAlign:'center',marginTop:14,marginBottom:-6}}>
-          M · MARK REVIEWED · &nbsp; J · SKIP · &nbsp; C · COMMENT AT PLAYHEAD
+          M · {tt('MARK REVIEWED')} · &nbsp; J · {tt('SKIP')} · &nbsp; C · {tt('COMMENT AT PLAYHEAD')}
         </div>
         <div style={{display:"flex",gap:8,marginTop:20,marginBottom:8}}>
           {deleteWorkout && (
             <button onClick={() => { setDeleteConfirmFor(wo.id); setDeleteConfirmText(''); }}
-              title="Delete this workout"
+              title={tt('Delete this workout')}
               style={{padding:"12px 16px",borderRadius:0,border:`1px solid ${C.rd||'#c94444'}`,
                 background:"transparent",color:C.rd||'#ff6b6b',fontFamily:FN,fontSize:12,fontWeight:600,
                 cursor:"pointer"}}>
@@ -2555,40 +2557,40 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
               style={{padding:"12px 16px",borderRadius:0,border:`1px solid ${C.cardBd}`,
                 background:"transparent",color:C.tm,fontFamily:FN,fontSize:12,fontWeight:600,
                 cursor:"pointer"}}>
-              UNMARK
+              {tt('UNMARK')}
             </button>
           )}
           {!(wo.reviewedAt && !findNextUnreviewed()) && <button onClick={() => { setSelectedWo(null); setExpandedEx(null); window.scrollTo(0,0); }}
-            title="Return to the review queue"
+            title={tt('Return to the review queue')}
             style={{flex:1,padding:"12px 0",borderRadius:0,border:`1px solid ${C.cardBd}`,
               background:"transparent",color:C.tx,fontFamily:FN,fontSize:13,fontWeight:700,
               letterSpacing:0.5,cursor:"pointer"}}>
-            ← BACK
+            {tt('← BACK')}
           </button>}
           {wo.reviewedAt ? (
             findNextUnreviewed() ? (
               <button onClick={() => { const nextId = findNextUnreviewed(); if (nextId) { setSelectedWo(nextId); setExpandedEx(null); window.scrollTo(0,0); } }}
-                title="Jump to next pending workout"
+                title={tt('Jump to next pending workout')}
                 style={{flex:1,padding:"12px 0",borderRadius:0,border:`1px solid ${C.ac}`,
                   background:C.ac,color:C.acOnSurface,fontFamily:FN,fontSize:13,fontWeight:700,
                   letterSpacing:0.5,cursor:"pointer"}}>
-                → NEXT PENDING ({remainingAfter})
+                → {tr(readLang(), 'NEXT PENDING')} ({remainingAfter})
               </button>
             ) : (
               <button onClick={() => { setSelectedWo(null); setExpandedEx(null); window.scrollTo(0,0); }}
                 style={{flex:1,padding:"12px 0",borderRadius:0,border:`1px solid ${C.gn}`,
                   background:C.gn,color:"#FFFFFF",fontFamily:FN,fontSize:13,fontWeight:700,
                   letterSpacing:0.5,cursor:"pointer"}}>
-                ✓ REVIEWED — BACK
+                ✓ {tr(readLang(), 'REVIEWED — BACK')}
               </button>
             )
           ) : (
             <button onClick={saveAndNext}
-              title="Mark reviewed and return to the list (⌘/Ctrl + Enter)"
+              title={tt('Mark reviewed and return to the list (⌘/Ctrl + Enter)')}
               style={{flex:1,padding:"12px 0",borderRadius:0,border:`1px solid ${C.ac}`,
                 background:C.ac,color:C.acOnSurface,fontFamily:FN,fontSize:13,fontWeight:700,
                 letterSpacing:0.5,cursor:"pointer"}}>
-              ✓ MARK REVIEWED — BACK
+              ✓ {tt('MARK REVIEWED')} — {tt('BACK')}
             </button>
           )}
         </div>
@@ -2658,7 +2660,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
           })()}
           right={onOpenTrainee && trainees.some(t => t.id === cid) ? (
             <button onClick={() => onOpenTrainee(cid)}
-              title="Open this athlete's page"
+              title={tt("Open this athlete's page")}
               style={{background:'transparent',border:'1px solid rgba(255,255,255,0.55)',color:'#FFFFFF',borderRadius:0,
                 padding:'3px 10px',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',
                 textTransform:'uppercase',cursor:'pointer',whiteSpace:'nowrap',lineHeight:1.5}}
@@ -2695,7 +2697,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
               <React.Fragment key={wo.id}>
               {_showWk && (
                 <div style={{display:'flex',alignItems:'center',gap:8,margin:_wi===0?'2px 0 8px':'16px 0 8px',fontFamily:FN,fontSize:9.5,fontWeight:700,letterSpacing:'0.14em',textTransform:'uppercase',color:C.tm}}>
-                  <span>{wo.planName} · Week {wo.week}{_pw?`/${_pw}`:''}</span>
+                  <span>{wo.planName} · {tt('Week')} {wo.week}{_pw?`/${_pw}`:''}</span>
                   <span style={{flex:1,height:1,background:C.cardBd}} />
                 </div>
               )}
@@ -2731,13 +2733,13 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                       <span className="wr-dot">·</span>
                       <span>{fmtPrettyDate(wo.date)}</span>
                       <span className="wr-dot">·</span>
-                      <span>{doneSets}/{totalSets} sets</span>
-                      {hasFormVids && <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={C.tx} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}} aria-label="has form video"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>}
+                      <span>{doneSets}/{totalSets} {tt('sets')}</span>
+                      {hasFormVids && <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={C.tx} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}} aria-label={tr(readLang(), 'has form video')}><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>}
                     </span>
                     {reviewed && (
                       <span style={{fontSize:8,fontFamily:FN,color:C.gn,fontWeight:700,letterSpacing:0.5,
                         padding:"1px 5px",borderRadius:0,border:`1px solid rgba(46,213,115,0.251)`,background:C.gnD}}>
-                        ✓ REVIEWED
+                        ✓ {tr(readLang(), 'REVIEWED')}
                       </span>
                     )}
                   </div>
@@ -2745,15 +2747,15 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                   );
                 })()}
                 {/* Action group — Review/View + Delete together, off to the right */}
-                <div style={{display:'flex',alignItems:'center',gap:8,marginLeft:12,flexShrink:0}}>
+                <div style={{display:'flex',alignItems:'center',gap:8,marginInlineStart:12,flexShrink:0}}>
                   <button onClick={(e)=>{e.stopPropagation();setSelectedWo(wo.id);}}
-                    title={reviewed?'View this workout':'Review this workout'}
+                    title={tr(readLang(), reviewed?'View this workout':'Review this workout')}
                     style={{background:'transparent',border:`1px solid ${reviewed?C.cardBd:C.ac}`,color:reviewed?C.tm:C.ac,
                       borderRadius:0,padding:'5px 12px',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.08em',
-                      cursor:'pointer',whiteSpace:'nowrap'}}>{reviewed?'VIEW →':'REVIEW →'}</button>
+                      cursor:'pointer',whiteSpace:'nowrap'}}>{reviewed?tt('VIEW →'):tt('REVIEW →')}</button>
                   {deleteWorkout && (
                     <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmFor(wo.id); setDeleteConfirmText(''); }}
-                      title="Delete this workout"
+                      title={tt('Delete this workout')}
                       style={{background:'transparent',border:`1px solid ${(C.rd||'#c94444')}40`,color:C.rd||'#ff6b6b',
                         borderRadius:0,padding:'5px 10px',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.08em',cursor:'pointer'}}>
                       {tb("DELETE")}
@@ -2775,7 +2777,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
               tidy row below) + tight padding. Desktop keeps 12/16 side-by-side. */}
           <style>{`@media (max-width: 760px){
             .wr-day-card{ padding: 8px 12px !important; position: relative !important; align-items: flex-start !important; }
-            .wr-day-card > div:last-child{ position: absolute !important; top: 8px !important; right: 12px !important; margin-left: 0 !important; }
+            .wr-day-card > div:last-child{ position: absolute !important; top: 8px !important; inset-inline-end: 12px !important; margin-inline-start: 0 !important; }
             /* Mobile: the meta takes its own full-width line and its items (week /
                date / sets / video icon) spread edge-to-edge with even spacing;
                the dot separators hide (the spacing is the separator now). */

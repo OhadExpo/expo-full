@@ -1,0 +1,14 @@
+import puppeteer from 'puppeteer-core';
+import { signIn } from '../scripts/lib/authed-page.mjs';
+const BASE = 'http://127.0.0.1:4173';
+const w = (ms) => new Promise((r) => setTimeout(r, ms));
+const b = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222' });
+const page = await b.newPage(); await page.setViewport({ width: 1440, height: 1000 });
+await page.goto(BASE, { waitUntil: 'domcontentloaded' }); await w(1500);
+await signIn(page, BASE);
+await page.evaluate(() => { localStorage.setItem('expo-collapse:bhbc-lang', JSON.stringify('he')); });
+await page.goto(`${BASE}/coach/bhbc?lang=he`, { waitUntil: 'domcontentloaded' }); await w(8000);
+console.log(page.url());
+console.log((await page.evaluate(() => document.body.innerText)).slice(0, 400));
+await page.screenshot({ path: 'audit-out/shots-0917/bhbc-peek.png' });
+await page.close(); b.disconnect();

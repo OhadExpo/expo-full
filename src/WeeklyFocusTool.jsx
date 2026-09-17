@@ -9,7 +9,7 @@
 // load the RAW plan row (not useFullPlan, which regenerates ids).
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useT } from './i18n';
+import { useT, tr, readLang } from './i18n';
 import { C, FN, FB } from './theme';
 import { CollapsibleSection } from './ui';
 import { supabase } from './supabase';
@@ -138,7 +138,7 @@ export default function WeeklyFocusTool({ trainees, exercises, weeklyFocus, setW
   return (
     <CollapsibleSection
       bare
-      title="WEEKLY FOCUS · NO UPLOAD NEEDED"
+      title={tt('WEEKLY FOCUS · NO UPLOAD NEEDED')}
       storageKey="review-weekly-focus"
       defaultOpen={false}
       right={saveBadge}
@@ -151,9 +151,9 @@ export default function WeeklyFocusTool({ trainees, exercises, weeklyFocus, setW
           {/* ATHLETE on its own row — the typeahead dropdown renders IN-FLOW
               (not absolute), so the card grows to fit it instead of the
               collapsible's overflow:hidden clipping it. */}
-          <div style={{ marginBottom: 12, maxWidth: 360, marginLeft: 'auto', marginRight: 'auto', textAlign: 'center' }}>
-            <label style={{ ...lbl, textAlign: 'center' }}>ATHLETE</label>
-            <input dir="auto" value={query} placeholder="Type a name…"
+          <div style={{ marginBottom: 12, maxWidth: 360, marginInlineStart: 'auto', marginInlineEnd: 'auto', textAlign: 'center' }}>
+            <label style={{ ...lbl, textAlign: 'center' }}>{tt('ATHLETE')}</label>
+            <input dir="auto" value={query} placeholder={tt('Type a name…')}
               onChange={e => { setQuery(e.target.value); setPickerOpen(true); if (traineeId) setTraineeId(''); }}
               onFocus={() => setPickerOpen(true)}
               onBlur={() => setTimeout(() => setPickerOpen(false), 150)}
@@ -174,7 +174,7 @@ export default function WeeklyFocusTool({ trainees, exercises, weeklyFocus, setW
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 14 }}>
             {plans && plans.length > 1 && (
               <div style={{ flex: '1 1 180px', minWidth: 150 }}>
-                <label style={lbl}>BLOCK</label>
+                <label style={lbl}>{tt('BLOCK')}</label>
                 <select value={planId} onChange={e => setPlanId(e.target.value)} style={{ ...sel, width: '100%' }}>
                   {plans.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
@@ -182,7 +182,7 @@ export default function WeeklyFocusTool({ trainees, exercises, weeklyFocus, setW
             )}
             {plan && (
               <div style={{ flex: '0 0 130px' }}>
-                <label style={lbl}>FOCUS FOR</label>
+                <label style={lbl}>{tt('FOCUS FOR')}</label>
                 <select value={week} onChange={e => setWeek(Number(e.target.value))} style={{ ...sel, width: '100%' }}>
                   {Array.from({ length: focusSlots }, (_, i) => i + 1).map(w => <option key={w} value={w}>W{w} → W{w + 1}</option>)}
                 </select>
@@ -190,24 +190,24 @@ export default function WeeklyFocusTool({ trainees, exercises, weeklyFocus, setW
             )}
           </div>
 
-          {loadErr && <div style={{ color: C.rd, fontFamily: FB, fontSize: 12 }}>Couldn't load plans: {loadErr}</div>}
-          {traineeId && plans === null && !loadErr && <div style={{ color: C.tm, fontFamily: FN, fontSize: 11, letterSpacing: '0.12em' }}>LOADING PLAN…</div>}
-          {traineeId && plans && plans.length === 0 && <div style={{ color: C.tm, fontFamily: FB, fontSize: 12 }}>No active block for this athlete.</div>}
+          {loadErr && <div style={{ color: C.rd, fontFamily: FB, fontSize: 12 }}>{tt("Couldn't load plans:")} {loadErr}</div>}
+          {traineeId && plans === null && !loadErr && <div style={{ color: C.tm, fontFamily: FN, fontSize: 11, letterSpacing: '0.12em' }}>{tt('LOADING PLAN…')}</div>}
+          {traineeId && plans && plans.length === 0 && <div style={{ color: C.tm, fontFamily: FB, fontSize: 12 }}>{tt('No active block for this athlete.')}</div>}
 
           {plan && days.map((d, di) => (
             <div key={di} style={{ marginBottom: 14 }}>
               <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.ac, letterSpacing: '0.14em', marginBottom: 6, textTransform: 'uppercase' }}>{d.label}</div>
-              {d.ex.length === 0 ? <div style={{ color: C.td, fontFamily: FB, fontSize: 12 }}>No exercises.</div> : d.ex.map((ex, xi) => {
+              {d.ex.length === 0 ? <div style={{ color: C.td, fontFamily: FB, fontSize: 12 }}>{tt('No exercises.')}</div> : d.ex.map((ex, xi) => {
                 const val = getF(d.nameRaw, ex.eid);
                 return (
                   <div key={xi} style={{ marginBottom: 8 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
                       <span style={{ fontFamily: FB, fontSize: 13, color: C.tx, direction: isHeb(ex.title) ? 'rtl' : 'ltr', fontWeight: 600 }}>{ex.title}</span>
-                      {val && <span style={{ color: C.gn, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em' }}>✓ SAVED</span>}
+                      {val && <span style={{ color: C.gn, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em' }}>✓ {tr(readLang(), 'SAVED')}</span>}
                     </div>
                     <textarea dir="auto" value={val} onChange={e => setF(d.nameRaw, ex.eid, e.target.value)}
-                      placeholder={`Focus to carry into week ${week + 1}…`}
-                      style={{ width: '100%', boxSizing: 'border-box', background: 'transparent', border: `1px solid ${val ? C.ac : C.cardBd}`, borderLeft: `3px solid ${val ? C.ac : C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 13, padding: 8, borderRadius: 0, resize: 'vertical', minHeight: 38 }} />
+                      placeholder={tr(readLang(), 'Focus to carry into week {n}…').replace('{n}', week + 1)}
+                      style={{ width: '100%', boxSizing: 'border-box', background: 'transparent', border: `1px solid ${val ? C.ac : C.cardBd}`, borderInlineStart: `3px solid ${val ? C.ac : C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 13, padding: 8, borderRadius: 0, resize: 'vertical', minHeight: 38 }} />
                   </div>
                 );
               })}

@@ -26,7 +26,7 @@
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { localiseAutoBody } from './autoTaskHe';
-import { readLang } from './i18n';
+import { tr, readLang, agoLabel } from './i18n';
 import { useCoachNotes } from './coachNotes';
 import { C, FN, FB, FH } from './theme';
 import { isRefined5b, toast, confirmToast, usePersistentState, asButton } from './ui';
@@ -34,6 +34,7 @@ import { useTheme } from './hooks/useTheme';
 import { useCoachNoteComments, useCoachNoteEvents, recordNoteEvent } from './coachNoteComments';
 import { supabase } from './supabase';
 import { useT, useTB } from './i18n';
+import { dayMonthShort } from './dates';
 import {
   isCalendarConnected,
   connectGoogleCalendar,
@@ -54,6 +55,9 @@ import {
 } from './googleCalendarSync';
 
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
+// The task detail's control rows were forced LTR so a Hebrew task BODY would not
+// flip them on the English screen. On the Hebrew screen they mirror with the page.
+const uiDir = () => (readLang() === 'he' ? 'rtl' : 'ltr');
 const YUVAL_COLOR = '#FFA02E';
 
 // Inject the slide-in keyframes for expanded row detail panels once.
@@ -108,14 +112,10 @@ function dateMeta(iso, now) {
   if (diffDays === 1)  return { label: 'TMRW',  color: 'var(--c-tm)', isOverdue: false };
   if (diffDays === -1) return { label: 'YESTERDAY', color: 'var(--c-tm)', isOverdue: true };
   if (diffDays < -1) {
-    const day = d.getDate();
-    const mon = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'][d.getMonth()];
-    return { label: `${day} ${mon}`, color: 'var(--c-tm)', isOverdue: true };
+    return { label: dayMonthShort(d).toUpperCase(), color: 'var(--c-tm)', isOverdue: true };
   }
   if (diffDays > 1 && diffDays <= 6) return { label: ['SUN','MON','TUE','WED','THU','FRI','SAT'][d.getDay()], color: 'var(--c-tm)', isOverdue: false };
-  const day = d.getDate();
-  const mon = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'][d.getMonth()];
-  return { label: `${day} ${mon}`, color: 'var(--c-tm)', isOverdue: false };
+  return { label: dayMonthShort(d).toUpperCase(), color: 'var(--c-tm)', isOverdue: false };
 }
 
 function ownerFromBody(body) {
@@ -380,7 +380,7 @@ function StatusPill({ status, theme, onSetStatus, readOnly = false }) {
   };
   if (readOnly) {
     return (
-      <span title="Read-only" style={{ ...base, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 10px', opacity: 0.65 }}>
+      <span title={tr(readLang(), 'Read-only')} style={{ ...base, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 10px', opacity: 0.65 }}>
         {tb(opt.label)}
       </span>
     );
@@ -393,7 +393,7 @@ function StatusPill({ status, theme, onSetStatus, readOnly = false }) {
         onChange={(e) => onSetStatus(e.target.value)}
         onClick={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}
-        title="Change status"
+        title={tt('Change status')}
         style={{ ...base, cursor: 'pointer' }}>
         {STATUS_OPTIONS.map(o => (
           <option key={o.id} value={o.id} style={{ background: '#fff', color: '#111' }}>{tt(o.label)}</option>
@@ -448,12 +448,12 @@ function PriorityPill({ priority, onSetPriority, readOnly = false }) {
     border: `1px solid ${cur.color}`, background: 'transparent', color: cur.color,
     appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none', backgroundImage: 'none',
   };
-  if (readOnly) return <span title={`Priority: ${tt(cur.label)}`} style={{ ...base, display: 'inline-flex', alignItems: 'center' }}>{tt(cur.label).toUpperCase()}</span>;
+  if (readOnly) return <span title={`${tr(readLang(), 'Priority:')} ${tt(cur.label)}`} style={{ ...base, display: 'inline-flex', alignItems: 'center' }}>{tt(cur.label).toUpperCase()}</span>;
   return (
     <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
       <select className="task-select" value={priority} onChange={(e) => onSetPriority(e.target.value)}
         onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}
-        title="Change urgency" style={{ ...base, cursor: 'pointer' }}>
+        title={tt('Change urgency')} style={{ ...base, cursor: 'pointer' }}>
         {PRIORITY_PICK.map(p => <option key={p.id} value={p.id} style={{ background: '#fff', color: '#111' }}>{tt(p.label)}</option>)}
       </select>
     </span>
@@ -515,6 +515,8 @@ function ViewToggle({ value, onChange }) {
   );
 }
 
+// Hebrew tooltips are whole phrases: 'מיון לפי' + a button label read as 'מיון לפי ידני'.
+const SORT_TIP_HE = { date: 'מיון לפי תאריך יעד', newest: 'מיון מהחדש לישן', priority: 'מיון לפי דחיפות', status: 'מיון לפי סטטוס', name: 'מיון לפי שם', manual: 'מיון ידני' };
 const SORT_MODES = [
   { id: 'date',     label: 'Due' },
   { id: 'newest',   label: 'Newest' },
@@ -540,11 +542,11 @@ function SortBar({ sortBy, sortDir, onSortBy, onToggleDir, rightSlot }) {
     const d = sortDir === 'desc';
     switch (mode) {
       case 'date':     return d ? { a:'↑', t:tt('Latest')  } : { a:'↓', t:tt('Soonest') };
-      case 'newest':   return d ? { a:'↓', t:'Newest'  } : { a:'↑', t:'Oldest'  };
-      case 'priority': return d ? { a:'↑', t:'Low'     } : { a:'↓', t:'High'    };
+      case 'newest':   return d ? { a:'↓', t:tt('Newest') } : { a:'↑', t:tt('Oldest') };
+      case 'priority': return d ? { a:'↑', t:tt('Low') } : { a:'↓', t:tt('High') };
       case 'status':   return d ? { a:'↑', t:tt('Done') } : { a:'↓', t:tt('To Do') };
       case 'name':     return d ? { t:'Z → A' } : { t:'A → Z' };  // → is horizontal, sits fine inline
-      case 'manual':   return { t:'Manual' };
+      case 'manual':   return { t:tt('Manual') };
       default:         return { t:mode };
     }
   };
@@ -562,7 +564,7 @@ function SortBar({ sortBy, sortDir, onSortBy, onToggleDir, rightSlot }) {
           const active = sortBy === m.id;
           return (
             <button key={m.id} onClick={() => active ? onToggleDir() : onSortBy(m.id)} className="tfbtn" data-active={active ? '' : undefined}
-              title={active ? (m.id === 'manual' ? 'Manual order — drag tasks to arrange' : 'Click to flip the sort direction') : `Sort by ${m.label}`}
+              title={active ? tt(m.id === 'manual' ? 'Manual order — drag tasks to arrange' : 'Click to flip the sort direction') : (readLang() === 'he' ? SORT_TIP_HE[m.id] : `${tt('Sort by')} ${tt(m.label)}`)}
               style={{ ...seg(active), flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {active ? (() => { const { a, t } = activeDirParts(m.id); return (
                 <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', gap:4, minWidth:0 }}>
@@ -620,7 +622,7 @@ function QuickFilters({ value, onChange, counts, search, onSearch, resultCount, 
       <span style={{
         fontFamily: FN, fontSize: 10, fontWeight: 700,
         color: 'var(--c-ac)', letterSpacing: '0.06em',
-        marginRight: 4, whiteSpace: 'nowrap',
+        marginInlineEnd: 4, whiteSpace: 'nowrap',
       }}>{resultCount} of {totalCount}</span>
     )}
     <input
@@ -650,7 +652,7 @@ const fmtDMY = (iso) => { if (!iso) return ''; const [y, m, d] = iso.split('-');
 // Composer control grouping — a small uppercase label + its controls, so the
 // expanded "add task" row reads as labelled sections instead of a button soup.
 const cmpGroup = { display: 'inline-flex', alignItems: 'center', gap: 6 };
-const cmpLabel = { fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--c-td)', textTransform: 'uppercase', marginRight: 2 };
+const cmpLabel = { fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--c-td)', textTransform: 'uppercase', marginInlineEnd: 2 };
 // ---- vertical filter rail (Ohad's chosen Tasks toolbar, design 7) ----
 function RailGroup({ label, children }) {
   return (
@@ -673,8 +675,8 @@ function RailOpt({ label, count, active, onClick, title }) {
         transition: 'background .12s, color .12s',
       }}>
       <span style={{ width: 3, alignSelf: 'stretch', background: 'var(--c-ac)', opacity: active ? 1 : 0, flexShrink: 0 }} />
-      <span style={{ flex: 1, textAlign: 'left', padding: '0 8px 0 14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
-      {count != null && <span style={{ paddingRight: 14, fontSize: 9, fontWeight: 700, opacity: active ? 0.9 : 0.55, flexShrink: 0 }}>{count}</span>}
+      <span style={{ flex: 1, textAlign: 'start', padding: '0 8px 0 14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
+      {count != null && <span style={{ paddingInlineEnd: 14, fontSize: 9, fontWeight: 700, opacity: active ? 0.9 : 0.55, flexShrink: 0 }}>{count}</span>}
     </button>
   );
 }
@@ -685,9 +687,9 @@ function sortRailLabel(mode, sortDir, tt = (x) => x) {
     case 'date':     return d ? '↑ ' + tt('Latest') : '↓ ' + tt('Soonest');
     case 'newest':   return d ? '↓ ' + tt('Newest') : '↑ ' + tt('Oldest');
     case 'priority': return d ? '↑ ' + tt('Low')    : '↓ ' + tt('High');
-    case 'status':   return d ? '↑ Done'   : '↓ To-Do';
+    case 'status':   return d ? '↑ ' + tt('Done') : '↓ ' + tt('To Do');
     case 'name':     return d ? 'Z → A'    : 'A → Z';
-    default:         return 'Manual';
+    default:         return tt('Manual');
   }
 }
 
@@ -762,7 +764,10 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
           onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
           placeholder={tt('Add a task…')} data-hotkey="add"
           style={{
-            flex: 1, background: 'transparent', border: 'none', outline: 'none',
+            // minWidth 0 or the input refuses to shrink past its intrinsic
+            // size: measured at 360 the composer row overflowed by 15px and the
+            // "ENTER TO SAVE" hint crossed the row's own edge.
+            flex: 1, minWidth: 0, background: 'transparent', border: 'none', outline: 'none',
             fontFamily: FB, fontSize: 13, color: 'var(--c-tx)', padding: 0,
           }}
           autoComplete="off"
@@ -775,7 +780,7 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
               border: 'none', fontFamily: FN, fontSize: 9, fontWeight: 700,
               letterSpacing: '0.12em', padding: '5px 12px', height: 24,
               cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase',
-            }}>add</button>
+            }}>{tt('add')}</button>
         ) : (
           <span style={{
             fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
@@ -787,7 +792,7 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
         {expanded && (
           <button
             onMouseDown={(e) => { e.preventDefault(); setBody(''); setDue(''); setTime(''); setPriority('normal'); setTraineeId(''); setSource('manual'); setAssignee(defaultAssignee); setFocused(false); inputRef.current?.blur(); }}
-            title="Discard" aria-label="Discard task draft"
+            title={tr(readLang(), 'Discard')} aria-label={tt('Discard task draft')}
             style={{ background: 'transparent', border: '1px solid var(--c-cardBd)', color: 'var(--c-tm)', width: 24, height: 24, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', borderRadius: 0, fontSize: 15, lineHeight: 1, flexShrink: 0 }}>×</button>
         )}
       </div>
@@ -800,7 +805,7 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
           {/* Row 1 — Assign + Due (grouped + labelled so it's not a button soup) */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
             <span style={cmpGroup}>
-              <span style={cmpLabel}>Assign</span>
+              <span style={cmpLabel}>{tr(readLang(), 'Assign')}</span>
               {[['ohad','O',C.ac],['yuval','Y',YUVAL_COLOR],['shared','·','linear-gradient(135deg,'+C.ac+' 0% 50%,'+YUVAL_COLOR+' 50% 100%)']].map(([id,initial,color]) => (
                 <button key={id}
                   onMouseDown={(e) => { e.preventDefault(); setAssignee(id); }}
@@ -816,7 +821,7 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
               ))}
             </span>
             <span style={cmpGroup}>
-              <span style={cmpLabel}>Due</span>
+              <span style={cmpLabel}>{tr(readLang(), 'Due')}</span>
               {/* lang=en-GB → dd/mm/yyyy display; onClick showPicker → the WHOLE
                   field opens the picker, not just the calendar glyph. */}
               <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
@@ -827,7 +832,7 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
                   onClick={(e) => { e.stopPropagation(); try { e.currentTarget.showPicker(); } catch { /* noop */ } }}
                   style={{ background: 'transparent', color: 'transparent', border: `1px solid var(--c-cardBd)`, fontFamily: FN, fontSize: 10, fontWeight: 600, padding: '3px 6px', height: 24, width: 120, borderRadius: 0, outline: 'none', cursor: 'pointer' }} />
                 {/* dd/mm/yyyy overlay (native text is transparent; calendar icon stays) */}
-                <span style={{ position: 'absolute', left: 7, fontFamily: FN, fontSize: 10, fontWeight: 600, color: due ? 'var(--c-tm)' : 'var(--c-td)', pointerEvents: 'none', letterSpacing: '0.02em' }}>{due ? fmtDMY(due) : 'DD/MM/YYYY'}</span>
+                <span style={{ position: 'absolute', insetInlineStart: 7, fontFamily: FN, fontSize: 10, fontWeight: 600, color: due ? 'var(--c-tm)' : 'var(--c-td)', pointerEvents: 'none', letterSpacing: '0.02em' }}>{due ? fmtDMY(due) : 'DD/MM/YYYY'}</span>
               </span>
               <input
                 type="time" value={time}
@@ -835,18 +840,18 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
                 onMouseDown={(e) => e.stopPropagation()}
                 onClick={(e) => { e.stopPropagation(); if (due) { try { e.currentTarget.showPicker(); } catch { /* noop */ } } }}
                 disabled={!due}
-                title={due ? 'Time (default 09:00)' : 'Pick a date first'}
+                title={tr(readLang(), due ? 'Time (default 09:00)' : 'Pick a date first')}
                 style={{ background: 'transparent', color: due ? 'var(--c-tm)' : 'var(--c-td)', border: `1px solid var(--c-cardBd)`, fontFamily: FN, fontSize: 10, fontWeight: 600, padding: '3px 6px', height: 24, borderRadius: 0, outline: 'none', opacity: due ? 1 : 0.5, cursor: due ? 'pointer' : 'default' }} />
             </span>
           </div>
           {/* Row 2 — Urgency */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
             <span style={cmpGroup}>
-              <span style={cmpLabel}>Urgency</span>
+              <span style={cmpLabel}>{tt('Urgency')}</span>
               {[['low','LOW','var(--c-td)'],['normal','NORMAL','var(--c-tm)'],['high','HIGH','var(--c-tx)'],['urgent','URGENT',C.rd]].map(([id, label, color]) => (
                 <button key={id}
                   onMouseDown={(e) => { e.preventDefault(); setPriority(id); }}
-                  title={`Priority: ${label}`}
+                  title={`${tr(readLang(), 'Priority:')} ${tr(readLang(), label)}`}
                   style={{ background: priority === id ? color : 'transparent', color: priority === id ? '#FFFFFF' : color, border: `1px solid ${priority === id ? color : 'var(--c-cardBd)'}`, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', padding: '3px 8px', height: 24, cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>{label}</button>
               ))}
             </span>
@@ -854,7 +859,7 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
           {/* Row 3 — List + Athlete */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
             <span style={cmpGroup}>
-              <span style={cmpLabel}>List</span>
+              <span style={cmpLabel}>{tr(readLang(), 'List')}</span>
               {[['manual', 'General'], ['center', 'Performance Center']].map(([id, label]) => (
                 <button key={id}
                   onMouseDown={(e) => { e.preventDefault(); setSource(id); }}
@@ -863,10 +868,10 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
             </span>
             {(trainees || []).length > 0 && (
               <span style={cmpGroup}>
-                <span style={cmpLabel}>Athlete</span>
-                <select value={traineeId} onChange={(e) => setTraineeId(e.target.value)} onMouseDown={(e) => e.stopPropagation()} title="Link this task to an athlete"
+                <span style={cmpLabel}>{tr(readLang(), 'Athlete')}</span>
+                <select value={traineeId} onChange={(e) => setTraineeId(e.target.value)} onMouseDown={(e) => e.stopPropagation()} title={tt('Link this task to an athlete')}
                   style={{ background: 'transparent', color: traineeId ? C.ac : 'var(--c-tm)', border: `1px solid ${traineeId ? C.ac : 'var(--c-cardBd)'}`, fontFamily: FN, fontSize: 10, fontWeight: 600, padding: '3px 6px', height: 24, borderRadius: 0, outline: 'none', maxWidth: 160, textOverflow: 'ellipsis' }}>
-                  <option value="">— no athlete —</option>
+                  <option value="">{tt('— no athlete —')}</option>
                   {[...trainees].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(t => (
                     <option key={t.id} value={t.id}>{t.name || t.id}</option>
                   ))}
@@ -874,7 +879,7 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
               </span>
             )}
             <span style={{ flex: 1 }} />
-            <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 600, color: 'var(--c-td)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Enter to add</span>
+            <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 600, color: 'var(--c-td)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>{tt('Enter to add')}</span>
           </div>
         </div>
       )}
@@ -888,6 +893,7 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
 // the same browser for the calendar to render (which they will be, since
 // the GIS connect flow above primed that session).
 function CalendarEmbedCard() {
+  const tt = useT();
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState(null);
   useEffect(() => {
@@ -913,11 +919,11 @@ function CalendarEmbedCard() {
     }}>
       <button
         onClick={() => setOpen(o => !o)}
-        title={open ? 'Collapse calendar' : 'Expand calendar'}
+        title={tr(readLang(), open ? 'Collapse calendar' : 'Expand calendar')}
         style={{
           display: 'flex', alignItems: 'center', gap: 10, width: '100%',
           background: 'transparent', border: 'none', cursor: 'pointer',
-          padding: '10px 14px', textAlign: 'left',
+          padding: '10px 14px', textAlign: 'start',
         }}>
         <span style={{
           fontFamily: FN, fontSize: 11, fontWeight: 700,
@@ -927,13 +933,13 @@ function CalendarEmbedCard() {
         <span style={{ flex: 1 }} />
         <a href={fullCalendarHref} target="_blank" rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}
-          title="Open full Google Calendar (with Tasks layer + multi-calendar) in a new tab"
+          title={tt('Open full Google Calendar (with Tasks layer + multi-calendar) in a new tab')}
           style={{
             fontFamily: FN, fontSize: 9, fontWeight: 700,
             color: 'var(--c-ac)', letterSpacing: '0.12em',
             textTransform: 'uppercase', textDecoration: 'none',
             border: '1px solid var(--c-ac)', padding: '3px 8px',
-          }}>↗ Full View</a>
+          }}>↗ {tr(readLang(), 'Full View')}</a>
         {/* canonical collapse affordance: chevron on the RIGHT (billing style).
             Uses --c-tx, NOT a literal white: on the light theme a white chevron
             sat on a white surface and the control was invisible. */}
@@ -971,7 +977,7 @@ function SectionHeader({ label, count, color, collapsed, onToggleCollapse }) {
     <div
       {...asButton(onToggleCollapse)}
       aria-expanded={!collapsed}
-      aria-label={`Toggle ${label} section`}
+      aria-label={tr(readLang(), 'Toggle the {x} section').replace('{x}', tr(readLang(), label))}
       style={{
         display: 'flex', alignItems: 'center', gap: 8,
         padding: '8px 12px', cursor: 'pointer',
@@ -1018,7 +1024,7 @@ function AuthorChip({ author }) {
         background: isYuval ? YUVAL_COLOR : 'var(--c-ac)',
         color: '#FFFFFF', fontSize: 8,
       }}>{isYuval ? 'Y' : 'O'}</span>
-      {isYuval ? 'Yuval' : 'Ohad'}
+      {tr(readLang(), isYuval ? 'Yuval' : 'Ohad')}
     </span>
   );
 }
@@ -1033,9 +1039,21 @@ const EVENT_VERB = {
   linked:            'linked',
   reopened:          'reopened',
 };
+const EVENT_VERB_HE = {
+  created:           'יצר את המשימה',
+  status_changed:    'שינה סטטוס',
+  assigned:          'העביר',
+  due_changed:       'שינה תאריך',
+  body_edited:       'ערך את הטקסט',
+  priority_changed:  'שינה דחיפות',
+  linked:            'קישר',
+  reopened:          'פתח מחדש',
+};
+const EVENT_VALUE_HE = { urgent: 'דחוף', high: 'גבוה', normal: 'רגיל', low: 'נמוך', open: 'לביצוע', working: 'בתהליך', waiting: 'ממתין', stuck: 'תקוע', done: 'בוצע', cancelled: 'בוטל' };
 
 function relativeTime(iso, now) {
   if (!iso) return '';
+  if (readLang() === 'he') return agoLabel(iso, 'he');
   const then = new Date(iso).getTime();
   if (isNaN(then)) return '';
   const diff = (now - then) / 1000;
@@ -1126,6 +1144,7 @@ GRANT USAGE ON SEQUENCE public.coach_note_events_id_seq TO authenticated;
 // click copies the SQL → Ohad opens Studio (link below) → pastes →
 // runs. Two clicks total to unlock comments + audit log + Phase 1 cols.
 function MigrationPendingHint() {
+  const tt = useT();
   const [copied, setCopied] = useState(false);
   const onCopy = async () => {
     try {
@@ -1148,7 +1167,7 @@ function MigrationPendingHint() {
         fontFamily: FN, fontSize: 10, fontWeight: 700,
         color: 'var(--c-tm)', letterSpacing: '0.12em',
         textTransform: 'uppercase', marginBottom: 6,
-      }}>Comments + audit log pending</div>
+      }}>{tt('Comments + audit log pending')}</div>
       <div style={{
         fontFamily: FB, fontSize: 12, color: 'var(--c-tx)',
         marginBottom: 8, lineHeight: 1.5,
@@ -1183,6 +1202,7 @@ const cmtActionBtn = {
   padding: '2px 7px', cursor: 'pointer', borderRadius: 0,
 };
 export function CommentsThread({ noteId, viewer }) {
+  const tt = useT();
   const { rows, loading, available, add, update, remove } = useCoachNoteComments(noteId);
   const [draft, setDraft] = useState('');
   const [editingId, setEditingId] = useState(null);
@@ -1257,7 +1277,7 @@ export function CommentsThread({ noteId, viewer }) {
         fontFamily: FN, fontSize: 9, fontWeight: 700,
         letterSpacing: '0.12em', color: 'var(--c-tm)',
         textTransform: 'uppercase', marginBottom: 6,
-      }}>Comments {rows.length > 0 ? `· ${rows.length}` : ''}</div>
+      }}>{tr(readLang(), 'Comments')} {rows.length > 0 ? `· ${rows.length}` : ''}</div>
       {rows.map(c => {
         const heb = isHebrew(c.body || '');
         const mine = c.author === author;          // only your own comments are editable
@@ -1271,21 +1291,21 @@ export function CommentsThread({ noteId, viewer }) {
           }}>
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              marginBottom: 4, direction: 'ltr', gap: 8,
+              marginBottom: 4, direction: uiDir(), gap: 8,
             }}>
               <AuthorChip author={c.author} />
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                 {mine && !editing && (
                   <>
-                    <button onClick={(e) => { e.stopPropagation(); setEditingId(c.id); setEditDraft(c.body || ''); }} style={cmtActionBtn}>Edit</button>
-                    <button onClick={async (e) => { e.stopPropagation(); if (await confirmToast('Delete this comment?', { okLabel: 'Delete', cancelLabel: 'Keep' })) remove(c.id); }} style={{ ...cmtActionBtn, color: 'var(--c-rd)', borderColor: 'var(--c-rd)' }}>Delete</button>
+                    <button onClick={(e) => { e.stopPropagation(); setEditingId(c.id); setEditDraft(c.body || ''); }} style={cmtActionBtn}>{tr(readLang(), 'Edit')}</button>
+                    <button onClick={async (e) => { e.stopPropagation(); if (await confirmToast('Delete this comment?', { okLabel: 'Delete', cancelLabel: 'Keep' })) remove(c.id); }} style={{ ...cmtActionBtn, color: 'var(--c-rd)', borderColor: 'var(--c-rd)' }}>{tr(readLang(), 'Delete')}</button>
                   </>
                 )}
                 <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 600, color: 'var(--c-td)', letterSpacing: '0.04em' }}>{relativeTime(c.created_at, now)}</span>
               </span>
             </div>
             {editing ? (
-              <div style={{ display: 'flex', gap: 6, marginTop: 4, direction: 'ltr', alignItems: 'flex-start' }}>
+              <div style={{ display: 'flex', gap: 6, marginTop: 4, direction: uiDir(), alignItems: 'flex-start' }}>
                 {/* Multi-line edit (matches the composer): Enter = newline,
                     ⌘/Ctrl+Enter = save, Escape = cancel. */}
                 <textarea value={editDraft} autoFocus rows={1}
@@ -1294,8 +1314,8 @@ export function CommentsThread({ noteId, viewer }) {
                   onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); saveEdit(); } if (e.key === 'Escape') setEditingId(null); }}
                   ref={(el) => { if (el && el.style.height === '') { el.style.height = Math.min(el.scrollHeight, 160) + 'px'; } }}
                   style={{ flex: 1, background: 'transparent', border: `1px solid var(--c-cardBd)`, fontFamily: FB, fontSize: 12, color: 'var(--c-tx)', padding: '6px 10px', borderRadius: 0, outline: 'none', resize: 'vertical', minHeight: 30, lineHeight: 1.4, boxSizing: 'border-box' }} />
-                <button onClick={(e) => { e.stopPropagation(); saveEdit(); }} style={{ ...cmtActionBtn, background: 'var(--c-ac)', color: '#fff', border: 'none' }}>Save</button>
-                <button onClick={(e) => { e.stopPropagation(); setEditingId(null); }} style={cmtActionBtn}>Cancel</button>
+                <button onClick={(e) => { e.stopPropagation(); saveEdit(); }} style={{ ...cmtActionBtn, background: 'var(--c-ac)', color: '#fff', border: 'none' }}>{tr(readLang(), 'Save')}</button>
+                <button onClick={(e) => { e.stopPropagation(); setEditingId(null); }} style={cmtActionBtn}>{tr(readLang(), 'Cancel')}</button>
               </div>
             ) : (
               <div style={{
@@ -1310,10 +1330,10 @@ export function CommentsThread({ noteId, viewer }) {
               }}>{c.body}</div>
             )}
             {Array.isArray(c.mentions) && c.mentions.length > 0 && !editing && (
-              <div style={{ marginTop: 4, direction: 'ltr' }}>
+              <div style={{ marginTop: 4, direction: uiDir() }}>
                 {c.mentions.map(m => (
                   <span key={m} style={{
-                    display: 'inline-block', marginRight: 6,
+                    display: 'inline-block', marginInlineEnd: 6,
                     fontFamily: FN, fontSize: 9, fontWeight: 700,
                     color: m === 'yuval' ? YUVAL_COLOR : 'var(--c-ac)',
                     letterSpacing: '0.04em',
@@ -1330,7 +1350,7 @@ export function CommentsThread({ noteId, viewer }) {
       }}>
         {/* Author is fixed to the viewer — a non-interactive identity chip
             stands in for the old toggle so it's clear who you're posting as. */}
-        <span title={`Posting as ${author === 'yuval' ? 'Yuval' : 'Ohad'}`}
+        <span title={tr(readLang(), author === 'yuval' ? 'Posting as Yuval' : 'Posting as Ohad')}
           style={{
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             flexShrink: 0, width: 32, height: 32, boxSizing: 'border-box', borderRadius: 0,
@@ -1355,8 +1375,8 @@ export function CommentsThread({ noteId, viewer }) {
             }
             if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); submit(e); }
           }}
-          placeholder="Add comment…"
-          title="Enter = new line · ⌘/Ctrl+Enter to send · type @ to mention"
+          placeholder={tr(readLang(), 'Add comment…')}
+          title={tt('Enter = new line · ⌘/Ctrl+Enter to send · type @ to mention')}
           style={{
             flex: 1, background: 'transparent',
             border: `1px solid var(--c-cardBd)`,
@@ -1365,11 +1385,11 @@ export function CommentsThread({ noteId, viewer }) {
             resize: 'vertical', minHeight: 32, height: 32, lineHeight: 1.4, boxSizing: 'border-box',
           }} />
         {mention && mentionMatches.length > 0 && (
-          <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 2, zIndex: 40, minWidth: 170, background: 'var(--c-sf)', border: '1px solid var(--c-cardBd)', boxShadow: '0 6px 20px rgba(0,0,0,0.45)' }}>
+          <div style={{ position: 'absolute', top: '100%', insetInlineStart: 0, marginTop: 2, zIndex: 40, minWidth: 170, background: 'var(--c-sf)', border: '1px solid var(--c-cardBd)', boxShadow: '0 6px 20px rgba(0,0,0,0.45)' }}>
             {mentionMatches.map((p, i) => (
               <button key={p.key} type="button"
                 onMouseDown={(e) => { e.preventDefault(); applyMention(p); }}
-                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', padding: '7px 10px', background: i === (mention.index % mentionMatches.length) ? 'var(--c-sf2)' : 'transparent', border: 'none', cursor: 'pointer', fontFamily: FB, fontSize: 12, color: 'var(--c-tx)' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'start', padding: '7px 10px', background: i === (mention.index % mentionMatches.length) ? 'var(--c-sf2)' : 'transparent', border: 'none', cursor: 'pointer', fontFamily: FB, fontSize: 12, color: 'var(--c-tx)' }}>
                 <span style={{ width: 20, height: 20, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 0, background: p.key === 'yuval' ? YUVAL_COLOR : 'var(--c-ac)', color: '#FFFFFF', fontFamily: FN, fontSize: 10, fontWeight: 700 }}>{p.key === 'yuval' ? 'Y' : 'O'}</span>
                 <span>@{p.key} <span style={{ color: 'var(--c-td)', fontSize: 11 }}>· {p.label}</span></span>
               </button>
@@ -1385,14 +1405,14 @@ export function CommentsThread({ noteId, viewer }) {
             fontFamily: FN, fontSize: 10, fontWeight: 700,
             letterSpacing: '0.12em', textTransform: 'uppercase',
             cursor: draft.trim() && !busy ? 'pointer' : 'default',
-          }}>Send</button>
+          }}>{tr(readLang(), 'Send')}</button>
       </form>
       {loading && rows.length === 0 && (
         <div style={{
           fontFamily: FN, fontSize: 9, fontWeight: 600,
           color: 'var(--c-td)', letterSpacing: '0.04em',
           textTransform: 'uppercase', marginTop: 6,
-        }}>Loading…</div>
+        }}>{tr(readLang(), 'Loading…')}</div>
       )}
     </div>
   );
@@ -1410,18 +1430,20 @@ export function EventTimeline({ noteId }) {
         fontFamily: FN, fontSize: 9, fontWeight: 700,
         letterSpacing: '0.12em', color: 'var(--c-tm)',
         textTransform: 'uppercase', marginBottom: 6,
-      }}>Activity</div>
-      <div style={{ direction: 'ltr' }}>
+      }}>{tr(readLang(), 'Activity')}</div>
+      <div style={{ direction: uiDir() }}>
         {rows.map(ev => {
-          const verb = EVENT_VERB[ev.kind] || ev.kind;
+          const he = readLang() === 'he';
+          const verb = (he ? EVENT_VERB_HE : EVENT_VERB)[ev.kind] || ev.kind;
+          const val = (v) => (he ? EVENT_VALUE_HE[v] || v : v);
           // For the "created" event, to_value is the ASSIGNEE, not a second
           // actor. Rendering it bare ("Ohad created the task · yuval") read as
           // if two people created it. Label it as an assignment instead.
           const ASSIGN_LABEL = { shared: 'Shared', yuval: 'Yuval', ohad: 'Ohad' };
           const change = ev.kind === 'created'
-            ? (ev.to_value ? `for ${ASSIGN_LABEL[ev.to_value] || ev.to_value}` : '')
+            ? (ev.to_value ? (he && ev.to_value === 'shared' ? 'משימה משותפת' : `${tr(readLang(), 'for')} ${tr(readLang(), ASSIGN_LABEL[ev.to_value] || ev.to_value)}`) : '')
             : (ev.from_value && ev.to_value)
-              ? `${ev.from_value} → ${ev.to_value}`
+              ? (he ? `${val(ev.from_value)} ← ${val(ev.to_value)}` : `${ev.from_value} → ${ev.to_value}`)
               : (ev.to_value || ev.detail || '');
           return (
             <div key={ev.id} style={{
@@ -1439,7 +1461,7 @@ export function EventTimeline({ noteId }) {
                 }}>{change}</span>
               )}
               <span style={{
-                marginLeft: 'auto',
+                marginInlineStart: 'auto',
                 fontFamily: FN, fontSize: 9, fontWeight: 600,
                 color: 'var(--c-td)', letterSpacing: '0.04em',
               }}>{relativeTime(ev.created_at, now)}</span>
@@ -1452,6 +1474,7 @@ export function EventTimeline({ noteId }) {
 }
 
 function ExpandedDetail({ row, displayBody, viewer, onSetCategory, onArchive, onDelete, readOnly = false }) {
+  const tt = useT();
   const heb = isHebrew(displayBody || '');
   // Filter internal-use tags (gevent/getag/glink/approved) out of the
   // visible tag list. (Dual-approval removed 2026-06-06 — any legacy
@@ -1479,7 +1502,7 @@ function ExpandedDetail({ row, displayBody, viewer, onSetCategory, onArchive, on
       {/* Title is NOT repeated here — the row above shows it in full once
           expanded. Detail starts at tags / approval / calendar / comments. */}
       {tags.length > 0 && (
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6, direction: 'ltr' }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6, direction: uiDir() }}>
           {tags.map(t => (
             <span key={t} style={{
               fontFamily: FN, fontSize: 9, fontWeight: 700,
@@ -1490,20 +1513,20 @@ function ExpandedDetail({ row, displayBody, viewer, onSetCategory, onArchive, on
         </div>
       )}
       {readOnly && (
-        <div style={{ marginTop: 10, direction: 'ltr' }}>
-          <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 600, color: 'var(--c-td)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Read-only — belongs to the other coach</span>
+        <div style={{ marginTop: 10, direction: uiDir() }}>
+          <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 600, color: 'var(--c-td)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>{tt('Read-only — belongs to the other coach')}</span>
         </div>
       )}
       {/* Move the task between General and Performance Center (Ohad). */}
       {!readOnly && onSetCategory && (cat === 'manual' || cat === 'center') && (
-        <div style={{ marginTop: 10, direction: 'ltr', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ marginTop: 10, direction: uiDir(), display: 'flex', alignItems: 'center', gap: 8 }}>
           {/* Compact picker — was a "List" label + two buttons, too wide (Ohad). */}
           <select value={cat} onClick={(e) => e.stopPropagation()}
             onChange={(e) => { e.stopPropagation(); if (e.target.value !== cat) onSetCategory(row, e.target.value); }}
-            title="Move this task to another list"
+            title={tt('Move this task to another list')}
             style={{ width: 175, boxSizing: 'border-box', background: 'var(--c-sf)', color: 'var(--c-tx)', border: `1px solid var(--c-cardBd)`, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', padding: '4px 22px 4px 8px', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>
-            <option value="manual">General</option>
-            <option value="center">Performance Center</option>
+            <option value="manual">{tt('General')}</option>
+            <option value="center">{tt('Performance Center')}</option>
           </select>
         </div>
       )}
@@ -1511,16 +1534,16 @@ function ExpandedDetail({ row, displayBody, viewer, onSetCategory, onArchive, on
           pool at the bottom (recoverable); Delete removes it for good with a
           typed-free confirm. Both hidden on the other coach's read-only tasks. */}
       {!readOnly && (onArchive || onDelete) && (
-        <div style={{ marginTop: 10, direction: 'ltr', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ marginTop: 10, direction: uiDir(), display: 'flex', alignItems: 'center', gap: 8 }}>
           {onArchive && row.status !== 'cancelled' && (
             <button onClick={(e) => { e.stopPropagation(); onArchive(row); }}
-              title="Archive — moves this task to the Done/Cancelled pool (recoverable)"
-              style={{ background: 'transparent', border: `1px solid var(--c-cardBd)`, color: 'var(--c-tm)', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', padding: '5px 10px', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>⊘ Archive</button>
+              title={tt('Archive — moves this task to the Done/Cancelled pool (recoverable)')}
+              style={{ background: 'transparent', border: `1px solid var(--c-cardBd)`, color: 'var(--c-tm)', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', padding: '5px 10px', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>⊘ {tr(readLang(), 'Archive')}</button>
           )}
           {onDelete && (
             <button onClick={async (e) => { e.stopPropagation(); if (await confirmToast('Delete this task permanently? This cannot be undone.', { okLabel: 'Delete', cancelLabel: 'Keep' })) onDelete(row); }}
-              title="Delete this task permanently"
-              style={{ background: 'transparent', border: `1px solid var(--c-rd)`, color: 'var(--c-rd)', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', padding: '5px 10px', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>🗑 Delete</button>
+              title={tt('Delete this task permanently')}
+              style={{ background: 'transparent', border: `1px solid var(--c-rd)`, color: 'var(--c-rd)', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', padding: '5px 10px', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>🗑 {tr(readLang(), 'Delete')}</button>
           )}
         </div>
       )}
@@ -1580,14 +1603,13 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
 
   // Due shown as relative word + real date + time on ONE row (his spec:
   // "relative + date + time"), e.g. "TMRW · 7 Jun 09:00".
-  const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const RELATIVE_WORDS = new Set(['TODAY','TMRW','YESTERDAY','SUN','MON','TUE','WED','THU','FRI','SAT']);
   let dateStr = null;
   if (hasDue) {
     const dd = new Date(row._dueAt);
     if (!isNaN(dd.getTime())) {
-      const real = `${dd.getDate()} ${MON[dd.getMonth()]}`;
-      dateStr = RELATIVE_WORDS.has(dm.label) ? `${dm.label} · ${real}` : real;
+      const real = dayMonthShort(dd);
+      dateStr = RELATIVE_WORDS.has(dm.label) ? `${tt(dm.label)} · ${real}` : real;
       if (row._dueTime) dateStr += ` ${row._dueTime}`;
     }
   }
@@ -1602,7 +1624,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
       <div
         {...asButton(onToggleExpand)}
         data-taskid={row.id}
-        aria-label="Expand task for comments + detail"
+        aria-label={tt('Expand task for comments + detail')}
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => setHover(false)}
         style={{
@@ -1617,7 +1639,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
           // rows keep their tight padding.
           padding: board ? '5px 8px 5px 26px' : compact ? '4px 8px' : '7px 12px 7px 9px', cursor: 'pointer', minHeight: compact ? 26 : 32,
           borderBottom: `1px solid var(--c-cardBd)`,
-          borderLeft: `3px solid ${edgeColor}`,
+          borderInlineStart: `3px solid ${edgeColor}`,
           background: expanded ? 'var(--c-sf2, transparent)'
                      : hover     ? 'var(--c-sf2, rgba(57,189,255,0.04))'
                                  : 'transparent',
@@ -1651,7 +1673,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
               chips line up vertically and titles keep an identical edge (Ohad #207). */}
           <span style={{ flexShrink: 0, width: wrapRow ? 'auto' : 104, display: 'inline-flex', alignItems: 'center' }}>
             {showAthlete && (
-              <span title={`Athlete: ${athleteName}`} style={{
+              <span title={`${tr(readLang(), 'Athlete:')} ${athleteName}`} style={{
                 boxSizing: 'border-box', height: TASK_PILL_H, display: 'inline-flex', alignItems: 'center',
                 fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em',
                 color: 'var(--c-tm)', whiteSpace: 'nowrap', width: wrapRow ? 'auto' : '100%', maxWidth: wrapRow ? 132 : undefined, justifyContent: 'center',
@@ -1689,7 +1711,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
                 {isOverdue ? (
                   // "OVERDUE · YESTERDAY" — OVERDUE solid white, the day faded white
                   // (same opacity as the SHARED tag). Ohad's spec.
-                  <>{tt('OVERDUE')}<span style={{ opacity: 0.4 }}>·</span><span style={{ opacity: 0.55 }}>{dm.label}</span></>
+                  <>{tt('OVERDUE')}<span style={{ opacity: 0.4 }}>·</span><span style={{ opacity: 0.55 }}>{RELATIVE_WORDS.has(dm.label) ? tt(dm.label) : dm.label}</span></>
                 ) : dateStr}
               </span>
             )}
@@ -1750,7 +1772,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
             (Yuval: make the board status more readable). Status there is
             changed by dragging between columns / from the expanded detail. */}
         {!hideStatus && (
-          <span style={{ display: 'inline-flex', flexShrink: 0, marginLeft: wrapRow ? 'auto' : undefined, ...(phone ? { order: 2 } : null) }}>
+          <span style={{ display: 'inline-flex', flexShrink: 0, marginInlineStart: wrapRow ? 'auto' : undefined, ...(phone ? { order: 2 } : null) }}>
             <StatusPill status={row.status} theme={theme} onSetStatus={(s) => onSetStatus(row, s)} readOnly={readOnly} />
           </span>
         )}
@@ -1904,9 +1926,9 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
               }));
             }
             if (fail === 0) {
-              toast(`Synced ${done} existing task${done === 1 ? '' : 's'} to Calendar ✓`, 'success', { ttl: 4000 });
+              toast(readLang() === 'he' ? `${done === 1 ? 'משימה קיימת אחת סונכרנה' : `${done} משימות קיימות סונכרנו`} ליומן ✓` : `Synced ${done} existing task${done === 1 ? '' : 's'} to Calendar ✓`, 'success', { ttl: 4000 });
             } else {
-              toast(`Synced ${done}, ${fail} failed — reopen the row to retry`, 'warning', { ttl: 5000 });
+              toast(readLang() === 'he' ? `${done === 1 ? 'אחת סונכרנה' : `${done} סונכרנו`} ו-${fail === 1 ? 'אחת נכשלה' : `${fail} נכשלו`} — פתח את השורה מחדש כדי לנסות שוב` : `Synced ${done}, ${fail} failed — reopen the row to retry`, 'warning', { ttl: 5000 });
             }
           }
         } catch (err) {
@@ -2361,7 +2383,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
   const bulkDelete = async () => {
     const n = selectedIds.size;
     if (!n) return;
-    if (!(await confirmToast(`Delete ${n} task${n === 1 ? '' : 's'}? This can't be undone.`, { okLabel: 'Delete', cancelLabel: 'Keep' }))) return;
+    if (!(await confirmToast(readLang() === 'he' ? `למחוק ${n === 1 ? 'משימה אחת' : `${n} משימות`}? אי אפשר לבטל את זה.` : `Delete ${n} task${n === 1 ? '' : 's'}? This can't be undone.`, readLang() === 'he' ? { okLabel: 'מחיקה', cancelLabel: 'ביטול' } : { okLabel: 'Delete', cancelLabel: 'Keep' }))) return;
     for (const id of [...selectedIds]) { await remove(id); }
     clearSelect();
   };
@@ -2513,7 +2535,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [search, expandedRows, quickAddKey]);
 
-  if (loading) return <div style={{ padding: 24, color: 'var(--c-tm)' }}>Loading…</div>;
+  if (loading) return <div style={{ padding: 24, color: 'var(--c-tm)' }}>{tr(readLang(), 'Loading…')}</div>;
 
   // For non-auto sections, render directly. Auto section collapses by default
   // because it's the engine noise (88+ rows) that drowns out real delegation.
@@ -2573,14 +2595,12 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
               drops — that's information. The 90s poll still refreshes data, so
               this means "live updates paused", not "data stale". */}
           {!connected && (
-            <span title="Realtime sync dropped — changes may take up to 90s to appear until it reconnects" style={{
+            <span title={tt('Realtime sync dropped — changes may take up to 90s to appear until it reconnects')} style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
               fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
               color: 'var(--c-or)', textTransform: 'uppercase',
             }}>
-              <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--c-or)' }} />
-              Sync lost — reconnecting
-            </span>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--c-or)' }} />{tt('Sync lost — reconnecting')}</span>
           )}
         </div>
         <div style={{ width: 168 }}><ViewToggle value={view} onChange={setView} /></div>
@@ -2589,13 +2609,16 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
       {/* Two-column layout: left filter RAIL + content (Ohad's design 7).
           Filters live in a slim labelled left rail beside the list. Rail stacks
           on top when narrow. */}
-      <div style={{ display: 'flex', flexDirection: narrow ? 'column' : 'row', gap: narrow ? 10 : 16, alignItems: 'flex-start' }}>
+      <div style={{ display: 'flex', flexDirection: narrow ? 'column' : 'row', gap: narrow ? 10 : 16, alignItems: narrow ? 'stretch' : 'flex-start', minWidth: 0 }}>
 
         {/* LEFT: filter rail — sticky below the sticky header so the filters
             stay pinned as the (long) list scrolls; scrolls internally if it
             ever outgrows the viewport. Static + full-width when narrow. */}
         <div className="side-rail" style={{
-          width: narrow ? 'auto' : 204, flexShrink: 0,
+          // 'auto' let the rail size to its own widest child, so at 360 it was
+          // 316px inside a 308px column and the whole board scrolled sideways.
+          // Full width of the column when narrow, and it may shrink.
+          width: narrow ? '100%' : 204, minWidth: 0, boxSizing: 'border-box', flexShrink: narrow ? 1 : 0,
           background: 'var(--c-sf2)', border: '1px solid var(--c-cardBd)',
           // Collapsed on mobile → just the toggle bar, no trailing empty box.
           padding: (narrow && !railOpen) ? '12px 0' : '14px 0 16px', display: 'flex', flexDirection: 'column', gap: 12,
@@ -2606,7 +2629,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
           {/* Search box at the TOP of the sidebar, above Filters (Ohad). */}
           <div style={{ padding: '0 14px 12px' }}>
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder={tt('Search tasks…')} data-hotkey="search"
-              style={{ width: '100%', height: 34, boxSizing: 'border-box', padding: '0 11px', borderRadius: 0, background: 'var(--c-sf)', color: 'var(--c-tx)', border: '1px solid var(--c-cardBd)', fontFamily: FN, fontSize: 11, fontWeight: 500, letterSpacing: '0.04em', outline: 'none', textAlign: 'left' }} autoComplete="off" />
+              style={{ width: '100%', height: 34, boxSizing: 'border-box', padding: '0 11px', borderRadius: 0, background: 'var(--c-sf)', color: 'var(--c-tx)', border: '1px solid var(--c-cardBd)', fontFamily: FN, fontSize: 11, fontWeight: 500, letterSpacing: '0.04em', outline: 'none', textAlign: 'start' }} autoComplete="off" />
           </div>
           <div onClick={narrow ? () => setRailOpen(o => !o) : undefined}
             style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.22em', color: 'var(--c-ac)', textTransform: 'uppercase', padding: (narrow && !railOpen) ? '0 16px' : '0 16px 10px', borderBottom: (narrow && !railOpen) ? 'none' : '1px solid var(--c-cardBd)', cursor: narrow ? 'pointer' : 'default', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
@@ -2618,9 +2641,9 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
           <RailGroup label={tt('Whose')}>
             {/* Both partners see all three; tasks owned solely by the other
                 render read-only. Default is the viewer's own (clamped on mount). */}
-            <RailOpt label="Ohad"   count={counts.ohad}   active={owner === 'ohad'}   onClick={() => setOwner('ohad')} />
-            <RailOpt label="Yuval"  count={counts.yuval}  active={owner === 'yuval'}  onClick={() => setOwner('yuval')} />
-            <RailOpt label="Shared" count={counts.shared} active={owner === 'shared'} onClick={() => setOwner('shared')} />
+            <RailOpt label={tr(readLang(), 'Ohad')}   count={counts.ohad}   active={owner === 'ohad'}   onClick={() => setOwner('ohad')} />
+            <RailOpt label={tr(readLang(), 'Yuval')}  count={counts.yuval}  active={owner === 'yuval'}  onClick={() => setOwner('yuval')} />
+            <RailOpt label={tr(readLang(), 'Shared')} count={counts.shared} active={owner === 'shared'} onClick={() => setOwner('shared')} />
           </RailGroup>
 
           <RailGroup label={tt('Show')}>
@@ -2634,11 +2657,11 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
               const on = sortBy === m.id;
               return <RailOpt key={m.id} label={on ? sortRailLabel(m.id, sortDir, tt) : tt(m.label)} active={on}
                 onClick={() => on ? setSortDir(d => d === 'asc' ? 'desc' : 'asc') : setSortBy(m.id)}
-                title={on ? 'Click to flip the sort direction' : `Sort by ${m.label}`} />;
+                title={on ? tt('Click to flip the sort direction') : (readLang() === 'he' ? SORT_TIP_HE[m.id] : `${tt('Sort by')} ${tt(m.label)}`)} />;
             })}
           </RailGroup>
 
-          <RailGroup label={tt('Group')}>
+          <RailGroup label={tt('Group by')}>
             <RailOpt label={tt("By status")}   active={boardGroup === 'status'} onClick={() => setBoardGroup('status')} />
             <RailOpt label={tt("By category")} active={boardGroup === 'list'}   onClick={() => setBoardGroup('list')} />
           </RailGroup>
@@ -2732,7 +2755,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
               <div
                 {...asButton(() => setAutoOpen(o => !o))}
                 aria-expanded={autoOpen}
-                aria-label="Toggle auto-alerts"
+                aria-label={tt('Toggle auto-alerts')}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 8,
                   padding: '8px 12px',
@@ -2817,7 +2840,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                     onDragLeave={e => { e.stopPropagation(); if (dropOnId === row.id) setDropOnId(null); }}
                     onDrop={e => { e.preventDefault(); e.stopPropagation(); reorderOnto(row, section); }}
                     style={{ position: 'relative', cursor: isReadOnly(row) ? 'default' : 'grab', outline: selectedIds.has(row.id) ? '2px solid var(--c-ac)' : 'none', outlineOffset: -2, boxShadow: dropOnId === row.id ? 'inset 0 3px 0 -1px var(--c-ac)' : 'none' }}>
-                    <button onClick={e => { e.stopPropagation(); toggleSelect(row.id); }} draggable={false} title="Select"
+                    <button onClick={e => { e.stopPropagation(); toggleSelect(row.id); }} draggable={false} title={tr(readLang(), 'Select')}
                       className={`tv8-board-select${selectedIds.has(row.id) ? ' is-sel' : ''}`}
                       style={{ position: 'absolute', top: 6, left: 6, zIndex: 3, width: 15, height: 15, borderRadius: 0, border: `1px solid ${selectedIds.has(row.id) ? 'var(--c-ac)' : 'var(--c-cardBd)'}`, background: selectedIds.has(row.id) ? 'var(--c-ac)' : 'rgba(0,0,0,0.4)', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#061016', fontSize: 10, fontWeight: 900, lineHeight: 1 }}>{selectedIds.has(row.id) ? '✓' : ''}</button>
                     <TaskRow row={row} readOnly={isReadOnly(row)} compact narrow={narrow}
@@ -2830,7 +2853,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                   </div>
                 ))}
                 {(isStatus || boardGroup === 'list') && section.rows.length === 0 && (
-                  <div style={{ padding: '16px 12px', textAlign: 'center', fontFamily: FN, fontSize: 9, letterSpacing: '0.12em', color: 'var(--c-td)', textTransform: 'uppercase' }}>Drop here</div>
+                  <div style={{ padding: '16px 12px', textAlign: 'center', fontFamily: FN, fontSize: 9, letterSpacing: '0.12em', color: 'var(--c-td)', textTransform: 'uppercase' }}>{tt('Drop here')}</div>
                 )}
               </div>
               {(isStatus || section.key === 'center' || section.key === 'manual') && (
@@ -2847,7 +2870,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                       style={{ width: '100%', boxSizing: 'border-box', background: 'var(--c-sf2)', border: `1px solid var(--c-ac)`, color: 'var(--c-tx)', fontFamily: FB, fontSize: 12, padding: '7px 9px', borderRadius: 0, outline: 'none' }} />
                   ) : (
                     <button onClick={() => { setQuickAddKey(section.key); setQuickAddText(''); }}
-                      style={{ width: '100%', background: 'transparent', border: 'none', color: 'var(--c-tm)', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', padding: '7px 6px', cursor: 'pointer', textAlign: 'left', textTransform: 'uppercase' }}>+ Add a task</button>
+                      style={{ width: '100%', background: 'transparent', border: 'none', color: 'var(--c-tm)', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', padding: '7px 6px', cursor: 'pointer', textAlign: 'start', textTransform: 'uppercase' }}>+ {tr(readLang(), 'Add a task')}</button>
                   )}
                 </div>
               )}
@@ -2875,7 +2898,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
           <div
             {...asButton(() => setDoneOpen(o => !o))}
             aria-expanded={doneOpen}
-            aria-label="Toggle done history"
+            aria-label={tt('Toggle done history')}
             style={{
               padding: '10px 14px',
               fontFamily: FN, fontSize: 10, fontWeight: 700,
@@ -2886,7 +2909,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
             }}>
             <span>{doneOpen ? '▾' : '▸'} {tt('Done')} · {done.length}</span>
             <span style={{ opacity: 0.6, fontSize: 9 }}>
-              {doneOpen ? `${tt('Showing latest')} ${Math.min(done.length, 5)}` : tt('Click to expand')}
+              {doneOpen ? (readLang() === 'he' ? `מציג את ${Math.min(done.length, 5)} האחרונות` : `${tt('Showing latest')} ${Math.min(done.length, 5)}`) : tt('Click to expand')}
             </span>
           </div>
           <div style={{ display: 'grid', gridTemplateRows: doneOpen ? '1fr' : '0fr', transition: 'grid-template-rows 260ms ease' }}><div style={{ overflow: 'hidden', minHeight: 0 }}>
@@ -2923,7 +2946,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
               fontFamily: FN, fontSize: 9, fontWeight: 700,
               letterSpacing: '0.12em', color: 'var(--c-tm)',
               textTransform: 'uppercase', textAlign: 'center',
-            }}>{done.length - 5} {tt('more done · view all in the history')}</div>
+            }}>{readLang() === 'he' ? (done.length - 5 === 1 ? 'עוד אחת הושלמה · הכול בהיסטוריה' : `עוד ${done.length - 5} הושלמו · הכול בהיסטוריה`) : `${done.length - 5} ${tt('more done · view all in the history')}`}</div>
           )}
           </div></div>
         </div>
@@ -2942,16 +2965,16 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
 
       {selectedIds.size > 0 && (
         <div style={{ position: 'fixed', left: '50%', bottom: 20, transform: 'translateX(-50%)', zIndex: 1400, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', justifyContent: 'center', maxWidth: 'calc(100vw - 24px)', background: 'var(--c-sf2)', border: `1px solid var(--c-ac)`, borderRadius: 0, padding: '10px 14px', boxShadow: '0 8px 30px rgba(0,0,0,0.5)' }}>
-          <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-tx)' }}>{selectedIds.size} SELECTED</span>
+          <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-tx)' }}>{selectedIds.size} {tt('SELECTED')}</span>
           <span style={{ width: 1, height: 18, background: 'var(--c-cardBd)' }} />
-          <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--c-tm)' }}>SET</span>
+          <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--c-tm)' }}>{tt('SET')}</span>
           {STATUS_OPTIONS.filter(o => o.id !== 'cancelled').map(o => (
-            <button key={o.id} onClick={() => bulkStatus(o.id)} title={`Set ${o.label}`}
-              style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '5px 8px', cursor: 'pointer', background: 'transparent', border: `1px solid var(--c-cardBd)`, color: 'var(--c-tx)', borderRadius: 0 }}>{o.label}</button>
+            <button key={o.id} onClick={() => bulkStatus(o.id)} title={`${tt('SET')} ${tt(o.label)}`}
+              style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '5px 8px', cursor: 'pointer', background: 'transparent', border: `1px solid var(--c-cardBd)`, color: 'var(--c-tx)', borderRadius: 0 }}>{tt(o.label)}</button>
           ))}
           <span style={{ width: 1, height: 18, background: 'var(--c-cardBd)' }} />
-          <button onClick={bulkDelete} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '5px 10px', cursor: 'pointer', background: 'transparent', border: `1px solid var(--c-rd)`, color: 'var(--c-rd)', borderRadius: 0 }}>Delete</button>
-          <button onClick={clearSelect} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '5px 10px', cursor: 'pointer', background: 'transparent', border: 'none', color: 'var(--c-tm)', borderRadius: 0 }}>Clear</button>
+          <button onClick={bulkDelete} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '5px 10px', cursor: 'pointer', background: 'transparent', border: `1px solid var(--c-rd)`, color: 'var(--c-rd)', borderRadius: 0 }}>{tr(readLang(), 'Delete')}</button>
+          <button onClick={clearSelect} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '5px 10px', cursor: 'pointer', background: 'transparent', border: 'none', color: 'var(--c-tm)', borderRadius: 0 }}>{tr(readLang(), 'Clear')}</button>
         </div>
       )}
     </div>

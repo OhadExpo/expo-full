@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { C, FN, FB, FH } from './theme';
+import { useT } from './i18n';
 
 // ── Copied from PlansView.jsx (module-level helpers, not exported there) ──
 // Training emphasis from the volume-weighted mean reps (NSCA goal table).
@@ -320,7 +321,7 @@ const stripHead = (label) => (
 const kpi = (label, value, sub, accent) => {
   // Long text values (e.g. "65–80% 1RM", "hold prior reps") shrink + wrap instead
   // of truncating at 22px; pure numbers / short codes stay big.
-  const longText = typeof value === 'string' && value.length > 6 && /[a-zA-Z]/.test(value);
+  const longText = typeof value === 'string' && value.length > 6 && /[a-zA-Z֐-׿]/.test(value);
   return (
     <div style={{ flex: '1 1 0', minWidth: 110, border: `1px solid ${C.cardBd}`, background: 'var(--c-sf2)', padding: '9px 12px' }}>
       <div style={{ fontFamily: FN, fontSize: longText ? 13 : 22, fontWeight: 700, lineHeight: longText ? 1.25 : 1, color: accent || C.tx, fontVariantNumeric: 'tabular-nums', ...(longText ? {} : { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }) }}>{value}</div>
@@ -337,6 +338,7 @@ const section = (title, children, key) => (
 );
 
 export function NextBlockReport({ model, plans, exercises, traineeName, onClose }) {
+  const tt = useT();
   const heb = isHebrew(traineeName);
   const nextPlan = model?.nextPlan;
   const exMap = useMemo(() => exById(exercises), [exercises]);
@@ -441,13 +443,13 @@ export function NextBlockReport({ model, plans, exercises, traineeName, onClose 
   const topStrip = (
     <div style={{ position: 'sticky', top: 0, zIndex: 2, background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 88%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexShrink: 0 }}>
       <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff', display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-        <span>Next Block Report</span>
+        <span>{tt('Next Block Report')}</span>
         <span style={{ color: C.tm }}>·</span>
         <span style={{ fontFamily: heb ? FH : FN, color: '#39BDFF', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{traineeName}</span>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-        <button onClick={onClose} style={{ height: 26, padding: '0 12px', border: `1px solid ${C.cardBd}`, background: 'transparent', color: C.tx, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer' }}>← Back</button>
-        <button onClick={onClose} aria-label="Close" style={{ width: 26, height: 26, border: `1px solid ${C.cardBd}`, background: 'transparent', color: C.tx, fontFamily: FN, fontSize: 14, cursor: 'pointer', lineHeight: 1 }}>×</button>
+        <button onClick={onClose} style={{ height: 26, padding: '0 12px', border: `1px solid ${C.cardBd}`, background: 'transparent', color: C.tx, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer' }}>{tt('← Back')}</button>
+        <button onClick={onClose} aria-label={tt('Close')} style={{ width: 26, height: 26, border: `1px solid ${C.cardBd}`, background: 'transparent', color: C.tx, fontFamily: FN, fontSize: 14, cursor: 'pointer', lineHeight: 1 }}>×</button>
       </div>
     </div>
   );
@@ -458,7 +460,7 @@ export function NextBlockReport({ model, plans, exercises, traineeName, onClose 
         {topStrip}
         <div style={{ flex: 1, overflow: 'auto', padding: 24 }}>
           <div style={{ border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)', padding: '48px 24px', textAlign: 'center', color: C.tm, fontFamily: FB, fontSize: 13 }}>
-            No training analysis to project a next block from yet — this athlete needs at least one logged block with exercise content.
+            {tt('No training analysis to project a next block from yet — this athlete needs at least one logged block with exercise content.')}
           </div>
         </div>
       </div>,
@@ -490,108 +492,108 @@ export function NextBlockReport({ model, plans, exercises, traineeName, onClose 
         <div style={{ maxWidth: 980, margin: '0 auto' }}>
 
           {/* (1) Header — goal · phase · #next · length */}
-          {section(<span>Overview</span>, (
+          {section(<span>{tt('Overview')}</span>, (
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {kpi('Goal', goal)}
-              {kpi('Model', calc.modelOverridden ? 'Deload override' : (calc.modelDef?.label || periModel))}
-              {kpi('Phase', phaseM.label, phaseM.hint, phaseM.color)}
-              {kpi('Next block', nextPlan.nextNum != null ? `#${nextPlan.nextNum}` : '—')}
-              {kpi('Length', `${blockLen}wk`, `${daysPerWeek}d/wk`)}
+              {kpi(tt('Goal'), tt(goal))}
+              {kpi(tt('Model'), calc.modelOverridden ? tt('Deload override') : tt(calc.modelDef?.label || periModel))}
+              {kpi(tt('Phase'), tt(phaseM.label), tt(phaseM.hint), phaseM.color)}
+              {kpi(tt('Next block'), nextPlan.nextNum != null ? `#${nextPlan.nextNum}` : '—')}
+              {kpi(tt('Length'), tt('{n}wk').replace('{n}', blockLen), (daysPerWeek === 1 ? tt('1d/wk') : tt('{n}d/wk').replace('{n}', daysPerWeek)))}
             </div>
           ))}
 
           {/* Controls */}
-          {section('Parameters', (
+          {section(tt('Parameters'), (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {seg('Goal', goal, setGoal, GOAL_LIST.map(g => [g, g]))}
-              {seg('Periodization model', periModel, setPeriModel, MODEL_LIST.map(m => [m, PERIODIZATION_MODELS[m].label]))}
+              {seg(tt('Goal'), goal, setGoal, GOAL_LIST.map(g => [g, tt(g)]))}
+              {seg(tt('Periodization model'), periModel, setPeriModel, MODEL_LIST.map(m => [m, tt(PERIODIZATION_MODELS[m].label)]))}
               <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-                {seg('Block length', blockLen, setBlockLen, [[3, '3wk'], [4, '4wk'], [6, '6wk']])}
-                {seg('Days / week', daysPerWeek, setDaysPerWeek, [2, 3, 4, 5, 6].map(n => [n, String(n)]))}
-                {seg('Deload', deloadMode, setDeloadMode, [['none', 'None'], ['last-week', 'Last week'], ['auto', 'Auto']])}
-                {seg('Post-injury', postInjury, setPostInjury, [[false, 'Off'], [true, 'On (5% cap)']])}
+                {seg(tt('Block length'), blockLen, setBlockLen, [[3, tt('{n}wk').replace('{n}', 3)], [4, tt('{n}wk').replace('{n}', 4)], [6, tt('{n}wk').replace('{n}', 6)]])}
+                {seg(tt('Days / week'), daysPerWeek, setDaysPerWeek, [2, 3, 4, 5, 6].map(n => [n, String(n)]))}
+                {seg(tt('Deload'), deloadMode, setDeloadMode, [['none', tt('None')], ['last-week', tt('Last week')], ['auto', tt('Auto')]])}
+                {seg(tt('Post-injury'), postInjury, setPostInjury, [[false, tt('Off')], [true, tt('On (5% cap)')]])}
               </div>
             </div>
           ))}
 
           {/* (2) Prescription summary */}
-          {section('Prescription', (
+          {section(tt('Prescription'), (
             <div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
-                {kpi('Total sets target', calc.target, `from ${calc.baseSets} last block`, '#39BDFF')}
-                {kpi('Rep range', calc.rx.repRange, calc.rx.pctRange)}
-                {kpi('Rest', calc.rx.restSec)}
-                {kpi('Ramp cap', `${Math.round(calc.rampCap * 100)}%`, postInjury ? 'post-injury' : 'general', postInjury ? C.or : C.tx)}
+                {kpi(tt('Total sets target'), calc.target, tt('from {n} last block').replace('{n}', calc.baseSets), '#39BDFF')}
+                {kpi(tt('Rep range'), tt(calc.rx.repRange), tt(calc.rx.pctRange))}
+                {kpi(tt('Rest'), tt(calc.rx.restSec))}
+                {kpi(tt('Ramp cap'), `${Math.round(calc.rampCap * 100)}%`, postInjury ? tt('post-injury') : tt('general'), postInjury ? C.or : C.tx)}
               </div>
-              <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, marginBottom: 4 }}>Weekly progression</div>
+              <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, marginBottom: 4 }}>{tt('Weekly progression')}</div>
               {calc.modelOverridden && (
-                <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginBottom: 8, lineHeight: 1.4 }}>Deload goal overrides the periodization model — flat volume cut, intensity held.</div>
+                <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginBottom: 8, lineHeight: 1.4 }}>{tt('Deload goal overrides the periodization model — flat volume cut, intensity held.')}</div>
               )}
               {!calc.modelOverridden && calc.modelDef?.desc && (
-                <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginBottom: 8, lineHeight: 1.4 }}>{calc.modelDef.label} — {calc.modelDef.desc}</div>
+                <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginBottom: 8, lineHeight: 1.4 }}>{tt(calc.modelDef.label)} — {tt(calc.modelDef.desc)}</div>
               )}
               <div style={{ display: 'grid', gridTemplateColumns: `repeat(${calc.weekly.length || 1}, 1fr)`, gap: 6 }}>
                 {calc.weekly.map(w => (
                   <div key={w.week} style={{ border: `1px solid ${w.deload ? C.or : C.cardBd}`, background: 'var(--c-sf2)', padding: '8px 6px', textAlign: 'center' }}>
-                    <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>Wk {w.week}</div>
+                    <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>{tt('Wk')} {w.week}</div>
                     <div style={{ fontFamily: FN, fontSize: 18, fontWeight: 700, color: w.deload ? C.or : C.tx, marginTop: 3, fontVariantNumeric: 'tabular-nums' }}>{w.sets}</div>
-                    {w.emphasis && <div style={{ fontFamily: FN, fontSize: 7.5, letterSpacing: '0.06em', textTransform: 'uppercase', color: w.deload ? C.or : C.tm, marginTop: 2, lineHeight: 1.2 }}>{w.emphasis}</div>}
+                    {w.emphasis && <div style={{ fontFamily: FN, fontSize: 7.5, letterSpacing: '0.06em', textTransform: 'uppercase', color: w.deload ? C.or : C.tm, marginTop: 2, lineHeight: 1.2 }}>{tt(w.emphasis)}</div>}
                   </div>
                 ))}
               </div>
               {!calc.baseSets && (
-                <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 8 }}>No prior block volume to ramp from — showing a flat starting-point target instead of a progression.</div>
+                <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 8 }}>{tt('No prior block volume to ramp from — showing a flat starting-point target instead of a progression.')}</div>
               )}
             </div>
           ))}
 
           {/* (3) Main movements — 6-tab axis */}
-          {section('Main movements', (
+          {section(tt('Main movements'), (
             <div>
               <div style={{ display: 'grid', gridTemplateColumns: 'minmax(140px,1fr) 80px 80px 1fr', gap: 0, fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, padding: '0 4px 6px', borderBottom: `1px solid ${C.cardBd}` }}>
-                <div>Bucket</div><div style={{ textAlign: 'right' }}>Current</div><div style={{ textAlign: 'right' }}>Target</div><div style={{ paddingLeft: 10 }}>Note</div>
+                <div>{tt('Bucket')}</div><div style={{ textAlign: 'end' }}>{tt('Current')}</div><div style={{ textAlign: 'end' }}>{tt('Target')}</div><div style={{ paddingInlineStart: 10 }}>{tt('Note')}</div>
               </div>
               {calc.buckets.map((b, i) => (
                 <div key={b.key} style={{ display: 'grid', gridTemplateColumns: 'minmax(140px,1fr) 80px 80px 1fr', gap: 0, alignItems: 'center', padding: '7px 4px', background: i % 2 ? 'transparent' : 'var(--c-sf2)' }}>
-                  <div style={{ fontFamily: FB, fontSize: 12.5, color: C.tx }}>{b.label}</div>
-                  <div style={{ fontFamily: FN, fontSize: 13, fontVariantNumeric: 'tabular-nums', color: C.tm, textAlign: 'right' }}>{b.current}</div>
-                  <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: '#39BDFF', textAlign: 'right' }}>{b.target}</div>
-                  <div style={{ paddingLeft: 10, fontFamily: FB, fontSize: 11, color: b.gap ? C.rd : C.td }}>{b.gap ? 'empty this block — floor target applied' : ''}</div>
+                  <div style={{ fontFamily: FB, fontSize: 12.5, color: C.tx }}>{tt(b.label)}</div>
+                  <div style={{ fontFamily: FN, fontSize: 13, fontVariantNumeric: 'tabular-nums', color: C.tm, textAlign: 'end' }}>{b.current}</div>
+                  <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: '#39BDFF', textAlign: 'end' }}>{b.target}</div>
+                  <div style={{ paddingInlineStart: 10, fontFamily: FB, fontSize: 11, color: b.gap ? C.rd : C.td }}>{b.gap ? tt('empty this block — floor target applied') : ''}</div>
                 </div>
               ))}
             </div>
           ))}
 
           {/* (4) Balance & safety */}
-          {section('Balance & safety', (
+          {section(tt('Balance & safety'), (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {kpi('Push:Pull', nextPlan.pushPull != null ? nextPlan.pushPull : '—', `${nextPlan.pushSets ?? '—'} push / ${nextPlan.pullSets ?? '—'} pull`)}
-                {kpi('Projected ACWR', calc.projectedAcwr != null ? calc.projectedAcwr.toFixed(2) : '—', '0.8–1.3 optimal', acwrTone)}
-                {kpi('Coverage gaps', nextPlan.coverageGaps?.length || 0, nextPlan.coverageGaps?.length ? nextPlan.coverageGaps.join(', ') : 'none', nextPlan.coverageGaps?.length ? C.rd : C.gn)}
+                {kpi(tt('Push:Pull'), nextPlan.pushPull != null ? nextPlan.pushPull : '—', tt('{push} push / {pull} pull').replace('{push}', nextPlan.pushSets ?? '—').replace('{pull}', nextPlan.pullSets ?? '—'))}
+                {kpi(tt('Projected ACWR'), calc.projectedAcwr != null ? calc.projectedAcwr.toFixed(2) : '—', tt('0.8–1.3 optimal'), acwrTone)}
+                {kpi(tt('Coverage gaps'), nextPlan.coverageGaps?.length || 0, nextPlan.coverageGaps?.length ? nextPlan.coverageGaps.join(', ') : tt('none'), nextPlan.coverageGaps?.length ? C.rd : C.gn)}
               </div>
-              <div style={{ fontFamily: FB, fontSize: 12, color: C.td, lineHeight: 1.5 }}>Minimum 48h between heavy loading of the same movement pattern.</div>
+              <div style={{ fontFamily: FB, fontSize: 12, color: C.td, lineHeight: 1.5 }}>{tt('Minimum 48h between heavy loading of the same movement pattern.')}</div>
             </div>
           ))}
 
           {/* (5) Rationale */}
-          {section('Rationale', (
+          {section(tt('Rationale'), (
             <div style={{ fontFamily: FB, fontSize: 13, color: C.tx, lineHeight: 1.6, display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div>{calc.rx.intensityNote}</div>
-              {!calc.modelOverridden && calc.modelDef?.note && <div style={{ color: C.td, fontSize: 12 }}>{calc.modelDef.note}</div>}
-              <div style={{ color: C.td, fontSize: 12 }}>Note: block vs. undulating periodization has no settled winner in the literature — block periodization has the stronger mechanistic case (concentrated stimulus, Issurin's residual-effects math), undulating shows a slight edge in newer meta-analytic literature for trained athletes. Treat this as a legitimate coach's-choice call, not a solved question.</div>
+              <div>{tt(calc.rx.intensityNote)}</div>
+              {!calc.modelOverridden && calc.modelDef?.note && <div style={{ color: C.td, fontSize: 12 }}>{tt(calc.modelDef.note)}</div>}
+              <div style={{ color: C.td, fontSize: 12 }}>{tt("Note: block vs. undulating periodization has no settled winner in the literature — block periodization has the stronger mechanistic case (concentrated stimulus, Issurin's residual-effects math), undulating shows a slight edge in newer meta-analytic literature for trained athletes. Treat this as a legitimate coach's-choice call, not a solved question.")}</div>
             </div>
           ))}
 
           {/* (6) Copy */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 14 }}>
             <button onClick={copyReport} style={{ height: 30, padding: '0 14px', border: `1px solid ${copied ? C.gn : '#39BDFF'}`, background: copied ? 'transparent' : '#39BDFF', color: copied ? C.gn : '#06131b', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer' }}>
-              {copied ? 'Copied ✓' : '⧉ Copy full report'}
+              {copied ? tt('Copied ✓') : tt('⧉ Copy full report')}
             </button>
           </div>
 
           <div style={{ fontFamily: FB, fontSize: 11, color: C.td, textAlign: 'center', padding: '4px 0 0' }}>
-            This report prescribes structure only — phase, volume, per-movement set targets, rep bands, timing. It never names specific exercises or loads; that stays the coach's call.
+            {tt("This report prescribes structure only — phase, volume, per-movement set targets, rep bands, timing. It never names specific exercises or loads; that stays the coach's call.")}
           </div>
         </div>
       </div>

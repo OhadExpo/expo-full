@@ -8,7 +8,7 @@
 // peek even if a misconfigured client tried.
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useT } from './i18n';
+import { useT, agoLabel, readLang } from './i18n';
 import { C, FN, FB } from './theme';
 import { isRefined5b, CollapsibleSection } from './ui';
 import { supabase } from './supabase';
@@ -34,7 +34,7 @@ function renderBold(text) {
 function fmtDate(iso) {
   if (!iso) return '';
   const d = new Date(iso);
-  return d.toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleString(readLang() === 'he' ? 'he-IL' : 'en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
 function ago(iso) {
   if (!iso) return '';
@@ -145,11 +145,11 @@ export default function ChatAuditView() {
           <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 4 }}>
             {migrationMissing
               ? 'chat_logs table not found — apply scripts/migrations/2026-05-02-chat-logs.sql in Supabase Studio.'
-              : `${sessions} session${sessions === 1 ? '' : 's'} · ${total} turn${total === 1 ? '' : 's'} · ${errors} error${errors === 1 ? '' : 's'}`}
+              : `${tt(sessions === 1 ? '1 session' : '{n} sessions').replace('{n}', sessions)} · ${tt(total === 1 ? '1 turn' : '{n} turns').replace('{n}', total)} · ${tt(errors === 1 ? '1 error' : '{n} errors').replace('{n}', errors)}`}
           </div>
         </div>
         <button onClick={async () => { setRefreshing(true); try { await reload(); } finally { setTimeout(() => setRefreshing(false), 550); } }} disabled={refreshing}
-          style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tm, borderRadius: 0, padding: '8px 14px', fontFamily: FN, fontSize: 11, fontWeight: 700, cursor: 'pointer', letterSpacing: '0.18em' }}>{refreshing ? '↻ REFRESHING…' : '↻ REFRESH'}</button>
+          style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tm, borderRadius: 0, padding: '8px 14px', fontFamily: FN, fontSize: 11, fontWeight: 700, cursor: 'pointer', letterSpacing: '0.18em' }}>{refreshing ? tt('↻ REFRESHING…') : tt('↻ REFRESH')}</button>
       </div>
 
       {/* Filter row */}
@@ -162,7 +162,7 @@ export default function ChatAuditView() {
               color: siteFilter === s ? C.ac : C.tm,
               borderRadius: 0, height: 34, boxSizing: 'border-box', padding: '0 12px',
               fontFamily: FN, fontSize: 11, fontWeight: 700, cursor: 'pointer', letterSpacing: '0.18em',
-            }}>{s === 'all' ? 'ALL SITES' : s.toUpperCase()}</button>
+            }}>{s === 'all' ? tt('ALL SITES') : s.toUpperCase()}</button>
         ))}
         <button onClick={() => setShowErrorsOnly(v => !v)}
           style={{
@@ -171,19 +171,19 @@ export default function ChatAuditView() {
             color: showErrorsOnly ? C.rd : C.tm,
             borderRadius: 0, height: 34, boxSizing: 'border-box', padding: '0 12px',
             fontFamily: FN, fontSize: 11, fontWeight: 700, cursor: 'pointer', letterSpacing: '0.18em', display: 'inline-flex', alignItems: 'center',
-          }}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: '-1px', marginRight: 4 }}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>{tt('ERRORS ONLY')}</button>
-        <input value={filter} onChange={e => setFilter(e.target.value)} placeholder="Filter by message text…"
+          }}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: '-1px', marginInlineEnd: 4 }}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>{tt('ERRORS ONLY')}</button>
+        <input value={filter} onChange={e => setFilter(e.target.value)} placeholder={tt('Filter by message text…')}
           style={{
             background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0,
             height: 34, boxSizing: 'border-box', padding: '0 12px', color: C.tx, fontFamily: FB, fontSize: 13,
-            outline: 'none', minWidth: 220, marginLeft: 'auto',
+            outline: 'none', minWidth: 220, marginInlineStart: 'auto',
           }} />
       </div>
 
       {grouped.length === 0 ? (
         <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 40, textAlign: 'center' }}>
           <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>
-            {migrationMissing ? 'MIGRATION NOT APPLIED' : 'NO CHAT TURNS YET'}
+            {tt(migrationMissing ? 'MIGRATION NOT APPLIED' : 'NO CHAT TURNS YET')}
           </div>
           <div style={{ fontFamily: FB, fontSize: 13, color: C.tm, lineHeight: 1.5 }}>
             {migrationMissing
@@ -200,10 +200,10 @@ export default function ChatAuditView() {
               style={{ marginBottom: 0 }}
               titleNode={<span style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 9, fontWeight: 700, color: '#FFFFFF', border: '1px solid rgba(255,255,255,0.6)', borderRadius: 0, padding: '2px 6px', letterSpacing: '0.18em' }}>{(g.site || '').toUpperCase()}</span>
-                <span style={{ fontFamily: FB, color: 'rgba(255,255,255,0.85)', fontSize: 11 }}>{g.turns.length} turn{g.turns.length === 1 ? '' : 's'}</span>
+                <span style={{ fontFamily: FB, color: 'rgba(255,255,255,0.85)', fontSize: 11 }}>{tt(g.turns.length === 1 ? '1 turn' : '{n} turns').replace('{n}', g.turns.length)}</span>
                 {g.errorCount > 0 && <span style={{ fontFamily: FN, color: '#FFFFFF', fontSize: 10, fontWeight: 700 }}>⚠ {g.errorCount}</span>}
               </span>}
-              right={<span style={{ fontFamily: FN, color: 'rgba(255,255,255,0.72)', fontSize: 10 }} title={fmtDate(g.lastAt)}>{ago(g.lastAt)} ago</span>}>
+              right={<span style={{ fontFamily: FN, color: 'rgba(255,255,255,0.72)', fontSize: 10 }} title={fmtDate(g.lastAt)}>{agoLabel(g.lastAt, readLang())}</span>}>
               {/* Turns */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {g.turns.map(t => (
@@ -215,7 +215,7 @@ export default function ChatAuditView() {
                       fontSize: 13, lineHeight: 1.45, color: C.tx,
                       whiteSpace: 'pre-wrap', wordBreak: 'break-word',
                     }}>
-                      <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginRight: 6 }}>{tt('VISITOR')}</span>
+                      <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginInlineEnd: 6 }}>{tt('VISITOR')}</span>
                       {t.visitor_msg || <em style={{ color: C.td }}>(empty)</em>}
                     </div>
                     {t.error ? (
@@ -225,7 +225,7 @@ export default function ChatAuditView() {
                         borderRadius: 0, padding: '7px 11px',
                         fontSize: 12, lineHeight: 1.4, color: C.rd,
                       }}>
-                        <span style={{ fontFamily: FN, fontSize: 9, color: C.rd, letterSpacing: '0.18em', fontWeight: 700, marginRight: 6 }}>{tt('ERROR')}</span>
+                        <span style={{ fontFamily: FN, fontSize: 9, color: C.rd, letterSpacing: '0.18em', fontWeight: 700, marginInlineEnd: 6 }}>{tt('ERROR')}</span>
                         {t.error}
                       </div>
                     ) : t.assistant_msg ? (
@@ -236,13 +236,13 @@ export default function ChatAuditView() {
                         fontSize: 13, lineHeight: 1.45, color: C.tx,
                         whiteSpace: 'pre-wrap', wordBreak: 'break-word',
                       }}>
-                        <span style={{ fontFamily: FN, fontSize: 9, color: C.ac, letterSpacing: '0.18em', fontWeight: 700, marginRight: 6 }}>{tt('BOT')}</span>
+                        <span style={{ fontFamily: FN, fontSize: 9, color: C.ac, letterSpacing: '0.18em', fontWeight: 700, marginInlineEnd: 6 }}>{tt('BOT')}</span>
                         {renderBold(t.assistant_msg)}
                       </div>
                     ) : (
-                      <div style={{ alignSelf: 'flex-end', fontFamily: FN, fontSize: 10, color: C.td, fontStyle: 'italic' }}>(no reply recorded)</div>
+                      <div style={{ alignSelf: 'flex-end', fontFamily: FN, fontSize: 10, color: C.td, fontStyle: 'italic' }}>{tt('(no reply recorded)')}</div>
                     )}
-                    <div style={{ alignSelf: 'flex-end', fontFamily: FN, fontSize: 9, color: C.td }} title={fmtDate(t.created_at)}>{ago(t.created_at)} ago</div>
+                    <div style={{ alignSelf: 'flex-end', fontFamily: FN, fontSize: 9, color: C.td }} title={fmtDate(t.created_at)}>{agoLabel(t.created_at, readLang())}</div>
                   </div>
                 ))}
               </div>

@@ -29,6 +29,7 @@ import {
   deriveAutoEvents, mergeFeed, ACT_KINDS,
 } from './crmData';
 import NotesInline from './NotesInline';
+import { useT } from './i18n';
 
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
 
@@ -84,6 +85,7 @@ function HealthStrip({ health, tenure }) {
 }
 
 function ActivityFeed({ trainee, activity, clientWorkouts, payments, planIndex, bareMode = false }) {
+  const tt = useT();
   const { rows: manualRows, remove, update } = activity;
   const completedTasks = useCompletedTasksForTrainee(trainee?.id);
   const autoEvents = useMemo(
@@ -121,7 +123,7 @@ function ActivityFeed({ trainee, activity, clientWorkouts, payments, planIndex, 
     <>
       {merged.length === 0 && (
         <div style={{ fontSize: 12, color: C.td, padding: '14px 0', textAlign: 'center' }}>
-          No activity yet.
+          {tt('No activity yet.')}
         </div>
       )}
 
@@ -152,18 +154,18 @@ function ActivityFeed({ trainee, activity, clientWorkouts, payments, planIndex, 
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0 }}>
                   <span dir="auto" style={{ flex: 1, minWidth: 0, fontSize: 12, color: C.tx, lineHeight: 1.4, fontFamily: heb ? FH : FB }}>{ev.summary}</span>
                   <span style={{ flexShrink: 0, fontSize: 9, fontFamily: FN, letterSpacing: '0.06em', fontWeight: 700, whiteSpace: 'nowrap' }}>
-                    <span style={{ color: KIND_COLOR[ev.kind] || C.tm }}>{KIND_LABEL[ev.kind] || (ev.kind || '').toUpperCase()}</span>
+                    <span style={{ color: KIND_COLOR[ev.kind] || C.tm }}>{tt(KIND_LABEL[ev.kind] || (ev.kind || '').toUpperCase())}</span>
                     <span style={{ color: C.td }}> · {new Date(ev.ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
-                    {!isManual && <span style={{ marginLeft: 6, color: C.tm }}>· AUTO</span>}
+                    {!isManual && <span style={{ marginInlineStart: 6, color: C.tm }}>· {tt('AUTO')}</span>}
                   </span>
                 </div>
               )}
             </div>
             {isManual && editId !== ev.id && (
               <div style={{ display: 'flex', gap: 2, alignSelf: 'flex-start', flexShrink: 0 }}>
-                <button onClick={() => startEdit(ev)} title="Edit"
+                <button onClick={() => startEdit(ev)} title={tt('Edit')}
                   style={{ background: 'none', border: 'none', color: C.td, cursor: 'pointer', fontSize: 11, padding: '0 4px' }}>✏</button>
-                <button onClick={() => remove(ev.id)} title="Remove"
+                <button onClick={() => remove(ev.id)} title={tt('Remove')}
                   style={{ background: 'none', border: 'none', color: C.td, cursor: 'pointer', fontSize: 14, padding: '0 4px' }}>×</button>
               </div>
             )}
@@ -177,7 +179,7 @@ function ActivityFeed({ trainee, activity, clientWorkouts, payments, planIndex, 
             width: '100%', marginTop: 10, padding: '6px 0', background: 'transparent',
             border: `1px solid ${C.cardBd}`, color: C.tm, fontFamily: FN, fontSize: 10,
             fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer',
-          }}>SHOW ALL {merged.length}</button>
+          }}>{tt('SHOW ALL')} {merged.length}</button>
       )}
     </>
   );
@@ -196,7 +198,7 @@ function ActivityFeed({ trainee, activity, clientWorkouts, payments, planIndex, 
       <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={10}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
           <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : C.tx }}>
-            ACTIVITY ({merged.length})
+            {tt('ACTIVITY')} ({merged.length})
           </span>
         </div>
       </RefinedHeaderStrip>
@@ -209,6 +211,7 @@ function ActivityFeed({ trainee, activity, clientWorkouts, payments, planIndex, 
 // optionally a follow-up task in coach_notes. The user's spec:
 // "logging a phone call notes + task for next week".
 function CombinedLogModal({ trainee, addActivity, onClose, onSaved }) {
+  const tt = useT();
   const [kind, setKind] = useState('whatsapp');
   const [summary, setSummary] = useState('');
   const [when, setWhen] = useState(() => new Date().toISOString().slice(0, 16));
@@ -251,7 +254,7 @@ function CombinedLogModal({ trainee, addActivity, onClose, onSaved }) {
   };
 
   return createPortal((
-    <div onClick={onClose} role="dialog" aria-modal="true" aria-label="Log activity" style={{
+    <div onClick={onClose} role="dialog" aria-modal="true" aria-label={tt('Log activity')} style={{
       position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 200,
       display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 20, paddingTop: 60,
       backdropFilter: 'blur(4px)',
@@ -261,7 +264,7 @@ function CombinedLogModal({ trainee, addActivity, onClose, onSaved }) {
         padding: 22, maxWidth: 480, width: '100%', maxHeight: '80vh', overflow: 'auto',
       }}>
         <div style={{ fontSize: 11, fontFamily: FN, color: C.ac, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 14 }}>
-          + LOG WHAT HAPPENED
+          {tt('+ LOG WHAT HAPPENED')}
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
           {ACT_KINDS.map(k => (
@@ -272,11 +275,11 @@ function CombinedLogModal({ trainee, addActivity, onClose, onSaved }) {
                 background: 'transparent', color: kind === k ? C.ac : C.tm,
                 fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em',
                 cursor: 'pointer',
-              }}>{KIND_LABEL[k]}</button>
+              }}>{tt(KIND_LABEL[k])}</button>
           ))}
         </div>
         <textarea value={summary} onChange={e => setSummary(e.target.value)} dir="auto"
-          placeholder="What happened?"
+          placeholder={tt('What happened?')}
           rows={4}
           style={{
             width: '100%', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`,
@@ -298,12 +301,12 @@ function CombinedLogModal({ trainee, addActivity, onClose, onSaved }) {
             <input type="checkbox" checked={alsoTask} onChange={e => setAlsoTask(e.target.checked)}
               style={{ width: 14, height: 14, accentColor: C.ac, cursor: 'pointer' }} />
             <span style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.12em', fontWeight: 700 }}>
-              ALSO CREATE A FOLLOW-UP TASK
+              {tt('ALSO CREATE A FOLLOW-UP TASK')}
             </span>
           </label>
           {alsoTask && (
             <textarea value={taskBody} onChange={e => setTaskBody(e.target.value)} dir="auto"
-              placeholder="Follow-up task — e.g. 'Check in next week about his shoulder'"
+              placeholder={tt("Follow-up task — e.g. 'Check in next week about his shoulder'")}
               rows={2}
               style={{
                 width: '100%', background: 'var(--c-sf)', border: `1px solid ${C.ac}`,
@@ -319,7 +322,7 @@ function CombinedLogModal({ trainee, addActivity, onClose, onSaved }) {
               padding: '8px 16px', borderRadius: 0, border: `1px solid ${C.cardBd}`,
               background: 'transparent', color: C.tm, fontFamily: FN, fontSize: 11,
               fontWeight: 700, letterSpacing: '0.1em', cursor: 'pointer',
-            }}>CANCEL</button>
+            }}>{tt('CANCEL')}</button>
           <button onClick={submit} disabled={!summary.trim() || saving}
             style={{
               padding: '8px 16px', borderRadius: 0,
@@ -328,7 +331,7 @@ function CombinedLogModal({ trainee, addActivity, onClose, onSaved }) {
               fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em',
               cursor: summary.trim() ? 'pointer' : 'default',
               minWidth: 124, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            }}>{saving ? 'SAVING…' : alsoTask ? 'LOG + TASK →' : 'LOG →'}</button>
+            }}>{saving ? tt('SAVING…') : alsoTask ? tt('LOG + TASK →') : tt('LOG →')}</button>
         </div>
       </div>
     </div>
@@ -341,6 +344,7 @@ function CombinedLogModal({ trainee, addActivity, onClose, onSaved }) {
 //   2. ACTIVITY    (ActivityFeed in bareMode)
 // The combined "+ LOG" composer writes to BOTH systems in one submit.
 function CoachHistoryCard({ trainee, activity, clientWorkouts, payments, planIndex, onCreatePlanForTask, onOpenIntakeTab }) {
+  const tt = useT();
   const [showLog, setShowLog] = useState(false);
   // Collapsible — the cyan strip title is the toggle (the + LOG button stays
   // independent). Persisted per trainee.
@@ -356,7 +360,7 @@ function CoachHistoryCard({ trainee, activity, clientWorkouts, payments, planInd
   const TabBtn = ({ id, label }) => (
     <button onClick={() => setTab(id)}
       style={{
-        padding: '6px 2px', marginRight: 22, border: 'none', background: 'transparent',
+        padding: '6px 2px', marginInlineEnd: 22, border: 'none', background: 'transparent',
         borderBottom: `2px solid ${tab === id ? C.ac : 'transparent'}`,
         color: tab === id ? C.ac : C.tm,
         fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.14em',
@@ -377,25 +381,25 @@ function CoachHistoryCard({ trainee, activity, clientWorkouts, payments, planInd
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(o => !o); } }}
             style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', userSelect: 'none', flex: 1, minWidth: 0 }}>
             <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : C.tx }}>
-              COACH HISTORY
+              {tt('COACH HISTORY')}
             </span>
             <span aria-hidden style={{ color: refined ? '#FFFFFF' : C.tx, fontSize: 12, lineHeight: 1, transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease' }}>▾</span>
           </div>
           <button onClick={() => setShowLog(true)}
-            style={{ ...stripBtnBase, border: `1px solid ${refined ? '#FFFFFF' : C.ac}`, color: refined ? '#FFFFFF' : C.ac, flexShrink: 0 }}>+ LOG</button>
+            style={{ ...stripBtnBase, border: `1px solid ${refined ? '#FFFFFF' : C.ac}`, color: refined ? '#FFFFFF' : C.ac, flexShrink: 0 }}>{tt('+ LOG')}</button>
         </div>
       </RefinedHeaderStrip>
 
       <div style={{ display: 'grid', gridTemplateRows: open ? '1fr' : '0fr', transition: 'grid-template-rows 260ms ease' }}>
       <div style={{ overflow: 'hidden', minHeight: 0 }}>
       <div style={{ display: 'flex', gap: 0, marginBottom: 12, borderBottom: `1px solid ${C.cardBd}` }}>
-        <TabBtn id="actions" label="ACTIONS" />
-        <TabBtn id="activity" label="ACTIVITY" />
+        <TabBtn id="actions" label={tt('ACTIONS')} />
+        <TabBtn id="activity" label={tt('ACTIVITY')} />
       </div>
 
       {tab === 'actions' ? (
         <NotesInline
-          label="NEXT ACTIONS"
+          label={tt('NEXT ACTIONS')}
           targetKind="trainee"
           targetId={trainee.id}
           targetLabel={trainee.name || null}
@@ -442,6 +446,7 @@ function SubSection({ title, marginTop = 0, children }) {
 }
 
 export default function TraineeCRM({ trainee, clientWorkouts, payments, planIndex, onCreatePlanForTask, onOpenIntakeTab }) {
+  const tt = useT();
   // Rules-of-Hooks: hook calls must come before any early return so the
   // hook count stays stable across renders.
   // Activity is fetched once here and threaded down to the history card +
@@ -471,7 +476,7 @@ export default function TraineeCRM({ trainee, clientWorkouts, payments, planInde
         <div style={{ marginBottom: 10 }}><span style={{
           fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.12em',
           fontWeight: 700, padding: '6px 10px', border: `1px solid ${C.cardBd}`,
-        }}>STATUS · {(trainee.status || '').toUpperCase()}</span></div>
+        }}>{tt('STATUS')} · {tt((trainee.status || '').toUpperCase())}</span></div>
       )}
       <CoachHistoryCard
         trainee={trainee}

@@ -1,0 +1,39 @@
+
+=== src/i18n.js HE: 906 keys ===
+1. casing conflicts (same English, different Hebrew): 5
+   "Answered" → נענו  |  "ANSWERED" → נענה
+   "Delete" → מחיקה  |  "DELETE" → מחק
+   "Save" → שמירה  |  "SAVE" → שמור
+   "pending" → ממתינות  |  "PENDING" → ממתין
+   "READINESS CHECK-IN" → צ׳ק-אין מוכנות  |  "Readiness Check-In" → בדיקת מוכנות
+   (same English under several casings with ONE Hebrew: 36 - harmless, tr() folds them)
+2. values with Latin words beyond the allowlist: 9
+   "Photo is too large (max 8 MB)." → התמונה גדולה מדי (עד 8MB).
+   "EXPO-APP.CO.IL" → EXPO-APP.CO.IL
+   "Completed Upper A — 6 exercises logged" → סיים Upper A — נרשמו 6 תרגילים
+   "Assigned Block #12 (hypertrophy)" → הוקצה Block #12 (היפרטרופיה)
+   "Right ACL reconstruction (2024)" → שחזור ACL ימין (2024)
+   "XLSX · CSV · TSV · PDF · PNG · JPG · screenshot · text. AI maps it into the EXPO schema and previews before commit." → XLSX · CSV · TSV · PDF · PNG · JPG · צילום מסך · טקסט. ה-AI ממפה את זה לסכמה של EXPO ומציג תצוגה מקדימה לפני השמירה.
+   "Drop any document — XLSX, CSV, PDF, image, screenshot. AI reads it, maps it to EXPO's schema, previews before commit." → זרוק כל מסמך — XLSX, CSV, PDF, תמונה, צילום מסך. ה-AI קורא, ממפה לסכמה של EXPO ומציג תצוגה מקדימה לפני השמירה.
+   "backoff prefix" → קידומת backoff
+   "Could not reach the server. An ad-blocker or privacy extension, a VPN, or a stale offline cache can block it — try an incognito window, or clear this site’s data." → אין חיבור לשרת. חוסם פרסומות, VPN או מטמון ישן יכול לחסום — תנסה חלון גלישה בסתר, או תנקה את נתוני האתר.
+3. values identical to their key: 2
+   "RPE"
+   "EXPO-APP.CO.IL"
+4. empty values: 0
+
+=== src/bhbcHe.js HE: 382 keys ===
+1. casing conflicts (same English, different Hebrew): 5
+   "Lift" → כוח  |  "lift" → אימון כוח
+   "available" → זמינים  |  "Available" → זמין
+   "limited" → מוגבלים  |  "Limited" → מוגבל
+   "Watch" → שים לב ל  |  "WATCH" → לעקוב
+   "Record" → מאזן  |  "record" → רשומה
+   (same English under several casings with ONE Hebrew: 12 - harmless, tr() folds them)
+2. values with Latin words beyond the allowlist: 2
+   "needs sRPE" → חסר sRPE
+   "sRPE × min" → sRPE × דקות
+3. values identical to their key: 0
+4. empty values: 0
+
+TOTAL findings: 23

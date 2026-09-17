@@ -14,7 +14,7 @@
 //   5. Coach previews JSON
 //   6. Commit to Supabase (dedupe on commit)
 import React, { useState, useMemo, useRef } from 'react';
-import { useT } from './i18n';
+import { useT, tr, readLang } from './i18n';
 import * as XLSX from 'xlsx';
 import { supabase } from './supabase';
 import { C, FN, FB, uid } from './theme';
@@ -131,7 +131,7 @@ async function pdfToImages(file, { maxPages = 8, scale = 2 } = {}) {
   const n = Math.min(doc.numPages, maxPages);
   // Don't let a long PDF truncate silently — the coach needs to know pages 9+
   // weren't read so they can split the file. (deep-logic audit)
-  if (doc.numPages > maxPages) toast(`PDF has ${doc.numPages} pages — only the first ${maxPages} were imported. Split it to import the rest.`, 'info', { ttl: 7000 });
+  if (doc.numPages > maxPages) toast(readLang() === 'he' ? `ב-PDF יש ${doc.numPages} עמודים — יובאו רק ${maxPages} הראשונים. פצל אותו כדי לייבא את השאר.` : `PDF has ${doc.numPages} pages — only the first ${maxPages} were imported. Split it to import the rest.`, 'info', { ttl: 7000 });
   const out = [];
   for (let i = 1; i <= n; i++) {
     const page = await doc.getPage(i);
@@ -226,7 +226,7 @@ export default function SmartImportView() {
           setTarget(top.guessedTarget);
         }
       }
-    } catch (e) { setErr('Could not read file: ' + e.message); }
+    } catch (e) { setErr((readLang() === 'he' ? 'לא הצלחתי לקרוא את הקובץ: ' : 'Could not read file: ') + e.message); }
     setParsing(false);
   };
 
@@ -278,7 +278,7 @@ export default function SmartImportView() {
       const j = await siJson(r);
       if (!r.ok || j.error) throw new Error(j.error || `HTTP ${r.status}`);
       setMapping(j);
-    } catch (e) { setErr('Analyze failed: ' + e.message); }
+    } catch (e) { setErr((readLang() === 'he' ? 'הניתוח נכשל: ' : 'Analyze failed: ') + e.message); }
     setAnalyzing(false);
   };
 
@@ -317,7 +317,7 @@ export default function SmartImportView() {
         if (Array.isArray(j.warnings)) allWarnings.push(...j.warnings);
       }
       setTransform({ items: allItems, errors: allErrors, warnings: allWarnings });
-    } catch (e) { setErr('Transform failed: ' + e.message); }
+    } catch (e) { setErr((readLang() === 'he' ? 'ההמרה נכשלה: ' : 'Transform failed: ') + e.message); }
     setTransforming(false);
   };
 
@@ -378,7 +378,7 @@ export default function SmartImportView() {
         }
         const { error } = await supabase.from('store').upsert({ key: 'expo-exercises', value: lib, updated_at: new Date().toISOString() });
         if (error) throw error;
-        summary = `+${added} new exercises (skipped ${transform.items.length - added} duplicates).`;
+        summary = readLang() === 'he' ? `${added === 1 ? 'נוסף תרגיל חדש אחד' : `נוספו ${added} תרגילים חדשים`} (${transform.items.length - added === 1 ? 'כפילות אחת דולגה' : `${transform.items.length - added} כפילויות דולגו`}).` : `+${added} new exercises (skipped ${transform.items.length - added} duplicates).`;
       } else if (target === 'athletes') {
         const { data: row } = await supabase.from('store').select('value').eq('key', 'expo-trainees').maybeSingle();
         const arr = row?.value || [];
@@ -405,7 +405,7 @@ export default function SmartImportView() {
         }
         const { error } = await supabase.from('store').upsert({ key: 'expo-trainees', value: arr, updated_at: new Date().toISOString() });
         if (error) throw error;
-        summary = `+${added} new athletes, ${updated} updated.` + (skippedNameless ? ` Skipped ${skippedNameless} nameless row(s).` : '');
+        summary = readLang() === 'he' ? `${added === 1 ? 'נוסף מתאמן חדש אחד' : `נוספו ${added} מתאמנים חדשים`}, ${updated === 1 ? 'מתאמן אחד עודכן' : `${updated} עודכנו`}.` + (skippedNameless ? ` ${skippedNameless === 1 ? 'דולגה שורה אחת בלי שם' : `דולגו ${skippedNameless} שורות בלי שם`}.` : '') : `+${added} new athletes, ${updated} updated.` + (skippedNameless ? ` Skipped ${skippedNameless} nameless row(s).` : '');
       } else if (target === 'programs') {
         const { data: row } = await supabase.from('store').select('value').eq('key', 'expo-exercises').maybeSingle();
         const lib = row?.value || [];
@@ -476,16 +476,16 @@ export default function SmartImportView() {
           if (error) throw error;
           created++;
         }
-        summary = `+${created} program${created === 1 ? '' : 's'} (${newLibEntries.length} new library entries).`;
+        summary = readLang() === 'he' ? `${created === 1 ? 'נוספה תוכנית אחת' : `נוספו ${created} תוכניות`} (${newLibEntries.length === 1 ? 'רשומה חדשה אחת בספרייה' : `${newLibEntries.length} רשומות חדשות בספרייה`}).` : `+${created} program${created === 1 ? '' : 's'} (${newLibEntries.length} new library entries).`;
       }
       // Auto-reload after a successful import. The commit upserted plans/store
       // DIRECTLY to Supabase, so the running app's in-memory useSupaStore arrays
       // are now stale — the next in-app edit (ExercisesView add, TraineeDetail
       // autosave) would upsert the OLD list and silently overwrite this import
       // (data-loss race). A reload re-fetches everything fresh and closes it.
-      setCommitMsg('✓ ' + summary + ' Reloading…');
+      setCommitMsg('✓ ' + summary + (readLang() === 'he' ? ' טוען מחדש…' : ' Reloading…'));
       setTimeout(() => { try { window.location.reload(); } catch { /* noop */ } }, 1500);
-    } catch (e) { setErr('Commit failed: ' + e.message); }
+    } catch (e) { setErr((readLang() === 'he' ? 'השמירה נכשלה: ' : 'Commit failed: ') + e.message); }
     setCommitting(false);
   };
 
@@ -530,7 +530,7 @@ export default function SmartImportView() {
               <Select label="Sheet/Page" options={sheets.map((s, i) => ({ value: String(i), label: s.sheetName + (s.guessedTarget ? ` · ${s.guessedTarget}` : '') }))} value={String(activeSheetIdx)} onChange={onSheetChange} />
             )}
             <Select label="Target" options={TARGETS.map(t => ({ value: t.value, label: t.label }))} value={target} onChange={onTargetChange} />
-            <Btn onClick={analyze} disabled={analyzing || !sheetGrid?.headers?.length} style={{ minWidth: 140, justifyContent: 'center' }}>{analyzing ? 'Analyzing…' : 'Analyze with AI'}</Btn>
+            <Btn onClick={analyze} disabled={analyzing || !sheetGrid?.headers?.length} style={{ minWidth: 140, justifyContent: 'center' }}>{tr(readLang(), analyzing ? 'Analyzing…' : 'Analyze with AI')}</Btn>
           </div>
         </div>
       )}
@@ -538,14 +538,14 @@ export default function SmartImportView() {
       {sheetGrid && (
         <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, marginBottom: 12 }}>
           <div style={{ background: 'var(--c-stripBg, var(--c-sf))', borderBottom: '1px solid var(--c-cardBd)', padding: '10px 14px' }}>
-            <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>SHEET PREVIEW</SectionLabel>
+            <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>{tt('SHEET PREVIEW')}</SectionLabel>
           </div>
           <div style={{ padding: 12 }}>
-          <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, marginBottom: 6, letterSpacing: '0.18em', fontWeight: 700 }}>{sheetGrid.headers.length} cols · {sheetGrid.rows.length} rows</div>
+          <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, marginBottom: 6, letterSpacing: '0.18em', fontWeight: 700 }}>{sheetGrid.headers.length} {tt('cols')} · {sheetGrid.rows.length} {tt('rows')}</div>
           <div style={{ overflowX: 'auto', maxHeight: 200, overflowY: 'auto', border: `1px solid ${C.cardBd}`, borderRadius: 0 }}>
             <table style={{ borderCollapse: 'collapse', fontSize: 11, fontFamily: FB, color: C.tx }}>
               <thead><tr style={{ background: 'transparent' }}>{sheetGrid.headers.map((h, i) => (
-                <th key={i} style={{ padding: '6px 10px', textAlign: 'left', fontFamily: FN, fontSize: 10, color: C.tm, borderBottom: `1px solid ${C.cardBd}`, whiteSpace: 'nowrap' }}>{h || `(col ${i + 1})`}</th>
+                <th key={i} style={{ padding: '6px 10px', textAlign: 'start', fontFamily: FN, fontSize: 10, color: C.tm, borderBottom: `1px solid ${C.cardBd}`, whiteSpace: 'nowrap' }}>{h || `(col ${i + 1})`}</th>
               ))}</tr></thead>
               <tbody>{sheetGrid.sample.map((r, ri) => (
                 <tr key={ri}>{sheetGrid.headers.map((_, ci) => (
@@ -563,12 +563,12 @@ export default function SmartImportView() {
       {mapping && (
         <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, marginBottom: 12 }}>
           <div style={{ background: 'var(--c-stripBg, var(--c-sf))', borderBottom: '1px solid var(--c-cardBd)', padding: '10px 14px' }}>
-            <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>AI MAPPING</SectionLabel>
+            <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>{tt('AI MAPPING')}</SectionLabel>
           </div>
           <div style={{ padding: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
-            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, textTransform: 'uppercase' }}><Badge color={lowConf ? C.or : C.gn}>{Math.round((mapping.confidence ?? 0) * 100)}% confident</Badge></div>
-            <Btn onClick={runTransform} disabled={transforming} style={{ minWidth: 160, justifyContent: 'center' }}>{transforming ? 'Transforming…' : 'Preview Transform'}</Btn>
+            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, textTransform: 'uppercase' }}><Badge color={lowConf ? C.or : C.gn}>{Math.round((mapping.confidence ?? 0) * 100)}% {tt('confident')}</Badge></div>
+            <Btn onClick={runTransform} disabled={transforming} style={{ minWidth: 160, justifyContent: 'center' }}>{tr(readLang(), transforming ? 'Transforming…' : 'Preview Transform')}</Btn>
           </div>
           {mapping.notes && <div style={{ fontSize: 12, color: C.tm, lineHeight: 1.5, marginBottom: 8 }}>💡 {mapping.notes}</div>}
           {Array.isArray(mapping.warnings) && mapping.warnings.length > 0 && (
@@ -577,9 +577,9 @@ export default function SmartImportView() {
             </ul>
           )}
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(140px,1fr) minmax(160px,2fr) auto', gap: '6px 10px', alignItems: 'center', fontSize: 12 }}>
-            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700 }}>TARGET</div>
-            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700 }}>SOURCE COLUMN</div>
-            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700 }}>CONF</div>
+            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700 }}>{tt('TARGET')}</div>
+            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700 }}>{tt('SOURCE COLUMN')}</div>
+            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700 }}>{tt('CONF')}</div>
             {targetFields.map(field => {
               const m = mapping.mapping?.[field] || { source: null };
               const conf = m.confidence ?? 0;
@@ -588,7 +588,7 @@ export default function SmartImportView() {
                   <div style={{ color: C.tx, fontFamily: FB }}>{field}</div>
                   <select value={m.source || ''} onChange={e => updateMappingSource(field, e.target.value)}
                     style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '6px 8px', color: C.tx, fontFamily: FB, fontSize: 12 }}>
-                    <option value="">— none —</option>
+                    <option value="">{tt('— none —')}</option>
                     {sheetGrid?.headers.filter(Boolean).map((h, i) => <option key={i} value={h}>{h}</option>)}
                   </select>
                   <div style={{ fontFamily: FN, fontSize: 11, color: conf >= 0.8 ? C.gn : conf >= 0.5 ? C.or : C.td }}>{m.source ? Math.round(conf * 100) + '%' : '—'}</div>
@@ -604,15 +604,15 @@ export default function SmartImportView() {
       {transform && (
         <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, marginBottom: 12 }}>
           <div style={{ background: 'var(--c-stripBg, var(--c-sf))', borderBottom: '1px solid var(--c-cardBd)', padding: '10px 14px' }}>
-            <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>PREVIEW</SectionLabel>
+            <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>{tt('PREVIEW')}</SectionLabel>
           </div>
           <div style={{ padding: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
             <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, textTransform: 'uppercase' }}>
-              <Badge color={C.gn}>{transform.items.length} item{transform.items.length === 1 ? '' : 's'}</Badge>
-              {transform.errors.length > 0 && <Badge color={C.rd} style={{ marginLeft: 6 }}>{transform.errors.length} error{transform.errors.length === 1 ? '' : 's'}</Badge>}
+              <Badge color={C.gn}>{readLang() === 'he' ? (transform.items.length === 1 ? 'פריט אחד' : `${transform.items.length} פריטים`) : `${transform.items.length} item${transform.items.length === 1 ? '' : 's'}`}</Badge>
+              {transform.errors.length > 0 && <Badge color={C.rd} style={{ marginInlineStart: 6 }}>{readLang() === 'he' ? (transform.errors.length === 1 ? 'שגיאה אחת' : `${transform.errors.length} שגיאות`) : `${transform.errors.length} error${transform.errors.length === 1 ? '' : 's'}`}</Badge>}
             </div>
-            <Btn onClick={commit} disabled={committing || transform.items.length === 0} style={{ minWidth: 168, justifyContent: 'center' }}>{committing ? 'Writing…' : 'Commit to Database'}</Btn>
+            <Btn onClick={commit} disabled={committing || transform.items.length === 0} style={{ minWidth: 168, justifyContent: 'center' }}>{tr(readLang(), committing ? 'Writing…' : 'Commit to Database')}</Btn>
           </div>
           {Array.isArray(transform.warnings) && transform.warnings.length > 0 && (
             <ul style={{ margin: '4px 0 10px 16px', padding: 0, color: C.or, fontSize: 12 }}>
@@ -625,7 +625,7 @@ export default function SmartImportView() {
           </div>
           {transform.errors.length > 0 && (
             <details style={{ marginTop: 8 }}>
-              <summary style={{ fontSize: 11, color: C.rd, cursor: 'pointer' }}>{transform.errors.length} skipped row{transform.errors.length === 1 ? '' : 's'}</summary>
+              <summary style={{ fontSize: 11, color: C.rd, cursor: 'pointer' }}>{readLang() === 'he' ? (transform.errors.length === 1 ? 'שורה אחת דולגה' : `${transform.errors.length} שורות דולגו`) : `${transform.errors.length} skipped row${transform.errors.length === 1 ? '' : 's'}`}</summary>
               <ul style={{ margin: '4px 0 0 16px', padding: 0, color: C.tm, fontSize: 11 }}>
                 {transform.errors.slice(0, 30).map((e, i) => <li key={i}>row {e.rowIdx}: {e.msg}</li>)}
               </ul>

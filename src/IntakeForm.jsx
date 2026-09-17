@@ -37,7 +37,7 @@ function Field({ q, value, onChange, dir }) {
     textTransform: 'uppercase', display: 'block', marginBottom: 6, direction: dir,
   };
 
-  const required = q.required ? <span style={{ color: C.rd, marginLeft: 4 }}>*</span> : null;
+  const required = q.required ? <span style={{ color: C.rd, marginInlineStart: 4 }}>*</span> : null;
 
   if (q.type === 'paragraph') {
     return (
@@ -282,7 +282,7 @@ export default function IntakeForm() {
       <div data-theme="dark" style={wrapper}><div style={card}>
         <div style={{ textAlign: 'center' }}>
           <h2 style={{ fontFamily: FN, fontSize: 18, color: C.rd, margin: 0 }}>
-            {dir === 'rtl' ? 'הקישור אינו תקף' : 'Link not valid'}
+            {dir === 'rtl' ? 'הקישור לא תקף' : 'Link not valid'}
           </h2>
           <p style={{ fontSize: 14, color: C.tm, marginTop: 12 }}>
             {dir === 'rtl' ? 'בקש/י קישור חדש מהמאמן.' : 'Ask the coach for a new link.'}
@@ -334,7 +334,7 @@ export default function IntakeForm() {
     return (
       <div data-theme="dark" style={wrapper}><div style={card}>
         <div style={{ textAlign: 'center', color: C.or, fontFamily: FN, fontSize: 11, marginBottom: 16 }}>
-          PREVIEW · NO TOKEN · {dir === 'rtl' ? 'הקישור החי כולל את t= בכתובת' : 'Live link must include ?t=...'}
+          {dir === 'rtl' ? 'תצוגה מקדימה · בלי טוקן ·' : 'PREVIEW · NO TOKEN ·'} {dir === 'rtl' ? 'הקישור החי כולל את t= בכתובת' : 'Live link must include ?t=...'}
         </div>
         <h2 style={{ fontFamily: FN, fontSize: 22, color: C.tx, margin: '0 0 8px' }}>{form?.title}</h2>
         <p style={{ fontSize: 13, color: C.tm, marginTop: 0, marginBottom: 24, lineHeight: 1.5 }}>{form?.intro}</p>

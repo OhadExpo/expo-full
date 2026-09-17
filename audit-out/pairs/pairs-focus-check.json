@@ -1,0 +1,15 @@
+[
+  {
+    "seat": "athlete",
+    "route": "/athlete",
+    "name": "portal-nofocus",
+    "before": {
+      "file": "audit-out\\pairs\\portal-nofocus-he-live.png",
+      "chars": 3176
+    },
+    "after": {
+      "file": "audit-out\\pairs\\portal-nofocus-he-branch.png",
+      "chars": 1181
+    }
+  }
+]

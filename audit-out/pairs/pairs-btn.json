@@ -1,0 +1,28 @@
+[
+  {
+    "seat": "owner",
+    "route": "/coach/bugs",
+    "name": "bugs-btn",
+    "before": {
+      "file": "audit-out\\pairs\\bugs-btn-he-live.png",
+      "chars": 145
+    },
+    "after": {
+      "file": "audit-out\\pairs\\bugs-btn-he-branch.png",
+      "chars": 134
+    }
+  },
+  {
+    "seat": "owner",
+    "route": "/coach/exercise-cleanup",
+    "name": "cleanup-btn",
+    "before": {
+      "file": "audit-out\\pairs\\cleanup-btn-he-live.png",
+      "chars": 1841
+    },
+    "after": {
+      "file": "audit-out\\pairs\\cleanup-btn-he-branch.png",
+      "chars": 1710
+    }
+  }
+]

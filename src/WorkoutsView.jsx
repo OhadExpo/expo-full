@@ -9,7 +9,7 @@ const isHebrew = (s) => /[֐-׿]/.test(s || '');
 import { Btn, TextArea, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b, CollapsibleSection } from './ui';
 import { supabase } from './supabase';
 import { traineeIdsFor } from './traineeUtils';
-import { useT } from './i18n';
+import { useT, tr, readLang } from './i18n';
 
 // Inline exercise video — IDENTICAL rules to the group session (Ohad: "just play
 // and pause, no clicking on the youtube video at all"). Plays in place, never
@@ -34,7 +34,7 @@ function InlineVideo({ url }) {
   if (yt) {
     const short = /youtube\.com\/shorts\//i.test(String(url || ''));  // vertical → portrait frame
     return (
-      <div style={{ marginTop: 8, marginBottom: 10, aspectRatio: short ? '9/16' : '16/9', background: '#000', border: `1px solid ${C.cardBd}`, maxWidth: short ? 260 : 400, marginLeft: 'auto', marginRight: 'auto' }}>
+      <div style={{ marginTop: 8, marginBottom: 10, aspectRatio: short ? '9/16' : '16/9', background: '#000', border: `1px solid ${C.cardBd}`, maxWidth: short ? 260 : 400, marginInlineStart: 'auto', marginInlineEnd: 'auto' }}>
         <iframe
           src={`https://www.youtube.com/embed/${yt}?rel=0&modestbranding=1&controls=1&fs=0&disablekb=1&playsinline=1`}
           sandbox="allow-scripts allow-same-origin allow-presentation"
@@ -47,7 +47,7 @@ function InlineVideo({ url }) {
   if (/\.(mp4|webm|mov|m4v)(\?|$)/i.test(url || '')) {
     return (
       <video src={url} controls playsInline controlsList="nofullscreen nodownload" disablePictureInPicture
-        style={{ width: '100%', maxWidth: 400, display: 'block', marginLeft: 'auto', marginRight: 'auto', marginTop: 8, marginBottom: 10, aspectRatio: '16/9', background: '#000', border: `1px solid ${C.cardBd}`, objectFit: 'contain' }} />
+        style={{ width: '100%', maxWidth: 400, display: 'block', marginInlineStart: 'auto', marginInlineEnd: 'auto', marginTop: 8, marginBottom: 10, aspectRatio: '16/9', background: '#000', border: `1px solid ${C.cardBd}`, objectFit: 'contain' }} />
     );
   }
   return null;
@@ -171,25 +171,24 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
             background: inGroup ? 'transparent' : 'var(--c-sf)',
             border: inGroup ? 'none' : `1px solid ${C.cardBd}`,
             borderTop: withDivider ? `1px solid ${C.cardBd}` : undefined,
-            borderLeft: `3px solid ${fullyDone ? C.gn : C.cardBd}`,
+            borderInlineStart: `3px solid ${fullyDone ? C.gn : C.cardBd}`,
             borderRadius: 0, padding: inGroup ? '12px' : '14px',
             marginBottom: inGroup ? 0 : 10, cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
           }}>
           <span style={{ fontWeight: 700, color: C.tx, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             <span style={{ display: 'inline-block', width: 14, color: C.gn, flexShrink: 0 }}>{fullyDone ? '✓' : ''}</span>
-            <span style={{ display: 'inline-block', width: 22, textAlign: 'right', marginRight: 5, flexShrink: 0 }}>{exIdx+1}.</span>
+            <span style={{ display: 'inline-block', width: 22, textAlign: 'end', marginInlineEnd: 5, flexShrink: 0 }}>{exIdx+1}.</span>
             {exData?.title||ex.title||"Unknown"}
           </span>
           <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color: fullyDone ? C.gn : C.tm, flexShrink: 0, whiteSpace: 'nowrap' }}>
-            {doneCount}/{ex.sets.length} SETS · EXPAND
-          </span>
+            {doneCount}/{ex.sets.length}{tt('SETS · EXPAND')}</span>
         </div>
       );
     }
     const fullyDoneOpen = allDone(ex);
     return (
-      <div key={ex.id} style={{background: inGroup ? 'transparent' : 'var(--c-sf)', border: inGroup ? 'none' : `1px solid ${C.cardBd}`, borderLeft: inGroup ? undefined : `3px solid ${fullyDoneOpen ? C.gn : C.cardBd}`, borderTop: withDivider ? `1px solid ${C.cardBd}` : undefined, borderRadius:0, padding: inGroup ? '10px 0 4px' : 14, marginBottom: inGroup ? 0 : 10}}>
+      <div key={ex.id} style={{background: inGroup ? 'transparent' : 'var(--c-sf)', border: inGroup ? 'none' : `1px solid ${C.cardBd}`, borderInlineStart: inGroup ? undefined : `3px solid ${fullyDoneOpen ? C.gn : C.cardBd}`, borderTop: withDivider ? `1px solid ${C.cardBd}` : undefined, borderRadius:0, padding: inGroup ? '10px 0 4px' : 14, marginBottom: inGroup ? 0 : 10}}>
         {/* Header: title row + a readable prescription stat row (only fields
             that actually have a value — no "RPE — · Rest undefineds" noise).
             COLLAPSE control fixed top-right. Video plays INLINE below the cue
@@ -198,7 +197,7 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
         <div style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:10}}>
           <div style={{flex:1,minWidth:0}}>
             <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',marginBottom:8}}>
-              <span style={{fontWeight:700,fontSize:15,color:C.tx,whiteSpace:'normal',overflowWrap:'break-word',lineHeight:1.3}}><span style={{display:'inline-block',width:26,textAlign:'right',marginRight:5}}>{exIdx+1}.</span>{exData?.title||ex.title||"Unknown"}</span>
+              <span style={{fontWeight:700,fontSize:15,color:C.tx,whiteSpace:'normal',overflowWrap:'break-word',lineHeight:1.3}}><span style={{display:'inline-block',width:26,textAlign: 'end',marginInlineEnd:5}}>{exIdx+1}.</span>{exData?.title||ex.title||"Unknown"}</span>
             </div>
             <div style={{display:'flex',gap:18,flexWrap:'wrap'}}>
               {[['SETS',(ex.sets||[]).length],['REPS',ex.reps],['TEMPO',(ex.tempo && String(ex.tempo)!==String(ex.reps))?ex.tempo:''],['RPE',ex.rpe],['REST',ex.rest?`${ex.rest}s`:'']]
@@ -211,7 +210,7 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
                 ))}
             </div>
           </div>
-          {!groupControlled && <button onClick={() => toggleCollapse(ex, exIdx)} title="Collapse this exercise"
+          {!groupControlled && <button onClick={() => toggleCollapse(ex, exIdx)} title={tt('Collapse this exercise')}
             style={{flexShrink:0,display:'inline-flex',alignItems:'center',gap:5,height:24,background:'transparent',border:`1px solid ${C.cardBd}`,color:C.tm,cursor:'pointer',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',padding:'0 9px',borderRadius:0}}>COLLAPSE ▴</button>}
         </div>
         {/* Coach cue — was tiny faded italic (unreadable). Now a readable
@@ -249,7 +248,7 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
           </React.Fragment>;})}
         {/* Coach's session note — separate from the prescribed cue above, so
             this field starts blank instead of echoing the plan's note. */}
-        <input value={ex.coachNote||""} onChange={e=>updateEx(exIdx,{coachNote:e.target.value})} placeholder="Notes for this exercise…" style={{...baseInput,marginTop:6,padding:"6px 8px",fontSize:12,width:"100%",boxSizing:"border-box"}} />
+        <input value={ex.coachNote||""} onChange={e=>updateEx(exIdx,{coachNote:e.target.value})} placeholder={tt('Notes for this exercise…')} style={{...baseInput,marginTop:6,padding:"6px 8px",fontSize:12,width:"100%",boxSizing:"border-box"}} />
       </div>);
   };
   const totalSets = workout.exercises.reduce((a,ex)=>a+ex.sets.length,0);
@@ -263,7 +262,7 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
           action lives at the BOTTOM, after Session Observations (Ohad). */}
       <div style={{position:'sticky',top:stickyTop,zIndex:40,background:C.bg,paddingTop:8,paddingBottom:10,marginBottom:8,borderBottom:`1px solid ${C.cardBd}`}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-          <button onClick={onBack} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',padding:0}}>← BACK</button>
+          <button onClick={onBack} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',padding:0}}>← {tr(readLang(), 'BACK')}</button>
           {isCompleted&&<Badge color={C.gn} style={{fontSize:13,padding:"6px 14px"}}>{tt('Completed')}</Badge>}
         </div>
         <div style={{display:"flex",justifyContent:"space-between",fontSize:12,fontFamily:FN,color:C.tm,marginBottom:4}}>
@@ -280,13 +279,13 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
         const titles = g.items.map(({ex})=>(exById.get(ex.exerciseId)?.title)||ex.title||'?').join(' + ');
         const sc = ssColor(g.ss);
         return (
-        <div key={gi} style={{border:`1px solid ${sc}`, borderLeft:`3px solid ${allD?C.gn:sc}`, borderRadius:0, padding:'8px 12px', marginBottom:10, background: 'var(--c-sf)'}}>
-          <button onClick={()=>toggleGroup(gi,g.items)} title={collapsed?'Expand superset':'Collapse superset'}
-            style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,background:'transparent',border:'none',cursor:'pointer',padding:0,textAlign:'left'}}>
+        <div key={gi} style={{border:`1px solid ${sc}`, borderInlineStart:`3px solid ${allD?C.gn:sc}`, borderRadius:0, padding:'8px 12px', marginBottom:10, background: 'var(--c-sf)'}}>
+          <button onClick={()=>toggleGroup(gi,g.items)} title={tr(readLang(), collapsed?'Expand superset':'Collapse superset')}
+            style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,background:'transparent',border:'none',cursor:'pointer',padding:0,textAlign: 'start'}}>
             <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',color:allD?C.gn:sc,textTransform:'uppercase',minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
-              {allD && <span style={{marginRight:6}}>✓</span>}Superset {g.ss}{collapsed && <span style={{color:C.tm,fontWeight:600,letterSpacing:'0.04em',textTransform:'none'}}> · {titles}</span>}
+              {allD && <span style={{marginInlineEnd:6}}>✓</span>}{tr(readLang(), 'Superset')} {g.ss}{collapsed && <span style={{color:C.tm,fontWeight:600,letterSpacing:'0.04em',textTransform:'none'}}> · {titles}</span>}
             </span>
-            <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',color:allD?C.gn:C.tm,flexShrink:0,whiteSpace:'nowrap'}}>{doneSets}/{totalSets} SETS · {collapsed?'EXPAND':'COLLAPSE'}</span>
+            <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',color:allD?C.gn:C.tm,flexShrink:0,whiteSpace:'nowrap'}}>{doneSets}/{totalSets}{tt('SETS ·')}{tt(collapsed?'EXPAND':'COLLAPSE')}</span>
           </button>
           {!collapsed && <div style={{marginTop:4}}>{g.items.map(({ex,i},k) => renderExercise(ex, i, true, k>0, true))}</div>}
         </div>
@@ -294,7 +293,7 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
       })() : (
         g.items.map(({ex,i}) => renderExercise(ex, i, false))
       ))}
-      <TextArea label="Workout Notes" value={workout.notes||""} onChange={e=>onUpdate({notes:e.target.value})} placeholder="Session observations..." />
+      <TextArea label="Workout Notes" value={workout.notes||""} onChange={e=>onUpdate({notes:e.target.value})} placeholder={tt('Session observations...')} />
       {/* Primary Complete action at the very bottom — after every set + the
           session notes (Ohad: "complete workout … beneath session observations"). */}
       {!isCompleted
@@ -658,9 +657,9 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
         <div style={{marginBottom:24}}>
           {/* Search — big, cyan-bordered, matching the Exercise Library search. */}
           {filterTrainee ? (
-            <button onClick={()=>setFilterTrainee("")} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.08em',padding:'0 0 12px'}}>← all athletes</button>
+            <button onClick={()=>setFilterTrainee("")} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.08em',padding:'0 0 12px'}}>{tt('← all athletes')}</button>
           ) : (
-            <input value={pickSearch} onChange={e=>setPickSearch(e.target.value)} placeholder="Search athlete…"
+            <input value={pickSearch} onChange={e=>setPickSearch(e.target.value)} placeholder={tt('Search athlete…')}
               style={{...baseInput,width:'100%',boxSizing:'border-box',height:42,padding:'0 14px',fontSize:13,lineHeight:'42px',border:`1px solid ${C.ac}`,marginBottom:12}} />
           )}
           {/* Card: cyan strip header ("Start a Session" + count) over the athlete
@@ -668,7 +667,7 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
           <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,overflow:'hidden'}}>
             <div style={{background:'var(--c-stripBg, var(--c-sf))',borderBottom:'1px solid var(--c-cardBd)',padding:'10px 14px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
               <span style={{fontFamily:FN,fontSize:11,fontWeight:700,color:'#FFF',textTransform:'uppercase',letterSpacing:'0.08em'}}>{tt('Start a Session')}</span>
-              <span style={{fontFamily:FN,fontSize:10,fontWeight:700,color:'#FFF',opacity:0.85,letterSpacing:'0.08em'}}>{pickerRows.length} athlete{pickerRows.length!==1?'s':''}</span>
+              <span style={{fontFamily:FN,fontSize:10,fontWeight:700,color:'#FFF',opacity:0.85,letterSpacing:'0.08em'}}>{readLang() === 'he' ? (pickerRows.length === 1 ? 'מתאמן אחד' : `${pickerRows.length} מתאמנים`) : `${pickerRows.length} athlete${pickerRows.length !== 1 ? 's' : ''}`}</span>
             </div>
             {(() => {
               const rows = pickerRows;
@@ -687,7 +686,7 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
                       onMouseEnter={e=>{if(!open)e.currentTarget.style.background='rgba(57,189,255,0.04)';}}
                       onMouseLeave={e=>{if(!open)e.currentTarget.style.background='transparent';}}
                       style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,
-                        background: open?'var(--c-sf)':'transparent',border:'none',cursor:'pointer',padding:'12px 14px',textAlign:'left',transition:'background .12s'}}>
+                        background: open?'var(--c-sf)':'transparent',border:'none',cursor:'pointer',padding:'12px 14px',textAlign: 'start',transition:'background .12s'}}>
                       <span style={{display:'flex',alignItems:'baseline',gap:10,minWidth:0}}>
                         <span style={{fontFamily:heb?FH:FB,fontSize:heb?16:14,fontWeight:600,color:C.tx,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{name}</span>
                         <span style={{fontFamily:FN,fontSize:11,color:C.tm,whiteSpace:'nowrap'}}>{latest.name}</span>
@@ -704,7 +703,7 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
                             {blocks.length>1 && <div style={{fontFamily:FN,fontSize:10,color:C.td,letterSpacing:'0.08em',marginBottom:6}}>{p.name}</div>}
                             {/* Week to log into — chosen here, before the logger opens. */}
                             {pw>1 && <div style={{display:'flex',gap:4,alignItems:'center',flexWrap:'wrap',marginBottom:8}}>
-                              <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.14em',color:C.tm,marginRight:2}}>{tt('LOG INTO')}</span>
+                              <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.14em',color:C.tm,marginInlineEnd:2}}>{tt('LOG INTO')}</span>
                               {Array.from({length:pw},(_,i)=>i+1).map(wn=>(
                                 <button key={wn} onClick={()=>setWeekByPlan(m=>({...m,[p.id]:wn}))}
                                   style={{minWidth:32,height:24,boxSizing:'border-box',padding:'0',borderRadius:0,border:`${selWeek===wn?'2px':'1px'} solid ${selWeek===wn?C.ac:C.cardBd}`,background:selWeek===wn?'rgba(57,189,255,0.1)':'transparent',color:selWeek===wn?C.ac:C.tm,fontFamily:FN,fontSize:10,fontWeight:700,cursor:'pointer'}}>W{wn}</button>

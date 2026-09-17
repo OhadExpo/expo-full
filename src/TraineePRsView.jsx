@@ -271,7 +271,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
             {/* Exercise picker — search-as-you-type combobox over only the
                 exercises this athlete has logged a top set for. */}
             <div ref={wrapRef} style={{ marginBottom: 14, position: 'relative' }}>
-              <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 6 }}>EXERCISE</div>
+              <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 6 }}>{tt('EXERCISE')}</div>
               <input
                 // THE NAME GETS THE FIELD. An <input> clips without an
                 // ellipsis, so on a phone "Alternating DB Chest Press (4
@@ -293,7 +293,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                   else if (e.key === 'Enter') { e.preventDefault(); if (filtered[highlight]) choose(filtered[highlight].id); }
                   else if (e.key === 'Escape') { setOpen(false); setQuery(''); e.target.blur(); }
                 }}
-                placeholder="Search an exercise…"
+                placeholder={tt('Search an exercise…')}
                 style={{
                   width: '100%', background: 'var(--c-sf)',
                   border: `1px solid ${open ? C.ac : `${C.cardBd}`}`,
@@ -315,9 +315,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                   boxShadow: '0 8px 24px rgba(0,0,0,0.7)',
                 }}>
                   {filtered.length === 0 ? (
-                    <div style={{ padding: '12px 14px', color: C.td, fontSize: 13, textAlign: 'center' }}>
-                      No matches — try a different word.
-                    </div>
+                    <div style={{ padding: '12px 14px', color: C.td, fontSize: 13, textAlign: 'center' }}>{tt('No matches — try a different word.')}</div>
                   ) : filtered.map((o, i) => (
                     <div key={o.id}
                       onMouseDown={e => { e.preventDefault(); choose(o.id); }}
@@ -345,20 +343,18 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                   background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0,
                   padding: '20px 18px', textAlign: 'center', marginBottom: 14,
                 }}>
-                  <div style={{ fontFamily: FN, fontSize: 9, color: C.ac, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>ALL-TIME PR</div>
+                  <div style={{ fontFamily: FN, fontSize: 9, color: C.ac, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>{tt('ALL-TIME PR')}</div>
                   <div style={{ fontFamily: FB, fontWeight: 700, fontSize: 36, color: C.ac, letterSpacing: -0.5, lineHeight: 1 }}>
-                    {picked.allTimePR}<span style={{ fontSize: 18, color: C.tm, fontWeight: 400, marginLeft: 8 }}>kg</span>
+                    {picked.allTimePR}<span style={{ fontSize: 18, color: C.tm, fontWeight: 400, marginInlineStart: 8 }}>kg</span>
                     {picked.allTimePRReps > 0 && (
-                      <span style={{ fontSize: 18, color: C.tm, fontWeight: 400, marginLeft: 8 }}>× {picked.allTimePRReps}</span>
+                      <span style={{ fontSize: 18, color: C.tm, fontWeight: 400, marginInlineStart: 8 }}>× {picked.allTimePRReps}</span>
                     )}
                   </div>
                   <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, fontWeight: 700, marginTop: 10 }}>
                     {fmtDate(picked.allTimePRDate)}
                   </div>
                   {picked.swappedAny && (
-                    <div style={{ marginTop: 10, fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: 0.8 }}>
-                      Includes sessions from mid-session swaps.
-                    </div>
+                    <div style={{ marginTop: 10, fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: 0.8 }}>{tt('Includes sessions from mid-session swaps.')}</div>
                   )}
                 </div>
 
@@ -387,7 +383,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                   const W = Math.max(kgData.length * 60, 300);
                   return (
                     <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: 14, marginBottom: 14 }}>
-                      <div style={{ fontSize: 10, fontFamily: FN, color: C.ac, letterSpacing: '0.15em', fontWeight: 700, marginBottom: 10 }}>TREND · KG / WEEK</div>
+                      <div style={{ fontSize: 10, fontFamily: FN, color: C.ac, letterSpacing: '0.15em', fontWeight: 700, marginBottom: 10 }}>{tt('TREND · KG / WEEK')}</div>
                       <svg viewBox={`0 -10 ${W} 185`} style={{ width: '100%', height: 185 }}>
                         {[0, 0.25, 0.5, 0.75, 1].map((p, i) => {
                           const y = 10 + p * 130;
@@ -450,7 +446,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                         return (
                           <div style={{ display: 'flex', marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.cardBd}` }}>
                             {cells.map(([label, val, color], i) => (
-                              <div key={i} style={{ flex: 1, textAlign: 'center', borderLeft: i > 0 ? `1px solid ${C.cardBd}` : 'none' }}>
+                              <div key={i} style={{ flex: 1, textAlign: 'center', borderInlineStart: i > 0 ? `1px solid ${C.cardBd}` : 'none' }}>
                                 <div style={{ fontSize: 9, fontFamily: FN, color: C.tm, letterSpacing: '0.12em', fontWeight: 700 }}>{label}</div>
                                 <div style={{ fontSize: 16, fontWeight: 700, fontFamily: FN, color, marginTop: 3 }}>{val}</div>
                               </div>
@@ -463,8 +459,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                 })()}
 
                 {/* Session history */}
-                <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 6 }}>
-                  SESSION HISTORY · {picked.sessionCount} ENTR{picked.sessionCount === 1 ? 'Y' : 'IES'}
+                <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 6 }}>{tt('SESSION HISTORY ·')} {picked.sessionCount} {tt(picked.sessionCount === 1 ? 'ENTRY' : 'ENTRIES')}
                 </div>
                 <div style={{ border: `1px solid ${C.cardBd}` }}>
                   {picked.series.slice().reverse().map((s, i, arr) => {
@@ -478,13 +473,13 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                       }}>
                         <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, minWidth: 70 }}>
                           {fmtDate(s.date)}
-                          {s.week ? <span style={{ color: C.td, marginLeft: 4 }}>W{s.week}</span> : null}
+                          {s.week ? <span style={{ color: C.td, marginInlineStart: 4 }}>W{s.week}</span> : null}
                         </div>
-                        <div style={{ fontFamily: FN, fontSize: 14, color: isPR ? C.ac : C.tx, fontWeight: 700, textAlign: 'right' }}>
-                          {s.load}<span style={{ fontSize: 10, color: C.tm, marginLeft: 6, fontWeight: 400 }}>kg</span>
-                          {s.reps > 0 && <span style={{ fontSize: 11, color: C.tm, marginLeft: 8, fontWeight: 400 }}>× {s.reps}</span>}
-                          {s.rpe != null && <span style={{ fontSize: 10, color: C.td, marginLeft: 8, fontWeight: 400 }}>RPE {s.rpe}</span>}
-                          {isPR && <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontSize: 9, color: C.ac, marginLeft: 8, letterSpacing: '0.1em', fontWeight: 700, border: `1px solid ${C.ac}`, padding: '2px 5px' }}>PR</span>}
+                        <div style={{ fontFamily: FN, fontSize: 14, color: isPR ? C.ac : C.tx, fontWeight: 700, textAlign: 'end' }}>
+                          {s.load}<span style={{ fontSize: 10, color: C.tm, marginInlineStart: 6, fontWeight: 400 }}>kg</span>
+                          {s.reps > 0 && <span style={{ fontSize: 11, color: C.tm, marginInlineStart: 8, fontWeight: 400 }}>× {s.reps}</span>}
+                          {s.rpe != null && <span style={{ fontSize: 10, color: C.td, marginInlineStart: 8, fontWeight: 400 }}>RPE {s.rpe}</span>}
+                          {isPR && <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontSize: 9, color: C.ac, marginInlineStart: 8, letterSpacing: '0.1em', fontWeight: 700, border: `1px solid ${C.ac}`, padding: '2px 5px' }}>PR</span>}
                         </div>
                       </div>
                     );

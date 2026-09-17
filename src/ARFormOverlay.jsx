@@ -12,6 +12,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { C, FN } from './theme';
+import { useT } from './i18n';
 import { createPoseLandmarker, getCamera, stopStream } from './usePose';
 import { detectChannels, ANGLE_DEFS, angleAt, isReal } from './repCounter';
 
@@ -37,6 +38,7 @@ const KIND_THRESHOLDS = {
 };
 
 export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'environment', onClose }) {
+  const tt = useT();
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
@@ -184,9 +186,9 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
     <div style={{ position: 'fixed', inset: 0, background: '#000', zIndex: 1500, display: 'flex', flexDirection: 'column' }}>
       <div style={{ position: 'absolute', top: 14, left: 14, right: 14, zIndex: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.18em', fontWeight: 700 }}>
-          LIVE COACH · {String(exerciseTitle).toUpperCase()}
+          {tt('LIVE COACH')} · {String(exerciseTitle).toUpperCase()}
         </div>
-        <button onClick={onClose} style={hdrBtn}>← BACK</button>
+        <button onClick={onClose} style={hdrBtn}>{tt('← BACK')}</button>
       </div>
 
       <div style={{ position: 'relative', flex: 1, overflow: 'hidden' }}>
@@ -199,9 +201,9 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
           <div style={{ position: 'absolute', top: 46, left: 0, right: 0, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}>
             <style>{'@keyframes rtpop{0%{transform:scale(1)}30%{transform:scale(1.28)}100%{transform:scale(1)}}'}</style>
             <div style={{ display: 'flex', alignItems: 'stretch', gap: 1, background: 'rgba(0,0,0,0.55)', border: '1px solid rgba(255,255,255,0.14)', backdropFilter: 'blur(2px)' }}>
-              {countable && showReps && <HudCell label="REPS" value={String(reps)} pop tone={ACCENT} />}
-              {countable && showReps && <HudCell label="PHASE" value={dir === 'down' ? 'DOWN' : dir === 'up' ? 'UP' : 'ISO'} tone={dir === 'down' ? '#FFFFFF' : dir === 'up' ? ACCENT : 'rgba(255,255,255,0.6)'} />}
-              {depthRelevant && showDepth && <HudCell label="DEPTH" value={`${depthReps}/${reps}`} tone={atDepth ? GREEN : 'rgba(255,255,255,0.7)'} />}
+              {countable && showReps && <HudCell label={tt('REPS')} value={String(reps)} pop tone={ACCENT} />}
+              {countable && showReps && <HudCell label={tt('PHASE')} value={dir === 'down' ? tt('DOWN') : dir === 'up' ? tt('UP') : tt('ISO')} tone={dir === 'down' ? '#FFFFFF' : dir === 'up' ? ACCENT : 'rgba(255,255,255,0.6)'} />}
+              {depthRelevant && showDepth && <HudCell label={tt('DEPTH')} value={`${depthReps}/${reps}`} tone={atDepth ? GREEN : 'rgba(255,255,255,0.7)'} />}
             </div>
           </div>
         )}
@@ -209,30 +211,30 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
         {phase === 'idle' && !error && (
           <Centre>
             <div style={{ fontSize: 52 }}>🎯</div>
-            <div style={{ fontSize: 14, letterSpacing: '0.18em', fontWeight: 700, marginTop: 12 }}>LIVE COACH</div>
+            <div style={{ fontSize: 14, letterSpacing: '0.18em', fontWeight: 700, marginTop: 12 }}>{tt('LIVE COACH')}</div>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', maxWidth: 380, lineHeight: 1.6, marginTop: 10 }}>
-              Prop the phone side-on, full body in frame. You get a live{countable ? ' rep count' : ' skeleton'}{depthRelevant ? ', a depth target at the knees,' : ''} and a plumb line locked to the bar so you can see drift — all in real time, before the rep ends.
+              {tt(countable ? (depthRelevant ? 'Prop the phone side-on, full body in frame. You get a live rep count, a depth target at the knees, and a plumb line locked to the bar so you can see drift — all in real time, before the rep ends.' : 'Prop the phone side-on, full body in frame. You get a live rep count and a plumb line locked to the bar so you can see drift — all in real time, before the rep ends.') : (depthRelevant ? 'Prop the phone side-on, full body in frame. You get a live skeleton, a depth target at the knees, and a plumb line locked to the bar so you can see drift — all in real time, before the rep ends.' : 'Prop the phone side-on, full body in frame. You get a live skeleton and a plumb line locked to the bar so you can see drift — all in real time, before the rep ends.'))}
             </div>
           </Centre>
         )}
-        {phase === 'loading' && <Centre><Spinner /><div style={{ fontSize: 13, letterSpacing: '0.18em', fontWeight: 700, marginTop: 14 }}>STARTING CAMERA + POSE…</div></Centre>}
-        {error && <Centre><div style={{ fontSize: 32 }}>⚠</div><div style={{ fontSize: 13, color: C.rd, marginTop: 10, maxWidth: 320 }}>{error}</div></Centre>}
+        {phase === 'loading' && <Centre><Spinner /><div style={{ fontSize: 13, letterSpacing: '0.18em', fontWeight: 700, marginTop: 14 }}>{tt('STARTING CAMERA + POSE…')}</div></Centre>}
+        {error && <Centre><div style={{ fontSize: 32 }}>⚠</div><div style={{ fontSize: 13, color: C.rd, marginTop: 10, maxWidth: 320 }}>{tt(error)}</div></Centre>}
       </div>
 
       <div style={{ background: 'rgba(0,0,0,0.92)', borderTop: '1px solid rgba(255,255,255,0.1)', padding: 14, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-        <button onClick={onClose} style={{ ...ctrl, minWidth: 96 }}>← BACK</button>
+        <button onClick={onClose} style={{ ...ctrl, minWidth: 96 }}>{tt('← BACK')}</button>
         {phase !== 'live'
           ? <>
-              <Big color={C.ac} onClick={start} disabled={phase === 'loading'}>{phase === 'loading' ? 'STARTING…' : 'START →'}</Big>
-              <button onClick={() => setFacing(f => f === 'environment' ? 'user' : 'environment')} style={{ ...ctrl, minWidth: 120 }}>⟲ {facing === 'user' ? 'FRONT' : 'REAR'} CAM</button>
+              <Big color={C.ac} onClick={start} disabled={phase === 'loading'}>{phase === 'loading' ? tt('STARTING…') : tt('START →')}</Big>
+              <button onClick={() => setFacing(f => f === 'environment' ? 'user' : 'environment')} style={{ ...ctrl, minWidth: 120 }}>⟲ {facing === 'user' ? tt('FRONT CAM') : tt('REAR CAM')}</button>
             </>
           : <>
-              {countable && <button onClick={resetReps} style={{ ...ctrl, minWidth: 104 }}>⟲ RESET REPS</button>}
-              <button onClick={reanchor} style={{ ...ctrl, minWidth: 112 }}>⟲ RE-LOCK BAR</button>
-              <button onClick={flipCamera} style={{ ...ctrl, minWidth: 104 }}>⟲ {facing === 'user' ? 'FRONT' : 'REAR'}</button>
-              {countable && <button onClick={() => setShowReps(s => !s)} style={{ ...ctrl, background: showReps ? C.ac : 'transparent', minWidth: 100 }}>REPS {showReps ? 'ON' : 'OFF'}</button>}
-              {depthRelevant && <button onClick={() => setShowDepth(s => !s)} style={{ ...ctrl, background: showDepth ? C.ac : 'transparent', minWidth: 104 }}>DEPTH {showDepth ? 'ON' : 'OFF'}</button>}
-              <button onClick={() => setShowSkeleton(s => !s)} style={{ ...ctrl, background: showSkeleton ? C.ac : 'transparent', minWidth: 116 }}>SKELETON {showSkeleton ? 'ON' : 'OFF'}</button>
+              {countable && <button onClick={resetReps} style={{ ...ctrl, minWidth: 104 }}>⟲ {tt('RESET REPS')}</button>}
+              <button onClick={reanchor} style={{ ...ctrl, minWidth: 112 }}>⟲ {tt('RE-LOCK BAR')}</button>
+              <button onClick={flipCamera} style={{ ...ctrl, minWidth: 104 }}>⟲ {facing === 'user' ? tt('FRONT') : tt('REAR')}</button>
+              {countable && <button onClick={() => setShowReps(s => !s)} style={{ ...ctrl, background: showReps ? C.ac : 'transparent', minWidth: 100 }}>{showReps ? tt('REPS ON') : tt('REPS OFF')}</button>}
+              {depthRelevant && <button onClick={() => setShowDepth(s => !s)} style={{ ...ctrl, background: showDepth ? C.ac : 'transparent', minWidth: 104 }}>{showDepth ? tt('DEPTH ON') : tt('DEPTH OFF')}</button>}
+              <button onClick={() => setShowSkeleton(s => !s)} style={{ ...ctrl, background: showSkeleton ? C.ac : 'transparent', minWidth: 116 }}>{showSkeleton ? tt('SKELETON ON') : tt('SKELETON OFF')}</button>
             </>}
       </div>
     </div>,

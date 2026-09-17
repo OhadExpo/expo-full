@@ -8,10 +8,12 @@ import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
 import { useEscClose } from './ui';
+import { useT } from './i18n';
 
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
 
 export default function CoachContractComposer({ trainee, coachEmail, onClose, onSent }) {
+  const tt = useT();
   const [monthly, setMonthly] = useState(trainee?.monthly || 800);
   const [sessions, setSessions] = useState(2);
   const [months, setMonths] = useState(3);
@@ -48,38 +50,38 @@ export default function CoachContractComposer({ trainee, coachEmail, onClose, on
       setCreatedUrl(url);
       onSent?.(url);
     } catch (e) {
-      setError(e.message || 'Could not create contract.');
+      setError(e.message || tt('Could not create contract.'));
     } finally {
       setCreating(false);
     }
   };
 
   return createPortal((
-    <div onClick={onClose} role="dialog" aria-modal="true" aria-label="Send contract" style={{
+    <div onClick={onClose} role="dialog" aria-modal="true" aria-label={tt('Send contract')} style={{
       position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 250,
       display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 20, paddingTop: 60,
       backdropFilter: 'blur(4px)',
     }}>
       <div onClick={e => e.stopPropagation()} style={{
         background: 'var(--c-bg)', border: `1px solid ${C.cardBd}`,
-        borderLeft: `3px solid ${C.ac}`,
+        borderInlineStart: `3px solid ${C.ac}`,
         maxWidth: 480, width: '100%', maxHeight: '85vh', overflow: 'auto',
       }}>
         <div style={{ background: C.ac, color: '#FFFFFF', padding: '14px 20px' }}>
           <div style={{ fontFamily: FN, fontSize: 10, letterSpacing: '0.18em', fontWeight: 700, opacity: 0.78 }}>
-            COACHING AGREEMENT
+            {tt('COACHING AGREEMENT')}
           </div>
           <div dir="auto" style={{
             fontFamily: isHebrew(trainee?.name) ? 'serif' : FN,
             fontSize: 16, fontWeight: 800, marginTop: 2,
-          }}>{trainee?.name || 'Client'}</div>
+          }}>{trainee?.name || tt('Client')}</div>
         </div>
 
         {createdUrl ? (
           <div style={{ padding: 22, textAlign: 'center' }}>
             <div style={{ fontSize: 30, marginBottom: 10 }}>📨</div>
             <div style={{ fontFamily: FN, fontSize: 12, color: C.gn, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 12 }}>
-              CONTRACT READY
+              {tt('CONTRACT READY')}
             </div>
             <div style={{
               background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: 10,
@@ -87,29 +89,29 @@ export default function CoachContractComposer({ trainee, coachEmail, onClose, on
               marginBottom: 14,
             }}>{createdUrl}</div>
             <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginBottom: 16 }}>
-              Link copied to clipboard. Send via WhatsApp — athlete signs from any device.
+              {tt('Link copied to clipboard. Send via WhatsApp — athlete signs from any device.')}
             </div>
             <button onClick={onClose} style={{
               padding: '10px 24px', background: C.ac, color: '#FFFFFF',
               border: `1px solid ${C.ac}`, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em',
               cursor: 'pointer',
-            }}>DONE</button>
+            }}>{tt('DONE')}</button>
           </div>
         ) : (
           <div style={{ padding: 20 }}>
-            <FormRow label="MONTHLY RATE (₪)">
+            <FormRow label={tt('MONTHLY RATE (₪)')}>
               <input type="number" value={monthly} onChange={e => setMonthly(e.target.value)} style={inp} />
             </FormRow>
-            <FormRow label="SESSIONS / WEEK">
+            <FormRow label={tt('SESSIONS / WEEK')}>
               <input type="number" min={1} max={7} value={sessions} onChange={e => setSessions(e.target.value)} style={inp} />
             </FormRow>
-            <FormRow label="PACKAGE LENGTH (months)">
+            <FormRow label={tt('PACKAGE LENGTH (months)')}>
               <input type="number" min={1} max={24} value={months} onChange={e => setMonths(e.target.value)} style={inp} />
             </FormRow>
-            <FormRow label="CUSTOM CLAUSES (optional)">
+            <FormRow label={tt('CUSTOM CLAUSES (optional)')}>
               <textarea value={custom} onChange={e => setCustom(e.target.value)} dir="auto"
                 rows={4}
-                placeholder='e.g. "Coach will write a periodized 12-week marathon plan; athlete commits to 4 runs/week."'
+                placeholder={tt('e.g. "Coach will write a periodized 12-week marathon plan; athlete commits to 4 runs/week."')}
                 style={{ ...inp, fontFamily: isHebrew(custom) ? 'serif' : FB, resize: 'vertical' }} />
             </FormRow>
             {error && (
@@ -121,14 +123,14 @@ export default function CoachContractComposer({ trainee, coachEmail, onClose, on
                   flex: 1, padding: '10px', background: 'transparent', border: `1px solid ${C.cardBd}`,
                   color: C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em',
                   cursor: 'pointer',
-                }}>CANCEL</button>
+                }}>{tt('CANCEL')}</button>
               <button onClick={submit} disabled={creating}
                 style={{
                   flex: 2, padding: '10px', background: C.ac, border: `1px solid ${C.ac}`,
                   color: '#FFFFFF', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em',
                   cursor: 'pointer',
                   minWidth: 210, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                }}>{creating ? 'CREATING…' : 'CREATE + COPY LINK →'}</button>
+                }}>{creating ? tt('CREATING…') : tt('CREATE + COPY LINK →')}</button>
             </div>
           </div>
         )}
