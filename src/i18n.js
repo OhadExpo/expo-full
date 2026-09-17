@@ -62,7 +62,7 @@ export const HE = {
   "LOADING POSE MODEL…": "טוען את מודל התנועה…",
   "SPEED": "מהירות",
   "MP4 · MOV · WEBM · stays on this device": "MP4 · MOV · WEBM · נשאר במכשיר הזה",
-  "Tap to browse · or drop here": "לחיצה בוחרת קובץ · או גרירה לכאן",
+  "Tap to browse · or drop here": "לחץ לבחירת קובץ · או גרור לכאן",
   "Drop in a clip of your": "זרוק לכאן קליפ של",
   "Drop in your client's": "זרוק לכאן קליפ של המתאמן שלך",
   "STEP 2 ·": "שלב 2 ·",
@@ -100,7 +100,7 @@ export const HE = {
   "Loading your program…": "טוען את התוכנית שלך…",
   "LOGGED": "נרשם",
   "Completed this week": "הושלם השבוע",
-  "Contact your coach to start training.": "תדבר עם המאמן שלך כדי להתחיל להתאמן.",
+  "Contact your coach to start training.": "דבר עם המאמן שלך כדי להתחיל להתאמן.",
   "Loading player…": "טוען את הנגן…",
   "CHECK-IN": "דיווח",
   "Delete entry": "מחיקת הרשומה",
@@ -111,10 +111,10 @@ export const HE = {
   "Undo swap": "ביטול ההחלפה",
   "SWAPPED FROM": "הוחלף מ",
   "Find an alternate exercise": "למצוא תרגיל חלופי",
-  "Check back once your coach adds them.": "תבדוק שוב אחרי שהמאמן יוסיף.",
+  "Check back once your coach adds them.": "בדוק שוב אחרי שהמאמן יוסיף אותם.",
   "This day has no exercises yet.": "עוד אין תרגילים ביום הזה.",
   "How did it feel? Pain? Modifications?": "איך הרגיש? כאב? שינויים?",
-  "SAVE FAILED — YOUR LAST EDITS ARE NOT SAVED YET": "השמירה נכשלה — מה שרשמת עדיין לא נשמר",
+  "SAVE FAILED — YOUR LAST EDITS ARE NOT SAVED YET": "השמירה נכשלה — מה שרשמת עוד לא נשמר",
   "Restored from your last session": "שוחזר מהאימון הקודם שלך",
   "OPEN IN GOOGLE PHOTOS →": "פתיחה ב-Google Photos ←",
   "LOADING VIDEO…": "טוען סרטון…",
@@ -869,7 +869,7 @@ export const HE = {
   // begins a session. This is a heading over the bodyweight field - a record,
   // not a start - and one word cannot be both.
   'Log week': 'רישום שבוע',
-  'Log at least 2 weigh-ins to see your trend': 'תרשום לפחות שתי שקילות כדי לראות מגמה',
+  'Log at least 2 weigh-ins to see your trend': 'רשום לפחות שתי שקילות כדי לראות מגמה',
 
   // ---- athlete portal: chrome the athlete sees on every visit ------------
   // Wired up 2026-09-06, when the portal could finally render Hebrew at all.
@@ -885,7 +885,7 @@ export const HE = {
   'MEAL LOG': 'יומן אוכל',
   // The rest of the meal log (2026-09-07): its error strings, day labels and
   // totals were still English on the branch after the 09-06 pass.
-  'Preview only — meal logging is disabled here.': 'תצוגה מקדימה בלבד — אי אפשר לתעד ארוחות כאן.',
+  'Preview only — meal logging is disabled here.': 'רק תצוגה מקדימה — אי אפשר לרשום כאן ארוחות.',
   'Photo is too large (max 8 MB).': 'התמונה גדולה מדי (עד 8MB).',
   'Could not get public URL for the photo.': 'לא הצלחנו לקבל כתובת לתמונה.',
   'Upload failed.': 'ההעלאה נכשלה.',
@@ -985,7 +985,7 @@ export const HE = {
   "On. You'll get a push when an athlete messages you or finishes a workout.": 'פועל. תקבל התראה כשמתאמן שולח לך הודעה או מסיים אימון.',
   "On. You'll get a push when your coach messages you.": 'פועל. תקבל התראה כשהמאמן שולח לך הודעה.',
   "Off. Tap Enable to get a push when an athlete messages you or finishes a workout.": 'כבוי. לחץ על הפעל ותקבל התראה כשמתאמן שולח לך הודעה או מסיים אימון.',
-  "Off. Tap Enable to get a push when your coach messages you.": 'כבוי. תלחץ על הפעל ותקבל התראה כשהמאמן שולח לך הודעה.',
+  "Off. Tap Enable to get a push when your coach messages you.": 'כבוי. לחץ על הפעל ותקבל התראה כשהמאמן שולח לך הודעה.',
   "Add EXPO to your home screen first, then enable from the installed app.": 'קודם תוסיף את EXPO למסך הבית, ואז תפעיל את ההתראות מתוך האפליקציה.',
   "(Apple requires this for push.)": '(אפל דורשת את זה בשביל התראות.)',
   "Blocked in browser settings. Re-allow notifications for this site, then refresh.": 'חסום בהגדרות הדפדפן. תאפשר שוב התראות לאתר הזה ותרענן.',

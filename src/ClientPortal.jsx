@@ -30,6 +30,7 @@ import ReadinessRow, { hasReadiness } from './ReadinessRow';
 import CheckinTrends from './CheckinTrends';
 import { toast, confirmToast, isRefined5b, useEscClose, useDelayedUnmountValue } from './ui';
 import { isLogOfPlan, duplicatePlanNames } from './planLogMatch';
+import { deriveWeekIdx } from './planWeek';
 import { useT as useAppT, useTB, tr, readLang } from './i18n';
 import { resolveStoredUrl } from './storageUrl';
 // F-14 — meal photo → macros logger. Lazy-loaded since most athletes
@@ -2113,26 +2114,6 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
 // active block on the right week AND to log a NON-active visible plan's day
 // under ITS OWN week (a single global `wk` follows the active block only).
 
-function deriveWeekIdx(plan, cw, dupNames) {
-  const planWeeks = Number(plan?.weeks) || 4;
-  // Exclude daily-routine days (kind:'daily') from the week-advancement scan —
-  // they're logged unlimited times and are NOT a weekly requirement, so counting
-  // them as "un-logged" pinned a mixed plan's week forever (and made a non-active
-  // plan re-log every set under week 1). Mirrors the header's d.kind !== 'daily'.
-  const dayNames = (plan?.days || []).filter(d => d.kind !== 'daily' && plan?.kind !== 'daily').map(d => d.name).filter(Boolean);
-  const logs = (cw || []).filter(w => isLogOfPlan(w, plan, dupNames));
-  const done = new Set(logs.map(w => `${Number(w.week) || 1}|${w.dayName}`));
-  const maxWk = logs.length ? Math.max(...logs.map(w => Number(w.week) || 1)) : 1;
-  let nextWk = Math.max(1, maxWk);
-  if (dayNames.length) {
-    outer: for (let w = Math.max(1, maxWk); w <= planWeeks; w++) {
-      for (const dn of dayNames) { if (!done.has(`${w}|${dn}`)) { nextWk = w; break outer; } }
-    }
-  } else {
-    nextWk = Math.min(planWeeks, maxWk + (logs.length ? 1 : 0) || 1);
-  }
-  return Math.max(0, Math.min(planWeeks, nextWk) - 1);
-}
 
 // Main client portal
 export default function ClientPortal({ clientId, signOut, clientWorkouts, setClientWorkouts, bwLog, setBwLog, weeklyFocus, setWeeklyFocus, portalVis, trainerPlans, trainerExercises, trainees, selfTrainee = null, onDecrementSession, updateFormVideos, demoMode = false, demoPlans = null, onReturnToCoach = null, embedded = false, onFilmSet = null }) {
@@ -2501,6 +2482,15 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         tag: `workout:${w.id || ci}`,
       });
     })();
+    // 17.9 (Ohad): "if he logged all workouts for a certain week - next week now". The week
+    // is derived only when the BLOCK changes, so finishing the last day of a week left the
+    // athlete on that week until a reload. Re-derive from the history WITH this workout in it
+    // and move forward only - never pull him back from a week he opened himself. Daily
+    // routines are already excluded by deriveWeekIdx, so they cannot advance anything.
+    if (activePlan && isLogOfPlan(w, activePlan, dupPlanNames)) {
+      const next = deriveWeekIdx(activePlan, [...(cw || []), w], dupPlanNames);
+      if (next > wk) setWk(next);
+    }
     setLg(null);
   };
 
@@ -2613,7 +2603,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             {/* Always reads like the real athlete portal ('LOG OUT →') — even in
                 preview, so the coach/prospect sees an authentic portal. The
                 outer preview banner already carries the '← BACK TO COACH' exit. */}
-            <button onClick={logOut} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',padding:0}}>{tb('LOG OUT')} →</button>
+            <button onClick={logOut} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',padding:0}}>{tb('LOG OUT')} {readLang() === 'he' ? '←' : '→'}</button>
           </div>
         </div>
         {/* Symmetric vertical rhythm (Ohad): crest→greeting == greeting→divider,
