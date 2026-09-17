@@ -2293,6 +2293,17 @@ export const HE = {
   'Commit to Database': 'שמירה במאגר',
   // 17.9 tasks sort label
   'A→Z': 'א←ת',
+  // 17.9 auto-task kind labels (the task tooltip showed NEEDS OUTREACH in Hebrew)
+  'BLOCK ENDING': 'בלוק נגמר',
+  'WEEK SKIPPED': 'שבוע שדולג',
+  'AT RISK': 'בסיכון',
+  'VIDEO PENDING': 'סרטון לבדיקה',
+  'NEW INTAKE': 'שאלון חדש',
+  'PAYMENT OVERDUE': 'תשלום באיחור',
+  'EVAL DUE': 'הערכה ממתינה',
+  'NEW LEAD': 'ליד חדש',
+  'PLAN DUE': 'צריך תוכנית',
+  'NEEDS OUTREACH': 'צריך ליצור קשר',
   // 17.9 the two owner library tools (Classify, Matching) wired
   match: 'התאמה',
   matches: 'התאמות',

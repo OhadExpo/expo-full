@@ -56,7 +56,7 @@ export function WhatsAppCheckInButton({ name, phone, days, gender, size = 16, pa
   };
   return (
     <button onClick={handleClick}
-      title={readLang() === 'he' ? `שליחת צ׳ק-אין בוואטסאפ ל־${name || ''}` : `Send WhatsApp check-in to ${name || ''}`}
+      title={readLang() === 'he' ? `שליחת צ׳ק-אין בוואטסאפ ${/^[\u0590-\u05FF]/.test(name || '') ? 'ל' : 'ל-'}${name || ''}` : `Send WhatsApp check-in to ${name || ''}`}
       style={{
         background: 'var(--c-badgeBg, var(--c-sf))', border: `1px solid ${WA_GREEN}`, color: WA_GREEN,
         borderRadius: 0, padding, fontFamily: FN, fontSize: 10,

@@ -1016,7 +1016,7 @@ function RevenueCard({ paymentsUnknown = false, monthlyRate, thisMonthPaid, delt
               {tt('OUTSTANDING')}
             </span>
             <span style={numStyle}>{paymentsUnknown ? '—' : `₪${Math.round(outstanding.amount).toLocaleString()}`}</span>
-            <span style={subStyle}>{outstanding.count} {tt('Pending requests')}</span>
+            <span style={subStyle}>{readLang() === 'he' ? (outstanding.count === 0 ? 'אין בקשות תשלום פתוחות' : outstanding.count === 1 ? 'בקשת תשלום פתוחה אחת' : `${outstanding.count} בקשות תשלום פתוחות`) : `${outstanding.count} ${tt('Pending requests')}`}</span>
           </div>
           <div style={metricStyle}>
             <span style={labelStyle}>{tt('AVG LTV')}</span>

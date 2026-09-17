@@ -391,7 +391,7 @@ export default function MessagesCard({ trainees, onSelectTrainee, onOpenMessages
                 fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
                 cursor: 'pointer',
               }}>
-              + {handledThreads.length} {answeredWord(handledThreads.length)}
+              {readLang() === 'he' ? (handledThreads.length === 1 ? '+ עוד הודעה אחת שנענתה' : `+ עוד ${handledThreads.length} שנענו`) : `+ ${handledThreads.length} ${answeredWord(handledThreads.length)}`}
             </button>
           )}
           {showHandled && (

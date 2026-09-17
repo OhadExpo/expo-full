@@ -275,7 +275,7 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
           so the dashboard reads as a uniform stack rather than a row
           of variable-height fragments. */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4, flexWrap: 'wrap' }}>
-        <span title={isAuto ? `${tr(readLang(), 'Auto-generated:')} ${kindLabel}` : tr(readLang(), 'Manual task')}
+        <span title={isAuto ? `${tr(readLang(), 'Auto-generated:')} ${tr(readLang(), kindLabel)}` : tr(readLang(), 'Manual task')}
           style={{
             fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
             color: stripeColor, border: `1px solid ${stripeColor}`,
@@ -1049,7 +1049,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
       {visibleDone.length > 0 && (
         <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px dashed var(--c-cardBd)` }}>
           <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>
-            ✓ {tt('HISTORY')} ({doneRows.length}{visibleDone.length < doneRows.length ? ` · ${tt('showing')} ${visibleDone.length}` : ''})
+            ✓ {tt('HISTORY')} ({readLang() === 'he' && visibleDone.length < doneRows.length ? `${visibleDone.length} מתוך ${doneRows.length}` : <>{doneRows.length}{visibleDone.length < doneRows.length ? ` · ${tt('showing')} ${visibleDone.length}` : ''}</>})
           </div>
           {visibleDone.map(n => {
             const nameHeb = isHebrew(n.target_label || '');
@@ -1110,7 +1110,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
             width: '100%', marginTop: 10, padding: '8px 0', background: 'transparent',
             border: `1px solid var(--c-ac)`, color: 'var(--c-ac)',
             fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer',
-          }}>{tt('OPEN FULL TASKS')} ({counts.all}) →</button>
+          }}>{tt('OPEN FULL TASKS')} ({counts.all}) {readLang() === 'he' ? '←' : '→'}</button>
       )}
       </div>
       </div>
