@@ -427,7 +427,7 @@ export function synthesizeVerdict({ adh, region, staples, acwr, velocity, he = f
   const fatigueBits = () => {
     const bits = [];
     const dropTitle = anyDropping ? staples.find((s) => !s.ballistic && s.isMain && s.trend?.dir === 'down')?.title : null;
-    if (lowerGrind) bits.push(he ? `מפספס ${region.lower.pct}% מהסטים העליונים בפלג גוף תחתון` : `missing ${region.lower.pct}% of lower-body top sets`);
+    if (lowerGrind) bits.push(he ? `מפספס ${region.lower.pct}% מהטופ סטים בפלג גוף תחתון` : `missing ${region.lower.pct}% of lower-body top sets`);
     if (anyDropping) bits.push(he ? `ה־e1RM ב־${dropTitle} יורד` : `${dropTitle} e1RM slipping`);
     if (velHigh) bits.push(he ? `מהירות המוט ירדה ב־${velocity.lossPct}% בסט המצולם האחרון` : `bar speed down ${velocity.lossPct}% on the last filmed set`);
     if (highAcwr) bits.push(he ? `יחס העומס קפץ ל־${acwr.acwr}` : `load ratio spiked to ${acwr.acwr}`);
@@ -442,7 +442,7 @@ export function synthesizeVerdict({ adh, region, staples, acwr, velocity, he = f
       : (hardStaleLift ? `Deload — then change the ${hardStaleLift.title}, don't just add weight.` : `Deload him — he's accumulating more fatigue than he's recovering from.`);
     const bits = fatigueBits();
     sub = bits.length
-      ? (he ? `${bits.join(', ')} — זו עייפות, לא עצלות.` : `${bits.join(', ')} — that's fatigue, not laziness.`)
+      ? (he ? `${bits.join(', ')} — זו עייפות, לא חוסר מאמץ.` : `${bits.join(', ')} — that's fatigue, not laziness.`)
       : (he ? 'כמה סימני עייפות מצטברים.' : 'Multiple fatigue signals are stacking up.');
   } else if (flags.includes('fatigue') && tooThinToDeload) {
     // Fatigue signals exist but on too little data to act on — surface them, but

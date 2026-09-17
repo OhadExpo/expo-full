@@ -140,14 +140,14 @@ function readStaple(s, he) {
       next: L(he, 'film a set for velocity — don\'t chase kg here', 'צלם סט כדי למדוד מהירות — פה לא רודפים אחרי קילו') };
   }
   if (s.stale?.state === 'ok' && s.stale.stale) {
-    if (s.stale.mode === 'hard') return { tag: L(he, 'STALLED · HARD', 'תקוע · קשה'), tagColor: C.or, why: L(he, 'flat weight + effort rising = hidden fatigue, not a real ceiling', 'משקל קבוע ומאמץ עולה = עייפות סמויה, לא תקרה אמיתית'), next: L(he, 'one lighter week (~50% volume) then re-test, or swap the variation — not more kg', 'שבוע קל אחד (כ־50% מהנפח) ואז בדיקה חוזרת, או החלפת וריאציה — לא עוד קילו') };
+    if (s.stale.mode === 'hard') return { tag: L(he, 'STALLED · HARD', 'תקוע · קשה'), tagColor: C.or, why: L(he, 'flat weight + effort rising = hidden fatigue, not a real ceiling', 'אותו משקל ומרגיש יותר קשה = עייפות, עוד לא תקרה'), next: L(he, 'one lighter week (~50% volume) then re-test, or swap the variation — not more kg', 'שבוע קל (חצי מהנפח) ואז תבדוק שוב, או תחליף וריאציה — לא עוד קילו') };
     if (s.stale.mode === 'easy') return { tag: L(he, 'STALLED · EASY', 'תקוע · קל'), tagColor: C.ac, why: L(he, 'flat but moving easy — he\'s under-stimulated', 'קבוע אבל זז בקלות — הגירוי לא מספיק לו'), next: L(he, '+2.5–5kg or add a set', 'עוד 2.5–5 קילו או עוד סט') };
     return { tag: L(he, 'STALLED', 'תקוע'), tagColor: C.or, why: L(he, 'weight hasn\'t moved in 3 sessions', 'המשקל לא זז כבר 3 אימונים'), next: noPr ? L(he, `no PR in ${wks} weeks — rotate the variation`, `אין שיא כבר ${wks} שבועות — תחליף וריאציה`) : L(he, 'push the load or change the stimulus', 'תעלה משקל או תשנה גירוי') };
   }
   if (s.trend?.state === 'ok') {
     if (s.trend.repNoisy) return { tag: L(he, 'REPS VARIED', 'חזרות השתנו'), tagColor: C.tm, why: L(he, 'rep scheme shifted across the block — e1RM can\'t tell a strength change from the rep change', 'טווח החזרות השתנה לאורך הבלוק — ה־e1RM לא מבדיל בין שינוי בכוח לשינוי בחזרות'), next: L(he, 'read it off load-at-a-fixed-rep, or hold a rep target for 3 sessions for a clean trend', 'תשווה משקלים באותו מספר חזרות — או תשאיר את אותו יעד חזרות ל־3 אימונים, כדי לקבל מגמה נקייה') };
     if (s.trend.dir === 'up') return { tag: L(he, 'PROGRESS', 'מתקדם'), tagColor: C.gn, why: L(he, 'progressing', 'מתקדם'), next: L(he, '+2–3% load or +1 rep at the same effort', 'עוד 2–3% משקל או עוד חזרה באותו מאמץ') };
-    if (s.trend.dir === 'down') return { tag: L(he, 'REGRESS', 'יורד'), tagColor: C.rd, why: L(he, 'going backwards', 'הולך אחורה'), next: L(he, 'back off ~5–10% intensity, hold volume, check recovery', 'תוריד כ־5–10% מהעצימות, שמור על הנפח ובדוק התאוששות') };
+    if (s.trend.dir === 'down') return { tag: L(he, 'REGRESS', 'יורד'), tagColor: C.rd, why: L(he, 'going backwards', 'הולך אחורה'), next: L(he, 'back off ~5–10% intensity, hold volume, check recovery', 'תוריד 5–10% במשקל, תשאיר את כמות הסטים ותבדוק שינה והתאוששות') };
   }
   return { tag: L(he, 'HOLDING', 'יציב'), tagColor: C.tm, why: L(he, 'holding steady', 'נשאר יציב'), next: noPr ? L(he, `no PR in ${wks} weeks — time to change it up`, `אין שיא כבר ${wks} שבועות — הגיע הזמן לשנות`) : L(he, 'maintain, or nudge the load', 'שמור, או תעלה קצת משקל') };
 }
@@ -495,7 +495,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
     {/* VERDICT FIRST */}
     <div style={{ border: `1px solid ${vColor}`, borderInlineStart: `3px solid ${vColor}`, background: `color-mix(in srgb, ${vColor} 8%, ${C.sf})`, padding: '16px 18px', marginTop: 12 }}>
       <div style={{ fontSize: 9, letterSpacing: '0.16em', textTransform: 'uppercase', color: vColor, marginBottom: 7 }}>
-        {L(he, 'If you read one thing', 'אם תקרא רק דבר אחד')}
+        {L(he, 'If you read one thing', 'בשורה התחתונה')}
         <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: v.confidence === 'high' ? C.gn : v.confidence === 'low' ? C.td : C.or, border: `1px solid ${v.confidence === 'high' ? C.gn : v.confidence === 'low' ? C.td : C.or}`, padding: '2px 6px', marginInlineStart: 8 }}>
           {he ? `ודאות ${CONF_HE[v.confidence] || v.confidence}${v.logs ? ' · הוא רושם' : ''}` : `${v.confidence} confidence${v.logs ? ' · he logs' : ''}`}
         </span>
@@ -505,7 +505,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
     </div>
 
     {/* 1. THE GATE */}
-    <div style={card}><div className="lin-hd" style={hd}>{L(he, 'Did he actually train?', 'הוא באמת התאמן?')}<span style={hdQ}>{L(he, 'the gate — everything below assumes real data', 'תנאי סף — כל מה שלמטה מניח נתונים אמיתיים')}</span></div>
+    <div style={card}><div className="lin-hd" style={hd}>{L(he, 'Did he actually train?', 'האימונים באמת קרו?')}<span style={hdQ}>{L(he, 'the gate — everything below assumes real data', 'קודם כל — מה שלמטה שווה משהו רק אם האימונים באמת נרשמו')}</span></div>
       <div style={bd}>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           <Kpi v={a.adh.sessionPct != null ? `${a.adh.sessionPct}%` : '—'} l={L(he, 'Sessions', 'אימונים')} s={he ? `${a.adh.loggedSessions} מתוך ${a.plannedSessionCount || '?'} נרשמו` : `${a.adh.loggedSessions} of ${a.plannedSessionCount || '?'} logged`} color={a.adh.sessionPct >= 80 ? C.gn : C.or} />
@@ -523,7 +523,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
     </div>
 
     {/* 2. AUTOREGULATION — split into what's working vs what to back off (Ohad) */}
-    <div style={card}><div className="lin-hd" style={hd}>{L(he, 'Training response', 'תגובה לאימון')}<span style={hdQ}>{L(he, 'autoregulation — what\'s working vs what to back off', 'ויסות עומס — מה עובד וממה להוריד')}</span></div>
+    <div style={card}><div className="lin-hd" style={hd}>{L(he, 'Training response', 'תגובה לאימון')}<span style={hdQ}>{L(he, 'autoregulation — what\'s working vs what to back off', 'מה עובד ומה לא')}</span></div>
       <div style={bd}>
         {(() => {
           const nm = (arr) => arr.map((s) => s.title).slice(0, 3).join(', ');
@@ -550,8 +550,8 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
           const neg = [];
           if (regressing.length) neg.push({ t: `${L(he, 'Regressing', 'יורד')} — ${nm(regressing)}`, d: thin
             ? (he ? `ה־e1RM יורד, אבל ${(a.adh?.loggedSessions || 0) === 1 ? 'נרשם רק אימון אחד' : `נרשמו רק ${a.adh?.loggedSessions || 0} אימונים`} — סימן לעקוב אחריו, עוד לא סיבה לשבוע הורדה.` : `e1RM sliding, but only ${a.adh?.loggedSessions || 0} session${(a.adh?.loggedSessions || 0) === 1 ? '' : 's'} logged — a flag to watch, not a deload trigger yet.`)
-            : L(he, 'e1RM down across the block. Back off ~5–10% intensity, hold volume, check recovery.', 'ה־e1RM ירד לאורך הבלוק. תוריד כ־5–10% מהעצימות, שמור על הנפח ובדוק התאוששות.') });
-          if (stuck.length) neg.push({ t: `${L(he, 'Not progressing', 'לא מתקדם')} — ${nm(stuck)}`, d: L(he, 'flat 3+ sessions. Change the stimulus (variation/tempo) or a light week — not more kg.', 'תקוע 3 אימונים ומעלה. תשנה גירוי (וריאציה או טמפו) או תיתן שבוע קל — לא עוד קילו.') });
+            : L(he, 'e1RM down across the block. Back off ~5–10% intensity, hold volume, check recovery.', 'ה־e1RM ירד לאורך הבלוק. תוריד 5–10% במשקל, תשאיר את כמות הסטים ותבדוק שינה והתאוששות.') });
+          if (stuck.length) neg.push({ t: `${L(he, 'Not progressing', 'לא מתקדם')} — ${nm(stuck)}`, d: L(he, 'flat 3+ sessions. Change the stimulus (variation/tempo) or a light week — not more kg.', 'תקוע כבר 3 אימונים. שנה גירוי (וריאציה או טמפו) או תן שבוע קל — לא עוד קילו.') });
           if (lowerGrind && !negNamesLower) neg.push({ t: L(he, 'Lower body regressing', 'פלג גוף תחתון יורד'), d: he ? `${a.region.lower.pct}% מהסטים לא מגיעים ליעד — המשקל כבד מדי כרגע, וזה מצטבר.` : `${a.region.lower.pct}% of sets short of target — the load’s too heavy right now and it compounds.` });
           const Col = ({ title, color, items, empty }) => (
             <div style={{ border: `1px solid ${color}`, background: `color-mix(in srgb, ${color} 6%, transparent)`, padding: '11px 13px' }}>
@@ -563,8 +563,8 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
           );
           return (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }} className="lineage-grid2">
-              <Col title={L(he, '✓ Positive', '✓ חיובי')} color={C.gn} items={pos} empty={L(he, 'Nothing clearly trending up yet — needs more logged sessions to call a win.', 'עוד אין משהו שעולה בבירור — צריך עוד אימונים רשומים כדי לקבוע שיש שיפור.')} />
-              <Col title={L(he, '⚠ Negative', '⚠ שלילי')} color={C.rd} items={neg} empty={L(he, 'Nothing flashing — loads and completion are holding across the block.', 'אין נורות אדומות — המשקלים והביצוע יציבים לאורך הבלוק.')} />
+              <Col title={L(he, '✓ Positive', '✓ עובד')} color={C.gn} items={pos} empty={L(he, 'Nothing clearly trending up yet — needs more logged sessions to call a win.', 'עוד אין משהו שעולה בבירור — צריך עוד אימונים רשומים כדי לקבוע שיש שיפור.')} />
+              <Col title={L(he, '⚠ Negative', '⚠ לא עובד')} color={C.rd} items={neg} empty={L(he, 'Nothing flashing — loads and completion are holding across the block.', 'אין נורות אדומות — המשקלים והביצוע יציבים לאורך הבלוק.')} />
             </div>
           );
         })()}
@@ -755,7 +755,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
                   <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: empty ? C.td : C.ac, fontWeight: 700, marginBottom: empty ? 0 : 7, display: 'flex', justifyContent: 'space-between', gap: 6 }}>
                     <span>{he ? (BUCKET_HE[b.key] || b.label) : b.label}</span><span style={{ color: C.tm }}>{lifts.length || ''}</span>
                   </div>
-                  {empty ? <div style={{ fontSize: 10, color: C.td, fontStyle: 'italic' }}>{L(he, 'not trained', 'לא אומן')}</div> : lifts.map(cell)}
+                  {empty ? <div style={{ fontSize: 10, color: C.td, fontStyle: 'italic' }}>{L(he, 'not trained', 'אין')}</div> : lifts.map(cell)}
                 </div>
               );
             })}
@@ -769,7 +769,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
             </div>
           )}
           <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>{he
-            ? <>התרגילים שנרשמו, מחולקים לשש הקבוצות של הספרייה. קבוצה עמומה עם <b style={{ color: C.tm }}>לא אומן</b> = דפוס תנועה שהבלוק הזה מדלג עליו — הבדיקה הכי מהירה לחורים לפני שאתה בונה את הבא.</>
+            ? <>התרגילים שנרשמו, מחולקים לשש הקבוצות של הספרייה. קבוצה אפורה עם <b style={{ color: C.tm }}>אין</b> = דפוס תנועה שהבלוק הזה מדלג עליו — הבדיקה הכי מהירה לחורים לפני שאתה בונה את הבא.</>
             : <>{'Logged lifts catalogued into the library\'s six buckets. A dim '}<b style={{ color: C.tm }}>{'not trained'}</b>{' bucket = a movement pattern this block is skipping — the fastest gap-check before you build the next one.'}</>}</div>
         </Section>
       );
@@ -983,7 +983,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
                     </div>
                   </div>
                 </div>
-                <div style={{ fontSize: 9.5, color: C.tm, marginTop: 6, lineHeight: 1.5 }}>{L(he, 'Σ load×reps per logged session · avg ', 'Σ משקל×חזרות לכל אימון רשום · ממוצע ')}<b style={{ color: C.tx }}>{avg.toLocaleString()}</b>{L(he, ' kg·reps — the raw work trend. ', ' ק״ג·חזרות — מגמת העבודה הגולמית. ')}<span style={{ color: BRAND }}>▮</span>{L(he, ' peak · outlined = latest.', ' שיא · עם מסגרת = אחרון.')}</div>
+                <div style={{ fontSize: 9.5, color: C.tm, marginTop: 6, lineHeight: 1.5 }}>{L(he, 'Σ load×reps per logged session · avg ', 'משקל × חזרות בכל אימון · ממוצע ')}<b style={{ color: C.tx }}>{avg.toLocaleString()}</b>{L(he, ' kg·reps — the raw work trend. ', ' קילו × חזרות — כמה עבודה נעשתה בפועל. ')}<span style={{ color: BRAND }}>▮</span>{L(he, ' peak · outlined = latest.', ' שיא · עם מסגרת = אחרון.')}</div>
               </div>
             );
           })()}
@@ -1017,7 +1017,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
                   {barSpeedAll ? L(he, 'Show less', 'פחות') : (he ? `כל ${vault.length} התרגילים` : `Show all ${vault.length} lifts`)}
                 </button>
               )}
-              <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>{L(he, 'Per-lift velocity-loss from filmed sets — rising bars = fatigue building on the bar, days before load or RPE would show it. Film a lift across a load range and it also extrapolates a max-less 1RM (load-velocity profiling — the elite-VBT read no phone tool offers).', 'ירידת מהירות לכל תרגיל מסטים מצולמים — עמודות שעולות = עייפות שמצטברת על המוט, ימים לפני שהמשקל או ה־RPE יראו את זה. צלם תרגיל על כמה משקלים ותקבל גם 1RM משוער בלי מבחן מקסימום (פרופיל עומס־מהירות — ניתוח VBT ברמת ספורט עילית שאף כלי בטלפון לא נותן).')}</div>
+              <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>{L(he, 'Per-lift velocity-loss from filmed sets — rising bars = fatigue building on the bar, days before load or RPE would show it. Film a lift across a load range and it also extrapolates a max-less 1RM (load-velocity profiling).', 'ירידת מהירות לכל תרגיל מסטים מצולמים — עמודות שעולות = עייפות, ימים לפני שהמשקל או ה־RPE יראו את זה. צלם תרגיל על כמה משקלים ותקבל גם 1RM משוער בלי מבחן מקסימום (פרופיל עומס־מהירות).')}</div>
             </>
           ) : (
             <div style={{ border: `1px dashed ${C.bd}`, background: C.sf2, padding: 14, color: C.tm, fontSize: 12.5, lineHeight: 1.5 }}>
@@ -1045,7 +1045,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
                   {romAll ? L(he, 'Show less', 'פחות') : (he ? `כל ${romLifts.length} התרגילים` : `Show all ${romLifts.length} lifts`)}
                 </button>
               )}
-              <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>{L(he, 'Peak working range per filmed lift, measured from the skeleton. A quietly shrinking range = depth or mobility slipping, or fatigue compensation — visible before it shows in the loads.', 'טווח העבודה הכי גדול לכל תרגיל מצולם, נמדד מהשלד. טווח שמתכווץ בשקט = עומק או מוביליטי שנשחקים, או פיצוי של עייפות — רואים את זה לפני שזה מופיע במשקלים.')}</div>
+              <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>{L(he, 'Peak working range per filmed lift, measured from the skeleton. A quietly shrinking range = depth or mobility slipping, or fatigue compensation — visible before it shows in the loads.', 'טווח העבודה הכי גדול לכל תרגיל מצולם, נמדד מהווידאו. טווח שמתכווץ בשקט = עומק או מוביליטי שנשחקים, או פיצוי בגלל עייפות — רואים את זה לפני שזה מופיע במשקלים.')}</div>
             </>
           ) : (
             <div style={{ border: `1px dashed ${C.bd}`, background: C.sf2, padding: 14, color: C.tm, fontSize: 12.5, lineHeight: 1.5 }}>
@@ -1054,13 +1054,13 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
           )}
       </Section>
 
-      <Section title={L(he, 'Symmetry · injury watch', 'סימטריה · מעקב פציעות')} cardStyle={{ ...card, marginTop: 0 }} tag={<span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '2px 6px', border: `1px solid ${C.pu}`, color: C.pu, marginInlineStart: 8 }}>{L(he, 'camera only', 'רק מצלמה')}</span>} summary={asymTrend.joints.length > 0 ? (asymTrend.anyFlag ? (he ? `מעקב: ${JOINT_HE[asymTrend.worst.joint] || asymTrend.worst.joint}` : `watch ${asymTrend.worst.joint.toLowerCase()}`) : (he ? `יציב · ${cnt(asymTrend.films, 'צילום אחד', 'צילומים')}` : `holding · ${asymTrend.films} film${asymTrend.films === 1 ? '' : 's'}`)) : L(he, 'no history', 'אין היסטוריה')}>
+      <Section title={L(he, 'Symmetry · left vs right', 'סימטריה · ימין מול שמאל')} cardStyle={{ ...card, marginTop: 0 }} tag={<span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '2px 6px', border: `1px solid ${C.pu}`, color: C.pu, marginInlineStart: 8 }}>{L(he, 'camera only', 'רק מצלמה')}</span>} summary={asymTrend.joints.length > 0 ? (asymTrend.anyFlag ? (he ? `מעקב: ${JOINT_HE[asymTrend.worst.joint] || asymTrend.worst.joint}` : `watch ${asymTrend.worst.joint.toLowerCase()}`) : (he ? `יציב · ${cnt(asymTrend.films, 'צילום אחד', 'צילומים')}` : `holding · ${asymTrend.films} film${asymTrend.films === 1 ? '' : 's'}`)) : L(he, 'no history', 'אין היסטוריה')}>
           {asymTrend.joints.length > 0 ? (
             <>
               <div style={{ fontSize: 12.5, color: asymTrend.anyFlag ? C.rd : asymTrend.films < 2 ? C.tm : C.gn, marginBottom: 4, fontWeight: 600 }}>
                 {he
                   ? (asymTrend.anyFlag
-                    ? `תעקוב אחרי ה${JOINT_HE[asymTrend.worst.joint] || asymTrend.worst.joint} — צד ${SIDE_HE[asymTrend.worst.weaker] || asymTrend.worst.weaker} מפגר ב־${asymTrend.worst.current}%${asymTrend.worst.drift === 'widening' ? ' והפער גדל' : ''}.`
+                    ? `תעקוב אחרי ה${JOINT_HE[asymTrend.worst.joint] || asymTrend.worst.joint} — צד ${SIDE_HE[asymTrend.worst.weaker] || asymTrend.worst.weaker} זז ${asymTrend.worst.current}% פחות${asymTrend.worst.drift === 'widening' ? ' והפער גדל' : ''}.`
                     : asymTrend.films < 2
                       ? 'סט מצולם אחד — אין שום דבר מדאיג, אבל צלם עוד כמה כדי לראות מגמה בסימטריה.'
                       : `הסימטריה יציבה לאורך ${asymTrend.films} סטים מצולמים.`)
@@ -1076,7 +1076,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
                 return (
                   <div key={`${j.lift}-${j.joint}`} style={{ padding: '9px 0', borderTop: `1px solid ${C.bd}` }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 5 }}>
-                      <span style={{ fontSize: 12.5, color: C.tx }}>{he ? `${JOINT_HE[j.joint] || j.joint} · ${SIDE_HE[j.weaker] || j.weaker} מפגר ` : `${j.joint} · ${j.weaker.toLowerCase()} lower `}<span style={{ color: C.td, fontSize: 11 }}>· {j.lift}</span></span>
+                      <span style={{ fontSize: 12.5, color: C.tx }}>{he ? `${JOINT_HE[j.joint] || j.joint} · ${SIDE_HE[j.weaker] || j.weaker} זז פחות ` : `${j.joint} · ${j.weaker.toLowerCase()} lower `}<span style={{ color: C.td, fontSize: 11 }}>· {j.lift}</span></span>
                       <span style={{ fontSize: 10, color: jc, letterSpacing: '0.04em' }}>
                         {he
                           ? `${j.current}%${j.series.length >= 2 ? ` · ${j.drift === 'widening' ? `הפער גדל ב־${Math.abs(j.delta)}` : j.drift === 'closing' ? `הפער הצטמצם ב־${Math.abs(j.delta)}` : 'יציב'}` : ' · סט אחד'}`
@@ -1085,14 +1085,14 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
                     </div>
                     <div dir="ltr" style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 30 }}>
                       {j.series.slice(-8).map((s, i) => (
-                        <div key={i} title={he ? `${s.date} · ${SIDE_HE[s.weaker] || s.weaker} מפגר ב־${s.pct}%` : `${s.date} · ${s.pct}% ${s.weaker.toLowerCase()} behind`}
+                        <div key={i} title={he ? `${s.date} · ${SIDE_HE[s.weaker] || s.weaker} זז ${s.pct}% פחות` : `${s.date} · ${s.pct}% ${s.weaker.toLowerCase()} behind`}
                           style={{ flex: 1, minWidth: 4, height: `${Math.max(12, (s.pct / mx) * 100)}%`, background: jc, opacity: 0.85, borderRadius: '1px 1px 0 0' }} />
                       ))}
                     </div>
                   </div>
                 );
               })}
-              <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>{L(he, 'Per-joint L/R travel across filmed sets — a bar climbing = one limb pulling away. 2D pose is approximate; a widening flag is worth screening in person, not a diagnosis.', 'תנועת ימין/שמאל לכל מפרק לאורך סטים מצולמים — עמודה שעולה = פער בין הצדדים שהולך וגדל. זיהוי תנוחה דו־ממדי הוא רק הערכה; פער שגדל שווה לבדוק פנים מול פנים — זו לא קביעה רפואית.')}</div>
+              <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>{L(he, 'Per-joint L/R travel across filmed sets — a bar climbing = one limb pulling away. 2D pose is approximate; a widening flag is worth screening in person, not a diagnosis.', 'תנועת ימין/שמאל לכל מפרק לאורך סטים מצולמים — עמודה שעולה = פער בין הצדדים שהולך וגדל. זיהוי תנוחה דו־ממדי הוא רק הערכה; פער שגדל — תבדוק בעין באימון — זו לא קביעה רפואית.')}</div>
             </>
           ) : (
             <div style={{ border: `1px dashed ${C.bd}`, background: C.sf2, padding: 14, color: C.tm, fontSize: 12.5, lineHeight: 1.5 }}>
@@ -1107,11 +1107,11 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
     </div>
 
     {/* 6. READINESS honest thin */}
-    <div style={card}><div className="lin-hd" style={hd}>{L(he, 'Readiness / effort log', 'מוכנות / רישום מאמץ')}</div>
+    <div style={card}><div className="lin-hd" style={hd}>{L(he, 'Readiness / effort log', 'רישום מאמץ (RPE)')}</div>
       <div style={bd}>
         <div style={{ border: `1px dashed ${C.bd}`, background: C.sf2, padding: 14, color: C.tm, fontSize: 12.5, lineHeight: 1.5 }}>
           {a.rpeCoverage >= 40
-            ? <><b style={{ color: C.tx }}>{he ? `RPE נרשם ב־${a.rpeCoverage}% מהסטים.` : `RPE logged on ${a.rpeCoverage}% of sets.`}</b>{L(he, ' Enough to trust the effort reads above — the autoregulation signal is reliable.', ' מספיק כדי לסמוך על נתוני המאמץ למעלה — סימני ויסות העומס אמינים.')}</>
+            ? <><b style={{ color: C.tx }}>{he ? `RPE נרשם ב־${a.rpeCoverage}% מהסטים.` : `RPE logged on ${a.rpeCoverage}% of sets.`}</b>{L(he, ' Enough to trust the effort reads above — the autoregulation signal is reliable.', ' מספיק כדי לסמוך על מה שכתוב למעלה.')}</>
             : <><b style={{ color: C.tx }}>{L(he, 'Not enough effort data to model fatigue.', 'אין מספיק נתוני מאמץ כדי להעריך עייפות.')}</b>{he ? ` RPE ב־${a.rpeCoverage}% מהסטים — צריך בערך 10 מדידות בשביל מגמה. כרגע זה שיקול דעת ביחד עם סימני העומס למעלה. ` : ` RPE on ${a.rpeCoverage}% of sets — need ~10 points for a trend. Right now this is judgment + the load signals above. `}<span style={{ color: C.td }}>{L(he, 'Nudge him to log effort and this unlocks a real fitness-fatigue readout.', 'תגיד לו לרשום מאמץ, וככה תקבל מעקב כושר־עייפות אמיתי.')}</span></>}
         </div>
       </div>
@@ -1127,7 +1127,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
     </div>
 
     <div style={{ fontSize: 11, color: C.td, margin: '18px 2px 4px', lineHeight: 1.6 }}>
-      {L(he, 'Verdict up top, gated on "did he train" · velocity from your camera is the moat · thin data is labelled, never faked · nothing here changes his program — it analyses + advises, you build.', 'השורה התחתונה למעלה, בתנאי ש"הוא באמת התאמן" · המהירות מהמצלמה שלך היא היתרון · נתונים דלים מסומנים, אף פעם לא ממציאים · שום דבר כאן לא משנה לו את התוכנית — זה מנתח ומייעץ, אתה בונה.')}
+      {L(he, 'Verdict up top, gated on "did he train" · thin data is labelled, never faked · nothing here changes his program — it analyses + advises, you build.', 'הכול בתנאי שהאימונים באמת נרשמו · מה שחסר מסומן, לא ממציאים · שום דבר פה לא משנה את התוכנית — פה רק ממליצים, אתה בונה.')}
     </div>
     <style>{`@media(max-width:720px){.lineage-grid2{grid-template-columns:1fr !important}}
 @media(max-width:620px){
