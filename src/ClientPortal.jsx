@@ -2011,7 +2011,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
             <div style={{display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 40px',gap:4,alignItems:'center',marginBottom:4,opacity:set.done?.5:1}}>
               <div style={{fontFamily:FN,fontSize:13,color:C.td,textAlign:'center'}}>{si+1}</div>
               <input aria-label="Reps" value={set.reps} onChange={e => uSet(ei,si,'reps',e.target.value)} onFocus={selectOnFocus} inputMode="numeric" enterKeyHint="next" placeholder="—" style={seti}/>
-              <input aria-label="Weight (kg)" value={set.load} onChange={e => uSet(ei,si,'load',e.target.value)} onFocus={selectOnFocus} inputMode="decimal" enterKeyHint="next" placeholder="kg" style={seti}/>
+              <input aria-label={tt('Weight (kg)')} value={set.load} onChange={e => uSet(ei,si,'load',e.target.value)} onFocus={selectOnFocus} inputMode="decimal" enterKeyHint="next" placeholder={tt('kg')} style={seti}/>
               <input aria-label="RPE" value={set.rpe} onChange={e => uSet(ei,si,'rpe',e.target.value)} onFocus={selectOnFocus} inputMode="decimal" enterKeyHint="done" placeholder="—" style={seti}/>
               {/* Whole cell is the tap target (not just the 18px box) so a
                   sweaty mid-set tap lands. 24px box, centered. */}
@@ -2087,7 +2087,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           style={{width:'100%',marginTop:8,padding:'11px 8px',borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>
           Live Rep Counter
         </button>
-        <textarea dir="auto" value={f.note} onChange={e => { const v = e.target.value; setFv(prev => { const n=[...prev]; n[ei]={...n[ei],note:v}; return n; }); }} placeholder="Notes for coach" style={{...bi,fontSize:13,minHeight:50,resize:'vertical',marginTop:8,color:C.ac}}/>
+        <textarea dir="auto" value={f.note} onChange={e => { const v = e.target.value; setFv(prev => { const n=[...prev]; n[ei]={...n[ei],note:v}; return n; }); }} placeholder={tt('Notes for coach')} style={{...bi,fontSize:13,minHeight:50,resize:'vertical',marginTop:8,color:C.ac}}/>
       </div>
     </div>;
   };
@@ -2752,7 +2752,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                 <span style={{display:'inline-flex',alignItems:'center',gap:2}}>
                   {weekDays.map((d,i)=><span key={i} title={d.name} style={{width:10,height:10,display:'inline-block',background:isDayDone(d)?C.ac:'var(--c-sf2)',border:`1px solid ${isDayDone(d)?C.ac:C.cardBd}`}}/>)}
                 </span>
-                <span style={{fontSize:9,color:C.tm,letterSpacing:'0.14em',fontWeight:700,lineHeight:1}}>{tt("WEEK")}</span>
+                <span style={{fontSize:9,color:C.tm,letterSpacing:'0.14em',fontWeight:700,lineHeight:1}}>{tt("THIS WEEK")}</span>
               </span>}
               <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',color:C.tm,lineHeight:1,flexShrink:0}}><span style={{color:C.ac,fontVariantNumeric:'tabular-nums'}}>{blockLeft}</span> {tt('LEFT')}</span>
             </div>
@@ -3255,7 +3255,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             <div style={{display:'flex',gap:4}}>
             {/* KG matches the week cells: 32px border-box in every identity;
                 underline material where the identity is underline/bare. */}
-            <input value={bw} onChange={e => setBw(e.target.value)} placeholder="KG" type="number" disabled={!activePlan}
+            <input value={bw} onChange={e => setBw(e.target.value)} placeholder={tt("KG")} type="number" disabled={!activePlan}
               style={(ident === 'EDITORIAL' || ident === 'AIR')
                 ? {background:'transparent',border:'none',borderBottom:`1px solid ${C.cardBd}`,borderRadius:0,height:32,padding:'0 8px',color:C.tx,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',outline:'none',width:'100%',boxSizing:'border-box',textAlign:'center',opacity:activePlan?1:0.5}
                 : {background:'transparent',border:`1px solid ${C.cardBd}`,borderRadius:0,height:32,padding:'0 8px',color:C.tx,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',outline:'none',width:'100%',boxSizing:'border-box',textAlign:'center',opacity:activePlan?1:0.5}}/>

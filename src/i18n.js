@@ -1473,6 +1473,15 @@ export const HE = {
   REPS: 'חזרות',
   REST: 'מנוחה',
   KG: 'ק"ג',
+  kg: 'ק"ג',
+  'Notes for coach': 'הערות למאמן',
+  // The label on the day squares means THIS week, not "a week" - 'שבוע' alone
+  // left the group reading as two halves of nothing (portal header, 390px).
+  'THIS WEEK': 'השבוע',
+  // Macro initials on a meal card. One letter each, so the three fit one line.
+  P: 'ח',
+  C: 'פ',
+  F: 'ש',
   NOTES: 'הערות',
   NOTE: 'הערה',
   'EXERCISE NOTE': 'הערה לתרגיל',

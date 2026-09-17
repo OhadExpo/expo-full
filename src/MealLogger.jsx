@@ -578,9 +578,9 @@ function MealRow({ meal, page = false }) {
             fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
             fontVariantNumeric: 'tabular-nums',
           }}>
-            <span style={{ color: C.gn }}>{meal.protein_g}<span style={{ color: C.tm, marginInlineStart: 2 }}>P</span></span>
-            <span style={{ color: C.or }}>{meal.carbs_g}<span style={{ color: C.tm, marginInlineStart: 2 }}>C</span></span>
-            <span style={{ color: C.ac }}>{meal.fat_g}<span style={{ color: C.tm, marginInlineStart: 2 }}>F</span></span>
+            <span style={{ color: C.gn }}>{meal.protein_g}<span style={{ color: C.tm, marginInlineStart: 2 }}>{tt('P')}</span></span>
+            <span style={{ color: C.or }}>{meal.carbs_g}<span style={{ color: C.tm, marginInlineStart: 2 }}>{tt('C')}</span></span>
+            <span style={{ color: C.ac }}>{meal.fat_g}<span style={{ color: C.tm, marginInlineStart: 2 }}>{tt('F')}</span></span>
           </div>
         </div>
       </div>
