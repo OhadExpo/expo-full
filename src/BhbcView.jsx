@@ -25,7 +25,7 @@ import { readinessAutoreg } from './readinessAutoreg';
 import BWChart from './BwChart';
 import { sessionSig } from './bhbcSession.js';
 import { useFullPlan } from './usePlansStore';
-import { LangCtx } from './i18n';
+import { LangCtx, BodyLang } from './i18n';
 
 // EXPO's own group/single session logger — reused INSIDE the BHBC portal, scoped
 // to the BHBC roster. It writes to client_workouts (athlete-visible), so a BHBC
@@ -904,6 +904,7 @@ function attendance28(rec, days) {
         the zone embeds (the session logger) read the default English whatever
         either switch says. They follow the ZONE's switch. */}
     <LangCtx.Provider value={bhbcLang}>
+    <BodyLang lang={bhbcLang} />
     <div className="bhbc-zone" data-theme="light" dir={he ? 'rtl' : 'ltr'} style={{ ...TOKENS, minHeight: '100vh', background: 'var(--c-bg)', color: C.tx, fontFamily: FB }}>
       <style>{`
         .bhbc-hdr-tabs::-webkit-scrollbar{display:none} .bhbc-hdr-tabs{scrollbar-width:none;-ms-overflow-style:none}
