@@ -141,7 +141,7 @@ export const SHOT_I18N = {
     sessionFocus: 'FOCUS NEXT SESSION',
     trendFlat: 'Held the same level from the first reps to the last.',
     trendMoved: (dir, first, last, delta) => `Score ${dir} across the clip: ${first} to ${last}, ${delta} points.`,
-    oblique: 'This shot was filmed at an angle — the ball moved AWAY from the camera, not across it. The angle and the rep-to-rep comparison are still good; the metres and m/s read low. Film square to the shot for those.',
+    oblique: 'This shot was filmed at an angle — the ball moved AWAY from the camera, not across it. The rep-to-rep comparison and the angle spread still hold; the launch angle itself reads too steep, and the metres and m/s read low. Film square to the shot for those.',
     starved: (fps, n) => `The analysis only read ${fps} frames a second (${n} frames) — the rest were dropped while the model was still busy on the previous one. Shots can be MISSED at that rate. Close other tabs, keep this one in front, and analyse again.`,
     reanalysePrecise: 'ANALYSE FRAME BY FRAME (SLOWER, SEES EVERY FRAME)',
     ballUnread: 'The ball could not be followed on this rep, so the three ball readings are blank. Everything measured from the body still stands.',
@@ -274,7 +274,7 @@ export const SHOT_I18N = {
     trendMoved: (dir, first, last, delta) => (dir === 'declined'
       ? `הציון ירד לאורך הקליפ: מ-${first} ל-${last}, ${delta} נקודות.`
       : `הציון עלה לאורך הקליפ: מ-${first} ל-${last}, ${delta} נקודות.`),
-    oblique: 'הזריקה הזאת צולמה בזווית — הכדור התרחק מהמצלמה במקום לנוע לרוחב. זווית הזריקה וההשוואה בין החזרות עדיין אמינות. המרחק והמהירות יוצאים נמוכים מדי. כדי למדוד אותם נכון, צלם מהצד, בניצב לכיוון הזריקה.',
+    oblique: 'הזריקה הזאת צולמה בזווית — הכדור התרחק מהמצלמה במקום לנוע לרוחב. ההשוואה בין החזרות והפיזור של הזווית עדיין אמינים. זווית הזריקה עצמה יוצאת תלולה מדי, והמרחק והמהירות יוצאים נמוכים מדי. כדי למדוד אותם נכון, צלם מהצד, בניצב לכיוון הזריקה.',
     starved: (fps, n) => `הניתוח הספיק לקרוא רק ${fps} פריימים לשנייה (${n} פריימים) — השאר נפלו כשהמודל עוד עבד על הקודם. בקצב כזה אפשר לפספס זריקות. סגור לשוניות אחרות, תשאיר את זו מלפנים ונתח שוב.`,
     reanalysePrecise: 'ניתוח פריים אחר פריים (איטי יותר, רואה כל פריים)',
     ballUnread: 'לא הצלחנו לעקוב אחרי הכדור בחזרה הזאת, אז נתוני הכדור ריקים. מה שנמדד מהגוף עדיין תקף.',
@@ -318,7 +318,7 @@ export const SHOT_I18N = {
         label: 'מרפק מתחת לכדור',
         target: 'שורש כף היד בערך מעל המרפק בסט (סטייה עד 0.25 גו)',
         why: 'כשהמרפק מתחת לשורש כף היד, היישור דוחף את הכדור ישר לחישוק. מרפק שנפתח החוצה או נגרר מוסיף רכיב צידי שהיד צריכה לתקן — זו החטאת הימין/שמאל הקלאסית.',
-        how: ['תרגיל החלקה בקיר: כתף יד הזריקה לקיר, המרפק מלטף את הקיר לאורך כל היישור.', 'דימוי: "מרפק לחישוק" — הוא מצביע על המטרה לפני שהיד יוצאת.', 'משמעת יד מכוונת: היד השנייה עוזבת את הכדור בסט, אף פעם לא דוחפת.'],
+        how: ['תרגיל החלקה בקיר: כתף יד הזריקה לקיר, המרפק מלטף את הקיר לאורך כל היישור.', 'דימוי: "מרפק לחישוק" — הוא מצביע על המטרה לפני שהיד יוצאת.', 'משמעת יד תומכת: היד השנייה נשארת בצד הכדור עד השחרור, ואז עוזבת אותו בלי לדחוף.'],
       },
       releaseExt: {
         label: 'יישור מרפק בשחרור',

@@ -468,7 +468,7 @@ export function buildCheckpoints(shotType = 'mid') {
       target: 'Wrist roughly above the elbow at the set (offset ≤ 0.25 torso)',
       band: (v) => band(v, 0, 0.25, 0, 0.4),
       why: 'With the elbow under the wrist, the extension drives the ball straight at the rim; a flared or trailing elbow adds a sideways component the wrist has to correct — the classic left/right miss.',
-      how: ['Wall-slide drill: shooting-side shoulder to a wall, the elbow brushes the wall through the whole extension.', 'Cue: "elbow to the rim" — it points at the target before the arm fires.', 'Guide-hand discipline: the off hand leaves the ball at the set, never pushes.'] },
+      how: ['Wall-slide drill: shooting-side shoulder to a wall, the elbow brushes the wall through the whole extension.', 'Cue: "elbow to the rim" — it points at the target before the arm fires.', 'Guide-hand discipline: the off hand stays on the side of the ball until release, then comes off without pushing.'] },
     { key: 'releaseExt', label: 'Elbow extension at release', weight: 1,
       target: '≥ 160° at release (full extension)',
       band: (v) => band(v, 160, 181, 145, 181),
