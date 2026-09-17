@@ -886,7 +886,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                 <SH k="status" label={tt('Status')} />
                 <th style={plainHeadStyle}>{tt('Format')}</th>
                 <th style={plainHeadStyle}>{tt('Package')}</th>
-                <SH k="sessions" label={tt('Sessions')} />
+                <SH k="sessions" label={readLang() === 'he' ? 'נותרו' : tt('Sessions')} />
                 {isOwner && <SH k="paid" label={tt('Total Paid')} />}
                 {isOwner && <SH k="lastPay" label={tt('Last Payment')} />}
                 <SH k="workouts" label={tt('Workouts')} />

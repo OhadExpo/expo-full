@@ -268,8 +268,8 @@ export const HE = {
   "Noa — deload week, cut volume 30%": "נועה — שבוע הורדה, לחתוך 30 אחוז מהנפח",
   "Gal — check knee after last squat session": "גל — לבדוק את הברך אחרי אימון הסקוואט",
   "Film 3 exercise demos for the library": "לצלם 3 הדגמות תרגיל לספרייה",
-  "Amit — no workout logged in 6 days": "עמית — לא נרשם אימון 6 ימים",
-  "Roey — payment overdue 12 days": "רועי — תשלום באיחור 12 ימים",
+  "Amit — no workout logged in 6 days": "עמית — כבר 6 ימים לא נרשם אימון",
+  "Roey — payment overdue 12 days": "רועי — תשלום באיחור של 12 ימים",
   "Plan Q3 athlete testing day": "לתכנן יום מדידות לרבעון השלישי",
   "Fix the cable machine pulley": "לתקן את הגלגלת של הפולי",
   "This week": "השבוע",
@@ -303,7 +303,7 @@ export const HE = {
   "PARTICIPANTS (": "משתתפים (",
   "GOAL ·": "יעד ·",
   "Two check-ins are needed to see a {metric} trend": "צריך שני דיווחים כדי לראות מגמה ב{metric}",
-  "ON THE FLOOR ·": "על הפרקט ·",
+  "ON THE FLOOR ·": "בחדר הכושר · ",
   "In Progress (": "בתהליך (",
   "Form Video ·": "סרטון טכניקה ·",
   "Nothing matches": "אין התאמות",
@@ -667,7 +667,7 @@ export const HE = {
   '30D COLLECTED': 'נכנס · 30 יום',
   '90D COLLECTED': 'נכנס · 90 יום',
   OUTSTANDING: 'חוב פתוח',
-  'AVG LTV': 'שווי לקוח ממוצע',
+  'AVG LTV': 'הכנסה ממוצעת ללקוח',
   'AVG TICKET': 'תשלום ממוצע',
   'PER PAYING CLIENT': 'ללקוח משלם',
   'PER PAYMENT ROW': 'לכל תשלום',
@@ -1120,7 +1120,7 @@ export const HE = {
   "Accumulation...": 'צבירה…',
   "INTENSITY %1RM": 'עצימות %1RM',
   "DUPLICATE →": 'שכפול ←',
-  "{n}d overdue": 'באיחור {n} ימים',
+  "{n}d overdue": 'באיחור של {n} ימים',
   "Your": 'הצד',
   "side of the platform. Click through the tabs above. Mock data — nothing here writes to your account.": 'שלך בפלטפורמה. תעבור בין הטאבים למעלה. נתוני דמו — שום דבר כאן לא נשמר בחשבון שלך.',
   "COACHES": 'מאמנים',
@@ -2069,6 +2069,8 @@ export const HE = {
   '{n} turns': '{n} תורות',
   '1 error': 'שגיאה אחת',
   '{n} errors': '{n} שגיאות',
+  // 17.9 demo chip counts
+  '{n}D': '{n} ימים',
   // 17.9 the two owner library tools (Classify, Matching) wired
   match: 'התאמה',
   matches: 'התאמות',
@@ -2254,8 +2256,8 @@ export function agoLabel(iso, lang) {
   return 'עכשיו';
 }
 export function daysOverdueHe(n) {
-  if (n === 1) return 'באיחור יום';
-  return `באיחור ${n} ימים`;
+  if (n === 1) return 'באיחור של יום';
+  return `באיחור של ${n} ימים`;
 }
 
 // Counted nouns. English builds "3 days" by appending an s; Hebrew does not
