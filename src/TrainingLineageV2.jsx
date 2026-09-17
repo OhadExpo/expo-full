@@ -588,7 +588,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
               const charName = he ? (CHAR_HE[b.character] || b.character) : b.character;
               return (
                 <div key={b.name || idx} title={he
-                  ? `${b.name} · ${charName}${lowConf ? ' (ודאות נמוכה — לא נרשמה עצימות, הוסק מהחזרות)' : ` (ודאות ${CONF_HE[b.confidence] || b.confidence || 'לא ידועה'})`} — ${b.avgReps != null ? `ממוצע ${b.avgReps} חזרות` : 'מתפרץ, בלי בסיס חזרות'}${intel}${b.explosiveShare >= 0.4 ? ` · ${Math.round(b.explosiveShare * 100)}% מתפרץ` : ''} · לפי ${b.fromMains ? 'התרגילים המרכזיים' : 'כל התרגילים'} (${b.exercises} נרשמו)`
+                  ? `${b.name} · ${charName}${lowConf ? ' (ודאות נמוכה — לא נרשמה עצימות, הוסק מהחזרות)' : ` (ודאות ${CONF_HE[b.confidence] || b.confidence || 'לא ידועה'})`} — ${b.avgReps != null ? (b.avgReps === 1 ? 'ממוצע חזרה אחת' : `ממוצע ${b.avgReps} חזרות`) : 'מתפרץ, בלי בסיס חזרות'}${intel}${b.explosiveShare >= 0.4 ? ` · ${Math.round(b.explosiveShare * 100)}% מתפרץ` : ''} · לפי ${b.fromMains ? 'התרגילים המרכזיים' : 'כל התרגילים'} (${b.exercises} נרשמו)`
                   : `${b.name} · ${b.character}${lowConf ? ' (low-confidence — no intensity logged, inferred from reps)' : ` (${b.confidence || 'read'})`} — ${b.avgReps != null ? `avg ${b.avgReps} reps` : 'explosive, no rep basis'}${intel}${b.explosiveShare >= 0.4 ? ` · ${Math.round(b.explosiveShare * 100)}% explosive` : ''} · from ${b.fromMains ? 'the main lifts' : 'all exercises'} (${b.exercises} logged)`}
                   style={{ flex: '0 0 auto', border: `1px ${lowConf ? 'dashed' : 'solid'} ${col}`, padding: '5px 9px', minWidth: 50, textAlign: 'center', background: `color-mix(in srgb, ${col} ${lowConf ? 4 : 8}%, transparent)`, opacity: lowConf ? 0.72 : 1 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: C.tx, fontFamily: FN, whiteSpace: 'nowrap' }}>{label}</div>
@@ -658,7 +658,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
                 // Everything on ONE vertically-centred row (Ohad): name · spark ·
                 // e1RM change · gain%. The log/week context moves to the name tooltip.
                 <div key={s.title} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderTop: `1px solid ${C.bd}` }}>
-                  <span title={he ? `${s.count} רישומים · ${s.spanWeeks > 0 ? `לאורך ${s.spanWeeks} שבועות` : 'בבלוק הזה'}` : `${s.count} logs · ${s.spanWeeks > 0 ? `over ${s.spanWeeks} weeks` : 'this block'}`}
+                  <span title={he ? `${s.count} רישומים · ${s.spanWeeks > 0 ? (s.spanWeeks === 1 ? 'לאורך שבוע אחד' : `לאורך ${s.spanWeeks} שבועות`) : 'בבלוק הזה'}` : `${s.count} logs · ${s.spanWeeks > 0 ? `over ${s.spanWeeks} week${s.spanWeeks === 1 ? '' : 's'}` : 'this block'}`}
                     style={{ flex: '1 1 auto', minWidth: 0, fontSize: 13, color: C.tx, whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: 1.3 }}>{s.title}</span>
                   <Spark pts={s.arc} dir={noisy ? 'flat' : s.arcGainPct >= 3 ? 'up' : s.arcGainPct <= -3 ? 'down' : 'flat'} />
                   <span style={{ flexShrink: 0, fontSize: 12.5, color: C.tx, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }} title={L(he, 'estimated 1-rep max (Epley), first → now', '1RM משוער (Epley), מההתחלה עד היום')}><Ltr>{`e${s.firstE1} → e${lastE}`}</Ltr>{s.prE1 > lastE ? <span style={{ color: C.td, fontSize: 10 }}>{` · ${L(he, 'pk', 'שיא')} e${s.prE1}`}</span> : null}</span>

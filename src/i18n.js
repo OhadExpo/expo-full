@@ -2074,6 +2074,11 @@ export const HE = {
   // 17.9 evaluation vitals units
   'cm': ' ס״מ',
   '{n} FIELDS': '{n} שדות',
+  // 17.9 singular forms where a count can be 1
+  'Latest 1 set · your productive band ≈ {a}–{b} (MEV–MRV)': 'אחרון: סט אחד · הטווח האפקטיבי שלך בערך {a}–{b} (MEV–MRV)',
+  'Next block — {x}: about 1 set': 'הבלוק הבא — {x}: בערך סט אחד',
+  '~1 rep': 'בערך חזרה אחת',
+  '1 FIELD': 'שדה אחד',
   // 17.9 the two owner library tools (Classify, Matching) wired
   match: 'התאמה',
   matches: 'התאמות',

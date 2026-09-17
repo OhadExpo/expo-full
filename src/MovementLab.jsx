@@ -826,7 +826,7 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
               </div>
               <div style={{ fontFamily: FN, fontSize: 12.5, color: 'rgba(255,255,255,0.85)', lineHeight: 1.5 }}>{readiness.verdict}</div>
               <div style={{ fontFamily: FN, fontSize: 10, color: C.td, marginTop: 4, lineHeight: 1.5 }}>
-                {tt('Today {a} m/s vs his median {b} m/s at {n}kg').replace('{a}', readiness.todayVel).replace('{b}', readiness.refVel).replace('{n}', readiness.load)}{readiness.refReps ? ` · ${tt('~{n} reps').replace('{n}', readiness.refReps)}` : ''} ({readiness.n === 1 ? tt('1 prior set') : tt('{n} prior sets').replace('{n}', readiness.n)}, {tt('last {d}').replace('{d}', readiness.lastDate)}).
+                {tt('Today {a} m/s vs his median {b} m/s at {n}kg').replace('{a}', readiness.todayVel).replace('{b}', readiness.refVel).replace('{n}', readiness.load)}{readiness.refReps ? ` · ${readiness.refReps === 1 ? tt('~1 rep') : tt('~{n} reps').replace('{n}', readiness.refReps)}` : ''} ({readiness.n === 1 ? tt('1 prior set') : tt('{n} prior sets').replace('{n}', readiness.n)}, {tt('last {d}').replace('{d}', readiness.lastDate)}).
                 {readiness.lowConf ? ` ${tt('Only 1–2 prior films — treat lightly.')}` : ''} {tt("Phone bar-speed shifts ~5–10% with camera angle/distance, so this only means something if you film from the same spot — it's a soft cue to sense-check by feel/RPE, never a set-cutting rule.")}
               </div>
             </div>

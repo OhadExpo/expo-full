@@ -192,7 +192,7 @@ function EvalListRow({ evaluation, onOpenEditor }) {
           {evaluation.age != null && <span><span style={{ color: 'var(--c-td)' }}>{tt('AGE')}</span> {evaluation.age}</span>}
           {evaluation.height_cm != null && <span><span style={{ color: 'var(--c-td)' }}>{tt('HT')}</span> {evaluation.height_cm}{tt('cm')}</span>}
           {evaluation.weight_kg != null && <span><span style={{ color: 'var(--c-td)' }}>{tt('WT')}</span> {evaluation.weight_kg}{readLang() === 'he' ? ' קילו' : 'kg'}</span>}
-          <span>{tt('{n} FIELDS').replace('{n}', filled)}</span>
+          <span>{filled === 1 ? tt('1 FIELD') : tt('{n} FIELDS').replace('{n}', filled)}</span>
         </div>
         <button onClick={e => { e.stopPropagation(); onOpenEditor(evaluation); }}
           style={{

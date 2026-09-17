@@ -490,7 +490,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
                 title={programsExpanded?`Hide ${earlier.length} previous block${earlier.length===1?'':'s'}`:`Show ${earlier.length} previous block${earlier.length===1?'':'s'}`}
                 className="prog-plusn"
                 style={{display:'inline-flex',alignItems:'center',gap:5,height:24,padding:'0 9px',background: programsExpanded ? 'rgba(127,127,138,0.14)' : 'transparent',border:`1px solid ${C.cardBd}`,borderRadius:0,color: C.tm,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.05em',whiteSpace:'nowrap',flexShrink:0,fontVariantNumeric:'tabular-nums'}}>
-                {t('{n} previous').replace('{n}', earlier.length)}
+                {earlier.length === 1 ? t('1 previous') : t('{n} previous').replace('{n}', earlier.length)}
                 <span aria-hidden style={{display:'inline-block',transform: programsExpanded?'rotate(180deg)':'none',transition:'transform .15s',fontSize:8,lineHeight:1}}><svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
               </button>
             )}

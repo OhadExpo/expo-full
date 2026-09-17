@@ -3806,7 +3806,7 @@ export function TrainingLineage({ traineeId, traineeName, exercises, plans, load
                       const mevPct = Math.min(100, Math.round((r.mev / r.mrv) * 100));
                       const productive = latest >= r.mev;
                       return (
-                        <div title={tr(readLang(), 'Latest {n} sets · your productive band ≈ {a}–{b} (MEV–MRV)').replace('{n}', latest).replace('{a}', r.mev).replace('{b}', r.mrv)} style={{ position: 'relative', flex: 1, height: 4, minWidth: 0, background: 'color-mix(in srgb, var(--c-tx) 8%, transparent)' }}>
+                        <div title={tr(readLang(), latest === 1 ? 'Latest 1 set · your productive band ≈ {a}–{b} (MEV–MRV)' : 'Latest {n} sets · your productive band ≈ {a}–{b} (MEV–MRV)').replace('{n}', latest).replace('{a}', r.mev).replace('{b}', r.mrv)} style={{ position: 'relative', flex: 1, height: 4, minWidth: 0, background: 'color-mix(in srgb, var(--c-tx) 8%, transparent)' }}>
                           <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${fillPct}%`, background: latest === 0 ? 'transparent' : productive ? '#39BDFF' : C.or, opacity: 0.8 }} />
                           <div style={{ position: 'absolute', left: `${mevPct}%`, top: -1, bottom: -1, width: 1, background: C.tm }} />
                         </div>
@@ -3814,7 +3814,7 @@ export function TrainingLineage({ traineeId, traineeName, exercises, plans, load
                     })() : <div style={{ flex: 1 }} />}
                     {r.accommodation && <span title={tt('Accommodation — same sets & reps ≥2 blocks. Change the load or the drill.')} style={{ flexShrink: 0, color: C.or, fontSize: 11, lineHeight: 1 }}>⚠</span>}
                     {r.next && r.next.target > 0 && (
-                      <span title={tr(readLang(), 'Next block — {x}: about {n} sets').replace('{x}', tr(readLang(), r.next.tag)).replace('{n}', r.next.target)} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, flexShrink: 0, fontFamily: FN, fontSize: 10, fontWeight: 700, color: nextTone(r.next.tone), border: `1px solid ${nextTone(r.next.tone)}`, padding: '2px 5px', borderRadius: 0, fontVariantNumeric: 'tabular-nums' }}>→ {r.next.target}</span>
+                      <span title={tr(readLang(), r.next.target === 1 ? 'Next block — {x}: about 1 set' : 'Next block — {x}: about {n} sets').replace('{x}', tr(readLang(), r.next.tag)).replace('{n}', r.next.target)} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, flexShrink: 0, fontFamily: FN, fontSize: 10, fontWeight: 700, color: nextTone(r.next.tone), border: `1px solid ${nextTone(r.next.tone)}`, padding: '2px 5px', borderRadius: 0, fontVariantNumeric: 'tabular-nums' }}>→ {r.next.target}</span>
                     )}
                   </div>
                 )}
@@ -4978,7 +4978,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               <button onClick={e=>{e.stopPropagation();toggleAthlete(row.tid);}}
                 title={expanded?(readLang() === 'he' ? 'הסתרת הבלוקים הקודמים' : `Hide ${row.earlier.length} previous block${row.earlier.length===1?'':'s'}`):(readLang() === 'he' ? `${row.earlier.length===1 ? 'הצגת הבלוק הקודם' : `הצגת ${row.earlier.length} הבלוקים הקודמים`} (או לחיצה כפולה על הכרטיס)` : `Show ${row.earlier.length} previous block${row.earlier.length===1?'':'s'} (or double-click the card)`)}
                 style={{display:'inline-flex',alignItems:'center',gap:5,height:24,padding:'0 9px',background:expanded?'rgba(127,127,138,0.14)':'transparent',border:`1px solid ${C.cardBd}`,borderRadius:0,color:C.tm,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.05em',whiteSpace:'nowrap',flexShrink:0,fontVariantNumeric:'tabular-nums'}}>
-                {tt('{n} previous').replace('{n}', row.earlier.length)}
+                {row.earlier.length === 1 ? tt('1 previous') : tt('{n} previous').replace('{n}', row.earlier.length)}
                 <span aria-hidden style={{display:'inline-block',transform:expanded?'rotate(180deg)':'none',transition:'transform .15s',fontSize:8,lineHeight:1}}><svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
               </button>
             );
