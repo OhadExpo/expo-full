@@ -29,6 +29,12 @@ check('MAIN lift dropping (enough data) -> deload warn',
 check('hard-stale MAIN lift -> deload + change-the-lift, not just add weight',
   (() => { const v = synthesizeVerdict({ ...calm, staples: [staple({ title: 'Deadlift', stale: { stale: true, mode: 'hard' } })] }); return v.tone === 'warn' && /change the Deadlift/i.test(v.headline); })());
 
+// --- the sub-line must name the SAME lift the detail rows call regressing (17.9: the
+// demo said 'BB Back Squat e1RM slipping' while the rows had the squat STALLED and the
+// deadlift regressing - a stale lift is 'not progressing', never 'regressing') ---
+check('stale+down squat and down deadlift -> sub names the deadlift, not the squat',
+  (() => { const v = synthesizeVerdict({ ...calm, staples: [staple({ title: 'Squat', trend: { dir: 'down', state: 'ok' }, stale: { stale: true, mode: 'hard' } }), staple({ title: 'Deadlift', trend: { dir: 'down', state: 'ok' } })] }); return /Deadlift e1RM slipping/.test(v.sub) && !/Squat e1RM slipping/.test(v.sub); })());
+
 // --- thin-data gate: fatigue signal but <3 logged sessions -> log first, NOT deload ---
 check('fatigue signal + <3 logs -> info "log before you deload", never deload',
   (() => { const v = synthesizeVerdict({ ...calm, adh: { sessionPct: 90, setsPct: 80, loggedSessions: 2 }, staples: [staple({ title: 'Bench', trend: { dir: 'down', state: 'ok' } })] }); return v.tone === 'info' && /logging before you deload/i.test(v.headline); })());

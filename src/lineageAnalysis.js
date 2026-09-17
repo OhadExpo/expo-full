@@ -409,7 +409,11 @@ export function synthesizeVerdict({ adh, region, staples, acwr, velocity, he = f
   // Systemic fatigue shows in the MAIN compound lifts — a lone accessory (curl,
   // raise, fly) drifting down is not a reason to deload a progressing athlete
   // (fresh-context review H1). Require a primary lift regressing.
-  const anyDropping = staples.some((s) => !s.ballistic && s.isMain && s.trend?.dir === 'down');
+  // Same definition as the report's 'Regressing' rows: a STALE lift is 'not progressing'
+  // (anyHardStale covers its fatigue case), never 'regressing' - or the sub-line names a
+  // lift the rows below file under the other heading (17.9, the demo athlete).
+  const isRegressing = (s) => !s.ballistic && s.isMain && !s.stale?.stale && s.trend?.dir === 'down';
+  const anyDropping = staples.some(isRegressing);
   const highAcwr = acwr?.state === 'ok' && acwr.band === 'high';
   const velHigh = velocity?.state === 'ok' && velocity.lossPct >= 20;
 
@@ -426,7 +430,7 @@ export function synthesizeVerdict({ adh, region, staples, acwr, velocity, he = f
 
   const fatigueBits = () => {
     const bits = [];
-    const dropTitle = anyDropping ? staples.find((s) => !s.ballistic && s.isMain && s.trend?.dir === 'down')?.title : null;
+    const dropTitle = anyDropping ? staples.find(isRegressing)?.title : null;
     if (lowerGrind) bits.push(he ? `מפספס ${region.lower.pct}% מהטופ סטים בפלג גוף תחתון` : `missing ${region.lower.pct}% of lower-body top sets`);
     if (anyDropping) bits.push(he ? `ה־e1RM ב־${dropTitle} יורד` : `${dropTitle} e1RM slipping`);
     if (velHigh) bits.push(he ? `מהירות המוט ירדה ב־${velocity.lossPct}% בסט המצולם האחרון` : `bar speed down ${velocity.lossPct}% on the last filmed set`);
