@@ -79,7 +79,7 @@ const STRINGS = {
   'feat.video.title':    { en: 'Pose + auto rep counter', he: 'זיהוי תנוחה + ספירת חזרות' },
   'feat.video.body': {
     en: 'MediaPipe pose landmarks render live. Reps count from joint-angle troughs — squat / hinge / press / pull are auto-routed to the right channel. Compare two clips side-by-side.',
-    he: 'MediaPipe מזהה נקודות תנוחה בזמן אמת. כל חזרה נספרת לפי נקודת השפל בזווית המפרק — סקוואט / הינג׳ / פרס / פול, המערכת בוחרת לבד את הערוץ הנכון. אפשר להשוות שני סרטונים אחד ליד השני.',
+    he: 'MediaPipe מזהה נקודות תנוחה בזמן אמת. כל חזרה נספרת לפי נקודת השפל בזווית המפרק — סקוואט / הינג׳ / פרס / פול, המערכת בוחרת לבד איזה מפרק למדוד. אפשר להשוות שני סרטונים אחד ליד השני.',
   },
   'feat.prog.tag':       { en: 'PROGRAMMING',          he: 'תכנון אימונים' },
   'feat.prog.title':     { en: 'Block-based plan authoring', he: 'בניית תוכניות בבלוקים' },

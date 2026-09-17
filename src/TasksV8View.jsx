@@ -1368,7 +1368,7 @@ export function CommentsThread({ noteId, viewer }) {
             resize: 'vertical', minHeight: 32, height: 32, lineHeight: 1.4, boxSizing: 'border-box',
           }} />
         {mention && mentionMatches.length > 0 && (
-          <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 2, zIndex: 40, minWidth: 170, background: 'var(--c-sf)', border: '1px solid var(--c-cardBd)', boxShadow: '0 6px 20px rgba(0,0,0,0.45)' }}>
+          <div style={{ position: 'absolute', top: '100%', insetInlineStart: 0, marginTop: 2, zIndex: 40, minWidth: 170, background: 'var(--c-sf)', border: '1px solid var(--c-cardBd)', boxShadow: '0 6px 20px rgba(0,0,0,0.45)' }}>
             {mentionMatches.map((p, i) => (
               <button key={p.key} type="button"
                 onMouseDown={(e) => { e.preventDefault(); applyMention(p); }}

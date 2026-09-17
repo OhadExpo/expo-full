@@ -785,7 +785,7 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
                 // Name order shows its own alphabet: א→ת in Hebrew, A→Z in English
                 // (English used to show Hebrew letters).
                 const heL = readLang() === 'he';
-                const dirLbl = o.id === 'name' ? (heL ? (desc ? 'ת→א' : 'א→ת') : (desc ? 'Z→A' : 'A→Z'))
+                const dirLbl = o.id === 'name' ? (heL ? (desc ? 'ת←א' : 'א←ת') : (desc ? 'Z→A' : 'A→Z'))
                   : o.id === 'status' ? (desc ? `↑ ${tt('Inactive')}` : `↓ ${tt('Active')}`)
                   : o.id === 'lastTrained' ? (desc ? `↓ ${tt('Newest')}` : `↑ ${tt('Oldest')}`)
                   : (desc ? `↑ ${tt('Overdue')}` : `↓ ${tt('Paid')}`);

@@ -2956,7 +2956,7 @@ function DemoExercises() {
           padding: 40, textAlign: 'center',
         }}>
           <div style={{ fontFamily: FN, fontSize: 11, color: C.td, letterSpacing: 2, fontWeight: 700, marginBottom: 8 }}>{T('NO MATCHES')}</div>
-          <div style={{ fontFamily: FB, fontSize: 13, color: C.tm }}>{T('Nothing matches')}{q ? <>{readLang() === 'he' ? ' ל־' : ' '}"<span style={{ color: C.tx, fontWeight: 700 }}>{search}</span>"</> : (readLang() === 'he' ? ' לסינון הזה' : ' this filter')}{readLang() === 'he' ? '. נקה את החיפוש או תבחר קטגוריה אחרת.' : '. Clear search or pick another category.'}
+          <div style={{ fontFamily: FB, fontSize: 13, color: C.tm }}>{T('Nothing matches')}{q ? <>{readLang() === 'he' ? ' ל־' : ' '}"<span style={{ color: C.tx, fontWeight: 700 }}>{search}</span>"</> : (readLang() === 'he' ? ' לסינון הזה' : ' this filter')}{readLang() === 'he' ? '. נקה את החיפוש או בחר קטגוריה אחרת.' : '. Clear search or pick another category.'}
           </div>
         </div>
       ) : view === 'grid' ? (
@@ -3480,7 +3480,7 @@ function DemoWorkouts() {
 // src/WorkoutsView.jsx. The flagship for the EXPO Performance Center gym: live
 // 1-on-1 and group floor logging. Static mock; no writes. ──────────────────
 const DEMO_SESSION_DAY = [
-  { id: 'sx1', title: 'Back Squat', prescribed: '4 × 5', tempo: '30X1', cue: 'ברכיים מעל האצבעות · טווח תנועה מלא בירידה · נשיפה בעלייה', sets: [{ kg: '100', reps: '5', rpe: '8', done: true }, { kg: '102.5', reps: '5', rpe: '8', done: true }, { kg: '102.5', reps: '5', rpe: '9', done: false }, { kg: '', reps: '', rpe: '', done: false }] },
+  { id: 'sx1', title: 'Back Squat', prescribed: '4 × 5', tempo: '30X1', cue: 'דחוף ברכיים קדימה · טווח תנועה מלא בירידה · נשיפה בעלייה', sets: [{ kg: '100', reps: '5', rpe: '8', done: true }, { kg: '102.5', reps: '5', rpe: '8', done: true }, { kg: '102.5', reps: '5', rpe: '9', done: false }, { kg: '', reps: '', rpe: '', done: false }] },
   { id: 'sx2', title: 'Bench Press', prescribed: '4 × 6', tempo: '', cue: 'Retract the scapulae, bar to mid-chest, drive through the floor.', sets: [{ kg: '70', reps: '6', rpe: '7', done: true }, { kg: '72.5', reps: '6', rpe: '8', done: false }, { kg: '', reps: '', rpe: '', done: false }, { kg: '', reps: '', rpe: '', done: false }] },
   { id: 'sx3', title: 'Weighted Pull-Up', prescribed: '3 × 8', tempo: '', cue: 'Full hang, chin over the bar, controlled negative.', sets: [{ kg: 'BW+10', reps: '8', rpe: '7', done: false }, { kg: 'BW+10', reps: '8', rpe: '8', done: false }, { kg: 'BW+10', reps: '7', rpe: '9', done: false }] },
 ];

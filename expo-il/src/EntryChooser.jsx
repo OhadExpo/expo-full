@@ -154,7 +154,7 @@ function LangSwitch() {
               fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
               cursor: 'pointer', textTransform: 'uppercase',
               transition: 'all 140ms ease',
-            }}>{code === 'he' ? 'עבר' : 'EN'}</button>
+            }}>{code === 'he' ? 'עב' : 'EN'}</button>
         );
       })}
     </div>

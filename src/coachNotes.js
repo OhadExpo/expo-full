@@ -23,7 +23,7 @@ const newId = () => 'note_' + Math.random().toString(36).slice(2, 12) + Date.now
 const recentFailures = new Map();
 // The coach reads the toast in the app's language; the action names are the
 // five this file reports.
-const HE_ACTION = { 'Loading tasks': 'טעינת המשימות', 'Saving task': 'שמירת המשימה', 'Updating task': 'עדכון המשימה', 'Deleting task': 'מחיקת המשימה', 'Linking task to plan': 'קישור המשימה לתוכנית' };
+const HE_ACTION = { 'Loading tasks': 'טעינת המשימות', 'Saving task': 'שמירת המשימה', 'Updating task': 'עריכת המשימה', 'Deleting task': 'מחיקת המשימה', 'Linking task to plan': 'הצמדת המשימה לתוכנית' };
 function reportFailure(action, error) {
   const msg = error?.message || String(error || 'unknown error');
   console.warn(action, 'failed:', msg);

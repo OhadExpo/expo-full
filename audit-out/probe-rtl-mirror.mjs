@@ -34,7 +34,8 @@ const collect = () => pg.evaluate(() => {
     const rtl = getComputedStyle(document.documentElement).direction === 'rtl' || document.querySelector('.app-root')?.getAttribute('dir') === 'rtl';
     const start = rtl ? (pr.right - r.right) : (r.left - pr.left);
     const end = rtl ? (r.left - pr.left) : (pr.right - r.right);
-    out[path(el)] = { start: +start.toFixed(1), end: +end.toFixed(1), y: +r.top.toFixed(1), h: +r.height.toFixed(1), w: +r.width.toFixed(1), tag: el.tagName.toLowerCase(), text: (el.innerText || '').trim().replace(/\s+/g, ' ').slice(0, 30) };
+    const prev = el.previousElementSibling;
+    out[path(el)] = { prev: prev ? path(prev) : null, start: +start.toFixed(1), end: +end.toFixed(1), y: +r.top.toFixed(1), h: +r.height.toFixed(1), w: +r.width.toFixed(1), tag: el.tagName.toLowerCase(), text: (el.innerText || '').trim().replace(/\s+/g, ' ').slice(0, 30) };
   }
   return out;
 });
@@ -55,6 +56,14 @@ for (const route of ROUTES) {
     // Skip text-bearing leaves whose width differs a lot: their START offset is
     // still meaningful, but their END offset is content-driven.
     const dStart = Math.abs(en.start - he.start), dY = Math.abs(en.y - he.y), dH = Math.abs(en.h - he.h);
+    // K13: a start offset that moved only because a SIBLING's label changed width is not a
+    // physical-CSS fault. Compare the GAP to the previous sibling instead; and an element
+    // centred in both languages (start == end) is centred, not misaligned.
+    if (dStart > TOL && dH <= TOL) {
+      const pe = en.prev && snaps.en[en.prev], ph = he.prev && snaps.he[he.prev];
+      if (pe && ph) { const gapEn = en.start - (pe.start + pe.w), gapHe = he.start - (ph.start + ph.w); if (Math.abs(gapEn - gapHe) <= TOL) continue; }
+      if (Math.abs(en.start - en.end) <= TOL && Math.abs(he.start - he.end) <= TOL) continue;
+    }
     if (dStart > TOL || dH > TOL) rows.push({ k, dStart: +dStart.toFixed(1), dY: +dY.toFixed(1), dH: +dH.toFixed(1), en: `${en.start}/${en.y}/${en.h}`, he: `${he.start}/${he.y}/${he.h}`, text: en.text || he.text, tag: en.tag });
   }
   rows.sort((a, c) => (c.dStart + c.dH) - (a.dStart + a.dH));

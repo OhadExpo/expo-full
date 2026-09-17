@@ -3737,7 +3737,7 @@ function WeekPlanner({ fixtures = [], today, planOf, onSavePlan, onUpsert, onRem
   const TYPES = [['lift', 'Weights'], ['practice', 'Practice'], ['game', 'Game']];
 
   return (
-    <CollapsibleSection title={tr("Week Planner")} count={he ? `${weekCount} אימונים · ${liftCount} אימוני כוח` : `${weekCount} sessions · ${liftCount} S&C`} storageKey="bhbc-week-planner" defaultOpen leftStripe={ORANGE}>
+    <CollapsibleSection title={tr("Week Planner")} count={he ? `${weekCount === 1 ? 'אימון אחד' : `${weekCount} אימונים`} · ${liftCount === 1 ? 'אימון כוח אחד' : `${liftCount} אימוני כוח`}` : `${weekCount} sessions · ${liftCount} S&C`} storageKey="bhbc-week-planner" defaultOpen leftStripe={ORANGE}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
         <button onClick={() => shiftWeek(-1)} className="bhbc-ghost-btn" style={{ ...inp, cursor: 'pointer', fontWeight: 700 }}>{he ? '›' : '‹'}</button>
         <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tx }}>

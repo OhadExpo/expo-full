@@ -296,7 +296,7 @@ function BarSpeedLiftCard({ lift }) {
       </div>
       {prof.state === 'ok' && prof.confidence !== 'low' && (
         <div title={he
-          ? `פרופיל עומס־מהירות: קו ישר של מהירות המוט מהמצלמה מול המשקל, על ${prof.loads} משקלים, שממשיך עד סף המהירות המינימלית של התרגיל (${prof.mvt} m/s). R²=${prof.r2}. המהירות לא מכוילת (זיהוי תנוחה דו־ממדי), אז תסתכל על המגמה לאורך התאריכים — לא על הקילו המדויק — ותאמת עם סט עליון אמיתי לפני שאתה נותן משקלים לפיה. זה לא מקסימום שנבדק.`
+          ? `פרופיל עומס־מהירות: קו ישר של מהירות המוט מהמצלמה מול המשקל, על ${prof.loads} משקלים, שממשיך עד סף המהירות המינימלית של התרגיל (${prof.mvt} m/s). R²=${prof.r2}. המהירות לא מכוילת (זיהוי תנוחה דו־ממדי), אז תסתכל על המגמה לאורך התאריכים — לא על הקילו המדויק — ותאמת עם טופ סט אמיתי לפני שאתה נותן משקלים לפיה. זה לא מקסימום שנבדק.`
           : `Load-velocity profile: linear fit of phone-camera bar speed vs load across ${prof.loads} loads, extrapolated to this lift's minimal-velocity threshold (${prof.mvt} m/s). R²=${prof.r2}. The speed is uncalibrated 2D-pose m/s, so read the TREND across dates — not the exact kg — and confirm with a real top set before you prescribe loads off it. Not a tested max.`}
           style={{ marginTop: 6, fontSize: 10.5, color: C.ac, letterSpacing: '0.02em' }}>
           {he ? `1RM משוער כ־${prof.oneRM} קילו ` : `Est. 1RM ~${prof.oneRM}kg `}<span style={{ color: C.td }}>{he ? `· ${prof.loads} משקלים · ודאות ${CONF_HE[prof.confidence] || prof.confidence} · בלי מבחן מקסימום` : `· ${prof.loads} loads · ${prof.confidence} confidence · no max test`}</span>
@@ -549,7 +549,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
           if (ballisticUp.length) pos.push({ t: `${L(he, 'Power progressing', 'העוצמה מתקדמת')} — ${nm(ballisticUp)}`, d: L(he, 'load is up; film a set to confirm it’s bar speed, not just heavier kg.', 'המשקל עלה. צלם סט כדי לוודא שזו מהירות מוט ולא רק יותר קילו.') });
           const neg = [];
           if (regressing.length) neg.push({ t: `${L(he, 'Regressing', 'יורד')} — ${nm(regressing)}`, d: thin
-            ? (he ? `ה־e1RM יורד, אבל ${(a.adh?.loggedSessions || 0) === 1 ? 'נרשם רק אימון אחד' : `נרשמו רק ${a.adh?.loggedSessions || 0} אימונים`} — סימן לעקוב אחריו, עוד לא סיבה לשבוע הורדה.` : `e1RM sliding, but only ${a.adh?.loggedSessions || 0} session${(a.adh?.loggedSessions || 0) === 1 ? '' : 's'} logged — a flag to watch, not a deload trigger yet.`)
+            ? (he ? `ה־e1RM יורד, אבל ${(a.adh?.loggedSessions || 0) === 1 ? 'נרשם רק אימון אחד' : `נרשמו רק ${a.adh?.loggedSessions || 0} אימונים`} — סימן לעקוב אחריו, עוד לא סיבה לשבוע דילאוד.` : `e1RM sliding, but only ${a.adh?.loggedSessions || 0} session${(a.adh?.loggedSessions || 0) === 1 ? '' : 's'} logged — a flag to watch, not a deload trigger yet.`)
             : L(he, 'e1RM down across the block. Back off ~5–10% intensity, hold volume, check recovery.', 'ה־e1RM ירד לאורך הבלוק. תוריד 5–10% במשקל, תשאיר את כמות הסטים ותבדוק שינה והתאוששות.') });
           if (stuck.length) neg.push({ t: `${L(he, 'Not progressing', 'לא מתקדם')} — ${nm(stuck)}`, d: L(he, 'flat 3+ sessions. Change the stimulus (variation/tempo) or a light week — not more kg.', 'תקוע כבר 3 אימונים. שנה גירוי (וריאציה או טמפו) או תן שבוע קל — לא עוד קילו.') });
           if (lowerGrind && !negNamesLower) neg.push({ t: L(he, 'Lower body regressing', 'פלג גוף תחתון יורד'), d: he ? `${a.region.lower.pct}% מהסטים לא מגיעים ליעד — המשקל כבד מדי כרגע, וזה מצטבר.` : `${a.region.lower.pct}% of sets short of target — the load’s too heavy right now and it compounds.` });
@@ -762,7 +762,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
           </div>
           {grouped.other.length > 0 && (
             <div style={{ fontSize: 10.5, color: C.td, marginTop: 9, lineHeight: 1.5 }}>
-              <div style={{ color: C.tm, fontWeight: 600, marginBottom: 3 }}>{`${L(he, 'Other', 'אחר')} (${grouped.other.length}) `}<span style={{ opacity: 0.7, fontWeight: 400 }}>{L(he, '— core / carry / full-body (outside the six patterns)', '— בטן / נשיאה / גוף מלא (מחוץ לשישה הדפוסים)')}</span></div>
+              <div style={{ color: C.tm, fontWeight: 600, marginBottom: 3 }}>{`${L(he, 'Other', 'אחר')} (${grouped.other.length}) `}<span style={{ opacity: 0.7, fontWeight: 400 }}>{L(he, '— core / carry / full-body (outside the six patterns)', '— בטן / נשיאה / גוף מלא (מחוץ לששת הדפוסים)')}</span></div>
               {grouped.other.map((l) => (
                 <div key={l.title} dir="auto" title={l.title} style={{ overflowWrap: 'break-word', lineHeight: 1.6 }}>– {l.title}</div>
               ))}
@@ -784,7 +784,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
       const rows = cont.lifts.filter((l) => l.count >= 2).slice(0, 12);
       if (!rows.length) return null;
       return (
-        <Section title={L(he, 'Exercise continuity', 'רצף תרגילים')} summary={he ? `${cnt(cont.totalBlocks, 'בלוק אחד', 'בלוקים')} · ${cont.staticNow.length} נשארו 4 בלוקים ומעלה` : `${cont.totalBlocks} blocks · ${cont.staticNow.length} kept ≥4`}>
+        <Section title={L(he, 'Exercise continuity', 'רצף תרגילים')} summary={he ? `${cnt(cont.totalBlocks, 'בלוק אחד', 'בלוקים')} · ${cnt(cont.staticNow.length, 'תרגיל אחד נשאר', 'תרגילים נשארו')} 4 בלוקים ומעלה` : `${cont.totalBlocks} blocks · ${cont.staticNow.length} kept ≥4`}>
           <div style={{ overflowX: 'auto' }}>
             <table className="lin-lifts" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead><tr>
@@ -959,7 +959,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
                 {/* extra bottom margin so the peak bar's value label (bottom:100% of a
                     full-height bar) has headroom and never crowds this header (Ohad #224). */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 20, gap: 8, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 10, color: C.tm, letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 700 }}>{he ? `טונאז׳ לאימון · ${a.acwr.series.length} אחרונים` : `Session tonnage · last ${a.acwr.series.length}`}</span>
+                  <span style={{ fontSize: 10, color: C.tm, letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 700 }}>{he ? `טונאז׳ לאימון · ${cnt(a.acwr.series.length, 'אימון אחרון', 'אימונים אחרונים')}` : `Session tonnage · last ${a.acwr.series.length}`}</span>
                   <span style={{ fontSize: 10, color: C.tm, fontVariantNumeric: 'tabular-nums' }}>{L(he, 'peak ', 'שיא ')}<b style={{ color: BRAND }}>{mx.toLocaleString()}</b>{L(he, ' · latest ', ' · אחרון ')}<b style={{ color: C.tx }}>{last.toLocaleString()}</b>{L(he, ' kg·reps', ' ק״ג·חזרות')}</span>
                 </div>
                 <div dir="ltr" style={{ display: 'flex', gap: 8 }}>
@@ -991,7 +991,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
             <>
               <Kpi v={a.acwr.acwr} l={L(he, 'Load ratio (ACWR)', 'יחס עומס (ACWR)')} s={L(he, 'completed tonnage · watch >1.3', 'טונאז׳ שבוצע · זהירות מעל 1.3')} color={a.acwr.band === 'high' ? C.rd : a.acwr.band === 'low' ? C.or : C.gn} />
               <div style={{ marginTop: 8 }}>
-                {a.acwr.band === 'high' && <Read tone="warn" why={L(he, 'A common heuristic, not a law (Zatsiorsky is skeptical of fixed cutoffs) — but don\'t add more on top of a spike.', 'כלל אצבע נפוץ, לא חוק (זציורסקי סקפטי לגבי ספים קבועים) — אבל אל תעמיס עוד על קפיצה בעומס.')}><b>{he ? `העומס קפץ השבוע (ACWR ${a.acwr.acwr}).` : `Load spiked this week (ACWR ${a.acwr.acwr}).`}</b></Read>}
+                {a.acwr.band === 'high' && <Read tone="warn" why={L(he, 'A common heuristic, not a law (Zatsiorsky is skeptical of fixed cutoffs) — but don\'t add more on top of a spike.', 'כלל אצבע נפוץ, לא חוק (זציורסקי סקפטי לגבי ספים קבועים) — אבל אחרי קפיצה בעומס, אל תוסיף עוד.')}><b>{he ? `העומס קפץ השבוע (ACWR ${a.acwr.acwr}).` : `Load spiked this week (ACWR ${a.acwr.acwr}).`}</b></Read>}
                 {a.acwr.band === 'low' && <Read tone="warn" why={L(he, 'Troughs often precede a risky rebound spike — a quiet week to watch.', 'ירידה חדה מגיעה הרבה פעמים לפני קפיצה מסוכנת כשהעומס חוזר — שבוע שקט שכדאי לעקוב אחריו.')}><b>{he ? `העומס ירד בחדות (ACWR ${a.acwr.acwr}).` : `Load dropped sharply (ACWR ${a.acwr.acwr}).`}</b></Read>}
                 {a.acwr.band === 'ok' && <Read tone="ok"><b>{he ? `העומס בטווח היציב (${a.acwr.acwr}).` : `Load's in the steady band (${a.acwr.acwr}).`}</b>{L(he, ' No spike or crash.', ' בלי קפיצות ובלי נפילות.')}</Read>}
               </div>
@@ -1092,7 +1092,7 @@ export default function TrainingLineageV2({ traineeId, traineeName, exercises, p
                   </div>
                 );
               })}
-              <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>{L(he, 'Per-joint L/R travel across filmed sets — a bar climbing = one limb pulling away. 2D pose is approximate; a widening flag is worth screening in person, not a diagnosis.', 'תנועת ימין/שמאל לכל מפרק לאורך סטים מצולמים — עמודה שעולה = פער בין הצדדים שהולך וגדל. זיהוי תנוחה דו־ממדי הוא רק הערכה; פער שגדל — תבדוק בעין באימון — זו לא קביעה רפואית.')}</div>
+              <div style={{ fontSize: 10, color: C.td, marginTop: 9, lineHeight: 1.5 }}>{L(he, 'Per-joint L/R travel across filmed sets — a bar climbing = one limb pulling away. 2D pose is approximate; a widening flag is worth screening in person, not a diagnosis.', 'טווח התנועה של ימין מול שמאל בכל מפרק, לאורך הסטים שצולמו — עמודה שעולה = צד אחד מתרחק מהשני. זיהוי תנוחה דו־ממדי הוא רק הערכה. פער שהולך וגדל שווה לבדוק פנים מול פנים, והוא לא קביעה רפואית.')}</div>
             </>
           ) : (
             <div style={{ border: `1px dashed ${C.bd}`, background: C.sf2, padding: 14, color: C.tm, fontSize: 12.5, lineHeight: 1.5 }}>

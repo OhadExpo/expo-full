@@ -175,7 +175,7 @@ function LangSwitch({ heb }) {
               fontWeight: 700, letterSpacing: '0.12em',
               cursor: 'pointer', textTransform: 'uppercase',
               display: 'inline-flex', alignItems: 'center',
-            }}>{code === 'he' ? 'עבר' : 'EN'}</button>
+            }}>{code === 'he' ? 'עב' : 'EN'}</button>
         );
       })}
     </div>
@@ -226,7 +226,7 @@ function Hero({ heb, onBookClick }) {
               border: `1px solid ${C.bd2}`, borderRadius: 0, textDecoration: 'none',
               fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.2em',
               textTransform: 'uppercase',
-            }}>{heb ? 'שאלה לפני' : 'ASK FIRST'}</a>
+            }}>{heb ? 'יש לי שאלה' : 'ASK FIRST'}</a>
         </div>
       </div>
     </section>
@@ -284,7 +284,7 @@ function WhoItsFor({ heb }) {
     ? ['ספורטאים חצי-מקצועיים ומקצועיים', 'מתאמנים רציניים שרוצים תוכנית — לא שיעור', 'מי שחוזר מפציעה ורוצה לחזור נכון', 'מי שמחפש כוח, יציבות, וניידות שיחזיקו לעשור']
     : ['Semi-pro and competitive athletes', 'Serious trainees who want a program — not a class', 'Coming back from an injury and need a clean return', 'Building strength, stability, and mobility that last a decade'];
   const no = heb
-    ? ['חיפוש Open Gym לאימון חופשי', 'אימון קבוצתי בסטייל "סטודיו"', 'הבטחות ל"תוצאות תוך שבועיים" בלי תוכנית']
+    ? ['מי שמחפש Open Gym לאימון חופשי', 'מי שמחפש אימון קבוצתי בסטייל "סטודיו"', 'מי שמחפש הבטחות ל"תוצאות תוך שבועיים" בלי תוכנית']
     : ['Open-gym walk-in training', 'Studio-style group fitness', '"Quick fix" promises with no programming'];
 
   return (
@@ -303,7 +303,7 @@ function WhoItsFor({ heb }) {
           <div style={{
             fontFamily: FN, fontSize: 11, color: C.ac, letterSpacing: '0.22em',
             fontWeight: 800, marginBottom: 16,
-          }}>{heb ? 'מתאים אם' : 'YES — IF'}</div>
+          }}>{heb ? 'למי זה מתאים' : 'YES — IF'}</div>
           <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10 }}>
             {yes.map((t, i) => (
               <li key={i} style={{ display: 'flex', gap: 10, fontSize: 14, color: C.tx, lineHeight: 1.55 }}>
@@ -317,7 +317,7 @@ function WhoItsFor({ heb }) {
           <div style={{
             fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: '0.22em',
             fontWeight: 800, marginBottom: 16,
-          }}>{heb ? 'לא מתאים אם' : 'NOT — IF'}</div>
+          }}>{heb ? 'למי זה לא מתאים' : 'NOT — IF'}</div>
           <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10 }}>
             {no.map((t, i) => (
               <li key={i} style={{ display: 'flex', gap: 10, fontSize: 14, color: C.tm, lineHeight: 1.55 }}>
@@ -830,7 +830,7 @@ function Testimonials({ heb }) {
     ? [
         { q: 'תוך 8 שבועות עברתי מ-70 ק"ג סקוואט ל-110. תוכנית מסודרת, מעקב צמוד.', n: 'אמיר ש.' },
         { q: 'הגוף שלי לא היה ככה גם בצבא. אוהד יודע למה הוא מכוון.', n: 'דניאל ל.' },
-        { q: 'חזרתי מפציעה בכתף שגררה אותי שנה. אוהד בנה את החזרה בזהירות, והעיסוי החודשי של יובל החזיק את הכתף לאורך הדרך.', n: 'נטע ר.' },
+        { q: 'חזרתי מפציעה בכתף שנגררה שנה. אוהד בנה את החזרה בזהירות, והעיסוי החודשי של יובל החזיק את הכתף לאורך הדרך.', n: 'נטע ר.' },
       ]
     : [
         { q: 'Went from a 70kg squat to 110kg in 8 weeks. Structured programming, tight coaching.', n: 'Amir S.' },
@@ -872,7 +872,7 @@ function FAQ({ heb }) {
         { q: 'מי נותן את העיסוי?', a: 'יובל, המטפל בעיסוי ספורט ורפואי של המרכז, מוסמך מכון וינגייט. אוהד מאמן, יובל מטפל — שניהם מלווים אותך לאורך התהליך.' },
         { q: 'העיסוי באמת כלול, או שזו תוספת בתשלום?', a: 'כלול. כל מנוי כולל עיסוי ספורט חודשי של 45–60 דקות עם מטפל ייעודי — לא בונוס שמופיע פעם בכמה חודשים. אפשר להוסיף עיסוי קצר לפני או אחרי אימון לפי הצורך.' },
         { q: 'כמה עולה חודש?', a: 'תלוי בקצב (פעם, פעמיים, או שלוש בשבוע). שולחים מחירון מסודר אחרי הפנייה הראשונה.' },
-        { q: 'איך מבטלים אימון?', a: 'עד 4 שעות לפני. אחרי זה האימון נכנס לחשבון. הכל בוואטסאפ.' },
+        { q: 'איך מבטלים אימון?', a: 'עד 4 שעות לפני. אחרי זה האימון נספר. הכל בוואטסאפ.' },
       ]
     : [
         { q: 'I am totally new to strength training. Is this for me?', a: 'Yes. Most of our clients start with no prior background. The first assessment session figures out where to start.' },

@@ -138,7 +138,7 @@ export const PROGRAMS = [
     highlightsHe: [
       'עליית נפח הדרגתית מ-60% ל-90% לאורך הבלוק',
       'פיצול משולב — דחיפה/משיכה/רגליים + עליון/תחתון',
-      'פינישרים של BFR אופציונליות',
+      'פינישרים של BFR אופציונליים',
     ],
     price: 390,
     currency: 'NIS',
@@ -393,7 +393,7 @@ export const PROGRAMS = [
     summary:
       'Concurrent strength and conditioning template. Lift-day pairings keep aerobic and alactic work from cannibalising the strength block.',
     summaryHe:
-      'תבנית כוח ומאמץ במקביל. שילוב חכם של ימי הרמה כדי שהעבודה האירובית והאלאקטית לא תגרע מבלוק הכוח.',
+      'תבנית כוח וכושר במקביל. שילוב חכם של ימי הרמה כדי שהעבודה האירובית והאלאקטית לא תגרע מבלוק הכוח.',
     highlights: [
       'Two strength + two conditioning days',
       'Sport-day RPE caps for in-season',

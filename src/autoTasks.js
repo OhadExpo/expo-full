@@ -739,7 +739,7 @@ export function whatsappMessageForTask(note, trainee) {
   switch (note?.auto_kind) {
     case 'week_missed': {
       const m = body.match(/W(\d+)/);
-      const wk = m ? `שבוע ${m[1]} ` : '';
+      const wk = m ? `שבוע ${m[1]} ` : 'שבוע ';
       return `היי ${first}. ראיתי שדילגנו על ${wk}בבלוק הנוכחי. הכל בסדר? בוא נתאם משהו לפני שזה מצטבר.`;
     }
     case 'at_risk_silent': {

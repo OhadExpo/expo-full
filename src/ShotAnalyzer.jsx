@@ -1052,7 +1052,7 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
                         </div>
                         {culprit && (
                           <div style={{ marginTop: 2, color: '#E0A73A' }}>
-                            {T.worstRep(culprit.index, culprit.value, culprit.key === 'ballSpeedMs' ? T.unitSpeedProse : '°')}
+                            {T.worstRep(culprit.index, culprit.value, culprit.key === 'ballSpeedMs' ? T.unitSpeedProse : (T === SHOT_I18N.he ? ' מעלות' : '°'))}
                           </div>
                         )}
                       </div>
