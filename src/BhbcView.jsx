@@ -654,7 +654,7 @@ function attendance28(rec, days) {
       });
       return next;
     });
-    toast(`Logged for ${n} athletes`); notify();
+    toast(n === 1 ? zoneT('Logged for 1 athlete') : zoneT('Logged for {n} athletes').replace('{n}', n)); notify();
   }, [setBhbcLoads, roster, notify]);
 
   // The sheet-like per-practice save: availability + load + bodyweight + note for

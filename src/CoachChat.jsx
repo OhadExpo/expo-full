@@ -200,7 +200,7 @@ export default function CoachChat() {
         }
       }
     } catch {
-      setErr('No connection. Try again, or email Ohad directly.');
+      setErr(he ? 'אין חיבור. אפשר לנסות שוב, או לשלוח מייל ישירות לאוהד.' : 'No connection. Try again, or email Ohad directly.');
     } finally {
       setSending(false);
     }

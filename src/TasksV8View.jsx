@@ -1926,7 +1926,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
             if (fail === 0) {
               toast(readLang() === 'he' ? `${done === 1 ? 'משימה קיימת אחת סונכרנה' : `${done} משימות קיימות סונכרנו`} ליומן ✓` : `Synced ${done} existing task${done === 1 ? '' : 's'} to Calendar ✓`, 'success', { ttl: 4000 });
             } else {
-              toast(`Synced ${done}, ${fail} failed — reopen the row to retry`, 'warning', { ttl: 5000 });
+              toast(readLang() === 'he' ? `${done === 1 ? 'אחת סונכרנה' : `${done} סונכרנו`} ו-${fail === 1 ? 'אחת נכשלה' : `${fail} נכשלו`} — פתח את השורה מחדש כדי לנסות שוב` : `Synced ${done}, ${fail} failed — reopen the row to retry`, 'warning', { ttl: 5000 });
             }
           }
         } catch (err) {

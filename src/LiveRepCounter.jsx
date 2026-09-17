@@ -17,7 +17,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
-import { useT } from './i18n';
+import { useT, readLang } from './i18n';
 import { ANGLE_DEFS, angleAt, detectChannels, isReal } from './repCounter';
 
 const VOICE_START_PHRASES = ['start', 'go', 'count', 'begin', 'התחל', 'התחילי', 'סופר', 'תספור'];
@@ -113,7 +113,7 @@ export default function LiveRepCounter({ exerciseTitle = 'Squat', onClose, targe
   const startVoice = useCallback(() => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) {
-      setError('Voice trigger needs the Web Speech API — open in Chrome or Edge.');
+      setError(readLang() === 'he' ? 'הפעלה בקול צריכה את Web Speech API — פתח ב-Chrome או ב-Edge.' : 'Voice trigger needs the Web Speech API — open in Chrome or Edge.');
       return;
     }
     const rec = new SR();

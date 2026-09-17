@@ -1080,6 +1080,18 @@ export function confirmToast(message, { okLabel = 'OK', cancelLabel = 'Cancel' }
   });
 }
 
+// 17.9: toasts were passed as English strings from ~90 call sites and rendered raw on the
+// Hebrew screen. The host looks each one up in the dictionary; a message that is a known
+// head plus a server error ('Assign failed: <msg>') translates the head. Unknown text is
+// left as it is. readLang() defaults to English, so the athlete portal is unchanged.
+function toastText(m) {
+  if (typeof m !== 'string' || readLang() !== 'he') return m;
+  const full = tr('he', m);
+  if (full !== m) return full;
+  const i = m.indexOf(': ');
+  if (i > 0) { const head = m.slice(0, i + 1); const th = tr('he', head); if (th !== head) return `${th} ${m.slice(i + 2)}`; }
+  return m;
+}
 export function ToastHost() {
   const [items, setItems] = React.useState([]);
   // Track whether THIS host is currently showing a confirm, so its unmount
@@ -1122,14 +1134,14 @@ export function ToastHost() {
           onClick={e => { if (e.target === e.currentTarget && confirm.onAction) confirm.onAction(false); }}
           style={{ position: 'fixed', inset: 0, zIndex: 1310, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
           <div style={{ background: C.sf, color: p.fg, border: `1px solid ${p.bd}`, borderRadius: 0, padding: '18px 20px', fontFamily: FB, fontSize: 13, fontWeight: 500, boxShadow: `0 16px 48px ${C.shadow}`, minWidth: 280, maxWidth: 460, display: 'flex', flexDirection: 'column', gap: 14, textAlign: 'center' }}>
-            <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.45 }}>{confirm.message}</div>
+            <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.45 }}>{toastText(confirm.message)}</div>
             {confirm.actions && (
               <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>
                 {/* Focus the FIRST action (Cancel) — confirmToast always builds
                     [cancel, ok], so an accidental Enter cancels instead of
                     confirming a possibly-destructive action (matches ConfirmDialog). */}
                 {confirm.actions.map((a, i) => (
-                  <Btn key={i} variant={a.variant || 'ghost'} autoFocus={i === 0} onClick={() => { if (confirm.onAction) confirm.onAction(a.value); }}>{a.label}</Btn>
+                  <Btn key={i} variant={a.variant || 'ghost'} autoFocus={i === 0} onClick={() => { if (confirm.onAction) confirm.onAction(a.value); }}>{toastText(a.label)}</Btn>
                 ))}
               </div>
             )}
@@ -1142,11 +1154,11 @@ export function ToastHost() {
           return (
             <div key={it.id} className="motion-rise"
               style={{ pointerEvents: 'auto', background: C.sf, color: tp.fg, border: `1px solid ${tp.bd}`, borderRadius: 0, padding: '12px 16px', fontFamily: FB, fontSize: 13, fontWeight: 500, boxShadow: `0 8px 24px ${C.shadow}`, minWidth: 240, maxWidth: 480, display: 'flex', flexDirection: 'column', gap: 10, textAlign: 'center' }}>
-              <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.45 }}>{it.message}</div>
+              <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.45 }}>{toastText(it.message)}</div>
               {it.actions && (
                 <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>
                   {it.actions.map((a, i) => (
-                    <Btn key={i} variant={a.variant || 'ghost'} onClick={() => { if (it.onAction) it.onAction(a.value); dismissToast(it.id); }}>{a.label}</Btn>
+                    <Btn key={i} variant={a.variant || 'ghost'} onClick={() => { if (it.onAction) it.onAction(a.value); dismissToast(it.id); }}>{toastText(a.label)}</Btn>
                   ))}
                 </div>
               )}

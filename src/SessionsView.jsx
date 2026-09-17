@@ -838,7 +838,7 @@ function AthletePicker({ trainees, planIndex, existing = [], clientWorkouts = []
       seen.add(k); return true;
     });
     const dropped = picks.length - unique.length;
-    if (dropped) toast(`Skipped ${dropped} duplicate ${dropped === 1 ? 'athlete' : 'athletes'}.`, 'warn');
+    if (dropped) toast(readLang() === 'he' ? (dropped === 1 ? 'דולג מתאמן אחד שהופיע פעמיים.' : `דולגו ${dropped} מתאמנים שהופיעו פעמיים.`) : `Skipped ${dropped} duplicate ${dropped === 1 ? 'athlete' : 'athletes'}.`, 'warn');
     onConfirm(unique);
   };
 

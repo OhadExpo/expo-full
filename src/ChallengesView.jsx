@@ -184,7 +184,7 @@ export default function ChallengesView({ trainees, clientWorkouts, bwLog }) {
     );
     const results = await Promise.all(updates);
     const failed = results.filter(r => r?.error).length;
-    if (failed) { toast(`Snapshot partly failed — ${failed} row(s) not saved.`, 'error', { ttl: 6000 }); }
+    if (failed) { toast(readLang() === 'he' ? `תמונת המצב נשמרה חלקית — ${failed === 1 ? 'שורה אחת לא נשמרה' : `${failed} שורות לא נשמרו`}.` : `Snapshot partly failed — ${failed} row(s) not saved.`, 'error', { ttl: 6000 }); }
     else { toast('Leaderboard snapshot saved.', 'success', { ttl: 3000 }); }
     reload();
   };

@@ -131,7 +131,7 @@ async function pdfToImages(file, { maxPages = 8, scale = 2 } = {}) {
   const n = Math.min(doc.numPages, maxPages);
   // Don't let a long PDF truncate silently — the coach needs to know pages 9+
   // weren't read so they can split the file. (deep-logic audit)
-  if (doc.numPages > maxPages) toast(`PDF has ${doc.numPages} pages — only the first ${maxPages} were imported. Split it to import the rest.`, 'info', { ttl: 7000 });
+  if (doc.numPages > maxPages) toast(readLang() === 'he' ? `ב-PDF יש ${doc.numPages} עמודים — יובאו רק ${maxPages} הראשונים. פצל אותו כדי לייבא את השאר.` : `PDF has ${doc.numPages} pages — only the first ${maxPages} were imported. Split it to import the rest.`, 'info', { ttl: 7000 });
   const out = [];
   for (let i = 1; i <= n; i++) {
     const page = await doc.getPage(i);
@@ -226,7 +226,7 @@ export default function SmartImportView() {
           setTarget(top.guessedTarget);
         }
       }
-    } catch (e) { setErr('Could not read file: ' + e.message); }
+    } catch (e) { setErr((readLang() === 'he' ? 'לא הצלחתי לקרוא את הקובץ: ' : 'Could not read file: ') + e.message); }
     setParsing(false);
   };
 
@@ -278,7 +278,7 @@ export default function SmartImportView() {
       const j = await siJson(r);
       if (!r.ok || j.error) throw new Error(j.error || `HTTP ${r.status}`);
       setMapping(j);
-    } catch (e) { setErr('Analyze failed: ' + e.message); }
+    } catch (e) { setErr((readLang() === 'he' ? 'הניתוח נכשל: ' : 'Analyze failed: ') + e.message); }
     setAnalyzing(false);
   };
 
@@ -317,7 +317,7 @@ export default function SmartImportView() {
         if (Array.isArray(j.warnings)) allWarnings.push(...j.warnings);
       }
       setTransform({ items: allItems, errors: allErrors, warnings: allWarnings });
-    } catch (e) { setErr('Transform failed: ' + e.message); }
+    } catch (e) { setErr((readLang() === 'he' ? 'ההמרה נכשלה: ' : 'Transform failed: ') + e.message); }
     setTransforming(false);
   };
 
@@ -485,7 +485,7 @@ export default function SmartImportView() {
       // (data-loss race). A reload re-fetches everything fresh and closes it.
       setCommitMsg('✓ ' + summary + (readLang() === 'he' ? ' טוען מחדש…' : ' Reloading…'));
       setTimeout(() => { try { window.location.reload(); } catch { /* noop */ } }, 1500);
-    } catch (e) { setErr('Commit failed: ' + e.message); }
+    } catch (e) { setErr((readLang() === 'he' ? 'השמירה נכשלה: ' : 'Commit failed: ') + e.message); }
     setCommitting(false);
   };
 

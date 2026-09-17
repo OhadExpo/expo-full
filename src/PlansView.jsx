@@ -4215,7 +4215,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
     if (!data) { toast('Duplicate failed — could not load the program.', 'error'); return; }
     const copy = await duplicatePlan({ id: data.id, name: data.name, traineeId: data.trainee_id, phase: data.phase, notes: data.notes, active: data.active, createdAt: data.created_at, days: data.data?.days||[], warmup: data.data?.warmup||[], weeks: data.data?.weeks, kind: data.data?.kind, isTemplatePurchase: data.data?.isTemplatePurchase });
     await reloadIndex();
-    if (copy) toast(`Duplicated — "${copy.name}"`, 'success', { ttl: 3000 });
+    if (copy) toast(readLang() === 'he' ? `שוכפל — "${copy.name}"` : `Duplicated — "${copy.name}"`, 'success', { ttl: 3000 });
     else toast('Duplicate failed — the save was refused. See console.', 'error');
   };
   const handleDelete = async (planId) => { const ok = await deletePlan(planId); setConfirmDelete(null); await reloadIndex(); if (!ok) { try { toast('Could not delete the program — try again.', 'error'); } catch { /* noop */ } } };
@@ -4257,8 +4257,8 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
       // never happened.
       const copy = await duplicatePlan({ id: data.id, name: data.name, traineeId: athlete.id, phase: data.phase, notes: data.notes, active: true, createdAt: data.created_at, days: data.data?.days || [], warmup: data.data?.warmup || [], weeks: data.data?.weeks, kind: data.data?.kind, isTemplatePurchase: data.data?.isTemplatePurchase });
       await reloadIndex();
-      if (copy) { try { toast(`Program copied to ${athlete.name}`, 'success', { ttl: 3000 }); } catch { /* noop */ } }
-      else { toast(`Could not copy the program to ${athlete.name} — try again.`, 'error'); }
+      if (copy) { try { toast(readLang() === 'he' ? `התוכנית הועתקה אל ${athlete.name}` : `Program copied to ${athlete.name}`, 'success', { ttl: 3000 }); } catch { /* noop */ } }
+      else { toast(readLang() === 'he' ? `העתקת התוכנית אל ${athlete.name} לא עברה — נסה שוב.` : `Could not copy the program to ${athlete.name} — try again.`, 'error'); }
     } else {
       toast('Share failed — could not load the program.', 'error');
     }
@@ -4378,7 +4378,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
       const url = `${window.location.origin}/p/${token}`;
       try { await navigator.clipboard.writeText(url); } catch {}
       const { toast } = await import('./ui');
-      toast(`Public link copied — ${url}`, 'success');
+      toast(readLang() === 'he' ? `הקישור הציבורי הועתק — ${url}` : `Public link copied — ${url}`, 'success');
     } catch (e) {
       console.warn('handleShare error:', e);
     }

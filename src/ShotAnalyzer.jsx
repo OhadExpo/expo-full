@@ -239,7 +239,7 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
         const url = URL.createObjectURL(blob); setSrcUrl(url); analyze(url);
       };
       recRef.current = rec; rec.start(200);
-    } catch (e) { setError('Camera unavailable: ' + (e?.message || e)); setPhase('idle'); }
+    } catch (e) { setError((T === SHOT_I18N.he ? 'המצלמה לא זמינה: ' : 'Camera unavailable: ') + (e?.message || e)); setPhase('idle'); }
   };
   const stopRecording = () => { try { recRef.current?.stop(); } catch { /* noop */ } };
   const reset = () => { setResult(null); setPhase('idle'); setError(null); setSrcUrl(null); framesRef.current = null; };

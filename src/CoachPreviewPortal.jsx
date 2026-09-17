@@ -3,7 +3,7 @@ import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
 import { isSafeTraineeId } from './traineeUtils';
 import ClientPortal from './ClientPortal';
-import { useT } from './i18n';
+import { useT, readLang } from './i18n';
 
 // Coach-side preview. Two modes:
 //   • traineeId → load all of that athlete's active plans, view their portal.
@@ -42,7 +42,7 @@ export default function CoachPreviewPortal({ traineeId, planId, trainees, exerci
           if (e) throw e;
           if (!alive) return;
           const p = Array.isArray(data) && data[0];
-          if (!p) { setError('Program not found.'); return; }
+          if (!p) { setError(readLang() === 'he' ? 'התוכנית לא נמצאה.' : 'Program not found.'); return; }
           setResolvedTraineeId(p.trainee_id || null);
           setPlans([reshape(p)]);
           return;
@@ -52,7 +52,7 @@ export default function CoachPreviewPortal({ traineeId, planId, trainees, exerci
           // the .or() filter string. Shared helper so any future call site
           // building PostgREST filters from URL params can do the same.
           if (!isSafeTraineeId(traineeId)) {
-            setError('Invalid trainee identifier.');
+            setError(readLang() === 'he' ? 'מזהה המתאמן לא תקין.' : 'Invalid trainee identifier.');
             return;
           }
           // Couples: trainees may have plans under parent ID OR sub-member IDs
