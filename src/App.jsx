@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo, Suspense, lazy } from 'react';
+import { createPortal } from 'react-dom';
 import { todayLocalISO } from './dates';
 import { C, FN, FB, uid } from './theme';
 import { ThemeToggle } from './ThemeToggle';
@@ -147,6 +148,7 @@ const SwUpdateBanner = lazyReload(() => import('./SwUpdateBanner'));
 function SubmenuTab({ id, label, count, items, tab, navTo, activeStyle, isChosen, countColor }) {
   const [open, setOpen] = useState(false);
   const btnRef = React.useRef(null);
+  const menuRef = React.useRef(null);
   const [coords, setCoords] = useState({ top: 0, left: 0 });
   // Hover-open with a short close delay so crossing the gap between the
   // trigger and the menu doesn't snap it shut. The entrance itself uses the
@@ -158,15 +160,25 @@ function SubmenuTab({ id, label, count, items, tab, navTo, activeStyle, isChosen
   useEffect(() => () => { if (closeTimer.current) clearTimeout(closeTimer.current); }, []);
   useEffect(() => {
     if (!open || !btnRef.current) return;
+    // 17.9 (Ohad, phone): "submenus in the top menu like athletes and sessions gets cut out".
+    // The trigger sits far along the scrolling rail, so aligning the panel to its left edge put
+    // it at x 260..440 in a 412px screen - a third of it off-screen. Clamp it into the viewport
+    // (and hang it from the trigger's RIGHT edge in RTL, which is the same rule mirrored).
     const recalc = () => {
       const r = btnRef.current?.getBoundingClientRect();
       if (!r) return;
-      setCoords({ top: r.bottom + 4, left: r.left });
+      const w = menuRef.current?.offsetWidth || 180;
+      const rtl = getComputedStyle(document.documentElement).direction === 'rtl' || document.body.dataset.lang === 'he';
+      const wanted = rtl ? r.right - w : r.left;
+      const left = Math.max(8, Math.min(wanted, window.innerWidth - w - 8));
+      setCoords({ top: r.bottom + 4, left });
     };
     recalc();
+    // again once the panel has a measured width
+    const raf = requestAnimationFrame(recalc);
     window.addEventListener('resize', recalc);
     window.addEventListener('scroll', recalc, true);
-    return () => { window.removeEventListener('resize', recalc); window.removeEventListener('scroll', recalc, true); };
+    return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', recalc); window.removeEventListener('scroll', recalc, true); };
   }, [open]);
   useEffect(() => {
     if (!open) return;
@@ -199,9 +211,11 @@ function SubmenuTab({ id, label, count, items, tab, navTo, activeStyle, isChosen
         {count != null && <span style={{ fontSize: 10, color: countColor, fontFamily: FN }}>{count}</span>}
         <span style={{ fontSize: 10, lineHeight: 1, display: 'inline-block', transition: 'transform .2s cubic-bezier(.22,.61,.36,1)', transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}><svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
       </button>
-      {open && (
-        <div className="motion-rise" onMouseEnter={hoverOpen} onMouseLeave={hoverClose} style={{
-          position: 'fixed', top: coords.top, left: coords.left,
+      {/* 17.9: fixed was not enough - the panel sits in the header's stacking context, so the page
+          content painted OVER it on a phone. Portalled to <body>, per the app-wide overlay rule. */}
+      {open && createPortal(
+        <div ref={menuRef} className="motion-rise" onMouseEnter={hoverOpen} onMouseLeave={hoverClose} style={{
+          position: 'fixed', top: coords.top, left: coords.left, maxWidth: 'calc(100vw - 16px)',
           background: 'var(--c-bg)', border: `1px solid ${C.cardBd}`,
           minWidth: 180, zIndex: 100000, transformOrigin: 'top center',
           boxShadow: '0 12px 32px rgba(0,0,0,0.25)',
@@ -224,8 +238,7 @@ function SubmenuTab({ id, label, count, items, tab, navTo, activeStyle, isChosen
               </button>
             );
           })}
-        </div>
-      )}
+        </div>, document.body)}
     </div>
   );
 }
@@ -1684,6 +1697,15 @@ function AuthedApp() {
             .hdr-right { position: static !important; right: auto !important;
               margin-inline-start: 8px !important; background: transparent !important;
               box-shadow: none !important; z-index: auto !important; }
+          }
+          /* 17.9 (Ohad, phone): the four KPI boxes were too tall, the number sat high in them and
+             '₪2,300' ran past the border. The value row is its own centred box that never
+             overflows, and the number scales with the screen instead of staying at the desktop
+             size in a 176px-wide card. */
+          .kpi-value{display:flex;align-items:center;min-height:48px;white-space:nowrap;overflow:hidden;text-overflow:clip}
+          @media (max-width: 700px){
+            .alert-card{padding:12px 14px !important}
+            .kpi-value{min-height:40px;font-size:clamp(20px, 7.4vw, var(--c-kpiNumberSize, 30px)) !important}
           }
           [data-theme="5b"] .alert-card,[data-theme="light"] .alert-card{transition:box-shadow 200ms, transform 200ms}
           [data-theme="5b"] .alert-card:hover,[data-theme="light"] .alert-card:hover{box-shadow:inset 0 1px 0 rgba(255,255,255,0.30), 0 2px 4px rgba(0,0,0,0.10), 0 10px 24px rgba(0,0,0,0.14);transform:translateY(-1px)}

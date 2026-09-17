@@ -4,7 +4,7 @@ import { signIn } from '../scripts/lib/authed-page.mjs';
 const BASE = process.env.BASE || 'http://127.0.0.1:4173';
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
-const pg = await b.newPage(); await pg.setViewport({ width: 1400, height: 1000 });
+const pg = await b.newPage(); await pg.setBypassServiceWorker(true); await pg.setViewport({ width: 1400, height: 1000 });
 await pg.goto(BASE, { waitUntil: 'domcontentloaded' }); await wait(1200); await signIn(pg, BASE);
 for (const lang of ['en', 'he']) {
   await pg.goto(`${BASE}/coach/dashboard?lang=${lang}`, { waitUntil: 'domcontentloaded' }); await wait(8000);

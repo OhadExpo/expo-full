@@ -5,11 +5,12 @@ import { signIn } from '../scripts/lib/authed-page.mjs';
 const BASE = process.env.BASE || 'http://127.0.0.1:4173';
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
-const pg = await b.newPage();
+const pg = await b.newPage(); await pg.setBypassServiceWorker(true);
 await pg.emulate({ viewport: { width: 412, height: 915, deviceScaleFactor: 2.625, isMobile: true, hasTouch: true }, userAgent: 'Mozilla/5.0 (Linux; Android 14; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Mobile Safari/537.36' });
 await pg.goto(BASE, { waitUntil: 'domcontentloaded' }); await wait(1200); await signIn(pg, BASE);
 for (const lang of ['en', 'he']) {
   await pg.goto(`${BASE}/coach/dashboard?lang=${lang}`, { waitUntil: 'domcontentloaded' }); await wait(7000);
+  console.log('url', pg.url(), (await pg.evaluate(() => document.body.innerText.slice(0, 160))).replace(/s+/g, ' '));
   const m = await pg.evaluate(() => {
     const img = document.querySelector('div.hdr-scroll > :first-child'); const r = img.getBoundingClientRect();
     const tab = document.querySelector('nav.hdr-scroll button'); const t = tab.getBoundingClientRect();
