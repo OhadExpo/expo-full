@@ -19,7 +19,7 @@ import { EVAL_SCHEMA, romKey, countFilled } from './evaluationSchema';
 import { toolForTest, romAxisSpec, applyTestResult, applyRomResult, testValueDisplay } from './evalTestMap';
 import { useTraineeEvaluations } from './evaluationsData';
 import EvaluationEditor from './EvaluationEditor';
-import { useT } from './i18n';
+import { useT, readLang } from './i18n';
 import { todayLocalISO } from './dates';
 
 // MovementLab pulls MediaPipe — lazy so the trainee card doesn't carry the
@@ -190,9 +190,9 @@ function EvalListRow({ evaluation, onOpenEditor }) {
         }}>{fmtDate(evaluation.eval_date)}</div>
         <div style={{ display: 'flex', gap: 14, fontFamily: FN, fontSize: 11, color: 'var(--c-tm)', flex: 1, flexWrap: 'wrap' }}>
           {evaluation.age != null && <span><span style={{ color: 'var(--c-td)' }}>{tt('AGE')}</span> {evaluation.age}</span>}
-          {evaluation.height_cm != null && <span><span style={{ color: 'var(--c-td)' }}>{tt('HT')}</span> {evaluation.height_cm}cm</span>}
-          {evaluation.weight_kg != null && <span><span style={{ color: 'var(--c-td)' }}>{tt('WT')}</span> {evaluation.weight_kg}kg</span>}
-          <span><span style={{ color: 'var(--c-td)' }}>{tt('FIELDS')}</span> {filled}</span>
+          {evaluation.height_cm != null && <span><span style={{ color: 'var(--c-td)' }}>{tt('HT')}</span> {evaluation.height_cm}{tt('cm')}</span>}
+          {evaluation.weight_kg != null && <span><span style={{ color: 'var(--c-td)' }}>{tt('WT')}</span> {evaluation.weight_kg}{readLang() === 'he' ? ' קילו' : 'kg'}</span>}
+          <span>{tt('{n} FIELDS').replace('{n}', filled)}</span>
         </div>
         <button onClick={e => { e.stopPropagation(); onOpenEditor(evaluation); }}
           style={{

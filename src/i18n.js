@@ -975,7 +975,7 @@ export const HE = {
   MORE: 'עוד',
   "Update the exercise database": 'עדכן את מאגר התרגילים',
   "Save new exercise": 'שמור תרגיל חדש',
-  "● REC": '● הקלט',
+  "● REC": '● הקלטה',
   "SENDING…": 'שולח…',
   "SEND →": 'שלח ←',
   "No workouts yet.": 'עוד אין אימונים.',
@@ -2071,6 +2071,9 @@ export const HE = {
   '{n} errors': '{n} שגיאות',
   // 17.9 demo chip counts
   '{n}D': '{n} ימים',
+  // 17.9 evaluation vitals units
+  'cm': ' ס״מ',
+  '{n} FIELDS': '{n} שדות',
   // 17.9 the two owner library tools (Classify, Matching) wired
   match: 'התאמה',
   matches: 'התאמות',
