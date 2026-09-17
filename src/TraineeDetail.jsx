@@ -487,7 +487,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             <span style={{fontWeight:700,fontSize:15,color:C.ac,fontFamily:FN,letterSpacing:'0.04em',minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{cur.name||'Untitled'}</span>
             {earlier.length > 0 && (
               <button onClick={e=>{e.stopPropagation();setProgramsExpanded(v=>!v);}}
-                title={programsExpanded?`Hide ${earlier.length} previous block${earlier.length===1?'':'s'}`:`Show ${earlier.length} previous block${earlier.length===1?'':'s'}`}
+                title={readLang() === 'he' ? `${programsExpanded ? 'הסתרת' : 'הצגת'} ${earlier.length === 1 ? 'הבלוק הקודם' : `${earlier.length} הבלוקים הקודמים`}` : programsExpanded?`Hide ${earlier.length} previous block${earlier.length===1?'':'s'}`:`Show ${earlier.length} previous block${earlier.length===1?'':'s'}`}
                 className="prog-plusn"
                 style={{display:'inline-flex',alignItems:'center',gap:5,height:24,padding:'0 9px',background: programsExpanded ? 'rgba(127,127,138,0.14)' : 'transparent',border:`1px solid ${C.cardBd}`,borderRadius:0,color: C.tm,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.05em',whiteSpace:'nowrap',flexShrink:0,fontVariantNumeric:'tabular-nums'}}>
                 {earlier.length === 1 ? t('1 previous') : t('{n} previous').replace('{n}', earlier.length)}

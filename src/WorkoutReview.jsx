@@ -2313,7 +2313,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                     {ex.prescribed} · {doneSets}/{setsArr.length} sets
                     {(formVideo?.has || formVideo?.cloudUrl) && <span title={tt('Form video submitted')} style={{color:C.gn,marginInlineStart:6,display:'inline-flex',alignItems:'center',verticalAlign:'-2px'}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></span>}
                     {(formVideo?.reviewNotes?.length > 0) && (
-                      <span title={`${formVideo.reviewNotes.length} comment${formVideo.reviewNotes.length===1?'':'s'} on this exercise`} style={{color:C.ac,marginInlineStart:6}}>
+                      <span title={readLang() === 'he' ? (formVideo.reviewNotes.length === 1 ? 'הערה אחת על התרגיל' : `${formVideo.reviewNotes.length} הערות על התרגיל`) : `${formVideo.reviewNotes.length} comment${formVideo.reviewNotes.length===1?'':'s'} on this exercise`} style={{color:C.ac,marginInlineStart:6}}>
                         💬{formVideo.reviewNotes.length > 1 ? <sup style={{fontSize:8}}>{formVideo.reviewNotes.length}</sup> : null}
                       </span>
                     )}

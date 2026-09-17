@@ -14,7 +14,7 @@
 //   5. Coach previews JSON
 //   6. Commit to Supabase (dedupe on commit)
 import React, { useState, useMemo, useRef } from 'react';
-import { useT } from './i18n';
+import { useT, readLang } from './i18n';
 import * as XLSX from 'xlsx';
 import { supabase } from './supabase';
 import { C, FN, FB, uid } from './theme';
@@ -378,7 +378,7 @@ export default function SmartImportView() {
         }
         const { error } = await supabase.from('store').upsert({ key: 'expo-exercises', value: lib, updated_at: new Date().toISOString() });
         if (error) throw error;
-        summary = `+${added} new exercises (skipped ${transform.items.length - added} duplicates).`;
+        summary = readLang() === 'he' ? `${added === 1 ? 'נוסף תרגיל חדש אחד' : `נוספו ${added} תרגילים חדשים`} (${transform.items.length - added === 1 ? 'כפילות אחת דולגה' : `${transform.items.length - added} כפילויות דולגו`}).` : `+${added} new exercises (skipped ${transform.items.length - added} duplicates).`;
       } else if (target === 'athletes') {
         const { data: row } = await supabase.from('store').select('value').eq('key', 'expo-trainees').maybeSingle();
         const arr = row?.value || [];
@@ -405,7 +405,7 @@ export default function SmartImportView() {
         }
         const { error } = await supabase.from('store').upsert({ key: 'expo-trainees', value: arr, updated_at: new Date().toISOString() });
         if (error) throw error;
-        summary = `+${added} new athletes, ${updated} updated.` + (skippedNameless ? ` Skipped ${skippedNameless} nameless row(s).` : '');
+        summary = readLang() === 'he' ? `${added === 1 ? 'נוסף מתאמן חדש אחד' : `נוספו ${added} מתאמנים חדשים`}, ${updated === 1 ? 'מתאמן אחד עודכן' : `${updated} עודכנו`}.` + (skippedNameless ? ` ${skippedNameless === 1 ? 'דולגה שורה אחת בלי שם' : `דולגו ${skippedNameless} שורות בלי שם`}.` : '') : `+${added} new athletes, ${updated} updated.` + (skippedNameless ? ` Skipped ${skippedNameless} nameless row(s).` : '');
       } else if (target === 'programs') {
         const { data: row } = await supabase.from('store').select('value').eq('key', 'expo-exercises').maybeSingle();
         const lib = row?.value || [];
@@ -476,14 +476,14 @@ export default function SmartImportView() {
           if (error) throw error;
           created++;
         }
-        summary = `+${created} program${created === 1 ? '' : 's'} (${newLibEntries.length} new library entries).`;
+        summary = readLang() === 'he' ? `${created === 1 ? 'נוספה תוכנית אחת' : `נוספו ${created} תוכניות`} (${newLibEntries.length === 1 ? 'רשומה חדשה אחת בספרייה' : `${newLibEntries.length} רשומות חדשות בספרייה`}).` : `+${created} program${created === 1 ? '' : 's'} (${newLibEntries.length} new library entries).`;
       }
       // Auto-reload after a successful import. The commit upserted plans/store
       // DIRECTLY to Supabase, so the running app's in-memory useSupaStore arrays
       // are now stale — the next in-app edit (ExercisesView add, TraineeDetail
       // autosave) would upsert the OLD list and silently overwrite this import
       // (data-loss race). A reload re-fetches everything fresh and closes it.
-      setCommitMsg('✓ ' + summary + ' Reloading…');
+      setCommitMsg('✓ ' + summary + (readLang() === 'he' ? ' טוען מחדש…' : ' Reloading…'));
       setTimeout(() => { try { window.location.reload(); } catch { /* noop */ } }, 1500);
     } catch (e) { setErr('Commit failed: ' + e.message); }
     setCommitting(false);
@@ -609,8 +609,8 @@ export default function SmartImportView() {
           <div style={{ padding: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
             <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, textTransform: 'uppercase' }}>
-              <Badge color={C.gn}>{transform.items.length} item{transform.items.length === 1 ? '' : 's'}</Badge>
-              {transform.errors.length > 0 && <Badge color={C.rd} style={{ marginInlineStart: 6 }}>{transform.errors.length} error{transform.errors.length === 1 ? '' : 's'}</Badge>}
+              <Badge color={C.gn}>{readLang() === 'he' ? (transform.items.length === 1 ? 'פריט אחד' : `${transform.items.length} פריטים`) : `${transform.items.length} item${transform.items.length === 1 ? '' : 's'}`}</Badge>
+              {transform.errors.length > 0 && <Badge color={C.rd} style={{ marginInlineStart: 6 }}>{readLang() === 'he' ? (transform.errors.length === 1 ? 'שגיאה אחת' : `${transform.errors.length} שגיאות`) : `${transform.errors.length} error${transform.errors.length === 1 ? '' : 's'}`}</Badge>}
             </div>
             <Btn onClick={commit} disabled={committing || transform.items.length === 0} style={{ minWidth: 168, justifyContent: 'center' }}>{committing ? 'Writing…' : 'Commit to Database'}</Btn>
           </div>
@@ -625,7 +625,7 @@ export default function SmartImportView() {
           </div>
           {transform.errors.length > 0 && (
             <details style={{ marginTop: 8 }}>
-              <summary style={{ fontSize: 11, color: C.rd, cursor: 'pointer' }}>{transform.errors.length} skipped row{transform.errors.length === 1 ? '' : 's'}</summary>
+              <summary style={{ fontSize: 11, color: C.rd, cursor: 'pointer' }}>{readLang() === 'he' ? (transform.errors.length === 1 ? 'שורה אחת דולגה' : `${transform.errors.length} שורות דולגו`) : `${transform.errors.length} skipped row${transform.errors.length === 1 ? '' : 's'}`}</summary>
               <ul style={{ margin: '4px 0 0 16px', padding: 0, color: C.tm, fontSize: 11 }}>
                 {transform.errors.slice(0, 30).map((e, i) => <li key={i}>row {e.rowIdx}: {e.msg}</li>)}
               </ul>

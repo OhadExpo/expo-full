@@ -14,6 +14,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 const REPORT = process.argv.includes('--report');
+const PORTAL_HELD = new Set(['TraineePRsView.jsx', 'auth.jsx']);
 const SKIP_FILES = new Set(['ClientPortal.jsx', 'MealLogger.jsx', 'DemoTraineePortal.jsx', 'TrySandbox.jsx']);
 const ALLOW = new Set(['EXPO', 'RPE', 'ROM', 'VBT', 'BW', 'KG', 'PR', 'PRS', 'MRR', 'LTV', 'VAT', 'AI', 'OK', 'ID', 'URL', 'MP4', 'MOV', 'WEBM', 'CSV', 'PDF', 'PNG', 'JPG', 'XLSX', 'TSV', 'GB', 'MB', 'KB', 'FPS', 'HD', 'RDL', 'SLDL', 'OHP', 'DB', 'BB', 'KB', 'TRX', 'BHBC', 'ACWR', 'HRV', 'RTP', 'MD', 'PPG', 'EN', 'HE', 'LIVE', 'REC', 'A', 'B', 'C', 'D', 'E', 'W', 'L', 'R', 'X', 'N', 'Y', 'M', 'J', 'S', 'Δ', 'ATH', 'POS', 'ISO', 'SA', 'SL', 'BP', 'ECC', 'CON', 'AMRAP', 'EMOM', 'TUT', 'RIR', '1RM', 'E1RM', 'NCAA', 'CMU', 'OUI', 'TAU', 'NIS', 'ILS', 'USD', 'YT', 'GPS', 'API', 'RLS', 'SW', 'PWA', 'IOS', 'MEDIAPIPE', 'LITE', 'LOG', 'W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7', 'W8', 'W9', 'W10', 'W11', 'W12', 'RSI']);
 const BRAND = /^(?:Google Calendar|Vercel|Supabase|WhatsApp|YouTube|Green Invoice|Safari)$/;
@@ -117,6 +118,17 @@ function scanFile(f, raw) {
     findings.push({ f, line: lineOf(m.index), text: t, kind: m[1] });
   }
   for (const m of src.matchAll(PLACEHOLDER)) { const t = m[1] || m[2]; if (!/[֐-׿]/.test(t) && !/\{/.test(t) && !dataShape(t)) findings.push({ f, line: lineOf(m.index), text: t, kind: 'placeholder' }); }
+  // 17.9: an English plural built in code - `${n} athlete${n === 1 ? '' : 's'}` - is invisible to
+  // the runs above (the word touches an expression). 16 rendered English on Hebrew screens.
+  // A Hebrew branch on the same line or the two before it counts as handled. The athlete
+  // portal's own files wait: the portal ships at production until he approves its Hebrew.
+  const lines = src.split('\n');
+  if (!PORTAL_HELD.has(f)) for (const m of src.matchAll(/[A-Za-z]{3,}\$?\{\s*[\w.?()[\]]+\s*[!=]==?\s*1\s*\?\s*(?:''|'s')\s*:\s*(?:'s'|'')\s*\}/g)) {
+    const ln = lineOf(m.index);
+    const near = lines.slice(Math.max(0, ln - 3), ln).join('\n');
+    if (/[֐-׿]/.test(near) || /\bhe\b\s*\?|readLang\(\)\s*===\s*'he'/.test(near)) continue;
+    findings.push({ f, line: ln, text: m[0], kind: 'plural-tpl' });
+  }
 }
 if (process.argv.includes('--write-baseline')) {
   const out = Object.fromEntries(Object.entries(unwired).filter(([, n]) => n > 0).sort());

@@ -11,7 +11,7 @@ import { C, FN, FB, ytId } from './theme';
 import { Card, Btn, Modal, EmptyState, toast } from './ui';
 import { scanUnmatched, groupUnmatched, suggestMatches, confidenceLabel, applyMatch, normTitle } from './exerciseMatch';
 import { supabase } from './supabase';
-import { useT } from './i18n';
+import { useT, readLang } from './i18n';
 
 // Confidence tint for the word-diff label ("+single +arm", "machine↔cable",
 // "similar"). These are small UPPERCASE labels printed directly on the card, so
@@ -201,11 +201,11 @@ export default function ExerciseMatchingView({ exercises = [], setExercises }) {
       const next = working.map((np) => (failedIds.has(np.id) ? (fresh || []).find((p) => p.id === np.id) || np : np));
       setPlans(next);
       if (failedIds.size) {
-        toast(`Applied ${ok} plan${ok === 1 ? '' : 's'} — ${failedIds.size} FAILED, their rows stay listed for retry`);
+        toast(readLang() === 'he' ? `${ok === 1 ? 'עודכנה תוכנית אחת' : `עודכנו ${ok} תוכניות`} — ${failedIds.size === 1 ? 'אחת נכשלה, השורה שלה נשארת ברשימה לניסיון נוסף' : `${failedIds.size} נכשלו, השורות שלהן נשארות ברשימה לניסיון נוסף`}` : `Applied ${ok} plan${ok === 1 ? '' : 's'} — ${failedIds.size} FAILED, their rows stay listed for retry`);
         // keep decisions only for groups that still have unresolved rows in failed plans
         setDecisions((prev) => { const keep = {}; for (const [k, v] of Object.entries(prev)) { const g = groupByKey.get(k); if (g && g.rows.some((r) => failedIds.has(r.planId))) keep[k] = v; } return keep; });
       } else {
-        toast(`Applied — ${ok} plan${ok === 1 ? '' : 's'} updated`);
+        toast(readLang() === 'he' ? (ok === 1 ? 'עודכנה תוכנית אחת' : `עודכנו ${ok} תוכניות`) : `Applied — ${ok} plan${ok === 1 ? '' : 's'} updated`);
         setDecisions({});
       }
     } catch (e) { toast('Apply failed'); setErr(String(e && e.message || e)); }

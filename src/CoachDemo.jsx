@@ -2094,7 +2094,9 @@ function DemoPrograms({ resetToken = 0 }) {
             return (a.name || '').localeCompare(b.name || '');
           });
 
-          const meta = `${rows.length} athlete${rows.length === 1 ? '' : 's'} · ${filtered.length} program${filtered.length === 1 ? '' : 's'} total`;
+          const meta = readLang() === 'he'
+            ? `${rows.length === 1 ? 'מתאמן אחד' : `${rows.length} מתאמנים`} · ${filtered.length === 1 ? 'תוכנית אחת' : `${filtered.length} תוכניות`} בסך הכל`
+            : `${rows.length} athlete${rows.length === 1 ? '' : 's'} · ${filtered.length} program${filtered.length === 1 ? '' : 's'} total`;
 
           if (rows.length === 0) return (
             <>
@@ -2947,7 +2949,7 @@ function DemoExercises() {
       {openKey && <div onClick={() => setOpenKey(null)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />}
 
       <div style={{ fontSize: 11, color: C.tm, marginBottom: 10, fontFamily: FN }}>
-        {filtered.length} exercise{filtered.length !== 1 ? 's' : ''}
+        {readLang() === 'he' ? (filtered.length === 1 ? 'תרגיל אחד' : `${filtered.length} תרגילים`) : `${filtered.length} exercise${filtered.length !== 1 ? 's' : ''}`}
       </div>
 
       {filtered.length === 0 ? (
@@ -3206,7 +3208,7 @@ function DemoReview() {
                 {ex.prescribed} · {ex.done}/{ex.sets} {T('sets')}
                 {ex.hasVideo && <span title={T('Form video submitted')} style={{ color: C.gn, marginInlineStart: 6, display: 'inline-flex', alignItems: 'center', verticalAlign: '-2px' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></span>}
                 {ex.comments > 0 && (
-                  <span title={`${ex.comments} comment${ex.comments === 1 ? '' : 's'} on this exercise`} style={{ color: C.ac, marginInlineStart: 6 }}>
+                  <span title={readLang() === 'he' ? (ex.comments === 1 ? 'הערה אחת על התרגיל' : `${ex.comments} הערות על התרגיל`) : `${ex.comments} comment${ex.comments === 1 ? '' : 's'} on this exercise`} style={{ color: C.ac, marginInlineStart: 6 }}>
                     💬{ex.comments > 1 ? <sup style={{ fontSize: 8 }}>{ex.comments}</sup> : null}
                   </span>
                 )}

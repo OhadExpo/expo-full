@@ -442,7 +442,7 @@ export function synthesizeVerdict({ adh, region, staples, acwr, velocity, he = f
   if (flags.includes('fatigue') && !tooThinToDeload) {
     const hardStaleLift = staples.find((s) => !s.ballistic && s.isMain && s.stale?.stale && s.stale.mode === 'hard');
     headline = he
-      ? (hardStaleLift ? `שבוע הורדה — ואז תחליף את ה־${hardStaleLift.title}. אל תוסיף רק משקל.` : 'שבוע הורדה — הוא צובר יותר עייפות ממה שהוא מתאושש ממנה.')
+      ? (hardStaleLift ? `שבוע דילאוד — ואז תחליף את ה־${hardStaleLift.title}. אל תוסיף רק משקל.` : 'שבוע דילאוד — הוא צובר יותר עייפות ממה שהוא מתאושש ממנה.')
       : (hardStaleLift ? `Deload — then change the ${hardStaleLift.title}, don't just add weight.` : `Deload him — he's accumulating more fatigue than he's recovering from.`);
     const bits = fatigueBits();
     sub = bits.length
@@ -454,7 +454,7 @@ export function synthesizeVerdict({ adh, region, staples, acwr, velocity, he = f
     tone = 'info';
     const n = adh?.loggedSessions || 0;
     headline = he
-      ? `קודם שירשום, ואז שבוע הורדה — ${n === 1 ? 'יש רק אימון אחד' : `יש רק ${n} אימונים`}, ועוד אי אפשר לסמוך על סימני העייפות.`
+      ? `קודם שירשום, ואז שבוע דילאוד — ${n === 1 ? 'יש רק אימון אחד' : `יש רק ${n} אימונים`}, ועדיין אי אפשר לסמוך על סימני העייפות.`
       : `Get him logging before you deload — only ${n} session${n === 1 ? '' : 's'} in, the fatigue read isn't trustworthy yet.`;
     const bits = fatigueBits();
     sub = he

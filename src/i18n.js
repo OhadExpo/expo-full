@@ -265,7 +265,7 @@ export const HE = {
   "Collapse this exercise": "סגירת התרגיל",
   "Renew gym insurance policy": "לחדש את ביטוח הסטודיו",
   "Order bumper plates (20kg × 4)": 'להזמין באמפרים (20 קילו × 4)',
-  "Noa — deload week, cut volume 30%": "נועה — שבוע הורדה, לחתוך 30 אחוז מהנפח",
+  "Noa — deload week, cut volume 30%": "נועה — שבוע דילאוד, לחתוך 30 אחוז מהנפח",
   "Gal — check knee after last squat session": "גל — לבדוק את הברך אחרי אימון הסקוואט",
   "Film 3 exercise demos for the library": "לצלם 3 הדגמות תרגיל לספרייה",
   "Amit — no workout logged in 6 days": "עמית — כבר 6 ימים לא נרשם אימון",

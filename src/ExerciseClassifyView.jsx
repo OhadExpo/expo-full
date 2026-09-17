@@ -6,7 +6,7 @@ import React, { useState, useMemo } from 'react';
 import { C, FN, FB, RESISTANCE_TYPES, BODY_POSITIONS, MOVEMENT_TYPES } from './theme';
 import { Card, Btn, Select, Modal, EmptyState, toast } from './ui';
 import { classify, isUnclassified } from './exerciseClassify';
-import { useT } from './i18n';
+import { useT, readLang } from './i18n';
 
 const CAP = 150;
 
@@ -56,7 +56,7 @@ export default function ExerciseClassifyView({ exercises = [], setExercises }) {
     const patch = {};
     pending.forEach(({ e }) => { patch[e.id] = { resistanceType: editVal(e, 'resistanceType'), bodyPosition: editVal(e, 'bodyPosition'), movementType: editVal(e, 'movementType') }; });
     setExercises((prev) => (prev || []).map((ex) => patch[ex.id] ? { ...ex, ...patch[ex.id] } : ex));
-    toast(`Classified ${pending.length} exercise${pending.length === 1 ? '' : 's'}`);
+    toast(readLang() === 'he' ? (pending.length === 1 ? 'סווג תרגיל אחד' : `סווגו ${pending.length} תרגילים`) : `Classified ${pending.length} exercise${pending.length === 1 ? '' : 's'}`);
     setEdits({}); setApplying(false);
   };
 

@@ -369,8 +369,8 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, fontSize: 11, fontFamily: FN, color: C.td, gap: 12, flexWrap: 'wrap' }}>
             <span style={{ minWidth: 0 }}>
               <span style={{ color: C.ac, fontWeight: 700 }}>{filt.length}</span>
-              {(search.trim() || activeFilterCount > 0) && exercises.length > filt.length ? <span style={{ color: C.td }}> of {exercises.length}</span> : null}
-              <span style={{ color: C.td }}> result{filt.length === 1 ? '' : 's'}</span>
+              {(search.trim() || activeFilterCount > 0) && exercises.length > filt.length ? <span style={{ color: C.td }}>{readLang() === 'he' ? ` מתוך ${exercises.length}` : ` of ${exercises.length}`}</span> : null}
+              <span style={{ color: C.td }}>{readLang() === 'he' ? (filt.length === 1 && !((search.trim() || activeFilterCount > 0) && exercises.length > filt.length) ? ' תוצאה' : ' תוצאות') : ` result${filt.length === 1 ? '' : 's'}`}</span>
               <span style={{ color: C.td, opacity: 0.6, marginInlineStart: 10, letterSpacing: '0.04em' }}>{tt('↑↓ navigate · Enter select · Esc close')}</span>
             </span>
             {(search.trim() || activeFilterCount > 0) && <button onClick={clearAll} style={{ background: 'transparent', border: `1px solid ${C.cardBd}`, color: C.ac, cursor: 'pointer', fontSize: 10, fontFamily: FN, fontWeight: 700, letterSpacing: '0.18em', padding: '4px 10px', borderRadius: 0 }}>× {tt('CLEAR ALL')}</button>}
@@ -3124,7 +3124,7 @@ function CopyDaysModal({ days, currentPlanId, preselected, planIndex, sourceWeek
     <div onClick={onClose} role="dialog" aria-modal="true" style={{ position:'fixed', inset:0, zIndex:10000, background:'rgba(0,0,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
       <div onClick={e=>e.stopPropagation()} style={{ background:'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius:0, width:'min(480px, 96vw)', maxHeight:'86vh', display:'flex', flexDirection:'column', boxShadow:C.cardShadow }}>
         <div style={{ padding:'14px 18px', borderBottom:`1px solid ${C.cardBd}`, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-          <span style={{ fontFamily:FN, fontSize:13, fontWeight:700, letterSpacing:'0.12em', color:C.tx, textTransform:'uppercase' }}>{warmupMode ? 'Copy warm-up to…' : `Copy day${count===1?'':'s'} to…`}</span>
+          <span style={{ fontFamily:FN, fontSize:13, fontWeight:700, letterSpacing:'0.12em', color:C.tx, textTransform:'uppercase' }}>{readLang() === 'he' ? (warmupMode ? 'העתקת החימום אל…' : count === 1 ? 'העתקת היום אל…' : 'העתקת הימים אל…') : (warmupMode ? 'Copy warm-up to…' : `Copy day${count===1?'':'s'} to…`)}</span>
           <button onClick={onClose} style={{ background:'transparent', border:'none', color:C.tm, fontSize:20, lineHeight:1, cursor:'pointer' }}>×</button>
         </div>
         <div style={{ overflowY:'auto', padding:'12px 18px', display:'flex', flexDirection:'column', gap:14 }}>
@@ -3134,7 +3134,7 @@ function CopyDaysModal({ days, currentPlanId, preselected, planIndex, sourceWeek
             {warmupMode ? (
               <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 12px', border:`1px solid ${C.ac}`, background:`${C.ac}1f` }}>
                 <span style={{ color:C.or, fontFamily:FN, fontSize:12, fontWeight:700, letterSpacing:'0.06em' }}>{tt("WARM-UP")}</span>
-                <span style={{ flex:1, color:C.tx, fontFamily:FB, fontSize:13 }}>{wuSteps} step{wuSteps===1?'':'s'}</span>
+                <span style={{ flex:1, color:C.tx, fontFamily:FB, fontSize:13 }}>{readLang() === 'he' ? (wuSteps === 1 ? 'שלב אחד' : `${wuSteps} שלבים`) : `${wuSteps} step${wuSteps===1?'':'s'}`}</span>
               </div>
             ) : (
             <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
@@ -3353,7 +3353,7 @@ function pctFromReps(reps) {
 // from the numbers (relative volume + rep emphasis + power share).
 function detectPhase(name, { avgReps, totalSets, avgSets, peakSets, powerShare }) {
   const n = (name || '').toLowerCase();
-  if (/deload|de-load|taper|recover|back[\s-]*off|unload|rest\s*week|פריקה|שבוע הורדה|דילואוד|דילוד/.test(n)) return 'Deload';
+  if (/deload|de-load|taper|recover|back[\s-]*off|unload|rest\s*week|פריקה|שבוע הורדה|דילאוד|דילואוד|דילוד/.test(n)) return 'Deload';
   if (/peak|realiz|test\s*week|compet|max\s*out/.test(n)) return 'Peak';
   if (/power|\bpwr\b|plyo|speed|explos|dynamic|convert|conversion|\brfd\b|ballistic/.test(n)) return 'Power';
   if (/strength|\bstr\b|\bint\b|\bmxs\b|intensif|max\s*str|\bheavy\b|כוח/.test(n)) return 'Strength';
@@ -4290,7 +4290,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
         const fresh = { id: 'pl_' + uid(), name: target.name?.trim() || 'New Program', traineeId: target.traineeId || '', phase: '', notes: '', active: true, createdAt: new Date().toISOString(), days: cloned, warmup: [], weeks: newWeeks };
         const saved = await savePlan(fresh);
         await reloadIndex();
-        if (saved) { const whoName = target.traineeId ? (trainees.flatMap(t=>t.members&&t.members.length===2?t.members.map((m,i)=>({v:t.id+'__'+i,n:m.name})):[{v:t.id,n:t.name}]).find(o=>o.v===target.traineeId)?.n) : null; toast(`Created "${fresh.name}"${whoName?` for ${whoName}`:''} with ${cloned.length} day${cloned.length===1?'':'s'}`, 'success', { ttl: 3000 }); return { ok: true, name: fresh.name }; }
+        if (saved) { const whoName = target.traineeId ? (trainees.flatMap(t=>t.members&&t.members.length===2?t.members.map((m,i)=>({v:t.id+'__'+i,n:m.name})):[{v:t.id,n:t.name}]).find(o=>o.v===target.traineeId)?.n) : null; toast(readLang() === 'he' ? `התוכנית "${fresh.name}" נוצרה${whoName ? ` עבור ${whoName}` : ''} עם ${cloned.length === 1 ? 'יום אחד' : `${cloned.length} ימים`}` : `Created "${fresh.name}"${whoName?` for ${whoName}`:''} with ${cloned.length} day${cloned.length===1?'':'s'}`, 'success', { ttl: 3000 }); return { ok: true, name: fresh.name }; }
         toast('Copy failed — the new program was refused. See console.', 'error'); return { ok: false };
       }
       // existing: re-read the target from the DB (freshest), append, save.
@@ -4310,7 +4310,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
       };
       const saved = await savePlan(merged);
       await reloadIndex();
-      if (saved) { toast(`Copied ${cloned.length} day${cloned.length===1?'':'s'} to "${data.name}"`, 'success', { ttl: 3000 }); return { ok: true, name: data.name }; }
+      if (saved) { toast(readLang() === 'he' ? `${cloned.length === 1 ? 'יום אחד הועתק' : `${cloned.length} ימים הועתקו`} אל "${data.name}"` : `Copied ${cloned.length} day${cloned.length===1?'':'s'} to "${data.name}"`, 'success', { ttl: 3000 }); return { ok: true, name: data.name }; }
       toast('Copy failed — the save was refused. See console.', 'error'); return { ok: false };
     } catch (e) {
       console.error('handleCopyDays error:', e);
@@ -4331,7 +4331,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
         const fresh = { id: 'pl_' + uid(), name: target.name?.trim() || 'New Program', traineeId: target.traineeId || '', phase: '', notes: '', active: true, createdAt: new Date().toISOString(), days: [defaultDay(1)], warmup: steps, weeks: newWeeks };
         const saved = await savePlan(fresh);
         await reloadIndex();
-        if (saved) { toast(`Created "${fresh.name}" with the warm-up (${steps.length} step${steps.length===1?'':'s'})`, 'success', { ttl: 3000 }); return { ok: true, name: fresh.name }; }
+        if (saved) { toast(readLang() === 'he' ? `התוכנית "${fresh.name}" נוצרה עם החימום (${steps.length === 1 ? 'שלב אחד' : `${steps.length} שלבים`})` : `Created "${fresh.name}" with the warm-up (${steps.length} step${steps.length===1?'':'s'})`, 'success', { ttl: 3000 }); return { ok: true, name: fresh.name }; }
         toast('Copy failed — the new program was refused. See console.', 'error'); return { ok: false };
       }
       const { supabase: sb } = await import('./supabase');
@@ -4347,7 +4347,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
       };
       const saved = await savePlan(merged);
       await reloadIndex();
-      if (saved) { toast(`Copied the warm-up (${steps.length} step${steps.length===1?'':'s'}) to "${data.name}"`, 'success', { ttl: 3000 }); return { ok: true, name: data.name }; }
+      if (saved) { toast(readLang() === 'he' ? `החימום (${steps.length === 1 ? 'שלב אחד' : `${steps.length} שלבים`}) הועתק אל "${data.name}"` : `Copied the warm-up (${steps.length} step${steps.length===1?'':'s'}) to "${data.name}"`, 'success', { ttl: 3000 }); return { ok: true, name: data.name }; }
       toast('Copy failed — the save was refused. See console.', 'error'); return { ok: false };
     } catch (e) {
       console.error('handleCopyWarmup error:', e);

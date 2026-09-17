@@ -1924,7 +1924,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
               }));
             }
             if (fail === 0) {
-              toast(`Synced ${done} existing task${done === 1 ? '' : 's'} to Calendar ✓`, 'success', { ttl: 4000 });
+              toast(readLang() === 'he' ? `${done === 1 ? 'משימה קיימת אחת סונכרנה' : `${done} משימות קיימות סונכרנו`} ליומן ✓` : `Synced ${done} existing task${done === 1 ? '' : 's'} to Calendar ✓`, 'success', { ttl: 4000 });
             } else {
               toast(`Synced ${done}, ${fail} failed — reopen the row to retry`, 'warning', { ttl: 5000 });
             }
@@ -2381,7 +2381,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
   const bulkDelete = async () => {
     const n = selectedIds.size;
     if (!n) return;
-    if (!(await confirmToast(`Delete ${n} task${n === 1 ? '' : 's'}? This can't be undone.`, { okLabel: 'Delete', cancelLabel: 'Keep' }))) return;
+    if (!(await confirmToast(readLang() === 'he' ? `למחוק ${n === 1 ? 'משימה אחת' : `${n} משימות`}? אי אפשר לבטל את זה.` : `Delete ${n} task${n === 1 ? '' : 's'}? This can't be undone.`, readLang() === 'he' ? { okLabel: 'מחיקה', cancelLabel: 'ביטול' } : { okLabel: 'Delete', cancelLabel: 'Keep' }))) return;
     for (const id of [...selectedIds]) { await remove(id); }
     clearSelect();
   };
