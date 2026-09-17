@@ -22,6 +22,10 @@ const root = resolve(here, '..');
 const srcPath = resolve(root, 'src', 'programs.js');
 const outDir = resolve(root, 'public', 'og');
 const heroLogoPath = resolve(root, 'public', 'expo-hero-logo.png');
+// The REAL logo (caret over the X). The cards used to draw a triangle beside the word EXPO
+// in a system font, which read as a different brand (Ohad, 17.9: "why does the logo look like that?").
+const LOGO = `data:image/png;base64,${readFileSync(heroLogoPath).toString('base64')}`;
+const logo = (x, y, h) => `<image href="${LOGO}" x="${x}" y="${y}" width="${Math.round(h * 800 / 286)}" height="${h}"/>`;
 
 function parsePrograms(src) {
   const programs = [];
@@ -129,28 +133,27 @@ function buildSvg(p, lang = 'bilingual') {
 
   <!-- Top-right Hebrew tag chip -->
   <rect x="${W - 80 - (tagHe.length * 18 + 40)}" y="100" width="${tagHe.length * 18 + 40}" height="44" fill="#39BDFF" fill-opacity="0.12" stroke="#39BDFF" stroke-opacity="0.4" stroke-width="1" rx="22"/>
-  <text x="${W - 100}" y="131" text-anchor="start" direction="rtl" font-family="sans-serif" font-size="20" font-weight="700" letter-spacing="2" fill="#39BDFF">${escapeXml(tagHe)}</text>
+  <text x="${W - 100}" y="131" text-anchor="start" direction="rtl" font-family="Segoe UI, Heebo, Arial, Helvetica, sans-serif" font-size="20" font-weight="700" letter-spacing="2" fill="#39BDFF">${escapeXml(tagHe)}</text>
 
   <!-- Hebrew title (1-2 lines, right-anchored) -->
   ${titleHeLines.map((line, i) => `
-  <text x="${W - 80}" y="${heBlockStartY + i * 88}" text-anchor="start" direction="rtl" font-family="sans-serif" font-size="76" font-weight="800" fill="#f0f0f4" letter-spacing="-1">${escapeXml(line)}</text>`).join('')}
+  <text x="${W - 80}" y="${heBlockStartY + i * 88}" text-anchor="start" direction="rtl" font-family="Segoe UI, Heebo, Arial, Helvetica, sans-serif" font-size="76" font-weight="800" fill="#f0f0f4" letter-spacing="-1">${escapeXml(line)}</text>`).join('')}
 
   <!-- Hebrew audience line -->
-  <text x="${W - 80}" y="${heBlockStartY + titleHeLines.length * 88 + 20}" text-anchor="start" direction="rtl" font-family="sans-serif" font-size="28" font-weight="400" fill="#9a9aa8">${escapeXml(audienceHe)}</text>
+  <text x="${W - 80}" y="${heBlockStartY + titleHeLines.length * 88 + 20}" text-anchor="start" direction="rtl" font-family="Segoe UI, Heebo, Arial, Helvetica, sans-serif" font-size="28" font-weight="400" fill="#9a9aa8">${escapeXml(audienceHe)}</text>
 
   <!-- English title smaller below for searchability + LTR audiences -->
-  <text x="${W - 80}" y="${heBlockStartY + titleHeLines.length * 88 + 70}" text-anchor="end" font-family="sans-serif" font-size="22" font-weight="600" letter-spacing="1" fill="#666674">${escapeXml(p.title)}</text>
+  <text x="${W - 80}" y="${heBlockStartY + titleHeLines.length * 88 + 70}" text-anchor="end" font-family="Segoe UI, Heebo, Arial, Helvetica, sans-serif" font-size="22" font-weight="600" letter-spacing="1" fill="#666674">${escapeXml(p.title)}</text>
 
   <!-- Bottom-right: duration in Hebrew -->
-  <text x="${W - 80}" y="${H - 80}" text-anchor="start" direction="rtl" font-family="sans-serif" font-size="22" font-weight="600" letter-spacing="1" fill="#666674">${escapeXml(durationHe)}</text>
+  <text x="${W - 80}" y="${H - 80}" text-anchor="start" direction="rtl" font-family="Segoe UI, Heebo, Arial, Helvetica, sans-serif" font-size="22" font-weight="600" letter-spacing="1" fill="#666674">${escapeXml(durationHe)}</text>
 
   <!-- Bottom-left: price -->
-  <text x="80" y="${H - 95}" font-family="sans-serif" font-size="14" font-weight="700" letter-spacing="3" fill="#444450">מחיר · PRICE</text>
-  <text x="80" y="${H - 50}" font-family="sans-serif" font-size="56" font-weight="800" fill="#f0f0f4">₪${p.price}</text>
+  <text x="80" y="${H - 95}" font-family="Segoe UI, Heebo, Arial, Helvetica, sans-serif" font-size="14" font-weight="700" letter-spacing="3" fill="#444450">מחיר · PRICE</text>
+  <text x="80" y="${H - 50}" font-family="Segoe UI, Heebo, Arial, Helvetica, sans-serif" font-size="56" font-weight="800" fill="#f0f0f4">₪${p.price}</text>
 
   <!-- EXPO wordmark in top-left corner -->
-  <polygon points="80,78 100,58 120,78" fill="#39BDFF"/>
-  <text x="140" y="106" font-family="sans-serif" font-size="42" font-weight="800" letter-spacing="-1" fill="#f0f0f4">EXPO</text>
+  ${logo(80, 56, 54)}
 </svg>`;
   }
 
@@ -174,20 +177,19 @@ function buildSvg(p, lang = 'bilingual') {
   <rect x="40" y="40" width="${W - 80}" height="${H - 80}" fill="none" stroke="#39BDFF" stroke-width="1" stroke-opacity="0.3" rx="20"/>
 
   <rect x="80" y="100" width="${(p.tag.length * 14) + 40}" height="44" fill="#39BDFF" fill-opacity="0.12" stroke="#39BDFF" stroke-opacity="0.4" stroke-width="1" rx="22"/>
-  <text x="${100}" y="129" font-family="sans-serif" font-size="18" font-weight="700" letter-spacing="3" fill="#39BDFF">${escapeXml(p.tag.toUpperCase())}</text>
+  <text x="${100}" y="129" font-family="Segoe UI, Heebo, Arial, Helvetica, sans-serif" font-size="18" font-weight="700" letter-spacing="3" fill="#39BDFF">${escapeXml(p.tag.toUpperCase())}</text>
 
   ${titleLines.map((line, i) => `
-  <text x="80" y="${titleStartY + i * 80}" font-family="sans-serif" font-size="68" font-weight="800" fill="#f0f0f4" letter-spacing="-1">${escapeXml(line)}</text>`).join('')}
+  <text x="80" y="${titleStartY + i * 80}" font-family="Segoe UI, Heebo, Arial, Helvetica, sans-serif" font-size="68" font-weight="800" fill="#f0f0f4" letter-spacing="-1">${escapeXml(line)}</text>`).join('')}
 
-  <text x="80" y="${titleStartY + titleLines.length * 80 + 20}" font-family="sans-serif" font-size="26" font-weight="400" fill="#7a7a88">${escapeXml(p.audience)}</text>
+  <text x="80" y="${titleStartY + titleLines.length * 80 + 20}" font-family="Segoe UI, Heebo, Arial, Helvetica, sans-serif" font-size="26" font-weight="400" fill="#7a7a88">${escapeXml(p.audience)}</text>
 
-  <text x="80" y="${H - 80}" font-family="sans-serif" font-size="20" font-weight="600" letter-spacing="2" fill="#444450">${escapeXml(p.duration.toUpperCase())}</text>
+  <text x="80" y="${H - 80}" font-family="Segoe UI, Heebo, Arial, Helvetica, sans-serif" font-size="20" font-weight="600" letter-spacing="2" fill="#444450">${escapeXml(p.duration.toUpperCase())}</text>
 
-  <text x="${W - 80}" y="${H - 95}" text-anchor="end" font-family="sans-serif" font-size="14" font-weight="700" letter-spacing="3" fill="#444450">PRICE</text>
-  <text x="${W - 80}" y="${H - 50}" text-anchor="end" font-family="sans-serif" font-size="56" font-weight="800" fill="#f0f0f4">${p.price} <tspan font-size="28" font-weight="600" fill="#7a7a88">${escapeXml(p.currency)}</tspan></text>
+  <text x="${W - 80}" y="${H - 95}" text-anchor="end" font-family="Segoe UI, Heebo, Arial, Helvetica, sans-serif" font-size="14" font-weight="700" letter-spacing="3" fill="#444450">PRICE</text>
+  <text x="${W - 80}" y="${H - 50}" text-anchor="end" font-family="Segoe UI, Heebo, Arial, Helvetica, sans-serif" font-size="56" font-weight="800" fill="#f0f0f4">${p.price} <tspan font-size="28" font-weight="600" fill="#7a7a88">${escapeXml(p.currency)}</tspan></text>
 
-  <text x="${W - 80}" y="135" text-anchor="end" font-family="sans-serif" font-size="42" font-weight="800" letter-spacing="-1" fill="#f0f0f4">EXPO</text>
-  <polygon points="${W - 178},78 ${W - 158},58 ${W - 138},78" fill="#39BDFF"/>
+  ${logo(W - 80 - Math.round(54 * 800 / 286), 56, 54)}
 </svg>`;
 }
 
@@ -211,20 +213,19 @@ function buildHomeSvg() {
   <rect x="40" y="40" width="${W - 80}" height="${H - 80}" fill="none" stroke="#39BDFF" stroke-width="1" stroke-opacity="0.3" rx="20"/>
 
   <!-- Centered EXPO mark with chevron -->
-  <polygon points="540,135 600,75 660,135" fill="#39BDFF"/>
-  <text x="${W / 2}" y="225" text-anchor="middle" font-family="sans-serif" font-size="92" font-weight="800" letter-spacing="-1" fill="#f0f0f4">EXPO</text>
+  ${logo(W / 2 - Math.round(130 * 800 / 286) / 2, 90, 130)}
 
   <!-- Tagline -->
-  <text x="${W / 2}" y="330" text-anchor="middle" font-family="sans-serif" font-size="20" font-weight="700" letter-spacing="6" fill="#39BDFF">PROGRAMMED TRAINING</text>
+  <text x="${W / 2}" y="330" text-anchor="middle" font-family="Segoe UI, Heebo, Arial, Helvetica, sans-serif" font-size="20" font-weight="700" letter-spacing="6" fill="#39BDFF">PROGRAMMED TRAINING</text>
 
   <!-- Headline -->
-  <text x="${W / 2}" y="430" text-anchor="middle" font-family="sans-serif" font-size="58" font-weight="800" fill="#f0f0f4" letter-spacing="-1">Programs that actually work</text>
+  <text x="${W / 2}" y="430" text-anchor="middle" font-family="Segoe UI, Heebo, Arial, Helvetica, sans-serif" font-size="58" font-weight="800" fill="#f0f0f4" letter-spacing="-1">Programs that actually work</text>
 
   <!-- Subline -->
-  <text x="${W / 2}" y="490" text-anchor="middle" font-family="sans-serif" font-size="22" font-weight="400" fill="#7a7a88">Block-periodised templates by Ohad · expo-il.co.il</text>
+  <text x="${W / 2}" y="490" text-anchor="middle" font-family="Segoe UI, Heebo, Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#7a7a88">Block-periodised templates by Ohad · expo-il.co.il</text>
 
   <!-- Bottom social-proof strip -->
-  <text x="${W / 2}" y="${H - 65}" text-anchor="middle" font-family="sans-serif" font-size="16" font-weight="700" letter-spacing="3" fill="#444450">20+ PRIVATE CLIENTS  ·  90+ PROGRAMS  ·  500+ EXERCISES</text>
+  <text x="${W / 2}" y="${H - 65}" text-anchor="middle" font-family="Segoe UI, Heebo, Arial, Helvetica, sans-serif" font-size="16" font-weight="700" letter-spacing="3" fill="#444450">20+ PRIVATE CLIENTS  ·  90+ PROGRAMS  ·  500+ EXERCISES</text>
 </svg>`;
 }
 
