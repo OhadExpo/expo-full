@@ -2304,6 +2304,7 @@ export const HE = {
   'NEW LEAD': 'ליד חדש',
   'PLAN DUE': 'צריך תוכנית',
   'NEEDS OUTREACH': 'צריך ליצור קשר',
+  'No payments marked in the app': 'אין תשלומים שסומנו באפליקציה',
   // 17.9 the two owner library tools (Classify, Matching) wired
   match: 'התאמה',
   matches: 'התאמות',
