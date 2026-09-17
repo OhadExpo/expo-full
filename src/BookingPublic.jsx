@@ -312,7 +312,7 @@ const inputStyle = {
 
 function Wrapper({ children }) {
   return (
-    <div style={{ background: 'var(--c-bg)', color: C.tx, minHeight: '100vh', fontFamily: FB }}>
+    <div dir={readLang() === 'he' ? 'rtl' : 'ltr'} style={{ background: 'var(--c-bg)', color: C.tx, minHeight: '100vh', fontFamily: FB }}>
       <header style={{ borderBottom: `1px solid ${C.cardBd}`, padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <EXPOMark height={28} />
         <a href="/" style={{ color: C.tm, textDecoration: 'none', fontFamily: FN, fontSize: 10, letterSpacing: '0.12em' }}>{tr(readLang(), 'EXPO-APP.CO.IL')}</a>
