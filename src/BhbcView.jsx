@@ -1169,7 +1169,7 @@ function attendance28(rec, days) {
               (Ohad: "make sure the sign out and the light/dark mode are the
               same color"). HDR_INK/HDR_BD are defined once at module scope. */}
           <div className="bhbc-header-ctrl" style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, marginInlineStart: 'auto' }}>
-            {!coach && <button onClick={() => setPreviewCoach((v) => !v)} className="bhbc-tab" title={tr('See exactly what your BHBC coaches see')} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: previewCoach ? '#fff' : HDR_INK, background: previewCoach ? ORANGE : 'transparent', border: `1px solid ${previewCoach ? ORANGE : HDR_BD}`, borderRadius: 0, height: HDR_BTN_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, padding: '0 11px', cursor: 'pointer' }}>{previewCoach ? `● ${tr('Coach view')}` : `◉ ${tr('Preview as coach')}`}</button>}
+            {!coach && <button onClick={() => setPreviewCoach((v) => !v)} className="bhbc-tab" title={tr('See exactly what your BHBC coaches see')} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: previewCoach ? '#fff' : HDR_INK, background: previewCoach ? ORANGE : 'transparent', border: `1px solid ${previewCoach ? ORANGE : HDR_BD}`, borderRadius: 0, height: HDR_BTN_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, padding: '0 11px', cursor: 'pointer' }}>{previewCoach ? `● ${tr('Back')}` : `◉ ${tr('Preview')}`}</button>}
             {/* HE / EN. Fixed width so the control does not resize as the
                 label changes — a control that changes size on click reads as a
                 flash bug. Shows the language it will SWITCH TO, which is how a
@@ -3005,7 +3005,9 @@ function TodayPanel({ today, fixtures, fx, rows, onSessions, onLog, planOf, onPl
         </div>
         {(onSessions || onLog) && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'stretch' }}>
-            {onSessions && <Btn onClick={onSessions} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff', justifyContent: 'center' }}>{tr('Start session')} ›</Btn>}
+            {/* 17.9 (Ohad): "the button start session doesn't fit here, i don't need it unless i
+                log into sessions". It lived on the Overview card; the sessions flow has its own.
+                Removed from here - nothing else on this card changes. */}
             {/* 'Log practice' lived here too, ~300px below the identical
                 toolbar button and calling the same setPracticeOpen(true). The
                 toolbar one survives because it is present on EVERY tab, not
