@@ -2309,6 +2309,7 @@ export const HE = {
   'CALLS': 'שיחות',
   'REVIEWS': 'בדיקות',
   'BUILDS': 'בניית תוכניות',
+  'Bnei Herzliya S&C zone': 'האזור של בני הרצליה',
   // 17.9 the two owner library tools (Classify, Matching) wired
   match: 'התאמה',
   matches: 'התאמות',
