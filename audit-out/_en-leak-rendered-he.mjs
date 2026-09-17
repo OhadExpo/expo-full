@@ -60,6 +60,21 @@ for (const r of routes) {
   report.push(`\n### ${r}  (expanded ${opened}, english nodes ${rows.length}, new ${fresh.length})`);
   for (const x of fresh) report.push(`${x.up ? 'UP ' : '   '}${x.hostHe ? 'inHE ' : '     '}<${x.tag}> ${x.s}`);
 }
+// club zone: every tab (its own dictionary, bhbcHe)
+if (process.env.CLUB) {
+  await pg.evaluate(() => localStorage.setItem('expo-collapse:bhbc-lang', JSON.stringify('he')));
+  await pg.goto(`${BASE}/coach/bhbc?lang=he`, { waitUntil: 'domcontentloaded' }); await wait(8000);
+  const tabs = await pg.evaluate(() => [...document.querySelectorAll('.bhbc-tab, [role="tab"]')].filter((e) => e.offsetParent).map((e) => (e.innerText || '').trim()).filter(Boolean));
+  for (const tb of tabs) {
+    if (/יציאה|Sign out|תצוגת מאמן/.test(tb)) continue;
+    await pg.evaluate((label) => { const el = [...document.querySelectorAll('.bhbc-tab, [role="tab"]')].find((e) => (e.innerText || '').trim() === label); if (el) el.click(); }, tb);
+    await wait(2500); const opened = await expand(); await wait(1000);
+    const rows = await collect(); const fresh = [];
+    for (const x of rows) { if (seen.has(x.s)) continue; seen.set(x.s, tb); fresh.push(x); }
+    report.push(`\n### club: ${tb}  (expanded ${opened}, english nodes ${rows.length}, new ${fresh.length})`);
+    for (const x of fresh) report.push(`${x.up ? 'UP ' : '   '}${x.hostHe ? 'inHE ' : '     '}<${x.tag}> ${x.s}`);
+  }
+}
 fs.writeFileSync(OUT, report.join('\n'));
 console.log('wrote', OUT, 'unique', seen.size);
 await pg.close(); b.disconnect();

@@ -212,6 +212,13 @@ export const HE = {
   'Semi Final': 'חצי גמר',
   'Final Series': 'סדרת הגמר',
   'Winner Cup': 'גביע וינר',
+  'League': 'ליגה',
+  // fixture sync writes these as the venue when the hall is not known yet
+  'away': 'חוץ',
+  'away #TBD': 'חוץ · אולם עוד לא נקבע',
+  'Home': 'בית',
+  'Away': 'חוץ',
+  'Ohad + PT': 'אוהד + פיזיו',
   'Play-In': 'פליי-אין',
   Supercup: 'הסופרקאף',
   'Today’s focus': 'הפוקוס להיום',

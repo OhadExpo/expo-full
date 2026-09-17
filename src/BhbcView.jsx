@@ -2151,7 +2151,7 @@ function GameEditModal({ game, onClose, onSave }) {
           <label style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: FN, textAlign: 'center' }}>{tr('Home / Away')}</label>
           <div style={{ display: 'inline-flex', border: `1px solid ${C.cardBd}`, alignSelf: 'center' }}>
             {[['home', 'Home'], ['away', 'Away'], ['', '—']].map(([k, l]) => (
-              <button key={k} type="button" onClick={() => setHome(k)} style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: home === k ? '#fff' : C.td, background: home === k ? NAVY : 'transparent', border: 'none', padding: '7px 16px', cursor: 'pointer' }}>{l}</button>
+              <button key={k} type="button" onClick={() => setHome(k)} style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: home === k ? '#fff' : C.td, background: home === k ? NAVY : 'transparent', border: 'none', padding: '7px 16px', cursor: 'pointer' }}>{tr(l)}</button>
             ))}
           </div>
         </div>
@@ -2231,7 +2231,7 @@ function FixturesAheadPanel({ fixtures, today }) {
                   {g.travel && <span style={{ fontFamily: FN, fontSize: 11, color: ORANGE_DEEP }} title={tr('Travel')}>✈</span>}
                   {tight && <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#fff', background: '#E0A73A', padding: '1px 6px' }} title={tr(gap === 1 ? '1 day after the previous game' : gap === 2 ? '2 days after the previous game' : '{n} days after the previous game').replace('{n}', gap)}>{tr(gap === 1 ? '1d turnaround' : gap === 2 ? '2d turnaround' : '{n}d turnaround').replace('{n}', gap)}</span>}
                 </div>
-                <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 3 }}>{[tr(g.comp), `${dow(g.date)} ${monDay(g.date)}`, g.venue].filter(Boolean).join(' · ')}</div>
+                <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 3 }}>{[tr(g.comp), `${dow(g.date)} ${monDay(g.date)}`, g.venue && tr(g.venue)].filter(Boolean).join(' · ')}</div>
               </div>
             </div>
           );
@@ -4176,7 +4176,7 @@ function ResultsList({ games, bhbcOnly }) {
     const opp = bhHome ? g.away : g.home;
     const bhScore = bhHome ? g.hs : g.as, oppScore = bhHome ? g.as : g.hs;
     const won = g.played && bhScore > oppScore;
-    const detail = [tr(g.comp), g.venue].filter(Boolean).join(' · ');
+    const detail = [tr(g.comp), g.venue && tr(g.venue)].filter(Boolean).join(' · ');
     const nameCell = { fontFamily: FN, fontSize: 13, fontWeight: 800, color: C.tx, whiteSpace: 'nowrap' };
     return (
       <div style={{ borderBottom: `1px solid ${C.cardBd}`, borderInlineStart: `3px solid ${ORANGE}`, background: `color-mix(in srgb, ${NAVY} 7%, transparent)` }}>
@@ -4654,7 +4654,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
   rows.forEach(({ inj }) => { if (inj.status === 'out') counts.out++; else if (inj.status === 'limited') counts.limited++; else if (inj.status === 'non-contact') counts.nc++; });
   return (
     <>
-      <Card padding={14} leftStripe={ORANGE} header={secTitle('Medical · Injury Board')} headerRight={<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>{rows.length} {tr('active')} · {canMedical ? 'Ohad + PT' : tr('view only')}</span>}>
+      <Card padding={14} leftStripe={ORANGE} header={secTitle('Medical · Injury Board')} headerRight={<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>{rows.length} {tr('active')} · {canMedical ? tr('Ohad + PT') : tr('view only')}</span>}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 22 }}>
           {[[tr('Out'), counts.out, '#DE4E3B'], [tr('limited'), counts.limited, '#E0A73A'], [tr('Non-contact'), counts.nc, '#4F9DE0'], [tr('Cleared'), cleared.length, '#37B27C']].map(([k, n, c]) => (
             <div key={k} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
