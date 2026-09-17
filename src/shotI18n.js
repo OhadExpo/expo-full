@@ -215,7 +215,7 @@ export const SHOT_I18N = {
     enterHeight: 'תכניס גובה', eyeHeight: '× גובה עיניים', ofFrames: (p) => `${p}% מהפריימים`,
     chainVal: (k, s, e) => `ברך ${k} · זרוע ${s} · מרפק ${e} מ״ש`,
     consistencyLbl: (n) => `עקביות (${n} זריקות)`,
-    consistencyVal: (r, a, se, t) => `קצב ±${r}% · יד בשחרור ±${a}° · מרפק בסט ±${se}° · תזמון ±${t} מ״ש`,
+    consistencyVal: (r, a, se, t) => `סטייה בין הזריקות — קצב ${r}% · יד בשחרור ${a} מעלות · מרפק בסט ${se} מעלות · תזמון ${t} מ״ש`,
 
     sessionTitle: (n) => `אימון · זוהו ${n} זריקות`,
     cols: ['#', 'זמן', 'ניקוד', 'דיפ', 'סט', 'שחרור', 'תזמון', 'גובה שחרור', 'נכנס?'],
@@ -243,7 +243,7 @@ export const SHOT_I18N = {
     launchSpreadOn: (n, total) => `נמדדה ב-${n} מתוך ${total}`,
     worstRep: (i, v, unit) => `תסתכל על חזרה ${i}: שחררת שם ב-${v}${unit}`,
     verdictOutlier: (n) => `${n} חזרות יצאו אותו דבר. אחת לא`,
-    gainPts: (n) => `+${n} נקודות אם מתקנים`,
+    gainPts: (n) => `עוד ${n} נקודות אם מתקנים`,
     vsLastHead: (d) => `מול הניתוח האחרון ששמרת (${d})`,
     vsScore: (was, now) => `${was} ← ${now}`,
     vsBetter: 'השתפר מאז',
