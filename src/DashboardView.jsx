@@ -603,7 +603,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                   <SectionLabel style={{ color: '#FFFFFF', fontSize: 13, letterSpacing: '0.08em', fontWeight: 700 }}>{s.label}</SectionLabel>
                 </span>
               </RefinedHeaderStrip>
-              <div style={{ fontSize: C.kpiNumberSize, fontWeight: 800, fontFamily: FN, color: C.tx, lineHeight: 1.05, letterSpacing: '-0.015em', direction: 'ltr', unicodeBidi: 'isolate', textAlign: he ? 'right' : 'left' }}>{s.value}
+              <div className="kpi-value" style={{ fontSize: C.kpiNumberSize, fontWeight: 800, fontFamily: FN, color: C.tx, lineHeight: 1.05, letterSpacing: '-0.015em', direction: 'ltr', unicodeBidi: 'isolate', textAlign: he ? 'right' : 'left' }}>{s.value}
                 {s.total !== undefined && <span style={{ fontSize: 13, color: refined ? 'rgba(0,0,0,0.55)' : C.td, fontWeight: 400, letterSpacing: 0 }}> / {s.total}</span>}</div>
               {s.sub && <div style={{ fontSize: 10, fontFamily: FN, color: s.subColor, marginTop: 6, letterSpacing: '0.04em' }}>{s.sub}</div>}
             </div>

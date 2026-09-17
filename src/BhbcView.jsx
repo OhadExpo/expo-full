@@ -13,7 +13,7 @@
 
 import React, { useMemo, useState, useEffect, useCallback, Suspense, lazy } from 'react';
 import { C, FN, FB, EXPO_ICON_LG_T } from './theme';
-import { Card as BaseCard, CollapsibleSection, Btn, Input, Modal, EmptyState, toast, usePersistentState, useEdgeFade } from './ui';
+import { Card as BaseCard, CollapsibleSection, Btn, Input, Modal, EmptyState, toast, confirmToast, usePersistentState, useEdgeFade } from './ui';
 import { ThemeToggle } from './ThemeToggle';
 import { fmtNumericDate } from './dates';
 import { useTheme } from './hooks/useTheme';
@@ -910,6 +910,17 @@ function attendance28(rec, days) {
         .bhbc-hdr-tabs::-webkit-scrollbar{display:none} .bhbc-hdr-tabs{scrollbar-width:none;-ms-overflow-style:none}
         .bhbc-ghost-btn:hover{color:${ORANGE}!important;border-color:${ORANGE}!important}
         .bhbc-tab:hover{color:#fff!important;border-color:rgba(255,255,255,0.30)!important}
+        /* 17.9 (Ohad, phone): 'סקירה gets cut and i cannot scroll to where it fully seen'.
+           'safe center' still centred the row once it overflowed, so the first tab sat half
+           outside the scroller with nothing to scroll to. Below 700px the strip starts at its
+           first tab and scrolls from there, with a little end padding so the last one clears too. */
+        @media (max-width: 700px){
+          /* ...and the crest is STICKY, so at rest it sat ON TOP of the first tab (measured at
+             412px: tab 295..355, crest 343..412 - 12px of סקירה hidden under it). The strip
+             starts clear of the crest and scrolls from there. */
+          .bhbc-hdr-tabs{justify-content:flex-start !important;scroll-padding-inline:20px;padding-inline-start:20px;padding-inline-end:2px}
+          .bhbc-hdr-tabs > :last-child{margin-inline-end:8px}
+        }
         .bhbc-expo-mark{opacity:1}
         /* Never let the zone scroll the PAGE sideways — wide bits scroll inside. */
         .bhbc-zone{max-width:100vw;overflow-x:clip}
@@ -1255,7 +1266,7 @@ function attendance28(rec, days) {
                     try { navigator.clipboard.writeText(txt); } catch { /* denied - it is all on screen anyway */ }
                     setBriefCopied(true); setTimeout(() => setBriefCopied(false), 1800);
                   }} />
-                <FixturesAheadPanel fixtures={bhbcFixtures} today={today} />
+                <FixturesAheadPanel today={today} />
                 {/* Three of its four numbers need an sRPE per session. Until one is
                     logged this card is four dashes, printed every morning. */}
                 {(team.avg != null || (team.week || 0) > 0) && <TeamSnapshotCard team={team} />}
@@ -1272,13 +1283,13 @@ function attendance28(rec, days) {
               <>
                 {fx.nextGame && <NextGamePanel nextGame={fx.nextGame} today={today} onEdit={asCoach ? null : () => setGameEdit(true)} />}
                 {/* Plan the week HERE (Ohad 08-24) — coaches see the board read-only. */}
-                <WeekPlanner fixtures={bhbcFixtures} today={today} planOf={planOf} onSavePlan={asCoach ? null : saveSessionPlan}
+                <WeekPlanner today={today} planOf={planOf} onSavePlan={asCoach ? null : saveSessionPlan}
                   onUpsert={asCoach ? null : upsertFixture} onRemove={asCoach ? null : removeFixture} />
                 {/* What the team ACTUALLY did, slot by slot (Ohad 08-24:
                     "where can I see the previous practices details?"). */}
                 <PastPractices fixtures={bhbcFixtures} loads={bhbcLoads} roster={roster} today={today} planOf={planOf} />
                 <MicrocycleView fx={fx} today={today} />
-                <ScheduleTool fx={fx} fixtures={bhbcFixtures} today={today} mode={schedMode} setMode={setSchedMode} onLog={canLog ? () => setLogFor('new') : null} />
+                <ScheduleTool fx={fx} today={today} mode={schedMode} setMode={setSchedMode} onLog={canLog ? () => setLogFor('new') : null} />
               </>
             )}
 
@@ -1393,7 +1404,14 @@ function attendance28(rec, days) {
         const ath = roster.find((t) => t.id === injuryFor.athleteId);
         if (!ath) return null;
         const existing = injuryFor.injuryId ? ((medical[injuryFor.athleteId] || {}).injuries || []).find((i) => i.id === injuryFor.injuryId) : null;
-        return <InjuryModal athlete={ath} injury={existing} currentUser={currentUser} onClose={() => setInjuryFor(null)} onSave={(injury) => { saveInjury({ athleteId: injuryFor.athleteId, injury }); setInjuryFor(null); }} />;
+        // 17.9, the club physio: an injury from a few days ago "only let me log it as today". With
+        // one injury active every entry point opened THAT record, so a new problem could only go in
+        // as a progress note - always dated today. The modal now lists the athlete's active records,
+        // opens a blank one on "+ New injury", and offers the recent games as the onset date.
+        return <InjuryModal key={injuryFor.injuryId || 'new'} athlete={ath} injury={existing} currentUser={currentUser}
+          active={activeInjuries(medical, injuryFor.athleteId)} today={today}
+          onSwitch={(id) => setInjuryFor({ athleteId: injuryFor.athleteId, injuryId: id })}
+          onClose={() => setInjuryFor(null)} onSave={(injury) => { saveInjury({ athleteId: injuryFor.athleteId, injury }); setInjuryFor(null); }} />;
       })()}
 
       {/* ---- MANAGE ROSTER MODAL ---- */}
@@ -4846,8 +4864,9 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
   );
 }
 
-function InjuryModal({ athlete, injury, onClose, onSave, currentUser = '' }) {
+function InjuryModal({ athlete, injury, onClose, onSave, currentUser = '', active = [], today = todayISO(), onSwitch = null }) {
   const tr = useT();
+  const he = useHe();
   const [bodyPart, setBodyPart] = useState(injury?.bodyPart || '');
   const [side, setSide] = useState(injury?.side || 'N/A');
   const [type, setType] = useState(injury?.type || '');
@@ -4864,12 +4883,15 @@ function InjuryModal({ athlete, injury, onClose, onSave, currentUser = '' }) {
   const [resolved, setResolved] = useState(injury?.resolved || false);
   const [progress, setProgress] = useState(injury?.progress || []);
   const [pNote, setPNote] = useState(''); const [pPain, setPPain] = useState('');
+  const [pDate, setPDate] = useState(today);
+  const [editDate, setEditDate] = useState('');
   const [editIdx, setEditIdx] = useState(-1);
   const [editNote, setEditNote] = useState(''); const [editPain, setEditPain] = useState('');
+  const byDateDesc = (arr) => [...arr].sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
   const commitEdit = () => {
-    setProgress((arr) => arr.map((x, k) => (k === editIdx
-      ? { ...x, note: editNote.trim(), pain: editPain === '' ? null : Number(editPain) }
-      : x)));
+    setProgress((arr) => byDateDesc(arr.map((x, k) => (k === editIdx
+      ? { ...x, date: editDate && editDate <= today ? editDate : x.date, note: editNote.trim(), pain: editPain === '' ? null : Number(editPain) }
+      : x))));
     setEditIdx(-1);
   };
   const rehabBtn = (color) => ({
@@ -4878,11 +4900,13 @@ function InjuryModal({ athlete, injury, onClose, onSave, currentUser = '' }) {
   });
   const addProgress = () => {
     if (!pNote.trim() && pPain === '') return;
-    setProgress((p) => [{ date: todayISO(), note: pNote.trim(), pain: pPain === '' ? null : Number(pPain), status, by: currentUser || null }, ...p]);
-    setPNote(''); setPPain('');
+    const d = pDate && pDate <= today ? pDate : today;
+    setProgress((p) => byDateDesc([{ date: d, note: pNote.trim(), pain: pPain === '' ? null : Number(pPain), status, by: currentUser || null }, ...p]));
+    setPNote(''); setPPain(''); setPDate(today);
   };
   const save = () => {
     if (!bodyPart) { toast('Pick a body part'); return; }
+    if (onsetDate && onsetDate > today) { toast(he ? 'תאריך הפציעה לא יכול להיות בעתיד' : 'The onset date cannot be in the future'); return; }
     onSave({
       id: injury?.id || 'inj_' + Math.random().toString(36).slice(2, 9),
       bodyPart, side, type, onsetDate, status, pain: pain === '' ? null : Number(pain),
@@ -4896,10 +4920,43 @@ function InjuryModal({ athlete, injury, onClose, onSave, currentUser = '' }) {
     });
   };
   const sel = { fontFamily: FN, fontSize: 13, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 8px', width: '100%', height: 34, boxSizing: 'border-box' };
+  const chipBtn = { fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', height: 28, boxSizing: 'border-box', padding: '0 10px', border: '1px solid', borderRadius: 0, display: 'inline-flex', alignItems: 'center', gap: 6, lineHeight: 1 };
+  // Switching records drops unsaved edits - ask only when there are some.
+  const snapshot = JSON.stringify([bodyPart, side, type, onsetDate, status, pain, mechanism, rtpTarget, notes, resolved, progress, pNote, pPain]);
+  const [initialSnap] = useState(snapshot);
+  const switchTo = async (id) => {
+    if (snapshot !== initialSnap && !(await confirmToast(he ? 'לבטל את השינויים ברשומה הזאת?' : 'Discard the changes to this record?', { okLabel: he ? 'ביטול השינויים' : 'Discard', cancelLabel: he ? 'חזרה' : 'Back' }))) return;
+    onSwitch(id);
+  };
+  const agoText = (iso) => {
+    if (!iso) return '';
+    const n = dayDiff(today, iso);
+    if (n < 0) return he ? 'בעתיד' : 'in the future';
+    if (n === 0) return he ? 'היום' : 'today';
+    if (n === 1) return he ? 'אתמול' : 'yesterday';
+    return he ? `לפני ${n} ימים` : `${n} days ago`;
+  };
   const lbl = { fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.16em', fontFamily: FN, marginBottom: 4, display: 'block' };
   return (
     <BModal open sticky onClose={onClose} wide title={`${injury ? 'Update' : 'Report'} injury · #${athlete.jersey ?? '—'} ${athlete.name}`}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {onSwitch && (active.length > 0 || injury) && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+            {active.map((a) => {
+              const on = injury && a.id === injury.id;
+              return (
+                <button key={a.id} type="button" onClick={() => { if (!on) switchTo(a.id); }}
+                  style={{ ...chipBtn, color: on ? '#fff' : C.tx, background: on ? NAVY : 'transparent', borderColor: on ? NAVY : C.cardBd, cursor: on ? 'default' : 'pointer' }}>
+                  {tr(a.bodyPart) || '—'}{a.onsetDate ? <span dir="ltr" style={{ opacity: 0.75, fontWeight: 600, unicodeBidi: 'isolate' }}>{monDay(a.onsetDate)}</span> : null}
+                </button>
+              );
+            })}
+            <button type="button" onClick={() => { if (injury) switchTo(null); }}
+              style={{ ...chipBtn, color: !injury ? '#fff' : ORANGE, background: !injury ? ORANGE : 'transparent', borderColor: ORANGE, cursor: injury ? 'pointer' : 'default' }}>
+              + {he ? 'פציעה חדשה' : 'New injury'}
+            </button>
+          </div>
+        )}
         <div className="bhbc-form-grid" style={{ display: 'grid', gridTemplateColumns: '1.3fr 0.9fr 1.1fr', gap: 10 }}>
           <div><label style={lbl}>{tr('Body part')}</label><select value={bodyPart} onChange={(e) => setBodyPart(e.target.value)} style={sel}><option value="">{tr('— select —')}</option>{BODY_PARTS.map((b) => <option key={b} value={b}>{tr(b)}</option>)}</select></div>
           <div><label style={lbl}>{tr('Side')}</label><select value={headInjury ? 'N/A' : side} disabled={headInjury} title={headInjury ? tr('A head injury has no side.') : undefined} onChange={(e) => setSide(e.target.value)} style={{ ...sel, ...(headInjury ? { opacity: 0.5 } : null) }}>{['N/A', 'Left', 'Right', 'Bilateral'].map((s) => <option key={s} value={s}>{s}</option>)}</select></div>
@@ -4912,7 +4969,8 @@ function InjuryModal({ athlete, injury, onClose, onSave, currentUser = '' }) {
               1.44 on every label around it. Same local label as the rest of the
               form, so one form has one label style. */}
           <div><label style={lbl}>{tr('Onset date')}</label>
-            <input type="date" value={onsetDate} onChange={(e) => setOnsetDate(e.target.value)} style={sel} /></div>
+            <input type="date" value={onsetDate} max={today} onChange={(e) => setOnsetDate(e.target.value)} style={sel} />
+            <span style={{ display: 'block', marginTop: 4, fontFamily: FN, fontSize: 10, color: onsetDate > today ? '#DE4E3B' : C.tm }}>{agoText(onsetDate)}</span></div>
           <div><label style={lbl}>{tr('Pain (0–10)')}</label><input type="number" min="0" max="10" value={pain} onChange={(e) => setPain(e.target.value)} placeholder="—" style={sel} /></div>
           <div><label style={lbl}>{tr('Return-to-play target')}</label>
             <input type="date" value={rtpTarget} onChange={(e) => setRtpTarget(e.target.value)} style={sel} /></div>
@@ -4937,7 +4995,8 @@ function InjuryModal({ athlete, injury, onClose, onSave, currentUser = '' }) {
         <div style={{ border: `1px solid ${C.cardBd}` }}>
           <div style={{ padding: '8px 12px', background: NAVY_DEEP, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff' }}>{tr('Rehab progress')}</div>
           <div style={{ display: 'flex', gap: 8, padding: '10px 12px', borderBottom: progress.length ? `1px solid ${C.cardBd}` : 'none', alignItems: 'center' }}>
-            <input value={pNote} onChange={(e) => setPNote(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') addProgress(); }} placeholder={tr('Progress note for today…')} style={{ ...sel, flex: 1 }} />
+            <input type="date" value={pDate} max={today} min={onsetDate || undefined} onChange={(e) => setPDate(e.target.value)} title={he ? 'תאריך הרישום' : 'Date of this note'} style={{ ...sel, width: 138, flexShrink: 0 }} />
+            <input value={pNote} onChange={(e) => setPNote(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') addProgress(); }} placeholder={pDate === today ? tr('Progress note for today…') : (he ? 'הערת התקדמות…' : 'Progress note…')} style={{ ...sel, flex: 1, minWidth: 0 }} />
             <input type="number" min="0" max="10" value={pPain} onChange={(e) => setPPain(e.target.value)} placeholder={tr('pain')} style={{ ...sel, width: 72 }} />
             <Btn onClick={addProgress} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>{tr('Add')}</Btn>
           </div>
@@ -4945,7 +5004,9 @@ function InjuryModal({ athlete, injury, onClose, onSave, currentUser = '' }) {
             <div style={{ maxHeight: 160, overflowY: 'auto' }}>
               {progress.map((p, i) => (
                 <div key={i} style={{ display: 'flex', gap: 10, padding: '8px 12px', borderBottom: `1px solid ${C.cardBd}`, fontFamily: FN, fontSize: 12, alignItems: 'center' }}>
-                  <span style={{ color: C.td, width: 50, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{p.date.slice(5)}</span>
+                  {editIdx === i
+                    ? <input type="date" value={editDate} max={today} onChange={(e) => setEditDate(e.target.value)} style={{ ...sel, width: 138, height: 24, flexShrink: 0 }} />
+                    : <span dir="ltr" style={{ color: C.td, width: 50, flexShrink: 0, fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate' }}>{monDay(p.date)}</span>}
                   {editIdx === i ? (
                     <input autoFocus value={editNote} onChange={(e) => setEditNote(e.target.value)}
                       onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commitEdit(); } if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); setEditIdx(-1); } }}
@@ -4969,7 +5030,7 @@ function InjuryModal({ athlete, injury, onClose, onSave, currentUser = '' }) {
                     </span>
                   ) : (
                     <span style={{ display: 'inline-flex', gap: 6, flexShrink: 0 }}>
-                      <button type="button" onClick={() => { setEditIdx(i); setEditNote(p.note || ''); setEditPain(p.pain == null ? '' : String(p.pain)); }} title={tr('Edit')} style={rehabBtn(C.tm)}>✎</button>
+                      <button type="button" onClick={() => { setEditIdx(i); setEditDate(p.date || today); setEditNote(p.note || ''); setEditPain(p.pain == null ? '' : String(p.pain)); }} title={tr('Edit')} style={rehabBtn(C.tm)}>✎</button>
                       <button type="button" onClick={() => setProgress((arr) => arr.filter((_, k) => k !== i))} title={tr('Delete')} style={rehabBtn('#DE4E3B')}>✕</button>
                     </span>
                   )}
