@@ -291,9 +291,9 @@ function WhoItsFor({ heb }) {
     <section data-fade className="gym-section">
       <SectionHeader heb={heb}
         kicker={heb ? 'למי זה' : 'WHO IT IS FOR'}
-        title={heb ? 'מי המתאמן שלנו' : 'Who trains here'}
+        title={heb ? 'למי זה מתאים' : 'Who trains here'}
         subtitle={heb
-          ? 'מרכז ביצועים. לא חדר כושר חופשי, לא שיעור קבוצתי. וזה משנה למי זה מתאים.'
+          ? 'מרכז ביצועים. לא חדר כושר חופשי, לא שיעור קבוצתי. ולכן זה לא לכל אחד.'
           : 'A performance center. Not an open gym, not a group class. That changes who fits.'} />
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 1,
@@ -303,7 +303,7 @@ function WhoItsFor({ heb }) {
           <div style={{
             fontFamily: FN, fontSize: 11, color: C.ac, letterSpacing: '0.22em',
             fontWeight: 800, marginBottom: 16,
-          }}>{heb ? 'כן — אם' : 'YES — IF'}</div>
+          }}>{heb ? 'מתאים אם' : 'YES — IF'}</div>
           <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10 }}>
             {yes.map((t, i) => (
               <li key={i} style={{ display: 'flex', gap: 10, fontSize: 14, color: C.tx, lineHeight: 1.55 }}>
@@ -317,7 +317,7 @@ function WhoItsFor({ heb }) {
           <div style={{
             fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: '0.22em',
             fontWeight: 800, marginBottom: 16,
-          }}>{heb ? 'לא — אם' : 'NOT — IF'}</div>
+          }}>{heb ? 'לא מתאים אם' : 'NOT — IF'}</div>
           <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10 }}>
             {no.map((t, i) => (
               <li key={i} style={{ display: 'flex', gap: 10, fontSize: 14, color: C.tm, lineHeight: 1.55 }}>
@@ -338,7 +338,7 @@ function WhyInPerson({ heb }) {
     ? [
         { h: 'עיניים על כל סט', b: 'רק 4–7 בקבוצה. אנחנו רואים כל חזרה ומתקנים תוך כדי הסט — לא שיעור שבו אתה סתם עוד מספר.' },
         { h: 'תוכנית, לא אימון', b: 'בלוקים של 4–8 שבועות שנבנים סביב המספרים שלך. השינוי בין שבוע לשבוע מתוכנן, לא אקראי.' },
-        { h: 'עיסוי, לא בונוס', b: 'עיסוי ספורט של 45–60 דקות בכל חודש עם מטפל ייעודי, מובנה במנוי. פחות כאבי שריר, טווחי תנועה פתוחים, וגוף שמחזיק את העומס לאורך זמן.' },
+        { h: 'עיסוי, לא בונוס', b: 'עיסוי ספורט של 45–60 דקות בכל חודש עם מטפל ייעודי, כלול במנוי. פחות כאבי שריר, טווחי תנועה פתוחים, וגוף שמחזיק את העומס לאורך זמן.' },
       ]
     : [
         { h: 'Coached eyes, every set', b: 'Groups of 4–7 only. We see every rep and correct it mid-set — not a class where you are a number.' },
@@ -349,7 +349,7 @@ function WhyInPerson({ heb }) {
     <section data-fade className="gym-section">
       <SectionHeader heb={heb}
         kicker={heb ? 'למה כאן' : 'WHY HERE'}
-        title={heb ? 'מה שהמרכז נותן' : 'What the center gives you'} />
+        title={heb ? 'מה המרכז נותן' : 'What the center gives you'} />
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14, marginTop: 32,
       }}>
@@ -384,7 +384,7 @@ function WhyInPerson({ heb }) {
 function Approach({ heb }) {
   const pillars = heb
     ? [
-        { n: '01', h: 'תוכנית כוח מתוכננת', b: 'בלוקים של 4–8 שבועות. מחזורים שמתעדכנים לפי הביצועים, לא לפי תחושה. כל סט נכתב מראש.' },
+        { n: '01', h: 'תוכנית כוח מובנית', b: 'בלוקים של 4–8 שבועות. מחזורים שמתעדכנים לפי הביצועים, לא לפי תחושה. כל סט נכתב מראש.' },
         { n: '02', h: 'ניידות וטווחי תנועה', b: 'עבודה ממוקדת על הצוואר, הכתפיים, הירך, והקרסול. לא מתיחות בסוף — חלק מהאימון עצמו.' },
         { n: '03', h: 'עיסוי ספורט מובנה', b: 'עיסוי חודשי של 45–60 דקות עם מטפל ייעודי, ועיסוי קצר של 15–20 דקות לפני/אחרי אימון לפי הצורך. פחות כאב, פחות פציעות, יותר רציפות.' },
       ]
@@ -778,7 +778,7 @@ function CalendarSection({ heb }) {
     <section data-fade className="gym-section">
       <SectionHeader heb={heb}
         kicker={heb ? 'יומן חי' : 'LIVE CALENDAR'}
-        title={heb ? 'בחר מועד פנוי' : 'Pick an open slot'}
+        title={heb ? 'בחר/י מועד פנוי' : 'Pick an open slot'}
         subtitle={heb
           ? 'מועדים בזמן אמת. בחר/י, מלא/י פרטים, וקבל/י אישור באימייל מיד.'
           : "Real-time availability. Pick a slot, fill the form, get an email confirmation instantly."} />
@@ -868,7 +868,7 @@ function FAQ({ heb }) {
   const items = heb
     ? [
         { q: 'אני חדש לחלוטין באימוני כוח. זה מתאים לי?', a: 'בהחלט. רוב המתאמנים מתחילים אצלנו בלי רקע קודם. אבחון התנועה הראשון בודק מאיפה להתחיל.' },
-        { q: 'יש פציעה ישנה. אפשר להתאמן?', a: 'תלוי בפציעה — אחרי השיחה הראשונה נדע אם זה הכיוון, ואם צריך נפנה אותך למישהו מתאים יותר. אנחנו לא מבטיחים דברים שאנחנו לא יכולים לעמוד בהם.' },
+        { q: 'יש לי פציעה ישנה. אפשר להתאמן?', a: 'תלוי בפציעה — אחרי השיחה הראשונה נדע אם זה הכיוון, ואם צריך נפנה אותך למישהו מתאים יותר. אנחנו לא מבטיחים דברים שאנחנו לא יכולים לעמוד בהם.' },
         { q: 'מי נותן את העיסוי?', a: 'יובל, המטפל בעיסוי ספורט ורפואי של המרכז, מוסמך מכון וינגייט. אוהד מאמן, יובל מטפל — שניהם מלווים אותך לאורך התהליך.' },
         { q: 'העיסוי באמת כלול, או שזו תוספת בתשלום?', a: 'כלול. כל מנוי כולל עיסוי ספורט חודשי של 45–60 דקות עם מטפל ייעודי — לא בונוס שמופיע פעם בכמה חודשים. אפשר להוסיף עיסוי קצר לפני או אחרי אימון לפי הצורך.' },
         { q: 'כמה עולה חודש?', a: 'תלוי בקצב (פעם, פעמיים, או שלוש בשבוע). שולחים מחירון מסודר אחרי הפנייה הראשונה.' },
@@ -971,11 +971,11 @@ function Footer({ heb }) {
           }}>{heb ? 'עוד ב-EXPO' : 'ALSO ON EXPO'}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <a href="#/online" style={{ color: C.tx, fontSize: 13, textDecoration: 'none' }}>
-              {heb ? 'תוכניות אונליין' : 'Online programs'} →
+              {heb ? 'תוכניות אונליין ←' : 'Online programs →'}
             </a>
             <a href="https://expo-app.co.il" target="_blank" rel="noopener"
               style={{ color: C.tx, fontSize: 13, textDecoration: 'none' }}>
-              {heb ? 'אפליקציית EXPO' : 'EXPO athlete app'} →
+              {heb ? 'אפליקציית EXPO ←' : 'EXPO athlete app →'}
             </a>
           </div>
         </div>

@@ -97,7 +97,7 @@ const STRINGS = {
   'how.02.d.tmpl': {
     // {bit} placeholder is replaced at render time.
     en: 'Tap BUY on the program — opens WhatsApp with everything pre-filled. Pay through Bit ({bit}) and send a screenshot of the confirmation. One-time payment, full receipt issued.',
-    he: 'לחץ "קנייה" — נפתח וואטסאפ עם הכל מוכן. שלם בביט ({bit}) ושלח צילום מסך של האישור. תשלום חד-פעמי, עם חשבונית.',
+    he: 'לחץ "קנייה בוואטסאפ" — נפתח וואטסאפ עם הכל מוכן. שלם בביט ({bit}) ושלח צילום מסך של האישור. תשלום חד-פעמי, עם חשבונית.',
   },
   'how.03.t':            { en: 'Get your account',    he: 'תקבל את החשבון' },
   'how.03.d': {
@@ -118,7 +118,7 @@ const STRINGS = {
   'inside.h2':           { en: 'Your phone counts the reps. You focus on the lift.', he: 'הטלפון סופר חזרות. אתה מתרכז בהרמה.' },
   'inside.body': {
     en: 'Film any set with your phone. The portal runs pose detection on the clip, counts the reps automatically, and lets you compare the new attempt with your last set at the same weight — same engine I use with the athletes I coach, no manual stopwatch.',
-    he: 'צלם כל סט בטלפון. הפורטל מריץ Pose Detection על הקליפ, סופר חזרות אוטומטית, ונותן להשוות בין הסט החדש לסט הקודם באותו משקל. אותה שיטה שאני עובד איתה עם הספורטאים שאני מאמן. בלי לספור עם סטופר.',
+    he: 'צלם כל סט בטלפון. הפורטל מריץ Pose Detection על הקליפ, סופר חזרות אוטומטית, ונותן להשוות בין הסט החדש לסט הקודם באותו משקל. אותה שיטה שאני עובד איתה עם הספורטאים שאני מאמן. בלי לספור ידנית.',
   },
 
   // Phone 1 — pose landmarker
@@ -126,7 +126,7 @@ const STRINGS = {
   'inside.pose.h':       { en: 'Pose detection',    he: 'זיהוי תנוחה' },
   'inside.pose.d': {
     en: 'MediaPipe Pose Landmarker tracks 33 joints in real time on any phone. Knee angle, hip depth, bar path — visible the moment you finish the set.',
-    he: 'MediaPipe Pose Landmarker עוקב אחרי 33 מפרקים בזמן אמת. בכל טלפון. זווית ברך, עומק ירך, מסלול מוט — הכל מופיע ברגע שסיימת את הסט.',
+    he: 'MediaPipe Pose Landmarker עוקב אחרי 33 נקודות בגוף בזמן אמת. בכל טלפון. זווית ברך, עומק ירך, מסלול מוט — הכל מופיע ברגע שסיימת את הסט.',
   },
   'inside.pose.angle':   { en: 'KNEE 87°',          he: 'ברך: 87 מעלות' },
   'inside.pose.depth':   { en: 'DEPTH 92%',         he: 'עומק 92%' },
@@ -138,7 +138,7 @@ const STRINGS = {
   'inside.shot.h':       { en: 'Jump-shot analyzer', he: 'ניתוח זריקה' },
   'inside.shot.d': {
     en: 'Film a jump shot and get it back split into dip, set point, release and follow-through — ten checkpoints scored against coaching bands, each one with the fix. Film a set and it says whether the release repeats — and you mark each shot made or missed, so the session carries a makes-over-shots count.',
-    he: 'צלם זריקה ותקבל אותה מפורקת לדיפ, נקודת סט, שחרור וליווי — עשר נקודות בדיקה מול טווחי אימון, וכל אחת עם התיקון שלה. צלם סדרה והניתוח יגיד לך אם השחרור חוזר על עצמו. אתה מסמן כל זריקה, נכנסה או לא, וככה בסוף האימון אתה יודע כמה נכנסו מתוך כמה זריקות.',
+    he: 'צלם זריקה ותקבל אותה מפורקת לדיפ, נקודת סט, שחרור וליווי — עשר נקודות בדיקה מול טווחי יעד, וכל אחת עם התיקון שלה. צלם סדרה והניתוח יגיד לך אם השחרור חוזר על עצמו. אתה מסמן כל זריקה, נכנסה או לא, וככה בסוף האימון אתה יודע כמה נכנסו מתוך כמה זריקות.',
   },
   'inside.shot.foot':    { en: '10 CHECKPOINTS · PHASE BY PHASE', he: '10 נקודות בדיקה · שלב אחר שלב' },
 
@@ -147,7 +147,7 @@ const STRINGS = {
   'inside.rep.h':        { en: 'Auto rep counter',  he: 'ספירת חזרות אוטומטית' },
   'inside.rep.d': {
     en: 'Detects troughs in the bar path, not peaks — so a paused or grindy rep still counts. Runs at 1× playback the moment the upload finishes.',
-    he: 'מזהה את נקודות התחתית במסלול המוט, לא את נקודות השיא. ככה גם חזרה כבדה או חזרה עם עצירה נספרת. רץ במהירות 1x ברגע שהקליפ עלה.',
+    he: 'מזהה את נקודות התחתית במסלול המוט, לא את נקודות השיא. ככה גם חזרה כבדה או חזרה עם עצירה נספרת. רץ ברגע שהקליפ עולה.',
   },
   'inside.rep.big':      { en: '8 / 8',             he: '8 / 8' },
   'inside.rep.label':    { en: 'REPS',              he: 'חזרות' },
@@ -161,7 +161,7 @@ const STRINGS = {
     he: 'כל קליפ נכנס לספרייה לפי תרגיל ומשקל. שתי לחיצות ואתה רואה את הסט של היום מול הסט הקודם באותו משקל. ROM, טמפו, עומק — הכל גלוי.',
   },
   'inside.cmp.last.t':   { en: 'LAST · 90 KG',      he: 'קודם · 90 ק״ג' },
-  'inside.cmp.last.s':   { en: '4 reps · grindy #4',he: '4 חזרות · #4 כבדה' },
+  'inside.cmp.last.s':   { en: '4 reps · grindy #4',he: '4 חזרות · הרביעית כבדה' },
   'inside.cmp.now.t':    { en: 'TODAY · 95 KG',     he: 'היום · 95 ק״ג' },
   'inside.cmp.now.s':    { en: '5 reps · all clean',he: '5 חזרות · כולן נקיות' },
   'inside.cmp.foot':     { en: 'ROM +6° · TEMPO MATCH', he: 'ROM עלה ב-6 מעלות · טמפו תואם' },
@@ -170,7 +170,7 @@ const STRINGS = {
   // Counts the cards in WhatsInside — keep it in step when a card is added.
   'inside.note': {
     en: 'All four are included in every program — no separate add-on, no extra charge.',
-    he: 'כל הארבעה כלולים בכל תוכנית. בלי תוספת, בלי תשלום נוסף.',
+    he: 'כל הארבעה כלולים בכל תוכנית. בלי תשלום נוסף.',
   },
 
   // CTA from WhatsInside section to the public sandbox at expo-app.co.il/demo/trainee.
@@ -186,11 +186,11 @@ const STRINGS = {
   'about.h2':            { en: "I'm Ohad. I've been programming this exact engine for years.", he: 'אני אוהד. שנים שאני בונה את השיטה הזאת.' },
   'about.p1': {
     en: "Athletic Performance Coach at Bnei Herzliya. Spent four years playing American football in the NCAA — CMU, then a couple of college teams in Israel (OUI, TAU). Trained as an athlete first, then started programming for athletes who needed someone who'd done the work.",
-    he: 'מאמן יכולות אתלטיות בבני הרצליה. ארבע שנים שיחקתי פוטבול אמריקאי — ב-NCAA ב-CMU, ואחרי זה בכמה קבוצות קולג׳ בארץ (OUI, TAU). הייתי ספורטאי לפני שהייתי מאמן. אחרי זה התחלתי לכתוב תוכניות לאתלטים שצריכים מישהו שעבר את הדרך בעצמו.',
+    he: 'מאמן יכולות אתלטיות בבני הרצליה. ארבע שנים שיחקתי פוטבול אמריקאי — ב-CMU בליגת ה-NCAA, ואחרי זה בקבוצות אוניברסיטה בארץ (OUI, TAU). הייתי ספורטאי לפני שהייתי מאמן. אחרי זה התחלתי לכתוב תוכניות לאתלטים שצריכים מישהו שעבר את הדרך בעצמו.',
   },
   'about.p2': {
     en: 'Today I work with the athletes I coach out of Herzliya — block-periodised training, progress logged on the phone, video reviewed every week. The portal you see here is the same one they use. I built it myself so I could stop juggling spreadsheets.',
-    he: 'היום אני עובד עם הספורטאים שאני מאמן בהרצליה. תוכנית בבלוקים. תיעוד בטלפון. סרטונים נבדקים כל שבוע. הפורטל שאתה רואה פה הוא בדיוק זה שהם עובדים איתו. בניתי אותו לבד כדי להפסיק עם אקסלים.',
+    he: 'היום אני מאמן ספורטאים בהרצליה. תוכנית בבלוקים. תיעוד בטלפון. סרטונים נבדקים כל שבוע. הפורטל שאתה רואה פה הוא בדיוק זה שהם עובדים איתו. בניתי אותו לבד כדי להפסיק עם אקסלים.',
   },
   'about.p3': {
     en: "EXPO templates exist because I can't take more 1:1 athletes than my schedule allows, but the programming is good enough to deliver as standalone product. Same blocks, same auto-regulation, no waitlist.",
@@ -210,7 +210,7 @@ const STRINGS = {
   'about.values.t1':     { en: 'Auto-regulation over heroics', he: 'אוטו-רגולציה לפני אגו' },
   'about.values.d1': {
     en: 'Loads adjust to the RPE you log, not the number on a spreadsheet. The block respects what your body actually has on the day.',
-    he: 'העומס מתאים את עצמו ל-RPE שאתה מתעד, לא למספר בגיליון. הבלוק מכבד את מה שיש לך באמת באותו יום.',
+    he: 'העומס מתאים את עצמו ל-RPE שאתה מתעד, לא למספר בגיליון. הבלוק מתחשב במה שיש לך באמת באותו יום.',
   },
   'about.values.t2':     { en: 'Movement first, load second', he: 'תנועה לפני עומס' },
   'about.values.d2': {
@@ -220,7 +220,7 @@ const STRINGS = {
   'about.values.t3':     { en: 'Build for the long run',      he: 'בונים לטווח הארוך' },
   'about.values.d3': {
     en: 'Pain check-ins, deload weeks, and reassess windows are baked into every block. You don\'t get strong by training through dysfunction.',
-    he: 'דיווחי כאב, שבועות דלואד והערכה מחדש מובנים בכל בלוק. מי שמתאמן על תנועה לא תקינה לא מתחזק.',
+    he: 'דיווחי כאב, שבועות דילואד והערכה מחדש מובנים בכל בלוק. מי שמתאמן על תנועה לא תקינה לא מתחזק.',
   },
 
   'about.photo.note': {
@@ -294,7 +294,7 @@ const STRINGS = {
   'contact.h2':          { en: 'Questions before you buy?', he: 'שאלות לפני שאתה קונה?' },
   'contact.body': {
     en: "WhatsApp is the fastest — replies inside the same day, usually within a couple of hours. Tell me what you train for, your equipment, and how many days a week you can give me, and I'll point you at the right program.",
-    he: 'וואטסאפ הכי מהיר. אני עונה באותו יום, בדרך כלל תוך כמה שעות. תספר לי לאיזו מטרה אתה מתאמן, איזה ציוד יש לך, וכמה ימים בשבוע אתה יכול — ואני אכוון אותך לתוכנית הנכונה.',
+    he: 'וואטסאפ הכי מהיר. אני עונה באותו יום, בדרך כלל תוך כמה שעות. תספר לי לאיזו מטרה אתה מתאמן, איזה ציוד יש לך, וכמה ימים בשבוע אתה יכול להתאמן — ואני אכוון אותך לתוכנית הנכונה.',
   },
   'contact.hours':       { en: 'Reply window: Sun–Thu 09:00–20:00 (Israel time). Friday/Saturday — slower but I read everything.', he: 'שעות מענה: א׳–ה׳, 09:00–20:00. שישי-שבת איטי יותר אבל אני קורא הכל.' },
   'contact.cta.whatsapp': { en: 'WHATSAPP',      he: 'וואטסאפ' },
@@ -314,7 +314,7 @@ const STRINGS = {
   'detail.section.sample':    { en: 'SAMPLE WEEK',      he: 'שבוע לדוגמה' },
   'detail.sample.body.tmpl': {
     en: 'A look at one full microcycle. The full block escalates and varies these patterns across {weeks} weeks.',
-    he: 'ככה נראה מיקרו-מחזור שלם. הבלוק המלא מקשה ומגוון את דפוסי התנועה האלה לאורך {weeks} שבועות.',
+    he: 'ככה נראה מיקרו-מחזור שלם. הבלוק המלא מעלה את הרמה ומגוון את התרגילים האלה לאורך {weeks} שבועות.',
   },
   'detail.sample.empty':      { en: 'SAMPLE WEEK COMING SOON', he: 'שבוע לדוגמה בקרוב' },
   'detail.day.label.tmpl':    { en: 'DAY {x}',          he: 'יום {x}' },
@@ -365,7 +365,7 @@ const STRINGS = {
   // ─── Israeli trust signals strip ──────────────────────────────────
   'trust.badge':      { en: 'WHY IT IS SAFE TO BUY', he: 'למה זה בטוח לקנות' },
   'trust.bit.t':      { en: 'Pay via Bit',           he: 'תשלום בביט' },
-  'trust.bit.s':      { en: 'Israeli mobile payment, no card details exchanged', he: 'תשלום ישראלי בנייד, בלי פרטי כרטיס אשראי' },
+  'trust.bit.s':      { en: 'Israeli mobile payment, no card details exchanged', he: 'תשלום מהנייד, בלי פרטי כרטיס אשראי' },
   'trust.invoice.t':  { en: 'Digital tax invoice',   he: 'חשבונית מס דיגיטלית' },
   'trust.invoice.s':  { en: 'Issued via Green Invoice the same day. עוסק מורשה.', he: 'נשלחת דרך חשבונית ירוקה באותו יום. עוסק מורשה.' },
   'trust.vat.t':      { en: 'VAT included',          he: 'כולל מע״מ' },
@@ -392,7 +392,7 @@ const STRINGS = {
     en: 'Depends on the program — every card lists the equipment (HOME, FULL GYM, MINIMAL). Filter the catalog by tag or use the quiz to see only what fits your setup.',
     he: 'תלוי בתוכנית. בכל כרטיס יש את הציוד המדויק. תסנן בקטלוג לפי תגית או תעבור על הקוויז ותראה רק מה שמתאים לסטאפ שלך.',
   },
-  'faq.q3':           { en: "I'm a complete beginner. Will this be over my head?", he: 'אני מתחיל לגמרי. זה יהיה גבוה מדי בשבילי?' },
+  'faq.q3':           { en: "I'm a complete beginner. Will this be over my head?", he: 'אני מתחיל מאפס. זה יהיה גבוה מדי בשבילי?' },
   'faq.a3': {
     en: 'Foundation Block is built exactly for that. Three days a week, dumbbells + barbell, no machines required. Tempo and ROM cues come before any heavy load — you learn the seven primary patterns first, weight comes after.',
     he: 'בלוק היסודות מיועד בדיוק לזה. שלושה ימים בשבוע, מוט ומשקולות, בלי מכונות. דגש על טמפו ועל טווח תנועה לפני העומס — לומדים את שבע תבניות התנועה קודם, המשקל בא אחרי.',
@@ -417,7 +417,7 @@ const STRINGS = {
     en: "Free apps give you a list of exercises. They do not auto-regulate against your RPE, they do not run pose detection on your video, they do not count reps from the bar path, and there is no real coach answering your WhatsApp. EXPO templates are the same engine the athletes I coach run — programmed by me, not generated.",
     he: 'אפליקציות חינמיות נותנות לך רשימת תרגילים. הן לא מתאימות עומס ל-RPE שלך, לא מריצות זיהוי תנוחה על הסרטון, לא סופרות חזרות לפי מסלול המוט, ואין מאמן אמיתי שעונה בוואטסאפ. תבניות EXPO הן אותה שיטה שעובדים איתה הספורטאים שאני מאמן — אני כותב, לא AI.',
   },
-  'faq.q8':           { en: 'Can I message you for support after I buy?', he: 'אפשר לדבר איתך לתמיכה אחרי הקנייה?' },
+  'faq.q8':           { en: 'Can I message you for support after I buy?', he: 'אפשר לפנות אליך אחרי הקנייה?' },
   'faq.a8': {
     en: 'Yes — WhatsApp is open. I am not a 24/7 hotline, but I read everything and reply same-day Sun–Thu, slower on Fri/Sat. The portal answers most things on its own (load progressions, exercise swaps, pain gating), so messaging is for the harder cases — and that is included in the one-time price.',
     he: 'כן. וואטסאפ פתוח. אני לא קו חם 24/7, אבל אני קורא הכל ועונה באותו יום א׳–ה׳, איטי יותר בשישי-שבת. הפורטל פותר את רוב הדברים לבד (עליות עומס, החלפת תרגילים, סף כאב), אז הודעות זה למקרים יותר מורכבים — וזה כלול במחיר החד-פעמי.',
@@ -428,9 +428,9 @@ const STRINGS = {
   'quiz.h2':          { en: 'Six questions. Get matched.', he: 'שש שאלות. תקבל התאמה.' },
   'quiz.body': {
     en: "I built this from the same intake form I use with the athletes I coach — just shorter. Takes about a minute. The full assessment lives behind it for when you are ready.",
-    he: 'בניתי את זה מאותו טופס היכרות שאני עובד איתו עם הספורטאים שאני מאמן — רק קצר יותר. דקה. ההערכה המלאה מחכה שם, כשתהיה מוכן.',
+    he: 'בניתי את זה מאותו טופס היכרות שאני עובד איתו עם הספורטאים שאני מאמן — רק קצר יותר. דקה. ההערכה המלאה מחכה לך אחרי זה, כשתהיה מוכן.',
   },
-  'quiz.cta':         { en: 'START QUIZ →',          he: 'תתחיל קוויז ←' },
+  'quiz.cta':         { en: 'START QUIZ →',          he: 'התחלת השאלון ←' },
   'quiz.modal.title': { en: 'Find your program',     he: 'תמצא את התוכנית שלך' },
   'quiz.modal.close': { en: 'Close',                 he: 'סגירה' },
   'quiz.step.tmpl':   { en: 'STEP {n} OF {total}',   he: 'שלב {n} מתוך {total}' },
