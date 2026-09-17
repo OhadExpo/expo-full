@@ -515,6 +515,8 @@ function ViewToggle({ value, onChange }) {
   );
 }
 
+// Hebrew tooltips are whole phrases: 'מיון לפי' + a button label read as 'מיון לפי ידני'.
+const SORT_TIP_HE = { date: 'מיון לפי תאריך יעד', newest: 'מיון מהחדש לישן', priority: 'מיון לפי דחיפות', status: 'מיון לפי סטטוס', name: 'מיון לפי שם', manual: 'מיון ידני' };
 const SORT_MODES = [
   { id: 'date',     label: 'Due' },
   { id: 'newest',   label: 'Newest' },
@@ -562,7 +564,7 @@ function SortBar({ sortBy, sortDir, onSortBy, onToggleDir, rightSlot }) {
           const active = sortBy === m.id;
           return (
             <button key={m.id} onClick={() => active ? onToggleDir() : onSortBy(m.id)} className="tfbtn" data-active={active ? '' : undefined}
-              title={active ? tt(m.id === 'manual' ? 'Manual order — drag tasks to arrange' : 'Click to flip the sort direction') : `${tt('Sort by')} ${tt(m.label)}`}
+              title={active ? tt(m.id === 'manual' ? 'Manual order — drag tasks to arrange' : 'Click to flip the sort direction') : (readLang() === 'he' ? SORT_TIP_HE[m.id] : `${tt('Sort by')} ${tt(m.label)}`)}
               style={{ ...seg(active), flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {active ? (() => { const { a, t } = activeDirParts(m.id); return (
                 <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', gap:4, minWidth:0 }}>
@@ -2655,7 +2657,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
               const on = sortBy === m.id;
               return <RailOpt key={m.id} label={on ? sortRailLabel(m.id, sortDir, tt) : tt(m.label)} active={on}
                 onClick={() => on ? setSortDir(d => d === 'asc' ? 'desc' : 'asc') : setSortBy(m.id)}
-                title={on ? tt('Click to flip the sort direction') : `${tt('Sort by')} ${tt(m.label)}`} />;
+                title={on ? tt('Click to flip the sort direction') : (readLang() === 'he' ? SORT_TIP_HE[m.id] : `${tt('Sort by')} ${tt(m.label)}`)} />;
             })}
           </RailGroup>
 
@@ -2907,7 +2909,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
             }}>
             <span>{doneOpen ? '▾' : '▸'} {tt('Done')} · {done.length}</span>
             <span style={{ opacity: 0.6, fontSize: 9 }}>
-              {doneOpen ? `${tt('Showing latest')} ${Math.min(done.length, 5)}` : tt('Click to expand')}
+              {doneOpen ? (readLang() === 'he' ? `מציג את ${Math.min(done.length, 5)} האחרונות` : `${tt('Showing latest')} ${Math.min(done.length, 5)}`) : tt('Click to expand')}
             </span>
           </div>
           <div style={{ display: 'grid', gridTemplateRows: doneOpen ? '1fr' : '0fr', transition: 'grid-template-rows 260ms ease' }}><div style={{ overflow: 'hidden', minHeight: 0 }}>
@@ -2944,7 +2946,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
               fontFamily: FN, fontSize: 9, fontWeight: 700,
               letterSpacing: '0.12em', color: 'var(--c-tm)',
               textTransform: 'uppercase', textAlign: 'center',
-            }}>{done.length - 5} {tt('more done · view all in the history')}</div>
+            }}>{readLang() === 'he' ? (done.length - 5 === 1 ? 'עוד אחת הושלמה · הכול בהיסטוריה' : `עוד ${done.length - 5} הושלמו · הכול בהיסטוריה`) : `${done.length - 5} ${tt('more done · view all in the history')}`}</div>
           )}
           </div></div>
         </div>

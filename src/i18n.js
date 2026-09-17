@@ -1401,7 +1401,7 @@ export const HE = {
   Cancelled: 'בוטל',
   "NO PROGRAM ASSIGNED": 'לא הוקצתה תוכנית',
   Whose: 'אחראי',
-  Soonest: 'הכי קרוב',
+  Soonest: 'יעד קרוב',
   Newest: 'הכי חדש',
   Urgency: 'דחיפות',
   Manual: 'ידני',
@@ -2291,6 +2291,8 @@ export const HE = {
   'Preview Transform': 'הצגת ההמרה',
   'Writing…': 'שומר…',
   'Commit to Database': 'שמירה במאגר',
+  // 17.9 tasks sort label
+  'A→Z': 'א←ת',
   // 17.9 the two owner library tools (Classify, Matching) wired
   match: 'התאמה',
   matches: 'התאמות',
