@@ -145,18 +145,18 @@ RESTORE POINT (pre-perf-fixes): b1f93ab6f04fa84e842c58049f278312374c8a43
 ## J — 2026-09-15 "a: logged is spilling… one row, inside the borders. b: resume for another 4 hours nonstop"
 - [x] J1 athlete portal, DAILY ROUTINE header: the "1 LOGGED" chip wraps to two lines and overflows its box — one row, inside its border, same height as START
       → DONE 15.9 00:14 — deployed as 79caf4c, measured 0 faults from Roey's seat on production
-- [ ] J2 4 hours nonstop: J1, then the open I-items (calendar standing sync, 3.9 box score minutes, sync Chrome fallback), then the queue
+- [x] J2 4 hours nonstop: J1, then the open I-items (calendar standing sync, 3.9 box score minutes, sync Chrome fallback), then the queue — closed by the K block (2a75560)
 - [x] J3 deploy the chip fix to production immediately (his explicit yes, this fix only, on top of cf884fb)
       → DONE — 79caf4c
-- [ ] J4 FULL SWEEP: every chip/pill/button in both apps at phone widths — nothing may wrap inside its border or overflow it; it reached a real athlete screen
-- [ ] J5 (his 14.9 image) 3.9 prep game Maccabi TA 84–86 BHBC: per-player minutes into the zone
-- [ ] J6 (his 15.9 image) 14.9 prep game Hapoel HaEmek 92–70 BHBC: per-player minutes + the opponent on that scrimmage
+- [x] J4 FULL SWEEP: every chip/pill/button in both apps at phone widths — nothing may wrap inside its border or overflow it; it reached a real athlete screen — done 86cf9a6 (and 17.9 Hebrew sweeps: 0 clipped / 0 mismatched button rows at 390+1440)
+- [x] J5 (his 14.9 image) 3.9 prep game Maccabi TA 84–86 BHBC: per-player minutes into the zone — done in K3 (see below; 2 players not tagged into BHBC)
+- [x] J6 (his 15.9 image) 14.9 prep game Hapoel HaEmek 92–70 BHBC: per-player minutes + the opponent on that scrimmage — done in K3 (see below; 2 players not tagged into BHBC)
 - [x] J7 "wtf is going on with the menu??? fix it everywhere" + "immediately deploy after fixing" — his image did not reach me; auditing every menu (portal nav grid, coach nav, ⋮ more-menu, club-zone tabs) at phone width on PRODUCTION and fixing what is broken
       → DONE — the rails fade, deployed as a422dd5
 - [x] J8 (his 15.9 image) the horizontal tab rails cut text on a hard edge — fade the ends, and scroll the ACTIVE tab fully into view; club zone + coach header + every horizontal scroller; deploy immediately
       → DONE — useEdgeFade + themes.css masks, deployed as a422dd5
-- [ ] J9 (his 15.9 image) club-zone roster/load rows on a phone: MED buttons ragged, injury crammed beside the position — give the injury its own third row inside the same box height and align every button in one column; apply the pattern everywhere
-- [ ] J10 (his 15.9 message) the players/history tab: a long dumb scroll on phone AND desktop — redesign it (grouped, jump-to, compact), smarter to move through
+- [x] J9 (his 15.9 image) club-zone roster/load rows on a phone: MED buttons ragged, injury crammed beside the position — give the injury its own third row inside the same box height and align every button in one column; apply the pattern everywhere — done 5400f97
+- [x] J10 (his 15.9 message) the players/history tab: a long dumb scroll on phone AND desktop — redesign it (grouped, jump-to, compact), smarter to move through — done 7516514 (filter chips + folding months)
 - [x] J11 (his 15.9 image) club-zone ROSTER cards: messy layout AND the Hebrew availability reads PLURAL for a single player (מוגבלים/זמינים → מוגבל/זמין) — fix everywhere
       → DONE 15.9 01:13 (2fcb4b1) — singular status word, the side reads ברך ימין not "ברך R", and the card drops its two-line reserves at phone width (six players on screen, not four). DEPLOY BLOCKED: the push to master was refused by the auto-mode classifier — needs his go
 - [x] J12 (his 15.9 image) MANAGE ROSTER modal on a phone: names render one letter per line, the table overflows its own dialog — full redesign
@@ -245,4 +245,4 @@ Clock: started 2026-09-17 00:14 JDT. **Deploy NOT before 05:14 → RESET, see P8
 - [x] O26 17.9: Training Analysis verdict named a STALLED lift as 'e1RM slipping' while the rows filed it under 'not progressing' and called another lift regressing — verdict uses the rows' definition now; verify-verdict case added (failed before the fix)
 - [ ] O27 Training Analysis engine questions from the rendered read (his call / later): (a) e1RM on added-load lifts (Weighted Pull-Up 'e9 · 7.5kg', '+2–3%' of 7.5 kg is unloadable) — needs bodyweight in the e1RM or hide it; (b) the page says 'he' for every athlete (the demo's mock athlete is a woman); (c) the next-block text says 'hold intensity' on lower body while the per-lift advice backs the regressing deadlift off 5–10% (deload week vs after — worth one sentence); (d) the lift table rows render without the exercise name in the text export — check visually
 - [ ] O28 marketing content contradictions (his call, listed on the 17.9 page): 4-week blocks vs 8–16 catalog; weekly updates vs end-of-block; seven patterns vs six listed; schedule-full vs 1:1 offer; rehab-needs-1:1 vs rehab block; testimonials placeholder live; 'same weight' example with 90/95 kg; English sample-day notes on the Hebrew rehab page
-
+- [x] O29 17.9 04:00 deploy REHEARSAL on the dry-run candidate (port 4180): verify-athlete-journey clean; verify-athlete-no-backend 2 FAILs = exactly the known production state (no offline notice); the SAME journey against production expo-app.co.il gives identical per-tab char counts (PROGRAM 1744 · BW 241 · MEAL LOG 239 · HISTORY 126 · PRs 179 · MESSAGES 285) → the athlete portal ships unchanged
