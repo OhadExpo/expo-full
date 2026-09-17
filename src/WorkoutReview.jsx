@@ -1707,7 +1707,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
           <button onClick={() => setRulerMode(v => !v)} title={rulerMode ? 'Straight-line mode ON' : 'Freehand mode — click for straight-line'}
             style={{padding:'3px 8px',height:22,boxSizing:'border-box',borderRadius:0,border:`1px solid ${rulerMode?C.ac:C.bd}`,
               background:rulerMode?C.acD:'transparent',color:rulerMode?C.ac:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>
-            📏 {rulerMode ? 'LINE' : 'FREE'}
+            📏 {tr(readLang(), rulerMode ? 'LINE' : 'FREE')}
           </button>
           <button onClick={undoLastStroke} disabled={currentStrokes.length === 0} title={tt('Undo last stroke')}
             style={{padding:'3px 8px',height:22,boxSizing:'border-box',borderRadius:0,border:`1px solid ${C.bd}`,
@@ -1756,7 +1756,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
               <div key={n.id} className="motion-rise" style={{background:pausedAtCommentId===n.id?(n.author==='trainer'?C.acD:C.gnD):C.sf2,borderInlineStart:`3px solid ${n.author==='trainer'?C.ac:C.gn}`,borderRadius:0,padding:pausedAtCommentId===n.id?14:10,boxShadow:pausedAtCommentId===n.id?`0 0 0 2px ${n.author==='trainer'?C.ac:C.gn}40`:'none',transition:'padding .15s ease, box-shadow .15s ease'}}>
                 <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4}}>
                   <button onClick={() => seekTo(n.ts, n.id)} style={{background:C.acD,border:`1px solid rgba(57,189,255,0.251)`,color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:0,cursor:'pointer'}}>▶ {fmtTs(n.ts)}</button>
-                  <span style={{fontSize:10,fontFamily:FN,color:n.author==='trainer'?C.ac:C.gn,fontWeight:700,letterSpacing:0.5}}>{n.author === 'trainer' ? 'COACH' : 'ATHLETE'}</span>
+                  <span style={{fontSize:10,fontFamily:FN,color:n.author==='trainer'?C.ac:C.gn,fontWeight:700,letterSpacing:0.5}}>{tr(readLang(), n.author === 'trainer' ? 'COACH' : 'ATHLETE')}</span>
                   <span style={{fontSize:10,color:C.td,marginInlineStart:'auto'}}>{n.createdAt ? fmtPrettyDate(n.createdAt) : ''}</span>
                   {(n.author === role) && onReviewNotesChange && (
                     <button onClick={() => startEdit(n, false, null)} title={tr(readLang(), 'Edit')} style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:11,padding:0,marginInlineStart:4}}>✏️</button>
@@ -1771,7 +1771,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
                     {n.replies.map(r => (
                       <div key={r.id}>
                         <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:2}}>
-                          <span style={{fontSize:10,fontFamily:FN,color:r.author==='trainer'?C.ac:C.gn,fontWeight:700,letterSpacing:0.5}}>{r.author === 'trainer' ? 'COACH' : 'ATHLETE'}</span>
+                          <span style={{fontSize:10,fontFamily:FN,color:r.author==='trainer'?C.ac:C.gn,fontWeight:700,letterSpacing:0.5}}>{tr(readLang(), r.author === 'trainer' ? 'COACH' : 'ATHLETE')}</span>
                           <span style={{fontSize:10,color:C.td}}>{r.createdAt ? fmtPrettyDate(r.createdAt) : ''}</span>
                           {(r.author === role) && onReviewNotesChange && (
                             <button onClick={() => startEdit(r, true, n.id)} title={tr(readLang(), 'Edit')} style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:10,padding:0,marginInlineStart:'auto'}}>✏️</button>

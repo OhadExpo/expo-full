@@ -1549,7 +1549,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
             {trainee.plans.map((name, i) => (
               <Row key={i}>
                 <span style={{ flex: 1, color: C.tx, fontWeight: 600 }}>{name}</span>
-                <Badge color={i === 0 ? C.gn : C.td}>{i === 0 ? 'ACTIVE' : 'ARCHIVED'}</Badge>
+                <Badge color={i === 0 ? C.gn : C.td}>{tr(readLang(), i === 0 ? 'ACTIVE' : 'ARCHIVED')}</Badge>
               </Row>
             ))}
           </Panel>
@@ -1705,7 +1705,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
             {trainee.plans.map((name, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '8px 0', borderBottom: i < trainee.plans.length - 1 ? `1px solid ${C.cardBd}` : 'none' }}>
                 <span style={{ color: C.tx, fontWeight: 600, fontSize: 13, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
-                <Badge color={i === 0 ? C.gn : C.td}>{i === 0 ? 'ACTIVE' : 'ARCHIVED'}</Badge>
+                <Badge color={i === 0 ? C.gn : C.td}>{tr(readLang(), i === 0 ? 'ACTIVE' : 'ARCHIVED')}</Badge>
               </div>
             ))}
           </DemoDetailCard>}
@@ -3710,7 +3710,7 @@ function DemoReviewTools() {
                 <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 3, lineHeight: 1.4 }}>{T(t.measures)}</div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: t.live ? '#FF7A7A' : C.tm, border: `1px solid ${t.live ? 'rgba(255,90,90,0.5)' : C.cardBd}`, padding: '2px 6px', whiteSpace: 'nowrap' }}>{t.live ? 'LIVE' : 'CLIP'}</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: t.live ? '#FF7A7A' : C.tm, border: `1px solid ${t.live ? 'rgba(255,90,90,0.5)' : C.cardBd}`, padding: '2px 6px', whiteSpace: 'nowrap' }}>{tr(readLang(), t.live ? 'LIVE' : 'CLIP')}</span>
                 <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', color: C.ac, transform: active ? 'translateX(3px)' : 'none', transition: 'transform .15s', whiteSpace: 'nowrap' }}>{T('OPEN →')}</span>
               </div>
             </div>

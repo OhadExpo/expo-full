@@ -2082,6 +2082,14 @@ export const HE = {
   // 17.9 singular degree where a typed value can be 1
   'Logged 1° to {target}': 'נרשמה מעלה אחת ב־{target}',
   'USE 1° →': 'שימוש במעלה אחת ←',
+  // 17.9 uppercase status labels chosen by a ternary
+  'PLAY': 'נגן',
+  'BETTER': 'שיפור',
+  'WORSE': 'ירידה',
+  'SAME': 'בלי שינוי',
+  'LINE': 'קו',
+  'FREE': 'חופשי',
+  'GATE': 'סף',
   // 17.9 the two owner library tools (Classify, Matching) wired
   match: 'התאמה',
   matches: 'התאמות',

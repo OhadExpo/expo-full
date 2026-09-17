@@ -502,7 +502,7 @@ export default function AnatomyModelViewer({ frames }) {
     <div>
       <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
         <Pill active={true} onClick={() => {}}>{tt('SKELETON')}</Pill>
-        <Pill active={playing} onClick={() => setPlaying(p => !p)}>{playing ? 'PAUSE' : 'PLAY'}</Pill>
+        <Pill active={playing} onClick={() => setPlaying(p => !p)}>{tt(playing ? 'PAUSE' : 'PLAY')}</Pill>
         {/* One rig: V2 = swing + axial twist where the data supports it (falls back
             to swing otherwise), i.e. the best of both — so the old V1/V2 A/B that
             looked identical on swing-dominant moves is gone. */}

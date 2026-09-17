@@ -823,9 +823,9 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
               <RefinedHeaderStrip>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <SectionLabel as="span" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="mail" color="#FFFFFF"/>{tt('New Leads')} ({leads.length})</SectionLabel>
-                  <span title={gateOpen ? 'Gate open — apply multi-tenant migration' : `Multi-tenant migration applies once ${COACH_GATE} serious coach signups arrive`}
+                  <span title={readLang() === 'he' ? (gateOpen ? 'הסף עבר — זה הזמן להריץ את המיגרציה לכמה מאמנים' : `המיגרציה לכמה מאמנים רצה אחרי ${COACH_GATE} הרשמות רציניות של מאמנים`) : (gateOpen ? 'Gate open — apply multi-tenant migration' : `Multi-tenant migration applies once ${COACH_GATE} serious coach signups arrive`)}
                     style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 9, color: '#FFFFFF', border: '1px solid rgba(255,255,255,0.55)', background: 'transparent', borderRadius: 0, padding: '2px 6px', letterSpacing: '0.04em' }}>
-                    🎯 {coachLeads}/{COACH_GATE} {gateOpen ? 'OPEN' : 'GATE'}
+                    🎯 {coachLeads}/{COACH_GATE} {tt(gateOpen ? 'OPEN' : 'GATE')}
                   </span>
                 </div>
               </RefinedHeaderStrip>
