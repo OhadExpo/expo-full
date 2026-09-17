@@ -307,7 +307,11 @@ export function RefinedHeaderStrip({ children, padY = 14, padX = 18, marginBotto
       // buttons no longer stretch some bars taller than others.
       minHeight: 41, boxSizing: 'border-box',
       display: 'flex', flexDirection: 'column', justifyContent: 'center',
-      padding: `0 ${padX}px`,
+      // 17.9 (Ohad, 2nd report: the ACTIVE pill 'vertically centered within the title box'): the
+      // hairline below is painted INSIDE this box, so centring across the full box left the pill
+      // 8 device rows below the top edge and 6 above the line (1.25x, production pixels). Centre
+      // in the area ABOVE the line: 1px of bottom padding whenever the line is drawn.
+      padding: (marginBottom === 0 || marginBottom === '0') ? `0 ${padX}px` : `0 ${padX}px 1px`,
       // The bottom hairline divides header from content — but when the section is
       // COLLAPSED (parent passes marginBottom:0, no body follows) it becomes a
       // stray cyan line over emptiness. Drop it when collapsed so a collapsed box
