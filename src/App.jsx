@@ -1334,7 +1334,6 @@ function AuthedApp() {
         { route:'trainees',  label:t('Roster'),    count:activeAthletesCount },
         { route:'plans',     label:t('Programs'),  count:null },
         { route:'exercises', label:t('Exercises'), count:null },
-        { route:'bhbc',      label:'BHBC',      count:null },
       ] },
     { key:'sessions',   label:trFn(lang,'Sessions'),   count:null,
       submenu: [
@@ -1752,6 +1751,17 @@ function AuthedApp() {
               nav; the cyan separators between items are the only
               dividers now. */}
           <div className="hdr-right" style={{flex:"0 0 auto",display:"flex",alignItems:"center",gap:2,marginInlineStart:12}}>
+            {/* 17.9 (Ohad): the club zone gets its own button with the crest in it, the way the
+                club zone's top bar carries the EXPO mark - not an item inside ATHLETES ▾.
+                Owner only; Yuval's nav is unchanged. */}
+            {isOwner && (<>
+              <button className="hdr-icon-btn" onClick={()=>navTo('bhbc')} title={t('Bnei Herzliya S&C zone')} aria-label={t('Bnei Herzliya S&C zone')}
+                style={{...baseBtn, height:HDR_ICON_H, boxSizing:'border-box', display:'inline-flex', alignItems:'center', justifyContent:'center', padding:'0 9px', borderRadius:0,
+                  background: tab==='bhbc' ? 'rgba(57,189,255,0.10)' : 'transparent', border:`1px solid ${tab==='bhbc' ? C.ac : 'transparent'}`, cursor:'pointer'}}>
+                <img src="/bnei-herzliya-logo-w.png" alt="" aria-hidden="true" style={{height:22, width:'auto', display:'block'}} />
+              </button>
+              <span style={{width:1,height:22,background:C.ac,opacity:0.15,alignSelf:'center',marginInlineStart:6,marginInlineEnd:6}} aria-hidden="true" />
+            </>)}
             <MoreMenu tab={tab} navTo={navTo} onExport={handleExport} onChangePassword={()=>setShowPwModal(true)} isOwner={isOwner} />
             <span style={{width:1,height:22,background:C.ac,opacity:0.15,alignSelf:'center',marginInlineStart:6,marginInlineEnd:6}} aria-hidden="true" />
             {/* HE / EN. Shows the language it switches TO, which is how a

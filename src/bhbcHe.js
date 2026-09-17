@@ -173,6 +173,8 @@ export const HE = {
   'Showing the last data saved on this device. It may be out of date, and anything you log will be sent when the connection returns.':
     'מוצג המידע האחרון שנשמר במכשיר. יכול להיות שהוא לא מעודכן, וכל מה שתרשום יישלח כשהחיבור יחזור.',
   'Preview as coach': 'תצוגת מאמן',
+  'Preview': 'כמאמן',
+  'Back': 'חזרה',
   'Coach view': 'תצוגת מאמן',
   'Back to EXPO coach': 'חזרה ל-EXPO',
 
@@ -213,6 +215,8 @@ export const HE = {
   'Final Series': 'סדרת הגמר',
   'Winner Cup': 'גביע וינר',
   'League': 'ליגה',
+  'Update injury': 'עדכון פציעה',
+  'Report injury': 'דיווח פציעה',
   'Logged for 1 athlete': 'נרשם אימון לשחקן אחד',
   'Logged for {n} athletes': 'נרשם אימון ל-{n} שחקנים',
   // fixture sync writes these as the venue when the hall is not known yet
