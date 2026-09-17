@@ -1640,7 +1640,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
               coach side), so hiding the toggle removes a useless control. */}
           {notes.length > 0 && role !== 'trainer' && (
             <button onClick={toggleComments}
-              title={commentsEnabled ? 'Auto-pause at comments ON — click to disable' : 'Comments hidden — click to enable auto-pause'}
+              title={tr(readLang(), commentsEnabled ? 'Auto-pause at comments ON — click to disable' : 'Comments hidden — click to enable auto-pause')}
               style={{padding:'3px 10px',borderRadius:0,border:`2px solid ${commentsEnabled?C.ac:'transparent'}`,minWidth:116,display:'inline-flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',
                 background:commentsEnabled?C.acD:'transparent',color:commentsEnabled?C.ac:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>
               {tr(readLang(), commentsEnabled ? 'COMMENTS ON' : 'COMMENTS OFF')}
@@ -1704,7 +1704,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
                   cursor:'pointer',padding:0}} />
             );
           })}
-          <button onClick={() => setRulerMode(v => !v)} title={rulerMode ? 'Straight-line mode ON' : 'Freehand mode — click for straight-line'}
+          <button onClick={() => setRulerMode(v => !v)} title={tr(readLang(), rulerMode ? 'Straight-line mode ON' : 'Freehand mode — click for straight-line')}
             style={{padding:'3px 8px',height:22,boxSizing:'border-box',borderRadius:0,border:`1px solid ${rulerMode?C.ac:C.bd}`,
               background:rulerMode?C.acD:'transparent',color:rulerMode?C.ac:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>
             📏 {tr(readLang(), rulerMode ? 'LINE' : 'FREE')}
@@ -1728,7 +1728,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
           <textarea value={composeText} autoFocus dir="auto"
             onChange={e => setComposeText(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); submitCompose(); } }}
-            placeholder={composing.replyToId ? 'Type your reply…' : 'What should the athlete focus on at this moment?'}
+            placeholder={tr(readLang(), composing.replyToId ? 'Type your reply…' : 'What should the athlete focus on at this moment?')}
             style={{width:'100%',minHeight:60,background:C.sf,border:`1px solid ${C.bd}`,borderRadius:0,padding:8,color:C.tx,fontFamily:FB,fontSize:13,boxSizing:'border-box',resize:'vertical',textAlign:'center'}}/>
           <div style={{display:'flex',gap:6,justifyContent:'flex-end',marginTop:6}}>
             <button onClick={cancelCompose} style={{padding:'4px 10px',borderRadius:0,border:`1px solid ${C.bd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,cursor:'pointer'}}>{tt("Cancel")}</button>
@@ -1888,7 +1888,7 @@ function CompareModal({ leftLabel, leftUrl, leftTitle, rightLabel, rightUrl, rig
           <div style={{display:'flex',justifyContent:'center',marginTop:16}}>
             <div style={bar} role="toolbar" aria-label={tt('Both videos')}>
               <button onClick={() => stepBoth(-1)} title={tt('Both back one frame (←)')} style={btn(false)}>◀</button>
-              <button onClick={toggle} title={playing ? 'Pause both (Space)' : 'Play both (Space)'} style={btn(playing, { minWidth: 118 })}>{playing ? '❚❚  ' + tt('PAUSE') : '▶  ' + tt('PLAY BOTH')}</button>
+              <button onClick={toggle} title={tr(readLang(), playing ? 'Pause both (Space)' : 'Play both (Space)')} style={btn(playing, { minWidth: 118 })}>{playing ? '❚❚  ' + tt('PAUSE') : '▶  ' + tt('PLAY BOTH')}</button>
               <button onClick={() => stepBoth(1)} title={tt('Both forward one frame (→)')} style={btn(false)}>▶</button>
               <span style={divider} />
               {[0.125, 0.25, 0.5, 1, 2].map(x => (

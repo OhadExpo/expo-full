@@ -351,7 +351,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
       {/* Search + Add — prominent, full width. */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 18, alignItems: 'stretch', flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: 200, display: 'flex' }}>
-          <input placeholder={narrowUI ? "Search exercises…" : "Search exercises (title, muscle, joint, position…)"} value={search} onChange={e => { setSearch(e.target.value); setShowAll(false); }}
+          <input placeholder={tr(readLang(), narrowUI ? "Search exercises…" : "Search exercises (title, muscle, joint, position…)")} value={search} onChange={e => { setSearch(e.target.value); setShowAll(false); }}
             style={{ ...baseInput, height: 30, padding: '0 14px', fontSize: 13, lineHeight: '30px', textAlign: 'start', border: `1px solid ${C.ac}`, width: '100%' }} />
         </div>
         <Btn onClick={openNew} style={{ height: 30, width: RIGHT_CTL_W, flexShrink: 0, padding: '0 18px', fontSize: 13, lineHeight: '30px', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ {tr(readLang(), 'Add Exercise')}</Btn>
@@ -517,7 +517,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
         </div>
       )}
 
-      <Modal open={showForm} onClose={() => setShowForm(false)} title={editId ? 'Edit Exercise' : 'New Exercise'} wide>
+      <Modal open={showForm} onClose={() => setShowForm(false)} title={tr(readLang(), editId ? 'Edit Exercise' : 'New Exercise')} wide>
         <div data-allow-copy>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(200px, 100%), 1fr))', gap: 12 }}>
             <div style={{ gridColumn: '1 / -1' }}><Input label="Title" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="e.g., Barbell Back Squat" /></div>

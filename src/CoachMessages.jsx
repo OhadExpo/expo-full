@@ -80,7 +80,7 @@ function AudioPlayer({ src, spaced }) {
       <button
         type="button"
         onClick={toggle}
-        aria-label={playing ? 'Pause voice note' : 'Play voice note'}
+        aria-label={tr(readLang(), playing ? 'Pause voice note' : 'Play voice note')}
         style={{
           width: 30, height: 30, flexShrink: 0, display: 'inline-flex',
           alignItems: 'center', justifyContent: 'center', lineHeight: 1,

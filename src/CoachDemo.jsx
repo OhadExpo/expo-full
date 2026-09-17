@@ -2176,7 +2176,7 @@ function DemoPrograms({ resetToken = 0 }) {
                         return (
                           <div className="cd-prog-actions" style={{ padding: '8px 14px 12px', display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
                             <button className="cd-onportal" onClick={e => { e.stopPropagation(); togglePortal(cur.id); }}
-                              title={on ? 'On the athlete portal — click to hide' : 'Hidden — click to show'}
+                              title={tr(readLang(), on ? 'On the athlete portal — click to hide' : 'Hidden — click to show')}
                               style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                               <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: on ? C.gn : C.td }}>{T('PORTAL')}</span>
                               <span style={{ width: 32, height: 18, borderRadius: 9, background: on ? 'rgba(46,213,115,0.25)' : 'rgba(255,255,255,0.06)', border: `1px solid ${on ? 'rgba(46,213,115,0.5)' : C.cardBd}`, position: 'relative', transition: 'background .15s, border-color .15s', flexShrink: 0 }}>
@@ -2204,7 +2204,7 @@ function DemoPrograms({ resetToken = 0 }) {
                                 const on = isVis(p.id);
                                 return <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexShrink: 0 }}>
                                   <button className="cd-txtbtn" onClick={e => { e.stopPropagation(); togglePortal(p.id); }}
-                                    title={on ? 'On the athlete portal — click to hide' : 'Hidden — click to show'}
+                                    title={tr(readLang(), on ? 'On the athlete portal — click to hide' : 'Hidden — click to show')}
                                     style={{ ...txt(on ? C.gn : C.td), display: 'inline-flex', alignItems: 'center', gap: 5 }}><span style={{ width: 5, height: 5, borderRadius: '50%', background: on ? C.gn : C.td }} />{on ? 'On portal' : 'Hidden'}</button>
                                   <button className="cd-txtbtn" onClick={e => e.stopPropagation()} title={T('Preview as trainee (demo only)')} style={txt(C.ac)}>{T('Preview')}</button>
                                   <button className="cd-txtbtn" onClick={e => e.stopPropagation()} title={T('Duplicate program (demo only)')} style={txt(C.ac)}>{tr(readLang(), 'Duplicate')}</button>

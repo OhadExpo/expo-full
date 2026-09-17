@@ -838,7 +838,7 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
                 onMouseDown={(e) => e.stopPropagation()}
                 onClick={(e) => { e.stopPropagation(); if (due) { try { e.currentTarget.showPicker(); } catch { /* noop */ } } }}
                 disabled={!due}
-                title={due ? 'Time (default 09:00)' : 'Pick a date first'}
+                title={tr(readLang(), due ? 'Time (default 09:00)' : 'Pick a date first')}
                 style={{ background: 'transparent', color: due ? 'var(--c-tm)' : 'var(--c-td)', border: `1px solid var(--c-cardBd)`, fontFamily: FN, fontSize: 10, fontWeight: 600, padding: '3px 6px', height: 24, borderRadius: 0, outline: 'none', opacity: due ? 1 : 0.5, cursor: due ? 'pointer' : 'default' }} />
             </span>
           </div>
@@ -917,7 +917,7 @@ function CalendarEmbedCard() {
     }}>
       <button
         onClick={() => setOpen(o => !o)}
-        title={open ? 'Collapse calendar' : 'Expand calendar'}
+        title={tr(readLang(), open ? 'Collapse calendar' : 'Expand calendar')}
         style={{
           display: 'flex', alignItems: 'center', gap: 10, width: '100%',
           background: 'transparent', border: 'none', cursor: 'pointer',

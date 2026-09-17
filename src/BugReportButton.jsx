@@ -140,7 +140,7 @@ export default function BugReportButton({ role = 'anon', reporterEmail = '', var
     <>
       <style>{'@keyframes bug-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.18)} }'}</style>
       <button onClick={() => setOpen(true)}
-        title={justErrored ? 'Something just broke — tap to send a bug report' : 'Report a bug'}
+        title={tt(justErrored ? 'Something just broke — tap to send a bug report' : 'Report a bug')}
         aria-label={tt('Report a bug')}
         className={isAthlete ? undefined : 'hdr-icon-btn'} style={btnStyle}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

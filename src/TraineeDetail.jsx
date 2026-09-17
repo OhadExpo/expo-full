@@ -96,7 +96,7 @@ function ProgramCard({ plan: p, isVis, onOpen, onUnassign, onOnly, onToggleVis }
         <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0, flexWrap:'wrap' }}>
           <button onClick={e=>{ e.stopPropagation(); onUnassign(); }} aria-label={t('Remove program from athlete')} title={t('Remove program from athlete')} style={{ ...btn, background:'none', border:'none', color:C.rd, fontSize:11, fontWeight:400, opacity:0.6, padding:'0 4px' }}>✕</button>
           <button onClick={e=>{ e.stopPropagation(); onOnly(); }} title={t('Show only this program on the athlete portal — hide all others')} style={{ ...btn, background:'transparent', border:`1px solid ${C.ac}`, color:C.ac, fontSize:9, letterSpacing:'0.1em', padding:'0 8px', textTransform:'uppercase' }}>{t('Only')}</button>
-          <button onClick={e=>{ e.stopPropagation(); onToggleVis(); }} title={isVis?'Visible on the portal — click to hide':'Hidden from the portal — click to show'} style={{ ...btn, background:'none', border:'none', padding:0, gap:4, justifyContent:'flex-start' }}>
+          <button onClick={e=>{ e.stopPropagation(); onToggleVis(); }} title={tr(readLang(), isVis?'Visible on the portal — click to hide':'Hidden from the portal — click to show')} style={{ ...btn, background:'none', border:'none', padding:0, gap:4, justifyContent:'flex-start' }}>
             <span style={{ width:36, height:20, borderRadius:10, background:isVis?'rgba(46,213,115,0.251)':C.sf3, border:`1px solid ${isVis?'rgba(46,213,115,0.376)':C.bd2}`, position:'relative', transition:'all .15s', display:'inline-block', flexShrink:0 }}><span style={{ width:16, height:16, borderRadius:8, background:isVis?C.gn:C.td, position:'absolute', top:1, left:isVis?18:1, transition:'all .15s' }}/></span>
             <span style={{ fontSize:10, fontFamily:FN, fontWeight:700, color:isVis?C.gn:C.td, minWidth:26, textAlign: 'start' }}>{isVis?'ON':'OFF'}</span>
           </button>
@@ -352,7 +352,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             any block rather than only the newest, and sits with the other
             per-block actions. */}
         <button onClick={()=>bulkSetVis(plans, keyFn, !showing)}
-          title={showing ? "Hide all from portal" : "Show all on portal"}
+          title={tr(readLang(), showing ? "Hide all from portal" : "Show all on portal")}
           style={{background:'var(--c-sf)',border:`1px solid ${showing?C.rd:C.gn}`,borderRadius:0,height:28,boxSizing:'border-box',padding:"0 12px",color:showing?C.rd:C.gn,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',lineHeight:1}}>
           {showing ? t('HIDE ALL') : t('SHOW ALL')}
         </button>
@@ -503,7 +503,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           {(() => {
             const vk = visKeyOf(cur);
             const isVis = portalVis?.[vk] !== false;
-            return <button onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis});}} title={isVis?'On the athlete portal — click to hide':'Hidden from the athlete portal — click to show'} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:8}}>
+            return <button onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis});}} title={tr(readLang(), isVis?'On the athlete portal — click to hide':'Hidden from the athlete portal — click to show')} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:8}}>
               <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',color:isVis?C.gn:C.td}}>{t('PORTAL')}</span>
               <span style={{width:32,height:18,borderRadius:9,background:isVis?'rgba(46,213,115,0.25)':'rgba(255,255,255,0.06)',border:`1px solid ${isVis?'rgba(46,213,115,0.5)':C.cardBd}`,position:'relative',transition:'background .15s, border-color .15s',flexShrink:0}}>
                 <span style={{width:14,height:14,borderRadius:7,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?15:1,transition:'left .15s'}} />
@@ -532,7 +532,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
                     <div style={{fontSize:11,color:C.td,fontFamily:FN,letterSpacing:'0.04em',fontWeight:500,flexShrink:0,whiteSpace:'nowrap'}}>{p.dayCount||0}d · {p.exerciseCount||0}ex</div>
                   </div>
                   <div style={{display:'flex',alignItems:'center',gap:14,flexShrink:0}}>
-                    <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis});}} title={isVis?'On the athlete portal — click to hide':'Hidden from the athlete portal — click to show'} style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.04em',color:isVis?C.gn:C.td,display:'inline-flex',alignItems:'center',gap:5}}><span style={{width:5,height:5,borderRadius:'50%',background:isVis?C.gn:C.td}} />{isVis?'On portal':'Hidden'}</button>
+                    <button className="prog-txtbtn" onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis});}} title={tr(readLang(), isVis?'On the athlete portal — click to hide':'Hidden from the athlete portal — click to show')} style={{background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.04em',color:isVis?C.gn:C.td,display:'inline-flex',alignItems:'center',gap:5}}><span style={{width:5,height:5,borderRadius:'50%',background:isVis?C.gn:C.td}} />{isVis?'On portal':'Hidden'}</button>
                     {onlyBtn(p, 10)}
                     {removeBtn(p, 10)}
                   </div>
@@ -640,7 +640,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           </> : <Btn variant="ghost" onClick={()=>setShowArchiveConfirm(true)} title={t('Archive this athlete')} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",color:'var(--c-tm)',flex:'1 1 88px',minWidth:0,whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}}>{t('ARCHIVE')}</Btn>}
           <button
             onClick={() => { if (setTrainees) setTrainees(prev => prev.map(t => t.id === trainee ? { ...t, notifOff: !t.notifOff } : t)); }}
-            title={td.notifOff ? 'Notifications muted for this athlete — click to unmute' : 'Notifications on — click to mute push + dashboard alerts about this athlete'}
+            title={tr(readLang(), td.notifOff ? 'Notifications muted for this athlete — click to unmute' : 'Notifications on — click to mute push + dashboard alerts about this athlete')}
             style={{ background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, cursor: 'pointer', padding: '0 6px', height: 30, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, flex: '1.6 1 0', minWidth: 0 }}>
             <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: td.notifOff ? C.td : C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('NOTIFICATION')}</span>
             <span style={{ width: 34, height: 18, borderRadius: 9, background: td.notifOff ? C.sf3 : 'rgba(57,189,255,0.22)', border: `1px solid ${td.notifOff ? C.bd2 : 'rgba(57,189,255,0.38)'}`, position: 'relative', transition: 'all .15s', flexShrink: 0 }}>
@@ -829,7 +829,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           onClose={() => setShowContract(false)}
         />
       )}
-      <Modal open={showPayForm} onClose={()=>{setShowPayForm(false);setEditPayId(null);setPayForm({amount:"",date:todayLocalISO(),notes:"",status:"Paid"})}} title={editPayId?"Edit Payment":"Add Payment"}>
+      <Modal open={showPayForm} onClose={()=>{setShowPayForm(false);setEditPayId(null);setPayForm({amount:"",date:todayLocalISO(),notes:"",status:"Paid"})}} title={tr(readLang(), editPayId?"Edit Payment":"Add Payment")}>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
           <Input label="Amount (₪)" type="number" value={payForm.amount} onChange={e=>setPayForm({...payForm,amount:e.target.value})} />
           <Input label="Date" type="date" value={payForm.date} onChange={e=>setPayForm({...payForm,date:e.target.value})} />

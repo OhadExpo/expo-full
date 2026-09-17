@@ -394,8 +394,8 @@ function MoreMenu({ tab, navTo, onExport, onChangePassword, isOwner = true }) {
               {/* Toggle switch — the ONLY clickable region. */}
               <button onClick={e => { e.stopPropagation(); togglePush(); }}
                 disabled={pushBusy}
-                aria-label={pushOn ? 'Turn off push notifications' : 'Turn on push notifications'}
-                title={pushOn ? 'Click to disable push notifications' : 'Click to enable push notifications'}
+                aria-label={tt(pushOn ? 'Turn off push notifications' : 'Turn on push notifications')}
+                title={tt(pushOn ? 'Click to disable push notifications' : 'Click to enable push notifications')}
                 style={{
                   flexShrink: 0, width: 36, height: 20, borderRadius: 10,
                   background: pushOn ? '#39BDFF' : 'var(--c-sf3)',

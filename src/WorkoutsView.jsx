@@ -280,7 +280,7 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
         const sc = ssColor(g.ss);
         return (
         <div key={gi} style={{border:`1px solid ${sc}`, borderInlineStart:`3px solid ${allD?C.gn:sc}`, borderRadius:0, padding:'8px 12px', marginBottom:10, background: 'var(--c-sf)'}}>
-          <button onClick={()=>toggleGroup(gi,g.items)} title={collapsed?'Expand superset':'Collapse superset'}
+          <button onClick={()=>toggleGroup(gi,g.items)} title={tr(readLang(), collapsed?'Expand superset':'Collapse superset')}
             style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,background:'transparent',border:'none',cursor:'pointer',padding:0,textAlign: 'start'}}>
             <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',color:allD?C.gn:sc,textTransform:'uppercase',minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
               {allD && <span style={{marginInlineEnd:6}}>✓</span>}{tr(readLang(), 'Superset')} {g.ss}{collapsed && <span style={{color:C.tm,fontWeight:600,letterSpacing:'0.04em',textTransform:'none'}}> · {titles}</span>}

@@ -384,7 +384,7 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
               "the bottom part doesn't have enough vertical space"). */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: compareOpen ? 8 : 2 }}>
             <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', color: C.tm, textTransform: 'uppercase' }}>{tr(readLang(), 'Compare')}</span>
-            <button onClick={() => setCompareOpen(o => !o)} title={compareOpen ? 'Collapse the compare for more list room' : 'Show the compare'} style={{ background: 'transparent', border: 'none', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', display: 'inline-flex', alignItems: 'center', gap: 5, padding: 0 }}>{compareOpen ? 'Collapse' : 'Expand'} <span aria-hidden style={{ fontSize: 8, transform: compareOpen ? 'none' : 'rotate(180deg)' }}><svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></span></button>
+            <button onClick={() => setCompareOpen(o => !o)} title={tr(readLang(), compareOpen ? 'Collapse the compare for more list room' : 'Show the compare')} style={{ background: 'transparent', border: 'none', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', display: 'inline-flex', alignItems: 'center', gap: 5, padding: 0 }}>{compareOpen ? 'Collapse' : 'Expand'} <span aria-hidden style={{ fontSize: 8, transform: compareOpen ? 'none' : 'rotate(180deg)' }}><svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></span></button>
           </div>
           {compareOpen && (() => {
             const cand = filt[activeIdx];
@@ -1055,9 +1055,9 @@ function WarmupLibraryControls({ w, onLink, exercises, setExercises }) {
             : 'This warm-up matches the library — nothing to update. Edit the name, video or notes first.'}
           style={{display:'inline-flex',alignItems:'center',justifyContent:'center',gap:5,background:'transparent',border:`1px solid ${canUpdateLib?C.ac:C.cardBd}`,color:canUpdateLib?C.ac:C.td,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',padding:'6px 12px',cursor:canUpdateLib?'pointer':'not-allowed',opacity:canUpdateLib?1:0.5,borderRadius:0,textTransform:'uppercase'}}><span aria-hidden="true" style={{display:'inline-flex',alignItems:'center',justifyContent:'center',width:9,height:9,fontSize:9,lineHeight:1}}>↑</span><span>{tt('Update the exercise database')}</span></button>
         <button onClick={()=>setLibConfirm('new')} disabled={!canSaveNew}
-          title={canSaveNew
+          title={tr(readLang(), canSaveNew
             ? 'Create a brand-new exercise in the database from this warm-up, and link this row to it.'
-            : 'This warm-up already matches a library exercise — nothing new to save. Edit the name, video or notes first.'}
+            : 'This warm-up already matches a library exercise — nothing new to save. Edit the name, video or notes first.')}
           style={{background:'transparent',border:`1px solid ${canSaveNew?C.gn:C.cardBd}`,color:canSaveNew?C.gn:C.td,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',padding:'6px 12px',cursor:canSaveNew?'pointer':'not-allowed',opacity:canSaveNew?1:0.5,borderRadius:0,textTransform:'uppercase'}}>+ {tt('Save new exercise')}</button>
       </div>
       <ConfirmDialog
@@ -1143,7 +1143,7 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExerc
   return (
     <div style={{ background: 'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius: 0, padding: 12, marginBottom: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: open ? 8 : 0 }}>
-        <button onClick={() => setOpen(o => !o)} title={open ? 'Collapse warm-up' : 'Expand warm-up'}
+        <button onClick={() => setOpen(o => !o)} title={tr(readLang(), open ? 'Collapse warm-up' : 'Expand warm-up')}
           style={{ background:'transparent', border:'none', cursor:'pointer', padding:0, display:'flex', alignItems:'center', gap:10 }}>
           <span style={{ color:C.tm, fontSize:13, lineHeight:1, flexShrink:0, display:'inline-block', transform:open?'none':'rotate(-90deg)', transition:'transform 180ms ease', userSelect:'none' }}>▾</span>
           <span style={{ fontSize: 12, fontFamily: FN, fontWeight: 700, color: C.or, letterSpacing:'0.06em' }}>{tt('WARM-UP')} ({warmup.length})</span>
@@ -1165,7 +1165,7 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExerc
             if (!anyOpen && !open) setOpen(true);
             setWuExpanded(prev => { const next = { ...prev }; warmup.forEach((_, i) => { if (anyOpen) delete next[i]; else next[i] = true; }); return next; });
           }}
-            title={anyOpen ? 'Collapse all warm-ups' : 'Expand all warm-ups to edit fully'}
+            title={tr(readLang(), anyOpen ? 'Collapse all warm-ups' : 'Expand all warm-ups to edit fully')}
             style={{ marginInlineStart:'auto', background:'var(--c-sf)', border:`1px solid ${C.ac}`, borderRadius:0, height:24, padding:0, color:C.ac, cursor:'pointer', fontFamily:FN, fontSize:10, fontWeight:700, letterSpacing:'0.09em', whiteSpace:'nowrap', width:142, flexShrink:0, boxSizing:'border-box', display:'inline-flex', alignItems:'center', justifyContent:'center', gap:5 }}>
             <span aria-hidden style={{ display:'inline-block', transform:anyOpen?'rotate(180deg)':'none', transition:'transform 180ms ease', lineHeight:1 }}>▾</span>
             {/* marginInlineEnd cancels the trailing letter-space (letterSpacing
@@ -1503,12 +1503,12 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                   <div key={d.id || di} style={{background: 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:12,marginBottom:12}}>
                     <div onClick={e => { if (e.target === e.currentTarget) toggleCmpDay(cmpDayKey); }}
                       style={{display:'flex',alignItems:'center',marginBottom:cmpCollapsed?0:8,gap:10,position:'sticky',top:0,zIndex:3,background:'var(--c-sf)',paddingTop:4,marginTop:-4,paddingBottom:cmpCollapsed?0:8,borderBottom:cmpCollapsed?'none':`1px solid ${C.cardBd}`}}>
-                      <span role="button" tabIndex={0} onClick={()=>toggleCmpDay(cmpDayKey)} onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggleCmpDay(cmpDayKey); } }} title={cmpCollapsed?'Expand day':'Collapse day'} style={{cursor:'pointer',color:C.tm,fontSize:12,lineHeight:1,userSelect:'none'}}>{cmpCollapsed?'▸':'▾'}</span>
+                      <span role="button" tabIndex={0} onClick={()=>toggleCmpDay(cmpDayKey)} onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggleCmpDay(cmpDayKey); } }} title={tr(readLang(), cmpCollapsed?'Expand day':'Collapse day')} style={{cursor:'pointer',color:C.tm,fontSize:12,lineHeight:1,userSelect:'none'}}>{cmpCollapsed?'▸':'▾'}</span>
                       <input value={d.name || `Day ${di + 1}`} readOnly tabIndex={-1}
                         style={{...baseInput, fontFamily:FB, fontWeight:700, fontSize:14, color:C.tx, padding:'4px 8px', maxWidth:260, cursor:'default'}} />
                       <span style={{color:C.td,fontSize:12,whiteSpace:'nowrap',display:'inline-flex',alignItems:'center',lineHeight:1,alignSelf:'center'}}>({dayExs.length} ex)</span>
                       {/* Empty header space = click target to expand/collapse (mirrors editor). */}
-                      <div onClick={()=>toggleCmpDay(cmpDayKey)} aria-hidden title={cmpCollapsed?'Expand day':'Collapse day'} style={{flex:'1 1 0',minWidth:0,alignSelf:'stretch',minHeight:24,cursor:'pointer'}} />
+                      <div onClick={()=>toggleCmpDay(cmpDayKey)} aria-hidden title={tr(readLang(), cmpCollapsed?'Expand day':'Collapse day')} style={{flex:'1 1 0',minWidth:0,alignSelf:'stretch',minHeight:24,cursor:'pointer'}} />
                     </div>
                     {!cmpCollapsed && (<>
                     {dayExs.length === 0 ? (
@@ -1823,7 +1823,7 @@ function ExEditorExtras({ ex, exData, exTitle, update, onResolveVideo = null, sh
                 {hasNoteOverride && (ex.notes||'').length>0 && <button onClick={()=>update({notes:'',notesEdited:true})} title="Clear the note for this program only (library is untouched)." style={{background:'transparent',border:`1px solid ${C.cardBd}`,color:C.rd,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.1em',padding:'2px 7px',cursor:'pointer',borderRadius:0,opacity:0.7}}>× {tt('CLEAR')}</button>}
               </div>
             </div>
-            <textarea value={noteValue} onChange={e=>update({notes:e.target.value,notesEdited:true})} placeholder={libCues?"Notes / modifications (overrides library cues)":"Notes, modifications..."} style={{...baseInput,textAlign:'center',flex:1,minHeight:120,padding:'10px 12px',lineHeight:1.5,resize:'vertical',fontFamily:FB,fontSize:13}} />
+            <textarea value={noteValue} onChange={e=>update({notes:e.target.value,notesEdited:true})} placeholder={tr(readLang(), libCues?"Notes / modifications (overrides library cues)":"Notes, modifications...")} style={{...baseInput,textAlign:'center',flex:1,minHeight:120,padding:'10px 12px',lineHeight:1.5,resize:'vertical',fontFamily:FB,fontSize:13}} />
           </div>
           {/* THUMBNAIL (right) — spacer mirrors the NOTES label row height.
               Fills the column edge-to-edge so it shares the exact left/right
@@ -1848,9 +1848,9 @@ function ExEditorExtras({ ex, exData, exTitle, update, onResolveVideo = null, sh
               : 'This card matches the library — nothing to update. Edit the name, video or notes first.'}
             style={{display:'inline-flex',alignItems:'center',justifyContent:'center',gap:5,background:'transparent',border:`1px solid ${canUpdateLib?C.ac:C.cardBd}`,color:canUpdateLib?C.ac:C.td,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',padding:'6px 12px',cursor:canUpdateLib?'pointer':'not-allowed',opacity:canUpdateLib?1:0.5,borderRadius:0,textTransform:'uppercase'}}><span aria-hidden="true" style={{display:'inline-flex',alignItems:'center',justifyContent:'center',width:9,height:9,fontSize:9,lineHeight:1}}>↑</span><span>{tt('Update the exercise database')}</span></button>
           <button onClick={()=>setLibConfirm('new')} disabled={!canSaveNew}
-            title={canSaveNew
+            title={tr(readLang(), canSaveNew
               ? 'Create a brand-new exercise in the database from this card, and link this row to it.'
-              : 'This card already matches a library exercise — nothing new to save. Edit the name, video or notes first.'}
+              : 'This card already matches a library exercise — nothing new to save. Edit the name, video or notes first.')}
             style={{background:'transparent',border:`1px solid ${canSaveNew?C.gn:C.cardBd}`,color:canSaveNew?C.gn:C.td,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',padding:'6px 12px',cursor:canSaveNew?'pointer':'not-allowed',opacity:canSaveNew?1:0.5,borderRadius:0,textTransform:'uppercase'}}>+ {tt('Save new exercise')}</button>
         </div>
       ) : null}
@@ -2489,7 +2489,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
               label so the row never re-flows when it toggles: a control that
               changes size on click reads as a flash bug. */}
           <button onClick={() => setOverviewOpen(v => !v)}
-            title={overviewOpen ? 'Back to the full editor' : 'See every day and exercise of this block on one screen'}
+            title={tr(readLang(), overviewOpen ? 'Back to the full editor' : 'See every day and exercise of this block on one screen')}
             style={{background: overviewOpen ? `${C.ac}1f` : (isRefined5b() ? 'transparent' : 'var(--c-sf)'),border:`1px solid ${C.ac}`,borderRadius:0,height:42,padding:'0 13px',lineHeight:'42px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.09em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6,whiteSpace:'nowrap',minWidth:132,boxSizing:'border-box'}}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
             {overviewOpen ? tt('EDITOR') : tt('OVERVIEW')}
@@ -2715,12 +2715,12 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                   style={{cursor:'grab',color:C.tm,fontFamily:FN,fontSize:13,lineHeight:1,flexShrink:0,userSelect:'none',padding:'2px 1px'}}>⇕</span>}
                 <span role="button" tabIndex={0} onClick={()=>toggleDayCollapse(d.id)}
                   onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggleDayCollapse(d.id); } }}
-                  title={dayCollapsed?'Expand day':'Collapse day'}
+                  title={tr(readLang(), dayCollapsed?'Expand day':'Collapse day')}
                   style={{cursor:'pointer',color:'#FFFFFF',fontSize:13,lineHeight:1,flexShrink:0,transform:dayCollapsed?'rotate(-90deg)':'none',transition:'transform 180ms ease',userSelect:'none'}}>▾</span>
                 <input value={d.name} onChange={e=>updateDay(dayIdx,{name:e.target.value})}
                   style={{...baseInput, fontFamily:FB, fontWeight:700, fontSize:14, color:C.tx, padding:"4px 8px", maxWidth:260, minWidth:64, flex:'1 1 120px', width:'auto', boxShadow:'0 0 12px -6px var(--c-ac)'}} />
                 <span style={{color:C.ac,fontSize:12,whiteSpace:"nowrap",display:'inline-flex',alignItems:'center',lineHeight:1,alignSelf:'center'}}>({dayExs.length} ex)</span>
-                <div onClick={()=>toggleDayCollapse(d.id)} aria-hidden title={dayCollapsed?'Expand day':'Collapse day'} style={{flex:'1 1 0',minWidth:0,alignSelf:'stretch',minHeight:24,cursor:'pointer'}} />
+                <div onClick={()=>toggleDayCollapse(d.id)} aria-hidden title={tr(readLang(), dayCollapsed?'Expand day':'Collapse day')} style={{flex:'1 1 0',minWidth:0,alignSelf:'stretch',minHeight:24,cursor:'pointer'}} />
                 {/* Per-day Daily-Routine toggle — ported from the old detail view
                     (the unified view had dropped it). ON = athlete logs this day
                     unlimited times per block, no DONE lock, no week rotation. */}
@@ -2736,7 +2736,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                     if (!anyOpen && dayCollapsed) setCollapsedDays(prev => ({ ...prev, [d.id]: false }));
                     setOvExpanded(prev=>{ const next={...prev}; dayIds.forEach(id=>{ if(anyOpen) delete next[id]; else next[id]=true; }); return next; });
                   }}
-                    title={anyOpen?'Collapse all exercises in this day':'Expand all exercises in this day to edit fully'}
+                    title={tr(readLang(), anyOpen?'Collapse all exercises in this day':'Expand all exercises in this day to edit fully')}
                     style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:24,padding:0,color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.09em',whiteSpace:'nowrap',width:142,flexShrink:0,boxSizing:'border-box',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:5}}>
                     {/* One glyph rotated for both states — ▴ and ▾ render at
                         different sizes in this font, so the arrows mismatched. */}

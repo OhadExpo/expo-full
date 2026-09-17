@@ -1278,7 +1278,7 @@ function Timeline({ series, shot, cur, onSeek, T, hand }) {
           </button>
         ))}
         <button onClick={() => setWholeClip((v) => !v)}
-          title={wholeClip ? "Zoom back to the shot the scorecard is showing" : "Show the whole clip - every rep, for the rhythm question"}
+          title={T === SHOT_I18N.he ? (wholeClip ? 'חזרה לזריקה שכרטיס הציון מציג' : 'כל הקליפ — כל החזרות, בשביל שאלת הקצב') : (wholeClip ? "Zoom back to the shot the scorecard is showing" : "Show the whole clip - every rep, for the rhythm question")}
           style={{ ...lbl, marginInlineStart: "auto", color: "rgba(255,255,255,0.75)", background: "transparent", border: "1px solid rgba(255,255,255,0.18)", cursor: "pointer", padding: "2px 7px" }}>
           {wholeClip ? (T.wholeClip || "WHOLE CLIP") : (T.thisShot || "THIS SHOT")}
         </button>

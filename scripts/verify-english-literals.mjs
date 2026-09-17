@@ -129,6 +129,11 @@ function scanFile(f, raw) {
     if (/[֐-׿]/.test(near) || /\bhe\b\s*\?|readLang\(\)\s*===\s*'he'/.test(near)) continue;
     findings.push({ f, line: ln, text: m[0], kind: 'plural-tpl' });
   }
+  // 17.9: an attribute picked by a ternary - placeholder={narrow ? "Search…" : "Search exercises (…)"}.
+  for (const m of src.matchAll(/(?<![\w$])(title|placeholder|aria-label)=\{\s*[^{}?'"`]{1,60}\?\s*(["'])([A-Za-z][^"'`$]{3,120})\2\s*:\s*(["'])([A-Za-z][^"'`$]{3,120})\4\s*\}/g)) {
+    if ((isAllowed(m[3]) && isAllowed(m[5])) || (m[1] === 'placeholder' && dataShape(m[3]) && dataShape(m[5]))) continue;
+    findings.push({ f, line: lineOf(m.index), text: m[0], kind: 'attr-ternary' });
+  }
   // 17.9: a status chip picked by a ternary - >{live ? 'LIVE' : 'CLIP'}< - has no run either.
   if (!PORTAL_HELD.has(f)) for (const m of src.matchAll(/[>}]\s*\{\s*[^{}?'`]{1,60}\?\s*'([A-Z][A-Z0-9 ·/&-]{2,})'\s*:\s*'([A-Z][A-Z0-9 ·/&-]{2,})'\s*\}/g)) {
     if (isAllowed(m[1]) && isAllowed(m[2])) continue;
