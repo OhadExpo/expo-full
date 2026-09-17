@@ -85,7 +85,9 @@ export default function Gym() {
       <div ref={calendarRef} id="calendar" style={{ scrollMarginTop: 80 }}>
         <CalendarSection heb={heb} />
       </div>
-      <Testimonials heb={heb} />
+      {/* 17.9: hidden until Ohad supplies real quotes - these arrived with the page build (14.5) with no
+          source, and a public page must not carry reviews nobody can stand behind. Set SHOW_TESTIMONIALS. */}
+      {SHOW_TESTIMONIALS && <Testimonials heb={heb} />}
       <FAQ heb={heb} />
       <Footer heb={heb} />
       <Analytics />
@@ -386,12 +388,12 @@ function Approach({ heb }) {
     ? [
         { n: '01', h: 'תוכנית כוח מובנית', b: 'בלוקים של 4–8 שבועות. מחזורים שמתעדכנים לפי הביצועים, לא לפי תחושה. כל סט נכתב מראש.' },
         { n: '02', h: 'ניידות וטווחי תנועה', b: 'עבודה ממוקדת על הצוואר, הכתפיים, הירך, והקרסול. לא מתיחות בסוף — חלק מהאימון עצמו.' },
-        { n: '03', h: 'עיסוי ספורט מובנה', b: 'עיסוי חודשי של 45–60 דקות עם מטפל ייעודי, ועיסוי קצר של 15–20 דקות לפני/אחרי אימון לפי הצורך. פחות כאב, פחות פציעות, יותר רציפות.' },
+        { n: '03', h: 'עיסוי ספורט מובנה', b: 'עיסוי חודשי של 45–60 דקות עם מטפל ייעודי, ועיסוי קצר של 15–20 דקות לפני/אחרי אימון לפי הצורך. פחות כאב, יותר רציפות.' },
       ]
     : [
         { n: '01', h: 'Programmed strength', b: '4–8 week blocks. Cycles adapt to your numbers, not your mood. Every set written ahead.' },
         { n: '02', h: 'Mobility and range', b: 'Targeted work on neck, shoulders, hips, ankles. Not a "stretch at the end" — part of the session.' },
-        { n: '03', h: 'Built-in sports massage', b: 'A monthly 45–60 min massage with a dedicated therapist, plus 15–20 min pre/post-training work when you need it. Less soreness, fewer injuries, more consistency.' },
+        { n: '03', h: 'Built-in sports massage', b: 'A monthly 45–60 min massage with a dedicated therapist, plus 15–20 min pre/post-training work when you need it. Less soreness, more consistency.' },
       ];
   return (
     <section data-fade className="gym-section">
@@ -825,6 +827,7 @@ function CalendarSection({ heb }) {
 }
 
 // ─── Testimonials ────────────────────────────────────────────────────
+const SHOW_TESTIMONIALS = false;
 function Testimonials({ heb }) {
   const quotes = heb
     ? [
