@@ -899,9 +899,9 @@ export const HE = {
   'DAY TOTAL': 'סה"כ ליום',
   KCAL: 'קק"ל',
   PROTEIN: 'חלבון',
-  CARB: 'פחמימה',
+  CARB: 'פחמימות',
   FAT: 'שומן',
-  g: 'ג׳',
+  g: 'גרם',
   MEAL: 'ארוחה',
   MEALS: 'ארוחות',
   'Optional hint (e.g. "1 tbsp olive oil")': 'רמז, לא חובה (למשל "כף שמן זית")',
@@ -975,7 +975,7 @@ export const HE = {
   MORE: 'עוד',
   "Update the exercise database": 'עדכן את מאגר התרגילים',
   "Save new exercise": 'שמור תרגיל חדש',
-  "● REC": '● הקלטה',
+  "● REC": '● הקלט',
   "SENDING…": 'שולח…',
   "SEND →": 'שלח ←',
   "No workouts yet.": 'עוד אין אימונים.',
@@ -1472,6 +1472,7 @@ export const HE = {
   SETS: 'סטים',
   REPS: 'חזרות',
   REST: 'מנוחה',
+  KG: 'ק"ג',
   NOTES: 'הערות',
   NOTE: 'הערה',
   'EXERCISE NOTE': 'הערה לתרגיל',
@@ -1486,7 +1487,7 @@ export const HE = {
   // Ohad picked התחלה / START from the 40-option sheet (2026-08-30): the
   // button OPENS the day rather than recording it, so a verbal noun reads as a
   // label on a door instead of an order to write something down.
-  START: 'התחלה',
+  START: 'התחל',
   LOG: 'רישום',
   AGAIN: 'שוב',
   Complete: 'הושלם',

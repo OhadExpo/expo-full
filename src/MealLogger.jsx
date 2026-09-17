@@ -265,7 +265,7 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
               fontFamily: FN, fontSize: 36, color: meals.length ? C.ac : C.td,
               fontWeight: 700, letterSpacing: '-0.02em', marginTop: 4,
               fontVariantNumeric: 'tabular-nums',
-            }}>{totals.kcal}<span style={{ fontSize: 13, color: C.tm, fontWeight: 600, marginLeft: 6, letterSpacing: '0.12em' }}>{tt('KCAL')}</span></div>
+            }}>{totals.kcal}<span style={{ fontSize: 13, color: C.tm, fontWeight: 600, marginInlineStart: 6, letterSpacing: '0.12em' }}>{tt('KCAL')}</span></div>
           </div>
           <div style={{
             display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6,
@@ -279,7 +279,7 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
               <div key={t.l} style={{ textAlign: 'center' }}>
                 <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700 }}>{t.l}</div>
                 <div style={{ fontFamily: FN, fontSize: 18, color: t.c, fontWeight: 700, marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>
-                  {t.v}<span style={{ fontSize: 10, color: C.tm, marginLeft: 2, fontWeight: 600 }}>{tt('g')}</span>
+                  {t.v}<span style={{ fontSize: 10, color: C.tm, marginInlineStart: 2, fontWeight: 600 }}>{tt('g')}</span>
                 </div>
               </div>
             ))}
@@ -578,9 +578,9 @@ function MealRow({ meal, page = false }) {
             fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
             fontVariantNumeric: 'tabular-nums',
           }}>
-            <span style={{ color: C.gn }}>{meal.protein_g}<span style={{ color: C.tm, marginLeft: 2 }}>P</span></span>
-            <span style={{ color: C.or }}>{meal.carbs_g}<span style={{ color: C.tm, marginLeft: 2 }}>C</span></span>
-            <span style={{ color: C.ac }}>{meal.fat_g}<span style={{ color: C.tm, marginLeft: 2 }}>F</span></span>
+            <span style={{ color: C.gn }}>{meal.protein_g}<span style={{ color: C.tm, marginInlineStart: 2 }}>P</span></span>
+            <span style={{ color: C.or }}>{meal.carbs_g}<span style={{ color: C.tm, marginInlineStart: 2 }}>C</span></span>
+            <span style={{ color: C.ac }}>{meal.fat_g}<span style={{ color: C.tm, marginInlineStart: 2 }}>F</span></span>
           </div>
         </div>
       </div>
