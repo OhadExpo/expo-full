@@ -1651,9 +1651,12 @@ function AuthedApp() {
                logo, and a rail beside it that scrolls. A tab cannot reach the
                logo's x, so it cannot be covered, and one swipe still carries you
                from the first tab to sign-out. */
+            /* 17.9: the first child IS the logo <img>, not a wrapper - 'stretch' cannot stretch a
+               36px image, so it pinned to the top and the -3px lift cut the caret off (y -3..33
+               in a 56px bar). Centre it; the lift then centres the LETTERS on the tab row. */
             div.hdr-scroll { flex-wrap: nowrap !important; height: 56px !important; overflow-x: visible !important; overflow-y: visible !important; padding-inline-start: 16px !important; padding-inline-end: 0 !important; background: inherit; }
             div.hdr-scroll > :first-child { position: static; z-index: auto; flex: 0 0 auto;
-              align-self: stretch; display: flex; align-items: center; padding-inline-end: 12px;
+              align-self: center; display: block; padding-inline-end: 12px;
               border-inline-end: 1px solid var(--c-cardBd); }
             .hdr-rail { display: flex !important; align-items: center; flex: 1 1 auto; min-width: 0;
               height: 56px; overflow-x: auto; overflow-y: hidden;
