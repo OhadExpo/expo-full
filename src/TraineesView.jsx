@@ -299,11 +299,11 @@ function TrainingBlock({ format, sessionsRemaining, programs, lastWk, center = f
         {(hasSessions || programs > 0) && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 10px', alignItems: 'center', justifyContent: justify }}>
             {hasSessions && (
-              <span style={{ fontFamily: FN, fontSize: 11, color: sessionsRemaining <= 2 ? C.rd : C.gn, fontWeight: 700 }}>{sessionsRemaining} {tt('Sessions left')}</span>
+              <span style={{ fontFamily: FN, fontSize: 11, color: sessionsRemaining <= 2 ? C.rd : C.gn, fontWeight: 700 }}>{readLang() === 'he' ? (sessionsRemaining === 1 ? 'נותר אימון אחד' : sessionsRemaining === 0 ? 'לא נותרו אימונים' : `נותרו ${sessionsRemaining} אימונים`) : `${sessionsRemaining} ${tt('Sessions left')}`}</span>
             )}
             {hasSessions && programs > 0 && <MidDot />}
             {programs > 0 && (
-              <span style={{ fontFamily: FN, fontSize: 11, color: C.tx, fontWeight: 700 }}>{programs} {tt('Programs')}</span>
+              <span style={{ fontFamily: FN, fontSize: 11, color: C.tx, fontWeight: 700 }}>{readLang() === 'he' ? (programs === 1 ? 'תוכנית אחת' : `${programs} תוכניות`) : `${programs} ${tt('Programs')}`}</span>
             )}
           </div>
         )}
