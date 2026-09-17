@@ -157,7 +157,7 @@ export const Input = ({ label, style: s, id, ...props }) => {
   const inputId = id || autoId;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-      {label && <label htmlFor={inputId} style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: "uppercase", letterSpacing: "0.18em", fontFamily: FN, textAlign: "start" }}>{label}</label>}
+      {label && <label htmlFor={inputId} style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: "uppercase", letterSpacing: "0.18em", fontFamily: FN, textAlign: "start" }}>{typeof label === "string" ? tr(readLang(), label) : label}</label>}
       {props.type === 'date' ? (
         // Native <input type=date> renders the BROWSER-LOCALE format (MM/DD/YYYY on
         // en-US machines, which is what Ohad's browser is). Overlay a dd/mm/yyyy span
@@ -202,7 +202,7 @@ export const Select = ({ label, options, value, onChange, placeholder }) => {
   const selectId = React.useId();
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-      {label && <label htmlFor={selectId} style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: "uppercase", letterSpacing: "0.18em", fontFamily: FN, textAlign: "start" }}>{label}</label>}
+      {label && <label htmlFor={selectId} style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: "uppercase", letterSpacing: "0.18em", fontFamily: FN, textAlign: "start" }}>{typeof label === "string" ? tr(readLang(), label) : label}</label>}
       <select id={selectId} value={value || ""} onChange={e => onChange(e.target.value)} style={{ ...baseInput, appearance: "none", paddingInlineEnd: 30 }}>
         {/* disabled+hidden: the placeholder is display-only when nothing is
             selected — it never appears as a pickable item in the dropdown
@@ -219,7 +219,7 @@ export const TextArea = ({ label, id, ...props }) => {
   const taId = id || autoId;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-      {label && <label htmlFor={taId} style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: "uppercase", letterSpacing: "0.18em", fontFamily: FN, textAlign: "start" }}>{label}</label>}
+      {label && <label htmlFor={taId} style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: "uppercase", letterSpacing: "0.18em", fontFamily: FN, textAlign: "start" }}>{typeof label === "string" ? tr(readLang(), label) : label}</label>}
       <textarea id={taId} style={{ ...baseInput, minHeight: 60, resize: "vertical" }} {...props} />
     </div>
   );

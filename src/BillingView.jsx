@@ -298,7 +298,7 @@ function RequestModal({ trainees, onClose, onCreated }) {
         </div>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
           <Btn variant="ghost" onClick={onClose} disabled={saving}>{tr(readLang(), 'Cancel')}</Btn>
-          <Btn onClick={create} disabled={saving} style={{ minWidth: 132, justifyContent: 'center' }}>{saving ? 'Creating…' : 'Create request'}</Btn>
+          <Btn onClick={create} disabled={saving} style={{ minWidth: 132, justifyContent: 'center' }}>{tr(readLang(), saving ? 'Creating…' : 'Create request')}</Btn>
         </div>
       </div>
     </div>
