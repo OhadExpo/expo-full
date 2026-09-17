@@ -632,7 +632,10 @@ export function RolePickerScreen({ name, onPick, onSignOut }) {
               size-adjust is the right place for that harmonisation; a per-site
               font-size bump is not, because it has to be repeated and kept in
               step everywhere the two scripts meet. */}
-          <div style={{ display: 'inline-flex', alignItems: 'baseline', justifyContent: 'center', gap: 9, color: C.tx, fontWeight: 600, lineHeight: 1 }}>
+          {/* 17.9 (Ohad): it read 'אוהד היי'. This screen renders LTR (it sits outside the
+              language provider), so the row put היי on the LEFT and the name on the right,
+              which a Hebrew reader reads name-first. The row follows the language now. */}
+          <div style={{ display: 'inline-flex', alignItems: 'baseline', justifyContent: 'center', gap: 9, color: C.tx, fontWeight: 600, lineHeight: 1, direction: readLang() === 'he' ? 'rtl' : 'ltr' }}>
             <span style={{ fontFamily: FB, fontSize: 15, letterSpacing: '0.06em' }}>{tr(readLang(), 'HEY')}</span>
             <span style={{ fontFamily: FH, fontSize: 15 }}>{name || tt('there')}</span>
           </div>

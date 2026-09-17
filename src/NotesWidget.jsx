@@ -134,7 +134,7 @@ function MiniTaskRow({ n, stackBoard, onClick, stripe }) {
       )}
       <span style={{ fontFamily: heb ? FH : FB, direction: heb ? 'rtl' : 'ltr', textAlign: 'center', color: name ? 'var(--c-tm)' : 'var(--c-tx)', flex: 1, minWidth: 0, overflowWrap: 'break-word' }}>{body}</span>
       {kindLabel && (
-        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: kindTone, border: `1px solid ${kindTone}`, padding: '2px 5px', lineHeight: 1, flexShrink: 0 }}>{kindLabel}</span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: kindTone, border: `1px solid ${kindTone}`, padding: '2px 5px', lineHeight: 1, flexShrink: 0 }}>{tr(readLang(), kindLabel)}</span>
       )}
     </div>
   );
@@ -156,7 +156,7 @@ function AlertGroupList({ grouped, collapsible, collapsedMap, onToggle, onRowCli
               role={collapsible ? 'button' : undefined} tabIndex={collapsible ? 0 : undefined}
               onKeyDown={collapsible ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle(g.id); } } : undefined}
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, padding: '5px 8px', background: 'var(--c-sf)', cursor: collapsible ? 'pointer' : 'default', userSelect: 'none', borderBottom: collapsed ? 'none' : `1px solid var(--c-cardBd)` }}>
-              <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--c-tm)' }}>{g.icon} {g.label}</span>
+              <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--c-tm)' }}>{g.icon} {tr(readLang(), g.label)}</span>
               <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: 'var(--c-td)' }}>{rows.length}</span>
                 {collapsible && <span aria-hidden style={{ fontSize: 10, color: 'var(--c-td)', transform: collapsed ? 'rotate(-90deg)' : 'rotate(0deg)', transition: 'transform 160ms ease' }}><svg aria-hidden viewBox="0 0 9 6" fill="none" width="0.95em" height="0.63em" style={{ display: 'inline-block', verticalAlign: 'middle' }}><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></span>}
@@ -943,7 +943,23 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
           return (
             <div>
               {/* Hover affordance for the clickable task cards (open the popup). */}
-              <style>{`.mini-task-row:hover{ border-color: var(--c-tm); background: var(--c-sf); }`}</style>
+              <style>{`.mini-task-row:hover{ border-color: var(--c-tm); background: var(--c-sf); }
+                /* 17.9 (Ohad, phone): 'auto alerts and history look awful'. Three zones side by side
+                   (name · body · date) leave the middle column ~40px on a 390px screen, so the body
+                   broke to one or two characters per line. Below 700px each zone gets its own line,
+                   the body reads start-aligned and is clamped to two lines. */
+                @media (max-width: 700px){
+                  .hist-zones{flex-direction:column;align-items:stretch;gap:1px;padding:4px 0}
+                  .hist-zones > span{text-align:start !important}
+                  .hist-zones > span:nth-child(2){text-align:start !important;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+                  .mini-task-row{flex-wrap:wrap;row-gap:1px;padding-block:5px !important}
+                  .mini-task-row > span:nth-child(2){flex:1 0 100% !important;text-align:start !important;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+                  /* name and its status chip share line one, the sentence gets line two */
+                  .mini-task-row > span:nth-child(1){order:1}
+                  .mini-task-row > span:nth-child(3){order:2;margin-inline-start:auto}
+                  .mini-task-row > span:nth-child(2){order:3}
+                }
+              `}</style>
               {/* Compact scope toggle — a single left-aligned segmented control
                   (GENERAL · AUTO-TASKS · ALL — the tasks-page's own vocabulary).
                   Counts ride beside each label; the active segment gets the cyan
@@ -1073,7 +1089,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                     left · task BODY centered in the middle (line-through) · DONE date
                     on the right. A fixed spine so the eye reads who / what / when
                     across a stack of history rows. */}
-                <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div className="hist-zones" style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 12 }}>
                   {/* Name matches the CALLS/BUILDS auto-alert name size exactly
                       (MiniTaskRow: Hebrew 13 / Latin 10, weight 800) so every name
                       across alerts + history reads at one size (Ohad #174). */}
