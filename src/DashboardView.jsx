@@ -583,7 +583,12 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
             // so the cyan title strip matches the height of the other 3
             // KPI tiles (the long form wrapped to two lines on common
             // viewport widths). MTD = month-to-date, finance standard.
-            { label: tt('Collected MTD'), value: unknown(payments) ? '—' : `₪${thisMonthPaid.toLocaleString()}`, sub: revDelta !== null ? `${revDelta >= 0 ? '+' : ''}${revDelta}% vs last month` : null, subColor: revDelta >= 0 ? C.gn : C.rd, color: thisMonthPaid>0?C.gn:C.td },
+            // 17.9 (Ohad: "dashboard is still not updated with the right amount of money"): no payment is
+            // marked in the app, so this read ₪0 while the REVENUE card below showed the sheet's month.
+            // With no app-marked money this month, the finance sheet's coaching total is the figure.
+            (thisMonthPaid === 0 && sheet)
+              ? { label: tt('Collected MTD'), value: `₪${Math.round(sheet.thisMonth).toLocaleString()}`, sub: tt('From the sheets'), subColor: C.td, color: sheet.thisMonth > 0 ? C.gn : C.td }
+              : { label: tt('Collected MTD'), value: unknown(payments) ? '—' : `₪${thisMonthPaid.toLocaleString()}`, sub: revDelta !== null ? `${revDelta >= 0 ? '+' : ''}${revDelta}% vs last month` : null, subColor: revDelta >= 0 ? C.gn : C.rd, color: thisMonthPaid>0?C.gn:C.td },
           ] : []),
         ].map((s, i) => {
           const refined = isRefined5b();
@@ -1020,13 +1025,13 @@ function RevenueCard({ paymentsUnknown = false, monthlyRate, thisMonthPaid, delt
           </div>
           <div style={metricStyle}>
             <span style={labelStyle}>{tt('AVG LTV')}</span>
-            <span style={numStyle}>{paymentsUnknown ? '—' : `₪${avgLtv.toLocaleString()}`}</span>
-            <span style={subStyle}>{tt('Per paying client')}</span>
+            <span style={numStyle}>{paymentsUnknown || avgLtv === 0 ? '—' : `₪${avgLtv.toLocaleString()}`}</span>
+            <span style={subStyle}>{avgLtv === 0 && !paymentsUnknown ? tt('No payments marked in the app') : tt('Per paying client')}</span>
           </div>
           <div style={metricStyle}>
             <span style={labelStyle}>{tt('AVG TICKET')}</span>
-            <span style={numStyle}>{paymentsUnknown ? '—' : `₪${avgTicket.toLocaleString()}`}</span>
-            <span style={subStyle}>{tt('Per payment row')}</span>
+            <span style={numStyle}>{paymentsUnknown || avgTicket === 0 ? '—' : `₪${avgTicket.toLocaleString()}`}</span>
+            <span style={subStyle}>{avgTicket === 0 && !paymentsUnknown ? tt('No payments marked in the app') : tt('Per payment row')}</span>
           </div>
         </div>
 
