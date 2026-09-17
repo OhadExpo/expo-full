@@ -65,7 +65,9 @@ const MEASURE = () => {
       const rng = document.createRange();
       rng.selectNodeContents(el);
       const ink = rng.getBoundingClientRect();
-      const over = Math.round(ink.right - r.right);
+      // Both edges: in a right-to-left layout the ink spills out of the LEFT side,
+      // which a right-edge-only check reported as clean (17.9, Hebrew sweep).
+      const over = Math.round(Math.max(ink.right - r.right, r.left - ink.left));
       if (over > 2 && ink.width > 0) {
         const key = 'S' + txt.slice(0, 30);
         if (!seen.has(key)) { seen.add(key); out.push({ kind: 'SPILLING', by: over, t: txt.slice(0, 40) }); }
@@ -96,7 +98,11 @@ await applyViewport(page, W);
 let total = 0;
 try {
   await signIn(page, BASE);
-  await assertAuthed(page, '/coach/dashboard');
+  // (page, base, route) - this used to pass the route AS the base and ignore the result,
+  // so a signed-out browser measured the login page and still printed OK (17.9).
+  if (!(await assertAuthed(page, BASE, '/coach/dashboard'))) { process.exitCode = 2; throw new Error('not signed in'); }
+  // HE=1 sweeps the Hebrew layout (the app reads expo-lang at mount).
+  if (process.env.HE === '1') await page.evaluate(() => { localStorage.setItem('expo-lang', 'he'); localStorage.setItem('expo-collapse:bhbc-lang', JSON.stringify('he')); });
   for (const route of ROUTES) {
     await page.goto(BASE + route, { waitUntil: 'domcontentloaded', timeout: 45000 });
     await new Promise((r) => setTimeout(r, 4500));
