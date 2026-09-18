@@ -15,7 +15,7 @@ import { supabase, SUPA_URL, SUPA_PUBLISHABLE_KEY } from './supabase';
 import { isRefined5b, RefinedHeaderStrip, toast, usePersistentState } from './ui';
 import { sendPush, isCoachMutedForAthlete } from './push';
 import { DEMO_MESSAGES } from './demoTraineeData';
-import { useT as useAppT, tr, readLang } from './i18n';
+import { useT as useAppT, tr, readLang, dirOfText } from './i18n';
 import { resolveStoredUrl } from './storageUrl';
 
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
@@ -311,7 +311,7 @@ function MessageBubble({ msg, viewerRole }) {
         {msg.body_text && (
           <div style={{
             fontSize: 13, color: 'var(--c-tx)', lineHeight: 1.4, whiteSpace: 'pre-wrap',
-            direction: heb ? 'rtl' : 'ltr', fontFamily: heb ? FH : FB,
+            direction: dirOfText(msg.body_text), fontFamily: heb ? FH : FB,
           }}>{msg.body_text}</div>
         )}
       </div>

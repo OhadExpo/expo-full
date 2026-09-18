@@ -9,7 +9,7 @@ const isHebrew = (s) => /[֐-׿]/.test(s || '');
 import { Btn, TextArea, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b, CollapsibleSection } from './ui';
 import { supabase } from './supabase';
 import { traineeIdsFor } from './traineeUtils';
-import { useT, tr, readLang } from './i18n';
+import { useT, tr, readLang, dirOfText } from './i18n';
 
 // Inline exercise video — IDENTICAL rules to the group session (Ohad: "just play
 // and pause, no clicking on the youtube video at all"). Plays in place, never
@@ -218,7 +218,7 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
         {cue && (
           <div style={{display:'flex',gap:10,marginBottom:10,background:'rgba(57,189,255,0.06)',borderInlineStart:`3px solid ${C.ac}`,padding:'9px 12px'}}>
             <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',color:C.ac,flexShrink:0,paddingTop:2}}>{tt('CUE')}</span>
-            <div style={{minWidth:0,flex:1,fontSize:13,color:C.tx,lineHeight:1.5,direction:isHebrew(cue)?'rtl':'ltr',textAlign:isHebrew(cue)?'right':'left',fontFamily:isHebrew(cue)?FH:FB,wordBreak:'break-word'}}>{cue}</div>
+            <div style={{minWidth:0,flex:1,fontSize:13,color:C.tx,lineHeight:1.5,direction:dirOfText(cue),textAlign:'start',fontFamily:isHebrew(cue)?FH:FB,wordBreak:'break-word'}}>{cue}</div>
           </div>
         )}
         {videoUrl && <InlineVideo url={videoUrl} />}

@@ -17,7 +17,7 @@ import { isRefined5b, RefinedHeaderStrip, SectionLabel, usePersistentState, stri
 import { useTheme } from './hooks/useTheme';
 import { supabase } from './supabase';
 import { enqueue } from './offlineQueue';
-import { useT, useTB, tr, readLang } from './i18n';
+import { useT, useTB, tr, readLang, dirOfText } from './i18n';
 // '+ 1 נענו' on the dashboard: threads are feminine and the count decides the form.
 const answeredWord = (n) => (readLang() === 'he' ? (n === 1 ? 'שנענתה' : 'שנענו') : tr('en', 'Answered'));
 
@@ -357,7 +357,7 @@ export default function MessagesCard({ trainees, onSelectTrainee, onOpenMessages
                     marginTop: 2,
                     fontSize: 12, color: 'var(--c-tm)',
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    direction: heb ? 'rtl' : 'ltr',
+                    direction: dirOfText(preview),
                     fontFamily: heb ? FH : undefined,
                   }}>{preview || <span style={{ opacity: 0.5 }}>(empty)</span>}</div>
                 </div>

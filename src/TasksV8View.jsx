@@ -26,7 +26,7 @@
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { localiseAutoBody } from './autoTaskHe';
-import { tr, readLang, agoLabel } from './i18n';
+import { tr, readLang, agoLabel, dirOfText } from './i18n';
 import { useCoachNotes } from './coachNotes';
 import { C, FN, FB, FH } from './theme';
 import { isRefined5b, toast, confirmToast, usePersistentState, asButton } from './ui';
@@ -1321,8 +1321,8 @@ export function CommentsThread({ noteId, viewer }) {
               <div style={{
                 fontFamily: heb ? FH : FB, fontSize: 13,
                 color: 'var(--c-tx)', lineHeight: 1.5,
-                direction: heb ? 'rtl' : 'ltr',
-                textAlign: heb ? 'right' : 'left',
+                direction: dirOfText(c.body || ''),
+                textAlign: 'start',
                 whiteSpace: 'pre-wrap',
                 // Break long unbroken strings (a pasted URL has no spaces, so
                 // pre-wrap alone let it run past the card's right edge).
@@ -1497,7 +1497,7 @@ function ExpandedDetail({ row, displayBody, viewer, onSetCategory, onArchive, on
       borderBottom: `1px solid var(--c-cardBd)`,
       fontFamily: heb ? FH : FB,
       fontSize: 12, color: 'var(--c-tm)', lineHeight: 1.6,
-      direction: heb ? 'rtl' : 'ltr',
+      direction: dirOfText(displayBody || ''),
     }}>
       {/* Title is NOT repeated here — the row above shows it in full once
           expanded. Detail starts at tags / approval / calendar / comments. */}

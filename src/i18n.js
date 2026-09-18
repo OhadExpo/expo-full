@@ -2479,6 +2479,15 @@ export function useHe() {
 // A link may carry the language: expo-il.co.il (another origin, so its own
 // storage is out of reach) sends a Hebrew reader to the demo with ?lang=he.
 // The hint is kept, so the next visit without it stays Hebrew.
+// THE DIRECTION OF A LINE IS SET BY ITS FIRST STRONG LETTER, NOT BY WHETHER
+// IT CONTAINS ONE. The app had `contains any Hebrew character -> rtl` in ten
+// places, so "Call <hebrew name> - skipped W4 of Block #15" - an English
+// sentence with one Hebrew name in it - was forced right-to-left and came out
+// scrambled, the dash and the block number jumping to the wrong end (Ohad's
+// phone, 18.9). First-strong is the Unicode rule browsers implement for
+// dir="auto", and it reads both languages correctly.
+export const dirOfText = (s) => (/^[^\p{L}]*[֐-׿]/u.test(String(s || '')) ? 'rtl' : 'ltr');
+
 export function readLang() {
   try {
     const hint = new URLSearchParams(window.location.search).get('lang');

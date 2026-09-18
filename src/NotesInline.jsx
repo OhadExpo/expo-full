@@ -6,7 +6,7 @@
 
 import React, { useState } from 'react';
 import { C, FN, FB, FH } from './theme';
-import { tr, readLang } from './i18n';
+import { tr, readLang, dirOfText } from './i18n';
 import { localiseAutoBody } from './autoTaskHe';
 import { fmtPrettyDate } from './dates';
 import { isRefined5b, RefinedHeaderStrip, confirmToast } from './ui';
@@ -460,7 +460,7 @@ export default function NotesInline({
             width: '100%', background: 'var(--c-sf)', border: `1px solid var(--c-cardBd)`, borderRadius: 0,
             padding: '8px 10px', color: 'var(--c-tx)', fontSize: 13, outline: 'none', boxSizing: 'border-box',
             resize: 'vertical',
-            direction: isHebrew(body) ? 'rtl' : 'ltr',
+            direction: dirOfText(body),
             fontFamily: isHebrew(body) ? FH : FB,
           }} />
         {/* F-35 — tags input. Same shape as NotesWidget so the

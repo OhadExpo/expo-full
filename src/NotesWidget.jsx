@@ -20,7 +20,7 @@ import { AutoTaskExplainModal } from './components/AutoTaskExplain';
 import { normalizePhoneIL } from './whatsappButton';
 import { displayBodyOf, ownerFromBody, priorityFromBody, visibleTags, PRIORITY_TONE } from './taskFormat';
 import { CommentsThread, EventTimeline } from './TasksV8View';
-import { tr, readLang, useT, useTB } from './i18n';
+import { tr, readLang, useT, useTB, dirOfText } from './i18n';
 
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
 
@@ -140,7 +140,13 @@ function MiniTaskRow({ n, stackBoard, onClick, stripe }) {
       {name && (
         <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 800, letterSpacing: nameHeb ? 0 : '0.04em', textTransform: nameHeb ? 'none' : 'uppercase', color: 'var(--c-tx)', flexShrink: 0, maxWidth: '45%', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
       )}
-      <span style={{ fontFamily: heb ? FH : FB, direction: heb ? 'rtl' : 'ltr', textAlign: 'center', color: name ? 'var(--c-tm)' : 'var(--c-tx)', flex: 1, minWidth: 0, overflowWrap: 'break-word' }}>
+      {/* dir="auto", not "contains a Hebrew letter". isHebrew() is true for ANY
+          Hebrew character, so "Call <hebrew name> — skipped W4 of Block #15" -
+          an English sentence with one Hebrew name in it - was forced to RTL and
+          came out scrambled, dash and block number jumping to the wrong end
+          (Ohad's phone, 18.9). First-strong is the rule that reads both right.
+          Start-aligned too: centred text looks accidental once it is two lines. */}
+      <span dir="auto" style={{ fontFamily: heb ? FH : FB, textAlign: 'start', color: name ? 'var(--c-tm)' : 'var(--c-tx)', flex: 1, minWidth: 0, overflowWrap: 'break-word' }}>
         <span style={{ display: 'block' }}>{bodyHead}</span>
         {bodyTail && <span style={{ display: 'block', color: 'var(--c-td)' }}>{bodyTail}</span>}
       </span>
@@ -818,7 +824,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
               width: '100%', background: 'var(--c-sf)', border: `1px solid var(--c-cardBd)`,
               borderRadius: 0, padding: '8px 10px', color: 'var(--c-tx)', fontSize: 13,
               outline: 'none', boxSizing: 'border-box', resize: 'vertical',
-              direction: isHebrew(body) ? 'rtl' : 'ltr',
+              direction: dirOfText(body),
               fontFamily: isHebrew(body) ? FH : FB,
             }} />
           {/* F-35 — tags input. Space- or comma-separated keywords let
