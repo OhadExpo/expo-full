@@ -74,6 +74,12 @@ function SlashBreak({ text }) {
   ));
 }
 
+// U+2066 LEFT-TO-RIGHT ISOLATE / U+2069 POP DIRECTIONAL ISOLATE. Named,
+// because invisible characters pasted into source are unreadable and get
+// deleted by the next person who tidies the line.
+const LRI = String.fromCharCode(0x2066);
+const PDI = String.fromCharCode(0x2069);
+
 function parseHash(hash) {
   const h = (hash || '').replace(/^#\/?/, '');
   // 2026-05-14 dual-arm split. Empty hash now shows the EntryChooser
@@ -1900,6 +1906,11 @@ function WhyTemplates() {
     { key: 'form',       label: t('why.row.form') },
     { key: 'setup',      label: t('why.row.setup') },
   ];
+  // The templates column quotes a price RANGE. Read it off the catalog so it
+  // cannot disagree with the cards on the same page (it read 290-490 while a
+  // 540 program was listed above it).
+  const prices = PROGRAMS.map((p) => p.price).filter((n) => Number.isFinite(n) && n > 0);
+  const catalogRange = { lo: Math.min(...prices), hi: Math.max(...prices) };
   const cols = [
     { key: 'col1', title: t('why.col1.t'), accent: false },
     { key: 'col2', title: t('why.col2.t'), accent: true  },
@@ -1952,7 +1963,7 @@ function WhyTemplates() {
                   fontFamily: FB, fontSize: 13, color: col.accent ? C.tx : C.tm,
                   lineHeight: 1.45, fontWeight: col.accent ? 600 : 400,
                 }}>
-                  {t(`why.${col.key}.${row.key}`)}
+                  {t(`why.${col.key}.${row.key}`, catalogRange)}
                 </div>
               </div>
             ))}
@@ -2824,14 +2835,24 @@ function SampleWeek({ sampleWeek, accent }) {
                       pushed the powerbuild page 16px past a 900px viewport,
                       which is a sideways scroll on the marketing site. */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
-                    <span style={{ fontFamily: FB, fontSize: 14, color: C.tx, fontWeight: 600, minWidth: 0 }}>{ex.title}</span>
-                    <span style={{ fontFamily: FN, fontSize: 12, color: C.tm, whiteSpace: 'nowrap' }}>{ex.prescribed}</span>
+                    {/* dir="ltr" + isolate on EVERY technical string. On the
+                        Hebrew page the RTL paragraph direction reordered them:
+                        "4 x 8" rendered as "8 x 4", "3 x 10/leg" as "leg/10 x 3",
+                        "3 x AMRAP" as "AMRAP x 3". Ohad, 18.9: "don't flip the
+                        exercise name and sets and reps in hebrew (anywhere)".
+                        isolate keeps the flex ORDER (prescription on the left in
+                        RTL, as designed) while fixing the order INSIDE. */}
+                    <span dir="ltr" style={{ fontFamily: FB, fontSize: 14, color: C.tx, fontWeight: 600, minWidth: 0, unicodeBidi: 'isolate' }}>{ex.title}</span>
+                    <span dir="ltr" style={{ fontFamily: FN, fontSize: 12, color: C.tm, whiteSpace: 'nowrap', unicodeBidi: 'isolate' }}>{ex.prescribed}</span>
                   </div>
                   {(ex.tempo || ex.notes) && (
                     <div style={{ fontFamily: FN, fontSize: 11, color: C.td, marginTop: 4 }}>
-                      {ex.tempo ? t('detail.tempo.tmpl', { tempo: ex.tempo }) : ''}
+                      {/* The LABEL stays in the page language; only the VALUE
+                          is isolated, so "טמפו 3-1-1" keeps its Hebrew word on
+                          the right and its digits in the authored order. */}
+                      {ex.tempo ? t('detail.tempo.tmpl', { tempo: LRI + ex.tempo + PDI }) : ''}
                       {ex.tempo && ex.notes ? ' · ' : ''}
-                      {ex.notes || ''}
+                      {ex.notes ? <bdi dir="ltr" style={{ unicodeBidi: 'isolate' }}>{ex.notes}</bdi> : ''}
                     </div>
                   )}
                 </li>

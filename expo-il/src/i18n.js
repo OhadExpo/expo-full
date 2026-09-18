@@ -244,7 +244,12 @@ const STRINGS = {
   // Cost row
   'why.row.cost':        { en: 'COST',                 he: 'עלות' },
   'why.col1.cost':       { en: '0 NIS',                he: '0 ₪' },
-  'why.col2.cost':       { en: '290–490 NIS one-time', he: '290–490 ₪ חד-פעמי' },
+  // {lo}/{hi} come from PROGRAMS, never typed. This cell used to read
+  // "290-490" while the catalog directly above it listed a 540 program - a
+  // visitor scrolling from the table to the cards saw the site contradict
+  // itself. A price range copied by hand goes stale the first time a price
+  // moves, so the range is now derived from the same data the cards render.
+  'why.col2.cost':       { en: '{lo}–{hi} NIS one-time', he: '{lo}–{hi} ₪ חד-פעמי' },
   'why.col3.cost':       { en: '1,500+ NIS / month',   he: '1,500 ₪ ומעלה לחודש' },
 
   // Programmed row

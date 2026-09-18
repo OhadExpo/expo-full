@@ -131,7 +131,10 @@ export const PROGRAMS = [
     summaryHe:
       'היפרטרופיה בבלוקים עם נפח מותאם בזמן אמת. פיצול דחיפה/משיכה/רגליים עם תעדוף שוקיים ובטן.',
     highlights: [
-      'Volume escalation 60→90% week-on-week',
+      // 'week-on-week' said the volume climbs 60->90% EVERY week, which is
+      // both a different claim from the Hebrew line below it ('across the
+      // block') and far outside the ~10%/week the programming actually uses.
+      'Volume escalation 60→90% across the block',
       'Push/Pull/Legs/Upper-Lower hybrid',
       'Optional BFR finishers',
     ],
@@ -272,7 +275,7 @@ export const PROGRAMS = [
       'שני עותקים מתואמים של אותו בלוק, מסונכרנים כדי שתוכלו להתחמם יחד ולעזור זה לזה.',
     highlights: [
       'Synchronised supersets where possible',
-      'Different absolute loads, same %RM',
+      'Different absolute loads, same % of 1RM',
       'One purchase = two accounts',
     ],
     highlightsHe: [

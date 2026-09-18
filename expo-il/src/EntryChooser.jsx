@@ -16,6 +16,18 @@ import { Analytics, track } from '@vercel/analytics/react';
 import { C, FN, FB, EXPO_LOGO_NAV } from './theme';
 import { useT, useLang, setLang } from './i18n';
 
+import { PROGRAMS } from './programs';
+
+// The chooser is the FIRST thing a visitor reads, and it used to promise
+// "twelve-week phases" while the catalog one click away sold an 8-week and
+// a 16-week program. Read the span off the catalog so the promise cannot
+// drift away from what is actually for sale.
+const WEEKS = PROGRAMS
+  .map((p) => parseInt((String(p.duration || '').match(/(\d+)\s*weeks?/i) || [])[1] || '', 10))
+  .filter((n) => Number.isFinite(n));
+const WK_LO = WEEKS.length ? Math.min(...WEEKS) : 8;
+const WK_HI = WEEKS.length ? Math.max(...WEEKS) : 16;
+
 // Google Calendar appointment-scheduler URLs — Ohad's two booking
 // surfaces. The chooser sends a visitor straight to one of these on
 // CTA click (target="_blank"). Updating either URL only requires a
@@ -103,8 +115,8 @@ export default function EntryChooser() {
           headline={heb ? 'אימון אונליין' : 'ONLINE TRAINING'}
           subhead={heb ? 'תוכניות אימון מוכנות' : 'Ready-to-Run Programs'}
           body={heb
-            ? 'בלוקים של 4 שבועות. תוכניות מקיפות של 12 שבועות. פלטפורמת אימון, מעקב, וניתוח ביצוע מבוסס AI.'
-            : 'Four-week training blocks. Twelve-week phases. The full EXPO platform — programming, logging, AI-driven form analysis.'}
+            ? `בלוקים של 4 שבועות. תוכניות של ${WK_LO} עד ${WK_HI} שבועות. פלטפורמת אימון, מעקב, וניתוח ביצוע מבוסס AI.`
+            : `Four-week training blocks. ${WK_LO}-to-${WK_HI} week programs. The full EXPO platform — programming, logging, AI-driven form analysis.`}
           benefits={heb
             ? ['קטלוג תוכניות', 'אפליקציה מלאה', 'תמיכה בוואטסאפ']
             : ['Program catalog', 'Full athlete app', 'WhatsApp support']}
