@@ -538,9 +538,12 @@ function attendance28(rec, days) {
   // An active injury FLOORS today's availability - the board renders
   // max(dayAvail, injuryAvail) so a coach can never mark an injured athlete
   // better than the medical fact. That part is right. But the cycle still ran
-  // 1..5 UNDER that floor, so for Zack Bryant with a concussion (status out,
-  // floor 4) four clicks in five changed a number nobody could see and the
-  // control looked dead. Ohad: "i can't change the availability to limited".
+  // 1..5 UNDER that floor, so for an athlete whose medical status floors him at
+  // 4, four clicks in five changed a number nobody could see and the control
+  // looked dead. Ohad: "i can't change the availability to limited".
+  // (The athlete and his diagnosis were named here until 18.9. This repository
+  // is PUBLIC: a health note about a named person has no business in a code
+  // comment, and the floor number is the only part the logic needs.)
   //
   // Cycle from the floor upward instead. Floor 1 behaves exactly as before;
   // floor 4 gives the two states actually available, Out-Med and Out-Personal.

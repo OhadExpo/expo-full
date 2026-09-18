@@ -4,25 +4,17 @@
 // bhbc athletes and previous bhbc athletes) … make sure you fill all their info
 // too".
 //
-// Every rename below is checked against something, and the Hebrew is KEPT in
-// `nameLocal` so nothing is lost and a Hebrew search still finds the player:
+// Every rename is checked against something, and the Hebrew is KEPT in
+// `nameLocal` so nothing is lost and a Hebrew search still finds the player.
+// What each was checked against is recorded beside it IN THE PRIVATE MAP, not
+// here: RealGM / Proballers / Eurobasket where the player is published, his
+// own club sheet where he is not, and - for three of them - HIS OWN EMAIL
+// ADDRESS, which beats every website. One site spelled a surname one way,
+// another differently, a third filed him under a different first name
+// entirely; the man's own signature settled it.
 //
-//   עמית מנחם    -> Amit Menachem   RealGM/Proballers; DOB 2004-03-14 + PG + 187cm all match our row
-//   עמית גרשון   -> Amit Gershon    Eurobasket/RealGM; DOB 1995-12-05 + 191cm + 88kg all match
-//   רועי סולומון -> Roy Solomon     RealGM; DOB 2008-09-20 + 188cm match
-//   נדבר בלצ'ר   -> Nadav Blachar   HIS OWN sheet map (nadav-blachar). Also fixes נדבר -> נדב.
-//   יואב שמרי    -> Yoav Shamri     HIS OWN EMAIL (yoavshamri@). The web was no help and worse:
-//                                   Basketball-Reference says "Shimri", Proballers "Yoal Shamri",
-//                                   Eurobasket files him as "Ariel Shamri".
-//   אמרי בילט    -> Imri Billet     HIS OWN EMAIL (billet.imri@). No English spelling of his name
-//                                   exists on basket.co.il, Eurobasket, Proballers or RealGM.
-//
-// THE ATHLETE'S OWN EMAIL BEATS EVERY WEBSITE. Three of these five were settled
-// by how the man spells himself — gershon.amit@, roy.solomon124@, yoavshamri@,
-// billet.imri@ — and where a site disagreed, the site was wrong.
-//
-// Weights are NOT invented: only Amit Gershon has one published, and he already
-// has it. The rest stay empty.
+// Weights are NOT invented. Exactly one of these players has a published
+// weight and he already had it; the rest stay empty.
 //
 //   DRY=1 node scripts/bhbc-english-names.mjs
 //         node scripts/bhbc-english-names.mjs
@@ -34,19 +26,25 @@ const s = createClient('https://gtcbfglttoiyfsnfbhdy.supabase.co', 'sb_publishab
 const auth = await s.auth.signInWithPassword({ email: 'ohadyproductions@gmail.com', password: process.env.OWNER_PW || '1234' });
 if (auth.error) { console.log('sign-in failed: ' + auth.error.message); process.exit(1); }
 
-const RENAME = {
-  'עמית מנחם': { en: 'Amit Menachem', src: 'RealGM/Proballers' },
-  'עמית גרשון': { en: 'Amit Gershon', src: 'Eurobasket/RealGM' },
-  'רועי סולומון': { en: 'Roy Solomon', src: 'RealGM' },
-  "נדבר בלצ׳ר": { en: "Nadav Blachar", src: "his own sheet map" },
-  'יואב שמרי': { en: 'Yoav Shamri', src: 'his own email, yoavshamri@' },
-  'אמרי בילט': { en: 'Imri Billet', src: 'his own email, billet.imri@' },
-};
-// Published facts we did not have. Nothing here is a guess.
-const FILL = {
-  'אמרי בילט': { dob: '2008-10-20', position: 'Point Guard', note: 'no published English spelling' },
-  'יואב שמרי': { dob: '2005-12-15' },
-};
+// THE NAMES LIVE OUTSIDE THE REPO.
+//
+// They were inline here until 18.9 and that was a straight breach of the
+// rule: OhadExpo/expo-full is PUBLIC, and this file held six athletes in two
+// languages with their dates of birth, heights, weights and fragments of
+// their personal email addresses. The map moved to
+// expo-private-backups/bhbc/name-map.mjs; this refuses to run without it
+// rather than keeping a copy.
+const MAP_PATH = process.env.BHBC_NAME_MAP
+  || 'C:/Users/Administrator/expo-private-backups/bhbc/name-map.mjs';
+let RENAME, FILL;
+try {
+  ({ RENAME, FILL } = await import('file:///' + MAP_PATH.replace(/\\/g, '/')));
+} catch (e) {
+  console.log('FAILED: the private name map is not readable at ' + MAP_PATH);
+  console.log('It is deliberately not in the repo. Point BHBC_NAME_MAP at it, or restore it from the backups.');
+  process.exit(1);
+}
+if (!RENAME || !Object.keys(RENAME).length) { console.log('FAILED: the name map is empty - nothing would be renamed.'); process.exit(1); }
 
 const get = async (k) => (await s.from('store').select('value').eq('key', k).maybeSingle()).data?.value ?? null;
 const roster = (await get('expo-bhbc-roster')) || [];
