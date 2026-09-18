@@ -138,6 +138,11 @@ const MEASURE = (slack) => {
     // reaches the bottom it is meant to explain; otherwise a nested card's
     // padding would be counted for its parent.
     let padBot = parseFloat(cs.paddingBottom) || 0;
+    // The deepest full-width wrapper the walk reaches. The cell-row credit
+    // below has to run against THAT, not against the card: the demo's
+    // "INCOMING · 30D" card is card > body(14) > grid > four bordered tiles,
+    // and those tiles' own 10px is as deliberate as any table cell's.
+    let deepest = el;
     {
       let node = el;
       for (let d = 0; d < 3; d++) {
@@ -149,7 +154,7 @@ const MEASURE = (slack) => {
         const wr = wide.getBoundingClientRect();
         if (r.bottom - wr.bottom > padBot + 3) break;
         padBot += parseFloat(getComputedStyle(wide).paddingBottom) || 0;
-        node = wide;
+        node = wide; deepest = wide;
       }
     }
     // A TABLE'S LAST ROW CARRIES ITS OWN PADDING. When a card ends in a table,
@@ -177,7 +182,7 @@ const MEASURE = (slack) => {
     // arranged sideways. Credit the SMALLEST padding in the bottom row - the
     // one every cell in it actually has.
     {
-      const kidsAll = [...el.children].filter((k) => k.getBoundingClientRect().height > 0);
+      const kidsAll = [...deepest.children].filter((k) => k.getBoundingClientRect().height > 0);
       if (kidsAll.length > 1) {
         const maxBottom = Math.max(...kidsAll.map((k) => k.getBoundingClientRect().bottom));
         const lastRow = kidsAll.filter((k) => Math.abs(k.getBoundingClientRect().bottom - maxBottom) <= 2);

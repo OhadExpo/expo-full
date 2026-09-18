@@ -1723,7 +1723,13 @@ function AuthedApp() {
              size in a 176px-wide card. */
           .kpi-value{display:flex;align-items:center;min-height:48px;white-space:nowrap;overflow:hidden;text-overflow:clip}
           @media (max-width: 700px){
-            .alert-card{padding:12px 14px !important}
+            /* 18.9, first thing he saw: "the menus flows outside the borders (too wide)".
+               A card's header strip reaches the card edge by pulling itself out with a
+               NEGATIVE MARGIN equal to the card's horizontal padding. Shrinking that
+               padding here (14 against the card's declared 20) left the strip pulling
+               20 and hanging 5.2px past the border on BOTH sides, measured at 390.
+               Only the HEIGHT was ever the complaint, so only the block padding moves. */
+            .alert-card{padding-block:12px !important}
             .kpi-value{min-height:40px;font-size:clamp(20px, 7.4vw, var(--c-kpiNumberSize, 30px)) !important}
           }
           [data-theme="5b"] .alert-card,[data-theme="light"] .alert-card{transition:box-shadow 200ms, transform 200ms}
@@ -1771,9 +1777,15 @@ function AuthedApp() {
               nav; the cyan separators between items are the only
               dividers now. */}
           <div className="hdr-right" style={{flex:"0 0 auto",display:"flex",alignItems:"center",gap:2,marginInlineStart:12}}>
+            <MoreMenu tab={tab} navTo={navTo} onExport={handleExport} onChangePassword={()=>setShowPwModal(true)} isOwner={isOwner} />
             {/* 17.9 (Ohad): the club zone gets its own button with the crest in it, the way the
                 club zone's top bar carries the EXPO mark - not an item inside ATHLETES ▾.
-                Owner only; Yuval's nav is unchanged. */}
+                Owner only; Yuval's nav is unchanged.
+                18.9: "relocate the bhbc button to right after that last submenu, before עבר/eng" -
+                so it sits after the ⋮ menu and immediately before the language switch. The crest
+                box is the same height and padding as the icon buttons beside it, and the art is
+                ink-centred against them (verify-topmenu-ocd measures it). */}
+            <span style={{width:1,height:22,background:C.ac,opacity:0.15,alignSelf:'center',marginInlineStart:6,marginInlineEnd:6}} aria-hidden="true" />
             {isOwner && (<>
               <button className="hdr-icon-btn" onClick={()=>navTo('bhbc')} title={t('Bnei Herzliya S&C zone')} aria-label={t('Bnei Herzliya S&C zone')}
                 style={{...baseBtn, height:HDR_ICON_H, boxSizing:'border-box', display:'inline-flex', alignItems:'center', justifyContent:'center', padding:'0 9px', borderRadius:0,
@@ -1782,8 +1794,6 @@ function AuthedApp() {
               </button>
               <span style={{width:1,height:22,background:C.ac,opacity:0.15,alignSelf:'center',marginInlineStart:6,marginInlineEnd:6}} aria-hidden="true" />
             </>)}
-            <MoreMenu tab={tab} navTo={navTo} onExport={handleExport} onChangePassword={()=>setShowPwModal(true)} isOwner={isOwner} />
-            <span style={{width:1,height:22,background:C.ac,opacity:0.15,alignSelf:'center',marginInlineStart:6,marginInlineEnd:6}} aria-hidden="true" />
             {/* HE / EN. Shows the language it switches TO, which is how a
                 two-state language control is read. Fixed width so the row does
                 not reflow when the label changes. */}

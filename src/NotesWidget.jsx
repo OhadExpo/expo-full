@@ -105,6 +105,14 @@ const groupAlerts = (autoRows) => {
 function MiniTaskRow({ n, stackBoard, onClick, stripe }) {
   const body = displayBodyOf(n.body);
   const heb = isHebrew(body);
+  // THE ACTION IS ONE LINE, THE REASON IS THE NEXT. Ohad, 18.9: "call רועי הצבי
+  // / רון יונקר should be one row, and the 'skipped' w# should be in the next
+  // row below". Every auto-task body is written as "<do this> — <because this>",
+  // so the em dash is the break the sentence already has; a body without one
+  // stays a single line.
+  const dash = body.indexOf(' — ');
+  const bodyHead = dash > 0 ? body.slice(0, dash) : body;
+  const bodyTail = dash > 0 ? body.slice(dash + 3) : '';
   const isAuto = !!n.auto_kind;
   // In the status kanban, `stripe` = the column's status colour so each card
   // reads as belonging to its column; grouped-alert rows fall back to the kind
@@ -132,7 +140,10 @@ function MiniTaskRow({ n, stackBoard, onClick, stripe }) {
       {name && (
         <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 800, letterSpacing: nameHeb ? 0 : '0.04em', textTransform: nameHeb ? 'none' : 'uppercase', color: 'var(--c-tx)', flexShrink: 0, maxWidth: '45%', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
       )}
-      <span style={{ fontFamily: heb ? FH : FB, direction: heb ? 'rtl' : 'ltr', textAlign: 'center', color: name ? 'var(--c-tm)' : 'var(--c-tx)', flex: 1, minWidth: 0, overflowWrap: 'break-word' }}>{body}</span>
+      <span style={{ fontFamily: heb ? FH : FB, direction: heb ? 'rtl' : 'ltr', textAlign: 'center', color: name ? 'var(--c-tm)' : 'var(--c-tx)', flex: 1, minWidth: 0, overflowWrap: 'break-word' }}>
+        <span style={{ display: 'block' }}>{bodyHead}</span>
+        {bodyTail && <span style={{ display: 'block', color: 'var(--c-td)' }}>{bodyTail}</span>}
+      </span>
       {kindLabel && (
         <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: kindTone, border: `1px solid ${kindTone}`, padding: '2px 5px', lineHeight: 1, flexShrink: 0 }}>{tr(readLang(), kindLabel)}</span>
       )}

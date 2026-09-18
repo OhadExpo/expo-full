@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Athlete portal · before / after</title>
+<style>
+  :root { --bg:#0a0a0b; --sf:#121316; --bd:#23262d; --tx:#ecedf0; --tm:#9a9ca5; --ac:#39BDFF; --or:#f0a33a; --gn:#3ecf8e; }
+  body { background:var(--bg); color:var(--tx); font:15px/1.55 "Segoe UI", Arial, sans-serif; }
+  main { max-width:1720px; margin:0 auto; padding-block:28px 60px; padding-inline:20px; }
+  h1 { font-size:24px; margin:0 0 4px; } h2 { font-size:13px; letter-spacing:.18em; color:var(--ac); margin:34px 0 12px; text-transform:uppercase; }
+  .sub { color:var(--tm); margin:0 0 18px; }
+  .note { background:var(--sf); border:1px solid var(--bd); border-inline-start:3px solid var(--or); padding:12px 16px; margin:14px 0; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(400px, 1fr)); gap:18px; }
+  .pair { display:flex; gap:18px; flex-wrap:wrap; justify-content:center; }
+  figure { margin:0; background:var(--sf); border:1px solid var(--bd); padding:12px; }
+  figcaption { font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--tm); margin-bottom:8px; display:flex; justify-content:space-between; gap:12px; }
+  figcaption b { color:var(--tx); } .before b { color:var(--or); } .after b { color:var(--gn); }
+  .phone { width:390px; max-width:100%; height:760px; border:1px solid var(--bd); background:#000; display:block; }
+  ul { margin:0; padding-inline-start:20px; } li { margin:6px 0; }
+  .card { background:var(--sf); border:1px solid var(--bd); padding:14px 18px; }
+  .he { direction:rtl; unicode-bidi:isolate; font-weight:600; }
+  code { background:#1b1d22; padding:1px 5px; font-size:13px; }
+  a { color:var(--ac); }
+</style>
+<main>
+  <h1>Athlete portal: before / after</h1>
+  <p class="sub">Two real builds running on this machine, side by side. <b>Before</b> = the portal that is live on expo-app.co.il now (the deploy candidate, port 4180). <b>After</b> = the branch with the portal work (port 4173), which is no longer held — it is part of candidate <code>138a32d</code>. Both open <code>/demo/athlete</code>: the real portal on demo data, no login, nothing saves. Each phone is live, so tap the tabs.</p>
+  <div class="note"><b>Still not deployed — the push is waiting on you.</b> Production is <code>09d30a9</code>; the candidate that contains everything on the right (and the rest of the 18.9 night shift) is <code>138a32d</code>. One command ships it: <code>! cd /c/Users/Administrator/Desktop/expo-full &amp;&amp; git push origin bhbc-hebrew:master</code> — full write-up at <a href="http://127.0.0.1:8919/" style="color:var(--ac)">127.0.0.1:8919</a>.</div>
+
+  <h2>Hebrew · the biggest difference</h2>
+  <div class="pair">
+    <figure class="before"><figcaption><b>Before · live now</b><span>Hebrew selected</span></figcaption><iframe class="phone" src="http://127.0.0.1:4180/demo/athlete?lang=he" title="before Hebrew"></iframe></figure>
+    <figure class="after"><figcaption><b>After · held</b><span>Hebrew selected</span></figcaption><iframe class="phone" src="http://127.0.0.1:4173/demo/athlete?lang=he" title="after Hebrew"></iframe></figure>
+  </div>
+
+  <h2>English</h2>
+  <div class="pair">
+    <figure class="before"><figcaption><b>Before · live now</b><span>English</span></figcaption><iframe class="phone" src="http://127.0.0.1:4180/demo/athlete?lang=en" title="before English"></iframe></figure>
+    <figure class="after"><figcaption><b>After · held</b><span>English</span></figcaption><iframe class="phone" src="http://127.0.0.1:4173/demo/athlete?lang=en" title="after English"></iframe></figure>
+  </div>
+
+  <h2>What changed (held, not live)</h2>
+  <div class="grid">
+    <div class="card"><b>The portal speaks Hebrew</b><ul>
+      <li>Today, a Hebrew athlete sees English tabs and header even with Hebrew selected: LOG OUT, LEFT, PROGRAM, BW, MEAL LOG, HISTORY, PRs, MESSAGES, WARM-UP. After: <span class="he">יציאה, נותרו, תוכנית, משקל, יומן אוכל, היסטוריה, שיאים, הודעות, חימום</span>.</li>
+      <li>The last 26 English strings on the athlete's own screen, including "Loading your program…", "Contact your coach to start training.", "This day has no exercises yet.", the save-failure banner, the weigh-in placeholder and 5 tooltips. All written in your coaching voice, to one athlete.</li>
+      <li>Tooltips and screen-reader labels: 0 English attributes in Hebrew.</li>
+      <li>The login screen gets its language button back and remembers the choice. Live, it is locked to English.</li>
+    </ul></div>
+    <div class="card"><b>Layout faults found on real phones</b><ul>
+      <li>The LOGGED chip: one row, inside its border, the same height as START. It used to wrap and spill.</li>
+      <li>A block title that was cut to "DAILY ROUT…" on an athlete's phone now wraps and reads in full. Checked from that athlete's seat at 390px.</li>
+      <li>Phone-width sweep of every control (360/390/414, Hebrew and English): nothing clipped or overflowing.</li>
+    </ul></div>
+    <div class="card"><b>/try, the public sandbox</b><ul>
+      <li>The walkthrough around the sandbox portal was an English page with a Hebrew product inside it (not shown above: on both builds <code>/try</code> opens straight into the portal on this machine): 55 English strings, and the embedded portal had no language provider, so even its own labels fell back to English. After: the whole page reads Hebrew, and exercise names stay English by rule.</li>
+      <li>Step 4 (side by side) gets the same video transport as the coach's review: play both, pause, step, speed, loop, sync.</li>
+    </ul></div>
+    <div class="card"><b>Checks this build passes</b><ul>
+      <li>Athlete journey from a real athlete's seat, read-only, every tab: runs clean.</li>
+      <li>Hebrew layout gates on the athlete tabs (PROGRAM, BW, MEAL LOG, HISTORY, PRs, MESSAGES) at 390 and 1440px: 0 clipped.</li>
+    </ul></div>
+  </div>
+
+  <h2>What's left before the portal ships</h2>
+  <div class="grid">
+    <div class="card"><b>Hebrew fixes written but waiting for the portal (9)</b><ul>
+      <li>RESUMED and Next day: still English on the resumed-workout banner.</li>
+      <li>7 voice rewrites from last night's native readers: <span class="he">דבר עם המאמן</span> · <span class="he">בדוק שוב אחרי שהמאמן יוסיף אותם</span> · <span class="he">רק תצוגה מקדימה</span> · <span class="he">לחץ לבחירת קובץ</span> · <span class="he">השמירה נכשלה — … עוד לא נשמר</span> · push <span class="he">לחץ על הפעל</span> · <span class="he">רשום לפחות שתי שקילות</span>.</li>
+    </ul></div>
+    <div class="card"><b>Not yet checked</b><ul>
+      <li>The "LOG OUT →" arrow in Hebrew points right. Forward and exit arrows in RTL should point left.</li>
+      <li>The portal files are outside the automatic English check (they were held), so they were scanned by hand. A rendered native read of every athlete tab in Hebrew, like the one done on Tasks, Dashboard and Athletes this morning, has not been run.</li>
+      <li>The offline check shows the same 2 known issues as production: with the server unreachable, the session reads as an empty programme and nothing says the data isn't live.</li>
+    </ul></div>
+    <div class="card"><b>Your decision</b><ul>
+      <li>Ship the portal as it is in "After", or first apply the 9 fixes and run the rendered read (about 1 hour), then ship.</li>
+    </ul></div>
+  </div>
+</main>
