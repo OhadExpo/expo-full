@@ -62,6 +62,27 @@ const HDR_BG = '#0E1C38';
 // Orange is the ACTION accent (buttons, left stripes) via the ORANGE constant.
 // --c-ac is pinned to the same deep navy so the RefinedHeaderStrip's
 // color-mix(stripBg, ac) resolves to pure navy instead of a muddy blend.
+// THE ZONE OWNS ITS THEME. Ohad, 17.9: "on bhbc: dark mode doesnt work at all".
+// The wrapper was pinned to data-theme="light", so the header's toggle changed
+// the APP's theme (root attribute, localStorage, user_metadata) and nothing
+// inside the zone moved - a switch that looks broken and quietly edits a
+// setting somewhere else. The zone now carries its own light/dark choice,
+// defaulting to light so it still OPENS white the way he locked it, and the
+// toggle beside the crest flips that and nothing else.
+const BhbcTheme = React.createContext('light');
+const tokensFor = (theme) => (theme === 'dark' ? {
+  ...TOKENS,
+  // On a dark page a deep navy strip disappears into the background; the
+  // brighter club navy still reads as a bar and keeps white titles legible.
+  '--c-ac': NAVY,
+  '--c-stripBg': NAVY,
+  // Hairlines have to lift OFF a dark surface, not sink into it.
+  '--c-cardBd': 'rgba(126,162,220,0.30)',
+  '--c-bd': 'rgba(126,162,220,0.24)',
+  // The amber that :root declares for a dark page (the light-page one measured
+  // 2.15:1 here, which is why it is pinned at all).
+  '--bhbc-amber-text': '#E0A73A',
+} : TOKENS);
 const TOKENS = {
   '--c-ac': NAVY_DEEP,
   '--c-stripBg': NAVY_DEEP,
@@ -96,16 +117,19 @@ const TOKENS = {
 // with the crest and an orange rule, so its modals now open with the same bar:
 // crest, white title on navy, orange underline. One place, so all nine of them
 // change together and none can drift.
-const BModal = ({ children, title, ...rest }) => (
+const BModal = ({ children, title, ...rest }) => {
+  const zoneTheme = React.useContext(BhbcTheme);
+  return (
   <Modal
-    themeAttr="light"
+    themeAttr={zoneTheme}
     title={<><img src="/logos/bhbc-logo.png" alt="" style={{ height: 20, width: 'auto', display: 'block' }} />{title}</>}
     headerStyle={{ background: NAVY, borderBottom: `3px solid ${ORANGE}`, color: '#fff' }}
     titleStyle={{ color: '#fff' }}
     closeStyle={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.35)', color: '#fff' }}
     {...rest}
-  ><div style={TOKENS}>{children}</div></Modal>
-);
+  ><div style={tokensFor(zoneTheme)}>{children}</div></Modal>
+  );
+};
 // EVERY BOX IN THE ZONE COLLAPSES. Ohad: "make sure i can collapse all the
 // boxes in bhbc". Done here rather than at nineteen call sites, so no card can
 // be added later that forgets to: this IS `Card` inside the club zone.
@@ -307,6 +331,11 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   // English-only. Persisted per person, defaults to English so nothing moves
   // for anyone who does not ask for it.
   const [bhbcLang, setBhbcLang] = usePersistentState('bhbc-lang', 'en');
+  // The zone's OWN light/dark, persisted per person. Defaults to light so the
+  // club still opens white; the toggle in the header moves this and never the
+  // app's theme (see BhbcTheme above).
+  const [bhbcTheme, setBhbcTheme] = usePersistentState('bhbc-theme', 'light');
+  const zoneDark = bhbcTheme === 'dark';
   const he = bhbcLang === 'he';
   setBhbcDateLang(bhbcLang);
   const tr = React.useCallback((str) => bhbcT(bhbcLang, str), [bhbcLang]);
@@ -905,7 +934,8 @@ function attendance28(rec, days) {
         either switch says. They follow the ZONE's switch. */}
     <LangCtx.Provider value={bhbcLang}>
     <BodyLang lang={bhbcLang} />
-    <div className="bhbc-zone" data-theme="light" dir={he ? 'rtl' : 'ltr'} style={{ ...TOKENS, minHeight: '100vh', background: 'var(--c-bg)', color: C.tx, fontFamily: FB }}>
+    <BhbcTheme.Provider value={bhbcTheme}>
+    <div className="bhbc-zone" data-theme={bhbcTheme} dir={he ? 'rtl' : 'ltr'} style={{ ...tokensFor(bhbcTheme), minHeight: '100vh', background: 'var(--c-bg)', color: C.tx, fontFamily: FB }}>
       <style>{`
         .bhbc-hdr-tabs::-webkit-scrollbar{display:none} .bhbc-hdr-tabs{scrollbar-width:none;-ms-overflow-style:none}
         .bhbc-ghost-btn:hover{color:${ORANGE}!important;border-color:${ORANGE}!important}
@@ -1179,7 +1209,24 @@ function attendance28(rec, days) {
               style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: HDR_INK, background: 'transparent', border: `1px solid ${HDR_BD}`, borderRadius: 0, height: HDR_BTN_H, minWidth: 42, padding: '0 8px', cursor: 'pointer', boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
               {he ? 'EN' : 'עב'}
             </button>
-            <ThemeToggle size={HDR_BTN_H} style={{ color: HDR_INK, border: `1px solid ${HDR_BD}` }} />
+            {/* The zone's own switch. The shared ThemeToggle writes the APP's
+                theme, which the wrapper then overrode - the toggle looked dead
+                and changed the Dashboard behind his back (Ohad: "dark mode
+                doesnt work at all"). */}
+            <button onClick={() => setBhbcTheme(zoneDark ? 'light' : 'dark')}
+              aria-label={tr(zoneDark ? 'Switch to light mode' : 'Switch to dark mode')}
+              title={tr(zoneDark ? 'Switch to light mode' : 'Switch to dark mode')}
+              style={{ width: HDR_BTN_H, height: HDR_BTN_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', color: HDR_INK, border: `1px solid ${HDR_BD}`, borderRadius: 0, cursor: 'pointer', padding: 0, flexShrink: 0 }}>
+              {zoneDark ? (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+                </svg>
+              ) : (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                </svg>
+              )}
+            </button>
             {/* The way back to EXPO is Ohad's alone, and it is a door, not a
                 feature of the club zone. A bordered button with an exit arrow
                 gave it the same weight as the tabs beside it; the mark says
@@ -1487,6 +1534,7 @@ function attendance28(rec, days) {
           onDeleteSession={asCoach ? null : (date, idx, sig) => deleteSession(detailFor, date, idx, sig)} />;
       })()}
     </div>
+    </BhbcTheme.Provider>
     </LangCtx.Provider>
     </BhbcLangCtx.Provider>
   );
