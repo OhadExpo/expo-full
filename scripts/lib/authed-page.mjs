@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 // Sign in, then PROVE it, before any sweep measures anything.
 //
 // WHY THIS EXISTS. On 2026-08-27 I ran a console audit and a mobile-fit audit
@@ -18,6 +19,18 @@
 //
 // Any sweep that skips step 2 can lie again.
 const OWNER = process.env.EXPO_EMAIL || 'ohadyproductions@gmail.com';
+// Where supabase-js keeps the session. Read out of src/supabase.js, which
+// exports it, so a project change cannot leave this looking at a key nobody
+// writes any more - which would silently restore the "any session will do" bug
+// this is here to prevent.
+const AUTH_TOKEN_KEY = (() => {
+  try {
+    const src = readFileSync(new URL('../../src/supabase.js', import.meta.url), 'utf8');
+    const m = src.match(/AUTH_TOKEN_KEY = '([^']+)'/);
+    if (m) return m[1];
+  } catch (e) { /* fall through */ }
+  return 'sb-gtcbfglttoiyfsnfbhdy-auth-token';
+})();
 const PW = process.env.EXPO_PW || '1234';
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -57,7 +70,39 @@ export async function signIn(page, base) {
   await wait(3000);
 
   const already = await safeEval(page, () => document.body.innerText.slice(0, 400));
-  if (!looksLikeLogin(already)) return { signedIn: true, note: 'already signed in' };
+  if (!looksLikeLogin(already)) {
+    // WHICH SEAT, not just "a" seat.
+    //
+    // 2026-09-18: verify-card-baselines reported "no athlete cards" on
+    // /coach/athletes at two widths and counted each as an alignment problem.
+    // The page it measured was Diego's ATHLETE PORTAL - an earlier gate
+    // (verify-athlete-weight) had signed this shared browser in as the athlete,
+    // and "not the login screen" was the only thing this function checked. So
+    // every coach gate run after an athlete gate measured the wrong seat and
+    // reported whatever it found there. That is the same class of fault as the
+    // 36/36 login-page sweep this module was written to prevent.
+    const who = await safeEval(page, (key) => {
+      try {
+        const raw = localStorage.getItem(key);
+        if (!raw) return null;
+        const j = JSON.parse(raw);
+        return (j && j.user && j.user.email) || (j && j.currentSession && j.currentSession.user && j.currentSession.user.email) || null;
+      } catch (e) { return null; }
+    }, AUTH_TOKEN_KEY);
+    if (!who || who.toLowerCase() === OWNER.toLowerCase()) {
+      return { signedIn: true, note: 'already signed in' + (who ? ' as ' + who : ''), email: who };
+    }
+    // Someone else is holding the seat. Drop the session and sign in properly
+    // rather than measuring their pages.
+    await safeEval(page, (key) => {
+      try {
+        localStorage.removeItem(key);
+        for (const k of Object.keys(localStorage)) if (/^sb-.*-auth-token$/.test(k)) localStorage.removeItem(k);
+      } catch (e) {}
+    }, AUTH_TOKEN_KEY);
+    await page.goto(base + '/login', { waitUntil: 'domcontentloaded', timeout: 45000 }).catch(() => {});
+    await wait(3000);
+  }
 
   await safeEval(page, ({ email, pw }) => {
     const ins = [...document.querySelectorAll('input')];
