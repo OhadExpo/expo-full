@@ -3387,7 +3387,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             // ── card chrome per identity ──
             if (ident === 'EDITORIAL') return (
               <div key={key} style={{background:'var(--c-sf)',borderLeft:`3px solid ${accent}`,borderRadius:0,marginBottom:14,padding:'12px 16px 0'}}>
-                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,paddingBottom:10,borderBottom:`1px solid ${hair}`}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,paddingTop:5,paddingBottom:5,borderBottom:`1px solid ${hair}`}}>
                   {titleGroup(16,'0.02em')}
                   {actionEl}
                 </div>
@@ -3408,7 +3408,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             );
             if (ident === 'AIR') return (
               <div key={key} style={{marginBottom:26}}>
-                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,paddingBottom:9,borderBottom:`1px solid ${hair}`}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,paddingTop:4,paddingBottom:5,borderBottom:`1px solid ${hair}`}}>
                   {titleGroup(15,'0.06em')}
                   {actionEl}
                 </div>
@@ -3417,7 +3417,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             );
             if (ident === 'RAIL') return (
               <div key={key} style={{background:'var(--c-sf)',border:`1px solid ${hair}`,borderLeft:`3px solid ${accent}`,borderRadius:0,marginBottom:12,padding:'10px 16px 0'}}>
-                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,paddingBottom:9,borderBottom:`1px solid ${hair}`}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,paddingTop:4,paddingBottom:5,borderBottom:`1px solid ${hair}`}}>
                   {titleGroup(13,'0.04em')}
                   {actionEl}
                 </div>

@@ -2632,7 +2632,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
               style={{ width: '100%', height: 34, boxSizing: 'border-box', padding: '0 11px', borderRadius: 0, background: 'var(--c-sf)', color: 'var(--c-tx)', border: '1px solid var(--c-cardBd)', fontFamily: FN, fontSize: 11, fontWeight: 500, letterSpacing: '0.04em', outline: 'none', textAlign: 'start' }} autoComplete="off" />
           </div>
           <div onClick={narrow ? () => setRailOpen(o => !o) : undefined}
-            style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.22em', color: 'var(--c-ac)', textTransform: 'uppercase', padding: (narrow && !railOpen) ? '0 16px' : '0 16px 10px', borderBottom: (narrow && !railOpen) ? 'none' : '1px solid var(--c-cardBd)', cursor: narrow ? 'pointer' : 'default', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+            style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.22em', color: 'var(--c-ac)', textTransform: 'uppercase', padding: (narrow && !railOpen) ? '0 16px' : '5px 16px' /* 18.9: 0 above / 10 below sat the label 5.5px high in its band */, borderBottom: (narrow && !railOpen) ? 'none' : '1px solid var(--c-cardBd)', cursor: narrow ? 'pointer' : 'default', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
             <span>{tt('Filters')}</span>
             {narrow && <span aria-hidden style={{ fontSize: 11, lineHeight: 1, transform: railOpen ? 'rotate(180deg)' : 'none', transition: 'transform 180ms ease' }}>▾</span>}
           </div>

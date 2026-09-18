@@ -2362,7 +2362,7 @@ function FixturesAheadPanel({ fixtures, today }) {
                 <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, marginTop: 2 }}>{tr('days')}</div>
               </div>
               <div style={{ minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
                   <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx }}>{g.opponent ? `${tr('vs')} ${g.opponent}` : tr('Opponent TBD')}</span>
                   <HAChip home={g.home} />
                   {g.travel && <Plane size={11} color={ORANGE_DEEP} title={tr('Travel')} />}
@@ -3103,8 +3103,12 @@ function TodayPanel({ today, fixtures, fx, rows, onSessions, onLog, planOf, onPl
   const focusC = focus ? (focus.game ? ORANGE : focus.load >= 5 ? ORANGE_DEEP : focus.load >= 3 ? NAVY : '#6B7280') : NAVY;
   const inner = (
     <>
+      {/* 18.9 (Ohad): "today's focus md-7 general prep is not center vertically
+          aligned between the upper and lower border". It had 0 padding above and
+          14 below, so its ink sat 7.18px high in its own band - measured. Split
+          the padding and the ink lands on the band's centre. */}
       {focus && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, paddingBottom: 14, borderBottom: `1px solid ${C.cardBd}`, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, paddingTop: 7, paddingBottom: 7, borderBottom: `1px solid ${C.cardBd}`, flexWrap: 'wrap' }}>
           <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm }}>{tr('Today’s focus')}</span>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 22, boxSizing: 'border-box', padding: '0 9px', fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.06em', color: focusC, background: `color-mix(in srgb, ${focusC} 13%, transparent)`, border: `1px solid color-mix(in srgb, ${focusC} 38%, transparent)`, whiteSpace: 'nowrap' }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: focusC, flexShrink: 0 }} />{tr(focus.label)}</span>
           <span style={{ fontFamily: FB, fontSize: 13, color: C.tx }}>{tr(focus.emphasis)}</span>
@@ -3407,7 +3411,7 @@ function LoadBoard({ rows, rowGrid, cycleAvail, medical = {}, loads = {}, onOpen
 
         <div className="bhbc-load-inner" style={{ minWidth: hasLoad ? 660 : 440 }}>
 
-          <div className="bhbc-load-head" style={{ display: 'grid', gridTemplateColumns: grid, gap: 12, padding: '2px 2px 10px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.13em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }}>
+          <div className="bhbc-load-head" style={{ display: 'grid', gridTemplateColumns: grid, gap: 12, padding: '6px 2px 6px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.13em', textTransform: 'uppercase', color: C.tm, borderBottom: `1px solid ${C.cardBd}` }}>
             <div>#</div><div>{tr('Athlete')}</div>{hasLoad && <div>ACWR</div>}{hasLoad && <div>{tr('7d')}</div>}{!hasLoad && <div>{tr('last lift')}</div>}<div>{tr('Availability')}</div>{hasRead && <div>{tr('Readiness')}</div>}<div style={{ textAlign: 'end' }}>{hasLoad ? tr('14-day') : ''}</div>
           </div>
           {rows.map(({ t, acwr, series, readiness, avail }) => {
