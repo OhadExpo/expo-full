@@ -76,8 +76,12 @@ export const toolForTest = (testId) => EVAL_TEST_TOOLS[testId] || null;
 //       – all Internal/External Rotations (2D can't see axial rotation)
 //       – knee Over-Extension (acos caps at 180° → hyperextension is invisible)
 //       – neck + scapula axes (no pose channel exists in ANGLE_DEFS)
-//       – foot/ankle Dorsi/Plantar-Flexion + Inv/Eversion (no ankle-foot channel;
-//         MediaPipe foot landmarks are too noisy for a ±20° clinical read)
+//       – foot/ankle INVERSION / EVERSION (no ankle-foot channel; MediaPipe
+//         foot landmarks are too noisy for a ±20° clinical read). Dorsi- and
+//         Plantar-Flexion WERE in this list and are NOT any more: they went
+//         live on 2026-08-14 behind the dispersion-gated static hold below,
+//         and the stale bullet had this file contradicting itself about
+//         whether the ankle is measured by camera or by hand.
 //       – shoulder Adduction (arm crosses the body → self-occluded)
 //
 // clampDeg keeps a RESTRICTED joint (the reason a goniometer exists — a knee that

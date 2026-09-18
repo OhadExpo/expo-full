@@ -45,7 +45,11 @@ export const HE = {
   "Form": "פורמה",
   "Team": "קבוצה",
   "No upcoming sessions.": "אין אימונים קרובים.",
-  "Focus — e.g. Lower INT + landing mechanics": "פוקוס — למשל עצימות נמוכה + מכניקת נחיתה",
+  // "Lower INT" is HIS day-naming convention, not a level: his own plans read
+  // "Day 1 - Lower INT + Upper VOL" and "Day 4 - Lower INT + Pull & Unilateral
+  // VOL" - lower body on an INTENSITY day, upper body on a VOLUME day. The
+  // Hebrew said "low intensity", which is the opposite instruction.
+  "Focus — e.g. Lower INT + landing mechanics": "פוקוס — למשל תחתון בעצימות + מכניקת נחיתה",
   "Trained": "התאמן",
   "Plan": "תוכנית",
   "All clear": "הכול תקין",
