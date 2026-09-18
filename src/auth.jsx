@@ -95,8 +95,6 @@ export function AuthProvider({ children, clientList }) {
     // out (adversarial-QA #4 — total lockout). So always clear loading (catch +
     // idempotent finishBoot) AND a hard 8s watchdog that forces the login screen.
     let booted = false;
-    let retries = 0;
-    let retryTimer = null;
     const finishBoot = () => { if (!booted) { booted = true; setLoading(false); } };
     const apply = (s) => {
       setSession(s);
@@ -146,39 +144,51 @@ export function AuthProvider({ children, clientList }) {
         window.history.replaceState(null, '', u.pathname + (u.search || '') + (u.hash || ''));
       } catch { /* history blocked - the code is spent either way */ }
     };
+    // ASK ONCE. WAIT FOR THE LISTENER. NEVER POLL getSession().
+    //
+    // The first version of this retried getSession() every 1.2s while a token
+    // was on the device, and measured on the ATHLETE seat that was worse than
+    // the bug it fixed: supabase-js guards getSession with the navigator
+    // LockManager, the retries overlapped its own init and the page threw
+    // "AbortError: Lock broken by another request with the 'steal' option" and
+    // sat on the boot splash forever. One call, then the auth listener - which
+    // fires INITIAL_SESSION / TOKEN_REFRESHED the moment supabase-js is ready -
+    // does the waiting, with the watchdog below as the floor.
     let exchangeTried = false;
-    const readSession = () => {
-      supabase.auth.getSession().then(({ data: { session: s } }) => {
+    const spendCode = () => {
+      const code = codeInUrl();
+      if (!code || exchangeTried) return false;
+      exchangeTried = true;
+      supabase.auth.exchangeCodeForSession(code).then(({ data }) => {
         if (booted) return;
-        if (!s && retries >= 2 && !exchangeTried && codeInUrl()) {
-          exchangeTried = true;
-          supabase.auth.exchangeCodeForSession(codeInUrl()).then(({ data }) => {
-            if (booted) return;
-            if (data?.session) { apply(data.session); dropCodeFromUrl(); finishBoot(); return; }
-            // Spent or invalid: drop it, or a stale code makes every later boot
-            // wait out the returning-user window for nothing.
-            dropCodeFromUrl();
-            retries += 1; retryTimer = setTimeout(readSession, 1200);
-          }).catch(() => { if (!booted) { dropCodeFromUrl(); retries += 1; retryTimer = setTimeout(readSession, 1200); } });
-          return;
-        }
-        if (s && codeInUrl()) dropCodeFromUrl();
-        if (!s && stillArriving() && retries < 8) { retries += 1; retryTimer = setTimeout(readSession, 1200); return; }
-        apply(s);
-        finishBoot();
-      }).catch(() => {
-        if (booted) return;
-        if (stillArriving() && retries < 8) { retries += 1; retryTimer = setTimeout(readSession, 1200); return; }
-        finishBoot();
-      });
+        dropCodeFromUrl();
+        if (data?.session) { apply(data.session); finishBoot(); }
+      }).catch(() => { dropCodeFromUrl(); });
+      return true;
     };
-    readSession();
-    // 8s for a visitor with nothing stored; a returning user gets the full
-    // retry window before we ever call them signed out.
-    const bootWatchdog = setTimeout(finishBoot, stillArriving() ? 22000 : 8000);
+    supabase.auth.getSession().then(({ data: { session: s } }) => {
+      if (booted) return;
+      if (s) { if (codeInUrl()) dropCodeFromUrl(); apply(s); finishBoot(); return; }
+      // No session yet. If a code is in the URL, spend it ourselves; if this
+      // device holds a refresh token, the listener will bring one in. Either
+      // way, do NOT open the door here - the watchdog decides when to give up.
+      if (spendCode()) return;
+      if (stillArriving()) return;
+      apply(null);
+      finishBoot();
+    }).catch(() => {
+      if (booted) return;
+      if (spendCode()) return;
+      if (!stillArriving()) finishBoot();
+    });
+    // 8s for a visitor with nothing stored; a returning user (or one mid-OAuth)
+    // gets 12 before we are willing to call them signed out.
+    const bootWatchdog = setTimeout(finishBoot, stillArriving() ? 12000 : 8000);
 
     // Listen for auth changes (magic link callback, sign out, etc.)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
+      // This is what the boot above waits for instead of polling.
+      if (s) finishBoot();
       setSession(s);
       // A session means snapshots are welcome again; no session means nothing
       // personal may be written to this device.
@@ -214,7 +224,6 @@ export function AuthProvider({ children, clientList }) {
 
     return () => {
       clearTimeout(bootWatchdog);
-      if (retryTimer) clearTimeout(retryTimer);
       subscription.unsubscribe();
       if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', onVisible);
       if (typeof window !== 'undefined') window.removeEventListener('focus', onVisible);

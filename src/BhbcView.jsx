@@ -24,6 +24,7 @@ import { applyGameMinutes, gameMinutesOf, gameRpeOf } from './bhbcGameLoad';
 import { readinessAutoreg } from './readinessAutoreg';
 import BWChart from './BwChart';
 import { sessionSig } from './bhbcSession.js';
+import { useSupaStore } from './useSupaStore';
 import { appendActivity, whenText, peopleSeen } from './bhbcActivity';
 import { useFullPlan } from './usePlansStore';
 import { LangCtx, BodyLang } from './i18n';
@@ -322,7 +323,7 @@ const Jersey = ({ n, size = 30 }) => (
 
 // ---- component ----
 
-export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, setBhbcLoads, bhbcFixtures = [], setBhbcFixtures, league = {}, medical = {}, setMedical, sessionPlans = {}, setSessionPlans, planIndex = [], exercises = [], clientWorkouts = [], setClientWorkouts, workouts = [], setWorkouts, onDecrementSession, portalVis = {}, bwLog = [], weeklyFocus = {}, onOpenTrainee, onExit, coach = false, onSignOut, canMedical = true, canLogLoad = false, currentUser = '', activity = [], setActivity = null, onLocalWrite, stale = false }) {
+export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, setBhbcLoads, bhbcFixtures = [], setBhbcFixtures, league = {}, medical = {}, setMedical, sessionPlans = {}, setSessionPlans, planIndex = [], exercises = [], clientWorkouts = [], setClientWorkouts, workouts = [], setWorkouts, onDecrementSession, portalVis = {}, bwLog = [], weeklyFocus = {}, onOpenTrainee, onExit, coach = false, onSignOut, canMedical = true, canLogLoad = false, currentUser = '', onLocalWrite, stale = false }) {
   // The club zone OPENS WHITE, always (Ohad). The crest and the navy/orange
   // palette were built on white, and a coach arriving in whatever theme the
   // last session left behind saw a different club. Forced once on mount, not
@@ -336,6 +337,9 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
   // club still opens white; the toggle in the header moves this and never the
   // app's theme (see BhbcTheme above).
   const [bhbcTheme, setBhbcTheme] = usePersistentState('bhbc-theme', 'light');
+  // The activity trail is read and written HERE, not in App: this component
+  // only ever mounts inside the club zone, so no athlete seat carries the read.
+  const [activity, setActivity] = useSupaStore('expo-bhbc-activity', []);
   const zoneDark = bhbcTheme === 'dark';
   const he = bhbcLang === 'he';
   setBhbcDateLang(bhbcLang);
