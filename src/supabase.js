@@ -33,6 +33,14 @@ const SUPABASE_ANON_KEY = SUPA_PUBLISHABLE_KEY;
 // Snapshots are a convenience - every one of them can be refetched. The
 // session cannot. So on a quota failure, evict the caches and keep the door.
 const SNAPSHOT_PREFIXES = ['expo-', 'sb-cache-'];
+// NOT EVERY expo- KEY IS A SNAPSHOT. The comment above is right that a cached
+// copy of the server's data can always be refetched - but a few of these keys
+// are the ONLY copy of something the coach made, and this evictor deletes
+// BIGGEST FIRST, which is exactly what a list of fifty saved shot analyses is.
+// Losing the session is bad; silently deleting his analyses to save it is worse
+// and he would never know why they went. They are excluded here and mirrored to
+// the server by their own screens.
+const NEVER_EVICT = new Set(['expo-shot-analyses', 'expo-sensor-readings']);
 const evictSnapshots = () => {
   let freed = 0;
   try {
@@ -40,7 +48,7 @@ const evictSnapshots = () => {
     // Biggest first: one large snapshot usually frees more than a dozen small
     // ones, and the fewer we drop the less the user has to refetch.
     const sized = keys
-      .filter((k) => SNAPSHOT_PREFIXES.some((p) => k.startsWith(p)) && !/auth-token/.test(k))
+      .filter((k) => SNAPSHOT_PREFIXES.some((p) => k.startsWith(p)) && !/auth-token/.test(k) && !NEVER_EVICT.has(k))
       .map((k) => ({ k, n: (window.localStorage.getItem(k) || '').length }))
       .sort((a, b) => b.n - a.n);
     for (const { k, n } of sized) {

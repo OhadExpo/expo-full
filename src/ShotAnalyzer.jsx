@@ -12,6 +12,7 @@ import { getCamera, stopStream } from './usePose';
 import { detectShootingHand, analyzeShotClip, frameReadout, CHECKPOINTS, SHOT_TYPES } from './shotAnalysis';
 import { SHOT_I18N, localiseCheck } from './shotI18n';
 import { sessionRead, sessionConclusions } from './shotSession.js';
+import { useSupaStore } from './useSupaStore';
 import { crossFade } from './viewTransition';
 import { flushSync } from 'react-dom';
 
@@ -562,24 +563,44 @@ function ShotResults({ result, shot: rawShot, shotIdx, setShotIdx, srcUrl, frame
   // doesnt save anything"). The stored list is rendered below now, and this
   // counter is what makes it repaint after a write.
   const [savedTick, setSavedTick] = useState(0);
+  // THESE WERE ONLY EVER ON ONE DEVICE, AND EVICTABLE.
+  //
+  // Saved analyses lived in localStorage alone: invisible from his laptop if he
+  // shot on his phone, gone with the browser data, and - worst - first in line
+  // for the quota evictor in supabase.js, which deletes the BIGGEST expo- key to
+  // make room for the auth token. Fifty analyses is exactly that key. They are
+  // excluded from eviction now AND mirrored to the server, so the list is the
+  // union of both and the device is no longer the only copy.
+  const [cloudSaved, setCloudSaved] = useSupaStore(SAVE_KEY, []);
   const saved = useMemo(() => {
+    let local = [];
     try {
       const all = JSON.parse(localStorage.getItem(SAVE_KEY) || '[]');
-      return Array.isArray(all) ? all.filter((a) => a && typeof a.score === 'number') : [];
-    } catch { return []; }
-  }, [savedTick]);
+      local = Array.isArray(all) ? all : [];
+    } catch { /* unreadable device copy - the server one still stands */ }
+    const cloud = Array.isArray(cloudSaved) ? cloudSaved : [];
+    const byDate = new Map();
+    for (const a of [...cloud, ...local]) if (a && typeof a.score === 'number' && a.date) byDate.set(a.date, a);
+    return [...byDate.values()].sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  }, [savedTick, cloudSaved]);
   const dropSaved = (date) => {
     try {
       const all = JSON.parse(localStorage.getItem(SAVE_KEY) || '[]');
       localStorage.setItem(SAVE_KEY, JSON.stringify(all.filter((a) => a && a.date !== date)));
-      setSavedTick((v) => v + 1);
-    } catch { /* nothing to remove */ }
+    } catch { /* nothing to remove on the device */ }
+    // Remove it from the durable copy too, or it comes straight back.
+    setCloudSaved((prev) => (Array.isArray(prev) ? prev : []).filter((a) => a && a.date !== date));
+    setSavedTick((v) => v + 1);
   };
   const save = () => {
     try {
       const all = JSON.parse(localStorage.getItem(SAVE_KEY) || '[]');
-      all.unshift({ date: new Date().toISOString(), hand, score: shot.score, shots: result.shots.length, makes: madeCount, marked: result.shots.length - unmarkedCount, checks: shot.checks.map((c) => ({ key: c.key, value: c.value, status: c.status })), info: shot.info });
+      const row = { date: new Date().toISOString(), hand, score: shot.score, shots: result.shots.length, makes: madeCount, marked: result.shots.length - unmarkedCount, checks: shot.checks.map((c) => ({ key: c.key, value: c.value, status: c.status })), info: shot.info };
+      all.unshift(row);
       localStorage.setItem(SAVE_KEY, JSON.stringify(all.slice(0, 50)));
+      // The durable copy. Written after the device one so a failed network call
+      // cannot cost him the analysis he just took.
+      setCloudSaved((prev) => [row, ...(Array.isArray(prev) ? prev : [])].slice(0, 50));
       setSavedTick((v) => v + 1);
       toast(T.savedToast, 'success');
     } catch { toast(T.saveFail, 'error'); }
