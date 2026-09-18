@@ -103,8 +103,39 @@ const SCAN = `(() => {
     // further apart than its own tallest ink. Anything wider than that is two
     // stacked lines that happen to share a container - not a row, and reporting
     // it is what makes a sweep noise instead of a list.
-    const tallest = Math.max(...its.map((i) => i.bot - i.top));
-    if (spread > Math.max(tallest, 12)) continue;
+    // Against the SMALLEST ink, not the tallest. A row that mixes a 32px input
+    // with 10px labels would otherwise be allowed a 13px "spread" and report as
+    // one row when it is plainly two; the smallest thing on a line is the honest
+    // bound for how far the line can spread and still be one line.
+    const smallest = Math.min(...its.map((i) => i.bot - i.top));
+    if (spread > Math.max(smallest, 8)) continue;
+    // AND THEY HAVE TO BE THE SAME ROW IN THE DOM, not merely overlapping on
+    // screen. Two alert cards stacked 8px apart put one card's icon on the
+    // previous card's last line geometrically; a reader would never call that a
+    // row. Require one common ancestor that is itself a flex/grid line and no
+    // taller than the row it holds.
+    let anc = its[0].el;
+    while (anc && !its.every((i) => anc.contains(i.el))) anc = anc.parentElement;
+    if (!anc) continue;
+    const acs = getComputedStyle(anc);
+    if (!/flex|grid/.test(acs.display)) continue;
+    // A STACK BESIDE A BUTTON IS NOT A MISALIGNMENT. A name over a subtitle,
+    // centred as a block against a control, puts the NAME above the control's
+    // centre on purpose — that is how the pattern is supposed to read. Only
+    // flag rows where every item is a single line in its own right.
+    const stacked = its.some((i) => {
+      let n = i.el;
+      while (n && n !== anc) {
+        const cs2 = getComputedStyle(n);
+        if (/column/.test(cs2.flexDirection) && [...n.children].filter((k) => k.getBoundingClientRect().height > 0).length > 1) return true;
+        n = n.parentElement;
+      }
+      return false;
+    });
+    if (stacked) continue;
+    const ar = anc.getBoundingClientRect();
+    const tall = Math.max(...its.map((i) => i.bot - i.top));
+    if (ar.height > Math.max(tall * 2.2, 56)) continue;
     // A CHART IS NOT A ROW. Bars, sparkline columns and progress blocks are
     // boxes whose heights differ ON PURPOSE; a row of nothing but unlabelled
     // boxes carries no text to be aligned with, so there is nothing to report.

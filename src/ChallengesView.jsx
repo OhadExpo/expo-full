@@ -202,7 +202,7 @@ export default function ChallengesView({ trainees, clientWorkouts, bwLog }) {
       border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: PAD,
     }}>
       <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={12}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
           <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : C.tx }}>
             {tt('Challenges')} ({challenges.length})
           </span>
