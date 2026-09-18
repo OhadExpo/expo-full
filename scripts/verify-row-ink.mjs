@@ -72,16 +72,26 @@ const BAND_SCAN = `(() => {
     if (cs.visibility === 'hidden' || cs.display === 'none' || cs.opacity === '0') continue;
     const bt = parseFloat(cs.borderTopWidth) || 0;
     const bb = parseFloat(cs.borderBottomWidth) || 0;
-    const filled = cs.backgroundColor && cs.backgroundColor !== 'rgba(0, 0, 0, 0)';
-    if (!(bt > 0 || bb > 0 || filled)) continue;
+    // A BORDER, not merely a fill. His words are "between the upper and lower
+    // border", and a background alone is almost always the CARD's fill inherited
+    // by a stretched column — which is how a two-line card's title column, 40px
+    // tall because its sibling made it so, reported its one line as 13px high.
+    if (!(bt > 0 || bb > 0)) continue;
     // Only leaf-ish bands: if a child also draws a band, that child is the row.
-    const childBand = [...el.children].some((k) => {
+    // Any DESCENDANT that draws its own band makes this element a container, not
+    // a row: the task list's rows hold chips two levels down, and measuring the
+    // row against its first line called a correct two-line card 13px off.
+    const childBand = [...el.querySelectorAll('*')].slice(0, 80).some((k) => {
       const kcs = getComputedStyle(k);
       const kr = k.getBoundingClientRect();
       return kr.height > 14 && ((parseFloat(kcs.borderTopWidth) || 0) > 0 || (parseFloat(kcs.borderBottomWidth) || 0) > 0
         || (kcs.backgroundColor && kcs.backgroundColor !== 'rgba(0, 0, 0, 0)'));
     });
     if (childBand) continue;
+    // A band holding a CONTROL is a container for it, not a line of type. The
+    // task rows hold two <select>s whose option text is never painted on the
+    // line, which made a correct two-line card read as 13px off.
+    if (el.querySelector('select, input, textarea')) continue;
     const inks = [];
     for (const n of el.querySelectorAll('*')) {
       // A <select>'s options are text that is never painted on this line.
@@ -241,35 +251,9 @@ const SCAN = `(() => {
     });
     if (stacked) continue;
 
-    // AXIS 2 — IS THE INK CENTRED BETWEEN THE ROW'S OWN EDGES? Ohad, 18.9:
-    // "today's focus md-7 general prep is not center vertically aligned between
-    // the upper and lower border". Items can agree with each other perfectly and
-    // still all sit high in the band they live in, because a text line's ink has
-    // more ascent than descent and a bottom border adds a pixel the padding does
-    // not know about. Only rows that DRAW an edge are judged: a row with no
-    // border or background has no band to be centred in.
-    {
-      const acs2 = getComputedStyle(anc);
-      const bt = parseFloat(acs2.borderTopWidth) || 0;
-      const bb = parseFloat(acs2.borderBottomWidth) || 0;
-      const hasBand = bt > 0 || bb > 0 || (acs2.backgroundColor && acs2.backgroundColor !== 'rgba(0, 0, 0, 0)');
-      const ar2 = anc.getBoundingClientRect();
-      if (hasBand && ar2.height > 0 && ar2.height < 90) {
-        const inkTop = Math.min(...its.map((i) => i.top));
-        const inkBot = Math.max(...its.map((i) => i.bot));
-        const inkMid = (inkTop + inkBot) / 2;
-        const bandMid = ar2.y + ar2.height / 2;
-        const off = inkMid - bandMid;
-        if (Math.abs(off) >= TOLERANCE) {
-          out.push({
-            kind: 'band', spread: +Math.abs(off).toFixed(2), y: Math.round(ar2.y), n: its.length,
-            high: { kind: 'ink', what: its[0].what, mid: +inkMid.toFixed(2) },
-            low: { kind: 'band', what: 'row ' + Math.round(ar2.height) + 'px', mid: +bandMid.toFixed(2) },
-            all: ['ink@' + inkMid.toFixed(1), 'band@' + bandMid.toFixed(1), (off < 0 ? 'HIGH by ' : 'LOW by ') + Math.abs(off).toFixed(1) + 'px', its.map((i) => i.what).join('/').slice(0, 40)],
-          });
-        }
-      }
-    }
+    // (The band axis lives in BAND_SCAN, on its own, with guards this in-row
+    //  copy never had: a real border required, controls and multi-line cards
+    //  excluded. Two checks disagreeing is worse than one.)
     const ar = anc.getBoundingClientRect();
     const tall = Math.max(...its.map((i) => i.bot - i.top));
     if (ar.height > Math.max(tall * 2.2, 56)) continue;
@@ -321,7 +305,12 @@ const run = async () => {
       try { const res = await pg.evaluate(SCAN.replace(/TOLERANCE/g, String(TOL))); rows = res.rows; if (process.env.DBG) console.log('  dbg', route, w, JSON.stringify(res.dbg)); } catch (e) { if (process.env.DBG) console.log('  dbg ERR', route, w, String(e.message).slice(0, 120)); rows = []; }
       for (const r of rows) findings.push({ route, w, ...r });
       try {
-        const bands = await pg.evaluate(BAND_SCAN.replace(/TOLERANCE/g, String(TOL)));
+        // The band axis carries its own floor. Every REAL finding it has made was
+        // 4.0-7.2px (a heading with no padding above and 9-10 below); below that it
+        // starts reporting two-line cards whose first line it read as the whole
+        // band. 4px keeps the axis sharp and keeps the list worth reading.
+        const BAND_TOL = Math.max(TOL, 4);
+        const bands = await pg.evaluate(BAND_SCAN.replace(/TOLERANCE/g, String(BAND_TOL)));
         for (const r of bands) findings.push({ route, w, ...r });
       } catch (e) { if (process.env.DBG) console.log('  dbg BAND ERR', String(e.message).slice(0, 90)); }
       if (SHOTS && rows.length) {

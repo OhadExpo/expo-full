@@ -1663,7 +1663,13 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
             // cluster takes only what is left after the status pill, and its
             // own chips wrap INSIDE it — so status stays put and every task
             // row keeps the same shape.
-            ? { order: 1, flexBasis: 0, flexGrow: 1, flexShrink: 1, minWidth: 0, justifyContent: 'flex-start' }
+            // 18.9 (Ohad, "the tasks tags are better layed out inside each row"):
+            // sharing line 2 with the status pill left the chips a stub of the width,
+            // so OVERDUE wrapped to a THIRD line and the gap between SHARED and the
+            // status read as a hole. The status now stays up on the title line where
+            // his rule puts it (#189: priority left, title centred, status right) and
+            // the chips own line 2 outright - two lines, packed left, always.
+            ? { order: 1, flexBasis: '100%', flexGrow: 0, flexShrink: 1, minWidth: 0, justifyContent: 'flex-start' }
             : wrapRow
               ? { order: 1, flexBasis: '100%', flexShrink: 1, minWidth: 0, justifyContent: 'flex-start' }
               : { flexShrink: 0, justifyContent: 'flex-end' }) }}>
@@ -1723,7 +1729,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
           // (flex:1 pushes the pill to the right edge). The meta cluster wraps to
           // line 2 below (order:1). Was flexBasis:100% which forced the title onto
           // a line of its own and sprawled the row to 3-4 lines (Ohad: "trash").
-          ...(phone ? { order: -1, flex: '1 1 100%' } : wrapRow ? { order: -1, flex: '1 1 0%' } : null) }}>
+          ...(phone ? { order: -1, flex: '1 1 0%' } : wrapRow ? { order: -1, flex: '1 1 0%' } : null) }}>
           <div dir="auto" style={{
             maxWidth: '100%', alignSelf: 'stretch',
             fontFamily: heb ? FH : FB,
@@ -1772,7 +1778,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
             (Yuval: make the board status more readable). Status there is
             changed by dragging between columns / from the expanded detail. */}
         {!hideStatus && (
-          <span style={{ display: 'inline-flex', flexShrink: 0, marginInlineStart: wrapRow ? 'auto' : undefined, ...(phone ? { order: 2 } : null) }}>
+          <span style={{ display: 'inline-flex', flexShrink: 0, marginInlineStart: wrapRow ? 'auto' : undefined, ...(phone ? { order: 0 } : null) }}>
             <StatusPill status={row.status} theme={theme} onSetStatus={(s) => onSetStatus(row, s)} readOnly={readOnly} />
           </span>
         )}
