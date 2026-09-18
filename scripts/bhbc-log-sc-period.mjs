@@ -63,11 +63,13 @@ const hasPeriod = (id, date) => ((loads[id] && loads[id].sessions && loads[id].s
 const plan = [];
 if (ONE) plan.push({ date: ONE, min: MIN, note: NOTE });
 if (BACKFILL) {
-  // "every practice (except morning shootarounds)": the shootaround TYPE is out,
-  // and so is any practice that tips off before noon.
+  // "every practice (except morning shootarounds)". SHOOTAROUND IS A TYPE, and
+  // that is the whole exclusion. I also skipped any practice tipping off before
+  // noon, which read "morning" as the operative word - it is not: 19.9 he said
+  // the backfill was still missing dates, and it was, exactly three, all of them
+  // 10:30 PRACTICES (24.8, 27.8, 6.9) that are not shootarounds and never were.
   const practices = fixtures
     .filter((f) => f && f.type === 'practice' && f.date && f.date <= TODAY)
-    .filter((f) => !(f.start && Number(String(f.start).slice(0, 2)) < 12))
     .map((f) => f.date);
   for (const d of [...new Set(practices)].sort()) if (!plan.some((p) => p.date === d)) plan.push({ date: d, min: 5, note: 'dynamic stretching' });
 }
