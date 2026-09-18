@@ -224,7 +224,7 @@ export default function ChallengesView({ trainees, clientWorkouts, bwLog }) {
         const active = now >= new Date(c.start_at).getTime() && now <= new Date(c.end_at).getTime();
         return (
           <div key={c.id} style={{
-            border: `1px solid ${C.cardBd}`, borderInlineStart: `3px solid ${active ? C.gn : C.tm}`,
+            border: `1px solid ${active ? C.gn : C.tm}`,
             background: 'var(--c-sf)', padding: '12px 14px', marginBottom: 10,
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>

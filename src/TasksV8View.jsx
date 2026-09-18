@@ -1663,7 +1663,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
           // rows keep their tight padding.
           padding: board ? '5px 8px 5px 26px' : compact ? '4px 8px' : '7px 12px 7px 9px', cursor: 'pointer', minHeight: compact ? 26 : 32,
           borderBottom: `1px solid var(--c-cardBd)`,
-          borderInlineStart: `3px solid ${edgeColor}`,
+          border: `1px solid ${edgeColor}`,
           background: expanded ? 'var(--c-sf2, transparent)'
                      : hover     ? 'var(--c-sf2, rgba(57,189,255,0.04))'
                                  : 'transparent',

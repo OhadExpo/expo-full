@@ -215,7 +215,7 @@ function TermsBlock({ contract }) {
 function CustomClausesBlock({ text }) {
   return (
     <div style={{
-      background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderInlineStart: `3px solid ${C.ac}`,
+      background: 'var(--c-sf)', border: `1px solid ${C.ac}`,
       padding: 18, marginBottom: 14,
     }}>
       <div style={{

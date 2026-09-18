@@ -288,7 +288,7 @@ export default function NotesInline({
           <div key={n.id} style={{
             background: 'var(--c-sf)',
             border: `1px solid var(--c-cardBd)`,
-            borderInlineStart: `3px solid ${stripeColor}`,
+            
             borderRadius: 0,
             padding: '10px 12px',
             marginBottom: 8,

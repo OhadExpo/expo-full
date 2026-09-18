@@ -130,8 +130,8 @@ export default function BugsView() {
         const sevColor = r.status === 'fixed' ? C.gn : r.status === 'triaged' ? C.or : C.rd;
         return (
           <div key={r.id} style={{
-            border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)',
-            borderInlineStart: `3px solid ${sevColor}`,
+ background: 'var(--c-sf)',
+            border: `1px solid ${sevColor}`,
             marginBottom: 8, padding: '10px 12px',
           }}>
             <div onClick={() => setExpandedId(expanded ? null : r.id)}

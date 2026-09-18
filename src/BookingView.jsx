@@ -178,7 +178,7 @@ export default function BookingView({ trainees }) {
             booking page doesn't exist" while this screen looked filled in - the
             fields show DRAFT defaults until the first save. Say so. */}
         {!settings && !loading && (
-          <div style={{ margin: '0 0 10px', padding: '9px 12px', border: `1px solid ${C.or || '#E0A73A'}`, borderInlineStart: `3px solid ${C.or || '#E0A73A'}`, fontFamily: FB, fontSize: 12, color: C.tx }}>
+          <div style={{ margin: '0 0 10px', padding: '9px 12px', border: `1px solid ${C.or || '#E0A73A'}`, fontFamily: FB, fontSize: 12, color: C.tx }}>
             {tt('Your booking page is not live yet — press SAVE SETTINGS to publish it.')}
           </div>
         )}
@@ -268,7 +268,7 @@ export default function BookingView({ trainees }) {
           const sevColor = b.status === 'canceled' ? C.rd : b.status === 'completed' ? C.gn : (past ? C.or : C.ac);
           return (
             <div key={b.id} style={{
-              border: `1px solid ${C.cardBd}`, borderInlineStart: `3px solid ${sevColor}`,
+              border: `1px solid ${sevColor}`,
               padding: '10px 12px', marginBottom: 8, background: 'var(--c-sf)',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>

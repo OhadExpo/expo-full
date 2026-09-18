@@ -171,7 +171,7 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
             background: inGroup ? 'transparent' : 'var(--c-sf)',
             border: inGroup ? 'none' : `1px solid ${C.cardBd}`,
             borderTop: withDivider ? `1px solid ${C.cardBd}` : undefined,
-            borderInlineStart: `3px solid ${fullyDone ? C.gn : C.cardBd}`,
+            
             borderRadius: 0, padding: inGroup ? '12px' : '14px',
             marginBottom: inGroup ? 0 : 10, cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,

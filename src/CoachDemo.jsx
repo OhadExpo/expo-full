@@ -393,7 +393,7 @@ function DemoDashboard({ onJumpToTrainee }) {
                   {rows.map(t => {
                     const meta = TASK_SRC[t.src];
                     return (
-                      <div key={t.id} style={{ border: `1px solid ${C.cardBd}`, borderInlineStart: `3px solid ${meta.color}`, padding: '5px 7px', fontFamily: FB, fontSize: 11, lineHeight: 1.3, color: C.tx }}>{T(t.title)}</div>
+                      <div key={t.id} style={{ border: `1px solid ${meta.color}`, padding: '5px 7px', fontFamily: FB, fontSize: 11, lineHeight: 1.3, color: C.tx }}>{T(t.title)}</div>
                     );
                   })}
                   {rows.length === 0 && <div style={{ padding: '6px 4px', textAlign: 'center', color: C.td, fontSize: 9, fontFamily: FN }}>—</div>}
@@ -1063,9 +1063,9 @@ function DemoStatusMenu({ initial = 'Active' } = {}) {
     <span style={{ position: 'relative', display: 'inline-block' }}>
       <button onClick={() => setOpen(o => !o)} title={T('Change status')} style={{ ...baseBtn, height: 34, boxSizing: 'border-box', background: 'transparent', border: `1px solid ${color}`, color, padding: '0 12px', fontSize: 11, letterSpacing: '0.12em', display: 'inline-flex', alignItems: 'center', gap: 6 }}>{T(status).toUpperCase()} <span style={{ fontSize: 9, transform: open ? 'rotate(180deg)' : 'none' }}>▾</span></button>
       {open && (
-        <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 60, background: C.bg, border: `1px solid ${C.cardBd}`, minWidth: 124 }}>
+        <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 60, background: C.bg, minWidth: 124 }}>
           {['Active', 'On Hold', 'Inactive', 'Trial'].map(s => (
-            <button key={s} onClick={() => { setStatus(s); setOpen(false); }} style={{ display: 'block', width: '100%', textAlign: 'start', padding: '9px 12px', background: s === status ? C.acD : 'transparent', border: 'none', borderInlineStart: `3px solid ${s === status ? (COLORS[s] || C.ac) : 'transparent'}`, color: COLORS[s] || C.tx, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer' }}>{T(s)}</button>
+            <button key={s} onClick={() => { setStatus(s); setOpen(false); }} style={{ display: 'block', width: '100%', textAlign: 'start', padding: '9px 12px', background: s === status ? C.acD : 'transparent', border: `1px solid ${s === status ? (COLORS[s] || C.ac) : 'transparent'}`, color: COLORS[s] || C.tx, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer' }}>{T(s)}</button>
           ))}
         </div>
       )}
@@ -1285,7 +1285,7 @@ function DemoEvalIntake() {
   const [open, setOpen] = useState(true);
   return (
     <div>
-      <div style={{ border: `1px solid ${open ? C.ac : C.cardBd}`, borderInlineStart: `3px solid ${C.ac}`, marginBottom: 8 }}>
+      <div style={{ border: `1px solid ${C.ac}`, marginBottom: 8 }}>
         <div onClick={() => setOpen(o => !o)} style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', padding: '10px 14px', cursor: 'pointer' }}>
           <span style={{ fontFamily: FN, fontSize: 13, color: C.ac, fontWeight: 700 }}>{DEMO_EVAL.eval_date}</span>
           <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, flex: 1 }}><span style={{ color: C.td }}>{T('AGE')} </span>{DEMO_EVAL.age} · <span style={{ color: C.td }}>{T('HT')} </span>{DEMO_EVAL.height}cm · <span style={{ color: C.td }}>{T('WT')} </span>{DEMO_EVAL.weight}kg · <span style={{ color: C.td }}>{T('FIELDS')} </span>{DEMO_EVAL.fields}</span>
@@ -2458,7 +2458,7 @@ function DemoPrograms({ resetToken = 0 }) {
             const mockLoad = e.wk?.[1] || ['60kg', '50%', '20kg', 'BW', '15kg', 'BW'][ei % 6];
             const mockRpe = ['7', '8', '7-8', 'RIR 2', '8-9', 'RIR 1'][ei % 6];
             return (
-              <div key={ei} style={{ background: 'var(--c-sf)', border: `1px solid ${cardBorderColor}`, borderInlineStart: `3px solid ${cardBorderColor}`, borderRadius: 0, padding: 12, marginBottom: 8 }}>
+              <div key={ei} style={{ background: 'var(--c-sf)', border: `1px solid ${cardBorderColor}`, borderRadius: 0, padding: 12, marginBottom: 8 }}>
                 {/* Outer grid mirrors PlansView line 707 exactly: 54px drag,
                     1fr content, 54px right gutter. Without the right gutter
                     the inner inputs visually shift left (off-center inside
@@ -2583,7 +2583,7 @@ function DemoPrograms({ resetToken = 0 }) {
                           <span style={{ color: C.tm, fontFamily: FN, fontWeight: 700, fontSize: 12 }}>{ei + 1}</span>
                         </div>
                         <div title={ex.name}
-                          style={{ color: C.tx, fontFamily: FB, fontSize: 12, minWidth: 0, overflowWrap: 'break-word', wordBreak: 'break-word', borderInlineStart: `3px solid ${ex.superset ? sc : 'transparent'}`, paddingInlineStart: 6 }}>{ex.name}</div>
+                          style={{ color: C.tx, fontFamily: FB, fontSize: 12, minWidth: 0, overflowWrap: 'break-word', wordBreak: 'break-word', border: `1px solid ${ex.superset ? sc : 'transparent'}`, paddingInlineStart: 6 }}>{ex.name}</div>
                         <input value={ex.superset || ''} readOnly tabIndex={-1} style={{ ...tinyRO, color: ex.superset ? sc : C.td, fontFamily: FN, fontWeight: 600 }} />
                         <input value={ex.sets ?? ''} readOnly tabIndex={-1} style={tinyRO} />
                         <input value={ex.reps || ''} readOnly tabIndex={-1} style={tinyRO} />
@@ -2726,7 +2726,7 @@ function DemoPrograms({ resetToken = 0 }) {
                             <span style={{ color: C.tm, fontFamily: FN, fontWeight: 700, fontSize: 12 }}>{ei + 1}</span>
                           </div>
                           <div title={ex.name}
-                            style={{ color: C.tx, fontFamily: FB, fontSize: 12, minWidth: 0, overflowWrap: 'break-word', wordBreak: 'break-word', borderInlineStart: `3px solid ${ex.superset ? sc : 'transparent'}`, paddingInlineStart: 6 }}>{ex.name}</div>
+                            style={{ color: C.tx, fontFamily: FB, fontSize: 12, minWidth: 0, overflowWrap: 'break-word', wordBreak: 'break-word', border: `1px solid ${ex.superset ? sc : 'transparent'}`, paddingInlineStart: 6 }}>{ex.name}</div>
                           <input value={ex.superset || ''} readOnly tabIndex={-1} style={{ ...tinyRO, background: ex.superset ? `color-mix(in srgb, ${sc} 20%, var(--c-sf))` : undefined, border: ex.superset ? `1px solid ${sc}` : tinyRO.border, color: ex.superset ? C.tx : C.td, fontFamily: FN, fontWeight: ex.superset ? 800 : 600, textAlign: 'center' }} />
                           <input value={ex.sets ?? ''} readOnly tabIndex={-1} style={tinyRO} />
                           <input value={ex.reps || ''} readOnly tabIndex={-1} style={tinyRO} />
@@ -3507,7 +3507,7 @@ function DemoSessionExercise({ ex, open, onToggle }) {
   const allDone = doneCount === ex.sets.length && ex.sets.length > 0;
   const COLS = '16px 1fr 1fr 0.8fr 30px';
   return (
-    <div style={{ border: `1px solid ${open ? C.ac : C.cardBd}`, borderInlineStart: `3px solid ${allDone ? C.gn : open ? C.ac : C.cardBd}`, background: open ? 'rgba(57,189,255,0.04)' : 'transparent', marginBottom: 6 }}>
+    <div style={{ border: `1px solid ${allDone ? C.gn : open ? C.ac : C.cardBd}`, background: open ? 'rgba(57,189,255,0.04)' : 'transparent', marginBottom: 6 }}>
       <div onClick={onToggle} style={{ padding: 8, cursor: 'pointer' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
           <span style={{ fontFamily: FB, fontSize: 12.5, color: C.tx, fontWeight: 600, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: 1.3 }}>
@@ -3523,7 +3523,7 @@ function DemoSessionExercise({ ex, open, onToggle }) {
       {open && (
         <div style={{ padding: '0 8px 8px' }} onClick={e => e.stopPropagation()}>
           {ex.tempo && <div style={{ fontFamily: FN, fontSize: 11, color: C.or, letterSpacing: '0.04em', marginBottom: 4 }}>⏱ {ex.tempo}</div>}
-          {ex.cue && <div style={{ fontSize: 11.5, color: C.tx, lineHeight: 1.45, marginBottom: 6, background: 'rgba(57,189,255,0.06)', borderInlineStart: `3px solid ${C.ac}`, padding: '6px 8px', direction: isHeb(ex.cue) ? 'rtl' : 'ltr', fontFamily: isHeb(ex.cue) ? FH : FB }}>{ex.cue}</div>}
+          {ex.cue && <div style={{ fontSize: 11.5, color: C.tx, lineHeight: 1.45, marginBottom: 6, background: 'rgba(57,189,255,0.06)', border: `1px solid ${C.ac}`, padding: '6px 8px', direction: isHeb(ex.cue) ? 'rtl' : 'ltr', fontFamily: isHeb(ex.cue) ? FH : FB }}>{ex.cue}</div>}
           <DemoInlineVideo title={ex.title} />
           <div style={{ display: 'grid', gridTemplateColumns: COLS, gap: 4, marginTop: 8, marginBottom: 2 }}>
             {['', 'REPS', 'KG', 'RPE', '✓'].map((h, i) => <span key={i} style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.06em', color: C.tm, textAlign: 'center' }}>{h}</span>)}
@@ -3611,7 +3611,7 @@ function DemoSingle() {
         {/* (Camera/movement tools live under Review › Tools in the real app, not
             inside the 1-on-1 logger — removed here to match.) */}
         {DEMO_SESSION_DAY.map(ex => (
-          <div key={ex.id} style={{ background: C.sf, border: `1px solid ${C.cardBd}`, borderInlineStart: `3px solid ${ex.sets.every(s => s.done) && ex.sets.length ? C.gn : C.cardBd}`, marginBottom: 10, padding: 4 }}>
+          <div key={ex.id} style={{ background: C.sf, border: `1px solid ${ex.sets.every(s => s.done) && ex.sets.length ? C.gn : C.cardBd}`, marginBottom: 10, padding: 4 }}>
             <DemoSessionExercise ex={ex} open={!!openEx[ex.id]} onToggle={() => setOpenEx(p => ({ ...p, [ex.id]: !p[ex.id] }))} />
           </div>
         ))}
@@ -3718,7 +3718,7 @@ function DemoReviewTools() {
         })}
       </div>
       {note && (
-        <div style={{ marginTop: 16, background: C.acD, border: `1px solid ${C.cardBd}`, borderInlineStart: `3px solid ${C.ac}`, padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+        <div style={{ marginTop: 16, background: C.acD, border: `1px solid ${C.ac}`, padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
           <span style={{ fontFamily: FB, fontSize: 13, color: C.tx }}>{T('The camera + pose tools run live in the full app — disabled in this demo. Join the waitlist to use them on your own clips.')}</span>
           <button onClick={() => setNote(false)} style={{ ...baseBtn, background: 'transparent', color: C.tm, border: `1px solid ${C.bd}`, padding: '5px 12px', fontSize: 10, flexShrink: 0 }}>{T('DISMISS')}</button>
         </div>
@@ -3800,7 +3800,7 @@ function DemoTasks() {
                     const meta = TASK_SRC[t.src];
                     const overdue = /OVERDUE/i.test(t.due);
                     return (
-                      <div key={t.id} style={demoCardStyle({ borderInlineStart: `3px solid ${meta.color}`, padding: 9, display: 'flex', flexDirection: 'column', gap: 5 })}>
+                      <div key={t.id} style={demoCardStyle({ border: `1px solid ${meta.color}`, padding: 9, display: 'flex', flexDirection: 'column', gap: 5 })}>
                         <span style={{ fontFamily: FB, fontSize: 12, color: C.tx, lineHeight: 1.3 }}>{T(t.title)}</span>
                         <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', color: overdue ? C.tx : C.tm, border: overdue ? `1px solid ${C.bd}` : 'none', padding: overdue ? '2px 6px' : 0, alignSelf: 'flex-start' }}>{T(t.due)}</span>
                       </div>
@@ -3826,7 +3826,7 @@ function DemoTasks() {
                 const col = STATUS_COLS.find(c => c.id === t.status) || STATUS_COLS[0];
                 const overdue = /OVERDUE/i.test(t.due);
                 return (
-                  <div key={t.id} style={demoCardStyle({ marginBottom: 6, borderInlineStart: `3px solid ${meta.color}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: 12 })}>
+                  <div key={t.id} style={demoCardStyle({ marginBottom: 6, border: `1px solid ${meta.color}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: 12 })}>
                     <span style={{ fontFamily: FB, fontSize: 13, color: C.tx, textDecoration: t.status === 'done' ? 'line-through' : 'none', opacity: t.status === 'done' ? 0.6 : 1 }}>{T(t.title)}</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
                       <span style={{ fontFamily: FN, fontSize: 10, color: overdue ? C.tx : C.tm }}>{T(t.due)}</span>

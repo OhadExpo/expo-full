@@ -1257,7 +1257,7 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExerc
                     Orange accent keeps the warm-up identity. */}
                 <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateRows: wuOpen ? '1fr' : '0fr', transition: 'grid-template-rows 260ms ease' }}>
                   <div style={{ overflow: 'hidden', minHeight: 0 }}>
-                    <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderInlineStart: `3px solid ${C.or}`, padding: 14, margin: '2px 0 12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.or}`, padding: 14, margin: '2px 0 12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
                       <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 16, alignItems: 'end' }}>
                         {/* Real library picker, same as day exercises. A
                             library pick links the row (w.exerciseId), takes

@@ -735,24 +735,34 @@ export async function syncAutoTasks({ trainees, plans, workouts, payments } = {}
 // when the system actually knows the number.
 export function whatsappMessageForTask(note, trainee) {
   const first = (trainee?.name || '').split(/\s+/)[0] || trainee?.name || '';
+  // THE GREETING FOLLOWS THE NAME, NOT THE UI LANGUAGE.
+  //
+  // Ohad, 19.9: "when the athlete name is in hebrew: automatically say היי and
+  // not hey and the opposite (names in any other language > hey)". These drafts
+  // were hard-coded to היי, so every BHBC import - Zack, Nathan, DJ - got a
+  // Hebrew greeting in front of their Latin name.
+  //
+  // Same first-strong-letter test the app uses for text direction: it is the
+  // NAME that decides, because that is the word the greeting is attached to.
+  const HI = /^[^\p{L}]*[֐-׿]/u.test(first) ? 'היי' : 'Hey';
   const body = String(note?.body || '');
   switch (note?.auto_kind) {
     case 'week_missed': {
       const m = body.match(/W(\d+)/);
       const wk = m ? `שבוע ${m[1]} ` : 'שבוע ';
-      return `היי ${first}. ראיתי שדילגנו על ${wk}בבלוק הנוכחי. הכל בסדר? בוא נתאם משהו לפני שזה מצטבר.`;
+      return `${HI} ${first}. ראיתי שדילגנו על ${wk}בבלוק הנוכחי. הכל בסדר? בוא נתאם משהו לפני שזה מצטבר.`;
     }
     case 'at_risk_silent': {
       const m = body.match(/(\d+)d no workout/);
       const ago = m ? `עברו ${m[1]} ימים מאז האימון האחרון. ` : '';
-      return `היי ${first}. ${ago}הכל בסדר אצלך? בוא נתאם אימון או שיחה השבוע.`;
+      return `${HI} ${first}. ${ago}הכל בסדר אצלך? בוא נתאם אימון או שיחה השבוע.`;
     }
     case 'payment_overdue': {
       const never = /never paid/i.test(body);
-      if (never) return `היי ${first}. רק תזכורת — עוד לא סגרנו תשלום מאז שנרשמת. תסגור את זה השבוע?`;
+      if (never) return `${HI} ${first}. רק תזכורת — עוד לא סגרנו תשלום מאז שנרשמת. תסגור את זה השבוע?`;
       const m = body.match(/(\d+)d ago/);
       const ago = m ? `עברו ${m[1]} ימים מאז התשלום האחרון. ` : '';
-      return `היי ${first}. ${ago}תסגור את התשלום השבוע?`;
+      return `${HI} ${first}. ${ago}תסגור את התשלום השבוע?`;
     }
     case 'whatsapp_combined': {
       // The throttled card stacks several reasons. Open ONE conversation
@@ -760,12 +770,12 @@ export function whatsappMessageForTask(note, trainee) {
       // text before sending if any reason needs softening.
       const sources = Array.isArray(note?.__sources) ? note.__sources : [];
       const parts = sources.map(s => whatsappMessageForTask(s, trainee)).filter(Boolean);
-      if (parts.length === 0) return `היי ${first}. בוא נתאם משהו השבוע.`;
+      if (parts.length === 0) return `${HI} ${first}. בוא נתאם משהו השבוע.`;
       if (parts.length === 1) return parts[0];
-      return `היי ${first}. בוא נתאם כמה דברים:\n\n` + parts.map((p, i) => `${i + 1}. ${p.replace(/^היי \S+\.\s*/, '')}`).join('\n\n');
+      return `${HI} ${first}. בוא נתאם כמה דברים:\n\n` + parts.map((p, i) => `${i + 1}. ${p.replace(/^(?:היי|Hey) \S+\.\s*/, '')}`).join('\n\n');
     }
     default:
-      return `היי ${first}. מה קורה?`;
+      return `${HI} ${first}. מה קורה?`;
   }
 }
 

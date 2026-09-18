@@ -274,6 +274,20 @@ export const isRefined5b = () => {
 // Card border (and any severity left-stripe) sits OUTSIDE the strip.
 // Pass `padY` and `padX` matching the parent card's padding (defaults
 // match the dashboard alert-card padding of 14/18).
+// The severity dot. One shape, used by every card that has a strip header,
+// so the signal reads identically wherever it appears. 6px is the size the
+// dashboard KPI cards already use.
+export function SeverityDot({ color, title }) {
+  if (!color) return null;
+  return (
+    <span title={title} aria-hidden={title ? undefined : true} style={{
+      width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0,
+      display: 'inline-block', marginInlineEnd: 8, verticalAlign: 'middle',
+      boxShadow: `0 0 5px ${color}66`,
+    }} />
+  );
+}
+
 export function RefinedHeaderStrip({ children, padY = 14, padX = 18, marginBottom = 12, bleed = true,
   onClick, onKeyDown, role, tabIndex, ariaExpanded }) {
   // --c-stripBg is full BSG cyan in light, black in dark. Strip bleeds
@@ -363,7 +377,24 @@ export function SectionIcon({ kind, color, size = 14 }) {
 //   header        — JSX rendered inside the strip (left-aligned by default).
 //   headerRight   — JSX rendered on the right of the strip (action buttons,
 //                   counters). Strip becomes flex-row when provided.
-//   leftStripe    — CSS color for an outer left border (severity stripe).
+//   leftStripe    — the severity COLOUR of the card. Named for what it used
+//                   to be (a 3px rail down the left edge only) and kept so
+//                   all 42 call sites still read the same.
+//
+//                   19.9, Ohad: "the blue stroke on the left side of the card
+//                   (only the left side) is not very ocd design, i dont like
+//                   it. fix it everywhere is perfect re-design". He is right:
+//                   an accent on ONE edge is asymmetric by construction, and
+//                   no amount of pixel-nudging makes a one-sided rail centred.
+//
+//                   So the colour moved to a shape that is symmetric already:
+//                     card WITH a strip header -> a 6px dot at the head of the
+//                       strip, which is exactly how the dashboard KPI cards
+//                       have signalled status all along;
+//                     card WITHOUT one -> the card's OWN 1px border takes the
+//                       colour, on all four sides.
+//                   Neither shifts a single pixel of layout: the dot lives
+//                   inside the strip, and the border keeps its 1px width.
 //                   E.g., C.rd for overdue, C.or for warning, C.gn for active.
 //   padY/padX     — card padding (default 14/18 matches dashboard alert cards)
 //   className     — passthrough (used for hover styles via .alert-card etc.)
@@ -374,7 +405,9 @@ export function RefinedCard({ header, headerRight, leftStripe, padY = 14, padX =
     <div className={className} style={{
       background: 'var(--c-sf)',
       border: baseBorder,
-      borderInlineStart: leftStripe ? `3px solid ${leftStripe}` : baseBorder,
+      // No one-sided rail. With a strip the dot below carries the colour;
+      // without one the whole border does, at the border's existing width.
+      ...(leftStripe && !header ? { border: `1px solid ${leftStripe}` } : null),
       borderRadius: 0,
       padding: `${padY}px ${padX}px`,
       boxShadow: C.cardShadow,
@@ -387,6 +420,7 @@ export function RefinedCard({ header, headerRight, leftStripe, padY = 14, padX =
           text in both themes so the dark strip reads as crisply as the cyan one. */}
       {header && (
         <RefinedHeaderStrip padY={padY} padX={padX} marginBottom={12}>
+          <SeverityDot color={leftStripe} />
           {/* headerRight can shrink + wrap on phone widths — a rigid
               flex:0 0 auto pushed long action clusters (Matching / Classify /
               Cleanup hubs) ~300px past the viewport (mobile audit 08-22). */}
@@ -540,7 +574,8 @@ export function CollapsibleSection({ title, titleNode, count, right, storageKey,
               alongside the title strip it reads as a stripe on the title.
               Ohad: "only next to the white part of the card". */}
           <div style={{ padding: bare ? '8px 0 0' : `12px ${padX}px ${padY}px`,
-            ...(leftStripe && !bare ? { borderInlineStart: `3px solid ${leftStripe}`, paddingInlineStart: padX - 3 } : null) }}>{children}</div>
+            // was: a 3px rail on the inline-start edge only (see leftStripe above)
+            ...(leftStripe && !bare ? { border: `1px solid ${leftStripe}` } : null) }}>{children}</div>
         </div>
       </div>
     </div>
@@ -604,7 +639,11 @@ export function RefinedTable({ columns, rows, sort, onSort, empty }) {
             <tr><td colSpan={columns.length} style={{ padding: 40, textAlign: 'center', color: C.td }}>{empty}</td></tr>
           ) : rows.map(r => (
             <tr key={r.id} onClick={r.onClick}
-              style={{ borderBottom: `1px solid ${C.cardBd}`, cursor: r.onClick ? 'pointer' : 'default', borderInlineStart: r.leftStripe ? `3px solid ${r.leftStripe}` : undefined, transition: 'background 0.1s' }}
+              style={{ borderBottom: `1px solid ${C.cardBd}`, cursor: r.onClick ? 'pointer' : 'default', // A ROW is not a card: it has no strip to hold a dot and no border of its
+                // own to recolour, so its severity rides on the left CELL as a dot
+                // instead. Keeping a 3px rail here and nowhere else would be the
+                // same asymmetry in a smaller box.
+                boxShadow: r.leftStripe ? `inset 0 -1px 0 0 ${r.leftStripe}` : undefined, transition: 'background 0.1s' }}
               onMouseEnter={r.onClick ? (e => e.currentTarget.style.background = refined ? 'rgba(0,0,0,0.04)' : C.sf2) : undefined}
               onMouseLeave={r.onClick ? (e => e.currentTarget.style.background = 'transparent') : undefined}>
               {r.cells.map((cell, i) => (
@@ -766,11 +805,14 @@ export const Card = ({ children, style, className, onClick, onMouseEnter, onMous
           by the same amount, so the rail sits exactly where the card border was
           and not one pixel of content moves. It starts under the strip and runs
           to the bottom edge. */}
+      {/* The rail is gone - see leftStripe in the doc block above. A strip card
+          carries its colour as the dot at the head of the strip; a strip-less
+          card carries it on its own four-sided border. This wrapper stays so
+          the padding maths below is untouched. */}
       {leftStripe ? (
         <div style={{
-          borderInlineStart: `3px solid ${leftStripe}`,
           marginInlineStart: -padNum,
-          paddingInlineStart: padNum - 3,
+          paddingInlineStart: padNum,
           // Start it flush under the strip, not 12px below: the strip carries a
           // 12px bottom margin and the rail would otherwise float free of the
           // title it belongs to. Pull up by that, pad back by the same.
