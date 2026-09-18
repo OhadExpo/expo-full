@@ -16,7 +16,10 @@
 //   node scripts/verify-clip-preflight.mjs c01.mp4    # one clip
 import P from 'puppeteer-core';
 
-const PORT = process.env.SHOT_PORT || '5199';
+// 5202, the DEV server - this imports /src/clipPreflight.js directly, and the
+// preview build on 5199 answers SPA index.html for /src/*, which reads as
+// "no clip was read" rather than "wrong server".
+const PORT = process.env.SHOT_PORT || '5202';
 const ONE = process.argv[2];
 const CLIPS = ONE ? [ONE.startsWith('/') ? ONE : '/testclips/_corpus/' + ONE]
   : ['/testclips/clip02.mp4', ...['c01', 'c02', 'c03', 'c04', 'c05', 'c06', 'c07', 'c08', 'c09', 'c10'].map((c) => `/testclips/_corpus/${c}.mp4`)];
@@ -43,7 +46,12 @@ for (const clip of CLIPS) {
 }
 
 console.log('');
-if (!rows.length) { console.log('FAILED: no clip was read - nothing was verified.'); await pg.close(); b.disconnect(); process.exit(1); }
+if (!rows.length) {
+  console.log('FAILED: no clip was read - nothing was verified.');
+  console.log('This needs the DEV server (it imports /src/clipPreflight.js):');
+  console.log('    node node_modules/vite/bin/vite.js . --port 5202 --strictPort --host 127.0.0.1');
+  await pg.close(); b.disconnect(); process.exit(1);
+}
 
 // The one hard assertion. clip02's release is above the frame and that is
 // documented, measured ground truth, so a preflight that passes it is not
