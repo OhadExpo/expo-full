@@ -532,7 +532,9 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
     const s = search.toLowerCase();
     if (!s) return true;
     const emailStr = Array.isArray(t.email) ? t.email.join(' ') : (t.email || '');
-    if ((t.name || '').toLowerCase().includes(s) || emailStr.toLowerCase().includes(s)) return true;
+    // nameLocal holds the Hebrew spelling of an athlete whose display name is now
+    // English (the BHBC roster, 18.9). Typing עמית still has to find Amit.
+    if ((t.name || '').toLowerCase().includes(s) || (t.nameLocal || '').toLowerCase().includes(s) || emailStr.toLowerCase().includes(s)) return true;
     if (t.members) return t.members.some(m => {
       const memEmail = Array.isArray(m.email) ? m.email.join(' ') : (m.email || '');
       return (m.name || '').toLowerCase().includes(s) || memEmail.toLowerCase().includes(s);
