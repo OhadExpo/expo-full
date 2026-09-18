@@ -1821,7 +1821,9 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
                         it, so you always know where you are in a long season. */}
                     <button onClick={() => setMonthOpen((p) => ({ ...p, [m]: !open }))}
                       style={{ position: 'sticky', top: 0, zIndex: 1, display: 'flex', alignItems: 'center', gap: 8, width: '100%', boxSizing: 'border-box', padding: '7px 9px', minHeight: 33, flexShrink: 0, cursor: 'pointer', borderRadius: 0, textAlign: 'start', background: NAVY_DEEP, color: '#fff', border: 'none', borderBottom: `1px solid ${C.cardBd}` }}>
-                      <span aria-hidden="true" style={{ fontFamily: FN, fontSize: 9, opacity: 0.8, width: 10, flexShrink: 0 }}>{open ? '▾' : '▸'}</span>
+                      <svg aria-hidden="true" width="9" height="6" viewBox="0 0 9 6" fill="none" style={{ display: 'inline-block', width: 10, flexShrink: 0, opacity: 0.8, transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease' }}>
+                        <path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
                       <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{monFor(d0.getMonth(), MON[d0.getMonth()])} {d0.getFullYear()}</span>
                       <span style={{ marginInlineStart: 'auto', fontFamily: FN, fontSize: 10, color: ORANGE, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{monthSummary(group)}</span>
                     </button>

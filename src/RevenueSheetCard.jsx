@@ -28,6 +28,18 @@ import { supabase } from './supabase';
 import { RefinedHeaderStrip } from './ui';
 import { fmtNumericDate, monthAbbr } from './dates';
 
+// Nord cannot draw U+25BE — the fallback paints a short dash at 10px, which is
+// what verify-brand-glyphs forbids. Same inline chevron the strip headers use,
+// rotated instead of swapped, so open and closed are the same 11x7 mark.
+const Chev = ({ open }) => (
+  <svg aria-hidden width="11" height="7" viewBox="0 0 9 6" fill="none" style={{
+    color: C.ac, display: 'inline-block', width: 14, flexShrink: 0,
+    transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease',
+  }}>
+    <path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
 const ILS = (n) => '₪' + Math.round(Number(n || 0)).toLocaleString();
 
 // National Insurance is income but not coaching revenue. It is shown, and it
@@ -260,7 +272,7 @@ export default function RevenueSheetCard() {
                 return (
                   <React.Fragment key={g.month}>
                   <tr onClick={() => setOpenMonth(isOpenM ? null : g.month)} style={{ cursor: 'pointer', background: isOpenM ? 'rgba(57,189,255,0.06)' : 'transparent' }}>
-                    <td style={{ ...td, fontFamily: FN, fontSize: 12, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}><span style={{ display: 'inline-block', width: 14, color: C.ac, fontSize: 10 }}>{isOpenM ? '▾' : '▸'}</span>{monthLabel(g.month)}</td>
+                    <td style={{ ...td, fontFamily: FN, fontSize: 12, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}><Chev open={isOpenM} />{monthLabel(g.month)}</td>
                     {['online', 'gym_transfer', 'gym_cash', 'via_parents', 'bhbc'].map((c) => {
                       const r = g.rows.find((x) => x.channel === c);
                       return (
@@ -343,7 +355,7 @@ export default function RevenueSheetCard() {
                     <React.Fragment key={c.key}>
                       <tr onClick={() => setOpen(isOpen ? null : c.key)} style={{ cursor: 'pointer', background: isOpen ? 'rgba(57,189,255,0.06)' : 'transparent' }}>
                         <td style={{ ...td, fontWeight: 600 }}>
-                          <span style={{ display: 'inline-block', width: 14, color: C.ac, fontFamily: FN, fontSize: 10 }}>{isOpen ? '▾' : '▸'}</span>
+                          <Chev open={isOpen} />
                           <bdi>{c.name}</bdi>
                           {/* Named, not hidden: seeing the old spelling is how he
                               can tell the two really are the same client. */}
