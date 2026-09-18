@@ -1612,7 +1612,7 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
   // does. Keyed on load, a Practice whose minutes were edited down to zero
   // silently redrew itself as a gym attendance row, with no way to see it had
   // ever been a Practice.
-  Object.entries((rec && rec.sessions) || {}).forEach(([d, arr]) => (arr || []).forEach((s, idx) => activity.push({ kind: /^(lift|weights|gym)$/i.test(String(s.type || '')) || !s.type ? 'gym' : /game|scrimmage/i.test(String(s.type || '')) ? 'game' : 'practice', date: d, label: s.rpe == null ? `${s.start ? s.start + ' · ' : ''}${tr(kindLabel(s.type))} · ${s.min ? s.min + ' ' + tr('min') : tr('attended')}${s.note ? ' · ' + s.note : ''}` : `${s.start ? s.start + ' · ' : ''}${tr(s.type)} ${s.min} ${tr('min')} @ RPE ${s.rpe}${s.note ? ' · ' + s.note : ''}`, load: s.load || null, sess: { date: d, idx, min: s.min, sig: sessionSig(s) } })));
+  Object.entries((rec && rec.sessions) || {}).forEach(([d, arr]) => (arr || []).forEach((s, idx) => activity.push({ kind: /^(lift|weights|gym)$/i.test(String(s.type || '')) || !s.type ? 'gym' : /game|scrimmage/i.test(String(s.type || '')) ? 'game' : 'practice', date: d, label: s.rpe == null ? `${s.start ? s.start + ' · ' : ''}${tr(kindLabel(s.type))} · ${s.min ? s.min + ' ' + tr('min') : tr('attended')}${s.note ? ' · ' + s.note : ''}` : `${s.start ? s.start + ' · ' : ''}${tr(s.type)} ${s.min} ${tr('min')} @ RPE ${s.rpe}${s.note ? ' · ' + s.note : ''}`, load: s.load || null, by: s.by || null, sess: { date: d, idx, min: s.min, sig: sessionSig(s) } })));
   (workouts || []).forEach((w) => { const d = String(w.date || w.completedAt || '').slice(0, 10); const nEx = (w.exercises || []).length; const nSets = (w.exercises || []).reduce((a, e) => a + (e.sets || []).length, 0); if (d) activity.push({ kind: 'gym', date: d, label: `${tr('Gym')} · ${nEx} ${tr(nEx === 1 ? 'lift' : 'lifts')}, ${nSets} ${tr(nSets === 1 ? 'set' : 'sets')}`, load: null }); });
   Object.entries((rec && rec.bw) || {}).forEach(([d, kg]) => activity.push({ kind: 'other', date: d, label: `${tr('Bodyweight')} ${kg} ${tr('kg')}`, load: null }));
   Object.entries((rec && rec.availability) || {}).forEach(([d, code]) => { if (code > 1) activity.push({ kind: 'other', date: d, label: `${tr('Availability')} · ${tr(AVAIL[code].label)}`, load: null }); });
@@ -1862,7 +1862,14 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
                       <button onClick={() => setEditSess(null)} title={tr('Cancel')} style={{ fontFamily: FN, fontSize: 10, color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, padding: '2px 8px', cursor: 'pointer' }}>✕</button>
                     </span>
                   ) : (
-                    <span style={{ color: C.tx, minWidth: 0 }}>{a.label}</span>
+                    <span style={{ color: C.tx, minWidth: 0 }}>{a.label}
+                      {/* WHO LOGGED IT. Ohad, 19.9: "it doesnt say who logged
+                          it". Every session row has carried `by` since the club
+                          coaches got write access - it was simply never shown
+                          here, so with several coaches logging there was no way
+                          to tell from the history who entered a line. */}
+                      {a.by && <span style={{ color: C.td }}> · {tr('logged by')} {byName(a.by)}</span>}
+                    </span>
                   )}
                   {a.sess && onEditSession && !(editSess && editSess.date === a.sess.date && editSess.idx === a.sess.idx) && (
                     <span style={{ marginInlineStart: 'auto', display: 'inline-flex', gap: 4, flexShrink: 0, justifyContent: 'flex-end', minWidth: 54 }}>
@@ -3652,10 +3659,30 @@ function MicrocycleView({ fx, today }) {
       <div style={{ overflowX: 'auto' }}>
         <div className="bhbc-micro-grid" style={{ display: 'grid', gridTemplateColumns: `repeat(${days.length}, minmax(120px, 1fr))`, gap: 8, minWidth: days.length * 120 }}>
           {days.map((d) => (
-            <div key={d.iso} style={{ border: `1px solid ${d.isToday ? ORANGE : C.cardBd}`, borderTop: `3px solid ${loadColor(d.plan.load, d.isGame)}`, padding: '10px 10px 12px', background: d.isGame ? `color-mix(in srgb, ${ORANGE} 8%, transparent)` : d.isToday ? `color-mix(in srgb, ${ORANGE} 4%, transparent)` : 'var(--c-sf)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+
+  // TODAY AND GAME DAY ARE NOT THE SAME THING AND MUST NOT LOOK IT.
+  // Ohad, 19.9: "current day and gameday the same color? be smarter".
+  // Both were an ORANGE border over an orange wash - 8% for the game,
+  // 4% for today - which at a glance is one treatment, and the two
+  // cards sat six apart in the same strip.
+  // Orange means GAME everywhere in this zone: the fixture rows, the
+  // load anchor line, the countdown. So the game keeps it, and TODAY
+  // moves to NAVY, which is the zone's other structural colour and
+  // already means "where you are" in the header.
+  // A day that is BOTH keeps the orange wash and takes the navy ring,
+  // so game-day-is-today reads as both rather than as neither.
+            <div key={d.iso} style={{
+              border: `1px solid ${d.isToday ? NAVY : d.isGame ? ORANGE : C.cardBd}`,
+              ...(d.isToday ? { boxShadow: `inset 0 0 0 1px ${NAVY}` } : null),
+              borderTop: `3px solid ${loadColor(d.plan.load, d.isGame)}`,
+              padding: '10px 10px 12px',
+              background: d.isGame ? `color-mix(in srgb, ${ORANGE} 8%, transparent)`
+                : d.isToday ? `color-mix(in srgb, ${NAVY} 5%, transparent)`
+                : 'var(--c-sf)',
+              display: 'flex', flexDirection: 'column', gap: 6 }}>
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 6 }}>
                 <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>{dow(d.iso)} {monDay(d.iso)}</span>
-                {d.isToday && <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 800, letterSpacing: '0.1em', color: ORANGE }}>{tr('TODAY')}</span>}
+                {d.isToday && <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 800, letterSpacing: '0.1em', color: NAVY }}>{tr('TODAY')}</span>}
               </div>
               <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 800, letterSpacing: '0.04em', color: d.isGame ? ORANGE_DEEP : C.tx }}>{tr(d.plan.label)}</span>
               <span style={{ fontFamily: FB, fontSize: 11, color: C.tm, lineHeight: 1.35, minHeight: 30 }}>{tr(d.plan.emphasis)}</span>
@@ -3924,10 +3951,10 @@ function WeekPlanner({ fixtures = [], today, planOf, onSavePlan, onUpsert, onRem
           const isToday = d === today;
           return (
             <div key={d} style={horizontalWeek
-              ? { display: 'flex', flexDirection: 'column', gap: 6, padding: '8px 9px', border: `1px solid ${C.cardBd}`, borderTop: `2px solid ${isToday ? ORANGE : 'transparent'}`, background: isToday ? 'color-mix(in srgb, var(--c-ac) 6%, transparent)' : 'transparent', minWidth: 0 }
-              : { display: 'flex', gap: 12, alignItems: 'flex-start', padding: '9px 0', borderTop: `1px solid ${C.cardBd}`, background: isToday ? 'color-mix(in srgb, var(--c-ac) 6%, transparent)' : 'transparent' }}>
+              ? { display: 'flex', flexDirection: 'column', gap: 6, padding: '8px 9px', border: `1px solid ${C.cardBd}`, borderTop: `2px solid ${isToday ? NAVY : 'transparent'}`, background: isToday ? `color-mix(in srgb, ${NAVY} 5%, transparent)` : 'transparent', minWidth: 0 }
+              : { display: 'flex', gap: 12, alignItems: 'flex-start', padding: '9px 0', borderTop: `1px solid ${C.cardBd}`, background: isToday ? `color-mix(in srgb, ${NAVY} 5%, transparent)` : 'transparent' }}>
               <div style={horizontalWeek ? { flexShrink: 0 } : { width: 86, flexShrink: 0, paddingTop: 3 }}>
-                <div style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: isToday ? ORANGE_DEEP : C.tx }}>{dow(d)}</div>
+                <div style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: isToday ? NAVY : C.tx }}>{dow(d)}</div>
                 <div style={{ fontFamily: FN, fontSize: 10, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{monDay(d)}</div>
               </div>
               <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 5 }}>
@@ -4044,7 +4071,7 @@ function ScheduleList({ fx, today }) {
         return (
           <div key={d.date} style={{ display: 'flex', gap: 14, padding: '9px 2px', borderBottom: `1px solid ${C.cardBd}`, alignItems: 'flex-start' }}>
             <div style={{ width: 84, flexShrink: 0 }}>
-              <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 13, color: isToday ? ORANGE_DEEP : C.tx }}>{dow(d.date)}{isToday ? ' · today' : ''}</div>
+              <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 13, color: isToday ? NAVY : C.tx }}>{dow(d.date)}{isToday ? ' · today' : ''}</div>
               <div style={{ fontFamily: FN, fontSize: 11, color: C.td, marginTop: 2 }}>{monDay(d.date)}</div>
               {gdLabel && <div style={{ marginTop: 6, display: 'inline-block', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', color: gd === 0 ? '#fff' : C.tm, background: gd === 0 ? ORANGE : 'transparent', border: gd === 0 ? 'none' : `1px solid ${C.cardBd}`, padding: '2px 6px' }}>{gdLabel}</div>}
             </div>
@@ -4084,11 +4111,11 @@ function ScheduleWeek({ fixtures, today }) {
           const items = (byDate[di] || []).slice().sort((a, b) => a.start.localeCompare(b.start));
           const hasGame = items.some((f) => f.type === 'game');
           return (
-            <div key={di} style={{ border: `1px solid ${C.cardBd}`, background: isToday ? `color-mix(in srgb, ${ORANGE} 8%, var(--c-sf))` : 'var(--c-sf)', minHeight: 168, display: 'flex', flexDirection: 'column' }}>
+            <div key={di} style={{ border: `1px solid ${C.cardBd}`, background: isToday ? `color-mix(in srgb, ${NAVY} 6%, var(--c-sf))` : 'var(--c-sf)', minHeight: 168, display: 'flex', flexDirection: 'column' }}>
               <div style={{ padding: '8px 6px', borderBottom: `1px solid ${C.cardBd}`, textAlign: 'center', position: 'relative' }}>
                 {hasGame && <div style={{ position: 'absolute', top: 5, insetInlineEnd: 5, fontFamily: FN, fontSize: 9, fontWeight: 800, letterSpacing: '0.06em', color: '#fff', background: ORANGE, padding: '1px 4px' }}>{tr('GAME')}</div>}
-                <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: isToday ? ORANGE_DEEP : C.tm }}>{dowFor(d, DOW[d.getDay()])}</div>
-                <div style={{ fontFamily: FN, fontSize: 16, fontWeight: 800, color: isToday ? ORANGE_DEEP : C.tx, fontVariantNumeric: 'tabular-nums' }}>{d.getDate()}</div>
+                <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: isToday ? NAVY : C.tm }}>{dowFor(d, DOW[d.getDay()])}</div>
+                <div style={{ fontFamily: FN, fontSize: 16, fontWeight: 800, color: isToday ? NAVY : C.tx, fontVariantNumeric: 'tabular-nums' }}>{d.getDate()}</div>
               </div>
               <div style={{ padding: 6, display: 'flex', flexDirection: 'column', gap: 5 }}>
                 {items.map((f, i) => (
@@ -4129,7 +4156,7 @@ function ScheduleMonth({ fixtures, today }) {
     const items = (byDate[di] || []).slice().sort((a, b) => a.start.localeCompare(b.start));
     return (
       <div key={di} className="bhbc-cal-cell" style={{ minHeight: 82, borderInlineEnd: '1px solid var(--c-bd)', borderBottom: '1px solid var(--c-bd)', padding: '5px 7px', background: isToday ? `color-mix(in srgb, ${ORANGE} 7%, var(--c-sf))` : 'var(--c-sf)', display: 'flex', flexDirection: 'column', gap: 3 }}>
-        <div style={{ fontFamily: FN, fontSize: 11, fontWeight: isToday ? 800 : 600, color: isToday ? ORANGE_DEEP : (inMonth ? C.td : C.tm), textAlign: 'end', fontVariantNumeric: 'tabular-nums' }}>{dt.getDate()}</div>
+        <div style={{ fontFamily: FN, fontSize: 11, fontWeight: isToday ? 800 : 600, color: isToday ? NAVY : (inMonth ? C.td : C.tm), textAlign: 'end', fontVariantNumeric: 'tabular-nums' }}>{dt.getDate()}</div>
         {items.slice(0, 3).map((f, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 5, fontFamily: FN, fontSize: 10, background: `color-mix(in srgb, ${FX_COLOR[f.type] || NAVY} 13%, transparent)`, borderInlineStart: `2px solid ${FX_COLOR[f.type] || NAVY}`, padding: '2px 5px', minWidth: 0 }}>
             <span style={{ color: FX_COLOR[f.type] || NAVY, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{f.start}</span>

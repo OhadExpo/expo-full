@@ -111,6 +111,35 @@ function MiniTaskRow({ n, stackBoard, onClick, stripe }) {
   // so the em dash is the break the sentence already has; a body without one
   // stays a single line.
   const dash = body.indexOf(' — ');
+// CENTRED WHEN IT FITS, START-ALIGNED WHEN IT WRAPS.
+//
+// Ohad, 19.9: "text in tasks boxes should be center aligned when it fits".
+// The comment that used to sit below said centred text "looks accidental once
+// it is two lines" - true, and that is why this cannot be a static choice.
+// It has to be MEASURED: one line centres, a wrapped line goes back to start.
+//
+// scrollHeight against a single line box, re-checked on resize, because the
+// same title is one line at 1500px and two at 390.
+function FitCentered({ children, style }) {
+  const ref = React.useRef(null);
+  const [oneLine, setOneLine] = React.useState(true);
+  React.useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+    const measure = () => {
+      const lh = parseFloat(getComputedStyle(el).lineHeight) || 0;
+      // 1.5 line-heights: comfortably above one line, below two.
+      setOneLine(!lh || el.scrollHeight <= lh * 1.5);
+    };
+    measure();
+    if (typeof ResizeObserver === 'undefined') return undefined;
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [children]);
+  return <span ref={ref} style={{ display: 'block', textAlign: oneLine ? 'center' : 'start', ...style }}>{children}</span>;
+}
+
   const bodyHead = dash > 0 ? body.slice(0, dash) : body;
   const bodyTail = dash > 0 ? body.slice(dash + 3) : '';
   const isAuto = !!n.auto_kind;
@@ -145,10 +174,10 @@ function MiniTaskRow({ n, stackBoard, onClick, stripe }) {
           an English sentence with one Hebrew name in it - was forced to RTL and
           came out scrambled, dash and block number jumping to the wrong end
           (Ohad's phone, 18.9). First-strong is the rule that reads both right.
-          Start-aligned too: centred text looks accidental once it is two lines. */}
-      <span dir="auto" style={{ fontFamily: heb ? FH : FB, textAlign: 'start', color: name ? 'var(--c-tm)' : 'var(--c-tx)', flex: 1, minWidth: 0, overflowWrap: 'break-word' }}>
-        <span style={{ display: 'block' }}>{bodyHead}</span>
-        {bodyTail && <span style={{ display: 'block', color: 'var(--c-td)' }}>{bodyTail}</span>}
+          Alignment is MEASURED, not chosen - see FitCentered above. */}
+      <span dir="auto" style={{ fontFamily: heb ? FH : FB, color: name ? 'var(--c-tm)' : 'var(--c-tx)', flex: 1, minWidth: 0, overflowWrap: 'break-word' }}>
+        <FitCentered>{bodyHead}</FitCentered>
+        {bodyTail && <FitCentered style={{ color: 'var(--c-td)' }}>{bodyTail}</FitCentered>}
       </span>
       {kindLabel && (
         <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: kindTone, border: `1px solid ${kindTone}`, padding: '2px 5px', lineHeight: 1, flexShrink: 0 }}>{tr(readLang(), kindLabel)}</span>
