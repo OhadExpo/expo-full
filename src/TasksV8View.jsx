@@ -405,6 +405,30 @@ function StatusPill({ status, theme, onSetStatus, readOnly = false }) {
 
 // Wrap each occurrence of `query` (case-insensitive) inside `text` with a
 // highlighted span so search matches pop visually.
+// "<do this> — <because this>" is the shape of every auto-task body, and Ohad
+// asked for it on two lines: "call <name> should be one row, and the
+// 'skipped' w# should be in the next row below". The split shipped into
+// NotesWidget on 18.9 and this view was missed - it renders its own title -
+// so the row still wrapped wherever it ran out of width, mid-phrase
+// ("דילג / על שבוע 3"). Photographed at 390 in Hebrew on 18.9, which is how
+// it was caught: the fix was real but only half-applied.
+//
+// The Hebrew localiser keeps the same — separator (autoTaskHe), so this works
+// in both languages. A body without the marker renders exactly as before.
+const BODY_SPLIT = ' \u2014 ';
+function TaskTitleText({ text, query }) {
+  const at = String(text || '').indexOf(BODY_SPLIT);
+  if (at <= 0) return <HighlightedText text={text} query={query} />;
+  const head = text.slice(0, at);
+  const tail = text.slice(at + BODY_SPLIT.length);
+  return (
+    <>
+      <span style={{ display: 'block' }}><HighlightedText text={head} query={query} /></span>
+      <span style={{ display: 'block' }}><HighlightedText text={tail} query={query} /></span>
+    </>
+  );
+}
+
 function HighlightedText({ text, query, style }) {
   if (!query) return <span style={style}>{text}</span>;
   const lower = (text || '').toLowerCase();
@@ -1765,7 +1789,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
               ? { whiteSpace: 'normal', wordBreak: 'break-word' }
               : { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', wordBreak: 'break-word' }),
           }}>
-            <HighlightedText text={row._display} query={search} />
+            <TaskTitleText text={row._display} query={search} />
           </div>
         </div>
         {/* (Removed the hover "⋯" affordance — it showed cursor:pointer and a
