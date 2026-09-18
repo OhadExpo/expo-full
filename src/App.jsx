@@ -1794,7 +1794,28 @@ function AuthedApp() {
               nav; the cyan separators between items are the only
               dividers now. */}
           <div className="hdr-right" style={{flex:"0 0 auto",display:"flex",alignItems:"center",gap:2,marginInlineStart:12}}>
-            <MoreMenu tab={tab} navTo={navTo} onExport={handleExport} onChangePassword={()=>setShowPwModal(true)} isOwner={isOwner} />
+            {/* WHERE THE CREST SITS, AND WHY IT MOVED AGAIN.
+
+                18.9 he asked for it "right after that last submenu, before
+                עבר/eng", and it went between the ⋮ and the language switch.
+                19.9: "im actually not sure about the location ... if you think
+                there's a better place for it relocate it."
+
+                Measured the bar at 1500 / 1280 / 390: the order was
+                … CHALLENGES · PORTAL · ⋮ · CREST · עב · theme · out. So the
+                crest — which is a DESTINATION, the same kind of thing as
+                PORTAL — was sitting inside the cluster of TOOLS that act on
+                the current page. It is also the only colour in a monochrome
+                bar, so it out-weighed DASHBOARD, the active item.
+
+                It now leads the right cluster, so it abuts PORTAL: every
+                place you can GO is together, every tool is after it. It stays
+                in .hdr-right rather than moving inside <nav>, because <nav>
+                is the scrolling strip on a phone and the crest would have
+                scrolled away with the tabs.
+
+                Still "before עב", still owner-only, still the same box and
+                ink-centring that verify-topmenu-ocd measures. */}
             {/* 17.9 (Ohad): the club zone gets its own button with the crest in it, the way the
                 club zone's top bar carries the EXPO mark - not an item inside ATHLETES ▾.
                 Owner only; Yuval's nav is unchanged.
@@ -1811,6 +1832,7 @@ function AuthedApp() {
               </button>
               <span style={{width:1,height:22,background:C.ac,opacity:0.15,alignSelf:'center',marginInlineStart:6,marginInlineEnd:6}} aria-hidden="true" />
             </>)}
+            <MoreMenu tab={tab} navTo={navTo} onExport={handleExport} onChangePassword={()=>setShowPwModal(true)} isOwner={isOwner} />
             {/* HE / EN. Shows the language it switches TO, which is how a
                 two-state language control is read. Fixed width so the row does
                 not reflow when the label changes. */}
