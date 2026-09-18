@@ -23,6 +23,7 @@
 import P from 'puppeteer-core';
 import { readFileSync } from 'node:fs';
 import { signIn, assertAuthed } from './lib/authed-page.mjs';
+import { assertMarketingSite, IL_START } from './lib/il-site.mjs';
 
 const IL_BASE = process.env.IL_BASE || 'http://127.0.0.1:5174';
 const APP_BASE = process.env.BASE || 'http://127.0.0.1:5199';
@@ -91,6 +92,12 @@ try {
     const SRC = readFileSync(new URL('../expo-il/src/programs.js', import.meta.url), 'utf8');
     const ids = [...SRC.matchAll(/^\s{4}id:\s*'([a-z0-9-]+)'/gmi)].map((m) => m[1]);
     if (!ids.length) { console.log('FAILED: no programs parsed out of programs.js.'); await pg.close(); b.disconnect(); process.exit(1); }
+    const site = await assertMarketingSite(pg, IL_BASE);
+    if (!site.ok) {
+      console.log('FAILED: ' + site.why);
+      console.log(IL_START);
+      await pg.close(); b.disconnect(); process.exit(1);
+    }
     await pg.evaluateOnNewDocument(() => { try { localStorage.setItem('expo-il-lang', 'he'); } catch (e) {} });
     for (const id of ids) {
       await pg.goto('about:blank');

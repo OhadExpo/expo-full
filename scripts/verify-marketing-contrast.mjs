@@ -10,6 +10,7 @@
 import P from 'puppeteer-core';
 import { readFileSync } from 'node:fs';
 import { CONTRAST_FN } from './lib/contrast.mjs';
+import { assertMarketingSite, IL_START } from './lib/il-site.mjs';
 
 const BASE = process.env.IL_BASE || 'http://127.0.0.1:5174';
 const WIDTHS = (process.env.WIDTHS || '390,1280').split(',').map(Number);
@@ -22,6 +23,15 @@ const ROUTES = ['/#/', '/#/online', '/#/gym', ...ids.map((p) => '/#/programs/' +
 
 const b = await P.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: null, protocolTimeout: 300000 });
 const pg = await b.newPage();
+
+// Prove it is the marketing site answering before measuring a single claim -
+// the fit gate reported clean twice against the wrong thing.
+const site = await assertMarketingSite(pg, BASE);
+if (!site.ok) {
+  console.log('FAILED: ' + site.why);
+  console.log(IL_START);
+  await pg.close(); b.disconnect(); process.exit(1);
+}
 
 const bad = [];
 let measured = 0;
