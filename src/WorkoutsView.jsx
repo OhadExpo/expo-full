@@ -685,7 +685,10 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
                     <button onClick={()=>setPickOpen(open && pickOpen===tid ? null : tid)}
                       onMouseEnter={e=>{if(!open)e.currentTarget.style.background='rgba(57,189,255,0.04)';}}
                       onMouseLeave={e=>{if(!open)e.currentTarget.style.background='transparent';}}
-                      style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,
+                      /* baseline, not centre: the name and the block title inside are set
+                         on a shared baseline, so centring the caret against their BLOCK put
+                         it 2.6px off the type it belongs to (row-ink sweep, 18.9). */
+                      style={{width:'100%',display:'flex',alignItems:'baseline',justifyContent:'space-between',gap:10,
                         background: open?'var(--c-sf)':'transparent',border:'none',cursor:'pointer',padding:'12px 14px',textAlign: 'start',transition:'background .12s'}}>
                       <span style={{display:'flex',alignItems:'baseline',gap:10,minWidth:0}}>
                         <span style={{fontFamily:heb?FH:FB,fontSize:heb?16:14,fontWeight:600,color:C.tx,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{name}</span>

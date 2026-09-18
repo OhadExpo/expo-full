@@ -42,7 +42,7 @@ export const INK_FN = `
     const t = baseline - m.actualBoundingBoxAscent;
     const b = baseline + m.actualBoundingBoxDescent;
     if (!(b > t)) return null;
-    return { mid: (t + b) / 2, top: t, bot: b, kind: 'text', what: txt.slice(0, 20) };
+    return { mid: (t + b) / 2, top: t, bot: b, base: baseline, kind: 'text', what: txt.slice(0, 20) };
   };
 
   // Opaque pixels. A SOLID mark (a crest) is centred by its whole shape; a
