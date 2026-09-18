@@ -3271,13 +3271,23 @@ function WeightRoomTab({ rows = [], loads = {}, medical = {}, fixtures = [], pla
       const rowsOfDay = ses[d.iso] || [];
       const lifts = rowsOfDay.filter(isLift);
       const mins = lifts.reduce((a, r) => a + (Number(r.min) || 0), 0);
+      // TEAM S&C IS NOT AN INDIVIDUAL LIFT. Ohad, 19.9: "lifts and team sc
+      // sessions should be different colors". Both were the same orange chip,
+      // so a squad-wide 12-minute S&C block looked exactly like one athlete's
+      // 60-minute lift, on ten rows at once. The rows already carry team:true
+      // (set wherever a team session is logged); it was simply never read here.
+      const team = lifts.length > 0 && lifts.every((r) => r.team);
       // The recorded value IS the history. The medical floor applies to today
       // only - an injury that exists now says nothing about a day in August.
       const code = Math.max(Number(avail[d.iso]) || 1, d.iso === today ? injFloor : 1);
-      return { iso: d.iso, lift: lifts.length > 0, mins, code, future: d.iso > today };
+      return { iso: d.iso, lift: lifts.length > 0, team, mins, code, future: d.iso > today };
     });
     const within = (n) => liftDates.filter((d) => dayDiff(today, d) >= 0 && dayDiff(today, d) < n).length;
-    return { t, cells, last, since, d7: within(7), d28: within(28) };
+    // TODAY's state, so the name column can say it without the reader having
+    // to find today's column and decode a tint. Ohad, 19.9: "who's
+    // out/restriced/medical" should be visible at a glance.
+    const todayCode = Math.max(Number(avail[today]) || 1, injFloor);
+    return { t, cells, last, since, todayCode, d7: within(7), d28: within(28) };
   }), [rows, loads, medical, days, today]);
 
   // One number per day: athletes with no restriction on it. Days before the
@@ -3329,7 +3339,7 @@ function WeightRoomTab({ rows = [], loads = {}, medical = {}, fixtures = [], pla
             <button type="button" disabled={monthOff >= 0} onClick={() => setMonthOff((v) => Math.min(0, v + 1))} className="bhbc-ghost-btn" aria-label={tr('Next month')}
               style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: monthOff >= 0 ? C.cardBd : C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, height: 24, width: 26, cursor: monthOff >= 0 ? 'default' : 'pointer' }}>{he ? '‹' : '›'}</button>
           </div>
-          <span style={{ fontFamily: FB, fontSize: 11, color: C.tm }}>{tr('Orange is a logged lift. The tint is the restriction on the day.')}</span>
+          <span style={{ fontFamily: FB, fontSize: 11, color: C.tm }}>{tr('Orange is an individual lift, navy is team S&C. The tint is the restriction on the day.')}</span>
         </div>
 
         {/* The grid scrolls sideways on a phone by design - a month of days
@@ -3351,20 +3361,21 @@ function WeightRoomTab({ rows = [], loads = {}, medical = {}, fixtures = [], pla
               <span />
             </div>
             <div style={{ display: 'grid', gap: 1, background: C.cardBd }}>
-              {per.map(({ t, cells, since, last }) => (
+              {per.map(({ t, cells, since, last, todayCode }) => (
                 <div key={t.id} role={onOpen ? 'button' : undefined} tabIndex={onOpen ? 0 : undefined}
                   onClick={onOpen ? () => onOpen(t.id) : undefined}
                   onKeyDown={onOpen ? ((e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(t.id); } }) : undefined}
                   style={{ display: 'grid', gridTemplateColumns: `180px repeat(${cells.length}, minmax(${CELL}px, 1fr)) 118px`, alignItems: 'stretch', background: 'var(--c-sf)', padding: '0 14px', cursor: onOpen ? 'pointer' : 'default' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, paddingInlineEnd: 8, height: 26 }}>
+                    {todayCode > 1 && <span title={tr(AVAIL[todayCode].label)} aria-label={tr(AVAIL[todayCode].label)} style={{ width: 7, height: 7, borderRadius: '50%', background: AVAIL[todayCode].color, flexShrink: 0 }} />}
                     <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, minWidth: 20, fontVariantNumeric: 'tabular-nums' }}>{t.jersey != null ? t.jersey : ''}</span>
                     <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>
                   </span>
                   {cells.map((c) => (
-                    <span key={c.iso} title={`${monDay(c.iso)}${c.lift ? ` · ${c.mins || ''}${c.mins ? tr('min') : tr('lift session')}` : ''}`}
+                    <span key={c.iso} title={`${monDay(c.iso)}${c.lift ? ` · ${c.team ? tr('team S&C') : tr('individual lift')} · ${c.mins || ''}${c.mins ? tr('min') : tr('lift session')}` : ''}`}
                       style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 26, background: c.future ? 'transparent' : TINT[c.code] || 'transparent', borderInlineStart: `1px solid ${C.cardBd}` }}>
                       {c.lift && (
-                        <span style={{ minWidth: 18, height: 16, padding: '0 3px', background: ORANGE, color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 8.5, fontWeight: 800, fontVariantNumeric: 'tabular-nums', letterSpacing: 0 }}>
+                        <span style={{ minWidth: 18, height: 16, padding: '0 3px', background: c.team ? NAVY : ORANGE, color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 8.5, fontWeight: 800, fontVariantNumeric: 'tabular-nums', letterSpacing: 0 }}>
                           {c.mins || ''}
                         </span>
                       )}
@@ -3383,7 +3394,7 @@ function WeightRoomTab({ rows = [], loads = {}, medical = {}, fixtures = [], pla
         </div>
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, padding: '9px 14px', borderTop: `1px solid ${C.cardBd}` }}>
-          {[[ORANGE, tr('lift logged')], ['rgba(224,167,58,0.55)', tr(AVAIL[2].label)], ['rgba(79,157,224,0.55)', tr(AVAIL[3].label)], ['rgba(222,78,59,0.6)', tr(AVAIL[4].label)], ['rgba(124,130,139,0.6)', tr(AVAIL[5].label)]].map(([col, lbl]) => (
+          {[[ORANGE, tr('lift logged')], [NAVY, tr('team S&C')], ['rgba(224,167,58,0.55)', tr(AVAIL[2].label)], ['rgba(79,157,224,0.55)', tr(AVAIL[3].label)], ['rgba(222,78,59,0.6)', tr(AVAIL[4].label)], ['rgba(124,130,139,0.6)', tr(AVAIL[5].label)]].map(([col, lbl]) => (
             <span key={lbl} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FB, fontSize: 11, color: C.tm }}>
               <span style={{ width: 10, height: 10, background: col, flexShrink: 0 }} />{lbl}
             </span>

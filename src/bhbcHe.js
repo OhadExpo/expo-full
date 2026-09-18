@@ -366,6 +366,8 @@ export const HE = {
   note: 'הערה',
   Round: 'מחזור',
   'logged by': 'נרשם על ידי',
+  'team S&C': 'כוח קבוצתי',
+  'individual lift': 'אימון כוח אישי',
   'Brief for the staff': 'תקציר לצוות',
   'no load yet': 'עוד אין עומס',
   // A card that has attendance but no RPE says what it knows: how many sessions.
@@ -661,7 +663,7 @@ Object.assign(HE, {
   // ---- the weight-room tab --------------------------------------------
   'Previous month': 'החודש הקודם',
   'Next month': 'החודש הבא',
-  'Orange is a logged lift. The tint is the restriction on the day.': 'כתום זה אימון כוח שנרשם. הגוון זה ההגבלה של אותו יום.',
+  'Orange is an individual lift, navy is team S&C. The tint is the restriction on the day.': 'כתום זה אימון כוח אישי, כחול זה כוח קבוצתי. הגוון זה ההגבלה של אותו יום.',
   'nobody has lifted today': 'אף אחד לא עשה כוח היום',
   'Due for the weight room': 'מחכים לאימון כוח',
   'Everyone has lifted in the last three days.': 'כולם עשו כוח בשלושת הימים האחרונים.',
