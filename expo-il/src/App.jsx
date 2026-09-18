@@ -192,15 +192,20 @@ function ModalCloseBtn({ onClose, label }) {
 // the same product, not a generic re-skin. Never inline alternate cropped PNGs
 // in expo-il/public/ — those drifted from the canonical mark before.
 function BrandMark({ height = 22 }) {
-  // The nav PNG packs caret + wordmark + transparent breathing room
-  // above and below; the visible wordmark sits in the lower ~63% of
-  // the image. Use a fixed-pixel lift so the wordmark sits visually
-  // centered across every height we use (h=14 footer through h=36 nav).
-  // Was percentage-based; that overcorrected at h=36 after the bump.
+  // The nav PNG packs caret + wordmark + transparent breathing room above and
+  // below; the visible wordmark sits in the lower ~63% of the image, so it
+  // needs lifting to sit on the optical centre of whatever it stands beside.
+  //
+  // The lift has to SCALE with the height. A flat -3px is right at the nav's
+  // h=36 and far too much at the footer's h=14, where it dragged the wordmark
+  // 2.9px above the copyright line beside it (measured 18.9 by the ink sweep,
+  // the first time that sweep was pointed at the marketing site). -3 at 36 is
+  // the calibration point that the top-menu OCD gate already proves.
+  const lift = +(height * (3 / 36)).toFixed(2);
   return (
     <img src={EXPO_LOGO_NAV} alt="EXPO"
       decoding="async"
-      style={{ height, width: 'auto', display: 'block', transform: 'translateY(-3px)' }} />
+      style={{ height, width: 'auto', display: 'block', transform: `translateY(-${lift}px)` }} />
   );
 }
 
@@ -1941,14 +1946,19 @@ function WhyTemplates() {
           <div key={col.key} style={{
             background: col.accent ? C.sf2 : C.sf,
             border: col.accent ? `2px solid ${C.ac}` : `0.25px solid ${C.ac4D}`,
-            borderRadius: 0, padding: '18px 16px',
+            // 14 above / 14 below the column title, not 18 above and 10 below:
+            // the title sits between the card's top border and its own hairline
+            // and was riding 4.5px low in that band (measured by the ink sweep,
+            // which had never been pointed at the marketing site until 18.9).
+            // Total vertical space is unchanged - 18+10 became 14+14.
+            borderRadius: 0, padding: '14px 16px 18px',
             display: 'flex', flexDirection: 'column', gap: 12,
             boxShadow: col.accent ? `0 12px 32px -16px ${C.ac}55` : 'none',
           }}>
             <div style={{
               fontFamily: FN, fontSize: 11, letterSpacing: 2, fontWeight: 700,
               color: col.accent ? C.ac : C.tm, textAlign: 'center',
-              paddingBottom: 10, borderBottom: `1px solid ${C.bd}`,
+              paddingBottom: 14, borderBottom: `1px solid ${C.bd}`,
             }}>
               {col.title}
             </div>

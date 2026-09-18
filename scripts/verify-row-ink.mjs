@@ -119,12 +119,48 @@ const BAND_SCAN = `(() => {
     if (r.height > (bot - top) + padT + padB + bt + bb + 8) continue;
     // Text that fills the band is a paragraph, not a line sitting in a band.
     if (bot - top > r.height - 6) continue;
-    const off = (top + bot) / 2 - (r.y + r.height / 2);
+    // WHERE THE BAND ACTUALLY STARTS AND ENDS.
+    // A rule UNDER a row is the commonest separator on both sites, and such a
+    // row has no top border at all: the band the eye reads runs from the
+    // PREVIOUS row's rule down to this one's. Measuring the element's own box
+    // instead reported all 94 sample-week rows on the marketing site as 5.5px
+    // high, when the space above the text (the list gap) and below it (the
+    // padding) are both 10px and it is centred. So when only one side is
+    // bordered, the other side of the band is the neighbouring separator.
+    // A one-sided rule only defines a band when something FACES it. Look for
+    // that facing edge in order: the neighbouring row's own rule, then the
+    // parent's border if the parent draws one (a card's edge is a border the
+    // eye reads). If neither exists - the first row of a list inside an
+    // unbordered <ol> - there is no band to be centred in, and measuring
+    // against the card's padding folds the card's spacing into a row question.
+    let bandTop = r.y, bandBot = r.bottom;
+    const par = el.parentElement;
+    const pcs = par ? getComputedStyle(par) : null;
+    const pr = par ? par.getBoundingClientRect() : null;
+    const drawsBottom = (n) => n && (parseFloat(getComputedStyle(n).borderBottomWidth) || 0) > 0;
+    const drawsTop = (n) => n && (parseFloat(getComputedStyle(n).borderTopWidth) || 0) > 0;
+    if (bb > 0 && bt === 0) {
+      const prev = el.previousElementSibling;
+      if (drawsBottom(prev)) bandTop = prev.getBoundingClientRect().bottom;
+      // The eye's band ends at the BORDER, not at the padding edge - the
+      // card's padding is part of the space the label sits in.
+      else if (pcs && (parseFloat(pcs.borderTopWidth) || 0) > 0) bandTop = pr.y + (parseFloat(pcs.borderTopWidth) || 0);
+      else continue;
+    } else if (bt > 0 && bb === 0) {
+      const next = el.nextElementSibling;
+      if (drawsTop(next)) bandBot = next.getBoundingClientRect().y;
+      else if (pcs && (parseFloat(pcs.borderBottomWidth) || 0) > 0) bandBot = pr.bottom - (parseFloat(pcs.borderBottomWidth) || 0);
+      else continue;
+    }
+    // A neighbour that is nowhere near (a collapsed row, a grid jump) is not a
+    // separator; fall back to the element's own box rather than invent a band.
+    if (!(bandTop <= r.y + 1 && bandBot >= r.bottom - 1 && bandBot - bandTop < r.height + 60)) { bandTop = r.y; bandBot = r.bottom; }
+    const off = (top + bot) / 2 - (bandTop + bandBot) / 2;
     if (Math.abs(off) < TOLERANCE) continue;
     out.push({
       kind: 'band', spread: +Math.abs(off).toFixed(2), y: Math.round(r.y), n: inks.length,
       high: { kind: 'ink', what: (el.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 22), mid: +((top + bot) / 2).toFixed(2) },
-      low: { kind: 'band', what: Math.round(r.height) + 'px band', mid: +(r.y + r.height / 2).toFixed(2) },
+      low: { kind: 'band', what: Math.round(bandBot - bandTop) + 'px band', mid: +((bandTop + bandBot) / 2).toFixed(2) },
       all: [(off < 0 ? 'HIGH by ' : 'LOW by ') + Math.abs(off).toFixed(1) + 'px',
         'pad ' + cs.paddingTop + '/' + cs.paddingBottom, 'bd ' + cs.borderTopWidth + '/' + cs.borderBottomWidth,
         (el.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 34)],
@@ -281,11 +317,16 @@ const run = async () => {
   const pg = await b.newPage();
   await pg.setBypassServiceWorker(true);
   await pg.setViewport({ width: 1280, height: 900, deviceScaleFactor: 1 });
-  await pg.goto(BASE + '/login', { waitUntil: 'domcontentloaded' });
-  await wait(1500);
-  await pg.evaluate(() => { try { localStorage.clear(); sessionStorage.clear(); } catch { /* blocked */ } });
-  await signIn(pg, BASE);
-  await wait(2000);
+  // NOAUTH=1 for a site with no sign-in - the marketing site (expo-il) is a
+  // separate origin on its own port with hash routes, and Ohad's rule is that
+  // every sweep covers it too. Signing in there just measures a 404.
+  if (!process.env.NOAUTH) {
+    await pg.goto(BASE + '/login', { waitUntil: 'domcontentloaded' });
+    await wait(1500);
+    await pg.evaluate(() => { try { localStorage.clear(); sessionStorage.clear(); } catch { /* blocked */ } });
+    await signIn(pg, BASE);
+    await wait(2000);
+  }
 
   const findings = [];
   // A zero has to be provable. "every row shares one ink centre" over a page
