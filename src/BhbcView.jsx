@@ -2762,7 +2762,7 @@ function ProgramModal({ athleteName, plans, exercises, currentWeek = 1, onClose 
                                   ))}
                                 </div>
                               ) : (
-                                <div style={{ fontFamily: FN, fontSize: 11, color: C.tm }}>{r.rx || '—'}</div>
+                                <div dir="ltr" style={{ fontFamily: FN, fontSize: 11, color: C.tm, unicodeBidi: 'isolate' }}>{r.rx || '—'}</div>
                               )}
                             </div>
                             </div>
@@ -4433,7 +4433,7 @@ function LeagueView({ league, roster, fixtures, onOpen, bhbcLoads = {}, today, o
             {summary.map((s, i) => (
               <div key={s.k} style={{ padding: '14px 18px', borderInlineStart: i ? `1px solid ${C.cardBd}` : 'none', display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{s.k}</div>
-                <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 26, lineHeight: 1, color: s.c, fontVariantNumeric: 'tabular-nums' }}>{s.v}</div>
+                <div dir="ltr" style={{ fontFamily: FN, fontWeight: 800, fontSize: 26, lineHeight: 1, color: s.c, fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate', textAlign: 'start' }}>{s.v}</div>
                 {s.sub && <div style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.04em' }}>{s.sub}</div>}
               </div>
             ))}
@@ -4446,7 +4446,7 @@ function LeagueView({ league, roster, fixtures, onOpen, bhbcLoads = {}, today, o
                 {summary.map((s, i) => (
                   <div key={s.k} style={{ padding: '14px 18px', borderInlineStart: i ? `1px solid ${C.cardBd}` : 'none', display: 'flex', flexDirection: 'column', gap: 6 }}>
                     <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{s.k}</div>
-                    <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 26, lineHeight: 1, color: s.c, fontVariantNumeric: 'tabular-nums' }}>{s.v}</div>
+                    <div dir="ltr" style={{ fontFamily: FN, fontWeight: 800, fontSize: 26, lineHeight: 1, color: s.c, fontVariantNumeric: 'tabular-nums', unicodeBidi: 'isolate', textAlign: 'start' }}>{s.v}</div>
                     {s.sub && <div style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.04em' }}>{s.sub}</div>}
                   </div>
                 ))}

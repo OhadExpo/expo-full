@@ -720,8 +720,8 @@ function AthleteCard({ a, name, prevMap, exDetail, onToggleIn, onSet, onCurEx, o
               {/* Prescription on its own line — clear, not crammed beside the
                   wrapping title. SETS × REPS + a muted done-count. */}
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 4, paddingInlineStart: 18 }}>
-                <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.02em', color: C.ac, lineHeight: 1 }}>{ex.prescribed}</span>
-                <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: allDone ? C.gn : C.tm, lineHeight: 1 }}>{doneCount}/{ex.sets.length} {tt('DONE')}</span>
+                <span dir="ltr" style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.02em', color: C.ac, lineHeight: 1, unicodeBidi: 'isolate' }}>{ex.prescribed}</span>
+                <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: allDone ? C.gn : C.tm, lineHeight: 1 }}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{doneCount}/{ex.sets.length}</span> {tt('DONE')}</span>
               </div>
             </div>
             {open && (

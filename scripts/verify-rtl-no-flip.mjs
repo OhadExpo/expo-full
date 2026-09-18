@@ -124,6 +124,7 @@ try {
       } catch (e) {}
     });
     let rtlPages = 0;
+    let tabViews = 0;
     for (const r of APP_ROUTES) {
       await pg.goto(`${APP_BASE}${r}`, { waitUntil: 'domcontentloaded', timeout: 45000 });
       await wait(5000);
@@ -132,12 +133,34 @@ try {
         || [...document.querySelectorAll('*')].some((e) => getComputedStyle(e).direction === 'rtl'));
       if (isRtl) rtlPages++;
       measure('app ' + r, await pg.evaluate(SCAN));
+      // "(anywhere)" includes the views behind the tab strip. The club zone
+      // lands on one tab out of seven, so measuring only the landing view
+      // checked a seventh of the surface and reported a clean zero for it.
+      let tabs = [];
+      try {
+        tabs = await pg.evaluate(() => [...document.querySelectorAll('button[role="tab"]')]
+          .filter((b) => b.offsetParent && b.getAttribute('aria-selected') !== 'true')
+          .map((b) => (b.innerText || '').replace(/\s+/g, ' ').trim()).filter(Boolean).slice(0, 8));
+      } catch (e) { tabs = []; }
+      for (const label of tabs) {
+        try {
+          const hit = await pg.evaluate((t) => {
+            const b = [...document.querySelectorAll('button[role="tab"]')]
+              .find((x) => x.offsetParent && (x.innerText || '').replace(/\s+/g, ' ').trim() === t);
+            if (!b) return false; b.click(); return true;
+          }, label);
+          if (!hit) continue;
+          await wait(2200);
+          tabViews++;
+          measure('app ' + r + ' \u00b7 ' + label.slice(0, 18), await pg.evaluate(SCAN));
+        } catch (e) { /* a tab that will not open is not a flipped string */ }
+      }
     }
     if (!rtlPages) {
       console.log(`FAILED: none of the ${APP_ROUTES.length} app routes rendered any RTL context, so nothing about Hebrew was tested. Set expo-lang=he and check the language switch still works.`);
       await pg.close(); b.disconnect(); process.exit(1);
     }
-    console.log(`app: ${checked - before} strings across ${APP_ROUTES.length} routes (${rtlPages} with RTL content)`);
+    console.log(`app: ${checked - before} strings across ${APP_ROUTES.length} routes and ${tabViews} tab views (${rtlPages} routes with RTL content)`);
   }
 } catch (e) {
   console.log('FAILED: ' + String(e.message || e).slice(0, 160));
