@@ -221,6 +221,43 @@ export async function getTokenScopes() {
 export function consumeCalendarCallback() { return false; }
 export function subscribeAndCacheProviderToken() { return () => {}; }
 
+// ── What the coach is already busy with ──────────────────────────────
+
+/**
+ * The coach's BUSY blocks from the connected calendar, merged and sorted.
+ *
+ * Ohad, 18.9: "make sure the weekly availability is synced with expo calanders".
+ * The booking page only knew about bookings it had taken itself, so a morning
+ * already full in his calendar was still offered to strangers. freeBusy returns
+ * exactly the intervals Google considers taken across the calendars asked for,
+ * with no event titles - which is the right shape here: the public page needs
+ * to know a slot is gone, never what it is.
+ *
+ * Returns [{ start: ISO, end: ISO }]; [] when the calendar is not connected.
+ */
+export async function fetchBusy(fromISO, toISO, calendarIds = ['primary']) {
+  if (!getCachedAccessToken()) return [];
+  const body = {
+    timeMin: fromISO,
+    timeMax: toISO,
+    items: calendarIds.map((id) => ({ id })),
+  };
+  const out = await gcalFetch('/freeBusy', { method: 'POST', body: JSON.stringify(body) });
+  const spans = [];
+  for (const cal of Object.values((out && out.calendars) || {})) {
+    for (const b of (cal.busy || [])) if (b.start && b.end) spans.push({ start: b.start, end: b.end });
+  }
+  spans.sort((a, b) => a.start.localeCompare(b.start));
+  // Merge overlaps so two calendars covering the same hour block it once.
+  const merged = [];
+  for (const s2 of spans) {
+    const last = merged[merged.length - 1];
+    if (last && s2.start <= last.end) { if (s2.end > last.end) last.end = s2.end; }
+    else merged.push({ ...s2 });
+  }
+  return merged;
+}
+
 // ── Calendar API fetch with auto-refresh on 401 ─────────────────────
 
 async function gcalFetch(path, init = {}, allowRetry = true) {
