@@ -91,8 +91,13 @@ export default function BookingView({ trainees }) {
         status: 'busy',
         source: 'calendar',
       })).filter((r2) => r2.duration_min <= 24 * 60);
+      // Delete only what THIS sync owns: his rows, status busy, SOURCE calendar,
+      // inside the window being resynced. status alone was already enough to
+      // keep a real athlete booking safe, but a future writer of busy rows from
+      // another source would have been wiped by a calendar sync, and a DELETE
+      // should never be broader than the thing replacing it.
       await supabase.from('bookings').delete()
-        .eq('coach_email', coachEmail).eq('status', 'busy')
+        .eq('coach_email', coachEmail).eq('status', 'busy').eq('source', 'calendar')
         .gte('start_at', from.toISOString()).lt('start_at', to.toISOString());
       if (rows.length) {
         const { error } = await supabase.from('bookings').insert(rows);

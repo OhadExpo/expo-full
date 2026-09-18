@@ -87,6 +87,11 @@ export async function preflightClip(src, { samples = 12, kind = 'shot', onProgre
   try {
     lm = await createPoseLandmarker({ runningMode: 'IMAGE', quality: 'lite', numPoses: 3 });
     v = document.createElement('video');
+    // crossOrigin BEFORE src, or the request goes out without the CORS header
+    // and the canvas is tainted for the rest of its life. Today every clip is
+    // a blob: URL from the picker or the recorder, so this is insurance for
+    // the day 'LOAD A REVIEWED CLIP' is wired into this tool.
+    v.crossOrigin = 'anonymous';
     v.src = src; v.muted = true; v.playsInline = true; v.preload = 'auto';
     v.style.cssText = 'position:fixed;left:-9999px;top:0;width:2px;height:2px;opacity:0;pointer-events:none';
     document.body.appendChild(v);
@@ -125,7 +130,19 @@ export async function preflightClip(src, { samples = 12, kind = 'shot', onProgre
       } catch { /* tainted canvas — skip brightness, keep the rest */ }
 
       let res;
-      try { res = lm.detect(canvas); } catch { res = null; }
+      // A TAINTED CANVAS IS NOT AN EMPTY GYM.
+      // getImageData and detect() both throw on a cross-origin frame. Caught
+      // per-frame and ignored, that produces withBody === 0 and the screen
+      // announces "No one could be tracked" about a clip full of people -
+      // the exact confident-wrong-answer this module exists to avoid. Say we
+      // could not look instead, and let the analysis proceed.
+      try { res = lm.detect(canvas); }
+      catch (e) {
+        if (/tainted|cross-origin|insecure/i.test(String(e && e.message))) {
+          return { ok: true, skipped: true, reason: 'cross-origin clip - the frames cannot be inspected', findings: [], measured };
+        }
+        res = null;
+      }
       const subj = tallestSubject(res && res.landmarks);
       if (!subj) continue;
       measured.withBody++;

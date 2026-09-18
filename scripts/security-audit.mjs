@@ -265,6 +265,28 @@ PRIVATE_TABLES.forEach((t, i) => {
 if (!staticOnly) {
   check('A13', 'anon cannot insert a trainee', () => anonWriteDenied('trainees', { name: '__sec_audit__' }));
   check('A14', 'anon cannot insert into store', () => anonWriteDenied('store', { key: '__sec_audit__', value: {} }));
+  // BOOKINGS AND BOOKING SETTINGS were written this week and had no check at
+  // all. They are not trivial: a booking row carries the coach's calendar busy
+  // times, i.e. where he is and when, and the settings row is what makes his
+  // public booking page live.
+  check('A16', 'anon cannot insert a booking', () => anonWriteDenied('bookings', {
+    coach_email: '__sec_audit__@example.com', start_at: new Date().toISOString(), duration_min: 30, status: 'busy',
+  }));
+  check('A17', 'anon cannot insert booking settings', () => anonWriteDenied('coach_booking_settings', {
+    coach_email: '__sec_audit__@example.com',
+  }));
+  check('A18', "anon cannot read the coach's calendar busy times", async () => {
+    const { status, body } = await anon('bookings?select=coach_email,start_at&limit=5');
+    const rows = Array.isArray(body) ? body : [];
+    // AN EMPTY TABLE PROVES NOTHING. If nobody has ever booked, a zero here is
+    // the table being empty, not RLS working - and reporting that as a pass is
+    // how a security suite becomes decoration.
+    if (status < 400 && !rows.length) {
+      return { ok: true, skip: true, why: 'no booking rows exist yet, so visibility cannot be tested - re-run once the booking page is live' };
+    }
+    return { ok: status >= 400 || !rows.length, why: 'HTTP ' + status + ' ' + rows.length + ' row(s)' };
+  });
+
   check('A15', 'anon cannot reach auth users through a view', async () => {
     const { status, body } = await anon('users?select=*&limit=1');
     return { ok: status >= 400, why: 'HTTP ' + status + ' ' + JSON.stringify(body).slice(0, 120) };

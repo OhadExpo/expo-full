@@ -23,7 +23,18 @@ const SensorLab = lazyReload(() => import('./SensorLab'));
 // it is screenshot-verified; every post-sign-in replaceState dropped it, so the
 // deep link had been dead. Same class as the OAuth code in auth.jsx: the address
 // bar carries meaning, and a tidy-up is not allowed to throw it away.
-const keepHash = (path) => path + (typeof window !== 'undefined' ? (window.location.hash || '') : '');
+const keepHash = (path) => {
+  if (typeof window === 'undefined') return path;
+  const h = window.location.hash || '';
+  // ...but NEVER carry an auth payload into the address bar. The implicit flow
+  // puts access_token/refresh_token in the FRAGMENT; supabase-js normally clears
+  // it once the session is stored, and these seven rewrites all run after that.
+  // "Normally" is not a thing to bet a token on: if the order ever changes, this
+  // would pin a live token into the URL and into history, where a screenshot or
+  // a copied link leaks it. #lab is a deep link; #access_token is a credential.
+  if (/(access_token|refresh_token|token_hash|[?&]code)=/.test(h)) return path;
+  return path + h;
+};
 import { parseTraineeId } from './traineeUtils';
 import { AuthProvider, useAuth, LoginScreen, UnauthorizedScreen, PasswordChangeModal, SaveErrorToast, OfflineStatusPill, RolePickerScreen, PORTAL_CHOICE_KEY, TRAINER_EMAILS, OWNER_EMAILS, isPartnerEmail, isBhbcCoachEmail, isPtEmail, canLogLoad } from './auth';
 import InstallAppPrompt from './InstallAppPrompt';
