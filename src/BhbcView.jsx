@@ -24,6 +24,7 @@ import { applyGameMinutes, gameMinutesOf, gameRpeOf } from './bhbcGameLoad';
 import { readinessAutoreg } from './readinessAutoreg';
 import BWChart from './BwChart';
 import { sessionSig } from './bhbcSession.js';
+import { appendActivity, whenText, peopleSeen } from './bhbcActivity';
 import { useFullPlan } from './usePlansStore';
 import { LangCtx, BodyLang } from './i18n';
 
@@ -321,7 +322,7 @@ const Jersey = ({ n, size = 30 }) => (
 
 // ---- component ----
 
-export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, setBhbcLoads, bhbcFixtures = [], setBhbcFixtures, league = {}, medical = {}, setMedical, sessionPlans = {}, setSessionPlans, planIndex = [], exercises = [], clientWorkouts = [], setClientWorkouts, workouts = [], setWorkouts, onDecrementSession, portalVis = {}, bwLog = [], weeklyFocus = {}, onOpenTrainee, onExit, coach = false, onSignOut, canMedical = true, canLogLoad = false, currentUser = '', onLocalWrite, stale = false }) {
+export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, setBhbcLoads, bhbcFixtures = [], setBhbcFixtures, league = {}, medical = {}, setMedical, sessionPlans = {}, setSessionPlans, planIndex = [], exercises = [], clientWorkouts = [], setClientWorkouts, workouts = [], setWorkouts, onDecrementSession, portalVis = {}, bwLog = [], weeklyFocus = {}, onOpenTrainee, onExit, coach = false, onSignOut, canMedical = true, canLogLoad = false, currentUser = '', activity = [], setActivity = null, onLocalWrite, stale = false }) {
   // The club zone OPENS WHITE, always (Ohad). The crest and the navy/orange
   // palette were built on white, and a coach arriving in whatever theme the
   // last session left behind saw a different club. Forced once on mount, not
@@ -349,6 +350,15 @@ export default function BhbcView({ trainees = [], setTrainees, bhbcLoads = {}, s
 
   // Broadcast a change to other open zones after any local write (shared-sheet sync).
   const notify = useCallback(() => { if (onLocalWrite) onLocalWrite(); }, [onLocalWrite]);
+  // WHO WORKS IN HERE, AND WHAT THEY TOUCHED. Ohad's owner-only ACTIVITY tab.
+  // One line per action, stamped with the moment it happened (not with the date
+  // of the session being typed up) and with the person who did it.
+  const track = useCallback((kind, what) => {
+    if (!setActivity) return;
+    setActivity((prev) => appendActivity(prev, { by: currentUser || null, kind, what }));
+  }, [setActivity, currentUser]);
+  const trackRef = React.useRef(track); trackRef.current = track;
+  useEffect(() => { trackRef.current('open', 'opened the club zone'); }, []);
   const [manageOpen, setManageOpen] = useState(false);
   const [newAthlete, setNewAthlete] = useState('');
   const [logFor, setLogFor] = useState(null);
@@ -574,7 +584,7 @@ function attendance28(rec, days) {
       arr[idx] = s; out.sessions[date] = arr;
       return { ...prev, [athleteId]: out };
     });
-    toast('Session updated'); notify();
+    toast('Session updated'); track('session', `edited a session on ${date}`); notify();
   }, [setBhbcLoads, bhbcLoads, notify]);
 
   const deleteSession = useCallback((athleteId, date, idx, sig) => {
@@ -650,7 +660,7 @@ function attendance28(rec, days) {
       if (Object.keys(entered).length) rec.readiness[date] = { ...(rec.readiness[date] || {}), ...entered };
       return { ...prev, [athleteId]: rec };
     });
-    toast('Logged'); notify();
+    toast('Logged'); track('session', 'logged a session'); notify();
   }, [setBhbcLoads, notify]);
 
   // Bulk: log one session's load for the WHOLE available squad (a team all does
@@ -757,7 +767,7 @@ function attendance28(rec, days) {
       });
       return next;
     });
-    toast(`${sessionType} saved`); notify();
+    toast(`${sessionType} saved`); track('session', `logged a ${String(sessionType).toLowerCase()} on ${date}${minutes ? ` · ${minutes} min` : ''}`); notify();
   }, [setBhbcLoads, notify]);
 
   // Squad morning wellness check-in → readiness[date] per athlete, feeding the
@@ -779,7 +789,7 @@ function attendance28(rec, days) {
       });
       return next;
     });
-    toast('Check-in saved'); notify();
+    toast('Check-in saved'); track('checkin', `saved the readiness check-in for ${date}`); notify();
   }, [setBhbcLoads, notify]);
 
   const updateGame = useCallback((g, patch) => {
@@ -807,8 +817,8 @@ function attendance28(rec, days) {
       next[i] = { ...next[i], ...patch };
       return next;
     });
-    toast('Game updated'); notify();
-  }, [setBhbcFixtures, notify]);
+    toast('Game updated'); track('game', `updated a game on ${g.date}`); notify();
+  }, [setBhbcFixtures, notify, track]);
 
   // ---- Medical / injury record (Ohad + physical therapist) ----
   // Saving an injury/progress entry can also set the athlete's availability that
@@ -826,7 +836,7 @@ function attendance28(rec, days) {
       else next[key] = { focus: focus || '', plan: plan || '', updatedAt: new Date().toISOString() };
       return next;
     });
-    toast('Session plan saved'); notify();
+    toast('Session plan saved'); track('plan', `saved the session plan for ${date}`); notify();
   }, [setSessionPlans, notify]);
 
   // ---- Week planner writes (Ohad 2026-08-24: "write what and when the entire
@@ -850,13 +860,13 @@ function attendance28(rec, days) {
       if (i >= 0) list[i] = { ...list[i], ...clean }; else list.push(clean);
       return list.sort((a, b) => `${a.date}${a.start || ''}`.localeCompare(`${b.date}${b.start || ''}`));
     });
-    toast(orig ? 'Session updated' : 'Session added'); notify();
-  }, [setBhbcFixtures, notify]);
+    toast(orig ? 'Session updated' : 'Session added'); track('schedule', `${orig ? 'changed' : 'added'} a slot on ${clean.date}`); notify();
+  }, [setBhbcFixtures, notify, track]);
   const removeFixture = useCallback((f) => {
     if (!setBhbcFixtures) return;
     setBhbcFixtures((prev) => (prev || []).filter((x) => !sameSlot(x, f)));
-    toast('Session removed'); notify();
-  }, [setBhbcFixtures, notify]);
+    toast('Session removed'); track('schedule', `removed a slot on ${f.date}`); notify();
+  }, [setBhbcFixtures, notify, track]);
 
   const saveInjury = useCallback(({ athleteId, injury }) => {
     if (!setMedical) return;
@@ -902,14 +912,14 @@ function attendance28(rec, days) {
         return { ...prev, [athleteId]: r };
       });
     }
-    toast('Medical record saved'); notify();
+    toast('Medical record saved'); track('medical', `updated a medical record`); notify();
   }, [setMedical, setBhbcLoads, today, notify, medical]);
 
   const rowGrid = '28px minmax(116px,1.5fr) 112px 46px 130px minmax(104px,1.1fr) 92px';
   // Coaches (head coach + assistants) are VIEWERS: they read the report, roster,
   // schedule, medical and games — but do NOT operate S&C (no session runner, no
   // logging practices, no check-in entry, no roster management). Ohad 2026-08-18.
-  const NAV_TABS = [['overview', tr('Overview')], ['roster', tr('Roster')], ['schedule', tr('Schedule')], ['weightroom', tr('Weight Room')], ['medical', tr('Medical')], ...(asCoach ? [] : [['sessions', tr('Sessions')]]), ['games', tr('Games')]];
+  const NAV_TABS = [['overview', tr('Overview')], ['roster', tr('Roster')], ['schedule', tr('Schedule')], ['weightroom', tr('Weight Room')], ['medical', tr('Medical')], ...(asCoach ? [] : [['sessions', tr('Sessions')]]), ['games', tr('Games')], ...(asCoach ? [] : [['activity', tr('Activity')]])];
 
   // Never sit on a tab that is not in the list. 'Sessions' disappears in the
   // coach view, but `view` was not reset when 'Preview as coach' was switched
@@ -1349,6 +1359,10 @@ function attendance28(rec, days) {
             {view === 'games' && (
               <LeagueView league={league} roster={roster} fixtures={bhbcFixtures} onOpen={setDetailFor}
                 bhbcLoads={bhbcLoads} today={today} onPickMinutes={setMinutesFor} />
+            )}
+
+            {view === 'activity' && !asCoach && (
+              <ActivityView activity={activity} tr={tr} he={he} />
             )}
 
             {view === 'medical' && (
@@ -2283,6 +2297,44 @@ function TravelStrip({ travel }) {
 // Road ahead — the next few games after the imminent one, so the coach can see
 // congestion + travel and plan the microcycle. Flags tight turnarounds (≤3 days
 // between games = elevated load risk).
+// WHO WORKS IN HERE — owner only (Ohad: "so i know what coaches and pt's work
+// with the app"). Two readings of one trail: the people, newest first, and then
+// the actions themselves. Nothing is derived from session dates — every line is
+// stamped with the moment the action happened (see bhbcActivity.js).
+function ActivityView({ activity = [], tr, he }) {
+  const list = Array.isArray(activity) ? activity : [];
+  const people = peopleSeen(list, 30);
+  const KIND = { open: tr('Signed in'), session: tr('Sessions'), checkin: tr('Check-in'), medical: tr('Medical'), game: tr('Games'), plan: tr('Session plan'), schedule: tr('Schedule'), edit: tr('Edit') };
+  const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm };
+  return (
+    <>
+      <Card padding={14} leftStripe={NAVY} header={secTitle('Who has been in, last 30 days')}>
+        {people.length === 0
+          ? <div style={{ fontFamily: FB, fontSize: 12, color: C.td }}>{he ? 'עוד אין פעילות רשומה. כל כניסה ושינוי מכאן והלאה יופיעו כאן.' : 'Nothing recorded yet. Every entry and every change from here on shows up here.'}</div>
+          : people.map((p) => (
+            <div key={p.by} style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: '9px 0', borderBottom: `1px solid ${C.cardBd}` }}>
+              <span dir="ltr" style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tx, unicodeBidi: 'isolate', flex: '1 1 240px', minWidth: 0, overflowWrap: 'anywhere' }}>{p.by}</span>
+              <span style={{ ...lbl, flexShrink: 0 }}>{p.n} {p.n === 1 ? tr('action') : tr('actions')}</span>
+              <span style={{ fontFamily: FN, fontSize: 11, color: C.td, flexShrink: 0 }}>{whenText(p.at, he)}</span>
+            </div>
+          ))}
+      </Card>
+      <Card padding={14} leftStripe={ORANGE} header={secTitle('What changed')}>
+        {list.length === 0
+          ? <div style={{ fontFamily: FB, fontSize: 12, color: C.td }}>{he ? 'אין עדיין שינויים.' : 'No changes yet.'}</div>
+          : list.slice(0, 120).map((e, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '7px 0', borderBottom: i < Math.min(list.length, 120) - 1 ? `1px solid ${C.cardBd}` : 'none' }}>
+              <span style={{ ...lbl, width: 84, flexShrink: 0 }}>{KIND[e.kind] || e.kind}</span>
+              <span style={{ fontFamily: FB, fontSize: 12, color: C.tx, flex: '1 1 220px', minWidth: 0 }}>{tr(e.what)}</span>
+              <span dir="ltr" style={{ fontFamily: FN, fontSize: 10, color: C.tm, unicodeBidi: 'isolate', flexShrink: 0 }}>{e.by || '—'}</span>
+              <span style={{ fontFamily: FN, fontSize: 11, color: C.td, flexShrink: 0, minWidth: 78, textAlign: 'end' }}>{whenText(e.at, he)}</span>
+            </div>
+          ))}
+      </Card>
+    </>
+  );
+}
+
 function FixturesAheadPanel({ fixtures, today }) {
   const tr = useT();
   const games = (fixtures || []).filter((f) => f.type === 'game' && f.date >= today).sort((a, b) => a.date.localeCompare(b.date)).slice(1, 5);
