@@ -472,7 +472,7 @@ export default function SensorLab({ trainees = [] }) {
                 {mine.map((r) => (
                   <div key={r.id} style={{ display: 'flex', gap: 10, alignItems: 'baseline', fontFamily: FN, fontSize: 11, color: C.tm, padding: '3px 0' }}>
                     <span dir="ltr" style={{ color: C.td, minWidth: 96, unicodeBidi: 'isolate' }}>{new Date(r.at).toLocaleString()}</span>
-                    <span style={{ color: C.tx }}>{Object.entries(r.metrics).map(([k, v]) => `${k} ${v}`).join(' · ')}</span>
+                    <span style={{ color: C.tx }}>{Object.entries(r.metrics || {}).map(([k, v]) => `${k} ${v}`).join(' · ')}</span>
                   </div>
                 ))}
               </div>

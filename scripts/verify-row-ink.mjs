@@ -327,6 +327,12 @@ const run = async () => {
   // whatever theme this profile happened to be in (light), so the other one
   // was never swept at all - and geometry is supposed to be IDENTICAL
   // between them, which is exactly the claim a sweep can check.
+  // ONE CHROME, ONE localStorage PER ORIGIN. Setting expo-theme here changes it
+  // for every OTHER gate driving the same browser at the same time - measured
+  // 18.9: verify-theme-stability reported "27 routes changed the theme out from
+  // under the user" while this was running with THEME=dark, and 0 when run
+  // alone. Do not run two browser sweeps against one profile concurrently; the
+  // suite runner is sequential for exactly this reason.
   if (process.env.THEME) {
     await pg.evaluateOnNewDocument((t) => {
       try { localStorage.setItem('expo-theme', t); localStorage.setItem('expo-collapse:bhbc-theme', JSON.stringify(t)); } catch (e) {}

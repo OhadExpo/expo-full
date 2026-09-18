@@ -1915,7 +1915,13 @@ function WhyTemplates() {
   // cannot disagree with the cards on the same page (it read 290-490 while a
   // 540 program was listed above it).
   const prices = PROGRAMS.map((p) => p.price).filter((n) => Number.isFinite(n) && n > 0);
-  const catalogRange = { lo: Math.min(...prices), hi: Math.max(...prices) };
+  // Math.min() of an empty array is Infinity, so a catalog with every price
+  // commented out would have printed "Infinity--Infinity NIS" in the cost row
+  // of the comparison table. Fall back to the template placeholders, which read
+  // as unfinished copy rather than as a broken number.
+  const catalogRange = prices.length
+    ? { lo: Math.min(...prices), hi: Math.max(...prices) }
+    : { lo: '', hi: '' };
   const cols = [
     { key: 'col1', title: t('why.col1.t'), accent: false },
     { key: 'col2', title: t('why.col2.t'), accent: true  },
