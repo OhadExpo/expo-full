@@ -49,6 +49,12 @@ const DEFAULT_ROUTES = [
   '/coach/review', '/coach/workouts', '/coach/sessions', '/coach/tasks',
   '/coach/billing', '/coach/incoming', '/coach/challenges', '/coach/calendar',
   '/coach/bhbc', '/athlete', '/demo/coach', '/demo/athlete', '/login',
+  // Added 18.9 after checking: these ten were never in the sweep, and all ten
+  // measured clean at 390 and 1280 (689 rows). They stay in so they cannot
+  // drift unwatched - a surface nobody measures is where the next photo comes
+  // from.
+  '/coach/review-tools', '/coach/exercise-matching', '/coach/waitlist', '/coach/bugs',
+  '/coach/smart-import', '/coach/exercise-cleanup', '/intake/he', '/intake/en', '/try', '/demo',
 ];
 // Git Bash rewrites a leading-slash argument into a Windows path before node
 // sees it, which reads exactly like the route being broken. Undo it.
@@ -332,7 +338,7 @@ const run = async () => {
   // A zero has to be provable. "every row shares one ink centre" over a page
   // that rendered nothing reads exactly like a clean sweep - that is how the
   // marketing gate passed twice while measuring the wrong site (18.9).
-  let seenRows = 0, seenItems = 0, pagesMeasured = 0;
+  let seenRows = 0, seenItems = 0, pagesMeasured = 0, tabViews = 0;
   for (const route of ROUTES) {
     for (const w of WIDTHS) {
       if (w < 700) await pg.emulate({ viewport: { width: w, height: 900, deviceScaleFactor: 2, isMobile: true, hasTouch: true }, userAgent: 'Mozilla/5.0 (Linux; Android 14; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Mobile Safari/537.36' });
@@ -346,18 +352,59 @@ const run = async () => {
       await wait(400);
       const inkOk = await pg.evaluate(INK_FN).then(() => true).catch((e) => { if (process.env.DBG) console.log('  dbg INK FAILED', String(e.message).slice(0, 100)); return false; });
       if (process.env.DBG) console.log('  dbg ink loaded:', inkOk);
+      // One measuring step, used for the landing view AND for every tab, so
+      // the two cannot diverge into two different definitions of a row.
+      const measureHere = async (label) => {
+        let rws = [];
+        try {
+          const res = await pg.evaluate(SCAN.replace(/TOLERANCE/g, String(TOL)));
+          rws = res.rows; seenRows += res.dbg.rows; seenItems += res.dbg.items; pagesMeasured++;
+          if (process.env.DBG) console.log('  dbg', label, w, JSON.stringify(res.dbg));
+        } catch (e) { if (process.env.DBG) console.log('  dbg ERR', label, w, String(e.message).slice(0, 120)); }
+        for (const r of rws) findings.push({ route: label, w, ...r });
+        try {
+          const BAND_TOL2 = Math.max(TOL, 4);
+          const bands = await pg.evaluate(BAND_SCAN.replace(/TOLERANCE/g, String(BAND_TOL2)));
+          for (const r of bands) findings.push({ route: label, w, ...r });
+        } catch (e) { if (process.env.DBG) console.log('  dbg BAND ERR', String(e.message).slice(0, 90)); }
+        return rws;
+      };
       let rows = [];
-      try { const res = await pg.evaluate(SCAN.replace(/TOLERANCE/g, String(TOL))); rows = res.rows; seenRows += res.dbg.rows; seenItems += res.dbg.items; pagesMeasured++; if (process.env.DBG) console.log('  dbg', route, w, JSON.stringify(res.dbg)); } catch (e) { if (process.env.DBG) console.log('  dbg ERR', route, w, String(e.message).slice(0, 120)); rows = []; }
-      for (const r of rows) findings.push({ route, w, ...r });
-      try {
-        // The band axis carries its own floor. Every REAL finding it has made was
-        // 4.0-7.2px (a heading with no padding above and 9-10 below); below that it
-        // starts reporting two-line cards whose first line it read as the whole
-        // band. 4px keeps the axis sharp and keeps the list worth reading.
-        const BAND_TOL = Math.max(TOL, 4);
-        const bands = await pg.evaluate(BAND_SCAN.replace(/TOLERANCE/g, String(BAND_TOL)));
-        for (const r of bands) findings.push({ route, w, ...r });
-      } catch (e) { if (process.env.DBG) console.log('  dbg BAND ERR', String(e.message).slice(0, 90)); }
+      // The band axis carries its own floor inside measureHere. Every REAL
+      // finding it has made was 4.0-7.2px (a heading with no padding above and
+      // 9-10 below); below that it starts reporting two-line cards whose first
+      // line it read as the whole band.
+      rows = await measureHere(route);
+      // EVERY TAB, not just the one the route lands on. The club zone and the
+      // athlete portal are tab strips - measuring only the default view left
+      // most of the surface he actually looks at unmeasured. Only
+      // button[role=tab] is clicked, which switches a view and nothing else.
+      if (!process.env.NOTABS) {
+        let tabs = [];
+        try {
+          tabs = await pg.evaluate(() => [...document.querySelectorAll('button[role="tab"]')]
+            .filter((b) => b.offsetParent && b.getAttribute('aria-selected') !== 'true')
+            .map((b) => (b.innerText || '').replace(/\s+/g, ' ').trim())
+            .filter(Boolean).slice(0, 8));
+        } catch (e) { tabs = []; }
+        for (const label of tabs) {
+          try {
+            const hit = await pg.evaluate((t) => {
+              const b = [...document.querySelectorAll('button[role="tab"]')]
+                .find((x) => x.offsetParent && (x.innerText || '').replace(/\s+/g, ' ').trim() === t);
+              if (!b) return false;
+              b.click();
+              return true;
+            }, label);
+            if (!hit) continue;
+            await wait(2200);
+            await pg.evaluate(INK_FN).catch(() => {});
+            tabViews++;
+            await measureHere(route + ' · ' + label.slice(0, 18));
+          } catch (e) { if (process.env.DBG) console.log('  dbg TAB ERR', route, label, String(e.message).slice(0, 80)); }
+        }
+      }
+
       if (SHOTS && rows.length) {
         const y = Math.max(0, rows[0].y - 30);
         await pg.screenshot({ path: `audit-out/_row-ink-${route.replace(/\W+/g, '_')}-${w}.png`, clip: { x: 0, y, width: w, height: Math.min(260, 900 - y) } }).catch(() => {});
@@ -374,7 +421,16 @@ const run = async () => {
     console.log(`  FAILED: measured ${pagesMeasured} of ${expected} page loads and found only ${seenRows} rows - the sweep did not reach the pages, so a clean result would mean nothing.`);
     process.exit(1);
   }
-  if (!findings.length) { console.log(`  every row shares one ink centre - ${seenRows} rows (${seenItems} items) across ${pagesMeasured} page loads.`); process.exit(0); }
+  // A silent collapse of the tab pass would halve the coverage and still
+  // print a clean zero, so the tab count is on the line too.
+  // Proportional, not a magic number: fail only when a KNOWN tab strip was in
+  // the route set and nothing at all got clicked.
+  const TABBED = ['/coach/bhbc', '/athlete', '/demo/athlete'];
+  if (!process.env.NOTABS && ROUTES.some((r) => TABBED.includes(r)) && tabViews === 0) {
+    console.log(`  FAILED: only ${tabViews} tab views were walked. The club zone and the athlete portal are tab strips; if nothing was clicked, most of what he looks at went unmeasured.`);
+    process.exit(1);
+  }
+  if (!findings.length) { console.log(`  every row shares one ink centre - ${seenRows} rows (${seenItems} items) across ${pagesMeasured} views (${tabViews} of them tabs).`); process.exit(0); }
   const top = findings.slice(0, TOP);
   for (const f of top) {
     console.log(`  ${String(f.spread).padStart(6)}px  ${f.route} @${f.w}  y${f.y}  (${f.n} items)`);
