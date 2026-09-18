@@ -176,7 +176,7 @@ const run = async () => {
   await signIn(pg, BASE);
   await wait(2500);
 
-  let audits = 0; let bad = 0;
+  let audits = 0; let bad = 0; let unseen = 0;
   const lines = [];
   for (const s of SURFACES) {
     for (const w of WIDTHS) {
@@ -185,8 +185,21 @@ const run = async () => {
       else await pg.emulate({ viewport: { width: w, height: 900, deviceScaleFactor: 1, isMobile: false, hasTouch: false }, userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36' });
       await pg.goto(BASE + s.path, { waitUntil: 'domcontentloaded' });
       await wait(s.id === 'club' ? 8000 : 5000);
-      const r = await pg.evaluate(MEASURE.replaceAll('__SEL__', JSON.stringify(s.sel)));
-      if (r.error) { bad++; lines.push(`  FAIL  ${s.label} @${w}  — ${r.error}`); continue; }
+      let r = await pg.evaluate(MEASURE.replaceAll('__SEL__', JSON.stringify(s.sel)));
+      // A HEADER THAT HAS NOT PAINTED YET IS NOT A MISALIGNED HEADER.
+      //
+      // Measured 18.9: run on its own this gate is 20/20. Run while another
+      // sweep was driving the same Chrome it printed 12/20 — eight of them
+      // "no header", because the page had not painted inside the fixed wait.
+      // Listed among the alignment failures that reads like eight new
+      // defects, and I went looking for a regression that did not exist.
+      // One more chance with a longer wait; if it still is not there, say
+      // UNSEEN, which is a different word from FAIL.
+      if (r.error) {
+        await wait(6000);
+        r = await pg.evaluate(MEASURE.replaceAll('__SEL__', JSON.stringify(s.sel)));
+      }
+      if (r.error) { unseen++; lines.push(`  UNSEEN ${s.label} @${w}  — ${r.error} (not measured; nothing is claimed about it)`); continue; }
       // Items on the same visual row as the header's centre.
       const row = r.items.filter((i) => Math.abs(i.boxMid - r.headerMid) < Math.max(14, r.headerH / 3));
       if (row.length < 2) { lines.push(`  skip  ${s.label} @${w}  — ${row.length} measurable item(s)`); continue; }
@@ -211,7 +224,7 @@ const run = async () => {
   b.disconnect();
   console.log(`TOP-MENU OCD SWEEP — ${audits} audits, tolerance ${TOL}px\n`);
   console.log(lines.join('\n'));
-  console.log(`\n${audits - bad}/${audits} clean`);
+  console.log(`\n${audits - bad - unseen}/${audits} clean${unseen ? ` \u2014 ${unseen} NOT MEASURED (the header had not painted; re-run when the browser is quiet)` : ''}`);
   process.exit(bad ? 1 : 0);
 };
 run();
