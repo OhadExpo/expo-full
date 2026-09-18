@@ -288,6 +288,10 @@ const run = async () => {
   await wait(2000);
 
   const findings = [];
+  // A zero has to be provable. "every row shares one ink centre" over a page
+  // that rendered nothing reads exactly like a clean sweep - that is how the
+  // marketing gate passed twice while measuring the wrong site (18.9).
+  let seenRows = 0, seenItems = 0, pagesMeasured = 0;
   for (const route of ROUTES) {
     for (const w of WIDTHS) {
       if (w < 700) await pg.emulate({ viewport: { width: w, height: 900, deviceScaleFactor: 2, isMobile: true, hasTouch: true }, userAgent: 'Mozilla/5.0 (Linux; Android 14; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Mobile Safari/537.36' });
@@ -302,7 +306,7 @@ const run = async () => {
       const inkOk = await pg.evaluate(INK_FN).then(() => true).catch((e) => { if (process.env.DBG) console.log('  dbg INK FAILED', String(e.message).slice(0, 100)); return false; });
       if (process.env.DBG) console.log('  dbg ink loaded:', inkOk);
       let rows = [];
-      try { const res = await pg.evaluate(SCAN.replace(/TOLERANCE/g, String(TOL))); rows = res.rows; if (process.env.DBG) console.log('  dbg', route, w, JSON.stringify(res.dbg)); } catch (e) { if (process.env.DBG) console.log('  dbg ERR', route, w, String(e.message).slice(0, 120)); rows = []; }
+      try { const res = await pg.evaluate(SCAN.replace(/TOLERANCE/g, String(TOL))); rows = res.rows; seenRows += res.dbg.rows; seenItems += res.dbg.items; pagesMeasured++; if (process.env.DBG) console.log('  dbg', route, w, JSON.stringify(res.dbg)); } catch (e) { if (process.env.DBG) console.log('  dbg ERR', route, w, String(e.message).slice(0, 120)); rows = []; }
       for (const r of rows) findings.push({ route, w, ...r });
       try {
         // The band axis carries its own floor. Every REAL finding it has made was
@@ -324,7 +328,12 @@ const run = async () => {
 
   findings.sort((a, b2) => b2.spread - a.spread);
   console.log(`ROW INK SWEEP — ${ROUTES.length} route(s) x ${WIDTHS.join('/')} — tolerance ${TOL}px\n`);
-  if (!findings.length) { console.log('  every row shares one ink centre.'); process.exit(0); }
+  const expected = ROUTES.length * WIDTHS.length;
+  if (pagesMeasured < expected || seenRows < expected) {
+    console.log(`  FAILED: measured ${pagesMeasured} of ${expected} page loads and found only ${seenRows} rows - the sweep did not reach the pages, so a clean result would mean nothing.`);
+    process.exit(1);
+  }
+  if (!findings.length) { console.log(`  every row shares one ink centre - ${seenRows} rows (${seenItems} items) across ${pagesMeasured} page loads.`); process.exit(0); }
   const top = findings.slice(0, TOP);
   for (const f of top) {
     console.log(`  ${String(f.spread).padStart(6)}px  ${f.route} @${f.w}  y${f.y}  (${f.n} items)`);
