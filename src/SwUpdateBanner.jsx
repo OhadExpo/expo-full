@@ -131,10 +131,16 @@ export default function SwUpdateBanner() {
     );
   }
 
-  // The pill (rule 2): a strip at the top, nothing behind it blocked.
+  // The pill (rule 2): a strip near the top, nothing behind it blocked.
+  //
+  // Ohad, 17.9: "the 'update' message pop up borders are not perfect. the top is
+  // invisible." It was flush against y=0 with `borderTop: 'none'`, so the card
+  // had three sides and read as a clipped box. It now floats 10px down with all
+  // four borders drawn, keeps a 12px gutter on each side so a phone never has it
+  // touching the screen edge, and wraps instead of overflowing at 390.
   return (
-    <div role="status" style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100000, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}>
-      <div style={{ pointerEvents: 'auto', display: 'inline-flex', alignItems: 'center', gap: 14, background: C.sf, border: `1px solid ${C.ac}`, borderTop: 'none', borderRadius: 0, padding: '8px 14px', boxShadow: `0 10px 30px ${C.shadow}` }}>
+    <div role="status" style={{ position: 'fixed', top: 10, left: 0, right: 0, zIndex: 100000, display: 'flex', justifyContent: 'center', padding: '0 12px', pointerEvents: 'none' }}>
+      <div style={{ pointerEvents: 'auto', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: 10, maxWidth: '100%', background: C.sf, border: `1px solid ${C.ac}`, borderRadius: 0, padding: '9px 14px', boxShadow: `0 10px 30px ${C.shadow}` }}>
         <span style={{ fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: '0.18em', fontWeight: 700 }}>{t('NEW VERSION AVAILABLE')}</span>
         <button onClick={onUpdate} style={{ background: C.ac, color: 'var(--c-bg)', border: 'none', borderRadius: 0, padding: '7px 14px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', cursor: 'pointer' }}>{t('UPDATE')}</button>
         <button onClick={onLater} style={{ background: 'transparent', color: C.tm, border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '6px 12px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', cursor: 'pointer' }}>{t('LATER')}</button>

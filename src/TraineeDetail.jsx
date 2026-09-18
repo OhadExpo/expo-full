@@ -610,38 +610,48 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           .td-hdr-identity { flex-wrap: wrap !important; min-width: 0; max-width: 100%; row-gap: 2px; }
           .td-hdr-contact { flex-basis: 100%; white-space: normal !important; word-break: break-word; }
           .td-vitals-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; max-width: 100% !important; gap: 10px 6px !important; }
+          /* On a phone the action strip wraps, and holding NOTIFICATION at the
+             far end left a hole in the middle of the second line. Let it pack. */
+          .td-notif { margin-inline-start: 0 !important; }
         }
       `}</style>
       {/* Back + actions bar */}
-      {/* Header actions consolidated to the LEFT (Ohad: BACK-left + actions-right
-          split across the two rows read "scattered"). BACK sits first, a divider
-          gap, then the action cluster — all left-aligned so they stack cleanly
-          above the left-aligned section tabs instead of splitting to both edges. */}
-      <div style={{display:"flex",alignItems:"center",marginBottom:16,gap:12}}>
-        <button onClick={onBack} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',padding:0,height:30,lineHeight:1,display:"inline-flex",alignItems:"center",flexShrink:0}}>{t('← BACK')}</button>
+      {/* 17.9, Ohad on the two rows here: "designed ugly, un-asthetic and not nice
+          for the eye or ocd aligned". Two faults, both now gone:
+            (1) the rows did not share a left edge — BACK sat outside the action
+                cluster, so row 1's first box started ~86px right of row 2's;
+            (2) they were the SAME material doing DIFFERENT jobs. Row 1 is
+                ACTIONS, row 2 is a section FILTER, and the three-material rule
+                (portal v5, his own) says a filter is floating text with a 2px
+                underline — never a second grid of boxes beside the first.
+          So: row 1 is now one uniform boxed strip that starts at the container's
+          left edge (BACK included, same 30px cell, cyan label) with the
+          NOTIFICATION toggle pushed to the far right; row 2 is text. */}
+      <div style={{display:"flex",alignItems:"center",marginBottom:12,gap:12}}>
         {/* Action buttons STRETCH to fill the row equally (flex:1 1 0) so this
             row is a full-width segmented control that matches the section-tab row
             directly below it exactly (Ohad: "the two rows must be the same"). All
             30px, all equal width. NOTIFICATION gets a touch more room for its toggle.
             EDIT first (after BACK), then LOG SESSION / PORTAL / ANALYSIS, the
             NOTIFICATION toggle, ARCHIVE (destructive) last. */}
-        <div style={{display:"flex",gap:4,flex:1,minWidth:0,flexWrap:"wrap"}}>
+        <div style={{display:"flex",gap:4,flex:1,minWidth:0,flexWrap:"wrap",alignItems:"center"}}>
+          <Btn variant="ghost" onClick={onBack} style={{fontSize:11,padding:"0 12px",height:30,boxSizing:"border-box",flex:'0 0 auto',whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`,color:'var(--c-ac)'}}>{t('← BACK')}</Btn>
           {/* Order (Ohad): EDIT · PORTAL · ANALYSIS · LOG SESSION · ARCHIVE · NOTIFICATION.
               Border unified to the same cyan hairline (C.cardBd) as the section-tab
               row below, so the two rows read as ONE consistent segmented system
               (Ohad: "don't like grey borders on top, cyan on the 2nd row"). */}
-          <Btn variant="ghost" onClick={openEdit} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 88px',minWidth:0,whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}}>{t('EDIT')}</Btn>
-          {onPreviewPortal && <Btn variant="ghost" onClick={onPreviewPortal} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 88px',minWidth:0,whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}} title={t("Open this athlete's portal in preview mode")}>{t('PORTAL')}</Btn>}
-          <Btn variant="ghost" onClick={()=>lineage.open(trainee)} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 88px',minWidth:0,whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}} title={t('Training Analysis — cross-block progression + what to program next')}>{t('ANALYSIS')}</Btn>
-          {onOpenInPersonForTrainee && <Btn variant="ghost" onClick={()=>onOpenInPersonForTrainee(trainee)} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 88px',minWidth:0,whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}} title={t('Open the in-person workout logger pre-filtered to this athlete')}>{t('LOG SESSION')}</Btn>}
+          <Btn variant="ghost" onClick={openEdit} style={{fontSize:11,padding:"0 12px",height:30,boxSizing:"border-box",flex:'0 0 auto',whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}}>{t('EDIT')}</Btn>
+          {onPreviewPortal && <Btn variant="ghost" onClick={onPreviewPortal} style={{fontSize:11,padding:"0 12px",height:30,boxSizing:"border-box",flex:'0 0 auto',whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}} title={t("Open this athlete's portal in preview mode")}>{t('PORTAL')}</Btn>}
+          <Btn variant="ghost" onClick={()=>lineage.open(trainee)} style={{fontSize:11,padding:"0 12px",height:30,boxSizing:"border-box",flex:'0 0 auto',whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}} title={t('Training Analysis — cross-block progression + what to program next')}>{t('ANALYSIS')}</Btn>
+          {onOpenInPersonForTrainee && <Btn variant="ghost" onClick={()=>onOpenInPersonForTrainee(trainee)} style={{fontSize:11,padding:"0 12px",height:30,boxSizing:"border-box",flex:'0 0 auto',whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}} title={t('Open the in-person workout logger pre-filtered to this athlete')}>{t('LOG SESSION')}</Btn>}
           {td.status==="Archived" ? <>
-            <Btn variant="ghost" onClick={()=>{if(setTrainees)setTrainees(prev=>prev.map(t=>t.id===trainee?{...t,status:"Inactive",archivedAt:undefined}:t));onBack()}} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 88px',minWidth:0,whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}}>{t('RESTORE')}</Btn>
-            <Btn variant="danger" onClick={()=>setShowDeleteConfirm(true)} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",flex:'1 1 88px',minWidth:0,whiteSpace:'nowrap'}}>{t("DELETE")}</Btn>
-          </> : <Btn variant="ghost" onClick={()=>setShowArchiveConfirm(true)} title={t('Archive this athlete')} style={{fontSize:11,padding:"0 6px",height:30,boxSizing:"border-box",color:'var(--c-tm)',flex:'1 1 88px',minWidth:0,whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}}>{t('ARCHIVE')}</Btn>}
+            <Btn variant="ghost" onClick={()=>{if(setTrainees)setTrainees(prev=>prev.map(t=>t.id===trainee?{...t,status:"Inactive",archivedAt:undefined}:t));onBack()}} style={{fontSize:11,padding:"0 12px",height:30,boxSizing:"border-box",flex:'0 0 auto',whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}}>{t('RESTORE')}</Btn>
+            <Btn variant="danger" onClick={()=>setShowDeleteConfirm(true)} style={{fontSize:11,padding:"0 12px",height:30,boxSizing:"border-box",flex:'0 0 auto',whiteSpace:'nowrap'}}>{t("DELETE")}</Btn>
+          </> : <Btn variant="ghost" onClick={()=>setShowArchiveConfirm(true)} title={t('Archive this athlete')} style={{fontSize:11,padding:"0 12px",height:30,boxSizing:"border-box",color:'var(--c-tm)',flex:'0 0 auto',whiteSpace:'nowrap',border:`1px solid ${C.cardBd}`}}>{t('ARCHIVE')}</Btn>}
           <button
             onClick={() => { if (setTrainees) setTrainees(prev => prev.map(t => t.id === trainee ? { ...t, notifOff: !t.notifOff } : t)); }}
             title={tr(readLang(), td.notifOff ? 'Notifications muted for this athlete — click to unmute' : 'Notifications on — click to mute push + dashboard alerts about this athlete')}
-            style={{ background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, cursor: 'pointer', padding: '0 6px', height: 30, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, flex: '1.6 1 0', minWidth: 0 }}>
+            style={{ background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, cursor: 'pointer', padding: '0 6px', height: 30, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, flex: '0 0 auto', marginInlineStart: 'auto' }} className="td-notif">
             <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: td.notifOff ? C.td : C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('NOTIFICATION')}</span>
             <span style={{ width: 34, height: 18, borderRadius: 9, background: td.notifOff ? C.sf3 : 'rgba(57,189,255,0.22)', border: `1px solid ${td.notifOff ? C.bd2 : 'rgba(57,189,255,0.38)'}`, position: 'relative', transition: 'all .15s', flexShrink: 0 }}>
               <span style={{ width: 14, height: 14, borderRadius: 7, background: td.notifOff ? C.td : C.ac, position: 'absolute', top: 1, left: td.notifOff ? 1 : 17, transition: 'all .15s' }} />
@@ -655,12 +665,11 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           the active tab again returns to View All. WRAPS to fit — every tag stays
           visible, no horizontal scroll (Ohad: "all the tags need to fit"). */}
       <div style={{ marginBottom: 16 }}>
-        {/* Section tabs SIZE TO THEIR LABEL and WRAP to a second row when the row
-            is too narrow (Ohad: equal-width forced-fit clipped the long labels —
-            "Coach History" → "ach Histo" — unreadable). Natural width + wrap keeps
-            every label fully legible, still with NO horizontal scroll: on a wide
-            screen they sit on one row, on a narrow one they wrap. */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, width: '100%' }} role="group" aria-label={t('Filter sections')}>
+        {/* FILTER MATERIAL: floating text, active = a 2px cyan underline, no box
+            (the three-material rule). Labels still size to themselves and wrap, so
+            nothing is ever clipped or scrolled. The inactive underline is the same
+            2px in transparent, so switching never moves the row by a pixel. */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', columnGap: 18, rowGap: 2, width: '100%', alignItems: 'center' }} role="group" aria-label={t('Filter sections')}>
           {SEC_TABS.map(t => {
             const active = t.id === 'all' ? activeSecs.size === 0 : activeSecs.has(t.id);
             return (
@@ -668,19 +677,15 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
                 aria-pressed={active}
                 title={t.id === 'all' ? 'Show all sections' : `Show only ${t.label} — click again for all sections`}
                 style={{
-                  height: 30, boxSizing: 'border-box', padding: '0 11px', borderRadius: 0,
+                  height: 28, boxSizing: 'border-box', padding: '0 1px', borderRadius: 0,
                   // Fit the label — never shrink below its text (no clipping).
                   flex: '0 0 auto',
-                  // Tinted active state (not a solid C.ac fill) — in light-refined
-                  // themes C.ac resolves near-black, so solid-fill + dark label was
-                  // invisible (Ohad: "i cant see the button"). Tint + accent text
-                  // reads in every theme.
-                  background: active ? 'color-mix(in srgb, var(--c-ac) 16%, transparent)' : 'transparent',
-                  border: `1px solid ${active ? C.ac : C.cardBd}`,
+                  background: 'transparent', border: 'none',
+                  borderBottom: `2px solid ${active ? 'var(--c-ac)' : 'transparent'}`,
                   color: active ? 'var(--c-ac)' : C.tm,
-                  fontFamily: FN, fontSize: 10, fontWeight: active ? 800 : 700, letterSpacing: '0.03em',
+                  fontFamily: FN, fontSize: 10.5, fontWeight: active ? 800 : 700, letterSpacing: '0.06em',
                   textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap',
-                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transition: 'background .12s, color .12s, border-color .12s',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transition: 'color .12s, border-color .12s',
                 }}>{t.label}</button>
             );
           })}

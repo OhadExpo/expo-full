@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { C, FN, ytId, ytIsShort } from './theme';
+import { tr, readLang } from './i18n';
 
 // Reject anything that isn't an http(s) URL (javascript:/data:/vbscript: etc.)
 // before it ever reaches an href/src. Video/link fields are coach-controlled
@@ -49,10 +50,10 @@ function GooglePhotos({ url }) {
     return () => { alive = false; };
   }, [url]);
   const wrap = { borderRadius: 0, overflow: 'hidden', aspectRatio: '16/9', background: '#000', border: `1px solid ${C.cardBd}` };
-  if (state.phase === 'loading') return <div style={{ ...wrap, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.tm, fontFamily: FN, fontSize: 11, letterSpacing: '0.18em' }}>LOADING…</div>;
+  if (state.phase === 'loading') return <div style={{ ...wrap, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.tm, fontFamily: FN, fontSize: 11, letterSpacing: '0.18em' }}>{tr(readLang(), 'LOADING…')}</div>;
   if (state.phase === 'err' || streamFailed) return <div style={{ ...wrap, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, color: C.tm, fontFamily: FN, fontSize: 11, padding: 12, textAlign: 'center' }}>
-    <div>NOT EMBEDDABLE</div>
-    <a href={url} target="_blank" rel="noopener noreferrer" style={{ color: C.ac, textDecoration: 'none', letterSpacing: '0.18em' }}>OPEN IN GOOGLE PHOTOS →</a>
+    <div>{tr(readLang(), 'NOT EMBEDDABLE')}</div>
+    <a href={url} target="_blank" rel="noopener noreferrer" style={{ color: C.ac, textDecoration: 'none', letterSpacing: '0.18em' }}>{tr(readLang(), 'OPEN IN GOOGLE PHOTOS →')}</a>
   </div>;
   // Google Photos serves dur=0 / 404 on the MP4 stream while a fresh upload is
   // still transcoding (or never finished). Both onError and a zero-duration
@@ -81,17 +82,31 @@ const preconnectYouTube = () => {
 };
 export function YouTubeLite({ id, short = false }) {
   const [play, setPlay] = useState(false);
-  useEffect(() => { setPlay(false); }, [id]);
+  // Ohad, 17.9: "video thumbnail never loads until play" - the poster 404s for
+  // some ids (a link whose video was pulled, or a bad id in the library), and a
+  // failed <img> paints the browser's broken-image glyph on the black frame.
+  // Measured: i.ytimg.com answers 200 for a live id and 404 for that one, so the
+  // host is fine and the id is not. A dead poster now leaves a clean frame that
+  // SAYS the preview is unavailable instead of a broken picture.
+  const [posterBad, setPosterBad] = useState(false);
+  useEffect(() => { setPlay(false); setPosterBad(false); }, [id]);
   if (play) {
     return <iframe title="video" src={`https://www.youtube.com/embed/${id}?autoplay=1&playsinline=1&rel=0`}
       allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen
       style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} />;
   }
   return (
-    <button type="button" onClick={() => setPlay(true)} onPointerEnter={preconnectYouTube} onTouchStart={preconnectYouTube} aria-label="Play video"
+    <button type="button" onClick={() => setPlay(true)} onPointerEnter={preconnectYouTube} onTouchStart={preconnectYouTube} aria-label={tr(readLang(), 'Play video')}
       style={{ position: 'relative', width: '100%', height: '100%', padding: 0, border: 'none', background: '#000', cursor: 'pointer', display: 'block' }}>
-      <img src={`https://i.ytimg.com/vi/${id}/hqdefault.jpg`} alt="" loading="lazy" decoding="async"
-        style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: short ? 'center 40%' : 'center', display: 'block', opacity: 0.85 }} />
+      {!posterBad && <img src={`https://i.ytimg.com/vi/${id}/hqdefault.jpg`} alt="" loading="lazy" decoding="async"
+        referrerPolicy="no-referrer" onError={() => setPosterBad(true)}
+        // A 404 from i.ytimg.com is NOT an error to the browser: it answers with
+        // YouTube's grey "no thumbnail" placeholder, which is always 120x90 while
+        // a real hqdefault is 480x360 (measured). So a small natural size means
+        // there is no poster for this id either.
+        onLoad={(e) => { if (e.currentTarget.naturalWidth > 0 && e.currentTarget.naturalWidth <= 160) setPosterBad(true); }}
+        style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: short ? 'center 40%' : 'center', display: 'block', opacity: 0.85 }} />}
+      {posterBad && <span style={{ position: 'absolute', insetInline: 0, bottom: 10, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', color: C.tm, textAlign: 'center' }}>{tr(readLang(), 'PREVIEW UNAVAILABLE')}</span>}
       <span aria-hidden="true" style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <span style={{ width: 56, height: 56, background: 'rgba(10,10,11,0.78)', border: `1px solid ${C.ac}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill={C.ac}><path d="M8 5v14l11-7z" /></svg>

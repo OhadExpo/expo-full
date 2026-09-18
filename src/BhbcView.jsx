@@ -1266,7 +1266,7 @@ function attendance28(rec, days) {
                     try { navigator.clipboard.writeText(txt); } catch { /* denied - it is all on screen anyway */ }
                     setBriefCopied(true); setTimeout(() => setBriefCopied(false), 1800);
                   }} />
-                <FixturesAheadPanel today={today} />
+                <FixturesAheadPanel fixtures={bhbcFixtures} today={today} />
                 {/* Three of its four numbers need an sRPE per session. Until one is
                     logged this card is four dashes, printed every morning. */}
                 {(team.avg != null || (team.week || 0) > 0) && <TeamSnapshotCard team={team} />}
@@ -2183,6 +2183,19 @@ function GameEditModal({ game, onClose, onSave }) {
 }
 
 // Home/Away chip — form + label (never color alone).
+// The ✈ glyph. Ohad, 17.9: "make sure the plane is vertically center aligned
+// with the rest of the row, and with the away tag". Flex centring lines up the
+// BOXES, and the plane's box was centred to 0.00px - but its INK sits high in
+// its own line box, so measured at 1440 the ink centre was 1.5px above the AWAY
+// chip's and 2.0px above the opponent text's. The lift below puts it back on the
+// row's optical centre (0.136 x font-size, measured at 11px, scales with it).
+function Plane({ size = 11, color, title }) {
+  return (
+    <span aria-hidden={title ? undefined : 'true'} title={title}
+      style={{ fontFamily: FN, fontSize: size, color, display: 'inline-block', transform: `translateY(${(size * 0.136).toFixed(2)}px)` }}>✈</span>
+  );
+}
+
 function HAChip({ home }) {
   const tr = useT();
   if (home == null) return null;
@@ -2212,7 +2225,7 @@ function TravelStrip({ travel }) {
   };
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginTop: 10, paddingTop: 10, borderTop: `1px solid ${C.cardBd}` }}>
-      <span style={{ fontFamily: FN, fontSize: 12, color: ORANGE_DEEP }} aria-hidden="true">✈</span>
+      <Plane size={12} color={ORANGE_DEEP} />
       {leg(travel.out, 'Out')}
       {leg(travel.back, 'Back')}
     </div>
@@ -2246,7 +2259,7 @@ function FixturesAheadPanel({ fixtures, today }) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                   <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx }}>{g.opponent ? `${tr('vs')} ${g.opponent}` : tr('Opponent TBD')}</span>
                   <HAChip home={g.home} />
-                  {g.travel && <span style={{ fontFamily: FN, fontSize: 11, color: ORANGE_DEEP }} title={tr('Travel')}>✈</span>}
+                  {g.travel && <Plane size={11} color={ORANGE_DEEP} title={tr('Travel')} />}
                   {tight && <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#fff', background: '#E0A73A', padding: '1px 6px' }} title={tr(gap === 1 ? '1 day after the previous game' : gap === 2 ? '2 days after the previous game' : '{n} days after the previous game').replace('{n}', gap)}>{tr(gap === 1 ? '1d turnaround' : gap === 2 ? '2d turnaround' : '{n}d turnaround').replace('{n}', gap)}</span>}
                 </div>
                 <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 3 }}>{[tr(g.comp), `${dow(g.date)} ${monDay(g.date)}`, g.venue && tr(g.venue)].filter(Boolean).join(' · ')}</div>
@@ -3452,7 +3465,7 @@ function RosterGrid({ rows, medical = {}, league = {}, onOpen }) {
                   </div>
                 );
               })()}
-              {t.arrival && t.arrival > todayISO() && <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 6, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: ORANGE_DEEP, background: `color-mix(in srgb, ${ORANGE} 12%, transparent)`, padding: '2px 6px' }}><span aria-hidden="true">✈</span> {tr('Lands')} {dow(t.arrival)} {monDay(t.arrival)}</div>}
+              {t.arrival && t.arrival > todayISO() && <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 6, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: ORANGE_DEEP, background: `color-mix(in srgb, ${ORANGE} 12%, transparent)`, padding: '2px 6px' }}><Plane size={9} color={ORANGE_DEEP} /> {tr('Lands')} {dow(t.arrival)} {monDay(t.arrival)}</div>}
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 'auto', paddingTop: 10, borderTop: `1px solid ${C.cardBd}`, flexShrink: 0 }}>
                 <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{heightM(t.heightCm)}</span>
                 <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', color: C.tm, lineHeight: 1 }}>{flag(t.nationality)}</span>

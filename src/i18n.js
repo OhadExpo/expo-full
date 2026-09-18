@@ -1473,6 +1473,9 @@ export const HE = {
   REPS: 'חזרות',
   REST: 'מנוחה',
   KG: 'ק"ג',
+  'PREVIEW UNAVAILABLE': 'אין תצוגה מקדימה',
+  'NOT EMBEDDABLE': 'אי אפשר להטמיע את הסרטון',
+  'Play video': 'הפעלת הסרטון',
   kg: 'ק"ג',
   'Notes for coach': 'הערות למאמן',
   // The label on the day squares means THIS week, not "a week" - 'שבוע' alone
