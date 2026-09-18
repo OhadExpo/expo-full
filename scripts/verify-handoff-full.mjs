@@ -41,6 +41,7 @@ const bad = (n, line, why) => fails.push(`line ${n}: ${why}  ::  ${line.trim().s
 
 // ---------------------------------------------------------------- world state
 const world = { ports: {}, db: null, src: {} };
+let portsChecked = 0;
 const ping = (port) => new Promise((r) => {
   const q = http.get({ host: '127.0.0.1', port, path: '/', timeout: 3000 }, (res) => { res.resume(); r(String(res.statusCode)); });
   q.on('error', () => r('down')); q.on('timeout', () => { q.destroy(); r('timeout'); });
@@ -97,7 +98,12 @@ const RULES = [
   {
     what: 'file count',
     find: (l) => [...l.matchAll(/\*\*([0-9]{3}) files\*\*/g)].map((m) => m[1]),
-    ok: (a) => Math.abs(Number(a) - Number((git('diff --shortstat master..HEAD').match(/(\d+) files/) || [])[1])) <= 5,
+    // ORIGIN/master, not the local one. Local master trails origin by ~1,078
+    // commits - the handoff's own table says it is never a rollback target -
+    // so this was comparing the doc's 'diff vs origin/master' line against a
+    // completely different base and calling a correct number wrong (866 files
+    // against the real 73).
+    ok: (a) => Math.abs(Number(a) - Number((git('diff --shortstat origin/master..HEAD').match(/(\d+) files/) || [])[1])) <= 5,
   },
   {
     what: 'database figure',
@@ -130,8 +136,10 @@ const RULES = [
   },
   {
     what: 'port',
+    // Only in the live sections - see HISTORY_FROM below.
+    liveOnly: true,
     find: (l) => [...l.matchAll(/:(4173|4179|4180|4181)\b/g)].map((m) => m[1]),
-    ok: (a) => world.ports[a] === '200',
+    ok: (a) => { portsChecked++; return world.ports[a] === '200'; },
   },
   {
     what: 'memory file',
@@ -300,6 +308,23 @@ const classify = (l) => {
   return "judgement";
 };
 
+// WHERE THE DOCUMENT STOPS BEING A PROMISE AND STARTS BEING A LOG.
+//
+// Everything above "# SESSION HANDOFF" is the live state - section 00 (the
+// unshipped deploy) and section 0 (PICK UP HERE). Everything below it is a
+// dated record of sessions that have already happened.
+//
+// That distinction matters for exactly one rule: PORTS. A one-off host on
+// :4181 that served a before/after page on 8 September is not serving now,
+// and saying it served then is TRUE. Checking it anyway produced 16 of this
+// gate's 17 failures, which is how a gate teaches people to stop reading it.
+// A port in the LIVE section is a different thing - that is somewhere the
+// next session is being told to go - so it is still checked.
+const HISTORY_FROM = (() => {
+  const i = lines.findIndex((l) => /^#\s+SESSION HANDOFF/.test(l));
+  return i < 0 ? lines.length : i;
+})();
+
 // ---------------------------------------------------------------- the walk
 const SKIP = /^\s*$|^\s*[-|=]{3,}\s*$|^\|[\s|:-]+\|$|^```/;
 for (let i = 0; i < lines.length; i++) {
@@ -307,6 +332,7 @@ for (let i = 0; i < lines.length; i++) {
   if (SKIP.test(line)) continue;
   let found = 0, lineOk = true;
   for (const rule of RULES) {
+    if (rule.liveOnly && i >= HISTORY_FROM) continue;
     for (const a of rule.find(line)) {
       found++; atoms++;
       if (!rule.ok(a)) { lineOk = false; bad(i + 1, line, `${rule.what} "${a}" does not check out`); }
@@ -328,6 +354,9 @@ console.log(`lines carrying atoms    ${withAtoms}`);
 console.log(`  of those, verified    ${verified}`);
 console.log(`  of those, failed      ${withAtoms - verified}`);
 console.log(`atoms checked           ${atoms}`);
+// Say how many LIVE ports were actually pinged. Nought failures over nought
+// checks is not the same sentence as nought failures over five.
+console.log(`live ports pinged       ${portsChecked}`);
 console.log(`attributed to a commit  ${attributed.length}`);
 console.log(`markdown structure      ${structure}`);
 console.log(`judgement, no truth val ${judgement.length}`);
