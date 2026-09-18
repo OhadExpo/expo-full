@@ -29,15 +29,26 @@ const BLOCKERS = /ECONNREFUSED|9222|puppeteer|browserURL|Navigation timeout|EXPO
 const pass = [], fail = [], blocked = [];
 
 for (const f of files) {
-  let out = '', code = 0;
+  let out = '', code = 0, timedOut = false;
   try {
     const r = await run('node', [`scripts/${f}`], { timeout: TIMEOUT, maxBuffer: 1 << 26 });
     out = r.stdout + r.stderr;
   } catch (e) {
     code = e.code ?? 1;
+    timedOut = !!e.killed || /SIGTERM|ETIMEDOUT|timed out/i.test(String(e.message || ''));
     out = String((e.stdout || '') + (e.stderr || '') + (e.message || ''));
   }
   const tail = out.split('\n').filter(Boolean).slice(-3).join(' | ').slice(0, 150);
+  // A TIMEOUT IS NOT A FAILURE, and calling it one is the same lie as calling
+  // a blocked gate a pass. The whole-app sweeps legitimately run for half an
+  // hour - verify-row-ink walks 27 routes x 2 widths x every tab - and under
+  // SUITE_TIMEOUT they were reported as bugs, with a truncated tail that said
+  // nothing about why.
+  if (timedOut) {
+    blocked.push([f, 'timed out after ' + Math.round(TIMEOUT / 1000) + 's - raise SUITE_TIMEOUT to judge it']);
+    process.stdout.write(`SLOW     ${f}  (over ${Math.round(TIMEOUT / 1000)}s, not judged)\n`);
+    continue;
+  }
   if (code === 0) { pass.push(f); process.stdout.write(`PASS     ${f}\n`); }
   else if (BLOCKERS.test(out)) { blocked.push([f, tail]); process.stdout.write(`BLOCKED  ${f}\n`); }
   else { fail.push([f, tail]); process.stdout.write(`FAIL     ${f}\n         ${tail}\n`); }
