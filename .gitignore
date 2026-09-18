@@ -149,3 +149,12 @@ audit-out/recap-shots/
 audit-out/beforeafter/
 
 .env.owner.local
+
+# PRIVATE DATA — the repo is PUBLIC (OhadExpo/expo-full, private:false).
+# Anything holding an athlete's name, id, plan, session or medical note stays
+# on the machine. 18.9: a tracked sheet-trainee-map.json held the full-name
+# roster of every real client, and six plan/exercise backups held their plans.
+scripts/*backup*.json
+scripts/_plan-backup-*.json
+scripts/sheet-trainee-map.json
+audit-out/bhbc-state/

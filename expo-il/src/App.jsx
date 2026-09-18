@@ -2674,8 +2674,12 @@ function FAQ() {
   };
   return (
     <section id="faq" style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 16px' }}>
+      {/* JSON-LD is the one place this site writes raw HTML. Plain
+          JSON.stringify would let any '</script' inside the FAQ copy close the
+          tag and turn the rest of the payload into markup, so the three
+          characters that can break out are escaped first. (security audit S08) */}
       <script type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }} />
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(ld).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026') }} />
       <div style={{
         fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3,
         marginBottom: 8, fontWeight: 700,
