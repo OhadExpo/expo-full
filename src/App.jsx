@@ -537,6 +537,24 @@ function AuthGate() {
   // or /coaches* (legacy) or the EntryChooser inside the installed app gets
   // bounced into the product flow (LoginScreen for unauthed → portal/dashboard
   // for authed). The marketing site stays live in regular browser tabs.
+  // AN AUTH PAYLOAD IN THE URL IS THE SESSION ITSELF, IN TRANSIT.
+  //
+  // Ohad, 17.9: "on chrome, google oauth doesnt always work and half of the
+  // attempts it just moves me back to the sign in page again". Google returns
+  // to `origin + pathname` with `?code=…`, and supabase-js reads it
+  // ASYNCHRONOUSLY (detectSessionInUrl → exchangeCodeForSession). Two of this
+  // file's boot effects rewrite the address bar on the first render — the PWA
+  // marketing-path rewrite to '/' and the signed-out bounce to '/login' — and
+  // replaceState drops the query string with the code in it. Whoever wins that
+  // race decides whether the sign-in works, which is exactly a coin flip.
+  // So: while a payload is in the URL, nothing here touches the address bar.
+  const authPayloadInUrl = (() => {
+    try {
+      return /[?&](code|token_hash)=/.test(window.location.search || '')
+        || /(access_token|refresh_token)=/.test(window.location.hash || '');
+    } catch { return false; }
+  })();
+
   // Old /try paths also count as marketing (legacy redirect targets).
   const isMarketingPath = path === '/' || path === ''
     || path.startsWith('/demo')
@@ -546,11 +564,12 @@ function AuthGate() {
     || path === '/try';
   useEffect(() => {
     if (!inPwa) return;
+    if (authPayloadInUrl) return;          // the code is mid-exchange - leave it
     if (!isMarketingPath) return;
     if (window.location.pathname !== '/login' && window.location.pathname !== '/portal') {
       window.history.replaceState(null, '', '/');
     }
-  }, [inPwa, isMarketingPath]);
+  }, [inPwa, isMarketingPath, authPayloadInUrl]);
 
   // Backward-compat: legacy /coaches, /coaches/try, /coaches/demo,
   // /coaches/demo/* URLs redirect to /demo* canonical homes. External links
@@ -585,11 +604,12 @@ function AuthGate() {
   // on browser back/forward between /try ↔ /coach.
   useEffect(() => {
     if (!auth || auth.loading || auth.session) return;
+    if (authPayloadInUrl) return;          // the code is mid-exchange - leave it
     if (path === '/coach' || path.startsWith('/coach/')
         || path === '/athlete' || path.startsWith('/athlete/')) {
       window.history.replaceState(null, '', '/login');
     }
-  }, [auth, path]);
+  }, [auth, path, authPayloadInUrl]);
 
   // Browser-mode public routes:
   //   /demo          → CoachLanding (marketing pitch + waitlist)

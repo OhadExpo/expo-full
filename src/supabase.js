@@ -7,6 +7,9 @@ export const SUPA_URL = 'https://gtcbfglttoiyfsnfbhdy.supabase.co';
 export const SUPA_PUBLISHABLE_KEY = 'sb_publishable_i_ifflCFMUF7rX2ABAY3vA_5JKTmFlv';
 // Back-compat aliases used by the original createClient call below.
 const SUPABASE_URL = SUPA_URL;
+// Where supabase-js keeps the session. Exported so auth.jsx can tell "this
+// device holds a refresh token" from "this person is signed out".
+export const AUTH_TOKEN_KEY = 'sb-gtcbfglttoiyfsnfbhdy-auth-token';
 const SUPABASE_ANON_KEY = SUPA_PUBLISHABLE_KEY;
 
 // Auth storage = localStorage so logins persist across browser/PWA reopens.
@@ -72,7 +75,7 @@ const authStorage = makeAuthStorage();
 // of the flip would be silently logged out on next visit. Copy the token
 // over once so they stay signed in, then clear the old slot.
 if (typeof window !== 'undefined' && window.sessionStorage && window.localStorage) {
-  const TOKEN_KEY = 'sb-gtcbfglttoiyfsnfbhdy-auth-token';
+  const TOKEN_KEY = AUTH_TOKEN_KEY;
   try {
     const legacy = window.sessionStorage.getItem(TOKEN_KEY);
     if (legacy && !window.localStorage.getItem(TOKEN_KEY)) {

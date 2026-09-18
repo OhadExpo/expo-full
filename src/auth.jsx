@@ -2,7 +2,7 @@
 // Two roles: trainer (Ohad) and client (matched by email in CLIENTS array)
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { supabase } from './supabase';
+import { supabase, AUTH_TOKEN_KEY } from './supabase';
 import { setQueueUser } from './offlineQueue';
 import { onSaveError, setSnapshotsAllowed } from './useSupaStore';
 
@@ -95,8 +95,10 @@ export function AuthProvider({ children, clientList }) {
     // out (adversarial-QA #4 — total lockout). So always clear loading (catch +
     // idempotent finishBoot) AND a hard 8s watchdog that forces the login screen.
     let booted = false;
+    let retries = 0;
+    let retryTimer = null;
     const finishBoot = () => { if (!booted) { booted = true; setLoading(false); } };
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
+    const apply = (s) => {
       setSession(s);
       // A session means snapshots are welcome again; no session means nothing
       // personal may be written to this device.
@@ -107,9 +109,73 @@ export function AuthProvider({ children, clientList }) {
         setRole(r.role);
         setClientId(r.clientId);
       }
-      finishBoot();
-    }).catch(() => finishBoot());
-    const bootWatchdog = setTimeout(finishBoot, 8000);
+    };
+    // THE DOOR IS NOT SHOWN TO SOMEONE WHO IS ALREADY INSIDE.
+    //
+    // Ohad, 17.9: "everytime i open the app (chrome and mobile both) i need to
+    // re-log-in". getSession() can stall (the LockManager deadlock this file
+    // documents above) or still be exchanging an OAuth code, and the 8s
+    // watchdog then dropped him on the sign-in screen WITH a perfectly good
+    // refresh token sitting in localStorage. A stalled read is not a signed-out
+    // user: while this device holds a refresh token, or an auth code is still
+    // in the URL, keep asking instead of opening the door.
+    const stillArriving = () => {
+      try {
+        if (/[?&](code|token_hash)=/.test(window.location.search || '')) return true;
+        if (/(access_token|refresh_token)=/.test(window.location.hash || '')) return true;
+        const raw = window.localStorage.getItem(AUTH_TOKEN_KEY) || window.sessionStorage.getItem(AUTH_TOKEN_KEY);
+        if (!raw) return false;
+        const j = JSON.parse(raw);
+        return !!(j && (j.refresh_token || j.currentSession?.refresh_token));
+      } catch { return false; }
+    };
+    // THE CODE IN THE URL IS EXCHANGED ON PURPOSE, NOT BY LUCK.
+    //
+    // detectSessionInUrl does this for us, but it runs inside supabase-js's
+    // own init behind the navigator LockManager - the same lock this file
+    // already documents as able to hang across PWA tabs. When it loses that
+    // race the code is simply never spent and Google's round trip ends on the
+    // sign-in screen ("half of the attempts", 17.9). After ~2.5s of no session
+    // with a code still sitting in the address bar, spend it here.
+    const codeInUrl = () => { try { return new URLSearchParams(window.location.search).get('code'); } catch { return null; } };
+    const dropCodeFromUrl = () => {
+      try {
+        const u = new URL(window.location.href);
+        if (!u.searchParams.has('code')) return;
+        u.searchParams.delete('code'); u.searchParams.delete('state');
+        window.history.replaceState(null, '', u.pathname + (u.search || '') + (u.hash || ''));
+      } catch { /* history blocked - the code is spent either way */ }
+    };
+    let exchangeTried = false;
+    const readSession = () => {
+      supabase.auth.getSession().then(({ data: { session: s } }) => {
+        if (booted) return;
+        if (!s && retries >= 2 && !exchangeTried && codeInUrl()) {
+          exchangeTried = true;
+          supabase.auth.exchangeCodeForSession(codeInUrl()).then(({ data }) => {
+            if (booted) return;
+            if (data?.session) { apply(data.session); dropCodeFromUrl(); finishBoot(); return; }
+            // Spent or invalid: drop it, or a stale code makes every later boot
+            // wait out the returning-user window for nothing.
+            dropCodeFromUrl();
+            retries += 1; retryTimer = setTimeout(readSession, 1200);
+          }).catch(() => { if (!booted) { dropCodeFromUrl(); retries += 1; retryTimer = setTimeout(readSession, 1200); } });
+          return;
+        }
+        if (s && codeInUrl()) dropCodeFromUrl();
+        if (!s && stillArriving() && retries < 8) { retries += 1; retryTimer = setTimeout(readSession, 1200); return; }
+        apply(s);
+        finishBoot();
+      }).catch(() => {
+        if (booted) return;
+        if (stillArriving() && retries < 8) { retries += 1; retryTimer = setTimeout(readSession, 1200); return; }
+        finishBoot();
+      });
+    };
+    readSession();
+    // 8s for a visitor with nothing stored; a returning user gets the full
+    // retry window before we ever call them signed out.
+    const bootWatchdog = setTimeout(finishBoot, stillArriving() ? 22000 : 8000);
 
     // Listen for auth changes (magic link callback, sign out, etc.)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
@@ -148,6 +214,7 @@ export function AuthProvider({ children, clientList }) {
 
     return () => {
       clearTimeout(bootWatchdog);
+      if (retryTimer) clearTimeout(retryTimer);
       subscription.unsubscribe();
       if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', onVisible);
       if (typeof window !== 'undefined') window.removeEventListener('focus', onVisible);
