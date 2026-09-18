@@ -155,15 +155,18 @@ export function AuthProvider({ children, clientList }) {
     // fires INITIAL_SESSION / TOKEN_REFRESHED the moment supabase-js is ready -
     // does the waiting, with the watchdog below as the floor.
     let exchangeTried = false;
+    let exchanging = false;
     const spendCode = () => {
       const code = codeInUrl();
       if (!code || exchangeTried) return false;
-      exchangeTried = true;
+      exchangeTried = true; exchanging = true;
       supabase.auth.exchangeCodeForSession(code).then(({ data }) => {
+        exchanging = false;
         if (booted) return;
         dropCodeFromUrl();
-        if (data?.session) { apply(data.session); finishBoot(); }
-      }).catch(() => { dropCodeFromUrl(); });
+        apply(data?.session || null);
+        finishBoot();
+      }).catch(() => { exchanging = false; dropCodeFromUrl(); finishBoot(); });
       return true;
     };
     supabase.auth.getSession().then(({ data: { session: s } }) => {
@@ -187,8 +190,12 @@ export function AuthProvider({ children, clientList }) {
 
     // Listen for auth changes (magic link callback, sign out, etc.)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
-      // This is what the boot above waits for instead of polling.
-      if (s) finishBoot();
+      // This is what the boot above waits for instead of polling. The event
+      // fires as INITIAL_SESSION the moment supabase-js is ready, WITH OR
+      // WITHOUT a session — and either way that is the definitive answer, so
+      // the splash ends here. (Waiting only for a truthy session parked anyone
+      // with an expired token on the boot splash for the full watchdog.)
+      if (!exchanging) finishBoot();
       setSession(s);
       // A session means snapshots are welcome again; no session means nothing
       // personal may be written to this device.
