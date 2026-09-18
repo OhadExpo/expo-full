@@ -61,9 +61,23 @@ for (const W of RUN) {
     if (spread > 0.6) ragged.push({ rowTop: k, spread, cards: row.map((c) => c.name) });
   }
   const spill = r.cards.filter((c) => c.spillBot > 0.6 || c.spillRight > 0.6);
-  const ok = heights.length === 1 && !ragged.length && !spill.length;
+  // EQUAL HEIGHTS ONLY WHERE THERE IS SOMETHING TO BE EQUAL TO.
+  //
+  // Below 620px the roster is ONE COLUMN, and themes.css deliberately drops
+  // the reserved slots there: "there is nothing to line up with and the
+  // reserve is just dead air". That is right - a stack of cards has no
+  // neighbour whose bottom border must match, and padding every card out to
+  // the tallest one would put 30px of empty space on every phone card.
+  //
+  // This gate was failing five widths for breaking a rule the design does not
+  // have, which is how a gate teaches people to stop reading it. What still
+  // holds at every width is the part he actually complained about: no ink
+  // outside the card, and cards that DO sit side by side share their hairline.
+  const oneColumn = new Set(r.cards.map((c) => Math.round(c.top))).size === r.cards.length;
+  const heightsMatter = !oneColumn;
+  const ok = (!heightsMatter || heights.length === 1) && !ragged.length && !spill.length;
   if (!ok) bad++;
-  console.log(`${ok ? 'ok   ' : 'FAIL '} ${W}px  ${r.cards.length} cards  heights=[${heights.join(',')}]  raggedRows=${ragged.length}  spilling=${spill.length}`);
+  console.log(`${ok ? 'ok   ' : 'FAIL '} ${W}px  ${r.cards.length} cards  ${oneColumn ? 'one column' : 'heights=[' + heights.join(',') + ']'}  raggedRows=${ragged.length}  spilling=${spill.length}`);
   for (const g of ragged) console.log(`        hairline spread ${g.spread}px across: ${g.cards.join(' | ')}`);
   for (const c of spill) console.log(`        ink outside the card: ${c.name} (bottom +${c.spillBot}, right +${c.spillRight})`);
 }
