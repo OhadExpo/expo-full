@@ -40,7 +40,14 @@ const SNAPSHOT_PREFIXES = ['expo-', 'sb-cache-'];
 // Losing the session is bad; silently deleting his analyses to save it is worse
 // and he would never know why they went. They are excluded here and mirrored to
 // the server by their own screens.
-const NEVER_EVICT = new Set(['expo-shot-analyses', 'expo-sensor-readings']);
+const NEVER_EVICT = new Set([
+  'expo-shot-analyses',    // 50 analyses with their checkpoints - the biggest key here
+  'expo-sensor-readings',  // lab readings filed against an athlete
+  'expo-pose-metrics',     // the Bar-Speed Vault: his velocity/ROM trends, local BY DESIGN
+  'expo-offline-queue',    // WRITES THAT HAVE NOT REACHED THE SERVER YET. Evicting this
+                           // does not lose a cache, it loses what someone typed offline.
+  'expo-lead-notes',       // notes he typed on a lead
+]);
 const evictSnapshots = () => {
   let freed = 0;
   try {
