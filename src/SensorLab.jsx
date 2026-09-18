@@ -20,11 +20,17 @@ import { analyzeAcousticSet } from './acousticReps';
 import { romFromSweep, inclination, ROM_NORMS } from './goniometer';
 import { analyzeReflex } from './reflexPVT';
 import { analyzeBalance } from './balanceSteadiness';
+import { useSupaStore } from './useSupaStore';
+import { toast } from './ui';
 
+// The primary button was a HARD-CODED dark label on a C.ac fill. In the light
+// themes C.ac resolves near-black, so the lab's main action was black on black
+// - invisible, measured 18.9 on his own light theme. The label takes the PAGE
+// background colour instead, which contrasts with the accent in every theme.
 const Btn = ({ children, onClick, primary, disabled, style }) => (
   <button onClick={onClick} disabled={disabled} style={{
     minHeight: 44, padding: '11px 16px', border: `1px solid ${primary ? C.ac : C.cardBd}`,
-    background: primary ? C.ac : 'transparent', color: primary ? '#04121a' : C.tx,
+    background: primary ? C.ac : 'transparent', color: primary ? 'var(--c-bg)' : C.tx,
     fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase',
     cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.4 : 1, borderRadius: 0, ...style,
   }}>{children}</button>
@@ -39,11 +45,14 @@ const Note = ({ children }) => <div style={{ fontSize: 11.5, color: C.tm, lineHe
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 // ---------------- PULSE ----------------
-function PulsePanel() {
+function PulsePanel({ onResult }) {
   const tt = useT();
   const [state, setState] = useState('idle'); // idle | reading | done | error
   const [progress, setProgress] = useState(0);
   const [res, setRes] = useState(null);
+  // A READING THAT GOES NOWHERE IS A DEMO. Hand every clean result up so the
+  // lab can file it against an athlete (see the save bar in SensorLab below).
+  useEffect(() => { if (res && res.ok !== false) onResult?.(res); }, [res, onResult]);
   const [err, setErr] = useState('');
   const stopRef = useRef(false);
 
@@ -107,11 +116,14 @@ function PulsePanel() {
 }
 
 // ---------------- ECHO ----------------
-function EchoPanel() {
+function EchoPanel({ onResult }) {
   const tt = useT();
   const [state, setState] = useState('idle');
   const [progress, setProgress] = useState(0);
   const [res, setRes] = useState(null);
+  // A READING THAT GOES NOWHERE IS A DEMO. Hand every clean result up so the
+  // lab can file it against an athlete (see the save bar in SensorLab below).
+  useEffect(() => { if (res && res.ok !== false) onResult?.(res); }, [res, onResult]);
   const [err, setErr] = useState('');
   const stopRef = useRef(false);
 
@@ -177,10 +189,13 @@ function EchoPanel() {
 }
 
 // ---------------- PIVOT ----------------
-function PivotPanel() {
+function PivotPanel({ onResult }) {
   const tt = useT();
   const [state, setState] = useState('idle');
   const [res, setRes] = useState(null);
+  // A READING THAT GOES NOWHERE IS A DEMO. Hand every clean result up so the
+  // lab can file it against an athlete (see the save bar in SensorLab below).
+  useEffect(() => { if (res && res.ok !== false) onResult?.(res); }, [res, onResult]);
   const [err, setErr] = useState('');
   const [joint, setJoint] = useState('knee-flexion');
   const stopRef = useRef(false);
@@ -240,11 +255,14 @@ function PivotPanel() {
 }
 
 // ---------------- REFLEX ----------------
-function ReflexPanel() {
+function ReflexPanel({ onResult }) {
   const tt = useT();
   const [phase, setPhase] = useState('idle'); // idle | armed | go | done
   const [count, setCount] = useState(0);
   const [res, setRes] = useState(null);
+  // A READING THAT GOES NOWHERE IS A DEMO. Hand every clean result up so the
+  // lab can file it against an athlete (see the save bar in SensorLab below).
+  useEffect(() => { if (res && res.ok !== false) onResult?.(res); }, [res, onResult]);
   const rts = useRef([]);
   const goAt = useRef(0);
   const timer = useRef(null);
@@ -299,11 +317,14 @@ function ReflexPanel() {
 }
 
 // ---------------- SWAY (balance) ----------------
-function BalancePanel() {
+function BalancePanel({ onResult }) {
   const tt = useT();
   const [state, setState] = useState('idle');
   const [progress, setProgress] = useState(0);
   const [res, setRes] = useState(null);
+  // A READING THAT GOES NOWHERE IS A DEMO. Hand every clean result up so the
+  // lab can file it against an athlete (see the save bar in SensorLab below).
+  useEffect(() => { if (res && res.ok !== false) onResult?.(res); }, [res, onResult]);
   const [err, setErr] = useState('');
   const stopRef = useRef(false);
 
@@ -361,10 +382,46 @@ const TOOLS = [
   { key: 'sway', name: 'SWAY', sub: 'Balance', Panel: BalancePanel },
 ];
 
-export default function SensorLab() {
+// WHAT A READING IS WORTH IS WHERE IT LANDS.
+//
+// Ohad, 18.9: "keep working on that beta". Every tool measured something real
+// and then threw it away when the panel closed - no athlete, no date, no second
+// look. A reading now files against an athlete with the moment it was taken and
+// the numbers that matter for that tool, and the last three for that athlete
+// sit under the save bar so a change is visible without leaving the lab.
+//
+// expo-sensor-readings, not a new table: the store already carries this shape,
+// and this component only ever mounts for the owner.
+const METRICS = {
+  pulse: (r) => ({ hr: r.hr, rmssd: r.hrv?.rmssd ?? null, confidence: r.hrv?.confidence ?? null, band: r.readiness?.band ?? null }),
+  echo: (r) => ({ reps: r.reps ?? null, grind: r.grind ?? null, rir: r.rir ?? null }),
+  pivot: (r) => ({ rom: r.rom ?? null, joint: r.joint ?? null, side: r.side ?? null }),
+  reflex: (r) => ({ meanMs: r.mean ?? r.meanMs ?? null, best: r.best ?? null, lapses: r.lapses ?? null }),
+  sway: (r) => ({ sway: r.sway ?? r.index ?? null, band: r.band ?? null }),
+};
+const summarise = (tool, r) => {
+  const m = (METRICS[tool] || (() => ({})))(r || {});
+  return Object.fromEntries(Object.entries(m).filter(([, v]) => v !== null && v !== undefined));
+};
+
+export default function SensorLab({ trainees = [] }) {
   const tt = useT();
   const [open, setOpen] = useState(false);
   const [tool, setTool] = useState('pulse');
+  const [readings, setReadings] = useSupaStore('expo-sensor-readings', []);
+  const [athleteId, setAthleteId] = useState('');
+  const [result, setResult] = useState(null);
+  const onResult = useCallback((r) => setResult(r), []);
+  useEffect(() => { setResult(null); }, [tool]);
+  const saveReading = useCallback(() => {
+    if (!result || !athleteId) return;
+    const metrics = summarise(tool, result);
+    if (!Object.keys(metrics).length) { toast(tt('Nothing measurable to save yet.'), 'warn'); return; }
+    const row = { id: `sr_${Date.now().toString(36)}`, at: new Date().toISOString(), athleteId, tool, metrics };
+    setReadings((prev) => [row, ...(Array.isArray(prev) ? prev : [])].slice(0, 500));
+    toast(tt('Reading saved'));
+  }, [result, athleteId, tool, setReadings, tt]);
+  const mine = (Array.isArray(readings) ? readings : []).filter((r) => r.athleteId === athleteId && r.tool === tool).slice(0, 3);
   useEffect(() => {
     const onOpen = () => setOpen(true);
     window.addEventListener('expo-open-lab', onOpen);
@@ -394,7 +451,33 @@ export default function SensorLab() {
           ))}
         </div>
         <div style={{ padding: 16 }}>
-          <Active />
+          <Active onResult={onResult} />
+          {/* FILE IT. An athlete, the moment, and the numbers this tool measures.
+              The picker is deliberately above the button: choosing who you are
+              measuring is part of taking the reading, not an afterthought. */}
+          <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px solid ${C.cardBd}` }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+              <select value={athleteId} onChange={(e) => setAthleteId(e.target.value)}
+                style={{ flex: '1 1 150px', minWidth: 0, height: 40, boxSizing: 'border-box', background: 'var(--c-sf)', color: C.tx, border: `1px solid ${C.cardBd}`, borderRadius: 0, fontFamily: FN, fontSize: 12, padding: '0 8px' }}>
+                <option value="">{tt('Who is this reading for?')}</option>
+                {(trainees || []).filter((t) => t && t.id && t.name).map((t) => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+              <Btn onClick={saveReading} disabled={!result || !athleteId} style={{ minHeight: 40 }}>{tt('SAVE READING')}</Btn>
+            </div>
+            {mine.length > 0 && (
+              <div style={{ marginTop: 10 }}>
+                <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm, marginBottom: 4 }}>{tt('Last readings')}</div>
+                {mine.map((r) => (
+                  <div key={r.id} style={{ display: 'flex', gap: 10, alignItems: 'baseline', fontFamily: FN, fontSize: 11, color: C.tm, padding: '3px 0' }}>
+                    <span dir="ltr" style={{ color: C.td, minWidth: 96, unicodeBidi: 'isolate' }}>{new Date(r.at).toLocaleString()}</span>
+                    <span style={{ color: C.tx }}>{Object.entries(r.metrics).map(([k, v]) => `${k} ${v}`).join(' · ')}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
           <Note><span style={{ color: C.td }}>{tt('BETA · engine-verified (70 fixtures) · not a medical device — informs, never diagnoses. HR/ROM are solid; HRV/RIR/CNS/balance reads are gated + labelled.')}</span></Note>
         </div>
       </div>

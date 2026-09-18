@@ -18,6 +18,12 @@ import BugReportButton from './BugReportButton';
 // goniometer, reflexPVT, balanceSteadiness) in the ENTRY chunk - which
 // every athlete and every BHBC physio downloads before they see anything.
 const SensorLab = lazyReload(() => import('./SensorLab'));
+
+// A ROUTE REWRITE MUST NOT EAT THE HASH. `#lab` opens the Sensor Lab and is how
+// it is screenshot-verified; every post-sign-in replaceState dropped it, so the
+// deep link had been dead. Same class as the OAuth code in auth.jsx: the address
+// bar carries meaning, and a tidy-up is not allowed to throw it away.
+const keepHash = (path) => path + (typeof window !== 'undefined' ? (window.location.hash || '') : '');
 import { parseTraineeId } from './traineeUtils';
 import { AuthProvider, useAuth, LoginScreen, UnauthorizedScreen, PasswordChangeModal, SaveErrorToast, OfflineStatusPill, RolePickerScreen, PORTAL_CHOICE_KEY, TRAINER_EMAILS, OWNER_EMAILS, isPartnerEmail, isBhbcCoachEmail, isPtEmail, canLogLoad } from './auth';
 import InstallAppPrompt from './InstallAppPrompt';
@@ -1058,7 +1064,7 @@ function AuthedApp() {
     if (side === 'trainer') {
       const p = window.location.pathname;
       if (!(p === '/coach' || p.startsWith('/coach/'))) {
-        window.history.replaceState(null, '', '/coach/dashboard');
+        window.history.replaceState(null, '', keepHash('/coach/dashboard'));
       }
       setTab('dashboard');
     } else if (side === 'client') {
@@ -1067,7 +1073,7 @@ function AuthedApp() {
       // address bar stays in sync with the rendered portal.
       const p = window.location.pathname;
       if (p !== '/athlete' && !p.startsWith('/athlete/')) {
-        window.history.replaceState(null, '', '/athlete');
+        window.history.replaceState(null, '', keepHash('/athlete'));
       }
       setTab('client');
     }
@@ -1152,15 +1158,15 @@ function AuthedApp() {
     const onCoach = p === '/coach' || p.startsWith('/coach/') || /^\/bhbc\/?(login\/?)?$/.test(p);
     const onAthlete = p === '/athlete' || p.startsWith('/athlete/');
     const onLogin = p.startsWith('/login');
-    if (isClient && !onAthlete) window.history.replaceState(null, '', '/athlete');
+    if (isClient && !onAthlete) window.history.replaceState(null, '', keepHash('/athlete'));
     else if (isTrainer && !onCoach) {
-      window.history.replaceState(null, '', '/coach/dashboard');
+      window.history.replaceState(null, '', keepHash('/coach/dashboard'));
       // Back-stop: push a duplicate landing entry so the FIRST browser Back
       // is absorbed by popstate (returns to dashboard, handled in-app)
       // instead of falling through to the pre-login page and ejecting the
       // user from the SPA. This is what Yuval hit — landing replaced the
       // only app entry, so one Back left the app entirely.
-      window.history.pushState(null, '', '/coach/dashboard');
+      window.history.pushState(null, '', keepHash('/coach/dashboard'));
       setTab('dashboard');
     }
   }, [tL, isClient, isTrainer]);
@@ -1273,7 +1279,7 @@ function AuthedApp() {
       setTab('dashboard');
       setSelectedTrainee(null);
       if (window.location.pathname !== '/coach/dashboard') {
-        window.history.replaceState(null, '', '/coach/dashboard');
+        window.history.replaceState(null, '', keepHash('/coach/dashboard'));
       }
     }
   }, [isCoach, isOwner, tab]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1288,7 +1294,7 @@ function AuthedApp() {
     const r = getRoute();
     if (r.mode === 'coach' && r.tab && !STAFF_TABS.includes(r.tab) && window.location.pathname !== '/coach/dashboard') {
       setTab('dashboard');
-      window.history.replaceState(null, '', '/coach/dashboard');
+      window.history.replaceState(null, '', keepHash('/coach/dashboard'));
     }
   }, [isCoach, isOwner]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1624,7 +1630,7 @@ function AuthedApp() {
       {dataIncomplete && <div style={{background:`color-mix(in srgb, ${C.ac} 14%, ${C.bg})`,borderBottom:`1px solid ${C.ac}`,color:C.tx,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',textAlign:'center',padding:'7px 12px'}}>{lang === 'he'
         ? 'אופליין — חלק מהמידע לא נטען. יכול להיות שהמספרים חלקיים עד שהחיבור יחזור.'
         : 'OFFLINE — some data has not loaded. Numbers may be incomplete until the connection returns.'}</div>}
-      {isOwner && <Suspense fallback={null}><SensorLab /></Suspense>}
+      {isOwner && <Suspense fallback={null}><SensorLab trainees={trainees} /></Suspense>}
       <header style={{background:C.headerBg,borderBottom:`1px solid ${C.cardBd}`,boxShadow:'0 1px 2px rgba(0,0,0,0.03), 0 4px 12px rgba(0,0,0,0.04)',position:"sticky",top:0,zIndex:100,paddingTop:'env(safe-area-inset-top)'}}>
         <style>{`
           .hdr-scroll::-webkit-scrollbar{display:none}

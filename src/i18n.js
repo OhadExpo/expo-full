@@ -1483,6 +1483,12 @@ export const HE = {
   'checking…': 'בודק…',
   'Calendar synced': 'היומן סונכרן',
   'SYNC NOW': 'סנכרן עכשיו',
+  // Sensor Lab: a reading is filed against an athlete.
+  'Who is this reading for?': 'למי המדידה הזאת?',
+  'SAVE READING': 'שמירת המדידה',
+  'Last readings': 'המדידות האחרונות',
+  'Reading saved': 'המדידה נשמרה',
+  'Nothing measurable to save yet.': 'עוד אין מה לשמור.',
   'That rule already exists — edit the one you have.': 'הכלל הזה כבר קיים — תערוך את הקיים.',
   'Your booking page is not live yet — press SAVE SETTINGS to publish it.': 'עמוד הקביעה שלך עוד לא באוויר — לחץ על שמירת ההגדרות כדי לפרסם אותו.',
   'PREVIEW UNAVAILABLE': 'אין תצוגה מקדימה',
