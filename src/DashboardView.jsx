@@ -605,7 +605,12 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
               </RefinedHeaderStrip>
               <div className="kpi-value" style={{ fontSize: C.kpiNumberSize, fontWeight: 800, fontFamily: FN, color: C.tx, lineHeight: 1.05, letterSpacing: '-0.015em', direction: 'ltr', unicodeBidi: 'isolate', textAlign: he ? 'right' : 'left' }}>{s.value}
                 {s.total !== undefined && <span style={{ fontSize: 13, color: refined ? 'rgba(0,0,0,0.55)' : C.td, fontWeight: 400, letterSpacing: 0 }}> / {s.total}</span>}</div>
-              {s.sub && <div style={{ fontSize: 10, fontFamily: FN, color: s.subColor, marginTop: 6, letterSpacing: '0.04em' }}>{s.sub}</div>}
+              {/* 18.9 (Ohad, phone): "'from the sheets' on mobile version is bad text
+                  location and size". It was a 10px line sitting 6px under a 40px value
+                  box, which read as a stray sentence rather than a caption on the
+                  number. Tighter to the number, one notch smaller, wider tracking so it
+                  reads as a caption, and it can never wrap to two lines in a 178px card. */}
+              {s.sub && <div style={{ fontSize: 9, fontFamily: FN, color: s.subColor, marginTop: 2, letterSpacing: '0.1em', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.sub}</div>}
             </div>
           );
         })}
