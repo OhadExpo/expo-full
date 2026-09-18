@@ -1734,7 +1734,7 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
             ['28-day', acwr.chronic ? Math.round(acwr.chronic) : '—', C.td, acwr.chronic ? tr('4-week base') : tr('none logged')],
           ].map(([k, v, c, sub]) => (
             <div key={k} style={{ background: 'var(--c-sf)', padding: '10px 12px' }}>
-              <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{k}</div>
+              <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, marginInlineEnd: 8 }}>{k}</div>
               <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 22, color: c, marginTop: 6, fontVariantNumeric: 'tabular-nums', lineHeight: 'normal' }}>{v}</div>
               {sub ? <div style={{ fontFamily: FB, fontSize: 10, color: C.tm, marginTop: 2 }}>{sub}</div> : null}
             </div>
@@ -1751,7 +1751,7 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 1, background: C.cardBd, border: `1px solid ${C.cardBd}` }}>
               {[['Week load', ms.weekLoad ? Math.round(ms.weekLoad).toLocaleString() : '—', C.tx], ['Monotony', ms.monotony != null ? ms.monotony.toFixed(2) : '—', monC], ['Strain', ms.strain != null ? Math.round(ms.strain).toLocaleString() : '—', C.td]].map(([k, v, c]) => (
                 <div key={k} style={{ background: 'var(--c-sf)', padding: '10px 12px' }}>
-                  <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{k}</div>
+                  <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, marginInlineEnd: 8 }}>{k}</div>
                   <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 20, color: c, marginTop: 6, fontVariantNumeric: 'tabular-nums' }}>{v}</div>
                 </div>
               ))}
@@ -3193,7 +3193,7 @@ function TeamSnapshotCard({ team }) {
         return (
           <div style={{ padding: '14px 18px 4px', borderTop: `1px solid ${C.cardBd}` }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-              <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>28-day team load</span>
+              <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, marginInlineEnd: 8 }}>28-day team load</span>
               <span style={{ fontFamily: FN, fontSize: 9, color: C.td, fontVariantNumeric: 'tabular-nums' }}>peak {Math.round(max).toLocaleString()}</span>
             </div>
             <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: '100%', height: H, display: 'block' }} aria-hidden="true">
@@ -3804,26 +3804,26 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, planOf }
                 <div style={{ padding: '2px 2px 12px 88px', fontFamily: FB, fontSize: 12, color: C.tx, lineHeight: 1.55 }}>
                   {/* What was PLANNED for this exact slot. */}
                   <div style={{ marginBottom: 6 }}>
-                    <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{tr('Plan')}</span>
+                    <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, marginInlineEnd: 8 }}>{tr('Plan')}</span>
                     {pl && (pl.focus || pl.plan)
                       ? <span dir="auto">{pl.focus || ''}{pl.focus && pl.plan ? ' — ' : ''}{pl.plan || ''}</span>
                       : <span style={{ color: C.td }}>{tr('nothing was written for this slot')}</span>}
                   </div>
                   <div style={{ marginBottom: 6 }}>
-                    <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{tr('Trained')}</span>
+                    <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, marginInlineEnd: 8 }}>{tr('Trained')}</span>
                     {d.trained.length ? <span dir="auto">{names(d.trained)}</span> : <span style={{ color: C.td }}>{tr('nobody logged')}</span>}
                     {d.avgLoad != null && <span style={{ color: C.tm }}> · {tr('avg load')} <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{d.avgLoad} AU</span></span>}
                     {d.loggers && d.loggers.length > 0 && <span style={{ color: C.td }}> · {tr('logged by')} {d.loggers.map(byName).join(', ')}</span>}
                   </div>
                   {d.out.length > 0 && (
                     <div style={{ marginBottom: 6 }}>
-                      <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#DE4E3B' }}>{tr('Out')}</span>
+                      <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#DE4E3B', marginInlineEnd: 8 }}>{tr('Out')}</span>
                       <span dir="auto">{names(d.out)}</span>
                     </div>
                   )}
                   {d.notes.length > 0 && (
                     <div>
-                      <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{tr('Notes')} </span>
+                      <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, marginInlineEnd: 8 }}>{tr('Notes')} </span>
                       {d.notes.map((n, i) => <div key={i} dir="auto" style={{ color: C.tm }}>{n.name}: {n.note}</div>)}
                     </div>
                   )}
@@ -4828,7 +4828,7 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
                 and the header would no longer line up with anything. */}
             <div className="bhbc-inj-head" style={{ display: 'grid', gridTemplateColumns: INJ_COLS, gap: 12, alignItems: 'end', padding: '0 0 7px', borderBottom: `1px solid ${C.cardBd}` }}>
               {[tr('Athlete'), tr('Injury'), tr('Status'), tr('Since · pain'), tr('Reported by'), ''].map((h, i) => (
-                <div key={i} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{h}</div>
+                <div key={i} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, marginInlineEnd: 8 }}>{h}</div>
               ))}
             </div>
             {rows.map(({ t, inj }) => {
@@ -5251,7 +5251,7 @@ function LogModal({ open, initialAthlete, roster, fixtures = [], availableCount 
           if (!day.length) return null;
           return (
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{tr('From calendar')}</span>
+              <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm, marginInlineEnd: 8 }}>{tr('From calendar')}</span>
               {day.map((f, i) => (
                 <button key={i} type="button" onClick={() => { setMinutes(String(f.minutes)); setType(f.type === 'lift' ? 'Lift' : f.type === 'game' ? 'Game' : 'Practice'); }}
                   style={{ fontFamily: FN, fontSize: 10, color: FX_COLOR[f.type] || NAVY, background: 'transparent', border: `1px solid ${FX_COLOR[f.type] || NAVY}`, padding: '4px 8px', cursor: 'pointer' }}>
