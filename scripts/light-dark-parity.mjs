@@ -212,6 +212,20 @@ const settledGeometry = async () => {
   return prev;
 };
 
+// WARM UP THE FIRST ROUTE AND THROW IT AWAY.
+// /coach/dashboard reported the identical phantom twice now - moved=16,
+// countDelta=-5, with one element 1490px tall in dark and 35px in light -
+// and re-running that route ALONE is clean every time. It is the FIRST route
+// in the list, so its dark pass loads on cold caches and an empty store,
+// settle() stabilises, and a late section then renders before the light pass.
+// That is not a theme difference; it is the first load being slower than the
+// second. A phantom that reproduces at the same numbers is worse than a
+// random one: it reads exactly like a real finding.
+if (ROUTES.length) {
+  try { await loadIn(ROUTES[0], 'dark'); await settledGeometry(); }
+  catch (e) { /* the loop below will report it properly */ }
+}
+
 const report = [];
 for (const route of ROUTES) {
   try {

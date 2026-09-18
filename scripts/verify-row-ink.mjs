@@ -323,6 +323,15 @@ const run = async () => {
   const pg = await b.newPage();
   await pg.setBypassServiceWorker(true);
   await pg.setViewport({ width: 1280, height: 900, deviceScaleFactor: 1 });
+  // THEME=dark|light. Everything measured until 18.9 was measured in
+  // whatever theme this profile happened to be in (light), so the other one
+  // was never swept at all - and geometry is supposed to be IDENTICAL
+  // between them, which is exactly the claim a sweep can check.
+  if (process.env.THEME) {
+    await pg.evaluateOnNewDocument((t) => {
+      try { localStorage.setItem('expo-theme', t); localStorage.setItem('expo-collapse:bhbc-theme', JSON.stringify(t)); } catch (e) {}
+    }, process.env.THEME);
+  }
   // NOAUTH=1 for a site with no sign-in - the marketing site (expo-il) is a
   // separate origin on its own port with hash routes, and Ohad's rule is that
   // every sweep covers it too. Signing in there just measures a 404.
