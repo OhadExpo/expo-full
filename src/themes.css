@@ -726,9 +726,19 @@ html {
    so their own active/inactive color logic keeps working (sort indicators,
    tab highlights, etc.). Labels are span/div/label/th/td-shaped.
    ======================================================================== */
-[data-theme="light"] :not(button):not(a):not(select):not(input):not(textarea):not([role="button"])[style*="letter-spacing: 0.18em"] {
+[data-theme="light"] :not(button):not(a):not(select):not(input):not(textarea):not([role="button"]):not(.shot-warn-title)[style*="letter-spacing: 0.18em"] {
   color: var(--c-acText) !important;
 }
+/* ...except a WARNING on the camera tools' own black stage. --c-acText is the
+   cyan that is AA-safe on WHITE; on the Shot Analyzer's #000 backdrop it is a
+   dark blue, and because the rule carries !important it was repainting a
+   red-bordered "this clip cannot be measured" heading in exactly the colour of
+   every ordinary heading (18.9). A warning that looks like a heading is not a
+   warning. */
+/* The exception is declared IN the rule above (:not(.shot-warn-title)) rather
+   than fought from outside it: that selector scores (0,3,5) and carries
+   !important, so no reasonable override wins - a three-class selector ties on
+   b and loses on c, which is two rounds of "why is my colour not applying". */
 
 /* === Soft motion ========================================================
    Smooths state changes app-wide so interactions EASE instead of snap —

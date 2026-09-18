@@ -8,6 +8,7 @@ import { C, FN, FB } from './theme';
 import { fmtNumericDate } from './dates';
 import { toast } from './ui';
 import { captureShotFrames } from './shotCapture';
+import { preflightClip } from './clipPreflight';
 import { getCamera, stopStream } from './usePose';
 import { detectShootingHand, analyzeShotClip, frameReadout, CHECKPOINTS, SHOT_TYPES } from './shotAnalysis';
 import { SHOT_I18N, localiseCheck } from './shotI18n';
@@ -150,6 +151,12 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
   // refused to re-score because phase was 'analyzing', not 'results'. The
   // result then read ENTER HEIGHT with the number sitting in the box.
   const statureRef = useRef(stature);
+  // What the FOOTAGE can and cannot answer, read off twelve frames before the
+  // five-minute capture starts. See src/clipPreflight.js - on his own clip02
+  // the release happens above the top edge, and until now that was only
+  // discoverable after the whole analysis had already run.
+  const [preflight, setPreflight] = useState(null);
+  const [pendingUrl, setPendingUrl] = useState(null);
   const [progressLabel, setProgressLabel] = useState('');
   const [srcUrl, setSrcUrl] = useState(null);
   const [progress, setProgress] = useState(0);
@@ -170,6 +177,15 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
   const analyze = useCallback(async (url, opts = {}) => {
     setError(null); setPhase('analyzing'); setProgress(0); setProgressLabel('');
     try {
+      // Twelve frames, a few seconds, before committing to the long capture.
+      // A blocking finding stops here and says what to do with the phone still
+      // in his hand; a warning rides along and is shown beside the results.
+      if (!opts.skipPreflight) {
+        setProgressLabel('checking the clip');
+        const pf = await preflightClip(url, { kind: 'shot', onProgress: (pct) => setProgress(Math.round(pct * 0.1)) });
+        setPreflight(pf);
+        if (!pf.ok) { setPendingUrl(url); setPhase('preflight'); return; }
+      }
       // Two-pass ROI capture: find the athlete, then re-run pose on a crop
       // around him at the source frame cadence inside each shot window.
       // opts.deterministic steps the clip frame by frame with seeks instead of
@@ -243,7 +259,7 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
     } catch (e) { setError((T === SHOT_I18N.he ? 'המצלמה לא זמינה: ' : 'Camera unavailable: ') + (e?.message || e)); setPhase('idle'); }
   };
   const stopRecording = () => { try { recRef.current?.stop(); } catch { /* noop */ } };
-  const reset = () => { setResult(null); setPhase('idle'); setError(null); setSrcUrl(null); framesRef.current = null; };
+  const reset = () => { setResult(null); setPhase('idle'); setError(null); setSrcUrl(null); framesRef.current = null; setPreflight(null); setPendingUrl(null); };
 
   const shot = result?.shots?.[shotIdx] || null;
 
@@ -369,11 +385,68 @@ export default function ShotAnalyzer({ onClose, toolLabel = 'SHOT ANALYZER', dem
         </div>
       )}
 
+      {phase === 'preflight' && preflight && (
+        <div style={{ flex: 1, overflowY: 'auto', padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {/* The class, not just the inline colour: a light-theme rule in
+              themes.css repaints EVERY inline letter-spacing:0.18em label in
+              the AA-on-white cyan with !important, which on this black stage
+              turned the warning into an ordinary heading. */}
+          <div className="shot-warn-title" style={{ fontFamily: FN, fontSize: 13, letterSpacing: '0.18em', fontWeight: 700, color: '#FFA502' }}>
+            {T.preflight.title}
+          </div>
+          <div style={{ fontFamily: FB, fontSize: 13, color: 'rgba(255,255,255,0.72)', lineHeight: 1.5 }}>
+            {T.preflight.lede}
+          </div>
+          {preflight.findings.map((f) => (
+            <div key={f.key} style={{
+              border: `1px solid ${f.level === 'block' ? 'rgba(255,71,87,0.55)' : 'rgba(255,165,2,0.5)'}`,
+              padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 6,
+            }}>
+              <div style={{ ...lbl, color: f.level === 'block' ? '#FF4757' : '#FFA502' }}>
+                {T.preflight.keys[f.key] || f.key}
+              </div>
+              <div style={{ fontFamily: FB, fontSize: 13, color: '#fff', lineHeight: 1.5 }}>{f.msg}</div>
+            </div>
+          ))}
+          {/* The measurements behind the verdict, so it can be argued with. */}
+          <div style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.08em', lineHeight: 1.7 }}>
+            {T.preflight.measuredLabel}: {preflight.measured.withBody}/{preflight.measured.samples} frames tracked
+            {preflight.measured.medianBodyHeight != null ? ` · body ${Math.round(preflight.measured.medianBodyHeight * 100)}% of frame` : ''}
+            {preflight.measured.minHeadY != null ? ` · ${Math.round(preflight.measured.minHeadY * 100)}% above his head` : ''}
+            {preflight.measured.dims ? ` · ${preflight.measured.dims.w}x${preflight.measured.dims.h}` : ''}
+          </div>
+          <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+            <button onClick={reset} style={big('#FFA502')}>{T.preflight.refilm}</button>
+            {/* Never a hard stop. He may know something the twelve frames do not. */}
+            <button onClick={() => { const u = pendingUrl; if (u) analyze(u, { skipPreflight: true }); }}
+              style={{ ...big('transparent'), color: 'rgba(255,255,255,0.75)', border: '1px solid rgba(255,255,255,0.3)' }}>
+              {T.preflight.anyway}
+            </button>
+          </div>
+        </div>
+      )}
+
       {phase === 'analyzing' && (
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
           <div style={{ fontFamily: FN, fontSize: 13, letterSpacing: '0.18em', fontWeight: 700 }}>{(T.progress[progressLabel] || T.progress[''] || progressLabel).toUpperCase()}…</div>
           <div style={{ width: 220, height: 4, background: 'rgba(255,255,255,0.15)', marginTop: 16 }}><div style={{ width: `${progress}%`, height: '100%', background: CYAN, transition: 'width 120ms' }} /></div>
           <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 8, fontFamily: FN, letterSpacing: '0.12em' }}>{progress}%</div>
+        </div>
+      )}
+
+      {/* A clip that only WARNS still analyses - but the warning has to travel
+          with the numbers, or the coach reads a launch angle that the framing
+          made unreliable and never learns why. */}
+      {phase === 'results' && preflight && preflight.findings.some((f) => f.level === 'warn') && (
+        <div style={{ flexShrink: 0, borderBottom: '1px solid rgba(255,165,2,0.45)', background: 'rgba(255,165,2,0.08)', padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {preflight.findings.filter((f) => f.level === 'warn').map((f) => (
+            <div key={f.key} style={{ fontFamily: FB, fontSize: 12, color: '#FFD08A', lineHeight: 1.45 }}>
+              <span className="shot-warn-title" style={{ fontFamily: FN, fontSize: 13, letterSpacing: '0.18em', fontWeight: 700, marginInlineEnd: 8 }}>
+                {T.preflight.keys[f.key] || f.key}
+              </span>
+              {f.msg}
+            </div>
+          ))}
         </div>
       )}
 

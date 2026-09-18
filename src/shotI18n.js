@@ -47,7 +47,26 @@ export const SHOT_I18N = {
       ['60 FPS IF YOU CAN', 'Slow-mo / 60 fps gives sharper release timing. Steady phone, good light.'],
     ],
     record: 'RECORD →', gallery: 'FROM GALLERY', stopAnalyse: 'STOP & ANALYSE',
-    progress: { 'finding the athlete': 'finding the athlete', 'reading the shots': 'reading the shots', done: 'done', '': 'reading the shot' },
+    progress: { 'checking the clip': 'checking the clip', 'finding the athlete': 'finding the athlete', 'reading the shots': 'reading the shots', done: 'done', '': 'reading the shot' },
+
+    // The twelve-frame preflight. Every line names the phone action that
+    // fixes it - the point is that he can still do something about it.
+    preflight: {
+      title: 'THIS CLIP CANNOT BE MEASURED PROPERLY',
+      lede: 'Read off twelve frames, before the long analysis. Here is what the footage is missing.',
+      measuredLabel: 'MEASURED',
+      refilm: 'FILM IT AGAIN',
+      anyway: 'ANALYSE ANYWAY',
+      keys: {
+        'no-body': 'NOBODY TRACKED',
+        'rarely-seen': 'IN SHOT TOO LITTLE',
+        'no-headroom': 'NO ROOM ABOVE HIS HEAD',
+        'head-cut': 'HEAD CUT OFF',
+        'too-far': 'TOO FAR AWAY',
+        'low-res': 'TOO FEW PIXELS',
+        'too-dark': 'TOO DARK',
+      },
+    },
 
     status: { ok: 'OK', watch: 'WATCH', fix: 'FIX', na: 'N/A' },
     phases: { stance: 'STANCE', dip: 'DIP', set: 'SET', release: 'RELEASE', apex: 'APEX', follow: 'FOLLOW', landing: 'LAND' },
@@ -190,7 +209,24 @@ export const SHOT_I18N = {
     // Forward CTA arrow points LEFT in RTL and sits at the logical end of the
     // string, so it renders on the visual left (Ohad's RTL arrow rule).
     record: 'צלם ←', gallery: 'מהגלריה', stopAnalyse: 'עצור ונתח',
-    progress: { 'finding the athlete': 'מאתר את השחקן', 'reading the shots': 'קורא את הזריקות', done: 'סיום', '': 'קורא את הזריקה' },
+    progress: { 'checking the clip': 'בודק את הקליפ', 'finding the athlete': 'מאתר את השחקן', 'reading the shots': 'קורא את הזריקות', done: 'סיום', '': 'קורא את הזריקה' },
+
+    preflight: {
+      title: 'אי אפשר למדוד את הקליפ הזה כמו שצריך',
+      lede: 'בדקנו שתים עשרה פריימים לפני הניתוח המלא. זה מה שחסר בצילום.',
+      measuredLabel: 'מדדנו',
+      refilm: 'לצלם שוב',
+      anyway: 'לנתח בכל זאת',
+      keys: {
+        'no-body': 'לא זוהה אף אחד',
+        'rarely-seen': 'מעט מדי בפריים',
+        'no-headroom': 'אין מקום מעל הראש',
+        'head-cut': 'הראש חתוך',
+        'too-far': 'רחוק מדי',
+        'low-res': 'מעט מדי פיקסלים',
+        'too-dark': 'חשוך מדי',
+      },
+    },
 
     status: { ok: 'תקין', watch: 'במעקב', fix: 'לתיקון', na: 'אין' },
     phases: { stance: 'עמידה', dip: 'דיפ', set: 'סט', release: 'שחרור', apex: 'שיא', follow: 'ליווי', landing: 'נחיתה' },
