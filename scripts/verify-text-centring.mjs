@@ -19,6 +19,7 @@ import puppeteer from 'puppeteer-core';
 import { signIn, assertAuthed } from './lib/authed-page.mjs';
 import { unmangleArg } from './lib/unmangle.mjs';
 import { setWidth } from './lib/viewport.mjs';
+import { INK_FN } from './lib/ink.mjs';
 
 const BASE = process.argv[2] || 'http://127.0.0.1:5199';
 const W = parseInt(process.argv[3] || '1600', 10);
@@ -45,11 +46,36 @@ const MEASURE = (tol) => {
     if (!/flex/.test(cs.display) || cs.alignItems !== 'center') continue;
     const txt = (el.textContent || '').trim();
     if (!txt || txt.length > 24) continue;
-    const rng = document.createRange();
-    rng.selectNodeContents(el);
-    const tb = rng.getBoundingClientRect();
-    if (!tb.height) continue;
-    const off = (tb.top + tb.height / 2) - (r.top + r.height / 2);
+    // THE LETTERS, not the font's content box. See the note below: this gate
+    // used the Range rect, which is the font's box - 12px tall on a 10px Nord
+    // label because of the ascent/descent overrides - and reported 0.6px on
+    // 207 controls whose actual glyphs are centred to a quarter of a pixel.
+    // window.__ink takes the baseline from the Range LINE BOX (so flex
+    // centring is respected) and the ascent/descent from canvas
+    // actualBoundingBox (so it is the ink), which is exactly the combination
+    // the 09-04 note asked for and did not have.
+    // __ink(el) returns a BOX for an element that has children, and most of
+    // these controls wrap their label in a span. Requiring kind === 'text'
+    // would have skipped nearly all of them and printed a clean zero, which is
+    // the failure mode this whole evening has been about. Fall back to the
+    // union of the leaf text inside.
+    window.__tcScanned = (window.__tcScanned || 0) + 1;
+    let ink = window.__ink(el);
+    if (!ink || ink.kind !== 'text') {
+      const leaves = [];
+      for (const d of el.querySelectorAll('*')) {
+        if (d.children.length) continue;
+        const k = window.__ink(d);
+        if (k && k.kind === 'text') leaves.push(k);
+      }
+      if (!leaves.length) continue;
+      const top = Math.min(...leaves.map((k) => k.top));
+      const bot = Math.max(...leaves.map((k) => k.bot));
+      ink = { top, bot, mid: (top + bot) / 2, kind: 'text' };
+    }
+    const tb = { top: ink.top, height: ink.bot - ink.top };
+    if (!(tb.height > 0)) continue;
+    const off = ink.mid - (r.top + r.height / 2);
     if (Math.abs(off) <= tol) continue;
     const key = txt + '|' + Math.round(off * 10);
     if (seen.has(key)) continue;
@@ -67,23 +93,28 @@ const MEASURE = (tol) => {
     // information only. Changing line-height at 128 call sites to chase a
     // sub-pixel offset nobody can see would risk real layout for no gain.
     //
-    // MEASURED 2026-09-04, and it changes what this number means. The Range
-    // rect above is the font's CONTENT BOX, not the letters. On the nav's
-    // "Dashboard" at 10px Nord: the range is 12px tall - ascent-override 93.5%
-    // plus descent-override 26.5% - and sits 0.6px high in a 32px control, but
-    // canvas TextMetrics puts the real ink at 8px (cap ascent 7, descent 1),
-    // centred to 0.25px. The LETTERS are fine; this reports the font's own
-    // asymmetric box.
+    // WHAT THIS USED TO MEASURE, AND WHY IT WAS WRONG (2026-09-04 -> 2026-09-18).
     //
-    // Two dead ends, so nobody repeats them:
-    //   - Rebalancing the faces to 99.5%/20.5% (which centres the caps on
-    //     paper and keeps the 120% box) changed NOTHING. Tried twice, the
-    //     second time with the browser cache cleared. Reverted.
-    //   - Deriving the ink from canvas metrics inside this gate made it WORSE
+    // It took the Range rect, which is the font's CONTENT BOX, not the letters.
+    // On the nav's "Dashboard" at 10px Nord the range is 12px tall -
+    // ascent-override 93.5% plus descent-override 26.5% - and sits 0.6px high in
+    // a 32px control, while canvas TextMetrics puts the real ink at 8px (cap
+    // ascent 7, descent 1), centred to 0.25px. So it reported 207 controls as
+    // off centre when the GLYPHS were fine, and the note here said so.
+    //
+    // Two dead ends were recorded, and they still stand:
+    //   - Rebalancing the faces to 99.5%/20.5% changed NOTHING. Tried twice,
+    //     the second time with the browser cache cleared. Reverted.
+    //   - Deriving the ink from canvas metrics INSIDE this gate made it worse
     //     (199 -> 236), because locating the baseline from fontBoundingBox
-    //     fractions does not agree with the overridden metrics. Reverted.
-    // The honest next step is to compare against a screenshot of real glyphs,
-    // not against another computed box.
+    //     fractions does not agree with the overridden metrics.
+    //
+    // The fix was the second dead end done properly, and it needed a tool that
+    // did not exist on 09-04: scripts/lib/ink.mjs takes the BASELINE from the
+    // Range line box - which respects flex centring - and the ascent/descent
+    // from canvas actualBoundingBox. That is the ink, and it is the same
+    // measurer the whole-app sweep uses, so the two gates can no longer
+    // disagree about where a letter is.
     const bordered = cs.borderStyle !== 'none' && parseFloat(cs.borderWidth) > 0;
     out.push({ t: txt.slice(0, 20), off: Math.round(off * 100) / 100, bordered,
       h: Math.round(r.height), lh: cs.lineHeight, fs: cs.fontSize, inkH: Math.round(tb.height * 10) / 10 });
@@ -95,16 +126,24 @@ const b = await puppeteer.connect({ browserURL: (process.env.CDP || 'http://127.
 const page = await b.newPage();
 await setWidth(page, W, 1000);
 let total = 0;
+// A zero has to say how many controls it looked at. The new measurement
+// skips anything __ink cannot read as text, and without this a filter that
+// quietly matched nothing would print a clean zero.
+let scanned = 0;
 try {
   await signIn(page, BASE);
   if (!(await assertAuthed(page, BASE, '/coach/dashboard'))) { process.exitCode = 2; throw new Error('not signed in - see above'); }
   for (const route of ROUTES) {
     await page.goto(BASE + route, { waitUntil: 'domcontentloaded', timeout: 45000 });
     await new Promise((r) => setTimeout(r, 4500));
+    await page.evaluate(INK_FN);
+    await page.evaluate(() => { window.__tcScanned = 0; });
     const first = await page.evaluate(MEASURE, TOL);
+    scanned += await page.evaluate(() => window.__tcScanned || 0);
     let bad = [];
     if (first.length) {
       await new Promise((r) => setTimeout(r, 1000));
+      await page.evaluate(INK_FN);
       const second = await page.evaluate(MEASURE, TOL);
       const key = (f) => f.t + '|' + f.off;
       const s2 = new Set(second.map(key));
@@ -121,5 +160,6 @@ try {
   console.log('SWEEP ERROR:', String(e.message || e).split('\n')[0]);
   process.exitCode = 1;
 } finally { await page.close().catch(() => {}); b.disconnect(); }
-console.log(`\n${total} BORDERED control(s) whose text is off its own centre by more than ${TOL}px`);
+console.log(`\n${total} BORDERED control(s) whose text is off its own centre by more than ${TOL}px — ${scanned} control(s) measured`);
+if (!scanned) { console.log('FAILED: nothing was measured, so the zero means nothing.'); process.exit(1); }
 process.exit(total ? 1 : 0);
