@@ -474,7 +474,7 @@ export default function EvaluationEditor({ trainee, existing, metaDefaults = nul
       overflowY: 'auto',
     }}>
       <div onClick={e => e.stopPropagation()} style={{
-        background: isRefined5b() ? '#FFFFFF' : 'var(--c-bg)',
+        background: isRefined5b() ? 'var(--c-stripTx)' : 'var(--c-bg)',
         border: `1px solid var(--c-ac)`, borderRadius: 0,
         padding: isMobile ? 14 : 24, maxWidth: 880, width: '100%',
       }}>

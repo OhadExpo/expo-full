@@ -642,7 +642,7 @@ function FloorBar({ session, checkedIn, traineeById, onAdd, onFinish }) {
     <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, overflow: 'hidden' }}>
       <RefinedHeaderStrip padY={14} padX={14} marginBottom={0} bleed={false}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#FFF', lineHeight: 1, display: 'inline-flex', alignItems: 'center', position: 'relative', top: 0.5 }}>
+          <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--c-stripTx)', lineHeight: 1, display: 'inline-flex', alignItems: 'center', position: 'relative', top: 0.5 }}>
             {tt('ON THE FLOOR')} · {checkedIn}/{session.athletes.length} {tt('CHECKED IN')}
           </span>
           <div style={{ display: 'grid', gridAutoFlow: 'column', gridAutoColumns: '1fr', gap: 0 }}>
@@ -949,8 +949,8 @@ function MenuCard({ glyph, title, desc, onClick }) {
     </button>
   );
 }
-const primaryBtn = { width: '100%', padding: '12px', background: C.ac, border: `1px solid ${C.ac}`, color: '#FFF', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', borderRadius: 0 };
-const stripBtn = { ...stripBtnBase, border: '1px solid rgba(255,255,255,0.55)', color: '#FFF' };
+const primaryBtn = { width: '100%', padding: '12px', background: C.ac, border: `1px solid ${C.ac}`, color: 'var(--c-stripTx)', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', borderRadius: 0 };
+const stripBtn = { ...stripBtnBase, border: '1px solid color-mix(in srgb, var(--c-stripTx) 55%, transparent)', color: 'var(--c-stripTx)' };
 // EVERY miniBtn IS THE SAME BOX. It had no height and no display, so a button
 // that added display:inline-flex measured 22px while its neighbour, left on
 // the default inline-block, measured 23 - CHECK IN and ✕ sitting side by side

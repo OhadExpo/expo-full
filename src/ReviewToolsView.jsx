@@ -196,7 +196,7 @@ const stage = {
 };
 const ghostBtn = {
   background: 'transparent', border: '1px solid rgba(255,255,255,0.3)',
-  color: '#FFF', fontFamily: FN, fontSize: 11, fontWeight: 700,
+  color: 'var(--c-stripTx)', fontFamily: FN, fontSize: 11, fontWeight: 700,
   letterSpacing: '0.18em', padding: '11px 22px', cursor: 'pointer', borderRadius: 0,
 };
 
@@ -219,7 +219,7 @@ class ToolBoundary extends React.Component {
         <div style={stage}>
           <div style={{ maxWidth: 420, textAlign: 'center' }}>
             <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: 'var(--c-rd, #FF4757)', letterSpacing: '0.18em', marginBottom: 12 }}>{tr(readLang(), 'TOOL FAILED TO LOAD')}</div>
-            <div style={{ color: '#FFF', fontFamily: FB, fontSize: 14, lineHeight: 1.55, marginBottom: 20 }}>
+            <div style={{ color: 'var(--c-stripTx)', fontFamily: FB, fontSize: 14, lineHeight: 1.55, marginBottom: 20 }}>
               This tool needs WebGL and (for live tools) a camera. If you're
               offline or the browser blocked access, that's the cause. Close and
               try again, or pick another tool.
@@ -247,7 +247,7 @@ function ToolLoading({ label }) {
           border: '2px solid rgba(255,255,255,0.16)', borderTopColor: C.ac,
           animation: 'rtspin .7s linear infinite',
         }} />
-        <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: '#FFF', letterSpacing: '0.18em' }}>{tt('LOADING')} {label}…</div>
+        <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: 'var(--c-stripTx)', letterSpacing: '0.18em' }}>{tt('LOADING')} {label}…</div>
         <div style={{ fontFamily: FB, fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 6 }}>{tt('warming up pose engine')}</div>
       </div>
     </div>
@@ -319,7 +319,7 @@ export default function ReviewToolsView({ clientWorkouts = [], trainees = [] }) 
           coach app's card/strip pattern (was a bespoke editorial layout). */}
       <div style={{ marginBottom: 16, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '14px 18px' }}>
         <RefinedHeaderStrip padY={14} padX={18} marginBottom={14}>
-          <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>{tt('MEASURE THE LIFT')}</SectionLabel>
+          <SectionLabel as="div" style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize }}>{tt('MEASURE THE LIFT')}</SectionLabel>
         </RefinedHeaderStrip>
         <div style={{ color: C.tm, fontSize: 13, fontFamily: FB, lineHeight: 1.5, maxWidth: 620, marginBottom: 16 }}>
           {tt("Camera & pose tools to read a set you're reviewing — bar speed, range of motion, jump power, live coaching. Owner trial; nothing is saved to the athlete.")}
@@ -361,7 +361,7 @@ export default function ReviewToolsView({ clientWorkouts = [], trainees = [] }) 
             {/* Tools */}
             <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '14px 18px' }}>
               <RefinedHeaderStrip padY={14} padX={18} marginBottom={4}>
-                <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>{tt('TOOLS')}</SectionLabel>
+                <SectionLabel as="div" style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize }}>{tt('TOOLS')}</SectionLabel>
               </RefinedHeaderStrip>
               {REVIEW_TOOLS.map((t, i) => (
                 <ToolRow key={t.key} t={t} blocked={t.live && !camOk.current} isFirst={i === 0} onOpen={() => open(t.key)} />
@@ -376,7 +376,7 @@ export default function ReviewToolsView({ clientWorkouts = [], trainees = [] }) 
               the lift is auto-detected from the picked clip's exercise). */}
           <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '14px 18px' }}>
             <RefinedHeaderStrip padY={14} padX={18} marginBottom={4}>
-              <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>{tt('TOOLS')}</SectionLabel>
+              <SectionLabel as="div" style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize }}>{tt('TOOLS')}</SectionLabel>
             </RefinedHeaderStrip>
             {REVIEW_TOOLS.map((t, i) => (
               <ToolRow key={t.key} t={t} blocked={t.live && !camOk.current} isFirst={i === 0} onOpen={() => open(t.key)} />

@@ -90,7 +90,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
   // legacy cyan-active / gray-inactive scheme.
   const SH = ({ k, label }) => {
     const refined = isRefined5b();
-    const color = refined ? '#FFFFFF' : (sort === k ? C.ac : C.td);
+    const color = refined ? 'var(--c-stripTx)' : (sort === k ? C.ac : C.td);
     return (
       <th onClick={() => toggleSort(k)} style={{ textAlign: 'center', padding: '10px 12px', fontSize: 9, fontFamily: FN, color, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
         {label} {sort === k ? (dir === 1 ? '↑' : '↓') : ''}
@@ -600,7 +600,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
               <RefinedHeaderStrip padY={16} padX={20}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, minHeight: 30 }}>
                   <span title={tr(readLang(), 'status')} style={{ width: 6, height: 6, borderRadius: '50%', background: s.color, flexShrink: 0, boxShadow: `0 0 5px ${s.color}66` }} />
-                  <SectionLabel style={{ color: '#FFFFFF', fontSize: 13, letterSpacing: '0.08em', fontWeight: 700 }}>{s.label}</SectionLabel>
+                  <SectionLabel style={{ color: 'var(--c-stripTx)', fontSize: 13, letterSpacing: '0.08em', fontWeight: 700 }}>{s.label}</SectionLabel>
                 </span>
               </RefinedHeaderStrip>
               <div className="kpi-value" style={{ fontSize: C.kpiNumberSize, fontWeight: 800, fontFamily: FN, color: C.tx, lineHeight: 1.05, letterSpacing: '-0.015em', direction: 'ltr', unicodeBidi: 'isolate', textAlign: he ? 'right' : 'left' }}>{s.value}
@@ -625,7 +625,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
         const refined = isRefined5b();
         return (
           <CollapsibleSection title={tt('Incoming · 30D')} storageKey="dash-incoming" style={{ marginBottom: 14 }}
-            right={<span style={{ fontSize: 10, fontFamily: FN, color: 'rgba(255,255,255,0.78)', letterSpacing: '0.06em' }}>{tt('VISITS in Vercel Analytics')}</span>}>
+            right={<span style={{ fontSize: 10, fontFamily: FN, color: 'color-mix(in srgb, var(--c-stripTx) 78%, transparent)', letterSpacing: '0.06em' }}>{tt('VISITS in Vercel Analytics')}</span>}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 12 }}>
               {[
                 { label: 'CHAT SESSIONS', value: funnel.sessions, color: refined ? C.tx : C.tm },
@@ -730,7 +730,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
           {onlineNow.length > 0 && (
         <div className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.gn}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
           <RefinedHeaderStrip>
-            <SectionLabel style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="dot" color="#FFFFFF"/>{tt('Online Now')} ({onlineNow.length})</SectionLabel>
+            <SectionLabel style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize }}><SectionIcon kind="dot" color="var(--c-stripTx)"/>{tt('Online Now')} ({onlineNow.length})</SectionLabel>
           </RefinedHeaderStrip>
           {onlineNow.map(t => (
             <div key={t.id} {...asButton(() => onSelectTrainee(t.id))} aria-label={readLang() === 'he' ? `פתיחת ${t.name}` : `Open ${t.name}`} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', cursor: 'pointer', color: C.tx, fontSize: 13 }}>
@@ -769,7 +769,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                 <div key="expiring" data-alert-key="expiring" className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.or}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow, ...alertCardWrapStyle('expiring') }}>
                   <div {...alertHeaderDragProps('expiring')}>
                     <RefinedHeaderStrip>
-                      <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="alert" color="#FFFFFF"/>{tt('Expiring Packages')} ({expiring.length})</SectionLabel>
+                      <SectionLabel as="div" style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize }}><SectionIcon kind="alert" color="var(--c-stripTx)"/>{tt('Expiring Packages')} ({expiring.length})</SectionLabel>
                     </RefinedHeaderStrip>
                   </div>
                   {expiring.map(t => (
@@ -784,7 +784,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                 <div key="overdue" data-alert-key="overdue" className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow, ...alertCardWrapStyle('overdue') }}>
                   <div {...alertHeaderDragProps('overdue')}>
                     <RefinedHeaderStrip>
-                      <SectionLabel style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="dollar" color="#FFFFFF"/>{tt('Overdue Payment')} ({overduePayment.length})</SectionLabel>
+                      <SectionLabel style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize }}><SectionIcon kind="dollar" color="var(--c-stripTx)"/>{tt('Overdue Payment')} ({overduePayment.length})</SectionLabel>
                     </RefinedHeaderStrip>
                   </div>
                   {overduePayment.map(t => (
@@ -799,7 +799,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                 <div key="dormant" data-alert-key="dormant" className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.or}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow, ...alertCardWrapStyle('dormant') }}>
                   <div {...alertHeaderDragProps('dormant')}>
                     <RefinedHeaderStrip>
-                      <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="moon" color="#FFFFFF"/>{tt('Dormant')} ({dropoutRisk.length})</SectionLabel>
+                      <SectionLabel as="div" style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize }}><SectionIcon kind="moon" color="var(--c-stripTx)"/>{tt('Dormant')} ({dropoutRisk.length})</SectionLabel>
                     </RefinedHeaderStrip>
                   </div>
                   {dropoutRisk.map(t => {
@@ -832,7 +832,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
             <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: '14px 18px' }}>
               <RefinedHeaderStrip>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <SectionLabel as="span" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="mail" color="#FFFFFF"/>{tt('New Leads')} ({leads.length})</SectionLabel>
+                  <SectionLabel as="span" style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize }}><SectionIcon kind="mail" color="var(--c-stripTx)"/>{tt('New Leads')} ({leads.length})</SectionLabel>
                   <span title={readLang() === 'he' ? (gateOpen ? 'הסף עבר — זה הזמן להריץ את המיגרציה לכמה מאמנים' : `המיגרציה לכמה מאמנים רצה אחרי ${COACH_GATE} הרשמות רציניות של מאמנים`) : (gateOpen ? 'Gate open — apply multi-tenant migration' : `Multi-tenant migration applies once ${COACH_GATE} serious coach signups arrive`)}
                     style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 9, color: '#FFFFFF', border: '1px solid rgba(255,255,255,0.55)', background: 'transparent', borderRadius: 0, padding: '2px 6px', letterSpacing: '0.04em' }}>
                     🎯 {coachLeads}/{COACH_GATE} {tt(gateOpen ? 'OPEN' : 'GATE')}
@@ -876,7 +876,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
         <div style={{ textAlign: 'center', padding: 40, color: C.td }}>{tt('No clients yet. Import your trainee list.')}</div>
       ) : (() => {
         const refined = isRefined5b();
-        const plainHeadStyle = { textAlign: 'center', padding: '10px 12px', fontSize: 9, fontFamily: FN, color: refined ? '#FFFFFF' : C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 };
+        const plainHeadStyle = { textAlign: 'center', padding: '10px 12px', fontSize: 9, fontFamily: FN, color: refined ? 'var(--c-stripTx)' : C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 };
         return (
         <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0 }}>
           {/* Canonical cyan strip-header + title, matching every other card on
@@ -884,7 +884,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
           <div onClick={() => setAllAthletesOpen(o => !o)} role="button" tabIndex={0}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setAllAthletesOpen(o => !o); } }}
             style={{ background: 'var(--c-stripBg, var(--c-sf))', borderBottom: allAthletesOpen ? '1px solid var(--c-cardBd)' : 'none', padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }}>
-            <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>{tt('All Athletes')} — {sorted.length}</SectionLabel>
+            <SectionLabel as="div" style={{ color: 'var(--c-stripTx)', fontSize: C.alertLabelSize }}>{tt('All Athletes')} — {sorted.length}</SectionLabel>
             <span aria-hidden style={{ color: '#FFFFFF', fontSize: 12, lineHeight: 1, transform: allAthletesOpen ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease' }}>▾</span>
           </div>
           <div style={{ display: 'grid', gridTemplateRows: allAthletesOpen ? '1fr' : '0fr', transition: 'grid-template-rows 260ms ease' }}><div style={{ overflow: 'hidden', minHeight: 0 }}>
@@ -992,7 +992,7 @@ function RevenueCard({ paymentsUnknown = false, monthlyRate, thisMonthPaid, delt
 
   return (
     <CollapsibleSection title={tr(readLang(), 'Revenue')} storageKey="dash-revenue" style={{ marginBottom: 20 }}
-      right={<span style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.75)', letterSpacing: '0.12em', fontWeight: 700 }}>{tt("INCL. VAT · 6 MO TREND")}</span>}>
+      right={<span style={{ fontFamily: FN, fontSize: 10, color: 'color-mix(in srgb, var(--c-stripTx) 75%, transparent)', letterSpacing: '0.12em', fontWeight: 700 }}>{tt("INCL. VAT · 6 MO TREND")}</span>}>
       <div>
         {/* Top row — 6 metric tiles. responsive auto-fit so it collapses
             to 3 / 2 / 1 column at narrower viewports. */}

@@ -445,10 +445,10 @@ export function RefinedCard({ header, headerRight, leftStripe, padY = 14, padX =
                   title, putting the title 1.2px above the date beside it on
                   every card in the app. Ohad, zoomed in: "nothing here is
                   vertically center alligned". */}
-              <div style={{ minWidth: 0, flex: '1 1 auto', color: '#FFFFFF', display: 'flex', alignItems: 'center' }}>{header}</div>
-              <div style={{ flex: '0 1 auto', minWidth: 0, display: 'flex', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 8, color: '#FFFFFF' }}>{headerRight}</div>
+              <div style={{ minWidth: 0, flex: '1 1 auto', color: 'var(--c-stripTx)', display: 'flex', alignItems: 'center' }}>{header}</div>
+              <div style={{ flex: '0 1 auto', minWidth: 0, display: 'flex', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 8, color: 'var(--c-stripTx)' }}>{headerRight}</div>
             </div>
-          ) : <div style={{ color: '#FFFFFF' }}>{header}</div>}
+          ) : <div style={{ color: 'var(--c-stripTx)' }}>{header}</div>}
         </RefinedHeaderStrip>
       )}
       {children}
@@ -550,7 +550,7 @@ export function CollapsibleSection({ title, titleNode, count, right, storageKey,
       >
         {titleNode ? <span style={{ minWidth: 0, overflow: 'hidden' }}>{titleNode}</span> : (
           <span style={{
-            color: '#FFFFFF', fontFamily: FN, fontSize: 13, fontWeight: 700,
+            color: 'var(--c-stripTx)', fontFamily: FN, fontSize: 13, fontWeight: 700,
             letterSpacing: '0.08em', textTransform: 'uppercase',
             overflowWrap: 'break-word', minWidth: 0,
           }}>{tt(title)}{count != null && ` (${count})`}</span>
@@ -566,7 +566,7 @@ export function CollapsibleSection({ title, titleNode, count, right, storageKey,
               invisible). The plain-surface collapse controls in TasksV8View DO
               use --c-tx; these two cases are genuinely different backgrounds. */}
           <svg aria-hidden width="11" height="7" viewBox="0 0 9 6" fill="none" style={{
-            color: '#FFFFFF', display: 'inline-block', flexShrink: 0,
+            color: 'var(--c-stripTx)', display: 'inline-block', flexShrink: 0,
             transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease',
           }}>
             <path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
@@ -634,7 +634,7 @@ export function RefinedTable({ columns, rows, sort, onSort, empty }) {
                 style={{
                   textAlign: col.align || 'left', padding: '10px 12px',
                   fontSize: 9, fontFamily: FN,
-                  color: refined ? '#FFFFFF' : C.tm,
+                  color: refined ? 'var(--c-stripTx)' : C.tm,
                   textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700,
                   cursor: col.sortable ? 'pointer' : 'default',
                   width: col.width || undefined,
@@ -673,12 +673,12 @@ export function RefinedTable({ columns, rows, sort, onSort, empty }) {
 export function RefinedActionButton({ kind, label, onClick, onContext = 'strip' }) {
   const refined = isRefined5b();
   const variants = {
-    edit:    { stroke: '✎', color: refined && onContext === 'strip' ? '#FFFFFF' : C.ac },
-    delete:  { stroke: '✕', color: refined && onContext === 'strip' ? '#FFFFFF' : C.rd },
-    archive: { stroke: '⎘', color: refined && onContext === 'strip' ? '#FFFFFF' : C.tm },
-    preview: { stroke: '👁', color: refined && onContext === 'strip' ? '#FFFFFF' : C.ac },
-    plus:    { stroke: '+', color: refined && onContext === 'strip' ? '#FFFFFF' : C.ac },
-    check:   { stroke: '✓', color: refined && onContext === 'strip' ? '#FFFFFF' : C.gn },
+    edit:    { stroke: '✎', color: refined && onContext === 'strip' ? 'var(--c-stripTx)' : C.ac },
+    delete:  { stroke: '✕', color: refined && onContext === 'strip' ? 'var(--c-stripTx)' : C.rd },
+    archive: { stroke: '⎘', color: refined && onContext === 'strip' ? 'var(--c-stripTx)' : C.tm },
+    preview: { stroke: '👁', color: refined && onContext === 'strip' ? 'var(--c-stripTx)' : C.ac },
+    plus:    { stroke: '+', color: refined && onContext === 'strip' ? 'var(--c-stripTx)' : C.ac },
+    check:   { stroke: '✓', color: refined && onContext === 'strip' ? 'var(--c-stripTx)' : C.gn },
   };
   const v = variants[kind] || variants.edit;
   const isStrip = refined && onContext === 'strip';
@@ -794,10 +794,10 @@ export const Card = ({ children, style, className, onClick, onMouseEnter, onMous
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
               {/* Pure white in BOTH themes so the dark strip's title reads
                   with the same crispness as the cyan-strip light variant. */}
-              <div style={{ minWidth: 0, flex: '1 1 auto', color: '#FFFFFF', display: 'flex', alignItems: 'center' }}>{header}</div>
-              <div style={{ flex: '0 1 auto', minWidth: 0, display: 'flex', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 8, color: '#FFFFFF' }}>{headerRight}</div>
+              <div style={{ minWidth: 0, flex: '1 1 auto', color: 'var(--c-stripTx)', display: 'flex', alignItems: 'center' }}>{header}</div>
+              <div style={{ flex: '0 1 auto', minWidth: 0, display: 'flex', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 8, color: 'var(--c-stripTx)' }}>{headerRight}</div>
             </div>
-          ) : <div style={{ color: '#FFFFFF' }}>{header}</div>}
+          ) : <div style={{ color: 'var(--c-stripTx)' }}>{header}</div>}
         </RefinedHeaderStrip>
       )}
       {!hasStrip && header && (

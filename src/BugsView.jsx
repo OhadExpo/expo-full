@@ -94,11 +94,11 @@ export default function BugsView() {
     }}>
       <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={12}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : C.tx }}>
+          <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? 'var(--c-stripTx)' : C.tx }}>
             {tt('BUG REPORTS')} ({counts.open || 0} {tt('open')})
           </span>
           <button onClick={async () => { setRefreshing(true); try { await reload(); } finally { setTimeout(() => setRefreshing(false), 550); } }} disabled={refreshing}
-            style={{ ...stripBtnBase, border: `1px solid ${refined ? '#FFFFFF' : C.ac}`, color: refined ? '#FFFFFF' : C.ac }}>{refreshing ? <>↻ {tb('REFRESHING…')}</> : <>↻ {tb('REFRESH')}</>}</button>
+            style={{ ...stripBtnBase, border: `1px solid ${refined ? 'var(--c-stripTx)' : C.ac}`, color: refined ? 'var(--c-stripTx)' : C.ac }}>{refreshing ? <>↻ {tb('REFRESHING…')}</> : <>↻ {tb('REFRESH')}</>}</button>
         </div>
       </RefinedHeaderStrip>
 

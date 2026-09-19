@@ -221,7 +221,7 @@ export default function ExerciseMatchingView({ exercises = [], setExercises }) {
       <style>{CONF_THEME_CSS}</style>
       <Card leftStripe={C.ac} header={tt('Exercise Matching')} headerRight={
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <span style={{ ...th, color: '#fff' }}>{groups.length} {tt('titles')} · {totalEntries} {tt('rows')}</span>
+          <span style={{ ...th, color: 'var(--c-stripTx)' }}>{groups.length} {tt('titles')} · {totalEntries} {tt('rows')}</span>
           <Btn variant="ghost" onClick={acceptAllHighConfidence}>{tt('Accept all high-confidence')}</Btn>
           <Btn disabled={!affectedRows || applying} onClick={() => setConfirm(true)} style={{ background: affectedRows ? '#39BDFF' : undefined, borderColor: affectedRows ? '#39BDFF' : undefined, color: affectedRows ? '#06131b' : undefined }} /* literal cyan — C.ac resolves near-black in the light theme (audit 08-22) */>
             {applying ? tt('Applying…') : `${tt('Apply')} ${accepted.length} ${tt(accepted.length === 1 ? 'match' : 'matches')} (${affectedRows} ${tt('rows')})`}

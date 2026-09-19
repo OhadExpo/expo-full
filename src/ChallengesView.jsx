@@ -203,11 +203,11 @@ export default function ChallengesView({ trainees, clientWorkouts, bwLog }) {
     }}>
       <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={12}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-          <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : C.tx }}>
+          <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? 'var(--c-stripTx)' : C.tx }}>
             {tt('Challenges')} ({challenges.length})
           </span>
           <button onClick={() => { setEditChallenge(null); setShowCreate(true); }}
-            style={{ ...stripBtnBase, border: `1px solid ${refined ? '#FFFFFF' : C.ac}`, color: refined ? '#FFFFFF' : C.ac }}>{tb('+ NEW CHALLENGE')}</button>
+            style={{ ...stripBtnBase, border: `1px solid ${refined ? 'var(--c-stripTx)' : C.ac}`, color: refined ? 'var(--c-stripTx)' : C.ac }}>{tb('+ NEW CHALLENGE')}</button>
         </div>
       </RefinedHeaderStrip>
 

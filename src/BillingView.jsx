@@ -142,7 +142,7 @@ export default function BillingView({ trainees }) {
             <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', margin: '-14px -18px 12px', padding: '8px 18px', borderBottom: `1px solid ${C.cardBd}` }}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.dot, boxShadow: `0 0 5px ${s.dot}66` }} />
-                <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', color: '#FFFFFF', textTransform: 'uppercase' }}>{s.label}</span>
+                <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-stripTx)', textTransform: 'uppercase' }}>{s.label}</span>
               </span>
             </div>
             <div style={{ fontFamily: FN, fontSize: 26, fontWeight: 800, color: C.tx, letterSpacing: '-0.015em', lineHeight: 1.05 }}>{s.value}</div>
@@ -157,11 +157,11 @@ export default function BillingView({ trainees }) {
       <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: PAD }}>
         <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={12}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-            <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : C.tx }}>
+            <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? 'var(--c-stripTx)' : C.tx }}>
               {tt('PAYMENT REQUESTS')} ({(() => { const n = requests.filter(r => r.status === 'pending').length; return readLang() === 'he' ? (n === 1 ? '1 ממתינה' : `${n} ממתינות`) : `${n} ${tt('Waiting')}`; })()})
             </span>
             <button onClick={() => setShowRequest(true)}
-              style={{ ...stripBtnBase, border: `1px solid ${refined ? '#FFFFFF' : C.ac}`, color: refined ? '#FFFFFF' : C.ac }}>{tb('+ NEW REQUEST')}</button>
+              style={{ ...stripBtnBase, border: `1px solid ${refined ? 'var(--c-stripTx)' : C.ac}`, color: refined ? 'var(--c-stripTx)' : C.ac }}>{tb('+ NEW REQUEST')}</button>
           </div>
         </RefinedHeaderStrip>
         {loadError ? (
@@ -215,7 +215,7 @@ export default function BillingView({ trainees }) {
       {/* ROSTER STATUS */}
       <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: PAD }}>
         <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={12}>
-          <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : C.tx }}>
+          <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? 'var(--c-stripTx)' : C.tx }}>
             {tt('ROSTER STATUS')}
           </span>
         </RefinedHeaderStrip>

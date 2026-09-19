@@ -220,14 +220,14 @@ export default function MessagesCard({ trainees, onSelectTrainee, onOpenMessages
           style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}>
           <span style={{
             fontWeight: 700, fontSize: 13, letterSpacing: '0.04em',
-            textTransform: 'uppercase', color: '#FFFFFF',
+            textTransform: 'uppercase', color: 'var(--c-stripTx)',
             display: 'inline-flex', alignItems: 'center', gap: 8,
           }}>
             {tt('Messages')}
             {threads.length > 0 && (
               <span style={{
                 fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
-                color: '#FFFFFF', opacity: 0.85,
+                color: 'var(--c-stripTx)', opacity: 0.85,
               }}>
                 ({showHandled ? threads.length : unreadCount})
               </span>
@@ -236,9 +236,9 @@ export default function MessagesCard({ trainees, onSelectTrainee, onOpenMessages
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             {unreadCount > 0 && (
               <button onClick={(e) => { e.stopPropagation(); markRead(); }}
-                style={{ ...stripBtnBase, border: '1px solid rgba(255,255,255,0.55)', color: '#FFFFFF' }}>{tb("MARK ALL READ")}</button>
+                style={{ ...stripBtnBase, border: '1px solid color-mix(in srgb, var(--c-stripTx) 55%, transparent)', color: 'var(--c-stripTx)' }}>{tb("MARK ALL READ")}</button>
             )}
-            <span aria-hidden style={{ color: '#FFFFFF', fontSize: 12, lineHeight: 1, transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease' }}>▾</span>
+            <span aria-hidden style={{ color: 'var(--c-stripTx)', fontSize: 12, lineHeight: 1, transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease' }}>▾</span>
           </div>
         </div>
       </RefinedHeaderStrip>

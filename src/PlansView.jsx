@@ -3623,7 +3623,7 @@ export function TrainingLineage({ traineeId, traineeName, exercises, plans, load
   }, [plans, metric, exMap]);
 
   const stripHead = (label) => (
-    <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '7px 12px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>{label}</div>
+    <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '7px 12px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--c-stripTx)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>{label}</div>
   );
 
   if (!traineeId) {
@@ -3706,7 +3706,7 @@ export function TrainingLineage({ traineeId, traineeName, exercises, plans, load
   return (
     <div style={{ border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)' }}>
       {stripHead(<>
-        <span>{tt('Training Analysis ·')}<span style={{ color: '#fff', fontFamily: heb ? FH : FN }}>{traineeName}</span></span>
+        <span>{tt('Training Analysis ·')}<span style={{ color: 'var(--c-stripTx)', fontFamily: heb ? FH : FN }}>{traineeName}</span></span>
         <div style={{ display: 'flex', gap: 6 }}>
           {[['sets', 'Sets'], ['volume', 'Volume']].map(([v, l]) => {
             const on = metric === v;
@@ -3856,7 +3856,7 @@ export function TrainingLineage({ traineeId, traineeName, exercises, plans, load
           phase (potentiation), a volume target (ramp toward MRV & ACWR-capped, or
           a deload when fatigue is due), the rep/%1RM band, and coverage/balance. */}
       <div style={{ margin: '4px 12px 12px', border: `1px solid ${C.cardBd}`, background: 'var(--c-sf2)' }}>
-        <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 88%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '7px 12px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+        <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 88%, var(--c-ac))', borderBottom: `1px solid ${C.cardBd}`, padding: '7px 12px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--c-stripTx)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
           <span>{tt('Build the next block')}{nextPlan.nextNum != null ? ` · #${nextPlan.nextNum}` : ''}</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
             <button onClick={() => setReportOpen(true)} title={tt('Open the full next-block report — goals, parameters, weekly progression, per-movement targets')} style={{ height:24, padding: '0 10px', border: '1px solid #39BDFF', background: '#39BDFF', color: '#06131b', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>⤢ {tr(readLang(), 'Full report →')}</button>
@@ -4810,7 +4810,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                   </span>
                   <span style={{display:'inline-flex',alignItems:'center',gap:10,flexShrink:0}}>
                     <button onClick={e=>{e.stopPropagation();setLineageTraineeId(row.tid);}} title={tt("Training Analysis — this athlete's movement-pattern volume across every block")}
-                      style={{display:'inline-flex',alignItems:'center',gap:5,height:24,padding:'0 8px',background:'rgba(255,255,255,0.12)',border:'1px solid rgba(255,255,255,0.3)',borderRadius:0,color:'#fff',cursor:'pointer',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.08em',whiteSpace:'nowrap'}}>◫ {tb('ANALYSIS')}</button>
+                      style={{display:'inline-flex',alignItems:'center',gap:5,height:24,padding:'0 8px',background:'color-mix(in srgb, var(--c-stripTx) 12%, transparent)',border:'1px solid color-mix(in srgb, var(--c-stripTx) 30%, transparent)',borderRadius:0,color:'var(--c-stripTx)',cursor:'pointer',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.08em',whiteSpace:'nowrap'}}>◫ {tb('ANALYSIS')}</button>
                     {/* Recency: the DOT carries the colour signal, the text is muted
                         (Ohad #195 "colored but less colorful") and the pill has a
                         fixed min-width so '18D AGO' and 'TRAINED TODAY' are the same
@@ -4991,7 +4991,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                 </span>
                 <span style={{display:'inline-flex',alignItems:'center',gap:10,flexShrink:0}}>
                   <button onClick={e=>{e.stopPropagation();setLineageTraineeId(row.tid);}} title={tt("Training Analysis — this athlete's movement-pattern volume across every block")}
-                    style={{display:'inline-flex',alignItems:'center',gap:5,height:24,padding:'0 8px',background:'rgba(255,255,255,0.12)',border:'1px solid rgba(255,255,255,0.3)',borderRadius:0,color:'#fff',cursor:'pointer',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.08em',whiteSpace:'nowrap'}}>◫ {tb('ANALYSIS')}</button>
+                    style={{display:'inline-flex',alignItems:'center',gap:5,height:24,padding:'0 8px',background:'color-mix(in srgb, var(--c-stripTx) 12%, transparent)',border:'1px solid color-mix(in srgb, var(--c-stripTx) 30%, transparent)',borderRadius:0,color:'var(--c-stripTx)',cursor:'pointer',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.08em',whiteSpace:'nowrap'}}>◫ {tb('ANALYSIS')}</button>
                   <span title={tr(readLang(), 'Last session: {x}').replace('{x}', tr(readLang(), tagText))} style={{display:'inline-flex',alignItems:'center',justifyContent:'flex-end',gap:6,minWidth:96,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',color:'var(--c-tm)',whiteSpace:'nowrap'}}>
                     <span style={{width:6,height:6,borderRadius:'50%',background:tagColor,flexShrink:0}} />{tagText}
                   </span>

@@ -3271,7 +3271,7 @@ function DemoReview() {
                 </span>
               </span>
             </span>
-            <button onClick={e => e.stopPropagation()} title={T("Open this athlete's page (demo only)")} style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.55)', color: '#FFFFFF', borderRadius: 0, padding: '3px 10px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap', lineHeight: 1.5 }}>{T('Athlete page →')}</button>
+            <button onClick={e => e.stopPropagation()} title={T("Open this athlete's page (demo only)")} style={{ background: 'transparent', border: '1px solid color-mix(in srgb, var(--c-stripTx) 55%, transparent)', color: 'var(--c-stripTx)', borderRadius: 0, padding: '3px 10px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap', lineHeight: 1.5 }}>{T('Athlete page →')}</button>
           </div>
           {data.workouts.map(wo => {
             const hasFormVids = wo.exercises.some(e => e.hasVideo);

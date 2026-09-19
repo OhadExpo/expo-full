@@ -256,7 +256,7 @@ export default function BookingView({ trainees }) {
       {/* UPCOMING */}
       <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: PAD }}>
         <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={12}>
-          <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : C.tx }}>{tt('UPCOMING')} ({bookings.filter(b => b.status === 'confirmed').length})</span>
+          <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? 'var(--c-stripTx)' : C.tx }}>{tt('UPCOMING')} ({bookings.filter(b => b.status === 'confirmed').length})</span>
         </RefinedHeaderStrip>
         {bookings.length === 0 ? (
           <div style={{ padding: 14, textAlign: 'center', color: C.td, fontSize: 13 }}>

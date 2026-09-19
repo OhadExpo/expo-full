@@ -106,7 +106,7 @@ export default function ExerciseCleanupView({ exercises = [], setExercises }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 1100, margin: '0 auto', padding: '4px 0 60px' }}>
       <Card leftStripe={C.or} header={tt('Library Cleanup')} headerRight={
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <span style={{ ...th, color: '#fff' }}>{rows.length} {tt('flagged')} · {sel.size} {tt('selected')}</span>
+          <span style={{ ...th, color: 'var(--c-stripTx)' }}>{rows.length} {tt('flagged')} · {sel.size} {tt('selected')}</span>
           <Btn variant="ghost" onClick={() => setAll(null, true)}>{tb('Select all')}</Btn>
           <Btn variant="ghost" onClick={() => setAll(null, false)}>{tb('Clear')}</Btn>
           <Btn disabled={!sel.size} onClick={() => setConfirm(true)} style={{ background: sel.size ? '#DE4E3B' : undefined, borderColor: sel.size ? '#DE4E3B' : undefined, color: sel.size ? '#fff' : undefined }}>{tb('Delete')} {sel.size} {tb('selected')}</Btn>

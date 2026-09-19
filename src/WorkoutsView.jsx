@@ -666,8 +666,8 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
               accordion — same card/strip language as the Exercise Library. */}
           <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,overflow:'hidden'}}>
             <div style={{background:'var(--c-stripBg, var(--c-sf))',borderBottom:'1px solid var(--c-cardBd)',padding:'10px 14px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-              <span style={{fontFamily:FN,fontSize:11,fontWeight:700,color:'#FFF',textTransform:'uppercase',letterSpacing:'0.08em'}}>{tt('Start a Session')}</span>
-              <span style={{fontFamily:FN,fontSize:10,fontWeight:700,color:'#FFF',opacity:0.85,letterSpacing:'0.08em'}}>{readLang() === 'he' ? (pickerRows.length === 1 ? 'מתאמן אחד' : `${pickerRows.length} מתאמנים`) : `${pickerRows.length} athlete${pickerRows.length !== 1 ? 's' : ''}`}</span>
+              <span style={{fontFamily:FN,fontSize:11,fontWeight:700,color:'var(--c-stripTx)',textTransform:'uppercase',letterSpacing:'0.08em'}}>{tt('Start a Session')}</span>
+              <span style={{fontFamily:FN,fontSize:10,fontWeight:700,color:'var(--c-stripTx)',opacity:0.85,letterSpacing:'0.08em'}}>{readLang() === 'he' ? (pickerRows.length === 1 ? 'מתאמן אחד' : `${pickerRows.length} מתאמנים`) : `${pickerRows.length} athlete${pickerRows.length !== 1 ? 's' : ''}`}</span>
             </div>
             {(() => {
               const rows = pickerRows;

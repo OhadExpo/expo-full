@@ -199,11 +199,11 @@ export default function ChatAuditView() {
               leftStripe={g.errorCount > 0 ? C.rd : undefined}
               style={{ marginBottom: 0 }}
               titleNode={<span style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 9, fontWeight: 700, color: '#FFFFFF', border: '1px solid rgba(255,255,255,0.6)', borderRadius: 0, padding: '2px 6px', letterSpacing: '0.18em' }}>{(g.site || '').toUpperCase()}</span>
-                <span style={{ fontFamily: FB, color: 'rgba(255,255,255,0.85)', fontSize: 11 }}>{tt(g.turns.length === 1 ? '1 turn' : '{n} turns').replace('{n}', g.turns.length)}</span>
-                {g.errorCount > 0 && <span style={{ fontFamily: FN, color: '#FFFFFF', fontSize: 10, fontWeight: 700 }}>⚠ {g.errorCount}</span>}
+                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 9, fontWeight: 700, color: 'var(--c-stripTx)', border: '1px solid color-mix(in srgb, var(--c-stripTx) 45%, transparent)', borderRadius: 0, padding: '2px 6px', letterSpacing: '0.18em' }}>{(g.site || '').toUpperCase()}</span>
+                <span style={{ fontFamily: FB, color: 'color-mix(in srgb, var(--c-stripTx) 85%, transparent)', fontSize: 11 }}>{tt(g.turns.length === 1 ? '1 turn' : '{n} turns').replace('{n}', g.turns.length)}</span>
+                {g.errorCount > 0 && <span style={{ fontFamily: FN, color: 'var(--c-stripTx)', fontSize: 10, fontWeight: 700 }}>⚠ {g.errorCount}</span>}
               </span>}
-              right={<span style={{ fontFamily: FN, color: 'rgba(255,255,255,0.72)', fontSize: 10 }} title={fmtDate(g.lastAt)}>{agoLabel(g.lastAt, readLang())}</span>}>
+              right={<span style={{ fontFamily: FN, color: 'color-mix(in srgb, var(--c-stripTx) 72%, transparent)', fontSize: 10 }} title={fmtDate(g.lastAt)}>{agoLabel(g.lastAt, readLang())}</span>}>
               {/* Turns */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {g.turns.map(t => (

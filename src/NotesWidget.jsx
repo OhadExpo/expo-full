@@ -744,18 +744,18 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
           <div onClick={() => setOpen(o => !o)} role="button" tabIndex={0}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(o => !o); } }}
             style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }}>
-            <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : 'var(--c-tx)' }}>
+            <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? 'var(--c-stripTx)' : 'var(--c-tx)' }}>
               {tt('Tasks')} ({counts.all})
             </span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <button onClick={(e) => { e.stopPropagation(); setOpen(true); setAdding(a => !a); }}
                 style={{
                   ...stripBtnBase,
-                  border: `1px solid ${refined ? '#FFFFFF' : 'var(--c-ac)'}`,
-                  color: refined ? '#FFFFFF' : 'var(--c-ac)',
+                  border: `1px solid ${refined ? 'var(--c-stripTx)' : 'var(--c-ac)'}`,
+                  color: refined ? 'var(--c-stripTx)' : 'var(--c-ac)',
                   minWidth: 72,
                 }}>{adding ? tb('Close') : tb('+ Task')}</button>
-              <span aria-hidden style={{ color: refined ? '#FFFFFF' : 'var(--c-tx)', fontSize: 12, lineHeight: 1, transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease' }}>▾</span>
+              <span aria-hidden style={{ color: refined ? 'var(--c-stripTx)' : 'var(--c-tx)', fontSize: 12, lineHeight: 1, transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease' }}>▾</span>
             </div>
           </div>
         </RefinedHeaderStrip>

@@ -453,23 +453,23 @@ export default function TraineeEvaluation({ trainee, bwLog = [] }) {
           trainee-card section. Title + NEW EVAL button live on the strip. */}
       <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={10}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : 'var(--c-tx)' }}>
+          <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? 'var(--c-stripTx)' : 'var(--c-tx)' }}>
             {tt('Evaluation')} ({rows.length})
           </span>
           <div style={{ display: 'flex', gap: 0 }}>
             <button onClick={openPicker}
               style={{
                 background: 'transparent',
-                border: `1px solid ${refined ? '#FFFFFF' : 'var(--c-ac)'}`,
-                color: refined ? '#FFFFFF' : 'var(--c-ac)',
+                border: `1px solid ${refined ? 'var(--c-stripTx)' : 'var(--c-ac)'}`,
+                color: refined ? 'var(--c-stripTx)' : 'var(--c-ac)',
                 padding: '3px 10px', borderRadius: 0, fontFamily: 'inherit', fontSize: 10,
                 fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer',
               }}>{tt('CAMERA TEST')}</button>
             <button onClick={() => setEditing('new')}
               style={{
                 background: 'transparent',
-                border: `1px solid ${refined ? '#FFFFFF' : 'var(--c-ac)'}`, borderInlineStart: 'none',
-                color: refined ? '#FFFFFF' : 'var(--c-ac)',
+                border: `1px solid ${refined ? 'var(--c-stripTx)' : 'var(--c-ac)'}`, borderInlineStart: 'none',
+                color: refined ? 'var(--c-stripTx)' : 'var(--c-ac)',
                 padding: '3px 10px', borderRadius: 0, fontFamily: 'inherit', fontSize: 10,
                 fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer',
               }}>{tt('+ NEW EVALUATION')}</button>
@@ -636,7 +636,7 @@ function CameraTestPicker({ onPickTest, onPickRom, onClose, capturedScores = {},
       overflowY: 'auto',
     }}>
       <div onClick={e => e.stopPropagation()} style={{
-        background: isRefined5b() ? '#FFFFFF' : 'var(--c-bg)',
+        background: isRefined5b() ? 'var(--c-stripTx)' : 'var(--c-bg)',
         border: `1px solid var(--c-ac)`, borderRadius: 0,
         padding: 22, maxWidth: 720, width: '100%',
       }}>

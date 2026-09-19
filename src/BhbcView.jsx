@@ -206,7 +206,7 @@ const BAND = { detrained: '#4F9DE0', low: '#37B27C', elevated: '#E0A73A', high: 
 // sites instead would guarantee one gets missed.
 function SecTitleEl({ s }) {
   const tr = useT();
-  return <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff', whiteSpace: 'normal', overflowWrap: 'break-word' }}>{typeof s === 'string' ? tr(s) : s}</span>;
+  return <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--c-stripTx)', whiteSpace: 'normal', overflowWrap: 'break-word' }}>{typeof s === 'string' ? tr(s) : s}</span>;
 }
 const secTitle = (s) => <SecTitleEl s={s} />;
 
@@ -322,7 +322,7 @@ function BandPill({ band, value }) {
 const Jersey = ({ n, size = 30 }) => (
   <span style={{
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: size, height: size,
-    background: NAVY, color: '#fff', fontFamily: FN, fontWeight: 800, fontSize: size * 0.42,
+    background: NAVY, color: 'var(--c-stripTx)', fontFamily: FN, fontWeight: 800, fontSize: size * 0.42,
     fontVariantNumeric: 'tabular-nums', flexShrink: 0,
   }}>{n ?? '–'}</span>
 );
@@ -1208,7 +1208,7 @@ function attendance28(rec, days) {
                   2026/2027 is not vertically centered"). With line-height
                   pinned to the glyph size, centring the boxes centres the text.
                   Season bumped 9.5 → 11 ("slightly too small"). */}
-              <span className="bhbc-wordmark" style={{ fontFamily: FN, fontWeight: 800, fontSize: 13, lineHeight: 1, color: '#fff', letterSpacing: '0.02em' }}>{tr('BNEI HERZLIYA')}</span>
+              <span className="bhbc-wordmark" style={{ fontFamily: FN, fontWeight: 800, fontSize: 13, lineHeight: 1, color: 'var(--c-stripTx)', letterSpacing: '0.02em' }}>{tr('BNEI HERZLIYA')}</span>
             </div>
           </div>
           {/* Understated EXPO-style nav: tight left-aligned small tabs, active tab is
@@ -1848,7 +1848,7 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
                     {/* The month header stays put while its own rows scroll under
                         it, so you always know where you are in a long season. */}
                     <button onClick={() => setMonthOpen((p) => ({ ...p, [m]: !open }))}
-                      style={{ position: 'sticky', top: 0, zIndex: 1, display: 'flex', alignItems: 'center', gap: 8, width: '100%', boxSizing: 'border-box', padding: '7px 9px', minHeight: 33, flexShrink: 0, cursor: 'pointer', borderRadius: 0, textAlign: 'start', background: NAVY_DEEP, color: '#fff', border: 'none', borderBottom: `1px solid ${C.cardBd}` }}>
+                      style={{ position: 'sticky', top: 0, zIndex: 1, display: 'flex', alignItems: 'center', gap: 8, width: '100%', boxSizing: 'border-box', padding: '7px 9px', minHeight: 33, flexShrink: 0, cursor: 'pointer', borderRadius: 0, textAlign: 'start', background: NAVY_DEEP, color: 'var(--c-stripTx)', border: 'none', borderBottom: `1px solid ${C.cardBd}` }}>
                       <svg aria-hidden="true" width="9" height="6" viewBox="0 0 9 6" fill="none" style={{ display: 'inline-block', width: 10, flexShrink: 0, opacity: 0.8, transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease' }}>
                         <path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
@@ -2192,7 +2192,7 @@ function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave, sess
           if (!g) return null;
           const plan = mdPlan(-dayDiff(g.date, date));
           const sug = plan.game ? null : plan.load >= 5 ? 'High' : plan.load >= 3 ? 'Moderate' : 'Low';
-          return <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: FN, fontSize: 11, color: C.tm, flexWrap: 'wrap' }}><span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{tr('Microcycle')}</span><span style={{ fontWeight: 800, color: '#fff', background: plan.game ? ORANGE : plan.load >= 5 ? ORANGE_DEEP : plan.load >= 3 ? NAVY : '#6B7280', padding: '2px 7px' }}>{tr(plan.label)}</span><span style={{ color: C.tx }}>{tr(plan.emphasis)}</span>{sug && <span style={{ color: C.td }}>· {tr(`suggest ${sug.toLowerCase()} intensity`)}</span>}</div>;
+          return <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: FN, fontSize: 11, color: C.tm, flexWrap: 'wrap' }}><span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{tr('Microcycle')}</span><span style={{ fontWeight: 800, color: 'var(--c-stripTx)', background: plan.game ? ORANGE : plan.load >= 5 ? ORANGE_DEEP : plan.load >= 3 ? NAVY : '#6B7280', padding: '2px 7px' }}>{tr(plan.label)}</span><span style={{ color: C.tx }}>{tr(plan.emphasis)}</span>{sug && <span style={{ color: C.td }}>· {tr(`suggest ${sug.toLowerCase()} intensity`)}</span>}</div>;
         })()}
         <div style={{ overflowX: 'auto' }}>
           <div style={{ minWidth: 560 }}>
@@ -2416,7 +2416,7 @@ function NextGamePanel({ nextGame, today, onEdit }) {
   const when = days <= 0 ? tr('GAME DAY') : days === 1 ? tr('Tomorrow') : (he ? `בעוד ${days} ימים` : `In ${days} days`);
   const timeLabel = nextGame.timeTBD || !nextGame.start ? tr('Time TBD') : nextGame.start;
   return (
-    <Card padding={14} leftStripe={ORANGE} header={secTitle('Next Game')} headerRight={<div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff' }}>{when}</span>{onEdit && <button onClick={onEdit} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', height: 24, boxSizing: 'border-box', padding: '0 9px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, cursor: 'pointer' }}>{tr('Edit')}</button>}</div>}>
+    <Card padding={14} leftStripe={ORANGE} header={secTitle('Next Game')} headerRight={<div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff' }}>{when}</span>{onEdit && <button onClick={onEdit} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--c-stripTx)', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', height: 24, boxSizing: 'border-box', padding: '0 9px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, cursor: 'pointer' }}>{tr('Edit')}</button>}</div>}>
       <div className="bhbc-nextgame" style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
         <div style={{ textAlign: 'center', flexShrink: 0 }}>
           <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 28, lineHeight: 1, color: ORANGE_DEEP, fontVariantNumeric: 'tabular-nums' }}>{Math.max(0, days)}</div>
@@ -2870,7 +2870,7 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
     </div>
   );
   return (
-    <Card padding={14} leftStripe={NAVY} header={secTitle(`Today · ${dow(today)} ${monDay(today)}`)} headerRight={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>{onCopy && <button onClick={onCopy} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', height: 24, boxSizing: 'border-box', padding: '0 10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, cursor: 'pointer', borderRadius: 0 }}>{copied ? tr('Copied') : tr('Copy')}</button>}<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>{dow(today)} {monDay(today)}</span></span>}>
+    <Card padding={14} leftStripe={NAVY} header={secTitle(`Today · ${dow(today)} ${monDay(today)}`)} headerRight={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>{onCopy && <button onClick={onCopy} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--c-stripTx)', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', height: 24, boxSizing: 'border-box', padding: '0 10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, cursor: 'pointer', borderRadius: 0 }}>{copied ? tr('Copied') : tr('Copy')}</button>}<span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff' }}>{dow(today)} {monDay(today)}</span></span>}>
       {/* NEXT GAME */}
       <Section label={tr("Next game")} first>
         {nextGame
@@ -3123,7 +3123,7 @@ function TodayPanel({ today, fixtures, fx, rows, onSessions, onLog, planOf, onPl
   };
   const chip = (f, i, showDate) => (
     <span key={i} style={{ display: 'inline-flex', alignItems: 'stretch', border: `1px solid ${FX_COLOR[f.type] || NAVY}` }}>
-      <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: '#fff', background: NAVY, padding: '5px 9px', display: 'inline-flex', alignItems: 'center', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{showDate ? `${dow(f.date)} ${monDay(f.date)} · ${f.start}` : f.start}</span>
+      <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: 'var(--c-stripTx)', background: NAVY, padding: '5px 9px', display: 'inline-flex', alignItems: 'center', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{showDate ? `${dow(f.date)} ${monDay(f.date)} · ${f.start}` : f.start}</span>
       <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: FX_COLOR[f.type] || NAVY, padding: '5px 8px', display: 'inline-flex', alignItems: 'center' }}>{fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')}</span>
       <span style={{ fontFamily: FN, fontSize: 12, color: C.td, padding: '5px 9px 5px 2px', display: 'inline-flex', alignItems: 'center' }}>{f.minutes} {tr('min')}</span>
     </span>
@@ -3389,7 +3389,7 @@ function WeightRoomTab({ rows = [], loads = {}, medical = {}, fixtures = [], pla
                     <span key={c.iso} title={`${monDay(c.iso)}${c.lift ? ` · ${c.team ? tr('team S&C') : tr('individual lift')} · ${c.mins || ''}${c.mins ? tr('min') : tr('lift session')}` : ''}`}
                       style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 26, background: c.future ? 'transparent' : TINT[c.code] || 'transparent', borderInlineStart: `1px solid ${C.cardBd}` }}>
                       {c.lift && (
-                        <span style={{ minWidth: 18, height: 16, padding: '0 3px', background: c.team ? NAVY : ORANGE, color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 8.5, fontWeight: 800, fontVariantNumeric: 'tabular-nums', letterSpacing: 0 }}>
+                        <span style={{ minWidth: 18, height: 16, padding: '0 3px', background: c.team ? NAVY : ORANGE, color: 'var(--c-stripTx)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 8.5, fontWeight: 800, fontVariantNumeric: 'tabular-nums', letterSpacing: 0 }}>
                           {c.mins || ''}
                         </span>
                       )}
@@ -4060,7 +4060,7 @@ function ScheduleTool({ fx, fixtures, today, mode, setMode, onLog }) {
       onLog ? (
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
           {toggle}
-          <button onClick={onLog} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', height: 24, boxSizing: 'border-box', padding: '0 9px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, cursor: 'pointer', borderRadius: 0 }}>{tr('Log session')}</button>
+          <button onClick={onLog} style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--c-stripTx)', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', height: 24, boxSizing: 'border-box', padding: '0 9px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, cursor: 'pointer', borderRadius: 0 }}>{tr('Log session')}</button>
         </div>
       ) : toggle
     }>
@@ -4144,7 +4144,7 @@ function ScheduleWeek({ fixtures, today }) {
           return (
             <div key={di} style={{ border: `1px solid ${C.cardBd}`, background: isToday ? `color-mix(in srgb, ${NAVY} 6%, var(--c-sf))` : 'var(--c-sf)', minHeight: 168, display: 'flex', flexDirection: 'column' }}>
               <div style={{ padding: '8px 6px', borderBottom: `1px solid ${C.cardBd}`, textAlign: 'center', position: 'relative' }}>
-                {hasGame && <div style={{ position: 'absolute', top: 5, insetInlineEnd: 5, fontFamily: FN, fontSize: 9, fontWeight: 800, letterSpacing: '0.06em', color: '#fff', background: ORANGE, padding: '1px 4px' }}>{tr('GAME')}</div>}
+                {hasGame && <div style={{ position: 'absolute', top: 5, insetInlineEnd: 5, fontFamily: FN, fontSize: 9, fontWeight: 800, letterSpacing: '0.06em', color: 'var(--c-stripTx)', background: ORANGE, padding: '1px 4px' }}>{tr('GAME')}</div>}
                 <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: isToday ? NAVY : C.tm }}>{dowFor(d, DOW[d.getDay()])}</div>
                 <div style={{ fontFamily: FN, fontSize: 16, fontWeight: 800, color: isToday ? NAVY : C.tx, fontVariantNumeric: 'tabular-nums' }}>{d.getDate()}</div>
               </div>
@@ -4242,7 +4242,7 @@ function FormDots({ form }) {
   return (
     <span style={{ display: 'inline-flex', gap: 3 }}>
       {(form || []).map((r, i) => (
-        <span key={i} title={r === 'W' ? 'Win' : 'Loss'} style={{ width: 14, height: 14, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 9, fontWeight: 800, color: '#fff', background: r === 'W' ? '#37B27C' : '#DE4E3B' }}>{r}</span>
+        <span key={i} title={r === 'W' ? 'Win' : 'Loss'} style={{ width: 14, height: 14, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 9, fontWeight: 800, color: 'var(--c-stripTx)', background: r === 'W' ? '#37B27C' : '#DE4E3B' }}>{r}</span>
       ))}
     </span>
   );

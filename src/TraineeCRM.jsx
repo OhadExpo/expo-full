@@ -197,7 +197,7 @@ function ActivityFeed({ trainee, activity, clientWorkouts, payments, planIndex, 
     }}>
       <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={10}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : C.tx }}>
+          <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? 'var(--c-stripTx)' : C.tx }}>
             {tt('ACTIVITY')} ({merged.length})
           </span>
         </div>
@@ -380,13 +380,13 @@ function CoachHistoryCard({ trainee, activity, clientWorkouts, payments, planInd
           <div onClick={() => setOpen(o => !o)} role="button" tabIndex={0}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(o => !o); } }}
             style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', userSelect: 'none', flex: 1, minWidth: 0 }}>
-            <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : C.tx }}>
+            <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? 'var(--c-stripTx)' : C.tx }}>
               {tt('COACH HISTORY')}
             </span>
-            <span aria-hidden style={{ color: refined ? '#FFFFFF' : C.tx, fontSize: 12, lineHeight: 1, transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease' }}>▾</span>
+            <span aria-hidden style={{ color: refined ? 'var(--c-stripTx)' : C.tx, fontSize: 12, lineHeight: 1, transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease' }}>▾</span>
           </div>
           <button onClick={() => setShowLog(true)}
-            style={{ ...stripBtnBase, border: `1px solid ${refined ? '#FFFFFF' : C.ac}`, color: refined ? '#FFFFFF' : C.ac, flexShrink: 0 }}>{tt('+ LOG')}</button>
+            style={{ ...stripBtnBase, border: `1px solid ${refined ? 'var(--c-stripTx)' : C.ac}`, color: refined ? 'var(--c-stripTx)' : C.ac, flexShrink: 0 }}>{tt('+ LOG')}</button>
         </div>
       </RefinedHeaderStrip>
 

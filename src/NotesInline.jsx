@@ -189,11 +189,11 @@ export default function NotesInline({
       {!bareMode && (
         <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={8}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : 'var(--c-tx)' }}>
+            <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? 'var(--c-stripTx)' : 'var(--c-tx)' }}>
               {label} ({open.length})
             </span>
             {rows.some(r => r.pinned) && (
-              <span style={{ fontFamily: FN, fontSize: 10, color: refined ? '#FFFFFF' : 'var(--c-or)', letterSpacing: '0.08em', fontWeight: 700 }}>
+              <span style={{ fontFamily: FN, fontSize: 10, color: refined ? 'var(--c-stripTx)' : 'var(--c-or)', letterSpacing: '0.08em', fontWeight: 700 }}>
                 📌 {rows.filter(r => r.pinned).length} {tr(readLang(), 'pinned')}
               </span>
             )}

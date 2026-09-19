@@ -1517,7 +1517,7 @@ function FormVideoPlayerImpl({ url: rawUrl, exerciseTitle, onVideoRef, reviewNot
               background:'rgba(10,10,11,0.78)',
               borderRadius:0,padding:'6px 8px',
               border:`1px solid ${hudDragArmed?C.ac:'transparent'}`,
-              fontFamily:FN,fontSize:10,color:'#fff',lineHeight:1.5,
+              fontFamily:FN,fontSize:10,color:'var(--c-stripTx)',lineHeight:1.5,
               fontVariantNumeric:'tabular-nums',
               cursor:hudDragArmed?'grabbing':'grab',
               touchAction:'none',userSelect:'none'}}>
@@ -2661,11 +2661,11 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
           right={onOpenTrainee && trainees.some(t => t.id === cid) ? (
             <button onClick={() => onOpenTrainee(cid)}
               title={tt("Open this athlete's page")}
-              style={{background:'transparent',border:'1px solid rgba(255,255,255,0.55)',color:'#FFFFFF',borderRadius:0,
+              style={{background:'transparent',border:'1px solid color-mix(in srgb, var(--c-stripTx) 55%, transparent)',color:'var(--c-stripTx)',borderRadius:0,
                 padding:'3px 10px',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',
                 textTransform:'uppercase',cursor:'pointer',whiteSpace:'nowrap',lineHeight:1.5}}
-              onMouseEnter={e=>e.currentTarget.style.borderColor='#FFFFFF'}
-              onMouseLeave={e=>e.currentTarget.style.borderColor='rgba(255,255,255,0.55)'}>
+              onMouseEnter={e=>e.currentTarget.style.borderColor='var(--c-stripTx)'}
+              onMouseLeave={e=>e.currentTarget.style.borderColor='color-mix(in srgb, var(--c-stripTx) 55%, transparent)'}>
               {tb('Athlete page')} →
             </button>
           ) : null}>

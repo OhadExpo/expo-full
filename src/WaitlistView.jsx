@@ -272,7 +272,7 @@ export default function WaitlistView({ trainees }) {
   const toggleSort = (k) => { if (sort === k) setDir(d => d * -1); else { setSort(k); setDir(k === 'date' ? -1 : 1); } };
   const SH = ({ k, label }) => {
     const refined = isRefined5b();
-    const color = refined ? '#FFFFFF' : (sort === k ? C.ac : C.tm);
+    const color = refined ? 'var(--c-stripTx)' : (sort === k ? C.ac : C.tm);
     return (
       <th onClick={() => toggleSort(k)} style={{ textAlign: 'start', padding: '10px 12px', fontSize: 9, fontFamily: FN, color, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', opacity: refined && sort !== k ? 0.78 : 1 }}>
         {label} {sort === k ? (dir === 1 ? '↑' : '↓') : ''}
@@ -365,12 +365,12 @@ export default function WaitlistView({ trainees }) {
             <thead>
               <tr style={{ background: refined ? 'var(--c-sf)' : 'transparent', borderBottom: `1px solid ${headBorder}` }}>
                 <SH k="email" label={tt("Email")} />
-                <th style={{ textAlign: 'start', padding: '10px 12px', fontSize: 9, fontFamily: FN, color: refined ? '#FFFFFF' : C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>{tt("Source")}</th>
+                <th style={{ textAlign: 'start', padding: '10px 12px', fontSize: 9, fontFamily: FN, color: refined ? 'var(--c-stripTx)' : C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>{tt("Source")}</th>
                 <SH k="intent" label={tt("Intent")} />
                 <SH k="date" label={tt("Signed up")} />
                 <SH k="status" label={tt("Status")} />
-                <th style={{ textAlign: 'start', padding: '10px 12px', fontSize: 9, fontFamily: FN, color: refined ? '#FFFFFF' : C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700, minWidth: 220 }}>{tt("Notes")}</th>
-                <th style={{ textAlign: 'center', padding: '10px 12px', fontSize: 9, fontFamily: FN, color: refined ? '#FFFFFF' : C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>{tt("Actions")}</th>
+                <th style={{ textAlign: 'start', padding: '10px 12px', fontSize: 9, fontFamily: FN, color: refined ? 'var(--c-stripTx)' : C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700, minWidth: 220 }}>{tt("Notes")}</th>
+                <th style={{ textAlign: 'center', padding: '10px 12px', fontSize: 9, fontFamily: FN, color: refined ? 'var(--c-stripTx)' : C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>{tt("Actions")}</th>
               </tr>
             </thead>
             <tbody>

@@ -1338,7 +1338,7 @@ export function CommentsThread({ noteId, viewer }) {
                   onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); saveEdit(); } if (e.key === 'Escape') setEditingId(null); }}
                   ref={(el) => { if (el && el.style.height === '') { el.style.height = Math.min(el.scrollHeight, 160) + 'px'; } }}
                   style={{ flex: 1, background: 'transparent', border: `1px solid var(--c-cardBd)`, fontFamily: FB, fontSize: 12, color: 'var(--c-tx)', padding: '6px 10px', borderRadius: 0, outline: 'none', resize: 'vertical', minHeight: 30, lineHeight: 1.4, boxSizing: 'border-box' }} />
-                <button onClick={(e) => { e.stopPropagation(); saveEdit(); }} style={{ ...cmtActionBtn, background: 'var(--c-ac)', color: '#fff', border: 'none' }}>{tr(readLang(), 'Save')}</button>
+                <button onClick={(e) => { e.stopPropagation(); saveEdit(); }} style={{ ...cmtActionBtn, background: 'var(--c-ac)', color: 'var(--c-stripTx)', border: 'none' }}>{tr(readLang(), 'Save')}</button>
                 <button onClick={(e) => { e.stopPropagation(); setEditingId(null); }} style={cmtActionBtn}>{tr(readLang(), 'Cancel')}</button>
               </div>
             ) : (
