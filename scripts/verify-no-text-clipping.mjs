@@ -118,8 +118,19 @@ try {
   // (page, base, route) - this used to pass the route AS the base and ignore the result,
   // so a signed-out browser measured the login page and still printed OK (17.9).
   if (!(await assertAuthed(page, BASE, '/coach/dashboard'))) { process.exitCode = 2; throw new Error('not signed in'); }
-  // HE=1 sweeps the Hebrew layout (the app reads expo-lang at mount).
-  if (process.env.HE === '1') await page.evaluate(() => { localStorage.setItem('expo-lang', 'he'); localStorage.setItem('expo-collapse:bhbc-lang', JSON.stringify('he')); });
+  // THE LANGUAGE IS SET IN BOTH DIRECTIONS, NOT ONLY INTO HEBREW.
+  //
+  // This used to write expo-lang only when HE=1, so a run WITHOUT it measured
+  // whatever the debug profile happened to be left on. On 19.9 that produced a
+  // sweep whose views were mostly English and one of which was labelled
+  // "התאמהMatching" - and I could not say what language the zero covered,
+  // which makes the zero worthless. Now the run states it and sets it.
+  const LANG = process.env.HE === '1' ? 'he' : 'en';
+  await page.evaluate((l) => {
+    localStorage.setItem('expo-lang', l);
+    localStorage.setItem('expo-collapse:bhbc-lang', JSON.stringify(l));
+  }, LANG);
+  console.log(`language: ${LANG}  ·  ${ROUTES.length} route(s)  ·  ${W}px`);
   for (const route of ROUTES) {
     await page.goto(BASE + route, { waitUntil: 'domcontentloaded', timeout: 45000 });
     await new Promise((r) => setTimeout(r, 4500));
