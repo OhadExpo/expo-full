@@ -636,7 +636,7 @@ function CameraTestPicker({ onPickTest, onPickRom, onClose, capturedScores = {},
       overflowY: 'auto',
     }}>
       <div onClick={e => e.stopPropagation()} style={{
-        background: isRefined5b() ? 'var(--c-stripTx)' : 'var(--c-bg)',
+        background: isRefined5b() ? '#FFFFFF' : 'var(--c-bg)',
         border: `1px solid var(--c-ac)`, borderRadius: 0,
         padding: 22, maxWidth: 720, width: '100%',
       }}>
