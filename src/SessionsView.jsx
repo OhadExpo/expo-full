@@ -682,7 +682,12 @@ function AthleteCard({ a, name, prevMap, exDetail, onToggleIn, onSet, onCurEx, o
     <div style={{ background: 'var(--c-sf)', border: `1px solid ${a.checkedIn ? C.ac : C.cardBd}`, display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', borderBottom: `1px solid ${C.cardBd}` }}>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
+          {/* This is not always a name. When the athlete is not on the roster it
+              is the SENTENCE "Athlete not on this roster", which needs 230px and
+              had 203 - measured 19.9 at 360px, cut by 27px to "Athlete not on
+              this ro". A card title can take a second line; an ellipsis here
+              tells the coach nothing about who is standing in front of them. */}
+          <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, minWidth: 0, overflowWrap: 'anywhere' }}>{name}</div>
           <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.04em' }}>{a.dayName}{a.week ? ` · ${tt('W')}${a.week}` : ''}</div>
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>

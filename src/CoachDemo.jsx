@@ -1169,10 +1169,11 @@ function DemoMessages() {
             <div key={i} style={{ display: 'flex', justifyContent: self ? 'flex-end' : 'flex-start' }}>
               <div style={{ maxWidth: '78%', minWidth: 0, borderRadius: 0, padding: '8px 10px', background: self ? 'rgba(57,189,255,0.094)' : 'var(--c-sf)', border: `1px solid ${self ? C.ac : C.cardBd}` }}>
                 <div style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.08em', marginBottom: 3 }}>{self ? T('COACH') : T('ATHLETE')} · {m.time}</div>
-                {/* A message is written by a person, so it can contain a word longer
-                    than a phone is wide. Measured 19.9 at 360px: the coach's reply spilled
-                    4px past its own bubble border. maxWidth alone does not stop that -
-                    the long token has to be allowed to break. */}
+                {/* overflowWrap so a pasted URL or a long word cannot push past the
+                    bubble. Defensive only: I first added this believing the gate's
+                    "SPILLING by 4px" on this bubble was real. It was not - that was
+                    a trailing space measured under pre-wrap, in a DIFFERENT component
+                    (TrySandbox), and the gate now ends its range on the last letter. */}
                 <div style={{ fontSize: 13, color: C.tx, lineHeight: 1.4, overflowWrap: 'anywhere' }}>{T(m.text)}</div>
               </div>
             </div>

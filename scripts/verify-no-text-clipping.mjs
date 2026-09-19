@@ -81,11 +81,37 @@ const MEASURE = () => {
     if (leafish && cs.overflowX === 'visible') {
       const rng = document.createRange();
       rng.selectNodeContents(el);
+      // TRAILING WHITESPACE IS NOT INK, AND UNDER pre-wrap IT IS RENDERED.
+      //
+      // A Range over a `white-space: pre-wrap` block includes the space that
+      // ends a wrapped line, and that space is painted past the content edge -
+      // about 4px at 13px. Measured 19.9: the demo message bubble was reported
+      // "SPILLING by 4px" on six routes, the gate's own excerpt ended in a
+      // space, and the element's scrollWidth was exactly its box width. Nothing
+      // was wrong; I changed two files before measuring it. Ending the range on
+      // the last non-space character measures the letters instead.
+      const last = el.lastChild;
+      if (last && last.nodeType === 3) {
+        const v = last.nodeValue || '';
+        let end = v.length;
+        while (end > 0 && /\s/.test(v[end - 1])) end--;
+        if (end > 0) rng.setEnd(last, end);
+      }
       const ink = rng.getBoundingClientRect();
       // Both edges: in a right-to-left layout the ink spills out of the LEFT side,
       // which a right-edge-only check reported as clean (17.9, Hebrew sweep).
       const over = Math.round(Math.max(ink.right - r.right, r.left - ink.left));
-      if (over > 2 && ink.width > 0) {
+      // Under pre-wrap / pre-line / pre, the space AT A WRAP POINT is preserved
+      // and painted past the content edge, and a Range includes it - so every
+      // wrapped message bubble read as "SPILLING by 4px". Trimming the end of
+      // the text node does not help: the space is mid-string, at the break.
+      // For those three modes only, require the element's own scroll box to
+      // actually overflow before believing the range. Everywhere else the rule
+      // is unchanged, because glyph overhang is real ink that scrollWidth does
+      // not see.
+      const spacePainted = /^pre(-wrap|-line)?$/.test(cs.whiteSpace);
+      const scrollAgrees = !spacePainted || el.scrollWidth > el.clientWidth + 1;
+      if (over > 2 && ink.width > 0 && scrollAgrees) {
         const key = 'S' + txt.slice(0, 30);
         if (!seen.has(key)) { seen.add(key); out.push({ kind: 'SPILLING', by: over, t: txt.slice(0, 40) }); }
       }

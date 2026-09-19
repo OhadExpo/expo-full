@@ -1040,7 +1040,15 @@ function attendance28(rec, days) {
           .bhbc-med-row > *:nth-child(3){ grid-column: 3 !important; }
           .bhbc-med-row > *:nth-child(4){ grid-column: 2 !important; justify-self: start !important; }
                   .bhbc-week-row{gap:7px!important}
-          .bhbc-week-row > span:nth-child(1){width:74px!important}
+          /* 84, NOT 74, AND THE 74 WAS MEASURED IN THE WRONG LANGUAGE.
+             The note above says "74 is above the 72px widest date". In Hebrew
+             it is - measured 19.9 at 360 and 390, the widest Hebrew date needs
+             exactly 74 and nothing overflows. In ENGLISH the same six rows need
+             77, 80, 81 and 82, so FIVE OF SIX spilled their column at both
+             widths, and had done since the number was picked. 84 clears the
+             measured 82 and still leaves the label 163px at 360, well over its
+             104px floor. If this is ever retuned, measure BOTH languages. */
+          .bhbc-week-row > span:nth-child(1){width:84px!important}
           .bhbc-week-row > span:nth-child(2){width:38px!important}
           .bhbc-week-row > span:nth-child(3){font-size:11px!important}
           /* S&C brief on a phone: the 74px label column and the 96px action
@@ -3691,12 +3699,12 @@ function MicrocycleView({ fx, today }) {
                 : d.isToday ? `color-mix(in srgb, ${NAVY} 5%, transparent)`
                 : 'var(--c-sf)',
               display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {/* A 120px column cannot hold "WED 23 SEP" at 0.1em tracking.
-                  Measured 19.9 at 360px: the label spilled 7-8px past its own
-                  card on three of the seven days. A flex item defaults to
-                  min-width:auto, so the text could not wrap and pushed out
-                  instead - minWidth:0 lets it break at the space, and the row
-                  wraps so the TODAY chip drops rather than squeezing the date. */}
+              {/* minWidth:0 + flexWrap so a squeezed label breaks at its space
+                  and the TODAY chip drops to its own line, rather than the
+                  label pushing out of the card. Defensive, not a reported bug:
+                  the 19.9 "Wed 23 Sep" spills were the WEEK row's 74px date
+                  column (see the 84px rule above), not this card - I changed
+                  this one first on a wrong reading of the gate output. */}
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 6, flexWrap: 'wrap' }}>
                 <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, minWidth: 0 }}>{dow(d.iso)} {monDay(d.iso)}</span>
                 {d.isToday && <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 800, letterSpacing: '0.1em', color: NAVY }}>{tr('TODAY')}</span>}
