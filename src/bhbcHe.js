@@ -38,7 +38,7 @@ export const HE = {
   "available athlete": "מתאמן זמין",
   "available athletes": "מתאמנים זמינים",
   "skips anyone Out.": "מדלג על מי שבחוץ.",
-  "Mark resolved / cleared to play": "סימון: החלים / כשיר לשחק",
+  "Mark resolved / cleared to play": "סימון: הטיפול הסתיים / כשיר לשחק",
   "Fixtures load as the league publishes them.": "המשחקים ייטענו כשהליגה תפרסם אותם.",
   "No games yet.": "עוד אין משחקים.",
   "Bnei Herzliya": "בני הרצליה",
