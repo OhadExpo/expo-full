@@ -46,7 +46,7 @@
 <main>
 <header>
   <h1>What's <span>left</span></h1>
-  <div class="sub">19.9 · 264 commits not live · production <code>09d30a9</code> · deploy candidate <code>deploy-0919</code></div>
+  <div class="sub">19.9 · production <code>09d30a9</code> · candidate <code>deploy-0919</code> <code>8936ad3</code> · <a href="http://127.0.0.1:4182/" style="color:var(--ac)">what the deploy leaves behind →</a></div>
 </header>
 
 <h2>You — one line each</h2>
@@ -65,6 +65,7 @@ NOTICE         4 hours?</pre>
   <b><span class="tag t-you">2</span>Ship everything except the athlete portal</b>
   <p>Built, held correctly, and <b>proven</b> held rather than claimed: ClientPortal, MealLogger and TrySandbox are byte-identical to production, and the <code>&lt;LangCtx.Provider&gt;</code> wrap that turns the whole portal Hebrew is out of App.jsx too — that one nearly slipped through and would have changed every athlete's screen while I reported the portal as untouched.</p>
   <p class="muted">Not held on purpose: the login fix and <code>keepHash</code>. They change no pixel in the portal, and holding them leaves athletes unable to sign in. Say the word and they come out.</p>
+  <p><b>Ready.</b> Re-cut from the final branch at the end of the night, so it carries every fix, the cyan redesign and the Hebrew voice day. The holds were re-applied by hand and re-proven, not assumed: the three athlete view files are byte-identical to production, App.jsx carries zero language-provider wraps around the athlete tree, and the diff against the branch is exactly four files. I also photographed the portal on the candidate against LIVE production from a real athlete's seat — they match; the only differences are data (a notes banner, an unread dot).</p>
   <pre>! cd /c/Users/Administrator/Desktop/expo-full &amp;&amp; git push origin deploy-0919:master</pre>
   <p class="muted">Rollback: <code>git push --force-with-lease origin 09d30a9:master</code> · safety branch <code>backup-bhbc-hebrew-20260919</code></p>
 </div>
@@ -77,27 +78,41 @@ NOTICE         4 hours?</pre>
 
 <h2>Your call — one word, then I build it</h2>
 
+<div class="row me">
+  <b><span class="tag t-me">4</span>The cyan, fixed — and measured</b>
+  <p>Your screenshot was five <b>collapsed</b> cards in light theme, so the page was five full-bleed #39BDFF bars and nothing else. One token caused it: the strip's own code calls itself "a faint cyan highlight <i>without a hard fill</i>", and that was only ever true in DARK. In light the same recipe used full brand cyan.</p>
+  <p>Cyan as a <b>stroke</b> is your identity and it stays bright — the hairlines, the accents, the logo, the filled CTAs. Cyan as a <b>slab</b> is gone:</p>
+  <table>
+    <tr><th></th><th>before</th><th>after</th></tr>
+    <tr><td>unreadable text, light theme</td><td class="n bad">35</td><td class="n ok">1</td></tr>
+    <tr><td>routes fully clean</td><td class="n">6 / 17</td><td class="n ok">16 / 17</td></tr>
+    <tr><td>cyan slabs ≥ 25,000px²</td><td class="n">—</td><td class="n ok">0</td></tr>
+  </table>
+  <p class="muted">That last row is 74 views across 37 routes in both themes. 207 cyan elements are still on screen — buttons, chips, hairlines, dots. That is the brand working instead of flooding the page.</p>
+  <p><b>One thing I did NOT change, because it is your call.</b> Look at the revenue chart on the dashboard: six solid <b>black</b> bars. That is the same "heavy fill" problem in a different colour — light theme uses black as its architectural accent. Say the word and it gets the same treatment.</p>
+</div>
+
 <div class="row ask">
-  <b><span class="tag t-ask">4</span>The exercise library is 94% unclassified</b>
+  <b><span class="tag t-ask">5</span>The exercise library is 94% unclassified</b>
   <p>Found while extracting your programming corpus. <b>75 of 1,332</b> exercises carry a category, pattern, laterality or equipment — against 61% that carry cues and 66% that carry a video. The Classify screen is live and has barely been used.</p>
   <p>It costs you nothing today, but it means anything that reasons about <i>patterns</i> has to guess from the title. <b>Worth a pass, or leave it?</b></p>
 </div>
 
 <div class="row ask">
-  <b><span class="tag t-ask">5</span>207 controls whose letters ride off centre</b>
+  <b><span class="tag t-ask">6</span>207 controls whose letters ride off centre</b>
   <p>I was going to tell you 0.5px is beneath noticing. It is not: the roster ACTIVE pill you reported <b>three times</b> was off by <b>0.60px</b>, and this gate measures the same ink at the same threshold. So these are potentially 207 more of that exact complaint.</p>
   <p>Known cause, one line each: <code>line-height: 1</code> on 10px Nord, whose glyph box is 12px. <b>Fix them all, or only the ones beside a border?</b></p>
 </div>
 
 <div class="row ask">
-  <b><span class="tag t-ask">6</span>A second coach: don't start with the signup</b>
+  <b><span class="tag t-ask">7</span>A second coach: don't start with the signup</b>
   <p>You said go ahead on the three revenue blockers. Two of them were finishing something already built. This one is not, so here is what I measured instead of starting it.</p>
   <p>Access is decided by <b>a hard-coded list of email addresses in one file</b> — <code>authRoles.js</code>, <code>OWNER_EMAILS = ['ohadyproductions@gmail.com']</code> — and six screens ask the database for "Ohad's" rows by literal email. The good news is the authorisation model is already centralised; it just has a constant where it needs a lookup.</p>
   <p>But a second coach signing up today would land <i>in your data</i>. So the order is: a coaches table, then <code>coach_id</code> + RLS on the coach-owned tables, <i>then</i> a signup — which at that point is a form and a row. The middle step is a migration on live tables and wants your yes and a restore point, not an autonomous night. <b>Or: publish the booking page first and see if a second coach is even close.</b></p>
 </div>
 
 <div class="row ask">
-  <b><span class="tag t-ask">7</span>Roster hairline, 8px off</b>
+  <b><span class="tag t-ask">8</span>Roster hairline, 8px off</b>
   <p>Unchanged and still yours: fixing it means picking a reserve number on a fixed-height card, which is exactly how the old "footer through the bottom border" bug happened. <b>Say go and I do it properly.</b></p>
 </div>
 
@@ -109,36 +124,37 @@ NOTICE         4 hours?</pre>
 </div>
 
 <div class="row me">
-  <b><span class="tag t-me">8</span>How you program, measured across every block you ever wrote</b>
-  <p>233 plans, 625 days, <b>1,443 prescribed exercises</b>, 30 athletes.</p>
-  <table>
-    <tr><th>field</th><th>filled</th><th></th></tr>
-    <tr><td>rest</td><td class="n">89%</td><td></td></tr>
-    <tr><td>notes</td><td class="n">86%</td><td class="muted">132,138 characters of your coaching prose</td></tr>
-    <tr><td>tempo</td><td class="n">25%</td><td></td></tr>
-    <tr><td>load</td><td class="n bad">0%</td><td class="muted">never, to anybody</td></tr>
-    <tr><td>RPE</td><td class="n bad">0%</td><td class="muted">never, to anybody</td></tr>
-  </table>
-  <p>Sets are 2 or 3 on <b>92.8%</b> of rows. A third of all reps are prescribed <i>per side</i>. You prescribe the position, the rest and the time, and the load is the athlete's to find — that is not a quirk of one routine, it is the rule, and it is why "no weight-progression features" was always right.</p>
-  <p class="muted">Corpus frozen with a sealed 20% hold-out so the analysis can be scored later against blocks it has never seen. First case study written: your daily routine across blocks 25→28, including what you deleted from my draft.</p>
+  <b><span class="tag t-me">9</span>Your club Week Planner was blank. For everyone.</b>
+  <p>The planning board said <b>"WEEK PLANNER (0 SESSIONS · 0 S&amp;C)"</b> with "NO SESSIONS" on all seven days — whatever was actually scheduled. One line:</p>
+  <pre>&lt;WeekPlanner today={today} planOf={planOf} … /&gt;     ← no fixtures prop</pre>
+  <p>The component defaults that prop to an empty array, so it rendered a perfectly correct empty week. Every other panel on that screen already passes it — the head-coach report, fixtures-ahead, the weight room, past practices, the league table. This one was skipped.</p>
+  <p>Measured on the same page after the fix: <b>8 sessions</b>, the whole week with its times, durations, and the scrimmage ringed in orange.</p>
+  <p class="muted">No gate could have found this. The page was valid, laid out, contrast-clean and unclipped — it was just empty. I only caught it because two things on one screenshot disagreed: the Overview said today has an 18:00 practice, the planner underneath said the week was empty, and both read the same array. That is the entire argument for photographing screens with things open instead of trusting a green sweep.</p>
 </div>
 
 <div class="row me">
-  <b><span class="tag t-me">9</span>Mobile audit — pass 1, and a hole in the auditors</b>
-  <p><b>Three public pages had never been measured, and every sweep called them clean.</b> The manifest writes them <code>/book/&lt;slug&gt;</code>, <code>/p/&lt;token&gt;</code>, <code>/sign/&lt;token&gt;</code>; the route regex stops at the <code>&lt;</code>, so the gates visited <code>/book/</code>, <code>/p/</code>, <code>/sign/</code> — and each of those components starts <code>if (!slug) return;</code>. They rendered nothing, nothing was found wrong with nothing. Fixed: real targets now come from the database, and anything unresolvable prints NOT MEASURED beside the zero.</p>
-  <p><b>I fixed three wrong things first, and I want you to know that.</b> I patched all four findings off the gate's one-line summary, rebuilt, re-ran, and three came back unchanged — a summary line names the <i>text</i>, not the element. After writing a probe that prints the element, its box and its ancestors:</p>
-  <p><b>The week row's date column is 74px, and 74 was measured in Hebrew.</b> The comment beside it says "74 is above the 72px widest date" — in Hebrew that is exactly right, nothing overflows. In English those same six rows need 77, 80, 81 and 82, so <b>five of six have been spilling since the day that number was chosen</b>. Now 84, with both languages written down beside it.</p>
-  <p><b>"Athlete not on this roster" was a second site</b> — the card title, not the chip I fixed. Cut to "Athlete not on this ro". It is not always a name; when the athlete is off your roster it is that whole sentence.</p>
-  <p><b>The demo message bubble was never broken — the gate was.</b> Under <code>pre-wrap</code> the space at a line break is painted past the edge and the measurement counted it. Six routes of false alarm. Narrowed, and then <b>break-tested</b>: force the date column to 60px and the sweep reports 5 spills, restore 84 and it reports 0.</p>
-  <p>The one I had right first time: the Games list ellipsising <b>"2026-09-03 vs Maccabi Tel Aviv"</b> down to a date and half a club — against your standing rule about ellipses.</p>
+  <b><span class="tag t-me">9</span>Mobile audit — pass 1 complete, pass 2 running</b>
+  <p>Every gate, with what it covered beside its number. A zero with no coverage is not a pass.</p>
   <table>
     <tr><th>gate</th><th>covered</th><th>result</th></tr>
-    <tr><td>row ink</td><td class="n">7,944 rows · 25,211 items · 204 views</td><td class="ok">0 off centre</td></tr>
-    <tr><td>text clipping, EN</td><td class="n">360 / 390 / 414</td><td class="warn">4 faults, all fixed</td></tr>
-    <tr><td>text clipping, HE</td><td class="n">—</td><td class="bad">running next</td></tr>
-    <tr><td>marketing, 360 + 414</td><td class="n">—</td><td class="bad">running next</td></tr>
+    <tr><td>text clipping, EN</td><td class="n">360 / 390 / 414 · 38 routes</td><td class="ok">0</td></tr>
+    <tr><td>text clipping, HE</td><td class="n">360 / 390 / 414 · 38 routes</td><td class="ok">0</td></tr>
+    <tr><td>row ink, EN</td><td class="n">7,895 rows · 25,033 items · 204 views</td><td class="ok">0</td></tr>
+    <tr><td>row ink, HE</td><td class="n">15,221 rows · 33,866 items · 339 views</td><td class="ok">0</td></tr>
+    <tr><td>marketing site</td><td class="n">54 route/width/lang · 134,628 chars</td><td class="ok">0</td></tr>
+    <tr><td>marketing claims</td><td class="n">22 claims vs programs.js</td><td class="ok">0</td></tr>
+    <tr><td>marketing contrast</td><td class="n">54 pages</td><td class="ok">0</td></tr>
+    <tr><td>RTL no-flip</td><td class="n">175 strings · 11 Hebrew pages</td><td class="ok">0</td></tr>
+    <tr><td>strip bleed</td><td class="n">360 / 390 / 414</td><td class="ok">0</td></tr>
+    <tr><td>card trailing</td><td class="n">median 12px, max 27px</td><td class="warn">64</td></tr>
+    <tr><td>text centring</td><td class="n">1,207 controls measured</td><td class="warn">103</td></tr>
   </table>
-  <p class="muted">Hebrew is the one that matters: 58 labels render 1.5–3.7× longer than the English they replace, so that is where the clipping lives. It had never been run at these widths because the gate only set the language when asked for Hebrew — it now states and sets the language above every result.</p>
+  <p><b>Fixed, and each one found by LOOKING at a 390 or 360 screenshot with the menus open — no gate saw any of them:</b></p>
+  <p>· The club zone's today card never shared a text column on a phone. The label floated beside its value, so six values started at 261, 294, 302, 315 and 333 — a 72px spread. <b>That is the thing you have asked for three times.</b> The label sits above its value now and every value starts on the card's edge.</p>
+  <p>· Opening the club zone and touching a tab within seconds threw a red <b>"NOT SAVED — RELOAD AND TRY AGAIN"</b> across the phone. The guard was right to block — but the blocked write was the zone logging its own "opened the club zone" line. You did nothing and lost nothing. Telemetry no longer raises a banner; your data still does. That banner was also half-English on a Hebrew screen.</p>
+  <p>· Two athlete names in the programs list went invisible after the cyan change. Three white pills turned into black censor bars. Billing's third KPI stood taller than the other two. In the games list the row still needing you looked <i>fainter</i> than the finished one.</p>
+  <p><b>And I rejected a fix that has been written down for weeks.</b> The note said the 0.5px centring defect was "line-height 1.2 at ~128 sites". I applied it to all 209 and measured: 127 off-centre became <b>184</b>. Worse. Reverted. The cause is confirmed (78 of 103 are <code>line-height: 1</code>); the cure is not.</p>
+  <p class="muted">Card trailing is 64 cards at a median of 12px, one at 27. The 98px dead air you reported on 4 Sep is gone — I am not chasing 12px without your eye on it.</p>
 </div>
 
 <div class="row blocked">
