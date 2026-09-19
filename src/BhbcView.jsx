@@ -1811,7 +1811,7 @@ function AthleteModal({ row, rec, days28, bw = [], program = null, workouts = []
                 <span style={{ fontFamily: FN, fontSize: 11, color: C.td, fontVariantNumeric: 'tabular-nums' }}>{days != null ? daysFor(days) : ''}{latestPain(inj) != null ? ` · ${tr('pain')} ${latestPain(inj)}` : ''}{inj.rtpTarget ? ` · RTP ${inj.rtpTarget.slice(5)}` : ''}</span>
                 {/* Same rule as the head coach report: a target already passed,
                     on someone still limited, is a flag rather than a plan. */}
-                {(() => { const od = rtpOverdueDays(inj, todayISO()); return od ? <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: 'var(--bhbc-amber-text, #E0A73A)' }}>{` · ${overdueFor(od)}`}</span> : null; })()}
+                {(() => { const od = rtpOverdueDays(inj, todayISO()); return od ? <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, width: '100%', color: 'var(--bhbc-amber-text, #E0A73A)' }}>{overdueFor(od)}</span> : null; })()}
                 {lastP && <span style={{ fontFamily: FB, fontSize: 11, color: C.tm, width: '100%' }}>{tr('Latest')} ({lastP.date.slice(5)}): {lastP.note}</span>}
               </div>
             );
@@ -2960,7 +2960,17 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
     the ellipsis eats the START of the diagnosis — "…T SPRAIN" instead of
     "ANKLE LEFT SPRAIN". A truncated injury is not an injury report. */}
                     <span style={{ color: C.tm, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{tr((inj.bodyPart || '').split('/')[0].trim())}{sideTag(inj.side, tr)} · {tr(s.label)}{inj.rtpTarget ? <span className="bhbc-mob-hide">{` · RTP ${monDay(inj.rtpTarget)}`}</span> : null}
-                    {(() => { const od = rtpOverdueDays(inj, today); return od ? <span style={{ color: 'var(--bhbc-amber-text, #E0A73A)', fontFamily: FN, fontWeight: 700 }}>{` · ${overdueFor(od)}`}</span> : null; })()}</span>
+                                        {/* THE OVERDUE CLAUSE GETS ITS OWN LINE, ALWAYS.
+                        Ohad 19.9, on Amit Menachem: "המשפט באיחור של עמית מנחם
+                        מוציא את הכל מאיזון. תתחיל משפטים כאלה משורה חדשה כדי שלא
+                        יהיה אי סימטרי". Appended inline it wrapped mid-phrase -
+                        'באיחור של 19' on one line and 'ימים' alone on the next -
+                        which pushed his name off the column and left the row
+                        lopsided next to the rows that happened to fit. display:
+                        block puts it on its own line for EVERY athlete, so 19
+                        days and 24 days look the same instead of one wrapping
+                        and one not. The ' · ' goes with it; a new line does not
+                        need a separator. */}                    {(() => { const od = rtpOverdueDays(inj, today); return od ? <span style={{ display: 'block', color: 'var(--bhbc-amber-text, #E0A73A)', fontFamily: FN, fontWeight: 700 }}>{overdueFor(od)}</span> : null; })()}</span>
                                       {onMedical && (
                       <button onClick={(e) => { e.stopPropagation(); onMedical(t.id); }} title={tr('Update this medical report')} className="bhbc-ghost-btn"
                         style={{ marginInlineStart: 'auto', flexShrink: 0, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, height: ROW_BTN_H, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, padding: '0 9px', cursor: 'pointer' }}>{tr('UPDATE')}</button>

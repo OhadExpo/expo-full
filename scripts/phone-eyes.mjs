@@ -64,6 +64,22 @@ try {
   for (const [name, route, openers] of SHOTS) {
     await page.goto(BASE + route, { waitUntil: 'domcontentloaded', timeout: 45000 });
     await new Promise((r) => setTimeout(r, 4500));
+    // DISMISS WHAT IS COVERING THE SCREEN BEFORE PHOTOGRAPHING IT.
+    //
+    // On the physio seat every single route came back at an identical 1,771
+    // chars / 2,284px and I read that as 'a PT is redirected to the zone
+    // everywhere'. It was not: it was the PWA install prompt covering the page
+    // on first load, sixteen times. A modal makes every surface look the same,
+    // which is indistinguishable from a redirect if you only read the counts.
+    for (const label of ['אחר כך', 'Later', 'Maybe later', 'Dismiss', 'Not now']) {
+      const gone = await page.evaluate((t) => {
+        const b2 = [...document.querySelectorAll('button')].find((e) => (e.textContent || '').trim() === t);
+        if (!b2) return false;
+        b2.click();
+        return true;
+      }, label);
+      if (gone) { await new Promise((r) => setTimeout(r, 1500)); break; }
+    }
     for (const want of openers) {
       const hit = await page.evaluate((txt) => {
         const els = [...document.querySelectorAll('button,[role="tab"],a,summary,[role="button"]')];
