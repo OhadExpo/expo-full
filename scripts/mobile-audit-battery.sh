@@ -49,8 +49,20 @@ run "row-ink-he" env WIDTHS=360,390,414 BASE="$APP" THEME= HE=1 node scripts/ver
 run "card-trailing-360" node scripts/verify-card-trailing.mjs "$APP" 360
 run "card-trailing-390" node scripts/verify-card-trailing.mjs "$APP" 390
 
-run "strip-bleed" node scripts/verify-strip-bleed.mjs "$APP" 390
-run "rtl-no-flip"  node scripts/verify-rtl-no-flip.mjs
+# strip-bleed and column-starts take BASE from the environment and their
+# widths differently from the rest - passing a base positionally to them is
+# silently ignored, which is how a sweep ends up measuring a width nobody
+# asked for. Called the way each one actually reads its input:
+run "strip-bleed" env BASE="$APP" WIDTHS=360,390,414 node scripts/verify-strip-bleed.mjs
+run "rtl-no-flip"  env BASE="$APP" node scripts/verify-rtl-no-flip.mjs
+
+# 0.5px IS a threshold he can see, when there is a border beside it. The roster
+# ACTIVE pill he reported three times was off by 0.60px. So this gate's 207
+# findings are not sub-pixel noise to be waved away - they are potentially 207
+# copies of that same complaint, and the distribution decides. Run at a phone
+# width, where the controls are tightest.
+run "text-centring-390" node scripts/verify-text-centring.mjs "$APP" 390
+run "column-starts"     env BASE="$APP" node scripts/verify-column-starts.mjs 360 390 414
 
 # The marketing site is the other platform, and 360/414 were never in its list.
 run "marketing-site"     env WIDTHS=360,390,414 IL_BASE="$IL" node scripts/verify-marketing-site.mjs

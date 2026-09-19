@@ -12,7 +12,10 @@ const BASE = process.env.BASE || 'http://127.0.0.1:5199';
 const ROUTES = ['/coach', '/coach/sessions', '/coach/sessions-single', '/coach/billing', '/coach/bugs',
   '/coach/challenges', '/coach/messages', '/coach/review-tools', '/coach/calendar', '/coach/bhbc',
   '/coach/tasks', '/coach/programs', '/coach/athletes', '/athlete'];
-const WIDTHS = [1500, 390];
+// 19.9: the mobile audit needs 360 and 414 too, and these were hard-coded, so
+// the sweep could not be pointed at a phone width it had never tried.
+// Default unchanged so every existing invocation measures exactly what it did.
+const WIDTHS = (process.env.WIDTHS || '1500,390').split(',').map(Number).filter(Boolean);
 const b = await P.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: null, protocolTimeout: 300000 });
 const pg = await b.newPage();
 await A.signIn(pg, BASE);
