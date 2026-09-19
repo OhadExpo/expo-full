@@ -90,7 +90,14 @@ NOTICE         4 hours?</pre>
 </div>
 
 <div class="row ask">
-  <b><span class="tag t-ask">6</span>Roster hairline, 8px off</b>
+  <b><span class="tag t-ask">6</span>A second coach: don't start with the signup</b>
+  <p>You said go ahead on the three revenue blockers. Two of them were finishing something already built. This one is not, so here is what I measured instead of starting it.</p>
+  <p>Access is decided by <b>a hard-coded list of email addresses in one file</b> — <code>authRoles.js</code>, <code>OWNER_EMAILS = ['ohadyproductions@gmail.com']</code> — and six screens ask the database for "Ohad's" rows by literal email. The good news is the authorisation model is already centralised; it just has a constant where it needs a lookup.</p>
+  <p>But a second coach signing up today would land <i>in your data</i>. So the order is: a coaches table, then <code>coach_id</code> + RLS on the coach-owned tables, <i>then</i> a signup — which at that point is a form and a row. The middle step is a migration on live tables and wants your yes and a restore point, not an autonomous night. <b>Or: publish the booking page first and see if a second coach is even close.</b></p>
+</div>
+
+<div class="row ask">
+  <b><span class="tag t-ask">7</span>Roster hairline, 8px off</b>
   <p>Unchanged and still yours: fixing it means picking a reserve number on a fixed-height card, which is exactly how the old "footer through the bottom border" bug happened. <b>Say go and I do it properly.</b></p>
 </div>
 
@@ -135,7 +142,13 @@ NOTICE         4 hours?</pre>
 </div>
 
 <div class="row blocked">
-  <b><span class="tag t-no">10</span>Not done, and why</b>
+  <b><span class="tag t-no">10</span>I missed a day of the Hebrew voice work</b>
+  <p>You asked for it every day for a month and called it the most important task. <code>voice/log/</code> has <b>one</b> file: 17.9. <b>Day 2 never ran.</b> Telling you rather than quietly catching up.</p>
+  <p>Day 3 is running now, and better than day 1: instead of re-reading all 2,808 strings, it diffs against day 1 and reads only what is new — <b>290 strings added to the app since then that have never had a pass</b>. Short went 2,039 → 2,227, long 508 → 589, inline 1,345 → 1,533. That delta is the day's work; re-reading the rest is waste.</p>
+</div>
+
+<div class="row blocked">
+  <b><span class="tag t-no">11</span>Not done, and why</b>
   <p><b>Medical reconciliation</b> — the BHBC side is snapshotted (8 athletes, 8 injuries, every one still marked open, nothing ever resolved). Reading the chat needs WhatsApp, which is item 3.</p>
   <p><b>Box score</b> — still waiting on your two answers (AST 18 or 19, BLK 2 or 3).</p>
   <p><b>Passes 2 and 3 of the mobile audit</b> — pass 1 is not finished yet. They run the identical battery so "three passes" means the same ground three times, not whatever I retyped.</p>
