@@ -416,7 +416,7 @@ export const HE = {
   'Session plan': 'תוכנית האימון',
   // The owner-only ACTIVITY tab: who works in the zone and what they changed.
   'Activity': 'פעילות',
-  'Who has been in, last 30 days': 'מי נכנס, ב-30 הימים האחרונים',
+  'Who has been in, last 30 days': 'מי נכנס ב-30 הימים האחרונים',
   'What changed': 'מה השתנה',
   'Signed in': 'כניסה',
   'Check-in': 'צ׳ק-אין',
