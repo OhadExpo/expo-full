@@ -2408,8 +2408,14 @@ function FixturesAheadPanel({ fixtures, today }) {
           const days = dayDiff(g.date, today);
           const gap = prevDate ? dayDiff(g.date, prevDate) : null; prevDate = g.date;
           const tight = gap != null && gap <= 3;
+          // THE DAY COUNT TOP-ALIGNS WITH THE OPPONENT, ALWAYS.
+          // Measured 19.9 at 390 in English: three rows had the count level with
+          // the club name and the fourth - FC PORTO, the only one carrying a 3D
+          // TURNAROUND tag - had it sitting halfway down, because
+          // alignItems:center re-centres against a taller row. The number a coach
+          // reads first must start where the name starts.
           return (
-            <div key={i} style={{ display: 'grid', gridTemplateColumns: '46px 1fr auto', gap: 12, alignItems: 'center', padding: '10px 0', borderBottom: i < games.length - 1 ? `1px solid ${C.cardBd}` : 'none' }}>
+            <div key={i} style={{ display: 'grid', gridTemplateColumns: '46px 1fr auto', gap: 12, alignItems: 'start', padding: '10px 0', borderBottom: i < games.length - 1 ? `1px solid ${C.cardBd}` : 'none' }}>
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontFamily: FN, fontWeight: 800, fontSize: 17, lineHeight: 1, color: C.tx, fontVariantNumeric: 'tabular-nums' }}>{days}</div>
                 {/* 9, not 7.5: measured at 390px this was the smallest text in the zone,
@@ -3037,7 +3043,7 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
                       I see the plan for tonight?"). */}
                   {pl && (pl.focus || pl.plan)
                     ? <span dir="auto" style={{ flex: '1 1 auto', minWidth: 0, color: C.tx, fontFamily: FB, fontSize: 12, whiteSpace: 'normal', overflowWrap: 'break-word' }}>— {pl.focus || pl.plan}</span>
-                    : clickable ? <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: ORANGE, flexShrink: 0 }}>{tr('+ PLAN')}</span> : null}
+                    : clickable ? <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: ORANGE, flexShrink: 0, marginInlineStart: 'auto' }}>{tr('+ PLAN')}</span> : null}
                 </div>
                 );
               })}
