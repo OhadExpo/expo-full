@@ -15,6 +15,23 @@
 #      repo's dist, so a rebuild swaps the site out from under a running sweep.
 #      I did exactly that twice on 19.9 and had to throw both runs away.
 #
+# WHAT MAKES THE THREE PASSES DIFFERENT.
+#
+# Running the identical battery three times finds the same thing three times.
+# The gates below ARE run identically every pass - that is what catches a
+# regression introduced by the previous pass's fixes - but each pass adds its
+# own work on top, and that is where the findings come from:
+#
+#   PASS 1  the gates, cold. Fix what they name.
+#   PASS 2  the gates again, THEN LOOK AT THE PHONE SCREEN. Screenshot 360 and
+#           390 with the menus OPEN and the sections EXPANDED, and read them.
+#           Every complaint he has ever made about a phone - the dropdown off
+#           screen, one letter per line, the 3px logo, the money contradicting
+#           itself - was one second of looking and passed every rect gate.
+#   PASS 3  adversarial. Break each fix and prove the gate still bites; drive
+#           the surfaces a route sweep cannot reach (modals, drawers, the ⋮
+#           menu, a started workout); and re-run from the OTHER seats.
+#
 # Usage:  bash scripts/mobile-audit-battery.sh <pass-number>
 set -u
 PASS="${1:-1}"

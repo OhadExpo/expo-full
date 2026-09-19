@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EXPO — what's left</title>
+<style>
+  :root { --bg:#0a0a0b; --sf:#121316; --bd:#23262d; --tx:#f0f0f4; --tm:#9a9aa8; --td:#6b6b78;
+          --ac:#39BDFF; --ok:#37B27C; --warn:#E0A73A; --bad:#DE4E3B; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--tx);
+         font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif; padding:0 16px 70px; }
+  main { max-width: 760px; margin: 0 auto; }
+  header { padding: 28px 0 14px; }
+  h1 { font-size: 22px; margin:0 0 4px; letter-spacing:.02em; }
+  h1 span { color: var(--ac); }
+  .sub { color: var(--tm); font-size: 13px; }
+  h2 { font-size: 11px; letter-spacing:.18em; text-transform:uppercase; color:var(--tm);
+       margin: 26px 0 10px; font-weight:700; }
+  .row { background:var(--sf); border:1px solid var(--bd); border-left:3px solid var(--ac);
+         padding: 13px 15px; margin-bottom: 10px; }
+  .row.you { border-left-color: var(--warn); }
+  .row.ask { border-left-color: var(--ac); }
+  .row.me  { border-left-color: var(--ok); }
+  .row.blocked { border-left-color: var(--bad); }
+  .row b { display:block; font-size:15px; margin-bottom:5px; }
+  .row p { margin: 5px 0; font-size: 14px; color: var(--tm); }
+  .row p b { display:inline; color: var(--tx); font-size:14px; }
+  .tag { display:inline-block; min-width:20px; margin-right:8px; font-size:11px; font-weight:700;
+         color:var(--bg); background:var(--ac); padding:1px 6px; border-radius:2px; vertical-align:2px; }
+  .t-you { background: var(--warn); } .t-ask { background: var(--ac); }
+  .t-me { background: var(--ok); } .t-no { background: var(--bad); }
+  pre { background:#0d0e11; border:1px solid var(--bd); padding:9px 11px; overflow-x:auto;
+        font-size:12.5px; color:var(--ac); margin: 8px 0 2px; }
+  code { color: var(--ac); font-size: 13px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; margin-top:8px; }
+  th { text-align:start; font-size:10px; letter-spacing:.12em; text-transform:uppercase;
+       color:var(--td); font-weight:700; padding:6px 8px; border-bottom:1px solid var(--bd); }
+  td { padding:7px 8px; border-bottom:1px solid var(--bd); color:var(--tm); }
+  td.n { color:var(--tx); font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .muted { color: var(--td); font-size: 12.5px; }
+  .ok { color: var(--ok); } .bad { color: var(--bad); } .warn { color: var(--warn); }
+</style>
+</head>
+<body>
+<main>
+<header>
+  <h1>What's <span>left</span></h1>
+  <div class="sub">19.9 · 264 commits not live · production <code>09d30a9</code> · deploy candidate <code>deploy-0919</code></div>
+</header>
+
+<h2>You — one line each</h2>
+
+<div class="row you">
+  <b><span class="tag t-you">1</span>Your booking hours. This is the one blocking money.</b>
+  <p>Measured: <code>coach_booking_settings</code> <b>0 rows</b>, <code>availability_rules</code> <b>1 row</b> (Monday 09:00–17:00), <code>bookings</code> <b>0</b>. So <code>/book/ohad</code> renders nothing for a visitor and the calendar sync has never had a slot to sync.</p>
+  <p>The code has been finished for weeks. Nobody ever pressed Save. I did not press it for you, because the one rule in the table is a test row from 7.9 and publishing the wrong hours is worse than a 404 — someone books 14:00 Monday, you are at Herzliya.</p>
+  <pre>DAYS + HOURS   e.g. Sun-Thu 08:00-20:00, Fri 08:00-13:00
+SESSION        60 min?
+NOTICE         4 hours?</pre>
+  <p class="muted">Answer those three and it is live in a minute, verified from a signed-out browser.</p>
+</div>
+
+<div class="row you">
+  <b><span class="tag t-you">2</span>Ship everything except the athlete portal</b>
+  <p>Built, held correctly, and <b>proven</b> held rather than claimed: ClientPortal, MealLogger and TrySandbox are byte-identical to production, and the <code>&lt;LangCtx.Provider&gt;</code> wrap that turns the whole portal Hebrew is out of App.jsx too — that one nearly slipped through and would have changed every athlete's screen while I reported the portal as untouched.</p>
+  <p class="muted">Not held on purpose: the login fix and <code>keepHash</code>. They change no pixel in the portal, and holding them leaves athletes unable to sign in. Say the word and they come out.</p>
+  <pre>! cd /c/Users/Administrator/Desktop/expo-full &amp;&amp; git push origin deploy-0919:master</pre>
+  <p class="muted">Rollback: <code>git push --force-with-lease origin 09d30a9:master</code> · safety branch <code>backup-bhbc-hebrew-20260919</code></p>
+</div>
+
+<div class="row you">
+  <b><span class="tag t-you">3</span>WhatsApp — still one permission line</b>
+  <p>Unchanged from 18.9, and it now blocks a second job: the <b>בני הרצליה רפואי</b> reconciliation you asked for needs to read that chat. I did not switch to WhatsApp Web to get around the refusal.</p>
+  <pre>/permissions → PowerShell(powershell -NoProfile -ExecutionPolicy Bypass -File C:\Users\Administrator\expo-private-backups\wa\ui.ps1:*)</pre>
+</div>
+
+<h2>Your call — one word, then I build it</h2>
+
+<div class="row ask">
+  <b><span class="tag t-ask">4</span>The exercise library is 94% unclassified</b>
+  <p>Found while extracting your programming corpus. <b>75 of 1,332</b> exercises carry a category, pattern, laterality or equipment — against 61% that carry cues and 66% that carry a video. The Classify screen is live and has barely been used.</p>
+  <p>It costs you nothing today, but it means anything that reasons about <i>patterns</i> has to guess from the title. <b>Worth a pass, or leave it?</b></p>
+</div>
+
+<div class="row ask">
+  <b><span class="tag t-ask">5</span>207 controls whose letters ride off centre</b>
+  <p>I was going to tell you 0.5px is beneath noticing. It is not: the roster ACTIVE pill you reported <b>three times</b> was off by <b>0.60px</b>, and this gate measures the same ink at the same threshold. So these are potentially 207 more of that exact complaint.</p>
+  <p>Known cause, one line each: <code>line-height: 1</code> on 10px Nord, whose glyph box is 12px. <b>Fix them all, or only the ones beside a border?</b></p>
+</div>
+
+<div class="row ask">
+  <b><span class="tag t-ask">6</span>Roster hairline, 8px off</b>
+  <p>Unchanged and still yours: fixing it means picking a reserve number on a fixed-height card, which is exactly how the old "footer through the bottom border" bug happened. <b>Say go and I do it properly.</b></p>
+</div>
+
+<h2>Done since you last looked</h2>
+
+<div class="row me">
+  <b><span class="tag t-me">7</span>The warm-up backfill was already complete — the RULE was wrong</b>
+  <p>25 distinct past practice dates, every one carrying a Conditioning period for every athlete, 0 missing. But my script also skipped anything tipping off before noon, reading "morning" as the operative word in "except morning shootarounds". It is not — shootaround is a <i>type</i>. Three 10:30 practices (24.8, 27.8, 6.9) would have been missed on the next run. Fixed.</p>
+</div>
+
+<div class="row me">
+  <b><span class="tag t-me">8</span>How you program, measured across every block you ever wrote</b>
+  <p>233 plans, 625 days, <b>1,443 prescribed exercises</b>, 30 athletes.</p>
+  <table>
+    <tr><th>field</th><th>filled</th><th></th></tr>
+    <tr><td>rest</td><td class="n">89%</td><td></td></tr>
+    <tr><td>notes</td><td class="n">86%</td><td class="muted">132,138 characters of your coaching prose</td></tr>
+    <tr><td>tempo</td><td class="n">25%</td><td></td></tr>
+    <tr><td>load</td><td class="n bad">0%</td><td class="muted">never, to anybody</td></tr>
+    <tr><td>RPE</td><td class="n bad">0%</td><td class="muted">never, to anybody</td></tr>
+  </table>
+  <p>Sets are 2 or 3 on <b>92.8%</b> of rows. A third of all reps are prescribed <i>per side</i>. You prescribe the position, the rest and the time, and the load is the athlete's to find — that is not a quirk of one routine, it is the rule, and it is why "no weight-progression features" was always right.</p>
+  <p class="muted">Corpus frozen with a sealed 20% hold-out so the analysis can be scored later against blocks it has never seen. First case study written: your daily routine across blocks 25→28, including what you deleted from my draft.</p>
+</div>
+
+<div class="row me">
+  <b><span class="tag t-me">9</span>Mobile audit — pass 1, and a hole in the auditors</b>
+  <p><b>Three public pages had never been measured, and every sweep called them clean.</b> The manifest writes them <code>/book/&lt;slug&gt;</code>, <code>/p/&lt;token&gt;</code>, <code>/sign/&lt;token&gt;</code>; the route regex stops at the <code>&lt;</code>, so the gates visited <code>/book/</code>, <code>/p/</code>, <code>/sign/</code> — and each of those components starts <code>if (!slug) return;</code>. They rendered nothing, nothing was found wrong with nothing. Fixed: real targets now come from the database, and anything unresolvable prints NOT MEASURED beside the zero.</p>
+  <p><b>I fixed three wrong things first, and I want you to know that.</b> I patched all four findings off the gate's one-line summary, rebuilt, re-ran, and three came back unchanged — a summary line names the <i>text</i>, not the element. After writing a probe that prints the element, its box and its ancestors:</p>
+  <p><b>The week row's date column is 74px, and 74 was measured in Hebrew.</b> The comment beside it says "74 is above the 72px widest date" — in Hebrew that is exactly right, nothing overflows. In English those same six rows need 77, 80, 81 and 82, so <b>five of six have been spilling since the day that number was chosen</b>. Now 84, with both languages written down beside it.</p>
+  <p><b>"Athlete not on this roster" was a second site</b> — the card title, not the chip I fixed. Cut to "Athlete not on this ro". It is not always a name; when the athlete is off your roster it is that whole sentence.</p>
+  <p><b>The demo message bubble was never broken — the gate was.</b> Under <code>pre-wrap</code> the space at a line break is painted past the edge and the measurement counted it. Six routes of false alarm. Narrowed, and then <b>break-tested</b>: force the date column to 60px and the sweep reports 5 spills, restore 84 and it reports 0.</p>
+  <p>The one I had right first time: the Games list ellipsising <b>"2026-09-03 vs Maccabi Tel Aviv"</b> down to a date and half a club — against your standing rule about ellipses.</p>
+  <table>
+    <tr><th>gate</th><th>covered</th><th>result</th></tr>
+    <tr><td>row ink</td><td class="n">7,944 rows · 25,211 items · 204 views</td><td class="ok">0 off centre</td></tr>
+    <tr><td>text clipping, EN</td><td class="n">360 / 390 / 414</td><td class="warn">4 faults, all fixed</td></tr>
+    <tr><td>text clipping, HE</td><td class="n">—</td><td class="bad">running next</td></tr>
+    <tr><td>marketing, 360 + 414</td><td class="n">—</td><td class="bad">running next</td></tr>
+  </table>
+  <p class="muted">Hebrew is the one that matters: 58 labels render 1.5–3.7× longer than the English they replace, so that is where the clipping lives. It had never been run at these widths because the gate only set the language when asked for Hebrew — it now states and sets the language above every result.</p>
+</div>
+
+<div class="row blocked">
+  <b><span class="tag t-no">10</span>Not done, and why</b>
+  <p><b>Medical reconciliation</b> — the BHBC side is snapshotted (8 athletes, 8 injuries, every one still marked open, nothing ever resolved). Reading the chat needs WhatsApp, which is item 3.</p>
+  <p><b>Box score</b> — still waiting on your two answers (AST 18 or 19, BLK 2 or 3).</p>
+  <p><b>Passes 2 and 3 of the mobile audit</b> — pass 1 is not finished yet. They run the identical battery so "three passes" means the same ground three times, not whatever I retyped.</p>
+</div>
+
+</main>
+</body>
+</html>
