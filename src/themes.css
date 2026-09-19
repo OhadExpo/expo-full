@@ -92,6 +92,18 @@
      light theme's "strip stands clearly above the body" visual
      hierarchy (Ohad spec 2026-05-24). */
   --c-stripBg: #1a1a22;
+  /* THE STRIP'S TEXT IS A TOKEN NOW, NOT A HARDCODED WHITE.
+     19.9, Ohad on a screenshot of /coach/chat-audit in LIGHT: "all cyan is
+     horrible design". He was looking at five COLLAPSED cards, which in light
+     were five full-bleed #39BDFF bars and nothing else. The strip's own
+     comment in ui.jsx describes "a faint cyan highlight without a hard fill"
+     - that was only ever true in DARK, where stripBg is near-black and the
+     90/10 mix lands subtle. In light, stripBg was the full brand cyan, so the
+     same mix produced a saturated slab.
+     The strip text was white BECAUSE the strip was cyan. Lightening the strip
+     without moving the text would print white on near-white, so the two move
+     together and the colour is named once, here. */
+  --c-stripTx: #FFFFFF;
   /* Match light's headline-size KPI numbers so dark + light tiles have
      identical body heights (10.5px discrepancy fix, 2026-05-23). */
   --c-kpiNumberSize: 40px;
@@ -149,8 +161,9 @@
  *   • card border: cyan-tinted hairline (--c-cardBd at 42%) — visible
  *     and unmistakably EXPO without flooding the field with cyan
  *   • card shadow: real elevation, not 1px-of-nothing
- *   • strip header: separate token (--c-stripBg) stays full cyan so
- *     every card has a clear cyan top edge carrying the brand
+ *   • strip header: separate token (--c-stripBg) is a pale cyan TINT (19.9) so
+ *     every card has a branded top edge without a slab of fill;
+ *     the cyan HAIRLINE around it carries the brand at full strength
  *   • severity (rd/gn/or/pu) stays saturated for alert clarity
  *
  * Active accent is still BLACK (#0E0F12) so buttons/active-tabs read
@@ -173,7 +186,14 @@
   --c-sf: #FFFFFF;                /* card surface — pure white, not cyan */
   --c-sf2: #EEF0F3;               /* soft gray — used by baseInput + table-row hover (one notch darker to match new bg) */
   --c-sf3: #DFE2E7;               /* sunken / disabled surface */
-  --c-stripBg: #39BDFF;           /* RefinedHeaderStrip bg — full BSG cyan, brand-on */
+  /* Was #39BDFF (a full-cyan slab). See the note in the dark block: a page of
+     collapsed cards became a wall of cyan. This is the SAME relationship dark
+     has - a surface a few points off the card, tinted toward the brand - so
+     the strip still reads as branded and the cyan hairline around it still
+     carries the identity at full strength. Cyan stays bright where it is a
+     STROKE; it stops being a FILL. */
+  --c-stripBg: #E3F4FE;
+  --c-stripTx: #0E0F12;           /* light's architectural black, same as the active accent */
   --c-headerBg: #FFFFFF;
   --c-divider: rgba(57,189,255,0.22);
   --c-badgeBg: #FFFFFF;
@@ -219,7 +239,8 @@
   --c-sf: #FBF9F5;
   --c-sf2: #EFEBE3;
   --c-sf3: #E0DBD1;
-  --c-stripBg: #39BDFF;
+  --c-stripBg: #E3F4FE;   /* see the light block above - a tint, not a slab */
+  --c-stripTx: #0E0F12;
   --c-headerBg: #FBF9F5;
   --c-divider: rgba(57,189,255,0.22);
   --c-badgeBg: #FBF9F5;
@@ -255,7 +276,8 @@
   --c-sf: #EFF2F6;
   --c-sf2: #E2E6EC;
   --c-sf3: #D3D8E0;
-  --c-stripBg: #39BDFF;
+  --c-stripBg: #E3F4FE;   /* see the light block above - a tint, not a slab */
+  --c-stripTx: #0E0F12;
   --c-headerBg: #EFF2F6;
   --c-divider: rgba(57,189,255,0.22);
   --c-badgeBg: #EFF2F6;

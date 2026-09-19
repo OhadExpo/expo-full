@@ -307,6 +307,15 @@ export function RefinedHeaderStrip({ children, padY = 14, padX = 18, marginBotto
       // without a hard fill (Ohad's test, 2026-07-30). ~10% brand cyan mixed
       // into the strip token; stays subtle in dark, stays branded in light.
       background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))',
+      // The strip SETS its text colour so every caller inherits it instead of
+      // hardcoding #FFFFFF. 19.9: the light theme's strip went from a full-cyan
+      // slab to a pale tint (Ohad, on /coach/chat-audit: "all cyan is horrible
+      // design" — he was looking at five collapsed cards, which were five
+      // full-bleed cyan bars and nothing else). White text was correct ON cyan
+      // and is invisible on the tint, so the two are named together in
+      // themes.css and read from one token here. The club zone keeps a navy
+      // strip and overrides the token back to white.
+      color: 'var(--c-stripTx, inherit)',
       // The bleed CANCELS the parent Card's padding so the strip reaches the
       // card's border. In a container that has NO padding it does the opposite:
       // measured at 390 on /coach/sessions, the floor bar's strip ran from

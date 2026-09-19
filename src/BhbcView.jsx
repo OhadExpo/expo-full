@@ -78,6 +78,10 @@ const tokensFor = (theme) => (theme === 'dark' ? {
   // brighter club navy still reads as a bar and keeps white titles legible.
   '--c-ac': NAVY,
   '--c-stripBg': NAVY,
+  // The zone's strip stays NAVY in both themes, so it keeps white text even
+  // though the app's light theme moved its strip to a pale tint with dark ink
+  // (19.9). Without this the zone would inherit #0E0F12 on navy.
+  '--c-stripTx': '#FFFFFF',
   // Hairlines have to lift OFF a dark surface, not sink into it.
   '--c-cardBd': 'rgba(126,162,220,0.30)',
   '--c-bd': 'rgba(126,162,220,0.24)',
@@ -88,6 +92,8 @@ const tokensFor = (theme) => (theme === 'dark' ? {
 const TOKENS = {
   '--c-ac': NAVY_DEEP,
   '--c-stripBg': NAVY_DEEP,
+  '--c-stripTx': '#FFFFFF',
+
   // A NAVY HAIRLINE, not a mix with the app's. Mixing 20% navy into --c-bd left
   // EXPO's cyan showing through every card edge in the zone, which is what made
   // the program popup read as an EXPO dialog wearing a club title.
