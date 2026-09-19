@@ -295,6 +295,11 @@ export const HE = {
   "No exercises found. Try relaxing filters or the search term.": "לא נמצאו תרגילים. תוריד חלק מהסינונים או שנה את מילת החיפוש.",
   "Add the athletes training now — check them in as they arrive and log every set from this one screen.": "תוסיף את מי שמתאמן עכשיו — תסמן כל אחד כשהוא מגיע ותרשום כל סט מהמסך הזה.",
   "SAVE FAILED —": "השמירה נכשלה —",
+  // The write-guard messages surface in SaveErrorToast, which printed them raw:
+  // a Hebrew title over an English body on /coach/bhbc (photographed 19.9).
+  'Not saved — the data had not finished loading. Reload and try again.': 'לא נשמר — המידע עוד לא הספיק להיטען. תרענן ותנסה שוב.',
+  'Your data is still in local memory. Check connection and retry.': 'המידע עדיין שמור אצלך במכשיר. תבדוק חיבור ותנסה שוב.',
+  'This recording was not saved — record and upload it again.': 'ההקלטה לא נשמרה — תצלם ותעלה אותה שוב.',
   "Couldn’t load billing data:": "לא הצלחנו לטעון את נתוני החיוב:",
   "CONFIRM ·": "אישור ·",
   "WEEK OF": "שבוע של",

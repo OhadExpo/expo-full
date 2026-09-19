@@ -38,16 +38,47 @@ for (const W of RUN) {
     for (const row of document.querySelectorAll('.bhbc-labelrow')) {
       const val = row.lastElementChild;
       if (!val) continue;
-      // First text-bearing leaf, by x, on the row's FIRST visual line.
+      // Direction comes from the CONTAINER, not the leaf. A Latin name inside a
+      // Hebrew line ('Bryant') computes direction:ltr on the leaf, and taking
+      // ITS left edge put one row 12px right of the column while every other
+      // row was measured from the right. The column is a property of the block.
+      const rtl = getComputedStyle(val).direction === 'rtl';
+      // A LEADING INDICATOR IS WHERE THE CONTENT STARTS.
+      //
+      // This took the first TEXT-bearing leaf, so a row whose content opens with
+      // a status dot was measured from the name BEHIND the dot and read 18px off
+      // the column. Probed 19.9 on the medical row: the dot's own edge sits at
+      // 363.6, exactly where the other five rows start. The card was aligned and
+      // the gate was measuring the wrong thing. A painted leaf with a size is
+      // content, whether or not it carries text.
       const leaves = [...val.querySelectorAll('*')].filter((e) => {
         if (e.children.length) return false;
-        if (!(e.textContent || '').trim()) return false;
         const r = e.getBoundingClientRect();
-        return r.width > 0 && r.height > 0;
-      }).map((e) => { const r = e.getBoundingClientRect(); return { t: (e.textContent || '').trim().slice(0, 18), x: +r.left.toFixed(1), y: +r.top.toFixed(1) }; });
+        if (!(r.width > 0 && r.height > 0)) return false;
+        if ((e.textContent || '').trim()) return true;
+        const cs = getComputedStyle(e);
+        return (cs.backgroundColor && cs.backgroundColor !== 'rgba(0, 0, 0, 0)')
+          || cs.borderTopWidth !== '0px' || e.tagName === 'IMG' || e.tagName === 'svg';
+      // THE START EDGE IS NOT ALWAYS THE LEFT EDGE.
+      //
+      // This measured r.left unconditionally. The club zone renders RTL, where
+      // the logical START of a line is its RIGHT edge - so on a Hebrew screen
+      // it was measuring where each value ENDS, and reported a spread of 862px
+      // at 1500 purely because some values are longer than others. Three
+      // 'misalignment' failures on 19.9 were all this; the card was aligned.
+      // Direction comes from the CONTAINER, not the leaf. A Latin name inside a
+      // Hebrew line ('Bryant') computes direction:ltr on the leaf, and taking
+      // ITS left edge put one row 12px right of the column while every other
+      // row was measured from the right. The column is a property of the block.
+      }).map((e) => {
+        const r = e.getBoundingClientRect();
+        return { t: (e.textContent || '').trim().slice(0, 18), x: +(rtl ? r.right : r.left).toFixed(1), y: +r.top.toFixed(1), rtl };
+      });
       if (!leaves.length) continue;
       const topY = Math.min(...leaves.map((l) => l.y));
-      const firstLine = leaves.filter((l) => l.y - topY < 6).sort((a, b) => a.x - b.x);
+      // In RTL the first thing READ is the largest x, so sort the other way.
+      const isRtl = rtl;
+      const firstLine = leaves.filter((l) => l.y - topY < 6).sort((a, b) => (isRtl ? b.x - a.x : a.x - b.x));
       out.push({ label: (row.firstElementChild.textContent || '').trim(), first: firstLine[0] });
     }
     return out;
@@ -56,7 +87,7 @@ for (const W of RUN) {
   // rather than a label grid. Its five columns must each be one column, and its
   // label + first-text must sit on the report's columns above it.
   const brief = await pg.evaluate(() => [...document.querySelectorAll('.bhbc-brief-row')].map((r) =>
-    [...r.children].map((c) => +c.getBoundingClientRect().left.toFixed(1))));
+    [...r.children].map((c) => { const b = c.getBoundingClientRect(); return +(getComputedStyle(c).direction === 'rtl' ? b.right : b.left).toFixed(1); })));
   if (brief.length > 1) {
     const cols = Math.min(...brief.map((r) => r.length));
     for (let i = 0; i < cols; i++) {

@@ -1016,7 +1016,16 @@ function attendance28(rec, days) {
              full-width line. Eight sessions, eight lines back. */
           .bhbc-chip .bhbc-chip-focus-empty{display:none!important}
         .bhbc-labelrow{display:block!important}
-          .bhbc-labelrow > div:first-child{float:inline-start;width:auto!important;min-width:0!important;margin-inline-end:8px;line-height:1.55}
+          /* THE LABEL GOES ABOVE, NOT BESIDE — so every value starts on ONE column.
+             It floated inline-start, which indents only the FIRST line and starts
+             each value after a label of a different width. Measured 19.9 at 360
+             and 390: the six values in the today card started at 261.1, 294.4,
+             301.9, 315.2 and 333.2 - a 72px spread, which is the thing he has now
+             asked for three times. Desktop was already 0px; only the phone
+             floated. The list variant below already stacks for this reason; this
+             makes the default do it too - one extra line per row, every value on
+             the card's own edge. */
+          .bhbc-labelrow > div:first-child{float:none!important;display:block!important;width:auto!important;min-width:0!important;margin:0 0 4px 0!important;line-height:1.55}
           .bhbc-labelrow::after{content:'';display:block;clear:both}
           /* Same tightening as the desktop sweep, applied to the phone: the page
              gutter and the gap between cards are desktop measures on a 390px

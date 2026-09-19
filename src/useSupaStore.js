@@ -489,7 +489,18 @@ export function useSupaStore(key, initial) {
     });
     if (!verdict.ok) {
       console.warn(`useSupaStore[${key}] BLOCKED save (${verdict.reason}):`, verdict.message);
-      emitSaveError({ key, op: 'save', msg: verdict.message });
+      // TELEMETRY MUST NOT ALARM THE COACH.
+      //
+      // 19.9, photographed at 390 on /coach/bhbc: opening the zone and touching a
+      // tab within a few seconds of a cold load put a red "NOT SAVED — THE DATA
+      // HAD NOT FINISHED LOADING. RELOAD AND TRY AGAIN" across the screen. The
+      // guard was RIGHT to block - expo-bhbc-activity had not loaded and the
+      // write would have replaced the feed with one entry, the library-wipe shape
+      // exactly. But the blocked write was the zone logging its OWN 'opened the
+      // club zone' line. The coach did nothing, lost nothing, and was told to
+      // reload. Still blocked, still in the console, but no banner: it is a usage
+      // trail, not his data. Any key that IS his data keeps the banner.
+      if (key !== 'expo-bhbc-activity') emitSaveError({ key, op: 'save', msg: verdict.message });
       return;
     }
     // An accepted write becomes the new baseline for the next shrink check.
