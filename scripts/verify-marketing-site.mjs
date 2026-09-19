@@ -18,7 +18,10 @@ import { setWidth } from './lib/viewport.mjs';
 import { readFileSync } from 'node:fs';
 
 const BASE = process.env.IL_BASE || 'http://127.0.0.1:5174';
-const WIDTHS = [1500, 900, 390];
+// 19.9: the triple mobile audit needs 360 and 414 as well, and hard-coding the
+// three meant the sweep could not be pointed at a phone width it had never
+// tried. Default unchanged so every existing invocation measures what it did.
+const WIDTHS = (process.env.WIDTHS || '1500,900,390').split(',').map(Number);
 
 const b = await P.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: null, protocolTimeout: 300000 });
 const pg = await b.newPage();

@@ -1167,9 +1167,13 @@ function DemoMessages() {
           const self = m.role === 'coach';
           return (
             <div key={i} style={{ display: 'flex', justifyContent: self ? 'flex-end' : 'flex-start' }}>
-              <div style={{ maxWidth: '78%', borderRadius: 0, padding: '8px 10px', background: self ? 'rgba(57,189,255,0.094)' : 'var(--c-sf)', border: `1px solid ${self ? C.ac : C.cardBd}` }}>
+              <div style={{ maxWidth: '78%', minWidth: 0, borderRadius: 0, padding: '8px 10px', background: self ? 'rgba(57,189,255,0.094)' : 'var(--c-sf)', border: `1px solid ${self ? C.ac : C.cardBd}` }}>
                 <div style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.08em', marginBottom: 3 }}>{self ? T('COACH') : T('ATHLETE')} · {m.time}</div>
-                <div style={{ fontSize: 13, color: C.tx, lineHeight: 1.4 }}>{T(m.text)}</div>
+                {/* A message is written by a person, so it can contain a word longer
+                    than a phone is wide. Measured 19.9 at 360px: the coach's reply spilled
+                    4px past its own bubble border. maxWidth alone does not stop that -
+                    the long token has to be allowed to break. */}
+                <div style={{ fontSize: 13, color: C.tx, lineHeight: 1.4, overflowWrap: 'anywhere' }}>{T(m.text)}</div>
               </div>
             </div>
           );

@@ -31,7 +31,24 @@ const routesFromManifest = () => {
       .filter((r) => !/\/(login|intake)/.test(r));
   } catch { return ['/coach/athletes', '/athlete']; }
 };
-const ROUTES = (process.argv.length > 4 ? process.argv.slice(4) : routesFromManifest()).map(unmangleArg);
+// THE BARE PUBLIC ROUTES WERE MEASURING A BLANK PAGE.
+//
+// routesFromManifest's regex stops at the `<` in `/book/<slug>`, so the list it
+// built contained `/book/`, `/p/` and `/sign/` - and every one of those
+// components starts `if (!slug) return;`. Three PUBLIC pages rendered nothing,
+// nothing was found wrong with nothing, and the sweep printed OK. Found 19.9.
+//
+// Real targets come from the database now, and a target that cannot be resolved
+// is DROPPED and its reason printed, so the zero always says what it covered.
+const asked = process.argv.length > 4 ? process.argv.slice(4).map(unmangleArg) : null;
+let ROUTES = asked || routesFromManifest().map(unmangleArg);
+let PUBLIC_SKIPPED = [];
+if (!asked) {
+  const { publicRouteTargets, BARE_PUBLIC } = await import('./lib/public-routes.mjs');
+  const got = await publicRouteTargets();
+  PUBLIC_SKIPPED = got.skipped;
+  ROUTES = [...ROUTES.filter((r) => !BARE_PUBLIC.includes(r)), ...got.routes];
+}
 
 const MEASURE = () => {
   const out = [];
@@ -143,5 +160,8 @@ try {
   console.log('SWEEP ERROR:', String(e.message || e).split('\n')[0]);
   process.exitCode = 1;
 } finally { await page.close().catch(() => {}); b.disconnect(); }
-console.log(`\n${total} place(s) where text is cut off or spills its box at ${W}px`);
+console.log(`\n${total} place(s) where text is cut off or spills its box at ${W}px — across ${ROUTES.length} route(s)`);
+// A zero has to say what it could NOT reach, or it reads as coverage it does
+// not have.
+for (const why of PUBLIC_SKIPPED) console.log(`  NOT MEASURED  ${why}`);
 process.exit(total ? 1 : 0);

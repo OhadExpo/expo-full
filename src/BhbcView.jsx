@@ -3691,8 +3691,14 @@ function MicrocycleView({ fx, today }) {
                 : d.isToday ? `color-mix(in srgb, ${NAVY} 5%, transparent)`
                 : 'var(--c-sf)',
               display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 6 }}>
-                <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm }}>{dow(d.iso)} {monDay(d.iso)}</span>
+              {/* A 120px column cannot hold "WED 23 SEP" at 0.1em tracking.
+                  Measured 19.9 at 360px: the label spilled 7-8px past its own
+                  card on three of the seven days. A flex item defaults to
+                  min-width:auto, so the text could not wrap and pushed out
+                  instead - minWidth:0 lets it break at the space, and the row
+                  wraps so the TODAY chip drops rather than squeezing the date. */}
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 6, flexWrap: 'wrap' }}>
+                <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, minWidth: 0 }}>{dow(d.iso)} {monDay(d.iso)}</span>
                 {d.isToday && <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 800, letterSpacing: '0.1em', color: NAVY }}>{tr('TODAY')}</span>}
               </div>
               <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 800, letterSpacing: '0.04em', color: d.isGame ? ORANGE_DEEP : C.tx }}>{tr(d.plan.label)}</span>
@@ -4677,7 +4683,14 @@ function GameMinutesList({ fixtures, today, bhbcLoads, onPick }) {
             style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'center', gap: 10,
               width: '100%', textAlign: 'start', background: 'transparent', border: 'none', borderTop: '1px solid ' + C.ln,
               padding: '8px 0', cursor: 'pointer', color: C.tx }}>
-            <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {/* AN ELLIPSIS IS THE UI DECIDING HE DOES NOT NEED THE OPPONENT.
+                Measured 19.9 at 360px: "2026-09-03 vs Maccabi Tel Aviv
+                SCRIMMAGE" was cut by 48px and "2026-09-14 vs Hapoel HaEmek
+                SCRIMMAGE" by 42px, so the games list showed a date and half a
+                club. nowrap+ellipsis was the cause; the row is a grid with a
+                minmax(0,1fr) first column, so letting it wrap costs nothing but
+                a second line on a phone and keeps every word. */}
+            <span style={{ minWidth: 0, overflowWrap: 'anywhere' }}>
               <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, color: C.td, unicodeBidi: 'isolate' }}>{g.date}</span>
               {'  '}{g.opponent ? tr('vs') + ' ' + g.opponent : tr(FX_LABEL[g.type] || 'Game')}
               {g.type === 'scrimmage' && <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, marginInlineStart: 8 }}>{tr('Scrimmage')}</span>}
