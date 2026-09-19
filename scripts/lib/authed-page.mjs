@@ -124,7 +124,33 @@ export async function signIn(page, base) {
     if (btn) btn.click();
   });
   await wait(6000);
-  return { signedIn: true, note: 'submitted credentials' };
+
+  // IT MUST END UP AS THE SEAT IT WAS ASKED FOR, AND IT MUST CHECK.
+  //
+  // This used to submit the form and return {signedIn:true} without ever
+  // looking at the result. Measured 19.9: with EXPO_EMAIL=tomerlich11@gmail.com
+  // it reported 'submitted credentials' and the browser was still signed in as
+  // the owner - so two whole phone-eyes sweeps I ran 'from the physio seat' and
+  // 'from the athlete seat' were the OWNER's screens, sixteen surfaces each.
+  // That is the same seat bug that produced nine of twenty-one reds on 18.9,
+  // and it survived because the helper reported success either way.
+  const landed = await safeEval(page, (key) => {
+    const read = (k) => { try { const j = JSON.parse(localStorage.getItem(k)); return (j && j.user && j.user.email) || (j && j.currentSession && j.currentSession.user && j.currentSession.user.email) || null; } catch { return null; } };
+    let who = key ? read(key) : null;
+    if (!who) for (const k of Object.keys(localStorage)) if (/^sb-.*-auth-token$/.test(k)) { who = read(k); if (who) break; }
+    return who;
+  }, AUTH_TOKEN_KEY);
+
+  if (!landed) return { signedIn: false, note: 'no session after submitting', email: null };
+  if (landed.toLowerCase() !== OWNER.toLowerCase()) {
+    console.log(`
+WRONG SEAT — asked for ${OWNER}, ended up as ${landed}.`);
+    console.log('Everything measured from here would be that other account, so');
+    console.log('the numbers would be about the wrong person. Nothing was tested.');
+    console.log('Check the password for that account (EXPO_PW) before re-running.');
+    return { signedIn: false, note: `wrong seat: wanted ${OWNER}, got ${landed}`, email: landed };
+  }
+  return { signedIn: true, note: 'submitted credentials', email: landed };
 }
 
 // Load a route that REQUIRES auth and refuse to go on if it bounced.
