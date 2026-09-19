@@ -74,7 +74,11 @@ try {
       if (hit) { await new Promise((r) => setTimeout(r, 2500)); break; }
     }
     const file = `${DIR}/${LANG}-${W}-${name}.png`;
-    await page.screenshot({ path: file, fullPage: true });
+    // TOP=1 shoots the VIEWPORT, not the page. A 22,000px full-page PNG is
+    // unreadable when you actually look at it, and the menu-open cases are
+    // exactly the ones that need reading - the complaint is always about what
+    // is on screen when the menu opens, not about the page's whole length.
+    await page.screenshot({ path: file, fullPage: process.env.TOP !== '1' });
     // A screenshot of a blank page is not evidence of anything, so say how much
     // was on it. A tiny one means the surface did not render and the "look" was
     // as empty as the gate sweeps of /book/ were.
