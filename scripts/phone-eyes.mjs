@@ -26,6 +26,11 @@ fs.mkdirSync(DIR, { recursive: true });
 
 // name, route, and what to OPEN before shooting. Each opener is a list of
 // strings; the first visible clickable whose text contains one is clicked.
+// The zone's Hebrew tab names are NOT the dictionary words I assumed: the
+// schedule tab reads לו"ז with a gershayim, not לוח, so the opener never
+// matched and that shot silently photographed the landing tab instead -
+// same character count as bhbc-landing, which is how it was caught. Match
+// on a short prefix, and check the counts differ between shots.
 const SHOTS = [
   ['dashboard-landing', '/coach/dashboard', []],
   ['dashboard-more', '/coach/dashboard', ['⋮']],
@@ -35,7 +40,7 @@ const SHOTS = [
   ['bhbc-roster', '/coach/bhbc', ['Roster', 'סגל']],
   ['bhbc-weightroom', '/coach/bhbc', ['Weight Room', 'חדר כוח']],
   ['bhbc-medical', '/coach/bhbc', ['Medical', 'רפואי']],
-  ['bhbc-schedule', '/coach/bhbc', ['Schedule', 'לוח']],
+  ['bhbc-schedule', '/coach/bhbc', ['Schedule', 'לו']],
   ['bhbc-games', '/coach/bhbc', ['Games', 'משחקים']],
   ['programs', '/coach/programs', []],
   ['billing', '/coach/billing', []],
