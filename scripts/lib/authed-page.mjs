@@ -65,7 +65,23 @@ export async function safeEval(page, fn, arg, tries = 4) {
   return undefined;
 }
 
+// ONE RETRY, BECAUSE THE SWITCH IS FLAKY RATHER THAN BROKEN.
+//
+// Measured 19.9: asking for the physio landed on the owner, and the identical
+// call a minute later landed on the physio. The credentials are fine - signing
+// in by hand works for both accounts every time. So a single miss should cost a
+// retry, not the whole run; two misses in a row is a real problem and throws.
 export async function signIn(page, base) {
+  try {
+    return await signInOnce(page, base);
+  } catch (e) {
+    if (!/WRONG SEAT/.test(String(e.message || e))) throw e;
+    console.log('wrong seat on the first attempt — retrying once');
+    return await signInOnce(page, base);
+  }
+}
+
+async function signInOnce(page, base) {
   await page.goto(base + '/login', { waitUntil: 'domcontentloaded', timeout: 45000 }).catch(() => {});
   await wait(3000);
 
@@ -148,7 +164,14 @@ WRONG SEAT — asked for ${OWNER}, ended up as ${landed}.`);
     console.log('Everything measured from here would be that other account, so');
     console.log('the numbers would be about the wrong person. Nothing was tested.');
     console.log('Check the password for that account (EXPO_PW) before re-running.');
-    return { signedIn: false, note: `wrong seat: wanted ${OWNER}, got ${landed}`, email: landed };
+    // THROW, do not return a flag. Audited 19.9: seventeen verify-* gates and
+    // phone-eyes all call `await signIn(...)` and none of them looks at the
+    // result - so a returned flag is a guard nobody reads. phone-eyes printed
+    // WRONG SEAT and then photographed twenty of the owner's screens anyway.
+    // assertAuthed catches 'not signed in at all' but not 'signed in as
+    // somebody else', which is the failure that actually happens. Throwing
+    // fixes all eighteen callers at once and cannot be ignored by the next one.
+    throw new Error(`WRONG SEAT: asked for ${OWNER}, ended up as ${landed}. Nothing was measured.`);
   }
   return { signedIn: true, note: 'submitted credentials', email: landed };
 }
