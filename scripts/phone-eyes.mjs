@@ -48,6 +48,13 @@ const SHOTS = [
   ['athlete-portal', '/athlete', []],
   ['demo-athlete', '/demo/athlete', []],
   ['demo-coach', '/demo/coach', []],
+  // MODALS AND DRAWERS - the surfaces a route sweep can never reach, because
+  // they do not exist until something is clicked. The PWA install prompt found
+  // on the physio seat was one of these, and it was covering the whole page.
+  ['modal-log-practice', '/coach/bhbc', ['+ רישום אימון', '+ LOG PRACTICE']],
+  ['modal-manage-roster', '/coach/bhbc', ['ניהול הסגל', 'MANAGE ROSTER']],
+  ['modal-add-task', '/coach/tasks', ['+ TASK', '+ משימה']],
+  ['modal-new-athlete', '/coach/athletes', ['+ ATHLETE', '+ מתאמן', 'NEW ATHLETE']],
 ];
 
 const b = await P.connect({ browserURL: process.env.CDP || 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });

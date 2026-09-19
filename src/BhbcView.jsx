@@ -2147,7 +2147,15 @@ function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave, sess
   // one session type Ohad never scores unsaveable (his hard rule).
   const isLift = sessionType === 'Lift';
   const canSave = Number(minutes) > 0 && (isLift || Number(teamRpe) > 0);
-  const cols = isLift ? '24px 1.4fr 116px 72px 66px 1.5fr' : '24px 1.4fr 116px 72px 56px 66px 1.5fr';
+  // THE NAME COLUMN NEEDS A FLOOR, NOT A FRACTION.
+  // At minWidth 560 the fixed columns and gaps take 382px, leaving 178 for the
+  // two fr tracks - about 86px for the athlete. Measured 19.9 at 390: every
+  // name in the log-practice modal broke in half, "ZACK / BRYANT", "DAESHON /
+  // FRANCIS", so each row stood two lines tall and the column read ragged.
+  // minmax gives the name 152px before it is allowed to shrink - 130 cleared three
+  // of the four but not DAESHON FRANCIS, the longest on the roster; the grid lives
+  // in an overflowX:auto scroller, so growing costs a scroll, not a clip.
+  const cols = isLift ? '24px minmax(152px, 1.4fr) 116px 72px 66px 1.5fr' : '24px minmax(152px, 1.4fr) 116px 72px 56px 66px 1.5fr';
   return (
     <BModal open onClose={onClose} wide title={tr('Log session')}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
