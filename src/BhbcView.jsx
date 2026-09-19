@@ -1370,7 +1370,14 @@ function attendance28(rec, days) {
               <>
                 {fx.nextGame && <NextGamePanel nextGame={fx.nextGame} today={today} onEdit={asCoach ? null : () => setGameEdit(true)} />}
                 {/* Plan the week HERE (Ohad 08-24) — coaches see the board read-only. */}
-                <WeekPlanner today={today} planOf={planOf} onSavePlan={asCoach ? null : saveSessionPlan}
+                {/* fixtures={bhbcFixtures} was MISSING, and the prop defaults to []
+                    - so the planning board showed "WEEK PLANNER (0 SESSIONS · 0
+                    S&C)" and "NO SESSIONS" on all seven days no matter what was
+                    scheduled. Photographed 19.9 at 360: the Overview card on the
+                    same screen said today has an 18:00 practice while the planner
+                    underneath it said the week was empty. Every sibling here
+                    already passed it; this one was skipped. */}
+                <WeekPlanner fixtures={bhbcFixtures} today={today} planOf={planOf} onSavePlan={asCoach ? null : saveSessionPlan}
                   onUpsert={asCoach ? null : upsertFixture} onRemove={asCoach ? null : removeFixture} />
                 {/* What the team ACTUALLY did, slot by slot (Ohad 08-24:
                     "where can I see the previous practices details?"). */}
