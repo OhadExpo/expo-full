@@ -3891,7 +3891,7 @@ function DemoBilling() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginBottom: 16 }}>
         {sumTile('Outstanding', fmtIls(outstanding), `${pending.length} ${T('pending')}`, C.or)}
         {sumTile('Overdue', fmtIls(outstanding), `${pending.length} · ≥ 14d`, C.rd)}
-        {sumTile('Collected · This month', fmtIls(collected), T('received'), C.gn)}
+        {sumTile('Collected MTD', fmtIls(collected), T('received'), C.gn)}
       </div>
       {panel(<>
         <div style={stripH}>

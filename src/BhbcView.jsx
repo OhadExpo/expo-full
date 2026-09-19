@@ -4719,7 +4719,13 @@ function GameMinutesList({ fixtures, today, bhbcLoads, onPick }) {
               {g.type === 'scrimmage' && <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm, marginInlineStart: 8 }}>{tr('Scrimmage')}</span>}
             </span>
             <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
-              color: n ? C.gn : C.td, border: '1px solid ' + (n ? C.gn : C.ln),
+              // THE THING STILL TO DO MUST NOT LOOK FAINTER THAN THE THING DONE.
+              // Measured 19.9 at 360: '9 LOGGED' carried a green border and ADD
+              // MINUTES carried C.ln, a hairline that vanishes on white - so the
+              // completed row read as a button and the row still needing him read
+              // as plain text. Backwards. The action takes the orange it uses
+              // everywhere else in this zone; the done state keeps its green.
+              color: n ? C.gn : ORANGE, border: '1px solid ' + (n ? C.gn : ORANGE),
               height: 22, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               padding: '0 8px', lineHeight: 1, flexShrink: 0 }}>
               {n ? `${n} ${tr('logged')}` : tr('ADD MINUTES')}

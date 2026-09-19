@@ -136,7 +136,14 @@ export default function BillingView({ trainees }) {
         {[
           { label: tt('Outstanding'), value: fmtCurrency(summary.outstanding), sub: `${summary.pendingCount} ${tt('pending')}`, dot: summary.outstanding > 0 ? C.or : C.gn },
           { label: tt('Overdue'), value: fmtCurrency(summary.overdueAmt), sub: `${summary.overdueCount} · ${OVERDUE_DAYS}+ ${tt('days')}`, dot: summary.overdueCount > 0 ? C.rd : C.gn },
-          { label: tt('Collected · This month'), value: fmtCurrency(summary.collectedMonth), sub: tt('received'), dot: C.gn },
+          // 'Collected MTD', not 'Collected · This month'. DashboardView made
+          // exactly this change for exactly this reason - the long form wraps to
+          // two lines and that tile's strip then stands taller than the other
+          // two, against the one-uniform-header-height rule (Ohad #261). Billing
+          // has the same three tiles and never got the fix; measured 19.9 at
+          // 360px in English, where OUTSTANDING and OVERDUE were one line and
+          // this one was two. The demo mirrors it, per the parity rule.
+          { label: tt('Collected MTD'), value: fmtCurrency(summary.collectedMonth), sub: tt('received'), dot: C.gn },
         ].map((s, i) => (
           <div key={i} style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '14px 18px', boxShadow: C.cardShadow }}>
             <div style={{ background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))', margin: '-14px -18px 12px', padding: '8px 18px', borderBottom: `1px solid ${C.cardBd}` }}>
