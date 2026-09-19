@@ -46,19 +46,20 @@
 <main>
 <header>
   <h1>What's <span>left</span></h1>
-  <div class="sub">19.9 · production <code>09d30a9</code> · candidate <code>deploy-0919</code> <code>8936ad3</code> · <a href="http://127.0.0.1:4182/" style="color:var(--ac)">what the deploy leaves behind →</a></div>
+  <div class="sub">19.9 · production <code>09d30a9</code> · candidate <code>deploy-0919</code> <code>151cbf8</code> · <a href="http://127.0.0.1:4182/" style="color:var(--ac)">what the deploy leaves behind →</a></div>
 </header>
 
 <h2>You — one line each</h2>
 
 <div class="row you">
-  <b><span class="tag t-you">1</span>Your booking hours. This is the one blocking money.</b>
-  <p>Measured: <code>coach_booking_settings</code> <b>0 rows</b>, <code>availability_rules</code> <b>1 row</b> (Monday 09:00–17:00), <code>bookings</code> <b>0</b>. So <code>/book/ohad</code> renders nothing for a visitor and the calendar sync has never had a slot to sync.</p>
-  <p>The code has been finished for weeks. Nobody ever pressed Save. I did not press it for you, because the one rule in the table is a test row from 7.9 and publishing the wrong hours is worse than a 404 — someone books 14:00 Monday, you are at Herzliya.</p>
+  <b><span class="tag t-you">1</span>Your booking hours — and a correction</b>
+  <p><b>I told you twice tonight that this was "the one thing blocking money". That was wrong, and here is the measurement.</b> Your marketing site's BOOK A SESSION does not use EXPO's booking page at all — it scrolls to a <b>Google Calendar appointment scheduler</b> embedded on the gym page. I checked both scheduler URLs: <b>HTTP 200, live</b>. So the public funnel has a working booking path today and nobody is hitting a dead page.</p>
+  <p>What IS true: EXPO's own <code>/book/&lt;slug&gt;</code> renders nothing, because <code>coach_booking_settings</code> has 0 rows. Nothing links to it — it appears only inside <code>/coach/booking</code>, as the link for you to copy. So it is an <i>improvement</i>, not a blocker: it would replace the Google embed with your own page and finally give the in-app calendar sync something to sync.</p>
+  <p>Still worth doing, and still three lines from you:</p>
   <pre>DAYS + HOURS   e.g. Sun-Thu 08:00-20:00, Fri 08:00-13:00
 SESSION        60 min?
 NOTICE         4 hours?</pre>
-  <p class="muted">Answer those three and it is live in a minute, verified from a signed-out browser.</p>
+  <p class="muted">The one row in <code>availability_rules</code> is Monday 09:00–17:00, a test row from 7.9. I did not publish against it — wrong hours are worse than no page.</p>
 </div>
 
 <div class="row you">
@@ -89,7 +90,9 @@ NOTICE         4 hours?</pre>
     <tr><td>cyan slabs ≥ 25,000px²</td><td class="n">—</td><td class="n ok">0</td></tr>
   </table>
   <p class="muted">That last row is 74 views across 37 routes in both themes. 207 cyan elements are still on screen — buttons, chips, hairlines, dots. That is the brand working instead of flooding the page.</p>
-  <p><b>One thing I did NOT change, because it is your call.</b> Look at the revenue chart on the dashboard: six solid <b>black</b> bars. That is the same "heavy fill" problem in a different colour — light theme uses black as its architectural accent. Say the word and it gets the same treatment.</p>
+  <p><b>One thing I did NOT change, because it is the same argument and it is your call.</b> Light theme's accent colour is <b>black</b> (#0E0F12), and wherever it is used as a FILL it reads exactly the way the cyan slabs did:</p>
+  <p class="muted">· the revenue chart on the dashboard is six solid black bars on a white card<br>· the ESTIMATED MONTHLY tile has a <b>black</b> status dot while the three beside it are green — next to them it reads as dead, not neutral</p>
+  <p>Cyan was the one you saw first. This is the same rule applied to the other colour, and I have deliberately stopped rather than redesign your light palette on my own at 5am. <b>Say the word and it gets the same treatment.</b></p>
 </div>
 
 <div class="row ask">

@@ -80,7 +80,11 @@ td.n{color:var(--tx);font-variant-numeric:tabular-nums;white-space:nowrap}
 a{color:var(--ac)}
 </style></head><body><main>
 <header><h1>Un<span>deployed</span></h1>
-<div class="sub">computed live from git · ${esc(d.at)} · refreshes itself every 60s</div></header>
+<div class="sub">computed live from git · ${esc(d.at)} · refreshes itself every 60s</div>
+<div class="sub" style="margin-top:8px">
+  <a href="http://127.0.0.1:8921/">decisions waiting for you →</a> ·
+  <a href="http://127.0.0.1:4182/">what the deploy leaves behind →</a>
+</div></header>
 
 <div class="row ${d.ahead ? 'warn' : 'ok'}">
   <b>${d.ahead} commit${d.ahead === 1 ? '' : 's'} are not live</b>
