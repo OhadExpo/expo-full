@@ -2954,14 +2954,22 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
       <Section label={tr("Medical")} list>
         {injuries.length
           ? <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(330px, 100%), 1fr))', columnGap: 26, rowGap: 5 }}>
-              {injuries.slice(0, 6).map(({ t, inj }, i) => {
+              {injuries.slice(0, 6).map(({ t, inj }, i, arr) => {
                 const s = MED_STATUS[inj.status] || MED_STATUS.available;
                 return (
                   // Wraps for the same reason as the This-week rows: on a phone
                   // the injury description was ellipsized to "AN…", which is not
                   // an injury report. It now takes its own line and the UPDATE
+                  // EVERY ATHLETE HAS A LINE ABOVE AND BENEATH IT (Ohad, 19.9:
+                  // "make sure that every athlete always have a border above and
+                  // beneath it"). These six medical rows ran together as one block
+                  // of names with nothing between them - measured at 390, each row
+                  // was 15px tall with no separator on either edge. Each row now
+                  // carries its own line above and 7px of breathing room; the LAST
+                  // row adds the line beneath, so the block closes instead of
+                  // trailing off.
                   // button stays whole.
-                  <div key={i} onClick={onOpen ? () => onOpen(t.id) : undefined} role={onOpen ? 'button' : undefined} tabIndex={onOpen ? 0 : undefined} onKeyDown={onOpen ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }) : undefined} className={onOpen ? 'bhbc-row bhbc-med-row' : 'bhbc-med-row'} style={{ display: 'grid', gridTemplateColumns: '10px minmax(0, 96px) minmax(0, 1fr) auto', alignItems: 'center', columnGap: 8, rowGap: 2, marginInlineStart: -18, cursor: onOpen ? 'pointer' : 'default' }}>
+                  <div key={i} onClick={onOpen ? () => onOpen(t.id) : undefined} role={onOpen ? 'button' : undefined} tabIndex={onOpen ? 0 : undefined} onKeyDown={onOpen ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }) : undefined} className={onOpen ? 'bhbc-row bhbc-med-row' : 'bhbc-med-row'} style={{ display: 'grid', gridTemplateColumns: '10px minmax(0, 96px) minmax(0, 1fr) auto', alignItems: 'center', columnGap: 8, rowGap: 2, marginInlineStart: -18, cursor: onOpen ? 'pointer' : 'default', padding: '7px 0', borderTop: `1px solid ${C.cardBd}`, ...(i === arr.length - 1 ? { borderBottom: `1px solid ${C.cardBd}` } : null) }}>
                     <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.color, flexShrink: 0 }} />
                     <span style={{ fontFamily: FN, fontWeight: 700, fontSize: 12, minWidth: 0, overflowWrap: 'break-word' }}>{surnameOf(t.name)}</span>
                     {/* WRAP, do not ellipsize. The row already wraps, and on a narrow RTL line
@@ -3372,14 +3380,27 @@ function WeightRoomTab({ rows = [], loads = {}, medical = {}, fixtures = [], pla
         {!!due.length && (
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap', padding: '9px 14px', borderBottom: `1px solid ${C.cardBd}`, background: 'rgba(242,106,43,0.06)' }}>
             <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 800, letterSpacing: '0.10em', textTransform: 'uppercase', color: ORANGE_DEEP, flexShrink: 0 }}>{tr('due')}</span>
-            <span style={{ display: 'flex', flexWrap: 'wrap', gap: 6, minWidth: 0 }}>
+            {/* A GRID, NOT A WRAP, SO THE TAGS LINE UP.
+                Ohad, 19.9: "locations for texts, tags, buttons, and rows, is very
+                awful in a lot of places". Wrapped, these chips are as wide as the
+                name inside them, so at 390 they landed two-two-one with every edge
+                in a different place and the last one floating on its own. Two equal
+                columns put every chip on the same two edges and the odd one out
+                starts the next row where the others start. */}
+            <span style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 6, minWidth: 0, flex: '1 1 100%' }}>
               {due.map(({ t, since }) => (
                 <span key={t.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 24, padding: '0 8px', border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)', fontFamily: FN, fontSize: 10.5, fontWeight: 700, color: C.tx, whiteSpace: 'nowrap' }}><span style={{ unicodeBidi: 'isolate' }}>{t.name}</span><span style={{ color: ink(since), fontWeight: 800, unicodeBidi: 'isolate', fontVariantNumeric: 'tabular-nums' }}>{since == null ? tr('never') : (he ? `${since} ${tr('days')}` : `${since}d`)}</span></span>
               ))}
             </span>
           </div>
         )}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '8px 14px', borderBottom: `1px solid ${C.cardBd}` }}>
+        {/* THE LEGEND SENTENCE GETS ITS OWN LINE, NOT THE GAP BESIDE THE PAGER.
+            Ohad, 19.9: "make sure anywhere where there is text, it has its own
+            space". At 390 this row put the month pager and a full sentence side
+            by side, so the sentence was squeezed into ~150px and wrapped to four
+            lines against a half-empty row. flexWrap + a full-width basis puts it
+            under the pager, where it reads as one line of prose. */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, rowGap: 6, flexWrap: 'wrap', padding: '8px 14px', borderBottom: `1px solid ${C.cardBd}` }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <button type="button" onClick={() => setMonthOff((v) => v - 1)} className="bhbc-ghost-btn" aria-label={tr('Previous month')}
               style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, height: 24, width: 26, cursor: 'pointer' }}>{he ? '›' : '‹'}</button>
@@ -3387,7 +3408,7 @@ function WeightRoomTab({ rows = [], loads = {}, medical = {}, fixtures = [], pla
             <button type="button" disabled={monthOff >= 0} onClick={() => setMonthOff((v) => Math.min(0, v + 1))} className="bhbc-ghost-btn" aria-label={tr('Next month')}
               style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: monthOff >= 0 ? C.cardBd : C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, height: 24, width: 26, cursor: monthOff >= 0 ? 'default' : 'pointer' }}>{he ? '‹' : '›'}</button>
           </div>
-          <span style={{ fontFamily: FB, fontSize: 11, color: C.tm }}>{tr('Orange is an individual lift, navy is team S&C. The tint is the restriction on the day.')}</span>
+          <span style={{ fontFamily: FB, fontSize: 11, color: C.tm, flex: '1 1 100%', minWidth: 0 }}>{tr('Orange is an individual lift, navy is team S&C. The tint is the restriction on the day.')}</span>
         </div>
 
         {/* The grid scrolls sideways on a phone by design - a month of days

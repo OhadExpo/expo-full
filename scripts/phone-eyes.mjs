@@ -101,6 +101,28 @@ try {
       }, want);
       if (hit) { await new Promise((r) => setTimeout(r, 2500)); break; }
     }
+    // SCROLL=1 walks the WHOLE page one screenful at a time.
+    //
+    // Ohad: "the entire page not just the top without scrolling". fullPage:true
+    // does capture everything, but a 3,000-11,000px PNG is unreadable when you
+    // actually open it - the first pass produced a 22,638px image and I could
+    // not see a thing in it. Successive viewport shots are the whole page AND
+    // readable, which is the point of looking.
+    if (process.env.SCROLL === '1') {
+      const total = await page.evaluate(() => document.documentElement.scrollHeight);
+      const step = 760;                       // 844 viewport, ~84px of overlap so nothing falls between shots
+      const shots = Math.max(1, Math.ceil((total - 844) / step) + 1);
+      for (let k = 0; k < shots; k++) {
+        await page.evaluate((y) => window.scrollTo(0, y), k * step);
+        await new Promise((r) => setTimeout(r, 700));
+        await page.screenshot({ path: `${DIR}/${LANG}-${W}-${name}-${String(k + 1).padStart(2, '0')}.png` });
+      }
+      await page.evaluate(() => window.scrollTo(0, 0));
+      const chars0 = await page.evaluate(() => (document.body.innerText || '').replace(/\s+/g, ' ').trim().length);
+      console.log(`${String(chars0).padStart(5)} chars · ${String(total).padStart(5)}px tall · ${shots} screen(s)  ${name}`);
+      shot++;
+      continue;
+    }
     const file = `${DIR}/${LANG}-${W}-${name}.png`;
     // TOP=1 shoots the VIEWPORT, not the page. A 22,000px full-page PNG is
     // unreadable when you actually look at it, and the menu-open cases are
