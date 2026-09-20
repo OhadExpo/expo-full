@@ -163,18 +163,31 @@ export const PROBE = () => {
     if (hi - lo > 6) add('RAGGED', p, `${kids.length} rows start between ${lo.toFixed(0)} and ${hi.toFixed(0)}px in — spread ${(hi - lo).toFixed(0)}px`);
   }
 
-  // UNEVEN — chips on one line at different heights.
+  // UNEVEN — CONTROLS on one line at different heights.
+  //
+  // Narrowed after triage. The first version flagged any flex row whose
+  // children differed in height, which is not a defect: a row legitimately
+  // holds a 21px name beside a 28px status chip, and what matters there is
+  // whether they are ALIGNED, not whether they match. 64 findings, none of
+  // them wrong on screen.
+  //
+  // Two buttons or chips side by side at different heights IS sloppy, and it
+  // is a rule Ohad has already stated for himself ("changing labels reserve
+  // widest-label width; resize = flash bug"). So: interactive siblings only.
+  const isControl = (e) => /^(BUTTON|A|SELECT|INPUT)$/.test(e.tagName)
+    || e.getAttribute('role') === 'button'
+    || /chip|btn|button|tag|pill/i.test(typeof e.className === 'string' ? e.className : '');
   for (const p of all) {
     const ps = getComputedStyle(p);
     if (ps.display !== 'flex' || ps.flexDirection === 'column') continue;
-    const kids = [...p.children].filter((k) => vis(k) && (k.textContent || '').trim());
+    const kids = [...p.children].filter((k) => vis(k) && (k.textContent || '').trim() && isControl(k));
     if (kids.length < 2) continue;
     const rs = kids.map((k) => k.getBoundingClientRect());
     const sameRow = rs.every((r) => Math.abs(r.top - rs[0].top) < 4);
     if (!sameRow) continue;
     const hs = rs.map((r) => r.height);
     const lo = Math.min(...hs), hi = Math.max(...hs);
-    if (hi - lo > 3 && lo > 12) add('UNEVEN', p, `${kids.length} items on one row, heights ${lo.toFixed(0)}–${hi.toFixed(0)}`);
+    if (hi - lo > 3 && lo > 12) add('UNEVEN', p, `${kids.length} control(s) on one row, heights ${lo.toFixed(0)}–${hi.toFixed(0)}`);
   }
 
   // ORPHAN — a TILE grid whose last row is short.
