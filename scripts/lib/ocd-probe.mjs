@@ -129,6 +129,39 @@ export const PROBE = () => {
   // dialog "overlapped" a label on the page underneath: 57 findings on one
   // modal, none of them visible. Two boxes only collide if, at the point where
   // they cross, one of them is what the user would actually touch.
+  // THE INK, NOT THE BOX.
+  //
+  // The last surviving collision was a task title's line box overlapping a
+  // chip's border box by 10px, on a screen where the two are plainly one above
+  // the other. A line box carries half-leading above and below the glyphs and a
+  // chip's box starts above its border, so two elements that do not touch can
+  // still report ten pixels of overlap. Inset each rect by its own half-leading
+  // and compare what is actually painted — the rule Ohad already made me learn
+  // once for centring complaints.
+  const inkBox = (el) => {
+    const cs = getComputedStyle(el);
+    const fs = parseFloat(cs.fontSize) || 12;
+    // The TEXT's own line boxes, not the element box: that drops a chip's
+    // padding and border, which is most of what made two stacked things look
+    // like they overlapped. `line-height: normal` parses to NaN, which is why
+    // the first attempt at this silently fell back to the raw box and changed
+    // nothing — so the half-leading comes from each line rect's own height.
+    let rects;
+    try { const rg = document.createRange(); rg.selectNodeContents(el); rects = [...rg.getClientRects()]; }
+    catch { return el.getBoundingClientRect(); }
+    rects = rects.filter((x) => x.width > 0.5 && x.height > 0.5);
+    if (!rects.length) return null;
+    let top = Infinity, bottom = -Infinity, left = Infinity, right = -Infinity;
+    for (const x of rects) {
+      const pad = Math.max(0, (x.height - fs) / 2);
+      top = Math.min(top, x.top + pad);
+      bottom = Math.max(bottom, x.bottom - pad);
+      left = Math.min(left, x.left);
+      right = Math.max(right, x.right);
+    }
+    if (!(bottom > top) || !(right > left)) return null;
+    return { top, bottom, left, right, width: right - left, height: bottom - top };
+  };
   const topmostAt = (x, y) => { try { return document.elementFromPoint(x, y); } catch { return null; } };
   // WHICH LAYER IS THIS ELEMENT PAINTED IN?
   //
@@ -150,7 +183,8 @@ export const PROBE = () => {
   for (let i = 0; i < leaves.length; i++) {
     for (let j = i + 1; j < leaves.length; j++) {
       if (leaves[i].contains(leaves[j]) || leaves[j].contains(leaves[i])) continue;
-      const a = leaves[i].getBoundingClientRect(), c = leaves[j].getBoundingClientRect();
+      const a = inkBox(leaves[i]), c = inkBox(leaves[j]);
+      if (!a || !c) continue;
       const h = Math.min(a.right, c.right) - Math.max(a.left, c.left);
       const v = Math.min(a.bottom, c.bottom) - Math.max(a.top, c.top);
       if (h <= 2 || v <= 2) continue;
