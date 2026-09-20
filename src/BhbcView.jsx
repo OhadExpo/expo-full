@@ -1015,23 +1015,30 @@ function attendance28(rec, days) {
              is right there on the same row, and a real focus still gets its own
              full-width line. Eight sessions, eight lines back. */
           .bhbc-chip .bhbc-chip-focus-empty{display:none!important}
-          /* A ROW THAT GREW MUST NOT RE-CENTRE ITS SHORT ITEMS.
+          /* I TRIED align-items:flex-start ON EVERY ROW CLASS HERE AND IT WAS WRONG.
 
-             alignItems:center is right while every cell on a row is one line,
-             and wrong the moment one wraps: every short item slides to the
-             vertical middle. That is one fault behind three separate complaints
-             - the athlete's name sitting below his own diagnosis, the day count
-             below its own fixture, the action floating between two lines of a
-             club name. Measured at 390 with _recentred-rows.mjs: 101 in English
-             and 103 in Hebrew.
+             A probe found 101 short items sitting below the tallest cell on rows
+             that had grown, so I top-aligned .bhbc-row, .bhbc-game-row,
+             .bhbc-med-row, .bhbc-chip and .bhbc-rtp-row at phone width. Ohad,
+             within the hour: "nothing is verticlly center aligned anywhere in
+             bhbc" - and he was right. Most of those rows are ONE line, where
+             centred is correct and top-aligned just looks unfinished; the session
+             chip and its + button ended up hanging off the top of a tall row.
 
-             There are 125 alignItems:center in this file and MOST ARE RIGHT -
-             a chip centred against one line of text is exactly right - so this
-             names the row classes the measurement actually flagged instead of
-             changing them all. On a single-line row flex-start and center are
-             identical, so this only bites where the row grew. Phone only;
-             desktop has the width and does not wrap. */
-          .bhbc-row, .bhbc-game-row, .bhbc-med-row, .bhbc-chip, .bhbc-rtp-row{ align-items: flex-start !important; }
+             The probe could not tell "deliberately centred against wrapped text"
+             from "slid down", so acting on its total was the mistake. Centring
+             stays the default. Where a row genuinely has a two-line cell and a
+             short one - the medical name beside its diagnosis, the day count
+             beside its fixture - the fix is on THAT element, not on every row.  */
+          /* THE PAST-PRACTICE LIST GETS ITS WIDTH BACK ON A PHONE.
+             Its label column is the one that gives way, and at 390 eight of
+             seventeen rows ran to two lines. The date and time columns are sized
+             for a desktop; the same 84/38 the week row already uses here frees
+             ~30px for the label, and the gap goes 10 -> 7. Measured before and
+             after rather than eyeballed. */
+          .bhbc-pp-row{ gap: 7px !important; }
+          .bhbc-pp-row > span:nth-child(1){ width: 84px !important; }
+          .bhbc-pp-row > span:nth-child(2){ width: 38px !important; }
         .bhbc-labelrow{display:block!important}
           /* THE LABEL GOES ABOVE, NOT BESIDE — so every value starts on ONE column.
              It floated inline-start, which indents only the FIRST line and starts
@@ -3915,13 +3922,26 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, planOf }
               <div className="bhbc-row" onClick={() => setOpen(isOpen ? null : key)}
                 role="button" tabIndex={0} aria-expanded={isOpen}
                 onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); setOpen(isOpen ? null : key); } }}
+                className="bhbc-pp-row"
                 style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 2px', cursor: 'pointer' }}>
                 {/* 96px + nowrap: at 78px some dates wrapped to two lines and
                     others didn't, so the column read ragged. */}
                 <span style={{ fontFamily: FN, fontWeight: 700, fontSize: 12, color: C.tx, width: 96, flexShrink: 0, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{dow(f.date)} {monDay(f.date)}</span>
                 <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: FX_COLOR[f.type] || NAVY, width: 46, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{f.start}</span>
-                <span style={{ color: C.tm, flexShrink: 1, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word' }}>
-                  {fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')}{f.minutes ? ` · ${f.minutes} ${fxLabelFor('__min', 'min')}` : ''}
+                {/* 12px, like the date and the time it sits between. This span
+                    had no fontSize at all, so it inherited the card's ~17px while
+                    its own siblings were 12 - which is both why it looked
+                    oversized next to them and why "PRACTICE · 120 MIN" needed two
+                    lines in a column that fits it easily at 12. */}
+                <span style={{ color: C.tm, fontFamily: FB, fontSize: 12, flexShrink: 1, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word' }}>
+                  {/* THE DURATION IS ONE TOKEN, NOT TWO WORDS THAT MAY PART.
+                      Measured 19.9 at 390 in Hebrew: this column is the one that
+                      gives way, and every past-practice row broke "120 דק׳" in
+                      half, leaving "דק׳" alone on a second line - eight rows, all
+                      of them. The label may wrap; the NUMBER and its unit may
+                      not. */}
+                  {fxLabelFor(f.type, FX_LABEL[f.type] || 'Session')}
+                  {f.minutes ? <>{' · '}<span style={{ whiteSpace: 'nowrap' }}>{f.minutes} {fxLabelFor('__min', 'min')}</span></> : null}
                   {densityOf(f) ? <>{' · '}<DensityBit f={f} /></> : null}
                 </span>
                 <div style={{ flex: 1 }} />
