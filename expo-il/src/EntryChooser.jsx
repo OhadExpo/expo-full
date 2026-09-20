@@ -67,6 +67,30 @@ export default function EntryChooser() {
           .chooser-split { flex-direction: column !important; }
           .chooser-panel { flex: 1 1 50% !important; min-height: 50vh; }
         }
+
+        /* THE TWO PANELS HAVE TO LINE UP ROW FOR ROW.
+           Reported as "the headline clipped at 1250px". Nothing is clipped -
+           measured at nine widths in both languages, no ancestor cuts the
+           headline at any of them. What is wrong is that the two stacks sit
+           13.1px apart, so at 1250 the left headline wraps to two lines while
+           the right stays on one and every row below them - kicker, body,
+           benefit rules, button - is off by a line. Each panel centres its own
+           stack, so ANY difference in content height splits in half and shows
+           up as a vertical offset.
+           Two causes, both constant, and they add up to exactly the 26.3px that
+           centring halves into 13.1:
+             the kicker had no line-height, so its box followed its glyphs
+               (51.6px under "IN-PERSON · SMALL GROUPS", 48.4 under
+               "READY-TO-RUN PROGRAMS") -> 3.2px;
+             the body reserved 4.5em, which is 2.7 lines at line-height 1.65,
+               while the left body runs to four -> 23.1px, one whole line.
+           So pin the kicker's line box and reserve the body by LINES. Between
+           881 and 1099 the left body reaches five lines, above that four; below
+           881 the panels stack and there is nothing to align to. */
+        .chooser-sub  { line-height: 1.4; min-height: 1.4em; }
+        .chooser-body { min-height: 6.6em; }
+        @media (min-width: 881px) and (max-width: 1099px) { .chooser-body { min-height: 8.25em; } }
+        @media (max-width: 880px) { .chooser-body { min-height: 0; } }
       `}</style>
 
       <Header heb={heb} />
@@ -264,17 +288,17 @@ function Panel({ side, heb, dim, highlight, highlight2, onEnter, onLeave, headli
         }}>{headline}</h2>
 
         {/* Subhead — accent-cyan kicker line under the headline */}
-        <div style={{
+        <div className="chooser-sub" style={{
           fontFamily: FN, fontSize: 12, color: C.ac, letterSpacing: '0.24em',
           fontWeight: 700, padding: '14px 0 20px', textTransform: 'uppercase',
         }}>{subhead}</div>
 
-        <p style={{
+        <p className="chooser-body" style={{
           margin: '0 0 28px', fontSize: 14, color: C.tm,
           lineHeight: 1.65, maxWidth: 440, marginInline: 'auto',
-          // minHeight reserves space so a shorter body doesn't pull the
-          // CTA up out of alignment with the other panel.
-          minHeight: '4.5em',
+          // The reserved height lives in .chooser-body, because it has to change
+          // with the width: 4.5em was 2.7 lines against a body that runs to four,
+          // which is the whole of the 13.1px the two panels sat apart by.
         }}>{body}</p>
 
         {/* Benefit list — bullet-less, hairline divider between items */}
