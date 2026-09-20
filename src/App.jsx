@@ -1738,7 +1738,17 @@ function AuthedApp() {
              '₪2,300' ran past the border. The value row is its own centred box that never
              overflows, and the number scales with the screen instead of staying at the desktop
              size in a 176px-wide card. */
-          .kpi-value{display:flex;align-items:center;min-height:48px;white-space:nowrap;overflow:hidden;text-overflow:clip}
+          /* 20.9: the 17.9 rule above stopped the number RUNNING PAST the border
+             by clipping it, which is worse than overflowing - "₪2,300" rendered
+             as "₪2,30C" in a 197px card with the last digit sliced off, and
+             nothing said so. The number was sized against the VIEWPORT (7.4vw)
+             while what it has to fit is the CARD, and at 645px of viewport a
+             3-up grid gives 197px cards. Size it against the card instead.
+             Same glyph count is not the same width: "₪8,181" fit and "₪2,300"
+             did not, because 1s are narrow. */
+          .kpi-card{container-type:inline-size}
+          .kpi-value{display:flex;align-items:center;min-height:48px;white-space:nowrap;overflow:hidden;text-overflow:clip;
+            font-size:clamp(20px, 17cqw, var(--c-kpiNumberSize, 30px)) !important}
           @media (max-width: 700px){
             /* 18.9, first thing he saw: "the menus flows outside the borders (too wide)".
                A card's header strip reaches the card edge by pulling itself out with a
@@ -1747,7 +1757,10 @@ function AuthedApp() {
                20 and hanging 5.2px past the border on BOTH sides, measured at 390.
                Only the HEIGHT was ever the complaint, so only the block padding moves. */
             .alert-card{padding-block:12px !important}
-            .kpi-value{min-height:40px;font-size:clamp(20px, 7.4vw, var(--c-kpiNumberSize, 30px)) !important}
+            /* The font size moved out of this media query and onto the card's
+               own container query above, which is correct at every width. Only
+               the height belongs to "is this a phone". */
+            .kpi-value{min-height:40px}
           }
           [data-theme="5b"] .alert-card,[data-theme="light"] .alert-card{transition:box-shadow 200ms, transform 200ms}
           [data-theme="5b"] .alert-card:hover,[data-theme="light"] .alert-card:hover{box-shadow:inset 0 1px 0 rgba(255,255,255,0.30), 0 2px 4px rgba(0,0,0,0.10), 0 10px 24px rgba(0,0,0,0.14);transform:translateY(-1px)}

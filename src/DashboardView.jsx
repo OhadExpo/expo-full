@@ -593,7 +593,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
         ].map((s, i) => {
           const refined = isRefined5b();
           return (
-            <div key={i} className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '16px 20px', boxShadow: C.cardShadow }}>
+            <div key={i} className="alert-card kpi-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '16px 20px', boxShadow: C.cardShadow }}>
               {/* Always render the strip in BOTH themes for layout parity
                   (Ohad 2026-05-23). Dark mode strip uses --c-stripBg=#000
                   with cyan-30% bottom hairline; light mode is brand cyan. */}
@@ -603,7 +603,20 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
                   <SectionLabel style={{ color: 'var(--c-stripTx)', fontSize: 13, letterSpacing: '0.08em', fontWeight: 700 }}>{s.label}</SectionLabel>
                 </span>
               </RefinedHeaderStrip>
-              <div className="kpi-value" style={{ fontSize: C.kpiNumberSize, fontWeight: 800, fontFamily: FN, color: C.tx, lineHeight: 1.05, letterSpacing: '-0.015em', direction: 'ltr', unicodeBidi: 'isolate', textAlign: he ? 'right' : 'left' }}>{s.value}
+              {/* 20.9 (Ohad, phone, Hebrew): "all the text inside the 4 boxes is
+                  not aligned and looks bad". The label hugged the right edge and
+                  the number hugged the LEFT one, in the same box — and the
+                  caption under the number hugged the right, so one card had its
+                  value and its own caption on opposite edges.
+                  `textAlign` was the intended fix and it is INERT here:
+                  .kpi-value is `display:flex` (App.jsx, added 17.9 to stop the
+                  number overflowing the border), and text-align does not place
+                  flex items. With `direction:ltr` on the row — which has to stay,
+                  it is what renders "₪8,181" rather than "8,181₪" — the items
+                  packed to flex-start, i.e. left, in BOTH languages.
+                  So align the ROW, not the text. English is unchanged:
+                  flex-start was already where it sat. */}
+              <div className="kpi-value" style={{ fontSize: C.kpiNumberSize, fontWeight: 800, fontFamily: FN, color: C.tx, lineHeight: 1.05, letterSpacing: '-0.015em', direction: 'ltr', unicodeBidi: 'isolate', justifyContent: he ? 'flex-end' : 'flex-start' }}>{s.value}
                 {s.total !== undefined && <span style={{ fontSize: 13, color: refined ? 'rgba(0,0,0,0.55)' : C.td, fontWeight: 400, letterSpacing: 0 }}> / {s.total}</span>}</div>
               {/* 18.9 (Ohad, phone): "'from the sheets' on mobile version is bad text
                   location and size". It was a 10px line sitting 6px under a 40px value
