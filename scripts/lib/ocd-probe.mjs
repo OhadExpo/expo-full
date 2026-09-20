@@ -249,6 +249,22 @@ export const PROBE = () => {
     if (kids.length < 2) continue;
     const pr = p.getBoundingClientRect();
     if (pr.width < 100) continue;
+    // A STACK, NOT A ROW OR A GRID.
+    //
+    // EDGEFLIP asks "is one item on the opposite edge from its siblings", and
+    // that question only means anything when the siblings are stacked one above
+    // another. In a multi-column grid the children sit at different insets
+    // BECAUSE they are in different columns — the medical board's four count
+    // tiles were reported this way. So: every child must occupy its own row.
+    const rects = kids.map((k) => k.getBoundingClientRect());
+    let stacked = true;
+    for (let a2 = 0; a2 < rects.length && stacked; a2++) {
+      for (let b2 = a2 + 1; b2 < rects.length; b2++) {
+        const ov = Math.min(rects[a2].bottom, rects[b2].bottom) - Math.max(rects[a2].top, rects[b2].top);
+        if (ov > Math.min(rects[a2].height, rects[b2].height) * 0.5) { stacked = false; break; }
+      }
+    }
+    if (!stacked) continue;
     const pRtl = dirOf(p);
     const startGap = (r) => (pRtl ? pr.right - r.right : r.left - pr.left);
     const endGap = (r) => (pRtl ? r.left - pr.left : pr.right - r.right);
