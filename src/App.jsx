@@ -35,6 +35,64 @@ const keepHash = (path) => {
   if (/(access_token|refresh_token|token_hash|[?&]code)=/.test(h)) return path;
   return path + h;
 };
+
+// IS AN AUTH PAYLOAD IN THE URL RIGHT NOW?
+//
+// Ohad has reported this three times: "google appears, then back to login"
+// (30.8), "on chrome, google oauth doesnt always work and half of the attempts
+// it just moves me back to the sign in page again" (17.9), and "signinig in
+// using the google auth sometimes doesnt work" (20.9).
+//
+// Google returns to origin+pathname carrying `?code=`, and supabase-js reads it
+// ASYNCHRONOUSLY (detectSessionInUrl -> exchangeCodeForSession). Any rewrite of
+// the address bar in the meantime throws the code away, the exchange finds
+// nothing, and the login screen comes back — which is indistinguishable from
+// the button not working. Whoever wins the race decides, so it fails HALF the
+// time, which is exactly what he described.
+//
+// The 17.9 pass guarded the two boot useEffects and that is why it only half
+// worked. The rewrite that actually loses the code is in the RENDER path: a
+// signed-out visitor at /bhbc?code=... is sent to /bhbc/login before supabase
+// has had a chance to look at the query. An effect guard cannot cover a
+// rewrite that happens during render, so the check is hoisted here where any
+// of them can reach it.
+// ...AND WHETHER ONE WAS THERE WHEN THIS DOCUMENT LOADED.
+//
+// Traced 21.9 against the built app, which corrected the first diagnosis.
+// supabase-js takes the code out of the URL BEFORE it does the network
+// exchange, so by the time any of the app's rewrites run, hasAuthPayload() is
+// already false and a guard on it never fires. The real sequence for a sign-in
+// started at /coach/bhbc is:
+//
+//   /coach/bhbc?code=...  ->  /coach/bhbc     supabase takes the code
+//   /coach/bhbc           ->  /bhbc/login     the app, still seeing no session
+//   /bhbc/login           ->  /login
+//
+// The exchange then succeeds a moment later and the session is fine — but the
+// address bar now says /login and the login screen is what is on the screen.
+// That is not a failed sign-in, it is a successful one thrown onto the wrong
+// page, and it is indistinguishable from the button not working. Which is
+// exactly how he has described it three times.
+//
+// So the flag has to be STICKY: evaluated once when this module loads, which is
+// before supabase-js has had a chance to clear anything, and true for the rest
+// of the page's life. While it is set, the boot rewrites leave the address bar
+// alone and the user stays on the page he started from.
+export const CAME_BACK_FROM_OAUTH = (() => {
+  try {
+    if (typeof window === 'undefined') return false;
+    return /[?&](code|token_hash)=/.test(window.location.search || '')
+      || /(access_token|refresh_token)=/.test(window.location.hash || '');
+  } catch { return false; }
+})();
+
+export const hasAuthPayload = () => {
+  try {
+    if (typeof window === 'undefined') return false;
+    return /[?&](code|token_hash)=/.test(window.location.search || '')
+      || /(access_token|refresh_token)=/.test(window.location.hash || '');
+  } catch { return false; }
+};
 import { parseTraineeId } from './traineeUtils';
 import { AuthProvider, useAuth, LoginScreen, UnauthorizedScreen, PasswordChangeModal, SaveErrorToast, OfflineStatusPill, RolePickerScreen, PORTAL_CHOICE_KEY, TRAINER_EMAILS, OWNER_EMAILS, isPartnerEmail, isBhbcCoachEmail, isPtEmail, canLogLoad } from './auth';
 import InstallAppPrompt from './InstallAppPrompt';
@@ -565,12 +623,7 @@ function AuthGate() {
   // replaceState drops the query string with the code in it. Whoever wins that
   // race decides whether the sign-in works, which is exactly a coin flip.
   // So: while a payload is in the URL, nothing here touches the address bar.
-  const authPayloadInUrl = (() => {
-    try {
-      return /[?&](code|token_hash)=/.test(window.location.search || '')
-        || /(access_token|refresh_token)=/.test(window.location.hash || '');
-    } catch { return false; }
-  })();
+  const authPayloadInUrl = hasAuthPayload() || CAME_BACK_FROM_OAUTH;
 
   // Old /try paths also count as marketing (legacy redirect targets).
   const isMarketingPath = path === '/' || path === ''
@@ -728,7 +781,12 @@ function AuthGate() {
       // Signed out at /bhbc → send them to the club's login URL so the address
       // bar says what the page is (and a refresh keeps them there). Signed in,
       // /bhbc goes straight through to the zone (handled below).
-      if (!/\/login\/?$/.test(path)) { try { window.history.replaceState(null, '', '/bhbc/login'); } catch { /* noop */ } }
+      // ...unless an OAuth code is sitting in the query. This rewrite runs
+      // during RENDER, before supabase-js has exchanged it, and replaceState
+      // drops the query with the code in it — so a Google sign-in started from
+      // the club door died here roughly half the time and came back to this
+      // very screen. Leave the address bar alone until the code is spent.
+      if (!/\/login\/?$/.test(path) && !hasAuthPayload() && !CAME_BACK_FROM_OAUTH) { try { window.history.replaceState(null, '', '/bhbc/login'); } catch { /* noop */ } }
       return <LoginScreen brand="bhbc" />;
     }
     return <LoginScreen />;
@@ -1111,7 +1169,7 @@ function AuthedApp() {
     if (/^\/bhbc\/?(login\/?)?$/.test(p)) {
       // Already signed in? /bhbc/login is not a page any more — normalise the
       // URL to the zone so a bookmarked login link just opens the app.
-      if (/login\/?$/.test(p)) { try { window.history.replaceState(null, '', '/bhbc'); } catch { /* noop */ } }
+      if (/login\/?$/.test(p) && !hasAuthPayload() && !CAME_BACK_FROM_OAUTH) { try { window.history.replaceState(null, '', '/bhbc'); } catch { /* noop */ } }
       return { mode: 'coach', tab: 'bhbc', traineeId: null };
     }
     if (p === '/coach' || p.startsWith('/coach/')) {

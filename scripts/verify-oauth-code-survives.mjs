@@ -65,16 +65,42 @@ for (const path of PATHS) {
     }));
     checked++;
     const drops = res.log.filter((x) => x.dropped);
-    // supabase-js is ALLOWED to clear the code - that is what spending it looks
-    // like. The app is not, and the two are told apart by the stack.
-    const appDrops = drops.filter((x) => !/gotrue|supabase/i.test(x.stack || ''));
-    if (appDrops.length) {
-      bad += appDrops.length;
-      console.log(`  DROPPED  ${path}`);
-      for (const d of appDrops) console.log(`             ${d.fn}  ${d.before}  ->  ${d.after}`);
+    // TELLING THE TWO KINDS OF DROP APART.
+    //
+    // supabase-js is SUPPOSED to clear the code: that is what spending it looks
+    // like, and it rewrites to the SAME path with the query removed. The app's
+    // harmful rewrites are the ones that also change the PATH - /bhbc?code=...
+    // to /bhbc/login - because those happen before the exchange and are what
+    // loses the session.
+    //
+    // The first version of this test tried to tell them apart by the stack
+    // trace, which works in dev and is useless against the built bundle, where
+    // neither "supabase" nor "gotrue" survives minification. It called all
+    // seven paths broken, including the ones the fix had already repaired.
+    const samePath = (x) => x.before.split('?')[0].split('#')[0] === x.after.split('?')[0].split('#')[0];
+    const appDrops = drops.filter((x) => !samePath(x));
+    // THE INVARIANT THAT ACTUALLY MATTERS.
+    //
+    // Tracing the built app showed the first theory was wrong: supabase-js
+    // takes the code out of the URL BEFORE the network exchange, so nothing the
+    // app does afterwards can "drop" it. The damage is different and worse —
+    // the app, still seeing no session, walks the address bar away from where
+    // Google landed:
+    //     /coach/bhbc?code=...  ->  /coach/bhbc  ->  /bhbc/login  ->  /login
+    // The exchange then succeeds, the session is fine, and the user is looking
+    // at the login screen. A successful sign-in thrown onto the wrong page is
+    // indistinguishable from a failed one.
+    // So: an OAuth return must END on the page it arrived at.
+    const landedPath = res.url.split('?')[0];
+    const moved = landedPath !== path;
+    if (appDrops.length || moved) {
+      bad += (appDrops.length || 1);
+      console.log(`  BAD      ${path}` + (moved ? `  — ended on ${landedPath}, not where Google landed` : ''));
+      for (const d of res.log) console.log(`             ${d.fn}  ${d.before}  ->  ${d.after}`);
     } else {
-      console.log(`  ok       ${path.padEnd(18)} ${res.log.length} rewrite(s), none dropped the code`
-        + (res.stillHasCode ? '' : ' (code spent or cleared by supabase)'));
+      const spent = drops.length;
+      console.log(`  ok       ${path.padEnd(18)} stayed on ${landedPath} · ${res.log.length} rewrite(s)`
+        + (spent ? ` (${spent} same-path clear${spent === 1 ? '' : 's'} — supabase spending it)` : ''));
     }
   } catch (e) { console.log(`  ERROR    ${path}: ${e.message}`); bad++; }
   finally { await page.close().catch(() => {}); }
