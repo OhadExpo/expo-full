@@ -866,7 +866,33 @@ function attendance28(rec, days) {
   const sameSlot = (a, b) => a && b && a.date === b.date && String(a.start || '') === String(b.start || '') && a.type === b.type;
   const upsertFixture = useCallback((orig, next) => {
     if (!setBhbcFixtures) return;
-    const clean = { date: next.date, type: next.type, start: next.start, minutes: Number(next.minutes) || 0, end: endOfSession(next.start, next.minutes), manual: true, ...(Number(next.contactMin) > 0 ? { contactMin: Number(next.contactMin) } : null) };
+    // THE EDITOR OWNS SIX FIELDS. IT MUST NOT DELETE THE REST.
+    //
+    // `clean` used to be a whitelist built from scratch, so editing an imported
+    // game's start time silently dropped its opponent, venue, competition,
+    // home flag, title and travel. Changing the tip-off on the Badalona game
+    // would have thrown away both flights. Start from what is already on the
+    // row and overwrite only what the form actually edits.
+    const base = orig || {};
+    const clean = { ...base, date: next.date, type: next.type, start: next.start,
+      minutes: Number(next.minutes) || 0, end: endOfSession(next.start, next.minutes), manual: true };
+    if (Number(next.contactMin) > 0) clean.contactMin = Number(next.contactMin);
+    else delete clean.contactMin;                       // cleared in the form = cleared on the row
+    // Opponent / venue / home only mean something on a game, and only the game
+    // form sends them. Ohad, 20.09: the Winner Cup quarter-final read "Opponent
+    // TBD" because the club calendar still says "Winner cup game ???" and he has
+    // reader-only access to it — there was no way to type the name in. The
+    // calendar sync already prefers an existing opponent over the calendar's
+    // (`merged.opponent = f.opponent || cal.opponent`), so what is set here survives.
+    if (next.type === 'game' || next.type === 'scrimmage') {
+      const opp = String(next.opponent || '').trim();
+      if (opp) clean.opponent = opp; else delete clean.opponent;
+      const ven = String(next.venue || '').trim();
+      if (ven) clean.venue = ven; else delete clean.venue;
+      if (next.home === 'home') clean.home = true;
+      else if (next.home === 'away') clean.home = false;
+      else delete clean.home;                           // neutral / not yet known
+    }
     setBhbcFixtures((prev) => {
       const list = [...(prev || [])];
       const i = orig ? list.findIndex((f) => sameSlot(f, orig)) : -1;
@@ -4035,6 +4061,12 @@ function WeekPlanner({ fixtures = [], today, planOf, onSavePlan, onUpsert, onRem
     orig: f || null, date, type: (f && f.type) || 'lift',
     start: (f && f.start) || '', minutes: (f && f.minutes) || (f && f.type === 'game' ? 90 : 60),
     contactMin: (f && f.contactMin) || '',
+    // A game's own facts, so they can be typed in rather than waiting for a
+    // calendar the coach can only read. `home` is a three-way: home, away, or
+    // unset for a neutral venue (a cup tie in a third city).
+    opponent: (f && f.opponent) || '',
+    venue: (f && f.venue) || '',
+    home: f && f.home === true ? 'home' : f && f.home === false ? 'away' : '',
     focus: (f && planOf && (planOf(f) || {}).focus) || '',
   });
   const commit = () => {
@@ -4130,6 +4162,25 @@ function WeekPlanner({ fixtures = [], today, planOf, onSavePlan, onUpsert, onRem
                       <input type="number" min="0" step="1" value={editing.contactMin} onChange={(e) => setEditing((x) => ({ ...x, contactMin: e.target.value }))}
                         style={{ ...inp, width: 74 }} title={tr('Contact minutes')} placeholder={tr('contact')} />
                     )}
+                    {/* A GAME'S OPPONENT IS TYPED HERE, not waited for.
+                        The club calendar is read-only to the coach and still
+                        said "Winner cup game ???" on the day of the tie. These
+                        three only appear on a game or a scrimmage — a weights
+                        session has no opponent. */}
+                    {(editing.type === 'game' || editing.type === 'scrimmage') && (<>
+                      <input value={editing.opponent} onChange={(e) => setEditing((x) => ({ ...x, opponent: e.target.value }))}
+                        placeholder={tr('Opponent')} title={tr('Opponent')} style={{ ...inp, flex: '1 1 150px', minWidth: 120, fontFamily: FB }} />
+                      <input value={editing.venue} onChange={(e) => setEditing((x) => ({ ...x, venue: e.target.value }))}
+                        placeholder={tr('Venue')} title={tr('Venue')} style={{ ...inp, flex: '1 1 130px', minWidth: 110, fontFamily: FB }} />
+                      <div style={{ display: 'inline-flex', border: `1px solid ${C.cardBd}` }}>
+                        {[['home', 'Home'], ['away', 'Away'], ['', 'Neutral']].map(([k, l]) => (
+                          <button key={k || 'neutral'} type="button" onClick={() => setEditing((x) => ({ ...x, home: k }))}
+                            style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase',
+                              color: editing.home === k ? '#fff' : C.td, background: editing.home === k ? NAVY : 'transparent',
+                              border: 'none', padding: '6px 9px', cursor: 'pointer' }}>{tr(l)}</button>
+                        ))}
+                      </div>
+                    </>)}
                     <input value={editing.focus} onChange={(e) => setEditing((x) => ({ ...x, focus: e.target.value }))} placeholder={tr('Focus — e.g. Lower INT + landing mechanics')} style={{ ...inp, flex: '1 1 220px', minWidth: 140, fontFamily: FB }} />
                     <Btn onClick={commit} style={{ background: ORANGE, borderColor: ORANGE, color: '#fff' }}>{zoneT(editing.orig ? 'Save' : 'Add')}</Btn>
                     <Btn variant="ghost" onClick={() => setEditing(null)}>{tr('Cancel')}</Btn>
