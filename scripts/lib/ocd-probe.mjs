@@ -1,0 +1,172 @@
+// The OCD probe, shared by scripts/ocd-sweep.mjs and its break test.
+//
+// It lives here so the break test exercises the SAME code the sweep runs.
+// A break test against a copy proves nothing about the thing that shipped,
+// and six of these rules report zero on a real page - that zero is only
+// worth anything once each rule has been shown to go red on a planted defect.
+export const PROBE = () => {
+  const out = [];
+  const seen = new Set();
+  const add = (kind, el, detail) => {
+    const id = kind + '|' + (el ? el.tagName + (typeof el.className === 'string' ? '.' + el.className.trim().split(/\s+/)[0] : '') : '') + '|' + detail.slice(0, 40);
+    if (seen.has(id)) return;
+    seen.add(id);
+    out.push({ kind, el: el ? (el.tagName + (typeof el.className === 'string' && el.className ? '.' + el.className.trim().split(/\s+/)[0] : '')) : '-',
+      t: el ? (el.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 34) : '', detail });
+  };
+  const vis = (e) => {
+    const s = getComputedStyle(e);
+    if (s.visibility === 'hidden' || s.display === 'none' || s.opacity === '0') return false;
+    const r = e.getBoundingClientRect();
+    return r.width > 0.5 && r.height > 0.5;
+  };
+  const all = [...document.querySelectorAll('body *')].filter(vis);
+  const leaves = all.filter((e) => !e.children.length && (e.textContent || '').trim());
+  const VW = document.documentElement.clientWidth;
+  const rtl = getComputedStyle(document.body).direction === 'rtl'
+    || document.documentElement.dir === 'rtl';
+
+  // SIDEWAYS
+  if (document.documentElement.scrollWidth > VW + 1) {
+    add('SIDEWAYS', document.documentElement, `page is ${document.documentElement.scrollWidth}px wide in a ${VW}px window`);
+  }
+
+  // CLIPPED — natural text width against the box that holds it.
+  const ghost = document.createElement('div');
+  ghost.style.cssText = 'position:fixed;left:-99999px;top:0;white-space:pre;width:max-content;visibility:hidden';
+  document.body.appendChild(ghost);
+  for (const e of leaves) {
+    const s = getComputedStyle(e);
+    if (!/hidden|clip/.test(s.overflow + s.overflowX)) continue;
+    if (s.whiteSpace !== 'nowrap' && s.textOverflow !== 'ellipsis') continue;
+    if (s.textOverflow === 'ellipsis') continue;              // an ellipsis is a choice, not a slice
+    ghost.style.font = s.font; ghost.style.fontSize = s.fontSize; ghost.style.fontFamily = s.fontFamily;
+    ghost.style.fontWeight = s.fontWeight; ghost.style.letterSpacing = s.letterSpacing;
+    ghost.textContent = e.textContent || '';
+    const natural = ghost.getBoundingClientRect().width;
+    const over = natural - e.clientWidth;
+    if (over > 1) add('CLIPPED', e, `needs ${natural.toFixed(0)}px, has ${e.clientWidth}px — over by ${over.toFixed(0)}`);
+  }
+  ghost.remove();
+
+  // OFFSCREEN — but NOT inside a horizontal scroller.
+  //
+  // The first run reported 13 per screen and every one was a tab in the zone's
+  // nav strip, which scrolls sideways on purpose: "Activity" is 464px past the
+  // right edge because you swipe to it. A rule that cannot tell a scroller from
+  // an overflow reports the design as the defect.
+  const inScroller = (e) => {
+    for (let p = e.parentElement; p; p = p.parentElement) {
+      const s = getComputedStyle(p);
+      if (/auto|scroll/.test(s.overflowX) && p.scrollWidth > p.clientWidth + 1) return true;
+    }
+    return false;
+  };
+  for (const e of all) {
+    const r = e.getBoundingClientRect();
+    if (r.width > VW * 1.5) continue;                          // full-bleed wrappers are not the finding
+    const outR = r.right - VW, outL = -r.left;
+    if (outR <= 1.5 && outL <= 1.5) continue;
+    if (inScroller(e)) continue;
+    add('OFFSCREEN', e, `${outR > 1.5 ? `${outR.toFixed(0)}px past the right` : `${outL.toFixed(0)}px past the left`} edge`);
+  }
+
+  // TINYTAP — one finding per repeated control, not one per instance.
+  //
+  // The first run listed the zone's eight nav tabs separately, all 30px tall:
+  // that is ONE decision to fix, not eight findings, and 21 lines of noise
+  // buries the things that are actually wrong. Keyed by class + size, and the
+  // bar is 32px - below that a thumb genuinely misses; 32-44 is tight but is a
+  // choice the design makes all over and flagging it drowns everything else.
+  const tapSeen = new Map();
+  for (const e of all) {
+    if (!/^(BUTTON|A)$/.test(e.tagName) && e.getAttribute('role') !== 'button') continue;
+    if (!(e.textContent || '').trim() && !e.querySelector('svg,img')) continue;
+    const r = e.getBoundingClientRect();
+    if (r.height >= 32 && r.width >= 32) continue;
+    const key = (typeof e.className === 'string' ? e.className.trim() : '') + '|' + Math.round(r.width) + 'x' + Math.round(r.height);
+    tapSeen.set(key, (tapSeen.get(key) || 0) + 1);
+    if (tapSeen.get(key) > 1) continue;
+    add('TINYTAP', e, `${r.width.toFixed(0)}x${r.height.toFixed(0)}`);
+  }
+
+  // COLLIDE
+  for (let i = 0; i < leaves.length; i++) {
+    for (let j = i + 1; j < leaves.length; j++) {
+      if (leaves[i].contains(leaves[j]) || leaves[j].contains(leaves[i])) continue;
+      const a = leaves[i].getBoundingClientRect(), c = leaves[j].getBoundingClientRect();
+      const h = Math.min(a.right, c.right) - Math.max(a.left, c.left);
+      const v = Math.min(a.bottom, c.bottom) - Math.max(a.top, c.top);
+      if (h > 2 && v > 2) add('COLLIDE', leaves[i], `overlaps "${(leaves[j].textContent || '').trim().slice(0, 18)}" by ${v.toFixed(0)}px`);
+    }
+  }
+
+  // RAGGED — sibling blocks starting at different insets from their parent.
+  for (const p of all) {
+    const kids = [...p.children].filter((k) => vis(k) && (k.textContent || '').trim());
+    if (kids.length < 3) continue;
+    const pr = p.getBoundingClientRect();
+    if (pr.width < 120) continue;
+    const ps = getComputedStyle(p);
+    if (ps.display !== 'block' && ps.display !== 'flex') continue;
+    if (ps.display === 'flex' && ps.flexDirection !== 'column') continue;
+    const ins = kids.map((k) => { const r = k.getBoundingClientRect(); return rtl ? pr.right - r.right : r.left - pr.left; });
+    const lo = Math.min(...ins), hi = Math.max(...ins);
+    if (hi - lo > 6) add('RAGGED', p, `${kids.length} rows start between ${lo.toFixed(0)} and ${hi.toFixed(0)}px in — spread ${(hi - lo).toFixed(0)}px`);
+  }
+
+  // UNEVEN — chips on one line at different heights.
+  for (const p of all) {
+    const ps = getComputedStyle(p);
+    if (ps.display !== 'flex' || ps.flexDirection === 'column') continue;
+    const kids = [...p.children].filter((k) => vis(k) && (k.textContent || '').trim());
+    if (kids.length < 2) continue;
+    const rs = kids.map((k) => k.getBoundingClientRect());
+    const sameRow = rs.every((r) => Math.abs(r.top - rs[0].top) < 4);
+    if (!sameRow) continue;
+    const hs = rs.map((r) => r.height);
+    const lo = Math.min(...hs), hi = Math.max(...hs);
+    if (hi - lo > 3 && lo > 12) add('UNEVEN', p, `${kids.length} items on one row, heights ${lo.toFixed(0)}–${hi.toFixed(0)}`);
+  }
+
+  // ORPHAN — a TILE grid whose last row is short.
+  //
+  // Only grids whose tracks are all the same width, which is what a
+  // repeat(auto-fit, minmax(...)) tile grid resolves to. The first run flagged
+  // the roster's data rows, whose columns are deliberately unequal (a 28px
+  // jersey against a 1.5fr name) and which wrap on a phone by design.
+  for (const p of all) {
+    const ps = getComputedStyle(p);
+    if (ps.display !== 'grid') continue;
+    const tracks = ps.gridTemplateColumns.split(' ').filter(Boolean).map(parseFloat);
+    if (tracks.length < 3 || tracks.some((n) => !Number.isFinite(n))) continue;
+    if (Math.max(...tracks) - Math.min(...tracks) > 2) continue;   // not a tile grid
+    const cols = tracks.length;
+    const kids = [...p.children].filter(vis);
+    if (kids.length <= cols) continue;
+    const rem = kids.length % cols;
+    if (rem !== 0) add('ORPHAN', p, `${kids.length} tiles in ${cols} equal columns — last row holds ${rem}`);
+  }
+
+  // EDGEFLIP — a text block whose ink hugs the wrong edge for the direction.
+  for (const p of all) {
+    const kids = [...p.children].filter((k) => vis(k) && (k.textContent || '').trim());
+    if (kids.length < 2) continue;
+    const pr = p.getBoundingClientRect();
+    if (pr.width < 100) continue;
+    const startGap = (r) => (rtl ? pr.right - r.right : r.left - pr.left);
+    const endGap = (r) => (rtl ? r.left - pr.left : pr.right - r.right);
+    let atStart = 0, atEnd = 0, flipped = null;
+    for (const k of kids) {
+      const r = k.getBoundingClientRect();
+      if (r.width > pr.width * 0.92) continue;                  // full-width rows tell us nothing
+      if (startGap(r) < 4) atStart++;
+      else if (endGap(r) < 4) { atEnd++; flipped = k; }
+    }
+    if (atStart >= 2 && atEnd >= 1 && flipped) {
+      add('EDGEFLIP', flipped, `${atStart} sibling(s) hug the ${rtl ? 'right' : 'left'} (start) edge, this one hugs the other`);
+    }
+  }
+
+  return { findings: out, vw: VW, chars: (document.body.innerText || '').replace(/\s+/g, ' ').trim().length, rtl };
+};
