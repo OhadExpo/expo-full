@@ -47,8 +47,16 @@ export const PROBE = () => {
   const all = [...document.querySelectorAll('body *')].filter(vis);
   const leaves = all.filter((e) => !e.children.length && (e.textContent || '').trim());
   const VW = document.documentElement.clientWidth;
-  const rtl = getComputedStyle(document.body).direction === 'rtl'
-    || document.documentElement.dir === 'rtl';
+  // DIRECTION IS PER-CONTAINER, NOT PER-DOCUMENT.
+  //
+  // The coach app sets dir on `.app-root`, not on <html> or <body>, so a
+  // document-level check reads 'ltr' on a fully Hebrew page — and every
+  // start/end measurement in RAGGED and EDGEFLIP was then computed against the
+  // wrong edge in Hebrew. Caught because the findings said "hug the left
+  // (start) edge" on RTL screens, where start is the right.
+  // Each rule now asks the container it is looking at.
+  const dirOf = (el) => (getComputedStyle(el).direction === 'rtl');
+  const rtl = dirOf(document.querySelector('.app-root') || document.body);
 
   // SIDEWAYS
   if (document.documentElement.scrollWidth > VW + 1) {
@@ -149,7 +157,8 @@ export const PROBE = () => {
       return Math.abs(s1 - s2) <= 2;
     });
     if (centred) continue;
-    const ins = kids.map((k) => { const r = k.getBoundingClientRect(); return rtl ? pr.right - r.right : r.left - pr.left; });
+    const pRtl = dirOf(p);
+    const ins = kids.map((k) => { const r = k.getBoundingClientRect(); return pRtl ? pr.right - r.right : r.left - pr.left; });
     const lo = Math.min(...ins), hi = Math.max(...ins);
     if (hi - lo > 6) add('RAGGED', p, `${kids.length} rows start between ${lo.toFixed(0)} and ${hi.toFixed(0)}px in — spread ${(hi - lo).toFixed(0)}px`);
   }
@@ -193,8 +202,9 @@ export const PROBE = () => {
     if (kids.length < 2) continue;
     const pr = p.getBoundingClientRect();
     if (pr.width < 100) continue;
-    const startGap = (r) => (rtl ? pr.right - r.right : r.left - pr.left);
-    const endGap = (r) => (rtl ? r.left - pr.left : pr.right - r.right);
+    const pRtl = dirOf(p);
+    const startGap = (r) => (pRtl ? pr.right - r.right : r.left - pr.left);
+    const endGap = (r) => (pRtl ? r.left - pr.left : pr.right - r.right);
     let atStart = 0, atEnd = 0, flipped = null;
     for (const k of kids) {
       const r = k.getBoundingClientRect();
@@ -203,7 +213,7 @@ export const PROBE = () => {
       else if (endGap(r) < 4) { atEnd++; flipped = k; }
     }
     if (atStart >= 2 && atEnd >= 1 && flipped) {
-      add('EDGEFLIP', flipped, `${atStart} sibling(s) hug the ${rtl ? 'right' : 'left'} (start) edge, this one hugs the other`);
+      add('EDGEFLIP', flipped, `${atStart} sibling(s) hug the ${pRtl ? 'right' : 'left'} (start) edge, this one hugs the other`);
     }
   }
 

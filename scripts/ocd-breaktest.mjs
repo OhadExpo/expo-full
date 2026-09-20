@@ -30,6 +30,17 @@ const CASES = [
     + '<div style="position:absolute;left:0;top:0;width:80px">aa</div>'
     + '<div style="position:absolute;left:0;top:24px;width:80px">bb</div>'
     + '<div style="position:absolute;right:0;top:48px;width:80px">cc</div></div>'],
+  // THE MIRROR CASE. Every other case here is LTR, so none of them could catch
+  // the direction bug that shipped: the coach app sets dir on `.app-root`, not
+  // on <html>, so a document-level RTL check read 'ltr' on a fully Hebrew page
+  // and both edge rules measured the wrong side in Hebrew. In RTL the start
+  // edge is the RIGHT, so the odd one out is the one on the left.
+  ['EDGEFLIP', '<div dir="rtl" style="width:300px;position:relative;height:90px">'
+    + '<div style="position:absolute;right:0;top:0;width:80px">aa</div>'
+    + '<div style="position:absolute;right:0;top:24px;width:80px">bb</div>'
+    + '<div style="position:absolute;left:0;top:48px;width:80px">cc</div></div>'],
+  ['RAGGED', '<div dir="rtl" style="width:300px"><div style="margin-right:0">one</div>'
+    + '<div style="margin-right:20px">two</div><div style="margin-right:40px">three</div></div>'],
 ];
 
 const b = await P.connect({ browserURL: process.env.CDP || 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
