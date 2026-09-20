@@ -1209,7 +1209,18 @@ html.theme-switching *::after {
 .bhbc-manage-meta{display:flex;align-items:center;gap:12px;justify-content:flex-end;min-width:0}
 @media (max-width:620px){
   .bhbc-manage-row{grid-template-columns:16px 24px minmax(0,1fr)}
-  .bhbc-manage-meta{grid-column:3;justify-content:space-between;gap:8px}
+  /* WRAP RATHER THAN TRUNCATE THE POSITION.
+     At 390 the LANDS label and the native date input take ~196px of the 255px
+     column, so the position was ellipsed to "POINT G..." and "FORWAR..." -
+     unreadable, and sitting hard against the word LANDS. Found by the OCD
+     sweep on 21.9; the CLIPPED rule skips text-overflow:ellipsis by design
+     ("an ellipsis is a choice, not a slice"), so it was the collision that
+     surfaced it.
+     Wrapping is adaptive: there is room for one line on a wide screen and the
+     date block drops below the position on a phone, so nothing is cut at any
+     width and no wording changes. */
+  .bhbc-manage-meta{grid-column:3;justify-content:space-between;gap:8px;flex-wrap:wrap}
+  .bhbc-manage-meta>:first-child{flex:0 1 auto;overflow:visible;text-overflow:clip}
 }
 
 /* The roster card reserves two lines for the name and two for the status so a
