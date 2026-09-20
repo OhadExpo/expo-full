@@ -1015,6 +1015,23 @@ function attendance28(rec, days) {
              is right there on the same row, and a real focus still gets its own
              full-width line. Eight sessions, eight lines back. */
           .bhbc-chip .bhbc-chip-focus-empty{display:none!important}
+          /* A ROW THAT GREW MUST NOT RE-CENTRE ITS SHORT ITEMS.
+
+             alignItems:center is right while every cell on a row is one line,
+             and wrong the moment one wraps: every short item slides to the
+             vertical middle. That is one fault behind three separate complaints
+             - the athlete's name sitting below his own diagnosis, the day count
+             below its own fixture, the action floating between two lines of a
+             club name. Measured at 390 with _recentred-rows.mjs: 101 in English
+             and 103 in Hebrew.
+
+             There are 125 alignItems:center in this file and MOST ARE RIGHT -
+             a chip centred against one line of text is exactly right - so this
+             names the row classes the measurement actually flagged instead of
+             changing them all. On a single-line row flex-start and center are
+             identical, so this only bites where the row grew. Phone only;
+             desktop has the width and does not wrap. */
+          .bhbc-row, .bhbc-game-row, .bhbc-med-row, .bhbc-chip, .bhbc-rtp-row{ align-items: flex-start !important; }
         .bhbc-labelrow{display:block!important}
           /* THE LABEL GOES ABOVE, NOT BESIDE — so every value starts on ONE column.
              It floated inline-start, which indents only the FIRST line and starts
