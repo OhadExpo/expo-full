@@ -660,6 +660,24 @@ Object.assign(HE, {
   'lifted today': 'התאמנו היום',
   'Two weight-room sessions a week is the standard here — amber at 4 days, red at 7.': 'שני אימוני כוח בשבוע זה הסטנדרט כאן — כתום אחרי 4 ימים, אדום אחרי 7.',
 
+  // ---- practice attendance: who trained basketball and who did not -----
+  // Ohad 20.9: "i want an easy way to view the history of who trained
+  // (basketball) and who didn't like the weight room view".
+  'Practice Attendance': 'נוכחות באימונים',
+  'A bar is a session he was at. A red box is a session he was available for and missed. A dash is a scheduled session nobody logged.':
+    'פס זה אימון שהוא היה בו. ריבוע אדום זה אימון שהיה זמין אליו ולא הגיע. מקף זה אימון שנקבע ואף אחד לא רשם.',
+  'attended this month': 'נוכחויות החודש',
+  'nothing logged this month': 'לא נרשם כלום החודש',
+  'nobody logged this session': 'אף אחד לא רשם את האימון הזה',
+  // Two words in Hebrew for one in English. The banner over the list of names
+  // needs a NOUN ("absences"); the cell tooltip and the legend need the verb
+  // said about one athlete ("did not turn up"), masculine singular.
+  'absences': 'חיסורים',
+  'missed': 'לא הגיע',
+  'Practice': 'אימון',
+  'there': 'הגיעו',
+  'none': 'אין',
+
   // ---- the weight-room tab --------------------------------------------
   'Previous month': 'החודש הקודם',
   'Next month': 'החודש הבא',

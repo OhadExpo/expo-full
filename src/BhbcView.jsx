@@ -1429,6 +1429,12 @@ function attendance28(rec, days) {
                     already passed it; this one was skipped. */}
                 <WeekPlanner fixtures={bhbcFixtures} today={today} planOf={planOf} onSavePlan={asCoach ? null : saveSessionPlan}
                   onUpsert={asCoach ? null : upsertFixture} onRemove={asCoach ? null : removeFixture} />
+                {/* WHO TRAINED AND WHO DIDN'T, as a month grid (Ohad 20.9: "i
+                    want an easy way to view the history of who trained
+                    (basketball) and who didn't like the weight room view").
+                    It sits ABOVE the slot-by-slot list because the glance comes
+                    first and the detail second - same order as the weight room. */}
+                <CourtAttendanceTab rows={rows} loads={bhbcLoads} medical={medical} fixtures={bhbcFixtures} today={today} onOpen={setDetailFor} />
                 {/* What the team ACTUALLY did, slot by slot (Ohad 08-24:
                     "where can I see the previous practices details?"). */}
                 <PastPractices fixtures={bhbcFixtures} loads={bhbcLoads} roster={roster} today={today} planOf={planOf} medical={medical} />
@@ -3331,6 +3337,234 @@ function TeamSnapshotCard({ team }) {
   );
 }
 
+// WHO TRAINED BASKETBALL, AND WHO DID NOT.
+//
+// Ohad, 20.9: "i want an easy way to view the history of who trained
+// (basketball) and who didn't like the weight room view".
+//
+// Same instrument as the weight room - athletes down, days across, one cell per
+// athlete per day - with one difference that matters. In the weight room a day
+// with no lift is nobody's fault: no session was owed. On the court there IS a
+// session, on the schedule, and the question is who was at it. So a cell here
+// is only meaningful against a FIXTURE, and it has to separate three different
+// kinds of "no bar":
+//
+//   nothing owed  - no court session that day. Blank, and no judgement.
+//   nobody logged - a session was scheduled and NOT ONE athlete has a record
+//                   for it. That is a gap in the logging, not an absence, and
+//                   calling it a miss would accuse ten people of skipping a
+//                   practice that was simply never written down. Faint dash.
+//   excused       - out on the medical record for that date (medicalAvailOn),
+//                   so the absence is expected. Tinted, never counted as missed.
+//   missed        - the session was logged, he was available, and he was not
+//                   there. This is the one he asked to see, so it is the only
+//                   mark that is loud, and it is what the banner at the top counts.
+//
+// Nothing here invents attendance. An unlogged day stays unlogged.
+function CourtAttendanceTab({ rows = [], loads = {}, medical = {}, fixtures = [], today, onOpen }) {
+  const tr = useT();
+  const he = useHe();
+  const [monthOff, setMonthOff] = useState(0);
+
+  const COURT = ['practice', 'game', 'scrimmage', 'shootaround'];
+  const isCourtFx = (f) => f && COURT.includes(String(f.type || '').toLowerCase());
+  const isCourtRow = (r) => r && !/^(lift|weights)$/i.test(String(r.type || ''));
+
+  const days = useMemo(() => {
+    const base = parseISO(today);
+    const anchor = new Date(base.getFullYear(), base.getMonth() + monthOff, 1);
+    const out = [];
+    const m = anchor.getMonth();
+    for (let d = new Date(anchor); d.getMonth() === m; d.setDate(d.getDate() + 1)) {
+      const iso = localISO(d);
+      if (iso > today) break;
+      out.push({ iso, dom: d.getDate(), dow: d.getDay() });
+    }
+    return { list: out, label: `${monFor(anchor.getMonth(), MON[anchor.getMonth()])} ${anchor.getFullYear()}` };
+  }, [today, monthOff]);
+
+  // Which court sessions each day held, and what kind the day was. A day with a
+  // game in it reads as a game day even if it also held a shootaround.
+  const dayFx = useMemo(() => {
+    const m = {};
+    for (const f of (fixtures || [])) {
+      if (!isCourtFx(f)) continue;
+      (m[f.date] = m[f.date] || []).push(f);
+    }
+    return m;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fixtures]);
+
+  // A day nobody has a record for is a LOGGING gap, not ten absences.
+  const loggedDays = useMemo(() => {
+    const s = new Set();
+    for (const { t } of (rows || [])) {
+      const rec = loads[t.id] || {};
+      for (const [d, list] of Object.entries(rec.sessions || {})) if ((list || []).some(isCourtRow)) s.add(d);
+      for (const k of Object.keys(rec.attendance || {})) s.add(String(k).split('|')[0]);
+    }
+    return s;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, loads]);
+
+  const per = useMemo(() => (rows || []).map(({ t }) => {
+    const rec = loads[t.id] || {};
+    const ses = rec.sessions || {};
+    const attended = [];
+    const cells = days.list.map((d) => {
+      const slots = dayFx[d.iso] || [];
+      if (!slots.length) return { iso: d.iso, state: 'none' };
+      const kind = slots.some((f) => f.type === 'game') ? 'game'
+        : slots.some((f) => f.type === 'scrimmage') ? 'scrimmage'
+          : slots.some((f) => f.type === 'practice') ? 'practice' : 'shootaround';
+      if (!loggedDays.has(d.iso)) return { iso: d.iso, state: 'unlogged', kind };
+      const rowsOfDay = (ses[d.iso] || []).filter(isCourtRow);
+      const att = rec.attendance || {};
+      const markedIn = slots.some((f) => att[`${d.iso}|${f.start || ''}`] === 'in');
+      const markedOut = slots.some((f) => att[`${d.iso}|${f.start || ''}`] === 'out');
+      const code = availOn(rec, medical, t.id, d.iso);
+      const mins = rowsOfDay.reduce((a, r) => a + (Number(r.min) || 0), 0);
+      // An explicit "out" mark on the slot is the coach's own answer and beats
+      // everything; then the medical record; then whether anything was logged.
+      let state;
+      if (markedOut) state = code >= 4 ? 'excused' : 'missed';
+      else if (rowsOfDay.length || markedIn) state = 'in';
+      else if (code >= 4) state = 'excused';
+      else state = 'missed';
+      if (state === 'in') attended.push(d.iso);
+      return { iso: d.iso, state, kind, mins, code };
+    });
+    const last = attended.length ? attended[attended.length - 1] : null;
+    const since = last ? dayDiff(today, last) : null;
+    const owed = cells.filter((c) => c.state === 'in' || c.state === 'missed').length;
+    const went = cells.filter((c) => c.state === 'in').length;
+    const missed = cells.filter((c) => c.state === 'missed').length;
+    return { t, cells, last, since, owed, went, missed, todayCode: availOn(rec, medical, t.id, today) };
+  }), [rows, loads, medical, days, dayFx, loggedDays, today]);
+
+  // Per day: how many of the squad were there, out of how many were expected.
+  const perDay = days.list.map((d, i) => {
+    const cs = per.map((p) => p.cells[i]).filter(Boolean);
+    const expected = cs.filter((c) => c.state === 'in' || c.state === 'missed').length;
+    if (!expected && !cs.some((c) => c.state === 'excused')) return null;
+    return { went: cs.filter((c) => c.state === 'in').length, expected };
+  });
+  // The answer to "who didn't", surfaced instead of hunting for it in the grid.
+  const absentees = per.filter((p) => p.missed > 0).sort((a, b) => b.missed - a.missed);
+  const CELL = 22;
+  const TINT = { 1: 'transparent', 2: 'rgba(224,167,58,0.18)', 3: 'rgba(79,157,224,0.18)', 4: 'rgba(222,78,59,0.20)', 5: 'rgba(124,130,139,0.20)' };
+  const MISS = '#DE4E3B';
+  const pct = (p) => (p.owed ? Math.round((p.went / p.owed) * 100) : null);
+  const pctInk = (v) => (v == null ? C.cardBd : v >= 90 ? '#37B27C' : v >= 75 ? 'var(--bhbc-amber-text, #E0A73A)' : MISS);
+  const monthOwed = per.reduce((a, p) => a + p.owed, 0);
+  const monthWent = per.reduce((a, p) => a + p.went, 0);
+
+  return (
+    <Card leftStripe={FX_COLOR.practice} padding={0} header={secTitle('Practice Attendance')}
+      headerRight={(
+        <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: C.tm }}>
+          {monthOwed ? `${monthWent}/${monthOwed} ${tr('attended this month')}` : tr('nothing logged this month')}
+        </span>
+      )}>
+      {!!absentees.length && (
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap', padding: '9px 14px', borderBottom: `1px solid ${C.cardBd}`, background: 'rgba(222,78,59,0.06)' }}>
+          <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 800, letterSpacing: '0.10em', textTransform: 'uppercase', color: MISS, flexShrink: 0 }}>{tr('absences')}</span>
+          {/* Two equal columns, same as the weight room's DUE strip: wrapped
+              chips are as wide as the name inside them and land on a different
+              edge each. */}
+          <span style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 6, minWidth: 0, flex: '1 1 100%' }}>
+            {absentees.map(({ t, missed }) => (
+              <span key={t.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 24, padding: '0 8px', border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)', fontFamily: FN, fontSize: 10.5, fontWeight: 700, color: C.tx, whiteSpace: 'nowrap' }}>
+                <span style={{ unicodeBidi: 'isolate' }}>{t.name}</span>
+                <span style={{ color: MISS, fontWeight: 800, unicodeBidi: 'isolate', fontVariantNumeric: 'tabular-nums' }}>{missed}</span>
+              </span>
+            ))}
+          </span>
+        </div>
+      )}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, rowGap: 6, flexWrap: 'wrap', padding: '8px 14px', borderBottom: `1px solid ${C.cardBd}` }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <button type="button" onClick={() => setMonthOff((v) => v - 1)} className="bhbc-ghost-btn" aria-label={tr('Previous month')}
+            style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, height: 24, width: 26, cursor: 'pointer' }}>{he ? '›' : '‹'}</button>
+          <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tx, minWidth: 116, textAlign: 'center' }}>{tr(days.label.split(' ')[0])} {days.label.split(' ')[1]}</span>
+          <button type="button" disabled={monthOff >= 0} onClick={() => setMonthOff((v) => Math.min(0, v + 1))} className="bhbc-ghost-btn" aria-label={tr('Next month')}
+            style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: monthOff >= 0 ? C.cardBd : C.tm, background: 'transparent', border: `1px solid ${C.cardBd}`, borderRadius: 0, height: 24, width: 26, cursor: monthOff >= 0 ? 'default' : 'pointer' }}>{he ? '‹' : '›'}</button>
+        </div>
+        {/* The sentence gets its own line rather than being squeezed into the
+            gap beside the pager - same rule as the weight room. */}
+        <span style={{ fontFamily: FB, fontSize: 11, color: C.tm, flex: '1 1 100%', minWidth: 0 }}>
+          {tr('A bar is a session he was at. A red box is a session he was available for and missed. A dash is a scheduled session nobody logged.')}
+        </span>
+      </div>
+
+      {/* Sideways scroll is deliberate: a month of days cannot fit 390px. */}
+      <div style={{ overflowX: 'auto' }}>
+        <div style={{ minWidth: 298 + days.list.length * CELL }}>
+          <div style={{ display: 'grid', gridTemplateColumns: `180px repeat(${days.list.length}, minmax(${CELL}px, 1fr)) 118px`, alignItems: 'center', padding: '6px 14px 4px' }}>
+            <span />
+            {days.list.map((d) => (
+              <span key={d.iso} title={monDay(d.iso)} style={{ fontFamily: FN, fontSize: 9, fontWeight: d.iso === today ? 800 : 600, color: d.iso === today ? ORANGE_DEEP : (d.dow === 6 || d.dow === 5 ? C.cardBd : C.tm), textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{d.dom}</span>
+            ))}
+            <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.tm, textAlign: 'end', paddingInlineStart: 10 }}>{tr('attended')}</span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: `180px repeat(${days.list.length}, minmax(${CELL}px, 1fr)) 118px`, alignItems: 'center', padding: '0 14px 6px' }}>
+            <span style={{ fontFamily: FN, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', color: C.tm }}>{tr('there')}</span>
+            {perDay.map((v, i) => (
+              <span key={days.list[i].iso} style={{ fontFamily: FN, fontSize: 9.5, fontWeight: 700, color: v == null ? C.cardBd : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{v == null ? '—' : v.went}</span>
+            ))}
+            <span />
+          </div>
+          <div style={{ display: 'grid', gap: 1, background: C.cardBd }}>
+            {per.map(({ t, cells, since, last, todayCode, went, owed }) => (
+              <div key={t.id} role={onOpen ? 'button' : undefined} tabIndex={onOpen ? 0 : undefined}
+                onClick={onOpen ? () => onOpen(t.id) : undefined}
+                onKeyDown={onOpen ? ((e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(t.id); } }) : undefined}
+                style={{ display: 'grid', gridTemplateColumns: `180px repeat(${cells.length}, minmax(${CELL}px, 1fr)) 118px`, alignItems: 'stretch', background: 'var(--c-sf)', padding: '0 14px', cursor: onOpen ? 'pointer' : 'default' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, paddingInlineEnd: 8, height: 26 }}>
+                  {todayCode > 1 && <span title={tr(AVAIL[todayCode].label)} aria-label={tr(AVAIL[todayCode].label)} style={{ width: 7, height: 7, borderRadius: '50%', background: AVAIL[todayCode].color, flexShrink: 0 }} />}
+                  <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, minWidth: 20, fontVariantNumeric: 'tabular-nums' }}>{t.jersey != null ? t.jersey : ''}</span>
+                  <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>
+                </span>
+                {cells.map((c) => {
+                  const label = c.state === 'none' ? monDay(c.iso)
+                    : `${monDay(c.iso)} · ${tr(FX_LABEL[c.kind] || 'Practice')} · ${tr(
+                      c.state === 'in' ? 'attended' : c.state === 'missed' ? 'missed' : c.state === 'excused' ? AVAIL[c.code] ? AVAIL[c.code].label : 'out' : 'nobody logged this session')}`;
+                  return (
+                    <span key={c.iso} title={label}
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 26, background: c.state === 'none' ? 'transparent' : TINT[c.code] || 'transparent', borderInlineStart: `1px solid ${C.cardBd}` }}>
+                      {c.state === 'in' && (
+                        <span style={{ minWidth: 18, height: 16, padding: '0 3px', background: FX_COLOR[c.kind] || FX_COLOR.practice, color: 'var(--c-stripTx)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 8.5, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{c.mins || ''}</span>
+                      )}
+                      {c.state === 'missed' && (
+                        <span aria-label={tr('missed')} style={{ width: 14, height: 14, border: `1.5px solid ${MISS}`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: 9, fontWeight: 800, color: MISS, lineHeight: 1 }}>{'×'}</span>
+                      )}
+                      {c.state === 'unlogged' && <span style={{ fontFamily: FN, fontSize: 10, color: C.cardBd, lineHeight: 1 }}>{'–'}</span>}
+                    </span>
+                  );
+                })}
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, height: 26, paddingInlineStart: 10 }}>
+                  <span style={{ fontFamily: FB, fontSize: 10.5, color: C.tm, whiteSpace: 'nowrap' }}>{last ? monDay(last) : ''}</span>
+                  <span dir="ltr" style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: pctInk(pct({ went, owed })), fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', minWidth: 46, textAlign: 'end', unicodeBidi: 'isolate' }}>
+                    {owed ? `${went}/${owed}` : tr('none')}
+                  </span>
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, padding: '9px 14px', borderTop: `1px solid ${C.cardBd}` }}>
+        {[[FX_COLOR.practice, tr('Practice')], [FX_COLOR.game, tr('Game')], [FX_COLOR.scrimmage, tr('Scrimmage')], [MISS, tr('missed')], [C.cardBd, tr('nobody logged this session')]].map(([col, lbl]) => (
+          <span key={lbl} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: FB, fontSize: 11, color: C.tm }}>
+            <span style={{ width: 10, height: 10, background: col, flexShrink: 0 }} />{lbl}
+          </span>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
 // THE WEIGHT ROOM TAB.
 //
 // Ohad, pointing at his own availability sheet: "that's litterally the main use
@@ -3911,9 +4145,24 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, planOf, 
       const att = rec && rec.attendance && rec.attendance[`${f.date}|${f.start || ''}`];
       const mine = rows.filter((r) => {
         if (r.start) return r.start === f.start;
-        const sameKind = daySlots.filter((x) => slotKind(x.type) === rowKind(r.type));
-        if (sameKind.length === 1) return sameKind[0].start === f.start;
-        if (sameKind.length > 1) return sameKind[0].start === f.start;
+        const kind = rowKind(r.type);
+        const sameKind = daySlots.filter((x) => slotKind(x.type) === kind);
+        if (sameKind.length) return sameKind[0].start === f.start;
+        // NO SLOT OF THIS KIND ON THIS DAY.
+        //
+        // The fallback used to pin the row to the day's FIRST slot whatever it
+        // was, and that counted a WEIGHT-ROOM LIFT as attendance at the court
+        // session. Caught 20.9 by building the practice-attendance grid beside
+        // this list and finding they disagreed: on Sun 20 Sep the only two
+        // records in the store are Menachem's 45-minute Lift and Gershon's
+        // 60-minute Lift, and this card reported "2/10 trained" at the 11:00
+        // PRACTICE. Same on 19 Sep - six Lift rows, zero court rows, reported
+        // as 6/10. Nobody had logged either practice.
+        //
+        // A gym row can never be attendance at a court session, and vice versa.
+        // Everything else keeps the old lenient behaviour, which exists to
+        // cover rows written before per-slot logging.
+        if (kind === 'lift' || slotKind(f.type) === 'lift') return false;
         return daySlots.length > 0 && daySlots[0].start === f.start;
       });
       const avail = availOn(rec, medical, t.id, f.date);
