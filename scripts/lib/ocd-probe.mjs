@@ -130,6 +130,23 @@ export const PROBE = () => {
   // modal, none of them visible. Two boxes only collide if, at the point where
   // they cross, one of them is what the user would actually touch.
   const topmostAt = (x, y) => { try { return document.elementFromPoint(x, y); } catch { return null; } };
+  // WHICH LAYER IS THIS ELEMENT PAINTED IN?
+  //
+  // elementFromPoint alone was not enough: with a modal open, the topmost thing
+  // at the overlap IS one of the two (the dialog's own label), so the pair
+  // still passed and 26 phantom collisions survived. Two elements can only
+  // collide if they are painted in the SAME layer — the nearest positioned
+  // ancestor that creates a stacking context. A dialog and the page behind it
+  // never are.
+  const layerOf = (e) => {
+    for (let p = e.parentElement; p; p = p.parentElement) {
+      const s = getComputedStyle(p);
+      if (s.position === 'fixed' || s.position === 'sticky') return p;
+      if (s.position !== 'static' && s.zIndex !== 'auto') return p;
+      if (s.transform !== 'none' || s.filter !== 'none' || s.willChange === 'transform') return p;
+    }
+    return document.body;
+  };
   for (let i = 0; i < leaves.length; i++) {
     for (let j = i + 1; j < leaves.length; j++) {
       if (leaves[i].contains(leaves[j]) || leaves[j].contains(leaves[i])) continue;
@@ -142,6 +159,7 @@ export const PROBE = () => {
       if (cx < 0 || cy < 0 || cx > VW) continue;              // off screen, not a collision
       const top = topmostAt(cx, cy);
       if (!top) continue;
+      if (layerOf(leaves[i]) !== layerOf(leaves[j])) continue;  // different layers, e.g. a modal over the page
       const hitsOne = leaves[i].contains(top) || top.contains(leaves[i])
         || leaves[j].contains(top) || top.contains(leaves[j]);
       if (!hitsOne) continue;                                  // something else is over both
