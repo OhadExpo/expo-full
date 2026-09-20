@@ -67,13 +67,93 @@ const evictSnapshots = () => {
   return freed;
 };
 
+// KEEPING ATHLETES SIGNED IN WHEN A STORE GETS CLEARED.
+//
+// Ohad, 21.9: "make sure all athletes are stayed logged in even when closing
+// the app or chrome or safari".
+//
+// The server was checked first and is not the cause: auth.sessions has ZERO
+// rows with not_after set, the oldest live session is five months old, and
+// sessions are observed surviving 35 days with no cliff anywhere. Nothing
+// signs anyone out server-side. The session is lost on the DEVICE — Safari
+// capping script-writable storage, an iOS PWA evicted under storage pressure,
+// a "clear site data", a full quota.
+//
+// The first attempt mirrored the WHOLE session to a cookie and silently did
+// nothing: the session JSON measures 4,143 chars, 5,109 once URL-encoded, and
+// a cookie is capped near 4,096. Measuring it is what found that — and the
+// same measurement found the way through. The refresh token is TWELVE
+// characters. Everything else in that blob (a 1,486-char access token, the
+// whole user object) is derivable from it.
+//
+// So: localStorage stays the primary store, sessionStorage stays the
+// quota fallback, and a tiny cookie holds only the refresh token. If both
+// stores are gone on the next visit, reviveSession() below trades that one
+// string for a fresh session and the athlete never sees a login screen.
+//
+// Exposure is unchanged: the refresh token already sits in localStorage, which
+// any script on this origin can read. Secure + SameSite=Lax, and it is removed
+// on sign-out along with everything else.
+export const REFRESH_COOKIE = 'expo-rt';
+const COOKIE_MAX_AGE = 60 * 60 * 24 * 400;         // ~13 months, the browser cap
+
+const cookieGet = (k) => {
+  // Split, do not match. A RegExp buys nothing for a fixed key and an escaped
+  // character class written through a shell is how this file got an
+  // unterminated regex the first time round.
+  try {
+    for (const part of String(document.cookie || '').split(';')) {
+      const i = part.indexOf('=');
+      if (i < 0) continue;
+      if (part.slice(0, i).trim() !== k) continue;
+      return decodeURIComponent(part.slice(i + 1));
+    }
+  } catch { /* cookies blocked */ }
+  return null;
+};
+const cookieSet = (k, v) => {
+  try {
+    const secure = location.protocol === 'https:' ? '; Secure' : '';
+    document.cookie = `${k}=${encodeURIComponent(v)}; Max-Age=${COOKIE_MAX_AGE}; Path=/; SameSite=Lax${secure}`;
+  } catch { /* blocked */ }
+};
+const cookieDel = (k) => { try { document.cookie = `${k}=; Max-Age=0; Path=/`; } catch { /* noop */ } };
+
+// Pull the refresh token out of whatever supabase-js just handed the store.
+const refreshTokenOf = (raw) => {
+  try {
+    const o = JSON.parse(raw);
+    const t = o && (o.refresh_token || (o.currentSession && o.currentSession.refresh_token));
+    return typeof t === 'string' && t ? t : null;
+  } catch { return null; }
+};
+
 const makeAuthStorage = () => {
   if (typeof window === 'undefined' || !window.localStorage) return undefined;
   const ls = window.localStorage;
   return {
-    getItem: (k) => { try { return ls.getItem(k); } catch { return null; } },
-    removeItem: (k) => { try { ls.removeItem(k); } catch { /* noop */ } },
+    // READ FROM WHICHEVER STORE STILL HAS IT.
+    //
+    // This used to read localStorage alone while setItem had a sessionStorage
+    // fallback for a full quota — so that fallback was WRITE-ONLY. A token
+    // written there because localStorage was full was never read back and the
+    // next page load was a logged-out one. That is a sign-out caused entirely
+    // inside this app, and it is indistinguishable from the browser forgetting
+    // you.
+    getItem: (k) => {
+      try { const v = ls.getItem(k); if (v) return v; } catch { /* blocked */ }
+      try { const v = window.sessionStorage.getItem(k); if (v) return v; } catch { /* blocked */ }
+      return null;
+    },
+    removeItem: (k) => {
+      // A sign-out has to clear every copy, or the next load signs them back in.
+      try { ls.removeItem(k); } catch { /* noop */ }
+      try { window.sessionStorage.removeItem(k); } catch { /* noop */ }
+      cookieDel(REFRESH_COOKIE);
+    },
     setItem: (k, v) => {
+      const rt = refreshTokenOf(v);
+      if (rt) cookieSet(REFRESH_COOKIE, rt);
       try { ls.setItem(k, v); return; } catch { /* full - fall through */ }
       evictSnapshots();
       try { ls.setItem(k, v); return; } catch { /* still full */ }
@@ -108,3 +188,36 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     storage: authStorage,
   },
 });
+
+// REVIVE A SESSION FROM THE REFRESH-TOKEN COOKIE.
+//
+// Runs once at boot, before anything asks "is there a session?". If both
+// storage copies are gone but the cookie survived, trade that one 12-character
+// string for a fresh session so the athlete never sees a login screen.
+//
+// Deliberately narrow, because the cost of getting this wrong is signing
+// someone in who signed out:
+//   - it does nothing when a session already exists;
+//   - it does nothing when an OAuth payload is in the URL (that exchange owns
+//     the session, and racing it is how #102 happened);
+//   - a refused refresh CLEARS the cookie, so a revoked or rotated-away token
+//     cannot sit there being retried on every load.
+let reviving = null;
+export function reviveSession() {
+  if (typeof window === 'undefined') return Promise.resolve(false);
+  if (reviving) return reviving;
+  reviving = (async () => {
+    try {
+      const { data } = await supabase.auth.getSession();
+      if (data && data.session) return false;                 // already in
+      if (/[?&](code|token_hash)=/.test(window.location.search || '')
+        || /(access_token|refresh_token)=/.test(window.location.hash || '')) return false;
+      const rt = cookieGet(REFRESH_COOKIE);
+      if (!rt) return false;
+      const { data: out, error } = await supabase.auth.refreshSession({ refresh_token: rt });
+      if (error || !out || !out.session) { cookieDel(REFRESH_COOKIE); return false; }
+      return true;
+    } catch { return false; }
+  })();
+  return reviving;
+}

@@ -2,7 +2,7 @@
 // Two roles: trainer (Ohad) and client (matched by email in CLIENTS array)
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { supabase, AUTH_TOKEN_KEY } from './supabase';
+import { supabase, AUTH_TOKEN_KEY, reviveSession } from './supabase';
 import { setQueueUser } from './offlineQueue';
 import { onSaveError, setSnapshotsAllowed } from './useSupaStore';
 
@@ -177,8 +177,20 @@ export function AuthProvider({ children, clientList }) {
       // way, do NOT open the door here - the watchdog decides when to give up.
       if (spendCode()) return;
       if (stillArriving()) return;
-      apply(null);
-      finishBoot();
+      // LAST CHANCE BEFORE SHOWING A LOGIN SCREEN: the refresh-token cookie.
+      //
+      // Both storage copies can be gone and the cookie still be there — Safari
+      // capping script-writable storage, an evicted PWA, a cleared quota. The
+      // cookie holds twelve characters; trading them for a session here is the
+      // difference between an athlete opening the app and an athlete being
+      // asked to sign in again. reviveSession() no-ops when a session already
+      // exists or an OAuth payload is mid-flight.
+      reviveSession().then((revived) => {
+        if (booted) return;
+        if (revived) return;                 // onAuthStateChange applies it
+        apply(null);
+        finishBoot();
+      }).catch(() => { if (!booted) { apply(null); finishBoot(); } });
     }).catch(() => {
       if (booted) return;
       if (spendCode()) return;
