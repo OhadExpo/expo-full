@@ -122,14 +122,30 @@ export const PROBE = () => {
     add('TINYTAP', e, `${r.width.toFixed(0)}x${r.height.toFixed(0)}`);
   }
 
-  // COLLIDE
+  // COLLIDE — and the two must actually be on top of each other ON SCREEN.
+  //
+  // Overlapping rectangles are not overlapping text. With a modal open the page
+  // behind it is still rendered and still has geometry, so every label in the
+  // dialog "overlapped" a label on the page underneath: 57 findings on one
+  // modal, none of them visible. Two boxes only collide if, at the point where
+  // they cross, one of them is what the user would actually touch.
+  const topmostAt = (x, y) => { try { return document.elementFromPoint(x, y); } catch { return null; } };
   for (let i = 0; i < leaves.length; i++) {
     for (let j = i + 1; j < leaves.length; j++) {
       if (leaves[i].contains(leaves[j]) || leaves[j].contains(leaves[i])) continue;
       const a = leaves[i].getBoundingClientRect(), c = leaves[j].getBoundingClientRect();
       const h = Math.min(a.right, c.right) - Math.max(a.left, c.left);
       const v = Math.min(a.bottom, c.bottom) - Math.max(a.top, c.top);
-      if (h > 2 && v > 2) add('COLLIDE', leaves[i], `overlaps "${(leaves[j].textContent || '').trim().slice(0, 18)}" by ${v.toFixed(0)}px`);
+      if (h <= 2 || v <= 2) continue;
+      const cx = (Math.max(a.left, c.left) + Math.min(a.right, c.right)) / 2;
+      const cy = (Math.max(a.top, c.top) + Math.min(a.bottom, c.bottom)) / 2;
+      if (cx < 0 || cy < 0 || cx > VW) continue;              // off screen, not a collision
+      const top = topmostAt(cx, cy);
+      if (!top) continue;
+      const hitsOne = leaves[i].contains(top) || top.contains(leaves[i])
+        || leaves[j].contains(top) || top.contains(leaves[j]);
+      if (!hitsOne) continue;                                  // something else is over both
+      add('COLLIDE', leaves[i], `overlaps "${(leaves[j].textContent || '').trim().slice(0, 18)}" by ${v.toFixed(0)}px`);
     }
   }
 
