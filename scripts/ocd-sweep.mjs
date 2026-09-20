@@ -105,7 +105,15 @@ for (const LANG of ['en', 'he']) {
           opened = await page.evaluate((txt) => {
             const els = [...document.querySelectorAll('button,[role="tab"],a,summary,[role="button"]')]
               .filter((e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0; });
-            const t = els.find((e) => (e.textContent || '').trim().includes(txt));
+            // CASE-INSENSITIVE, because textContent is not what is on screen.
+            // The zone's buttons read "MANAGE ROSTER" and "+ LOG PRACTICE"
+            // only because CSS uppercases them; textContent is "Manage roster"
+            // and "+ Log practice". Matching the uppercase literal opened
+            // neither modal in English — four combinations silently skipped,
+            // and the modals are exactly where the complaints are. Hebrew has
+            // no case, so it matched there and the hole was invisible.
+            const needle = txt.toLowerCase();
+            const t = els.find((e) => (e.textContent || '').trim().toLowerCase().includes(needle));
             if (!t) return null; t.click(); return (t.textContent || '').trim().slice(0, 24);
           }, want);
           if (opened) { await new Promise((r) => setTimeout(r, 2600)); break; }
