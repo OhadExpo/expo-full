@@ -468,10 +468,7 @@ function attendance28(rec, days) {
     // Medical line reading "ANKLE LEFT SPRAIN · NON-CONTACT", contradicting itself
     // on one card. The daily value is still the coach's call and can only make it
     // WORSE, never better than the medical fact.
-    const dayAvail = (rec.availability && rec.availability[today]) || 1;
-    const injuryAvail = activeInjuries(medical || {}, t.id)
-      .reduce((worst, inj) => Math.max(worst, MEDICAL_STATUS_AVAIL[inj.status] || 1), 1);
-    const avail = Math.max(dayAvail, injuryAvail);
+    const avail = availOn(rec, medical, t.id, today);
     // Foster monotony over the trailing 7 days (illness/overtraining risk) +
     // whether a wellness check-in exists for today — both feed the Coach's Brief.
     const ms = monotonyStrain(last14.slice(-7).map((d) => (rec.loads && rec.loads[d]) || 0));
@@ -691,8 +688,11 @@ function attendance28(rec, days) {
       const next = { ...prev };
       roster.forEach((t) => {
         const rec = next[t.id] ? { ...next[t.id] } : emptyRec();
-        const av = (rec.availability && rec.availability[date]) || 1;
-        if (av >= 4) return; // Out (medical/personal) → skip
+        // Out (medical/personal) → skip. The medical record is consulted for
+        // THAT DATE, not for today, so an injury filed after the fact still
+        // keeps the athlete out of a backdated practice. See medicalAvailOn.
+        const av = availOn(rec, medical, t.id, date);
+        if (av >= 4) return;
         rec.loads = { ...(rec.loads || {}) };
         rec.sessions = { ...(rec.sessions || {}) };
         if (liftOnly) {
@@ -707,7 +707,7 @@ function attendance28(rec, days) {
       return next;
     });
     toast(n === 1 ? zoneT('Logged for 1 athlete') : zoneT('Logged for {n} athletes').replace('{n}', n)); notify();
-  }, [setBhbcLoads, roster, notify]);
+  }, [setBhbcLoads, roster, notify, medical]);
 
   // The sheet-like per-practice save: availability + load + bodyweight + note for
   // the whole squad in one write (Ohad: "a smart easy system for each practice
@@ -1405,7 +1405,7 @@ function attendance28(rec, days) {
                   onUpsert={asCoach ? null : upsertFixture} onRemove={asCoach ? null : removeFixture} />
                 {/* What the team ACTUALLY did, slot by slot (Ohad 08-24:
                     "where can I see the previous practices details?"). */}
-                <PastPractices fixtures={bhbcFixtures} loads={bhbcLoads} roster={roster} today={today} planOf={planOf} />
+                <PastPractices fixtures={bhbcFixtures} loads={bhbcLoads} roster={roster} today={today} planOf={planOf} medical={medical} />
                 <MicrocycleView fx={fx} today={today} />
                 <ScheduleTool fx={fx} today={today} mode={schedMode} setMode={setSchedMode} onLog={canLog ? () => setLogFor('new') : null} />
               </>
@@ -1507,7 +1507,7 @@ function attendance28(rec, days) {
         />
       )}
       {practiceOpen && (
-        <PracticeEntryModal sessionPlans={sessionPlans} roster={roster} bhbcLoads={bhbcLoads} fixtures={bhbcFixtures}
+        <PracticeEntryModal sessionPlans={sessionPlans} roster={roster} bhbcLoads={bhbcLoads} fixtures={bhbcFixtures} medical={medical}
           onClose={() => setPracticeOpen(false)} onSave={(p) => { savePractice(p); setPracticeOpen(false); }} />
       )}
 
@@ -2116,7 +2116,7 @@ function SessionPlanModal({ slot, fixtures, plan, onClose, onSave, onPick, rows 
   );
 }
 
-function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave, sessionPlans = {} }) {
+function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave, sessionPlans = {}, medical = {} }) {
   const tr = useT();
   // DEFAULT TO TODAY, not to the next fixture on the calendar.
   //
@@ -2150,7 +2150,10 @@ function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave, sess
   const [entries, setEntries] = useState({});
   useEffect(() => {
     const e = {};
-    roster.forEach((t) => { const rec = bhbcLoads[t.id] || {}; e[t.id] = { avail: (rec.availability && rec.availability[date]) || 1, attended: true, rpe: '', bw: '', note: '' }; });
+    // The sheet OPENS with anyone the medical record puts out on that date
+    // already set to Out, so the coach is correcting a right answer instead of
+    // remembering an absence. availOn reads the record for `date`, not today.
+    roster.forEach((t) => { const rec = bhbcLoads[t.id] || {}; e[t.id] = { avail: availOn(rec, medical, t.id, date), attended: true, rpe: '', bw: '', note: '' }; });
     setEntries(e);
     const list = (fixtures || []).filter((f) => f.date === date).slice().sort((a2, b2) => (a2.start || '').localeCompare(b2.start || ''));
     // Default to the NEXT slot still ahead on the clock (so an evening log
@@ -3347,7 +3350,6 @@ function WeightRoomTab({ rows = [], loads = {}, medical = {}, fixtures = [], pla
 
   const per = useMemo(() => (rows || []).map(({ t }) => {
     const rec = loads[t.id] || {};
-    const injFloor = activeInjuries(medical || {}, t.id).reduce((w, inj) => Math.max(w, MEDICAL_STATUS_AVAIL[inj.status] || 1), 1);
     const ses = rec.sessions || {};
     const avail = rec.availability || {};
     const liftDates = Object.keys(ses).filter((d) => (ses[d] || []).some(isLift)).sort();
@@ -3363,16 +3365,20 @@ function WeightRoomTab({ rows = [], loads = {}, medical = {}, fixtures = [], pla
       // 60-minute lift, on ten rows at once. The rows already carry team:true
       // (set wherever a team session is logged); it was simply never read here.
       const team = lifts.length > 0 && lifts.every((r) => r.team);
-      // The recorded value IS the history. The medical floor applies to today
-      // only - an injury that exists now says nothing about a day in August.
-      const code = Math.max(Number(avail[d.iso]) || 1, d.iso === today ? injFloor : 1);
+      // The recorded value IS the history, floored by what the medical record
+      // says about THAT day. This used to floor today's cell only, on the
+      // reasoning that "an injury that exists now says nothing about a day in
+      // August" - true of the old floor, which ignored dates. medicalAvailOn
+      // has an onset and an end, so August is excluded because it is outside
+      // the injury's window, not because it is not today.
+      const code = Math.max(Number(avail[d.iso]) || 1, medicalAvailOn(medical, t.id, d.iso));
       return { iso: d.iso, lift: lifts.length > 0, team, mins, code, future: d.iso > today };
     });
     const within = (n) => liftDates.filter((d) => dayDiff(today, d) >= 0 && dayDiff(today, d) < n).length;
     // TODAY's state, so the name column can say it without the reader having
     // to find today's column and decode a tint. Ohad, 19.9: "who's
     // out/restriced/medical" should be visible at a glance.
-    const todayCode = Math.max(Number(avail[today]) || 1, injFloor);
+    const todayCode = availOn(rec, medical, t.id, today);
     return { t, cells, last, since, todayCode, d7: within(7), d28: within(28) };
   }), [rows, loads, medical, days, today]);
 
@@ -3831,7 +3837,7 @@ function MicrocycleView({ fx, today }) {
 // newest first, one row per SLOT (a morning and an evening practice are two
 // rows), showing the plan that was written for it, who trained, who was out,
 // and the load the squad actually took.
-function PastPractices({ fixtures = [], loads = {}, roster = [], today, planOf }) {
+function PastPractices({ fixtures = [], loads = {}, roster = [], today, planOf, medical = {} }) {
   const tr = useT();
   const [open, setOpen] = useState(null);      // `${date}|${start}`
   const [limit, setLimit] = useState(8);
@@ -3884,7 +3890,7 @@ function PastPractices({ fixtures = [], loads = {}, roster = [], today, planOf }
         if (sameKind.length > 1) return sameKind[0].start === f.start;
         return daySlots.length > 0 && daySlots[0].start === f.start;
       });
-      const avail = (rec && rec.availability && rec.availability[f.date]) || 1;
+      const avail = availOn(rec, medical, t.id, f.date);
       if (att === 'out') { out.push(t); continue; }
       if (mine.length || att === 'in') {
         trained.push(t);
@@ -4724,6 +4730,74 @@ export function byName(email) {
 
 const activeInjuries = (medical, id) => ((medical[id] || {}).injuries || []).filter((i) => !i.resolved);
 const resolvedInjuries = (medical, id) => ((medical[id] || {}).injuries || []).filter((i) => i.resolved);
+
+// WHAT THE MEDICAL RECORD SAYS ABOUT A GIVEN DAY — not only about today.
+//
+// Ohad, after I had to set two athletes Out by hand for 19.09 and 20.09: "lmk
+// how it will be systematic that when someone is medically out and is out of
+// practice logged".
+//
+// It was not systematic, and this is exactly why. Saving an injury mirrors its
+// status onto ONE date — the day the coach pressed save — and every other read
+// in the zone fell back to `availability[date] || 1`, which is Full. Five call
+// sites floored by the medical record only when the date happened to BE today:
+// the roster rows, the weight-room month grid, the squad-wide practice log, the
+// practice sheet's prefill and the past-practice reader. So an injury filed
+// after the session, or a practice backdated to a day inside an injury, logged
+// the athlete as having trained straight through it.
+//
+// One function answers it for ANY date. An unresolved injury covers every day
+// from its onset onwards; a resolved one covers onset through the last thing
+// written about it. The status in effect on that day is the last dated progress
+// note at or before it, falling back to the record's own status.
+function medicalAvailOn(medical, athleteId, date) {
+  const injuries = ((medical || {})[athleteId] || {}).injuries || [];
+  let worst = 1;
+  for (const inj of injuries) {
+    if (!inj) continue;
+    if (inj.onsetDate && date < inj.onsetDate) continue;   // it had not happened yet
+    const notes = (inj.progress || []).filter((p) => p && p.date)
+      .slice().sort((a, b) => String(a.date).localeCompare(String(b.date)));
+    if (inj.resolved) {
+      // No resolution DATE is stored on the record, so the last note written
+      // about it is the best evidence of when it ended; updatedAt is the
+      // fallback. Getting this wrong only ever shortens a window, never
+      // invents one, so a cleared athlete is never left stuck at Out.
+      const endedOn = (notes.length ? notes[notes.length - 1].date : '')
+        || String(inj.updatedAt || '').slice(0, 10);
+      if (endedOn && date > endedOn) continue;
+    }
+    // WHICH STATUS WAS IN FORCE ON THAT DAY.
+    //
+    // Two kinds of dated evidence, and the newest one at or before the day wins:
+    // the progress notes, and the record's own headline `status`, which is
+    // dated by updatedAt. Menachem is the case that proves both are needed —
+    // his notes run non-contact → limited → available → limited (12.09) but the
+    // headline was set to OUT on 15.09. Reading the notes alone made him
+    // Limited on 19.09 and 20.09; reading the headline alone would have made
+    // him Out on 12.09, when the note says he was Limited. Ordered by date,
+    // both are right on their own day.
+    //
+    // A note dated AFTER the day describes a later state of the injury and says
+    // nothing about it, so it is excluded either way.
+    const headlineOn = String(inj.updatedAt || inj.createdAt || '').slice(0, 10) || inj.onsetDate || '';
+    const dated = notes.filter((p) => p.status).map((p) => ({ d: p.date, s: p.status }));
+    if (inj.status && headlineOn) dated.push({ d: headlineOn, s: inj.status, headline: true });
+    // Equal dates: the headline is the current state, so it sorts last and wins.
+    dated.sort((a, b) => String(a.d).localeCompare(String(b.d)) || (a.headline ? 1 : 0) - (b.headline ? 1 : 0));
+    const prior = dated.filter((p) => p.d <= date).pop();
+    worst = Math.max(worst, MEDICAL_STATUS_AVAIL[(prior && prior.s) || inj.status] || 1);
+  }
+  return worst;
+}
+
+// The availability to ACT on for one athlete on one date: the coach's own entry
+// for that day, never better than the medical record. Same Math.max rule the
+// roster rows already applied to today — a daily chip can make a day worse, it
+// can never overrule the medical fact and make it better.
+function availOn(rec, medical, athleteId, date) {
+  return Math.max(Number(((rec && rec.availability) || {})[date]) || 1, medicalAvailOn(medical, athleteId, date));
+}
 
 // LOAD x MEDICAL - the one cross-check the zone was missing.
 //
