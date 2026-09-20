@@ -1242,3 +1242,34 @@ html.theme-switching *::after {
 /* Portals (modals, drawers, the Training Analysis overlay) mount on <body>, outside
    .app-root[dir]. BodyLang marks the body with the coach app's language. */
 body[data-lang="he"] > :not(#root) { direction: rtl; }
+
+/* ── TAP TARGETS ON A PHONE ────────────────────────────────────────────────
+   Ohad, 21.9, after the OCD sweep counted them: "fix everything".
+
+   Every interactive control in both apps is 24-30px tall on a phone — 96 of
+   the 97 on the coach dashboard, 45 of 60 in the club zone. That is one
+   decision, not hundreds of defects, and it is a thumb missing the button all
+   day.
+
+   Done as a FLOOR, not by editing call sites. ui.jsx sets BTN_H = 30 and its
+   comment is his own rule — "ONE canonical button height across the entire
+   app (Ohad: same vertical height for everything)" — so the height stays 30
+   everywhere and a minimum is added underneath it on narrow screens only.
+   `min-height` wins over an inline `height` without !important and without a
+   specificity fight, so not one call site has to change and the desktop
+   layout is untouched.
+
+   40px is the floor, not 44: 44 is Apple's number for a standalone control,
+   and these sit in dense coach-facing rows where 44 would add a visible
+   centimetre to every list. 40 clears the thumb without redesigning the app.
+
+   Deliberately NOT included: inputs and selects (already 32-34 and they are
+   not mis-tap targets in the same way), and anything inside a scroller cell. */
+@media (max-width: 620px) {
+  button, [role="button"] { min-height: 40px; }
+  /* min-height does NOT apply to display:table-row, so the 32 clickable
+     athlete rows on the dashboard stayed at 36px while everything else moved.
+     In table layout `height` on a cell behaves as a minimum, which is the
+     equivalent lever. */
+  tr[role="button"] > td, tr[role="button"] > th { height: 40px; }
+}
