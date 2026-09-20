@@ -14,11 +14,35 @@ export const PROBE = () => {
     out.push({ kind, el: el ? (el.tagName + (typeof el.className === 'string' && el.className ? '.' + el.className.trim().split(/\s+/)[0] : '')) : '-',
       t: el ? (el.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 34) : '', detail });
   };
+  // CLIPPED OUT OF EXISTENCE STILL COUNTS AS INVISIBLE.
+  //
+  // The first full sweep returned 402 COLLIDE findings and not one was real. A
+  // collapsed CollapsibleSection is `height:0; overflow:hidden`, and its
+  // children keep reporting their own geometry — every one of them stacked at
+  // the same y inside a zero-height box, so they all "overlap" each other. The
+  // Games tab was photographed with 60 collisions on it and has none.
+  //
+  // Only CLIPPING ancestors are considered, never the viewport: an element
+  // outside the viewport is the OFFSCREEN finding, and filtering those here
+  // would blind that rule instead.
+  const clippedAway = (e) => {
+    const r = e.getBoundingClientRect();
+    for (let p = e.parentElement; p; p = p.parentElement) {
+      const s = getComputedStyle(p);
+      if (!/hidden|clip|auto|scroll/.test(s.overflow + s.overflowY + s.overflowX)) continue;
+      const pr = p.getBoundingClientRect();
+      if (pr.height < 1 || pr.width < 1) return true;
+      if (r.bottom <= pr.top + 0.5 || r.top >= pr.bottom - 0.5) return true;
+      if (r.right <= pr.left + 0.5 || r.left >= pr.right - 0.5) return true;
+    }
+    return false;
+  };
   const vis = (e) => {
     const s = getComputedStyle(e);
     if (s.visibility === 'hidden' || s.display === 'none' || s.opacity === '0') return false;
     const r = e.getBoundingClientRect();
-    return r.width > 0.5 && r.height > 0.5;
+    if (!(r.width > 0.5 && r.height > 0.5)) return false;
+    return !clippedAway(e);
   };
   const all = [...document.querySelectorAll('body *')].filter(vis);
   const leaves = all.filter((e) => !e.children.length && (e.textContent || '').trim());
@@ -110,6 +134,21 @@ export const PROBE = () => {
     const ps = getComputedStyle(p);
     if (ps.display !== 'block' && ps.display !== 'flex') continue;
     if (ps.display === 'flex' && ps.flexDirection !== 'column') continue;
+    // CENTRED IS NOT RAGGED.
+    //
+    // A centred stack has every row at a different inset BY DEFINITION - that
+    // is what centring is - so this rule flagged the whole athlete card, whose
+    // body is centred on purpose. "Fixing" that would have been another blanket
+    // change of the kind he already rejected once today. A group is ragged only
+    // if it is trying to line up and failing, so: if the rows are centred
+    // within the container (their start and end insets mirror each other),
+    // leave them alone.
+    const centred = kids.every((k) => {
+      const r = k.getBoundingClientRect();
+      const s1 = r.left - pr.left, s2 = pr.right - r.right;
+      return Math.abs(s1 - s2) <= 2;
+    });
+    if (centred) continue;
     const ins = kids.map((k) => { const r = k.getBoundingClientRect(); return rtl ? pr.right - r.right : r.left - pr.left; });
     const lo = Math.min(...ins), hi = Math.max(...ins);
     if (hi - lo > 6) add('RAGGED', p, `${kids.length} rows start between ${lo.toFixed(0)} and ${hi.toFixed(0)}px in — spread ${(hi - lo).toFixed(0)}px`);
