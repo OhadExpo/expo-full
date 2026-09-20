@@ -66,11 +66,18 @@
       try { localStorage.setItem('expo-theme', remote); } catch (e) {}
       return;
     }
-    // LIGHT is the default first impression (Ohad 2026-08-24) — the OS
-    // preference no longer decides it, only an explicit in-app choice does.
-    var pref = saved || 'light';
+    // DARK is the default first impression (Ohad 2026-09-20), superseding the
+    // LIGHT default set on 2026-08-24: "when opening expo it should always be
+    // english and dark mode by default". The OS preference still does not
+    // decide it - only an explicit in-app choice does, which is why `saved`
+    // still wins. The sign-in page is this same document, so it follows.
+    //
+    // THE CLUB ZONE IS NOT AFFECTED and must not be: it keeps its own
+    // 'bhbc-theme' key defaulting to light (BhbcView), because he asked for
+    // EXPO dark and BHBC light in the same breath.
+    var pref = saved || 'dark';
     document.documentElement.setAttribute('data-theme', pref);
   } catch (e) {
-    document.documentElement.setAttribute('data-theme', 'light');
+    document.documentElement.setAttribute('data-theme', 'dark');
   }
 })();
