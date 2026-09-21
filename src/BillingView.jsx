@@ -15,6 +15,7 @@
 // bit_payment_requests.
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { isClubAthlete } from './clubAthlete';
 import { createPortal } from 'react-dom';
 import { fmtPrettyDate } from './dates';
 import { C, FN, FB } from './theme';
@@ -232,7 +233,11 @@ export default function BillingView({ trainees }) {
             {tt('ROSTER STATUS')}
           </span>
         </RefinedHeaderStrip>
-        {(trainees || []).filter(t => t.status === 'Active').map(t => {
+        {/* Club athletes are not billed by EXPO - the club pays - so they do
+            not belong on a roster-payment list. Ohad, 21.9: "remove the payments
+            and billing from all their names". Listing them with NO REQUEST
+            beside their name reads as a debt that does not exist. */}
+        {(trainees || []).filter(t => t.status === 'Active' && !isClubAthlete(t)).map(t => {
           const r = rosterSummary[t.id];
           const tone = !r ? C.td : r.status === 'paid' ? C.gn : r.status === 'canceled' ? C.tm : C.or;
           const labelTxt = !r ? tt('NO REQUEST') : tt((r.status || '').toUpperCase());
@@ -266,7 +271,8 @@ function RequestModal({ trainees, onClose, onCreated }) {
   const [amount, setAmount] = useState(800);
   const [reference, setReference] = useState('');
   const [saving, setSaving] = useState(false);
-  const active = trainees.filter(t => t.status !== 'Archived');
+  // A payment request cannot be addressed to a club athlete either.
+  const active = trainees.filter(t => t.status !== 'Archived' && !isClubAthlete(t));
   useEscClose(true, () => { if (!saving) onClose(); }); // Escape closes (not mid-save)
 
   const create = async () => {

@@ -15,7 +15,8 @@ import { syncAutoTasks } from './autoTasks';
 // enough — every record created before that still carries the old default, so
 // the dashboard was raising EXPIRING PACKAGES and LOW SESSIONS for athletes
 // who have neither. Any of the three markers counts (format / branch / team).
-const isClubAthlete = (t) => !!t && (t.format === 'Bnei Herzliya' || t.branch === 'Bnei Herzliya' || t.team === 'BHBC');
+// Moved to src/clubAthlete.js - it was defined four times.
+import { isClubAthlete } from './clubAthlete';
 
 // Dormant alert action: opens WhatsApp with a prefilled Hebrew check-in.
 // For couples we pick the member whose phone is set; if both have phones,

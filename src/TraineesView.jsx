@@ -305,7 +305,8 @@ function CardSection({ label, children, center = false }) {
 
 // The three markers a Bnei Herzliya athlete can carry. PlansView already had to
 // accept all three; keep that in one place rather than re-deriving it per view.
-const isClubAthlete = (t) => !!t && (t.format === 'Bnei Herzliya' || t.branch === 'Bnei Herzliya' || t.team === 'BHBC');
+// Moved to src/clubAthlete.js - it was defined four times.
+import { isClubAthlete } from './clubAthlete';
 
 function TrainingBlock({ format, sessionsRemaining, programs, lastWk, center = false, clubAthlete = false }) {
   const tt = useT();
@@ -359,9 +360,28 @@ function TrainingBlock({ format, sessionsRemaining, programs, lastWk, center = f
   );
 }
 
-function FinancialsBlock({ pay, monthly, center = false }) {
+function FinancialsBlock({ pay, monthly, center = false, clubAthlete = false }) {
   const tt = useT();
   const he = useHe();
+
+  // A CLUB ATHLETE HAS NO BILLING LINE. Bnei Herzliya players are paid for by
+  // the club, so "NEVER PAID" or a monthly figure against their name is not
+  // just noise, it is wrong (Ohad, 21.9: "remove the payments and billing from
+  // all their names").
+  //
+  // The section stays, at the same reserved height, showing the club instead.
+  // Dropping it outright would shorten only these cards and leave the roster
+  // grid ragged - trading one fault for another, which is the mistake this
+  // whole pass has been about.
+  if (clubAthlete) {
+    return (
+      <CardSection label="Club" center={center}>
+        <div style={{ width: '100%', minHeight: FIN_SLOT, display: 'flex', flexWrap: 'wrap', gap: '4px 10px', alignItems: 'center', justifyContent: center ? 'center' : 'flex-start' }}>
+          <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontWeight: 700, letterSpacing: 1 }}>{tt('Bnei Herzliya')}</span>
+        </div>
+      </CardSection>
+    );
+  }
   // Always render the block — even when there's no pay history and no
   // monthly rate — so cards line up section-for-section. Empty state shows
   // a dim "NOT BILLABLE" so the slot is still visible.
@@ -946,7 +966,7 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
                     ))}
                   </div>
 
-                  <FinancialsBlock pay={pay} monthly={t.monthly} center />
+                  <FinancialsBlock pay={pay} monthly={t.monthly} center clubAthlete={isClubAthlete(t)} />
                   <TrainingBlock format={t.format} sessionsRemaining={t.sessionsRemaining} programs={sharedProgramsCount} lastWk={lastWk} center clubAthlete={isClubAthlete(t)} />
 
                   {/* BODYWEIGHT — per-member, since each has their own curve.
@@ -1032,7 +1052,7 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
                 <EmailsCell email={t.email} style={{ fontSize: 12, color: C.tm, textAlign: 'center', maxWidth: '100%' }} />
               </div>
 
-              <FinancialsBlock pay={pay} monthly={t.monthly} center />
+              <FinancialsBlock pay={pay} monthly={t.monthly} center clubAthlete={isClubAthlete(t)} />
               <TrainingBlock format={t.format} sessionsRemaining={t.sessionsRemaining} programs={programs} lastWk={lastWk} center clubAthlete={isClubAthlete(t)} />
               <BodyweightBlock entries={bwEntries} center />
 

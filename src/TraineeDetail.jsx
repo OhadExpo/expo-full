@@ -36,7 +36,8 @@ import { useT, tr, readLang } from './i18n';
 
 // A Bnei Herzliya athlete is a CLUB athlete: the club pays. Any of the three
 // markers counts, the way PlansView already had to accept all three.
-const isClubAthleteRow = (t) => !!t && (t.format === 'Bnei Herzliya' || t.branch === 'Bnei Herzliya' || t.team === 'BHBC');
+// Moved to src/clubAthlete.js - it was defined four times.
+import { isClubAthleteRow } from './clubAthlete';
 
 // Status is changed HERE (top-right of the trainee page) via this dropdown —
 // no longer inside the EDIT modal (Ohad). Click the status pill → pick a new
@@ -574,7 +575,9 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
   const SEC_TABS = [
     { id: 'all', label: t('View All') },
     { id: 'vitals', label: t('Vitals') },
-    { id: 'billing', label: t('Billing') },
+    // No BILLING tab for a club athlete - the club pays, so there is nothing
+    // under it but an empty ledger with their name on it (Ohad, 21.9).
+    ...(isClubAthleteRow(td) ? [] : [{ id: 'billing', label: t('Billing') }]),
     { id: 'messages', label: t('Messages') },
     { id: 'crm', label: t('Coach History') },
     { id: 'bw', label: t('Bodyweight') },
@@ -775,7 +778,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           for visual parity. Header = "Billing (N)" + total-paid badge;
           headerRight = the 3 action buttons. Body = payments table or
           empty state. */}
-      <CollapsibleSection domId="td-sec-billing" title={tr(readLang(), 'Billing')} count={tPay.length} storageKey={`td-billing-${trainee}`} style={{marginBottom:16, display: showSec('billing') ? undefined : 'none'}}
+      <CollapsibleSection domId="td-sec-billing" title={tr(readLang(), 'Billing')} count={tPay.length} storageKey={`td-billing-${trainee}`} style={{marginBottom:16, display: (showSec('billing') && !isClubAthleteRow(td)) ? undefined : 'none'}}
         right={<div style={{display:'flex',flexWrap:'wrap',gap:6,justifyContent:'flex-end',alignItems:'center'}}>
           {totalPaid>0&&<span style={{color:'#FFFFFF',opacity:0.85,fontWeight:400,fontFamily:FB,fontSize:12,marginInlineEnd:6,whiteSpace:'nowrap'}}>₪{totalPaid.toLocaleString()} {t('paid')}</span>}
           <div style={{display:'flex',gap:0}}>
@@ -793,8 +796,12 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             EDITOR already hides these; the read-only strip has to hide them too,
             or a record created before that change still prints "8 Sessions Left"
             on the page. Same predicate as the roster and the dashboard. */}
+        {/* 21.9: and no LAST PAYMENT either. The club pays, so a payment date
+            against a player's name is not a quieter version of the truth, it is
+            a different one. Ohad: "remove the payments and billing from all
+            their names". Since-date only. */}
         {(isClubAthleteRow(td)
-          ? [[t("Last Payment"),fmtPrettyDate(lastPaidDate)],[t("Since"),fmtPrettyDate(td.startDate)]]
+          ? [[t("Since"),fmtPrettyDate(td.startDate)]]
           : [[t("Package"),t(td.package)],[t("Sessions Left"),td.sessionsRemaining],[t("Monthly"),td.monthly?`₪${td.monthly}`:"—"],[t("Per Session"),td.perSession?`₪${td.perSession}`:"—"],[t("Last Payment"),fmtPrettyDate(lastPaidDate)],[t("Since"),fmtPrettyDate(td.startDate)]]
         ).map(([l,v])=>{
           const empty = v===undefined||v===null||v===""||v==="—";

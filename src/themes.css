@@ -1229,8 +1229,16 @@ html.theme-switching *::after {
      Wrapping is adaptive: there is room for one line on a wide screen and the
      date block drops below the position on a phone, so nothing is cut at any
      width and no wording changes. */
-  .bhbc-manage-meta{grid-column:3;justify-content:space-between;gap:8px;flex-wrap:wrap}
-  .bhbc-manage-meta>:first-child{flex:0 1 auto;overflow:visible;text-overflow:clip}
+  /* A GRID, not a wrapping flex row. space-between + wrap put the date block
+     on its own line whenever the position was long enough to fill the first
+     one - and a lone item under space-between goes to the START, so AMIT
+     MENACHEM's date input sat ~140px left of every other row's. The column
+     stopped being a column exactly on the row that needed it most.
+     Two tracks: the position takes the space and wraps inside it, the LANDS
+     block keeps its own track at the end. Every row's date input then starts
+     at the same x whether the position fits on one line or two. */
+  .bhbc-manage-meta{grid-column:3;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px}
+  .bhbc-manage-meta>:first-child{overflow:visible;text-overflow:clip;white-space:normal;overflow-wrap:break-word}
 }
 
 /* The roster card reserves two lines for the name and two for the status so a
@@ -1415,7 +1423,7 @@ button.btn-block, button[data-btn-block] { min-height: 0; display: block; }
    would wreck it. The free-text ones were given an explicit type="text" so
    this rule can reach them and nothing else. */
 input[type="text"], input[type="search"], input[type="email"], input[type="url"],
-input[type="tel"], input[type="password"], select {
+input[type="tel"], input[type="password"], input[type="date"], input[type="time"], select {
   min-height: var(--btn-h);
   padding-block: 0;
 }

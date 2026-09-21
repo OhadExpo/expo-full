@@ -1604,7 +1604,13 @@ function attendance28(rec, days) {
                 {on && (
                   <span className="bhbc-manage-meta">
                     <span style={{ minWidth: 0, fontFamily: FB, fontSize: 11, color: C.td, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tr(t.position) || ''}</span>
-                    <span style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6 }} title={tr('Landing / arrival date')}>
+                    {/* LABEL ABOVE THE FIELD, not beside it (Ohad, 21.9: "they
+                        should stack vertically one above each other"). Side by
+                        side, the label ate horizontal room the position needed
+                        and the pair read as two loose items; stacked, the label
+                        names the field under it and the field keeps its own
+                        column edge. */}
+                    <span style={{ flexShrink: 0, display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', gap: 3 }} title={tr('Landing / arrival date')}>
                       <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tm }}>{tr('Lands')}</span>
                       <input type="date" value={t.arrival || ''} onChange={(e) => setArrival(t.id, e.target.value)} style={{ fontFamily: FN, fontSize: 11, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '4px 6px' }} />
                     </span>
