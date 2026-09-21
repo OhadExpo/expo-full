@@ -572,7 +572,13 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
   return (
     <div>
       {/* Summary cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 10, marginBottom: 20 }}>
+      {/* NEVER THREE ACROSS. Ohad, on a 3 + 1 layout: "thats not ocd order".
+          repeat(auto-fit, minmax(170px, 1fr)) fits as many as it can, which at
+          a 645px window is three — leaving the fourth card alone on a row.
+          These are a fixed set of 4 (or 2 for a non-owner), so the column count
+          is a decision, not a calculation: 1 up narrow, 2 in the middle, 4 when
+          there is room. Two rows of two is order; three and a stray is not. */}
+      <div className="kpi-grid" style={{ display: 'grid', gap: 10, marginBottom: 20 }}>
         {[
           { label: tt('Active Athletes'), value: unknown(trainees) ? '—' : active, total: unknown(trainees) ? undefined : trainees.filter(t=>t.status!=='Archived').length, color: C.gn },
           { label: tt('Low Sessions'), value: unknown(trainees) ? '—' : lowSessions, color: lowSessions > 0 ? C.or : C.gn },
