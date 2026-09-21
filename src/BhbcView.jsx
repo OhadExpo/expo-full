@@ -1101,7 +1101,13 @@ function attendance28(rec, days) {
              the label buys the rest. 74 is above the 72px widest date, so no
              date wraps - which is what went wrong when this was tried at 78 in
              an earlier pass and the column read ragged. */
-  .bhbc-med-row{ grid-template-columns: 10px auto minmax(0,1fr) !important; margin-inline-start: 0 !important; }
+  /* 96px, the SAME number as the desktop grid, not auto. With auto the name
+     track is the content width, so a short surname pulled the diagnosis column
+     left and every row started its detail at a different x - measured at 390:
+     Knight at 78, Bryant 82, Francis 87, Hannahs 94, Menachem 103, Broughton
+     111, a 33px spread down six rows. 96 holds the longest surname in the
+     squad and the UPDATE button that sits under it on a phone. */
+  .bhbc-med-row{ grid-template-columns: 10px 96px minmax(0,1fr) !important; margin-inline-start: 0 !important; }
           .bhbc-med-row > *:nth-child(3){ grid-column: 3 !important; }
           .bhbc-med-row > *:nth-child(4){ grid-column: 2 !important; justify-self: start !important; }
                   .bhbc-week-row{gap:7px!important}
@@ -2484,11 +2490,24 @@ function FixturesAheadPanel({ fixtures, today }) {
               <div style={{ minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
                   <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx }}>{g.opponent ? `${tr('vs')} ${g.opponent}` : tr('Opponent TBD')}</span>
-                  <HAChip home={g.home} />
-                  {g.travel && <Plane size={11} color={ORANGE_DEEP} title={tr('Travel')} />}
-                  {tight && <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#1A1205', background: '#E0A73A', padding: '1px 6px' }} title={tr(gap === 1 ? '1 day after the previous game' : gap === 2 ? '2 days after the previous game' : '{n} days after the previous game').replace('{n}', gap)}>{tr(gap === 1 ? '1d turnaround' : gap === 2 ? '2d turnaround' : '{n}d turnaround').replace('{n}', gap)}</span>}
                 </div>
                 <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 3 }}>{[tr(g.comp), `${dow(g.date)} ${monDay(g.date)}`, g.venue && tr(g.venue)].filter(Boolean).join(' · ')}</div>
+              </div>
+              {/* THE BADGES ARE A COLUMN, NOT A TAIL ON THE NAME.
+                  The row was already a 46px / 1fr / auto grid but the third
+                  track was empty and HOME/AWAY trailed the opponent inline, so
+                  it landed wherever that name happened to end - measured at
+                  390: the same chip at x=254, x=175 and x=164 down three rows.
+                  In its own track, anchored to the row's logical end, every
+                  row puts it in the same place in both directions. */}
+              <div style={{ justifySelf: 'end', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                {/* HOME/AWAY LAST, so the one badge every row HAS owns the
+                    anchored edge and the optional flags sit before it. With the
+                    chip first, a row carrying a plane pushed its chip 17px off
+                    the edge the chip above it sat on. */}
+                {g.travel && <Plane size={11} color={ORANGE_DEEP} title={tr('Travel')} />}
+                {tight && <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#1A1205', background: '#E0A73A', padding: '1px 6px', whiteSpace: 'nowrap' }} title={tr(gap === 1 ? '1 day after the previous game' : gap === 2 ? '2 days after the previous game' : '{n} days after the previous game').replace('{n}', gap)}>{tr(gap === 1 ? '1d turnaround' : gap === 2 ? '2d turnaround' : '{n}d turnaround').replace('{n}', gap)}</span>}
+                <HAChip home={g.home} />
               </div>
             </div>
           );
@@ -3034,7 +3053,7 @@ const lbl = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12
                   // row adds the line beneath, so the block closes instead of
                   // trailing off.
                   // button stays whole.
-                  <div key={i} onClick={onOpen ? () => onOpen(t.id) : undefined} role={onOpen ? 'button' : undefined} tabIndex={onOpen ? 0 : undefined} onKeyDown={onOpen ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }) : undefined} className={onOpen ? 'bhbc-row bhbc-med-row' : 'bhbc-med-row'} style={{ display: 'grid', gridTemplateColumns: '10px minmax(0, 96px) minmax(0, 1fr) auto', alignItems: 'start', columnGap: 8, rowGap: 2, marginInlineStart: -18, cursor: onOpen ? 'pointer' : 'default', padding: '7px 0', borderTop: `1px solid ${C.cardBd}`, ...(i === arr.length - 1 ? { borderBottom: `1px solid ${C.cardBd}` } : null) }}>
+                  <div key={i} onClick={onOpen ? () => onOpen(t.id) : undefined} role={onOpen ? 'button' : undefined} tabIndex={onOpen ? 0 : undefined} onKeyDown={onOpen ? ((ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(t.id); } }) : undefined} className={onOpen ? 'bhbc-row bhbc-med-row' : 'bhbc-med-row'} style={{ display: 'grid', gridTemplateColumns: '10px 96px minmax(0, 1fr) auto', alignItems: 'start', columnGap: 8, rowGap: 2, marginInlineStart: -18, cursor: onOpen ? 'pointer' : 'default', padding: '7px 0', borderTop: `1px solid ${C.cardBd}`, ...(i === arr.length - 1 ? { borderBottom: `1px solid ${C.cardBd}` } : null) }}>
                     <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.color, flexShrink: 0 }} />
                     <span style={{ fontFamily: FN, fontWeight: 700, fontSize: 12, minWidth: 0, overflowWrap: 'break-word' }}>{surnameOf(t.name)}</span>
                     {/* WRAP, do not ellipsize. The row already wraps, and on a narrow RTL line
