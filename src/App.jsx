@@ -230,8 +230,33 @@ function SubmenuTab({ id, label, count, items, tab, navTo, activeStyle, isChosen
   // global .motion-rise (fade + 6px rise, reduced-motion safe) so it eases
   // open instead of jumping. Click still toggles for touch.
   const closeTimer = React.useRef(null);
-  const hoverOpen = () => { if (closeTimer.current) { clearTimeout(closeTimer.current); closeTimer.current = null; } setOpen(true); };
-  const hoverClose = () => { if (closeTimer.current) clearTimeout(closeTimer.current); closeTimer.current = setTimeout(() => setOpen(false), 160); };
+  // A CLICK MUST NOT UNDO WHAT THE HOVER JUST DID.
+  //
+  // Ohad, 20.9: "submenus on expo top menu not working good". Traced on the
+  // built app, and it was not touch-specific at all:
+  //     start         aria-expanded=false
+  //     after HOVER   true
+  //     after CLICK   FALSE
+  // Hovering opens the panel and then clicking the trigger — the obvious thing
+  // to do next — closes it. On a phone it is worse: the browser fires an
+  // emulated mouseenter before the click, so the panel opens and shuts inside
+  // one tap and the menu simply never appears.
+  //
+  // So remember WHERE the open came from. A click on a panel that hover opened
+  // means "keep this", not "toggle"; a click on a closed panel opens it; a
+  // click on a panel the user themselves clicked open closes it.
+  const openedByHover = React.useRef(false);
+  const hoverOpen = () => { if (closeTimer.current) { clearTimeout(closeTimer.current); closeTimer.current = null; } openedByHover.current = true; setOpen(true); };
+  const hoverClose = () => { if (closeTimer.current) clearTimeout(closeTimer.current); closeTimer.current = setTimeout(() => { openedByHover.current = false; setOpen(false); }, 160); };
+  // A TAP IS NOT A HOVER. pointerenter fires for touch too, so without this the
+  // emulated hover re-creates the same bug on a phone.
+  const pointerOpen = (e) => { if (e && e.pointerType === 'touch') return; hoverOpen(); };
+  const pointerClose = (e) => { if (e && e.pointerType === 'touch') return; hoverClose(); };
+  const toggle = () => setOpen((o) => {
+    if (o && openedByHover.current) { openedByHover.current = false; return true; }
+    openedByHover.current = false;
+    return !o;
+  });
   useEffect(() => () => { if (closeTimer.current) clearTimeout(closeTimer.current); }, []);
   useEffect(() => {
     if (!open || !btnRef.current) return;
@@ -272,8 +297,8 @@ function SubmenuTab({ id, label, count, items, tab, navTo, activeStyle, isChosen
   const isSectionActive = items.some(it => tab === it.route);
 
   return (
-    <div data-submenu-id={id} onMouseEnter={hoverOpen} onMouseLeave={hoverClose} style={{ display: 'inline-flex', position: 'relative' }}>
-      <button ref={btnRef} onClick={() => setOpen(o => !o)}
+    <div data-submenu-id={id} onPointerEnter={pointerOpen} onPointerLeave={pointerClose} style={{ display: 'inline-flex', position: 'relative' }}>
+      <button ref={btnRef} onClick={toggle}
         aria-expanded={open}
         aria-current={isSectionActive ? 'page' : undefined} aria-selected={isSectionActive}
         className={!isSectionActive ? 'nav-item-inactive' : undefined}
@@ -289,7 +314,7 @@ function SubmenuTab({ id, label, count, items, tab, navTo, activeStyle, isChosen
       {/* 17.9: fixed was not enough - the panel sits in the header's stacking context, so the page
           content painted OVER it on a phone. Portalled to <body>, per the app-wide overlay rule. */}
       {open && createPortal(
-        <div ref={menuRef} className="motion-rise" onMouseEnter={hoverOpen} onMouseLeave={hoverClose} style={{
+        <div ref={menuRef} className="motion-rise" onPointerEnter={pointerOpen} onPointerLeave={pointerClose} style={{
           position: 'fixed', top: coords.top, left: coords.left, maxWidth: 'calc(100vw - 16px)',
           background: 'var(--c-bg)', border: `1px solid ${C.cardBd}`,
           minWidth: 180, zIndex: 100000, transformOrigin: 'top center',
