@@ -1453,3 +1453,10 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
   text-transform: uppercase; color: var(--c-tm); white-space: nowrap;
 }
 .bk-facts > span b { color: var(--c-tx); font-weight: 800; }
+
+/* A clinical list keeps its separators at every width — see Segmented's
+   keepDots. The phone rule above hides them; a red-flag list must not read as
+   run-on text. */
+@media (max-width: 620px) { .seg-run--keep .seg-dot { display: inline; } }
+/* keepDots carries its own spaces, so the flex gap must not add a second one. */
+.seg-run--keep { gap: 0; }

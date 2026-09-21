@@ -1251,6 +1251,32 @@ function attendance28(rec, days) {
           .bhbc-inj-row>:nth-child(6){padding-inline-start:27px!important}
           .bhbc-inj-head{display:none!important}
         }
+        /* TWO ROWS BEFORE ANYTHING SCROLLS AWAY.
+           Below 760 the WHOLE header became the horizontal scroller, so at 760
+           the PREVIEW button, the language toggle and the theme and exit icons
+           were simply not on screen - the tabs had pushed them out, and the only
+           way to reach the עב toggle was to scroll a bar that does not look
+           scrollable. Ohad, on a tablet: "fix the overflow".
+           The bar wraps instead: identity and controls on the first row, always
+           visible, and the TAB STRIP on its own row where it scrolls with the
+           edge fade it already has. Nothing is hidden behind a gesture. */
+        @media (max-width:860px) and (min-width:521px){
+          .bhbc-header-inner{flex-wrap:wrap!important;overflow:visible!important;row-gap:4px!important;column-gap:10px!important;padding:6px 14px!important;min-height:0!important}
+          /* The phone rules pin the crest and give it an opaque plate so tabs
+             scroll under it. On two rows nothing scrolls under anything, and
+             that plate showed as a stray grey box beside the crest. */
+          .bhbc-header-id{position:static!important;order:1!important;background:transparent!important;box-shadow:none!important;border:0!important;padding-inline-end:0!important}
+          .bhbc-header-ctrl{order:2!important;margin-inline-start:auto!important}
+          /* gap:0 from the phone block ran the tab labels together -
+             "SCHEDULEWEIGHT ROOMMEDICAL". The strip gets its spacing back. */
+          .bhbc-hdr-tabs{order:3!important;flex:1 1 100%!important;width:100%!important;overflow-x:auto!important;justify-content:flex-start!important;gap:10px!important;padding:0 0 2px!important}
+          /* A TAB MUST NOT BE SQUEEZED. The box gaps were a tidy 10px and the
+             LETTERS still collided: measured at 600 the ink gaps ran
+             7, 6, -2, 1, 7, 10, 11 - "SCHEDULEWEIGHT ROOMMEDICAL" - because the
+             buttons were shrinking and the text overflowed its own padding.
+             They keep their size; the strip scrolls, which is what it is for. */
+          .bhbc-hdr-tabs button{flex:0 0 auto!important}
+        }
         /* THE LAST ROW DOES NOT DRAW A RULE INTO THE CARD'S OWN EDGE. Ohad:
            "there shouldnt be a cyan border after the last name and adjust the
            space to the end of the card/box after you remove it." A divider
@@ -2305,7 +2331,7 @@ function PracticeEntryModal({ roster, bhbcLoads, fixtures, onClose, onSave, sess
           if (!g) return null;
           const plan = mdPlan(-dayDiff(g.date, date));
           const sug = plan.game ? null : plan.load >= 5 ? 'High' : plan.load >= 3 ? 'Moderate' : 'Low';
-          return <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: FN, fontSize: 11, color: C.tm, flexWrap: 'wrap' }}><span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{tr('Microcycle')}</span><span style={{ fontWeight: 800, color: 'var(--c-stripTx)', background: plan.game ? ORANGE : plan.load >= 5 ? ORANGE_DEEP : plan.load >= 3 ? NAVY : '#6B7280', padding: '2px 7px' }}>{tr(plan.label)}</span><span style={{ color: C.tx }}>{tr(plan.emphasis)}</span>{sug && <span style={{ color: C.td }}>· {tr(`suggest ${sug.toLowerCase()} intensity`)}</span>}</div>;
+          return <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: FN, fontSize: 11, color: C.tm, flexWrap: 'wrap' }}><span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{tr('Microcycle')}</span><span style={{ fontWeight: 800, color: 'var(--c-stripTx)', background: plan.game ? ORANGE : plan.load >= 5 ? ORANGE_DEEP : plan.load >= 3 ? NAVY : '#6B7280', padding: '2px 7px' }}>{tr(plan.label)}</span><span style={{ color: C.tx }}><Segmented text={tr(plan.emphasis)} /></span>{sug && <span style={{ color: C.td }}>· {tr(`suggest ${sug.toLowerCase()} intensity`)}</span>}</div>;
         })()}
         <div style={{ overflowX: 'auto' }}>
           <div style={{ minWidth: 560 }}>
@@ -2422,13 +2448,23 @@ function Plane({ size = 11, color, title }) {
 //
 // Layout only. No wording changes - several of these strings are Hebrew
 // coaching copy and two are safety text.
-function Segmented({ text, style }) {
+// keepDots: a CLINICAL list keeps its separators at every width, AND keeps the
+// SPACES around them. Splitting on / \s[·]\s / drops those spaces and lets the
+// flex gap stand in for them, which looks right and reads wrong: the text
+// content became "anaesthesia·bowel/bladder change", so copying a red-flag list
+// or hearing it read aloud gave run-on words. The separator span carries its own
+// spaces here and the gap is zeroed. Hiding them
+// on a phone is fine for a focus label, where the gap reads as the separator,
+// but a red-flag list must not become run-on text - that is a safety string and
+// its legibility is the point. (memory: safety text gets its own meaning check;
+// this changes layout only, never wording.)
+function Segmented({ text, style, keepDots = false }) {
   const parts = String(text || '').split(/\s([·•/–—|])\s/);
   if (parts.length < 3) return <span style={style}>{text}</span>;
   return (
-    <span className="seg-run" style={style}>
+    <span className={keepDots ? 'seg-run seg-run--keep' : 'seg-run'} style={style}>
       {parts.map((p2, i) => (i % 2
-        ? <span key={i} className="seg-dot" aria-hidden>{p2}</span>
+        ? <span key={i} className="seg-dot" aria-hidden>{keepDots ? ` ${p2} ` : p2}</span>
         : <span key={i} style={{ whiteSpace: 'nowrap' }}>{p2}</span>))}
     </span>
   );
@@ -4161,7 +4197,7 @@ function MicrocycleView({ fx, today }) {
                 {d.isToday && <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 800, letterSpacing: '0.1em', color: NAVY }}>{tr('TODAY')}</span>}
               </div>
               <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 800, letterSpacing: '0.04em', color: d.isGame ? ORANGE_DEEP : C.tx }}>{tr(d.plan.label)}</span>
-              <span style={{ fontFamily: FB, fontSize: 11, color: C.tm, lineHeight: 1.35, minHeight: 30 }}>{tr(d.plan.emphasis)}</span>
+              <Segmented text={tr(d.plan.emphasis)} style={{ fontFamily: FB, fontSize: 11, color: C.tm, lineHeight: 1.35, minHeight: 30 }} />
               {/* Relative load — 5-segment bar, colour = intensity (signal, not paint). */}
               <div style={{ display: 'flex', gap: 2, marginTop: 2 }}>
                 {[1, 2, 3, 4, 5].map((s) => (
@@ -5583,11 +5619,11 @@ function MedicalView({ roster, rows: loadRows = [], loads = {}, medical, canMedi
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{ fontFamily: FB, fontSize: 12, color: C.tx, lineHeight: 1.5 }}>
             <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.tm, marginInlineEnd: 8 }}>{tr('Pain gate')}</span>
-            {tr('0–3/10 progress · 4–5 hold & modify (regress ')}<span style={{ color: C.tx, fontWeight: 700 }}>{tr('ROM → Tempo → Intensity → Volume → Frequency')}</span>{tr(', cut frequency last) · 6+ stop & reassess.')}
+            <Segmented keepDots text={tr('0–3/10 progress · 4–5 hold & modify (regress ')} /><span style={{ color: C.tx, fontWeight: 700 }}>{tr('ROM → Tempo → Intensity → Volume → Frequency')}</span>{tr(', cut frequency last) · 6+ stop & reassess.')}
           </div>
           <div style={{ fontFamily: FB, fontSize: 12, color: C.tx, lineHeight: 1.5 }}>
             <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#DE4E3B', marginInlineEnd: 8 }}>{tr('Refer out')}</span>
-            {tr('Saddle anaesthesia · bowel/bladder change · drop foot · unexplained weight loss · night pain unrelated to position — never manage through these.')}
+            <Segmented keepDots text={tr('Saddle anaesthesia · bowel/bladder change · drop foot · unexplained weight loss · night pain unrelated to position — never manage through these.')} />
           </div>
         </div>
       </CollapsibleSection>

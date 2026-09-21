@@ -302,7 +302,12 @@ export const PROBE = () => {
   // A separator belongs BETWEEN two things; ending a line with one reads as a
   // sentence cut off. Measured per character, because only the rendered line
   // break knows where it fell.
-  const SEP = new Set(['·', '•', '|', '/', ',', ';', '–', '—']);
+  // LIST separators only. A comma or a semicolon at the end of a line inside a
+  // running sentence is ordinary typography, not a dangling separator - the
+  // rule flagged a Hebrew instruction sentence for wrapping after a comma,
+  // which is simply how prose wraps. What is wrong is a line ending on a
+  // BULLET between items: "Power / speed ·" with the next item stranded below.
+  const SEP = new Set(['·', '•', '|', '/', '–', '—']);
   for (const el of all) {
     // Own text only, and small enough that per-character measuring is cheap.
     let txt = '';
