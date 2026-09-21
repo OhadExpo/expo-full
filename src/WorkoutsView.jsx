@@ -659,8 +659,8 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
           {filterTrainee ? (
             <button onClick={()=>setFilterTrainee("")} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.08em',padding:'0 0 12px'}}>{tt('← all athletes')}</button>
           ) : (
-            <input value={pickSearch} onChange={e=>setPickSearch(e.target.value)} placeholder={tt('Search athlete…')}
-              style={{...baseInput,textAlign:'start',width:'100%',boxSizing:'border-box',height:42,padding:'0 14px',fontSize:13,lineHeight:'42px',border:`1px solid ${C.ac}`,marginBottom:12}} />
+            <input type="text" value={pickSearch} onChange={e=>setPickSearch(e.target.value)} placeholder={tt('Search athlete…')}
+              style={{...baseInput,textAlign:'start',width:'100%',boxSizing:'border-box',minHeight:'var(--btn-h)',padding:'0 14px',fontSize:13,border:`1px solid ${C.ac}`,marginBottom:12}} />
           )}
           {/* Card: cyan strip header ("Start a Session" + count) over the athlete
               accordion — same card/strip language as the Exercise Library. */}

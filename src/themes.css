@@ -1403,3 +1403,19 @@ button {
 /* Opt out for the few that genuinely are not a control-sized box: a button
    wrapping a card, a media tile, or a multi-line block. */
 button.btn-block, button[data-btn-block] { min-height: 0; display: block; }
+
+/* ── AND THE FIELDS BESIDE THOSE BUTTONS ─────────────────────────────────────
+   A filter field at 30px next to a 32px button is the same fault as two
+   buttons at different heights, and the app had NINE text-field heights at
+   1500: 15, 24, 30, 31, 33, 34, 35, 38 and 42.
+
+   Scoped to TEXT-ish fields and selects on purpose. `input` with no type is
+   deliberately left alone: the set-entry cells ("kg", "reps", "3010", "7-8")
+   are untyped, they live in a dense grid, and sizing them to a control height
+   would wreck it. The free-text ones were given an explicit type="text" so
+   this rule can reach them and nothing else. */
+input[type="text"], input[type="search"], input[type="email"], input[type="url"],
+input[type="tel"], input[type="password"], select {
+  min-height: var(--btn-h);
+  padding-block: 0;
+}

@@ -357,7 +357,7 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
       {/* Search + Add — prominent, full width. */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 18, alignItems: 'stretch', flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: 200, display: 'flex' }}>
-          <input placeholder={tr(readLang(), narrowUI ? "Search exercises…" : "Search exercises (title, muscle, joint, position…)")} value={search} onChange={e => { setSearch(e.target.value); setShowAll(false); }}
+          <input type="text" placeholder={tr(readLang(), narrowUI ? "Search exercises…" : "Search exercises (title, muscle, joint, position…)")} value={search} onChange={e => { setSearch(e.target.value); setShowAll(false); }}
             style={{ ...baseInput, height: 30, padding: '0 14px', fontSize: 13, lineHeight: '30px', textAlign: 'start', width: '100%' }} />
         </div>
         <Btn onClick={openNew} style={{ height: 30, width: RIGHT_CTL_W, flexShrink: 0, padding: '0 18px', fontSize: 13, lineHeight: '30px', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ {tr(readLang(), 'Add Exercise')}</Btn>

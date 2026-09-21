@@ -153,7 +153,7 @@ export default function WeeklyFocusTool({ trainees, exercises, weeklyFocus, setW
               collapsible's overflow:hidden clipping it. */}
           <div style={{ marginBottom: 12, maxWidth: 360, marginInlineStart: 'auto', marginInlineEnd: 'auto', textAlign: 'center' }}>
             <label style={{ ...lbl, textAlign: 'center' }}>{tt('ATHLETE')}</label>
-            <input dir="auto" value={query} placeholder={tt('Type a name…')}
+            <input type="text" dir="auto" value={query} placeholder={tt('Type a name…')}
               onChange={e => { setQuery(e.target.value); setPickerOpen(true); if (traineeId) setTraineeId(''); }}
               onFocus={() => setPickerOpen(true)}
               onBlur={() => setTimeout(() => setPickerOpen(false), 150)}

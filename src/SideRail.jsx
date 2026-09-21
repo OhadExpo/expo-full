@@ -88,7 +88,7 @@ export function SideRail({
       {/* Search box at the TOP of the sidebar, above Filters (Ohad). */}
       <div style={{ padding: '0 14px 12px' }}>
         <input value={search} onChange={e => onSearch?.(e.target.value)} placeholder={searchPlaceholder} title={searchTitle}
-          style={{ width: '100%', height: 38, boxSizing: 'border-box', padding: '0 11px', borderRadius: 0, background: 'var(--c-sf)', color: 'var(--c-tx)', border: '1px solid var(--c-cardBd)', fontFamily: FN, fontSize: 11, fontWeight: 500, letterSpacing: '0.04em', outline: 'none', textAlign: 'start' }} autoComplete="off" />
+          style={{ width: '100%', minHeight: 'var(--btn-h)', boxSizing: 'border-box', padding: '0 11px', borderRadius: 0, background: 'var(--c-sf)', color: 'var(--c-tx)', border: '1px solid var(--c-cardBd)', fontFamily: FN, fontSize: 11, fontWeight: 500, letterSpacing: '0.04em', outline: 'none', textAlign: 'start' }} autoComplete="off" />
       </div>
       {/* Filters header — static label + underline on desktop; tap-to-collapse
           toggle with chevron on narrow. */}

@@ -216,7 +216,7 @@ const baseBtn = {
 // baseInput; CoachDemo has no import of the real one).
 const baseInput = {
   background: 'var(--c-sf)', border: `1px solid ${C.bd2}`, borderRadius: 0,
-  padding: '8px 12px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none',
+  padding: '0 12px', minHeight: 'var(--btn-h)', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none',
 };
 
 // Glowing dot identical to the real coach app's OnlineDot — pulses green

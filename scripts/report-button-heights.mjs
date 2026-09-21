@@ -39,21 +39,27 @@ for (const route of ROUTES) {
   const r = await pg.evaluate(() => {
     const shell = /DASHBOARD|OVERVIEW|ROSTER/i.test(document.body.innerText || '');
     const out = [];
-    for (const el of document.querySelectorAll('button, [role="button"]')) {
+    // Inputs and selects sit in the SAME rows as the buttons, so a filter field
+    // at 30px beside a 32px button is the same fault by another route.
+    for (const el of document.querySelectorAll('button, [role="button"], input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=hidden]), select')) {
       const b = el.getBoundingClientRect();
       if (b.width < 8 || b.height < 6) continue;
       // Real buttons only: skip rows and cards that merely carry role=button,
       // and skip bare icon glyphs, which are a different control class.
-      const t = (el.textContent || '').replace(/\s+/g, ' ').trim();
+      const field = /^(INPUT|SELECT)$/.test(el.tagName);
+      const t = field ? (el.tagName.toLowerCase() + ' ' + (el.placeholder || el.value || el.type || '').slice(0, 18)).trim()
+                      : (el.textContent || '').replace(/\s+/g, ' ').trim();
       if (!t) continue;
       const cs = getComputedStyle(el);
       // A BUTTON, not a card or a row that merely carries role="button".
       // Those were 87 of the 599 and every one of them was a plan card, a task
       // row, a day card or a collapsible strip header - counting them made the
       // spread look like a button problem when it is not.
-      if (t.length > 26 || el.querySelectorAll('div,p,table,img').length > 1) continue;
-      const boxed = cs.borderTopWidth !== '0px' || !/rgba\(0, 0, 0, 0\)|transparent/.test(cs.backgroundColor);
-      if (!boxed) continue;
+      if (!field) {
+        if (t.length > 26 || el.querySelectorAll('div,p,table,img').length > 1) continue;
+        const boxed = cs.borderTopWidth !== '0px' || !/rgba\(0, 0, 0, 0\)|transparent/.test(cs.backgroundColor);
+        if (!boxed) continue;
+      }
       const par = el.parentElement ? getComputedStyle(el.parentElement) : null;
       out.push({ h: Math.round(b.height), t: t.slice(0, 22),
         stretched: !!par && par.display.includes('flex') && (cs.alignSelf === 'stretch' || (cs.alignSelf === 'auto' && par.alignItems === 'normal')) });

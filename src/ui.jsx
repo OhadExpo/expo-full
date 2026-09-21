@@ -92,7 +92,10 @@ export const baseInput = {
   // field against the white card bg. Focus paints a 2px cyan ring via
   // themes.css :focus rule so the focused field is unambiguous.
   background: 'var(--c-sf2)', border: '1px solid transparent', borderRadius: 0,
-  padding: "9px 14px", color: C.tx, fontFamily: FB, fontSize: 13,
+  // Horizontal padding ONLY. The height is --btn-h (themes.css) so every field
+  // matches the buttons beside it; a vertical padding here would beat
+  // padding-block and put the field back out of line.
+  padding: "0 14px", minHeight: "var(--btn-h)", color: C.tx, fontFamily: FB, fontSize: 13,
   outline: "none", width: "100%", boxSizing: "border-box",
   transition: "border-color 0.2s, background-color 0.2s",
   fontWeight: 400, letterSpacing: "0.01em",

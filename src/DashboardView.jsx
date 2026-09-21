@@ -886,7 +886,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
 
       {/* Search */}
       <div style={{ marginBottom: 14, display: 'flex', justifyContent: 'center' }}>
-        <input placeholder={tt('Filter athletes...')} value={filter} onChange={e => setFilter(e.target.value)}
+        <input type="text" placeholder={tt('Filter athletes...')} value={filter} onChange={e => setFilter(e.target.value)}
           style={{ ...baseInput, maxWidth: 300, paddingInlineStart: 12, textAlign: 'start', border: `1px solid ${C.tx}` }} />
       </div>
 

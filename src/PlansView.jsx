@@ -334,7 +334,7 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
           <button onClick={onClose} style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tm, cursor: 'pointer', padding: '4px 10px', borderRadius: 0, fontSize: 14, flexShrink: 0 }}>✕</button>
         </div>
         <div style={{ padding: '0 22px' }}>
-          <input
+          <input type="text"
             ref={inputRef}
             placeholder={tt('Search by title, muscle, pattern, position...')}
             value={search}
@@ -5249,7 +5249,7 @@ function ShareAthleteModal({ trainees, shareSearch, setShareSearch, onPick, onCl
           <span style={{ fontFamily:FN, fontSize:13, fontWeight:700, letterSpacing:'0.12em', color:C.tx, textTransform:'uppercase' }}>{tt('Share program to…')}</span>
           <button onClick={onClose} style={{ background:'transparent', border:'none', color:C.tm, fontSize:20, lineHeight:1, cursor:'pointer' }}>×</button>
         </div>
-        <input value={shareSearch} onChange={e=>setShareSearch(e.target.value)} placeholder={tr(readLang(), 'Search athletes…')} autoFocus style={{ width:'100%', boxSizing:'border-box', padding:'10px 18px', background:'transparent', color:C.tx, border:'none', borderBottom:`1px solid ${C.cardBd}`, fontFamily:FN, fontSize:13, outline:'none' }} />
+        <input type="text" value={shareSearch} onChange={e=>setShareSearch(e.target.value)} placeholder={tr(readLang(), 'Search athletes…')} autoFocus style={{ width:'100%', boxSizing:'border-box', padding:'0 18px', minHeight:'var(--btn-h)', background:'transparent', color:C.tx, border:'none', borderBottom:`1px solid ${C.cardBd}`, fontFamily:FN, fontSize:13, outline:'none' }} />
         <div style={{ overflowY:'auto' }}>
           {list.map(t => (
             <button key={t.id} onClick={()=>onPick(t)} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', width:'100%', padding:'11px 18px', background:'transparent', border:'none', borderBottom:`1px solid ${C.cardBd}`, color:C.tx, fontFamily:FN, fontSize:13, cursor:'pointer', textAlign: 'start' }}>

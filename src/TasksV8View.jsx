@@ -655,7 +655,7 @@ function QuickFilters({ value, onChange, counts, search, onSearch, resultCount, 
       onChange={(e) => onSearch(e.target.value)}
       placeholder={tt('Search…')}
       style={{
-        height: 30, minHeight: 30, boxSizing: 'border-box', padding: '0 10px',
+        minHeight: 'var(--btn-h)', boxSizing: 'border-box', padding: '0 10px',
         borderRadius: 0, cursor: 'text',
         background: 'var(--c-sf)', color: 'var(--c-tx)',
         border: `1px solid var(--c-cardBd)`, fontFamily: FN, fontSize: 11, fontWeight: 500,
@@ -2661,8 +2661,8 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
         }}>
           {/* Search box at the TOP of the sidebar, above Filters (Ohad). */}
           <div style={{ padding: '0 14px 12px' }}>
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder={tt('Search tasks…')} data-hotkey="search"
-              style={{ width: '100%', height: 34, boxSizing: 'border-box', padding: '0 11px', borderRadius: 0, background: 'var(--c-sf)', color: 'var(--c-tx)', border: '1px solid var(--c-cardBd)', fontFamily: FN, fontSize: 11, fontWeight: 500, letterSpacing: '0.04em', outline: 'none', textAlign: 'start' }} autoComplete="off" />
+            <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder={tt('Search tasks…')} data-hotkey="search"
+              style={{ width: '100%', minHeight: 'var(--btn-h)', boxSizing: 'border-box', padding: '0 11px', borderRadius: 0, background: 'var(--c-sf)', color: 'var(--c-tx)', border: '1px solid var(--c-cardBd)', fontFamily: FN, fontSize: 11, fontWeight: 500, letterSpacing: '0.04em', outline: 'none', textAlign: 'start' }} autoComplete="off" />
           </div>
           <div onClick={narrow ? () => setRailOpen(o => !o) : undefined}
             style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.22em', color: 'var(--c-ac)', textTransform: 'uppercase', padding: (narrow && !railOpen) ? '0 16px' : '5px 16px' /* 18.9: 0 above / 10 below sat the label 5.5px high in its band */, borderBottom: (narrow && !railOpen) ? 'none' : '1px solid var(--c-cardBd)', cursor: narrow ? 'pointer' : 'default', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>

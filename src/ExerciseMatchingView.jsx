@@ -116,7 +116,7 @@ function LibraryPicker({ exercises, initial, onPick, onPeek, onClose }) {
   return (
     <Modal open onClose={onClose} wide title={tt('Pick library exercise')}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder={tt('Search the library…')}
+        <input type="text" autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder={tt('Search the library…')}
           style={{ fontFamily: FB, fontSize: 14, color: C.tx, background: 'var(--c-sf)', border: `1px solid ${C.bd}`, borderRadius: 0, padding: '10px 12px' }} />
         <div style={{ maxHeight: 420, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
           {results.map((ex) => (
