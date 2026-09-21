@@ -341,6 +341,8 @@ const STRINGS = {
   'doc.title.terms':     { en: 'EXPO · Terms of use',                he: 'EXPO · תנאי שימוש' },
   'doc.title.accessibility': { en: 'EXPO · Accessibility statement', he: 'EXPO · הצהרת נגישות' },
   'footer.privacy':      { en: 'Privacy',                            he: 'פרטיות' },
+  'lead.consent':        { en: 'Your email is used to reply to you and nothing else.',
+                           he: 'האימייל שלך משמש כדי לחזור אליך, ולא לשום דבר אחר.' },
   'footer.terms':        { en: 'Terms',                              he: 'תנאים' },
   'footer.accessibility':{ en: 'Accessibility',                      he: 'נגישות' },
 

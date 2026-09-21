@@ -312,7 +312,20 @@ function LeadCapture({ context = 'hero', compact = false }) {
         </div>
       )}
       <div style={{ display: 'flex', gap: 8 }}>
+        {/* EASY TO FILL, AND ANNOUNCED WHEN IT GOES WRONG.
+            From his checklist: "make every form easy to fill". It had none of
+            the four things that do that — no autoComplete, so the browser
+            never offered a saved address; no inputMode, so a phone showed the
+            plain keyboard instead of the one with @ on it; no name, which
+            autofill also reads; and the error was styled text that a screen
+            reader never announced. */}
         <input type="email" required value={email}
+          name="email"
+          autoComplete="email"
+          inputMode="email"
+          spellCheck={false}
+          aria-invalid={state === 'error' || undefined}
+          aria-describedby={state === 'error' ? 'lead-err' : undefined}
           onChange={e => { setEmail(e.target.value); if (state === 'error') setState('idle'); }}
           placeholder={t('lead.placeholder')}
           aria-label={t('lead.label')}
@@ -322,11 +335,24 @@ function LeadCapture({ context = 'hero', compact = false }) {
         </button>
       </div>
       {state === 'error' && (
-        <div style={{
+        <div id="lead-err" role="alert" style={{
           fontFamily: FN, color: C.rd || '#ff5e5e', fontSize: 11, letterSpacing: 1,
           textAlign: 'center', marginTop: 2,
         }}>{errMsg}</div>
       )}
+      {/* CONSENT, WHERE THE DETAILS ARE ACTUALLY HANDED OVER.
+          His checklist: "אישור לתפיסת פרטים". One line, at the point of
+          submission, saying what happens and linking to the policy — not a
+          banner on arrival about something the visitor has not done yet. */}
+      <div style={{
+        fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 0.6,
+        textAlign: 'center', marginTop: 8, lineHeight: 1.6,
+      }}>
+        {t('lead.consent')}{' '}
+        <a href="#/privacy" style={{ color: C.tm, textDecoration: 'underline' }}>
+          {t('footer.privacy')}
+        </a>
+      </div>
     </form>
   );
 }
