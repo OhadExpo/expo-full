@@ -114,7 +114,9 @@
   --c-bd: #1e1e24;
   --c-bd2: #2a2a32;
   --c-tx: #f0f0f4;
-  --c-tm: #7a7a88;
+  /* 4.46:1 on the near-black ground, four hundredths under the AA bar.
+     #7E7E8C clears it and looks identical. */
+  --c-tm: #7E7E8C;
   --c-td: #444450;
   --c-ac: #39BDFF;
   /* Brand cyan used as TEXT on a surface. On the dark theme the brand tone
@@ -206,7 +208,15 @@
   --c-bd2: rgba(57,189,255,0.48);
   --c-tx: #0E0F12;
   --c-tm: #4A5263;
-  --c-td: #7B8390;
+  /* DIM TEXT, DARKENED TO CLEAR WCAG AA ON WHITE.
+     #7B8390 measured 3.82:1 on a white card — under the 4.5:1 body-text bar,
+     and 2.62:1 where it sits on the page ground. #6B7280 measures 4.82:1 on
+     white and keeps the three-level hierarchy intact: --c-tm (#4A5263) is
+     still visibly the darker of the two.
+     This is a NEUTRAL, not a brand colour. Cyan and orange are untouched —
+     the palette is his ruling, and "check colour and contrast" from his
+     checklist is answered by fixing the grey and REPORTING the rest. */
+  --c-td: #6B7280;
   --c-ac: #0E0F12;
   --c-acText: #0A6E9E;            /* same hue, dark enough to read on the pale fills */
   --c-acH: #000000;

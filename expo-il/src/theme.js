@@ -12,7 +12,11 @@ export const C = {
   bd2: '#2a2a32',
 
   tx: '#f0f0f4',
-  tm: '#7a7a88',
+  // #7a7a88 measured 4.46:1 on the near-black ground — four hundredths under
+  // the 4.5:1 AA bar for body text. #7E7E8C clears it and is visually the same
+  // grey; nobody will see the change and a screen-reader user's contrast
+  // checker will stop flagging it.
+  tm: '#7E7E8C',
   td: '#444450',
 
   ac: '#39BDFF',

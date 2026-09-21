@@ -100,6 +100,9 @@ table honest to `parseHash` or the same class of bug hides again.
 | `#/gym`, `#/gym/*` | gym | `Gym` | ✅ pass1 |
 | `#/programs/<id>` (detail) | detail | `ProgramDetail` | ✅ pass2 |
 | `#/programs/<unknown-id>` | detail | `NotFound` (in-component guard) | ✅ 2026-07-19 |
+| `#/privacy` | privacy | `Legal.Privacy` — what is collected, where it goes, browser storage | 🆕 2026-09-21 |
+| `#/terms` | terms | `Legal.Terms` — not medical advice, cancellations, content ownership | 🆕 2026-09-21 |
+| `#/accessibility` | accessibility | `Legal.Accessibility` — IS 5568 / WCAG statement, what is and is not done | 🆕 2026-09-21 |
 
 ---
 

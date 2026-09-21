@@ -119,7 +119,7 @@ export function Terms() {
         ? 'אתר תדמית של EXPO — אימון כוח בקבוצות קטנות במרכז בתל אביב, ותוכניות אימון אונליין. האתר עצמו לא מבצע מכירה ולא גובה תשלום; קביעת אימון או רכישת תוכנית נעשית בשיחה ישירה.'
         : 'A site for EXPO — small-group strength coaching at the centre in Tel Aviv, and online training programs. The site itself does not sell anything and takes no payment; booking a session or buying a program happens in a direct conversation.'}</P>
 
-      <H2>{heb ? 'תוכן אימון אינו ייעוץ רפואי' : 'Training content is not medical advice'}</H2>
+      <H2>{heb ? 'תוכן אימון — לא ייעוץ רפואי' : 'Training content is not medical advice'}</H2>
       <P>{heb
         ? 'כל מה שכתוב כאן הוא מידע על אימון. זה לא אבחון, לא ייעוץ רפואי ולא תחליף לבדיקה אצל איש מקצוע. אם יש לך כאב, פציעה או מצב רפואי — תתייעץ עם רופא או פיזיותרפיסט לפני שאתה מתחיל להתאמן.'
         : 'Everything here is training information. It is not a diagnosis, not medical advice, and not a substitute for seeing a professional. If you have pain, an injury or a medical condition, speak to a doctor or physiotherapist before you start training.'}</P>

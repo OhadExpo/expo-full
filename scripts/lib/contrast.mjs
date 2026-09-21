@@ -92,7 +92,18 @@ export const CONTRAST_FN = `
     const bgLum = (() => { const m = bgRaw.match(/[\\d.]+/g); if (!m || m.length < 3) return 255; /* Chrome reports some grounds as color(srgb 0.05 0.09 0.12) - 0..1, not 0..255. */ const v = m.slice(0, 3).map(Number).map((x) => (x <= 1 ? x * 255 : x)); return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]; })();
     const ruledOn = (/^rgba?\\(255,255,255/.test(fg) && bgc === 'rgb(57,189,255)')
       || (fg === 'rgb(68,68,80)' && bgLum < 40);
-    if (ratio < 2.2 && !ruledOn) bad.push({ text: t.slice(0, 40), ratio: Math.round(ratio * 100) / 100, color: cs.color, bg: bgOf(el) });
+    // THE BAR IS A PARAMETER NOW.
+    //
+    // 2.2 is the "can a human see this at all" line and it is the right default
+    // for the regression gates — it only fires on something genuinely broken.
+    // But his checklist asks to CHECK contrast, and the standard is WCAG AA:
+    // 4.5:1 for body text, 3:1 for large text (>=24px, or >=18.66px bold).
+    // Pass MIN=aa to measure against that instead. Reporting is not the same as
+    // changing the palette, which is his call and has been ruled on already.
+    const big = parseFloat(cs.fontSize) >= 24
+      || (parseFloat(cs.fontSize) >= 18.66 && (parseInt(cs.fontWeight, 10) || 400) >= 700);
+    const bar = (typeof window !== 'undefined' && window.__CONTRAST_MIN === 'aa') ? (big ? 3 : 4.5) : 2.2;
+    if (ratio < bar && !ruledOn) bad.push({ text: t.slice(0, 40), ratio: Math.round(ratio * 100) / 100, color: cs.color, bg: bgOf(el), need: bar, big });
   }
   return bad.slice(0, 8);
 })()
