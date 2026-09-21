@@ -379,26 +379,26 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
           Labels give the block a spine instead of a flat wall of look-alike chips;
           "Secondary Muscles" no longer dangles onto its own line. */}
       <div style={{ marginBottom: 16, borderBottom: `1px solid ${C.cardBd}` }}>
-        <div className="ex-filtrow" style={{ padding: '0 1px 10px' }}>
+        {/* NO inline padding: the hanging indent is padding-inline-start on
+            .ex-filtrow, and an inline `padding` shorthand silently wipes it
+            while the label's negative margin still applies - which pulled both
+            labels clean off the left edge. The padding lives in themes.css. */}
+        <div className="ex-filtrow">
           <span className="ex-filtrow-l" style={rowLabel}>{tt("Show")}</span>
-          <div className="ex-filtrow-c">
-            {flagChip('video', `▶ ${tt('Video')} (${counts.vid})`)}
-            {flagChip('notes', `☰ ${tt('Notes')} (${counts.note})`, C.or)}
-            {flagChip('missing', `∅ ${tt('Unclassified')} (${counts.miss})`, C.or)}
-            {anyFilter && <button className="filt" onClick={clearAll} title={tt('Clear all filters')} style={{ ...railBase, color: C.rd, marginInlineStart: 'auto', letterSpacing: '0.1em' }}>× {tr(readLang(), 'Clear all')}</button>}
-          </div>
+          {flagChip('video', `▶ ${tt('Video')} (${counts.vid})`)}
+          {flagChip('notes', `☰ ${tt('Notes')} (${counts.note})`, C.or)}
+          {flagChip('missing', `∅ ${tt('Unclassified')} (${counts.miss})`, C.or)}
+          {anyFilter && <button className="filt" onClick={clearAll} title={tt('Clear all filters')} style={{ ...railBase, color: C.rd, marginInlineStart: 'auto', letterSpacing: '0.1em' }}>× {tr(readLang(), 'Clear all')}</button>}
         </div>
-        <div className="ex-filtrow" style={{ padding: '0 1px 12px', borderTop: `1px solid ${C.cardBd}`, paddingTop: 10 }}>
+        <div className="ex-filtrow ex-filtrow--second" style={{ borderTop: `1px solid ${C.cardBd}` }}>
           <span className="ex-filtrow-l" style={rowLabel}>{tt('Filter by').replace(' ', '\u00a0')}</span>
-          <div className="ex-filtrow-c">
-            <FilterPill label="Resistance" k="resistanceType" options={dynOpts(counts.rt, f.resistanceType)} />
-            <FilterPill label="Position" k="bodyPosition" options={dynOpts(counts.bp, f.bodyPosition)} />
-            <FilterPill label="Movement" k="movementType" options={dynOpts(counts.mt, f.movementType)} />
-            <FilterPill label="Joints" k="primaryJoints" options={dynOpts(counts.pj, f.primaryJoints)} />
-            <FilterPill label="Joint Movements" k="jointMovements" options={dynOpts(counts.jm, f.jointMovements)} />
-            <FilterPill label="Primary Muscles" k="primaryMuscles" options={dynOpts(counts.pm, f.primaryMuscles)} />
-            <FilterPill label="Secondary Muscles" k="secondaryMuscles" options={dynOpts(counts.sm, f.secondaryMuscles)} />
-          </div>
+          <FilterPill label="Resistance" k="resistanceType" options={dynOpts(counts.rt, f.resistanceType)} />
+          <FilterPill label="Position" k="bodyPosition" options={dynOpts(counts.bp, f.bodyPosition)} />
+          <FilterPill label="Movement" k="movementType" options={dynOpts(counts.mt, f.movementType)} />
+          <FilterPill label="Joints" k="primaryJoints" options={dynOpts(counts.pj, f.primaryJoints)} />
+          <FilterPill label="Joint Movements" k="jointMovements" options={dynOpts(counts.jm, f.jointMovements)} />
+          <FilterPill label="Primary Muscles" k="primaryMuscles" options={dynOpts(counts.pm, f.primaryMuscles)} />
+          <FilterPill label="Secondary Muscles" k="secondaryMuscles" options={dynOpts(counts.sm, f.secondaryMuscles)} />
         </div>
       </div>
       {/* Click-away backdrop to dismiss an open filter menu. */}

@@ -2648,7 +2648,16 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
             const cnt = (data.workouts || []).filter(w => !w.reviewedAt).length;
             return <span style={{display:'inline-flex',alignItems:'center',flexWrap:'wrap',gap:8,fontSize:isHebrew(data.name)?15:12,fontFamily:isHebrew(data.name)?FH:FN,color:'#FFFFFF',fontWeight:700}}>
               <span style={{lineHeight:1}}><bdi>{isHebrew(data.name) ? data.name : (data.name || '').toUpperCase()}</bdi> ({cnt})</span>
-              {latest && <span style={{display:'inline-flex',alignItems:'center',gap:7}}>
+              {/* The block name and the week dashes are SAID AGAIN two lines
+                  below, in the group header ("BLOCK #19 · WEEK 2/4"). On a
+                  phone that duplication is what forced the strip to wrap:
+                  title 264 + button 138 + chevron 21 + gaps came to 435 in
+                  338px of inner width, so the action cluster dropped to its own
+                  line and sat there with a hole beside it whichever edge it was
+                  pushed to. Dropping the repeat below 620 leaves ~290px and the
+                  strip holds one line - name on the left, button and chevron on
+                  the right, nothing empty in between. */}
+              {latest && <span className="wr-strip-repeat" style={{display:'inline-flex',alignItems:'center',gap:7}}>
                 <span style={{fontFamily:FN,fontSize:11,lineHeight:1,color:'var(--c-ac)',fontWeight:700,letterSpacing:'0.04em'}}>· {latest.planName}</span>
                 {segCount > 0 && <span style={{display:'inline-flex',gap:3,verticalAlign:'middle'}}>
                   {Array.from({length:segCount},(_,i)=>(
@@ -2785,6 +2794,14 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
           <style>{`@media (max-width: 760px){
             .wr-day-card{ padding: 8px 12px !important; position: relative !important; align-items: flex-start !important; }
             .wr-day-card > div:last-child{ position: absolute !important; top: 8px !important; inset-inline-end: 12px !important; margin-inline-start: 0 !important; }
+            /* ONE RIGHT EDGE PER CARD. Measured at 390: the video icon sat
+               0.8px short of the card's inner edge, the DELETE label 10.8px and
+               the set count 19.8px - three staggered right edges down one card.
+               DELETE is the outer one, so its own trailing padding is what puts
+               it out of line; drop it and the label lands on the same edge as
+               the icon. The set count stays inset because it is a COLUMN with
+               the icon after it, not an edge. */
+            .wr-day-card > div:last-child > button:last-child{ padding-inline-end: 0 !important; }
             /* Mobile: the meta takes its own full-width line and its items (week /
                date / sets / video icon) spread edge-to-edge with even spacing;
                the dot separators hide (the spacing is the separator now). */
@@ -2798,6 +2815,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
             .wr-day-card .wr-meta{ width: 100% !important; display: grid !important; grid-template-columns: 5em 1fr auto auto !important; align-items: center !important; gap: 0 6px !important; }
             .wr-day-card .wr-meta > *{ min-width: 0; }
             .wr-day-card .wr-meta .wr-dot{ display: none !important; }
+            .wr-strip-repeat{ display: none !important; }
           }`}</style>
           {pending.length === 0 && !showReviewed && (
             <div style={{ textAlign: 'center', padding: 48, color: C.td }}>

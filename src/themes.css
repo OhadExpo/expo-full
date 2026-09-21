@@ -1318,35 +1318,57 @@ body[data-lang="he"] > :not(#root) { direction: rtl; }
 
 /* ── The filter rail's role-label is a SPINE ─────────────────────────────────
    ExercisesView leads each filter row with a muted "SHOW" / "FILTER BY" label
-   and the code called it "a fixed-width spine so the two rows' controls start
-   at the same x". That was true on one line only. The row was a single
-   flex-wrap box with the label as its first child, so the moment the controls
-   wrapped, the next line started at the CONTAINER's left edge — underneath the
-   label — and the spine was gone. Measured with scripts/probe-filter-spine.mjs
-   before the fix: FILTER BY line 1 at x=93, line 2 at x=13, from 900px all the
-   way down; at 470 and below the SHOW row did it too.
-   The controls now live in their own wrapping box beside the label, so every
-   line shares one left edge. */
-.ex-filtrow { display: flex; align-items: flex-start; gap: 14px; }
-.ex-filtrow-l { flex: 0 0 auto; width: 66px; line-height: 30px; }
-.ex-filtrow-c { flex: 1 1 0; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; }
-/* On a phone a 66px spine costs more than it buys — the controls lose a fifth
-   of the width and wrap into more lines than they save. Put the label on its
-   own line there; the controls keep the full width and still share one edge. */
+   and the code called it "a fixed-width spine so the controls start at the same
+   x". That held on ONE line only: the row was a single flex-wrap box with the
+   label as its first child, so a wrapped line started at the container edge -
+   underneath the label - and the spine was gone exactly where it was needed.
+   Measured with scripts/probe-filter-spine.mjs: line 1 at x=93, line 2 at
+   x=13, at 900 and every width below.
+
+   A HANGING INDENT, not a heading. The first attempt put the label on its own
+   line below 620px. That aligned the controls and made it WORSE to look at:
+   two orphan label lines floating above their controls and a taller block for
+   no gain (Ohad: "you fixed alignments, but ruined other alignments").
+   The label stays ON the first line where it belongs; the box is padded by the
+   label's width and the label is pulled back out of it, so every line - the
+   first one included - starts at the same x. Compact and aligned. */
+.ex-filtrow { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px;
+  padding: 0 1px 10px var(--ex-spine); }
+.ex-filtrow--second { padding-top: 10px; padding-bottom: 12px; }
+.ex-filtrow-l { flex: 0 0 auto; width: calc(var(--ex-spine) - 14px);
+  margin-inline-start: calc(var(--ex-spine) * -1); line-height: 30px; }
+/* 80 = the 66px the label needs at 9px/0.14em, plus the 14px column gap. */
+.ex-filtrow { --ex-spine: 80px; }
+/* THE INDENT IS FREE ON A DESKTOP AND UNAFFORDABLE ON A PHONE. Measured at 390:
+   the hanging indent costs the controls 72 of 366px and takes the FILTER BY
+   group from 3 lines to 5 - aligned, and worse to look at, which is the trade
+   that earned a 2/10. At 900 and above it costs nothing at all (the group
+   stays on the same number of lines it always had).
+   So below 620 the label takes its own line instead. That costs exactly ONE
+   row per group and every control line then starts at the container edge -
+   one shared x, full width for the chips. It is a label, not a heading, so it
+   sits tight against the group it names. */
 @media (max-width: 620px) {
-  .ex-filtrow { display: block; }
-  .ex-filtrow-l { display: block; width: auto; line-height: 1.4; margin-bottom: 5px; }
+  .ex-filtrow { --ex-spine: 0px; }
+  .ex-filtrow-l { flex: 0 0 100%; width: auto; margin-inline-start: 0; line-height: 1.3; margin-bottom: 3px; }
 }
+
 
 /* ── A separator must never be the last glyph on a line ──────────────────────
    The intake tally was one text run with literal " · " separators, so at 390
-   the first line ended "… 0 PROGRESS ·" with the dot dangling and "1 TOTAL"
-   stranded below it. Each figure is now an unbreakable item and the dots are
-   elements, so a break can only fall between figures. On a phone the dots go
-   and the gap does the separating — the same call WorkoutReview's meta row
-   makes for the same reason. */
-.intake-tally { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 7px; }
+   the first line ended "… 0 PROGRESS ·" and "1 TOTAL" was stranded below it.
+   Deleting the dots on a phone fixed the dangle and made the reading worse -
+   four figures in a row with nothing between them. Each dot is now glued to
+   the figure AFTER it inside one nowrap span (see IntakeView), so a break can
+   only fall between figures and the dots are there at every width. This rule
+   just gives the row its wrapping and its spacing. */
+.intake-tally { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; font-size: 12px; }
+/* And on a phone, do not let it wrap at all. Gluing the dot to the figure after
+   it stops a line ENDING on a separator, but then the wrapped line STARTS with
+   one - "· 1 TOTAL" hanging on its own row, which is the same ugliness moved by
+   one character. Five short figures fit on one line at 360 once the type and
+   the gaps come in a little, so they do. */
 @media (max-width: 620px) {
-  .intake-tally { gap: 2px 14px; }
-  .intake-tally-dot { display: none; }
+  .intake-tally { font-size: 10.5px; gap: 2px 5px; letter-spacing: -0.1px; }
 }
+

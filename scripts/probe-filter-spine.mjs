@@ -33,8 +33,10 @@ for (const W of RUN) {
       // `row.children` then returns the label plus ONE div, which trivially has
       // one left edge, and this gate reported "1 line" at every width - green
       // by construction. Descend into the wrapper when it is there.
-      const box = row.querySelector('.ex-filtrow-c');
-      const kids = box ? [...box.children] : [...row.children].filter((e) => e !== s);
+      // The controls are direct children again (the wrapper the first fix added
+      // fought the hanging indent and was removed). Measure them, never the
+      // label - the label is deliberately OUTSIDE the indent.
+      const kids = [...row.children].filter((e) => e !== s);
       if (kids.length < 2) return { label, err: `only ${kids.length} control(s) found - nothing to align` };
       // Group the controls into visual LINES by their top, then take each
       // line's leftmost x. A spine means every line shares one x.
