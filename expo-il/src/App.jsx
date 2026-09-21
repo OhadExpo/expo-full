@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { Analytics, track } from '@vercel/analytics/react';
 import ConsentFrame from './ConsentFrame';
+import { Privacy, Terms, Accessibility } from './Legal';
 import { C, FN, FB, CONTACT, buyOnWhatsApp, EXPO_LOGO_NAV } from './theme';
 import { PROGRAMS } from './programs';
 import { useT, useLang, setLang } from './i18n';
@@ -89,6 +90,11 @@ function parseHash(hash) {
   if (!h) return { view: 'chooser' };
   if (h === 'online' || h.startsWith('online/')) return { view: 'home' };
   if (h === 'gym' || h.startsWith('gym/')) return { view: 'gym' };
+  // The legal pages. Standalone, no chooser chrome — a visitor who followed a
+  // privacy link wants the policy, not the front door.
+  if (h === 'privacy') return { view: 'privacy' };
+  if (h === 'terms') return { view: 'terms' };
+  if (h === 'accessibility') return { view: 'accessibility' };
   const m = h.match(/^programs\/([a-z0-9-]+)$/i);
   if (m) return { view: 'detail', programId: m[1] };
   // Bare home-page section anchors (hero "BROWSE PROGRAMS"/"HOW IT WORKS",
@@ -2801,6 +2807,17 @@ function Footer() {
             style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1 }}>
             {t('footer.instagram')}
           </a>
+          {/* The legal three. A policy nobody can reach is not a policy, so
+              they sit in the footer of every page rather than on a sitemap. */}
+          <a href="#/privacy" style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1 }}>
+            {t('footer.privacy')}
+          </a>
+          <a href="#/terms" style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1 }}>
+            {t('footer.terms')}
+          </a>
+          <a href="#/accessibility" style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1 }}>
+            {t('footer.accessibility')}
+          </a>
         </div>
       </div>
     </footer>
@@ -3356,6 +3373,18 @@ export default function App() {
     );
     isStandalone = true;
     docTitleKey = 'doc.title.gym';
+  } else if (route.view === 'privacy') {
+    body = <Privacy />;
+    isStandalone = true;
+    docTitleKey = 'doc.title.privacy';
+  } else if (route.view === 'terms') {
+    body = <Terms />;
+    isStandalone = true;
+    docTitleKey = 'doc.title.terms';
+  } else if (route.view === 'accessibility') {
+    body = <Accessibility />;
+    isStandalone = true;
+    docTitleKey = 'doc.title.accessibility';
   } else if (route.view === 'chooser') {
     body = <EntryChooser />;
     isStandalone = true;
