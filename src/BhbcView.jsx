@@ -2408,6 +2408,32 @@ function Plane({ size = 11, color, title }) {
   );
 }
 
+// A LINE MAY NOT END ON A SEPARATOR.
+//
+// "Power / speed · moderate volume" and its siblings are single text runs, so
+// when the box is narrow the break lands wherever it lands - the OCD sweep
+// caught lines ending on "·", "/" and "—". There is no way to make a separator
+// disappear at a break inside plain text: bind it to the word before and the
+// line ends on it, bind it to the word after and the next line starts on it.
+// Only elements can do it, so the text becomes elements - segments that never
+// break internally, with the separators as their own spans. Below 620px the
+// separators hide and the gap does the separating, which is the same call the
+// intake tally and the workout-review meta row already make.
+//
+// Layout only. No wording changes - several of these strings are Hebrew
+// coaching copy and two are safety text.
+function Segmented({ text, style }) {
+  const parts = String(text || '').split(/\s([·•/–—|])\s/);
+  if (parts.length < 3) return <span style={style}>{text}</span>;
+  return (
+    <span className="seg-run" style={style}>
+      {parts.map((p2, i) => (i % 2
+        ? <span key={i} className="seg-dot" aria-hidden>{p2}</span>
+        : <span key={i} style={{ whiteSpace: 'nowrap' }}>{p2}</span>))}
+    </span>
+  );
+}
+
 function HAChip({ home }) {
   const tr = useT();
   if (home == null) return null;
@@ -3301,7 +3327,7 @@ function TodayPanel({ today, fixtures, fx, rows, onSessions, onLog, planOf, onPl
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, paddingTop: 7, paddingBottom: 7, borderBottom: `1px solid ${C.cardBd}`, flexWrap: 'wrap' }}>
           <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm }}>{tr('Today’s focus')}</span>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 22, boxSizing: 'border-box', padding: '0 9px', fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.06em', color: focusC, background: `color-mix(in srgb, ${focusC} 13%, transparent)`, border: `1px solid color-mix(in srgb, ${focusC} 38%, transparent)`, whiteSpace: 'nowrap' }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: focusC, flexShrink: 0 }} />{tr(focus.label)}</span>
-          <span style={{ fontFamily: FB, fontSize: 13, color: C.tx }}>{tr(focus.emphasis)}</span>
+          <Segmented text={tr(focus.emphasis)} style={{ fontFamily: FB, fontSize: 13, color: C.tx }} />
         </div>
       )}
       <div className="bhbc-today-row" style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'flex-start' }}>

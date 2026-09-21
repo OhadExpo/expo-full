@@ -1435,3 +1435,9 @@ input[type="tel"], input[type="password"], input[type="date"], input[type="time"
   min-height: var(--btn-h);
   padding-block: 0;
 }
+
+/* Segments of a run that must not break on a separator (see Segmented in
+   BhbcView). The dots are elements so a break can only fall BETWEEN segments;
+   on a phone they hide and the gap separates instead. */
+.seg-run { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 2px 6px; }
+@media (max-width: 620px) { .seg-run { gap: 2px 10px; } .seg-run .seg-dot { display: none; } }

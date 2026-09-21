@@ -76,16 +76,30 @@ function generateSlots(rules, duration, buffer, leadHours, windowStart, windowEn
       const [eh, em] = parseTimeStr(r.end_time);
       const startMin = sh * 60 + sm;
       const endMin = eh * 60 + em;
+      // stepMin can never be <= 0 or this loop never advances and the visitor's
+      // tab locks up. The coach's settings field accepts any integer, so a typed
+      // "-60" used to be an infinite loop in a stranger's browser. Clamped here
+      // as well as at the settings form, because this page must survive bad data
+      // it did not write.
+      if (!(stepMin > 0)) break;
       for (let m = startMin; m + duration <= endMin; m += stepMin) {
         const slot = coachTzInstant(civil.getUTCFullYear(), civil.getUTCMonth(), civil.getUTCDate(), m);
         if (slot.getTime() < minStart) continue;
         if (slot < windowStart || slot >= windowEnd) continue;
         // Skip if it overlaps an occupied window
         const slotStart = slot.getTime();
+        // THE BUFFER IS PART OF THE BOOKING, not just of the grid spacing.
+        // The step above already spaces slots by duration+buffer, but the
+        // overlap test below only covered the duration - so a Google-busy block
+        // ending at 11:00 still offered an 11:00 slot and left zero gap between
+        // a real appointment and a stranger's session. The occupied window is
+        // widened by the buffer on BOTH sides: his gap is needed after the
+        // previous commitment and before the next one.
+        const bufferMs = Math.max(0, buffer) * 60000;
         const slotEnd = slotStart + duration * 60000;
         const isBooked = (occupied || []).some(o => {
-          const oStart = new Date(o.start_at).getTime();
-          const oEnd = oStart + (o.duration_min || duration) * 60000;
+          const oStart = new Date(o.start_at).getTime() - bufferMs;
+          const oEnd = oStart + bufferMs + (o.duration_min || duration) * 60000 + bufferMs;
           return slotStart < oEnd && slotEnd > oStart;
         });
         if (isBooked) continue;
@@ -248,6 +262,16 @@ export default function BookingPublic() {
             style={{ padding: '4px 10px', background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, cursor: 'pointer' }}>{tr(readLang(), 'NEXT →')}</button>
         </div>
 
+        {/* SAY WHICH CLOCK. Every time on this page is rendered with the
+            VISITOR's local getHours(), which is correct - the instant is
+            computed from Israel wall-clock in coachTzInstant - but nothing told
+            them so. A client abroad read "14:00" and turned up at 14:00 Israel
+            time. The instant was right; the human was not told. */}
+        <div style={{ textAlign: 'center', fontSize: 11, color: C.td, marginBottom: 10 }}>
+          {tr(readLang(), 'Times are shown in your own timezone')}
+          {(() => { try { return ' · ' + Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return ''; } })()}
+        </div>
+
         {Object.keys(groupedByDay).length === 0 ? (
           <div style={{ padding: 30, textAlign: 'center', color: C.td, fontSize: 13 }}>{tr(readLang(), 'No available slots this week. Try next week →')}</div>
         ) : Object.entries(groupedByDay).map(([day, daySlots]) => (
@@ -277,7 +301,7 @@ export default function BookingPublic() {
           <div style={{ marginTop: 20, padding: 14, background: 'var(--c-sf)', border: `1px solid ${C.ac}` }}>
             <div style={{ fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: '0.12em', fontWeight: 700, marginBottom: 8 }}>{tr(readLang(), 'CONFIRM ·')}{selectedSlot.toLocaleDateString('en-GB')} at {pad(selectedSlot.getHours())}:{pad(selectedSlot.getMinutes())}
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8, marginBottom: 8 }}>
               <input placeholder={tr(readLang(), 'Your name *')} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
                 style={inputStyle} />
               <input placeholder={tr(readLang(), 'Email')} type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })}

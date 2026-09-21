@@ -303,6 +303,7 @@ export const HE = {
   "Couldn’t load billing data:": "לא הצלחנו לטעון את נתוני החיוב:",
   "CONFIRM ·": "אישור ·",
   "WEEK OF": "שבוע של",
+  "Times are shown in your own timezone": "השעות מוצגות לפי אזור הזמן שלך",
   "Console errors (": "שגיאות קונסול (",
   "ENTRY": "רשומה",
   "PARTICIPANTS (": "משתתפים (",

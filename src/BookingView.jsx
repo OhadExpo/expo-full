@@ -9,13 +9,13 @@
 //
 // Bookings come in via the public /book/<slug> route (BookingPublic.jsx).
 
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useT, useTB, tr, readLang } from './i18n';
 import { fmtPrettyDate } from './dates';
 import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
 import { isRefined5b, RefinedHeaderStrip, Btn, Input, toast, confirmToast, CollapsibleSection, stripBtnBase } from './ui';
-import { fetchBusy, isCalendarConnected } from './googleCalendarSync';
+import { fetchBusy, isCalendarConnected, pushBookingToCalendar, removeBookingFromCalendar } from './googleCalendarSync';
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -33,12 +33,41 @@ function bookingPublicUrl(slug) {
   return `${window.location.origin}/book/${slug || 'YOUR-SLUG'}`;
 }
 
+// A SETTING A COACH CAN TYPE MUST NOT BE ABLE TO HANG A STRANGER'S BROWSER.
+//
+// These three fed straight into the public page: duration + buffer is the step
+// of its slot loop, so a typed "-60" made `m += stepMin` run backwards forever
+// in a visitor's tab. `parseInt(x) || d` also let a negative through untouched.
+// Clamped at the source as well as defensively in the loop itself.
+function clampSetting(raw, fallback, lo, hi) {
+  const n = parseInt(raw, 10);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(hi, Math.max(lo, n));
+}
+
 export default function BookingView({ trainees }) {
   const tt = useT();
   const tb = useTB();
   const [settings, setSettings] = useState(null);
   const [rules, setRules] = useState([]);
   const [bookings, setBookings] = useState([]);
+  // The calendar sync is async and long-running, so it must not read `bookings`
+  // or `settings` out of the closure it was created in - by the time it gets to
+  // the push loop the reload it triggered has already replaced both. Refs mirror
+  // the current values.
+  // WHAT "UPCOMING" MEANS. The count used to be every confirmed booking in the
+  // whole window, which starts 7 days in the PAST - a session finished on
+  // Tuesday and never marked completed inflated it. And the list filtered out
+  // the Google-busy mirror rows while the empty state counted them, so a day
+  // with busy rows and no bookings rendered a blank card.
+  // One list now, sorted, used by the header count, the empty state and the rows.
+  const realBookings = useMemo(() => (bookings || [])
+    .filter((b) => b.status !== 'busy' && new Date(b.start_at).getTime() >= Date.now() - 60 * 60000)
+    .sort((a, b) => new Date(a.start_at) - new Date(b.start_at)), [bookings]);
+  const bookingsRef = useRef([]);
+  const settingsRef = useRef(null);
+  useEffect(() => { bookingsRef.current = bookings; }, [bookings]);
+  useEffect(() => { settingsRef.current = settings; }, [settings]);
   const [loading, setLoading] = useState(true);
   const [draftSettings, setDraftSettings] = useState(null);
   const [calBusy, setCalBusy] = useState({ connected: null, blocks: 0, syncedAt: null, error: '' });
@@ -103,7 +132,33 @@ export default function BookingView({ trainees }) {
         const { error } = await supabase.from('bookings').insert(rows);
         if (error) throw error;
       }
-      setCalBusy({ connected: true, blocks: rows.length, syncedAt: new Date().toISOString(), error: '' });
+      // AND THE OTHER DIRECTION (#142). Everything above stops EXPO offering a
+      // slot Google has taken. This stops GOOGLE offering a slot EXPO has
+      // taken: every confirmed booking that is not yet on his calendar becomes
+      // an event, and the event id is stored so it is never created twice.
+      //
+      // Here, not at insert time, because the OAuth token lives in the COACH's
+      // browser - the public booking page is anonymous and has no token. So it
+      // is reconciliation, and it catches up whenever he opens this screen.
+      //
+      // One failure does not stop the rest: a single event that will not create
+      // should not block the other nine.
+      let pushed = 0, pushFailed = 0;
+      const toPush = (bookingsRef.current || []).filter(
+        (bk) => bk.status === 'confirmed' && bk.source !== 'calendar' && !bk.gcal_event_id
+          && new Date(bk.start_at).getTime() > Date.now(),
+      );
+      for (const bk of toPush) {
+        try {
+          const eventId = await pushBookingToCalendar(bk, settingsRef.current);
+          if (!eventId) { pushFailed++; continue; }
+          const { error: upErr } = await supabase.from('bookings').update({ gcal_event_id: eventId }).eq('id', bk.id);
+          if (upErr) { pushFailed++; continue; }
+          pushed++;
+        } catch { pushFailed++; }
+      }
+      if (pushed && !quiet) toast(`${pushed} booking(s) added to Google Calendar`);
+      setCalBusy({ connected: true, blocks: rows.length, pushed, pushFailed, syncedAt: new Date().toISOString(), error: '' });
       if (!quiet) toast(tt('Calendar synced'));
       reload();
     } catch (e) {
@@ -158,7 +213,21 @@ export default function BookingView({ trainees }) {
     if (!(await confirmToast('Cancel this booking?', { okLabel: 'Cancel booking', cancelLabel: 'Keep' }))) return;
     const { error } = await supabase.from('bookings').update({ status: 'canceled', canceled_at: new Date().toISOString() }).eq('id', id);
     if (error) { toast(`Cancel failed: ${error.message}`, 'error'); return; }
-    setBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'canceled' } : b));
+    // Take it off his Google Calendar too, or a cancelled session keeps
+    // blocking the appointment page. The booking row is already cancelled at
+    // this point, so a calendar failure must not undo that - clear the stored
+    // id only on success, and the next sync will not recreate the event
+    // because the booking is no longer 'confirmed'.
+    const bk = (bookingsRef.current || []).find((x) => x.id === id);
+    if (bk && bk.gcal_event_id) {
+      try {
+        await removeBookingFromCalendar(bk.gcal_event_id);
+        await supabase.from('bookings').update({ gcal_event_id: null }).eq('id', id);
+      } catch (e) {
+        toast(`Booking cancelled, but its Google Calendar event could not be removed: ${String(e.message || e).slice(0, 60)}`, 'warn');
+      }
+    }
+    setBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'canceled', gcal_event_id: null } : b));
   };
 
   const markCompleted = async (id) => {
@@ -185,9 +254,9 @@ export default function BookingView({ trainees }) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10, marginBottom: 10 }}>
           <Input label={tt('Slug (public URL)')} value={draftSettings?.slug || ''} onChange={e => setDraftSettings({ ...draftSettings, slug: e.target.value })} placeholder="ohad" />
           <Input label={tt('Display name')} value={draftSettings?.display_name || ''} onChange={e => setDraftSettings({ ...draftSettings, display_name: e.target.value })} placeholder="Ohad — EXPO" />
-          <Input label={tt('Duration (min)')} type="number" value={draftSettings?.duration_min || 60} onChange={e => setDraftSettings({ ...draftSettings, duration_min: parseInt(e.target.value) || 60 })} />
-          <Input label={tt('Buffer (min)')} type="number" value={draftSettings?.buffer_min || 0} onChange={e => setDraftSettings({ ...draftSettings, buffer_min: parseInt(e.target.value) || 0 })} />
-          <Input label={tt('Lead time (hrs)')} type="number" value={draftSettings?.lead_time_hours || 4} onChange={e => setDraftSettings({ ...draftSettings, lead_time_hours: parseInt(e.target.value) || 4 })} />
+          <Input label={tt('Duration (min)')} type="number" value={draftSettings?.duration_min || 60} onChange={e => setDraftSettings({ ...draftSettings, duration_min: clampSetting(e.target.value, 60, 5, 8 * 60) })} />
+          <Input label={tt('Buffer (min)')} type="number" value={draftSettings?.buffer_min || 0} onChange={e => setDraftSettings({ ...draftSettings, buffer_min: clampSetting(e.target.value, 0, 0, 4 * 60) })} />
+          <Input label={tt('Lead time (hrs)')} type="number" value={draftSettings?.lead_time_hours || 4} onChange={e => setDraftSettings({ ...draftSettings, lead_time_hours: clampSetting(e.target.value, 4, 0, 24 * 30) })} />
           <Input label={tt('Zoom URL')} style={{ textAlign: 'start' }} value={draftSettings?.zoom_url || ''} onChange={e => setDraftSettings({ ...draftSettings, zoom_url: e.target.value })} placeholder="https://zoom.us/j/…" />
         </div>
         <div style={{ marginBottom: 10 }}>
@@ -256,22 +325,42 @@ export default function BookingView({ trainees }) {
       {/* UPCOMING */}
       <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: PAD }}>
         <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={12}>
-          <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? 'var(--c-stripTx)' : C.tx }}>{tt('UPCOMING')} ({bookings.filter(b => b.status === 'confirmed').length})</span>
+          <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? 'var(--c-stripTx)' : C.tx }}>{tt('UPCOMING')} ({realBookings.length})</span>
         </RefinedHeaderStrip>
-        {bookings.length === 0 ? (
+        {/* THE EMPTY STATE TESTS THE LIST THAT IS ACTUALLY RENDERED.
+            It used to test `bookings.length`, which includes the Google-busy
+            mirror rows - up to 21 days of them - while the list below filters
+            those out. With busy rows and no real bookings the card rendered
+            neither the message nor a single row: a blank box. */}
+        {realBookings.length === 0 ? (
           <div style={{ padding: 14, textAlign: 'center', color: C.td, fontSize: 13 }}>
             {tt('No bookings yet. Share the public URL above.')}
           </div>
-        ) : bookings.filter(b => b.status !== 'busy').map(b => {
+        ) : realBookings.map((b, i) => {
+          // TODAY FIRST, and a date header whenever the day changes. One flat
+          // chronological list gave him no way to see what is on today.
+          const dayKey = new Date(b.start_at).toDateString();
+          const prevKey = i > 0 ? new Date(realBookings[i - 1].start_at).toDateString() : null;
+          const showDay = dayKey !== prevKey;
+          const dayLabel = dayKey === new Date().toDateString() ? tt('TODAY')
+            : dayKey === new Date(Date.now() + 86400000).toDateString() ? tt('TOMORROW')
+            : new Date(b.start_at).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' }).toUpperCase();
           const trainee = b.trainee_id ? traineesById[b.trainee_id] : null;
           const past = new Date(b.start_at).getTime() < Date.now();
           const sevColor = b.status === 'canceled' ? C.rd : b.status === 'completed' ? C.gn : (past ? C.or : C.ac);
           return (
-            <div key={b.id} style={{
+            <React.Fragment key={b.id}>
+            {showDay && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '10px 0 6px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.tm }}>
+                <span>{dayLabel}</span>
+                <span style={{ flex: 1, height: 1, background: C.cardBd }} />
+              </div>
+            )}
+            <div style={{
               border: `1px solid ${sevColor}`,
               padding: '10px 12px', marginBottom: 8, background: 'var(--c-sf)',
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontFamily: FN, fontSize: 9, color: sevColor, fontWeight: 700, letterSpacing: '0.12em', border: `1px solid ${sevColor}`, padding: '3px 8px', width: 96, boxSizing: 'border-box', flexShrink: 0 }}>
                   {(b.status||'').toUpperCase()}
                 </span>
@@ -294,6 +383,7 @@ export default function BookingView({ trainees }) {
                 </div>
               )}
             </div>
+            </React.Fragment>
           );
         })}
       </div>
