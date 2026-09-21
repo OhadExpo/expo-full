@@ -26,8 +26,23 @@ const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 // The three athlete view files the deploy holds at production, plus App.jsx.
 const HELD = ['src/ClientPortal.jsx', 'src/MealLogger.jsx', 'src/TrySandbox.jsx'];
 
+// EVERY REQUEST USED TO RUN `git fetch`, SYNCHRONOUSLY.
+//
+// Node is single-threaded and execSync blocks it, so one page load - which is
+// the HTML plus four fonts plus thirty-eight screenshots - queued every asset
+// behind a network round-trip, and with the browser re-rendering every 60s the
+// server looked hung. It was: a font request timed out at 10s while the page
+// itself answered 200.
+//
+// The page is still live - it recomputes from git - it just does not recompute
+// thirty-nine times for one load. The fetch is the slow part and the only part
+// that needs the network, so it gets its own longer interval.
+let _cache = null, _cacheAt = 0, _fetchAt = 0;
+const CACHE_MS = 15000, FETCH_MS = 120000;
+
 function collect() {
-  git('fetch origin --quiet');
+  const now = Date.now();
+  if (now - _fetchAt > FETCH_MS) { _fetchAt = now; git('fetch origin --quiet'); }
   const prod = git('rev-parse --short origin/master');
   const branch = git('rev-parse --short bhbc-hebrew');
   // THE CANDIDATE IS WHICHEVER DEPLOY TREE IS NEWEST, not a name baked in here.
@@ -92,8 +107,22 @@ const page = (d) => `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta http-equiv="refresh" content="60">
 <title>Undeployed — EXPO</title><style>
 :root{--bg:#0a0a0b;--sf:#121316;--bd:#23262d;--tx:#f0f0f4;--tm:#9a9aa8;--td:#6b6b78;--ac:#39BDFF;--ok:#37B27C;--warn:#E0A73A;--bad:#DE4E3B}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;padding:0 16px 70px}
-main{max-width:860px;margin:0 auto}header{padding:26px 0 12px}
+/* The brand faces. Nord is scoped to Latin by unicode-range exactly as
+   public/nord-fonts.css does it, so Hebrew falls through to Heebo instead of
+   Nord's system fallback. The ascent/descent overrides are the measured ones
+   from that file - dropping them puts every capital 4% of font-size low. */
+@font-face{font-family:'Nord';src:url('/font/Nord-Regular.woff2') format('woff2');ascent-override:93.5%;descent-override:26.5%;font-weight:400;font-display:swap;unicode-range:U+0000-024F,U+0259,U+1E00-1EFF,U+2000-206F,U+2070-209F,U+20A0-20CF,U+2100-214F,U+2190-21FF,U+2200-22FF,U+2300-23FF,U+25A0-25FF,U+2600-26FF,U+FB00-FB4F}
+@font-face{font-family:'Nord';src:url('/font/Nord-Medium.woff2') format('woff2');ascent-override:93.5%;descent-override:26.5%;font-weight:500;font-display:swap;unicode-range:U+0000-024F,U+0259,U+1E00-1EFF,U+2000-206F,U+2070-209F,U+20A0-20CF,U+2100-214F,U+2190-21FF,U+2200-22FF,U+2300-23FF,U+25A0-25FF,U+2600-26FF,U+FB00-FB4F}
+@font-face{font-family:'Nord';src:url('/font/Nord-Bold.woff2') format('woff2');ascent-override:93.5%;descent-override:26.5%;font-weight:700;font-display:swap;unicode-range:U+0000-024F,U+0259,U+1E00-1EFF,U+2000-206F,U+2070-209F,U+20A0-20CF,U+2100-214F,U+2190-21FF,U+2200-22FF,U+2300-23FF,U+25A0-25FF,U+2600-26FF,U+FB00-FB4F}
+@font-face{font-family:'Heebo';src:url('/font/heebo-hebrew.woff2') format('woff2');font-weight:400;font-display:swap}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:17px/1.55 'Nord','Heebo',system-ui,sans-serif;padding:0 20px 70px;-webkit-font-smoothing:antialiased}
+/* WIDE ON PURPOSE. Ohad, 21.9: "too small i cant see anything". The page was
+   capped at 860px, so a 1500px desktop screenshot sat in a 420px half-column -
+   about 28% scale, which is not a picture of anything. The prose column stays
+   narrow and readable; the evidence gets the whole screen. */
+main{max-width:980px;margin:0 auto}
+.wide{max-width:min(1900px,96vw);margin:0 auto}
+header{padding:26px 0 12px}
 h1{font-size:22px;margin:0 0 4px}h1 span{color:var(--ac)}
 .sub{color:var(--tm);font-size:13px}
 h2{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--tm);margin:26px 0 10px;font-weight:700}
@@ -118,11 +147,19 @@ a{color:var(--ac)}
 .pair{background:var(--sf);border:1px solid var(--bd);margin-bottom:14px}
 .pair>b{display:block;font-size:14px;padding:11px 14px;border-bottom:1px solid var(--bd)}
 .ba{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--bd)}
-@media(max-width:680px){.ba{grid-template-columns:1fr}}
+@media(max-width:900px){.ba{grid-template-columns:1fr}}
 .ba figure{margin:0;background:var(--bg);padding:10px}
 .ba figcaption{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;margin-bottom:8px}
 .ba .b figcaption{color:var(--bad)}.ba .a figcaption{color:var(--ok)}
-.ba img{width:100%;height:auto;display:block;border:1px solid var(--bd);background:#fff}
+/* NATURAL SIZE, capped by the column - not stretched to it. A width of 100%
+   blew a 780px phone capture up to ~850 and made the type soft, which is the
+   opposite of the point. A 2x phone shot now lands at 780 (big and crisp) and
+   a desktop one fills the half and no more.
+   NO BACKTICKS IN HERE: this whole stylesheet is a JS template literal, and a
+   backtick in a comment ends the string. It took the server down once. */
+.ba img{width:auto;max-width:100%;height:auto;display:block;margin:0 auto;border:1px solid var(--bd);background:#fff;cursor:zoom-in}
+.ba a{display:block}
+.pair>b{font-size:15px}
 .ba .b img{opacity:.85}
 </style></head><body><main>
 <header><h1>Un<span>deployed</span></h1>
@@ -155,12 +192,16 @@ a{color:var(--ac)}
   <p><a href="http://127.0.0.1:4182/">See what the deploy leaves behind →</a> <span class="muted">(production beside the branch, athlete seat, phone width)</span></p>
 </div>
 
-<h2>Before / after — real screenshots</h2>
+</main>
+<div class="wide">
+<h2>Before / after — real screenshots <span class="muted" style="letter-spacing:0;text-transform:none;font-weight:400">· every pair is proven to differ inside its crop; click either shot for full size</span></h2>
 ${d.pairs.length ? d.pairs.map((m) => `<div class="pair"><b>${esc(m.title || m.id)}</b><div class="ba">
-  <figure class="b"><figcaption>before</figcaption><img loading="lazy" alt="before" src="/img/${esc(m.before)}"></figure>
-  <figure class="a"><figcaption>after</figcaption><img loading="lazy" alt="after" src="/img/${esc(m.after)}"></figure>
+  <figure class="b"><figcaption>before</figcaption><a href="/img/${esc(m.before)}" target="_blank" rel="noopener"><img loading="lazy" alt="before" src="/img/${esc(m.before)}"></a></figure>
+  <figure class="a"><figcaption>after</figcaption><a href="/img/${esc(m.after)}" target="_blank" rel="noopener"><img loading="lazy" alt="after" src="/img/${esc(m.after)}"></a></figure>
 </div></div>`).join('') : '<div class="row warn"><b>No pairs built yet</b><p class="muted">Run <code>node scripts/build-before-after.mjs</code> — it reverts each fix, photographs the broken state, restores, and photographs the fixed one.</p></div>'}
 
+</div>
+<main>
 <h2>What the deploy would change in production</h2>
 ${Object.entries(d.byArea).map(([a, fs2]) => `<div class="row"><b>${esc(a)} — ${fs2.length} file${fs2.length === 1 ? '' : 's'}</b><div class="cl">${fs2.map((f) => `<div><code>${esc(f)}</code></div>`).join('')}</div></div>`).join('')}
 
@@ -177,6 +218,19 @@ ${d.log.map((c) => `<div><code>${esc(c.h)}</code> <span class="muted">${esc(c.d)
 
 http.createServer((req, res) => {
   if (req.url === '/favicon.ico') { res.writeHead(204); return res.end(); }
+  // The brand fonts. Ohad, 21.9: "the local chrome host is built with wrong
+  // fonts". It was on system-ui/Segoe - this page is an EXPO surface and reads
+  // as one only in Nord (Latin) + Heebo (Hebrew). Same name-only guard as /img/.
+  if (req.url.startsWith('/font/')) {
+    const name = decodeURIComponent(req.url.slice(6));
+    if (!/^[A-Za-z0-9._-]+\.woff2$/.test(name)) { res.writeHead(400); return res.end('bad name'); }
+    try {
+      const buf = fs.readFileSync(`public/fonts/${name}`);
+      res.writeHead(200, { 'Content-Type': 'font/woff2', 'Cache-Control': 'max-age=86400' });
+      return res.end(buf);
+    } catch { res.writeHead(404); return res.end('no such font'); }
+  }
+
   // The screenshots. Name-only, no path separators — this server is read-only
   // and must not become a way to read the disk.
   if (req.url.startsWith('/img/')) {
@@ -189,7 +243,11 @@ http.createServer((req, res) => {
     } catch { res.writeHead(404); return res.end('no such shot'); }
   }
   let body;
-  try { body = page(collect()); } catch (e) { body = `<pre>${esc(e.stack || e.message)}</pre>`; }
+  try {
+    const now = Date.now();
+    if (!_cache || now - _cacheAt > CACHE_MS) { _cache = collect(); _cacheAt = now; }
+    body = page(_cache);
+  } catch (e) { body = `<pre>${esc(e.stack || e.message)}</pre>`; }
   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
   res.end(body);
 }).listen(PORT, '127.0.0.1', () => console.log(`undeployed → http://127.0.0.1:${PORT}/  (live, recomputed every request)`));

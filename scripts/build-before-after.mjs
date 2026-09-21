@@ -284,9 +284,14 @@ const PAIRS = [
     also: ['src/themes.css'],
     undo: [["style={{ textAlign: 'start', height: 30, boxSizing: 'border-box', background: 'var(--c-sf)'",
             "style={{ height: 30, boxSizing: 'border-box', background: 'var(--c-sf)'"]],
+    // The revert has to reproduce the ORIGINAL text run, spaces and all. A first
+    // version only set `display: inline`, and because JSX drops the newlines
+    // between the spans the dots came out with no spacing - the run got narrower,
+    // fitted on one line, and the dangling separator the pair exists to show
+    // never appeared. The margin puts the " · " back.
     alsoUndo: [['.intake-tally { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 7px; }',
                 '.intake-tally { display: inline; }'],
-               ['  .intake-tally-dot { display: none; }', '  .intake-tally-dot { display: inline; }']],
+               ['  .intake-tally-dot { display: none; }', '  .intake-tally-dot { display: inline; margin: 0 4px; }']],
     url: APP + '/coach/intake', w: 390, h: 800, auth: true, built: true, mobile: true,
     // The tally and the filter field - the two things that changed.
     crop: [0, 100, 390, 190],
