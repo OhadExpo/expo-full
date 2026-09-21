@@ -231,6 +231,96 @@ export const PROBE = () => {
     if (hi - lo > 6) add('RAGGED', p, `${kids.length} rows start between ${lo.toFixed(0)} and ${hi.toFixed(0)}px in — spread ${(hi - lo).toFixed(0)}px`);
   }
 
+  // WRAPSTART - a wrapping row whose second line does not start where the first
+  // one does.
+  //
+  // Found by eye on 21.9 and this probe saw it: RAGGED only looks at sibling
+  // BLOCKS in a column, so a row of inline controls that wraps is invisible to
+  // it. CollapsibleSection's action cluster kept `margin-inline-start: auto`
+  // after it wrapped, so a lone button on its own line was pushed to the far end
+  // with a 179px hole on the leading side of the review strip at 390.
+  //
+  // WHAT THIS DOES NOT CATCH, so nobody reads more into its zero: the exercises
+  // filter rail, the other wrap fault found the same morning. There the LABEL
+  // still sat at inset 0 on line 1 and only the CONTROLS beside it jumped (x=93
+  // to x=13), so every line's leading edge agreed and this rule is right to stay
+  // quiet. Knowing that one child is a label and the rest are its group is not
+  // something the DOM says; scripts/probe-filter-spine.mjs owns that case.
+  //
+  // justify-content of flex-end or center puts each line at a different start
+  // BY DESIGN, the same way centring does for RAGGED, so those are left alone.
+  for (const p of all) {
+    const ps = getComputedStyle(p);
+    if (ps.display !== 'flex' || !/wrap/.test(ps.flexWrap) || ps.flexWrap === 'wrap-reverse') continue;
+    if (/end|center|right/.test(ps.justifyContent)) continue;
+    const kids = [...p.children].filter((k) => vis(k));
+    if (kids.length < 3) continue;
+    const pr = p.getBoundingClientRect();
+    if (pr.width < 120) continue;
+    const pRtl = dirOf(p);
+    // The container's CONTENT edge - padding is not a misalignment.
+    const padS = parseFloat(pRtl ? ps.paddingRight : ps.paddingLeft) || 0;
+    const edge = pRtl ? pr.right - padS : pr.left + padS;
+    const lines = new Map();
+    for (const k of kids) {
+      const r = k.getBoundingClientRect();
+      const key = Math.round(r.top);
+      const inset = pRtl ? edge - r.right : r.left - edge;
+      lines.set(key, Math.min(lines.get(key) ?? Infinity, inset));
+    }
+    if (lines.size < 2) continue;
+    const xs = [...lines.values()];
+    const lo = Math.min(...xs), hi = Math.max(...xs);
+    if (hi - lo > 6) add('WRAPSTART', p, `${lines.size} wrapped lines start between ${lo.toFixed(0)} and ${hi.toFixed(0)}px in - spread ${(hi - lo).toFixed(0)}px`);
+  }
+
+  // DANGLE - a separator left as the last glyph on a wrapped line.
+  //
+  // The intake tally was one text run with literal " · " separators, so at 390
+  // the first line ended "… 0 PROGRESS ·" and "1 TOTAL" was stranded below it.
+  // A separator belongs BETWEEN two things; ending a line with one reads as a
+  // sentence cut off. Measured per character, because only the rendered line
+  // break knows where it fell.
+  const SEP = new Set(['·', '•', '|', '/', ',', ';', '–', '—']);
+  for (const el of all) {
+    // Own text only, and small enough that per-character measuring is cheap.
+    let txt = '';
+    for (const n of el.childNodes) if (n.nodeType === 3) txt += n.textContent;
+    if (txt.length < 12 || (el.textContent || '').length > 220) continue;
+    if (![...SEP].some((c) => txt.includes(' ' + c + ' '))) continue;
+    const r0 = el.getBoundingClientRect();
+    if (!vis(el) || r0.height < 8) continue;
+    const rg = document.createRange();
+    rg.selectNodeContents(el);
+    if (rg.getClientRects().length < 2) continue;      // one line cannot dangle
+    const full = el.textContent || '';
+    const lineEnd = new Map();                          // line top -> last non-space index
+    for (let i = 0; i < full.length; i++) {
+      if (full[i] === ' ' || full[i] === '\n') continue;
+      // Map the global character offset back onto whichever text node holds it.
+      let cr = null;
+      try {
+        const w = document.createRange();
+        let seen = 0, done = false;
+        for (const n of el.childNodes) {
+          const len = (n.textContent || '').length;
+          if (!done && i < seen + len && n.nodeType === 3) { w.setStart(n, i - seen); w.setEnd(n, i - seen + 1); done = true; break; }
+          seen += len;
+        }
+        if (!done) continue;
+        cr = w.getBoundingClientRect();
+      } catch (e) { continue; }
+      if (!cr || !cr.height) continue;
+      lineEnd.set(Math.round(cr.top), i);
+    }
+    const tops = [...lineEnd.keys()].sort((a, b) => a - b);
+    for (const t of tops.slice(0, -1)) {                // the LAST line may end how it likes
+      const ch = full[lineEnd.get(t)];
+      if (SEP.has(ch)) { add('DANGLE', el, `a line ends with "${ch}" - the separator is the last glyph before the wrap`); break; }
+    }
+  }
+
+
   // UNEVEN — CONTROLS on one line at different heights.
   //
   // Narrowed after triage. The first version flagged any flex row whose

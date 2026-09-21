@@ -25,6 +25,10 @@ const CASES = [
   ['COLLIDE', '<div style="position:relative;height:40px"><span style="position:absolute;left:10px;top:10px">alpha</span><span style="position:absolute;left:14px;top:12px">beta</span></div>'],
   ['RAGGED', '<div style="width:300px"><div style="margin-left:0">one</div><div style="margin-left:20px">two</div><div style="margin-left:40px">three</div></div>'],
   ['UNEVEN', '<div style="display:flex;align-items:flex-start"><button style="height:20px">a</button><button style="height:44px">b</button></div>'],
+  ['WRAPSTART', '<div style="display:flex;flex-wrap:wrap;width:300px">'
+    + '<span style="width:260px">a long first item</span>'
+    + '<span style="margin-left:auto;width:60px">b</span><span style="width:60px">c</span></div>'],
+  ['DANGLE', '<div style="width:118px;font:14px monospace">alpha · beta · gamma · delta</div>'],
   ['ORPHAN', '<div style="display:grid;grid-template-columns:repeat(3,100px)"><i>1</i><i>2</i><i>3</i><i>4</i></div>'],
   ['EDGEFLIP', '<div style="width:300px;position:relative;height:90px">'
     + '<div style="position:absolute;left:0;top:0;width:80px">aa</div>'
