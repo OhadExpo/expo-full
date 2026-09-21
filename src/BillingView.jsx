@@ -132,7 +132,13 @@ export default function BillingView({ trainees }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {/* AT-A-GLANCE — outstanding · overdue · collected this month. */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
+      {/* Three tiles in two columns always strands one — photographed at 390:
+          OUTSTANDING and OVERDUE on a row, COLLECTED MTD alone beside dead
+          space. Same "thats not ocd order" as the dashboard's 3 + 1. The shared
+          .kpi-grid gives 2 up to 1000px and 4 above it, and an ODD last tile
+          stretches across the row instead of sitting half-width next to
+          nothing. */}
+      <div className="kpi-grid" style={{ display: 'grid', gap: 10 }}>
         {[
           { label: tt('Outstanding'), value: fmtCurrency(summary.outstanding), sub: `${summary.pendingCount} ${tt('pending')}`, dot: summary.outstanding > 0 ? C.or : C.gn },
           { label: tt('Overdue'), value: fmtCurrency(summary.overdueAmt), sub: `${summary.overdueCount} · ${OVERDUE_DAYS}+ ${tt('days')}`, dot: summary.overdueCount > 0 ? C.rd : C.gn },
