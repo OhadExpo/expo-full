@@ -841,7 +841,7 @@ export default function TraineesView({ dataIncomplete = false, trainees, setTrai
           ]}
           footer={
             <div ref={addMenuRef} style={{position:'relative', marginTop:'auto'}}>
-              <Btn variant="solid" onClick={() => setAddMenuOpen(!addMenuOpen)} style={{ width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 38, background: 'transparent', color: 'var(--c-acText, #39BDFF)', whiteSpace: 'nowrap', justifyContent: 'center' }}>{tt('+ Add Athlete')} ▾</Btn>
+              <Btn variant="solid" onClick={() => setAddMenuOpen(!addMenuOpen)} style={{ width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 'var(--btn-h)', background: 'transparent', color: 'var(--c-acText, #39BDFF)', whiteSpace: 'nowrap', justifyContent: 'center' }}>{tt('+ Add Athlete')} ▾</Btn>
               {addMenuOpen && <div style={{position:'absolute',left:0,right:0,top:'100%',marginTop:4,background:C.bg,border:`1px solid ${C.cardBd}`,borderRadius:0,overflow:'hidden',zIndex:50,boxShadow:'0 8px 24px rgba(0,0,0,0.6)'}}>
                 {[['Online Athlete','Online Client'],['Gym, Single','Gym, Single'],['Gym, Couple','Gym, Couple'],['Bnei Herzliya','Bnei Herzliya']].map(([label,format])=>(
                   <button key={format} onClick={()=>{

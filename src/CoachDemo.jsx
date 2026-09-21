@@ -716,7 +716,7 @@ function DemoTrainees({ selected, onSelect, onClear, returnTab }) {
               }),
             },
           ]}
-          footer={<button title={T('Demo only')} style={{ ...baseBtn, background: '#39BDFF', color: '#06131b', border: '1px solid #39BDFF', width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 38, marginTop: 'auto', fontSize: 13, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{T('+ Add Athlete')} ▾</button>}
+          footer={<button title={T('Demo only')} style={{ ...baseBtn, background: '#39BDFF', color: '#06131b', border: '1px solid #39BDFF', width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 'var(--btn-h)', marginTop: 'auto', fontSize: 13, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{T('+ Add Athlete')} ▾</button>}
         />
         {/* RIGHT: the card grid. */}
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -2052,7 +2052,7 @@ function DemoPrograms({ resetToken = 0 }) {
               }),
             },
           ]}
-          footer={<button onClick={e => e.stopPropagation()} style={{ ...baseBtn, background: '#39BDFF', color: '#06131b', border: '1px solid #39BDFF', width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 38, marginTop: 'auto', fontSize: 13, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ {tr(readLang(), 'New Program')}</button>}
+          footer={<button onClick={e => e.stopPropagation()} style={{ ...baseBtn, background: '#39BDFF', color: '#06131b', border: '1px solid #39BDFF', width: '100%', boxSizing: 'border-box', padding: '0 14px', height: 'var(--btn-h)', marginTop: 'auto', fontSize: 13, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ {tr(readLang(), 'New Program')}</button>}
         />
         {/* RIGHT: the program list. */}
         <div style={{ flex: 1, minWidth: 0, boxSizing: 'border-box' }}>

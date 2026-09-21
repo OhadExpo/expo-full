@@ -1372,3 +1372,34 @@ body[data-lang="he"] > :not(#root) { direction: rtl; }
   .intake-tally { font-size: 10.5px; gap: 2px 5px; letter-spacing: -0.1px; }
 }
 
+
+/* ── ONE BOX HEIGHT FOR EVERY BUTTON ─────────────────────────────────────────
+   Ohad, 21.9: "i asked for all the buttons to be the same size everywhere as
+   rule (vertical size)". Measured before this rule: 16 DISTINCT heights across
+   311 buttons on desktop (32 x99, 28 x94, 24 x54, 26 x28, 30 x13 and a tail out
+   to 54), and in the club zone MANAGE ROSTER and LOG PRACTICE sat at 30px with
+   the COPY chip beside them at 24.
+   The 21.9 tap-target pass is what hid this: it set a 40px FLOOR below 620px,
+   which is not a size - above 620 every button fell back to whatever its own
+   padding gave it.
+
+   This is his own documented rule (memory: new-ui-box-dimensions): pin the
+   outer box, put the padding on the horizontal axis ONLY, and let flex centring
+   own the vertical - so the line box can never push the height around and
+   Hebrew at +3px still sits in the same box.
+
+   Scoped to real <button> elements. Cards, task rows, plan cards and
+   collapsible strip headers carry role="button" and are NOT buttons; 87 of the
+   599 controls at 390 were those, and sizing them would be wrong. */
+:root { --btn-h: 32px; --rail-row-h: 28px; }
+@media (max-width: 620px) { :root { --btn-h: 40px; --rail-row-h: 40px; } }   /* the tap-target floor */
+button {
+  min-height: var(--btn-h);
+  padding-block: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+/* Opt out for the few that genuinely are not a control-sized box: a button
+   wrapping a card, a media tile, or a multi-line block. */
+button.btn-block, button[data-btn-block] { min-height: 0; display: block; }

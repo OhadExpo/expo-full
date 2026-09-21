@@ -34,7 +34,12 @@ export function RailOpt({ label, count, active, onClick, title, accent }) {
       onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
       style={{
         display: 'flex', alignItems: 'center', width: `calc(100% + ${RAIL_GUTTER}px)`, marginInlineStart: -RAIL_GUTTER,
-        minHeight: 28, border: 'none', padding: '3px 0', boxSizing: 'border-box', cursor: 'pointer',
+        // A RAIL ROW IS NOT AN ACTION BUTTON. The app pins every button to
+        // --btn-h (32 desktop / 40 phone); a vertical list of 25 athlete names
+        // at that height would add ~100px to the rail for nothing. So the rail
+        // has its own token and every row shares it - one size within the
+        // class, which is the rule, rather than a stray 28 among 32s.
+        minHeight: 'var(--rail-row-h)', border: 'none', padding: '3px 0', boxSizing: 'border-box', cursor: 'pointer',
         background: active ? `color-mix(in srgb, ${ac} 20%, transparent)` : (hov ? 'var(--c-sf3, rgba(127,127,138,0.10))' : 'transparent'),
         color: active ? ac : (hov ? 'var(--c-tx)' : 'var(--c-tm)'),
         fontFamily: FN, fontSize: 10, fontWeight: active ? 800 : 700, letterSpacing: heb ? 0 : '0.05em', textTransform: heb ? 'none' : 'uppercase',
