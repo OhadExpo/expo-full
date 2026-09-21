@@ -249,7 +249,28 @@ export const PROBE = () => {
   //
   // justify-content of flex-end or center puts each line at a different start
   // BY DESIGN, the same way centring does for RAGGED, so those are left alone.
-  for (const p of all) {
+  //
+  // OFF BY DEFAULT, and that is a finding about the rule, not about the app.
+  // Run it and it reports 156 across the 40 combinations - the same flood the
+  // first COLLIDE (402), OFFSCREEN (13 per screen) and UNEVEN (64) versions
+  // produced, and for the same reason: it is describing a shape rather than a
+  // defect. Most hits are cards whose second line legitimately holds one short
+  // right-aligned item ("vs Joventut Badalona" / "AWAY", a player's stat row),
+  // which is not a hole, it is the layout. The one real instance it was written
+  // for - CollapsibleSection's wrapped action cluster - is already fixed and
+  // has its own measurement in the commit that fixed it.
+  //
+  // Left in, switched off, because the idea is right and the discrimination is
+  // not: a hole is only a hole when the leading side is EMPTY and nothing on
+  // any line explains it. Narrow it, triage the 156 against real screens, and
+  // only then turn it on. A rule that cries 156 times teaches everyone to stop
+  // reading the sweep, which costs more than the bug it catches.
+  // The probe runs INSIDE the page, so there is no process.argv here to read -
+  // a caller turns it on with `window.__OCD_WRAPSTART__ = true` before the
+  // evaluate. The break test does exactly that, so the rule is still proven to
+  // fire rather than quietly rotting.
+  const WRAPSTART_ON = typeof window !== 'undefined' && window.__OCD_WRAPSTART__ === true;
+  for (const p of (WRAPSTART_ON ? all : [])) {
     const ps = getComputedStyle(p);
     if (ps.display !== 'flex' || !/wrap/.test(ps.flexWrap) || ps.flexWrap === 'wrap-reverse') continue;
     if (/end|center|right/.test(ps.justifyContent)) continue;

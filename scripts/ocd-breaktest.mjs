@@ -63,6 +63,9 @@ try {
     // was lying to them. The real app carries this meta tag.
     await page.setContent(`<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"></head><body style="margin:0;padding:0;font-family:sans-serif">${html}</body></html>`);
     await new Promise((r) => setTimeout(r, 250));
+    // WRAPSTART ships OFF (it floods on real screens - see the probe). Turn it
+    // on here so it is still PROVEN to fire; a rule nobody ever runs rots.
+    await page.evaluate(() => { window.__OCD_WRAPSTART__ = true; });
     const res = await page.evaluate(PROBE);
     if (Math.abs(res.vw - 390) > 3) { console.log(`  ABORT ${kind}: the test page is ${res.vw}px wide, not 390 — the harness is wrong, not the rule`); blind++; continue; }
     const hit = res.findings.filter((f) => f.kind === kind);
@@ -74,6 +77,7 @@ try {
   await page.goto('about:blank');
   await page.setContent('<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"></head><body style="margin:0;font-family:sans-serif"><div style="padding:16px"><p style="margin:0 0 12px">one</p><p style="margin:0">two</p></div></body></html>');
   await new Promise((r) => setTimeout(r, 250));
+  await page.evaluate(() => { window.__OCD_WRAPSTART__ = true; });
   const clean = await page.evaluate(PROBE);
   console.log(`\n  clean page: ${clean.findings.length} finding(s)` + (clean.findings.length ? ' <-- FALSE POSITIVES: ' + clean.findings.map((f) => `${f.kind}(${f.detail})`).join(', ') : ''));
   if (clean.findings.length) blind++;
