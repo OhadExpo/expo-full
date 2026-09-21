@@ -1276,8 +1276,16 @@ body[data-lang="he"] > :not(#root) { direction: rtl; }
    Deliberately NOT included: inputs and selects (already 32-34 and they are
    not mis-tap targets in the same way), and anything inside a scroller cell. */
 /* The dashboard KPI row: 1 / 2 / 4 columns, never 3. See DashboardView. */
-.kpi-grid { grid-template-columns: 1fr; }
-@media (min-width: 430px)  { .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* TWO IS THE BASE, NOT ONE.
+   The first version of this made 1 column the default and 2 only from 430 —
+   which gave a PHONE one column where the old minmax(170px,1fr) had given it
+   two, and made the dashboard taller on the exact screen where he had already
+   complained the KPI boxes were too tall (17.9). Two 170px cards plus the gap
+   need 350px and a 390 phone has 362 of content, so two fits and two is the
+   base. One column only below that. Four when there is real room — never three,
+   which is what left the fourth card alone on a row. */
+.kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 359px)  { .kpi-grid { grid-template-columns: 1fr; } }
 @media (min-width: 1000px) { .kpi-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 
 @media (max-width: 620px) {
