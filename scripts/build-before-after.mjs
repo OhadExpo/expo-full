@@ -209,6 +209,35 @@ const PAIRS = [
     url: APP + '/coach', w: 1500, h: 1000, auth: true, cutBackend: true,
     crop: [0, 0, 1500, 420],
   },
+  // ── 21.09 ────────────────────────────────────────────────────────────
+  {
+    id: 'tap-targets',
+    title: 'Club zone · every control was 24-30px on a phone',
+    file: 'src/themes.css',
+    // Take the floor away again. One swap, because the whole fix is one rule.
+    undo: [['  button, [role="button"] { min-height: 40px; }', '  button, [role="button"] { min-height: 0; }']],
+    url: PREVIEW + '/coach/bhbc', w: 390, h: 844, auth: true, built: true, mobile: true,
+    crop: [0, 0, 390, 430],
+  },
+  {
+    id: 'roster-position',
+    title: 'Manage roster · the position read "POINT G..." on a phone',
+    file: 'src/themes.css',
+    undo: [['  .bhbc-manage-meta{grid-column:3;justify-content:space-between;gap:8px;flex-wrap:wrap}',
+            '  .bhbc-manage-meta{grid-column:3;justify-content:space-between;gap:8px}']],
+    url: PREVIEW + '/coach/bhbc', w: 390, h: 844, auth: true, built: true, mobile: true,
+    clickText: 'Manage roster',
+    crop: [0, 120, 390, 560],
+  },
+  {
+    id: 'kpi-edge',
+    title: 'Dashboard · the number hugged the wrong edge in Hebrew',
+    file: 'src/DashboardView.jsx',
+    // justifyContent is the fix; textAlign is the dead code it replaced.
+    undo: [["justifyContent: he ? 'flex-end' : 'flex-start' }}>{s.value}", "textAlign: he ? 'right' : 'left' }}>{s.value}"]],
+    url: PREVIEW + '/coach/dashboard', w: 645, h: 700, auth: true, built: true, appLang: 'he',
+    crop: [0, 80, 645, 300],
+  },
 ];
 
 const only = process.argv.slice(2);
