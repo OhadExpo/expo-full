@@ -557,8 +557,19 @@ export function CollapsibleSection({ title, titleNode, count, right, storageKey,
         )}
         {/* flexWrap on the strip + the action cluster lets a wide button group
             drop to its own line on a phone instead of forcing horizontal page
-            overflow. On desktop it stays on one line. */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end', marginInlineStart: 'auto', minWidth: 0, maxWidth: '100%' }}>
+            overflow. On desktop it stays on one line.
+
+            NO `margin-inline-start: auto` here. The strip is already
+            space-between, so on ONE line the cluster sits at the end either
+            way — but an auto margin keeps pushing it to the end after it
+            WRAPS, and a lone item on a line pushed to the far end leaves a
+            hole on the leading side. Measured on /coach/review at 390: the
+            athlete strip wraps (title 264 + cluster 159 + gap > 338 of inner
+            width) and the cluster landed 179px in, more than half the strip,
+            with nothing to its left. space-between puts a lone wrapped item at
+            the START, under the title, and leaves the one-line case
+            untouched. */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end', minWidth: 0, maxWidth: '100%' }}>
           {right && <span onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end', minWidth: 0, maxWidth: '100%' }}>{right}</span>}
           {/* WHITE on purpose — this chevron sits on the COLOURED strip header
               whose title span three lines up is also #FFFFFF. Switching it to

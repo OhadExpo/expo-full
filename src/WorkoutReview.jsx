@@ -2734,7 +2734,14 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                       <span>{fmtPrettyDate(wo.date)}</span>
                       <span className="wr-dot">·</span>
                       <span>{doneSets}/{totalSets} {tt('sets')}</span>
-                      {hasFormVids && <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={C.tx} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}} aria-label={tr(readLang(), 'has form video')}><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>}
+                      {/* The video slot is ALWAYS 13px wide, filled or not. On
+                          mobile the meta is a grid and the sets column is placed
+                          from the right; a card with no form video would collapse
+                          this track and slide its own sets 19px out of line with
+                          the card above it. */}
+                      <span style={{width:13,height:13,flexShrink:0,display:'inline-flex',alignItems:'center',justifyContent:'center'}}>
+                        {hasFormVids && <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={C.tx} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}} aria-label={tr(readLang(), 'has form video')}><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>}
+                      </span>
                     </span>
                     {reviewed && (
                       <span style={{fontSize:8,fontFamily:FN,color:C.gn,fontWeight:700,letterSpacing:0.5,
@@ -2781,7 +2788,15 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
             /* Mobile: the meta takes its own full-width line and its items (week /
                date / sets / video icon) spread edge-to-edge with even spacing;
                the dot separators hide (the spacing is the separator now). */
-            .wr-day-card .wr-meta{ width: 100% !important; justify-content: space-between !important; gap: 6px !important; }
+            /* space-between spaced the fields by each card's OWN content, so
+               three identical stacked cards put the same field at three
+               different x. Measured at 390 (scripts/probe-review-meta.mjs):
+               the date drifted 2px and the set count 8px between cards.
+               A grid gives every card the same tracks: week at 0, the date at
+               one fixed x, the sets and the video slot placed from the right
+               edge. 5em holds "W12/16" without squeezing the date. */
+            .wr-day-card .wr-meta{ width: 100% !important; display: grid !important; grid-template-columns: 5em 1fr auto auto !important; align-items: center !important; gap: 0 6px !important; }
+            .wr-day-card .wr-meta > *{ min-width: 0; }
             .wr-day-card .wr-meta .wr-dot{ display: none !important; }
           }`}</style>
           {pending.length === 0 && !showReviewed && (
