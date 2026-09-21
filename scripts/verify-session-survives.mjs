@@ -114,5 +114,52 @@ try {
 } catch (e) { console.log('ERROR', e.message); fail++; }
 finally { await page.close().catch(() => {}); b.disconnect(); }
 
+// AND FROM THE SEAT HE ACTUALLY ASKED ABOUT.
+//
+// "make sure all ATHLETES are stayed logged in". The coach seat above shares
+// the same storage adapter, but the athlete portal is a different tree with a
+// different boot path, and a fix verified only from the coach's chair is a fix
+// verified on the wrong person. This signs in through the real form as a
+// trainee, wipes both stores, and requires the portal back.
+const ATH = process.env.ATH || 'diego@diegoday.com';
+{
+  const b2 = await P.connect({ browserURL: process.env.CDP || 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 300000 });
+  const pg = await b2.newPage();
+  try {
+    await pg.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+    await pg.goto(`${BASE}/login`, { waitUntil: 'domcontentloaded', timeout: 45000 });
+    await pg.evaluate(() => {
+      try { localStorage.clear(); sessionStorage.clear(); } catch { /* blocked */ }
+      for (const c of document.cookie.split(';')) document.cookie = c.split('=')[0].trim() + '=; Max-Age=0; Path=/';
+    });
+    await pg.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
+    await new Promise((r) => setTimeout(r, 3500));
+    const typed = await pg.evaluate((em) => {
+      const ins = [...document.querySelectorAll('input')];
+      const e = ins.find((i) => i.type === 'email'); const p2 = ins.find((i) => i.type === 'password');
+      if (!e || !p2) return false;
+      const set = (el, v) => { Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set.call(el, v); el.dispatchEvent(new Event('input', { bubbles: true })); };
+      set(e, em); set(p2, '1234'); return true;
+    }, ATH);
+    if (!typed) { fail++; console.log('  FAIL  athlete seat - no login form to fill'); }
+    else {
+      await pg.evaluate(() => { const x = [...document.querySelectorAll('button')].find((q) => /sign in/i.test(q.textContent || '')); if (x) x.click(); });
+      await new Promise((r) => setTimeout(r, 7000));
+      const inPortal = () => pg.evaluate(() => ({
+        url: location.pathname,
+        out: !!document.querySelector('input[type="password"]'),
+        portal: /log out|block #/i.test((document.body.innerText || '').slice(0, 200)),
+      }));
+      let a = await inPortal();
+      check('the athlete signs in and lands in the portal', a.portal && !a.out, 'at ' + a.url);
+      await pg.evaluate(() => { try { localStorage.clear(); sessionStorage.clear(); } catch { /* blocked */ } });
+      await pg.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
+      await new Promise((r) => setTimeout(r, 7000));
+      a = await inPortal();
+      check('the ATHLETE survives both stores being wiped', a.portal && !a.out, 'at ' + a.url);
+    }
+  } catch (e) { fail++; console.log('  FAIL  athlete seat -', e.message); }
+  finally { await pg.close().catch(() => {}); b2.disconnect(); }
+}
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail) process.exitCode = 1;
