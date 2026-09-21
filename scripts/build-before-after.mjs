@@ -569,17 +569,24 @@ for (const job of jobs) {
     }
     if (!broke) continue;
     fs.writeFileSync(job.file, mod);
-    if (job.built) { console.log(`     building "before" for ${job.id}...`); execSync(buildCmd(job), { stdio: 'ignore' }); }
+    // THE SECOND FILE HAS TO BE ON DISK BEFORE THE BUILD, NOT AFTER IT.
+    //
+    // This used to write `also` after the build ran, so for a `built` job the
+    // bundle was compiled from the reverted FIRST file and the unreverted
+    // second one - half a "before". review-columns undoes a WorkoutReview rule
+    // and a ui.jsx one, and its first picture showed the meta drift with the
+    // strip already fixed, under a title that promised both.
     if (src2) {
       let m2 = src2;
       for (const [from, to] of (job.alsoUndo || [])) m2 = m2.replace(from, to);
       fs.writeFileSync(job.also[0], m2);
     }
+    if (job.built) { console.log(`     building "before" for ${job.id}...`); execSync(buildCmd(job), { stdio: 'ignore' }); }
     await wait(6000);                       // let the dev server pick it up
     await shootRetry(job, 'before');
     fs.writeFileSync(job.file, src);        // RESTORE before the after-shot
+    if (src2) fs.writeFileSync(job.also[0], src2);   // BOTH files, then build
     if (job.built) { console.log(`     rebuilding "after" for ${job.id}...`); execSync(buildCmd(job), { stdio: 'ignore' }); }
-    if (src2) fs.writeFileSync(job.also[0], src2);
     broke = false;
     await wait(6000);
     await shootRetry(job, 'after');
