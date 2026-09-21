@@ -1315,3 +1315,25 @@ body[data-lang="he"] > :not(#root) { direction: rtl; }
      equivalent lever. */
   tr[role="button"] > td, tr[role="button"] > th { height: 40px; }
 }
+
+/* ── The filter rail's role-label is a SPINE ─────────────────────────────────
+   ExercisesView leads each filter row with a muted "SHOW" / "FILTER BY" label
+   and the code called it "a fixed-width spine so the two rows' controls start
+   at the same x". That was true on one line only. The row was a single
+   flex-wrap box with the label as its first child, so the moment the controls
+   wrapped, the next line started at the CONTAINER's left edge — underneath the
+   label — and the spine was gone. Measured with scripts/probe-filter-spine.mjs
+   before the fix: FILTER BY line 1 at x=93, line 2 at x=13, from 900px all the
+   way down; at 470 and below the SHOW row did it too.
+   The controls now live in their own wrapping box beside the label, so every
+   line shares one left edge. */
+.ex-filtrow { display: flex; align-items: flex-start; gap: 14px; }
+.ex-filtrow-l { flex: 0 0 auto; width: 66px; line-height: 30px; }
+.ex-filtrow-c { flex: 1 1 0; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; }
+/* On a phone a 66px spine costs more than it buys — the controls lose a fifth
+   of the width and wrap into more lines than they save. Put the label on its
+   own line there; the controls keep the full width and still share one edge. */
+@media (max-width: 620px) {
+  .ex-filtrow { display: block; }
+  .ex-filtrow-l { display: block; width: auto; line-height: 1.4; margin-bottom: 5px; }
+}

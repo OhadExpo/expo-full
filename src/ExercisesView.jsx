@@ -181,11 +181,17 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
   // Filter controls are UNDERLINE text (per the control-material differentiation
   // rule: filters = underline, not solid boxes) — light, inline, hug their label.
   const railBase = { display: 'inline-flex', alignItems: 'center', gap: 6, height: 30, padding: '0 1px', background: 'transparent', border: 'none', borderBottom: '2px solid transparent', color: C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap' };
-  // Muted role-label that leads each filter row (Show / Filter by) — a fixed-width
-  // spine so the two rows' controls start at the same x and read as two jobs.
-  // 58 was 6px short of "FILTER BY" at 9px/0.14em, so the label spilled its own
-  // box; 66 fits it. Both rows share the constant, so the spine still lines up.
-  const rowLabel = { flexShrink: 0, width: 66, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: C.tm, textTransform: 'uppercase', whiteSpace: 'nowrap' };
+  // Muted role-label that leads each filter row (Show / Filter by) - a spine so
+  // the two rows' controls start at the same x and read as two jobs.
+  //
+  // The WIDTH lives in `.ex-filtrow-l` (themes.css), not here, because the spine
+  // only held on ONE line. The row was a single flex-wrap box with the label as
+  // its first child, so a WRAPPED line started at the container edge - under the
+  // label - and the spine it is named for was gone. Measured from 900px down:
+  // line 1 at x=93, the wrapped line at x=13. The controls now sit in their own
+  // wrapping box beside the label. 58 was 6px short of "FILTER BY" at
+  // 9px/0.14em; 66 fits it.
+  const rowLabel = { fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: C.tm, textTransform: 'uppercase', whiteSpace: 'nowrap' };
   // Shared width for the two stacked right-side controls (Table/Grid toggle group
   // and the Add Exercise button) so their right edges line up as an equal column
   // (Ohad: "table + grid together = same hoz space as add exercise button").
@@ -373,22 +379,26 @@ export default function ExercisesView({ exercises, setExercises, onOpenClassify 
           Labels give the block a spine instead of a flat wall of look-alike chips;
           "Secondary Muscles" no longer dangles onto its own line. */}
       <div style={{ marginBottom: 16, borderBottom: `1px solid ${C.cardBd}` }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 14px', padding: '0 1px 10px' }}>
-          <span style={rowLabel}>{tt("Show")}</span>
-          {flagChip('video', `▶ ${tt('Video')} (${counts.vid})`)}
-          {flagChip('notes', `☰ ${tt('Notes')} (${counts.note})`, C.or)}
-          {flagChip('missing', `∅ ${tt('Unclassified')} (${counts.miss})`, C.or)}
-          {anyFilter && <button className="filt" onClick={clearAll} title={tt('Clear all filters')} style={{ ...railBase, color: C.rd, marginInlineStart: 'auto', letterSpacing: '0.1em' }}>× {tr(readLang(), 'Clear all')}</button>}
+        <div className="ex-filtrow" style={{ padding: '0 1px 10px' }}>
+          <span className="ex-filtrow-l" style={rowLabel}>{tt("Show")}</span>
+          <div className="ex-filtrow-c">
+            {flagChip('video', `▶ ${tt('Video')} (${counts.vid})`)}
+            {flagChip('notes', `☰ ${tt('Notes')} (${counts.note})`, C.or)}
+            {flagChip('missing', `∅ ${tt('Unclassified')} (${counts.miss})`, C.or)}
+            {anyFilter && <button className="filt" onClick={clearAll} title={tt('Clear all filters')} style={{ ...railBase, color: C.rd, marginInlineStart: 'auto', letterSpacing: '0.1em' }}>× {tr(readLang(), 'Clear all')}</button>}
+          </div>
         </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 14px', padding: '0 1px 12px', borderTop: `1px solid ${C.cardBd}`, paddingTop: 10 }}>
-          <span style={rowLabel}>{tt('Filter by').replace(' ', '\u00a0')}</span>
-          <FilterPill label="Resistance" k="resistanceType" options={dynOpts(counts.rt, f.resistanceType)} />
-          <FilterPill label="Position" k="bodyPosition" options={dynOpts(counts.bp, f.bodyPosition)} />
-          <FilterPill label="Movement" k="movementType" options={dynOpts(counts.mt, f.movementType)} />
-          <FilterPill label="Joints" k="primaryJoints" options={dynOpts(counts.pj, f.primaryJoints)} />
-          <FilterPill label="Joint Movements" k="jointMovements" options={dynOpts(counts.jm, f.jointMovements)} />
-          <FilterPill label="Primary Muscles" k="primaryMuscles" options={dynOpts(counts.pm, f.primaryMuscles)} />
-          <FilterPill label="Secondary Muscles" k="secondaryMuscles" options={dynOpts(counts.sm, f.secondaryMuscles)} />
+        <div className="ex-filtrow" style={{ padding: '0 1px 12px', borderTop: `1px solid ${C.cardBd}`, paddingTop: 10 }}>
+          <span className="ex-filtrow-l" style={rowLabel}>{tt('Filter by').replace(' ', '\u00a0')}</span>
+          <div className="ex-filtrow-c">
+            <FilterPill label="Resistance" k="resistanceType" options={dynOpts(counts.rt, f.resistanceType)} />
+            <FilterPill label="Position" k="bodyPosition" options={dynOpts(counts.bp, f.bodyPosition)} />
+            <FilterPill label="Movement" k="movementType" options={dynOpts(counts.mt, f.movementType)} />
+            <FilterPill label="Joints" k="primaryJoints" options={dynOpts(counts.pj, f.primaryJoints)} />
+            <FilterPill label="Joint Movements" k="jointMovements" options={dynOpts(counts.jm, f.jointMovements)} />
+            <FilterPill label="Primary Muscles" k="primaryMuscles" options={dynOpts(counts.pm, f.primaryMuscles)} />
+            <FilterPill label="Secondary Muscles" k="secondaryMuscles" options={dynOpts(counts.sm, f.secondaryMuscles)} />
+          </div>
         </div>
       </div>
       {/* Click-away backdrop to dismiss an open filter menu. */}
