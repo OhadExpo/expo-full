@@ -104,10 +104,23 @@ function generateSlots(rules, duration, buffer, leadHours, windowStart, windowEn
         });
         if (isBooked) continue;
         slots.push(slot);
+        // (deduped after the loop - two overlapping rules for the same day,
+        //  Mon 09-12 and Mon 10-14, otherwise emit 10:00 twice and the second
+        //  one 23505s against the unique confirmed-slot index on confirm.)
       }
     }
   }
-  return slots.sort((a, b) => a - b);
+  // One instant, one button. Overlapping rules are legitimate - a coach can
+  // add Mon 09-12 and Mon 10-14 without meaning to offer 10:00 twice.
+  const seen = new Set();
+  const unique = [];
+  for (const sl of slots.sort((a, b) => a - b)) {
+    const k = sl.getTime();
+    if (seen.has(k)) continue;
+    seen.add(k);
+    unique.push(sl);
+  }
+  return unique;
 }
 
 export default function BookingPublic() {
@@ -128,6 +141,12 @@ export default function BookingPublic() {
     setSlug(m ? m[1].toLowerCase() : null);
   }, []);
 
+  // THE PAGE LOADS ONCE. THE WEEK RELOADS ON ITS OWN.
+  //
+  // This was one effect keyed on [slug, weekOffset], so every NEXT -> click
+  // re-fetched the coach's settings and his availability rules - neither of
+  // which depends on the week - and flipped `loading` back on, blanking the
+  // whole page including the header. Two effects: identity, then occupancy.
   useEffect(() => {
     if (!slug) return;
     let alive = true;
@@ -135,25 +154,45 @@ export default function BookingPublic() {
       setLoading(true);
       const { data: s, error: se } = await supabase.from('coach_booking_settings').select('*').eq('slug', slug).maybeSingle();
       if (!alive) return;
-      if (se) { setError(se.message); setLoading(false); return; }
+      // NO RAW DB TEXT ON A PUBLIC PAGE. The submit path already knew this; the
+      // load path printed se.message verbatim, which is schema detail on an
+      // anonymous page. The real error still reaches the console.
+      if (se) { console.error('[booking] settings load failed', se); setError(tr(readLang(), 'Could not load this booking page. Please try again.')); setLoading(false); return; }
       if (!s) { setError(tr(readLang(), 'That booking page doesn’t exist.')); setLoading(false); return; }
       setSettings(s);
       const { data: r } = await supabase.from('availability_rules').select('*').eq('coach_email', s.coach_email);
       if (!alive) return;
       setRules(r || []);
-      const wStart = startOfWeek(new Date(Date.now() + weekOffset * 7 * 86400000));
-      const wEnd = new Date(wStart.getTime() + 14 * 86400000);
-      const { data: occ } = await supabase.rpc('get_occupied_slots', {
-        p_coach_email: s.coach_email,
-        p_from: wStart.toISOString(),
-        p_to: wEnd.toISOString(),
-      });
-      if (!alive) return;
-      setOccupied(occ || []);
       setLoading(false);
     })();
     return () => { alive = false; };
-  }, [slug, weekOffset]);
+  }, [slug]);
+
+  // Occupancy is the only thing a week change actually needs. It fetches the
+  // 7 days it renders, not 14 - the other half was discarded by the memo below
+  // and re-fetched on the next click anyway. One buffer-day on the leading edge
+  // so an event running INTO the window still arrives (the RPC matches on
+  // overlap now, not on start instant).
+  useEffect(() => {
+    if (!settings) return;
+    let alive = true;
+    (async () => {
+      const wStart = startOfWeek(new Date(Date.now() + weekOffset * 7 * 86400000));
+      const { data: occ } = await supabase.rpc('get_occupied_slots', {
+        p_coach_email: settings.coach_email,
+        p_from: new Date(wStart.getTime() - 86400000).toISOString(),
+        p_to: new Date(wStart.getTime() + 7 * 86400000).toISOString(),
+      });
+      if (!alive) return;
+      setOccupied(occ || []);
+    })();
+    return () => { alive = false; };
+  }, [settings, weekOffset]);
+
+  // A slot picked in one week must not stay selected into another - the confirm
+  // panel used to sit under a different week's grid showing a date the visitor
+  // was no longer looking at.
+  useEffect(() => { setSelectedSlot(null); }, [weekOffset]);
 
   const slots = useMemo(() => {
     if (!settings) return [];

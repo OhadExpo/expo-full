@@ -81,7 +81,7 @@ export default function BookingView({ trainees }) {
       const [{ data: s }, { data: r }, { data: b }] = await Promise.all([
         supabase.from('coach_booking_settings').select('*').eq('coach_email', coachEmail).maybeSingle(),
         supabase.from('availability_rules').select('*').eq('coach_email', coachEmail).order('day_of_week').order('start_time'),
-        supabase.from('bookings').select('*').eq('coach_email', coachEmail).gte('start_at', new Date(Date.now() - 7 * 86400000).toISOString()).order('start_at'),
+        supabase.from('bookings').select('id,coach_email,trainee_id,contact_name,contact_email,contact_phone,start_at,duration_min,status,notes,source,created_at,canceled_at,gcal_event_id').eq('coach_email', coachEmail).gte('start_at', new Date(Date.now() - 7 * 86400000).toISOString()).order('start_at'),
       ]);
       setSettings(s);
       setDraftSettings(s || { coach_email: coachEmail, slug: 'ohad', display_name: 'Ohad — EXPO', duration_min: 60, buffer_min: 15, lead_time_hours: 4, zoom_url: '', cancellation_policy: 'Cancel at least 4 hours in advance to avoid a session being marked used.' });
@@ -194,6 +194,27 @@ export default function BookingView({ trainees }) {
     const { error } = await supabase.from('availability_rules').insert(row);
     if (error) { toast(`Add rule failed: ${error.message}`, 'error'); return; }
     reload();
+  };
+
+  // A TIME INPUT FIRES PER COMPONENT. Typing one hour sends an onChange for the
+  // hour and another for the minute, and each was a round trip to Postgres -
+  // four writes to set one rule. The row updates on screen immediately and the
+  // write is debounced; a pending write is flushed if the component unmounts.
+  const ruleWriteTimers = useRef({});
+  useEffect(() => {
+    const timers = ruleWriteTimers.current;
+    return () => { for (const t of Object.values(timers)) clearTimeout(t.id); };
+  }, []);
+  const updateRuleDebounced = (id, patch) => {
+    setRules((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+    const slot = ruleWriteTimers.current[id] || (ruleWriteTimers.current[id] = { id: null, patch: {} });
+    slot.patch = { ...slot.patch, ...patch };
+    clearTimeout(slot.id);
+    slot.id = setTimeout(() => {
+      const body = slot.patch; slot.patch = {};
+      supabase.from('availability_rules').update(body).eq('id', id)
+        .then(({ error }) => { if (error) toast(`Save failed: ${error.message}`, 'error'); });
+    }, 600);
   };
 
   const updateRule = async (id, patch) => {
@@ -310,10 +331,10 @@ export default function BookingView({ trainees }) {
               style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '4px 8px', color: C.tx, fontFamily: FN, fontSize: 11, outline: 'none' }}>
               {DAY_LABELS.map((d, i) => <option key={i} value={i}>{tt(d)}</option>)}
             </select>
-            <input type="time" value={r.start_time?.slice(0, 5) || '09:00'} onChange={e => updateRule(r.id, { start_time: e.target.value })}
+            <input type="time" value={r.start_time?.slice(0, 5) || '09:00'} onChange={e => updateRuleDebounced(r.id, { start_time: e.target.value })}
               style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '4px 8px', color: C.tx, fontFamily: FN, fontSize: 11, outline: 'none' }} />
             <span style={{ color: C.tm }}>→</span>
-            <input type="time" value={r.end_time?.slice(0, 5) || '17:00'} onChange={e => updateRule(r.id, { end_time: e.target.value })}
+            <input type="time" value={r.end_time?.slice(0, 5) || '17:00'} onChange={e => updateRuleDebounced(r.id, { end_time: e.target.value })}
               style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '4px 8px', color: C.tx, fontFamily: FN, fontSize: 11, outline: 'none' }} />
             <span style={{ flex: 1 }} />
             <button onClick={() => removeRule(r.id)}
