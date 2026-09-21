@@ -31,8 +31,7 @@ import {
 import NotesInline from './NotesInline';
 import { useT } from './i18n';
 
-const isHebrew = (s) => /[֐-׿]/.test(s || '');
-
+import { isHebrew } from './script';
 // Category colour per activity kind — replaces emojis (brand is cyan/mono,
 // no emojis). Contact = cyan, messaging = green, money/training = green,
 // notes = muted. Rendered as a small dot, matching the CadencePill.

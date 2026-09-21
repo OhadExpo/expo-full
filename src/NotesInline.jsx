@@ -37,8 +37,7 @@ const TONE_COLOR = {
   purple: 'var(--c-pu)',
 };
 
-const isHebrew = (s) => /[֐-׿]/.test(s || '');
-
+import { isHebrew } from './script';
 // Solution pill shape shared by all action buttons on the task card —
 // keeps every "→ NEW PROGRAM / WHATSAPP / REVIEW / INTAKE / RUN EVAL"
 // affordance the same height + padding so the footer row reads as one

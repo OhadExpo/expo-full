@@ -19,7 +19,7 @@ function supersetColor(s) {
 // Heebo's x-height is smaller than Nord's at the same fontSize, so Hebrew
 // names visually shrink in a row designed for English. Per the
 // feedback_new_ui_box_dimensions rule: Hebrew bumps +3px inside the box.
-const isHebrew = (s) => /[֐-׿]/.test(s || '');
+import { isHebrew } from './script';
 import { Btn, Input, Select, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b, usePersistentState, useDelayedUnmount, toast, asButton } from './ui';
 
 // Memoized id->exercise lookup. The library is ~1,500 exercises; a per-row

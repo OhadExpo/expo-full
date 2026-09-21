@@ -55,6 +55,7 @@ import { TRAINER_EMAILS, isPtEmail } from './authRoles';
 // shape InstallAppPrompt uses. Until 2026-09-07 this file had zero translation
 // calls: a Hebrew athlete's first screen was English.
 import { tr, readLang, LANG_KEY } from './i18n';
+import { langForName, dirForName } from './script';
 
 const AuthContext = createContext(null);
 
@@ -730,8 +731,14 @@ export function RolePickerScreen({ name, onPick, onSignOut }) {
           {/* 17.9 (Ohad): it read 'אוהד היי'. This screen renders LTR (it sits outside the
               language provider), so the row put היי on the LEFT and the name on the right,
               which a Hebrew reader reads name-first. The row follows the language now. */}
-          <div style={{ display: 'inline-flex', alignItems: 'baseline', justifyContent: 'center', gap: 9, color: C.tx, fontWeight: 600, lineHeight: 1, direction: readLang() === 'he' ? 'rtl' : 'ltr' }}>
-            <span style={{ fontFamily: FB, fontSize: 15, letterSpacing: '0.06em' }}>{tr(readLang(), 'HEY')}</span>
+          {/* 22.9 (Ohad): "if my name is herbrew it should say היי אוהד not hey אוהד".
+              The greeting follows the NAME, not the UI language. Reading the app's
+              language here meant an English UI said "HEY אוהד" — two languages in
+              four characters — to the one person whose name is the whole sentence.
+              langForName falls back to the UI language only when the name says
+              nothing (empty, a phone number), so nothing else changes. */}
+          <div style={{ display: 'inline-flex', alignItems: 'baseline', justifyContent: 'center', gap: 9, color: C.tx, fontWeight: 600, lineHeight: 1, direction: dirForName(name, readLang()) }}>
+            <span style={{ fontFamily: FB, fontSize: 15, letterSpacing: '0.06em' }}>{tr(langForName(name, readLang()), 'HEY')}</span>
             <span style={{ fontFamily: FH, fontSize: 15 }}>{name || tt('there')}</span>
           </div>
         </div>

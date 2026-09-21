@@ -35,8 +35,7 @@ const phaseMeta = (p) => PHASE_META[p] || PHASE_META.Mixed;
 const PAT_SHORT = { 'Horizontal Push': 'Horiz. Push', 'Horizontal Pull': 'Horiz. Pull', 'Vertical Push': 'Vert. Push', 'Vertical Pull': 'Vert. Pull' };
 const patLabel = (p) => PAT_SHORT[p] || p;
 // Hebrew detector (same regex as PlansView) — picks FH for Hebrew athlete names.
-const isHebrew = (s) => /[֐-׿]/.test(s || '');
-
+import { isHebrew } from './script';
 // ── GOAL PRESCRIPTIONS — grounded in scratchpad/books/SYNTHESIS-programming-
 // reference.md (17-source S&C corpus synthesis: RP, Prilepin/Sheiko, Zatsiorsky,
 // Issurin, Mujika/Bosquet, NSCA, Koevoets, Chad Wesley Smith). volBias is a

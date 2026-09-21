@@ -54,7 +54,7 @@ import {
   GoogleCalendarAuthError,
 } from './googleCalendarSync';
 
-const isHebrew = (s) => /[֐-׿]/.test(s || '');
+import { isHebrew } from './script';
 // The task detail's control rows were forced LTR so a Hebrew task BODY would not
 // flip them on the English screen. On the Hebrew screen they mirror with the page.
 const uiDir = () => (readLang() === 'he' ? 'rtl' : 'ltr');

@@ -9,7 +9,7 @@ import { C, FN, FB, FH, uid, PAYMENT_STATUSES, TRAINING_FORMATS, TRAINEE_STATUSE
 // helper applied to NotesWidget, PlansView, WorkoutReview,
 // WorkoutsView. Used here for the couple/solo header strip + the
 // per-member name column.
-const isHebrew = (s) => /[\u0590-\u05FF]/.test(s || '');
+import { isHebrew } from './script';
 // Canonical section-filter id list - ONE source of truth for both the URL-hash
 // parser (apply()) and the tab toggler (toggleSec). They used to diverge (a
 // 6-item parser vs a 10-item toggler), so deep-links / back-forward to vitals,

@@ -22,8 +22,7 @@ import { displayBodyOf, ownerFromBody, priorityFromBody, visibleTags, PRIORITY_T
 import { CommentsThread, EventTimeline } from './TasksV8View';
 import { tr, readLang, useT, useTB, dirOfText } from './i18n';
 
-const isHebrew = (s) => /[֐-׿]/.test(s || '');
-
+import { isHebrew } from './script';
 // No emojis in UI labels (Ohad) — icons intentionally blank; the text label
 // carries the meaning. Kept as a map so any render referencing it stays valid.
 const TARGET_ICON = {

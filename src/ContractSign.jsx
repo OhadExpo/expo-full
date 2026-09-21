@@ -15,8 +15,7 @@ import { C, FN, FB, FH, EXPO_LOGO_NAV } from './theme';
 import { supabase } from './supabase';
 import { toast } from './ui';
 
-const isHebrew = (s) => /[֐-׿]/.test(s || '');
-
+import { isHebrew } from './script';
 export default function ContractSign() {
   const token = window.location.pathname.replace(/^\/sign\//, '').replace(/\/$/, '');
   const [state, setState] = useState({ loading: true, error: null, contract: null });

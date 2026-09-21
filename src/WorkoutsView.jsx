@@ -5,7 +5,7 @@ import { C, FN, FB, FH, uid } from './theme';
 // Hebrew renders ~3px smaller than Nord at the same fontSize (smaller
 // x-height, missing ascenders/descenders). Same pattern that's already
 // applied to NotesWidget, PlansView, WorkoutReview.
-const isHebrew = (s) => /[֐-׿]/.test(s || '');
+import { isHebrew } from './script';
 import { Btn, TextArea, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b, CollapsibleSection } from './ui';
 import { supabase } from './supabase';
 import { traineeIdsFor } from './traineeUtils';

@@ -22,7 +22,7 @@ import { useT, useTB, tr, readLang, dirOfText } from './i18n';
 const answeredWord = (n) => (readLang() === 'he' ? (n === 1 ? 'שנענתה' : 'שנענו') : tr('en', 'Answered'));
 
 const SEEN_KEY = 'expo-msgs-seen-at';
-const isHebrew = (s) => /[֐-׿]/.test(s || '');
+import { isHebrew } from './script';
 const initialOf = (name) => {
   const s = String(name || '').trim();
   if (!s) return '·';

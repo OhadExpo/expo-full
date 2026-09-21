@@ -10,8 +10,7 @@ import { supabase } from './supabase';
 import { useEscClose } from './ui';
 import { useT } from './i18n';
 
-const isHebrew = (s) => /[֐-׿]/.test(s || '');
-
+import { isHebrew } from './script';
 export default function CoachContractComposer({ trainee, coachEmail, onClose, onSent }) {
   const tt = useT();
   const [monthly, setMonthly] = useState(trainee?.monthly || 800);

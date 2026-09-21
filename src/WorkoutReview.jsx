@@ -14,7 +14,7 @@ import { C, FN, FB, FH, ytId, EXPO_ICON } from './theme';
 // Hebrew at the same fontSize as Nord visually shrinks (smaller x-height,
 // missing ascenders/descenders). Per feedback_new_ui_box_dimensions:
 // "Hebrew bumps +3px inside the box, never resizes the box itself."
-const isHebrew = (s) => /[֐-׿]/.test(s || '');
+import { isHebrew } from './script';
 import { isRefined5b, useEscClose, SectionLabel, CollapsibleSection, useDelayedUnmountValue } from './ui';
 import { EXPOMark } from './expoMark';
 import { EX } from './exerciseData';
