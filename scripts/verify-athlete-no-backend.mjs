@@ -83,7 +83,22 @@ try {
   await pg.goto(BASE + '/athlete', { waitUntil: 'domcontentloaded', timeout: 60000 });
   await wait(13000);
   const on = await look();
-  if (on.len < 800 || on.empty) { console.log(`FAILED: the portal did not load online (${on.len} chars) - nothing to compare against`); process.exit(1); }
+  if (on.len < 800 || on.empty) {
+    // SAY WHICH KIND OF FAILURE THIS IS.
+    //
+    // This is the SETUP step, not the security check — the portal never
+    // rendered, so there is nothing to compare the backend-cut state against.
+    // Seen once on 21.9 inside `security-audit --gates` and NOT on a direct
+    // run or the re-run, which makes it an ordering flake: signIn() returns
+    // early when a session already exists, so a preceding gate's seat can
+    // still be in the browser when this one starts. Reported as a security
+    // failure it sends the next person hunting a hole that is not there.
+    const who = await pg.evaluate(() => (document.body.innerText || '').replace(/\s+/g, ' ').slice(0, 90));
+    console.log(`FAILED (SETUP, not a security finding): the portal did not load online (${on.len} chars) - nothing to compare against.`);
+    console.log(`  on screen: "${who}"`);
+    console.log('  If this appears only inside security-audit --gates, it is the shared browser still holding a previous gate's seat. Re-run this gate on its own to confirm.');
+    process.exit(1);
+  }
   console.log(`online     : ${on.len} chars of session`);
 
   phase = 'backend-cut';
