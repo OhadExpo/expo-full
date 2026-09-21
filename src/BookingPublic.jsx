@@ -59,6 +59,47 @@ function coachTzCivil(date) {
   return { y: +p.year, mo: +p.month - 1, da: +p.day };
 }
 
+// AN ARROW POINTS THE WAY THE READER IS GOING.
+//
+// Both week arrows were hardcoded, so in Hebrew "next" and "previous" pointed
+// the SAME way (left) and the next-opening button pointed right - backwards for
+// a forward action in RTL. Forward is left in RTL and right in LTR; back is the
+// mirror. (memory: rtl-forward-cta-arrows - the arrow sits at the logical END.)
+const fwdArrow = () => (readLang() === 'he' ? '←' : '→');
+const backArrow = () => (readLang() === 'he' ? '→' : '←');
+
+// SOMETHING THE CLIENT CAN KEEP.
+//
+// A booking sent no email, no SMS and no invite: close the tab and there was no
+// record of it on the client's side at all. Until a real notification exists,
+// the very least the page can do is hand them a calendar entry, and that needs
+// no backend - the file is built here and offered as a download.
+function icsFor(when, minutes, title, location, description) {
+  const pad2 = (n) => String(n).padStart(2, '0');
+  const z = (d) => `${d.getUTCFullYear()}${pad2(d.getUTCMonth() + 1)}${pad2(d.getUTCDate())}T${pad2(d.getUTCHours())}${pad2(d.getUTCMinutes())}00Z`;
+  const end = new Date(when.getTime() + (minutes || 60) * 60000);
+  // RFC 5545 wants CRLF, and commas / semicolons inside a value are escaped.
+  // Escapes per RFC 5545: a backslash, comma or semicolon inside a value is
+  // prefixed, and a newline becomes the two characters backslash-n. Built with
+  // fromCharCode so the escaping survives being written by a script.
+  const BS = String.fromCharCode(92);
+  const esc = (t) => String(t || '')
+    .replace(new RegExp('([,;' + BS + BS + '])', 'g'), BS + '$1')
+    .replace(new RegExp(String.fromCharCode(13) + '?' + String.fromCharCode(10), 'g'), BS + 'n');
+  const lines = [
+    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//EXPO//booking//EN', 'BEGIN:VEVENT',
+    `UID:${z(when)}-${Math.random().toString(36).slice(2, 10)}@expo-app.co.il`,
+    `DTSTAMP:${z(new Date())}`, `DTSTART:${z(when)}`, `DTEND:${z(end)}`,
+    `SUMMARY:${esc(title)}`,
+    location ? `LOCATION:${esc(location)}` : null,
+    description ? `DESCRIPTION:${esc(description)}` : null,
+    'END:VEVENT', 'END:VCALENDAR',
+  ].filter(Boolean);
+  // CRLF between lines, per the spec.
+  const CRLF = String.fromCharCode(13) + String.fromCharCode(10);
+  return 'data:text/calendar;charset=utf-8,' + encodeURIComponent(lines.join(CRLF));
+}
+
 // "28/09/2026 AT 10:15" is a receipt, not a sentence. And en-GB was hardcoded
 // under dir=rtl, so a Hebrew client got an English date on the one line that
 // has to be unambiguous.
@@ -342,7 +383,7 @@ export default function BookingPublic() {
             {prettyWhen(confirmation.when)}
           </div>
           <div style={{ fontSize: 13, color: C.tm, marginBottom: 16 }}>
-            with {settings.display_name || 'your coach'}
+            {tr(readLang(), 'with')} {settings.display_name || tr(readLang(), 'your coach')}
           </div>
           {safeUrl(confirmation.zoom) && (
             <a href={safeUrl(confirmation.zoom)} target="_blank" rel="noopener noreferrer"
@@ -350,8 +391,27 @@ export default function BookingPublic() {
               {tr(readLang(), 'JOIN ZOOM →')}
             </a>
           )}
+          {/* WHAT HAPPENS NEXT. The screen used to state the time and stop, so
+              a client closed the tab holding nothing - no email, no invite, no
+              record. Until a notification exists, they at least leave with a
+              calendar entry and with the next step spelled out. */}
+          <div style={{ marginTop: 22, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+            <a href={icsFor(confirmation.when, settings.duration_min,
+                  `${tr(readLang(), 'Session')} · ${settings.display_name || 'EXPO'}`,
+                  safeUrl(confirmation.zoom) || '',
+                  settings.bio || '')}
+              download="expo-session.ics"
+              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minHeight: 'var(--btn-h)', padding: '0 16px',
+                background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, textDecoration: 'none',
+                fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+              {tr(readLang(), 'Add to calendar')}
+            </a>
+            <div style={{ fontSize: 12.5, color: C.tm, lineHeight: 1.6, maxWidth: 360 }}>
+              {tr(readLang(), 'Your time is held. We will be in touch to confirm the details.')}
+            </div>
+          </div>
           {settings.cancellation_policy && (
-            <div style={{ marginTop: 24, fontSize: 11, color: C.td, lineHeight: 1.5 }}>{settings.cancellation_policy}</div>
+            <div style={{ marginTop: 20, fontSize: 11, color: C.td, lineHeight: 1.5 }}>{settings.cancellation_policy}</div>
           )}
         </div>
       </Wrapper>
@@ -364,7 +424,7 @@ export default function BookingPublic() {
         <h1 style={{ margin: '0 0 6px', fontFamily: FN, fontSize: 18, color: C.tx, letterSpacing: '0.02em' }}>
           {settings.display_name || 'Book a session'}
         </h1>
-        {settings.bio && <p style={{ margin: '0 0 12px', color: C.tm, fontSize: 13, lineHeight: 1.5 }}>{settings.bio}</p>}
+        {settings.bio && <p dir="auto" style={{ margin: '0 0 12px', color: C.tm, fontSize: 13, lineHeight: 1.5 }}>{settings.bio}</p>}
         {/* WHAT THE SESSION IS, before they are asked to pick a time. The page
             used to open straight onto a week grid: a stranger was choosing an
             hour without being told how long it runs or where it happens. */}
@@ -377,10 +437,10 @@ export default function BookingPublic() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.12em' }}>
           <button onClick={() => setWeekOffset(o => Math.max(0, o - 1))} disabled={weekOffset === 0}
-            style={{ padding: '0 12px', minHeight: 'var(--btn-h)', background: 'transparent', border: weekOffset === 0 ? '1px solid transparent' : `1px solid ${C.ac}`, color: weekOffset === 0 ? C.td : C.ac, opacity: weekOffset === 0 ? 0.45 : 1, cursor: weekOffset === 0 ? 'default' : 'pointer' }}>← {tr(readLang(), 'PREV')}</button>
+            style={{ padding: '0 12px', minHeight: 'var(--btn-h)', background: 'transparent', border: weekOffset === 0 ? '1px solid transparent' : `1px solid ${C.ac}`, color: weekOffset === 0 ? C.td : C.ac, opacity: weekOffset === 0 ? 0.45 : 1, cursor: weekOffset === 0 ? 'default' : 'pointer' }}>{backArrow()} {tr(readLang(), 'PREV')}</button>
           <span style={{ flex: 1, textAlign: 'center' }}>{weekLabel}</span>
           <button onClick={() => setWeekOffset(o => o + 1)}
-            style={{ padding: '0 12px', minHeight: 'var(--btn-h)', background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, cursor: 'pointer' }}>{tr(readLang(), 'NEXT →')}</button>
+            style={{ padding: '0 12px', minHeight: 'var(--btn-h)', background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, cursor: 'pointer' }}>{tr(readLang(), 'NEXT')} {fwdArrow()}</button>
         </div>
 
         {/* SAY WHICH CLOCK. Every time on this page is rendered with the
@@ -408,7 +468,7 @@ export default function BookingPublic() {
                 style={{ background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, borderRadius: 0,
                   padding: '0 16px', minHeight: 'var(--btn-h)', fontFamily: FN, fontSize: 11.5, fontWeight: 700,
                   letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer' }}>
-                {tr(readLang(), 'Next opening')} · {nextOpen.at.toLocaleDateString(readLang() === 'he' ? 'he-IL' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'short' })} {pad(nextOpen.at.getHours())}:{pad(nextOpen.at.getMinutes())} →
+                {tr(readLang(), 'Next opening')} · {nextOpen.at.toLocaleDateString(readLang() === 'he' ? 'he-IL' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'short' })} {pad(nextOpen.at.getHours())}:{pad(nextOpen.at.getMinutes())} {fwdArrow()}
               </button>
             )}
             {!nextOpen && searchedAhead && (
