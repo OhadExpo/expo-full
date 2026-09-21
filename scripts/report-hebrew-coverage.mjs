@@ -107,6 +107,7 @@ const b = await P.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport
 const pg = await b.newPage();
 const misses = new Map();     // string -> Set(routes)
 let He = 0, En = 0, Data = 0, dead = 0;
+const seen = new Map();       // page signature -> the route that rendered it first
 try {
   // FRESH=1 drops whatever session the persistent debug profile is already
   // holding. Without it, asking for the athlete seat lands on the owner's
@@ -166,9 +167,25 @@ try {
         if (cs.visibility === 'hidden' || cs.display === 'none' || Number(cs.opacity) < 0.05) continue;
         out.push(t);
       }
-      return { out, shell: (document.body.innerText || '').length };
+      const txt = (document.body.innerText || '');
+      return { out, shell: txt.length, sig: txt.replace(/\s+/g, ' ').trim().slice(0, 120) };
     });
-    if (r.shell < 300) { console.log(`${route.padEnd(26)} shell did not render - NOT MEASURED`); dead++; continue; }
+    // NOT A CHARACTER FLOOR. A 300-char floor called /coach/challenges and
+    // /coach/bugs dead when they were merely EMPTY, and it calls the login
+    // screen dead too - a short page is still a page. What actually means
+    // "nothing rendered" is the boot splash, or a body with almost no text
+    // nodes at all.
+    if (r.out.length < 4 || /^(LOADING|טוען)/i.test(r.sig)) {
+      console.log(`${route.padEnd(26)} still on the splash / ${r.out.length} text node(s) - NOT MEASURED`); dead++; continue;
+    }
+    // TWO ROUTES THAT RENDER THE SAME PAGE ARE ONE MEASUREMENT.
+    //
+    // A run of /login /intake /try /demo/athlete once reported four results and
+    // three of them were the SAME athlete portal: a leftover session meant every
+    // path redirected there, and the per-route percentages read like coverage.
+    // Identical page text now says so instead of being counted twice.
+    if (seen.has(r.sig)) { console.log(`${route.padEnd(26)} SAME PAGE AS ${seen.get(r.sig)} - NOT COUNTED (a redirect, not a route)`); dead++; continue; }
+    seen.set(r.sig, route);
     let he = 0, en = 0, data = 0;
     for (const t of r.out) {
       if (/[֐-׿]/.test(t)) { he++; continue; }
