@@ -13,13 +13,35 @@ const RUN = WIDTHS.length ? WIDTHS : [1500, 1280, 900, 700, 620, 470, 390, 360];
 const b = await P.connect({ browserURL: (process.env.CDP || 'http://127.0.0.1:9222'), defaultViewport: null, protocolTimeout: 300000 });
 const pg = await b.newPage();
 await A.signIn(pg, 'http://127.0.0.1:5199');
+// PICK THE COACH SEAT, OR THERE IS NOTHING TO MEASURE.
+//
+// signIn() clears storage, which throws away the portal choice; this account is
+// dual-role, so the app stops at "CHOOSE YOUR PORTAL" and every width reported
+// "no cards". That read like a pass-shaped failure for days. Pinning the seat
+// before the first document is what the pair builder needed too.
+await pg.evaluateOnNewDocument(() => { try { sessionStorage.setItem('expo-portal-choice', 'trainer'); } catch (e) {} });
+await pg.evaluateOnNewDocument(() => { try { localStorage.setItem('expo-install-snooze-until', String(Date.now() + 86400000)); } catch (e) {} });
+// THE ZONE HAS ITS OWN LANGUAGE KEY. Setting expo-lang alone leaves the club
+// zone in Hebrew, so a click for /^roster$/ matched nothing, the tab never
+// changed, and every width reported "no cards" from the OVERVIEW tab. Both
+// keys, and the tab is matched in either language below.
+await pg.evaluateOnNewDocument(() => {
+  try {
+    localStorage.setItem('expo-lang', 'en');
+    localStorage.setItem('expo-collapse:bhbc-lang', JSON.stringify('en'));
+  } catch (e) {}
+});
 let bad = 0;
 for (const W of RUN) {
   await setWidth(pg, W, 1100);
   await pg.goto('http://127.0.0.1:5199/coach/bhbc', { waitUntil: 'domcontentloaded' });
   await new Promise((r) => setTimeout(r, 12000));
   await pg.evaluate(() => { const x = [...document.querySelectorAll('button')].find((e) => /maybe later|dismiss/i.test(e.textContent || '')); if (x) x.click(); });
-  await pg.evaluate(() => { const t = [...document.querySelectorAll('button')].find((e) => /^roster$/i.test((e.textContent || '').trim())); if (t) t.click(); });
+  const onRoster = await pg.evaluate(() => {
+    const t = [...document.querySelectorAll('button,[role="tab"]')].find((e) => /^(roster|סגל)$/i.test((e.textContent || '').trim()));
+    if (!t) return false; t.click(); return true;
+  });
+  if (!onRoster) { console.log(`${W}: COULD NOT OPEN THE ROSTER TAB — not measured`); continue; }
   await new Promise((r) => setTimeout(r, 2500));
   const r = await pg.evaluate(() => {
     // A roster card is a .bhbc-card whose footer carries the hairline.
@@ -50,6 +72,13 @@ for (const W of RUN) {
     return { cards: out };
   });
   if (r.err) { console.log(`${W}: ${r.err}`); bad++; continue; }
+  // HEIGHTS ARE COMPARED WITHIN A ROW, NOT ACROSS THE WHOLE GRID.
+  //
+  // Below 620 the card height is `auto` BY DESIGN (--rc-h:auto in themes.css:
+  // "the grid is one column wide - there is nothing to line up with and the
+  // reserve is just dead air"). Two rows of different heights is then correct,
+  // and comparing every card to every other reported 620px as broken while its
+  // hairlines were perfectly aligned. "One box" is a statement about a ROW.
   const heights = [...new Set(r.cards.map((c) => c.h))];
   // Cards on the same visual ROW share a top; their hairlines must share a y.
   const byRow = new Map();
@@ -60,6 +89,7 @@ for (const W of RUN) {
     const spread = hs.length ? +(Math.max(...hs) - Math.min(...hs)).toFixed(1) : 0;
     if (spread > 0.6) ragged.push({ rowTop: k, spread, cards: row.map((c) => c.name) });
   }
+  const rowsWithMixedHeights = [...byRow.values()].filter((row) => row.length > 1 && new Set(row.map((c) => c.h)).size > 1);
   const spill = r.cards.filter((c) => c.spillBot > 0.6 || c.spillRight > 0.6);
   // EQUAL HEIGHTS ONLY WHERE THERE IS SOMETHING TO BE EQUAL TO.
   //
@@ -75,9 +105,9 @@ for (const W of RUN) {
   // outside the card, and cards that DO sit side by side share their hairline.
   const oneColumn = new Set(r.cards.map((c) => Math.round(c.top))).size === r.cards.length;
   const heightsMatter = !oneColumn;
-  const ok = (!heightsMatter || heights.length === 1) && !ragged.length && !spill.length;
+  const ok = (!heightsMatter || rowsWithMixedHeights.length === 0) && !ragged.length && !spill.length;
   if (!ok) bad++;
-  console.log(`${ok ? 'ok   ' : 'FAIL '} ${W}px  ${r.cards.length} cards  ${oneColumn ? 'one column' : 'heights=[' + heights.join(',') + ']'}  raggedRows=${ragged.length}  spilling=${spill.length}`);
+  console.log(`${ok ? 'ok   ' : 'FAIL '} ${W}px  ${r.cards.length} cards  ${oneColumn ? 'one column' : 'heights=[' + heights.join(',') + ']'}  mixedRows=${rowsWithMixedHeights.length}  raggedRows=${ragged.length}  spilling=${spill.length}`);
   for (const g of ragged) console.log(`        hairline spread ${g.spread}px across: ${g.cards.join(' | ')}`);
   for (const c of spill) console.log(`        ink outside the card: ${c.name} (bottom +${c.spillBot}, right +${c.spillRight})`);
 }

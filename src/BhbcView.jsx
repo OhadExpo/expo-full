@@ -3972,7 +3972,16 @@ function RosterGrid({ rows, medical = {}, league = {}, onOpen }) {
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 'auto', paddingTop: 10, borderTop: `1px solid ${C.cardBd}`, flexShrink: 0 }}>
                 <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{heightM(t.heightCm)}</span>
                 <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', color: C.tm, lineHeight: 1 }}>{flag(t.nationality)}</span>
-                {(() => { const lp = leaguePlayerFor(league, t.name); return lp ? <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: ORANGE_DEEP, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }} title={tr('League points per game')}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{lp.ppg} PPG</span></span> : null; })()}
+                {/* THE PPG MUST NOT WRAP.
+                    Measured at 900: every roster card footer is 30px except DJ
+                    Burns and Noah Carter at 38, and the whole 8px is this span
+                    breaking "9.7 PPG" over two lines when the footer runs out
+                    of room. The card height is fixed and the footer is pinned
+                    to the bottom with margin-top:auto, so a taller footer
+                    pushes its own hairline UP — which is the "borders don't
+                    align from card to card" he reported on 02.09. Two words on
+                    one line; the sessions text beside it is the flexible one. */}
+                {(() => { const lp = leaguePlayerFor(league, t.name); return lp ? <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: ORANGE_DEEP, lineHeight: 1, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', flexShrink: 0 }} title={tr('League points per game')}><span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{lp.ppg} PPG</span></span> : null; })()}
                 <span style={{ marginInlineStart: 'auto' }}>{acwr.ratio != null
                   ? <BandPill band={acwr.band} value={acwr.ratio.toFixed(2)} />
                   /* NO ACWR IS NOT THE SAME AS NO TRAINING. Without an RPE there
