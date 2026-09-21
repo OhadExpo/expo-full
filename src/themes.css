@@ -1267,6 +1267,12 @@ body[data-lang="he"] > :not(#root) { direction: rtl; }
    not mis-tap targets in the same way), and anything inside a scroller cell. */
 @media (max-width: 620px) {
   button, [role="button"] { min-height: 40px; }
+  /* A TARGET NEEDS BOTH DIMENSIONS. After the height floor landed, the only
+     ones left were the icon buttons — the ✕ close, the ‹ › month pagers, the ✎
+     edit — 40px tall and 21-28px wide, which is still a miss. min-width only
+     ever grows a narrow control, so text buttons are untouched and these
+     become square. */
+  button, [role="button"] { min-width: 40px; }
   /* min-height does NOT apply to display:table-row, so the 32 clickable
      athlete rows on the dashboard stayed at 36px while everything else moved.
      In table layout `height` on a cell behaves as a minimum, which is the
