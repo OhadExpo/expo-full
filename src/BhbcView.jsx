@@ -2491,7 +2491,16 @@ function FixturesAheadPanel({ fixtures, today }) {
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
                   <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx }}>{g.opponent ? `${tr('vs')} ${g.opponent}` : tr('Opponent TBD')}</span>
                 </div>
-                <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 3 }}>{[tr(g.comp), `${dow(g.date)} ${monDay(g.date)}`, g.venue && tr(g.venue)].filter(Boolean).join(' · ')}</div>
+                {/* Competition and date on one line, the VENUE on its own.
+                    Joined with " · " they were one text run, and once the badge
+                    column took its width the run wrapped mid-separator -
+                    "CHAMPIONS LEAGUE · TUE 6 OCT ·" with the dot dangling and
+                    "BADALONA, SPAIN" stranded under it. Six of those appeared
+                    in the sweep the moment the column was fixed. A place is not
+                    a continuation of a date; give it a line and no separator
+                    can be left hanging. */}
+                <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 3 }}>{[tr(g.comp), `${dow(g.date)} ${monDay(g.date)}`].filter(Boolean).join(' · ')}</div>
+                {g.venue && <div style={{ fontFamily: FB, fontSize: 11, color: C.td }}>{tr(g.venue)}</div>}
               </div>
               {/* THE BADGES ARE A COLUMN, NOT A TAIL ON THE NAME.
                   The row was already a 46px / 1fr / auto grid but the third
