@@ -4663,6 +4663,24 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
         @media (max-width: 620px){
           .prog-striphdr{ flex-wrap: wrap !important; row-gap: 6px !important; align-items: center !important; }
           .prog-striphdr > *{ min-width: 0; }
+          /* EVERY HEADER THE SAME SHAPE, NOT SOME.
+             Measured at 390: these strips came out 56.8px or 82.8px depending
+             on the athlete's name — short names kept the meta on line one, long
+             ones pushed it to a second. A card strip that changes height from
+             card to card is the thing his uniform-strip rule exists to stop.
+             It cannot be solved by fitting everything on one line: the widest
+             name is 226px and the meta is ~200 (the ANALYSIS button plus a
+             status pill whose min-width is fixed ON PURPOSE so "18D AGO" and
+             "TRAINED TODAY" match), against ~340px of row. So the name takes
+             the whole first line and the meta always takes the second. Every
+             strip 82.8px, every ANALYSIS button on the same y. */
+          .prog-striphdr > :first-child{ flex: 1 1 100%; }
+          /* ...and the name line gets an explicit line-height, or the two
+             scripts disagree: with the metrics left to the font, a Hebrew name
+             produced a 78px strip and a Latin one 82.8. Same rule as his
+             "Hebrew +3px INSIDE the box" — the box is fixed, the glyphs sit in
+             it. */
+          .prog-striphdr > :first-child, .prog-striphdr > :first-child bdi{ line-height: 1.5; }
         }
         /* Ohad, 2026-08-30: two or more buttons in the same row are the same
            vertical height, everywhere. This row pairs the PORTAL toggle -
