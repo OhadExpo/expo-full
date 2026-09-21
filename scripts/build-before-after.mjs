@@ -12,12 +12,15 @@
 import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import { PNG } from 'pngjs';
 import P from 'puppeteer-core';
 import * as A from './lib/authed-page.mjs';
 import { setWidth } from './lib/viewport.mjs';
 
 const APP = 'http://127.0.0.1:5199';
-const IL = 'http://127.0.0.1:5174';
+// expo-il's BUILT preview. 5174 (its dev server) is not running, and a pair
+// aimed at a refused port produced two identical shots of nothing.
+const IL = 'http://127.0.0.1:5188';
 // The BUILT app. A pair that has to CLICK through the UI cannot use the dev
 // server: writing the "before" edit triggers an HMR reload, and a reload
 // mid-click throws "Execution context was destroyed". Building each state is
@@ -33,8 +36,13 @@ const PAIRS = [
     id: 'marketing-slash',
     title: 'Marketing · a Hebrew list ran outside its card',
     file: 'expo-il/src/App.jsx',
-    undo: [['<span><SlashBreak text={h} /></span>', '<span>{h}</span>']],
-    url: IL + '/#/programs/foundation-12', w: 900, h: 900, lang: 'he',
+    // BOTH call sites. The undo used to touch only the first one, which is on a
+    // different surface from the page being photographed (the programme detail
+    // card is the second), so the "before" came back identical to the "after"
+    // and the pair proved nothing for weeks.
+    undo: [['<span><SlashBreak text={h} /></span>', '<span>{h}</span>'],
+           ['<span style={{ minWidth: 0 }}><SlashBreak text={h} /></span>', '<span style={{ minWidth: 0 }}>{h}</span>']],
+    url: IL + '/#/programs/foundation-12', w: 900, h: 900, lang: 'he', il: true, built: true,
     crop: [0, 355, 900, 130],
   },
   {
@@ -42,7 +50,7 @@ const PAIRS = [
     title: 'Exercises · the header read "SECONDAR MEDIA"',
     file: 'src/ExercisesView.jsx',
     undo: [['@media (min-width: 701px) and (max-width: 1200px) {', '@media (min-width: 99990px) and (max-width: 99999px) {']],
-    url: APP + '/coach/exercises', w: 900, h: 620, auth: true,
+    url: APP + '/coach/exercises', w: 900, h: 620, auth: true, built: true,
     // The header row is the whole point of this one.
     crop: [0, 395, 900, 120],
   },
@@ -57,7 +65,7 @@ const PAIRS = [
     also: ['src/themes.css'],
     undo: [["marginTop: 4, overflowWrap: 'anywhere' }}>", 'marginTop: 4 }}>']],
     alsoUndo: [['.iv-sub-main { flex: 1 1 100% !important; }', '']],
-    url: APP + '/coach/intake', w: 390, h: 800, auth: true,
+    url: APP + '/coach/intake', w: 390, h: 800, auth: true, built: true,
     // The submission row, not the banner above it.
     crop: [0, 360, 390, 190],
   },
@@ -65,9 +73,9 @@ const PAIRS = [
     id: 'bhbc-history',
     title: 'BHBC player popup · Full history had no card',
     file: 'src/BhbcView.jsx',
-    undo: [['<span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: \'0.08em\', textTransform: \'uppercase\', color: C.tx }}>Full history</span>',
-            '<span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: \'0.12em\', textTransform: \'uppercase\', color: C.tm }}>Full history</span>']],
-    url: APP + '/coach/bhbc', w: 1500, h: 1100, auth: true, bhbcPlayer: true,
+    undo: [["<span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.tx }}>{tr('Full history')}</span>",
+            "<span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.tm }}>{tr('Full history')}</span>"]],
+    url: APP + '/coach/bhbc', w: 1500, h: 1100, auth: true, bhbcPlayer: true, built: true,
     crop: [410, 520, 700, 420],
   },
   {
@@ -84,7 +92,7 @@ const PAIRS = [
               : (msg || 'Could not load your programs.'));`,
        `            setPlansLoadError(msg || 'Could not load your programs.');`],
     ],
-    url: APP + '/athlete', w: 390, h: 844, athlete: true, cutBackend: true,
+    url: APP + '/athlete', w: 390, h: 844, athlete: true, cutBackend: true, built: true,
     crop: [0, 0, 390, 520],
   },
   {
@@ -113,7 +121,7 @@ const PAIRS = [
 );`],
       [`  '--c-cardBd': 'rgba(30,61,116,0.26)',`, `  '--c-cardBd': 'color-mix(in srgb, #1E3D74 20%, var(--c-bd))',`],
     ],
-    url: APP + '/coach/bhbc', w: 1500, h: 1000, auth: true, bhbcProgram: true,
+    url: APP + '/coach/bhbc', w: 1500, h: 1000, auth: true, bhbcProgram: true, built: true,
     crop: [400, 55, 700, 620],
   },
   {
@@ -169,7 +177,7 @@ const PAIRS = [
     title: 'Tasks, in Hebrew · the auto-task bodies stayed English',
     file: 'src/TasksV8View.jsx',
     undo: [["return readLang() === 'he' ? localiseAutoBody(core) : core;", 'return core;']],
-    url: APP + '/coach/tasks', w: 1400, h: 900, auth: true, appLang: 'he',
+    url: APP + '/coach/tasks', w: 1400, h: 900, auth: true, appLang: 'he', built: true,
     crop: [0, 60, 1400, 560],
   },
   {
@@ -177,7 +185,7 @@ const PAIRS = [
     title: 'Dashboard, no signal · the KPIs read zero, not "unknown"',
     file: 'src/DashboardView.jsx',
     undo: [['const unknown = (rows) => (!online || dataIncomplete) && (!Array.isArray(rows) || rows.length === 0);', 'const unknown = () => false;']],
-    url: APP + '/coach', w: 1400, h: 900, auth: true, cutBackend: true,
+    url: APP + '/coach', w: 1400, h: 900, auth: true, cutBackend: true, built: true,
     crop: [0, 60, 1400, 360],
   },
   {
@@ -185,7 +193,7 @@ const PAIRS = [
     title: 'Athletes, no signal · the roster was empty',
     file: 'src/useSupaStore.js',
     undo: [['rosterOk = !!em && TRAINER_EMAILS.includes(em);', 'rosterOk = false;']],
-    url: APP + '/coach/athletes', w: 1400, h: 900, auth: true, cutBackend: true,
+    url: APP + '/coach/athletes', w: 1400, h: 900, auth: true, cutBackend: true, built: true,
     crop: [0, 60, 1400, 520],
   },
   {
@@ -193,7 +201,7 @@ const PAIRS = [
     title: 'Athlete, in Hebrew · the bodyweight unit split from its number',
     file: 'src/ClientPortal.jsx',
     undo: [[`<span dir="ltr" style={{unicodeBidi:'isolate'}}>{lb}KG</span>`, '{lb}KG']],
-    url: APP + '/athlete', w: 390, h: 844, athlete: true, appLang: 'he',
+    url: APP + '/athlete', w: 390, h: 844, athlete: true, appLang: 'he', built: true,
     crop: [0, 470, 390, 160],
   },
   {
@@ -206,7 +214,7 @@ const PAIRS = [
       ['      {dataIncomplete && <div style={{background:`color-mix(in srgb, ${C.ac} 14%, ${C.bg})`,',
        '      {false && <div style={{background:`color-mix(in srgb, ${C.ac} 14%, ${C.bg})`,'],
     ],
-    url: APP + '/coach', w: 1500, h: 1000, auth: true, cutBackend: true,
+    url: APP + '/coach', w: 1500, h: 1000, auth: true, cutBackend: true, built: true,
     crop: [0, 0, 1500, 420],
   },
   // ── 21.09 ────────────────────────────────────────────────────────────
@@ -237,6 +245,51 @@ const PAIRS = [
     undo: [["justifyContent: he ? 'flex-end' : 'flex-start' }}>{s.value}", "textAlign: he ? 'right' : 'left' }}>{s.value}"]],
     url: PREVIEW + '/coach/dashboard', w: 484, h: 700, auth: true, built: true, appLang: 'he',
     crop: [0, 80, 484, 320],
+  },
+
+  {
+    id: 'filter-spine',
+    title: 'Exercises · the filter rail lost its spine on the line that needed it',
+    file: 'src/themes.css',
+    undo: [
+      ['.ex-filtrow { display: flex; align-items: flex-start; gap: 14px; }',
+       '.ex-filtrow { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; }'],
+      ['.ex-filtrow-c { flex: 1 1 0; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; }',
+       '.ex-filtrow-c { display: contents; }'],
+      ['  .ex-filtrow { display: block; }', '  .ex-filtrow { display: flex; }'],
+    ],
+    url: APP + '/coach/exercises', w: 390, h: 1000, auth: true, built: true, mobile: true,
+    // CSS pixels - the cropper derives the 2x from the capture. The rail sits
+    // between the unclassified banner and the table header.
+    crop: [0, 400, 390, 260],
+  },
+  {
+    id: 'review-columns',
+    title: 'Review · three identical cards put the same field at three different x',
+    file: 'src/WorkoutReview.jsx',
+    also: ['src/ui.jsx'],
+    undo: [['.wr-day-card .wr-meta{ width: 100% !important; display: grid !important; grid-template-columns: 5em 1fr auto auto !important; align-items: center !important; gap: 0 6px !important; }',
+            '.wr-day-card .wr-meta{ width: 100% !important; justify-content: space-between !important; gap: 6px !important; }']],
+    alsoUndo: [["<div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end', minWidth: 0, maxWidth: '100%' }}>",
+                "<div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end', marginInlineStart: 'auto', minWidth: 0, maxWidth: '100%' }}>"]],
+    url: APP + '/coach/review', w: 390, h: 1000, auth: true, built: true, mobile: true,
+    // The athlete strip AND the three day cards under it: one crop shows both
+    // the hole beside the button and the columns that did not line up.
+    crop: [0, 180, 390, 360],
+  },
+  {
+    id: 'intake-text',
+    title: 'Intake · a centred filter, and a separator left dangling at a line end',
+    file: 'src/IntakeView.jsx',
+    also: ['src/themes.css'],
+    undo: [["style={{ textAlign: 'start', height: 30, boxSizing: 'border-box', background: 'var(--c-sf)'",
+            "style={{ height: 30, boxSizing: 'border-box', background: 'var(--c-sf)'"]],
+    alsoUndo: [['.intake-tally { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 7px; }',
+                '.intake-tally { display: inline; }'],
+               ['  .intake-tally-dot { display: none; }', '  .intake-tally-dot { display: inline; }']],
+    url: APP + '/coach/intake', w: 390, h: 800, auth: true, built: true, mobile: true,
+    // The tally and the filter field - the two things that changed.
+    crop: [0, 100, 390, 190],
   },
 ];
 
@@ -453,6 +506,57 @@ async function shootRetry(job, label) {
   }
 }
 
+// A PAIR THAT SHOWS THE SAME PICTURE TWICE IS WORSE THAN NO PAIR.
+//
+// Every "before" here is REPRODUCED by undoing the fix, so the whole thing
+// rests on the undo actually reaching the running page. Once 5199 and 4173 both
+// began serving the BUILT bundle, a job without `built: true` edited a source
+// file nobody was reading: the two shots came out byte-identical and the recap
+// showed a fix photographed twice in its FIXED state. Two of the eighteen pairs
+// on disk were exactly that. So measure it - a pair must differ, and by more
+// than render noise.
+// `npm run build` runs the whole gate chain, which is both slow and WRONG here:
+// a "before" is a deliberately reverted fix, and a revert can legitimately fail
+// a gate (the surface manifest, the Hebrew check), which would throw and lose
+// the pair. Build the bundle only.
+const buildCmd = (job) => (job.il ? 'npm --prefix expo-il run build' : 'npm run build:nocheck');
+
+const MIN_DIFF_PCT = 0.05;
+// MEASURE INSIDE THE CROP, WHICH IS THE PART THE PAIR IS ABOUT.
+//
+// Measured across the whole page, bhbc-history came out at 0.037% and was
+// dropped - but the undo had worked perfectly. The fix is one label's size,
+// weight and colour, and a label is a rounding error on a 1500x1100 screenshot.
+// The crop is the author saying "this is the region that changed", so that is
+// the region to judge. Without a crop the whole image is the region.
+function pairDiff(id, crop, cssW) {
+  const bp = `${OUT}/${id}-before.png`, ap = `${OUT}/${id}-after.png`;
+  if (!fs.existsSync(bp) || !fs.existsSync(ap)) return { ok: false, why: 'one of the two shots is missing' };
+  const bb = fs.readFileSync(bp), ab = fs.readFileSync(ap);
+  if (bb.equals(ab)) return { ok: false, why: 'the two files are byte-identical - the undo never reached the page' };
+  const B = PNG.sync.read(bb), A = PNG.sync.read(ab);
+  if (B.width !== A.width || B.height !== A.height) return { ok: true, pct: 100, why: `different sizes (${B.width}x${B.height} vs ${A.width}x${A.height})` };
+  // The 390px shots come back at 2x and the desktop ones at 1x, so derive the
+  // scale from the capture rather than assuming - the same trap the cropper hit.
+  const sc = cssW ? Math.max(1, Math.round(B.width / cssW)) : 1;
+  const x0 = crop ? Math.max(0, Math.round(crop[0] * sc)) : 0;
+  const y0 = crop ? Math.max(0, Math.round(crop[1] * sc)) : 0;
+  const x1 = crop ? Math.min(B.width, Math.round((crop[0] + crop[2]) * sc)) : B.width;
+  const y1 = crop ? Math.min(B.height, Math.round((crop[1] + crop[3]) * sc)) : B.height;
+  const w = x1 - x0, h = y1 - y0;
+  if (w < 20 || h < 20) return { ok: false, why: `the crop box is empty on a ${B.width}x${B.height} capture` };
+  let n = 0;
+  for (let y = y0; y < y1; y++) {
+    for (let x = x0; x < x1; x++) {
+      const i = (B.width * y + x) * 4;
+      if (Math.abs(B.data[i] - A.data[i]) > 8 || Math.abs(B.data[i + 1] - A.data[i + 1]) > 8 || Math.abs(B.data[i + 2] - A.data[i + 2]) > 8) n++;
+    }
+  }
+  const pct = (n / (w * h)) * 100;
+  const where = crop ? `inside the ${w}x${h} crop` : 'across the whole shot';
+  return { ok: pct >= MIN_DIFF_PCT, pct, why: `${pct.toFixed(3)}% of pixels differ ${where} (floor ${MIN_DIFF_PCT}%)` };
+}
+
 for (const job of jobs) {
   const src = fs.readFileSync(job.file, 'utf8');
   const src2 = job.also ? fs.readFileSync(job.also[0], 'utf8') : null;
@@ -465,7 +569,7 @@ for (const job of jobs) {
     }
     if (!broke) continue;
     fs.writeFileSync(job.file, mod);
-    if (job.built) { console.log(`     building "before" for ${job.id}...`); execSync('npm run build', { stdio: 'ignore' }); }
+    if (job.built) { console.log(`     building "before" for ${job.id}...`); execSync(buildCmd(job), { stdio: 'ignore' }); }
     if (src2) {
       let m2 = src2;
       for (const [from, to] of (job.alsoUndo || [])) m2 = m2.replace(from, to);
@@ -474,12 +578,14 @@ for (const job of jobs) {
     await wait(6000);                       // let the dev server pick it up
     await shootRetry(job, 'before');
     fs.writeFileSync(job.file, src);        // RESTORE before the after-shot
-    if (job.built) { console.log(`     rebuilding "after" for ${job.id}...`); execSync('npm run build', { stdio: 'ignore' }); }
+    if (job.built) { console.log(`     rebuilding "after" for ${job.id}...`); execSync(buildCmd(job), { stdio: 'ignore' }); }
     if (src2) fs.writeFileSync(job.also[0], src2);
     broke = false;
     await wait(6000);
     await shootRetry(job, 'after');
-    console.log(`ok   ${job.id}`);
+    const d = pairDiff(job.id, job.crop, job.w);
+    if (!d.ok) console.log(`FAIL ${job.id}: the pair shows the SAME thing twice - ${d.why}`);
+    else console.log(`ok   ${job.id}  (${d.why})`);
   } catch (e) {
     console.log(`FAIL ${job.id}: ${String(e.message || e).slice(0, 90)}`);
   } finally {
@@ -499,8 +605,16 @@ for (const job of jobs) {
 const made = fs.readdirSync(OUT).filter((f) => f.endsWith('.png'));
 // Index EVERY pair on disk, not just this run's - otherwise running one id
 // wipes the others out of the recap.
-const index = PAIRS.map((j) => ({ id: j.id, title: j.title, w: j.w, crop: j.crop }))
-  .filter((j) => made.includes(j.id + '-before.png') && made.includes(j.id + '-after.png'));
+// Index only the pairs that PROVE something. A pair whose two shots are the
+// same picture is dropped with its reason printed - it would otherwise sit in
+// the recap looking like evidence.
+const checked = PAIRS
+  .filter((j) => made.includes(j.id + '-before.png') && made.includes(j.id + '-after.png'))
+  .map((j) => ({ j, d: pairDiff(j.id, j.crop, j.w) }));
+const dropped = checked.filter((x) => !x.d.ok);
+const index = checked.filter((x) => x.d.ok).map(({ j }) => ({ id: j.id, title: j.title, w: j.w, crop: j.crop }));
 fs.writeFileSync('audit-out/beforeafter/index.json', JSON.stringify(index, null, 1));
-console.log(`\n${index.length} pair(s) -> ${OUT}`);
+for (const x of dropped) console.log(`DROPPED ${x.j.id}: ${x.d.why}`);
+console.log(`${index.length} pair(s) indexed -> ${OUT}` + (dropped.length ? `; ${dropped.length} dropped for showing the same picture twice` : ''));
+if (dropped.length) process.exitCode = 1;
 b.disconnect();
