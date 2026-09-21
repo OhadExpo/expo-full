@@ -160,9 +160,12 @@ export function Accessibility() {
         <LI>{heb
           ? 'יחסי ניגודיות שנבדקו מול התקן, ולא רק "נראה בסדר".'
           : 'Contrast ratios checked against the standard rather than judged by eye.'}</LI>
+        {/* Precisely what the CSS does, no more: buttons get a floor on both
+            axes, links get one on height. Claiming "both directions" for links
+            would have been a sentence this page cannot cash. */}
         <LI>{heb
-          ? 'כל כפתור וקישור בגודל מגע של 40 פיקסלים לפחות בשני הצירים בטלפון.'
-          : 'Every button and link is at least a 40px touch target in both directions on a phone.'}</LI>
+          ? 'בטלפון, כל כפתור הוא לפחות 40 פיקסלים לגובה ולרוחב, וכל קישור לפחות 40 פיקסלים לגובה.'
+          : 'On a phone, every button is at least 40px tall and 40px wide, and every link is at least 40px tall.'}</LI>
         <LI>{heb
           ? 'האתר עובד בהגדלה ובמסכים צרים בלי גלילה לצדדים.'
           : 'The site works zoomed in and on narrow screens without sideways scrolling.'}</LI>

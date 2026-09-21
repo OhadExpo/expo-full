@@ -102,6 +102,29 @@
     ::-webkit-scrollbar-thumb{background:#1e1e24;border-radius:4px}
     ::-webkit-scrollbar-thumb:hover{background:#39BDFF40}
     a{color:inherit;text-decoration:none}
+    /* TAP TARGETS ON A PHONE — the same 40px floor the apps got on 21.9.
+       Measured here first: 31 controls under 40px on the programs page alone.
+       A floor rather than per-control edits, so nothing in the design has to
+       change and min-width/min-height only ever GROW something too small.
+       This also makes the accessibility statement true: it claims a 40px
+       target in both directions, and a claim on that page has to be a fact. */
+    @media (max-width: 620px) {
+      /* min-height does NOT apply to a non-replaced INLINE box, and <a> is
+         inline by default — the first version of this rule changed nothing for
+         links and left "WhatsApp me directly" at 15px. They need a box before
+         a minimum means anything. Same trap as display:table-row in the app. */
+      button, [role="button"] { min-height: 40px; min-width: 40px; }
+      /* Every link with a destination, not an enumerated list of prefixes:
+         "BROWSE PROGRAMS" points at the bare anchor #programs and so slipped
+         past a list that only knew about #/ and http. */
+      a[href] { display: inline-flex; align-items: center; min-height: 40px; }
+      /* ...except the skip link, which is a KEYBOARD affordance that is hidden
+         until focused. It is not something anyone taps. */
+      a.skip-link, a[href="#main"], a[href="#content"] { min-height: 0; }
+      /* Links inside a sentence are NOT tap targets in this sense — giving
+         them a 40px box would wreck the line they sit in. */
+      p a, li a, .inline-link { display: inline; min-height: 0; min-width: 0; }
+    }
     button{font:inherit}
 
     /* Hide the EXPO wordmark on narrow phones — the X glyph alone is recognisable
