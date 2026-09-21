@@ -258,6 +258,76 @@ export async function fetchBusy(fromISO, toISO, calendarIds = ['primary']) {
   return merged;
 }
 
+// ── EXPO booking -> a Google Calendar event ─────────────────────────
+//
+// The other direction of the booking sync (#142). fetchBusy() above already
+// stops EXPO offering a slot Google has taken; this stops GOOGLE offering a
+// slot EXPO has taken.
+//
+// Why events and not the appointment schedule: Google's Appointment Schedules
+// - the calendar.app.google pages - have no public API. Calendar API v3 has no
+// resource for a schedule, its slots or its bookings. What it does have is
+// events, and an appointment schedule can be told to check the calendar for
+// conflicts. So writing the booking as an ordinary event is what makes Google
+// hide the time.
+//
+// Runs from the COACH's browser, because that is where the OAuth token lives -
+// the public booking page is anonymous and has no token. Reconciliation on the
+// calendar screen, not at insert time.
+
+const EXPO_TAG = 'expo-booking';
+
+// The event body for one booking row.
+function bookingEvent(bk, settings) {
+  const start = new Date(bk.start_at);
+  const end = new Date(start.getTime() + (bk.duration_min || 60) * 60000);
+  const who = bk.contact_name || 'EXPO booking';
+  const lines = [
+    bk.contact_email ? `Email: ${bk.contact_email}` : null,
+    bk.contact_phone ? `Phone: ${bk.contact_phone}` : null,
+    bk.notes ? `Notes: ${bk.notes}` : null,
+    '', 'Booked through EXPO. Do not edit here - edit it in EXPO.',
+  ].filter((x) => x !== null);
+  return {
+    summary: `${who} - EXPO`,
+    description: lines.join(String.fromCharCode(10)),
+    start: { dateTime: start.toISOString() },
+    end: { dateTime: end.toISOString() },
+    location: settings?.zoom_url || undefined,
+    // Tagged so a later sweep can tell EXPO's events from his own, and so a
+    // deleted booking can be found again if the stored id is ever lost.
+    extendedProperties: { private: { [EXPO_TAG]: bk.id } },
+    // The athlete already got their confirmation from EXPO; a second one from
+    // Google would be a duplicate with a different sender.
+    attendees: undefined,
+    reminders: { useDefault: true },
+  };
+}
+
+// Create the event for a booking. Returns the Google event id.
+export async function pushBookingToCalendar(bk, settings) {
+  if (!getCachedAccessToken()) throw new GoogleCalendarAuthError('No Google access token cached');
+  const ev = await gcalFetch('/calendars/primary/events', {
+    method: 'POST',
+    body: JSON.stringify(bookingEvent(bk, settings)),
+  });
+  return ev && ev.id ? ev.id : null;
+}
+
+// Remove the event for a cancelled booking. A 404/410 means it is already gone,
+// which is success as far as the caller is concerned.
+export async function removeBookingFromCalendar(eventId) {
+  if (!eventId) return true;
+  if (!getCachedAccessToken()) throw new GoogleCalendarAuthError('No Google access token cached');
+  try {
+    await gcalFetch(`/calendars/primary/events/${encodeURIComponent(eventId)}`, { method: 'DELETE' });
+    return true;
+  } catch (e) {
+    if (/(404|410)/.test(String(e && e.message))) return true;
+    throw e;
+  }
+}
+
 // ── Calendar API fetch with auto-refresh on 401 ─────────────────────
 
 async function gcalFetch(path, init = {}, allowRetry = true) {
