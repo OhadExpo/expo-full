@@ -2535,7 +2535,26 @@ export function readLang() {
     const hint = new URLSearchParams(window.location.search).get('lang');
     if (hint === 'he' || hint === 'en') { try { localStorage.setItem(LANG_KEY, hint); } catch { /* private mode */ } return hint; }
   } catch { /* no window */ }
-  try { return localStorage.getItem(LANG_KEY) === 'he' ? 'he' : 'en'; } catch { return 'en'; }
+  try {
+    const saved = localStorage.getItem(LANG_KEY);
+    if (saved === 'he' || saved === 'en') return saved;
+  } catch { /* private mode */ }
+  // NOBODY HAS CHOSEN YET -> ASK THE BROWSER.
+  //
+  // Ohad, 22.9: "make the hebrew go from 10% to over 90% on all of our
+  // platforms". A big part of that 10% was not a missing translation at all:
+  // this function returned 'en' for every first-time visitor, so an Israeli
+  // coach or athlete opening the app for the first time got the English UI and
+  // had to find a toggle. The Hebrew was already written; nobody was shown it.
+  //
+  // Only the FIRST visit is affected — an explicit choice is stored above and
+  // always wins, in both directions. `iw` is the legacy ISO code for Hebrew and
+  // some Android builds still send it.
+  try {
+    const tags = [navigator.language, ...(navigator.languages || [])].filter(Boolean);
+    if (tags.some((t) => /^(he|iw)\b/i.test(t))) return 'he';
+  } catch { /* no navigator */ }
+  return 'en';
 }
 
 // Relative days. A map cannot hold these: Hebrew does not say "לפני 1 ימים",

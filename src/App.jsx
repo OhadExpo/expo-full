@@ -765,8 +765,15 @@ function AuthGate() {
     // The coaches' demo LANDING (/demo, /demo/he) is public too — render it
     // BEFORE the auth gate so a signed-in coach can still open the demo to show
     // a prospect, instead of being bounced into their own dashboard.
-    if (path === '/demo' || path === '/demo/' || path.startsWith('/coaches')) {
+    // /demo FOLLOWS THE READER. It used to hard-code English, so an Israeli
+    // coach with the app already set to Hebrew was handed the English pitch —
+    // on a page whose Hebrew was fully written and simply never shown.
+    // /demo/he and /demo/en stay explicit, for sharing one language on purpose.
+    if (path === '/demo/en' || path === '/demo/en/') {
       return <Suspense fallback={<BootSplash />}><CoachLanding lang="en" /></Suspense>;
+    }
+    if (path === '/demo' || path === '/demo/' || path.startsWith('/coaches')) {
+      return <Suspense fallback={<BootSplash />}><CoachLanding lang={readLang()} /></Suspense>;
     }
     if (path === '/demo/he' || path === '/demo/he/' || path === '/he/demo' || path === '/he/demo/') {
       if (path.startsWith('/he/demo')) window.history.replaceState(null, '', '/demo/he');
@@ -799,8 +806,11 @@ function AuthGate() {
       window.history.replaceState(null, '', '/demo/he');
       return <Suspense fallback={<BootSplash />}><CoachLanding lang="he" /></Suspense>;
     }
-    if (path === '/demo' || path === '/demo/' || path.startsWith('/coaches')) {
+    if (path === '/demo/en' || path === '/demo/en/') {
       return <Suspense fallback={<BootSplash />}><CoachLanding lang="en" /></Suspense>;
+    }
+    if (path === '/demo' || path === '/demo/' || path.startsWith('/coaches')) {
+      return <Suspense fallback={<BootSplash />}><CoachLanding lang={readLang()} /></Suspense>;
     }
     if (isBhbcPath) {
       // Signed out at /bhbc → send them to the club's login URL so the address
