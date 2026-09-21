@@ -39,11 +39,19 @@ const scan = () => pg.evaluate((TOL) => {
   // "rows of the same kind" means in this codebase.
   const groups = new Map();
   for (const el of document.querySelectorAll('*')) {
+    // A CLASS IS NOT REQUIRED TO BE A ROW.
+    //
+    // The first version keyed groups on className and seven routes came back
+    // with ZERO rows compared - tasks, intake, waitlist, billing, calendar,
+    // workouts, exercises - because this codebase styles most rows inline and
+    // gives them no class at all. A sweep that skips seven of thirteen routes
+    // is not a sweep. Fall back to the tag name, which is what actually makes
+    // siblings the same KIND of row when there is no class to say so.
+    if (!el.parentElement) continue;
     const cls = (typeof el.className === 'string' ? el.className : '').trim();
-    if (!cls || !el.parentElement) continue;
     const r = el.getBoundingClientRect();
     if (r.width < 120 || r.height < 12) continue;
-    const key = cls + '|' + (el.parentElement.className || '') + '|' + el.children.length;
+    const key = (cls || '<' + el.tagName + '>') + '|' + (el.parentElement.className || el.parentElement.tagName) + '|' + el.children.length;
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(el);
   }
@@ -55,6 +63,23 @@ const scan = () => pg.evaluate((TOL) => {
     const n = rows[0].children.length;
     if (!n || n > 8) continue;
     if (!rows.every((r) => r.children.length === n)) continue;
+    // A ROW HAS ITS CELLS SIDE BY SIDE.
+    //
+    // Once unclassed elements were grouped by tag, this started calling stacked
+    // page SECTIONS rows - "Exercises · 1,332" above "TableGrid" - and
+    // reporting spreads of 1003px, which is just two blocks of different width.
+    // A row is a thing whose children sit on one line, so require at least two
+    // children sharing a vertical centre, and require the rows themselves to be
+    // the same width, which a column of sections rarely is.
+    const online = (r) => {
+      const ks = [...r.children].map((c) => c.getBoundingClientRect()).filter((c) => c.width > 4 && c.height > 4);
+      if (ks.length < 2) return 0;
+      const c0 = ks[0].top + ks[0].height / 2;
+      return ks.filter((c) => Math.abs(c.top + c.height / 2 - c0) < 4).length;
+    };
+    if (!rows.every((r) => online(r) >= 2)) continue;
+    const w0 = rows[0].getBoundingClientRect().width;
+    if (!rows.every((r) => Math.abs(r.getBoundingClientRect().width - w0) <= 2)) continue;
     rowsSeen += rows.length;
     // ONE LEVEL DEEP IS NOT ENOUGH.
     //
