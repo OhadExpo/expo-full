@@ -143,6 +143,19 @@ export default function BookingView({ trainees }) {
       //
       // One failure does not stop the rest: a single event that will not create
       // should not block the other nine.
+      // AND TAKE DOWN WHAT IS NO LONGER BOOKED. A client can now cancel their
+      // own booking from /book/cancel/<id>, which the coach's browser knows
+      // nothing about - without this, a cancelled session keeps blocking his
+      // appointment page until he notices and cancels it again by hand.
+      let removed = 0;
+      for (const bk of (bookingsRef.current || []).filter((x) => x.gcal_event_id && x.status !== 'confirmed')) {
+        try {
+          await removeBookingFromCalendar(bk.gcal_event_id);
+          await supabase.from('bookings').update({ gcal_event_id: null }).eq('id', bk.id);
+          removed++;
+        } catch { /* leave the id in place and retry on the next sync */ }
+      }
+
       let pushed = 0, pushFailed = 0;
       const toPush = (bookingsRef.current || []).filter(
         (bk) => bk.status === 'confirmed' && bk.source !== 'calendar' && !bk.gcal_event_id
@@ -158,7 +171,7 @@ export default function BookingView({ trainees }) {
         } catch { pushFailed++; }
       }
       if (pushed && !quiet) toast(`${pushed} booking(s) added to Google Calendar`);
-      setCalBusy({ connected: true, blocks: rows.length, pushed, pushFailed, syncedAt: new Date().toISOString(), error: '' });
+      setCalBusy({ connected: true, blocks: rows.length, pushed, pushFailed, removed, syncedAt: new Date().toISOString(), error: '' });
       if (!quiet) toast(tt('Calendar synced'));
       reload();
     } catch (e) {

@@ -182,15 +182,34 @@ export default function BookingPublic() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [weekOffset, setWeekOffset] = useState(0);
+  const [cancelId, setCancelId] = useState(null);
+  const [cancelState, setCancelState] = useState('working');
+  const [cancelWhen, setCancelWhen] = useState(null);
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [form, setForm] = useState({ name: '', email: '', phone: '', notes: '' });
   const [submitting, setSubmitting] = useState(false);
   const [confirmation, setConfirmation] = useState(null);
 
   useEffect(() => {
+    const c = window.location.pathname.match(/^\/book\/cancel\/([0-9a-fA-F-]{36})/);
+    if (c) { setCancelId(c[1]); return; }
     const m = window.location.pathname.match(/^\/book\/([^/]+)/);
     setSlug(m ? m[1].toLowerCase() : null);
   }, []);
+
+  useEffect(() => {
+    if (!cancelId) return;
+    let alive = true;
+    (async () => {
+      const { data, error: ce } = await supabase.rpc('cancel_booking', { p_id: cancelId });
+      if (!alive) return;
+      const row = Array.isArray(data) ? data[0] : data;
+      if (ce || !row || !row.ok) { console.error('[booking] cancel failed', ce); setCancelState('failed'); return; }
+      if (row.start_at) setCancelWhen(new Date(row.start_at));
+      setCancelState('done');
+    })();
+    return () => { alive = false; };
+  }, [cancelId]);
 
   // THE PAGE LOADS ONCE. THE WEEK RELOADS ON ITS OWN.
   //
@@ -341,11 +360,14 @@ export default function BookingPublic() {
         notes: form.notes.trim() || null,
         source: 'public',
       };
-      const { error } = await supabase.from('bookings').insert(row);
+      // Return the row so the confirmation can hand back a cancel link. Without
+      // the id the client has no way out except messaging him.
+      const { data: made, error } = await supabase.from('bookings').insert(row).select('id').single();
       if (error) throw error;
       setConfirmation({
         when: selectedSlot,
         zoom: settings.zoom_url,
+        id: made?.id || null,
       });
     } catch (e) {
       // Public page — keep the detail in the console, show the anon visitor a
@@ -367,6 +389,46 @@ export default function BookingPublic() {
       setSubmitting(false);
     }
   };
+
+  // /book/cancel/<id> - the client's own way out.
+  //
+  // The policy text was displayed and there was no way to act on it: a client
+  // who could not make it had to reach Ohad directly, and a no-show costs him
+  // the hour either way. The booking's uuid is the capability - it is given
+  // only to the person who booked - and it can do exactly one thing, because
+  // the work happens in a SECURITY DEFINER function that can only move a
+  // confirmed FUTURE booking to canceled.
+  if (cancelId) {
+    return (
+      <Wrapper>
+        <div style={{ padding: 30, textAlign: 'center' }}>
+          {cancelState === 'working' && <div style={{ color: C.td, fontSize: 13 }}>{tr(readLang(), 'Loading…')}</div>}
+          {cancelState === 'done' && (
+            <>
+              <div style={{ fontFamily: FN, fontSize: 10, color: C.gn, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 14 }}>
+                ✓ {tr(readLang(), 'Cancelled')}
+              </div>
+              {cancelWhen && <div style={{ fontSize: 15, color: C.tx, marginBottom: 10 }}>{prettyWhen(cancelWhen)}</div>}
+              <div style={{ fontSize: 13, color: C.tm, lineHeight: 1.6, maxWidth: 360, margin: '0 auto' }}>
+                {tr(readLang(), 'That time is free again. You are welcome to book another.')}
+              </div>
+              <a href={slug ? `/book/${slug}` : '/'} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  minHeight: 'var(--btn-h)', padding: '0 16px', marginTop: 18, background: 'transparent',
+                  border: `1px solid ${C.ac}`, color: C.ac, textDecoration: 'none', fontFamily: FN, fontSize: 11,
+                  fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                {tr(readLang(), 'Book another time')}
+              </a>
+            </>
+          )}
+          {cancelState === 'failed' && (
+            <div style={{ fontSize: 13, color: C.tm, lineHeight: 1.6, maxWidth: 380, margin: '0 auto' }}>
+              {tr(readLang(), 'We could not cancel that one — it may have already passed. Please message us.')}
+            </div>
+          )}
+        </div>
+      </Wrapper>
+    );
+  }
 
   if (loading) {
     return <Wrapper><div style={{ padding: 30, textAlign: 'center', color: C.td }}>{tr(readLang(), 'Loading…')}</div></Wrapper>;
@@ -399,7 +461,7 @@ export default function BookingPublic() {
             <a href={icsFor(confirmation.when, settings.duration_min,
                   `${tr(readLang(), 'Session')} · ${settings.display_name || 'EXPO'}`,
                   safeUrl(confirmation.zoom) || '',
-                  settings.bio || '')}
+                  [settings.bio || '', confirmation.id ? `${tr(readLang(), 'Cancel')}: ${window.location.origin}/book/cancel/${confirmation.id}` : ''].filter(Boolean).join(' '))}
               download="expo-session.ics"
               style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minHeight: 'var(--btn-h)', padding: '0 16px',
                 background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, textDecoration: 'none',
@@ -409,6 +471,12 @@ export default function BookingPublic() {
             <div style={{ fontSize: 12.5, color: C.tm, lineHeight: 1.6, maxWidth: 360 }}>
               {tr(readLang(), 'Your time is held. We will be in touch to confirm the details.')}
             </div>
+            {confirmation.id && (
+              <a href={`/book/cancel/${confirmation.id}`}
+                style={{ fontSize: 12, color: C.td, textDecoration: 'underline', marginTop: 2 }}>
+                {tr(readLang(), 'Need to cancel?')}
+              </a>
+            )}
           </div>
           {settings.cancellation_policy && (
             <div style={{ marginTop: 20, fontSize: 11, color: C.td, lineHeight: 1.5 }}>{settings.cancellation_policy}</div>

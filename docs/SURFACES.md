@@ -28,6 +28,7 @@ Last verified against code: 2026-09-04 — `scripts/check-surfaces.mjs` found al
 | `/coaches/demo/trainee` | → `/demo/athlete` | legacy redirect alias |
 | `/intake/he`, `/intake/en` | `IntakeForm` | token-gated public intake (works in PWA too) |
 | `/book/<slug>` | `BookingPublic` | public booking; anon insert via RLS |
+| `/book/cancel/<id>` | `BookingPublic` | the client's own cancellation; the booking uuid is the capability, the work is a SECURITY DEFINER RPC that can only move a confirmed FUTURE booking to canceled |
 | `/p/<token>` | `ProgramShare` | read-only shared program preview |
 | `/sign/<token>` | `ContractSign` | public contract signing; anon UPDATE signature |
 
