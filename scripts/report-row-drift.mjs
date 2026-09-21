@@ -137,6 +137,18 @@ for (const route of ROUTES) {
   await setWidth(pg, W, 1100);
   await pg.goto('http://127.0.0.1:5199' + route, { waitUntil: 'domcontentloaded' });
   await new Promise((r) => setTimeout(r, 8000));
+  // Ohad's rule, 21.9: see the ENTIRE page before judging it. Anything mounted
+  // on intersection is absent from a measurement taken at the top, so a sweep
+  // can report clean because the broken part never rendered.
+  await pg.evaluate(async () => {
+    const step = Math.max(200, Math.round(window.innerHeight * 0.8));
+    for (let y = 0; y < document.body.scrollHeight; y += step) {
+      window.scrollTo(0, y);
+      await new Promise((r) => setTimeout(r, 90));
+    }
+    window.scrollTo(0, 0);
+  }).catch(() => {});
+  await new Promise((r) => setTimeout(r, 500));
   let r = await scan();
   if (!r.shell) { console.log(`${route.padEnd(20)} shell did not render - not measured`); dead++; continue; }
   const openers = await pg.evaluate((src) => {

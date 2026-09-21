@@ -120,6 +120,18 @@ for (const LANG of ['en', 'he']) {
         }
         // A finding list is worthless if the window was not the width claimed,
         // or the surface never opened. Say so instead of reporting a zero.
+        // SEE THE ENTIRE PAGE FIRST (Ohad's rule, 21.9). A section that mounts
+        // on intersection never renders for a probe that stays at the top, so
+        // the sweep would report clean over the part it never looked at.
+        await page.evaluate(async () => {
+          const step = Math.max(200, Math.round(window.innerHeight * 0.8));
+          for (let y = 0; y < document.body.scrollHeight; y += step) {
+            window.scrollTo(0, y);
+            await new Promise((r) => setTimeout(r, 90));
+          }
+          window.scrollTo(0, 0);
+        }).catch(() => {});
+        await new Promise((r) => setTimeout(r, 500));
         const res = await page.evaluate(PROBE);
         if (Math.abs(res.vw - W) > 3) { console.log(`  SKIP ${LANG}/${THEME}/${name}: window is ${res.vw}px, not ${W}`); skipped++; continue; }
         if (openers.length && !opened) { console.log(`  SKIP ${LANG}/${THEME}/${name}: never opened (${openers.join(' / ')})`); skipped++; continue; }

@@ -70,6 +70,24 @@ async function wsEndpoint() {
       await page.waitForSelector(selector, { timeout: 8000 }).catch(() => console.error(`(selector "${selector}" not found — shooting anyway)`));
     }
     await sleep(parseInt(waitMs) || 1500);
+    // SCROLL THE WHOLE PAGE BEFORE CAPTURING IT.
+    //
+    // Ohad's rule, 21.9: "whenever you check a page: scroll all the way down
+    // and make sure you always see the entire page." Anything mounted on
+    // intersection - a lazy section, a chart, an image - is simply absent from
+    // a screenshot taken at the top, so a shot can look clean because the
+    // broken part never rendered. Walk to the bottom, then come back so the
+    // framing is the one that was asked for.
+    await page.evaluate(async () => {
+      const step = Math.max(200, Math.round(window.innerHeight * 0.8));
+      for (let y = 0; y < document.body.scrollHeight; y += step) {
+        window.scrollTo(0, y);
+        await new Promise((r) => setTimeout(r, 90));
+      }
+      window.scrollTo(0, 0);
+    }).catch(() => {});
+    await sleep(600);
+
     await page.screenshot({ path: out, fullPage: full === 'full' || full === 'true' || full === '1' });
     console.log(`OK ${out} @ ${w}x${h}${full ? ' full' : ''} <- ${url}`);
   } catch (e) {
