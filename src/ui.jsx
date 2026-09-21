@@ -1244,6 +1244,20 @@ export function ToastHost() {
 // Sets data-fade="left|right|both|none" on the element; themes.css masks the
 // side that hides content. Measured from the children's rectangles so it is
 // direction-agnostic (scrollLeft is signed differently in RTL).
+// A horizontal scroller that tells you there is more, without each caller
+// having to remember a ref and a hook. Wraps its children and fades whichever
+// edge is hiding content.
+//
+// Ohad, 21.9: "fix the overflow. full sweep everywhere on platforms." The audit
+// found 15 scrollable strips across 13 routes and 2 of them had no fade - both
+// table wrappers, where a cut column reads as a broken table. A component makes
+// the next one correct by default.
+export function ScrollFade({ children, style, className }) {
+  const ref = React.useRef(null);
+  useEdgeFade(ref);
+  return <div ref={ref} className={className} style={{ overflowX: 'auto', ...style }}>{children}</div>;
+}
+
 export function useEdgeFade(ref) {
   React.useEffect(() => {
     let el = null, ro = null, raf = 0, tries = 0;

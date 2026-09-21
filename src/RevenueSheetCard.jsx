@@ -25,7 +25,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useT } from './i18n';
 import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
-import { RefinedHeaderStrip } from './ui';
+import { RefinedHeaderStrip, ScrollFade } from './ui';
 import { fmtNumericDate, monthAbbr } from './dates';
 
 // Nord cannot draw U+25BE — the fallback paints a short dash at 10px, which is
@@ -163,7 +163,7 @@ export function SheetBillingHistory({ traineeId }) {
           {tt('Sessions by month')}: {attendance.map(([m, n]) => `${monthAbbr(Number(m.slice(5, 7)) - 1)} ${n}`).join(' · ')}
         </div>
       )}
-      <div style={{ overflowX: 'auto' }}>
+      <ScrollFade>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead><tr>
             <th style={th}>{tt('Paid on')}</th><th style={th}>{tt('Rate')}</th><th style={th}>{tt('Cycle')}</th>
@@ -171,7 +171,7 @@ export function SheetBillingHistory({ traineeId }) {
           </tr></thead>
           <tbody><PaymentRows payments={payments} tt={tt} td={td} /></tbody>
         </table>
-      </div>
+      </ScrollFade>
       <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 8, lineHeight: 1.5 }}>
         {tt('Estimates: the rate beside the date × the sessions counter as it stood when the date changed. The sheet never wrote what was paid; the monthly totals on the billing page are the real amounts.')}
       </div>
@@ -245,7 +245,7 @@ export default function RevenueSheetCard() {
       )}
 
       {byMonth.length > 0 && (
-        <div style={{ overflowX: 'auto', marginBottom: 18 }}>
+        <ScrollFade style={{ marginBottom: 18 }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
@@ -327,7 +327,7 @@ export default function RevenueSheetCard() {
           <div style={{ fontFamily: FB, fontSize: 11, color: C.td, marginTop: 6, lineHeight: 1.5 }}>
             {tt('Roster estimate = the payments the roster recorded that month, priced at the rate beside each date × the sessions counter when it was reset. Gap = estimate minus the sheet\'s coaching total without the club. A payment dated in one month is often banked in the next.')}
           </div>
-        </div>
+        </ScrollFade>
       )}
 
       {clients.length > 0 && (
@@ -335,7 +335,7 @@ export default function RevenueSheetCard() {
           <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700, marginBottom: 8 }}>
             {tt('Payments recorded per client')} · <span style={{ color: C.td, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>{tt('tap a row for the full history')}</span>
           </div>
-          <div style={{ overflowX: 'auto' }}>
+          <ScrollFade>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
@@ -399,7 +399,7 @@ export default function RevenueSheetCard() {
                 })}
               </tbody>
             </table>
-          </div>
+          </ScrollFade>
         </>
       )}
 

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { C, FN, FB, EXPO_ICON } from './theme';
-import { Badge, baseInput, SectionLabel, isRefined5b, RefinedHeaderStrip, SectionIcon, confirmToast, CollapsibleSection, usePersistentState, asButton } from './ui';
+import { Badge, baseInput, SectionLabel, isRefined5b, RefinedHeaderStrip, SectionIcon, confirmToast, CollapsibleSection, usePersistentState, asButton, useEdgeFade } from './ui';
 import { traineeIdsFor, parseTraineeId } from './traineeUtils';
 import { supabase } from './supabase';
 import { WhatsAppCheckInButton, normalizePhoneIL } from './whatsappButton';
@@ -45,6 +45,10 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
   // What stays: client-engagement signals (active count, low sessions, online,
   // dormant/dropout, expiring packages), Tasks, and Messages.
   const [sort, setSort] = useState('name');
+  // The roster table scrolls sideways at tablet width; without an edge fade a
+  // cut column reads as broken rather than as "there is more this way".
+  const rosterScrollRef = useRef(null);
+  useEdgeFade(rosterScrollRef);
   const [dir, setDir] = useState(1);
   const [filter, setFilter] = useState('');
 
@@ -908,7 +912,7 @@ export default function DashboardView({ dataIncomplete = false, isOwner = true, 
             <span aria-hidden style={{ color: '#FFFFFF', fontSize: 12, lineHeight: 1, transform: allAthletesOpen ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease' }}>▾</span>
           </div>
           <div style={{ display: 'grid', gridTemplateRows: allAthletesOpen ? '1fr' : '0fr', transition: 'grid-template-rows 260ms ease' }}><div style={{ overflow: 'hidden', minHeight: 0 }}>
-          <div style={{ overflowX: 'auto' }}>
+          <div ref={rosterScrollRef} style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
             <thead>
               <tr style={{ background: refined ? 'var(--c-sf)' : 'transparent', borderBottom: `1px solid ${refined ? 'rgba(0,0,0,0.10)' : C.cardBd}` }}>

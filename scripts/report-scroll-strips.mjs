@@ -26,6 +26,20 @@ for (const route of ROUTES) {
   await setWidth(pg, W, 900);
   await pg.goto('http://127.0.0.1:5199' + route, { waitUntil: 'domcontentloaded' });
   await new Promise((r) => setTimeout(r, 8000));
+  // WAIT FOR THE FADE TO SETTLE BEFORE JUDGING IT.
+  //
+  // useEdgeFade measures on a rAF after layout and a ResizeObserver, so a read
+  // taken too early sees data-fade unset and reports a strip as unfaded. One
+  // run said "4 without" and the very next said 0 - a flake that would have had
+  // someone chasing four fades that were already there. Re-read until the count
+  // stops changing.
+  let last = -1;
+  for (let i = 0; i < 6; i++) {
+    const n = await pg.evaluate(() => [...document.querySelectorAll('[data-fade]')].length);
+    if (n === last) break;
+    last = n;
+    await new Promise((r) => setTimeout(r, 700));
+  }
   const r = await pg.evaluate(() => {
     const shell = /DASHBOARD|OVERVIEW|ROSTER/i.test(document.body.innerText || '');
     const out = [];
