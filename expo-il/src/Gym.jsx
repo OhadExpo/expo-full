@@ -20,6 +20,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Analytics, track } from '@vercel/analytics/react';
 import { C, FN, FB, EXPO_LOGO_NAV, CONTACT } from './theme';
+import ConsentFrame from './ConsentFrame';
 import { useT, useLang, setLang } from './i18n';
 import { GCAL_GYM } from './EntryChooser';
 import founderOhad from './assets/founder-ohad.jpg';
@@ -798,19 +799,14 @@ function CalendarSection({ heb }) {
             owns the profile picture: he'll set a Google-account photo
             that looks intentional when the invert filter flips it,
             so we don't need to hide it. */}
-        <iframe
+        {/* Click-to-load: no Google request, and no Google cookie, until the
+            visitor asks for the calendar. See ConsentFrame. */}
+        <ConsentFrame
           src={embedUrl}
           title={heb ? 'יומן זימונים' : 'Booking calendar'}
-          loading="lazy"
-          style={{
-            width: '100%',
-            height: 'clamp(620px, 90vh, 820px)',
-            border: 'none',
-            display: 'block',
-            background: '#FFFFFF',
-            filter: 'invert(0.92) hue-rotate(180deg) saturate(0.9)',
-            WebkitFilter: 'invert(0.92) hue-rotate(180deg) saturate(0.9)',
-          }}
+          heb={heb}
+          height="clamp(620px, 90vh, 820px)"
+          filter="invert(0.92) hue-rotate(180deg) saturate(0.9)"
         />
       </div>
 

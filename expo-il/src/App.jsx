@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { Analytics, track } from '@vercel/analytics/react';
+import ConsentFrame from './ConsentFrame';
 import { C, FN, FB, CONTACT, buyOnWhatsApp, EXPO_LOGO_NAV } from './theme';
 import { PROGRAMS } from './programs';
 import { useT, useLang, setLang } from './i18n';
@@ -3087,19 +3088,14 @@ function DiscoveryCallSection() {
         borderInlineStart: `3px solid ${C.ac}`, padding: 6,
         position: 'relative', overflow: 'hidden',
       }}>
-        <iframe
+        {/* Click-to-load: nothing is fetched from Google, and no Google cookie
+            is set, until the visitor asks for the calendar. See ConsentFrame. */}
+        <ConsentFrame
           src={embedUrl}
           title={heb ? 'יומן שיחות היכרות' : 'Discovery call calendar'}
-          loading="lazy"
-          style={{
-            width: '100%',
-            height: 'clamp(620px, 80vh, 760px)',
-            border: 'none',
-            display: 'block',
-            background: '#FFFFFF',
-            filter: 'invert(0.92) hue-rotate(180deg) saturate(0.9)',
-            WebkitFilter: 'invert(0.92) hue-rotate(180deg) saturate(0.9)',
-          }}
+          heb={heb}
+          height="clamp(620px, 80vh, 760px)"
+          filter="invert(0.92) hue-rotate(180deg) saturate(0.9)"
         />
       </div>
       <div style={{
