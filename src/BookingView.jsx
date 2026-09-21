@@ -188,7 +188,7 @@ export default function BookingView({ trainees }) {
           <Input label={tt('Duration (min)')} type="number" value={draftSettings?.duration_min || 60} onChange={e => setDraftSettings({ ...draftSettings, duration_min: parseInt(e.target.value) || 60 })} />
           <Input label={tt('Buffer (min)')} type="number" value={draftSettings?.buffer_min || 0} onChange={e => setDraftSettings({ ...draftSettings, buffer_min: parseInt(e.target.value) || 0 })} />
           <Input label={tt('Lead time (hrs)')} type="number" value={draftSettings?.lead_time_hours || 4} onChange={e => setDraftSettings({ ...draftSettings, lead_time_hours: parseInt(e.target.value) || 4 })} />
-          <Input label={tt('Zoom URL')} value={draftSettings?.zoom_url || ''} onChange={e => setDraftSettings({ ...draftSettings, zoom_url: e.target.value })} placeholder="https://zoom.us/j/…" />
+          <Input label={tt('Zoom URL')} style={{ textAlign: 'start' }} value={draftSettings?.zoom_url || ''} onChange={e => setDraftSettings({ ...draftSettings, zoom_url: e.target.value })} placeholder="https://zoom.us/j/…" />
         </div>
         <div style={{ marginBottom: 10 }}>
           <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>{tt('CANCELLATION POLICY')}</label>

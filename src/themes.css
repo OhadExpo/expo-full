@@ -1337,3 +1337,16 @@ body[data-lang="he"] > :not(#root) { direction: rtl; }
   .ex-filtrow { display: block; }
   .ex-filtrow-l { display: block; width: auto; line-height: 1.4; margin-bottom: 5px; }
 }
+
+/* ── A separator must never be the last glyph on a line ──────────────────────
+   The intake tally was one text run with literal " · " separators, so at 390
+   the first line ended "… 0 PROGRESS ·" with the dot dangling and "1 TOTAL"
+   stranded below it. Each figure is now an unbreakable item and the dots are
+   elements, so a break can only fall between figures. On a phone the dots go
+   and the gap does the separating — the same call WorkoutReview's meta row
+   makes for the same reason. */
+.intake-tally { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 7px; }
+@media (max-width: 620px) {
+  .intake-tally { gap: 2px 14px; }
+  .intake-tally-dot { display: none; }
+}

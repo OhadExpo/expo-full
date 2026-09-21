@@ -1823,7 +1823,7 @@ function ExEditorExtras({ ex, exData, exTitle, update, onResolveVideo = null, sh
                 {hasNoteOverride && (ex.notes||'').length>0 && <button onClick={()=>update({notes:'',notesEdited:true})} title="Clear the note for this program only (library is untouched)." style={{background:'transparent',border:`1px solid ${C.cardBd}`,color:C.rd,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.1em',padding:'2px 7px',cursor:'pointer',borderRadius:0,opacity:0.7}}>× {tt('CLEAR')}</button>}
               </div>
             </div>
-            <textarea value={noteValue} onChange={e=>update({notes:e.target.value,notesEdited:true})} placeholder={tr(readLang(), libCues?"Notes / modifications (overrides library cues)":"Notes, modifications...")} style={{...baseInput,textAlign:'center',flex:1,minHeight:120,padding:'10px 12px',lineHeight:1.5,resize:'vertical',fontFamily:FB,fontSize:13}} />
+            <textarea value={noteValue} onChange={e=>update({notes:e.target.value,notesEdited:true})} placeholder={tr(readLang(), libCues?"Notes / modifications (overrides library cues)":"Notes, modifications...")} style={{...baseInput,flex:1,minHeight:120,padding:'10px 12px',lineHeight:1.5,resize:'vertical',fontFamily:FB,fontSize:13}} />
           </div>
           {/* THUMBNAIL (right) — spacer mirrors the NOTES label row height.
               Fills the column edge-to-edge so it shares the exact left/right

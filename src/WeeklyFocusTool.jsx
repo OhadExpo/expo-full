@@ -158,7 +158,7 @@ export default function WeeklyFocusTool({ trainees, exercises, weeklyFocus, setW
               onFocus={() => setPickerOpen(true)}
               onBlur={() => setTimeout(() => setPickerOpen(false), 150)}
               onKeyDown={e => { if (e.key === 'Enter' && matches.length) { e.preventDefault(); pickAthlete(matches[0]); } else if (e.key === 'Escape') setPickerOpen(false); }}
-              style={{ ...sel, width: '100%', boxSizing: 'border-box', borderColor: traineeId ? C.ac : C.cardBd }} />
+              style={{ ...sel, textAlign: 'start', width: '100%', boxSizing: 'border-box', borderColor: traineeId ? C.ac : C.cardBd }} />
             {pickerOpen && matches.length > 0 && (
               <div style={{ marginTop: 4, background: 'var(--c-sf)', border: `1px solid ${C.ac}`, maxHeight: 240, overflowY: 'auto', boxShadow: C.cardShadow }}>
                 {matches.map(o => (

@@ -791,6 +791,9 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
             // minWidth 0 or the input refuses to shrink past its intrinsic
             // size: measured at 360 the composer row overflowed by 15px and the
             // "ENTER TO SAVE" hint crossed the row's own edge.
+            // Leading-aligned, like the search field directly above it. The
+            // app-wide centring in index.html is for the set-entry cells.
+            textAlign: 'start',
             flex: 1, minWidth: 0, background: 'transparent', border: 'none', outline: 'none',
             fontFamily: FB, fontSize: 13, color: 'var(--c-tx)', padding: 0,
           }}

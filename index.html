@@ -67,6 +67,14 @@
     ::-webkit-scrollbar-thumb{background:var(--c-bd2);border-radius:3px}
     ::-webkit-scrollbar-thumb:hover{background:#39BDFF40}
     input,select,textarea{font-family:'Nord','Heebo','DM Sans',system-ui,sans-serif;text-align:center}
+    /* ...except a TEXTAREA. The centring above earns its keep on the set-entry
+       cells - a column of "kg", "reps", "3010", "7-8" only reads as a column
+       when the numbers are centred - but a multi-line notes or policy field
+       centred is ragged on BOTH edges and has no edge to read down. There is no
+       textarea in this app that wants it. Single-line free-text fields (search,
+       filter, composer) opt out one at a time at their own definition; they are
+       listed by scripts/report-input-align.mjs. */
+    textarea{text-align:start}
     /* Native <select> dropdown options. Without these, Chrome/Edge renders
        options using OS theme — on dark Windows themes the unselected items
        render as low-contrast grey-on-grey, which is unreadable in our dark

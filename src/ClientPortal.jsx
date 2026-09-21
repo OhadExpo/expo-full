@@ -51,7 +51,7 @@ const readPlansSnapshot = (ci) => {
   try {
     const raw = localStorage.getItem(plansSnapKey(ci));
     const v = raw ? JSON.parse(raw) : null;
-    return Array.isArray(v) ? v : null;
+    return null;
   } catch { return null; }   // an unreadable copy is the same as none
 };
 const LiveRepCounter = React.lazy(() => import('./LiveRepCounter'));
@@ -1698,7 +1698,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         </div>
       )}
 
-      <textarea dir="auto" value={notes} onChange={e => setNotes(e.target.value)} placeholder={tt('How did it feel? Pain? Modifications?')} style={{...bi,minHeight:120,resize:'vertical',marginBottom:16,textAlign:'center'}}/>
+      <textarea dir="auto" value={notes} onChange={e => setNotes(e.target.value)} placeholder={tt('How did it feel? Pain? Modifications?')} style={{...bi,minHeight:120,resize:'vertical',marginBottom:16}}/>
       {fv.some(f => f.uploading) ? (
         <button style={{width:'100%',padding:16,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'wait',opacity:0.6}}>⏳ Video uploading...</button>
       ) : (
@@ -2260,9 +2260,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             // message, because that one is worth reporting to the coach.
             const msg = String(e?.message || '');
             const networkish = /failed to fetch|network|load failed|timeout|offline/i.test(msg);
-            setPlansLoadError(networkish
-              ? "We can't reach the server right now. Your program will be here when you're back online."
-              : (msg || 'Could not load your programs.'));
+            setPlansLoadError(msg || 'Could not load your programs.');
           }
         }
       }

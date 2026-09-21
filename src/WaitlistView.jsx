@@ -327,7 +327,7 @@ export default function WaitlistView({ trainees }) {
       {/* Filter + F-28 view toggle */}
       <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <input placeholder={tt("Filter by email, source, or notes…")} value={filter} onChange={e => setFilter(e.target.value)}
-          style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '8px 12px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', minWidth: 280 }} />
+          style={{ textAlign: 'start', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '8px 12px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', minWidth: 280, flex: '1 1 280px' }} />
         <div style={{ display: 'flex', gap: 4 }}>
           {['list', 'board'].map(mode => (
             <button key={mode} aria-pressed={viewMode === mode} onClick={() => setViewMode(mode)}

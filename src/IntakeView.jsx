@@ -185,8 +185,22 @@ export default function IntakeView({ trainees }) {
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, padding: '14px 18px' }}>
           <div>
-            <div style={{ fontFamily: FB, fontSize: 12, color: C.tm }}>
-              <span style={{ color: C.tx, fontWeight: 700 }}>{counts.open} {tt('open')}</span> · {counts.initial} {tt('initial')} · {counts.assessment} {tt('assessment')} · {counts.progress} {tt('progress')} · {readLang() === 'he' ? `סה״כ ${counts.total}` : `${counts.total} ${tt('total')}`}
+            {/* One text run with literal " · " separators broke wherever it
+                ran out of room: at 390 the line ended "… 0 PROGRESS ·" with the
+                separator dangling as the last glyph and "1 TOTAL" alone below.
+                Each figure is now its own unbreakable item; the dots are real
+                elements that disappear on a phone and let the gap separate the
+                figures instead - the same call WorkoutReview's meta row makes. */}
+            <div className="intake-tally" style={{ fontFamily: FB, fontSize: 12, color: C.tm }}>
+              <span style={{ color: C.tx, fontWeight: 700, whiteSpace: 'nowrap' }}>{counts.open} {tt('open')}</span>
+              {[[counts.initial, tt('initial')], [counts.assessment, tt('assessment')], [counts.progress, tt('progress')]].map(([n, label]) => (
+                <React.Fragment key={label}>
+                  <span className="intake-tally-dot" aria-hidden>·</span>
+                  <span style={{ whiteSpace: 'nowrap' }}>{n} {label}</span>
+                </React.Fragment>
+              ))}
+              <span className="intake-tally-dot" aria-hidden>·</span>
+              <span style={{ whiteSpace: 'nowrap' }}>{readLang() === 'he' ? `סה״כ ${counts.total}` : `${counts.total} ${tt('total')}`}</span>
             </div>
           </div>
           <Btn onClick={() => setShowGen(true)} style={{ height: 30, padding: '0 18px' }}>{tb('+ Generate Link')}</Btn>
@@ -196,7 +210,7 @@ export default function IntakeView({ trainees }) {
       {/* Filter bar */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 14, alignItems: 'center', flexWrap: 'wrap' }}>
         <input placeholder={tt('Filter by name / email / form type…')} value={filter} onChange={e => setFilter(e.target.value)}
-          style={{ height: 30, boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 12px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', minWidth: 280, flex: 1 }} />
+          style={{ textAlign: 'start', height: 30, boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 12px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', minWidth: 280, flex: 1 }} />
         <button onClick={() => setShowReviewed(s => !s)}
           style={{ height: 30, boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${showReviewed ? C.ac : C.cardBd}`, color: showReviewed ? C.ac : C.tm, padding: '0 12px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', borderRadius: 0, minWidth: 152, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
           {showReviewed ? tt('Showing reviewed') : tt('Hide reviewed')}
