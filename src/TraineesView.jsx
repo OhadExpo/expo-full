@@ -271,7 +271,14 @@ const CARD_H = 412;
 //
 // So the ROW wraps too, and the badge follows the last line of the text
 // instead of floating. The addresses keep wrapping exactly as before.
-const CARD_MOBILE_CSS = `@media (max-width: 700px){ .tv-contact-slot{ height: auto !important; min-height: 0 !important; } .tv-contact-slot *{ white-space: normal !important; overflow: visible !important; text-overflow: clip !important; overflow-wrap: anywhere !important; } .tv-contact-slot > div{ flex-wrap: wrap !important; align-items: baseline !important; } .tv-athlete-card{ height: auto !important; min-height: 412px !important; } }`;
+//
+// `align-items: baseline` was in this rule for one revision and had to come
+// out: `> div` also matches a COUPLE's per-member column, where the cross axis
+// is horizontal, so baseline dragged the name, phone and address off their
+// shared centre and into three different insets. The sweep caught it as 8
+// RAGGED findings in Hebrew — a change that fixed one card and broke another,
+// which is the reason to re-sweep after every one of these.
+const CARD_MOBILE_CSS = `@media (max-width: 700px){ .tv-contact-slot{ height: auto !important; min-height: 0 !important; } .tv-contact-slot *{ white-space: normal !important; overflow: visible !important; text-overflow: clip !important; overflow-wrap: anywhere !important; } .tv-contact-slot > div{ flex-wrap: wrap !important; } .tv-athlete-card{ height: auto !important; min-height: 412px !important; } }`;
 const FIN_SLOT = 34;   // worst case = pay label + monthly on one line
 
 const MidDot = () => <span style={{ color: C.tm, opacity: 0.5, fontSize: 11 }}>·</span>;
