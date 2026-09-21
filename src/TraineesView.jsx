@@ -62,6 +62,29 @@ const isCouple = (t) => t.members && t.members.length === 2;
 // to "first, second  +N" with a click-to-expand toggle so the card stays a
 // single neat line for the common case. Click stops propagation so toggling
 // doesn't also open the trainee detail view.
+// BREAK AN ADDRESS WHERE A HUMAN WOULD, NOT THREE CHARACTERS FROM THE END.
+//
+// In a couple's card the contact column is about 140px and
+// "danina.ronen@gmail.com" cannot fit on one line at any sensible size — it
+// HAS to break. With overflow-wrap:anywhere the browser breaks wherever it
+// runs out, which produced "DANINA.RONEN@GMAI / L.COM": the reader has to
+// reassemble the domain in their head. Photographed at 390.
+//
+// <wbr> marks where a break is ALLOWED. Putting one after the @ and after each
+// dot makes the browser prefer those points, so the same address breaks as
+// "DANINA.RONEN@ / GMAIL.COM". It is an element, not a character, so a copied
+// address is still clean — unlike a zero-width space, which would ride along
+// invisibly into whatever it was pasted into.
+function breakableEmail(addr) {
+  const parts = String(addr).split(/(?<=[@.])/);
+  return parts.map((p, i) => (i === parts.length - 1
+    ? p
+    : <React.Fragment key={i}>{p}<wbr /></React.Fragment>));
+}
+const breakableList = (arr) => arr.map((a, i) => (
+  <React.Fragment key={i}>{i ? ', ' : ''}{breakableEmail(a)}</React.Fragment>
+));
+
 function EmailsCell({ email, style }) {
   const arr = emailsToArr(email).filter(Boolean);
   const [expanded, setExpanded] = useState(false);
@@ -71,7 +94,7 @@ function EmailsCell({ email, style }) {
     // ran 197px past the card and the second one vanished - and an address
     // you cannot read is not a contact detail. Ohad: "i cant see some of the
     // words... never do."
-    return <div style={{ ...style, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{arr.join(', ')}</div>;
+    return <div style={{ ...style, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{breakableList(arr)}</div>;
   }
   const visible = expanded ? arr : arr.slice(0, 2);
   return (
@@ -83,7 +106,7 @@ function EmailsCell({ email, style }) {
       <span style={expanded
         ? { wordBreak: 'break-all', lineHeight: 1 }
         : { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, lineHeight: 1 }
-      }>{visible.join(', ')}</span>
+      }>{breakableList(visible)}</span>
       <span
         onClick={(e) => { e.stopPropagation(); setExpanded(v => !v); }}
         style={{ color: C.ac, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, lineHeight: 1, minWidth: 34, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
@@ -236,7 +259,19 @@ const CARD_H = 412;
 // and pure waste on a phone, where the grid is ONE column and no two cards sit
 // side by side - an athlete with no phone got a void where the slot was
 // reserved. Same shape as the load board: correct on desktop, wrong at 390.
-const CARD_MOBILE_CSS = `@media (max-width: 700px){ .tv-contact-slot{ height: auto !important; min-height: 0 !important; } .tv-contact-slot *{ white-space: normal !important; overflow: visible !important; text-overflow: clip !important; overflow-wrap: anywhere !important; } .tv-athlete-card{ height: auto !important; min-height: 412px !important; } }`;
+// THE BLANKET `*` ALSO HIT THE "+N" BADGE.
+//
+// Wrapping instead of ellipsising is deliberate and right — Ohad: "i cant see
+// some of the words... never do" — but `.tv-contact-slot *` with !important
+// also strips the nowrap off the "+1" toggle that follows the addresses. The
+// row is a nowrap flex centred on its line, so once the addresses wrap to two
+// lines the badge stays vertically centred and slides to the far right, with
+// nothing connecting it to the text it counts. Photographed at 390: emails
+// centred, "+1" alone against the card's right edge.
+//
+// So the ROW wraps too, and the badge follows the last line of the text
+// instead of floating. The addresses keep wrapping exactly as before.
+const CARD_MOBILE_CSS = `@media (max-width: 700px){ .tv-contact-slot{ height: auto !important; min-height: 0 !important; } .tv-contact-slot *{ white-space: normal !important; overflow: visible !important; text-overflow: clip !important; overflow-wrap: anywhere !important; } .tv-contact-slot > div{ flex-wrap: wrap !important; align-items: baseline !important; } .tv-athlete-card{ height: auto !important; min-height: 412px !important; } }`;
 const FIN_SLOT = 34;   // worst case = pay label + monthly on one line
 
 const MidDot = () => <span style={{ color: C.tm, opacity: 0.5, fontSize: 11 }}>·</span>;
