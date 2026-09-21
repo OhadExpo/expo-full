@@ -1019,11 +1019,17 @@ function SectionHeader({ label, count, color, collapsed, onToggleCollapse }) {
         letterSpacing: '0.18em', color: 'var(--c-tx)',
         textTransform: 'uppercase',
       }}>{label}</span>
+      <span style={{ flex: 1 }} />
+      {/* THE COUNT IS A COLUMN, NOT A SUFFIX.
+          It used to sit immediately after the label, so "To Do 3", "In Progress 4"
+          and "Auto-Alerts 11" put their numbers at three different x - three rows
+          of the same stack that never line up (report-row-drift, 21.9). Anchored
+          to the right of the row, in a fixed box, so every count shares one edge. */}
       <span style={{
         fontFamily: FN, fontSize: 10, fontWeight: 600,
         color: 'var(--c-td)', letterSpacing: '0.04em',
+        minWidth: 18, textAlign: 'right', flex: '0 0 auto',
       }}>{count}</span>
-      <span style={{ flex: 1 }} />
       {/* canonical collapse affordance: white chevron on the RIGHT (billing style) */}
       <span aria-hidden style={{
         color: 'var(--c-tx)', fontSize: 12, lineHeight: 1, display: 'inline-block',
