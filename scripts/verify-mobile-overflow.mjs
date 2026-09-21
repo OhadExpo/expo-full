@@ -132,6 +132,19 @@ try {
     const wide = r.scrollW > r.w + 1;
     console.log(`${(r.bad.length || wide ? 'BAD ' : 'ok  ')} ${route.padEnd(26)} ${lang.dir} ${lang.heb ? 'he' : 'en'}  scrollW ${r.scrollW}/${r.w}  ${r.bad.length} past the edge`);
     for (const x of r.bad) console.log('      ' + x);
+    if (process.env.DUMP) console.log(await pg.evaluate(() => {
+      const bad = [...document.querySelectorAll('*')].filter((e) => { const q = e.getBoundingClientRect(); return q.width > 0 && q.height > 0 && q.right > innerWidth + 1; });
+      const e0 = bad.find((e) => e.tagName === 'SELECT') || bad[0];
+      if (!e0) return '   (dump: nothing)';
+      const out = []; let e = e0;
+      for (let i = 0; i < 9 && e; i++) { const q = e.getBoundingClientRect(); const cs = getComputedStyle(e);
+        out.push(`   ${e.tagName}.${(e.className||'').toString().slice(0,30)} L${Math.round(q.left)} R${Math.round(q.right)} W${Math.round(q.width)} ${cs.display} dir=${cs.direction} wrap=${cs.flexWrap} gtc=${(cs.gridTemplateColumns||'').slice(0,60)}`); e = e.parentElement; }
+      let row = e0; while (row && getComputedStyle(row).display !== 'flex') row = row.parentElement;
+      while (row && row.getBoundingClientRect().width < 300) row = row.parentElement;
+      if (row) { out.push('   ROW children:'); for (const c of row.children) { const q = c.getBoundingClientRect(); const cs2 = getComputedStyle(c);
+        out.push(`     ${c.tagName}.${(c.className||'').toString().slice(0,24)} L${Math.round(q.left)} W${Math.round(q.width)} shrink=${cs2.flexShrink} basis=${cs2.flexBasis} "${(c.textContent||'').replace(/\s+/g,' ').trim().slice(0,34)}"`); } }
+      return out.join(String.fromCharCode(10));
+    }));
     if (wide) problems.push(`${route}: the page itself is ${r.scrollW - r.w}px wider than the phone`);
     for (const x of r.bad) problems.push(`${route}: ${x}`);
 

@@ -1589,11 +1589,18 @@ function ExpandedDetail({ row, displayBody, viewer, onSetCategory, onArchive, on
   );
 }
 
-function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus, onSetPriority, onSetCategory, onDelete, now, search, viewer, readOnly = false, board = false, hideStatus = false, compact = false, narrow = false }) {
+function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus, onSetPriority, onSetCategory, onDelete, now, search, viewer, readOnly = false, board = false, hideStatus = false, compact = false, narrow = false, tight = false }) {
   const tt = useT();
   // On phones, wrap the list row the same way board columns do — title on its
   // own line, meta + status pill below — so nothing gets clipped off-screen.
-  const wrapRow = board || narrow;
+  // TIGHT = the CONTENT COLUMN is too small for the desktop row, which is not
+  // the same thing as a small window. At 768 the coach sidebar still takes 247px,
+  // so the list gets 494 - and the desktop row wants 418 (meta cluster, shrink:0)
+  // + 128 (status pill, shrink:0) = 546 before the title gets a single pixel.
+  // The pill ran 686..814 in a 768 viewport: 46px of it simply off the screen
+  // (verify-mobile-overflow, 21.9, the tablet Ohad photographed). `narrow` only
+  // catches <=560, so every tablet width between fell through.
+  const wrapRow = board || narrow || tight;
   // PHONE-ONLY tweaks. The board cards are a layout Ohad already signed off, so
   // they keep the behaviour they have; only the phone list changes here.
   //
@@ -1888,13 +1895,17 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
   // Phone width: list rows wrap (title + status get their own line) so the
   // fixed-width meta cluster can't push the status pill off-screen (Ohad).
   const [narrow, setNarrow] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 560);
+  // Tablet band: wide enough to keep the sidebar, too narrow for the desktop row.
+  // 860 because at 900 the row still fits with ~80px of title left, and below
+  // that the status pill starts leaving the content column.
+  const [tight, setTight] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 860);
   // On a phone the filter rail stacks full-width ON TOP of the list, so you
   // scroll through the whole Whose/Show/Sort/Group panel before seeing a single
   // task. Collapse it behind the "Filters" header on narrow (tasks first); it
   // stays fully open on desktop. (Ohad, 2026-07-22)
   const [railOpen, setRailOpen] = useState(false);
   React.useEffect(() => {
-    const onResize = () => { setCompact(window.innerWidth <= 1000); setNarrow(window.innerWidth <= 560); };
+    const onResize = () => { setCompact(window.innerWidth <= 1000); setNarrow(window.innerWidth <= 560); setTight(window.innerWidth <= 860); };
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
@@ -2769,7 +2780,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                     onDragLeave={() => { if (dropOnId === row.id) setDropOnId(null); }}
                     onDrop={e => { e.preventDefault(); reorderOnto(row, section); }}
                     style={{ cursor: isReadOnly(row) ? 'default' : 'grab', boxShadow: dropOnId === row.id ? 'inset 0 3px 0 -1px var(--c-ac)' : 'none' }}>
-                    <TaskRow row={row} readOnly={isReadOnly(row)} compact={compact} narrow={narrow}
+                    <TaskRow row={row} readOnly={isReadOnly(row)} compact={compact} narrow={narrow} tight={tight}
                       theme={theme} showAvatar={owner === 'shared'}
                       expanded={expandedRows.has(row.id)}
                       onToggleExpand={() => toggleRow(row.id)}
@@ -2810,7 +2821,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
               </div>
               <div style={{ display: 'grid', gridTemplateRows: autoOpen ? '1fr' : '0fr', transition: 'grid-template-rows 260ms ease' }}><div style={{ overflow: 'hidden', minHeight: 0 }}>
               {autoSection.rows.map(row => (
-                <TaskRow key={row.id} row={row} readOnly={isReadOnly(row)} compact={compact} narrow={narrow}
+                <TaskRow key={row.id} row={row} readOnly={isReadOnly(row)} compact={compact} narrow={narrow} tight={tight}
                   theme={theme} showAvatar={owner === 'shared'}
                   expanded={expandedRows.has(row.id)}
                   onToggleExpand={() => toggleRow(row.id)}
@@ -2882,7 +2893,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                     <button onClick={e => { e.stopPropagation(); toggleSelect(row.id); }} draggable={false} title={tr(readLang(), 'Select')}
                       className={`tv8-board-select${selectedIds.has(row.id) ? ' is-sel' : ''}`}
                       style={{ position: 'absolute', top: 6, left: 6, zIndex: 3, width: 15, height: 15, borderRadius: 0, border: `1px solid ${selectedIds.has(row.id) ? 'var(--c-ac)' : 'var(--c-cardBd)'}`, background: selectedIds.has(row.id) ? 'var(--c-ac)' : 'rgba(0,0,0,0.4)', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#061016', fontSize: 10, fontWeight: 900, lineHeight: 1 }}>{selectedIds.has(row.id) ? '✓' : ''}</button>
-                    <TaskRow row={row} readOnly={isReadOnly(row)} compact narrow={narrow}
+                    <TaskRow row={row} readOnly={isReadOnly(row)} compact narrow={narrow} tight={tight}
                       theme={theme} showAvatar={owner === 'shared'} board hideStatus={!!section.statusId}
                       expanded={expandedRows.has(row.id)}
                       onToggleExpand={() => toggleRow(row.id)}
@@ -2967,7 +2978,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                 _display: displayBodyOf(row.body),
               };
               return (
-                <TaskRow key={row.id} row={decoratedDone} readOnly={isReadOnly(decoratedDone)} compact={compact} narrow={narrow}
+                <TaskRow key={row.id} row={decoratedDone} readOnly={isReadOnly(decoratedDone)} compact={compact} narrow={narrow} tight={tight}
                   theme={theme} showAvatar={owner === 'shared'}
                   expanded={expandedRows.has(row.id)}
                   onToggleExpand={() => toggleRow(row.id)}
